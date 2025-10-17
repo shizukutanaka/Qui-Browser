@@ -1,0 +1,538 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-10-12T00:00:00.000Z",
+  "environment": "production",
+  "runbooks": [
+    {
+      "id": "RB001",
+      "title": "High Error Rate Response",
+      "severity": "critical",
+      "category": "availability",
+      "triggerConditions": [
+        "Error rate exceeds 5%",
+        "Error count > 100 in 5 minutes",
+        "HTTP 5xx responses > 50 in 1 minute"
+      ],
+      "detectTimeTarget": "15 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Verify Incident",
+          "description": "Confirm the error rate from monitoring dashboards",
+          "commands": [
+            "curl http://localhost:3000/health",
+            "node -e \"require('./utils/metrics-aggregator').getStats()\""
+          ],
+          "expectedResult": "High error rate confirmed or false positive identified",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 2,
+          "action": "Check Server Health",
+          "description": "Verify server resources and processes",
+          "commands": [
+            "node -e \"console.log('Memory:', process.memoryUsage())\"",
+            "node -e \"console.log('Uptime:', process.uptime())\""
+          ],
+          "expectedResult": "Server resources within normal range",
+          "timeEstimate": "1 minute"
+        },
+        {
+          "step": 3,
+          "action": "Review Recent Changes",
+          "description": "Check for recent deployments or configuration changes",
+          "commands": [
+            "git log --oneline -5",
+            "node -e \"require('./utils/audit-log-manager'); console.log('Check recent config changes')\""
+          ],
+          "expectedResult": "Identify potential cause from recent changes",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 4,
+          "action": "Check Error Logs",
+          "description": "Analyze error patterns and stack traces",
+          "commands": [
+            "node -e \"require('./utils/error-reporter').getRecentErrors()\"",
+            "tail -100 logs/error.log"
+          ],
+          "expectedResult": "Root cause identified from error patterns",
+          "timeEstimate": "5 minutes"
+        },
+        {
+          "step": 5,
+          "action": "Apply Mitigation",
+          "description": "Based on root cause, apply appropriate fix",
+          "options": [
+            {
+              "scenario": "Memory leak detected",
+              "action": "Restart server",
+              "command": "npm restart"
+            },
+            {
+              "scenario": "Bad configuration",
+              "action": "Rollback configuration",
+              "command": "node utils/config-reloader.js --rollback"
+            },
+            {
+              "scenario": "Dependency issue",
+              "action": "Restart dependencies",
+              "command": "npm install && npm restart"
+            },
+            {
+              "scenario": "Database connection",
+              "action": "Check database connectivity",
+              "command": "node -e \"// Check DB connection\""
+            }
+          ],
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 6,
+          "action": "Verify Resolution",
+          "description": "Confirm error rate has returned to normal",
+          "commands": [
+            "curl http://localhost:3000/health",
+            "node -e \"require('./utils/metrics-aggregator').getStats()\""
+          ],
+          "expectedResult": "Error rate below 1%",
+          "timeEstimate": "1 minute"
+        },
+        {
+          "step": 7,
+          "action": "Document Incident",
+          "description": "Create incident report and post-mortem",
+          "commands": [
+            "node -e \"require('./utils/audit-log-manager').log({action: 'incident_resolved'})\""
+          ],
+          "expectedResult": "Incident documented for future reference",
+          "timeEstimate": "10 minutes"
+        }
+      ],
+      "totalTimeEstimate": "25 minutes",
+      "escalationPath": [
+        {
+          "timeElapsed": "15 minutes",
+          "action": "Notify senior engineer",
+          "contact": "oncall-senior@example.com"
+        },
+        {
+          "timeElapsed": "30 minutes",
+          "action": "Notify engineering manager",
+          "contact": "engineering-manager@example.com"
+        },
+        {
+          "timeElapsed": "60 minutes",
+          "action": "Notify CTO",
+          "contact": "cto@example.com"
+        }
+      ],
+      "rollbackProcedure": {
+        "description": "Rollback to last known good state",
+        "steps": [
+          "Stop current server: npm stop",
+          "Restore from backup: node utils/backup-manager.js --restore latest",
+          "Restart server: npm start",
+          "Verify health: curl http://localhost:3000/health"
+        ]
+      }
+    },
+    {
+      "id": "RB002",
+      "title": "High Response Time",
+      "severity": "warning",
+      "category": "performance",
+      "triggerConditions": [
+        "Average response time > 2000ms",
+        "P95 response time > 5000ms",
+        "Request queue depth > 1000"
+      ],
+      "detectTimeTarget": "15 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Verify Performance Degradation",
+          "description": "Confirm slow response times",
+          "commands": [
+            "node -e \"require('./utils/performance-profiler').getMetrics()\"",
+            "curl -w '%{time_total}' http://localhost:3000/"
+          ],
+          "expectedResult": "Performance degradation confirmed",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 2,
+          "action": "Check Resource Utilization",
+          "description": "Monitor CPU, memory, disk I/O",
+          "commands": [
+            "node -e \"console.log('Memory:', process.memoryUsage())\"",
+            "node -e \"console.log('CPU:', process.cpuUsage())\""
+          ],
+          "expectedResult": "Resource bottleneck identified",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 3,
+          "action": "Analyze Slow Queries",
+          "description": "Identify slow operations",
+          "commands": [
+            "node -e \"require('./utils/performance-profiler').getSlowOperations()\"",
+            "node -e \"require('./utils/request-tracer').getSlowTraces()\""
+          ],
+          "expectedResult": "Slow operations identified",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 4,
+          "action": "Check Cache Performance",
+          "description": "Verify cache hit rates",
+          "commands": [
+            "node -e \"require('./utils/advanced-cache').getStats()\"",
+            "node -e \"require('./utils/metrics-aggregator').getCacheMetrics()\""
+          ],
+          "expectedResult": "Cache performance assessed",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 5,
+          "action": "Apply Performance Fix",
+          "description": "Optimize based on findings",
+          "options": [
+            {
+              "scenario": "Low cache hit rate",
+              "action": "Warm up cache",
+              "command": "node scripts/warm-cache.js"
+            },
+            {
+              "scenario": "Memory pressure",
+              "action": "Clear cache and restart",
+              "command": "node -e \"require('./utils/advanced-cache').clear()\" && npm restart"
+            },
+            {
+              "scenario": "High CPU usage",
+              "action": "Enable request throttling",
+              "command": "node utils/bandwidth-controller.js --enable-throttling"
+            }
+          ],
+          "timeEstimate": "5 minutes"
+        },
+        {
+          "step": 6,
+          "action": "Verify Improvement",
+          "description": "Confirm response times improved",
+          "commands": [
+            "node -e \"require('./utils/performance-profiler').getMetrics()\"",
+            "curl -w '%{time_total}' http://localhost:3000/"
+          ],
+          "expectedResult": "Response times back to normal",
+          "timeEstimate": "2 minutes"
+        }
+      ],
+      "totalTimeEstimate": "16 minutes"
+    },
+    {
+      "id": "RB003",
+      "title": "Security Incident Response",
+      "severity": "critical",
+      "category": "security",
+      "triggerConditions": [
+        "Multiple failed authentication attempts",
+        "Suspicious access patterns detected",
+        "CSP violation reports",
+        "SQL injection attempts detected"
+      ],
+      "detectTimeTarget": "5 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Confirm Security Incident",
+          "description": "Verify security threat",
+          "commands": [
+            "node -e \"require('./utils/audit-log-manager').search({category: 'security_violation'})\"",
+            "node -e \"require('./utils/log-sanitizer').getSecurityEvents()\""
+          ],
+          "expectedResult": "Security incident confirmed",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 2,
+          "action": "Block Malicious IPs",
+          "description": "Identify and block attacking IPs",
+          "commands": [
+            "node -e \"require('./utils/rate-limiter').blockIp('x.x.x.x')\"",
+            "node -e \"require('./utils/firewall-manager').addBlockRule('x.x.x.x')\""
+          ],
+          "expectedResult": "Malicious traffic blocked",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 3,
+          "action": "Review Access Logs",
+          "description": "Analyze access patterns and compromised accounts",
+          "commands": [
+            "node -e \"require('./utils/audit-log-manager').search({actor: 'suspicious_user'})\"",
+            "grep 'SUSPICIOUS' logs/audit/*.log"
+          ],
+          "expectedResult": "Compromised accounts identified",
+          "timeEstimate": "5 minutes"
+        },
+        {
+          "step": 4,
+          "action": "Rotate Secrets",
+          "description": "Rotate potentially compromised credentials",
+          "commands": [
+            "node utils/secrets-rotation.js --rotate-all --reason security_incident"
+          ],
+          "expectedResult": "All secrets rotated",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 5,
+          "action": "Enable Enhanced Monitoring",
+          "description": "Increase logging and monitoring",
+          "commands": [
+            "node -e \"require('./utils/audit-log-manager').setLogLevel('debug')\"",
+            "node -e \"require('./utils/session-correlator').enableAnomalyDetection()\""
+          ],
+          "expectedResult": "Enhanced monitoring active",
+          "timeEstimate": "1 minute"
+        },
+        {
+          "step": 6,
+          "action": "Notify Security Team",
+          "description": "Alert security team and stakeholders",
+          "commands": [
+            "node -e \"require('./utils/notification-channel').critical('Security Incident', 'Details...')\""
+          ],
+          "expectedResult": "Security team notified",
+          "timeEstimate": "1 minute"
+        }
+      ],
+      "totalTimeEstimate": "15 minutes",
+      "escalationPath": [
+        {
+          "timeElapsed": "5 minutes",
+          "action": "Notify security team lead",
+          "contact": "security-lead@example.com"
+        },
+        {
+          "timeElapsed": "15 minutes",
+          "action": "Notify CISO",
+          "contact": "ciso@example.com"
+        }
+      ]
+    },
+    {
+      "id": "RB004",
+      "title": "Database Connection Failure",
+      "severity": "critical",
+      "category": "infrastructure",
+      "triggerConditions": [
+        "Database connection timeout",
+        "Connection pool exhausted",
+        "Database unreachable"
+      ],
+      "detectTimeTarget": "5 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Verify Database Status",
+          "description": "Check if database is reachable",
+          "commands": [
+            "node -e \"// Ping database connection\"",
+            "curl http://localhost:3000/health"
+          ],
+          "expectedResult": "Database status determined",
+          "timeEstimate": "1 minute"
+        },
+        {
+          "step": 2,
+          "action": "Check Connection Pool",
+          "description": "Review connection pool metrics",
+          "commands": [
+            "node -e \"require('./utils/connection-pool').getStats()\"",
+            "node -e \"console.log('Active connections:', require('./utils/metrics-aggregator').getDbMetrics())\""
+          ],
+          "expectedResult": "Connection pool status known",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 3,
+          "action": "Attempt Reconnection",
+          "description": "Reset and recreate database connections",
+          "commands": [
+            "node -e \"require('./utils/connection-pool').reset()\"",
+            "npm restart"
+          ],
+          "expectedResult": "Database connection restored",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 4,
+          "action": "Verify Data Integrity",
+          "description": "Check for data corruption or loss",
+          "commands": [
+            "node -e \"// Run data integrity checks\"",
+            "node utils/backup-manager.js --verify latest"
+          ],
+          "expectedResult": "Data integrity confirmed",
+          "timeEstimate": "5 minutes"
+        }
+      ],
+      "totalTimeEstimate": "11 minutes"
+    },
+    {
+      "id": "RB005",
+      "title": "Memory Leak Detection",
+      "severity": "warning",
+      "category": "performance",
+      "triggerConditions": [
+        "Memory usage increasing steadily",
+        "Heap size > 90% of limit",
+        "GC pause time increasing"
+      ],
+      "detectTimeTarget": "30 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Capture Heap Snapshot",
+          "description": "Take heap snapshot for analysis",
+          "commands": [
+            "node -e \"require('v8').writeHeapSnapshot()\"",
+            "node --expose-gc -e \"global.gc(); console.log(process.memoryUsage())\""
+          ],
+          "expectedResult": "Heap snapshot captured",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 2,
+          "action": "Analyze Memory Usage",
+          "description": "Identify memory leak source",
+          "commands": [
+            "node -e \"require('./utils/performance-profiler').getMemoryProfile()\"",
+            "node -e \"console.log('Memory:', process.memoryUsage())\""
+          ],
+          "expectedResult": "Leak source identified",
+          "timeEstimate": "10 minutes"
+        },
+        {
+          "step": 3,
+          "action": "Clear Caches",
+          "description": "Release cached data",
+          "commands": [
+            "node -e \"require('./utils/advanced-cache').clear()\"",
+            "node -e \"require('./utils/session-correlator').cleanup()\""
+          ],
+          "expectedResult": "Memory freed",
+          "timeEstimate": "1 minute"
+        },
+        {
+          "step": 4,
+          "action": "Schedule Restart",
+          "description": "Plan graceful restart if leak persists",
+          "commands": [
+            "node -e \"console.log('Scheduling restart in 5 minutes')\"",
+            "sleep 300 && npm restart"
+          ],
+          "expectedResult": "Restart scheduled",
+          "timeEstimate": "1 minute"
+        }
+      ],
+      "totalTimeEstimate": "14 minutes"
+    },
+    {
+      "id": "RB006",
+      "title": "Disk Space Critical",
+      "severity": "critical",
+      "category": "infrastructure",
+      "triggerConditions": [
+        "Disk usage > 90%",
+        "Disk write failures",
+        "Log rotation failures"
+      ],
+      "detectTimeTarget": "10 minutes",
+      "responseSteps": [
+        {
+          "step": 1,
+          "action": "Check Disk Usage",
+          "description": "Identify large files and directories",
+          "commands": [
+            "node -e \"// Check disk usage\"",
+            "node -e \"require('fs').statfsSync || console.log('Check disk space manually')\""
+          ],
+          "expectedResult": "Disk usage analyzed",
+          "timeEstimate": "2 minutes"
+        },
+        {
+          "step": 2,
+          "action": "Clean Temporary Files",
+          "description": "Remove temporary and cache files",
+          "commands": [
+            "node -e \"require('./utils/retention-policy-engine').executeRetention()\"",
+            "node scripts/cleanup-temp-files.js"
+          ],
+          "expectedResult": "Temporary files removed",
+          "timeEstimate": "3 minutes"
+        },
+        {
+          "step": 3,
+          "action": "Compress Old Logs",
+          "description": "Compress and archive old log files",
+          "commands": [
+            "node -e \"require('./utils/audit-log-manager').compressOldLogs()\"",
+            "node scripts/compress-logs.js"
+          ],
+          "expectedResult": "Logs compressed",
+          "timeEstimate": "5 minutes"
+        },
+        {
+          "step": 4,
+          "action": "Apply Retention Policies",
+          "description": "Delete expired data per retention policy",
+          "commands": [
+            "node -e \"require('./utils/retention-policy-engine').executeRetention()\"",
+            "node -e \"require('./utils/backup-manager').applyRetentionPolicy()\""
+          ],
+          "expectedResult": "Old data removed",
+          "timeEstimate": "5 minutes"
+        }
+      ],
+      "totalTimeEstimate": "15 minutes"
+    }
+  ],
+  "commonTools": {
+    "healthCheck": "curl http://localhost:3000/health",
+    "restartServer": "npm restart",
+    "viewLogs": "tail -100 logs/error.log",
+    "checkMetrics": "node -e \"require('./utils/metrics-aggregator').getStats()\"",
+    "clearCache": "node -e \"require('./utils/advanced-cache').clear()\"",
+    "rotateSecrets": "node utils/secrets-rotation.js --rotate-all",
+    "createBackup": "node utils/backup-manager.js --create",
+    "restoreBackup": "node utils/backup-manager.js --restore latest",
+    "viewAuditLogs": "node -e \"require('./utils/audit-log-manager').search({limit: 100})\"",
+    "blockIP": "node -e \"require('./utils/rate-limiter').blockIp('x.x.x.x')\"",
+    "sendAlert": "node -e \"require('./utils/notification-channel').critical('Title', 'Message')\""
+  },
+  "contacts": {
+    "oncall": "oncall@example.com",
+    "oncallSenior": "oncall-senior@example.com",
+    "engineeringManager": "engineering-manager@example.com",
+    "securityTeam": "security-lead@example.com",
+    "ciso": "ciso@example.com",
+    "cto": "cto@example.com",
+    "sre": "sre-team@example.com"
+  },
+  "postIncidentProcedure": {
+    "steps": [
+      "Document incident timeline",
+      "Identify root cause",
+      "Document remediation steps taken",
+      "Create post-mortem report",
+      "Schedule post-mortem meeting",
+      "Identify preventive measures",
+      "Update runbooks if needed",
+      "Share learnings with team"
+    ],
+    "template": "docs/templates/post-mortem-template.md"
+  }
+}

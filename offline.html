@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#667eea">
+  <title>オフライン - Qui Browser</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 60px 40px;
+      border-radius: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .icon-container {
+      margin-bottom: 40px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .icon {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto;
+      opacity: 0.95;
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    p {
+      font-size: 1.3em;
+      margin-bottom: 40px;
+      line-height: 1.6;
+      opacity: 0.95;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #fff;
+      color: #667eea;
+      border: none;
+      padding: 16px 40px;
+      font-size: 1.1em;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .status {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      font-size: 0.95em;
+      opacity: 0.9;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff4444;
+      margin-right: 8px;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status.online .status-indicator {
+      background: #44ff44;
+      animation: none;
+    }
+
+    /* レスポンシブデザイン */
+    @media (max-width: 600px) {
+      .container {
+        padding: 40px 30px;
+      }
+
+      h1 {
+        font-size: 2.2em;
+      }
+
+      p {
+        font-size: 1.1em;
+      }
+
+      button {
+        padding: 14px 30px;
+        font-size: 1em;
+      }
+
+      .icon {
+        width: 100px;
+        height: 100px;
+      }
+    }
+
+    /* ダークモード対応 */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      }
+    }
+
+    /* モーション削減 */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-container">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- WiFiオフアイコン -->
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+
+    <h1>オフライン</h1>
+    <p>
+      インターネット接続が利用できません。<br>
+      接続を確認して、もう一度お試しください。
+    </p>
+
+    <div class="button-group">
+      <button onclick="location.reload()">
+        🔄 再読み込み
+      </button>
+      <button class="secondary" onclick="goHome()">
+        🏠 ホームへ
+      </button>
+    </div>
+
+    <div class="status" id="status">
+      <span class="status-indicator"></span>
+      <span id="status-text">オフライン</span>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * オンライン/オフライン状態の監視
+     */
+    function updateOnlineStatus() {
+      const status = document.getElementById('status');
+      const statusText = document.getElementById('status-text');
+
+      if (navigator.onLine) {
+        status.classList.add('online');
+        statusText.textContent = 'オンライン - 再読み込みしてください';
+
+        // 自動リロード（オプション）
+        setTimeout(() => {
+          location.reload();
+        }, 2000);
+      } else {
+        status.classList.remove('online');
+        statusText.textContent = 'オフライン';
+      }
+    }
+
+    /**
+     * ホームに戻る
+     */
+    function goHome() {
+      window.location.href = '/';
+    }
+
+    /**
+     * オンライン/オフラインイベントリスナー
+     */
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // 初期状態チェック
+    updateOnlineStatus();
+
+    /**
+     * 定期的に接続をチェック
+     */
+    setInterval(() => {
+      fetch('/health', { method: 'HEAD', cache: 'no-cache' })
+        .then(() => {
+          if (!navigator.onLine) {
+            // ブラウザはオフラインだが実際には接続可能
+            updateOnlineStatus();
+          }
+        })
+        .catch(() => {
+          // 接続できない
+        });
+    }, 5000); // 5秒ごと
+  </script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+/**
+ * Qui Browser Design System
+ * Atlassian Design System準拠の統一デザイントークン
+ *
+ * 参考: https://atlassian.design/
+ */
+
+/* ============================================
+   カラーシステム (Color Tokens)
+   ============================================ */
+
+:root {
+  /* ブランドカラー */
+  --color-brand-primary: #0052cc;
+  --color-brand-primary-hover: #0747a6;
+  --color-brand-primary-active: #0065ff;
+  --color-brand-secondary: #6554c0;
+
+  /* 背景色 */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f4f5f7;
+  --color-background-tertiary: #fafbfc;
+  --color-background-subtle: #f1f2f4;
+  --color-background-input: #fafbfc;
+
+  /* 表面色 (Surface) */
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #ffffff;
+  --color-surface-sunken: #f4f5f7;
+
+  /* テキストカラー */
+  --color-text-primary: #172b4d;
+  --color-text-secondary: #42526e;
+  --color-text-subtle: #6b778c;
+  --color-text-disabled: #a5adba;
+  --color-text-inverse: #ffffff;
+
+  /* ボーダーカラー */
+  --color-border: #dfe1e6;
+  --color-border-strong: #c1c7d0;
+  --color-border-bold: #7a869a;
+  --color-border-input: #dfe1e6;
+  --color-border-focused: #4c9aff;
+
+  /* 状態カラー */
+  --color-success: #00875a;
+  --color-success-bg: #e3fcef;
+  --color-success-border: #79f2c0;
+  --color-warning: #ff991f;
+  --color-warning-bg: #fffae6;
+  --color-warning-border: #ffc400;
+  --color-danger: #de350b;
+  --color-danger-bg: #ffebe6;
+  --color-danger-border: #ff8f73;
+  --color-info: #0065ff;
+  --color-info-bg: #deebff;
+  --color-info-border: #4c9aff;
+
+  /* インタラクションカラー */
+  --color-link: #0052cc;
+  --color-link-hover: #0065ff;
+  --color-link-active: #0747a6;
+  --color-link-visited: #403294;
+
+  /* 選択カラー */
+  --color-selected: #deebff;
+  --color-selected-bold: #0052cc;
+
+  /* フォーカスカラー */
+  --color-focus-ring: #4c9aff;
+
+  /* ダークモードカラー */
+  --color-dark-background-primary: #1d2125;
+  --color-dark-background-secondary: #22272b;
+  --color-dark-surface: #282e33;
+  --color-dark-text-primary: #b6c2cf;
+  --color-dark-text-secondary: #9fadbc;
+  --color-dark-border: #38414a;
+}
+
+/* ============================================
+   タイポグラフィ (Typography Tokens)
+   ============================================ */
+
+:root {
+  /* フォントファミリー */
+  --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-code: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+  /* スペーシングスケール (8pxベース) */
+  --space-025: 2px;    /* 2px */
+  --space-050: 4px;    /* 4px */
+  --space-075: 6px;    /* 6px */
+  --space-100: 8px;    /* 8px */
+  --space-150: 12px;   /* 12px */
+  --space-200: 16px;   /* 16px */
+  --space-250: 20px;   /* 20px */
+  --space-300: 24px;   /* 24px */
+  --space-400: 32px;   /* 32px */
+  --space-500: 40px;   /* 40px */
+  --space-600: 48px;   /* 48px */
+  --space-800: 64px;   /* 64px */
+  --space-1000: 80px;  /* 80px */
+
+  /* フォントサイズ (より詳細なスケール) */
+  --font-size-75: 0.75rem;    /* 12px */
+  --font-size-100: 1rem;      /* 16px */
+  --font-size-200: 1.25rem;   /* 20px */
+  --font-size-300: 1.5rem;    /* 24px */
+  --font-size-400: 2rem;      /* 32px */
+  --font-size-500: 2.5rem;    /* 40px */
+  --font-size-600: 3rem;      /* 48px */
+
+  /* フォントウェイト */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* タイポグラフィ階層 (Atlassian準拠) */
+  --typography-heading-xl: 700 3rem / 1.2 var(--font-family-primary);
+  --typography-heading-lg: 600 2.5rem / 1.2 var(--font-family-primary);
+  --typography-heading-md: 500 2rem / 1.2 var(--font-family-primary);
+  --typography-heading-sm: 600 1.5rem / 1.2 var(--font-family-primary);
+  --typography-heading-xs: 600 1.25rem / 1.2 var(--font-family-primary);
+  --typography-body-lg: 400 1rem / 1.5 var(--font-family-primary);
+  --typography-body-md: 400 0.875rem / 1.5 var(--font-family-primary);
+  --typography-body-sm: 400 0.75rem / 1.5 var(--font-family-primary);
+  --typography-caption: 400 0.6875rem / 1.2 var(--font-family-primary);
+  --typography-code: 400 0.875rem / 1.2 var(--font-family-code);
+
+  /* レタースペーシング */
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  /* ライン高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ボーダー半径 */
+  --border-radius-050: 2px;
+  --border-radius-100: 4px;
+  --border-radius-200: 8px;
+  --border-radius-300: 12px;
+  --border-radius-400: 16px;
+
+  /* ボーダー幅 */
+  --border-width-050: 0.5px;
+  --border-width-100: 1px;
+  --border-width-200: 2px;
+
+  /* 影 */
+  --shadow-card: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  --shadow-dropdown: 0 4px 8px rgba(9, 30, 66, 0.18);
+  --shadow-modal: 0 8px 16px rgba(9, 30, 66, 0.18);
+  --shadow-overlay: 0 20px 25px rgba(9, 30, 66, 0.15), 0 10px 10px rgba(9, 30, 66, 0.1);
+
+  /* トランジション */
+  --transition-duration-fast: 100ms;
+  --transition-duration-normal: 200ms;
+  --transition-duration-slow: 300ms;
+  --transition-easing-default: cubic-bezier(0.2, 0, 0, 1);
+  --transition-easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* フォーカス */
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+
+  /* タッチターゲット */
+  --touch-target-min: 44px;
+
+  /* 行高 */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.6;
+
+  /* フォントウェイト */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* レタースペーシング */
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+}
+
+/* ============================================
+   スペーシング (Spacing Tokens)
+   ============================================ */
+
+:root {
+  --space-0: 0;
+  --space-2: 0.125rem;   /* 2px */
+  --space-4: 0.25rem;    /* 4px */
+  --space-6: 0.375rem;   /* 6px */
+  --space-8: 0.5rem;     /* 8px */
+  --space-12: 0.75rem;   /* 12px */
+  --space-16: 1rem;      /* 16px */
+  --space-20: 1.25rem;   /* 20px */
+  --space-24: 1.5rem;    /* 24px */
+  --space-32: 2rem;      /* 32px */
+  --space-40: 2.5rem;    /* 40px */
+  --space-48: 3rem;      /* 48px */
+  --space-64: 4rem;      /* 64px */
+}
+
+/* ============================================
+   ボーダー半径 (Border Radius Tokens)
+   ============================================ */
+
+:root {
+  --radius-none: 0;
+  --radius-sm: 0.1875rem;   /* 3px */
+  --radius-md: 0.375rem;    /* 6px */
+  --radius-lg: 0.5rem;      /* 8px */
+  --radius-xl: 0.75rem;     /* 12px */
+  --radius-2xl: 1rem;       /* 16px */
+  --radius-circle: 50%;
+  --radius-pill: 9999px;
+}
+
+/* ============================================
+   影 (Shadow Tokens)
+   ============================================ */
+
+:root {
+  /* エレベーション */
+  --shadow-raised:
+    0 1px 1px rgba(9, 30, 66, 0.25),
+    0 0 1px rgba(9, 30, 66, 0.31);
+
+  --shadow-overflow:
+    0 0 1px rgba(9, 30, 66, 0.31),
+    0 8px 12px rgba(9, 30, 66, 0.15);
+
+  --shadow-overlay:
+    0 8px 16px rgba(9, 30, 66, 0.15),
+    0 0 1px rgba(9, 30, 66, 0.31);
+
+  --shadow-modal:
+    0 20px 32px rgba(9, 30, 66, 0.15),
+    0 0 1px rgba(9, 30, 66, 0.31);
+
+  /* フォーカスリング */
+  --shadow-focus: 0 0 0 2px var(--color-focus-ring);
+  --shadow-focus-inset: inset 0 0 0 2px var(--color-focus-ring);
+}
+
+/* ============================================
+   トランジション (Transition Tokens)
+   ============================================ */
+
+:root {
+  --transition-duration-fast: 100ms;
+  --transition-duration-normal: 200ms;
+  --transition-duration-slow: 300ms;
+  --transition-duration-slower: 400ms;
+
+  --transition-easing-default: cubic-bezier(0.2, 0, 0, 1);
+  --transition-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --transition-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --transition-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ============================================
+   Z-Index (Layer Tokens)
+   ============================================ */
+
+:root {
+  --z-index-base: 0;
+  --z-index-dropdown: 100;
+  --z-index-sticky: 200;
+  --z-index-fixed: 300;
+  --z-index-modal-backdrop: 400;
+  --z-index-modal: 500;
+  --z-index-popover: 600;
+  --z-index-tooltip: 700;
+  --z-index-toast: 800;
+}
+
+/* ============================================
+   レイアウト (Layout Tokens)
+   ============================================ */
+
+:root {
+  --layout-max-width-sm: 640px;
+  --layout-max-width-md: 768px;
+  --layout-max-width-lg: 1024px;
+  --layout-max-width-xl: 1280px;
+  --layout-max-width-2xl: 1536px;
+
+  --layout-gutter: var(--space-16);
+  --layout-gutter-sm: var(--space-8);
+  --layout-gutter-lg: var(--space-24);
+}
+
+/* ============================================
+   アクセシビリティ (Accessibility Tokens)
+   ============================================ */
+
+:root {
+  /* タッチターゲット最小サイズ */
+  --touch-target-min: 44px;
+
+  /* フォーカス可視性 */
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+
+  /* モーション低減 */
+  --motion-reduced-duration: 0.01ms;
+}
+
+/* ============================================
+   ダークモードテーマ
+   ============================================ */
+
+[data-theme="dark"] {
+  --color-background-primary: var(--color-dark-background-primary);
+  --color-background-secondary: var(--color-dark-background-secondary);
+  --color-surface: var(--color-dark-surface);
+  --color-text-primary: var(--color-dark-text-primary);
+  --color-text-secondary: var(--color-dark-text-secondary);
+  --color-border: var(--color-dark-border);
+
+  /* 影の調整 */
+  --shadow-raised:
+    0 1px 1px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(0, 0, 0, 0.6);
+
+  --shadow-overlay:
+    0 8px 16px rgba(0, 0, 0, 0.4),
+    0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================
+   ハイコントラストモード
+   ============================================ */
+
+[data-theme="high-contrast"] {
+  --color-text-primary: #000000;
+  --color-background-primary: #ffffff;
+  --color-border: #000000;
+  --color-border-strong: #000000;
+  --color-link: #0000ee;
+  --color-link-visited: #551a8b;
+}
+
+/* ============================================
+   モーション低減モード
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-duration-fast: var(--motion-reduced-duration);
+    --transition-duration-normal: var(--motion-reduced-duration);
+    --transition-duration-slow: var(--motion-reduced-duration);
+    --transition-duration-slower: var(--motion-reduced-duration);
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   ユーティリティクラス
+   ============================================ */
+
+/* 視覚的に隠す（スクリーンリーダー用） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* フォーカス可視化 */
+.focus-visible:focus-visible {
+  outline: var(--focus-outline-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* トランケート */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* スムーズスクロール */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smooth-scroll {
+    scroll-behavior: auto;
+  }
+}

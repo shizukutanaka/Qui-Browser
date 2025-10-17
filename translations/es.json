@@ -1,0 +1,176 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "remove": "Remover",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "refresh": "Actualizar",
+    "settings": "Configuración",
+    "help": "Ayuda",
+    "about": "Acerca de",
+    "version": "Versión",
+    "language": "Idioma",
+    "theme": "Tema"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "bookmarks": "Marcadores",
+    "history": "Historial",
+    "tabs": "Pestañas",
+    "sessions": "Sesiones",
+    "settings": "Configuración",
+    "dashboard": "Panel",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión"
+  },
+  "bookmarks": {
+    "title": "Marcadores",
+    "addBookmark": "Agregar marcador",
+    "editBookmark": "Editar marcador",
+    "deleteBookmark": "Eliminar marcador",
+    "noBookmarks": "No se encontraron marcadores",
+    "bookmarkAdded": "Marcador agregado exitosamente",
+    "bookmarkUpdated": "Marcador actualizado exitosamente",
+    "bookmarkDeleted": "Marcador eliminado exitosamente",
+    "titleRequired": "El título es obligatorio",
+    "urlRequired": "La URL es obligatoria",
+    "invalidUrl": "Formato de URL inválido"
+  },
+  "history": {
+    "title": "Historial de navegación",
+    "clearHistory": "Limpiar historial",
+    "noHistory": "No hay historial de navegación",
+    "historyCleared": "Historial limpiado exitosamente",
+    "visitTime": "Visitado en",
+    "lastVisit": "Última visita"
+  },
+  "sessions": {
+    "title": "Sesiones",
+    "createSession": "Crear sesión",
+    "restoreSession": "Restaurar sesión",
+    "deleteSession": "Eliminar sesión",
+    "noSessions": "No hay sesiones guardadas",
+    "sessionCreated": "Sesión creada exitosamente",
+    "sessionRestored": "Sesión restaurada exitosamente",
+    "sessionDeleted": "Sesión eliminada exitosamente"
+  },
+  "settings": {
+    "title": "Configuración",
+    "general": "General",
+    "appearance": "Apariencia",
+    "privacy": "Privacidad",
+    "security": "Seguridad",
+    "advanced": "Avanzado",
+    "language": "Idioma",
+    "theme": "Tema",
+    "notifications": "Notificaciones",
+    "dataManagement": "Gestión de datos"
+  },
+  "api": {
+    "unauthorized": "Acceso no autorizado",
+    "forbidden": "Acceso prohibido",
+    "notFound": "Recurso no encontrado",
+    "serverError": "Error interno del servidor",
+    "badRequest": "Solicitud incorrecta",
+    "rateLimited": "Demasiadas solicitudes",
+    "validationError": "Error de validación"
+  },
+  "health": {
+    "status": "Estado del sistema",
+    "healthy": "Saludable",
+    "degraded": "Degradado",
+    "critical": "Crítico",
+    "uptime": "Tiempo de actividad",
+    "memory": "Memoria",
+    "cpu": "CPU",
+    "connections": "Conexiones activas",
+    "requests": "Total de solicitudes",
+    "errors": "Total de errores"
+  },
+  "metrics": {
+    "title": "Métricas del sistema",
+    "cache": "Rendimiento del caché",
+    "rateLimiting": "Limitación de tasa",
+    "monitoring": "Monitoreo del sistema",
+    "alerts": "Alertas activas"
+  },
+  "errors": {
+    "networkError": "Error de red",
+    "timeout": "Tiempo de espera agotado",
+    "validationFailed": "Validación fallida",
+    "fileTooLarge": "Archivo demasiado grande",
+    "unsupportedFormat": "Formato no soportado",
+    "permissionDenied": "Permiso denegado",
+    "sessionExpired": "Sesión expirada",
+    "maintenance": "Sistema en mantenimiento"
+  },
+  "upload": {
+    "selectFile": "Seleccionar archivo",
+    "dragDrop": "Arrastrar y soltar archivos aquí",
+    "uploading": "Subiendo...",
+    "uploadSuccess": "Archivo subido exitosamente",
+    "uploadError": "Error al subir",
+    "maxSize": "Tamaño máximo de archivo",
+    "allowedTypes": "Tipos de archivo permitidos",
+    "removeFile": "Remover archivo"
+  },
+  "search": {
+    "placeholder": "Buscar...",
+    "noResults": "No se encontraron resultados",
+    "advancedSearch": "Búsqueda avanzada",
+    "filters": "Filtros",
+    "dateRange": "Rango de fechas",
+    "categories": "Categorías",
+    "tags": "Etiquetas"
+  },
+  "data": {
+    "export": "Exportar datos",
+    "import": "Importar datos",
+    "exportSuccess": "Datos exportados exitosamente",
+    "importSuccess": "Datos importados exitosamente",
+    "exportError": "Error al exportar",
+    "importError": "Error al importar",
+    "backup": "Crear respaldo",
+    "restore": "Restaurar desde respaldo",
+    "download": "Descargar"
+  },
+  "readingList": {
+    "title": "Lista de lectura",
+    "addToReadingList": "Agregar a lista de lectura",
+    "removeFromReadingList": "Remover de lista de lectura",
+    "markAsRead": "Marcar como leído",
+    "markAsUnread": "Marcar como no leído",
+    "noItems": "No hay elementos en la lista de lectura"
+  },
+  "pwa": {
+    "install": "Instalar aplicación",
+    "offline": "Estás offline",
+    "online": "De vuelta online",
+    "updateAvailable": "Actualización disponible",
+    "reload": "Recargar"
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "pageViews": "Vistas de página",
+    "uniqueVisitors": "Visitantes únicos",
+    "bounceRate": "Tasa de rebote",
+    "avgSessionDuration": "Duración promedio de sesión",
+    "topPages": "Páginas principales",
+    "trafficSources": "Fuentes de tráfico",
+    "devices": "Dispositivos",
+    "browsers": "Navegadores"
+  }
+}

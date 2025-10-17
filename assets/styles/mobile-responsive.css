@@ -1,0 +1,494 @@
+/**
+ * Qui Browser Mobile-First Responsive Design
+ * モバイルファーストのアプローチで、全デバイスに対応
+ *
+ * ブレークポイント:
+ * - Mobile: < 768px
+ * - Tablet: 768px - 1024px
+ * - Desktop: > 1024px
+ */
+
+@import './design-system.css';
+
+/* ============================================
+   モバイルファーストのベーススタイル
+   ============================================ */
+
+/* モバイルファーストのタイポグラフィ */
+body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+}
+
+/* モバイル向けのタッチターゲット */
+.btn, .input, .select, [role="button"], [tabindex] {
+  min-height: 44px; /* iOS Human Interface Guidelines */
+  min-width: 44px;
+}
+
+/* ============================================
+   レスポンシブグリッドシステム
+   ============================================ */
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-200);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-200);
+}
+
+.grid-1 { grid-template-columns: 1fr; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ============================================
+   モバイル向けナビゲーション
+   ============================================ */
+
+.navbar-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-8) var(--space-16);
+  z-index: 1000;
+  box-shadow: var(--shadow-overlay);
+}
+
+.navbar-mobile .nav-tabs {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navbar-mobile .nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-duration-fast);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.navbar-mobile .nav-tab:hover,
+.navbar-mobile .nav-tab.active {
+  background: var(--color-background-subtle);
+  color: var(--color-text-primary);
+}
+
+.navbar-mobile .nav-tab-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* ============================================
+   モバイル向けモーダルとオーバーレイ
+   ============================================ */
+
+.modal-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-mobile .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-mobile .modal-title {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.modal-mobile .modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-16);
+}
+
+.modal-mobile .modal-footer {
+  display: flex;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background-subtle);
+}
+
+/* ============================================
+   モバイル向けフォーム
+   ============================================ */
+
+.form-mobile .form-group {
+  margin-bottom: var(--space-16);
+}
+
+.form-mobile .form-label {
+  display: block;
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.form-mobile .form-input {
+  width: 100%;
+  padding: var(--space-12) var(--space-16);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-16); /* iOSズーム防止 */
+  background: var(--color-background-primary);
+  transition: border-color var(--transition-duration-fast);
+}
+
+.form-mobile .form-input:focus {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-focus-ring-alpha-20);
+}
+
+/* ============================================
+   モバイル向けカード
+   ============================================ */
+
+.card-mobile {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-16);
+  box-shadow: var(--shadow-raised);
+  border: 1px solid var(--color-border);
+}
+
+.card-mobile .card-header {
+  margin-bottom: var(--space-12);
+}
+
+.card-mobile .card-title {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.card-mobile .card-content {
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ============================================
+   タブレット対応 (768px以上)
+   ============================================ */
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-24);
+  }
+
+  .grid {
+    gap: var(--space-24);
+  }
+
+  .navbar-mobile {
+    display: none; /* タブレット以上では隠す */
+  }
+
+  .modal-mobile {
+    position: static;
+    max-width: 600px;
+    margin: var(--space-24) auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-overlay);
+  }
+
+  .form-mobile .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+  }
+
+  .btn-group-horizontal {
+    display: flex;
+    gap: var(--space-12);
+  }
+}
+
+/* ============================================
+   デスクトップ対応 (1024px以上)
+   ============================================ */
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 var(--space-32);
+  }
+
+  .grid {
+    gap: var(--space-32);
+  }
+
+  .modal-mobile {
+    max-width: 800px;
+  }
+
+  .form-mobile .form-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* デスクトップ向けサイドバー */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: var(--space-24);
+    overflow-y: auto;
+  }
+
+  .main-content {
+    margin-left: 280px;
+    padding: var(--space-24);
+  }
+}
+
+/* ============================================
+   ダークモード対応
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1d2125;
+    --color-background-secondary: #22272b;
+    --color-surface: #282e33;
+    --color-text-primary: #b6c2cf;
+    --color-text-secondary: #9fadbc;
+    --color-border: #38414a;
+    --color-border-strong: #44546f;
+  }
+}
+
+/* ============================================
+   アクセシビリティ対応
+   ============================================ */
+
+/* フォーカス管理 */
+.focus-trap:focus-within .focus-trap-first,
+.focus-trap:focus-within .focus-trap-last {
+  outline: none;
+}
+
+/* 高コントラストモード対応 */
+@media (prefers-contrast: high) {
+  .btn {
+    border: 2px solid currentColor;
+  }
+
+  .card-mobile {
+    border-width: 2px;
+  }
+}
+
+/* モーション軽減対応 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   モバイル特化ユーティリティ
+   ============================================ */
+
+/* タッチフレンドリーな間隔 */
+.touch-spacing > * + * {
+  margin-top: var(--space-12);
+}
+
+/* モバイル向けのテキストサイズ調整 */
+.text-responsive {
+  font-size: clamp(var(--font-size-14), 4vw, var(--font-size-18));
+}
+
+/* モバイル向けのアイコンサイズ */
+.icon-responsive {
+  width: clamp(20px, 5vw, 32px);
+  height: clamp(20px, 5vw, 32px);
+}
+
+/* スクロール改善 */
+.scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* モバイル向けのローディング状態 */
+.loading-skeleton {
+  background: linear-gradient(90deg,
+    var(--color-background-subtle) 25%,
+    var(--color-background-tertiary) 50%,
+    var(--color-background-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   モバイルPWA特化機能
+   ============================================ */
+
+/* iOS Safariのボトムバー対応 */
+@supports (padding: max(0px)) {
+  .pwa-safe-area {
+    padding-bottom: max(var(--space-16), env(safe-area-inset-bottom));
+  }
+}
+
+/* Androidのナビゲーションボタン対応 */
+.pwa-safe-area {
+  padding-bottom: var(--space-16);
+}
+
+/* PWAインストールプロンプト */
+.install-prompt {
+  position: fixed;
+  bottom: var(--space-16);
+  left: var(--space-16);
+  right: var(--space-16);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-16);
+  box-shadow: var(--shadow-overlay);
+  z-index: 1000;
+  border: 1px solid var(--color-border);
+}
+
+.install-prompt .install-prompt-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.install-prompt .install-prompt-text {
+  flex: 1;
+}
+
+.install-prompt .install-prompt-title {
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.install-prompt .install-prompt-description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  margin: 0;
+}
+
+/* ============================================
+   ジェスチャー対応
+   ============================================ */
+
+.swipe-area {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pull-to-refresh {
+  position: relative;
+  overflow: hidden;
+}
+
+.pull-to-refresh-indicator {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: transform var(--transition-duration-normal);
+  opacity: 0;
+}
+
+.pull-to-refresh.pulling .pull-to-refresh-indicator {
+  transform: translateX(-50%) translateY(50px);
+  opacity: 1;
+}
+
+/* ============================================
+   モバイルパフォーマンス最適化
+   ============================================ */
+
+/* GPUアクセラレーション */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* モバイル向けの画像最適化 */
+.img-responsive {
+  max-width: 100%;
+  height: auto;
+  loading: lazy;
+}
+
+/* モバイル向けのビデオ最適化 */
+.video-responsive {
+  width: 100%;
+  height: auto;
+  max-height: 50vh;
+}
+
+/* ============================================
+   モバイルテスト用ユーティリティ
+   ============================================ */
+
+@media (max-width: 767px) {
+  /* モバイルテスト用の境界線表示 */
+  .debug-mobile * {
+    outline: 1px solid rgba(255, 0, 0, 0.1);
+  }
+
+  /* モバイルテスト用のタッチターゲット表示 */
+  .debug-touch-targets .btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 255, 0, 0.1);
+    pointer-events: none;
+  }
+}

@@ -1,0 +1,81 @@
+image: node:20-alpine
+
+stages:
+  - install
+  - lint
+  - test
+  - security
+  - build
+  - deploy
+
+cache:
+  paths:
+    - node_modules/
+
+install:
+  stage: install
+  script:
+    - npm ci --prefer-offline --no-audit
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+lint:
+  stage: lint
+  dependencies:
+    - install
+  script:
+    - npm run lint
+    - npm run format:check
+
+test:
+  stage: test
+  dependencies:
+    - install
+  script:
+    - npm test
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+
+security:
+  stage: security
+  dependencies:
+    - install
+  script:
+    - npm audit --production
+    - npm run check:vulnerabilities
+  allow_failure: false
+
+build:
+  stage: build
+  dependencies:
+    - install
+  script:
+    - npm run build
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist/
+
+deploy:staging:
+  stage: deploy
+  dependencies:
+    - build
+  script:
+    - echo "Deploying to staging"
+  environment:
+    name: staging
+  only:
+    - develop
+
+deploy:production:
+  stage: deploy
+  dependencies:
+    - build
+  script:
+    - echo "Deploying to production"
+  environment:
+    name: production
+  only:
+    - main
+  when: manual

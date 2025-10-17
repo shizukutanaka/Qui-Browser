@@ -1,0 +1,211 @@
+{
+  "name": "Qui Browser - 高速・安全なWebブラウザ",
+  "short_name": "Qui Browser",
+  "description": "エンタープライズグレードの軽量Webブラウザ。国家レベルのセキュリティとVR/WebXR対応。",
+  "version": "1.2.0",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0052cc",
+  "background_color": "#f4f5f7",
+  "lang": "ja",
+  "dir": "ltr",
+
+  "categories": ["productivity", "utilities", "browser", "security"],
+
+  "icons": [
+    {
+      "src": "/assets/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/mobile-home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "モバイル版ホーム画面"
+    },
+    {
+      "src": "/assets/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "デスクトップ版ダッシュボード"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "新しいタブ",
+      "short_name": "新規タブ",
+      "description": "新しいブラウザタブを開く",
+      "url": "/?action=new-tab",
+      "icons": [
+        {
+          "src": "/assets/icons/shortcut-new-tab.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "ブックマーク",
+      "short_name": "ブックマーク",
+      "description": "ブックマーク管理",
+      "url": "/?action=bookmarks",
+      "icons": [
+        {
+          "src": "/assets/icons/shortcut-bookmarks.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "履歴",
+      "short_name": "履歴",
+      "description": "閲覧履歴",
+      "url": "/?action=history",
+      "icons": [
+        {
+          "src": "/assets/icons/shortcut-history.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "設定",
+      "short_name": "設定",
+      "description": "ブラウザ設定",
+      "url": "/?action=settings",
+      "icons": [
+        {
+          "src": "/assets/icons/shortcut-settings.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+qui",
+      "url": "/?protocol=%s"
+    },
+    {
+      "protocol": "web+https",
+      "url": "/?url=%s"
+    },
+    {
+      "protocol": "web+http",
+      "url": "/?url=%s"
+    }
+  ],
+
+  "file_handlers": [
+    {
+      "action": "/?action=open-file",
+      "accept": {
+        "text/html": [".html", ".htm"],
+        "text/plain": [".txt", ".md"],
+        "application/json": [".json"],
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
+      }
+    }
+  ],
+
+  "share_target": {
+    "action": "/?action=share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", "text/*", ".pdf"]
+        }
+      ]
+    }
+  },
+
+  "related_applications": [],
+
+  "prefer_related_applications": false,
+
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+
+  "handle_links": "preferred",
+
+  "display_override": ["standalone", "minimal-ui", "browser"],
+
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+
+  "id": "qui-browser-pwa",
+
+  "note_taking": {
+    "new_note_url": "/?action=new-note"
+  }
+}

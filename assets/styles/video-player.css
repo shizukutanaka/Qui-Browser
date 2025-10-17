@@ -1,0 +1,563 @@
+/**
+ * Enhanced Video Player Styles
+ * YouTube風の高機能動画プレーヤーのスタイル
+ */
+
+/* コンテナ */
+.video-player-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  background: #000;
+  overflow: hidden;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.video-player-container video {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* コントロール */
+.video-player-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+  padding: 40px 12px 8px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.video-player-container:hover .video-player-controls,
+.video-player-controls-visible .video-player-controls,
+.video-player-container:not(.video-player-playing) .video-player-controls {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* プログレスバー */
+.video-player-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  cursor: pointer;
+  z-index: 11;
+}
+
+.video-player-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: height 0.2s;
+}
+
+.video-player-container:hover .video-player-progress-bar,
+.video-player-progress-bar:hover {
+  height: 6px;
+}
+
+.video-player-progress-buffered {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width 0.3s;
+}
+
+.video-player-progress-played {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #f00;
+  transition: width 0.1s linear;
+  z-index: 1;
+}
+
+.video-player-progress-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background: #f00;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+
+.video-player-container:hover .video-player-progress-handle,
+.video-player-progress-bar:hover .video-player-progress-handle {
+  opacity: 1;
+}
+
+/* ボトムコントロール */
+.video-player-bottom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.video-player-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  padding: 8px;
+}
+
+.video-player-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.video-player-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.video-player-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* 音量スライダー */
+.video-player-volume-slider {
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.video-player-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.video-player-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* 時間表示 */
+.video-player-time {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.video-player-spacer {
+  flex: 1;
+}
+
+/* 速度ボタン */
+.video-player-speed {
+  min-width: 50px;
+  width: auto;
+}
+
+.video-player-speed-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 速度メニュー */
+.video-player-speed-menu {
+  position: absolute;
+  bottom: 60px;
+  right: 120px;
+  background: rgba(28, 28, 28, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+}
+
+.video-player-speed-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.video-player-speed-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.video-player-speed-option.active {
+  background: rgba(255, 0, 0, 0.2);
+  color: #f00;
+}
+
+/* オーバーレイ */
+.video-player-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.video-player-overlay-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-player-overlay-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.video-player-overlay-play:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+.video-player-overlay-play svg {
+  width: 40px;
+  height: 40px;
+  fill: currentColor;
+  margin-left: 4px;
+}
+
+.video-player-playing .video-player-overlay-play {
+  display: none;
+}
+
+/* ローディング */
+.video-player-overlay-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.video-player-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: video-player-spin 0.8s linear infinite;
+}
+
+@keyframes video-player-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 通知 */
+.video-player-notification {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+
+.video-player-notification-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* シアターモード */
+.video-player-theater-mode {
+  max-width: none;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+}
+
+/* フルスクリーン */
+.video-player-fullscreen {
+  border-radius: 0;
+}
+
+.video-player-fullscreen video {
+  height: 100vh;
+  object-fit: contain;
+}
+
+/* キーボードショートカットモーダル */
+.video-player-shortcuts-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 50;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.video-player-shortcuts-content {
+  background: #1c1c1c;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 800px;
+  width: 100%;
+  color: #fff;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.video-player-shortcuts-content h3 {
+  margin: 0 0 24px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.video-player-shortcuts-content h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #aaa;
+}
+
+.video-player-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.video-player-shortcuts-section dl {
+  margin: 0;
+}
+
+.video-player-shortcuts-section dt {
+  display: inline;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  margin-right: 8px;
+}
+
+.video-player-shortcuts-section dd {
+  display: inline;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.video-player-shortcuts-section dd::after {
+  content: '';
+  display: block;
+  height: 8px;
+}
+
+.video-player-shortcuts-close {
+  display: block;
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  background: #f00;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.video-player-shortcuts-close:hover {
+  background: #c00;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .video-player-controls {
+    padding: 30px 8px 8px;
+  }
+
+  .video-player-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .video-player-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .video-player-volume-slider {
+    width: 60px;
+  }
+
+  .video-player-time {
+    font-size: 12px;
+  }
+
+  .video-player-speed-label {
+    font-size: 12px;
+  }
+
+  .video-player-overlay-play {
+    width: 60px;
+    height: 60px;
+  }
+
+  .video-player-overlay-play svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .video-player-shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .video-player-shortcuts-content {
+    padding: 24px;
+  }
+}
+
+/* VR/ヘッドセット最適化 */
+@media (hover: none) and (pointer: coarse) {
+  .video-player-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .video-player-controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .video-player-progress-bar {
+    height: 8px;
+  }
+}
+
+/* アクセシビリティ */
+@media (prefers-reduced-motion: reduce) {
+  .video-player-controls,
+  .video-player-btn,
+  .video-player-notification,
+  .video-player-progress-bar,
+  .video-player-progress-played,
+  .video-player-progress-handle {
+    transition: none;
+  }
+
+  .video-player-spinner {
+    animation: none;
+  }
+}
+
+/* ハイコントラストモード */
+@media (prefers-contrast: high) {
+  .video-player-progress-played,
+  .video-player-progress-handle {
+    background: #fff;
+  }
+
+  .video-player-controls {
+    background: linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 100%);
+  }
+
+  .video-player-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .video-player-shortcuts-content {
+    background: #0a0a0a;
+  }
+}
+
+/* タッチデバイス最適化 */
+@media (pointer: coarse) {
+  .video-player-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .video-player-progress {
+    height: 8px;
+  }
+
+  .video-player-progress-bar {
+    height: 8px;
+  }
+
+  .video-player-progress-handle {
+    width: 16px;
+    height: 16px;
+  }
+}

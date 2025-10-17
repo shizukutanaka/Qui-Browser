@@ -1,0 +1,176 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "add": "追加",
+    "remove": "削除",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "filter": "フィルター",
+    "sort": "並べ替え",
+    "refresh": "更新",
+    "settings": "設定",
+    "help": "ヘルプ",
+    "about": "このアプリについて",
+    "version": "バージョン",
+    "language": "言語",
+    "theme": "テーマ"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "bookmarks": "ブックマーク",
+    "history": "履歴",
+    "tabs": "タブ",
+    "sessions": "セッション",
+    "settings": "設定",
+    "dashboard": "ダッシュボード",
+    "profile": "プロフィール",
+    "logout": "ログアウト"
+  },
+  "bookmarks": {
+    "title": "ブックマーク",
+    "addBookmark": "ブックマークを追加",
+    "editBookmark": "ブックマークを編集",
+    "deleteBookmark": "ブックマークを削除",
+    "noBookmarks": "ブックマークが見つかりません",
+    "bookmarkAdded": "ブックマークが追加されました",
+    "bookmarkUpdated": "ブックマークが更新されました",
+    "bookmarkDeleted": "ブックマークが削除されました",
+    "titleRequired": "タイトルは必須です",
+    "urlRequired": "URLは必須です",
+    "invalidUrl": "URLの形式が無効です"
+  },
+  "history": {
+    "title": "閲覧履歴",
+    "clearHistory": "履歴をクリア",
+    "noHistory": "閲覧履歴がありません",
+    "historyCleared": "履歴がクリアされました",
+    "visitTime": "訪問日時",
+    "lastVisit": "最終訪問"
+  },
+  "sessions": {
+    "title": "セッション",
+    "createSession": "セッションを作成",
+    "restoreSession": "セッションを復元",
+    "deleteSession": "セッションを削除",
+    "noSessions": "保存されたセッションがありません",
+    "sessionCreated": "セッションが作成されました",
+    "sessionRestored": "セッションが復元されました",
+    "sessionDeleted": "セッションが削除されました"
+  },
+  "settings": {
+    "title": "設定",
+    "general": "一般",
+    "appearance": "外観",
+    "privacy": "プライバシー",
+    "security": "セキュリティ",
+    "advanced": "詳細",
+    "language": "言語",
+    "theme": "テーマ",
+    "notifications": "通知",
+    "dataManagement": "データ管理"
+  },
+  "api": {
+    "unauthorized": "認証されていません",
+    "forbidden": "アクセスが禁止されています",
+    "notFound": "リソースが見つかりません",
+    "serverError": "内部サーバーエラー",
+    "badRequest": "不正なリクエスト",
+    "rateLimited": "リクエストが多すぎます",
+    "validationError": "検証エラー"
+  },
+  "health": {
+    "status": "システム状態",
+    "healthy": "正常",
+    "degraded": "劣化",
+    "critical": "重大",
+    "uptime": "稼働時間",
+    "memory": "メモリ",
+    "cpu": "CPU",
+    "connections": "アクティブ接続数",
+    "requests": "総リクエスト数",
+    "errors": "総エラー数"
+  },
+  "metrics": {
+    "title": "システムメトリクス",
+    "cache": "キャッシュ性能",
+    "rateLimiting": "レート制限",
+    "monitoring": "システム監視",
+    "alerts": "アクティブアラート"
+  },
+  "errors": {
+    "networkError": "ネットワークエラー",
+    "timeout": "タイムアウト",
+    "validationFailed": "検証に失敗しました",
+    "fileTooLarge": "ファイルが大きすぎます",
+    "unsupportedFormat": "サポートされていない形式です",
+    "permissionDenied": "権限がありません",
+    "sessionExpired": "セッションが期限切れです",
+    "maintenance": "システムメンテナンス中です"
+  },
+  "upload": {
+    "selectFile": "ファイルを選択",
+    "dragDrop": "ファイルをここにドラッグ＆ドロップ",
+    "uploading": "アップロード中...",
+    "uploadSuccess": "ファイルがアップロードされました",
+    "uploadError": "アップロードに失敗しました",
+    "maxSize": "最大ファイルサイズ",
+    "allowedTypes": "許可されたファイル形式",
+    "removeFile": "ファイルを削除"
+  },
+  "search": {
+    "placeholder": "検索...",
+    "noResults": "結果が見つかりません",
+    "advancedSearch": "詳細検索",
+    "filters": "フィルター",
+    "dateRange": "日付範囲",
+    "categories": "カテゴリ",
+    "tags": "タグ"
+  },
+  "data": {
+    "export": "データをエクスポート",
+    "import": "データをインポート",
+    "exportSuccess": "データのエクスポートが完了しました",
+    "importSuccess": "データのインポートが完了しました",
+    "exportError": "エクスポートに失敗しました",
+    "importError": "インポートに失敗しました",
+    "backup": "バックアップを作成",
+    "restore": "バックアップから復元",
+    "download": "ダウンロード"
+  },
+  "readingList": {
+    "title": "リーディングリスト",
+    "addToReadingList": "リーディングリストに追加",
+    "removeFromReadingList": "リーディングリストから削除",
+    "markAsRead": "既読にする",
+    "markAsUnread": "未読にする",
+    "noItems": "リーディングリストにアイテムがありません"
+  },
+  "pwa": {
+    "install": "アプリをインストール",
+    "offline": "オフラインです",
+    "online": "オンラインに戻りました",
+    "updateAvailable": "更新が利用可能です",
+    "reload": "再読み込み"
+  },
+  "analytics": {
+    "title": "アナリティクス",
+    "pageViews": "ページビュー",
+    "uniqueVisitors": "ユニーク訪問者",
+    "bounceRate": "直帰率",
+    "avgSessionDuration": "平均セッション時間",
+    "topPages": "トップページ",
+    "trafficSources": "トラフィックソース",
+    "devices": "デバイス",
+    "browsers": "ブラウザ"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "name": "qui-browser",
+  "version": "1.1.0",
+  "description": "Qui Browser VR - WebXR-optimized lightweight server for VR devices",
+  "main": "server-modular.js",
+  "types": "types/index.d.ts",
+  "private": true,
+  "scripts": {
+    "start": "node server-modular.js",
+    "start:dev": "NODE_ENV=development node server-modular.js",
+    "start:prod": "NODE_ENV=production node server-modular.js",
+    "start:production": "NODE_ENV=production node server-production.js",
+    "start:ws": "node server-websocket.js",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:reload": "pm2 reload ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "docker:build": "docker-compose -f docker-compose.production.yml build",
+    "docker:up": "docker-compose -f docker-compose.production.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.production.yml down",
+    "docker:logs": "docker-compose -f docker-compose.production.yml logs -f",
+    "docker:ps": "docker-compose -f docker-compose.production.yml ps",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
+    "benchmark": "node scripts/benchmark.js",
+    "test": "node --test tests/compression.test.js tests/websocket-simple.test.js tests/performance.test.js tests/security-advanced.test.js tests/server.test.js tests/security.test.js",
+    "test:all": "node --test tests/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.js",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "security:scan": "npm run audit",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:production": "bash scripts/deploy.sh -e production"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "commander": "^14.0.1",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.3.0",
+    "pg": "^8.11.3",
+    "stripe": "^19.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.7.0",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
+    "prettier": "^3.0.3"
+  },
+  "bin": {
+    "qui-browser": "./cli.js"
+  },
+  "keywords": [
+    "browser",
+    "lightweight",
+    "vr",
+    "webxr",
+    "virtual-reality",
+    "meta-quest",
+    "pico",
+    "low-latency",
+    "web-server",
+    "node.js",
+    "pwa",
+    "progressive-web-app",
+    "service-worker",
+    "offline-first"
+  ],
+  "author": "Qui Browser Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

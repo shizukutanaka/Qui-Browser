@@ -1,0 +1,242 @@
+#!/usr/bin/env node
+/**
+ * Translation Generator Script
+ *
+ * Generates translation stub files for all supported languages
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { SUPPORTED_LANGUAGES } = require('../utils/i18n');
+
+// Base English translation structure
+const baseTranslations = {
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "help": "Help",
+    "about": "About",
+    "version": "Version",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "navigation": {
+    "home": "Home",
+    "bookmarks": "Bookmarks",
+    "history": "History",
+    "tabs": "Tabs",
+    "sessions": "Sessions",
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "addBookmark": "Add Bookmark",
+    "editBookmark": "Edit Bookmark",
+    "deleteBookmark": "Delete Bookmark",
+    "noBookmarks": "No bookmarks found",
+    "bookmarkAdded": "Bookmark added successfully",
+    "bookmarkUpdated": "Bookmark updated successfully",
+    "bookmarkDeleted": "Bookmark deleted successfully",
+    "titleRequired": "Title is required",
+    "urlRequired": "URL is required",
+    "invalidUrl": "Invalid URL format"
+  },
+  "history": {
+    "title": "Browsing History",
+    "clearHistory": "Clear History",
+    "noHistory": "No browsing history",
+    "historyCleared": "History cleared successfully",
+    "visitTime": "Visited at",
+    "lastVisit": "Last visit"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "createSession": "Create Session",
+    "restoreSession": "Restore Session",
+    "deleteSession": "Delete Session",
+    "noSessions": "No saved sessions",
+    "sessionCreated": "Session created successfully",
+    "sessionRestored": "Session restored successfully",
+    "sessionDeleted": "Session deleted successfully"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "privacy": "Privacy",
+    "security": "Security",
+    "advanced": "Advanced",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "dataManagement": "Data Management"
+  },
+  "api": {
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "notFound": "Resource not found",
+    "serverError": "Internal server error",
+    "badRequest": "Bad request",
+    "rateLimited": "Too many requests",
+    "validationError": "Validation error"
+  },
+  "health": {
+    "status": "System Status",
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "critical": "Critical",
+    "uptime": "Uptime",
+    "memory": "Memory",
+    "cpu": "CPU",
+    "connections": "Active Connections",
+    "requests": "Total Requests",
+    "errors": "Total Errors"
+  },
+  "metrics": {
+    "title": "System Metrics",
+    "cache": "Cache Performance",
+    "rateLimiting": "Rate Limiting",
+    "monitoring": "System Monitoring",
+    "alerts": "Active Alerts"
+  },
+  "errors": {
+    "networkError": "Network error",
+    "timeout": "Request timeout",
+    "validationFailed": "Validation failed",
+    "fileTooLarge": "File too large",
+    "unsupportedFormat": "Unsupported format",
+    "permissionDenied": "Permission denied",
+    "sessionExpired": "Session expired",
+    "maintenance": "System under maintenance"
+  },
+  "upload": {
+    "selectFile": "Select File",
+    "dragDrop": "Drag and drop files here",
+    "uploading": "Uploading...",
+    "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Upload failed",
+    "maxSize": "Maximum file size",
+    "allowedTypes": "Allowed file types",
+    "removeFile": "Remove file"
+  },
+  "search": {
+    "placeholder": "Search...",
+    "noResults": "No results found",
+    "advancedSearch": "Advanced Search",
+    "filters": "Filters",
+    "dateRange": "Date Range",
+    "categories": "Categories",
+    "tags": "Tags"
+  },
+  "data": {
+    "export": "Export Data",
+    "import": "Import Data",
+    "exportSuccess": "Data exported successfully",
+    "importSuccess": "Data imported successfully",
+    "exportError": "Export failed",
+    "importError": "Import failed",
+    "backup": "Create Backup",
+    "restore": "Restore from Backup",
+    "download": "Download"
+  },
+  "readingList": {
+    "title": "Reading List",
+    "addToReadingList": "Add to Reading List",
+    "removeFromReadingList": "Remove from Reading List",
+    "markAsRead": "Mark as Read",
+    "markAsUnread": "Mark as Unread",
+    "noItems": "No items in reading list"
+  },
+  "pwa": {
+    "install": "Install App",
+    "offline": "You are offline",
+    "online": "Back online",
+    "updateAvailable": "Update available",
+    "reload": "Reload"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "pageViews": "Page Views",
+    "uniqueVisitors": "Unique Visitors",
+    "bounceRate": "Bounce Rate",
+    "avgSessionDuration": "Average Session Duration",
+    "topPages": "Top Pages",
+    "trafficSources": "Traffic Sources",
+    "devices": "Devices",
+    "browsers": "Browsers"
+  }
+};
+
+function generateTranslationStubs() {
+  const translationsDir = path.join(__dirname, '..', 'translations');
+
+  // Ensure translations directory exists
+  if (!fs.existsSync(translationsDir)) {
+    fs.mkdirSync(translationsDir, { recursive: true });
+  }
+
+  // Languages that already have complete translations
+  const completedLanguages = ['en', 'ja', 'es', 'fr', 'de', 'zh-CN'];
+
+  for (const [langCode, langInfo] of Object.entries(SUPPORTED_LANGUAGES)) {
+    if (completedLanguages.includes(langCode)) {
+      continue; // Skip languages that are already complete
+    }
+
+    const filePath = path.join(translationsDir, `${langCode}.json`);
+
+    // Check if file already exists
+    if (fs.existsSync(filePath)) {
+      console.log(`Translation file for ${langCode} (${langInfo.name}) already exists`);
+      continue;
+    }
+
+    // Create translation stub with English fallbacks
+    const translationStub = {
+      "_meta": {
+        "language": langInfo.name,
+        "nativeName": langInfo.nativeName,
+        "flag": langInfo.flag,
+        "rtl": langInfo.rtl,
+        "status": "stub",
+        "note": "This is an auto-generated translation stub. Please provide proper translations."
+      },
+      ...JSON.parse(JSON.stringify(baseTranslations)) // Deep copy
+    };
+
+    // Write the stub file
+    fs.writeFileSync(filePath, JSON.stringify(translationStub, null, 2), 'utf8');
+    console.log(`Created translation stub for ${langCode} (${langInfo.name})`);
+  }
+
+  console.log('\nTranslation stub generation complete!');
+  console.log(`Generated stubs for ${Object.keys(SUPPORTED_LANGUAGES).length - completedLanguages.length} languages`);
+  console.log('Please provide proper translations for the stub files.');
+}
+
+// Run the generator if called directly
+if (require.main === module) {
+  generateTranslationStubs();
+}
+
+module.exports = { generateTranslationStubs };

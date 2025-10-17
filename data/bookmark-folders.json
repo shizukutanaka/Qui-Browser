@@ -1,0 +1,17 @@
+[
+  {
+    "id": "toolbar",
+    "name": "ブックマークバー",
+    "parent": null
+  },
+  {
+    "id": "menu",
+    "name": "ブックマークメニュー",
+    "parent": null
+  },
+  {
+    "id": "other",
+    "name": "その他のブックマーク",
+    "parent": null
+  }
+]

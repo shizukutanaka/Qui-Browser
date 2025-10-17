@@ -1,0 +1,56 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- メイン円 -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" />
+  
+  <!-- VRゴーグルアイコン -->
+  <g transform="translate(256, 256)">
+    <!-- ゴーグル本体 -->
+    <rect x="-140" y="-60" width="280" height="120" rx="30" ry="30" 
+          fill="#1a1a2e" opacity="0.9" filter="url(#glow)"/>
+    
+    <!-- レンズ左 -->
+    <circle cx="-60" cy="0" r="45" fill="#00ff41" opacity="0.8"/>
+    <circle cx="-60" cy="0" r="35" fill="#1a1a2e"/>
+    <circle cx="-60" cy="0" r="30" fill="#00ff88" opacity="0.6"/>
+    
+    <!-- レンズ右 -->
+    <circle cx="60" cy="0" r="45" fill="#00ff41" opacity="0.8"/>
+    <circle cx="60" cy="0" r="35" fill="#1a1a2e"/>
+    <circle cx="60" cy="0" r="30" fill="#00ff88" opacity="0.6"/>
+    
+    <!-- ブリッジ -->
+    <rect x="-20" y="-10" width="40" height="20" rx="10" ry="10" 
+          fill="#1a1a2e" opacity="0.7"/>
+    
+    <!-- ストラップポイント -->
+    <circle cx="-140" cy="0" r="10" fill="#1a1a2e" opacity="0.8"/>
+    <circle cx="140" cy="0" r="10" fill="#1a1a2e" opacity="0.8"/>
+    
+    <!-- Qロゴ -->
+    <g transform="scale(2)">
+      <circle cx="0" cy="-50" r="15" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+      <line x1="8" y1="-42" x2="15" y2="-35" stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+    </g>
+  </g>
+  
+  <!-- 価格表示 -->
+  <text x="256" y="420" text-anchor="middle" fill="#ffffff" 
+        font-family="Arial, sans-serif" font-size="32" font-weight="bold" opacity="0.8">
+    ¥50/月
+  </text>
+</svg>

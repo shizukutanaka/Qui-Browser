@@ -1,0 +1,184 @@
+{
+  "_meta": {
+    "language": "한국어",
+    "nativeName": "한국어",
+    "flag": "🇰🇷",
+    "rtl": false,
+    "status": "stub",
+    "note": "This is an auto-generated translation stub. Please provide proper translations."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "help": "Help",
+    "about": "About",
+    "version": "Version",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "navigation": {
+    "home": "Home",
+    "bookmarks": "Bookmarks",
+    "history": "History",
+    "tabs": "Tabs",
+    "sessions": "Sessions",
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "addBookmark": "Add Bookmark",
+    "editBookmark": "Edit Bookmark",
+    "deleteBookmark": "Delete Bookmark",
+    "noBookmarks": "No bookmarks found",
+    "bookmarkAdded": "Bookmark added successfully",
+    "bookmarkUpdated": "Bookmark updated successfully",
+    "bookmarkDeleted": "Bookmark deleted successfully",
+    "titleRequired": "Title is required",
+    "urlRequired": "URL is required",
+    "invalidUrl": "Invalid URL format"
+  },
+  "history": {
+    "title": "Browsing History",
+    "clearHistory": "Clear History",
+    "noHistory": "No browsing history",
+    "historyCleared": "History cleared successfully",
+    "visitTime": "Visited at",
+    "lastVisit": "Last visit"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "createSession": "Create Session",
+    "restoreSession": "Restore Session",
+    "deleteSession": "Delete Session",
+    "noSessions": "No saved sessions",
+    "sessionCreated": "Session created successfully",
+    "sessionRestored": "Session restored successfully",
+    "sessionDeleted": "Session deleted successfully"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "privacy": "Privacy",
+    "security": "Security",
+    "advanced": "Advanced",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "dataManagement": "Data Management"
+  },
+  "api": {
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "notFound": "Resource not found",
+    "serverError": "Internal server error",
+    "badRequest": "Bad request",
+    "rateLimited": "Too many requests",
+    "validationError": "Validation error"
+  },
+  "health": {
+    "status": "System Status",
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "critical": "Critical",
+    "uptime": "Uptime",
+    "memory": "Memory",
+    "cpu": "CPU",
+    "connections": "Active Connections",
+    "requests": "Total Requests",
+    "errors": "Total Errors"
+  },
+  "metrics": {
+    "title": "System Metrics",
+    "cache": "Cache Performance",
+    "rateLimiting": "Rate Limiting",
+    "monitoring": "System Monitoring",
+    "alerts": "Active Alerts"
+  },
+  "errors": {
+    "networkError": "Network error",
+    "timeout": "Request timeout",
+    "validationFailed": "Validation failed",
+    "fileTooLarge": "File too large",
+    "unsupportedFormat": "Unsupported format",
+    "permissionDenied": "Permission denied",
+    "sessionExpired": "Session expired",
+    "maintenance": "System under maintenance"
+  },
+  "upload": {
+    "selectFile": "Select File",
+    "dragDrop": "Drag and drop files here",
+    "uploading": "Uploading...",
+    "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Upload failed",
+    "maxSize": "Maximum file size",
+    "allowedTypes": "Allowed file types",
+    "removeFile": "Remove file"
+  },
+  "search": {
+    "placeholder": "Search...",
+    "noResults": "No results found",
+    "advancedSearch": "Advanced Search",
+    "filters": "Filters",
+    "dateRange": "Date Range",
+    "categories": "Categories",
+    "tags": "Tags"
+  },
+  "data": {
+    "export": "Export Data",
+    "import": "Import Data",
+    "exportSuccess": "Data exported successfully",
+    "importSuccess": "Data imported successfully",
+    "exportError": "Export failed",
+    "importError": "Import failed",
+    "backup": "Create Backup",
+    "restore": "Restore from Backup",
+    "download": "Download"
+  },
+  "readingList": {
+    "title": "Reading List",
+    "addToReadingList": "Add to Reading List",
+    "removeFromReadingList": "Remove from Reading List",
+    "markAsRead": "Mark as Read",
+    "markAsUnread": "Mark as Unread",
+    "noItems": "No items in reading list"
+  },
+  "pwa": {
+    "install": "Install App",
+    "offline": "You are offline",
+    "online": "Back online",
+    "updateAvailable": "Update available",
+    "reload": "Reload"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "pageViews": "Page Views",
+    "uniqueVisitors": "Unique Visitors",
+    "bounceRate": "Bounce Rate",
+    "avgSessionDuration": "Average Session Duration",
+    "topPages": "Top Pages",
+    "trafficSources": "Traffic Sources",
+    "devices": "Devices",
+    "browsers": "Browsers"
+  }
+}

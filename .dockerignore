@@ -1,0 +1,119 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs
+*.log
+lerna-debug.log*
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+
+# Dependency directories
+.npm
+.eslintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+.env.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+.next/
+
+# Testing
+.nyc_output/
+coverage/
+test-results/
+
+# Development files
+*.md
+README*
+CHANGELOG*
+LICENSE*
+docs/
+documentation/
+tests/
+scripts/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Development tools
+.prettierrc*
+.eslintrc*
+jest.config*
+babel.config*
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# Cache directories
+cache/
+.cache/
+
+# Security scanner (development tool)
+security-scanner.js
+
+# Development extensions
+user-extensions/
+
+# Kubernetes files
+kubernetes.yaml

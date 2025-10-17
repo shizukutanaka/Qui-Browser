@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Qui Browser - Lightweight VR-optimized web browser with enterprise-grade security">
+    <meta name="keywords" content="VR browser, Meta Quest, Pico, WebXR, lightweight browser, PWA">
+    <meta name="author" content="Qui Browser Team">
+    <meta name="theme-color" content="#0052cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Qui Browser">
+    <title>Qui Browser - VR-Optimized Web Browser</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="/assets/styles/design-system.css">
+    <link rel="stylesheet" href="/assets/styles/mobile-responsive.css">
+    <link rel="stylesheet" href="/assets/styles/components.css">
+    <link rel="stylesheet" href="/assets/styles/components-advanced.css">
+    <link rel="stylesheet" href="/assets/styles/animations.css">
+
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preload" href="/assets/styles/design-system.css" as="style">
+    <link rel="preload" href="/assets/js/ui-components.js" as="script">
+    <link rel="preload" href="/assets/js/mobile-pwa.js" as="script">
+    <link rel="preload" href="/assets/js/accessibility.js" as="script">
+    <link rel="preload" href="/assets/js/performance-optimizer.js" as="script">
+    <link rel="preload" href="/assets/js/security-hardener.js" as="script">
+    <link rel="preload" href="/assets/js/cross-platform-optimizer.js" as="script">
+    <link rel="preload" href="/assets/js/ux-enhancer.js" as="script">
+    <link rel="preload" href="/assets/js/plugin-system.js" as="script">
+    <link rel="preload" href="/assets/js/webxr-integration.js" as="script">
+    <link rel="preload" href="/assets/js/metaverse-social-browsing.js" as="script">
+    <link rel="preload" href="/assets/js/vr-battery-monitor.js" as="script">
+    <link rel="preload" href="/assets/js/vr-content-preloader.js" as="script">
+    <link rel="preload" href="/assets/js/vr-error-handler.js" as="script">
+    <link rel="preload" href="/assets/js/vr-performance-monitor.js" as="script">
+    <link rel="preload" href="/assets/js/vr-gesture-controls.js" as="script">
+    <link rel="preload" href="/assets/js/vr-spatial-navigation.js" as="script">
+    <link rel="preload" href="/assets/js/vr-accessibility-system.js" as="script">
+    <link rel="preload" href="/assets/js/vr-network-monitor.js" as="script">
+    <link rel="preload" href="/assets/js/vr-offline-storage.js" as="script">
+    <link rel="preload" href="/assets/js/vr-settings-ui.js" as="script">
+    <link rel="preload" href="/assets/js/vr-usage-statistics.js" as="script">
+    <link rel="preload" href="/assets/js/vr-help-system.js" as="script">
+    <link rel="preload" href="/assets/js/vr-shortcut-manager.js" as="script">
+
+    <!-- Scripts -->
+    <script src="/assets/js/mobile-pwa.js" defer></script>
+    <script src="/assets/js/accessibility.js" defer></script>
+    <script src="/assets/js/performance-optimizer.js" defer></script>
+    <script src="/assets/js/security-hardener.js" defer></script>
+    <script src="/assets/js/cross-platform-optimizer.js" defer></script>
+    <script src="/assets/js/ux-enhancer.js" defer></script>
+    <script src="/assets/js/plugin-system.js" defer></script>
+    <script src="/assets/js/webxr-integration.js" defer></script>
+    <script src="/assets/js/metaverse-social-browsing.js" defer></script>
+    <script src="/assets/js/vr-battery-monitor.js" defer></script>
+    <script src="/assets/js/vr-content-preloader.js" defer></script>
+    <script src="/assets/js/vr-error-handler.js" defer></script>
+    <script src="/assets/js/vr-performance-monitor.js" defer></script>
+    <script src="/assets/js/vr-gesture-controls.js" defer></script>
+    <script src="/assets/js/vr-spatial-navigation.js" defer></script>
+    <script src="/assets/js/vr-accessibility-system.js" defer></script>
+    <script src="/assets/js/vr-network-monitor.js" defer></script>
+    <script src="/assets/js/vr-offline-storage.js" defer></script>
+    <script src="/assets/js/vr-settings-ui.js" defer></script>
+    <script src="/assets/js/vr-usage-statistics.js" defer></script>
+    <script src="/assets/js/vr-help-system.js" defer></script>
+    <script src="/assets/js/vr-shortcut-manager.js" defer></script>
+
+    <!-- Resource Hints -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <style>
+        :root {
+            --color-background: #f4f5f7;
+            --color-surface: #ffffff;
+            --color-surface-subtle: #f1f2f4;
+            --color-surface-pressed: #dfe1e6;
+            --color-text: #172b4d;
+            --color-text-subtle: #6b778c;
+            --color-border: #dfe1e6;
+            --color-border-strong: #b3bac5;
+            --color-accent: #0052cc;
+            --color-accent-hover: #0747a6;
+            --color-success: #36b37e;
+            --color-danger: #de350b;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-overlay: 0 8px 16px rgba(9, 30, 66, 0.18);
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --transition-base: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--color-accent);
+            color: white;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            text-decoration: none;
+            border-radius: 0 0 var(--radius-sm) 0;
+            z-index: 1001;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 6px;
+        }
+
+        .navbar {
+            background: var(--color-surface);
+            padding: var(--spacing-md) var(--spacing-xl);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+            flex-shrink: 0;
+            box-shadow: var(--shadow-raised);
+            position: relative;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: var(--color-surface-subtle);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-base);
+            position: relative;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: var(--color-accent);
+            color: white;
+            border-color: var(--color-accent);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-overlay);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .url-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--color-surface-subtle);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 0 var(--spacing-lg);
+            transition: var(--transition-base);
+            min-height: 44px;
+        }
+
+        .url-container:focus-within {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.15);
+            background: var(--color-surface);
+        }
+
+        .security-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: var(--color-danger);
+            position: relative;
+            transition: var(--transition-base);
+            flex-shrink: 0;
+        }
+
+        .security-indicator.secure {
+            background: var(--color-success);
+        }
+
+        .security-indicator.warning {
+            background: var(--color-warning);
+        }
+
+        .url-bar {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--color-text);
+            font-size: 14px;
+            outline: none;
+            padding: var(--spacing-sm) 0;
+        }
+
+        .url-bar::placeholder {
+            color: var(--color-text-subtle);
+        }
+
+        .tab-bar {
+            background: var(--color-surface);
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-sm) var(--spacing-xl);
+            border-bottom: 1px solid var(--color-border);
+            overflow-x: auto;
+            flex-shrink: 0;
+            gap: var(--spacing-sm);
+        }
+
+        .tab {
+            background: var(--color-surface-subtle);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-subtle);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            min-width: 120px;
+            max-width: 200px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: var(--transition-base);
+            position: relative;
+        }
+
+        .tab.active {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
+
+        .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tab-close {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: var(--transition-base);
+        }
+
+        .tab-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .new-tab-btn {
+            background: var(--color-surface-subtle);
+            border: 1px dashed var(--color-border);
+            color: var(--color-text-subtle);
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-base);
+            margin-left: var(--spacing-sm);
+        }
+
+        .new-tab-btn:hover {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loading-bar {
+            height: 3px;
+            background: var(--color-accent);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            transition: width 0.3s ease;
+            z-index: 10;
+        }
+
+        .page-container {
+            flex: 1;
+            background: var(--color-surface);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .status-bar {
+            background: var(--color-surface);
+            padding: var(--spacing-sm) var(--spacing-xl);
+            border-top: 1px solid var(--color-border);
+            font-size: 12px;
+            color: var(--color-text-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            gap: var(--spacing-lg);
+        }
+
+        .status-left, .status-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--color-surface-subtle);
+            border: 1px solid var(--color-border);
+            font-size: 11px;
+            transition: var(--transition-base);
+        }
+
+        .status-indicator.online {
+            color: var(--color-success);
+        }
+
+        .status-indicator.offline {
+            color: var(--color-danger);
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .nav-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+                min-width: 40px;
+                min-height: 40px;
+            }
+
+            .url-container {
+                min-height: 40px;
+            }
+
+            .tab {
+                min-width: 100px;
+                max-width: 150px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+
+    <nav class="navbar" role="navigation" aria-label="ブラウザナビゲーション">
+        <button class="nav-btn" id="backBtn" title="戻る (Alt+←)" aria-label="前のページに戻る" disabled>←</button>
+        <button class="nav-btn" id="forwardBtn" title="進む (Alt+→)" aria-label="次のページに進む" disabled>→</button>
+        <button class="nav-btn" id="refreshBtn" title="更新 (Ctrl+R)" aria-label="ページを更新">↻</button>
+        <button class="nav-btn" id="homeBtn" title="ホーム (Alt+Home)" aria-label="ホームページに移動">⌂</button>
+
+        <div class="url-container" role="search">
+            <div class="security-indicator" id="securityIndicator" aria-label="セキュリティ状態"></div>
+            <input type="url" class="url-bar" id="urlBar" placeholder="URLまたは検索語句を入力..."
+                   aria-label="アドレスバー" autocomplete="url" spellcheck="false" />
+        </div>
+
+        <button class="nav-btn" id="bookmarkBtn" title="ブックマーク (Ctrl+D)" aria-label="ページをブックマーク">★</button>
+    </nav>
+
+    <div class="tab-bar" role="tablist" aria-label="ブラウザタブ">
+        <div class="tab active" role="tab" aria-selected="true" data-tab-id="1">
+            <span class="tab-title">新しいタブ</span>
+            <button class="tab-close" aria-label="タブを閉じる" title="タブを閉じる (Ctrl+W)">×</button>
+        </div>
+
+        <button class="new-tab-btn" id="newTabBtn" title="新しいタブ (Ctrl+T)" aria-label="新しいタブを開く">+</button>
+    </div>
+
+    <main class="content" id="main-content" role="main">
+        <div class="loading-bar" id="loadingBar" role="progressbar" aria-hidden="true"></div>
+
+        <div class="page-container">
+            <iframe class="page-frame" id="pageFrame" src="about:blank"
+                    title="ウェブページコンテンツ"
+                    sandbox="allow-scripts allow-forms allow-popups"
+                    allow="accelerometer 'none'; camera 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; payment 'none'; usb 'none'"
+                    referrerpolicy="no-referrer">
+            </iframe>
+        </div>
+    </main>
+
+    <footer class="status-bar" role="contentinfo">
+        <div class="status-left">
+            <div class="status-indicator online" id="connectionStatus">
+                <span>●</span>
+                <span>オンライン</span>
+            </div>
+        </div>
+
+        <div class="status-right">
+            <span id="pageInfo">準備完了</span>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/assets/js/ui-components.js"></script>
+    <script src="/assets/js/theme-manager.js"></script>
+    <script src="/assets/js/components-advanced.js"></script>
+
+    <script>
+        class QuiBrowser {
+            constructor() {
+                this.currentTabId = 1;
+                this.history = [];
+                this.historyIndex = -1;
+                this.bookmarks = null; // 遅延ロード
+                this.bookmarksLoaded = false;
+                this.activeLoadTimeout = null; // メモリリーク対策
+
+                this.initializeEventListeners();
+                this.initializeKeyboardShortcuts();
+                this.updateConnectionStatus(navigator.onLine);
+            }
+
+            initializeEventListeners() {
+                document.getElementById('backBtn').addEventListener('click', () => this.goBack());
+                document.getElementById('forwardBtn').addEventListener('click', () => this.goForward());
+                document.getElementById('refreshBtn').addEventListener('click', () => this.refresh());
+                document.getElementById('homeBtn').addEventListener('click', () => this.goHome());
+                document.getElementById('bookmarkBtn').addEventListener('click', () => this.bookmark());
+
+                const urlBar = document.getElementById('urlBar');
+                urlBar.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.navigate(e.target.value);
+                    }
+                });
+
+                document.getElementById('newTabBtn').addEventListener('click', () => this.createNewTab());
+
+                window.addEventListener('online', () => this.updateConnectionStatus(true));
+                window.addEventListener('offline', () => this.updateConnectionStatus(false));
+
+                const pageFrame = document.getElementById('pageFrame');
+                pageFrame.addEventListener('load', () => this.onPageLoad());
+            }
+
+            initializeKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch(e.key) {
+                            case 't':
+                                e.preventDefault();
+                                this.createNewTab();
+                                break;
+                            case 'w':
+                                e.preventDefault();
+                                this.closeCurrentTab();
+                                break;
+                            case 'r':
+                                e.preventDefault();
+                                this.refresh();
+                                break;
+                            case 'd':
+                                e.preventDefault();
+                                this.bookmark();
+                                break;
+                            case 'l':
+                                e.preventDefault();
+                                document.getElementById('urlBar').select();
+                                break;
+                        }
+                    }
+                });
+            }
+
+            /**
+             * URLに移動（再試行機能付き）
+             * @param {string} url - 移動先URL
+             * @param {number} retryCount - 再試行回数（内部使用）
+             */
+            navigate(url, retryCount = 0) {
+                if (!url) return;
+
+                const sanitizedUrl = this.sanitizeUrl(url);
+                if (!sanitizedUrl) {
+                    this.showError('無効なURLです');
+                    return;
+                }
+
+                this.showLoadingIndicator();
+                this.updateSecurityIndicator(sanitizedUrl);
+
+                // 初回のみ履歴に追加
+                if (retryCount === 0) {
+                    this.addToHistory(sanitizedUrl);
+                }
+
+                const pageFrame = document.getElementById('pageFrame');
+
+                // エラーハンドリング: 失敗時の再試行
+                const errorHandler = () => {
+                    if (retryCount < 2) {
+                        console.warn(`Navigation failed, retrying (${retryCount + 1}/2)...`);
+                        setTimeout(() => {
+                            this.navigate(url, retryCount + 1);
+                        }, 1000 * (retryCount + 1)); // 指数バックオフ
+                    } else {
+                        this.showError('ページの読み込みに失敗しました');
+                        document.getElementById('loadingBar').style.display = 'none';
+                        document.getElementById('pageInfo').textContent = '読み込み失敗';
+                        document.getElementById('pageInfo').style.color = 'var(--color-danger)';
+                    }
+                };
+
+                // Note: iframeのonerrorは信頼性が低いためタイムアウトで対応
+                // 既存のタイムアウトをクリア（メモリリーク対策）
+                if (this.activeLoadTimeout) {
+                    clearTimeout(this.activeLoadTimeout);
+                }
+
+                this.activeLoadTimeout = setTimeout(() => {
+                    errorHandler();
+                    this.activeLoadTimeout = null;
+                }, 30000); // 30秒タイムアウト
+
+                pageFrame.onload = () => {
+                    if (this.activeLoadTimeout) {
+                        clearTimeout(this.activeLoadTimeout);
+                        this.activeLoadTimeout = null;
+                    }
+                };
+
+                pageFrame.src = sanitizedUrl;
+                document.getElementById('urlBar').value = sanitizedUrl;
+            }
+
+            /**
+             * URLのサニタイズとバリデーション
+             * @param {string} url - サニタイズ対象のURL
+             * @returns {string|null} サニタイズ後のURL、無効な場合はnull
+             */
+            sanitizeUrl(url) {
+                const trimmed = url.trim();
+                if (!trimmed) return null;
+
+                // 最大URL長チェック（DoS対策）
+                if (trimmed.length > 2048) {
+                    this.showError('URLが長すぎます');
+                    return null;
+                }
+
+                // URLデコード（多重エンコーディング対策、最大3回に削減）
+                let decoded = trimmed;
+                let previousDecoded = '';
+                let iterations = 0;
+                while (decoded !== previousDecoded && iterations < 3) {
+                    previousDecoded = decoded;
+                    try {
+                        decoded = decodeURIComponent(decoded);
+                    } catch (e) {
+                        break;
+                    }
+                    iterations++;
+                }
+
+                // 包括的な危険スキームリスト
+                const dangerousSchemes = [
+                    'javascript:', 'data:', 'vbscript:', 'file:',
+                    'about:', 'blob:', 'filesystem:', 'ws:', 'wss:',
+                    'intent:', 'android-app:', 'chrome:', 'chrome-extension:'
+                ];
+
+                // 正規化とスペース除去
+                const normalized = decoded.toLowerCase().replace(/\s/g, '');
+
+                // 危険なスキームの検出（複数パターンで）
+                for (const scheme of dangerousSchemes) {
+                    const schemePattern = scheme.replace(':', '');
+                    if (normalized.startsWith(scheme) ||
+                        normalized.includes(':' + schemePattern + ':') ||
+                        normalized.match(new RegExp(`[^\\w]${schemePattern}\\s*:`, 'i'))) {
+                        console.warn('Blocked dangerous URL scheme:', scheme);
+                        return null;
+                    }
+                }
+
+                // 検索クエリ vs URL判定
+                if (trimmed.includes(' ') || (!trimmed.includes('.') && !trimmed.startsWith('http'))) {
+                    return `https://duckduckgo.com/?q=${encodeURIComponent(trimmed)}`;
+                }
+
+                // ホワイトリスト方式: HTTP/HTTPSのみ許可
+                try {
+                    const testUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+                    const parsed = new URL(testUrl);
+
+                    if (!['http:', 'https:'].includes(parsed.protocol)) {
+                        console.warn('Blocked non-HTTP(S) protocol:', parsed.protocol);
+                        return null;
+                    }
+
+                    // DNS Prefetch for performance
+                    this.prefetchDNS(parsed.hostname);
+
+                    return parsed.href;
+                } catch (e) {
+                    // URLパースエラー時は検索として処理
+                    console.warn('Invalid URL, treating as search query:', e.message);
+                    return `https://duckduckgo.com/?q=${encodeURIComponent(trimmed)}`;
+                }
+            }
+
+            goBack() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    const url = this.history[this.historyIndex];
+                    document.getElementById('pageFrame').src = url;
+                    document.getElementById('urlBar').value = url;
+                    this.updateNavigationButtons();
+                }
+            }
+
+            goForward() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    const url = this.history[this.historyIndex];
+                    document.getElementById('pageFrame').src = url;
+                    document.getElementById('urlBar').value = url;
+                    this.updateNavigationButtons();
+                }
+            }
+
+            refresh() {
+                const pageFrame = document.getElementById('pageFrame');
+                pageFrame.src = pageFrame.src;
+                this.showLoadingIndicator();
+            }
+
+            goHome() {
+                this.navigate('dashboard.html');
+            }
+
+            createNewTab() {
+                this.currentTabId++;
+                const tabBar = document.querySelector('.tab-bar');
+                const newTabBtn = document.getElementById('newTabBtn');
+
+                const tab = document.createElement('div');
+                tab.className = 'tab';
+                tab.setAttribute('role', 'tab');
+                tab.setAttribute('data-tab-id', this.currentTabId);
+
+                // XSS対策: innerHTMLの代わりにDOM APIを使用
+                const tabTitle = document.createElement('span');
+                tabTitle.className = 'tab-title';
+                tabTitle.textContent = '新しいタブ';
+
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'tab-close';
+                closeBtn.setAttribute('aria-label', 'タブを閉じる');
+                closeBtn.textContent = '×';
+
+                tab.appendChild(tabTitle);
+                tab.appendChild(closeBtn);
+
+                tab.addEventListener('click', () => this.switchToTab(this.currentTabId));
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.closeTab(this.currentTabId);
+                });
+
+                tabBar.insertBefore(tab, newTabBtn);
+                this.switchToTab(this.currentTabId);
+                document.getElementById('urlBar').focus();
+            }
+
+            switchToTab(tabId) {
+                document.querySelectorAll('.tab').forEach(tab => {
+                    const isActive = tab.dataset.tabId == tabId;
+                    tab.classList.toggle('active', isActive);
+                    tab.setAttribute('aria-selected', isActive);
+                });
+                this.currentTabId = tabId;
+            }
+
+            closeTab(tabId) {
+                const tab = document.querySelector(`[data-tab-id="${tabId}"]`);
+                if (tab) {
+                    tab.remove();
+                    if (tabId == this.currentTabId) {
+                        const remainingTabs = document.querySelectorAll('.tab');
+                        if (remainingTabs.length > 0) {
+                            this.switchToTab(remainingTabs[remainingTabs.length - 1].dataset.tabId);
+                        } else {
+                            this.createNewTab();
+                        }
+                    }
+                }
+            }
+
+            closeCurrentTab() {
+                this.closeTab(this.currentTabId);
+            }
+
+            updateSecurityIndicator(url) {
+                const indicator = document.getElementById('securityIndicator');
+
+                if (url.startsWith('https://')) {
+                    indicator.className = 'security-indicator secure';
+                    indicator.title = '安全な接続 (HTTPS)';
+                } else if (url.startsWith('http://')) {
+                    indicator.className = 'security-indicator warning';
+                    indicator.title = '安全でない接続 (HTTP)';
+                } else {
+                    indicator.className = 'security-indicator';
+                    indicator.title = 'ローカルページ';
+                }
+            }
+
+            showLoadingIndicator() {
+                const loadingBar = document.getElementById('loadingBar');
+                const pageInfo = document.getElementById('pageInfo');
+                loadingBar.style.width = '0%';
+                loadingBar.style.display = 'block';
+                pageInfo.textContent = '読み込み中...';
+                pageInfo.style.color = 'var(--color-accent)';
+
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 30;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            loadingBar.style.display = 'none';
+                        }, 300);
+                    }
+                    loadingBar.style.width = `${Math.min(progress, 100)}%`;
+                }, 100);
+            }
+
+            updateConnectionStatus(isOnline) {
+                const statusElement = document.getElementById('connectionStatus');
+                // XSS対策: innerHTMLの代わりにDOM APIを使用
+                statusElement.className = isOnline ? 'status-indicator online' : 'status-indicator offline';
+                statusElement.textContent = '';
+
+                const dot = document.createElement('span');
+                dot.textContent = '●';
+                const text = document.createElement('span');
+                text.textContent = isOnline ? 'オンライン' : 'オフライン';
+
+                statusElement.appendChild(dot);
+                statusElement.appendChild(text);
+            }
+
+            addToHistory(url) {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                }
+
+                this.history.push(url);
+                this.historyIndex = this.history.length - 1;
+
+                if (this.history.length > 100) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+
+                this.updateNavigationButtons();
+                this.saveHistory();
+            }
+
+            updateNavigationButtons() {
+                document.getElementById('backBtn').disabled = this.historyIndex <= 0;
+                document.getElementById('forwardBtn').disabled = this.historyIndex >= this.history.length - 1;
+            }
+
+            onPageLoad() {
+                document.getElementById('loadingBar').style.display = 'none';
+                document.getElementById('pageInfo').textContent = '読み込み完了';
+
+                // ローディング完了を視覚的にフィードバック
+                const pageInfo = document.getElementById('pageInfo');
+                pageInfo.style.color = 'var(--color-success)';
+                setTimeout(() => {
+                    pageInfo.style.color = 'var(--color-text-subtle)';
+                }, 2000);
+            }
+
+            bookmark() {
+                const currentUrl = document.getElementById('urlBar').value;
+                if (!currentUrl || currentUrl === 'about:blank') {
+                    window.toast?.warning('ブックマークできるページがありません');
+                    return;
+                }
+
+                // 遅延ロード: ブックマーク使用時に初めて読み込み
+                this.ensureBookmarksLoaded();
+
+                const modal = new UIComponents.Modal({
+                    title: 'ブックマークを追加',
+                    content: `
+                        <div class="input-group">
+                            <label class="input-label" for="bookmark-title">タイトル</label>
+                            <input type="text" class="input" id="bookmark-title" value="${this.escapeHtml(currentUrl)}" required>
+                        </div>
+                        <div class="input-group" style="margin-top: 16px;">
+                            <label class="input-label" for="bookmark-url">URL</label>
+                            <input type="url" class="input" id="bookmark-url" value="${this.escapeHtml(currentUrl)}" required>
+                        </div>
+                    `,
+                    footer: `
+                        <button class="btn btn-secondary modal-cancel">キャンセル</button>
+                        <button class="btn btn-primary modal-save">保存</button>
+                    `
+                });
+
+                modal.open();
+
+                setTimeout(() => {
+                    const saveBtn = modal.modal.querySelector('.modal-save');
+                    const cancelBtn = modal.modal.querySelector('.modal-cancel');
+                    const titleInput = modal.modal.querySelector('#bookmark-title');
+
+                    titleInput?.focus();
+
+                    saveBtn?.addEventListener('click', () => {
+                        const title = titleInput.value.trim();
+                        const url = modal.modal.querySelector('#bookmark-url').value.trim();
+
+                        if (!title || !url) {
+                            window.toast?.error('タイトルとURLを入力してください');
+                            return;
+                        }
+
+                        this.bookmarks.push({
+                            id: Date.now(),
+                            title,
+                            url,
+                            date: new Date().toISOString()
+                        });
+
+                        this.saveBookmarks();
+                        window.toast?.success('ブックマークに追加しました');
+                        modal.close();
+                    });
+
+                    cancelBtn?.addEventListener('click', () => modal.close());
+                }, 0);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            /**
+             * ブックマークの遅延ロード
+             * 初回アクセス時にのみlocalStorageから読み込み
+             */
+            ensureBookmarksLoaded() {
+                if (!this.bookmarksLoaded) {
+                    try {
+                        const saved = localStorage.getItem('qui-bookmarks');
+                        this.bookmarks = saved ? JSON.parse(saved).bookmarks || [] : [];
+                        this.bookmarksLoaded = true;
+                    } catch (e) {
+                        console.error('Failed to load bookmarks:', e);
+                        this.bookmarks = [];
+                        this.bookmarksLoaded = true;
+                    }
+                }
+            }
+
+            loadBookmarks() {
+                // 互換性のため残す
+                this.ensureBookmarksLoaded();
+                return this.bookmarks;
+            }
+
+            saveBookmarks() {
+                if (!this.bookmarksLoaded || !this.bookmarks) {return;}
+                try {
+                    // メモリ節約：最新100件のみ保存
+                    const data = {
+                        bookmarks: this.bookmarks.slice(-100),
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('qui-bookmarks', JSON.stringify(data));
+                } catch (e) {
+                    console.error('Failed to save bookmarks:', e);
+                    if (e.name === 'QuotaExceededError') {
+                        this.clearOldData();
+                    }
+                }
+            }
+
+            saveHistory() {
+                try {
+                    // メモリ節約：最新50件のみ保存
+                    const data = {
+                        history: this.history.slice(-50),
+                        index: Math.min(this.historyIndex, 49),
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('qui-history', JSON.stringify(data));
+                } catch (e) {
+                    console.error('Failed to save history:', e);
+                    if (e.name === 'QuotaExceededError') {
+                        this.clearOldData();
+                    }
+                }
+            }
+
+            // localStorage容量超過時のクリーンアップ
+            clearOldData() {
+                try {
+                    const keys = Object.keys(localStorage);
+                    keys.forEach(key => {
+                        if (key.startsWith('qui-') && key !== 'qui-history' && key !== 'qui-bookmarks') {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to clear old data:', e);
+                }
+            }
+
+            showNotification(message) {
+                // 新しいトーストシステムを使用
+                if (window.toast) {
+                    window.toast.success(message);
+                } else {
+                    // フォールバック
+                    console.log('Notification:', message);
+                }
+            }
+
+            showError(message) {
+                console.error(message);
+                if (window.toast) {
+                    window.toast.error(message);
+                } else {
+                    // フォールバック
+                    console.error('Error:', message);
+                }
+            }
+
+            // Performance: DNS Prefetch for faster navigation
+            prefetchDNS(hostname) {
+                if (!hostname) return;
+
+                const existing = document.querySelector(`link[rel="dns-prefetch"][href="//${hostname}"]`);
+                if (existing) return;
+
+                const link = document.createElement('link');
+                link.rel = 'dns-prefetch';
+                link.href = `//${hostname}`;
+                document.head.appendChild(link);
+
+                // Clean up old prefetch links
+                const prefetchLinks = document.querySelectorAll('link[rel="dns-prefetch"]');
+                if (prefetchLinks.length > 10) {
+                    prefetchLinks[0].remove();
+                }
+            }
+
+            // Auto-save session periodically (VR最適化: 60秒に変更)
+            startAutoSave() {
+                // メモリ効率化：インターバルIDを保存してクリーンアップ可能に
+                if (this.autoSaveInterval) {
+                    clearInterval(this.autoSaveInterval);
+                }
+                this.autoSaveInterval = setInterval(() => {
+                    try {
+                        this.saveHistory();
+                        this.saveBookmarks();
+                    } catch (e) {
+                        console.error('Auto-save failed:', e);
+                    }
+                }, 60000); // Every 60 seconds (VR最適化)
+            }
+
+            /**
+             * リソースのクリーンアップ（メモリリーク対策）
+             * ページアンロード時に呼び出される
+             */
+            cleanup() {
+                // インターバルのクリア
+                if (this.autoSaveInterval) {
+                    clearInterval(this.autoSaveInterval);
+                    this.autoSaveInterval = null;
+                }
+
+                // タイムアウトのクリア
+                if (this.activeLoadTimeout) {
+                    clearTimeout(this.activeLoadTimeout);
+                    this.activeLoadTimeout = null;
+                }
+
+                // 最終保存
+                try {
+                    this.saveHistory();
+                    if (this.bookmarksLoaded) {
+                        this.saveBookmarks();
+                    }
+                } catch (e) {
+                    console.error('Final save failed:', e);
+                }
+            }
+
+            // Restore session on load
+            restoreSession() {
+                try {
+                    const saved = localStorage.getItem('qui-history');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        this.history = data.history || [];
+                        this.historyIndex = data.index || -1;
+                        this.updateNavigationButtons();
+                    }
+                } catch (e) {
+                    console.error('Failed to restore session:', e);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.browser = new QuiBrowser();
+            window.browser.restoreSession();
+            window.browser.startAutoSave();
+        });
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+
+        // Enhanced error boundary（改善版）
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            event.preventDefault(); // デフォルトのエラー表示を抑制
+            if (window.browser) {
+                window.browser.showError('予期しないエラーが発生しました');
+            }
+        });
+
+        // Handle unhandled promise rejections（改善版）
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled rejection:', event.reason);
+            event.preventDefault(); // デフォルトのエラー表示を抑制
+            if (window.browser) {
+                // ネットワークエラーの判定
+                const isNetworkError = event.reason &&
+                    (event.reason.message?.includes('fetch') ||
+                     event.reason.message?.includes('network'));
+                const message = isNetworkError ?
+                    'ネットワークエラーが発生しました' :
+                    '処理中にエラーが発生しました';
+                window.browser.showError(message);
+            }
+        });
+
+        // ページ終了時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            if (window.browser && typeof window.browser.cleanup === 'function') {
+                window.browser.cleanup();
+            }
+        });
+    </script>
+</body>
+</html>

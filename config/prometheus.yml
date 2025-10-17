@@ -1,0 +1,55 @@
+# Prometheus Configuration for Qui Browser
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'qui-browser-production'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Qui Browser metrics
+  - job_name: 'qui-browser'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['qui-browser:8000']
+    metrics_path: '/metrics'
+    scheme: http
+
+  # Node.js application metrics
+  - job_name: 'node-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['qui-browser:8000']
+    metrics_path: '/performance'
+    scheme: http
+
+  # Redis metrics
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Nginx metrics (if nginx-prometheus-exporter is available)
+  # - job_name: 'nginx'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']

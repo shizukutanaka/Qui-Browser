@@ -1,0 +1,60 @@
+{
+  "general": {
+    "homepage": "",
+    "searchEngine": "google",
+    "newTabPage": "homepage",
+    "downloadLocation": "",
+    "language": "ja",
+    "theme": "dark"
+  },
+  "privacy": {
+    "clearOnExit": false,
+    "clearHistory": false,
+    "clearCookies": false,
+    "clearCache": false,
+    "doNotTrack": true,
+    "thirdPartyCookies": "block",
+    "locationSharing": "ask",
+    "cameraAccess": "ask",
+    "microphoneAccess": "ask"
+  },
+  "security": {
+    "blockPopups": true,
+    "blockMalware": true,
+    "blockPhishing": true,
+    "httpsOnly": false,
+    "mixedContentBlocking": true,
+    "certificateTransparency": true,
+    "passwordSaving": true,
+    "autoUpdate": true
+  },
+  "performance": {
+    "hardwareAcceleration": true,
+    "preloadPages": false,
+    "cacheSize": 100,
+    "maxTabs": 20,
+    "tabSuspension": true,
+    "suspensionTime": 30,
+    "compressionEnabled": true
+  },
+  "interface": {
+    "showBookmarksBar": true,
+    "showStatusBar": true,
+    "showSidebar": false,
+    "compactMode": false,
+    "animationsEnabled": true,
+    "soundEnabled": false,
+    "notificationsEnabled": true,
+    "tabPosition": "top"
+  },
+  "advanced": {
+    "developerMode": false,
+    "debugMode": false,
+    "experimentalFeatures": false,
+    "userAgent": "",
+    "proxySettings": null,
+    "dnsSettings": null,
+    "customCSS": "",
+    "customJS": ""
+  }
+}

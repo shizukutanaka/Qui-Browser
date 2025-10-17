@@ -1,0 +1,635 @@
+/**
+ * Qui Browser Animation Library
+ * マイクロインタラクションとアニメーション
+ */
+
+/* ============================================
+   フェードアニメーション
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   スライドアニメーション
+   ============================================ */
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   ズームアニメーション
+   ============================================ */
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* ============================================
+   バウンスアニメーション
+   ============================================ */
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-20px);
+  }
+  60% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   シェイクアニメーション
+   ============================================ */
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+/* ============================================
+   パルスアニメーション
+   ============================================ */
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   スピンアニメーション
+   ============================================ */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   シマーアニメーション（ローディング）
+   ============================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* ============================================
+   プログレスバーアニメーション
+   ============================================ */
+
+@keyframes progressIndeterminate {
+  0% {
+    left: -35%;
+    right: 100%;
+  }
+  60% {
+    left: 100%;
+    right: -90%;
+  }
+  100% {
+    left: 100%;
+    right: -90%;
+  }
+}
+
+/* ============================================
+   リップルエフェクト
+   ============================================ */
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   タイピングアニメーション
+   ============================================ */
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink {
+  50% {
+    border-color: transparent;
+  }
+}
+
+/* ============================================
+   ユーティリティクラス
+   ============================================ */
+
+.animate-fadeIn {
+  animation: fadeIn var(--transition-duration-normal) var(--transition-easing-default);
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.animate-fadeInDown {
+  animation: fadeInDown var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.animate-slideInRight {
+  animation: slideInRight var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.animate-zoomIn {
+  animation: zoomIn var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out;
+}
+
+.animate-bounceIn {
+  animation: bounceIn var(--transition-duration-slow) var(--transition-easing-bounce);
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 3s linear infinite;
+}
+
+/* ============================================
+   ホバーエフェクト
+   ============================================ */
+
+.hover-lift {
+  transition: transform var(--transition-duration-fast) var(--transition-easing-default),
+              box-shadow var(--transition-duration-fast) var(--transition-easing-default);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-overlay);
+}
+
+.hover-grow {
+  transition: transform var(--transition-duration-fast) var(--transition-easing-default);
+}
+
+.hover-grow:hover {
+  transform: scale(1.05);
+}
+
+.hover-shrink {
+  transition: transform var(--transition-duration-fast) var(--transition-easing-default);
+}
+
+.hover-shrink:hover {
+  transform: scale(0.95);
+}
+
+.hover-rotate {
+  transition: transform var(--transition-duration-normal) var(--transition-easing-default);
+}
+
+.hover-rotate:hover {
+  transform: rotate(5deg);
+}
+
+/* ============================================
+   フォーカスエフェクト
+   ============================================ */
+
+.focus-ring {
+  transition: box-shadow var(--transition-duration-fast) var(--transition-easing-default);
+}
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* ============================================
+   リップルエフェクト（マテリアルデザイン風）
+   ============================================ */
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple-effect:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* ============================================
+   ローディングスケルトン
+   ============================================ */
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    var(--color-background-subtle) 0px,
+    var(--color-background-secondary) 40px,
+    var(--color-background-subtle) 80px
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================
+   スムーズな遅延
+   ============================================ */
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+/* ============================================
+   アニメーション期間
+   ============================================ */
+
+.duration-fast {
+  animation-duration: var(--transition-duration-fast);
+}
+
+.duration-normal {
+  animation-duration: var(--transition-duration-normal);
+}
+
+.duration-slow {
+  animation-duration: var(--transition-duration-slow);
+}
+
+/* ============================================
+   イージング
+   ============================================ */
+
+.ease-default {
+  animation-timing-function: var(--transition-easing-default);
+}
+
+.ease-in {
+  animation-timing-function: var(--transition-easing-accelerate);
+}
+
+.ease-out {
+  animation-timing-function: var(--transition-easing-decelerate);
+}
+
+.ease-bounce {
+  animation-timing-function: var(--transition-easing-bounce);
+}
+
+/* ============================================
+   ページトランジション
+   ============================================ */
+
+.page-transition-enter {
+  animation: fadeInUp var(--transition-duration-normal) var(--transition-easing-decelerate);
+}
+
+.page-transition-exit {
+  animation: fadeOut var(--transition-duration-fast) var(--transition-easing-default);
+}
+
+/* ============================================
+   スクロールアニメーション
+   ============================================ */
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity var(--transition-duration-slow) var(--transition-easing-decelerate),
+              transform var(--transition-duration-slow) var(--transition-easing-decelerate);
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   通知バッジのパルス
+   ============================================ */
+
+.notification-pulse {
+  position: relative;
+}
+
+.notification-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   カード反転エフェクト
+   ============================================ */
+
+.card-flip {
+  perspective: 1000px;
+}
+
+.card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card-flip:hover .card-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.card-flip-front,
+.card-flip-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+
+.card-flip-back {
+  transform: rotateY(180deg);
+}
+
+/* ============================================
+   視差スクロールエフェクト
+   ============================================ */
+
+.parallax {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ============================================
+   モーフィング背景
+   ============================================ */
+
+@keyframes morphBackground {
+  0% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+.morph-background {
+  animation: morphBackground 8s ease-in-out infinite;
+}
+
+/* ============================================
+   グロウエフェクト
+   ============================================ */
+
+.glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px var(--color-brand-primary),
+                0 0 20px var(--color-brand-primary),
+                0 0 30px var(--color-brand-primary);
+  }
+  to {
+    box-shadow: 0 0 20px var(--color-brand-primary),
+                0 0 30px var(--color-brand-primary),
+                0 0 40px var(--color-brand-primary);
+  }
+}
+
+/* ============================================
+   モーション低減モードの対応
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
