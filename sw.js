@@ -44,6 +44,10 @@ const VR_MODULES = [
   '/assets/js/vr-comfort-system.js',
   '/assets/js/vr-input-optimizer.js',
   '/assets/js/vr-accessibility-enhanced.js',
+  '/assets/js/vr-environment-customizer.js',
+  '/assets/js/vr-gesture-macro.js',
+  '/assets/js/vr-content-optimizer.js',
+  '/assets/js/vr-performance-profiler.js',
   '/assets/css/vr-styles.css'
 ];
 
