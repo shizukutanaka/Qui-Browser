@@ -1,6 +1,0 @@
-Type,Data
-bookmark,{""bookmarkId"":""bm1"",""url"":""https://example.com"",""title"":""Example"",""tags"":[""test""]}
-bookmark,{""bookmarkId"":""bm2"",""url"":""https://test.com"",""title"":""Test"",""tags"":[""demo""]}
-history,{""historyId"":""h1"",""url"":""https://example.com"",""title"":""Example Page"",""visitCount"":5}
-history,{""historyId"":""h2"",""url"":""https://test.com"",""title"":""Test Page"",""visitCount"":2}
-settings,{""theme"":""dark"",""language"":""en""}
