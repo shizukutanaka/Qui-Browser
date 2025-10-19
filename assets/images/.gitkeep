@@ -1,0 +1,121 @@
+# Visual Assets Directory
+
+This directory contains visual assets for the Qui Browser VR project.
+
+## Structure
+
+```
+assets/images/
+├── logo/           - Project logos in various formats
+├── screenshots/    - Application screenshots
+├── icons/          - Icon sets (favicons, app icons)
+└── banners/        - Marketing and social media banners
+```
+
+## Logo Files (to be added)
+
+- `logo/logo.svg` - Vector logo (primary)
+- `logo/logo-512x512.png` - Large PNG logo
+- `logo/logo-256x256.png` - Medium PNG logo
+- `logo/logo-128x128.png` - Small PNG logo
+- `logo/logo-white.svg` - White version for dark backgrounds
+- `logo/logo-dark.svg` - Dark version for light backgrounds
+
+## Screenshots (to be added)
+
+- `screenshots/vr-browser-main.png` - Main VR browser interface
+- `screenshots/3d-bookmarks.png` - 3D bookmark visualization
+- `screenshots/3d-tabs.png` - 3D tab manager
+- `screenshots/hand-tracking.png` - Hand tracking demo
+- `screenshots/environment-space.png` - Space environment
+- `screenshots/settings-ui.png` - Settings interface
+
+## Icons (to be added)
+
+- `icons/favicon.ico` - Browser favicon
+- `icons/icon-192x192.png` - PWA icon (small)
+- `icons/icon-512x512.png` - PWA icon (large)
+- `icons/apple-touch-icon.png` - iOS home screen icon
+
+## Banners (to be added)
+
+- `banners/social-media-banner.png` - 1200x630px for social media
+- `banners/github-header.png` - GitHub repository header
+- `banners/readme-banner.png` - README header image
+
+## Design Guidelines
+
+### Logo Usage
+
+- **Primary Color**: `#6366f1` (Indigo)
+- **Accent Color**: `#8b5cf6` (Purple)
+- **Background**: Dark (`#0f172a`) or Light (`#ffffff`)
+- **Minimum Size**: 32x32px
+- **Clear Space**: 25% of logo height on all sides
+
+### Color Palette
+
+```
+Primary:   #6366f1 (Indigo 500)
+Secondary: #8b5cf6 (Purple 500)
+Accent:    #ec4899 (Pink 500)
+Dark BG:   #0f172a (Slate 900)
+Light BG:  #ffffff (White)
+Text:      #f8fafc (Slate 50) on dark, #0f172a (Slate 900) on light
+```
+
+### Typography
+
+- **Headings**: Inter, -apple-system, BlinkMacSystemFont
+- **Body**: System UI fonts
+- **Code**: "Fira Code", "Source Code Pro", monospace
+
+### Screenshot Guidelines
+
+1. **Resolution**: Minimum 1920x1080px
+2. **Format**: PNG with transparency or JPG
+3. **Compression**: Optimized for web (<500KB per image)
+4. **Device Frame**: Include VR headset frame when showing VR view
+5. **Annotations**: Use arrows and labels to highlight features
+
+## File Naming Convention
+
+- Use lowercase
+- Use hyphens for spaces
+- Include size in filename: `logo-512x512.png`
+- Include variant: `logo-white.svg`, `logo-dark.svg`
+- Include context: `screenshot-vr-bookmarks-grid-layout.png`
+
+## Optimization
+
+All images should be optimized before committing:
+
+```bash
+# PNG optimization
+pngquant --quality=65-80 input.png -o output.png
+
+# JPG optimization
+jpegoptim --max=85 input.jpg
+
+# SVG optimization
+svgo input.svg -o output.svg
+```
+
+## License
+
+All visual assets are licensed under the same MIT License as the project.
+See [LICENSE](../../LICENSE) for details.
+
+## Contributing
+
+When adding new visual assets:
+
+1. Follow the naming convention
+2. Optimize file size
+3. Add entry to this README
+4. Update manifest.json if adding PWA icons
+5. Ensure images are appropriate and professional
+
+## Current Assets
+
+*No assets currently in this directory. Images will be added progressively.*
