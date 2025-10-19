@@ -1,0 +1,33 @@
+# Code Owners for Qui Browser VR
+# These owners will be automatically requested for review when someone opens a pull request
+
+# Default owners for everything in the repo
+* @yourusername
+
+# VR Modules
+/assets/js/vr-*.js @yourusername
+
+# Documentation
+/docs/ @yourusername
+*.md @yourusername
+
+# CI/CD & Deployment
+/.github/workflows/ @yourusername
+/docker/ @yourusername
+netlify.toml @yourusername
+vercel.json @yourusername
+Dockerfile @yourusername
+
+# Tests
+/tests/ @yourusername
+jest.config.js @yourusername
+
+# Configuration
+package.json @yourusername
+manifest.json @yourusername
+
+# Examples
+/examples/ @yourusername
+
+# Security
+SECURITY.md @yourusername
