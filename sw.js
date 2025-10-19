@@ -39,6 +39,11 @@ const VR_MODULES = [
   '/assets/js/vr-gesture-scroll.js',
   '/assets/js/vr-spatial-audio.js',
   '/assets/js/vr-tab-manager-3d.js',
+  '/assets/js/vr-text-renderer.js',
+  '/assets/js/vr-ergonomic-ui.js',
+  '/assets/js/vr-comfort-system.js',
+  '/assets/js/vr-input-optimizer.js',
+  '/assets/js/vr-accessibility-enhanced.js',
   '/assets/css/vr-styles.css'
 ];
 
