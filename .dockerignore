@@ -1,0 +1,68 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+docker
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs
+
+# Testing
+tests
+coverage
+.nyc_output
+
+# Documentation (optional - comment out if you want to include)
+# docs
+# examples
+
+# CI/CD
+.github/workflows
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Build artifacts
+dist
+build
+*.map
+
+# Editor
+*.sublime-project
+*.sublime-workspace
+
+# Backup files
+*.bak
+*~

@@ -1,0 +1,177 @@
+# Netlify Configuration for Qui Browser VR
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # 公開ディレクトリ（静的サイトのため、ルートを指定）
+  publish = "."
+
+  # ビルドコマンド（静的サイトのため不要）
+  command = "echo 'No build required for static site'"
+
+# Service Worker用のヘッダー設定
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/public/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+# JavaScript/CSS用のキャッシュ設定
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/js/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/css/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "text/css; charset=utf-8"
+
+# HTML用のキャッシュ設定
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# 画像/アイコン用のキャッシュ設定
+[[headers]]
+  for = "/assets/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# manifest.json用の設定
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/manifest+json; charset=utf-8"
+
+# WebXR用のセキュリティヘッダー
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # HTTPS強制（Netlifyは自動的にHTTPSを提供）
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Content Security Policy
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+
+    # その他のセキュリティヘッダー
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Permissions Policy（WebXR用）
+    Permissions-Policy = "accelerometer=*, camera=*, gyroscope=*, magnetometer=*, microphone=*, xr-spatial-tracking=*"
+
+# SPA用のリダイレクト設定（将来のルーティング用）
+[[redirects]]
+  from = "/app/*"
+  to = "/index.html"
+  status = 200
+
+# 404ページ
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 404
+
+# リダイレクト（HTTPからHTTPS）
+[[redirects]]
+  from = "http://:splat"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# プラグイン設定
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+  # Lighthouseのしきい値設定
+  [plugins.inputs.thresholds]
+    performance = 0.9
+    accessibility = 1.0
+    best-practices = 0.9
+    seo = 0.9
+
+[[plugins]]
+  package = "netlify-plugin-checklinks"
+
+  [plugins.inputs]
+    # リンク切れチェック
+    skipPatterns = ["#", "mailto:"]
+
+# 環境変数（オプション）
+[context.production.environment]
+  NODE_ENV = "production"
+  VR_BROWSER_VERSION = "2.0.0"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "staging"
+
+# ビルド最適化
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = false  # 既にモジュール化されているため
+  minify = false  # 必要に応じて手動で最小化
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+# 関数（将来のAPI用、オプション）
+[functions]
+  directory = "netlify/functions"
+
+# エッジ関数（オプション）
+[edge_functions]
+  directory = "netlify/edge-functions"
+
+# 開発サーバー設定
+[dev]
+  command = "python -m http.server 8888"
+  port = 8888
+  targetPort = 8888
+  autoLaunch = true
