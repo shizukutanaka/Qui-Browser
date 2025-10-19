@@ -1,6 +1,22 @@
 # Qui Browser VR
 
+<div align="center">
+
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![WebXR](https://img.shields.io/badge/WebXR-supported-orange.svg)
+![VR Devices](https://img.shields.io/badge/VR-Meta%20Quest%20%7C%20Pico-purple.svg)
+![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+
 **軽量WebXR VRブラウザ - Meta Quest、Pico、その他VRデバイス向け**
+
+[English](#) | [日本語](#) | [Documentation](docs/) | [Examples](examples/)
+
+</div>
+
+---
 
 ## 概要
 
