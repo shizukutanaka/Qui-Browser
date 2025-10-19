@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$(cat <<''EOF''\nComplete server functionality removal - VR browser only\n\nRemoved all server-side functionality to create a pure VR browser:\n\nDeleted Components:\n- lib/ directory (all 40+ server modules)\n- Server startup scripts (server-*.js, start.js, stop.js, cli.js)\n- tests/ directory (all test files)\n- Node.js dependencies (node_modules/, package-lock.json)\n- Server configuration files (ecosystem.config.js, config.js, .env, etc.)\n- Infrastructure files (Docker, Kubernetes, Helm, CI/CD configs)\n- Documentation files (all .md files)\n- Build and deployment scripts\n- Analytics, core, modules, standalone, utils directories\n- Server runtime data (logs, uploads, backups, reports)\n\nRetained VR Browser Files:\n- index.html (main entry point)\n- manifest.json (PWA manifest)\n- package.json (minimal, VR-focused)\n- LICENSE\n- .gitignore\n- public/ directory (VR HTML files, service workers)\n- assets/ directory (VR JavaScript modules, icons)\n\nNew package.json:\n- Name: qui-browser-vr\n- Version: 2.0.0\n- No dependencies\n- Simple static file serving\n\nResult: Pure client-side VR browser application\nSize reduction: ~95% (from ~10,000 files to ~50 files)\nFocus: WebXR VR browsing experience for Meta Quest, Pico, etc.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

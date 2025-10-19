@@ -1,18 +1,18 @@
 {
-  "name": "Qui Browser - 高速・安全なWebブラウザ",
-  "short_name": "Qui Browser",
-  "description": "エンタープライズグレードの軽量Webブラウザ。国家レベルのセキュリティとVR/WebXR対応。",
-  "version": "1.2.0",
+  "name": "Qui Browser VR - WebXR VR Browser",
+  "short_name": "Qui VR",
+  "description": "Lightweight WebXR VR browser optimized for Meta Quest, Pico, and other VR headsets. Immersive 3D browsing experience.",
+  "version": "2.0.0",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#0052cc",
-  "background_color": "#f4f5f7",
-  "lang": "ja",
+  "background_color": "#000000",
+  "lang": "en",
   "dir": "ltr",
 
-  "categories": ["productivity", "utilities", "browser", "security"],
+  "categories": ["productivity", "utilities", "entertainment", "vr", "webxr"],
 
   "icons": [
     {
@@ -90,52 +90,39 @@
 
   "shortcuts": [
     {
-      "name": "新しいタブ",
-      "short_name": "新規タブ",
-      "description": "新しいブラウザタブを開く",
-      "url": "/?action=new-tab",
+      "name": "VR Browser",
+      "short_name": "VR Mode",
+      "description": "Launch VR browsing mode",
+      "url": "/public/vr-browser.html",
       "icons": [
         {
-          "src": "/assets/icons/shortcut-new-tab.png",
+          "src": "/assets/icons/icon-192.png",
           "sizes": "96x96",
           "type": "image/png"
         }
       ]
     },
     {
-      "name": "ブックマーク",
-      "short_name": "ブックマーク",
-      "description": "ブックマーク管理",
-      "url": "/?action=bookmarks",
+      "name": "VR Video",
+      "short_name": "VR Video",
+      "description": "Watch 360° and 3D videos in VR",
+      "url": "/public/vr-video.html",
       "icons": [
         {
-          "src": "/assets/icons/shortcut-bookmarks.png",
+          "src": "/assets/icons/icon-192.png",
           "sizes": "96x96",
           "type": "image/png"
         }
       ]
     },
     {
-      "name": "履歴",
-      "short_name": "履歴",
-      "description": "閲覧履歴",
-      "url": "/?action=history",
-      "icons": [
-        {
-          "src": "/assets/icons/shortcut-history.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "設定",
-      "short_name": "設定",
-      "description": "ブラウザ設定",
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "VR browser settings",
       "url": "/?action=settings",
       "icons": [
         {
-          "src": "/assets/icons/shortcut-settings.png",
+          "src": "/assets/icons/icon-192.png",
           "sizes": "96x96",
           "type": "image/png"
         }
