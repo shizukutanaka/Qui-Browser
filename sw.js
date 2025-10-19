@@ -27,7 +27,15 @@ const VR_MODULES = [
   '/assets/js/webxr-integration.js',
   '/assets/js/vr-gesture-controls.js',
   '/assets/js/vr-spatial-navigation.js',
-  '/assets/js/vr-performance-monitor.js'
+  '/assets/js/vr-performance-monitor.js',
+  '/assets/js/vr-utils.js',
+  '/assets/js/vr-launcher.js',
+  '/assets/js/vr-settings.js',
+  '/assets/js/vr-navigation.js',
+  '/assets/js/vr-video-player.js',
+  '/assets/js/vr-hand-tracking.js',
+  '/assets/js/vr-keyboard.js',
+  '/assets/css/vr-styles.css'
 ];
 
 // Maximum cache sizes (optimized for VR devices)
