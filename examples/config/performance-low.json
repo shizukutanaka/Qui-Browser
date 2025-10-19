@@ -1,0 +1,94 @@
+{
+  "name": "Low Performance Configuration",
+  "description": "Optimized for low-spec VR devices (Quest 2, older Pico devices)",
+  "version": "2.0.0",
+  "display": {
+    "targetFPS": 72,
+    "minFPS": 60,
+    "resolutionScale": 0.7,
+    "antialiasing": false,
+    "foveatedRendering": true,
+    "refreshRate": 72
+  },
+  "environment": {
+    "preset": "minimal",
+    "particles": {
+      "enabled": false,
+      "count": 0
+    },
+    "fog": {
+      "enabled": false
+    },
+    "lighting": {
+      "ambient": 0.6,
+      "shadows": false
+    }
+  },
+  "performance": {
+    "cacheStrategy": "aggressive",
+    "preload": {
+      "links": false,
+      "images": false,
+      "videos": false
+    },
+    "monitoring": {
+      "enabled": true,
+      "autoAdjust": true
+    }
+  },
+  "ui": {
+    "layout": "default",
+    "scale": 1.0,
+    "opacity": 0.95,
+    "animations": {
+      "enabled": false
+    }
+  },
+  "input": {
+    "handTracking": {
+      "enabled": true,
+      "sensitivity": "low"
+    },
+    "gazeControl": {
+      "enabled": true,
+      "dwellTime": 1200
+    },
+    "haptics": {
+      "enabled": false
+    }
+  },
+  "accessibility": {
+    "textScale": 1.0,
+    "highContrast": "dark",
+    "reducedMotion": true,
+    "colorBlindnessFilter": "none"
+  },
+  "content": {
+    "video": {
+      "maxResolution": 2048,
+      "adaptiveBitrate": true,
+      "bufferSize": 5
+    },
+    "image": {
+      "maxResolution": 4096,
+      "progressiveLoad": true
+    },
+    "webxr": {
+      "enableLOD": true,
+      "frustumCulling": true,
+      "textureCompression": true,
+      "maxTriangles": 100000
+    }
+  },
+  "audio": {
+    "spatialAudio": true,
+    "masterVolume": 0.8,
+    "uiSounds": false
+  },
+  "advanced": {
+    "memoryLimit": 1536,
+    "textureLimit": 256,
+    "drawCallLimit": 100,
+    "autoOptimize": true
+  }
+}

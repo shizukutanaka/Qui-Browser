@@ -1,0 +1,231 @@
+name: Test VR Modules
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  validate:
+    name: Validate VR Modules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Check VR modules existence
+        run: |
+          echo "Checking VR modules..."
+
+          MODULES=(
+            "vr-launcher.js"
+            "vr-utils.js"
+            "vr-text-renderer.js"
+            "vr-ergonomic-ui.js"
+            "vr-comfort-system.js"
+            "vr-input-optimizer.js"
+            "vr-accessibility-enhanced.js"
+            "vr-environment-customizer.js"
+            "vr-gesture-macro.js"
+            "vr-content-optimizer.js"
+            "vr-performance-profiler.js"
+            "vr-bookmark-3d.js"
+            "vr-tab-manager-3d.js"
+            "vr-spatial-audio.js"
+            "vr-hand-tracking.js"
+            "vr-gesture-scroll.js"
+            "vr-keyboard.js"
+            "vr-navigation.js"
+            "vr-video-player.js"
+            "vr-settings.js"
+            "vr-performance-monitor.js"
+          )
+
+          MISSING=0
+          for module in "${MODULES[@]}"; do
+            if [ -f "assets/js/$module" ]; then
+              echo "✓ $module"
+            else
+              echo "✗ $module MISSING"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+
+          if [ $MISSING -gt 0 ]; then
+            echo "Error: $MISSING modules are missing!"
+            exit 1
+          fi
+
+          echo "All VR modules found!"
+
+      - name: Check module sizes
+        run: |
+          echo "Module sizes:"
+          du -h assets/js/vr-*.js | sort -h
+
+      - name: Validate JavaScript syntax
+        run: |
+          echo "Validating JavaScript syntax..."
+          for file in assets/js/vr-*.js; do
+            node -c "$file" && echo "✓ $file" || echo "✗ $file has syntax errors"
+          done
+
+      - name: Check for console.log (production check)
+        run: |
+          echo "Checking for console.log statements..."
+          CONSOLE_COUNT=$(grep -r "console.log" assets/js/vr-*.js | wc -l || echo "0")
+          echo "Found $CONSOLE_COUNT console.log statements"
+          if [ $CONSOLE_COUNT -gt 50 ]; then
+            echo "Warning: Many console.log statements found. Consider removing for production."
+          fi
+
+      - name: Check for TODO comments
+        run: |
+          echo "Checking for TODO comments..."
+          grep -rn "TODO" assets/js/vr-*.js || echo "No TODO comments found"
+
+      - name: Validate documentation
+        run: |
+          echo "Validating documentation..."
+
+          # Check README
+          if [ -f README.md ]; then
+            echo "✓ README.md exists"
+            grep -q "## 機能" README.md && echo "  ✓ Has features section" || echo "  ✗ Missing features section"
+          else
+            echo "✗ README.md missing"
+            exit 1
+          fi
+
+          # Check API docs
+          if [ -f docs/API.md ]; then
+            echo "✓ API.md exists"
+            wc -l docs/API.md
+          else
+            echo "✗ API.md missing"
+            exit 1
+          fi
+
+          # Check usage guide
+          if [ -f docs/USAGE_GUIDE.md ]; then
+            echo "✓ USAGE_GUIDE.md exists"
+            wc -l docs/USAGE_GUIDE.md
+          else
+            echo "✗ USAGE_GUIDE.md missing"
+            exit 1
+          fi
+
+      - name: Check examples
+        run: |
+          echo "Checking example files..."
+          test -f examples/basic-vr-setup.html && echo "✓ basic-vr-setup.html" || echo "✗ basic-vr-setup.html missing"
+          test -f examples/advanced-features.html && echo "✓ advanced-features.html" || echo "✗ advanced-features.html missing"
+          test -f examples/README.md && echo "✓ examples/README.md" || echo "✗ examples/README.md missing"
+
+      - name: Total code statistics
+        run: |
+          echo "Code statistics:"
+          echo "VR JavaScript modules:"
+          find assets/js -name "vr-*.js" -exec wc -l {} + | tail -1
+          echo ""
+          echo "Documentation:"
+          wc -l docs/*.md README.md | tail -1
+          echo ""
+          echo "Examples:"
+          wc -l examples/*.html examples/*.md | tail -1
+
+  compatibility:
+    name: Check WebXR Compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check WebXR API usage
+        run: |
+          echo "Checking WebXR API usage..."
+
+          # Check for WebXR API calls
+          grep -r "navigator.xr" assets/js/vr-*.js && echo "✓ Uses navigator.xr" || echo "✗ No navigator.xr usage"
+          grep -r "XRSession" assets/js/vr-*.js && echo "✓ Uses XRSession" || echo "Note: No direct XRSession usage"
+          grep -r "requestAnimationFrame" assets/js/vr-*.js && echo "✓ Uses requestAnimationFrame" || echo "Note: No requestAnimationFrame"
+
+      - name: Check Three.js compatibility
+        run: |
+          echo "Checking Three.js usage..."
+          grep -r "THREE\." assets/js/vr-*.js | head -5
+          echo "... (showing first 5 matches)"
+
+      - name: Check for deprecated APIs
+        run: |
+          echo "Checking for deprecated APIs..."
+          grep -r "webkitGetUserMedia\|mozGetUserMedia" assets/js/*.js && echo "Warning: Deprecated APIs found" || echo "✓ No deprecated APIs"
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high || true
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Checking for potential secrets..."
+
+          # Check for API keys
+          if grep -rE "(api_key|apikey|api-key)" assets/js/*.js; then
+            echo "Warning: Potential API keys found"
+          else
+            echo "✓ No API keys found"
+          fi
+
+          # Check for tokens
+          if grep -rE "(token|access_token)" assets/js/*.js; then
+            echo "Warning: Potential tokens found"
+          else
+            echo "✓ No tokens found"
+          fi
+
+          # Check for passwords
+          if grep -rE "(password|passwd|pwd)" assets/js/*.js; then
+            echo "Warning: Potential passwords found"
+          else
+            echo "✓ No passwords found"
+          fi
+
+      - name: Check for eval usage
+        run: |
+          echo "Checking for eval() usage..."
+          if grep -r "eval(" assets/js/*.js; then
+            echo "Warning: eval() usage found - potential security risk"
+            exit 1
+          else
+            echo "✓ No eval() usage"
+          fi

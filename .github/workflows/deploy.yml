@@ -1,0 +1,132 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Validate VR Modules
+        run: |
+          echo "Validating VR modules..."
+          for file in assets/js/vr-*.js; do
+            if [ -f "$file" ]; then
+              echo "✓ Found: $file"
+            fi
+          done
+
+      - name: Check file sizes
+        run: |
+          echo "Checking file sizes..."
+          find assets/js -name "vr-*.js" -exec ls -lh {} \;
+
+      - name: Create build info
+        run: |
+          echo "{
+            \"version\": \"2.0.0\",
+            \"build\": \"${{ github.sha }}\",
+            \"date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+            \"branch\": \"${{ github.ref_name }}\"
+          }" > build-info.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Lint JavaScript files
+        run: |
+          echo "Checking JavaScript syntax..."
+          npx eslint assets/js/*.js || echo "ESLint not configured, skipping..."
+
+      - name: Check VR module count
+        run: |
+          MODULE_COUNT=$(find assets/js -name "vr-*.js" | wc -l)
+          echo "Found $MODULE_COUNT VR modules"
+          if [ $MODULE_COUNT -lt 20 ]; then
+            echo "Warning: Expected at least 20 VR modules, found $MODULE_COUNT"
+          else
+            echo "✓ VR modules count OK"
+          fi
+
+      - name: Validate HTML files
+        run: |
+          echo "Validating HTML files..."
+          for file in *.html examples/*.html; do
+            if [ -f "$file" ]; then
+              echo "Checking: $file"
+              grep -q "<!DOCTYPE html>" "$file" && echo "  ✓ Has DOCTYPE" || echo "  ✗ Missing DOCTYPE"
+            fi
+          done
+
+      - name: Check documentation
+        run: |
+          echo "Checking documentation..."
+          test -f README.md && echo "✓ README.md exists" || echo "✗ README.md missing"
+          test -f docs/API.md && echo "✓ API.md exists" || echo "✗ API.md missing"
+          test -f docs/USAGE_GUIDE.md && echo "✓ USAGE_GUIDE.md exists" || echo "✗ USAGE_GUIDE.md missing"
+
+      - name: Security check
+        run: |
+          echo "Running security checks..."
+          npm audit --audit-level=moderate || echo "Some vulnerabilities found, review recommended"

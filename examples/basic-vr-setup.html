@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic VR Setup - Qui Browser VR Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #00ffff;
+        }
+
+        p {
+            margin: 5px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        #vr-button {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%);
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+        }
+
+        #vr-button:hover {
+            transform: translateX(-50%) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 255, 255, 0.5);
+        }
+
+        #vr-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div id="info">
+        <h1>Basic VR Setup Example</h1>
+        <p>このページは、Qui Browser VRの基本的なセットアップ例です。</p>
+        <p><strong>機能:</strong></p>
+        <ul style="margin: 10px 0; padding-left: 20px; font-size: 14px;">
+            <li>VRセッション管理</li>
+            <li>テキストレンダリング</li>
+            <li>エルゴノミクスUI</li>
+            <li>快適性システム</li>
+            <li>入力最適化</li>
+        </ul>
+        <div class="code-block">
+            // VRモードを起動するには<br>
+            // 下のボタンをクリック
+        </div>
+    </div>
+
+    <div id="status">🎮</div>
+
+    <button id="vr-button">VRモード起動</button>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+
+    <!-- VR Modules -->
+    <script src="../assets/js/vr-utils.js"></script>
+    <script src="../assets/js/vr-launcher.js"></script>
+    <script src="../assets/js/vr-text-renderer.js"></script>
+    <script src="../assets/js/vr-ergonomic-ui.js"></script>
+    <script src="../assets/js/vr-comfort-system.js"></script>
+    <script src="../assets/js/vr-input-optimizer.js"></script>
+
+    <script>
+        // グローバル変数
+        let scene, camera, renderer;
+        let vrLauncher, textRenderer, ergoUI, comfortSystem, inputOptimizer;
+        let clock;
+        let isVRActive = false;
+
+        // 初期化
+        function init() {
+            console.log('Initializing Basic VR Setup...');
+
+            // Three.jsシーン作成
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            // カメラ作成
+            camera = new THREE.PerspectiveCamera(
+                90,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1.6, 0); // 標準的な目の高さ
+
+            // レンダラー作成
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.xr.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // クロック
+            clock = new THREE.Clock();
+
+            // VRシステム初期化
+            initVRSystems();
+
+            // サンプルコンテンツ追加
+            addSampleContent();
+
+            // イベントリスナー
+            setupEventListeners();
+
+            // アニメーションループ開始
+            renderer.setAnimationLoop(animate);
+
+            console.log('Basic VR Setup initialized successfully!');
+        }
+
+        // VRシステム初期化
+        function initVRSystems() {
+            // VRランチャー
+            vrLauncher = new VRLauncher();
+
+            // テキストレンダラー
+            textRenderer = new VRTextRenderer();
+
+            // エルゴノミクスUI
+            ergoUI = new VRErgonomicUI();
+            ergoUI.init(camera, scene);
+
+            // 快適性システム
+            comfortSystem = new VRComfortSystem();
+            comfortSystem.init(scene, camera);
+
+            // 入力最適化
+            inputOptimizer = new VRInputOptimizer();
+            inputOptimizer.init(camera, scene, renderer, {
+                mode: 'hybrid',
+                dwellTime: 1000,
+                enableHaptics: true
+            });
+
+            console.log('VR systems initialized');
+        }
+
+        // サンプルコンテンツ追加
+        function addSampleContent() {
+            // 床グリッド
+            const gridHelper = new THREE.GridHelper(20, 20, 0x00ffff, 0x444444);
+            scene.add(gridHelper);
+
+            // 環境光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // ポイントライト
+            const pointLight = new THREE.PointLight(0x00ffff, 1, 100);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+
+            // ウェルカムテキスト（3Dスプライト）
+            const welcomeSprite = textRenderer.createTextSprite('Welcome to Qui Browser VR', {
+                fontSize: 48,
+                scale: 2.0,
+                distance: 3.0
+            });
+            welcomeSprite.position.set(0, 2.5, -3);
+            scene.add(welcomeSprite);
+
+            // インフォテキスト
+            const infoSprite = textRenderer.createTextSprite('Basic VR Setup Example', {
+                fontSize: 32,
+                scale: 1.5,
+                distance: 3.0
+            });
+            infoSprite.position.set(0, 2.0, -3);
+            scene.add(infoSprite);
+
+            // サンプルボタン
+            const button1 = ergoUI.createButton('Click Me', {
+                width: 0.36,
+                height: 0.12,
+                onClick: () => {
+                    console.log('Button 1 clicked!');
+                    if (window.vrUtils) {
+                        window.vrUtils.showNotification(
+                            'Success',
+                            'Button clicked!',
+                            'success',
+                            3000
+                        );
+                    }
+                },
+                color: 0x00ffff,
+                hoverColor: 0x00ccff,
+                textColor: '#000000'
+            });
+
+            // ボタンをエルゴノミクスゾーンに配置
+            ergoUI.positionInViewingZone(button1, {
+                zone: 'primary',
+                distance: 2.0,
+                horizontalAngle: -15,
+                verticalAngle: -10,
+                anchorMode: 'lazy-follow'
+            });
+            scene.add(button1);
+
+            // ボタンをインタラクティブオブジェクトとして登録
+            inputOptimizer.registerInteractiveObject(button1, {
+                onHover: () => console.log('Button hovered'),
+                onSelect: () => {
+                    console.log('Button selected via input optimizer');
+                    if (window.vrUtils) {
+                        window.vrUtils.showNotification(
+                            'Info',
+                            'Button selected!',
+                            'info',
+                            2000
+                        );
+                    }
+                }
+            });
+
+            // サンプルボックス（視線でインタラクション）
+            const boxGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+            const boxMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff00ff,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            const box = new THREE.Mesh(boxGeometry, boxMaterial);
+            box.position.set(1.0, 1.6, -2.0);
+            scene.add(box);
+
+            inputOptimizer.registerInteractiveObject(box, {
+                onHover: () => {
+                    box.material.color.setHex(0xff66ff);
+                },
+                onSelect: () => {
+                    box.rotation.y += Math.PI / 4;
+                    if (window.vrUtils) {
+                        window.vrUtils.showNotification(
+                            'Success',
+                            'Box rotated!',
+                            'success',
+                            2000
+                        );
+                    }
+                }
+            });
+
+            console.log('Sample content added');
+        }
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // VRボタン
+            const vrButton = document.getElementById('vr-button');
+            vrButton.addEventListener('click', toggleVR);
+
+            // VRセッションイベント
+            window.addEventListener('vr-session-started', (e) => {
+                console.log('VR session started', e.detail);
+                isVRActive = true;
+                vrButton.textContent = 'VRモード終了';
+                document.getElementById('status').textContent = '🥽';
+                document.getElementById('info').style.display = 'none';
+            });
+
+            window.addEventListener('vr-session-ended', (e) => {
+                console.log('VR session ended', e.detail);
+                isVRActive = false;
+                vrButton.textContent = 'VRモード起動';
+                document.getElementById('status').textContent = '🎮';
+                document.getElementById('info').style.display = 'block';
+            });
+
+            // パフォーマンスイベント
+            window.addEventListener('vr-performance', (e) => {
+                const { fps, frameTime, droppedFrames } = e.detail;
+                if (fps < 72) {
+                    console.warn(`Low FPS: ${fps}`);
+                }
+            });
+
+            // ウィンドウリサイズ
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // VRモード切り替え
+        async function toggleVR() {
+            if (isVRActive) {
+                await vrLauncher.exitVR();
+            } else {
+                try {
+                    const supported = await vrLauncher.checkVRSupport();
+                    if (supported) {
+                        await vrLauncher.enterVR();
+                    } else {
+                        alert('このデバイスはWebXRをサポートしていません。');
+                    }
+                } catch (err) {
+                    console.error('VR起動エラー:', err);
+                    alert('VRモードの起動に失敗しました: ' + err.message);
+                }
+            }
+        }
+
+        // ウィンドウリサイズ
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // アニメーションループ
+        function animate() {
+            const deltaTime = clock.getDelta();
+
+            // VRシステム更新
+            ergoUI.update(deltaTime);
+            comfortSystem.update(deltaTime);
+            inputOptimizer.update(deltaTime);
+
+            // レンダリング
+            renderer.render(scene, camera);
+        }
+
+        // ページロード時に初期化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

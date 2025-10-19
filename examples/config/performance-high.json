@@ -1,0 +1,109 @@
+{
+  "name": "High Performance Configuration",
+  "description": "Optimized for high-spec VR devices (Quest 3, Pico 4, PC VR)",
+  "version": "2.0.0",
+  "display": {
+    "targetFPS": 120,
+    "minFPS": 90,
+    "resolutionScale": 1.2,
+    "antialiasing": true,
+    "foveatedRendering": false,
+    "refreshRate": 120
+  },
+  "environment": {
+    "preset": "cyberpunk",
+    "particles": {
+      "enabled": true,
+      "count": 5000,
+      "color": "0xffffff",
+      "size": 0.05
+    },
+    "fog": {
+      "enabled": true,
+      "color": "0x444444",
+      "density": 0.05
+    },
+    "lighting": {
+      "ambient": 0.5,
+      "shadows": true,
+      "shadowQuality": "high"
+    }
+  },
+  "performance": {
+    "cacheStrategy": "balanced",
+    "preload": {
+      "links": true,
+      "images": true,
+      "videos": true
+    },
+    "monitoring": {
+      "enabled": true,
+      "autoAdjust": false
+    }
+  },
+  "ui": {
+    "layout": "comfortable",
+    "scale": 1.2,
+    "opacity": 0.95,
+    "animations": {
+      "enabled": true,
+      "duration": 300,
+      "easing": "ease-out"
+    }
+  },
+  "input": {
+    "handTracking": {
+      "enabled": true,
+      "sensitivity": "high",
+      "gestureRecognition": true
+    },
+    "gazeControl": {
+      "enabled": true,
+      "dwellTime": 800
+    },
+    "haptics": {
+      "enabled": true,
+      "intensity": 0.8
+    }
+  },
+  "accessibility": {
+    "textScale": 1.2,
+    "highContrast": "none",
+    "reducedMotion": false,
+    "colorBlindnessFilter": "none"
+  },
+  "content": {
+    "video": {
+      "maxResolution": 4096,
+      "adaptiveBitrate": true,
+      "bufferSize": 15,
+      "spatialAudio": true
+    },
+    "image": {
+      "maxResolution": 8192,
+      "progressiveLoad": true,
+      "generateMipmaps": true
+    },
+    "webxr": {
+      "enableLOD": true,
+      "frustumCulling": true,
+      "textureCompression": false,
+      "maxTriangles": 500000,
+      "shadowMapping": true
+    }
+  },
+  "audio": {
+    "spatialAudio": true,
+    "masterVolume": 1.0,
+    "uiSounds": true,
+    "hrtf": true,
+    "reverb": true
+  },
+  "advanced": {
+    "memoryLimit": 2048,
+    "textureLimit": 512,
+    "drawCallLimit": 300,
+    "autoOptimize": false,
+    "enableProfiling": true
+  }
+}
