@@ -15,8 +15,14 @@
     "meta-quest",
     "pico",
     "browser",
-    "lightweight"
+    "lightweight",
+    "3d",
+    "spatial-audio",
+    "hand-tracking"
   ],
+  "dependencies": {
+    "three": "^0.152.0"
+  },
   "author": "Qui Browser Team",
   "license": "MIT",
   "engines": {
