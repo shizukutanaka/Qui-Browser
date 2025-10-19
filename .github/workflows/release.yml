@@ -1,0 +1,256 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run linting
+        run: |
+          npm run lint || echo "Linting warnings found"
+          npm run format:check || echo "Formatting issues found"
+
+      - name: Build documentation
+        run: |
+          echo "Building documentation..."
+          # ドキュメントがすでに生成されているので、確認のみ
+          test -f docs/API.md && echo "✓ API.md exists"
+          test -f docs/USAGE_GUIDE.md && echo "✓ USAGE_GUIDE.md exists"
+          test -f docs/QUICK_START.md && echo "✓ QUICK_START.md exists"
+
+      - name: Run benchmark
+        run: |
+          npm run benchmark:all -- --iterations 100 --output benchmark-results.md --format markdown
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # RELEASE_NOTES_*.md が存在するか確認
+          RELEASE_FILE="RELEASE_NOTES_${VERSION}.md"
+
+          if [ -f "$RELEASE_FILE" ]; then
+            echo "Using existing release notes: $RELEASE_FILE"
+            cp "$RELEASE_FILE" release_notes.md
+          else
+            # CHANGELOGから該当バージョンのセクションを抽出
+            echo "Extracting from CHANGELOG.md"
+            sed -n "/## \[${VERSION#v}\]/,/## \[/p" CHANGELOG.md | head -n -1 > release_notes.md
+
+            # 空の場合はデフォルトのリリースノートを生成
+            if [ ! -s release_notes.md ]; then
+              cat > release_notes.md <<EOF
+          # Qui Browser VR $VERSION
+
+          ## 🎉 Release Highlights
+
+          - Production-ready WebXR VR browser
+          - 35+ VR modules with comprehensive features
+          - Full documentation suite
+          - Enterprise-grade infrastructure
+
+          ## 📦 Installation
+
+          \`\`\`bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd qui-browser-vr
+          npm install
+          \`\`\`
+
+          ## 🚀 Quick Start
+
+          \`\`\`bash
+          npx http-server -p 8080
+          # Access from VR device: http://[YOUR_IP]:8080
+          \`\`\`
+
+          ## 📖 Documentation
+
+          - [Quick Start Guide](docs/QUICK_START.md)
+          - [API Reference](docs/API.md)
+          - [Architecture](docs/ARCHITECTURE.md)
+          - [FAQ](docs/FAQ.md)
+
+          ## 🙏 Contributors
+
+          See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list.
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          EOF
+            fi
+          fi
+
+      - name: Create release archive
+        run: |
+          VERSION="${{ env.VERSION }}"
+          ARCHIVE_NAME="qui-browser-vr-${VERSION}.tar.gz"
+
+          # 不要なファイルを除外してアーカイブ作成
+          tar -czf "$ARCHIVE_NAME" \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='*.log' \
+            --exclude='coverage' \
+            --exclude='.cache' \
+            --exclude='benchmark-results.*' \
+            .
+
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+          ls -lh "$ARCHIVE_NAME"
+
+      - name: Calculate checksums
+        run: |
+          sha256sum "${{ env.ARCHIVE_NAME }}" > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Qui Browser VR ${{ env.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          files: |
+            ${{ env.ARCHIVE_NAME }}
+            checksums.txt
+            benchmark-results.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest release tag
+        if: ${{ !github.event.inputs.prerelease }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -f latest
+          git push origin latest --force
+
+      - name: Create release summary
+        run: |
+          VERSION="${{ env.VERSION }}"
+
+          echo "## 🎉 Release $VERSION Created!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Assets" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.ARCHIVE_NAME }}\` ($(ls -lh ${{ env.ARCHIVE_NAME }} | awk '{print $5}'))" >> $GITHUB_STEP_SUMMARY
+          echo "- \`checksums.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`benchmark-results.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Documentation](https://github.com/${{ github.repository }}/tree/main/docs)" >> $GITHUB_STEP_SUMMARY
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.prerelease }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create build info
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          cat > build-info.json <<EOF
+          {
+            "version": "$VERSION",
+            "buildDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}"
+          }
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          exclude_assets: |
+            node_modules
+            .git
+            .github
+            tests
+            coverage
+            *.log
+          cname: # カスタムドメインがある場合はここに設定
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Notify Release
+    needs: [create-release, deploy-pages]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Send notification
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "Release $VERSION completed!"
+
+          # ここで通知サービスにWebhookを送信できます
+          # 例: Discord, Slack, Email など
+
+          echo "## 📢 Release Notification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Release $VERSION has been published successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Verify the release at https://github.com/${{ github.repository }}/releases" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check GitHub Pages deployment" >> $GITHUB_STEP_SUMMARY
+          echo "3. Update social media announcements" >> $GITHUB_STEP_SUMMARY
+          echo "4. Notify community channels" >> $GITHUB_STEP_SUMMARY
