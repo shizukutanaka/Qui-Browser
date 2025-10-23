@@ -1,0 +1,98 @@
+{
+  "date": "2025-10-23T04:53:53.080Z",
+  "categories": {
+    "unified-advanced-features.js": [
+      "advanced-analytics-reporting.js",
+      "advanced-backup-restore.js",
+      "advanced-data-visualization.js",
+      "advanced-deployment-cicd.js",
+      "advanced-documentation-enhancement.js",
+      "advanced-globalization-enhancement.js",
+      "advanced-input-systems.js",
+      "advanced-performance-monitoring.js",
+      "advanced-performance-system.js",
+      "advanced-realtime-collaboration.js",
+      "advanced-testing-qa.js",
+      "advanced-user-analytics.js"
+    ],
+    "unified-ai-system.js": [
+      "vr-ai-assistant.js",
+      "vr-ai-assistant-ui.js",
+      "vr-ai-assistant-integration.js",
+      "vr-ai-recommender.js",
+      "vr-nlp-processor.js",
+      "vr-proactive-learning.js",
+      "enhanced-ai-assistant.js"
+    ],
+    "unified-metaverse-system.js": [
+      "vr-metaverse-integration.js",
+      "vr-multiplayer-browsing.js",
+      "vr-avatar-system.js",
+      "complete-metaverse-ecosystem.js",
+      "blockchain-web3-integration.js",
+      "vr-web3-wallet.js"
+    ],
+    "unified-cloud-system.js": [
+      "cloud-synchronization-system.js",
+      "vr-cloud-sync.js",
+      "comprehensive-customer-support.js",
+      "custom-extension-store.js"
+    ],
+    "unified-browser-enhancements.js": [
+      "enhanced-browser-core.js",
+      "enterprise-security.js",
+      "multilingual-voice-system.js",
+      "complete-translation-system.js",
+      "offline-functionality.js",
+      "lightweight-extension-system.js"
+    ],
+    "unified-next-gen-features.js": [
+      "vr-brain-computer-interface.js",
+      "vr-neural-rendering.js",
+      "vr-ar-mode.js",
+      "vr-webgpu-renderer.js",
+      "vr-theme-editor.js",
+      "vr-device-support.js",
+      "vr-optimized-ui.js",
+      "vr-keyboard-enhanced.js",
+      "vr-spatial-audio-enhanced.js"
+    ]
+  },
+  "keepSeparate": [
+    "unified-performance-system.js",
+    "unified-security-system.js",
+    "unified-error-handler.js",
+    "unified-vr-extension-system.js",
+    "error-handler.js",
+    "i18n-manager.js",
+    "language-manager.js",
+    "memory-optimizer.js",
+    "performance-optimizer.js",
+    "security-hardener.js",
+    "startup-optimizer.js",
+    "translation-database.js"
+  ],
+  "markForDeletion": [
+    "advanced-performance-monitoring.js",
+    "advanced-performance-system.js",
+    "vr-performance-monitor.js",
+    "vr-performance-profiler.js",
+    "wasm-performance-optimizer.js",
+    "performance-optimization-manager.js",
+    "vr-extension-loader.js",
+    "vr-extension-loader-v2.js",
+    "vr-extension-system.js",
+    "vr-extension-manager-ui.js",
+    "vr-extension-store-3d.js",
+    "vr-extension-ai-recommender.js",
+    "vr-extension-gesture-control.js",
+    "vr-extension-voice-control.js",
+    "vr-extension-sync-analytics.js"
+  ],
+  "estimatedSavings": {
+    "originalSizeKB": "2625.16",
+    "consolidatedSizeKB": 240,
+    "savingsKB": "2385.16",
+    "savingsPercent": "90.9"
+  }
+}

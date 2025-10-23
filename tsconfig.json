@@ -1,0 +1,76 @@
+{
+  "compilerOptions": {
+    // Target and Module
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"],
+
+    // Module Resolution
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Emit
+    "outDir": "./dist",
+    "rootDir": "./",
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Type Checking
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    // Additional Checks
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+
+    // Module
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Paths
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["assets/js/*"],
+      "@core/*": ["assets/js/core/*"],
+      "@vr/*": ["assets/js/vr/*"],
+      "@utils/*": ["assets/js/utils/*"],
+      "@types/*": ["types/*"]
+    },
+
+    // Experimental
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+
+  "include": [
+    "assets/js/**/*",
+    "types/**/*",
+    "tests/**/*"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "dist",
+    "backup",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ],
+
+  "compileOnSave": true
+}
