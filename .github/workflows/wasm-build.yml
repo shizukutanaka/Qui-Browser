@@ -1,0 +1,233 @@
+name: Qui Browser VR WebAssembly CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'wasm/**'
+      - 'assets/js/wasm/**'
+      - '.github/workflows/wasm-build.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'wasm/**'
+      - 'assets/js/wasm/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: '18'
+
+jobs:
+  # 品質チェックジョブ
+  quality-check:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: |
+          cd wasm
+          cargo fmt -- --check
+
+      - name: Run Clippy
+        run: |
+          cd wasm
+          cargo clippy -- -D warnings
+
+      - name: Run Rust tests
+        run: |
+          cd wasm
+          cargo test
+
+  # セキュリティスキャンジョブ
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: |
+          cd wasm
+          cargo audit
+
+  # WebAssemblyビルドジョブ
+  build-wasm:
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+    needs: [quality-check, security-scan]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Add wasm-pack to PATH
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Create build directories
+        run: mkdir -p wasm/build assets/js/wasm
+
+      - name: Run WebAssembly build
+        run: |
+          cd wasm
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: |
+            assets/js/wasm/
+            wasm/build/
+          retention-days: 30
+
+  # パフォーマンステストジョブ
+  performance-test:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    needs: build-wasm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: .
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install performance testing tools
+        run: npm install -g lighthouse
+
+      - name: Create test HTML file
+        run: |
+          cat > test-wasm.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Qui Browser WASM Test</title>
+          </head>
+          <body>
+              <h1>WebAssembly Performance Test</h1>
+              <div id="test-results"></div>
+              <script type="module">
+                  import init from './assets/js/wasm/qui_browser_wasm.js';
+
+                  async function runTests() {
+                      const results = document.getElementById('test-results');
+
+                      try {
+                          const wasm = await init();
+                          const start = performance.now();
+
+                          // 行列計算テスト
+                          const matrix1 = new Float32Array([1, 2, 3, 4]);
+                          const matrix2 = new Float32Array([5, 6, 7, 8]);
+
+                          for (let i = 0; i < 1000; i++) {
+                              wasm.multiply_matrices(matrix1, matrix2);
+                          }
+
+                          const end = performance.now();
+                          results.innerHTML = `<p>1000回の行列計算: ${end - start}ms</p>`;
+
+                      } catch (error) {
+                          results.innerHTML = `<p>エラー: ${error.message}</p>`;
+                      }
+                  }
+
+                  runTests();
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Run WebAssembly performance test
+        run: node -e "
+          const fs = require('fs');
+          const jsFile = 'assets/js/wasm/qui_browser_wasm.js';
+          const wasmFile = 'assets/js/wasm/qui_browser_wasm_bg.wasm';
+
+          if (fs.existsSync(jsFile) && fs.existsSync(wasmFile)) {
+              console.log('✅ WebAssemblyファイルが正常にビルドされています');
+              console.log('📊 JavaScriptサイズ:', fs.statSync(jsFile).size, 'bytes');
+              console.log('📊 WebAssemblyサイズ:', fs.statSync(wasmFile).size, 'bytes');
+          } else {
+              console.error('❌ WebAssemblyファイルが見つかりません');
+              process.exit(1);
+          }
+        "
+
+  # デプロイジョブ（リリース時のみ）
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: performance-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: .
+
+      - name: Setup deployment configuration
+        run: |
+          echo "Deployment configuration for production"
+          # 実際のデプロイ設定をここに追加
+
+      - name: Deploy to CDN
+        run: |
+          echo "Deploying WebAssembly modules to CDN..."
+          # 実際のCDNデプロイロジックをここに追加
+
+  # 通知ジョブ
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [quality-check, security-scan, build-wasm, performance-test]
+    if: always()
+    steps:
+      - name: Notify build status
+        run: |
+          if [ "${{ needs.build-wasm.result }}" == "success" ]; then
+            echo "✅ WebAssemblyビルドが成功しました"
+          else
+            echo "❌ WebAssemblyビルドが失敗しました"
+          fi

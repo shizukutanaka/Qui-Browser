@@ -30,6 +30,219 @@ class SecurityHardener {
     this.setupSubresourceIntegrity();
     this.setupSecurityMonitoring();
     this.setupCertificatePinning();
+    this.setupDataEncryption();
+    this.setupSecureStorage();
+    this.setupInputValidation();
+  }
+
+  // データ暗号化
+  setupDataEncryption() {
+    this.encryptionKey = this.generateEncryptionKey();
+
+    // 機密データの自動暗号化
+    this.encryptSensitiveData();
+  }
+
+  generateEncryptionKey() {
+    // セキュアなキーを生成（実際の環境ではより強力な方法を使用）
+    if (!localStorage.getItem('encryption_key')) {
+      const key = this.generateSecureKey();
+      localStorage.setItem('encryption_key', key);
+    }
+    return localStorage.getItem('encryption_key');
+  }
+
+  generateSecureKey() {
+    const array = new Uint8Array(32);
+    if (window.crypto && crypto.getRandomValues) {
+      crypto.getRandomValues(array);
+    } else {
+      // フォールバック
+      for (let i = 0; i < array.length; i++) {
+        array[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  encryptSensitiveData() {
+    // 機密データを暗号化
+    const sensitiveKeys = ['user_token', 'api_key', 'password'];
+
+    sensitiveKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      if (value && !this.isEncrypted(value)) {
+        const encrypted = this.encryptData(value);
+        localStorage.setItem(key, `encrypted:${encrypted}`);
+      }
+    });
+  }
+
+  encryptData(data) {
+    // 簡易的な暗号化（実際の環境ではより強力な暗号化を使用）
+    const key = this.encryptionKey;
+    let encrypted = '';
+    for (let i = 0; i < data.length; i++) {
+      encrypted += String.fromCharCode(data.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(encrypted);
+  }
+
+  decryptData(encryptedData) {
+    if (!this.isEncrypted(encryptedData)) return encryptedData;
+
+    const data = atob(encryptedData.substring(10)); // 'encrypted:' を除去
+    const key = this.encryptionKey;
+    let decrypted = '';
+    for (let i = 0; i < data.length; i++) {
+      decrypted += String.fromCharCode(data.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return decrypted;
+  }
+
+  isEncrypted(data) {
+    return data && data.startsWith('encrypted:');
+  }
+
+  // セキュアストレージ
+  setupSecureStorage() {
+    // セキュアなストレージAPIのラッパー
+    this.secureStorage = {
+      setItem: (key, value) => {
+        if (this.isSensitiveKey(key)) {
+          value = `encrypted:${this.encryptData(value)}`;
+        }
+        localStorage.setItem(key, value);
+      },
+
+      getItem: (key) => {
+        const value = localStorage.getItem(key);
+        if (value && this.isEncrypted(value)) {
+          return this.decryptData(value);
+        }
+        return value;
+      },
+
+      removeItem: (key) => {
+        localStorage.removeItem(key);
+      }
+    };
+
+    // グローバルにセキュアストレージを提供
+    window.secureStorage = this.secureStorage;
+  }
+
+  isSensitiveKey(key) {
+    const sensitiveKeys = ['token', 'password', 'key', 'secret', 'credential'];
+    return sensitiveKeys.some(sensitive => key.toLowerCase().includes(sensitive));
+  }
+
+  // 入力検証
+  setupInputValidation() {
+    // 危険な入力パターンの検出
+    this.dangerousPatterns = [
+      /<script[^>]*>.*?<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi,
+      /<iframe[^>]*>.*?<\/iframe>/gi,
+      /<object[^>]*>.*?<\/object>/gi,
+      /<embed[^>]*>/gi
+    ];
+
+    // フォーム入力の監視
+    document.addEventListener('input', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        this.validateInput(e.target);
+      }
+    });
+
+    // フォーム送信の監視
+    document.addEventListener('submit', (e) => {
+      this.validateForm(e.target);
+    });
+  }
+
+  validateInput(input) {
+    const value = input.value;
+    const isDangerous = this.dangerousPatterns.some(pattern => pattern.test(value));
+
+    if (isDangerous) {
+      console.warn('危険な入力が検出されました:', value.substring(0, 100));
+      input.value = this.sanitizeInput(value);
+      this.logSecurityEvent('dangerous_input', { input: input.name, value: value.substring(0, 100) });
+    }
+  }
+
+  validateForm(form) {
+    const inputs = form.querySelectorAll('input, textarea');
+    let isValid = true;
+
+    inputs.forEach(input => {
+      if (!this.validateInputField(input)) {
+        isValid = false;
+      }
+    });
+
+    if (!isValid) {
+      event.preventDefault();
+      console.warn('フォーム検証に失敗しました');
+    }
+  }
+
+  validateInputField(input) {
+    const value = input.value;
+
+    // 必須フィールドのチェック
+    if (input.hasAttribute('required') && !value.trim()) {
+      this.showValidationError(input, 'このフィールドは必須です');
+      return false;
+    }
+
+    // メールアドレスの検証
+    if (input.type === 'email' && value && !this.isValidEmail(value)) {
+      this.showValidationError(input, '有効なメールアドレスを入力してください');
+      return false;
+    }
+
+    // パスワードの強度チェック
+    if (input.type === 'password' && value && !this.isStrongPassword(value)) {
+      this.showValidationError(input, 'パスワードは8文字以上で、英数字と記号を含めてください');
+      return false;
+    }
+
+    return true;
+  }
+
+  isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  isStrongPassword(password) {
+    return password.length >= 8 &&
+           /[a-z]/.test(password) &&
+           /[A-Z]/.test(password) &&
+           /[0-9]/.test(password) &&
+           /[^A-Za-z0-9]/.test(password);
+  }
+
+  sanitizeInput(input) {
+    return input.replace(/<script[^>]*>.*?<\/script>/gi, '')
+               .replace(/javascript:/gi, '')
+               .replace(/on\w+\s*=/gi, '');
+  }
+
+  showValidationError(input, message) {
+    // エラーメッセージを表示
+    let errorElement = input.parentNode.querySelector('.error-message');
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'error-message';
+      errorElement.style.color = 'red';
+      errorElement.style.fontSize = '12px';
+      input.parentNode.appendChild(errorElement);
+    }
+    errorElement.textContent = message;
   }
 
   // HTTPS強制

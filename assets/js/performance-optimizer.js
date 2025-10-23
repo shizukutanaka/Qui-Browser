@@ -481,6 +481,142 @@ class PerformanceOptimizer {
 
     // キャッシュの自動クリーンアップ
     this.setupCacheCleanup();
+
+    // メモリリーク検出
+    this.setupMemoryLeakDetection();
+
+    // 自動メモリクリーンアップ
+    this.setupAutomaticMemoryCleanup();
+
+    // メモリ使用量監視
+    this.setupMemoryUsageMonitoring();
+  }
+
+  setupMemoryLeakDetection() {
+    this.memorySnapshots = [];
+    this.leakThreshold = 10 * 1024 * 1024; // 10MB増加で警告
+
+    // 定期的なメモリスナップショット
+    setInterval(() => {
+      if (performance.memory) {
+        const snapshot = {
+          timestamp: Date.now(),
+          used: performance.memory.usedJSHeapSize,
+          total: performance.memory.totalJSHeapSize,
+          limit: performance.memory.jsHeapSizeLimit
+        };
+
+        this.memorySnapshots.push(snapshot);
+
+        // スナップショット履歴を制限
+        if (this.memorySnapshots.length > 100) {
+          this.memorySnapshots.shift();
+        }
+
+        this.detectMemoryLeaks();
+      }
+    }, 60000); // 1分ごと
+  }
+
+  detectMemoryLeaks() {
+    if (this.memorySnapshots.length < 2) return;
+
+    const recent = this.memorySnapshots.slice(-5);
+    const oldest = this.memorySnapshots[0];
+
+    // メモリ使用量のトレンドを計算
+    const memoryIncrease = recent[recent.length - 1].used - oldest.used;
+
+    if (memoryIncrease > this.leakThreshold) {
+      console.warn(`潜在的なメモリリーク検出: ${this.formatBytes(memoryIncrease)} の増加`);
+      this.triggerMemoryCleanup();
+    }
+  }
+
+  setupAutomaticMemoryCleanup() {
+    // メモリ使用率が閾値を超えた場合の自動クリーンアップ
+    setInterval(() => {
+      if (performance.memory) {
+        const usagePercent = (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100;
+
+        if (usagePercent > 80) {
+          this.triggerMemoryCleanup();
+        }
+      }
+    }, 300000); // 5分ごと
+  }
+
+  triggerMemoryCleanup() {
+    console.info('自動メモリクリーンアップを実行');
+
+    // 積極的なクリーンアップ
+    this.aggressiveMemoryCleanup();
+
+    // ガベージコレクションを強制（可能な場合）
+    if (window.gc) {
+      window.gc();
+    }
+
+    // メモリスナップショットをリセット
+    this.memorySnapshots = [];
+  }
+
+  setupMemoryUsageMonitoring() {
+    // リアルタイムメモリ監視
+    if (performance.memory) {
+      const observer = new MutationObserver(() => {
+        const usage = (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100;
+
+        if (usage > 90) {
+          console.error('メモリ使用率が90%を超えました。クリーンアップを推奨');
+        } else if (usage > 75) {
+          console.warn('メモリ使用率が高い状態です');
+        }
+      });
+
+      observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+      this.observers.set('memory', observer);
+    }
+  }
+
+  aggressiveMemoryCleanup() {
+    // 積極的なメモリクリーンアップ
+    this.cleanupCaches();
+
+    // 未使用のDOM要素を削除
+    document.querySelectorAll('[data-temporary]').forEach(element => {
+      element.remove();
+    });
+
+    // 一時的な変数をクリア
+    this.clearTemporaryVariables();
+
+    // イベントリスナーの最適化
+    this.optimizeEventListeners();
+
+    // 大きなオブジェクトの参照をクリア
+    this.clearLargeObjectReferences();
+  }
+
+  clearTemporaryVariables() {
+    // グローバルスコープの一時変数をクリア
+    Object.keys(window).forEach(key => {
+      if (key.startsWith('temp_') || key.startsWith('_temp')) {
+        delete window[key];
+      }
+    });
+  }
+
+  clearLargeObjectReferences() {
+    // 大きなオブジェクトの参照をクリア
+    if (window.largeDataObjects) {
+      window.largeDataObjects.forEach(obj => {
+        if (obj && typeof obj.clear === 'function') {
+          obj.clear();
+        }
+      });
+      window.largeDataObjects = [];
+    }
   }
 
   setupEventListenerCleanup() {

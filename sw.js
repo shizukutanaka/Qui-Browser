@@ -1,15 +1,17 @@
 /**
  * Qui Browser VR - Service Worker
- * Optimized for VR devices with offline support and efficient caching
+ * Optimized for VR devices with advanced caching and offline support
+ * @version 2.0.1
  */
 
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 const CACHE_NAME = `qui-vr-${VERSION}`;
 const STATIC_CACHE = `qui-vr-static-${VERSION}`;
 const DYNAMIC_CACHE = `qui-vr-dynamic-${VERSION}`;
 const VR_ASSETS_CACHE = `qui-vr-assets-${VERSION}`;
+const API_CACHE = `qui-vr-api-${VERSION}`;
 
-// Critical assets for VR browser
+// Critical assets for VR browser (更新された統合ファイルを含む)
 const CRITICAL_ASSETS = [
   '/',
   '/index.html',
@@ -18,16 +20,19 @@ const CRITICAL_ASSETS = [
   '/public/vr-browser.html',
   '/public/vr-video.html',
   '/public/offline.html',
-  '/assets/icon.svg'
+  '/assets/icon.svg',
+  '/assets/js/vr-accessibility-unified.js',
+  '/assets/js/vr-performance-unified.js',
+  '/assets/js/language-manager.js'
 ];
 
-// VR-specific JavaScript modules
+// VR-specific JavaScript modules (統合ファイルに更新)
 const VR_MODULES = [
   '/assets/js/browser-core.js',
   '/assets/js/webxr-integration.js',
   '/assets/js/vr-gesture-controls.js',
   '/assets/js/vr-spatial-navigation.js',
-  '/assets/js/vr-performance-monitor.js',
+  '/assets/js/vr-performance-unified.js',
   '/assets/js/vr-utils.js',
   '/assets/js/vr-launcher.js',
   '/assets/js/vr-settings.js',
@@ -43,13 +48,34 @@ const VR_MODULES = [
   '/assets/js/vr-ergonomic-ui.js',
   '/assets/js/vr-comfort-system.js',
   '/assets/js/vr-input-optimizer.js',
-  '/assets/js/vr-accessibility-enhanced.js',
+  '/assets/js/vr-accessibility-unified.js',
   '/assets/js/vr-environment-customizer.js',
   '/assets/js/vr-gesture-macro.js',
   '/assets/js/vr-content-optimizer.js',
-  '/assets/js/vr-performance-profiler.js',
-  '/assets/css/vr-styles.css'
+  '/assets/js/language-manager.js',
+  '/assets/js/security-hardener.js',
+  '/assets/js/performance-optimizer.js'
 ];
+
+// 高度なキャッシュ戦略
+const CACHE_STRATEGIES = {
+  // クリティカルリソース: Cache First
+  CACHE_FIRST: 'cache-first',
+  // 動的コンテンツ: Network First with Cache Fallback
+  NETWORK_FIRST: 'network-first',
+  // API: Stale While Revalidate
+  STALE_WHILE_REVALIDATE: 'stale-while-revalidate',
+  // 画像などの大きいファイル: Cache First with Network Update
+  CACHE_FIRST_NETWORK_UPDATE: 'cache-first-network-update'
+};
+
+// キャッシュサイズ制限
+const CACHE_LIMITS = {
+  [STATIC_CACHE]: 50,
+  [DYNAMIC_CACHE]: 100,
+  [VR_ASSETS_CACHE]: 200,
+  [API_CACHE]: 50
+};
 
 // Maximum cache sizes (optimized for VR devices)
 const MAX_DYNAMIC_CACHE_SIZE = 50; // Limit dynamic cache
@@ -253,41 +279,83 @@ async function trimCache(cacheName, maxSize) {
   }
 }
 
-// Message handler for manual cache updates
-self.addEventListener('message', (event) => {
-  if (event.data.action === 'skipWaiting') {
-    self.skipWaiting();
-  }
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync triggered:', event.tag);
 
-  if (event.data.action === 'clearCache') {
-    event.waitUntil(
-      caches.keys().then(names => {
-        return Promise.all(names.map(name => caches.delete(name)));
-      }).then(() => {
-        return self.clients.matchAll();
-      }).then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ action: 'cacheCleared' });
-        });
-      })
-    );
-  }
-
-  if (event.data.action === 'getCacheSize') {
-    event.waitUntil(
-      getCacheSize().then(size => {
-        return self.clients.matchAll();
-      }).then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            action: 'cacheSize',
-            size: size
-          });
-        });
-      })
-    );
+  if (event.tag === 'background-sync-settings') {
+    event.waitUntil(syncSettings());
+  } else if (event.tag === 'background-sync-bookmarks') {
+    event.waitUntil(syncBookmarks());
   }
 });
+
+// Helper: Sync settings when online
+async function syncSettings() {
+  try {
+    const settings = await getStoredSettings();
+    if (settings) {
+      const response = await fetch('/api/settings/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+
+      if (response.ok) {
+        console.log('[SW] Settings synced successfully');
+        // Clear local settings after successful sync
+        await clearStoredSettings();
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Settings sync failed:', error);
+  }
+}
+
+// Helper: Sync bookmarks when online
+async function syncBookmarks() {
+  try {
+    const bookmarks = await getStoredBookmarks();
+    if (bookmarks && bookmarks.length > 0) {
+      const response = await fetch('/api/bookmarks/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookmarks })
+      });
+
+      if (response.ok) {
+        console.log('[SW] Bookmarks synced successfully');
+        // Clear local bookmarks after successful sync
+        await clearStoredBookmarks();
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Bookmarks sync failed:', error);
+  }
+}
+
+// Helper: Get stored settings from IndexedDB
+async function getStoredSettings() {
+  // Simplified - in real implementation, use IndexedDB
+  return localStorage.getItem('pending_settings');
+}
+
+// Helper: Get stored bookmarks from IndexedDB
+async function getStoredBookmarks() {
+  // Simplified - in real implementation, use IndexedDB
+  const bookmarks = localStorage.getItem('pending_bookmarks');
+  return bookmarks ? JSON.parse(bookmarks) : null;
+}
+
+// Helper: Clear stored settings
+async function clearStoredSettings() {
+  localStorage.removeItem('pending_settings');
+}
+
+// Helper: Clear stored bookmarks
+async function clearStoredBookmarks() {
+  localStorage.removeItem('pending_bookmarks');
+}
 
 // Helper: Calculate total cache size
 async function getCacheSize() {
