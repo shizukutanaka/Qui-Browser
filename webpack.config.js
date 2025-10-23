@@ -22,14 +22,17 @@ module.exports = (env, argv) => {
         './assets/js/accessibility.js'
       ],
 
-      // VR bundle - loaded on demand
+      // VR bundle - loaded on demand (unified systems)
       vr: [
         './assets/js/unified-vr-extension-system.js',
         './assets/js/vr-launcher.js',
-        './assets/js/vr-navigation.js',
-        './assets/js/vr-hand-tracking.js',
-        './assets/js/vr-spatial-audio.js',
-        './assets/js/vr-gesture-controls.js'
+        './assets/js/vr-utils.js',
+        './assets/js/vr-settings.js',
+        './assets/js/vr-ui-system.js',
+        './assets/js/vr-input-system.js',
+        './assets/js/vr-navigation-system.js',
+        './assets/js/vr-media-system.js',
+        './assets/js/vr-system-monitor.js'
       ],
 
       // Enhancement bundle - loaded in background

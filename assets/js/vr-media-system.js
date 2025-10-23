@@ -504,7 +504,7 @@ class VRMediaSystem {
         this.textureCache.set(key, texture);
     }
 
-    getC achedTexture(key) {
+    getCachedTexture(key) {
         return this.textureCache.get(key);
     }
 
