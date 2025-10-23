@@ -20,7 +20,18 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(node consolidate-advanced-modules.js:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(for file in vr-error-handler.js vr-performance-monitor.js vr-performance-profiler.js vr-accessibility-system.js vr-accessibility-enhanced.js vr-extension-loader.js vr-extension-manager-ui.js vr-extension-loader-v2.js vr-extension-store-3d.js vr-extension-voice-control.js vr-extension-gesture-control.js vr-extension-ai-recommender.js)",
+      "Bash(do if [ ! -f \"$file\" ])",
+      "Bash(then echo \"Missing: $file\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(copy:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
