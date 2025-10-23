@@ -44,27 +44,24 @@ describe('VR Modules Tests', () => {
     const path = require('path');
 
     const requiredModules = [
+      // Core VR modules
       'vr-launcher.js',
       'vr-utils.js',
-      'vr-text-renderer.js',
-      'vr-ergonomic-ui.js',
-      'vr-comfort-system.js',
-      'vr-input-optimizer.js',
-      'vr-accessibility-enhanced.js',
-      'vr-environment-customizer.js',
-      'vr-gesture-macro.js',
-      'vr-content-optimizer.js',
-      'vr-performance-profiler.js',
-      'vr-bookmark-3d.js',
-      'vr-tab-manager-3d.js',
-      'vr-spatial-audio.js',
-      'vr-hand-tracking.js',
-      'vr-gesture-scroll.js',
-      'vr-keyboard.js',
-      'vr-navigation.js',
-      'vr-video-player.js',
       'vr-settings.js',
-      'vr-performance-monitor.js'
+      // Standalone VR modules
+      'vr-comfort-system.js',
+      'vr-environment-customizer.js',
+      'vr-content-optimizer.js',
+      // Unified systems
+      'unified-performance-system.js',
+      'unified-security-system.js',
+      'unified-error-handler.js',
+      'unified-vr-extension-system.js',
+      'vr-ui-system.js',
+      'vr-input-system.js',
+      'vr-navigation-system.js',
+      'vr-media-system.js',
+      'vr-system-monitor.js'
     ];
 
     requiredModules.forEach(moduleName => {
@@ -76,9 +73,11 @@ describe('VR Modules Tests', () => {
 
     test('All VR modules should have valid JavaScript syntax', () => {
       const jsDir = path.join(__dirname, '..', 'assets', 'js');
-      const vrFiles = fs.readdirSync(jsDir).filter(f => f.startsWith('vr-') && f.endsWith('.js'));
+      const vrFiles = fs.readdirSync(jsDir).filter(f =>
+        (f.startsWith('vr-') || f.startsWith('unified-')) && f.endsWith('.js')
+      );
 
-      expect(vrFiles.length).toBeGreaterThanOrEqual(20);
+      expect(vrFiles.length).toBeGreaterThanOrEqual(15);
     });
   });
 
@@ -250,14 +249,14 @@ describe('VR Modules Tests', () => {
       expect(fs.existsSync(apiPath)).toBe(true);
     });
 
-    test('USAGE_GUIDE.md should exist', () => {
-      const guidePath = path.join(__dirname, '..', 'docs', 'USAGE_GUIDE.md');
-      expect(fs.existsSync(guidePath)).toBe(true);
+    test('IMPLEMENTATION_SUMMARY.md should exist', () => {
+      const summaryPath = path.join(__dirname, '..', 'IMPLEMENTATION_SUMMARY.md');
+      expect(fs.existsSync(summaryPath)).toBe(true);
     });
 
-    test('DEPLOYMENT.md should exist', () => {
-      const deployPath = path.join(__dirname, '..', 'docs', 'DEPLOYMENT.md');
-      expect(fs.existsSync(deployPath)).toBe(true);
+    test('FINAL_PROJECT_REPORT.md should exist', () => {
+      const reportPath = path.join(__dirname, '..', 'FINAL_PROJECT_REPORT.md');
+      expect(fs.existsSync(reportPath)).toBe(true);
     });
   });
 
@@ -294,7 +293,7 @@ describe('VR Modules Tests', () => {
 
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
       expect(pkg.name).toBe('qui-browser-vr');
-      expect(pkg.version).toBe('2.0.0');
+      expect(pkg.version).toBe('3.2.0');
     });
 
     test('manifest.json should exist', () => {
@@ -337,5 +336,5 @@ describe('VR Modules Tests', () => {
 // テスト実行時の情報出力
 console.log('\n========================================');
 console.log('Qui Browser VR - Test Suite');
-console.log('Version: 2.0.0');
+console.log('Version: 3.2.0');
 console.log('========================================\n');

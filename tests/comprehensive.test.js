@@ -15,8 +15,14 @@ const testEnvironment = {
 
 // グローバルモック設定
 global.testEnvironment = testEnvironment;
-global.navigator.hardwareConcurrency = testEnvironment.mockHardwareConcurrency;
-global.navigator.deviceMemory = testEnvironment.mockDeviceMemory;
+Object.defineProperty(global.navigator, 'hardwareConcurrency', {
+  writable: true,
+  value: testEnvironment.mockHardwareConcurrency
+});
+Object.defineProperty(global.navigator, 'deviceMemory', {
+  writable: true,
+  value: testEnvironment.mockDeviceMemory
+});
 
 // VR関連モック
 const mockXRSession = {
