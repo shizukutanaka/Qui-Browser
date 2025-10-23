@@ -31,7 +31,9 @@
       "Bash(copy:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npm run benchmark:*)",
+      "Bash(npm run benchmark:all:*)"
     ],
     "deny": [],
     "ask": []
