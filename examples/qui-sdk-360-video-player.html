@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuiBrowserSDK - 360° Video Player Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+    }
+
+    #vr-canvas {
+      display: block;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      z-index: 100;
+    }
+
+    #vr-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background: #0052cc;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+
+    #vr-button:hover {
+      background: #0066ff;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    #video-input {
+      position: absolute;
+      top: 150px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 10px;
+      z-index: 100;
+    }
+
+    #video-input input {
+      width: 300px;
+      padding: 8px;
+      margin-right: 10px;
+      border-radius: 5px;
+      border: 1px solid #0052cc;
+    }
+
+    #video-input button {
+      padding: 8px 15px;
+      background: #0052cc;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+
+    ul {
+      margin: 10px 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="vr-canvas"></canvas>
+
+  <div id="info">
+    <h1>QuiBrowserSDK - 360° Video Player</h1>
+    <p><strong>Features:</strong></p>
+    <ul>
+      <li>360° video playback</li>
+      <li>Mono/stereo support (top-bottom, side-by-side)</li>
+      <li>VR controls (play/pause, reset)</li>
+      <li>Hand tracking interaction</li>
+      <li>Gaze selection</li>
+    </ul>
+    <p><strong>Controls:</strong></p>
+    <ul>
+      <li>Gaze at buttons for 0.8s to click</li>
+      <li>Hand tracking: point and pinch</li>
+      <li>Voice: "play", "pause", "reset"</li>
+    </ul>
+  </div>
+
+  <div id="video-input">
+    <input type="text" id="video-url" placeholder="Enter 360° video URL" value="">
+    <button onclick="loadVideo()">Load</button>
+  </div>
+
+  <button id="vr-button">Enter VR</button>
+
+  <!-- Sample video element (hidden) -->
+  <video id="sample-video" crossorigin="anonymous" loop muted style="display: none;">
+    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d7/Clouds_in_4K_-_Ultra_HD.webm/Clouds_in_4K_-_Ultra_HD.webm.480p.vp9.webm" type="video/webm">
+  </video>
+
+  <!-- Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+  <script src="../assets/js/vr-text-renderer.js"></script>
+  <script src="../assets/js/vr-webgpu-renderer.js"></script>
+  <script src="../assets/js/vr-foveated-rendering.js"></script>
+  <script src="../assets/js/vr-memory-manager.js"></script>
+  <script src="../assets/js/vr-accessibility-wcag.js"></script>
+  <script src="../assets/js/vr-i18n-system.js"></script>
+  <script src="../assets/js/vr-voice-commands-i18n.js"></script>
+  <script src="../assets/js/vr-security-manager.js"></script>
+  <script src="../assets/js/qui-browser-sdk.js"></script>
+  <script src="../assets/js/qui-sdk-interactions.js"></script>
+
+  <script>
+    let vr;
+    let videoPlayer;
+    let gazeInteraction;
+    let voiceCommands;
+    let currentVideo = document.getElementById('sample-video');
+
+    async function initVR() {
+      try {
+        // Initialize VR
+        vr = await SDK.initVR({
+          environment: 'minimal',
+          enableHandTracking: true,
+          enableVoiceCommands: true,
+          enableGazeTracking: true,
+          enableAccessibility: true
+        });
+
+        console.log('VR initialized successfully!');
+
+        // Create 360° video player
+        videoPlayer = SDK.createVideoPlayer360({
+          videoElement: currentVideo,
+          stereoMode: 'mono', // Change to 'top-bottom' or 'side-by-side' for 3D video
+          autoplay: true,
+          loop: true,
+          controls: true
+        });
+
+        // Play video
+        currentVideo.play().catch(e => console.warn('Autoplay prevented:', e));
+
+        // Initialize gaze interaction
+        gazeInteraction = SDK.createGazeInteraction({
+          dwellTime: 800,
+          showReticle: true,
+          showProgressRing: true
+        });
+        await gazeInteraction.initialize();
+
+        // Initialize voice commands
+        voiceCommands = SDK.createVoiceCommands({
+          language: 'en',
+          commands: [
+            {
+              pattern: 'play|start',
+              description: 'Play video',
+              handler: () => {
+                currentVideo.play();
+                console.log('[Voice] Play video');
+              }
+            },
+            {
+              pattern: 'pause|stop',
+              description: 'Pause video',
+              handler: () => {
+                currentVideo.pause();
+                console.log('[Voice] Pause video');
+              }
+            },
+            {
+              pattern: 'reset|restart',
+              description: 'Reset video',
+              handler: () => {
+                currentVideo.currentTime = 0;
+                console.log('[Voice] Reset video');
+              }
+            },
+            {
+              pattern: 'volume up',
+              description: 'Increase volume',
+              handler: () => {
+                currentVideo.volume = Math.min(currentVideo.volume + 0.1, 1.0);
+                console.log('[Voice] Volume:', currentVideo.volume);
+              }
+            },
+            {
+              pattern: 'volume down',
+              description: 'Decrease volume',
+              handler: () => {
+                currentVideo.volume = Math.max(currentVideo.volume - 0.1, 0);
+                console.log('[Voice] Volume:', currentVideo.volume);
+              }
+            }
+          ],
+          showFeedback: true
+        });
+        await voiceCommands.initialize();
+        voiceCommands.start();
+
+        // Create info panel
+        const infoPanel = SDK.createPanel3D({
+          width: 1.0,
+          height: 0.4,
+          position: { x: 0, y: 2.5, z: -2 },
+          title: '360° Video Player',
+          content: [
+            'Look at controls to interact',
+            'Say "play", "pause", or "reset"',
+            'Hand tracking supported'
+          ]
+        });
+
+        // Start animation loop
+        SDK.startAnimationLoop((time, frame) => {
+          // Update gaze interaction
+          if (gazeInteraction && frame) {
+            gazeInteraction.update(frame, vr.session);
+          }
+
+          // Update video texture
+          if (videoPlayer && videoPlayer.userData.videoTexture) {
+            videoPlayer.userData.videoTexture.needsUpdate = true;
+          }
+        });
+
+        // Hide UI elements
+        document.getElementById('info').style.display = 'none';
+        document.getElementById('video-input').style.display = 'none';
+
+        console.log('360° Video Player running!');
+
+      } catch (error) {
+        console.error('VR initialization failed:', error);
+        alert('VR not supported or initialization failed. See console for details.');
+      }
+    }
+
+    function loadVideo() {
+      const url = document.getElementById('video-url').value;
+      if (url) {
+        currentVideo.src = url;
+        currentVideo.load();
+        console.log('Loading video:', url);
+      }
+    }
+
+    // VR button handler
+    document.getElementById('vr-button').addEventListener('click', () => {
+      initVR();
+    });
+
+    // Sample URLs
+    console.log('Sample 360° video URLs:');
+    console.log('- Clouds: https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d7/Clouds_in_4K_-_Ultra_HD.webm/Clouds_in_4K_-_Ultra_HD.webm.480p.vp9.webm');
+    console.log('- Your own video: Enter URL above');
+  </script>
+</body>
+</html>

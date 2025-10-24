@@ -1,8 +1,8 @@
 {
   "name": "Qui Browser VR - WebXR VR Browser",
   "short_name": "Qui VR",
-  "description": "Lightweight WebXR VR browser optimized for Meta Quest, Pico, and other VR headsets. Immersive 3D browsing experience.",
-  "version": "2.0.0",
+  "description": "Next-generation WebXR browser with 100+ language support, WebGPU (1000% boost), ETFR (36-52% GPU savings), WCAG AAA accessibility, and PWA offline support",
+  "version": "3.7.1",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

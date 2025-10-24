@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuiBrowserSDK - Hello World Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+    }
+
+    #vr-canvas {
+      display: block;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+    }
+
+    #vr-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background: #0052cc;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #vr-button:hover {
+      background: #0066ff;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+
+    code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="vr-canvas"></canvas>
+
+  <div id="info">
+    <h1>QuiBrowserSDK - Hello World</h1>
+    <p>This is the simplest possible VR application using QuiBrowserSDK.</p>
+    <p><strong>Features:</strong></p>
+    <ul>
+      <li>One-line VR initialization</li>
+      <li>3D text "Hello VR!"</li>
+      <li>Interactive button</li>
+      <li>Environment (space with stars)</li>
+    </ul>
+    <p><strong>Code:</strong> Only <code>~20 lines</code> of JavaScript!</p>
+  </div>
+
+  <button id="vr-button">Enter VR</button>
+
+  <!-- Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+  <script src="../assets/js/vr-text-renderer.js"></script>
+  <script src="../assets/js/vr-webgpu-renderer.js"></script>
+  <script src="../assets/js/vr-foveated-rendering.js"></script>
+  <script src="../assets/js/vr-memory-manager.js"></script>
+  <script src="../assets/js/vr-accessibility-wcag.js"></script>
+  <script src="../assets/js/vr-i18n-system.js"></script>
+  <script src="../assets/js/vr-security-manager.js"></script>
+  <script src="../assets/js/qui-browser-sdk.js"></script>
+
+  <script>
+    // QuiBrowserSDK Hello World Example
+    // Only ~20 lines of code!
+
+    let vr;
+
+    async function initVR() {
+      try {
+        // 1. Initialize VR with one line!
+        vr = await SDK.initVR({
+          environment: 'space',
+          enableHandTracking: true,
+          enableVoiceCommands: false,
+          enableAccessibility: true
+        });
+
+        console.log('VR initialized successfully!');
+
+        // 2. Create "Hello VR!" text
+        if (window.VRTextRenderer) {
+          const textRenderer = new VRTextRenderer();
+          const helloText = textRenderer.createText({
+            text: 'Hello VR!',
+            fontSize: 0.2,
+            color: 0x00ff00,
+            maxWidth: 2.0
+          });
+          helloText.position.set(0, 2.0, -2);
+          vr.scene.add(helloText);
+        }
+
+        // 3. Create interactive button
+        const button = SDK.createButton3D({
+          text: 'Click Me!',
+          position: { x: 0, y: 1.5, z: -1.5 },
+          onClick: () => {
+            console.log('Button clicked!');
+            alert('Hello from VR button!');
+          }
+        });
+
+        // 4. Add a rotating cube
+        const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const material = new THREE.MeshStandardMaterial({ color: 0xff00ff });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(0.8, 1.5, -1.5);
+        vr.scene.add(cube);
+
+        // 5. Start animation loop
+        SDK.startAnimationLoop((time, frame) => {
+          // Rotate cube
+          cube.rotation.x += 0.01;
+          cube.rotation.y += 0.01;
+        });
+
+        console.log('Hello World VR app running!');
+
+      } catch (error) {
+        console.error('VR initialization failed:', error);
+        alert('VR not supported or initialization failed. See console for details.');
+      }
+    }
+
+    // VR button handler
+    document.getElementById('vr-button').addEventListener('click', () => {
+      initVR();
+    });
+
+    // Auto-hide info after 5 seconds in VR
+    setTimeout(() => {
+      const info = document.getElementById('info');
+      if (info) {
+        info.style.display = 'none';
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

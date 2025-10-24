@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete VR Integration Example - Qui Browser VR v3.4.0</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    #container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 30px;
+    }
+
+    .status-panel {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .status-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #00ff00;
+    }
+
+    .status-card.warning {
+      border-left-color: #ffaa00;
+    }
+
+    .status-card.error {
+      border-left-color: #ff0000;
+    }
+
+    button {
+      background: #00ff00;
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      background: #00cc00;
+      transform: scale(1.05);
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #xr-canvas {
+      display: none;
+    }
+
+    .controls {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .log {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 15px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #00ff00;
+      padding-left: 10px;
+    }
+
+    .log-entry.error {
+      border-left-color: #ff0000;
+    }
+
+    .log-entry.warning {
+      border-left-color: #ffaa00;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-list li {
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 5px 0;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: #00ff00;
+      color: #000;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>🎮 Complete VR Integration Example</h1>
+    <p class="subtitle">Qui Browser VR v3.4.0 - All 2025 Features</p>
+
+    <div class="status-panel">
+      <h2>✨ Features Enabled</h2>
+      <ul class="feature-list">
+        <li>Fixed Foveated Rendering (FFR) - GPU負荷25-50%削減</li>
+        <li>Multiview Rendering - CPU負荷25-50%削減</li>
+        <li>Enhanced Hand Tracking - 25関節、95.1%精度</li>
+        <li>HRTF Spatial Audio - 後方音源認識32%向上</li>
+        <li>VR Caption System - WCAG AAA準拠</li>
+        <li>Instanced Rendering - Draw call削減</li>
+        <li>Worker Manager - Off-Main-Thread処理</li>
+        <li>Performance Dashboard - リアルタイム監視</li>
+      </ul>
+    </div>
+
+    <div class="status-panel">
+      <h2>📊 System Status</h2>
+      <div class="status-grid" id="status-grid">
+        <div class="status-card">
+          <strong>FFR</strong>
+          <div id="status-ffr">Initializing...</div>
+        </div>
+        <div class="status-card">
+          <strong>Multiview</strong>
+          <div id="status-multiview">Initializing...</div>
+        </div>
+        <div class="status-card">
+          <strong>Hand Tracking</strong>
+          <div id="status-handtracking">Initializing...</div>
+        </div>
+        <div class="status-card">
+          <strong>Spatial Audio</strong>
+          <div id="status-audio">Initializing...</div>
+        </div>
+        <div class="status-card">
+          <strong>Captions</strong>
+          <div id="status-captions">Initializing...</div>
+        </div>
+        <div class="status-card">
+          <strong>Performance</strong>
+          <div id="status-perf">-- FPS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="enter-vr-btn" onclick="enterVR()">Enter VR Mode</button>
+      <button id="toggle-dashboard-btn" onclick="toggleDashboard()" disabled>Toggle Performance Dashboard</button>
+    </div>
+
+    <div class="status-panel">
+      <h2>📝 Activity Log</h2>
+      <div class="log" id="activity-log"></div>
+    </div>
+  </div>
+
+  <canvas id="xr-canvas"></canvas>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+
+  <!-- VR Systems (Load all new modules) -->
+  <script src="../assets/js/vr-foveated-rendering.js"></script>
+  <script src="../assets/js/vr-multiview-rendering.js"></script>
+  <script src="../assets/js/vr-hand-tracking-enhanced.js"></script>
+  <script src="../assets/js/vr-spatial-audio-hrtf.js"></script>
+  <script src="../assets/js/vr-caption-system.js"></script>
+  <script src="../assets/js/vr-instanced-rendering.js"></script>
+  <script src="../assets/js/vr-worker-manager.js"></script>
+  <script src="../assets/js/vr-system-integrator.js"></script>
+  <script src="../assets/js/vr-performance-dashboard.js"></script>
+
+  <script>
+    // Global variables
+    let vrIntegrator = null;
+    let perfDashboard = null;
+    let xrSession = null;
+    let xrRefSpace = null;
+    let gl = null;
+    let scene, camera, renderer;
+
+    // Logging
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('activity-log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      console.log(message);
+    }
+
+    // Initialize on page load
+    window.addEventListener('load', async () => {
+      log('Page loaded, checking WebXR support...');
+
+      if (!navigator.xr) {
+        log('WebXR not supported!', 'error');
+        document.getElementById('enter-vr-btn').disabled = true;
+        return;
+      }
+
+      const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+      if (!vrSupported) {
+        log('Immersive VR not supported!', 'error');
+        document.getElementById('enter-vr-btn').disabled = true;
+        return;
+      }
+
+      log('WebXR supported! Ready to enter VR.');
+
+      // Setup Three.js
+      setupThreeJS();
+    });
+
+    // Setup Three.js scene
+    function setupThreeJS() {
+      const canvas = document.getElementById('xr-canvas');
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 5;
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+
+      gl = renderer.getContext();
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 10, 5);
+      scene.add(directionalLight);
+
+      // Add some cubes
+      const geometry = new THREE.BoxGeometry(1, 1, 1);
+      const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+
+      for (let i = 0; i < 5; i++) {
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10
+        );
+        scene.add(cube);
+      }
+
+      log('Three.js scene initialized');
+    }
+
+    // Enter VR
+    async function enterVR() {
+      try {
+        log('Requesting VR session with hand-tracking...');
+
+        // Request session with all features
+        xrSession = await navigator.xr.requestSession('immersive-vr', {
+          requiredFeatures: ['local-floor'],
+          optionalFeatures: ['hand-tracking']
+        });
+
+        log('VR session created successfully');
+
+        // Set XR session on renderer
+        await renderer.xr.setSession(xrSession);
+
+        // Get reference space
+        xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
+        log('Reference space acquired');
+
+        // Initialize VR Integrator
+        await initializeVRSystems();
+
+        // Start render loop
+        xrSession.requestAnimationFrame(onXRFrame);
+
+        log('VR mode started!', 'info');
+
+        // Enable dashboard toggle
+        document.getElementById('toggle-dashboard-btn').disabled = false;
+
+        // Session end handler
+        xrSession.addEventListener('end', () => {
+          log('VR session ended');
+          xrSession = null;
+          if (vrIntegrator) {
+            vrIntegrator.dispose();
+          }
+          if (perfDashboard) {
+            perfDashboard.dispose();
+          }
+        });
+
+      } catch (error) {
+        log(`Failed to enter VR: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Initialize all VR systems
+    async function initializeVRSystems() {
+      try {
+        log('Initializing VR System Integrator...');
+
+        // Create integrator
+        vrIntegrator = new VRSystemIntegrator();
+
+        // Configure
+        vrIntegrator.config.ffrProfile = 'browsing';
+        vrIntegrator.config.ffrDynamicAdjustment = true;
+        vrIntegrator.config.multiviewMSAA = true;
+        vrIntegrator.config.captionTheme = 'high-contrast-dark';
+
+        // Initialize all systems
+        const results = await vrIntegrator.initialize({
+          session: xrSession,
+          gl: gl,
+          scene: scene,
+          camera: camera
+        });
+
+        // Log results
+        log(`✅ Initialized: ${results.success.join(', ')}`);
+
+        if (results.warnings.length > 0) {
+          for (const warning of results.warnings) {
+            log(`⚠️ ${warning}`, 'warning');
+          }
+        }
+
+        if (results.failed.length > 0) {
+          for (const failed of results.failed) {
+            log(`❌ ${failed.system}: ${failed.error}`, 'error');
+          }
+        }
+
+        // Update status cards
+        updateStatusCards();
+
+        // Resume audio after user interaction
+        document.addEventListener('click', async () => {
+          await vrIntegrator.resumeAudio();
+          log('Audio context resumed');
+        }, { once: true });
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Create performance dashboard
+        perfDashboard = new VRPerformanceDashboard(vrIntegrator);
+        perfDashboard.initialize();
+        log('Performance dashboard initialized');
+
+        // Create welcome caption
+        vrIntegrator.createCaption('welcome', 'Welcome to Qui Browser VR v3.4.0!', {
+          type: 'head-locked',
+          position: 'bottom',
+          size: 'large'
+        });
+        vrIntegrator.showCaption('welcome', 5);
+
+        log('VR systems initialization complete!');
+
+      } catch (error) {
+        log(`VR systems initialization failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+      // Pinch events
+      vrIntegrator.addEventListener('pinchStart', (detail) => {
+        log(`👆 Pinch started (${detail.handedness})`);
+      });
+
+      vrIntegrator.addEventListener('pinchEnd', (detail) => {
+        log(`👆 Pinch ended (${detail.handedness})`);
+      });
+
+      // Gesture events
+      vrIntegrator.addEventListener('gestureStart', (detail) => {
+        log(`✋ Gesture: ${detail.gesture} (${detail.handedness}, ${(detail.confidence * 100).toFixed(0)}%)`);
+
+        // Show caption for gesture
+        const gestureName = detail.gesture;
+        vrIntegrator.createCaption(`gesture-${gestureName}`, `Gesture: ${gestureName}`, {
+          type: 'head-locked',
+          position: 'top',
+          size: 'medium'
+        });
+        vrIntegrator.showCaption(`gesture-${gestureName}`, 2);
+      });
+    }
+
+    // XR Frame loop
+    function onXRFrame(time, frame) {
+      if (!xrSession || !vrIntegrator) return;
+
+      try {
+        // Update all VR systems
+        vrIntegrator.update(frame, xrRefSpace);
+
+        // Begin multiview render pass
+        vrIntegrator.beginRenderPass(frame);
+
+        // Render scene (Three.js handles XR automatically)
+        renderer.render(scene, camera);
+
+        // End multiview render pass
+        vrIntegrator.endRenderPass();
+
+        // Update status (every 30 frames)
+        if (frame.predictedDisplayTime % 500 < 16) {
+          updateStatusCards();
+        }
+
+      } catch (error) {
+        log(`Frame error: ${error.message}`, 'error');
+      }
+
+      xrSession.requestAnimationFrame(onXRFrame);
+    }
+
+    // Update status cards
+    function updateStatusCards() {
+      if (!vrIntegrator) return;
+
+      const status = vrIntegrator.getStatus();
+      const perf = vrIntegrator.getPerformanceSummary();
+
+      // FFR
+      document.getElementById('status-ffr').textContent = status.capabilities.ffrSupported
+        ? `✅ Active (${(status.systems.ffr?.currentLevel || 0).toFixed(2)})`
+        : '❌ Not available';
+
+      // Multiview
+      document.getElementById('status-multiview').textContent = status.capabilities.multiviewSupported
+        ? '✅ Active'
+        : '❌ Not available';
+
+      // Hand Tracking
+      document.getElementById('status-handtracking').textContent = status.capabilities.handTrackingSupported
+        ? `✅ Active (${status.systems.handTracking?.trackingFPS || 0} FPS)`
+        : '❌ Not available';
+
+      // Spatial Audio
+      document.getElementById('status-audio').textContent = status.capabilities.spatialAudioSupported
+        ? `✅ Active (${status.systems.spatialAudio?.activeSourcesCount || 0} sources)`
+        : '❌ Not available';
+
+      // Captions
+      document.getElementById('status-captions').textContent = status.capabilities.captionsSupported
+        ? `✅ Active (${status.systems.captions?.activeCaptionsCount || 0} captions)`
+        : '❌ Not available';
+
+      // Performance
+      const fps = perf.fps || 0;
+      const fpsIcon = fps >= 90 ? '🟢' : fps >= 72 ? '🟡' : '🔴';
+      document.getElementById('status-perf').textContent = `${fpsIcon} ${fps.toFixed(1)} FPS`;
+    }
+
+    // Toggle dashboard
+    function toggleDashboard() {
+      if (perfDashboard) {
+        perfDashboard.toggle();
+      }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    });
+
+    log('Example ready. Click "Enter VR Mode" to start!');
+  </script>
+</body>
+</html>

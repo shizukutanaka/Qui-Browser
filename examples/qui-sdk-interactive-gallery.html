@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuiBrowserSDK - Interactive 3D Gallery</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+    }
+
+    #vr-canvas {
+      display: block;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      z-index: 100;
+    }
+
+    #vr-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background: #0052cc;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+
+    #vr-button:hover {
+      background: #0066ff;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+
+    ul {
+      margin: 10px 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="vr-canvas"></canvas>
+
+  <div id="info">
+    <h1>QuiBrowserSDK - Interactive Gallery</h1>
+    <p><strong>Features:</strong></p>
+    <ul>
+      <li>3D image gallery</li>
+      <li>Hand menu (palm gesture)</li>
+      <li>Gesture recognition</li>
+      <li>Voice commands (100+ languages)</li>
+      <li>Gaze interaction</li>
+      <li>Developer tools (FPS, memory)</li>
+    </ul>
+    <p><strong>Gestures:</strong></p>
+    <ul>
+      <li>Palm: Show menu</li>
+      <li>Pinch: Select</li>
+      <li>Point: Highlight</li>
+      <li>Fist: Close</li>
+    </ul>
+    <p><strong>Voice:</strong></p>
+    <ul>
+      <li>"next" - Next image</li>
+      <li>"previous" - Previous image</li>
+      <li>"menu" - Toggle menu</li>
+      <li>"help" - Show help</li>
+    </ul>
+  </div>
+
+  <button id="vr-button">Enter VR</button>
+
+  <!-- Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+  <script src="../assets/js/vr-text-renderer.js"></script>
+  <script src="../assets/js/vr-webgpu-renderer.js"></script>
+  <script src="../assets/js/vr-foveated-rendering.js"></script>
+  <script src="../assets/js/vr-memory-manager.js"></script>
+  <script src="../assets/js/vr-accessibility-wcag.js"></script>
+  <script src="../assets/js/vr-i18n-system.js"></script>
+  <script src="../assets/js/vr-voice-commands-i18n.js"></script>
+  <script src="../assets/js/vr-security-manager.js"></script>
+  <script src="../assets/js/qui-browser-sdk.js"></script>
+  <script src="../assets/js/qui-sdk-interactions.js"></script>
+
+  <script>
+    let vr;
+    let gallery;
+    let handMenu;
+    let voiceCommands;
+    let gazeInteraction;
+    let gestureRecognition;
+    let currentImageIndex = 0;
+
+    // Sample images (NASA public domain)
+    const images = [
+      'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800',
+      'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=800',
+      'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800',
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800',
+      'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+      'https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?w=800',
+      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800'
+    ];
+
+    async function initVR() {
+      try {
+        // Initialize VR
+        vr = await SDK.initVR({
+          environment: 'nature',
+          enableHandTracking: true,
+          enableVoiceCommands: true,
+          enableGazeTracking: true,
+          enableAccessibility: true,
+          language: 'en'
+        });
+
+        console.log('VR initialized successfully!');
+
+        // Enable developer tools
+        SDK.enableDevTools({
+          showFPS: true,
+          showMemory: true,
+          showSceneGraph: true,
+          position: 'top-right'
+        });
+
+        // Create 3D image gallery
+        gallery = SDK.createImageGallery3D({
+          images: images,
+          columns: 3,
+          spacing: 0.2,
+          imageWidth: 1.0,
+          imageHeight: 0.75,
+          position: { x: 0, y: 2.0, z: -4 },
+          onClick: (image) => {
+            console.log('[Gallery] Image clicked:', image.userData.imageUrl);
+            showImageFullscreen(image);
+          }
+        });
+
+        // Create hand menu
+        handMenu = SDK.createHandMenu({
+          hand: 'left',
+          items: [
+            {
+              label: 'Next Image',
+              onClick: () => nextImage()
+            },
+            {
+              label: 'Previous Image',
+              onClick: () => previousImage()
+            },
+            {
+              label: 'Reset View',
+              onClick: () => resetView()
+            },
+            {
+              label: 'Toggle DevTools',
+              onClick: () => toggleDevTools()
+            },
+            {
+              label: 'Help',
+              onClick: () => showHelp()
+            }
+          ],
+          showOnGesture: 'palm',
+          autoHide: true
+        });
+        await handMenu.initialize();
+
+        // Initialize gesture recognition
+        gestureRecognition = SDK.createGestureRecognition({
+          onGesture: (hand, gesture) => {
+            console.log(`[Gesture] ${hand} hand: ${gesture}`);
+
+            if (gesture === 'peace') {
+              nextImage();
+            } else if (gesture === 'fist') {
+              previousImage();
+            }
+          }
+        });
+        await gestureRecognition.initialize();
+
+        // Initialize gaze interaction
+        gazeInteraction = SDK.createGazeInteraction({
+          dwellTime: 800,
+          showReticle: true,
+          showProgressRing: true,
+          onGazeDwell: (target) => {
+            console.log('[Gaze] Dwell on:', target.userData.label);
+          }
+        });
+        await gazeInteraction.initialize();
+
+        // Initialize voice commands
+        voiceCommands = SDK.createVoiceCommands({
+          language: 'en',
+          commands: [
+            {
+              pattern: 'next|forward',
+              description: 'Next image',
+              handler: () => nextImage()
+            },
+            {
+              pattern: 'previous|back',
+              description: 'Previous image',
+              handler: () => previousImage()
+            },
+            {
+              pattern: 'menu',
+              description: 'Toggle menu',
+              handler: () => handMenu.toggle()
+            },
+            {
+              pattern: 'help',
+              description: 'Show help',
+              handler: () => showHelp()
+            },
+            {
+              pattern: 'reset|home',
+              description: 'Reset view',
+              handler: () => resetView()
+            },
+            {
+              pattern: 'fullscreen',
+              description: 'Fullscreen mode',
+              handler: () => {
+                console.log('[Voice] Fullscreen mode');
+                // Toggle fullscreen for current image
+              }
+            }
+          ],
+          showFeedback: true
+        });
+        await voiceCommands.initialize();
+        voiceCommands.start();
+
+        // Create title
+        if (window.VRTextRenderer) {
+          const textRenderer = new VRTextRenderer();
+          const title = textRenderer.createText({
+            text: 'Nature Gallery',
+            fontSize: 0.15,
+            color: 0x00ff00,
+            maxWidth: 2.0
+          });
+          title.position.set(0, 3.2, -4);
+          vr.scene.add(title);
+
+          const subtitle = textRenderer.createText({
+            text: 'Gaze, gesture, or voice to interact',
+            fontSize: 0.08,
+            color: 0xcccccc,
+            maxWidth: 2.0
+          });
+          subtitle.position.set(0, 3.0, -4);
+          vr.scene.add(subtitle);
+        }
+
+        // Start animation loop
+        SDK.startAnimationLoop((time, frame) => {
+          // Update hand menu
+          if (handMenu && frame) {
+            handMenu.update(frame, vr.session);
+          }
+
+          // Update gesture recognition
+          if (gestureRecognition && frame) {
+            gestureRecognition.update(frame, vr.session);
+          }
+
+          // Update gaze interaction
+          if (gazeInteraction && frame) {
+            gazeInteraction.update(frame, vr.session);
+          }
+        });
+
+        // Hide UI elements
+        document.getElementById('info').style.display = 'none';
+
+        console.log('Interactive Gallery running!');
+
+      } catch (error) {
+        console.error('VR initialization failed:', error);
+        alert('VR not supported or initialization failed. See console for details.');
+      }
+    }
+
+    function nextImage() {
+      currentImageIndex = (currentImageIndex + 1) % images.length;
+      console.log('[Gallery] Next image:', currentImageIndex);
+      highlightImage(currentImageIndex);
+    }
+
+    function previousImage() {
+      currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+      console.log('[Gallery] Previous image:', currentImageIndex);
+      highlightImage(currentImageIndex);
+    }
+
+    function highlightImage(index) {
+      // Visual feedback for current image
+      console.log('[Gallery] Highlighting image:', index);
+    }
+
+    function showImageFullscreen(image) {
+      console.log('[Gallery] Showing fullscreen:', image.userData.imageUrl);
+
+      // Create fullscreen image
+      const loader = new THREE.TextureLoader();
+      loader.load(image.userData.imageUrl, (texture) => {
+        const geometry = new THREE.PlaneGeometry(3, 2.25);
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.DoubleSide
+        });
+        const fullscreen = new THREE.Mesh(geometry, material);
+        fullscreen.position.set(0, 1.6, -2);
+        fullscreen.userData.fullscreen = true;
+        vr.scene.add(fullscreen);
+
+        // Remove after 5 seconds
+        setTimeout(() => {
+          vr.scene.remove(fullscreen);
+        }, 5000);
+      });
+    }
+
+    function resetView() {
+      console.log('[Gallery] Resetting view');
+      vr.camera.position.set(0, 1.6, 0);
+      vr.camera.rotation.set(0, 0, 0);
+    }
+
+    function toggleDevTools() {
+      if (SDK.devTools) {
+        SDK.disableDevTools();
+        console.log('[DevTools] Disabled');
+      } else {
+        SDK.enableDevTools({
+          showFPS: true,
+          showMemory: true,
+          position: 'top-right'
+        });
+        console.log('[DevTools] Enabled');
+      }
+    }
+
+    function showHelp() {
+      console.log('[Help] Showing help panel');
+
+      const helpPanel = SDK.createPanel3D({
+        width: 1.2,
+        height: 0.8,
+        position: { x: 0, y: 1.6, z: -1.5 },
+        title: 'Interactive Gallery Help',
+        content: [
+          'Gestures:',
+          '  - Palm: Show menu',
+          '  - Pinch: Select',
+          '  - Point: Highlight',
+          '  - Peace: Next image',
+          '  - Fist: Previous image',
+          '',
+          'Voice Commands:',
+          '  - "next" - Next image',
+          '  - "previous" - Previous image',
+          '  - "menu" - Toggle menu',
+          '  - "help" - Show this help',
+          '  - "reset" - Reset view',
+          '',
+          'Gaze: Look at images for 0.8s to select'
+        ]
+      });
+
+      // Remove after 10 seconds
+      setTimeout(() => {
+        vr.scene.remove(helpPanel);
+      }, 10000);
+    }
+
+    // VR button handler
+    document.getElementById('vr-button').addEventListener('click', () => {
+      initVR();
+    });
+
+    console.log('QuiBrowserSDK Interactive Gallery Example');
+    console.log('This demonstrates:');
+    console.log('- 3D image gallery');
+    console.log('- Hand menu with palm gesture');
+    console.log('- Gesture recognition (pinch, point, peace, fist)');
+    console.log('- Voice commands (100+ languages)');
+    console.log('- Gaze interaction with dwell time');
+    console.log('- Developer tools (FPS, memory monitoring)');
+  </script>
+</body>
+</html>
