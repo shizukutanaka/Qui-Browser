@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "5.2.0",
-  "description": "Qui Browser VR - PERFORMANCE EDITION 2025 (226/125) - NEW: Eye-Tracked Foveated Rendering (36-52% GPU savings, Quest Pro), HRTF Spatial Audio (binaural 3D, reverb), IndexedDB Persistent Storage (auto-cleanup, quota management), AI Object Detection (TensorFlow.js + WebNN, 90 objects), WebXR Layers, WebRTC Multiplayer (P2P, <50ms), Quest 3 Mesh/Depth, WebGPU Compute (10x faster), PWA Offline (60% faster), TypeScript, SIMD, Ultra-Low Pricing (¥200/月)",
+  "version": "5.3.0",
+  "description": "Qui Browser VR - OPTIMIZATION EDITION 2025 (235/125) - NEW: WebAssembly SIMD (1.7-10x faster math/physics), Advanced PWA v2 (Stale-While-Revalidate, 60-80% faster), Eye-Tracked Foveated Rendering (36-52% GPU savings), HRTF Spatial Audio (binaural 3D), IndexedDB Persistent Storage, AI Object Detection (TensorFlow.js + WebNN), WebXR Layers, WebRTC Multiplayer (P2P, <50ms), Quest 3 Mesh/Depth, WebGPU Compute, Ultra-Low Pricing (¥200/月)",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
