@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "5.5.0",
-  "description": "Qui Browser VR - PASSTHROUGH EDITION 2025 (247/125) - NEW: WebXR Passthrough Camera API (Quest 3/3S RGB access, CV integration), Scene Understanding (14 semantic labels), WebAssembly SIMD (1.7-10x faster), Advanced PWA v2 (60-80% faster), Eye-Tracked Foveated Rendering (36-52% GPU savings), HRTF Spatial Audio, IndexedDB Storage, AI Object Detection, WebXR Layers, WebRTC Multiplayer, Quest 3 Full API, Ultra-Low Pricing (¥200/月)",
+  "version": "5.6.0",
+  "description": "Qui Browser VR - COMFORT EDITION 2025 (254/125) - NEW: Depth Sensing + Occlusion (realistic rendering), Haptic Patterns (20+ presets), Comfort Settings (motion sickness prevention), WebXR Passthrough Camera, Scene Understanding (14 labels), WebAssembly SIMD (1.7-10x faster), Advanced PWA v2, Eye-Tracked Foveated Rendering (36-52% GPU savings), HRTF Spatial Audio, IndexedDB, AI Detection, WebXR Layers, WebRTC, Quest 3 API, Ultra-Low Pricing (¥200/月)",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
