@@ -1,22 +1,24 @@
 /**
  * VR-Native Billing UI System
- * Version: 1.0.0
+ * Version: 2.0.0 (Ultra-Low Pricing)
  *
  * VR空間内でのサブスクリプション管理・課金UIを提供
  *
  * Features:
- * - 3D pricing cards (料金プラン比較)
+ * - 3D pricing cards (料金プラン比較: Free, Premium ¥200, Business)
  * - VR-native checkout flow
  * - Subscription management dashboard
  * - Usage meters (使用量メーター)
  * - Hand gesture + voice control
  * - Smooth animations and transitions
+ * - No-support messaging (FAQ/Community links)
  *
  * UX Design:
  * - 大きな文字 (VRで読みやすい)
  * - ハイコントラスト
  * - ハンドジェスチャーで選択可能
  * - 音声フィードバック
+ * - ¥200/月の価格を強調表示
  */
 
 class VRBillingUI {
@@ -32,9 +34,8 @@ class VRBillingUI {
       colorPrimary: 0x6200EE,      // Purple
       colorSecondary: 0x03DAC6,    // Teal
       colorFree: 0x9E9E9E,         // Gray
-      colorPremium: 0x2196F3,      // Blue
-      colorPro: 0x9C27B0,          // Purple
-      colorEnterprise: 0x212121,   // Dark
+      colorPremium: 0x2196F3,      // Blue (おすすめバッジ)
+      colorBusiness: 0xFFD700,     // Gold (法人向け)
 
       // Typography
       fontSize: 0.08,              // meters
@@ -120,7 +121,7 @@ class VRBillingUI {
     this.pricingCards.forEach(card => this.scene.remove(card));
     this.pricingCards = [];
 
-    // Pricing plans
+    // Pricing plans (3 tiers: Free, Premium, Business)
     const plans = [
       {
         id: 'free',
@@ -128,26 +129,29 @@ class VRBillingUI {
         price: this.strings.plans.free.price,
         features: this.strings.plans.free.features,
         color: this.options.colorFree,
-        buttonText: this.strings.currentPlan
+        buttonText: this.strings.currentPlan,
+        badge: null
       },
       {
         id: 'premium_monthly',
         name: this.strings.plans.premium.name,
         price: this.strings.plans.premium.priceMonthly,
+        pricePerDay: this.strings.plans.premium.pricePerDay, // "1日あたり¥6.7"
         interval: this.strings.monthly,
         features: this.strings.plans.premium.features,
         color: this.options.colorPremium,
         buttonText: this.currentPlan === 'premium_monthly' || this.currentPlan === 'premium_yearly' ?
-          this.strings.currentPlan : this.strings.startTrial
+          this.strings.currentPlan : this.strings.startTrial,
+        badge: this.strings.recommended // "おすすめ" badge
       },
       {
-        id: 'pro_monthly',
-        name: this.strings.plans.pro.name,
-        price: this.strings.plans.pro.priceMonthly,
+        id: 'business_monthly',
+        name: this.strings.plans.business.name,
+        price: this.strings.plans.business.priceMonthly,
         interval: this.strings.monthly,
-        features: this.strings.plans.pro.features,
-        color: this.options.colorPro,
-        buttonText: this.currentPlan === 'pro_monthly' || this.currentPlan === 'pro_yearly' ?
+        features: this.strings.plans.business.features,
+        color: this.options.colorBusiness,
+        buttonText: this.currentPlan === 'business_monthly' || this.currentPlan === 'business_yearly' ?
           this.strings.currentPlan : this.strings.upgrade,
         badge: 'Quest Pro'
       }
@@ -504,28 +508,31 @@ class VRBillingUI {
         yearly: '年額',
         currentPlan: '現在のプラン',
         startTrial: '14日間無料トライアル',
-        upgrade: 'アップグレード',
+        upgrade: '問い合わせ',
+        recommended: 'おすすめ！',
         processing: '処理中...',
         loading: '読み込み中...',
         checkoutError: '決済処理に失敗しました',
         portalError: 'サブスクリプション管理ページの読み込みに失敗しました',
+        noSupport: 'サポートなし (FAQ/コミュニティ)',
         plans: {
           free: {
             name: 'Free',
             price: '¥0',
-            features: ['基本VRブラウジング', '基本ジェスチャー (3種)', '1080p動画', '60分/日']
+            features: ['基本VRブラウジング', '基本ジェスチャー (3種)', '720p動画', '30分/日', '広告表示あり', 'サポートなし']
           },
           premium: {
             name: 'Premium',
-            priceMonthly: '¥980/月',
-            priceYearly: '¥9,800/年',
-            features: ['すべてのジェスチャー (15種)', 'Swypeテキスト入力', '4K動画', 'Foveated Rendering', 'クラウド同期', '無制限']
+            priceMonthly: '¥200/月',
+            priceYearly: '¥2,000/年',
+            pricePerDay: '1日あたりたったの¥6.7',
+            features: ['すべての機能アンロック', 'すべてのジェスチャー (15種)', 'Swype + 視線追跡', '4K60/8K30動画', 'Foveated Rendering (FFR + ETFR)', 'クラウド同期', 'AI機能', 'マルチプレイヤー', '広告完全非表示', '完全無制限', 'サポートなし (FAQ/コミュニティ)']
           },
-          pro: {
-            name: 'Pro',
-            priceMonthly: '¥1,980/月',
-            priceYearly: '¥19,800/年',
-            features: ['視線追跡機能', '8K動画', 'AI機能', 'マルチプレイヤー', 'Eye-Tracked FR', '専用サポート']
+          business: {
+            name: 'Business',
+            priceMonthly: '¥50,000〜/月',
+            priceYearly: '¥500,000〜/年',
+            features: ['Premiumの全機能', 'カスタムブランディング', 'SSO統合', 'チーム管理', '使用状況分析', 'SLA保証 (99.5%)', '請求書払い', 'メールサポート (48h以内)']
           }
         }
       };
@@ -535,28 +542,31 @@ class VRBillingUI {
         yearly: 'Yearly',
         currentPlan: 'Current Plan',
         startTrial: 'Start 14-Day Trial',
-        upgrade: 'Upgrade',
+        upgrade: 'Contact Us',
+        recommended: 'Recommended!',
         processing: 'Processing...',
         loading: 'Loading...',
         checkoutError: 'Checkout failed',
         portalError: 'Failed to load subscription management',
+        noSupport: 'No support (FAQ/Community)',
         plans: {
           free: {
             name: 'Free',
             price: '$0',
-            features: ['Basic VR browsing', 'Basic gestures (3)', '1080p video', '60 min/day']
+            features: ['Basic VR browsing', 'Basic gestures (3)', '720p video', '30 min/day', 'Ads shown', 'No support']
           },
           premium: {
             name: 'Premium',
-            priceMonthly: '$9.99/mo',
-            priceYearly: '$99.99/yr',
-            features: ['All gestures (15)', 'Swype text input', '4K video', 'Foveated Rendering', 'Cloud sync', 'Unlimited']
+            priceMonthly: '$1.99/mo',
+            priceYearly: '$19.99/yr',
+            pricePerDay: 'Just $0.07/day',
+            features: ['All features unlocked', 'All gestures (15)', 'Swype + Eye tracking', '4K60/8K30 video', 'Foveated Rendering (FFR + ETFR)', 'Cloud sync', 'AI features', 'Multiplayer', 'No ads', 'Unlimited', 'No support (FAQ/Community)']
           },
-          pro: {
-            name: 'Pro',
-            priceMonthly: '$19.99/mo',
-            priceYearly: '$199.99/yr',
-            features: ['Eye tracking', '8K video', 'AI features', 'Multiplayer', 'Eye-Tracked FR', 'Dedicated support']
+          business: {
+            name: 'Business',
+            priceMonthly: '$499+/mo',
+            priceYearly: '$4,999+/yr',
+            features: ['All Premium features', 'Custom branding', 'SSO integration', 'Team management', 'Usage analytics', 'SLA (99.5%)', 'Invoice billing', 'Email support (48h)']
           }
         }
       };

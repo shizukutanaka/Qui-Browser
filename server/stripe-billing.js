@@ -1,16 +1,16 @@
 /**
  * Stripe Billing System for Qui Browser VR
- * Version: 1.0.0
+ * Version: 2.0.0 (Ultra-Low Pricing)
  *
  * サブスクリプション管理、課金処理、Webhook処理を実装
  *
  * Features:
  * - Stripe Checkout統合
- * - サブスクリプション作成・管理 (Premium, Pro, Enterprise)
- * - 使用量ベース課金 (Metered Billing)
+ * - サブスクリプション作成・管理 (Premium ¥200, Business ¥50,000)
  * - Webhook処理 (リアルタイム同期)
  * - Customer Portal統合
  * - 多通貨対応 (JPY, USD, EUR, GBP)
+ * - ノーサポート戦略 (FAQ/コミュニティのみ)
  *
  * Security:
  * - PCI DSS準拠 (カード情報非保存)
@@ -36,102 +36,61 @@ const PRICING_PLANS = {
     stripePriceId: null, // 無料プランはStripeプライスIDなし
     features: {
       vrBrowsing: true,
-      basicGestures: true, // 3ジェスチャーのみ
-      voiceCommands: true,
-      environments: 6,
+      basicGestures: true, // 3ジェスチャーのみ (ピンチ、グラブ、ポイント)
+      voiceCommands: true, // 基本コマンドのみ
+      environments: 3, // 3プリセット
       textInput: 'virtual-keyboard',
-      videoQuality: '1080p30',
+      videoQuality: '720p30',
       foveatedRendering: false,
-      sessionLimit: 60, // 分/日
+      sessionLimit: 30, // 分/日 (30分)
       cloudSync: false,
-      adsRemoved: false
+      adsRemoved: false, // 広告表示あり
+      ergonomics: false,
+      aiFeatures: false,
+      multiplayer: false,
+      accessibility: false,
+      support: 'none' // サポートなし (FAQのみ)
     }
   },
 
   premium_monthly: {
     id: 'premium_monthly',
     name: 'Premium (月額)',
-    price: 980, // JPY
+    price: 200, // JPY - 超低価格！
     stripePriceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY_JPY,
     interval: 'month',
     features: {
       vrBrowsing: true,
-      advancedGestures: true, // 15ジェスチャー
-      voiceCommands: true,
-      environments: 6,
-      textInput: 'swype', // Swype + Voice
-      videoQuality: '4k60',
-      foveatedRendering: 'ffr', // Fixed Foveated Rendering
-      sessionLimit: null, // 無制限
+      advancedGestures: true, // 15ジェスチャー全部
+      voiceCommands: true, // 全コマンド
+      environments: 6, // 全環境
+      textInput: 'swype', // Swype + Eye tracking (Quest Pro)
+      videoQuality: '8k30', // 4K60 / 8K30
+      foveatedRendering: 'etfr', // FFR + ETFR (Quest Pro)
+      sessionLimit: null, // 完全無制限
       cloudSync: true,
-      adsRemoved: true,
-      ergonomics: true,
-      prioritySupport: true
+      adsRemoved: true, // 広告完全非表示
+      ergonomics: true, // 20-20-20ルール、瞬き監視
+      aiFeatures: true, // AI画面読み上げ、要約、レコメンデーション
+      multiplayer: true, // 最大10人
+      accessibility: 'full', // 全アクセシビリティ機能
+      support: 'community' // コミュニティのみ (FAQ/フォーラム/GitHub)
     }
   },
 
   premium_yearly: {
     id: 'premium_yearly',
     name: 'Premium (年額)',
-    price: 9800, // JPY (2ヶ月分お得)
+    price: 2000, // JPY (2ヶ月分無料、17%割引)
     stripePriceId: process.env.STRIPE_PRICE_PREMIUM_YEARLY_JPY,
     interval: 'year',
     features: {
-      // premium_monthly と同じ
+      // premium_monthly と完全に同じ
       vrBrowsing: true,
       advancedGestures: true,
       voiceCommands: true,
       environments: 6,
       textInput: 'swype',
-      videoQuality: '4k60',
-      foveatedRendering: 'ffr',
-      sessionLimit: null,
-      cloudSync: true,
-      adsRemoved: true,
-      ergonomics: true,
-      prioritySupport: true
-    }
-  },
-
-  pro_monthly: {
-    id: 'pro_monthly',
-    name: 'Pro (月額)',
-    price: 1980, // JPY
-    stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY_JPY,
-    interval: 'month',
-    features: {
-      vrBrowsing: true,
-      advancedGestures: true,
-      voiceCommands: true,
-      environments: 6,
-      textInput: 'eye-tracking', // Eye tracking + Swype + Voice
-      videoQuality: '8k30',
-      foveatedRendering: 'etfr', // Eye-Tracked Foveated Rendering
-      sessionLimit: null,
-      cloudSync: true,
-      adsRemoved: true,
-      ergonomics: true,
-      aiFeatures: true,
-      multiplayer: true,
-      accessibility: 'full',
-      priorityRendering: true,
-      dedicatedSupport: true
-    }
-  },
-
-  pro_yearly: {
-    id: 'pro_yearly',
-    name: 'Pro (年額)',
-    price: 19800, // JPY (2ヶ月分お得)
-    stripePriceId: process.env.STRIPE_PRICE_PRO_YEARLY_JPY,
-    interval: 'year',
-    features: {
-      // pro_monthly と同じ
-      vrBrowsing: true,
-      advancedGestures: true,
-      voiceCommands: true,
-      environments: 6,
-      textInput: 'eye-tracking',
       videoQuality: '8k30',
       foveatedRendering: 'etfr',
       sessionLimit: null,
@@ -141,8 +100,72 @@ const PRICING_PLANS = {
       aiFeatures: true,
       multiplayer: true,
       accessibility: 'full',
-      priorityRendering: true,
-      dedicatedSupport: true
+      support: 'community'
+    }
+  },
+
+  business_monthly: {
+    id: 'business_monthly',
+    name: 'Business (月額)',
+    price: 50000, // JPY - 法人向け (10ユーザー〜)
+    stripePriceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY_JPY,
+    interval: 'month',
+    features: {
+      // Premium の全機能 + 法人機能
+      vrBrowsing: true,
+      advancedGestures: true,
+      voiceCommands: true,
+      environments: 6,
+      textInput: 'swype',
+      videoQuality: '8k30',
+      foveatedRendering: 'etfr',
+      sessionLimit: null,
+      cloudSync: true,
+      adsRemoved: true,
+      ergonomics: true,
+      aiFeatures: true,
+      multiplayer: true,
+      accessibility: 'full',
+      // 法人専用機能
+      customBranding: true, // カスタムロゴ、色、環境
+      ssoIntegration: true, // Azure AD, Okta, Google Workspace
+      teamManagement: true, // ユーザー管理、権限設定
+      usageAnalytics: true, // 詳細レポート、CSV/PDF出力
+      slaGuarantee: '99.5%', // SLA保証
+      invoiceBilling: true, // 請求書払い
+      support: 'email' // メールサポート (営業日48時間以内)
+    }
+  },
+
+  business_yearly: {
+    id: 'business_yearly',
+    name: 'Business (年額)',
+    price: 500000, // JPY (2ヶ月分無料)
+    stripePriceId: process.env.STRIPE_PRICE_BUSINESS_YEARLY_JPY,
+    interval: 'year',
+    features: {
+      // business_monthly と完全に同じ
+      vrBrowsing: true,
+      advancedGestures: true,
+      voiceCommands: true,
+      environments: 6,
+      textInput: 'swype',
+      videoQuality: '8k30',
+      foveatedRendering: 'etfr',
+      sessionLimit: null,
+      cloudSync: true,
+      adsRemoved: true,
+      ergonomics: true,
+      aiFeatures: true,
+      multiplayer: true,
+      accessibility: 'full',
+      customBranding: true,
+      ssoIntegration: true,
+      teamManagement: true,
+      usageAnalytics: true,
+      slaGuarantee: '99.5%',
+      invoiceBilling: true,
+      support: 'email'
     }
   }
 };

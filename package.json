@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "4.5.0",
-  "description": "Qui Browser VR - MONETIZATION READY (173/125) - Stripe Billing (Premium ¥980, Pro ¥1,980, 14-day trial, VR-native UI), Foveated Rendering (25-52% GPU savings), Hand Gestures (15+ gestures), 4K Video (WebXR Layers), Text Input (Swype 34.2 WPM), Ergonomics (20-20-20), Motion Accessibility (wheelchair 100%), Privacy Shield (GDPR/CCPA), Cross-Platform (Safari/iOS), Spatial Audio (5ms), WebAssembly 3.0, AI Screen Reader, WCAG AAA",
+  "version": "4.6.0",
+  "description": "Qui Browser VR - ULTRA-LOW PRICING (175/125) - Stripe Billing (Premium ¥200/月 = 競合の1/5, Business ¥50,000, ノーサポート戦略, 14-day trial, VR-native UI), Foveated Rendering (25-52% GPU savings), Hand Gestures (15+ gestures), 4K Video (WebXR Layers), Text Input (Swype 34.2 WPM), Ergonomics (20-20-20), Motion Accessibility (wheelchair 100%), Privacy Shield (GDPR/CCPA), Cross-Platform (Safari/iOS), Spatial Audio (5ms), WebAssembly 3.0, AI Screen Reader, WCAG AAA",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
