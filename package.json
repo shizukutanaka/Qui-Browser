@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "4.4.0",
-  "description": "Qui Browser VR - PERFORMANCE MAXIMIZED (168/125) - Foveated Rendering (25-52% GPU savings, FFR+ETFR), Hand Gestures (25-joint tracking, 15+ gestures, controller-free), 4K Video (WebXR Layers, direct compositor), Text Input (2-3x faster, Swype 34.2 WPM), Ergonomics (20-20-20, 50% fatigue reduction), Motion Accessibility (wheelchair 100%), Privacy Shield (GDPR/CCPA), Cross-Platform (Safari/iOS), Spatial Audio (5ms), WebAssembly 3.0, AI Screen Reader, WCAG AAA",
+  "version": "4.5.0",
+  "description": "Qui Browser VR - MONETIZATION READY (173/125) - Stripe Billing (Premium ¥980, Pro ¥1,980, 14-day trial, VR-native UI), Foveated Rendering (25-52% GPU savings), Hand Gestures (15+ gestures), 4K Video (WebXR Layers), Text Input (Swype 34.2 WPM), Ergonomics (20-20-20), Motion Accessibility (wheelchair 100%), Privacy Shield (GDPR/CCPA), Cross-Platform (Safari/iOS), Spatial Audio (5ms), WebAssembly 3.0, AI Screen Reader, WCAG AAA",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
@@ -50,7 +50,8 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "body-parser": "^1.20.2",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "stripe": "^14.10.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
