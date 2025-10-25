@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qui VR v5.2.0 - Complete 2025 Demo</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 450px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    #info h1 {
+      margin: 0 0 10px 0;
+      font-size: 26px;
+      background: linear-gradient(45deg, #4CAF50, #2196F3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #info h2 {
+      margin: 15px 0 10px 0;
+      font-size: 18px;
+      color: #4CAF50;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 5px;
+    }
+
+    #info p {
+      margin: 5px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .feature {
+      margin: 10px 0;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      border-left: 3px solid #4CAF50;
+    }
+
+    .feature-title {
+      font-weight: bold;
+      color: #4CAF50;
+      margin-bottom: 5px;
+      font-size: 15px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    .status.enabled {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .status.disabled {
+      background: #f44336;
+      color: white;
+    }
+
+    button {
+      margin: 10px 5px 10px 0;
+      padding: 14px 28px;
+      background: linear-gradient(45deg, #2196F3, #1976D2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.6);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #stats {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 20px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      min-width: 300px;
+    }
+
+    #stats div {
+      margin: 4px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #stats .label {
+      color: #aaa;
+    }
+
+    #stats .value {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+
+    .version-badge {
+      display: inline-block;
+      background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h1>=€ Qui VR <span class="version-badge">v5.2.0</span></h1>
+    <p><strong>Complete 2025 Demo - Eye Tracking + HRTF Audio + Storage</strong></p>
+
+    <h2>( v5.2.0 Features:</h2>
+
+    <div class="feature">
+      <div class="feature-title">=A Eye-Tracked Foveated Rendering</div>
+      <div id="etfr-status">Loading...</div>
+      <p style="font-size: 12px; margin-top: 5px; color: #ccc;">
+        36-52% GPU savings on Quest Pro
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-title">=
+ HRTF Spatial Audio</div>
+      <div id="audio-status">Loading...</div>
+      <p style="font-size: 12px; margin-top: 5px; color: #ccc;">
+        Binaural 3D audio with reverb
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-title">=¾ IndexedDB Persistent Storage</div>
+      <div id="storage-status">Loading...</div>
+      <p style="font-size: 12px; margin-top: 5px; color: #ccc;">
+        Offline data with auto-cleanup
+      </p>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button id="vr-button" disabled>Enter VR</button>
+      <button id="test-audio" disabled>Test Spatial Audio</button>
+      <button id="toggle-foveation" disabled>Toggle Foveation</button>
+      <button id="save-bookmark">Save Bookmark</button>
+    </div>
+  </div>
+
+  <div id="stats">
+    <div><span class="label">FPS:</span> <span class="value" id="fps">0</span></div>
+    <div><span class="label">Frame Time:</span> <span class="value" id="frame-time">0 ms</span></div>
+    <div><span class="label">GPU Savings:</span> <span class="value" id="gpu-savings">0%</span></div>
+    <div><span class="label">Foveation Mode:</span> <span class="value" id="foveation-mode">none</span></div>
+    <div><span class="label">Audio Sources:</span> <span class="value" id="audio-sources">0</span></div>
+    <div><span class="label">Storage Usage:</span> <span class="value" id="storage-usage">0 B / 0 B</span></div>
+    <div><span class="label">Gaze Position:</span> <span class="value" id="gaze-pos">0.5, 0.5</span></div>
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+
+  <!-- Qui VR v5.2.0 Modules -->
+  <script src="../assets/js/vr-eye-tracked-foveated-rendering.js"></script>
+  <script src="../assets/js/vr-spatial-audio-hrtf.js"></script>
+  <script src="../assets/js/vr-indexeddb-storage.js"></script>
+
+  <script>
+    // Global variables
+    let scene, camera, renderer;
+    let xrSession = null;
+    let xrRefSpace = null;
+
+    // v5.2.0 modules
+    let foveatedRendering = null;
+    let spatialAudio = null;
+    let storage = null;
+
+    // Test objects
+    let testCube = null;
+    let audioTestSource = null;
+
+    // Performance tracking
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 0;
+
+    /**
+     * Initialize application
+     */
+    async function init() {
+      console.log('Initializing Qui VR v5.2.0...');
+
+      // Initialize IndexedDB Storage
+      storage = new VRIndexedDBStorage({ debug: true });
+      const storageInit = await storage.initialize();
+
+      if (storageInit) {
+        updateStorageStatus();
+        document.getElementById('save-bookmark').disabled = false;
+      }
+
+      // Initialize Spatial Audio
+      spatialAudio = new VRSpatialAudioHRTF({ debug: true });
+      const audioInit = await spatialAudio.initialize();
+
+      if (audioInit) {
+        updateAudioStatus();
+        document.getElementById('test-audio').disabled = false;
+      }
+
+      // Update feature displays
+      updateFeatureStatus();
+
+      // Enable VR button
+      if (navigator.xr) {
+        const supported = await navigator.xr.isSessionSupported('immersive-vr');
+        document.getElementById('vr-button').disabled = !supported;
+      }
+
+      console.log('Initialization complete');
+    }
+
+    /**
+     * Update feature status display
+     */
+    function updateFeatureStatus() {
+      // ETFR status
+      document.getElementById('etfr-status').innerHTML = `
+        <span class="status disabled"></span>
+        Not in VR (Quest Pro required for eye tracking)
+      `;
+
+      // Audio status
+      const audioStats = spatialAudio ? spatialAudio.getStats() : null;
+      if (audioStats) {
+        document.getElementById('audio-status').innerHTML = `
+          <span class="status enabled"></span>
+          ${audioStats.sampleRate / 1000}kHz, ${spatialAudio.panningModel} panning
+        `;
+      }
+
+      // Storage status
+      const storageStats = storage ? storage.getStats() : null;
+      if (storageStats) {
+        const persisted = storageStats.quota.persisted;
+        document.getElementById('storage-status').innerHTML = `
+          <span class="status ${persisted ? 'enabled' : 'disabled'}">${persisted ? '' : ''}</span>
+          ${persisted ? 'Persistent' : 'Non-persistent'} (${storageStats.quota.percentage.toFixed(1)}% used)
+        `;
+      }
+    }
+
+    /**
+     * Update storage status display
+     */
+    function updateStorageStatus() {
+      if (!storage) return;
+
+      const stats = storage.getStats();
+      const quota = stats.quota;
+
+      document.getElementById('storage-usage').textContent =
+        `${storage.formatBytes(quota.usage)} / ${storage.formatBytes(quota.quota)}`;
+    }
+
+    /**
+     * Update audio status display
+     */
+    function updateAudioStatus() {
+      if (!spatialAudio) return;
+
+      const stats = spatialAudio.getStats();
+      document.getElementById('audio-sources').textContent =
+        `${stats.activeSources} / ${stats.totalSources}`;
+    }
+
+    /**
+     * Setup Three.js scene
+     */
+    function setupScene() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1a2e);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // Test cube
+      const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x2196F3,
+        roughness: 0.5,
+        metalness: 0.5
+      });
+      testCube = new THREE.Mesh(geometry, material);
+      testCube.position.set(0, 1.6, -1);
+      scene.add(testCube);
+
+      // Add some test spheres for audio
+      for (let i = 0; i < 5; i++) {
+        const sphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.1, 16, 16),
+          new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff })
+        );
+        const angle = (i / 5) * Math.PI * 2;
+        sphere.position.set(
+          Math.cos(angle) * 2,
+          1.6,
+          Math.sin(angle) * 2 - 1
+        );
+        scene.add(sphere);
+      }
+
+      console.log('Scene setup complete');
+    }
+
+    /**
+     * Enter VR
+     */
+    async function enterVR() {
+      console.log('Entering VR...');
+
+      try {
+        // Setup scene if not already done
+        if (!scene) {
+          setupScene();
+        }
+
+        // Request VR session with eye tracking
+        const sessionInit = {
+          requiredFeatures: ['local-floor'],
+          optionalFeatures: ['eye-tracking', 'hand-tracking']
+        };
+
+        xrSession = await navigator.xr.requestSession('immersive-vr', sessionInit);
+
+        // Get reference space
+        xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
+
+        // Initialize Eye-Tracked Foveated Rendering
+        foveatedRendering = new VREyeTrackedFoveatedRendering({
+          debug: true,
+          renderer: renderer,
+          foveationLevel: 2,
+          useDynamicFoveation: true,
+          targetFPS: 90
+        });
+
+        await foveatedRendering.initialize(xrSession, xrRefSpace);
+
+        // Update ETFR status
+        const stats = foveatedRendering.getStats();
+        const eyeTracking = stats.eyeTrackingSupported;
+        document.getElementById('etfr-status').innerHTML = `
+          <span class="status ${eyeTracking ? 'enabled' : 'disabled'}">
+            ${eyeTracking ? '' : ''}
+          </span>
+          ${eyeTracking ? 'Eye-tracked' : 'Fixed'} foveation (Level ${stats.foveationLevel})
+        `;
+
+        document.getElementById('toggle-foveation').disabled = false;
+
+        // Setup XR session
+        renderer.xr.setReferenceSpaceType('local-floor');
+        renderer.xr.setSession(xrSession);
+
+        // Start render loop
+        renderer.setAnimationLoop(renderLoop);
+
+        console.log('VR session started');
+
+      } catch (error) {
+        console.error('Failed to enter VR:', error);
+        alert('Failed to enter VR: ' + error.message);
+      }
+    }
+
+    /**
+     * Render loop
+     */
+    function renderLoop(time, xrFrame) {
+      if (!xrFrame) return;
+
+      const deltaTime = time - lastTime;
+
+      // Update FPS
+      frameCount++;
+      if (time - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = time;
+
+        document.getElementById('fps').textContent = fps;
+        document.getElementById('frame-time').textContent = (1000 / fps).toFixed(1) + ' ms';
+      }
+
+      // Update Foveated Rendering
+      if (foveatedRendering && foveatedRendering.initialized) {
+        foveatedRendering.update(xrFrame, deltaTime);
+
+        const stats = foveatedRendering.getStats();
+        document.getElementById('gpu-savings').textContent = stats.gpuSavings + '%';
+        document.getElementById('foveation-mode').textContent = stats.foveationMode;
+
+        const gaze = stats.gazePosition;
+        document.getElementById('gaze-pos').textContent =
+          `${gaze.x.toFixed(2)}, ${gaze.y.toFixed(2)}`;
+      }
+
+      // Update Spatial Audio
+      if (spatialAudio && spatialAudio.initialized) {
+        spatialAudio.update(xrFrame, xrRefSpace);
+        updateAudioStatus();
+      }
+
+      // Animate test cube
+      if (testCube) {
+        testCube.rotation.x += 0.01;
+        testCube.rotation.y += 0.01;
+      }
+
+      // Render scene
+      renderer.render(scene, camera);
+    }
+
+    /**
+     * Test spatial audio
+     */
+    async function testSpatialAudio() {
+      if (!spatialAudio || !spatialAudio.initialized) {
+        alert('Spatial audio not initialized');
+        return;
+      }
+
+      try {
+        // Create test audio source (oscillator)
+        const oscillator = spatialAudio.audioContext.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 440; // A4 note
+
+        // Create audio source at cube position
+        audioTestSource = spatialAudio.createAudioSource('test-beep', {
+          position: { x: 0, y: 1.6, z: -1 },
+          volume: 0.3
+        });
+
+        if (audioTestSource) {
+          // Connect oscillator to source
+          oscillator.connect(audioTestSource.gain);
+
+          // Play for 1 second
+          oscillator.start();
+          setTimeout(() => {
+            oscillator.stop();
+            spatialAudio.removeAudioSource('test-beep');
+            console.log('Audio test complete');
+          }, 1000);
+
+          console.log('Playing spatial audio test...');
+        }
+
+      } catch (error) {
+        console.error('Audio test failed:', error);
+        alert('Audio test failed: ' + error.message);
+      }
+    }
+
+    /**
+     * Toggle foveation level
+     */
+    function toggleFoveation() {
+      if (!foveatedRendering) return;
+
+      const currentLevel = foveatedRendering.foveationLevel;
+      const newLevel = (currentLevel + 1) % 4; // 0-3
+
+      foveatedRendering.setFoveationLevel(newLevel);
+
+      const stats = foveatedRendering.getStats();
+      console.log(`Foveation level: ${newLevel} (${stats.gpuSavings}% savings)`);
+
+      alert(`Foveation level: ${newLevel}\nEstimated GPU savings: ${stats.gpuSavings}%`);
+    }
+
+    /**
+     * Save bookmark to IndexedDB
+     */
+    async function saveBookmark() {
+      if (!storage || !storage.initialized) {
+        alert('Storage not initialized');
+        return;
+      }
+
+      try {
+        const bookmark = {
+          id: 'demo-' + Date.now(),
+          url: window.location.href,
+          title: 'Qui VR v5.2.0 Demo',
+          category: 'demo',
+          createdAt: Date.now()
+        };
+
+        await storage.add('bookmarks', bookmark);
+
+        // Get all bookmarks
+        const bookmarks = await storage.getAll('bookmarks');
+
+        alert(`Bookmark saved!\n\nTotal bookmarks: ${bookmarks.length}`);
+
+        // Update storage display
+        await storage.updateStorageQuota();
+        updateStorageStatus();
+
+        console.log('Bookmark saved:', bookmark);
+
+      } catch (error) {
+        console.error('Failed to save bookmark:', error);
+        alert('Failed to save bookmark: ' + error.message);
+      }
+    }
+
+    // Event listeners
+    document.getElementById('vr-button').addEventListener('click', enterVR);
+    document.getElementById('test-audio').addEventListener('click', testSpatialAudio);
+    document.getElementById('toggle-foveation').addEventListener('click', toggleFoveation);
+    document.getElementById('save-bookmark').addEventListener('click', saveBookmark);
+
+    // Initialize on load
+    window.addEventListener('load', init);
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    });
+
+    // Update stats periodically
+    setInterval(() => {
+      if (storage) {
+        updateStorageStatus();
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
