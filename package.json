@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "5.0.0",
-  "description": "Qui Browser VR - 2025 CUTTING-EDGE EDITION (206/125) - NEW: WebXR Spatial Permission API (unified), Meta Quest 3 Mesh/Depth API (dynamic occlusion), WebGPU Compute Shaders (10x faster particles), PWA Offline (60% faster loads), Android XR Support, Unified SDK, TypeScript, WebAssembly SIMD (5-10x), Multi-threading, Battery API (50% longer), WebGPU Renderer (1000% faster), Depth Sensing (<2ms), Ultra-Low Pricing (¥200/月), Foveated Rendering (25-52% GPU), Hand Gestures (15+)",
+  "version": "5.1.0",
+  "description": "Qui Browser VR - AI & MULTIPLAYER EDITION 2025 (217/125) - NEW: AI Object Detection (TensorFlow.js + WebNN, 90 objects, <50ms), WebXR Layers (quad/cylinder, high-res per-layer), WebRTC Multiplayer (P2P, spatial audio, <50ms latency), Spatial Permission API, Quest 3 Mesh/Depth, WebGPU Compute (10x faster), PWA Offline (60% faster), Android XR, TypeScript, SIMD (5-10x), Battery API (50% longer), Ultra-Low Pricing (¥200/月)",
   "main": "dist/index.html",
   "private": true,
   "scripts": {

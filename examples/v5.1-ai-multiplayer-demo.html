@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qui VR v5.1.0 - AI + Multiplayer Demo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overflow: hidden;
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 450px;
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 24px;
+    }
+
+    .section {
+      margin: 15px 0;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      color: #4CAF50;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      margin: 5px 5px 5px 0;
+      padding: 10px 20px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .status.online { background: #4CAF50; }
+    .status.offline { background: #f44336; }
+    .status.processing { background: #FF9800; }
+
+    #detection-canvas {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      border: 2px solid white;
+      border-radius: 8px;
+    }
+
+    #users-list {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .user-item {
+      padding: 5px;
+      margin: 3px 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    #stats {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000;
+    }
+
+    #stats div {
+      margin: 3px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h1>🤖 Qui VR v5.1.0</h1>
+    <p><strong>AI + Multiplayer Integration</strong></p>
+
+    <!-- AI Object Detection -->
+    <div class="section">
+      <div class="section-title">🔍 AI Object Detection</div>
+      <button id="start-ai-btn">Start Camera & AI</button>
+      <button id="stop-ai-btn" disabled>Stop AI</button>
+      <div id="ai-status">
+        Status: <span class="status offline">Offline</span>
+      </div>
+      <div id="detection-info" style="margin-top: 10px; font-size: 13px;"></div>
+    </div>
+
+    <!-- Multiplayer -->
+    <div class="section">
+      <div class="section-title">👥 Multiplayer (WebRTC)</div>
+      <input type="text" id="room-id" placeholder="Room ID" value="test-room" style="padding: 8px; border-radius: 4px; border: none; margin-right: 5px;">
+      <button id="join-room-btn">Join Room</button>
+      <button id="leave-room-btn" disabled>Leave Room</button>
+      <div id="multiplayer-status">
+        Status: <span class="status offline">Offline</span>
+      </div>
+      <div id="users-list"></div>
+    </div>
+
+    <!-- VR Controls -->
+    <div class="section">
+      <div class="section-title">🥽 VR Controls</div>
+      <button id="vr-btn" disabled>Enter VR</button>
+      <button id="layers-btn" disabled>Create Layers</button>
+    </div>
+  </div>
+
+  <canvas id="detection-canvas"></canvas>
+
+  <div id="stats">
+    <div>FPS: <span id="fps">0</span></div>
+    <div>AI Inference: <span id="ai-time">0</span> ms</div>
+    <div>Objects Detected: <span id="obj-count">0</span></div>
+    <div>Connected Users: <span id="user-count">0</span></div>
+    <div>Layers: <span id="layer-count">0</span></div>
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+
+  <!-- TensorFlow.js & Models -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+
+  <!-- Qui VR v5.1.0 Modules -->
+  <script src="../assets/js/vr-ai-object-detection.js"></script>
+  <script src="../assets/js/vr-layers-optimizer.js"></script>
+  <script src="../assets/js/vr-multiplayer-webrtc.js"></script>
+
+  <script>
+    // Global variables
+    let scene, camera, renderer;
+    let xrSession = null;
+    let xrRefSpace = null;
+
+    // v5.1.0 modules
+    let aiDetection = null;
+    let layersOptimizer = null;
+    let multiplayer = null;
+
+    // State
+    let aiRunning = false;
+    let multiplayerConnected = false;
+    let inVR = false;
+
+    // Performance
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 0;
+
+    /**
+     * Initialize application
+     */
+    async function init() {
+      console.log('Initializing Qui VR v5.1.0 AI + Multiplayer Demo...');
+
+      // Initialize AI Object Detection
+      aiDetection = new VRAIObjectDetection({
+        debug: true,
+        modelType: 'coco-ssd',
+        minConfidence: 0.6,
+        onDetection: handleAIDetection
+      });
+
+      // Initialize Multiplayer (with mock signaling for demo)
+      multiplayer = new VRMultiplayerWebRTC({
+        debug: true,
+        signalingServer: 'ws://localhost:8080', // Replace with real server
+        enableVoiceChat: true,
+        updateRate: 30,
+        onUserJoined: handleUserJoined,
+        onUserLeft: handleUserLeft,
+        onUserUpdated: handleUserUpdated
+      });
+
+      console.log('Initialization complete');
+    }
+
+    /**
+     * Start AI detection
+     */
+    async function startAI() {
+      try {
+        document.getElementById('ai-status').innerHTML = 'Status: <span class="status processing">Initializing...</span>';
+
+        // Initialize AI
+        const success = await aiDetection.initialize();
+        if (!success) {
+          throw new Error('AI initialization failed');
+        }
+
+        // Start camera
+        await aiDetection.startCamera();
+
+        // Start detection
+        await aiDetection.startDetection();
+
+        // Show detection canvas
+        const canvas = aiDetection.getCanvas();
+        const detectionCanvas = document.getElementById('detection-canvas');
+        detectionCanvas.width = 320;
+        detectionCanvas.height = 240;
+        const ctx = detectionCanvas.getContext('2d');
+
+        // Update canvas from AI canvas
+        setInterval(() => {
+          ctx.drawImage(canvas, 0, 0, 320, 240);
+        }, 100);
+
+        aiRunning = true;
+        document.getElementById('ai-status').innerHTML = 'Status: <span class="status online">Running</span>';
+        document.getElementById('start-ai-btn').disabled = true;
+        document.getElementById('stop-ai-btn').disabled = false;
+
+        console.log('AI detection started');
+
+      } catch (error) {
+        console.error('Failed to start AI:', error);
+        alert('Failed to start AI: ' + error.message);
+        document.getElementById('ai-status').innerHTML = 'Status: <span class="status offline">Error</span>';
+      }
+    }
+
+    /**
+     * Stop AI detection
+     */
+    function stopAI() {
+      if (aiDetection) {
+        aiDetection.stopDetection();
+      }
+
+      aiRunning = false;
+      document.getElementById('ai-status').innerHTML = 'Status: <span class="status offline">Offline</span>';
+      document.getElementById('start-ai-btn').disabled = false;
+      document.getElementById('stop-ai-btn').disabled = true;
+
+      console.log('AI detection stopped');
+    }
+
+    /**
+     * Handle AI detection results
+     */
+    function handleAIDetection(predictions) {
+      // Update detection info
+      const info = predictions.slice(0, 5).map(p =>
+        `${p.class} (${Math.round(p.score * 100)}%)`
+      ).join(', ');
+
+      document.getElementById('detection-info').textContent = info || 'No objects detected';
+      document.getElementById('obj-count').textContent = predictions.length;
+
+      // Update AI inference time
+      const stats = aiDetection.getStats();
+      document.getElementById('ai-time').textContent = stats.avgInferenceTime.toFixed(1);
+    }
+
+    /**
+     * Join multiplayer room
+     */
+    async function joinRoom() {
+      try {
+        document.getElementById('multiplayer-status').innerHTML = 'Status: <span class="status processing">Connecting...</span>';
+
+        // Initialize multiplayer
+        const success = await multiplayer.initialize();
+        if (!success) {
+          throw new Error('Multiplayer initialization failed');
+        }
+
+        // Join room
+        const roomId = document.getElementById('room-id').value;
+        await multiplayer.joinRoom(roomId);
+
+        multiplayerConnected = true;
+        document.getElementById('multiplayer-status').innerHTML = 'Status: <span class="status online">Connected</span>';
+        document.getElementById('join-room-btn').disabled = true;
+        document.getElementById('leave-room-btn').disabled = false;
+
+        console.log('Joined room:', roomId);
+
+      } catch (error) {
+        console.error('Failed to join room:', error);
+        alert('Failed to join room. Make sure signaling server is running.\n\n' + error.message);
+        document.getElementById('multiplayer-status').innerHTML = 'Status: <span class="status offline">Error</span>';
+      }
+    }
+
+    /**
+     * Leave multiplayer room
+     */
+    function leaveRoom() {
+      if (multiplayer) {
+        multiplayer.leaveRoom();
+      }
+
+      multiplayerConnected = false;
+      document.getElementById('multiplayer-status').innerHTML = 'Status: <span class="status offline">Offline</span>';
+      document.getElementById('join-room-btn').disabled = false;
+      document.getElementById('leave-room-btn').disabled = true;
+      document.getElementById('users-list').innerHTML = '';
+      document.getElementById('user-count').textContent = '0';
+
+      console.log('Left room');
+    }
+
+    /**
+     * Handle user joined
+     */
+    function handleUserJoined(userId) {
+      console.log('User joined:', userId);
+      updateUsersList();
+    }
+
+    /**
+     * Handle user left
+     */
+    function handleUserLeft(userId) {
+      console.log('User left:', userId);
+      updateUsersList();
+    }
+
+    /**
+     * Handle user updated
+     */
+    function handleUserUpdated(userId, user) {
+      // Update user position in VR scene if needed
+    }
+
+    /**
+     * Update users list display
+     */
+    function updateUsersList() {
+      const users = multiplayer.getUsers();
+      const usersList = document.getElementById('users-list');
+
+      usersList.innerHTML = '<div style="margin-top: 10px; font-weight: bold;">Users:</div>';
+      users.forEach((user, userId) => {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.textContent = userId;
+        usersList.appendChild(userItem);
+      });
+
+      document.getElementById('user-count').textContent = users.size;
+    }
+
+    /**
+     * Setup Three.js scene
+     */
+    function setupScene() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1a2e);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      // Add test object
+      const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+      const material = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+      const cube = new THREE.Mesh(geometry, material);
+      cube.position.set(0, 1.6, -2);
+      scene.add(cube);
+
+      console.log('Scene setup complete');
+    }
+
+    /**
+     * Enter VR
+     */
+    async function enterVR() {
+      if (!scene) {
+        setupScene();
+      }
+
+      try {
+        xrSession = await navigator.xr.requestSession('immersive-vr', {
+          requiredFeatures: ['local-floor'],
+          optionalFeatures: ['layers']
+        });
+
+        xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
+
+        // Initialize Layers Optimizer
+        if (xrSession.enabledFeatures.includes('layers')) {
+          const gl = renderer.getContext();
+          layersOptimizer = new VRLayersOptimizer({ debug: true });
+          await layersOptimizer.initialize(xrSession, gl);
+
+          document.getElementById('layers-btn').disabled = false;
+        }
+
+        renderer.xr.setReferenceSpaceType('local-floor');
+        renderer.xr.setSession(xrSession);
+
+        renderer.setAnimationLoop(renderLoop);
+
+        inVR = true;
+        console.log('VR session started');
+
+      } catch (error) {
+        console.error('Failed to enter VR:', error);
+        alert('Failed to enter VR: ' + error.message);
+      }
+    }
+
+    /**
+     * Create optimized layers
+     */
+    async function createLayers() {
+      if (!layersOptimizer) {
+        alert('Layers not available');
+        return;
+      }
+
+      try {
+        const layers = await layersOptimizer.createOptimizedLayerStack();
+        const info = layersOptimizer.getLayersInfo();
+
+        document.getElementById('layer-count').textContent = info.total;
+
+        console.log('Layers created:', info);
+        alert(`Layers created:\n- Projection: ${info.projection}\n- Quads: ${info.quads}\n- Cylinders: ${info.cylinders}`);
+
+      } catch (error) {
+        console.error('Failed to create layers:', error);
+        alert('Failed to create layers: ' + error.message);
+      }
+    }
+
+    /**
+     * Render loop
+     */
+    function renderLoop(time, xrFrame) {
+      // Update FPS
+      frameCount++;
+      if (time - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = time;
+        document.getElementById('fps').textContent = fps;
+      }
+
+      // Update multiplayer position
+      if (multiplayer && multiplayerConnected && xrFrame) {
+        const pose = xrFrame.getViewerPose(xrRefSpace);
+        if (pose) {
+          const position = pose.transform.position;
+          const orientation = pose.transform.orientation;
+
+          multiplayer.updateLocalPosition(
+            { x: position.x, y: position.y, z: position.z },
+            { x: orientation.x, y: orientation.y, z: orientation.z, w: orientation.w }
+          );
+        }
+      }
+
+      // Render scene
+      renderer.render(scene, camera);
+    }
+
+    // Event listeners
+    document.getElementById('start-ai-btn').addEventListener('click', startAI);
+    document.getElementById('stop-ai-btn').addEventListener('click', stopAI);
+    document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+    document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+    document.getElementById('vr-btn').addEventListener('click', enterVR);
+    document.getElementById('layers-btn').addEventListener('click', createLayers);
+
+    // Initialize on load
+    window.addEventListener('load', init);
+
+    // Check WebXR support
+    if ('xr' in navigator) {
+      navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+        document.getElementById('vr-btn').disabled = !supported;
+      });
+    }
+  </script>
+</body>
+</html>

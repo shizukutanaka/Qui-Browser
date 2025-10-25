@@ -1,6 +1,6 @@
 /**
  * Qui Browser VR - Unified SDK
- * Version: 5.0.0
+ * Version: 5.1.0
  *
  * すべてのVR機能を統合した開発者向けSDK
  *
@@ -12,33 +12,38 @@
  * - Event system
  * - Plugin architecture
  *
- * NEW in v5.0.0 (2025):
- * - WebXR Spatial Permission API (unified permissions)
+ * NEW in v5.1.0 (2025):
+ * - AI Object Detection (TensorFlow.js + WebNN)
+ * - WebXR Layers API (quad/cylinder)
+ * - WebRTC Multiplayer (P2P, <50ms)
+ *
+ * v5.0.0 Features:
+ * - WebXR Spatial Permission API
  * - Meta Quest 3 Mesh & Depth API
  * - WebGPU Compute Shaders (10x performance)
  * - Advanced PWA offline support
  * - Android XR platform support
- * - 60% faster load times
  *
  * Usage:
  * ```javascript
  * const vr = new QuiVRSDK({
  *   pricing: 'premium',
- *   performance: 'ultra'
+ *   enableAI: true,
+ *   enableMultiplayer: true
  * });
  *
  * await vr.initialize();
  * await vr.enterVR();
  * ```
  *
- * @version 5.0.0
+ * @version 5.1.0
  * @author Qui Browser Team
  * @license MIT
  */
 
 class QuiVRSDK {
   constructor(options = {}) {
-    this.version = '5.0.0';
+    this.version = '5.1.0';
     this.options = {
       // Preset configurations
       preset: options.preset || 'balanced', // 'performance', 'quality', 'balanced', 'battery'
