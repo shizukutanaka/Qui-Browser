@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qui VR SDK - Performance Benchmark</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 36px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 30px;
+      opacity: 0.9;
+      font-size: 18px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-success {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #FF9800;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-info {
+      background: #00BCD4;
+      color: white;
+    }
+
+    select {
+      padding: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card h3 {
+      margin-bottom: 15px;
+      font-size: 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .metric {
+      margin-bottom: 15px;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+
+    .metric-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .metric-unit {
+      font-size: 16px;
+      opacity: 0.7;
+      margin-left: 5px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #8BC34A);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .status {
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status.success {
+      background: #4CAF50;
+    }
+
+    .status.warning {
+      background: #FF9800;
+    }
+
+    .status.error {
+      background: #f44336;
+    }
+
+    .status.info {
+      background: #2196F3;
+    }
+
+    .log {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 8px;
+      border-left: 3px solid;
+      padding-left: 12px;
+    }
+
+    .log-entry.info {
+      border-color: #2196F3;
+      background: rgba(33, 150, 243, 0.1);
+    }
+
+    .log-entry.success {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+
+    .log-entry.warning {
+      border-color: #FF9800;
+      background: rgba(255, 152, 0, 0.1);
+    }
+
+    .log-entry.error {
+      border-color: #f44336;
+      background: rgba(244, 67, 54, 0.1);
+    }
+
+    .timestamp {
+      opacity: 0.6;
+      font-size: 12px;
+      margin-right: 10px;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .icon {
+      font-size: 24px;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulsing {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Qui VR SDK Performance Benchmark</h1>
+    <p class="subtitle">Test and optimize your VR application performance</p>
+
+    <div class="controls">
+      <select id="preset-select">
+        <option value="performance">⚡ Performance Mode</option>
+        <option value="quality">🎨 Quality Mode</option>
+        <option value="balanced" selected>⚖️ Balanced Mode</option>
+        <option value="battery">🔋 Battery Mode</option>
+      </select>
+      <button id="init-btn" class="btn-primary">Initialize SDK</button>
+      <button id="vr-btn" class="btn-success" disabled>Enter VR</button>
+      <button id="benchmark-btn" class="btn-warning" disabled>Run Benchmark</button>
+      <button id="reset-btn" class="btn-danger">Reset</button>
+    </div>
+
+    <div class="dashboard">
+      <!-- Performance Metrics -->
+      <div class="card">
+        <h3><span class="icon">📊</span> Performance Metrics</h3>
+        <div class="metric">
+          <div class="metric-label">Frame Rate</div>
+          <div class="metric-value" id="fps-value">0</div>
+          <span class="metric-unit">FPS</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="fps-bar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Frame Time</div>
+          <div class="metric-value" id="frametime-value">0.0</div>
+          <span class="metric-unit">ms</span>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Target FPS</div>
+          <div class="metric-value" id="target-fps">90</div>
+        </div>
+      </div>
+
+      <!-- System Resources -->
+      <div class="card">
+        <h3><span class="icon">💾</span> System Resources</h3>
+        <div class="metric">
+          <div class="metric-label">Memory Usage</div>
+          <div class="metric-value" id="memory-value">0</div>
+          <span class="metric-unit">MB</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="memory-bar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Battery Level</div>
+          <div class="metric-value" id="battery-value">100</div>
+          <span class="metric-unit">%</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="battery-bar" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Draw Calls</div>
+          <div class="metric-value" id="drawcalls-value">0</div>
+        </div>
+      </div>
+
+      <!-- System Info -->
+      <div class="card">
+        <h3><span class="icon">🖥️</span> System Info</h3>
+        <div class="metric">
+          <div class="metric-label">SDK Version</div>
+          <div id="version-value" style="font-size: 18px; margin: 10px 0;">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Renderer</div>
+          <div id="renderer-value" style="font-size: 18px; margin: 10px 0;">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Status</div>
+          <div id="status-value">
+            <span class="status info">Not Initialized</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="card">
+        <h3><span class="icon">✨</span> Features</h3>
+        <ul class="feature-list">
+          <li>
+            <span>WebXR</span>
+            <span id="feature-webxr">❓</span>
+          </li>
+          <li>
+            <span>WebGPU</span>
+            <span id="feature-webgpu">❓</span>
+          </li>
+          <li>
+            <span>SIMD</span>
+            <span id="feature-simd">❓</span>
+          </li>
+          <li>
+            <span>Multi-threading</span>
+            <span id="feature-threads">❓</span>
+          </li>
+          <li>
+            <span>Battery API</span>
+            <span id="feature-battery">❓</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Benchmark Results -->
+    <div class="card" id="benchmark-results" style="display: none;">
+      <h3><span class="icon">🏆</span> Benchmark Results</h3>
+      <div id="benchmark-content"></div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="card">
+      <h3><span class="icon">📝</span> Event Log</h3>
+      <div class="log" id="event-log">
+        <div class="log-entry info">
+          <span class="timestamp">[00:00:00]</span>
+          <span>Benchmark tool ready. Select a preset and click Initialize SDK.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Qui VR SDK -->
+  <script src="../assets/js/qui-vr-sdk.js"></script>
+
+  <script>
+    // Global variables
+    let vr = null;
+    let metricsInterval = null;
+    let benchmarkRunning = false;
+
+    // DOM elements
+    const presetSelect = document.getElementById('preset-select');
+    const initBtn = document.getElementById('init-btn');
+    const vrBtn = document.getElementById('vr-btn');
+    const benchmarkBtn = document.getElementById('benchmark-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const eventLog = document.getElementById('event-log');
+
+    // Logging functions
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString('ja-JP');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.innerHTML = `<span class="timestamp">[${timestamp}]</span><span>${message}</span>`;
+      eventLog.appendChild(entry);
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    function updateMetric(id, value, unit = '') {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
+
+    function updateProgress(barId, percentage) {
+      const bar = document.getElementById(barId);
+      if (bar) {
+        bar.style.width = Math.min(100, Math.max(0, percentage)) + '%';
+      }
+    }
+
+    function updateFeature(id, supported) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = supported ? '✅' : '❌';
+      }
+    }
+
+    function updateStatus(text, type = 'info') {
+      const element = document.getElementById('status-value');
+      element.innerHTML = `<span class="status ${type}">${text}</span>`;
+    }
+
+    // Initialize SDK
+    initBtn.addEventListener('click', async () => {
+      const preset = presetSelect.value;
+      log(`Initializing SDK with preset: ${preset}`, 'info');
+      updateStatus('Initializing...', 'warning');
+
+      try {
+        // Create SDK instance
+        vr = new QuiVRSDK({
+          preset: preset,
+          debug: true
+        });
+
+        // Setup event listeners
+        vr.on('initialized', (event) => {
+          log('SDK initialized successfully!', 'success');
+          log(`Version: ${event.detail.version}`, 'info');
+          updateStatus('Initialized', 'success');
+
+          // Update system info
+          const info = vr.getSystemInfo();
+          updateMetric('version-value', info.version);
+          updateMetric('renderer-value', info.renderer);
+          updateMetric('target-fps', info.performance.targetFPS);
+
+          // Update features
+          updateFeature('feature-webxr', info.features.webxr);
+          updateFeature('feature-webgpu', info.features.webgpu);
+          updateFeature('feature-simd', info.features.simd);
+          updateFeature('feature-threads', info.features.sharedArrayBuffer);
+          updateFeature('feature-battery', info.features.batteryAPI);
+
+          // Enable buttons
+          vrBtn.disabled = false;
+          benchmarkBtn.disabled = false;
+          initBtn.disabled = true;
+
+          // Start metrics monitoring
+          startMetricsMonitoring();
+        });
+
+        vr.on('vr-started', () => {
+          log('Entered VR mode', 'success');
+          updateStatus('In VR', 'success');
+        });
+
+        vr.on('vr-ended', () => {
+          log('Exited VR mode', 'info');
+          updateStatus('Initialized', 'success');
+        });
+
+        vr.on('error', (event) => {
+          log(`Error: ${event.detail.error.message}`, 'error');
+          updateStatus('Error', 'error');
+        });
+
+        vr.on('battery-low', (event) => {
+          log(`Battery low: ${event.detail.level}%`, 'warning');
+        });
+
+        // Initialize
+        const success = await vr.initialize();
+
+        if (!success) {
+          throw new Error('Initialization failed');
+        }
+
+      } catch (error) {
+        log(`Initialization error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+      }
+    });
+
+    // Enter VR
+    vrBtn.addEventListener('click', async () => {
+      try {
+        log('Requesting VR session...', 'info');
+        await vr.enterVR();
+      } catch (error) {
+        log(`VR error: ${error.message}`, 'error');
+      }
+    });
+
+    // Run Benchmark
+    benchmarkBtn.addEventListener('click', async () => {
+      if (benchmarkRunning) {
+        return;
+      }
+
+      benchmarkRunning = true;
+      benchmarkBtn.disabled = true;
+      log('Starting benchmark...', 'info');
+
+      const resultsDiv = document.getElementById('benchmark-results');
+      const contentDiv = document.getElementById('benchmark-content');
+      resultsDiv.style.display = 'block';
+
+      // Benchmark metrics
+      const results = {
+        fpsHistory: [],
+        frameTimeHistory: [],
+        memoryHistory: [],
+        startTime: Date.now(),
+        duration: 10000 // 10 seconds
+      };
+
+      // Run benchmark
+      const interval = setInterval(() => {
+        const metrics = vr.getMetrics();
+        results.fpsHistory.push(metrics.fps);
+        results.frameTimeHistory.push(metrics.frameTime);
+        results.memoryHistory.push(metrics.memoryUsage);
+      }, 100);
+
+      // Wait for benchmark to complete
+      await new Promise(resolve => setTimeout(resolve, results.duration));
+      clearInterval(interval);
+
+      // Calculate statistics
+      const avgFPS = (results.fpsHistory.reduce((a, b) => a + b, 0) / results.fpsHistory.length).toFixed(2);
+      const minFPS = Math.min(...results.fpsHistory).toFixed(2);
+      const maxFPS = Math.max(...results.fpsHistory).toFixed(2);
+      const avgFrameTime = (results.frameTimeHistory.reduce((a, b) => a + b, 0) / results.frameTimeHistory.length).toFixed(2);
+      const avgMemory = (results.memoryHistory.reduce((a, b) => a + b, 0) / results.memoryHistory.length).toFixed(2);
+
+      // Display results
+      contentDiv.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+          <div>
+            <div class="metric-label">Average FPS</div>
+            <div class="metric-value" style="font-size: 24px;">${avgFPS}</div>
+          </div>
+          <div>
+            <div class="metric-label">Min FPS</div>
+            <div class="metric-value" style="font-size: 24px;">${minFPS}</div>
+          </div>
+          <div>
+            <div class="metric-label">Max FPS</div>
+            <div class="metric-value" style="font-size: 24px;">${maxFPS}</div>
+          </div>
+          <div>
+            <div class="metric-label">Avg Frame Time</div>
+            <div class="metric-value" style="font-size: 24px;">${avgFrameTime}</div>
+            <span class="metric-unit">ms</span>
+          </div>
+          <div>
+            <div class="metric-label">Avg Memory</div>
+            <div class="metric-value" style="font-size: 24px;">${avgMemory}</div>
+            <span class="metric-unit">MB</span>
+          </div>
+        </div>
+      `;
+
+      log(`Benchmark complete: Avg FPS ${avgFPS}, Avg Frame Time ${avgFrameTime}ms`, 'success');
+      benchmarkRunning = false;
+      benchmarkBtn.disabled = false;
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', async () => {
+      if (vr) {
+        await vr.dispose();
+      }
+      stopMetricsMonitoring();
+      location.reload();
+    });
+
+    // Metrics monitoring
+    function startMetricsMonitoring() {
+      metricsInterval = setInterval(() => {
+        const metrics = vr.getMetrics();
+
+        // Update FPS
+        updateMetric('fps-value', metrics.fps);
+        updateProgress('fps-bar', (metrics.fps / vr.options.targetFPS) * 100);
+
+        // Update frame time
+        updateMetric('frametime-value', metrics.frameTime.toFixed(2));
+
+        // Update memory
+        updateMetric('memory-value', metrics.memoryUsage);
+        updateProgress('memory-bar', (metrics.memoryUsage / 2048) * 100); // Assume 2GB max
+
+        // Update battery
+        updateMetric('battery-value', metrics.batteryLevel);
+        updateProgress('battery-bar', metrics.batteryLevel);
+
+        // Update draw calls
+        updateMetric('drawcalls-value', metrics.drawCalls);
+      }, 100);
+    }
+
+    function stopMetricsMonitoring() {
+      if (metricsInterval) {
+        clearInterval(metricsInterval);
+        metricsInterval = null;
+      }
+    }
+
+    // Check WebXR support on load
+    window.addEventListener('load', () => {
+      if (!navigator.xr) {
+        log('⚠️ WebXR not supported in this browser', 'warning');
+        updateStatus('WebXR Not Supported', 'error');
+        initBtn.disabled = true;
+      }
+
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        log('⚠️ HTTPS required for WebXR', 'warning');
+      }
+    });
+  </script>
+</body>
+</html>

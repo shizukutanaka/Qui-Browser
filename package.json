@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "4.8.0",
-  "description": "Qui Browser VR - ULTIMATE 2025 (187/125) - WebAssembly SIMD (5-10x boost), Multi-threading (SharedArrayBuffer), Battery API (50% longer), Memory Optimization (GC pooling), WebGPU Renderer (1000% faster), WebXR Depth Sensing (<2ms), Ultra-Low Pricing (¥200/月), Foveated Rendering (25-52% GPU), Hand Gestures (15+), 4K Video, Swype Input (34.2 WPM), Ergonomics, Accessibility (wheelchair 100%), Privacy (GDPR/CCPA), Cross-Platform, Spatial Audio, Wasm 3.0, WCAG AAA",
+  "version": "4.9.0",
+  "description": "Qui Browser VR - DEVELOPER EDITION 2025 (193/125) - Unified SDK (one-line init), TypeScript Support, Quick Start Guide, Performance Benchmarks, WebAssembly SIMD (5-10x boost), Multi-threading (SharedArrayBuffer), Battery API (50% longer), Memory Optimization (GC pooling), WebGPU Renderer (1000% faster), WebXR Depth Sensing (<2ms), Ultra-Low Pricing (¥200/月), Foveated Rendering (25-52% GPU), Hand Gestures (15+), 4K Video, Developer Experience Optimized",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
