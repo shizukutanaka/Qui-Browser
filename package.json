@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
-  "version": "5.6.0",
-  "description": "Qui Browser VR - COMFORT EDITION 2025 (254/125) - NEW: Depth Sensing + Occlusion (realistic rendering), Haptic Patterns (20+ presets), Comfort Settings (motion sickness prevention), WebXR Passthrough Camera, Scene Understanding (14 labels), WebAssembly SIMD (1.7-10x faster), Advanced PWA v2, Eye-Tracked Foveated Rendering (36-52% GPU savings), HRTF Spatial Audio, IndexedDB, AI Detection, WebXR Layers, WebRTC, Quest 3 API, Ultra-Low Pricing (¥200/月)",
+  "version": "5.7.0",
+  "description": "Qui Browser VR - ADVANCED INTELLIGENCE EDITION 2025 (271/125) - NEW: ML Hand Gestures (CNN-LSTM), Spatial Anchors (persistent AR), Neural Rendering (16x upscaling), Advanced Eye Tracking UI, Full-Body Avatar IK, Depth Sensing + Occlusion, Haptic Patterns, Comfort Settings, WebXR Passthrough, Scene Understanding, WebAssembly SIMD, Advanced PWA v2, HRTF Audio, Quest 3 API, Ultra-Low Pricing (¥200/月)",
   "main": "dist/index.html",
   "private": true,
   "scripts": {
@@ -51,7 +51,9 @@
     "cors": "^2.8.5",
     "body-parser": "^1.20.2",
     "dotenv": "^16.3.1",
-    "stripe": "^14.10.0"
+    "stripe": "^14.10.0",
+    "i18next": "^23.7.6",
+    "i18next-browser-languagedetector": "^7.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
