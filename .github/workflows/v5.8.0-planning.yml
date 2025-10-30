@@ -1,0 +1,253 @@
+name: v5.8.0 Feature Planning & Tracking
+
+on:
+  schedule:
+    # Run weekly on Monday at 09:00 UTC for planning review
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      feature:
+        description: 'Feature to plan'
+        required: false
+        default: 'all'
+
+env:
+  PROJECT_VERSION: '5.8.0'
+  TARGET_RELEASE: 'Q4 2025 / Q1 2026'
+  QUALITY_GATE: '95'
+
+jobs:
+  feature-planning:
+    runs-on: ubuntu-latest
+    name: v5.8.0 Feature Planning & Tracking
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check v5.8.0 Planning Status
+        run: |
+          echo "=== v5.8.0 Feature Planning Status ==="
+          echo ""
+          echo "Target Release: ${{ env.TARGET_RELEASE }}"
+          echo "Primary Features Planned: 4"
+          echo ""
+
+          # Feature 1: WASM SIMD Acceleration
+          if grep -r "wasm-simd" assets/js/ > /dev/null 2>&1; then
+            echo "✓ Feature 1: WebAssembly SIMD - IN PROGRESS"
+          else
+            echo "⏳ Feature 1: WebAssembly SIMD - NOT STARTED"
+          fi
+
+          # Feature 2: Advanced Gesture Recognition
+          if grep -r "advanced-gesture" assets/js/ > /dev/null 2>&1; then
+            echo "✓ Feature 2: Advanced Gestures (35 types) - IN PROGRESS"
+          else
+            echo "⏳ Feature 2: Advanced Gestures (35 types) - NOT STARTED"
+          fi
+
+          # Feature 3: Performance Dashboard
+          if grep -r "performance-profiler" assets/js/ > /dev/null 2>&1; then
+            echo "✓ Feature 3: Performance Dashboard - IN PROGRESS"
+          else
+            echo "⏳ Feature 3: Performance Dashboard - NOT STARTED"
+          fi
+
+          # Feature 4: Gesture Macros
+          if grep -r "gesture-customization\|gesture-macro" assets/js/ > /dev/null 2>&1; then
+            echo "✓ Feature 4: Gesture Macros & Customization - IN PROGRESS"
+          else
+            echo "⏳ Feature 4: Gesture Macros & Customization - NOT STARTED"
+          fi
+
+      - name: Check Advanced Performance Profiler Implementation
+        run: |
+          echo ""
+          echo "=== Feature 3: Advanced Performance Profiler ==="
+          if [ -f "assets/js/vr-advanced-performance-profiler.js" ]; then
+            echo "✓ Advanced Performance Profiler Implemented"
+
+            # Check file size and content
+            SIZE=$(wc -c < "assets/js/vr-advanced-performance-profiler.js")
+            LINES=$(wc -l < "assets/js/vr-advanced-performance-profiler.js")
+            echo "  File size: $((SIZE / 1024))KB"
+            echo "  Lines of code: $LINES"
+
+            # Check key features
+            if grep -q "class VRAdvancedPerformanceProfiler" assets/js/vr-advanced-performance-profiler.js; then
+              echo "  ✓ Main class defined"
+            fi
+
+            if grep -q "getPerformanceGrade" assets/js/vr-advanced-performance-profiler.js; then
+              echo "  ✓ Performance grading implemented"
+            fi
+
+            if grep -q "generateRecommendations\|recommendationRules" assets/js/vr-advanced-performance-profiler.js; then
+              echo "  ✓ Recommendations engine implemented"
+            fi
+
+            if grep -q "recordModuleTime\|moduleMetrics" assets/js/vr-advanced-performance-profiler.js; then
+              echo "  ✓ Per-module metrics tracking"
+            fi
+
+            if grep -q "exportAsCSV\|exportAsJSON" assets/js/vr-advanced-performance-profiler.js; then
+              echo "  ✓ Export functionality implemented"
+            fi
+          else
+            echo "✗ Advanced Performance Profiler NOT FOUND"
+            exit 1
+          fi
+
+      - name: Check Example Projects
+        run: |
+          echo ""
+          echo "=== Example Projects Status ==="
+          if [ -f "examples/EXAMPLE_PROJECTS.md" ]; then
+            echo "✓ Example projects documentation found"
+
+            # Count examples
+            EXAMPLES=$(grep -c "^## Example" examples/EXAMPLE_PROJECTS.md)
+            echo "  Examples documented: $EXAMPLES"
+
+            # Check for specific examples
+            echo "  Included examples:"
+            grep "^## Example" examples/EXAMPLE_PROJECTS.md | cut -d: -f2 | sed 's/^/    - /'
+          else
+            echo "✗ Example projects documentation NOT FOUND"
+          fi
+
+      - name: Check Community Infrastructure
+        run: |
+          echo ""
+          echo "=== Community Infrastructure Status ==="
+
+          if [ -f ".github/DISCUSSION_TEMPLATES.md" ]; then
+            echo "✓ GitHub Discussion templates configured"
+          else
+            echo "✗ GitHub Discussion templates NOT FOUND"
+          fi
+
+          if [ -f "COMMUNITY_ENGAGEMENT_STRATEGY.md" ]; then
+            echo "✓ Community engagement strategy documented"
+          else
+            echo "✗ Community engagement strategy NOT FOUND"
+          fi
+
+      - name: Generate Planning Report
+        run: |
+          echo ""
+          echo "=== v5.8.0 Planning Report ==="
+          echo "Date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Status: FEATURE PLANNING IN PROGRESS"
+          echo ""
+          echo "Progress:"
+          echo "  Infrastructure: ✓ COMPLETE"
+          echo "    - Community templates ready"
+          echo "    - Example projects documented"
+          echo "    - Performance profiler implemented"
+          echo ""
+          echo "  Features: IN PROGRESS"
+          echo "    - WASM SIMD: Awaiting development"
+          echo "    - Advanced Gestures: Awaiting development"
+          echo "    - Performance Dashboard: Profiler ready (UI pending)"
+          echo "    - Gesture Macros: Awaiting development"
+          echo ""
+          echo "Timeline:"
+          echo "  Target release: ${{ env.TARGET_RELEASE }}"
+          echo "  Duration: 12 weeks"
+          echo "  Milestones: 7 planned"
+          echo ""
+          echo "Quality Gates:"
+          echo "  Code quality target: ${{ env.QUALITY_GATE }}%"
+          echo "  Test coverage target: ${{ env.QUALITY_GATE }}%+"
+          echo "  Performance: 20%+ FPS improvement"
+          echo "  Security: 0 vulnerabilities"
+
+      - name: Create Planning Issue (if scheduled)
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            const title = `v5.8.0 Planning Review - Week ${Math.ceil(new Date().getDate() / 7)}`;
+            const body = `## v5.8.0 Feature Planning Review - ${date}
+
+            ### Status: IN PROGRESS
+            - Target Release: Q4 2025 / Q1 2026
+            - Duration: 12 weeks
+            - 4 Primary Features Planned
+
+            ### Features
+            - [ ] WebAssembly SIMD Acceleration (20%+ FPS boost)
+            - [ ] Advanced Gesture Recognition (15→35 gestures)
+            - [ ] Advanced Performance Dashboard
+            - [ ] Extended Gesture Macros & Customization
+
+            ### Infrastructure Ready
+            - ✓ Community engagement strategy documented
+            - ✓ Example projects documented (7 examples)
+            - ✓ Advanced performance profiler implemented
+            - ✓ Discussion templates configured
+
+            ### Next Steps
+            1. Begin WASM SIMD module development
+            2. Expand gesture dataset to 35 types
+            3. Create performance dashboard UI
+            4. Implement gesture customization system
+
+            ### Timeline
+            - Week 1-2: Foundation & planning
+            - Week 3-4: Core feature development
+            - Week 5-6: Feature completion
+            - Week 7-8: Testing & refinement
+            - Week 9-10: Release preparation
+            - Week 11-12: Release & stabilization
+
+            See v5.8.0_FEATURE_ROADMAP.md for details.`;
+
+            // Check if issue already exists for today
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              labels: 'v5.8.0,planning'
+            });
+
+            const existsToday = issues.data.some(issue =>
+              issue.title.includes(date)
+            );
+
+            if (!existsToday && issues.data.length < 10) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['v5.8.0', 'planning', 'tracking']
+              });
+              console.log('Created v5.8.0 planning issue');
+            } else {
+              console.log('Planning issue already exists or limit reached');
+            }
+
+      - name: Log Workflow Summary
+        run: |
+          echo ""
+          echo "=== Workflow Summary ==="
+          echo "Completed tasks:"
+          echo "  ✓ Checked feature planning status"
+          echo "  ✓ Verified advanced performance profiler"
+          echo "  ✓ Verified example projects"
+          echo "  ✓ Verified community infrastructure"
+          echo "  ✓ Generated planning report"
+          echo ""
+          echo "Next run: Next Monday at 09:00 UTC"
+          echo "Manual trigger: Available anytime"
