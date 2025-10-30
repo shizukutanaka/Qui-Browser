@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ha",
+    "languageName": "هَوُسَا",
+    "nativeName": "هَوُسَا",
+    "version": "1.0.0",
+    "rtl": true,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Da kyau",
+    "cancel": "Soke",
+    "close": "Rufe",
+    "back": "Dawo",
+    "next": "Na gaba",
+    "previous": "Na baya",
+    "save": "Ajiye",
+    "delete": "Goge",
+    "edit": "Gyara",
+    "search": "Nema",
+    "loading": "Ana ɗauka...",
+    "error": "Kuskure",
+    "success": "Nasara",
+    "warning": "Gargaɗi",
+    "info": "Bayani",
+    "yes": "Ee",
+    "no": "A'a",
+    "confirm": "Tabbatar",
+    "retry": "Sake gwadawa",
+    "continue": "Ci gaba",
+    "finish": "Kammala",
+    "help": "Taimako",
+    "settings": "Saiti",
+    "about": "Game da"
+  },
+  "vr": {
+    "enterVR": "Shiga yanayin VR",
+    "exitVR": "Fita daga yanayin VR",
+    "immersiveMode": "Yanayin nutsewa",
+    "vrMode": "Yanayin VR",
+    "headset": "Tabarau na VR",
+    "controllers": "Masu sarrafawa",
+    "handTracking": "Bin diddigin hannu",
+    "handTrackingEnabled": "Bin diddigin hannu kunna",
+    "handTrackingDisabled": "Bin diddigin hannu kashe",
+    "noVRSupport": "VR ba a tallafawa a wannan burauzar ba",
+    "vrSessionStarted": "An fara zaman VR",
+    "vrSessionEnded": "An ƙare zaman VR",
+    "controllerConnected": "An haɗa mai sarrafawa",
+    "controllerDisconnected": "An cire mai sarrafawa"
+  }
+}

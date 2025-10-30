@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "he",
+    "languageName": "עברית",
+    "nativeName": "עברית",
+    "version": "1.0.0",
+    "rtl": true,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "אישור",
+    "cancel": "ביטול",
+    "close": "סגור",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "הקודם",
+    "save": "שמור",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "search": "חפש",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "warning": "אזהרה",
+    "info": "מידע",
+    "yes": "כן",
+    "no": "לא",
+    "confirm": "אשר",
+    "retry": "נסה שוב",
+    "continue": "המשך",
+    "finish": "סיים",
+    "help": "עזרה",
+    "settings": "הגדרות",
+    "about": "אודות"
+  },
+  "vr": {
+    "enterVR": "היכנס למצב VR",
+    "exitVR": "צא ממצב VR",
+    "immersiveMode": "מצב סוחף",
+    "vrMode": "מצב VR",
+    "headset": "משקפי VR",
+    "controllers": "בקרים",
+    "handTracking": "מעקב ידיים",
+    "handTrackingEnabled": "מעקב ידיים מופעל",
+    "handTrackingDisabled": "מעקב ידיים מושבת",
+    "noVRSupport": "VR אינו נתמך בדפדפן זה",
+    "vrSessionStarted": "הפעלת סשן VR",
+    "vrSessionEnded": "סיום סשן VR",
+    "controllerConnected": "בקר מחובר",
+    "controllerDisconnected": "בקר מנותק"
+  }
+}

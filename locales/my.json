@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "my",
+    "languageName": "မြန်မာဘာသာ",
+    "nativeName": "မြန်မာဘာသာ",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "အိုကေ",
+    "cancel": "ပယ်ဖျက်ပါ",
+    "close": "ပိတ်ပါ",
+    "back": "နောက်သို့",
+    "next": "ရှေ့သို့",
+    "previous": "အရင်",
+    "save": "သိမ်းဆည်းပါ",
+    "delete": "ဖျက်ပါ",
+    "edit": "တည်းဖြတ်ပါ",
+    "search": "ရှာဖွေပါ",
+    "loading": "တင်နေသည်...",
+    "error": "အမှား",
+    "success": "အောင်မြင်သည်",
+    "warning": "သတိပေးချက်",
+    "info": "သတင်းအချက်အလက်",
+    "yes": "ဟုတ်ကဲ့",
+    "no": "မဟုတ်ပါ",
+    "confirm": "အတည်ပြုပါ",
+    "retry": "ပြန်ကြိုးစားပါ",
+    "continue": "ဆက်လက်လုပ်ဆောင်ပါ",
+    "finish": "ပြီးဆုံးပါ",
+    "help": "အကူအညီ",
+    "settings": "ဆက်တင်များ",
+    "about": "အကြောင်း"
+  },
+  "vr": {
+    "enterVR": "VR မုဒ်သို့ ဝင်ပါ",
+    "exitVR": "VR မုဒ်မှ ထွက်ပါ",
+    "immersiveMode": "စွဲဆောင်မှုရှိသော မုဒ်",
+    "vrMode": "VR မုဒ်",
+    "headset": "VR မျက်မှန်",
+    "controllers": "ထိန်းချုပ်ကိရိယာများ",
+    "handTracking": "လက်ခြေလှုပ်ရှားမှု ခြေရာခံခြင်း",
+    "handTrackingEnabled": "လက်ခြေလှုပ်ရှားမှု ခြေရာခံခြင်း ဖွင့်ထားသည်",
+    "handTrackingDisabled": "လက်ခြေလှုပ်ရှားမှု ခြေရာခံခြင်း ပိတ်ထားသည်",
+    "noVRSupport": "ဤဘရောက်ဇာတွင် VR ကို မပံ့ပိုးပါ",
+    "vrSessionStarted": "VR အစည်းအဝေး စတင်သည်",
+    "vrSessionEnded": "VR အစည်းအဝေး ပြီးဆုံးသည်",
+    "controllerConnected": "ထိန်းချုပ်ကိရိယာ ချိတ်ဆက်ထားသည်",
+    "controllerDisconnected": "ထိန်းချုပ်ကိရိယာ ချိတ်ဆက်မှု ဖြုတ်ထားသည်"
+  }
+}

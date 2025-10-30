@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ca",
+    "languageName": "Català",
+    "nativeName": "Català",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "D'acord",
+    "cancel": "Cancel·la",
+    "close": "Tanca",
+    "back": "Enrere",
+    "next": "Següent",
+    "previous": "Anterior",
+    "save": "Desa",
+    "delete": "Suprimeix",
+    "edit": "Edita",
+    "search": "Cerca",
+    "loading": "Carregant...",
+    "error": "Error",
+    "success": "Èxit",
+    "warning": "Advertència",
+    "info": "Informació",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirma",
+    "retry": "Torna-ho a provar",
+    "continue": "Continua",
+    "finish": "Acaba",
+    "help": "Ajuda",
+    "settings": "Configuració",
+    "about": "Quant a"
+  },
+  "vr": {
+    "enterVR": "Entra al mode VR",
+    "exitVR": "Surt del mode VR",
+    "immersiveMode": "Mode immersiu",
+    "vrMode": "Mode VR",
+    "headset": "Ulleres VR",
+    "controllers": "Controladors",
+    "handTracking": "Seguiment de mans",
+    "handTrackingEnabled": "Seguiment de mans activat",
+    "handTrackingDisabled": "Seguiment de mans desactivat",
+    "noVRSupport": "VR no és compatible amb aquest navegador",
+    "vrSessionStarted": "Sessió VR iniciada",
+    "vrSessionEnded": "Sessió VR finalitzada",
+    "controllerConnected": "Controlador connectat",
+    "controllerDisconnected": "Controlador desconnectat"
+  }
+}

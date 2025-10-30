@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "lt",
+    "languageName": "Lietuvių",
+    "nativeName": "Lietuvių",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Gerai",
+    "cancel": "Atšaukti",
+    "close": "Uždaryti",
+    "back": "Atgal",
+    "next": "Kitas",
+    "previous": "Ankstesnis",
+    "save": "Išsaugoti",
+    "delete": "Ištrinti",
+    "edit": "Redaguoti",
+    "search": "Ieškoti",
+    "loading": "Kraunama...",
+    "error": "Klaida",
+    "success": "Sėkmė",
+    "warning": "Įspėjimas",
+    "info": "Informacija",
+    "yes": "Taip",
+    "no": "Ne",
+    "confirm": "Patvirtinti",
+    "retry": "Bandyti dar kartą",
+    "continue": "Tęsti",
+    "finish": "Baigti",
+    "help": "Pagalba",
+    "settings": "Nustatymai",
+    "about": "Apie programą"
+  },
+  "vr": {
+    "enterVR": "Įeiti į VR režimą",
+    "exitVR": "Išeiti iš VR režimo",
+    "immersiveMode": "Imersinis režimas",
+    "vrMode": "VR režimas",
+    "headset": "VR akiniai",
+    "controllers": "Valdikliai",
+    "handTracking": "Rankų sekimas",
+    "handTrackingEnabled": "Rankų sekimas įjungtas",
+    "handTrackingDisabled": "Rankų sekimas išjungtas",
+    "noVRSupport": "VR nepalaikomas šiame naršyklėje",
+    "vrSessionStarted": "VR sesija pradėta",
+    "vrSessionEnded": "VR sesija baigta",
+    "controllerConnected": "Valdiklis prijungtas",
+    "controllerDisconnected": "Valdiklis atjungtas"
+  }
+}

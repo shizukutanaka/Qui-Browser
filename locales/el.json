@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "el",
+    "languageName": "Ελληνικά",
+    "nativeName": "Ελληνικά",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Εντάξει",
+    "cancel": "Ακύρωση",
+    "close": "Κλείσιμο",
+    "back": "Πίσω",
+    "next": "Επόμενο",
+    "previous": "Προηγούμενο",
+    "save": "Αποθήκευση",
+    "delete": "Διαγραφή",
+    "edit": "Επεξεργασία",
+    "search": "Αναζήτηση",
+    "loading": "Φόρτωση...",
+    "error": "Σφάλμα",
+    "success": "Επιτυχία",
+    "warning": "Προειδοποίηση",
+    "info": "Πληροφορία",
+    "yes": "Ναι",
+    "no": "Όχι",
+    "confirm": "Επιβεβαίωση",
+    "retry": "Επανάληψη",
+    "continue": "Συνέχεια",
+    "finish": "Τέλος",
+    "help": "Βοήθεια",
+    "settings": "Ρυθμίσεις",
+    "about": "Σχετικά"
+  },
+  "vr": {
+    "enterVR": "Είσοδος σε λειτουργία VR",
+    "exitVR": "Έξοδος από λειτουργία VR",
+    "immersiveMode": "Καθηλωτική λειτουργία",
+    "vrMode": "Λειτουργία VR",
+    "headset": "Γυαλιά VR",
+    "controllers": "Χειριστήρια",
+    "handTracking": "Παρακολούθηση χεριών",
+    "handTrackingEnabled": "Παρακολούθηση χεριών ενεργοποιημένη",
+    "handTrackingDisabled": "Παρακολούθηση χεριών απενεργοποιημένη",
+    "noVRSupport": "Το VR δεν υποστηρίζεται σε αυτό το πρόγραμμα περιήγησης",
+    "vrSessionStarted": "Η συνεδρία VR ξεκίνησε",
+    "vrSessionEnded": "Η συνεδρία VR έληξε",
+    "controllerConnected": "Χειριστήριο συνδεδεμένο",
+    "controllerDisconnected": "Χειριστήριο αποσυνδεδεμένο"
+  }
+}

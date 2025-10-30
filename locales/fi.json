@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "fi",
+    "languageName": "Suomi",
+    "nativeName": "Suomi",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Peruuta",
+    "close": "Sulje",
+    "back": "Takaisin",
+    "next": "Seuraava",
+    "previous": "Edellinen",
+    "save": "Tallenna",
+    "delete": "Poista",
+    "edit": "Muokkaa",
+    "search": "Haku",
+    "loading": "Ladataan...",
+    "error": "Virhe",
+    "success": "Onnistui",
+    "warning": "Varoitus",
+    "info": "Tiedot",
+    "yes": "Kyllä",
+    "no": "Ei",
+    "confirm": "Vahvista",
+    "retry": "Yritä uudelleen",
+    "continue": "Jatka",
+    "finish": "Valmis",
+    "help": "Ohje",
+    "settings": "Asetukset",
+    "about": "Tietoja"
+  },
+  "vr": {
+    "enterVR": "Aloita VR-tila",
+    "exitVR": "Poistu VR-tilasta",
+    "immersiveMode": "Immersiivinen tila",
+    "vrMode": "VR-tila",
+    "headset": "VR-lasit",
+    "controllers": "Ohjaimet",
+    "handTracking": "Käden seuranta",
+    "handTrackingEnabled": "Käden seuranta käytössä",
+    "handTrackingDisabled": "Käden seuranta pois käytöstä",
+    "noVRSupport": "VR ei ole tuettu tässä selaimessa",
+    "vrSessionStarted": "VR-istunto aloitettu",
+    "vrSessionEnded": "VR-istunto päättynyt",
+    "controllerConnected": "Ohjain kytketty",
+    "controllerDisconnected": "Ohjain irrotettu"
+  }
+}

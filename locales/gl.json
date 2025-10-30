@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "gl",
+    "languageName": "Galego",
+    "nativeName": "Galego",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Aceptar",
+    "cancel": "Cancelar",
+    "close": "Pechar",
+    "back": "Atrás",
+    "next": "Seguinte",
+    "previous": "Anterior",
+    "save": "Gardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "error": "Erro",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "yes": "Si",
+    "no": "Non",
+    "confirm": "Confirmar",
+    "retry": "Tentar de novo",
+    "continue": "Continuar",
+    "finish": "Rematar",
+    "help": "Axuda",
+    "settings": "Configuración",
+    "about": "Acerca de"
+  },
+  "vr": {
+    "enterVR": "Entrar no modo VR",
+    "exitVR": "Saír do modo VR",
+    "immersiveMode": "Modo inmersivo",
+    "vrMode": "Modo VR",
+    "headset": "Gafas VR",
+    "controllers": "Controladores",
+    "handTracking": "Seguimento de mans",
+    "handTrackingEnabled": "Seguimento de mans activado",
+    "handTrackingDisabled": "Seguimento de mans desactivado",
+    "noVRSupport": "VR non é compatible con este navegador",
+    "vrSessionStarted": "Sesión VR iniciada",
+    "vrSessionEnded": "Sesión VR finalizada",
+    "controllerConnected": "Controlador conectado",
+    "controllerDisconnected": "Controlador desconectado"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "sl",
+    "languageName": "Slovenščina",
+    "nativeName": "Slovenščina",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Prekliči",
+    "close": "Zapri",
+    "back": "Nazaj",
+    "next": "Naprej",
+    "previous": "Prejšnje",
+    "save": "Shrani",
+    "delete": "Izbriši",
+    "edit": "Uredi",
+    "search": "Išči",
+    "loading": "Nalaganje...",
+    "error": "Napaka",
+    "success": "Uspeh",
+    "warning": "Opozorilo",
+    "info": "Informacija",
+    "yes": "Da",
+    "no": "Ne",
+    "confirm": "Potrdi",
+    "retry": "Poskusi znova",
+    "continue": "Nadaljuj",
+    "finish": "Končaj",
+    "help": "Pomoč",
+    "settings": "Nastavitve",
+    "about": "O programu"
+  },
+  "vr": {
+    "enterVR": "Vstopi v VR način",
+    "exitVR": "Izhod iz VR načina",
+    "immersiveMode": "Imersivni način",
+    "vrMode": "VR način",
+    "headset": "VR očala",
+    "controllers": "Krmilniki",
+    "handTracking": "Sledenje rokam",
+    "handTrackingEnabled": "Sledenje rokam vključeno",
+    "handTrackingDisabled": "Sledenje rokam izključeno",
+    "noVRSupport": "VR ni podprt v tem brskalniku",
+    "vrSessionStarted": "VR seja se je začela",
+    "vrSessionEnded": "VR seja se je končala",
+    "controllerConnected": "Krmilnik povezan",
+    "controllerDisconnected": "Krmilnik odklopljen"
+  }
+}

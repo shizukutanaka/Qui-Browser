@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "lv",
+    "languageName": "Latviešu",
+    "nativeName": "Latviešu",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Labi",
+    "cancel": "Atcelt",
+    "close": "Aizvērt",
+    "back": "Atpakaļ",
+    "next": "Nākamais",
+    "previous": "Iepriekšējais",
+    "save": "Saglabāt",
+    "delete": "Dzēst",
+    "edit": "Rediģēt",
+    "search": "Meklēt",
+    "loading": "Notiek ielāde...",
+    "error": "Kļūda",
+    "success": "Veiksmīgi",
+    "warning": "Brīdinājums",
+    "info": "Informācija",
+    "yes": "Jā",
+    "no": "Nē",
+    "confirm": "Apstiprināt",
+    "retry": "Mēģināt vēlreiz",
+    "continue": "Turpināt",
+    "finish": "Pabeigt",
+    "help": "Palīdzība",
+    "settings": "Iestatījumi",
+    "about": "Par programmu"
+  },
+  "vr": {
+    "enterVR": "Ievadiet VR režīmu",
+    "exitVR": "Iziet no VR režīma",
+    "immersiveMode": "Iegremdēšanas režīms",
+    "vrMode": "VR režīms",
+    "headset": "VR brilles",
+    "controllers": "Kontrolieri",
+    "handTracking": "Roku izsekošana",
+    "handTrackingEnabled": "Roku izsekošana ieslēgta",
+    "handTrackingDisabled": "Roku izsekošana izslēgta",
+    "noVRSupport": "VR nav atbalstīts šajā pārlūkā",
+    "vrSessionStarted": "VR sesija sākta",
+    "vrSessionEnded": "VR sesija beigta",
+    "controllerConnected": "Kontrolieris savienots",
+    "controllerDisconnected": "Kontrolieris atvienots"
+  }
+}

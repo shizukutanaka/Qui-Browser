@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ky",
+    "languageName": "Кыргызча",
+    "nativeName": "Кыргызча",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Макул",
+    "cancel": "Жокко чыгаруу",
+    "close": "Жабуу",
+    "back": "Артка",
+    "next": "Кийинки",
+    "previous": "Мурунку",
+    "save": "Сактоо",
+    "delete": "Өчүрүү",
+    "edit": "Түзөтүү",
+    "search": "Издөө",
+    "loading": "Жүктөлүүдө...",
+    "error": "Ката",
+    "success": "Ийгилик",
+    "warning": "Эскертүү",
+    "info": "Маалымат",
+    "yes": "Ооба",
+    "no": "Жок",
+    "confirm": "Ырастоо",
+    "retry": "Кайра аракет кылуу",
+    "continue": "Улантуу",
+    "finish": "Бүтүрүү",
+    "help": "Жардам",
+    "settings": "Орнотуулар",
+    "about": "Тууралуу"
+  },
+  "vr": {
+    "enterVR": "VR режимине кирүү",
+    "exitVR": "VR режиминен чыгуу",
+    "immersiveMode": "Иммерсивдүү режим",
+    "vrMode": "VR режими",
+    "headset": "VR көз айнек",
+    "controllers": "Контроллерлор",
+    "handTracking": "Кол көзөмөлү",
+    "handTrackingEnabled": "Кол көзөмөлү иштетилген",
+    "handTrackingDisabled": "Кол көзөмөлү өчүрүлгөн",
+    "noVRSupport": "Бул браузерде VR колдоого алынбайт",
+    "vrSessionStarted": "VR сессиясы башталды",
+    "vrSessionEnded": "VR сессиясы аякталды",
+    "controllerConnected": "Контроллер туташты",
+    "controllerDisconnected": "Контроллер ажыратылды"
+  }
+}

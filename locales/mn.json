@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "mn",
+    "languageName": "Монгол",
+    "nativeName": "Монгол",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "За",
+    "cancel": "Цуцлах",
+    "close": "Хаах",
+    "back": "Буцах",
+    "next": "Дараах",
+    "previous": "Өмнөх",
+    "save": "Хадгалах",
+    "delete": "Устгах",
+    "edit": "Засах",
+    "search": "Хайх",
+    "loading": "Ачаалж байна...",
+    "error": "Алдаа",
+    "success": "Амжилттай",
+    "warning": "Анхааруулга",
+    "info": "Мэдээлэл",
+    "yes": "Тийм",
+    "no": "Үгүй",
+    "confirm": "Баталгаажуулах",
+    "retry": "Дахин оролдох",
+    "continue": "Үргэлжлүүлэх",
+    "finish": "Дуусгах",
+    "help": "Тусламж",
+    "settings": "Тохиргоо",
+    "about": "Тухай"
+  },
+  "vr": {
+    "enterVR": "VR горимд орох",
+    "exitVR": "VR горимоос гарах",
+    "immersiveMode": "Дүрэх горим",
+    "vrMode": "VR горим",
+    "headset": "VR нүдний шил",
+    "controllers": "Удирдагч",
+    "handTracking": "Гар хянах",
+    "handTrackingEnabled": "Гар хянах идэвхжүүлсэн",
+    "handTrackingDisabled": "Гар хянах идэвхгүйжүүлсэн",
+    "noVRSupport": "Энэ хөтөч дээр VR дэмжигдээгүй",
+    "vrSessionStarted": "VR сесс эхэллээ",
+    "vrSessionEnded": "VR сесс дууслаа",
+    "controllerConnected": "Удирдагч холбогдлоо",
+    "controllerDisconnected": "Удирдагч салгагдлаа"
+  }
+}

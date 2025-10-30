@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "pl",
+    "languageName": "Polski",
+    "nativeName": "Polski",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Anuluj",
+    "close": "Zamknij",
+    "back": "Wstecz",
+    "next": "Dalej",
+    "previous": "Poprzedni",
+    "save": "Zapisz",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "search": "Szukaj",
+    "loading": "Ładowanie...",
+    "error": "Błąd",
+    "success": "Sukces",
+    "warning": "Ostrzeżenie",
+    "info": "Informacja",
+    "yes": "Tak",
+    "no": "Nie",
+    "confirm": "Potwierdź",
+    "retry": "Spróbuj ponownie",
+    "continue": "Kontynuuj",
+    "finish": "Zakończ",
+    "help": "Pomoc",
+    "settings": "Ustawienia",
+    "about": "O programie"
+  },
+  "vr": {
+    "enterVR": "Wejdź do trybu VR",
+    "exitVR": "Wyjdź z trybu VR",
+    "immersiveMode": "Tryb immersyjny",
+    "vrMode": "Tryb VR",
+    "headset": "Gogle VR",
+    "controllers": "Kontrolery",
+    "handTracking": "Śledzenie rąk",
+    "handTrackingEnabled": "Śledzenie rąk włączone",
+    "handTrackingDisabled": "Śledzenie rąk wyłączone",
+    "noVRSupport": "VR nie jest obsługiwane w tej przeglądarce",
+    "vrSessionStarted": "Sesja VR rozpoczęta",
+    "vrSessionEnded": "Sesja VR zakończona",
+    "controllerConnected": "Kontroler podłączony",
+    "controllerDisconnected": "Kontroler odłączony"
+  }
+}

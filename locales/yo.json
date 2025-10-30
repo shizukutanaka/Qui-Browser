@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "yo",
+    "languageName": "Yorùbá",
+    "nativeName": "Yorùbá",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Dára",
+    "cancel": "Fagilee",
+    "close": "Ti",
+    "back": "Pada",
+    "next": "Atẹle",
+    "previous": "Ti tẹlẹ",
+    "save": "Fi pamọ́",
+    "delete": "Pa rẹ́",
+    "edit": "Ṣatunkọ",
+    "search": "Wá",
+    "loading": "N gbé jade...",
+    "error": "Àṣìṣe",
+    "success": "Àṣeyọrí",
+    "warning": "Ìkìlọ̀",
+    "info": "Ìfọ̀rọ̀rọ́",
+    "yes": "Bẹ́ẹ̀ni",
+    "no": "Bẹ́ẹ̀kọ́",
+    "confirm": "Dájú",
+    "retry": "Tún gbìyànjú",
+    "continue": "Tẹ̀síwájú",
+    "finish": "Parí",
+    "help": "Ìrànlọ́wọ́",
+    "settings": "Àwọn àwòtẹ́lẹ̀",
+    "about": "Nípa"
+  },
+  "vr": {
+    "enterVR": "Wọlé sí ipò VR",
+    "exitVR": "Jade kuro ni ipò VR",
+    "immersiveMode": "Ipò immersive",
+    "vrMode": "Ipò VR",
+    "headset": "Awọn gilaasi VR",
+    "controllers": "Àwọn oludari",
+    "handTracking": "Títọpa ọwọ́",
+    "handTrackingEnabled": "Títọpa ọwọ́ ti ṣiṣẹ",
+    "handTrackingDisabled": "Títọpa ọwọ́ ti pa",
+    "noVRSupport": "VR kii ṣe atilẹyin ni ẹrọ aṣawakiri yii",
+    "vrSessionStarted": "Ìgbéjáde VR ti bẹrẹ",
+    "vrSessionEnded": "Ìgbéjáde VR ti pari",
+    "controllerConnected": "Oludari ti sopọ",
+    "controllerDisconnected": "Oludari ti ge asopọ"
+  }
+}

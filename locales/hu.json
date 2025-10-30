@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "hu",
+    "languageName": "Magyar",
+    "nativeName": "Magyar",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Mégse",
+    "close": "Bezárás",
+    "back": "Vissza",
+    "next": "Következő",
+    "previous": "Előző",
+    "save": "Mentés",
+    "delete": "Törlés",
+    "edit": "Szerkesztés",
+    "search": "Keresés",
+    "loading": "Betöltés...",
+    "error": "Hiba",
+    "success": "Siker",
+    "warning": "Figyelmeztetés",
+    "info": "Információ",
+    "yes": "Igen",
+    "no": "Nem",
+    "confirm": "Megerősítés",
+    "retry": "Újra",
+    "continue": "Folytatás",
+    "finish": "Befejezés",
+    "help": "Súgó",
+    "settings": "Beállítások",
+    "about": "Névjegy"
+  },
+  "vr": {
+    "enterVR": "VR mód indítása",
+    "exitVR": "Kilépés VR módból",
+    "immersiveMode": "Immerszív mód",
+    "vrMode": "VR mód",
+    "headset": "VR szemüveg",
+    "controllers": "Vezérlők",
+    "handTracking": "Kéz követés",
+    "handTrackingEnabled": "Kéz követés bekapcsolva",
+    "handTrackingDisabled": "Kéz követés kikapcsolva",
+    "noVRSupport": "A VR nem támogatott ebben a böngészőben",
+    "vrSessionStarted": "VR munkamenet elindítva",
+    "vrSessionEnded": "VR munkamenet befejezve",
+    "controllerConnected": "Vezérlő csatlakoztatva",
+    "controllerDisconnected": "Vezérlő leválasztva"
+  }
+}

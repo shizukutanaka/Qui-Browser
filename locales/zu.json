@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "zu",
+    "languageName": "isiZulu",
+    "nativeName": "isiZulu",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Kulungile",
+    "cancel": "Khansela",
+    "close": "Vala",
+    "back": "Buyela",
+    "next": "Okulandelayo",
+    "previous": "Okwedlule",
+    "save": "Gcina",
+    "delete": "Susa",
+    "edit": "Hlela",
+    "search": "Sesha",
+    "loading": "Iyalayisha...",
+    "error": "Iphutha",
+    "success": "Impumelelo",
+    "warning": "Isixwayiso",
+    "info": "Ulwazi",
+    "yes": "Yebo",
+    "no": "Cha",
+    "confirm": "Qinisekisa",
+    "retry": "Zama futhi",
+    "continue": "Qhubeka",
+    "finish": "Qeda",
+    "help": "Usizo",
+    "settings": "Izilungiselelo",
+    "about": "Mayelana"
+  },
+  "vr": {
+    "enterVR": "Ngena kumodi ye-VR",
+    "exitVR": "Phuma kumodi ye-VR",
+    "immersiveMode": "Imodi yokujula",
+    "vrMode": "Imodi ye-VR",
+    "headset": "Izibuko ze-VR",
+    "controllers": "Abalawuli",
+    "handTracking": "Uklandela izandla",
+    "handTrackingEnabled": "Uklandela izandla kunikwe amandla",
+    "handTrackingDisabled": "Uklandela izandla kukhutshaziwe",
+    "noVRSupport": "I-VR ayisekelwa kulesi siphequluli",
+    "vrSessionStarted": "Iseshini ye-VR iqalile",
+    "vrSessionEnded": "Iseshini ye-VR iphelile",
+    "controllerConnected": "Isilawuli sixhunywe",
+    "controllerDisconnected": "Isilawuli sinqanyuliwe"
+  }
+}

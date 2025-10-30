@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "th",
+    "languageName": "ไทย",
+    "nativeName": "ไทย",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "ตกลง",
+    "cancel": "ยกเลิก",
+    "close": "ปิด",
+    "back": "กลับ",
+    "next": "ถัดไป",
+    "previous": "ก่อนหน้า",
+    "save": "บันทึก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "search": "ค้นหา",
+    "loading": "กำลังโหลด...",
+    "error": "ข้อผิดพลาด",
+    "success": "สำเร็จ",
+    "warning": "คำเตือน",
+    "info": "ข้อมูล",
+    "yes": "ใช่",
+    "no": "ไม่",
+    "confirm": "ยืนยัน",
+    "retry": "ลองใหม่",
+    "continue": "ดำเนินการต่อ",
+    "finish": "เสร็จสิ้น",
+    "help": "ช่วยเหลือ",
+    "settings": "การตั้งค่า",
+    "about": "เกี่ยวกับ"
+  },
+  "vr": {
+    "enterVR": "เข้าสู่โหมด VR",
+    "exitVR": "ออกจากโหมด VR",
+    "immersiveMode": "โหมดเสมือนจริง",
+    "vrMode": "โหมด VR",
+    "headset": "แว่น VR",
+    "controllers": "ตัวควบคุม",
+    "handTracking": "การติดตามมือ",
+    "handTrackingEnabled": "เปิดใช้งานการติดตามมือ",
+    "handTrackingDisabled": "ปิดใช้งานการติดตามมือ",
+    "noVRSupport": "เบราว์เซอร์นี้ไม่รองรับ VR",
+    "vrSessionStarted": "เริ่มเซสชัน VR",
+    "vrSessionEnded": "สิ้นสุดเซสชัน VR",
+    "controllerConnected": "เชื่อมต่อตัวควบคุม",
+    "controllerDisconnected": "ตัดการเชื่อมต่อตัวควบคุม"
+  }
+}

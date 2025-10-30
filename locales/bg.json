@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "bg",
+    "languageName": "Български",
+    "nativeName": "Български",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Отказ",
+    "close": "Затвори",
+    "back": "Назад",
+    "next": "Напред",
+    "previous": "Предишен",
+    "save": "Запази",
+    "delete": "Изтрий",
+    "edit": "Редактирай",
+    "search": "Търсене",
+    "loading": "Зареждане...",
+    "error": "Грешка",
+    "success": "Успех",
+    "warning": "Предупреждение",
+    "info": "Информация",
+    "yes": "Да",
+    "no": "Не",
+    "confirm": "Потвърди",
+    "retry": "Опитай пак",
+    "continue": "Продължи",
+    "finish": "Завърши",
+    "help": "Помощ",
+    "settings": "Настройки",
+    "about": "За програмата"
+  },
+  "vr": {
+    "enterVR": "Влез във VR режим",
+    "exitVR": "Излез от VR режим",
+    "immersiveMode": "Поглъщащ режим",
+    "vrMode": "VR режим",
+    "headset": "VR очила",
+    "controllers": "Контролери",
+    "handTracking": "Проследяване на ръцете",
+    "handTrackingEnabled": "Проследяване на ръцете включено",
+    "handTrackingDisabled": "Проследяване на ръцете изключено",
+    "noVRSupport": "VR не се поддържа в този браузър",
+    "vrSessionStarted": "VR сесия започната",
+    "vrSessionEnded": "VR сесия завършена",
+    "controllerConnected": "Контролер свързан",
+    "controllerDisconnected": "Контролер изключен"
+  }
+}

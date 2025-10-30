@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ka",
+    "languageName": "ქართული",
+    "nativeName": "ქართული",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "კარგი",
+    "cancel": "გაუქმება",
+    "close": "დახურვა",
+    "back": "უკან",
+    "next": "შემდეგი",
+    "previous": "წინა",
+    "save": "შენახვა",
+    "delete": "წაშლა",
+    "edit": "რედაქტირება",
+    "search": "ძებნა",
+    "loading": "იტვირთება...",
+    "error": "შეცდომა",
+    "success": "წარმატება",
+    "warning": "გაფრთხილება",
+    "info": "ინფორმაცია",
+    "yes": "დიახ",
+    "no": "არა",
+    "confirm": "დადასტურება",
+    "retry": "ხელახლა ცდა",
+    "continue": "გაგრძელება",
+    "finish": "დასრულება",
+    "help": "დახმარება",
+    "settings": "პარამეტრები",
+    "about": "შესახებ"
+  },
+  "vr": {
+    "enterVR": "VR რეჟიმში შესვლა",
+    "exitVR": "VR რეჟიმიდან გამოსვლა",
+    "immersiveMode": "ჩაძირვის რეჟიმი",
+    "vrMode": "VR რეჟიმი",
+    "headset": "VR სათვალე",
+    "controllers": "კონტროლერები",
+    "handTracking": "ხელის თვალყურის დევნება",
+    "handTrackingEnabled": "ხელის თვალყურის დევნება ჩართულია",
+    "handTrackingDisabled": "ხელის თვალყურის დევნება გამორთულია",
+    "noVRSupport": "VR არ არის მხარდაჭერილი ამ ბრაუზერში",
+    "vrSessionStarted": "VR სესია დაიწყო",
+    "vrSessionEnded": "VR სესია დასრულდა",
+    "controllerConnected": "კონტროლერი დაკავშირებულია",
+    "controllerDisconnected": "კონტროლერი გათიშულია"
+  }
+}

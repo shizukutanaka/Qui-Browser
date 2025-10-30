@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "am",
+    "languageName": "አማርኛ",
+    "nativeName": "አማርኛ",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "እሺ",
+    "cancel": "ተወው",
+    "close": "ዝጋ",
+    "back": "ተመለስ",
+    "next": "ቀጣዩ",
+    "previous": "የቀደመው",
+    "save": "አስቀምጥ",
+    "delete": "ሰርዝ",
+    "edit": "አርትዕ",
+    "search": "ፈልግ",
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት",
+    "success": "ስኬት",
+    "warning": "ማስጠንቀቂያ",
+    "info": "መረጃ",
+    "yes": "አዎ",
+    "no": "አይ",
+    "confirm": "አረጋግጥ",
+    "retry": "እንደገና ሞክር",
+    "continue": "ቀጥል",
+    "finish": "ጨርስ",
+    "help": "እርዳታ",
+    "settings": "ቅንጅቶች",
+    "about": "ስለ"
+  },
+  "vr": {
+    "enterVR": "ወደ VR ሁነታ ግባ",
+    "exitVR": "ከVR ሁነታ ውጣ",
+    "immersiveMode": "ጥልቅ ሁነታ",
+    "vrMode": "VR ሁነታ",
+    "headset": "VR መነጽሮች",
+    "controllers": "መቆጣጠሪያዎች",
+    "handTracking": "የእጅ መከታተያ",
+    "handTrackingEnabled": "የእጅ መከታተያ ነቅቷል",
+    "handTrackingDisabled": "የእጅ መከታተያ ጠፍቷል",
+    "noVRSupport": "በዚህ አሳሽ ውስጥ VR የለም",
+    "vrSessionStarted": "VR ክፍለ ጊዜ ጀመረ",
+    "vrSessionEnded": "VR ክፍለ ጊዜ ጨረሰ",
+    "controllerConnected": "መቆጣጠሪያ ተገናኝቷል",
+    "controllerDisconnected": "መቆጣጠሪያ ተቋርጧል"
+  }
+}

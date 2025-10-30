@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "hr",
+    "languageName": "Hrvatski",
+    "nativeName": "Hrvatski",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Odustani",
+    "close": "Zatvori",
+    "back": "Natrag",
+    "next": "Sljedeće",
+    "previous": "Prethodno",
+    "save": "Spremi",
+    "delete": "Izbriši",
+    "edit": "Uredi",
+    "search": "Pretraži",
+    "loading": "Učitavanje...",
+    "error": "Greška",
+    "success": "Uspjeh",
+    "warning": "Upozorenje",
+    "info": "Informacija",
+    "yes": "Da",
+    "no": "Ne",
+    "confirm": "Potvrdi",
+    "retry": "Pokušaj ponovno",
+    "continue": "Nastavi",
+    "finish": "Završi",
+    "help": "Pomoć",
+    "settings": "Postavke",
+    "about": "O programu"
+  },
+  "vr": {
+    "enterVR": "Uđi u VR način",
+    "exitVR": "Izađi iz VR načina",
+    "immersiveMode": "Imersivni način",
+    "vrMode": "VR način",
+    "headset": "VR naočale",
+    "controllers": "Kontroleri",
+    "handTracking": "Praćenje ruku",
+    "handTrackingEnabled": "Praćenje ruku uključeno",
+    "handTrackingDisabled": "Praćenje ruku isključeno",
+    "noVRSupport": "VR nije podržan u ovom pregledniku",
+    "vrSessionStarted": "VR sesija započeta",
+    "vrSessionEnded": "VR sesija završena",
+    "controllerConnected": "Kontroler spojen",
+    "controllerDisconnected": "Kontroler odspojen"
+  }
+}

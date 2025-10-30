@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "is",
+    "languageName": "Íslenska",
+    "nativeName": "Íslenska",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Í lagi",
+    "cancel": "Hætta við",
+    "close": "Loka",
+    "back": "Til baka",
+    "next": "Næst",
+    "previous": "Fyrri",
+    "save": "Vista",
+    "delete": "Eyða",
+    "edit": "Breyta",
+    "search": "Leita",
+    "loading": "Hleður...",
+    "error": "Villa",
+    "success": "Tókst",
+    "warning": "Viðvörun",
+    "info": "Upplýsingar",
+    "yes": "Já",
+    "no": "Nei",
+    "confirm": "Staðfesta",
+    "retry": "Reyna aftur",
+    "continue": "Halda áfram",
+    "finish": "Klára",
+    "help": "Hjálp",
+    "settings": "Stillingar",
+    "about": "Um"
+  },
+  "vr": {
+    "enterVR": "Fara í VR ham",
+    "exitVR": "Fara úr VR ham",
+    "immersiveMode": "Dýfingarhamur",
+    "vrMode": "VR hamur",
+    "headset": "VR gleraugu",
+    "controllers": "Stýringar",
+    "handTracking": "Handarmæling",
+    "handTrackingEnabled": "Handarmæling virkjuð",
+    "handTrackingDisabled": "Handarmæling óvirk",
+    "noVRSupport": "VR er ekki stutt í þessari vafra",
+    "vrSessionStarted": "VR setu hafin",
+    "vrSessionEnded": "VR setu lokið",
+    "controllerConnected": "Stýring tengd",
+    "controllerDisconnected": "Stýring aftengd"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "km",
+    "languageName": "ខ្មែរ",
+    "nativeName": "ខ្មែរ",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "យល់ព្រម",
+    "cancel": "បោះបង់",
+    "close": "បិទ",
+    "back": "ត្រឡប់",
+    "next": "បន្ទាប់",
+    "previous": "មុន",
+    "save": "រក្សាទុក",
+    "delete": "លុប",
+    "edit": "កែប្រែ",
+    "search": "ស្វែងរក",
+    "loading": "កំពុងផ្ទុក...",
+    "error": "កំហុស",
+    "success": "ជោគជ័យ",
+    "warning": "ការព្រមាន",
+    "info": "ព័ត៌មាន",
+    "yes": "បាទ",
+    "no": "ទេ",
+    "confirm": "បញ្ជាក់",
+    "retry": "ព្យាយាមម្ដងទៀត",
+    "continue": "បន្ត",
+    "finish": "បញ្ចប់",
+    "help": "ជំនួយ",
+    "settings": "ការកំណត់",
+    "about": "អំពី"
+  },
+  "vr": {
+    "enterVR": "ចូលទៅកាន់របៀប VR",
+    "exitVR": "ចាកចេញពីរបៀប VR",
+    "immersiveMode": "របៀបដាក់ខ្លួន",
+    "vrMode": "របៀប VR",
+    "headset": "វ៉ែនតា VR",
+    "controllers": "ឧបករណ៍បញ្ជា",
+    "handTracking": "ការតាមដានដៃ",
+    "handTrackingEnabled": "ការតាមដានដៃបានបើក",
+    "handTrackingDisabled": "ការតាមដានដៃបានបិទ",
+    "noVRSupport": "VR មិនត្រូវបានគាំទ្រនៅក្នុងកម្មវិធីរុករកនេះទេ",
+    "vrSessionStarted": "វគ្គ VR បានចាប់ផ្ដើម",
+    "vrSessionEnded": "វគ្គ VR បានបញ្ចប់",
+    "controllerConnected": "ឧបករណ៍បញ្ជាបានភ្ជាប់",
+    "controllerDisconnected": "ឧបករណ៍បញ្ជាបានផ្ដាច់"
+  }
+}

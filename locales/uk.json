@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "uk",
+    "languageName": "Українська",
+    "nativeName": "Українська",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Гаразд",
+    "cancel": "Скасувати",
+    "close": "Закрити",
+    "back": "Назад",
+    "next": "Далі",
+    "previous": "Попередній",
+    "save": "Зберегти",
+    "delete": "Видалити",
+    "edit": "Редагувати",
+    "search": "Пошук",
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успіх",
+    "warning": "Попередження",
+    "info": "Інформація",
+    "yes": "Так",
+    "no": "Ні",
+    "confirm": "Підтвердити",
+    "retry": "Спробувати знову",
+    "continue": "Продовжити",
+    "finish": "Завершити",
+    "help": "Допомога",
+    "settings": "Налаштування",
+    "about": "Про програму"
+  },
+  "vr": {
+    "enterVR": "Увійти в режим VR",
+    "exitVR": "Вийти з режиму VR",
+    "immersiveMode": "Захоплюючий режим",
+    "vrMode": "Режим VR",
+    "headset": "VR окуляри",
+    "controllers": "Контролери",
+    "handTracking": "Відстеження рук",
+    "handTrackingEnabled": "Відстеження рук увімкнено",
+    "handTrackingDisabled": "Відстеження рук вимкнено",
+    "noVRSupport": "VR не підтримується в цьому браузері",
+    "vrSessionStarted": "VR сесія розпочата",
+    "vrSessionEnded": "VR сесія завершена",
+    "controllerConnected": "Контролер підключений",
+    "controllerDisconnected": "Контролер відключений"
+  }
+}

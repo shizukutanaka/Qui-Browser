@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "uz",
+    "languageName": "O'zbek",
+    "nativeName": "O'zbek",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Bekor qilish",
+    "close": "Yopish",
+    "back": "Orqaga",
+    "next": "Keyingi",
+    "previous": "Oldingi",
+    "save": "Saqlash",
+    "delete": "O'chirish",
+    "edit": "Tahrirlash",
+    "search": "Qidirish",
+    "loading": "Yuklanmoqda...",
+    "error": "Xatolik",
+    "success": "Muvaffaqiyat",
+    "warning": "Ogohlantirish",
+    "info": "Ma'lumot",
+    "yes": "Ha",
+    "no": "Yo'q",
+    "confirm": "Tasdiqlash",
+    "retry": "Qayta urinish",
+    "continue": "Davom etish",
+    "finish": "Tugallash",
+    "help": "Yordam",
+    "settings": "Sozlamalar",
+    "about": "Haqida"
+  },
+  "vr": {
+    "enterVR": "VR rejimga kirish",
+    "exitVR": "VR rejimidan chiqish",
+    "immersiveMode": "Suvga cho'mish rejimi",
+    "vrMode": "VR rejimi",
+    "headset": "VR ko'zoynak",
+    "controllers": "Boshqaruvchilar",
+    "handTracking": "Qo'l kuzatuvi",
+    "handTrackingEnabled": "Qo'l kuzatuvi yoqilgan",
+    "handTrackingDisabled": "Qo'l kuzatuvi o'chirilgan",
+    "noVRSupport": "Bu brauzerda VR qo'llab-quvvatlanmaydi",
+    "vrSessionStarted": "VR sessiyasi boshlandi",
+    "vrSessionEnded": "VR sessiyasi tugadi",
+    "controllerConnected": "Boshqaruvchi ulandi",
+    "controllerDisconnected": "Boshqaruvchi uzildi"
+  }
+}

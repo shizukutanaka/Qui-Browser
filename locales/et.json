@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "et",
+    "languageName": "Eesti",
+    "nativeName": "Eesti",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Tühista",
+    "close": "Sulge",
+    "back": "Tagasi",
+    "next": "Järgmine",
+    "previous": "Eelmine",
+    "save": "Salvesta",
+    "delete": "Kustuta",
+    "edit": "Muuda",
+    "search": "Otsi",
+    "loading": "Laadimine...",
+    "error": "Viga",
+    "success": "Edu",
+    "warning": "Hoiatus",
+    "info": "Teave",
+    "yes": "Jah",
+    "no": "Ei",
+    "confirm": "Kinnita",
+    "retry": "Proovi uuesti",
+    "continue": "Jätka",
+    "finish": "Lõpeta",
+    "help": "Abi",
+    "settings": "Seaded",
+    "about": "Programmist"
+  },
+  "vr": {
+    "enterVR": "Sisene VR-režiimi",
+    "exitVR": "Välju VR-režiimist",
+    "immersiveMode": "Süvenemisrežiim",
+    "vrMode": "VR-režiim",
+    "headset": "VR-prillid",
+    "controllers": "Kontrollerid",
+    "handTracking": "Käejälgimine",
+    "handTrackingEnabled": "Käejälgimine sisse lülitatud",
+    "handTrackingDisabled": "Käejälgimine välja lülitatud",
+    "noVRSupport": "VR ei ole selles brauseris toetatud",
+    "vrSessionStarted": "VR-seanss alustatud",
+    "vrSessionEnded": "VR-seanss lõpetatud",
+    "controllerConnected": "Kontroller ühendatud",
+    "controllerDisconnected": "Kontroller lahti ühendatud"
+  }
+}

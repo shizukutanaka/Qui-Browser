@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ne",
+    "languageName": "नेपाली",
+    "nativeName": "नेपाली",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "ठिक छ",
+    "cancel": "रद्द गर्नुहोस्",
+    "close": "बन्द गर्नुहोस्",
+    "back": "पछाडि",
+    "next": "अर्को",
+    "previous": "अघिल्लो",
+    "save": "सुरक्षित गर्नुहोस्",
+    "delete": "मेटाउनुहोस्",
+    "edit": "सम्पादन गर्नुहोस्",
+    "search": "खोज्नुहोस्",
+    "loading": "लोड हुँदै...",
+    "error": "त्रुटि",
+    "success": "सफल",
+    "warning": "चेतावनी",
+    "info": "जानकारी",
+    "yes": "हो",
+    "no": "होइन",
+    "confirm": "पुष्टि गर्नुहोस्",
+    "retry": "पुन: प्रयास गर्नुहोस्",
+    "continue": "जारी राख्नुहोस्",
+    "finish": "समाप्त गर्नुहोस्",
+    "help": "मद्दत",
+    "settings": "सेटिङहरू",
+    "about": "बारेमा"
+  },
+  "vr": {
+    "enterVR": "VR मोडमा प्रवेश गर्नुहोस्",
+    "exitVR": "VR मोडबाट बाहिर निस्कनुहोस्",
+    "immersiveMode": "इमर्सिभ मोड",
+    "vrMode": "VR मोड",
+    "headset": "VR चस्मा",
+    "controllers": "कन्ट्रोलरहरू",
+    "handTracking": "हात ट्र्याकिंग",
+    "handTrackingEnabled": "हात ट्र्याकिंग सक्षम",
+    "handTrackingDisabled": "हात ट्र्याकिंग अक्षम",
+    "noVRSupport": "यो ब्राउजरमा VR समर्थित छैन",
+    "vrSessionStarted": "VR सत्र सुरु भयो",
+    "vrSessionEnded": "VR सत्र समाप्त भयो",
+    "controllerConnected": "कन्ट्रोलर जडान भयो",
+    "controllerDisconnected": "कन्ट्रोलर विच्छेद भयो"
+  }
+}

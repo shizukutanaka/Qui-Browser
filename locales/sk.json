@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "sk",
+    "languageName": "Slovenčina",
+    "nativeName": "Slovenčina",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Zrušiť",
+    "close": "Zavrieť",
+    "back": "Späť",
+    "next": "Ďalej",
+    "previous": "Predchádzajúci",
+    "save": "Uložiť",
+    "delete": "Vymazať",
+    "edit": "Upraviť",
+    "search": "Hľadať",
+    "loading": "Načítava sa...",
+    "error": "Chyba",
+    "success": "Úspech",
+    "warning": "Varovanie",
+    "info": "Informácia",
+    "yes": "Áno",
+    "no": "Nie",
+    "confirm": "Potvrdiť",
+    "retry": "Skúsiť znovu",
+    "continue": "Pokračovať",
+    "finish": "Dokončiť",
+    "help": "Pomoc",
+    "settings": "Nastavenia",
+    "about": "O programe"
+  },
+  "vr": {
+    "enterVR": "Vstúpiť do VR režimu",
+    "exitVR": "Ukončiť VR režim",
+    "immersiveMode": "Imerzný režim",
+    "vrMode": "VR režim",
+    "headset": "VR okuliare",
+    "controllers": "Ovládače",
+    "handTracking": "Sledovanie rúk",
+    "handTrackingEnabled": "Sledovanie rúk zapnuté",
+    "handTrackingDisabled": "Sledovanie rúk vypnuté",
+    "noVRSupport": "VR nie je podporovaný v tomto prehliadači",
+    "vrSessionStarted": "VR relácia spustená",
+    "vrSessionEnded": "VR relácia ukončená",
+    "controllerConnected": "Ovládač pripojený",
+    "controllerDisconnected": "Ovládač odpojený"
+  }
+}

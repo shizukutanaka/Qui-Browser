@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ga",
+    "languageName": "Gaeilge",
+    "nativeName": "Gaeilge",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Ceart go leor",
+    "cancel": "Cealaigh",
+    "close": "Dún",
+    "back": "Ar ais",
+    "next": "Ar aghaidh",
+    "previous": "Roimhe seo",
+    "save": "Sábháil",
+    "delete": "Scrios",
+    "edit": "Cuir in eagar",
+    "search": "Cuardaigh",
+    "loading": "Á lódáil...",
+    "error": "Earráid",
+    "success": "D'éirigh leis",
+    "warning": "Rabhadh",
+    "info": "Faisnéis",
+    "yes": "Tá",
+    "no": "Níl",
+    "confirm": "Deimhnigh",
+    "retry": "Bain triail eile as",
+    "continue": "Lean ar aghaidh",
+    "finish": "Críochnaigh",
+    "help": "Cabhair",
+    "settings": "Socruithe",
+    "about": "Maidir le"
+  },
+  "vr": {
+    "enterVR": "Téigh isteach i mód VR",
+    "exitVR": "Scoir ó mhód VR",
+    "immersiveMode": "Mód tumtha",
+    "vrMode": "Mód VR",
+    "headset": "Spéaclaí VR",
+    "controllers": "Rialaitheoirí",
+    "handTracking": "Rianú láimhe",
+    "handTrackingEnabled": "Rianú láimhe cumasaithe",
+    "handTrackingDisabled": "Rianú láimhe díchumasaithe",
+    "noVRSupport": "Ní thacaítear VR sa bhrabhsálaí seo",
+    "vrSessionStarted": "Seisiún VR tosaithe",
+    "vrSessionEnded": "Seisiún VR críochnaithe",
+    "controllerConnected": "Rialaitheoir ceangailte",
+    "controllerDisconnected": "Rialaitheoir dícheangailte"
+  }
+}

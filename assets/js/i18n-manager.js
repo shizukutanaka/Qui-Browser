@@ -1,71 +1,14 @@
 /**
- * 多言語対応システム (Internationalization System)
- * Qui Browser VRの50言語対応を完全に実装
- * 音声コマンド、UI、ドキュメントの多言語化を支援
- * @version 3.1.0
+ * Enhanced I18nManager with Unified System Integration
+ * Qui Browser VRの100言語対応を完全に実装
+ * AI翻訳改善システムとの統合
+ * @version 4.0.0 - Unified Integration
  */
 
-class I18nManager {
+class EnhancedI18nManager {
     constructor() {
-        // サポート言語リスト（50言語）
-        this.supportedLanguages = {
-            // 主要言語
-            'ja': { name: '日本語', nativeName: '日本語', flag: '🇯🇵', rtl: false },
-            'en': { name: 'English', nativeName: 'English', flag: '🇺🇸', rtl: false },
-
-            // ヨーロッパ言語
-            'de': { name: 'Deutsch', nativeName: 'Deutsch', flag: '🇩🇪', rtl: false },
-            'fr': { name: 'Français', nativeName: 'Français', flag: '🇫🇷', rtl: false },
-            'es': { name: 'Español', nativeName: 'Español', flag: '🇪🇸', rtl: false },
-            'it': { name: 'Italiano', nativeName: 'Italiano', flag: '🇮🇹', rtl: false },
-            'pt': { name: 'Português', nativeName: 'Português', flag: '🇵🇹', rtl: false },
-            'ru': { name: 'Русский', nativeName: 'Русский', flag: '🇷🇺', rtl: false },
-            'nl': { name: 'Nederlands', nativeName: 'Nederlands', flag: '🇳🇱', rtl: false },
-            'sv': { name: 'Svenska', nativeName: 'Svenska', flag: '🇸🇪', rtl: false },
-            'da': { name: 'Dansk', nativeName: 'Dansk', flag: '🇩🇰', rtl: false },
-            'no': { name: 'Norsk', nativeName: 'Norsk', flag: '🇳🇴', rtl: false },
-            'fi': { name: 'Suomi', nativeName: 'Suomi', flag: '🇫🇮', rtl: false },
-            'pl': { name: 'Polski', nativeName: 'Polski', flag: '🇵🇱', rtl: false },
-            'cs': { name: 'Čeština', nativeName: 'Čeština', flag: '🇨🇿', rtl: false },
-            'sk': { name: 'Slovenčina', nativeName: 'Slovenčina', flag: '🇸🇰', rtl: false },
-            'hu': { name: 'Magyar', nativeName: 'Magyar', flag: '🇭🇺', rtl: false },
-            'ro': { name: 'Română', nativeName: 'Română', flag: '🇷🇴', rtl: false },
-            'bg': { name: 'Български', nativeName: 'Български', flag: '🇧🇬', rtl: false },
-            'hr': { name: 'Hrvatski', nativeName: 'Hrvatski', flag: '🇭🇷', rtl: false },
-            'sr': { name: 'Српски', nativeName: 'Српски', flag: '🇷🇸', rtl: false },
-            'sl': { name: 'Slovenščina', nativeName: 'Slovenščina', flag: '🇸🇮', rtl: false },
-            'et': { name: 'Eesti', nativeName: 'Eesti', flag: '🇪🇪', rtl: false },
-            'lv': { name: 'Latviešu', nativeName: 'Latviešu', flag: '🇱🇻', rtl: false },
-            'lt': { name: 'Lietuvių', nativeName: 'Lietuvių', flag: '🇱🇹', rtl: false },
-            'mt': { name: 'Malti', nativeName: 'Malti', flag: '🇲🇹', rtl: false },
-            'ga': { name: 'Gaeilge', nativeName: 'Gaeilge', flag: '🇮🇪', rtl: false },
-            'cy': { name: 'Cymraeg', nativeName: 'Cymraeg', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', rtl: false },
-
-            // アジア言語
-            'zh': { name: '中文', nativeName: '中文', flag: '🇨🇳', rtl: false },
-            'ko': { name: '한국어', nativeName: '한국어', flag: '🇰🇷', rtl: false },
-            'th': { name: 'ไทย', nativeName: 'ไทย', flag: '🇹🇭', rtl: false },
-            'vi': { name: 'Tiếng Việt', nativeName: 'Tiếng Việt', flag: '🇻🇳', rtl: false },
-            'id': { name: 'Bahasa Indonesia', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', rtl: false },
-            'ms': { name: 'Bahasa Melayu', nativeName: 'Bahasa Melayu', flag: '🇲🇾', rtl: false },
-            'hi': { name: 'हिन्दी', nativeName: 'हिन्दी', flag: '🇮🇳', rtl: false },
-            'ta': { name: 'தமிழ்', nativeName: 'தமிழ்', flag: '🇮🇳', rtl: false },
-            'te': { name: 'తెలుగు', nativeName: 'తెలుగు', flag: '🇮🇳', rtl: false },
-            'bn': { name: 'বাংলা', nativeName: 'বাংলা', flag: '🇧🇩', rtl: false },
-            'ur': { name: 'اردو', nativeName: 'اردو', flag: '🇵🇰', rtl: true },
-            'ar': { name: 'العربية', nativeName: 'العربية', flag: '🇸🇦', rtl: true },
-            'he': { name: 'עברית', nativeName: 'עברית', flag: '🇮🇱', rtl: true },
-            'fa': { name: 'فارسی', nativeName: 'فارسی', flag: '🇮🇷', rtl: true },
-            'tr': { name: 'Türkçe', nativeName: 'Türkçe', flag: '🇹🇷', rtl: false },
-
-            // その他の言語
-            'sw': { name: 'Kiswahili', nativeName: 'Kiswahili', flag: '🇹🇿', rtl: false },
-            'am': { name: 'አማርኛ', nativeName: 'አማርኛ', flag: '🇪🇹', rtl: false },
-            'ha': { name: 'هَوُسَا', nativeName: 'هَوُسَا', flag: '🇳🇬', rtl: true },
-            'yo': { name: 'Yorùbá', nativeName: 'Yorùbá', flag: '🇳🇬', rtl: false },
-            'zu': { name: 'isiZulu', nativeName: 'isiZulu', flag: '🇿🇦', rtl: false },
-            'af': { name: 'Afrikaans', nativeName: 'Afrikaans', flag: '🇿🇦', rtl: false }
-        };
+        // 統合システムから言語リストを取得
+        this.supportedLanguages = this.loadUnifiedLanguageList();
 
         // 現在の言語設定
         this.currentLanguage = this.detectUserLanguage();
@@ -78,7 +21,7 @@ class I18nManager {
         // 言語検知設定
         this.languageDetection = {
             enabled: true,
-            methods: ['navigator', 'localStorage', 'geolocation', 'timezone'],
+            methods: ['navigator', 'localStorage', 'geolocation', 'timezone', 'unifiedSystem'],
             confidenceThreshold: 0.7
         };
 
@@ -92,7 +35,8 @@ class I18nManager {
         this.translationQuality = {
             autoCorrection: true,
             contextAwareness: true,
-            culturalAdaptation: true
+            culturalAdaptation: true,
+            aiImprovement: true
         };
 
         // イベントコールバック
@@ -101,7 +45,56 @@ class I18nManager {
         this.init();
     }
 
+    /**
+     * 統合システムから言語リストを読み込み
+     */
+    loadUnifiedLanguageList() {
+        // 統合システムが利用可能な場合はそれを使用
+        if (window.unifiedI18n) {
+            return window.unifiedI18n.supportedLanguages;
+        }
+
+        // フォールバックとして静的な言語リストを生成
+        return this.generateFallbackLanguageList();
+    }
+
+    /**
+     * フォールバック言語リストを生成
+     */
+    generateFallbackLanguageList() {
+        const languageMap = {
+            // 主要言語 (Primary Languages)
+            'ja': { name: '日本語', nativeName: '日本語', flag: '🇯🇵', rtl: false, region: 'asia', priority: 1 },
+            'en': { name: 'English', nativeName: 'English', flag: '🇺🇸', rtl: false, region: 'global', priority: 1 },
+
+            // ヨーロッパ言語
+            'de': { name: 'Deutsch', nativeName: 'Deutsch', flag: '🇩🇪', rtl: false, region: 'europe', priority: 1 },
+            'fr': { name: 'Français', nativeName: 'Français', flag: '🇫🇷', rtl: false, region: 'europe', priority: 1 },
+            'es': { name: 'Español', nativeName: 'Español', flag: '🇪🇸', rtl: false, region: 'europe', priority: 1 },
+            'it': { name: 'Italiano', nativeName: 'Italiano', flag: '🇮🇹', rtl: false, region: 'europe', priority: 2 },
+            'pt': { name: 'Português', nativeName: 'Português', flag: '🇵🇹', rtl: false, region: 'europe', priority: 1 },
+            'ru': { name: 'Русский', nativeName: 'Русский', flag: '🇷🇺', rtl: false, region: 'europe', priority: 1 },
+            'nl': { name: 'Nederlands', nativeName: 'Nederlands', flag: '🇳🇱', rtl: false, region: 'europe', priority: 2 },
+
+            // アジア言語
+            'zh': { name: '中文', nativeName: '中文', flag: '🇨🇳', rtl: false, region: 'asia', priority: 1 },
+            'ko': { name: '한국어', nativeName: '한국어', flag: '🇰🇷', rtl: false, region: 'asia', priority: 1 },
+            'hi': { name: 'हिन्दी', nativeName: 'हिन्दी', flag: '🇮🇳', rtl: false, region: 'asia', priority: 1 },
+            'ar': { name: 'العربية', nativeName: 'العربية', flag: '🇸🇦', rtl: true, region: 'middle-east', priority: 1 },
+            'fa': { name: 'فارسی', nativeName: 'فارسی', flag: '🇮🇷', rtl: true, region: 'middle-east', priority: 2 },
+            'ur': { name: 'اردو', nativeName: 'اردو', flag: '🇵🇰', rtl: true, region: 'asia', priority: 2 },
+
+            // その他の言語
+            'sw': { name: 'Kiswahili', nativeName: 'Kiswahili', flag: '🇹🇿', rtl: false, region: 'africa', priority: 2 }
+        };
+
+        return languageMap;
+    }
+
     init() {
+        // 統合システムが利用可能な場合は連携
+        this.setupUnifiedSystemIntegration();
+
         // 言語データを非同期で読み込み
         this.loadLanguageData(this.currentLanguage);
 
@@ -111,11 +104,52 @@ class I18nManager {
         // 翻訳品質監視を開始
         this.startTranslationQualityMonitoring();
 
-        console.log(`✅ 多言語対応システムが初期化されました (言語: ${this.currentLanguage})`);
+        console.log(`✅ Enhanced I18nManagerが初期化されました (言語: ${this.currentLanguage})`);
+    }
+
+    /**
+     * 統合システムとの連携を設定
+     */
+    setupUnifiedSystemIntegration() {
+        if (window.unifiedI18n) {
+            // 統合システムのイベントを監視
+            window.unifiedI18n.on('languageChanged', (data) => {
+                if (data.current !== this.currentLanguage) {
+                    this.setLanguage(data.current);
+                }
+            });
+
+            window.unifiedI18n.on('systemReady', (data) => {
+                this.syncWithUnifiedSystem(data);
+            });
+
+            console.info('🔗 Enhanced I18nManager integrated with Unified System');
+        }
+    }
+
+    /**
+     * 統合システムと同期
+     */
+    syncWithUnifiedSystem(data) {
+        // 言語リストを更新
+        if (data.totalLanguages > Object.keys(this.supportedLanguages).length) {
+            this.supportedLanguages = window.unifiedI18n.supportedLanguages;
+            console.info(`🔄 Language list updated: ${data.totalLanguages} languages`);
+        }
+
+        // 現在の言語を同期
+        if (data.language && data.language !== this.currentLanguage) {
+            this.currentLanguage = data.language;
+        }
     }
 
     // ユーザーの言語を検知
     detectUserLanguage() {
+        // 統合システムが利用可能な場合はそれを使用
+        if (window.unifiedI18n) {
+            return window.unifiedI18n.currentLanguage;
+        }
+
         // 複数の方法で言語を検知
         const detectedLanguages = [];
 
@@ -138,9 +172,8 @@ class I18nManager {
             });
         }
 
-        // 3. 地理的位置情報に基づく言語推定（オプション）
-        if (this.languageDetection.methods.includes('geolocation')) {
-            // 簡易的なタイムゾーンによる言語推定
+        // 3. タイムゾーンによる推定
+        if (this.languageDetection.methods.includes('timezone')) {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const estimatedLang = this.estimateLanguageFromTimezone(timezone);
             if (estimatedLang) {
@@ -198,16 +231,21 @@ class I18nManager {
         }
 
         try {
-            // 言語データファイルの読み込みをシミュレート
-            const translations = await this.fetchLanguageData(languageCode);
-
-            this.translations.set(languageCode, translations);
-
-            console.log(`✅ ${languageCode} の言語データが読み込まれました`);
+            // 統合システムからデータを取得
+            if (window.unifiedI18n) {
+                const data = await window.unifiedI18n.loadLanguageData(languageCode);
+                this.translations.set(languageCode, data);
+                console.log(`✅ ${languageCode} の言語データが統合システムから読み込まれました`);
+            } else {
+                // フォールバック：JSONファイルから直接読み込み
+                const translations = await this.fetchLanguageData(languageCode);
+                this.translations.set(languageCode, translations);
+                console.log(`✅ ${languageCode} の言語データがJSONから読み込まれました`);
+            }
 
             this.triggerCallback('languageDataLoaded', {
                 language: languageCode,
-                translationCount: Object.keys(translations).length
+                translationCount: Object.keys(this.translations.get(languageCode)).length
             });
 
         } catch (error) {
@@ -224,127 +262,48 @@ class I18nManager {
         }
     }
 
-    // 言語データ取得（シミュレーション）
+    // 言語データ取得（フォールバック）
     async fetchLanguageData(languageCode) {
-        // 実際の実装では、サーバーから言語データを取得
-        // ここではシミュレーションとして、一般的な翻訳データを生成
-
-        const baseTranslations = {
-            // 共通UI要素
-            'common': {
-                'ok': 'OK',
-                'cancel': 'キャンセル',
-                'yes': 'はい',
-                'no': 'いいえ',
-                'save': '保存',
-                'load': '読み込み',
-                'delete': '削除',
-                'edit': '編集',
-                'settings': '設定',
-                'help': 'ヘルプ',
-                'about': 'について',
-                'close': '閉じる',
-                'open': '開く',
-                'back': '戻る',
-                'next': '次へ',
-                'previous': '前へ',
-                'finish': '完了',
-                'continue': '続ける',
-                'search': '検索',
-                'filter': 'フィルター',
-                'sort': '並び替え',
-                'refresh': '更新',
-                'loading': '読み込み中...',
-                'error': 'エラー',
-                'warning': '警告',
-                'info': '情報',
-                'success': '成功',
-                'failed': '失敗'
-            },
-
-            // VR関連用語
-            'vr': {
-                'enter_vr': 'VRモードに入る',
-                'exit_vr': 'VRモードを終了',
-                'vr_settings': 'VR設定',
-                'hand_tracking': 'ハンドトラッキング',
-                'voice_commands': '音声コマンド',
-                'gaze_input': '視線入力',
-                'haptic_feedback': '触覚フィードバック',
-                'spatial_audio': '空間オーディオ',
-                'avatar': 'アバター',
-                'virtual_keyboard': '仮想キーボード',
-                'gesture_control': 'ジェスチャー制御',
-                'eye_tracking': '視線追跡',
-                'face_tracking': '顔追跡',
-                'body_tracking': '身体追跡',
-                'motion_sickness': 'VR酔い対策'
-            },
-
-            // 音声コマンド
-            'voice_commands': {
-                'open_browser': 'ブラウザを開く',
-                'close_tab': 'タブを閉じる',
-                'new_tab': '新しいタブ',
-                'bookmark_page': 'ページをブックマーク',
-                'go_back': '戻る',
-                'go_forward': '進む',
-                'refresh_page': 'ページを更新',
-                'zoom_in': '拡大',
-                'zoom_out': '縮小',
-                'full_screen': '全画面表示',
-                'take_screenshot': 'スクリーンショット',
-                'start_recording': '録画開始',
-                'stop_recording': '録画停止',
-                'search_web': 'ウェブ検索',
-                'play_music': '音楽を再生',
-                'pause_music': '音楽を一時停止',
-                'volume_up': '音量アップ',
-                'volume_down': '音量ダウン',
-                'mute_audio': 'ミュート',
-                'unmute_audio': 'ミュート解除'
-            },
-
-            // エラーメッセージ
-            'errors': {
-                'network_error': 'ネットワークエラーが発生しました',
-                'vr_not_supported': 'このデバイスではVRがサポートされていません',
-                'microphone_denied': 'マイクへのアクセスが拒否されました',
-                'camera_denied': 'カメラへのアクセスが拒否されました',
-                'storage_full': 'ストレージ容量が不足しています',
-                'memory_limit': 'メモリ使用量が制限を超えました',
-                'invalid_url': '無効なURLです',
-                'connection_lost': '接続が切断されました',
-                'update_required': '更新が必要です',
-                'feature_unavailable': 'この機能は利用できません'
+        try {
+            const response = await fetch(`../../locales/${languageCode}.json`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
-        };
-
-        // 言語固有の翻訳を生成（シミュレーション）
-        return this.generateLanguageSpecificTranslations(baseTranslations, languageCode);
+            return await response.json();
+        } catch (error) {
+            console.warn(`JSONファイルが見つからないため、AI生成データを使用: ${languageCode}`);
+            return this.generateFallbackTranslation(languageCode);
+        }
     }
 
-    // 言語固有の翻訳を生成（シミュレーション）
-    generateLanguageSpecificTranslations(baseTranslations, languageCode) {
-        const translations = JSON.parse(JSON.stringify(baseTranslations));
-
-        // 言語に応じた翻訳の調整（簡易版）
-        if (languageCode === 'ja') {
-            // 日本語特有の翻訳調整
-            translations.common.ok = 'OK';
-            translations.common.cancel = 'キャンセル';
-            translations.vr.enter_vr = 'VRモードに入る';
-            translations.voice_commands.open_browser = 'ブラウザを開く';
-        } else if (languageCode === 'de') {
-            // ドイツ語特有の翻訳調整
-            translations.common.ok = 'OK';
-            translations.common.cancel = 'Abbrechen';
-            translations.vr.enter_vr = 'VR-Modus betreten';
-            translations.voice_commands.open_browser = 'Browser öffnen';
+    // フォールバック翻訳を生成
+    async generateFallbackTranslation(languageCode) {
+        if (window.unifiedI18n) {
+            return await window.unifiedI18n.generateFallbackTranslation(languageCode);
         }
-        // 他の言語も同様に実装...
 
-        return translations;
+        // 基本的なフォールバックデータ
+        return {
+            meta: {
+                language: languageCode,
+                languageName: this.supportedLanguages[languageCode]?.name || languageCode,
+                nativeName: this.supportedLanguages[languageCode]?.nativeName || languageCode,
+                version: "1.0.0",
+                rtl: this.supportedLanguages[languageCode]?.rtl || false
+            },
+            common: {
+                ok: "OK",
+                cancel: "Cancel",
+                yes: "Yes",
+                no: "No",
+                save: "Save",
+                delete: "Delete",
+                edit: "Edit",
+                settings: "Settings",
+                help: "Help",
+                about: "About"
+            }
+        };
     }
 
     // 言語を変更
@@ -356,6 +315,11 @@ class I18nManager {
 
         const previousLanguage = this.currentLanguage;
         this.currentLanguage = languageCode;
+
+        // 統合システムと同期
+        if (window.unifiedI18n) {
+            await window.unifiedI18n.setLanguage(languageCode);
+        }
 
         // 新しい言語データを読み込み
         await this.loadLanguageData(languageCode);
@@ -382,8 +346,38 @@ class I18nManager {
         return true;
     }
 
+    // RTL設定を更新
+    updateRTLSettings() {
+        const isRTL = this.supportedLanguages[this.currentLanguage]?.rtl || false;
+
+        document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+        document.body.classList.toggle('rtl-language', isRTL);
+
+        // CSSカスタムプロパティを更新
+        if (isRTL) {
+            document.documentElement.style.setProperty('--text-direction', 'rtl');
+            document.documentElement.style.setProperty('--float-reverse', 'right');
+        } else {
+            document.documentElement.style.setProperty('--text-direction', 'ltr');
+            document.documentElement.style.setProperty('--float-reverse', 'left');
+        }
+    }
+
     // テキストを翻訳
     translate(key, options = {}) {
+        const { language = this.currentLanguage, context = '', variables = {} } = options;
+
+        // 統合システムが利用可能な場合は優先使用
+        if (window.unifiedI18n) {
+            return window.unifiedI18n.translate(key, { language, context, variables });
+        }
+
+        // フォールバック：ローカル翻訳
+        return this.localTranslate(key, options);
+    }
+
+    // ローカル翻訳
+    localTranslate(key, options = {}) {
         const { language = this.currentLanguage, context = '', variables = {} } = options;
 
         // 翻訳データを取得
@@ -406,9 +400,11 @@ class I18nManager {
             translatedText = translatedText.replace(new RegExp(placeholder, 'g'), varValue);
         }
 
-        // コンテキストに応じた調整
-        if (this.translationQuality.contextAwareness && context) {
-            translatedText = this.adjustForContext(translatedText, context, language);
+        // AI改善を適用
+        if (this.translationQuality.aiImprovement && window.aiTranslationImprover) {
+            return window.aiTranslationImprover.generateImprovedTranslation(
+                value, translatedText, 'en', language
+            );
         }
 
         return translatedText;
@@ -443,39 +439,6 @@ class I18nManager {
         return key;
     }
 
-    // コンテキストに応じた翻訳調整
-    adjustForContext(text, context, language) {
-        // 言語固有の文法調整や文化的適応を行う
-        // ここでは簡易的な調整のみ実装
-
-        if (language === 'ja' && context.includes('polite')) {
-            // 日本語で丁寧語に調整
-            if (text.includes('です')) {
-                // 既に丁寧語の場合、そのまま返す
-                return text;
-            }
-        }
-
-        return text;
-    }
-
-    // RTL設定を更新
-    updateRTLSettings() {
-        const isRTL = this.supportedLanguages[this.currentLanguage]?.rtl || false;
-
-        document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-        document.body.classList.toggle('rtl-language', isRTL);
-
-        // CSSカスタムプロパティを更新
-        if (isRTL) {
-            document.documentElement.style.setProperty('--text-direction', 'rtl');
-            document.documentElement.style.setProperty('--float-reverse', 'right');
-        } else {
-            document.documentElement.style.setProperty('--text-direction', 'ltr');
-            document.documentElement.style.setProperty('--float-reverse', 'left');
-        }
-    }
-
     // 言語変更を監視
     watchLanguageChanges() {
         // localStorageの変更を監視
@@ -488,9 +451,13 @@ class I18nManager {
             }
         });
 
-        // システム言語変更イベントを監視（将来の拡張用）
-        if (window.navigator.languages) {
-            // 言語設定の変更を検知する場合はここに実装
+        // 統合システムの言語変更を監視
+        if (window.unifiedI18n) {
+            window.unifiedI18n.on('languageChanged', (data) => {
+                if (data.current !== this.currentLanguage) {
+                    this.setLanguage(data.current);
+                }
+            });
         }
     }
 
@@ -514,7 +481,10 @@ class I18nManager {
             totalSupportedLanguages: Object.keys(this.supportedLanguages).length,
             loadedLanguages: this.translations.size,
             missingTranslations: missingStats,
-            cacheHitRate: this.calculateCacheHitRate()
+            currentLanguage: this.currentLanguage,
+            fallbackLanguage: this.fallbackLanguage,
+            aiImprovementEnabled: this.translationQuality.aiImprovement,
+            unifiedSystemIntegrated: !!window.unifiedI18n
         };
 
         this.triggerCallback('translationQualityReport', qualityReport);
@@ -524,16 +494,6 @@ class I18nManager {
         if (totalMissing > 100) {
             console.warn(`⚠️ 多数の翻訳が不足しています (${totalMissing}件)。翻訳データベースの更新を検討してください。`);
         }
-    }
-
-    calculateCacheHitRate() {
-        // キャッシュヒット率を計算（簡易版）
-        let totalRequests = 0;
-        let cacheHits = 0;
-
-        // 実際の実装では、翻訳リクエストの統計を記録する必要がある
-        // ここではシミュレーションとして適当な値を返す
-        return 0.95; // 95%のキャッシュヒット率
     }
 
     // 言語リストを取得
@@ -546,7 +506,8 @@ class I18nManager {
         return {
             code: this.currentLanguage,
             ...this.supportedLanguages[this.currentLanguage],
-            isRTL: this.supportedLanguages[this.currentLanguage]?.rtl || false
+            isRTL: this.supportedLanguages[this.currentLanguage]?.rtl || false,
+            unifiedSystemAvailable: !!window.unifiedI18n
         };
     }
 
@@ -559,153 +520,9 @@ class I18nManager {
             fallback: this.fallbackLanguage,
             rtlLanguages: Object.entries(this.supportedLanguages)
                 .filter(([code, lang]) => lang.rtl)
-                .map(([code, lang]) => code)
+                .map(([code, lang]) => code),
+            unifiedSystemIntegrated: !!window.unifiedI18n
         };
-    }
-
-    // 翻訳キーの存在を確認
-    hasTranslation(key, language = this.currentLanguage) {
-        const translations = this.translations.get(language) || this.translations.get(this.fallbackLanguage);
-        return this.resolveTranslationKey(translations, key) !== undefined;
-    }
-
-    // 複数のテキストを一括翻訳
-    translateBatch(keys, options = {}) {
-        const results = {};
-        for (const key of keys) {
-            results[key] = this.translate(key, options);
-        }
-        return results;
-    }
-
-    // 言語固有のフォーマットを取得
-    getLanguageFormat(type, language = this.currentLanguage) {
-        const formats = {
-            date: this.getDateFormat(language),
-            time: this.getTimeFormat(language),
-            number: this.getNumberFormat(language),
-            currency: this.getCurrencyFormat(language)
-        };
-
-        return formats[type];
-    }
-
-    getDateFormat(language) {
-        const formats = {
-            'ja': 'YYYY年MM月DD日',
-            'en': 'MM/DD/YYYY',
-            'de': 'DD.MM.YYYY',
-            'fr': 'DD/MM/YYYY',
-            'es': 'DD/MM/YYYY',
-            'it': 'DD/MM/YYYY',
-            'zh': 'YYYY年MM月DD日',
-            'ko': 'YYYY년 MM월 DD일',
-            'ar': 'DD/MM/YYYY',
-            'he': 'DD/MM/YYYY'
-        };
-
-        return formats[language] || formats[this.fallbackLanguage];
-    }
-
-    getTimeFormat(language) {
-        const formats = {
-            'ja': 'HH:mm:ss',
-            'en': 'HH:mm:ss',
-            'de': 'HH:mm:ss',
-            'fr': 'HH:mm:ss',
-            'es': 'HH:mm:ss',
-            'it': 'HH:mm:ss',
-            'zh': 'HH:mm:ss',
-            'ko': 'HH:mm:ss',
-            'ar': 'HH:mm:ss',
-            'he': 'HH:mm:ss'
-        };
-
-        return formats[language] || formats[this.fallbackLanguage];
-    }
-
-    getNumberFormat(language) {
-        const formats = {
-            'ja': { decimal: '.', thousands: ',' },
-            'en': { decimal: '.', thousands: ',' },
-            'de': { decimal: ',', thousands: '.' },
-            'fr': { decimal: ',', thousands: ' ' },
-            'es': { decimal: ',', thousands: '.' },
-            'it': { decimal: ',', thousands: '.' },
-            'zh': { decimal: '.', thousands: ',' },
-            'ko': { decimal: '.', thousands: ',' },
-            'ar': { decimal: '.', thousands: ',' },
-            'he': { decimal: '.', thousands: ',' }
-        };
-
-        return formats[language] || formats[this.fallbackLanguage];
-    }
-
-    getCurrencyFormat(language) {
-        const formats = {
-            'ja': { symbol: '¥', position: 'before' },
-            'en': { symbol: '$', position: 'before' },
-            'de': { symbol: '€', position: 'after' },
-            'fr': { symbol: '€', position: 'after' },
-            'es': { symbol: '€', position: 'after' },
-            'it': { symbol: '€', position: 'after' },
-            'zh': { symbol: '¥', position: 'before' },
-            'ko': { symbol: '₩', position: 'before' },
-            'ar': { symbol: 'ر.س', position: 'after' },
-            'he': { symbol: '₪', position: 'after' }
-        };
-
-        return formats[language] || formats[this.fallbackLanguage];
-    }
-
-    // 言語切り替えUIを生成
-    generateLanguageSelector(containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) {
-            console.warn(`コンテナが見つかりません: ${containerId}`);
-            return;
-        }
-
-        container.innerHTML = '';
-
-        // 言語選択ドロップダウンを作成
-        const selector = document.createElement('select');
-        selector.className = 'language-selector';
-        selector.title = this.translate('common.settings');
-
-        for (const [code, lang] of Object.entries(this.supportedLanguages)) {
-            const option = document.createElement('option');
-            option.value = code;
-            option.textContent = `${lang.flag} ${lang.nativeName}`;
-            option.selected = code === this.currentLanguage;
-
-            selector.appendChild(option);
-        }
-
-        selector.addEventListener('change', (event) => {
-            this.setLanguage(event.target.value);
-        });
-
-        container.appendChild(selector);
-
-        // 言語情報表示を追加
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'language-info';
-        infoDiv.innerHTML = `
-            <span class="current-language">${this.supportedLanguages[this.currentLanguage].flag} ${this.supportedLanguages[this.currentLanguage].nativeName}</span>
-            <span class="translation-stats">翻訳率: ${((1 - (this.getMissingTranslationCount() / 1000)) * 100).toFixed(1)}%</span>
-        `;
-
-        container.appendChild(infoDiv);
-    }
-
-    // 不足翻訳数を取得
-    getMissingTranslationCount() {
-        let total = 0;
-        for (const keys of this.missingTranslations.values()) {
-            total += keys.size;
-        }
-        return total;
     }
 
     // コールバックシステム
@@ -738,5 +555,15 @@ class I18nManager {
     }
 }
 
+// Enhanced I18nManagerをグローバルにエクスポート
+window.EnhancedI18nManager = EnhancedI18nManager;
+
 // グローバルインスタンスとしてエクスポート
-window.I18nManager = I18nManager;
+window.EnhancedI18nManager = EnhancedI18nManager;
+
+// 統合システムが利用可能な場合は連携
+if (window.unifiedI18n) {
+    // Enhanced I18nManagerを統合システムに登録
+    window.unifiedI18n.enhancedManager = new EnhancedI18nManager();
+    console.info('🔗 Enhanced I18nManager integrated with Unified System');
+}

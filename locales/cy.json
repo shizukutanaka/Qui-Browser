@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "cy",
+    "languageName": "Cymraeg",
+    "nativeName": "Cymraeg",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Iawn",
+    "cancel": "Diddymu",
+    "close": "Cau",
+    "back": "Yn ôl",
+    "next": "Nesaf",
+    "previous": "Blaenorol",
+    "save": "Cadw",
+    "delete": "Dileu",
+    "edit": "Golygu",
+    "search": "Chwilio",
+    "loading": "Yn llwytho...",
+    "error": "Gwall",
+    "success": "Llwyddiant",
+    "warning": "Rhybudd",
+    "info": "Gwybodaeth",
+    "yes": "Iawn",
+    "no": "Na",
+    "confirm": "Cadarnhau",
+    "retry": "Ceisio eto",
+    "continue": "Parhau",
+    "finish": "Gorffen",
+    "help": "Cymorth",
+    "settings": "Gosodiadau",
+    "about": "Ynghylch"
+  },
+  "vr": {
+    "enterVR": "Mynd i mewn i fodd VR",
+    "exitVR": "Gadael modd VR",
+    "immersiveMode": "Modd trochi",
+    "vrMode": "Modd VR",
+    "headset": "Sbectol VR",
+    "controllers": "Rheolwyr",
+    "handTracking": "Olrhain llaw",
+    "handTrackingEnabled": "Olrhain llaw wedi'i alluogi",
+    "handTrackingDisabled": "Olrhain llaw wedi'i analluogi",
+    "noVRSupport": "Nid yw VR yn cael ei gefnogi yn y porwr hwn",
+    "vrSessionStarted": "Sesiwn VR wedi dechrau",
+    "vrSessionEnded": "Sesiwn VR wedi gorffen",
+    "controllerConnected": "Rheolydd wedi cysylltu",
+    "controllerDisconnected": "Rheolydd wedi datgysylltu"
+  }
+}

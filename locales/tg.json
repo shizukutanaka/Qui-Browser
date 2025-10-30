@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "tg",
+    "languageName": "Тоҷикӣ",
+    "nativeName": "Тоҷикӣ",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Хуб",
+    "cancel": "Бекор кардан",
+    "close": "Пӯшидан",
+    "back": "Ба қафо",
+    "next": "Навбатӣ",
+    "previous": "Қаблӣ",
+    "save": "Захира кардан",
+    "delete": "Нест кардан",
+    "edit": "Таҳрир кардан",
+    "search": "Ҷустуҷӯ",
+    "loading": "Бор шуда истода...",
+    "error": "Хатогӣ",
+    "success": "Муваффақият",
+    "warning": "Огоҳӣ",
+    "info": "Маълумот",
+    "yes": "Бале",
+    "no": "Не",
+    "confirm": "Тасдиқ кардан",
+    "retry": "Дубора кӯшиш кардан",
+    "continue": "Идома додан",
+    "finish": "Анҷом додан",
+    "help": "Кумак",
+    "settings": "Танзимот",
+    "about": "Дар бораи"
+  },
+  "vr": {
+    "enterVR": "Ворид шудан ба реҷаи VR",
+    "exitVR": "Баромадан аз реҷаи VR",
+    "immersiveMode": "Реҷаи ғарқшавӣ",
+    "vrMode": "Реҷаи VR",
+    "headset": "Айнаки VR",
+    "controllers": "Контроллерҳо",
+    "handTracking": "Пайгирии даст",
+    "handTrackingEnabled": "Пайгирии даст фаъол аст",
+    "handTrackingDisabled": "Пайгирии даст ғайрифаъол аст",
+    "noVRSupport": "VR дар ин браузер дастгирӣ намешавад",
+    "vrSessionStarted": "Сессияи VR оғоз ёфт",
+    "vrSessionEnded": "Сессияи VR ба анҷом расид",
+    "controllerConnected": "Контроллер пайваст шуд",
+    "controllerDisconnected": "Контроллер қатъ шуд"
+  }
+}

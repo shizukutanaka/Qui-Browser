@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "eu",
+    "languageName": "Euskera",
+    "nativeName": "Euskera",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Ados",
+    "cancel": "Utzi",
+    "close": "Itxi",
+    "back": "Atzera",
+    "next": "Hurrengoa",
+    "previous": "Aurrekoa",
+    "save": "Gorde",
+    "delete": "Ezabatu",
+    "edit": "Editatu",
+    "search": "Bilatu",
+    "loading": "Kargatzen...",
+    "error": "Errorea",
+    "success": "Arrakasta",
+    "warning": "Abisua",
+    "info": "Informazioa",
+    "yes": "Bai",
+    "no": "Ez",
+    "confirm": "Berretsi",
+    "retry": "Saiatu berriro",
+    "continue": "Jarraitu",
+    "finish": "Amaitu",
+    "help": "Laguntza",
+    "settings": "Ezarpenak",
+    "about": "Honi buruz"
+  },
+  "vr": {
+    "enterVR": "Sartu VR moduan",
+    "exitVR": "Irten VR modutik",
+    "immersiveMode": "Modu murgilgarria",
+    "vrMode": "VR modua",
+    "headset": "VR betaurrekoak",
+    "controllers": "Kontrolatzaileak",
+    "handTracking": "Eskuen jarraipena",
+    "handTrackingEnabled": "Eskuen jarraipena aktibatuta",
+    "handTrackingDisabled": "Eskuen jarraipena desaktibatuta",
+    "noVRSupport": "VR ez da onartzen nabigatzaile honetan",
+    "vrSessionStarted": "VR saioa hasita",
+    "vrSessionEnded": "VR saioa amaituta",
+    "controllerConnected": "Kontrolatzailea konektatuta",
+    "controllerDisconnected": "Kontrolatzailea deskonektatuta"
+  }
+}

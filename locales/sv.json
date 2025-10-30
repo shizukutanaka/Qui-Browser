@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "sv",
+    "languageName": "Svenska",
+    "nativeName": "Svenska",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Avbryt",
+    "close": "Stäng",
+    "back": "Tillbaka",
+    "next": "Nästa",
+    "previous": "Föregående",
+    "save": "Spara",
+    "delete": "Ta bort",
+    "edit": "Redigera",
+    "search": "Sök",
+    "loading": "Laddar...",
+    "error": "Fel",
+    "success": "Framgång",
+    "warning": "Varning",
+    "info": "Information",
+    "yes": "Ja",
+    "no": "Nej",
+    "confirm": "Bekräfta",
+    "retry": "Försök igen",
+    "continue": "Fortsätt",
+    "finish": "Slutför",
+    "help": "Hjälp",
+    "settings": "Inställningar",
+    "about": "Om"
+  },
+  "vr": {
+    "enterVR": "Starta VR-läge",
+    "exitVR": "Avsluta VR-läge",
+    "immersiveMode": "Immersivt läge",
+    "vrMode": "VR-läge",
+    "headset": "Headset",
+    "controllers": "Kontroller",
+    "handTracking": "Handspårning",
+    "handTrackingEnabled": "Handspårning aktiverad",
+    "handTrackingDisabled": "Handspårning inaktiverad",
+    "noVRSupport": "VR stöds inte i denna webbläsare",
+    "vrSessionStarted": "VR-session startad",
+    "vrSessionEnded": "VR-session avslutad",
+    "controllerConnected": "Kontroller ansluten",
+    "controllerDisconnected": "Kontroller frånkopplad"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "az",
+    "languageName": "Azərbaycan",
+    "nativeName": "Azərbaycan",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Yaxşı",
+    "cancel": "Ləğv et",
+    "close": "Bağla",
+    "back": "Geri",
+    "next": "Növbəti",
+    "previous": "Əvvəlki",
+    "save": "Yadda saxla",
+    "delete": "Sil",
+    "edit": "Redaktə et",
+    "search": "Axtar",
+    "loading": "Yüklənir...",
+    "error": "Səhv",
+    "success": "Uğur",
+    "warning": "Xəbərdarlıq",
+    "info": "Məlumat",
+    "yes": "Bəli",
+    "no": "Xeyr",
+    "confirm": "Təsdiqlə",
+    "retry": "Yenidən cəhd et",
+    "continue": "Davam et",
+    "finish": "Bitir",
+    "help": "Kömək",
+    "settings": "Parametrlər",
+    "about": "Haqqında"
+  },
+  "vr": {
+    "enterVR": "VR rejiminə daxil ol",
+    "exitVR": "VR rejimindən çıx",
+    "immersiveMode": "İmmersiv rejim",
+    "vrMode": "VR rejimi",
+    "headset": "VR eynək",
+    "controllers": "Kontrollerlər",
+    "handTracking": "Əl izləmə",
+    "handTrackingEnabled": "Əl izləmə aktiv",
+    "handTrackingDisabled": "Əl izləmə deaktiv",
+    "noVRSupport": "Bu brauzerdə VR dəstəklənmir",
+    "vrSessionStarted": "VR sessiyası başladı",
+    "vrSessionEnded": "VR sessiyası bitdi",
+    "controllerConnected": "Kontroller qoşuldu",
+    "controllerDisconnected": "Kontroller ayrıldı"
+  }
+}

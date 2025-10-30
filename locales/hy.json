@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "hy",
+    "languageName": "Հայերեն",
+    "nativeName": "Հայերեն",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Լավ",
+    "cancel": "Չեղարկել",
+    "close": "Փակել",
+    "back": "Հետ",
+    "next": "Հաջորդ",
+    "previous": "Նախորդ",
+    "save": "Պահպանել",
+    "delete": "Ջնջել",
+    "edit": "Խմբագրել",
+    "search": "Որոնել",
+    "loading": "Բեռնվում...",
+    "error": "Սխալ",
+    "success": "Հաջող",
+    "warning": "Զգուշացում",
+    "info": "Տեղեկատվություն",
+    "yes": "Այո",
+    "no": "Ոչ",
+    "confirm": "Հաստատել",
+    "retry": "Կրկին փորձել",
+    "continue": "Շարունակել",
+    "finish": "Ավարտել",
+    "help": "Օգնություն",
+    "settings": "Կարգավորումներ",
+    "about": "Մասին"
+  },
+  "vr": {
+    "enterVR": "Մուտք VR режим",
+    "exitVR": "Ելք VR режимից",
+    "immersiveMode": "Ընկղման режим",
+    "vrMode": "VR режим",
+    "headset": "VR ակնոց",
+    "controllers": "Կարգավորիչներ",
+    "handTracking": "Ձեռքի հետևում",
+    "handTrackingEnabled": "Ձեռքի հետևումը միացված է",
+    "handTrackingDisabled": "Ձեռքի հետևումը անջատված է",
+    "noVRSupport": "VR-ը չի աջակցվում այս բրաուզերում",
+    "vrSessionStarted": "VR սեսիան սկսվեց",
+    "vrSessionEnded": "VR սեսիան ավարտվեց",
+    "controllerConnected": "Կարգավորիչը միացված է",
+    "controllerDisconnected": "Կարգավորիչը անջատված է"
+  }
+}

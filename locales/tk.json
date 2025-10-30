@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "tk",
+    "languageName": "Türkmençe",
+    "nativeName": "Türkmençe",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Bolýar",
+    "cancel": "Ýatyr",
+    "close": "Ýap",
+    "back": "Yza",
+    "next": "Indiki",
+    "previous": "Öňki",
+    "save": "Sakla",
+    "delete": "Öçür",
+    "edit": "Redaktirle",
+    "search": "Gözle",
+    "loading": "Ýüklenýär...",
+    "error": "Ýalňyşlyk",
+    "success": "Üstünlik",
+    "warning": "Duýduryş",
+    "info": "Maglumat",
+    "yes": "Hawa",
+    "no": "Ýok",
+    "confirm": "Tassykla",
+    "retry": "Gaýtadan synanyş",
+    "continue": "Dowam et",
+    "finish": "Tamamla",
+    "help": "Kömek",
+    "settings": "Sazlamalar",
+    "about": "Barada"
+  },
+  "vr": {
+    "enterVR": "VR tertibine gir",
+    "exitVR": "VR tertibinden çyk",
+    "immersiveMode": "Çümüliş tertibi",
+    "vrMode": "VR tertibi",
+    "headset": "VR äýnek",
+    "controllers": "Dolandyryjylar",
+    "handTracking": "El yzarlaýyş",
+    "handTrackingEnabled": "El yzarlaýyş işjeň",
+    "handTrackingDisabled": "El yzarlaýyş işjeň däl",
+    "noVRSupport": "Bu brauzer VR goldamaýar",
+    "vrSessionStarted": "VR sessiýasy başlady",
+    "vrSessionEnded": "VR sessiýasy tamamlandy",
+    "controllerConnected": "Dolandyryjy baglandy",
+    "controllerDisconnected": "Dolandyryjy baglanyşy üzüldi"
+  }
+}

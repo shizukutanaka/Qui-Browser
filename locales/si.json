@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "si",
+    "languageName": "සිංහල",
+    "nativeName": "සිංහල",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "හරි",
+    "cancel": "අවලංගු කරන්න",
+    "close": "වසන්න",
+    "back": "ආපසු",
+    "next": "ඊළඟ",
+    "previous": "පෙර",
+    "save": "සුරකින්න",
+    "delete": "මකන්න",
+    "edit": "සංස්කරණය කරන්න",
+    "search": "සොයන්න",
+    "loading": "පූරණය වෙමින්...",
+    "error": "දෝෂය",
+    "success": "සාර්ථකයි",
+    "warning": "අවවාදය",
+    "info": "තොරතුරු",
+    "yes": "ඔව්",
+    "no": "නැහැ",
+    "confirm": "තහවුරු කරන්න",
+    "retry": "නැවුම් කරන්න",
+    "continue": "ඉදිරියට",
+    "finish": "අවසන් කරන්න",
+    "help": "උදව්",
+    "settings": "සැකසුම්",
+    "about": "පිළිබඳව"
+  },
+  "vr": {
+    "enterVR": "VR මාදිලියට ඇතුළු වන්න",
+    "exitVR": "VR මාදිලියෙන් ඉවත් වන්න",
+    "immersiveMode": "අන්තර්ජාල මාදිලිය",
+    "vrMode": "VR මාදිලිය",
+    "headset": "VR කණ්ණාඩි",
+    "controllers": "නියාමක",
+    "handTracking": "අත සොයා ගැනීම",
+    "handTrackingEnabled": "අත සොයා ගැනීම සබල කර ඇත",
+    "handTrackingDisabled": "අත සොයා ගැනීම අබල කර ඇත",
+    "noVRSupport": "මෙම බ්‍රව්සරයේ VR සහාය නොදක්වයි",
+    "vrSessionStarted": "VR සැසිය ආරම්භ විය",
+    "vrSessionEnded": "VR සැසිය අවසන් විය",
+    "controllerConnected": "නියාමක සම්බන්ධ විය",
+    "controllerDisconnected": "නියාමක විසන්ධි විය"
+  }
+}

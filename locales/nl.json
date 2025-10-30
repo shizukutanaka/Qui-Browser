@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "nl",
+    "languageName": "Nederlands",
+    "nativeName": "Nederlands",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Annuleren",
+    "close": "Sluiten",
+    "back": "Terug",
+    "next": "Volgende",
+    "previous": "Vorige",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "search": "Zoeken",
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes",
+    "warning": "Waarschuwing",
+    "info": "Informatie",
+    "yes": "Ja",
+    "no": "Nee",
+    "confirm": "Bevestigen",
+    "retry": "Opnieuw proberen",
+    "continue": "Doorgaan",
+    "finish": "Voltooien",
+    "help": "Help",
+    "settings": "Instellingen",
+    "about": "Over"
+  },
+  "vr": {
+    "enterVR": "VR modus starten",
+    "exitVR": "VR modus afsluiten",
+    "immersiveMode": "Meeslepende modus",
+    "vrMode": "VR modus",
+    "headset": "Headset",
+    "controllers": "Controllers",
+    "handTracking": "Handvolging",
+    "handTrackingEnabled": "Handvolging ingeschakeld",
+    "handTrackingDisabled": "Handvolging uitgeschakeld",
+    "noVRSupport": "VR wordt niet ondersteund in deze browser",
+    "vrSessionStarted": "VR sessie gestart",
+    "vrSessionEnded": "VR sessie beëindigd",
+    "controllerConnected": "Controller verbonden",
+    "controllerDisconnected": "Controller losgekoppeld"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "lo",
+    "languageName": "ລາວ",
+    "nativeName": "ລາວ",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "ຕົກລົງ",
+    "cancel": "ຍົກເລີກ",
+    "close": "ປິດ",
+    "back": "ກັບຄືນ",
+    "next": "ຕໍ່ໄປ",
+    "previous": "ກ່ອນໜ້າ",
+    "save": "ບັນທຶກ",
+    "delete": "ລຶບ",
+    "edit": "ແກ້ໄຂ",
+    "search": "ຄົ້ນຫາ",
+    "loading": "ກໍາລັງໂຫລດ...",
+    "error": "ຜິດພາດ",
+    "success": "ສໍາເລັດ",
+    "warning": "ເຕືອນ",
+    "info": "ຂໍ້ມູນ",
+    "yes": "ແມ່ນ",
+    "no": "ບໍ່",
+    "confirm": "ຢືນຢັນ",
+    "retry": "ລອງໃໝ່",
+    "continue": "ສືບຕໍ່",
+    "finish": "ສໍາເລັດ",
+    "help": "ຊ່ວຍເຫຼືອ",
+    "settings": "ການຕັ້ງຄ່າ",
+    "about": "ກ່ຽວກັບ"
+  },
+  "vr": {
+    "enterVR": "ເຂົ້າຮູບແບບ VR",
+    "exitVR": "ອອກຈາກຮູບແບບ VR",
+    "immersiveMode": "ຮູບແບບເສື້ອມ",
+    "vrMode": "ຮູບແບບ VR",
+    "headset": "ແວ່ນຕາ VR",
+    "controllers": "ຕົວຄວບຄຸມ",
+    "handTracking": "ການຕິດຕາມມື",
+    "handTrackingEnabled": "ການຕິດຕາມມືເປີດໃຊ້",
+    "handTrackingDisabled": "ການຕິດຕາມມືປິດໃຊ້",
+    "noVRSupport": "VR ບໍ່ໄດ້ຮັບການສະໜັບສະໜູນໃນໂປຣແກຣມທ່ອງເວັບນີ້",
+    "vrSessionStarted": "ເລີ້ມເຊສຊັນ VR",
+    "vrSessionEnded": "ສິ້ນສຸດເຊສຊັນ VR",
+    "controllerConnected": "ຕົວຄວບຄຸມເຊື່ອມຕໍ່",
+    "controllerDisconnected": "ຕົວຄວບຄຸມຕັດການເຊື່ອມຕໍ່"
+  }
+}

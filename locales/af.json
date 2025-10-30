@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "af",
+    "languageName": "Afrikaans",
+    "nativeName": "Afrikaans",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Goed",
+    "cancel": "Kanselleer",
+    "close": "Sluit",
+    "back": "Terug",
+    "next": "Volgende",
+    "previous": "Vorige",
+    "save": "Stoor",
+    "delete": "Vee uit",
+    "edit": "Wysig",
+    "search": "Soek",
+    "loading": "Laai...",
+    "error": "Fout",
+    "success": "Sukses",
+    "warning": "Waarskuwing",
+    "info": "Inligting",
+    "yes": "Ja",
+    "no": "Nee",
+    "confirm": "Bevestig",
+    "retry": "Probeer weer",
+    "continue": "Gaan voort",
+    "finish": "Voltooi",
+    "help": "Hulp",
+    "settings": "Instellings",
+    "about": "Oor"
+  },
+  "vr": {
+    "enterVR": "Betree VR-modus",
+    "exitVR": "Verlaat VR-modus",
+    "immersiveMode": "Immersiewe modus",
+    "vrMode": "VR-modus",
+    "headset": "VR-bril",
+    "controllers": "Beheerders",
+    "handTracking": "Handopsporing",
+    "handTrackingEnabled": "Handopsporing geaktiveer",
+    "handTrackingDisabled": "Handopsporing gedeaktiveer",
+    "noVRSupport": "VR word nie in hierdie blaaier ondersteun nie",
+    "vrSessionStarted": "VR-sessie begin",
+    "vrSessionEnded": "VR-sessie beëindig",
+    "controllerConnected": "Beheerder gekoppel",
+    "controllerDisconnected": "Beheerder ontkoppel"
+  }
+}

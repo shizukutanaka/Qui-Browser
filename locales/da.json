@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "da",
+    "languageName": "Dansk",
+    "nativeName": "Dansk",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Annuller",
+    "close": "Luk",
+    "back": "Tilbage",
+    "next": "Næste",
+    "previous": "Forrige",
+    "save": "Gem",
+    "delete": "Slet",
+    "edit": "Rediger",
+    "search": "Søg",
+    "loading": "Indlæser...",
+    "error": "Fejl",
+    "success": "Succes",
+    "warning": "Advarsel",
+    "info": "Information",
+    "yes": "Ja",
+    "no": "Nej",
+    "confirm": "Bekræft",
+    "retry": "Prøv igen",
+    "continue": "Fortsæt",
+    "finish": "Afslut",
+    "help": "Hjælp",
+    "settings": "Indstillinger",
+    "about": "Om"
+  },
+  "vr": {
+    "enterVR": "Start VR-tilstand",
+    "exitVR": "Afslut VR-tilstand",
+    "immersiveMode": "Fordybende tilstand",
+    "vrMode": "VR-tilstand",
+    "headset": "VR-briller",
+    "controllers": "Controllere",
+    "handTracking": "Håndsporing",
+    "handTrackingEnabled": "Håndsporing aktiveret",
+    "handTrackingDisabled": "Håndsporing deaktiveret",
+    "noVRSupport": "VR understøttes ikke i denne browser",
+    "vrSessionStarted": "VR-session startet",
+    "vrSessionEnded": "VR-session afsluttet",
+    "controllerConnected": "Controller tilsluttet",
+    "controllerDisconnected": "Controller afbrudt"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "cs",
+    "languageName": "Čeština",
+    "nativeName": "Čeština",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Zrušit",
+    "close": "Zavřít",
+    "back": "Zpět",
+    "next": "Další",
+    "previous": "Předchozí",
+    "save": "Uložit",
+    "delete": "Smazat",
+    "edit": "Upravit",
+    "search": "Hledat",
+    "loading": "Načítání...",
+    "error": "Chyba",
+    "success": "Úspěch",
+    "warning": "Varování",
+    "info": "Informace",
+    "yes": "Ano",
+    "no": "Ne",
+    "confirm": "Potvrdit",
+    "retry": "Zkusit znovu",
+    "continue": "Pokračovat",
+    "finish": "Dokončit",
+    "help": "Nápověda",
+    "settings": "Nastavení",
+    "about": "O aplikaci"
+  },
+  "vr": {
+    "enterVR": "Vstoupit do režimu VR",
+    "exitVR": "Opustit režim VR",
+    "immersiveMode": "Ponořující režim",
+    "vrMode": "Režim VR",
+    "headset": "VR brýle",
+    "controllers": "Ovladače",
+    "handTracking": "Sledování rukou",
+    "handTrackingEnabled": "Sledování rukou zapnuto",
+    "handTrackingDisabled": "Sledování rukou vypnuto",
+    "noVRSupport": "VR není podporováno v tomto prohlížeči",
+    "vrSessionStarted": "VR relace spuštěna",
+    "vrSessionEnded": "VR relace ukončena",
+    "controllerConnected": "Ovladač připojen",
+    "controllerDisconnected": "Ovladač odpojen"
+  }
+}

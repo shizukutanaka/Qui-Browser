@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ms",
+    "languageName": "Bahasa Melayu",
+    "nativeName": "Bahasa Melayu",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "back": "Kembali",
+    "next": "Seterusnya",
+    "previous": "Sebelumnya",
+    "save": "Simpan",
+    "delete": "Padam",
+    "edit": "Edit",
+    "search": "Cari",
+    "loading": "Memuat...",
+    "error": "Ralat",
+    "success": "Berjaya",
+    "warning": "Amaran",
+    "info": "Maklumat",
+    "yes": "Ya",
+    "no": "Tidak",
+    "confirm": "Sahkan",
+    "retry": "Cuba lagi",
+    "continue": "Teruskan",
+    "finish": "Selesai",
+    "help": "Bantuan",
+    "settings": "Tetapan",
+    "about": "Perihal"
+  },
+  "vr": {
+    "enterVR": "Masuk mod VR",
+    "exitVR": "Keluar mod VR",
+    "immersiveMode": "Mod immersif",
+    "vrMode": "Mod VR",
+    "headset": "Headset VR",
+    "controllers": "Pengawal",
+    "handTracking": "Penjejakan tangan",
+    "handTrackingEnabled": "Penjejakan tangan diaktifkan",
+    "handTrackingDisabled": "Penjejakan tangan dinyahaktifkan",
+    "noVRSupport": "VR tidak disokong dalam pelayar ini",
+    "vrSessionStarted": "Sesi VR dimulakan",
+    "vrSessionEnded": "Sesi VR ditamatkan",
+    "controllerConnected": "Pengawal disambungkan",
+    "controllerDisconnected": "Pengawal diputuskan"
+  }
+}

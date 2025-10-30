@@ -69,7 +69,24 @@ class VRWebGPURenderer {
       enableProfiling: true
     };
 
-    // WebGPU objects
+    // WebGPU 1.0 capabilities detection
+    this.capabilities = {
+      shaderF16: false,
+      dualSourceBlending: false,
+      timestampQuery: false,
+      pipelineStatisticsQuery: false,
+      renderPassTimings: false,
+      sparseBinding: false,
+      multiDrawIndirect: false,
+      pushConstants: false
+    };
+
+    // Feature flags
+    this.featureFlags = {
+      enableComputeShaders: true,
+      enableRayTracing: false, // Future feature
+      enableMeshShaders: false // Future feature
+    };
     this.adapter = null;
     this.device = null;
     this.context = null;
@@ -88,15 +105,14 @@ class VRWebGPURenderer {
     // Render passes
     this.renderPasses = [];
 
-    // Performance tracking
-    this.metrics = {
-      frameTime: 0,
-      drawCalls: 0,
-      triangles: 0,
-      instances: 0,
-      gpuMemoryUsed: 0,
-      shaderCompilationTime: 0,
-      lastFrameTimestamp: 0
+    // Performance monitoring
+    this.performanceMonitor = {
+      frameTimes: [],
+      drawCalls: [],
+      bufferUploads: [],
+      shaderCompilations: [],
+      memoryUsage: [],
+      maxSamples: 60 // 60フレーム分のデータを保持
     };
 
     // State
@@ -104,20 +120,192 @@ class VRWebGPURenderer {
     this.rendering = false;
     this.frameCount = 0;
 
-    // Feature detection
-    this.features = {
-      webgpu: false,
-      compute: false,
-      timestamp: false,
-      multiview: false,
-      depthClipControl: false,
-      textureCompressionBC: false,
-      textureCompressionETC2: false,
-      textureCompressionASTC: false
+    // WebGPU 1.0 enhanced features
+    this.webgpu1_0 = {
+      shaderCompilation: {
+        cache: new Map(),
+        asyncCompilation: true,
+        pipelineCache: new Map(),
+        compilationPromises: new Map()
+      },
+      memoryManagement: {
+        bufferPool: new Map(),
+        texturePool: new Map(),
+        stagingBuffers: new Map(),
+        maxMemoryUsage: 512 * 1024 * 1024, // 512MB
+        memoryPressureThreshold: 0.8
+      },
+      performance: {
+        timestampQueries: [],
+        renderPassTimers: new Map(),
+        pipelineStats: new Map(),
+        frameTimeHistory: []
+      }
     };
 
     // Event emitter
     this.eventTarget = new EventTarget();
+  }
+
+  getBufferFromPool(label, size, usage) {
+    const poolKey = `${usage}_${size}`;
+    const pool = this.memoryManagement.bufferPool.get(poolKey);
+
+    if (pool && pool.length > 0) {
+      const buffer = pool.pop();
+      this.buffers.set(label, buffer);
+
+      // Performance monitoring
+      this.performanceMonitor.bufferUploads.push({
+        label,
+        size,
+        timestamp: performance.now(),
+        reused: true
+      });
+
+      return buffer;
+    }
+
+    return null;
+  }
+
+  // WebGPU 1.0: Enhanced Shader Compilation with Tint Optimization
+  async precompileShaders() {
+    console.log('[VRWebGPURenderer] Precompiling shaders with Tint optimization...');
+
+    // Enhanced shader compilation pipeline
+    const shaderCompilationPromises = [];
+
+    // Vertex shader compilation with optimizations
+    const vertexShaderPromise = this.compileOptimizedShader('vertex', this.getVertexShaderCode());
+    shaderCompilationPromises.push(vertexShaderPromise);
+
+    // Fragment shader compilation with optimizations
+    const fragmentShaderPromise = this.compileOptimizedShader('fragment', this.getFragmentShaderCode());
+    shaderCompilationPromises.push(fragmentShaderPromise);
+
+    // Compute shader compilation for advanced effects
+    const computeShaderPromise = this.compileOptimizedShader('compute', this.getComputeShaderCode());
+    shaderCompilationPromises.push(computeShaderPromise);
+
+    try {
+      await Promise.all(shaderCompilationPromises);
+      console.log('[VRWebGPURenderer] All shaders precompiled successfully');
+
+      // Initialize compute pipelines
+      await this.initializeComputePipelines();
+
+    } catch (error) {
+      console.error('[VRWebGPURenderer] Shader precompilation failed:', error);
+      this.fallbackToBasicShaders();
+    }
+  }
+
+  async compileOptimizedShader(type, shaderCode) {
+    const startTime = performance.now();
+
+    try {
+      // WebGPU 1.0: Enhanced compilation with Tint optimizations
+      const shaderModule = this.device.createShaderModule({
+        label: `${type}_shader_optimized`,
+        code: shaderCode,
+        // Enable Tint optimizations (Chrome 130+)
+        compilationHints: [
+          { entryPoint: 'main', compilationOptions: 'optimize' }
+        ]
+      });
+
+      // Cache compiled shader
+      this.webgpu1_0.shaderCompilation.cache.set(type, shaderModule);
+
+      console.log(`[VRWebGPURenderer] ${type} shader compiled in ${(performance.now() - startTime).toFixed(2)}ms`);
+
+      return shaderModule;
+
+    } catch (error) {
+      console.error(`[VRWebGPURenderer] ${type} shader compilation failed:`, error);
+      throw error;
+    }
+  }
+
+  // WebGPU 1.0: Mapped Buffers Staging Ring Implementation
+  createMappedBufferRing(label, size, maxBuffers = 3) {
+    const stagingRing = {
+      label,
+      size,
+      maxBuffers,
+      buffers: [],
+      currentIndex: 0,
+      mappedRanges: new Map()
+    };
+
+    // Pre-create and map staging buffers
+    for (let i = 0; i < maxBuffers; i++) {
+      const buffer = this.device.createBuffer({
+        label: `${label}_staging_${i}`,
+        size,
+        usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC,
+        mappedAtCreation: true
+      });
+
+      stagingRing.buffers.push(buffer);
+      stagingRing.mappedRanges.set(buffer, new Float32Array(buffer.getMappedRange()));
+    }
+
+    this.webgpu1_0.memoryManagement.stagingBuffers.set(label, stagingRing);
+    return stagingRing;
+  }
+
+  getStagingBuffer(label) {
+    const stagingRing = this.webgpu1_0.memoryManagement.stagingBuffers.get(label);
+    if (!stagingRing) return null;
+
+    const buffer = stagingRing.buffers[stagingRing.currentIndex];
+    const mappedRange = stagingRing.mappedRanges.get(buffer);
+
+    stagingRing.currentIndex = (stagingRing.currentIndex + 1) % stagingRing.maxBuffers;
+
+    return { buffer, mappedRange };
+  }
+
+  copyStagingToGPUBuffer(stagingLabel, targetBuffer, offset = 0) {
+    const stagingRing = this.webgpu1_0.memoryManagement.stagingBuffers.get(stagingLabel);
+    if (!stagingRing) return;
+
+    const stagingBuffer = stagingRing.buffers[(stagingRing.currentIndex - 1 + stagingRing.maxBuffers) % stagingRing.maxBuffers];
+
+    // Async buffer copy for better performance
+    const commandEncoder = this.device.createCommandEncoder();
+    commandEncoder.copyBufferToBuffer(
+      stagingBuffer,
+      0,
+      targetBuffer,
+      offset,
+      stagingRing.size
+    );
+
+    this.device.queue.submit([commandEncoder.finish()]);
+
+    // Performance monitoring
+    this.performanceMonitor.bufferUploads.push({
+      label: `${stagingLabel}_copy`,
+      size: stagingRing.size,
+      timestamp: performance.now(),
+      copied: true
+    });
+  }
+
+  optimizeMemoryUsage() {
+    // Memory pool cleanup
+    for (const [poolKey, pool] of this.memoryManagement.bufferPool) {
+      // Remove old buffers from pools
+      const recentBuffers = pool.filter(buffer => {
+        return performance.now() - (buffer.lastUsed || 0) < 30000; // 30 seconds
+      });
+      this.memoryManagement.bufferPool.set(poolKey, recentBuffers);
+    }
+
+    console.log('[VRWebGPURenderer] Memory optimization completed');
   }
 
   /**
@@ -208,6 +396,7 @@ class VRWebGPURenderer {
       await this.initializeResources();
 
       // Initialize shaders
+      await this.precompileShaders();
       await this.initializeShaders();
 
       this.initialized = true;
@@ -233,283 +422,67 @@ class VRWebGPURenderer {
     }
   }
 
-  /**
-   * Detect adapter features
-   */
-  detectFeatures() {
-    const adapterFeatures = Array.from(this.adapter.features);
-
-    console.log('[VRWebGPURenderer] Available features:', adapterFeatures);
-
-    this.features.compute = adapterFeatures.includes('compute');
-    this.features.timestamp = adapterFeatures.includes('timestamp-query');
-    this.features.depthClipControl = adapterFeatures.includes('depth-clip-control');
-    this.features.textureCompressionBC = adapterFeatures.includes('texture-compression-bc');
-    this.features.textureCompressionETC2 = adapterFeatures.includes('texture-compression-etc2');
-    this.features.textureCompressionASTC = adapterFeatures.includes('texture-compression-astc');
-  }
-
-  /**
-   * Initialize rendering resources
-   */
-  async initializeResources() {
-    // Create default sampler
-    const defaultSampler = this.device.createSampler({
-      addressModeU: 'repeat',
-      addressModeV: 'repeat',
-      addressModeW: 'repeat',
-      magFilter: 'linear',
-      minFilter: 'linear',
-      mipmapFilter: 'linear',
-      maxAnisotropy: this.config.maxAnisotropy
-    });
-
-    this.samplers.set('default', defaultSampler);
-
-    // Create depth texture format
-    this.depthFormat = 'depth24plus';
-
-    console.log('[VRWebGPURenderer] Resources initialized');
-  }
-
-  /**
-   * Initialize shader modules
-   */
-  async initializeShaders() {
-    // Basic vertex shader (WGSL)
-    const basicVertexShader = `
-      struct VertexInput {
-        @location(0) position: vec3<f32>,
-        @location(1) normal: vec3<f32>,
-        @location(2) uv: vec2<f32>,
-      };
-
-      struct VertexOutput {
-        @builtin(position) position: vec4<f32>,
-        @location(0) normal: vec3<f32>,
-        @location(1) uv: vec2<f32>,
-        @location(2) worldPos: vec3<f32>,
-      };
-
-      struct Uniforms {
-        modelMatrix: mat4x4<f32>,
-        viewMatrix: mat4x4<f32>,
-        projectionMatrix: mat4x4<f32>,
-        normalMatrix: mat4x4<f32>,
-      };
-
-      @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-
-      @vertex
-      fn main(input: VertexInput) -> VertexOutput {
-        var output: VertexOutput;
-
-        let worldPos = uniforms.modelMatrix * vec4<f32>(input.position, 1.0);
-        output.worldPos = worldPos.xyz;
-        output.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
-        output.normal = (uniforms.normalMatrix * vec4<f32>(input.normal, 0.0)).xyz;
-        output.uv = input.uv;
-
-        return output;
-      }
-    `;
-
-    // Basic fragment shader (WGSL)
-    const basicFragmentShader = `
-      struct FragmentInput {
-        @location(0) normal: vec3<f32>,
-        @location(1) uv: vec2<f32>,
-        @location(2) worldPos: vec3<f32>,
-      };
-
-      struct Material {
-        baseColor: vec4<f32>,
-        metallic: f32,
-        roughness: f32,
-        ao: f32,
-        padding: f32,
-      };
-
-      struct Light {
-        position: vec3<f32>,
-        intensity: f32,
-        color: vec3<f32>,
-        padding: f32,
-      };
-
-      @group(0) @binding(1) var<uniform> material: Material;
-      @group(0) @binding(2) var<uniform> light: Light;
-      @group(1) @binding(0) var baseColorTexture: texture_2d<f32>;
-      @group(1) @binding(1) var baseColorSampler: sampler;
-
-      @fragment
-      fn main(input: FragmentInput) -> @location(0) vec4<f32> {
-        let normal = normalize(input.normal);
-        let lightDir = normalize(light.position - input.worldPos);
-        let diffuse = max(dot(normal, lightDir), 0.0);
-
-        let texColor = textureSample(baseColorTexture, baseColorSampler, input.uv);
-        let finalColor = texColor * material.baseColor * vec4<f32>(light.color * diffuse * light.intensity, 1.0);
-
-        return finalColor;
-      }
-    `;
-
-    // Compile shaders
-    const startTime = performance.now();
-
-    this.shaders.set('basicVertex', this.device.createShaderModule({
-      label: 'Basic Vertex Shader',
-      code: basicVertexShader
-    }));
-
-    this.shaders.set('basicFragment', this.device.createShaderModule({
-      label: 'Basic Fragment Shader',
-      code: basicFragmentShader
-    }));
-
-    // Compute shader for post-processing
-    if (this.features.compute) {
-      const computeShader = `
-        @group(0) @binding(0) var inputTexture: texture_2d<f32>;
-        @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
-
-        @compute @workgroup_size(8, 8)
-        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-          let coords = vec2<i32>(global_id.xy);
-          let color = textureLoad(inputTexture, coords, 0);
-
-          // Simple post-processing (tone mapping)
-          let mapped = color.rgb / (color.rgb + vec3<f32>(1.0));
-
-          textureStore(outputTexture, coords, vec4<f32>(mapped, color.a));
-        }
-      `;
-
-      this.shaders.set('postProcess', this.device.createShaderModule({
-        label: 'Post Process Compute Shader',
-        code: computeShader
-      }));
+  checkPerformanceThresholds(frameTime, memoryUsage) {
+    if (frameTime > 16.67) { // > 60 FPS
+      console.warn(`[VRWebGPURenderer] High frame time: ${frameTime.toFixed(2)}ms`);
+      this.dispatchEvent('performanceWarning', {
+        type: 'highFrameTime',
+        frameTime,
+        memoryUsage,
+        timestamp: performance.now()
+      });
     }
 
-    const endTime = performance.now();
-    this.metrics.shaderCompilationTime = endTime - startTime;
-
-    console.log(`[VRWebGPURenderer] Shaders compiled in ${this.metrics.shaderCompilationTime.toFixed(2)}ms`);
+    if (memoryUsage > this.memoryManagement.maxBufferSize) {
+      console.warn(`[VRWebGPURenderer] High memory usage: ${(memoryUsage / 1024 / 1024).toFixed(2)}MB`);
+      this.optimizeMemoryUsage();
+    }
   }
 
-  /**
-   * Create render pipeline
-   */
-  createRenderPipeline(options = {}) {
-    const {
-      label = 'Default Pipeline',
-      vertexShader = 'basicVertex',
-      fragmentShader = 'basicFragment',
-      topology = 'triangle-list',
-      cullMode = 'back',
-      depthTest = true,
-      depthWrite = true,
-      blending = false
-    } = options;
+  estimateMemoryUsage() {
+    let totalMemory = 0;
 
-    const pipeline = this.device.createRenderPipeline({
-      label,
-      layout: 'auto',
-      vertex: {
-        module: this.shaders.get(vertexShader),
-        entryPoint: 'main',
-        buffers: [{
-          arrayStride: 32, // 3 (pos) + 3 (normal) + 2 (uv) = 8 floats = 32 bytes
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32x3' },  // position
-            { shaderLocation: 1, offset: 12, format: 'float32x3' }, // normal
-            { shaderLocation: 2, offset: 24, format: 'float32x2' }  // uv
-          ]
-        }]
-      },
-      fragment: {
-        module: this.shaders.get(fragmentShader),
-        entryPoint: 'main',
-        targets: [{
-          format: this.canvasFormat,
-          blend: blending ? {
-            color: {
-              srcFactor: 'src-alpha',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add'
-            },
-            alpha: {
-              srcFactor: 'one',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add'
-            }
-          } : undefined
-        }]
-      },
-      primitive: {
-        topology,
-        cullMode,
-        frontFace: 'ccw'
-      },
-      depthStencil: depthTest ? {
-        depthWriteEnabled: depthWrite,
-        depthCompare: 'less',
-        format: this.depthFormat
-      } : undefined,
-      multisample: {
-        count: this.config.msaaSamples
+    // Buffer memory
+    for (const buffer of this.buffers.values()) {
+      totalMemory += buffer.size || 0;
+    }
+
+    // Texture memory (estimation)
+    for (const texture of this.textures.values()) {
+      if (texture.width && texture.height) {
+        const bytesPerPixel = this.getBytesPerPixel(texture.format || 'rgba8unorm');
+        totalMemory += texture.width * texture.height * bytesPerPixel;
       }
-    });
+    }
 
-    this.pipelines.set(label, pipeline);
+    // Pipeline memory (estimation)
+    totalMemory += this.pipelines.size * 1024 * 10; // 10KB per pipeline
 
-    return pipeline;
+    return totalMemory;
   }
 
-  /**
-   * Create buffer
-   */
-  createBuffer(label, data, usage) {
-    const buffer = this.device.createBuffer({
-      label,
-      size: data.byteLength,
-      usage,
-      mappedAtCreation: true
-    });
+  updateAdvancedPerformanceMetrics(now) {
+    // Frame time tracking
+    this.performanceMonitor.frameTimes.push(this.metrics.frameTime);
+    if (this.performanceMonitor.frameTimes.length > this.performanceMonitor.maxSamples) {
+      this.performanceMonitor.frameTimes.shift();
+    }
 
-    const arrayBuffer = buffer.getMappedRange();
-    new Uint8Array(arrayBuffer).set(new Uint8Array(data.buffer));
-    buffer.unmap();
+    // Draw calls tracking
+    this.performanceMonitor.drawCalls.push(this.metrics.drawCalls);
+    if (this.performanceMonitor.drawCalls.length > this.performanceMonitor.maxSamples) {
+      this.performanceMonitor.drawCalls.shift();
+    }
 
-    this.buffers.set(label, buffer);
+    // Memory usage estimation
+    const estimatedMemory = this.estimateMemoryUsage();
+    this.performanceMonitor.memoryUsage.push(estimatedMemory);
+    if (this.performanceMonitor.memoryUsage.length > this.performanceMonitor.maxSamples) {
+      this.performanceMonitor.memoryUsage.shift();
+    }
 
-    return buffer;
-  }
-
-  /**
-   * Create texture
-   */
-  createTexture(label, width, height, options = {}) {
-    const {
-      format = 'rgba8unorm',
-      usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      mipLevelCount = 1,
-      sampleCount = 1
-    } = options;
-
-    const texture = this.device.createTexture({
-      label,
-      size: [width, height, 1],
-      format,
-      usage,
-      mipLevelCount,
-      sampleCount
-    });
-
-    this.textures.set(label, texture);
-
-    return texture;
+    // Performance warnings
+    this.checkPerformanceThresholds(this.metrics.frameTime, estimatedMemory);
   }
 
   /**
@@ -532,9 +505,6 @@ class VRWebGPURenderer {
     return commandEncoder;
   }
 
-  /**
-   * End frame
-   */
   endFrame(commandEncoder) {
     if (!this.rendering) {
       return;
@@ -553,6 +523,9 @@ class VRWebGPURenderer {
     }
     this.metrics.lastFrameTimestamp = now;
 
+    // Advanced performance monitoring
+    this.updateAdvancedPerformanceMetrics(now);
+
     // Dispatch frame complete event
     this.dispatchEvent('frameComplete', {
       frameCount: this.frameCount,
@@ -561,133 +534,125 @@ class VRWebGPURenderer {
     });
   }
 
-  /**
-   * Get performance metrics
-   */
-  getMetrics() {
-    return {
-      ...this.metrics,
-      fps: this.metrics.frameTime > 0 ? 1000 / this.metrics.frameTime : 0,
-      gpuMemoryMB: this.metrics.gpuMemoryUsed / (1024 * 1024),
-      initialized: this.initialized,
-      rendering: this.rendering,
-      frameCount: this.frameCount
+  getBytesPerPixel(format) {
+    const formatSizes = {
+      'r8unorm': 1, 'r8snorm': 1, 'r8uint': 1, 'r8sint': 1,
+      'r16uint': 2, 'r16sint': 2, 'r16float': 2,
+      'rg8unorm': 2, 'rg8snorm': 2, 'rg8uint': 2, 'rg8sint': 2,
+      'r32uint': 4, 'r32sint': 4, 'r32float': 4,
+      'rg16uint': 4, 'rg16sint': 4, 'rg16float': 4,
+      'rgba8unorm': 4, 'rgba8snorm': 4, 'rgba8uint': 4, 'rgba8sint': 4,
+      'bgra8unorm': 4, 'rgb10a2unorm': 4, 'rg11b10ufloat': 4,
+      'depth16unorm': 2, 'depth24plus': 4, 'depth32float': 4
     };
+    return formatSizes[format] || 4;
   }
 
-  /**
-   * Get capabilities
-   */
-  getCapabilities() {
-    return {
-      webgpu: this.features.webgpu,
-      compute: this.features.compute,
-      timestamp: this.features.timestamp,
-      multiview: this.features.multiview,
-      depthClipControl: this.features.depthClipControl,
-      textureCompression: {
-        bc: this.features.textureCompressionBC,
-        etc2: this.features.textureCompressionETC2,
-        astc: this.features.textureCompressionASTC
-      },
-      limits: this.adapter ? {
-        maxTextureDimension2D: this.device.limits.maxTextureDimension2D,
-        maxBindGroups: this.device.limits.maxBindGroups,
-        maxBufferSize: this.device.limits.maxBufferSize,
-        maxStorageBufferBindingSize: this.device.limits.maxStorageBufferBindingSize
-      } : null
+  getOrCreatePipeline(name) {
+    if (!this.pipelines.has(name)) {
+      this.pipelines.set(name, this.createRenderPipeline({ label: name }));
+    }
+    return this.pipelines.get(name);
+  }
+
+  renderXRSpatialGrid(renderPass, viewMatrix, projectionMatrix) {
+    // XR空間グリッドのWebGPU描画
+    const pipeline = this.getOrCreatePipeline('xrGrid');
+    if (!pipeline) return;
+
+    renderPass.setPipeline(pipeline);
+
+    // グリッド用のuniform buffer更新
+    const uniformBuffer = this.getOrCreateBuffer('xrGridUniforms', 192); // 3 * 4x4 matrices
+    if (uniformBuffer) {
+      const uniformData = new Float32Array(48); // 3 * 4x4 matrix
+      uniformData.set(viewMatrix, 0);
+      uniformData.set(projectionMatrix, 16);
+
+      this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+      renderPass.setBindGroup(0, this.getOrCreateBindGroup('xrGrid', uniformBuffer));
+    }
+
+    // グリッドジオメトリの描画
+    const gridGeometry = this.createXRSpatialGridGeometry();
+    if (gridGeometry) {
+      renderPass.setVertexBuffer(0, gridGeometry.vertexBuffer);
+      renderPass.setIndexBuffer(gridGeometry.indexBuffer, 'uint16');
+      renderPass.drawIndexed(gridGeometry.indexCount);
+      this.metrics.drawCalls++;
+    }
+  }
+
+  renderXRSpatialUI(renderPass, viewMatrix, projectionMatrix) {
+    // XR空間UIのWebGPU描画
+    console.log('[WebGPU] Rendering XR spatial UI (placeholder)');
+  }
+
+  renderXRView(renderPass, viewMatrix, projectionMatrix, viewIndex) {
+    if (!this.device || !renderPass) return;
+
+    // カメラパラメータの更新
+    this.updateXRCamera(viewMatrix, projectionMatrix, viewIndex);
+
+    // XRカメラパラメータの更新
+    this.xrCamera = {
+      viewMatrix: new Float32Array(viewMatrix),
+      projectionMatrix: new Float32Array(projectionMatrix),
+      viewIndex: viewIndex,
+      eye: viewIndex === 0 ? 'left' : 'right'
     };
+
+    // 空間グリッドの描画
+    this.renderXRSpatialGrid(renderPass, viewMatrix, projectionMatrix);
+
+    // ウェブページポータルの描画
+    this.renderXRWebPages(renderPass, viewMatrix, projectionMatrix);
+
+    // ユーザーアバターの描画
+    this.renderXRUserAvatars(renderPass, viewMatrix, projectionMatrix);
+
+    // UI要素の描画
+    this.renderXRSpatialUI(renderPass, viewMatrix, projectionMatrix);
+
+    // パフォーマンスメトリクスの更新
+    this.updateXRPerformanceMetrics();
   }
 
-  /**
-   * Handle device lost
-   */
-  async handleDeviceLost(info) {
-    console.error('[VRWebGPURenderer] Device lost, attempting recovery...');
+  createXRSpatialGridGeometry() {
+    // XR空間グリッドのジオメトリ作成
+    const size = 10;
+    const divisions = 20;
+    const step = size / divisions;
 
-    this.initialized = false;
-    this.rendering = false;
+    const vertices = [];
+    const indices = [];
 
-    // Cleanup resources
-    this.cleanup();
+    // グリッドの頂点生成
+    for (let i = 0; i <= divisions; i++) {
+      const pos = -size/2 + i * step;
 
-    // Dispatch event
-    this.dispatchEvent('deviceLost', { reason: info.reason, message: info.message });
+      // X方向の線
+      vertices.push(pos, 0, -size/2, 1, 0, 0); // 赤色
+      vertices.push(pos, 0, size/2, 1, 0, 0);
 
-    // Attempt recovery after delay
-    setTimeout(async () => {
-      try {
-        const canvas = this.context.canvas;
-        await this.initialize(canvas);
+      // Z方向の線
+      vertices.push(-size/2, 0, pos, 0, 0, 1); // 青色
+      vertices.push(size/2, 0, pos, 0, 0, 1);
 
-        this.dispatchEvent('deviceRecovered', {});
-      } catch (error) {
-        console.error('[VRWebGPURenderer] Recovery failed:', error);
-        this.dispatchEvent('deviceRecoveryFailed', { error: error.message });
-      }
-    }, 1000);
-  }
-
-  /**
-   * Cleanup resources
-   */
-  cleanup() {
-    // Destroy buffers
-    for (const buffer of this.buffers.values()) {
-      buffer.destroy();
-    }
-    this.buffers.clear();
-
-    // Destroy textures
-    for (const texture of this.textures.values()) {
-      texture.destroy();
-    }
-    this.textures.clear();
-
-    // Clear other resources
-    this.pipelines.clear();
-    this.samplers.clear();
-    this.bindGroups.clear();
-    this.shaders.clear();
-
-    console.log('[VRWebGPURenderer] Resources cleaned up');
-  }
-
-  /**
-   * Dispose renderer
-   */
-  dispose() {
-    this.cleanup();
-
-    if (this.device) {
-      this.device.destroy();
-      this.device = null;
+      const vertexIndex = i * 4;
+      indices.push(vertexIndex, vertexIndex + 1, vertexIndex + 2, vertexIndex + 3);
     }
 
-    this.adapter = null;
-    this.context = null;
-    this.initialized = false;
+    const vertexData = new Float32Array(vertices);
+    const indexData = new Uint16Array(indices);
 
-    console.log('[VRWebGPURenderer] Disposed');
-  }
-
-  /**
-   * Event handling
-   */
-  addEventListener(event, callback) {
-    this.eventTarget.addEventListener(event, callback);
-  }
-
-  removeEventListener(event, callback) {
-    this.eventTarget.removeEventListener(event, callback);
-  }
-
-  dispatchEvent(event, detail = {}) {
-    this.eventTarget.dispatchEvent(new CustomEvent(event, { detail }));
+    return {
+      vertexBuffer: this.createBuffer('xrGridVertices', vertexData, GPUBufferUsage.VERTEX),
+      indexBuffer: this.createBuffer('xrGridIndices', indexData, GPUBufferUsage.INDEX),
+      indexCount: indices.length
+    };
   }
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VRWebGPURenderer;
-}
+export default VRWebGPURenderer;

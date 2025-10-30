@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "ro",
+    "languageName": "Română",
+    "nativeName": "Română",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Anulare",
+    "close": "Închide",
+    "back": "Înapoi",
+    "next": "Următorul",
+    "previous": "Anterior",
+    "save": "Salvează",
+    "delete": "Șterge",
+    "edit": "Editează",
+    "search": "Caută",
+    "loading": "Se încarcă...",
+    "error": "Eroare",
+    "success": "Succes",
+    "warning": "Avertisment",
+    "info": "Informații",
+    "yes": "Da",
+    "no": "Nu",
+    "confirm": "Confirmă",
+    "retry": "Reîncearcă",
+    "continue": "Continuă",
+    "finish": "Finalizează",
+    "help": "Ajutor",
+    "settings": "Setări",
+    "about": "Despre"
+  },
+  "vr": {
+    "enterVR": "Intră în modul VR",
+    "exitVR": "Ieși din modul VR",
+    "immersiveMode": "Mod imersiv",
+    "vrMode": "Mod VR",
+    "headset": "Căști VR",
+    "controllers": "Controlere",
+    "handTracking": "Urmărire mâini",
+    "handTrackingEnabled": "Urmărire mâini activată",
+    "handTrackingDisabled": "Urmărire mâini dezactivată",
+    "noVRSupport": "VR nu este suportat în acest browser",
+    "vrSessionStarted": "Sesiune VR pornită",
+    "vrSessionEnded": "Sesiune VR terminată",
+    "controllerConnected": "Controller conectat",
+    "controllerDisconnected": "Controller deconectat"
+  }
+}

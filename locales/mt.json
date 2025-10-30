@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "language": "mt",
+    "languageName": "Malti",
+    "nativeName": "Malti",
+    "version": "1.0.0",
+    "rtl": false,
+    "contributors": ["Qui Browser Team"]
+  },
+  "common": {
+    "ok": "Tajjeb",
+    "cancel": "Ikkanċella",
+    "close": "Agħlaq",
+    "back": "Lura",
+    "next": "Li jmiss",
+    "previous": "Ta' qabel",
+    "save": "Salva",
+    "delete": "Ħassar",
+    "edit": "Editja",
+    "search": "Fittex",
+    "loading": "Tagħbija...",
+    "error": "Żball",
+    "success": "Suċċess",
+    "warning": "Twissija",
+    "info": "Informazzjoni",
+    "yes": "Iva",
+    "no": "Le",
+    "confirm": "Ikkonferma",
+    "retry": "Erġa' pprova",
+    "continue": "Kompli",
+    "finish": "Lest",
+    "help": "Għajnuna",
+    "settings": "Settings",
+    "about": "Dwar"
+  },
+  "vr": {
+    "enterVR": "Idħol fil-modalità VR",
+    "exitVR": "Oħroġ mill-modalità VR",
+    "immersiveMode": "Modalità immersiva",
+    "vrMode": "Modalità VR",
+    "headset": "Nuċċalijiet VR",
+    "controllers": "Kontrolli",
+    "handTracking": "Traċċar tal-idejn",
+    "handTrackingEnabled": "Traċċar tal-idejn attivat",
+    "handTrackingDisabled": "Traċċar tal-idejn diżattivat",
+    "noVRSupport": "VR mhux appoġġjat f'dan il-browser",
+    "vrSessionStarted": "Sessjoni VR bdiet",
+    "vrSessionEnded": "Sessjoni VR intemmet",
+    "controllerConnected": "Kontrollur konness",
+    "controllerDisconnected": "Kontrollur skonnettjat"
+  }
+}
