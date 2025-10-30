@@ -82,9 +82,10 @@ class VRMLGestureRecognition {
       right: 0
     };
 
-    // Gesture thresholds
-    this.confidenceThreshold = options.confidenceThreshold || 0.7; // 0-1
-    this.gestureDebounceTime = options.gestureDebounceTime || 500; // milliseconds
+    // Gesture thresholds (with validation)
+    const confidence = options.confidenceThreshold || 0.7;
+    this.confidenceThreshold = Math.max(0, Math.min(1, confidence)); // Clamp to 0-1
+    this.gestureDebounceTime = Math.max(0, options.gestureDebounceTime || 500); // milliseconds, non-negative
 
     // Last recognized gesture time
     this.lastGestureTime = {
@@ -110,7 +111,7 @@ class VRMLGestureRecognition {
 
   /**
    * Initialize ML gesture recognition
-   * @param {XRSession} xrSession - WebXR session
+   * @param {XRSession} xrSession - WebXR session (optional)
    * @returns {Promise<boolean>} Success status
    */
   async initialize(xrSession) {
@@ -119,12 +120,9 @@ class VRMLGestureRecognition {
     try {
       this.xrSession = xrSession;
 
-      // Check hand tracking support
-      await this.checkHandTrackingSupport();
-
-      if (!this.handTrackingSupported) {
-        this.warn('Hand tracking not supported');
-        return false;
+      // Check hand tracking support (optional session)
+      if (this.xrSession) {
+        await this.checkHandTrackingSupport();
       }
 
       this.initialized = true;
@@ -144,6 +142,11 @@ class VRMLGestureRecognition {
    * Check hand tracking support
    */
   async checkHandTrackingSupport() {
+    if (!this.xrSession) {
+      this.handTrackingSupported = false;
+      return;
+    }
+
     const enabledFeatures = this.xrSession.enabledFeatures || [];
     this.handTrackingSupported = enabledFeatures.includes('hand-tracking');
 

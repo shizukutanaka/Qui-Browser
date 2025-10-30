@@ -1,7 +1,7 @@
 {
   "name": "qui-browser-vr",
   "version": "5.7.0",
-  "description": "Qui Browser VR - ADVANCED INTELLIGENCE EDITION 2025 (271/125) - NEW: ML Hand Gestures (CNN-LSTM), Spatial Anchors (persistent AR), Neural Rendering (16x upscaling), Advanced Eye Tracking UI, Full-Body Avatar IK, Depth Sensing + Occlusion, Haptic Patterns, Comfort Settings, WebXR Passthrough, Scene Understanding, WebAssembly SIMD, Advanced PWA v2, HRTF Audio, Quest 3 API, Ultra-Low Pricing (¥200/月)",
+  "description": "Qui Browser VR - ADVANCED INTELLIGENCE EDITION 2025 (271/125 - Optimized) - Features: ML Hand Gestures, Spatial Anchors, Neural Rendering, Advanced Eye Tracking, Full-Body Avatar IK, Unified Foveated Rendering, Performance Monitor, Memory Optimizer, Depth Sensing, Haptic Patterns, Comfort Settings, Scene Understanding, WebAssembly SIMD, HRTF Audio, WebRTC Multiplayer, Quest 3+ Support, Ultra-Low Pricing (¥200/月)",
   "main": "dist/index.html",
   "private": true,
   "scripts": {

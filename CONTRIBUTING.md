@@ -1,4 +1,4 @@
-# Contributing to Qui Browser VR
+# How to Contribute
 
 Thank you for your interest in contributing to Qui Browser VR!
 
@@ -96,6 +96,10 @@ Open an issue for:
 - Bug reports
 - Feature requests
 - Questions about the codebase
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant Code of Conduct. By participating in this project you agree to abide by its terms. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
 
 ## 📜 License
 

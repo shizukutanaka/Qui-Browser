@@ -226,6 +226,17 @@ class VRPerformanceMonitor {
   }
 
   /**
+   * Check memory status
+   */
+  checkMemoryStatus() {
+    if (!performance.memory) {
+      this.warn('Performance.memory API not available');
+      return;
+    }
+    this.log('Memory API available');
+  }
+
+  /**
    * Check battery status
    */
   checkBatteryStatus() {
@@ -351,6 +362,20 @@ class VRPerformanceMonitor {
     if (this.debug) {
       console.log('[VRPerformanceMonitor]', ...args);
     }
+  }
+
+  /**
+   * Log warning message
+   */
+  warn(...args) {
+    console.warn('[VRPerformanceMonitor]', ...args);
+  }
+
+  /**
+   * Log error message
+   */
+  error(...args) {
+    console.error('[VRPerformanceMonitor]', ...args);
   }
 }
 

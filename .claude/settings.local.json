@@ -33,7 +33,10 @@
       "Bash(npm run build:*)",
       "Bash(npm test:*)",
       "Bash(npm run benchmark:*)",
-      "Bash(npm run benchmark:all:*)"
+      "Bash(npm run benchmark:all:*)",
+      "Bash(for file in vr-ml-gesture-recognition.js vr-spatial-anchors-system.js vr-neural-rendering-upscaling.js)",
+      "Bash(do echo \"=== $file ===\" head -30 \"$file\")",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []
