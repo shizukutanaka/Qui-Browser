@@ -2,7 +2,7 @@
 # Multi-stage build for optimized production image
 
 # ステージ1: ビルドステージ（将来の最適化用）
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
