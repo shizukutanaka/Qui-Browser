@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qui VR Browser - MVP</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 非VR表示用UI */
+    #ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .hud {
+      position: fixed;
+      color: #fff;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #fps-counter {
+      top: 10px;
+      left: 10px;
+    }
+
+    #status {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 18px;
+    }
+
+    #url-display {
+      bottom: 10px;
+      left: 10px;
+      max-width: 400px;
+      word-break: break-all;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #controls {
+      bottom: 10px;
+      right: 10px;
+      pointer-events: all;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="ui-overlay">
+    <div id="fps-counter" class="hud">FPS: 0</div>
+    <div id="status" class="hud">
+      VR ブラウザ MVP を初期化中...
+    </div>
+    <div id="url-display" class="hud">
+      URL: なし
+    </div>
+    <div id="controls" class="hud">
+      <button onclick="loadExample()">Example を読み込む</button>
+      <button onclick="openVR()">VR モードを開始</button>
+    </div>
+  </div>
+
+  <!-- 必要なライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- MVP コアモジュール -->
+  <script src="mvp/vr-browser-core.js"></script>
+  <script src="mvp/vr-content-loader.js"></script>
+  <script src="mvp/vr-input-handler.js"></script>
+  <script src="mvp/vr-ui-manager.js"></script>
+  <script src="mvp/vr-keyboard.js"></script>
+  <script src="mvp/vr-storage-manager.js"></script>
+
+  <!-- MVP メインスクリプト -->
+  <script>
+    // グローバル変数
+    let vrBrowser = null;
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+
+    // 初期化
+    async function initMVP() {
+      try {
+        console.log('VR Browser MVP 初期化開始...');
+
+        // WebXR 対応確認
+        if (!navigator.xr) {
+          throw new Error('WebXR は このブラウザでサポートされていません');
+        }
+
+        // VR ブラウザコア初期化
+        vrBrowser = new VRBrowserCore();
+        await vrBrowser.initialize();
+
+        // 仮想キーボード初期化
+        window.vrKeyboard = new VRKeyboard(1024, 512);
+        console.log('[MVP] VRKeyboard initialized');
+
+        updateStatus('✅ VR ブラウザ初期化完了 - "VR モードを開始" ボタンをクリック');
+      } catch (error) {
+        console.error('初期化エラー:', error);
+        updateStatus('❌ エラー: ' + error.message);
+      }
+    }
+
+    // FPS カウンター更新
+    function updateFPS() {
+      frameCount++;
+      const now = performance.now();
+      const delta = now - lastFrameTime;
+
+      if (delta >= 1000) {
+        const fps = Math.round((frameCount * 1000) / delta);
+        document.getElementById('fps-counter').textContent = 'FPS: ' + fps;
+        frameCount = 0;
+        lastFrameTime = now;
+      }
+    }
+
+    // ステータス更新
+    function updateStatus(message) {
+      document.getElementById('status').textContent = message;
+    }
+
+    // URL 表示更新
+    function updateUrlDisplay(url) {
+      document.getElementById('url-display').textContent = 'URL: ' + (url || 'なし');
+    }
+
+    // サンプルコンテンツ読み込み
+    async function loadExample() {
+      try {
+        updateStatus('サンプルコンテンツを読み込み中...');
+
+        if (vrBrowser && vrBrowser.contentLoader) {
+          const exampleHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Qui VR Browser - テストページ</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  padding: 20px;
+                  background: #f0f0f0;
+                }
+                h1 { color: #333; }
+                p { line-height: 1.6; }
+                a { color: #007bff; text-decoration: none; }
+                a:hover { text-decoration: underline; }
+                button {
+                  background: #007bff;
+                  color: white;
+                  border: none;
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                  cursor: pointer;
+                }
+              </style>
+            </head>
+            <body>
+              <h1>Qui VR Browser MVP</h1>
+              <p>これは VR ブラウザのテストページです。</p>
+              <h2>機能:</h2>
+              <ul>
+                <li>✅ WebXR 対応</li>
+                <li>✅ ウェブコンテンツ表示</li>
+                <li>✅ ジェスチャー入力</li>
+                <li>✅ タブ管理</li>
+                <li>✅ ブックマーク</li>
+                <li>✅ 履歴管理</li>
+              </ul>
+              <p><a href="#">リンク例</a></p>
+              <button onclick="alert('ボタンがクリックされました!')">テストボタン</button>
+            </body>
+            </html>
+          `;
+
+          vrBrowser.contentLoader.loadHTML(exampleHTML);
+          updateStatus('✅ サンプルコンテンツ読み込み完了');
+          updateUrlDisplay('about:example');
+        }
+      } catch (error) {
+        console.error('読み込みエラー:', error);
+        updateStatus('❌ 読み込みエラー: ' + error.message);
+      }
+    }
+
+    // VR モード開始
+    async function openVR() {
+      try {
+        if (!vrBrowser) {
+          updateStatus('❌ ブラウザが初期化されていません');
+          return;
+        }
+
+        updateStatus('VR セッションを要求中...');
+        await vrBrowser.enterVRMode();
+        updateStatus('VR モード実行中 - コントローラーで操作してください');
+      } catch (error) {
+        console.error('VR エラー:', error);
+        updateStatus('❌ VR エラー: ' + error.message);
+      }
+    }
+
+    // アニメーションループ
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (vrBrowser) {
+        vrBrowser.update();
+      }
+
+      updateFPS();
+    }
+
+    // 起動
+    window.addEventListener('DOMContentLoaded', () => {
+      initMVP();
+      animate();
+    });
+
+    // ウィンドウリサイズ対応
+    window.addEventListener('resize', () => {
+      if (vrBrowser) {
+        vrBrowser.onWindowResize();
+      }
+    });
+  </script>
+</body>
+</html>
