@@ -7,17 +7,18 @@
 
 import { defineConfig } from 'vite';
 import legacy from '@vitejs/plugin-legacy';
-import { terser } from 'rollup-plugin-terser';
 
 export default defineConfig({
   root: '.',
   base: '/',
+  publicDir: 'public',
 
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false, // Disable in production for smaller size
     minify: 'terser',
+    emptyOutDir: true,
 
     // Rollup options
     rollupOptions: {
@@ -65,24 +66,23 @@ export default defineConfig({
 
         chunkFileNames: 'js/[name]-[hash].js',
         entryFileNames: 'js/[name]-[hash].js'
-      },
+      }
+    },
 
-      plugins: [
-        terser({
-          compress: {
-            drop_console: true,      // Remove console.log in production
-            drop_debugger: true,
-            passes: 2,
-            pure_funcs: ['console.log', 'console.info']
-          },
-          mangle: {
-            properties: false  // Don't mangle property names (breaks Three.js)
-          },
-          format: {
-            comments: false
-          }
-        })
-      ]
+    // Terser minification options (built-in with Vite)
+    terserOptions: {
+      compress: {
+        drop_console: true,      // Remove console.log in production
+        drop_debugger: true,
+        passes: 2,
+        pure_funcs: ['console.log', 'console.info']
+      },
+      mangle: {
+        properties: false  // Don't mangle property names (breaks Three.js)
+      },
+      format: {
+        comments: false
+      }
     },
 
     // Target modern browsers that support WebXR
@@ -125,10 +125,11 @@ export default defineConfig({
   // Plugins
   plugins: [
     // Support older browsers if needed
-    legacy({
-      targets: ['defaults', 'not IE 11'],
-      additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-    })
+    // Disabled for now to simplify build
+    // legacy({
+    //   targets: ['defaults', 'not IE 11'],
+    //   additionalLegacyPolyfills: ['regenerator-runtime/runtime']
+    // })
   ],
 
   // Optimize dependencies
