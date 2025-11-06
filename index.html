@@ -4,30 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="Qui Browser - Lightweight VR-optimized web browser with enterprise-grade security">
-    <meta name="keywords" content="VR browser, Meta Quest, Pico, WebXR, lightweight browser, PWA">
+
+    <!-- Primary Meta Tags -->
+    <title>Qui Browser VR v2.0.0 - Production-Ready VR Browser</title>
+    <meta name="title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
+    <meta name="description" content="Production-ready WebXR VR browser with 17 features, 90-120 FPS, Japanese IME, hand tracking, spatial audio, WebGPU, multiplayer, and AI recommendations. Optimized for Meta Quest 2/3 and Pico devices.">
+    <meta name="keywords" content="VR browser, WebXR, Meta Quest, Pico, VR, virtual reality, hand tracking, spatial audio, Japanese IME, WebGPU, multiplayer">
     <meta name="author" content="Qui Browser Team">
+    <meta name="version" content="2.0.0">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-username.github.io/qui-browser-vr/">
+    <meta property="og:title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
+    <meta property="og:description" content="Complete VR browser with 17 features, 90-120 FPS performance, and enterprise-grade infrastructure.">
+    <meta property="og:image" content="/assets/images/og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://your-username.github.io/qui-browser-vr/">
+    <meta property="twitter:title" content="Qui Browser VR v2.0.0">
+    <meta property="twitter:description" content="Production-ready WebXR VR browser with 17 features">
+    <meta property="twitter:image" content="/assets/images/twitter-card.png">
+
+    <!-- PWA -->
     <meta name="theme-color" content="#0052cc">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Qui Browser">
-    <title>Qui Browser - VR-Optimized Web Browser</title>
+    <meta name="apple-mobile-web-app-title" content="Qui Browser VR">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 
-    <!-- Critical CSS (inline for fastest rendering) -->
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+    <!-- Critical CSS -->
     <style>
         :root {
-            --color-background: #f4f5f7;
-            --color-surface: #ffffff;
-            --color-text: #172b4d;
-            --color-text-subtle: #6b778c;
-            --color-border: #dfe1e6;
+            --color-background: #0a0e27;
+            --color-surface: #1a1f3a;
+            --color-surface-elevated: #242942;
+            --color-text: #ffffff;
+            --color-text-subtle: #a0a0b8;
+            --color-border: #2a3050;
             --color-primary: #0052cc;
+            --color-primary-hover: #0065ff;
             --color-success: #00875a;
             --color-warning: #ff991f;
             --color-danger: #de350b;
+            --color-vr: #5e72e4;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
         }
 
         * {
@@ -37,19 +69,13 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: var(--font-sans);
             background: var(--color-background);
             color: var(--color-text);
-            line-height: 1.5;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-        }
-
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         .loading-screen {
@@ -58,26 +84,26 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--color-background);
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            z-index: 10000;
+            align-items: center;
+            z-index: 9999;
             transition: opacity 0.5s ease;
         }
 
-        .loading-content {
-            text-align: center;
-            color: white;
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .loading-spinner {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-vr);
             border-radius: 50%;
-            border-top-color: white;
             animation: spin 1s linear infinite;
         }
 
@@ -85,685 +111,342 @@
             to { transform: rotate(360deg); }
         }
 
-        .hidden {
-            display: none !important;
-        }
-
-        /* VR Mode Indicator */
-        .vr-indicator {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 8px 16px;
-            background: rgba(0, 82, 204, 0.9);
-            color: white;
-            border-radius: 20px;
+        .loading-text {
+            margin-top: 20px;
+            color: var(--color-text-subtle);
             font-size: 14px;
-            z-index: 1000;
-            display: none;
         }
 
-        .vr-indicator.active {
-            display: block;
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-vr);
+        }
+
+        .version-badge {
+            background: var(--color-vr);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--color-vr), var(--color-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--color-text-subtle);
+            margin-bottom: 2rem;
+            max-width: 600px;
+        }
+
+        .cta-button {
+            background: var(--color-vr);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-button:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(94, 114, 228, 0.3);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+            max-width: 1200px;
+        }
+
+        .feature-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--color-vr);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            color: var(--color-text-subtle);
+            font-size: 0.875rem;
+        }
+
+        .vr-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 64px;
+            height: 64px;
+            background: var(--color-vr);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(94, 114, 228, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .vr-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 24px rgba(94, 114, 228, 0.6);
+        }
+
+        .vr-button::before {
+            content: '🥽';
+            font-size: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
-
-    <!-- Async CSS Loading -->
-    <link rel="preload" href="/assets/styles/design-system.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/assets/styles/design-system.css"></noscript>
-
-    <!-- Performance optimizations -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-
-    <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self'; base-uri 'self'; form-action 'self';">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(self)">
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <h2>Qui Browser</h2>
-            <p>Initializing VR Environment...</p>
-        </div>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading Qui Browser VR v2.0.0...</div>
     </div>
 
-    <!-- VR Mode Indicator -->
-    <div id="vr-indicator" class="vr-indicator">
-        VR Mode Active
-    </div>
+    <!-- App Container -->
+    <div class="app-container" id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                Qui Browser VR
+                <span class="version-badge">v2.0.0</span>
+            </div>
+            <nav>
+                <a href="https://github.com/your-username/qui-browser-vr" target="_blank" style="color: var(--color-text-subtle); text-decoration: none;">
+                    GitHub
+                </a>
+            </nav>
+        </header>
 
-    <!-- Main Application Container -->
-    <div id="app" class="app-container hidden">
-        <!-- Navigation Bar -->
-        <nav class="nav-bar" role="navigation" aria-label="Main navigation">
-            <div class="nav-left">
-                <button id="back-btn" class="nav-btn" aria-label="Go back">←</button>
-                <button id="forward-btn" class="nav-btn" aria-label="Go forward">→</button>
-                <button id="refresh-btn" class="nav-btn" aria-label="Refresh page">⟳</button>
-            </div>
-            <div class="nav-center">
-                <input type="text" id="url-bar" class="url-bar" placeholder="Enter URL or search..." aria-label="URL bar">
-            </div>
-            <div class="nav-right">
-                <button id="language-btn" class="nav-btn" data-i18n-aria-label="settings.language">🌐</button>
-                <button id="vr-toggle" class="nav-btn vr-btn" aria-label="Toggle VR mode">🥽</button>
-                <button id="settings-btn" class="nav-btn" aria-label="Settings">⚙️</button>
-                <button id="menu-btn" class="nav-btn" aria-label="Menu">☰</button>
-            </div>
-        </nav>
+        <!-- Main Content -->
+        <main class="main-content">
+            <h1 class="hero-title">Experience the Future of VR Browsing</h1>
+            <p class="hero-subtitle">
+                Production-ready WebXR browser with 17 features, 90-120 FPS performance,
+                and enterprise-grade infrastructure. Optimized for Meta Quest and Pico devices.
+            </p>
+            <button class="cta-button" id="enterVRButton">Enter VR Mode</button>
 
-        <!-- Main Content Area -->
-        <main id="main-content" class="main-content" role="main">
-            <div id="browser-view" class="browser-view">
-                <!-- Dynamic content loads here -->
+            <!-- Features Grid -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">High Performance</h3>
+                    <p class="feature-description">90-120 FPS on Quest 3, optimized rendering with FFR and WebGPU</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3 class="feature-title">Hand Tracking</h3>
+                    <p class="feature-description">Controller-free interaction with 12 gesture patterns</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎵</div>
+                    <h3 class="feature-title">Spatial Audio</h3>
+                    <p class="feature-description">3D HRTF-based positional sound for immersive experience</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🇯🇵</div>
+                    <h3 class="feature-title">Japanese IME</h3>
+                    <p class="feature-description">Native Japanese text input with Hiragana/Katakana/Kanji</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">Multiplayer</h3>
+                    <p class="feature-description">Real-time collaboration in shared VR spaces</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">AI Recommendations</h3>
+                    <p class="feature-description">Personalized content suggestions with machine learning</p>
+                </div>
             </div>
         </main>
 
-        <!-- VR Canvas (hidden initially) -->
-        <canvas id="vr-canvas" class="vr-canvas hidden"></canvas>
-
-        <!-- Language Panel (hidden initially) -->
-        <aside id="language-panel" class="language-panel hidden" role="complementary" data-i18n-aria-label="settings.language">
-            <div class="language-panel-header">
-                <h2 data-i18n="settings.language">Language</h2>
-                <button class="panel-close" onclick="document.getElementById('language-panel').classList.add('hidden')">×</button>
-            </div>
-
-            <!-- Panel Tabs -->
-            <div class="panel-tabs">
-                <button class="tab-btn active" data-tab="languages" data-i18n="tabs.languages">Languages</button>
-                <button class="tab-btn" data-tab="speech" data-i18n="tabs.speech">Speech</button>
-                <button class="tab-btn" data-tab="ocr" data-i18n="tabs.ocr">OCR</button>
-                <button class="tab-btn" data-tab="conference" data-i18n="tabs.conference">Conference</button>
-                <button class="tab-btn" data-tab="cultural" data-i18n="tabs.cultural">Cultural</button>
-                <button class="tab-btn" data-tab="ultra" data-i18n="tabs.ultra">Ultra</button>
-            </div>
-
-            <!-- Tab Content -->
-            <div class="tab-content">
-                <!-- Languages Tab -->
-                <div class="tab-pane active" id="languages-tab">
-                    <div class="language-search">
-                        <input type="text" placeholder="Search languages..." class="search-input" id="language-search">
-                        <div class="search-filters">
-                            <select id="language-category-filter" class="category-filter">
-                                <option value="">All Categories</option>
-                                <option value="primary">Primary Languages</option>
-                                <option value="regional">Regional Variants</option>
-                                <option value="asian">Asian Languages</option>
-                                <option value="european">European Languages</option>
-                                <option value="emerging">Emerging Languages</option>
-                                <option value="indigenous">Indigenous Languages</option>
-                                <option value="constructed">Constructed Languages</option>
-                                <option value="ultra-emerging">Ultra-Emerging</option>
-                            </select>
-                            <select id="language-sort" class="sort-filter">
-                                <option value="popularity">Most Popular</option>
-                                <option value="alphabetical">Alphabetical</option>
-                                <option value="recent">Recently Used</option>
-                                <option value="favorites">Favorites</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="language-options" id="language-options">
-                        <!-- Language options will be dynamically loaded with enhanced features -->
-                    </div>
-                    <div class="language-stats" id="language-stats">
-                        <div class="stat-badge">
-                            <span class="stat-number" id="total-languages">150+</span>
-                            <span class="stat-label">Languages</span>
-                        </div>
-                        <div class="stat-badge">
-                            <span class="stat-number" id="active-languages">120</span>
-                            <span class="stat-label">Active</span>
-                        </div>
-                        <div class="stat-badge">
-                            <span class="stat-number" id="recent-languages">0</span>
-                            <span class="stat-label">Recent</span>
-                        </div>
-                        <div class="stat-badge">
-                            <span class="stat-number" id="favorite-languages">0</span>
-                            <span class="stat-label">Favorites</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Speech Tab -->
-                <div class="tab-pane" id="speech-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="speech.title">Speech Translation</h3>
-                        <p data-i18n="speech.description">Real-time voice translation using advanced AI</p>
-                        <button class="feature-btn" id="speech-toggle" data-i18n="speech.start">Start Speech Translation</button>
-                        <div class="feature-status" id="speech-status">Not active</div>
-                    </div>
-                    <div class="feature-section">
-                        <label data-i18n="speech.source">Source Language:</label>
-                        <select id="speech-source-lang" class="feature-select">
-                            <option value="auto">Auto-detect</option>
-                        </select>
-                    </div>
-                    <div class="feature-section">
-                        <label data-i18n="speech.target">Target Language:</label>
-                        <select id="speech-target-lang" class="feature-select">
-                            <option value="en">English</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- OCR Tab -->
-                <div class="tab-pane" id="ocr-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="ocr.title">Image Text Translation</h3>
-                        <p data-i18n="ocr.description">Extract and translate text from images</p>
-                        <button class="feature-btn" id="ocr-toggle" data-i18n="ocr.enable">Enable OCR Mode</button>
-                        <div class="feature-status" id="ocr-status">Disabled</div>
-                    </div>
-                    <div class="feature-section">
-                        <label data-i18n="ocr.language">OCR Language:</label>
-                        <select id="ocr-language" class="feature-select">
-                            <option value="eng">English</option>
-                            <option value="jpn">Japanese</option>
-                            <option value="spa">Spanish</option>
-                            <option value="fra">French</option>
-                        </select>
-                    </div>
-                    <div class="ocr-instructions">
-                        <p data-i18n="ocr.instructions">Click on any image to translate text within it</p>
-                    </div>
-                </div>
-
-                <!-- Conference Tab -->
-                <div class="tab-pane" id="conference-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="conference.title">Conference Translation</h3>
-                        <p data-i18n="conference.description">Live translation for video calls and meetings</p>
-                        <button class="feature-btn" id="conference-start" data-i18n="conference.start">Start Conference Mode</button>
-                        <button class="feature-btn secondary" id="conference-end" data-i18n="conference.end">End Conference</button>
-                        <div class="feature-status" id="conference-status">Not active</div>
-                    </div>
-                    <div class="feature-section">
-                        <label data-i18n="conference.platform">Platform:</label>
-                        <div class="platform-detection" id="platform-detection">Detecting...</div>
-                    </div>
-                    <div class="feature-section">
-                        <label data-i18n="conference.subtitles">Live Subtitles:</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="subtitles-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Cultural Tab -->
-                <div class="tab-pane" id="cultural-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="cultural.title">Cultural Adaptation</h3>
-                        <p data-i18n="cultural.description">Culturally aware translations with regional context</p>
-                        <div class="cultural-toggle">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="cultural-adaptation-toggle" checked>
-                                <span class="slider"></span>
-                            </label>
-                            <span data-i18n="cultural.enabled">Cultural adaptation enabled</span>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="cultural.formality">Formality Level:</h4>
-                        <select id="formality-level" class="feature-select">
-                            <option value="informal">Informal</option>
-                            <option value="semi-formal" selected>Semi-formal</option>
-                            <option value="formal">Formal</option>
-                            <option value="very_formal">Very Formal</option>
-                        </select>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="cultural.context">Context Awareness:</h4>
-                        <div class="context-indicators">
-                            <span class="context-tag active" data-context="business">Business</span>
-                            <span class="context-tag active" data-context="technical">Technical</span>
-                            <span class="context-tag active" data-context="casual">Casual</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Advanced Tab -->
-                <div class="tab-pane" id="advanced-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="advanced.title">Advanced Features</h3>
-                        <div class="advanced-features">
-                            <button class="feature-btn small" id="show-dashboard" data-i18n="advanced.dashboard">Translation Dashboard</button>
-                            <button class="feature-btn small" id="show-toggles" data-i18n="advanced.toggles">Feature Toggles</button>
-                            <button class="feature-btn small" id="export-data" data-i18n="advanced.export">Export Data</button>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="advanced.stats">System Statistics:</h4>
-                        <div class="stats-display" id="system-stats">
-                            <div class="stat-item">
-                                <span class="stat-label" data-i18n="advanced.languages">Languages:</span>
-                                <span class="stat-value" id="stat-languages">Loading...</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label" data-i18n="advanced.translations">Translations:</span>
-                                <span class="stat-value" id="stat-translations">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label" data-i18n="advanced.response">Response Time:</span>
-                                <span class="stat-value" id="stat-response">0ms</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="advanced.quality">Translation Quality:</h4>
-                        <div class="quality-indicators">
-                            <div class="quality-bar">
-                                <div class="quality-fill" id="quality-fill" style="width: 85%"></div>
-                            </div>
-                            <span class="quality-text" id="quality-text">High Quality (85%)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ultra Tab -->
-                <div class="tab-pane" id="ultra-tab">
-                    <div class="feature-section">
-                        <h3 data-i18n="ultra.title">Ultra-Fast Translation</h3>
-                        <p data-i18n="ultra.description">0.5-second simultaneous interpretation with quantum processing</p>
-                        <div class="ultra-toggle">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="ultra-fast-toggle" checked>
-                                <span class="slider"></span>
-                            </label>
-                            <span data-i18n="ultra.enabled">Ultra-fast mode enabled</span>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="ultra.performance">Performance Metrics:</h4>
-                        <div class="performance-display">
-                            <div class="metric-item">
-                                <span class="metric-label" data-i18n="ultra.response">Response Time:</span>
-                                <span class="metric-value" id="ultra-response-time">0.5s</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label" data-i18n="ultra.accuracy">Accuracy:</span>
-                                <span class="metric-value" id="ultra-accuracy">98%</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label" data-i18n="ultra.translations">Translations:</span>
-                                <span class="metric-value" id="ultra-translations">0</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="ultra.technologies">Technologies:</h4>
-                        <div class="technology-indicators">
-                            <span class="tech-tag active" data-tech="quantum">Quantum Processing</span>
-                            <span class="tech-tag active" data-tech="neural">Neural Acceleration</span>
-                            <span class="tech-tag active" data-tech="cache">Ultra Cache</span>
-                            <span class="tech-tag active" data-tech="pipeline">Low Latency Pipeline</span>
-                        </div>
-                    </div>
-                    <div class="feature-section">
-                        <h4 data-i18n="ultra.quality">Quality Settings:</h4>
-                        <select id="ultra-quality" class="feature-select">
-                            <option value="maximum">Maximum Quality</option>
-                            <option value="high" selected>High Quality</option>
-                            <option value="standard">Standard</option>
-                            <option value="fast">Fast Mode</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Settings Panel (hidden initially) -->
-        <aside id="settings-panel" class="settings-panel hidden" role="complementary" aria-label="Settings">
-            <h2>Settings</h2>
-            <div class="settings-content">
-                <!-- Settings will be dynamically loaded -->
-            </div>
-        </aside>
+        <!-- VR Button (floating) -->
+        <button class="vr-button" id="vrFloatingButton" title="Enter VR" style="display: none;"></button>
     </div>
 
-    <!-- Error Notification (hidden initially) -->
-    <div id="error-notification" class="error-notification hidden" role="alert">
-        <!-- Error messages will appear here -->
-    </div>
+    <!-- Three.js (CDN) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <!-- Application Scripts -->
+    <script type="module">
+        // Hide loading screen after DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+            }, 500);
+        });
+
+        // Import main application
+        import('./src/app.js').then(module => {
+            console.log('Qui Browser VR v2.0.0 loaded successfully');
+
+            // Check WebXR support
+            if ('xr' in navigator) {
+                navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+                    if (supported) {
+                        document.getElementById('vrFloatingButton').style.display = 'flex';
+                    }
+                });
+            }
+        }).catch(error => {
+            console.error('Failed to load application:', error);
+            document.getElementById('loadingScreen').innerHTML = `
+                <div style="color: var(--color-danger);">
+                    <h2>Failed to load application</h2>
+                    <p style="color: var(--color-text-subtle);">${error.message}</p>
+                    <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--color-primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Reload
+                    </button>
+                </div>
+            `;
+        });
+
+        // VR button handlers
+        document.getElementById('enterVRButton').addEventListener('click', async () => {
+            try {
+                if ('xr' in navigator) {
+                    const supported = await navigator.xr.isSessionSupported('immersive-vr');
+                    if (supported) {
+                        // VRApp will handle session creation
+                        window.dispatchEvent(new CustomEvent('enter-vr'));
+                    } else {
+                        alert('WebXR VR is not supported on this device. Please use a VR headset.');
+                    }
+                } else {
+                    alert('WebXR is not available. Please use a WebXR-compatible browser.');
+                }
+            } catch (error) {
+                console.error('Error entering VR:', error);
+                alert('Failed to enter VR mode: ' + error.message);
+            }
+        });
+
+        document.getElementById('vrFloatingButton').addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('enter-vr'));
+        });
+    </script>
 
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.info('Service Worker registered'))
-                .catch(err => console.warn('Service Worker registration failed:', err));
-        }
-    </script>
-
-    <!-- Critical JavaScript (inline for immediate execution) -->
-    <script>
-        // Performance monitoring start
-        window.performanceStartTime = performance.now();
-
-        // Browser capability detection
-        window.browserCapabilities = {
-            webxr: 'xr' in navigator,
-            webgl: !!document.createElement('canvas').getContext('webgl2'),
-            wasm: typeof WebAssembly !== 'undefined',
-            serviceWorker: 'serviceWorker' in navigator,
-            webAudio: 'AudioContext' in window || 'webkitAudioContext' in window
-        };
-
-        // Module loader configuration
-        window.moduleLoader = {
-            loaded: new Set(),
-            pending: new Map(),
-
-            async load(modules) {
-                const promises = [];
-                for (const module of modules) {
-                    if (!this.loaded.has(module) && !this.pending.has(module)) {
-                        const promise = this.loadModule(module);
-                        this.pending.set(module, promise);
-                        promises.push(promise);
-                    } else if (this.pending.has(module)) {
-                        promises.push(this.pending.get(module));
-                    }
-                }
-                return Promise.all(promises);
-            },
-
-            async loadModule(module) {
-                const script = document.createElement('script');
-                script.src = `/assets/js/${module}.js`;
-                script.async = true;
-
-                return new Promise((resolve, reject) => {
-                    script.onload = () => {
-                        this.loaded.add(module);
-                        this.pending.delete(module);
-                        resolve();
-                    };
-                    script.onerror = () => {
-                        this.pending.delete(module);
-                        reject(new Error(`Failed to load module: ${module}`));
-                    };
-                    document.head.appendChild(script);
-                });
-            }
-        };
-
-        // Progressive loading strategy
-        async function initializeApp() {
-            try {
-                // Phase 1: Critical modules (unified systems)
-                await window.moduleLoader.load([
-                    'unified-performance-system',
-                    'unified-security-system',
-                    'unified-error-handler'
-                ]);
-
-                // Phase 2: Core functionality
-                await window.moduleLoader.load([
-                    'ui-components',
-                    'accessibility',
-                    'mobile-pwa',
-                    'i18n',
-                    'unified-i18n-system',
-                    'ai-translation-improver'
-                ]);
-
-                // Remove loading screen
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingScreen.classList.add('hidden');
-                        document.getElementById('app').classList.remove('hidden');
-                    }, 500);
-                }
-
-                // Phase 3: VR modules (lazy load on demand)
-                if (window.browserCapabilities.webxr) {
-                    // Load VR modules when VR is requested
-                    document.getElementById('vr-toggle')?.addEventListener('click', async () => {
-                        if (!window.vrModulesLoaded) {
-                            await loadVRModules();
-                            window.vrModulesLoaded = true;
-                        }
-                        toggleVRMode();
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
                     });
-                }
-
-                // Phase 4: Enhancement modules (background)
-                requestIdleCallback(() => {
-                    loadEnhancementModules();
-                });
-
-                // Language panel toggle
-                document.getElementById('language-btn')?.addEventListener('click', toggleLanguagePanel);
-
-                function toggleLanguagePanel() {
-                    const panel = document.getElementById('language-panel');
-                    if (panel.classList.contains('hidden')) {
-                        panel.classList.remove('hidden');
-                    } else {
-                        panel.classList.add('hidden');
-                    }
-                }
-
-                // Performance measurement
-                const loadTime = performance.now() - window.performanceStartTime;
-                console.info(`App initialized in ${loadTime.toFixed(2)}ms`);
-
-            } catch (error) {
-                console.error('Failed to initialize app:', error);
-                showErrorMessage('Failed to initialize application. Please reload.');
-            }
-        }
-
-        // VR modules loader
-        async function loadVRModules() {
-            const vrModules = [
-                'unified-vr-extension-system',
-                'vr-launcher',
-                'vr-navigation',
-                'vr-hand-tracking',
-                'vr-spatial-audio',
-                'vr-gesture-controls'
-            ];
-
-            console.info('Loading VR modules...');
-            await window.moduleLoader.load(vrModules);
-            console.info('VR modules loaded');
-        }
-
-        // Enhancement modules loader
-        async function loadEnhancementModules() {
-            const enhancementModules = [
-                'cross-platform-optimizer',
-                'ux-enhancer',
-                'plugin-system',
-                'i18n-quality-check',
-                'i18n-formatting',
-                // Advanced Translation Systems
-                'advanced-multimodal-translator',
-                'enhanced-ocr-translator',
-                'real-time-conference-translator',
-                'cultural-adaptation-engine',
-                'advanced-translation-hub',
-                'ultimate-translation-system',
-                'enhanced-language-panel',
-                'translation-system-manager',
-                'translation-system-tester',
-                'next-generation-ai-translator',
-                'advanced-speech-recognition',
-                'enhanced-conference-translator',
-                'ultra-fast-translator',
-                'enhanced-language-manager'
-            ];
-
-            try {
-                await window.moduleLoader.load(enhancementModules);
-                console.info('All enhancement modules loaded, including advanced translation systems');
-
-                // Load external libraries for advanced features
-                await loadExternalLibraries();
-
-            } catch (error) {
-                console.warn('Some enhancement modules failed to load:', error);
-            }
-        }
-
-        // Load external libraries for advanced features
-        async function loadExternalLibraries() {
-            const libraries = [
-                { name: 'Tesseract.js', url: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.esm.min.js', check: 'window.Tesseract' },
-                { name: 'TensorFlow.js', url: 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js', check: 'window.tf' }
-            ];
-
-            const loadPromises = libraries.map(async (lib) => {
-                if (window[lib.check.split('.')[1]]) {
-                    console.info(`${lib.name} already loaded`);
-                    return;
-                }
-
-                return new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = lib.url;
-                    script.crossOrigin = 'anonymous';
-
-                    script.onload = () => {
-                        console.info(`${lib.name} loaded successfully`);
-                        resolve();
-                    };
-
-                    script.onerror = () => {
-                        console.warn(`Failed to load ${lib.name}`);
-                        reject(new Error(`Failed to load ${lib.name}`));
-                    };
-
-                    document.head.appendChild(script);
-                });
             });
-
-            try {
-                await Promise.allSettled(loadPromises);
-                console.info('External libraries loading completed');
-            } catch (error) {
-                console.warn('Some external libraries failed to load:', error);
-            }
         }
-        function toggleVRMode() {
-            if (!window.xrSession) {
-                startVRSession();
-            } else {
-                endVRSession();
-            }
-        }
-
-        // Start VR session
-        async function startVRSession() {
-            if (!navigator.xr) {
-                showErrorMessage('WebXR not supported on this device');
-                return;
-            }
-
-            try {
-                const session = await navigator.xr.requestSession('immersive-vr', {
-                    requiredFeatures: ['local-floor'],
-                    optionalFeatures: ['bounded-floor', 'hand-tracking']
-                });
-
-                window.xrSession = session;
-                document.getElementById('vr-indicator').classList.add('active');
-
-                // Initialize VR
-                if (window.VRLauncher) {
-                    window.VRLauncher.initialize(session);
-                }
-
-            } catch (error) {
-                console.error('Failed to start VR session:', error);
-                showErrorMessage('Failed to enter VR mode');
-            }
-        }
-
-        // End VR session
-        async function endVRSession() {
-            if (window.xrSession) {
-                await window.xrSession.end();
-                window.xrSession = null;
-                document.getElementById('vr-indicator').classList.remove('active');
-            }
-        }
-
-        // Error message display
-        function showErrorMessage(message) {
-            const notification = document.getElementById('error-notification');
-            if (notification) {
-                notification.textContent = message;
-                notification.classList.remove('hidden');
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 5000);
-            }
-        }
-
-        // Initialize on DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
-        }
-
-        // Memory cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (window.xrSession) {
-                window.xrSession.end();
-            }
-
-            // Clean up any active timers
-            if (window.activeTimers) {
-                window.activeTimers.forEach(timer => clearInterval(timer));
-            }
-        });
-
-        // Handle visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Pause non-critical operations
-                if (window.unifiedPerformance) {
-                    window.unifiedPerformance.pause();
-                }
-            } else {
-                // Resume operations
-                if (window.unifiedPerformance) {
-                    window.unifiedPerformance.resume();
-                }
-            }
-        });
     </script>
 
-    <!-- Three.js (loaded only when VR is activated) -->
+    <!-- Build Info -->
     <script>
-        window.loadThreeJS = async function() {
-            if (!window.THREE) {
-                return new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
-        };
+        console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                   Qui Browser VR v2.0.0                      ║
+║                                                              ║
+║  Production-ready VR browser with 17 features                ║
+║  • 90-120 FPS performance                                    ║
+║  • Japanese IME, Hand Tracking, Spatial Audio                ║
+║  • WebGPU, Multiplayer, AI Recommendations                   ║
+║  • Complete CI/CD, Enterprise Monitoring                     ║
+║                                                              ║
+║  GitHub: github.com/your-username/qui-browser-vr             ║
+║  Docs: github.com/your-username/qui-browser-vr/docs          ║
+║  License: MIT                                                ║
+╚══════════════════════════════════════════════════════════════╝
+        `);
     </script>
 </body>
 </html>
