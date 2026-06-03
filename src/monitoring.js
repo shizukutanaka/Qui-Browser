@@ -133,15 +133,18 @@ export async function initSentry() {
 export function captureError(error, context = {}) {
   if (!MONITORING_CONFIG.enabled) return;
 
-  try {
-    import('@sentry/browser').then(({ captureException }) => {
+  // A synchronous try/catch cannot catch a rejected dynamic import; attach
+  // a .catch() so a failed Sentry load is logged rather than surfacing as an
+  // unhandled promise rejection.
+  import('@sentry/browser')
+    .then(({ captureException }) => {
       captureException(error, {
         contexts: { custom: context }
       });
+    })
+    .catch((err) => {
+      console.error('Failed to capture error:', err);
     });
-  } catch (err) {
-    console.error('Failed to capture error:', err);
-  }
 }
 
 /**
@@ -150,16 +153,16 @@ export function captureError(error, context = {}) {
 export function captureMessage(message, level = 'info', context = {}) {
   if (!MONITORING_CONFIG.enabled) return;
 
-  try {
-    import('@sentry/browser').then(({ captureMessage: sentryCapture }) => {
+  import('@sentry/browser')
+    .then(({ captureMessage: sentryCapture }) => {
       sentryCapture(message, {
         level,
         contexts: { custom: context }
       });
+    })
+    .catch((err) => {
+      console.error('Failed to capture message:', err);
     });
-  } catch (err) {
-    console.error('Failed to capture message:', err);
-  }
 }
 
 // ============================================================================
@@ -390,10 +393,10 @@ export function reportPerformanceSummary() {
 
   const summary = {
     avgFPS: calculateAverage(performanceMetrics.fps.map(m => m.value)),
-    minFPS: Math.min(...performanceMetrics.fps.map(m => m.value)),
-    maxFPS: Math.max(...performanceMetrics.fps.map(m => m.value)),
+    minFPS: performanceMetrics.fps.length > 0 ? Math.min(...performanceMetrics.fps.map(m => m.value)) : 0,
+    maxFPS: performanceMetrics.fps.length > 0 ? Math.max(...performanceMetrics.fps.map(m => m.value)) : 0,
     avgMemory: calculateAverage(performanceMetrics.memory.map(m => m.value)),
-    maxMemory: Math.max(...performanceMetrics.memory.map(m => m.value)),
+    maxMemory: performanceMetrics.memory.length > 0 ? Math.max(...performanceMetrics.memory.map(m => m.value)) : 0,
     interactionCount: performanceMetrics.interactions.length,
     sessionDuration: Date.now() - (performanceMetrics.fps[0]?.timestamp || Date.now())
   };

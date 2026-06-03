@@ -512,7 +512,9 @@ export class AIRecommendation {
     return {
       ...this.stats,
       recommendationsAvailable: this.recommendations.length,
-      averageScore: this.recommendations.reduce((sum, r) => sum + r.score, 0) / this.recommendations.length
+      averageScore: this.recommendations.length > 0
+        ? this.recommendations.reduce((sum, r) => sum + r.score, 0) / this.recommendations.length
+        : 0
     };
   }
 

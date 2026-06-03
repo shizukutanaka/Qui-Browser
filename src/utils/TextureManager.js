@@ -319,8 +319,12 @@ export class TextureManager {
     return {
       ktx2Loaded: this.stats.ktx2Loaded,
       fallbackLoaded: this.stats.fallbackLoaded,
-      cacheHitRate: this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses) * 100,
-      avgLoadTime: this.stats.totalLoadTime / (this.stats.ktx2Loaded + this.stats.fallbackLoaded)
+      cacheHitRate: (this.stats.cacheHits + this.stats.cacheMisses) > 0
+        ? this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses) * 100
+        : 0,
+      avgLoadTime: (this.stats.ktx2Loaded + this.stats.fallbackLoaded) > 0
+        ? this.stats.totalLoadTime / (this.stats.ktx2Loaded + this.stats.fallbackLoaded)
+        : 0
     };
   }
 

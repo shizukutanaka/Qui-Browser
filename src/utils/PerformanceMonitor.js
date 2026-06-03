@@ -558,7 +558,9 @@ export class PerformanceMonitor {
     return {
       summary: {
         totalFrames: this.stats.totalFrames,
-        averageFrameTime: this.stats.totalTime / this.stats.totalFrames,
+        averageFrameTime: this.stats.totalFrames > 0
+          ? this.stats.totalTime / this.stats.totalFrames
+          : 0,
         bestFrame: this.stats.bestFrame,
         worstFrame: this.stats.worstFrame,
         alertsGenerated: this.stats.alertsGenerated
