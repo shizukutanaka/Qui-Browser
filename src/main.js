@@ -83,6 +83,9 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
                 console.log('Service Worker registered:', registration);
+                // Periodically check for updates so long-lived sessions
+                // pick up new releases without a manual reload.
+                setInterval(() => registration.update(), 60000);
             })
             .catch(error => {
                 console.error('Service Worker registration failed:', error);

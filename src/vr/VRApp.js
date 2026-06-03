@@ -85,8 +85,8 @@ export class VRApp {
     // Setup VR
     this.setupVR();
 
-    // Register service worker
-    this.registerServiceWorker();
+    // Note: the service worker is registered once from src/main.js for all
+    // device types; VRApp no longer registers it to avoid a duplicate.
 
     // Start render loop
     this.renderer.setAnimationLoop(this.render.bind(this));
@@ -345,25 +345,6 @@ export class VRApp {
 
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  }
-
-  /**
-   * Register service worker for offline support
-   */
-  async registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/service-worker.js');
-        console.log('VRApp: Service Worker registered:', registration);
-
-        // Check for updates periodically
-        setInterval(() => {
-          registration.update();
-        }, 60000); // Check every minute
-      } catch (error) {
-        console.error('VRApp: Service Worker registration failed:', error);
-      }
-    }
   }
 
   /**
