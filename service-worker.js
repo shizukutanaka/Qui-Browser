@@ -33,21 +33,23 @@ const CACHE_DYNAMIC = `qui-browser-dynamic-${CACHE_VERSION}`;
 const CACHE_MEDIA = `qui-browser-media-${CACHE_VERSION}`;
 
 // Static assets to cache on install
+// Note: install caches these resiliently (see install handler) so a single
+// missing/renamed asset does not abort the whole precache. Paths match what
+// index.html and manifest.json actually reference.
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/assets/css/main.css',
+  '/src/styles/main.css',
+  '/src/main.js',
   '/assets/js/vr-webgpu-renderer.js',
-  '/assets/js/vr-foveated-rendering.js',
   '/assets/js/vr-accessibility-wcag.js',
   '/assets/js/vr-i18n-system.js',
   '/assets/js/vr-voice-commands-i18n.js',
   '/assets/js/vr-memory-manager.js',
   '/assets/js/vr-security-manager.js',
-  '/assets/images/icon-192.png',
-  '/assets/images/icon-512.png',
-  '/assets/images/logo.png',
+  '/assets/icons/icon-192.png',
+  '/assets/icons/icon-512.png',
   '/offline.html' // Offline fallback page
 ];
 
@@ -74,7 +76,16 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_STATIC).then((cache) => {
       console.log('[ServiceWorker] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
+      // Cache assets individually so one missing/404 asset does not reject
+      // the entire install (cache.addAll is atomic and would leave the SW
+      // with no precache, breaking offline support entirely).
+      return Promise.allSettled(
+        STATIC_ASSETS.map((url) =>
+          cache.add(url).catch((error) => {
+            console.warn('[ServiceWorker] Skipped uncacheable asset:', url, error);
+          })
+        )
+      );
     }).then(() => {
       console.log('[ServiceWorker] Static assets cached successfully');
       // Skip waiting to activate immediately
