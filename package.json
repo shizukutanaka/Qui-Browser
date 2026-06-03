@@ -4,6 +4,14 @@
   "description": "Qui Browser VR v2.0.0 - Production-ready VR browser with 17 features (Tier 1-3), complete CI/CD automation, and enterprise monitoring. Optimized for Meta Quest 2/3 with 90-120 FPS, Japanese IME, hand tracking, spatial audio, WebGPU, multiplayer, AI recommendations, and more.",
   "main": "dist/index.html",
   "private": true,
+  "homepage": "https://github.com/shizukutanaka/qui-browser#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shizukutanaka/qui-browser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shizukutanaka/qui-browser/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

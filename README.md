@@ -1,10 +1,10 @@
 # Qui Browser VR
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/your-username/qui-browser-vr/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/shizukutanaka/qui-browser/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![WebXR](https://img.shields.io/badge/WebXR-Supported-purple.svg)](https://immersiveweb.dev/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-username/qui-browser-vr/actions)
-[![Coverage](https://img.shields.io/badge/coverage-60%25-yellow.svg)](https://codecov.io/gh/your-username/qui-browser-vr)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/shizukutanaka/qui-browser/actions)
+[![Coverage](https://img.shields.io/badge/coverage-60%25-yellow.svg)](https://codecov.io/gh/shizukutanaka/qui-browser)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [![Meta Quest 2](https://img.shields.io/badge/Meta_Quest_2-Supported-00a8e8.svg)](https://www.meta.com/quest/products/quest-2/)
@@ -78,7 +78,7 @@ A production-ready WebXR VR browser optimized for Meta Quest 2/3 and Pico device
 ### Option 1: Try Online (Recommended)
 
 Visit the live demo on your VR device:
-- **GitHub Pages**: https://your-username.github.io/qui-browser-vr/
+- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/
 - **Netlify**: https://qui-browser-vr.netlify.app/
 - **Vercel**: https://qui-browser-vr.vercel.app/
 
@@ -86,7 +86,7 @@ Visit the live demo on your VR device:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/qui-browser-vr.git
+git clone https://github.com/shizukutanaka/qui-browser.git
 cd qui-browser-vr
 
 # Install dependencies
@@ -102,8 +102,8 @@ npm run dev
 
 ```bash
 # Pull and run Docker image
-docker pull ghcr.io/your-username/qui-browser-vr:2.0.0
-docker run -d -p 8080:80 ghcr.io/your-username/qui-browser-vr:2.0.0
+docker pull ghcr.io/shizukutanaka/qui-browser:2.0.0
+docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:2.0.0
 
 # Open http://localhost:8080 on your VR device
 ```
@@ -265,7 +265,7 @@ We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for deta
 
 ```bash
 # Fork and clone
-git clone https://github.com/your-username/qui-browser-vr.git
+git clone https://github.com/shizukutanaka/qui-browser.git
 cd qui-browser-vr
 
 # Create feature branch
@@ -283,8 +283,8 @@ git push origin feature/amazing-feature
 
 ## 📞 Support
 
-- **Issues:** [GitHub Issues](https://github.com/your-username/qui-browser-vr/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-username/qui-browser-vr/discussions)
+- **Issues:** [GitHub Issues](https://github.com/shizukutanaka/qui-browser/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/shizukutanaka/qui-browser/discussions)
 - **Email:** support@qui-browser.example.com
 - **Security:** security@qui-browser.example.com
 
@@ -305,8 +305,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 <div align="center">
   <strong>⭐ Star this project if you find it useful!</strong>
   <br>
-  <a href="https://github.com/your-username/qui-browser-vr/issues">Report Bug</a> •
-  <a href="https://github.com/your-username/qui-browser-vr/issues">Request Feature</a> •
+  <a href="https://github.com/shizukutanaka/qui-browser/issues">Report Bug</a> •
+  <a href="https://github.com/shizukutanaka/qui-browser/issues">Request Feature</a> •
   <a href="docs/QUICK_START.md">Get Started</a>
 </div>
 
