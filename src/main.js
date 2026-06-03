@@ -101,8 +101,8 @@ console.log(`
 ║  • WebGPU, Multiplayer, AI Recommendations                   ║
 ║  • Complete CI/CD, Enterprise Monitoring                     ║
 ║                                                              ║
-║  GitHub: github.com/your-username/qui-browser-vr             ║
-║  Docs: github.com/your-username/qui-browser-vr/docs          ║
+║  GitHub: github.com/shizukutanaka/qui-browser               ║
+║  Docs: github.com/shizukutanaka/qui-browser/tree/main/docs  ║
 ║  License: MIT                                                ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
