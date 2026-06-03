@@ -131,6 +131,15 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
+  // Only intercept same-scheme GET requests. Non-GET methods (POST/PUT/...)
+  // cannot be stored with cache.put — it throws — and non-http(s) schemes
+  // such as chrome-extension: or data: must not be intercepted at all.
+  // Returning without respondWith lets the browser handle them normally.
+  if (request.method !== 'GET' ||
+      (url.protocol !== 'http:' && url.protocol !== 'https:')) {
+    return;
+  }
+
   // Determine caching strategy based on request type
   if (isStaticAsset(url)) {
     // Static assets: Cache-first
