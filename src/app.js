@@ -20,16 +20,19 @@ async function initializeApp() {
   console.log('Optimized for Meta Quest 2/3');
   console.log('====================================');
 
-  // Check WebXR support
+  // Check WebXR support. The landing page is viewable on any browser, so
+  // a missing/unsupported WebXR runtime is logged rather than shown as a
+  // blocking error overlay — users who actively click "Enter VR" still get
+  // an explanatory message from the button handler in main.js.
   if (!navigator.xr) {
-    showError('WebXR not supported. Please use a VR-capable browser.');
+    console.warn('WebXR not supported. VR features disabled; landing page only.');
     return;
   }
 
   // Check for VR support
   const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
   if (!isVRSupported) {
-    showError('VR not supported on this device.');
+    console.warn('Immersive VR not supported on this device; landing page only.');
     return;
   }
 

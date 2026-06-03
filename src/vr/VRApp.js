@@ -260,6 +260,13 @@ export class VRApp {
     // Add VR button to page
     const vrButton = VRButton.createButton(this.renderer);
     document.body.appendChild(vrButton);
+    this.vrButton = vrButton;
+
+    // Wire the landing-page "Enter VR" buttons (which dispatch a global
+    // 'enter-vr' event) to the WebXR session request. Without this the
+    // landing-page buttons dispatch an event that nothing handles.
+    this.onEnterVRRequest = () => vrButton.click();
+    window.addEventListener('enter-vr', this.onEnterVRRequest);
 
     // Listen for VR session events
     this.renderer.xr.addEventListener('sessionstart', () => {
@@ -580,6 +587,15 @@ export class VRApp {
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
+
+    // Remove global listeners and DOM nodes added during setup
+    if (this.onEnterVRRequest) {
+      window.removeEventListener('enter-vr', this.onEnterVRRequest);
+      this.onEnterVRRequest = null;
+    }
+    if (this.vrButton && this.vrButton.parentNode) {
+      this.vrButton.parentNode.removeChild(this.vrButton);
+    }
 
     // Dispose systems
     if (this.comfortSystem) this.comfortSystem.dispose();
