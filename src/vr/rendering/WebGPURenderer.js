@@ -210,7 +210,7 @@ export class WebGPURenderer {
 
         // Apply Fixed Foveated Rendering
         let screenCenter = vec2<f32>(0.5, 0.5);
-        let screenPos = fragCoord.xy / vec2<f32>(1920.0, 1080.0); // Assuming resolution
+        let screenPos = fragCoord.xy / vec2<f32>(${(this.canvas.width || 1920).toFixed(1)}, ${(this.canvas.height || 1080).toFixed(1)}); // Actual render resolution baked at pipeline creation
         let distFromCenter = distance(screenPos, screenCenter);
 
         // Reduce quality at periphery
