@@ -583,6 +583,10 @@ export class VRApp {
     if (this.ffrSystem) this.ffrSystem.dispose();
     if (this.textureManager) this.textureManager.dispose();
     if (this.poolManager) this.poolManager.dispose();
+    if (this.handTracking) this.handTracking.dispose();
+    if (this.spatialAudio) this.spatialAudio.dispose();
+    if (this.mixedReality) this.mixedReality.dispose();
+    if (this.progressiveLoader) this.progressiveLoader.dispose();
 
     // Dispose Three.js
     this.renderer.dispose();

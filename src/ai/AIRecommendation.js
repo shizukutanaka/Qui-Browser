@@ -459,11 +459,23 @@ export class AIRecommendation {
    * Start automatic update loop
    */
   startUpdateLoop() {
-    setInterval(() => {
+    // Interval id stored so dispose() can stop it; otherwise the periodic
+    // recommendation generation runs for the page lifetime.
+    this.updateLoopId = setInterval(() => {
       if (this.initialized) {
         this.generateRecommendations();
       }
     }, this.updateInterval);
+  }
+
+  /**
+   * Stop the periodic recommendation update loop.
+   */
+  dispose() {
+    if (this.updateLoopId) {
+      clearInterval(this.updateLoopId);
+      this.updateLoopId = null;
+    }
   }
 
   /**
