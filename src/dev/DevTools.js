@@ -348,9 +348,15 @@ export class DevTools {
    * Intercept console methods
    */
   interceptConsole() {
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
+    // Keep the originals so dispose() can restore them.
+    this.originalConsole = {
+      log: console.log,
+      warn: console.warn,
+      error: console.error
+    };
+    const originalLog = this.originalConsole.log;
+    const originalWarn = this.originalConsole.warn;
+    const originalError = this.originalConsole.error;
 
     console.log = (...args) => {
       this.logMessage('log', args);
@@ -482,8 +488,9 @@ export class DevTools {
    * Setup network monitor
    */
   setupNetworkMonitor() {
-    // Intercept fetch
-    const originalFetch = window.fetch;
+    // Intercept fetch (original kept so dispose() can restore it).
+    this.originalFetch = window.fetch;
+    const originalFetch = this.originalFetch;
     window.fetch = async (...args) => {
       const startTime = performance.now();
       const url = args[0];
@@ -556,7 +563,8 @@ export class DevTools {
    * Setup keyboard shortcuts
    */
   setupShortcuts() {
-    document.addEventListener('keydown', (e) => {
+    // Stored on the instance so dispose() can remove it.
+    this.keydownHandler = (e) => {
       const key = e.key;
       const ctrl = e.ctrlKey;
       const shift = e.shiftKey;
@@ -570,7 +578,8 @@ export class DevTools {
         e.preventDefault();
         handler();
       }
-    });
+    };
+    document.addEventListener('keydown', this.keydownHandler);
   }
 
   /**
@@ -603,6 +612,33 @@ export class DevTools {
     if (this.container) {
       this.container.style.display = 'none';
     }
+  }
+
+  /**
+   * Tear down: remove the global listeners, restore the patched globals
+   * (console.*, window.fetch) and detach the UI. Without this, DevTools
+   * leaks a keydown listener and permanently overrides console/fetch.
+   */
+  dispose() {
+    if (this.keydownHandler) {
+      document.removeEventListener('keydown', this.keydownHandler);
+      this.keydownHandler = null;
+    }
+    if (this.originalConsole) {
+      console.log = this.originalConsole.log;
+      console.warn = this.originalConsole.warn;
+      console.error = this.originalConsole.error;
+      this.originalConsole = null;
+    }
+    if (this.originalFetch) {
+      window.fetch = this.originalFetch;
+      this.originalFetch = null;
+    }
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+    this.container = null;
+    this.visible = false;
   }
 }
 

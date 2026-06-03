@@ -71,10 +71,9 @@ export class ProgressiveLoader {
         saveData: conn.saveData || false
       };
 
-      // Listen for network changes
-      conn.addEventListener('change', () => {
-        this.onNetworkChange();
-      });
+      // Listen for network changes (handler kept so dispose() can remove it).
+      this.networkChangeHandler = () => this.onNetworkChange();
+      conn.addEventListener('change', this.networkChangeHandler);
     }
 
     console.log('ProgressiveLoader: Network detected', this.network);
@@ -596,6 +595,12 @@ export class ProgressiveLoader {
    * Dispose
    */
   dispose() {
+    // Remove the network 'change' listener registered in detectNetwork().
+    if (this.networkChangeHandler && 'connection' in navigator && navigator.connection) {
+      navigator.connection.removeEventListener('change', this.networkChangeHandler);
+      this.networkChangeHandler = null;
+    }
+
     this.loadQueue.critical = [];
     this.loadQueue.primary = [];
     this.loadQueue.secondary = [];
