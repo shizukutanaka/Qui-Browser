@@ -132,6 +132,13 @@ export class VoiceCommands {
     this.recognition.onerror = (event) => {
       console.error('VoiceCommands: Recognition error', event.error);
 
+      // Permission/service errors are fatal: recognition ends immediately and
+      // onend's continuous-mode restart would spin in a tight loop (restart →
+      // error → restart). Disable so onend stops restarting.
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        this.isEnabled = false;
+      }
+
       if (this.callbacks.onError) {
         this.callbacks.onError(event.error);
       }
