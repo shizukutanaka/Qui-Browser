@@ -336,24 +336,29 @@ export class MultiplayerSystem {
    * Start update loops
    */
   startUpdateLoops() {
-    // Position updates
-    setInterval(() => {
-      if (this.connected) {
-        this.broadcastPosition();
-      }
-    }, 1000 / this.updateRates.position);
+    // Interval IDs are stored so disconnect() can stop them; otherwise these
+    // loops (and pingAllPeers in particular) keep firing for the page
+    // lifetime even after disconnecting.
+    this.updateIntervals = [
+      // Position updates
+      setInterval(() => {
+        if (this.connected) {
+          this.broadcastPosition();
+        }
+      }, 1000 / this.updateRates.position),
 
-    // Rotation updates
-    setInterval(() => {
-      if (this.connected) {
-        this.broadcastRotation();
-      }
-    }, 1000 / this.updateRates.rotation);
+      // Rotation updates
+      setInterval(() => {
+        if (this.connected) {
+          this.broadcastRotation();
+        }
+      }, 1000 / this.updateRates.rotation),
 
-    // Latency monitoring
-    setInterval(() => {
-      this.pingAllPeers();
-    }, 1000);
+      // Latency monitoring
+      setInterval(() => {
+        this.pingAllPeers();
+      }, 1000)
+    ];
   }
 
   /**
@@ -624,6 +629,12 @@ export class MultiplayerSystem {
    * Disconnect from room
    */
   disconnect() {
+    // Stop the position/rotation/ping update loops.
+    if (this.updateIntervals) {
+      this.updateIntervals.forEach((id) => clearInterval(id));
+      this.updateIntervals = [];
+    }
+
     // Close all peer connections
     this.peers.forEach((pc, peerId) => {
       pc.close();

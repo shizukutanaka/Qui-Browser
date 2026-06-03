@@ -171,12 +171,28 @@ export class PerformanceMonitor {
    * Start monitoring loop
    */
   startMonitoring() {
-    // Monitor memory if available
+    // Monitor memory if available. Interval id is stored so dispose() can
+    // stop it; otherwise it keeps firing for the page lifetime.
     if (performance.memory) {
-      setInterval(() => {
+      this.memoryInterval = setInterval(() => {
         this.updateMemoryMetrics();
       }, 1000);
     }
+  }
+
+  /**
+   * Stop monitoring and detach the UI. Clears the memory-metrics interval
+   * and removes the injected container from the DOM.
+   */
+  dispose() {
+    if (this.memoryInterval) {
+      clearInterval(this.memoryInterval);
+      this.memoryInterval = null;
+    }
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+    this.container = null;
   }
 
   /**
