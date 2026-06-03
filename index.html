@@ -15,14 +15,14 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://your-username.github.io/qui-browser-vr/">
+    <meta property="og:url" content="https://shizukutanaka.github.io/qui-browser/">
     <meta property="og:title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
     <meta property="og:description" content="Complete VR browser with 17 features, 90-120 FPS performance, and enterprise-grade infrastructure.">
     <meta property="og:image" content="/assets/images/og-image.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://your-username.github.io/qui-browser-vr/">
+    <meta property="twitter:url" content="https://shizukutanaka.github.io/qui-browser/">
     <meta property="twitter:title" content="Qui Browser VR v2.0.0">
     <meta property="twitter:description" content="Production-ready WebXR VR browser with 17 features">
     <meta property="twitter:image" content="/assets/images/twitter-card.png">
@@ -54,7 +54,7 @@
     </div>
 
     <!-- App Container -->
-    <div class="app-container" id="app">
+    <div class="app-container" id="app-container">
         <!-- Header -->
         <header class="header">
             <div class="logo">
@@ -62,7 +62,7 @@
                 <span class="version-badge">v2.0.0</span>
             </div>
             <nav>
-                <a href="https://github.com/your-username/qui-browser-vr" target="_blank" style="color: var(--color-text-subtle); text-decoration: none;">
+                <a href="https://github.com/shizukutanaka/qui-browser" target="_blank" rel="noopener noreferrer" style="color: var(--color-text-subtle); text-decoration: none;">
                     GitHub
                 </a>
             </nav>
@@ -118,7 +118,7 @@
         </main>
 
         <!-- VR Button (floating) -->
-        <button class="vr-button" id="vrFloatingButton" title="Enter VR" style="display: none;"></button>
+        <button class="vr-button" id="vrFloatingButton" title="Enter VR" aria-label="Enter VR mode" style="display: none;"></button>
     </div>
 
     <!-- Application Scripts -->
