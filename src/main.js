@@ -3,6 +3,16 @@
  * Production-ready VR browser application
  */
 
+import { initializeMonitoring } from './monitoring.js';
+
+// Initialize observability (Sentry / analytics / web-vitals) in production
+// builds only. The optional services are loaded via dynamic import and
+// degrade gracefully if their packages (@sentry/*, web-vitals) are not
+// installed/configured.
+if (import.meta.env && import.meta.env.PROD) {
+  initializeMonitoring().catch((e) => console.error('Monitoring init failed:', e));
+}
+
 // Hide loading screen after DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {

@@ -22,6 +22,10 @@ export default defineConfig({
 
     // Rollup options
     rollupOptions: {
+      // Optional observability deps loaded lazily by src/monitoring.js. They
+      // are not bundled; treat as external so the build succeeds when they are
+      // not installed (monitoring degrades gracefully). Install them to enable.
+      external: ['@sentry/browser', '@sentry/tracing', '@sentry/replay', 'web-vitals'],
       output: {
         // Manual chunks for better caching
         manualChunks: {

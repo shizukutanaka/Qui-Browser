@@ -55,6 +55,7 @@ export class VRApp {
     this.aiRecommendation = null;
     this.voiceCommands = null;
     this.multiplayerSystem = null;
+    this.devTools = null;
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -257,6 +258,15 @@ export class VRApp {
     if (this.settings.enableMultiplayer) {
       this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
       console.log('VRApp: Multiplayer system ready (call connect() to join a room)');
+    }
+
+    // 12. DevTools (development builds only; hidden until toggled with F12).
+    // Dynamically imported so it is dropped from production bundles.
+    if (import.meta.env && import.meta.env.DEV) {
+      const { DevTools } = await import('../dev/DevTools.js');
+      this.devTools = new DevTools(this);
+      this.devTools.initialize();
+      console.log('VRApp: DevTools ready (F12 to toggle)');
     }
 
     const loadTime = performance.now() - startTime;
@@ -628,6 +638,7 @@ export class VRApp {
     if (this.aiRecommendation) this.aiRecommendation.dispose();
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
+    if (this.devTools) this.devTools.dispose();
 
     // Dispose Three.js
     this.renderer.dispose();

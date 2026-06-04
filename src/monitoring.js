@@ -63,9 +63,9 @@ export async function initSentry() {
 
   try {
     // Dynamic import to avoid loading in development
-    const Sentry = await import('@sentry/browser');
-    const { BrowserTracing } = await import('@sentry/tracing');
-    const { Replay } = await import('@sentry/replay');
+    const Sentry = await import(/* @vite-ignore */ '@sentry/browser');
+    const { BrowserTracing } = await import(/* @vite-ignore */ '@sentry/tracing');
+    const { Replay } = await import(/* @vite-ignore */ '@sentry/replay');
 
     Sentry.init({
       dsn: MONITORING_CONFIG.sentry.dsn,
@@ -136,7 +136,7 @@ export function captureError(error, context = {}) {
   // A synchronous try/catch cannot catch a rejected dynamic import; attach
   // a .catch() so a failed Sentry load is logged rather than surfacing as an
   // unhandled promise rejection.
-  import('@sentry/browser')
+  import(/* @vite-ignore */ '@sentry/browser')
     .then(({ captureException }) => {
       captureException(error, {
         contexts: { custom: context }
@@ -153,7 +153,7 @@ export function captureError(error, context = {}) {
 export function captureMessage(message, level = 'info', context = {}) {
   if (!MONITORING_CONFIG.enabled) return;
 
-  import('@sentry/browser')
+  import(/* @vite-ignore */ '@sentry/browser')
     .then(({ captureMessage: sentryCapture }) => {
       sentryCapture(message, {
         level,
@@ -253,7 +253,7 @@ export async function initWebVitals() {
 
   try {
     // Dynamic import web-vitals library
-    const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals');
+    const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import(/* @vite-ignore */ 'web-vitals');
 
     // Report all vitals
     getCLS(onVitalReport);
