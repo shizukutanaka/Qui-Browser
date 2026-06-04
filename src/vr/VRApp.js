@@ -25,6 +25,7 @@ import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
+import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 export class VRApp {
   constructor(container) {
@@ -56,6 +57,8 @@ export class VRApp {
     this.voiceCommands = null;
     this.multiplayerSystem = null;
     this.devTools = null;
+    this.perfMonitorUI = null;
+    this.webGPURenderer = null;
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -78,7 +81,9 @@ export class VRApp {
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
       enableVoice: false,
-      enableMultiplayer: false
+      enableMultiplayer: false,
+      enablePerfMonitorUI: false,
+      enableWebGPU: false // experimental
     };
 
     this.initialize();
@@ -267,6 +272,26 @@ export class VRApp {
       this.devTools = new DevTools(this);
       this.devTools.initialize();
       console.log('VRApp: DevTools ready (F12 to toggle)');
+    }
+
+    // 13. Performance monitor overlay (opt-in)
+    if (this.settings.enablePerfMonitorUI) {
+      this.perfMonitorUI = new PerformanceMonitor();
+      this.perfMonitorUI.initialize();
+      console.log('VRApp: Performance monitor UI ready');
+    }
+
+    // 14. WebGPU renderer (experimental, opt-in). Gated behind capability
+    // detection; not yet integrated into the THREE render loop, so it is
+    // instantiated for availability/probing only.
+    if (this.settings.enableWebGPU) {
+      if (typeof navigator !== 'undefined' && navigator.gpu) {
+        const { WebGPURenderer } = await import('./rendering/WebGPURenderer.js');
+        this.webGPURenderer = new WebGPURenderer();
+        console.log('VRApp: WebGPU available (experimental; not wired into the render loop yet)');
+      } else {
+        console.warn('VRApp: WebGPU requested but navigator.gpu is unavailable');
+      }
     }
 
     const loadTime = performance.now() - startTime;
@@ -639,6 +664,8 @@ export class VRApp {
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.devTools) this.devTools.dispose();
+    if (this.perfMonitorUI) this.perfMonitorUI.dispose();
+    if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();
 
     // Dispose Three.js
     this.renderer.dispose();
