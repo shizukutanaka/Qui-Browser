@@ -9,8 +9,8 @@ if ! pgrep nginx > /dev/null; then
     exit 1
 fi
 
-# HTTPレスポンスチェック
-if ! wget --no-verbose --tries=1 --spider http://localhost/health 2>&1 | grep -q '200 OK'; then
+# HTTPレスポンスチェック (exit code reflects HTTP success; --spider output is unreliable)
+if ! wget --quiet --tries=1 --timeout=5 -O /dev/null http://localhost/health; then
     echo "HTTP health check failed"
     exit 1
 fi

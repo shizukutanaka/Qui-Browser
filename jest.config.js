@@ -14,6 +14,7 @@ module.exports = {
 
   // カバレッジ収集対象
   collectCoverageFrom: [
+    'src/**/*.js',
     'assets/js/vr-*.js',
     '!assets/js/**/*.min.js',
     '!**/node_modules/**',
