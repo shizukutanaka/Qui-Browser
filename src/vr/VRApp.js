@@ -21,6 +21,11 @@ import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
+// Tier 3 / optional features (opt-in via settings, default off)
+import { AIRecommendation } from '../ai/AIRecommendation.js';
+import { VoiceCommands } from './input/VoiceCommands.js';
+import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
+
 export class VRApp {
   constructor(container) {
     this.container = container || document.body;
@@ -46,6 +51,11 @@ export class VRApp {
     this.mixedReality = null;
     this.progressiveLoader = null;
 
+    // Tier 3 systems (opt-in)
+    this.aiRecommendation = null;
+    this.voiceCommands = null;
+    this.multiplayerSystem = null;
+
     // Performance monitoring
     this.performanceMonitor = {
       fps: 90,
@@ -62,7 +72,12 @@ export class VRApp {
       enableFFR: true,
       enableComfort: true,
       enableObjectPooling: true,
-      enableTextureCompression: true
+      enableTextureCompression: true,
+      // Tier 3 / optional features — opt-in, default off so the base
+      // experience is unchanged. Heavy/experimental features stay off.
+      enableAI: false,
+      enableVoice: false,
+      enableMultiplayer: false
     };
 
     this.initialize();
@@ -220,6 +235,29 @@ export class VRApp {
     this.mixedReality = new MixedReality(this.renderer, this.scene);
     const mrSupport = await this.mixedReality.checkSupport();
     console.log('VRApp: Mixed reality support:', mrSupport);
+
+    // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
+
+    // 9. AI Recommendations
+    if (this.settings.enableAI) {
+      this.aiRecommendation = new AIRecommendation();
+      await this.aiRecommendation.initialize();
+      console.log('VRApp: AI recommendations ready');
+    }
+
+    // 10. Voice Commands
+    if (this.settings.enableVoice) {
+      this.voiceCommands = new VoiceCommands();
+      await this.voiceCommands.initialize();
+      console.log('VRApp: Voice commands ready');
+    }
+
+    // 11. Multiplayer — requires a signaling server; connect() is called on
+    // demand by the caller, not here.
+    if (this.settings.enableMultiplayer) {
+      this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
+      console.log('VRApp: Multiplayer system ready (call connect() to join a room)');
+    }
 
     const loadTime = performance.now() - startTime;
     console.log(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
@@ -587,6 +625,9 @@ export class VRApp {
     if (this.spatialAudio) this.spatialAudio.dispose();
     if (this.mixedReality) this.mixedReality.dispose();
     if (this.progressiveLoader) this.progressiveLoader.dispose();
+    if (this.aiRecommendation) this.aiRecommendation.dispose();
+    if (this.voiceCommands) this.voiceCommands.stop();
+    if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
 
     // Dispose Three.js
     this.renderer.dispose();
