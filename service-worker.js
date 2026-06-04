@@ -22,12 +22,12 @@
  * - Install prompt
  * - Update notification
  *
- * @version 3.7.1
+ * @version 2.0.0
  * @author Qui Browser Team
  * @license MIT
  */
 
-const CACHE_VERSION = 'v3.7.1';
+const CACHE_VERSION = 'v2.0.0';
 const CACHE_STATIC = `qui-browser-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `qui-browser-dynamic-${CACHE_VERSION}`;
 const CACHE_MEDIA = `qui-browser-media-${CACHE_VERSION}`;
