@@ -24,6 +24,6 @@ regressions.
 | `tier-system-integration`, `tier1-validation` | Best rewrite candidates — they exercise real `src/vr` tier modules; drop the version-string / config-content assertions and re-point at `src/`. |
 | `vr-modules`, `unit-core-modules`, `vr-i18n-system` | Test `assets/js` SDK + file existence; revisit once the `src/` vs `assets/js` split is resolved. |
 | `commercial-qa`, `comprehensive`, `vr-systems-2025`, `v5.8.0-integration` | Aspirational v5.x feature/QA snapshots; rewrite against actual shipped features. |
+| `unified-systems` | Structural snapshot (asserts `assets/js` files, archived status docs, and the removed `webpack.config.js` exist); rewrite against `src/` or the `assets/js` SDK once the split is resolved. |
 
-Live coverage of the v2.0.0 app is provided by `tests/unified-systems.test.js`
-and `tests/app-smoke.test.js`.
+Live coverage of the v2.0.0 app is provided by `tests/app-smoke.test.js`.
