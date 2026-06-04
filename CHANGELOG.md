@@ -2,6 +2,47 @@
 
 All notable changes to Qui Browser VR will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- VR app could not locate its mount point on WebXR devices (`#app` vs
+  `#app-container` mismatch); landing-page "Enter VR" buttons dispatched a
+  dead `enter-vr` event that nothing handled — now wired to start the session.
+- Service worker: resilient install (one missing asset no longer aborts the
+  whole precache), corrected precache paths, and the fetch handler now skips
+  non-GET / non-http(s) requests (avoids `cache.put` exceptions).
+- Stats getters no longer return `NaN`/`Infinity` before any data exists
+  (PerformanceMonitor, TextureManager, AIRecommendation, monitoring summary).
+- Listener/timer leaks fixed with proper teardown (DevTools, ProgressiveLoader,
+  MultiplayerSystem, PerformanceMonitor, AIRecommendation, VRApp subsystems).
+- VoiceCommands no longer spins in an infinite restart loop on fatal
+  recognition errors (e.g. microphone permission denied).
+- Unhandled promise rejections in monitoring's dynamic Sentry imports.
+- WebGPU FFR shader used a hardcoded 1920×1080 resolution; now baked from the
+  real canvas size.
+
+### Changed
+- Unified the project version to **2.0.0** across `package.json`,
+  `manifest.json`, and the service worker.
+- Generated all PWA icons / favicons / social images from `assets/icon.svg`
+  (previously 13/14 referenced assets were missing) via `npm run icons`.
+- Archived ~120 root status/report docs to `docs/archive/` and dead duplicate
+  files (legacy HTML/service-workers/webpack config) to `docs/archive/legacy/`.
+- Quarantined stale v5.x test suites to `tests/archive/`; `npm test` now
+  reflects the live v2.0.0 app and is green.
+- Added `SECURITY.md`, `.lighthouserc.json`, and `package.json` repository
+  metadata; fixed the Docker healthcheck.
+
+### Added
+- Previously-orphaned feature modules are now wired into the app, opt-in and
+  default-off: AI recommendations, voice commands, multiplayer, performance
+  monitor overlay (`enableAI` / `enableVoice` / `enableMultiplayer` /
+  `enablePerfMonitorUI`), DevTools (development builds only), and production
+  observability (`src/monitoring.js`).
+- **Experimental:** WebGPU renderer behind `enableWebGPU` (default off) with
+  `navigator.gpu` capability detection. Not yet integrated into the render
+  loop; WebGL remains the renderer.
+
 ## [5.7.0] - 2025-10-30
 
 ### Added
