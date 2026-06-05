@@ -59,6 +59,7 @@ export class VRApp {
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
+    this.homeEnvironment = null;
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -77,6 +78,9 @@ export class VRApp {
       enableComfort: true,
       enableObjectPooling: true,
       enableTextureCompression: true,
+      // Default home environment (floor + grid + sky + welcome panel). Doubles
+      // as a static comfort "rest frame"; without it the scene is an empty void.
+      enableHomeEnvironment: true,
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -157,7 +161,94 @@ export class VRApp {
     directionalLight.position.set(5, 10, 5);
     this.scene.add(directionalLight);
 
+    // Default home environment so entering VR shows a grounded space (and a
+    // static rest frame) rather than an empty void.
+    if (this.settings.enableHomeEnvironment) {
+      this.homeEnvironment = this.createHomeEnvironment();
+      this.scene.add(this.homeEnvironment);
+    }
+
     console.log('VRApp: Scene created');
+  }
+
+  /**
+   * Build a lightweight default environment: gradient sky dome, floor with a
+   * reference grid, and a welcome panel. Kept cheap for Quest-class GPUs
+   * (basic materials, no shadows). Returns a Group added to the scene.
+   */
+  createHomeEnvironment() {
+    const env = new THREE.Group();
+    env.name = 'homeEnvironment';
+
+    // Gradient sky dome (inside-out sphere, vertex-interpolated colors).
+    const skyGeo = new THREE.SphereGeometry(500, 24, 12);
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        topColor: { value: new THREE.Color(0x1b2a4a) },
+        bottomColor: { value: new THREE.Color(0x0a0d14) }
+      },
+      vertexShader: `
+        varying vec3 vWorldPos;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 bottomColor;
+        varying vec3 vWorldPos;
+        void main() {
+          float h = clamp((normalize(vWorldPos).y + 1.0) * 0.5, 0.0, 1.0);
+          gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
+        }
+      `
+    });
+    env.add(new THREE.Mesh(skyGeo, skyMat));
+
+    // Floor (subtle, non-reflective).
+    const floorMat = new THREE.MeshBasicMaterial({ color: 0x141821 });
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    env.add(floor);
+
+    // Reference grid — a static rest frame that reduces vection/sickness.
+    const grid = new THREE.GridHelper(60, 60, 0x335577, 0x223344);
+    grid.position.y = 0.001; // avoid z-fighting with the floor
+    env.add(grid);
+
+    // Welcome panel rendered from a canvas texture.
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#3a6ea5';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 96px sans-serif';
+    ctx.fillText('Qui Browser VR', canvas.width / 2, 120);
+    ctx.fillStyle = '#a0b4d0';
+    ctx.font = '40px sans-serif';
+    ctx.fillText('Welcome — look around to begin', canvas.width / 2, 190);
+
+    const panelTex = new THREE.CanvasTexture(canvas);
+    panelTex.colorSpace = THREE.SRGBColorSpace;
+    this._homePanelTexture = panelTex; // kept for explicit disposal
+    const panel = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 0.6),
+      new THREE.MeshBasicMaterial({ map: panelTex, transparent: true })
+    );
+    panel.position.set(0, 1.6, -2.5);
+    env.add(panel);
+
+    return env;
   }
 
   /**
@@ -668,6 +759,7 @@ export class VRApp {
     if (this.devTools) this.devTools.dispose();
     if (this.perfMonitorUI) this.perfMonitorUI.dispose();
     if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();
+    if (this._homePanelTexture) this._homePanelTexture.dispose();
 
     // Dispose Three.js
     this.renderer.dispose();

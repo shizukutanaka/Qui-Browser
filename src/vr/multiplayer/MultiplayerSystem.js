@@ -6,9 +6,10 @@
  */
 
 export class MultiplayerSystem {
-  constructor(scene, spatialAudio) {
+  constructor(scene, spatialAudio, options = {}) {
     this.scene = scene;
     this.spatialAudio = spatialAudio;
+    this.options = options;
 
     // Network state
     this.roomId = null;
@@ -24,23 +25,27 @@ export class MultiplayerSystem {
     this.avatars = new Map();
     this.localPlayer = null;
 
-    // WebRTC configuration
+    // WebRTC configuration. Public Google STUN works out of the box; a TURN
+    // server is required for peers behind symmetric NAT and must be supplied
+    // by the deployer (the previously hardcoded numb.viagenie.ca TURN has been
+    // defunct for years). Pass options.iceServers to add TURN.
     this.rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:numb.viagenie.ca',
-          username: 'webrtc@live.com',
-          credential: 'muazkh'
-        }
+        ...(options.iceServers || [])
       ],
       iceCandidatePoolSize: 10
     };
 
-    // Signaling server
+    // Signaling server — must be provided; there is no default (the old
+    // Heroku free-dyno endpoint was retired). Provide via options.signalingUrl
+    // or a Vite env var (VITE_SIGNALING_URL).
     this.signalingServer = null;
-    this.signalingUrl = 'wss://qui-browser-signaling.herokuapp.com';
+    this.signalingUrl =
+      options.signalingUrl ||
+      (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SIGNALING_URL) ||
+      null;
 
     // Network stats
     this.stats = {
@@ -75,6 +80,14 @@ export class MultiplayerSystem {
    * Connect to multiplayer room
    */
   async connect(roomId, options = {}) {
+    if (!this.signalingUrl) {
+      throw new Error(
+        'MultiplayerSystem: no signaling server configured. Pass options.signalingUrl ' +
+        'to the constructor or set VITE_SIGNALING_URL. Multiplayer is experimental ' +
+        'and requires a signaling server (and a TURN server for many networks).'
+      );
+    }
+
     this.roomId = roomId;
     this.peerId = this.generatePeerId();
     this.isHost = options.host || false;
