@@ -134,7 +134,7 @@ function setupKeyboardShortcuts() {
           const nextIndex = (presets.indexOf(current) + 1) % presets.length;
           const next = presets[nextIndex];
           vrApp.comfortSystem.setPreset(next);
-          vrApp.settings.motionSensitivity = next;
+          vrApp.updateSetting('motionSensitivity', next); // persist across reloads
           console.log(`Comfort preset: ${next}`);
         }
         break;

@@ -27,6 +27,9 @@ import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
+// localStorage key for persisted user settings overrides.
+const SETTINGS_KEY = 'qui-browser:settings';
+
 export class VRApp {
   constructor(container) {
     this.container = container || document.body;
@@ -90,7 +93,55 @@ export class VRApp {
       enableWebGPU: false // experimental
     };
 
+    // Merge any persisted user overrides (settings survive reloads).
+    Object.assign(this.settings, this.loadPersistedSettings());
+
     this.initialize();
+  }
+
+  /**
+   * Load persisted settings overrides from localStorage. Returns {} when none
+   * exist or storage is unavailable. Only known keys are accepted so stale or
+   * malformed entries cannot inject arbitrary fields.
+   */
+  loadPersistedSettings() {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return {};
+      const allowed = {};
+      for (const key of Object.keys(this.settings)) {
+        if (key in parsed) allowed[key] = parsed[key];
+      }
+      return allowed;
+    } catch (e) {
+      console.warn('VRApp: failed to load persisted settings', e);
+      return {};
+    }
+  }
+
+  /**
+   * Persist the current settings to localStorage. Safe to call from setting
+   * toggles/UI; no-ops when storage is unavailable.
+   */
+  saveSettings() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+    } catch (e) {
+      console.warn('VRApp: failed to persist settings', e);
+    }
+  }
+
+  /**
+   * Update a single setting and persist. Returns the new value.
+   */
+  updateSetting(key, value) {
+    this.settings[key] = value;
+    this.saveSettings();
+    return value;
   }
 
   /**
