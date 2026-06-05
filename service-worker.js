@@ -231,8 +231,10 @@ async function networkFirst(request, cacheName) {
       return cachedResponse;
     }
 
-    // Return offline page for HTML requests
-    if (request.headers.get('accept').includes('text/html')) {
+    // Return offline page for HTML requests. The Accept header can be null
+    // for some GET requests, so guard before calling .includes().
+    const acceptHeader = request.headers.get('accept') || '';
+    if (acceptHeader.includes('text/html')) {
       return caches.match('/offline.html');
     }
 
@@ -422,8 +424,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'New notification from Qui Browser VR',
-    icon: '/assets/images/icon-192.png',
-    badge: '/assets/images/badge-72.png',
+    icon: '/assets/icons/icon-192.png',
+    badge: '/assets/icons/icon-96.png',
     vibrate: [200, 100, 200],
     data: data,
     actions: [

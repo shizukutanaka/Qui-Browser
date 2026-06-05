@@ -252,15 +252,16 @@ export async function initWebVitals() {
   }
 
   try {
-    // Dynamic import web-vitals library
-    const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import(/* @vite-ignore */ 'web-vitals');
+    // web-vitals v3+ API: get* was renamed to on*, and FID was replaced by
+    // INP. Bundled normally (it is a real dependency, not externalized).
+    const { onCLS, onINP, onFCP, onLCP, onTTFB } = await import('web-vitals');
 
     // Report all vitals
-    getCLS(onVitalReport);
-    getFID(onVitalReport);
-    getFCP(onVitalReport);
-    getLCP(onVitalReport);
-    getTTFB(onVitalReport);
+    onCLS(onVitalReport);
+    onINP(onVitalReport);
+    onFCP(onVitalReport);
+    onLCP(onVitalReport);
+    onTTFB(onVitalReport);
 
     console.log('Web Vitals: Initialized');
   } catch (error) {

@@ -5,10 +5,9 @@
 
 import { initializeMonitoring } from './monitoring.js';
 
-// Initialize observability (Sentry / analytics / web-vitals) in production
-// builds only. The optional services are loaded via dynamic import and
-// degrade gracefully if their packages (@sentry/*, web-vitals) are not
-// installed/configured.
+// Initialize observability in production builds only. web-vitals is bundled
+// and runs out of the box; Sentry/analytics are opt-in (see vite.config.js)
+// and degrade gracefully via try/catch when not installed/configured.
 if (import.meta.env && import.meta.env.PROD) {
   initializeMonitoring().catch((e) => console.error('Monitoring init failed:', e));
 }

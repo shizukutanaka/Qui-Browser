@@ -100,11 +100,13 @@ export class VRApp {
     this.setupScene();
     this.setupCamera();
 
+    // Setup VR before the (potentially long) async system init so the
+    // landing-page "Enter VR" buttons are wired immediately — otherwise an
+    // 'enter-vr' event dispatched during initializeSystems() is dropped.
+    this.setupVR();
+
     // Initialize Tier 1 optimizations
     await this.initializeSystems();
-
-    // Setup VR
-    this.setupVR();
 
     // Note: the service worker is registered once from src/main.js for all
     // device types; VRApp no longer registers it to avoid a duplicate.
