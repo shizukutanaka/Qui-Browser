@@ -15,10 +15,10 @@
 | 4 | ハンドトラッキング・コントローラ・3D操作 | ✅ 完了 |
 | 5 | 空間オーディオ | ✅ 完了 |
 | 6 | MR / パススルー / アンカー & シーン理解 | ✅ 完了 |
-| 7 | マルチプレイヤー / ネットワーク / アバター | ⬜ 未着手 |
-| 8 | パフォーマンス & グラフィックスパイプライン | ⬜ 未着手 |
-| 9 | オンデバイス AI/ML（ブラウザ内推論） | ⬜ 未着手 |
-| 10 | PWA / build / CI / test / observability / a11y / i18n | ⬜ 未着手 |
+| 7 | マルチプレイヤー / ネットワーク / アバター | ✅ 完了 |
+| 8 | パフォーマンス & グラフィックスパイプライン | ✅ 完了 |
+| 9 | オンデバイス AI/ML（ブラウザ内推論） | ✅ 完了 |
+| 10 | PWA / build / CI / test / observability / a11y / i18n | ✅ 完了 |
 
 > 各カテゴリーは loop の反復で順次埋めていく。完了時に状態を ✅ に更新。
 
@@ -170,3 +170,111 @@
 6. **dom-overlay（AR 2D UI）（P2/S）**: AR時の2D UIを `dom-overlay` で。
 7. **IWSDK パターン移植（P2/M）**: Scene Understanding のアンカー/メッシュ設計を参照実装。
 8. **パススルー品質/セグメンテーション（P2/M）**: 手/人セグメンテーションで合成改善。
+
+## Category 7 — マルチプレイヤー / ネットワーク / アバター / プレゼンス
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| networked-aframe/networked-aframe | github.com/networked-aframe/networked-aframe | NAF: コンポーネント同期＋音声/映像 | 同期戦略の参照 |
+| colyseus/colyseus | github.com/colyseus/colyseus | 権威サーバ状態同期(schema) | スケールする状態管理 |
+| Croquet / Multisynq | multisynq.io | 決定論的同期・スナップショット | サーバレス同期/再開 |
+| versatica/mediasoup | github.com/versatica/mediasoup | WebRTC SFU | P2Pメッシュ超えの音声配信 |
+| feross/simple-peer | github.com/feross/simple-peer | WebRTC ラッパ | RTC実装の簡素化 |
+| Ready Player Me | readyplayer.me | glTFアバター生成 | アバター即導入 |
+| Hubs-Foundation/hubs | github.com/Hubs-Foundation/hubs | フル機能ソーシャルVR | プレゼンス設計の宝庫 |
+| geckos.io | github.com/geckosio/geckos.io | UDP(WebRTC datachannel) | 低遅延状態同期 |
+| Open Metaverse arch (arXiv) | 2404.05317 | NAF/A-Frame基盤の構成論 | アーキ指針 |
+
+**改善点**
+1. **死んだインフラ置換（P1/S）**: `MultiplayerSystem.js` の Heroku signaling / numb.viagenie.ca TURN を撤去し設定可能化。状態は Colyseus/geckos も検討（A3）。
+2. **アバター（P2/M）**: Ready Player Me の glTF を読み込み、頭/手トランスフォームを送受信。
+3. **SFU 音声（P2/L）**: `mediasoup` で多人数音声をスケール（P2Pメッシュの限界回避）。
+4. **空間ボイスのHRTF化（P1/M）**: 遠隔音声を話者位置 panner に（Cat5-6）。
+5. **補間/デッドレコニング（P2/M）**: 遠隔トランスフォームの平滑化。
+6. **プレゼンス/名簿（P2/S）**: join/leave・参加者一覧。
+7. **同期戦略の明確化（P2/M）**: NAF式コンポーネント同期 or Colyseus schema を採用。
+8. **simple-peer 採用（P2/S）**: WebRTC ボイラープレート削減。
+
+## Category 8 — パフォーマンス & グラフィックスパイプライン
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| three.js `renderer.info` / BatchedMesh | github.com/mrdoob/three.js | draw call/メモリ計測・バッチ描画 | `PerformanceMonitor` 拡張 |
+| mrdoob/stats.js | github.com/mrdoob/stats.js | FPS/フレーム計測 | 基本HUD |
+| BabylonJS/spector.js | github.com/BabylonJS/Spector.js | WebGLフレームデバッグ | 描画ボトルネック解析 |
+| utsuboco/r3f-perf | github.com/utsuboco/r3f-perf | R3F向け詳細perf | 計測指標の参照 |
+| donmccurdy/glTF-Transform | github.com/donmccurdy/glTF-Transform | glTF最適化(prune/draco/ktx2) | アセット軽量化CLI |
+| Meta OVR Metrics Tool | developers.meta.com | 端末側GPU/温度/FPS | 実機計測 |
+| XRWebGLLayer `framebufferScaleFactor` | W3C WebXR | 動的解像度 | 負荷連動の解像度制御 |
+| WebGPU timestamp-query | gpuweb | GPU時間計測 | 正確なGPUプロファイル |
+
+**改善点**
+1. **GPU/CPUバジェット計測（P1/M）**: `renderer.info`＋WebGPU timestamp で実測。→ `src/utils/PerformanceMonitor.js` 拡張（現状はFPS/メモリ中心）。
+2. **draw call 削減（P1/S）**: `BatchedMesh`/ジオメトリ統合（UI/タブ多数時）。
+3. **動的解像度スケーリング（P1/M）**: GPU負荷で `framebufferScaleFactor` を可変（FFRと協調）。
+4. **glTF-Transform パイプライン（P1/M）**: prune/dedup/draco/ktx2 を build 時適用（Cat2-4と統合）。
+5. **LODシステム（P2/M）**: `THREE.LOD` で距離別ディテール。
+6. **テクスチャ予算の強制（P2/S）**: `TextureManager` 統計に上限・退避を実装。
+7. **ホットパスの脱アロケーション（P2/S）**: `ObjectPool` を update ループの一時オブジェクトへ拡張。
+8. **計測ツール統合（P2/S）**: dev時に spector.js/r3f-perf 相当を `DevTools` へ。
+
+## Category 9 — オンデバイス AI/ML（ブラウザ内推論）
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| microsoft/onnxruntime-web | github.com/microsoft/onnxruntime | ONNX 推論(WASM/WebGPU EP) | 汎用モデル実行基盤 |
+| tensorflow/tfjs | github.com/tensorflow/tfjs | TF.js（WebGL/WebGPU） | 既存コメントの実体化先 |
+| huggingface/transformers.js | github.com/huggingface/transformers.js | ブラウザ内Transformer(v3/4) | 要約/検索/NLU |
+| google-ai-edge/mediapipe | github.com/google-ai-edge/mediapipe | 手/顔/ジェスチャ実時間推論 | Cat4 ジェスチャ補強 |
+| webmachinelearning/webnn | github.com/webmachinelearning/webnn | WebNN（HW最適経路） | 省電力推論 |
+| mlc-ai/web-llm | github.com/mlc-ai/web-llm | ブラウザ内LLM(WebGPU) | 補助/要約(将来) |
+| GazeProphet / vision-only sickness (arXiv) | 2508.13546 / 2501.01212 | 視線/酔い予測 | C1/C3 の実体化 |
+
+**改善点**
+1. **AI推薦の実体化（P1/M）**: `src/ai/AIRecommendation.js` を `onnxruntime-web`/`tfjs` で実装（A4、コンテンツ整備後）。
+2. **オンデバイス酔い予測（P2/L）**: ORT-Web(WebGPU) で小モデル（C3/2501.01212）。
+3. **ソフト視線予測（P1/M）**: GazeProphet 系の小モデル→共有 `GazeProvider`（Cat3/Cat2連携, C1）。
+4. **MediaPipe ハンド（P2/M）**: ジェスチャ認識の補強/フォールバック（Cat4）。
+5. **transformers.js（P2/M）**: 閲覧内容の要約/オンデバイス検索。
+6. **WebNN バックエンド（P2/S）**: 対応時に省電力経路へ。
+7. **モデル配信/キャッシュ（P1/S）**: `ProgressiveLoader`＋Cache/IndexedDBでモデルを遅延ロード・永続キャッシュ。
+8. **音声コマンドNLU（P2/M）**: `VoiceCommands` のキーワード一致を小NLUへ。
+
+## Category 10 — PWA / build / CI / test / observability / a11y / i18n
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| vite-plugin-pwa / GoogleChrome/workbox | github.com/vite-pwa/vite-plugin-pwa | SW自動生成/precache/更新 | 手書きSWの置換 |
+| microsoft/playwright | github.com/microsoft/playwright | e2e（WebXRエミュレート可） | 統合テスト基盤 |
+| vitest | github.com/vitest-dev/vitest | 高速ユニットテスト | jest代替候補 |
+| i18next / FormatJS | github.com/i18next/i18next | i18n フレームワーク | A6 多言語化 |
+| dequelabs/axe-core | github.com/dequelabs/axe-core | a11y 自動検査 | A7 のCIゲート |
+| GoogleChrome/lighthouse-ci | github.com/GoogleChrome/lighthouse-ci | 性能/PWA予算 | `.lighthouserc` の実行 |
+| immersive-web WebXR emulator | github.com/MozillaReality/WebXR-emulator-extension | 非実機XRテスト | CI/開発のXR検証 |
+| renovatebot / dependabot | github.com/renovatebot/renovate | 依存更新自動化 | 保守性 |
+| rollup-plugin-visualizer | github.com/btd/rollup-plugin-visualizer | バンドル可視化 | サイズ管理 |
+
+**改善点**
+1. **lockfile コミット（P1/S）**: `package-lock.json` を un-ignore（CIの `npm ci` 成立, A13）。
+2. **テスト拡充＋e2e（P1/M）**: 主要サブシステムのユニット（A8）＋ Playwright + WebXR emulator の e2e。
+3. **PWA基盤の置換（P1/M）**: 手書き `service-worker.js` を `vite-plugin-pwa`/workbox に（自動precache/更新, B9と相乗）。
+4. **i18n 導入（P2/M）**: i18next/FormatJS（A6）。
+5. **a11y CIゲート（P1/S）**: `axe-core` をランディング/DOM overlay に（A7）。
+6. **Lighthouse CI 予算（P1/S）**: 既存 `.lighthouserc.json` を CI で実行・予算超過で失敗。
+7. **依存自動更新（P2/S）**: Renovate/Dependabot。
+8. **可観測性の実活用（P2/S）**: web-vitals(導入済)＋Sentry(opt-in) のダッシュボード化。
+9. **バンドル可視化（P2/S）**: rollup-plugin-visualizer でサイズ監視。
+
+---
+
+## まとめ — 横断テーマ（10カテゴリー俯瞰）
+
+カテゴリー横断で繰り返し現れた要石:
+- **A1/B5 実Webコンテンツ＋クローム** が全ての前提（推薦・履歴・テキスト編集・セキュリティはこれに依存）。
+- **共有 `GazeProvider`**（Cat2/3/4/9）= フォービエーション・酔い・選択・配信が同じ視線信号を共有。
+- **永続化レイヤ(IndexedDB)**（Cat3/6/7/9/10）= 設定・履歴・アンカー・モデルキャッシュの共通基盤。
+- **playerRig＋統一ポインタ**（Cat3/4）= 移動と操作の土台。
+- **WebGPU＋圧縮パイプライン**（Cat2/8）= 性能の中核（「2x」主張の実証含む）。
+- **正直な訴求と再現可能ビルド/テスト**（Cat10, B15, A8/A13）= 信頼性。
+
+> 注: 本書は arxiv/GitHub の一次情報（リポジトリ/論文ID）に基づく要点抽出。数値・最新IDは原典で要確認。`assets/js/` v5.x が「主張のみ」保有する高度機能の多くは、本書の改善点として live `src/` への実体化・実測が必要。
