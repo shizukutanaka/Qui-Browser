@@ -12,9 +12,9 @@
 | 1 | WebXR ランタイム & ブラウザクローム | ✅ 完了 |
 | 2 | レンダリング（foveated / neural / 3DGS / WebGPU） | ✅ 完了 |
 | 3 | 快適性 / 酔い / ロコモーション | ✅ 完了 |
-| 4 | ハンドトラッキング・コントローラ・3D操作 | ⬜ 未着手 |
-| 5 | 空間オーディオ | ⬜ 未着手 |
-| 6 | MR / パススルー / アンカー & シーン理解 | ⬜ 未着手 |
+| 4 | ハンドトラッキング・コントローラ・3D操作 | ✅ 完了 |
+| 5 | 空間オーディオ | ✅ 完了 |
+| 6 | MR / パススルー / アンカー & シーン理解 | ✅ 完了 |
 | 7 | マルチプレイヤー / ネットワーク / アバター | ⬜ 未着手 |
 | 8 | パフォーマンス & グラフィックスパイプライン | ⬜ 未着手 |
 | 9 | オンデバイス AI/ML（ブラウザ内推論） | ⬜ 未着手 |
@@ -100,3 +100,73 @@
 6. **快適性設定UI＋永続化（P1/M）**: vignette/FOV/snap/teleport をVR内トグル化し IndexedDB 保存（A5/B7）。
 7. **テレポート専用モード（P1/S）**: 高感受性者向け既定（snap turn + teleport only）。
 8. **オンデバイス酔い予測（P2/L）**: heuristic を小モデル(ONNX/TF.js)へ（2501.01212, C3）。
+
+## Category 4 — ハンドトラッキング・コントローラ・3D操作
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| three.js `XRHandModelFactory`/`OculusHandModel` | github.com/mrdoob/three.js | 関節Group・ハンドモデル・pinch | `HandTracking` の基盤（既利用） |
+| stewartsmith/handy.js | stewartsmith.io/work/handy-js | 宣言的ハンドポーズ認識 | アドホックなジェスチャ判定を置換 |
+| AdaRose/handy-work | github.com/MozillaReality/handy-work | ポーズ→イベント認識 | スクロール/選択へ写像 |
+| immersive-web/webxr-input-profiles | github.com/immersive-web/webxr-input-profiles | コントローラ profile/モデル | A2 コントローラ対応 |
+| pmndrs/xr (interactions) | github.com/pmndrs/xr | pointer/interactable 抽象 | 統一ポインタ設計の参照 |
+| Meta WebXR Hands docs | developers.meta.com/horizon/.../webxr-hands | pinch/emulated gamepad | 入力仕様の正準 |
+| WebKit transient-pointer | webkit.org/blog/15162 | Vision Pro gaze-pinch入力 | visionOS 対応 |
+| STMG microgestures (ACM CHI'24) | dl.acm.org/doi/10.1145/3613904.3642702 | 親指マイクロジェスチャ | 低疲労スクロール/タブ |
+| ViewfinderVR / Expanding targets (arXiv) | 2110.02514 / 2308.12515 | 遠距離選択改善 | リンク選択の精度 |
+
+**改善点**
+1. **ポインタ抽象の統一（P0/M）**: ハンド＋コントローラを共通の `Pointer`（origin/direction/select）に。raycast 対象は interactable レイヤに登録。→ 新 `src/vr/interaction/Pointer.js`。
+2. **宣言的ポーズ認識（P1/M）**: `handy.js`/`handy-work` を導入し `HandTracking` のジェスチャ判定を置換・拡張。
+3. **遠距離選択の改善（P2/M）**: ターゲット拡大/viewfinder（2308.12515/2110.02514）でリンク選択を高精度化。gazeと融合可。
+4. **transient-pointer 対応（P2/S）**: Vision Pro の gaze-pinch 入力に対応。→ セッション入力処理。
+5. **マイクロジェスチャ操作（P1/S）**: 親指スワイプ→スクロール/タブ切替（STMG）。→ `HandTracking` にイベント追加。
+6. **触覚の結線（P1/S）**: `HapticFeedback`(既存) を select/hover に接続（現状ジェスチャ→音のみ）。
+7. **両手操作（P2/M）**: パネルの拡大縮小/回転を両手ピンチで。
+8. **インタラクタブル登録機構（P1/S）**: 物理不要のヒット対象レジストリ＋ホバー/プレス状態管理。
+
+## Category 5 — 空間オーディオ
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| GoogleChrome/omnitone | github.com/GoogleChrome/omnitone | アンビソニックのバイノーラル描画 | 360音場ベッド |
+| polarch/JSAmbisonics | github.com/polarch/JSAmbisonics | FOA/HOA＋SOFA HRTF | 高次アンビソニック/個人化 |
+| Resonance Audio (web) | resonance-audio.github.io | 空間音響SDK（omnitone基盤） | ルーム音響/減衰の参照 |
+| Web Audio `PannerNode` (HRTF) | MDN | 内蔵HRTFパン | 既存 `SpatialAudio` の土台 |
+| SOFA HRTF (SADIE) | sofaconventions.org | 標準HRTFデータ | 個人化/高品質化 |
+| AudioWorklet | MDN | 低遅延カスタムDSP | NN/畳み込みの実行基盤 |
+| LINN (arXiv) | 2509.14069 | 軽量バイノーラルNN | 注目話者の高品質化 |
+| ASAudio survey (arXiv) | 2508.10924 | 空間音響研究の俯瞰 | LOD/知覚最適化の指針 |
+
+**改善点**
+1. **知覚的オーディオLOD（P1/S）**: 近接/大音源のみフルHRTF、遠方は等電力パン。→ `src/vr/audio/SpatialAudio.js`（純ロジック）。
+2. **アンビソニック背景音（P2/M）**: `omnitone` で 360 環境音ベッドを合成。
+3. **ルーム音響/残響（P2/M）**: `ConvolverNode` ＋シーン寸法駆動のリバーブ。
+4. **SOFA HRTF 個人化（P2/M）**: `JSAmbisonics` でユーザー選択HRTF。
+5. **遮蔽/障害（MR連携）（P2/M）**: シーン形状(Cat6)で減衰/ローパス。
+6. **マルチプレイヤ音声のHRTF化（P1/M）**: 遠隔音声を話者位置の panner 経由に（B11）。
+7. **LINN高品質パス（P2/M）**: AudioWorklet+ONNXで注目話者のみ高品質バイノーラル。
+8. **距離減衰/ドップラ較正（P2/S）**: rolloff 調整・ドップラ無効化（酔い/不快回避）。
+
+## Category 6 — MR / パススルー / アンカー & シーン理解
+
+| リソース | URL | 概要 | Quiにとっての意味 |
+|---------|-----|------|------------------|
+| webxr-samples hit-test-anchors | github.com/immersive-web/webxr-samples | ヒットテスト＋アンカー | 実面への配置 |
+| immersive-web/real-world-meshing | immersive-web.github.io/real-world-meshing | Mesh Detection 仕様 | 実環境メッシュ取得 |
+| immersive-web/depth-sensing | github.com/immersive-web/depth-sensing | Depth API 仕様 | 遮蔽/即時ヒットテスト |
+| Meta IWSDK (Scene Understanding) | developers.meta.com/.../iwsdk-guide-scene-understanding | plane/mesh/anchor 統合SDK | 実装パターンの宝庫 |
+| Babylon.js WebXR AR features | doc.babylonjs.com/.../webXRARFeatures | AR機能の実装参照 | 機能網羅の比較 |
+| Meta Depth API in Browser | uploadvr (Horizon 40.4) | Depth駆動の即時ヒットテスト | Scene Mesh無しで配置 |
+| WebXR Anchors (persistent) | immersive-web | アンカー保存/復元 | B8 配置の永続化 |
+| WebXR Plane Detection | immersive-web | 平面検出 | 壁/机に窓を貼る |
+
+**改善点**
+1. **永続アンカー（P1/M）**: `MixedReality.js` のメモリ内 Map を、アンカーハンドル export/restore＋IndexedDB 保存に（B8/A5）。
+2. **Depth Sensing（P1/M）**: `depth-sensing` で実物遮蔽＋即時ヒットテスト（Quest 3）。
+3. **平面/メッシュ検出（P1/M）**: 壁・机・床にブラウザ窓を吸着配置。
+4. **光推定（P2/S）**: `light-estimation` で仮想物の馴染み向上。
+5. **アンカー連動の窓配置（P1/M）**: ブラウザ窓を部屋に固定し再訪時復元（B5＋B8）。
+6. **dom-overlay（AR 2D UI）（P2/S）**: AR時の2D UIを `dom-overlay` で。
+7. **IWSDK パターン移植（P2/M）**: Scene Understanding のアンカー/メッシュ設計を参照実装。
+8. **パススルー品質/セグメンテーション（P2/M）**: 手/人セグメンテーションで合成改善。
