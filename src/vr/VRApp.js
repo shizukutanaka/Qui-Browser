@@ -70,6 +70,8 @@ export class VRApp {
     this.playerRig = null;
     this.controllers = [];
     this.controllerGrips = [];
+    this.floorMesh = null;
+    this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -91,6 +93,9 @@ export class VRApp {
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
+      // Teleport locomotion (squeeze/grip to aim, release to move). Needs a
+      // floor (provided by the home environment) and controllers.
+      enableTeleport: true,
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -271,6 +276,8 @@ export class VRApp {
     const floorMat = new THREE.MeshBasicMaterial({ color: 0x141821 });
     const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), floorMat);
     floor.rotation.x = -Math.PI / 2;
+    floor.name = 'floor';
+    this.floorMesh = floor; // teleport target surface
     env.add(floor);
 
     // Reference grid — a static rest frame that reduces vection/sickness.
@@ -356,13 +363,76 @@ export class VRApp {
       this.playerRig.add(controller);
       this.controllers.push(controller);
 
+      // Teleport: squeeze (grip) to aim, release to move.
+      controller.addEventListener('squeezestart', () => this.onTeleportStart(controller));
+      controller.addEventListener('squeezeend', () => this.onTeleportEnd());
+
       const grip = this.renderer.xr.getControllerGrip(i);
       grip.add(factory.createControllerModel(grip));
       this.playerRig.add(grip);
       this.controllerGrips.push(grip);
     }
 
+    // Teleport target marker (flat ring on the floor), hidden until aiming.
+    const marker = new THREE.Mesh(
+      new THREE.RingGeometry(0.18, 0.28, 32),
+      new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+    );
+    marker.rotation.x = -Math.PI / 2;
+    marker.visible = false;
+    this.scene.add(marker);
+    this.teleport.marker = marker;
+
     console.log('VRApp: Controllers ready');
+  }
+
+  /** Build a world-space raycaster from a controller's pose. */
+  raycasterFromController(controller) {
+    const m = new THREE.Matrix4().extractRotation(controller.matrixWorld);
+    const raycaster = new THREE.Raycaster();
+    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(m);
+    return raycaster;
+  }
+
+  onTeleportStart(controller) {
+    if (!this.settings.enableTeleport || !this.floorMesh) return;
+    this.teleport.active = true;
+    this.teleport.controller = controller;
+  }
+
+  onTeleportEnd() {
+    const t = this.teleport;
+    if (t.active && t.valid && t.target) {
+      // Move the rig by the delta between the head's ground position and the
+      // target so the user ends up standing on the marker.
+      const head = new THREE.Vector3();
+      this.camera.getWorldPosition(head);
+      this.playerRig.position.x += t.target.x - head.x;
+      this.playerRig.position.z += t.target.z - head.z;
+    }
+    t.active = false;
+    t.valid = false;
+    t.controller = null;
+    if (t.marker) t.marker.visible = false;
+  }
+
+  /** Per-frame teleport aiming: project the controller ray onto the floor. */
+  updateTeleport() {
+    const t = this.teleport;
+    if (!t.active || !t.controller || !this.floorMesh) return;
+    const hit = this.raycasterFromController(t.controller).intersectObject(this.floorMesh, false)[0];
+    if (hit) {
+      t.valid = true;
+      t.target = hit.point.clone();
+      if (t.marker) {
+        t.marker.position.set(hit.point.x, hit.point.y + 0.01, hit.point.z);
+        t.marker.visible = true;
+      }
+    } else {
+      t.valid = false;
+      if (t.marker) t.marker.visible = false;
+    }
   }
 
   /**
@@ -696,6 +766,9 @@ export class VRApp {
     if (this.mixedReality && this.mixedReality.enabled && xrFrame) {
       this.mixedReality.update(xrFrame);
     }
+
+    // Update teleport aiming (marker follows the controller ray on the floor)
+    this.updateTeleport();
 
     // Update scene objects using pools
     this.updateSceneWithPools();
