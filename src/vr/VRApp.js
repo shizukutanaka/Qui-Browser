@@ -73,6 +73,8 @@ export class VRApp {
     this.floorMesh = null;
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
     this.interactables = []; // meshes registered with select/hover handlers
+    this.settingsPanel = null;
+    this._panelTextures = []; // CanvasTextures to dispose on teardown
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -100,6 +102,8 @@ export class VRApp {
       // Snap turn on the right thumbstick (comfortable rotation in XR).
       enableSnapTurn: true,
       snapTurnAngle: 30, // degrees per snap
+      // In-VR settings panel (toggle buttons).
+      enableSettingsPanel: true,
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -235,7 +239,103 @@ export class VRApp {
       this.scene.add(this.homeEnvironment);
     }
 
+    // In-VR settings panel (toggle buttons wired to the persisted settings).
+    if (this.settings.enableSettingsPanel) {
+      this.settingsPanel = this.createSettingsPanel();
+      this.scene.add(this.settingsPanel);
+    }
+
     console.log('VRApp: Scene created');
+  }
+
+  /**
+   * Build a canvas-textured toggle button bound to a boolean setting. Selecting
+   * it flips and persists the setting, applies an optional live effect, and
+   * redraws the ON/OFF state. Returns the button mesh (already registered as
+   * interactable).
+   */
+  makeToggleButton(label, key, apply) {
+    const w = 512;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+
+    const draw = (hover) => {
+      const on = !!this.settings[key];
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = hover ? 'rgba(40,60,90,0.95)' : 'rgba(16,20,30,0.92)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = on ? '#44ff88' : '#667788';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillText(label, 24, 62);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = on ? '#44ff88' : '#8899aa';
+      ctx.fillText(on ? 'ON' : 'OFF', w - 24, 62);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    this.registerInteractable(mesh, {
+      onSelect: () => {
+        const value = !this.settings[key];
+        this.updateSetting(key, value); // flips + persists (FR-9.1)
+        if (apply) apply(value);
+        draw(true);
+      },
+      onHover: () => draw(true),
+      onHoverEnd: () => draw(false)
+    });
+    return mesh;
+  }
+
+  /**
+   * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
+   * the runtime settings (all effects are immediate and safe).
+   */
+  createSettingsPanel() {
+    const group = new THREE.Group();
+    group.name = 'settingsPanel';
+
+    const bg = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.1, 1.15),
+      new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
+    );
+    group.add(bg);
+
+    const items = [
+      ['Teleport', 'enableTeleport', null],
+      ['Snap Turn', 'enableSnapTurn', null],
+      ['Comfort', 'enableComfort', null],
+      ['Foveation', 'enableFFR', (v) => {
+        if (this.ffrSystem) { v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable(); }
+      }]
+    ];
+
+    let y = 0.36;
+    for (const [label, key, apply] of items) {
+      const btn = this.makeToggleButton(label, key, apply);
+      btn.position.set(0, y, 0.01);
+      group.add(btn);
+      y -= 0.22;
+    }
+
+    // Front-left of the user, angled toward them.
+    group.position.set(-1.4, 1.5, -2.0);
+    group.rotation.y = Math.PI / 8;
+    return group;
   }
 
   /**
@@ -828,7 +928,7 @@ export class VRApp {
    */
   updateSystems(timestamp, xrFrame) {
     // Update comfort system (vignette, FOV)
-    if (this.comfortSystem) {
+    if (this.comfortSystem && this.settings.enableComfort) {
       const isMoving = this.detectMotion();
       this.comfortSystem.update(isMoving);
     }
@@ -1050,6 +1150,7 @@ export class VRApp {
     if (this.perfMonitorUI) this.perfMonitorUI.dispose();
     if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();
     if (this._homePanelTexture) this._homePanelTexture.dispose();
+    if (this._panelTextures) this._panelTextures.forEach((t) => t.dispose());
 
     // Dispose Three.js
     this.renderer.dispose();

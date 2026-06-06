@@ -72,7 +72,7 @@
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
 | FR-9.1 | 設定/プロファイルの永続化 | ✅ | `localStorage`（`loadPersistedSettings`/`saveSettings`） |
-| FR-9.2 | VR 内設定パネル | ❌ | UI 未実装 |
+| FR-9.2 | VR 内設定パネル | ✅ | トグルボタン式パネル（Teleport/Snap Turn/Comfort/Foveation）。永続化＋即時反映 |
 | FR-10.1 | PWA インストール／オフライン | ✅ | `service-worker.js` + manifest |
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ❌ | 2D ランディング→クリック |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
@@ -102,7 +102,8 @@
 - FR-3.1 playerRig / FR-2.1 コントローラ＋レイ（`cdb4c04`）
 - FR-3.2 テレポート移動（`4f6cd1d`）
 - FR-3.4 スナップ旋回（`ab11e6d`）
-- FR-2.3 interactable レジストリ＋ホバー＋Recenter ボタン（本コミット）
+- FR-2.3 interactable レジストリ＋ホバー＋Recenter ボタン（`0e18443`）
+- FR-9.2 VR内設定パネル（本コミット）
 - FR-4.6 ホーム環境 / FR-7.1 マルチプレイヤ設定化（`bd6d132`）
 - FR-9.1 設定永続化 / NFR-5 lockfile（`77426d7`）
 - NFR-4 単体テスト追加（`3a42b98`）
