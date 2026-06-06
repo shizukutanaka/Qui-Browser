@@ -72,6 +72,7 @@ export class VRApp {
     this.controllerGrips = [];
     this.floorMesh = null;
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
+    this.interactables = []; // meshes registered with select/hover handlers
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -316,6 +317,14 @@ export class VRApp {
     panel.position.set(0, 1.6, -2.5);
     env.add(panel);
 
+    // Make the panel a working "Recenter" button (also exercises the
+    // interactable + hover pipeline end-to-end).
+    this.registerInteractable(panel, {
+      onSelect: () => this.recenter(),
+      onHover: () => panel.material.color.set(0x88bbff),
+      onHoverEnd: () => panel.material.color.set(0xffffff)
+    });
+
     return env;
   }
 
@@ -481,17 +490,60 @@ export class VRApp {
    * can listen). Kept minimal until the interactable registry lands.
    */
   onControllerSelect(controller, isStart) {
-    if (!isStart) return;
-    const tempMatrix = new THREE.Matrix4().extractRotation(controller.matrixWorld);
-    const raycaster = new THREE.Raycaster();
-    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-
-    const hits = raycaster.intersectObjects(this.scene.children, true);
-    const hit = hits.find((h) => h.object && h.object.visible);
-    if (hit && hit.object.dispatchEvent) {
+    if (!isStart || this.interactables.length === 0) return;
+    const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
+    if (!hit) return;
+    const handlers = hit.object.userData.interactable;
+    if (handlers && handlers.onSelect) handlers.onSelect({ intersection: hit, controller });
+    // Also emit a DOM-style event for any external listeners.
+    if (hit.object.dispatchEvent) {
       hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
     }
+  }
+
+  /**
+   * Register a mesh as interactable. handlers: { onSelect, onHover, onHoverEnd }.
+   * Returns the object for chaining.
+   */
+  registerInteractable(object, handlers = {}) {
+    object.userData.interactable = handlers;
+    if (!this.interactables.includes(object)) this.interactables.push(object);
+    return object;
+  }
+
+  /** Remove an interactable from the registry. */
+  unregisterInteractable(object) {
+    const i = this.interactables.indexOf(object);
+    if (i !== -1) this.interactables.splice(i, 1);
+  }
+
+  /**
+   * Per-frame hover detection for each controller ray against interactables,
+   * firing onHover/onHoverEnd as the hovered object changes.
+   */
+  updateHover() {
+    if (this.interactables.length === 0) return;
+    for (const controller of this.controllers) {
+      const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
+      const obj = hit ? hit.object : null;
+      const prev = controller.userData.hovered || null;
+      if (prev === obj) continue;
+      if (prev && prev.userData.interactable && prev.userData.interactable.onHoverEnd) {
+        prev.userData.interactable.onHoverEnd();
+      }
+      if (obj && obj.userData.interactable && obj.userData.interactable.onHover) {
+        obj.userData.interactable.onHover();
+      }
+      controller.userData.hovered = obj;
+    }
+  }
+
+  /** Return the player to the origin (useful after teleporting around). */
+  recenter() {
+    if (!this.playerRig) return;
+    this.playerRig.position.set(0, 0, 0);
+    this.playerRig.quaternion.identity();
+    console.log('VRApp: recentered');
   }
 
   /**
@@ -807,9 +859,10 @@ export class VRApp {
       this.mixedReality.update(xrFrame);
     }
 
-    // Update locomotion input (snap turn) and teleport aiming
+    // Update locomotion input (snap turn), teleport aiming, and hover
     this.updateLocomotion();
     this.updateTeleport();
+    this.updateHover();
 
     // Update scene objects using pools
     this.updateSceneWithPools();

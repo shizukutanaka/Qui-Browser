@@ -31,7 +31,7 @@
 |----|------|------|-----------|
 | FR-2.1 | コントローラ表示＋レイポインタ＋select | ✅ | `setupControllers()` / `XRControllerModelFactory` |
 | FR-2.2 | ハンドトラッキング（pinch/point） | ✅ | `HandTracking` |
-| FR-2.3 | 選択ヒットのイベント配信（interactable） | 🟡 | `qui-select` 発火。受け手レジストリ未整備 |
+| FR-2.3 | 選択ヒットのイベント配信（interactable） | ✅ | `registerInteractable()`＋ホバー（`updateHover`）。ウェルカム板を Recenter ボタン化 |
 | FR-2.4 | 音声コマンド | 🟡 | `VoiceCommands`（既定 off） |
 | FR-2.5 | 日本語 IME 入力 | ✅ | `JapaneseIME` + VR キーボード |
 
@@ -101,7 +101,8 @@
 ## 6. 本セッションでの実装（適合改善の記録）
 - FR-3.1 playerRig / FR-2.1 コントローラ＋レイ（`cdb4c04`）
 - FR-3.2 テレポート移動（`4f6cd1d`）
-- FR-3.4 スナップ旋回（本コミット）
+- FR-3.4 スナップ旋回（`ab11e6d`）
+- FR-2.3 interactable レジストリ＋ホバー＋Recenter ボタン（本コミット）
 - FR-4.6 ホーム環境 / FR-7.1 マルチプレイヤ設定化（`bd6d132`）
 - FR-9.1 設定永続化 / NFR-5 lockfile（`77426d7`）
 - NFR-4 単体テスト追加（`3a42b98`）
