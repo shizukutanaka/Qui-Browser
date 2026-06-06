@@ -4,6 +4,22 @@
  */
 
 import { initializeMonitoring } from './monitoring.js';
+import { applyTranslations, setLanguage, getLanguage } from './i18n/i18n.js';
+
+// Localize the landing page as early as possible (module scripts run after the
+// DOM is parsed), then wire the language toggle.
+applyTranslations(document);
+{
+  const langBtn = document.getElementById('langToggle');
+  if (langBtn) {
+    const sync = () => { langBtn.textContent = getLanguage() === 'ja' ? 'EN' : '日本語'; };
+    sync();
+    langBtn.addEventListener('click', () => {
+      setLanguage(getLanguage() === 'ja' ? 'en' : 'ja', document);
+      sync();
+    });
+  }
+}
 
 // Initialize observability in production builds only. web-vitals is bundled
 // and runs out of the box; Sentry/analytics are opt-in (see vite.config.js)

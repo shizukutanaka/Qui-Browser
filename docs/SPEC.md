@@ -76,7 +76,7 @@
 | FR-10.1 | PWA インストール／オフライン | ✅ | `service-worker.js` + manifest |
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ❌ | 2D ランディング→クリック |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
-| FR-12.1 | i18n（多言語 UI） | ❌ | UI 英語固定。日本語は IME/音声のみ |
+| FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
 | FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | ❌ | ほぼ未対応 |
 
 ## 4. 非機能要件（NFR）
@@ -104,7 +104,8 @@
 - FR-3.4 スナップ旋回（`ab11e6d`）
 - FR-2.3 interactable レジストリ＋ホバー＋Recenter ボタン（`0e18443`）
 - FR-9.2 VR内設定パネル（`1686bc0`）
-- FR-3.3 スムーズ移動＋快適性連動（本コミット）
+- FR-3.3 スムーズ移動＋快適性連動（`22c412c`）
+- FR-12.1 i18n（ja/en、ランディング多言語化＋トグル）（本コミット）
 - FR-4.6 ホーム環境 / FR-7.1 マルチプレイヤ設定化（`bd6d132`）
 - FR-9.1 設定永続化 / NFR-5 lockfile（`77426d7`）
 - NFR-4 単体テスト追加（`3a42b98`）
