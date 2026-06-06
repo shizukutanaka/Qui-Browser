@@ -102,6 +102,11 @@ export class VRApp {
       // Snap turn on the right thumbstick (comfortable rotation in XR).
       enableSnapTurn: true,
       snapTurnAngle: 30, // degrees per snap
+      // Smooth (continuous) locomotion on the left thumbstick. OFF by default —
+      // it is the main sickness trigger; the comfort vignette engages while it
+      // is active. Teleport remains the comfortable default.
+      enableSmoothMove: false,
+      smoothMoveSpeed: 1.8, // metres/second
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
       // Tier 3 / optional features — opt-in, default off so the base
@@ -310,7 +315,7 @@ export class VRApp {
     group.name = 'settingsPanel';
 
     const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, 1.15),
+      new THREE.PlaneGeometry(1.1, 1.35),
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
@@ -318,13 +323,14 @@ export class VRApp {
     const items = [
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
+      ['Smooth Move', 'enableSmoothMove', null],
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
         if (this.ffrSystem) { v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable(); }
       }]
     ];
 
-    let y = 0.36;
+    let y = 0.46;
     for (const [label, key, apply] of items) {
       const btn = this.makeToggleButton(label, key, apply);
       btn.position.set(0, y, 0.01);
@@ -539,19 +545,54 @@ export class VRApp {
    * wired, since continuous motion is the main sickness trigger.)
    */
   updateLocomotion() {
-    if (!this.settings.enableSnapTurn || !this.playerRig) return;
+    if (!this.playerRig) return;
+
+    // Frame delta (capped) for continuous movement.
+    const now = performance.now();
+    const dt = this._lastLocoTime ? Math.min((now - this._lastLocoTime) / 1000, 0.05) : 0.016;
+    this._lastLocoTime = now;
+
+    let smoothMoving = false;
     for (const controller of this.controllers) {
       const src = controller.userData.inputSource;
-      if (!src || !src.gamepad || src.handedness !== 'right') continue;
+      if (!src || !src.gamepad) continue;
       const axes = src.gamepad.axes;
       const x = axes.length >= 4 ? axes[2] : (axes[0] || 0); // thumbstick X
-      if (Math.abs(x) > 0.7 && !controller.userData.snapLatched) {
-        this.snapTurn(x > 0 ? -1 : 1); // push right → turn clockwise
-        controller.userData.snapLatched = true;
-      } else if (Math.abs(x) < 0.3) {
-        controller.userData.snapLatched = false;
+      const y = axes.length >= 4 ? axes[3] : (axes[1] || 0); // thumbstick Y
+
+      // Right stick: snap turn.
+      if (this.settings.enableSnapTurn && src.handedness === 'right') {
+        if (Math.abs(x) > 0.7 && !controller.userData.snapLatched) {
+          this.snapTurn(x > 0 ? -1 : 1); // push right → turn clockwise
+          controller.userData.snapLatched = true;
+        } else if (Math.abs(x) < 0.3) {
+          controller.userData.snapLatched = false;
+        }
+      }
+
+      // Left stick: smooth move (opt-in) in the head's facing plane.
+      if (this.settings.enableSmoothMove && src.handedness === 'left' && Math.hypot(x, y) > 0.15) {
+        const q = new THREE.Quaternion();
+        this.camera.getWorldQuaternion(q);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+        forward.y = 0;
+        forward.normalize();
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q);
+        right.y = 0;
+        right.normalize();
+        const move = new THREE.Vector3()
+          .addScaledVector(forward, -y) // stick up → forward
+          .addScaledVector(right, x);
+        if (move.lengthSq() > 0) {
+          move.normalize().multiplyScalar(this.settings.smoothMoveSpeed * dt);
+          this.playerRig.position.add(move);
+          smoothMoving = true;
+        }
       }
     }
+
+    // Engage the comfort vignette while continuously moving.
+    if (this.comfortSystem) this.comfortSystem.externalMotion = smoothMoving;
   }
 
   /** Rotate the player rig in place about the head by snapTurnAngle * direction. */

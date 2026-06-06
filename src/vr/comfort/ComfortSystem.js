@@ -13,6 +13,10 @@ export class ComfortSystem {
     this.camera = camera;
     this.renderer = renderer;
 
+    // External motion signal (smooth locomotion moves the rig, not the head, so
+    // head-delta detection alone would miss it). OR'd into isMoving each frame.
+    this.externalMotion = false;
+
     // Comfort settings
     this.settings = {
       preset: 'moderate',
@@ -139,8 +143,8 @@ export class ComfortSystem {
     const moveDistance = currentPosition.distanceTo(this.lastPosition);
     const rotDistance = Math.abs(currentRotation - this.lastRotation);
 
-    // Update motion flags
-    this.isMoving = moveDistance > 0.001;  // ~1mm threshold
+    // Update motion flags (OR in any external locomotion signal)
+    this.isMoving = moveDistance > 0.001 || this.externalMotion; // ~1mm threshold
     this.isRotating = rotDistance > 0.001; // ~0.05 degree threshold
 
     // Store current values for next frame
