@@ -96,6 +96,9 @@ export class VRApp {
       // Teleport locomotion (squeeze/grip to aim, release to move). Needs a
       // floor (provided by the home environment) and controllers.
       enableTeleport: true,
+      // Snap turn on the right thumbstick (comfortable rotation in XR).
+      enableSnapTurn: true,
+      snapTurnAngle: 30, // degrees per snap
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -360,6 +363,9 @@ export class VRApp {
       controller.add(ray);
       controller.addEventListener('selectstart', () => this.onControllerSelect(controller, true));
       controller.addEventListener('selectend', () => this.onControllerSelect(controller, false));
+      // Keep the live XRInputSource so we can read the thumbstick (snap turn).
+      controller.addEventListener('connected', (e) => { controller.userData.inputSource = e.data; });
+      controller.addEventListener('disconnected', () => { controller.userData.inputSource = null; });
       this.playerRig.add(controller);
       this.controllers.push(controller);
 
@@ -415,6 +421,40 @@ export class VRApp {
     t.valid = false;
     t.controller = null;
     if (t.marker) t.marker.visible = false;
+  }
+
+  /**
+   * Per-frame locomotion input: snap turn on the right thumbstick. Rotates the
+   * whole player rig about the head so the user spins in place. (Smooth-move on
+   * the left stick is intentionally deferred until comfort-vignette coupling is
+   * wired, since continuous motion is the main sickness trigger.)
+   */
+  updateLocomotion() {
+    if (!this.settings.enableSnapTurn || !this.playerRig) return;
+    for (const controller of this.controllers) {
+      const src = controller.userData.inputSource;
+      if (!src || !src.gamepad || src.handedness !== 'right') continue;
+      const axes = src.gamepad.axes;
+      const x = axes.length >= 4 ? axes[2] : (axes[0] || 0); // thumbstick X
+      if (Math.abs(x) > 0.7 && !controller.userData.snapLatched) {
+        this.snapTurn(x > 0 ? -1 : 1); // push right → turn clockwise
+        controller.userData.snapLatched = true;
+      } else if (Math.abs(x) < 0.3) {
+        controller.userData.snapLatched = false;
+      }
+    }
+  }
+
+  /** Rotate the player rig in place about the head by snapTurnAngle * direction. */
+  snapTurn(direction) {
+    const angle = direction * THREE.MathUtils.degToRad(this.settings.snapTurnAngle || 30);
+    const head = new THREE.Vector3();
+    this.camera.getWorldPosition(head);
+    const up = new THREE.Vector3(0, 1, 0);
+    // Rotate the rig's origin around the head pivot, then rotate its orientation;
+    // together this keeps the head fixed while turning the world.
+    this.playerRig.position.sub(head).applyAxisAngle(up, angle).add(head);
+    this.playerRig.rotateOnWorldAxis(up, angle);
   }
 
   /** Per-frame teleport aiming: project the controller ray onto the floor. */
@@ -767,7 +807,8 @@ export class VRApp {
       this.mixedReality.update(xrFrame);
     }
 
-    // Update teleport aiming (marker follows the controller ray on the floor)
+    // Update locomotion input (snap turn) and teleport aiming
+    this.updateLocomotion();
     this.updateTeleport();
 
     // Update scene objects using pools
