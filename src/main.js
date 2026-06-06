@@ -5,6 +5,24 @@
 
 import { initializeMonitoring } from './monitoring.js';
 import { applyTranslations, setLanguage, getLanguage } from './i18n/i18n.js';
+import { applyAccessibility, togglePref, getPrefs } from './a11y/accessibility.js';
+
+// Apply accessibility preferences (high-contrast / large-text / reduced-motion)
+// as early as possible, then wire the toggle buttons.
+applyAccessibility();
+{
+  const wire = (id, key) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(!!getPrefs()[key]));
+    btn.addEventListener('click', () => {
+      const on = togglePref(key);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+  };
+  wire('a11yContrast', 'highContrast');
+  wire('a11yText', 'largeText');
+}
 
 // Localize the landing page as early as possible (module scripts run after the
 // DOM is parsed), then wire the language toggle.

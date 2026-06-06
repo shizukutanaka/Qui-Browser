@@ -121,8 +121,12 @@
         <button class="vr-button" id="vrFloatingButton" title="Enter VR" aria-label="Enter VR mode" data-i18n-attr="title:a11y.enterVR;aria-label:a11y.enterVR" style="display: none;"></button>
     </div>
 
-    <!-- Application Scripts -->
-    <button id="langToggle" aria-label="Toggle language" style="position:fixed;top:12px;right:12px;z-index:3000;padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">日本語</button>
+    <!-- Utility toolbar: accessibility + language -->
+    <div class="util-toolbar" style="position:fixed;top:12px;right:12px;z-index:3000;display:flex;gap:8px;">
+        <button id="a11yContrast" class="util-toggle" aria-pressed="false" title="High contrast" aria-label="Toggle high contrast" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">◐</button>
+        <button id="a11yText" class="util-toggle" aria-pressed="false" title="Large text" aria-label="Toggle large text" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">A+</button>
+        <button id="langToggle" class="util-toggle" aria-label="Toggle language" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">日本語</button>
+    </div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
