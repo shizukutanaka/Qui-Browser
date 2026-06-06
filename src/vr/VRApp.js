@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
@@ -63,6 +64,12 @@ export class VRApp {
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
     this.homeEnvironment = null;
+
+    // Player rig (camera + controllers) — the movable reference for locomotion
+    // and the correct parent for snap/teleport turning.
+    this.playerRig = null;
+    this.controllers = [];
+    this.controllerGrips = [];
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -313,6 +320,68 @@ export class VRApp {
       1000
     );
     this.camera.position.set(0, 1.6, 3); // Average eye height
+
+    // Nest the camera in a player rig so the user can be moved/turned as a unit
+    // (WebXR positions the headset relative to this rig's transform).
+    this.playerRig = new THREE.Group();
+    this.playerRig.name = 'playerRig';
+    this.playerRig.add(this.camera);
+    this.scene.add(this.playerRig);
+  }
+
+  /**
+   * Set up WebXR controllers: ray pointer + rendered controller models, parented
+   * to the player rig. Dispatches 'select' on hit so interactables can respond.
+   */
+  setupControllers() {
+    const factory = new XRControllerModelFactory();
+
+    // Shared ray line geometry (pointing down -Z from the controller).
+    const rayGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, -1)
+    ]);
+
+    for (let i = 0; i < 2; i++) {
+      const controller = this.renderer.xr.getController(i);
+      const ray = new THREE.Line(
+        rayGeometry,
+        new THREE.LineBasicMaterial({ color: 0x44aaff })
+      );
+      ray.name = 'pointerRay';
+      ray.scale.z = 5;
+      controller.add(ray);
+      controller.addEventListener('selectstart', () => this.onControllerSelect(controller, true));
+      controller.addEventListener('selectend', () => this.onControllerSelect(controller, false));
+      this.playerRig.add(controller);
+      this.controllers.push(controller);
+
+      const grip = this.renderer.xr.getControllerGrip(i);
+      grip.add(factory.createControllerModel(grip));
+      this.playerRig.add(grip);
+      this.controllerGrips.push(grip);
+    }
+
+    console.log('VRApp: Controllers ready');
+  }
+
+  /**
+   * Handle a controller select. Raycasts the controller ray against the scene
+   * and forwards a 'qui-select' event on the first hit object (interactables
+   * can listen). Kept minimal until the interactable registry lands.
+   */
+  onControllerSelect(controller, isStart) {
+    if (!isStart) return;
+    const tempMatrix = new THREE.Matrix4().extractRotation(controller.matrixWorld);
+    const raycaster = new THREE.Raycaster();
+    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+    const hits = raycaster.intersectObjects(this.scene.children, true);
+    const hit = hits.find((h) => h.object && h.object.visible);
+    if (hit && hit.object.dispatchEvent) {
+      hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
+    }
   }
 
   /**
@@ -484,6 +553,9 @@ export class VRApp {
     // landing-page buttons dispatch an event that nothing handles.
     this.onEnterVRRequest = () => vrButton.click();
     window.addEventListener('enter-vr', this.onEnterVRRequest);
+
+    // Controllers (ray pointer + rendered models) parented to the player rig.
+    this.setupControllers();
 
     // Listen for VR session events
     this.renderer.xr.addEventListener('sessionstart', () => {
