@@ -81,7 +81,8 @@ export class VRApp {
       fps: 90,
       frameTime: 0,
       memoryUsed: 0,
-      drawCalls: 0
+      drawCalls: 0,
+      triangles: 0
     };
 
     // Settings
@@ -1063,8 +1064,10 @@ export class VRApp {
         performance.memory.usedJSHeapSize / 1024 / 1024; // MB
     }
 
-    // Track draw calls (simplified)
-    this.performanceMonitor.drawCalls = this.renderer.info.render.calls;
+    // Real GPU metrics from the renderer.
+    const info = this.renderer.info;
+    this.performanceMonitor.drawCalls = info.render.calls;
+    this.performanceMonitor.triangles = info.render.triangles;
   }
 
   /**
@@ -1130,11 +1133,16 @@ export class VRApp {
    * Get performance statistics
    */
   getPerformanceStats() {
+    const info = this.renderer.info;
     const stats = {
       fps: Math.round(this.performanceMonitor.fps),
       frameTime: this.performanceMonitor.frameTime.toFixed(2) + 'ms',
       memory: this.performanceMonitor.memoryUsed.toFixed(1) + 'MB',
-      drawCalls: this.performanceMonitor.drawCalls
+      drawCalls: this.performanceMonitor.drawCalls,
+      triangles: this.performanceMonitor.triangles,
+      geometries: info.memory.geometries,
+      textures: info.memory.textures,
+      programs: info.programs ? info.programs.length : 0
     };
 
     // Add system-specific stats

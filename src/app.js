@@ -90,6 +90,8 @@ function setupPerformanceMonitor() {
         <div>Frame Time: ${stats.frameTime}</div>
         <div>Memory: ${stats.memory}</div>
         <div>Draw Calls: ${stats.drawCalls}</div>
+        <div>Triangles: ${stats.triangles.toLocaleString()}</div>
+        <div>GPU: ${stats.programs} prog / ${stats.geometries} geo / ${stats.textures} tex</div>
         ${stats.ffrIntensity ? `<div>FFR: ${stats.ffrIntensity}</div>` : ''}
         ${stats.textureMemory ? `<div>Textures: ${stats.textureMemory}</div>` : ''}
         ${stats.pooledObjects ? `<div>Pooled Objects: ${stats.pooledObjects}</div>` : ''}
