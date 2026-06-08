@@ -54,7 +54,7 @@ module.exports = {
   verbose: true,
 
   // セットアップファイル
-  // setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
   // グローバル変数
   globals: {
