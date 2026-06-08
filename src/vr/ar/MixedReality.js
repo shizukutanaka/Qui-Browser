@@ -22,6 +22,15 @@ export class MixedReality {
     this.detectedPlanes = new Map();
     this.planeVisualizers = new Map();
 
+    // Mesh detection (real-world reconstruction; FR-6.4)
+    this.detectedMeshes = new Map();
+    this.meshVisualizers = new Map();
+
+    // Depth sensing (FR-6.4): latest per-frame CPU depth buffer for occlusion
+    // queries. Real depth-tested occlusion needs a shader pass; this exposes
+    // the data layer (getDepthInMeters) that such a pass would consume.
+    this.latestDepth = null;
+
     // Anchors for persistent content: object → { nativeAnchor, id }
     this.anchors = new Map();
 
@@ -36,6 +45,7 @@ export class MixedReality {
     // Settings
     this.settings = {
       planeDetection: true,
+      meshDetection: true,
       lightEstimation: true,
       depthSensing: false,
       environmentBlendMode: 'opaque', // 'opaque', 'additive', 'alpha-blend'
@@ -45,8 +55,10 @@ export class MixedReality {
     // Statistics
     this.stats = {
       planesDetected: 0,
+      meshesDetected: 0,
       anchorsCreated: 0,
       hitTests: 0,
+      depthFrames: 0,
       sessionTime: 0
     };
   }
@@ -365,6 +377,16 @@ export class MixedReality {
       this.updatePlanes(frame);
     }
 
+    // Update mesh detection (FR-6.4)
+    if (this.settings.meshDetection) {
+      this.updateMeshes(frame);
+    }
+
+    // Update depth sensing (FR-6.4)
+    if (this.settings.depthSensing) {
+      this.updateDepth(frame);
+    }
+
     // Update hit testing
     if (this.hitTestSource && frame.getHitTestResults) {
       this.updateHitTest(frame);
@@ -502,6 +524,123 @@ export class MixedReality {
     // Clean up
     this.detectedPlanes.delete(plane);
     this.planeVisualizers.delete(plane);
+  }
+
+  // ── Mesh detection (FR-6.4) ───────────────────────────────────────────────
+
+  /**
+   * Update real-world mesh reconstruction from frame.detectedMeshes.
+   * Like planes, meshes are a live Set: new ones are visualized, vanished ones
+   * are torn down.
+   */
+  updateMeshes(frame) {
+    if (!frame.detectedMeshes) return;
+
+    frame.detectedMeshes.forEach(mesh => {
+      if (!this.detectedMeshes.has(mesh)) {
+        this.onMeshDetected(mesh);
+      }
+    });
+
+    // Remove meshes no longer reported by the runtime.
+    this.detectedMeshes.forEach((meshData, mesh) => {
+      if (!frame.detectedMeshes.has(mesh)) {
+        this.onMeshRemoved(mesh);
+      }
+    });
+  }
+
+  /**
+   * Handle a newly detected real-world mesh.
+   */
+  onMeshDetected(mesh) {
+    this.detectedMeshes.set(mesh, {
+      id: `mesh_${this.stats.meshesDetected++}`,
+      label: mesh.semanticLabel || 'mesh',
+      timestamp: performance.now()
+    });
+    this.createMeshVisualizer(mesh);
+  }
+
+  /**
+   * Build a wireframe visualizer for a detected mesh from its vertex/index data.
+   */
+  createMeshVisualizer(mesh) {
+    const meshData = this.detectedMeshes.get(mesh);
+    if (!meshData || !mesh.vertices) return;
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position',
+      new THREE.Float32BufferAttribute(mesh.vertices, 3));
+    if (mesh.indices) {
+      geometry.setIndex(new THREE.Uint32BufferAttribute(mesh.indices, 1));
+    }
+
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xff8800,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+
+    const visual = new THREE.Mesh(geometry, material);
+    visual.name = meshData.id;
+    this.scene.add(visual);
+    this.meshVisualizers.set(mesh, visual);
+  }
+
+  /**
+   * Handle a mesh that is no longer tracked: dispose its visualizer.
+   */
+  onMeshRemoved(mesh) {
+    const visual = this.meshVisualizers.get(mesh);
+    if (visual) {
+      this.scene.remove(visual);
+      visual.geometry.dispose();
+      visual.material.dispose();
+    }
+    this.detectedMeshes.delete(mesh);
+    this.meshVisualizers.delete(mesh);
+  }
+
+  // ── Depth sensing (FR-6.4) ────────────────────────────────────────────────
+
+  /**
+   * Capture the CPU depth buffer for the current frame (one eye is enough for
+   * occlusion sampling). Stored on this.latestDepth; query via getDepthInMeters.
+   */
+  updateDepth(frame) {
+    if (typeof frame.getDepthInformation !== 'function' ||
+        typeof frame.getViewerPose !== 'function' ||
+        !this.referenceSpace) return;
+
+    const pose = frame.getViewerPose(this.referenceSpace);
+    if (!pose || !pose.views) return;
+
+    for (const view of pose.views) {
+      const depth = frame.getDepthInformation(view);
+      if (depth) {
+        this.latestDepth = depth;
+        this.stats.depthFrames++;
+        return;
+      }
+    }
+  }
+
+  /**
+   * Sample the real-world depth (metres) at a normalized view coordinate
+   * (0–1, 0–1). Returns null when no depth buffer is available.
+   * Useful for occluding virtual objects behind real geometry.
+   */
+  getDepthInMeters(normX, normY) {
+    const d = this.latestDepth;
+    if (!d || typeof d.getDepthInMeters !== 'function') return null;
+    try {
+      return d.getDepthInMeters(normX, normY);
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
@@ -676,17 +815,27 @@ export class MixedReality {
       this.stats.sessionTime = performance.now() - this.stats.sessionStartTime;
     }
 
-    // Clean up visualizers
+    // Clean up plane visualizers
     this.planeVisualizers.forEach(mesh => {
       this.scene.remove(mesh);
       mesh.geometry.dispose();
       mesh.material.dispose();
     });
 
+    // Clean up mesh visualizers (FR-6.4)
+    this.meshVisualizers.forEach(visual => {
+      this.scene.remove(visual);
+      visual.geometry.dispose();
+      visual.material.dispose();
+    });
+
     // Clear in-memory tracking — persisted records in IndexedDB are kept so
     // they can be restored on the next session (FR-6.3).
     this.detectedPlanes.clear();
     this.planeVisualizers.clear();
+    this.detectedMeshes.clear();
+    this.meshVisualizers.clear();
+    this.latestDepth = null;
     this.anchors.clear();
     this.hitTestSource = null;
 
@@ -702,6 +851,8 @@ export class MixedReality {
       mode: this.mode,
       enabled: this.enabled,
       planesDetected: this.detectedPlanes.size,
+      meshesDetected: this.detectedMeshes.size,
+      depthAvailable: !!this.latestDepth,
       anchorsActive: this.anchors.size
     };
   }

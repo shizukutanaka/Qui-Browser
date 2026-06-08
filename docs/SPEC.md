@@ -63,7 +63,7 @@
 | FR-6.1 | AR パススルー（MR） | 🟡 | `MixedReality` |
 | FR-6.2 | ヒットテスト/アンカー配置 | 🟡 | `MixedReality.placeObject()` + hit-test。メモリ内アンカーは FR-6.3 で IndexedDB 永続化済 |
 | FR-6.3 | 永続アンカー（再訪復元） | ✅ | `MixedReality`: IndexedDB `QuiBrowserMR/anchors` に pose を保存。`loadSavedAnchors()` / `deletePersistedAnchor()` / `clearSavedAnchors()` API |
-| FR-6.4 | Depth sensing/平面・メッシュ検出 | ❌ | 未実装 |
+| FR-6.4 | Depth sensing/平面・メッシュ検出 | 🟡 | 平面検出（`updatePlanes`）に加え、メッシュ検出（`updateMeshes`/`frame.detectedMeshes`、ワイヤフレーム可視化）と深度センシング（`updateDepth`/`frame.getDepthInformation`、`getDepthInMeters(x,y)` で遮蔽用サンプリング）を実装。真の遮蔽シェーダ合成は別途。実機 Quest 3 の depth-API 待ち |
 | FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
 | FR-7.2 | アバター/プレゼンス/空間ボイス | 🟡 | `AvatarSystem`: 幾何学的アバター（頭+手）、`addPeer/removePeer/updatePeerPose`、Canvas ラベル。空間ボイスは SpatialAudio との統合待ち |
 | FR-8.1 | AI コンテンツ推薦 | 🟡 | `AIRecommendation` ヒューリスティック（時間帯/カテゴリ重み）。`VRApp.navigate()` 経由で BookmarkStore 履歴とリアルタイム同期 |
@@ -127,4 +127,5 @@
 - FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（`3897963`）
 - FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（`31668fd`）
 - FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（`ea87393`）
-- FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（本コミット）
+- FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（`db1e306`）
+- FR-6.4 メッシュ検出＋深度センシング（`MixedReality.updateMeshes`/`updateDepth`/`getDepthInMeters`）（本コミット）
