@@ -28,6 +28,8 @@ import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
+import { BookmarkStore } from '../utils/BookmarkStore.js';
+
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
 
@@ -64,6 +66,9 @@ export class VRApp {
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
     this.homeEnvironment = null;
+
+    // FR-1.4: persistent bookmarks & history store (localStorage-backed).
+    this.bookmarks = new BookmarkStore();
 
     // Player rig (camera + controllers) — the movable reference for locomotion
     // and the correct parent for snap/teleport turning.
@@ -545,13 +550,8 @@ export class VRApp {
    * the left stick is intentionally deferred until comfort-vignette coupling is
    * wired, since continuous motion is the main sickness trigger.)
    */
-  updateLocomotion() {
+  updateLocomotion(dt = 0.016) {
     if (!this.playerRig) return;
-
-    // Frame delta (capped) for continuous movement.
-    const now = performance.now();
-    const dt = this._lastLocoTime ? Math.min((now - this._lastLocoTime) / 1000, 0.05) : 0.016;
-    this._lastLocoTime = now;
 
     let smoothMoving = false;
     for (const controller of this.controllers) {
@@ -949,11 +949,16 @@ export class VRApp {
     // Rich perf monitor — begin-frame timing.
     if (this.perfMonitorUI) this.perfMonitorUI.beginFrame();
 
-    // Start performance timing
+    // Single frame clock: all systems share one dt (capped at 50 ms so a tab
+    // resuming from background doesn't produce an enormous delta).
     const frameStart = performance.now();
+    const dt = this._lastRenderTime
+      ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05)
+      : 0.016;
+    this._lastRenderTime = frameStart;
 
     // Update systems
-    this.updateSystems(timestamp, xrFrame);
+    this.updateSystems(timestamp, xrFrame, dt);
 
     // Render scene
     this.renderer.render(this.scene, this.camera);
@@ -974,7 +979,7 @@ export class VRApp {
   /**
    * Update all systems
    */
-  updateSystems(timestamp, xrFrame) {
+  updateSystems(timestamp, xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
       const isMoving = this.detectMotion();
@@ -983,15 +988,8 @@ export class VRApp {
 
     // Update FFR based on performance and predicted gaze (FR-4.2).
     if (this.ffrSystem && this.isVREnabled) {
-      // Compute per-frame dt for head-velocity estimation.
-      const now = performance.now();
-      const dtSec = this._lastFFRTime
-        ? Math.min((now - this._lastFFRTime) / 1000, 0.05)
-        : 0.016;
-      this._lastFFRTime = now;
-
-      // Feed head quaternion for predicted-gaze foveation.
-      this.ffrSystem.trackHeadPose(this.camera.quaternion, dtSec);
+      // Use the shared frame dt — no per-system timer needed.
+      this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
       this.ffrSystem.updatePredictedGazeFoveation();
 
       // Also coarse-adjust based on frame-budget pressure.
@@ -1020,7 +1018,7 @@ export class VRApp {
     }
 
     // Update locomotion input (snap turn), teleport aiming, and hover
-    this.updateLocomotion();
+    this.updateLocomotion(dt);
     this.updateTeleport();
     this.updateHover();
 

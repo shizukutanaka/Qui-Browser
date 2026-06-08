@@ -23,7 +23,7 @@
 | FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | ❌ | DOM/iframe/Layers 描画なし。最大ギャップ |
 | FR-1.2 | URL バー・戻る/進む・再読込 | ❌ | 未実装 |
 | FR-1.3 | タブ／複数ウィンドウ | ❌ | 未実装 |
-| FR-1.4 | ブックマーク・履歴 | ❌ | 永続化基盤はあり(FR-9.1) |
+| FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
 | FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ❌ | `XRWebGLBinding` は FFR のみ |
 
 ### 3.2 入力・操作
@@ -87,7 +87,7 @@
 | NFR-3 | セキュリティ（オリジン分離/権限） | 🟡 | 遠隔描画(FR-1.1)未実装のためホスト委譲 |
 | NFR-4 | 品質（テスト/カバレッジ） | 🟡 | 主要純ロジックに単体テスト追加。広域カバレッジは低 |
 | NFR-5 | CI 再現性（`npm ci`） | ✅ | lockfile コミット済 |
-| NFR-6 | 保守性（単一フレームクロック等） | 🟡 | delta 配布は未統一 |
+| NFR-6 | 保守性（単一フレームクロック等） | ✅ | `render()` で dt を一度計算し `updateSystems(t,f,dt)` / `updateLocomotion(dt)` へ配布。`_lastLocoTime`/`_lastFFRTime` を廃止 |
 | NFR-7 | 廃止インフラ非依存 | ✅ | マルチプレイヤの死んだ signaling/TURN を除去・設定化 |
 
 ## 5. 不足の実装計画（本仕様から導出）
@@ -116,4 +116,6 @@
 - FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（`92ca046`）
 - FR-6.3 永続アンカー（IndexedDB `QuiBrowserMR/anchors`、`loadSavedAnchors` / `deletePersistedAnchor` / `clearSavedAnchors`）（`0eca44f`）
 - Phase 4.1 PerformanceMonitor 配線（`render()` に `beginFrame`/`endFrame` 追加、'P'キーで rich UI トグル）（`ad64c3f`）
-- FR-4.2 予測 gaze foveation（頭部角速度 → FFR 強度）＋ `FFRSystem.adjustIntensity`（本コミット）
+- FR-4.2 予測 gaze foveation（頭部角速度 → FFR 強度）＋ `FFRSystem.adjustIntensity`（`208c307`）
+- NFR-6 統一フレームクロック（`render()` で dt 一元計算・配布）（本コミット）
+- FR-1.4 BookmarkStore（bookmarks + history, localStorage 永続化）（本コミット）
