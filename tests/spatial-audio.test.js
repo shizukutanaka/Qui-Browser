@@ -1,0 +1,160 @@
+/**
+ * Unit tests for SpatialAudio perceptual LOD (FR-5.2).
+ * AudioContext is fully mocked so tests run in the Node environment.
+ */
+
+// Minimal stub that lets SpatialAudio.initialize() complete without throwing.
+const makePanner = () => ({
+  panningModel: 'HRTF',
+  distanceModel: 'exponential',
+  refDistance: 1,
+  maxDistance: 100,
+  rolloffFactor: 1,
+  positionX: { value: 0 },
+  positionY: { value: 0 },
+  positionZ: { value: 0 },
+  connect: jest.fn()
+});
+
+const makeGain = () => ({
+  gain: { value: 1 },
+  connect: jest.fn()
+});
+
+const makeAudioContext = () => ({
+  state: 'running',
+  sampleRate: 48000,
+  currentTime: 0,
+  baseLatency: 0,
+  listener: {
+    positionX: { value: 0 },
+    positionY: { value: 0 },
+    positionZ: { value: 0 },
+    forwardX: { value: 0 },
+    forwardY: { value: 0 },
+    forwardZ: { value: 0 },
+    upX: { value: 0 },
+    upY: { value: 0 },
+    upZ: { value: 0 }
+  },
+  createPanner: jest.fn(() => makePanner()),
+  createGain: jest.fn(() => makeGain()),
+  resume: jest.fn(),
+  close: jest.fn()
+});
+
+// Inject into global before requiring the module.
+global.window = {
+  AudioContext: jest.fn(() => makeAudioContext()),
+  webkitAudioContext: undefined
+};
+
+const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+
+describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
+  let audio;
+
+  beforeEach(() => {
+    // Reset the AudioContext mock so each test gets a fresh instance.
+    global.window.AudioContext = jest.fn(() => makeAudioContext());
+    audio = new SpatialAudio();
+    // initialize() is async; the constructor kicks it off but we can
+    // exercise LOD synchronously because LOD only touches this.sources
+    // and this._listenerPos, neither of which depend on the async path.
+  });
+
+  test('default hrtfThreshold is 15 metres', () => {
+    expect(audio.settings.hrtfThreshold).toBe(15);
+  });
+
+  test('_sourceDistance returns 0 for a source at the listener', () => {
+    audio._listenerPos = { x: 1, y: 2, z: 3 };
+    const source = { position: { x: 1, y: 2, z: 3 } };
+    expect(audio._sourceDistance(source)).toBe(0);
+  });
+
+  test('_sourceDistance computes Euclidean distance correctly', () => {
+    audio._listenerPos = { x: 0, y: 0, z: 0 };
+    const source = { position: { x: 3, y: 4, z: 0 } };
+    expect(audio._sourceDistance(source)).toBeCloseTo(5);
+  });
+
+  test('updateSourceLOD keeps HRTF for a nearby source', () => {
+    const panner = makePanner(); // starts as 'HRTF'
+    audio.sources.set('near', {
+      panner,
+      position: { x: 0, y: 0, z: 5 }  // 5 m away
+    });
+    audio._listenerPos = { x: 0, y: 0, z: 0 };
+    audio.settings.enableHRTF = true;
+    audio.settings.hrtfThreshold = 15;
+
+    audio.updateSourceLOD('near');
+    expect(panner.panningModel).toBe('HRTF');
+  });
+
+  test('updateSourceLOD downgrades to equalpower beyond threshold', () => {
+    const panner = makePanner();
+    audio.sources.set('far', {
+      panner,
+      position: { x: 0, y: 0, z: 20 }  // 20 m away
+    });
+    audio._listenerPos = { x: 0, y: 0, z: 0 };
+    audio.settings.enableHRTF = true;
+    audio.settings.hrtfThreshold = 15;
+
+    audio.updateSourceLOD('far');
+    expect(panner.panningModel).toBe('equalpower');
+  });
+
+  test('updateSourceLOD upgrades back to HRTF when listener moves close', () => {
+    const panner = makePanner();
+    panner.panningModel = 'equalpower';
+    audio.sources.set('movable', {
+      panner,
+      position: { x: 0, y: 0, z: 20 }
+    });
+    audio.settings.enableHRTF = true;
+    audio.settings.hrtfThreshold = 15;
+
+    // Listener moves close.
+    audio.setListenerPosition(0, 0, 18);
+    audio.updateSourceLOD('movable');
+    expect(panner.panningModel).toBe('HRTF');
+  });
+
+  test('updateSourceLOD always uses equalpower when enableHRTF is false', () => {
+    const panner = makePanner();
+    audio.sources.set('any', {
+      panner,
+      position: { x: 0, y: 0, z: 2 }  // very close
+    });
+    audio._listenerPos = { x: 0, y: 0, z: 0 };
+    audio.settings.enableHRTF = false;
+
+    audio.updateSourceLOD('any');
+    expect(panner.panningModel).toBe('equalpower');
+  });
+
+  test('updateAllLOD counts HRTF vs equalPower sources in stats', () => {
+    const pannerA = makePanner(); // will stay HRTF
+    const pannerB = makePanner(); // will be downgraded
+
+    audio.sources.set('a', { panner: pannerA, position: { x: 0, y: 0, z: 5 } });
+    audio.sources.set('b', { panner: pannerB, position: { x: 0, y: 0, z: 20 } });
+    audio._listenerPos = { x: 0, y: 0, z: 0 };
+    audio.settings.enableHRTF = true;
+    audio.settings.hrtfThreshold = 15;
+
+    audio.updateAllLOD();
+    expect(audio.stats.hrtfSources).toBe(1);
+    expect(audio.stats.equalPowerSources).toBe(1);
+  });
+
+  test('getStats includes hrtfSources, equalPowerSources, and hrtfThreshold', () => {
+    const stats = audio.getStats();
+    expect(stats).toHaveProperty('hrtfSources');
+    expect(stats).toHaveProperty('equalPowerSources');
+    expect(stats).toHaveProperty('hrtfThreshold', 15);
+  });
+});

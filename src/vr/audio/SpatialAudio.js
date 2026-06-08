@@ -22,15 +22,23 @@ export class SpatialAudio {
       coneInnerAngle: 360,
       coneOuterAngle: 360,
       coneOuterGain: 0,
-      enableHRTF: true
+      enableHRTF: true,
+      // Perceptual audio LOD: sources farther than this (metres) use
+      // equalpower panning instead of full HRTF convolution.
+      hrtfThreshold: 15
     };
+
+    // Cached listener world position for LOD distance tests
+    this._listenerPos = { x: 0, y: 1.6, z: 0 };
 
     // Statistics
     this.stats = {
       sourcesActive: 0,
       buffersLoaded: 0,
       totalPlayTime: 0,
-      cpuLoad: 0
+      cpuLoad: 0,
+      hrtfSources: 0,
+      equalPowerSources: 0
     };
 
     this.initialize();
@@ -229,6 +237,9 @@ export class SpatialAudio {
       // Fallback for older browsers
       source.panner.setPosition(x, y, z);
     }
+
+    // Re-evaluate LOD tier after position change.
+    this.updateSourceLOD(sourceName);
   }
 
   /**
@@ -293,6 +304,8 @@ export class SpatialAudio {
   setListenerPosition(x, y, z) {
     if (!this.listener) return;
 
+    this._listenerPos = { x, y, z };
+
     if (this.listener.positionX) {
       this.listener.positionX.value = x;
       this.listener.positionY.value = y;
@@ -346,6 +359,59 @@ export class SpatialAudio {
       forward.x, forward.y, forward.z,
       up.x, up.y, up.z
     );
+
+    // Re-evaluate perceptual LOD tier for all sources now that the
+    // listener has moved.
+    this.updateAllLOD();
+  }
+
+  /**
+   * Return Euclidean distance between a source and the listener.
+   */
+  _sourceDistance(source) {
+    const dx = source.position.x - this._listenerPos.x;
+    const dy = source.position.y - this._listenerPos.y;
+    const dz = source.position.z - this._listenerPos.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  /**
+   * Apply perceptual audio LOD to a single source.
+   * Sources within hrtfThreshold metres use HRTF convolution for full
+   * spatialization; beyond that we fall back to the cheaper equalpower
+   * panning model, which is perceptually sufficient at distance.
+   */
+  updateSourceLOD(sourceName) {
+    const source = this.sources.get(sourceName);
+    if (!source || !source.panner) return;
+
+    const useHRTF = this.settings.enableHRTF &&
+      this._sourceDistance(source) <= this.settings.hrtfThreshold;
+    const targetModel = useHRTF ? 'HRTF' : 'equalpower';
+
+    if (source.panner.panningModel !== targetModel) {
+      source.panner.panningModel = targetModel;
+    }
+  }
+
+  /**
+   * Update LOD tier for every registered source.
+   * Called automatically from updateListenerFromCamera; can also be called
+   * after bulk position updates (e.g. scene teleport).
+   */
+  updateAllLOD() {
+    let hrtf = 0;
+    let eq = 0;
+    this.sources.forEach((_, name) => {
+      this.updateSourceLOD(name);
+      const src = this.sources.get(name);
+      if (src && src.panner) {
+        if (src.panner.panningModel === 'HRTF') hrtf++;
+        else eq++;
+      }
+    });
+    this.stats.hrtfSources = hrtf;
+    this.stats.equalPowerSources = eq;
   }
 
   /**
@@ -427,7 +493,8 @@ export class SpatialAudio {
       contextState: this.context ? this.context.state : 'uninitialized',
       currentTime: this.context ? this.context.currentTime : 0,
       sampleRate: this.context ? this.context.sampleRate : 0,
-      latency: this.context ? this.context.baseLatency || this.context.outputLatency || 0 : 0
+      latency: this.context ? this.context.baseLatency || this.context.outputLatency || 0 : 0,
+      hrtfThreshold: this.settings.hrtfThreshold
     };
   }
 
