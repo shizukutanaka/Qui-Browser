@@ -1,0 +1,178 @@
+/**
+ * FR-13.1: Gaze-dwell interaction — a hands-free accessibility path.
+ *
+ * Casts a ray straight out of the headset (head-gaze) and, when it rests on a
+ * registered interactable continuously for `dwellTime` ms, fires that object's
+ * onSelect handler — exactly the same handler the controller ray uses.  This
+ * lets one-handed or no-controller users operate every UI element (settings
+ * toggles, browser chrome, the recenter panel) by simply looking at them.
+ *
+ * A reticle attached to the camera gives feedback: a faint dot normally, and a
+ * fill disc that grows from 0→1 as the dwell timer charges.  Looking away
+ * cancels and resets the timer (no accidental activations).
+ *
+ * Opt-in via VRApp.settings.enableGazeDwell (default off) so the controller
+ * experience is unchanged for users who don't need it.
+ */
+
+import * as THREE from 'three';
+
+const RETICLE_DISTANCE = 2.0; // metres in front of the camera
+
+export class GazeInteraction {
+  /**
+   * @param {THREE.Camera} camera
+   * @param {object} [opts]
+   * @param {number} [opts.dwellTime=1500] — ms of continuous gaze to trigger
+   */
+  constructor(camera, { dwellTime = 1500 } = {}) {
+    this.camera = camera;
+    this.dwellTime = dwellTime;
+    this.enabled = false;
+
+    // Dwell state
+    this._target   = null; // interactable currently gazed at
+    this._elapsed  = 0;     // ms accumulated on the current target
+    this._fired    = false; // guard so onSelect fires once per dwell
+
+    this._raycaster = new THREE.Raycaster();
+    this._buildReticle();
+  }
+
+  // ── Reticle ─────────────────────────────────────────────────────────────────
+
+  _buildReticle() {
+    this.reticle = new THREE.Group();
+    this.reticle.name = 'gazeReticle';
+    this.reticle.position.set(0, 0, -RETICLE_DISTANCE);
+
+    // Outline ring — marks the gaze point.
+    const ringGeo = new THREE.RingGeometry(0.018, 0.024, 24);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false
+    });
+    this._ring = new THREE.Mesh(ringGeo, ringMat);
+    this._ring.renderOrder = 999;
+    this.reticle.add(this._ring);
+
+    // Progress fill — scales 0→1 while dwelling.
+    const fillGeo = new THREE.CircleGeometry(0.016, 24);
+    const fillMat = new THREE.MeshBasicMaterial({
+      color: 0x44ff88, transparent: true, opacity: 0.9, depthTest: false
+    });
+    this._fill = new THREE.Mesh(fillGeo, fillMat);
+    this._fill.renderOrder = 1000;
+    this._fill.scale.setScalar(0.001);
+    this.reticle.add(this._fill);
+
+    this.reticle.visible = false;
+    // Parent to the camera so it tracks head movement.
+    this.camera.add(this.reticle);
+  }
+
+  // ── Control ──────────────────────────────────────────────────────────────────
+
+  setEnabled(value) {
+    this.enabled = !!value;
+    this.reticle.visible = this.enabled;
+    if (!this.enabled) this._reset();
+    return this.enabled;
+  }
+
+  _reset() {
+    this._target  = null;
+    this._elapsed = 0;
+    this._fired   = false;
+    if (this._fill) this._fill.scale.setScalar(0.001);
+  }
+
+  // ── Per-frame update ─────────────────────────────────────────────────────────
+
+  /**
+   * Advance the dwell timer for this frame.
+   *
+   * @param {THREE.Object3D[]} interactables — same registry the controllers use
+   * @param {number} dtMs — frame delta in milliseconds
+   * @returns {THREE.Object3D|null} the object activated this frame, else null
+   */
+  update(interactables, dtMs) {
+    if (!this.enabled || !interactables || interactables.length === 0) {
+      if (this._target) this._reset();
+      return null;
+    }
+
+    const hit = this._raycastGaze(interactables);
+    const obj = hit ? hit.object : null;
+
+    // Gaze moved to a different object (or off everything): restart the timer.
+    if (obj !== this._target) {
+      this._onTargetChange(this._target, obj);
+      this._target  = obj;
+      this._elapsed = 0;
+      this._fired   = false;
+    }
+
+    if (!this._target) {
+      this._updateFill(0);
+      return null;
+    }
+
+    // Charge the dwell timer.
+    this._elapsed += dtMs;
+    const progress = Math.min(this._elapsed / this.dwellTime, 1);
+    this._updateFill(progress);
+
+    if (progress >= 1 && !this._fired) {
+      this._fired = true;
+      const handlers = this._target.userData && this._target.userData.interactable;
+      if (handlers && handlers.onSelect) {
+        handlers.onSelect({ intersection: hit, gaze: true });
+      }
+      return this._target;
+    }
+    return null;
+  }
+
+  /** Fire hover enter/leave so the gaze path matches controller hover feedback. */
+  _onTargetChange(prev, next) {
+    if (prev && prev.userData && prev.userData.interactable &&
+        prev.userData.interactable.onHoverEnd) {
+      prev.userData.interactable.onHoverEnd();
+    }
+    if (next && next.userData && next.userData.interactable &&
+        next.userData.interactable.onHover) {
+      next.userData.interactable.onHover();
+    }
+  }
+
+  /** Build a world-space gaze ray from the camera and intersect interactables. */
+  _raycastGaze(interactables) {
+    const origin = new THREE.Vector3();
+    const dir    = new THREE.Vector3(0, 0, -1);
+    this.camera.getWorldPosition(origin);
+    this.camera.getWorldQuaternion(this._tmpQuat || (this._tmpQuat = new THREE.Quaternion()));
+    dir.applyQuaternion(this._tmpQuat).normalize();
+    this._raycaster.set(origin, dir);
+    return this._raycaster.intersectObjects(interactables, false)[0] || null;
+  }
+
+  _updateFill(progress) {
+    if (!this._fill) return;
+    // Avoid a zero scale (degenerate matrix); clamp to a tiny minimum.
+    this._fill.scale.setScalar(Math.max(progress, 0.001));
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+  dispose() {
+    if (this.reticle) {
+      if (this.camera && this.camera.remove) this.camera.remove(this.reticle);
+      this.reticle.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
+      });
+    }
+    this._reset();
+    this.reticle = null;
+  }
+}

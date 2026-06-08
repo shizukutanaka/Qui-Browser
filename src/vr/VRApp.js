@@ -19,6 +19,7 @@ import { TextureManager } from '../utils/TextureManager.js';
 // Tier 2 Features
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
 import { HandTracking } from './interaction/HandTracking.js';
+import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -59,6 +60,7 @@ export class VRApp {
     this.japaneseIME = null;
     this.vrKeyboard = null;
     this.handTracking = null;
+    this.gazeInteraction = null;
     this.spatialAudio = null;
     this.mixedReality = null;
     this.progressiveLoader = null;
@@ -128,6 +130,11 @@ export class VRApp {
       smoothMoveSpeed: 1.8, // metres/second
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
+      // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
+      // interactable for gazeDwellTime ms to activate it. OFF by default.
+      enableGazeDwell: false,
+      gazeDwellTime: 1500, // ms
+
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
@@ -350,7 +357,7 @@ export class VRApp {
     group.name = 'settingsPanel';
 
     const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, 1.35),
+      new THREE.PlaneGeometry(1.1, 1.6),
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
@@ -362,6 +369,9 @@ export class VRApp {
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
         if (this.ffrSystem) { v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable(); }
+      }],
+      ['Gaze Select', 'enableGazeDwell', (v) => {
+        if (this.gazeInteraction) this.gazeInteraction.setEnabled(v);
       }]
     ];
 
@@ -787,6 +797,14 @@ export class VRApp {
     this.handTracking = new HandTracking(this.renderer, this.scene);
     console.log('VRApp: Hand tracking ready');
 
+    // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
+    // can be toggled live from the settings panel; only active when enabled.
+    this.gazeInteraction = new GazeInteraction(this.camera, {
+      dwellTime: this.settings.gazeDwellTime
+    });
+    this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
+    console.log('VRApp: Gaze-dwell interaction ready');
+
     // 7. Spatial Audio
     this.spatialAudio = new SpatialAudio();
     await this.loadAudioAssets();
@@ -1139,6 +1157,11 @@ export class VRApp {
     this.updateTeleport();
     this.updateHover();
 
+    // FR-13.1: gaze-dwell selection (hands-free). dt is seconds; pass ms.
+    if (this.gazeInteraction && this.gazeInteraction.enabled) {
+      this.gazeInteraction.update(this.interactables, dt * 1000);
+    }
+
     // Update scene objects using pools
     this.updateSceneWithPools();
   }
@@ -1334,6 +1357,7 @@ export class VRApp {
     if (this.textureManager) this.textureManager.dispose();
     if (this.poolManager) this.poolManager.dispose();
     if (this.handTracking) this.handTracking.dispose();
+    if (this.gazeInteraction) this.gazeInteraction.dispose();
     if (this.spatialAudio) this.spatialAudio.dispose();
     if (this.mixedReality) this.mixedReality.dispose();
     if (this.progressiveLoader) this.progressiveLoader.dispose();

@@ -77,7 +77,7 @@
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ✅ | `display-mode: standalone` 検出時に `enter-vr` 自動発火（200ms 後）。非対応 UA はボタン操作に fallback |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
 | FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
-| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | 🟡 | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`、OS設定尊重・永続化・トグル）。VR内の字幕/gaze-dwell は未 |
+| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | 🟡 | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`、OS設定尊重・永続化・トグル）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、設定パネルでトグル、レティクル進捗表示、`onSelect`/hover を共有）。VR内字幕は未 |
 
 ## 4. 非機能要件（NFR）
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -126,4 +126,5 @@
 - NFR-4 AvatarSystem テスト追加（62 tests total）（`5409fab`）
 - FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（`3897963`）
 - FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（`31668fd`）
-- FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（本コミット）
+- FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（`ea87393`）
+- FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（本コミット）

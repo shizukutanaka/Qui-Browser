@@ -1,0 +1,183 @@
+/**
+ * Unit tests for GazeInteraction (FR-13.1).
+ * THREE is mocked so the dwell-timer logic can be exercised headlessly.
+ * The raycast is stubbed via a controllable `nextHit` so tests drive exactly
+ * which interactable the gaze rests on each frame.
+ */
+
+// ── controllable raycast result ───────────────────────────────────────────────
+let nextHit = null; // { object } or null
+
+class MockVec3 {
+  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+  set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+  applyQuaternion() { return this; }
+  normalize() { return this; }
+}
+class MockQuat {}
+class MockRaycaster {
+  set() {}
+  intersectObjects() { return nextHit ? [nextHit] : []; }
+}
+class MockGeometry { dispose() {} }
+class MockMaterial { dispose() {} }
+class MockMesh {
+  constructor() {
+    this.renderOrder = 0;
+    this.scale = { _s: 1, setScalar(s) { this._s = s; } };
+    this.geometry = new MockGeometry();
+    this.material = new MockMaterial();
+  }
+}
+class MockGroup {
+  constructor() {
+    this.name = '';
+    this.visible = true;
+    this.position = { set: jest.fn() };
+    this._objects = [];
+  }
+  add(o) { this._objects.push(o); }
+  traverse(fn) { this._objects.forEach(fn); fn(this); }
+}
+
+jest.mock('three', () => ({
+  Vector3: MockVec3,
+  Quaternion: MockQuat,
+  Raycaster: MockRaycaster,
+  Group: MockGroup,
+  Mesh: MockMesh,
+  RingGeometry: MockGeometry,
+  CircleGeometry: MockGeometry,
+  MeshBasicMaterial: MockMaterial
+}));
+
+const { GazeInteraction } = require('../src/vr/interaction/GazeInteraction.js');
+
+function makeCamera() {
+  return {
+    add: jest.fn(),
+    remove: jest.fn(),
+    getWorldPosition: (v) => v,
+    getWorldQuaternion: (q) => q
+  };
+}
+
+function makeInteractable(handlers = {}) {
+  return { userData: { interactable: handlers } };
+}
+
+describe('GazeInteraction (FR-13.1)', () => {
+  beforeEach(() => { nextHit = null; });
+
+  test('starts disabled with a hidden reticle', () => {
+    const gi = new GazeInteraction(makeCamera());
+    expect(gi.enabled).toBe(false);
+    expect(gi.reticle.visible).toBe(false);
+  });
+
+  test('setEnabled(true) shows the reticle', () => {
+    const gi = new GazeInteraction(makeCamera());
+    gi.setEnabled(true);
+    expect(gi.enabled).toBe(true);
+    expect(gi.reticle.visible).toBe(true);
+  });
+
+  test('update() no-ops while disabled', () => {
+    const gi = new GazeInteraction(makeCamera());
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+    const result = gi.update([obj], 5000);
+    expect(result).toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('fires onSelect after the dwell time elapses', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+
+    gi.update([obj], 500);          // 0.5s — not yet
+    expect(onSelect).not.toHaveBeenCalled();
+    const fired = gi.update([obj], 600); // 1.1s — crosses threshold
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(fired).toBe(obj);
+    expect(onSelect.mock.calls[0][0].gaze).toBe(true);
+  });
+
+  test('fires onSelect only once per continuous dwell', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200); // fires
+    gi.update([obj], 1200); // still gazing — must NOT refire
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  test('looking away before dwell completes cancels activation', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+
+    nextHit = { object: obj };
+    gi.update([obj], 700);    // partway
+    nextHit = null;           // look away
+    gi.update([obj], 700);    // timer resets
+    nextHit = { object: obj };
+    gi.update([obj], 700);    // only 0.7s again — still under threshold
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('fires hover enter/leave as the gaze target changes', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const aHover = jest.fn(), aEnd = jest.fn(), bHover = jest.fn();
+    const a = makeInteractable({ onHover: aHover, onHoverEnd: aEnd });
+    const b = makeInteractable({ onHover: bHover });
+
+    nextHit = { object: a };
+    gi.update([a, b], 100);   // enter a
+    nextHit = { object: b };
+    gi.update([a, b], 100);   // leave a, enter b
+    expect(aHover).toHaveBeenCalledTimes(1);
+    expect(aEnd).toHaveBeenCalledTimes(1);
+    expect(bHover).toHaveBeenCalledTimes(1);
+  });
+
+  test('the progress fill grows with dwell and resets on cancel', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+    gi.update([obj], 500);
+    expect(gi._fill.scale._s).toBeCloseTo(0.5, 2);
+    nextHit = null;
+    gi.update([obj], 100); // look away → reset
+    expect(gi._fill.scale._s).toBeCloseTo(0.001, 3);
+  });
+
+  test('setEnabled(false) resets dwell state', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+    gi.update([obj], 500);
+    gi.setEnabled(false);
+    expect(gi._target).toBeNull();
+    expect(gi._elapsed).toBe(0);
+  });
+
+  test('dispose() detaches the reticle from the camera', () => {
+    const camera = makeCamera();
+    const gi = new GazeInteraction(camera);
+    gi.dispose();
+    expect(camera.remove).toHaveBeenCalled();
+    expect(gi.reticle).toBeNull();
+  });
+});
