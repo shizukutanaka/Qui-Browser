@@ -42,6 +42,11 @@ export class WebPanel {
     this.loading     = false;
     this.domOverlaySupported = false;
 
+    // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
+    this.quadLayer    = null;
+    this.layersSystem = null;
+    this._layerDirty  = false; // set true whenever chromeCanvas changes
+
     // Three.js objects
     this.group       = new THREE.Group();
     this.chromeMesh  = null;   // URL bar + controls
@@ -169,6 +174,7 @@ export class WebPanel {
     ctx.fillText('✕', w - 33, h / 2 + 8);
 
     this.chromeTex.needsUpdate = true;
+    this._layerDirty = true; // signal that the layer texture also needs refresh
   }
 
   // ── Interaction ───────────────────────────────────────────────────────────
@@ -273,6 +279,47 @@ export class WebPanel {
     this.iframe.style.display = 'none';
   }
 
+  // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
+
+  /**
+   * Switch to native XRQuadLayer rendering for the chrome bar.  When active
+   * the Three.js chromeMesh is hidden (the runtime composites the layer at
+   * native display resolution instead).  Falls back silently if layer is null.
+   *
+   * @param {XRQuadLayer}  quadLayer     — layer created by LayersSystem
+   * @param {LayersSystem} layersSystem  — the owning LayersSystem instance
+   */
+  enableLayerMode(quadLayer, layersSystem) {
+    if (!quadLayer || !layersSystem) return;
+    this.quadLayer    = quadLayer;
+    this.layersSystem = layersSystem;
+    // Hide the Three.js chrome mesh — the runtime composites the layer instead.
+    if (this.chromeMesh) this.chromeMesh.visible = false;
+    this._layerDirty = true;
+  }
+
+  /** Revert to the standard Three.js mesh path (e.g. on session end). */
+  disableLayerMode() {
+    if (this.chromeMesh) this.chromeMesh.visible = true;
+    this.quadLayer    = null;
+    this.layersSystem = null;
+  }
+
+  /**
+   * Per-frame: blit the chrome canvas into the quad layer when the content
+   * has changed.  Should be called from the render loop while in VR.
+   *
+   * @param {XRFrame}  frame
+   * @param {XRView[]} views
+   */
+  updateLayer(frame, views) {
+    if (!this.quadLayer || !this.layersSystem || !this._layerDirty) return;
+    this.layersSystem.renderCanvasToLayer(
+      this.quadLayer, this.chromeCanvas, frame, views
+    );
+    this._layerDirty = false;
+  }
+
   // ── Visibility ────────────────────────────────────────────────────────────
 
   show(position = { x: 0, y: 1.5, z: -2 }) {
@@ -292,6 +339,7 @@ export class WebPanel {
   }
 
   dispose() {
+    this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
 
     this.group.traverse(obj => {

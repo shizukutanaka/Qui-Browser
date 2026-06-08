@@ -11,6 +11,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
+import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
@@ -73,6 +74,7 @@ export class VRApp {
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
     this.homeEnvironment = null;
+    this.layersSystem = null;
 
     // FR-1.4: persistent bookmarks & history store (localStorage-backed).
     this.bookmarks = new BookmarkStore();
@@ -926,11 +928,22 @@ export class VRApp {
     const session = this.renderer.xr.getSession();
 
     // Initialize FFR for this session
+    const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
-      const gl = this.renderer.getContext();
       await this.ffrSystem.initialize(session, gl);
       this.ffrSystem.setEnabled(true);
       console.log('VRApp: FFR enabled for session');
+    }
+
+    // FR-1.5: WebXR Layers for sharp browser-panel text.
+    // Initialise the binding and, if supported, attach a quad layer to every
+    // open WebPanel so the chrome bar renders at native display resolution.
+    if (this.settings.enableWebPanel && session) {
+      this.layersSystem = new LayersSystem();
+      const layersOk = this.layersSystem.initialize(session, gl);
+      if (layersOk) {
+        this._attachLayersToPanels(session);
+      }
     }
 
     // Update comfort system for VR
@@ -980,8 +993,55 @@ export class VRApp {
       this.comfortSystem.exitVR();
     }
 
+    // FR-1.5: detach layers from panels and dispose binding.
+    if (this.layersSystem) {
+      const panels = this.tabManager
+        ? this.tabManager.tabs
+        : (this.webPanel ? [this.webPanel] : []);
+      for (const panel of panels) panel.disableLayerMode();
+      this.layersSystem.dispose();
+      this.layersSystem = null;
+    }
+
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  }
+
+  /**
+   * FR-1.5: Create one XRQuadLayer per open WebPanel and wire it up.
+   * Called from onVRSessionStart() after LayersSystem.initialize() succeeds.
+   */
+  _attachLayersToPanels(session) {
+    const refSpace = this.renderer.xr.getReferenceSpace();
+    if (!refSpace) return;
+
+    const panels = this.tabManager
+      ? this.tabManager.tabs
+      : (this.webPanel ? [this.webPanel] : []);
+
+    for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
+      const quadLayer = this.layersSystem.createQuadLayer({
+        id    : `panel_chrome_${i}`,
+        space : refSpace,
+        // Chrome bar: same physical dimensions as the Three.js chromeMesh
+        // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
+        width  : 1.6,
+        height : 0.08,
+        pixelWidth  : 2048,
+        pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
+      });
+      if (quadLayer) {
+        panel.enableLayerMode(quadLayer, this.layersSystem);
+      }
+    }
+
+    // Commit the layer stack: Three.js base layer + our panel quad layers.
+    const baseLayer = this.renderer.xr.getBaseLayer
+      ? this.renderer.xr.getBaseLayer()
+      : null;
+    this.layersSystem.updateRenderState(session, baseLayer);
+    console.log(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
   }
 
   /**
@@ -1059,6 +1119,19 @@ export class VRApp {
     // Update mixed reality
     if (this.mixedReality && this.mixedReality.enabled && xrFrame) {
       this.mixedReality.update(xrFrame);
+    }
+
+    // FR-1.5: per-frame quad-layer canvas blit (only when dirty).
+    if (this.layersSystem && this.layersSystem.isSupported && xrFrame) {
+      const refSpace = this.renderer.xr.getReferenceSpace();
+      const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
+      const views = pose ? pose.views : [];
+      if (views.length > 0) {
+        const panels = this.tabManager
+          ? this.tabManager.tabs
+          : (this.webPanel ? [this.webPanel] : []);
+        for (const panel of panels) panel.updateLayer(xrFrame, views);
+      }
     }
 
     // Update locomotion input (snap turn), teleport aiming, and hover
@@ -1268,6 +1341,7 @@ export class VRApp {
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.avatarSystem) this.avatarSystem.dispose();
+    if (this.layersSystem) { this.layersSystem.dispose(); this.layersSystem = null; }
     if (this.tabManager) this.tabManager.dispose();
     else if (this.webPanel) this.webPanel.dispose();
     if (this.devTools) this.devTools.dispose();

@@ -24,7 +24,7 @@
 | FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore + AI 連携 |
 | FR-1.3 | タブ／複数ウィンドウ | ✅ | `TabManager`: 複数 `WebPanel` を管理、タブストリップ（CanvasTexture）で切替/新規/閉じる。最大8タブ |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
-| FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ❌ | `XRWebGLBinding` は FFR のみ |
+| FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ✅ | `LayersSystem`（`XRWebGLBinding.createQuadLayer`）: chrome bar を native 解像度で合成。未対応環境は Three.js mesh にフォールバック。`WebPanel.enableLayerMode/updateLayer`、VRApp にて session start/end でライフサイクル管理 |
 
 ### 3.2 入力・操作
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -125,4 +125,5 @@
 - FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（`5409fab`）
 - NFR-4 AvatarSystem テスト追加（62 tests total）（`5409fab`）
 - FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（`3897963`）
-- FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（本コミット）
+- FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（`31668fd`）
+- FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（本コミット）
