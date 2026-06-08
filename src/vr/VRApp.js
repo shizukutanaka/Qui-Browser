@@ -26,6 +26,7 @@ import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
+import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -63,6 +64,7 @@ export class VRApp {
     this.aiRecommendation = null;
     this.voiceCommands = null;
     this.multiplayerSystem = null;
+    this.avatarSystem = null;
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
@@ -793,6 +795,8 @@ export class VRApp {
     // demand by the caller, not here.
     if (this.settings.enableMultiplayer) {
       this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
+      // FR-7.2: avatar presence — geometric avatars for remote peers.
+      this.avatarSystem = new AvatarSystem(this.scene);
       console.log('VRApp: Multiplayer system ready (call connect() to join a room)');
     }
 
@@ -1225,6 +1229,7 @@ export class VRApp {
     if (this.aiRecommendation) this.aiRecommendation.dispose();
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
+    if (this.avatarSystem) this.avatarSystem.dispose();
     if (this.devTools) this.devTools.dispose();
     if (this.perfMonitorUI) this.perfMonitorUI.dispose();
     if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();

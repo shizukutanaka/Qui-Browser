@@ -32,7 +32,7 @@
 | FR-2.1 | コントローラ表示＋レイポインタ＋select | ✅ | `setupControllers()` / `XRControllerModelFactory` |
 | FR-2.2 | ハンドトラッキング（pinch/point） | ✅ | `HandTracking` |
 | FR-2.3 | 選択ヒットのイベント配信（interactable） | ✅ | `registerInteractable()`＋ホバー（`updateHover`）。ウェルカム板を Recenter ボタン化 |
-| FR-2.4 | 音声コマンド | 🟡 | `VoiceCommands`（既定 off） |
+| FR-2.4 | 音声コマンド | ✅ | `VoiceCommands`（`settings.enableVoice` で on/off、致命エラー時の再起動ループ修正済）、VRApp に配線済 |
 | FR-2.5 | 日本語 IME 入力 | ✅ | `JapaneseIME` + VR キーボード |
 
 ### 3.3 移動・快適性
@@ -65,7 +65,7 @@
 | FR-6.3 | 永続アンカー（再訪復元） | ✅ | `MixedReality`: IndexedDB `QuiBrowserMR/anchors` に pose を保存。`loadSavedAnchors()` / `deletePersistedAnchor()` / `clearSavedAnchors()` API |
 | FR-6.4 | Depth sensing/平面・メッシュ検出 | ❌ | 未実装 |
 | FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
-| FR-7.2 | アバター/プレゼンス/空間ボイス | ❌ | 未実装 |
+| FR-7.2 | アバター/プレゼンス/空間ボイス | 🟡 | `AvatarSystem`: 幾何学的アバター（頭+手）、`addPeer/removePeer/updatePeerPose`、Canvas ラベル。空間ボイスは SpatialAudio との統合待ち |
 | FR-8.1 | AI コンテンツ推薦 | 🟡 | `AIRecommendation` はヒューリスティック・スタブ |
 
 ### 3.6 設定・永続化・PWA・監視・国際化・アクセシビリティ
@@ -119,4 +119,6 @@
 - FR-4.2 予測 gaze foveation（頭部角速度 → FFR 強度）＋ `FFRSystem.adjustIntensity`（`208c307`）
 - NFR-6 統一フレームクロック（`render()` で dt 一元計算・配布）（本コミット）
 - FR-1.4 BookmarkStore（bookmarks + history, localStorage 永続化）（`06a565b`）
-- NFR-2 DeviceCompatibility（UA ティア検出・WebXR 機能マトリクス・targetFPS 自動設定）（本コミット）
+- NFR-2 DeviceCompatibility（UA ティア検出・WebXR 機能マトリクス・targetFPS 自動設定）（`a55b51d`）
+- FR-2.4 VoiceCommands → ✅（設定フラグ＋配線済確認）
+- FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（本コミット）
