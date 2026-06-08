@@ -1,0 +1,245 @@
+/**
+ * FR-1.3: Tab / multi-window manager for in-VR browsing.
+ *
+ * Owns a collection of WebPanel instances.  Only the active tab is shown at
+ * the primary panel position; inactive tabs are hidden (their iframes are
+ * detached from view but kept alive so switching back is instant).  A tab
+ * strip rendered on a CanvasTexture lets the user switch/close tabs with the
+ * controller ray.
+ */
+
+import * as THREE from 'three';
+import { WebPanel } from './WebPanel.js';
+
+const STRIP_W = 1.6;     // metres — matches panel width
+const STRIP_H = 0.07;
+const MAX_TABS = 8;
+
+export class TabManager {
+  /**
+   * @param {object} opts
+   * @param {THREE.Scene} opts.scene
+   * @param {Function} opts.registerInteractable
+   * @param {Function} opts.unregisterInteractable
+   * @param {Function} [opts.onNavigate]
+   * @param {{x:number,y:number,z:number}} [opts.position]
+   */
+  constructor(opts) {
+    this.opts = opts;
+    this.scene = opts.scene;
+    this.position = opts.position || { x: 0, y: 1.5, z: -2 };
+
+    /** @type {WebPanel[]} */
+    this.tabs = [];
+    this.activeIndex = -1;
+
+    // Tab strip sits just above the active panel.
+    this.stripGroup  = new THREE.Group();
+    this.stripCanvas = document.createElement('canvas');
+    this.stripCanvas.width  = 1024;
+    this.stripCanvas.height = 96;
+    this.stripTex = new THREE.CanvasTexture(this.stripCanvas);
+
+    this._buildStrip();
+  }
+
+  // ── Tab strip ───────────────────────────────────────────────────────────────
+
+  _buildStrip() {
+    const geo = new THREE.PlaneGeometry(STRIP_W, STRIP_H);
+    const mat = new THREE.MeshBasicMaterial({ map: this.stripTex, transparent: true });
+    this.stripMesh = new THREE.Mesh(geo, mat);
+    this.stripMesh.name = 'tabStrip';
+    // Above the panel (panel is ~1m tall centred at position.y).
+    this.stripMesh.position.set(0, 0.58, 0);
+    this.stripGroup.add(this.stripMesh);
+    this.stripGroup.position.set(this.position.x, this.position.y, this.position.z);
+
+    this.opts.registerInteractable(this.stripMesh, {
+      onSelect: (point) => this._onStripSelect(point)
+    });
+
+    this._drawStrip();
+  }
+
+  _drawStrip() {
+    const c = this.stripCanvas;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    const n = this.tabs.length;
+    const newW = 90;                       // "+" button width
+    const tabsAreaW = c.width - newW;
+    const tabW = n > 0 ? Math.min(220, tabsAreaW / n) : 0;
+
+    // Tabs
+    for (let i = 0; i < n; i++) {
+      const x = i * tabW;
+      const active = i === this.activeIndex;
+      ctx.fillStyle = active ? '#2a2a4a' : '#1a1a2e';
+      ctx.fillRect(x + 2, 6, tabW - 4, c.height - 12);
+
+      // Title
+      ctx.fillStyle = active ? '#ffffff' : '#9090a8';
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const title = this.tabs[i].currentUrl
+        ? this._shortTitle(this.tabs[i].currentUrl)
+        : 'New Tab';
+      ctx.fillText(title, x + 14, c.height / 2, tabW - 50);
+
+      // Close ✕
+      ctx.fillStyle = '#cc6666';
+      ctx.textAlign = 'center';
+      ctx.fillText('✕', x + tabW - 20, c.height / 2);
+    }
+
+    // New-tab "+" button
+    ctx.fillStyle = '#3a3a5c';
+    ctx.fillRect(c.width - newW + 2, 6, newW - 4, c.height - 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('+', c.width - newW / 2, c.height / 2);
+
+    this.stripTex.needsUpdate = true;
+  }
+
+  _shortTitle(url) {
+    try {
+      const u = new URL(url);
+      return u.hostname.replace(/^www\./, '');
+    } catch {
+      return url.slice(0, 18);
+    }
+  }
+
+  // ── Strip interaction ─────────────────────────────────────────────────────
+
+  _onStripSelect(intersectionPoint) {
+    if (!intersectionPoint) return;
+    const local = this.stripMesh.worldToLocal(intersectionPoint.clone());
+    const u = (local.x / STRIP_W) + 0.5;        // 0–1
+    const px = Math.round(u * this.stripCanvas.width);
+
+    const newW = 90;
+    if (px > this.stripCanvas.width - newW) {
+      this.newTab();
+      return;
+    }
+
+    const n = this.tabs.length;
+    if (n === 0) return;
+    const tabW = Math.min(220, (this.stripCanvas.width - newW) / n);
+    const idx = Math.floor(px / tabW);
+    if (idx < 0 || idx >= n) return;
+
+    // Close zone is the right ~30px of the tab.
+    const withinTab = px - idx * tabW;
+    if (withinTab > tabW - 36) {
+      this.closeTab(idx);
+    } else {
+      this.setActive(idx);
+    }
+  }
+
+  // ── Tab lifecycle ───────────────────────────────────────────────────────────
+
+  /**
+   * Open a new tab.  Returns the created WebPanel, or null if MAX_TABS reached.
+   */
+  newTab(url = '') {
+    if (this.tabs.length >= MAX_TABS) {
+      console.warn('TabManager: max tabs reached');
+      return null;
+    }
+
+    const panel = new WebPanel({
+      scene: this.scene,
+      registerInteractable: this.opts.registerInteractable,
+      unregisterInteractable: this.opts.unregisterInteractable,
+      onNavigate: (u, title) => {
+        this._drawStrip();           // refresh tab title
+        this.opts.onNavigate?.(u, title);
+      }
+    });
+    panel.addToScene();
+    panel.group.position.set(this.position.x, this.position.y, this.position.z);
+
+    this.tabs.push(panel);
+    this.setActive(this.tabs.length - 1);
+
+    if (url) panel.navigate(url);
+    this._drawStrip();
+    return panel;
+  }
+
+  /**
+   * Close the tab at index.  Activates a neighbour if the closed tab was active.
+   */
+  closeTab(index) {
+    const panel = this.tabs[index];
+    if (!panel) return;
+
+    panel.dispose();
+    this.tabs.splice(index, 1);
+
+    if (this.tabs.length === 0) {
+      this.activeIndex = -1;
+    } else if (index <= this.activeIndex) {
+      this.activeIndex = Math.max(0, this.activeIndex - 1);
+      this.setActive(this.activeIndex);
+    }
+    this._drawStrip();
+  }
+
+  /**
+   * Make the tab at index visible and hide all others.
+   */
+  setActive(index) {
+    if (index < 0 || index >= this.tabs.length) return;
+    this.activeIndex = index;
+    this.tabs.forEach((panel, i) => {
+      if (i === index) {
+        panel.show(this.position);
+      } else {
+        panel.hide();
+      }
+    });
+    this._drawStrip();
+  }
+
+  /** Return the currently active WebPanel, or null. */
+  getActiveTab() {
+    return this.activeIndex >= 0 ? this.tabs[this.activeIndex] : null;
+  }
+
+  /** Number of open tabs. */
+  get count() {
+    return this.tabs.length;
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+  addToScene() {
+    this.scene.add(this.stripGroup);
+  }
+
+  dispose() {
+    this.opts.unregisterInteractable(this.stripMesh);
+    this.tabs.forEach(panel => panel.dispose());
+    this.tabs = [];
+    this.activeIndex = -1;
+
+    this.stripGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (obj.material.map) obj.material.map.dispose();
+        obj.material.dispose();
+      }
+    });
+    this.scene.remove(this.stripGroup);
+  }
+}

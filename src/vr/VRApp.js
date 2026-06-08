@@ -28,6 +28,7 @@ import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { WebPanel } from './browser/WebPanel.js';
+import { TabManager } from './browser/TabManager.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -67,6 +68,7 @@ export class VRApp {
     this.multiplayerSystem = null;
     this.avatarSystem = null;
     this.webPanel = null;
+    this.tabManager = null;
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
@@ -266,16 +268,19 @@ export class VRApp {
       this.scene.add(this.settingsPanel);
     }
 
-    // FR-1.1: in-VR web browsing panel (iframe + URL chrome).
+    // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
     if (this.settings.enableWebPanel) {
-      this.webPanel = new WebPanel({
+      this.tabManager = new TabManager({
         scene: this.scene,
         registerInteractable: (m, h) => this.registerInteractable(m, h),
         unregisterInteractable: (m) => this.unregisterInteractable(m),
-        onNavigate: (url, title) => this.navigate(url, title)
+        onNavigate: (url, title) => this.navigate(url, title),
+        position: { x: 0, y: 1.5, z: -2 }
       });
-      this.webPanel.addToScene();
-      this.webPanel.show();
+      this.tabManager.addToScene();
+      this.tabManager.newTab(); // start with one blank tab
+      // Convenience alias: the active tab's panel.
+      this.webPanel = this.tabManager.getActiveTab();
     }
 
     console.log('VRApp: Scene created');
@@ -1263,7 +1268,8 @@ export class VRApp {
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.avatarSystem) this.avatarSystem.dispose();
-    if (this.webPanel) this.webPanel.dispose();
+    if (this.tabManager) this.tabManager.dispose();
+    else if (this.webPanel) this.webPanel.dispose();
     if (this.devTools) this.devTools.dispose();
     if (this.perfMonitorUI) this.perfMonitorUI.dispose();
     if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();

@@ -22,7 +22,7 @@
 |----|------|------|-----------|
 | FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | 🟡 | `WebPanel`（`settings.enableWebPanel`）: iframe + dom-overlay。クロスオリジンはサンドボックス制限あり。dom-overlay 非対応端末はプレースホルダ表示 |
 | FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore + AI 連携 |
-| FR-1.3 | タブ／複数ウィンドウ | ❌ | 未実装 |
+| FR-1.3 | タブ／複数ウィンドウ | ✅ | `TabManager`: 複数 `WebPanel` を管理、タブストリップ（CanvasTexture）で切替/新規/閉じる。最大8タブ |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
 | FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ❌ | `XRWebGLBinding` は FFR のみ |
 
@@ -124,4 +124,5 @@
 - FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（`9e0bbb2`）
 - FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（`5409fab`）
 - NFR-4 AvatarSystem テスト追加（62 tests total）（`5409fab`）
-- FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（本コミット）
+- FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（`3897963`）
+- FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（本コミット）
