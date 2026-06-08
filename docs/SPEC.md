@@ -77,7 +77,7 @@
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ✅ | `display-mode: standalone` 検出時に `enter-vr` 自動発火（200ms 後）。非対応 UA はボタン操作に fallback |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
 | FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
-| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | 🟡 | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`、OS設定尊重・永続化・トグル）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、設定パネルでトグル、レティクル進捗表示、`onSelect`/hover を共有）。VR内字幕は未 |
+| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | ✅ | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、レティクル進捗）。VR内字幕（`CaptionSystem`：カメラ追従 HUD パネル、タイムアウト付きキュー、VoiceCommands の `onTranscript` から音声字幕化、設定パネルでトグル） |
 
 ## 4. 非機能要件（NFR）
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -129,4 +129,5 @@
 - FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（`ea87393`）
 - FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（`db1e306`）
 - FR-6.4 メッシュ検出＋深度センシング（`MixedReality.updateMeshes`/`updateDepth`/`getDepthInMeters`）（`8bbd070`）
-- FR-7.2 空間ボイス統合（`SpatialAudio.createVoiceSource`＋`AvatarSystem.setPeerVoiceStream`）（本コミット）
+- FR-7.2 空間ボイス統合（`SpatialAudio.createVoiceSource`＋`AvatarSystem.setPeerVoiceStream`）（`54bf8e2`）
+- FR-13.1 VR内字幕（`CaptionSystem`：HUDパネル・タイムアウトキュー・VoiceCommands 連携）（本コミット）

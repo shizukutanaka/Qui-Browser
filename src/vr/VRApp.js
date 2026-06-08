@@ -20,6 +20,7 @@ import { TextureManager } from '../utils/TextureManager.js';
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
 import { HandTracking } from './interaction/HandTracking.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
+import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -61,6 +62,7 @@ export class VRApp {
     this.vrKeyboard = null;
     this.handTracking = null;
     this.gazeInteraction = null;
+    this.captionSystem = null;
     this.spatialAudio = null;
     this.mixedReality = null;
     this.progressiveLoader = null;
@@ -134,6 +136,9 @@ export class VRApp {
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
       gazeDwellTime: 1500, // ms
+      // FR-13.1: in-VR captions/subtitles for recognized speech & system
+      // events (accessibility). OFF by default.
+      enableCaptions: false,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Tier 3 / optional features — opt-in, default off so the base
@@ -357,7 +362,7 @@ export class VRApp {
     group.name = 'settingsPanel';
 
     const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, 1.6),
+      new THREE.PlaneGeometry(1.1, 1.85),
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
@@ -372,6 +377,12 @@ export class VRApp {
       }],
       ['Gaze Select', 'enableGazeDwell', (v) => {
         if (this.gazeInteraction) this.gazeInteraction.setEnabled(v);
+      }],
+      ['Captions', 'enableCaptions', (v) => {
+        if (this.captionSystem) {
+          this.captionSystem.setEnabled(v);
+          if (v) this.captionSystem.show('Captions enabled');
+        }
       }]
     ];
 
@@ -805,6 +816,12 @@ export class VRApp {
     this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
     console.log('VRApp: Gaze-dwell interaction ready');
 
+    // 6c. In-VR captions (FR-13.1, accessibility). Created always so it can be
+    // toggled live; only renders when enabled and lines are present.
+    this.captionSystem = new CaptionSystem(this.camera);
+    this.captionSystem.setEnabled(this.settings.enableCaptions);
+    console.log('VRApp: Caption system ready');
+
     // 7. Spatial Audio
     this.spatialAudio = new SpatialAudio();
     await this.loadAudioAssets();
@@ -834,6 +851,10 @@ export class VRApp {
     if (this.settings.enableVoice) {
       this.voiceCommands = new VoiceCommands();
       await this.voiceCommands.initialize();
+      // FR-13.1: caption recognized speech so it is visible in VR.
+      this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
+        if (isFinal && this.captionSystem) this.captionSystem.show(transcript);
+      };
       console.log('VRApp: Voice commands ready');
     }
 
@@ -1163,6 +1184,11 @@ export class VRApp {
       this.gazeInteraction.update(this.interactables, dt * 1000);
     }
 
+    // FR-13.1: age out in-VR captions.
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.update(dt * 1000);
+    }
+
     // Update scene objects using pools
     this.updateSceneWithPools();
   }
@@ -1359,6 +1385,7 @@ export class VRApp {
     if (this.poolManager) this.poolManager.dispose();
     if (this.handTracking) this.handTracking.dispose();
     if (this.gazeInteraction) this.gazeInteraction.dispose();
+    if (this.captionSystem) this.captionSystem.dispose();
     if (this.spatialAudio) this.spatialAudio.dispose();
     if (this.mixedReality) this.mixedReality.dispose();
     if (this.progressiveLoader) this.progressiveLoader.dispose();
