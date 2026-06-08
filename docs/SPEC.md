@@ -49,7 +49,7 @@
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
 | FR-4.1 | Fixed Foveated Rendering | ✅ | `FFRSystem`（静的） |
-| FR-4.2 | 視線追従フォービエーション | ❌ | eye-tracking/予測 gaze 未対応 |
+| FR-4.2 | 視線追従フォービエーション | 🟡 | 頭部角速度ベースの予測 gaze foveation（`FFRSystem.trackHeadPose`/`updatePredictedGazeFoveation`）。真の eye-tracking は Quest Pro ハードウェア待ち |
 | FR-4.3 | テクスチャ圧縮（KTX2/Basis） | ✅ | `TextureManager` |
 | FR-4.4 | WebGPU 描画 | 🟡 | `WebGPURenderer` 実験的・ループ未接続 |
 | FR-4.5 | 3D Gaussian Splatting | ❌ | 未導入 |
@@ -115,4 +115,5 @@
 - FR-5.2 知覚的オーディオ LOD（`hrtfThreshold`・`updateAllLOD`）（`891590d`）
 - FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（`92ca046`）
 - FR-6.3 永続アンカー（IndexedDB `QuiBrowserMR/anchors`、`loadSavedAnchors` / `deletePersistedAnchor` / `clearSavedAnchors`）（`0eca44f`）
-- Phase 4.1 PerformanceMonitor 配線（`render()` に `beginFrame`/`endFrame` 追加、'P'キーで rich UI トグル）（本コミット）
+- Phase 4.1 PerformanceMonitor 配線（`render()` に `beginFrame`/`endFrame` 追加、'P'キーで rich UI トグル）（`ad64c3f`）
+- FR-4.2 予測 gaze foveation（頭部角速度 → FFR 強度）＋ `FFRSystem.adjustIntensity`（本コミット）

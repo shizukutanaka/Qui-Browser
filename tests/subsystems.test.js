@@ -58,6 +58,38 @@ describe('src/vr/rendering/FFRSystem', () => {
     ffr.disable();
     expect(ffr.projectionLayer.fixedFoveation).toBe(0);
   });
+
+  test('adjustIntensity() nudges intensity and clamps to [0,1]', () => {
+    const ffr = new FFRSystem();
+    ffr.enabled = true;
+    ffr.projectionLayer = { fixedFoveation: 0 };
+    ffr.intensity = 0.5;
+
+    ffr.adjustIntensity(0.2);
+    expect(ffr.intensity).toBeCloseTo(0.7);
+
+    ffr.adjustIntensity(0.5); // would overshoot to 1.2
+    expect(ffr.intensity).toBe(1);
+
+    ffr.adjustIntensity(-2); // would undershoot
+    expect(ffr.intensity).toBe(0);
+  });
+
+  test('trackHeadPose() → updatePredictedGazeFoveation() adjusts intensity', () => {
+    const ffr = new FFRSystem();
+    ffr.enabled = true;
+    ffr.projectionLayer = { fixedFoveation: 0.5 };
+    ffr.intensity = 0.5;
+
+    const identity = { x: 0, y: 0, z: 0, w: 1 };
+
+    // Two identical quaternions → angular velocity 0 → still head → high FFR.
+    ffr.trackHeadPose(identity, 0.016);
+    ffr.trackHeadPose(identity, 0.016);
+    ffr.updatePredictedGazeFoveation();
+    // intensity should drift toward 0.8 (still head).
+    expect(ffr.intensity).toBeGreaterThan(0.5);
+  });
 });
 
 describe('src/utils/ProgressiveLoader', () => {

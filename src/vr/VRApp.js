@@ -981,8 +981,20 @@ export class VRApp {
       this.comfortSystem.update(isMoving);
     }
 
-    // Update FFR based on performance
+    // Update FFR based on performance and predicted gaze (FR-4.2).
     if (this.ffrSystem && this.isVREnabled) {
+      // Compute per-frame dt for head-velocity estimation.
+      const now = performance.now();
+      const dtSec = this._lastFFRTime
+        ? Math.min((now - this._lastFFRTime) / 1000, 0.05)
+        : 0.016;
+      this._lastFFRTime = now;
+
+      // Feed head quaternion for predicted-gaze foveation.
+      this.ffrSystem.trackHeadPose(this.camera.quaternion, dtSec);
+      this.ffrSystem.updatePredictedGazeFoveation();
+
+      // Also coarse-adjust based on frame-budget pressure.
       const targetFrameTime = 1000 / this.settings.targetFPS;
       if (this.performanceMonitor.frameTime > targetFrameTime) {
         this.ffrSystem.adjustIntensity(0.01);
