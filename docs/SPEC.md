@@ -114,4 +114,5 @@
 - NFR-1 性能計測 GPU メトリクス overlay（`16b9860`）
 - FR-5.2 知覚的オーディオ LOD（`hrtfThreshold`・`updateAllLOD`）（`891590d`）
 - FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（`92ca046`）
-- FR-6.3 永続アンカー（IndexedDB `QuiBrowserMR/anchors`、`loadSavedAnchors` / `deletePersistedAnchor` / `clearSavedAnchors`）（本コミット）
+- FR-6.3 永続アンカー（IndexedDB `QuiBrowserMR/anchors`、`loadSavedAnchors` / `deletePersistedAnchor` / `clearSavedAnchors`）（`0eca44f`）
+- Phase 4.1 PerformanceMonitor 配線（`render()` に `beginFrame`/`endFrame` 追加、'P'キーで rich UI トグル）（本コミット）

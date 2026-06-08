@@ -946,6 +946,9 @@ export class VRApp {
   render(timestamp, xrFrame) {
     this.frameCount++;
 
+    // Rich perf monitor — begin-frame timing.
+    if (this.perfMonitorUI) this.perfMonitorUI.beginFrame();
+
     // Start performance timing
     const frameStart = performance.now();
 
@@ -958,6 +961,9 @@ export class VRApp {
     // Track performance
     const frameTime = performance.now() - frameStart;
     this.updatePerformanceMonitor(frameTime);
+
+    // Rich perf monitor — end-frame metrics + UI.
+    if (this.perfMonitorUI) this.perfMonitorUI.endFrame(this.renderer);
 
     // Dynamic quality adjustment (every 60 frames)
     if (this.frameCount % 60 === 0) {
