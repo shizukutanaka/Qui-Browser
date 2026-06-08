@@ -61,7 +61,7 @@
 | FR-5.1 | HRTF 空間オーディオ | ✅ | `SpatialAudio` |
 | FR-5.2 | アンビソニック/知覚的 LOD | ✅ | `SpatialAudio`: `hrtfThreshold`(15m)超はequalpower、以内はHRTF。`updateAllLOD()`/`updateSourceLOD()` で毎フレーム更新 |
 | FR-6.1 | AR パススルー（MR） | 🟡 | `MixedReality` |
-| FR-6.2 | ヒットテスト/アンカー配置 | 🟡 | アンカーはメモリ内のみ |
+| FR-6.2 | ヒットテスト/アンカー配置 | 🟡 | `MixedReality.placeObject()` + hit-test。メモリ内アンカーは FR-6.3 で IndexedDB 永続化済 |
 | FR-6.3 | 永続アンカー（再訪復元） | ✅ | `MixedReality`: IndexedDB `QuiBrowserMR/anchors` に pose を保存。`loadSavedAnchors()` / `deletePersistedAnchor()` / `clearSavedAnchors()` API |
 | FR-6.4 | Depth sensing/平面・メッシュ検出 | ❌ | 未実装 |
 | FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
@@ -83,7 +83,7 @@
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
 | NFR-1 | 性能目標 FPS の達成 | 🟡 | 実測計測を整備（FPS/フレーム時間/draw calls/三角形/programs/geo/tex を `renderer.info` から overlay 表示）。実機での FPS 達成検証はハードウェア待ち |
-| NFR-2 | 端末互換（Quest2/3, Pico4） | 🟡 | フィーチャ検出マトリクス未整備 |
+| NFR-2 | 端末互換（Quest2/3, Pico4） | ✅ | `DeviceCompatibility.check()` — UA ベースのデバイスティア検出（quest3/quest2/pico4）、WebXR 任意機能プローブ、`targetFPS()` 自動設定 |
 | NFR-3 | セキュリティ（オリジン分離/権限） | 🟡 | 遠隔描画(FR-1.1)未実装のためホスト委譲 |
 | NFR-4 | 品質（テスト/カバレッジ） | 🟡 | 主要純ロジックに単体テスト追加。広域カバレッジは低 |
 | NFR-5 | CI 再現性（`npm ci`） | ✅ | lockfile コミット済 |
@@ -118,4 +118,5 @@
 - Phase 4.1 PerformanceMonitor 配線（`render()` に `beginFrame`/`endFrame` 追加、'P'キーで rich UI トグル）（`ad64c3f`）
 - FR-4.2 予測 gaze foveation（頭部角速度 → FFR 強度）＋ `FFRSystem.adjustIntensity`（`208c307`）
 - NFR-6 統一フレームクロック（`render()` で dt 一元計算・配布）（本コミット）
-- FR-1.4 BookmarkStore（bookmarks + history, localStorage 永続化）（本コミット）
+- FR-1.4 BookmarkStore（bookmarks + history, localStorage 永続化）（`06a565b`）
+- NFR-2 DeviceCompatibility（UA ティア検出・WebXR 機能マトリクス・targetFPS 自動設定）（本コミット）

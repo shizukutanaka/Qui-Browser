@@ -29,6 +29,7 @@ import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
+import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -69,6 +70,10 @@ export class VRApp {
 
     // FR-1.4: persistent bookmarks & history store (localStorage-backed).
     this.bookmarks = new BookmarkStore();
+
+    // NFR-2: device compatibility probe (async; result available after
+    // initializeSystems resolves).
+    this.deviceCompat = new DeviceCompatibility();
 
     // Player rig (camera + controllers) — the movable reference for locomotion
     // and the correct parent for snap/teleport turning.
@@ -693,6 +698,15 @@ export class VRApp {
    */
   async initializeSystems() {
     const startTime = performance.now();
+
+    // NFR-2: probe device capabilities first so downstream systems can
+    // respect what the runtime actually supports.
+    const compat = await this.deviceCompat.check();
+    // Override targetFPS from device detection if not already user-specified.
+    if (!this.settings._fpsOverridden) {
+      this.settings.targetFPS = this.deviceCompat.targetFPS();
+    }
+    console.log(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
     // Use progressive loader for efficient initialization
     this.progressiveLoader = new ProgressiveLoader();
