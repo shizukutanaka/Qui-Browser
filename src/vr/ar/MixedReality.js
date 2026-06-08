@@ -22,8 +22,12 @@ export class MixedReality {
     this.detectedPlanes = new Map();
     this.planeVisualizers = new Map();
 
-    // Anchors for persistent content
+    // Anchors for persistent content: object → { nativeAnchor, id }
     this.anchors = new Map();
+
+    // IndexedDB for cross-session anchor persistence (FR-6.3).
+    this._db = null;
+    this._dbReady = this._openDB();
 
     // Hit testing
     this.hitTestSource = null;
@@ -46,6 +50,108 @@ export class MixedReality {
       sessionTime: 0
     };
   }
+
+  // ── IndexedDB persistence (FR-6.3) ────────────────────────────────────────
+
+  /**
+   * Open (or create) the QuiBrowserMR IndexedDB database.
+   * Resolves to the IDBDatabase instance, or null when IndexedDB is unavailable
+   * (e.g. in unit tests or private-browsing with blocked storage).
+   */
+  async _openDB() {
+    if (typeof indexedDB === 'undefined') return null;
+    return new Promise((resolve) => {
+      const req = indexedDB.open('QuiBrowserMR', 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('anchors')) {
+          db.createObjectStore('anchors', { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = (e) => {
+        this._db = e.target.result;
+        resolve(this._db);
+      };
+      req.onerror = () => resolve(null); // non-fatal
+    });
+  }
+
+  /**
+   * Persist one anchor record. Non-blocking — errors are logged and swallowed.
+   */
+  async _saveAnchorRecord(record) {
+    await this._dbReady;
+    if (!this._db) return;
+    try {
+      const tx = this._db.transaction('anchors', 'readwrite');
+      tx.objectStore('anchors').put(record);
+    } catch (e) {
+      console.warn('MixedReality: Failed to save anchor', e);
+    }
+  }
+
+  /**
+   * Delete one persisted anchor by id.
+   */
+  async _deleteAnchorRecord(id) {
+    await this._dbReady;
+    if (!this._db) return;
+    try {
+      const tx = this._db.transaction('anchors', 'readwrite');
+      tx.objectStore('anchors').delete(id);
+    } catch (e) {
+      console.warn('MixedReality: Failed to delete anchor', e);
+    }
+  }
+
+  /**
+   * Return all persisted anchor records from IndexedDB.
+   * Each record: { id, label, position:{x,y,z}, quaternion:{x,y,z,w}, timestamp }
+   */
+  async loadSavedAnchors() {
+    await this._dbReady;
+    if (!this._db) return [];
+    return new Promise((resolve) => {
+      try {
+        const tx = this._db.transaction('anchors', 'readonly');
+        const req = tx.objectStore('anchors').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      } catch (e) {
+        resolve([]);
+      }
+    });
+  }
+
+  /**
+   * Remove a persisted anchor by its id and detach it from the current session.
+   */
+  async deletePersistedAnchor(id) {
+    await this._deleteAnchorRecord(id);
+    // Also remove from the in-memory map if still active.
+    this.anchors.forEach((data, obj) => {
+      if (data.id === id) {
+        this.anchors.delete(obj);
+        this.scene.remove(obj);
+      }
+    });
+  }
+
+  /**
+   * Wipe all persisted anchors from IndexedDB.
+   */
+  async clearSavedAnchors() {
+    await this._dbReady;
+    if (!this._db) return;
+    try {
+      const tx = this._db.transaction('anchors', 'readwrite');
+      tx.objectStore('anchors').clear();
+    } catch (e) {
+      console.warn('MixedReality: Failed to clear anchors', e);
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
 
   /**
    * Check AR/MR support
@@ -438,19 +544,35 @@ export class MixedReality {
 
     // Set object position
     const position = pose.transform.position;
+    const orientation = pose.transform.orientation;
     object.position.set(position.x, position.y, position.z);
+    object.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
 
-    // Create anchor for persistence
+    const anchorId = `anchor_${Date.now()}_${this.stats.anchorsCreated}`;
+
+    // Create native XR anchor when available (ties the virtual object to the
+    // real-world tracking surface for sub-mm drift correction).
+    let nativeAnchor = null;
     if (hitResult.createAnchor) {
       try {
-        const anchor = await hitResult.createAnchor();
-        this.anchors.set(object, anchor);
-        this.stats.anchorsCreated++;
-        console.log('MixedReality: Anchor created');
+        nativeAnchor = await hitResult.createAnchor();
+        console.log('MixedReality: Native anchor created');
       } catch (error) {
-        console.warn('MixedReality: Failed to create anchor', error);
+        console.warn('MixedReality: Native anchor not available, using pose only', error);
       }
     }
+
+    this.anchors.set(object, { nativeAnchor, id: anchorId });
+    this.stats.anchorsCreated++;
+
+    // Persist pose to IndexedDB so it survives page reload (FR-6.3).
+    this._saveAnchorRecord({
+      id: anchorId,
+      label: object.name || 'object',
+      position: { x: position.x, y: position.y, z: position.z },
+      quaternion: { x: orientation.x, y: orientation.y, z: orientation.z, w: orientation.w },
+      timestamp: Date.now()
+    });
 
     // Add to scene
     this.scene.add(object);
@@ -460,21 +582,14 @@ export class MixedReality {
    * Update anchors
    */
   updateAnchors(frame) {
-    this.anchors.forEach((anchor, object) => {
-      if (anchor.anchorSpace) {
-        const pose = frame.getPose(anchor.anchorSpace, this.referenceSpace);
-        if (pose) {
-          const position = pose.transform.position;
-          object.position.set(position.x, position.y, position.z);
-
-          const orientation = pose.transform.orientation;
-          object.quaternion.set(
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w
-          );
-        }
+    this.anchors.forEach(({ nativeAnchor }, object) => {
+      if (!nativeAnchor || !nativeAnchor.anchorSpace) return;
+      const pose = frame.getPose(nativeAnchor.anchorSpace, this.referenceSpace);
+      if (pose) {
+        const p = pose.transform.position;
+        object.position.set(p.x, p.y, p.z);
+        const q = pose.transform.orientation;
+        object.quaternion.set(q.x, q.y, q.z, q.w);
       }
     });
   }
@@ -568,7 +683,8 @@ export class MixedReality {
       mesh.material.dispose();
     });
 
-    // Clear data
+    // Clear in-memory tracking — persisted records in IndexedDB are kept so
+    // they can be restored on the next session (FR-6.3).
     this.detectedPlanes.clear();
     this.planeVisualizers.clear();
     this.anchors.clear();

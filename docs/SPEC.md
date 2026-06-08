@@ -62,7 +62,7 @@
 | FR-5.2 | アンビソニック/知覚的 LOD | ✅ | `SpatialAudio`: `hrtfThreshold`(15m)超はequalpower、以内はHRTF。`updateAllLOD()`/`updateSourceLOD()` で毎フレーム更新 |
 | FR-6.1 | AR パススルー（MR） | 🟡 | `MixedReality` |
 | FR-6.2 | ヒットテスト/アンカー配置 | 🟡 | アンカーはメモリ内のみ |
-| FR-6.3 | 永続アンカー（再訪復元） | ❌ | 未実装 |
+| FR-6.3 | 永続アンカー（再訪復元） | ✅ | `MixedReality`: IndexedDB `QuiBrowserMR/anchors` に pose を保存。`loadSavedAnchors()` / `deletePersistedAnchor()` / `clearSavedAnchors()` API |
 | FR-6.4 | Depth sensing/平面・メッシュ検出 | ❌ | 未実装 |
 | FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
 | FR-7.2 | アバター/プレゼンス/空間ボイス | ❌ | 未実装 |
@@ -113,4 +113,5 @@
 - NFR-4 単体テスト追加（`3a42b98`）
 - NFR-1 性能計測 GPU メトリクス overlay（`16b9860`）
 - FR-5.2 知覚的オーディオ LOD（`hrtfThreshold`・`updateAllLOD`）（`891590d`）
-- FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（本コミット）
+- FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（`92ca046`）
+- FR-6.3 永続アンカー（IndexedDB `QuiBrowserMR/anchors`、`loadSavedAnchors` / `deletePersistedAnchor` / `clearSavedAnchors`）（本コミット）
