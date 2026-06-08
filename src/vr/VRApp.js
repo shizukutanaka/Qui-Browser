@@ -32,6 +32,7 @@ import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { WebPanel } from './browser/WebPanel.js';
 import { TabManager } from './browser/TabManager.js';
+import { WindowManager } from './browser/WindowManager.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -74,6 +75,7 @@ export class VRApp {
     this.avatarSystem = null;
     this.webPanel = null;
     this.tabManager = null;
+    this.windowManager = null;
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
@@ -141,6 +143,10 @@ export class VRApp {
       enableCaptions: false,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
+      // Spatial window management (parity with Wolvic/Quest browser): head-lock
+      // follow keeps the active panel centred in view. OFF by default.
+      enableWindowFollow: false,
+      windowDistance: 2.0, // metres
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -361,12 +367,6 @@ export class VRApp {
     const group = new THREE.Group();
     group.name = 'settingsPanel';
 
-    const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, 1.85),
-      new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
-    );
-    group.add(bg);
-
     const items = [
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
@@ -383,15 +383,31 @@ export class VRApp {
           this.captionSystem.setEnabled(v);
           if (v) this.captionSystem.show('Captions enabled');
         }
+      }],
+      ['Follow View', 'enableWindowFollow', (v) => {
+        if (this.windowManager) this.windowManager.setFollow(v);
       }]
     ];
 
-    let y = 0.46;
+    // Adaptive vertical layout so the panel stays centred and fits any number
+    // of toggles (the list grows as features are added).
+    const ROW = 0.22;            // metres between rows
+    const PAD = 0.14;            // top/bottom padding
+    const height = items.length * ROW + PAD;
+
+    const bg = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.1, height),
+      new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
+    );
+    group.add(bg);
+
+    // Start at the top of the stack, centred about y=0.
+    let y = ((items.length - 1) * ROW) / 2;
     for (const [label, key, apply] of items) {
       const btn = this.makeToggleButton(label, key, apply);
       btn.position.set(0, y, 0.01);
       group.add(btn);
-      y -= 0.22;
+      y -= ROW;
     }
 
     // Front-left of the user, angled toward them.
@@ -508,6 +524,17 @@ export class VRApp {
     this.playerRig.name = 'playerRig';
     this.playerRig.add(this.camera);
     this.scene.add(this.playerRig);
+
+    // Spatial window management for the in-VR browser panel (head-lock follow,
+    // billboard, distance). Attached to the active tab's group when present.
+    if (this.settings.enableWebPanel) {
+      this.windowManager = new WindowManager(this.camera, {
+        distance: this.settings.windowDistance
+      });
+      const active = this.tabManager && this.tabManager.getActiveTab();
+      if (active && active.group) this.windowManager.attach(active.group);
+      this.windowManager.setFollow(this.settings.enableWindowFollow);
+    }
   }
 
   /**
@@ -1189,6 +1216,16 @@ export class VRApp {
       this.captionSystem.update(dt * 1000);
     }
 
+    // Spatial window management: keep the active panel followed/billboarded.
+    if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
+      // Track tab switches so the manager always drives the visible panel.
+      const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
+      if (active && active.group && this.windowManager.target !== active.group) {
+        this.windowManager.attach(active.group);
+      }
+      this.windowManager.update(dt * 1000);
+    }
+
     // Update scene objects using pools
     this.updateSceneWithPools();
   }
@@ -1393,6 +1430,7 @@ export class VRApp {
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.avatarSystem) this.avatarSystem.dispose();
+    if (this.windowManager) this.windowManager.dispose();
     if (this.layersSystem) { this.layersSystem.dispose(); this.layersSystem = null; }
     if (this.tabManager) this.tabManager.dispose();
     else if (this.webPanel) this.webPanel.dispose();

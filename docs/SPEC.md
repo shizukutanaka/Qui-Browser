@@ -25,6 +25,7 @@
 | FR-1.3 | タブ／複数ウィンドウ | ✅ | `TabManager`: 複数 `WebPanel` を管理、タブストリップ（CanvasTexture）で切替/新規/閉じる。最大8タブ |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
 | FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ✅ | `LayersSystem`（`XRWebGLBinding.createQuadLayer`）: chrome bar を native 解像度で合成。未対応環境は Three.js mesh にフォールバック。`WebPanel.enableLayerMode/updateLayer`、VRApp にて session start/end でライフサイクル管理 |
+| FR-1.6 | 空間ウィンドウ管理（head-lock/移動/距離） | ✅ | `WindowManager`（Wolvic/Quest ブラウザ調査由来）: head-lock follow（視界中央追従）、billboard、距離調整、grab-to-move。設定パネル「Follow View」でトグル、アクティブタブに自動追従 |
 
 ### 3.2 入力・操作
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -130,4 +131,5 @@
 - FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（`db1e306`）
 - FR-6.4 メッシュ検出＋深度センシング（`MixedReality.updateMeshes`/`updateDepth`/`getDepthInMeters`）（`8bbd070`）
 - FR-7.2 空間ボイス統合（`SpatialAudio.createVoiceSource`＋`AvatarSystem.setPeerVoiceStream`）（`54bf8e2`）
-- FR-13.1 VR内字幕（`CaptionSystem`：HUDパネル・タイムアウトキュー・VoiceCommands 連携）（本コミット）
+- FR-13.1 VR内字幕（`CaptionSystem`：HUDパネル・タイムアウトキュー・VoiceCommands 連携）（`2624e3f`）
+- FR-1.6 空間ウィンドウ管理（`WindowManager`：head-lock follow/billboard/距離/grab、Wolvic/Quest 調査由来）（本コミット）
