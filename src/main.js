@@ -68,6 +68,26 @@ import('./app.js').then(module => {
                 if (vrButton) {
                     vrButton.style.display = 'flex';
                 }
+
+                // FR-10.2: PWA immediate immersion.
+                // When launched from the home screen (standalone mode) on a
+                // device that supports VR, fire enter-vr automatically so the
+                // user enters the experience without a manual click.  Quest
+                // Browser treats the PWA launch as a user-gesture context, so
+                // requestSession is permitted.  If the browser rejects it
+                // (SecurityError on desktop) the user can still press the
+                // button — this is a best-effort optimisation.
+                const isStandalone =
+                    window.matchMedia('(display-mode: standalone)').matches ||
+                    window.navigator.standalone === true; // iOS Safari
+                if (isStandalone) {
+                    console.log('PWA standalone launch detected — auto-entering VR');
+                    // Small delay so VRApp finishes registering its enter-vr
+                    // listener before we fire the event.
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('enter-vr'));
+                    }, 200);
+                }
             }
         });
     }

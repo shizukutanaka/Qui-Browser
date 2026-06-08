@@ -74,7 +74,7 @@
 | FR-9.1 | 設定/プロファイルの永続化 | ✅ | `localStorage`（`loadPersistedSettings`/`saveSettings`） |
 | FR-9.2 | VR 内設定パネル | ✅ | トグルボタン式パネル（Teleport/Snap Turn/Comfort/Foveation）。永続化＋即時反映 |
 | FR-10.1 | PWA インストール／オフライン | ✅ | `service-worker.js` + manifest |
-| FR-10.2 | 起動時の即没入（PWA→requestSession） | ❌ | 2D ランディング→クリック |
+| FR-10.2 | 起動時の即没入（PWA→requestSession） | ✅ | `display-mode: standalone` 検出時に `enter-vr` 自動発火（200ms 後）。非対応 UA はボタン操作に fallback |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
 | FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
 | FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | 🟡 | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`、OS設定尊重・永続化・トグル）。VR内の字幕/gaze-dwell は未 |
@@ -112,4 +112,5 @@
 - FR-9.1 設定永続化 / NFR-5 lockfile（`77426d7`）
 - NFR-4 単体テスト追加（`3a42b98`）
 - NFR-1 性能計測 GPU メトリクス overlay（`16b9860`）
-- FR-5.2 知覚的オーディオ LOD（`hrtfThreshold`・`updateAllLOD`）（本コミット）
+- FR-5.2 知覚的オーディオ LOD（`hrtfThreshold`・`updateAllLOD`）（`891590d`）
+- FR-10.2 PWA 即没入（`display-mode:standalone` 自動 enter-vr）（本コミット）
