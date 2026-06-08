@@ -13,12 +13,41 @@ const LABEL_SIZE  = 0.08;  // metres
 
 export class AvatarSystem {
   /**
-   * @param {THREE.Scene} scene
+   * @param {THREE.Scene}    scene
+   * @param {SpatialAudio}   [spatialAudio] — optional; enables spatial voice
    */
-  constructor(scene) {
+  constructor(scene, spatialAudio = null) {
     this.scene = scene;
+    /** @type {import('../../audio/SpatialAudio.js').SpatialAudio|null} */
+    this.spatialAudio = spatialAudio;
     // peerId → { group, head, leftHand, rightHand }
     this.avatars = new Map();
+  }
+
+  /**
+   * Wire in a SpatialAudio instance after construction (or replace it).
+   * All subsequent peer voice streams will use this instance.
+   */
+  connectSpatialAudio(spatialAudio) {
+    this.spatialAudio = spatialAudio;
+  }
+
+  /**
+   * FR-7.2: Attach the remote peer's audio stream to a spatial panner.
+   * Call once when the WebRTC `ontrack` event fires for this peer.
+   *
+   * @param {string}      peerId
+   * @param {MediaStream} mediaStream — the peer's remote audio track stream
+   */
+  setPeerVoiceStream(peerId, mediaStream) {
+    if (!this.spatialAudio) return;
+    const avatar = this.avatars.get(peerId);
+    const pos = avatar
+      ? { x: avatar.group.position.x,
+          y: avatar.group.position.y,
+          z: avatar.group.position.z }
+      : { x: 0, y: 0, z: 0 };
+    this.spatialAudio.createVoiceSource(peerId, mediaStream, pos);
   }
 
   // ── Geometry factories ────────────────────────────────────────────────────
@@ -87,6 +116,9 @@ export class AvatarSystem {
       if (obj.material) obj.material.dispose();
     });
     this.avatars.delete(peerId);
+
+    // FR-7.2: release the spatial voice source for this peer.
+    if (this.spatialAudio) this.spatialAudio.removeVoiceSource(peerId);
   }
 
   // ── Pose updates ──────────────────────────────────────────────────────────
@@ -107,6 +139,11 @@ export class AvatarSystem {
       const q = pose.head.quaternion;
       if (p) avatar.group.position.set(p.x, p.y, p.z);
       if (q) avatar.group.quaternion.set(q.x, q.y, q.z, q.w);
+
+      // FR-7.2: keep the spatial voice panner in sync with the avatar head.
+      if (p && this.spatialAudio) {
+        this.spatialAudio.updateVoicePosition(peerId, p.x, p.y, p.z);
+      }
     }
 
     if (pose.leftHand) {

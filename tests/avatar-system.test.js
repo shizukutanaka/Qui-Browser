@@ -79,6 +79,15 @@ global.document = {
 
 const { AvatarSystem } = require('../src/vr/multiplayer/AvatarSystem.js');
 
+// ── Minimal SpatialAudio stub for voice tests ─────────────────────────────────
+function makeSpatialAudio() {
+  return {
+    createVoiceSource  : jest.fn().mockReturnValue({}),
+    removeVoiceSource  : jest.fn(),
+    updateVoicePosition: jest.fn()
+  };
+}
+
 describe('AvatarSystem (FR-7.2)', () => {
   let scene;
   let sys;
@@ -135,5 +144,57 @@ describe('AvatarSystem (FR-7.2)', () => {
     sys.dispose();
     expect(sys.getPeerIds()).toHaveLength(0);
     expect(scene._objects).toHaveLength(0);
+  });
+});
+
+describe('AvatarSystem spatial voice integration (FR-7.2)', () => {
+  let scene, audio, sys;
+
+  beforeEach(() => {
+    scene = new MockScene();
+    audio = makeSpatialAudio();
+    sys   = new AvatarSystem(scene, audio);
+  });
+
+  test('connectSpatialAudio() stores the reference', () => {
+    const s2 = new AvatarSystem(scene);
+    s2.connectSpatialAudio(audio);
+    expect(s2.spatialAudio).toBe(audio);
+  });
+
+  test('setPeerVoiceStream() calls createVoiceSource on the audio system', () => {
+    sys.addPeer('p1');
+    const stream = {};
+    sys.setPeerVoiceStream('p1', stream);
+    expect(audio.createVoiceSource).toHaveBeenCalledWith('p1', stream, expect.any(Object));
+  });
+
+  test('setPeerVoiceStream() no-ops when no spatialAudio is wired', () => {
+    const bare = new AvatarSystem(scene);
+    bare.addPeer('p1');
+    expect(() => bare.setPeerVoiceStream('p1', {})).not.toThrow();
+  });
+
+  test('updatePeerPose() syncs voice position with head position', () => {
+    sys.addPeer('p1');
+    sys.setPeerVoiceStream('p1', {});
+    sys.updatePeerPose('p1', {
+      head: { position: { x: 1, y: 1.7, z: -2 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } }
+    });
+    expect(audio.updateVoicePosition).toHaveBeenCalledWith('p1', 1, 1.7, -2);
+  });
+
+  test('removePeer() calls removeVoiceSource', () => {
+    sys.addPeer('p1');
+    sys.removePeer('p1');
+    expect(audio.removeVoiceSource).toHaveBeenCalledWith('p1');
+  });
+
+  test('dispose() cleans up voice sources for all peers', () => {
+    sys.addPeer('a');
+    sys.addPeer('b');
+    sys.dispose();
+    expect(audio.removeVoiceSource).toHaveBeenCalledWith('a');
+    expect(audio.removeVoiceSource).toHaveBeenCalledWith('b');
   });
 });

@@ -841,8 +841,9 @@ export class VRApp {
     // demand by the caller, not here.
     if (this.settings.enableMultiplayer) {
       this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
-      // FR-7.2: avatar presence — geometric avatars for remote peers.
-      this.avatarSystem = new AvatarSystem(this.scene);
+      // FR-7.2: avatar presence + spatial voice — geometric avatars and
+      // spatialized voice streams for remote peers.
+      this.avatarSystem = new AvatarSystem(this.scene, this.spatialAudio);
       console.log('VRApp: Multiplayer system ready (call connect() to join a room)');
     }
 
