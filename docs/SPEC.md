@@ -20,8 +20,8 @@
 ### 3.1 ブラウジング中核
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
-| FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | ❌ | DOM/iframe/Layers 描画なし。最大ギャップ |
-| FR-1.2 | URL バー・戻る/進む・再読込 | ❌ | 未実装 |
+| FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | 🟡 | `WebPanel`（`settings.enableWebPanel`）: iframe + dom-overlay。クロスオリジンはサンドボックス制限あり。dom-overlay 非対応端末はプレースホルダ表示 |
+| FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore + AI 連携 |
 | FR-1.3 | タブ／複数ウィンドウ | ❌ | 未実装 |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
 | FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ❌ | `XRWebGLBinding` は FFR のみ |
@@ -122,5 +122,6 @@
 - NFR-2 DeviceCompatibility（UA ティア検出・WebXR 機能マトリクス・targetFPS 自動設定）（`a55b51d`）
 - FR-2.4 VoiceCommands → ✅（設定フラグ＋配線済確認）
 - FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（`9e0bbb2`）
-- FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（本コミット）
-- NFR-4 AvatarSystem テスト追加（62 tests total）（本コミット）
+- FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（`5409fab`）
+- NFR-4 AvatarSystem テスト追加（62 tests total）（`5409fab`）
+- FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（本コミット）

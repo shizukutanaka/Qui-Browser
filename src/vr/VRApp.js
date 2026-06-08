@@ -27,6 +27,7 @@ import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
+import { WebPanel } from './browser/WebPanel.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -65,6 +66,7 @@ export class VRApp {
     this.voiceCommands = null;
     this.multiplayerSystem = null;
     this.avatarSystem = null;
+    this.webPanel = null;
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
@@ -122,6 +124,7 @@ export class VRApp {
       smoothMoveSpeed: 1.8, // metres/second
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
+      enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -261,6 +264,18 @@ export class VRApp {
     if (this.settings.enableSettingsPanel) {
       this.settingsPanel = this.createSettingsPanel();
       this.scene.add(this.settingsPanel);
+    }
+
+    // FR-1.1: in-VR web browsing panel (iframe + URL chrome).
+    if (this.settings.enableWebPanel) {
+      this.webPanel = new WebPanel({
+        scene: this.scene,
+        registerInteractable: (m, h) => this.registerInteractable(m, h),
+        unregisterInteractable: (m) => this.unregisterInteractable(m),
+        onNavigate: (url, title) => this.navigate(url, title)
+      });
+      this.webPanel.addToScene();
+      this.webPanel.show();
     }
 
     console.log('VRApp: Scene created');
@@ -1248,6 +1263,7 @@ export class VRApp {
     if (this.voiceCommands) this.voiceCommands.stop();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.avatarSystem) this.avatarSystem.dispose();
+    if (this.webPanel) this.webPanel.dispose();
     if (this.devTools) this.devTools.dispose();
     if (this.perfMonitorUI) this.perfMonitorUI.dispose();
     if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();
