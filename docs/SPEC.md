@@ -66,7 +66,7 @@
 | FR-6.4 | Depth sensing/平面・メッシュ検出 | ❌ | 未実装 |
 | FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
 | FR-7.2 | アバター/プレゼンス/空間ボイス | 🟡 | `AvatarSystem`: 幾何学的アバター（頭+手）、`addPeer/removePeer/updatePeerPose`、Canvas ラベル。空間ボイスは SpatialAudio との統合待ち |
-| FR-8.1 | AI コンテンツ推薦 | 🟡 | `AIRecommendation` はヒューリスティック・スタブ |
+| FR-8.1 | AI コンテンツ推薦 | 🟡 | `AIRecommendation` ヒューリスティック（時間帯/カテゴリ重み）。`VRApp.navigate()` 経由で BookmarkStore 履歴とリアルタイム同期 |
 
 ### 3.6 設定・永続化・PWA・監視・国際化・アクセシビリティ
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -121,4 +121,6 @@
 - FR-1.4 BookmarkStore（bookmarks + history, localStorage 永続化）（`06a565b`）
 - NFR-2 DeviceCompatibility（UA ティア検出・WebXR 機能マトリクス・targetFPS 自動設定）（`a55b51d`）
 - FR-2.4 VoiceCommands → ✅（設定フラグ＋配線済確認）
-- FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（本コミット）
+- FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（`9e0bbb2`）
+- FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（本コミット）
+- NFR-4 AvatarSystem テスト追加（62 tests total）（本コミット）

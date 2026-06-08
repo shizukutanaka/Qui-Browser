@@ -777,11 +777,17 @@ export class VRApp {
 
     // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
 
-    // 9. AI Recommendations
+    // 9. AI Recommendations (FR-8.1).
     if (this.settings.enableAI) {
       this.aiRecommendation = new AIRecommendation();
       await this.aiRecommendation.initialize();
-      console.log('VRApp: AI recommendations ready');
+      // Seed the model with persisted browse history from BookmarkStore so
+      // recommendations are meaningful from the first session.
+      const seedHistory = this.bookmarks.getHistory(50);
+      seedHistory.forEach(entry => {
+        this.aiRecommendation.trackVisit(entry.url, entry.title, 0);
+      });
+      console.log(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
     }
 
     // 10. Voice Commands
@@ -1166,6 +1172,18 @@ export class VRApp {
   /**
    * Get performance statistics
    */
+  /**
+   * Navigate to a URL: records the visit in BookmarkStore history and feeds
+   * it to the AI recommendation engine.  Call this whenever the in-VR panel
+   * loads a new page (FR-1.1 prerequisite infrastructure).
+   */
+  navigate(url, title = url) {
+    this.bookmarks.addHistory(url, title);
+    if (this.aiRecommendation) {
+      this.aiRecommendation.trackVisit(url, title, 0);
+    }
+  }
+
   getPerformanceStats() {
     const info = this.renderer.info;
     const stats = {
