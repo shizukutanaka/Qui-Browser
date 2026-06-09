@@ -391,6 +391,20 @@ export class VRJapaneseKeyboard {
     this.ime = ime;
     this.keyboard = null;
     this.candidatePanel = null;
+    this._onConfirmCallback = null;
+  }
+
+  /**
+   * Register a one-shot callback invoked when the user presses Enter.
+   * The callback receives the confirmed text.  It is automatically cleared
+   * after firing so it doesn't leak into the next input session.
+   */
+  setOnConfirm(callback) {
+    this._onConfirmCallback = typeof callback === 'function' ? callback : null;
+  }
+
+  clearOnConfirm() {
+    this._onConfirmCallback = null;
   }
 
   /**
@@ -506,11 +520,16 @@ export class VRJapaneseKeyboard {
   }
 
   /**
-   * Handle confirmed text
+   * Called when the user commits a text entry (Enter key).
+   * Fires the registered one-shot callback, then clears it.
    */
   onTextConfirmed(text) {
     console.debug('Confirmed:', text);
-    // Would insert text into target field
+    if (this._onConfirmCallback) {
+      const cb = this._onConfirmCallback;
+      this._onConfirmCallback = null; // clear before calling to prevent re-entrancy
+      cb(text);
+    }
   }
 
   /**

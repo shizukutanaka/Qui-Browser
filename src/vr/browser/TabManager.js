@@ -22,6 +22,7 @@ export class TabManager {
    * @param {Function} opts.registerInteractable
    * @param {Function} opts.unregisterInteractable
    * @param {Function} [opts.onNavigate]
+   * @param {Function} [opts.onUrlInputRequested]  — forwarded to every WebPanel
    * @param {{x:number,y:number,z:number}} [opts.position]
    */
   constructor(opts) {
@@ -164,7 +165,8 @@ export class TabManager {
       onNavigate: (u, title) => {
         this._drawStrip();           // refresh tab title
         this.opts.onNavigate?.(u, title);
-      }
+      },
+      onUrlInputRequested: this.opts.onUrlInputRequested || null
     });
     panel.addToScene();
     panel.group.position.set(this.position.x, this.position.y, this.position.z);

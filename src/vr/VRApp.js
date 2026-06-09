@@ -300,7 +300,11 @@ export class VRApp {
         registerInteractable: (m, h) => this.registerInteractable(m, h),
         unregisterInteractable: (m) => this.unregisterInteractable(m),
         onNavigate: (url, title) => this.navigate(url, title),
-        position: { x: 0, y: 1.5, z: -2 }
+        position: { x: 0, y: 1.5, z: -2 },
+        // Replace window.prompt() with the VR keyboard.  vrKeyboard is
+        // initialised in initializeSystems() before this block runs.
+        onUrlInputRequested: (prefill, onConfirm) =>
+          this._requestVRKeyboardInput(prefill, onConfirm)
       });
       this.tabManager.addToScene();
       if (this.settings.enableCurvedPanel) this.tabManager.setCurved(true);
@@ -1381,6 +1385,31 @@ export class VRApp {
   /**
    * Get performance statistics
    */
+  /**
+   * Show the VR keyboard pre-filled with `prefill` and fire `onConfirm(text)`
+   * when the user commits.  Falls back to window.prompt() when the VR keyboard
+   * is not available (e.g. tests or desktop without XR).
+   *
+   * @param {string}   prefill   — initial text in the input buffer
+   * @param {Function} onConfirm — called with the confirmed string
+   */
+  _requestVRKeyboardInput(prefill, onConfirm) {
+    if (this.vrKeyboard) {
+      this.vrKeyboard.setOnConfirm(onConfirm);
+      if (!this.vrKeyboard.keyboard) this.vrKeyboard.createKeyboard();
+      this.japaneseIME.activate();
+      // Pre-fill the composition buffer with the current URL so the user
+      // can edit it rather than typing from scratch.
+      if (prefill && prefill !== 'https://') {
+        this.japaneseIME.compositionBuffer = prefill;
+      }
+    } else {
+      // Desktop / non-VR fallback
+      const url = window.prompt('Enter URL', prefill);
+      if (url) onConfirm(url);
+    }
+  }
+
   /**
    * Navigate to a URL: records the visit in BookmarkStore history and feeds
    * it to the AI recommendation engine.  Call this whenever the in-VR panel

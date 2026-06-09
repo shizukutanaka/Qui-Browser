@@ -30,11 +30,21 @@ export class WebPanel {
    * @param {Function} opts.unregisterInteractable — from VRApp
    * @param {Function} [opts.onNavigate]           — called with (url, title)
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate }) {
+  /**
+   * @param {object} opts
+   * @param {THREE.Scene} opts.scene
+   * @param {Function} opts.registerInteractable
+   * @param {Function} opts.unregisterInteractable
+   * @param {Function} [opts.onNavigate]          — called with (url, title)
+   * @param {Function} [opts.onUrlInputRequested] — (currentUrl, confirmCb) called when
+   *   the user selects the URL bar.  If omitted, falls back to window.prompt().
+   */
+  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate, onUrlInputRequested }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.onNavigate = onNavigate || (() => {});
+    this.onUrlInputRequested = onUrlInputRequested || null;
 
     // Panel state
     this.currentUrl  = '';
@@ -200,9 +210,15 @@ export class WebPanel {
       this.reload();
     } else if (px > this.chromeCanvas.width - 60) { // close
       this.hide();
-    } else {                  // URL bar — open a prompt
-      const url = window.prompt('Enter URL', this.currentUrl || 'https://');
-      if (url) this.navigate(url);
+    } else {                  // URL bar — request text input
+      const prefill = this.currentUrl || 'https://';
+      if (this.onUrlInputRequested) {
+        this.onUrlInputRequested(prefill, (url) => { if (url) this.navigate(url); });
+      } else {
+        // Fallback: synchronous prompt (only available outside immersive VR).
+        const url = window.prompt('Enter URL', prefill);
+        if (url) this.navigate(url);
+      }
     }
   }
 
