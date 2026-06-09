@@ -57,7 +57,7 @@ export class FFRSystem {
       }
 
       this.enabled = true;
-      console.log('FFRSystem: Initialized successfully');
+      console.debug('FFRSystem: Initialized successfully');
       return true;
     } catch (error) {
       console.error('FFRSystem: Initialization error', error);
@@ -79,7 +79,7 @@ export class FFRSystem {
     this.intensity = Math.max(0, Math.min(1, intensity));
     this.projectionLayer.fixedFoveation = this.intensity;
 
-    console.log(`FFRSystem: Enabled with intensity ${this.intensity}`);
+    console.debug(`FFRSystem: Enabled with intensity ${this.intensity}`);
   }
 
   /**
@@ -91,7 +91,7 @@ export class FFRSystem {
     }
 
     this.projectionLayer.fixedFoveation = 0;
-    console.log('FFRSystem: Disabled');
+    console.debug('FFRSystem: Disabled');
   }
 
   /**

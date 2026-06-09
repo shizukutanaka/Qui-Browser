@@ -114,8 +114,8 @@ export class WebGPURenderer {
       // Setup default pipeline
       await this.createDefaultPipeline();
 
-      console.log('WebGPURenderer: Initialized successfully');
-      console.log('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
+      console.debug('WebGPURenderer: Initialized successfully');
+      console.debug('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
 
       return true;
 
@@ -141,7 +141,7 @@ export class WebGPURenderer {
       shaderF16: features.has('shader-f16')
     };
 
-    console.log('WebGPURenderer: Features detected', this.features);
+    console.debug('WebGPURenderer: Features detected', this.features);
   }
 
   /**
@@ -548,7 +548,7 @@ export class WebGPURenderer {
       this.context.unconfigure();
     }
 
-    console.log('WebGPURenderer: Disposed');
+    console.debug('WebGPURenderer: Disposed');
   }
 }
 
@@ -570,13 +570,13 @@ export class HybridRenderer {
       if (success) {
         this.renderer = webgpu;
         this.backend = 'webgpu';
-        console.log('HybridRenderer: Using WebGPU backend');
+        console.debug('HybridRenderer: Using WebGPU backend');
         return true;
       }
     }
 
     // Fallback to WebGL (Three.js)
-    console.log('HybridRenderer: Falling back to WebGL');
+    console.debug('HybridRenderer: Falling back to WebGL');
     this.backend = 'webgl';
 
     // Would initialize Three.js WebGLRenderer here

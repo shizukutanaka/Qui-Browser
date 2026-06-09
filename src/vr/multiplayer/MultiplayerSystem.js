@@ -97,7 +97,7 @@ export class MultiplayerSystem {
     this.peerId = this.generatePeerId();
     this.isHost = options.host || false;
 
-    console.log(`MultiplayerSystem: Connecting to room ${roomId} as ${this.peerId}`);
+    console.debug(`MultiplayerSystem: Connecting to room ${roomId} as ${this.peerId}`);
 
     try {
       // Connect to signaling server
@@ -117,7 +117,7 @@ export class MultiplayerSystem {
       this.startUpdateLoops();
 
       this.connected = true;
-      console.log('MultiplayerSystem: Connected successfully');
+      console.debug('MultiplayerSystem: Connected successfully');
 
     } catch (error) {
       console.error('MultiplayerSystem: Connection failed', error);
@@ -133,7 +133,7 @@ export class MultiplayerSystem {
       this.signalingServer = new WebSocket(this.signalingUrl);
 
       this.signalingServer.onopen = () => {
-        console.log('MultiplayerSystem: Signaling server connected');
+        console.debug('MultiplayerSystem: Signaling server connected');
 
         // Register peer
         this.sendSignal({
@@ -198,7 +198,7 @@ export class MultiplayerSystem {
    * Handle new peer joining
    */
   async handlePeerJoined(peerId) {
-    console.log(`MultiplayerSystem: Peer ${peerId} joined`);
+    console.debug(`MultiplayerSystem: Peer ${peerId} joined`);
 
     // Create peer connection
     const pc = new RTCPeerConnection(this.rtcConfig);
@@ -235,7 +235,7 @@ export class MultiplayerSystem {
    * threw on every 'peer-left' message.)
    */
   handlePeerLeft(peerId) {
-    console.log(`MultiplayerSystem: Peer ${peerId} left`);
+    console.debug(`MultiplayerSystem: Peer ${peerId} left`);
 
     // Close and drop the peer connection.
     const pc = this.peers.get(peerId);
@@ -305,7 +305,7 @@ export class MultiplayerSystem {
 
     // Handle connection state
     pc.onconnectionstatechange = () => {
-      console.log(`MultiplayerSystem: Connection state ${peerId}: ${pc.connectionState}`);
+      console.debug(`MultiplayerSystem: Connection state ${peerId}: ${pc.connectionState}`);
 
       if (pc.connectionState === 'connected') {
         this.stats.connectedPeers++;
@@ -327,7 +327,7 @@ export class MultiplayerSystem {
    * signaling server is still connected.
    */
   reconnectPeer(peerId) {
-    console.log(`MultiplayerSystem: Reconnecting to peer ${peerId}`);
+    console.debug(`MultiplayerSystem: Reconnecting to peer ${peerId}`);
     const pc = this.peers.get(peerId);
     if (pc) {
       pc.close();
@@ -351,7 +351,7 @@ export class MultiplayerSystem {
    */
   setupDataChannel(dataChannel, peerId) {
     dataChannel.onopen = () => {
-      console.log(`MultiplayerSystem: Data channel open with ${peerId}`);
+      console.debug(`MultiplayerSystem: Data channel open with ${peerId}`);
       this.dataChannels.set(peerId, dataChannel);
 
       // Send initial state
@@ -379,7 +379,7 @@ export class MultiplayerSystem {
     };
 
     dataChannel.onclose = () => {
-      console.log(`MultiplayerSystem: Data channel closed ${peerId}`);
+      console.debug(`MultiplayerSystem: Data channel closed ${peerId}`);
       this.dataChannels.delete(peerId);
     };
   }
@@ -446,6 +446,18 @@ export class MultiplayerSystem {
         avatar: 'default',
         color: this.generatePlayerColor()
       }
+    };
+  }
+
+  getLocalPlayerInfo() {
+    if (!this.localPlayer) return {};
+    const p = this.localPlayer;
+    return {
+      id: p.id,
+      position: { x: p.position.x, y: p.position.y, z: p.position.z },
+      rotation: { x: p.rotation.x, y: p.rotation.y, z: p.rotation.z, w: p.rotation.w },
+      hands: p.hands,
+      info: p.info
     };
   }
 
@@ -575,7 +587,7 @@ export class MultiplayerSystem {
     this.avatars.set(peerId, avatarData);
     this.scene.add(avatar);
 
-    console.log(`MultiplayerSystem: Created avatar for ${peerId}`);
+    console.debug(`MultiplayerSystem: Created avatar for ${peerId}`);
   }
 
   /**
@@ -734,7 +746,7 @@ export class MultiplayerSystem {
     if (!avatar) return;
 
     // Visual feedback for gesture
-    console.log(`MultiplayerSystem: ${peerId} performed ${gesture.type}`);
+    console.debug(`MultiplayerSystem: ${peerId} performed ${gesture.type}`);
 
     // Play spatial sound at avatar position
     if (this.spatialAudio && gesture.type === 'clap') {
@@ -778,7 +790,7 @@ export class MultiplayerSystem {
     this.avatars.clear();
 
     this.connected = false;
-    console.log('MultiplayerSystem: Disconnected');
+    console.debug('MultiplayerSystem: Disconnected');
   }
 
   /**

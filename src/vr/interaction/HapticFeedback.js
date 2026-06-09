@@ -92,12 +92,12 @@ export class HapticFeedback {
 
       if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
         if (!this.gamepads.has(i)) {
-          console.log(`HapticFeedback: Controller ${i} connected (${gamepad.id})`);
+          console.debug(`HapticFeedback: Controller ${i} connected (${gamepad.id})`);
           this.stats.controllersDetected++;
         }
         this.gamepads.set(i, gamepad);
       } else if (this.gamepads.has(i)) {
-        console.log(`HapticFeedback: Controller ${i} disconnected`);
+        console.debug(`HapticFeedback: Controller ${i} disconnected`);
         this.gamepads.delete(i);
       }
     }
@@ -192,7 +192,7 @@ export class HapticFeedback {
    */
   createCustomPattern(name, steps) {
     this.patterns[name] = steps;
-    console.log(`HapticFeedback: Created custom pattern "${name}"`);
+    console.debug(`HapticFeedback: Created custom pattern "${name}"`);
   }
 
   /**
@@ -366,7 +366,7 @@ export class HapticFeedback {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    console.log(`HapticFeedback: ${enabled ? 'Enabled' : 'Disabled'}`);
+    console.debug(`HapticFeedback: ${enabled ? 'Enabled' : 'Disabled'}`);
   }
 
   /**
@@ -380,17 +380,17 @@ export class HapticFeedback {
    * Test haptic feedback
    */
   async test(hand = 'right') {
-    console.log('HapticFeedback: Testing...');
+    console.debug('HapticFeedback: Testing...');
 
     const testPatterns = ['click', 'tap', 'impact', 'success'];
 
     for (const pattern of testPatterns) {
-      console.log(`Testing pattern: ${pattern}`);
+      console.debug(`Testing pattern: ${pattern}`);
       await this.playPattern(hand, pattern);
       await this.wait(500);
     }
 
-    console.log('HapticFeedback: Test complete');
+    console.debug('HapticFeedback: Test complete');
   }
 
   /**

@@ -66,12 +66,12 @@ export class SpatialAudio {
       if (this.context.state === 'suspended') {
         document.addEventListener('click', async () => {
           await this.context.resume();
-          console.log('SpatialAudio: Context resumed');
+          console.debug('SpatialAudio: Context resumed');
         }, { once: true });
       }
 
-      console.log('SpatialAudio: Initialized successfully');
-      console.log('SpatialAudio: Sample rate:', this.context.sampleRate, 'Hz');
+      console.debug('SpatialAudio: Initialized successfully');
+      console.debug('SpatialAudio: Sample rate:', this.context.sampleRate, 'Hz');
 
     } catch (error) {
       console.error('SpatialAudio: Initialization failed', error);
@@ -94,7 +94,7 @@ export class SpatialAudio {
       this.buffers.set(name, audioBuffer);
       this.stats.buffersLoaded++;
 
-      console.log(`SpatialAudio: Loaded '${name}' (${audioBuffer.duration.toFixed(2)}s)`);
+      console.debug(`SpatialAudio: Loaded '${name}' (${audioBuffer.duration.toFixed(2)}s)`);
       return audioBuffer;
 
     } catch (error) {
@@ -196,7 +196,7 @@ export class SpatialAudio {
     source.isPlaying = true;
     this.stats.sourcesActive++;
 
-    console.log(`SpatialAudio: Playing '${bufferName}' from source '${sourceName}'`);
+    console.debug(`SpatialAudio: Playing '${bufferName}' from source '${sourceName}'`);
   }
 
   /**
@@ -490,7 +490,7 @@ export class SpatialAudio {
       this.sources.set(sourceName, source);
       this.stats.sourcesActive++;
       this.updateSourceLOD(sourceName);
-      console.log(`SpatialAudio: Voice source created for peer '${peerId}'`);
+      console.debug(`SpatialAudio: Voice source created for peer '${peerId}'`);
       return source;
     } catch (e) {
       console.warn(`SpatialAudio: createVoiceSource failed for '${peerId}'`, e);
@@ -517,7 +517,7 @@ export class SpatialAudio {
 
     this.sources.delete(sourceName);
     this.stats.sourcesActive = Math.max(0, this.stats.sourcesActive - 1);
-    console.log(`SpatialAudio: Voice source removed for peer '${peerId}'`);
+    console.debug(`SpatialAudio: Voice source removed for peer '${peerId}'`);
   }
 
   /**
@@ -640,7 +640,7 @@ export class SpatialAudio {
       this.context.close();
     }
 
-    console.log('SpatialAudio: Disposed');
+    console.debug('SpatialAudio: Disposed');
   }
 }
 

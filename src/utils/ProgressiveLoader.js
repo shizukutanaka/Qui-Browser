@@ -76,7 +76,7 @@ export class ProgressiveLoader {
       conn.addEventListener('change', this.networkChangeHandler);
     }
 
-    console.log('ProgressiveLoader: Network detected', this.network);
+    console.debug('ProgressiveLoader: Network detected', this.network);
   }
 
   /**
@@ -94,7 +94,7 @@ export class ProgressiveLoader {
       saveData: conn.saveData || false
     };
 
-    console.log('ProgressiveLoader: Network changed', {
+    console.debug('ProgressiveLoader: Network changed', {
       from: oldType,
       to: this.network.effectiveType
     });
@@ -133,7 +133,7 @@ export class ProgressiveLoader {
     if (this.network.saveData) {
       this.strategy.adaptiveQuality = true;
       this.strategy.preloadNext = false;
-      console.log('ProgressiveLoader: Data saver mode enabled');
+      console.debug('ProgressiveLoader: Data saver mode enabled');
     }
   }
 
@@ -167,7 +167,7 @@ export class ProgressiveLoader {
    */
   async start() {
     this.stats.startTime = performance.now();
-    console.log('ProgressiveLoader: Starting progressive load');
+    console.debug('ProgressiveLoader: Starting progressive load');
 
     // Phase 1: Critical resources (blocking)
     await this.loadPhase('critical');
@@ -197,7 +197,7 @@ export class ProgressiveLoader {
     const queue = this.loadQueue[priority];
     if (queue.length === 0) return;
 
-    console.log(`ProgressiveLoader: Loading ${priority} phase (${queue.length} items)`);
+    console.debug(`ProgressiveLoader: Loading ${priority} phase (${queue.length} items)`);
 
     // Process queue with parallel limit
     const chunks = this.chunkArray(queue, this.strategy.parallelLimit);
@@ -480,7 +480,7 @@ export class ProgressiveLoader {
 
     const progress = this.stats.itemsLoaded / this.stats.itemsTotal;
 
-    console.log(`ProgressiveLoader: Loaded ${item.name} (${Math.round(progress * 100)}%)`);
+    console.debug(`ProgressiveLoader: Loaded ${item.name} (${Math.round(progress * 100)}%)`);
 
     if (this.callbacks.onProgress) {
       this.callbacks.onProgress({
@@ -517,7 +517,7 @@ export class ProgressiveLoader {
   onLoadComplete() {
     this.stats.loadTime = performance.now() - this.stats.startTime;
 
-    console.log('ProgressiveLoader: All resources loaded', {
+    console.debug('ProgressiveLoader: All resources loaded', {
       items: this.stats.itemsLoaded,
       bytes: this.stats.loadedBytes,
       time: `${this.stats.loadTime.toFixed(0)}ms`,
@@ -623,7 +623,7 @@ export class ProgressiveLoader {
  *
  * // Set callbacks
  * loader.callbacks.onProgress = (data) => {
- *   console.log(`Loading: ${data.loaded}/${data.total}`);
+ *   console.debug(`Loading: ${data.loaded}/${data.total}`);
  * };
  *
  * // Add critical resources

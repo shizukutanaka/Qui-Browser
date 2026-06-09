@@ -71,7 +71,7 @@ export class PerformanceMonitor {
     // Start monitoring
     this.startMonitoring();
 
-    console.log('PerformanceMonitor: Initialized');
+    console.debug('PerformanceMonitor: Initialized');
   }
 
   /**
@@ -645,7 +645,7 @@ export class PerformanceMonitor {
       metric.history = [];
     });
 
-    console.log('PerformanceMonitor: Statistics reset');
+    console.debug('PerformanceMonitor: Statistics reset');
   }
 }
 
@@ -669,7 +669,7 @@ export class PerformanceMonitor {
  *
  * // Get report
  * const report = perfMon.getReport();
- * console.log(report);
+ * console.debug(report);
  *
  * // Export data
  * const csv = perfMon.exportCSV();

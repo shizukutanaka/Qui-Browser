@@ -46,7 +46,7 @@ export class DeviceCompatibility {
       timestamp: Date.now()
     };
 
-    console.log('DeviceCompatibility: report', this.report);
+    console.debug('DeviceCompatibility: report', this.report);
     return this.report;
   }
 

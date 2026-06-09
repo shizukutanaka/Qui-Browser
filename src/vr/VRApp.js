@@ -215,7 +215,7 @@ export class VRApp {
    * Initialize VR application
    */
   async initialize() {
-    console.log('VRApp: Initializing Qui Browser VR v2.0.0');
+    console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
 
     // Setup Three.js
     this.setupRenderer();
@@ -236,7 +236,7 @@ export class VRApp {
     // Start render loop
     this.renderer.setAnimationLoop(this.render.bind(this));
 
-    console.log('VRApp: Initialization complete');
+    console.debug('VRApp: Initialization complete');
   }
 
   /**
@@ -260,7 +260,7 @@ export class VRApp {
 
     this.container.appendChild(this.renderer.domElement);
 
-    console.log('VRApp: Renderer initialized');
+    console.debug('VRApp: Renderer initialized');
   }
 
   /**
@@ -308,7 +308,7 @@ export class VRApp {
       this.webPanel = this.tabManager.getActiveTab();
     }
 
-    console.log('VRApp: Scene created');
+    console.debug('VRApp: Scene created');
   }
 
   /**
@@ -596,7 +596,7 @@ export class VRApp {
     this.scene.add(marker);
     this.teleport.marker = marker;
 
-    console.log('VRApp: Controllers ready');
+    console.debug('VRApp: Controllers ready');
   }
 
   /** Build a world-space raycaster from a controller's pose. */
@@ -771,7 +771,7 @@ export class VRApp {
     if (!this.playerRig) return;
     this.playerRig.position.set(0, 0, 0);
     this.playerRig.quaternion.identity();
-    console.log('VRApp: recentered');
+    console.debug('VRApp: recentered');
   }
 
   /**
@@ -787,12 +787,12 @@ export class VRApp {
     if (!this.settings._fpsOverridden) {
       this.settings.targetFPS = this.deviceCompat.targetFPS();
     }
-    console.log(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
+    console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
     // Use progressive loader for efficient initialization
     this.progressiveLoader = new ProgressiveLoader();
     this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.log(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
+      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
     };
 
     // === TIER 1 SYSTEMS ===
@@ -800,7 +800,7 @@ export class VRApp {
     // 1. Fixed Foveated Rendering
     if (this.settings.enableFFR) {
       this.ffrSystem = new FFRSystem();
-      console.log('VRApp: FFR system ready');
+      console.debug('VRApp: FFR system ready');
     }
 
     // 2. Comfort System
@@ -811,7 +811,7 @@ export class VRApp {
         this.renderer
       );
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
-      console.log('VRApp: Comfort system initialized');
+      console.debug('VRApp: Comfort system initialized');
     }
 
     // 3. Object Pooling
@@ -823,14 +823,14 @@ export class VRApp {
       this.poolManager.register('quaternion', new ObjectPool(THREE.Quaternion, 50, 500));
       this.poolManager.register('matrix4', new ObjectPool(THREE.Matrix4, 20, 200));
 
-      console.log('VRApp: Object pools initialized');
+      console.debug('VRApp: Object pools initialized');
     }
 
     // 4. Texture Manager with KTX2 support
     if (this.settings.enableTextureCompression) {
       this.textureManager = new TextureManager(this.renderer);
       await this.textureManager.initializeKTX2();
-      console.log('VRApp: Texture manager ready with KTX2 support');
+      console.debug('VRApp: Texture manager ready with KTX2 support');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -838,16 +838,16 @@ export class VRApp {
     // 5. Japanese IME
     this.japaneseIME = new JapaneseIME();
     this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME);
-    console.log('VRApp: Japanese IME ready');
+    console.debug('VRApp: Japanese IME ready');
 
     // 6. Hand Tracking
     this.handTracking = new HandTracking(this.renderer, this.scene);
-    console.log('VRApp: Hand tracking ready');
+    console.debug('VRApp: Hand tracking ready');
 
     // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in
     // onVRSessionStart() once a session and gamepads are available.
     this.hapticFeedback = new HapticFeedback();
-    console.log('VRApp: Haptic feedback ready');
+    console.debug('VRApp: Haptic feedback ready');
 
     // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
     // can be toggled live from the settings panel; only active when enabled.
@@ -855,23 +855,23 @@ export class VRApp {
       dwellTime: this.settings.gazeDwellTime
     });
     this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
-    console.log('VRApp: Gaze-dwell interaction ready');
+    console.debug('VRApp: Gaze-dwell interaction ready');
 
     // 6c. In-VR captions (FR-13.1, accessibility). Created always so it can be
     // toggled live; only renders when enabled and lines are present.
     this.captionSystem = new CaptionSystem(this.camera);
     this.captionSystem.setEnabled(this.settings.enableCaptions);
-    console.log('VRApp: Caption system ready');
+    console.debug('VRApp: Caption system ready');
 
     // 7. Spatial Audio
     this.spatialAudio = new SpatialAudio();
     await this.loadAudioAssets();
-    console.log('VRApp: Spatial audio initialized');
+    console.debug('VRApp: Spatial audio initialized');
 
     // 8. Mixed Reality
     this.mixedReality = new MixedReality(this.renderer, this.scene);
     const mrSupport = await this.mixedReality.checkSupport();
-    console.log('VRApp: Mixed reality support:', mrSupport);
+    console.debug('VRApp: Mixed reality support:', mrSupport);
 
     // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
 
@@ -885,7 +885,7 @@ export class VRApp {
       seedHistory.forEach(entry => {
         this.aiRecommendation.trackVisit(entry.url, entry.title, 0);
       });
-      console.log(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
+      console.debug(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
     }
 
     // 10. Voice Commands
@@ -896,7 +896,7 @@ export class VRApp {
       this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
         if (isFinal && this.captionSystem) this.captionSystem.show(transcript);
       };
-      console.log('VRApp: Voice commands ready');
+      console.debug('VRApp: Voice commands ready');
     }
 
     // 11. Multiplayer — requires a signaling server; connect() is called on
@@ -906,7 +906,7 @@ export class VRApp {
       // FR-7.2: avatar presence + spatial voice — geometric avatars and
       // spatialized voice streams for remote peers.
       this.avatarSystem = new AvatarSystem(this.scene, this.spatialAudio);
-      console.log('VRApp: Multiplayer system ready (call connect() to join a room)');
+      console.debug('VRApp: Multiplayer system ready (call connect() to join a room)');
     }
 
     // 12. DevTools (development builds only; hidden until toggled with F12).
@@ -915,14 +915,14 @@ export class VRApp {
       const { DevTools } = await import('../dev/DevTools.js');
       this.devTools = new DevTools(this);
       this.devTools.initialize();
-      console.log('VRApp: DevTools ready (F12 to toggle)');
+      console.debug('VRApp: DevTools ready (F12 to toggle)');
     }
 
     // 13. Performance monitor overlay (opt-in)
     if (this.settings.enablePerfMonitorUI) {
       this.perfMonitorUI = new PerformanceMonitor();
       this.perfMonitorUI.initialize();
-      console.log('VRApp: Performance monitor UI ready');
+      console.debug('VRApp: Performance monitor UI ready');
     }
 
     // 14. WebGPU renderer (experimental, opt-in). Gated behind capability
@@ -932,14 +932,14 @@ export class VRApp {
       if (typeof navigator !== 'undefined' && navigator.gpu) {
         const { WebGPURenderer } = await import('./rendering/WebGPURenderer.js');
         this.webGPURenderer = new WebGPURenderer();
-        console.log('VRApp: WebGPU available (experimental; not wired into the render loop yet)');
+        console.debug('VRApp: WebGPU available (experimental; not wired into the render loop yet)');
       } else {
         console.warn('VRApp: WebGPU requested but navigator.gpu is unavailable');
       }
     }
 
     const loadTime = performance.now() - startTime;
-    console.log(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
+    console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
   }
 
   /**
@@ -1002,7 +1002,7 @@ export class VRApp {
    * Handle VR session start
    */
   async onVRSessionStart() {
-    console.log('VRApp: VR session started');
+    console.debug('VRApp: VR session started');
     this.isVREnabled = true;
 
     // Get XR session
@@ -1013,7 +1013,7 @@ export class VRApp {
     if (this.ffrSystem && session) {
       await this.ffrSystem.initialize(session, gl);
       this.ffrSystem.setEnabled(true);
-      console.log('VRApp: FFR enabled for session');
+      console.debug('VRApp: FFR enabled for session');
     }
 
     // FR-1.5: WebXR Layers for sharp browser-panel text.
@@ -1038,7 +1038,7 @@ export class VRApp {
 
       // Register gesture callbacks
       this.handTracking.onGesture('pinch', (hand, gesture) => {
-        console.log(`${hand} hand pinch detected`);
+        console.debug(`${hand} hand pinch detected`);
         // Play spatial sound at pinch position
         if (this.spatialAudio) {
           const pos = this.handTracking.getPinchPosition(hand);
@@ -1059,7 +1059,7 @@ export class VRApp {
       });
 
       this.handTracking.onGesture('point', (hand, gesture) => {
-        console.log(`${hand} hand pointing`);
+        console.debug(`${hand} hand pointing`);
       });
     }
 
@@ -1071,7 +1071,7 @@ export class VRApp {
    * Handle VR session end
    */
   onVRSessionEnd() {
-    console.log('VRApp: VR session ended');
+    console.debug('VRApp: VR session ended');
     this.isVREnabled = false;
 
     // Disable FFR
@@ -1132,7 +1132,7 @@ export class VRApp {
       ? this.renderer.xr.getBaseLayer()
       : null;
     this.layersSystem.updateRenderState(session, baseLayer);
-    console.log(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
+    console.debug(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
   }
 
   /**
@@ -1347,7 +1347,7 @@ export class VRApp {
     // Reduce render scale (if implemented)
     // this.renderer.setPixelRatio(0.8);
 
-    console.log('VRApp: Quality reduced for performance');
+    console.debug('VRApp: Quality reduced for performance');
   }
 
   /**
@@ -1362,7 +1362,7 @@ export class VRApp {
     // Increase render scale (if implemented)
     // this.renderer.setPixelRatio(1.0);
 
-    console.log('VRApp: Quality increased');
+    console.debug('VRApp: Quality increased');
   }
 
   /**
@@ -1430,7 +1430,7 @@ export class VRApp {
    * Cleanup and disposal
    */
   dispose() {
-    console.log('VRApp: Disposing...');
+    console.debug('VRApp: Disposing...');
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
@@ -1483,7 +1483,7 @@ export class VRApp {
       }
     });
 
-    console.log('VRApp: Disposed');
+    console.debug('VRApp: Disposed');
   }
 }
 
@@ -1500,7 +1500,7 @@ export class VRApp {
  * // Get performance stats
  * setInterval(() => {
  *   const stats = app.getPerformanceStats();
- *   console.log('FPS:', stats.fps, 'Memory:', stats.memory);
+ *   console.debug('FPS:', stats.fps, 'Memory:', stats.memory);
  * }, 1000);
  *
  * // Cleanup on page unload

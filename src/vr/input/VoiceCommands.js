@@ -85,7 +85,7 @@ export class VoiceCommands {
       this.setupRecognitionHandlers();
 
       this.isEnabled = true;
-      console.log('VoiceCommands: Initialized successfully');
+      console.debug('VoiceCommands: Initialized successfully');
       return true;
 
     } catch (error) {
@@ -100,7 +100,7 @@ export class VoiceCommands {
   setupRecognitionHandlers() {
     this.recognition.onstart = () => {
       this.isListening = true;
-      console.log('VoiceCommands: Listening started');
+      console.debug('VoiceCommands: Listening started');
 
       if (this.callbacks.onStart) {
         this.callbacks.onStart();
@@ -109,7 +109,7 @@ export class VoiceCommands {
 
     this.recognition.onend = () => {
       this.isListening = false;
-      console.log('VoiceCommands: Listening ended');
+      console.debug('VoiceCommands: Listening ended');
 
       if (this.callbacks.onEnd) {
         this.callbacks.onEnd();
@@ -157,7 +157,7 @@ export class VoiceCommands {
     this.lastTranscript = transcript;
     this.confidence = confidence;
 
-    console.log(`VoiceCommands: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+    console.debug(`VoiceCommands: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
 
     // Callback for transcript
     if (this.callbacks.onTranscript) {
@@ -166,7 +166,7 @@ export class VoiceCommands {
 
     // Check confidence threshold
     if (confidence < this.settings.sensitivity) {
-      console.log('VoiceCommands: Low confidence, ignoring');
+      console.debug('VoiceCommands: Low confidence, ignoring');
       return;
     }
 
@@ -175,7 +175,7 @@ export class VoiceCommands {
       if (this.containsWakeWord(transcript)) {
         this.isAwake = true;
         this.speak('はい、聞いています'); // "Yes, I'm listening"
-        console.log('VoiceCommands: Wake word detected');
+        console.debug('VoiceCommands: Wake word detected');
       }
       return;
     }
@@ -245,7 +245,7 @@ export class VoiceCommands {
 
     // Execute command if found
     if (matchedCommand) {
-      console.log(`VoiceCommands: Executing command "${matchedKey}"`);
+      console.debug(`VoiceCommands: Executing command "${matchedKey}"`);
 
       try {
         const result = matchedCommand.action(transcript, confidence);
@@ -269,7 +269,7 @@ export class VoiceCommands {
       }
 
     } else {
-      console.log(`VoiceCommands: No matching command for "${transcript}"`);
+      console.debug(`VoiceCommands: No matching command for "${transcript}"`);
       this.stats.commandsFailed++;
       this.speak('コマンドが認識できませんでした'); // "Command not recognized"
     }
@@ -442,7 +442,7 @@ export class VoiceCommands {
       });
     }
 
-    console.log(`VoiceCommands: Registered command "${name}"`);
+    console.debug(`VoiceCommands: Registered command "${name}"`);
   }
 
   /**
@@ -469,7 +469,7 @@ export class VoiceCommands {
     }
 
     if (this.isListening) {
-      console.log('VoiceCommands: Already listening');
+      console.debug('VoiceCommands: Already listening');
       return true;
     }
 
@@ -566,7 +566,7 @@ export class VoiceCommands {
  * voiceCommands.registerCommand('custom', {
  *   patterns: ['カスタム', 'custom'],
  *   action: () => {
- *     console.log('Custom command executed');
+ *     console.debug('Custom command executed');
  *     return { action: 'custom' };
  *   },
  *   confirmationText: 'カスタムコマンドを実行します',
@@ -575,6 +575,6 @@ export class VoiceCommands {
  *
  * // Set callbacks
  * voiceCommands.callbacks.onCommand = (name, result) => {
- *   console.log('Command:', name, result);
+ *   console.debug('Command:', name, result);
  * };
  */

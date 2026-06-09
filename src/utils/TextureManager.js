@@ -50,7 +50,7 @@ export class TextureManager {
       // Detect WebGL capabilities and set target format
       this.ktx2Loader.detectSupport(this.renderer);
 
-      console.log('TextureManager: KTX2 loader initialized');
+      console.debug('TextureManager: KTX2 loader initialized');
     } catch (error) {
       console.error('TextureManager: KTX2 initialization failed', error);
       console.warn('TextureManager: Falling back to standard textures');
@@ -117,7 +117,7 @@ export class TextureManager {
         (progress) => {
           // Progress callback
           const percent = (progress.loaded / progress.total * 100).toFixed(1);
-          console.log(`Loading KTX2: ${percent}%`);
+          console.debug(`Loading KTX2: ${percent}%`);
         },
         (error) => reject(error)
       );
@@ -366,7 +366,7 @@ export class TextureManager {
  *
  * // Check memory usage
  * const memStats = textureManager.getMemoryStats();
- * console.log(`Texture memory: ${memStats.usedMB}/${memStats.maxMB} MB`);
+ * console.debug(`Texture memory: ${memStats.usedMB}/${memStats.maxMB} MB`);
  *
  * // Cleanup
  * textureManager.dispose();

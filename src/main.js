@@ -58,7 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Import main application
 import('./app.js').then(module => {
-    console.log('Qui Browser VR v2.0.0 loaded successfully');
+    console.debug('Qui Browser VR v2.0.0 loaded successfully');
 
     // Check WebXR support
     if ('xr' in navigator) {
@@ -81,7 +81,7 @@ import('./app.js').then(module => {
                     window.matchMedia('(display-mode: standalone)').matches ||
                     window.navigator.standalone === true; // iOS Safari
                 if (isStandalone) {
-                    console.log('PWA standalone launch detected — auto-entering VR');
+                    console.debug('PWA standalone launch detected — auto-entering VR');
                     // Small delay so VRApp finishes registering its enter-vr
                     // listener before we fire the event.
                     setTimeout(() => {
@@ -155,7 +155,7 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
-                console.log('Service Worker registered:', registration);
+                console.debug('Service Worker registered:', registration);
                 // Periodically check for updates so long-lived sessions
                 // pick up new releases without a manual reload.
                 setInterval(() => registration.update(), 60000);
@@ -167,7 +167,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Build Info
-console.log(`
+console.debug(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                   Qui Browser VR v2.0.0                      ║
 ║                                                              ║

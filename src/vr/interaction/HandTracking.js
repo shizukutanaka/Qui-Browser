@@ -88,7 +88,7 @@ export class HandTracking {
     session.addEventListener('inputsourceschange', this._onInputSourcesChange);
 
     this.enabled = true;
-    console.log('HandTracking: Initialized successfully');
+    console.debug('HandTracking: Initialized successfully');
     return true;
   }
 
@@ -137,7 +137,7 @@ export class HandTracking {
       this.scene.add(handGroup);
     });
 
-    console.log('HandTracking: Hand models created');
+    console.debug('HandTracking: Hand models created');
   }
 
   /**
@@ -329,7 +329,7 @@ export class HandTracking {
    * Handle gesture changes
    */
   onGestureChange(handedness, oldGesture, newGesture) {
-    console.log(`HandTracking: ${handedness} hand gesture: ${oldGesture} → ${newGesture}`);
+    console.debug(`HandTracking: ${handedness} hand gesture: ${oldGesture} → ${newGesture}`);
 
     // Trigger callbacks
     const callback = this.gestureCallbacks.get(newGesture);
@@ -383,7 +383,7 @@ export class HandTracking {
    * Handle input source changes
    */
   onInputSourcesChange(event) {
-    console.log('HandTracking: Input sources changed', {
+    console.debug('HandTracking: Input sources changed', {
       added: event.added.length,
       removed: event.removed.length
     });
@@ -444,7 +444,7 @@ export class HandTracking {
     this.joints.right.clear();
     this.gestureCallbacks.clear();
 
-    console.log('HandTracking: Disposed');
+    console.debug('HandTracking: Disposed');
   }
 }
 
@@ -458,7 +458,7 @@ export class HandTracking {
  *
  * // Register gesture callbacks
  * handTracking.onGesture('pinch', (hand, gesture) => {
- *   console.log(`${hand} hand pinched!`);
+ *   console.debug(`${hand} hand pinched!`);
  *   const position = handTracking.getPinchPosition(hand);
  *   // Use position for UI interaction
  * });
@@ -475,5 +475,5 @@ export class HandTracking {
  *
  * // Get statistics
  * const stats = handTracking.getStats();
- * console.log(`Gestures recognized: ${stats.gesturesRecognized}`);
+ * console.debug(`Gestures recognized: ${stats.gesturesRecognized}`);
  */

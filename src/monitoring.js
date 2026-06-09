@@ -57,7 +57,7 @@ const MONITORING_CONFIG = {
  */
 export async function initSentry() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.sentry.dsn) {
-    console.log('Sentry: Disabled (no DSN or not in production)');
+    console.debug('Sentry: Disabled (no DSN or not in production)');
     return null;
   }
 
@@ -119,7 +119,7 @@ export async function initSentry() {
       }
     });
 
-    console.log('Sentry: Initialized');
+    console.debug('Sentry: Initialized');
     return Sentry;
   } catch (error) {
     console.error('Sentry: Failed to initialize', error);
@@ -174,7 +174,7 @@ export function captureMessage(message, level = 'info', context = {}) {
  */
 export function initGoogleAnalytics() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.analytics.measurementId) {
-    console.log('GA4: Disabled (no measurement ID or not in production)');
+    console.debug('GA4: Disabled (no measurement ID or not in production)');
     return;
   }
 
@@ -200,7 +200,7 @@ export function initGoogleAnalytics() {
       cookie_flags: 'SameSite=None;Secure'
     });
 
-    console.log('GA4: Initialized');
+    console.debug('GA4: Initialized');
   } catch (error) {
     console.error('GA4: Failed to initialize', error);
   }
@@ -247,7 +247,7 @@ export function trackPageView(path, title) {
  */
 export async function initWebVitals() {
   if (!MONITORING_CONFIG.performance.enabled) {
-    console.log('Web Vitals: Disabled');
+    console.debug('Web Vitals: Disabled');
     return;
   }
 
@@ -263,7 +263,7 @@ export async function initWebVitals() {
     onLCP(onVitalReport);
     onTTFB(onVitalReport);
 
-    console.log('Web Vitals: Initialized');
+    console.debug('Web Vitals: Initialized');
   } catch (error) {
     console.error('Web Vitals: Failed to initialize', error);
   }
@@ -277,7 +277,7 @@ function onVitalReport(metric) {
 
   // Log to console in development
   if (!MONITORING_CONFIG.enabled) {
-    console.log(`Web Vital - ${name}:`, {
+    console.debug(`Web Vital - ${name}:`, {
       value: Math.round(value),
       rating,
       threshold: MONITORING_CONFIG.performance.thresholds[name.toLowerCase()]
@@ -459,7 +459,7 @@ let _listeners = null;
  * Initialize all monitoring systems
  */
 export async function initializeMonitoring() {
-  console.log('Monitoring: Initializing...');
+  console.debug('Monitoring: Initializing...');
 
   // Tear down any previous registration first (idempotent re-init).
   disposeMonitoring();
@@ -497,7 +497,7 @@ export async function initializeMonitoring() {
   window.addEventListener('beforeunload', onUnload);
   _listeners = { onVisibility, onUnload };
 
-  console.log('Monitoring: Initialized successfully');
+  console.debug('Monitoring: Initialized successfully');
 }
 
 /**

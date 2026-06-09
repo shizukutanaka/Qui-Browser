@@ -359,7 +359,7 @@ export class JapaneseIME {
   activate() {
     this.isActive = true;
     this.clear();
-    console.log('JapaneseIME: Activated');
+    console.debug('JapaneseIME: Activated');
   }
 
   /**
@@ -368,7 +368,7 @@ export class JapaneseIME {
   deactivate() {
     this.isActive = false;
     this.clear();
-    console.log('JapaneseIME: Deactivated');
+    console.debug('JapaneseIME: Deactivated');
   }
 }
 
@@ -478,7 +478,7 @@ export class VRJapaneseKeyboard {
    */
   showCandidates(candidates) {
     // Create candidate selection panel in VR
-    console.log('Candidates:', candidates);
+    console.debug('Candidates:', candidates);
 
     // Would create 3D UI panel in production
     this.candidatePanel = {
@@ -491,7 +491,7 @@ export class VRJapaneseKeyboard {
    * Update display with current composition
    */
   updateDisplay(processed) {
-    console.log(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
+    console.debug(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
     // Would update 3D text display in production
   }
 
@@ -499,7 +499,7 @@ export class VRJapaneseKeyboard {
    * Handle confirmed text
    */
   onTextConfirmed(text) {
-    console.log('Confirmed:', text);
+    console.debug('Confirmed:', text);
     // Would insert text into target field
   }
 
@@ -532,9 +532,9 @@ export class VRJapaneseKeyboard {
  *
  * // Convert to kanji
  * const result = await ime.convertToKanji();
- * console.log(result.candidates); // ['今日は', 'こんにちは']
+ * console.debug(result.candidates); // ['今日は', 'こんにちは']
  *
  * // Select first candidate
  * const confirmed = ime.confirmSelection();
- * console.log(confirmed); // '今日は'
+ * console.debug(confirmed); // '今日は'
  */

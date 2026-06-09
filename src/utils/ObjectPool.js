@@ -140,7 +140,7 @@ export class ObjectPool {
     }
 
     this.stats.created += toCreate;
-    console.log(`ObjectPool: Pre-warmed to ${this.totalCreated} objects`);
+    console.debug(`ObjectPool: Pre-warmed to ${this.totalCreated} objects`);
   }
 
   /**
@@ -171,7 +171,7 @@ export class ObjectPool {
     }
 
     if (toRemove > 0) {
-      console.log(`ObjectPool: Trimmed ${toRemove} unused objects`);
+      console.debug(`ObjectPool: Trimmed ${toRemove} unused objects`);
     }
   }
 
@@ -300,7 +300,7 @@ export class PoolManager {
       console.group('ObjectPool Statistics');
       for (const [name, pool] of this.pools) {
         const stats = pool.getStats();
-        console.log(`${name}: ${stats.inUse}/${stats.total} in use (${stats.utilization}), GC prevented: ${stats.gcPrevented}`);
+        console.debug(`${name}: ${stats.inUse}/${stats.total} in use (${stats.utilization}), GC prevented: ${stats.gcPrevented}`);
       }
       console.groupEnd();
     }, interval);

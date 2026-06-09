@@ -17,10 +17,10 @@ let perfIntervalId = null;
  * Initialize application
  */
 async function initializeApp() {
-  console.log('====================================');
-  console.log('Qui Browser VR v2.0.0');
-  console.log('Optimized for Meta Quest 2/3');
-  console.log('====================================');
+  console.debug('====================================');
+  console.debug('Qui Browser VR v2.0.0');
+  console.debug('Optimized for Meta Quest 2/3');
+  console.debug('====================================');
 
   // Check WebXR support. The landing page is viewable on any browser, so
   // a missing/unsupported WebXR runtime is logged rather than shown as a
@@ -55,7 +55,7 @@ async function initializeApp() {
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
 
-    console.log('Application initialized successfully');
+    console.debug('Application initialized successfully');
   } catch (error) {
     console.error('Failed to initialize application:', error);
     showError('Failed to initialize VR application. Check console for details.');
@@ -133,7 +133,7 @@ function setupKeyboardShortcuts() {
         if (vrApp && vrApp.ffrSystem) {
           const enabled = !vrApp.ffrSystem.enabled;
           vrApp.ffrSystem.setEnabled(enabled);
-          console.log(`FFR ${enabled ? 'enabled' : 'disabled'}`);
+          console.debug(`FFR ${enabled ? 'enabled' : 'disabled'}`);
         }
         break;
 
@@ -147,7 +147,7 @@ function setupKeyboardShortcuts() {
           const next = presets[nextIndex];
           vrApp.comfortSystem.setPreset(next);
           vrApp.updateSetting('motionSensitivity', next); // persist across reloads
-          console.log(`Comfort preset: ${next}`);
+          console.debug(`Comfort preset: ${next}`);
         }
         break;
 
@@ -157,17 +157,17 @@ function setupKeyboardShortcuts() {
           vrApp.dispose();
           vrApp = null;
           if (perfIntervalId) { clearInterval(perfIntervalId); perfIntervalId = null; }
-          console.log('Application disposed');
+          console.debug('Application disposed');
         }
         break;
     }
   });
 
-  console.log('Keyboard shortcuts:');
-  console.log('  P - Toggle performance monitor');
-  console.log('  F - Toggle Fixed Foveated Rendering');
-  console.log('  C - Cycle comfort presets');
-  console.log('  ESC - Emergency cleanup');
+  console.debug('Keyboard shortcuts:');
+  console.debug('  P - Toggle performance monitor');
+  console.debug('  F - Toggle Fixed Foveated Rendering');
+  console.debug('  C - Cycle comfort presets');
+  console.debug('  ESC - Emergency cleanup');
 }
 
 /**
@@ -197,10 +197,10 @@ function showError(message) {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && vrApp) {
     // Pause or reduce activity when page is hidden
-    console.log('Page hidden - reducing activity');
+    console.debug('Page hidden - reducing activity');
   } else if (vrApp) {
     // Resume when page is visible
-    console.log('Page visible - resuming activity');
+    console.debug('Page visible - resuming activity');
   }
 });
 

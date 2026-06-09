@@ -179,7 +179,7 @@ export class MixedReality {
     const isARSupported = await navigator.xr.isSessionSupported('immersive-ar');
     const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
 
-    console.log('MixedReality: Support check:', {
+    console.debug('MixedReality: Support check:', {
       ar: isARSupported,
       vr: isVRSupported
     });
@@ -231,7 +231,7 @@ export class MixedReality {
       this.enabled = true;
       this.stats.sessionStartTime = performance.now();
 
-      console.log(`MixedReality: ${mode.toUpperCase()} session started`);
+      console.debug(`MixedReality: ${mode.toUpperCase()} session started`);
       return true;
 
     } catch (error) {
@@ -323,7 +323,7 @@ export class MixedReality {
       }
     });
 
-    console.log('MixedReality: Plane detection enabled');
+    console.debug('MixedReality: Plane detection enabled');
   }
 
   /**
@@ -344,7 +344,7 @@ export class MixedReality {
         }
       });
 
-      console.log('MixedReality: Hit testing enabled');
+      console.debug('MixedReality: Hit testing enabled');
     } catch (error) {
       console.warn('MixedReality: Hit testing not available', error);
     }
@@ -359,7 +359,7 @@ export class MixedReality {
       this.xrSession.requestLightProbe({
         reflectionFormat: 'srgba8'
       }).then(lightProbe => {
-        console.log('MixedReality: Light estimation enabled');
+        console.debug('MixedReality: Light estimation enabled');
         this.lightProbe = lightProbe;
       }).catch(error => {
         console.warn('MixedReality: Light estimation not available', error);
@@ -430,7 +430,7 @@ export class MixedReality {
    * Handle new plane detection
    */
   onPlaneDetected(plane) {
-    console.log('MixedReality: New plane detected', plane);
+    console.debug('MixedReality: New plane detected', plane);
 
     // Store plane data
     this.detectedPlanes.set(plane, {
@@ -512,7 +512,7 @@ export class MixedReality {
    * Handle plane removal
    */
   onPlaneRemoved(plane) {
-    console.log('MixedReality: Plane removed');
+    console.debug('MixedReality: Plane removed');
 
     // Remove visualizer (including the wireframe LineSegments child, whose
     // geometry/material would otherwise leak).
@@ -699,7 +699,7 @@ export class MixedReality {
     if (hitResult.createAnchor) {
       try {
         nativeAnchor = await hitResult.createAnchor();
-        console.log('MixedReality: Native anchor created');
+        console.debug('MixedReality: Native anchor created');
       } catch (error) {
         console.warn('MixedReality: Native anchor not available, using pose only', error);
       }
@@ -790,7 +790,7 @@ export class MixedReality {
       });
     }
 
-    console.log(`MixedReality: Passthrough mode: ${newMode}`);
+    console.debug(`MixedReality: Passthrough mode: ${newMode}`);
   }
 
   /**
@@ -843,7 +843,7 @@ export class MixedReality {
     this.anchors.clear();
     this.hitTestSource = null;
 
-    console.log('MixedReality: Session ended');
+    console.debug('MixedReality: Session ended');
   }
 
   /**

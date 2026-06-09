@@ -59,7 +59,7 @@ export class AIRecommendation {
    * Initialize AI model (using TensorFlow.js Lite)
    */
   async initialize() {
-    console.log('AIRecommendation: Initializing...');
+    console.debug('AIRecommendation: Initializing...');
 
     try {
       // Load pre-trained model or use simple heuristics
@@ -69,7 +69,7 @@ export class AIRecommendation {
       // Start recommendation update loop
       this.startUpdateLoop();
 
-      console.log('AIRecommendation: Initialized successfully');
+      console.debug('AIRecommendation: Initialized successfully');
     } catch (error) {
       console.error('AIRecommendation: Initialization failed', error);
       // Fallback to heuristic-based recommendations
@@ -571,7 +571,7 @@ export class AIRecommendation {
         });
       }
 
-      console.log('AIRecommendation: Profile imported');
+      console.debug('AIRecommendation: Profile imported');
     } catch (error) {
       console.error('AIRecommendation: Profile import failed', error);
     }
