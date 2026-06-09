@@ -5,8 +5,6 @@
  * John Carmack principle: You can't optimize what you don't measure
  */
 
-import * as THREE from 'three';
-
 export class PerformanceMonitor {
   constructor() {
     this.enabled = true;

@@ -207,8 +207,9 @@ export class WebPanel {
   }
 
   _onChromeHover(entering) {
-    if (this.chromeMesh.material) {
-      this.chromeMesh.material.emissiveIntensity = entering ? 0.1 : 0;
+    // MeshBasicMaterial has no emissiveIntensity; tint via color multiplier.
+    if (this.chromeMesh && this.chromeMesh.material) {
+      this.chromeMesh.material.color.set(entering ? 0xaaaaff : 0xffffff);
     }
   }
 
@@ -220,8 +221,12 @@ export class WebPanel {
    */
   navigate(url) {
     if (!url) return;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
+    const trimmed = url.trim();
+    // Allow only http(s); block javascript:, data:, etc.
+    if (/^https?:\/\//i.test(trimmed)) {
+      url = trimmed;
+    } else {
+      url = 'https://' + trimmed;
     }
 
     this.currentUrl = url;
