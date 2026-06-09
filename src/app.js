@@ -10,6 +10,8 @@ import { VRApp } from './vr/VRApp.js';
 
 // Global app instance
 let vrApp = null;
+// Interval id for the simple performance overlay, cleared on teardown.
+let perfIntervalId = null;
 
 /**
  * Initialize application
@@ -81,8 +83,10 @@ function setupPerformanceMonitor() {
   `;
   document.body.appendChild(perfDisplay);
 
-  // Update performance stats every second
-  setInterval(() => {
+  // Update performance stats every second. Stored so it can be cleared on
+  // dispose/unload instead of running for the page lifetime.
+  if (perfIntervalId) clearInterval(perfIntervalId);
+  perfIntervalId = setInterval(() => {
     if (vrApp && perfDisplay.style.display === 'block') {
       const stats = vrApp.getPerformanceStats();
       perfDisplay.innerHTML = `
@@ -152,6 +156,7 @@ function setupKeyboardShortcuts() {
         if (vrApp) {
           vrApp.dispose();
           vrApp = null;
+          if (perfIntervalId) { clearInterval(perfIntervalId); perfIntervalId = null; }
           console.log('Application disposed');
         }
         break;
@@ -207,6 +212,7 @@ window.addEventListener('beforeunload', () => {
     vrApp.dispose();
     vrApp = null;
   }
+  if (perfIntervalId) { clearInterval(perfIntervalId); perfIntervalId = null; }
 });
 
 /**

@@ -167,11 +167,14 @@ async function cacheFirst(request, cacheName) {
     // Try cache first
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
-      // Check cache age
-      const cacheDate = new Date(cachedResponse.headers.get('date'));
-      const age = Date.now() - cacheDate.getTime();
+      // Check cache age. A missing/invalid 'date' header yields NaN; treat
+      // that as "unknown age" and fall through to a network refresh rather
+      // than serving a possibly-stale entry.
+      const dateHeader = cachedResponse.headers.get('date');
+      const cacheTime = dateHeader ? new Date(dateHeader).getTime() : NaN;
+      const age = Date.now() - cacheTime;
 
-      if (age < MAX_CACHE_AGE.static) {
+      if (!Number.isNaN(age) && age < MAX_CACHE_AGE.static) {
         console.log('[ServiceWorker] Serving from cache:', request.url);
         return cachedResponse;
       }

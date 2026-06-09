@@ -95,15 +95,25 @@ import('./app.js').then(module => {
     console.error('Failed to load application:', error);
     const loadingScreen = document.getElementById('loadingScreen');
     if (loadingScreen) {
-        loadingScreen.innerHTML = `
-            <div style="color: #de350b;">
-                <h2>Failed to load application</h2>
-                <p style="color: #a0a0b8;">${error.message}</p>
-                <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Reload
-                </button>
-            </div>
-        `;
+        // Build the error UI with the DOM API so the (untrusted) error message
+        // is inserted as text, never parsed as HTML (avoids XSS).
+        const box = document.createElement('div');
+        box.style.color = '#de350b';
+
+        const heading = document.createElement('h2');
+        heading.textContent = 'Failed to load application';
+
+        const detail = document.createElement('p');
+        detail.style.color = '#a0a0b8';
+        detail.textContent = (error && error.message) ? String(error.message) : 'Unknown error';
+
+        const reload = document.createElement('button');
+        reload.textContent = 'Reload';
+        reload.style.cssText = 'margin-top: 1rem; padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;';
+        reload.addEventListener('click', () => location.reload());
+
+        box.append(heading, detail, reload);
+        loadingScreen.replaceChildren(box);
     }
 });
 

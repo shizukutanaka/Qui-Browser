@@ -32,8 +32,9 @@ export class DeviceCompatibility {
     const deviceTier = this._detectTier(ua);
 
     // Probe optional WebXR features (supported = the runtime accepts them in
-    // requestSession; actual availability depends on hardware).
-    const optionalFeatures = await this._probeOptionalFeatures(xr, vrSupported);
+    // requestSession; actual availability depends on hardware). Reuse the
+    // already-detected tier rather than recomputing it.
+    const optionalFeatures = await this._probeOptionalFeatures(xr, vrSupported, deviceTier);
 
     this.report = {
       vrSupported,
@@ -70,7 +71,7 @@ export class DeviceCompatibility {
    * user gesture.  Instead we rely on the device tier as a heuristic, which
    * is accurate for all shipping consumer devices.
    */
-  async _probeOptionalFeatures(xr, vrSupported) {
+  async _probeOptionalFeatures(xr, vrSupported, tier) {
     // These are available on all devices that support immersive-vr.
     const base = {
       handTracking:  vrSupported,
@@ -83,10 +84,13 @@ export class DeviceCompatibility {
 
     if (!xr || !vrSupported) return base;
 
-    // Quest 3 / Quest Pro support additional features.
-    const tier = this._detectTier(
-      typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
-    );
+    // Quest 3 / Quest Pro support additional features. Fall back to detecting
+    // the tier here if the caller didn't supply it.
+    if (!tier) {
+      tier = this._detectTier(
+        typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
+      );
+    }
 
     return {
       ...base,
