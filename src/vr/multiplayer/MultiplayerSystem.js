@@ -322,6 +322,31 @@ export class MultiplayerSystem {
   }
 
   /**
+   * Handle a failed peer connection.  Tears down the broken connection and
+   * triggers re-negotiation by calling handlePeerJoined() again if the
+   * signaling server is still connected.
+   */
+  reconnectPeer(peerId) {
+    console.log(`MultiplayerSystem: Reconnecting to peer ${peerId}`);
+    const pc = this.peers.get(peerId);
+    if (pc) {
+      pc.close();
+      this.peers.delete(peerId);
+    }
+    const dc = this.dataChannels.get(peerId);
+    if (dc) {
+      dc.close();
+      this.dataChannels.delete(peerId);
+    }
+    // Only attempt re-negotiation while still connected to the signaling server.
+    if (this.signalingServer && this.signalingServer.readyState === WebSocket.OPEN) {
+      this.handlePeerJoined(peerId).catch((e) => {
+        console.error(`MultiplayerSystem: Reconnect to ${peerId} failed`, e);
+      });
+    }
+  }
+
+  /**
    * Setup data channel
    */
   setupDataChannel(dataChannel, peerId) {
