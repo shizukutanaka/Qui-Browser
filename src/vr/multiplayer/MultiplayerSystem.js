@@ -732,9 +732,13 @@ export class MultiplayerSystem {
       pc.close();
     });
 
-    // Close signaling connection
+    // Close signaling connection and null it out to release handler refs.
     if (this.signalingServer) {
+      this.signalingServer.onmessage = null;
+      this.signalingServer.onerror = null;
+      this.signalingServer.onopen = null;
       this.signalingServer.close();
+      this.signalingServer = null;
     }
 
     // Remove all avatars (and free their GPU resources).
