@@ -32,6 +32,7 @@ export class TabManager {
     /** @type {WebPanel[]} */
     this.tabs = [];
     this.activeIndex = -1;
+    this._curved = false; // curved-screen preference, applied to every tab
 
     // Tab strip sits just above the active panel.
     this.stripGroup  = new THREE.Group();
@@ -169,6 +170,8 @@ export class TabManager {
     panel.group.position.set(this.position.x, this.position.y, this.position.z);
 
     this.tabs.push(panel);
+    // New tabs inherit the current curved-screen preference.
+    if (this._curved && panel.setCurved) panel.setCurved(true);
     this.setActive(this.tabs.length - 1);
 
     if (url) panel.navigate(url);
@@ -219,6 +222,17 @@ export class TabManager {
   /** Number of open tabs. */
   get count() {
     return this.tabs.length;
+  }
+
+  /**
+   * Toggle the curved-screen mode for every open tab and remember the
+   * preference so newly created tabs inherit it.
+   * @param {boolean} value
+   */
+  setCurved(value) {
+    this._curved = !!value;
+    this.tabs.forEach(panel => { if (panel.setCurved) panel.setCurved(this._curved); });
+    return this._curved;
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────

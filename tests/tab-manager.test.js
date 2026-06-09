@@ -39,12 +39,14 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.group = { position: { set: jest.fn() } };
       this.visible = false;
       this.disposed = false;
+      this.curved = false;
       panelInstances.push(this);
     }
     addToScene() {}
     navigate(url) { this.currentUrl = url; }
     show() { this.visible = true; }
     hide() { this.visible = false; }
+    setCurved(v) { this.curved = !!v; }
     dispose() { this.disposed = true; }
   }
 }));
@@ -145,5 +147,21 @@ describe('TabManager (FR-1.3)', () => {
     tm.dispose();
     expect(panels.every(p => p.disposed)).toBe(true);
     expect(tm.count).toBe(0);
+  });
+
+  test('setCurved() applies to every open tab', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    const b = tm.newTab();
+    tm.setCurved(true);
+    expect(a.curved).toBe(true);
+    expect(b.curved).toBe(true);
+  });
+
+  test('new tabs inherit the curved preference', () => {
+    const tm = makeManager();
+    tm.setCurved(true);
+    const panel = tm.newTab();
+    expect(panel.curved).toBe(true);
   });
 });

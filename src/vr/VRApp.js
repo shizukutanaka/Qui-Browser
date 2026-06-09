@@ -147,6 +147,8 @@ export class VRApp {
       // follow keeps the active panel centred in view. OFF by default.
       enableWindowFollow: false,
       windowDistance: 2.0, // metres
+      // Curved-screen mode for the browser content area (Quest-style). OFF.
+      enableCurvedPanel: false,
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableAI: false,
@@ -298,6 +300,7 @@ export class VRApp {
         position: { x: 0, y: 1.5, z: -2 }
       });
       this.tabManager.addToScene();
+      if (this.settings.enableCurvedPanel) this.tabManager.setCurved(true);
       this.tabManager.newTab(); // start with one blank tab
       // Convenience alias: the active tab's panel.
       this.webPanel = this.tabManager.getActiveTab();
@@ -386,6 +389,10 @@ export class VRApp {
       }],
       ['Follow View', 'enableWindowFollow', (v) => {
         if (this.windowManager) this.windowManager.setFollow(v);
+      }],
+      ['Curved', 'enableCurvedPanel', (v) => {
+        if (this.tabManager) this.tabManager.setCurved(v);
+        else if (this.webPanel && this.webPanel.setCurved) this.webPanel.setCurved(v);
       }]
     ];
 

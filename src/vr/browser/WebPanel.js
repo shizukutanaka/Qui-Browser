@@ -16,6 +16,7 @@
  */
 
 import * as THREE from 'three';
+import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
@@ -46,6 +47,10 @@ export class WebPanel {
     this.quadLayer    = null;
     this.layersSystem = null;
     this._layerDirty  = false; // set true whenever chromeCanvas changes
+
+    // Curved-screen state (Quest-style). Off = flat plane content area.
+    this.curved       = false;
+    this.curveRadius  = 2.2; // metres
 
     // Three.js objects
     this.group       = new THREE.Group();
@@ -318,6 +323,38 @@ export class WebPanel {
       this.quadLayer, this.chromeCanvas, frame, views
     );
     this._layerDirty = false;
+  }
+
+  // ── Curved screen (Quest-style flat ↔ curved) ─────────────────────────────
+
+  /**
+   * Toggle the content area between a flat plane and a concave curved surface.
+   * Only the content (reading) area is curved; the chrome bar stays flat so
+   * its UV-based hit-testing remains exact.
+   *
+   * @param {boolean} value
+   * @param {number}  [radius] — curve radius in metres (defaults to curveRadius)
+   */
+  setCurved(value, radius = this.curveRadius) {
+    value = !!value;
+    if (value === this.curved || !this.contentMesh) return this.curved;
+    this.curved = value;
+    this.curveRadius = radius;
+
+    const oldGeo = this.contentMesh.geometry;
+    if (value) {
+      this.contentMesh.geometry = buildCurvedPlaneGeometry(THREE, {
+        width: PANEL_W,
+        height: PANEL_H * (1 - CHROME_H),
+        radius,
+        segmentsX: 24,
+        segmentsY: 1
+      });
+    } else {
+      this.contentMesh.geometry = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
+    }
+    if (oldGeo && oldGeo.dispose) oldGeo.dispose();
+    return this.curved;
   }
 
   // ── Visibility ────────────────────────────────────────────────────────────
