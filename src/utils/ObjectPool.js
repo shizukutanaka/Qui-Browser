@@ -5,6 +5,11 @@
  * John Carmack principle: Pre-allocate, reuse, never garbage collect
  */
 
+// Needed by the typed Vector3Pool/QuaternionPool/Matrix4Pool subclasses below
+// (they reference THREE.* in their constructors). Without this import those
+// exported classes throw ReferenceError when instantiated.
+import * as THREE from 'three';
+
 export class ObjectPool {
   constructor(ObjectClass, initialSize = 50, maxSize = 500) {
     this.ObjectClass = ObjectClass;
