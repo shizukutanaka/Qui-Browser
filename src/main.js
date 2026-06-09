@@ -177,11 +177,10 @@ console.debug(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                   Qui Browser VR v2.0.0                      ║
 ║                                                              ║
-║  Production-ready VR browser with 17 features                ║
-║  • 90-120 FPS performance                                    ║
+║  WebXR browser with 17 features (Tier 1-3)                   ║
 ║  • Japanese IME, Hand Tracking, Spatial Audio                ║
-║  • WebGPU, Multiplayer, AI Recommendations                   ║
-║  • Complete CI/CD, Enterprise Monitoring                     ║
+║  • Comfort system, KTX2 textures, Service Worker             ║
+║  • Experimental: WebGPU, Multiplayer, AI                     ║
 ║                                                              ║
 ║  GitHub: github.com/shizukutanaka/qui-browser               ║
 ║  Docs: github.com/shizukutanaka/qui-browser/tree/main/docs  ║
