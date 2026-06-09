@@ -350,7 +350,8 @@ export class AIRecommendation {
   getTimeBasedRecommendations() {
     const recommendations = [];
     const timeOfDay = this.getTimeOfDay();
-    const boosts = this.timePatterns[timeOfDay].boost;
+    // Guard against an unexpected time-of-day key with no defined pattern.
+    const boosts = (this.timePatterns[timeOfDay] && this.timePatterns[timeOfDay].boost) || {};
 
     // Get recommendations for boosted categories
     Object.entries(boosts).forEach(([category, boost]) => {
@@ -439,8 +440,10 @@ export class AIRecommendation {
   recordClick(recommendation) {
     this.stats.recommendationsClicked++;
 
-    // Update accuracy
-    this.stats.accuracy = this.stats.recommendationsClicked / this.stats.recommendationsGenerated;
+    // Update accuracy (guard against divide-by-zero before any are generated).
+    this.stats.accuracy = this.stats.recommendationsGenerated > 0
+      ? this.stats.recommendationsClicked / this.stats.recommendationsGenerated
+      : 0;
 
     // Track as interaction
     this.trackInteraction('recommendation-click', {
@@ -459,6 +462,8 @@ export class AIRecommendation {
    * Start automatic update loop
    */
   startUpdateLoop() {
+    // Guard against a second interval if initialize() runs twice.
+    if (this.updateLoopId) clearInterval(this.updateLoopId);
     // Interval id stored so dispose() can stop it; otherwise the periodic
     // recommendation generation runs for the page lifetime.
     this.updateLoopId = setInterval(() => {

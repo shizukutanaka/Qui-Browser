@@ -70,7 +70,9 @@ global.document = {
       font: '',
       textAlign: '',
       textBaseline: '',
+      beginPath: jest.fn(),
       roundRect: jest.fn(),
+      fillRect: jest.fn(),
       fill: jest.fn(),
       fillText: jest.fn()
     })

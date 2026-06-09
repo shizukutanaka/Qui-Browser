@@ -513,12 +513,15 @@ export class MixedReality {
   onPlaneRemoved(plane) {
     console.log('MixedReality: Plane removed');
 
-    // Remove visualizer
+    // Remove visualizer (including the wireframe LineSegments child, whose
+    // geometry/material would otherwise leak).
     const mesh = this.planeVisualizers.get(plane);
     if (mesh) {
       this.scene.remove(mesh);
-      mesh.geometry.dispose();
-      mesh.material.dispose();
+      mesh.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
+      });
     }
 
     // Clean up

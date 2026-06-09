@@ -113,8 +113,12 @@ export class AvatarSystem {
     this.scene.remove(avatar.group);
     avatar.group.traverse(obj => {
       if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
+      if (obj.material) {
+        if (obj.material.map) obj.material.map.dispose();
+        obj.material.dispose();
+      }
     });
+    if (avatar._labelTex) avatar._labelTex.dispose();
     this.avatars.delete(peerId);
 
     // FR-7.2: release the spatial voice source for this peer.
@@ -175,9 +179,17 @@ export class AvatarSystem {
     const avatar = this.avatars.get(peerId);
     if (!avatar || !label) return;
 
-    // Remove old label if present.
+    // Remove old label if present, freeing its texture/material first so
+    // repeated label updates don't leak VRAM.
     const existing = avatar.group.getObjectByName('label');
-    if (existing) avatar.group.remove(existing);
+    if (existing) {
+      avatar.group.remove(existing);
+      if (existing.material) {
+        if (existing.material.map) existing.material.map.dispose();
+        existing.material.dispose();
+      }
+    }
+    if (avatar._labelTex) avatar._labelTex.dispose();
 
     // Canvas-texture label floating above the head.
     const canvas = document.createElement('canvas');
@@ -185,8 +197,14 @@ export class AvatarSystem {
     canvas.height = 64;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.roundRect(0, 0, 256, 64, 8);
-    ctx.fill();
+    // roundRect is not available on every Canvas2D implementation.
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(0, 0, 256, 64, 8);
+      ctx.fill();
+    } else {
+      ctx.fillRect(0, 0, 256, 64);
+    }
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';

@@ -5,6 +5,8 @@
  * John Carmack principle: Low latency is everything in VR
  */
 
+import * as THREE from 'three';
+
 export class MultiplayerSystem {
   constructor(scene, spatialAudio, options = {}) {
     this.scene = scene;
@@ -20,6 +22,9 @@ export class MultiplayerSystem {
     // Peer connections
     this.peers = new Map();
     this.dataChannels = new Map();
+    // Update-loop interval ids (initialised here so disconnect() before
+    // startUpdateLoops() is safe).
+    this.updateIntervals = [];
 
     // Player avatars
     this.avatars = new Map();
@@ -146,7 +151,14 @@ export class MultiplayerSystem {
       };
 
       this.signalingServer.onmessage = (event) => {
-        this.handleSignaling(JSON.parse(event.data));
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch (e) {
+          console.warn('MultiplayerSystem: dropping malformed signaling message', e);
+          return;
+        }
+        this.handleSignaling(message);
       };
     });
   }
@@ -217,6 +229,66 @@ export class MultiplayerSystem {
   }
 
   /**
+   * Handle a peer leaving the room: tear down its connection, data channel,
+   * avatar, and spatial voice source, and keep stats consistent.
+   * (Previously referenced from handleSignaling but never implemented, which
+   * threw on every 'peer-left' message.)
+   */
+  handlePeerLeft(peerId) {
+    console.log(`MultiplayerSystem: Peer ${peerId} left`);
+
+    // Close and drop the peer connection.
+    const pc = this.peers.get(peerId);
+    if (pc) {
+      try { pc.close(); } catch (e) { /* already closed */ }
+      this.peers.delete(peerId);
+      // The peer was counted as connected; keep the gauge from drifting.
+      this.stats.connectedPeers = Math.max(0, this.stats.connectedPeers - 1);
+    }
+
+    // Close and drop the data channel.
+    const channel = this.dataChannels.get(peerId);
+    if (channel) {
+      try { channel.close(); } catch (e) { /* already closed */ }
+      this.dataChannels.delete(peerId);
+    }
+
+    // Remove and dispose the avatar.
+    this.removeAvatar(peerId);
+
+    // Release the spatial voice source, if any.
+    if (this.spatialAudio && this.spatialAudio.removeVoiceSource) {
+      this.spatialAudio.removeVoiceSource(peerId);
+    }
+
+    this.onPeerDisconnected(peerId);
+  }
+
+  /** Remove a peer's avatar from the scene and dispose its GPU resources. */
+  removeAvatar(peerId) {
+    const avatar = this.avatars.get(peerId);
+    if (!avatar) return;
+    this.scene.remove(avatar.group);
+    this._disposeAvatar(avatar);
+    this.avatars.delete(peerId);
+  }
+
+  /** Dispose all geometries/materials under an avatar group. */
+  _disposeAvatar(avatar) {
+    if (!avatar || !avatar.group) return;
+    avatar.group.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    });
+  }
+
+  /** Hook for subclasses/UI; no-op by default. */
+  onPeerDisconnected(peerId) {}
+
+  /**
    * Setup peer connection handlers
    */
   setupPeerConnection(pc, peerId) {
@@ -265,7 +337,14 @@ export class MultiplayerSystem {
     };
 
     dataChannel.onmessage = (event) => {
-      this.handleDataMessage(peerId, JSON.parse(event.data));
+      let payload;
+      try {
+        payload = JSON.parse(event.data);
+      } catch (e) {
+        console.warn(`MultiplayerSystem: dropping malformed data message from ${peerId}`, e);
+        return;
+      }
+      this.handleDataMessage(peerId, payload);
       this.stats.messagesReceived++;
       this.stats.bytesIn += event.data.length;
     };
@@ -658,9 +737,10 @@ export class MultiplayerSystem {
       this.signalingServer.close();
     }
 
-    // Remove all avatars
-    this.avatars.forEach((avatar, peerId) => {
+    // Remove all avatars (and free their GPU resources).
+    this.avatars.forEach((avatar) => {
       this.scene.remove(avatar.group);
+      this._disposeAvatar(avatar);
     });
 
     // Clear data

@@ -5,6 +5,8 @@
  * John Carmack principle: Audio is half of immersion
  */
 
+import * as THREE from 'three';
+
 export class SpatialAudio {
   constructor() {
     this.context = null;
@@ -204,6 +206,13 @@ export class SpatialAudio {
     const source = this.sources.get(sourceName);
     if (!source || !source.node) return;
 
+    // Voice sources wrap a MediaStreamAudioSourceNode, which has no start/stop;
+    // they are torn down via removeVoiceSource(), not stop().
+    if (source.isVoice) {
+      this.removeVoiceSource(sourceName.replace(/^voice:/, ''));
+      return;
+    }
+
     try {
       source.node.stop();
       source.node.disconnect();
@@ -339,21 +348,26 @@ export class SpatialAudio {
   updateListenerFromCamera(camera) {
     if (!camera) return;
 
+    // Reuse scratch objects to avoid per-frame allocation in the render loop.
+    if (!this._camPos) {
+      this._camPos = new THREE.Vector3();
+      this._camQuat = new THREE.Quaternion();
+      this._fwd = new THREE.Vector3();
+      this._up = new THREE.Vector3();
+    }
+
     // Get camera world position
-    const position = new THREE.Vector3();
+    const position = this._camPos;
     camera.getWorldPosition(position);
     this.setListenerPosition(position.x, position.y, position.z);
 
     // Get camera orientation
-    const quaternion = new THREE.Quaternion();
+    const quaternion = this._camQuat;
     camera.getWorldQuaternion(quaternion);
 
     // Convert quaternion to forward and up vectors
-    const forward = new THREE.Vector3(0, 0, -1);
-    forward.applyQuaternion(quaternion);
-
-    const up = new THREE.Vector3(0, 1, 0);
-    up.applyQuaternion(quaternion);
+    const forward = this._fwd.set(0, 0, -1).applyQuaternion(quaternion);
+    const up = this._up.set(0, 1, 0).applyQuaternion(quaternion);
 
     this.setListenerOrientation(
       forward.x, forward.y, forward.z,
@@ -607,14 +621,19 @@ export class SpatialAudio {
    * Dispose audio system
    */
   dispose() {
-    // Stop all sources
-    this.sources.forEach((source, name) => {
+    // Stop/tear down all sources. Snapshot the names first because stopping a
+    // voice source removes it from the map mid-iteration.
+    for (const name of [...this.sources.keys()]) {
       this.stop(name);
-    });
+    }
 
     // Clear maps
     this.sources.clear();
     this.buffers.clear();
+
+    // Reset LOD counters.
+    this.stats.hrtfSources = 0;
+    this.stats.equalPowerSources = 0;
 
     // Close context
     if (this.context) {
