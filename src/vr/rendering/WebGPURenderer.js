@@ -1,8 +1,11 @@
 /**
- * WebGPU Renderer - Next-generation GPU API
- * 30-50% performance improvement over WebGL
+ * WebGPU Renderer — EXPERIMENTAL
  *
- * John Carmack principle: Always bet on the future of hardware
+ * Status: Experimental. WebGPU adapter/device initialization is implemented
+ * but the uniform buffer write path (updateUniforms / per-frame data upload)
+ * is not yet complete. Do not enable in production without further validation.
+ *
+ * Enable via: VRApp.settings.enableWebGPU = true  (default: false)
  */
 
 export class WebGPURenderer {

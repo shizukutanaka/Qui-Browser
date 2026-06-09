@@ -1,8 +1,13 @@
 /**
- * Multiplayer System for VR Collaboration
- * WebRTC-based peer-to-peer networking with spatial awareness
+ * Multiplayer System for VR Collaboration — REQUIRES EXTERNAL INFRA
  *
- * John Carmack principle: Low latency is everything in VR
+ * Status: Implemented but requires a WebRTC signaling server to function.
+ * No reference signaling server is bundled in this repo.
+ * Enable via: VRApp.settings.enableMultiplayer = true  (default: false)
+ *
+ * Minimum required: a WebSocket signaling server that forwards SDP offer/answer
+ * and ICE candidates between peers. See docs/ARCHITECTURE.md for the expected
+ * message protocol.
  */
 
 import * as THREE from 'three';
