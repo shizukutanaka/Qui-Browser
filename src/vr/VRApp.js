@@ -19,6 +19,7 @@ import { TextureManager } from '../utils/TextureManager.js';
 // Tier 2 Features
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
 import { HandTracking } from './interaction/HandTracking.js';
+import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -62,6 +63,7 @@ export class VRApp {
     this.japaneseIME = null;
     this.vrKeyboard = null;
     this.handTracking = null;
+    this.hapticFeedback = null;
     this.gazeInteraction = null;
     this.captionSystem = null;
     this.spatialAudio = null;
@@ -842,6 +844,11 @@ export class VRApp {
     this.handTracking = new HandTracking(this.renderer, this.scene);
     console.log('VRApp: Hand tracking ready');
 
+    // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in
+    // onVRSessionStart() once a session and gamepads are available.
+    this.hapticFeedback = new HapticFeedback();
+    console.log('VRApp: Haptic feedback ready');
+
     // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
     // can be toggled live from the settings panel; only active when enabled.
     this.gazeInteraction = new GazeInteraction(this.camera, {
@@ -1039,6 +1046,16 @@ export class VRApp {
             this.spatialAudio.play('click', 'click', pos);
           }
         }
+        // Haptic confirmation on pinch (lightweight click feel).
+        if (this.hapticFeedback) {
+          this.hapticFeedback.playPattern(hand, 'click');
+        }
+      });
+
+      this.handTracking.onGesture('grab', (hand) => {
+        if (this.hapticFeedback) {
+          this.hapticFeedback.playPattern(hand, 'impact');
+        }
       });
 
       this.handTracking.onGesture('point', (hand, gesture) => {
@@ -1183,6 +1200,11 @@ export class VRApp {
     if (this.handTracking && xrFrame) {
       const referenceSpace = this.renderer.xr.getReferenceSpace();
       this.handTracking.update(xrFrame, referenceSpace);
+    }
+
+    // Refresh gamepad list for haptic routing (safe no-op when no gamepads).
+    if (this.hapticFeedback) {
+      this.hapticFeedback.update();
     }
 
     // Update spatial audio listener position
@@ -1428,6 +1450,7 @@ export class VRApp {
     if (this.textureManager) this.textureManager.dispose();
     if (this.poolManager) this.poolManager.dispose();
     if (this.handTracking) this.handTracking.dispose();
+    if (this.hapticFeedback) { this.hapticFeedback.enabled = false; this.hapticFeedback = null; }
     if (this.gazeInteraction) this.gazeInteraction.dispose();
     if (this.captionSystem) this.captionSystem.dispose();
     if (this.spatialAudio) this.spatialAudio.dispose();
