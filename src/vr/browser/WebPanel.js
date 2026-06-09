@@ -229,14 +229,18 @@ export class WebPanel {
       url = 'https://' + trimmed;
     }
 
-    this.currentUrl = url;
-    this.loading = true;
-    this._drawChrome();
-
     // Trim forward history and push new entry.
     this.history = this.history.slice(0, this.historyIdx + 1);
     this.history.push(url);
     this.historyIdx = this.history.length - 1;
+
+    this._loadUrl(url);
+  }
+
+  _loadUrl(url) {
+    this.currentUrl = url;
+    this.loading = true;
+    this._drawChrome();
 
     // Load in iframe (visible only when dom-overlay is active).
     this.iframe.src = url;
@@ -256,19 +260,19 @@ export class WebPanel {
   back() {
     if (this.historyIdx > 0) {
       this.historyIdx--;
-      this.navigate(this.history[this.historyIdx]);
+      this._loadUrl(this.history[this.historyIdx]);
     }
   }
 
   forward() {
     if (this.historyIdx < this.history.length - 1) {
       this.historyIdx++;
-      this.navigate(this.history[this.historyIdx]);
+      this._loadUrl(this.history[this.historyIdx]);
     }
   }
 
   reload() {
-    if (this.currentUrl) this.navigate(this.currentUrl);
+    if (this.currentUrl) this._loadUrl(this.currentUrl);
   }
 
   // ── DOM-overlay integration ───────────────────────────────────────────────
