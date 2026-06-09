@@ -81,10 +81,11 @@ export class HandTracking {
     // Create hand models
     this.createHandModels();
 
-    // Setup input source handlers
-    session.addEventListener('inputsourceschange', (event) => {
-      this.onInputSourcesChange(event);
-    });
+    // Setup input source handlers. Keep references so dispose() can detach the
+    // listener (otherwise it pins this instance alive for the session).
+    this.session = session;
+    this._onInputSourcesChange = (event) => this.onInputSourcesChange(event);
+    session.addEventListener('inputsourceschange', this._onInputSourcesChange);
 
     this.enabled = true;
     console.log('HandTracking: Initialized successfully');
@@ -414,6 +415,13 @@ export class HandTracking {
    */
   dispose() {
     this.enabled = false;
+
+    // Detach the session input-source listener.
+    if (this.session && this._onInputSourcesChange) {
+      this.session.removeEventListener('inputsourceschange', this._onInputSourcesChange);
+      this._onInputSourcesChange = null;
+      this.session = null;
+    }
 
     // Remove hand models from scene
     if (this.leftHand) {

@@ -1,0 +1,67 @@
+/**
+ * Unit tests for HandTracking session-listener lifecycle.
+ * THREE is mocked; a fake XRSession records add/removeEventListener so we can
+ * assert the 'inputsourceschange' listener is detached on dispose (it was
+ * previously leaked, pinning the instance to the session).
+ */
+
+class MockObj {
+  constructor() { this.name = ''; this.children = []; this.position = { set: jest.fn() }; this.visible = true; }
+  add(o) { this.children.push(o); }
+  remove(o) { this.children = this.children.filter(c => c !== o); }
+  traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
+}
+class MockMesh extends MockObj {
+  constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; }
+}
+
+jest.mock('three', () => ({
+  Group: MockObj,
+  Mesh: MockMesh,
+  SphereGeometry: class { dispose() {} },
+  CylinderGeometry: class { dispose() {} },
+  MeshPhongMaterial: class { clone() { return new this.constructor(); } dispose() {} },
+  Vector3: class { constructor() { this.set = () => {}; this.clone = () => this; } },
+  Quaternion: class {}
+}));
+
+const { HandTracking } = require('../src/vr/interaction/HandTracking.js');
+
+function makeSession() {
+  const listeners = {};
+  return {
+    inputSources: [],
+    _listeners: listeners,
+    addEventListener: jest.fn((type, fn) => { listeners[type] = fn; }),
+    removeEventListener: jest.fn((type, fn) => {
+      if (listeners[type] === fn) delete listeners[type];
+    })
+  };
+}
+
+describe('HandTracking session listener lifecycle', () => {
+  test('initialize attaches an inputsourceschange listener', async () => {
+    const ht = new HandTracking({}, new MockObj());
+    const session = makeSession();
+    await ht.initialize(session);
+    expect(session.addEventListener).toHaveBeenCalledWith('inputsourceschange', expect.any(Function));
+    expect(ht.session).toBe(session);
+  });
+
+  test('dispose removes the inputsourceschange listener (no leak)', async () => {
+    const ht = new HandTracking({}, new MockObj());
+    const session = makeSession();
+    await ht.initialize(session);
+    const handler = session._listeners['inputsourceschange'];
+
+    ht.dispose();
+
+    expect(session.removeEventListener).toHaveBeenCalledWith('inputsourceschange', handler);
+    expect(ht.session).toBeNull();
+  });
+
+  test('initialize returns false without a session', async () => {
+    const ht = new HandTracking({}, new MockObj());
+    await expect(ht.initialize(null)).resolves.toBe(false);
+  });
+});

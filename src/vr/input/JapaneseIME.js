@@ -183,12 +183,22 @@ export class JapaneseIME {
         text: hiragana
       });
 
-      const response = await fetch(`${this.apiEndpoint}?${params}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      // Bound the request so a slow/stalled network can't block IME conversion
+      // indefinitely; on timeout we fall through to the offline candidates.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      let response;
+      try {
+        response = await fetch(`${this.apiEndpoint}?${params}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
