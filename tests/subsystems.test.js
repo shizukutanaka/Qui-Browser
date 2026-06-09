@@ -119,4 +119,11 @@ describe('src/utils/ProgressiveLoader', () => {
     expect(loader.loadQueue.secondary).toHaveLength(1);
     expect(loader.loadQueue.critical).toHaveLength(0);
   });
+
+  test('getStats() reports 0.0% (not NaN) before any resource is queued', () => {
+    const loader = new ProgressiveLoader();
+    const stats = loader.getStats();
+    expect(stats.progressPercent).toBe('0.0');
+    expect(Number.isNaN(parseFloat(stats.progressPercent))).toBe(false);
+  });
 });

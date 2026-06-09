@@ -76,7 +76,7 @@
       "name": "VR Browser",
       "short_name": "VR Mode",
       "description": "Launch VR browsing mode",
-      "url": "/public/vr-browser.html",
+      "url": "/vr-browser.html",
       "icons": [
         {
           "src": "/assets/icons/icon-96.png",
@@ -89,7 +89,7 @@
       "name": "VR Video",
       "short_name": "VR Video",
       "description": "Watch 360° and 3D videos in VR",
-      "url": "/public/vr-video.html",
+      "url": "/vr-video.html",
       "icons": [
         {
           "src": "/assets/icons/icon-96.png",
@@ -117,14 +117,6 @@
     {
       "protocol": "web+qui",
       "url": "/?protocol=%s"
-    },
-    {
-      "protocol": "web+https",
-      "url": "/?url=%s"
-    },
-    {
-      "protocol": "web+http",
-      "url": "/?url=%s"
     }
   ],
 

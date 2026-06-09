@@ -587,7 +587,11 @@ export class ProgressiveLoader {
       network: this.network,
       failed: this.failed.size,
       pending: this.pending.size,
-      progressPercent: (this.stats.itemsLoaded / this.stats.itemsTotal * 100).toFixed(1)
+      // Guard against NaN when getStats() is called before any resource is
+      // queued (itemsTotal === 0).
+      progressPercent: (this.stats.itemsTotal > 0
+        ? (this.stats.itemsLoaded / this.stats.itemsTotal * 100)
+        : 0).toFixed(1)
     };
   }
 
