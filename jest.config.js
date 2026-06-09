@@ -30,15 +30,14 @@ module.exports = {
     'lcov'
   ],
 
-  // カバレッジ閾値
-  // NOTE: temporarily 0 while most legacy suites are archived (see
-  // tests/archive/README.md). Raise as src/ test coverage grows.
+  // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
+  // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
   coverageThreshold: {
     global: {
-      branches: 0,
-      functions: 0,
-      lines: 0,
-      statements: 0
+      branches: 20,
+      functions: 25,
+      lines: 25,
+      statements: 25
     }
   },
 
