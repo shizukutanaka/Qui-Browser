@@ -300,10 +300,9 @@ export class MixedReality {
       this.setupLightEstimation();
     }
 
-    // Handle session end
-    this.xrSession.addEventListener('end', () => {
-      this.onSessionEnd();
-    });
+    // Handle session end — store the callback so dispose() can remove it.
+    this._onSessionEndBound = () => this.onSessionEnd();
+    this.xrSession.addEventListener('end', this._onSessionEndBound);
 
     // Update renderer
     this.renderer.xr.setSession(this.xrSession);
@@ -865,7 +864,14 @@ export class MixedReality {
    */
   dispose() {
     if (this.xrSession) {
+      // Remove the listener first so the async 'end' event doesn't trigger a
+      // second onSessionEnd() call after we explicitly invoke it below.
+      if (this._onSessionEndBound) {
+        this.xrSession.removeEventListener('end', this._onSessionEndBound);
+        this._onSessionEndBound = null;
+      }
       this.xrSession.end();
+      this.xrSession = null;
     }
 
     this.onSessionEnd();
