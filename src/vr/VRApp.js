@@ -1012,7 +1012,7 @@ export class VRApp {
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
       await this.ffrSystem.initialize(session, gl);
-      this.ffrSystem.setEnabled(true);
+      this.ffrSystem.enable(0.5);
       console.debug('VRApp: FFR enabled for session');
     }
 
@@ -1027,9 +1027,9 @@ export class VRApp {
       }
     }
 
-    // Update comfort system for VR
+    // Update comfort system FOV baseline for VR (reset to device-appropriate value).
     if (this.comfortSystem) {
-      this.comfortSystem.enterVR();
+      this.comfortSystem.settings.fov.baseFOV = 90;
     }
 
     // Initialize hand tracking
@@ -1076,12 +1076,12 @@ export class VRApp {
 
     // Disable FFR
     if (this.ffrSystem) {
-      this.ffrSystem.setEnabled(false);
+      this.ffrSystem.disable();
     }
 
-    // Update comfort system
+    // Restore desktop FOV baseline when leaving VR.
     if (this.comfortSystem) {
-      this.comfortSystem.exitVR();
+      this.comfortSystem.settings.fov.baseFOV = this.camera.fov || 90;
     }
 
     // FR-1.5: detach layers from panels and dispose binding.
@@ -1177,8 +1177,7 @@ export class VRApp {
   updateSystems(timestamp, xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
-      const isMoving = this.detectMotion();
-      this.comfortSystem.update(isMoving);
+      this.comfortSystem.update(dt);
     }
 
     // Update FFR based on performance and predicted gaze (FR-4.2).
