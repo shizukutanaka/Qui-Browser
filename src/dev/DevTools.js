@@ -418,27 +418,24 @@ export class DevTools {
     const messagesDiv = document.getElementById('console-messages');
     if (!messagesDiv) return;
 
-    const colors = {
-      log: '#d4d4d4',
-      warn: '#ce9178',
-      error: '#f48771'
-    };
+    const colors = { log: '#d4d4d4', warn: '#ce9178', error: '#f48771' };
+    const frag = document.createDocumentFragment();
 
-    messagesDiv.innerHTML = this.tools.console.messages
-      .slice(-100) // Show last 100 messages
-      .map(msg => `
-        <div style="
-          color: ${colors[msg.type]};
-          padding: 2px 0;
-          border-bottom: 1px solid #2d2d30;
-        ">
-          <span style="color: #858585;">[${msg.timestamp}]</span>
-          ${msg.args.join(' ')}
-        </div>
-      `)
-      .join('');
+    for (const msg of this.tools.console.messages.slice(-100)) {
+      const row = document.createElement('div');
+      row.style.cssText = `color: ${colors[msg.type] || colors.log}; padding: 2px 0; border-bottom: 1px solid #2d2d30;`;
 
-    // Auto-scroll to bottom
+      const ts = document.createElement('span');
+      ts.style.color = '#858585';
+      ts.textContent = `[${msg.timestamp}] `;
+      row.appendChild(ts);
+      row.appendChild(document.createTextNode(msg.args.join(' ')));
+
+      frag.appendChild(row);
+    }
+
+    messagesDiv.textContent = '';
+    messagesDiv.appendChild(frag);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
@@ -447,7 +444,14 @@ export class DevTools {
    */
   executeCode(code) {
     try {
-      const result = eval(code);
+      let result;
+      try {
+        // Try as expression so the return value is captured.
+        result = new Function('"use strict"; return (' + code + ')')();
+      } catch {
+        // Fall back to statement mode (void return).
+        result = new Function('"use strict"; ' + code)();
+      }
       this.logMessage('log', [`> ${code}`, result]);
     } catch (error) {
       this.logMessage('error', [`Error: ${error.message}`]);
@@ -461,27 +465,29 @@ export class DevTools {
     const treeDiv = document.getElementById('scene-tree');
     if (!treeDiv || !this.app.scene) return;
 
-    treeDiv.innerHTML = this.buildSceneTree(this.app.scene, 0);
+    treeDiv.textContent = '';
+    treeDiv.appendChild(this.buildSceneTree(this.app.scene, 0));
   }
 
   /**
-   * Build scene tree HTML
+   * Build scene tree as a DocumentFragment (safe, no innerHTML).
    */
   buildSceneTree(object, level) {
-    const indent = '&nbsp;'.repeat(level * 4);
-    let html = `
-      <div style="cursor: pointer; padding: 2px;">
-        ${indent}${object.type || 'Object'} "${object.name || 'unnamed'}"
-      </div>
-    `;
+    const frag = document.createDocumentFragment();
+
+    const row = document.createElement('div');
+    row.style.cssText = 'cursor: pointer; padding: 2px;';
+    row.style.paddingLeft = (level * 16) + 'px';
+    row.textContent = `${object.type || 'Object'} "${object.name || 'unnamed'}"`;
+    frag.appendChild(row);
 
     if (object.children && object.children.length > 0) {
-      object.children.forEach(child => {
-        html += this.buildSceneTree(child, level + 1);
-      });
+      for (const child of object.children) {
+        frag.appendChild(this.buildSceneTree(child, level + 1));
+      }
     }
 
-    return html;
+    return frag;
   }
 
   /**
@@ -544,19 +550,34 @@ export class DevTools {
     const tbody = document.getElementById('network-tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = this.tools.networkMonitor.requests
-      .map(req => `
-        <tr style="border-bottom: 1px solid #2d2d30;">
-          <td style="padding: 5px;">${req.method}</td>
-          <td style="padding: 5px;">${req.url.substring(0, 50)}...</td>
-          <td style="padding: 5px; color: ${req.status < 400 ? '#4ec9b0' : '#f48771'}">
-            ${req.status}
-          </td>
-          <td style="padding: 5px;">${req.time.toFixed(0)}ms</td>
-          <td style="padding: 5px;">${req.size}</td>
-        </tr>
-      `)
-      .join('');
+    const frag = document.createDocumentFragment();
+    for (const req of this.tools.networkMonitor.requests) {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #2d2d30';
+
+      const cells = [
+        String(req.method),
+        String(req.url).substring(0, 50),
+        String(req.status),
+        typeof req.time === 'number' ? req.time.toFixed(0) + 'ms' : String(req.time),
+        String(req.size)
+      ];
+
+      cells.forEach((val, i) => {
+        const td = document.createElement('td');
+        td.style.padding = '5px';
+        if (i === 2) {
+          td.style.color = (typeof req.status === 'number' && req.status < 400) ? '#4ec9b0' : '#f48771';
+        }
+        td.textContent = val;
+        tr.appendChild(td);
+      });
+
+      frag.appendChild(tr);
+    }
+
+    tbody.textContent = '';
+    tbody.appendChild(frag);
   }
 
   /**

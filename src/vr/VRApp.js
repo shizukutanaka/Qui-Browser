@@ -1434,7 +1434,7 @@ export class VRApp {
     if (this.mixedReality) this.mixedReality.dispose();
     if (this.progressiveLoader) this.progressiveLoader.dispose();
     if (this.aiRecommendation) this.aiRecommendation.dispose();
-    if (this.voiceCommands) this.voiceCommands.stop();
+    if (this.voiceCommands) this.voiceCommands.dispose();
     if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
     if (this.avatarSystem) this.avatarSystem.dispose();
     if (this.windowManager) this.windowManager.dispose();

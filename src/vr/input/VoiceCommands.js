@@ -492,6 +492,17 @@ export class VoiceCommands {
   }
 
   /**
+   * Permanently tear down: prevents the onend restart loop from re-starting
+   * after the recognition is stopped, then releases the recognition object.
+   */
+  dispose() {
+    this.isEnabled = false; // must happen before stop() to block onend restart
+    this.stop();
+    this.recognition = null;
+    this.synthesis = null;
+  }
+
+  /**
    * Speak text (TTS)
    */
   speak(text, options = {}) {
@@ -537,7 +548,7 @@ export class VoiceCommands {
       isEnabled: this.isEnabled,
       commandCount: this.commands.size,
       lastCommand: this.lastCommand,
-      successRate: this.stats.commandsExecuted / this.stats.commandsRecognized || 0
+      successRate: this.stats.commandsRecognized > 0 ? this.stats.commandsExecuted / this.stats.commandsRecognized : 0
     };
   }
 }

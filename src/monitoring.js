@@ -450,11 +450,19 @@ export function trackVRError(error, context = {}) {
 // Initialization
 // ============================================================================
 
+// Module-level handles so initializeMonitoring() is idempotent and
+// disposeMonitoring() can clean up everything.
+let _perfIntervalId = null;
+let _listeners = null;
+
 /**
  * Initialize all monitoring systems
  */
 export async function initializeMonitoring() {
   console.log('Monitoring: Initializing...');
+
+  // Tear down any previous registration first (idempotent re-init).
+  disposeMonitoring();
 
   // Initialize error tracking
   await initSentry();
@@ -467,27 +475,44 @@ export async function initializeMonitoring() {
 
   // Setup periodic performance reporting
   if (MONITORING_CONFIG.performance.enabled) {
-    setInterval(() => {
+    _perfIntervalId = setInterval(() => {
       reportPerformanceSummary();
     }, MONITORING_CONFIG.performance.reportInterval);
   }
 
-  // Setup visibility change handler
-  document.addEventListener('visibilitychange', () => {
+  const onVisibility = () => {
     if (document.hidden) {
       trackEvent('session_backgrounded');
     } else {
       trackEvent('session_resumed');
     }
-  });
+  };
 
-  // Setup unload handler
-  window.addEventListener('beforeunload', () => {
+  const onUnload = () => {
     reportPerformanceSummary();
     trackEvent('session_ended');
-  });
+  };
+
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('beforeunload', onUnload);
+  _listeners = { onVisibility, onUnload };
 
   console.log('Monitoring: Initialized successfully');
+}
+
+/**
+ * Tear down all monitoring side-effects (interval + event listeners).
+ */
+export function disposeMonitoring() {
+  if (_perfIntervalId !== null) {
+    clearInterval(_perfIntervalId);
+    _perfIntervalId = null;
+  }
+  if (_listeners) {
+    document.removeEventListener('visibilitychange', _listeners.onVisibility);
+    window.removeEventListener('beforeunload', _listeners.onUnload);
+    _listeners = null;
+  }
 }
 
 // ============================================================================
@@ -496,6 +521,7 @@ export async function initializeMonitoring() {
 
 export default {
   init: initializeMonitoring,
+  dispose: disposeMonitoring,
   captureError,
   captureMessage,
   trackEvent,
