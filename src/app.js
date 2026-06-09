@@ -141,7 +141,7 @@ function setupKeyboardShortcuts() {
       case 'C':
         // Cycle comfort presets
         if (vrApp && vrApp.comfortSystem) {
-          const presets = ['sensitive', 'moderate', 'tolerant', 'off'];
+          const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
           const current = vrApp.settings.motionSensitivity;
           const nextIndex = (presets.indexOf(current) + 1) % presets.length;
           const next = presets[nextIndex];
