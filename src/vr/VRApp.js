@@ -38,6 +38,7 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
+import { disposeMonitoring } from '../monitoring.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -1481,6 +1482,10 @@ export class VRApp {
         }
       }
     });
+
+    // Tear down monitoring side-effects (intervals + event listeners).
+    // Called last so any final metrics can still be reported above.
+    try { disposeMonitoring(); } catch (_) {}
 
     console.debug('VRApp: Disposed');
   }

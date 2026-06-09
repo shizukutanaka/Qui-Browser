@@ -158,12 +158,17 @@ export class HapticFeedback {
     }
 
     if (Array.isArray(pattern)) {
-      // Complex pattern (sequence)
+      // Complex pattern (sequence) — individual step failures are warned but
+      // do not abort the remaining steps in the sequence.
       for (const step of pattern) {
-        if (step.duration) {
-          await this.pulse(hand, step.duration, step.intensity);
-        } else if (step.pause) {
-          await this.wait(step.pause);
+        try {
+          if (step.duration) {
+            await this.pulse(hand, step.duration, step.intensity);
+          } else if (step.pause) {
+            await this.wait(step.pause);
+          }
+        } catch (e) {
+          console.warn('HapticFeedback: playPattern step failed', e);
         }
       }
     } else {

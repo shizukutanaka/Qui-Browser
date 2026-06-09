@@ -169,9 +169,15 @@ export class TextureManager {
     texture.anisotropy = options.anisotropy ||
                          this.renderer.capabilities.getMaxAnisotropy();
 
-    // Encoding
-    if (options.encoding) {
-      texture.encoding = options.encoding;
+    // Color space (replaces the deprecated .encoding API in THREE r152+)
+    if (options.colorSpace) {
+      texture.colorSpace = options.colorSpace;
+    } else if (options.encoding) {
+      // Legacy callers: map old LinearEncoding/sRGBEncoding constants to the
+      // new colorSpace strings so existing call-sites keep working.
+      texture.colorSpace = options.encoding === 3001  // THREE.sRGBEncoding
+        ? 'srgb'
+        : 'srgb-linear';
     }
 
     // Generate mipmaps for better quality
@@ -354,7 +360,7 @@ export class TextureManager {
  * // Load with options
  * const normalMap = await textureManager.loadTexture('assets/textures/wood_normal.png', {
  *   preferKTX2: true,
- *   encoding: THREE.LinearEncoding
+ *   colorSpace: THREE.LinearSRGBColorSpace
  * });
  *
  * // Batch load

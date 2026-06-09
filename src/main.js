@@ -46,6 +46,12 @@ if (import.meta.env && import.meta.env.PROD) {
   initializeMonitoring().catch((e) => console.error('Monitoring init failed:', e));
 }
 
+// Catch async errors that escape their call-sites (e.g. failed fetch in a
+// click handler) so they surface as console errors rather than silent drops.
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
 // Hide loading screen after DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; frame-src https:; worker-src 'self'">
 
     <!-- Primary Meta Tags -->
     <title>Qui Browser VR v2.0.0 - Production-Ready VR Browser</title>
@@ -18,14 +18,12 @@
     <meta property="og:url" content="https://shizukutanaka.github.io/qui-browser/">
     <meta property="og:title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
     <meta property="og:description" content="Complete VR browser with 17 features, 90-120 FPS performance, and enterprise-grade infrastructure.">
-    <meta property="og:image" content="/assets/images/og-image.png">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:card" content="summary">
     <meta property="twitter:url" content="https://shizukutanaka.github.io/qui-browser/">
     <meta property="twitter:title" content="Qui Browser VR v2.0.0">
     <meta property="twitter:description" content="Production-ready WebXR VR browser with 17 features">
-    <meta property="twitter:image" content="/assets/images/twitter-card.png">
 
     <!-- PWA -->
     <meta name="theme-color" content="#0052cc">
@@ -78,39 +76,39 @@
             <button class="cta-button" id="enterVRButton" data-i18n="cta.enterVR">Enter VR Mode</button>
 
             <!-- Features Grid -->
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
+            <div class="features-grid" role="list">
+                <div class="feature-card" role="listitem" aria-label="High Performance">
+                    <div class="feature-icon" aria-hidden="true">⚡</div>
                     <h3 class="feature-title" data-i18n="feat.perf.title">High Performance</h3>
                     <p class="feature-description" data-i18n="feat.perf.desc">90-120 FPS on Quest 3, optimized rendering with FFR and WebGPU</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🤝</div>
+                <div class="feature-card" role="listitem" aria-label="Hand Tracking">
+                    <div class="feature-icon" aria-hidden="true">🤝</div>
                     <h3 class="feature-title" data-i18n="feat.hand.title">Hand Tracking</h3>
                     <p class="feature-description" data-i18n="feat.hand.desc">Controller-free interaction with 12 gesture patterns</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🎵</div>
+                <div class="feature-card" role="listitem" aria-label="Spatial Audio">
+                    <div class="feature-icon" aria-hidden="true">🎵</div>
                     <h3 class="feature-title" data-i18n="feat.audio.title">Spatial Audio</h3>
                     <p class="feature-description" data-i18n="feat.audio.desc">3D HRTF-based positional sound for immersive experience</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🇯🇵</div>
+                <div class="feature-card" role="listitem" aria-label="Japanese IME">
+                    <div class="feature-icon" aria-hidden="true">🇯🇵</div>
                     <h3 class="feature-title" data-i18n="feat.ime.title">Japanese IME</h3>
                     <p class="feature-description" data-i18n="feat.ime.desc">Native Japanese text input with Hiragana/Katakana/Kanji</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
+                <div class="feature-card" role="listitem" aria-label="Multiplayer">
+                    <div class="feature-icon" aria-hidden="true">🌐</div>
                     <h3 class="feature-title" data-i18n="feat.mp.title">Multiplayer</h3>
                     <p class="feature-description" data-i18n="feat.mp.desc">Real-time collaboration in shared VR spaces</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
+                <div class="feature-card" role="listitem" aria-label="AI Recommendations">
+                    <div class="feature-icon" aria-hidden="true">🤖</div>
                     <h3 class="feature-title" data-i18n="feat.ai.title">AI Recommendations</h3>
                     <p class="feature-description" data-i18n="feat.ai.desc">Personalized content suggestions with machine learning</p>
                 </div>

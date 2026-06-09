@@ -64,9 +64,12 @@ export class SpatialAudio {
 
       // Resume context if suspended (browser autoplay policy)
       if (this.context.state === 'suspended') {
-        document.addEventListener('click', async () => {
-          await this.context.resume();
-          console.debug('SpatialAudio: Context resumed');
+        document.addEventListener('click', () => {
+          this.context.resume().then(() => {
+            console.debug('SpatialAudio: Context resumed');
+          }).catch((e) => {
+            console.warn('SpatialAudio: Context resume failed', e);
+          });
         }, { once: true });
       }
 
@@ -88,6 +91,9 @@ export class SpatialAudio {
 
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} fetching audio: ${url}`);
+      }
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
 
