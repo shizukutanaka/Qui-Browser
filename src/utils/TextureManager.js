@@ -243,11 +243,14 @@ export class TextureManager {
     const texture = this.textureCache.get(url);
     if (!texture) return;
 
+    // Estimate memory BEFORE disposing — dispose() may clear texture.image,
+    // which would make the size estimate wrong (and skew tracking).
+    const bytes = this.estimateTextureMemory(texture, url.endsWith('.ktx2'));
+
     // Dispose texture
     texture.dispose();
 
     // Update memory tracking
-    const bytes = this.estimateTextureMemory(texture, url.endsWith('.ktx2'));
     this.memoryUsage.estimatedBytes -= bytes;
     this.memoryUsage.textureCount--;
 

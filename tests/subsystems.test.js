@@ -90,6 +90,16 @@ describe('src/vr/rendering/FFRSystem', () => {
     // intensity should drift toward 0.8 (still head).
     expect(ffr.intensity).toBeGreaterThan(0.5);
   });
+
+  test('trackHeadPose() reuses the prev-quaternion object (no per-frame alloc)', () => {
+    const ffr = new FFRSystem();
+    ffr.trackHeadPose({ x: 0, y: 0, z: 0, w: 1 }, 0.016);
+    const ref = ffr._prevHeadQuat;
+    ffr.trackHeadPose({ x: 0, y: 0.1, z: 0, w: 0.99 }, 0.016);
+    // Same object instance, mutated in place rather than reallocated.
+    expect(ffr._prevHeadQuat).toBe(ref);
+    expect(ffr._prevHeadQuat.y).toBeCloseTo(0.1, 5);
+  });
 });
 
 describe('src/utils/ProgressiveLoader', () => {

@@ -176,7 +176,12 @@ export class FFRSystem {
       this._headVelocity = this._headVelocity * 0.8 + angularVelocity * 0.2;
       this.predictedGazeEnabled = true;
     }
-    this._prevHeadQuat = { x: quat.x, y: quat.y, z: quat.z, w: quat.w };
+    // Mutate the stored quaternion in place to avoid a per-frame allocation.
+    if (!this._prevHeadQuat) this._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+    this._prevHeadQuat.x = quat.x;
+    this._prevHeadQuat.y = quat.y;
+    this._prevHeadQuat.z = quat.z;
+    this._prevHeadQuat.w = quat.w;
   }
 
   /**

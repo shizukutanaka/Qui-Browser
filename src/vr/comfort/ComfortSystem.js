@@ -105,6 +105,10 @@ export class ComfortSystem {
     const geometry = new THREE.PlaneGeometry(2, 2);
     this.vignetteQuad = new THREE.Mesh(geometry, this.vignetteMaterial);
 
+    // Full-screen ortho camera for the post-process pass, created once and
+    // reused (previously allocated every frame in render()).
+    this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
     // Create render target for post-processing
     this.renderTarget = new THREE.WebGLRenderTarget(
       window.innerWidth,
@@ -299,7 +303,7 @@ export class ComfortSystem {
 
     // Render to screen
     this.renderer.setRenderTarget(null);
-    this.renderer.render(this.vignetteQuad, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
+    this.renderer.render(this.vignetteQuad, this.postCamera);
   }
 
   /**
