@@ -43,10 +43,10 @@ jobs:
         run: npm run format:check
 
       - name: Check for console.log
-        continue-on-error: true
         run: |
           if grep -r "console\.log" src/ --exclude-dir=dev; then
-            echo "⚠️  console.log found (advisory — VR operational logging is permitted)"
+            echo "❌ Found console.log in production code"
+            exit 1
           else
             echo "✅ No console.log found"
           fi
@@ -154,7 +154,7 @@ jobs:
         run: npm ci
 
       - name: Run benchmark tests
-        run: npm run benchmark:ci
+        run: npm run benchmark:all -- --iterations 100 --output benchmark-results.json --format json
 
       - name: Check performance regression
         run: |
