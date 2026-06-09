@@ -131,9 +131,9 @@ function setupKeyboardShortcuts() {
       case 'F':
         // Toggle FFR
         if (vrApp && vrApp.ffrSystem) {
-          const enabled = !vrApp.ffrSystem.enabled;
-          vrApp.ffrSystem.setEnabled(enabled);
-          console.debug(`FFR ${enabled ? 'enabled' : 'disabled'}`);
+          const enabling = !vrApp.ffrSystem.enabled;
+          enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
+          console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
         }
         break;
 
