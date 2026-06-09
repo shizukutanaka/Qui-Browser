@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![WebXR](https://img.shields.io/badge/WebXR-Supported-purple.svg)](https://immersiveweb.dev/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/shizukutanaka/qui-browser/actions)
-[![Coverage](https://img.shields.io/badge/coverage-60%25-yellow.svg)](https://codecov.io/gh/shizukutanaka/qui-browser)
+[![Coverage](https://img.shields.io/badge/coverage-passing-yellow.svg)](https://codecov.io/gh/shizukutanaka/qui-browser)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [![Meta Quest 2](https://img.shields.io/badge/Meta_Quest_2-Supported-00a8e8.svg)](https://www.meta.com/quest/products/quest-2/)
@@ -12,7 +12,7 @@
 [![Pico 4](https://img.shields.io/badge/Pico_4-Supported-ff6b35.svg)](https://www.picoxr.com/global/products/pico4)
 
 <div align="center">
-  <h3>🚀 Production-Ready VR Browser with 17 Advanced Features</h3>
+  <h3>VR Browser with 17 Features across 3 Tiers</h3>
   <p>
     <a href="#-features">Features</a> •
     <a href="#-quick-start">Quick Start</a> •
@@ -24,49 +24,56 @@
 
 ---
 
-A production-ready WebXR VR browser optimized for Meta Quest 2/3 and Pico devices, featuring 90-120 FPS performance, Japanese IME, hand tracking, spatial audio, WebGPU acceleration, multiplayer support, AI recommendations, and comprehensive CI/CD automation.
+A WebXR VR browser targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, and a range of Tier 1–3 features from comfort optimizations to experimental WebGPU and multiplayer capabilities.
 
 ## 🌟 Highlights
 
-- **17 Features Across 3 Tiers** - From performance optimizations to advanced AI/multiplayer
-- **90-120 FPS** - Optimized for Meta Quest 3, 72-90 FPS on Quest 2
-- **Production Infrastructure** - Complete CI/CD, monitoring, multi-platform deployment
-- **Enterprise-Grade** - Sentry error tracking, GA4 analytics, Web Vitals monitoring
-- **Comprehensive Docs** - 12 documentation files, 7,340+ lines
+- **17 Features Across 3 Tiers** - From performance optimizations to experimental AI/multiplayer
+- **Target: 72–120 FPS** - Quest 3 (90–120), Quest 2 (72–90), Pico 4 (90)
+- **CI/CD & Monitoring** - Automated testing, Sentry error tracking, GA4 analytics (opt-in)
+- **Comprehensive Docs** - 12 documentation files
+
+### Feature Status Legend
+
+| Badge | Meaning |
+|-------|---------|
+| ✅ **Stable** | Shipped, tested, works in-browser |
+| 🔬 **Experimental** | Implemented but not fully validated; may have rough edges |
+| 🏗️ **Requires infra** | Needs external server / hardware to function |
 
 ## 🚀 Features
 
 ### Tier 1: Performance Optimizations (5 Features)
 
-| Feature | Description | Impact |
-|---------|-------------|--------|
-| **Fixed Foveated Rendering (FFR)** | Reduces peripheral rendering quality | +15-20 FPS |
-| **Comfort System** | Motion sickness prevention (vignette, FOV) | Improved comfort |
-| **Object Pooling** | Reusable object management | -40% GC pauses |
-| **KTX2 Texture Compression** | GPU-optimized texture format | -94% texture memory |
-| **Service Worker** | Offline support and caching | 100% offline capability |
+| Feature | Status | Description | Impact |
+|---------|--------|-------------|--------|
+| **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality | +15-20 FPS |
+| **Comfort System** | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort |
+| **Object Pooling** | ✅ Stable | Reusable object management | Fewer GC pauses |
+| **KTX2 Texture Compression** | ✅ Stable | GPU-optimized texture format | Lower texture memory |
+| **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
 
 ### Tier 2: Enhanced Features (6 Features)
 
-| Feature | Description | User Impact |
-|---------|-------------|-------------|
-| **Japanese IME** | Native Japanese text input in VR | Full Japanese support |
-| **Advanced Hand Tracking** | Controller-free interaction | Natural gestures |
-| **3D Spatial Audio** | HRTF-based positional sound | Immersive audio |
-| **MR Passthrough** | Real-world integration (Quest 3) | Mixed reality |
-| **Progressive Image Loading** | Incremental image display | -60% initial load |
-| **Offline Support** | Works without internet | Full offline mode |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Japanese IME** | ✅ Stable | Native Japanese text input with VR keyboard |
+| **Advanced Hand Tracking** | ✅ Stable | Controller-free interaction via WebXR hand APIs |
+| **3D Spatial Audio** | ✅ Stable | HRTF-based positional sound with Web Audio API |
+| **MR Passthrough** | ✅ Stable | Real-world integration (Quest 3 passthrough) |
+| **Progressive Image Loading** | ✅ Stable | Incremental image display |
+| **Offline Support** | ✅ Stable | Service Worker caching |
 
 ### Tier 3: Advanced Features (6 Features)
 
-| Feature | Description | Innovation |
-|---------|-------------|-----------|
-| **WebGPU Rendering** | Next-gen GPU acceleration | 2x performance |
-| **Multiplayer System** | Real-time collaboration | Shared VR spaces |
-| **AI Recommendations** | Personalized content suggestions | Smart browsing |
-| **Voice Commands** | Japanese speech recognition | Hands-free control |
-| **Haptic Feedback** | Enhanced tactile response | Immersive interaction |
-| **WebCodecs Video** | Hardware-accelerated video | Efficient playback |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **WebGPU Rendering** | 🔬 Experimental | Next-gen GPU acceleration (WebGPU fallback path; uniform buffer write path incomplete) |
+| **Multiplayer System** | 🏗️ Requires infra | Real-time collaboration (needs signaling server) |
+| **AI Recommendations** | 🔬 Experimental | Personalized content suggestions |
+| **Voice Commands** | 🔬 Experimental | Japanese speech recognition (Web Speech API; browser support varies) |
+| **Haptic Feedback** | ✅ Stable | Enhanced tactile response on supported controllers |
+| **WebCodecs Video** | 🔬 Experimental | Hardware-accelerated video decode |
 
 ### Development Tools (2 Features)
 
@@ -125,7 +132,7 @@ Qui Browser VR/
 │   ├── VRApp.js              # Main VR controller
 │   └── monitoring.js         # Production monitoring
 ├── docs/                     # Complete documentation (12 files)
-├── tests/                    # Test suites (34 suites, 100+ tests)
+├── tests/                    # Test suites (21 suites, 231 tests)
 ├── tools/                    # Performance benchmarking
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
@@ -148,11 +155,11 @@ Qui Browser VR/
 
 ### VR Performance Targets
 
-| Device | Target FPS | Frame Time | Status |
-|--------|-----------|------------|--------|
-| **Meta Quest 2** | 72-90 | 11.1ms | ✅ Achieved |
-| **Meta Quest 3** | 90-120 | 8.3ms | ✅ Achieved |
-| **Pico 4** | 90 | 11.1ms | ✅ Achieved |
+| Device | Target FPS | Frame Time | Notes |
+|--------|-----------|------------|-------|
+| **Meta Quest 2** | 72-90 | 11.1ms | Primary dev target |
+| **Meta Quest 3** | 90-120 | 8.3ms | Optimal |
+| **Pico 4** | 90 | 11.1ms | Compatible |
 
 **Memory Usage:** < 2GB (Quest 2), < 4GB (Quest 3)
 
@@ -201,10 +208,10 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 34 test suites, 100+ tests
+- **Unit Tests:** 21 test suites, 231 tests
 - **Integration Tests:** Tier system integration
 - **Performance Tests:** Benchmarking and regression detection
-- **Code Coverage:** 60%+ target (current: 50%+)
+- **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)
 - **CI/CD:** Automated testing on every push/PR
 
 **📖 Testing Guide:** [docs/TESTING.md](docs/TESTING.md)
@@ -312,4 +319,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Version:** 2.0.0 | **Status:** ✅ Production Ready | **License:** MIT
+**Version:** 2.0.0 | **License:** MIT | Tier 1–2 features stable; Tier 3 experimental — see [Feature Status](#feature-status-legend)
