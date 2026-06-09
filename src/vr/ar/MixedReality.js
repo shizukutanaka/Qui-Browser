@@ -96,6 +96,7 @@ export class MixedReality {
     if (!this._db) return;
     try {
       const tx = this._db.transaction('anchors', 'readwrite');
+      tx.onerror = () => console.warn('MixedReality: Failed to save anchor', tx.error);
       tx.objectStore('anchors').put(record);
     } catch (e) {
       console.warn('MixedReality: Failed to save anchor', e);
@@ -110,6 +111,7 @@ export class MixedReality {
     if (!this._db) return;
     try {
       const tx = this._db.transaction('anchors', 'readwrite');
+      tx.onerror = () => console.warn('MixedReality: Failed to delete anchor', tx.error);
       tx.objectStore('anchors').delete(id);
     } catch (e) {
       console.warn('MixedReality: Failed to delete anchor', e);
