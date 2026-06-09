@@ -36,6 +36,7 @@
 | FR-2.3 | 選択ヒットのイベント配信（interactable） | ✅ | `registerInteractable()`＋ホバー（`updateHover`）。ウェルカム板を Recenter ボタン化 |
 | FR-2.4 | 音声コマンド | ✅ | `VoiceCommands`（`settings.enableVoice` で on/off、致命エラー時の再起動ループ修正済）、VRApp に配線済 |
 | FR-2.5 | 日本語 IME 入力 | ✅ | `JapaneseIME` + VR キーボード |
+| FR-2.6 | ハプティクスフィードバック | ✅ | `HapticFeedback` — pinch→click, grab→impact パターン。VRApp に配線済（`onVRSessionStart` でジェスチャー callback に登録） |
 
 ### 3.3 移動・快適性
 | ID | 要件 | 状態 | 根拠/備考 |
