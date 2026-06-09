@@ -1,42 +1,6 @@
 {
   "version": 2,
   "name": "qui-browser-vr",
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/sw.js",
-      "dest": "/sw.js",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Service-Worker-Allowed": "/"
-      }
-    },
-    {
-      "src": "/public/sw.js",
-      "dest": "/public/sw.js",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Service-Worker-Allowed": "/"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*).js",
@@ -52,7 +16,7 @@
       ]
     },
     {
-      "source": "/assets/js/(.*).js",
+      "source": "/service-worker.js",
       "headers": [
         {
           "key": "Content-Type",
@@ -60,7 +24,11 @@
         },
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
         }
       ]
     },
@@ -74,19 +42,6 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
         }
       ]
     },
@@ -165,8 +120,6 @@
       "destination": "/index.html"
     }
   ],
-  "trailingSlash": false,
-  "cleanUrls": true,
   "redirects": [
     {
       "source": "/home",
@@ -174,6 +127,8 @@
       "permanent": true
     }
   ],
+  "trailingSlash": false,
+  "cleanUrls": true,
   "env": {
     "NODE_ENV": "production",
     "VR_BROWSER_VERSION": "2.0.0"
@@ -184,7 +139,6 @@
   "buildCommand": "echo 'No build required for static site'",
   "devCommand": "python -m http.server 8000",
   "outputDirectory": ".",
-  "public": true,
   "github": {
     "enabled": true,
     "autoAlias": true,
