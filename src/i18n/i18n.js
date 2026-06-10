@@ -14,11 +14,11 @@ const CATALOG = {
   en: {
     'hero.title': 'Experience the Future of VR Browsing',
     'hero.subtitle':
-      'Production-ready WebXR browser with 17 features, 90-120 FPS performance, ' +
-      'and enterprise-grade infrastructure. Optimized for Meta Quest and Pico devices.',
+      'WebXR browser with Japanese IME, hand tracking, spatial audio, and comfort system. ' +
+      'Targets Meta Quest 2/3 and Pico 4. Tier 3 features are experimental.',
     'cta.enterVR': 'Enter VR Mode',
     'feat.perf.title': 'High Performance',
-    'feat.perf.desc': '90-120 FPS on Quest 3, optimized rendering with FFR and WebGPU',
+    'feat.perf.desc': 'Targets 90-120 FPS on Quest 3 via FFR, KTX2 textures, and object pooling',
     'feat.hand.title': 'Hand Tracking',
     'feat.hand.desc': 'Controller-free interaction with 12 gesture patterns',
     'feat.audio.title': 'Spatial Audio',
@@ -34,11 +34,11 @@ const CATALOG = {
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
     'hero.subtitle':
-      '17の機能・90〜120FPS・堅牢なインフラを備えたプロダクションレディな WebXR ブラウザ。' +
-      'Meta Quest / Pico 向けに最適化。',
+      '日本語IME・ハンドトラッキング・空間オーディオ・コンフォートシステムを搭載した WebXR ブラウザ。' +
+      'Meta Quest 2/3 と Pico 4 に対応。Tier 3 機能は実験的です。',
     'cta.enterVR': 'VRモードに入る',
     'feat.perf.title': 'ハイパフォーマンス',
-    'feat.perf.desc': 'Quest 3 で 90〜120FPS。FFR・WebGPU による最適化描画',
+    'feat.perf.desc': 'FFR・KTX2・オブジェクトプール で Quest 3 90〜120FPS を目標',
     'feat.hand.title': 'ハンドトラッキング',
     'feat.hand.desc': 'コントローラ不要・12種のジェスチャ操作',
     'feat.audio.title': '空間オーディオ',
