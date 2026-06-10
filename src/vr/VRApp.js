@@ -40,6 +40,7 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
+import { stepValue, stepperRegion, formatValue } from './settingsStepper.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -439,6 +440,88 @@ export class VRApp {
   }
 
   /**
+   * Build a canvas-textured numeric stepper bound to a numeric setting:
+   * [ −  |  label: value  |  + ]. Selecting the left/right region steps the
+   * value (clamped to min/max, snapped to step), persists it, and runs an
+   * optional live-apply callback. Returns the button mesh (registered).
+   *
+   * @param {string} label
+   * @param {string} key   setting key in this.settings
+   * @param {object} cfg   { min, max, step, unit, apply }
+   */
+  makeStepperButton(label, key, cfg) {
+    const { min, max, step, unit = '', apply } = cfg;
+    const w = 512;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+
+    const draw = (hover) => {
+      const value = this.settings[key];
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = hover ? 'rgba(40,60,90,0.95)' : 'rgba(16,20,30,0.92)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#5e72e4';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      // − / + glyphs at the edges
+      ctx.fillStyle = '#8fa0ff';
+      ctx.font = 'bold 54px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('−', w * 0.12, h / 2 + 18);
+      ctx.fillText('+', w * 0.88, h / 2 + 18);
+      // label + value in the middle
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px sans-serif';
+      ctx.fillText(`${label}: ${formatValue(value, { step, unit })}`, w / 2, h / 2 + 11);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+
+    const applyStep = (delta) => {
+      const next = stepValue(this.settings[key], delta, { min, max, step });
+      if (next !== this.settings[key]) {
+        this.updateSetting(key, next); // persists (FR-9.1)
+        if (apply) apply(next);
+      }
+      draw(true);
+    };
+
+    this.registerInteractable(mesh, {
+      onSelect: (point) => {
+        // Map the hit point to a horizontal fraction of the button to decide
+        // whether the − or + region was pressed.
+        let u = 0.5;
+        if (point && mesh.worldToLocal) {
+          const local = mesh.worldToLocal(point.clone());
+          u = (local.x / 0.9) + 0.5; // PlaneGeometry width is 0.9
+        }
+        const region = stepperRegion(u);
+        if (region === 'decrement') {
+          applyStep(-1);
+        } else if (region === 'increment') {
+          applyStep(1);
+        } else {
+          draw(true);
+        }
+      },
+      onHover: () => draw(true),
+      onHoverEnd: () => draw(false)
+    });
+    return mesh;
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -472,6 +555,20 @@ export class VRApp {
       }]
     ];
 
+    // Numeric steppers for tunable parameters that were previously code-only.
+    const steppers = [
+      ['Snap Angle', 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
+      ['Move Speed', 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
+      ['Gaze Time', 'gazeDwellTime', {
+        min: 500, max: 3000, step: 250, unit: 'ms',
+        apply: (v) => { if (this.gazeInteraction) this.gazeInteraction.dwellTime = v; }
+      }],
+      ['Panel Dist', 'windowDistance', {
+        min: 0.6, max: 6.0, step: 0.2, unit: ' m',
+        apply: (v) => { if (this.windowManager) this.windowManager.setDistance(v); }
+      }]
+    ];
+
     // Action buttons (non-toggle). Only shown when their target exists.
     const actions = [];
     if (this.settings.enableWebPanel) {
@@ -481,10 +578,10 @@ export class VRApp {
     }
 
     // Adaptive vertical layout so the panel stays centred and fits any number
-    // of toggles (the list grows as features are added).
+    // of controls (the list grows as features are added).
     const ROW = 0.22;            // metres between rows
     const PAD = 0.14;            // top/bottom padding
-    const rowCount = items.length + actions.length;
+    const rowCount = items.length + steppers.length + actions.length;
     const height = rowCount * ROW + PAD;
 
     const bg = new THREE.Mesh(
@@ -497,6 +594,12 @@ export class VRApp {
     let y = ((rowCount - 1) * ROW) / 2;
     for (const [label, key, apply] of items) {
       const btn = this.makeToggleButton(label, key, apply);
+      btn.position.set(0, y, 0.01);
+      group.add(btn);
+      y -= ROW;
+    }
+    for (const [label, key, cfg] of steppers) {
+      const btn = this.makeStepperButton(label, key, cfg);
       btn.position.set(0, y, 0.01);
       group.add(btn);
       y -= ROW;

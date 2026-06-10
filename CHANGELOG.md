@@ -16,6 +16,9 @@ All notable changes to Qui Browser VR will be documented in this file.
   meshes with a composition-text display, hover highlight, and a backspace
   key, replacing the old data-only stub. Text entry in immersive VR no longer
   falls back to `window.prompt()`.
+- **Numeric settings steppers** — the in-VR settings panel now exposes
+  −/+ steppers for Snap Angle, Move Speed, Gaze Time, and Panel Distance,
+  which were previously code-only. Values persist and apply live.
 
 ### Fixed
 - VR app could not locate its mount point on WebXR devices (`#app` vs
