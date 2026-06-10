@@ -43,10 +43,13 @@ export class WindowManager {
     this._grab = null;         // { controller, distance } while grabbing
 
     // Scratch objects (avoid per-frame allocation).
-    this._camPos  = new THREE.Vector3();
-    this._camQuat = new THREE.Quaternion();
-    this._forward = new THREE.Vector3();
+    this._camPos   = new THREE.Vector3();
+    this._camQuat  = new THREE.Quaternion();
+    this._forward  = new THREE.Vector3();
     this._targetPos = new THREE.Vector3();
+    this._grabPos  = new THREE.Vector3();
+    this._grabQuat = new THREE.Quaternion();
+    this._grabFwd  = new THREE.Vector3();
   }
 
   // ── Attach / detach ──────────────────────────────────────────────────────────
@@ -128,13 +131,10 @@ export class WindowManager {
   }
 
   _updateGrab() {
-    const cPos = new THREE.Vector3();
-    this._grab.controller.getWorldPosition(cPos);
-    const cQuat = new THREE.Quaternion();
-    this._grab.controller.getWorldQuaternion(cQuat);
-    const cForward = new THREE.Vector3(0, 0, -1).applyQuaternion(cQuat).normalize();
-    // Panel rides at the recorded distance along the controller ray.
-    this.target.position.copy(cPos).addScaledVector(cForward, this._grab.distance);
+    this._grab.controller.getWorldPosition(this._grabPos);
+    this._grab.controller.getWorldQuaternion(this._grabQuat);
+    this._grabFwd.set(0, 0, -1).applyQuaternion(this._grabQuat).normalize();
+    this.target.position.copy(this._grabPos).addScaledVector(this._grabFwd, this._grab.distance);
     this._faceUser();
   }
 

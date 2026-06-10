@@ -32,25 +32,17 @@ const CACHE_STATIC = `qui-browser-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `qui-browser-dynamic-${CACHE_VERSION}`;
 const CACHE_MEDIA = `qui-browser-media-${CACHE_VERSION}`;
 
-// Static assets to cache on install
-// Note: install caches these resiliently (see install handler) so a single
-// missing/renamed asset does not abort the whole precache. Paths match what
-// index.html and manifest.json actually reference.
+// Static assets to cache on install.
+// Vite hashes JS/CSS chunk names at build time, so only path-stable assets
+// (HTML shell, manifest, icons, offline fallback) are listed here.
+// Hashed chunks are cached at runtime by the fetch handler below.
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/src/styles/main.css',
-  '/src/main.js',
-  '/assets/js/vr-webgpu-renderer.js',
-  '/assets/js/vr-accessibility-wcag.js',
-  '/assets/js/vr-i18n-system.js',
-  '/assets/js/vr-voice-commands-i18n.js',
-  '/assets/js/vr-memory-manager.js',
-  '/assets/js/vr-security-manager.js',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
-  '/offline.html' // Offline fallback page
+  '/offline.html'
 ];
 
 // Maximum cache sizes
