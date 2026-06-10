@@ -42,6 +42,21 @@ All notable changes to Qui Browser VR will be documented in this file.
 - **Experimental:** WebGPU renderer behind `enableWebGPU` (default off) with
   `navigator.gpu` capability detection. Not yet integrated into the render
   loop; WebGL remains the renderer.
+- VRJapaneseKeyboard now has a `dispose()` method; VRApp.dispose() cleans it up.
+- WindowManager pre-allocates scratch objects for `_updateGrab()` to eliminate
+  per-frame Vector3/Quaternion allocations during panel grab.
+- Japanese IME offline dictionary expanded from 14 to ~200 entries covering
+  greetings, common verbs, adjectives, tech, and VR-specific vocabulary.
+
+### Documentation
+- README feature tables now have Stable / Experimental / Requires-infra status.
+  Unverified "✅ Achieved" FPS claims replaced with target-FPS notes.
+- WebGPURenderer and MultiplayerSystem file headers updated with accurate
+  status and opt-in flag names.
+- Test count corrected: 21 suites / 231 tests; coverage thresholds raised
+  from 0 to 25% (branches 20%).
+- Service worker precache trimmed to path-stable assets only; hashed Vite
+  chunks are cached at fetch time.
 
 ## [5.7.0] - 2025-10-30
 
