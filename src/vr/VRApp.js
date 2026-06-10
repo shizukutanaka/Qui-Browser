@@ -34,6 +34,7 @@ import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { WebPanel } from './browser/WebPanel.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager } from './browser/WindowManager.js';
+import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -79,6 +80,7 @@ export class VRApp {
     this.webPanel = null;
     this.tabManager = null;
     this.windowManager = null;
+    this.bookmarkPanel = null;
     this.devTools = null;
     this.perfMonitorUI = null;
     this.webGPURenderer = null;
@@ -318,6 +320,20 @@ export class VRApp {
       this.tabManager.newTab(); // start with one blank tab
       // Convenience alias: the active tab's panel.
       this.webPanel = this.tabManager.getActiveTab();
+
+      // FR-1.4: in-VR bookmarks & history panel. Selecting an entry navigates
+      // the active tab. Toggled via the settings panel "Bookmarks" button.
+      this.bookmarkPanel = new BookmarkPanel({
+        scene: this.scene,
+        registerInteractable: (m, h) => this.registerInteractable(m, h),
+        unregisterInteractable: (m) => this.unregisterInteractable(m),
+        store: this.bookmarks,
+        onSelect: (url) => {
+          const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
+          if (active) active.navigate(url);
+        }
+      });
+      this.bookmarkPanel.addToScene();
     }
 
     console.debug('VRApp: Scene created');
@@ -377,6 +393,52 @@ export class VRApp {
   }
 
   /**
+   * Build a canvas-textured action button (no on/off state). Selecting it runs
+   * the supplied callback. Used for one-shot actions like opening a panel.
+   * Returns the button mesh (already registered as interactable).
+   */
+  makeActionButton(label, onSelect) {
+    const w = 512;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+
+    const draw = (hover) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = hover ? 'rgba(40,60,90,0.95)' : 'rgba(16,20,30,0.92)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#5e72e4';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillText(label, 24, 62);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#8fa0ff';
+      ctx.fillText('▸', w - 24, 62);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    this.registerInteractable(mesh, {
+      onSelect: () => { if (onSelect) onSelect(); draw(true); },
+      onHover: () => draw(true),
+      onHoverEnd: () => draw(false)
+    });
+    return mesh;
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -410,11 +472,20 @@ export class VRApp {
       }]
     ];
 
+    // Action buttons (non-toggle). Only shown when their target exists.
+    const actions = [];
+    if (this.settings.enableWebPanel) {
+      actions.push(['Bookmarks', () => {
+        if (this.bookmarkPanel) this.bookmarkPanel.toggle();
+      }]);
+    }
+
     // Adaptive vertical layout so the panel stays centred and fits any number
     // of toggles (the list grows as features are added).
     const ROW = 0.22;            // metres between rows
     const PAD = 0.14;            // top/bottom padding
-    const height = items.length * ROW + PAD;
+    const rowCount = items.length + actions.length;
+    const height = rowCount * ROW + PAD;
 
     const bg = new THREE.Mesh(
       new THREE.PlaneGeometry(1.1, height),
@@ -423,9 +494,15 @@ export class VRApp {
     group.add(bg);
 
     // Start at the top of the stack, centred about y=0.
-    let y = ((items.length - 1) * ROW) / 2;
+    let y = ((rowCount - 1) * ROW) / 2;
     for (const [label, key, apply] of items) {
       const btn = this.makeToggleButton(label, key, apply);
+      btn.position.set(0, y, 0.01);
+      group.add(btn);
+      y -= ROW;
+    }
+    for (const [label, onSelect] of actions) {
+      const btn = this.makeActionButton(label, onSelect);
       btn.position.set(0, y, 0.01);
       group.add(btn);
       y -= ROW;
@@ -1500,6 +1577,7 @@ export class VRApp {
     if (this.avatarSystem) this.avatarSystem.dispose();
     if (this.windowManager) this.windowManager.dispose();
     if (this.layersSystem) { this.layersSystem.dispose(); this.layersSystem = null; }
+    if (this.bookmarkPanel) { this.bookmarkPanel.dispose(); this.bookmarkPanel = null; }
     if (this.tabManager) this.tabManager.dispose();
     else if (this.webPanel) this.webPanel.dispose();
     if (this.devTools) this.devTools.dispose();
