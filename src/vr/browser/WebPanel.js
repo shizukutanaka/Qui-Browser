@@ -40,7 +40,8 @@ export class WebPanel {
    * @param {Function} [opts.onUrlInputRequested] — (currentUrl, confirmCb) called when
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate, onUrlInputRequested, searchEngine }) {
+  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
+                onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -49,6 +50,11 @@ export class WebPanel {
     // Search engine for non-URL input (key into SEARCH_ENGINES). Defaults to
     // a privacy-respecting engine; overridable via settings.
     this.searchEngine = searchEngine || DEFAULT_SEARCH_ENGINE;
+    // Bookmark integration (backed by VRApp's BookmarkStore). Both optional;
+    // when absent the star button is hidden.
+    this.isBookmarked = typeof isBookmarked === 'function' ? isBookmarked : null;
+    this.onToggleBookmark = typeof onToggleBookmark === 'function' ? onToggleBookmark : null;
+    this.currentTitle = '';
 
     // Panel state
     this.currentUrl  = '';
@@ -174,9 +180,12 @@ export class WebPanel {
     ctx.fillStyle = this.loading ? '#ffaa00' : '#ffffff';
     ctx.fillText('↺', 174, h / 2 + 8);
 
-    // URL bar
+    // Whether the bookmark button is shown (only when wired to a store).
+    const hasBookmark = !!this.onToggleBookmark;
+    // URL bar: leave room for [bookmark][close] on the right when bookmarking.
+    const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
     ctx.fillStyle = '#2a2a4a';
-    ctx.fillRect(212, 6, w - 280, h - 12);
+    ctx.fillRect(212, 6, w - 212 - urlRight, h - 12);
     ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
     ctx.font = '18px monospace';
     ctx.textAlign = 'left';
@@ -184,6 +193,17 @@ export class WebPanel {
       this.currentUrl || 'https://',
       220, h / 2 + 6
     );
+
+    // Bookmark (star) button
+    if (hasBookmark) {
+      const marked = this.isBookmarked ? !!this.isBookmarked(this.currentUrl) : false;
+      ctx.fillStyle = '#3a3a5c';
+      ctx.fillRect(w - 128, 6, 56, h - 12);
+      ctx.fillStyle = marked ? '#ffcc44' : '#aaaabb';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(marked ? '★' : '☆', w - 100, h / 2 + 9);
+    }
 
     // Close button
     ctx.fillStyle = '#5c1a1a';
@@ -206,14 +226,22 @@ export class WebPanel {
     const u = (local.x / PANEL_W) + 0.5;       // 0–1
     const px = Math.round(u * this.chromeCanvas.width);
 
+    const w = this.chromeCanvas.width;
+    const hasBookmark = !!this.onToggleBookmark;
+
     if (px < 68) {           // back button
       this.back();
     } else if (px < 136) {   // forward
       this.forward();
     } else if (px < 204) {   // reload
       this.reload();
-    } else if (px > this.chromeCanvas.width - 60) { // close
+    } else if (px > w - 60) { // close
       this.hide();
+    } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
+      if (this.currentUrl) {
+        this.onToggleBookmark(this.currentUrl, this.currentTitle || this.currentUrl);
+        this._drawChrome(); // reflect the new ★/☆ state
+      }
     } else {                  // URL bar — request text input
       const prefill = this.currentUrl || 'https://';
       if (this.onUrlInputRequested) {
@@ -266,6 +294,7 @@ export class WebPanel {
       this.loading = false;
       let title = url;
       try { title = this.iframe.contentDocument.title || url; } catch {}
+      this.currentTitle = title;
       this._drawChrome();
       this.onNavigate(url, title);
     };

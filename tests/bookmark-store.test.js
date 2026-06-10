@@ -44,6 +44,26 @@ describe('BookmarkStore — bookmarks', () => {
     expect(store.isBookmarked('https://example.com')).toBe(true);
     expect(store.isBookmarked('https://other.com')).toBe(false);
   });
+
+  test('toggleBookmark() adds when absent and returns true', () => {
+    const state = store.toggleBookmark('https://example.com', 'Example');
+    expect(state).toBe(true);
+    expect(store.isBookmarked('https://example.com')).toBe(true);
+  });
+
+  test('toggleBookmark() removes when present and returns false', () => {
+    store.addBookmark('https://example.com', 'Example');
+    const state = store.toggleBookmark('https://example.com');
+    expect(state).toBe(false);
+    expect(store.isBookmarked('https://example.com')).toBe(false);
+  });
+
+  test('toggleBookmark() round-trips', () => {
+    expect(store.toggleBookmark('https://x.com')).toBe(true);
+    expect(store.toggleBookmark('https://x.com')).toBe(false);
+    expect(store.toggleBookmark('https://x.com')).toBe(true);
+    expect(store.getBookmarks()).toHaveLength(1);
+  });
 });
 
 describe('BookmarkStore — history', () => {

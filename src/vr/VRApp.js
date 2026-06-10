@@ -308,7 +308,10 @@ export class VRApp {
         // initialised in initializeSystems() before this block runs.
         onUrlInputRequested: (prefill, onConfirm) =>
           this._requestVRKeyboardInput(prefill, onConfirm),
-        searchEngine: this.settings.searchEngine
+        searchEngine: this.settings.searchEngine,
+        // FR-1.4: star button in the chrome bar toggles a persistent bookmark.
+        isBookmarked: (url) => this.bookmarks.isBookmarked(url),
+        onToggleBookmark: (url, title) => this.bookmarks.toggleBookmark(url, title)
       });
       this.tabManager.addToScene();
       if (this.settings.enableCurvedPanel) this.tabManager.setCurved(true);

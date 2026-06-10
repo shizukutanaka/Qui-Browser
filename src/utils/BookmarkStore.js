@@ -56,6 +56,19 @@ export class BookmarkStore {
     return this.getBookmarks().some(b => b.url === url);
   }
 
+  /**
+   * Toggle a bookmark: removes it if present, adds it otherwise.
+   * @returns {boolean} the new bookmarked state (true = now bookmarked).
+   */
+  toggleBookmark(url, title = url) {
+    if (this.isBookmarked(url)) {
+      this.removeBookmark(url);
+      return false;
+    }
+    this.addBookmark(url, title);
+    return true;
+  }
+
   // ── History ─────────────────────────────────────────────────────────────────
 
   /** Return the most recent `limit` history entries (default 50). */
