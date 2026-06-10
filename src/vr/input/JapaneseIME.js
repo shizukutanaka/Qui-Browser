@@ -411,7 +411,7 @@ export class JapaneseIME {
       'かみ': ['神', '紙', '髪', '上'],
       'こころ': ['心', '核'],
       'ちから': ['力'],
-      'いのち': ['命'],
+      'いのち': ['命']
     };
 
     return commonWords[hiragana] || [hiragana];
@@ -608,7 +608,9 @@ export class VRJapaneseKeyboard {
    * select them; selection routes to onKeyPress().
    */
   createKeyboard() {
-    if (this.group) return this.keyboard;
+    if (this.group) {
+      return this.keyboard;
+    }
 
     const keys = computeKeyLayout();
     const { width, height } = keyboardBounds();
@@ -705,12 +707,16 @@ export class VRJapaneseKeyboard {
     mesh.material.map = tex;
     mesh.material.needsUpdate = true;
     mesh.userData.keyTex = tex;
-    if (old) old.dispose();
+    if (old) {
+      old.dispose();
+    }
   }
 
   /** Render the current composition buffer into the display strip. */
   _refreshDisplay() {
-    if (!this._displayCanvas) return;
+    if (!this._displayCanvas) {
+      return;
+    }
     const ctx = this._displayCanvas.getContext('2d');
     const w = this._displayCanvas.width;
     const h = this._displayCanvas.height;
@@ -723,19 +729,27 @@ export class VRJapaneseKeyboard {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(text || 'type a URL or search…', 24, h / 2);
-    if (this._displayTex) this._displayTex.needsUpdate = true;
+    if (this._displayTex) {
+      this._displayTex.needsUpdate = true;
+    }
   }
 
   /** Show the keyboard (builds it on first use). */
   show() {
-    if (!this.group) this.createKeyboard();
-    if (this.group) this.group.visible = true;
+    if (!this.group) {
+      this.createKeyboard();
+    }
+    if (this.group) {
+      this.group.visible = true;
+    }
     this._refreshDisplay();
   }
 
   /** Hide the keyboard. */
   hide() {
-    if (this.group) this.group.visible = false;
+    if (this.group) {
+      this.group.visible = false;
+    }
   }
 
   /**
@@ -746,49 +760,52 @@ export class VRJapaneseKeyboard {
       this.ime.activate();
     }
 
-    switch(key) {
-      case 'space':
-        // Convert to kanji
-        const result = await this.ime.convertToKanji();
-        if (result) {
-          this.showCandidates(result.candidates);
-        }
-        break;
+    switch (key) {
+    case 'space': {
+      // Convert to kanji
+      const result = await this.ime.convertToKanji();
+      if (result) {
+        this.showCandidates(result.candidates);
+      }
+      break;
+    }
 
-      case '変換':
-        // Henkan key - convert to kanji
-        await this.ime.convertToKanji();
-        break;
+    case '変換':
+      // Henkan key - convert to kanji
+      await this.ime.convertToKanji();
+      break;
 
-      case 'かな':
-        // Kana key - switch to hiragana
-        this.ime.switchMode('hiragana');
-        break;
+    case 'かな':
+      // Kana key - switch to hiragana
+      this.ime.switchMode('hiragana');
+      break;
 
-      case 'enter':
-        // Confirm selection
-        const text = this.ime.confirmSelection();
-        this.onTextConfirmed(text);
-        break;
+    case 'enter': {
+      // Confirm selection
+      const text = this.ime.confirmSelection();
+      this.onTextConfirmed(text);
+      break;
+    }
 
-      case 'shift':
-        // Toggle katakana mode
-        const currentMode = this.ime.inputMode;
-        this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
-        break;
+    case 'shift': {
+      // Toggle katakana mode
+      const currentMode = this.ime.inputMode;
+      this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
+      break;
+    }
 
-      case 'back':
-        // Backspace — remove the last composed character.
-        this.updateDisplay(this.ime.deleteLast());
-        break;
+    case 'back':
+      // Backspace — remove the last composed character.
+      this.updateDisplay(this.ime.deleteLast());
+      break;
 
-      default:
-        // Regular character input
-        if (key.length === 1) {
-          const processed = await this.ime.processInput(key);
-          this.updateDisplay(processed);
-        }
-        break;
+    default:
+      // Regular character input
+      if (key.length === 1) {
+        const processed = await this.ime.processInput(key);
+        this.updateDisplay(processed);
+      }
+      break;
     }
   }
 
@@ -843,33 +860,53 @@ export class VRJapaneseKeyboard {
     // materials/textures, and remove the group from the scene.
     for (const { mesh } of this.keyMeshes) {
       this.unregisterInteractable?.(mesh);
-      if (mesh.geometry) mesh.geometry.dispose();
-      if (mesh.material) mesh.material.dispose();
-      if (mesh.userData.keyTex) mesh.userData.keyTex.dispose();
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        mesh.material.dispose();
+      }
+      if (mesh.userData.keyTex) {
+        mesh.userData.keyTex.dispose();
+      }
     }
     this.keyMeshes = [];
 
     if (this._displayMesh) {
-      if (this._displayMesh.geometry) this._displayMesh.geometry.dispose();
-      if (this._displayMesh.material) this._displayMesh.material.dispose();
+      if (this._displayMesh.geometry) {
+        this._displayMesh.geometry.dispose();
+      }
+      if (this._displayMesh.material) {
+        this._displayMesh.material.dispose();
+      }
       this._displayMesh = null;
     }
-    if (this._displayTex) { this._displayTex.dispose(); this._displayTex = null; }
+    if (this._displayTex) {
+      this._displayTex.dispose(); this._displayTex = null;
+    }
     this._displayCanvas = null;
 
     if (this.group) {
       // Dispose any remaining children (panel) and detach from scene.
       this.group.traverse?.((o) => {
-        if (o.geometry) o.geometry.dispose?.();
-        if (o.material && o.material.dispose) o.material.dispose();
+        if (o.geometry) {
+          o.geometry.dispose?.();
+        }
+        if (o.material && o.material.dispose) {
+          o.material.dispose();
+        }
       });
-      if (this.scene) this.scene.remove(this.group);
+      if (this.scene) {
+        this.scene.remove(this.group);
+      }
       this.group = null;
     }
 
     this.keyboard = null;
     this.candidatePanel = null;
-    if (this.ime) this.ime.dispose();
+    if (this.ime) {
+      this.ime.dispose();
+    }
   }
 }
 

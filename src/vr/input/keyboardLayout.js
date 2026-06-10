@@ -36,7 +36,9 @@ export function computeKeyLayout(rows = ROWS) {
   rows.forEach((row, r) => {
     // Width of this row in "units" (each unit = KEY_W + GAP, minus trailing gap).
     let totalUnits = 0;
-    for (const k of row) totalUnits += (typeof k === 'object' ? (k.width || 1) : 1);
+    for (const k of row) {
+      totalUnits += (typeof k === 'object' ? (k.width || 1) : 1);
+    }
     const rowWidth = totalUnits * KEY_W + (row.length - 1) * GAP;
 
     let x = -rowWidth / 2;

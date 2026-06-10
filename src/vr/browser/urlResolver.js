@@ -32,12 +32,18 @@ const BLOCKED_SCHEME = /^(javascript|data|file|blob|vbscript):/i;
  * @returns {string|null} a navigable https URL, or null if input is empty/blocked
  */
 export function resolveInput(input, opts = {}) {
-  if (input == null) return null;
+  if (input === null || input === undefined) {
+    return null;
+  }
   const text = String(input).trim();
-  if (!text) return null;
+  if (!text) {
+    return null;
+  }
 
   // Block dangerous schemes outright.
-  if (BLOCKED_SCHEME.test(text)) return null;
+  if (BLOCKED_SCHEME.test(text)) {
+    return null;
+  }
 
   // Already a full URL with an allowed scheme.
   if (HAS_SCHEME.test(text)) {
@@ -80,7 +86,9 @@ export function buildSearchUrl(query, engine = DEFAULT_SEARCH_ENGINE) {
  */
 export function isSearchQuery(input, opts = {}) {
   const resolved = resolveInput(input, opts);
-  if (!resolved) return false;
+  if (!resolved) {
+    return false;
+  }
   // It's a search if the resolved URL is one of the search-engine endpoints.
   return Object.values(SEARCH_ENGINES).some((tpl) => resolved.startsWith(tpl)) ||
     (typeof opts.searchEngine === 'string' && opts.searchEngine.includes('=') &&

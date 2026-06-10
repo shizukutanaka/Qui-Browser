@@ -40,10 +40,16 @@ export function hitTest(px, py, rowCount = 0) {
   // Header band.
   if (py < HEADER_H) {
     // Close button occupies the right 96px.
-    if (px > PANEL_PX_W - 96) return { type: 'close' };
+    if (px > PANEL_PX_W - 96) {
+      return { type: 'close' };
+    }
     // Two tab buttons on the left (220px each).
-    if (px < 220) return { type: 'tab', tab: 'bookmarks' };
-    if (px < 440) return { type: 'tab', tab: 'history' };
+    if (px < 220) {
+      return { type: 'tab', tab: 'bookmarks' };
+    }
+    if (px < 440) {
+      return { type: 'tab', tab: 'history' };
+    }
     return { type: 'none' };
   }
 
@@ -71,6 +77,6 @@ export function uvToPixels(u, v) {
  * Truncate a string to a max length, adding an ellipsis.
  */
 export function truncate(text, max = 48) {
-  const s = String(text == null ? '' : text);
+  const s = String(text === null || text === undefined ? '' : text);
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }

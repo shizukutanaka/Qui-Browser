@@ -42,7 +42,9 @@ export class BookmarkPanel {
       this.canvas.height = PANEL_PX_H;
     }
     this.tex = this.canvas ? new THREE.CanvasTexture(this.canvas) : null;
-    if (this.tex) this.tex.colorSpace = THREE.SRGBColorSpace;
+    if (this.tex) {
+      this.tex.colorSpace = THREE.SRGBColorSpace;
+    }
 
     this.mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(PANEL_W, PANEL_H),
@@ -68,7 +70,9 @@ export class BookmarkPanel {
 
   /** Return the rows for the active mode. */
   _rows() {
-    if (!this.store) return [];
+    if (!this.store) {
+      return [];
+    }
     return this.mode === 'bookmarks'
       ? this.store.getBookmarks()
       : this.store.getHistory(VISIBLE_ROWS);
@@ -90,7 +94,9 @@ export class BookmarkPanel {
   }
 
   setMode(mode) {
-    if (mode !== 'bookmarks' && mode !== 'history') return;
+    if (mode !== 'bookmarks' && mode !== 'history') {
+      return;
+    }
     this.mode = mode;
     this._draw();
   }
@@ -98,7 +104,9 @@ export class BookmarkPanel {
   // ── Interaction ─────────────────────────────────────────────────────────────
 
   _onSelect(intersectionPoint) {
-    if (!intersectionPoint || !this.canvas) return;
+    if (!intersectionPoint || !this.canvas) {
+      return;
+    }
     const local = this.mesh.worldToLocal(intersectionPoint.clone());
     const u = (local.x / PANEL_W) + 0.5;
     const v = (local.y / PANEL_H) + 0.5;
@@ -108,31 +116,35 @@ export class BookmarkPanel {
     const action = hitTest(px, py, rows.length);
 
     switch (action.type) {
-      case 'close':
+    case 'close':
+      this.hide();
+      break;
+    case 'tab':
+      this.setMode(action.tab);
+      break;
+    case 'row': {
+      const entry = rows[action.index];
+      if (entry && entry.url) {
+        this.onSelect(entry.url);
         this.hide();
-        break;
-      case 'tab':
-        this.setMode(action.tab);
-        break;
-      case 'row': {
-        const entry = rows[action.index];
-        if (entry && entry.url) {
-          this.onSelect(entry.url);
-          this.hide();
-        }
-        break;
       }
-      default:
-        break;
+      break;
+    }
+    default:
+      break;
     }
   }
 
   // ── Drawing ───────────────────────────────────────────────────────────────
 
   _draw() {
-    if (!this.canvas) return;
+    if (!this.canvas) {
+      return;
+    }
     const ctx = this.canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
     const w = PANEL_PX_W;
 
     // Background
@@ -184,7 +196,9 @@ export class BookmarkPanel {
       }
     }
 
-    if (this.tex) this.tex.needsUpdate = true;
+    if (this.tex) {
+      this.tex.needsUpdate = true;
+    }
   }
 
   _drawTab(ctx, label, x, active) {
@@ -201,11 +215,19 @@ export class BookmarkPanel {
   dispose() {
     if (this.mesh) {
       this.unregisterInteractable?.(this.mesh);
-      if (this.scene) this.scene.remove(this.group);
-      if (this.mesh.geometry) this.mesh.geometry.dispose();
-      if (this.mesh.material) this.mesh.material.dispose();
+      if (this.scene) {
+        this.scene.remove(this.group);
+      }
+      if (this.mesh.geometry) {
+        this.mesh.geometry.dispose();
+      }
+      if (this.mesh.material) {
+        this.mesh.material.dispose();
+      }
     }
-    if (this.tex) this.tex.dispose();
+    if (this.tex) {
+      this.tex.dispose();
+    }
     this.canvas = null;
   }
 }
