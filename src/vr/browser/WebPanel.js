@@ -61,6 +61,7 @@ export class WebPanel {
     this.history     = [];
     this.historyIdx  = -1;
     this.loading     = false;
+    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
     this.domOverlaySupported = false;
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
@@ -160,18 +161,20 @@ export class WebPanel {
     ctx.fillStyle = '#1e1e3f';
     ctx.fillRect(0, 0, w, h);
 
-    // Back button
-    ctx.fillStyle = '#3a3a5c';
+    // Back button — dimmed when no history to go back to
+    const canBack = this.historyIdx > 0;
+    ctx.fillStyle = canBack ? '#3a3a5c' : '#22222e';
     ctx.fillRect(8, 6, 60, h - 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = canBack ? '#ffffff' : '#44445a';
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('◀', 38, h / 2 + 8);
 
-    // Forward button
-    ctx.fillStyle = '#3a3a5c';
+    // Forward button — dimmed when at the latest history entry
+    const canForward = this.historyIdx < this.history.length - 1;
+    ctx.fillStyle = canForward ? '#3a3a5c' : '#22222e';
     ctx.fillRect(76, 6, 60, h - 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = canForward ? '#ffffff' : '#44445a';
     ctx.fillText('▶', 106, h / 2 + 8);
 
     // Reload button
@@ -184,13 +187,18 @@ export class WebPanel {
     const hasBookmark = !!this.onToggleBookmark;
     // URL bar: leave room for [bookmark][close] on the right when bookmarking.
     const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
-    ctx.fillStyle = '#2a2a4a';
+    ctx.fillStyle = this._loadError ? '#3a1a1a' : '#2a2a4a';
     ctx.fillRect(212, 6, w - 212 - urlRight, h - 12);
-    ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
-    ctx.font = '18px monospace';
+    if (this._loadError) {
+      ctx.fillStyle = '#ff7777';
+      ctx.font = '17px sans-serif';
+    } else {
+      ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
+      ctx.font = '18px monospace';
+    }
     ctx.textAlign = 'left';
     ctx.fillText(
-      this.currentUrl || 'https://',
+      this._loadError ? `⚠ Failed to load: ${this.currentUrl}` : (this.currentUrl || 'https://'),
       220, h / 2 + 6
     );
 
@@ -286,12 +294,14 @@ export class WebPanel {
   _loadUrl(url) {
     this.currentUrl = url;
     this.loading = true;
+    this._loadError = false;
     this._drawChrome();
 
     // Load in iframe (visible only when dom-overlay is active).
     this.iframe.src = url;
     this.iframe.onload = () => {
       this.loading = false;
+      this._loadError = false;
       let title = url;
       try { title = this.iframe.contentDocument.title || url; } catch {}
       this.currentTitle = title;
@@ -300,6 +310,7 @@ export class WebPanel {
     };
     this.iframe.onerror = () => {
       this.loading = false;
+      this._loadError = true;
       this._drawChrome();
     };
   }

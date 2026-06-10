@@ -27,6 +27,18 @@ All notable changes to Qui Browser VR will be documented in this file.
   applies immediately to open tabs.
 
 ### Fixed
+- VR keyboard display strip now shows a colour-coded mode badge (ひ / カ / 漢)
+  that updates immediately when the Shift key cycles between hiragana and
+  katakana input modes — previously there was no visual indicator of the
+  active mode.
+- Browser chrome back ◀ and forward ▶ buttons are now visually dimmed when
+  navigation in that direction is impossible (no history, or already at the
+  latest entry), giving clear affordance of their availability.
+- Page-load failures now surface a ⚠ error message in the URL bar instead of
+  silently clearing the loading spinner.
+- Tab strip close ✕ button is now rendered inside a distinct red box, making
+  it visually recognisable as an interactive element consistent with the rest
+  of the UI.
 - VR app could not locate its mount point on WebXR devices (`#app` vs
   `#app-container` mismatch); landing-page "Enter VR" buttons dispatched a
   dead `enter-vr` event that nothing handled — now wired to start the session.

@@ -723,12 +723,31 @@ export class VRJapaneseKeyboard {
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#111726';
     ctx.fillRect(0, 0, w, h);
+
+    // Mode badge — top-right corner shows the current input mode so the user
+    // always knows whether they're typing hiragana, katakana, or kanji.
+    const mode = this.ime ? this.ime.inputMode : 'hiragana';
+    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢' };
+    const badge = BADGE[mode] || '?';
+    const badgeColors = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
+    const badgeBg = badgeColors[mode] || '#558';
+    const badgeW = 80;
+    ctx.fillStyle = badgeBg;
+    ctx.fillRect(w - badgeW - 4, 4, badgeW, h - 8);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badge, w - badgeW / 2 - 4, h / 2);
+
+    // Composition text
     const text = this.ime ? (this.ime.compositionBuffer || '') : '';
-    ctx.fillStyle = text ? '#e8ecff' : '#667';
+    ctx.fillStyle = text ? '#e8ecff' : '#667788';
     ctx.font = '40px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(text || 'type a URL or search…', 24, h / 2);
+
     if (this._displayTex) {
       this._displayTex.needsUpdate = true;
     }
@@ -788,9 +807,10 @@ export class VRJapaneseKeyboard {
     }
 
     case 'shift': {
-      // Toggle katakana mode
+      // Toggle katakana mode; refresh display so the mode badge updates.
       const currentMode = this.ime.inputMode;
       this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
+      this._refreshDisplay();
       break;
     }
 

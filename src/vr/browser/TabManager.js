@@ -91,10 +91,15 @@ export class TabManager {
         : 'New Tab';
       ctx.fillText(title, x + 14, c.height / 2, tabW - 50);
 
-      // Close ✕
-      ctx.fillStyle = '#cc6666';
+      // Close ✕ — drawn inside a small red box for discoverability
+      const closeBtnX = x + tabW - 38;
+      const closeBtnY = 10;
+      const closeBtnSize = c.height - 20;
+      ctx.fillStyle = '#7a2020';
+      ctx.fillRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize);
+      ctx.fillStyle = '#ffaaaa';
       ctx.textAlign = 'center';
-      ctx.fillText('✕', x + tabW - 20, c.height / 2);
+      ctx.fillText('✕', closeBtnX + closeBtnSize / 2, c.height / 2);
     }
 
     // New-tab "+" button
