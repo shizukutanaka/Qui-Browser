@@ -132,7 +132,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Determine caching strategy based on request type
+  // Navigation requests (SPA page loads) always go network-first so the
+  // browser gets a fresh shell.  request.mode === 'navigate' is the
+  // spec-compliant way to detect these, more reliable than path heuristics.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, CACHE_DYNAMIC));
+    return;
+  }
+
+  // Determine caching strategy based on asset type
   if (isStaticAsset(url)) {
     // Static assets: Cache-first
     event.respondWith(cacheFirst(request, CACHE_STATIC));
@@ -141,9 +149,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirstMedia(request, CACHE_MEDIA));
   } else if (isAPICall(url)) {
     // API calls: Network-first
-    event.respondWith(networkFirst(request, CACHE_DYNAMIC));
-  } else if (isHTMLPage(url)) {
-    // HTML pages: Network-first
     event.respondWith(networkFirst(request, CACHE_DYNAMIC));
   } else {
     // Default: Network-first with fallback

@@ -394,6 +394,61 @@ export class VRApp {
   }
 
   /**
+   * Show a brief heads-up notification inside VR.  Creates a canvas-textured
+   * plane attached to the camera so it stays in view, then auto-removes it.
+   *
+   * Silently no-ops outside a VR session (the 2D landing page has its own
+   * styled toast in main.js).
+   *
+   * @param {string} message
+   * @param {object} [opts]
+   * @param {'error'|'warn'|'info'} [opts.type='error']
+   * @param {number} [opts.duration=4000]  milliseconds before auto-dismiss
+   */
+  showVRToast(message, { type = 'error', duration = 4000 } = {}) {
+    if (!this.xrSession || !this.camera) return;
+
+    const W = 512, H = 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const BG  = { error: '#5a0a0a', warn: '#4a3a00', info: '#0a2a4a' };
+    const FG  = { error: '#ffaaaa', warn: '#ffdd88', info: '#88ccff' };
+    const BDR = { error: '#ff4444', warn: '#ffbb33', info: '#44aaff' };
+
+    ctx.fillStyle = BG[type] || BG.error;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = BDR[type] || BDR.error;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, W - 4, H - 4);
+    ctx.fillStyle = FG[type] || FG.error;
+    ctx.font = 'bold 26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(message.length > 60 ? message.slice(0, 57) + '…' : message, W / 2, H / 2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.55, 0.085),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false })
+    );
+    // Centred slightly below eye level, 0.8 m in front.
+    mesh.position.set(0, -0.12, -0.8);
+    mesh.renderOrder = 999; // always on top
+    this.camera.add(mesh);
+
+    setTimeout(() => {
+      this.camera.remove(mesh);
+      mesh.geometry.dispose();
+      tex.dispose();
+      mesh.material.dispose();
+    }, duration);
+  }
+
+  /**
    * Build a canvas-textured action button (no on/off state). Selecting it runs
    * the supplied callback. Used for one-shot actions like opening a panel.
    * Returns the button mesh (already registered as interactable).
@@ -1137,14 +1192,24 @@ export class VRApp {
     console.debug('VRApp: Caption system ready');
 
     // 7. Spatial Audio
-    this.spatialAudio = new SpatialAudio();
-    await this.loadAudioAssets();
-    console.debug('VRApp: Spatial audio initialized');
+    try {
+      this.spatialAudio = new SpatialAudio();
+      await this.loadAudioAssets();
+      console.debug('VRApp: Spatial audio initialized');
+    } catch (e) {
+      console.error('VRApp: Spatial audio init failed', e);
+      this.showVRToast('Spatial audio unavailable', { type: 'warn' });
+    }
 
     // 8. Mixed Reality
-    this.mixedReality = new MixedReality(this.renderer, this.scene);
-    const mrSupport = await this.mixedReality.checkSupport();
-    console.debug('VRApp: Mixed reality support:', mrSupport);
+    try {
+      this.mixedReality = new MixedReality(this.renderer, this.scene);
+      const mrSupport = await this.mixedReality.checkSupport();
+      console.debug('VRApp: Mixed reality support:', mrSupport);
+    } catch (e) {
+      console.error('VRApp: Mixed reality init failed', e);
+      // Not user-facing — MR is an optional enhancement.
+    }
 
     // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
 

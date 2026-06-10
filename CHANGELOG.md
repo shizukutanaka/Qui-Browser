@@ -38,6 +38,11 @@ All notable changes to Qui Browser VR will be documented in this file.
   applies immediately to open tabs.
 
 ### Fixed
+- Subsystem init failures (spatial audio, mixed reality) are now caught and
+  surfaced as camera-anchored HUD toasts inside VR (`showVRToast`), replacing
+  silent `console.error` calls that were invisible to users in the headset.
+- Service worker fetch handler now checks `request.mode === 'navigate'` first
+  for SPA navigation requests instead of relying on path-extension heuristics.
 - VR keyboard display strip now shows a colour-coded mode badge (ひ / カ / 漢)
   that updates immediately when the Shift key cycles between hiragana and
   katakana input modes — previously there was no visual indicator of the
