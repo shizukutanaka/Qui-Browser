@@ -1478,6 +1478,8 @@ export class VRApp {
     if (this.ffrSystem) this.ffrSystem.dispose();
     if (this.textureManager) this.textureManager.dispose();
     if (this.poolManager) this.poolManager.dispose();
+    if (this.vrKeyboard) { this.vrKeyboard.dispose(); this.vrKeyboard = null; }
+    else if (this.japaneseIME) { this.japaneseIME.dispose(); this.japaneseIME = null; }
     if (this.handTracking) this.handTracking.dispose();
     if (this.hapticFeedback) { this.hapticFeedback.enabled = false; this.hapticFeedback = null; }
     if (this.gazeInteraction) this.gazeInteraction.dispose();

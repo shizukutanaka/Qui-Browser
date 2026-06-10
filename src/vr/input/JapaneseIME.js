@@ -697,6 +697,13 @@ export class VRJapaneseKeyboard {
   getStats() {
     return this.ime.getState().stats;
   }
+
+  dispose() {
+    this.clearOnConfirm();
+    this.keyboard = null;
+    this.candidatePanel = null;
+    if (this.ime) this.ime.dispose();
+  }
 }
 
 /**
