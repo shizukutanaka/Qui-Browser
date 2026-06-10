@@ -123,6 +123,25 @@ import('./app.js').then(module => {
     }
 });
 
+// Show a non-blocking error message near the VR entry button (avoids alert()).
+function showVRError(anchor, message) {
+    const existing = document.getElementById('vr-error-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'vr-error-toast';
+    toast.setAttribute('role', 'alert');
+    toast.style.cssText = [
+        'position:fixed', 'bottom:2rem', 'left:50%', 'transform:translateX(-50%)',
+        'background:#1e1e2e', 'color:#f87171', 'padding:0.75rem 1.25rem',
+        'border-radius:0.5rem', 'border:1px solid #f87171', 'font-size:0.9rem',
+        'z-index:9999', 'max-width:90vw', 'text-align:center'
+    ].join(';');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+}
+
 // VR button handlers
 document.addEventListener('DOMContentLoaded', () => {
     const enterVRButton = document.getElementById('enterVRButton');
@@ -137,14 +156,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         // VRApp will handle session creation
                         window.dispatchEvent(new CustomEvent('enter-vr'));
                     } else {
-                        alert('WebXR VR is not supported on this device. Please use a VR headset.');
+                        showVRError(enterVRButton, 'WebXR VR is not supported on this device. Please use a VR headset.');
                     }
                 } else {
-                    alert('WebXR is not available. Please use a WebXR-compatible browser.');
+                    showVRError(enterVRButton, 'WebXR is not available. Please use a WebXR-compatible browser.');
                 }
             } catch (error) {
                 console.error('Error entering VR:', error);
-                alert('Failed to enter VR mode: ' + error.message);
+                showVRError(enterVRButton, 'Failed to enter VR mode. Check the browser console for details.');
             }
         });
     }

@@ -62,15 +62,17 @@ export class SpatialAudio {
       this.setListenerPosition(0, 1.6, 0); // Eye height
       this.setListenerOrientation(0, 0, -1, 0, 1, 0); // Looking forward
 
-      // Resume context if suspended (browser autoplay policy)
+      // Resume context if suspended (browser autoplay policy).
+      // Store a bound reference so dispose() can remove it if it fires first.
       if (this.context.state === 'suspended') {
-        document.addEventListener('click', () => {
+        this._resumeOnClick = () => {
           this.context.resume().then(() => {
             console.debug('SpatialAudio: Context resumed');
           }).catch((e) => {
             console.warn('SpatialAudio: Context resume failed', e);
           });
-        }, { once: true });
+        };
+        document.addEventListener('click', this._resumeOnClick, { once: true });
       }
 
       console.debug('SpatialAudio: Initialized successfully');
@@ -641,9 +643,16 @@ export class SpatialAudio {
     this.stats.hrtfSources = 0;
     this.stats.equalPowerSources = 0;
 
+    // Remove the autoplay-resume listener if it never fired.
+    if (this._resumeOnClick) {
+      document.removeEventListener('click', this._resumeOnClick);
+      this._resumeOnClick = null;
+    }
+
     // Close context
     if (this.context) {
       this.context.close();
+      this.context = null;
     }
 
     console.debug('SpatialAudio: Disposed');
