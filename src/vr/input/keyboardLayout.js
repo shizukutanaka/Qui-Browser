@@ -17,7 +17,7 @@ export const ROWS = [
   ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
   ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', { label: 'back', width: 1.5, glyph: '⌫' }],
   [{ label: 'shift', width: 1.5, glyph: '⇧' }, 'z', 'x', 'c', 'v', 'b', 'n', 'm', { label: '.', width: 1 }, { label: '/', width: 1 }],
-  [{ label: 'かな', width: 1.5 }, { label: 'space', width: 4, glyph: '␣' }, { label: '変換', width: 1.5 }, { label: 'enter', width: 2, glyph: '⏎' }]
+  [{ label: 'esc', width: 1, glyph: '✕' }, { label: 'かな', width: 1.5 }, { label: 'space', width: 3, glyph: '␣' }, { label: '変換', width: 1.5 }, { label: 'enter', width: 2, glyph: '⏎' }]
 ];
 
 /**

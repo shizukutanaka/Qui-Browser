@@ -680,17 +680,29 @@ export class VRJapaneseKeyboard {
   }
 
   /** Draw a single key's label onto a CanvasTexture. */
-  _makeKeyTexture(glyph, hover) {
+  /**
+   * @param {string}  glyph
+   * @param {boolean} hover   pointer is over this key
+   * @param {boolean} active  key is in a latched-on state (e.g. shift/katakana)
+   */
+  _makeKeyTexture(glyph, hover, active = false) {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = hover ? '#2d3a66' : '#1c2438';
+    // Active (latched) keys get a warm amber tint; hover overrides to blue.
+    if (hover) {
+      ctx.fillStyle = '#2d3a66';
+    } else if (active) {
+      ctx.fillStyle = '#5a3a10';
+    } else {
+      ctx.fillStyle = '#1c2438';
+    }
     ctx.fillRect(0, 0, 128, 128);
-    ctx.strokeStyle = '#3a4666';
+    ctx.strokeStyle = active ? '#ffaa44' : '#3a4666';
     ctx.lineWidth = 5;
     ctx.strokeRect(3, 3, 122, 122);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = active ? '#ffcc88' : '#ffffff';
     ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -703,12 +715,31 @@ export class VRJapaneseKeyboard {
   /** Repaint a key to show/clear the hover highlight. */
   _setKeyHover(mesh, hover) {
     const old = mesh.userData.keyTex;
-    const tex = this._makeKeyTexture(mesh.userData.keyGlyph, hover);
+    const active = mesh.userData.keyActive || false;
+    const tex = this._makeKeyTexture(mesh.userData.keyGlyph, hover, active);
     mesh.material.map = tex;
     mesh.material.needsUpdate = true;
     mesh.userData.keyTex = tex;
     if (old) {
       old.dispose();
+    }
+  }
+
+  /**
+   * Update the visual active state of mode-toggle keys (shift) to reflect the
+   * current input mode.  Called whenever the mode changes.
+   */
+  _refreshKeyStates() {
+    if (!this.keyMeshes || !this.ime) return;
+    const katakanaActive = this.ime.inputMode === 'katakana';
+    for (const { mesh, label } of this.keyMeshes) {
+      if (label === 'shift') {
+        const wasActive = !!mesh.userData.keyActive;
+        if (wasActive !== katakanaActive) {
+          mesh.userData.keyActive = katakanaActive;
+          this._setKeyHover(mesh, false); // repaint at rest state
+        }
+      }
     }
   }
 
@@ -751,6 +782,8 @@ export class VRJapaneseKeyboard {
     if (this._displayTex) {
       this._displayTex.needsUpdate = true;
     }
+    // Keep key active-state (e.g. shift/katakana tint) in sync with mode.
+    this._refreshKeyStates();
   }
 
   /** Show the keyboard (builds it on first use). */
@@ -807,12 +840,20 @@ export class VRJapaneseKeyboard {
     }
 
     case 'shift': {
-      // Toggle katakana mode; refresh display so the mode badge updates.
+      // Toggle katakana mode; refresh display so the mode badge updates and
+      // retint the shift key to show its latched-on state.
       const currentMode = this.ime.inputMode;
       this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
+      this._refreshKeyStates();
       this._refreshDisplay();
       break;
     }
+
+    case 'esc':
+      // Dismiss the keyboard without confirming — clears the buffer silently.
+      this.ime.compositionBuffer = '';
+      this.hide();
+      break;
 
     case 'back':
       // Backspace — remove the last composed character.

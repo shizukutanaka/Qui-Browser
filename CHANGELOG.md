@@ -16,6 +16,13 @@ All notable changes to Qui Browser VR will be documented in this file.
   meshes with a composition-text display, hover highlight, and a backspace
   key, replacing the old data-only stub. Text entry in immersive VR no longer
   falls back to `window.prompt()`.
+- **VR keyboard ESC key** — bottom row now includes a ✕ dismiss key that
+  clears the composition buffer and hides the keyboard without confirming
+  any text.
+- **VR keyboard shift-mode badge** — the display strip shows a colour-coded
+  badge (ひ hiragana / カ katakana / 漢 kanji) and the Shift key mesh turns
+  amber when katakana mode is active, giving immediate visual feedback of the
+  current input mode.
 - **Numeric settings steppers** — the in-VR settings panel now exposes
   −/+ steppers for Snap Angle, Move Speed, Gaze Time, and Panel Distance,
   which were previously code-only. Values persist and apply live.

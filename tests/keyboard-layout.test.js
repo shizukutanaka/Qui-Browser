@@ -51,11 +51,12 @@ describe('computeKeyLayout', () => {
     expect(firstRowY).toBeGreaterThan(lastRowY);
   });
 
-  test('back and enter keys are present', () => {
+  test('back, enter, space and esc keys are present', () => {
     const labels = computeKeyLayout().map(k => k.label);
     expect(labels).toContain('back');
     expect(labels).toContain('enter');
     expect(labels).toContain('space');
+    expect(labels).toContain('esc');
   });
 
   test('glyph differs from label for special keys', () => {
