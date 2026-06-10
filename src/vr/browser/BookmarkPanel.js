@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS,
+  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
 
@@ -113,7 +113,9 @@ export class BookmarkPanel {
     const { px, py } = uvToPixels(u, v);
 
     const rows = this._rows();
-    const action = hitTest(px, py, rows.length);
+    // Enable the per-row delete zone only in bookmarks mode (history is read-only).
+    const deleteZone = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
+    const action = hitTest(px, py, rows.length, { deleteZone });
 
     switch (action.type) {
     case 'close':
@@ -127,6 +129,14 @@ export class BookmarkPanel {
       if (entry && entry.url) {
         this.onSelect(entry.url);
         this.hide();
+      }
+      break;
+    }
+    case 'deleteRow': {
+      const entry = rows[action.index];
+      if (entry && entry.url) {
+        this.store.removeBookmark(entry.url);
+        this._draw(); // refresh immediately so the row disappears
       }
       break;
     }
@@ -179,20 +189,32 @@ export class BookmarkPanel {
       );
     } else {
       const count = Math.min(rows.length, VISIBLE_ROWS);
+      const showDelete = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
       for (let i = 0; i < count; i++) {
         const entry = rows[i];
         const top = HEADER_H + i * ROW_H;
         // Zebra striping
         ctx.fillStyle = (i % 2 === 0) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)';
         ctx.fillRect(0, top, w, ROW_H);
-        // Title
+        // Title (leave room for delete button on the right)
+        const titleMaxW = showDelete ? w - DELETE_ZONE_W - 32 : w - 32;
         ctx.fillStyle = '#e8ecff';
         ctx.font = 'bold 26px sans-serif';
+        ctx.textAlign = 'left';
         ctx.fillText(truncate(entry.title || entry.url, 44), 24, top + 32);
         // URL
         ctx.fillStyle = '#7f8db5';
         ctx.font = '20px monospace';
-        ctx.fillText(truncate(entry.url, 56), 24, top + 58);
+        ctx.fillText(truncate(entry.url, 52), 24, top + 58);
+        // Delete ✕ button (bookmarks mode only)
+        if (showDelete) {
+          ctx.fillStyle = 'rgba(90,20,20,0.8)';
+          ctx.fillRect(w - DELETE_ZONE_W + 4, top + 10, DELETE_ZONE_W - 8, ROW_H - 20);
+          ctx.fillStyle = '#ffaaaa';
+          ctx.font = 'bold 28px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('✕', w - DELETE_ZONE_W / 2, top + ROW_H / 2 + 10);
+        }
       }
     }
 

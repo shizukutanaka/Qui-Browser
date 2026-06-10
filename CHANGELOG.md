@@ -12,6 +12,8 @@ All notable changes to Qui Browser VR will be documented in this file.
   bookmark for the current page without leaving VR.
 - **In-VR bookmarks & history panel** — browse and open saved bookmarks and
   recent history; opened from a new "Bookmarks" button in the settings panel.
+  Each bookmark row now has a ✕ delete button so bookmarks can be removed
+  directly from the panel without returning to the page.
 - **3D kanji candidates panel** — pressing Space/変換 on the VR keyboard now
   shows a horizontal row of selectable kanji candidate buttons above the
   keyboard instead of logging to console. Selecting a button commits that

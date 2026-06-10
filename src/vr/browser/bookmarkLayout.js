@@ -21,18 +21,25 @@ export const ROW_H = 72;
 // Number of list rows that fit below the header.
 export const VISIBLE_ROWS = Math.floor((PANEL_PX_H - HEADER_H) / ROW_H);
 
+// Width of the per-row delete (✕) button zone on the right side.
+export const DELETE_ZONE_W = 64;
+
 /**
  * Resolve a click at canvas pixel (px, py) into a semantic action.
  *
  * @param {number} px  x in [0, PANEL_PX_W]
  * @param {number} py  y in [0, PANEL_PX_H] (0 = top)
  * @param {number} rowCount  number of entries currently in the active list
+ * @param {object} [opts]
+ * @param {boolean} [opts.deleteZone=false]  when true, the right DELETE_ZONE_W
+ *   pixels of each row return `{type:'deleteRow', index}` instead of `{type:'row'}`.
  * @returns {{type:'tab',tab:'bookmarks'|'history'}
  *          |{type:'close'}
  *          |{type:'row',index:number}
+ *          |{type:'deleteRow',index:number}
  *          |{type:'none'}}
  */
-export function hitTest(px, py, rowCount = 0) {
+export function hitTest(px, py, rowCount = 0, { deleteZone = false } = {}) {
   if (px < 0 || py < 0 || px > PANEL_PX_W || py > PANEL_PX_H) {
     return { type: 'none' };
   }
@@ -56,6 +63,9 @@ export function hitTest(px, py, rowCount = 0) {
   // List rows.
   const index = Math.floor((py - HEADER_H) / ROW_H);
   if (index >= 0 && index < Math.min(rowCount, VISIBLE_ROWS)) {
+    if (deleteZone && px > PANEL_PX_W - DELETE_ZONE_W) {
+      return { type: 'deleteRow', index };
+    }
     return { type: 'row', index };
   }
   return { type: 'none' };

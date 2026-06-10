@@ -2,7 +2,7 @@
  * Unit tests for the pure bookmark-panel layout / hit-testing helpers.
  */
 const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS,
+  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   hitTest, uvToPixels, truncate
 } = require('../src/vr/browser/bookmarkLayout.js');
 
@@ -55,6 +55,30 @@ describe('hitTest', () => {
     // clamp: even if py is within canvas, index >= VISIBLE_ROWS is none
     const a = hitTest(100, Math.min(py, PANEL_PX_H - 1), 1000);
     expect(a.type).toBe('none');
+  });
+
+  describe('deleteZone option', () => {
+    test('right edge of a row returns deleteRow when deleteZone enabled', () => {
+      const a = hitTest(PANEL_PX_W - 10, HEADER_H + 10, 5, { deleteZone: true });
+      expect(a).toEqual({ type: 'deleteRow', index: 0 });
+    });
+
+    test('right edge of a row returns row when deleteZone disabled (default)', () => {
+      const a = hitTest(PANEL_PX_W - 10, HEADER_H + 10, 5);
+      expect(a.type).toBe('row');
+    });
+
+    test('left part of row returns row even when deleteZone enabled', () => {
+      const a = hitTest(100, HEADER_H + 10, 5, { deleteZone: true });
+      expect(a).toEqual({ type: 'row', index: 0 });
+    });
+
+    test('deleteRow preserves the correct row index', () => {
+      const rowIdx = 2;
+      const py = HEADER_H + rowIdx * ROW_H + 10;
+      const a = hitTest(PANEL_PX_W - 10, py, 5, { deleteZone: true });
+      expect(a).toEqual({ type: 'deleteRow', index: rowIdx });
+    });
   });
 });
 
