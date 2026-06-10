@@ -5,6 +5,9 @@
  * John Carmack principle: Solve real problems for real users
  */
 
+import * as THREE from 'three';
+import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
+
 export class JapaneseIME {
   constructor() {
     this.isActive = false;
@@ -415,6 +418,22 @@ export class JapaneseIME {
   }
 
   /**
+   * Remove the last character from the composition buffer (backspace).
+   * Returns the same shape as processInput so callers can refresh the display.
+   */
+  deleteLast() {
+    this.compositionBuffer = this.compositionBuffer.slice(0, -1);
+    let converted = this.compositionBuffer;
+    if (this.inputMode === 'hiragana') {
+      converted = this.convertRomajiToHiragana(this.compositionBuffer);
+    } else if (this.inputMode === 'katakana') {
+      const hiragana = this.convertRomajiToHiragana(this.compositionBuffer);
+      converted = this.convertHiraganaToKatakana(hiragana);
+    }
+    return { raw: this.compositionBuffer, converted, mode: this.inputMode };
+  }
+
+  /**
    * Process keyboard input
    */
   async processInput(input) {
@@ -545,12 +564,28 @@ export class JapaneseIME {
  * VR Keyboard Integration for Japanese IME
  */
 export class VRJapaneseKeyboard {
-  constructor(scene, ime) {
+  /**
+   * @param {THREE.Scene} scene
+   * @param {JapaneseIME} ime
+   * @param {object} [opts]
+   * @param {Function} [opts.registerInteractable]   — (mesh, handlers) from VRApp
+   * @param {Function} [opts.unregisterInteractable] — (mesh) from VRApp
+   */
+  constructor(scene, ime, opts = {}) {
     this.scene = scene;
     this.ime = ime;
     this.keyboard = null;
     this.candidatePanel = null;
     this._onConfirmCallback = null;
+
+    this.registerInteractable = opts.registerInteractable || null;
+    this.unregisterInteractable = opts.unregisterInteractable || null;
+
+    // 3D objects (created lazily by createKeyboard()).
+    this.group = null;          // THREE.Group holding panel + keys + display
+    this.keyMeshes = [];        // [{ mesh, label }]
+    this._displayCanvas = null;
+    this._displayTex = null;
   }
 
   /**
@@ -567,44 +602,140 @@ export class VRJapaneseKeyboard {
   }
 
   /**
-   * Create VR keyboard with Japanese layout
+   * Build the 3D VR keyboard: a backing panel, a composition-text display, and
+   * one selectable mesh per key. Idempotent — returns the existing group if
+   * already built. Keys are registered as interactables so controller rays can
+   * select them; selection routes to onKeyPress().
    */
   createKeyboard() {
-    // This would create a 3D keyboard in the VR scene
-    // Simplified for demonstration
+    if (this.group) return this.keyboard;
 
-    const keyboard = {
-      keys: [],
-      position: { x: 0, y: 1, z: -0.5 },
-      scale: 0.02
-    };
+    const keys = computeKeyLayout();
+    const { width, height } = keyboardBounds();
+    const DISPLAY_H = 0.09; // composition-text strip above the keys
 
-    // Japanese keyboard layout (JIS)
-    const layout = [
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '¥'],
-      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '['],
-      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', ']'],
-      ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\\'],
-      ['shift', 'ctrl', 'alt', 'space', '変換', 'かな', 'enter']
-    ];
+    const group = new THREE.Group();
+    group.name = 'vrKeyboard';
 
-    // Create keys (simplified - would be 3D meshes in production)
-    layout.forEach((row, rowIndex) => {
-      row.forEach((key, colIndex) => {
-        keyboard.keys.push({
-          label: key,
-          position: {
-            x: (colIndex - 6) * 0.05,
-            y: -rowIndex * 0.05,
-            z: 0
-          },
-          action: () => this.onKeyPress(key)
+    // Backing panel (sits slightly behind the keys).
+    const panel = new THREE.Mesh(
+      new THREE.PlaneGeometry(width + 0.04, height + DISPLAY_H + 0.06),
+      new THREE.MeshBasicMaterial({ color: 0x0a0d18, transparent: true, opacity: 0.92 })
+    );
+    panel.position.set(0, (DISPLAY_H + 0.06) / 2 - 0.02, -0.005);
+    group.add(panel);
+
+    // Composition-text display strip.
+    this._displayCanvas = document.createElement('canvas');
+    this._displayCanvas.width = 1024;
+    this._displayCanvas.height = 96;
+    this._displayTex = new THREE.CanvasTexture(this._displayCanvas);
+    this._displayTex.colorSpace = THREE.SRGBColorSpace;
+    const display = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, DISPLAY_H),
+      new THREE.MeshBasicMaterial({ map: this._displayTex, transparent: true })
+    );
+    display.position.set(0, height / 2 + DISPLAY_H / 2 + 0.01, 0);
+    group.add(display);
+    this._displayMesh = display;
+
+    // One mesh per key.
+    this.keyMeshes = [];
+    for (const k of keys) {
+      const tex = this._makeKeyTexture(k.glyph || k.label, false);
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(k.w, k.h),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      mesh.position.set(k.x, k.y, 0);
+      mesh.userData.keyLabel = k.label;
+      mesh.userData.keyTex = tex;
+      mesh.userData.keyGlyph = k.glyph || k.label;
+      group.add(mesh);
+      this.keyMeshes.push({ mesh, label: k.label });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => this.onKeyPress(k.label),
+          onHover: () => this._setKeyHover(mesh, true),
+          onHoverEnd: () => this._setKeyHover(mesh, false)
         });
-      });
-    });
+      }
+    }
 
-    this.keyboard = keyboard;
-    return keyboard;
+    // Default placement: in front of and below eye level, angled up slightly.
+    group.position.set(0, 1.0, -0.6);
+    group.rotation.x = -Math.PI / 9;
+    group.visible = false;
+
+    this.scene.add(group);
+    this.group = group;
+    this._refreshDisplay();
+
+    // Keep a small descriptor for back-compat with callers checking .keyboard.
+    this.keyboard = { keys, group };
+    return this.keyboard;
+  }
+
+  /** Draw a single key's label onto a CanvasTexture. */
+  _makeKeyTexture(glyph, hover) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = hover ? '#2d3a66' : '#1c2438';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.strokeStyle = '#3a4666';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(3, 3, 122, 122);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(glyph, 64, 70);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Repaint a key to show/clear the hover highlight. */
+  _setKeyHover(mesh, hover) {
+    const old = mesh.userData.keyTex;
+    const tex = this._makeKeyTexture(mesh.userData.keyGlyph, hover);
+    mesh.material.map = tex;
+    mesh.material.needsUpdate = true;
+    mesh.userData.keyTex = tex;
+    if (old) old.dispose();
+  }
+
+  /** Render the current composition buffer into the display strip. */
+  _refreshDisplay() {
+    if (!this._displayCanvas) return;
+    const ctx = this._displayCanvas.getContext('2d');
+    const w = this._displayCanvas.width;
+    const h = this._displayCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#111726';
+    ctx.fillRect(0, 0, w, h);
+    const text = this.ime ? (this.ime.compositionBuffer || '') : '';
+    ctx.fillStyle = text ? '#e8ecff' : '#667';
+    ctx.font = '40px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text || 'type a URL or search…', 24, h / 2);
+    if (this._displayTex) this._displayTex.needsUpdate = true;
+  }
+
+  /** Show the keyboard (builds it on first use). */
+  show() {
+    if (!this.group) this.createKeyboard();
+    if (this.group) this.group.visible = true;
+    this._refreshDisplay();
+  }
+
+  /** Hide the keyboard. */
+  hide() {
+    if (this.group) this.group.visible = false;
   }
 
   /**
@@ -646,6 +777,11 @@ export class VRJapaneseKeyboard {
         this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
         break;
 
+      case 'back':
+        // Backspace — remove the last composed character.
+        this.updateDisplay(this.ime.deleteLast());
+        break;
+
       default:
         // Regular character input
         if (key.length === 1) {
@@ -671,19 +807,21 @@ export class VRJapaneseKeyboard {
   }
 
   /**
-   * Update display with current composition
+   * Update display with current composition — repaints the 3D display strip.
    */
   updateDisplay(processed) {
     console.debug(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
-    // Would update 3D text display in production
+    this._refreshDisplay();
   }
 
   /**
    * Called when the user commits a text entry (Enter key).
-   * Fires the registered one-shot callback, then clears it.
+   * Fires the registered one-shot callback, then clears it, and hides the
+   * keyboard so it doesn't linger after input completes.
    */
   onTextConfirmed(text) {
     console.debug('Confirmed:', text);
+    this.hide();
     if (this._onConfirmCallback) {
       const cb = this._onConfirmCallback;
       this._onConfirmCallback = null; // clear before calling to prevent re-entrancy
@@ -700,6 +838,35 @@ export class VRJapaneseKeyboard {
 
   dispose() {
     this.clearOnConfirm();
+
+    // Tear down 3D resources: unregister interactables, dispose geometry/
+    // materials/textures, and remove the group from the scene.
+    for (const { mesh } of this.keyMeshes) {
+      this.unregisterInteractable?.(mesh);
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (mesh.material) mesh.material.dispose();
+      if (mesh.userData.keyTex) mesh.userData.keyTex.dispose();
+    }
+    this.keyMeshes = [];
+
+    if (this._displayMesh) {
+      if (this._displayMesh.geometry) this._displayMesh.geometry.dispose();
+      if (this._displayMesh.material) this._displayMesh.material.dispose();
+      this._displayMesh = null;
+    }
+    if (this._displayTex) { this._displayTex.dispose(); this._displayTex = null; }
+    this._displayCanvas = null;
+
+    if (this.group) {
+      // Dispose any remaining children (panel) and detach from scene.
+      this.group.traverse?.((o) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material && o.material.dispose) o.material.dispose();
+      });
+      if (this.scene) this.scene.remove(this.group);
+      this.group = null;
+    }
+
     this.keyboard = null;
     this.candidatePanel = null;
     if (this.ime) this.ime.dispose();

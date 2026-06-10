@@ -4,6 +4,19 @@ All notable changes to Qui Browser VR will be documented in this file.
 
 ## [Unreleased]
 
+### New features (in-VR usability)
+- **Search-engine integration** in the address bar: non-URL text becomes a
+  search query (DuckDuckGo by default; google/bing/ecosia via
+  `settings.searchEngine`). Dangerous schemes are blocked.
+- **Bookmark star button** in the browser chrome bar — toggle a persistent
+  bookmark for the current page without leaving VR.
+- **In-VR bookmarks & history panel** — browse and open saved bookmarks and
+  recent history; opened from a new "Bookmarks" button in the settings panel.
+- **Real 3D VR keyboard** — `createKeyboard()` now builds selectable 3D key
+  meshes with a composition-text display, hover highlight, and a backspace
+  key, replacing the old data-only stub. Text entry in immersive VR no longer
+  falls back to `window.prompt()`.
+
 ### Fixed
 - VR app could not locate its mount point on WebXR devices (`#app` vs
   `#app-container` mismatch); landing-page "Enter VR" buttons dispatched a

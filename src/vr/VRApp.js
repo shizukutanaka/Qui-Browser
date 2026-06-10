@@ -924,9 +924,13 @@ export class VRApp {
 
     // === TIER 2 SYSTEMS ===
 
-    // 5. Japanese IME
+    // 5. Japanese IME — pass interactable hooks so the 3D keyboard keys can be
+    // selected with a controller ray.
     this.japaneseIME = new JapaneseIME();
-    this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME);
+    this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME, {
+      registerInteractable: (m, h) => this.registerInteractable(m, h),
+      unregisterInteractable: (m) => this.unregisterInteractable(m)
+    });
     console.debug('VRApp: Japanese IME ready');
 
     // 6. Hand Tracking
@@ -1480,13 +1484,16 @@ export class VRApp {
   _requestVRKeyboardInput(prefill, onConfirm) {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
-      if (!this.vrKeyboard.keyboard) this.vrKeyboard.createKeyboard();
       this.japaneseIME.activate();
       // Pre-fill the composition buffer with the current URL so the user
       // can edit it rather than typing from scratch.
       if (prefill && prefill !== 'https://') {
         this.japaneseIME.compositionBuffer = prefill;
+      } else {
+        this.japaneseIME.compositionBuffer = '';
       }
+      // Build (if needed) and show the 3D keyboard, then refresh its display.
+      this.vrKeyboard.show();
     } else {
       // Desktop / non-VR fallback
       const url = window.prompt('Enter URL', prefill);
