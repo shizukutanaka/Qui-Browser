@@ -240,6 +240,16 @@ export class TabManager {
     return this._curved;
   }
 
+  /**
+   * Update the search engine used by all open tabs and remember it so newly
+   * created tabs inherit the preference.
+   * @param {string} engine  one of 'duckduckgo'|'google'|'bing'|'ecosia'
+   */
+  setSearchEngine(engine) {
+    this.opts.searchEngine = engine;
+    this.tabs.forEach(panel => { if (panel.setSearchEngine) panel.setSearchEngine(engine); });
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   addToScene() {

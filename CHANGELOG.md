@@ -19,6 +19,12 @@ All notable changes to Qui Browser VR will be documented in this file.
 - **Numeric settings steppers** — the in-VR settings panel now exposes
   −/+ steppers for Snap Angle, Move Speed, Gaze Time, and Panel Distance,
   which were previously code-only. Values persist and apply live.
+- **Comfort preset selector** — the settings panel now shows a cycle button
+  for the comfort/motion-sensitivity preset (sensitive → moderate → tolerant →
+  disabled), replacing the keyboard-shortcut-only 'C' key.
+- **Search engine selector** — the settings panel exposes a cycle button for
+  the active search engine (DuckDuckGo → Google → Bing → Ecosia); the change
+  applies immediately to open tabs.
 
 ### Fixed
 - VR app could not locate its mount point on WebXR devices (`#app` vs

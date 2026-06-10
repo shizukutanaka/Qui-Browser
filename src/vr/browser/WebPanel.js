@@ -391,6 +391,11 @@ export class WebPanel {
    * @param {boolean} value
    * @param {number}  [radius] — curve radius in metres (defaults to curveRadius)
    */
+  /** Update the search engine used by address-bar queries on this panel. */
+  setSearchEngine(engine) {
+    this.searchEngine = engine;
+  }
+
   setCurved(value, radius = this.curveRadius) {
     value = !!value;
     if (value === this.curved || !this.contentMesh) return this.curved;

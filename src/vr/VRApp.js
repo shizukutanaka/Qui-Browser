@@ -522,6 +522,65 @@ export class VRApp {
   }
 
   /**
+   * Build a canvas-textured cycle button that steps through a fixed list of
+   * string options for a settings key. Selecting it advances to the next option
+   * (wrapping), persists the setting, and calls an optional live-apply callback.
+   * Returns the button mesh (already registered as interactable).
+   *
+   * @param {string}   label   displayed on the left
+   * @param {string}   key     setting key in this.settings
+   * @param {string[]} options ordered list of allowed values
+   * @param {Function} [apply] called with newValue after each cycle step
+   */
+  makeCycleButton(label, key, options, apply) {
+    const w = 512;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+
+    const draw = (hover) => {
+      const current = this.settings[key];
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = hover ? 'rgba(40,60,90,0.95)' : 'rgba(16,20,30,0.92)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#e4a85e';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillText(label, 24, 62);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffcc88';
+      ctx.fillText(`${current} ▸`, w - 24, 62);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    this.registerInteractable(mesh, {
+      onSelect: () => {
+        const idx = options.indexOf(this.settings[key]);
+        const next = options[(idx + 1) % options.length];
+        this.updateSetting(key, next);
+        if (apply) apply(next);
+        draw(true);
+      },
+      onHover: () => draw(true),
+      onHoverEnd: () => draw(false)
+    });
+    return mesh;
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -569,6 +628,18 @@ export class VRApp {
       }]
     ];
 
+    // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
+    const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+    const SEARCH_ENGINES  = ['duckduckgo', 'google', 'bing', 'ecosia'];
+    const cycles = [
+      ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
+        if (this.comfortSystem) this.comfortSystem.setPreset(v);
+      }],
+      ['Search', 'searchEngine', SEARCH_ENGINES, (v) => {
+        if (this.tabManager) this.tabManager.setSearchEngine(v);
+      }],
+    ];
+
     // Action buttons (non-toggle). Only shown when their target exists.
     const actions = [];
     if (this.settings.enableWebPanel) {
@@ -581,7 +652,7 @@ export class VRApp {
     // of controls (the list grows as features are added).
     const ROW = 0.22;            // metres between rows
     const PAD = 0.14;            // top/bottom padding
-    const rowCount = items.length + steppers.length + actions.length;
+    const rowCount = items.length + steppers.length + cycles.length + actions.length;
     const height = rowCount * ROW + PAD;
 
     const bg = new THREE.Mesh(
@@ -600,6 +671,12 @@ export class VRApp {
     }
     for (const [label, key, cfg] of steppers) {
       const btn = this.makeStepperButton(label, key, cfg);
+      btn.position.set(0, y, 0.01);
+      group.add(btn);
+      y -= ROW;
+    }
+    for (const [label, key, opts, apply] of cycles) {
+      const btn = this.makeCycleButton(label, key, opts, apply);
       btn.position.set(0, y, 0.01);
       group.add(btn);
       y -= ROW;
