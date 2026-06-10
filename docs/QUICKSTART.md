@@ -2,8 +2,8 @@
 
 **Get started with Qui Browser VR in 5 minutes! 🚀**
 
-Version: 4.9.0
-Last Updated: 2025-10-25
+Version: 2.0.0
+Last Updated: 2026-06-10
 
 ---
 
