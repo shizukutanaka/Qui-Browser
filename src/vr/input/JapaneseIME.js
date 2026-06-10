@@ -586,6 +586,8 @@ export class VRJapaneseKeyboard {
     this.keyMeshes = [];        // [{ mesh, label }]
     this._displayCanvas = null;
     this._displayTex = null;
+    this._candidateMeshes = []; // live candidate button meshes (rebuilt on each showCandidates call)
+    this._candidatesGroup = null; // THREE.Group added to this.group for easy show/hide
   }
 
   /**
@@ -743,6 +745,25 @@ export class VRJapaneseKeyboard {
     }
   }
 
+  /**
+   * Remove all live candidate button meshes and hide the candidates group.
+   * Safe to call even if no candidates are showing.
+   */
+  _clearCandidates() {
+    if (!this._candidatesGroup) return;
+    for (const { mesh } of this._candidateMeshes) {
+      if (this.unregisterInteractable) this.unregisterInteractable(mesh);
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (mesh.material) {
+        if (mesh.material.map) mesh.material.map.dispose();
+        mesh.material.dispose();
+      }
+      this._candidatesGroup.remove(mesh);
+    }
+    this._candidateMeshes = [];
+    this._candidatesGroup.visible = false;
+  }
+
   /** Render the current composition buffer into the display strip. */
   _refreshDisplay() {
     if (!this._displayCanvas) {
@@ -850,8 +871,10 @@ export class VRJapaneseKeyboard {
     }
 
     case 'esc':
-      // Dismiss the keyboard without confirming — clears the buffer silently.
+      // Dismiss the keyboard without confirming — clears the buffer and
+      // any candidate row silently.
       this.ime.compositionBuffer = '';
+      this._clearCandidates();
       this.hide();
       break;
 
@@ -871,24 +894,115 @@ export class VRJapaneseKeyboard {
   }
 
   /**
-   * Show kanji candidates
+   * Display a row of selectable kanji candidate buttons above the keyboard.
+   * Each button shows one candidate; selecting it commits that candidate.
+   * Previously-shown candidates are cleared first (idempotent).
+   *
+   * @param {string[]} candidates
    */
   showCandidates(candidates) {
-    // Create candidate selection panel in VR
-    console.debug('Candidates:', candidates);
+    if (!this.group || !candidates || candidates.length === 0) return;
 
-    // Would create 3D UI panel in production
-    this.candidatePanel = {
-      candidates: candidates,
-      visible: true
-    };
+    this._clearCandidates();
+
+    // Lazily create the candidates group on first use.
+    if (!this._candidatesGroup) {
+      this._candidatesGroup = new THREE.Group();
+      this._candidatesGroup.name = 'candidatesRow';
+      this.group.add(this._candidatesGroup);
+    }
+
+    const MAX = 8;
+    const shown = candidates.slice(0, MAX);
+    const BTN_W = 0.09;
+    const BTN_H = 0.07;
+    const GAP_C = 0.008;
+    const rowWidth = shown.length * BTN_W + (shown.length - 1) * GAP_C;
+
+    // Position the strip above the display.  The display sits at
+    //   group-local y = height/2 + DISPLAY_H/2 + 0.01
+    // so the candidate row goes above that by another DISPLAY_H.
+    const { height } = keyboardBounds();
+    const DISPLAY_H = 0.09;
+    const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
+
+    shown.forEach((kanji, i) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.strokeStyle = i === 0 ? '#44cc88' : '#4466aa';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(3, 3, 122, 122);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 60px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(kanji, 64, 70);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(BTN_W, BTN_H),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      const x = -rowWidth / 2 + i * (BTN_W + GAP_C) + BTN_W / 2;
+      mesh.position.set(x, stripY, 0);
+      this._candidatesGroup.add(mesh);
+      this._candidateMeshes.push({ mesh });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => {
+            const text = this.ime.selectCandidate
+              ? this.ime.selectCandidate(i)
+              : kanji;
+            this._clearCandidates();
+            this.onTextConfirmed(text || kanji);
+          },
+          onHover: () => {
+            // Lighten the selected candidate on hover.
+            ctx.fillStyle = '#3a5a32';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = '#66ee99';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(3, 3, 122, 122);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(kanji, 64, 70);
+            tex.needsUpdate = true;
+          },
+          onHoverEnd: () => {
+            ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = i === 0 ? '#44cc88' : '#4466aa';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(3, 3, 122, 122);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(kanji, 64, 70);
+            tex.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    this._candidatesGroup.visible = true;
   }
 
   /**
-   * Update display with current composition — repaints the 3D display strip.
+   * Update display with current composition — repaints the 3D display strip
+   * and clears any candidate row (new input supersedes conversion candidates).
    */
   updateDisplay(processed) {
     console.debug(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
+    this._clearCandidates();
     this._refreshDisplay();
   }
 
@@ -962,6 +1076,11 @@ export class VRJapaneseKeyboard {
       }
       this.group = null;
     }
+
+    // Candidate meshes are children of this.group which is traversed above,
+    // but we still need to unregister them as interactables.
+    this._clearCandidates();
+    this._candidatesGroup = null;
 
     this.keyboard = null;
     this.candidatePanel = null;
