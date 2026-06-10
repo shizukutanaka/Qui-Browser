@@ -17,6 +17,7 @@
 
 import * as THREE from 'three';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
+import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
@@ -39,12 +40,15 @@ export class WebPanel {
    * @param {Function} [opts.onUrlInputRequested] — (currentUrl, confirmCb) called when
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate, onUrlInputRequested }) {
+  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate, onUrlInputRequested, searchEngine }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.onNavigate = onNavigate || (() => {});
     this.onUrlInputRequested = onUrlInputRequested || null;
+    // Search engine for non-URL input (key into SEARCH_ENGINES). Defaults to
+    // a privacy-respecting engine; overridable via settings.
+    this.searchEngine = searchEngine || DEFAULT_SEARCH_ENGINE;
 
     // Panel state
     this.currentUrl  = '';
@@ -236,14 +240,12 @@ export class WebPanel {
    * is available; otherwise just updates the chrome bar.
    */
   navigate(url) {
-    if (!url) return;
-    const trimmed = url.trim();
-    // Allow only http(s); block javascript:, data:, etc.
-    if (/^https?:\/\//i.test(trimmed)) {
-      url = trimmed;
-    } else {
-      url = 'https://' + trimmed;
-    }
+    // Resolve the raw input into a navigable URL. Text that looks like a host
+    // becomes https://…; anything else becomes a search query. Dangerous
+    // schemes (javascript:, data:, file:) resolve to null and are ignored.
+    const resolved = resolveInput(url, { searchEngine: this.searchEngine });
+    if (!resolved) return;
+    url = resolved;
 
     // Trim forward history and push new entry.
     this.history = this.history.slice(0, this.historyIdx + 1);

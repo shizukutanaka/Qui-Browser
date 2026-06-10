@@ -146,6 +146,9 @@ export class VRApp {
       enableCaptions: false,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
+      // Default search engine for non-URL input in the address bar
+      // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
+      searchEngine: 'duckduckgo',
       // Spatial window management (parity with Wolvic/Quest browser): head-lock
       // follow keeps the active panel centred in view. OFF by default.
       enableWindowFollow: false,
@@ -304,7 +307,8 @@ export class VRApp {
         // Replace window.prompt() with the VR keyboard.  vrKeyboard is
         // initialised in initializeSystems() before this block runs.
         onUrlInputRequested: (prefill, onConfirm) =>
-          this._requestVRKeyboardInput(prefill, onConfirm)
+          this._requestVRKeyboardInput(prefill, onConfirm),
+        searchEngine: this.settings.searchEngine
       });
       this.tabManager.addToScene();
       if (this.settings.enableCurvedPanel) this.tabManager.setCurved(true);

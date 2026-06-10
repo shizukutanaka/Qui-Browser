@@ -166,7 +166,8 @@ export class TabManager {
         this._drawStrip();           // refresh tab title
         this.opts.onNavigate?.(u, title);
       },
-      onUrlInputRequested: this.opts.onUrlInputRequested || null
+      onUrlInputRequested: this.opts.onUrlInputRequested || null,
+      searchEngine: this.opts.searchEngine || undefined
     });
     panel.addToScene();
     panel.group.position.set(this.position.x, this.position.y, this.position.z);
