@@ -237,7 +237,13 @@ export class ImmersiveVideo {
     this._eyeTextures = [];
 
     if (this.controlPanel) {
-      for (const btn of this.controlPanel.children) this.unregisterInteractable(btn);
+      for (const btn of this.controlPanel.children) {
+        this.unregisterInteractable(btn);
+        // HUD buttons own a PlaneGeometry + MeshBasicMaterial each; without this
+        // every play()/stop() cycle would leak them on the GPU.
+        if (btn.geometry) btn.geometry.dispose();
+        if (btn.material) btn.material.dispose();
+      }
       if (this.controlPanel.parent) this.controlPanel.parent.remove(this.controlPanel);
       this.controlPanel = null;
       this._playPauseBtn = null;
