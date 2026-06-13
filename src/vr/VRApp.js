@@ -18,6 +18,7 @@ import { TextureManager } from '../utils/TextureManager.js';
 
 // Tier 2 Features
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
+import { VRControllerInput } from './input/VRControllerInput.js';
 import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
@@ -100,6 +101,7 @@ export class VRApp {
     this.playerRig = null;
     this.controllers = [];
     this.controllerGrips = [];
+    this.controllerInput = null; // VRControllerInput instance (created in setupControllers)
     this.floorMesh = null;
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
     this.interactables = []; // meshes registered with select/hover handlers
@@ -138,6 +140,9 @@ export class VRApp {
       // is active. Teleport remains the comfortable default.
       enableSmoothMove: false,
       smoothMoveSpeed: 1.8, // metres/second
+      // Controller input options.
+      controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
+      southpaw: false,          // swap left/right controller roles for left-handed users
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
@@ -877,6 +882,12 @@ export class VRApp {
   setupControllers() {
     const factory = new XRControllerModelFactory();
 
+    // Profile-aware, dead-zone-filtered controller input.
+    this.controllerInput = new VRControllerInput({
+      deadZone: this.settings.controllerDeadZone,
+      southpaw: this.settings.southpaw,
+    });
+
     // Shared ray line geometry (pointing down -Z from the controller).
     const rayGeometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
@@ -894,9 +905,18 @@ export class VRApp {
       controller.add(ray);
       controller.addEventListener('selectstart', () => this.onControllerSelect(controller, true));
       controller.addEventListener('selectend', () => this.onControllerSelect(controller, false));
-      // Keep the live XRInputSource so we can read the thumbstick (snap turn).
-      controller.addEventListener('connected', (e) => { controller.userData.inputSource = e.data; });
-      controller.addEventListener('disconnected', () => { controller.userData.inputSource = null; });
+      // Keep the live XRInputSource so we can read per-frame gamepad state.
+      controller.addEventListener('connected', (e) => {
+        controller.userData.inputSource = e.data;
+        const name = this.controllerInput.getDeviceName(e.data);
+        console.debug(`VRApp: Controller connected — ${name}`);
+      });
+      controller.addEventListener('disconnected', () => {
+        if (controller.userData.inputSource) {
+          this.controllerInput.forget(controller.userData.inputSource);
+        }
+        controller.userData.inputSource = null;
+      });
       this.playerRig.add(controller);
       this.controllers.push(controller);
 
@@ -963,26 +983,37 @@ export class VRApp {
   updateLocomotion(dt = 0.016) {
     if (!this.playerRig) return;
 
+    // Southpaw swaps which hand drives snap-turn (typically right) vs move (left).
+    const turnHand  = this.settings.southpaw ? 'left'  : 'right';
+    const moveHand  = this.settings.southpaw ? 'right' : 'left';
+    // Snap activation and hysteresis thresholds.
+    const snapThreshold = 0.7;
+    const snapRelease   = 0.3;
+
     let smoothMoving = false;
     for (const controller of this.controllers) {
       const src = controller.userData.inputSource;
-      if (!src || !src.gamepad) continue;
-      const axes = src.gamepad.axes;
-      const x = axes.length >= 4 ? axes[2] : (axes[0] || 0); // thumbstick X
-      const y = axes.length >= 4 ? axes[3] : (axes[1] || 0); // thumbstick Y
+      if (!src) continue;
 
-      // Right stick: snap turn.
-      if (this.settings.enableSnapTurn && src.handedness === 'right') {
-        if (Math.abs(x) > 0.7 && !controller.userData.snapLatched) {
+      // Use profile-aware axis reading with configured dead zone.
+      const snap = this.controllerInput
+        ? this.controllerInput.read(src)
+        : { axes: { stickX: 0, stickY: 0 }, buttons: {}, hand: src.handedness };
+
+      const { stickX: x = 0, stickY: y = 0 } = snap.axes;
+
+      // Turn hand: snap turn.
+      if (this.settings.enableSnapTurn && snap.hand === turnHand) {
+        if (Math.abs(x) > snapThreshold && !controller.userData.snapLatched) {
           this.snapTurn(x > 0 ? -1 : 1); // push right → turn clockwise
           controller.userData.snapLatched = true;
-        } else if (Math.abs(x) < 0.3) {
+        } else if (Math.abs(x) < snapRelease) {
           controller.userData.snapLatched = false;
         }
       }
 
-      // Left stick: smooth move (opt-in) in the head's facing plane.
-      if (this.settings.enableSmoothMove && src.handedness === 'left' && Math.hypot(x, y) > 0.15) {
+      // Move hand: smooth locomotion (opt-in) in the head's facing plane.
+      if (this.settings.enableSmoothMove && snap.hand === moveHand && Math.hypot(x, y) > 0) {
         const q = new THREE.Quaternion();
         this.camera.getWorldQuaternion(q);
         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
@@ -1004,6 +1035,72 @@ export class VRApp {
 
     // Engage the comfort vignette while continuously moving.
     if (this.comfortSystem) this.comfortSystem.externalMotion = smoothMoving;
+  }
+
+  /**
+   * Per-frame face-button / thumbstick-click input for all connected controllers.
+   * Actions are bound to logical button names so they work across device families:
+   *
+   *   Right hand (or left in southpaw mode — dominant/pointer hand):
+   *     faceA          → browser forward
+   *     faceB          → browser back
+   *     thumbstickClick → recenter view
+   *
+   *   Left hand (or right in southpaw mode — utility hand):
+   *     faceA (X)      → toggle bookmarks/history panel
+   *     faceB (Y)      → toggle settings panel
+   *     menu           → toggle settings panel
+   *     thumbstickClick → show/hide VR keyboard
+   *
+   * Haptic click feedback is fired on any justPressed event.
+   */
+  updateButtonInput() {
+    if (!this.controllerInput) return;
+
+    // Which hand is which depends on southpaw setting.
+    const pointerHand = this.settings.southpaw ? 'left'  : 'right';
+    const utilityHand = this.settings.southpaw ? 'right' : 'left';
+
+    for (const controller of this.controllers) {
+      const src = controller.userData.inputSource;
+      if (!src) continue;
+
+      const snap = this.controllerInput.read(src);
+      const hand = snap.hand;
+      const btn  = snap.buttons;
+
+      // Play a brief haptic click for any face/thumb button press.
+      const anyJustPressed = Object.values(btn).some(b => b.justPressed);
+      if (anyJustPressed && this.hapticFeedback) {
+        this.hapticFeedback.playPattern('click');
+      }
+
+      if (hand === pointerHand) {
+        // Browser navigation — available only when a tab is open.
+        const tab = this.tabManager?.getActiveTab();
+        if (tab) {
+          if (btn.faceA?.justPressed) tab.goForward?.();
+          if (btn.faceB?.justPressed) tab.goBack?.();
+        }
+        // Recenter: snap the player rig back to the origin.
+        if (btn.thumbstickClick?.justPressed) this.recenter();
+
+      } else if (hand === utilityHand) {
+        // Toggle bookmarks/history panel.
+        if (btn.faceA?.justPressed && this.bookmarkPanel) {
+          this.bookmarkPanel.toggle();
+        }
+        // Toggle settings panel.
+        if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
+          this.settingsPanel.visible = !this.settingsPanel.visible;
+          this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
+        }
+        // Toggle VR keyboard.
+        if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
+          this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
+        }
+      }
+    }
   }
 
   /** Rotate the player rig in place about the head by snapTurnAngle * direction. */
@@ -1567,8 +1664,9 @@ export class VRApp {
       }
     }
 
-    // Update locomotion input (snap turn), teleport aiming, and hover
+    // Update locomotion input (snap turn), face-button actions, teleport, and hover.
     this.updateLocomotion(dt);
+    this.updateButtonInput();
     this.updateTeleport();
     this.updateHover();
 
