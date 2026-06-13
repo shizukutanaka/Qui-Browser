@@ -3,6 +3,7 @@
  */
 const {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
+  SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate
 } = require('../src/vr/browser/bookmarkLayout.js');
 
@@ -79,6 +80,45 @@ describe('hitTest', () => {
       const a = hitTest(PANEL_PX_W - 10, py, 5, { deleteZone: true });
       expect(a).toEqual({ type: 'deleteRow', index: rowIdx });
     });
+  });
+});
+
+describe('scrollZone option', () => {
+  const midY = HEADER_H / 2;
+
+  test('scrollUp zone returns scrollUp when scrollZone enabled', () => {
+    const midX = (SCROLL_UP_X0 + SCROLL_UP_X1) / 2;
+    expect(hitTest(midX, midY, 5, { scrollZone: true }).type).toBe('scrollUp');
+  });
+
+  test('scrollDown zone returns scrollDown when scrollZone enabled', () => {
+    const midX = (SCROLL_DN_X0 + SCROLL_DN_X1) / 2;
+    expect(hitTest(midX, midY, 5, { scrollZone: true }).type).toBe('scrollDown');
+  });
+
+  test('scroll zones return none when scrollZone is false (default)', () => {
+    const midX = (SCROLL_UP_X0 + SCROLL_UP_X1) / 2;
+    expect(hitTest(midX, midY, 5).type).toBe('none');
+  });
+
+  test('left edge of scrollUp zone is included', () => {
+    expect(hitTest(SCROLL_UP_X0, midY, 5, { scrollZone: true }).type).toBe('scrollUp');
+  });
+
+  test('right edge of scrollDown zone is included', () => {
+    expect(hitTest(SCROLL_DN_X1, midY, 5, { scrollZone: true }).type).toBe('scrollDown');
+  });
+
+  test('gap between scrollUp and scrollDown returns none', () => {
+    const gapX = (SCROLL_UP_X1 + SCROLL_DN_X0) / 2;
+    expect(hitTest(gapX, midY, 5, { scrollZone: true }).type).toBe('none');
+  });
+
+  test('scroll zone exports are consistent numbers', () => {
+    expect(SCROLL_UP_X0).toBeGreaterThan(440);  // after history tab
+    expect(SCROLL_UP_X1).toBeGreaterThan(SCROLL_UP_X0);
+    expect(SCROLL_DN_X0).toBeGreaterThan(SCROLL_UP_X1);
+    expect(SCROLL_DN_X1).toBeLessThan(PANEL_PX_W - 96); // before close button
   });
 });
 

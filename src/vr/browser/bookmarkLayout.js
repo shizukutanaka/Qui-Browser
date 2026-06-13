@@ -24,6 +24,13 @@ export const VISIBLE_ROWS = Math.floor((PANEL_PX_H - HEADER_H) / ROW_H);
 // Width of the per-row delete (✕) button zone on the right side.
 export const DELETE_ZONE_W = 64;
 
+// Scroll arrow zones inside the header (between the history tab and close button).
+// ↑ arrow: 480–640 px, ↓ arrow: 660–820 px.
+export const SCROLL_UP_X0  = 480;
+export const SCROLL_UP_X1  = 640;
+export const SCROLL_DN_X0  = 660;
+export const SCROLL_DN_X1  = 820;
+
 /**
  * Resolve a click at canvas pixel (px, py) into a semantic action.
  *
@@ -33,13 +40,17 @@ export const DELETE_ZONE_W = 64;
  * @param {object} [opts]
  * @param {boolean} [opts.deleteZone=false]  when true, the right DELETE_ZONE_W
  *   pixels of each row return `{type:'deleteRow', index}` instead of `{type:'row'}`.
+ * @param {boolean} [opts.scrollZone=false]  when true, the ↑/↓ arrow regions in
+ *   the header return `{type:'scrollUp'}` / `{type:'scrollDown'}`.
  * @returns {{type:'tab',tab:'bookmarks'|'history'}
  *          |{type:'close'}
+ *          |{type:'scrollUp'}
+ *          |{type:'scrollDown'}
  *          |{type:'row',index:number}
  *          |{type:'deleteRow',index:number}
  *          |{type:'none'}}
  */
-export function hitTest(px, py, rowCount = 0, { deleteZone = false } = {}) {
+export function hitTest(px, py, rowCount = 0, { deleteZone = false, scrollZone = false } = {}) {
   if (px < 0 || py < 0 || px > PANEL_PX_W || py > PANEL_PX_H) {
     return { type: 'none' };
   }
@@ -56,6 +67,11 @@ export function hitTest(px, py, rowCount = 0, { deleteZone = false } = {}) {
     }
     if (px < 440) {
       return { type: 'tab', tab: 'history' };
+    }
+    // Scroll arrows in the middle of the header (only when scrollZone enabled).
+    if (scrollZone) {
+      if (px >= SCROLL_UP_X0 && px <= SCROLL_UP_X1) return { type: 'scrollUp' };
+      if (px >= SCROLL_DN_X0 && px <= SCROLL_DN_X1) return { type: 'scrollDown' };
     }
     return { type: 'none' };
   }

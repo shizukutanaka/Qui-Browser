@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
+  SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
 
@@ -33,6 +34,7 @@ export class BookmarkPanel {
     this.onSelect = typeof onSelect === 'function' ? onSelect : () => {};
 
     this.mode = 'bookmarks'; // 'bookmarks' | 'history'
+    this.scrollOffset = 0;  // index of the first visible row
     this.visible = false;
 
     this.canvas = (typeof document !== 'undefined')
@@ -98,6 +100,7 @@ export class BookmarkPanel {
       return;
     }
     this.mode = mode;
+    this.scrollOffset = 0; // reset scroll when switching tabs
     this._draw();
   }
 
@@ -115,7 +118,9 @@ export class BookmarkPanel {
     const rows = this._rows();
     // Enable the per-row delete zone only in bookmarks mode (history is read-only).
     const deleteZone = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
-    const action = hitTest(px, py, rows.length, { deleteZone });
+    // hitTest works in visible-window coordinates: translate row index by scrollOffset.
+    const windowRows = rows.slice(this.scrollOffset, this.scrollOffset + VISIBLE_ROWS);
+    const action = hitTest(px, py, windowRows.length, { deleteZone, scrollZone: true });
 
     switch (action.type) {
     case 'close':
@@ -124,8 +129,20 @@ export class BookmarkPanel {
     case 'tab':
       this.setMode(action.tab);
       break;
+    case 'scrollUp':
+      if (this.scrollOffset > 0) {
+        this.scrollOffset--;
+        this._draw();
+      }
+      break;
+    case 'scrollDown':
+      if (this.scrollOffset + VISIBLE_ROWS < rows.length) {
+        this.scrollOffset++;
+        this._draw();
+      }
+      break;
     case 'row': {
-      const entry = rows[action.index];
+      const entry = rows[this.scrollOffset + action.index];
       if (entry && entry.url) {
         this.onSelect(entry.url);
         this.hide();
@@ -133,10 +150,13 @@ export class BookmarkPanel {
       break;
     }
     case 'deleteRow': {
-      const entry = rows[action.index];
+      const entry = rows[this.scrollOffset + action.index];
       if (entry && entry.url) {
         this.store.removeBookmark(entry.url);
-        this._draw(); // refresh immediately so the row disappears
+        // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
+        const newRows = this._rows();
+        this.scrollOffset = Math.min(this.scrollOffset, Math.max(0, newRows.length - VISIBLE_ROWS));
+        this._draw();
       }
       break;
     }
@@ -169,6 +189,32 @@ export class BookmarkPanel {
     this._drawTab(ctx, 'Bookmarks', 0, this.mode === 'bookmarks');
     this._drawTab(ctx, 'History', 220, this.mode === 'history');
 
+    // Scroll arrows (visible only when the list is longer than one page).
+    const allRows = this._rows();
+    const scrollable = allRows.length > VISIBLE_ROWS;
+    const canUp   = this.scrollOffset > 0;
+    const canDown = this.scrollOffset + VISIBLE_ROWS < allRows.length;
+    if (scrollable) {
+      // ↑ arrow
+      ctx.fillStyle = canUp ? 'rgba(50,80,140,0.9)' : 'rgba(30,35,55,0.6)';
+      ctx.fillRect(SCROLL_UP_X0 + 2, 10, SCROLL_UP_X1 - SCROLL_UP_X0 - 4, HEADER_H - 20);
+      ctx.fillStyle = canUp ? '#aabbff' : '#445566';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', (SCROLL_UP_X0 + SCROLL_UP_X1) / 2, HEADER_H / 2 + 12);
+      // ↓ arrow
+      ctx.fillStyle = canDown ? 'rgba(50,80,140,0.9)' : 'rgba(30,35,55,0.6)';
+      ctx.fillRect(SCROLL_DN_X0 + 2, 10, SCROLL_DN_X1 - SCROLL_DN_X0 - 4, HEADER_H - 20);
+      ctx.fillStyle = canDown ? '#aabbff' : '#445566';
+      ctx.fillText('▼', (SCROLL_DN_X0 + SCROLL_DN_X1) / 2, HEADER_H / 2 + 12);
+      // Page indicator between the arrows
+      ctx.fillStyle = '#7788aa';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      const pageLabel = `${this.scrollOffset + 1}–${Math.min(this.scrollOffset + VISIBLE_ROWS, allRows.length)}/${allRows.length}`;
+      ctx.fillText(pageLabel, (SCROLL_UP_X1 + SCROLL_DN_X0) / 2, HEADER_H / 2 + 8);
+    }
+
     // Close button
     ctx.fillStyle = '#5c1a1a';
     ctx.fillRect(w - 96, 12, 84, HEADER_H - 24);
@@ -177,10 +223,10 @@ export class BookmarkPanel {
     ctx.textAlign = 'center';
     ctx.fillText('✕', w - 54, HEADER_H / 2 + 12);
 
-    // Rows
-    const rows = this._rows();
+    // Rows (show only the visible window).
+    const rows = allRows.slice(this.scrollOffset, this.scrollOffset + VISIBLE_ROWS);
     ctx.textAlign = 'left';
-    if (rows.length === 0) {
+    if (allRows.length === 0) {
       ctx.fillStyle = '#8899aa';
       ctx.font = '28px sans-serif';
       ctx.fillText(
@@ -188,16 +234,14 @@ export class BookmarkPanel {
         32, HEADER_H + 56
       );
     } else {
-      const count = Math.min(rows.length, VISIBLE_ROWS);
       const showDelete = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < rows.length; i++) {
         const entry = rows[i];
         const top = HEADER_H + i * ROW_H;
         // Zebra striping
         ctx.fillStyle = (i % 2 === 0) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)';
         ctx.fillRect(0, top, w, ROW_H);
         // Title (leave room for delete button on the right)
-        const titleMaxW = showDelete ? w - DELETE_ZONE_W - 32 : w - 32;
         ctx.fillStyle = '#e8ecff';
         ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'left';

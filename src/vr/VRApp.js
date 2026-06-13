@@ -399,6 +399,57 @@ export class VRApp {
   }
 
   /**
+   * Half-width (compact) variant of makeToggleButton for 2-column panel layout.
+   * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
+   */
+  makeCompactToggleButton(label, key, apply) {
+    const w = 256;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+
+    const draw = (hover) => {
+      const on = !!this.settings[key];
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = hover ? 'rgba(40,60,90,0.95)' : 'rgba(16,20,30,0.92)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = on ? '#44ff88' : '#667788';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(label, 14, 58);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = on ? '#44ff88' : '#8899aa';
+      ctx.fillText(on ? 'ON' : 'OFF', w - 14, 58);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.43, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    this.registerInteractable(mesh, {
+      onSelect: () => {
+        const value = !this.settings[key];
+        this.updateSetting(key, value);
+        if (apply) apply(value);
+        draw(true);
+      },
+      onHover: () => draw(true),
+      onHoverEnd: () => draw(false)
+    });
+    return mesh;
+  }
+
+  /**
    * Show a brief heads-up notification inside VR.  Creates a canvas-textured
    * plane attached to the camera so it stays in view, then auto-removes it.
    *
@@ -708,11 +759,12 @@ export class VRApp {
       }]);
     }
 
-    // Adaptive vertical layout so the panel stays centred and fits any number
-    // of controls (the list grows as features are added).
-    const ROW = 0.22;            // metres between rows
+    // Adaptive vertical layout.  Toggle items are shown in two columns so the
+    // panel stays compact enough for all controls to be reachable from eye level.
+    const ROW = 0.18;            // metres between rows
     const PAD = 0.14;            // top/bottom padding
-    const rowCount = items.length + steppers.length + cycles.length + actions.length;
+    const toggleRows = Math.ceil(items.length / 2);
+    const rowCount = toggleRows + steppers.length + cycles.length + actions.length;
     const height = rowCount * ROW + PAD;
 
     const bg = new THREE.Mesh(
@@ -723,10 +775,19 @@ export class VRApp {
 
     // Start at the top of the stack, centred about y=0.
     let y = ((rowCount - 1) * ROW) / 2;
-    for (const [label, key, apply] of items) {
-      const btn = this.makeToggleButton(label, key, apply);
-      btn.position.set(0, y, 0.01);
-      group.add(btn);
+
+    // Toggles: two compact buttons per row at ±0.27 m (gap = 0.02 m between them).
+    for (let i = 0; i < items.length; i += 2) {
+      const [la, ka, aa] = items[i];
+      const left = this.makeCompactToggleButton(la, ka, aa);
+      left.position.set(-0.27, y, 0.01);
+      group.add(left);
+      if (i + 1 < items.length) {
+        const [lb, kb, ab] = items[i + 1];
+        const right = this.makeCompactToggleButton(lb, kb, ab);
+        right.position.set(0.27, y, 0.01);
+        group.add(right);
+      }
       y -= ROW;
     }
     for (const [label, key, cfg] of steppers) {
