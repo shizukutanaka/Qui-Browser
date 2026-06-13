@@ -36,6 +36,8 @@ import { WebPanel } from './browser/WebPanel.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
+import { ImmersiveVideo } from './media/ImmersiveVideo.js';
+import { detectVideoFormat } from './media/videoProjection.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -106,6 +108,7 @@ export class VRApp {
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
     this.interactables = []; // meshes registered with select/hover handlers
     this.settingsPanel = null;
+    this.immersiveVideo = null; // 360°/180° video player (created in initializeSystems)
     this._panelTextures = []; // CanvasTextures to dispose on teardown
 
     // Performance monitoring
@@ -297,6 +300,14 @@ export class VRApp {
       this.homeEnvironment = this.createHomeEnvironment();
       this.scene.add(this.homeEnvironment);
     }
+
+    // Immersive 360°/180° video player. Lightweight until play() is called
+    // (no video element or sphere is created up front), so it is always
+    // available and launched on demand from the settings panel.
+    this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
+      registerInteractable: (m, h) => this.registerInteractable(m, h),
+      unregisterInteractable: (m) => this.unregisterInteractable(m)
+    });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
     if (this.settings.enableSettingsPanel) {
@@ -753,6 +764,8 @@ export class VRApp {
 
     // Action buttons (non-toggle). Only shown when their target exists.
     const actions = [];
+    // Immersive 360°/180° video: prompt for a URL (VR keyboard) and play it.
+    actions.push(['360° Video', () => this._launchImmersiveVideo()]);
     if (this.settings.enableWebPanel) {
       actions.push(['Bookmarks', () => {
         if (this.bookmarkPanel) this.bookmarkPanel.toggle();
@@ -1769,6 +1782,9 @@ export class VRApp {
       this.windowManager.update(dt * 1000);
     }
 
+    // Keep the immersive video sphere centred on the head while it plays.
+    if (this.immersiveVideo) this.immersiveVideo.update(dt);
+
     // Update scene objects using pools
     this.updateSceneWithPools();
   }
@@ -1924,6 +1940,18 @@ export class VRApp {
   }
 
   /**
+   * Prompt for a video URL (via the VR keyboard, falling back to window.prompt
+   * on desktop) and play it as an immersive 360°/180° video. Projection and
+   * stereo layout are auto-detected from the URL.
+   */
+  _launchImmersiveVideo() {
+    this._requestVRKeyboardInput('https://', (url) => {
+      if (!url || !this.immersiveVideo) return;
+      this.immersiveVideo.play(url, detectVideoFormat(url));
+    });
+  }
+
+  /**
    * Navigate to a URL: records the visit in BookmarkStore history and feeds
    * it to the AI recommendation engine.  Call this whenever the in-VR panel
    * loads a new page (FR-1.1 prerequisite infrastructure).
@@ -2007,6 +2035,7 @@ export class VRApp {
     if (this.windowManager) this.windowManager.dispose();
     if (this.layersSystem) { this.layersSystem.dispose(); this.layersSystem = null; }
     if (this.bookmarkPanel) { this.bookmarkPanel.dispose(); this.bookmarkPanel = null; }
+    if (this.immersiveVideo) { this.immersiveVideo.dispose(); this.immersiveVideo = null; }
     if (this.tabManager) this.tabManager.dispose();
     else if (this.webPanel) this.webPanel.dispose();
     if (this.devTools) this.devTools.dispose();
