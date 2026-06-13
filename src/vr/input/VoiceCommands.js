@@ -460,6 +460,117 @@ export class VoiceCommands {
   }
 
   /**
+   * Replace the default window.* navigation commands with VR-aware versions
+   * that use the live TabManager / BookmarkPanel / keyboard references.
+   *
+   * Call this after initialize() and after the VR scene is built.
+   *
+   * @param {object} opts
+   * @param {object}   [opts.tabManager]    TabManager instance
+   * @param {object}   [opts.bookmarkPanel] BookmarkPanel instance
+   * @param {object}   [opts.vrKeyboard]    VRJapaneseKeyboard instance
+   * @param {Function} [opts.onSearch]      (query: string) => void — called for web search
+   */
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch } = {}) {
+    // Browser forward / back
+    this.registerCommand('navigate', {
+      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      action: () => {
+        tabManager?.getActiveTab?.()?.goForward?.();
+        return { action: 'navigate', direction: 'forward' };
+      },
+      confirmationText: '進みます',
+      description: 'Navigate forward'
+    });
+
+    this.registerCommand('back', {
+      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      action: () => {
+        tabManager?.getActiveTab?.()?.goBack?.();
+        return { action: 'navigate', direction: 'back' };
+      },
+      confirmationText: '戻ります',
+      description: 'Navigate back'
+    });
+
+    this.registerCommand('refresh', {
+      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+      action: () => {
+        tabManager?.getActiveTab?.()?.reload?.();
+        return { action: 'refresh' };
+      },
+      confirmationText: '更新します',
+      description: 'Refresh page'
+    });
+
+    // Web search — route through VR address bar / tab navigation
+    this.registerCommand('search', {
+      patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
+      action: (transcript) => {
+        const match = transcript.match(/[：:]\s*(.+)/);
+        if (match && match[1]) {
+          const query = match[1].trim();
+          if (onSearch) {
+            onSearch(query);
+          } else {
+            tabManager?.getActiveTab?.()?.navigate?.(query);
+          }
+          return { action: 'search', query };
+        }
+      },
+      confirmationText: '検索します',
+      description: 'Search web'
+    });
+
+    // Scroll inside the active page's iframe
+    this.registerCommand('scroll-down', {
+      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
+      action: () => {
+        const frame = tabManager?.getActiveTab?.()?.iframe;
+        try { frame?.contentWindow?.scrollBy(0, 300); } catch (_) { /* cross-origin */ }
+        return { action: 'scroll', direction: 'down' };
+      },
+      description: 'Scroll down'
+    });
+
+    this.registerCommand('scroll-up', {
+      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
+      action: () => {
+        const frame = tabManager?.getActiveTab?.()?.iframe;
+        try { frame?.contentWindow?.scrollBy(0, -300); } catch (_) { /* cross-origin */ }
+        return { action: 'scroll', direction: 'up' };
+      },
+      description: 'Scroll up'
+    });
+
+    // Bookmark panel toggle
+    this.registerCommand('bookmarks', {
+      patterns: ['ブックマーク', 'お気に入り', '履歴'],
+      action: () => {
+        bookmarkPanel?.toggle?.();
+        return { action: 'bookmarks' };
+      },
+      confirmationText: 'ブックマークパネルを開きます',
+      description: 'Toggle bookmarks panel'
+    });
+
+    // Keyboard toggle
+    this.registerCommand('keyboard', {
+      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる'],
+      action: () => {
+        if (vrKeyboard) {
+          vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
+        }
+        return { action: 'keyboard' };
+      },
+      confirmationText: 'キーボードを切り替えます',
+      description: 'Toggle VR keyboard'
+    });
+
+    console.debug('VoiceCommands: Browser integration connected');
+  }
+
+  /**
    * Start listening
    */
   start() {

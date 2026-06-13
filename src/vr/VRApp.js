@@ -1387,12 +1387,30 @@ export class VRApp {
     // 10. Voice Commands
     if (this.settings.enableVoice) {
       this.voiceCommands = new VoiceCommands();
-      await this.voiceCommands.initialize();
-      // FR-13.1: caption recognized speech so it is visible in VR.
-      this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-        if (isFinal && this.captionSystem) this.captionSystem.show(transcript);
-      };
-      console.debug('VRApp: Voice commands ready');
+      const voiceReady = await this.voiceCommands.initialize();
+      if (voiceReady) {
+        // FR-13.1: caption recognized speech so it is visible in VR.
+        this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
+          if (isFinal && this.captionSystem) this.captionSystem.show(transcript);
+        };
+        // Replace window.* default commands with VR-aware implementations that
+        // route navigation and search through the live TabManager.
+        this.voiceCommands.connectBrowser({
+          tabManager:    this.tabManager,
+          bookmarkPanel: this.bookmarkPanel,
+          vrKeyboard:    this.vrKeyboard,
+          onSearch: (query) => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (active) active.navigate(query);
+          }
+        });
+        // Begin listening immediately (user granted mic permission during initialize).
+        this.voiceCommands.start();
+        console.debug('VRApp: Voice commands ready and listening');
+      } else {
+        console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
+        this.voiceCommands = null;
+      }
     }
 
     // 11. Multiplayer — requires a signaling server; connect() is called on
