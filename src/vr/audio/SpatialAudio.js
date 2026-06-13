@@ -212,7 +212,9 @@ export class SpatialAudio {
    */
   stop(sourceName) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.node) return;
+    if (!source || !source.node) {
+      return;
+    }
 
     // Voice sources wrap a MediaStreamAudioSourceNode, which has no start/stop;
     // they are torn down via removeVoiceSource(), not stop().
@@ -241,7 +243,9 @@ export class SpatialAudio {
    */
   setSourcePosition(sourceName, x, y, z) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.panner) return;
+    if (!source || !source.panner) {
+      return;
+    }
 
     source.position = { x, y, z };
 
@@ -264,7 +268,9 @@ export class SpatialAudio {
    */
   setSourceOrientation(sourceName, x, y, z) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.panner) return;
+    if (!source || !source.panner) {
+      return;
+    }
 
     if (source.panner.orientationX) {
       source.panner.orientationX.value = x;
@@ -280,7 +286,9 @@ export class SpatialAudio {
    */
   setSourceVelocity(sourceName, x, y, z) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.panner) return;
+    if (!source || !source.panner) {
+      return;
+    }
 
     source.velocity = { x, y, z };
 
@@ -298,7 +306,9 @@ export class SpatialAudio {
    * Simulate doppler effect
    */
   simulateDoppler(source) {
-    if (!source.velocity) return;
+    if (!source.velocity) {
+      return;
+    }
 
     // Calculate relative velocity
     const speedOfSound = 343.3; // m/s at 20°C
@@ -319,7 +329,9 @@ export class SpatialAudio {
    * Set listener (user) position
    */
   setListenerPosition(x, y, z) {
-    if (!this.listener) return;
+    if (!this.listener) {
+      return;
+    }
 
     this._listenerPos = { x, y, z };
 
@@ -336,7 +348,9 @@ export class SpatialAudio {
    * Set listener orientation
    */
   setListenerOrientation(forwardX, forwardY, forwardZ, upX, upY, upZ) {
-    if (!this.listener) return;
+    if (!this.listener) {
+      return;
+    }
 
     if (this.listener.forwardX) {
       this.listener.forwardX.value = forwardX;
@@ -354,7 +368,9 @@ export class SpatialAudio {
    * Update listener from camera
    */
   updateListenerFromCamera(camera) {
-    if (!camera) return;
+    if (!camera) {
+      return;
+    }
 
     // Reuse scratch objects to avoid per-frame allocation in the render loop.
     if (!this._camPos) {
@@ -405,7 +421,9 @@ export class SpatialAudio {
    */
   updateSourceLOD(sourceName) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.panner) return;
+    if (!source || !source.panner) {
+      return;
+    }
 
     const useHRTF = this.settings.enableHRTF &&
       this._sourceDistance(source) <= this.settings.hrtfThreshold;
@@ -428,8 +446,11 @@ export class SpatialAudio {
       this.updateSourceLOD(name);
       const src = this.sources.get(name);
       if (src && src.panner) {
-        if (src.panner.panningModel === 'HRTF') hrtf++;
-        else eq++;
+        if (src.panner.panningModel === 'HRTF') {
+          hrtf++;
+        } else {
+          eq++;
+        }
       }
     });
     this.stats.hrtfSources = hrtf;
@@ -452,11 +473,15 @@ export class SpatialAudio {
    * @returns {object|null} the created source record, or null on failure
    */
   createVoiceSource(peerId, mediaStream, position = { x: 0, y: 0, z: 0 }) {
-    if (!this.context || !mediaStream) return null;
+    if (!this.context || !mediaStream) {
+      return null;
+    }
 
     const sourceName = `voice:${peerId}`;
     // Avoid duplicate sources for the same peer.
-    if (this.sources.has(sourceName)) return this.sources.get(sourceName);
+    if (this.sources.has(sourceName)) {
+      return this.sources.get(sourceName);
+    }
 
     try {
       const streamNode = this.context.createMediaStreamSource(mediaStream);
@@ -515,12 +540,20 @@ export class SpatialAudio {
   removeVoiceSource(peerId) {
     const sourceName = `voice:${peerId}`;
     const source = this.sources.get(sourceName);
-    if (!source) return;
+    if (!source) {
+      return;
+    }
 
     try {
-      if (source.node) source.node.disconnect();
-      if (source.panner) source.panner.disconnect();
-      if (source.gain) source.gain.disconnect();
+      if (source.node) {
+        source.node.disconnect();
+      }
+      if (source.panner) {
+        source.panner.disconnect();
+      }
+      if (source.gain) {
+        source.gain.disconnect();
+      }
     } catch (e) { /* ignore disconnect errors */ }
 
     this.sources.delete(sourceName);
@@ -560,7 +593,9 @@ export class SpatialAudio {
    */
   setSourceVolume(sourceName, volume) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.gain) return;
+    if (!source || !source.gain) {
+      return;
+    }
 
     source.volume = Math.max(0, Math.min(1, volume));
     source.gain.gain.value = source.volume * this.settings.masterVolume;
@@ -571,7 +606,9 @@ export class SpatialAudio {
    */
   fadeVolume(sourceName, targetVolume, duration) {
     const source = this.sources.get(sourceName);
-    if (!source || !source.gain) return;
+    if (!source || !source.gain) {
+      return;
+    }
 
     const startTime = this.context.currentTime;
     const endTime = startTime + duration;

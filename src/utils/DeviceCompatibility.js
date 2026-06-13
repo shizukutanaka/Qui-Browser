@@ -18,7 +18,9 @@ export class DeviceCompatibility {
    * @returns {Promise<CompatibilityReport>}
    */
   async check() {
-    if (this.report) return this.report;
+    if (this.report) {
+      return this.report;
+    }
 
     const xr = typeof navigator !== 'undefined' ? navigator.xr : null;
 
@@ -56,11 +58,21 @@ export class DeviceCompatibility {
    * Meta Browser and Pico Browser respectively.
    */
   _detectTier(ua) {
-    if (/Quest 3/.test(ua) || /Quest\/3/.test(ua)) return 'quest3';
-    if (/Quest 2/.test(ua) || /Quest\/2/.test(ua)) return 'quest2';
-    if (/Pico Neo 4/.test(ua) || /PicoNeo4/.test(ua) || /Pico 4/.test(ua)) return 'pico4';
-    if (/Android/.test(ua) && /XR/.test(ua)) return 'android-xr';
-    if (typeof navigator !== 'undefined' && navigator.xr) return 'desktop-xr';
+    if (/Quest 3/.test(ua) || /Quest\/3/.test(ua)) {
+      return 'quest3';
+    }
+    if (/Quest 2/.test(ua) || /Quest\/2/.test(ua)) {
+      return 'quest2';
+    }
+    if (/Pico Neo 4/.test(ua) || /PicoNeo4/.test(ua) || /Pico 4/.test(ua)) {
+      return 'pico4';
+    }
+    if (/Android/.test(ua) && /XR/.test(ua)) {
+      return 'android-xr';
+    }
+    if (typeof navigator !== 'undefined' && navigator.xr) {
+      return 'desktop-xr';
+    }
     return 'unknown';
   }
 
@@ -82,7 +94,9 @@ export class DeviceCompatibility {
       foveatedRendering: vrSupported
     };
 
-    if (!xr || !vrSupported) return base;
+    if (!xr || !vrSupported) {
+      return base;
+    }
 
     // Quest 3 / Quest Pro support additional features. Fall back to detecting
     // the tier here if the caller didn't supply it.
@@ -102,7 +116,9 @@ export class DeviceCompatibility {
   }
 
   _hasWebGL2() {
-    if (typeof document === 'undefined') return false;
+    if (typeof document === 'undefined') {
+      return false;
+    }
     try {
       const canvas = document.createElement('canvas');
       return !!(canvas.getContext('webgl2'));
@@ -115,12 +131,14 @@ export class DeviceCompatibility {
    * Return the recommended target FPS for the detected device.
    */
   targetFPS() {
-    if (!this.report) return 72;
+    if (!this.report) {
+      return 72;
+    }
     switch (this.report.deviceTier) {
-      case 'quest3':   return 120;
-      case 'quest2':   return 90;
-      case 'pico4':    return 90;
-      default:         return 72;
+    case 'quest3':   return 120;
+    case 'quest2':   return 90;
+    case 'pico4':    return 90;
+    default:         return 72;
     }
   }
 }

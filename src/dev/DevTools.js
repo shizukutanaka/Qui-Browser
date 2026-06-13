@@ -314,7 +314,9 @@ export class DevTools {
    */
   showTab(tabId) {
     const content = document.getElementById('dev-tools-content');
-    if (!content) return;
+    if (!content) {
+      return;
+    }
 
     // Hide all tabs
     this.tabs.forEach((tab, id) => {
@@ -333,13 +335,13 @@ export class DevTools {
       tab.button.style.background = '#0e639c';
 
       // Update tab content
-      switch(tabId) {
-        case 'scene':
-          this.updateSceneTree();
-          break;
-        case 'network':
-          this.updateNetworkTable();
-          break;
+      switch (tabId) {
+      case 'scene':
+        this.updateSceneTree();
+        break;
+      case 'network':
+        this.updateNetworkTable();
+        break;
       }
     }
   }
@@ -399,8 +401,12 @@ export class DevTools {
    * Format value for display
    */
   formatValue(value) {
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
+    if (value === null) {
+      return 'null';
+    }
+    if (value === undefined) {
+      return 'undefined';
+    }
     if (typeof value === 'object') {
       try {
         return JSON.stringify(value, null, 2);
@@ -416,7 +422,9 @@ export class DevTools {
    */
   updateConsoleMessages() {
     const messagesDiv = document.getElementById('console-messages');
-    if (!messagesDiv) return;
+    if (!messagesDiv) {
+      return;
+    }
 
     const colors = { log: '#d4d4d4', warn: '#ce9178', error: '#f48771' };
     const frag = document.createDocumentFragment();
@@ -446,10 +454,13 @@ export class DevTools {
     try {
       let result;
       try {
-        // Try as expression so the return value is captured.
+        // Try as expression so the return value is captured. This is a
+        // developer-only console REPL, so dynamic evaluation is intentional.
+        // eslint-disable-next-line no-new-func
         result = new Function('"use strict"; return (' + code + ')')();
       } catch {
         // Fall back to statement mode (void return).
+        // eslint-disable-next-line no-new-func
         result = new Function('"use strict"; ' + code)();
       }
       this.logMessage('log', [`> ${code}`, result]);
@@ -463,7 +474,9 @@ export class DevTools {
    */
   updateSceneTree() {
     const treeDiv = document.getElementById('scene-tree');
-    if (!treeDiv || !this.app.scene) return;
+    if (!treeDiv || !this.app.scene) {
+      return;
+    }
 
     treeDiv.textContent = '';
     treeDiv.appendChild(this.buildSceneTree(this.app.scene, 0));
@@ -548,7 +561,9 @@ export class DevTools {
    */
   updateNetworkTable() {
     const tbody = document.getElementById('network-tbody');
-    if (!tbody) return;
+    if (!tbody) {
+      return;
+    }
 
     const frag = document.createDocumentFragment();
     for (const req of this.tools.networkMonitor.requests) {
@@ -591,8 +606,12 @@ export class DevTools {
       const shift = e.shiftKey;
 
       let shortcut = key;
-      if (ctrl) shortcut = 'Ctrl+' + shortcut;
-      if (shift) shortcut = shortcut.replace('Ctrl+', 'Ctrl+Shift+');
+      if (ctrl) {
+        shortcut = 'Ctrl+' + shortcut;
+      }
+      if (shift) {
+        shortcut = shortcut.replace('Ctrl+', 'Ctrl+Shift+');
+      }
 
       const handler = this.shortcuts[shortcut];
       if (handler) {

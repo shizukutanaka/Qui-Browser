@@ -30,7 +30,9 @@ export function stepValue(current, delta, { min, max, step }) {
 
 /** Number of decimal places implied by a step (e.g. 0.5 → 1, 15 → 0). */
 export function decimalsFor(step) {
-  if (Number.isInteger(step)) return 0;
+  if (Number.isInteger(step)) {
+    return 0;
+  }
   const s = String(step);
   const dot = s.indexOf('.');
   return dot === -1 ? 0 : s.length - dot - 1;
@@ -41,8 +43,12 @@ export function decimalsFor(step) {
  * @returns {'decrement'|'increment'|'none'}
  */
 export function stepperRegion(u) {
-  if (u < MINUS_MAX_U) return 'decrement';
-  if (u > PLUS_MIN_U) return 'increment';
+  if (u < MINUS_MAX_U) {
+    return 'decrement';
+  }
+  if (u > PLUS_MIN_U) {
+    return 'increment';
+  }
   return 'none';
 }
 

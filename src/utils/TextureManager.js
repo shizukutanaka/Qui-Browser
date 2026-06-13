@@ -215,7 +215,9 @@ export class TextureManager {
    * Estimate texture memory usage
    */
   estimateTextureMemory(texture, isCompressed) {
-    if (!texture.image) return 0;
+    if (!texture.image) {
+      return 0;
+    }
 
     const width = texture.image.width || 512;
     const height = texture.image.height || 512;
@@ -247,7 +249,9 @@ export class TextureManager {
    */
   unloadTexture(url) {
     const texture = this.textureCache.get(url);
-    if (!texture) return;
+    if (!texture) {
+      return;
+    }
 
     // Estimate memory BEFORE disposing — dispose() may clear texture.image,
     // which would make the size estimate wrong (and skew tracking).

@@ -57,7 +57,9 @@ function detectLanguage() {
   try {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && CATALOG[saved]) return saved;
+      if (saved && CATALOG[saved]) {
+        return saved;
+      }
     }
   } catch (e) { /* ignore */ }
   const nav = (typeof navigator !== 'undefined' && (navigator.language || '')).toLowerCase();
@@ -77,20 +79,32 @@ export function availableLanguages() {
 /** Translate a key in the current language (falls back to English, then the key). */
 export function t(key) {
   const c = CATALOG[currentLang] || CATALOG.en;
-  if (key in c) return c[key];
-  if (key in CATALOG.en) return CATALOG.en[key];
+  if (key in c) {
+    return c[key];
+  }
+  if (key in CATALOG.en) {
+    return CATALOG.en[key];
+  }
   return key;
 }
 
 /** Set the active language, persist it, and re-apply translations to `root`. */
 export function setLanguage(lang, root) {
-  if (!CATALOG[lang]) return;
+  if (!CATALOG[lang]) {
+    return;
+  }
   currentLang = lang;
   try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, lang);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, lang);
+    }
   } catch (e) { /* ignore */ }
-  if (typeof document !== 'undefined') document.documentElement.lang = lang;
-  if (root) applyTranslations(root);
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lang;
+  }
+  if (root) {
+    applyTranslations(root);
+  }
 }
 
 /**
@@ -99,15 +113,21 @@ export function setLanguage(lang, root) {
  */
 export function applyTranslations(root) {
   const scope = root || (typeof document !== 'undefined' ? document : null);
-  if (!scope || !scope.querySelectorAll) return;
+  if (!scope || !scope.querySelectorAll) {
+    return;
+  }
   scope.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
   scope.querySelectorAll('[data-i18n-attr]').forEach((el) => {
     el.getAttribute('data-i18n-attr').split(';').forEach((pair) => {
       const [attr, key] = pair.split(':').map((s) => (s ? s.trim() : s));
-      if (attr && key) el.setAttribute(attr, t(key));
+      if (attr && key) {
+        el.setAttribute(attr, t(key));
+      }
     });
   });
-  if (typeof document !== 'undefined') document.documentElement.lang = currentLang;
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = currentLang;
+  }
 }

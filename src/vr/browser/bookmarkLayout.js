@@ -70,8 +70,12 @@ export function hitTest(px, py, rowCount = 0, { deleteZone = false, scrollZone =
     }
     // Scroll arrows in the middle of the header (only when scrollZone enabled).
     if (scrollZone) {
-      if (px >= SCROLL_UP_X0 && px <= SCROLL_UP_X1) return { type: 'scrollUp' };
-      if (px >= SCROLL_DN_X0 && px <= SCROLL_DN_X1) return { type: 'scrollDown' };
+      if (px >= SCROLL_UP_X0 && px <= SCROLL_UP_X1) {
+        return { type: 'scrollUp' };
+      }
+      if (px >= SCROLL_DN_X0 && px <= SCROLL_DN_X1) {
+        return { type: 'scrollDown' };
+      }
     }
     return { type: 'none' };
   }

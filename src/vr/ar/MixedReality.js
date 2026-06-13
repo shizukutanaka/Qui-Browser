@@ -71,7 +71,9 @@ export class MixedReality {
    * (e.g. in unit tests or private-browsing with blocked storage).
    */
   async _openDB() {
-    if (typeof indexedDB === 'undefined') return null;
+    if (typeof indexedDB === 'undefined') {
+      return null;
+    }
     return new Promise((resolve) => {
       const req = indexedDB.open('QuiBrowserMR', 1);
       req.onupgradeneeded = (e) => {
@@ -93,7 +95,9 @@ export class MixedReality {
    */
   async _saveAnchorRecord(record) {
     await this._dbReady;
-    if (!this._db) return;
+    if (!this._db) {
+      return;
+    }
     try {
       const tx = this._db.transaction('anchors', 'readwrite');
       tx.onerror = () => console.warn('MixedReality: Failed to save anchor', tx.error);
@@ -108,7 +112,9 @@ export class MixedReality {
    */
   async _deleteAnchorRecord(id) {
     await this._dbReady;
-    if (!this._db) return;
+    if (!this._db) {
+      return;
+    }
     try {
       const tx = this._db.transaction('anchors', 'readwrite');
       tx.onerror = () => console.warn('MixedReality: Failed to delete anchor', tx.error);
@@ -124,7 +130,9 @@ export class MixedReality {
    */
   async loadSavedAnchors() {
     await this._dbReady;
-    if (!this._db) return [];
+    if (!this._db) {
+      return [];
+    }
     return new Promise((resolve) => {
       try {
         const tx = this._db.transaction('anchors', 'readonly');
@@ -156,7 +164,9 @@ export class MixedReality {
    */
   async clearSavedAnchors() {
     await this._dbReady;
-    if (!this._db) return;
+    if (!this._db) {
+      return;
+    }
     try {
       const tx = this._db.transaction('anchors', 'readwrite');
       tx.objectStore('anchors').clear();
@@ -282,7 +292,9 @@ export class MixedReality {
    * Setup AR/MR session
    */
   async setupSession() {
-    if (!this.xrSession) return;
+    if (!this.xrSession) {
+      return;
+    }
 
     // Setup reference space
     this.referenceSpace = await this.xrSession.requestReferenceSpace('local-floor');
@@ -314,7 +326,9 @@ export class MixedReality {
    * Setup plane detection
    */
   setupPlaneDetection() {
-    if (!this.xrSession.updateWorldTrackingState) return;
+    if (!this.xrSession.updateWorldTrackingState) {
+      return;
+    }
 
     // Enable plane detection
     this.xrSession.updateWorldTrackingState({
@@ -330,7 +344,9 @@ export class MixedReality {
    * Setup hit testing
    */
   async setupHitTesting() {
-    if (!this.xrSession) return;
+    if (!this.xrSession) {
+      return;
+    }
 
     try {
       // Request hit test source
@@ -371,7 +387,9 @@ export class MixedReality {
    * Update mixed reality frame
    */
   update(frame) {
-    if (!this.enabled || !frame) return;
+    if (!this.enabled || !frame) {
+      return;
+    }
 
     // Update plane detection
     if (this.settings.planeDetection) {
@@ -406,7 +424,9 @@ export class MixedReality {
    * Update detected planes
    */
   updatePlanes(frame) {
-    if (!frame.detectedPlanes) return;
+    if (!frame.detectedPlanes) {
+      return;
+    }
 
     frame.detectedPlanes.forEach(plane => {
       if (!this.detectedPlanes.has(plane)) {
@@ -449,7 +469,9 @@ export class MixedReality {
    */
   createPlaneVisualizer(plane) {
     const planeData = this.detectedPlanes.get(plane);
-    if (!planeData || !planeData.vertices) return;
+    if (!planeData || !planeData.vertices) {
+      return;
+    }
 
     // Create geometry from vertices
     const geometry = new THREE.BufferGeometry();
@@ -492,7 +514,9 @@ export class MixedReality {
    */
   updatePlaneVisualizer(plane) {
     const mesh = this.planeVisualizers.get(plane);
-    if (!mesh) return;
+    if (!mesh) {
+      return;
+    }
 
     // Update position/orientation if plane moved
     const planeData = this.detectedPlanes.get(plane);
@@ -520,8 +544,12 @@ export class MixedReality {
     if (mesh) {
       this.scene.remove(mesh);
       mesh.traverse(obj => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) obj.material.dispose();
+        if (obj.geometry) {
+          obj.geometry.dispose();
+        }
+        if (obj.material) {
+          obj.material.dispose();
+        }
       });
     }
 
@@ -538,7 +566,9 @@ export class MixedReality {
    * are torn down.
    */
   updateMeshes(frame) {
-    if (!frame.detectedMeshes) return;
+    if (!frame.detectedMeshes) {
+      return;
+    }
 
     frame.detectedMeshes.forEach(mesh => {
       if (!this.detectedMeshes.has(mesh)) {
@@ -571,7 +601,9 @@ export class MixedReality {
    */
   createMeshVisualizer(mesh) {
     const meshData = this.detectedMeshes.get(mesh);
-    if (!meshData || !mesh.vertices) return;
+    if (!meshData || !mesh.vertices) {
+      return;
+    }
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position',
@@ -617,10 +649,14 @@ export class MixedReality {
   updateDepth(frame) {
     if (typeof frame.getDepthInformation !== 'function' ||
         typeof frame.getViewerPose !== 'function' ||
-        !this.referenceSpace) return;
+        !this.referenceSpace) {
+      return;
+    }
 
     const pose = frame.getViewerPose(this.referenceSpace);
-    if (!pose || !pose.views) return;
+    if (!pose || !pose.views) {
+      return;
+    }
 
     for (const view of pose.views) {
       const depth = frame.getDepthInformation(view);
@@ -639,7 +675,9 @@ export class MixedReality {
    */
   getDepthInMeters(normX, normY) {
     const d = this.latestDepth;
-    if (!d || typeof d.getDepthInMeters !== 'function') return null;
+    if (!d || typeof d.getDepthInMeters !== 'function') {
+      return null;
+    }
     try {
       return d.getDepthInMeters(normX, normY);
     } catch (e) {
@@ -651,7 +689,9 @@ export class MixedReality {
    * Update hit testing
    */
   updateHitTest(frame) {
-    if (!this.hitTestSource) return;
+    if (!this.hitTestSource) {
+      return;
+    }
 
     const results = frame.getHitTestResults(this.hitTestSource);
     if (results.length > 0) {
@@ -680,10 +720,14 @@ export class MixedReality {
    * Place object at hit position
    */
   async placeObject(object, hitResult) {
-    if (!hitResult) return;
+    if (!hitResult) {
+      return;
+    }
 
     const pose = hitResult.getPose(this.referenceSpace);
-    if (!pose) return;
+    if (!pose) {
+      return;
+    }
 
     // Set object position
     const position = pose.transform.position;
@@ -726,7 +770,9 @@ export class MixedReality {
    */
   updateAnchors(frame) {
     this.anchors.forEach(({ nativeAnchor }, object) => {
-      if (!nativeAnchor || !nativeAnchor.anchorSpace) return;
+      if (!nativeAnchor || !nativeAnchor.anchorSpace) {
+        return;
+      }
       const pose = frame.getPose(nativeAnchor.anchorSpace, this.referenceSpace);
       if (pose) {
         const p = pose.transform.position;
@@ -741,10 +787,14 @@ export class MixedReality {
    * Update lighting from real world
    */
   updateLighting(frame) {
-    if (!this.lightProbe) return;
+    if (!this.lightProbe) {
+      return;
+    }
 
     const lightEstimate = frame.getLightEstimate(this.lightProbe);
-    if (!lightEstimate) return;
+    if (!lightEstimate) {
+      return;
+    }
 
     // Update scene lighting based on real-world light
     if (lightEstimate.sphericalHarmonicsCoefficients) {
@@ -774,7 +824,9 @@ export class MixedReality {
    * Toggle passthrough mode (Quest specific)
    */
   togglePassthrough() {
-    if (!this.xrSession) return;
+    if (!this.xrSession) {
+      return;
+    }
 
     // Toggle between opaque and alpha-blend
     const newMode = this.settings.environmentBlendMode === 'opaque'

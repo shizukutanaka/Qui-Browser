@@ -30,7 +30,7 @@ export class WindowManager {
    * @param {number} [opts.followLerp=0.15]  — 0–1 smoothing per frame at 60fps
    */
   constructor(camera, { distance = 2.0, minDistance = 0.6, maxDistance = 6.0,
-                        followLerp = 0.15 } = {}) {
+    followLerp = 0.15 } = {}) {
     this.camera = camera;
     this.distance = distance;
     this.minDistance = minDistance;
@@ -55,8 +55,12 @@ export class WindowManager {
   // ── Attach / detach ──────────────────────────────────────────────────────────
 
   /** Manage the given object (a panel group). */
-  attach(object3D) { this.target = object3D; return this; }
-  detach() { this.target = null; this._grab = null; }
+  attach(object3D) {
+    this.target = object3D; return this;
+  }
+  detach() {
+    this.target = null; this._grab = null;
+  }
 
   // ── Mode control ─────────────────────────────────────────────────────────────
 
@@ -85,7 +89,9 @@ export class WindowManager {
    * @param {THREE.Object3D} controller
    */
   beginGrab(controller) {
-    if (!this.target || !controller) return;
+    if (!this.target || !controller) {
+      return;
+    }
     const cPos = new THREE.Vector3();
     controller.getWorldPosition(cPos);
     const tPos = new THREE.Vector3();
@@ -93,9 +99,13 @@ export class WindowManager {
     this._grab = { controller, distance: cPos.distanceTo(tPos) };
   }
 
-  endGrab() { this._grab = null; }
+  endGrab() {
+    this._grab = null;
+  }
 
-  get isGrabbing() { return !!this._grab; }
+  get isGrabbing() {
+    return !!this._grab;
+  }
 
   // ── Per-frame update ─────────────────────────────────────────────────────────
 
@@ -107,7 +117,9 @@ export class WindowManager {
    * @param {number} [dtMs=16] — frame delta (ms); scales the follow lerp
    */
   update(dtMs = 16) {
-    if (!this.target) return;
+    if (!this.target) {
+      return;
+    }
 
     this.camera.getWorldPosition(this._camPos);
     this.camera.getWorldQuaternion(this._camQuat);

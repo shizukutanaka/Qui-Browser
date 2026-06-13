@@ -13,18 +13,22 @@ function load() {
   try {
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) || {};
+      if (raw) {
+        return JSON.parse(raw) || {};
+      }
     }
   } catch (e) { /* ignore */ }
   return {};
 }
 
-let prefs = Object.assign({ highContrast: false, largeText: false }, load());
+const prefs = Object.assign({ highContrast: false, largeText: false }, load());
 
 function media(query) {
   return typeof matchMedia !== 'undefined' && matchMedia(query).matches;
 }
-function osReducedMotion() { return media('(prefers-reduced-motion: reduce)'); }
+function osReducedMotion() {
+  return media('(prefers-reduced-motion: reduce)');
+}
 function osHighContrast() {
   return media('(prefers-contrast: more)') || media('(forced-colors: active)');
 }
@@ -35,7 +39,9 @@ export function getPrefs() {
 
 /** Apply current preferences (plus OS signals) as body classes. */
 export function applyAccessibility() {
-  if (typeof document === 'undefined' || !document.body) return;
+  if (typeof document === 'undefined' || !document.body) {
+    return;
+  }
   const b = document.body;
   b.classList.toggle('a11y-high-contrast', !!prefs.highContrast || osHighContrast());
   b.classList.toggle('a11y-large-text', !!prefs.largeText);
@@ -46,7 +52,9 @@ export function applyAccessibility() {
 export function setPref(key, value) {
   prefs[key] = value;
   try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    }
   } catch (e) { /* ignore */ }
   applyAccessibility();
   return value;

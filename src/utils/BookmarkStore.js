@@ -91,7 +91,9 @@ export class BookmarkStore {
       all.unshift({ url, title, visitedAt: Date.now(), visits: 1 });
     }
     // Trim to keep storage bounded.
-    if (all.length > MAX_HISTORY) all.length = MAX_HISTORY;
+    if (all.length > MAX_HISTORY) {
+      all.length = MAX_HISTORY;
+    }
     writeJSON(HISTORY_KEY, all);
     return all[0];
   }

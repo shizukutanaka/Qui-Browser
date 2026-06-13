@@ -107,7 +107,9 @@ export class HapticFeedback {
    * Trigger haptic pulse
    */
   async pulse(hand, duration, intensity) {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      return;
+    }
 
     // Find gamepad for specified hand
     const gamepad = this.getGamepadForHand(hand);
@@ -213,7 +215,9 @@ export class HapticFeedback {
     };
 
     const pattern = patterns[textureType];
-    if (!pattern) return;
+    if (!pattern) {
+      return;
+    }
 
     const startTime = Date.now();
     while (Date.now() - startTime < duration) {
@@ -255,7 +259,9 @@ export class HapticFeedback {
    * Proximity feedback (intensity increases as object gets closer)
    */
   async proximityFeedback(hand, distance, maxDistance = 1.0) {
-    if (distance > maxDistance) return;
+    if (distance > maxDistance) {
+      return;
+    }
 
     const normalizedDistance = distance / maxDistance;
     const intensity = 1.0 - normalizedDistance;

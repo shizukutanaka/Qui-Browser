@@ -63,7 +63,9 @@ export class ImmersiveVideo {
    * @param {{projection?:string, layout?:string}} [opts]
    */
   play(url, opts = {}) {
-    if (!url) return;
+    if (!url) {
+      return;
+    }
     this.stop(); // replace any currently-playing video
 
     const fmt = { ...detectVideoFormat(url), ...opts };
@@ -93,15 +95,18 @@ export class ImmersiveVideo {
       this._enableStereoLayers();
       this.meshes.push(left, right);
     }
-    for (const m of this.meshes) this.scene.add(m);
+    for (const m of this.meshes) {
+      this.scene.add(m);
+    }
 
     this._buildControlPanel();
 
     const p = video.play();
-    if (p && p.catch)
+    if (p && p.catch) {
       p.catch(() => {
-        /* gesture-gated autoplay; HUD Pause can retry */
+      /* gesture-gated autoplay; HUD Pause can retry */
       });
+    }
     this.playing = true;
   }
 
@@ -193,7 +198,9 @@ export class ImmersiveVideo {
     };
     this.registerInteractable(mesh, {
       onSelect: () => {
-        if (onSelect) onSelect();
+        if (onSelect) {
+          onSelect();
+        }
       },
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
@@ -203,37 +210,55 @@ export class ImmersiveVideo {
 
   /** Toggle play/pause, updating the HUD button label. */
   togglePause() {
-    if (!this.video) return;
+    if (!this.video) {
+      return;
+    }
     if (this.video.paused) {
       const p = this.video.play();
-      if (p && p.catch) p.catch(() => {});
+      if (p && p.catch) {
+        p.catch(() => {});
+      }
       this.playing = true;
-      if (this._playPauseBtn) this._playPauseBtn.userData.setLabel('Pause');
+      if (this._playPauseBtn) {
+        this._playPauseBtn.userData.setLabel('Pause');
+      }
     } else {
       this.video.pause();
       this.playing = false;
-      if (this._playPauseBtn) this._playPauseBtn.userData.setLabel('Play');
+      if (this._playPauseBtn) {
+        this._playPauseBtn.userData.setLabel('Play');
+      }
     }
   }
 
   /** Per-frame: keep the sphere(s) centred on the head (translation only, so
    *  the viewer can look around the stationary video). */
   update() {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.camera.getWorldPosition(this._tmpVec);
-    for (const m of this.meshes) m.position.copy(this._tmpVec);
+    for (const m of this.meshes) {
+      m.position.copy(this._tmpVec);
+    }
   }
 
   /** Stop playback and remove everything from the scene. */
   stop() {
     for (const m of this.meshes) {
       this.scene.remove(m);
-      if (m.geometry) m.geometry.dispose();
-      if (m.material) m.material.dispose();
+      if (m.geometry) {
+        m.geometry.dispose();
+      }
+      if (m.material) {
+        m.material.dispose();
+      }
     }
     this.meshes = [];
 
-    for (const t of this._eyeTextures) t.dispose();
+    for (const t of this._eyeTextures) {
+      t.dispose();
+    }
     this._eyeTextures = [];
 
     if (this.controlPanel) {
@@ -241,20 +266,30 @@ export class ImmersiveVideo {
         this.unregisterInteractable(btn);
         // HUD buttons own a PlaneGeometry + MeshBasicMaterial each; without this
         // every play()/stop() cycle would leak them on the GPU.
-        if (btn.geometry) btn.geometry.dispose();
-        if (btn.material) btn.material.dispose();
+        if (btn.geometry) {
+          btn.geometry.dispose();
+        }
+        if (btn.material) {
+          btn.material.dispose();
+        }
       }
-      if (this.controlPanel.parent) this.controlPanel.parent.remove(this.controlPanel);
+      if (this.controlPanel.parent) {
+        this.controlPanel.parent.remove(this.controlPanel);
+      }
       this.controlPanel = null;
       this._playPauseBtn = null;
     }
-    for (const t of this._panelTextures) t.dispose();
+    for (const t of this._panelTextures) {
+      t.dispose();
+    }
     this._panelTextures = [];
 
     if (this.video) {
       this.video.pause();
       this.video.removeAttribute('src');
-      if (this.video.load) this.video.load();
+      if (this.video.load) {
+        this.video.load();
+      }
       this.video = null;
     }
     this.playing = false;

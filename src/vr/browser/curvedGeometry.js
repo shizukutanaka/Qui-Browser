@@ -84,6 +84,8 @@ export function buildCurvedPlaneGeometry(THREE, opts) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   geo.setIndex(new THREE.BufferAttribute(indices, 1));
-  if (geo.computeVertexNormals) geo.computeVertexNormals();
+  if (geo.computeVertexNormals) {
+    geo.computeVertexNormals();
+  }
   return geo;
 }

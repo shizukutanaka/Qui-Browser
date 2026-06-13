@@ -126,7 +126,9 @@ export class TabManager {
   // ── Strip interaction ─────────────────────────────────────────────────────
 
   _onStripSelect(intersectionPoint) {
-    if (!intersectionPoint) return;
+    if (!intersectionPoint) {
+      return;
+    }
     const local = this.stripMesh.worldToLocal(intersectionPoint.clone());
     const u = (local.x / STRIP_W) + 0.5;        // 0–1
     const px = Math.round(u * this.stripCanvas.width);
@@ -138,10 +140,14 @@ export class TabManager {
     }
 
     const n = this.tabs.length;
-    if (n === 0) return;
+    if (n === 0) {
+      return;
+    }
     const tabW = Math.min(220, (this.stripCanvas.width - newW) / n);
     const idx = Math.floor(px / tabW);
-    if (idx < 0 || idx >= n) return;
+    if (idx < 0 || idx >= n) {
+      return;
+    }
 
     // Close zone is the right ~30px of the tab.
     const withinTab = px - idx * tabW;
@@ -181,10 +187,14 @@ export class TabManager {
 
     this.tabs.push(panel);
     // New tabs inherit the current curved-screen preference.
-    if (this._curved && panel.setCurved) panel.setCurved(true);
+    if (this._curved && panel.setCurved) {
+      panel.setCurved(true);
+    }
     this.setActive(this.tabs.length - 1);
 
-    if (url) panel.navigate(url);
+    if (url) {
+      panel.navigate(url);
+    }
     this._drawStrip();
     return panel;
   }
@@ -194,7 +204,9 @@ export class TabManager {
    */
   closeTab(index) {
     const panel = this.tabs[index];
-    if (!panel) return;
+    if (!panel) {
+      return;
+    }
 
     panel.dispose();
     this.tabs.splice(index, 1);
@@ -212,7 +224,9 @@ export class TabManager {
    * Make the tab at index visible and hide all others.
    */
   setActive(index) {
-    if (index < 0 || index >= this.tabs.length) return;
+    if (index < 0 || index >= this.tabs.length) {
+      return;
+    }
     this.activeIndex = index;
     this.tabs.forEach((panel, i) => {
       if (i === index) {
@@ -241,7 +255,11 @@ export class TabManager {
    */
   setCurved(value) {
     this._curved = !!value;
-    this.tabs.forEach(panel => { if (panel.setCurved) panel.setCurved(this._curved); });
+    this.tabs.forEach(panel => {
+      if (panel.setCurved) {
+        panel.setCurved(this._curved);
+      }
+    });
     return this._curved;
   }
 
@@ -252,7 +270,11 @@ export class TabManager {
    */
   setSearchEngine(engine) {
     this.opts.searchEngine = engine;
-    this.tabs.forEach(panel => { if (panel.setSearchEngine) panel.setSearchEngine(engine); });
+    this.tabs.forEach(panel => {
+      if (panel.setSearchEngine) {
+        panel.setSearchEngine(engine);
+      }
+    });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -268,9 +290,13 @@ export class TabManager {
     this.activeIndex = -1;
 
     this.stripGroup.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
+      if (obj.geometry) {
+        obj.geometry.dispose();
+      }
       if (obj.material) {
-        if (obj.material.map) obj.material.map.dispose();
+        if (obj.material.map) {
+          obj.material.map.dispose();
+        }
         obj.material.dispose();
       }
     });

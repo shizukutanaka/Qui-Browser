@@ -173,29 +173,29 @@ export class MultiplayerSystem {
    */
   async handleSignaling(message) {
     switch (message.type) {
-      case 'peer-joined':
-        await this.handlePeerJoined(message.peerId);
-        break;
+    case 'peer-joined':
+      await this.handlePeerJoined(message.peerId);
+      break;
 
-      case 'peer-left':
-        this.handlePeerLeft(message.peerId);
-        break;
+    case 'peer-left':
+      this.handlePeerLeft(message.peerId);
+      break;
 
-      case 'offer':
-        await this.handleOffer(message);
-        break;
+    case 'offer':
+      await this.handleOffer(message);
+      break;
 
-      case 'answer':
-        await this.handleAnswer(message);
-        break;
+    case 'answer':
+      await this.handleAnswer(message);
+      break;
 
-      case 'ice-candidate':
-        await this.handleIceCandidate(message);
-        break;
+    case 'ice-candidate':
+      await this.handleIceCandidate(message);
+      break;
 
-      case 'room-full':
-        console.warn('MultiplayerSystem: Room is full');
-        break;
+    case 'room-full':
+      console.warn('MultiplayerSystem: Room is full');
+      break;
     }
   }
 
@@ -245,7 +245,9 @@ export class MultiplayerSystem {
     // Close and drop the peer connection.
     const pc = this.peers.get(peerId);
     if (pc) {
-      try { pc.close(); } catch (e) { /* already closed */ }
+      try {
+        pc.close();
+      } catch (e) { /* already closed */ }
       this.peers.delete(peerId);
       // The peer was counted as connected; keep the gauge from drifting.
       this.stats.connectedPeers = Math.max(0, this.stats.connectedPeers - 1);
@@ -254,7 +256,9 @@ export class MultiplayerSystem {
     // Close and drop the data channel.
     const channel = this.dataChannels.get(peerId);
     if (channel) {
-      try { channel.close(); } catch (e) { /* already closed */ }
+      try {
+        channel.close();
+      } catch (e) { /* already closed */ }
       this.dataChannels.delete(peerId);
     }
 
@@ -272,7 +276,9 @@ export class MultiplayerSystem {
   /** Remove a peer's avatar from the scene and dispose its GPU resources. */
   removeAvatar(peerId) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
     this.scene.remove(avatar.group);
     this._disposeAvatar(avatar);
     this.avatars.delete(peerId);
@@ -280,12 +286,19 @@ export class MultiplayerSystem {
 
   /** Dispose all geometries/materials under an avatar group. */
   _disposeAvatar(avatar) {
-    if (!avatar || !avatar.group) return;
+    if (!avatar || !avatar.group) {
+      return;
+    }
     avatar.group.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
+      if (obj.geometry) {
+        obj.geometry.dispose();
+      }
       if (obj.material) {
-        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-        else obj.material.dispose();
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(m => m.dispose());
+        } else {
+          obj.material.dispose();
+        }
       }
     });
   }
@@ -394,41 +407,41 @@ export class MultiplayerSystem {
    */
   handleDataMessage(peerId, message) {
     switch (message.type) {
-      case 'player-info':
-        this.updatePlayerInfo(peerId, message.data);
-        break;
+    case 'player-info':
+      this.updatePlayerInfo(peerId, message.data);
+      break;
 
-      case 'position':
-        this.updateAvatarPosition(peerId, message.data);
-        break;
+    case 'position':
+      this.updateAvatarPosition(peerId, message.data);
+      break;
 
-      case 'rotation':
-        this.updateAvatarRotation(peerId, message.data);
-        break;
+    case 'rotation':
+      this.updateAvatarRotation(peerId, message.data);
+      break;
 
-      case 'hand-pose':
-        this.updateHandPose(peerId, message.data);
-        break;
+    case 'hand-pose':
+      this.updateHandPose(peerId, message.data);
+      break;
 
-      case 'gesture':
-        this.handleRemoteGesture(peerId, message.data);
-        break;
+    case 'gesture':
+      this.handleRemoteGesture(peerId, message.data);
+      break;
 
-      case 'voice':
-        this.handleVoiceData(peerId, message.data);
-        break;
+    case 'voice':
+      this.handleVoiceData(peerId, message.data);
+      break;
 
-      case 'action':
-        this.handleRemoteAction(peerId, message.data);
-        break;
+    case 'action':
+      this.handleRemoteAction(peerId, message.data);
+      break;
 
-      case 'ping':
-        this.sendToPeer(peerId, { type: 'pong', timestamp: message.timestamp });
-        break;
+    case 'ping':
+      this.sendToPeer(peerId, { type: 'pong', timestamp: message.timestamp });
+      break;
 
-      case 'pong':
-        this.updateLatency(peerId, message.timestamp);
-        break;
+    case 'pong':
+      this.updateLatency(peerId, message.timestamp);
+      break;
     }
   }
 
@@ -455,7 +468,9 @@ export class MultiplayerSystem {
   }
 
   getLocalPlayerInfo() {
-    if (!this.localPlayer) return {};
+    if (!this.localPlayer) {
+      return {};
+    }
     const p = this.localPlayer;
     return {
       id: p.id,
@@ -499,7 +514,9 @@ export class MultiplayerSystem {
    * Broadcast local position
    */
   broadcastPosition() {
-    if (!this.localPlayer) return;
+    if (!this.localPlayer) {
+      return;
+    }
 
     const message = {
       type: 'position',
@@ -518,7 +535,9 @@ export class MultiplayerSystem {
    * Broadcast local rotation
    */
   broadcastRotation() {
-    if (!this.localPlayer) return;
+    if (!this.localPlayer) {
+      return;
+    }
 
     const message = {
       type: 'rotation',
@@ -538,7 +557,9 @@ export class MultiplayerSystem {
    * Create or update avatar for peer
    */
   createAvatar(peerId, info) {
-    if (this.avatars.has(peerId)) return;
+    if (this.avatars.has(peerId)) {
+      return;
+    }
 
     // Create avatar mesh
     const geometry = new THREE.CapsuleGeometry(0.3, 1.2, 4, 8);
@@ -600,7 +621,9 @@ export class MultiplayerSystem {
    */
   updateAvatarPosition(peerId, data) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     if (this.interpolation.enabled) {
       // Store interpolation targets
@@ -620,7 +643,9 @@ export class MultiplayerSystem {
    */
   updateAvatarRotation(peerId, data) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     if (this.interpolation.enabled) {
       // Store interpolation targets
@@ -638,7 +663,9 @@ export class MultiplayerSystem {
    */
   updateHandPose(peerId, data) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     if (data.hand === 'left' && avatar.hands.left) {
       avatar.hands.left.position.set(data.position.x, data.position.y, data.position.z);
@@ -653,7 +680,9 @@ export class MultiplayerSystem {
    * Update frame - interpolate avatar positions
    */
   update(deltaTime) {
-    if (!this.interpolation.enabled) return;
+    if (!this.interpolation.enabled) {
+      return;
+    }
 
     this.avatars.forEach((avatar, peerId) => {
       if (avatar.interpolation.progress < 1) {
@@ -748,7 +777,9 @@ export class MultiplayerSystem {
    */
   handleRemoteGesture(peerId, gesture) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     // Visual feedback for gesture
     console.debug(`MultiplayerSystem: ${peerId} performed ${gesture.type}`);

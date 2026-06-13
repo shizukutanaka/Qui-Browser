@@ -74,12 +74,12 @@ export async function initSentry() {
       // Performance monitoring
       integrations: [
         new BrowserTracing({
-          tracePropagationTargets: [location.origin, /^\/api\//],
+          tracePropagationTargets: [location.origin, /^\/api\//]
         }),
         new Replay({
           maskAllText: true,
-          blockAllMedia: true,
-        }),
+          blockAllMedia: true
+        })
       ],
 
       // Sampling rates
@@ -131,7 +131,9 @@ export async function initSentry() {
  * Capture custom error
  */
 export function captureError(error, context = {}) {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
   // A synchronous try/catch cannot catch a rejected dynamic import; attach
   // a .catch() so a failed Sentry load is logged rather than surfacing as an
@@ -151,7 +153,9 @@ export function captureError(error, context = {}) {
  * Capture custom message
  */
 export function captureMessage(message, level = 'info', context = {}) {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
   import(/* @vite-ignore */ '@sentry/browser')
     .then(({ captureMessage: sentryCapture }) => {
@@ -187,9 +191,11 @@ export function initGoogleAnalytics() {
 
     // Initialize gtag
     window.dataLayer = window.dataLayer || [];
-    function gtag() {
+    // Function expression (not a declaration) to satisfy no-inner-declarations;
+    // gtag relies on `arguments`, so it stays a regular function.
+    const gtag = function gtag() {
       window.dataLayer.push(arguments);
-    }
+    };
     window.gtag = gtag;
 
     gtag('js', new Date());
@@ -210,7 +216,9 @@ export function initGoogleAnalytics() {
  * Track custom event
  */
 export function trackEvent(eventName, parameters = {}) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) return;
+  if (!MONITORING_CONFIG.enabled || !window.gtag) {
+    return;
+  }
 
   try {
     window.gtag('event', eventName, {
@@ -226,7 +234,9 @@ export function trackEvent(eventName, parameters = {}) {
  * Track page view
  */
 export function trackPageView(path, title) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) return;
+  if (!MONITORING_CONFIG.enabled || !window.gtag) {
+    return;
+  }
 
   try {
     window.gtag('config', MONITORING_CONFIG.analytics.measurementId, {
@@ -390,7 +400,9 @@ export function trackInteraction(type, details = {}) {
  * Report performance summary
  */
 export function reportPerformanceSummary() {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
   const summary = {
     avgFPS: calculateAverage(performanceMetrics.fps.map(m => m.value)),
@@ -411,7 +423,9 @@ export function reportPerformanceSummary() {
  * Calculate average
  */
 function calculateAverage(values) {
-  if (values.length === 0) return 0;
+  if (values.length === 0) {
+    return 0;
+  }
   return values.reduce((sum, val) => sum + val, 0) / values.length;
 }
 

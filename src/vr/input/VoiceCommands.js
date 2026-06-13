@@ -263,7 +263,7 @@ export class VoiceCommands {
         }
 
       } catch (error) {
-        console.error(`VoiceCommands: Command execution failed`, error);
+        console.error('VoiceCommands: Command execution failed', error);
         this.stats.commandsFailed++;
         this.speak('コマンドの実行に失敗しました'); // "Command execution failed"
       }
@@ -527,7 +527,9 @@ export class VoiceCommands {
       patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
       action: () => {
         const frame = tabManager?.getActiveTab?.()?.iframe;
-        try { frame?.contentWindow?.scrollBy(0, 300); } catch (_) { /* cross-origin */ }
+        try {
+          frame?.contentWindow?.scrollBy(0, 300);
+        } catch (_) { /* cross-origin */ }
         return { action: 'scroll', direction: 'down' };
       },
       description: 'Scroll down'
@@ -537,7 +539,9 @@ export class VoiceCommands {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
       action: () => {
         const frame = tabManager?.getActiveTab?.()?.iframe;
-        try { frame?.contentWindow?.scrollBy(0, -300); } catch (_) { /* cross-origin */ }
+        try {
+          frame?.contentWindow?.scrollBy(0, -300);
+        } catch (_) { /* cross-origin */ }
         return { action: 'scroll', direction: 'up' };
       },
       description: 'Scroll up'
@@ -617,7 +621,9 @@ export class VoiceCommands {
    * Speak text (TTS)
    */
   speak(text, options = {}) {
-    if (!this.synthesis) return;
+    if (!this.synthesis) {
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = options.lang || this.language;

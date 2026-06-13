@@ -40,12 +40,14 @@ export class AvatarSystem {
    * @param {MediaStream} mediaStream — the peer's remote audio track stream
    */
   setPeerVoiceStream(peerId, mediaStream) {
-    if (!this.spatialAudio) return;
+    if (!this.spatialAudio) {
+      return;
+    }
     const avatar = this.avatars.get(peerId);
     const pos = avatar
       ? { x: avatar.group.position.x,
-          y: avatar.group.position.y,
-          z: avatar.group.position.z }
+        y: avatar.group.position.y,
+        z: avatar.group.position.z }
       : { x: 0, y: 0, z: 0 };
     this.spatialAudio.createVoiceSource(peerId, mediaStream, pos);
   }
@@ -100,7 +102,9 @@ export class AvatarSystem {
     this.scene.add(group);
     this.avatars.set(peerId, { group, head, leftHand, rightHand });
 
-    if (label) this._updateLabel(peerId, label);
+    if (label) {
+      this._updateLabel(peerId, label);
+    }
   }
 
   /**
@@ -108,21 +112,31 @@ export class AvatarSystem {
    */
   removePeer(peerId) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     this.scene.remove(avatar.group);
     avatar.group.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
+      if (obj.geometry) {
+        obj.geometry.dispose();
+      }
       if (obj.material) {
-        if (obj.material.map) obj.material.map.dispose();
+        if (obj.material.map) {
+          obj.material.map.dispose();
+        }
         obj.material.dispose();
       }
     });
-    if (avatar._labelTex) avatar._labelTex.dispose();
+    if (avatar._labelTex) {
+      avatar._labelTex.dispose();
+    }
     this.avatars.delete(peerId);
 
     // FR-7.2: release the spatial voice source for this peer.
-    if (this.spatialAudio) this.spatialAudio.removeVoiceSource(peerId);
+    if (this.spatialAudio) {
+      this.spatialAudio.removeVoiceSource(peerId);
+    }
   }
 
   // ── Pose updates ──────────────────────────────────────────────────────────
@@ -136,13 +150,19 @@ export class AvatarSystem {
    */
   updatePeerPose(peerId, pose) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar) return;
+    if (!avatar) {
+      return;
+    }
 
     if (pose.head) {
       const p = pose.head.position;
       const q = pose.head.quaternion;
-      if (p) avatar.group.position.set(p.x, p.y, p.z);
-      if (q) avatar.group.quaternion.set(q.x, q.y, q.z, q.w);
+      if (p) {
+        avatar.group.position.set(p.x, p.y, p.z);
+      }
+      if (q) {
+        avatar.group.quaternion.set(q.x, q.y, q.z, q.w);
+      }
 
       // FR-7.2: keep the spatial voice panner in sync with the avatar head.
       if (p && this.spatialAudio) {
@@ -177,7 +197,9 @@ export class AvatarSystem {
 
   _updateLabel(peerId, label) {
     const avatar = this.avatars.get(peerId);
-    if (!avatar || !label) return;
+    if (!avatar || !label) {
+      return;
+    }
 
     // Remove old label if present, freeing its texture/material first so
     // repeated label updates don't leak VRAM.
@@ -185,11 +207,15 @@ export class AvatarSystem {
     if (existing) {
       avatar.group.remove(existing);
       if (existing.material) {
-        if (existing.material.map) existing.material.map.dispose();
+        if (existing.material.map) {
+          existing.material.map.dispose();
+        }
         existing.material.dispose();
       }
     }
-    if (avatar._labelTex) avatar._labelTex.dispose();
+    if (avatar._labelTex) {
+      avatar._labelTex.dispose();
+    }
 
     // Canvas-texture label floating above the head.
     const canvas = document.createElement('canvas');

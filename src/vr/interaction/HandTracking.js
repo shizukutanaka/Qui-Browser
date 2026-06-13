@@ -144,7 +144,9 @@ export class HandTracking {
    * Update hand tracking
    */
   update(frame, referenceSpace) {
-    if (!this.enabled || !frame || !frame.session) return;
+    if (!this.enabled || !frame || !frame.session) {
+      return;
+    }
 
     this.stats.framesTracked++;
 
@@ -164,7 +166,9 @@ export class HandTracking {
    */
   updateHand(frame, inputSource, referenceSpace) {
     const handedness = inputSource.handedness;
-    if (!handedness || handedness === 'none') return;
+    if (!handedness || handedness === 'none') {
+      return;
+    }
 
     const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
     const joints = this.joints[handedness];
@@ -172,10 +176,14 @@ export class HandTracking {
     // Update each joint
     for (const jointName of this.jointNames) {
       const joint = inputSource.hand.get(jointName);
-      if (!joint) continue;
+      if (!joint) {
+        continue;
+      }
 
       const jointPose = frame.getJointPose(joint, referenceSpace);
-      if (!jointPose) continue;
+      if (!jointPose) {
+        continue;
+      }
 
       // Update joint position
       const jointMesh = joints.get(jointName);
@@ -214,7 +222,9 @@ export class HandTracking {
   recognizeGestures() {
     ['left', 'right'].forEach(handedness => {
       const joints = this.joints[handedness];
-      if (joints.size === 0) return;
+      if (joints.size === 0) {
+        return;
+      }
 
       const gesture = this.detectGesture(joints);
 
@@ -237,7 +247,9 @@ export class HandTracking {
     const pinkyTip = joints.get('pinky-finger-tip');
     const wrist = joints.get('wrist');
 
-    if (!thumbTip || !indexTip || !wrist) return 'none';
+    if (!thumbTip || !indexTip || !wrist) {
+      return 'none';
+    }
 
     // Pinch detection
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
@@ -298,7 +310,9 @@ export class HandTracking {
     const tip = joints.get(`${fingerName}-tip`);
     const wrist = joints.get('wrist');
 
-    if (!metacarpal || !tip || !wrist) return false;
+    if (!metacarpal || !tip || !wrist) {
+      return false;
+    }
 
     // Finger is extended if tip is far from wrist
     const tipDistance = tip.position.distanceTo(wrist.position);
@@ -315,7 +329,9 @@ export class HandTracking {
     const thumbProximal = joints.get('thumb-phalanx-proximal');
     const wrist = joints.get('wrist');
 
-    if (!thumbTip || !thumbProximal || !wrist) return false;
+    if (!thumbTip || !thumbProximal || !wrist) {
+      return false;
+    }
 
     // Thumb should be pointing up (positive Y)
     const thumbVector = new THREE.Vector3()
@@ -353,7 +369,9 @@ export class HandTracking {
     const thumbTip = joints.get('thumb-tip');
     const indexTip = joints.get('index-finger-tip');
 
-    if (!thumbTip || !indexTip) return null;
+    if (!thumbTip || !indexTip) {
+      return null;
+    }
 
     // Return midpoint between thumb and index
     return new THREE.Vector3()
@@ -369,7 +387,9 @@ export class HandTracking {
     const indexTip = joints.get('index-finger-tip');
     const indexProximal = joints.get('index-finger-phalanx-proximal');
 
-    if (!indexTip || !indexProximal) return null;
+    if (!indexTip || !indexProximal) {
+      return null;
+    }
 
     const origin = indexProximal.position.clone();
     const direction = new THREE.Vector3()
@@ -427,16 +447,24 @@ export class HandTracking {
     if (this.leftHand) {
       this.scene.remove(this.leftHand);
       this.leftHand.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          child.material.dispose();
+        }
       });
     }
 
     if (this.rightHand) {
       this.scene.remove(this.rightHand);
       this.rightHand.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          child.material.dispose();
+        }
       });
     }
 

@@ -120,7 +120,9 @@ export class ComfortSystem {
    * Update comfort system each frame
    */
   update(deltaTime) {
-    if (!this.camera) return;
+    if (!this.camera) {
+      return;
+    }
 
     // Detect movement
     this.detectMotion();
@@ -274,7 +276,9 @@ export class ComfortSystem {
     };
 
     const presetSettings = presets[preset];
-    if (!presetSettings) return;
+    if (!presetSettings) {
+      return;
+    }
 
     // Apply preset settings
     Object.assign(this.settings.vignette, presetSettings.vignette);

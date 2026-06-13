@@ -44,11 +44,21 @@ export class ObjectPool {
     if (!obj.reset) {
       obj.reset = () => {
         // Default reset: clear common properties
-        if (obj.position) obj.position.set(0, 0, 0);
-        if (obj.rotation) obj.rotation.set(0, 0, 0);
-        if (obj.scale) obj.scale.set(1, 1, 1);
-        if (obj.visible !== undefined) obj.visible = true;
-        if (obj.userData) obj.userData = {};
+        if (obj.position) {
+          obj.position.set(0, 0, 0);
+        }
+        if (obj.rotation) {
+          obj.rotation.set(0, 0, 0);
+        }
+        if (obj.scale) {
+          obj.scale.set(1, 1, 1);
+        }
+        if (obj.visible !== undefined) {
+          obj.visible = true;
+        }
+        if (obj.userData) {
+          obj.userData = {};
+        }
       };
     }
 
@@ -166,7 +176,9 @@ export class ObjectPool {
 
     for (let i = 0; i < toRemove; i++) {
       const obj = this.available.pop();
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
       this.totalCreated--;
     }
 
@@ -181,12 +193,16 @@ export class ObjectPool {
   dispose() {
     // Dispose all available objects
     for (const obj of this.available) {
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
     }
 
     // Dispose all in-use objects
     for (const obj of this.inUse) {
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
     }
 
     this.available = [];
@@ -293,7 +309,9 @@ export class PoolManager {
    * Start monitoring all pools
    */
   startMonitoring(interval = 5000) {
-    if (this.monitoring) return;
+    if (this.monitoring) {
+      return;
+    }
 
     this.monitoring = true;
     this.monitorInterval = setInterval(() => {

@@ -142,7 +142,9 @@ export class FFRSystem {
    * updatePredictedGazeFoveation().
    */
   adjustIntensity(delta) {
-    if (!this.enabled || !this.projectionLayer) return;
+    if (!this.enabled || !this.projectionLayer) {
+      return;
+    }
     this.intensity = Math.max(0, Math.min(1, this.intensity + delta));
     this.projectionLayer.fixedFoveation = this.intensity;
   }
@@ -177,7 +179,9 @@ export class FFRSystem {
       this.predictedGazeEnabled = true;
     }
     // Mutate the stored quaternion in place to avoid a per-frame allocation.
-    if (!this._prevHeadQuat) this._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+    if (!this._prevHeadQuat) {
+      this._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+    }
     this._prevHeadQuat.x = quat.x;
     this._prevHeadQuat.y = quat.y;
     this._prevHeadQuat.z = quat.z;
@@ -192,7 +196,9 @@ export class FFRSystem {
    * Intended to be called after trackHeadPose() in the same frame.
    */
   updatePredictedGazeFoveation() {
-    if (!this.predictedGazeEnabled || !this.projectionLayer) return;
+    if (!this.predictedGazeEnabled || !this.projectionLayer) {
+      return;
+    }
 
     const SLOW = 0.05;  // rad/s — below this: fixating
     const FAST = 0.50;  // rad/s — above this: scanning

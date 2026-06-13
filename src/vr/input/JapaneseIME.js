@@ -732,7 +732,9 @@ export class VRJapaneseKeyboard {
    * current input mode.  Called whenever the mode changes.
    */
   _refreshKeyStates() {
-    if (!this.keyMeshes || !this.ime) return;
+    if (!this.keyMeshes || !this.ime) {
+      return;
+    }
     const katakanaActive = this.ime.inputMode === 'katakana';
     for (const { mesh, label } of this.keyMeshes) {
       if (label === 'shift') {
@@ -750,12 +752,20 @@ export class VRJapaneseKeyboard {
    * Safe to call even if no candidates are showing.
    */
   _clearCandidates() {
-    if (!this._candidatesGroup) return;
+    if (!this._candidatesGroup) {
+      return;
+    }
     for (const { mesh } of this._candidateMeshes) {
-      if (this.unregisterInteractable) this.unregisterInteractable(mesh);
-      if (mesh.geometry) mesh.geometry.dispose();
+      if (this.unregisterInteractable) {
+        this.unregisterInteractable(mesh);
+      }
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
       if (mesh.material) {
-        if (mesh.material.map) mesh.material.map.dispose();
+        if (mesh.material.map) {
+          mesh.material.map.dispose();
+        }
         mesh.material.dispose();
       }
       this._candidatesGroup.remove(mesh);
@@ -901,7 +911,9 @@ export class VRJapaneseKeyboard {
    * @param {string[]} candidates
    */
   showCandidates(candidates) {
-    if (!this.group || !candidates || candidates.length === 0) return;
+    if (!this.group || !candidates || candidates.length === 0) {
+      return;
+    }
 
     this._clearCandidates();
 

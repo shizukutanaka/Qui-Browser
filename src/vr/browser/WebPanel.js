@@ -41,7 +41,7 @@ export class WebPanel {
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
-                onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark }) {
+    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -227,7 +227,9 @@ export class WebPanel {
   // ── Interaction ───────────────────────────────────────────────────────────
 
   _onChromeSelect(intersectionPoint) {
-    if (!intersectionPoint) return;
+    if (!intersectionPoint) {
+      return;
+    }
     // Map intersection point on the mesh to canvas UV.
     // chromeMesh is PANEL_W × (PANEL_H * CHROME_H) centred at chromeMesh.position.
     const local = this.chromeMesh.worldToLocal(intersectionPoint.clone());
@@ -253,11 +255,17 @@ export class WebPanel {
     } else {                  // URL bar — request text input
       const prefill = this.currentUrl || 'https://';
       if (this.onUrlInputRequested) {
-        this.onUrlInputRequested(prefill, (url) => { if (url) this.navigate(url); });
+        this.onUrlInputRequested(prefill, (url) => {
+          if (url) {
+            this.navigate(url);
+          }
+        });
       } else {
         // Fallback: synchronous prompt (only available outside immersive VR).
         const url = window.prompt('Enter URL', prefill);
-        if (url) this.navigate(url);
+        if (url) {
+          this.navigate(url);
+        }
       }
     }
   }
@@ -280,7 +288,9 @@ export class WebPanel {
     // becomes https://…; anything else becomes a search query. Dangerous
     // schemes (javascript:, data:, file:) resolve to null and are ignored.
     const resolved = resolveInput(url, { searchEngine: this.searchEngine });
-    if (!resolved) return;
+    if (!resolved) {
+      return;
+    }
     url = resolved;
 
     // Trim forward history and push new entry.
@@ -303,7 +313,9 @@ export class WebPanel {
       this.loading = false;
       this._loadError = false;
       let title = url;
-      try { title = this.iframe.contentDocument.title || url; } catch {}
+      try {
+        title = this.iframe.contentDocument.title || url;
+      } catch { /* cross-origin frame: keep the URL as the title */ }
       this.currentTitle = title;
       this._drawChrome();
       this.onNavigate(url, title);
@@ -330,7 +342,9 @@ export class WebPanel {
   }
 
   reload() {
-    if (this.currentUrl) this._loadUrl(this.currentUrl);
+    if (this.currentUrl) {
+      this._loadUrl(this.currentUrl);
+    }
   }
 
   // ── DOM-overlay integration ───────────────────────────────────────────────
@@ -362,17 +376,23 @@ export class WebPanel {
    * @param {LayersSystem} layersSystem  — the owning LayersSystem instance
    */
   enableLayerMode(quadLayer, layersSystem) {
-    if (!quadLayer || !layersSystem) return;
+    if (!quadLayer || !layersSystem) {
+      return;
+    }
     this.quadLayer    = quadLayer;
     this.layersSystem = layersSystem;
     // Hide the Three.js chrome mesh — the runtime composites the layer instead.
-    if (this.chromeMesh) this.chromeMesh.visible = false;
+    if (this.chromeMesh) {
+      this.chromeMesh.visible = false;
+    }
     this._layerDirty = true;
   }
 
   /** Revert to the standard Three.js mesh path (e.g. on session end). */
   disableLayerMode() {
-    if (this.chromeMesh) this.chromeMesh.visible = true;
+    if (this.chromeMesh) {
+      this.chromeMesh.visible = true;
+    }
     this.quadLayer    = null;
     this.layersSystem = null;
   }
@@ -385,7 +405,9 @@ export class WebPanel {
    * @param {XRView[]} views
    */
   updateLayer(frame, views) {
-    if (!this.quadLayer || !this.layersSystem || !this._layerDirty) return;
+    if (!this.quadLayer || !this.layersSystem || !this._layerDirty) {
+      return;
+    }
     this.layersSystem.renderCanvasToLayer(
       this.quadLayer, this.chromeCanvas, frame, views
     );
@@ -409,7 +431,9 @@ export class WebPanel {
 
   setCurved(value, radius = this.curveRadius) {
     value = !!value;
-    if (value === this.curved || !this.contentMesh) return this.curved;
+    if (value === this.curved || !this.contentMesh) {
+      return this.curved;
+    }
     this.curved = value;
     this.curveRadius = radius;
 
@@ -425,7 +449,9 @@ export class WebPanel {
     } else {
       this.contentMesh.geometry = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
     }
-    if (oldGeo && oldGeo.dispose) oldGeo.dispose();
+    if (oldGeo && oldGeo.dispose) {
+      oldGeo.dispose();
+    }
     return this.curved;
   }
 
@@ -452,9 +478,13 @@ export class WebPanel {
     this.unregisterInteractable(this.chromeMesh);
 
     this.group.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
+      if (obj.geometry) {
+        obj.geometry.dispose();
+      }
       if (obj.material) {
-        if (obj.material.map) obj.material.map.dispose();
+        if (obj.material.map) {
+          obj.material.map.dispose();
+        }
         obj.material.dispose();
       }
     });

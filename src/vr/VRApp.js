@@ -188,14 +188,22 @@ export class VRApp {
    */
   loadPersistedSettings() {
     try {
-      if (typeof localStorage === 'undefined') return {};
+      if (typeof localStorage === 'undefined') {
+        return {};
+      }
       const raw = localStorage.getItem(SETTINGS_KEY);
-      if (!raw) return {};
+      if (!raw) {
+        return {};
+      }
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') return {};
+      if (!parsed || typeof parsed !== 'object') {
+        return {};
+      }
       const allowed = {};
       for (const key of Object.keys(this.settings)) {
-        if (key in parsed) allowed[key] = parsed[key];
+        if (key in parsed) {
+          allowed[key] = parsed[key];
+        }
       }
       return allowed;
     } catch (e) {
@@ -210,7 +218,9 @@ export class VRApp {
    */
   saveSettings() {
     try {
-      if (typeof localStorage === 'undefined') return;
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
     } catch (e) {
       console.warn('VRApp: failed to persist settings', e);
@@ -333,7 +343,9 @@ export class VRApp {
         onToggleBookmark: (url, title) => this.bookmarks.toggleBookmark(url, title)
       });
       this.tabManager.addToScene();
-      if (this.settings.enableCurvedPanel) this.tabManager.setCurved(true);
+      if (this.settings.enableCurvedPanel) {
+        this.tabManager.setCurved(true);
+      }
       this.tabManager.newTab(); // start with one blank tab
       // Convenience alias: the active tab's panel.
       this.webPanel = this.tabManager.getActiveTab();
@@ -347,7 +359,9 @@ export class VRApp {
         store: this.bookmarks,
         onSelect: (url) => {
           const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
-          if (active) active.navigate(url);
+          if (active) {
+            active.navigate(url);
+          }
         }
       });
       this.bookmarkPanel.addToScene();
@@ -400,7 +414,9 @@ export class VRApp {
       onSelect: () => {
         const value = !this.settings[key];
         this.updateSetting(key, value); // flips + persists (FR-9.1)
-        if (apply) apply(value);
+        if (apply) {
+          apply(value);
+        }
         draw(true);
       },
       onHover: () => draw(true),
@@ -451,7 +467,9 @@ export class VRApp {
       onSelect: () => {
         const value = !this.settings[key];
         this.updateSetting(key, value);
-        if (apply) apply(value);
+        if (apply) {
+          apply(value);
+        }
         draw(true);
       },
       onHover: () => draw(true),
@@ -473,7 +491,9 @@ export class VRApp {
    * @param {number} [opts.duration=4000]  milliseconds before auto-dismiss
    */
   showVRToast(message, { type = 'error', duration = 4000 } = {}) {
-    if (!this.xrSession || !this.camera) return;
+    if (!this.xrSession || !this.camera) {
+      return;
+    }
 
     const W = 512, H = 80;
     const canvas = document.createElement('canvas');
@@ -554,7 +574,11 @@ export class VRApp {
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
-      onSelect: () => { if (onSelect) onSelect(); draw(true); },
+      onSelect: () => {
+        if (onSelect) {
+          onSelect();
+        } draw(true);
+      },
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
@@ -614,7 +638,9 @@ export class VRApp {
       const next = stepValue(this.settings[key], delta, { min, max, step });
       if (next !== this.settings[key]) {
         this.updateSetting(key, next); // persists (FR-9.1)
-        if (apply) apply(next);
+        if (apply) {
+          apply(next);
+        }
       }
       draw(true);
     };
@@ -693,7 +719,9 @@ export class VRApp {
         const idx = options.indexOf(this.settings[key]);
         const next = options[(idx + 1) % options.length];
         this.updateSetting(key, next);
-        if (apply) apply(next);
+        if (apply) {
+          apply(next);
+        }
         draw(true);
       },
       onHover: () => draw(true),
@@ -716,23 +744,34 @@ export class VRApp {
       ['Smooth Move', 'enableSmoothMove', null],
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
-        if (this.ffrSystem) { v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable(); }
+        if (this.ffrSystem) {
+          v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
+        }
       }],
       ['Gaze Select', 'enableGazeDwell', (v) => {
-        if (this.gazeInteraction) this.gazeInteraction.setEnabled(v);
+        if (this.gazeInteraction) {
+          this.gazeInteraction.setEnabled(v);
+        }
       }],
       ['Captions', 'enableCaptions', (v) => {
         if (this.captionSystem) {
           this.captionSystem.setEnabled(v);
-          if (v) this.captionSystem.show('Captions enabled');
+          if (v) {
+            this.captionSystem.show('Captions enabled');
+          }
         }
       }],
       ['Follow View', 'enableWindowFollow', (v) => {
-        if (this.windowManager) this.windowManager.setFollow(v);
+        if (this.windowManager) {
+          this.windowManager.setFollow(v);
+        }
       }],
       ['Curved', 'enableCurvedPanel', (v) => {
-        if (this.tabManager) this.tabManager.setCurved(v);
-        else if (this.webPanel && this.webPanel.setCurved) this.webPanel.setCurved(v);
+        if (this.tabManager) {
+          this.tabManager.setCurved(v);
+        } else if (this.webPanel && this.webPanel.setCurved) {
+          this.webPanel.setCurved(v);
+        }
       }]
     ];
 
@@ -742,11 +781,19 @@ export class VRApp {
       ['Move Speed', 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
       ['Gaze Time', 'gazeDwellTime', {
         min: 500, max: 3000, step: 250, unit: 'ms',
-        apply: (v) => { if (this.gazeInteraction) this.gazeInteraction.dwellTime = v; }
+        apply: (v) => {
+          if (this.gazeInteraction) {
+            this.gazeInteraction.dwellTime = v;
+          }
+        }
       }],
       ['Panel Dist', 'windowDistance', {
         min: 0.6, max: 6.0, step: 0.2, unit: ' m',
-        apply: (v) => { if (this.windowManager) this.windowManager.setDistance(v); }
+        apply: (v) => {
+          if (this.windowManager) {
+            this.windowManager.setDistance(v);
+          }
+        }
       }]
     ];
 
@@ -755,11 +802,15 @@ export class VRApp {
     const SEARCH_ENGINES  = ['duckduckgo', 'google', 'bing', 'ecosia'];
     const cycles = [
       ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
-        if (this.comfortSystem) this.comfortSystem.setPreset(v);
+        if (this.comfortSystem) {
+          this.comfortSystem.setPreset(v);
+        }
       }],
       ['Search', 'searchEngine', SEARCH_ENGINES, (v) => {
-        if (this.tabManager) this.tabManager.setSearchEngine(v);
-      }],
+        if (this.tabManager) {
+          this.tabManager.setSearchEngine(v);
+        }
+      }]
     ];
 
     // Action buttons (non-toggle). Only shown when their target exists.
@@ -768,7 +819,9 @@ export class VRApp {
     actions.push(['360° Video', () => this._launchImmersiveVideo()]);
     if (this.settings.enableWebPanel) {
       actions.push(['Bookmarks', () => {
-        if (this.bookmarkPanel) this.bookmarkPanel.toggle();
+        if (this.bookmarkPanel) {
+          this.bookmarkPanel.toggle();
+        }
       }]);
     }
 
@@ -944,7 +997,9 @@ export class VRApp {
         distance: this.settings.windowDistance
       });
       const active = this.tabManager && this.tabManager.getActiveTab();
-      if (active && active.group) this.windowManager.attach(active.group);
+      if (active && active.group) {
+        this.windowManager.attach(active.group);
+      }
       this.windowManager.setFollow(this.settings.enableWindowFollow);
     }
   }
@@ -959,7 +1014,7 @@ export class VRApp {
     // Profile-aware, dead-zone-filtered controller input.
     this.controllerInput = new VRControllerInput({
       deadZone: this.settings.controllerDeadZone,
-      southpaw: this.settings.southpaw,
+      southpaw: this.settings.southpaw
     });
 
     // Shared ray line geometry (pointing down -Z from the controller).
@@ -1027,7 +1082,9 @@ export class VRApp {
   }
 
   onTeleportStart(controller) {
-    if (!this.settings.enableTeleport || !this.floorMesh) return;
+    if (!this.settings.enableTeleport || !this.floorMesh) {
+      return;
+    }
     this.teleport.active = true;
     this.teleport.controller = controller;
   }
@@ -1045,7 +1102,9 @@ export class VRApp {
     t.active = false;
     t.valid = false;
     t.controller = null;
-    if (t.marker) t.marker.visible = false;
+    if (t.marker) {
+      t.marker.visible = false;
+    }
   }
 
   /**
@@ -1055,7 +1114,9 @@ export class VRApp {
    * wired, since continuous motion is the main sickness trigger.)
    */
   updateLocomotion(dt = 0.016) {
-    if (!this.playerRig) return;
+    if (!this.playerRig) {
+      return;
+    }
 
     // Southpaw swaps which hand drives snap-turn (typically right) vs move (left).
     const turnHand  = this.settings.southpaw ? 'left'  : 'right';
@@ -1067,7 +1128,9 @@ export class VRApp {
     let smoothMoving = false;
     for (const controller of this.controllers) {
       const src = controller.userData.inputSource;
-      if (!src) continue;
+      if (!src) {
+        continue;
+      }
 
       // Use profile-aware axis reading with configured dead zone.
       const snap = this.controllerInput
@@ -1108,7 +1171,9 @@ export class VRApp {
     }
 
     // Engage the comfort vignette while continuously moving.
-    if (this.comfortSystem) this.comfortSystem.externalMotion = smoothMoving;
+    if (this.comfortSystem) {
+      this.comfortSystem.externalMotion = smoothMoving;
+    }
   }
 
   /**
@@ -1129,7 +1194,9 @@ export class VRApp {
    * Haptic click feedback is fired on any justPressed event.
    */
   updateButtonInput() {
-    if (!this.controllerInput) return;
+    if (!this.controllerInput) {
+      return;
+    }
 
     // Which hand is which depends on southpaw setting.
     const pointerHand = this.settings.southpaw ? 'left'  : 'right';
@@ -1137,7 +1204,9 @@ export class VRApp {
 
     for (const controller of this.controllers) {
       const src = controller.userData.inputSource;
-      if (!src) continue;
+      if (!src) {
+        continue;
+      }
 
       const snap = this.controllerInput.read(src);
       const hand = snap.hand;
@@ -1153,11 +1222,17 @@ export class VRApp {
         // Browser navigation — available only when a tab is open.
         const tab = this.tabManager?.getActiveTab();
         if (tab) {
-          if (btn.faceA?.justPressed) tab.goForward?.();
-          if (btn.faceB?.justPressed) tab.goBack?.();
+          if (btn.faceA?.justPressed) {
+            tab.goForward?.();
+          }
+          if (btn.faceB?.justPressed) {
+            tab.goBack?.();
+          }
         }
         // Recenter: snap the player rig back to the origin.
-        if (btn.thumbstickClick?.justPressed) this.recenter();
+        if (btn.thumbstickClick?.justPressed) {
+          this.recenter();
+        }
 
       } else if (hand === utilityHand) {
         // Toggle bookmarks/history panel.
@@ -1192,7 +1267,9 @@ export class VRApp {
   /** Per-frame teleport aiming: project the controller ray onto the floor. */
   updateTeleport() {
     const t = this.teleport;
-    if (!t.active || !t.controller || !this.floorMesh) return;
+    if (!t.active || !t.controller || !this.floorMesh) {
+      return;
+    }
     const hit = this.raycasterFromController(t.controller).intersectObject(this.floorMesh, false)[0];
     if (hit) {
       t.valid = true;
@@ -1203,7 +1280,9 @@ export class VRApp {
       }
     } else {
       t.valid = false;
-      if (t.marker) t.marker.visible = false;
+      if (t.marker) {
+        t.marker.visible = false;
+      }
     }
   }
 
@@ -1213,11 +1292,17 @@ export class VRApp {
    * can listen). Kept minimal until the interactable registry lands.
    */
   onControllerSelect(controller, isStart) {
-    if (!isStart || this.interactables.length === 0) return;
+    if (!isStart || this.interactables.length === 0) {
+      return;
+    }
     const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
-    if (!hit) return;
+    if (!hit) {
+      return;
+    }
     const handlers = hit.object.userData.interactable;
-    if (handlers && handlers.onSelect) handlers.onSelect({ intersection: hit, controller });
+    if (handlers && handlers.onSelect) {
+      handlers.onSelect({ intersection: hit, controller });
+    }
     // Also emit a DOM-style event for any external listeners.
     if (hit.object.dispatchEvent) {
       hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
@@ -1230,14 +1315,18 @@ export class VRApp {
    */
   registerInteractable(object, handlers = {}) {
     object.userData.interactable = handlers;
-    if (!this.interactables.includes(object)) this.interactables.push(object);
+    if (!this.interactables.includes(object)) {
+      this.interactables.push(object);
+    }
     return object;
   }
 
   /** Remove an interactable from the registry. */
   unregisterInteractable(object) {
     const i = this.interactables.indexOf(object);
-    if (i !== -1) this.interactables.splice(i, 1);
+    if (i !== -1) {
+      this.interactables.splice(i, 1);
+    }
   }
 
   /**
@@ -1245,12 +1334,16 @@ export class VRApp {
    * firing onHover/onHoverEnd as the hovered object changes.
    */
   updateHover() {
-    if (this.interactables.length === 0) return;
+    if (this.interactables.length === 0) {
+      return;
+    }
     for (const controller of this.controllers) {
       const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
       const obj = hit ? hit.object : null;
       const prev = controller.userData.hovered || null;
-      if (prev === obj) continue;
+      if (prev === obj) {
+        continue;
+      }
       if (prev && prev.userData.interactable && prev.userData.interactable.onHoverEnd) {
         prev.userData.interactable.onHoverEnd();
       }
@@ -1263,7 +1356,9 @@ export class VRApp {
 
   /** Return the player to the origin (useful after teleporting around). */
   recenter() {
-    if (!this.playerRig) return;
+    if (!this.playerRig) {
+      return;
+    }
     this.playerRig.position.set(0, 0, 0);
     this.playerRig.quaternion.identity();
     console.debug('VRApp: recentered');
@@ -1404,7 +1499,9 @@ export class VRApp {
       if (voiceReady) {
         // FR-13.1: caption recognized speech so it is visible in VR.
         this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-          if (isFinal && this.captionSystem) this.captionSystem.show(transcript);
+          if (isFinal && this.captionSystem) {
+            this.captionSystem.show(transcript);
+          }
         };
         // Replace window.* default commands with VR-aware implementations that
         // route navigation and search through the live TabManager.
@@ -1414,7 +1511,9 @@ export class VRApp {
           vrKeyboard:    this.vrKeyboard,
           onSearch: (query) => {
             const active = this.tabManager?.getActiveTab?.();
-            if (active) active.navigate(query);
+            if (active) {
+              active.navigate(query);
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
@@ -1616,7 +1715,9 @@ export class VRApp {
       const panels = this.tabManager
         ? this.tabManager.tabs
         : (this.webPanel ? [this.webPanel] : []);
-      for (const panel of panels) panel.disableLayerMode();
+      for (const panel of panels) {
+        panel.disableLayerMode();
+      }
       this.layersSystem.dispose();
       this.layersSystem = null;
     }
@@ -1631,7 +1732,9 @@ export class VRApp {
    */
   _attachLayersToPanels(session) {
     const refSpace = this.renderer.xr.getReferenceSpace();
-    if (!refSpace) return;
+    if (!refSpace) {
+      return;
+    }
 
     const panels = this.tabManager
       ? this.tabManager.tabs
@@ -1669,7 +1772,9 @@ export class VRApp {
     this.frameCount++;
 
     // Rich perf monitor — begin-frame timing.
-    if (this.perfMonitorUI) this.perfMonitorUI.beginFrame();
+    if (this.perfMonitorUI) {
+      this.perfMonitorUI.beginFrame();
+    }
 
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
     // resuming from background doesn't produce an enormous delta).
@@ -1690,7 +1795,9 @@ export class VRApp {
     this.updatePerformanceMonitor(frameTime);
 
     // Rich perf monitor — end-frame metrics + UI.
-    if (this.perfMonitorUI) this.perfMonitorUI.endFrame(this.renderer);
+    if (this.perfMonitorUI) {
+      this.perfMonitorUI.endFrame(this.renderer);
+    }
 
     // Dynamic quality adjustment (every 60 frames)
     if (this.frameCount % 60 === 0) {
@@ -1752,7 +1859,9 @@ export class VRApp {
         const panels = this.tabManager
           ? this.tabManager.tabs
           : (this.webPanel ? [this.webPanel] : []);
-        for (const panel of panels) panel.updateLayer(xrFrame, views);
+        for (const panel of panels) {
+          panel.updateLayer(xrFrame, views);
+        }
       }
     }
 
@@ -1783,7 +1892,9 @@ export class VRApp {
     }
 
     // Keep the immersive video sphere centred on the head while it plays.
-    if (this.immersiveVideo) this.immersiveVideo.update(dt);
+    if (this.immersiveVideo) {
+      this.immersiveVideo.update(dt);
+    }
 
     // Update scene objects using pools
     this.updateSceneWithPools();
@@ -1793,10 +1904,14 @@ export class VRApp {
    * Detect user motion (simplified)
    */
   detectMotion() {
-    if (!this.renderer.xr.isPresenting) return false;
+    if (!this.renderer.xr.isPresenting) {
+      return false;
+    }
 
     const session = this.renderer.xr.getSession();
-    if (!session) return false;
+    if (!session) {
+      return false;
+    }
 
     // In production, check controller velocity
     // For now, return false (stationary)
@@ -1807,7 +1922,9 @@ export class VRApp {
    * Example: Update scene using object pools
    */
   updateSceneWithPools() {
-    if (!this.poolManager) return;
+    if (!this.poolManager) {
+      return;
+    }
 
     // Example: Get temporary vectors from pool
     const vectorPool = this.poolManager.getPool('vector3');
@@ -1935,7 +2052,9 @@ export class VRApp {
     } else {
       // Desktop / non-VR fallback
       const url = window.prompt('Enter URL', prefill);
-      if (url) onConfirm(url);
+      if (url) {
+        onConfirm(url);
+      }
     }
   }
 
@@ -1946,7 +2065,9 @@ export class VRApp {
    */
   _launchImmersiveVideo() {
     this._requestVRKeyboardInput('https://', (url) => {
-      if (!url || !this.immersiveVideo) return;
+      if (!url || !this.immersiveVideo) {
+        return;
+      }
       this.immersiveVideo.play(url, detectVideoFormat(url));
     });
   }
@@ -2015,39 +2136,95 @@ export class VRApp {
     }
 
     // Dispose systems
-    if (this.comfortSystem) this.comfortSystem.dispose();
-    if (this.ffrSystem) this.ffrSystem.dispose();
-    if (this.textureManager) this.textureManager.dispose();
-    if (this.poolManager) this.poolManager.dispose();
-    if (this.vrKeyboard) { this.vrKeyboard.dispose(); this.vrKeyboard = null; }
-    else if (this.japaneseIME) { this.japaneseIME.dispose(); this.japaneseIME = null; }
-    if (this.handTracking) this.handTracking.dispose();
-    if (this.hapticFeedback) { this.hapticFeedback.enabled = false; this.hapticFeedback = null; }
-    if (this.gazeInteraction) this.gazeInteraction.dispose();
-    if (this.captionSystem) this.captionSystem.dispose();
-    if (this.spatialAudio) this.spatialAudio.dispose();
-    if (this.mixedReality) this.mixedReality.dispose();
-    if (this.progressiveLoader) this.progressiveLoader.dispose();
-    if (this.aiRecommendation) this.aiRecommendation.dispose();
-    if (this.voiceCommands) this.voiceCommands.dispose();
-    if (this.multiplayerSystem) this.multiplayerSystem.disconnect();
-    if (this.avatarSystem) this.avatarSystem.dispose();
-    if (this.windowManager) this.windowManager.dispose();
-    if (this.layersSystem) { this.layersSystem.dispose(); this.layersSystem = null; }
-    if (this.bookmarkPanel) { this.bookmarkPanel.dispose(); this.bookmarkPanel = null; }
-    if (this.immersiveVideo) { this.immersiveVideo.dispose(); this.immersiveVideo = null; }
-    if (this.tabManager) this.tabManager.dispose();
-    else if (this.webPanel) this.webPanel.dispose();
-    if (this.devTools) this.devTools.dispose();
-    if (this.perfMonitorUI) this.perfMonitorUI.dispose();
-    if (this.webGPURenderer && this.webGPURenderer.dispose) this.webGPURenderer.dispose();
-    if (this._homePanelTexture) this._homePanelTexture.dispose();
-    if (this._panelTextures) this._panelTextures.forEach((t) => t.dispose());
+    if (this.comfortSystem) {
+      this.comfortSystem.dispose();
+    }
+    if (this.ffrSystem) {
+      this.ffrSystem.dispose();
+    }
+    if (this.textureManager) {
+      this.textureManager.dispose();
+    }
+    if (this.poolManager) {
+      this.poolManager.dispose();
+    }
+    if (this.vrKeyboard) {
+      this.vrKeyboard.dispose(); this.vrKeyboard = null;
+    } else if (this.japaneseIME) {
+      this.japaneseIME.dispose(); this.japaneseIME = null;
+    }
+    if (this.handTracking) {
+      this.handTracking.dispose();
+    }
+    if (this.hapticFeedback) {
+      this.hapticFeedback.enabled = false; this.hapticFeedback = null;
+    }
+    if (this.gazeInteraction) {
+      this.gazeInteraction.dispose();
+    }
+    if (this.captionSystem) {
+      this.captionSystem.dispose();
+    }
+    if (this.spatialAudio) {
+      this.spatialAudio.dispose();
+    }
+    if (this.mixedReality) {
+      this.mixedReality.dispose();
+    }
+    if (this.progressiveLoader) {
+      this.progressiveLoader.dispose();
+    }
+    if (this.aiRecommendation) {
+      this.aiRecommendation.dispose();
+    }
+    if (this.voiceCommands) {
+      this.voiceCommands.dispose();
+    }
+    if (this.multiplayerSystem) {
+      this.multiplayerSystem.disconnect();
+    }
+    if (this.avatarSystem) {
+      this.avatarSystem.dispose();
+    }
+    if (this.windowManager) {
+      this.windowManager.dispose();
+    }
+    if (this.layersSystem) {
+      this.layersSystem.dispose(); this.layersSystem = null;
+    }
+    if (this.bookmarkPanel) {
+      this.bookmarkPanel.dispose(); this.bookmarkPanel = null;
+    }
+    if (this.immersiveVideo) {
+      this.immersiveVideo.dispose(); this.immersiveVideo = null;
+    }
+    if (this.tabManager) {
+      this.tabManager.dispose();
+    } else if (this.webPanel) {
+      this.webPanel.dispose();
+    }
+    if (this.devTools) {
+      this.devTools.dispose();
+    }
+    if (this.perfMonitorUI) {
+      this.perfMonitorUI.dispose();
+    }
+    if (this.webGPURenderer && this.webGPURenderer.dispose) {
+      this.webGPURenderer.dispose();
+    }
+    if (this._homePanelTexture) {
+      this._homePanelTexture.dispose();
+    }
+    if (this._panelTextures) {
+      this._panelTextures.forEach((t) => t.dispose());
+    }
 
     // Dispose Three.js
     this.renderer.dispose();
     this.scene.traverse(object => {
-      if (object.geometry) object.geometry.dispose();
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
       if (object.material) {
         if (Array.isArray(object.material)) {
           object.material.forEach(m => m.dispose());
@@ -2059,7 +2236,9 @@ export class VRApp {
 
     // Tear down monitoring side-effects (intervals + event listeners).
     // Called last so any final metrics can still be reported above.
-    try { disposeMonitoring(); } catch (_) {}
+    try {
+      disposeMonitoring();
+    } catch (_) { /* best-effort teardown; ignore */ }
 
     console.debug('VRApp: Disposed');
   }

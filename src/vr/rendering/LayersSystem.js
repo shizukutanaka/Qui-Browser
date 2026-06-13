@@ -34,7 +34,9 @@ export class LayersSystem {
    * @param {WebGLRenderingContext|WebGL2RenderingContext} gl
    */
   initialize(session, gl) {
-    if (!session || !gl) return false;
+    if (!session || !gl) {
+      return false;
+    }
 
     if (typeof XRWebGLBinding === 'undefined') {
       console.info('LayersSystem: XRWebGLBinding unavailable — using mesh fallback');
@@ -77,8 +79,10 @@ export class LayersSystem {
    * @returns {XRQuadLayer|null}  null when unsupported or on error
    */
   createQuadLayer({ id, space, transform, width, height,
-                    pixelWidth = 2048, pixelHeight = 1280 }) {
-    if (!this.supported || !this.glBinding) return null;
+    pixelWidth = 2048, pixelHeight = 1280 }) {
+    if (!this.supported || !this.glBinding) {
+      return null;
+    }
 
     try {
       const layer = this.glBinding.createQuadLayer({
@@ -91,7 +95,9 @@ export class LayersSystem {
         layout   : 'mono',
         isStatic : false
       });
-      if (transform) layer.transform = transform;
+      if (transform) {
+        layer.transform = transform;
+      }
       this._layers.set(id, layer);
       return layer;
     } catch (e) {
@@ -108,7 +114,9 @@ export class LayersSystem {
    */
   removeLayer(id, session, baseLayer) {
     this._layers.delete(id);
-    if (session) this.updateRenderState(session, baseLayer);
+    if (session) {
+      this.updateRenderState(session, baseLayer);
+    }
   }
 
   // ── Per-frame rendering ────────────────────────────────────────────────────
@@ -123,23 +131,29 @@ export class LayersSystem {
    * @param {XRView[]}                             views
    */
   renderCanvasToLayer(layer, source, frame, views) {
-    if (!this.supported || !this.glBinding || !frame || !views || !views.length) return;
+    if (!this.supported || !this.glBinding || !frame || !views || !views.length) {
+      return;
+    }
 
     const gl = this._gl;
-    if (!gl) return;
+    if (!gl) {
+      return;
+    }
 
     try {
       for (const view of views) {
         const sub = this.glBinding.getViewSubImage(layer, view);
-        if (!sub || !sub.framebuffer) continue;
+        if (!sub || !sub.framebuffer) {
+          continue;
+        }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sub.framebuffer);
         gl.viewport(sub.viewport.x, sub.viewport.y,
-                    sub.viewport.width, sub.viewport.height);
+          sub.viewport.width, sub.viewport.height);
         // Upload the canvas pixels into the layer's backing texture.
         gl.bindTexture(gl.TEXTURE_2D, sub.colorTexture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0,
-                         gl.RGBA, gl.UNSIGNED_BYTE, source);
+          gl.RGBA, gl.UNSIGNED_BYTE, source);
       }
     } catch (e) {
       if (!this._blitWarned) {
@@ -147,7 +161,9 @@ export class LayersSystem {
         this._blitWarned = true;
       }
     } finally {
-      if (gl) gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (gl) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      }
     }
   }
 
@@ -164,7 +180,9 @@ export class LayersSystem {
    * @param {XRLayer}   [baseLayer]  — `renderer.xr.getBaseLayer()` or equivalent
    */
   updateRenderState(session, baseLayer) {
-    if (!session || !this.supported) return;
+    if (!session || !this.supported) {
+      return;
+    }
     const quads  = [...this._layers.values()];
     const layers = baseLayer ? [baseLayer, ...quads] : quads;
     try {
@@ -177,11 +195,17 @@ export class LayersSystem {
   // ── Accessors ──────────────────────────────────────────────────────────────
 
   /** true when XRWebGLBinding is available on this runtime. */
-  get isSupported() { return this.supported; }
+  get isSupported() {
+    return this.supported;
+  }
 
   /** Number of active quad layers. */
-  get count() { return this._layers.size; }
+  get count() {
+    return this._layers.size;
+  }
 
   /** Retrieve a layer by id (for position updates etc.). */
-  getLayer(id) { return this._layers.get(id) || null; }
+  getLayer(id) {
+    return this._layers.get(id) || null;
+  }
 }

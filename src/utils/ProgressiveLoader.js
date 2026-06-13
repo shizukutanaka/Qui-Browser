@@ -108,25 +108,25 @@ export class ProgressiveLoader {
    */
   adjustStrategy() {
     switch (this.network.effectiveType) {
-      case 'slow-2g':
-      case '2g':
-        this.strategy.parallelLimit = 2;
-        this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = false;
-        break;
+    case 'slow-2g':
+    case '2g':
+      this.strategy.parallelLimit = 2;
+      this.strategy.adaptiveQuality = true;
+      this.strategy.preloadNext = false;
+      break;
 
-      case '3g':
-        this.strategy.parallelLimit = 4;
-        this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = true;
-        break;
+    case '3g':
+      this.strategy.parallelLimit = 4;
+      this.strategy.adaptiveQuality = true;
+      this.strategy.preloadNext = true;
+      break;
 
-      case '4g':
-      default:
-        this.strategy.parallelLimit = 6;
-        this.strategy.adaptiveQuality = false;
-        this.strategy.preloadNext = true;
-        break;
+    case '4g':
+    default:
+      this.strategy.parallelLimit = 6;
+      this.strategy.adaptiveQuality = false;
+      this.strategy.preloadNext = true;
+      break;
     }
 
     // Respect save data
@@ -195,7 +195,9 @@ export class ProgressiveLoader {
    */
   async loadPhase(priority) {
     const queue = this.loadQueue[priority];
-    if (queue.length === 0) return;
+    if (queue.length === 0) {
+      return;
+    }
 
     console.debug(`ProgressiveLoader: Loading ${priority} phase (${queue.length} items)`);
 
@@ -263,32 +265,32 @@ export class ProgressiveLoader {
     const startTime = performance.now();
 
     switch (item.type) {
-      case 'image':
-        return this.loadImage(item.url);
+    case 'image':
+      return this.loadImage(item.url);
 
-      case 'script':
-        return this.loadScript(item.url);
+    case 'script':
+      return this.loadScript(item.url);
 
-      case 'style':
-        return this.loadStyle(item.url);
+    case 'style':
+      return this.loadStyle(item.url);
 
-      case 'json':
-        return this.loadJSON(item.url);
+    case 'json':
+      return this.loadJSON(item.url);
 
-      case 'audio':
-        return this.loadAudio(item.url);
+    case 'audio':
+      return this.loadAudio(item.url);
 
-      case 'video':
-        return this.loadVideo(item.url);
+    case 'video':
+      return this.loadVideo(item.url);
 
-      case 'model':
-        return this.loadModel(item.url);
+    case 'model':
+      return this.loadModel(item.url);
 
-      case 'texture':
-        return this.loadTexture(item.url);
+    case 'texture':
+      return this.loadTexture(item.url);
 
-      default:
-        return this.loadGeneric(item.url);
+    default:
+      return this.loadGeneric(item.url);
     }
   }
 
@@ -548,7 +550,9 @@ export class ProgressiveLoader {
    * Preload anticipated resources
    */
   preload(resources) {
-    if (!this.strategy.preloadNext) return;
+    if (!this.strategy.preloadNext) {
+      return;
+    }
 
     resources.forEach(resource => {
       this.addResource(resource, 'secondary');

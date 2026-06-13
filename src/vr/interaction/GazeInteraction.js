@@ -75,7 +75,9 @@ export class GazeInteraction {
   setEnabled(value) {
     this.enabled = !!value;
     this.reticle.visible = this.enabled;
-    if (!this.enabled) this._reset();
+    if (!this.enabled) {
+      this._reset();
+    }
     return this.enabled;
   }
 
@@ -83,7 +85,9 @@ export class GazeInteraction {
     this._target  = null;
     this._elapsed = 0;
     this._fired   = false;
-    if (this._fill) this._fill.scale.setScalar(0.001);
+    if (this._fill) {
+      this._fill.scale.setScalar(0.001);
+    }
   }
 
   // ── Per-frame update ─────────────────────────────────────────────────────────
@@ -97,7 +101,9 @@ export class GazeInteraction {
    */
   update(interactables, dtMs) {
     if (!this.enabled || !interactables || interactables.length === 0) {
-      if (this._target) this._reset();
+      if (this._target) {
+        this._reset();
+      }
       return null;
     }
 
@@ -157,7 +163,9 @@ export class GazeInteraction {
   }
 
   _updateFill(progress) {
-    if (!this._fill) return;
+    if (!this._fill) {
+      return;
+    }
     // Avoid a zero scale (degenerate matrix); clamp to a tiny minimum.
     this._fill.scale.setScalar(Math.max(progress, 0.001));
   }
@@ -166,10 +174,16 @@ export class GazeInteraction {
 
   dispose() {
     if (this.reticle) {
-      if (this.camera && this.camera.remove) this.camera.remove(this.reticle);
+      if (this.camera && this.camera.remove) {
+        this.camera.remove(this.reticle);
+      }
       this.reticle.traverse(obj => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) obj.material.dispose();
+        if (obj.geometry) {
+          obj.geometry.dispose();
+        }
+        if (obj.material) {
+          obj.material.dispose();
+        }
       });
     }
     this._reset();

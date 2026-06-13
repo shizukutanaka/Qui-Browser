@@ -47,7 +47,9 @@ export class CaptionSystem {
     this.canvas.width  = CANVAS_W;
     this.canvas.height = CANVAS_H;
     this.texture = new THREE.CanvasTexture(this.canvas);
-    if ('colorSpace' in this.texture) this.texture.colorSpace = THREE.SRGBColorSpace;
+    if ('colorSpace' in this.texture) {
+      this.texture.colorSpace = THREE.SRGBColorSpace;
+    }
 
     const geo = new THREE.PlaneGeometry(PANEL_W, PANEL_H);
     const mat = new THREE.MeshBasicMaterial({
@@ -67,8 +69,12 @@ export class CaptionSystem {
 
   setEnabled(value) {
     this.enabled = !!value;
-    if (this.mesh) this.mesh.visible = this.enabled && this._lines.length > 0;
-    if (!this.enabled) this.clear();
+    if (this.mesh) {
+      this.mesh.visible = this.enabled && this._lines.length > 0;
+    }
+    if (!this.enabled) {
+      this.clear();
+    }
     return this.enabled;
   }
 
@@ -79,11 +85,17 @@ export class CaptionSystem {
    * @param {string} text
    */
   show(text) {
-    if (!text || !String(text).trim()) return;
+    if (!text || !String(text).trim()) {
+      return;
+    }
     this._lines.push({ text: String(text).trim(), remaining: this.lineDuration });
-    while (this._lines.length > this.maxLines) this._lines.shift();
+    while (this._lines.length > this.maxLines) {
+      this._lines.shift();
+    }
     this._dirty = true;
-    if (this.enabled && this.mesh) this.mesh.visible = true;
+    if (this.enabled && this.mesh) {
+      this.mesh.visible = true;
+    }
     this._draw();
   }
 
@@ -91,7 +103,9 @@ export class CaptionSystem {
   clear() {
     this._lines = [];
     this._dirty = true;
-    if (this.mesh) this.mesh.visible = false;
+    if (this.mesh) {
+      this.mesh.visible = false;
+    }
     this._draw();
   }
 
@@ -102,16 +116,24 @@ export class CaptionSystem {
    * @param {number} dtMs
    */
   update(dtMs) {
-    if (!this.enabled || this._lines.length === 0) return;
+    if (!this.enabled || this._lines.length === 0) {
+      return;
+    }
 
     let changed = false;
-    for (const line of this._lines) line.remaining -= dtMs;
+    for (const line of this._lines) {
+      line.remaining -= dtMs;
+    }
     const before = this._lines.length;
     this._lines = this._lines.filter(l => l.remaining > 0);
-    if (this._lines.length !== before) changed = true;
+    if (this._lines.length !== before) {
+      changed = true;
+    }
 
     if (changed) {
-      if (this.mesh) this.mesh.visible = this.enabled && this._lines.length > 0;
+      if (this.mesh) {
+        this.mesh.visible = this.enabled && this._lines.length > 0;
+      }
       this._draw();
     }
   }
@@ -119,7 +141,9 @@ export class CaptionSystem {
   // ── Rendering ────────────────────────────────────────────────────────────────
 
   _draw() {
-    if (!this.canvas) return;
+    if (!this.canvas) {
+      return;
+    }
     const ctx = this.canvas.getContext('2d');
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -165,16 +189,24 @@ export class CaptionSystem {
   // ── Accessors ────────────────────────────────────────────────────────────────
 
   /** Current number of visible caption lines. */
-  get lineCount() { return this._lines.length; }
+  get lineCount() {
+    return this._lines.length;
+  }
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   dispose() {
     if (this.mesh) {
-      if (this.camera && this.camera.remove) this.camera.remove(this.mesh);
-      if (this.mesh.geometry) this.mesh.geometry.dispose();
+      if (this.camera && this.camera.remove) {
+        this.camera.remove(this.mesh);
+      }
+      if (this.mesh.geometry) {
+        this.mesh.geometry.dispose();
+      }
       if (this.mesh.material) {
-        if (this.mesh.material.map) this.mesh.material.map.dispose();
+        if (this.mesh.material.map) {
+          this.mesh.material.map.dispose();
+        }
         this.mesh.material.dispose();
       }
     }

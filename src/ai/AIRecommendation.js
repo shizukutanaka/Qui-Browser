@@ -160,7 +160,9 @@ export class AIRecommendation {
    * Update category weights based on user behavior
    */
   updateCategoryWeights(category, duration) {
-    if (!this.categories[category]) return;
+    if (!this.categories[category]) {
+      return;
+    }
 
     // Increase weight for frequently visited categories
     // Decay factor based on time spent
@@ -183,10 +185,14 @@ export class AIRecommendation {
     for (const [period, config] of Object.entries(this.timePatterns)) {
       const [start, end] = config.hours;
       if (start < end) {
-        if (hour >= start && hour < end) return period;
+        if (hour >= start && hour < end) {
+          return period;
+        }
       } else {
         // Handle overnight periods
-        if (hour >= start || hour < end) return period;
+        if (hour >= start || hour < end) {
+          return period;
+        }
       }
     }
 
@@ -463,7 +469,9 @@ export class AIRecommendation {
    */
   startUpdateLoop() {
     // Guard against a second interval if initialize() runs twice.
-    if (this.updateLoopId) clearInterval(this.updateLoopId);
+    if (this.updateLoopId) {
+      clearInterval(this.updateLoopId);
+    }
     // Interval id stored so dispose() can stop it; otherwise the periodic
     // recommendation generation runs for the page lifetime.
     this.updateLoopId = setInterval(() => {

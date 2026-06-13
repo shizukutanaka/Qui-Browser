@@ -262,7 +262,9 @@ export class PerformanceMonitor {
    */
   updateMetric(name, value) {
     const metric = this.metrics[name];
-    if (!metric) return;
+    if (!metric) {
+      return;
+    }
 
     metric.current = value;
     metric.min = Math.min(metric.min, value);
@@ -459,7 +461,9 @@ export class PerformanceMonitor {
    * Draw metric graph on canvas
    */
   drawMetricGraph(history, color, min, max) {
-    if (history.length < 2) return;
+    if (history.length < 2) {
+      return;
+    }
 
     const ctx = this.graphCtx;
     const width = this.graphCanvas.width;
@@ -491,7 +495,9 @@ export class PerformanceMonitor {
    */
   updateAlerts() {
     const alertsDiv = document.getElementById('perf-alerts');
-    if (!alertsDiv) return;
+    if (!alertsDiv) {
+      return;
+    }
 
     if (this.alerts.length === 0) {
       alertsDiv.innerHTML = '<div style="color: #888;">No alerts</div>';
@@ -513,8 +519,12 @@ export class PerformanceMonitor {
    * Get color for FPS value
    */
   getColorForFPS(fps) {
-    if (fps >= 90) return '#00ff00';
-    if (fps >= 72) return '#ffaa00';
+    if (fps >= 90) {
+      return '#00ff00';
+    }
+    if (fps >= 72) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 
@@ -522,8 +532,12 @@ export class PerformanceMonitor {
    * Get color for frame time value
    */
   getColorForFrameTime(ms) {
-    if (ms <= 11.1) return '#00ff00';
-    if (ms <= 13.9) return '#ffaa00';
+    if (ms <= 11.1) {
+      return '#00ff00';
+    }
+    if (ms <= 13.9) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 
@@ -531,8 +545,12 @@ export class PerformanceMonitor {
    * Get color for memory value
    */
   getColorForMemory(mb) {
-    if (mb <= 1000) return '#00ff00';
-    if (mb <= 1500) return '#ffaa00';
+    if (mb <= 1000) {
+      return '#00ff00';
+    }
+    if (mb <= 1500) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 

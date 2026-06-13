@@ -85,7 +85,9 @@ function setupPerformanceMonitor() {
 
   // Update performance stats every second. Stored so it can be cleared on
   // dispose/unload instead of running for the page lifetime.
-  if (perfIntervalId) clearInterval(perfIntervalId);
+  if (perfIntervalId) {
+    clearInterval(perfIntervalId);
+  }
   perfIntervalId = setInterval(() => {
     if (vrApp && perfDisplay.style.display === 'block') {
       const stats = vrApp.getPerformanceStats();
@@ -110,56 +112,58 @@ function setupPerformanceMonitor() {
  */
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
-    switch(event.key) {
-      case 'p':
-      case 'P': {
-        // Toggle rich PerformanceMonitor when available, otherwise fall back
-        // to the simple overlay.
-        if (vrApp && vrApp.perfMonitorUI) {
-          vrApp.perfMonitorUI.toggle();
-        } else {
-          const perfDisplay = document.getElementById('performance-monitor');
-          if (perfDisplay) {
-            perfDisplay.style.display =
+    switch (event.key) {
+    case 'p':
+    case 'P': {
+      // Toggle rich PerformanceMonitor when available, otherwise fall back
+      // to the simple overlay.
+      if (vrApp && vrApp.perfMonitorUI) {
+        vrApp.perfMonitorUI.toggle();
+      } else {
+        const perfDisplay = document.getElementById('performance-monitor');
+        if (perfDisplay) {
+          perfDisplay.style.display =
               perfDisplay.style.display === 'none' ? 'block' : 'none';
-          }
         }
-        break;
       }
+      break;
+    }
 
-      case 'f':
-      case 'F':
-        // Toggle FFR
-        if (vrApp && vrApp.ffrSystem) {
-          const enabling = !vrApp.ffrSystem.enabled;
-          enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
-          console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
-        }
-        break;
+    case 'f':
+    case 'F':
+      // Toggle FFR
+      if (vrApp && vrApp.ffrSystem) {
+        const enabling = !vrApp.ffrSystem.enabled;
+        enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
+        console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
+      }
+      break;
 
-      case 'c':
-      case 'C':
-        // Cycle comfort presets
-        if (vrApp && vrApp.comfortSystem) {
-          const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
-          const current = vrApp.settings.motionSensitivity;
-          const nextIndex = (presets.indexOf(current) + 1) % presets.length;
-          const next = presets[nextIndex];
-          vrApp.comfortSystem.setPreset(next);
-          vrApp.updateSetting('motionSensitivity', next); // persist across reloads
-          console.debug(`Comfort preset: ${next}`);
-        }
-        break;
+    case 'c':
+    case 'C':
+      // Cycle comfort presets
+      if (vrApp && vrApp.comfortSystem) {
+        const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+        const current = vrApp.settings.motionSensitivity;
+        const nextIndex = (presets.indexOf(current) + 1) % presets.length;
+        const next = presets[nextIndex];
+        vrApp.comfortSystem.setPreset(next);
+        vrApp.updateSetting('motionSensitivity', next); // persist across reloads
+        console.debug(`Comfort preset: ${next}`);
+      }
+      break;
 
-      case 'Escape':
-        // Emergency cleanup
-        if (vrApp) {
-          vrApp.dispose();
-          vrApp = null;
-          if (perfIntervalId) { clearInterval(perfIntervalId); perfIntervalId = null; }
-          console.debug('Application disposed');
+    case 'Escape':
+      // Emergency cleanup
+      if (vrApp) {
+        vrApp.dispose();
+        vrApp = null;
+        if (perfIntervalId) {
+          clearInterval(perfIntervalId); perfIntervalId = null;
         }
-        break;
+        console.debug('Application disposed');
+      }
+      break;
     }
   });
 
@@ -212,7 +216,9 @@ window.addEventListener('beforeunload', () => {
     vrApp.dispose();
     vrApp = null;
   }
-  if (perfIntervalId) { clearInterval(perfIntervalId); perfIntervalId = null; }
+  if (perfIntervalId) {
+    clearInterval(perfIntervalId); perfIntervalId = null;
+  }
 });
 
 /**
