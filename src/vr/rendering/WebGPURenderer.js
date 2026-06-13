@@ -117,8 +117,8 @@ export class WebGPURenderer {
       // Setup default pipeline
       await this.createDefaultPipeline();
 
-      console.debug('WebGPURenderer: Initialized successfully');
-      console.debug('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
+      console.info('WebGPURenderer: Initialized successfully');
+      console.info('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
 
       return true;
 
@@ -144,7 +144,7 @@ export class WebGPURenderer {
       shaderF16: features.has('shader-f16')
     };
 
-    console.debug('WebGPURenderer: Features detected', this.features);
+    console.info('WebGPURenderer: Features detected', this.features);
   }
 
   /**
@@ -416,7 +416,9 @@ export class WebGPURenderer {
    * Render frame
    */
   render(scene, camera) {
-    if (!this.device || !this.context) return;
+    if (!this.device || !this.context) {
+      return;
+    }
 
     this.frameStats.drawCalls = 0;
     this.frameStats.triangles = 0;
@@ -487,7 +489,7 @@ export class WebGPURenderer {
   /**
    * Render scene objects
    */
-  renderScene(renderPass, scene, camera) {
+  renderScene(_renderPass, _scene, _camera) {
     // Simplified scene rendering
     // In production, would traverse Three.js scene graph
 
@@ -551,7 +553,7 @@ export class WebGPURenderer {
       this.context.unconfigure();
     }
 
-    console.debug('WebGPURenderer: Disposed');
+    console.info('WebGPURenderer: Disposed');
   }
 }
 
@@ -573,13 +575,13 @@ export class HybridRenderer {
       if (success) {
         this.renderer = webgpu;
         this.backend = 'webgpu';
-        console.debug('HybridRenderer: Using WebGPU backend');
+        console.info('HybridRenderer: Using WebGPU backend');
         return true;
       }
     }
 
     // Fallback to WebGL (Three.js)
-    console.debug('HybridRenderer: Falling back to WebGL');
+    console.info('HybridRenderer: Falling back to WebGL');
     this.backend = 'webgl';
 
     // Would initialize Three.js WebGLRenderer here
