@@ -32,7 +32,6 @@ import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
-import { WebPanel } from './browser/WebPanel.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
@@ -1663,7 +1662,7 @@ export class VRApp {
       await this.handTracking.initialize(session);
 
       // Register gesture callbacks
-      this.handTracking.onGesture('pinch', (hand, gesture) => {
+      this.handTracking.onGesture('pinch', (hand, _gesture) => {
         console.debug(`${hand} hand pinch detected`);
         // Play spatial sound at pinch position
         if (this.spatialAudio) {
@@ -1684,7 +1683,7 @@ export class VRApp {
         }
       });
 
-      this.handTracking.onGesture('point', (hand, gesture) => {
+      this.handTracking.onGesture('point', (hand, _gesture) => {
         console.debug(`${hand} hand pointing`);
       });
     }

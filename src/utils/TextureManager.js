@@ -239,7 +239,7 @@ export class TextureManager {
     const entries = Array.from(this.textureCache.entries());
 
     while (this.memoryUsage.estimatedBytes > targetSize && entries.length > 0) {
-      const [url, texture] = entries.shift();
+      const [url] = entries.shift();
       this.unloadTexture(url);
     }
   }
@@ -272,7 +272,7 @@ export class TextureManager {
    * Unload all textures
    */
   unloadAll() {
-    for (const [url, texture] of this.textureCache) {
+    for (const texture of this.textureCache.values()) {
       texture.dispose();
     }
 

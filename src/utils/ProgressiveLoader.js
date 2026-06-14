@@ -262,7 +262,6 @@ export class ProgressiveLoader {
    * Perform actual load based on type
    */
   async performLoad(item) {
-    const startTime = performance.now();
 
     switch (item.type) {
     case 'image':
@@ -473,7 +472,7 @@ export class ProgressiveLoader {
   /**
    * Handle resource loaded
    */
-  onResourceLoaded(item, result) {
+  onResourceLoaded(item, _result) {
     this.stats.itemsLoaded++;
 
     if (item.size) {

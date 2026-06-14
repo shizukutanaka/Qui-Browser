@@ -88,7 +88,7 @@ export async function initSentry() {
       replaysOnErrorSampleRate: MONITORING_CONFIG.sentry.replaysOnErrorSampleRate,
 
       // Before send hook (sanitize sensitive data)
-      beforeSend(event, hint) {
+      beforeSend(event, _hint) {
         // Remove sensitive data
         if (event.request) {
           delete event.request.cookies;

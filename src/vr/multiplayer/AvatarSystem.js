@@ -9,7 +9,6 @@ import * as THREE from 'three';
 
 const HEAD_COLOR  = 0x4a90d9;
 const HAND_COLOR  = 0x7ed4a4;
-const LABEL_SIZE  = 0.08;  // metres
 
 export class AvatarSystem {
   /**

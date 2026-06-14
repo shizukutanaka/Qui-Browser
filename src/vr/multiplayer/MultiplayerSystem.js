@@ -304,7 +304,7 @@ export class MultiplayerSystem {
   }
 
   /** Hook for subclasses/UI; no-op by default. */
-  onPeerDisconnected(peerId) {}
+  onPeerDisconnected(_peerId) {}
 
   /**
    * Setup peer connection handlers
@@ -684,7 +684,7 @@ export class MultiplayerSystem {
       return;
     }
 
-    this.avatars.forEach((avatar, peerId) => {
+    this.avatars.forEach((avatar, _peerId) => {
       if (avatar.interpolation.progress < 1) {
         avatar.interpolation.progress += deltaTime * this.interpolation.factor;
         avatar.interpolation.progress = Math.min(avatar.interpolation.progress, 1);
@@ -730,7 +730,7 @@ export class MultiplayerSystem {
    * Broadcast message to all peers
    */
   broadcast(message) {
-    this.dataChannels.forEach((channel, peerId) => {
+    this.dataChannels.forEach((channel, _peerId) => {
       if (channel.readyState === 'open') {
         const data = JSON.stringify(message);
         channel.send(data);
@@ -801,7 +801,7 @@ export class MultiplayerSystem {
     }
 
     // Close all peer connections
-    this.peers.forEach((pc, peerId) => {
+    this.peers.forEach((pc, _peerId) => {
       pc.close();
     });
 

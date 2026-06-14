@@ -339,7 +339,7 @@ export class PoolManager {
    * Trim all pools
    */
   trimAll(keepMinimum = 10) {
-    for (const [name, pool] of this.pools) {
+    for (const pool of this.pools.values()) {
       pool.trim(keepMinimum);
     }
   }

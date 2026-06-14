@@ -319,7 +319,7 @@ export class DevTools {
     }
 
     // Hide all tabs
-    this.tabs.forEach((tab, id) => {
+    this.tabs.forEach((tab, _id) => {
       if (tab.content) {
         tab.content.style.display = 'none';
       }

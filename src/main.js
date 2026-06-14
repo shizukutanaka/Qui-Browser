@@ -67,7 +67,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Import main application
-import('./app.js').then(module => {
+import('./app.js').then(_module => {
   console.debug('Qui Browser VR v2.0.0 loaded successfully');
 
   // Check WebXR support

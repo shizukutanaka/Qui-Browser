@@ -161,7 +161,7 @@ export class ComfortSystem {
   /**
    * Update vignette intensity based on motion
    */
-  updateVignette(deltaTime) {
+  updateVignette(_deltaTime) {
     // Target vignette intensity based on motion
     let targetVignette = 0;
 
@@ -182,7 +182,7 @@ export class ComfortSystem {
   /**
    * Update FOV based on motion
    */
-  updateFOV(deltaTime) {
+  updateFOV(_deltaTime) {
     // Target FOV based on motion
     let targetFOV = this.settings.fov.baseFOV;
 

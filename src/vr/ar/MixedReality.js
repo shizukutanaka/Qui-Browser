@@ -711,7 +711,7 @@ export class MixedReality {
   /**
    * Handle hit test result
    */
-  onHitTestResult(pose) {
+  onHitTestResult(_pose) {
     // Override in application to handle hit results
     // For example, show placement preview
   }
