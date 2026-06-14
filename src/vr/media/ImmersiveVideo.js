@@ -28,15 +28,18 @@ export class ImmersiveVideo {
    * @param {object} deps
    * @param {(mesh, handlers) => void} deps.registerInteractable
    * @param {(mesh) => void}           deps.unregisterInteractable
+   * @param {(message:string) => void} [deps.onError] — called on load/playback failure
    */
-  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable } = {}) {
+  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError } = {}) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
     this.registerInteractable = registerInteractable || (() => {});
     this.unregisterInteractable = unregisterInteractable || (() => {});
+    this.onError = onError || (() => {});
 
     this.video = null;
+    this._onVideoError = null; // bound 'error' listener (removed on stop)
     this.meshes = []; // sphere mesh(es): 1 (mono) or 2 (stereo eyes)
     this.controlPanel = null; // HUD group parented to the camera
     this.playing = false;
@@ -83,6 +86,13 @@ export class ImmersiveVideo {
     video.src = url;
     this.video = video;
 
+    // Surface load/decode failures (bad URL, CORS block, unsupported codec)
+    // instead of leaving the viewer staring at a black sphere. The 'error'
+    // event fires once for these; gesture-gated autoplay rejection (handled by
+    // the play() promise catch below) is normal and deliberately not reported.
+    this._onVideoError = () => this._reportError('Could not load video (check URL / CORS)');
+    video.addEventListener('error', this._onVideoError);
+
     if (this._layout === 'mono') {
       this.meshes.push(this._makeSphere(this._makeTexture()));
     } else {
@@ -108,6 +118,15 @@ export class ImmersiveVideo {
       });
     }
     this.playing = true;
+  }
+
+  /**
+   * Report a load/playback failure to the host app. The HUD (and its Exit
+   * button) is left in place so the viewer can dismiss the failed video.
+   * @param {string} message
+   */
+  _reportError(message) {
+    this.onError(message);
   }
 
   /** Build a VideoTexture, applying the per-eye crop for stereo layouts. */
@@ -286,6 +305,10 @@ export class ImmersiveVideo {
 
     if (this.video) {
       this.video.pause();
+      if (this._onVideoError) {
+        this.video.removeEventListener('error', this._onVideoError);
+        this._onVideoError = null;
+      }
       this.video.removeAttribute('src');
       if (this.video.load) {
         this.video.load();

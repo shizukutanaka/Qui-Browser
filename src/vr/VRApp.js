@@ -315,7 +315,8 @@ export class VRApp {
     // available and launched on demand from the settings panel.
     this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
       registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m)
+      unregisterInteractable: (m) => this.unregisterInteractable(m),
+      onError: (msg) => this.showVRToast(msg, { type: 'error' })
     });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
@@ -490,7 +491,7 @@ export class VRApp {
    * @param {number} [opts.duration=4000]  milliseconds before auto-dismiss
    */
   showVRToast(message, { type = 'error', duration = 4000 } = {}) {
-    if (!this.xrSession || !this.camera) {
+    if (!this.isVREnabled || !this.camera) {
       return;
     }
 

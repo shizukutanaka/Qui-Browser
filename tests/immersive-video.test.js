@@ -93,10 +93,17 @@ const ctxStub = {
 function makeVideoEl() {
   return {
     crossOrigin: '', loop: false, playsInline: false, preload: '', src: '', paused: true,
+    _listeners: {},
     setAttribute() {}, removeAttribute() { this.src = ''; },
     play() { this.paused = false; return { catch() {} }; },
     pause() { this.paused = true; },
-    load() {}
+    load() {},
+    addEventListener(type, fn) { (this._listeners[type] ||= []).push(fn); },
+    removeEventListener(type, fn) {
+      this._listeners[type] = (this._listeners[type] || []).filter((f) => f !== fn);
+    },
+    // Test helper: invoke every handler registered for `type`.
+    _emit(type) { for (const fn of this._listeners[type] || []) fn(); }
   };
 }
 global.document = global.document || {};
@@ -125,11 +132,13 @@ function makeHarness() {
   const camera = makeCamera();
   const register = jest.fn();
   const unregister = jest.fn();
+  const onError = jest.fn();
   const iv = new ImmersiveVideo(scene, camera, {}, {
     registerInteractable: register,
-    unregisterInteractable: unregister
+    unregisterInteractable: unregister,
+    onError
   });
-  return { iv, scene, camera, register, unregister };
+  return { iv, scene, camera, register, unregister, onError };
 }
 
 beforeEach(() => {
@@ -190,6 +199,28 @@ describe('ImmersiveVideo lifecycle', () => {
 
     for (const d of first) expect(d.disposed).toBe(true); // old set freed
     expect(scene.children).toHaveLength(1);               // only the new sphere
+  });
+
+  test('a video element "error" surfaces a message via onError', () => {
+    const { iv, onError } = makeHarness();
+    iv.play('https://cdn.example.com/broken.mp4');
+
+    expect(onError).not.toHaveBeenCalled();
+    iv.video._emit('error');
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toMatch(/load video/i);
+  });
+
+  test('stop() removes the error listener (no report after teardown)', () => {
+    const { iv, onError } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    const video = iv.video; // captured before stop() nulls it
+
+    iv.stop();
+    video._emit('error');
+
+    expect(onError).not.toHaveBeenCalled();
   });
 
   test('update() re-centres the sphere on the head each frame', () => {
