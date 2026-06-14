@@ -2049,7 +2049,9 @@ export class VRApp {
       // Build (if needed) and show the 3D keyboard, then refresh its display.
       this.vrKeyboard.show();
     } else {
-      // Desktop / non-VR fallback
+      // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
+      // desktop/2D, where window.prompt is the correct input).
+      // eslint-disable-next-line no-alert
       const url = window.prompt('Enter URL', prefill);
       if (url) {
         onConfirm(url);

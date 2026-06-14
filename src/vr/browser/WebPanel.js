@@ -262,6 +262,7 @@ export class WebPanel {
         });
       } else {
         // Fallback: synchronous prompt (only available outside immersive VR).
+        // eslint-disable-next-line no-alert -- intentional desktop/2D fallback
         const url = window.prompt('Enter URL', prefill);
         if (url) {
           this.navigate(url);
