@@ -104,14 +104,6 @@ export class HandTracking {
       opacity: 0.8
     });
 
-    // Material for bones (connections between joints)
-    const boneMaterial = new THREE.MeshPhongMaterial({
-      color: 0x00ffff,
-      emissive: 0x004444,
-      transparent: true,
-      opacity: 0.6
-    });
-
     // Create hand groups
     this.leftHand = new THREE.Group();
     this.leftHand.name = 'leftHand';
@@ -242,9 +234,6 @@ export class HandTracking {
   detectGesture(joints) {
     const thumbTip = joints.get('thumb-tip');
     const indexTip = joints.get('index-finger-tip');
-    const middleTip = joints.get('middle-finger-tip');
-    const ringTip = joints.get('ring-finger-tip');
-    const pinkyTip = joints.get('pinky-finger-tip');
     const wrist = joints.get('wrist');
 
     if (!thumbTip || !indexTip || !wrist) {
@@ -272,6 +261,7 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         this.isFingerExtended(joints, 'ring-finger') &&
         this.isFingerExtended(joints, 'pinky-finger')) {
+      this.stats.gesturesRecognized++;
       return 'open';
     }
 

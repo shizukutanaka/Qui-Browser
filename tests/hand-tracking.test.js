@@ -65,3 +65,35 @@ describe('HandTracking session listener lifecycle', () => {
     await expect(ht.initialize(null)).resolves.toBe(false);
   });
 });
+
+describe('HandTracking.detectGesture', () => {
+  // A joints map whose tips are far apart (no pinch). isFingerExtended is
+  // stubbed per-test to drive the finger-pose branches deterministically.
+  function makeJoints() {
+    const far = { position: { distanceTo: () => 1 } }; // 1 m ≫ pinch threshold
+    return new Map([
+      ['thumb-tip', far],
+      ['index-finger-tip', far],
+      ['wrist', far]
+    ]);
+  }
+
+  test("returns 'none' when required joints are missing", () => {
+    const ht = new HandTracking({}, new MockObj());
+    expect(ht.detectGesture(new Map())).toBe('none');
+  });
+
+  test("'open' hand is detected AND counted in stats (regression)", () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = () => true; // all fingers extended → open hand
+    const before = ht.stats.gesturesRecognized;
+    expect(ht.detectGesture(makeJoints())).toBe('open');
+    expect(ht.stats.gesturesRecognized).toBe(before + 1);
+  });
+
+  test("'point' is detected when only the index is extended", () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = (_joints, finger) => finger === 'index-finger';
+    expect(ht.detectGesture(makeJoints())).toBe('point');
+  });
+});
