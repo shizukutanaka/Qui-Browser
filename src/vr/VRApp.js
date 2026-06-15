@@ -1644,6 +1644,21 @@ export class VRApp {
     // Get XR session
     const session = this.renderer.xr.getSession();
 
+    // Headset removed / system menu shown / session blurred: the DOM
+    // 'visibilitychange' wired in setupVR() does NOT fire for this while an
+    // immersive session is presenting — XRSession.visibilityState
+    // ('hidden' | 'visible-blurred') is the authoritative signal. Pause the
+    // immersive video so audio doesn't keep playing to an empty headset.
+    if (session) {
+      this.onXRVisibilityChange = () => {
+        if (session.visibilityState !== 'visible'
+            && this.immersiveVideo && this.immersiveVideo.playing) {
+          this.immersiveVideo.togglePause();
+        }
+      };
+      session.addEventListener('visibilitychange', this.onXRVisibilityChange);
+    }
+
     // Initialize FFR for this session
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
@@ -1737,6 +1752,10 @@ export class VRApp {
     if (this.immersiveVideo) {
       this.immersiveVideo.stop();
     }
+
+    // The XRSession is discarded on end (its visibilitychange listener dies with
+    // it); just drop our reference so a stale closure can't be reused.
+    this.onXRVisibilityChange = null;
 
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
