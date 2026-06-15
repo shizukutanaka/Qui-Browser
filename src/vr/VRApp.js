@@ -23,6 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
+import { notifyCrossModal } from './accessibility/crossModal.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -533,6 +534,10 @@ export class VRApp {
       tex.dispose();
       mesh.material.dispose();
     }, duration);
+
+    // Accessibility equity: a toast must never be conveyed by sight alone, so
+    // mirror it onto every available non-visual channel (haptic + captions).
+    notifyCrossModal(this.hapticFeedback, this.captionSystem, message, type);
   }
 
   /**
@@ -1215,7 +1220,7 @@ export class VRApp {
       // Play a brief haptic click for any face/thumb button press.
       const anyJustPressed = Object.values(btn).some(b => b.justPressed);
       if (anyJustPressed && this.hapticFeedback) {
-        this.hapticFeedback.playPattern('click');
+        this.hapticFeedback.playPattern(hand, 'click');
       }
 
       if (hand === pointerHand) {
