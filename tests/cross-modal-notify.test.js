@@ -7,7 +7,12 @@
  * disabled. Pure logic, so no THREE / GPU / controller mocks are needed.
  */
 
-const { notifyCrossModal, TOAST_HAPTIC } = require('../src/vr/accessibility/crossModal.js');
+const {
+  notifyCrossModal,
+  TOAST_HAPTIC,
+  withSeverity,
+  SEVERITY_PREFIX
+} = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
   return { playPatternBothHands: jest.fn() };
@@ -47,6 +52,24 @@ describe('notifyCrossModal — caption channel', () => {
     const off = makeCaption(false);
     notifyCrossModal(null, off, 'hello', 'info');
     expect(off.show).not.toHaveBeenCalled();
+  });
+});
+
+describe('withSeverity — severity conveyed by shape, not colour', () => {
+  test('prefixes a distinct glyph per severity', () => {
+    expect(withSeverity('disk full', 'error')).toBe(`${SEVERITY_PREFIX.error}disk full`);
+    expect(withSeverity('battery low', 'warn')).toBe(`${SEVERITY_PREFIX.warn}battery low`);
+    expect(withSeverity('saved', 'info')).toBe(`${SEVERITY_PREFIX.info}saved`);
+  });
+
+  test('the three glyphs are all distinct', () => {
+    const glyphs = Object.values(SEVERITY_PREFIX);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+  });
+
+  test('falls back to the info glyph for an unknown/missing type', () => {
+    expect(withSeverity('hi', 'bogus')).toBe(`${SEVERITY_PREFIX.info}hi`);
+    expect(withSeverity('hi', undefined)).toBe(`${SEVERITY_PREFIX.info}hi`);
   });
 });
 

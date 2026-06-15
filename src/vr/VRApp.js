@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity } from './accessibility/crossModal.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -510,11 +510,13 @@ export class VRApp {
     ctx.strokeStyle = BDR[type] || BDR.error;
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, W - 4, H - 4);
+    // Prefix a severity glyph so the level reads without relying on colour alone.
+    const labeled = withSeverity(message, type);
     ctx.fillStyle = FG[type] || FG.error;
     ctx.font = 'bold 26px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(message.length > 60 ? message.slice(0, 57) + '…' : message, W / 2, H / 2);
+    ctx.fillText(labeled.length > 60 ? labeled.slice(0, 57) + '…' : labeled, W / 2, H / 2);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -537,7 +539,8 @@ export class VRApp {
 
     // Accessibility equity: a toast must never be conveyed by sight alone, so
     // mirror it onto every available non-visual channel (haptic + captions).
-    notifyCrossModal(this.hapticFeedback, this.captionSystem, message, type);
+    // The caption gets the same severity-labelled text the panel shows.
+    notifyCrossModal(this.hapticFeedback, this.captionSystem, labeled, type);
   }
 
   /**

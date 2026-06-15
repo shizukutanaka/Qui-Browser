@@ -23,6 +23,25 @@
 // warning / info apart without sight.
 export const TOAST_HAPTIC = { error: 'error', warn: 'warning', info: 'notification' };
 
+// A severity glyph prefixed to notification text so the level is conveyed by
+// SHAPE, not colour alone — readable by colour-blind users (who can't separate
+// the red error from the amber warning) and by caption-reliant users (whose
+// text channel carries no colour at all). Distinct silhouettes: ✕ / ⚠ / ℹ.
+export const SEVERITY_PREFIX = { error: '✕ ', warn: '⚠ ', info: 'ℹ ' };
+
+/**
+ * Prepend the severity glyph to a message. Falls back to the info glyph for an
+ * unknown/missing type. Pure — used by both the visual toast and the caption
+ * mirror so the two stay in sync.
+ *
+ * @param {string} message
+ * @param {'error'|'warn'|'info'} type
+ * @returns {string}
+ */
+export function withSeverity(message, type) {
+  return (SEVERITY_PREFIX[type] || SEVERITY_PREFIX.info) + message;
+}
+
 /**
  * @param {{playPatternBothHands: function}|null} hapticFeedback
  * @param {{enabled: boolean, show: function}|null} captionSystem
