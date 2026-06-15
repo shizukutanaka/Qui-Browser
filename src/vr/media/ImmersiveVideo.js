@@ -40,6 +40,7 @@ export class ImmersiveVideo {
 
     this.video = null;
     this._onVideoError = null; // bound 'error' listener (removed on stop)
+    this._onVideoPlaying = null; // bound 'playing' listener (removed on stop)
     this.meshes = []; // sphere mesh(es): 1 (mono) or 2 (stereo eyes)
     this.controlPanel = null; // HUD group parented to the camera
     this.playing = false;
@@ -93,6 +94,18 @@ export class ImmersiveVideo {
     this._onVideoError = () => this._reportError('Could not load video (check URL / CORS)');
     video.addEventListener('error', this._onVideoError);
 
+    // Only mark as playing once the browser actually starts playback. If the
+    // Autoplay Policy rejects video.play() (common on mobile/headset without a
+    // prior gesture), this never fires, so the HUD stays on "Play" and
+    // this.playing stays false instead of lying that something is playing.
+    this._onVideoPlaying = () => {
+      this.playing = true;
+      if (this._playPauseBtn) {
+        this._playPauseBtn.userData.setLabel('Pause');
+      }
+    };
+    video.addEventListener('playing', this._onVideoPlaying);
+
     if (this._layout === 'mono') {
       this.meshes.push(this._makeSphere(this._makeTexture()));
     } else {
@@ -114,10 +127,10 @@ export class ImmersiveVideo {
     const p = video.play();
     if (p && p.catch) {
       p.catch(() => {
-      /* gesture-gated autoplay; HUD Pause can retry */
+      /* gesture-gated autoplay; HUD Play can retry. this.playing stays false
+         and the 'playing' listener flips state once playback truly starts. */
       });
     }
-    this.playing = true;
   }
 
   /**
@@ -167,7 +180,7 @@ export class ImmersiveVideo {
     const group = new THREE.Group();
     group.name = 'immersiveVideoControls';
 
-    this._playPauseBtn = this._makeButton('Pause', () => this.togglePause());
+    this._playPauseBtn = this._makeButton('Play', () => this.togglePause());
     this._playPauseBtn.position.set(-0.3, 0, 0);
     const exitBtn = this._makeButton('Exit', () => this.stop());
     exitBtn.position.set(0.3, 0, 0);
@@ -308,6 +321,10 @@ export class ImmersiveVideo {
       if (this._onVideoError) {
         this.video.removeEventListener('error', this._onVideoError);
         this._onVideoError = null;
+      }
+      if (this._onVideoPlaying) {
+        this.video.removeEventListener('playing', this._onVideoPlaying);
+        this._onVideoPlaying = null;
       }
       this.video.removeAttribute('src');
       if (this.video.load) {

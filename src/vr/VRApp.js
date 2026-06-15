@@ -1611,6 +1611,16 @@ export class VRApp {
     this.onEnterVRRequest = () => vrButton.click();
     window.addEventListener('enter-vr', this.onEnterVRRequest);
 
+    // Pause immersive video when the tab/headset is hidden (e.g. headset removed).
+    // Pause-only: do not auto-resume on re-show (gesture-gated autoplay is unreliable
+    // and a removed headset signals intentional stop; tap HUD Play to continue).
+    this.onDocumentVisibilityChange = () => {
+      if (document.hidden && this.immersiveVideo && this.immersiveVideo.playing) {
+        this.immersiveVideo.togglePause();
+      }
+    };
+    document.addEventListener('visibilitychange', this.onDocumentVisibilityChange);
+
     // Controllers (ray pointer + rendered models) parented to the player rig.
     this.setupControllers();
 
@@ -1720,6 +1730,12 @@ export class VRApp {
       }
       this.layersSystem.dispose();
       this.layersSystem = null;
+    }
+
+    // The immersive video only makes sense inside the session; tear it down with
+    // it so audio/GPU/sphere don't outlive the context that justified them.
+    if (this.immersiveVideo) {
+      this.immersiveVideo.stop();
     }
 
     // Restore render settings
@@ -2132,6 +2148,10 @@ export class VRApp {
     if (this.onEnterVRRequest) {
       window.removeEventListener('enter-vr', this.onEnterVRRequest);
       this.onEnterVRRequest = null;
+    }
+    if (this.onDocumentVisibilityChange) {
+      document.removeEventListener('visibilitychange', this.onDocumentVisibilityChange);
+      this.onDocumentVisibilityChange = null;
     }
     if (this.vrButton && this.vrButton.parentNode) {
       this.vrButton.parentNode.removeChild(this.vrButton);

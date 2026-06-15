@@ -90,12 +90,25 @@ const ctxStub = {
   set fillStyle(v) {}, set strokeStyle(v) {},
   set font(v) {}, set textAlign(v) {}, set lineWidth(v) {}
 };
+// When true, the next created <video>'s play() models a browser Autoplay Policy
+// rejection: the promise rejects and no 'playing' event fires (so the element
+// stays paused). Reset per-test in beforeEach.
+let nextVideoAutoplayBlocked = false;
 function makeVideoEl() {
   return {
     crossOrigin: '', loop: false, playsInline: false, preload: '', src: '', paused: true,
     _listeners: {},
     setAttribute() {}, removeAttribute() { this.src = ''; },
-    play() { this.paused = false; return { catch() {} }; },
+    play() {
+      if (nextVideoAutoplayBlocked) {
+        // Stays paused; mirrors a rejected play() promise with no 'playing' event.
+        return { catch(cb) { cb(new Error('NotAllowedError')); return this; } };
+      }
+      // A real <video> fires 'playing' once playback actually starts.
+      this.paused = false;
+      this._emit('playing');
+      return { catch() {} };
+    },
     pause() { this.paused = true; },
     load() {},
     addEventListener(type, fn) { (this._listeners[type] ||= []).push(fn); },
@@ -143,6 +156,7 @@ function makeHarness() {
 
 beforeEach(() => {
   THREE.__registry.disposables.length = 0;
+  nextVideoAutoplayBlocked = false;
 });
 
 describe('ImmersiveVideo lifecycle', () => {
@@ -221,6 +235,61 @@ describe('ImmersiveVideo lifecycle', () => {
     video._emit('error');
 
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  test('playing flips true only when playback actually starts', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4'); // mock play() emits 'playing'
+    expect(iv.playing).toBe(true);
+  });
+
+  test('blocked autoplay leaves playing false until a real "playing" event', () => {
+    nextVideoAutoplayBlocked = true;
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+
+    // Autoplay was rejected: the sphere exists but nothing is playing, so the
+    // state must NOT lie (the visibilitychange guard reads iv.playing).
+    expect(iv.active).toBe(true);
+    expect(iv.playing).toBe(false);
+
+    // A later gesture-driven play fires 'playing' and flips the state.
+    iv.video._emit('playing');
+    expect(iv.playing).toBe(true);
+  });
+
+  test('stop() removes the playing listener (no late state flip after teardown)', () => {
+    const { iv } = makeHarness();
+    nextVideoAutoplayBlocked = true;       // start paused so playing is false
+    iv.play('https://cdn.example.com/clip.mp4');
+    const video = iv.video;                // captured before stop() nulls it
+
+    iv.stop();
+    video._emit('playing');
+
+    expect(iv.playing).toBe(false);
+  });
+
+  test('stop() is a safe no-op before any play()', () => {
+    const { iv, scene } = makeHarness();
+    expect(() => iv.stop()).not.toThrow();
+    expect(iv.active).toBe(false);
+    expect(iv.playing).toBe(false);
+    expect(scene.children).toHaveLength(0);
+  });
+
+  test('togglePause() pauses then resumes the underlying video', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    expect(iv.playing).toBe(true);
+
+    iv.togglePause();                       // pause
+    expect(iv.video.paused).toBe(true);
+    expect(iv.playing).toBe(false);
+
+    iv.togglePause();                       // resume
+    expect(iv.video.paused).toBe(false);
+    expect(iv.playing).toBe(true);
   });
 
   test('update() re-centres the sphere on the head each frame', () => {
