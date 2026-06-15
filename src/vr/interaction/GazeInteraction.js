@@ -26,10 +26,14 @@ export class GazeInteraction {
    * @param {THREE.Camera} camera
    * @param {object} [opts]
    * @param {number} [opts.dwellTime=1500] — ms of continuous gaze to trigger
+   * @param {number} [opts.graceTime=300]  — ms an off-target slip is forgiven
+   *   before the accumulated dwell is discarded. Tolerates tremor / nystagmus
+   *   so an unsteady gaze can still complete a selection.
    */
-  constructor(camera, { dwellTime = 1500 } = {}) {
+  constructor(camera, { dwellTime = 1500, graceTime = 300 } = {}) {
     this.camera = camera;
     this.dwellTime = dwellTime;
+    this.graceTime = graceTime;
     this.enabled = false;
 
     // Dwell state
@@ -37,6 +41,7 @@ export class GazeInteraction {
     this._elapsed  = 0;     // ms accumulated on the current target
     this._fired    = false; // guard so onSelect fires once per dwell
     this._confirmMs = 0;    // remaining ms of the activation-confirmation flash
+    this._graceMs   = 0;    // ms spent slipped off the held target (grace window)
 
     this._raycaster = new THREE.Raycaster();
     this._buildReticle();
@@ -89,6 +94,7 @@ export class GazeInteraction {
     this._elapsed = 0;
     this._fired   = false;
     this._confirmMs = 0;
+    this._graceMs   = 0;
     if (this._fill) {
       this._fill.scale.setScalar(0.001);
     }
@@ -136,12 +142,31 @@ export class GazeInteraction {
     const hit = this._raycastGaze(interactables);
     const obj = hit ? hit.object : null;
 
-    // Gaze moved to a different object (or off everything): restart the timer.
-    if (obj !== this._target) {
+    if (obj === this._target) {
+      // Still resting on the same target (or both null): no slip in progress.
+      this._graceMs = 0;
+    } else if (obj) {
+      // Gaze landed on a DIFFERENT interactable — an intentional move. Restart.
       this._onTargetChange(this._target, obj);
       this._target  = obj;
       this._elapsed = 0;
       this._fired   = false;
+      this._graceMs = 0;
+    } else if (this._target && !this._fired && this._graceMs + dtMs < this.graceTime) {
+      // Gaze slipped off onto nothing while charging. Forgive brief slips
+      // (tremor / nystagmus): hold the accumulated dwell — without charging —
+      // for graceTime ms so a return to the same target resumes rather than
+      // restarts. The hover highlight is kept (no onHoverEnd) during the slip.
+      this._graceMs += dtMs;
+      this._updateFill(Math.min(this._elapsed / this.dwellTime, 1));
+      return null;
+    } else {
+      // Grace exhausted (or no target to hold) — release.
+      this._onTargetChange(this._target, null);
+      this._target  = null;
+      this._elapsed = 0;
+      this._fired   = false;
+      this._graceMs = 0;
     }
 
     if (!this._target) {

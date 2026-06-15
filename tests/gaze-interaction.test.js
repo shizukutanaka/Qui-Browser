@@ -150,16 +150,68 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(bHover).toHaveBeenCalledTimes(1);
   });
 
-  test('the progress fill grows with dwell and resets on cancel', () => {
-    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+  test('the progress fill grows with dwell and resets once grace is exhausted', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
     gi.setEnabled(true);
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
     gi.update([obj], 500);
     expect(gi._fill.scale._s).toBeCloseTo(0.5, 2);
     nextHit = null;
-    gi.update([obj], 100); // look away → reset
+    gi.update([obj], 400); // look away beyond grace → reset
     expect(gi._fill.scale._s).toBeCloseTo(0.001, 3);
+  });
+
+  test('forgives a brief off-target slip and resumes the dwell (tremor)', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+
+    gi.update([obj], 800);   // 0.8s charged
+    nextHit = null;
+    gi.update([obj], 200);   // slip off-target for 0.2s (< grace) — held, no charge
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(gi._fill.scale._s).toBeCloseTo(0.8, 2); // progress preserved, not reset
+    nextHit = { object: obj };
+    const fired = gi.update([obj], 300); // back on target: 0.8 + 0.3 ≥ 1.0 → fires
+    expect(fired).toBe(obj);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  test('a slip longer than grace discards the accumulated dwell', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+
+    gi.update([obj], 800);   // 0.8s charged
+    nextHit = null;
+    gi.update([obj], 400);   // off-target beyond grace → released
+    expect(gi._target).toBeNull();
+    nextHit = { object: obj };
+    gi.update([obj], 300);   // restart from zero → only 0.3s, no fire
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(gi._fill.scale._s).toBeCloseTo(0.3, 2);
+  });
+
+  test('moving to a different interactable restarts immediately (no grace carry-over)', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
+    gi.setEnabled(true);
+    const aSel = jest.fn(), bSel = jest.fn();
+    const a = makeInteractable({ onSelect: aSel });
+    const b = makeInteractable({ onSelect: bSel });
+
+    nextHit = { object: a };
+    gi.update([a, b], 900);  // a nearly charged
+    nextHit = { object: b };
+    gi.update([a, b], 300);  // switch to b → b starts at zero, not 0.9 + 0.3
+    expect(aSel).not.toHaveBeenCalled();
+    expect(bSel).not.toHaveBeenCalled();
+    expect(gi._target).toBe(b);
+    expect(gi._fill.scale._s).toBeCloseTo(0.3, 2);
   });
 
   test('flashes the reticle ring on activation, then decays back', () => {
