@@ -1913,7 +1913,19 @@ export class VRApp {
 
     // FR-13.1: gaze-dwell selection (hands-free). dt is seconds; pass ms.
     if (this.gazeInteraction && this.gazeInteraction.enabled) {
-      this.gazeInteraction.update(this.interactables, dt * 1000);
+      const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
+      if (activated) {
+        // Parity with controller/pinch selection: confirm a hands-free gaze
+        // activation on the non-visual channels too — a haptic click on any held
+        // controller and a spatial click — so it isn't signalled by sight alone.
+        if (this.hapticFeedback) {
+          this.hapticFeedback.playPatternBothHands('click');
+        }
+        if (this.spatialAudio) {
+          const pos = activated.getWorldPosition(new THREE.Vector3());
+          this.spatialAudio.play('click', 'click', pos);
+        }
+      }
     }
 
     // FR-13.1: age out in-VR captions.

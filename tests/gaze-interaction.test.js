@@ -162,6 +162,47 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._fill.scale._s).toBeCloseTo(0.001, 3);
   });
 
+  test('flashes the reticle ring on activation, then decays back', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200);                         // crosses threshold → fires
+    expect(gi._confirmMs).toBeGreaterThan(0);       // flash armed
+    expect(gi._ring.material.opacity).toBeCloseTo(1, 3); // full-bright pulse
+
+    gi.update([obj], 100);                          // still gazing — flash decays
+    expect(gi._confirmMs).toBeLessThan(250);
+    expect(gi._ring.material.opacity).toBeGreaterThan(0.35);
+    expect(gi._ring.material.opacity).toBeLessThan(1);
+  });
+
+  test('the confirmation flash finishes after its duration elapses', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200);          // fires, flash armed
+    gi.update([obj], 300);           // > CONFIRM_MS later → flash done
+    expect(gi._confirmMs).toBe(0);
+    expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
+  });
+
+  test('an empty interactable list resets the flash with the dwell state', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200);          // fires, flash armed
+    expect(gi._confirmMs).toBeGreaterThan(0);
+    gi.update([], 50);               // nothing to gaze at → _reset()
+    expect(gi._confirmMs).toBe(0);
+    expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
+  });
+
   test('setEnabled(false) resets dwell state', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
     gi.setEnabled(true);

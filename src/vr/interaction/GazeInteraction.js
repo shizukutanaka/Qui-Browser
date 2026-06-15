@@ -18,6 +18,8 @@
 import * as THREE from 'three';
 
 const RETICLE_DISTANCE = 2.0; // metres in front of the camera
+const RING_OPACITY = 0.35;    // resting opacity of the outline ring
+const CONFIRM_MS = 250;       // duration of the activation-confirmation flash
 
 export class GazeInteraction {
   /**
@@ -34,6 +36,7 @@ export class GazeInteraction {
     this._target   = null; // interactable currently gazed at
     this._elapsed  = 0;     // ms accumulated on the current target
     this._fired    = false; // guard so onSelect fires once per dwell
+    this._confirmMs = 0;    // remaining ms of the activation-confirmation flash
 
     this._raycaster = new THREE.Raycaster();
     this._buildReticle();
@@ -49,7 +52,7 @@ export class GazeInteraction {
     // Outline ring — marks the gaze point.
     const ringGeo = new THREE.RingGeometry(0.018, 0.024, 24);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false
+      color: 0xffffff, transparent: true, opacity: RING_OPACITY, depthTest: false
     });
     this._ring = new THREE.Mesh(ringGeo, ringMat);
     this._ring.renderOrder = 999;
@@ -85,8 +88,29 @@ export class GazeInteraction {
     this._target  = null;
     this._elapsed = 0;
     this._fired   = false;
+    this._confirmMs = 0;
     if (this._fill) {
       this._fill.scale.setScalar(0.001);
+    }
+    if (this._ring) {
+      this._ring.material.opacity = RING_OPACITY;
+    }
+  }
+
+  /**
+   * Decay the activation-confirmation flash. The outline ring pulses to full
+   * opacity on activation and fades back to its resting level, giving gaze
+   * users the "it fired" cue that controller/pinch users get from haptics —
+   * and one that works even with no controller in hand.
+   */
+  _tickConfirm(dtMs) {
+    if (this._confirmMs <= 0) {
+      return;
+    }
+    this._confirmMs = Math.max(0, this._confirmMs - dtMs);
+    if (this._ring) {
+      const r = this._confirmMs / CONFIRM_MS; // 1 → 0
+      this._ring.material.opacity = RING_OPACITY + (1 - RING_OPACITY) * r;
     }
   }
 
@@ -106,6 +130,8 @@ export class GazeInteraction {
       }
       return null;
     }
+
+    this._tickConfirm(dtMs);
 
     const hit = this._raycastGaze(interactables);
     const obj = hit ? hit.object : null;
@@ -130,6 +156,11 @@ export class GazeInteraction {
 
     if (progress >= 1 && !this._fired) {
       this._fired = true;
+      // Kick off the confirmation flash (full-opacity ring, decays via _tickConfirm).
+      this._confirmMs = CONFIRM_MS;
+      if (this._ring) {
+        this._ring.material.opacity = 1;
+      }
       const handlers = this._target.userData && this._target.userData.interactable;
       if (handlers && handlers.onSelect) {
         handlers.onSelect({ intersection: hit, gaze: true });
