@@ -24,7 +24,7 @@ import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity } from './accessibility/crossModal.js';
-import { osReducedMotion, getPrefs } from '../a11y/accessibility.js';
+import { osReducedMotion, osHighContrast, getPrefs } from '../a11y/accessibility.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -1464,10 +1464,11 @@ export class VRApp {
 
     // 6c. In-VR captions (FR-13.1, accessibility). Created always so it can be
     // toggled live; only renders when enabled and lines are present.
-    // Honour the user's large-text accessibility preference so low-vision users
-    // get bigger captions (reuses the same signal as the 2D layer).
+    // Honour the user's accessibility preferences so low-vision users get
+    // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
     this.captionSystem = new CaptionSystem(this.camera, {
-      scale: getPrefs().largeText ? 1.4 : 1.0
+      scale: getPrefs().largeText ? 1.4 : 1.0,
+      highContrast: getPrefs().highContrast || osHighContrast()
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
     console.debug('VRApp: Caption system ready');

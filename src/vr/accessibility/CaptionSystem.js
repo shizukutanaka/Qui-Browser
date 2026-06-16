@@ -35,12 +35,16 @@ export class CaptionSystem {
    * @param {number} [opts.lineDuration=5000]— ms a line stays before expiring
    * @param {number} [opts.scale=1]          — text-size multiplier for low
    *   vision; raises the font cap and wraps sooner (fewer chars per row).
+   * @param {boolean} [opts.highContrast=false] — opaque backing instead of the
+   *   semi-transparent default, so the scene can't bleed through and wash out
+   *   the text (low-vision / high-contrast preference).
    */
-  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1 } = {}) {
+  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false } = {}) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
     this.scale = scale;
+    this.highContrast = highContrast;
     this.enabled = false;
 
     /** @type {{text:string, remaining:number}[]} */
@@ -98,6 +102,13 @@ export class CaptionSystem {
     this.scale = Math.max(0.5, Math.min(3, Number(v) || 1));
     this._draw();
     return this.scale;
+  }
+
+  /** Toggle the opaque high-contrast backing and redraw. */
+  setHighContrast(v) {
+    this.highContrast = !!v;
+    this._draw();
+    return this.highContrast;
   }
 
   /**
@@ -174,8 +185,8 @@ export class CaptionSystem {
       return;
     }
 
-    // Semi-opaque backing for legibility against any scene.
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    // Backing for legibility against any scene — opaque under high contrast.
+    ctx.fillStyle = this._backingStyle();
     if (ctx.roundRect) {
       ctx.beginPath();
       ctx.roundRect(8, 8, CANVAS_W - 16, CANVAS_H - 16, 16);
@@ -232,6 +243,11 @@ export class CaptionSystem {
       }
     }
     return out;
+  }
+
+  /** Backing fill: opaque for high contrast, semi-transparent otherwise. */
+  _backingStyle() {
+    return this.highContrast ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.55)';
   }
 
   /** Chars per row at the current scale: bigger text wraps sooner. */

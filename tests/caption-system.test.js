@@ -179,6 +179,22 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(big._fontSizeFor(6)).toBeGreaterThanOrEqual(22);
   });
 
+  test('backing is semi-transparent by default, opaque under high contrast', () => {
+    expect(cs.highContrast).toBe(false);
+    expect(cs._backingStyle()).toBe('rgba(0, 0, 0, 0.55)');
+    const hc = new CaptionSystem(makeCamera(), { highContrast: true });
+    expect(hc._backingStyle()).toBe('rgba(0, 0, 0, 1)');
+  });
+
+  test('setHighContrast toggles the backing and redraws', () => {
+    cs.setEnabled(true);
+    cs.show('hi');
+    expect(cs.setHighContrast(true)).toBe(true);
+    expect(cs._backingStyle()).toBe('rgba(0, 0, 0, 1)');
+    expect(cs.setHighContrast(0)).toBe(false); // coerced
+    expect(cs._backingStyle()).toBe('rgba(0, 0, 0, 0.55)');
+  });
+
   test('dispose() detaches the mesh from the camera', () => {
     cs.dispose();
     expect(cam.remove).toHaveBeenCalled();

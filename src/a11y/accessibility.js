@@ -29,7 +29,7 @@ function media(query) {
 export function osReducedMotion() {
   return media('(prefers-reduced-motion: reduce)');
 }
-function osHighContrast() {
+export function osHighContrast() {
   return media('(prefers-contrast: more)') || media('(forced-colors: active)');
 }
 
