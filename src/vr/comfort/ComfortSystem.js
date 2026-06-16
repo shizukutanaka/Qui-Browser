@@ -409,6 +409,23 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
 }
 
 /**
+ * Build a directional caption for a snap-turn confirmation.
+ *
+ * Used when prefers-reduced-motion removes the eased rotation animation;
+ * the caption provides the second, non-visual channel that tells the user
+ * which way the world snapped. Pure so it is unit-testable.
+ *
+ * @param {number} direction   +1 = clockwise (right), -1 = counter-clockwise (left)
+ * @param {number} angleDeg    magnitude of the snap in degrees
+ * @returns {string}           e.g. "↺ Left 30°" or "↻ Right 30°"
+ */
+export function snapTurnLabel(direction, angleDeg) {
+  return direction > 0
+    ? `↻ Right ${angleDeg}°`
+    : `↺ Left ${angleDeg}°`;
+}
+
+/**
  * Usage Example:
  *
  * const comfort = new ComfortSystem(scene, camera, renderer);

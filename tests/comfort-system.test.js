@@ -51,7 +51,7 @@ global.window = global.window || {};
 global.window.innerWidth  = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS } = require('../src/vr/comfort/ComfortSystem.js');
+const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel } = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -249,5 +249,24 @@ describe('resolveComfortPreset — OS reduced-motion pre-selects protective pres
   test('sensitive is genuinely the most protective key in the ordered list', () => {
     expect(COMFORT_PRESET_KEYS[0]).toBe('sensitive');
     expect(COMFORT_PRESET_KEYS).toContain('moderate');
+  });
+});
+
+describe('snapTurnLabel — directional caption for reduced-motion orientation cue', () => {
+  test('positive direction = clockwise = Right with arrow', () => {
+    expect(snapTurnLabel(1, 30)).toBe('↻ Right 30°');
+  });
+
+  test('negative direction = counter-clockwise = Left with arrow', () => {
+    expect(snapTurnLabel(-1, 30)).toBe('↺ Left 30°');
+  });
+
+  test('angle is included verbatim so users know the step size', () => {
+    expect(snapTurnLabel(1, 45)).toBe('↻ Right 45°');
+    expect(snapTurnLabel(-1, 15)).toBe('↺ Left 15°');
+  });
+
+  test('arrows are semantically distinct (not the same glyph)', () => {
+    expect(snapTurnLabel(1, 30)[0]).not.toBe(snapTurnLabel(-1, 30)[0]);
   });
 });

@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset, snapTurnLabel } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
 
@@ -1163,7 +1163,7 @@ export class VRApp {
       // Turn hand: snap turn.
       if (this.settings.enableSnapTurn && snap.hand === turnHand) {
         if (Math.abs(x) > snapThreshold && !controller.userData.snapLatched) {
-          this.snapTurn(x > 0 ? -1 : 1); // push right → turn clockwise
+          this.snapTurn(x > 0 ? -1 : 1, snap.hand); // push right → turn clockwise
           controller.userData.snapLatched = true;
         } else if (Math.abs(x) < snapRelease) {
           controller.userData.snapLatched = false;
@@ -1274,8 +1274,9 @@ export class VRApp {
   }
 
   /** Rotate the player rig in place about the head by snapTurnAngle * direction. */
-  snapTurn(direction) {
-    const angle = direction * THREE.MathUtils.degToRad(this.settings.snapTurnAngle || 30);
+  snapTurn(direction, hand = null) {
+    const angleDeg = this.settings.snapTurnAngle || 30;
+    const angle = direction * THREE.MathUtils.degToRad(angleDeg);
     const head = new THREE.Vector3();
     this.camera.getWorldPosition(head);
     const up = new THREE.Vector3(0, 1, 0);
@@ -1283,6 +1284,20 @@ export class VRApp {
     // together this keeps the head fixed while turning the world.
     this.playerRig.position.sub(head).applyAxisAngle(up, angle).add(head);
     this.playerRig.rotateOnWorldAxis(up, angle);
+
+    // Haptic confirmation on the triggering hand — same lightweight pulse as a
+    // button click. Fires for all users: the turn always deserves tactile
+    // acknowledgement regardless of whether it was animated.
+    if (this.hapticFeedback && hand) {
+      this.hapticFeedback.playPattern(hand, 'click');
+    }
+
+    // Directional caption specifically for reduced-motion users: without the
+    // eased rotation animation there is no visual cue that the world moved, so
+    // a caption provides the second orientation channel (WCAG 1.3.3).
+    if (osReducedMotion() && this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(snapTurnLabel(direction, angleDeg));
+    }
   }
 
   /** Per-frame teleport aiming: project the controller ray onto the floor. */
