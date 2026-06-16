@@ -182,14 +182,17 @@ export class ComfortSystem {
 
   /**
    * Update FOV based on motion.
-   * Skipped under prefers-reduced-motion: the smooth FOV narrowing is itself a
-   * visual-motion effect and is not essential to any functional outcome.
+   *
+   * NOTE: intentionally NOT gated on reduceMotion. Dynamic FOV reduction
+   * (tunnelling vision) is a *comfort* technique that lowers peripheral optical
+   * flow during locomotion — it reduces motion sickness rather than causing it.
+   * The prefers-reduced-motion cohort is the vestibular-sensitive group that
+   * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that is
+   * essential to functionality; comfort tunnelling qualifies. (Contrast with
+   * animateSnapTurn, where the eased rotation IS the nausea trigger and is
+   * therefore suppressed.)
    */
   updateFOV(_deltaTime) {
-    if (this.reduceMotion) {
-      return;
-    }
-
     // Target FOV based on motion
     let targetFOV = this.settings.fov.baseFOV;
 

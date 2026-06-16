@@ -209,22 +209,17 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
   });
 
   // ── updateFOV ─────────────────────────────────────────────────────────────────
-  test('reduceMotion=true: FOV never modified even while moving', () => {
+  // FOV reduction (tunnelling) is a comfort aid that LOWERS sickness, so it must
+  // stay enabled for reduced-motion users — they benefit most. Only the eased
+  // snap-turn rotation is suppressed, never the comfort FOV.
+  test('reduceMotion=true: FOV reduction stays ON while moving (comfort aid)', () => {
     const cam = makeCamera(90);
     const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
     cs.isMoving = true;
     cs.currentFOV = 90;
     cs.updateFOV(0.016);
-    expect(cam.fov).toBe(90);
-    expect(cam.updateProjectionMatrix).not.toHaveBeenCalled();
-  });
-
-  test('reduceMotion=true: FOV not modified when stationary either', () => {
-    const cam = makeCamera(90);
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
-    cs.isMoving = false;
-    cs.updateFOV(0.016);
-    expect(cam.fov).toBe(90);
-    expect(cam.updateProjectionMatrix).not.toHaveBeenCalled();
+    // Tunnelling must still narrow the FOV for the vestibular-sensitive cohort.
+    expect(cam.fov).toBeLessThan(90);
+    expect(cam.updateProjectionMatrix).toHaveBeenCalled();
   });
 });
