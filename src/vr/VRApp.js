@@ -1409,7 +1409,8 @@ export class VRApp {
       this.comfortSystem = new ComfortSystem(
         this.scene,
         this.camera,
-        this.renderer
+        this.renderer,
+        { reduceMotion: osReducedMotion() }
       );
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');

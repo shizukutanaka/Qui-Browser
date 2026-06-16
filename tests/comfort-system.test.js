@@ -176,3 +176,55 @@ describe('ComfortSystem', () => {
     expect(camera.rotation.y).not.toBe(before);
   });
 });
+
+describe('ComfortSystem — prefers-reduced-motion', () => {
+  // ── animateSnapTurn ───────────────────────────────────────────────────────────
+  test('default: snap-turn animation defers rotation to rAF (not synchronous)', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cam.rotation.y = 0;
+    global.requestAnimationFrame.mockClear();
+    cs.animateSnapTurn(Math.PI / 2);
+    // The first rAF tick lerps by t=0, so rotation stays at startRotation.
+    expect(cam.rotation.y).toBe(0);
+    expect(global.requestAnimationFrame).toHaveBeenCalled();
+  });
+
+  test('reduceMotion=true: snap turn applies immediately, no rAF queued', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    cam.rotation.y = 0;
+    global.requestAnimationFrame.mockClear();
+    cs.animateSnapTurn(Math.PI / 2);
+    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
+    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
+  test('reduceMotion=true: negative snap applies immediately', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    cam.rotation.y = Math.PI;
+    cs.animateSnapTurn(-Math.PI / 4);
+    expect(cam.rotation.y).toBeCloseTo(Math.PI - Math.PI / 4, 10);
+  });
+
+  // ── updateFOV ─────────────────────────────────────────────────────────────────
+  test('reduceMotion=true: FOV never modified even while moving', () => {
+    const cam = makeCamera(90);
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    cs.isMoving = true;
+    cs.currentFOV = 90;
+    cs.updateFOV(0.016);
+    expect(cam.fov).toBe(90);
+    expect(cam.updateProjectionMatrix).not.toHaveBeenCalled();
+  });
+
+  test('reduceMotion=true: FOV not modified when stationary either', () => {
+    const cam = makeCamera(90);
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    cs.isMoving = false;
+    cs.updateFOV(0.016);
+    expect(cam.fov).toBe(90);
+    expect(cam.updateProjectionMatrix).not.toHaveBeenCalled();
+  });
+});

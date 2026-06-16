@@ -8,10 +8,11 @@
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(scene, camera, renderer) {
+  constructor(scene, camera, renderer, { reduceMotion = false } = {}) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
+    this.reduceMotion = reduceMotion;
 
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
@@ -180,9 +181,15 @@ export class ComfortSystem {
   }
 
   /**
-   * Update FOV based on motion
+   * Update FOV based on motion.
+   * Skipped under prefers-reduced-motion: the smooth FOV narrowing is itself a
+   * visual-motion effect and is not essential to any functional outcome.
    */
   updateFOV(_deltaTime) {
+    if (this.reduceMotion) {
+      return;
+    }
+
     // Target FOV based on motion
     let targetFOV = this.settings.fov.baseFOV;
 
@@ -218,11 +225,19 @@ export class ComfortSystem {
   }
 
   /**
-   * Animate snap turn with easing
+   * Animate snap turn with easing.
+   * Under prefers-reduced-motion the eased rAF loop is replaced with an
+   * immediate assignment — the turn still happens, the animation does not.
    */
   animateSnapTurn(targetAngle) {
     const startRotation = this.camera.rotation.y;
     const endRotation = startRotation + targetAngle;
+
+    if (this.reduceMotion) {
+      this.camera.rotation.y = endRotation;
+      return;
+    }
+
     const duration = this.settings.snapTurn.duration * 1000; // Convert to ms
     const startTime = Date.now();
 
