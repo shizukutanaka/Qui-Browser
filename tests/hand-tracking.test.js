@@ -96,4 +96,28 @@ describe('HandTracking.detectGesture', () => {
     ht.isFingerExtended = (_joints, finger) => finger === 'index-finger';
     expect(ht.detectGesture(makeJoints())).toBe('point');
   });
+
+  // Pinch with a controllable thumb↔index gap.
+  function pinchJoints(gap) {
+    const tip = { position: { distanceTo: () => gap } };
+    return new Map([
+      ['thumb-tip', tip],
+      ['index-finger-tip', tip],
+      ['wrist', { position: { distanceTo: () => 1 } }]
+    ]);
+  }
+
+  test('pinch starts only inside the tight enter threshold', () => {
+    const ht = new HandTracking({}, new MockObj());
+    expect(ht.detectGesture(pinchJoints(0.015), false)).toBe('pinch'); // < 0.02
+    expect(ht.detectGesture(pinchJoints(0.025), false)).not.toBe('pinch'); // in dead-band
+  });
+
+  test('hysteresis holds a pinch through tremor near the threshold', () => {
+    const ht = new HandTracking({}, new MockObj());
+    // Already pinching, gap drifts into the dead-band (0.02–0.035): stays pinched.
+    expect(ht.detectGesture(pinchJoints(0.03), true)).toBe('pinch');
+    // Only a clearly wider gap releases it.
+    expect(ht.detectGesture(pinchJoints(0.04), true)).not.toBe('pinch');
+  });
 });

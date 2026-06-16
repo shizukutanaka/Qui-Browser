@@ -56,10 +56,11 @@ export class HandTracking {
 
     // Gesture thresholds
     this.thresholds = {
-      pinch: 0.02,      // 2cm between thumb and index tips
-      fist: 0.1,        // Average finger curl threshold
-      pointSpeed: 0.5,  // m/s for pointing gesture
-      grabStrength: 0.7 // Strength threshold for grab
+      pinch: 0.02,        // 2cm between thumb and index tips to START a pinch
+      pinchRelease: 0.035,// 3.5cm to RELEASE — hysteresis against tremor chatter
+      fist: 0.1,          // Average finger curl threshold
+      pointSpeed: 0.5,    // m/s for pointing gesture
+      grabStrength: 0.7   // Strength threshold for grab
     };
   }
 
@@ -218,7 +219,7 @@ export class HandTracking {
         return;
       }
 
-      const gesture = this.detectGesture(joints);
+      const gesture = this.detectGesture(joints, this.gestures[handedness] === 'pinch');
 
       // Check if gesture changed
       if (gesture !== this.gestures[handedness]) {
@@ -231,7 +232,7 @@ export class HandTracking {
   /**
    * Detect current gesture
    */
-  detectGesture(joints) {
+  detectGesture(joints, wasPinching = false) {
     const thumbTip = joints.get('thumb-tip');
     const indexTip = joints.get('index-finger-tip');
     const wrist = joints.get('wrist');
@@ -240,9 +241,13 @@ export class HandTracking {
       return 'none';
     }
 
-    // Pinch detection
+    // Pinch detection with hysteresis: a pinch starts at `pinch` but only
+    // releases past the wider `pinchRelease` gap. Without this, an unsteady
+    // hand hovering near the threshold flickers pinch↔none every frame,
+    // firing repeated selections/haptics — a barrier for users with tremor.
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
-    if (pinchDistance < this.thresholds.pinch) {
+    const pinchThreshold = wasPinching ? this.thresholds.pinchRelease : this.thresholds.pinch;
+    if (pinchDistance < pinchThreshold) {
       this.stats.gesturesRecognized++;
       return 'pinch';
     }
