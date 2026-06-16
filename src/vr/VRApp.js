@@ -774,7 +774,9 @@ export class VRApp {
       ['Snap Turn', 'enableSnapTurn', null],
       ['Smooth Move', 'enableSmoothMove', (v) => {
         const msg = smoothMoveWarning(v, osReducedMotion());
-        if (msg) { this.showVRToast(msg, { type: 'warn' }); }
+        if (msg) {
+          this.showVRToast(msg, { type: 'warn' });
+        }
       }],
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
