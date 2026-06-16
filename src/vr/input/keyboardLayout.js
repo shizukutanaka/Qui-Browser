@@ -24,33 +24,38 @@ export const ROWS = [
  * Compute the geometry for every key in a layout.
  *
  * @param {Array} rows  layout (defaults to ROWS)
+ * @param {number} scale  uniform size multiplier (≥1 enlarges keys for motor /
+ *   low-vision users — bigger targets mean fewer mis-taps; WCAG 2.5.5)
  * @returns {Array<{label:string, glyph:string, x:number, y:number, w:number, h:number}>}
  */
-export function computeKeyLayout(rows = ROWS) {
+export function computeKeyLayout(rows = ROWS, scale = 1) {
+  const keyW = KEY_W * scale;
+  const keyH = KEY_H * scale;
+  const gap = GAP * scale;
   const keys = [];
   const rowCount = rows.length;
   // Total stacked height so we can centre vertically.
-  const totalH = rowCount * KEY_H + (rowCount - 1) * GAP;
-  const topY = totalH / 2 - KEY_H / 2;
+  const totalH = rowCount * keyH + (rowCount - 1) * gap;
+  const topY = totalH / 2 - keyH / 2;
 
   rows.forEach((row, r) => {
-    // Width of this row in "units" (each unit = KEY_W + GAP, minus trailing gap).
+    // Width of this row in "units" (each unit = keyW + gap, minus trailing gap).
     let totalUnits = 0;
     for (const k of row) {
       totalUnits += (typeof k === 'object' ? (k.width || 1) : 1);
     }
-    const rowWidth = totalUnits * KEY_W + (row.length - 1) * GAP;
+    const rowWidth = totalUnits * keyW + (row.length - 1) * gap;
 
     let x = -rowWidth / 2;
-    const y = topY - r * (KEY_H + GAP);
+    const y = topY - r * (keyH + gap);
 
     for (const entry of row) {
       const label = typeof entry === 'object' ? entry.label : entry;
       const units = typeof entry === 'object' ? (entry.width || 1) : 1;
       const glyph = typeof entry === 'object' && entry.glyph ? entry.glyph : label;
-      const w = units * KEY_W;
-      keys.push({ label, glyph, x: x + w / 2, y, w, h: KEY_H });
-      x += w + GAP;
+      const w = units * keyW;
+      keys.push({ label, glyph, x: x + w / 2, y, w, h: keyH });
+      x += w + gap;
     }
   });
 
@@ -59,10 +64,13 @@ export function computeKeyLayout(rows = ROWS) {
 
 /**
  * Total bounding size of the keyboard, useful for the backing panel.
+ * @param {Array} rows
+ * @param {number} scale  same multiplier as computeKeyLayout
  * @returns {{width:number, height:number}}
  */
-export function keyboardBounds(rows = ROWS) {
-  const keys = computeKeyLayout(rows);
+export function keyboardBounds(rows = ROWS, scale = 1) {
+  const keys = computeKeyLayout(rows, scale);
+  const gap = GAP * scale;
   let maxRight = 0;
   let maxTop = 0;
   let minBottom = 0;
@@ -71,5 +79,5 @@ export function keyboardBounds(rows = ROWS) {
     maxTop = Math.max(maxTop, k.y + k.h / 2);
     minBottom = Math.min(minBottom, k.y - k.h / 2);
   }
-  return { width: maxRight * 2 + GAP * 2, height: (maxTop - minBottom) + GAP * 2 };
+  return { width: maxRight * 2 + gap * 2, height: (maxTop - minBottom) + gap * 2 };
 }

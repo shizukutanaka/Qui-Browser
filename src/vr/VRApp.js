@@ -1439,7 +1439,9 @@ export class VRApp {
     this.japaneseIME = new JapaneseIME();
     this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME, {
       registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m)
+      unregisterInteractable: (m) => this.unregisterInteractable(m),
+      // Larger keys (bigger targets) for the large-text accessibility preference.
+      scale: getPrefs().largeText ? 1.3 : 1.0
     });
     console.debug('VRApp: Japanese IME ready');
 

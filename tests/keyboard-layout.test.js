@@ -63,6 +63,22 @@ describe('computeKeyLayout', () => {
     const back = computeKeyLayout().find(k => k.label === 'back');
     expect(back.glyph).toBe('⌫');
   });
+
+  test('scale enlarges every key uniformly (bigger targets, WCAG 2.5.5)', () => {
+    const base = computeKeyLayout();
+    const big = computeKeyLayout(ROWS, 2);
+    expect(big).toHaveLength(base.length);
+    for (let i = 0; i < base.length; i++) {
+      expect(big[i].w).toBeCloseTo(base[i].w * 2, 9);
+      expect(big[i].h).toBeCloseTo(base[i].h * 2, 9);
+      expect(big[i].x).toBeCloseTo(base[i].x * 2, 9); // positions scale too
+      expect(big[i].y).toBeCloseTo(base[i].y * 2, 9);
+    }
+  });
+
+  test('scale defaults to 1 (unchanged geometry)', () => {
+    expect(computeKeyLayout(ROWS, 1)).toEqual(computeKeyLayout());
+  });
 });
 
 describe('keyboardBounds', () => {
@@ -76,5 +92,12 @@ describe('keyboardBounds', () => {
     const small = keyboardBounds([['a'], ['b']]);
     const large = keyboardBounds([['a'], ['b'], ['c'], ['d']]);
     expect(large.height).toBeGreaterThan(small.height);
+  });
+
+  test('bounds scale with the size multiplier', () => {
+    const base = keyboardBounds();
+    const big = keyboardBounds(ROWS, 2);
+    expect(big.width).toBeCloseTo(base.width * 2, 9);
+    expect(big.height).toBeCloseTo(base.height * 2, 9);
   });
 });

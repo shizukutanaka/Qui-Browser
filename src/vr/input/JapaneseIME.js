@@ -570,6 +570,8 @@ export class VRJapaneseKeyboard {
    * @param {object} [opts]
    * @param {Function} [opts.registerInteractable]   — (mesh, handlers) from VRApp
    * @param {Function} [opts.unregisterInteractable] — (mesh) from VRApp
+   * @param {number}   [opts.scale=1] — uniform key-size multiplier (motor /
+   *   low-vision: larger targets reduce mis-taps; WCAG 2.5.5)
    */
   constructor(scene, ime, opts = {}) {
     this.scene = scene;
@@ -580,6 +582,7 @@ export class VRJapaneseKeyboard {
 
     this.registerInteractable = opts.registerInteractable || null;
     this.unregisterInteractable = opts.unregisterInteractable || null;
+    this.scale = opts.scale || 1;
 
     // 3D objects (created lazily by createKeyboard()).
     this.group = null;          // THREE.Group holding panel + keys + display
@@ -614,9 +617,9 @@ export class VRJapaneseKeyboard {
       return this.keyboard;
     }
 
-    const keys = computeKeyLayout();
-    const { width, height } = keyboardBounds();
-    const DISPLAY_H = 0.09; // composition-text strip above the keys
+    const keys = computeKeyLayout(undefined, this.scale);
+    const { width, height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale; // composition-text strip above the keys
 
     const group = new THREE.Group();
     group.name = 'vrKeyboard';
@@ -934,8 +937,8 @@ export class VRJapaneseKeyboard {
     // Position the strip above the display.  The display sits at
     //   group-local y = height/2 + DISPLAY_H/2 + 0.01
     // so the candidate row goes above that by another DISPLAY_H.
-    const { height } = keyboardBounds();
-    const DISPLAY_H = 0.09;
+    const { height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale;
     const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
 
     shown.forEach((kanji, i) => {
