@@ -51,7 +51,8 @@ export class VoiceCommands {
       onTranscript: null,
       onError: null,
       onStart: null,
-      onEnd: null
+      onEnd: null,
+      onSpeak: null // mirror of spoken feedback for a visual channel (captions)
     };
 
     this.registerDefaultCommands();
@@ -621,6 +622,13 @@ export class VoiceCommands {
    * Speak text (TTS)
    */
   speak(text, options = {}) {
+    // Mirror every spoken response to a visual channel so users who can speak
+    // but not hear (deaf / HoH voice-command users, or anyone in a muted /
+    // noisy space) still receive confirmations, errors and "not recognized"
+    // feedback. Fires regardless of TTS availability.
+    if (this.callbacks.onSpeak) {
+      this.callbacks.onSpeak(text);
+    }
     if (!this.synthesis) {
       return;
     }

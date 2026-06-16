@@ -1514,6 +1514,13 @@ export class VRApp {
             this.captionSystem.show(transcript);
           }
         };
+        // Mirror spoken responses (confirmations / errors) to captions too, so a
+        // user who can speak but not hear sees whether a command was understood.
+        this.voiceCommands.callbacks.onSpeak = (text) => {
+          if (this.captionSystem) {
+            this.captionSystem.show(text);
+          }
+        };
         // Replace window.* default commands with VR-aware implementations that
         // route navigation and search through the live TabManager.
         this.voiceCommands.connectBrowser({
