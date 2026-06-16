@@ -51,7 +51,7 @@ global.window = global.window || {};
 global.window.innerWidth  = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback } = require('../src/vr/comfort/ComfortSystem.js');
+const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -316,5 +316,30 @@ describe('fireTeleportFeedback — landing haptic + caption', () => {
     const [, pattern] = haptic.playPattern.mock.calls[0];
     expect(pattern).toBe('impact');
     expect(pattern).not.toBe('click');
+  });
+});
+
+describe('smoothMoveWarning — caution when enabling under prefers-reduced-motion', () => {
+  test('enabling under reduceMotion → returns a non-null warning string', () => {
+    const msg = smoothMoveWarning(true, true);
+    expect(msg).not.toBeNull();
+    expect(typeof msg).toBe('string');
+    expect(msg.length).toBeGreaterThan(0);
+  });
+
+  test('warning mentions motion sickness so the user understands the risk', () => {
+    expect(smoothMoveWarning(true, true)).toMatch(/motion sickness/i);
+  });
+
+  test('disabling under reduceMotion → no warning (turning off is always safe)', () => {
+    expect(smoothMoveWarning(false, true)).toBeNull();
+  });
+
+  test('enabling without reduceMotion → no warning (non-sensitive user)', () => {
+    expect(smoothMoveWarning(true, false)).toBeNull();
+  });
+
+  test('disabling without reduceMotion → no warning', () => {
+    expect(smoothMoveWarning(false, false)).toBeNull();
   });
 });

@@ -455,6 +455,30 @@ export function fireTeleportFeedback(controller, haptic, captions) {
 }
 
 /**
+ * Return a caution message when enabling smooth locomotion while the OS
+ * prefers-reduced-motion flag is set, otherwise null.
+ *
+ * Smooth (continuous) locomotion is the primary VR motion-sickness trigger;
+ * the setting is off by default for exactly this reason. When a
+ * vestibular-sensitive user (signalled by the OS) opts in anyway, a visible
+ * warning gives them the chance to reconsider before experiencing nausea.
+ * The warning fires only when the feature is being *enabled* (not disabled)
+ * so it never nags users who are turning it off.
+ *
+ * Pure / dependency-free so it is unit-testable.
+ *
+ * @param {boolean} enabledNow  - the value the toggle is about to take (true = on)
+ * @param {boolean} reduceMotion - OS prefers-reduced-motion signal
+ * @returns {string|null} warning message, or null when no warning is needed
+ */
+export function smoothMoveWarning(enabledNow, reduceMotion) {
+  if (enabledNow && reduceMotion) {
+    return 'Smooth move may cause motion sickness';
+  }
+  return null;
+}
+
+/**
  * Usage Example:
  *
  * const comfort = new ComfortSystem(scene, camera, renderer);

@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
 
@@ -772,7 +772,10 @@ export class VRApp {
     const items = [
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
-      ['Smooth Move', 'enableSmoothMove', null],
+      ['Smooth Move', 'enableSmoothMove', (v) => {
+        const msg = smoothMoveWarning(v, osReducedMotion());
+        if (msg) { this.showVRToast(msg, { type: 'warn' }); }
+      }],
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
         if (this.ffrSystem) {
