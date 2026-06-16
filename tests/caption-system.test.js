@@ -155,6 +155,30 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(laid[1].text.endsWith('…')).toBe(true);
   });
 
+  test('scale defaults to 1 with the baseline font cap and wrap width', () => {
+    expect(cs.scale).toBe(1);
+    expect(cs._wrapChars()).toBe(34);
+    expect(cs._fontSizeFor(1)).toBe(44); // single line → full 44px cap
+  });
+
+  test('a larger scale raises the font cap and wraps sooner (low vision)', () => {
+    const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
+    expect(big._fontSizeFor(1)).toBe(66);          // 44 * 1.5
+    expect(big._wrapChars()).toBe(23);             // round(34 / 1.5)
+    expect(big._wrapChars()).toBeLessThan(cs._wrapChars());
+  });
+
+  test('setScale clamps to a sane range and redraws', () => {
+    expect(cs.setScale(10)).toBe(3);    // clamped up
+    expect(cs.setScale(0.1)).toBe(0.5); // clamped down
+    expect(cs.setScale(1.4)).toBeCloseTo(1.4, 5);
+  });
+
+  test('font never drops below the floor even when many rows stack', () => {
+    const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
+    expect(big._fontSizeFor(6)).toBeGreaterThanOrEqual(22);
+  });
+
   test('dispose() detaches the mesh from the camera', () => {
     cs.dispose();
     expect(cam.remove).toHaveBeenCalled();

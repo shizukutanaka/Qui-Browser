@@ -33,11 +33,14 @@ export class CaptionSystem {
    * @param {object} [opts]
    * @param {number} [opts.maxLines=3]       — lines visible at once
    * @param {number} [opts.lineDuration=5000]— ms a line stays before expiring
+   * @param {number} [opts.scale=1]          — text-size multiplier for low
+   *   vision; raises the font cap and wraps sooner (fewer chars per row).
    */
-  constructor(camera, { maxLines = 3, lineDuration = 5000 } = {}) {
+  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1 } = {}) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
+    this.scale = scale;
     this.enabled = false;
 
     /** @type {{text:string, remaining:number}[]} */
@@ -83,6 +86,18 @@ export class CaptionSystem {
       this.clear();
     }
     return this.enabled;
+  }
+
+  /**
+   * Set the text-size multiplier (low-vision support) and redraw. Clamped to a
+   * sane range so captions can't shrink away or overflow the panel entirely.
+   * @param {number} v
+   * @returns {number} the applied scale
+   */
+  setScale(v) {
+    this.scale = Math.max(0.5, Math.min(3, Number(v) || 1));
+    this._draw();
+    return this.scale;
   }
 
   /**
@@ -176,7 +191,7 @@ export class CaptionSystem {
     const rows = this._layoutRows();
     const nRows = rows.length;
     const rowH = (CANVAS_H - 2 * PAD) / Math.max(nRows, 1);
-    const fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, Math.floor(rowH * 0.62)));
+    const fontSize = this._fontSizeFor(nRows);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold ${fontSize}px sans-serif`;
@@ -202,20 +217,32 @@ export class CaptionSystem {
    */
   _layoutRows() {
     const n = this._lines.length;
+    const maxChars = this._wrapChars();
     const out = [];
     for (let i = 0; i < n; i++) {
       const fade = 0.55 + 0.45 * ((i + 1) / n);
-      let rows = this._wrap(this._lines[i].text, WRAP_CHARS);
+      let rows = this._wrap(this._lines[i].text, maxChars);
       if (rows.length > MAX_ROWS_PER_LINE) {
         rows = rows.slice(0, MAX_ROWS_PER_LINE);
         const last = MAX_ROWS_PER_LINE - 1;
-        rows[last] = this._truncate(rows[last] + '…', WRAP_CHARS);
+        rows[last] = this._truncate(rows[last] + '…', maxChars);
       }
       for (const text of rows) {
         out.push({ text, fade });
       }
     }
     return out;
+  }
+
+  /** Chars per row at the current scale: bigger text wraps sooner. */
+  _wrapChars() {
+    return Math.max(10, Math.round(WRAP_CHARS / this.scale));
+  }
+
+  /** Row font size (px) for a given row count: scaled cap, bounded to the row. */
+  _fontSizeFor(nRows) {
+    const rowH = (CANVAS_H - 2 * PAD) / Math.max(nRows, 1);
+    return Math.max(MIN_FONT, Math.min(MAX_FONT * this.scale, Math.floor(rowH * 0.62)));
   }
 
   /**
