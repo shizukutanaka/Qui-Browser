@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset, snapTurnLabel } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
 
@@ -1119,6 +1119,10 @@ export class VRApp {
       this.camera.getWorldPosition(head);
       this.playerRig.position.x += t.target.x - head.x;
       this.playerRig.position.z += t.target.z - head.z;
+
+      // Cross-modal landing confirmation: haptic impact on the triggering
+      // controller + caption for caption-enabled users.
+      fireTeleportFeedback(t.controller, this.hapticFeedback, this.captionSystem);
     }
     t.active = false;
     t.valid = false;

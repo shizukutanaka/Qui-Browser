@@ -426,6 +426,35 @@ export function snapTurnLabel(direction, angleDeg) {
 }
 
 /**
+ * Fire cross-modal feedback on a successful teleport landing.
+ *
+ * Teleport is the recommended comfort locomotion (smooth move is off by default
+ * precisely because it triggers motion sickness). Yet until now the landing was
+ * completely silent — no haptic, no caption. Both channels are useful to all
+ * users (not just reduced-motion): a heavier 'impact' pulse confirms the jump
+ * registered, and the caption serves users whose captions are enabled.
+ *
+ * Unlike snap-turn, the caption is NOT gated on prefers-reduced-motion because
+ * teleport is always instant (there is no animation to suppress); the caption
+ * is general landing confirmation, not a substitute for a missing animation.
+ *
+ * Pure / dependency-free so it is unit-testable.
+ *
+ * @param {object|null} controller  WebXR controller object (userData.inputSource.handedness)
+ * @param {object|null} haptic      HapticFeedback instance, or null
+ * @param {object|null} captions    CaptionSystem instance, or null
+ */
+export function fireTeleportFeedback(controller, haptic, captions) {
+  if (haptic) {
+    const hand = controller?.userData?.inputSource?.handedness || 'right';
+    haptic.playPattern(hand, 'impact');
+  }
+  if (captions && captions.enabled) {
+    captions.show('Teleported');
+  }
+}
+
+/**
  * Usage Example:
  *
  * const comfort = new ComfortSystem(scene, camera, renderer);

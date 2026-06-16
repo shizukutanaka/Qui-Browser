@@ -51,7 +51,7 @@ global.window = global.window || {};
 global.window.innerWidth  = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel } = require('../src/vr/comfort/ComfortSystem.js');
+const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback } = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -268,5 +268,53 @@ describe('snapTurnLabel — directional caption for reduced-motion orientation c
 
   test('arrows are semantically distinct (not the same glyph)', () => {
     expect(snapTurnLabel(1, 30)[0]).not.toBe(snapTurnLabel(-1, 30)[0]);
+  });
+});
+
+describe('fireTeleportFeedback — landing haptic + caption', () => {
+  function makeHaptic() {
+    return { playPattern: jest.fn() };
+  }
+  function makeCaptions(enabled = true) {
+    return { enabled, show: jest.fn() };
+  }
+  function makeController(handedness = 'left') {
+    return { userData: { inputSource: { handedness } } };
+  }
+
+  test('fires impact haptic on the controller hand', () => {
+    const haptic = makeHaptic();
+    fireTeleportFeedback(makeController('left'), haptic, null);
+    expect(haptic.playPattern).toHaveBeenCalledWith('left', 'impact');
+  });
+
+  test('falls back to "right" when controller has no handedness', () => {
+    const haptic = makeHaptic();
+    fireTeleportFeedback(null, haptic, null);
+    expect(haptic.playPattern).toHaveBeenCalledWith('right', 'impact');
+  });
+
+  test('shows "Teleported" caption when captions are enabled', () => {
+    const captions = makeCaptions(true);
+    fireTeleportFeedback(null, null, captions);
+    expect(captions.show).toHaveBeenCalledWith('Teleported');
+  });
+
+  test('caption suppressed when captions are disabled', () => {
+    const captions = makeCaptions(false);
+    fireTeleportFeedback(null, null, captions);
+    expect(captions.show).not.toHaveBeenCalled();
+  });
+
+  test('no error when both haptic and captions are null (invalid teleport path)', () => {
+    expect(() => fireTeleportFeedback(null, null, null)).not.toThrow();
+  });
+
+  test('haptic pattern is "impact" not "click" — heavier for a spatial jump', () => {
+    const haptic = makeHaptic();
+    fireTeleportFeedback(makeController('right'), haptic, null);
+    const [, pattern] = haptic.playPattern.mock.calls[0];
+    expect(pattern).toBe('impact');
+    expect(pattern).not.toBe('click');
   });
 });
