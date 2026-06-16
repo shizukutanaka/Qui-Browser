@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
 
@@ -178,7 +178,17 @@ export class VRApp {
     };
 
     // Merge any persisted user overrides (settings survive reloads).
-    Object.assign(this.settings, this.loadPersistedSettings());
+    const persisted = this.loadPersistedSettings();
+    Object.assign(this.settings, persisted);
+
+    // Accessibility: if the OS signals prefers-reduced-motion and the user has
+    // not explicitly chosen a comfort preset, default to the most protective
+    // one ('sensitive') rather than 'moderate'. An explicit persisted choice
+    // (merged above) always wins.
+    this.settings.motionSensitivity = resolveComfortPreset({
+      reducedMotion: osReducedMotion(),
+      persisted: persisted.motionSensitivity
+    });
 
     this.initialize();
   }

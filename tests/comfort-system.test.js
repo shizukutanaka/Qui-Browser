@@ -51,7 +51,7 @@ global.window = global.window || {};
 global.window.innerWidth  = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem } = require('../src/vr/comfort/ComfortSystem.js');
+const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS } = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -221,5 +221,33 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
     // Tunnelling must still narrow the FOV for the vestibular-sensitive cohort.
     expect(cam.fov).toBeLessThan(90);
     expect(cam.updateProjectionMatrix).toHaveBeenCalled();
+  });
+});
+
+describe('resolveComfortPreset — OS reduced-motion pre-selects protective preset', () => {
+  test('no signal, no persisted choice → moderate default', () => {
+    expect(resolveComfortPreset()).toBe('moderate');
+    expect(resolveComfortPreset({ reducedMotion: false, persisted: null })).toBe('moderate');
+  });
+
+  test('OS prefers-reduced-motion → most protective preset (sensitive)', () => {
+    expect(resolveComfortPreset({ reducedMotion: true })).toBe('sensitive');
+  });
+
+  test('explicit persisted choice always wins over the OS signal', () => {
+    // User deliberately picked a lighter preset despite the OS flag — respect it.
+    expect(resolveComfortPreset({ reducedMotion: true, persisted: 'tolerant' })).toBe('tolerant');
+    expect(resolveComfortPreset({ reducedMotion: true, persisted: 'disabled' })).toBe('disabled');
+    expect(resolveComfortPreset({ reducedMotion: false, persisted: 'sensitive' })).toBe('sensitive');
+  });
+
+  test('invalid persisted value is ignored, falling through to the signal/default', () => {
+    expect(resolveComfortPreset({ reducedMotion: true, persisted: 'garbage' })).toBe('sensitive');
+    expect(resolveComfortPreset({ reducedMotion: false, persisted: 'garbage' })).toBe('moderate');
+  });
+
+  test('sensitive is genuinely the most protective key in the ordered list', () => {
+    expect(COMFORT_PRESET_KEYS[0]).toBe('sensitive');
+    expect(COMFORT_PRESET_KEYS).toContain('moderate');
   });
 });

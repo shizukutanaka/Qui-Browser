@@ -376,6 +376,38 @@ export class ComfortSystem {
   }
 }
 
+/** Comfort preset keys, ordered most → least protective. */
+export const COMFORT_PRESET_KEYS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+
+/**
+ * Resolve the comfort preset to use at startup.
+ *
+ * Precedence:
+ *   1. An explicit, valid persisted user choice always wins — if the user has
+ *      picked a preset we never override it.
+ *   2. Otherwise, if the OS signals prefers-reduced-motion, default to the most
+ *      protective preset ('sensitive') instead of 'moderate'. The OS already
+ *      told us this user is motion-sensitive, so they should not have to find
+ *      and crank the in-VR comfort menu themselves.
+ *   3. Otherwise fall back to 'moderate'.
+ *
+ * Pure / dependency-free so the precedence logic is unit-testable.
+ *
+ * @param {object}  [opts]
+ * @param {boolean} [opts.reducedMotion=false] - OS prefers-reduced-motion signal
+ * @param {string}  [opts.persisted=null]      - persisted motionSensitivity, if any
+ * @returns {string} a key from COMFORT_PRESET_KEYS
+ */
+export function resolveComfortPreset({ reducedMotion = false, persisted = null } = {}) {
+  if (persisted && COMFORT_PRESET_KEYS.includes(persisted)) {
+    return persisted;
+  }
+  if (reducedMotion) {
+    return 'sensitive';
+  }
+  return 'moderate';
+}
+
 /**
  * Usage Example:
  *
