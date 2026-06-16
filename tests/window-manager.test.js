@@ -52,7 +52,12 @@ jest.mock('three', () => {
 const THREE = require('three');
 const V3 = THREE.Vector3;
 const Quat = THREE.Quaternion;
-const { WindowManager } = require('../src/vr/browser/WindowManager.js');
+const {
+  WindowManager,
+  resolveWindowDistance,
+  PANEL_DISTANCE_DEFAULT,
+  PANEL_DISTANCE_LARGE_TEXT
+} = require('../src/vr/browser/WindowManager.js');
 
 // A fake camera/object exposing world transform getters.
 function makeNode(pos = [0, 0, 0], quat = [0, 0, 0, 1]) {
@@ -200,5 +205,39 @@ describe('WindowManager (spatial window management)', () => {
     wm.dispose();
     expect(wm.target).toBeNull();
     expect(wm.isGrabbing).toBe(false);
+  });
+});
+
+describe('resolveWindowDistance — largeText preference pulls panel closer', () => {
+  test('no preference, no persisted → default (2.0 m)', () => {
+    expect(resolveWindowDistance()).toBe(PANEL_DISTANCE_DEFAULT);
+    expect(resolveWindowDistance({ largeText: false, persisted: null })).toBe(PANEL_DISTANCE_DEFAULT);
+  });
+
+  test('largeText → closer distance for low-vision legibility', () => {
+    expect(resolveWindowDistance({ largeText: true })).toBe(PANEL_DISTANCE_LARGE_TEXT);
+  });
+
+  test('large-text distance is strictly closer than default', () => {
+    expect(PANEL_DISTANCE_LARGE_TEXT).toBeLessThan(PANEL_DISTANCE_DEFAULT);
+  });
+
+  test('persisted valid number always wins over largeText', () => {
+    expect(resolveWindowDistance({ largeText: true, persisted: 3.0 })).toBe(3.0);
+    expect(resolveWindowDistance({ largeText: false, persisted: 1.0 })).toBe(1.0);
+  });
+
+  test('persisted NaN is ignored — falls through to largeText / default', () => {
+    expect(resolveWindowDistance({ largeText: true, persisted: NaN })).toBe(PANEL_DISTANCE_LARGE_TEXT);
+    expect(resolveWindowDistance({ largeText: false, persisted: NaN })).toBe(PANEL_DISTANCE_DEFAULT);
+  });
+
+  test('persisted zero or negative is ignored (physically invalid)', () => {
+    expect(resolveWindowDistance({ largeText: false, persisted: 0 })).toBe(PANEL_DISTANCE_DEFAULT);
+    expect(resolveWindowDistance({ largeText: true, persisted: -1 })).toBe(PANEL_DISTANCE_LARGE_TEXT);
+  });
+
+  test('persisted non-number is ignored', () => {
+    expect(resolveWindowDistance({ largeText: false, persisted: 'far' })).toBe(PANEL_DISTANCE_DEFAULT);
   });
 });

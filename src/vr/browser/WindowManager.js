@@ -164,3 +164,39 @@ export class WindowManager {
     this._grab = null;
   }
 }
+
+/** Default panel-to-user distance (m) — comfortable for most users. */
+export const PANEL_DISTANCE_DEFAULT = 2.0;
+
+/**
+ * Panel distance (m) when the OS largeText preference is set.
+ *
+ * Text legibility in VR depends on angular size = physical_size / distance.
+ * Bringing the panel from 2.0 m → 1.2 m gives a 1.67× angular size increase
+ * for the same text — equivalent to a 67 % font scale with no DOM changes.
+ * 1.2 m sits in the comfortable near-field reading zone (≥ minDistance 0.6 m)
+ * without feeling claustrophobic.
+ */
+export const PANEL_DISTANCE_LARGE_TEXT = 1.2;
+
+/**
+ * Resolve the initial panel distance based on OS preferences.
+ *
+ * Precedence:
+ *   1. A valid persisted user choice always wins.
+ *   2. OS largeText preference → the closer PANEL_DISTANCE_LARGE_TEXT.
+ *   3. Fallback to PANEL_DISTANCE_DEFAULT.
+ *
+ * Pure / dependency-free so it is unit-testable.
+ *
+ * @param {object}          [opts]
+ * @param {boolean}         [opts.largeText=false]  - OS large-text preference
+ * @param {number|null}     [opts.persisted=null]   - persisted windowDistance, if any
+ * @returns {number} distance in metres
+ */
+export function resolveWindowDistance({ largeText = false, persisted = null } = {}) {
+  if (typeof persisted === 'number' && Number.isFinite(persisted) && persisted > 0) {
+    return persisted;
+  }
+  return largeText ? PANEL_DISTANCE_LARGE_TEXT : PANEL_DISTANCE_DEFAULT;
+}

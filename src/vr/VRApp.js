@@ -36,7 +36,7 @@ import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { TabManager } from './browser/TabManager.js';
-import { WindowManager } from './browser/WindowManager.js';
+import { WindowManager, resolveWindowDistance } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
@@ -188,6 +188,16 @@ export class VRApp {
     this.settings.motionSensitivity = resolveComfortPreset({
       reducedMotion: osReducedMotion(),
       persisted: persisted.motionSensitivity
+    });
+
+    // Accessibility: if the OS largeText preference is set and the user has not
+    // explicitly chosen a panel distance, move the panel closer (1.2 m instead
+    // of 2.0 m). Angular text size = physical_size / distance, so a 40% closer
+    // panel gives a 67% angular size gain — the biggest legibility improvement
+    // available without changing font sizes. An explicit persisted choice wins.
+    this.settings.windowDistance = resolveWindowDistance({
+      largeText: getPrefs().largeText,
+      persisted: persisted.windowDistance
     });
 
     this.initialize();
