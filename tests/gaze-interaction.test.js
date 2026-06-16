@@ -230,6 +230,20 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._ring.material.opacity).toBeLessThan(1);
   });
 
+  test('reduced motion holds a static highlight instead of an animated fade', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, reduceMotion: true });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200);                          // fires
+    expect(gi._ring.material.opacity).toBeCloseTo(1, 3);
+    gi.update([obj], 100);                           // mid-window — must NOT fade down
+    expect(gi._ring.material.opacity).toBeCloseTo(1, 3);
+    gi.update([obj], 300);                           // window exhausted — snap back
+    expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
+  });
+
   test('the confirmation flash finishes after its duration elapses', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
     gi.setEnabled(true);

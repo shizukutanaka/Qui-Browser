@@ -24,6 +24,7 @@ import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity } from './accessibility/crossModal.js';
+import { osReducedMotion } from '../a11y/accessibility.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -1454,7 +1455,9 @@ export class VRApp {
     // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
     // can be toggled live from the settings panel; only active when enabled.
     this.gazeInteraction = new GazeInteraction(this.camera, {
-      dwellTime: this.settings.gazeDwellTime
+      dwellTime: this.settings.gazeDwellTime,
+      // Honour the OS reduced-motion preference: static activation cue, no fade.
+      reduceMotion: osReducedMotion()
     });
     this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
     console.debug('VRApp: Gaze-dwell interaction ready');

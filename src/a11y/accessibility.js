@@ -26,7 +26,7 @@ const prefs = Object.assign({ highContrast: false, largeText: false }, load());
 function media(query) {
   return typeof matchMedia !== 'undefined' && matchMedia(query).matches;
 }
-function osReducedMotion() {
+export function osReducedMotion() {
   return media('(prefers-reduced-motion: reduce)');
 }
 function osHighContrast() {

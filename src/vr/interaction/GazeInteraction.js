@@ -29,11 +29,15 @@ export class GazeInteraction {
    * @param {number} [opts.graceTime=300]  — ms an off-target slip is forgiven
    *   before the accumulated dwell is discarded. Tolerates tremor / nystagmus
    *   so an unsteady gaze can still complete a selection.
+   * @param {boolean} [opts.reduceMotion=false] — when true, the activation
+   *   confirmation is a static highlight instead of an animated fade (honours
+   *   the OS prefers-reduced-motion signal for vestibular comfort).
    */
-  constructor(camera, { dwellTime = 1500, graceTime = 300 } = {}) {
+  constructor(camera, { dwellTime = 1500, graceTime = 300, reduceMotion = false } = {}) {
     this.camera = camera;
     this.dwellTime = dwellTime;
     this.graceTime = graceTime;
+    this.reduceMotion = reduceMotion;
     this.enabled = false;
 
     // Dwell state
@@ -108,6 +112,10 @@ export class GazeInteraction {
    * opacity on activation and fades back to its resting level, giving gaze
    * users the "it fired" cue that controller/pinch users get from haptics —
    * and one that works even with no controller in hand.
+   *
+   * Under reduced motion the ring instead holds at full opacity for the same
+   * window and snaps back when it ends: same cue, same duration, no animated
+   * fade (WCAG 2.3.3, vestibular comfort).
    */
   _tickConfirm(dtMs) {
     if (this._confirmMs <= 0) {
@@ -115,8 +123,12 @@ export class GazeInteraction {
     }
     this._confirmMs = Math.max(0, this._confirmMs - dtMs);
     if (this._ring) {
-      const r = this._confirmMs / CONFIRM_MS; // 1 → 0
-      this._ring.material.opacity = RING_OPACITY + (1 - RING_OPACITY) * r;
+      if (this.reduceMotion) {
+        this._ring.material.opacity = this._confirmMs > 0 ? 1 : RING_OPACITY;
+      } else {
+        const r = this._confirmMs / CONFIRM_MS; // 1 → 0
+        this._ring.material.opacity = RING_OPACITY + (1 - RING_OPACITY) * r;
+      }
     }
   }
 
