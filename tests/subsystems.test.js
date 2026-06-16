@@ -2,7 +2,7 @@
  * Unit tests for dependency-free src/ subsystems of the live v2.0.0 app.
  * These exercise real conversion/clamping/queue logic (not just construction).
  */
-const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+const { JapaneseIME, candidateStyle } = require('../src/vr/input/JapaneseIME.js');
 const { FFRSystem } = require('../src/vr/rendering/FFRSystem.js');
 const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
 const { ObjectPool, Vector3Pool } = require('../src/utils/ObjectPool.js');
@@ -24,6 +24,22 @@ describe('src/vr/input/JapaneseIME', () => {
 
   test('converts hiragana to katakana', () => {
     expect(ime.convertHiraganaToKatakana('あいうえお')).toBe('アイウエオ');
+  });
+});
+
+describe('candidateStyle — primary candidate not signalled by colour alone', () => {
+  test('every candidate gets a 1-based order number', () => {
+    expect(candidateStyle(0).number).toBe('1');
+    expect(candidateStyle(1).number).toBe('2');
+    expect(candidateStyle(7).number).toBe('8');
+  });
+
+  test('primary candidate also carries a heavier border (shape cue, not hue)', () => {
+    expect(candidateStyle(0).lineWidth).toBeGreaterThan(candidateStyle(1).lineWidth);
+  });
+
+  test('non-primary candidates share one weight so only #1 stands out', () => {
+    expect(candidateStyle(1).lineWidth).toBe(candidateStyle(5).lineWidth);
   });
 });
 

@@ -563,6 +563,26 @@ export class JapaneseIME {
 /**
  * VR Keyboard Integration for Japanese IME
  */
+/**
+ * Visual cues for a conversion candidate at a given list position. The primary
+ * (default) candidate must not be signalled by colour alone (WCAG 1.4.1), so it
+ * also carries a heavier border (a shape cue) and every candidate gets a 1-based
+ * order number — the universal Japanese-IME convention — which conveys primacy
+ * and order independently of colour vision. Pure / unit-testable.
+ *
+ * @param {number} index  0-based position in the candidate list
+ * @returns {{bg:string, border:string, lineWidth:number, number:string}}
+ */
+export function candidateStyle(index) {
+  const primary = index === 0;
+  return {
+    bg: primary ? '#2a4a22' : '#1c2438',
+    border: primary ? '#44cc88' : '#4466aa',
+    lineWidth: primary ? 9 : 5,   // primary stands out by border WEIGHT, not hue alone
+    number: String(index + 1)      // 1-based order label
+  };
+}
+
 export class VRJapaneseKeyboard {
   /**
    * @param {THREE.Scene} scene
@@ -946,11 +966,18 @@ export class VRJapaneseKeyboard {
       canvas.width = 128;
       canvas.height = 128;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
+      const style = candidateStyle(i);
+      ctx.fillStyle = style.bg;
       ctx.fillRect(0, 0, 128, 128);
-      ctx.strokeStyle = i === 0 ? '#44cc88' : '#4466aa';
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = style.border;
+      ctx.lineWidth = style.lineWidth;
       ctx.strokeRect(3, 3, 122, 122);
+      // Order number (top-left): conveys primacy/order without relying on colour.
+      ctx.fillStyle = '#cceeff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(style.number, 10, 8);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 60px sans-serif';
       ctx.textAlign = 'center';
