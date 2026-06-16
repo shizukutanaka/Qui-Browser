@@ -29,6 +29,40 @@ export const TOAST_HAPTIC = { error: 'error', warn: 'warning', info: 'notificati
 // text channel carries no colour at all). Distinct silhouettes: ✕ / ⚠ / ℹ.
 export const SEVERITY_PREFIX = { error: '✕ ', warn: '⚠ ', info: 'ℹ ' };
 
+// Toast colour schemes (panel background / text / border) per severity. The
+// high-contrast set maximises legibility — solid black backing, white text —
+// for low-vision / high-contrast users; severity is still distinguishable by
+// the bright border AND the severity glyph, so dropping the tinted text loses
+// no information.
+export const TOAST_COLORS = {
+  error: { bg: '#5a0a0a', fg: '#ffaaaa', bdr: '#ff4444' },
+  warn:  { bg: '#4a3a00', fg: '#ffdd88', bdr: '#ffbb33' },
+  info:  { bg: '#0a2a4a', fg: '#88ccff', bdr: '#44aaff' }
+};
+export const TOAST_COLORS_HC = {
+  error: { bg: '#000000', fg: '#ffffff', bdr: '#ff5555' },
+  warn:  { bg: '#000000', fg: '#ffffff', bdr: '#ffcc44' },
+  info:  { bg: '#000000', fg: '#ffffff', bdr: '#55ccff' }
+};
+
+/**
+ * Toast colour scheme for a severity, honouring a high-contrast preference.
+ * Falls back to the error scheme for an unknown/missing type (matches the
+ * prior inline behaviour). Pure.
+ * @param {'error'|'warn'|'info'} type
+ * @param {boolean} [highContrast=false]
+ * @returns {{bg:string, fg:string, bdr:string}}
+ */
+export function toastColors(type, highContrast = false) {
+  const set = highContrast ? TOAST_COLORS_HC : TOAST_COLORS;
+  return set[type] || set.error;
+}
+
+/** Toast font size (px) for a text-size multiplier (low vision). */
+export function toastFontPx(scale = 1) {
+  return Math.round(26 * (Number(scale) || 1));
+}
+
 /**
  * Prepend the severity glyph to a message. Falls back to the info glyph for an
  * unknown/missing type. Pure — used by both the visual toast and the caption

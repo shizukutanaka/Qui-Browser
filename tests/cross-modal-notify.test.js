@@ -11,7 +11,9 @@ const {
   notifyCrossModal,
   TOAST_HAPTIC,
   withSeverity,
-  SEVERITY_PREFIX
+  SEVERITY_PREFIX,
+  toastColors,
+  toastFontPx
 } = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
@@ -70,6 +72,34 @@ describe('withSeverity — severity conveyed by shape, not colour', () => {
   test('falls back to the info glyph for an unknown/missing type', () => {
     expect(withSeverity('hi', 'bogus')).toBe(`${SEVERITY_PREFIX.info}hi`);
     expect(withSeverity('hi', undefined)).toBe(`${SEVERITY_PREFIX.info}hi`);
+  });
+});
+
+describe('toast theming — honours high-contrast and large-text', () => {
+  test('default scheme is tinted per severity', () => {
+    expect(toastColors('error').bg).toBe('#5a0a0a');
+    expect(toastColors('warn').fg).toBe('#ffdd88');
+    expect(toastColors('info').bdr).toBe('#44aaff');
+  });
+
+  test('high-contrast scheme is solid black with white text', () => {
+    for (const type of ['error', 'warn', 'info']) {
+      const c = toastColors(type, true);
+      expect(c.bg).toBe('#000000');
+      expect(c.fg).toBe('#ffffff');
+      // severity still distinguishable by the border
+      expect(c.bdr).not.toBe('#000000');
+    }
+  });
+
+  test('unknown type falls back to the error scheme', () => {
+    expect(toastColors('bogus')).toEqual(toastColors('error'));
+  });
+
+  test('toastFontPx scales the base size and defaults to 26', () => {
+    expect(toastFontPx()).toBe(26);
+    expect(toastFontPx(1.3)).toBe(34); // round(33.8)
+    expect(toastFontPx(0)).toBe(26);   // invalid coerced to 1
   });
 });
 

@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
 import { osReducedMotion, osHighContrast, getPrefs } from '../a11y/accessibility.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
@@ -502,19 +502,20 @@ export class VRApp {
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    const BG  = { error: '#5a0a0a', warn: '#4a3a00', info: '#0a2a4a' };
-    const FG  = { error: '#ffaaaa', warn: '#ffdd88', info: '#88ccff' };
-    const BDR = { error: '#ff4444', warn: '#ffbb33', info: '#44aaff' };
+    // Honour the high-contrast / large-text accessibility preferences (same
+    // signals as the 2D layer and the caption panel).
+    const c = toastColors(type, getPrefs().highContrast || osHighContrast());
+    const fontPx = toastFontPx(getPrefs().largeText ? 1.3 : 1);
 
-    ctx.fillStyle = BG[type] || BG.error;
+    ctx.fillStyle = c.bg;
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = BDR[type] || BDR.error;
+    ctx.strokeStyle = c.bdr;
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, W - 4, H - 4);
     // Prefix a severity glyph so the level reads without relying on colour alone.
     const labeled = withSeverity(message, type);
-    ctx.fillStyle = FG[type] || FG.error;
-    ctx.font = 'bold 26px sans-serif';
+    ctx.fillStyle = c.fg;
+    ctx.font = `bold ${fontPx}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(labeled.length > 60 ? labeled.slice(0, 57) + '…' : labeled, W / 2, H / 2);
