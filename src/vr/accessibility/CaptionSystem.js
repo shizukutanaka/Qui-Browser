@@ -2,7 +2,8 @@
  * FR-13.1: In-VR captions / subtitles (accessibility).
  *
  * Renders a HUD caption panel anchored to the camera (lower field of view) that
- * displays a short queue of text lines which fade out after a hold time.  Fed
+ * displays a short queue of text lines which fade out after a hold time.  Long
+ * lines are word-wrapped (not truncated) so full utterances are preserved. Fed
  * by any source of textual events — recognized speech from VoiceCommands,
  * system notifications, or media subtitles — so deaf / hard-of-hearing users
  * (and anyone in a noisy space) can follow spoken/audio content.
@@ -19,6 +20,12 @@ const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
 const CANVAS_W = 1024;
 const CANVAS_H = 256;
+
+const PAD = 24;               // vertical inset for text rows
+const MAX_FONT = 44;          // px — single short line
+const MIN_FONT = 22;          // px — floor when many rows are stacked
+const WRAP_CHARS = 34;        // approx chars per row at the panel width
+const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
 
 export class CaptionSystem {
   /**
@@ -162,24 +169,86 @@ export class CaptionSystem {
       ctx.fillRect(8, 8, CANVAS_W - 16, CANVAS_H - 16);
     }
 
+    // Wrap each caption onto multiple rows so a full utterance is shown rather
+    // than truncated — captions are the channel deaf / HoH users rely on, so
+    // dropping the tail of a sentence loses real information. The font shrinks
+    // to fit when many rows stack up.
+    const rows = this._layoutRows();
+    const nRows = rows.length;
+    const rowH = (CANVAS_H - 2 * PAD) / Math.max(nRows, 1);
+    const fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, Math.floor(rowH * 0.62)));
+
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px sans-serif';
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const n = this._lines.length;
-    const lineH = (CANVAS_H - 48) / Math.max(n, 1);
-    for (let i = 0; i < n; i++) {
-      const y = 24 + lineH * (i + 0.5);
-      // Older lines dim slightly; newest is brightest.
-      const fade = 0.55 + 0.45 * ((i + 1) / n);
-      ctx.globalAlpha = fade;
-      ctx.fillText(this._truncate(this._lines[i].text, 48), CANVAS_W / 2, y);
+    for (let i = 0; i < nRows; i++) {
+      const y = PAD + rowH * (i + 0.5);
+      ctx.globalAlpha = rows[i].fade;
+      ctx.fillText(rows[i].text, CANVAS_W / 2, y);
     }
     ctx.globalAlpha = 1;
 
     this.texture.needsUpdate = true;
     this._dirty = false;
+  }
+
+  /**
+   * Expand the caption queue into display rows: each line is word-wrapped to
+   * WRAP_CHARS and capped at MAX_ROWS_PER_LINE (overflow gets an ellipsis).
+   * Older lines dim slightly; the newest is brightest (fade carried per row).
+   * @returns {{text:string, fade:number}[]}
+   */
+  _layoutRows() {
+    const n = this._lines.length;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const fade = 0.55 + 0.45 * ((i + 1) / n);
+      let rows = this._wrap(this._lines[i].text, WRAP_CHARS);
+      if (rows.length > MAX_ROWS_PER_LINE) {
+        rows = rows.slice(0, MAX_ROWS_PER_LINE);
+        const last = MAX_ROWS_PER_LINE - 1;
+        rows[last] = this._truncate(rows[last] + '…', WRAP_CHARS);
+      }
+      for (const text of rows) {
+        out.push({ text, fade });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Greedy word-wrap into rows no longer than `maxChars`. Words longer than a
+   * row are hard-split. Pure and unit-testable.
+   * @param {string} text
+   * @param {number} maxChars
+   * @returns {string[]}
+   */
+  _wrap(text, maxChars) {
+    const words = String(text).trim().split(/\s+/);
+    const rows = [];
+    let cur = '';
+    for (const w of words) {
+      if (w.length > maxChars) {
+        if (cur) { rows.push(cur); cur = ''; }
+        let rest = w;
+        while (rest.length > maxChars) {
+          rows.push(rest.slice(0, maxChars));
+          rest = rest.slice(maxChars);
+        }
+        cur = rest;
+      } else if (!cur) {
+        cur = w;
+      } else if ((cur + ' ' + w).length <= maxChars) {
+        cur += ' ' + w;
+      } else {
+        rows.push(cur);
+        cur = w;
+      }
+    }
+    if (cur) { rows.push(cur); }
+    return rows.length ? rows : [''];
   }
 
   _truncate(text, max) {

@@ -129,11 +129,30 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cs.lineCount).toBe(0);
   });
 
-  test('long captions are truncated with an ellipsis on draw', () => {
+  test('long captions wrap across rows instead of being cut at one line', () => {
     cs.setEnabled(true);
-    const long = 'x'.repeat(100);
-    expect(() => cs.show(long)).not.toThrow();
-    expect(cs._truncate(long, 48).endsWith('…')).toBe(true);
+    const sentence = 'the quick brown fox jumps over the lazy dog and keeps on running';
+    expect(() => cs.show(sentence)).not.toThrow();
+    const rows = cs._wrap(sentence, 34);
+    expect(rows.length).toBeGreaterThan(1);
+    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
+    // No information lost: the words rejoin to the original.
+    expect(rows.join(' ')).toBe(sentence);
+  });
+
+  test('_wrap hard-splits a word longer than a row', () => {
+    const rows = cs._wrap('x'.repeat(80), 34);
+    expect(rows.length).toBe(3); // 34 + 34 + 12
+    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
+    expect(rows.join('')).toBe('x'.repeat(80));
+  });
+
+  test('_layoutRows caps a caption at two rows with an ellipsis', () => {
+    cs.setEnabled(true);
+    cs.show(Array(20).fill('word').join(' ')); // far more than 2 rows worth
+    const laid = cs._layoutRows();
+    expect(laid.length).toBe(2);
+    expect(laid[1].text.endsWith('…')).toBe(true);
   });
 
   test('dispose() detaches the mesh from the camera', () => {
