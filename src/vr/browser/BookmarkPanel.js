@@ -25,13 +25,23 @@ export class BookmarkPanel {
    * @param {Function} opts.unregisterInteractable
    * @param {BookmarkStore} opts.store
    * @param {Function} opts.onSelect  — called with (url) when a row is chosen
+   * @param {number}  [opts.scale=1]  — physical-size multiplier for low-vision
+   *   legibility. The canvas layout (and thus hit-testing, which works in
+   *   normalised UV space) is unchanged; only the mesh's metre dimensions grow,
+   *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect }) {
+  constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect, scale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.store = store;
     this.onSelect = typeof onSelect === 'function' ? onSelect : () => {};
+
+    // Physical dimensions (metres) scaled for the large-text preference. Stored
+    // per-instance because _onSelect's UV math must use the same values.
+    this.scale = scale > 0 ? scale : 1;
+    this.panelW = PANEL_W * this.scale;
+    this.panelH = PANEL_H * this.scale;
 
     this.mode = 'bookmarks'; // 'bookmarks' | 'history'
     this.scrollOffset = 0;  // index of the first visible row
@@ -49,7 +59,7 @@ export class BookmarkPanel {
     }
 
     this.mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(PANEL_W, PANEL_H),
+      new THREE.PlaneGeometry(this.panelW, this.panelH),
       new THREE.MeshBasicMaterial({ map: this.tex, transparent: true })
     );
     this.mesh.name = 'bookmarkPanel';
@@ -111,8 +121,8 @@ export class BookmarkPanel {
       return;
     }
     const local = this.mesh.worldToLocal(intersectionPoint.clone());
-    const u = (local.x / PANEL_W) + 0.5;
-    const v = (local.y / PANEL_H) + 0.5;
+    const u = (local.x / this.panelW) + 0.5;
+    const v = (local.y / this.panelH) + 0.5;
     const { px, py } = uvToPixels(u, v);
 
     const rows = this._rows();

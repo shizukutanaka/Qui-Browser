@@ -174,3 +174,61 @@ describe('BookmarkPanel', () => {
     expect(unreg).toHaveBeenCalled();
   });
 });
+
+describe('BookmarkPanel — large-text physical scaling', () => {
+  function makeScaledPanel(store, scale, onSelect = jest.fn()) {
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store,
+      onSelect,
+      scale
+    });
+    p.addToScene();
+    return p;
+  }
+
+  // local coords for a pixel on a panel of the given physical size.
+  function localForScaled(px, py, panelW, panelH) {
+    const u = px / PANEL_PX_W;
+    const v = 1 - py / PANEL_PX_H;
+    return { x: (u - 0.5) * panelW, y: (v - 0.5) * panelH, clone() { return this; } };
+  }
+
+  test('default scale = 1 leaves base metre dimensions', () => {
+    const p = makeScaledPanel(makeStore(), undefined);
+    expect(p.scale).toBe(1);
+    expect(p.panelW).toBeCloseTo(PANEL_W, 6);
+    expect(p.panelH).toBeCloseTo(PANEL_H, 6);
+  });
+
+  test('scale 1.3 enlarges the panel proportionally (both axes)', () => {
+    const p = makeScaledPanel(makeStore(), 1.3);
+    expect(p.panelW).toBeCloseTo(PANEL_W * 1.3, 6);
+    expect(p.panelH).toBeCloseTo(PANEL_H * 1.3, 6);
+    // Aspect ratio is preserved so the canvas (fixed pixels) maps cleanly.
+    expect(p.panelW / p.panelH).toBeCloseTo(PANEL_W / PANEL_H, 6);
+  });
+
+  test('non-positive scale falls back to 1 (defensive)', () => {
+    expect(makeScaledPanel(makeStore(), 0).scale).toBe(1);
+    expect(makeScaledPanel(makeStore(), -2).scale).toBe(1);
+  });
+
+  test('hit-testing stays correct at scale: same pixel selects same row', () => {
+    const onSelect = jest.fn();
+    const store = makeStore([
+      { url: 'https://first.com', title: 'First' },
+      { url: 'https://second.com', title: 'Second' }
+    ]);
+    const p = makeScaledPanel(store, 1.3, onSelect);
+    p.show();
+    // Click the second row using the SCALED local coords. Because _onSelect
+    // normalises by this.panelW/this.panelH, the UV (and thus the row) is the
+    // same as it would be at scale 1.
+    MockMesh._nextLocal = localForScaled(100, HEADER_H + ROW_H + 10, p.panelW, p.panelH);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).toHaveBeenCalledWith('https://second.com');
+  });
+});

@@ -380,6 +380,7 @@ export class VRApp {
         registerInteractable: (m, h) => this.registerInteractable(m, h),
         unregisterInteractable: (m) => this.unregisterInteractable(m),
         store: this.bookmarks,
+        scale: getPrefs().largeText ? 1.3 : 1.0,
         onSelect: (url) => {
           const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
           if (active) {
