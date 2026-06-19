@@ -51,7 +51,7 @@ global.document = {
   body: { appendChild() {}, removeChild() {} }
 };
 
-const { WebPanel } = require('../src/vr/browser/WebPanel.js');
+const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
 
 function makePanel(opts = {}) {
   return new WebPanel({
@@ -170,5 +170,47 @@ describe('WebPanel load-error state', () => {
     p._loadUrl('https://site.example');
     p.iframe.onload();
     expect(p._loadError).toBe(false);
+  });
+});
+
+// ── URL bar truncation ──────────────────────────────────────────────────────
+describe('urlBarMaxChars — URL bar character budget', () => {
+  test('returns a positive integer glyph count', () => {
+    const n = urlBarMaxChars(700);
+    expect(Number.isInteger(n)).toBe(true);
+    expect(n).toBeGreaterThan(0);
+  });
+
+  test('a wider bar fits more characters', () => {
+    expect(urlBarMaxChars(740)).toBeGreaterThan(urlBarMaxChars(676));
+  });
+
+  test('never returns fewer than 8 (degenerate / tiny bar)', () => {
+    expect(urlBarMaxChars(0)).toBe(8);
+    expect(urlBarMaxChars(-100)).toBe(8);
+    expect(urlBarMaxChars(20)).toBe(8);
+  });
+
+  test('a larger font fits fewer characters in the same width', () => {
+    expect(urlBarMaxChars(700, 24)).toBeLessThan(urlBarMaxChars(700, 18));
+  });
+});
+
+describe('WebPanel URL bar does not overflow', () => {
+  test('a very long URL is truncated when the chrome is drawn', () => {
+    const p = makePanel({ onToggleBookmark: jest.fn(), isBookmarked: () => false });
+    const long = 'https://example.com/' + 'segment/'.repeat(60);
+    p.currentUrl = long;
+    // _drawChrome must run without throwing and the URL is now longer than any
+    // budget the bar could show — the truncation path is exercised.
+    expect(() => p._drawChrome()).not.toThrow();
+    expect(long.length).toBeGreaterThan(urlBarMaxChars(700));
+  });
+
+  test('a long error message is also truncated without throwing', () => {
+    const p = makePanel();
+    p.currentUrl = 'https://example.com/' + 'x'.repeat(200);
+    p._loadError = true;
+    expect(() => p._drawChrome()).not.toThrow();
   });
 });

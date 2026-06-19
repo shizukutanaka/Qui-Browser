@@ -18,10 +18,33 @@
 import * as THREE from 'three';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
+import { truncate } from './bookmarkLayout.js';
 
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
 const CHROME_H = 0.08;  // URL bar height fraction of total
+
+/**
+ * Character budget for the URL bar, derived from its pixel width and font.
+ *
+ * The URL bar previously drew the full URL with no truncation or max-width, so
+ * a long URL overflowed the bar and overlapped the bookmark/close buttons —
+ * a visual bug and a security concern (an overflowing address obscures which
+ * site you are actually on). This returns how many monospace glyphs fit in the
+ * bar so the URL can be truncated with an ellipsis, keeping the scheme+host
+ * (the anti-phishing anchor) visible.
+ *
+ * Pure / dependency-free so the budget maths is unit-testable.
+ *
+ * @param {number} barWidthPx - inner width of the URL bar in canvas px
+ * @param {number} [fontPx=18] - monospace font size in px
+ * @returns {number} max glyph count (≥ 8) that fits, accounting for padding
+ */
+export function urlBarMaxChars(barWidthPx, fontPx = 18) {
+  // Monospace advance width is ~0.6em; reserve ~16px of left/right padding.
+  const advance = fontPx * 0.6;
+  return Math.max(8, Math.floor((barWidthPx - 16) / advance));
+}
 
 export class WebPanel {
   /**
@@ -187,20 +210,23 @@ export class WebPanel {
     const hasBookmark = !!this.onToggleBookmark;
     // URL bar: leave room for [bookmark][close] on the right when bookmarking.
     const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
+    const barW = w - 212 - urlRight;          // URL bar inner width (px)
     ctx.fillStyle = this._loadError ? '#3a1a1a' : '#2a2a4a';
-    ctx.fillRect(212, 6, w - 212 - urlRight, h - 12);
+    ctx.fillRect(212, 6, barW, h - 12);
+    // Truncate to fit the bar so a long URL can't overflow into the buttons.
+    const maxChars = urlBarMaxChars(barW, this._loadError ? 17 : 18);
+    let urlText;
     if (this._loadError) {
       ctx.fillStyle = '#ff7777';
       ctx.font = '17px sans-serif';
+      urlText = truncate(`⚠ Failed to load: ${this.currentUrl}`, maxChars);
     } else {
       ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
       ctx.font = '18px monospace';
+      urlText = truncate(this.currentUrl || 'https://', maxChars);
     }
     ctx.textAlign = 'left';
-    ctx.fillText(
-      this._loadError ? `⚠ Failed to load: ${this.currentUrl}` : (this.currentUrl || 'https://'),
-      220, h / 2 + 6
-    );
+    ctx.fillText(urlText, 220, h / 2 + 6);
 
     // Bookmark (star) button
     if (hasBookmark) {
