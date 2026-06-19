@@ -37,6 +37,31 @@ export function getPrefs() {
   return { ...prefs };
 }
 
+/**
+ * The standard multiplier applied to VR UI element sizes when the large-text
+ * preference is on. Single source of truth — VR panels, the keyboard, toasts,
+ * and captions all derive their scale from this so the factor stays coordinated
+ * (previously each call site hard-coded its own literal, which drifted).
+ */
+export const LARGE_TEXT_SCALE = 1.3;
+
+/**
+ * Resolve a size multiplier for the large-text preference.
+ *
+ * Returns `base` when large-text is on, otherwise 1.0 (no scaling). Most
+ * surfaces use the default `base` (LARGE_TEXT_SCALE); a surface that needs a
+ * deliberately different factor — e.g. transient captions, which warrant a
+ * larger boost — passes its own `base` so the intent is explicit rather than a
+ * bare literal.
+ *
+ * @param {boolean} largeText  - the large-text preference (getPrefs().largeText)
+ * @param {number}  [base=LARGE_TEXT_SCALE] - multiplier to use when on
+ * @returns {number} a size multiplier (1.0 when large-text is off)
+ */
+export function largeTextScale(largeText, base = LARGE_TEXT_SCALE) {
+  return largeText ? base : 1.0;
+}
+
 /** Apply current preferences (plus OS signals) as body classes. */
 export function applyAccessibility() {
   if (typeof document === 'undefined' || !document.body) {

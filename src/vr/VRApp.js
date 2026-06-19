@@ -24,7 +24,7 @@ import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
-import { osReducedMotion, osHighContrast, getPrefs } from '../a11y/accessibility.js';
+import { osReducedMotion, osHighContrast, getPrefs, largeTextScale } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
@@ -380,7 +380,7 @@ export class VRApp {
         registerInteractable: (m, h) => this.registerInteractable(m, h),
         unregisterInteractable: (m) => this.unregisterInteractable(m),
         store: this.bookmarks,
-        scale: getPrefs().largeText ? 1.3 : 1.0,
+        scale: largeTextScale(getPrefs().largeText),
         onSelect: (url) => {
           const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
           if (active) {
@@ -527,7 +527,7 @@ export class VRApp {
     // Honour the high-contrast / large-text accessibility preferences (same
     // signals as the 2D layer and the caption panel).
     const c = toastColors(type, getPrefs().highContrast || osHighContrast());
-    const fontPx = toastFontPx(getPrefs().largeText ? 1.3 : 1);
+    const fontPx = toastFontPx(largeTextScale(getPrefs().largeText));
 
     ctx.fillStyle = c.bg;
     ctx.fillRect(0, 0, W, H);
@@ -1489,7 +1489,7 @@ export class VRApp {
       registerInteractable: (m, h) => this.registerInteractable(m, h),
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       // Larger keys (bigger targets) for the large-text accessibility preference.
-      scale: getPrefs().largeText ? 1.3 : 1.0
+      scale: largeTextScale(getPrefs().largeText)
     });
     console.debug('VRApp: Japanese IME ready');
 
@@ -1517,7 +1517,9 @@ export class VRApp {
     // Honour the user's accessibility preferences so low-vision users get
     // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
     this.captionSystem = new CaptionSystem(this.camera, {
-      scale: getPrefs().largeText ? 1.4 : 1.0,
+      // Captions get a deliberately larger boost (1.4) than other surfaces:
+      // they are transient and read at a glance, so legibility matters more.
+      scale: largeTextScale(getPrefs().largeText, 1.4),
       highContrast: getPrefs().highContrast || osHighContrast()
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
