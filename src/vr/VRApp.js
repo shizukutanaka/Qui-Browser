@@ -394,6 +394,11 @@ export class VRApp {
           }
           this.captionSystem.show(label);
         }
+      },
+      onHoverCaption: (label) => {
+        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+          this.captionSystem.show(label);
+        }
       }
     });
 

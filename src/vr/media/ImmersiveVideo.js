@@ -29,14 +29,17 @@ export class ImmersiveVideo {
    * @param {(mesh, handlers) => void} deps.registerInteractable
    * @param {(mesh) => void}           deps.unregisterInteractable
    * @param {(message:string) => void} [deps.onError] — called on load/playback failure
+   * @param {(label:string) => void} [deps.onHoverCaption] — called when a HUD button is
+   *   hovered so the host can show a gaze-dwell preview caption (WCAG 1.3.3).
    */
-  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError, onPlaybackChange } = {}) {
+  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError, onPlaybackChange, onHoverCaption } = {}) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
     this.registerInteractable = registerInteractable || (() => {});
     this.unregisterInteractable = unregisterInteractable || (() => {});
     this.onError = onError || (() => {});
+    this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
     // Optional callback fired when playback state changes so the host can
     // mirror the state to captions / haptics without ImmersiveVideo knowing
     // about those systems directly.
@@ -239,7 +242,10 @@ export class ImmersiveVideo {
           onSelect();
         }
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.onHoverCaption) this.onHoverCaption(label);
+      },
       onHoverEnd: () => draw(false)
     });
     return mesh;
