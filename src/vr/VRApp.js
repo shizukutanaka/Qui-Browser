@@ -1293,25 +1293,12 @@ export class VRApp {
           const hand = e.data?.handedness;
           const msg = controllerReconnectMessage(hand);
           this.showVRToast(msg, { type: 'info' });
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(msg);
-          }
-          if (this.hapticFeedback) {
-            this.hapticFeedback.playPattern(hand, 'notification');
-          }
         }
       });
       controller.addEventListener('disconnected', () => {
         const hand = controller.userData.inputSource?.handedness;
         const msg = controllerDisconnectMessage(hand);
         this.showVRToast(msg, { type: 'warn' });
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(msg);
-        }
-        if (this.hapticFeedback) {
-          const otherHand = hand === 'left' ? 'right' : 'left';
-          this.hapticFeedback.playPattern(otherHand, 'notification');
-        }
         if (controller.userData.inputSource) {
           this.controllerInput.forget(controller.userData.inputSource);
         }
