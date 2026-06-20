@@ -60,7 +60,9 @@ const SETTINGS_KEY = 'qui-browser:settings';
 function isWorldVisible(obj) {
   let o = obj;
   while (o) {
-    if (o.visible === false) return false;
+    if (o.visible === false) {
+      return false;
+    }
     o = o.parent;
   }
   return true;
@@ -1108,6 +1110,12 @@ export class VRApp {
       actions.push(['Bookmarks', () => {
         if (this.bookmarkPanel) {
           this.bookmarkPanel.toggle();
+          // Announce the resulting open/closed state as a status message
+          // (WCAG 4.1.3) so caption-reliant users know whether the panel
+          // appeared or disappeared.
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Bookmarks: ${this.bookmarkPanel.visible ? 'open' : 'closed'}`);
+          }
         }
       }]);
     }
