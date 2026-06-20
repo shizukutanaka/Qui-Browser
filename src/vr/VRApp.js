@@ -448,6 +448,11 @@ export class VRApp {
           if (this.captionSystem && this.captionSystem.enabled) {
             this.captionSystem.show('Tab closed');
           }
+        },
+        onHoverCaption: () => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show('Tab strip');
+          }
         }
       });
       this.tabManager.addToScene();

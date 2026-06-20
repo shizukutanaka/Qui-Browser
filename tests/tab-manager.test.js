@@ -164,4 +164,23 @@ describe('TabManager (FR-1.3)', () => {
     const panel = tm.newTab();
     expect(panel.curved).toBe(true);
   });
+
+  test('_onStripSelect accepts the controller/gaze event format { intersection: { point } }', () => {
+    // Controllers and gaze both call onSelect({ intersection: hit, ... }).
+    // _onStripSelect must extract hit.point rather than calling .clone() on the
+    // wrapper directly (which has no .clone() method).
+    const tm = makeManager();
+    tm.newTab(); // need at least one tab so a click on a tab row does something
+
+    // A hit in the centre-left area (x slightly negative → first tab zone)
+    const fakePoint = { x: -0.5, y: 0, clone() { return this; } };
+    expect(() => tm._onStripSelect({ intersection: { point: fakePoint }, controller: {} })).not.toThrow();
+  });
+
+  test('_onStripSelect with direct Vector3 arg still works (regression)', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const fakePoint = { x: 0, y: 0, clone() { return this; } };
+    expect(() => tm._onStripSelect(fakePoint)).not.toThrow();
+  });
 });

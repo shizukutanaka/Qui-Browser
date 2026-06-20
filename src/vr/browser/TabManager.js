@@ -63,7 +63,12 @@ export class TabManager {
     this.stripGroup.position.set(this.position.x, this.position.y, this.position.z);
 
     this.opts.registerInteractable(this.stripMesh, {
-      onSelect: (point) => this._onStripSelect(point)
+      onSelect: (evt) => this._onStripSelect(evt),
+      onHover: () => {
+        if (this.stripMesh) this.stripMesh.material.color.set(0xbbccff);
+        if (this.opts.onHoverCaption) this.opts.onHoverCaption();
+      },
+      onHoverEnd: () => { if (this.stripMesh) this.stripMesh.material.color.set(0xffffff); }
     });
 
     this._drawStrip();
@@ -130,11 +135,15 @@ export class TabManager {
 
   // ── Strip interaction ─────────────────────────────────────────────────────
 
-  _onStripSelect(intersectionPoint) {
-    if (!intersectionPoint) {
+  _onStripSelect(evt) {
+    // Controllers fire onSelect({ intersection: THREE.Intersection, controller })
+    // and gaze fires onSelect({ intersection: hit, gaze: true }). Extract the
+    // THREE.Vector3 hit point; fall back to evt itself for direct calls.
+    const rawPoint = evt?.intersection?.point ?? evt;
+    if (!rawPoint) {
       return;
     }
-    const local = this.stripMesh.worldToLocal(intersectionPoint.clone());
+    const local = this.stripMesh.worldToLocal(rawPoint.clone());
     const u = (local.x / STRIP_W) + 0.5;        // 0–1
     const px = Math.round(u * this.stripCanvas.width);
 
