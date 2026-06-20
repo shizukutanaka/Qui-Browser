@@ -304,6 +304,9 @@ export class MultiplayerSystem {
   }
 
   /** Hook for subclasses/UI; no-op by default. */
+  onPeerConnected(_peerId) {}
+
+  /** Hook for subclasses/UI; no-op by default. */
   onPeerDisconnected(_peerId) {}
 
   /**

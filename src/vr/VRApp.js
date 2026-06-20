@@ -1734,6 +1734,15 @@ export class VRApp {
       // FR-7.2: avatar presence + spatial voice — geometric avatars and
       // spatialized voice streams for remote peers.
       this.avatarSystem = new AvatarSystem(this.scene, this.spatialAudio);
+      // Cross-modal peer-presence events: toast (visual) + haptic + caption so
+      // a deaf user or someone not looking at the panel knows a peer has
+      // joined or left without relying on spatial audio alone.
+      this.multiplayerSystem.onPeerConnected = (_peerId) => {
+        this.showVRToast('Player joined', { type: 'info' });
+      };
+      this.multiplayerSystem.onPeerDisconnected = (_peerId) => {
+        this.showVRToast('Player left', { type: 'warn' });
+      };
       console.debug('VRApp: Multiplayer system ready (call connect() to join a room)');
     }
 
