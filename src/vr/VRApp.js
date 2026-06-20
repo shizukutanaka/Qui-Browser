@@ -963,6 +963,11 @@ export class VRApp {
           this.showVRToast(msg, { type: 'warn' });
         }
       }],
+      ['Southpaw', 'southpaw', (v) => {
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(v ? 'Primary hand: left' : 'Primary hand: right');
+        }
+      }],
       ['Comfort', 'enableComfort', null],
       ['Foveation', 'enableFFR', (v) => {
         if (this.ffrSystem) {
