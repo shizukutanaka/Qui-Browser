@@ -370,6 +370,33 @@ export class WebPanel {
     }
   }
 
+  /**
+   * Navigate back one step.  Returns true if navigation occurred, false if
+   * already at the earliest history entry (WCAG 4.1.3: callers can announce
+   * the blocked state via caption / haptic rather than silently no-oping).
+   * @returns {boolean}
+   */
+  goBack() {
+    if (this.historyIdx > 0) {
+      this.back();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Navigate forward one step.  Returns true if navigation occurred, false if
+   * already at the latest history entry.
+   * @returns {boolean}
+   */
+  goForward() {
+    if (this.historyIdx < this.history.length - 1) {
+      this.forward();
+      return true;
+    }
+    return false;
+  }
+
   reload() {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);

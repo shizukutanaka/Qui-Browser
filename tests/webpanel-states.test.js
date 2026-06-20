@@ -135,6 +135,63 @@ describe('WebPanel history navigation state', () => {
   });
 });
 
+// ── goBack / goForward — WCAG 4.1.3 navigation status ────────────────────────
+describe('WebPanel goBack / goForward (WCAG 4.1.3)', () => {
+  test('goBack() returns false with no history', () => {
+    const p = makePanel();
+    expect(p.goBack()).toBe(false);
+    expect(p.historyIdx).toBe(-1);
+  });
+
+  test('goBack() returns false at the start of history', () => {
+    const p = makePanel();
+    p.history = ['https://a.com'];
+    p.historyIdx = 0;
+    expect(p.goBack()).toBe(false);
+    expect(p.historyIdx).toBe(0);
+  });
+
+  test('goBack() returns true and decrements index when history available', () => {
+    const p = makePanel();
+    p.history = ['https://a.com', 'https://b.com'];
+    p.historyIdx = 1;
+    expect(p.goBack()).toBe(true);
+    expect(p.historyIdx).toBe(0);
+  });
+
+  test('goForward() returns false when no forward history', () => {
+    const p = makePanel();
+    p.history = ['https://a.com'];
+    p.historyIdx = 0;
+    expect(p.goForward()).toBe(false);
+    expect(p.historyIdx).toBe(0);
+  });
+
+  test('goForward() returns false with empty history', () => {
+    const p = makePanel();
+    expect(p.goForward()).toBe(false);
+  });
+
+  test('goForward() returns true and increments index when forward history available', () => {
+    const p = makePanel();
+    p.history = ['https://a.com', 'https://b.com'];
+    p.historyIdx = 0;
+    expect(p.goForward()).toBe(true);
+    expect(p.historyIdx).toBe(1);
+  });
+
+  test('goBack then goForward roundtrips the index', () => {
+    const p = makePanel();
+    p.history = ['https://a.com', 'https://b.com', 'https://c.com'];
+    p.historyIdx = 2;
+    p.goBack(); // → 1
+    p.goBack(); // → 0
+    expect(p.historyIdx).toBe(0);
+    expect(p.goForward()).toBe(true); // → 1
+    expect(p.historyIdx).toBe(1);
+  });
+});
+
 // ── Load-error state ──────────────────────────────────────────────────────────
 describe('WebPanel load-error state', () => {
   test('_loadError starts false', () => {

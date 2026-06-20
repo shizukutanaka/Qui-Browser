@@ -1430,10 +1430,16 @@ export class VRApp {
         const tab = this.tabManager?.getActiveTab();
         if (tab) {
           if (btn.faceA?.justPressed) {
-            tab.goForward?.();
+            const moved = tab.goForward?.();
+            if (this.captionSystem?.enabled) {
+              this.captionSystem.show(moved ? 'Going forward' : 'No next page');
+            }
           }
           if (btn.faceB?.justPressed) {
-            tab.goBack?.();
+            const moved = tab.goBack?.();
+            if (this.captionSystem?.enabled) {
+              this.captionSystem.show(moved ? 'Going back' : 'No previous page');
+            }
           }
         }
         // Recenter: snap the player rig back to the origin.
