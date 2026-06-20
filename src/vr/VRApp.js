@@ -24,7 +24,7 @@ import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
-import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
+import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
@@ -174,12 +174,20 @@ export class VRApp {
       enableVoice: false,
       enableMultiplayer: false,
       enablePerfMonitorUI: false,
-      enableWebGPU: false // experimental
+      enableWebGPU: false, // experimental
+      // Accessibility preferences mirrored here so the in-VR settings panel can
+      // read/toggle them.  The a11y module is the authoritative store (it persists
+      // separately); these keys are re-synced from it at startup so a change made
+      // via the 2D landing page is never shadowed by a stale VRApp persisted copy.
+      highContrast: getPrefs().highContrast
     };
 
     // Merge any persisted user overrides (settings survive reloads).
     const persisted = this.loadPersistedSettings();
     Object.assign(this.settings, persisted);
+    // Re-sync the a11y mirror: the a11y module's own storage always wins over the
+    // VRApp persisted copy so changes made outside VR (2D landing page) are honoured.
+    this.settings.highContrast = getPrefs().highContrast;
 
     // Accessibility: if the OS signals prefers-reduced-motion and the user has
     // not explicitly chosen a comfort preset, default to the most protective
@@ -448,6 +456,7 @@ export class VRApp {
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
+    mesh._redraw = () => draw(false);
     return mesh;
   }
 
@@ -503,6 +512,7 @@ export class VRApp {
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
+    mesh._redraw = () => draw(false);
     return mesh;
   }
 
@@ -619,6 +629,7 @@ export class VRApp {
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
+    mesh._redraw = () => draw(false);
     return mesh;
   }
 
@@ -704,6 +715,7 @@ export class VRApp {
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
+    mesh._redraw = () => draw(false);
     return mesh;
   }
 
@@ -766,7 +778,19 @@ export class VRApp {
       onHover: () => draw(true),
       onHoverEnd: () => draw(false)
     });
+    mesh._redraw = () => draw(false);
     return mesh;
+  }
+
+  /**
+   * Repaint all settings-panel buttons in their idle (non-hover) state.
+   * Called after appearance-affecting settings change (e.g. high-contrast) so
+   * the whole panel updates atomically rather than one button at a time.
+   */
+  _redrawSettingsPanel() {
+    if (this._settingsPanelDrawers) {
+      this._settingsPanelDrawers.forEach(fn => fn && fn());
+    }
   }
 
   /**
@@ -776,8 +800,15 @@ export class VRApp {
   createSettingsPanel() {
     const group = new THREE.Group();
     group.name = 'settingsPanel';
+    // Collect per-button redraw callbacks so that appearance-affecting setting
+    // changes (e.g. high-contrast) can repaint the whole panel in one shot.
+    this._settingsPanelDrawers = [];
 
     const items = [
+      ['High Contrast', 'highContrast', (v) => {
+        setPref('highContrast', v);
+        this._redrawSettingsPanel();
+      }],
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
       ['Smooth Move', 'enableSmoothMove', (v) => {
@@ -892,11 +923,13 @@ export class VRApp {
       const left = this.makeCompactToggleButton(la, ka, aa);
       left.position.set(-0.27, y, 0.01);
       group.add(left);
+      this._settingsPanelDrawers.push(left._redraw);
       if (i + 1 < items.length) {
         const [lb, kb, ab] = items[i + 1];
         const right = this.makeCompactToggleButton(lb, kb, ab);
         right.position.set(0.27, y, 0.01);
         group.add(right);
+        this._settingsPanelDrawers.push(right._redraw);
       }
       y -= ROW;
     }
@@ -904,18 +937,21 @@ export class VRApp {
       const btn = this.makeStepperButton(label, key, cfg);
       btn.position.set(0, y, 0.01);
       group.add(btn);
+      this._settingsPanelDrawers.push(btn._redraw);
       y -= ROW;
     }
     for (const [label, key, opts, apply] of cycles) {
       const btn = this.makeCycleButton(label, key, opts, apply);
       btn.position.set(0, y, 0.01);
       group.add(btn);
+      this._settingsPanelDrawers.push(btn._redraw);
       y -= ROW;
     }
     for (const [label, onSelect] of actions) {
       const btn = this.makeActionButton(label, onSelect);
       btn.position.set(0, y, 0.01);
       group.add(btn);
+      this._settingsPanelDrawers.push(btn._redraw);
       y -= ROW;
     }
 
