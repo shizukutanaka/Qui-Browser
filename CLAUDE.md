@@ -257,12 +257,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ Raised caption hold ceiling to 60s (WCAG 2.2.1 Adjust option)
 - ✅ BookmarkPanel close-zone now announces "Bookmarks: closed" (WCAG 4.1.3)
 
-### Session 2: Specification & Architecture Audit (This Session)
+### Session 2: Specification & Architecture Audit + Phase 1 Critical Fixes (This Session)
 - 🔍 Comprehensive audit of accessibility coverage, cross-modal patterns, settings consistency, error handling, i18n, code organization, test coverage
-- 📋 Created this CLAUDE.md specification
-- **Phase 1 (Next)**: I18n wiring + error boundaries for subsystems
-- **Phase 2 (Future)**: VRApp integration tests + semantic DOM overlay
-- **Phase 3 (Future)**: AccessibilityCoordinator refactoring + settings grouping
+- 📋 Created this CLAUDE.md specification document
+- ✅ **Phase 1 Complete**: Error boundaries + I18n wiring
+  - Added error boundaries for optional subsystems (FFRSystem, HapticFeedback, LayersSystem, AIRecommendation) → emit cross-modal toast on failure (WCAG 4.1.3)
+  - Extracted 60+ hard-coded VR UI strings to i18n.CATALOG with English + Japanese translations
+  - Wired VRApp settings panel to use t() for all labels (Captions, Teleport, Gaze Select, etc.) → settings now render in user's language (WCAG 3.1.1, 3.1.2)
+- **Phase 2 (Next)**: VRApp integration tests + semantic DOM overlay (high priority)
+- **Phase 3 (Future)**: AccessibilityCoordinator refactoring + settings grouping (medium priority)
 
 ---
 
