@@ -476,9 +476,17 @@ export class VRApp {
             this.captionSystem.show('Tab strip');
           }
         },
-        onPanelHoverCaption: () => {
+        onPanelHoverCaption: (url, title) => {
           if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-            this.captionSystem.show('Browser controls');
+            // Announce the current page identity (title preferred, hostname as
+            // fallback, "Browser controls" when no page is loaded yet) so
+            // caption-reliant users know which site they are about to interact
+            // with — the visual URL bar is the primary channel but only helps
+            // users whose gaze is already on the panel (WCAG 1.3.3).
+            const label = (title && title !== url)
+              ? title
+              : (url ? hostnameCaption(url) : 'Browser controls');
+            this.captionSystem.show(label);
           }
         }
       });

@@ -175,5 +175,22 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
       const p = makePanel();
       expect(() => p._handlers.onHover()).not.toThrow();
     });
+
+    test('passes current URL and title to onHoverCaption (WCAG 1.3.3)', () => {
+      const onHoverCaption = jest.fn();
+      const p = makePanel({ onHoverCaption });
+      p.currentUrl = 'https://example.com/path';
+      p.currentTitle = 'Example Site';
+      p._handlers.onHover();
+      expect(onHoverCaption).toHaveBeenCalledWith('https://example.com/path', 'Example Site');
+    });
+
+    test('passes empty strings before any page loads', () => {
+      const onHoverCaption = jest.fn();
+      const p = makePanel({ onHoverCaption });
+      // currentUrl / currentTitle default to '' at construction
+      p._handlers.onHover();
+      expect(onHoverCaption).toHaveBeenCalledWith('', '');
+    });
   });
 });

@@ -310,7 +310,9 @@ export class WebPanel {
       this.chromeMesh.material.color.set(entering ? 0xaaaaff : 0xffffff);
     }
     if (entering && this.onHoverCaption) {
-      this.onHoverCaption();
+      // Pass the current page identity so the caption can announce the URL /
+      // title rather than a generic "Browser controls" label (WCAG 1.3.3).
+      this.onHoverCaption(this.currentUrl, this.currentTitle);
     }
   }
 
