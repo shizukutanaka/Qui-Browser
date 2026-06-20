@@ -195,7 +195,8 @@ export class TabManager {
       searchEngine: this.opts.searchEngine || undefined,
       isBookmarked: this.opts.isBookmarked || null,
       onToggleBookmark: this.opts.onToggleBookmark || null,
-      onLoadError: this.opts.onLoadError || null
+      onLoadError: this.opts.onLoadError || null,
+      onHoverCaption: this.opts.onPanelHoverCaption || null
     });
     panel.addToScene();
     panel.group.position.set(this.position.x, this.position.y, this.position.z);

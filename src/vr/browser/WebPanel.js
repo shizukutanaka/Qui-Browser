@@ -64,7 +64,8 @@ export class WebPanel {
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
-    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError }) {
+    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
+    onHoverCaption }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -78,6 +79,7 @@ export class WebPanel {
     // when absent the star button is hidden.
     this.isBookmarked = typeof isBookmarked === 'function' ? isBookmarked : null;
     this.onToggleBookmark = typeof onToggleBookmark === 'function' ? onToggleBookmark : null;
+    this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
     this.currentTitle = '';
 
     // Panel state
@@ -167,7 +169,7 @@ export class WebPanel {
 
     // ── Register chrome bar as interactable for controller ray ──────────────
     this.registerInteractable(this.chromeMesh, {
-      onSelect: (point) => this._onChromeSelect(point),
+      onSelect: (evt) => this._onChromeSelect(evt),
       onHover: () => this._onChromeHover(true),
       onHoverEnd: () => this._onChromeHover(false)
     });
@@ -253,13 +255,17 @@ export class WebPanel {
 
   // ── Interaction ───────────────────────────────────────────────────────────
 
-  _onChromeSelect(intersectionPoint) {
-    if (!intersectionPoint) {
+  _onChromeSelect(evt) {
+    // Controllers fire onSelect({ intersection: THREE.Intersection, controller })
+    // and gaze fires onSelect({ intersection: hit, gaze: true }). Extract the
+    // THREE.Vector3 hit point; fall back to evt itself for direct calls.
+    const rawPoint = evt?.intersection?.point ?? evt;
+    if (!rawPoint) {
       return;
     }
     // Map intersection point on the mesh to canvas UV.
     // chromeMesh is PANEL_W × (PANEL_H * CHROME_H) centred at chromeMesh.position.
-    const local = this.chromeMesh.worldToLocal(intersectionPoint.clone());
+    const local = this.chromeMesh.worldToLocal(rawPoint.clone());
     const u = (local.x / PANEL_W) + 0.5;       // 0–1
     const px = Math.round(u * this.chromeCanvas.width);
 
@@ -302,6 +308,9 @@ export class WebPanel {
     // MeshBasicMaterial has no emissiveIntensity; tint via color multiplier.
     if (this.chromeMesh && this.chromeMesh.material) {
       this.chromeMesh.material.color.set(entering ? 0xaaaaff : 0xffffff);
+    }
+    if (entering && this.onHoverCaption) {
+      this.onHoverCaption();
     }
   }
 

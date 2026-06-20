@@ -453,6 +453,11 @@ export class VRApp {
           if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
             this.captionSystem.show('Tab strip');
           }
+        },
+        onPanelHoverCaption: () => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show('Browser controls');
+          }
         }
       });
       this.tabManager.addToScene();
