@@ -632,7 +632,9 @@ export class VRApp {
       onSelect: () => {
         if (onSelect) {
           onSelect();
-        } draw(true);
+        }
+        draw(true);
+        this._announceSettingsButton('action', label, undefined, {}, true);
       },
       onHover: () => {
         draw(true);
