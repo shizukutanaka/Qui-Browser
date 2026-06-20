@@ -1383,10 +1383,19 @@ export class VRApp {
         if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
           this.settingsPanel.visible = !this.settingsPanel.visible;
           this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
+          // Caption so users who rely on text feedback know whether the panel
+          // opened or closed — the face/menu button click haptic is generic
+          // and doesn't distinguish panel-open from panel-close.
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Settings: ${this.settingsPanel.visible ? 'open' : 'closed'}`);
+          }
         }
         // Toggle VR keyboard.
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
           this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Keyboard: ${this.vrKeyboard.visible ? 'open' : 'closed'}`);
+          }
         }
       }
     }
