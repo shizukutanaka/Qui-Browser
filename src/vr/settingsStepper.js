@@ -59,3 +59,31 @@ export function formatValue(value, { step = 1, unit = '' } = {}) {
   const decimals = decimalsFor(step);
   return `${Number(value).toFixed(decimals)}${unit}`;
 }
+
+/**
+ * Build the caption text announced when a settings button is hovered during
+ * gaze-dwell navigation, so users relying on gaze select can identify which
+ * control they are dwelling on without reading the canvas label (WCAG 1.3.3
+ * Sensory Characteristics, 4.1.3 Status Messages).
+ *
+ * Pure so the announcement format is unit-testable.
+ *
+ * @param {'toggle'|'stepper'|'cycle'|'action'} type
+ * @param {string} label   the button's visible label
+ * @param {*}      value   the current setting value (boolean for toggle,
+ *                         number for stepper, string for cycle; ignored for action)
+ * @param {object} [opts]  stepper formatting options forwarded to formatValue
+ * @returns {string}
+ */
+export function settingsButtonCaption(type, label, value, opts = {}) {
+  if (type === 'toggle') {
+    return `${label}: ${value ? 'ON' : 'OFF'}`;
+  }
+  if (type === 'stepper') {
+    return `${label}: ${formatValue(value, opts)}`;
+  }
+  if (type === 'cycle') {
+    return `${label}: ${value}`;
+  }
+  return label; // action button
+}

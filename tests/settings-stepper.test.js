@@ -2,7 +2,7 @@
  * Unit tests for the pure numeric settings-stepper helpers.
  */
 const {
-  stepValue, decimalsFor, stepperRegion, formatValue,
+  stepValue, decimalsFor, stepperRegion, formatValue, settingsButtonCaption,
   MINUS_MAX_U, PLUS_MIN_U
 } = require('../src/vr/settingsStepper.js');
 
@@ -75,5 +75,36 @@ describe('formatValue', () => {
   });
   test('defaults work', () => {
     expect(formatValue(3)).toBe('3');
+  });
+});
+
+describe('settingsButtonCaption — gaze-dwell hover announcement text', () => {
+  test('toggle ON announces label and state', () => {
+    expect(settingsButtonCaption('toggle', 'Teleport', true)).toBe('Teleport: ON');
+  });
+
+  test('toggle OFF announces label and state', () => {
+    expect(settingsButtonCaption('toggle', 'Snap Turn', false)).toBe('Snap Turn: OFF');
+  });
+
+  test('stepper announces label and formatted value', () => {
+    expect(settingsButtonCaption('stepper', 'Snap Angle', 30, { step: 15, unit: '°' }))
+      .toBe('Snap Angle: 30°');
+    expect(settingsButtonCaption('stepper', 'Move Speed', 1.5, { step: 0.5, unit: ' m/s' }))
+      .toBe('Move Speed: 1.5 m/s');
+  });
+
+  test('cycle announces label and current selection', () => {
+    expect(settingsButtonCaption('cycle', 'Comfort', 'sensitive')).toBe('Comfort: sensitive');
+    expect(settingsButtonCaption('cycle', 'Search', 'duckduckgo')).toBe('Search: duckduckgo');
+  });
+
+  test('action announces just the label', () => {
+    expect(settingsButtonCaption('action', '360° Video', undefined)).toBe('360° Video');
+    expect(settingsButtonCaption('action', 'Bookmarks', null)).toBe('Bookmarks');
+  });
+
+  test('unknown type falls back to label', () => {
+    expect(settingsButtonCaption('unknown', 'Widget', true)).toBe('Widget');
   });
 });

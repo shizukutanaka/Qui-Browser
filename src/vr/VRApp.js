@@ -45,7 +45,7 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
-import { stepValue, stepperRegion, formatValue } from './settingsStepper.js';
+import { stepValue, stepperRegion, formatValue, settingsButtonCaption } from './settingsStepper.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -453,7 +453,12 @@ export class VRApp {
         }
         draw(true);
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(settingsButtonCaption('toggle', label, !!this.settings[key]));
+        }
+      },
       onHoverEnd: () => draw(false)
     });
     mesh._redraw = () => draw(false);
@@ -509,7 +514,12 @@ export class VRApp {
         }
         draw(true);
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(settingsButtonCaption('toggle', label, !!this.settings[key]));
+        }
+      },
       onHoverEnd: () => draw(false)
     });
     mesh._redraw = () => draw(false);
@@ -626,7 +636,12 @@ export class VRApp {
           onSelect();
         } draw(true);
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(settingsButtonCaption('action', label));
+        }
+      },
       onHoverEnd: () => draw(false)
     });
     mesh._redraw = () => draw(false);
@@ -712,7 +727,14 @@ export class VRApp {
           draw(true);
         }
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(
+            settingsButtonCaption('stepper', label, this.settings[key], { step, unit })
+          );
+        }
+      },
       onHoverEnd: () => draw(false)
     });
     mesh._redraw = () => draw(false);
@@ -775,7 +797,14 @@ export class VRApp {
         }
         draw(true);
       },
-      onHover: () => draw(true),
+      onHover: () => {
+        draw(true);
+        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(
+            settingsButtonCaption('cycle', label, this.settings[key])
+          );
+        }
+      },
       onHoverEnd: () => draw(false)
     });
     mesh._redraw = () => draw(false);
@@ -808,6 +837,9 @@ export class VRApp {
       ['High Contrast', 'highContrast', (v) => {
         setPref('highContrast', v);
         this._redrawSettingsPanel();
+        if (this.bookmarkPanel && this.bookmarkPanel.visible) {
+          this.bookmarkPanel._draw();
+        }
       }],
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
