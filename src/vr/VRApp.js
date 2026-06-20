@@ -2042,6 +2042,12 @@ export class VRApp {
 
     // Adjust render settings for VR
     this.renderer.setPixelRatio(1); // Don't use device pixel ratio in VR
+
+    // WCAG 4.1.3: announce that the VR environment is ready so caption-reliant
+    // users know the session started without relying on the visual transition.
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show('VR Ready');
+    }
   }
 
   /**
