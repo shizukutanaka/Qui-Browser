@@ -48,7 +48,7 @@ global.document.createElement = () => ({
   width: 0, height: 0, getContext: () => ctxStub
 });
 
-const { BookmarkPanel } = require('../src/vr/browser/BookmarkPanel.js');
+const { BookmarkPanel, bookmarkPanelColors } = require('../src/vr/browser/BookmarkPanel.js');
 
 // Compute the mesh-local coords that map to a desired canvas pixel.
 function localFor(px, py) {
@@ -230,5 +230,66 @@ describe('BookmarkPanel — large-text physical scaling', () => {
     MockMesh._nextLocal = localForScaled(100, HEADER_H + ROW_H + 10, p.panelW, p.panelH);
     p._onSelect({ clone() { return MockMesh._nextLocal; } });
     expect(onSelect).toHaveBeenCalledWith('https://second.com');
+  });
+});
+
+// ── bookmarkPanelColors — high-contrast palette ───────────────────────────────
+describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
+  test('normal mode returns the expected dark-glass background', () => {
+    const c = bookmarkPanelColors(false);
+    expect(c.bg).toMatch(/rgba?\(10/);        // near-black
+    expect(c.rowTitle).toBe('#e8ecff');
+  });
+
+  test('HC mode uses pure-black background', () => {
+    const c = bookmarkPanelColors(true);
+    expect(c.bg).toBe('#000000');
+    expect(c.headerBg).toBe('#000000');
+  });
+
+  test('HC inactive scroll text is brighter than normal (contrast fix)', () => {
+    const normal = bookmarkPanelColors(false);
+    const hc     = bookmarkPanelColors(true);
+    const brightness = (s) =>
+      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+    expect(brightness(hc.scrollInactive.text)).toBeGreaterThan(
+      brightness(normal.scrollInactive.text)
+    );
+  });
+
+  test('HC active and inactive scroll use different colours', () => {
+    const c = bookmarkPanelColors(true);
+    expect(c.scrollActive.text).not.toBe(c.scrollInactive.text);
+    expect(c.scrollActive.bg).not.toBe(c.scrollInactive.bg);
+  });
+
+  test('HC inactive tab text is brighter than normal inactive tab text', () => {
+    const normal = bookmarkPanelColors(false);
+    const hc     = bookmarkPanelColors(true);
+    const brightness = (s) =>
+      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+    expect(brightness(hc.tabInactive.text)).toBeGreaterThan(
+      brightness(normal.tabInactive.text)
+    );
+  });
+
+  test('HC row URL text is brighter than normal', () => {
+    const normal = bookmarkPanelColors(false);
+    const hc     = bookmarkPanelColors(true);
+    const brightness = (s) =>
+      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+    expect(brightness(hc.rowUrl)).toBeGreaterThan(brightness(normal.rowUrl));
+  });
+
+  test('HC row title is pure white', () => {
+    expect(bookmarkPanelColors(true).rowTitle).toBe('#ffffff');
+  });
+
+  test('normal-mode values unchanged (regression guard)', () => {
+    const c = bookmarkPanelColors(false);
+    expect(c.scrollInactive.text).toBe('#445566');
+    expect(c.tabInactive.text).toBe('#8899bb');
+    expect(c.rowUrl).toBe('#7f8db5');
+    expect(c.emptyText).toBe('#8899aa');
   });
 });

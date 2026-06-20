@@ -13,6 +13,61 @@ import {
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
+import { getPrefs, osHighContrast } from '../../a11y/accessibility.js';
+
+/**
+ * Canvas colour palette for the bookmark / history panel.
+ *
+ * In high-contrast mode the panel switches to a pure-black backing and bright
+ * foreground colours to satisfy WCAG 1.4.11 Non-text Contrast (≥ 3:1) and
+ * 1.4.3 Text Contrast (≥ 4.5:1).  The most critical failures in normal mode:
+ *   • inactive scroll-arrow glyph (#445566) on near-black — dark on dark
+ *   • inactive tab label (#8899bb) on near-black — marginal
+ *   • URL row text (#7f8db5) — readable but gains meaningful headroom in HC
+ *
+ * Pure and exported so the contrast choices are unit-testable without a GPU.
+ *
+ * @param {boolean} [highContrast=false]
+ * @returns {object} colour palette used by _draw / _drawTab
+ */
+export function bookmarkPanelColors(highContrast = false) {
+  if (highContrast) {
+    return {
+      bg:              '#000000',
+      headerBg:        '#000000',
+      scrollActive:    { bg: '#004adf', text: '#ffffff' },
+      scrollInactive:  { bg: '#222222', text: '#aaccee' },
+      pageIndicator:   '#ccddee',
+      closeBg:         '#7a0000',
+      rowTitle:        '#ffffff',
+      rowUrl:          '#aabbdd',
+      tabActive:       { bg: '#1a3080', text: '#ffffff' },
+      tabInactive:     { bg: '#111111', text: '#ccddee' },
+      rowZebraEven:    'rgba(255,255,255,0.0)',
+      rowZebraOdd:     'rgba(255,255,255,0.10)',
+      deleteZoneBg:    '#7a0000',
+      deleteText:      '#ffffff',
+      emptyText:       '#aabbcc'
+    };
+  }
+  return {
+    bg:              'rgba(10,13,20,0.95)',
+    headerBg:        '#161b2e',
+    scrollActive:    { bg: 'rgba(50,80,140,0.9)', text: '#aabbff' },
+    scrollInactive:  { bg: 'rgba(30,35,55,0.6)',  text: '#445566' },
+    pageIndicator:   '#7788aa',
+    closeBg:         '#5c1a1a',
+    rowTitle:        '#e8ecff',
+    rowUrl:          '#7f8db5',
+    tabActive:       { bg: '#2d3a66', text: '#ffffff' },
+    tabInactive:     { bg: '#1a1f33', text: '#8899bb' },
+    rowZebraEven:    'rgba(255,255,255,0.03)',
+    rowZebraOdd:     'rgba(255,255,255,0.06)',
+    deleteZoneBg:    'rgba(90,20,20,0.8)',
+    deleteText:      '#ffaaaa',
+    emptyText:       '#8899aa'
+  };
+}
 
 const PANEL_W = 1.2;  // metres
 const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
@@ -186,18 +241,19 @@ export class BookmarkPanel {
       return;
     }
     const w = PANEL_PX_W;
+    const c = bookmarkPanelColors(getPrefs().highContrast || osHighContrast());
 
     // Background
-    ctx.fillStyle = 'rgba(10,13,20,0.95)';
+    ctx.fillStyle = c.bg;
     ctx.fillRect(0, 0, w, PANEL_PX_H);
 
     // Header background
-    ctx.fillStyle = '#161b2e';
+    ctx.fillStyle = c.headerBg;
     ctx.fillRect(0, 0, w, HEADER_H);
 
     // Tabs
-    this._drawTab(ctx, 'Bookmarks', 0, this.mode === 'bookmarks');
-    this._drawTab(ctx, 'History', 220, this.mode === 'history');
+    this._drawTab(ctx, 'Bookmarks', 0, this.mode === 'bookmarks', c);
+    this._drawTab(ctx, 'History', 220, this.mode === 'history', c);
 
     // Scroll arrows (visible only when the list is longer than one page).
     const allRows = this._rows();
@@ -206,19 +262,21 @@ export class BookmarkPanel {
     const canDown = this.scrollOffset + VISIBLE_ROWS < allRows.length;
     if (scrollable) {
       // ↑ arrow
-      ctx.fillStyle = canUp ? 'rgba(50,80,140,0.9)' : 'rgba(30,35,55,0.6)';
+      const upColors = canUp ? c.scrollActive : c.scrollInactive;
+      ctx.fillStyle = upColors.bg;
       ctx.fillRect(SCROLL_UP_X0 + 2, 10, SCROLL_UP_X1 - SCROLL_UP_X0 - 4, HEADER_H - 20);
-      ctx.fillStyle = canUp ? '#aabbff' : '#445566';
+      ctx.fillStyle = upColors.text;
       ctx.font = 'bold 36px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('▲', (SCROLL_UP_X0 + SCROLL_UP_X1) / 2, HEADER_H / 2 + 12);
       // ↓ arrow
-      ctx.fillStyle = canDown ? 'rgba(50,80,140,0.9)' : 'rgba(30,35,55,0.6)';
+      const dnColors = canDown ? c.scrollActive : c.scrollInactive;
+      ctx.fillStyle = dnColors.bg;
       ctx.fillRect(SCROLL_DN_X0 + 2, 10, SCROLL_DN_X1 - SCROLL_DN_X0 - 4, HEADER_H - 20);
-      ctx.fillStyle = canDown ? '#aabbff' : '#445566';
+      ctx.fillStyle = dnColors.text;
       ctx.fillText('▼', (SCROLL_DN_X0 + SCROLL_DN_X1) / 2, HEADER_H / 2 + 12);
       // Page indicator between the arrows
-      ctx.fillStyle = '#7788aa';
+      ctx.fillStyle = c.pageIndicator;
       ctx.font = '20px sans-serif';
       ctx.textAlign = 'center';
       const pageLabel = `${this.scrollOffset + 1}–${Math.min(this.scrollOffset + VISIBLE_ROWS, allRows.length)}/${allRows.length}`;
@@ -226,7 +284,7 @@ export class BookmarkPanel {
     }
 
     // Close button
-    ctx.fillStyle = '#5c1a1a';
+    ctx.fillStyle = c.closeBg;
     ctx.fillRect(w - 96, 12, 84, HEADER_H - 24);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 36px sans-serif';
@@ -237,7 +295,7 @@ export class BookmarkPanel {
     const rows = allRows.slice(this.scrollOffset, this.scrollOffset + VISIBLE_ROWS);
     ctx.textAlign = 'left';
     if (allRows.length === 0) {
-      ctx.fillStyle = '#8899aa';
+      ctx.fillStyle = c.emptyText;
       ctx.font = '28px sans-serif';
       ctx.fillText(
         this.mode === 'bookmarks' ? 'No bookmarks yet' : 'No history yet',
@@ -249,22 +307,22 @@ export class BookmarkPanel {
         const entry = rows[i];
         const top = HEADER_H + i * ROW_H;
         // Zebra striping
-        ctx.fillStyle = (i % 2 === 0) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)';
+        ctx.fillStyle = (i % 2 === 0) ? c.rowZebraEven : c.rowZebraOdd;
         ctx.fillRect(0, top, w, ROW_H);
         // Title (leave room for delete button on the right)
-        ctx.fillStyle = '#e8ecff';
+        ctx.fillStyle = c.rowTitle;
         ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(truncate(entry.title || entry.url, 44), 24, top + 32);
         // URL
-        ctx.fillStyle = '#7f8db5';
+        ctx.fillStyle = c.rowUrl;
         ctx.font = '20px monospace';
         ctx.fillText(truncate(entry.url, 52), 24, top + 58);
         // Delete ✕ button (bookmarks mode only)
         if (showDelete) {
-          ctx.fillStyle = 'rgba(90,20,20,0.8)';
+          ctx.fillStyle = c.deleteZoneBg;
           ctx.fillRect(w - DELETE_ZONE_W + 4, top + 10, DELETE_ZONE_W - 8, ROW_H - 20);
-          ctx.fillStyle = '#ffaaaa';
+          ctx.fillStyle = c.deleteText;
           ctx.font = 'bold 28px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('✕', w - DELETE_ZONE_W / 2, top + ROW_H / 2 + 10);
@@ -277,10 +335,11 @@ export class BookmarkPanel {
     }
   }
 
-  _drawTab(ctx, label, x, active) {
-    ctx.fillStyle = active ? '#2d3a66' : '#1a1f33';
+  _drawTab(ctx, label, x, active, c) {
+    const tab = active ? c.tabActive : c.tabInactive;
+    ctx.fillStyle = tab.bg;
     ctx.fillRect(x + 8, 12, 204, HEADER_H - 24);
-    ctx.fillStyle = active ? '#ffffff' : '#8899bb';
+    ctx.fillStyle = tab.text;
     ctx.font = 'bold 30px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(label, x + 110, HEADER_H / 2 + 11);
