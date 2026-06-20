@@ -387,6 +387,24 @@ export class VRApp {
             this.captionSystem.show(nowBookmarked ? 'Bookmarked' : 'Bookmark removed');
           }
           return nowBookmarked;
+        },
+        onTabActivate: (url) => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            let label = 'New Tab';
+            if (url) {
+              try {
+                label = new URL(url).hostname || url;
+              } catch (_) {
+                label = url;
+              }
+            }
+            this.captionSystem.show(`Tab: ${label}`);
+          }
+        },
+        onTabClose: () => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show('Tab closed');
+          }
         }
       });
       this.tabManager.addToScene();

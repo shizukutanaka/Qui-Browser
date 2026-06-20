@@ -23,6 +23,11 @@ export class TabManager {
    * @param {Function} opts.unregisterInteractable
    * @param {Function} [opts.onNavigate]
    * @param {Function} [opts.onUrlInputRequested]  — forwarded to every WebPanel
+   * @param {Function} [opts.onTabActivate]   — called with (url|'') when a tab
+   *   becomes active (switch, open, or close causes focus change). Used to
+   *   announce the active page via caption / haptic (WCAG 4.1.3 Status Messages).
+   * @param {Function} [opts.onTabClose]      — called with no args after a tab
+   *   is closed so VRApp can fire a "Tab closed" status message.
    * @param {{x:number,y:number,z:number}} [opts.position]
    */
   constructor(opts) {
@@ -219,6 +224,9 @@ export class TabManager {
       this.setActive(this.activeIndex);
     }
     this._drawStrip();
+    if (this.opts.onTabClose) {
+      this.opts.onTabClose();
+    }
   }
 
   /**
@@ -237,6 +245,9 @@ export class TabManager {
       }
     });
     this._drawStrip();
+    if (this.opts.onTabActivate) {
+      this.opts.onTabActivate(this.tabs[index].currentUrl || '');
+    }
   }
 
   /** Return the currently active WebPanel, or null. */
