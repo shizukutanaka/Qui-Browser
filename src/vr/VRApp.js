@@ -1612,10 +1612,13 @@ export class VRApp {
       this.hapticFeedback.playPattern(hand, 'click');
     }
 
-    // Directional caption specifically for reduced-motion users: without the
-    // eased rotation animation there is no visual cue that the world moved, so
-    // a caption provides the second orientation channel (WCAG 1.3.3).
-    if (osReducedMotion() && this.captionSystem && this.captionSystem.enabled) {
+    // Directional caption for caption-reliant users: the snap turn is always
+    // instantaneous (no animation regardless of prefers-reduced-motion), so
+    // there is no visual cue that the world moved. Announce direction and
+    // angle whenever captions are enabled (WCAG 1.3.3 Sensory Characteristics,
+    // WCAG 4.1.3 Status Messages). Previously gated on osReducedMotion(), but
+    // that excluded users who rely on captions without requesting reduced motion.
+    if (this.captionSystem && this.captionSystem.enabled) {
       this.captionSystem.show(snapTurnLabel(direction, angleDeg));
     }
   }
