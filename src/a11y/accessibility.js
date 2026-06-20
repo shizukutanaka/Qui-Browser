@@ -38,6 +38,22 @@ export function getPrefs() {
 }
 
 /**
+ * The effective high-contrast decision: true when the user has explicitly
+ * enabled high-contrast OR the OS requests it (prefers-contrast / forced-colors).
+ *
+ * Single source of truth — the VR canvas surfaces (settings panel, bookmark
+ * panel, toasts) all derive their high-contrast palette from this one call so
+ * the precedence (explicit user choice OR OS signal) stays coordinated.
+ * Previously each call site repeated `getPrefs().highContrast || osHighContrast()`,
+ * which risked drifting if the precedence ever changed.
+ *
+ * @returns {boolean}
+ */
+export function prefersHighContrast() {
+  return !!prefs.highContrast || osHighContrast();
+}
+
+/**
  * The standard multiplier applied to VR UI element sizes when the large-text
  * preference is on. Single source of truth — VR panels, the keyboard, toasts,
  * and captions all derive their scale from this so the factor stays coordinated
@@ -68,7 +84,7 @@ export function applyAccessibility() {
     return;
   }
   const b = document.body;
-  b.classList.toggle('a11y-high-contrast', !!prefs.highContrast || osHighContrast());
+  b.classList.toggle('a11y-high-contrast', prefersHighContrast());
   b.classList.toggle('a11y-large-text', !!prefs.largeText);
   b.classList.toggle('a11y-reduced-motion', osReducedMotion());
 }

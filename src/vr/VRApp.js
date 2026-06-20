@@ -24,7 +24,7 @@ import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
-import { osReducedMotion, osHighContrast, getPrefs, largeTextScale } from '../a11y/accessibility.js';
+import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
@@ -413,7 +413,7 @@ export class VRApp {
 
     const draw = (hover) => {
       const on = !!this.settings[key];
-      const hc = getPrefs().highContrast || osHighContrast();
+      const hc = prefersHighContrast();
       const ind = toggleIndicatorColors(on, hc);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
@@ -468,7 +468,7 @@ export class VRApp {
 
     const draw = (hover) => {
       const on = !!this.settings[key];
-      const hc = getPrefs().highContrast || osHighContrast();
+      const hc = prefersHighContrast();
       const ind = toggleIndicatorColors(on, hc);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
@@ -530,7 +530,7 @@ export class VRApp {
 
     // Honour the high-contrast / large-text accessibility preferences (same
     // signals as the 2D layer and the caption panel).
-    const c = toastColors(type, getPrefs().highContrast || osHighContrast());
+    const c = toastColors(type, prefersHighContrast());
     const fontPx = toastFontPx(largeTextScale(getPrefs().largeText));
 
     ctx.fillStyle = c.bg;
@@ -588,7 +588,7 @@ export class VRApp {
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
-      const hc = getPrefs().highContrast || osHighContrast();
+      const hc = prefersHighContrast();
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
@@ -646,7 +646,7 @@ export class VRApp {
 
     const draw = (hover) => {
       const value = this.settings[key];
-      const hc = getPrefs().highContrast || osHighContrast();
+      const hc = prefersHighContrast();
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
@@ -731,7 +731,7 @@ export class VRApp {
 
     const draw = (hover) => {
       const current = this.settings[key];
-      const hc = getPrefs().highContrast || osHighContrast();
+      const hc = prefersHighContrast();
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
@@ -1527,7 +1527,7 @@ export class VRApp {
       // Captions get a deliberately larger boost (1.4) than other surfaces:
       // they are transient and read at a glance, so legibility matters more.
       scale: largeTextScale(getPrefs().largeText, 1.4),
-      highContrast: getPrefs().highContrast || osHighContrast()
+      highContrast: prefersHighContrast()
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
     console.debug('VRApp: Caption system ready');

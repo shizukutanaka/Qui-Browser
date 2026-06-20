@@ -13,7 +13,7 @@ import {
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
-import { getPrefs, osHighContrast } from '../../a11y/accessibility.js';
+import { prefersHighContrast } from '../../a11y/accessibility.js';
 
 /**
  * Canvas colour palette for the bookmark / history panel.
@@ -241,7 +241,7 @@ export class BookmarkPanel {
       return;
     }
     const w = PANEL_PX_W;
-    const c = bookmarkPanelColors(getPrefs().highContrast || osHighContrast());
+    const c = bookmarkPanelColors(prefersHighContrast());
 
     // Background
     ctx.fillStyle = c.bg;

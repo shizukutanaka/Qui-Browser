@@ -1,7 +1,7 @@
 /**
  * Unit tests for the accessibility preferences module.
  */
-const { getPrefs, setPref, togglePref, applyAccessibility, largeTextScale, LARGE_TEXT_SCALE } = require('../src/a11y/accessibility.js');
+const { getPrefs, setPref, togglePref, applyAccessibility, largeTextScale, LARGE_TEXT_SCALE, prefersHighContrast } = require('../src/a11y/accessibility.js');
 
 describe('src/a11y/accessibility', () => {
   test('defaults to no overrides', () => {
@@ -52,5 +52,35 @@ describe('largeTextScale — single source of truth for VR text scaling', () => 
   test('scaling on never shrinks (always ≥ 1.0)', () => {
     expect(largeTextScale(true)).toBeGreaterThanOrEqual(1.0);
     expect(largeTextScale(true, 1.4)).toBeGreaterThanOrEqual(1.0);
+  });
+});
+
+describe('prefersHighContrast — single source of truth for the effective HC decision', () => {
+  afterEach(() => setPref('highContrast', false));
+
+  test('returns a boolean', () => {
+    expect(typeof prefersHighContrast()).toBe('boolean');
+  });
+
+  test('true when the user explicitly enables high-contrast', () => {
+    setPref('highContrast', true);
+    expect(prefersHighContrast()).toBe(true);
+  });
+
+  test('false when neither the user nor the OS requests it', () => {
+    setPref('highContrast', false);
+    // No matchMedia in the test env → osHighContrast() is false.
+    expect(prefersHighContrast()).toBe(false);
+  });
+
+  test('honours the OS signal even when the user pref is off', () => {
+    setPref('highContrast', false);
+    const prevMM = global.matchMedia;
+    global.matchMedia = (q) => ({ matches: q.includes('prefers-contrast') });
+    try {
+      expect(prefersHighContrast()).toBe(true);
+    } finally {
+      global.matchMedia = prevMM;
+    }
   });
 });
