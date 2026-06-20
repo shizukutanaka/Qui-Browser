@@ -21,6 +21,21 @@ const RETICLE_DISTANCE = 2.0; // metres in front of the camera
 const RING_OPACITY = 0.35;    // resting opacity of the outline ring
 const CONFIRM_MS = 250;       // duration of the activation-confirmation flash
 
+/**
+ * Returns false when the object or any ancestor in the scene hierarchy is not
+ * visible. Three.js raycasting does not walk parent-visibility, so this check
+ * prevents hitting meshes inside hidden groups (keyboard closed, panel toggled).
+ * @param {THREE.Object3D} obj
+ */
+function _isWorldVisible(obj) {
+  let o = obj;
+  while (o) {
+    if (o.visible === false) return false;
+    o = o.parent;
+  }
+  return true;
+}
+
 export class GazeInteraction {
   /**
    * @param {THREE.Camera} camera
@@ -244,7 +259,11 @@ export class GazeInteraction {
     this.camera.getWorldQuaternion(this._tmpQuat || (this._tmpQuat = new THREE.Quaternion()));
     dir.applyQuaternion(this._tmpQuat).normalize();
     this._raycaster.set(origin, dir);
-    return this._raycaster.intersectObjects(interactables, false)[0] || null;
+    // Skip objects whose parent chain contains an invisible group — Three.js
+    // raycasting does not walk parent visibility, so a closed keyboard/panel
+    // would otherwise still intercept gaze while visually absent.
+    const hits = this._raycaster.intersectObjects(interactables, false);
+    return hits.find(h => _isWorldVisible(h.object)) || null;
   }
 
   _updateFill(progress) {

@@ -51,6 +51,22 @@ import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnn
 const SETTINGS_KEY = 'qui-browser:settings';
 
 /**
+ * Returns false when the object or any ancestor in the scene hierarchy is not
+ * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
+ * (keyboard when closed, bookmark panel when toggled off) would otherwise still
+ * intercept controller/gaze input while invisible.
+ * @param {THREE.Object3D} obj
+ */
+function isWorldVisible(obj) {
+  let o = obj;
+  while (o) {
+    if (o.visible === false) return false;
+    o = o.parent;
+  }
+  return true;
+}
+
+/**
  * Extract a short caption-friendly label from a URL: the hostname when the
  * URL is valid, otherwise a truncated raw string.  Used wherever a navigation
  * event needs a concise status caption (WCAG 4.1.3).  Pure so it is testable.
@@ -1627,7 +1643,9 @@ export class VRApp {
     if (!isStart || this.interactables.length === 0) {
       return;
     }
-    const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
+    const hit = this.raycasterFromController(controller)
+      .intersectObjects(this.interactables, false)
+      .find(h => isWorldVisible(h.object));
     if (!hit) {
       return;
     }
@@ -1676,7 +1694,9 @@ export class VRApp {
       return;
     }
     for (const controller of this.controllers) {
-      const hit = this.raycasterFromController(controller).intersectObjects(this.interactables, false)[0];
+      const hit = this.raycasterFromController(controller)
+        .intersectObjects(this.interactables, false)
+        .find(h => isWorldVisible(h.object));
       const obj = hit ? hit.object : null;
       const prev = controller.userData.hovered || null;
       if (prev === obj) {
