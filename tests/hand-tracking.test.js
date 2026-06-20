@@ -6,7 +6,7 @@
  */
 
 class MockObj {
-  constructor() { this.name = ''; this.children = []; this.position = { set: jest.fn() }; this.visible = true; }
+  constructor() { this.name = ''; this.children = []; this.position = { set: jest.fn(), distanceTo: () => 1 }; this.visible = true; }
   add(o) { this.children.push(o); }
   remove(o) { this.children = this.children.filter(c => c !== o); }
   traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
@@ -119,5 +119,90 @@ describe('HandTracking.detectGesture', () => {
     expect(ht.detectGesture(pinchJoints(0.03), true)).toBe('pinch');
     // Only a clearly wider gap releases it.
     expect(ht.detectGesture(pinchJoints(0.04), true)).not.toBe('pinch');
+  });
+});
+
+// ── Hand visibility / tracking-change (WCAG 4.1.3 + visual correctness) ────────
+
+describe('HandTracking.update() — visibility and onTrackingChange', () => {
+  function makeInputSource(handedness) {
+    return {
+      handedness,
+      hand: { get: () => null }  // hand property present; no joint data (poses null)
+    };
+  }
+  function makeFrame(inputSources) {
+    return {
+      session: { inputSources },
+      getJointPose: () => null  // updateHand skips all joint updates, visible=true still set
+    };
+  }
+
+  async function makeReady() {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const session = makeSession();
+    await ht.initialize(session);
+    // After initialize, both hand groups exist and start visible=false (group default).
+    ht.leftHand.visible  = false;
+    ht.rightHand.visible = false;
+    return ht;
+  }
+
+  test('hand becomes visible when its input source appears', async () => {
+    const ht = await makeReady();
+    ht.update(makeFrame([makeInputSource('left')]), null);
+    expect(ht.leftHand.visible).toBe(true);
+    expect(ht.rightHand.visible).toBe(false); // right untouched
+  });
+
+  test('hand is hidden when its input source disappears (no frozen skeleton)', async () => {
+    const ht = await makeReady();
+    // First frame: both hands visible
+    ht.update(makeFrame([makeInputSource('left'), makeInputSource('right')]), null);
+    expect(ht.leftHand.visible).toBe(true);
+    expect(ht.rightHand.visible).toBe(true);
+
+    // Second frame: right hand disappears
+    ht.update(makeFrame([makeInputSource('left')]), null);
+    expect(ht.leftHand.visible).toBe(true);
+    expect(ht.rightHand.visible).toBe(false);
+  });
+
+  test('onTrackingChange fires on loss with (handedness, false)', async () => {
+    const ht = await makeReady();
+    const onChange = jest.fn();
+    ht.onTrackingChange(onChange);
+
+    ht.update(makeFrame([makeInputSource('right')]), null); // right appears
+    ht.update(makeFrame([]), null);                         // right disappears
+
+    expect(onChange).toHaveBeenCalledWith('right', false);
+  });
+
+  test('onTrackingChange fires on regain with (handedness, true)', async () => {
+    const ht = await makeReady();
+    const onChange = jest.fn();
+    ht.onTrackingChange(onChange);
+
+    ht.update(makeFrame([makeInputSource('left')]), null);  // left appears → tracked
+    onChange.mockClear();
+    ht.update(makeFrame([]), null);                         // left lost
+    ht.update(makeFrame([makeInputSource('left')]), null);  // left regained
+
+    expect(onChange).toHaveBeenLastCalledWith('left', true);
+  });
+
+  test('onTrackingChange does NOT fire when visibility is unchanged', async () => {
+    const ht = await makeReady();
+    const onChange = jest.fn();
+    ht.onTrackingChange(onChange);
+
+    // Two consecutive frames with the same hand present
+    ht.update(makeFrame([makeInputSource('left')]), null);
+    onChange.mockClear();
+    ht.update(makeFrame([makeInputSource('left')]), null);
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

@@ -1746,6 +1746,20 @@ export class VRApp {
 
     // 6. Hand Tracking
     this.handTracking = new HandTracking(this.renderer, this.scene);
+    // WCAG 4.1.3: announce hand-tracking state changes so users who rely on
+    // hand input know when it becomes unavailable. Brief flickers are common,
+    // so each hand's announcement is debounced: only fire if the state holds
+    // for 600 ms, preventing a storm of "lost"/"regained" captions.
+    const _htTimers = {};
+    this.handTracking.onTrackingChange((hand, tracked) => {
+      clearTimeout(_htTimers[hand]);
+      _htTimers[hand] = setTimeout(() => {
+        if (this.captionSystem && this.captionSystem.enabled) {
+          const label = hand === 'left' ? 'Left' : 'Right';
+          this.captionSystem.show(tracked ? `${label} hand tracked` : `${label} hand lost`);
+        }
+      }, 600);
+    });
     console.debug('VRApp: Hand tracking ready');
 
     // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in

@@ -32,6 +32,10 @@ export class HandTracking {
     // Gesture callbacks
     this.gestureCallbacks = new Map();
 
+    // Tracking-change callback: fired when a hand's visibility changes
+    // (tracked → lost, or lost → regained). Used for WCAG 4.1.3 status messages.
+    this._onTrackingChange = null;
+
     // Statistics
     this.stats = {
       framesTracked: 0,
@@ -143,15 +147,47 @@ export class HandTracking {
 
     this.stats.framesTracked++;
 
-    // Process each input source
+    // Snapshot pre-frame visibility so we can detect both lost AND regained
+    // transitions after updateHand() has had a chance to set visible=true.
+    const prevVisible = {
+      left:  this.leftHand  ? this.leftHand.visible  : false,
+      right: this.rightHand ? this.rightHand.visible : false
+    };
+
+    const seenHands = new Set();
     for (const inputSource of frame.session.inputSources) {
       if (inputSource.hand) {
         this.updateHand(frame, inputSource, referenceSpace);
+        seenHands.add(inputSource.handedness);
+      }
+    }
+
+    // Set visibility from seenHands and fire tracking-change callback on
+    // transitions. A frozen hand at its last known position falsely signals
+    // "still tracking" — hiding it is both visually correct and prevents
+    // spurious gesture activations on a stale skeleton.
+    for (const handedness of ['left', 'right']) {
+      const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
+      if (handGroup) {
+        const nowTracked = seenHands.has(handedness);
+        handGroup.visible = nowTracked;
+        if (prevVisible[handedness] !== nowTracked && this._onTrackingChange) {
+          this._onTrackingChange(handedness, nowTracked);
+        }
       }
     }
 
     // Recognize gestures
     this.recognizeGestures();
+  }
+
+  /**
+   * Register a callback for hand-tracking state changes (tracked ↔ lost).
+   * Called with (handedness: 'left'|'right', tracked: boolean).
+   * @param {(handedness: string, tracked: boolean) => void} cb
+   */
+  onTrackingChange(cb) {
+    this._onTrackingChange = cb;
   }
 
   /**
