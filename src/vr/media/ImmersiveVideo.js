@@ -284,6 +284,10 @@ export class ImmersiveVideo {
 
   /** Stop playback and remove everything from the scene. */
   stop() {
+    // Notify before clearing meshes (active getter depends on meshes.length).
+    if (this.active) {
+      this.onPlaybackChange('stopped');
+    }
     for (const m of this.meshes) {
       this.scene.remove(m);
       if (m.geometry) {

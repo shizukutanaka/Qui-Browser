@@ -353,8 +353,21 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onError: (msg) => this.showVRToast(msg, { type: 'error' }),
       onPlaybackChange: (state) => {
+        // Guard: session-end cleanup calls stop() with isVREnabled=false; those
+        // are not user-initiated actions and should not produce status messages.
+        if (!this.isVREnabled) {
+          return;
+        }
         if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(state === 'playing' ? 'Video: playing' : 'Video: paused');
+          let label;
+          if (state === 'playing') {
+            label = 'Video: playing';
+          } else if (state === 'stopped') {
+            label = 'Video: stopped';
+          } else {
+            label = 'Video: paused';
+          }
+          this.captionSystem.show(label);
         }
       }
     });

@@ -299,4 +299,30 @@ describe('ImmersiveVideo lifecycle', () => {
     const sphere = scene.children[0];
     expect([sphere.position.x, sphere.position.y, sphere.position.z]).toEqual([1, 2, 3]);
   });
+
+  test('stop() fires onPlaybackChange("stopped") when video was active (WCAG 4.1.3)', () => {
+    const onPlaybackChange = jest.fn();
+    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onPlaybackChange
+    });
+    iv.play('https://cdn.example.com/clip.mp4');
+    onPlaybackChange.mockClear(); // ignore 'playing' call from play()
+    iv.stop();
+    expect(onPlaybackChange).toHaveBeenCalledWith('stopped');
+  });
+
+  test('stop() does NOT fire onPlaybackChange when nothing was playing', () => {
+    const onPlaybackChange = jest.fn();
+    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onPlaybackChange
+    });
+    iv.stop(); // no prior play()
+    expect(onPlaybackChange).not.toHaveBeenCalled();
+  });
 });
