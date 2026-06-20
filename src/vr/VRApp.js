@@ -858,6 +858,12 @@ export class VRApp {
         if (this.bookmarkPanel && this.bookmarkPanel.visible) {
           this.bookmarkPanel._draw();
         }
+        // Caption backing switches between semi-transparent (normal) and fully
+        // opaque (HC) — update live so the effect is immediate, not deferred
+        // until the next VR session restart.
+        if (this.captionSystem) {
+          this.captionSystem.setHighContrast(v);
+        }
       }],
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
