@@ -410,6 +410,19 @@ export class VRApp {
           if (active) {
             active.navigate(url);
           }
+        },
+        onDeleteBookmark: () => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show('Bookmark deleted');
+          }
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPatternBothHands('notification');
+          }
+        },
+        onTabChange: (tab) => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(tab === 'bookmarks' ? 'Bookmarks' : 'History');
+          }
         }
       });
       this.bookmarkPanel.addToScene();
@@ -1414,6 +1427,9 @@ export class VRApp {
         // Toggle bookmarks/history panel.
         if (btn.faceA?.justPressed && this.bookmarkPanel) {
           this.bookmarkPanel.toggle();
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Bookmarks: ${this.bookmarkPanel.visible ? 'open' : 'closed'}`);
+          }
         }
         // Toggle settings panel.
         if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {

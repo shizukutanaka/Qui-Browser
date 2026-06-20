@@ -79,18 +79,26 @@ export class BookmarkPanel {
    * @param {Function} opts.registerInteractable
    * @param {Function} opts.unregisterInteractable
    * @param {BookmarkStore} opts.store
-   * @param {Function} opts.onSelect  — called with (url) when a row is chosen
+   * @param {Function} opts.onSelect       — called with (url) when a row is chosen
+   * @param {Function} [opts.onDeleteBookmark] — called with (url) after a bookmark
+   *   is deleted; used by VRApp to announce the deletion via caption/haptic
+   *   (WCAG 4.1.3 Status Messages — destructive actions need non-visual confirmation).
+   * @param {Function} [opts.onTabChange]  — called with ('bookmarks'|'history')
+   *   when the user switches between the two tabs (WCAG 4.1.3).
    * @param {number}  [opts.scale=1]  — physical-size multiplier for low-vision
    *   legibility. The canvas layout (and thus hit-testing, which works in
    *   normalised UV space) is unchanged; only the mesh's metre dimensions grow,
    *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect, scale = 1 }) {
+  constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect,
+    onDeleteBookmark, onTabChange, scale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.store = store;
     this.onSelect = typeof onSelect === 'function' ? onSelect : () => {};
+    this.onDeleteBookmark = typeof onDeleteBookmark === 'function' ? onDeleteBookmark : null;
+    this.onTabChange = typeof onTabChange === 'function' ? onTabChange : null;
 
     // Physical dimensions (metres) scaled for the large-text preference. Stored
     // per-instance because _onSelect's UV math must use the same values.
@@ -193,6 +201,9 @@ export class BookmarkPanel {
       break;
     case 'tab':
       this.setMode(action.tab);
+      if (this.onTabChange) {
+        this.onTabChange(action.tab);
+      }
       break;
     case 'scrollUp':
       if (this.scrollOffset > 0) {
@@ -222,6 +233,9 @@ export class BookmarkPanel {
         const newRows = this._rows();
         this.scrollOffset = Math.min(this.scrollOffset, Math.max(0, newRows.length - VISIBLE_ROWS));
         this._draw();
+        if (this.onDeleteBookmark) {
+          this.onDeleteBookmark(entry.url);
+        }
       }
       break;
     }
