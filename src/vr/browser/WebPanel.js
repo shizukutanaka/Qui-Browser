@@ -64,11 +64,12 @@ export class WebPanel {
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
-    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark }) {
+    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.onNavigate = onNavigate || (() => {});
+    this.onLoadError = onLoadError || (() => {});
     this.onUrlInputRequested = onUrlInputRequested || null;
     // Search engine for non-URL input (key into SEARCH_ENGINES). Defaults to
     // a privacy-respecting engine; overridable via settings.
@@ -351,6 +352,7 @@ export class WebPanel {
       this.loading = false;
       this._loadError = true;
       this._drawChrome();
+      this.onLoadError(this.currentUrl);
     };
   }
 
