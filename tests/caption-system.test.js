@@ -200,4 +200,36 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cam.remove).toHaveBeenCalled();
     expect(cs.mesh).toBeNull();
   });
+
+  describe('setLineDuration — WCAG 2.2.1 Timing Adjustable', () => {
+    test('applies the new duration to subsequent captions', () => {
+      cs.setEnabled(true);
+      cs.setLineDuration(2000);
+      cs.show('hello');
+      cs.update(1200); // 1.2s — still alive (< 2s)
+      expect(cs.lineCount).toBe(1);
+      cs.update(1000); // 2.2s total — expired
+      expect(cs.lineCount).toBe(0);
+    });
+
+    test('does not shorten already-queued captions (no abrupt cut)', () => {
+      cs.setEnabled(true);
+      cs.show('in-flight');         // queued with lineDuration=1000ms
+      cs.update(800);               // 0.8s remaining
+      cs.setLineDuration(2000);     // changes only FUTURE captions
+      cs.update(300);               // total 1.1s — old line expires per original 1s
+      expect(cs.lineCount).toBe(0);
+    });
+
+    test('clamps to [2000, 30000] ms', () => {
+      expect(cs.setLineDuration(100)).toBe(2000);    // clamped up
+      expect(cs.setLineDuration(99999)).toBe(30000); // clamped down
+      expect(cs.setLineDuration(8000)).toBe(8000);   // in range, exact
+    });
+
+    test('coerces non-numeric to 5000 fallback', () => {
+      expect(cs.setLineDuration('bad')).toBe(5000);
+      expect(cs.setLineDuration(null)).toBe(5000);
+    });
+  });
 });

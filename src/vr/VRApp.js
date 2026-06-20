@@ -157,6 +157,10 @@ export class VRApp {
       // FR-13.1: in-VR captions/subtitles for recognized speech & system
       // events (accessibility). OFF by default.
       enableCaptions: false,
+      // How long (seconds) each caption line stays on screen. WCAG 2.2.1
+      // Timing Adjustable: exposed as a stepper in the VR settings panel so
+      // slow readers and cognitive-disability users can extend the hold time.
+      captionDuration: 5,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Default search engine for non-URL input in the address bar
@@ -939,6 +943,14 @@ export class VRApp {
             this.windowManager.setDistance(v);
           }
         }
+      }],
+      ['Caption Hold', 'captionDuration', {
+        min: 2, max: 30, step: 1, unit: 's',
+        apply: (v) => {
+          if (this.captionSystem) {
+            this.captionSystem.setLineDuration(v * 1000);
+          }
+        }
       }]
     ];
 
@@ -1658,7 +1670,8 @@ export class VRApp {
       // Captions get a deliberately larger boost (1.4) than other surfaces:
       // they are transient and read at a glance, so legibility matters more.
       scale: largeTextScale(getPrefs().largeText, 1.4),
-      highContrast: prefersHighContrast()
+      highContrast: prefersHighContrast(),
+      lineDuration: this.settings.captionDuration * 1000
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
     console.debug('VRApp: Caption system ready');

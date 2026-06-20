@@ -112,6 +112,23 @@ export class CaptionSystem {
   }
 
   /**
+   * Set how long (ms) each caption line stays visible. Clamped to [2000, 30000].
+   * Affects lines shown AFTER this call; already-queued lines keep their original
+   * remaining time so an in-flight caption is not abruptly cut.
+   *
+   * WCAG 2.2.1 Timing Adjustable: captions that disappear after a fixed time
+   * impose a reading time limit. Exposing this control lets slow readers,
+   * users with cognitive disabilities, and language learners set their own pace.
+   *
+   * @param {number} ms
+   * @returns {number} the applied duration
+   */
+  setLineDuration(ms) {
+    this.lineDuration = Math.max(2000, Math.min(30000, Number(ms) || 5000));
+    return this.lineDuration;
+  }
+
+  /**
    * Push a caption line.  Trims to maxLines (oldest dropped) and schedules it
    * to expire after lineDuration.  Empty/whitespace text is ignored.
    *
