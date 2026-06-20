@@ -347,7 +347,12 @@ export class VRApp {
     this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
       registerInteractable: (m, h) => this.registerInteractable(m, h),
       unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onError: (msg) => this.showVRToast(msg, { type: 'error' })
+      onError: (msg) => this.showVRToast(msg, { type: 'error' }),
+      onPlaybackChange: (state) => {
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(state === 'playing' ? 'Video: playing' : 'Video: paused');
+        }
+      }
     });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).

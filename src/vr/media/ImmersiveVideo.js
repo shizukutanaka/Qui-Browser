@@ -30,13 +30,17 @@ export class ImmersiveVideo {
    * @param {(mesh) => void}           deps.unregisterInteractable
    * @param {(message:string) => void} [deps.onError] — called on load/playback failure
    */
-  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError } = {}) {
+  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError, onPlaybackChange } = {}) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
     this.registerInteractable = registerInteractable || (() => {});
     this.unregisterInteractable = unregisterInteractable || (() => {});
     this.onError = onError || (() => {});
+    // Optional callback fired when playback state changes so the host can
+    // mirror the state to captions / haptics without ImmersiveVideo knowing
+    // about those systems directly.
+    this.onPlaybackChange = onPlaybackChange || (() => {});
 
     this.video = null;
     this._onVideoError = null; // bound 'error' listener (removed on stop)
@@ -103,6 +107,7 @@ export class ImmersiveVideo {
       if (this._playPauseBtn) {
         this._playPauseBtn.userData.setLabel('Pause');
       }
+      this.onPlaybackChange('playing');
     };
     video.addEventListener('playing', this._onVideoPlaying);
 
@@ -254,12 +259,14 @@ export class ImmersiveVideo {
       if (this._playPauseBtn) {
         this._playPauseBtn.userData.setLabel('Pause');
       }
+      this.onPlaybackChange('playing');
     } else {
       this.video.pause();
       this.playing = false;
       if (this._playPauseBtn) {
         this._playPauseBtn.userData.setLabel('Play');
       }
+      this.onPlaybackChange('paused');
     }
   }
 
