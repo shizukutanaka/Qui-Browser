@@ -319,4 +319,25 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._ring.material.opacity).toBeCloseTo(0.35, 2);
     expect(gi._ringOpacity).toBeCloseTo(0.35, 2);
   });
+
+  test('skips objects in invisible parent groups (isWorldVisible)', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+
+    // Simulate a parent group that is explicitly hidden.
+    const hiddenGroup = { visible: false, parent: null };
+    obj.parent = hiddenGroup;
+
+    nextHit = { object: obj };
+    gi.update([obj], 1200); // would fire if not hidden
+    expect(onSelect).not.toHaveBeenCalled();
+
+    // Unhide the group — should now dwell and fire.
+    hiddenGroup.visible = true;
+    gi._target = null; gi._elapsed = 0; gi._fired = false; // reset state
+    gi.update([obj], 1200);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
 });
