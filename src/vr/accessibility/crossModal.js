@@ -98,6 +98,12 @@ export function notifyCrossModal(hapticFeedback, captionSystem, message, type) {
 // alarming pattern that would imply an error.
 export const VOICE_CMD_HAPTIC_PATTERN = 'click';
 
+// Haptic pattern for a failed / unrecognized voice command. Two gentle bumps
+// ('notification') read as "didn't catch that, try again" — distinct from the
+// single click of success and less alarming than the error/warning rhythms
+// reserved for actual system faults.
+export const VOICE_CMD_FAILED_HAPTIC_PATTERN = 'notification';
+
 /**
  * Fire the voice-command success feedback on the haptic channel.
  *
@@ -113,5 +119,23 @@ export const VOICE_CMD_HAPTIC_PATTERN = 'click';
 export function voiceCommandFeedback(hapticFeedback) {
   if (hapticFeedback) {
     hapticFeedback.playPatternBothHands(VOICE_CMD_HAPTIC_PATTERN);
+  }
+}
+
+/**
+ * Fire the voice-command failure feedback on the haptic channel.
+ *
+ * A recognition miss or action exception already reaches captions via onSpeak,
+ * but a deaf/HoH user not looking at the caption panel needs a second channel.
+ * The 'notification' double-bump is distinct from success ('click') and from
+ * system alerts ('error'/'warning'), signalling "try again" without alarm.
+ *
+ * Pure — testable without a GPU or controllers.
+ *
+ * @param {{playPatternBothHands: function}|null} hapticFeedback
+ */
+export function voiceCommandFailedFeedback(hapticFeedback) {
+  if (hapticFeedback) {
+    hapticFeedback.playPatternBothHands(VOICE_CMD_FAILED_HAPTIC_PATTERN);
   }
 }

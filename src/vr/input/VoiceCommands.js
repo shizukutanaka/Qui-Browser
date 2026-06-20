@@ -47,7 +47,8 @@ export class VoiceCommands {
 
     // Callbacks
     this.callbacks = {
-      onCommand: null,
+      onCommand: null,       // (key, result)  — command executed successfully
+      onCommandFailed: null, // ({reason, transcript}) — no match or action threw
       onTranscript: null,
       onError: null,
       onStart: null,
@@ -267,12 +268,18 @@ export class VoiceCommands {
         console.error('VoiceCommands: Command execution failed', error);
         this.stats.commandsFailed++;
         this.speak('コマンドの実行に失敗しました'); // "Command execution failed"
+        if (this.callbacks.onCommandFailed) {
+          this.callbacks.onCommandFailed({ reason: 'execution_error', transcript });
+        }
       }
 
     } else {
       console.debug(`VoiceCommands: No matching command for "${transcript}"`);
       this.stats.commandsFailed++;
       this.speak('コマンドが認識できませんでした'); // "Command not recognized"
+      if (this.callbacks.onCommandFailed) {
+        this.callbacks.onCommandFailed({ reason: 'no_match', transcript });
+      }
     }
   }
 

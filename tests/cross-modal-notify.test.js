@@ -15,7 +15,9 @@ const {
   toastColors,
   toastFontPx,
   voiceCommandFeedback,
-  VOICE_CMD_HAPTIC_PATTERN
+  VOICE_CMD_HAPTIC_PATTERN,
+  voiceCommandFailedFeedback,
+  VOICE_CMD_FAILED_HAPTIC_PATTERN
 } = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
@@ -140,5 +142,26 @@ describe('voiceCommandFeedback — haptic parity for hands-free input', () => {
     voiceCommandFeedback(haptic);
     voiceCommandFeedback(haptic);
     expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('voiceCommandFailedFeedback — distinct "try again" pulse', () => {
+  test('fires the notification pattern on both hands when haptics are available', () => {
+    const haptic = makeHaptic();
+    voiceCommandFailedFeedback(haptic);
+    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(1);
+    expect(haptic.playPatternBothHands).toHaveBeenCalledWith(VOICE_CMD_FAILED_HAPTIC_PATTERN);
+  });
+
+  test('does not throw when hapticFeedback is null', () => {
+    expect(() => voiceCommandFailedFeedback(null)).not.toThrow();
+  });
+
+  test('failure pattern differs from success pattern (distinct cues)', () => {
+    expect(VOICE_CMD_FAILED_HAPTIC_PATTERN).not.toBe(VOICE_CMD_HAPTIC_PATTERN);
+  });
+
+  test('VOICE_CMD_FAILED_HAPTIC_PATTERN is the gentle double-bump (not error/warning)', () => {
+    expect(VOICE_CMD_FAILED_HAPTIC_PATTERN).toBe('notification');
   });
 });

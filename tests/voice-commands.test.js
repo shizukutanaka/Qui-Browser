@@ -53,3 +53,44 @@ describe('VoiceCommands — spoken feedback is mirrored for captions', () => {
     expect(() => vc.speak('テスト')).not.toThrow();
   });
 });
+
+describe('VoiceCommands — onCommandFailed callback', () => {
+  let vc, failures;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    failures = [];
+    vc.callbacks.onCommandFailed = (info) => failures.push(info);
+    vc.callbacks.onSpeak = () => {}; // suppress speak() side-effects in tests
+  });
+
+  test('fires with reason "no_match" when no command matches', () => {
+    vc.processCommand('xyzzy nothing happens', 0.9);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('no_match');
+    expect(failures[0].transcript).toBe('xyzzy nothing happens');
+  });
+
+  test('fires with reason "execution_error" when the action throws', () => {
+    vc.registerCommand('broken', {
+      patterns: ['broken'],
+      action: () => { throw new Error('test error'); }
+    });
+    vc.processCommand('broken', 0.9);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('execution_error');
+  });
+
+  test('does NOT fire when a command executes successfully', () => {
+    vc.registerCommand('ok', {
+      patterns: ['ok'],
+      action: () => ({ done: true })
+    });
+    vc.processCommand('ok', 0.9);
+    expect(failures).toHaveLength(0);
+  });
+
+  test('no throw when onCommandFailed is not wired', () => {
+    vc.callbacks.onCommandFailed = null;
+    expect(() => vc.processCommand('unknown stuff', 0.9)).not.toThrow();
+  });
+});
