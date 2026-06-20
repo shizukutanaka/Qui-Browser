@@ -221,9 +221,10 @@ describe('CaptionSystem (FR-13.1)', () => {
       expect(cs.lineCount).toBe(0);
     });
 
-    test('clamps to [2000, 30000] ms', () => {
+    test('clamps to [2000, 60000] ms (WCAG 2.2.1: max ≥ 10× default 5 s)', () => {
       expect(cs.setLineDuration(100)).toBe(2000);    // clamped up
-      expect(cs.setLineDuration(99999)).toBe(30000); // clamped down
+      expect(cs.setLineDuration(99999)).toBe(60000); // clamped to new ceiling
+      expect(cs.setLineDuration(60000)).toBe(60000); // ceiling itself is valid
       expect(cs.setLineDuration(8000)).toBe(8000);   // in range, exact
     });
 

@@ -112,19 +112,21 @@ export class CaptionSystem {
   }
 
   /**
-   * Set how long (ms) each caption line stays visible. Clamped to [2000, 30000].
+   * Set how long (ms) each caption line stays visible. Clamped to [2000, 60000].
    * Affects lines shown AFTER this call; already-queued lines keep their original
    * remaining time so an in-flight caption is not abruptly cut.
    *
-   * WCAG 2.2.1 Timing Adjustable: captions that disappear after a fixed time
-   * impose a reading time limit. Exposing this control lets slow readers,
-   * users with cognitive disabilities, and language learners set their own pace.
+   * WCAG 2.2.1 Timing Adjustable — "Adjust" option: the range must reach at
+   * least ten times the default duration (default 5 s → minimum max 50 s).
+   * The ceiling is set to 60 s (12× default) to give a clean round number with
+   * margin above the WCAG threshold.  Slow readers, users with cognitive
+   * disabilities, and language learners can hold each caption as long as they need.
    *
    * @param {number} ms
    * @returns {number} the applied duration
    */
   setLineDuration(ms) {
-    this.lineDuration = Math.max(2000, Math.min(30000, Number(ms) || 5000));
+    this.lineDuration = Math.max(2000, Math.min(60000, Number(ms) || 5000));
     return this.lineDuration;
   }
 

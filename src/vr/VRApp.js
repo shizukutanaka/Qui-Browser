@@ -1091,8 +1091,10 @@ export class VRApp {
           }
         }
       }],
+      // WCAG 2.2.1 Timing Adjustable (Adjust option): range must reach ≥ 10× the
+      // default (5 s default → min ceiling 50 s). Using 60 s (12×) as the max.
       ['Caption Hold', 'captionDuration', {
-        min: 2, max: 30, step: 1, unit: 's',
+        min: 2, max: 60, step: 2, unit: 's',
         apply: (v) => {
           if (this.captionSystem) {
             this.captionSystem.setLineDuration(v * 1000);
