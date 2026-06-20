@@ -162,3 +162,29 @@ export function voiceErrorNotification(errorCode) {
   }
   return { message: 'Voice commands temporarily unavailable', type: 'warn' };
 }
+
+/**
+ * Build the user-visible message for a controller disconnect event.
+ *
+ * WCAG 4.1.3 gap: the WebXR "disconnected" event previously triggered only a
+ * `console.debug` call. A user whose controller disconnects mid-session (battery
+ * dies, goes out of range, headset-level disconnect) loses their primary input
+ * method with zero feedback on any non-visual channel — caption-reliant and
+ * low-vision users cannot know what happened. This produces the message that
+ * goes to the toast, caption, and (for the surviving hand) the haptic channel.
+ *
+ * Pure — derives a human-readable label from the WebXR handedness string so
+ * the wiring in VRApp stays thin and this stays testable in isolation.
+ *
+ * @param {'left'|'right'|'none'|'unknown'|undefined} handedness
+ * @returns {string}
+ */
+export function controllerDisconnectMessage(handedness) {
+  if (handedness === 'left') {
+    return 'Left controller disconnected';
+  }
+  if (handedness === 'right') {
+    return 'Right controller disconnected';
+  }
+  return 'Controller disconnected';
+}

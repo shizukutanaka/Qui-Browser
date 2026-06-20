@@ -19,7 +19,8 @@ const {
   voiceCommandFailedFeedback,
   VOICE_CMD_FAILED_HAPTIC_PATTERN,
   voiceErrorNotification,
-  VOICE_FATAL_ERRORS
+  VOICE_FATAL_ERRORS,
+  controllerDisconnectMessage
 } = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
@@ -165,6 +166,26 @@ describe('voiceCommandFailedFeedback — distinct "try again" pulse', () => {
 
   test('VOICE_CMD_FAILED_HAPTIC_PATTERN is the gentle double-bump (not error/warning)', () => {
     expect(VOICE_CMD_FAILED_HAPTIC_PATTERN).toBe('notification');
+  });
+});
+
+describe('controllerDisconnectMessage — WCAG 4.1.3 controller status', () => {
+  test('names the left hand when handedness is "left"', () => {
+    expect(controllerDisconnectMessage('left')).toMatch(/left/i);
+  });
+
+  test('names the right hand when handedness is "right"', () => {
+    expect(controllerDisconnectMessage('right')).toMatch(/right/i);
+  });
+
+  test('returns a non-empty fallback for unknown/undefined handedness', () => {
+    expect(controllerDisconnectMessage(undefined)).toBeTruthy();
+    expect(controllerDisconnectMessage('unknown')).toBeTruthy();
+    expect(controllerDisconnectMessage('none')).toBeTruthy();
+  });
+
+  test('left and right messages are distinct', () => {
+    expect(controllerDisconnectMessage('left')).not.toBe(controllerDisconnectMessage('right'));
   });
 });
 

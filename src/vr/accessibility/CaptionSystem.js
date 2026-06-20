@@ -274,7 +274,10 @@ export class CaptionSystem {
     let cur = '';
     for (const w of words) {
       if (w.length > maxChars) {
-        if (cur) { rows.push(cur); cur = ''; }
+        if (cur) {
+          rows.push(cur);
+          cur = '';
+        }
         let rest = w;
         while (rest.length > maxChars) {
           rows.push(rest.slice(0, maxChars));
@@ -290,7 +293,9 @@ export class CaptionSystem {
         cur = w;
       }
     }
-    if (cur) { rows.push(cur); }
+    if (cur) {
+      rows.push(cur);
+    }
     return rows.length ? rows : [''];
   }
 

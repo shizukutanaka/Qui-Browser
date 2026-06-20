@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -1191,6 +1191,16 @@ export class VRApp {
         console.debug(`VRApp: Controller connected — ${name}`);
       });
       controller.addEventListener('disconnected', () => {
+        const hand = controller.userData.inputSource?.handedness;
+        const msg = controllerDisconnectMessage(hand);
+        this.showVRToast(msg, { type: 'warn' });
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(msg);
+        }
+        if (this.hapticFeedback) {
+          const otherHand = hand === 'left' ? 'right' : 'left';
+          this.hapticFeedback.playPattern(otherHand, 'notification');
+        }
         if (controller.userData.inputSource) {
           this.controllerInput.forget(controller.userData.inputSource);
         }
@@ -2367,7 +2377,11 @@ export class VRApp {
     if (this.captionSystem && this.captionSystem.enabled) {
       let label = title !== url ? title : url;
       if (label === url) {
-        try { label = new URL(url).hostname || url; } catch (_) { /* keep url as label */ }
+        try {
+          label = new URL(url).hostname || url;
+        } catch (_) {
+          // keep url as label
+        }
       }
       this.captionSystem.show(label);
     }
