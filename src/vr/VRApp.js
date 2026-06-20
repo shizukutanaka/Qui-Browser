@@ -377,7 +377,13 @@ export class VRApp {
         searchEngine: this.settings.searchEngine,
         // FR-1.4: star button in the chrome bar toggles a persistent bookmark.
         isBookmarked: (url) => this.bookmarks.isBookmarked(url),
-        onToggleBookmark: (url, title) => this.bookmarks.toggleBookmark(url, title)
+        onToggleBookmark: (url, title) => {
+          const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(nowBookmarked ? 'Bookmarked' : 'Bookmark removed');
+          }
+          return nowBookmarked;
+        }
       });
       this.tabManager.addToScene();
       if (this.settings.enableCurvedPanel) {
