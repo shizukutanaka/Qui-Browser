@@ -176,6 +176,11 @@ export class VRApp {
       // Timing Adjustable: exposed as a stepper in the VR settings panel so
       // slow readers and cognitive-disability users can extend the hold time.
       captionDuration: 5,
+      // Text-size multiplier for captions. WCAG 1.4.4 Resize Text: users must
+      // be able to resize text up to 200 % without losing content. The default
+      // is derived from the OS large-text preference at session start; exposing
+      // it as a live stepper lets low-vision users tune it from inside VR.
+      captionScale: 1.0,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Default search engine for non-URL input in the address bar
@@ -207,6 +212,11 @@ export class VRApp {
     // Re-sync the a11y mirror: the a11y module's own storage always wins over the
     // VRApp persisted copy so changes made outside VR (2D landing page) are honoured.
     this.settings.highContrast = getPrefs().highContrast;
+    // Seed captionScale from the OS large-text preference when the user has
+    // never explicitly set it in VR (persisted value takes precedence).
+    if (!persisted.captionScale) {
+      this.settings.captionScale = largeTextScale(getPrefs().largeText, 1.4);
+    }
 
     // Accessibility: if the OS signals prefers-reduced-motion and the user has
     // not explicitly chosen a comfort preset, default to the most protective
@@ -1013,6 +1023,14 @@ export class VRApp {
             this.captionSystem.setLineDuration(v * 1000);
           }
         }
+      }],
+      ['Caption Size', 'captionScale', {
+        min: 0.5, max: 3.0, step: 0.25, unit: 'x',
+        apply: (v) => {
+          if (this.captionSystem) {
+            this.captionSystem.setScale(v);
+          }
+        }
       }]
     ];
 
@@ -1758,9 +1776,7 @@ export class VRApp {
     // Honour the user's accessibility preferences so low-vision users get
     // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
     this.captionSystem = new CaptionSystem(this.camera, {
-      // Captions get a deliberately larger boost (1.4) than other surfaces:
-      // they are transient and read at a glance, so legibility matters more.
-      scale: largeTextScale(getPrefs().largeText, 1.4),
+      scale: this.settings.captionScale,
       highContrast: prefersHighContrast(),
       lineDuration: this.settings.captionDuration * 1000
     });
