@@ -25,7 +25,7 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
 import { osReducedMotion, osHighContrast, getPrefs, largeTextScale } from '../a11y/accessibility.js';
-import { buttonBg, buttonLineWidth } from './ui/buttonStyle.js';
+import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -413,18 +413,20 @@ export class VRApp {
 
     const draw = (hover) => {
       const on = !!this.settings[key];
+      const hc = getPrefs().highContrast || osHighContrast();
+      const ind = toggleIndicatorColors(on, hc);
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover);
+      ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = on ? '#44ff88' : '#667788';
-      ctx.lineWidth = buttonLineWidth(hover);
+      ctx.strokeStyle = ind.border;
+      ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 40px sans-serif';
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
-      ctx.fillStyle = on ? '#44ff88' : '#8899aa';
+      ctx.fillStyle = ind.label;
       ctx.fillText(on ? 'ON' : 'OFF', w - 24, 62);
       tex.needsUpdate = true;
     };
@@ -466,18 +468,20 @@ export class VRApp {
 
     const draw = (hover) => {
       const on = !!this.settings[key];
+      const hc = getPrefs().highContrast || osHighContrast();
+      const ind = toggleIndicatorColors(on, hc);
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover);
+      ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = on ? '#44ff88' : '#667788';
-      ctx.lineWidth = buttonLineWidth(hover);
+      ctx.strokeStyle = ind.border;
+      ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 28px sans-serif';
       ctx.fillText(label, 14, 58);
       ctx.textAlign = 'right';
-      ctx.fillStyle = on ? '#44ff88' : '#8899aa';
+      ctx.fillStyle = ind.label;
       ctx.fillText(on ? 'ON' : 'OFF', w - 14, 58);
       tex.needsUpdate = true;
     };
@@ -584,18 +588,19 @@ export class VRApp {
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
+      const hc = getPrefs().highContrast || osHighContrast();
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover);
+      ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#5e72e4';
-      ctx.lineWidth = buttonLineWidth(hover);
+      ctx.strokeStyle = buttonAccentColor('#5e72e4', hc);
+      ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 40px sans-serif';
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#8fa0ff';
+      ctx.fillStyle = buttonAccentColor('#8fa0ff', hc);
       ctx.fillText('▸', w - 24, 62);
       tex.needsUpdate = true;
     };
@@ -641,14 +646,15 @@ export class VRApp {
 
     const draw = (hover) => {
       const value = this.settings[key];
+      const hc = getPrefs().highContrast || osHighContrast();
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover);
+      ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#5e72e4';
-      ctx.lineWidth = buttonLineWidth(hover);
+      ctx.strokeStyle = buttonAccentColor('#5e72e4', hc);
+      ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
       // − / + glyphs at the edges
-      ctx.fillStyle = '#8fa0ff';
+      ctx.fillStyle = buttonAccentColor('#8fa0ff', hc);
       ctx.font = 'bold 54px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('−', w * 0.12, h / 2 + 18);
@@ -725,18 +731,19 @@ export class VRApp {
 
     const draw = (hover) => {
       const current = this.settings[key];
+      const hc = getPrefs().highContrast || osHighContrast();
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover);
+      ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#e4a85e';
-      ctx.lineWidth = buttonLineWidth(hover);
+      ctx.strokeStyle = buttonAccentColor('#e4a85e', hc);
+      ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 40px sans-serif';
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#ffcc88';
+      ctx.fillStyle = buttonAccentColor('#ffcc88', hc);
       ctx.fillText(`${current} ▸`, w - 24, 62);
       tex.needsUpdate = true;
     };
