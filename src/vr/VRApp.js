@@ -2365,7 +2365,10 @@ export class VRApp {
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
     if (this.captionSystem && this.captionSystem.enabled) {
-      const label = title !== url ? title : new URL(url, 'https://x').hostname || url;
+      let label = title !== url ? title : url;
+      if (label === url) {
+        try { label = new URL(url).hostname || url; } catch (_) { /* keep url as label */ }
+      }
       this.captionSystem.show(label);
     }
   }
