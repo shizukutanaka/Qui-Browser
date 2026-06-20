@@ -1794,8 +1794,13 @@ export class VRApp {
 
     // 1. Fixed Foveated Rendering
     if (this.settings.enableFFR) {
-      this.ffrSystem = new FFRSystem();
-      console.debug('VRApp: FFR system ready');
+      try {
+        this.ffrSystem = new FFRSystem();
+        console.debug('VRApp: FFR system ready');
+      } catch (e) {
+        console.error('VRApp: FFR init failed', e);
+        this.showVRToast('Foveation unavailable', { type: 'warn' });
+      }
     }
 
     // 2. Comfort System
@@ -1872,8 +1877,15 @@ export class VRApp {
 
     // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in
     // onVRSessionStart() once a session and gamepads are available.
-    this.hapticFeedback = new HapticFeedback();
-    console.debug('VRApp: Haptic feedback ready');
+    try {
+      this.hapticFeedback = new HapticFeedback();
+      console.debug('VRApp: Haptic feedback ready');
+    } catch (e) {
+      console.error('VRApp: Haptic feedback init failed', e);
+      this.showVRToast('Haptic feedback unavailable', { type: 'warn' });
+      // Set to null so notifyCrossModal() skips haptic gracefully
+      this.hapticFeedback = null;
+    }
 
     // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
     // can be toggled live from the settings panel; only active when enabled.
@@ -1924,15 +1936,21 @@ export class VRApp {
 
     // 9. AI Recommendations (FR-8.1).
     if (this.settings.enableAI) {
-      this.aiRecommendation = new AIRecommendation();
-      await this.aiRecommendation.initialize();
-      // Seed the model with persisted browse history from BookmarkStore so
-      // recommendations are meaningful from the first session.
-      const seedHistory = this.bookmarks.getHistory(50);
-      seedHistory.forEach(entry => {
-        this.aiRecommendation.trackVisit(entry.url, entry.title, 0);
-      });
-      console.debug(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
+      try {
+        this.aiRecommendation = new AIRecommendation();
+        await this.aiRecommendation.initialize();
+        // Seed the model with persisted browse history from BookmarkStore so
+        // recommendations are meaningful from the first session.
+        const seedHistory = this.bookmarks.getHistory(50);
+        seedHistory.forEach(entry => {
+          this.aiRecommendation.trackVisit(entry.url, entry.title, 0);
+        });
+        console.debug(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
+      } catch (e) {
+        console.error('VRApp: AI recommendations init failed', e);
+        this.showVRToast('AI recommendations unavailable', { type: 'warn' });
+        this.aiRecommendation = null;
+      }
     }
 
     // 10. Voice Commands
@@ -2146,19 +2164,31 @@ export class VRApp {
     // Initialize FFR for this session
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
-      await this.ffrSystem.initialize(session, gl);
-      this.ffrSystem.enable(0.5);
-      console.debug('VRApp: FFR enabled for session');
+      try {
+        await this.ffrSystem.initialize(session, gl);
+        this.ffrSystem.enable(0.5);
+        console.debug('VRApp: FFR enabled for session');
+      } catch (e) {
+        console.error('VRApp: FFR session init failed', e);
+        this.showVRToast('Foveation unavailable', { type: 'warn' });
+        this.ffrSystem = null;
+      }
     }
 
     // FR-1.5: WebXR Layers for sharp browser-panel text.
     // Initialise the binding and, if supported, attach a quad layer to every
     // open WebPanel so the chrome bar renders at native display resolution.
     if (this.settings.enableWebPanel && session) {
-      this.layersSystem = new LayersSystem();
-      const layersOk = this.layersSystem.initialize(session, gl);
-      if (layersOk) {
-        this._attachLayersToPanels(session);
+      try {
+        this.layersSystem = new LayersSystem();
+        const layersOk = this.layersSystem.initialize(session, gl);
+        if (layersOk) {
+          this._attachLayersToPanels(session);
+        }
+      } catch (e) {
+        console.error('VRApp: WebXR Layers init failed', e);
+        this.showVRToast('Sharp text rendering unavailable', { type: 'warn' });
+        this.layersSystem = null;
       }
     }
 
