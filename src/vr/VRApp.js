@@ -25,6 +25,7 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
+import { t } from '../i18n/i18n.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
@@ -1004,7 +1005,7 @@ export class VRApp {
     this._settingsPanelDrawers = [];
 
     const items = [
-      ['High Contrast', 'highContrast', (v) => {
+      [t('vr.settings.highContrast'), 'highContrast', (v) => {
         setPref('highContrast', v);
         this._redrawSettingsPanel();
         if (this.bookmarkPanel && this.bookmarkPanel.visible) {
@@ -1022,31 +1023,31 @@ export class VRApp {
           this.gazeInteraction.setHighContrast(prefersHighContrast());
         }
       }],
-      ['Teleport', 'enableTeleport', null],
-      ['Snap Turn', 'enableSnapTurn', null],
-      ['Smooth Move', 'enableSmoothMove', (v) => {
+      [t('vr.settings.teleport'), 'enableTeleport', null],
+      [t('vr.settings.snapTurn'), 'enableSnapTurn', null],
+      [t('vr.settings.smoothMove'), 'enableSmoothMove', (v) => {
         const msg = smoothMoveWarning(v, osReducedMotion());
         if (msg) {
           this.showVRToast(msg, { type: 'warn' });
         }
       }],
-      ['Southpaw', 'southpaw', (v) => {
+      [t('vr.settings.southpaw'), 'southpaw', (v) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(v ? 'Primary hand: left' : 'Primary hand: right');
         }
       }],
-      ['Comfort', 'enableComfort', null],
-      ['Foveation', 'enableFFR', (v) => {
+      [t('vr.settings.comfort'), 'enableComfort', null],
+      [t('vr.settings.foveation'), 'enableFFR', (v) => {
         if (this.ffrSystem) {
           v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
         }
       }],
-      ['Gaze Select', 'enableGazeDwell', (v) => {
+      [t('vr.settings.gazeSelect'), 'enableGazeDwell', (v) => {
         if (this.gazeInteraction) {
           this.gazeInteraction.setEnabled(v);
         }
       }],
-      ['Captions', 'enableCaptions', (v) => {
+      [t('vr.settings.captions'), 'enableCaptions', (v) => {
         if (this.captionSystem) {
           this.captionSystem.setEnabled(v);
           if (v) {
@@ -1054,12 +1055,12 @@ export class VRApp {
           }
         }
       }],
-      ['Follow View', 'enableWindowFollow', (v) => {
+      [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
           this.windowManager.setFollow(v);
         }
       }],
-      ['Curved', 'enableCurvedPanel', (v) => {
+      [t('vr.settings.curved'), 'enableCurvedPanel', (v) => {
         if (this.tabManager) {
           this.tabManager.setCurved(v);
         } else if (this.webPanel && this.webPanel.setCurved) {
@@ -1070,9 +1071,9 @@ export class VRApp {
 
     // Numeric steppers for tunable parameters that were previously code-only.
     const steppers = [
-      ['Snap Angle', 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
-      ['Move Speed', 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
-      ['Gaze Time', 'gazeDwellTime', {
+      [t('vr.settings.snapAngle'), 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
+      [t('vr.settings.moveSpeed'), 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
+      [t('vr.settings.gazeTime'), 'gazeDwellTime', {
         min: 500, max: 3000, step: 250, unit: 'ms',
         apply: (v) => {
           if (this.gazeInteraction) {
@@ -1083,7 +1084,7 @@ export class VRApp {
       // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus can widen
       // this window so a brief involuntary slip off-target doesn't restart the
       // dwell; precision-focused users can narrow it to 0 to disable forgiveness.
-      ['Grace Time', 'gazeGraceTime', {
+      [t('vr.settings.graceTime'), 'gazeGraceTime', {
         min: 0, max: 600, step: 50, unit: 'ms',
         apply: (v) => {
           if (this.gazeInteraction) {
@@ -1091,7 +1092,7 @@ export class VRApp {
           }
         }
       }],
-      ['Panel Dist', 'windowDistance', {
+      [t('vr.settings.panelDist'), 'windowDistance', {
         min: 0.6, max: 6.0, step: 0.2, unit: ' m',
         apply: (v) => {
           if (this.windowManager) {
@@ -1101,7 +1102,7 @@ export class VRApp {
       }],
       // WCAG 2.2.1 Timing Adjustable (Adjust option): range must reach ≥ 10× the
       // default (5 s default → min ceiling 50 s). Using 60 s (12×) as the max.
-      ['Caption Hold', 'captionDuration', {
+      [t('vr.settings.captionHold'), 'captionDuration', {
         min: 2, max: 60, step: 2, unit: 's',
         apply: (v) => {
           if (this.captionSystem) {
@@ -1109,7 +1110,7 @@ export class VRApp {
           }
         }
       }],
-      ['Caption Size', 'captionScale', {
+      [t('vr.settings.captionSize'), 'captionScale', {
         min: 0.5, max: 3.0, step: 0.25, unit: 'x',
         apply: (v) => {
           if (this.captionSystem) {
@@ -1128,7 +1129,7 @@ export class VRApp {
           this.comfortSystem.setPreset(v);
         }
       }],
-      ['Search', 'searchEngine', SEARCH_ENGINES, (v) => {
+      [t('vr.settings.search'), 'searchEngine', SEARCH_ENGINES, (v) => {
         if (this.tabManager) {
           this.tabManager.setSearchEngine(v);
         }
@@ -1138,9 +1139,9 @@ export class VRApp {
     // Action buttons (non-toggle). Only shown when their target exists.
     const actions = [];
     // Immersive 360°/180° video: prompt for a URL (VR keyboard) and play it.
-    actions.push(['360° Video', () => this._launchImmersiveVideo()]);
+    actions.push([t('vr.settings.video360'), () => this._launchImmersiveVideo()]);
     if (this.settings.enableWebPanel) {
-      actions.push(['Bookmarks', () => {
+      actions.push([t('vr.settings.bookmarks'), () => {
         if (this.bookmarkPanel) {
           this.bookmarkPanel.toggle();
           // Announce the resulting open/closed state as a status message
