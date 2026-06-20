@@ -817,12 +817,16 @@ export class VRApp {
     };
 
     this.registerInteractable(mesh, {
-      onSelect: (point) => {
+      onSelect: (evt) => {
         // Map the hit point to a horizontal fraction of the button to decide
         // whether the − or + region was pressed.
+        // Controllers fire onSelect({ intersection: hit, controller }) and gaze
+        // fires onSelect({ intersection: hit, gaze: true }); fall back to evt
+        // itself for direct calls (tests / legacy).
+        const rawPoint = evt?.intersection?.point ?? evt;
         let u = 0.5;
-        if (point && mesh.worldToLocal) {
-          const local = mesh.worldToLocal(point.clone());
+        if (rawPoint && mesh.worldToLocal) {
+          const local = mesh.worldToLocal(rawPoint.clone());
           u = (local.x / 0.9) + 0.5; // PlaneGeometry width is 0.9
         }
         const region = stepperRegion(u);
