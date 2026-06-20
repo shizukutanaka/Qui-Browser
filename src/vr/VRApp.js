@@ -50,6 +50,21 @@ import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnn
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
 
+/**
+ * Extract a short caption-friendly label from a URL: the hostname when the
+ * URL is valid, otherwise a truncated raw string.  Used wherever a navigation
+ * event needs a concise status caption (WCAG 4.1.3).  Pure so it is testable.
+ * @param {string} url
+ * @returns {string}
+ */
+function hostnameCaption(url) {
+  try {
+    return new URL(url).hostname || url;
+  } catch (_) {
+    return String(url).slice(0, 30);
+  }
+}
+
 export class VRApp {
   constructor(container) {
     this.container = container || document.body;
@@ -390,7 +405,14 @@ export class VRApp {
         // Replace window.prompt() with the VR keyboard.  vrKeyboard is
         // initialised in initializeSystems() before this block runs.
         onUrlInputRequested: (prefill, onConfirm) =>
-          this._requestVRKeyboardInput(prefill, onConfirm),
+          this._requestVRKeyboardInput(prefill, (url) => {
+            onConfirm(url);
+            // Immediate "Loading" caption so caption-reliant users know what URL
+            // was submitted before the page loads (WCAG 4.1.3).
+            if (url && this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            }
+          }),
         searchEngine: this.settings.searchEngine,
         // FR-1.4: star button in the chrome bar toggles a persistent bookmark.
         isBookmarked: (url) => this.bookmarks.isBookmarked(url),
@@ -403,14 +425,7 @@ export class VRApp {
         },
         onTabActivate: (url) => {
           if (this.captionSystem && this.captionSystem.enabled) {
-            let label = 'New Tab';
-            if (url) {
-              try {
-                label = new URL(url).hostname || url;
-              } catch (_) {
-                label = url;
-              }
-            }
+            const label = url ? hostnameCaption(url) : 'New Tab';
             this.captionSystem.show(`Tab: ${label}`);
           }
         },
@@ -441,16 +456,8 @@ export class VRApp {
           if (active) {
             active.navigate(url);
           }
-          // Immediate "Loading" caption so caption-reliant users know what was
-          // selected before the page loads and onNavigate fires the title (WCAG 4.1.3).
           if (this.captionSystem && this.captionSystem.enabled && url) {
-            let host = url;
-            try {
-              host = new URL(url).hostname || url;
-            } catch (_) {
-              // keep raw url
-            }
-            this.captionSystem.show(`Loading: ${host}`);
+            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
           }
         },
         onDeleteBookmark: () => {
@@ -2484,14 +2491,7 @@ export class VRApp {
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
     if (this.captionSystem && this.captionSystem.enabled) {
-      let label = title !== url ? title : url;
-      if (label === url) {
-        try {
-          label = new URL(url).hostname || url;
-        } catch (_) {
-          // keep url as label
-        }
-      }
+      const label = (title !== url) ? title : hostnameCaption(url);
       this.captionSystem.show(label);
     }
   }
