@@ -87,3 +87,28 @@ export function settingsButtonCaption(type, label, value, opts = {}) {
   }
   return label; // action button
 }
+
+/**
+ * Decide whether a settings-button caption should be spoken.
+ *
+ * Captions must be enabled at all. Beyond that there are two contexts:
+ *  - hover (force=false): only announce while gaze-dwell is active, so a
+ *    controller user sweeping the ray across the panel isn't flooded.
+ *  - select (force=true): a deliberate activation always warrants the
+ *    confirmation, even for controller users, because a gaze user's ray stays
+ *    on the button after it fires and the hover handler does not re-run.
+ *
+ * Pure so the gate is unit-testable without VRApp / a caption subsystem.
+ *
+ * @param {object} state
+ * @param {boolean} state.captionsEnabled
+ * @param {boolean} state.gazeDwell
+ * @param {boolean} [state.force=false]
+ * @returns {boolean}
+ */
+export function shouldAnnounceSettingsButton({ captionsEnabled, gazeDwell, force = false }) {
+  if (!captionsEnabled) {
+    return false;
+  }
+  return force || !!gazeDwell;
+}

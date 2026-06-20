@@ -45,7 +45,7 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
-import { stepValue, stepperRegion, formatValue, settingsButtonCaption } from './settingsStepper.js';
+import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -452,12 +452,11 @@ export class VRApp {
           apply(value);
         }
         draw(true);
+        this._announceSettingsButton('toggle', label, value, {}, true);
       },
       onHover: () => {
         draw(true);
-        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(settingsButtonCaption('toggle', label, !!this.settings[key]));
-        }
+        this._announceSettingsButton('toggle', label, !!this.settings[key]);
       },
       onHoverEnd: () => draw(false)
     });
@@ -513,12 +512,11 @@ export class VRApp {
           apply(value);
         }
         draw(true);
+        this._announceSettingsButton('toggle', label, value, {}, true);
       },
       onHover: () => {
         draw(true);
-        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(settingsButtonCaption('toggle', label, !!this.settings[key]));
-        }
+        this._announceSettingsButton('toggle', label, !!this.settings[key]);
       },
       onHoverEnd: () => draw(false)
     });
@@ -638,9 +636,7 @@ export class VRApp {
       },
       onHover: () => {
         draw(true);
-        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(settingsButtonCaption('action', label));
-        }
+        this._announceSettingsButton('action', label);
       },
       onHoverEnd: () => draw(false)
     });
@@ -705,6 +701,7 @@ export class VRApp {
         if (apply) {
           apply(next);
         }
+        this._announceSettingsButton('stepper', label, next, { step, unit }, true);
       }
       draw(true);
     };
@@ -729,11 +726,7 @@ export class VRApp {
       },
       onHover: () => {
         draw(true);
-        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(
-            settingsButtonCaption('stepper', label, this.settings[key], { step, unit })
-          );
-        }
+        this._announceSettingsButton('stepper', label, this.settings[key], { step, unit });
       },
       onHoverEnd: () => draw(false)
     });
@@ -796,14 +789,11 @@ export class VRApp {
           apply(next);
         }
         draw(true);
+        this._announceSettingsButton('cycle', label, next, {}, true);
       },
       onHover: () => {
         draw(true);
-        if (this.settings.enableGazeDwell && this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(
-            settingsButtonCaption('cycle', label, this.settings[key])
-          );
-        }
+        this._announceSettingsButton('cycle', label, this.settings[key]);
       },
       onHoverEnd: () => draw(false)
     });
@@ -820,6 +810,34 @@ export class VRApp {
     if (this._settingsPanelDrawers) {
       this._settingsPanelDrawers.forEach(fn => fn && fn());
     }
+  }
+
+  /**
+   * Speak a settings-button caption for non-visual users. Two call contexts:
+   *
+   *  - hover (force=false): only while gaze-dwell is on, so a controller user
+   *    sweeping the ray across many buttons isn't flooded with captions.
+   *  - select  (force=true): a deliberate activation, so it's announced whenever
+   *    captions are on — this is the confirmation a gaze user would otherwise
+   *    miss, since the gaze ray stays on the same button after it fires and
+   *    onHover does not re-run to report the new value.
+   *
+   * No-ops when captions are disabled or unavailable.
+   *
+   * @param {'toggle'|'stepper'|'cycle'|'action'} type
+   * @param {string} label
+   * @param {*} value
+   * @param {object} [opts]   forwarded to settingsButtonCaption (stepper format)
+   * @param {boolean} [force] announce even when gaze-dwell is off (for select)
+   */
+  _announceSettingsButton(type, label, value, opts = {}, force = false) {
+    const captionsEnabled = !!(this.captionSystem && this.captionSystem.enabled);
+    if (!shouldAnnounceSettingsButton({
+      captionsEnabled, gazeDwell: this.settings.enableGazeDwell, force
+    })) {
+      return;
+    }
+    this.captionSystem.show(settingsButtonCaption(type, label, value, opts));
   }
 
   /**

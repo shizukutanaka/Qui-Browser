@@ -3,7 +3,7 @@
  */
 const {
   stepValue, decimalsFor, stepperRegion, formatValue, settingsButtonCaption,
-  MINUS_MAX_U, PLUS_MIN_U
+  shouldAnnounceSettingsButton, MINUS_MAX_U, PLUS_MIN_U
 } = require('../src/vr/settingsStepper.js');
 
 describe('stepValue', () => {
@@ -106,5 +106,27 @@ describe('settingsButtonCaption — gaze-dwell hover announcement text', () => {
 
   test('unknown type falls back to label', () => {
     expect(settingsButtonCaption('unknown', 'Widget', true)).toBe('Widget');
+  });
+});
+
+describe('shouldAnnounceSettingsButton — caption gate', () => {
+  test('never announces when captions are disabled', () => {
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: false, gazeDwell: true, force: true })).toBe(false);
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: false, gazeDwell: true, force: false })).toBe(false);
+  });
+
+  test('hover (force=false) announces only while gaze-dwell is active', () => {
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: true, force: false })).toBe(true);
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: false, force: false })).toBe(false);
+  });
+
+  test('select (force=true) announces even without gaze-dwell', () => {
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: false, force: true })).toBe(true);
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: true, force: true })).toBe(true);
+  });
+
+  test('force defaults to false (hover semantics)', () => {
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: false })).toBe(false);
+    expect(shouldAnnounceSettingsButton({ captionsEnabled: true, gazeDwell: true })).toBe(true);
   });
 });
