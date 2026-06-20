@@ -532,6 +532,14 @@ export class VRApp {
           if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
             this.captionSystem.show('Bookmarks panel');
           }
+        },
+        onClose: () => {
+          // Mirror the 'Bookmarks: closed' caption that the settings panel
+          // 'Bookmarks' button emits, so the state change is announced
+          // regardless of which path closed the panel (WCAG 4.1.3).
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show('Bookmarks: closed');
+          }
         }
       });
       this.bookmarkPanel.addToScene();

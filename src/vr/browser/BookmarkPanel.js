@@ -91,7 +91,7 @@ export class BookmarkPanel {
    *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect,
-    onDeleteBookmark, onTabChange, onHoverCaption, scale = 1 }) {
+    onDeleteBookmark, onTabChange, onHoverCaption, onClose, scale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -102,6 +102,8 @@ export class BookmarkPanel {
     // Optional: called on hover so the host can show a gaze-dwell preview caption
     // (WCAG 1.3.3 – panel purpose conveyed without relying on sight alone).
     this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
+    // Called when the panel is closed from its own close-zone (WCAG 4.1.3).
+    this.onClose = typeof onClose === 'function' ? onClose : null;
 
     // Physical dimensions (metres) scaled for the large-text preference. Stored
     // per-instance because _onSelect's UV math must use the same values.
@@ -212,6 +214,9 @@ export class BookmarkPanel {
     switch (action.type) {
     case 'close':
       this.hide();
+      if (this.onClose) {
+        this.onClose();
+      }
       break;
     case 'tab':
       this.setMode(action.tab);

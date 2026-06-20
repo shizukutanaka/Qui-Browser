@@ -165,6 +165,31 @@ describe('BookmarkPanel', () => {
     expect(p.visible).toBe(false);
   });
 
+  test('clicking close fires onClose callback (WCAG 4.1.3)', () => {
+    const onClose = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onClose
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(p.visible).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('close works without an onClose callback (no-op)', () => {
+    const p = makePanel(makeStore());
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
+    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+  });
+
   test('selecting empty area does nothing', () => {
     const onSelect = jest.fn();
     const p = makePanel(makeStore(), onSelect);
