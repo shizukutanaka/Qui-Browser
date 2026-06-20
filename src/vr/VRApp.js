@@ -1779,6 +1779,11 @@ export class VRApp {
         if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
           this.captionSystem.show(label);
         }
+      },
+      onCancel: () => {
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show('Keyboard cancelled');
+        }
       }
     });
     console.debug('VRApp: Japanese IME ready');
