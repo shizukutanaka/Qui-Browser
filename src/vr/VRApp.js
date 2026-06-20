@@ -441,6 +441,17 @@ export class VRApp {
           if (active) {
             active.navigate(url);
           }
+          // Immediate "Loading" caption so caption-reliant users know what was
+          // selected before the page loads and onNavigate fires the title (WCAG 4.1.3).
+          if (this.captionSystem && this.captionSystem.enabled && url) {
+            let host = url;
+            try {
+              host = new URL(url).hostname || url;
+            } catch (_) {
+              // keep raw url
+            }
+            this.captionSystem.show(`Loading: ${host}`);
+          }
         },
         onDeleteBookmark: () => {
           if (this.captionSystem && this.captionSystem.enabled) {
