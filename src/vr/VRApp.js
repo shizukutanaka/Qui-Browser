@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -1229,9 +1229,23 @@ export class VRApp {
       controller.addEventListener('selectend', () => this.onControllerSelect(controller, false));
       // Keep the live XRInputSource so we can read per-frame gamepad state.
       controller.addEventListener('connected', (e) => {
+        // Distinguish initial session-start connect (inputSource undefined) from
+        // mid-session reconnect after a disconnect (inputSource was set to null).
+        const wasDisconnected = controller.userData.inputSource === null;
         controller.userData.inputSource = e.data;
         const name = this.controllerInput.getDeviceName(e.data);
         console.debug(`VRApp: Controller connected — ${name}`);
+        if (wasDisconnected) {
+          const hand = e.data?.handedness;
+          const msg = controllerReconnectMessage(hand);
+          this.showVRToast(msg, { type: 'info' });
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(msg);
+          }
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPattern(hand, 'notification');
+          }
+        }
       });
       controller.addEventListener('disconnected', () => {
         const hand = controller.userData.inputSource?.handedness;

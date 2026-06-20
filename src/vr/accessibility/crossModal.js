@@ -188,3 +188,30 @@ export function controllerDisconnectMessage(handedness) {
   }
   return 'Controller disconnected';
 }
+
+/**
+ * Build the user-visible message for a controller reconnect event.
+ *
+ * WCAG 4.1.3 gap: the WebXR "connected" event was silently consumed after a
+ * mid-session disconnect — the user saw the disconnect toast but never learned
+ * the controller came back. Asymmetric feedback leaves the user unsure whether
+ * their input device is usable again. This companion to controllerDisconnectMessage
+ * closes the loop.
+ *
+ * Only called for *reconnects* (inputSource was null after a prior disconnect);
+ * the initial session-start connect is normal and does not need an announcement.
+ *
+ * Pure — testable without a browser.
+ *
+ * @param {'left'|'right'|'none'|'unknown'|undefined} handedness
+ * @returns {string}
+ */
+export function controllerReconnectMessage(handedness) {
+  if (handedness === 'left') {
+    return 'Left controller reconnected';
+  }
+  if (handedness === 'right') {
+    return 'Right controller reconnected';
+  }
+  return 'Controller reconnected';
+}
