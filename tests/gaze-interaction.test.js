@@ -320,6 +320,25 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._ringOpacity).toBeCloseTo(0.35, 2);
   });
 
+  test('graceTime is mutable at runtime (settings stepper live-apply)', () => {
+    // The settings panel writes directly to gazeInteraction.graceTime — verify
+    // that changing it mid-session takes effect on the next update() call.
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 500 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+
+    gi.update([obj], 800);   // 0.8s charged
+    nextHit = null;
+    // Tighten grace to 100 ms while a slip is in progress — the grace budget
+    // has already been exceeded; next update should release the target.
+    gi.graceTime = 100;
+    gi.update([obj], 200);   // 200 ms > new graceTime(100) → release
+    expect(gi._target).toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   test('skips objects in invisible parent groups (isWorldVisible)', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
     gi.setEnabled(true);

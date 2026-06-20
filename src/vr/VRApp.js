@@ -186,7 +186,11 @@ export class VRApp {
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
-      gazeDwellTime: 1500, // ms
+      gazeDwellTime: 1500,  // ms — time eyes must rest on target to activate
+      // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus need a longer
+      // forgiveness window; precision users may want a shorter one.  Exposed as a
+      // live stepper so the gaze-dwell path is tunable from inside VR.
+      gazeGraceTime: 300,   // ms — off-target slip tolerated before dwell resets
       // FR-13.1: in-VR captions/subtitles for recognized speech & system
       // events (accessibility). OFF by default.
       enableCaptions: false,
@@ -1060,6 +1064,17 @@ export class VRApp {
           }
         }
       }],
+      // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus can widen
+      // this window so a brief involuntary slip off-target doesn't restart the
+      // dwell; precision-focused users can narrow it to 0 to disable forgiveness.
+      ['Grace Time', 'gazeGraceTime', {
+        min: 0, max: 600, step: 50, unit: 'ms',
+        apply: (v) => {
+          if (this.gazeInteraction) {
+            this.gazeInteraction.graceTime = v;
+          }
+        }
+      }],
       ['Panel Dist', 'windowDistance', {
         min: 0.6, max: 6.0, step: 0.2, unit: ' m',
         apply: (v) => {
@@ -1846,6 +1861,7 @@ export class VRApp {
     // can be toggled live from the settings panel; only active when enabled.
     this.gazeInteraction = new GazeInteraction(this.camera, {
       dwellTime: this.settings.gazeDwellTime,
+      graceTime: this.settings.gazeGraceTime,
       // Honour the OS reduced-motion preference: static activation cue, no fade.
       reduceMotion: osReducedMotion(),
       // Honour high-contrast: full-opacity ring for visibility (WCAG 1.4.11).
