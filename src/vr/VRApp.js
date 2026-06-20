@@ -1439,6 +1439,9 @@ export class VRApp {
         // Recenter: snap the player rig back to the origin.
         if (btn.thumbstickClick?.justPressed) {
           this.recenter();
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPattern(hand, 'click');
+          }
         }
 
       } else if (hand === utilityHand) {
@@ -1601,6 +1604,9 @@ export class VRApp {
     }
     this.playerRig.position.set(0, 0, 0);
     this.playerRig.quaternion.identity();
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show('Recentered');
+    }
     console.debug('VRApp: recentered');
   }
 
