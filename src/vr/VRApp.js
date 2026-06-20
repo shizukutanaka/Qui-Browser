@@ -2336,7 +2336,7 @@ export class VRApp {
    * @param {string}   prefill   — initial text in the input buffer
    * @param {Function} onConfirm — called with the confirmed string
    */
-  _requestVRKeyboardInput(prefill, onConfirm) {
+  _requestVRKeyboardInput(prefill, onConfirm, prompt = 'Enter URL') {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
       this.japaneseIME.activate();
@@ -2349,6 +2349,12 @@ export class VRApp {
       }
       // Build (if needed) and show the 3D keyboard, then refresh its display.
       this.vrKeyboard.show();
+      // WCAG 3.3.2 Labels or Instructions: announce what input is expected so
+      // caption-reliant users know what the keyboard is for without having to
+      // look at the visual prompt bar, which may be outside their focus area.
+      if (this.captionSystem && this.captionSystem.enabled) {
+        this.captionSystem.show(prompt);
+      }
     } else {
       // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
       // desktop/2D, where window.prompt is the correct input).
@@ -2371,7 +2377,7 @@ export class VRApp {
         return;
       }
       this.immersiveVideo.play(url, detectVideoFormat(url));
-    });
+    }, 'Enter video URL');
   }
 
   /**
