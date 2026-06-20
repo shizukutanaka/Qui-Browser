@@ -1211,7 +1211,12 @@ export class VRApp {
     // interactable + hover pipeline end-to-end).
     this.registerInteractable(panel, {
       onSelect: () => this.recenter(),
-      onHover: () => panel.material.color.set(0x88bbff),
+      onHover: () => {
+        panel.material.color.set(0x88bbff);
+        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+          this.captionSystem.show('Recenter');
+        }
+      },
       onHoverEnd: () => panel.material.color.set(0xffffff)
     });
 
