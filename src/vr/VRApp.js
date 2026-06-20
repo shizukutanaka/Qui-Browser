@@ -1458,6 +1458,12 @@ export class VRApp {
     if (handlers && handlers.onSelect) {
       handlers.onSelect({ intersection: hit, controller });
     }
+    // Haptic click on the selecting hand confirms that the trigger registered
+    // on an interactable, giving tactile parity with face-button presses.
+    if (this.hapticFeedback) {
+      const hand = controller.userData?.inputSource?.handedness || 'right';
+      this.hapticFeedback.playPattern(hand, 'click');
+    }
     // Also emit a DOM-style event for any external listeners.
     if (hit.object.dispatchEvent) {
       hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
