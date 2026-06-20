@@ -91,3 +91,27 @@ export function notifyCrossModal(hapticFeedback, captionSystem, message, type) {
     captionSystem.show(message);
   }
 }
+
+// Haptic pattern used when a voice command executes successfully. A lightweight
+// 'click' — the same "registered" pulse used for controller button presses and
+// gaze-dwell activation — so the hand feels the command was heard without an
+// alarming pattern that would imply an error.
+export const VOICE_CMD_HAPTIC_PATTERN = 'click';
+
+/**
+ * Fire the voice-command success feedback on the haptic channel.
+ *
+ * Parity gap: every other significant hands-free interaction (teleport, snap
+ * turn, gaze-dwell activation) produces a haptic pulse. Voice command execution
+ * previously produced none, leaving deaf/hard-of-hearing users who rely on
+ * haptics rather than TTS confirmation with no cue at all.
+ *
+ * Pure — testable without a GPU or controllers.
+ *
+ * @param {{playPatternBothHands: function}|null} hapticFeedback
+ */
+export function voiceCommandFeedback(hapticFeedback) {
+  if (hapticFeedback) {
+    hapticFeedback.playPatternBothHands(VOICE_CMD_HAPTIC_PATTERN);
+  }
+}

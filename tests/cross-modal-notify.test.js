@@ -13,7 +13,9 @@ const {
   withSeverity,
   SEVERITY_PREFIX,
   toastColors,
-  toastFontPx
+  toastFontPx,
+  voiceCommandFeedback,
+  VOICE_CMD_HAPTIC_PATTERN
 } = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
@@ -114,5 +116,29 @@ describe('notifyCrossModal — graceful degradation', () => {
     notifyCrossModal(haptic, caption, 'spatial audio unavailable', 'warn');
     expect(haptic.playPatternBothHands).toHaveBeenCalledWith('warning');
     expect(caption.show).toHaveBeenCalledWith('spatial audio unavailable');
+  });
+});
+
+describe('voiceCommandFeedback — haptic parity for hands-free input', () => {
+  test('fires the click pattern on both hands when haptics are available', () => {
+    const haptic = makeHaptic();
+    voiceCommandFeedback(haptic);
+    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(1);
+    expect(haptic.playPatternBothHands).toHaveBeenCalledWith(VOICE_CMD_HAPTIC_PATTERN);
+  });
+
+  test('does not throw when hapticFeedback is null', () => {
+    expect(() => voiceCommandFeedback(null)).not.toThrow();
+  });
+
+  test('VOICE_CMD_HAPTIC_PATTERN is the lightweight click (not impact or error)', () => {
+    expect(VOICE_CMD_HAPTIC_PATTERN).toBe('click');
+  });
+
+  test('fires exactly once per command (no double-pulse)', () => {
+    const haptic = makeHaptic();
+    voiceCommandFeedback(haptic);
+    voiceCommandFeedback(haptic);
+    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(2);
   });
 });

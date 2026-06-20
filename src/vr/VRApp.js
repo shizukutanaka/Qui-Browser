@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -1670,6 +1670,12 @@ export class VRApp {
           if (this.captionSystem) {
             this.captionSystem.show(text);
           }
+        };
+        // Haptic confirmation on every successful voice command — parity with
+        // controller presses, gaze-dwell activation, teleport, and snap turn.
+        // Voice is a hands-free modality, so both hands receive the click pulse.
+        this.voiceCommands.callbacks.onCommand = (_key, _result) => {
+          voiceCommandFeedback(this.hapticFeedback);
         };
         // Replace window.* default commands with VR-aware implementations that
         // route navigation and search through the live TabManager.
