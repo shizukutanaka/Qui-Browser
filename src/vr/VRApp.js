@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -1704,6 +1704,13 @@ export class VRApp {
         // user not looking at captions knows to try again without audio.
         this.voiceCommands.callbacks.onCommandFailed = (_info) => {
           voiceCommandFailedFeedback(this.hapticFeedback);
+        };
+        // Surface speech-recognition errors as VR toasts with cross-modal
+        // feedback. Without this the recognizer goes silent and the user has
+        // no way of knowing voice commands stopped working.
+        this.voiceCommands.callbacks.onError = (errorCode) => {
+          const { message, type } = voiceErrorNotification(errorCode);
+          this.showVRToast(message, { type });
         };
         // Replace window.* default commands with VR-aware implementations that
         // route navigation and search through the live TabManager.

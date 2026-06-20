@@ -139,3 +139,26 @@ export function voiceCommandFailedFeedback(hapticFeedback) {
     hapticFeedback.playPatternBothHands(VOICE_CMD_FAILED_HAPTIC_PATTERN);
   }
 }
+
+// Speech recognition error codes from the Web Speech API that indicate a
+// fatal, permanent failure (the recognizer disabled itself; restarting would
+// spin in a tight loop). Non-fatal errors (network glitch, audio-capture
+// hiccup) let the recognizer restart on its own.
+export const VOICE_FATAL_ERRORS = new Set(['not-allowed', 'service-not-allowed']);
+
+/**
+ * Map a Web Speech API error code to a user-visible notification message and
+ * severity. Pure — testable without browser APIs or a running recognizer.
+ *
+ * Used by VRApp to decide what toast to show when callbacks.onError fires
+ * (the recognizer was silent until now, so the user has no idea it stopped).
+ *
+ * @param {string} errorCode  — event.error from SpeechRecognition.onerror
+ * @returns {{ message: string, type: 'error'|'warn' }}
+ */
+export function voiceErrorNotification(errorCode) {
+  if (VOICE_FATAL_ERRORS.has(errorCode)) {
+    return { message: 'Voice commands: microphone access denied', type: 'error' };
+  }
+  return { message: 'Voice commands temporarily unavailable', type: 'warn' };
+}
