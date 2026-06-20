@@ -1962,6 +1962,13 @@ export class VRApp {
           onSearch: (query) => {
             const active = this.tabManager?.getActiveTab?.();
             if (active) {
+              // Mirror the immediate "Loading:" caption that the URL-bar and
+              // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+              // caption-reliant users know their voice command was accepted
+              // before the page finishes loading.
+              if (query && this.captionSystem && this.captionSystem.enabled) {
+                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              }
               active.navigate(query);
             }
           }
