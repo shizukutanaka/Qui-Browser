@@ -138,7 +138,9 @@ export class BookmarkPanel {
   addToScene() {
     this.scene.add(this.group);
     this.registerInteractable(this.mesh, {
-      onSelect: (point) => this._onSelect(point)
+      onSelect: (evt) => this._onSelect(evt),
+      onHover: () => { if (this.mesh) this.mesh.material.color.set(0xbbccff); },
+      onHoverEnd: () => { if (this.mesh) this.mesh.material.color.set(0xffffff); }
     });
     this._draw();
   }
@@ -179,11 +181,17 @@ export class BookmarkPanel {
 
   // ── Interaction ─────────────────────────────────────────────────────────────
 
-  _onSelect(intersectionPoint) {
-    if (!intersectionPoint || !this.canvas) {
+  _onSelect(evt) {
+    // Controllers fire onSelect({ intersection: THREE.Intersection, controller })
+    // and gaze fires onSelect({ intersection: hit, gaze: true }). Both wrap the
+    // raw THREE.js hit object in { intersection }; the actual world-space point
+    // is at evt.intersection.point. Fall back to evt itself for direct
+    // THREE.Vector3 calls (unit tests and any future programmatic activations).
+    const rawPoint = evt?.intersection?.point ?? evt;
+    if (!rawPoint || !this.canvas) {
       return;
     }
-    const local = this.mesh.worldToLocal(intersectionPoint.clone());
+    const local = this.mesh.worldToLocal(rawPoint.clone());
     const u = (local.x / this.panelW) + 0.5;
     const v = (local.y / this.panelH) + 0.5;
     const { px, py } = uvToPixels(u, v);

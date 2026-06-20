@@ -123,6 +123,21 @@ describe('BookmarkPanel', () => {
     expect(p.visible).toBe(false);
   });
 
+  test('_onSelect accepts the controller/gaze event format { intersection: { point } }', () => {
+    // Controllers call onSelect({ intersection: hit, controller }) and gaze calls
+    // onSelect({ intersection: hit, gaze: true }). _onSelect must unwrap hit.point
+    // instead of calling .clone() on the event wrapper (which has no .clone()).
+    const onSelect = jest.fn();
+    const store = makeStore([{ url: 'https://wrapped.com', title: 'Wrapped' }]);
+    const p = makePanel(store, onSelect);
+    p.show();
+    MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+    // Simulate the event shape emitted by VRApp.onControllerSelect / GazeInteraction:
+    const fakeHit = { point: { clone() { return MockMesh._nextLocal; } } };
+    p._onSelect({ intersection: fakeHit, controller: {} });
+    expect(onSelect).toHaveBeenCalledWith('https://wrapped.com');
+  });
+
   test('selecting the second row picks the second url', () => {
     const onSelect = jest.fn();
     const store = makeStore([
