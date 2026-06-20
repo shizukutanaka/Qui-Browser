@@ -32,12 +32,16 @@ export class GazeInteraction {
    * @param {boolean} [opts.reduceMotion=false] — when true, the activation
    *   confirmation is a static highlight instead of an animated fade (honours
    *   the OS prefers-reduced-motion signal for vestibular comfort).
+   * @param {boolean} [opts.highContrast=false] — when true, the resting ring
+   *   opacity is raised from 0.35 to 1.0 so the reticle is fully visible
+   *   against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
    */
-  constructor(camera, { dwellTime = 1500, graceTime = 300, reduceMotion = false } = {}) {
+  constructor(camera, { dwellTime = 1500, graceTime = 300, reduceMotion = false, highContrast = false } = {}) {
     this.camera = camera;
     this.dwellTime = dwellTime;
     this.graceTime = graceTime;
     this.reduceMotion = reduceMotion;
+    this._ringOpacity = highContrast ? 1.0 : RING_OPACITY;
     this.enabled = false;
 
     // Dwell state
@@ -61,7 +65,7 @@ export class GazeInteraction {
     // Outline ring — marks the gaze point.
     const ringGeo = new THREE.RingGeometry(0.018, 0.024, 24);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: RING_OPACITY, depthTest: false
+      color: 0xffffff, transparent: true, opacity: this._ringOpacity, depthTest: false
     });
     this._ring = new THREE.Mesh(ringGeo, ringMat);
     this._ring.renderOrder = 999;
@@ -93,6 +97,19 @@ export class GazeInteraction {
     return this.enabled;
   }
 
+  /**
+   * Switch the resting ring opacity between normal (0.35) and high-contrast (1.0)
+   * so the reticle remains visible against bright VR scenes when the user has
+   * enabled high-contrast mode (WCAG 1.4.11 Non-text Contrast).
+   * @param {boolean} value
+   */
+  setHighContrast(value) {
+    this._ringOpacity = value ? 1.0 : RING_OPACITY;
+    if (this._ring) {
+      this._ring.material.opacity = this._ringOpacity;
+    }
+  }
+
   _reset() {
     this._target  = null;
     this._elapsed = 0;
@@ -103,7 +120,7 @@ export class GazeInteraction {
       this._fill.scale.setScalar(0.001);
     }
     if (this._ring) {
-      this._ring.material.opacity = RING_OPACITY;
+      this._ring.material.opacity = this._ringOpacity;
     }
   }
 
@@ -124,10 +141,10 @@ export class GazeInteraction {
     this._confirmMs = Math.max(0, this._confirmMs - dtMs);
     if (this._ring) {
       if (this.reduceMotion) {
-        this._ring.material.opacity = this._confirmMs > 0 ? 1 : RING_OPACITY;
+        this._ring.material.opacity = this._confirmMs > 0 ? 1 : this._ringOpacity;
       } else {
         const r = this._confirmMs / CONFIRM_MS; // 1 → 0
-        this._ring.material.opacity = RING_OPACITY + (1 - RING_OPACITY) * r;
+        this._ring.material.opacity = this._ringOpacity + (1 - this._ringOpacity) * r;
       }
     }
   }

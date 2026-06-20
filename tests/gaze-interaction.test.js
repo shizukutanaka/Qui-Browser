@@ -287,4 +287,36 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(camera.remove).toHaveBeenCalled();
     expect(gi.reticle).toBeNull();
   });
+
+  test('highContrast option sets resting ring opacity to 1.0', () => {
+    const gi = new GazeInteraction(makeCamera(), { highContrast: true });
+    // The mock MeshBasicMaterial doesn't capture constructor opts, so check the
+    // internal state rather than material.opacity at construction time.
+    expect(gi._ringOpacity).toBe(1.0);
+  });
+
+  test('highContrast: ring snaps back to 1.0 (not 0.35) after confirmation flash', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, highContrast: true });
+    gi.setEnabled(true);
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+
+    gi.update([obj], 1200);                 // fires
+    gi.update([obj], 300);                  // flash window exhausted
+    expect(gi._ring.material.opacity).toBeCloseTo(1.0, 3); // stays at HC level
+  });
+
+  test('setHighContrast(true) raises resting opacity to 1.0', () => {
+    const gi = new GazeInteraction(makeCamera());
+    gi.setHighContrast(true);
+    expect(gi._ring.material.opacity).toBeCloseTo(1.0, 3);
+    expect(gi._ringOpacity).toBe(1.0);
+  });
+
+  test('setHighContrast(false) restores resting opacity to 0.35', () => {
+    const gi = new GazeInteraction(makeCamera(), { highContrast: true });
+    gi.setHighContrast(false);
+    expect(gi._ring.material.opacity).toBeCloseTo(0.35, 2);
+    expect(gi._ringOpacity).toBeCloseTo(0.35, 2);
+  });
 });

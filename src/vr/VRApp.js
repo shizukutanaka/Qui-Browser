@@ -978,6 +978,11 @@ export class VRApp {
         if (this.captionSystem) {
           this.captionSystem.setHighContrast(v);
         }
+        // Gaze reticle ring: full opacity in HC so it is always visible
+        // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
+        if (this.gazeInteraction) {
+          this.gazeInteraction.setHighContrast(prefersHighContrast());
+        }
       }],
       ['Teleport', 'enableTeleport', null],
       ['Snap Turn', 'enableSnapTurn', null],
@@ -1806,7 +1811,9 @@ export class VRApp {
     this.gazeInteraction = new GazeInteraction(this.camera, {
       dwellTime: this.settings.gazeDwellTime,
       // Honour the OS reduced-motion preference: static activation cue, no fade.
-      reduceMotion: osReducedMotion()
+      reduceMotion: osReducedMotion(),
+      // Honour high-contrast: full-opacity ring for visibility (WCAG 1.4.11).
+      highContrast: prefersHighContrast()
     });
     this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
     console.debug('VRApp: Gaze-dwell interaction ready');
