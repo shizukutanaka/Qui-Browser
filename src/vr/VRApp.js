@@ -1769,7 +1769,12 @@ export class VRApp {
       registerInteractable: (m, h) => this.registerInteractable(m, h),
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       // Larger keys (bigger targets) for the large-text accessibility preference.
-      scale: largeTextScale(getPrefs().largeText)
+      scale: largeTextScale(getPrefs().largeText),
+      onHoverCaption: (label) => {
+        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+          this.captionSystem.show(label);
+        }
+      }
     });
     console.debug('VRApp: Japanese IME ready');
 

@@ -592,6 +592,9 @@ export class VRJapaneseKeyboard {
    * @param {Function} [opts.unregisterInteractable] — (mesh) from VRApp
    * @param {number}   [opts.scale=1] — uniform key-size multiplier (motor /
    *   low-vision: larger targets reduce mis-taps; WCAG 2.5.5)
+   * @param {Function} [opts.onHoverCaption] — called with the key label when a
+   *   key is hovered, so the host can announce it for gaze-dwell users
+   *   (WCAG 1.3.3 Sensory Characteristics).
    */
   constructor(scene, ime, opts = {}) {
     this.scene = scene;
@@ -603,6 +606,7 @@ export class VRJapaneseKeyboard {
     this.registerInteractable = opts.registerInteractable || null;
     this.unregisterInteractable = opts.unregisterInteractable || null;
     this.scale = opts.scale || 1;
+    this.onHoverCaption = typeof opts.onHoverCaption === 'function' ? opts.onHoverCaption : null;
 
     // 3D objects (created lazily by createKeyboard()).
     this.group = null;          // THREE.Group holding panel + keys + display
@@ -684,7 +688,10 @@ export class VRJapaneseKeyboard {
       if (this.registerInteractable) {
         this.registerInteractable(mesh, {
           onSelect: () => this.onKeyPress(k.label),
-          onHover: () => this._setKeyHover(mesh, true),
+          onHover: () => {
+            this._setKeyHover(mesh, true);
+            if (this.onHoverCaption) this.onHoverCaption(k.label);
+          },
           onHoverEnd: () => this._setKeyHover(mesh, false)
         });
       }
@@ -1017,6 +1024,7 @@ export class VRJapaneseKeyboard {
             ctx.textBaseline = 'middle';
             ctx.fillText(kanji, 64, 70);
             tex.needsUpdate = true;
+            if (this.onHoverCaption) this.onHoverCaption(kanji);
           },
           onHoverEnd: () => {
             ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
