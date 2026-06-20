@@ -482,6 +482,11 @@ export class VRApp {
           if (this.captionSystem && this.captionSystem.enabled) {
             this.captionSystem.show(tab === 'bookmarks' ? 'Bookmarks' : 'History');
           }
+        },
+        onHoverCaption: () => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show('Bookmarks panel');
+          }
         }
       });
       this.bookmarkPanel.addToScene();

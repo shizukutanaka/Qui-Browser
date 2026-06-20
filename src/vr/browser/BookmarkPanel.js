@@ -91,7 +91,7 @@ export class BookmarkPanel {
    *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect,
-    onDeleteBookmark, onTabChange, scale = 1 }) {
+    onDeleteBookmark, onTabChange, onHoverCaption, scale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -99,6 +99,9 @@ export class BookmarkPanel {
     this.onSelect = typeof onSelect === 'function' ? onSelect : () => {};
     this.onDeleteBookmark = typeof onDeleteBookmark === 'function' ? onDeleteBookmark : null;
     this.onTabChange = typeof onTabChange === 'function' ? onTabChange : null;
+    // Optional: called on hover so the host can show a gaze-dwell preview caption
+    // (WCAG 1.3.3 – panel purpose conveyed without relying on sight alone).
+    this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
 
     // Physical dimensions (metres) scaled for the large-text preference. Stored
     // per-instance because _onSelect's UV math must use the same values.
@@ -139,7 +142,10 @@ export class BookmarkPanel {
     this.scene.add(this.group);
     this.registerInteractable(this.mesh, {
       onSelect: (evt) => this._onSelect(evt),
-      onHover: () => { if (this.mesh) this.mesh.material.color.set(0xbbccff); },
+      onHover: () => {
+        if (this.mesh) this.mesh.material.color.set(0xbbccff);
+        if (this.onHoverCaption) this.onHoverCaption();
+      },
       onHoverEnd: () => { if (this.mesh) this.mesh.material.color.set(0xffffff); }
     });
     this._draw();
