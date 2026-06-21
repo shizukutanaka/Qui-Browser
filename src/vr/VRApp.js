@@ -146,6 +146,13 @@ export class VRApp {
     this.settingsPanel = null;
     this.immersiveVideo = null; // 360°/180° video player (created in initializeSystems)
     this._panelTextures = []; // CanvasTextures to dispose on teardown
+    // Shared PlaneGeometry instances for settings-panel buttons, keyed by
+    // "wxh". Reusing one geometry per size avoids allocating a fresh GPU
+    // vertex buffer for every button (a common Three.js memory/perf pitfall —
+    // identical geometries should be shared, not duplicated). Disposed once on
+    // teardown; BufferGeometry.dispose() is idempotent so the scene.traverse
+    // teardown disposing them again is harmless.
+    this._sharedGeometries = new Map();
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -550,6 +557,30 @@ export class VRApp {
   }
 
   /**
+   * Return a shared PlaneGeometry of the given metre dimensions, creating it
+   * once and caching it for reuse. Settings-panel buttons of the same size
+   * share a single geometry rather than each allocating an identical GPU
+   * vertex buffer — a standard Three.js memory optimisation (identical
+   * geometries should be reused, not duplicated).
+   *
+   * Safe because the button meshes are only disposed at full teardown (via the
+   * scene.traverse in dispose()), where BufferGeometry.dispose() is idempotent.
+   *
+   * @param {number} w  width in metres
+   * @param {number} h  height in metres
+   * @returns {THREE.PlaneGeometry}
+   */
+  _sharedPlaneGeometry(w, h) {
+    const keyStr = `${w}x${h}`;
+    let geo = this._sharedGeometries.get(keyStr);
+    if (!geo) {
+      geo = new THREE.PlaneGeometry(w, h);
+      this._sharedGeometries.set(keyStr, geo);
+    }
+    return geo;
+  }
+
+  /**
    * Build a canvas-textured toggle button bound to a boolean setting. Selecting
    * it flips and persists the setting, applies an optional live effect, and
    * redraws the ON/OFF state. Returns the button mesh (already registered as
@@ -588,7 +619,7 @@ export class VRApp {
     draw(false);
 
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 0.17),
+      this._sharedPlaneGeometry(0.9, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
@@ -648,7 +679,7 @@ export class VRApp {
     draw(false);
 
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.43, 0.17),
+      this._sharedPlaneGeometry(0.43, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
@@ -772,7 +803,7 @@ export class VRApp {
     draw(false);
 
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 0.17),
+      this._sharedPlaneGeometry(0.9, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
@@ -839,7 +870,7 @@ export class VRApp {
     draw(false);
 
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 0.17),
+      this._sharedPlaneGeometry(0.9, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
 
@@ -930,7 +961,7 @@ export class VRApp {
     draw(false);
 
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 0.17),
+      this._sharedPlaneGeometry(0.9, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
@@ -2804,6 +2835,13 @@ export class VRApp {
     }
     if (this._panelTextures) {
       this._panelTextures.forEach((t) => t.dispose());
+    }
+    // Dispose the shared button geometries once. The scene.traverse below would
+    // also reach them via the button meshes, but disposing here keeps the cache
+    // authoritative and BufferGeometry.dispose() is idempotent.
+    if (this._sharedGeometries) {
+      this._sharedGeometries.forEach((g) => g.dispose());
+      this._sharedGeometries.clear();
     }
 
     // Dispose Three.js
