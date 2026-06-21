@@ -301,6 +301,10 @@ Researched Qiita `QuotaExceededError` handling posts (detect → evict → retry
 Researched Qiita PWA cache-control posts (`activate` old-cache deletion, cache-size limits, "SW cache eats all storage"):
 - 🐛 **fix (sw)**: `enforceCacheLimit()` and `CACHE_LIMITS` existed but the trim was only wired into `cacheFirst()`. `networkFirst()` wrote every successful API/JSON/socket response into `RUNTIME_CACHE` — never versioned, never purged by `activate` — with **no size bound**, so it grew unbounded across every app version (the classic "SW cache eats all your storage" leak). Now `networkFirst()` awaits the put and calls `enforceCacheLimit(cache, 'runtime')` (FIFO, 200-entry cap). Safe: RUNTIME_CACHE holds only dynamic responses, no pre-cached critical assets. Added a guarded CommonJS export hook so the worker internals are unit-testable; new `service-worker-cache.test.js` (4 cases) stubs `self` + an in-memory Cache API. Canonical worker confirmed via `vite publicDir:'public'` → `public/service-worker.js`; the root-level duplicate is stale/unserved and left untouched.
 
+### Session 10: Community Research — Multibyte / Surrogate-Pair Truncation
+Researched Qiita JS string-handling posts (`String.length` counts UTF-16 code units, surrogate pairs, code-point counting):
+- 🐛 **fix (i18n mojibake)**: `truncate()` (bookmark titles, history rows, URL bar) measured length and sliced with `String.length` / `String.slice` — UTF-16 code units. A cut at a surrogate-pair boundary severed the character, leaving a broken �. Real bug for a JP browser: CJK Extension kanji in actual names/words (𠮷 U+20BB7 "tsuchiyoshi", 𩸽 U+29E3D "hokke") and emoji are all surrogate pairs. Switched to `Array.from(s)` for both the count and the slice — code-point-aware, ASCII-identical. Applied the same fix to the VR toast truncation (now renders translated/dynamic JP text). 3 new truncate tests (astral-count-as-one, no-split-boundary asserting no �, mixed ASCII+full-width).
+
 ---
 
 ## Contributing Guidelines
