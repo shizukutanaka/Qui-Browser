@@ -309,6 +309,7 @@ Researched Qiita JS string-handling posts (`String.length` counts UTF-16 code un
 ### Session 11: Community Research — Unicode Normalization (NFC/NFD)
 Researched Qiita NFC/NFD posts (macOS 濁点 problem, combining-mark mismatches, `String.prototype.normalize`):
 - 🐛 **fix (i18n input)**: `resolveInput()` (the single choke point for all address-bar / search / voice input) trimmed but never canonicalised Unicode form. NFD text (macOS paste, some IMEs, filenames) represents a voiced kana as base + combining mark (が → か + ゙, 2 code points). This degrades search matching (engines expect NFC), lets the combining mark be split from its base by the new code-point wrap/truncate paths, and makes NFD/NFC of the same word compare unequal. Now applies `.normalize('NFC')` before trim; ASCII unaffected. 2 tests with escape-built NFD (U+304B U+3099) → NFC (U+304C) fixtures (asserted 2 vs 1 code points).
+- 🐛 **fix (a11y caption NFC)**: captions are fed from sources that bypass `resolveInput` — voice transcripts, iframe page titles, toast mirrors, system messages — any of which can be NFD. The code-point wrap/truncate would then split a combining mark from its base (floating ゙). `CaptionSystem.show()` now normalizes to NFC at the single entry point, protecting every source. 1 test (escape-built NFD → stored as single NFC code point).
 
 ---
 
