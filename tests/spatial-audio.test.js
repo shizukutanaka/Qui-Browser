@@ -39,7 +39,9 @@ const makeAudioContext = () => ({
   },
   createPanner: jest.fn(() => makePanner()),
   createGain: jest.fn(() => makeGain()),
-  resume: jest.fn(),
+  // The real AudioContext.resume() always returns a Promise (per the Web Audio
+  // spec); mirror that so the production .then()/.catch() chain is exercised.
+  resume: jest.fn(() => Promise.resolve()),
   close: jest.fn()
 });
 
@@ -222,5 +224,57 @@ describe('SpatialAudio — spatial voice (FR-7.2)', () => {
     expect(panner.positionX.value).toBe(5);
     expect(panner.positionY.value).toBe(1.7);
     expect(panner.positionZ.value).toBe(-3);
+  });
+});
+
+describe('SpatialAudio — autoplay-policy resume (suspended context)', () => {
+  let listeners, removed, suspendedCtx;
+
+  beforeEach(() => {
+    // Capture every document listener add/remove so we can assert the
+    // multi-gesture arming and teardown without a real DOM.
+    listeners = [];
+    removed = [];
+    global.document = {
+      addEventListener: (evt, fn) => listeners.push({ evt, fn }),
+      removeEventListener: (evt, fn) => removed.push({ evt, fn })
+    };
+    suspendedCtx = makeAudioContext();
+    suspendedCtx.state = 'suspended';
+    global.window.AudioContext = jest.fn(() => suspendedCtx);
+  });
+
+  afterEach(() => {
+    delete global.document;
+  });
+
+  // The constructor kicks off initialize(), whose listener-arming runs
+  // synchronously (no await precedes it), so the listeners are present right
+  // after construction — no extra initialize() call is needed (doing so would
+  // double-arm).
+  test('arms click, touchstart, and keydown when the context starts suspended', () => {
+    new SpatialAudio();
+    expect(listeners.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+  });
+
+  test('a single gesture resumes the context and removes ALL gesture listeners', () => {
+    new SpatialAudio();
+    // Fire just one of the three (touchstart) — the others must still be torn down.
+    const touch = listeners.find(l => l.evt === 'touchstart');
+    touch.fn();
+    expect(suspendedCtx.resume).toHaveBeenCalledTimes(1);
+    expect(removed.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+  });
+
+  test('dispose() removes the gesture listeners if no gesture ever fired', () => {
+    const audio = new SpatialAudio();
+    audio.dispose();
+    expect(removed.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+  });
+
+  test('running context arms no gesture listeners', () => {
+    suspendedCtx.state = 'running';
+    new SpatialAudio();
+    expect(listeners).toHaveLength(0);
   });
 });

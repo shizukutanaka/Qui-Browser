@@ -63,16 +63,24 @@ export class SpatialAudio {
       this.setListenerOrientation(0, 0, -1, 0, 1, 0); // Looking forward
 
       // Resume context if suspended (browser autoplay policy).
-      // Store a bound reference so dispose() can remove it if it fires first.
+      // The first user gesture is not always a mouse click: on touch devices
+      // (e.g. the Quest browser in 2D) it is `touchstart`, and keyboard-only
+      // users produce `keydown`. Listening for click alone leaves audio
+      // suspended for those users, so we arm all three and tear every listener
+      // down as soon as any one of them fires (or on dispose if none do).
       if (this.context.state === 'suspended') {
-        this._resumeOnClick = () => {
+        this._resumeEvents = ['click', 'touchstart', 'keydown'];
+        this._resumeOnGesture = () => {
+          this._removeResumeListeners();
           this.context.resume().then(() => {
             console.debug('SpatialAudio: Context resumed');
           }).catch((e) => {
             console.warn('SpatialAudio: Context resume failed', e);
           });
         };
-        document.addEventListener('click', this._resumeOnClick, { once: true });
+        for (const evt of this._resumeEvents) {
+          document.addEventListener(evt, this._resumeOnGesture, { once: true });
+        }
       }
 
       console.debug('SpatialAudio: Initialized successfully');
@@ -81,6 +89,21 @@ export class SpatialAudio {
     } catch (error) {
       console.error('SpatialAudio: Initialization failed', error);
     }
+  }
+
+  /**
+   * Remove any armed autoplay-resume gesture listeners. Idempotent: safe to
+   * call whether or not the listeners are still attached (the gesture handler
+   * calls it, and so does dispose()).
+   */
+  _removeResumeListeners() {
+    if (this._resumeOnGesture && this._resumeEvents) {
+      for (const evt of this._resumeEvents) {
+        document.removeEventListener(evt, this._resumeOnGesture);
+      }
+    }
+    this._resumeOnGesture = null;
+    this._resumeEvents = null;
   }
 
   /**
@@ -680,11 +703,8 @@ export class SpatialAudio {
     this.stats.hrtfSources = 0;
     this.stats.equalPowerSources = 0;
 
-    // Remove the autoplay-resume listener if it never fired.
-    if (this._resumeOnClick) {
-      document.removeEventListener('click', this._resumeOnClick);
-      this._resumeOnClick = null;
-    }
+    // Remove the autoplay-resume gesture listeners if they never fired.
+    this._removeResumeListeners();
 
     // Close context
     if (this.context) {
