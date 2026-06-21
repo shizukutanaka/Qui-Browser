@@ -15,6 +15,7 @@ import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
+import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
@@ -412,6 +413,35 @@ export class VRApp {
     };
     this.renderer.domElement.addEventListener('webglcontextlost',     this._onWebGLContextLost, false);
     this.renderer.domElement.addEventListener('webglcontextrestored', this._onWebGLContextRestored, false);
+
+    // Window resize / DPI change.
+    //
+    // setSize() and camera.aspect were only set once at construction, so the
+    // 2D / desktop preview (before entering VR) stretched on a window resize,
+    // an orientation change, or a DPI shift (e.g. dragging across displays).
+    // While an immersive XR session is active Three.js drives sizing through
+    // the xr binding; outside that, we own it.
+    //
+    // The handler is debounced (150 ms quiet window) per the JP dev community
+    // resize-event guidance — browsers can fire dozens of events per drag,
+    // and reallocating the drawing buffer on each one is wasteful. The pending
+    // trailing-edge call is dropped on dispose() so it can't fire on a freed
+    // renderer.
+    this._onWindowResize = debounce(() => {
+      // Skip while presenting — WebXR owns the framebuffer size in that mode.
+      if (this.renderer.xr && this.renderer.xr.isPresenting) {
+        return;
+      }
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setSize(w, h);
+      if (this.camera) {
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+    }, 150);
+    window.addEventListener('resize', this._onWindowResize);
 
     console.debug('VRApp: Renderer initialized');
   }
@@ -2812,6 +2842,16 @@ export class VRApp {
     this._onWebGLContextLost = null;
     this._onWebGLContextRestored = null;
     this._renderBound = null;
+
+    // Detach the window resize listener and drop any pending trailing-edge
+    // call so the debounced callback can't fire on a freed renderer.
+    if (this._onWindowResize) {
+      window.removeEventListener('resize', this._onWindowResize);
+      if (typeof this._onWindowResize.cancel === 'function') {
+        this._onWindowResize.cancel();
+      }
+      this._onWindowResize = null;
+    }
 
     // Clear pending toast auto-dismiss timers so their callbacks don't fire
     // against a torn-down VRApp (this.camera nulled, GPU resources already
