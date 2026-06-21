@@ -1453,10 +1453,22 @@ export class VRApp {
     console.debug('VRApp: Controllers ready');
   }
 
-  /** Build a world-space raycaster from a controller's pose. */
+  /**
+   * Build a world-space raycaster from a controller's pose.
+   *
+   * Reuses a single Raycaster and Matrix4 across frames instead of allocating
+   * fresh ones each call — this method is invoked per controller per frame for
+   * hover/select, so at 90 FPS with two controllers that's 720+ GC-pressuring
+   * allocations per second otherwise. (Three.js perf best practice: avoid
+   * `new` in the render loop.)
+   */
   raycasterFromController(controller) {
-    const m = new THREE.Matrix4().extractRotation(controller.matrixWorld);
-    const raycaster = new THREE.Raycaster();
+    if (!this._sharedRaycaster) {
+      this._sharedRaycaster = new THREE.Raycaster();
+      this._tmpRayMatrix = new THREE.Matrix4();
+    }
+    const m = this._tmpRayMatrix.extractRotation(controller.matrixWorld);
+    const raycaster = this._sharedRaycaster;
     raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
     raycaster.ray.direction.set(0, 0, -1).applyMatrix4(m);
     return raycaster;

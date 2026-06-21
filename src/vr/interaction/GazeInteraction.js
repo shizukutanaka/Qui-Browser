@@ -251,12 +251,24 @@ export class GazeInteraction {
     }
   }
 
-  /** Build a world-space gaze ray from the camera and intersect interactables. */
+  /**
+   * Build a world-space gaze ray from the camera and intersect interactables.
+   *
+   * Reuses cached Vector3 / Quaternion instances across frames instead of
+   * allocating fresh ones each call — this runs per-frame while gaze-dwell is
+   * enabled, so at 90 FPS that's 180+ GC-pressuring allocations per second
+   * otherwise. (Three.js perf best practice: avoid `new` in the render loop.)
+   */
   _raycastGaze(interactables) {
-    const origin = new THREE.Vector3();
-    const dir    = new THREE.Vector3(0, 0, -1);
+    if (!this._tmpOrigin) {
+      this._tmpOrigin = new THREE.Vector3();
+      this._tmpDir = new THREE.Vector3();
+      this._tmpQuat = new THREE.Quaternion();
+    }
+    const origin = this._tmpOrigin;
+    const dir = this._tmpDir.set(0, 0, -1);
     this.camera.getWorldPosition(origin);
-    this.camera.getWorldQuaternion(this._tmpQuat || (this._tmpQuat = new THREE.Quaternion()));
+    this.camera.getWorldQuaternion(this._tmpQuat);
     dir.applyQuaternion(this._tmpQuat).normalize();
     this._raycaster.set(origin, dir);
     // Skip objects whose parent chain contains an invisible group — Three.js
