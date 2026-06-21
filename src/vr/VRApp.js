@@ -809,7 +809,13 @@ export class VRApp {
     ctx.font = `bold ${fontPx}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(labeled.length > 60 ? labeled.slice(0, 57) + '…' : labeled, W / 2, H / 2);
+    // Truncate by code point (not UTF-16 unit) so a long translated/Japanese
+    // toast can't be cut mid-surrogate-pair, leaving a broken � (see truncate()).
+    const labeledChars = Array.from(labeled);
+    const shown = labeledChars.length > 60
+      ? labeledChars.slice(0, 57).join('') + '…'
+      : labeled;
+    ctx.fillText(shown, W / 2, H / 2);
 
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
