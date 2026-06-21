@@ -283,6 +283,11 @@ Researched Qiita Web Audio autoplay-policy posts and gamepad dead-zone / reactio
 - 🐛 **fix (audio)**: AudioContext autoplay-resume listened for `click` only — touch (`touchstart`) and keyboard (`keydown`) users had spatial audio stay suspended. Now arms all three, tears every listener down once any fires (or on dispose). Added a 4-case suspended-context test block; fixed the mock `resume()` to return a Promise like the real API.
 - 🐛 **fix (input)**: Thumbstick dead zone was axial (square region) with a pass-through cliff (output jumped 0→0.15 at the edge). Replaced with a **scaled radial dead zone** (`applyRadialDeadZone` pure helper): circular region + magnitude re-normalised (deadZone,1]→(0,1]. Smooth onset is the locomotion analog of gaze-dwell grace-time (tremor-friendly); full deflection preserved. 8 property tests + 2 updated cliff-behavior tests.
 
+### Session 6: Community Research — UI Texture Memory & Frame-Delta Safety
+Researched Qiita Three.js texture-memory posts (mipmaps, generateMipmaps) and requestAnimationFrame delta-spike handling:
+- ⚡ **perf (textures)**: Every flat UI `CanvasTexture` (settings buttons, captions, keyboard keys, tab strip, browser chrome, bookmarks, avatar labels) defaulted to `generateMipmaps=true` — ~33% wasted GPU memory each, and frequently-updated textures (`needsUpdate=true`) regenerated the whole mip chain on every redraw. Added shared `configureUITexture()` helper (`generateMipmaps=false` + `minFilter=LinearFilter`) applied across 8 modules. Saves memory, removes per-redraw mip regen, keeps text crisp at distance. New 5-case test suite.
+- ✅ **verified-OK (frame delta)**: The render-loop already clamps `dt` to 50 ms (`Math.min((now-last)/1000, 0.05)`), so a tab resuming from background can't produce an enormous delta that flings the rig or expires every caption at once. No change needed — confirmed the guard.
+
 ---
 
 ## Contributing Guidelines
