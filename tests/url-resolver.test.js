@@ -10,6 +10,12 @@ const {
   DEFAULT_SEARCH_ENGINE
 } = require('../src/vr/browser/urlResolver.js');
 
+// NFD "が" = か (U+304B) + combining voiced sound mark (U+3099) → 2 code points.
+// NFC "が" = the single precomposed code point (U+304C)        → 1 code point.
+// Built from escapes so the fixtures don't depend on the file's byte encoding.
+const GA_NFD = 'が';
+const GA_NFC = 'が';
+
 describe('resolveInput', () => {
   // ── empty / invalid ───────────────────────────────────────────────────────
   test('returns null for null/empty/whitespace', () => {
@@ -90,6 +96,20 @@ describe('resolveInput', () => {
     expect(resolveInput('cats', { searchEngine: 'https://s.example/?q=' })).toBe(
       'https://s.example/?q=cats'
     );
+  });
+
+  // ── Unicode normalization (NFD → NFC) ─────────────────────────────────────
+  test('normalizes NFD input to NFC before building a search query', () => {
+    expect(GA_NFD.normalize('NFC')).toBe(GA_NFC); // sanity-check the fixtures
+    expect(Array.from(GA_NFD)).toHaveLength(2);
+    expect(Array.from(GA_NFC)).toHaveLength(1);
+    const out = resolveInput(GA_NFD, { searchEngine: 'https://s.example/?q=' });
+    expect(out).toBe('https://s.example/?q=' + encodeURIComponent(GA_NFC));
+  });
+
+  test('NFD and NFC of the same word resolve identically', () => {
+    const opts = { searchEngine: 'https://s.example/?q=' };
+    expect(resolveInput(GA_NFD, opts)).toBe(resolveInput(GA_NFC, opts));
   });
 });
 

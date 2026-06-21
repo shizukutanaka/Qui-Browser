@@ -35,7 +35,12 @@ export function resolveInput(input, opts = {}) {
   if (input === null || input === undefined) {
     return null;
   }
-  const text = String(input).trim();
+  // Canonicalise to NFC. Text pasted from macOS, some IMEs, or filenames can
+  // arrive in NFD where a voiced kana is a base + combining mark (が → か + ゛).
+  // NFC is the form the web platform and search engines expect; without this a
+  // search query matches worse, and the combining mark can later be split from
+  // its base by code-point wrapping/truncation. ASCII is unaffected.
+  const text = String(input).normalize('NFC').trim();
   if (!text) {
     return null;
   }
