@@ -270,21 +270,27 @@ export class ComfortSystem {
    * Apply comfort preset
    */
   setPreset(preset) {
+    // Each preset explicitly sets `enabled` on all three effects. This is
+    // required because settings are merged with Object.assign: switching FROM
+    // 'disabled' (which sets enabled:false) TO a protective preset must
+    // re-enable the effects. Omitting `enabled: true` here would leave a user
+    // who picked 'disabled' and then switched to 'sensitive' with NO comfort
+    // mitigations at all — the exact opposite of their request.
     const presets = {
       'sensitive': {
-        vignette: { intensity: 0.8, powerFactor: 1.2 },
-        fov: { reductionAmount: 35 },
-        snapTurn: { angle: 15 }
+        vignette: { enabled: true, intensity: 0.8, powerFactor: 1.2 },
+        fov: { enabled: true, reductionAmount: 35 },
+        snapTurn: { enabled: true, angle: 15 }
       },
       'moderate': {
-        vignette: { intensity: 0.4, powerFactor: 1.5 },
-        fov: { reductionAmount: 25 },
-        snapTurn: { angle: 30 }
+        vignette: { enabled: true, intensity: 0.4, powerFactor: 1.5 },
+        fov: { enabled: true, reductionAmount: 25 },
+        snapTurn: { enabled: true, angle: 30 }
       },
       'tolerant': {
-        vignette: { intensity: 0.2, powerFactor: 2.0 },
-        fov: { reductionAmount: 15 },
-        snapTurn: { angle: 45 }
+        vignette: { enabled: true, intensity: 0.2, powerFactor: 2.0 },
+        fov: { enabled: true, reductionAmount: 15 },
+        snapTurn: { enabled: true, angle: 45 }
       },
       'disabled': {
         vignette: { enabled: false },

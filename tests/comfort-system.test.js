@@ -163,6 +163,34 @@ describe('ComfortSystem', () => {
     expect(system.settings.preset).toBe(before);
   });
 
+  test('switching from "disabled" back to a protective preset re-enables all effects', () => {
+    // Regression: Object.assign-merged presets that omit `enabled: true` left a
+    // user who picked "disabled" then switched to a protective preset with NO
+    // comfort mitigations — the opposite of their request.
+    system.setPreset('disabled');
+    expect(system.settings.vignette.enabled).toBe(false);
+    expect(system.settings.fov.enabled).toBe(false);
+    expect(system.settings.snapTurn.enabled).toBe(false);
+
+    system.setPreset('sensitive');
+    expect(system.settings.vignette.enabled).toBe(true);
+    expect(system.settings.fov.enabled).toBe(true);
+    expect(system.settings.snapTurn.enabled).toBe(true);
+    // …and the protective values are applied, not just re-enabled.
+    expect(system.settings.vignette.intensity).toBeCloseTo(0.8, 5);
+    expect(system.settings.snapTurn.angle).toBe(15);
+  });
+
+  test('every non-disabled preset explicitly enables all three effects', () => {
+    for (const preset of ['sensitive', 'moderate', 'tolerant']) {
+      system.setPreset('disabled');     // force all effects off first
+      system.setPreset(preset);         // then switch in
+      expect(system.settings.vignette.enabled).toBe(true);
+      expect(system.settings.fov.enabled).toBe(true);
+      expect(system.settings.snapTurn.enabled).toBe(true);
+    }
+  });
+
   // ── snap turn ─────────────────────────────────────────────────────────────────
   test('handleSnapTurn triggers requestAnimationFrame', () => {
     system.handleSnapTurn(1);
