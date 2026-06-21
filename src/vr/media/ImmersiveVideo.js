@@ -18,6 +18,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 import { buildVideoSphereGeometry, eyeUVTransform, detectVideoFormat } from './videoProjection.js';
 
 export class ImmersiveVideo {
@@ -209,7 +210,7 @@ export class ImmersiveVideo {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 

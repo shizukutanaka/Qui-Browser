@@ -15,6 +15,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 
 const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
@@ -60,7 +61,7 @@ export class CaptionSystem {
     this.canvas = document.createElement('canvas');
     this.canvas.width  = CANVAS_W;
     this.canvas.height = CANVAS_H;
-    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture = configureUITexture(new THREE.CanvasTexture(this.canvas));
     if ('colorSpace' in this.texture) {
       this.texture.colorSpace = THREE.SRGBColorSpace;
     }

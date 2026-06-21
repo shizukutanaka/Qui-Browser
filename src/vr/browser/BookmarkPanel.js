@@ -8,6 +8,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 import {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
@@ -121,7 +122,7 @@ export class BookmarkPanel {
       this.canvas.width = PANEL_PX_W;
       this.canvas.height = PANEL_PX_H;
     }
-    this.tex = this.canvas ? new THREE.CanvasTexture(this.canvas) : null;
+    this.tex = this.canvas ? configureUITexture(new THREE.CanvasTexture(this.canvas)) : null;
     if (this.tex) {
       this.tex.colorSpace = THREE.SRGBColorSpace;
     }

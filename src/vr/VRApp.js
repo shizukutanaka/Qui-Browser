@@ -27,6 +27,7 @@ import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandF
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
+import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
@@ -598,7 +599,7 @@ export class VRApp {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
@@ -658,7 +659,7 @@ export class VRApp {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
@@ -747,7 +748,7 @@ export class VRApp {
     ctx.textBaseline = 'middle';
     ctx.fillText(labeled.length > 60 ? labeled.slice(0, 57) + '…' : labeled, W / 2, H / 2);
 
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
 
     const mesh = new THREE.Mesh(
@@ -791,7 +792,7 @@ export class VRApp {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
@@ -854,7 +855,7 @@ export class VRApp {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
@@ -948,7 +949,7 @@ export class VRApp {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
@@ -1327,7 +1328,7 @@ export class VRApp {
     ctx.font = '40px sans-serif';
     ctx.fillText('Welcome — look around to begin', canvas.width / 2, 190);
 
-    const panelTex = new THREE.CanvasTexture(canvas);
+    const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
     panelTex.colorSpace = THREE.SRGBColorSpace;
     this._homePanelTexture = panelTex; // kept for explicit disposal
     const panel = new THREE.Mesh(

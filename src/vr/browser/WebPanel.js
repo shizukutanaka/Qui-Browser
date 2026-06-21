@@ -16,6 +16,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
@@ -120,7 +121,7 @@ export class WebPanel {
     this.chromeCanvas.width  = 1024;
     this.chromeCanvas.height = Math.round(1024 * CHROME_H);
 
-    this.chromeTex = new THREE.CanvasTexture(this.chromeCanvas);
+    this.chromeTex = configureUITexture(new THREE.CanvasTexture(this.chromeCanvas));
 
     const chromeGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * CHROME_H);
     const chromeMat = new THREE.MeshBasicMaterial({
@@ -147,7 +148,7 @@ export class WebPanel {
     contentCtx.font = '18px sans-serif';
     contentCtx.fillText('(WebXR dom-overlay required for external content)', contentCanvas.width / 2, contentCanvas.height / 2 + 20);
 
-    const contentTex = new THREE.CanvasTexture(contentCanvas);
+    const contentTex = configureUITexture(new THREE.CanvasTexture(contentCanvas));
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
     const contentMat = new THREE.MeshBasicMaterial({ map: contentTex, side: THREE.FrontSide });
     this.contentMesh = new THREE.Mesh(contentGeo, contentMat);

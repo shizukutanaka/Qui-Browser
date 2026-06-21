@@ -9,6 +9,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
 
 const STRIP_W = 1.6;     // metres — matches panel width
@@ -45,7 +46,7 @@ export class TabManager {
     this.stripCanvas = document.createElement('canvas');
     this.stripCanvas.width  = 1024;
     this.stripCanvas.height = 96;
-    this.stripTex = new THREE.CanvasTexture(this.stripCanvas);
+    this.stripTex = configureUITexture(new THREE.CanvasTexture(this.stripCanvas));
 
     this._buildStrip();
   }

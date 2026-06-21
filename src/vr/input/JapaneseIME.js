@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
 
 export class JapaneseIME {
@@ -664,7 +665,7 @@ export class VRJapaneseKeyboard {
     this._displayCanvas = document.createElement('canvas');
     this._displayCanvas.width = 1024;
     this._displayCanvas.height = 96;
-    this._displayTex = new THREE.CanvasTexture(this._displayCanvas);
+    this._displayTex = configureUITexture(new THREE.CanvasTexture(this._displayCanvas));
     this._displayTex.colorSpace = THREE.SRGBColorSpace;
     const display = new THREE.Mesh(
       new THREE.PlaneGeometry(width, DISPLAY_H),
@@ -743,7 +744,7 @@ export class VRJapaneseKeyboard {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(glyph, 64, 70);
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
@@ -996,7 +997,7 @@ export class VRJapaneseKeyboard {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(kanji, 64, 70);
-      const tex = new THREE.CanvasTexture(canvas);
+      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
       tex.colorSpace = THREE.SRGBColorSpace;
 
       const mesh = new THREE.Mesh(

@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 
 const HEAD_COLOR  = 0x4a90d9;
 const HAND_COLOR  = 0x7ed4a4;
@@ -236,7 +237,7 @@ export class AvatarSystem {
     ctx.textBaseline = 'middle';
     ctx.fillText(label.slice(0, 20), 128, 32);
 
-    const tex = new THREE.CanvasTexture(canvas);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
     sprite.name = 'label';
     sprite.scale.set(0.4, 0.1, 1);
