@@ -31,6 +31,14 @@ export class MultiplayerSystem {
     // startUpdateLoops() is safe).
     this.updateIntervals = [];
 
+    // Signaling auto-reconnect state. The signaling socket can drop on a network
+    // blip or a load-balancer idle timeout (AWS ALB caps idle WS at ~4000 s);
+    // without recovery the user silently stops receiving new peers. A pending
+    // reconnect timer id and the current backoff attempt count are tracked so
+    // disconnect() can cancel an in-flight reconnect and the backoff can reset.
+    this._signalingReconnectTimer = null;
+    this._signalingReconnectAttempts = 0;
+
     // Player avatars
     this.avatars = new Map();
     this.localPlayer = null;
@@ -165,7 +173,44 @@ export class MultiplayerSystem {
         }
         this.handleSignaling(message);
       };
+
+      // Auto-reconnect on an unexpected close. disconnect() nulls this handler
+      // before close()ing, so reaching here means the drop was NOT intentional
+      // (network blip, server/LB idle timeout). Re-establish with exponential
+      // backoff; connectSignaling() re-registers the peer on open, restoring
+      // the room membership.
+      this.signalingServer.onclose = (event) => {
+        if (!this.connected) {
+          return; // not in a room — nothing to restore
+        }
+        console.warn(`MultiplayerSystem: signaling closed (code ${event && event.code}); scheduling reconnect`);
+        this._scheduleSignalingReconnect();
+      };
     });
+  }
+
+  /**
+   * Schedule a signaling reconnect with capped exponential backoff
+   * (1 s, 2 s, 4 s … 30 s). Idempotent: a second call while a reconnect is
+   * already pending is a no-op, so a burst of close/error events can't spawn
+   * parallel reconnect timers.
+   */
+  _scheduleSignalingReconnect() {
+    if (this._signalingReconnectTimer || !this.connected) {
+      return;
+    }
+    const attempt = this._signalingReconnectAttempts;
+    const delay = Math.min(30000, 1000 * Math.pow(2, attempt));
+    this._signalingReconnectAttempts = attempt + 1;
+    this._signalingReconnectTimer = setTimeout(() => {
+      this._signalingReconnectTimer = null;
+      if (!this.connected) {
+        return; // disconnected while waiting
+      }
+      this.connectSignaling()
+        .then(() => { this._signalingReconnectAttempts = 0; }) // recovered
+        .catch(() => { this._scheduleSignalingReconnect(); }); // retry, longer backoff
+    }, delay);
   }
 
   /**
@@ -797,6 +842,17 @@ export class MultiplayerSystem {
    * Disconnect from room
    */
   disconnect() {
+    // This is an intentional teardown: flip `connected` off first so a close
+    // event fired by the explicit close() below can't schedule a reconnect.
+    this.connected = false;
+
+    // Cancel any pending signaling reconnect timer.
+    if (this._signalingReconnectTimer) {
+      clearTimeout(this._signalingReconnectTimer);
+      this._signalingReconnectTimer = null;
+    }
+    this._signalingReconnectAttempts = 0;
+
     // Stop the position/rotation/ping update loops.
     if (this.updateIntervals) {
       this.updateIntervals.forEach((id) => clearInterval(id));
@@ -809,10 +865,12 @@ export class MultiplayerSystem {
     });
 
     // Close signaling connection and null it out to release handler refs.
+    // onclose is nulled too so the intentional close() can't trigger reconnect.
     if (this.signalingServer) {
       this.signalingServer.onmessage = null;
       this.signalingServer.onerror = null;
       this.signalingServer.onopen = null;
+      this.signalingServer.onclose = null;
       this.signalingServer.close();
       this.signalingServer = null;
     }

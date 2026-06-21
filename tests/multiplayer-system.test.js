@@ -117,3 +117,77 @@ describe('MultiplayerSystem peer lifecycle', () => {
     expect(groups.every(g => g.children.every(c => !c.geometry || c.geometry.disposed))).toBe(true);
   });
 });
+
+describe('MultiplayerSystem signaling auto-reconnect', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test('schedules a reconnect when connected, firing after the 1s backoff', () => {
+    const mp = makeSystem();
+    mp.connected = true;
+    mp.connectSignaling = jest.fn(() => new Promise(() => {})); // never resolves
+    mp._scheduleSignalingReconnect();
+    expect(mp._signalingReconnectTimer).not.toBeNull();
+    jest.advanceTimersByTime(999);
+    expect(mp.connectSignaling).not.toHaveBeenCalled(); // not early
+    jest.advanceTimersByTime(1);
+    expect(mp.connectSignaling).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not schedule when not connected (no room to restore)', () => {
+    const mp = makeSystem();
+    mp.connected = false;
+    mp.connectSignaling = jest.fn(() => Promise.resolve());
+    mp._scheduleSignalingReconnect();
+    expect(mp._signalingReconnectTimer).toBeNull();
+    jest.advanceTimersByTime(5000);
+    expect(mp.connectSignaling).not.toHaveBeenCalled();
+  });
+
+  test('is idempotent — a burst of calls creates only one pending reconnect', () => {
+    const mp = makeSystem();
+    mp.connected = true;
+    mp.connectSignaling = jest.fn(() => new Promise(() => {}));
+    mp._scheduleSignalingReconnect();
+    mp._scheduleSignalingReconnect();
+    mp._scheduleSignalingReconnect();
+    jest.advanceTimersByTime(1000);
+    expect(mp.connectSignaling).toHaveBeenCalledTimes(1);
+  });
+
+  test('the backoff attempt counter advances across reconnects', () => {
+    const mp = makeSystem();
+    mp.connected = true;
+    mp.connectSignaling = jest.fn(() => new Promise(() => {})); // stays pending
+    mp._scheduleSignalingReconnect();
+    expect(mp._signalingReconnectAttempts).toBe(1);
+    jest.advanceTimersByTime(1000); // fires; promise pending so no reset
+    expect(mp._signalingReconnectTimer).toBeNull();
+    mp._scheduleSignalingReconnect();
+    expect(mp._signalingReconnectAttempts).toBe(2);
+  });
+
+  test('a successful reconnect resets the backoff counter', async () => {
+    const mp = makeSystem();
+    mp.connected = true;
+    mp.connectSignaling = jest.fn(() => Promise.resolve());
+    mp._scheduleSignalingReconnect();
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve(); // flush connectSignaling().then
+    await Promise.resolve();
+    expect(mp._signalingReconnectAttempts).toBe(0);
+  });
+
+  test('disconnect cancels a pending reconnect and resets the backoff', () => {
+    const mp = makeSystem();
+    mp.connected = true;
+    mp.connectSignaling = jest.fn(() => Promise.resolve());
+    mp._scheduleSignalingReconnect();
+    expect(mp._signalingReconnectTimer).not.toBeNull();
+    mp.disconnect();
+    expect(mp._signalingReconnectTimer).toBeNull();
+    expect(mp._signalingReconnectAttempts).toBe(0);
+    jest.advanceTimersByTime(5000);
+    expect(mp.connectSignaling).not.toHaveBeenCalled();
+  });
+});
