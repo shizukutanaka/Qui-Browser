@@ -119,6 +119,42 @@ export const AXES_MAPS = {
   'generic':     { stickX: 0, stickY: 1 }
 };
 
+/**
+ * Apply a *scaled radial* dead zone to a 2D stick/trackpad vector.
+ *
+ * Two correctness fixes over a naive per-axis clamp:
+ *   1. **Radial, not axial** — the ignored region is a circle of radius
+ *      `deadZone`, so the threshold is identical in every direction. A per-axis
+ *      clamp ignores a *square*, which both swallows intended diagonal pushes
+ *      (e.g. (0.12, 0.12), magnitude 0.17 > 0.15, but each axis < 0.15) and
+ *      under-rejects diagonal drift near the square's corners.
+ *   2. **Re-normalised, no cliff** — once past the dead zone the magnitude is
+ *      re-mapped from (deadZone, 1] → (0, 1], so output ramps smoothly from 0
+ *      instead of jumping to `deadZone` the instant the stick crosses the edge.
+ *      Full deflection still yields full magnitude; only partial pushes are
+ *      eased. The smooth onset is the locomotion analog of the gaze-dwell
+ *      grace-time: a slight unintended nudge produces near-zero motion rather
+ *      than a sudden 15 % lurch — gentler for users with hand tremor.
+ *
+ * Pure / dependency-free so the curve is unit-testable without a gamepad.
+ *
+ * @param {number} x         raw axis value, [-1, 1]
+ * @param {number} y         raw axis value, [-1, 1]
+ * @param {number} deadZone  fraction of travel ignored near centre, [0, 1)
+ * @returns {{x: number, y: number}} the dead-zoned, re-normalised vector
+ */
+export function applyRadialDeadZone(x, y, deadZone) {
+  const mag = Math.hypot(x, y);
+  if (mag <= deadZone) {
+    return { x: 0, y: 0 };
+  }
+  // Re-normalise magnitude so it starts at 0 just past the dead zone and
+  // reaches 1 at full deflection; preserve direction via the unit vector.
+  const scaled = Math.min((mag - deadZone) / (1 - deadZone), 1);
+  const k = scaled / mag;
+  return { x: x * k, y: y * k };
+}
+
 /** Human-readable display names per family. */
 const FAMILY_LABELS = {
   'meta-quest':  'Meta Quest Controller',
@@ -213,12 +249,24 @@ export class VRControllerInput {
       state.prev[name] = pressed;
     }
 
-    // --- Axes (dead-zone applied) ---
+    // --- Axes (scaled radial dead-zone applied per X/Y pair) ---
     const raw = gp.axes;
-    const dz  = (v) => (Math.abs(v) <= this.deadZone ? 0 : v);
-    const axes = {};
+    const rawAxes = {};
     for (const [name, idx] of Object.entries(axesMap)) {
-      axes[name] = dz(raw[idx] ?? 0);
+      rawAxes[name] = raw[idx] ?? 0;
+    }
+    // Dead-zone each stick / trackpad as a 2D vector (circular region + smooth
+    // onset) rather than clamping each axis independently. Only emit the pairs
+    // that this family actually exposes, preserving the snapshot's key set.
+    const axes = {};
+    for (const prefix of ['stick', 'trackpad']) {
+      const xk = `${prefix}X`;
+      const yk = `${prefix}Y`;
+      if (xk in rawAxes || yk in rawAxes) {
+        const d = applyRadialDeadZone(rawAxes[xk] ?? 0, rawAxes[yk] ?? 0, this.deadZone);
+        axes[xk] = d.x;
+        axes[yk] = d.y;
+      }
     }
 
     return { family, hand: inputSource.handedness ?? 'unknown', axes, buttons };

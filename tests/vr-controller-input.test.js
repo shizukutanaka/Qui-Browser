@@ -4,7 +4,7 @@
  * diffing (justPressed / justReleased), southpaw no-op, and forget().
  */
 
-const { VRControllerInput, PROFILE_MAP, BUTTON_MAPS, AXES_MAPS } = require('../src/vr/input/VRControllerInput.js');
+const { VRControllerInput, PROFILE_MAP, BUTTON_MAPS, AXES_MAPS, applyRadialDeadZone } = require('../src/vr/input/VRControllerInput.js');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,10 +133,21 @@ describe('VRControllerInput.read — axes', () => {
     expect(snap.axes.stickX).toBe(0);
   });
 
-  test('axis just above dead-zone passes through', () => {
+  test('axis just above dead-zone eases in from ~0 (smooth onset, no cliff)', () => {
+    // Scaled radial dead zone: at 0.16 (just past the 0.15 edge) the output is
+    // re-normalised to ((0.16-0.15)/(1-0.15)) ≈ 0.012, NOT the raw 0.16. This
+    // removes the jump-to-0.15 cliff the old per-axis clamp produced.
     const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7), [0, 0, 0.16, 0]);
     const snap = ci.read(src);
-    expect(snap.axes.stickX).toBeCloseTo(0.16);
+    expect(snap.axes.stickX).toBeGreaterThan(0);
+    expect(snap.axes.stickX).toBeLessThan(0.05); // eased, far below the raw 0.16
+  });
+
+  test('full deflection still yields full magnitude (no max-speed regression)', () => {
+    // (0.8, -0.6) has magnitude 1.0, so re-normalisation leaves it unchanged.
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7), [0, 0, 0.8, -0.6]);
+    const snap = ci.read(src);
+    expect(Math.hypot(snap.axes.stickX, snap.axes.stickY)).toBeCloseTo(1.0, 3);
   });
 
   test('generic profile reads stickX from axes[0]', () => {
@@ -146,11 +157,22 @@ describe('VRControllerInput.read — axes', () => {
     expect(snap.axes.stickY).toBeCloseTo(0.4);
   });
 
-  test('valve-index exposes trackpadX and stickX', () => {
+  test('valve-index exposes both trackpad and stick pairs (dead-zoned independently)', () => {
+    // Both X/Y pairs are present and dead-zoned as separate 2D vectors. The
+    // re-normalised magnitudes are slightly below the raw inputs, but each pair
+    // keeps its own direction — the point of this test is the exposed key set.
     const src = makeSource(['valve-index'], 'right', makeButtons(7), [0.5, -0.5, 0.8, 0.3]);
     const snap = ci.read(src);
-    expect(snap.axes.trackpadX).toBeCloseTo(0.5);
-    expect(snap.axes.stickX).toBeCloseTo(0.8);
+    expect(snap.axes).toHaveProperty('trackpadX');
+    expect(snap.axes).toHaveProperty('trackpadY');
+    expect(snap.axes).toHaveProperty('stickX');
+    expect(snap.axes).toHaveProperty('stickY');
+    // Trackpad pushed down-right: x>0, y<0 direction preserved.
+    expect(snap.axes.trackpadX).toBeGreaterThan(0);
+    expect(snap.axes.trackpadY).toBeLessThan(0);
+    // Stick pushed up-right: x>0, y>0 direction preserved.
+    expect(snap.axes.stickX).toBeGreaterThan(0);
+    expect(snap.axes.stickY).toBeGreaterThan(0);
   });
 
   test('missing axes default to 0', () => {
@@ -291,6 +313,61 @@ describe('VRControllerInput southpaw option', () => {
   test('southpaw false by default', () => {
     const ci = new VRControllerInput();
     expect(ci.southpaw).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyRadialDeadZone — pure scaled-radial dead-zone curve
+// ---------------------------------------------------------------------------
+
+describe('applyRadialDeadZone', () => {
+  const DZ = 0.15;
+
+  test('zeroes a vector whose magnitude is within the dead zone', () => {
+    const r = applyRadialDeadZone(0.1, 0.0, DZ);
+    expect(r).toEqual({ x: 0, y: 0 });
+  });
+
+  test('zeroes exactly at the dead-zone edge', () => {
+    expect(applyRadialDeadZone(0.15, 0, DZ)).toEqual({ x: 0, y: 0 });
+  });
+
+  test('circular region: a diagonal push past the radius registers even when each axis is below it', () => {
+    // (0.12, 0.12): each axis < 0.15 (an axial clamp would zero it), but the
+    // magnitude is ~0.17 > 0.15, so a radial dead zone correctly passes it.
+    const r = applyRadialDeadZone(0.12, 0.12, DZ);
+    expect(Math.hypot(r.x, r.y)).toBeGreaterThan(0);
+    expect(r.x).toBeCloseTo(r.y, 6); // 45° direction preserved
+  });
+
+  test('circular region: diagonal drift inside the radius is rejected', () => {
+    // (0.1, 0.1) has magnitude ~0.141 < 0.15 → zeroed.
+    expect(applyRadialDeadZone(0.1, 0.1, DZ)).toEqual({ x: 0, y: 0 });
+  });
+
+  test('smooth onset: just past the edge eases in from ~0 (no cliff)', () => {
+    const r = applyRadialDeadZone(0.16, 0, DZ);
+    expect(r.x).toBeGreaterThan(0);
+    expect(r.x).toBeLessThan(0.05); // far below the raw 0.16
+  });
+
+  test('full deflection passes through at full magnitude', () => {
+    const r = applyRadialDeadZone(0.8, -0.6, DZ); // magnitude 1.0
+    expect(Math.hypot(r.x, r.y)).toBeCloseTo(1.0, 6);
+    expect(r.x).toBeCloseTo(0.8, 6);
+    expect(r.y).toBeCloseTo(-0.6, 6);
+  });
+
+  test('preserves direction (output is parallel to input)', () => {
+    const x = 0.6, y = 0.45;
+    const r = applyRadialDeadZone(x, y, DZ);
+    // Cross product ≈ 0 ⇒ collinear.
+    expect(r.x * y - r.y * x).toBeCloseTo(0, 6);
+  });
+
+  test('output magnitude never exceeds 1 even past full deflection', () => {
+    const r = applyRadialDeadZone(1, 1, DZ); // magnitude √2 > 1
+    expect(Math.hypot(r.x, r.y)).toBeLessThanOrEqual(1.0000001);
   });
 });
 
