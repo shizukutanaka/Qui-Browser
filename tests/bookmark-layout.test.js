@@ -147,4 +147,25 @@ describe('truncate', () => {
     expect(truncate(null)).toBe('');
     expect(truncate(undefined)).toBe('');
   });
+
+  test('counts astral characters as one (CJK Extension kanji)', () => {
+    // 𠮷 is one visible character but two UTF-16 code units. Five of them are
+    // under a max of 6, so the string must pass through unchanged — the old
+    // length-based check would have seen length 10 and truncated.
+    const name = '𠮷𠮷𠮷𠮷𠮷';
+    expect(truncate(name, 6)).toBe(name);
+  });
+
+  test('never splits a surrogate pair at the cut boundary (no mojibake)', () => {
+    // Truncating to 3 keeps 2 chars + ellipsis; each kept char must be intact.
+    const out = truncate('😀😀😀😀😀', 3);
+    expect(out).toBe('😀😀…');
+    expect(out).not.toContain('�');     // no replacement char
+    expect(Array.from(out)).toHaveLength(3);  // 2 emoji + ellipsis
+  });
+
+  test('mixed ASCII + full-width truncates on a code-point boundary', () => {
+    // 'a' + '日本語テキスト' → keep 'a日本' (4 code points) + ellipsis at max 5.
+    expect(truncate('a日本語テキスト', 5)).toBe('a日本語…');
+  });
 });

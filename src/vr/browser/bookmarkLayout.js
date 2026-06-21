@@ -104,9 +104,17 @@ export function uvToPixels(u, v) {
 }
 
 /**
- * Truncate a string to a max length, adding an ellipsis.
+ * Truncate a string to a max number of *characters*, adding an ellipsis.
+ *
+ * Counts and slices by Unicode code point (via Array.from), not UTF-16 code
+ * unit, so a cut never lands in the middle of a surrogate pair. String.length
+ * / String.slice would otherwise split astral characters — emoji and CJK
+ * Extension kanji such as 𠮷 (U+20BB7) or 𩸽 (U+29E3D), which appear in real
+ * Japanese names and words — leaving a broken � at the truncation boundary.
+ * For ASCII the behaviour is identical to the old code.
  */
 export function truncate(text, max = 48) {
   const s = String(text === null || text === undefined ? '' : text);
-  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+  const chars = Array.from(s);
+  return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : s;
 }
