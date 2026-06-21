@@ -272,6 +272,12 @@ Researched Japanese dev communities (Qiita Three.js performance/memory, Zenn VR 
 - ⚡ **perf**: Share `PlaneGeometry` across all settings-panel buttons via `_sharedPlaneGeometry(w,h)` cache instead of allocating an identical GPU vertex buffer per button (Three.js memory best practice — reuse identical geometries)
 - 🐛 **fix (comfort)**: `setPreset('disabled')` then switching to a protective preset left vignette/FOV/snap-turn disabled (stale `enabled:false` from Object.assign merge). Every non-disabled preset now explicitly re-enables all three effects. Critical motion-sickness hazard fixed; 2 regression tests added.
 
+### Session 4: Community Research — Render-Loop Hotspots & Teardown
+Researched Qiita/community Three.js perf posts (CanvasTexture, raycaster, "avoid new in the render loop") and SPA teardown patterns:
+- ⚡ **perf (raycaster)**: `raycasterFromController()` allocated a fresh `Matrix4` + `Raycaster` each call — at 90 FPS × 2 controllers that's 720+ allocations/sec just for hover. Now lazily caches and mutates in place.
+- ⚡ **perf (gaze)**: `GazeInteraction._raycastGaze()` allocated 2 fresh `Vector3`s each frame while dwell was active — 180+ allocations/sec. Now caches origin/dir/quat triplet, resets dir before each ray.
+- 🐛 **fix (teardown)**: `showVRToast()` setTimeout was untracked; `dispose()` within a toast's 4-second lifetime left a stale callback that touched a torn-down VRApp (null camera, freed GPU resources). Now tracked in a Set and cleared on dispose. Adds null-guard on `this.camera` for extra safety.
+
 ---
 
 ## Contributing Guidelines
