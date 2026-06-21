@@ -315,6 +315,10 @@ Researched Qiita NFC/NFD posts (macOS 濁点 problem, combining-mark mismatches,
 Researched Qiita WebSocket reconnection posts (`onclose` recreate-instance pattern, ALB ~4000 s idle cap, close codes 1000 vs 1006, backoff):
 - 🐛 **fix (multiplayer)**: the signaling `WebSocket` had `onopen`/`onerror`/`onmessage` but **no `onclose`**. A dropped signaling connection (network blip, load-balancer idle timeout) was silent and never recovered — the user stayed nominally "in" the room but stopped receiving new peers. Added an `onclose` handler that reconnects with capped exponential backoff (1→2→4…30 s); `connectSignaling()` re-registers the peer on open. Safety: only reconnects while `this.connected` (set true only post-handshake, so mid-handshake closes still reject); `disconnect()` flips `connected=false`, nulls `onclose` before `close()`, and clears the pending timer so intentional teardown never loops; `_scheduleSignalingReconnect()` is idempotent (guards the pending timer) so a close+error burst can't spawn parallel loops; backoff resets on success. 6 tests with Jest fake timers + mocked `connectSignaling` (no real WebSocket needed).
 
+### Session 13: Community Research — WebRTC Data-Channel Backpressure
+Researched WebRTC `bufferedAmount` backpressure (send-buffer growth under congestion, high-water-mark gating):
+- 🐛 **fix (multiplayer)**: `sendToPeer()` / `broadcast()` checked only `readyState`, never `bufferedAmount`. Position/rotation broadcast at 30/15 Hz, so on a congested link `channel.send()` keeps queuing into the app→SCTP buffer faster than it drains — `bufferedAmount` grows unbounded toward the ~16 MB channel limit, risking a throw / memory bloat. Added a pure `canSendOnChannel(channel, hwm)` gate (open AND `bufferedAmount ≤ MAX_BUFFERED_BYTES` = 256 KB); both send paths skip when congested and count `stats.messagesDropped`. Correct trade-off: the channel is already unreliable/unordered (`maxRetransmits:0`) and position data is ephemeral — the next interval supersedes a dropped update. 8 tests (gate edge cases + send paths skip/send/no-throw).
+
 ---
 
 ## Contributing Guidelines
