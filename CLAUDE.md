@@ -278,6 +278,11 @@ Researched Qiita/community Three.js perf posts (CanvasTexture, raycaster, "avoid
 - ⚡ **perf (gaze)**: `GazeInteraction._raycastGaze()` allocated 2 fresh `Vector3`s each frame while dwell was active — 180+ allocations/sec. Now caches origin/dir/quat triplet, resets dir before each ray.
 - 🐛 **fix (teardown)**: `showVRToast()` setTimeout was untracked; `dispose()` within a toast's 4-second lifetime left a stale callback that touched a torn-down VRApp (null camera, freed GPU resources). Now tracked in a Set and cleared on dispose. Adds null-guard on `this.camera` for extra safety.
 
+### Session 5: Community Research — Web Audio Autoplay & Stick Dead Zone
+Researched Qiita Web Audio autoplay-policy posts and gamepad dead-zone / reaction-curve articles:
+- 🐛 **fix (audio)**: AudioContext autoplay-resume listened for `click` only — touch (`touchstart`) and keyboard (`keydown`) users had spatial audio stay suspended. Now arms all three, tears every listener down once any fires (or on dispose). Added a 4-case suspended-context test block; fixed the mock `resume()` to return a Promise like the real API.
+- 🐛 **fix (input)**: Thumbstick dead zone was axial (square region) with a pass-through cliff (output jumped 0→0.15 at the edge). Replaced with a **scaled radial dead zone** (`applyRadialDeadZone` pure helper): circular region + magnitude re-normalised (deadZone,1]→(0,1]. Smooth onset is the locomotion analog of gaze-dwell grace-time (tremor-friendly); full deflection preserved. 8 property tests + 2 updated cliff-behavior tests.
+
 ---
 
 ## Contributing Guidelines
