@@ -284,6 +284,14 @@ export class CaptionSystem {
   /**
    * Greedy word-wrap into rows no longer than `maxChars`. Words longer than a
    * row are hard-split. Pure and unit-testable.
+   *
+   * Counts and splits by Unicode code point (Array.from), not UTF-16 code unit.
+   * This matters most for Japanese captions: with no spaces the whole line is
+   * one "word" that always hits the hard-split path, and a slice on UTF-16
+   * units would sever a surrogate pair (emoji, CJK Extension kanji such as 𠮷)
+   * at the row boundary, leaving a broken �. Captions are the channel deaf /
+   * HoH users rely on, so a corrupted glyph is real information loss.
+   *
    * @param {string} text
    * @param {number} maxChars
    * @returns {string[]}
@@ -292,21 +300,23 @@ export class CaptionSystem {
     const words = String(text).trim().split(/\s+/);
     const rows = [];
     let cur = '';
+    const cpLen = (s) => Array.from(s).length; // code points, not UTF-16 units
     for (const w of words) {
-      if (w.length > maxChars) {
+      const wChars = Array.from(w);
+      if (wChars.length > maxChars) {
         if (cur) {
           rows.push(cur);
           cur = '';
         }
-        let rest = w;
-        while (rest.length > maxChars) {
-          rows.push(rest.slice(0, maxChars));
-          rest = rest.slice(maxChars);
+        let start = 0;
+        while (wChars.length - start > maxChars) {
+          rows.push(wChars.slice(start, start + maxChars).join(''));
+          start += maxChars;
         }
-        cur = rest;
+        cur = wChars.slice(start).join('');
       } else if (!cur) {
         cur = w;
-      } else if ((cur + ' ' + w).length <= maxChars) {
+      } else if (cpLen(cur + ' ' + w) <= maxChars) {
         cur += ' ' + w;
       } else {
         rows.push(cur);
@@ -320,7 +330,9 @@ export class CaptionSystem {
   }
 
   _truncate(text, max) {
-    return text.length > max ? text.slice(0, max - 1) + '…' : text;
+    // Code-point-aware so the cut never splits a surrogate pair (see _wrap).
+    const chars = Array.from(text);
+    return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : text;
   }
 
   // ── Accessors ────────────────────────────────────────────────────────────────

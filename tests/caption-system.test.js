@@ -147,6 +147,32 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(rows.join('')).toBe('x'.repeat(80));
   });
 
+  test('_wrap hard-splits spaceless Japanese without losing or corrupting characters', () => {
+    // No spaces → one long "word" that hits the hard-split path on every row.
+    const jp = 'これはとても長い日本語のキャプションでテキストの折り返しを確認します';
+    const rows = cs._wrap(jp, 10);
+    expect(rows.length).toBeGreaterThan(1);
+    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(10));
+    // Lossless: rejoining the rows reproduces the original exactly.
+    expect(rows.join('')).toBe(jp);
+  });
+
+  test('_wrap never splits a surrogate pair at a row boundary (no mojibake)', () => {
+    // 12 emoji, wrapped at 5 code points per row: boundaries fall where a
+    // UTF-16 slice would have severed a surrogate pair.
+    const rows = cs._wrap('😀'.repeat(12), 5);
+    expect(rows.join('')).not.toContain('�'); // no replacement char
+    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(5));
+    expect(rows.join('')).toBe('😀'.repeat(12));
+  });
+
+  test('_truncate is code-point-aware (does not split astral chars)', () => {
+    const out = cs._truncate('𠮷'.repeat(10), 4);
+    expect(out).not.toContain('�');
+    expect(Array.from(out)).toHaveLength(4); // 3 kanji + ellipsis
+    expect(out.endsWith('…')).toBe(true);
+  });
+
   test('_layoutRows caps a caption at two rows with an ellipsis', () => {
     cs.setEnabled(true);
     cs.show(Array(20).fill('word').join(' ')); // far more than 2 rows worth
