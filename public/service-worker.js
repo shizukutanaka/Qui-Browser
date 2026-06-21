@@ -239,8 +239,13 @@ async function networkFirst(request) {
     // Cache successful responses
     if (response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, response.clone());
+      await cache.put(request, response.clone());
       cacheStats.updates++;
+      // Bound the runtime cache. RUNTIME_CACHE is never versioned and never
+      // cleared by the activate handler, so without this it grows without limit
+      // across every app version — the documented "Service Worker cache eats
+      // all your storage" failure. FIFO-evict the oldest entries past the limit.
+      await enforceCacheLimit(cache, 'runtime');
     }
 
     return response;
@@ -453,6 +458,19 @@ self.addEventListener('sync', async (event) => {
 async function syncOfflineActions() {
   // Implement offline action sync if needed
   console.log('[ServiceWorker] Syncing offline actions');
+}
+
+// Test-only export hook: in a CommonJS (Jest) context the internals are exposed
+// so the cache-eviction logic can be unit-tested headlessly. In the real worker
+// `module` is undefined and this is skipped.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    enforceCacheLimit,
+    networkFirst,
+    CACHE_LIMITS,
+    RUNTIME_CACHE,
+    _getCacheStats: () => cacheStats
+  };
 }
 
 console.log('[ServiceWorker] Script loaded, version:', CACHE_VERSION);
