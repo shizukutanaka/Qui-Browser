@@ -12,6 +12,34 @@
 
 import * as THREE from 'three';
 
+// Backpressure high-water mark for data-channel sends. When a channel's
+// bufferedAmount (app → SCTP send buffer) exceeds this, the link is congested
+// and queuing more would grow the buffer without bound — risking a throw or
+// memory bloat. Position/rotation updates are ephemeral (the next interval
+// supersedes a dropped one), so skipping a send under backpressure is the
+// correct trade-off. 256 KB leaves ample headroom for legitimate bursts while
+// bounding growth far below the ~16 MB channel buffer limit.
+export const MAX_BUFFERED_BYTES = 256 * 1024;
+
+/**
+ * Whether a message may be sent on a data channel right now: the channel must
+ * be open AND its buffered amount under the high-water mark. Pure / dependency-
+ * free so the backpressure gate is unit-testable without a real RTCDataChannel.
+ *
+ * A missing/undefined bufferedAmount (older shims, test stubs) is treated as 0
+ * so behaviour degrades to the previous "send if open".
+ *
+ * @param {{readyState?: string, bufferedAmount?: number}} channel
+ * @param {number} [hwm=MAX_BUFFERED_BYTES]
+ * @returns {boolean}
+ */
+export function canSendOnChannel(channel, hwm = MAX_BUFFERED_BYTES) {
+  if (!channel || channel.readyState !== 'open') {
+    return false;
+  }
+  return (channel.bufferedAmount || 0) <= hwm;
+}
+
 export class MultiplayerSystem {
   constructor(scene, spatialAudio, options = {}) {
     this.scene = scene;
@@ -73,6 +101,7 @@ export class MultiplayerSystem {
       connectedPeers: 0,
       messagesSent: 0,
       messagesReceived: 0,
+      messagesDropped: 0, // sends skipped under data-channel backpressure
       bytesIn: 0,
       bytesOut: 0
     };
@@ -766,11 +795,15 @@ export class MultiplayerSystem {
    */
   sendToPeer(peerId, message) {
     const channel = this.dataChannels.get(peerId);
-    if (channel && channel.readyState === 'open') {
+    // Skip under backpressure: queuing onto a congested channel grows
+    // bufferedAmount without bound (see canSendOnChannel).
+    if (canSendOnChannel(channel)) {
       const data = JSON.stringify(message);
       channel.send(data);
       this.stats.messagesSent++;
       this.stats.bytesOut += data.length;
+    } else {
+      this.stats.messagesDropped++;
     }
   }
 
@@ -779,11 +812,13 @@ export class MultiplayerSystem {
    */
   broadcast(message) {
     this.dataChannels.forEach((channel, _peerId) => {
-      if (channel.readyState === 'open') {
+      if (canSendOnChannel(channel)) {
         const data = JSON.stringify(message);
         channel.send(data);
         this.stats.messagesSent++;
         this.stats.bytesOut += data.length;
+      } else {
+        this.stats.messagesDropped++;
       }
     });
   }

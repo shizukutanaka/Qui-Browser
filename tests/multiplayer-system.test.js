@@ -26,7 +26,11 @@ jest.mock('three', () => ({
   Quaternion: class {}
 }));
 
-const { MultiplayerSystem } = require('../src/vr/multiplayer/MultiplayerSystem.js');
+const {
+  MultiplayerSystem,
+  canSendOnChannel,
+  MAX_BUFFERED_BYTES
+} = require('../src/vr/multiplayer/MultiplayerSystem.js');
 
 function makeScene() {
   const objs = [];
@@ -189,5 +193,67 @@ describe('MultiplayerSystem signaling auto-reconnect', () => {
     expect(mp._signalingReconnectAttempts).toBe(0);
     jest.advanceTimersByTime(5000);
     expect(mp.connectSignaling).not.toHaveBeenCalled();
+  });
+});
+
+describe('canSendOnChannel — data-channel backpressure gate', () => {
+  test('false for a missing or non-open channel', () => {
+    expect(canSendOnChannel(null)).toBe(false);
+    expect(canSendOnChannel(undefined)).toBe(false);
+    expect(canSendOnChannel({ readyState: 'connecting', bufferedAmount: 0 })).toBe(false);
+    expect(canSendOnChannel({ readyState: 'closed', bufferedAmount: 0 })).toBe(false);
+  });
+
+  test('true for an open channel below the high-water mark', () => {
+    expect(canSendOnChannel({ readyState: 'open', bufferedAmount: 0 })).toBe(true);
+    expect(canSendOnChannel({ readyState: 'open', bufferedAmount: MAX_BUFFERED_BYTES })).toBe(true);
+  });
+
+  test('false for an open channel over the high-water mark (congested)', () => {
+    expect(canSendOnChannel({ readyState: 'open', bufferedAmount: MAX_BUFFERED_BYTES + 1 })).toBe(false);
+  });
+
+  test('treats a missing bufferedAmount as 0 (degrades to send-if-open)', () => {
+    expect(canSendOnChannel({ readyState: 'open' })).toBe(true);
+  });
+
+  test('respects a custom high-water mark', () => {
+    expect(canSendOnChannel({ readyState: 'open', bufferedAmount: 100 }, 50)).toBe(false);
+    expect(canSendOnChannel({ readyState: 'open', bufferedAmount: 40 }, 50)).toBe(true);
+  });
+});
+
+describe('MultiplayerSystem send backpressure', () => {
+  test('broadcast skips a congested channel and counts the drop', () => {
+    const mp = makeSystem();
+    const send = jest.fn();
+    mp.dataChannels.set('slow', {
+      readyState: 'open', bufferedAmount: MAX_BUFFERED_BYTES + 1, send
+    });
+    mp.broadcast({ type: 'position', x: 1 });
+    expect(send).not.toHaveBeenCalled();
+    expect(mp.stats.messagesDropped).toBe(1);
+    expect(mp.stats.messagesSent).toBe(0);
+  });
+
+  test('broadcast sends on an uncongested channel', () => {
+    const mp = makeSystem();
+    const send = jest.fn();
+    mp.dataChannels.set('ok', { readyState: 'open', bufferedAmount: 0, send });
+    mp.broadcast({ type: 'position', x: 1 });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(mp.stats.messagesSent).toBe(1);
+    expect(mp.stats.messagesDropped).toBe(0);
+  });
+
+  test('sendToPeer drops under backpressure without throwing', () => {
+    const mp = makeSystem();
+    const send = jest.fn();
+    mp.dataChannels.set('p1', {
+      readyState: 'open', bufferedAmount: MAX_BUFFERED_BYTES + 999, send
+    });
+    expect(() => mp.sendToPeer('p1', { type: 'pong' })).not.toThrow();
+    expect(send).not.toHaveBeenCalled();
+    expect(mp.stats.messagesDropped).toBe(1);
   });
 });
