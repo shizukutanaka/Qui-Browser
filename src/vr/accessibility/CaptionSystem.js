@@ -135,13 +135,21 @@ export class CaptionSystem {
    * Push a caption line.  Trims to maxLines (oldest dropped) and schedules it
    * to expire after lineDuration.  Empty/whitespace text is ignored.
    *
+   * Text is canonicalised to NFC. Captions are fed from many sources that don't
+   * pass through the address-bar resolver — voice transcripts, iframe page
+   * titles, system/toast messages — any of which can arrive in NFD (a voiced
+   * kana as base + combining mark). Without this, the code-point-aware wrap /
+   * truncate would split the combining mark from its base at a row boundary,
+   * leaving a floating ゙. Normalising here protects every caption source.
+   *
    * @param {string} text
    */
   show(text) {
     if (!text || !String(text).trim()) {
       return;
     }
-    this._lines.push({ text: String(text).trim(), remaining: this.lineDuration });
+    const normalized = String(text).normalize('NFC').trim();
+    this._lines.push({ text: normalized, remaining: this.lineDuration });
     while (this._lines.length > this.maxLines) {
       this._lines.shift();
     }

@@ -74,6 +74,17 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cs.mesh.visible).toBe(true);
   });
 
+  test('show() normalizes NFD text to NFC so combining marks stay attached', () => {
+    cs.setEnabled(true);
+    const nfd = 'が'; // か + combining voiced mark = 2 code points (NFD)
+    const nfc = 'が';       // precomposed が = 1 code point (NFC)
+    expect(Array.from(nfd)).toHaveLength(2); // fixture really is NFD
+    cs.show(nfd);
+    const stored = cs._lines[cs._lines.length - 1].text;
+    expect(stored).toBe(nfc);
+    expect(Array.from(stored)).toHaveLength(1); // base+mark folded to one cp
+  });
+
   test('queue is capped at maxLines (oldest dropped)', () => {
     cs.setEnabled(true);
     cs.show('one'); cs.show('two'); cs.show('three'); cs.show('four');
