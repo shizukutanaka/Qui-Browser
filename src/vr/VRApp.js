@@ -153,6 +153,11 @@ export class VRApp {
     // teardown; BufferGeometry.dispose() is idempotent so the scene.traverse
     // teardown disposing them again is harmless.
     this._sharedGeometries = new Map();
+    // Outstanding showVRToast() auto-dismiss timers. Tracked so dispose() can
+    // clear them and stop a delayed callback from touching a torn-down VRApp
+    // (this.camera nulled, GPU resources already freed). Each timer self-
+    // removes from the Set when it fires normally.
+    this._toastTimers = new Set();
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -754,12 +759,19 @@ export class VRApp {
     mesh.renderOrder = 999; // always on top
     this.camera.add(mesh);
 
-    setTimeout(() => {
-      this.camera.remove(mesh);
+    // Track the auto-dismiss timer so dispose() can clear it; otherwise the
+    // callback fires later against a torn-down VRApp (null camera, freed GPU
+    // resources) and produces a console error in tests / hot-reload / SPA nav.
+    const timer = setTimeout(() => {
+      this._toastTimers.delete(timer);
+      if (this.camera) {
+        this.camera.remove(mesh);
+      }
       mesh.geometry.dispose();
       tex.dispose();
       mesh.material.dispose();
     }, duration);
+    this._toastTimers.add(timer);
 
     // Accessibility equity: a toast must never be conveyed by sight alone, so
     // mirror it onto every available non-visual channel (haptic + captions).
@@ -2751,6 +2763,15 @@ export class VRApp {
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
+
+    // Clear pending toast auto-dismiss timers so their callbacks don't fire
+    // against a torn-down VRApp (this.camera nulled, GPU resources already
+    // freed below). Without this the timer holds a closure over `this` and
+    // surfaces as a console error or a test-leak warning after teardown.
+    if (this._toastTimers) {
+      this._toastTimers.forEach((t) => clearTimeout(t));
+      this._toastTimers.clear();
+    }
 
     // Remove global listeners and DOM nodes added during setup
     if (this.onEnterVRRequest) {
