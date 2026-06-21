@@ -297,6 +297,10 @@ Researched Qiita WebGL context-loss recovery patterns and SPA `addEventListener(
 Researched Qiita `QuotaExceededError` handling posts (detect → evict → retry, cross-browser detection):
 - 🐛 **fix (store)**: `BookmarkStore.writeJSON()` swallowed every storage error in an empty catch. For history this was a *permanent* silent failure: once the origin's ~5–10 MB budget filled, every subsequent visit's write kept failing and history quietly stopped updating, with no pruning to recover. Now `writeJSON()` returns a success boolean and `addHistory()` runs an evict-and-retry loop — sheds the oldest ~25 % and retries until the payload fits or only the newest entry remains (always preserved). Added pure cross-browser `isQuotaExceededError()` (Chrome `QuotaExceededError`/22, Firefox `NS_ERROR_DOM_QUOTA_REACHED`/1014). 6 tests (detection + eviction with a byte-budget setItem stub).
 
+### Session 9: Community Research — Service Worker Cache Bounds
+Researched Qiita PWA cache-control posts (`activate` old-cache deletion, cache-size limits, "SW cache eats all storage"):
+- 🐛 **fix (sw)**: `enforceCacheLimit()` and `CACHE_LIMITS` existed but the trim was only wired into `cacheFirst()`. `networkFirst()` wrote every successful API/JSON/socket response into `RUNTIME_CACHE` — never versioned, never purged by `activate` — with **no size bound**, so it grew unbounded across every app version (the classic "SW cache eats all your storage" leak). Now `networkFirst()` awaits the put and calls `enforceCacheLimit(cache, 'runtime')` (FIFO, 200-entry cap). Safe: RUNTIME_CACHE holds only dynamic responses, no pre-cached critical assets. Added a guarded CommonJS export hook so the worker internals are unit-testable; new `service-worker-cache.test.js` (4 cases) stubs `self` + an in-memory Cache API. Canonical worker confirmed via `vite publicDir:'public'` → `public/service-worker.js`; the root-level duplicate is stale/unserved and left untouched.
+
 ---
 
 ## Contributing Guidelines
