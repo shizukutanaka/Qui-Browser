@@ -23,7 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
@@ -353,8 +353,10 @@ export class VRApp {
     // Note: the service worker is registered once from src/main.js for all
     // device types; VRApp no longer registers it to avoid a duplicate.
 
-    // Start render loop
-    this.renderer.setAnimationLoop(this.render.bind(this));
+    // Start render loop. Cache the bound callback so the WebGL
+    // context-restored handler can re-arm it with the same function reference.
+    this._renderBound = this.render.bind(this);
+    this.renderer.setAnimationLoop(this._renderBound);
 
     console.debug('VRApp: Initialization complete');
   }
@@ -379,6 +381,37 @@ export class VRApp {
     this.renderer.logarithmicDepthBuffer = true;
 
     this.container.appendChild(this.renderer.domElement);
+
+    // WebGL context loss handling.
+    //
+    // On Quest the GPU context can be reclaimed when the system menu opens,
+    // the headset sleeps, another XR app takes over, or memory pressure forces
+    // a reset. Without `preventDefault()` on the lost event, Three.js cannot
+    // restore the context — the user sees a frozen / black scene with no
+    // explanation. Stopping the animation loop while the context is gone
+    // avoids per-frame WebGL errors that would otherwise spam the console.
+    //
+    // Listeners are stored on `this` so dispose() can remove them, and so
+    // setupRenderer() can be re-called safely in tests / hot reload.
+    this._onWebGLContextLost = (event) => {
+      event.preventDefault(); // critical — without this, restore never fires
+      console.warn('VRApp: WebGL context lost; pausing render loop until restored');
+      if (this.renderer) {
+        this.renderer.setAnimationLoop(null);
+      }
+      // notifyCrossModal handles missing subsystems gracefully (early in init
+      // the captions/haptic may not yet exist).
+      notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextLostMessage(), 'warn');
+    };
+    this._onWebGLContextRestored = () => {
+      console.debug('VRApp: WebGL context restored; resuming render loop');
+      if (this.renderer && this._renderBound) {
+        this.renderer.setAnimationLoop(this._renderBound);
+      }
+      notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextRestoredMessage(), 'info');
+    };
+    this.renderer.domElement.addEventListener('webglcontextlost',     this._onWebGLContextLost, false);
+    this.renderer.domElement.addEventListener('webglcontextrestored', this._onWebGLContextRestored, false);
 
     console.debug('VRApp: Renderer initialized');
   }
@@ -2764,6 +2797,21 @@ export class VRApp {
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
+
+    // Remove WebGL context-loss listeners so a late event after teardown
+    // doesn't fire a notification or try to restart the loop on a freed
+    // renderer. Guard each side: setupRenderer() may not have run in a test.
+    if (this.renderer && this.renderer.domElement) {
+      if (this._onWebGLContextLost) {
+        this.renderer.domElement.removeEventListener('webglcontextlost', this._onWebGLContextLost);
+      }
+      if (this._onWebGLContextRestored) {
+        this.renderer.domElement.removeEventListener('webglcontextrestored', this._onWebGLContextRestored);
+      }
+    }
+    this._onWebGLContextLost = null;
+    this._onWebGLContextRestored = null;
+    this._renderBound = null;
 
     // Clear pending toast auto-dismiss timers so their callbacks don't fire
     // against a torn-down VRApp (this.camera nulled, GPU resources already

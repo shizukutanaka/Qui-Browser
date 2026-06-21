@@ -21,7 +21,9 @@ const {
   voiceErrorNotification,
   VOICE_FATAL_ERRORS,
   controllerDisconnectMessage,
-  controllerReconnectMessage
+  controllerReconnectMessage,
+  webglContextLostMessage,
+  webglContextRestoredMessage
 } = require('../src/vr/accessibility/crossModal.js');
 
 function makeHaptic() {
@@ -243,5 +245,27 @@ describe('voiceErrorNotification — user-visible speech recognition errors', ()
     expect(fatal.type).toBe('error');
     expect(nonfatal.type).toBe('warn');
     expect(fatal.type).not.toBe(nonfatal.type);
+  });
+});
+
+describe('webglContextLost / Restored messages — WCAG 4.1.3 graphics-state status', () => {
+  test('lost message is non-empty and signals the paused/restoring state', () => {
+    const m = webglContextLostMessage();
+    expect(typeof m).toBe('string');
+    expect(m.length).toBeGreaterThan(0);
+    // Tells the user what's happening, not just "error" — "pause" / "restore"
+    // wording is what the implementation conveys non-visually.
+    expect(m.toLowerCase()).toMatch(/paus|restor/);
+  });
+
+  test('restored message is non-empty and distinct from the lost message', () => {
+    const r = webglContextRestoredMessage();
+    expect(typeof r).toBe('string');
+    expect(r.length).toBeGreaterThan(0);
+    expect(r).not.toBe(webglContextLostMessage());
+  });
+
+  test('restored message signals recovery (not paused)', () => {
+    expect(webglContextRestoredMessage().toLowerCase()).toMatch(/restor/);
   });
 });

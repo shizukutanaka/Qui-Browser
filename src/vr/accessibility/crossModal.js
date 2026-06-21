@@ -215,3 +215,38 @@ export function controllerReconnectMessage(handedness) {
   }
   return 'Controller reconnected';
 }
+
+/**
+ * Build the user-visible message for a WebGL context-loss event.
+ *
+ * On Quest the GPU context can be reclaimed when the system menu opens, the
+ * headset sleeps, or another XR app comes to the foreground. Without handling,
+ * the user sees a black/frozen scene and no explanation. Pairing this with
+ * preventDefault() on the event allows recovery; this message tells the
+ * user what just happened so the silence isn't mistaken for a hang.
+ *
+ * Severity 'warn' rather than 'error': the loss itself is recoverable and
+ * the user did not necessarily do anything wrong.
+ *
+ * Pure — testable without a browser.
+ *
+ * @returns {string}
+ */
+export function webglContextLostMessage() {
+  return 'Graphics paused — restoring';
+}
+
+/**
+ * Build the user-visible message for a WebGL context-restore event.
+ *
+ * Mirrors the loss announcement so the user knows the session is interactive
+ * again (asymmetric feedback would leave them unsure whether to retry an
+ * action or wait). Severity 'info' — this is a recovery confirmation.
+ *
+ * Pure — testable without a browser.
+ *
+ * @returns {string}
+ */
+export function webglContextRestoredMessage() {
+  return 'Graphics restored';
+}
