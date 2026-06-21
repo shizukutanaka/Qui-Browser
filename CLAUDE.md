@@ -267,6 +267,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - **Phase 2 (Next)**: VRApp integration tests + semantic DOM overlay (high priority)
 - **Phase 3 (Future)**: AccessibilityCoordinator refactoring + settings grouping (medium priority)
 
+### Session 3: Community Research (Qiita / Zenn) Improvements
+Researched Japanese dev communities (Qiita Three.js performance/memory, Zenn VR motion-sickness mitigation) and applied two fixes:
+- ⚡ **perf**: Share `PlaneGeometry` across all settings-panel buttons via `_sharedPlaneGeometry(w,h)` cache instead of allocating an identical GPU vertex buffer per button (Three.js memory best practice — reuse identical geometries)
+- 🐛 **fix (comfort)**: `setPreset('disabled')` then switching to a protective preset left vignette/FOV/snap-turn disabled (stale `enabled:false` from Object.assign merge). Every non-disabled preset now explicitly re-enables all three effects. Critical motion-sickness hazard fixed; 2 regression tests added.
+
 ---
 
 ## Contributing Guidelines
