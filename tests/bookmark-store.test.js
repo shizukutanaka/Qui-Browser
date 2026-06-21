@@ -2,7 +2,7 @@
  * Unit tests for BookmarkStore (FR-1.4).
  * localStorage is shimmed by tests/setup.js so no extra mock needed.
  */
-const { BookmarkStore } = require('../src/utils/BookmarkStore.js');
+const { BookmarkStore, isQuotaExceededError } = require('../src/utils/BookmarkStore.js');
 
 describe('BookmarkStore — bookmarks', () => {
   let store;
@@ -120,5 +120,78 @@ describe('BookmarkStore — history', () => {
     const h = store.getHistory();
     expect(h).toHaveLength(1);
     expect(h[0].url).toBe('https://b.com');
+  });
+});
+
+describe('isQuotaExceededError — cross-browser detection', () => {
+  test('detects Chrome QuotaExceededError by name', () => {
+    expect(isQuotaExceededError({ name: 'QuotaExceededError' })).toBe(true);
+  });
+
+  test('detects Firefox NS_ERROR_DOM_QUOTA_REACHED by name', () => {
+    expect(isQuotaExceededError({ name: 'NS_ERROR_DOM_QUOTA_REACHED' })).toBe(true);
+  });
+
+  test('detects by numeric code 22 (WebKit) and 1014 (Firefox)', () => {
+    expect(isQuotaExceededError({ code: 22 })).toBe(true);
+    expect(isQuotaExceededError({ code: 1014 })).toBe(true);
+  });
+
+  test('rejects unrelated errors and falsy values', () => {
+    expect(isQuotaExceededError(new Error('network'))).toBe(false);
+    expect(isQuotaExceededError({ name: 'TypeError', code: 5 })).toBe(false);
+    expect(isQuotaExceededError(null)).toBe(false);
+    expect(isQuotaExceededError(undefined)).toBe(false);
+  });
+});
+
+describe('BookmarkStore — history quota eviction', () => {
+  let realSetItem;
+
+  beforeEach(() => {
+    localStorage.clear();
+    realSetItem = localStorage.setItem;
+  });
+
+  afterEach(() => {
+    localStorage.setItem = realSetItem;
+  });
+
+  test('addHistory evicts and retries when the quota is exceeded', () => {
+    const store = new BookmarkStore();
+    // Seed a sizeable history under the real setItem.
+    for (let i = 0; i < 50; i++) {
+      store.addHistory(`https://example.com/${i}`, `Page ${i}`);
+    }
+
+    // Now make setItem reject any payload larger than a small budget, the way
+    // a full origin would. The store must shed old entries until it fits.
+    const BUDGET = 600; // characters
+    localStorage.setItem = (key, value) => {
+      if (typeof value === 'string' && value.length > BUDGET) {
+        const err = new Error('quota');
+        err.name = 'QuotaExceededError';
+        throw err;
+      }
+      return realSetItem.call(localStorage, key, value);
+    };
+
+    // Should not throw, and should persist a pruned-but-non-empty history.
+    expect(() => store.addHistory('https://example.com/new', 'New')).not.toThrow();
+    const persisted = store.getHistory(999);
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted[0].url).toBe('https://example.com/new'); // newest kept
+    // The serialized payload actually fit within the budget.
+    expect(localStorage.getItem('quiBrowser_history').length).toBeLessThanOrEqual(BUDGET);
+  });
+
+  test('addHistory does not throw when storage rejects everything', () => {
+    const store = new BookmarkStore();
+    localStorage.setItem = () => {
+      const err = new Error('quota');
+      err.name = 'QuotaExceededError';
+      throw err;
+    };
+    expect(() => store.addHistory('https://a.com', 'A')).not.toThrow();
   });
 });
