@@ -2133,6 +2133,21 @@ export class VRApp {
               }
               active.navigate(query);
             }
+          },
+          // Top Sites: jump to the most-used destination (frecency-ranked from
+          // history). Fewest-dwell navigation for hands-free users; announced
+          // cross-modally so it's perceivable without sight.
+          onTopSites: () => {
+            const top = this.bookmarks.getTopSites(1)[0];
+            const active = this.tabManager?.getActiveTab?.();
+            if (top && active) {
+              if (this.captionSystem && this.captionSystem.enabled) {
+                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+              }
+              active.navigate(top.url);
+            } else if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show('No top sites yet');
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

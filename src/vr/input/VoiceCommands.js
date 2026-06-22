@@ -479,7 +479,22 @@ export class VoiceCommands {
    * @param {object}   [opts.vrKeyboard]    VRJapaneseKeyboard instance
    * @param {Function} [opts.onSearch]      (query: string) => void — called for web search
    */
-  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch } = {}) {
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites } = {}) {
+    // Top Sites — hands-free jump to the user's most-used destination
+    // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
+    // the host's via onTopSites, mirroring the onSearch decoupling.
+    this.registerCommand('top-sites', {
+      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
+      action: () => {
+        if (onTopSites) {
+          onTopSites();
+        }
+        return { action: 'top-sites' };
+      },
+      confirmationText: 'よく使うサイトを開きます',
+      description: 'Open most-used site'
+    });
+
     // Browser forward / back
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],

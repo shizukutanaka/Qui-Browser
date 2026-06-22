@@ -2,7 +2,9 @@
  * Unit tests for BookmarkStore (FR-1.4).
  * localStorage is shimmed by tests/setup.js so no extra mock needed.
  */
-const { BookmarkStore, isQuotaExceededError } = require('../src/utils/BookmarkStore.js');
+const { BookmarkStore, isQuotaExceededError, frecencyScore } = require('../src/utils/BookmarkStore.js');
+
+const DAY = 24 * 60 * 60 * 1000;
 
 describe('BookmarkStore — bookmarks', () => {
   let store;
@@ -193,5 +195,114 @@ describe('BookmarkStore — history quota eviction', () => {
       throw err;
     };
     expect(() => store.addHistory('https://a.com', 'A')).not.toThrow();
+  });
+});
+
+describe('frecencyScore — visit frequency weighted by recency', () => {
+  test('a just-now single visit scores ~1 (no decay yet)', () => {
+    const now = 1_000_000_000_000;
+    expect(frecencyScore({ visits: 1, visitedAt: now }, now)).toBeCloseTo(1, 5);
+  });
+
+  test('more visits score proportionally higher at equal recency', () => {
+    const now = 1_000_000_000_000;
+    const a = frecencyScore({ visits: 5, visitedAt: now }, now);
+    const b = frecencyScore({ visits: 1, visitedAt: now }, now);
+    expect(a).toBeCloseTo(5 * b, 5);
+  });
+
+  test('recency halves the score every half-life (7 days)', () => {
+    const now = 1_000_000_000_000;
+    const weekAgo = now - 7 * DAY;
+    expect(frecencyScore({ visits: 4, visitedAt: weekAgo }, now)).toBeCloseTo(2, 5);
+  });
+
+  test('a frequent-but-old site can rank below a rare-but-fresh one', () => {
+    const now = 1_000_000_000_000;
+    const oldFrequent = frecencyScore({ visits: 10, visitedAt: now - 28 * DAY }, now); // 10 * 0.5^4 = 0.625
+    const freshRare   = frecencyScore({ visits: 1, visitedAt: now }, now);             // 1
+    expect(freshRare).toBeGreaterThan(oldFrequent);
+  });
+
+  test('missing/zero visits is treated as a single visit; null is 0', () => {
+    const now = 1_000_000_000_000;
+    expect(frecencyScore({ visitedAt: now }, now)).toBeCloseTo(1, 5);
+    expect(frecencyScore({ visits: 0, visitedAt: now }, now)).toBeCloseTo(1, 5);
+    expect(frecencyScore(null, now)).toBe(0);
+  });
+
+  test('a future timestamp never boosts above the no-decay maximum', () => {
+    const now = 1_000_000_000_000;
+    // visitedAt in the future → age clamped to 0 → decay 1, not >1.
+    expect(frecencyScore({ visits: 3, visitedAt: now + 10 * DAY }, now)).toBeCloseTo(3, 5);
+  });
+});
+
+describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
+  let store;
+  const now = 1_000_000_000_000;
+
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  function seed(entries) {
+    // Write a known history array directly (bypassing addHistory's timestamps).
+    localStorage.setItem('quiBrowser_history', JSON.stringify(entries));
+  }
+
+  test('returns [] when there is no history', () => {
+    expect(store.getTopSites(8, now)).toEqual([]);
+  });
+
+  test('ranks by frecency, most useful first', () => {
+    seed([
+      { url: 'https://rare.com/', title: 'Rare', visits: 1, visitedAt: now },
+      { url: 'https://daily.com/', title: 'Daily', visits: 20, visitedAt: now },
+      { url: 'https://old.com/', title: 'Old', visits: 50, visitedAt: now - 60 * DAY }
+    ]);
+    const top = store.getTopSites(8, now);
+    expect(top.map(s => s.host)).toEqual(['daily.com', 'rare.com', 'old.com']);
+  });
+
+  test('dedupes per host and aggregates that host\'s visits', () => {
+    seed([
+      { url: 'https://news.com/a', title: 'A', visits: 3, visitedAt: now },
+      { url: 'https://news.com/b', title: 'B', visits: 4, visitedAt: now },
+      { url: 'https://other.com/', title: 'Other', visits: 5, visitedAt: now }
+    ]);
+    const top = store.getTopSites(8, now);
+    const news = top.find(s => s.host === 'news.com');
+    expect(news.visits).toBe(7);                 // 3 + 4 aggregated
+    expect(top.filter(s => s.host === 'news.com')).toHaveLength(1); // single tile
+  });
+
+  test('the per-host tile keeps the highest-scoring page as its representative', () => {
+    seed([
+      { url: 'https://site.com/old', title: 'Old page', visits: 2, visitedAt: now - 30 * DAY },
+      { url: 'https://site.com/hot', title: 'Hot page', visits: 2, visitedAt: now }
+    ]);
+    const [tile] = store.getTopSites(8, now);
+    expect(tile.url).toBe('https://site.com/hot');
+    expect(tile.title).toBe('Hot page');
+  });
+
+  test('respects the limit', () => {
+    seed(Array.from({ length: 12 }, (_, i) => ({
+      url: `https://s${i}.com/`, title: `S${i}`, visits: i + 1, visitedAt: now
+    })));
+    expect(store.getTopSites(5, now)).toHaveLength(5);
+  });
+
+  test('skips malformed entries without a url', () => {
+    seed([
+      { title: 'no url', visits: 9, visitedAt: now },
+      null,
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now }
+    ]);
+    const top = store.getTopSites(8, now);
+    expect(top).toHaveLength(1);
+    expect(top[0].host).toBe('ok.com');
   });
 });

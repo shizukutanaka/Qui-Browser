@@ -94,3 +94,34 @@ describe('VoiceCommands — onCommandFailed callback', () => {
     expect(() => vc.processCommand('unknown stuff', 0.9)).not.toThrow();
   });
 });
+
+describe('VoiceCommands — connectBrowser top-sites command', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {}; // suppress TTS side-effects
+  });
+
+  test('a "トップサイト" utterance fires the onTopSites callback', () => {
+    const onTopSites = jest.fn();
+    vc.connectBrowser({ onTopSites });
+    vc.processCommand('トップサイト', 0.9);
+    expect(onTopSites).toHaveBeenCalledTimes(1);
+    // The action's result is recorded on lastCommand (processCommand itself
+    // returns void).
+    expect(vc.lastCommand.key).toBe('top-sites');
+    expect(vc.lastCommand.result).toEqual({ action: 'top-sites' });
+  });
+
+  test('"よく使うサイト" also triggers it', () => {
+    const onTopSites = jest.fn();
+    vc.connectBrowser({ onTopSites });
+    vc.processCommand('よく使うサイト', 0.9);
+    expect(onTopSites).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not throw when onTopSites is not wired', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('トップサイト', 0.9)).not.toThrow();
+  });
+});

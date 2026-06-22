@@ -6,6 +6,45 @@
 const BOOKMARKS_KEY = 'quiBrowser_bookmarks';
 const HISTORY_KEY   = 'quiBrowser_history';
 const MAX_HISTORY   = 200;
+const FRECENCY_HALF_LIFE_DAYS = 7; // recency weight halves every week
+
+/**
+ * Frecency score for a history entry: visit frequency weighted by recency.
+ *
+ * Backs the "Top Sites" quick-access — an accessibility feature, not just a
+ * convenience: a gaze-dwell / hands-free user reaches their most likely
+ * destination in the fewest dwells when the surface is ranked by how much a
+ * site is actually used, rather than chronologically (history) or by manual
+ * curation (bookmarks).
+ *
+ * score = visits × 0.5^(ageInDays / halfLife). A site visited often and
+ * recently scores highest; an old one decays smoothly toward zero. Pure /
+ * dependency-free so the ranking is unit-testable.
+ *
+ * @param {{visits?: number, visitedAt?: number}} entry
+ * @param {number} [now=Date.now()]              reference time (ms)
+ * @param {number} [halfLifeDays=FRECENCY_HALF_LIFE_DAYS]
+ * @returns {number}
+ */
+export function frecencyScore(entry, now = Date.now(), halfLifeDays = FRECENCY_HALF_LIFE_DAYS) {
+  if (!entry) {
+    return 0;
+  }
+  const visits = entry.visits > 0 ? entry.visits : 1;
+  const ageMs = Math.max(0, now - (entry.visitedAt || 0));
+  const halfLifeMs = halfLifeDays * 24 * 60 * 60 * 1000;
+  const decay = Math.pow(0.5, ageMs / halfLifeMs);
+  return visits * decay;
+}
+
+/** Lower-cased host of a URL, or the raw string when it can't be parsed. */
+function hostOf(url) {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return String(url).toLowerCase();
+  }
+}
 
 /**
  * Detect a localStorage quota-exceeded error across browsers. Chrome throws a
@@ -148,5 +187,53 @@ export class BookmarkStore {
   /** Wipe all history. */
   clearHistory() {
     writeJSON(HISTORY_KEY, []);
+  }
+
+  /**
+   * Frecency-ranked "Top Sites": the most-used destinations, deduped per host
+   * so one busy site can't crowd out the rest, newest-and-most-frequent first.
+   *
+   * Powers a fewest-dwell quick-access surface for hands-free users. Each host
+   * keeps its single highest-scoring entry, but that entry's score aggregates
+   * every visit to the host (so a site spread across many pages still ranks by
+   * its true usage). Returns `[{ url, title, host, visits, score }]`.
+   *
+   * @param {number} [limit=8]         max tiles to return
+   * @param {number} [now=Date.now()]  reference time for the recency decay
+   * @returns {Array<{url:string,title:string,host:string,visits:number,score:number}>}
+   */
+  getTopSites(limit = 8, now = Date.now()) {
+    const history = readJSON(HISTORY_KEY, []);
+    const byHost = new Map();
+    for (const entry of history) {
+      if (!entry || !entry.url) {
+        continue;
+      }
+      const host = hostOf(entry.url);
+      const score = frecencyScore(entry, now);
+      const visits = entry.visits > 0 ? entry.visits : 1;
+      const existing = byHost.get(host);
+      if (!existing) {
+        byHost.set(host, {
+          url: entry.url,
+          title: entry.title || entry.url,
+          host,
+          visits,
+          score
+        });
+      } else {
+        // Aggregate the host's total visits; keep the best-scoring page as the
+        // representative URL/title for the tile.
+        existing.visits += visits;
+        if (score > existing.score) {
+          existing.score = score;
+          existing.url = entry.url;
+          existing.title = entry.title || entry.url;
+        }
+      }
+    }
+    return [...byHost.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(0, limit));
   }
 }
