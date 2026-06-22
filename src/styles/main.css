@@ -269,6 +269,25 @@ body.a11y-reduced-motion *::after {
     scroll-behavior: auto !important;
 }
 
+/* Honor the OS prefers-reduced-motion signal directly in CSS, not only via the
+   JS-applied body class above. The class is toggled by applyAccessibility(),
+   which runs after the JS module loads — but the loading spinner's infinite
+   spin animates from first paint, through the whole load window (precisely when
+   it's on screen). A pure-CSS media query applies before any JS and also serves
+   as a fallback if the script never loads, so a motion-sensitive user never
+   sees the spin (WCAG 2.3.3). The accompanying "Loading…" text keeps the busy
+   state legible without rotation. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Visible state for pressed accessibility/utility toggle buttons. */
 .util-toggle[aria-pressed="true"] {
     background: #3a6ea5 !important;
