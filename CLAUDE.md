@@ -319,6 +319,10 @@ Researched Qiita WebSocket reconnection posts (`onclose` recreate-instance patte
 Researched WebRTC `bufferedAmount` backpressure (send-buffer growth under congestion, high-water-mark gating):
 - 🐛 **fix (multiplayer)**: `sendToPeer()` / `broadcast()` checked only `readyState`, never `bufferedAmount`. Position/rotation broadcast at 30/15 Hz, so on a congested link `channel.send()` keeps queuing into the app→SCTP buffer faster than it drains — `bufferedAmount` grows unbounded toward the ~16 MB channel limit, risking a throw / memory bloat. Added a pure `canSendOnChannel(channel, hwm)` gate (open AND `bufferedAmount ≤ MAX_BUFFERED_BYTES` = 256 KB); both send paths skip when congested and count `stats.messagesDropped`. Correct trade-off: the channel is already unreliable/unordered (`maxRetransmits:0`) and position data is ephemeral — the next interval supersedes a dropped update. 8 tests (gate edge cases + send paths skip/send/no-throw).
 
+### Session 14: Community Research — OS prefers-reduced-motion at First Paint
+Researched the CSS `@media (prefers-reduced-motion)` baseline (vs JS-class motion gating; first-paint timing):
+- 🐛 **fix (a11y 2D entry)**: `main.css` neutralised motion only under the JS-applied `body.a11y-reduced-motion` class (toggled by `applyAccessibility()` from `osReducedMotion()`). But the loading spinner's `animation: spin … infinite` runs from first paint through the whole load window — before the JS module loads and applies the class — so an OS-reduced-motion user still saw the spin (and got nothing if the script failed to load). Added a pure-CSS `@media (prefers-reduced-motion: reduce)` block mirroring the neutralisation; it applies pre-JS and as a no-JS fallback, suppressing the spin and `:hover` translate/scale lifts (WCAG 2.3.3). The "Loading…" text keeps the busy state legible without rotation. CSS-only (media queries aren't evaluable in jsdom) — verified by inspection + brace balance.
+
 ---
 
 ## Contributing Guidelines
