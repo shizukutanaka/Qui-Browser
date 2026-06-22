@@ -332,6 +332,12 @@ Socratic reasoning (hardest hands-free task = reaching a destination → dwell-t
 - ✨ **feat (a11y data)**: pure `frecencyScore(entry, now, halfLifeDays=7)` = `visits × 0.5^(ageDays/halfLife)` (future timestamps clamp to no-decay, null→0, missing/0 visits→1) + `BookmarkStore.getTopSites(limit=8, now)` which ranks history by frecency, dedupes per host (aggregating the host's total visits, keeping its highest-scoring page as the tile), returns `[{url,title,host,visits,score}]`. 12 tests.
 - ✨ **feat (hands-free surface)**: `VoiceCommands.connectBrowser` gains an `onTopSites` callback + a `top-sites` command (`トップサイト`/`よく使うサイト`/…), decoupled like `onSearch`; VRApp navigates the active tab to the #1 site with a cross-modal `Top site: <host>` caption (or `No top sites yet`). 3 tests. **Equity framing**: fewest dwells for the highest-probability action. Natural next step: a canvas speed-dial tile surface in BookmarkPanel.
 
+### Session 17: 長所短所改善点 — Hardening the Top Sites Data Foundation
+Three iterative strengths/weaknesses/improvements passes on the new feature's data layer:
+- 🐛 **fix (visit accuracy)**: `addHistory` only collapsed *consecutive* same-URL visits (checked `all[0]`). Non-consecutive revisits (A→B→A, the common case) appended a duplicate `visits:1` entry — undercounting the visit frequency frecency ranks on and bloating the bounded 200-entry history with dupes. Now dedupes by URL globally (find anywhere → increment, refresh timestamp, move to front; title refreshed only when a real one is supplied). 3 tests.
+- 📈 **improve (ranking)**: `getTopSites` aggregated per-host visits but still *sorted* by the single highest-scoring page, so broad multi-page engagement lost to one frequently-hit page. Now ranks by the **sum** of a host's page frecencies (representative URL/title still the best page, via an internal `_bestScore` stripped from output). 2 tests.
+- 📈 **improve (quality)**: every search resolves to a search-engine URL, so a frequent searcher's #1 "Top Site" was their search engine. Added `getTopSites(…, exclude=[])` (case-insensitive host skip) + pure `searchEngineHosts()` in urlResolver; VRApp passes the engine hosts so the jump lands on a real destination. 4 tests.
+
 ---
 
 ## Contributing Guidelines
