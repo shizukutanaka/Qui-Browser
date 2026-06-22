@@ -327,6 +327,11 @@ Researched the CSS `@media (prefers-reduced-motion)` baseline (vs JS-class motio
 Researched the WCAG 2.x sRGB relative-luminance / contrast-ratio formula (1.4.3 text, 1.4.11 non-text; large-text threshold):
 - ✅ **test (a11y)**: `buttonStyle.js` asserted its high-contrast palette met specific ratios only in prose comments — unverified, so a future colour tweak could silently dim below threshold. Added a contrast-ratio suite implementing the WCAG luminance formula (self-checked: black/white = 21:1, identical = 1:1) that verifies every HC indicator colour clears **3:1** against both the idle (`#000000`) and hover (`#004adf`) backings — the applicable bar for the bold ≥28px large-scale labels (1.4.3) and non-text borders (1.4.11) — and that the label colours clear the stronger **4.5:1** against the idle black backing. Hand-computed margins were tight (`#aaccee` on `#004adf` ≈ 4.1:1, fine for large text but under 4.5), so the precise test resolves the ambiguity and turns the documented claims into enforced invariants. Palette passes; 4 new tests.
 
+### Session 16: Socratic New Feature — Frecency-Ranked "Top Sites"
+Socratic reasoning (hardest hands-free task = reaching a destination → dwell-typing/scrolling unranked history is slow → the usage data already exists but isn't ranked → surface most-used sites by frecency) produced a new **Top Sites** quick-access feature:
+- ✨ **feat (a11y data)**: pure `frecencyScore(entry, now, halfLifeDays=7)` = `visits × 0.5^(ageDays/halfLife)` (future timestamps clamp to no-decay, null→0, missing/0 visits→1) + `BookmarkStore.getTopSites(limit=8, now)` which ranks history by frecency, dedupes per host (aggregating the host's total visits, keeping its highest-scoring page as the tile), returns `[{url,title,host,visits,score}]`. 12 tests.
+- ✨ **feat (hands-free surface)**: `VoiceCommands.connectBrowser` gains an `onTopSites` callback + a `top-sites` command (`トップサイト`/`よく使うサイト`/…), decoupled like `onSearch`; VRApp navigates the active tab to the #1 site with a cross-modal `Top site: <host>` caption (or `No top sites yet`). 3 tests. **Equity framing**: fewest dwells for the highest-probability action. Natural next step: a canvas speed-dial tile surface in BookmarkPanel.
+
 ---
 
 ## Contributing Guidelines
