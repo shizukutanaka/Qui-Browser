@@ -17,6 +17,24 @@ export const SEARCH_ENGINES = {
 
 export const DEFAULT_SEARCH_ENGINE = 'duckduckgo';
 
+/**
+ * Hosts of the built-in search engines, derived from SEARCH_ENGINES templates.
+ * Used to keep search-result pages (every query resolves to one of these) out
+ * of frecency surfaces like Top Sites. Pure / dependency-free.
+ * @returns {string[]} e.g. ['duckduckgo.com', 'www.google.com', …]
+ */
+export function searchEngineHosts() {
+  return Object.values(SEARCH_ENGINES)
+    .map((tpl) => {
+      try {
+        return new URL(tpl).host.toLowerCase();
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean);
+}
+
 // A conservative single-token TLD check. We only need to recognise the common
 // case (example.com, sub.example.co.jp) — anything ambiguous becomes a search.
 const LOOKS_LIKE_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/.*)?$/i;

@@ -7,7 +7,8 @@ const {
   buildSearchUrl,
   isSearchQuery,
   SEARCH_ENGINES,
-  DEFAULT_SEARCH_ENGINE
+  DEFAULT_SEARCH_ENGINE,
+  searchEngineHosts
 } = require('../src/vr/browser/urlResolver.js');
 
 // NFD "が" = か (U+304B) + combining voiced sound mark (U+3099) → 2 code points.
@@ -136,5 +137,23 @@ describe('isSearchQuery', () => {
   });
   test('false for empty input', () => {
     expect(isSearchQuery('')).toBe(false);
+  });
+});
+
+describe('searchEngineHosts', () => {
+  test('derives the host of every built-in search engine', () => {
+    const hosts = searchEngineHosts();
+    expect(hosts).toContain('duckduckgo.com');
+    expect(hosts).toContain('www.google.com');
+    expect(hosts).toContain('www.bing.com');
+    expect(hosts).toContain('www.ecosia.org');
+    expect(hosts).toHaveLength(Object.keys(SEARCH_ENGINES).length);
+  });
+
+  test('returns lowercased, non-empty hosts', () => {
+    for (const h of searchEngineHosts()) {
+      expect(h).toBe(h.toLowerCase());
+      expect(h.length).toBeGreaterThan(0);
+    }
   });
 });

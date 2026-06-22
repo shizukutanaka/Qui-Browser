@@ -344,6 +344,23 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     expect(tile.title).toBe('Hot page');
   });
 
+  test('exclude omits given hosts (e.g. the search engine) from the ranking', () => {
+    seed([
+      { url: 'https://duckduckgo.com/?q=cats', title: 'cats', visits: 40, visitedAt: now },
+      { url: 'https://news.com/', title: 'News', visits: 5, visitedAt: now }
+    ]);
+    // Without exclusion the heavily-used search engine would be #1.
+    expect(store.getTopSites(8, now)[0].host).toBe('duckduckgo.com');
+    // Excluded → the user's real destination wins the slot.
+    const top = store.getTopSites(8, now, ['duckduckgo.com']);
+    expect(top.map(s => s.host)).toEqual(['news.com']);
+  });
+
+  test('exclude matching is case-insensitive', () => {
+    seed([{ url: 'https://Example.COM/', title: 'E', visits: 3, visitedAt: now }]);
+    expect(store.getTopSites(8, now, ['EXAMPLE.com'])).toHaveLength(0);
+  });
+
   test('respects the limit', () => {
     seed(Array.from({ length: 12 }, (_, i) => ({
       url: `https://s${i}.com/`, title: `S${i}`, visits: i + 1, visitedAt: now

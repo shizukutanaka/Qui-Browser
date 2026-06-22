@@ -27,6 +27,7 @@ import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
+import { searchEngineHosts } from './browser/urlResolver.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -2138,7 +2139,9 @@ export class VRApp {
           // history). Fewest-dwell navigation for hands-free users; announced
           // cross-modally so it's perceivable without sight.
           onTopSites: () => {
-            const top = this.bookmarks.getTopSites(1)[0];
+            // Exclude search-engine result pages so the user's actual
+            // destinations win the slot, not their search engine.
+            const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
             const active = this.tabManager?.getActiveTab?.();
             if (top && active) {
               if (this.captionSystem && this.captionSystem.enabled) {
