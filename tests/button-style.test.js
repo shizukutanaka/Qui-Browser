@@ -89,3 +89,59 @@ describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
     expect(buttonAccentColor('#e4a85e', false)).toBe('#e4a85e');
   });
 });
+
+// ── WCAG contrast-ratio guarantees for the high-contrast palette ──────────────
+// Locks in the accessibility claims in buttonStyle.js (currently only asserted
+// in prose comments). The VR toggle labels render as bold ≥28px text on canvas,
+// which is "large scale" under WCAG 1.4.3 (≥18.66px bold) — so the applicable
+// text threshold is 3:1, and the 1.4.11 non-text (border) threshold is also
+// 3:1. Against the idle pure-black backing the primary states should also clear
+// the stronger 4.5:1 normal-text bar. A future palette tweak that dims a colour
+// below these ratios now fails CI instead of silently regressing.
+describe('buttonStyle — high-contrast WCAG contrast ratios', () => {
+  // sRGB relative luminance per WCAG 2.x definition.
+  function relLuminance(hex) {
+    const m = hex.replace('#', '').match(/[0-9a-f]{2}/gi);
+    const [r, g, b] = m.map((h) => {
+      const c = parseInt(h, 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrastRatio(hexA, hexB) {
+    const la = relLuminance(hexA);
+    const lb = relLuminance(hexB);
+    const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  test('contrastRatio sanity: black/white is 21:1, identical is 1:1', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);
+    expect(contrastRatio('#004adf', '#004adf')).toBeCloseTo(1, 5);
+  });
+
+  const HC_BG_IDLE  = BUTTON_BG_HC;        // '#000000'
+  const HC_BG_HOVER = BUTTON_BG_HOVER_HC;  // '#004adf'
+
+  test('every HC indicator colour clears 3:1 against BOTH the idle and hover backings', () => {
+    const fg = [
+      toggleIndicatorColors(true, true).label,   // '#00ff88'
+      toggleIndicatorColors(false, true).label,  // '#aaccee'
+      buttonAccentColor('#5e72e4', true)         // '#ffffff'
+    ];
+    for (const c of fg) {
+      expect(contrastRatio(c, HC_BG_IDLE)).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(c, HC_BG_HOVER)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  test('HC label colours clear the stronger 4.5:1 against the idle black backing', () => {
+    expect(contrastRatio(toggleIndicatorColors(true, true).label, HC_BG_IDLE)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(toggleIndicatorColors(false, true).label, HC_BG_IDLE)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio('#ffffff', HC_BG_IDLE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('the HC hover backing itself is darker than white text by ≥4.5:1 (readable labels on hover)', () => {
+    expect(contrastRatio('#ffffff', HC_BG_HOVER)).toBeGreaterThanOrEqual(4.5);
+  });
+});
