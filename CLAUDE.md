@@ -323,6 +323,10 @@ Researched WebRTC `bufferedAmount` backpressure (send-buffer growth under conges
 Researched the CSS `@media (prefers-reduced-motion)` baseline (vs JS-class motion gating; first-paint timing):
 - 🐛 **fix (a11y 2D entry)**: `main.css` neutralised motion only under the JS-applied `body.a11y-reduced-motion` class (toggled by `applyAccessibility()` from `osReducedMotion()`). But the loading spinner's `animation: spin … infinite` runs from first paint through the whole load window — before the JS module loads and applies the class — so an OS-reduced-motion user still saw the spin (and got nothing if the script failed to load). Added a pure-CSS `@media (prefers-reduced-motion: reduce)` block mirroring the neutralisation; it applies pre-JS and as a no-JS fallback, suppressing the spin and `:hover` translate/scale lifts (WCAG 2.3.3). The "Loading…" text keeps the busy state legible without rotation. CSS-only (media queries aren't evaluable in jsdom) — verified by inspection + brace balance.
 
+### Session 15: Community Research — WCAG Contrast-Ratio Regression Guard
+Researched the WCAG 2.x sRGB relative-luminance / contrast-ratio formula (1.4.3 text, 1.4.11 non-text; large-text threshold):
+- ✅ **test (a11y)**: `buttonStyle.js` asserted its high-contrast palette met specific ratios only in prose comments — unverified, so a future colour tweak could silently dim below threshold. Added a contrast-ratio suite implementing the WCAG luminance formula (self-checked: black/white = 21:1, identical = 1:1) that verifies every HC indicator colour clears **3:1** against both the idle (`#000000`) and hover (`#004adf`) backings — the applicable bar for the bold ≥28px large-scale labels (1.4.3) and non-text borders (1.4.11) — and that the label colours clear the stronger **4.5:1** against the idle black backing. Hand-computed margins were tight (`#aaccee` on `#004adf` ≈ 4.1:1, fine for large text but under 4.5), so the precise test resolves the ambiguity and turns the documented claims into enforced invariants. Palette passes; 4 new tests.
+
 ---
 
 ## Contributing Guidelines
