@@ -96,6 +96,34 @@ describe('BookmarkStore — history', () => {
     expect(h[0].visits).toBe(2);
   });
 
+  test('non-consecutive revisits dedupe globally (A → B → A increments A, no dupe)', () => {
+    store.addHistory('https://a.com', 'A');
+    store.addHistory('https://b.com', 'B');
+    store.addHistory('https://a.com', 'A'); // revisit A after B
+    const h = store.getHistory();
+    expect(h).toHaveLength(2);              // not 3 — A was not duplicated
+    expect(h[0].url).toBe('https://a.com'); // most-recent visit moved to front
+    expect(h[0].visits).toBe(2);            // A's visits accurately counted
+    expect(h[1].url).toBe('https://b.com');
+  });
+
+  test('revisit without a title keeps the previously captured title', () => {
+    store.addHistory('https://a.com', 'Real Title');
+    store.addHistory('https://b.com', 'B');
+    store.addHistory('https://a.com'); // no title (defaults to url)
+    const a = store.getHistory().find(e => e.url === 'https://a.com');
+    expect(a.title).toBe('Real Title'); // not clobbered with the url
+    expect(a.visits).toBe(2);
+  });
+
+  test('revisit with a new distinct title refreshes it', () => {
+    store.addHistory('https://a.com', 'Old Title');
+    store.addHistory('https://b.com', 'B');
+    store.addHistory('https://a.com', 'New Title');
+    const a = store.getHistory().find(e => e.url === 'https://a.com');
+    expect(a.title).toBe('New Title');
+  });
+
   test('different URLs produce separate entries', () => {
     store.addHistory('https://a.com', 'A');
     store.addHistory('https://b.com', 'B');

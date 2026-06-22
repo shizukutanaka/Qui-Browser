@@ -152,10 +152,24 @@ export class BookmarkStore {
    */
   addHistory(url, title = url) {
     const all = readJSON(HISTORY_KEY, []);
-    const last = all[0];
-    if (last && last.url === url) {
-      last.visits = (last.visits || 1) + 1;
-      last.visitedAt = Date.now();
+    // Dedupe by URL across the WHOLE history, not just the most-recent entry.
+    // Revisiting a site seen earlier (the common A → B → A case) must bump its
+    // visit count and move it to the front — not append a duplicate. The old
+    // code only collapsed consecutive repeats (all[0]), so non-consecutive
+    // revisits created separate visits:1 entries: that undercounts true visit
+    // frequency (the signal Top Sites / frecency rank on) and bloats the bounded
+    // history with duplicates of the same URL.
+    const existingIdx = all.findIndex(e => e && e.url === url);
+    if (existingIdx !== -1) {
+      const [entry] = all.splice(existingIdx, 1);
+      entry.visits = (entry.visits || 1) + 1;
+      entry.visitedAt = Date.now();
+      // Refresh the title only when a real one is supplied (the param defaults
+      // to the url), so a revisit without a title can't clobber a good one.
+      if (title && title !== url) {
+        entry.title = title;
+      }
+      all.unshift(entry);
     } else {
       all.unshift({ url, title, visitedAt: Date.now(), visits: 1 });
     }
