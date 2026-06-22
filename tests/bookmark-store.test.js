@@ -306,6 +306,34 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     expect(top.filter(s => s.host === 'news.com')).toHaveLength(1); // single tile
   });
 
+  test('ranks a host by AGGREGATE frecency, so broad multi-page usage wins', () => {
+    // many.com: 3 pages each visited once today → aggregate score ≈ 3.
+    // few.com:  1 page visited twice today      → aggregate score ≈ 2.
+    // The single best-page score is ~1 for many.com vs ~2 for few.com, so a
+    // max-score ranking would (wrongly) put few.com first; the aggregate ranks
+    // the more-engaged host (many.com) first.
+    seed([
+      { url: 'https://many.com/a', title: 'A', visits: 1, visitedAt: now },
+      { url: 'https://many.com/b', title: 'B', visits: 1, visitedAt: now },
+      { url: 'https://many.com/c', title: 'C', visits: 1, visitedAt: now },
+      { url: 'https://few.com/x',  title: 'X', visits: 2, visitedAt: now }
+    ]);
+    const top = store.getTopSites(8, now);
+    expect(top.map(s => s.host)).toEqual(['many.com', 'few.com']);
+    expect(top[0].score).toBeCloseTo(3, 5);
+    expect(top[1].score).toBeCloseTo(2, 5);
+  });
+
+  test('the returned tiles do not leak the internal _bestScore field', () => {
+    seed([
+      { url: 'https://a.com/1', title: '1', visits: 1, visitedAt: now },
+      { url: 'https://a.com/2', title: '2', visits: 1, visitedAt: now }
+    ]);
+    const [tile] = store.getTopSites(8, now);
+    expect(tile).not.toHaveProperty('_bestScore');
+    expect(Object.keys(tile).sort()).toEqual(['host', 'score', 'title', 'url', 'visits']);
+  });
+
   test('the per-host tile keeps the highest-scoring page as its representative', () => {
     seed([
       { url: 'https://site.com/old', title: 'Old page', visits: 2, visitedAt: now - 30 * DAY },

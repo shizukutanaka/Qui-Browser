@@ -207,10 +207,11 @@ export class BookmarkStore {
    * Frecency-ranked "Top Sites": the most-used destinations, deduped per host
    * so one busy site can't crowd out the rest, newest-and-most-frequent first.
    *
-   * Powers a fewest-dwell quick-access surface for hands-free users. Each host
-   * keeps its single highest-scoring entry, but that entry's score aggregates
-   * every visit to the host (so a site spread across many pages still ranks by
-   * its true usage). Returns `[{ url, title, host, visits, score }]`.
+   * Powers a fewest-dwell quick-access surface for hands-free users. A host's
+   * rank is its *aggregate* frecency — the sum of its pages' scores — so broad
+   * engagement across many pages counts, not just the single best page. The
+   * tile's representative URL/title is the host's highest-scoring page. Returns
+   * `[{ url, title, host, visits, score }]` (score = host-aggregate frecency).
    *
    * @param {number} [limit=8]         max tiles to return
    * @param {number} [now=Date.now()]  reference time for the recency decay
@@ -233,14 +234,16 @@ export class BookmarkStore {
           title: entry.title || entry.url,
           host,
           visits,
-          score
+          score,        // running host-aggregate frecency
+          _bestScore: score // highest single-page score → picks the representative
         });
       } else {
-        // Aggregate the host's total visits; keep the best-scoring page as the
-        // representative URL/title for the tile.
+        // Aggregate the host's total visits AND frecency so broad usage ranks;
+        // keep the best-scoring page as the representative URL/title.
         existing.visits += visits;
-        if (score > existing.score) {
-          existing.score = score;
+        existing.score += score;
+        if (score > existing._bestScore) {
+          existing._bestScore = score;
           existing.url = entry.url;
           existing.title = entry.title || entry.url;
         }
@@ -248,6 +251,7 @@ export class BookmarkStore {
     }
     return [...byHost.values()]
       .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(0, limit));
+      .slice(0, Math.max(0, limit))
+      .map(({ _bestScore, ...site }) => site); // drop the internal field
   }
 }
