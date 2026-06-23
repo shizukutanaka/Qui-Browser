@@ -356,6 +356,27 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     expect(top.map(s => s.host)).toEqual(['news.com']);
   });
 
+  test('folds www. so apex and www variants merge into one tile', () => {
+    seed([
+      { url: 'https://www.example.com/a', title: 'WWW', visits: 3, visitedAt: now },
+      { url: 'https://example.com/b', title: 'Apex', visits: 4, visitedAt: now }
+    ]);
+    const top = store.getTopSites(8, now);
+    expect(top).toHaveLength(1);             // not two separate tiles
+    expect(top[0].host).toBe('example.com'); // displayed without www
+    expect(top[0].visits).toBe(7);           // 3 + 4 combined
+  });
+
+  test('exclude with a www-prefixed host matches the folded entry host', () => {
+    seed([
+      { url: 'https://www.google.com/search?q=x', title: 'q', visits: 30, visitedAt: now },
+      { url: 'https://news.com/', title: 'News', visits: 2, visitedAt: now }
+    ]);
+    // 'www.google.com' in the exclude list must match the folded 'google.com'.
+    const top = store.getTopSites(8, now, ['www.google.com']);
+    expect(top.map(s => s.host)).toEqual(['news.com']);
+  });
+
   test('exclude matching is case-insensitive', () => {
     seed([{ url: 'https://Example.COM/', title: 'E', visits: 3, visitedAt: now }]);
     expect(store.getTopSites(8, now, ['EXAMPLE.com'])).toHaveLength(0);

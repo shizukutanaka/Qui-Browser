@@ -37,12 +37,22 @@ export function frecencyScore(entry, now = Date.now(), halfLifeDays = FRECENCY_H
   return visits * decay;
 }
 
-/** Lower-cased host of a URL, or the raw string when it can't be parsed. */
+/** Strip a leading "www." so apex and www variants group as one site. */
+function stripWww(host) {
+  return host.startsWith('www.') ? host.slice(4) : host;
+}
+
+/**
+ * Normalised, lower-cased host of a URL for site grouping: a leading "www." is
+ * folded so https://www.example.com and https://example.com count as the same
+ * site (otherwise they'd split into two tiles, fragmenting the site's frecency
+ * and visit count). Falls back to the raw string when the URL can't be parsed.
+ */
 function hostOf(url) {
   try {
-    return new URL(url).host.toLowerCase();
+    return stripWww(new URL(url).host.toLowerCase());
   } catch {
-    return String(url).toLowerCase();
+    return stripWww(String(url).toLowerCase());
   }
 }
 
@@ -225,7 +235,9 @@ export class BookmarkStore {
    */
   getTopSites(limit = 8, now = Date.now(), exclude = []) {
     const history = readJSON(HISTORY_KEY, []);
-    const skip = new Set((exclude || []).map(h => String(h).toLowerCase()));
+    // Normalise the exclude list the same way as entry hosts (lowercase +
+    // www-fold) so e.g. 'www.google.com' matches the folded 'google.com' key.
+    const skip = new Set((exclude || []).map(h => stripWww(String(h).toLowerCase())));
     const byHost = new Map();
     for (const entry of history) {
       if (!entry || !entry.url) {
