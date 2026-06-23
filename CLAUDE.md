@@ -339,6 +339,10 @@ Three iterative strengths/weaknesses/improvements passes on the new feature's da
 - 📈 **improve (quality)**: every search resolves to a search-engine URL, so a frequent searcher's #1 "Top Site" was their search engine. Added `getTopSites(…, exclude=[])` (case-insensitive host skip) + pure `searchEngineHosts()` in urlResolver; VRApp passes the engine hosts so the jump lands on a real destination. 4 tests.
 - 📈 **improve (host fold)**: `hostOf` returned the raw host, so `www.example.com` and `example.com` split into two tiles, fragmenting one site's frecency/visits. Now folds a leading `www.` when grouping (and normalises the exclude list the same way, so `www.google.com` still matches the folded `google.com`). 2 tests. The visual speed-dial tile surface remains the open next step (deferred: a 3rd BookmarkPanel tab collides with the scroll-arrow zones and canvas output can't be visually verified here).
 
+### Session 18: Socratic New Perspective — Frecency-Ranked URL Autocomplete
+Socratic reasoning (hardest task for a gaze user = address-bar typing → 1500 ms × N chars ≈ 15 s for a 10-char URL → history + bookmarks already hold the data → expose a frecency-ranked search API to power autocomplete):
+- ✨ **feat (a11y data)**: `BookmarkStore.search(query, limit=5, now)` — case-insensitive substring search across history URL+title and bookmarks, returns frecency-ranked `[{url, title, score}]`. History entries score by real frecency (visits × recency decay). Bookmark-only URLs score as one virtual visit at `addedAt` so recently-added bookmarks surface immediately; a URL in both history and bookmarks uses the history data (real visit count). 9 tests covering empty store, empty query (returns all), URL/title match, bookmark virtual scoring, history-beats-bookmark dedup, sort order, limit, null-entry robustness, and recency decay ordering. Total: 739 tests.
+
 ---
 
 ## Contributing Guidelines
@@ -359,4 +363,4 @@ Three iterative strengths/weaknesses/improvements passes on the new feature's da
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-06-20
+**Last Revision**: 2026-06-23

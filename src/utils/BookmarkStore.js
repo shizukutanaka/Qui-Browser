@@ -276,4 +276,61 @@ export class BookmarkStore {
       .slice(0, Math.max(0, limit))
       .map(({ _bestScore, ...site }) => site); // drop the internal field
   }
+
+  /**
+   * Frecency-ranked URL completions for a partial query.
+   *
+   * Searches history and bookmarks for entries whose URL or title contains
+   * `query` (case-insensitive substring). History entries score by their real
+   * frecency (visits × recency decay). A bookmark-only URL scores as one
+   * virtual visit at its `addedAt` time — recently-added bookmarks therefore
+   * appear even before the user has visited them via history, but decay
+   * naturally with age. When a URL appears in both history and bookmarks the
+   * history entry wins (real visit data is more accurate).
+   *
+   * This backs the in-VR address-bar autocomplete surface: a gaze user who
+   * has visited github.com 30 times can dwell on one suggestion instead of
+   * typing 10 characters (10 × 1 500 ms ≈ 15 s saved per navigation).
+   *
+   * @param {string}  [query='']           case-insensitive substring to match
+   * @param {number}  [limit=5]            max results to return
+   * @param {number}  [now=Date.now()]     reference time for recency decay
+   * @returns {Array<{url:string, title:string, score:number}>}
+   */
+  search(query = '', limit = 5, now = Date.now()) {
+    const q = String(query).toLowerCase();
+    const history   = readJSON(HISTORY_KEY,   []);
+    const bookmarks = readJSON(BOOKMARKS_KEY, []);
+
+    const byUrl = new Map();
+
+    for (const entry of history) {
+      if (!entry || !entry.url) continue;
+      if (q && !entry.url.toLowerCase().includes(q) &&
+          !String(entry.title || '').toLowerCase().includes(q)) continue;
+      byUrl.set(entry.url, {
+        url:   entry.url,
+        title: entry.title || entry.url,
+        score: frecencyScore(entry, now),
+      });
+    }
+
+    // Bookmark-only URLs get one virtual visit scored at addedAt so recently
+    // bookmarked sites surface even before the user builds up visit history.
+    for (const bm of bookmarks) {
+      if (!bm || !bm.url) continue;
+      if (byUrl.has(bm.url)) continue; // history entry already present — it wins
+      if (q && !bm.url.toLowerCase().includes(q) &&
+          !String(bm.title || '').toLowerCase().includes(q)) continue;
+      byUrl.set(bm.url, {
+        url:   bm.url,
+        title: bm.title || bm.url,
+        score: frecencyScore({ visitedAt: bm.addedAt, visits: 1 }, now),
+      });
+    }
+
+    return [...byUrl.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(0, limit));
+  }
 }

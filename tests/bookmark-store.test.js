@@ -400,3 +400,111 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     expect(top[0].host).toBe('ok.com');
   });
 });
+
+// ── BookmarkStore.search ──────────────────────────────────────────────────────
+
+describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
+  let store;
+  const now = Date.now();
+
+  function seedHistory(entries) {
+    localStorage.setItem('quiBrowser_history', JSON.stringify(entries));
+  }
+  function seedBookmarks(entries) {
+    localStorage.setItem('quiBrowser_bookmarks', JSON.stringify(entries));
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  test('returns [] when store is empty', () => {
+    expect(store.search('github', 5, now)).toEqual([]);
+  });
+
+  test('empty query returns all history sorted by frecency', () => {
+    seedHistory([
+      { url: 'https://a.com/', title: 'A', visits: 1, visitedAt: now },
+      { url: 'https://b.com/', title: 'B', visits: 5, visitedAt: now },
+    ]);
+    const results = store.search('', 10, now);
+    expect(results).toHaveLength(2);
+    expect(results[0].url).toBe('https://b.com/'); // higher visits → higher score
+  });
+
+  test('matches URL substring case-insensitively', () => {
+    seedHistory([
+      { url: 'https://github.com/user', title: 'GitHub', visits: 3, visitedAt: now },
+      { url: 'https://example.com/', title: 'Example', visits: 5, visitedAt: now },
+    ]);
+    const results = store.search('GITHUB', 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://github.com/user');
+  });
+
+  test('matches title substring case-insensitively', () => {
+    seedHistory([
+      { url: 'https://x.com/', title: 'My Dashboard', visits: 2, visitedAt: now },
+      { url: 'https://y.com/', title: 'Settings', visits: 1, visitedAt: now },
+    ]);
+    const results = store.search('dashboard', 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://x.com/');
+  });
+
+  test('bookmark-only URL scores as one virtual visit at addedAt time', () => {
+    seedBookmarks([{ url: 'https://bookmarked.com/', title: 'BM', addedAt: now }]);
+    const results = store.search('bookmarked', 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].score).toBeCloseTo(1, 5); // 1 visit, age 0 → score ≈ 1
+  });
+
+  test('history entry wins over bookmark for the same URL', () => {
+    seedHistory([{ url: 'https://both.com/', title: 'Both', visits: 10, visitedAt: now }]);
+    seedBookmarks([{ url: 'https://both.com/', title: 'Bookmark', addedAt: now }]);
+    const results = store.search('both', 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].score).toBeCloseTo(10, 5); // history (10 visits) not bookmark (1 visit)
+  });
+
+  test('results are sorted by score descending', () => {
+    seedHistory([
+      { url: 'https://low.com/',  title: 'Low',  visits:  1, visitedAt: now },
+      { url: 'https://high.com/', title: 'High', visits: 20, visitedAt: now },
+      { url: 'https://mid.com/',  title: 'Mid',  visits:  5, visitedAt: now },
+    ]);
+    const results = store.search('', 10, now);
+    expect(results[0].url).toBe('https://high.com/');
+    expect(results[1].url).toBe('https://mid.com/');
+    expect(results[2].url).toBe('https://low.com/');
+  });
+
+  test('respects the limit parameter', () => {
+    seedHistory(Array.from({ length: 10 }, (_, i) => ({
+      url: `https://s${i}.com/`, title: `S${i}`, visits: 1, visitedAt: now
+    })));
+    expect(store.search('', 3, now)).toHaveLength(3);
+  });
+
+  test('skips null and url-less entries in history', () => {
+    seedHistory([
+      null,
+      { title: 'No URL', visits: 5, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+    ]);
+    const results = store.search('', 10, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://ok.com/');
+  });
+
+  test('older entries score lower than newer ones with the same visit count', () => {
+    seedHistory([
+      { url: 'https://old.com/', title: 'Old', visits: 3, visitedAt: now - 30 * DAY },
+      { url: 'https://new.com/', title: 'New', visits: 3, visitedAt: now },
+    ]);
+    const results = store.search('', 10, now);
+    expect(results[0].url).toBe('https://new.com/');
+    expect(results[0].score).toBeGreaterThan(results[1].score);
+  });
+});
