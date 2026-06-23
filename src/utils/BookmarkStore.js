@@ -307,30 +307,49 @@ export class BookmarkStore {
     const history   = readJSON(HISTORY_KEY,   []);
     const bookmarks = readJSON(BOOKMARKS_KEY, []);
 
+    // Case- and NFC-insensitive substring test over an entry's url + title.
+    // Both sides are coerced with String() so a malformed/legacy entry whose
+    // url is a number can't throw via .normalize and break every keystroke.
+    const matches = (url, title) => {
+      if (!q) {
+        return true;
+      }
+      return String(url).normalize('NFC').toLowerCase().includes(q) ||
+        String(title || '').normalize('NFC').toLowerCase().includes(q);
+    };
+
     const byUrl = new Map();
 
     for (const entry of history) {
-      if (!entry || !entry.url) continue;
-      if (q && !entry.url.normalize('NFC').toLowerCase().includes(q) &&
-          !String(entry.title || '').normalize('NFC').toLowerCase().includes(q)) continue;
+      if (!entry || !entry.url) {
+        continue;
+      }
+      if (!matches(entry.url, entry.title)) {
+        continue;
+      }
       byUrl.set(entry.url, {
         url:   entry.url,
         title: entry.title || entry.url,
-        score: frecencyScore(entry, now),
+        score: frecencyScore(entry, now)
       });
     }
 
     // Bookmark-only URLs get one virtual visit scored at addedAt so recently
     // bookmarked sites surface even before the user builds up visit history.
     for (const bm of bookmarks) {
-      if (!bm || !bm.url) continue;
-      if (byUrl.has(bm.url)) continue; // history entry already present — it wins
-      if (q && !bm.url.normalize('NFC').toLowerCase().includes(q) &&
-          !String(bm.title || '').normalize('NFC').toLowerCase().includes(q)) continue;
+      if (!bm || !bm.url) {
+        continue;
+      }
+      if (byUrl.has(bm.url)) {
+        continue; // history entry already present — it wins (real visit data)
+      }
+      if (!matches(bm.url, bm.title)) {
+        continue;
+      }
       byUrl.set(bm.url, {
         url:   bm.url,
         title: bm.title || bm.url,
-        score: frecencyScore({ visitedAt: bm.addedAt, visits: 1 }, now),
+        score: frecencyScore({ visitedAt: bm.addedAt, visits: 1 }, now)
       });
     }
 

@@ -498,6 +498,26 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     expect(results[0].url).toBe('https://ok.com/');
   });
 
+  test('does not throw on a non-string url (malformed/tampered storage)', () => {
+    // A number url (e.g. legacy data or addHistory(123)) must not break the
+    // whole search via entry.url.normalize — autocomplete runs on every keystroke.
+    seedHistory([
+      { url: 12345, title: 'Numeric', visits: 3, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+    ]);
+    let results;
+    expect(() => { results = store.search('ok', 10, now); }).not.toThrow();
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://ok.com/');
+  });
+
+  test('matches a non-string url by its coerced string form', () => {
+    seedHistory([{ url: 12345, title: 'Numeric', visits: 3, visitedAt: now }]);
+    const results = store.search('234', 10, now); // substring of "12345"
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe(12345);
+  });
+
   test('older entries score lower than newer ones with the same visit count', () => {
     seedHistory([
       { url: 'https://old.com/', title: 'Old', visits: 3, visitedAt: now - 30 * DAY },
