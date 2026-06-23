@@ -499,30 +499,6 @@ export class VoiceCommands {
       description: 'Open most-used site'
     });
 
-    // Go-to — open a named site from history/bookmarks; fallback to web search.
-    // "githubを開く" / "go to github" extracts the site name and hands it to
-    // onGoTo, which runs BookmarkStore.search() and navigates to the top hit —
-    // or calls onSearch if no frecency match exists. This closes the loop on the
-    // autocomplete data layer: a user who has visited github.com 50 times says
-    // "open github" and lands there directly instead of at a search results page.
-    this.registerCommand('go-to', {
-      patterns: [
-        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
-        /^(?:open|go to|navigate to)\s+(.+)/i
-      ],
-      action: (transcript) => {
-        const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
-        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
-        const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
-        if (onGoTo && query) {
-          onGoTo(query);
-        }
-        return { action: 'go-to', query: query || null };
-      },
-      description: 'Open site by name from history/bookmarks, fall back to search'
-    });
-
     // Browser forward / back
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
@@ -620,6 +596,37 @@ export class VoiceCommands {
       },
       confirmationText: 'キーボードを切り替えます',
       description: 'Toggle VR keyboard'
+    });
+
+    // Go-to — open a named site from history/bookmarks; fall back to web search.
+    // "githubを開く" / "go to github" extracts the site name and hands it to
+    // onGoTo, which runs BookmarkStore.search() and navigates to the top hit —
+    // or falls back to navigation/search if no frecency match exists. This
+    // closes the loop on the autocomplete data layer: a user who has visited
+    // github.com 50 times says "open github" and lands there directly instead
+    // of at a search-results page.
+    //
+    // REGISTERED LAST ON PURPOSE: its `を開く` / `open X` capture is greedy and
+    // would otherwise swallow more specific commands (e.g. "キーボードを開く"
+    // → keyboard toggle). processCommand matches in registration order and
+    // stops at the first hit, so this generic catch-all must come after every
+    // specific command to act only on utterances none of them claimed.
+    this.registerCommand('go-to', {
+      patterns: [
+        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+        /^(?:open|go to|navigate to)\s+(.+)/i
+      ],
+      action: (transcript) => {
+        const t = transcript.toLowerCase().trim();
+        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+        const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
+        if (onGoTo && query) {
+          onGoTo(query);
+        }
+        return { action: 'go-to', query: query || null };
+      },
+      description: 'Open site by name from history/bookmarks, fall back to search'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

@@ -167,4 +167,19 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     vc.connectBrowser({});
     expect(() => vc.processCommand('githubを開く', 0.9)).not.toThrow();
   });
+
+  test('"キーボードを開く" toggles the keyboard, not go-to (specific wins over catch-all)', () => {
+    // go-to's "を開く" capture is greedy; it must be registered last so the
+    // specific keyboard command claims this utterance first.
+    const onGoTo = jest.fn();
+    let toggled = false;
+    vc.connectBrowser({
+      onGoTo,
+      vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
+    });
+    vc.processCommand('キーボードを開く', 0.9);
+    expect(vc.lastCommand.key).toBe('keyboard');
+    expect(toggled).toBe(true);
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
 });
