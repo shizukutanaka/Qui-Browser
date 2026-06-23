@@ -2151,6 +2151,31 @@ export class VRApp {
             } else if (this.captionSystem && this.captionSystem.enabled) {
               this.captionSystem.show('No top sites yet');
             }
+          },
+          // Go-to: look up the extracted site name in frecency-ranked
+          // history/bookmarks. A history hit navigates directly (fewest dwells
+          // for a familiar destination); no hit falls back to web search so the
+          // command always produces a result. This closes the loop on the
+          // autocomplete data layer (BookmarkStore.search) for voice input.
+          onGoTo: (query) => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (!active) {
+              return;
+            }
+            const hits = this.bookmarks.search(query, 1, Date.now());
+            if (hits.length > 0) {
+              const hit = hits[0];
+              if (this.captionSystem && this.captionSystem.enabled) {
+                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+              }
+              active.navigate(hit.url);
+            } else {
+              // No frecency match — treat as URL or web search
+              if (query && this.captionSystem && this.captionSystem.enabled) {
+                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              }
+              active.navigate(query);
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

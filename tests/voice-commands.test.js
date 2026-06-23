@@ -125,3 +125,46 @@ describe('VoiceCommands — connectBrowser top-sites command', () => {
     expect(() => vc.processCommand('トップサイト', 0.9)).not.toThrow();
   });
 });
+
+describe('VoiceCommands — connectBrowser go-to command', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('"githubを開く" fires onGoTo with the extracted site name', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('githubを開く', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+    expect(vc.lastCommand.key).toBe('go-to');
+    expect(vc.lastCommand.result.query).toBe('github');
+  });
+
+  test('"go to github" fires onGoTo with the extracted site name', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('go to github', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+
+  test('"open github.com" fires onGoTo with the full domain', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('open github.com', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github.com');
+  });
+
+  test('"githubに行く" fires onGoTo correctly', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('githubに行く', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+
+  test('does not throw when onGoTo is not wired', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('githubを開く', 0.9)).not.toThrow();
+  });
+});

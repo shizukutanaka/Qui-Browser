@@ -478,8 +478,12 @@ export class VoiceCommands {
    * @param {object}   [opts.bookmarkPanel] BookmarkPanel instance
    * @param {object}   [opts.vrKeyboard]    VRJapaneseKeyboard instance
    * @param {Function} [opts.onSearch]      (query: string) => void — called for web search
+   * @param {Function} [opts.onGoTo]        (query: string) => void — called with the
+   *                                         extracted site name; host looks it up in
+   *                                         history/bookmarks and navigates or falls back
+   *                                         to search (decoupled like onTopSites/onSearch)
    */
-  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites } = {}) {
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -493,6 +497,30 @@ export class VoiceCommands {
       },
       confirmationText: 'よく使うサイトを開きます',
       description: 'Open most-used site'
+    });
+
+    // Go-to — open a named site from history/bookmarks; fallback to web search.
+    // "githubを開く" / "go to github" extracts the site name and hands it to
+    // onGoTo, which runs BookmarkStore.search() and navigates to the top hit —
+    // or calls onSearch if no frecency match exists. This closes the loop on the
+    // autocomplete data layer: a user who has visited github.com 50 times says
+    // "open github" and lands there directly instead of at a search results page.
+    this.registerCommand('go-to', {
+      patterns: [
+        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+        /^(?:open|go to|navigate to)\s+(.+)/i
+      ],
+      action: (transcript) => {
+        const t = transcript.toLowerCase().trim();
+        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+        const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
+        if (onGoTo && query) {
+          onGoTo(query);
+        }
+        return { action: 'go-to', query: query || null };
+      },
+      description: 'Open site by name from history/bookmarks, fall back to search'
     });
 
     // Browser forward / back
