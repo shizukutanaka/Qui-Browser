@@ -508,3 +508,54 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     expect(results[0].score).toBeGreaterThan(results[1].score);
   });
 });
+
+// ── BookmarkStore.search — NFC/NFD Unicode normalization ─────────────────────
+// NFD "が" = か (U+304B) + combining voiced sound mark (U+3099) → 2 code points.
+// NFC "が" = the single precomposed code point (U+304C)          → 1 code point.
+// Built from escapes so the fixtures can't be silently re-normalized by editors.
+const SEARCH_GA_NFD = 'が';
+const SEARCH_GA_NFC = 'が';
+
+describe('BookmarkStore.search — Unicode normalization (NFC/NFD)', () => {
+  let store;
+  const now = Date.now();
+
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  test('fixture sanity: NFD is 2 code points, NFC is 1', () => {
+    expect(Array.from(SEARCH_GA_NFD)).toHaveLength(2);
+    expect(Array.from(SEARCH_GA_NFC)).toHaveLength(1);
+    expect(SEARCH_GA_NFD.normalize('NFC')).toBe(SEARCH_GA_NFC);
+  });
+
+  test('NFD query matches NFC-stored history title', () => {
+    // Page title stored NFC (the common form from HTML + navigate()).
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      { url: 'https://jp.example.com/', title: SEARCH_GA_NFC + 'ページ', visits: 1, visitedAt: now }
+    ]));
+    // Query arrives NFD (some IME / macOS paste path).
+    const results = store.search(SEARCH_GA_NFD, 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://jp.example.com/');
+  });
+
+  test('NFC query matches NFD-stored history title', () => {
+    // Stored title happens to be NFD (raw page source without normalization).
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      { url: 'https://jp2.example.com/', title: SEARCH_GA_NFD + 'テスト', visits: 1, visitedAt: now }
+    ]));
+    const results = store.search(SEARCH_GA_NFC, 5, now);
+    expect(results).toHaveLength(1);
+    expect(results[0].url).toBe('https://jp2.example.com/');
+  });
+
+  test('NFD and NFC queries for the same word return identical results', () => {
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      { url: 'https://jp3.example.com/', title: SEARCH_GA_NFC + 'サイト', visits: 2, visitedAt: now }
+    ]));
+    expect(store.search(SEARCH_GA_NFD, 5, now)).toEqual(store.search(SEARCH_GA_NFC, 5, now));
+  });
+});

@@ -298,7 +298,12 @@ export class BookmarkStore {
    * @returns {Array<{url:string, title:string, score:number}>}
    */
   search(query = '', limit = 5, now = Date.now()) {
-    const q = String(query).toLowerCase();
+    // NFC-normalize so an NFD query (e.g. か + combining ゙ from some IMEs /
+    // macOS paste) matches NFC-stored history titles (the common storage form).
+    // Without this, NFD "が" and NFC "が" compare unequal via String.includes,
+    // so a Japanese user who just typed a title gets zero suggestions despite
+    // the page being in history. ASCII is unaffected.
+    const q = String(query).normalize('NFC').toLowerCase();
     const history   = readJSON(HISTORY_KEY,   []);
     const bookmarks = readJSON(BOOKMARKS_KEY, []);
 
@@ -306,8 +311,8 @@ export class BookmarkStore {
 
     for (const entry of history) {
       if (!entry || !entry.url) continue;
-      if (q && !entry.url.toLowerCase().includes(q) &&
-          !String(entry.title || '').toLowerCase().includes(q)) continue;
+      if (q && !entry.url.normalize('NFC').toLowerCase().includes(q) &&
+          !String(entry.title || '').normalize('NFC').toLowerCase().includes(q)) continue;
       byUrl.set(entry.url, {
         url:   entry.url,
         title: entry.title || entry.url,
@@ -320,8 +325,8 @@ export class BookmarkStore {
     for (const bm of bookmarks) {
       if (!bm || !bm.url) continue;
       if (byUrl.has(bm.url)) continue; // history entry already present — it wins
-      if (q && !bm.url.toLowerCase().includes(q) &&
-          !String(bm.title || '').toLowerCase().includes(q)) continue;
+      if (q && !bm.url.normalize('NFC').toLowerCase().includes(q) &&
+          !String(bm.title || '').normalize('NFC').toLowerCase().includes(q)) continue;
       byUrl.set(bm.url, {
         url:   bm.url,
         title: bm.title || bm.url,
