@@ -168,6 +168,15 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     expect(() => vc.processCommand('githubを開く', 0.9)).not.toThrow();
   });
 
+  test('mirrors a spoken "understood" confirmation to onSpeak (cross-modal)', () => {
+    // Blind users hear the TTS cue; deaf/HoH users see it mirrored to captions.
+    const spoken = [];
+    vc.callbacks.onSpeak = (t) => spoken.push(t);
+    vc.connectBrowser({ onGoTo: jest.fn() });
+    vc.processCommand('githubを開く', 0.9);
+    expect(spoken).toContain('開きます');
+  });
+
   test('"キーボードを開く" toggles the keyboard, not go-to (specific wins over catch-all)', () => {
     // go-to's "を開く" capture is greedy; it must be registered last so the
     // specific keyboard command claims this utterance first.

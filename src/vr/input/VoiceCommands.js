@@ -626,6 +626,11 @@ export class VoiceCommands {
         }
         return { action: 'go-to', query: query || null };
       },
+      // Immediate "command understood" cue, like search/navigate/top-sites.
+      // Spoken via TTS (blind users) and mirrored to captions via onSpeak
+      // (deaf/HoH) the moment the command matches — before navigation, and
+      // independent of whether a frecency hit is found (WCAG 4.1.3).
+      confirmationText: '開きます',
       description: 'Open site by name from history/bookmarks, fall back to search'
     });
 
