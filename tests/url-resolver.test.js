@@ -64,6 +64,35 @@ describe('resolveInput', () => {
     expect(resolveInput('192.168.1.1')).toBe('https://192.168.1.1');
   });
 
+  // ── internationalized domain names (IDN) — Japanese browser ────────────────
+  test('navigates a Japanese IDN with an ASCII TLD (日本語.jp)', () => {
+    // Previously this fell through to the search engine because the host regex
+    // was ASCII-only; a JP user could not reach a Japanese-named site directly.
+    expect(resolveInput('日本語.jp')).toBe('https://日本語.jp');
+  });
+  test('navigates an all-Japanese IDN with a Japanese TLD (例え.テスト)', () => {
+    expect(resolveInput('例え.テスト')).toBe('https://例え.テスト');
+  });
+  test('navigates a Japanese IDN with a path', () => {
+    expect(resolveInput('日本語.jp/ページ')).toBe('https://日本語.jp/ページ');
+  });
+  test('the resolved IDN URL is punycode-convertible by the URL layer', () => {
+    // The browser/iframe converts the Unicode host to punycode on navigation;
+    // confirm the resolver's output is a valid, convertible URL.
+    expect(new URL(resolveInput('日本語.jp')).host).toBe('xn--wgv71a119e.jp');
+  });
+  test('Japanese text without a dot is still a search, not a host', () => {
+    expect(resolveInput('東京タワー')).toBe(
+      SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京タワー')
+    );
+  });
+  test('Japanese text with a full-width space is still a search', () => {
+    // U+3000 (ideographic space) is matched by \s, so this stays a query.
+    expect(resolveInput('東京　天気')).toBe(
+      SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京　天気'.normalize('NFC'))
+    );
+  });
+
   // ── search queries ──────────────────────────────────────────────────────────
   test('single word becomes a search', () => {
     expect(resolveInput('weather')).toBe(SEARCH_ENGINES.duckduckgo + 'weather');

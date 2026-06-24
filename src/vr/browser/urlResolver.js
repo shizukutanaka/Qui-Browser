@@ -35,9 +35,15 @@ export function searchEngineHosts() {
     .filter(Boolean);
 }
 
-// A conservative single-token TLD check. We only need to recognise the common
+// A conservative single-token host check. We only need to recognise the common
 // case (example.com, sub.example.co.jp) — anything ambiguous becomes a search.
-const LOOKS_LIKE_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/.*)?$/i;
+// Unicode-aware (\p{L}/\p{N}) so internationalized domain names (IDN) like
+// 日本語.jp or the all-Japanese 例え.テスト are recognised as hosts and navigated
+// rather than sent to the search engine — essential for a Japanese-focused
+// browser. The browser/iframe layer converts the Unicode host to punycode on
+// navigation. ASCII behaviour is identical; the "≥2 dot-separated labels, no
+// spaces" shape is unchanged, so plain text like 東京タワー (no dot) stays a search.
+const LOOKS_LIKE_HOST = /^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)+(:\d+)?(\/.*)?$/u;
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 // Schemes we refuse to navigate to (XSS / local-file / data-exfil vectors).
 const BLOCKED_SCHEME = /^(javascript|data|file|blob|vbscript):/i;
