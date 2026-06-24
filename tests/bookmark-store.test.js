@@ -527,6 +527,20 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     expect(results[0].url).toBe('https://new.com/');
     expect(results[0].score).toBeGreaterThan(results[1].score);
   });
+
+  test('bookmark without addedAt (legacy data) is treated as newly bookmarked', () => {
+    // A corrupted/legacy bookmark with no addedAt should surface at full score,
+    // not be silently dropped with a zero score. Treat missing addedAt as "now".
+    seedBookmarks([
+      { url: 'https://no-timestamp.com/', title: 'No Timestamp' }, // addedAt missing
+      { url: 'https://with-timestamp.com/', title: 'Has Timestamp', addedAt: now - 60 * DAY }
+    ]);
+    const results = store.search('', 10, now);
+    expect(results).toHaveLength(2);
+    // The no-timestamp bookmark should score higher (treated as addedAt = now).
+    expect(results[0].url).toBe('https://no-timestamp.com/');
+    expect(results[0].score).toBeGreaterThan(results[1].score);
+  });
 });
 
 // ── BookmarkStore.search — NFC/NFD Unicode normalization ─────────────────────

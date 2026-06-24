@@ -346,10 +346,15 @@ export class BookmarkStore {
       if (!matches(bm.url, bm.title)) {
         continue;
       }
+      // Bookmarks without a timestamp (legacy/corrupted data) are treated as
+      // newly bookmarked (addedAt = now) so they surface immediately rather
+      // than being silently dropped with a zero score. A user will revisit it,
+      // building real history, or it stays visible.
+      const addedAt = bm.addedAt || now;
       byUrl.set(bm.url, {
         url:   bm.url,
         title: bm.title || bm.url,
-        score: frecencyScore({ visitedAt: bm.addedAt, visits: 1 }, now)
+        score: frecencyScore({ visitedAt: addedAt, visits: 1 }, now)
       });
     }
 
