@@ -22,8 +22,61 @@ describe('src/vr/input/JapaneseIME', () => {
     expect(ime.convertRomajiToHiragana('kka')).toBe('っか');
   });
 
+  // Syllabic ん ('n') — the classic romaji-IME ambiguity. A lone 'n' must not be
+  // consumed as ん before a vowel/y that would form the な/にゃ rows.
+  test('converts the な-row (n + vowel), not ん + vowel', () => {
+    expect(ime.convertRomajiToHiragana('na')).toBe('な');
+    expect(ime.convertRomajiToHiragana('ni')).toBe('に');
+    expect(ime.convertRomajiToHiragana('nu')).toBe('ぬ');
+    expect(ime.convertRomajiToHiragana('ne')).toBe('ね');
+    expect(ime.convertRomajiToHiragana('no')).toBe('の');
+  });
+
+  test('converts the にゃ-row (n + y + vowel)', () => {
+    expect(ime.convertRomajiToHiragana('nya')).toBe('にゃ');
+    expect(ime.convertRomajiToHiragana('nyu')).toBe('にゅ');
+    expect(ime.convertRomajiToHiragana('nyo')).toBe('にょ');
+  });
+
+  test('"nn" collapses to a single ん', () => {
+    expect(ime.convertRomajiToHiragana('nn')).toBe('ん');
+  });
+
+  test('"nn" + vowel is ん + な-row (nna → んな, nni → んに)', () => {
+    expect(ime.convertRomajiToHiragana('nna')).toBe('んな');
+    expect(ime.convertRomajiToHiragana('nni')).toBe('んに');
+  });
+
+  test('n before a consonant becomes ん (sankaku → さんかく)', () => {
+    expect(ime.convertRomajiToHiragana('sankaku')).toBe('さんかく');
+  });
+
+  test('a trailing n becomes ん (hon → ほん)', () => {
+    expect(ime.convertRomajiToHiragana('hon')).toBe('ほん');
+  });
+
+  test('typing "konnichiha" yields こんにちは (was こんんいちは)', () => {
+    expect(ime.convertRomajiToHiragana('konnichiha')).toBe('こんにちは');
+  });
+
+  test('ん combines with a following sokuon (ganbatte → がんばって)', () => {
+    expect(ime.convertRomajiToHiragana('ganbatte')).toBe('がんばって');
+  });
+
+  test('incremental composition: lone n shows ん, then resolves to な with the vowel', () => {
+    // processInput appends and reconverts the whole buffer each keystroke, so a
+    // transient ん after the first 'n' must resolve to な once the vowel arrives.
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん');  // mid-composition
+    expect(ime.convertRomajiToHiragana('na')).toBe('な'); // after the vowel
+  });
+
   test('converts hiragana to katakana', () => {
     expect(ime.convertHiraganaToKatakana('あいうえお')).toBe('アイウエオ');
+  });
+
+  test('な-row fix carries through to katakana (na → ナ)', () => {
+    const hira = ime.convertRomajiToHiragana('na');
+    expect(ime.convertHiraganaToKatakana(hira)).toBe('ナ');
   });
 });
 

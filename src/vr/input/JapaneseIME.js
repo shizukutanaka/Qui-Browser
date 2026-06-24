@@ -21,6 +21,17 @@ export class JapaneseIME {
     this.romajiToHiragana = this.buildRomajiMap();
     this.hiraganaToKatakana = this.buildKatakanaMap();
 
+    // Proper prefixes of every romaji key (e.g. 'n'→na/ni…, 'ny'→nya, 'sh'→sha).
+    // Used to DEFER matching while the buffer could still grow into a longer
+    // syllable, so a lone 'n' (the only single consonant that is itself a key,
+    // ん) isn't consumed before na/ni/nya… can form. Precomputed once → O(1).
+    this._romajiPrefixes = new Set();
+    for (const key of Object.keys(this.romajiToHiragana)) {
+      for (let n = 1; n < key.length; n++) {
+        this._romajiPrefixes.add(key.slice(0, n));
+      }
+    }
+
     // Google Transliteration API endpoint
     this.apiEndpoint = 'https://www.google.co.jp/transliterate';
 
@@ -121,20 +132,61 @@ export class JapaneseIME {
   }
 
   /**
-   * Convert romaji input to hiragana
+   * Convert romaji input to hiragana.
+   *
+   * Syllabic ん ('n') is the classic ambiguity: 'n' is itself a key (ん) but is
+   * also the onset of the な-row (na/ni/…) and にゃ-row (nya/…). A naive greedy
+   * match consumes the lone 'n' as ん immediately, so "na" wrongly became "んあ"
+   * and "nya" became "んや". The rules (matching mainstream IME behaviour):
+   *   • n + vowel/y      → keep buffering (な/に/にゃ…)
+   *   • n + n + vowel/y  → ん, then the 2nd n joins that vowel (nna → んな)
+   *   • n + n (+cons/end)→ ん (the two n's collapse to one; nn → ん)
+   *   • n + other / end  → ん
+   * A general prefix-deferral handles the multi-char onsets (ny, sh, ch, ts…).
    */
   convertRomajiToHiragana(romaji) {
+    const isVowel = (c) => c === 'a' || c === 'i' || c === 'u' || c === 'e' || c === 'o';
+    const isVowelOrY = (c) => isVowel(c) || c === 'y';
     let result = '';
     let buffer = '';
 
     for (let i = 0; i < romaji.length; i++) {
       buffer += romaji[i].toLowerCase();
+      const hasMore = i < romaji.length - 1;
 
-      // Check for double consonants (sokuon)
+      // Sokuon: a doubled consonant (kk, tt, ss…) → っ. 'nn' is deliberately
+      // excluded — it is syllabic ん, handled below, not a small っ.
       if (buffer.length === 2 && buffer[0] === buffer[1] &&
           'kgsztdhbpmyr'.includes(buffer[0])) {
         result += 'っ';
         buffer = buffer[1];
+        continue;
+      }
+
+      // Syllabic 'n' look-ahead (see method doc).
+      if (buffer === 'n') {
+        const next = hasMore ? romaji[i + 1].toLowerCase() : '';
+        if (isVowelOrY(next)) {
+          continue; // form な/に/にゃ… on the following iterations
+        }
+        if (next === 'n') {
+          const after = (i + 2 < romaji.length) ? romaji[i + 2].toLowerCase() : '';
+          result += 'ん';
+          buffer = '';
+          if (!isVowelOrY(after)) {
+            i++; // plain 'nn' → a single ん; consume the second n too
+          }
+          continue;
+        }
+        result += 'ん'; // n + other consonant, or end of input
+        buffer = '';
+        continue;
+      }
+
+      // Defer while the buffer is still a proper prefix of a longer syllable
+      // and more input is coming (e.g. 'ny'→'nya', 'sh'→'sha') so the longest
+      // form wins instead of an early short match.
+      if (hasMore && this._romajiPrefixes.has(buffer)) {
         continue;
       }
 
@@ -157,6 +209,11 @@ export class JapaneseIME {
       }
     }
 
+    // A trailing lone 'n' is syllabic ん.
+    if (buffer === 'n') {
+      result += 'ん';
+      buffer = '';
+    }
     // Append remaining buffer
     result += buffer;
 
