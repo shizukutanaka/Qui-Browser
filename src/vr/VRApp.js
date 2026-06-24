@@ -1990,10 +1990,14 @@ export class VRApp {
     // hand input know when it becomes unavailable. Brief flickers are common,
     // so each hand's announcement is debounced: only fire if the state holds
     // for 600 ms, preventing a storm of "lost"/"regained" captions.
-    const _htTimers = {};
+    // Tracked on `this` (not a closure-local) so dispose() can clear a pending
+    // timer — otherwise a flicker just before teardown fires this callback
+    // 600 ms later against a disposed captionSystem (same teardown-leak class
+    // as the toast auto-dismiss timers and the TTS utterance).
+    this._handTrackingTimers = {};
     this.handTracking.onTrackingChange((hand, tracked) => {
-      clearTimeout(_htTimers[hand]);
-      _htTimers[hand] = setTimeout(() => {
+      clearTimeout(this._handTrackingTimers[hand]);
+      this._handTrackingTimers[hand] = setTimeout(() => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = hand === 'left' ? 'Left' : 'Right';
           this.captionSystem.show(tracked ? `${label} hand tracked` : `${label} hand lost`);
@@ -2909,6 +2913,14 @@ export class VRApp {
     if (this._toastTimers) {
       this._toastTimers.forEach((t) => clearTimeout(t));
       this._toastTimers.clear();
+    }
+
+    // Clear pending hand-tracking debounce timers for the same reason: a hand
+    // flicker just before teardown would otherwise fire its "hand lost/tracked"
+    // caption 600 ms later against a disposed captionSystem.
+    if (this._handTrackingTimers) {
+      Object.values(this._handTrackingTimers).forEach((t) => clearTimeout(t));
+      this._handTrackingTimers = {};
     }
 
     // Remove global listeners and DOM nodes added during setup
