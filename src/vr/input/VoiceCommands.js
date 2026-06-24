@@ -166,8 +166,15 @@ export class VoiceCommands {
       this.callbacks.onTranscript(transcript, confidence, isFinal);
     }
 
-    // Check confidence threshold
-    if (confidence < this.settings.sensitivity) {
+    // Confidence threshold — but skip it when the engine reports exactly 0.
+    // Android Chrome (the Meta Quest browser's engine) routinely returns
+    // confidence === 0 even for correctly recognized FINAL results, especially
+    // with lang='ja-JP' (this app's default). A literal 0.7 cutoff would then
+    // silently drop EVERY Japanese command on the primary target device — the
+    // headset. A 0 means "no score provided", not "zero confidence", so we let
+    // it through and rely on command-pattern matching to reject true garbage.
+    // (Qiita: Web Speech API stability — confidence is unreliable on Android.)
+    if (confidence > 0 && confidence < this.settings.sensitivity) {
       console.debug('VoiceCommands: Low confidence, ignoring');
       return;
     }

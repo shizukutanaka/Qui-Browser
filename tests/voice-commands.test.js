@@ -192,3 +192,42 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     expect(onGoTo).not.toHaveBeenCalled();
   });
 });
+
+describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk)', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  // Build the SpeechRecognition result-event shape handleRecognitionResult reads.
+  function makeEvent(transcript, confidence, isFinal = true) {
+    const result = { 0: { transcript, confidence }, isFinal, length: 1 };
+    return { results: { 0: result, length: 1 } };
+  }
+
+  test('a FINAL result with confidence=0 still fires the command (Quest/Android)', () => {
+    // Android Chrome — the Quest browser engine — reports confidence=0 even for
+    // correctly recognized ja-JP commands; a 0.7 cutoff must not drop them.
+    let fired = false;
+    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.handleRecognitionResult(makeEvent('トップサイト', 0, true));
+    expect(fired).toBe(true);
+    expect(vc.lastCommand.key).toBe('top-sites');
+  });
+
+  test('a genuinely low non-zero confidence is still filtered out', () => {
+    // 0 means "no score"; a real low score (e.g. 0.3 < 0.7) is still rejected.
+    let fired = false;
+    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.handleRecognitionResult(makeEvent('トップサイト', 0.3, true));
+    expect(fired).toBe(false);
+  });
+
+  test('a high-confidence result fires normally', () => {
+    let fired = false;
+    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.handleRecognitionResult(makeEvent('トップサイト', 0.95, true));
+    expect(fired).toBe(true);
+  });
+});
