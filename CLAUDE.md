@@ -353,6 +353,11 @@ Socratic reasoning (hardest task for a gaze user = address-bar typing → 1500 m
 Researched Qiita Web Speech API stability posts ([takatama: SpeechRecognitionを安定させるコツ](https://qiita.com/takatama/items/f3c8a692683dcdbe1fe5)) — the documented gotcha: *Android Chrome routinely returns `confidence === 0` even for correctly recognized FINAL results*, particularly with `lang='ja-JP'`.
 - 🐛 **fix (voice — Quest device reality)**: `handleRecognitionResult` filtered every result below `sensitivity` (0.7) with a flat `confidence < 0.7` check. The Meta Quest browser is Chromium-on-Android and the app defaults to `ja-JP`, so on the **primary target device** confidence is reported as 0 for legitimately recognized commands — the cutoff `0 < 0.7` then silently dropped *every Japanese voice command*. Reproduced (final "トップサイト" @ confidence 0 → "Low confidence, ignoring" → nothing fired). Changed the guard to `confidence > 0 && confidence < sensitivity`: a literal 0 means "no score provided", not "zero confidence", so it passes through and command-pattern matching (which rejects true garbage) becomes the filter. A real low non-zero score (0.3) is still rejected. 3 tests (confidence=0 fires, 0.3 filtered, 0.95 fires). Total: 756 tests.
 
+### Session 20: Community Research — SpeechSynthesis Teardown & Android Error Resilience
+Researched Qiita SpeechSynthesis Android stability patterns (onerror handler, audio-focus teardown):
+- 🐛 **fix (voice teardown)**: `dispose()` nulled `this.synthesis` without calling `synthesis.cancel()` first. An utterance queued just before teardown (e.g. the "コマンドが認識できませんでした" feedback on the last command before the user exits VR) continued speaking into a torn-down VRApp — the same class of bug as the `showVRToast` setTimeout leak (Session 4). Now `dispose()` calls `synthesis.cancel()` before nulling. 1 test (cancel called once, synthesis null after).
+- 🐛 **fix (voice error resilience)**: `speak()` had no `utterance.onerror` handler. On Android/Quest, SpeechSynthesis can fire `onerror` with `"network"` (TTS engine requires network for ja-JP but is offline) or `"not-allowed"` (audio focus stolen by system notification or another app). Without an `onerror`, unhandled event exceptions can surface as uncaught errors in the browser console and confuse error-monitoring tools. The `onSpeak` callback already fired so captions reached the user; the `onerror` now logs with `console.debug` and does not propagate. 2 tests (dispose no-throw when synthesis null, onerror handler attached and no-throw on simulated "network" error). Total: 759 tests.
+
 ---
 
 ## Contributing Guidelines
@@ -373,4 +378,4 @@ Researched Qiita Web Speech API stability posts ([takatama: SpeechRecognitionを
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-06-23
+**Last Revision**: 2026-06-24

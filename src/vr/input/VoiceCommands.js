@@ -683,6 +683,13 @@ export class VoiceCommands {
   dispose() {
     this.isEnabled = false; // must happen before stop() to block onend restart
     this.stop();
+    // Cancel any queued or in-progress utterance. Without this, an utterance
+    // queued just before dispose() keeps speaking into a torn-down object
+    // (null camera, freed GPU resources) — the same class of teardown bug
+    // fixed for showVRToast() setTimeout in Session 4.
+    if (this.synthesis) {
+      this.synthesis.cancel();
+    }
     this.recognition = null;
     this.synthesis = null;
   }
@@ -707,6 +714,14 @@ export class VoiceCommands {
     utterance.rate = options.rate || 1.0;
     utterance.pitch = options.pitch || 1.0;
     utterance.volume = options.volume || 1.0;
+    // Android/Quest Chrome can fire onerror with "network" or "not-allowed"
+    // (audio focus stolen by another app, or no TTS engine installed for
+    // ja-JP). The onSpeak callback already fired so captions reached the user;
+    // just log and don't crash. (Qiita SpeechSynthesis Android stability
+    // pattern: always wire onerror so a TTS failure isn't completely silent.)
+    utterance.onerror = (e) => {
+      console.debug('VoiceCommands: TTS utterance error', e.error);
+    };
 
     this.synthesis.speak(utterance);
   }

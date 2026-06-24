@@ -231,3 +231,44 @@ describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk
     expect(fired).toBe(true);
   });
 });
+
+describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => {
+  test('dispose() calls synthesis.cancel() before nulling to stop orphaned utterances', () => {
+    const vc = new VoiceCommands();
+    const cancel = jest.fn();
+    // Inject a fake synthesis object so we can observe the cancel() call.
+    vc.synthesis = { cancel, speak: jest.fn() };
+    vc.dispose();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(vc.synthesis).toBeNull();
+  });
+
+  test('dispose() does not throw when synthesis is already null', () => {
+    const vc = new VoiceCommands();
+    // synthesis stays null (never initialized)
+    expect(() => vc.dispose()).not.toThrow();
+  });
+
+  test('utterance.onerror is wired: a TTS error does not throw or propagate', () => {
+    // jsdom has no SpeechSynthesisUtterance; provide a minimal stub so the
+    // speak() path runs and we can assert the onerror handler is attached.
+    const origSSU = global.SpeechSynthesisUtterance;
+    global.SpeechSynthesisUtterance = function(text) { this.text = text; };
+    try {
+      const vc = new VoiceCommands();
+      vc.callbacks.onSpeak = () => {};
+      const utterances = [];
+      vc.synthesis = {
+        speak: (utt) => { utterances.push(utt); },
+        cancel: jest.fn()
+      };
+      vc.speak('テスト');
+      expect(utterances).toHaveLength(1);
+      expect(typeof utterances[0].onerror).toBe('function');
+      // Simulate the browser firing onerror (Android "network" error).
+      expect(() => utterances[0].onerror({ error: 'network' })).not.toThrow();
+    } finally {
+      global.SpeechSynthesisUtterance = origSSU;
+    }
+  });
+});
