@@ -154,12 +154,23 @@ export class JapaneseIME {
       buffer += romaji[i].toLowerCase();
       const hasMore = i < romaji.length - 1;
 
-      // Sokuon: a doubled consonant (kk, tt, ss…) → っ. 'nn' is deliberately
+      // Sokuon: a doubled consonant (kk, tt, ss…, cc) → っ. 'nn' is deliberately
       // excluded — it is syllabic ん, handled below, not a small っ.
+      // 'c' is included so that 'cc' before 'ch' (ecchi → えっち, kocchi → こっち)
+      // is recognised; 'cc' before a non-h is not valid romaji and stays as-is.
       if (buffer.length === 2 && buffer[0] === buffer[1] &&
-          'kgsztdhbpmyr'.includes(buffer[0])) {
+          'kgsztdhbpmyrc'.includes(buffer[0])) {
         result += 'っ';
         buffer = buffer[1];
+        continue;
+      }
+
+      // 'tch' sokuon form (e.g. matcha → まっちゃ): 't'≠'c' so the doubled-
+      // consonant check above never fires; detect 'tc' + following 'h' explicitly
+      // and emit っ, leaving 'c' in the buffer so that 'ch'+vowel resolves normally.
+      if (buffer === 'tc' && hasMore && romaji[i + 1].toLowerCase() === 'h') {
+        result += 'っ';
+        buffer = 'c';
         continue;
       }
 

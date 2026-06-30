@@ -78,6 +78,21 @@ describe('src/vr/input/JapaneseIME', () => {
     const hira = ime.convertRomajiToHiragana('na');
     expect(ime.convertHiraganaToKatakana(hira)).toBe('ナ');
   });
+
+  // Sokuon edge cases: 'cc' before 'ch', and the 'tch' variant form.
+  test('"cc" before ch is sokuon (ecchi → えっち, kocchi → こっち)', () => {
+    expect(ime.convertRomajiToHiragana('ecchi')).toBe('えっち');
+    expect(ime.convertRomajiToHiragana('kocchi')).toBe('こっち');
+  });
+
+  test('"tch" is also a sokuon form (matcha → まっちゃ)', () => {
+    expect(ime.convertRomajiToHiragana('matcha')).toBe('まっちゃ');
+  });
+
+  test('"tchi" and "tchu" also resolve (dotchi → どっち, itchi → いっち)', () => {
+    expect(ime.convertRomajiToHiragana('dotchi')).toBe('どっち');
+    expect(ime.convertRomajiToHiragana('itchi')).toBe('いっち');
+  });
 });
 
 describe('candidateStyle — primary candidate not signalled by colour alone', () => {
