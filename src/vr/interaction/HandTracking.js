@@ -364,8 +364,12 @@ export class HandTracking {
       return false;
     }
 
-    // Thumb should be pointing up (positive Y)
-    const thumbVector = new THREE.Vector3()
+    // Thumb should be pointing up (positive Y). Reuse scratch object to
+    // avoid allocating a Vector3 every frame at 90 Hz per tracked hand.
+    if (!this._tmpThumbVec) {
+      this._tmpThumbVec = new THREE.Vector3();
+    }
+    const thumbVector = this._tmpThumbVec
       .subVectors(thumbTip.position, thumbProximal.position)
       .normalize();
 

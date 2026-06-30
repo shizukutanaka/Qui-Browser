@@ -1631,15 +1631,22 @@ export class VRApp {
 
       // Move hand: smooth locomotion (opt-in) in the head's facing plane.
       if (this.settings.enableSmoothMove && snap.hand === moveHand && Math.hypot(x, y) > 0) {
-        const q = new THREE.Quaternion();
-        this.camera.getWorldQuaternion(q);
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+        // Lazy-init scratch objects; reused every frame instead of allocating
+        // 4 objects per active gamepad at 90 Hz (Qiita "avoid new in render loop").
+        if (!this._locoQ) {
+          this._locoQ = new THREE.Quaternion();
+          this._locoFwd = new THREE.Vector3();
+          this._locoRight = new THREE.Vector3();
+          this._locoMove = new THREE.Vector3();
+        }
+        this.camera.getWorldQuaternion(this._locoQ);
+        const forward = this._locoFwd.set(0, 0, -1).applyQuaternion(this._locoQ);
         forward.y = 0;
         forward.normalize();
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q);
+        const right = this._locoRight.set(1, 0, 0).applyQuaternion(this._locoQ);
         right.y = 0;
         right.normalize();
-        const move = new THREE.Vector3()
+        const move = this._locoMove.set(0, 0, 0)
           .addScaledVector(forward, -y) // stick up → forward
           .addScaledVector(right, x);
         if (move.lengthSq() > 0) {
