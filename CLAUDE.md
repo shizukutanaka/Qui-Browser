@@ -223,8 +223,8 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 | Issue | Impact | Status |
 |-------|--------|--------|
-| VR UI strings hard-coded English | WCAG 3.1.1 violation (Japanese users) | **To fix Phase 1** |
-| Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | **To fix Phase 1** |
+| VR UI strings hard-coded English | WCAG 3.1.1 violation (Japanese users) | Settings labels fixed Session 2; status-message/toast call sites fixed Session 27 |
+| Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | Fixed Session 2 (toasts wired); translated Session 27 |
 | WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | **To fix Phase 1** |
 | No VRApp integration tests | Regression risk | **To fix Phase 2** |
 | No semantic DOM for screen readers | 2D screen reader support missing | **To fix Phase 2** |
@@ -366,6 +366,12 @@ Audited the VRApp render-loop / XR-session-lifecycle / teardown paths against th
 Researched Qiita IDN / punycode posts (the WHATWG `URL` API auto-converts Unicode hosts like 日本語.jp → `xn--wgv71a119e.jp`; ASCII-only host heuristics silently send IDN to search):
 - 🐛 **fix (i18n navigation)**: `resolveInput()`'s host-detection regex `LOOKS_LIKE_HOST` was ASCII-only (`[a-z0-9-]`), so a Japanese user typing a Japanese-script domain — `日本語.jp` (ASCII TLD) or the all-Japanese `例え.テスト` (Japanese TLD) — failed the host test and was sent to the **search engine** instead of being navigated to, even though plain `example.com` worked. A real gap for a Japanese-focused VR browser: you literally could not reach a Japanese-named site by typing its name. Made the regex Unicode-aware with property escapes (`/^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)+(:\d+)?(\/.*)?$/u`); the browser/iframe layer converts the Unicode host to punycode on navigation. ASCII behaviour is byte-identical (output stays raw `https://…`, *not* run through `new URL()` which would append a trailing slash and break the existing `example.com` assertion); the "≥2 dot-separated labels, no spaces" shape is unchanged so `東京タワー` (no dot) and `東京　天気` (U+3000 full-width space, matched by `\s`) both stay searches. 6 tests (ASCII-TLD IDN, all-JP IDN, IDN+path, punycode-convertibility, no-dot-is-search, full-width-space-is-search). Total: 765 tests.
 
+### Session 27: 長所短所改善点 — 26 Dead i18n Catalog Keys + Silent Max-Tabs Failure
+Continued the audit sweep; this pass targeted the Phase 1 i18n claim directly instead of trusting the session log:
+- 🐛 **fix (i18n — critical)**: `i18n.CATALOG` had 21 `vr.msg.*` + 5 `vr.error.*` fully translated (English + Japanese) entries that **VRApp.js never called** — `captionSystem.show()`/`showVRToast()` sites still used raw hard-coded English literals (`'Tab closed'`, `'Bookmarked'`, `'Recentered'`, `'Player joined'`, `'Foveation unavailable'`, etc.). A Japanese user saw English captions for every tab/bookmark/video/multiplayer/subsystem status message despite the translations already existing — the Session 2 "Phase 1 Complete" i18n claim was only true for settings-panel labels, not status messages. Replaced all matching literals with `t('vr.msg.*')`/`t('vr.error.*')` calls across ~15 call sites.
+- 🐛 **fix (tabs — WCAG 4.1.3)**: found while auditing the same file — `TabManager.newTab()` blocked at `MAX_TABS` (8) with only a `console.warn`; the "+" button silently did nothing for a user who kept tapping it past the limit. Added an `onMaxTabsReached` callback wired to a new `vr.msg.maxTabsReached` catalog entry via `showVRToast(type:'warn')`.
+- 4 new tests (TabManager callback ×2, i18n key ×1); total 789.
+
 ### Session 26: 長所短所改善点 — Stale iframe Handlers on WebPanel Teardown
 Follow-up audit pass on the remaining candidates from Session 25's multiplayer/window/video/tab sweep:
 - 🐛 **fix (browser)**: `WebPanel.dispose()` removed the `<iframe>` from the DOM but never cleared its `onload`/`onerror` handlers. Closing a panel/tab while a page was still loading left the in-flight navigation free to fire its load/error event afterward — the stale handler would redraw `chromeCanvas` onto an already-`.dispose()`'d `chromeTex` and call `onNavigate()`/`onLoadError()` against a torn-down VRApp. Same teardown-leak class as the toast timers (Session 4), hand-tracking timers (Session 21), and queued TTS utterances (Session 20) — `dispose()` now nulls both handlers before detaching the element. 3 new tests; total 786.
@@ -405,4 +411,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-01
+**Last Revision**: 2026-07-01 (Session 27)
