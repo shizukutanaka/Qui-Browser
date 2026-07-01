@@ -13,7 +13,6 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
-import { ObjectPool, PoolManager } from '../utils/ObjectPool.js';
 import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
@@ -102,7 +101,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.poolManager = null;
     this.textureManager = null;
 
     // Tier 2 systems
@@ -179,7 +177,6 @@ export class VRApp {
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableObjectPooling: true,
       enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
@@ -1961,18 +1958,6 @@ export class VRApp {
       console.debug('VRApp: Comfort system initialized');
     }
 
-    // 3. Object Pooling
-    if (this.settings.enableObjectPooling) {
-      this.poolManager = new PoolManager();
-
-      // Register common pools
-      this.poolManager.register('vector3', new ObjectPool(THREE.Vector3, 100, 1000));
-      this.poolManager.register('quaternion', new ObjectPool(THREE.Quaternion, 50, 500));
-      this.poolManager.register('matrix4', new ObjectPool(THREE.Matrix4, 20, 200));
-
-      console.debug('VRApp: Object pools initialized');
-    }
-
     // 4. Texture Manager with KTX2 support
     if (this.settings.enableTextureCompression) {
       this.textureManager = new TextureManager(this.renderer);
@@ -2850,12 +2835,6 @@ export class VRApp {
       stats.textureCompression = memStats.compressionRatio;
     }
 
-    if (this.poolManager) {
-      const poolStats = this.poolManager.getGlobalStats();
-      stats.pooledObjects = poolStats.totalObjects;
-      stats.gcPrevented = poolStats.totalGCPrevented;
-    }
-
     return stats;
   }
 
@@ -2932,9 +2911,6 @@ export class VRApp {
     }
     if (this.textureManager) {
       this.textureManager.dispose();
-    }
-    if (this.poolManager) {
-      this.poolManager.dispose();
     }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose(); this.vrKeyboard = null;
