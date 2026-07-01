@@ -845,18 +845,19 @@ export class MixedReality {
   }
 
   /**
-   * Set passthrough opacity
+   * Set passthrough opacity.
+   *
+   * Stores the clamped value on settings.passthroughOpacity for a future
+   * caller to read. Not yet applied to the render output: THREE.Color has no
+   * alpha channel to blend, so there is nothing to adjust on scene.background
+   * as currently structured — actually compositing camera passthrough at a
+   * given opacity needs a dedicated shader pass (like togglePassthrough()'s
+   * environmentBlendMode switch, but continuous rather than binary), which
+   * does not exist yet. Left unimplemented rather than a fake no-op branch
+   * that looked like it did something.
    */
   setPassthroughOpacity(opacity) {
     this.settings.passthroughOpacity = Math.max(0, Math.min(1, opacity));
-
-    // Update background opacity
-    if (this.scene.background) {
-      // Adjust scene background alpha for passthrough effect
-      if (this.scene.background instanceof THREE.Color) {
-        // Would need custom shader for true passthrough
-      }
-    }
   }
 
   /**

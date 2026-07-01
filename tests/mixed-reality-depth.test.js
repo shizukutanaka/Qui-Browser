@@ -262,3 +262,29 @@ describe('MixedReality passthrough detection (checkSupport / hasPassthroughExten
     expect(support.passthrough).toBe(true);
   });
 });
+
+describe('MixedReality.setPassthroughOpacity (was a no-op branch)', () => {
+  test('clamps and stores the value on settings.passthroughOpacity', () => {
+    const mr = makeMR();
+    mr.setPassthroughOpacity(0.5);
+    expect(mr.settings.passthroughOpacity).toBe(0.5);
+  });
+
+  test('clamps above 1 down to 1', () => {
+    const mr = makeMR();
+    mr.setPassthroughOpacity(5);
+    expect(mr.settings.passthroughOpacity).toBe(1);
+  });
+
+  test('clamps below 0 up to 0', () => {
+    const mr = makeMR();
+    mr.setPassthroughOpacity(-2);
+    expect(mr.settings.passthroughOpacity).toBe(0);
+  });
+
+  test('does not throw regardless of scene.background', () => {
+    const mr = makeMR();
+    mr.scene.background = null;
+    expect(() => mr.setPassthroughOpacity(0.3)).not.toThrow();
+  });
+});
