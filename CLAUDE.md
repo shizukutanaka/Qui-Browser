@@ -146,12 +146,12 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
    - Test gaze-dwell activation → reticle + haptic + onSelect
    - **Files**: `tests/vr-app-accessibility.test.js` (new)
 
-4. **Semantic DOM Overlay** (2–3 hours)
+4. ~~**Semantic DOM Overlay**~~ — **Done (Session 30)**
    - Render hidden ARIA landmarks in the DOM that mirror VR state
-   - Caption text → `aria-live="polite"`
-   - Toast messages → `role="alert"`
-   - Settings panel state → `aria-expanded`
-   - **Files**: `src/vr/VRApp.js` (add DOM rendering)
+   - Caption text → `aria-live="polite"` ✅
+   - Toast messages → `role="alert"` ✅
+   - Settings panel state → `aria-expanded` ✅
+   - **Files**: `src/vr/accessibility/SemanticDOM.js` (new), `src/vr/accessibility/CaptionSystem.js`, `src/vr/VRApp.js`
 
 ### Phase 3: Medium-Priority Refactoring (Future)
 **Goal**: Improve maintainability and discoverability.
@@ -227,7 +227,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 | Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | Fixed Session 2 (toasts wired); translated Session 27 |
 | WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | **To fix Phase 1** |
 | No VRApp integration tests | Regression risk | **To fix Phase 2** |
-| No semantic DOM for screen readers | 2D screen reader support missing | **To fix Phase 2** |
+| No semantic DOM for screen readers | 2D screen reader support missing | Fixed Session 30 (captions/toasts/settings-panel state mirrored via SemanticDOM) |
 | Settings panel no grouping/help | UX discoverability | **To fix Phase 3** |
 | VRApp monolith 2700+ lines | Maintainability debt | **To fix Phase 3** |
 
@@ -366,6 +366,13 @@ Audited the VRApp render-loop / XR-session-lifecycle / teardown paths against th
 Researched Qiita IDN / punycode posts (the WHATWG `URL` API auto-converts Unicode hosts like 日本語.jp → `xn--wgv71a119e.jp`; ASCII-only host heuristics silently send IDN to search):
 - 🐛 **fix (i18n navigation)**: `resolveInput()`'s host-detection regex `LOOKS_LIKE_HOST` was ASCII-only (`[a-z0-9-]`), so a Japanese user typing a Japanese-script domain — `日本語.jp` (ASCII TLD) or the all-Japanese `例え.テスト` (Japanese TLD) — failed the host test and was sent to the **search engine** instead of being navigated to, even though plain `example.com` worked. A real gap for a Japanese-focused VR browser: you literally could not reach a Japanese-named site by typing its name. Made the regex Unicode-aware with property escapes (`/^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)+(:\d+)?(\/.*)?$/u`); the browser/iframe layer converts the Unicode host to punycode on navigation. ASCII behaviour is byte-identical (output stays raw `https://…`, *not* run through `new URL()` which would append a trailing slash and break the existing `example.com` assertion); the "≥2 dot-separated labels, no spaces" shape is unchanged so `東京タワー` (no dot) and `東京　天気` (U+3000 full-width space, matched by `\s`) both stay searches. 6 tests (ASCII-TLD IDN, all-JP IDN, IDN+path, punycode-convertibility, no-dot-is-search, full-width-space-is-search). Total: 765 tests.
 
+### Session 30: Phase 2 Roadmap — Semantic DOM Overlay
+Picked up the next standing roadmap item (Phase 2 #4, previously deferred) rather than another audit pass:
+- ✨ **feat (a11y — Phase 2)**: every accessibility surface so far (captions, haptics, toasts) lived entirely inside the Three.js/WebXR scene — invisible to anything outside the render, most importantly a screen reader. Added `SemanticDOM` (`src/vr/accessibility/SemanticDOM.js`): a visually-hidden ("sr-only" — clipped, not `display:none`, which would also hide it from assistive tech) region with a caption mirror (`role="status"`, `aria-live="polite"`), a toast/alert mirror (`role="alert"`, `aria-live="assertive"`), and a settings-panel state region (`aria-expanded`). Pure DOM manipulation, no Three.js dependency, safely no-ops without a `document`.
+- Wired via two choke points instead of touching every call site: `CaptionSystem` gained an `onShow` callback (mirrors `VoiceCommands`' existing `onSpeak` pattern) firing from its single `show()` method; `showVRToast()` mirrors to the alert region *before* its `isVREnabled`/camera guard — several subsystem-failure toasts (haptics, spatial audio, AI) fire during `initializeSystems()`, before the user has entered VR at all, so gating the mirror the same way as the 3D mesh would have silently dropped those exact messages a second time.
+- 🐛 **fix (i18n, found while wiring)**: the settings-panel toggle caption was still a hard-coded `Settings: open/closed` literal; added `vr.msg.settingsOpen`/`vr.msg.settingsClosed` catalog entries and wired `t()`.
+- 23 new tests (SemanticDOM construction/regions/methods/dispose/no-DOM fallback, CaptionSystem `onShow` wiring, new i18n keys). Total 817.
+
 ### Session 29: Socratic New Perspective — Voice "Help" Command Announced a Count, Not the Commands
 Socratic reasoning (who most needs voice commands? → users for whom gaze/controller input is difficult → voice is their primary input → what stops them using more commands? → not knowing what to say → does a help mechanism exist? → yes → does it solve discoverability? → **no**):
 - 🐛 **fix (voice — WCAG 4.1.3)**: the `help` voice command built a full phrase list internally but only ever spoke `"使用可能なコマンドは、N個です"` (there are N commands) — the count, never the list. The list it discarded was also keyed by internal English identifiers (`navigate: Navigate to next page`), which wouldn't have taught the Japanese trigger phrase even if spoken. Rewrote `help` to announce each command's actual literal phrase via the existing `speak()`/`onSpeak` cross-modal path (reaches TTS + captions for free). Two free-form commands (`search`, `go-to`) have only RegExp patterns with no fixed phrase; added an optional `example` field (`registerCommand`) as a fallback so help never reads a raw RegExp source aloud. 7 new tests; total 797.
@@ -419,4 +426,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-01 (Session 29)
+**Last Revision**: 2026-07-01 (Session 30)
