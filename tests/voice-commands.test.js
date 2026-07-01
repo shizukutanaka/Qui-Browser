@@ -193,6 +193,67 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
   });
 });
 
+describe('VoiceCommands — help command announces actual phrases (WCAG 4.1.3 discoverability)', () => {
+  // Socratic finding: a voice-command user (often relying on voice because
+  // gaze/controller input is difficult) has no other way to learn the
+  // available phrases — the 'help' action computed a full phrase list but
+  // only ever spoke a bare count ("N commands available"), never the list
+  // itself. Fixed to actually announce the phrases.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (t) => spoken.push(t);
+  });
+
+  test('announces more than just a bare count', () => {
+    vc.processCommand('ヘルプ', 0.9);
+    expect(spoken).toHaveLength(1);
+    // A literal phrase like "戻る" (a real command trigger) must appear —
+    // the old bug spoke only "使用可能なコマンドは、N個です" with nothing after it.
+    expect(spoken[0]).toContain('戻る');
+  });
+
+  test('the announced text starts with the command count, followed by the list', () => {
+    vc.processCommand('ヘルプ', 0.9);
+    expect(spoken[0]).toMatch(/^使用可能なコマンドは、\d+個です。/);
+  });
+
+  test('every command with a literal string pattern appears in the list', () => {
+    vc.processCommand('ヘルプ', 0.9);
+    for (const cmd of vc.commands.values()) {
+      const literal = cmd.patterns.find((p) => typeof p === 'string');
+      if (literal) {
+        expect(spoken[0]).toContain(literal);
+      }
+    }
+  });
+
+  test('regex-only commands (search, go-to) use their example instead of a raw RegExp', () => {
+    vc.connectBrowser({}); // registers 'go-to', whose patterns are all RegExp
+    spoken.length = 0;
+    vc.processCommand('ヘルプ', 0.9);
+    expect(spoken[0]).toContain('検索：てんき');
+    expect(spoken[0]).toContain('githubを開く');
+    expect(spoken[0]).not.toMatch(/\/.*\(\.\+\)\//); // no raw regex source leaked
+  });
+
+  test('_spokenExample() prefers a literal string pattern over example', () => {
+    const cmd = { patterns: ['戻る', /戻[るれ]/], example: 'should not be used' };
+    expect(vc._spokenExample(cmd)).toBe('戻る');
+  });
+
+  test('_spokenExample() falls back to example when every pattern is a RegExp', () => {
+    const cmd = { patterns: [/foo/], example: '例文' };
+    expect(vc._spokenExample(cmd)).toBe('例文');
+  });
+
+  test('_spokenExample() returns null when there is neither a string pattern nor an example', () => {
+    const cmd = { patterns: [/foo/], example: null };
+    expect(vc._spokenExample(cmd)).toBeNull();
+  });
+});
+
 describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk)', () => {
   let vc;
   beforeEach(() => {

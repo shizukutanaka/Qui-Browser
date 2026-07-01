@@ -337,7 +337,8 @@ export class VoiceCommands {
         }
       },
       confirmationText: '検索します',
-      description: 'Search web'
+      description: 'Search web',
+      example: '検索：てんき'
     });
 
     // VR mode control
@@ -412,15 +413,19 @@ export class VoiceCommands {
       description: 'Toggle Japanese IME'
     });
 
-    // Help
+    // Help — read back the actual spoken phrases, not just a count. A voice-
+    // command user (often relying on voice because gaze/controller input is
+    // difficult) has no other way to discover what to say; announcing "12
+    // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる'],
       action: () => {
-        const commandList = Array.from(this.commands.entries())
-          .map(([key, cmd]) => `${key}: ${cmd.description}`)
-          .join(', ');
+        const phrases = Array.from(this.commands.values())
+          .map((cmd) => this._spokenExample(cmd))
+          .filter(Boolean);
+        const commandList = phrases.join('、');
 
-        this.speak(`使用可能なコマンドは、${this.commands.size}個です`);
+        this.speak(`使用可能なコマンドは、${phrases.length}個です。${commandList}`);
         return { action: 'help', commands: commandList };
       },
       description: 'Show help'
@@ -447,6 +452,10 @@ export class VoiceCommands {
       action: config.action,
       confirmationText: config.confirmationText || null,
       description: config.description || '',
+      // Spoken example for the 'help' command, used only when every pattern
+      // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to'
+      // accept a free-form spoken argument, so there's no single fixed string.
+      example: config.example || null,
       metadata: config.metadata || {}
     });
 
@@ -458,6 +467,16 @@ export class VoiceCommands {
     }
 
     console.debug(`VoiceCommands: Registered command "${name}"`);
+  }
+
+  /**
+   * The literal phrase to read aloud for a command in the 'help' listing:
+   * the first plain-string pattern (what a user can say verbatim), or the
+   * registered example when every pattern is a RegExp (free-form arguments
+   * like search/go-to have no single fixed phrase to quote).
+   */
+  _spokenExample(cmd) {
+    return cmd.patterns.find((p) => typeof p === 'string') || cmd.example || null;
   }
 
   /**
@@ -553,7 +572,8 @@ export class VoiceCommands {
         }
       },
       confirmationText: '検索します',
-      description: 'Search web'
+      description: 'Search web',
+      example: '検索：てんき'
     });
 
     // Scroll inside the active page's iframe
@@ -638,7 +658,8 @@ export class VoiceCommands {
       // (deaf/HoH) the moment the command matches — before navigation, and
       // independent of whether a frecency hit is found (WCAG 4.1.3).
       confirmationText: '開きます',
-      description: 'Open site by name from history/bookmarks, fall back to search'
+      description: 'Open site by name from history/bookmarks, fall back to search',
+      example: 'githubを開く'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
