@@ -21,6 +21,10 @@ import * as THREE from 'three';
 // bounding growth far below the ~16 MB channel buffer limit.
 export const MAX_BUFFERED_BYTES = 256 * 1024;
 
+// Cap on consecutive WebRTC reconnect attempts for a single peer before it is
+// treated as permanently gone (see _peerReconnectAttempts in the constructor).
+export const MAX_PEER_RECONNECT_ATTEMPTS = 3;
+
 /**
  * Whether a message may be sent on a data channel right now: the channel must
  * be open AND its buffered amount under the high-water mark. Pure / dependency-
@@ -66,6 +70,16 @@ export class MultiplayerSystem {
     // disconnect() can cancel an in-flight reconnect and the backoff can reset.
     this._signalingReconnectTimer = null;
     this._signalingReconnectAttempts = 0;
+
+    // Per-peer WebRTC reconnect attempts. A peer connection can transition to
+    // 'failed' (network drop, crash) without the signaling server ever
+    // relaying a 'peer-left' message — the only path that previously cleaned
+    // up an avatar and decremented stats.connectedPeers. Without a cap, a
+    // permanently-gone peer left its avatar frozen in the scene forever
+    // ("ghost avatar") and the connected-peer gauge drifted upward. Capped at
+    // MAX_PEER_RECONNECT_ATTEMPTS; giving up runs the same handlePeerLeft()
+    // teardown as a graceful departure.
+    this._peerReconnectAttempts = new Map();
 
     // Player avatars
     this.avatars = new Map();
@@ -316,6 +330,8 @@ export class MultiplayerSystem {
   handlePeerLeft(peerId) {
     console.debug(`MultiplayerSystem: Peer ${peerId} left`);
 
+    this._peerReconnectAttempts.delete(peerId);
+
     // Close and drop the peer connection.
     const pc = this.peers.get(peerId);
     if (pc) {
@@ -404,9 +420,21 @@ export class MultiplayerSystem {
 
       if (pc.connectionState === 'connected') {
         this.stats.connectedPeers++;
+        this._peerReconnectAttempts.delete(peerId);
         this.onPeerConnected(peerId);
       } else if (pc.connectionState === 'failed') {
-        this.reconnectPeer(peerId);
+        const attempts = (this._peerReconnectAttempts.get(peerId) || 0) + 1;
+        if (attempts > MAX_PEER_RECONNECT_ATTEMPTS) {
+          // Peer is permanently gone: the signaling server never relayed a
+          // 'peer-left' message, so run the same teardown here to avoid a
+          // ghost avatar frozen in the scene and a stats.connectedPeers gauge
+          // that never recovers.
+          this._peerReconnectAttempts.delete(peerId);
+          this.handlePeerLeft(peerId);
+        } else {
+          this._peerReconnectAttempts.set(peerId, attempts);
+          this.reconnectPeer(peerId);
+        }
       }
     };
 
@@ -920,6 +948,7 @@ export class MultiplayerSystem {
     this.peers.clear();
     this.dataChannels.clear();
     this.avatars.clear();
+    this._peerReconnectAttempts.clear();
 
     this.connected = false;
     console.debug('MultiplayerSystem: Disconnected');

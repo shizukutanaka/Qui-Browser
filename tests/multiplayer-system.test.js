@@ -29,7 +29,8 @@ jest.mock('three', () => ({
 const {
   MultiplayerSystem,
   canSendOnChannel,
-  MAX_BUFFERED_BYTES
+  MAX_BUFFERED_BYTES,
+  MAX_PEER_RECONNECT_ATTEMPTS
 } = require('../src/vr/multiplayer/MultiplayerSystem.js');
 
 function makeScene() {
@@ -119,6 +120,85 @@ describe('MultiplayerSystem peer lifecycle', () => {
     expect(mp.avatars.size).toBe(0);
     // every geometry under each avatar was disposed
     expect(groups.every(g => g.children.every(c => !c.geometry || c.geometry.disposed))).toBe(true);
+  });
+});
+
+describe('MultiplayerSystem WebRTC peer-reconnect cap (ghost-avatar prevention)', () => {
+  function makeFailedPc() {
+    return { connectionState: 'failed', close: jest.fn() };
+  }
+
+  test('a failed connection attempts reconnect before the cap is reached', () => {
+    const mp = makeSystem();
+    mp.reconnectPeer = jest.fn();
+    mp.handlePeerLeft = jest.fn();
+    const pc = makeFailedPc();
+    mp.setupPeerConnection(pc, 'p1');
+
+    pc.onconnectionstatechange();
+
+    expect(mp.reconnectPeer).toHaveBeenCalledWith('p1');
+    expect(mp.handlePeerLeft).not.toHaveBeenCalled();
+  });
+
+  test('gives up and runs handlePeerLeft teardown after MAX_PEER_RECONNECT_ATTEMPTS failures', () => {
+    const mp = makeSystem();
+    mp.reconnectPeer = jest.fn();
+    mp.handlePeerLeft = jest.fn();
+    const pc = makeFailedPc();
+    mp.setupPeerConnection(pc, 'p1');
+
+    for (let i = 0; i < MAX_PEER_RECONNECT_ATTEMPTS; i++) {
+      pc.onconnectionstatechange();
+    }
+    expect(mp.handlePeerLeft).not.toHaveBeenCalled();
+
+    pc.onconnectionstatechange(); // one more failure exceeds the cap
+
+    expect(mp.handlePeerLeft).toHaveBeenCalledWith('p1');
+    expect(mp.reconnectPeer).toHaveBeenCalledTimes(MAX_PEER_RECONNECT_ATTEMPTS);
+  });
+
+  test('giving up actually removes the ghost avatar and stops the stats gauge from drifting', () => {
+    const mp = makeSystem();
+    mp.reconnectPeer = jest.fn(); // stub out real renegotiation
+    mp.createAvatar('p1', { color: 0x00ff00 });
+    mp.peers.set('p1', { close: jest.fn() });
+    mp.stats.connectedPeers = 1;
+    const pc = makeFailedPc();
+    mp.setupPeerConnection(pc, 'p1');
+
+    for (let i = 0; i <= MAX_PEER_RECONNECT_ATTEMPTS; i++) {
+      pc.onconnectionstatechange();
+    }
+
+    expect(mp.avatars.has('p1')).toBe(false);
+    expect(mp.stats.connectedPeers).toBe(0);
+  });
+
+  test('a successful connection resets the reconnect-attempt counter', () => {
+    const mp = makeSystem();
+    mp.reconnectPeer = jest.fn();
+    mp.handlePeerLeft = jest.fn();
+    const pc = makeFailedPc();
+    mp.setupPeerConnection(pc, 'p1');
+
+    pc.onconnectionstatechange(); // 1 failure
+    pc.connectionState = 'connected';
+    pc.onconnectionstatechange(); // recovers
+    pc.connectionState = 'failed';
+    for (let i = 0; i < MAX_PEER_RECONNECT_ATTEMPTS; i++) {
+      pc.onconnectionstatechange(); // counter restarted from 0, so this should not exceed the cap
+    }
+
+    expect(mp.handlePeerLeft).not.toHaveBeenCalled();
+  });
+
+  test('disconnect() clears any pending per-peer reconnect attempts', () => {
+    const mp = makeSystem();
+    mp._peerReconnectAttempts.set('p1', 2);
+    mp.disconnect();
+    expect(mp._peerReconnectAttempts.size).toBe(0);
   });
 });
 
