@@ -2668,52 +2668,6 @@ export class VRApp {
     if (this.immersiveVideo) {
       this.immersiveVideo.update(dt);
     }
-
-    // Update scene objects using pools
-    this.updateSceneWithPools();
-  }
-
-  /**
-   * Detect user motion (simplified)
-   */
-  detectMotion() {
-    if (!this.renderer.xr.isPresenting) {
-      return false;
-    }
-
-    const session = this.renderer.xr.getSession();
-    if (!session) {
-      return false;
-    }
-
-    // In production, check controller velocity
-    // For now, return false (stationary)
-    return false;
-  }
-
-  /**
-   * Example: Update scene using object pools
-   */
-  updateSceneWithPools() {
-    if (!this.poolManager) {
-      return;
-    }
-
-    // Example: Get temporary vectors from pool
-    const vectorPool = this.poolManager.getPool('vector3');
-    if (vectorPool) {
-      const tempVector = vectorPool.acquire();
-
-      // Use vector for calculations
-      tempVector.set(
-        Math.sin(this.frameCount * 0.01),
-        0,
-        Math.cos(this.frameCount * 0.01)
-      );
-
-      // Release back to pool when done
-      vectorPool.release(tempVector);
-    }
   }
 
   /**
