@@ -5,6 +5,29 @@
  * John Carmack principle: AI should enhance, not complicate
  */
 
+/**
+ * Whether a recommendation's URL is a real, navigable destination rather than
+ * a placeholder anchor.
+ *
+ * Every built-in recommendation source (content-based, collaborative,
+ * trending, contextual, time-based) currently generates simulated/demo
+ * entries with `url: '#'` — scaffolding for the scoring/ranking logic, not
+ * real content, since this browser has no content catalog or social graph to
+ * draw from. Surfacing those to a user as if they were real suggestions would
+ * mean every "recommended" link goes nowhere. Pure and exported so the
+ * ranking step can filter honestly instead of half-implementing fake content.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isNavigableUrl(url) {
+  if (typeof url !== 'string') {
+    return false;
+  }
+  const trimmed = url.trim();
+  return trimmed !== '' && trimmed !== '#';
+}
+
 export class AIRecommendation {
   constructor() {
     this.model = null;
@@ -411,11 +434,20 @@ export class AIRecommendation {
    * Rank recommendations by score
    */
   rankRecommendations(recommendations) {
+    // Drop placeholder entries (url: '#') before they ever reach a caller.
+    // Every built-in source currently generates simulated demo content —
+    // see isNavigableUrl() — so this filter is the single choke point that
+    // stops a future "Recommended for you" UI from ever presenting a dead
+    // link to a user, without needing every source method to be fixed at
+    // once (or generateRecommendations() to always come back empty by
+    // silent accident once real sources are added elsewhere).
+    const navigable = recommendations.filter(rec => isNavigableUrl(rec.url));
+
     // Remove duplicates
     const unique = [];
     const seen = new Set();
 
-    recommendations.forEach(rec => {
+    navigable.forEach(rec => {
       const key = `${rec.title}-${rec.url}`;
       if (!seen.has(key)) {
         seen.add(key);

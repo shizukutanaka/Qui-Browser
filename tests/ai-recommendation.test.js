@@ -4,7 +4,7 @@
  * getRecommendations, statistics, and dispose.
  */
 
-const { AIRecommendation } = require('../src/ai/AIRecommendation.js');
+const { AIRecommendation, isNavigableUrl } = require('../src/ai/AIRecommendation.js');
 
 describe('AIRecommendation.categorizeContent', () => {
   let ai;
@@ -129,6 +129,73 @@ describe('AIRecommendation.getRecommendations', () => {
     ai.generateRecommendations();
     const recs = ai.getRecommendations(3);
     expect(recs.length).toBeLessThanOrEqual(3);
+  });
+
+  test('never surfaces a placeholder (url: "#") recommendation', async () => {
+    // Every built-in source (content-based, collaborative, trending,
+    // contextual, time-based) currently generates simulated demo entries
+    // with url: '#'. Presenting one of these to a real "Recommended for
+    // you" UI would be a dead link masquerading as a suggestion.
+    for (let i = 0; i < 5; i++) {
+      ai.trackVisit(`https://real-site-${i}.com`, `Real Site ${i}`, 2000);
+    }
+    ai.userProfile.currentContext = { type: 'video' };
+    await ai.generateRecommendations();
+    const recs = ai.getRecommendations(50);
+    expect(recs.every(r => isNavigableUrl(r.url))).toBe(true);
+  });
+});
+
+describe('isNavigableUrl', () => {
+  test('true for a real http(s) URL', () => {
+    expect(isNavigableUrl('https://example.com')).toBe(true);
+  });
+
+  test('false for the placeholder anchor "#"', () => {
+    expect(isNavigableUrl('#')).toBe(false);
+  });
+
+  test('false for an empty or whitespace-only string', () => {
+    expect(isNavigableUrl('')).toBe(false);
+    expect(isNavigableUrl('   ')).toBe(false);
+  });
+
+  test('false for null/undefined/non-string values', () => {
+    expect(isNavigableUrl(null)).toBe(false);
+    expect(isNavigableUrl(undefined)).toBe(false);
+    expect(isNavigableUrl(42)).toBe(false);
+  });
+});
+
+describe('AIRecommendation.rankRecommendations filters placeholder entries', () => {
+  let ai;
+  beforeEach(() => { ai = new AIRecommendation(); });
+
+  test('drops url:"#" entries, keeps real ones', () => {
+    const ranked = ai.rankRecommendations([
+      { title: 'Fake', url: '#', score: 0.9 },
+      { title: 'Real', url: 'https://real.example', score: 0.5 }
+    ]);
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].title).toBe('Real');
+  });
+
+  test('returns an empty array when every candidate is a placeholder', () => {
+    const ranked = ai.rankRecommendations([
+      { title: 'Fake A', url: '#', score: 0.9 },
+      { title: 'Fake B', url: '#', score: 0.8 }
+    ]);
+    expect(ranked).toEqual([]);
+  });
+
+  test('still de-duplicates and boosts scores among real entries', () => {
+    const ranked = ai.rankRecommendations([
+      { title: 'Real', url: 'https://real.example', score: 0.5 },
+      { title: 'Real', url: 'https://real.example', score: 0.5 },
+      { title: 'Fake', url: '#', score: 0.9 }
+    ]);
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].score).toBeCloseTo(0.6, 5); // 0.5 * 1.2 boost
   });
 });
 
