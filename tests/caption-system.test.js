@@ -125,6 +125,32 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cs._lines[0].text).toBe('second');
   });
 
+  test('onShow fires with the normalized text on every show() call', () => {
+    const onShow = jest.fn();
+    const withHook = new CaptionSystem(cam, { onShow });
+    withHook.show('Tab closed');
+    expect(onShow).toHaveBeenCalledWith('Tab closed');
+  });
+
+  test('onShow receives NFC-normalized text, matching what is queued', () => {
+    const onShow = jest.fn();
+    const withHook = new CaptionSystem(cam, { onShow });
+    const nfd = 'が'; // か + combining voiced sound mark
+    withHook.show(nfd);
+    expect(onShow).toHaveBeenCalledWith(nfd.normalize('NFC'));
+  });
+
+  test('does not throw when onShow is not provided', () => {
+    expect(() => cs.show('no hook wired')).not.toThrow();
+  });
+
+  test('onShow is not called for an empty/whitespace show() (no-op path)', () => {
+    const onShow = jest.fn();
+    const withHook = new CaptionSystem(cam, { onShow });
+    withHook.show('   ');
+    expect(onShow).not.toHaveBeenCalled();
+  });
+
   test('clear() removes all captions and hides the panel', () => {
     cs.setEnabled(true);
     cs.show('a'); cs.show('b');

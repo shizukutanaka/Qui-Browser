@@ -39,13 +39,20 @@ export class CaptionSystem {
    * @param {boolean} [opts.highContrast=false] — opaque backing instead of the
    *   semi-transparent default, so the scene can't bleed through and wash out
    *   the text (low-vision / high-contrast preference).
+   * @param {Function} [opts.onShow] — called with the normalized text every
+   *   time show() runs, mirroring VoiceCommands' onSpeak pattern. Lets a host
+   *   forward every caption to a second surface (e.g. a hidden ARIA live
+   *   region for 2D/assistive-tech users) from one choke point instead of
+   *   duplicating it at every call site.
    */
-  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false } = {}) {
+  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false,
+    onShow = null } = {}) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
     this.scale = scale;
     this.highContrast = highContrast;
+    this.onShow = typeof onShow === 'function' ? onShow : null;
     this.enabled = false;
 
     /** @type {{text:string, remaining:number}[]} */
@@ -156,6 +163,9 @@ export class CaptionSystem {
     this._dirty = true;
     if (this.enabled && this.mesh) {
       this.mesh.visible = true;
+    }
+    if (this.onShow) {
+      this.onShow(normalized);
     }
     this._draw();
   }

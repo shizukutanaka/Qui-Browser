@@ -24,6 +24,16 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.msg.settingsOpen / settingsClosed (settings panel toggle)', () => {
+    setLanguage('en');
+    expect(t('vr.msg.settingsOpen')).toBe('Settings: open');
+    expect(t('vr.msg.settingsClosed')).toBe('Settings: closed');
+    setLanguage('ja');
+    expect(t('vr.msg.settingsOpen')).toBe('設定: 開く');
+    expect(t('vr.msg.settingsClosed')).toBe('設定: 閉じる');
+    setLanguage('en');
+  });
+
   test('unknown key falls back to the key itself', () => {
     setLanguage('en');
     expect(t('does.not.exist')).toBe('does.not.exist');

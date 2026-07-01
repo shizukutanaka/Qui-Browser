@@ -24,6 +24,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
+import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
@@ -788,6 +789,13 @@ export class VRApp {
    * @param {number} [opts.duration=4000]  milliseconds before auto-dismiss
    */
   showVRToast(message, { type = 'error', duration = 4000 } = {}) {
+    // Mirror to the hidden ARIA alert region unconditionally, before the
+    // VR-session guard below. Several subsystem-failure toasts (haptics,
+    // spatial audio, AI) fire during initializeSystems() — before the user
+    // has entered VR at all — so gating the mirror on isVREnabled/camera the
+    // same way the 3D mesh is gated would silently drop them a second time.
+    this.semanticDOM?.announceAlert(withSeverity(message, type));
+
     if (!this.isVREnabled || !this.camera) {
       return;
     }
@@ -1745,11 +1753,12 @@ export class VRApp {
         if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
           this.settingsPanel.visible = !this.settingsPanel.visible;
           this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
+          this.semanticDOM?.setSettingsExpanded(this.settingsPanel.visible);
           // Caption so users who rely on text feedback know whether the panel
           // opened or closed — the face/menu button click haptic is generic
           // and doesn't distinguish panel-open from panel-close.
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Settings: ${this.settingsPanel.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(this.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
           }
         }
         // Toggle VR keyboard.
@@ -2041,14 +2050,28 @@ export class VRApp {
     this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
     console.debug('VRApp: Gaze-dwell interaction ready');
 
-    // 6c. In-VR captions (FR-13.1, accessibility). Created always so it can be
+    // 6c. Semantic DOM overlay (2D / screen-reader accessibility, Phase 2).
+    // A hidden ARIA-live region mirroring captions/toasts/settings state for
+    // consumers outside the WebGL render (Quest dom-overlay accessibility
+    // services, or assistive tech inspecting the page). Purely a redundant
+    // announcement surface, so a failure here is console-only, not toast-worthy.
+    try {
+      this.semanticDOM = new SemanticDOM();
+      console.debug('VRApp: Semantic DOM overlay ready');
+    } catch (e) {
+      console.error('VRApp: Semantic DOM overlay init failed', e);
+      this.semanticDOM = null;
+    }
+
+    // 6d. In-VR captions (FR-13.1, accessibility). Created always so it can be
     // toggled live; only renders when enabled and lines are present.
     // Honour the user's accessibility preferences so low-vision users get
     // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
     this.captionSystem = new CaptionSystem(this.camera, {
       scale: this.settings.captionScale,
       highContrast: prefersHighContrast(),
-      lineDuration: this.settings.captionDuration * 1000
+      lineDuration: this.settings.captionDuration * 1000,
+      onShow: (text) => this.semanticDOM?.announceCaption(text)
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
     console.debug('VRApp: Caption system ready');
@@ -2975,6 +2998,9 @@ export class VRApp {
     }
     if (this.captionSystem) {
       this.captionSystem.dispose();
+    }
+    if (this.semanticDOM) {
+      this.semanticDOM.dispose();
     }
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
