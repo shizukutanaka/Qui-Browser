@@ -559,8 +559,19 @@ export class WebPanel {
 
     this.scene.remove(this.group);
 
-    if (this.iframe && this.iframe.parentNode) {
-      this.iframe.parentNode.removeChild(this.iframe);
+    if (this.iframe) {
+      // Detach the load/error handlers before removing the element. A
+      // navigation started just before dispose() (tab/panel closed mid-load)
+      // can still fire onload/onerror afterward; without this, the stale
+      // handler redraws chromeCanvas onto an already-disposed chromeTex and
+      // calls onNavigate()/onLoadError() against a torn-down VRApp — the same
+      // teardown-leak class fixed for toast timers, hand-tracking timers, and
+      // queued TTS utterances.
+      this.iframe.onload = null;
+      this.iframe.onerror = null;
+      if (this.iframe.parentNode) {
+        this.iframe.parentNode.removeChild(this.iframe);
+      }
     }
   }
 }

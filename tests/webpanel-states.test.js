@@ -19,8 +19,10 @@ class MockMesh {
 
 jest.mock('three', () => ({
   Group: class {
-    constructor() { this.position = { set() {} }; this.rotation = {}; }
-    add() {} remove() {}
+    constructor() { this.position = { set() {} }; this.rotation = {}; this._objects = []; }
+    add(o) { this._objects.push(o); }
+    remove(o) { this._objects = this._objects.filter(x => x !== o); }
+    traverse(fn) { this._objects.forEach(fn); fn(this); }
   },
   Mesh: MockMesh,
   PlaneGeometry: class { dispose() {} },
@@ -227,6 +229,51 @@ describe('WebPanel load-error state', () => {
     p._loadUrl('https://site.example');
     p.iframe.onload();
     expect(p._loadError).toBe(false);
+  });
+});
+
+// ── dispose() teardown — stale iframe handler leak ──────────────────────────
+describe('WebPanel dispose() detaches iframe onload/onerror', () => {
+  test('dispose() nulls onload and onerror before removing the iframe', () => {
+    const p = makePanel();
+    p._loadUrl('https://example.com'); // attaches onload/onerror
+    expect(typeof p.iframe.onload).toBe('function');
+    expect(typeof p.iframe.onerror).toBe('function');
+
+    p.dispose();
+
+    expect(p.iframe.onload).toBeNull();
+    expect(p.iframe.onerror).toBeNull();
+  });
+
+  test('a load completing after dispose() does not reach onNavigate', () => {
+    // The DOM re-checks the onload IDL attribute at fire time rather than
+    // holding a captured reference, so simulate that: read p.iframe.onload
+    // *after* dispose() (not a pre-dispose capture) and invoke it if set —
+    // mirroring how a stale in-flight navigation's load event is dispatched.
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p._loadUrl('https://example.com'); // navigation in flight
+
+    p.dispose(); // tab/panel closed mid-load
+
+    if (p.iframe.onload) {
+      p.iframe.onload();
+    }
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  test('a load erroring after dispose() does not reach onLoadError', () => {
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
+    p._loadUrl('https://example.com');
+
+    p.dispose();
+
+    if (p.iframe.onerror) {
+      p.iframe.onerror();
+    }
+    expect(onLoadError).not.toHaveBeenCalled();
   });
 });
 
