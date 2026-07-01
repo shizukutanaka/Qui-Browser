@@ -139,6 +139,30 @@ describe('TabManager (FR-1.3)', () => {
     expect(tm.count).toBe(8);
   });
 
+  test('fires onMaxTabsReached when newTab() is blocked (WCAG 4.1.3)', () => {
+    const onMaxTabsReached = jest.fn();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn(),
+      onMaxTabsReached
+    });
+    for (let i = 0; i < 8; i++) tm.newTab();
+    expect(onMaxTabsReached).not.toHaveBeenCalled();
+
+    const blocked = tm.newTab();
+
+    expect(blocked).toBeNull();
+    expect(onMaxTabsReached).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not throw when onMaxTabsReached is omitted and the cap is hit', () => {
+    const tm = makeManager(); // no onMaxTabsReached in opts
+    for (let i = 0; i < 8; i++) tm.newTab();
+    expect(() => tm.newTab()).not.toThrow();
+  });
+
   test('dispose() disposes all tabs', () => {
     const tm = makeManager();
     tm.newTab();

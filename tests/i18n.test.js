@@ -16,6 +16,14 @@ describe('src/i18n/i18n', () => {
     expect(t('cta.enterVR')).toBe('VRモードに入る');
   });
 
+  test('translates vr.msg.maxTabsReached (WCAG 4.1.3 status message)', () => {
+    setLanguage('en');
+    expect(t('vr.msg.maxTabsReached')).toBe('Maximum tabs reached');
+    setLanguage('ja');
+    expect(t('vr.msg.maxTabsReached')).toBe('タブ上限に達しました');
+    setLanguage('en');
+  });
+
   test('unknown key falls back to the key itself', () => {
     setLanguage('en');
     expect(t('does.not.exist')).toBe('does.not.exist');

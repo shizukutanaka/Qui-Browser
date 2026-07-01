@@ -29,6 +29,9 @@ export class TabManager {
    *   announce the active page via caption / haptic (WCAG 4.1.3 Status Messages).
    * @param {Function} [opts.onTabClose]      — called with no args after a tab
    *   is closed so VRApp can fire a "Tab closed" status message.
+   * @param {Function} [opts.onMaxTabsReached] — called with no args when
+   *   newTab() is blocked by MAX_TABS, so VRApp can fire a status message
+   *   (WCAG 4.1.3) instead of the "+" button silently doing nothing.
    * @param {{x:number,y:number,z:number}} [opts.position]
    */
   constructor(opts) {
@@ -181,6 +184,12 @@ export class TabManager {
   newTab(url = '') {
     if (this.tabs.length >= MAX_TABS) {
       console.warn('TabManager: max tabs reached');
+      // The "+" button silently did nothing past MAX_TABS with no user-facing
+      // feedback (WCAG 4.1.3) — a gaze/controller user pressing it repeatedly
+      // had no way to know the action was blocked rather than merely slow.
+      if (this.opts.onMaxTabsReached) {
+        this.opts.onMaxTabsReached();
+      }
       return null;
     }
 

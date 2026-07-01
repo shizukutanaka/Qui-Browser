@@ -486,11 +486,11 @@ export class VRApp {
         if (this.captionSystem && this.captionSystem.enabled) {
           let label;
           if (state === 'playing') {
-            label = 'Video: playing';
+            label = t('vr.msg.videoPlaying');
           } else if (state === 'stopped') {
-            label = 'Video: stopped';
+            label = t('vr.msg.videoStopped');
           } else {
-            label = 'Video: paused';
+            label = t('vr.msg.videoPaused');
           }
           this.captionSystem.show(label);
         }
@@ -534,24 +534,27 @@ export class VRApp {
         onToggleBookmark: (url, title) => {
           const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(nowBookmarked ? 'Bookmarked' : 'Bookmark removed');
+            this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
           }
           return nowBookmarked;
         },
         onTabActivate: (url) => {
           if (this.captionSystem && this.captionSystem.enabled) {
-            const label = url ? hostnameCaption(url) : 'New Tab';
+            const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
             this.captionSystem.show(`Tab: ${label}`);
           }
         },
         onTabClose: () => {
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show('Tab closed');
+            this.captionSystem.show(t('vr.msg.tabClosed'));
           }
+        },
+        onMaxTabsReached: () => {
+          this.showVRToast(t('vr.msg.maxTabsReached'), { type: 'warn' });
         },
         onHoverCaption: () => {
           if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-            this.captionSystem.show('Tab strip');
+            this.captionSystem.show(t('vr.msg.tabStripLabel'));
           }
         },
         onPanelHoverCaption: (url, title) => {
@@ -563,7 +566,7 @@ export class VRApp {
             // users whose gaze is already on the panel (WCAG 1.3.3).
             const label = (title && title !== url)
               ? title
-              : (url ? hostnameCaption(url) : 'Browser controls');
+              : (url ? hostnameCaption(url) : t('vr.msg.browserControls'));
             this.captionSystem.show(label);
           }
         }
@@ -595,7 +598,7 @@ export class VRApp {
         },
         onDeleteBookmark: () => {
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show('Bookmark deleted');
+            this.captionSystem.show(t('vr.msg.bookmarkDeleted'));
           }
           if (this.hapticFeedback) {
             this.hapticFeedback.playPatternBothHands('notification');
@@ -608,7 +611,7 @@ export class VRApp {
         },
         onHoverCaption: () => {
           if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-            this.captionSystem.show('Bookmarks panel');
+            this.captionSystem.show(t('vr.msg.bookmarksPanel'));
           }
         },
         onClose: () => {
@@ -616,7 +619,7 @@ export class VRApp {
           // 'Bookmarks' button emits, so the state change is announced
           // regardless of which path closed the panel (WCAG 4.1.3).
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show('Bookmarks: closed');
+            this.captionSystem.show(t('vr.msg.bookmarksClosed'));
           }
         }
       });
@@ -1165,7 +1168,7 @@ export class VRApp {
         if (this.captionSystem) {
           this.captionSystem.setEnabled(v);
           if (v) {
-            this.captionSystem.show('Captions enabled');
+            this.captionSystem.show(t('vr.msg.captionsEnabled'));
           }
         }
       }],
@@ -1262,7 +1265,7 @@ export class VRApp {
           // (WCAG 4.1.3) so caption-reliant users know whether the panel
           // appeared or disappeared.
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Bookmarks: ${this.bookmarkPanel.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
           }
         }
       }]);
@@ -1712,13 +1715,13 @@ export class VRApp {
           if (btn.faceA?.justPressed) {
             const moved = tab.goForward?.();
             if (this.captionSystem?.enabled) {
-              this.captionSystem.show(moved ? 'Going forward' : 'No next page');
+              this.captionSystem.show(moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
             }
           }
           if (btn.faceB?.justPressed) {
             const moved = tab.goBack?.();
             if (this.captionSystem?.enabled) {
-              this.captionSystem.show(moved ? 'Going back' : 'No previous page');
+              this.captionSystem.show(moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
             }
           }
         }
@@ -1735,7 +1738,7 @@ export class VRApp {
         if (btn.faceA?.justPressed && this.bookmarkPanel) {
           this.bookmarkPanel.toggle();
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Bookmarks: ${this.bookmarkPanel.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
           }
         }
         // Toggle settings panel.
@@ -1898,7 +1901,7 @@ export class VRApp {
     this.playerRig.position.set(0, 0, 0);
     this.playerRig.quaternion.identity();
     if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show('Recentered');
+      this.captionSystem.show(t('vr.msg.recentered'));
     }
     console.debug('VRApp: recentered');
   }
@@ -1933,7 +1936,7 @@ export class VRApp {
         console.debug('VRApp: FFR system ready');
       } catch (e) {
         console.error('VRApp: FFR init failed', e);
-        this.showVRToast('Foveation unavailable', { type: 'warn' });
+        this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });
       }
     }
 
@@ -1985,7 +1988,7 @@ export class VRApp {
       },
       onCancel: () => {
         if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show('Keyboard cancelled');
+          this.captionSystem.show(t('vr.msg.keyboardCancelled'));
         }
       }
     });
@@ -2020,7 +2023,7 @@ export class VRApp {
       console.debug('VRApp: Haptic feedback ready');
     } catch (e) {
       console.error('VRApp: Haptic feedback init failed', e);
-      this.showVRToast('Haptic feedback unavailable', { type: 'warn' });
+      this.showVRToast(t('vr.error.hapticUnavailable'), { type: 'warn' });
       // Set to null so notifyCrossModal() skips haptic gracefully
       this.hapticFeedback = null;
     }
@@ -2057,7 +2060,7 @@ export class VRApp {
       console.debug('VRApp: Spatial audio initialized');
     } catch (e) {
       console.error('VRApp: Spatial audio init failed', e);
-      this.showVRToast('Spatial audio unavailable', { type: 'warn' });
+      this.showVRToast(t('vr.error.spatialAudioUnavailable'), { type: 'warn' });
     }
 
     // 8. Mixed Reality
@@ -2086,7 +2089,7 @@ export class VRApp {
         console.debug(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
       } catch (e) {
         console.error('VRApp: AI recommendations init failed', e);
-        this.showVRToast('AI recommendations unavailable', { type: 'warn' });
+        this.showVRToast(t('vr.error.aiUnavailable'), { type: 'warn' });
         this.aiRecommendation = null;
       }
     }
@@ -2209,10 +2212,10 @@ export class VRApp {
       // a deaf user or someone not looking at the panel knows a peer has
       // joined or left without relying on spatial audio alone.
       this.multiplayerSystem.onPeerConnected = (_peerId) => {
-        this.showVRToast('Player joined', { type: 'info' });
+        this.showVRToast(t('vr.msg.playerJoined'), { type: 'info' });
       };
       this.multiplayerSystem.onPeerDisconnected = (_peerId) => {
-        this.showVRToast('Player left', { type: 'warn' });
+        this.showVRToast(t('vr.msg.playerLeft'), { type: 'warn' });
       };
       console.debug('VRApp: Multiplayer system ready (call connect() to join a room)');
     }
@@ -2350,7 +2353,7 @@ export class VRApp {
         console.debug('VRApp: FFR enabled for session');
       } catch (e) {
         console.error('VRApp: FFR session init failed', e);
-        this.showVRToast('Foveation unavailable', { type: 'warn' });
+        this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });
         this.ffrSystem = null;
       }
     }
@@ -2367,7 +2370,7 @@ export class VRApp {
         }
       } catch (e) {
         console.error('VRApp: WebXR Layers init failed', e);
-        this.showVRToast('Sharp text rendering unavailable', { type: 'warn' });
+        this.showVRToast(t('vr.error.layersUnavailable'), { type: 'warn' });
         this.layersSystem = null;
       }
     }
