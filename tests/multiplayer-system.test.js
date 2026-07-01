@@ -6,7 +6,7 @@
  */
 
 class MockGeometry { dispose() { this.disposed = true; } }
-class MockMaterial { dispose() { this.disposed = true; } }
+class MockMaterial { constructor(o = {}) { Object.assign(this, o); } dispose() { this.disposed = true; } }
 class MockObj {
   constructor() { this.children = []; this.position = { set: jest.fn(), x: 0, y: 0, z: 0 }; this.name = ''; }
   add(o) { this.children.push(o); }
@@ -15,16 +15,34 @@ class MockObj {
 class MockMesh extends MockObj {
   constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; }
 }
+class MockSprite extends MockObj {
+  constructor(material) { super(); this.material = material; this.scale = { set: jest.fn() }; }
+}
+class MockCanvasTexture { dispose() { this.disposed = true; } }
 
 jest.mock('three', () => ({
   Group: MockObj,
   Mesh: MockMesh,
+  Sprite: MockSprite,
+  SpriteMaterial: MockMaterial,
+  CanvasTexture: MockCanvasTexture,
   CapsuleGeometry: MockGeometry,
   SphereGeometry: MockGeometry,
   MeshPhongMaterial: MockMaterial,
   Vector3: class { constructor() { this.set = () => {}; } },
   Quaternion: class {}
 }));
+
+// ── canvas/document stub (name-label rendering) ───────────────────────────────
+global.document = {
+  createElement: () => ({
+    width: 0, height: 0,
+    getContext: () => ({
+      fillRect: jest.fn(), fillText: jest.fn(),
+      set fillStyle(v) {}, set font(v) {}, set textAlign(v) {}, set textBaseline(v) {}
+    })
+  })
+};
 
 const {
   MultiplayerSystem,
@@ -120,6 +138,87 @@ describe('MultiplayerSystem peer lifecycle', () => {
     expect(mp.avatars.size).toBe(0);
     // every geometry under each avatar was disposed
     expect(groups.every(g => g.children.every(c => !c.geometry || c.geometry.disposed))).toBe(true);
+  });
+});
+
+describe('MultiplayerSystem.updatePlayerInfo (was previously undefined — real bug)', () => {
+  // handleDataMessage's 'player-info' case calls this.updatePlayerInfo(peerId,
+  // data), sent immediately when a data channel opens. The method did not
+  // exist at all, so every real peer connection threw a TypeError on the very
+  // first message, and — since nothing else in the live message flow ever
+  // called createAvatar() — no remote peer's avatar was ever created. Avatar
+  // position/rotation/hand-pose sync all early-return on a missing entry in
+  // this.avatars, so the whole feature was non-functional despite being
+  // fully implemented and covered by tests that call createAvatar() directly.
+
+  test('is defined (regression guard for the missing-method bug)', () => {
+    const mp = makeSystem();
+    expect(typeof mp.updatePlayerInfo).toBe('function');
+  });
+
+  test('creates the avatar on first contact', () => {
+    const mp = makeSystem();
+    expect(mp.avatars.has('p1')).toBe(false);
+
+    mp.updatePlayerInfo('p1', { name: 'Alice', color: 0x00ff00 });
+
+    expect(mp.avatars.has('p1')).toBe(true);
+    expect(mp.avatars.get('p1').info.name).toBe('Alice');
+  });
+
+  test('mirrors exactly what handleDataMessage does for a real "player-info" message', () => {
+    const mp = makeSystem();
+    expect(() => mp.handleDataMessage('p1', { type: 'player-info', data: { name: 'Bob' } }))
+      .not.toThrow();
+    expect(mp.avatars.has('p1')).toBe(true);
+  });
+
+  test('does not recreate an existing avatar, but refreshes its info', () => {
+    const mp = makeSystem();
+    mp.createAvatar('p1', { name: 'Old Name' });
+    const group = mp.avatars.get('p1').group;
+
+    mp.updatePlayerInfo('p1', { name: 'New Name' });
+
+    expect(mp.avatars.get('p1').group).toBe(group); // same avatar, not recreated
+    expect(mp.avatars.get('p1').info.name).toBe('New Name');
+  });
+
+  test('does not throw when info is missing/undefined', () => {
+    const mp = makeSystem();
+    expect(() => mp.updatePlayerInfo('p1', undefined)).not.toThrow();
+    expect(mp.avatars.has('p1')).toBe(false);
+  });
+});
+
+describe('MultiplayerSystem avatar name label (was previously a stub)', () => {
+  test('createAvatar() attaches a name-label sprite to the group', () => {
+    const mp = makeSystem();
+    mp.createAvatar('p1', { name: 'Alice' });
+    const avatar = mp.avatars.get('p1');
+    expect(avatar.nameLabel).toBeTruthy();
+    expect(avatar.group.children).toContain(avatar.nameLabel);
+  });
+
+  test('falls back to the peer id when no name is provided', () => {
+    const mp = makeSystem();
+    expect(() => mp.createAvatar('p1', {})).not.toThrow();
+  });
+
+  test('_disposeAvatar() also disposes the name label\'s texture (map), not just the material', () => {
+    // The SpriteMaterial owns a CanvasTexture (map); disposing the material
+    // alone does not free the GPU texture memory — same leak class already
+    // fixed for WebPanel/TabManager/BookmarkPanel.
+    const mp = makeSystem();
+    mp.createAvatar('p1', { name: 'Alice' });
+    const { nameLabel } = mp.avatars.get('p1');
+    const texture = nameLabel.material.map;
+    expect(texture).toBeTruthy();
+
+    mp.handlePeerLeft('p1');
+
+    expect(nameLabel.material.disposed).toBe(true);
+    expect(texture.disposed).toBe(true);
   });
 });
 

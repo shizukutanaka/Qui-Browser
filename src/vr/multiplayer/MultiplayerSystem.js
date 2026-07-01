@@ -11,6 +11,7 @@
  */
 
 import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
 
 // Backpressure high-water mark for data-channel sends. When a channel's
 // bufferedAmount (app → SCTP send buffer) exceeds this, the link is congested
@@ -374,7 +375,7 @@ export class MultiplayerSystem {
     this.avatars.delete(peerId);
   }
 
-  /** Dispose all geometries/materials under an avatar group. */
+  /** Dispose all geometries/materials/textures under an avatar group. */
   _disposeAvatar(avatar) {
     if (!avatar || !avatar.group) {
       return;
@@ -384,11 +385,16 @@ export class MultiplayerSystem {
         obj.geometry.dispose();
       }
       if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(m => m.dispose());
-        } else {
-          obj.material.dispose();
-        }
+        const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+        materials.forEach(m => {
+          // The name label's SpriteMaterial owns a CanvasTexture (map) that
+          // .dispose() on the material alone does not free — same texture-
+          // leak class already fixed for WebPanel/TabManager/BookmarkPanel.
+          if (m.map) {
+            m.map.dispose();
+          }
+          m.dispose();
+        });
       }
     });
   }
@@ -659,6 +665,68 @@ export class MultiplayerSystem {
   }
 
   /**
+   * Handle a 'player-info' message (sent immediately when a data channel
+   * opens — see setupDataChannel's onopen). This was previously called from
+   * handleDataMessage but never defined: every single peer connection threw
+   * a TypeError the instant the first message arrived, and since nothing
+   * else in the live message flow ever called createAvatar(), no remote
+   * peer's avatar was ever created — updateAvatarPosition/Rotation/HandPose
+   * all early-return on a missing `this.avatars.get(peerId)`, so avatar sync
+   * was completely non-functional in a real multiplayer session despite
+   * being fully implemented and unit-tested in isolation.
+   *
+   * Creates the avatar on first contact; refreshes its stored info (e.g. a
+   * changed display name) on subsequent player-info messages.
+   */
+  updatePlayerInfo(peerId, info) {
+    if (!info) {
+      return;
+    }
+    const avatar = this.avatars.get(peerId);
+    if (!avatar) {
+      this.createAvatar(peerId, info);
+      return;
+    }
+    avatar.info = info;
+  }
+
+  /**
+   * Build a billboard name label shown above a peer's avatar.
+   *
+   * Previously a stub ("Would create 3D text in production"): info.name was
+   * already tracked and transmitted (getLocalPlayerInfo/updatePlayerInfo) but
+   * never rendered, leaving every remote avatar visually anonymous. Uses the
+   * same CanvasTexture pattern as every other in-VR UI surface (captions,
+   * toasts, chrome bar); THREE.Sprite auto-billboards so the label always
+   * faces the viewer without per-frame orientation code.
+   *
+   * @param {string} name
+   * @returns {THREE.Sprite}
+   */
+  _buildNameLabel(name) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Code-point-aware slice so a long/CJK name can't be cut mid-surrogate-pair.
+    const label = Array.from(String(name || '')).slice(0, 20).join('');
+    ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+
+    const texture = configureUITexture(new THREE.CanvasTexture(canvas));
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.6, 0.15, 1);
+    sprite.name = 'nameLabel';
+    return sprite;
+  }
+
+  /**
    * Create or update avatar for peer
    */
   createAvatar(peerId, info) {
@@ -695,8 +763,11 @@ export class MultiplayerSystem {
     avatar.add(leftHand);
     avatar.add(rightHand);
 
-    // Add name label
-    // Would create 3D text in production
+    // Add name label — billboard sprite above the head so peers can tell
+    // each other apart; otherwise every avatar is an anonymous colored blob.
+    const nameLabel = this._buildNameLabel(info.name || peerId);
+    nameLabel.position.y = 1.35; // above the head sphere (head at y=1, r=0.2)
+    avatar.add(nameLabel);
 
     // Store avatar data
     const avatarData = {
@@ -704,6 +775,7 @@ export class MultiplayerSystem {
       body: body,
       head: head,
       hands: { left: leftHand, right: rightHand },
+      nameLabel: nameLabel,
       info: info,
       lastUpdate: performance.now(),
       interpolation: {
