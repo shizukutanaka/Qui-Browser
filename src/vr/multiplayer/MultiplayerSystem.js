@@ -132,9 +132,7 @@ export class MultiplayerSystem {
     // Interpolation
     this.interpolation = {
       enabled: true,
-      factor: 0.2,
-      extrapolation: true,
-      maxExtrapolationTime: 100 // ms
+      factor: 0.2
     };
   }
 
@@ -879,14 +877,16 @@ export class MultiplayerSystem {
           avatar.interpolation.toRotation,
           avatar.interpolation.progress
         );
-      } else if (this.interpolation.extrapolation) {
-        // Extrapolate if no recent updates
-        const timeSinceUpdate = performance.now() - avatar.lastUpdate;
-        if (timeSinceUpdate < this.interpolation.maxExtrapolationTime) {
-          // Simple extrapolation based on velocity
-          // Would calculate velocity in production
-        }
       }
+      // else: progress has reached 1 (interpolation caught up to the last
+      // known sample) and no new update has arrived yet. The avatar simply
+      // holds its last position/rotation — a static freeze — rather than
+      // extrapolating a guessed position. An earlier "extrapolation" branch
+      // here computed timeSinceUpdate but never used it (dead code — the
+      // config flag implied a working feature that did nothing); removed
+      // rather than half-implemented, since a static hold is a safe fallback
+      // and inventing unverified velocity-prediction math risks a worse
+      // artifact (overshooting past where a stopped peer actually is).
     });
   }
 
