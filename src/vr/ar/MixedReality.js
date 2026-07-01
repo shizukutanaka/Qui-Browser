@@ -202,21 +202,20 @@ export class MixedReality {
   }
 
   /**
-   * Check for passthrough extension (Quest specific)
+   * Check for a vendor-specific passthrough signal (Quest specific), used as
+   * checkSupport()'s fallback when the standard 'immersive-ar' session type
+   * itself isn't supported.
+   *
+   * Previously also treated `navigator.xr.isSessionSupported` merely
+   * *existing* as evidence of passthrough — but that method is present on
+   * virtually any WebXR implementation, VR-only headsets included, so the
+   * fallback always reported passthrough:true regardless of actual camera
+   * passthrough hardware. There is no standard, vendor-neutral way to detect
+   * passthrough beyond the 'immersive-ar' session type already checked in
+   * checkSupport(), so this now only trusts the genuine vendor global.
    */
   hasPassthroughExtension() {
-    // Check for Oculus/Meta passthrough extensions
-    if (window.OculusBrowserExt) {
-      return true;
-    }
-
-    // Check WebXR extensions
-    if (navigator.xr && navigator.xr.isSessionSupported) {
-      // Quest browsers may support passthrough as an extension
-      return true; // Simplified - would check specific extensions
-    }
-
-    return false;
+    return !!window.OculusBrowserExt;
   }
 
   /**

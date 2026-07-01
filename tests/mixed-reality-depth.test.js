@@ -58,6 +58,8 @@ function makeMR() {
   return new MixedReality({ xr: {} }, makeScene());
 }
 
+global.window = global.window || {};
+
 // A fake XRMesh.
 function fakeMesh(label = 'wall') {
   return {
@@ -194,5 +196,69 @@ describe('MixedReality FR-6.4 stats + teardown', () => {
     expect(mr.detectedMeshes.size).toBe(0);
     expect(mr.meshVisualizers.size).toBe(0);
     expect(mr.latestDepth).toBeNull();
+  });
+});
+
+describe('MixedReality passthrough detection (checkSupport / hasPassthroughExtension)', () => {
+  let origNavigatorXr, origOculusExt;
+
+  beforeEach(() => {
+    origNavigatorXr = navigator.xr;
+    origOculusExt = global.window.OculusBrowserExt;
+  });
+  afterEach(() => {
+    navigator.xr = origNavigatorXr;
+    global.window.OculusBrowserExt = origOculusExt;
+  });
+
+  test('hasPassthroughExtension() is false with no vendor signal', () => {
+    delete global.window.OculusBrowserExt;
+    const mr = makeMR();
+    expect(mr.hasPassthroughExtension()).toBe(false);
+  });
+
+  test('hasPassthroughExtension() is true only with the genuine Oculus/Meta vendor global', () => {
+    global.window.OculusBrowserExt = {};
+    const mr = makeMR();
+    expect(mr.hasPassthroughExtension()).toBe(true);
+  });
+
+  test('hasPassthroughExtension() no longer false-positives on isSessionSupported merely existing', () => {
+    // Regression guard: the previous implementation returned true whenever
+    // navigator.xr.isSessionSupported existed as a method — true on virtually
+    // any WebXR browser, VR-only headsets included — regardless of any real
+    // camera-passthrough capability.
+    delete global.window.OculusBrowserExt;
+    navigator.xr = { isSessionSupported: jest.fn() };
+    const mr = makeMR();
+    expect(mr.hasPassthroughExtension()).toBe(false);
+  });
+
+  test('checkSupport() reports passthrough:true when immersive-ar is supported', async () => {
+    navigator.xr = { isSessionSupported: jest.fn(() => Promise.resolve(true)) };
+    delete global.window.OculusBrowserExt;
+    const mr = makeMR();
+    const support = await mr.checkSupport();
+    expect(support.ar).toBe(true);
+    expect(support.passthrough).toBe(true);
+  });
+
+  test('checkSupport() reports passthrough:false when neither immersive-ar nor a vendor signal is present', async () => {
+    // The core regression: previously this was always true.
+    navigator.xr = { isSessionSupported: jest.fn(() => Promise.resolve(false)) };
+    delete global.window.OculusBrowserExt;
+    const mr = makeMR();
+    const support = await mr.checkSupport();
+    expect(support.ar).toBe(false);
+    expect(support.passthrough).toBe(false);
+  });
+
+  test('checkSupport() falls back to the vendor signal when immersive-ar is unsupported', async () => {
+    navigator.xr = { isSessionSupported: jest.fn(() => Promise.resolve(false)) };
+    global.window.OculusBrowserExt = {};
+    const mr = makeMR();
+    const support = await mr.checkSupport();
+    expect(support.ar).toBe(false);
+    expect(support.passthrough).toBe(true);
   });
 });
