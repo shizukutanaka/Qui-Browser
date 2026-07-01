@@ -15,6 +15,7 @@ import {
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
 /**
  * Canvas colour palette for the bookmark / history panel.
@@ -159,9 +160,14 @@ export class BookmarkPanel {
     if (!this.store) {
       return [];
     }
+    // Fetch the full persisted history (bounded by BookmarkStore's own
+    // MAX_HISTORY cap), not just one page's worth — passing VISIBLE_ROWS here
+    // previously meant allRows.length could never exceed VISIBLE_ROWS, so the
+    // "scrollable" check in _draw() was always false and the scroll arrows
+    // never appeared: only the newest page of history was ever reachable.
     return this.mode === 'bookmarks'
       ? this.store.getBookmarks()
-      : this.store.getHistory(VISIBLE_ROWS);
+      : this.store.getHistory(MAX_HISTORY);
   }
 
   show() {

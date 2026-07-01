@@ -5,7 +5,7 @@
  */
 
 const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H
+  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS
 } = require('../src/vr/browser/bookmarkLayout.js');
 
 // Panel mesh dimensions (mirror BookmarkPanel.js).
@@ -106,6 +106,29 @@ describe('BookmarkPanel', () => {
     const p = makePanel(store);
     p.setMode('history');
     expect(p._rows()[0].url).toBe('https://h.com');
+  });
+
+  test('_rows() in history mode requests more than one page, so scrolling works', () => {
+    // Regression: _rows() previously called store.getHistory(VISIBLE_ROWS),
+    // capping the fetch at exactly one page. That made "allRows.length >
+    // VISIBLE_ROWS" always false in _draw(), so the scroll arrows could never
+    // appear and history beyond the first page was permanently unreachable —
+    // regardless of how much history the user actually had. A realistic store
+    // (unlike makeStore(), which ignores the limit arg) truncates to the
+    // requested limit, so this simulates that to catch the regression.
+    const fullHistory = Array.from({ length: VISIBLE_ROWS + 5 }, (_, i) => ({
+      url: `https://site${i}.example`
+    }));
+    const getHistory = jest.fn((limit = 50) => fullHistory.slice(0, limit));
+    const store = { getBookmarks: () => [], getHistory };
+    const p = makePanel(store);
+    p.setMode('history');
+
+    const rows = p._rows();
+
+    expect(getHistory).toHaveBeenCalledWith(expect.any(Number));
+    expect(getHistory.mock.calls[0][0]).toBeGreaterThan(VISIBLE_ROWS);
+    expect(rows.length).toBeGreaterThan(VISIBLE_ROWS);
   });
 
   test('selecting a row calls onSelect with its url and hides', () => {

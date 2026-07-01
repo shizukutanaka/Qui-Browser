@@ -5,7 +5,9 @@
 
 const BOOKMARKS_KEY = 'quiBrowser_bookmarks';
 const HISTORY_KEY   = 'quiBrowser_history';
-const MAX_HISTORY   = 200;
+// Exported so UI consumers (e.g. BookmarkPanel) can fetch the full persisted
+// history rather than guessing a cap — see getHistory()'s limit parameter.
+export const MAX_HISTORY = 200;
 const FRECENCY_HALF_LIFE_DAYS = 7; // recency weight halves every week
 
 /**
