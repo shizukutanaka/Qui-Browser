@@ -32,6 +32,10 @@ export class TabManager {
    * @param {Function} [opts.onMaxTabsReached] — called with no args when
    *   newTab() is blocked by MAX_TABS, so VRApp can fire a status message
    *   (WCAG 4.1.3) instead of the "+" button silently doing nothing.
+   * @param {Function} [opts.onGrabRequested] — forwarded to every WebPanel;
+   *   called with (controller) when a panel's move bar is selected.
+   * @param {Function} [opts.onMoveBarHoverCaption] — forwarded to every WebPanel;
+   *   called with no args on move bar hover-enter.
    * @param {{x:number,y:number,z:number}} [opts.position]
    */
   constructor(opts) {
@@ -206,7 +210,9 @@ export class TabManager {
       isBookmarked: this.opts.isBookmarked || null,
       onToggleBookmark: this.opts.onToggleBookmark || null,
       onLoadError: this.opts.onLoadError || null,
-      onHoverCaption: this.opts.onPanelHoverCaption || null
+      onHoverCaption: this.opts.onPanelHoverCaption || null,
+      onGrabRequested: this.opts.onGrabRequested || null,
+      onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null
     });
     panel.addToScene();
     panel.group.position.set(this.position.x, this.position.y, this.position.z);

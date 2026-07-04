@@ -40,7 +40,7 @@ import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { TabManager } from './browser/TabManager.js';
-import { WindowManager, resolveWindowDistance } from './browser/WindowManager.js';
+import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
@@ -144,6 +144,7 @@ export class VRApp {
     this.controllerInput = null; // VRControllerInput instance (created in setupControllers)
     this.floorMesh = null;
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
+    this._grabController = null; // controller currently dragging a panel's move bar
     this.interactables = []; // meshes registered with select/hover handlers
     this.settingsPanel = null;
     this.immersiveVideo = null; // 360°/180° video player (created in initializeSystems)
@@ -566,6 +567,12 @@ export class VRApp {
               ? title
               : (url ? hostnameCaption(url) : t('vr.msg.browserControls'));
             this.captionSystem.show(label);
+          }
+        },
+        onGrabRequested: (controller) => this._onPanelGrabRequested(controller),
+        onMoveBarHoverCaption: () => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show(t('vr.msg.moveBarLabel'));
           }
         }
       });
@@ -1822,12 +1829,24 @@ export class VRApp {
   }
 
   /**
-   * Handle a controller select. Raycasts the controller ray against the scene
-   * and forwards a 'qui-select' event on the first hit object (interactables
-   * can listen). Kept minimal until the interactable registry lands.
+   * Handle a controller select. On press (isStart), raycasts the controller
+   * ray against the interactables registry and fires the hit object's
+   * onSelect handler plus a 'qui-select' DOM-style event. On release, ends an
+   * in-progress panel grab (grab-to-move) if this controller started one.
    */
   onControllerSelect(controller, isStart) {
-    if (!isStart || this.interactables.length === 0) {
+    if (!isStart) {
+      // Releasing the trigger ends an in-progress panel grab (grab-to-move).
+      // This is independent of the interactables hit-test below, which only
+      // ever fires on press — a drag has no "hit" to re-test on release.
+      if (this.windowManager?.isGrabbing && controller === this._grabController) {
+        this.windowManager.endGrab();
+        this._grabController = null;
+        firePanelReleaseFeedback(controller, this.hapticFeedback, this.captionSystem);
+      }
+      return;
+    }
+    if (this.interactables.length === 0) {
       return;
     }
     const hit = this.raycasterFromController(controller)
@@ -1850,6 +1869,28 @@ export class VRApp {
     if (hit.object.dispatchEvent) {
       hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
     }
+  }
+
+  /**
+   * WebPanel's move bar was selected — begin a WindowManager grab-to-move
+   * drag on the panel it belongs to (the active tab's group, since the move
+   * bar rides along with whichever panel is currently attached).
+   */
+  _onPanelGrabRequested(controller) {
+    if (!this.windowManager || !controller) {
+      return;
+    }
+    // windowManager.target is only re-synced to the active tab per-frame while
+    // followMode/isGrabbing is already true (see the render-loop block below),
+    // so a tab switch that happened while both were off would otherwise leave
+    // beginGrab() computing distance from a stale, possibly-hidden panel.
+    const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
+    if (active && active.group && this.windowManager.target !== active.group) {
+      this.windowManager.attach(active.group);
+    }
+    this.windowManager.beginGrab(controller);
+    this._grabController = controller;
+    firePanelGrabFeedback(controller, this.hapticFeedback, this.captionSystem);
   }
 
   /**

@@ -86,6 +86,9 @@ const CATALOG = {
     'vr.msg.maxTabsReached': 'Maximum tabs reached',
     'vr.msg.settingsOpen': 'Settings: open',
     'vr.msg.settingsClosed': 'Settings: closed',
+    'vr.msg.moveBarLabel': 'Move bar',
+    'vr.msg.panelGrabbed': 'Panel grabbed',
+    'vr.msg.panelMoved': 'Panel moved',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -168,6 +171,9 @@ const CATALOG = {
     'vr.msg.maxTabsReached': 'タブ上限に達しました',
     'vr.msg.settingsOpen': '設定: 開く',
     'vr.msg.settingsClosed': '設定: 閉じる',
+    'vr.msg.moveBarLabel': '移動バー',
+    'vr.msg.panelGrabbed': 'パネルをつかみました',
+    'vr.msg.panelMoved': 'パネル移動完了',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',

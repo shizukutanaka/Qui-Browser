@@ -56,8 +56,11 @@ const {
   WindowManager,
   resolveWindowDistance,
   PANEL_DISTANCE_DEFAULT,
-  PANEL_DISTANCE_LARGE_TEXT
+  PANEL_DISTANCE_LARGE_TEXT,
+  firePanelGrabFeedback,
+  firePanelReleaseFeedback
 } = require('../src/vr/browser/WindowManager.js');
+const { setLanguage } = require('../src/i18n/i18n.js');
 
 // A fake camera/object exposing world transform getters.
 function makeNode(pos = [0, 0, 0], quat = [0, 0, 0, 1]) {
@@ -239,5 +242,63 @@ describe('resolveWindowDistance — largeText preference pulls panel closer', ()
 
   test('persisted non-number is ignored', () => {
     expect(resolveWindowDistance({ largeText: false, persisted: 'far' })).toBe(PANEL_DISTANCE_DEFAULT);
+  });
+});
+
+describe('firePanelGrabFeedback / firePanelReleaseFeedback — grab-to-move cross-modal feedback', () => {
+  function makeController(handedness) {
+    return { userData: { inputSource: handedness ? { handedness } : undefined } };
+  }
+
+  afterEach(() => setLanguage('en'));
+
+  test('grab fires a "click" haptic pattern on the controller handedness', () => {
+    const playPattern = jest.fn();
+    firePanelGrabFeedback(makeController('left'), { playPattern }, null);
+    expect(playPattern).toHaveBeenCalledWith('left', 'click');
+  });
+
+  test('release fires an "impact" haptic pattern on the controller handedness', () => {
+    const playPattern = jest.fn();
+    firePanelReleaseFeedback(makeController('left'), { playPattern }, null);
+    expect(playPattern).toHaveBeenCalledWith('left', 'impact');
+  });
+
+  test('falls back to "right" handedness when unknown', () => {
+    const playPattern = jest.fn();
+    firePanelGrabFeedback(makeController(null), { playPattern }, null);
+    expect(playPattern).toHaveBeenCalledWith('right', 'click');
+    firePanelReleaseFeedback(makeController(null), { playPattern }, null);
+    expect(playPattern).toHaveBeenCalledWith('right', 'impact');
+  });
+
+  test('shows the localized caption only when captions are enabled', () => {
+    const show = jest.fn();
+    setLanguage('en');
+    firePanelGrabFeedback(makeController('right'), null, { enabled: true, show });
+    expect(show).toHaveBeenCalledWith('Panel grabbed');
+    firePanelReleaseFeedback(makeController('right'), null, { enabled: true, show });
+    expect(show).toHaveBeenCalledWith('Panel moved');
+  });
+
+  test('captions are translated when the language is Japanese', () => {
+    const show = jest.fn();
+    setLanguage('ja');
+    firePanelGrabFeedback(makeController('right'), null, { enabled: true, show });
+    expect(show).toHaveBeenCalledWith('パネルをつかみました');
+    firePanelReleaseFeedback(makeController('right'), null, { enabled: true, show });
+    expect(show).toHaveBeenCalledWith('パネル移動完了');
+  });
+
+  test('does not show the caption when captions are disabled', () => {
+    const show = jest.fn();
+    firePanelGrabFeedback(makeController('right'), null, { enabled: false, show });
+    firePanelReleaseFeedback(makeController('right'), null, { enabled: false, show });
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  test('is null-safe with no haptic and no captions', () => {
+    expect(() => firePanelGrabFeedback(makeController('left'), null, null)).not.toThrow();
+    expect(() => firePanelReleaseFeedback(makeController('left'), null, null)).not.toThrow();
   });
 });

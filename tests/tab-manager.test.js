@@ -207,4 +207,39 @@ describe('TabManager (FR-1.3)', () => {
     const fakePoint = { x: 0, y: 0, clone() { return this; } };
     expect(() => tm._onStripSelect(fakePoint)).not.toThrow();
   });
+
+  describe('grab-to-move passthrough', () => {
+    test('onGrabRequested is forwarded to every WebPanel', () => {
+      const onGrabRequested = jest.fn();
+      const tm = new TabManager({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        onNavigate: jest.fn(),
+        onGrabRequested
+      });
+      const panel = tm.newTab();
+      expect(panel.opts.onGrabRequested).toBe(onGrabRequested);
+    });
+
+    test('onMoveBarHoverCaption is forwarded to every WebPanel', () => {
+      const onMoveBarHoverCaption = jest.fn();
+      const tm = new TabManager({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        onNavigate: jest.fn(),
+        onMoveBarHoverCaption
+      });
+      const panel = tm.newTab();
+      expect(panel.opts.onMoveBarHoverCaption).toBe(onMoveBarHoverCaption);
+    });
+
+    test('both default to null when not provided', () => {
+      const tm = makeManager();
+      const panel = tm.newTab();
+      expect(panel.opts.onGrabRequested).toBeNull();
+      expect(panel.opts.onMoveBarHoverCaption).toBeNull();
+    });
+  });
 });

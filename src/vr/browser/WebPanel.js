@@ -24,6 +24,9 @@ import { truncate } from './bookmarkLayout.js';
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
 const CHROME_H = 0.08;  // URL bar height fraction of total
+const MOVE_BAR_W = PANEL_W * 0.3; // grab handle: narrower than the full panel
+const MOVE_BAR_H = 0.035;
+const MOVE_BAR_GAP = 0.015; // gap between the panel's bottom edge and the bar
 
 /**
  * Character budget for the URL bar, derived from its pixel width and font.
@@ -63,10 +66,14 @@ export class WebPanel {
    * @param {Function} [opts.onNavigate]          — called with (url, title)
    * @param {Function} [opts.onUrlInputRequested] — (currentUrl, confirmCb) called when
    *   the user selects the URL bar.  If omitted, falls back to window.prompt().
+   * @param {Function} [opts.onGrabRequested] — called with (controller) when the
+   *   move bar is selected; wire to WindowManager.beginGrab(controller).
+   * @param {Function} [opts.onMoveBarHoverCaption] — called with no args on move
+   *   bar hover-enter, so callers can announce it (WCAG 1.3.3).
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption }) {
+    onHoverCaption, onGrabRequested, onMoveBarHoverCaption }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -81,6 +88,11 @@ export class WebPanel {
     this.isBookmarked = typeof isBookmarked === 'function' ? isBookmarked : null;
     this.onToggleBookmark = typeof onToggleBookmark === 'function' ? onToggleBookmark : null;
     this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
+    // Grab-to-move: the move bar below the panel is a WindowManager.beginGrab()
+    // trigger. Both optional; without onGrabRequested the bar still renders and
+    // tints on hover but selecting it does nothing (WindowManager not wired).
+    this.onGrabRequested = typeof onGrabRequested === 'function' ? onGrabRequested : null;
+    this.onMoveBarHoverCaption = typeof onMoveBarHoverCaption === 'function' ? onMoveBarHoverCaption : null;
     this.currentTitle = '';
 
     // Panel state
@@ -104,6 +116,7 @@ export class WebPanel {
     this.group       = new THREE.Group();
     this.chromeMesh  = null;   // URL bar + controls
     this.contentMesh = null;   // web content area
+    this.moveBarMesh = null;   // grab-to-move handle (WindowManager.beginGrab)
 
     // 2D resources
     this.chromeCanvas  = null;
@@ -173,6 +186,23 @@ export class WebPanel {
       onSelect: (evt) => this._onChromeSelect(evt),
       onHover: () => this._onChromeHover(true),
       onHoverEnd: () => this._onChromeHover(false)
+    });
+
+    // ── Move bar (grab-to-move handle, Wolvic-style) ─────────────────────────
+    // A plain colored strip — no canvas texture needed since it shows no text,
+    // just a grabbable handle below the panel. Selecting it starts a
+    // WindowManager.beginGrab() drag; releasing the trigger ends it.
+    const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_H);
+    const moveBarMat = new THREE.MeshBasicMaterial({ color: 0x55556f, side: THREE.FrontSide });
+    this.moveBarMesh = new THREE.Mesh(moveBarGeo, moveBarMat);
+    this.moveBarMesh.position.y = -PANEL_H / 2 - MOVE_BAR_GAP - MOVE_BAR_H / 2;
+    this.moveBarMesh.name = 'webPanelMoveBar';
+    this.group.add(this.moveBarMesh);
+
+    this.registerInteractable(this.moveBarMesh, {
+      onSelect: (evt) => this.onGrabRequested?.(evt?.controller),
+      onHover: () => this._onMoveBarHover(true),
+      onHoverEnd: () => this._onMoveBarHover(false)
     });
   }
 
@@ -314,6 +344,15 @@ export class WebPanel {
       // Pass the current page identity so the caption can announce the URL /
       // title rather than a generic "Browser controls" label (WCAG 1.3.3).
       this.onHoverCaption(this.currentUrl, this.currentTitle);
+    }
+  }
+
+  _onMoveBarHover(entering) {
+    if (this.moveBarMesh && this.moveBarMesh.material) {
+      this.moveBarMesh.material.color.set(entering ? 0xaaaaff : 0x55556f);
+    }
+    if (entering && this.onMoveBarHoverCaption) {
+      this.onMoveBarHoverCaption();
     }
   }
 
@@ -544,6 +583,7 @@ export class WebPanel {
   dispose() {
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
+    this.unregisterInteractable(this.moveBarMesh);
 
     this.group.traverse(obj => {
       if (obj.geometry) {

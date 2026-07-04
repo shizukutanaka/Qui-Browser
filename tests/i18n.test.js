@@ -34,6 +34,18 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.msg.moveBarLabel / panelGrabbed / panelMoved (grab-to-move)', () => {
+    setLanguage('en');
+    expect(t('vr.msg.moveBarLabel')).toBe('Move bar');
+    expect(t('vr.msg.panelGrabbed')).toBe('Panel grabbed');
+    expect(t('vr.msg.panelMoved')).toBe('Panel moved');
+    setLanguage('ja');
+    expect(t('vr.msg.moveBarLabel')).toBe('移動バー');
+    expect(t('vr.msg.panelGrabbed')).toBe('パネルをつかみました');
+    expect(t('vr.msg.panelMoved')).toBe('パネル移動完了');
+    setLanguage('en');
+  });
+
   test('unknown key falls back to the key itself', () => {
     setLanguage('en');
     expect(t('does.not.exist')).toBe('does.not.exist');

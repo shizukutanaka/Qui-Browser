@@ -193,4 +193,73 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
       expect(onHoverCaption).toHaveBeenCalledWith('', '');
     });
   });
+
+  describe('move bar (grab-to-move)', () => {
+    function makePanelWithMoveBar(extraOpts = {}) {
+      const scene = { add: jest.fn(), remove: jest.fn() };
+      const registerInteractable = jest.fn();
+      const unregisterInteractable = jest.fn();
+      const panel = new WebPanel({
+        scene, registerInteractable, unregisterInteractable,
+        onNavigate: jest.fn(), ...extraOpts
+      });
+      const moveBarCall = registerInteractable.mock.calls.find(([obj]) => obj === panel.moveBarMesh);
+      return { panel, registerInteractable, unregisterInteractable, moveBarHandlers: moveBarCall?.[1] };
+    }
+
+    test('creates a moveBarMesh named webPanelMoveBar and adds it to the group', () => {
+      const { panel } = makePanelWithMoveBar();
+      expect(panel.moveBarMesh).toBeTruthy();
+      expect(panel.moveBarMesh.name).toBe('webPanelMoveBar');
+      expect(panel.group._objects).toContain(panel.moveBarMesh);
+    });
+
+    test('registers the moveBarMesh as an interactable', () => {
+      const { moveBarHandlers } = makePanelWithMoveBar();
+      expect(moveBarHandlers).toBeTruthy();
+      expect(typeof moveBarHandlers.onSelect).toBe('function');
+      expect(typeof moveBarHandlers.onHover).toBe('function');
+      expect(typeof moveBarHandlers.onHoverEnd).toBe('function');
+    });
+
+    test('selecting the move bar calls onGrabRequested with the controller', () => {
+      const onGrabRequested = jest.fn();
+      const { moveBarHandlers } = makePanelWithMoveBar({ onGrabRequested });
+      const controller = { id: 'left-controller' };
+      moveBarHandlers.onSelect({ intersection: {}, controller });
+      expect(onGrabRequested).toHaveBeenCalledWith(controller);
+    });
+
+    test('selecting the move bar without onGrabRequested is a no-op', () => {
+      const { moveBarHandlers } = makePanelWithMoveBar();
+      expect(() => moveBarHandlers.onSelect({ intersection: {}, controller: {} })).not.toThrow();
+    });
+
+    test('hovering the move bar tints it and fires onMoveBarHoverCaption', () => {
+      const onMoveBarHoverCaption = jest.fn();
+      const { panel, moveBarHandlers } = makePanelWithMoveBar({ onMoveBarHoverCaption });
+      moveBarHandlers.onHover();
+      expect(panel.moveBarMesh.material.color.set).toHaveBeenCalledWith(0xaaaaff);
+      expect(onMoveBarHoverCaption).toHaveBeenCalledTimes(1);
+    });
+
+    test('hover-end restores the idle color and does not fire the caption', () => {
+      const onMoveBarHoverCaption = jest.fn();
+      const { panel, moveBarHandlers } = makePanelWithMoveBar({ onMoveBarHoverCaption });
+      moveBarHandlers.onHoverEnd();
+      expect(panel.moveBarMesh.material.color.set).toHaveBeenCalledWith(0x55556f);
+      expect(onMoveBarHoverCaption).not.toHaveBeenCalled();
+    });
+
+    test('hovering without onMoveBarHoverCaption is a no-op', () => {
+      const { moveBarHandlers } = makePanelWithMoveBar();
+      expect(() => moveBarHandlers.onHover()).not.toThrow();
+    });
+
+    test('dispose() unregisters the moveBarMesh', () => {
+      const { panel, unregisterInteractable } = makePanelWithMoveBar();
+      panel.dispose();
+      expect(unregisterInteractable).toHaveBeenCalledWith(panel.moveBarMesh);
+    });
+  });
 });

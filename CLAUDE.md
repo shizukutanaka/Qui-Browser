@@ -1,6 +1,6 @@
 # Qui-Browser VR: Specification & Accessibility Audit
 
-**Last Updated**: 2026-06-20  
+**Last Updated**: 2026-07-04  
 **Model**: Claude Sonnet 4.6  
 **Branch**: `claude/loop-improvements-L276b`
 
@@ -250,6 +250,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 36: Feature Completion — Wired Up Grab-to-Move (Deferred Since Session 28)
+Session 28 investigated WindowManager's documented "grab-to-move" panel feature and found it fully implemented/tested but with **zero UI wiring** — `beginGrab`/`endGrab` were never called from VRApp or any input handler — and deferred it as a feature-completion task. Picked that up rather than starting another audit pass:
+- ✨ **feat (browser — feature completion)**: added a `moveBarMesh` grab handle strip below every `WebPanel` (Wolvic-style move bar), registered through the existing `registerInteractable` mechanism with hover tinting matching the chrome bar. Selecting it calls a new `onGrabRequested(controller)` callback threaded through `TabManager` → `WebPanel`; `VRApp._onPanelGrabRequested()` wires this to `WindowManager.beginGrab()`. The trigger (select), not squeeze, drives the grab — squeeze is already fully committed to teleport aim/release, so overloading it would have collided with an existing gesture. Releasing the trigger (`onControllerSelect(controller, false)`, previously a no-op) now ends the grab via `WindowManager.endGrab()` if the releasing controller is the one that started it (tracked in a new `this._grabController`), so the other hand's independent trigger presses don't interfere.
+- 🐛 **fix (found while wiring)**: `windowManager.target` is only re-synced to the active tab inside the per-frame render-loop block, and only while `followMode || isGrabbing` is *already* true — so a tab switch that happened while both were off would have left a freshly-requested `beginGrab()` computing distance from a stale, possibly-hidden panel. `_onPanelGrabRequested()` now re-syncs the attachment itself before calling `beginGrab()`, independent of that render-loop guard.
+- ✨ **feat (a11y, cross-modal)**: added `firePanelGrabFeedback()` / `firePanelReleaseFeedback()` to `WindowManager.js`, mirroring `fireTeleportFeedback`'s shape (haptic + caption) — 'click' + "Panel grabbed" on grab-start, heavier 'impact' + "Panel moved" on release, both gated on `captions.enabled` like every other cross-modal path. New i18n keys `vr.msg.moveBarLabel` / `panelGrabbed` / `panelMoved` (en+ja), and a hover caption on the move bar itself (WCAG 1.3.3) matching the tab-strip/chrome-bar hover pattern.
+- 19 new tests (WebPanel move-bar construction/hover/select/dispose, WindowManager feedback helpers incl. i18n translation, TabManager passthrough, i18n keys). Total 862; 0 lint errors (unchanged 62 pre-existing warnings, all `no-console`).
+
 ### Session 1: Gaze-Dwell & Caption Accessibility
 - ✅ Exposed `gazeGraceTime` as user-adjustable setting (WCAG 2.2.1)
 - ✅ Added "Loading:" caption on voice-command navigation (WCAG 4.1.3)
@@ -451,4 +458,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-01 (Session 35)
+**Last Revision**: 2026-07-04 (Session 36)

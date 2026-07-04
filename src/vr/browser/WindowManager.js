@@ -19,6 +19,7 @@
  */
 
 import * as THREE from 'three';
+import { t } from '../../i18n/i18n.js';
 
 export class WindowManager {
   /**
@@ -199,4 +200,43 @@ export function resolveWindowDistance({ largeText = false, persisted = null } = 
     return persisted;
   }
   return largeText ? PANEL_DISTANCE_LARGE_TEXT : PANEL_DISTANCE_DEFAULT;
+}
+
+/**
+ * Fire cross-modal feedback when a controller begins grabbing a panel's move
+ * bar (Wolvic-style grab-to-move; see beginGrab()). Mirrors the shape of
+ * ComfortSystem's fireTeleportFeedback so both locomotion-adjacent gestures
+ * give the same tactile + caption confirmation.
+ *
+ * @param {object|null} controller  WebXR controller (userData.inputSource.handedness)
+ * @param {object|null} haptic      HapticFeedback instance, or null
+ * @param {object|null} captions    CaptionSystem instance, or null
+ */
+export function firePanelGrabFeedback(controller, haptic, captions) {
+  if (haptic) {
+    const hand = controller?.userData?.inputSource?.handedness || 'right';
+    haptic.playPattern(hand, 'click');
+  }
+  if (captions && captions.enabled) {
+    captions.show(t('vr.msg.panelGrabbed'));
+  }
+}
+
+/**
+ * Fire cross-modal feedback when a controller releases a grabbed panel
+ * (endGrab()). A heavier 'impact' pulse confirms the placement landed, the
+ * same weighting fireTeleportFeedback uses for a teleport landing.
+ *
+ * @param {object|null} controller
+ * @param {object|null} haptic
+ * @param {object|null} captions
+ */
+export function firePanelReleaseFeedback(controller, haptic, captions) {
+  if (haptic) {
+    const hand = controller?.userData?.inputSource?.handedness || 'right';
+    haptic.playPattern(hand, 'impact');
+  }
+  if (captions && captions.enabled) {
+    captions.show(t('vr.msg.panelMoved'));
+  }
 }
