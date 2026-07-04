@@ -141,6 +141,96 @@ describe('MultiplayerSystem peer lifecycle', () => {
   });
 });
 
+describe('MultiplayerSystem._detachPeerHandlers (stale-callback race fix)', () => {
+  test('nulls all peer connection handlers', () => {
+    const mp = makeSystem();
+    const pc = { onicecandidate: () => {}, onconnectionstatechange: () => {}, ondatachannel: () => {} };
+    mp._detachPeerHandlers(pc, null);
+    expect(pc.onicecandidate).toBeNull();
+    expect(pc.onconnectionstatechange).toBeNull();
+    expect(pc.ondatachannel).toBeNull();
+  });
+
+  test('nulls all data channel handlers', () => {
+    const mp = makeSystem();
+    const channel = { onopen: () => {}, onmessage: () => {}, onerror: () => {}, onclose: () => {} };
+    mp._detachPeerHandlers(null, channel);
+    expect(channel.onopen).toBeNull();
+    expect(channel.onmessage).toBeNull();
+    expect(channel.onerror).toBeNull();
+    expect(channel.onclose).toBeNull();
+  });
+
+  test('is null-safe when both pc and channel are missing', () => {
+    const mp = makeSystem();
+    expect(() => mp._detachPeerHandlers(null, null)).not.toThrow();
+  });
+
+  // RTCDataChannel/RTCPeerConnection dispatch close/statechange events
+  // asynchronously — a stale onclose from an old, already-closed channel can
+  // fire *after* a new channel for the same peerId has already been
+  // registered (reconnectPeer, a flapping connection, and disconnect() can
+  // all recreate a peer's channel under the same key). Without detaching the
+  // old handlers first, that late onclose would call
+  // this.dataChannels.delete(peerId) and silently wipe out the new, live
+  // channel's map entry.
+  test('handlePeerLeft: a stale onclose from the old channel cannot delete a since-reconnected channel', () => {
+    const mp = makeSystem();
+    const oldChannel = { close: jest.fn() };
+    mp.dataChannels.set('p1', oldChannel);
+    mp.peers.set('p1', { close: jest.fn() });
+
+    mp.handlePeerLeft('p1');
+    expect(oldChannel.onclose).toBeNull();
+
+    // A brand-new channel reconnects under the same peerId, as
+    // setupDataChannel's onopen would register it.
+    const newChannel = { close: jest.fn() };
+    mp.dataChannels.set('p1', newChannel);
+
+    // The old channel's close event finally arrives late. Pre-fix this would
+    // still be the real handler and would delete the new entry; post-fix
+    // onclose is null so nothing runs.
+    if (oldChannel.onclose) {
+      oldChannel.onclose();
+    }
+    expect(mp.dataChannels.get('p1')).toBe(newChannel);
+  });
+
+  test('reconnectPeer: a stale onclose from the old channel cannot delete a since-reconnected channel', () => {
+    const mp = makeSystem();
+    mp.handlePeerJoined = jest.fn().mockResolvedValue(); // stub real renegotiation
+    const oldChannel = { close: jest.fn() };
+    mp.dataChannels.set('p1', oldChannel);
+    mp.peers.set('p1', { close: jest.fn() });
+
+    mp.reconnectPeer('p1');
+    expect(oldChannel.onclose).toBeNull();
+
+    const newChannel = { close: jest.fn() };
+    mp.dataChannels.set('p1', newChannel);
+
+    if (oldChannel.onclose) {
+      oldChannel.onclose();
+    }
+    expect(mp.dataChannels.get('p1')).toBe(newChannel);
+  });
+
+  test('disconnect() detaches handlers and explicitly closes every data channel', () => {
+    const mp = makeSystem();
+    const pc = { close: jest.fn(), onconnectionstatechange: () => {}, ondatachannel: () => {}, onicecandidate: () => {} };
+    const dc = { close: jest.fn(), onopen: () => {}, onmessage: () => {}, onerror: () => {}, onclose: () => {} };
+    mp.peers.set('p1', pc);
+    mp.dataChannels.set('p1', dc);
+
+    mp.disconnect();
+
+    expect(pc.onconnectionstatechange).toBeNull();
+    expect(dc.onclose).toBeNull();
+    expect(dc.close).toHaveBeenCalled();
+  });
+});
+
 describe('MultiplayerSystem.updatePlayerInfo (was previously undefined — real bug)', () => {
   // handleDataMessage's 'player-info' case calls this.updatePlayerInfo(peerId,
   // data), sent immediately when a data channel opens. The method did not

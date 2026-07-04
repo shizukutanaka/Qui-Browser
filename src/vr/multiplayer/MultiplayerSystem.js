@@ -331,8 +331,11 @@ export class MultiplayerSystem {
 
     this._peerReconnectAttempts.delete(peerId);
 
-    // Close and drop the peer connection.
     const pc = this.peers.get(peerId);
+    const channel = this.dataChannels.get(peerId);
+    this._detachPeerHandlers(pc, channel);
+
+    // Close and drop the peer connection.
     if (pc) {
       try {
         pc.close();
@@ -343,7 +346,6 @@ export class MultiplayerSystem {
     }
 
     // Close and drop the data channel.
-    const channel = this.dataChannels.get(peerId);
     if (channel) {
       try {
         channel.close();
@@ -449,6 +451,34 @@ export class MultiplayerSystem {
   }
 
   /**
+   * Null out a peer connection's and data channel's event handlers before
+   * closing them.
+   *
+   * RTCDataChannel/RTCPeerConnection dispatch their close/statechange events
+   * asynchronously, not synchronously inside close() — so a stale onclose
+   * from an old, closed channel can still fire after a new channel for the
+   * *same* peerId has already been registered (reconnectPeer() and a
+   * flapping connection can both re-create a peer's channel under the same
+   * key). Without detaching first, that stale onclose calls
+   * this.dataChannels.delete(peerId), silently deleting the new, live
+   * channel's map entry and breaking that peer's messaging until another
+   * reconnect happens to fix it.
+   */
+  _detachPeerHandlers(pc, channel) {
+    if (pc) {
+      pc.onicecandidate = null;
+      pc.onconnectionstatechange = null;
+      pc.ondatachannel = null;
+    }
+    if (channel) {
+      channel.onopen = null;
+      channel.onmessage = null;
+      channel.onerror = null;
+      channel.onclose = null;
+    }
+  }
+
+  /**
    * Handle a failed peer connection.  Tears down the broken connection and
    * triggers re-negotiation by calling handlePeerJoined() again if the
    * signaling server is still connected.
@@ -456,11 +486,12 @@ export class MultiplayerSystem {
   reconnectPeer(peerId) {
     console.debug(`MultiplayerSystem: Reconnecting to peer ${peerId}`);
     const pc = this.peers.get(peerId);
+    const dc = this.dataChannels.get(peerId);
+    this._detachPeerHandlers(pc, dc);
     if (pc) {
       pc.close();
       this.peers.delete(peerId);
     }
-    const dc = this.dataChannels.get(peerId);
     if (dc) {
       dc.close();
       this.dataChannels.delete(peerId);
@@ -994,9 +1025,17 @@ export class MultiplayerSystem {
       this.updateIntervals = [];
     }
 
-    // Close all peer connections
-    this.peers.forEach((pc, _peerId) => {
+    // Close all peer connections and data channels, detaching handlers first
+    // (same reasoning as _detachPeerHandlers: a stale onclose/onconnection-
+    // statechange firing after this teardown must not touch a since-cleared
+    // — and potentially since-repopulated, if the app reconnects — map).
+    this.peers.forEach((pc) => {
+      this._detachPeerHandlers(pc, null);
       pc.close();
+    });
+    this.dataChannels.forEach((dc) => {
+      this._detachPeerHandlers(null, dc);
+      dc.close();
     });
 
     // Close signaling connection and null it out to release handler refs.

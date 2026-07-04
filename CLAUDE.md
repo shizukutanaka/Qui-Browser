@@ -250,6 +250,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 37: 長所短所改善点 — Stale WebRTC Handlers Could Clobber a Reconnected Peer's Data Channel
+Continued the Session 25 sweep's deferred "lower severity" candidates ("data-channel listeners not nulled on reconnect") rather than starting an unrelated audit:
+- 🐛 **fix (multiplayer)**: `reconnectPeer()` and `handlePeerLeft()` both called `pc.close()` / `channel.close()` without first detaching the closing object's event handlers. RTCDataChannel/RTCPeerConnection dispatch their close/statechange events asynchronously (not synchronously inside `close()`), so a delayed `onclose` from an *old*, already-closed channel can still fire after a *new* channel for the same `peerId` has already been registered (a flapping connection can trigger `reconnectPeer()` again, or the peer can genuinely rejoin) — silently deleting the new, live channel's `dataChannels` map entry via the stale handler's closure and breaking that peer's messaging until another reconnect happens to fix it. `disconnect()` had the identical gap (closed every `pc` without detaching, and never explicitly closed data channels at all — relying only on `.clear()`-ing the map) despite already nulling `signalingServer`'s handlers for the exact same reason one function above.
+- Added a shared `_detachPeerHandlers(pc, channel)` (nulls `onicecandidate`/`onconnectionstatechange`/`ondatachannel` and `onopen`/`onmessage`/`onerror`/`onclose`) called before every close site; `disconnect()` now also explicitly closes each data channel instead of only clearing the map.
+- 6 new tests, including two that simulate the actual race (register a new channel under the same `peerId`, then fire the *old* channel's now-detached `onclose` and assert the new entry survives) — verified failing against the pre-fix code before confirming they pass after. Total 868; 0 lint errors (unchanged 62 pre-existing warnings).
+
 ### Session 36: Feature Completion — Wired Up Grab-to-Move (Deferred Since Session 28)
 Session 28 investigated WindowManager's documented "grab-to-move" panel feature and found it fully implemented/tested but with **zero UI wiring** — `beginGrab`/`endGrab` were never called from VRApp or any input handler — and deferred it as a feature-completion task. Picked that up rather than starting another audit pass:
 - ✨ **feat (browser — feature completion)**: added a `moveBarMesh` grab handle strip below every `WebPanel` (Wolvic-style move bar), registered through the existing `registerInteractable` mechanism with hover tinting matching the chrome bar. Selecting it calls a new `onGrabRequested(controller)` callback threaded through `TabManager` → `WebPanel`; `VRApp._onPanelGrabRequested()` wires this to `WindowManager.beginGrab()`. The trigger (select), not squeeze, drives the grab — squeeze is already fully committed to teleport aim/release, so overloading it would have collided with an existing gesture. Releasing the trigger (`onControllerSelect(controller, false)`, previously a no-op) now ends the grab via `WindowManager.endGrab()` if the releasing controller is the one that started it (tracked in a new `this._grabController`), so the other hand's independent trigger presses don't interfere.
@@ -458,4 +464,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 36)
+**Last Revision**: 2026-07-04 (Session 37)
