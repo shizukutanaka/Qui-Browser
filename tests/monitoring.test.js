@@ -32,6 +32,7 @@ jest.mock('web-vitals', () => ({
 const {
   initializeMonitoring,
   disposeMonitoring,
+  initWebVitals,
   trackEvent,
   captureError,
   captureMessage,
@@ -42,6 +43,7 @@ const {
   trackVRError,
   reportPerformanceSummary
 } = require('../src/monitoring.js');
+const { onINP } = require('web-vitals');
 
 describe('monitoring.js', () => {
   beforeEach(() => {
@@ -152,5 +154,30 @@ describe('monitoring.js', () => {
   // does not throw and behaves consistently with the disabled guard.
   test('reportPerformanceSummary does not throw when disabled', () => {
     expect(() => reportPerformanceSummary()).not.toThrow();
+  });
+
+  // ── Web Vitals INP threshold ──────────────────────────────────────────────────
+  // web-vitals v3+ replaced FID with INP (initWebVitals already subscribes to
+  // onINP, not the removed onFID), but MONITORING_CONFIG.performance.thresholds
+  // still had a "fid" key, not "inp". onVitalReport looks the threshold up via
+  // thresholds[name.toLowerCase()] — for an INP report that's thresholds.inp,
+  // which was undefined, so the Sentry escalation path could never fire for INP
+  // regardless of how bad the value was. Verified via the dev-mode console.debug
+  // log (reachable in tests since MONITORING_CONFIG.enabled is false here), which
+  // logs the same thresholds[name.toLowerCase()] lookup onVitalReport uses.
+  describe('Web Vitals INP threshold (regression: config key was still "fid")', () => {
+    test('resolves a real threshold value for an INP report, not undefined', async () => {
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      await initWebVitals();
+      const onVitalReport = onINP.mock.calls[0][0];
+
+      onVitalReport({ name: 'INP', value: 250, rating: 'needs-improvement', delta: 250 });
+
+      const call = debugSpy.mock.calls.find(c => c[0] === 'Web Vital - INP:');
+      expect(call).toBeTruthy();
+      expect(call[1].threshold).toBe(200);
+
+      debugSpy.mockRestore();
+    });
   });
 });

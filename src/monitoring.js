@@ -41,7 +41,7 @@ const MONITORING_CONFIG = {
     thresholds: {
       fcp: 1800,    // First Contentful Paint (ms)
       lcp: 2500,    // Largest Contentful Paint (ms)
-      fid: 100,     // First Input Delay (ms)
+      inp: 200,     // Interaction to Next Paint (ms) — replaced FID in web-vitals v3+
       cls: 0.1,     // Cumulative Layout Shift
       ttfb: 600     // Time to First Byte (ms)
     }
