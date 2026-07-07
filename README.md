@@ -173,6 +173,12 @@ npm run dev                   # Start dev server (Vite)
 npm run build                 # Production build
 npm run preview               # Preview production build
 
+# Backend (billing API — see server/index.js)
+npm run start:server          # Start the Express server (defaults to :3000)
+                               # Copy .env.example to .env and set STRIPE_* first;
+                               # without a real STRIPE_SECRET_KEY, /api/billing/*
+                               # returns 503 instead of failing. GET /health always works.
+
 # Testing
 npm test                      # Run all tests
 npm run test:coverage         # Tests with coverage
