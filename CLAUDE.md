@@ -250,6 +250,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 39: Socratic 過不足 (continued) — A Second, Fully Redundant Avatar System
+Continued the audit; delegated a fresh sweep of the remaining never-audited files.
+- 🧹 **cleanup (multiplayer, excess)**: `AvatarSystem` (FR-7.2) was constructed and disposed by `VRApp` but otherwise completely unwired — a repo-wide grep confirmed `addPeer`/`removePeer`/`updatePeerPose`/`setPeerVoiceStream` are never called from anywhere outside the class's own file. `MultiplayerSystem` already has its own complete, working avatar pipeline (`createAvatar`/`updatePlayerInfo`/`updateAvatarPosition`, fixed end-to-end in Session 31) driven by real `player-info` data-channel messages, making `AvatarSystem` a fully redundant duplicate that never rendered anything. Its voice-streaming half (`setPeerVoiceStream`) was doubly dead: it needs a WebRTC `ontrack` handler that doesn't exist anywhere in this codebase (no `ontrack`/`getUserMedia`/`addTransceiver` calls at all), so even if wired up, no peer's microphone audio was ever going to reach it. Removed the dead `import`/construction/dispose call from `VRApp.js`; left the `AvatarSystem` class and its 14-test suite in place (not deleted — kept as a tested, standalone building block for a possible future feature) with a doc comment explaining it isn't part of the running app. `MultiplayerSystem.handlePeerLeft()`'s `removeVoiceSource(peerId)` cleanup call — also for a voice source that can never exist today — was deliberately left alone: it's a pre-existing, intentionally-tested no-op, not a bug, and correctly forward-compatible if voice streaming is ever built.
+- Verified via full suite (884 tests, unchanged) + lint (0 errors, 84 pre-existing warnings) + build, all green after the removal.
+
 ### Session 38: Commercial-Quality Pass — Broken Production Build, Backend Wiring, Billing Footguns
 User asked to bring the project to commercial/production quality "front-end to back-end." A repo-wide survey (see docs/MODEL_GUIDE.md for how it was scoped) found the production build itself was broken, and that "backend" barely existed as anything more than two unwired reference files.
 - 🐛 **fix (build — critical)**: `npm run build` failed outright — `web-vitals` was declared in `package.json` but missing from the installed `node_modules`/lockfile state, so Rollup couldn't resolve the import in `src/monitoring.js`. This directly contradicted every archived "100% PRODUCTION READY, build successful" report. Reinstalling brought the lockfile back in sync; build now succeeds.
@@ -475,4 +480,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 38)
+**Last Revision**: 2026-07-04 (Session 39)

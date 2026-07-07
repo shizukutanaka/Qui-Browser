@@ -38,7 +38,6 @@ import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
-import { AvatarSystem } from './multiplayer/AvatarSystem.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
@@ -118,7 +117,6 @@ export class VRApp {
     this.aiRecommendation = null;
     this.voiceCommands = null;
     this.multiplayerSystem = null;
-    this.avatarSystem = null;
     this.webPanel = null;
     this.tabManager = null;
     this.windowManager = null;
@@ -2253,10 +2251,14 @@ export class VRApp {
     // 11. Multiplayer — requires a signaling server; connect() is called on
     // demand by the caller, not here.
     if (this.settings.enableMultiplayer) {
+      // FR-7.2: avatar presence (head + hands + name label) is handled by
+      // MultiplayerSystem's own createAvatar()/updatePlayerInfo() pipeline,
+      // driven by real 'player-info' data-channel messages — not by the
+      // separate AvatarSystem class, which was never wired to anything (no
+      // caller ever called its addPeer/removePeer/updatePeerPose, and its
+      // voice-streaming half needs a WebRTC ontrack handler that doesn't
+      // exist anywhere in this codebase either).
       this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
-      // FR-7.2: avatar presence + spatial voice — geometric avatars and
-      // spatialized voice streams for remote peers.
-      this.avatarSystem = new AvatarSystem(this.scene, this.spatialAudio);
       // Cross-modal peer-presence events: toast (visual) + haptic + caption so
       // a deaf user or someone not looking at the panel knows a peer has
       // joined or left without relying on spatial audio alone.
@@ -2990,9 +2992,6 @@ export class VRApp {
     }
     if (this.multiplayerSystem) {
       this.multiplayerSystem.disconnect();
-    }
-    if (this.avatarSystem) {
-      this.avatarSystem.dispose();
     }
     if (this.windowManager) {
       this.windowManager.dispose();

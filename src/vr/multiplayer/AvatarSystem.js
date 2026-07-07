@@ -3,6 +3,15 @@
  * Represents remote peers as simple geometric avatars (head + hands) that
  * track the pose data broadcast by MultiplayerSystem.  No external
  * dependencies — geometry is built with Three.js primitives.
+ *
+ * NOT CURRENTLY WIRED UP: VRApp does not construct or call this class.
+ * The real, working avatar pipeline is MultiplayerSystem's own
+ * createAvatar()/updatePlayerInfo()/updateAvatarPosition() (see that file),
+ * driven by real 'player-info' data-channel messages. This class's
+ * addPeer/removePeer/updatePeerPose are never invoked from anywhere, and
+ * setPeerVoiceStream() needs a WebRTC `ontrack` handler that doesn't exist
+ * anywhere in this codebase — so treat this as a standalone, tested building
+ * block for a future feature, not an active part of the running app.
  */
 
 import * as THREE from 'three';
