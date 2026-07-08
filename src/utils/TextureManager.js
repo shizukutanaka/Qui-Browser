@@ -66,7 +66,7 @@ export class TextureManager {
     // Check cache first
     if (this.textureCache.has(url)) {
       this.stats.cacheHits++;
-      return this.textureCache.get(url);
+      return this.textureCache.get(url).texture;
     }
 
     this.stats.cacheMisses++;
@@ -191,7 +191,14 @@ export class TextureManager {
    * Cache texture and update memory tracking
    */
   cacheTexture(url, texture, isCompressed) {
-    this.textureCache.set(url, texture);
+    // isCompressed is stored alongside the texture (not re-derived from the
+    // URL later) because it depends on how the texture was actually loaded,
+    // not on the URL's file extension — options.preferKTX2 (the documented
+    // way to request KTX2 for a non-.ktx2 URL, e.g. a normal map) sets
+    // isCompressed=true for a URL that doesn't end in .ktx2. Re-guessing it
+    // from the URL suffix at unload time would silently use the wrong (8x
+    // larger) uncompressed formula, corrupting memoryUsage.estimatedBytes.
+    this.textureCache.set(url, { texture, isCompressed });
 
     // Estimate memory usage
     const bytes = this.estimateTextureMemory(texture, isCompressed);
@@ -248,14 +255,18 @@ export class TextureManager {
    * Unload texture from cache
    */
   unloadTexture(url) {
-    const texture = this.textureCache.get(url);
-    if (!texture) {
+    const cached = this.textureCache.get(url);
+    if (!cached) {
       return;
     }
+    const { texture, isCompressed } = cached;
 
     // Estimate memory BEFORE disposing — dispose() may clear texture.image,
-    // which would make the size estimate wrong (and skew tracking).
-    const bytes = this.estimateTextureMemory(texture, url.endsWith('.ktx2'));
+    // which would make the size estimate wrong (and skew tracking). Uses the
+    // isCompressed flag recorded at cache time (see cacheTexture) rather than
+    // re-deriving it from the URL, which disagreed for any texture loaded via
+    // options.preferKTX2 with a non-.ktx2 URL.
+    const bytes = this.estimateTextureMemory(texture, isCompressed);
 
     // Dispose texture
     texture.dispose();
@@ -272,7 +283,7 @@ export class TextureManager {
    * Unload all textures
    */
   unloadAll() {
-    for (const texture of this.textureCache.values()) {
+    for (const { texture } of this.textureCache.values()) {
       texture.dispose();
     }
 

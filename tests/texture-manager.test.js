@@ -168,4 +168,40 @@ describe('TextureManager', () => {
     expect(s).toHaveProperty('maxMB');
     expect(s).toHaveProperty('utilizationPercent');
   });
+
+  // ── memory accounting: isCompressed tracked, not re-derived from URL ─────────
+  // options.preferKTX2 (the documented way to request KTX2 for a non-.ktx2 URL,
+  // e.g. loadTexture('wood_normal.png', { preferKTX2: true })) sets
+  // isCompressed=true for a URL that doesn't end in .ktx2. unloadTexture() must
+  // use the isCompressed flag recorded at cache time, not re-guess it from the
+  // URL suffix (which would use the 8x-larger uncompressed formula instead).
+  test('unloadTexture reverses the exact byte count cacheTexture recorded for a compressed, non-.ktx2-suffixed URL', () => {
+    const texture = { image: { width: 512, height: 512 }, dispose: jest.fn() };
+    const url = 'assets/textures/wood_normal.png'; // no .ktx2 suffix
+
+    tm.cacheTexture(url, texture, true); // isCompressed=true, as preferKTX2 would pass
+    const compressedBytes = (512 * 512 * 4) / 8;
+    expect(tm.memoryUsage.estimatedBytes).toBe(compressedBytes);
+
+    tm.unloadTexture(url);
+    expect(tm.memoryUsage.estimatedBytes).toBe(0);
+  });
+
+  test('cacheTexture stores isCompressed per-entry so mixed compressed/uncompressed textures unload correctly', () => {
+    const compressed = { image: { width: 256, height: 256 }, dispose: jest.fn() };
+    const uncompressed = { image: { width: 256, height: 256 }, dispose: jest.fn() };
+
+    tm.cacheTexture('a.png', compressed, true);
+    tm.cacheTexture('b.jpg', uncompressed, false);
+
+    const compressedBytes = (256 * 256 * 4) / 8;
+    const uncompressedBytes = 256 * 256 * 4;
+    expect(tm.memoryUsage.estimatedBytes).toBe(compressedBytes + uncompressedBytes);
+
+    tm.unloadTexture('a.png');
+    expect(tm.memoryUsage.estimatedBytes).toBe(uncompressedBytes);
+
+    tm.unloadTexture('b.jpg');
+    expect(tm.memoryUsage.estimatedBytes).toBe(0);
+  });
 });
