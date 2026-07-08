@@ -86,7 +86,7 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 
 **Impact**: Medium — coverage gap. Regressions can slip through.
 
-**Status**: Missing. Only 6 test files cover VRApp (app-smoke.test.js is trivial; subsystems.test.js is also minimal).
+**Status**: Largely fixed Session 41 (`tests/vr-app-wiring.test.js`) — hit-test dispatch, haptic click, grab-to-move begin/end, hover enter/exit, and recenter() are now covered by binding VRApp's real prototype methods to a hand-built `this` (constructing a full `new VRApp()` isn't practical: `setupRenderer()` needs a real GPU context). Gaze-dwell's VRApp-side per-frame glue (as opposed to `GazeInteraction` itself, already unit-tested) remains uncovered.
 
 ---
 
@@ -140,11 +140,13 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 2: High-Priority Coverage (Next session)
 **Goal**: Test accessibility workflows; add semantic DOM fallback.
 
-3. **VRApp Integration Tests** (3–4 hours)
-   - Test captions enable/disable → CaptionSystem wiring
-   - Test error paths → toast + caption + haptic
-   - Test gaze-dwell activation → reticle + haptic + onSelect
-   - **Files**: `tests/vr-app-accessibility.test.js` (new)
+3. ~~**VRApp Integration Tests**~~ — **Done (Session 41)**
+   - Error paths → toast + caption + haptic ✅
+   - Interactable registry + hit-test dispatch → onSelect + haptic click ✅
+   - Grab-to-move begin/end (Session 36 feature) → windowManager wiring ✅
+   - Hover enter/exit dispatch, recenter() ✅
+   - Gaze-dwell activation → reticle + haptic + onSelect: not yet covered (GazeInteraction itself is unit-tested; VRApp's per-frame glue to it is not) — **remaining scope for a future session**
+   - **Files**: `tests/vr-app-wiring.test.js` (new)
 
 4. ~~**Semantic DOM Overlay**~~ — **Done (Session 30)**
    - Render hidden ARIA landmarks in the DOM that mirror VR state
@@ -226,7 +228,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 | VR UI strings hard-coded English | WCAG 3.1.1 violation (Japanese users) | Settings labels fixed Session 2; status-message/toast call sites fixed Session 27 |
 | Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | Fixed Session 2 (toasts wired); translated Session 27 |
 | WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | **To fix Phase 1** |
-| No VRApp integration tests | Regression risk | **To fix Phase 2** |
+| No VRApp integration tests | Regression risk | Largely fixed Session 41 (interactables/haptic/grab-to-move/hover/recenter); gaze-dwell VRApp-side glue still uncovered |
 | No semantic DOM for screen readers | 2D screen reader support missing | Fixed Session 30 (captions/toasts/settings-panel state mirrored via SemanticDOM) |
 | Settings panel no grouping/help | UX discoverability | **To fix Phase 3** |
 | VRApp monolith 2700+ lines | Maintainability debt | **To fix Phase 3** |
@@ -249,6 +251,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
+
+### Session 41: Phase 2 Roadmap — VRApp Integration Tests (Deferred Since Session 2)
+Picked up the standing Phase 2 gap ("no test verifies VRApp wiring end-to-end") rather than another audit sweep, since it's been flagged and deferred every session since the original Session 2 audit.
+- 🔧 **infra**: restored `babel.config.js` (root-wide Babel config), lost earlier this session in an unrelated branch-recovery accident. `.babelrc` is file-relative and does not apply across the `node_modules` boundary, so the real `three/examples/jsm/webxr/VRButton.js` (an unmocked, transitive import of `VRApp.js`) failed to transpile with "Unexpected token 'export'" — the same class of gap this file previously fixed for `KTX2Loader.js`.
+- ✨ **test (VRApp wiring, Phase 2)**: added `tests/vr-app-wiring.test.js`. Constructing a full `new VRApp(container)` isn't practical — `setupRenderer()` creates a real `THREE.WebGLRenderer`, which needs a real GPU/canvas context unavailable in Jest — so these tests bind VRApp's real (unmodified) prototype methods to a hand-built `this` carrying just the state each method reads, using the *real* `three` package (only the two WebXR-session-touching `examples/jsm` modules VRApp imports are mocked, since their top-level code assumes a live `navigator.xr` and neither is exercised by the methods under test). 32 tests covering: `showVRToast`'s cross-modal dispatch (semantic-DOM mirror fires even outside a VR session; 3D toast mesh only inside one; haptic+caption via `notifyCrossModal`; caption gating; toast-timer tracking), `registerInteractable`/`unregisterInteractable` (dedup, removal), `onControllerSelect` press (hit-test dispatch, haptic click, handedness fallback, `qui-select` DOM event) and release (Session 36/37's grab-to-move end-of-drag logic, including the same-controller guard), `_onPanelGrabRequested` (Session 36's stale-target re-sync fix), `updateHover` (enter/exit/unchanged), and `recenter()`.
+- Total 918 tests (44 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+- **Deferred, not done**: gaze-dwell activation → reticle + haptic + `onSelect` is still uncovered on the VRApp side (`GazeInteraction` itself is already unit-tested independently) — the remaining piece of the original Phase 2 scope, left for a future session.
 
 ### Session 40: 長所短所改善点 — TextureManager Re-Derived Compression State From the URL, Corrupting Memory Accounting
 Continued the sweep of never-audited utility files (`DevTools.js`, `PerformanceMonitor.js` came back clean earlier this session):
@@ -484,4 +493,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 40)
+**Last Revision**: 2026-07-04 (Session 41)
