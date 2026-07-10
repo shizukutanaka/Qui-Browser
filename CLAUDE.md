@@ -158,10 +158,9 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 3: Medium-Priority Refactoring (Future)
 **Goal**: Improve maintainability and discoverability.
 
-5. **AccessibilityCoordinator** (3–4 hours)
-   - Move captionSystem, hapticFeedback, gazeInteraction, high-contrast/large-text syncing into dedicated class
-   - VRApp calls `this.a11y.setHighContrast()` instead of inline
-   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (new)
+5. **AccessibilityCoordinator** — **In progress (Session 44)**
+   - Move captionSystem ✅ (Session 44, via getter/setter delegation — zero call sites changed), hapticFeedback (deferred), gazeInteraction (deferred), high-contrast/large-text syncing (deferred) into dedicated class
+   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (Session 44); see `docs/OUTSTANDING_ISSUES.md` item C-1 for the remaining slices and known land-mines
 
 6. **Settings Panel Grouping** (2–3 hours)
    - Reorganize settings into collapsible sections: Locomotion, Accessibility, Rendering, Optional
@@ -251,6 +250,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
+
+### Session 44: Phase 3 Roadmap — AccessibilityCoordinator Extraction, First Slice
+Dispatched an Explore agent first (per this project's own guidance for Phase 3 refactors) to inventory every accessibility-related field/method in VRApp, confirm no other file reaches into `captionSystem`/`hapticFeedback`/`gazeInteraction` directly, and assess risk to `tests/vr-app-wiring.test.js`.
+- ✨ **feat (refactor, Phase 3)**: added `src/vr/accessibility/AccessibilityCoordinator.js`, homing `captionSystem` as the first of three planned slices (recommended by the investigation as lowest-risk: fewest construction dependencies, smallest settings-panel surface, and `notifyCrossModal`/`fireTeleportFeedback`/etc. already take captionSystem as a plain parameter rather than reading it off VRApp). `VRApp` gained a `captionSystem` getter/setter delegating to `this.a11y.captionSystem` — every existing read/write call site (construction, ~15 settings-panel/interaction closures, dispose, cross-modal helper calls) needed **zero changes**, since `this.captionSystem` continues to resolve exactly as before.
+- Confirmed behavior-preserving two ways: the full suite (929 tests) passes unchanged, and a dedicated test verifies the getter/setter actually delegates (`tests/vr-app-wiring.test.js`'s flat-object-literal tests are structurally blind to VRApp's own accessors, so a real accessor check needed `Object.create(VRApp.prototype)` instead). 4 new tests (2 for `AccessibilityCoordinator` itself, 2 for the delegation contract).
+- **Deferred, not done**: `hapticFeedback` (~15 call sites, higher mechanical-edit risk) and `gazeInteraction` (tightly coupled to `updateSystems()`'s per-frame gaze-dwell block) — recommended order and land-mines (camera-construction ordering, the `_handTrackingTimers` closure that reads `captionSystem` from ~60 lines away, the `highContrast` toggle's multi-system closure) are recorded in `docs/OUTSTANDING_ISSUES.md` item C-1 for whichever session picks this up next.
+- Total 929 tests (45 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
 
 ### Session 43: Phase 2 Roadmap — Gaze-Dwell VRApp-Side Glue (Closes Session 41's Deferral)
 Picked up the one piece Session 41 explicitly left open: VRApp's own per-frame gaze-dwell glue in `updateSystems()` (dwell timer/grace-time logic itself was already covered by `gaze-interaction.test.js`).
@@ -505,4 +511,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 43)
+**Last Revision**: 2026-07-04 (Session 44)

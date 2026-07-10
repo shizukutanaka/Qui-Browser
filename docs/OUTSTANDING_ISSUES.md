@@ -54,10 +54,11 @@
 
 ## C. ロードマップ Phase 3（未着手・大規模リファクタ）
 
-### C-1. AccessibilityCoordinator への切り出し（優先度: 中、難易度: 高）
-- **対象**: `src/vr/VRApp.js`（3,100行超）に散在する `captionSystem`/`hapticFeedback`/`gazeInteraction`/high-contrast・large-text 同期ロジックを専用クラス `src/vr/accessibility/AccessibilityCoordinator.js`（新規）に集約する。
+### C-1. AccessibilityCoordinator への切り出し（優先度: 中、難易度: 高）— **第1スライス完了（Session 44）**
+- **対象**: `src/vr/VRApp.js`（3,100行超）に散在する `captionSystem`/`hapticFeedback`/`gazeInteraction`/high-contrast・large-text 同期ロジックを専用クラス `src/vr/accessibility/AccessibilityCoordinator.js` に集約する。
 - **理由**: VRApp が肥大化しており、アクセシビリティ設定のテスト・保守が困難。CLAUDE.md 冒頭の "Critical Gaps #4" として記録済み。
-- **リスク**: VRApp全体に渡る広範なリファクタになるため、既存 `tests/vr-app-wiring.test.js`（Session 41/43で追加）のプロトタイプバインディング方式のテストが前提を崩される可能性がある。着手時は先にこのテストファイルを読むこと。
+- **完了した部分（Session 44）**: `captionSystem` のみを `AccessibilityCoordinator` に移動。VRApp側は `get captionSystem()`/`set captionSystem()` を追加し、`this.a11y.captionSystem` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・dispose・`notifyCrossModal` 呼び出し等、15箇所以上）は一切変更不要——プレーンなオブジェクトリテラルを使う `tests/vr-app-wiring.test.js` のテストも39件すべて無変更のまま通過することを確認済み。挙動を変えない安全なリファクタであることを検証済み。
+- **残タスク**: `hapticFeedback`（呼び出し箇所が~15箇所と多く機械的編集リスクが高い）と `gazeInteraction`（`updateSystems()` の毎フレーム処理と密結合）を同様の getter/setter パターンで移す。着手前に Explore エージェントで事前調査済み（本ドキュメント作成の元になったレポートは会話ログ参照）——カメラ構築順序・`_handTrackingTimers` クロージャ・`highContrast` トグルの複合クロージャなど land-mine あり。`motionSensitivity`/`windowDistance` はスコープ外と判断済み（ComfortSystem/WindowManager 向けであり4系統のスコープに含めない）。
 
 ### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。

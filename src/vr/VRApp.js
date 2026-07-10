@@ -23,6 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
+import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
@@ -108,7 +109,10 @@ export class VRApp {
     this.handTracking = null;
     this.hapticFeedback = null;
     this.gazeInteraction = null;
-    this.captionSystem = null;
+    // captionSystem is homed on AccessibilityCoordinator (Phase 3 extraction,
+    // docs/OUTSTANDING_ISSUES.md item C-1) but exposed via the captionSystem
+    // getter/setter below so every existing call site keeps working unchanged.
+    this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
     this.mixedReality = null;
     this.progressiveLoader = null;
@@ -273,6 +277,17 @@ export class VRApp {
     });
 
     this.initialize();
+  }
+
+  // captionSystem now lives on this.a11y (AccessibilityCoordinator), but is
+  // exposed here as a plain-looking property so every existing read/write
+  // call site in this file (construction, settings-panel closures, dispose,
+  // notifyCrossModal calls) keeps working exactly as before the extraction.
+  get captionSystem() {
+    return this.a11y.captionSystem;
+  }
+  set captionSystem(value) {
+    this.a11y.captionSystem = value;
   }
 
   /**

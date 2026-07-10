@@ -492,3 +492,33 @@ describe('VRApp.updateSystems — caption aging', () => {
     expect(captionSystem.update).not.toHaveBeenCalled();
   });
 });
+
+// ── captionSystem getter/setter delegation (AccessibilityCoordinator) ───────
+// The other describe blocks above all bind methods to a flat plain-object
+// `this` (via makeVRAppLike()), which never touches VRApp.prototype's
+// accessors at all — that's what makes this session's Phase 3 extraction
+// safe (existing tests are agnostic to it). This block specifically verifies
+// the new getter/setter contract itself, using Object.create(VRApp.prototype)
+// so the real accessor actually runs.
+describe('VRApp.captionSystem getter/setter (delegates to AccessibilityCoordinator)', () => {
+  function makeRealPrototypeInstance() {
+    const app = Object.create(VRApp.prototype);
+    app.a11y = { captionSystem: null };
+    return app;
+  }
+
+  test('reading captionSystem returns whatever is on this.a11y.captionSystem', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { show: jest.fn() };
+    app.a11y.captionSystem = fake;
+    expect(app.captionSystem).toBe(fake);
+  });
+
+  test('assigning captionSystem stores it on this.a11y.captionSystem, not as an own field', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { show: jest.fn() };
+    app.captionSystem = fake;
+    expect(app.a11y.captionSystem).toBe(fake);
+    expect(Object.prototype.hasOwnProperty.call(app, 'captionSystem')).toBe(false);
+  });
+});
