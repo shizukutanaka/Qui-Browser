@@ -24,9 +24,10 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// CORS設定
+// CORS設定 — 'your-domain.example' is a placeholder (RFC 2606 reserved TLD,
+// cannot resolve to a real site); replace with the actual deployed origin.
 app.use(cors({
-  origin: ['http://localhost:8080', 'https://qui-browser.example.com'],
+  origin: ['http://localhost:8080', 'https://your-domain.example'],
   credentials: true
 }));
 

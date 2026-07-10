@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 42: Cleanup — Non-Existent Placeholder Domains Presented as Real
+User asked to remove non-existent/unspecified address domains.
+- 🧹 **cleanup**: `.env.stripe` and `api/stripe-payment.js` (both already marked superseded, Session 38) hardcoded `qui-browser.com` / `qui-browser.example.com` as if they were real, registered production domains. Replaced with `your-domain.example` (RFC 2606 reserved TLD — guaranteed to never resolve to a real, possibly unrelated site) plus a comment explaining it's a placeholder to replace.
+- 🧹 **cleanup**: README's Support section listed `support@qui-browser.example.com` / `security@qui-browser.example.com` — non-existent email addresses that would bounce. Removed; the section already has working GitHub Issues/Discussions links.
+- Verified via full suite (918 tests, unchanged) + lint (0 errors) + build, all green — text/config-only change.
+
 ### Session 41: Phase 2 Roadmap — VRApp Integration Tests (Deferred Since Session 2)
 Picked up the standing Phase 2 gap ("no test verifies VRApp wiring end-to-end") rather than another audit sweep, since it's been flagged and deferred every session since the original Session 2 audit.
 - 🔧 **infra**: restored `babel.config.js` (root-wide Babel config), lost earlier this session in an unrelated branch-recovery accident. `.babelrc` is file-relative and does not apply across the `node_modules` boundary, so the real `three/examples/jsm/webxr/VRButton.js` (an unmocked, transitive import of `VRApp.js`) failed to transpile with "Unexpected token 'export'" — the same class of gap this file previously fixed for `KTX2Loader.js`.
@@ -493,4 +499,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 41)
+**Last Revision**: 2026-07-04 (Session 42)

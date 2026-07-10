@@ -298,8 +298,6 @@ git push origin feature/amazing-feature
 
 - **Issues:** [GitHub Issues](https://github.com/shizukutanaka/qui-browser/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/shizukutanaka/qui-browser/discussions)
-- **Email:** support@qui-browser.example.com
-- **Security:** security@qui-browser.example.com
 
 ## 📄 License
 
