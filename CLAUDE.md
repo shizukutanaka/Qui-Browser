@@ -86,7 +86,7 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 
 **Impact**: Medium — coverage gap. Regressions can slip through.
 
-**Status**: Largely fixed Session 41 (`tests/vr-app-wiring.test.js`) — hit-test dispatch, haptic click, grab-to-move begin/end, hover enter/exit, and recenter() are now covered by binding VRApp's real prototype methods to a hand-built `this` (constructing a full `new VRApp()` isn't practical: `setupRenderer()` needs a real GPU context). Gaze-dwell's VRApp-side per-frame glue (as opposed to `GazeInteraction` itself, already unit-tested) remains uncovered.
+**Status**: Fixed Sessions 41 + 43 (`tests/vr-app-wiring.test.js`) — hit-test dispatch, haptic click, grab-to-move begin/end, hover enter/exit, recenter(), and gaze-dwell's activation glue (haptic + spatial audio + caption aging) are all now covered by binding VRApp's real prototype methods to a hand-built `this` (constructing a full `new VRApp()` isn't practical: `setupRenderer()` needs a real GPU context).
 
 ---
 
@@ -140,12 +140,12 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 2: High-Priority Coverage (Next session)
 **Goal**: Test accessibility workflows; add semantic DOM fallback.
 
-3. ~~**VRApp Integration Tests**~~ — **Done (Session 41)**
+3. ~~**VRApp Integration Tests**~~ — **Done (Sessions 41, 43)**
    - Error paths → toast + caption + haptic ✅
    - Interactable registry + hit-test dispatch → onSelect + haptic click ✅
    - Grab-to-move begin/end (Session 36 feature) → windowManager wiring ✅
    - Hover enter/exit dispatch, recenter() ✅
-   - Gaze-dwell activation → reticle + haptic + onSelect: not yet covered (GazeInteraction itself is unit-tested; VRApp's per-frame glue to it is not) — **remaining scope for a future session**
+   - Gaze-dwell activation → haptic + spatial audio, caption aging (Session 43) ✅
    - **Files**: `tests/vr-app-wiring.test.js` (new)
 
 4. ~~**Semantic DOM Overlay**~~ — **Done (Session 30)**
@@ -228,7 +228,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 | VR UI strings hard-coded English | WCAG 3.1.1 violation (Japanese users) | Settings labels fixed Session 2; status-message/toast call sites fixed Session 27 |
 | Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | Fixed Session 2 (toasts wired); translated Session 27 |
 | WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | **To fix Phase 1** |
-| No VRApp integration tests | Regression risk | Largely fixed Session 41 (interactables/haptic/grab-to-move/hover/recenter); gaze-dwell VRApp-side glue still uncovered |
+| No VRApp integration tests | Regression risk | Fixed Sessions 41 + 43 (interactables/haptic/grab-to-move/hover/recenter/gaze-dwell) |
 | No semantic DOM for screen readers | 2D screen reader support missing | Fixed Session 30 (captions/toasts/settings-panel state mirrored via SemanticDOM) |
 | Settings panel no grouping/help | UX discoverability | **To fix Phase 3** |
 | VRApp monolith 2700+ lines | Maintainability debt | **To fix Phase 3** |
@@ -251,6 +251,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
+
+### Session 43: Phase 2 Roadmap — Gaze-Dwell VRApp-Side Glue (Closes Session 41's Deferral)
+Picked up the one piece Session 41 explicitly left open: VRApp's own per-frame gaze-dwell glue in `updateSystems()` (dwell timer/grace-time logic itself was already covered by `gaze-interaction.test.js`).
+- ✨ **test (VRApp wiring, Phase 2)**: added 7 tests to `tests/vr-app-wiring.test.js` covering `updateSystems()`'s gaze-dwell activation path — a `gazeInteraction.update()` return value fires a both-hands haptic click and a spatial "click" sound at the activated object's world position; no activation/disabled/uninitialized `gazeInteraction` all correctly no-op; null-safe without haptic or spatial audio wired. Also covers the adjacent caption-aging call (`captionSystem.update(dt*1000)`), gated on `enabled`. Isolated the gaze-dwell/caption glue from locomotion/button-input/teleport/hover (each already tested on its own) by stubbing those four sibling per-frame methods.
+- 🐛 **fix (test infra, found while writing this)**: the shared `hapticFeedback`/`captionSystem` mocks in `vr-app-wiring.test.js` were missing `update()` methods that `updateSystems()`'s gamepad-refresh and caption-aging calls need — added, harmless to the existing 32 tests since none previously exercised `updateSystems()`.
+- Total 925 tests (44 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green. This closes the Phase 2 roadmap item in full — no remaining gap in VRApp's accessibility/interaction wiring coverage.
 
 ### Session 42: Cleanup — Non-Existent Placeholder Domains Presented as Real
 User asked to remove non-existent/unspecified address domains.
@@ -499,4 +505,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 42)
+**Last Revision**: 2026-07-04 (Session 43)

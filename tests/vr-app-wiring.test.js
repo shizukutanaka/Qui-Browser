@@ -60,8 +60,8 @@ function makeVRAppLike(overrides = {}) {
     controllers: [],
     isVREnabled: false,
     camera: null,
-    hapticFeedback: { playPattern: jest.fn(), playPatternBothHands: jest.fn() },
-    captionSystem: { enabled: true, show: jest.fn() },
+    hapticFeedback: { playPattern: jest.fn(), playPatternBothHands: jest.fn(), update: jest.fn() },
+    captionSystem: { enabled: true, show: jest.fn(), update: jest.fn() },
     semanticDOM: { announceAlert: jest.fn(), announceCaption: jest.fn() },
     windowManager: null,
     tabManager: null,
@@ -393,5 +393,102 @@ describe('VRApp.recenter', () => {
   test('is a no-op without a playerRig', () => {
     const app = makeVRAppLike({ playerRig: null });
     expect(() => VRApp.prototype.recenter.call(app)).not.toThrow();
+  });
+});
+
+// ── Gaze-dwell activation glue (FR-13.1) ─────────────────────────────────────
+// GazeInteraction itself (the dwell timer/grace-time logic) is already
+// unit-tested in gaze-interaction.test.js. What was NOT covered — the gap
+// flagged since Session 2 and left open at the end of Session 41 — is
+// VRApp's own per-frame glue in updateSystems(): does an activation actually
+// reach the haptic + spatial-audio cross-modal confirmation?
+function makeSystemsApp(overrides = {}) {
+  return makeVRAppLike({
+    // Stub the other per-frame update methods so this test is isolated to
+    // the gaze-dwell/caption/window-manager glue, not a re-test of
+    // locomotion/button-input/teleport/hover (each already covered on its own).
+    updateLocomotion: jest.fn(),
+    updateButtonInput: jest.fn(),
+    updateTeleport: jest.fn(),
+    updateHover: jest.fn(),
+    comfortSystem: null,
+    ffrSystem: null,
+    handTracking: null,
+    mixedReality: null,
+    layersSystem: null,
+    gazeInteraction: null,
+    windowManager: null,
+    renderer: { xr: { getReferenceSpace: jest.fn() } },
+    camera: {},
+    settings: { enableComfort: true, targetFPS: 90 },
+    performanceMonitor: { frameTime: 0 },
+    spatialAudio: { updateListenerFromCamera: jest.fn(), play: jest.fn() },
+    ...overrides
+  });
+}
+
+describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
+  test('an activation fires a both-hands haptic click and a spatial click at the activated object\'s position', () => {
+    const activatedMesh = { getWorldPosition: jest.fn((v) => v) };
+    const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
+    const app = makeSystemsApp({ gazeInteraction });
+
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+
+    expect(gazeInteraction.update).toHaveBeenCalledWith(app.interactables, 16);
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('click');
+    expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.anything());
+    expect(activatedMesh.getWorldPosition).toHaveBeenCalledTimes(1);
+  });
+
+  test('no activation this frame → no haptic, no spatial click', () => {
+    const gazeInteraction = { enabled: true, update: jest.fn(() => null) };
+    const app = makeSystemsApp({ gazeInteraction });
+
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+
+    expect(app.hapticFeedback.playPatternBothHands).not.toHaveBeenCalled();
+    expect(app.spatialAudio.play).not.toHaveBeenCalled();
+  });
+
+  test('does not poll gazeInteraction.update() while gaze-dwell is disabled', () => {
+    const gazeInteraction = { enabled: false, update: jest.fn() };
+    const app = makeSystemsApp({ gazeInteraction });
+
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+
+    expect(gazeInteraction.update).not.toHaveBeenCalled();
+  });
+
+  test('does not throw when gazeInteraction has not been created', () => {
+    const app = makeSystemsApp({ gazeInteraction: null });
+    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+  });
+
+  test('activation feedback is null-safe without haptic or spatial audio wired', () => {
+    const activatedMesh = { getWorldPosition: jest.fn((v) => v) };
+    const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
+    const app = makeSystemsApp({ gazeInteraction, hapticFeedback: null, spatialAudio: null });
+    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+  });
+});
+
+describe('VRApp.updateSystems — caption aging', () => {
+  test('ages captions (converting dt to milliseconds) when captions are enabled', () => {
+    const captionSystem = { enabled: true, update: jest.fn(), show: jest.fn() };
+    const app = makeSystemsApp({ captionSystem });
+
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+
+    expect(captionSystem.update).toHaveBeenCalledWith(16);
+  });
+
+  test('does not age captions while disabled', () => {
+    const captionSystem = { enabled: false, update: jest.fn(), show: jest.fn() };
+    const app = makeSystemsApp({ captionSystem });
+
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+
+    expect(captionSystem.update).not.toHaveBeenCalled();
   });
 });
