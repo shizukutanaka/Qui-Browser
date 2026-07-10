@@ -500,13 +500,13 @@ describe('VRApp.updateSystems — caption aging', () => {
 // safe (existing tests are agnostic to it). This block specifically verifies
 // the new getter/setter contract itself, using Object.create(VRApp.prototype)
 // so the real accessor actually runs.
-describe('VRApp.captionSystem getter/setter (delegates to AccessibilityCoordinator)', () => {
-  function makeRealPrototypeInstance() {
-    const app = Object.create(VRApp.prototype);
-    app.a11y = { captionSystem: null };
-    return app;
-  }
+function makeRealPrototypeInstance() {
+  const app = Object.create(VRApp.prototype);
+  app.a11y = { captionSystem: null, hapticFeedback: null };
+  return app;
+}
 
+describe('VRApp.captionSystem getter/setter (delegates to AccessibilityCoordinator)', () => {
   test('reading captionSystem returns whatever is on this.a11y.captionSystem', () => {
     const app = makeRealPrototypeInstance();
     const fake = { show: jest.fn() };
@@ -520,5 +520,30 @@ describe('VRApp.captionSystem getter/setter (delegates to AccessibilityCoordinat
     app.captionSystem = fake;
     expect(app.a11y.captionSystem).toBe(fake);
     expect(Object.prototype.hasOwnProperty.call(app, 'captionSystem')).toBe(false);
+  });
+});
+
+describe('VRApp.hapticFeedback getter/setter (delegates to AccessibilityCoordinator)', () => {
+  test('reading hapticFeedback returns whatever is on this.a11y.hapticFeedback', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { playPattern: jest.fn() };
+    app.a11y.hapticFeedback = fake;
+    expect(app.hapticFeedback).toBe(fake);
+  });
+
+  test('assigning hapticFeedback stores it on this.a11y.hapticFeedback, not as an own field', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { playPattern: jest.fn() };
+    app.hapticFeedback = fake;
+    expect(app.a11y.hapticFeedback).toBe(fake);
+    expect(Object.prototype.hasOwnProperty.call(app, 'hapticFeedback')).toBe(false);
+  });
+
+  test('captionSystem and hapticFeedback delegate independently', () => {
+    const app = makeRealPrototypeInstance();
+    const fakeCaptions = { show: jest.fn() };
+    app.captionSystem = fakeCaptions;
+    expect(app.hapticFeedback).toBeNull();
+    expect(app.a11y.hapticFeedback).toBeNull();
   });
 });

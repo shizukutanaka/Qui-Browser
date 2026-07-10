@@ -158,9 +158,9 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 3: Medium-Priority Refactoring (Future)
 **Goal**: Improve maintainability and discoverability.
 
-5. **AccessibilityCoordinator** — **In progress (Session 44)**
-   - Move captionSystem ✅ (Session 44, via getter/setter delegation — zero call sites changed), hapticFeedback (deferred), gazeInteraction (deferred), high-contrast/large-text syncing (deferred) into dedicated class
-   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (Session 44); see `docs/OUTSTANDING_ISSUES.md` item C-1 for the remaining slices and known land-mines
+5. **AccessibilityCoordinator** — **In progress (Sessions 44, 45)**
+   - Move captionSystem ✅ (Session 44), hapticFeedback ✅ (Session 45) — both via getter/setter delegation, zero call sites changed. gazeInteraction (deferred), high-contrast/large-text syncing (deferred) remain.
+   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (Sessions 44, 45); see `docs/OUTSTANDING_ISSUES.md` item C-1 for the remaining slice and known land-mines
 
 6. **Settings Panel Grouping** (2–3 hours)
    - Reorganize settings into collapsible sections: Locomotion, Accessibility, Rendering, Optional
@@ -250,6 +250,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
+
+### Session 45: Phase 3 Roadmap — AccessibilityCoordinator Extraction, Second Slice
+Direct continuation of Session 44 (user re-issued the same "commercial quality front-to-back" request; interpreted as continuing the standing quality-improvement effort, not as authorization for the still-pending deletion/dependency items in `docs/OUTSTANDING_ISSUES.md`).
+- ✨ **feat (refactor, Phase 3)**: moved `hapticFeedback` into `AccessibilityCoordinator` alongside `captionSystem`, using the identical getter/setter delegation pattern from Session 44. Found and verified all 4 of `hapticFeedback`'s assignment sites (field-decl `null`, `new HapticFeedback()` construction, init-failure fallback to `null`, dispose-time `null`) are transparently handled by a plain setter — no special-casing needed. Every one of the ~15 call sites that read `this.hapticFeedback.playPattern(...)` across locomotion/teleport/grab/voice handling needed **zero changes**.
+- Confirmed behavior-preserving the same two ways as Session 44: full suite (934 tests) passes unchanged, plus 5 new tests (2 for `AccessibilityCoordinator` itself, 3 for the VRApp delegation contract, including one confirming `captionSystem` and `hapticFeedback` delegate independently).
+- Total 934 tests (45 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+- **Remaining**: `gazeInteraction` only — deferred because it's tightly coupled to `updateSystems()`'s per-frame gaze-dwell block (unlike captionSystem/hapticFeedback, which both have a simple, self-contained try/catch construction path). See `docs/OUTSTANDING_ISSUES.md` item C-1.
 
 ### Session 44: Phase 3 Roadmap — AccessibilityCoordinator Extraction, First Slice
 Dispatched an Explore agent first (per this project's own guidance for Phase 3 refactors) to inventory every accessibility-related field/method in VRApp, confirm no other file reaches into `captionSystem`/`hapticFeedback`/`gazeInteraction` directly, and assess risk to `tests/vr-app-wiring.test.js`.
@@ -511,4 +518,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 44)
+**Last Revision**: 2026-07-04 (Session 45)

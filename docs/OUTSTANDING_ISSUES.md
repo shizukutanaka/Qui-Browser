@@ -54,11 +54,11 @@
 
 ## C. ロードマップ Phase 3（未着手・大規模リファクタ）
 
-### C-1. AccessibilityCoordinator への切り出し（優先度: 中、難易度: 高）— **第1スライス完了（Session 44）**
+### C-1. AccessibilityCoordinator への切り出し（優先度: 中、難易度: 高）— **第2スライス完了（Session 45）**
 - **対象**: `src/vr/VRApp.js`（3,100行超）に散在する `captionSystem`/`hapticFeedback`/`gazeInteraction`/high-contrast・large-text 同期ロジックを専用クラス `src/vr/accessibility/AccessibilityCoordinator.js` に集約する。
 - **理由**: VRApp が肥大化しており、アクセシビリティ設定のテスト・保守が困難。CLAUDE.md 冒頭の "Critical Gaps #4" として記録済み。
-- **完了した部分（Session 44）**: `captionSystem` のみを `AccessibilityCoordinator` に移動。VRApp側は `get captionSystem()`/`set captionSystem()` を追加し、`this.a11y.captionSystem` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・dispose・`notifyCrossModal` 呼び出し等、15箇所以上）は一切変更不要——プレーンなオブジェクトリテラルを使う `tests/vr-app-wiring.test.js` のテストも39件すべて無変更のまま通過することを確認済み。挙動を変えない安全なリファクタであることを検証済み。
-- **残タスク**: `hapticFeedback`（呼び出し箇所が~15箇所と多く機械的編集リスクが高い）と `gazeInteraction`（`updateSystems()` の毎フレーム処理と密結合）を同様の getter/setter パターンで移す。着手前に Explore エージェントで事前調査済み（本ドキュメント作成の元になったレポートは会話ログ参照）——カメラ構築順序・`_handTrackingTimers` クロージャ・`highContrast` トグルの複合クロージャなど land-mine あり。`motionSensitivity`/`windowDistance` はスコープ外と判断済み（ComfortSystem/WindowManager 向けであり4系統のスコープに含めない）。
+- **完了した部分（Session 44, 45）**: `captionSystem`（Session 44）と `hapticFeedback`（Session 45）を `AccessibilityCoordinator` に移動。VRApp側は各々に `get`/`set` を追加し、`this.a11y.X` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・dispose・`notifyCrossModal`/`fireTeleportFeedback` 等の呼び出し、合計30箇所以上）は一切変更不要——`tests/vr-app-wiring.test.js` の既存テストも無変更のまま通過することを確認済み（hapticFeedbackの割り当て箇所は `this.hapticFeedback = null`（field decl）、`new HapticFeedback()` の構築、init失敗時の `null` 再代入、dispose時の `null` 再代入の計4箇所——すべてsetter経由で透過的に処理されることを確認）。挙動を変えない安全なリファクタであることを検証済み。
+- **残タスク**: `gazeInteraction` のみ（`updateSystems()` の毎フレーム処理と密結合しているため最後に残した）。同様の getter/setter パターンが使えるはずだが、`updateSystems()` 内の `if (this.gazeInteraction && this.gazeInteraction.enabled)` のような頻繁な読み取りがあるため、getter呼び出しのオーバーヘッドが毎フレーム発生する点は許容範囲か要確認（実測では他の2系統で問題は出ていない）。着手前に Explore エージェントで事前調査済み（本ドキュメント作成の元になったレポートは会話ログ参照）——カメラ構築順序・`highContrast` トグルの複合クロージャなど land-mine あり。`motionSensitivity`/`windowDistance` はスコープ外と判断済み（ComfortSystem/WindowManager 向けであり4系統のスコープに含めない）。
 
 ### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。

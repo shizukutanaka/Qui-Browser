@@ -107,11 +107,11 @@ export class VRApp {
     this.japaneseIME = null;
     this.vrKeyboard = null;
     this.handTracking = null;
-    this.hapticFeedback = null;
     this.gazeInteraction = null;
-    // captionSystem is homed on AccessibilityCoordinator (Phase 3 extraction,
-    // docs/OUTSTANDING_ISSUES.md item C-1) but exposed via the captionSystem
-    // getter/setter below so every existing call site keeps working unchanged.
+    // captionSystem/hapticFeedback are homed on AccessibilityCoordinator
+    // (Phase 3 extraction, docs/OUTSTANDING_ISSUES.md item C-1) but exposed
+    // via the getters/setters below so every existing call site keeps
+    // working unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
     this.mixedReality = null;
@@ -279,15 +279,23 @@ export class VRApp {
     this.initialize();
   }
 
-  // captionSystem now lives on this.a11y (AccessibilityCoordinator), but is
-  // exposed here as a plain-looking property so every existing read/write
-  // call site in this file (construction, settings-panel closures, dispose,
-  // notifyCrossModal calls) keeps working exactly as before the extraction.
+  // captionSystem/hapticFeedback now live on this.a11y (AccessibilityCoordinator),
+  // but are exposed here as plain-looking properties so every existing
+  // read/write call site in this file (construction, settings-panel
+  // closures, dispose, notifyCrossModal/fireTeleportFeedback/etc. calls)
+  // keeps working exactly as before the extraction.
   get captionSystem() {
     return this.a11y.captionSystem;
   }
   set captionSystem(value) {
     this.a11y.captionSystem = value;
+  }
+
+  get hapticFeedback() {
+    return this.a11y.hapticFeedback;
+  }
+  set hapticFeedback(value) {
+    this.a11y.hapticFeedback = value;
   }
 
   /**

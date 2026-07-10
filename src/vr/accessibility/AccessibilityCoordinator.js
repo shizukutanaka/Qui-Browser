@@ -5,24 +5,24 @@
  * VRApp's 3,000+ lines.
  *
  * This is an incremental extraction (see docs/OUTSTANDING_ISSUES.md, item
- * C-1): only captionSystem is homed here so far. hapticFeedback and
- * gazeInteraction remain directly on VRApp pending follow-up slices — they
- * were deferred because hapticFeedback has ~15 call sites scattered across
- * locomotion/teleport/grab/voice handling (higher mechanical-edit risk) and
- * gazeInteraction is tightly coupled to updateSystems()'s per-frame gaze-dwell
- * block, whereas captionSystem's settings-panel surface is small and
- * self-contained (just enableCaptions/captionDuration/captionScale).
+ * C-1): captionSystem (Session 44) and hapticFeedback (Session 45) are homed
+ * here so far. gazeInteraction remains directly on VRApp pending a follow-up
+ * slice — it is tightly coupled to updateSystems()'s per-frame gaze-dwell
+ * block, whereas captionSystem/hapticFeedback each have a small, self-
+ * contained construction path (a plain try/catch, no per-frame coupling).
  *
  * VRApp still owns construction and disposal of each subsystem (the
- * dependency on `this.camera` being ready, and the `_handTrackingTimers`
- * teardown-ordering guard, are VRApp-lifecycle concerns, not accessibility
- * ones). This class is deliberately just where the reference lives: VRApp
- * exposes it through a `captionSystem` getter/setter so every existing call
- * site (`this.captionSystem.show(...)`, the settings-panel `apply` closures,
- * dispose()) keeps working unchanged — none of them needed to move.
+ * dependency on `this.camera` being ready for some systems, and the
+ * `_handTrackingTimers` teardown-ordering guard, are VRApp-lifecycle
+ * concerns, not accessibility ones). This class is deliberately just where
+ * the references live: VRApp exposes each through a getter/setter so every
+ * existing call site (`this.captionSystem.show(...)`,
+ * `this.hapticFeedback.playPattern(...)`, the settings-panel `apply`
+ * closures, dispose()) keeps working unchanged — none of them needed to move.
  */
 export class AccessibilityCoordinator {
   constructor() {
     this.captionSystem = null;
+    this.hapticFeedback = null;
   }
 }
