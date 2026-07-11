@@ -251,6 +251,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 46: Research-Driven Improvements — Adaptive Vignette + Caption Height (XAUR)
+Web-researched recent papers/platform news (W3C XAUR, VR cybersickness mitigation 2025, WebXR 2026 platform direction, VR text entry, VR caption studies) and cross-checked against the implementation. **Most existing features already align with the research** (e.g. `FFRSystem`'s head-motion-based adaptive FFR matches arXiv:2502.03419; head-locked captions match the 82.5%-preference finding in arXiv:2210.15072). Two research-supported gaps were implemented; the rest are recorded in `docs/OUTSTANDING_ISSUES.md` section D.
+- ✨ **feat (comfort, research)**: speed-proportional adaptive vignette. `ComfortSystem.updateVignette()` previously snapped to full vignette intensity for any smooth-locomotion motion (binary `externalMotion`). Research on adaptive FOV restriction (VRST '22; adaptive FFR+FoV, arXiv:2502.03419) shows over-restricting the FOV beyond the actual optical flow is itself a comfort cost. Added `externalMotionLevel` (0..1, default 1 for backward compat); the target now scales with the normalized stick deflection fed per-frame by `VRApp.updateLocomotion()`. Head movement/rotation still count as full-strength. 6 new tests (4 fail against pre-fix); existing 40 pass unchanged.
+- ✨ **feat (a11y, XAUR)**: user-adjustable caption height. W3C XAUR requires caption position customization and VR eye-tracking studies show wide per-user variation in comfortable height, but the caption panel was hardcoded at y=-0.55. Added `CaptionSystem.setVerticalOffset()` + `verticalOffset` constructor option + exported `clampCaptionOffset()` (range [-0.85,-0.25] m), a "Caption Height" settings-panel stepper next to the existing caption controls, `captionHeight` setting (persisted), and the `vr.settings.captionHeight` i18n key (en+ja). Head-lock behavior itself unchanged. 9 new tests (8 fail against pre-fix).
+- Total 949 tests (45 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+- **Recorded as researched-but-deferred** (`docs/OUTSTANDING_ISSUES.md` D): caption lag option (low value — 82.5% prefer plain head-lock), WebXR-WebGPU Binding (large), Quest 40.4 Depth-API hit-testing (needs hardware), keyboard predictive-suggestion UI (reuses `BookmarkStore.search()`, good next candidate), rest-frame research (already satisfied by the home environment).
+
 ### Session 45: Phase 3 Roadmap — AccessibilityCoordinator Extraction, Second Slice
 Direct continuation of Session 44 (user re-issued the same "commercial quality front-to-back" request; interpreted as continuing the standing quality-improvement effort, not as authorization for the still-pending deletion/dependency items in `docs/OUTSTANDING_ISSUES.md`).
 - ✨ **feat (refactor, Phase 3)**: moved `hapticFeedback` into `AccessibilityCoordinator` alongside `captionSystem`, using the identical getter/setter delegation pattern from Session 44. Found and verified all 4 of `hapticFeedback`'s assignment sites (field-decl `null`, `new HapticFeedback()` construction, init-failure fallback to `null`, dispose-time `null`) are transparently handled by a plain setter — no special-casing needed. Every one of the ~15 call sites that read `this.hapticFeedback.playPattern(...)` across locomotion/teleport/grab/voice handling needed **zero changes**.
@@ -518,4 +525,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 45)
+**Last Revision**: 2026-07-04 (Session 46)
