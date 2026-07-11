@@ -158,9 +158,9 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 3: Medium-Priority Refactoring (Future)
 **Goal**: Improve maintainability and discoverability.
 
-5. **AccessibilityCoordinator** — **In progress (Sessions 44, 45)**
-   - Move captionSystem ✅ (Session 44), hapticFeedback ✅ (Session 45) — both via getter/setter delegation, zero call sites changed. gazeInteraction (deferred), high-contrast/large-text syncing (deferred) remain.
-   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (Sessions 44, 45); see `docs/OUTSTANDING_ISSUES.md` item C-1 for the remaining slice and known land-mines
+5. ~~**AccessibilityCoordinator**~~ — **Done (Sessions 44, 45, 47)**
+   - Move captionSystem ✅ (Session 44), hapticFeedback ✅ (Session 45), gazeInteraction ✅ (Session 47) — all via getter/setter delegation, zero call sites changed across all three slices.
+   - **Files**: `src/vr/accessibility/AccessibilityCoordinator.js` (Sessions 44, 45, 47); see `docs/OUTSTANDING_ISSUES.md` item C-1 for the full extraction history
 
 6. **Settings Panel Grouping** (2–3 hours)
    - Reorganize settings into collapsible sections: Locomotion, Accessibility, Rendering, Optional
@@ -250,6 +250,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
+
+### Session 47: Phase 3 Roadmap — AccessibilityCoordinator Extraction, Third Slice (Complete)
+Direct continuation of Sessions 44/45, closing out the AccessibilityCoordinator extraction.
+- ✨ **feat (refactor, Phase 3)**: moved `gazeInteraction` into `AccessibilityCoordinator`, completing all three planned slices. Confirmed the same shape as the prior two: a field-decl `null` and a real `new GazeInteraction(...)` construction, no dispose-time reassignment. Every read/method-call site (`updateSystems()`'s per-frame gaze-dwell poll, the settings-panel `dwellTime`/`graceTime`/`enableGazeDwell`/`highContrast` closures, dispose) needed **zero changes**, since none of them reassign `this.gazeInteraction` itself — they call methods on or set properties of the object it currently points to, which a getter handles transparently.
+- Confirmed behavior-preserving the same way as Sessions 44/45: full suite (953 tests) passes unchanged, plus 6 new tests (2 for the coordinator, 3 for the delegation contract, 1 confirming all three fields — captionSystem/hapticFeedback/gazeInteraction — delegate independently).
+- Total 953 tests (45 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+- **This closes `docs/OUTSTANDING_ISSUES.md` item C-1 in full.** `highContrast`/`motionSensitivity`/`windowDistance` syncing was deliberately kept out of scope (feeds ComfortSystem/WindowManager, not the three accessibility subsystems this coordinator owns).
 
 ### Session 46: Research-Driven Improvements — Adaptive Vignette + Caption Height (XAUR)
 Web-researched recent papers/platform news (W3C XAUR, VR cybersickness mitigation 2025, WebXR 2026 platform direction, VR text entry, VR caption studies) and cross-checked against the implementation. **Most existing features already align with the research** (e.g. `FFRSystem`'s head-motion-based adaptive FFR matches arXiv:2502.03419; head-locked captions match the 82.5%-preference finding in arXiv:2210.15072). Two research-supported gaps were implemented; the rest are recorded in `docs/OUTSTANDING_ISSUES.md` section D.
@@ -525,4 +532,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 46)
+**Last Revision**: 2026-07-04 (Session 47)

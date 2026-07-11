@@ -502,7 +502,7 @@ describe('VRApp.updateSystems — caption aging', () => {
 // so the real accessor actually runs.
 function makeRealPrototypeInstance() {
   const app = Object.create(VRApp.prototype);
-  app.a11y = { captionSystem: null, hapticFeedback: null };
+  app.a11y = { captionSystem: null, hapticFeedback: null, gazeInteraction: null };
   return app;
 }
 
@@ -544,6 +544,33 @@ describe('VRApp.hapticFeedback getter/setter (delegates to AccessibilityCoordina
     const fakeCaptions = { show: jest.fn() };
     app.captionSystem = fakeCaptions;
     expect(app.hapticFeedback).toBeNull();
+    expect(app.a11y.hapticFeedback).toBeNull();
+  });
+});
+
+describe('VRApp.gazeInteraction getter/setter (delegates to AccessibilityCoordinator)', () => {
+  test('reading gazeInteraction returns whatever is on this.a11y.gazeInteraction', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { update: jest.fn(), enabled: true };
+    app.a11y.gazeInteraction = fake;
+    expect(app.gazeInteraction).toBe(fake);
+  });
+
+  test('assigning gazeInteraction stores it on this.a11y.gazeInteraction, not as an own field', () => {
+    const app = makeRealPrototypeInstance();
+    const fake = { update: jest.fn() };
+    app.gazeInteraction = fake;
+    expect(app.a11y.gazeInteraction).toBe(fake);
+    expect(Object.prototype.hasOwnProperty.call(app, 'gazeInteraction')).toBe(false);
+  });
+
+  test('all three accessibility fields delegate independently', () => {
+    const app = makeRealPrototypeInstance();
+    const fakeGaze = { update: jest.fn() };
+    app.gazeInteraction = fakeGaze;
+    expect(app.captionSystem).toBeNull();
+    expect(app.hapticFeedback).toBeNull();
+    expect(app.a11y.captionSystem).toBeNull();
     expect(app.a11y.hapticFeedback).toBeNull();
   });
 });
