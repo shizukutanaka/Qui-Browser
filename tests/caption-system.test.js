@@ -41,7 +41,10 @@ global.document = {
   createElement: () => ({ width: 0, height: 0, getContext: () => makeCtx() })
 };
 
-const { CaptionSystem } = require('../src/vr/accessibility/CaptionSystem.js');
+const {
+  CaptionSystem, clampCaptionOffset,
+  CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX
+} = require('../src/vr/accessibility/CaptionSystem.js');
 
 function makeCamera() {
   return { add: jest.fn(), remove: jest.fn() };
@@ -294,6 +297,52 @@ describe('CaptionSystem (FR-13.1)', () => {
     test('coerces non-numeric to 5000 fallback', () => {
       expect(cs.setLineDuration('bad')).toBe(5000);
       expect(cs.setLineDuration(null)).toBe(5000);
+    });
+  });
+
+  // ── caption vertical position (XAUR customization) ──────────────────────────
+  describe('setVerticalOffset — caption height customization', () => {
+    test('defaults to the standard lower-FOV offset and applies it to the mesh', () => {
+      expect(cs.verticalOffset).toBe(CAPTION_OFFSET_DEFAULT);
+      // _buildPanel positioned the mesh at the default height.
+      expect(cs.mesh.position.set).toHaveBeenCalledWith(0, CAPTION_OFFSET_DEFAULT, -2.0);
+    });
+
+    test('honours a constructor verticalOffset override (clamped)', () => {
+      const cs2 = new CaptionSystem(makeCamera(), { verticalOffset: -0.4 });
+      expect(cs2.verticalOffset).toBeCloseTo(-0.4, 5);
+      const cs3 = new CaptionSystem(makeCamera(), { verticalOffset: 0.5 }); // above range
+      expect(cs3.verticalOffset).toBe(CAPTION_OFFSET_MAX);
+    });
+
+    test('setVerticalOffset updates the stored value and the mesh y', () => {
+      expect(cs.setVerticalOffset(-0.4)).toBeCloseTo(-0.4, 5);
+      expect(cs.verticalOffset).toBeCloseTo(-0.4, 5);
+      expect(cs.mesh.position.y).toBeCloseTo(-0.4, 5);
+    });
+
+    test('clamps to [CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX]', () => {
+      expect(cs.setVerticalOffset(-5)).toBe(CAPTION_OFFSET_MIN);
+      expect(cs.setVerticalOffset(5)).toBe(CAPTION_OFFSET_MAX);
+    });
+
+    test('non-finite input falls back to the default offset', () => {
+      expect(cs.setVerticalOffset('nope')).toBe(CAPTION_OFFSET_DEFAULT);
+      expect(cs.setVerticalOffset(NaN)).toBe(CAPTION_OFFSET_DEFAULT);
+    });
+  });
+
+  describe('clampCaptionOffset (pure helper)', () => {
+    test('passes through in-range values', () => {
+      expect(clampCaptionOffset(-0.5)).toBeCloseTo(-0.5, 5);
+    });
+    test('clamps out-of-range values', () => {
+      expect(clampCaptionOffset(-2)).toBe(CAPTION_OFFSET_MIN);
+      expect(clampCaptionOffset(0)).toBe(CAPTION_OFFSET_MAX);
+    });
+    test('non-finite → default', () => {
+      expect(clampCaptionOffset(undefined)).toBe(CAPTION_OFFSET_DEFAULT);
+      expect(clampCaptionOffset('x')).toBe(CAPTION_OFFSET_DEFAULT);
     });
   });
 });

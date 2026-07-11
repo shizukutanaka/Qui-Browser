@@ -220,6 +220,11 @@ export class VRApp {
       // is derived from the OS large-text preference at session start; exposing
       // it as a live stepper lets low-vision users tune it from inside VR.
       captionScale: 1.0,
+      // Caption panel height in the camera's local space (metres, negative =
+      // below eye level). XAUR requires caption position customization; VR
+      // eye-tracking subtitle studies show the comfortable height varies
+      // widely per user. Live stepper in the settings panel.
+      captionHeight: -0.55,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Default search engine for non-URL input in the address bar
@@ -1267,6 +1272,16 @@ export class VRApp {
             this.captionSystem.setScale(v);
           }
         }
+      }],
+      // XAUR: caption position customization. Height in metres below eye level
+      // (more-negative = lower in the field of view).
+      [t('vr.settings.captionHeight'), 'captionHeight', {
+        min: -0.85, max: -0.25, step: 0.1, unit: 'm',
+        apply: (v) => {
+          if (this.captionSystem) {
+            this.captionSystem.setVerticalOffset(v);
+          }
+        }
       }]
     ];
 
@@ -2126,6 +2141,7 @@ export class VRApp {
       scale: this.settings.captionScale,
       highContrast: prefersHighContrast(),
       lineDuration: this.settings.captionDuration * 1000,
+      verticalOffset: this.settings.captionHeight,
       onShow: (text) => this.semanticDOM?.announceCaption(text)
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);

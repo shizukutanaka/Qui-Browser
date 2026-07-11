@@ -28,6 +28,14 @@ const MIN_FONT = 22;          // px — floor when many rows are stacked
 const WRAP_CHARS = 34;        // approx chars per row at the panel width
 const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
 
+// Default caption panel height in the camera's local space (metres, negative =
+// below eye level). Exposed so the settings panel can offer a comfortable-
+// position control: XAUR requires caption customization, and eye-tracking
+// studies show the comfortable caption height varies widely per user.
+export const CAPTION_OFFSET_DEFAULT = -0.55;
+export const CAPTION_OFFSET_MIN = -0.85; // lower — near the floor of the FOV
+export const CAPTION_OFFSET_MAX = -0.25; // higher — closer to eye level
+
 export class CaptionSystem {
   /**
    * @param {THREE.Camera} camera
@@ -46,12 +54,13 @@ export class CaptionSystem {
    *   duplicating it at every call site.
    */
   constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false,
-    onShow = null } = {}) {
+    verticalOffset = CAPTION_OFFSET_DEFAULT, onShow = null } = {}) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
     this.scale = scale;
     this.highContrast = highContrast;
+    this.verticalOffset = clampCaptionOffset(verticalOffset);
     this.onShow = typeof onShow === 'function' ? onShow : null;
     this.enabled = false;
 
@@ -80,8 +89,9 @@ export class CaptionSystem {
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.name = 'captionPanel';
     this.mesh.renderOrder = 998;
-    // Lower-centre of the field of view, a couple metres out.
-    this.mesh.position.set(0, -0.55, -2.0);
+    // Lower-centre of the field of view, a couple metres out. Height is
+    // user-adjustable (see setVerticalOffset / VRApp captionHeight setting).
+    this.mesh.position.set(0, this.verticalOffset, -2.0);
     this.mesh.visible = false;
 
     this.camera.add(this.mesh);
@@ -136,6 +146,23 @@ export class CaptionSystem {
   setLineDuration(ms) {
     this.lineDuration = Math.max(2000, Math.min(60000, Number(ms) || 5000));
     return this.lineDuration;
+  }
+
+  /**
+   * Set the caption panel's height in the camera's local space (metres,
+   * negative = below eye level), clamped to [CAPTION_OFFSET_MIN, MAX]. The
+   * comfortable caption position varies widely per user (XAUR requires
+   * caption customization; VR eye-tracking subtitle studies show large
+   * individual differences), so this is exposed as a live setting.
+   * @param {number} y
+   * @returns {number} the applied offset
+   */
+  setVerticalOffset(y) {
+    this.verticalOffset = clampCaptionOffset(y);
+    if (this.mesh) {
+      this.mesh.position.y = this.verticalOffset;
+    }
+    return this.verticalOffset;
   }
 
   /**
@@ -380,4 +407,19 @@ export class CaptionSystem {
     this.mesh = null;
     this._lines = [];
   }
+}
+
+/**
+ * Clamp a caption vertical offset (metres) into the supported range,
+ * defaulting a non-finite value to CAPTION_OFFSET_DEFAULT. Pure/exported so
+ * the settings-panel stepper and the constructor share one definition.
+ * @param {number} y
+ * @returns {number}
+ */
+export function clampCaptionOffset(y) {
+  const n = Number(y);
+  if (!Number.isFinite(n)) {
+    return CAPTION_OFFSET_DEFAULT;
+  }
+  return Math.max(CAPTION_OFFSET_MIN, Math.min(CAPTION_OFFSET_MAX, n));
 }

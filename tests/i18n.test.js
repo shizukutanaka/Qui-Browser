@@ -46,6 +46,14 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.settings.captionHeight (XAUR caption position setting)', () => {
+    setLanguage('en');
+    expect(t('vr.settings.captionHeight')).toBe('Caption Height');
+    setLanguage('ja');
+    expect(t('vr.settings.captionHeight')).toBe('字幕の高さ');
+    setLanguage('en');
+  });
+
   test('unknown key falls back to the key itself', () => {
     setLanguage('en');
     expect(t('does.not.exist')).toBe('does.not.exist');
