@@ -130,6 +130,74 @@ describe('ComfortSystem', () => {
     expect(system.currentVignette).toBeLessThan(0.4);
   });
 
+  // ── speed-proportional (adaptive) vignette ──────────────────────────────────
+  // The vignette target scales with actual glide speed (externalMotionLevel)
+  // rather than snapping to full strength for any smooth locomotion at all —
+  // over-restricting the FOV during slow drift is itself a comfort cost
+  // (adaptive FOV restriction, VRST '22; adaptive FFR+FoV, arXiv:2502.03419).
+  test('externalMotionLevel=0.5 halves the vignette target vs full deflection', () => {
+    system.settings.vignette.smoothing = 1; // snap straight to target
+    system.settings.vignette.intensity = 0.4;
+    system._headMoving = false;
+    system.isRotating = false;
+    system.externalMotion = true;
+    system.externalMotionLevel = 0.5;
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.2, 5);
+  });
+
+  test('backward compatible: externalMotion=true with default level (1) is full intensity', () => {
+    system.settings.vignette.smoothing = 1;
+    system.settings.vignette.intensity = 0.4;
+    system._headMoving = false;
+    system.isRotating = false;
+    system.externalMotion = true;
+    // externalMotionLevel left at its constructor default of 1
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4, 5);
+  });
+
+  test('externalMotionLevel=0 contributes nothing when the head is otherwise still', () => {
+    system.settings.vignette.smoothing = 1;
+    system._headMoving = false;
+    system.isRotating = false;
+    system.externalMotion = true;
+    system.externalMotionLevel = 0;
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBe(0);
+  });
+
+  test('head rotation always applies full vignette regardless of externalMotionLevel', () => {
+    system.settings.vignette.smoothing = 1;
+    system.settings.vignette.intensity = 0.4;
+    system._headMoving = false;
+    system.isRotating = true; // head turning → full-strength motion
+    system.externalMotion = true;
+    system.externalMotionLevel = 0; // even with zero glide speed
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4, 5);
+  });
+
+  test('externalMotionLevel is clamped to [0,1]', () => {
+    system.settings.vignette.smoothing = 1;
+    system.settings.vignette.intensity = 0.4;
+    system._headMoving = false;
+    system.isRotating = false;
+    system.externalMotion = true;
+    system.externalMotionLevel = 5; // absurd → clamps to 1
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4, 5);
+  });
+
+  test('externalMotionLevel defaults to 1 at construction', () => {
+    expect(system.externalMotionLevel).toBe(1);
+  });
+
   // ── FOV update ────────────────────────────────────────────────────────────────
   test('FOV narrows when moving', () => {
     system.isMoving = true;

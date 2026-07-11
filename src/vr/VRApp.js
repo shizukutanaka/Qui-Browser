@@ -1642,6 +1642,7 @@ export class VRApp {
     const snapRelease   = 0.3;
 
     let smoothMoving = false;
+    let smoothMoveLevel = 0; // strongest normalized stick deflection this frame
     for (const controller of this.controllers) {
       const src = controller.userData.inputSource;
       if (!src) {
@@ -1689,13 +1690,20 @@ export class VRApp {
           move.normalize().multiplyScalar(this.settings.smoothMoveSpeed * dt);
           this.playerRig.position.add(move);
           smoothMoving = true;
+          // Track how far the stick is pushed (dead-zone output is already
+          // normalized to (0,1]) so the comfort vignette can scale with actual
+          // glide speed rather than snapping to full strength (adaptive FOV
+          // restriction). Take the strongest deflection across both hands.
+          smoothMoveLevel = Math.max(smoothMoveLevel, Math.min(1, Math.hypot(x, y)));
         }
       }
     }
 
-    // Engage the comfort vignette while continuously moving.
+    // Engage the comfort vignette while continuously moving, scaled by how
+    // fast the user is actually gliding (see ComfortSystem.updateVignette).
     if (this.comfortSystem) {
       this.comfortSystem.externalMotion = smoothMoving;
+      this.comfortSystem.externalMotionLevel = smoothMoveLevel;
     }
   }
 

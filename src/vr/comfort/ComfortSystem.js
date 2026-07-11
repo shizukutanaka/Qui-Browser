@@ -17,6 +17,14 @@ export class ComfortSystem {
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
     this.externalMotion = false;
+    // Intensity of the external motion, 0..1 (normalized stick deflection).
+    // Drives a speed-proportional vignette: restricting the FOV more than the
+    // current optical flow warrants is itself a comfort/usability cost, so the
+    // vignette target scales with how fast the user is actually gliding
+    // (adaptive FOV restriction — Adaptive Field-of-view Restriction, VRST '22;
+    // adaptive FFR+FoV, arXiv:2502.03419). Defaults to 1 so callers that only
+    // set the boolean keep the pre-existing full-intensity behavior.
+    this.externalMotionLevel = 1;
 
     // Comfort settings
     this.settings = {
@@ -150,8 +158,12 @@ export class ComfortSystem {
     const moveDistance = currentPosition.distanceTo(this.lastPosition);
     const rotDistance = Math.abs(currentRotation - this.lastRotation);
 
+    // Head-delta motion kept separate from the external locomotion signal so
+    // updateVignette() can scale the external contribution by its level while
+    // head/camera motion always counts as full-strength motion.
+    this._headMoving = moveDistance > 0.001; // ~1mm threshold
     // Update motion flags (OR in any external locomotion signal)
-    this.isMoving = moveDistance > 0.001 || this.externalMotion; // ~1mm threshold
+    this.isMoving = this._headMoving || this.externalMotion;
     this.isRotating = rotDistance > 0.001; // ~0.05 degree threshold
 
     // Store current values for next frame
@@ -160,15 +172,26 @@ export class ComfortSystem {
   }
 
   /**
-   * Update vignette intensity based on motion
+   * Update vignette intensity based on motion.
+   *
+   * The target scales with how much optical flow the user is actually being
+   * exposed to, rather than snapping to full strength for any motion at all:
+   * over-restricting the FOV during slow drift is itself a comfort/usability
+   * cost (adaptive FOV restriction — VRST '22; adaptive FFR+FoV,
+   * arXiv:2502.03419). Head-tracked movement and rotation still count as
+   * full-strength motion (their real-world speed isn't measurable here);
+   * smooth locomotion contributes proportionally to externalMotionLevel
+   * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
   updateVignette(_deltaTime) {
-    // Target vignette intensity based on motion
-    let targetVignette = 0;
-
-    if (this.isMoving || this.isRotating) {
-      targetVignette = this.settings.vignette.intensity;
-    }
+    const externalLevel = this.externalMotion
+      ? Math.max(0, Math.min(1, this.externalMotionLevel))
+      : 0;
+    const motionLevel = Math.max(
+      (this._headMoving || this.isRotating) ? 1 : 0,
+      externalLevel
+    );
+    const targetVignette = this.settings.vignette.intensity * motionLevel;
 
     // Smooth transition
     this.currentVignette += (targetVignette - this.currentVignette) *
