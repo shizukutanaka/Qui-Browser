@@ -251,6 +251,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 48: 長所短所改善点 — Keyboard URL Suggestions (BookmarkStore.search Finally Gets a UI)
+Strengths/weaknesses audit against the standing backlog picked `docs/OUTSTANDING_ISSUES.md` D-4 as the highest-value implementable deficiency: `BookmarkStore.search()` (built in Session 18 *explicitly for autocomplete*) had **zero visual surface** — only the voice go-to command used it, while gaze-dwell typing (~8-10 WPM, arXiv:2503.11357) remained this browser's slowest interaction. The same "data layer exists, UI never wired" class of deficiency as Session 28's grab-to-move finding.
+- ✨ **feat (a11y/input)**: `VRJapaneseKeyboard` gains a frecency URL-suggestion row. New `suggestionProvider` constructor option; `_updateSuggestions()` runs on every keystroke (from `updateDisplay()`), queries at ≥ 2 composed chars, and renders up to 4 buttons via `showSuggestions()` — modeled directly on the existing kanji-candidate row (`candidateStyle` colours, numbered order cue, canvas-texture buttons, hover repaint) and **sharing its strip zone** (mutually exclusive: `showCandidates()` clears suggestions and vice versa). Selecting a button confirms the URL through the normal `onTextConfirmed` path (hides keyboard, fires the one-shot confirm → navigation). Hover announces the **full URL**, not the truncated label (WCAG 1.3.3). Provider exceptions degrade to "no suggestions" without breaking typing. Teardown follows the `_clearCandidates()` pattern (unregister + dispose geometry/material/texture) and is invoked from `hide()`/`esc`/`dispose()`.
+- Key correctness note: `JapaneseIME.compositionBuffer` stays **raw romaji** (conversion to kana happens only in the returned display value), so ASCII URL queries like "github" match history/bookmarks correctly.
+- Pure `suggestionLabel(entry)` helper exported (title → hostname → raw fallback, code-point-aware truncation reusing `bookmarkLayout.truncate`).
+- VRApp wiring is one line: `suggestionProvider: (q) => this.bookmarks.search(q, 4, Date.now())`.
+- 15 new tests (`tests/vr-keyboard-suggestions.test.js`), all verified failing against pre-fix code. Total 968 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 47: Phase 3 Roadmap — AccessibilityCoordinator Extraction, Third Slice (Complete)
 Direct continuation of Sessions 44/45, closing out the AccessibilityCoordinator extraction.
 - ✨ **feat (refactor, Phase 3)**: moved `gazeInteraction` into `AccessibilityCoordinator`, completing all three planned slices. Confirmed the same shape as the prior two: a field-decl `null` and a real `new GazeInteraction(...)` construction, no dispose-time reassignment. Every read/method-call site (`updateSystems()`'s per-frame gaze-dwell poll, the settings-panel `dwellTime`/`graceTime`/`enableGazeDwell`/`highContrast` closures, dispose) needed **zero changes**, since none of them reassign `this.gazeInteraction` itself — they call methods on or set properties of the object it currently points to, which a getter handles transparently.
@@ -532,4 +540,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 47)
+**Last Revision**: 2026-07-04 (Session 48)

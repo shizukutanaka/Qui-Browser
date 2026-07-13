@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
+import { truncate } from '../browser/bookmarkLayout.js';
 
 export class JapaneseIME {
   constructor() {
@@ -652,6 +653,32 @@ export function candidateStyle(index) {
   };
 }
 
+/**
+ * Display label for a URL suggestion button: the page title when one exists,
+ * otherwise the hostname (falling back to the raw URL when unparseable),
+ * truncated by code point so a long Japanese title can't split a surrogate
+ * pair at the cut. Pure / unit-testable.
+ *
+ * @param {{url?:string, title?:string}} entry — a BookmarkStore.search() result
+ * @param {number} [max=22] — max characters shown on the button
+ * @returns {string}
+ */
+export function suggestionLabel(entry, max = 22) {
+  if (!entry) {
+    return '';
+  }
+  const title = String(entry.title || '').trim();
+  if (title) {
+    return truncate(title, max);
+  }
+  const url = String(entry.url || '');
+  try {
+    return truncate(new URL(url).hostname || url, max);
+  } catch (_) {
+    return truncate(url, max);
+  }
+}
+
 export class VRJapaneseKeyboard {
   /**
    * @param {THREE.Scene} scene
@@ -667,6 +694,11 @@ export class VRJapaneseKeyboard {
    * @param {Function} [opts.onCancel] — called when the keyboard is dismissed
    *   via the Esc key (without confirming text), so the host can announce the
    *   cancellation as a status message (WCAG 4.1.3).
+   * @param {Function} [opts.suggestionProvider] — called with the current
+   *   composition text (≥ 2 chars) on every keystroke; returns
+   *   [{url, title}] suggestions (e.g. BookmarkStore.search()). Selecting a
+   *   suggestion confirms its URL directly, skipping the remaining typing —
+   *   the main mitigation for gaze-dwell typing's ~8-10 WPM ceiling.
    */
   constructor(scene, ime, opts = {}) {
     this.scene = scene;
@@ -680,6 +712,7 @@ export class VRJapaneseKeyboard {
     this.scale = opts.scale || 1;
     this.onHoverCaption = typeof opts.onHoverCaption === 'function' ? opts.onHoverCaption : null;
     this.onCancel = typeof opts.onCancel === 'function' ? opts.onCancel : null;
+    this.suggestionProvider = typeof opts.suggestionProvider === 'function' ? opts.suggestionProvider : null;
 
     // 3D objects (created lazily by createKeyboard()).
     this.group = null;          // THREE.Group holding panel + keys + display
@@ -688,6 +721,8 @@ export class VRJapaneseKeyboard {
     this._displayTex = null;
     this._candidateMeshes = []; // live candidate button meshes (rebuilt on each showCandidates call)
     this._candidatesGroup = null; // THREE.Group added to this.group for easy show/hide
+    this._suggestionMeshes = [];  // live URL-suggestion button meshes
+    this._suggestionsGroup = null; // THREE.Group sharing the candidates' strip zone
   }
 
   /**
@@ -877,6 +912,34 @@ export class VRJapaneseKeyboard {
     this._candidatesGroup.visible = false;
   }
 
+  /**
+   * Remove all live URL-suggestion button meshes and hide the suggestions
+   * group. Safe to call even if no suggestions are showing. Same teardown
+   * pattern as _clearCandidates() (unregister + dispose geometry/material/map).
+   */
+  _clearSuggestions() {
+    if (!this._suggestionsGroup) {
+      return;
+    }
+    for (const { mesh } of this._suggestionMeshes) {
+      if (this.unregisterInteractable) {
+        this.unregisterInteractable(mesh);
+      }
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        if (mesh.material.map) {
+          mesh.material.map.dispose();
+        }
+        mesh.material.dispose();
+      }
+      this._suggestionsGroup.remove(mesh);
+    }
+    this._suggestionMeshes = [];
+    this._suggestionsGroup.visible = false;
+  }
+
   /** Render the current composition buffer into the display strip. */
   _refreshDisplay() {
     if (!this._displayCanvas) {
@@ -936,6 +999,10 @@ export class VRJapaneseKeyboard {
     if (this.group) {
       this.group.visible = false;
     }
+    // A hidden keyboard must not leave a stale suggestion row (with live
+    // interactables) behind for the next show(); the row is rebuilt from the
+    // fresh composition text on the first keystroke anyway.
+    this._clearSuggestions();
   }
 
   /**
@@ -985,10 +1052,11 @@ export class VRJapaneseKeyboard {
 
     case 'esc':
       // Dismiss the keyboard without confirming — clears the buffer and
-      // any candidate row. Fire onCancel so the host can announce the
-      // dismissal as a status message (WCAG 4.1.3 Status Messages).
+      // any candidate/suggestion row. Fire onCancel so the host can announce
+      // the dismissal as a status message (WCAG 4.1.3 Status Messages).
       this.ime.compositionBuffer = '';
       this._clearCandidates();
+      this._clearSuggestions();
       this.hide();
       if (this.onCancel) this.onCancel();
       break;
@@ -1021,6 +1089,9 @@ export class VRJapaneseKeyboard {
     }
 
     this._clearCandidates();
+    // Kanji candidates and URL suggestions share the same strip zone; a
+    // conversion supersedes any suggestion row currently showing.
+    this._clearSuggestions();
 
     // Lazily create the candidates group on first use.
     if (!this._candidatesGroup) {
@@ -1122,13 +1193,149 @@ export class VRJapaneseKeyboard {
   }
 
   /**
-   * Update display with current composition — repaints the 3D display strip
-   * and clears any candidate row (new input supersedes conversion candidates).
+   * Display a row of selectable URL-suggestion buttons (frecency-ranked
+   * history/bookmark hits for the current composition text). Selecting one
+   * confirms its URL directly — the user skips the rest of the typing.
+   *
+   * Shares the kanji candidates' strip zone: suggestions show while typing,
+   * kanji candidates show after 変換/space, and each clears the other, so the
+   * two never overlap. Rendering mirrors showCandidates() (canvas-texture
+   * buttons, candidateStyle colours, numbered order cue, hover repaint).
+   *
+   * @param {{url:string, title?:string}[]} entries
+   */
+  showSuggestions(entries) {
+    this._clearSuggestions();
+    if (!this.group || !entries || entries.length === 0) {
+      return;
+    }
+
+    if (!this._suggestionsGroup) {
+      this._suggestionsGroup = new THREE.Group();
+      this._suggestionsGroup.name = 'suggestionsRow';
+      this.group.add(this._suggestionsGroup);
+    }
+
+    const MAX = 4;
+    const shown = entries.slice(0, MAX).filter(e => e && e.url);
+    if (shown.length === 0) {
+      return;
+    }
+    const BTN_W = 0.22; // wider than kanji buttons — labels are words, not glyphs
+    const BTN_H = 0.07;
+    const GAP_S = 0.008;
+    const rowWidth = shown.length * BTN_W + (shown.length - 1) * GAP_S;
+
+    // Same strip zone as the kanji candidate row (mutually exclusive with it).
+    const { height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale;
+    const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
+
+    const CANVAS_W = 384;
+    const CANVAS_H = 128;
+    shown.forEach((entry, i) => {
+      const label = suggestionLabel(entry);
+      const canvas = document.createElement('canvas');
+      canvas.width = CANVAS_W;
+      canvas.height = CANVAS_H;
+      const ctx = canvas.getContext('2d');
+
+      const draw = (hover) => {
+        const style = candidateStyle(i);
+        ctx.fillStyle = hover ? '#3a5a32' : style.bg;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.strokeStyle = hover ? '#66ee99' : style.border;
+        ctx.lineWidth = hover ? 5 : style.lineWidth;
+        ctx.strokeRect(3, 3, CANVAS_W - 6, CANVAS_H - 6);
+        // Order number (left edge): primacy/order without relying on colour.
+        ctx.fillStyle = '#cceeff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(style.number, 10, 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2 + 10);
+      };
+      draw(false);
+      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(BTN_W, BTN_H),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      const x = -rowWidth / 2 + i * (BTN_W + GAP_S) + BTN_W / 2;
+      mesh.position.set(x, stripY, 0);
+      this._suggestionsGroup.add(mesh);
+      this._suggestionMeshes.push({ mesh });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => {
+            // Confirm the suggested URL directly: clear the composition so a
+            // reopened keyboard starts fresh, then route through the normal
+            // confirm path (hides keyboard, fires the one-shot callback).
+            this._clearSuggestions();
+            if (this.ime) {
+              this.ime.compositionBuffer = '';
+            }
+            this.onTextConfirmed(entry.url);
+          },
+          onHover: () => {
+            draw(true);
+            tex.needsUpdate = true;
+            // Announce the FULL destination URL, not the truncated label, so
+            // gaze users know exactly where the button navigates (WCAG 1.3.3).
+            if (this.onHoverCaption) this.onHoverCaption(entry.url);
+          },
+          onHoverEnd: () => {
+            draw(false);
+            tex.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    this._suggestionsGroup.visible = true;
+  }
+
+  /**
+   * Re-query the suggestion provider for the current composition text and
+   * show/clear the suggestion row accordingly. Provider failures must never
+   * break typing — they degrade to "no suggestions".
+   */
+  _updateSuggestions() {
+    if (!this.suggestionProvider) {
+      return;
+    }
+    const query = this.ime ? String(this.ime.compositionBuffer || '') : '';
+    if (query.trim().length < 2) {
+      this._clearSuggestions();
+      return;
+    }
+    let results = [];
+    try {
+      results = this.suggestionProvider(query) || [];
+    } catch (e) {
+      console.debug('VRJapaneseKeyboard: suggestionProvider failed', e);
+      results = [];
+    }
+    this.showSuggestions(results);
+  }
+
+  /**
+   * Update display with current composition — repaints the 3D display strip,
+   * clears any candidate row (new input supersedes conversion candidates),
+   * and refreshes the URL-suggestion row for the new composition text.
    */
   updateDisplay(processed) {
     console.debug(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
     this._clearCandidates();
     this._refreshDisplay();
+    this._updateSuggestions();
   }
 
   /**
@@ -1157,7 +1364,12 @@ export class VRJapaneseKeyboard {
     this.clearOnConfirm();
 
     // Tear down 3D resources: unregister interactables, dispose geometry/
-    // materials/textures, and remove the group from the scene.
+    // materials/textures, and remove the group from the scene. The candidate/
+    // suggestion rows are cleared first because their meshes hold registered
+    // interactables the generic group.traverse teardown below wouldn't
+    // unregister.
+    this._clearCandidates();
+    this._clearSuggestions();
     for (const { mesh } of this.keyMeshes) {
       this.unregisterInteractable?.(mesh);
       if (mesh.geometry) {

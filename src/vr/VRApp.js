@@ -2078,7 +2078,11 @@ export class VRApp {
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(t('vr.msg.keyboardCancelled'));
         }
-      }
+      },
+      // Frecency-ranked history/bookmark suggestions while typing (gaze-dwell
+      // typing is ~8-10 WPM, so jumping to a known destination after a couple
+      // of characters is the single biggest text-entry speedup available).
+      suggestionProvider: (query) => this.bookmarks.search(query, 4, Date.now())
     });
     console.debug('VRApp: Japanese IME ready');
 
