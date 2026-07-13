@@ -574,3 +574,53 @@ describe('VRApp.gazeInteraction getter/setter (delegates to AccessibilityCoordin
     expect(app.a11y.hapticFeedback).toBeNull();
   });
 });
+
+describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
+  // onVRSessionEnd() restores desktop pixel ratio via window.devicePixelRatio;
+  // this suite runs under the 'node' test environment, which has no window.
+  beforeEach(() => { global.window = { devicePixelRatio: 1 }; });
+  afterEach(() => { delete global.window; });
+
+  /** Bare `this` with just the fields onVRSessionEnd() reads/writes. */
+  function makeSessionEndApp(overrides = {}) {
+    return {
+      isVREnabled: true,
+      ffrSystem: null,
+      comfortSystem: null,
+      layersSystem: null,
+      immersiveVideo: null,
+      handTracking: null,
+      tabManager: null,
+      webPanel: null,
+      camera: { fov: 90 },
+      onXRVisibilityChange: () => {},
+      renderer: { setPixelRatio: jest.fn() },
+      ...overrides
+    };
+  }
+
+  test('disposes handTracking so re-entry does not leak the previous session\'s hand models', () => {
+    const handTracking = { dispose: jest.fn() };
+    const app = makeSessionEndApp({ handTracking });
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(handTracking.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  test('no-ops safely when handTracking was never initialized', () => {
+    const app = makeSessionEndApp({ handTracking: null });
+    expect(() => VRApp.prototype.onVRSessionEnd.call(app)).not.toThrow();
+  });
+
+  test('still disposes layersSystem and stops immersiveVideo alongside handTracking', () => {
+    const layersSystem = { dispose: jest.fn() };
+    const immersiveVideo = { stop: jest.fn() };
+    const handTracking = { dispose: jest.fn() };
+    const app = makeSessionEndApp({
+      layersSystem, immersiveVideo, handTracking, tabManager: { tabs: [] }
+    });
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(layersSystem.dispose).toHaveBeenCalledTimes(1);
+    expect(immersiveVideo.stop).toHaveBeenCalledTimes(1);
+    expect(handTracking.dispose).toHaveBeenCalledTimes(1);
+  });
+});

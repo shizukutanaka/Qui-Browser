@@ -2567,6 +2567,15 @@ export class VRApp {
       this.immersiveVideo.stop();
     }
 
+    // Hand models/joint meshes are session-scoped: initialize() rebuilds them
+    // unconditionally on the next onVRSessionStart() without ever removing the
+    // previous session's leftHand/rightHand groups from the scene. Without this,
+    // every VR re-entry (headset removed, system menu, re-enter) leaks a full
+    // set of 50 joint meshes as permanent, frozen "ghost hands".
+    if (this.handTracking) {
+      this.handTracking.dispose();
+    }
+
     // The XRSession is discarded on end (its visibilitychange listener dies with
     // it); just drop our reference so a stale closure can't be reused.
     this.onXRVisibilityChange = null;
