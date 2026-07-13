@@ -70,15 +70,20 @@ export class WebPanel {
    *   move bar is selected; wire to WindowManager.beginGrab(controller).
    * @param {Function} [opts.onMoveBarHoverCaption] — called with no args on move
    *   bar hover-enter, so callers can announce it (WCAG 1.3.3).
+   * @param {Function} [opts.onBlockedNavigation] — called with (rawInput) when
+   *   navigate() resolves the typed text to null (a blocked scheme like
+   *   javascript:/data:/file:, or an unparseable address) so callers can
+   *   surface a status message (WCAG 4.1.3) instead of silently doing nothing.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption, onGrabRequested, onMoveBarHoverCaption }) {
+    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.onNavigate = onNavigate || (() => {});
     this.onLoadError = onLoadError || (() => {});
+    this.onBlockedNavigation = typeof onBlockedNavigation === 'function' ? onBlockedNavigation : null;
     this.onUrlInputRequested = onUrlInputRequested || null;
     // Search engine for non-URL input (key into SEARCH_ENGINES). Defaults to
     // a privacy-respecting engine; overridable via settings.
@@ -368,6 +373,9 @@ export class WebPanel {
     // schemes (javascript:, data:, file:) resolve to null and are ignored.
     const resolved = resolveInput(url, { searchEngine: this.searchEngine });
     if (!resolved) {
+      if (this.onBlockedNavigation) {
+        this.onBlockedNavigation(url);
+      }
       return;
     }
     url = resolved;

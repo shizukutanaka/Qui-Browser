@@ -550,6 +550,7 @@ export class VRApp {
         unregisterInteractable: (m) => this.unregisterInteractable(m),
         onNavigate: (url, title) => this.navigate(url, title),
         onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
+        onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
         position: { x: 0, y: 1.5, z: -2 },
         // Replace window.prompt() with the VR keyboard.  vrKeyboard is
         // initialised in initializeSystems() before this block runs.

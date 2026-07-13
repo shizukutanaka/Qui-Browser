@@ -212,7 +212,8 @@ export class TabManager {
       onLoadError: this.opts.onLoadError || null,
       onHoverCaption: this.opts.onPanelHoverCaption || null,
       onGrabRequested: this.opts.onGrabRequested || null,
-      onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null
+      onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
+      onBlockedNavigation: this.opts.onBlockedNavigation || null
     });
     panel.addToScene();
     panel.group.position.set(this.position.x, this.position.y, this.position.z);

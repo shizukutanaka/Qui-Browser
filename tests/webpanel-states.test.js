@@ -232,6 +232,46 @@ describe('WebPanel load-error state', () => {
   });
 });
 
+// ── navigate() — blocked/unresolvable input (WCAG 4.1.3) ─────────────────────
+describe('WebPanel navigate() blocked-navigation feedback', () => {
+  test('a dangerous scheme fires onBlockedNavigation and does not navigate', () => {
+    const onBlockedNavigation = jest.fn();
+    const onNavigate = jest.fn();
+    const p = makePanel({ onBlockedNavigation, onNavigate });
+
+    p.navigate('javascript:alert(1)');
+
+    expect(onBlockedNavigation).toHaveBeenCalledWith('javascript:alert(1)');
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(p.history).toHaveLength(0);
+  });
+
+  test('a non-http(s) scheme (ftp://) also fires onBlockedNavigation', () => {
+    const onBlockedNavigation = jest.fn();
+    const p = makePanel({ onBlockedNavigation });
+
+    p.navigate('ftp://files.example.com');
+
+    expect(onBlockedNavigation).toHaveBeenCalledWith('ftp://files.example.com');
+  });
+
+  test('a normal URL does not fire onBlockedNavigation', () => {
+    const onBlockedNavigation = jest.fn();
+    const p = makePanel({ onBlockedNavigation });
+
+    p.navigate('https://example.com');
+
+    expect(onBlockedNavigation).not.toHaveBeenCalled();
+    expect(p.history).toEqual(['https://example.com']);
+  });
+
+  test('without onBlockedNavigation configured, a blocked scheme is still silently ignored (no throw)', () => {
+    const p = makePanel(); // no onBlockedNavigation passed
+    expect(() => p.navigate('javascript:alert(1)')).not.toThrow();
+    expect(p.history).toHaveLength(0);
+  });
+});
+
 // ── dispose() teardown — stale iframe handler leak ──────────────────────────
 describe('WebPanel dispose() detaches iframe onload/onerror', () => {
   test('dispose() nulls onload and onerror before removing the iframe', () => {
