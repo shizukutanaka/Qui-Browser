@@ -318,6 +318,32 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
     expect(cam.fov).toBeLessThan(90);
     expect(cam.updateProjectionMatrix).toHaveBeenCalled();
   });
+
+  // A mid-session OS "Reduce Motion" toggle (e.g. from the headset's system
+  // Quick Settings) previously never reached an already-constructed
+  // ComfortSystem — reduceMotion was a plain constructor-only field. VRApp
+  // now live-propagates via this setter (WCAG 2.3.3).
+  test('setReducedMotion(true) makes snap-turn apply immediately without rAF', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.setReducedMotion(true);
+    cam.rotation.y = 0;
+    global.requestAnimationFrame.mockClear();
+    cs.animateSnapTurn(Math.PI / 2);
+    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
+    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
+  test('setReducedMotion(false) restores the eased rAF snap-turn animation', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    cs.setReducedMotion(false);
+    cam.rotation.y = 0;
+    global.requestAnimationFrame.mockClear();
+    cs.animateSnapTurn(Math.PI / 2);
+    expect(cam.rotation.y).toBe(0); // t=0 on the first rAF tick, not applied yet
+    expect(global.requestAnimationFrame).toHaveBeenCalled();
+  });
 });
 
 describe('resolveComfortPreset — OS reduced-motion pre-selects protective preset', () => {

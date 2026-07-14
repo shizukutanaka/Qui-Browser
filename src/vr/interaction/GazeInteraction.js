@@ -125,6 +125,18 @@ export class GazeInteraction {
     }
   }
 
+  /**
+   * Live-update the reduced-motion preference (WCAG 2.3.3). Read once at
+   * construction from the OS signal; this lets a mid-session OS preference
+   * change (e.g. toggled from the headset's system Quick Settings without
+   * reloading the page) take effect immediately instead of staying frozen
+   * for the rest of the page's lifetime.
+   * @param {boolean} value
+   */
+  setReducedMotion(value) {
+    this.reduceMotion = !!value;
+  }
+
   _reset() {
     this._target  = null;
     this._elapsed = 0;

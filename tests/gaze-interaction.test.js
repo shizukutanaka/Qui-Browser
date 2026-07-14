@@ -320,6 +320,31 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._ringOpacity).toBeCloseTo(0.35, 2);
   });
 
+  // A mid-session OS "Reduce Motion" toggle (e.g. from the headset's system
+  // Quick Settings) previously never reached an already-constructed
+  // GazeInteraction — reduceMotion was a plain constructor-only field. VRApp
+  // now live-propagates via this setter (WCAG 2.3.3).
+  test('setReducedMotion(true) turns on reduced motion at runtime', () => {
+    const gi = new GazeInteraction(makeCamera());
+    expect(gi.reduceMotion).toBe(false);
+    gi.setReducedMotion(true);
+    expect(gi.reduceMotion).toBe(true);
+  });
+
+  test('setReducedMotion(false) turns off reduced motion at runtime', () => {
+    const gi = new GazeInteraction(makeCamera(), { reduceMotion: true });
+    gi.setReducedMotion(false);
+    expect(gi.reduceMotion).toBe(false);
+  });
+
+  test('setReducedMotion coerces truthy/falsy values to a boolean', () => {
+    const gi = new GazeInteraction(makeCamera());
+    gi.setReducedMotion(1);
+    expect(gi.reduceMotion).toBe(true);
+    gi.setReducedMotion(0);
+    expect(gi.reduceMotion).toBe(false);
+  });
+
   test('graceTime is mutable at runtime (settings stepper live-apply)', () => {
     // The settings panel writes directly to gazeInteraction.graceTime — verify
     // that changing it mid-session takes effect on the next update() call.

@@ -624,3 +624,221 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
     expect(handTracking.dispose).toHaveBeenCalledTimes(1);
   });
 });
+
+// ── OS accessibility signal live-propagation (WCAG 2.3.3 / 1.4.11) ──────────
+// osReducedMotion()/prefersHighContrast() were previously only read once, at
+// each subsystem's construction time — an OS-level preference toggled after
+// the page has already loaded (e.g. from the headset's system Quick Settings,
+// without reloading the tab) never reached the already-constructed
+// comfortSystem/gazeInteraction/captionSystem for the rest of the page's
+// lifetime. _setupOSAccessibilityListeners() subscribes to the underlying
+// MediaQueryList 'change' events so a mid-session OS change takes effect live.
+describe('VRApp._setupOSAccessibilityListeners', () => {
+  let mqs;
+  let realMatchMedia;
+
+  beforeEach(() => {
+    realMatchMedia = global.matchMedia;
+    mqs = {};
+    global.matchMedia = jest.fn((query) => {
+      if (!mqs[query]) {
+        mqs[query] = { matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() };
+      }
+      return mqs[query];
+    });
+  });
+
+  afterEach(() => {
+    global.matchMedia = realMatchMedia;
+  });
+
+  test('subscribes to reduced-motion, prefers-contrast, and forced-colors media queries', () => {
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction: null, captionSystem: null });
+    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+
+    expect(mqs['(prefers-reduced-motion: reduce)'].addEventListener)
+      .toHaveBeenCalledWith('change', expect.any(Function));
+    expect(mqs['(prefers-contrast: more)'].addEventListener)
+      .toHaveBeenCalledWith('change', expect.any(Function));
+    expect(mqs['(forced-colors: active)'].addEventListener)
+      .toHaveBeenCalledWith('change', expect.any(Function));
+  });
+
+  test('a reduced-motion OS change propagates live to comfortSystem and gazeInteraction', () => {
+    const comfortSystem = { setReducedMotion: jest.fn() };
+    const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
+    const app = makeVRAppLike({ comfortSystem, gazeInteraction, captionSystem: null });
+    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+
+    const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
+    handler({ matches: true });
+
+    expect(comfortSystem.setReducedMotion).toHaveBeenCalledWith(true);
+    expect(gazeInteraction.setReducedMotion).toHaveBeenCalledWith(true);
+  });
+
+  test('an OS prefers-contrast change propagates the recomputed prefersHighContrast() to gazeInteraction and captionSystem', () => {
+    const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
+    const captionSystem = { setHighContrast: jest.fn() };
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem });
+    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+
+    mqs['(prefers-contrast: more)'].matches = true; // simulate the OS flipping the signal
+    const handler = mqs['(prefers-contrast: more)'].addEventListener.mock.calls[0][1];
+    handler();
+
+    expect(gazeInteraction.setHighContrast).toHaveBeenCalledWith(true);
+    expect(captionSystem.setHighContrast).toHaveBeenCalledWith(true);
+  });
+
+  test('a forced-colors change uses the same propagation as prefers-contrast', () => {
+    const gazeInteraction = { setHighContrast: jest.fn() };
+    const captionSystem = { setHighContrast: jest.fn() };
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem });
+    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+
+    mqs['(forced-colors: active)'].matches = true;
+    const handler = mqs['(forced-colors: active)'].addEventListener.mock.calls[0][1];
+    handler();
+
+    expect(gazeInteraction.setHighContrast).toHaveBeenCalledWith(true);
+    expect(captionSystem.setHighContrast).toHaveBeenCalledWith(true);
+  });
+
+  test('no-ops safely without matchMedia (test / non-browser env)', () => {
+    global.matchMedia = undefined;
+    const app = makeVRAppLike({});
+    expect(() => VRApp.prototype._setupOSAccessibilityListeners.call(app)).not.toThrow();
+  });
+
+  test('is null-safe when comfortSystem/gazeInteraction/captionSystem are not yet constructed', () => {
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction: null, captionSystem: null });
+    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
+    expect(() => handler({ matches: true })).not.toThrow();
+  });
+});
+
+// ── Teleport-aim state on controller disconnect ──────────────────────────────
+// A controller disconnect (headset removed, VR session ends, or a
+// hand-tracking handoff) only ever fires 'disconnected', never 'squeezeend'.
+// Without _cancelTeleportIfAimedBy(), a mid-aim teleport left teleport.active
+// stuck true and the marker frozen at its last raycast position forever.
+function makeTeleportApp(overrides = {}) {
+  return makeVRAppLike({
+    teleport: { active: false, controller: null, marker: { visible: false }, target: null, valid: false },
+    playerRig: { position: { x: 0, y: 0, z: 0 } },
+    camera: { getWorldPosition: (v) => { v.x = 0; v.z = 0; return v; } },
+    // onTeleportEnd()/_cancelTeleportIfAimedBy() call this.\_resetTeleportAim()
+    // internally — supply the real prototype method so that internal call
+    // resolves (the fake `this` here is a plain object literal, not an
+    // instance of VRApp, so it has no other access to its own prototype).
+    _resetTeleportAim: VRApp.prototype._resetTeleportAim,
+    ...overrides
+  });
+}
+
+describe('VRApp._resetTeleportAim', () => {
+  test('clears active/valid/controller and hides the marker', () => {
+    const controller = {};
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: true, controller, marker: { visible: true }, target: { x: 1, z: 2 } }
+    });
+    VRApp.prototype._resetTeleportAim.call(app);
+    expect(app.teleport.active).toBe(false);
+    expect(app.teleport.valid).toBe(false);
+    expect(app.teleport.controller).toBeNull();
+    expect(app.teleport.marker.visible).toBe(false);
+  });
+
+  test('no-ops safely with no marker', () => {
+    const app = makeTeleportApp({ teleport: { active: true, valid: false, controller: {}, marker: null, target: null } });
+    expect(() => VRApp.prototype._resetTeleportAim.call(app)).not.toThrow();
+  });
+});
+
+describe('VRApp._cancelTeleportIfAimedBy', () => {
+  test('cancels the aim when the disconnecting controller is the one currently aiming', () => {
+    const controller = {};
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: true, controller, marker: { visible: true }, target: { x: 1, z: 2 } }
+    });
+    VRApp.prototype._cancelTeleportIfAimedBy.call(app, controller);
+    expect(app.teleport.active).toBe(false);
+    expect(app.teleport.controller).toBeNull();
+    expect(app.teleport.marker.visible).toBe(false);
+  });
+
+  test('does not touch an unrelated, still-aiming controller (the other hand)', () => {
+    const aimingController = {};
+    const disconnectingController = {}; // a different controller
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: true, controller: aimingController, marker: { visible: true }, target: { x: 1, z: 2 } }
+    });
+    VRApp.prototype._cancelTeleportIfAimedBy.call(app, disconnectingController);
+    expect(app.teleport.active).toBe(true);
+    expect(app.teleport.controller).toBe(aimingController);
+    expect(app.teleport.marker.visible).toBe(true);
+  });
+
+  test('is a no-op when no teleport is in progress', () => {
+    const app = makeTeleportApp();
+    expect(() => VRApp.prototype._cancelTeleportIfAimedBy.call(app, {})).not.toThrow();
+    expect(app.teleport.active).toBe(false);
+  });
+});
+
+describe('VRApp._onWebPanelToggleChanged', () => {
+  // enableWebPanel gates a one-shot construction in initializeSystems() (never
+  // re-run after the constructor), so toggling it live cannot retroactively
+  // build tabManager/webPanel/bookmarkPanel/windowManager — the toggle can
+  // only honestly tell the user a reload is required (WCAG 4.1.3), unlike
+  // every other settings-panel toggle, which takes effect immediately.
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test('fires a cross-modal status message explaining a reload is required', () => {
+    const camera = { add: jest.fn(), remove: jest.fn() };
+    // _onWebPanelToggleChanged() calls this.showVRToast() internally — supply
+    // the real prototype method (the fake `this` here is a plain object
+    // literal, not an instance of VRApp).
+    const app = makeVRAppLike({ isVREnabled: true, camera, showVRToast: VRApp.prototype.showVRToast });
+    VRApp.prototype._onWebPanelToggleChanged.call(app);
+
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/reload/i);
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VRApp.onTeleportEnd (refactor-preserving behavior)', () => {
+  test('completes a valid teleport (moves the rig, fires feedback) and resets aim state', () => {
+    const controller = {};
+    const hapticFeedback = { playPattern: jest.fn(), playPatternBothHands: jest.fn() };
+    const captionSystem = { enabled: true, show: jest.fn() };
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: true, controller, marker: { visible: true }, target: { x: 5, z: 5 } },
+      hapticFeedback,
+      captionSystem
+    });
+    VRApp.prototype.onTeleportEnd.call(app);
+
+    expect(app.playerRig.position.x).toBeCloseTo(5, 5);
+    expect(app.playerRig.position.z).toBeCloseTo(5, 5);
+    expect(app.teleport.active).toBe(false);
+    expect(app.teleport.marker.visible).toBe(false);
+  });
+
+  test('an invalid/no-target aim just resets state without moving the rig', () => {
+    const controller = {};
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: false, controller, marker: { visible: true }, target: null }
+    });
+    VRApp.prototype.onTeleportEnd.call(app);
+
+    expect(app.playerRig.position.x).toBe(0);
+    expect(app.playerRig.position.z).toBe(0);
+    expect(app.teleport.active).toBe(false);
+    expect(app.teleport.marker.visible).toBe(false);
+  });
+});

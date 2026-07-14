@@ -1159,6 +1159,19 @@ export class VRApp {
   }
 
   /**
+   * enableWebPanel gates the one-shot construction of tabManager/webPanel/
+   * bookmarkPanel/windowManager inside initializeSystems(), which runs exactly
+   * once (from the constructor). Flipping the persisted setting here cannot
+   * retroactively construct those subsystems, so — unlike every other toggle
+   * in this panel, which takes effect immediately — this one only takes
+   * effect on the next page load. Telling the user that explicitly (WCAG
+   * 4.1.3) avoids a toggle that silently appears to do nothing.
+   */
+  _onWebPanelToggleChanged() {
+    this.showVRToast(t('vr.msg.webPanelReloadRequired'), { type: 'info' });
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -1220,6 +1233,14 @@ export class VRApp {
           }
         }
       }],
+      // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
+      // WindowManager) is constructed once, in initializeSystems(), gated on
+      // this same setting — there was previously no way for a real user to
+      // ever set it, since it was absent from every settings-panel/voice/
+      // persisted-setting path. Toggling it here persists the preference
+      // (FR-9.1) but can only take effect on the next page load, since
+      // construction is one-shot; the apply callback is honest about that.
+      [t('vr.settings.webPanel'), 'enableWebPanel', () => this._onWebPanelToggleChanged()],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
           this.windowManager.setFollow(v);
@@ -1570,6 +1591,7 @@ export class VRApp {
           this.controllerInput.forget(controller.userData.inputSource);
         }
         controller.userData.inputSource = null;
+        this._cancelTeleportIfAimedBy(controller);
       });
       this.playerRig.add(controller);
       this.controllers.push(controller);
@@ -1640,11 +1662,38 @@ export class VRApp {
       // controller + caption for caption-enabled users.
       fireTeleportFeedback(t.controller, this.hapticFeedback, this.captionSystem);
     }
+    this._resetTeleportAim();
+  }
+
+  /**
+   * Clear teleport-aim state (active/controller/marker) WITHOUT completing a
+   * move — unlike onTeleportEnd(), which this factors the shared reset out
+   * of. Used both by onTeleportEnd()'s tail and by a controller disconnect
+   * mid-aim, where completing the teleport to a stale raycast target would be
+   * the wrong behavior (the user never released the squeeze intentionally).
+   */
+  _resetTeleportAim() {
+    const t = this.teleport;
     t.active = false;
     t.valid = false;
     t.controller = null;
     if (t.marker) {
       t.marker.visible = false;
+    }
+  }
+
+  /**
+   * Cancel (not complete) an in-progress teleport aim if `controller` is the
+   * one currently aiming. A disconnect (headset removed, VR session ends, or
+   * a hand-tracking handoff) only ever fires 'disconnected' — never
+   * 'squeezeend' — for whatever buttons happen to be held. Without this, a
+   * mid-aim teleport (squeeze held, never released) left teleport.active
+   * stuck true and the marker frozen at its last raycast position
+   * indefinitely, since updateTeleport() has no inputSource guard of its own.
+   */
+  _cancelTeleportIfAimedBy(controller) {
+    if (this.teleport.active && this.teleport.controller === controller) {
+      this._resetTeleportAim();
     }
   }
 
@@ -2161,6 +2210,15 @@ export class VRApp {
     this.captionSystem.setEnabled(this.settings.enableCaptions);
     console.debug('VRApp: Caption system ready');
 
+    // 6e. Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 /
+    // 1.4.11). osReducedMotion()/prefersHighContrast() were otherwise only
+    // read once, at each subsystem's construction above — an OS-level
+    // preference toggled after the page has already loaded (e.g. from the
+    // headset's system Quick Settings, without reloading the tab) would
+    // never reach comfortSystem/gazeInteraction/captionSystem for the rest
+    // of the page's lifetime, including across VR session enter/exit.
+    this._setupOSAccessibilityListeners();
+
     // 7. Spatial Audio
     try {
       this.spatialAudio = new SpatialAudio();
@@ -2363,6 +2421,44 @@ export class VRApp {
 
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
+  }
+
+  /**
+   * Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 / 1.4.11).
+   * Called once from initializeSystems(). No-ops without matchMedia (test env
+   * / non-browser). Listeners are detached in dispose().
+   */
+  _setupOSAccessibilityListeners() {
+    if (typeof matchMedia === 'undefined') {
+      return;
+    }
+
+    this._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
+    this._onOSReducedMotionChange = (e) => {
+      if (this.comfortSystem) {
+        this.comfortSystem.setReducedMotion(e.matches);
+      }
+      if (this.gazeInteraction) {
+        this.gazeInteraction.setReducedMotion(e.matches);
+      }
+    };
+    this._osMotionMQ.addEventListener('change', this._onOSReducedMotionChange);
+
+    // osHighContrast() ORs prefers-contrast and forced-colors, so either query
+    // changing can flip the effective decision; both share the same handler.
+    this._osContrastMQ = matchMedia('(prefers-contrast: more)');
+    this._osForcedColorsMQ = matchMedia('(forced-colors: active)');
+    this._onOSContrastChange = () => {
+      const hc = prefersHighContrast();
+      if (this.gazeInteraction) {
+        this.gazeInteraction.setHighContrast(hc);
+      }
+      if (this.captionSystem) {
+        this.captionSystem.setHighContrast(hc);
+      }
+    };
+    this._osContrastMQ.addEventListener('change', this._onOSContrastChange);
+    this._osForcedColorsMQ.addEventListener('change', this._onOSContrastChange);
   }
 
   /**
@@ -2984,6 +3080,23 @@ export class VRApp {
       }
       this._onWindowResize = null;
     }
+
+    // Detach the OS accessibility signal (matchMedia) listeners so a change
+    // after teardown doesn't touch already-disposed subsystems.
+    if (this._osMotionMQ && this._onOSReducedMotionChange) {
+      this._osMotionMQ.removeEventListener('change', this._onOSReducedMotionChange);
+    }
+    if (this._osContrastMQ && this._onOSContrastChange) {
+      this._osContrastMQ.removeEventListener('change', this._onOSContrastChange);
+    }
+    if (this._osForcedColorsMQ && this._onOSContrastChange) {
+      this._osForcedColorsMQ.removeEventListener('change', this._onOSContrastChange);
+    }
+    this._osMotionMQ = null;
+    this._osContrastMQ = null;
+    this._osForcedColorsMQ = null;
+    this._onOSReducedMotionChange = null;
+    this._onOSContrastChange = null;
 
     // Clear pending toast auto-dismiss timers so their callbacks don't fire
     // against a torn-down VRApp (this.camera nulled, GPU resources already

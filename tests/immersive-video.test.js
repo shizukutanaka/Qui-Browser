@@ -226,6 +226,49 @@ describe('ImmersiveVideo lifecycle', () => {
     expect(onError.mock.calls[0][0]).toMatch(/load video/i);
   });
 
+  // A mid-stream error (network drop, decode failure) fires *after* 'playing'
+  // already set iv.playing=true. Previously only onError fired — the HUD
+  // Pause/Play label and onPlaybackChange were never corrected, leaving them
+  // permanently out of sync with reality (unlike stop()/togglePause(), which
+  // both keep all three in lockstep).
+  test('a mid-stream error resets playing, the HUD label, and fires onPlaybackChange("stopped")', () => {
+    const onPlaybackChange = jest.fn();
+    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onPlaybackChange
+    });
+    iv.play('https://cdn.example.com/clip.mp4'); // mock play() emits 'playing' synchronously
+    expect(iv.playing).toBe(true);
+    onPlaybackChange.mockClear(); // ignore the 'playing' call from play()
+    const setLabelSpy = jest.spyOn(iv._playPauseBtn.userData, 'setLabel');
+
+    iv.video._emit('error'); // network drop mid-stream
+
+    expect(iv.playing).toBe(false);
+    expect(setLabelSpy).toHaveBeenCalledWith('Play');
+    expect(onPlaybackChange).toHaveBeenCalledWith('stopped');
+  });
+
+  test('an error before playback ever started does not fire onPlaybackChange (unchanged no-op)', () => {
+    const onPlaybackChange = jest.fn();
+    nextVideoAutoplayBlocked = true; // stays paused, 'playing' never fires
+    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onPlaybackChange
+    });
+    iv.play('https://cdn.example.com/broken.mp4');
+    expect(iv.playing).toBe(false);
+
+    iv.video._emit('error');
+
+    expect(iv.playing).toBe(false);
+    expect(onPlaybackChange).not.toHaveBeenCalled();
+  });
+
   test('stop() removes the error listener (no report after teardown)', () => {
     const { iv, onError } = makeHarness();
     iv.play('https://cdn.example.com/clip.mp4');

@@ -54,6 +54,16 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.settings.webPanel / vr.msg.webPanelReloadRequired (enableWebPanel toggle)', () => {
+    setLanguage('en');
+    expect(t('vr.settings.webPanel')).toBe('Web Browser Panel');
+    expect(t('vr.msg.webPanelReloadRequired')).toBe('Reload the page to apply this setting');
+    setLanguage('ja');
+    expect(t('vr.settings.webPanel')).toBe('ブラウザパネル');
+    expect(t('vr.msg.webPanelReloadRequired')).toBe('この設定を反映するにはページを再読み込みしてください');
+    setLanguage('en');
+  });
+
   test('unknown key falls back to the key itself', () => {
     setLanguage('en');
     expect(t('does.not.exist')).toBe('does.not.exist');

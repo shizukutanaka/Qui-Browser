@@ -47,6 +47,7 @@ const CATALOG = {
     'vr.settings.graceTime': 'Grace Time',
     'vr.settings.panelDist': 'Panel Dist',
     // VR Settings Panel Labels (UI)
+    'vr.settings.webPanel': 'Web Browser Panel',
     'vr.settings.followView': 'Follow View',
     'vr.settings.curved': 'Curved',
     'vr.settings.comfort': 'Comfort',
@@ -90,6 +91,7 @@ const CATALOG = {
     'vr.msg.moveBarLabel': 'Move bar',
     'vr.msg.panelGrabbed': 'Panel grabbed',
     'vr.msg.panelMoved': 'Panel moved',
+    'vr.msg.webPanelReloadRequired': 'Reload the page to apply this setting',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -134,6 +136,7 @@ const CATALOG = {
     'vr.settings.graceTime': 'グレース時間',
     'vr.settings.panelDist': 'パネル距離',
     // VR Settings Panel Labels (UI)
+    'vr.settings.webPanel': 'ブラウザパネル',
     'vr.settings.followView': 'ビューフォロー',
     'vr.settings.curved': 'カーブド',
     'vr.settings.comfort': 'コンフォート',
@@ -177,6 +180,7 @@ const CATALOG = {
     'vr.msg.moveBarLabel': '移動バー',
     'vr.msg.panelGrabbed': 'パネルをつかみました',
     'vr.msg.panelMoved': 'パネル移動完了',
+    'vr.msg.webPanelReloadRequired': 'この設定を反映するにはページを再読み込みしてください',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',

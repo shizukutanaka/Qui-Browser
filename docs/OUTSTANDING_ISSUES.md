@@ -74,6 +74,15 @@
 - **現状**: `VRApp` は `new MixedReality(...)` を構築し `checkSupport()` を呼ぶだけ。`enabled` フラグは `startSession()` の中でのみ `true` になるが、`startSession()` を呼ぶコード（設定パネルボタン・音声コマンド・メニュー等）がリポジトリ内に一つも存在しない。平面/メッシュ検出・ヒットテスト設置・IndexedDB永続化アンカーなど、docstring に書かれた機能一式が実行時には完全に不動作 — Session 39 で削除した `AvatarSystem`（完全に重複した未配線コード）と同型だが、こちらは重複ではなく本当に唯一のAR実装なので削除ではなく配線が必要。
 - **保留理由**: (1) 実機（Quest 3等のARパススルー対応ヘッドセット）がないと動作検証不能。(2) WebXRの `immersive-vr` セッションが既に張られている状態で `immersive-ar` セッションをどう共存/切り替えするかという設計判断が必要（同時に2セッションは張れない仕様のため、既存VRセッションの終了 or 専用の入場フローが要る）。(3) 新規UI導入（設定パネル or 専用ボタン）+ 入力配線のセットが必要で、一発修正では終わらない規模。着手する場合はPlanエージェントで事前設計してから。
 
+### C-5. `enableWebPanel` が到達不能だった（優先度: 高、Session 51 で発見・部分修正）
+- **対象**: `src/vr/VRApp.js`（`settings.enableWebPanel` の既定値および参照箇所: 229, 546, 1318, 1509, 2476行目付近）
+- **発見の経緯**: マルチエージェントの並行監査ワークフローが「BookmarkPanel の scrollOffset 未クランプ」「LayersSystem の XRQuadLayer リーク」「WindowManager の grab 競合」という3件の候補バグを個別に「到達可能」と判定したが、うち1件（WindowManager 競合）を担当した検証エージェントが独自に `enableWebPanel` の既定値・構築経路を追跡した結果、**この設定が day 1 から `false` 固定で、設定パネル・音声コマンド・永続化設定のどの経路からも real user が `true` にする手段が一切存在しない**ことを発見。直接確認した結果、`tabManager`/`webPanel`/`bookmarkPanel`/`windowManager` の構築（546–668行目）および `_attachLayersToPanels()`（2476行目）は全て同じ `if (this.settings.enableWebPanel)` にゲートされており、`docs/SPEC.md` が FR-1.2〜FR-1.7（URL バー・タブ・ブックマーク・Layers・ウィンドウ管理・湾曲パネル）を軒並み「✅ 実装済み」と記載しているにもかかわらず、**25セッション分（Session 25前後〜48）の機能追加・改修が実際のアプリでは一度も real user に到達したことがない**という結論に至った。この事実確認により、上記3件の候補バグのうち BookmarkPanel と LayersSystem の2件は「機能自体は本物のバグだが、現状は enableWebPanel が false のため到達不能」であり、WindowManager 競合の1件は明確に到達不能と判定された。
+- **今回の対応（部分修正）**: 設定パネルに `enableWebPanel` のトグルボタンを追加（`vr.settings.webPanel` / 新規メソッド `_onWebPanelToggleChanged()`）。これは他の全トグルと違い、対象サブシステムの構築が `initializeSystems()`（constructor から一度だけ実行）に一度きりなので、トグルしても即座には反映されない — トグル時に `vr.msg.webPanelReloadRequired`（"Reload the page to apply this setting" / ja: "この設定を反映するにはページを再読み込みしてください"）を `showVRToast` で表示し、正直に次回リロードが必要である旨を伝える設計とした。**既定値そのもの（`false`）は意図的に変更していない** — 何が real な VR 体験のデフォルトになるかはプロダクト判断であり、単なるバグ修正の範疇を超えると判断したため、まずは「有効化する手段が皆無」という到達不能性そのものだけを解消した。ユーザーが既定値を `true` に変更してよいと明示的に指示すれば次のセッションで一行変更できる。
+- **今回見送った、but 検証済みで実装準備が整っている残課題**（`enableWebPanel: true` にして初めて到達可能になる）:
+  - **BookmarkPanel の scrollOffset 未クランプ**（`src/vr/browser/BookmarkPanel.js:299` 付近）: `scrollOffset` は `_onSelect()` の `'deleteRow'` ケースと `setMode()` でのみリセットされるが、`WebPanel` のチロームバーのスター☆ボタン経由（`WebPanel.js:319-321` → `onToggleBookmark` → `VRApp.js:569-575`）でブックマーク削除された場合はクランプされない。10件以上ブックマークしてスクロールした状態で、別経路でブックマーク数がscrollOffset以下まで減ると、行エリアが空白化し全クリックが `{type:'none'}` になる。
+  - **LayersSystem の XRQuadLayer リーク**（`src/vr/browser/WebPanel.js:507` `disableLayerMode()`）: `LayersSystem.removeLayer()` を呼ぶ経路が `TabManager.closeTab()` から一切配線されておらず、Layers 有効セッション中にタブを閉じるたびにネイティブ `XRQuadLayer`（GPU裏付きの2048×164テクスチャ/フレームバッファ）が `session.updateRenderState({layers})` に残り続け、"ghost chrome bar" として永久に合成され続ける。
+  - どちらも file/line/再現条件/修正方針まで検証済み（本ドキュメント冒頭の監査ワークフロー journal に詳細記録）。次セッションで `enableWebPanel` の既定値方針が固まった後、まとめて着手するのが効率的。
+
 ---
 
 ## D. 研究由来の改善候補（Session 46 の Web 調査）

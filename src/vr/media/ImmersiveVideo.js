@@ -145,9 +145,23 @@ export class ImmersiveVideo {
   /**
    * Report a load/playback failure to the host app. The HUD (and its Exit
    * button) is left in place so the viewer can dismiss the failed video.
+   *
+   * A mid-stream error (network drop, decode failure) that fires *after*
+   * 'playing' already set this.playing=true previously left the HUD Pause/Play
+   * label and this.playing permanently out of sync with reality — only
+   * stop()/togglePause() kept them in sync. Correct that here too, guarded so
+   * a load error that fires before playback ever starts (this.playing already
+   * false) stays a no-op, unchanged from before.
    * @param {string} message
    */
   _reportError(message) {
+    if (this.playing) {
+      this.playing = false;
+      if (this._playPauseBtn) {
+        this._playPauseBtn.userData.setLabel('Play');
+      }
+      this.onPlaybackChange('stopped');
+    }
     this.onError(message);
   }
 
