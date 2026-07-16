@@ -5,8 +5,6 @@
  * John Carmack principle: You can't optimize what you don't measure
  */
 
-import * as THREE from 'three';
-
 export class PerformanceMonitor {
   constructor() {
     this.enabled = true;
@@ -73,7 +71,7 @@ export class PerformanceMonitor {
     // Start monitoring
     this.startMonitoring();
 
-    console.log('PerformanceMonitor: Initialized');
+    console.debug('PerformanceMonitor: Initialized');
   }
 
   /**
@@ -82,7 +80,9 @@ export class PerformanceMonitor {
   createUI() {
     // Main container
     this.container = document.createElement('div');
-    this.container.id = 'performance-monitor';
+    // Distinct id: 'performance-monitor' is used by the lightweight overlay in
+    // src/app.js; this richer panel must not collide with it.
+    this.container.id = 'perf-monitor-overlay';
     this.container.style.cssText = `
       position: fixed;
       top: 10px;
@@ -171,12 +171,28 @@ export class PerformanceMonitor {
    * Start monitoring loop
    */
   startMonitoring() {
-    // Monitor memory if available
+    // Monitor memory if available. Interval id is stored so dispose() can
+    // stop it; otherwise it keeps firing for the page lifetime.
     if (performance.memory) {
-      setInterval(() => {
+      this.memoryInterval = setInterval(() => {
         this.updateMemoryMetrics();
       }, 1000);
     }
+  }
+
+  /**
+   * Stop monitoring and detach the UI. Clears the memory-metrics interval
+   * and removes the injected container from the DOM.
+   */
+  dispose() {
+    if (this.memoryInterval) {
+      clearInterval(this.memoryInterval);
+      this.memoryInterval = null;
+    }
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+    this.container = null;
   }
 
   /**
@@ -246,7 +262,9 @@ export class PerformanceMonitor {
    */
   updateMetric(name, value) {
     const metric = this.metrics[name];
-    if (!metric) return;
+    if (!metric) {
+      return;
+    }
 
     metric.current = value;
     metric.min = Math.min(metric.min, value);
@@ -443,7 +461,9 @@ export class PerformanceMonitor {
    * Draw metric graph on canvas
    */
   drawMetricGraph(history, color, min, max) {
-    if (history.length < 2) return;
+    if (history.length < 2) {
+      return;
+    }
 
     const ctx = this.graphCtx;
     const width = this.graphCanvas.width;
@@ -475,7 +495,9 @@ export class PerformanceMonitor {
    */
   updateAlerts() {
     const alertsDiv = document.getElementById('perf-alerts');
-    if (!alertsDiv) return;
+    if (!alertsDiv) {
+      return;
+    }
 
     if (this.alerts.length === 0) {
       alertsDiv.innerHTML = '<div style="color: #888;">No alerts</div>';
@@ -497,8 +519,12 @@ export class PerformanceMonitor {
    * Get color for FPS value
    */
   getColorForFPS(fps) {
-    if (fps >= 90) return '#00ff00';
-    if (fps >= 72) return '#ffaa00';
+    if (fps >= 90) {
+      return '#00ff00';
+    }
+    if (fps >= 72) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 
@@ -506,8 +532,12 @@ export class PerformanceMonitor {
    * Get color for frame time value
    */
   getColorForFrameTime(ms) {
-    if (ms <= 11.1) return '#00ff00';
-    if (ms <= 13.9) return '#ffaa00';
+    if (ms <= 11.1) {
+      return '#00ff00';
+    }
+    if (ms <= 13.9) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 
@@ -515,8 +545,12 @@ export class PerformanceMonitor {
    * Get color for memory value
    */
   getColorForMemory(mb) {
-    if (mb <= 1000) return '#00ff00';
-    if (mb <= 1500) return '#ffaa00';
+    if (mb <= 1000) {
+      return '#00ff00';
+    }
+    if (mb <= 1500) {
+      return '#ffaa00';
+    }
     return '#ff0000';
   }
 
@@ -558,7 +592,9 @@ export class PerformanceMonitor {
     return {
       summary: {
         totalFrames: this.stats.totalFrames,
-        averageFrameTime: this.stats.totalTime / this.stats.totalFrames,
+        averageFrameTime: this.stats.totalFrames > 0
+          ? this.stats.totalTime / this.stats.totalFrames
+          : 0,
         bestFrame: this.stats.bestFrame,
         worstFrame: this.stats.worstFrame,
         alertsGenerated: this.stats.alertsGenerated
@@ -627,7 +663,7 @@ export class PerformanceMonitor {
       metric.history = [];
     });
 
-    console.log('PerformanceMonitor: Statistics reset');
+    console.debug('PerformanceMonitor: Statistics reset');
   }
 }
 
@@ -651,7 +687,7 @@ export class PerformanceMonitor {
  *
  * // Get report
  * const report = perfMon.getReport();
- * console.log(report);
+ * console.debug(report);
  *
  * // Export data
  * const csv = perfMon.exportCSV();

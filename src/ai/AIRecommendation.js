@@ -5,6 +5,29 @@
  * John Carmack principle: AI should enhance, not complicate
  */
 
+/**
+ * Whether a recommendation's URL is a real, navigable destination rather than
+ * a placeholder anchor.
+ *
+ * Every built-in recommendation source (content-based, collaborative,
+ * trending, contextual, time-based) currently generates simulated/demo
+ * entries with `url: '#'` — scaffolding for the scoring/ranking logic, not
+ * real content, since this browser has no content catalog or social graph to
+ * draw from. Surfacing those to a user as if they were real suggestions would
+ * mean every "recommended" link goes nowhere. Pure and exported so the
+ * ranking step can filter honestly instead of half-implementing fake content.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isNavigableUrl(url) {
+  if (typeof url !== 'string') {
+    return false;
+  }
+  const trimmed = url.trim();
+  return trimmed !== '' && trimmed !== '#';
+}
+
 export class AIRecommendation {
   constructor() {
     this.model = null;
@@ -59,7 +82,7 @@ export class AIRecommendation {
    * Initialize AI model (using TensorFlow.js Lite)
    */
   async initialize() {
-    console.log('AIRecommendation: Initializing...');
+    console.debug('AIRecommendation: Initializing...');
 
     try {
       // Load pre-trained model or use simple heuristics
@@ -69,7 +92,7 @@ export class AIRecommendation {
       // Start recommendation update loop
       this.startUpdateLoop();
 
-      console.log('AIRecommendation: Initialized successfully');
+      console.debug('AIRecommendation: Initialized successfully');
     } catch (error) {
       console.error('AIRecommendation: Initialization failed', error);
       // Fallback to heuristic-based recommendations
@@ -160,7 +183,9 @@ export class AIRecommendation {
    * Update category weights based on user behavior
    */
   updateCategoryWeights(category, duration) {
-    if (!this.categories[category]) return;
+    if (!this.categories[category]) {
+      return;
+    }
 
     // Increase weight for frequently visited categories
     // Decay factor based on time spent
@@ -183,10 +208,14 @@ export class AIRecommendation {
     for (const [period, config] of Object.entries(this.timePatterns)) {
       const [start, end] = config.hours;
       if (start < end) {
-        if (hour >= start && hour < end) return period;
+        if (hour >= start && hour < end) {
+          return period;
+        }
       } else {
         // Handle overnight periods
-        if (hour >= start || hour < end) return period;
+        if (hour >= start || hour < end) {
+          return period;
+        }
       }
     }
 
@@ -350,7 +379,8 @@ export class AIRecommendation {
   getTimeBasedRecommendations() {
     const recommendations = [];
     const timeOfDay = this.getTimeOfDay();
-    const boosts = this.timePatterns[timeOfDay].boost;
+    // Guard against an unexpected time-of-day key with no defined pattern.
+    const boosts = (this.timePatterns[timeOfDay] && this.timePatterns[timeOfDay].boost) || {};
 
     // Get recommendations for boosted categories
     Object.entries(boosts).forEach(([category, boost]) => {
@@ -404,11 +434,20 @@ export class AIRecommendation {
    * Rank recommendations by score
    */
   rankRecommendations(recommendations) {
+    // Drop placeholder entries (url: '#') before they ever reach a caller.
+    // Every built-in source currently generates simulated demo content —
+    // see isNavigableUrl() — so this filter is the single choke point that
+    // stops a future "Recommended for you" UI from ever presenting a dead
+    // link to a user, without needing every source method to be fixed at
+    // once (or generateRecommendations() to always come back empty by
+    // silent accident once real sources are added elsewhere).
+    const navigable = recommendations.filter(rec => isNavigableUrl(rec.url));
+
     // Remove duplicates
     const unique = [];
     const seen = new Set();
 
-    recommendations.forEach(rec => {
+    navigable.forEach(rec => {
       const key = `${rec.title}-${rec.url}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -439,8 +478,10 @@ export class AIRecommendation {
   recordClick(recommendation) {
     this.stats.recommendationsClicked++;
 
-    // Update accuracy
-    this.stats.accuracy = this.stats.recommendationsClicked / this.stats.recommendationsGenerated;
+    // Update accuracy (guard against divide-by-zero before any are generated).
+    this.stats.accuracy = this.stats.recommendationsGenerated > 0
+      ? this.stats.recommendationsClicked / this.stats.recommendationsGenerated
+      : 0;
 
     // Track as interaction
     this.trackInteraction('recommendation-click', {
@@ -459,11 +500,27 @@ export class AIRecommendation {
    * Start automatic update loop
    */
   startUpdateLoop() {
-    setInterval(() => {
+    // Guard against a second interval if initialize() runs twice.
+    if (this.updateLoopId) {
+      clearInterval(this.updateLoopId);
+    }
+    // Interval id stored so dispose() can stop it; otherwise the periodic
+    // recommendation generation runs for the page lifetime.
+    this.updateLoopId = setInterval(() => {
       if (this.initialized) {
         this.generateRecommendations();
       }
     }, this.updateInterval);
+  }
+
+  /**
+   * Stop the periodic recommendation update loop.
+   */
+  dispose() {
+    if (this.updateLoopId) {
+      clearInterval(this.updateLoopId);
+      this.updateLoopId = null;
+    }
   }
 
   /**
@@ -512,7 +569,9 @@ export class AIRecommendation {
     return {
       ...this.stats,
       recommendationsAvailable: this.recommendations.length,
-      averageScore: this.recommendations.reduce((sum, r) => sum + r.score, 0) / this.recommendations.length
+      averageScore: this.recommendations.length > 0
+        ? this.recommendations.reduce((sum, r) => sum + r.score, 0) / this.recommendations.length
+        : 0
     };
   }
 
@@ -552,7 +611,7 @@ export class AIRecommendation {
         });
       }
 
-      console.log('AIRecommendation: Profile imported');
+      console.debug('AIRecommendation: Profile imported');
     } catch (error) {
       console.error('AIRecommendation: Profile import failed', error);
     }

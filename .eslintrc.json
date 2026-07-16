@@ -17,7 +17,13 @@
     "XRSession": "readonly",
     "XRReferenceSpace": "readonly",
     "XRFrame": "readonly",
-    "XRInputSource": "readonly"
+    "XRInputSource": "readonly",
+    "GPUShaderStage": "readonly",
+    "GPUTextureUsage": "readonly",
+    "GPUBufferUsage": "readonly",
+    "GPUMapMode": "readonly",
+    "GPUValidationError": "readonly",
+    "GPUOutOfMemoryError": "readonly"
   },
   "rules": {
     "indent": ["error", 2],

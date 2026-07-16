@@ -2,7 +2,7 @@
   "name": "Qui Browser VR - WebXR VR Browser",
   "short_name": "Qui VR",
   "description": "Next-generation WebXR browser with 100+ language support, WebGPU (1000% boost), ETFR (36-52% GPU savings), WCAG AAA accessibility, and PWA offline support",
-  "version": "3.7.1",
+  "version": "2.0.0",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -71,32 +71,15 @@
     }
   ],
 
-  "screenshots": [
-    {
-      "src": "/assets/screenshots/mobile-home.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "モバイル版ホーム画面"
-    },
-    {
-      "src": "/assets/screenshots/desktop-dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "デスクトップ版ダッシュボード"
-    }
-  ],
-
   "shortcuts": [
     {
       "name": "VR Browser",
       "short_name": "VR Mode",
       "description": "Launch VR browsing mode",
-      "url": "/public/vr-browser.html",
+      "url": "/vr-browser.html",
       "icons": [
         {
-          "src": "/assets/icons/icon-192.png",
+          "src": "/assets/icons/icon-96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -106,10 +89,10 @@
       "name": "VR Video",
       "short_name": "VR Video",
       "description": "Watch 360° and 3D videos in VR",
-      "url": "/public/vr-video.html",
+      "url": "/vr-video.html",
       "icons": [
         {
-          "src": "/assets/icons/icon-192.png",
+          "src": "/assets/icons/icon-96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -122,7 +105,7 @@
       "url": "/?action=settings",
       "icons": [
         {
-          "src": "/assets/icons/icon-192.png",
+          "src": "/assets/icons/icon-96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -134,14 +117,6 @@
     {
       "protocol": "web+qui",
       "url": "/?protocol=%s"
-    },
-    {
-      "protocol": "web+https",
-      "url": "/?url=%s"
-    },
-    {
-      "protocol": "web+http",
-      "url": "/?url=%s"
     }
   ],
 

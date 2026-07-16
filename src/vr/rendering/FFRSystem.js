@@ -16,6 +16,15 @@ export class FFRSystem {
       medium: 0.75,  // >75% GPU = medium foveation
       low: 0.5       // <50% GPU = light foveation
     };
+
+    // FR-4.2: predicted gaze foveation via head-motion stability.
+    // True eye tracking (XREyeTracking) is Quest-Pro-only; as a practical
+    // approximation we observe head angular velocity — a still head implies
+    // fixation (periphery can be lower-res), a moving head implies scanning
+    // (need uniform quality).
+    this._prevHeadQuat = null;   // {x,y,z,w} from the previous frame
+    this._headVelocity = 0;      // smoothed angular velocity (rad/s)
+    this.predictedGazeEnabled = false;
   }
 
   /**
@@ -48,7 +57,7 @@ export class FFRSystem {
       }
 
       this.enabled = true;
-      console.log('FFRSystem: Initialized successfully');
+      console.debug('FFRSystem: Initialized successfully');
       return true;
     } catch (error) {
       console.error('FFRSystem: Initialization error', error);
@@ -70,7 +79,7 @@ export class FFRSystem {
     this.intensity = Math.max(0, Math.min(1, intensity));
     this.projectionLayer.fixedFoveation = this.intensity;
 
-    console.log(`FFRSystem: Enabled with intensity ${this.intensity}`);
+    console.debug(`FFRSystem: Enabled with intensity ${this.intensity}`);
   }
 
   /**
@@ -82,7 +91,7 @@ export class FFRSystem {
     }
 
     this.projectionLayer.fixedFoveation = 0;
-    console.log('FFRSystem: Disabled');
+    console.debug('FFRSystem: Disabled');
   }
 
   /**
@@ -127,10 +136,80 @@ export class FFRSystem {
   }
 
   /**
+   * Nudge intensity up or down by delta and clamp to [0, 1].
+   * Intended for coarse load-driven adjustments made in the render loop.
+   * Works on top of whatever intensity was set by enable() or
+   * updatePredictedGazeFoveation().
+   */
+  adjustIntensity(delta) {
+    if (!this.enabled || !this.projectionLayer) {
+      return;
+    }
+    this.intensity = Math.max(0, Math.min(1, this.intensity + delta));
+    this.projectionLayer.fixedFoveation = this.intensity;
+  }
+
+  /**
    * Set GPU load thresholds for dynamic adjustment
    */
   setThresholds(high = 0.85, medium = 0.75, low = 0.5) {
     this.gpuLoadThresholds = { high, medium, low };
+  }
+
+  /**
+   * Record the current head quaternion for velocity estimation.
+   * Call once per frame from the VR render loop.
+   *
+   * @param {{ x:number, y:number, z:number, w:number }} quat - Head quaternion
+   * @param {number} dtSeconds - Elapsed seconds since last call
+   */
+  trackHeadPose(quat, dtSeconds) {
+    if (this._prevHeadQuat && dtSeconds > 0) {
+      // Angular velocity: 2·acos(|q1·q2|) / dt
+      const dot = Math.abs(
+        this._prevHeadQuat.x * quat.x +
+        this._prevHeadQuat.y * quat.y +
+        this._prevHeadQuat.z * quat.z +
+        this._prevHeadQuat.w * quat.w
+      );
+      const angleDelta = 2 * Math.acos(Math.min(1, dot));
+      const angularVelocity = angleDelta / dtSeconds;
+      // Smooth with an EMA (fast rise, slow decay) to avoid flickering.
+      this._headVelocity = this._headVelocity * 0.8 + angularVelocity * 0.2;
+      this.predictedGazeEnabled = true;
+    }
+    // Mutate the stored quaternion in place to avoid a per-frame allocation.
+    if (!this._prevHeadQuat) {
+      this._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+    }
+    this._prevHeadQuat.x = quat.x;
+    this._prevHeadQuat.y = quat.y;
+    this._prevHeadQuat.z = quat.z;
+    this._prevHeadQuat.w = quat.w;
+  }
+
+  /**
+   * Adjust fixedFoveation based on head-motion stability (FR-4.2 predicted
+   * gaze foveation).  Still head → high intensity (safe to reduce peripheral
+   * resolution).  Moving head → low intensity (user may be scanning the edge).
+   *
+   * Intended to be called after trackHeadPose() in the same frame.
+   */
+  updatePredictedGazeFoveation() {
+    if (!this.predictedGazeEnabled || !this.projectionLayer) {
+      return;
+    }
+
+    const SLOW = 0.05;  // rad/s — below this: fixating
+    const FAST = 0.50;  // rad/s — above this: scanning
+    const t = Math.max(0, Math.min(1,
+      (this._headVelocity - SLOW) / (FAST - SLOW)
+    ));
+
+    // Still head (t=0) → intensity 0.8; fast head (t=1) → intensity 0.2.
+    const target = 0.8 - 0.6 * t;
+    this.intensity += (target - this.intensity) * 0.1;
+    this.projectionLayer.fixedFoveation = Math.max(0, Math.min(1, this.intensity));
   }
 
   /**

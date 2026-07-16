@@ -3,29 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; frame-src https:; worker-src 'self'">
 
     <!-- Primary Meta Tags -->
-    <title>Qui Browser VR v2.0.0 - Production-Ready VR Browser</title>
-    <meta name="title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
-    <meta name="description" content="Production-ready WebXR VR browser with 17 features, 90-120 FPS, Japanese IME, hand tracking, spatial audio, WebGPU, multiplayer, and AI recommendations. Optimized for Meta Quest 2/3 and Pico devices.">
-    <meta name="keywords" content="VR browser, WebXR, Meta Quest, Pico, VR, virtual reality, hand tracking, spatial audio, Japanese IME, WebGPU, multiplayer">
+    <title>Qui Browser VR v2.0.0 — WebXR Browser for Meta Quest &amp; Pico</title>
+    <meta name="title" content="Qui Browser VR v2.0.0 — WebXR Browser for Meta Quest &amp; Pico">
+    <meta name="description" content="WebXR VR browser featuring Japanese IME, hand tracking, spatial audio, comfort system, and KTX2 texture compression. Targets Meta Quest 2/3 and Pico 4. Tier 3 features (WebGPU, Multiplayer) are experimental.">
+    <meta name="keywords" content="VR browser, WebXR, Meta Quest, Pico, virtual reality, hand tracking, spatial audio, Japanese IME">
     <meta name="author" content="Qui Browser Team">
     <meta name="version" content="2.0.0">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shizukutanaka.github.io/qui-browser/">
-    <meta property="og:title" content="Qui Browser VR v2.0.0 - Production-Ready VR Browser">
-    <meta property="og:description" content="Complete VR browser with 17 features, 90-120 FPS performance, and enterprise-grade infrastructure.">
-    <meta property="og:image" content="/assets/images/og-image.png">
+    <meta property="og:title" content="Qui Browser VR v2.0.0">
+    <meta property="og:description" content="WebXR VR browser with Japanese IME, hand tracking, spatial audio, and comfort system. Targeting Meta Quest 2/3 and Pico 4.">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:card" content="summary">
     <meta property="twitter:url" content="https://shizukutanaka.github.io/qui-browser/">
     <meta property="twitter:title" content="Qui Browser VR v2.0.0">
-    <meta property="twitter:description" content="Production-ready WebXR VR browser with 17 features">
-    <meta property="twitter:image" content="/assets/images/twitter-card.png">
+    <meta property="twitter:description" content="WebXR VR browser with Japanese IME, hand tracking, and spatial audio">
 
     <!-- PWA -->
     <meta name="theme-color" content="#0052cc">
@@ -70,58 +68,63 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <h1 class="hero-title">Experience the Future of VR Browsing</h1>
-            <p class="hero-subtitle">
-                Production-ready WebXR browser with 17 features, 90-120 FPS performance,
-                and enterprise-grade infrastructure. Optimized for Meta Quest and Pico devices.
+            <h1 class="hero-title" data-i18n="hero.title">Experience the Future of VR Browsing</h1>
+            <p class="hero-subtitle" data-i18n="hero.subtitle">
+                WebXR browser with Japanese IME, hand tracking, spatial audio, and comfort system.
+                Targets Meta Quest 2/3 and Pico 4. Tier 3 features are experimental.
             </p>
-            <button class="cta-button" id="enterVRButton">Enter VR Mode</button>
+            <button class="cta-button" id="enterVRButton" data-i18n="cta.enterVR">Enter VR Mode</button>
 
             <!-- Features Grid -->
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3 class="feature-title">High Performance</h3>
-                    <p class="feature-description">90-120 FPS on Quest 3, optimized rendering with FFR and WebGPU</p>
+            <div class="features-grid" role="list">
+                <div class="feature-card" role="listitem" aria-label="High Performance">
+                    <div class="feature-icon" aria-hidden="true">⚡</div>
+                    <h3 class="feature-title" data-i18n="feat.perf.title">High Performance</h3>
+                    <p class="feature-description" data-i18n="feat.perf.desc">Targets 90-120 FPS on Quest 3 via FFR, KTX2 textures, and object pooling</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🤝</div>
-                    <h3 class="feature-title">Hand Tracking</h3>
-                    <p class="feature-description">Controller-free interaction with 12 gesture patterns</p>
+                <div class="feature-card" role="listitem" aria-label="Hand Tracking">
+                    <div class="feature-icon" aria-hidden="true">🤝</div>
+                    <h3 class="feature-title" data-i18n="feat.hand.title">Hand Tracking</h3>
+                    <p class="feature-description" data-i18n="feat.hand.desc">Controller-free interaction with 12 gesture patterns</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🎵</div>
-                    <h3 class="feature-title">Spatial Audio</h3>
-                    <p class="feature-description">3D HRTF-based positional sound for immersive experience</p>
+                <div class="feature-card" role="listitem" aria-label="Spatial Audio">
+                    <div class="feature-icon" aria-hidden="true">🎵</div>
+                    <h3 class="feature-title" data-i18n="feat.audio.title">Spatial Audio</h3>
+                    <p class="feature-description" data-i18n="feat.audio.desc">3D HRTF-based positional sound for immersive experience</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🇯🇵</div>
-                    <h3 class="feature-title">Japanese IME</h3>
-                    <p class="feature-description">Native Japanese text input with Hiragana/Katakana/Kanji</p>
+                <div class="feature-card" role="listitem" aria-label="Japanese IME">
+                    <div class="feature-icon" aria-hidden="true">🇯🇵</div>
+                    <h3 class="feature-title" data-i18n="feat.ime.title">Japanese IME</h3>
+                    <p class="feature-description" data-i18n="feat.ime.desc">Native Japanese text input with Hiragana/Katakana/Kanji</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3 class="feature-title">Multiplayer</h3>
-                    <p class="feature-description">Real-time collaboration in shared VR spaces</p>
+                <div class="feature-card" role="listitem" aria-label="Multiplayer">
+                    <div class="feature-icon" aria-hidden="true">🌐</div>
+                    <h3 class="feature-title" data-i18n="feat.mp.title">Multiplayer</h3>
+                    <p class="feature-description" data-i18n="feat.mp.desc">Real-time collaboration in shared VR spaces</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3 class="feature-title">AI Recommendations</h3>
-                    <p class="feature-description">Personalized content suggestions with machine learning</p>
+                <div class="feature-card" role="listitem" aria-label="AI Recommendations">
+                    <div class="feature-icon" aria-hidden="true">🤖</div>
+                    <h3 class="feature-title" data-i18n="feat.ai.title">AI Recommendations</h3>
+                    <p class="feature-description" data-i18n="feat.ai.desc">Personalized content suggestions with machine learning</p>
                 </div>
             </div>
         </main>
 
         <!-- VR Button (floating) -->
-        <button class="vr-button" id="vrFloatingButton" title="Enter VR" aria-label="Enter VR mode" style="display: none;"></button>
+        <button class="vr-button" id="vrFloatingButton" title="Enter VR" aria-label="Enter VR mode" data-i18n-attr="title:a11y.enterVR;aria-label:a11y.enterVR" style="display: none;"></button>
     </div>
 
-    <!-- Application Scripts -->
+    <!-- Utility toolbar: accessibility + language -->
+    <div class="util-toolbar" style="position:fixed;top:12px;right:12px;z-index:3000;display:flex;gap:8px;">
+        <button id="a11yContrast" class="util-toggle" aria-pressed="false" title="High contrast" aria-label="Toggle high contrast" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">◐</button>
+        <button id="a11yText" class="util-toggle" aria-pressed="false" title="Large text" aria-label="Toggle large text" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">A+</button>
+        <button id="langToggle" class="util-toggle" aria-label="Toggle language" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">日本語</button>
+    </div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -20,6 +20,9 @@
             }
           }
         ]
+      ],
+      "plugins": [
+        "./tests/babel-plugin-import-meta.cjs"
       ]
     }
   }

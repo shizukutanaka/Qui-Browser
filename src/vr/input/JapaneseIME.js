@@ -5,6 +5,11 @@
  * John Carmack principle: Solve real problems for real users
  */
 
+import * as THREE from 'three';
+import { configureUITexture } from '../ui/canvasTexture.js';
+import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
+import { truncate } from '../browser/bookmarkLayout.js';
+
 export class JapaneseIME {
   constructor() {
     this.isActive = false;
@@ -16,6 +21,17 @@ export class JapaneseIME {
     // Conversion maps
     this.romajiToHiragana = this.buildRomajiMap();
     this.hiraganaToKatakana = this.buildKatakanaMap();
+
+    // Proper prefixes of every romaji key (e.g. 'n'→na/ni…, 'ny'→nya, 'sh'→sha).
+    // Used to DEFER matching while the buffer could still grow into a longer
+    // syllable, so a lone 'n' (the only single consonant that is itself a key,
+    // ん) isn't consumed before na/ni/nya… can form. Precomputed once → O(1).
+    this._romajiPrefixes = new Set();
+    for (const key of Object.keys(this.romajiToHiragana)) {
+      for (let n = 1; n < key.length; n++) {
+        this._romajiPrefixes.add(key.slice(0, n));
+      }
+    }
 
     // Google Transliteration API endpoint
     this.apiEndpoint = 'https://www.google.co.jp/transliterate';
@@ -117,20 +133,72 @@ export class JapaneseIME {
   }
 
   /**
-   * Convert romaji input to hiragana
+   * Convert romaji input to hiragana.
+   *
+   * Syllabic ん ('n') is the classic ambiguity: 'n' is itself a key (ん) but is
+   * also the onset of the な-row (na/ni/…) and にゃ-row (nya/…). A naive greedy
+   * match consumes the lone 'n' as ん immediately, so "na" wrongly became "んあ"
+   * and "nya" became "んや". The rules (matching mainstream IME behaviour):
+   *   • n + vowel/y      → keep buffering (な/に/にゃ…)
+   *   • n + n + vowel/y  → ん, then the 2nd n joins that vowel (nna → んな)
+   *   • n + n (+cons/end)→ ん (the two n's collapse to one; nn → ん)
+   *   • n + other / end  → ん
+   * A general prefix-deferral handles the multi-char onsets (ny, sh, ch, ts…).
    */
   convertRomajiToHiragana(romaji) {
+    const isVowel = (c) => c === 'a' || c === 'i' || c === 'u' || c === 'e' || c === 'o';
+    const isVowelOrY = (c) => isVowel(c) || c === 'y';
     let result = '';
     let buffer = '';
 
     for (let i = 0; i < romaji.length; i++) {
       buffer += romaji[i].toLowerCase();
+      const hasMore = i < romaji.length - 1;
 
-      // Check for double consonants (sokuon)
+      // Sokuon: a doubled consonant (kk, tt, ss…, cc) → っ. 'nn' is deliberately
+      // excluded — it is syllabic ん, handled below, not a small っ.
+      // 'c' is included so that 'cc' before 'ch' (ecchi → えっち, kocchi → こっち)
+      // is recognised; 'cc' before a non-h is not valid romaji and stays as-is.
       if (buffer.length === 2 && buffer[0] === buffer[1] &&
-          'kgsztdhbpmyr'.includes(buffer[0])) {
+          'kgsztdhbpmyrc'.includes(buffer[0])) {
         result += 'っ';
         buffer = buffer[1];
+        continue;
+      }
+
+      // 'tch' sokuon form (e.g. matcha → まっちゃ): 't'≠'c' so the doubled-
+      // consonant check above never fires; detect 'tc' + following 'h' explicitly
+      // and emit っ, leaving 'c' in the buffer so that 'ch'+vowel resolves normally.
+      if (buffer === 'tc' && hasMore && romaji[i + 1].toLowerCase() === 'h') {
+        result += 'っ';
+        buffer = 'c';
+        continue;
+      }
+
+      // Syllabic 'n' look-ahead (see method doc).
+      if (buffer === 'n') {
+        const next = hasMore ? romaji[i + 1].toLowerCase() : '';
+        if (isVowelOrY(next)) {
+          continue; // form な/に/にゃ… on the following iterations
+        }
+        if (next === 'n') {
+          const after = (i + 2 < romaji.length) ? romaji[i + 2].toLowerCase() : '';
+          result += 'ん';
+          buffer = '';
+          if (!isVowelOrY(after)) {
+            i++; // plain 'nn' → a single ん; consume the second n too
+          }
+          continue;
+        }
+        result += 'ん'; // n + other consonant, or end of input
+        buffer = '';
+        continue;
+      }
+
+      // Defer while the buffer is still a proper prefix of a longer syllable
+      // and more input is coming (e.g. 'ny'→'nya', 'sh'→'sha') so the longest
+      // form wins instead of an early short match.
+      if (hasMore && this._romajiPrefixes.has(buffer)) {
         continue;
       }
 
@@ -153,6 +221,11 @@ export class JapaneseIME {
       }
     }
 
+    // A trailing lone 'n' is syllabic ん.
+    if (buffer === 'n') {
+      result += 'ん';
+      buffer = '';
+    }
     // Append remaining buffer
     result += buffer;
 
@@ -183,12 +256,22 @@ export class JapaneseIME {
         text: hiragana
       });
 
-      const response = await fetch(`${this.apiEndpoint}?${params}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      // Bound the request so a slow/stalled network can't block IME conversion
+      // indefinitely; on timeout we fall through to the offline candidates.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      let response;
+      try {
+        response = await fetch(`${this.apiEndpoint}?${params}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -224,25 +307,200 @@ export class JapaneseIME {
    * Offline kanji candidates (fallback)
    */
   getOfflineKanjiCandidates(hiragana) {
-    // Common word dictionary for offline use
+    // Common word dictionary for offline use (~200 entries)
     const commonWords = {
-      'あり': ['有り', '在り', '蟻'],
+      // Greetings & phrases
+      'こんにちは': ['今日は', 'こんにちは'],
+      'こんばんは': ['今晩は'],
+      'おはよう': ['お早う', 'おはよう'],
+      'おはようございます': ['お早うございます'],
+      'ありがとう': ['有り難う', 'ありがとう'],
+      'ありがとうございます': ['有り難うございます'],
+      'すみません': ['済みません', 'すみません'],
+      'ごめんなさい': ['御免なさい'],
+      'はい': ['はい', '灰', '肺'],
+      'いいえ': ['いいえ'],
+      'よろしく': ['宜しく'],
+      'おねがいします': ['お願いします'],
+      'さようなら': ['さようなら'],
+      'またね': ['また、ね', '又ね'],
+      'おやすみ': ['お休み'],
+      // Pronouns & common nouns
+      'わたし': ['私', '渡し'],
+      'わたしたち': ['私たち'],
+      'あなた': ['あなた', '貴方'],
+      'かれ': ['彼', '彼れ'],
+      'かのじょ': ['彼女'],
+      'みんな': ['皆', '皆な'],
+      'ひと': ['人', '一'],
+      'こども': ['子供', '子ども'],
+      'おとな': ['大人'],
+      'ともだち': ['友達', '友人'],
+      'かぞく': ['家族'],
+      'ちち': ['父', '乳'],
+      'はは': ['母', '波波'],
+      'おとうさん': ['お父さん'],
+      'おかあさん': ['お母さん'],
+      // Time
+      'きょう': ['今日', '京', '強'],
+      'あした': ['明日', '明日'],
+      'きのう': ['昨日'],
+      'いま': ['今', '居ま'],
+      'じかん': ['時間'],
+      'ねん': ['年', '念', '燃'],
+      'つき': ['月', '付き', '槻'],
+      'ひ': ['日', '火', '費', '妃'],
+      'あさ': ['朝', '麻', '浅'],
+      'よる': ['夜', '寄る'],
+      'ごご': ['午後'],
+      'ごぜん': ['午前'],
+      // Places
+      'にほん': ['日本', '二本'],
+      'とうきょう': ['東京'],
+      'おおさか': ['大阪'],
+      'がっこう': ['学校'],
+      'うち': ['家', '内', '打ち'],
+      'みせ': ['店', '見せ'],
+      'えき': ['駅', '液', '易'],
+      'びょういん': ['病院'],
+      'ぎんこう': ['銀行'],
+      'としょかん': ['図書館'],
+      'こうえん': ['公園', '講演', '公演'],
+      'かいしゃ': ['会社'],
+      // Actions (verbs — plain / て-form common roots)
       'いる': ['要る', '居る', '入る'],
+      'ある': ['有る', '在る', '或る'],
+      'する': ['する', '刷る'],
+      'くる': ['来る', '繰る'],
+      'いく': ['行く', '逝く'],
+      'みる': ['見る', '観る'],
+      'きく': ['聞く', '聴く', '効く'],
+      'はなす': ['話す', '放す'],
+      'よむ': ['読む'],
+      'かく': ['書く', '描く', '欠く'],
+      'たべる': ['食べる'],
+      'のむ': ['飲む', '呑む'],
+      'かう': ['買う', '飼う', '交う'],
+      'うる': ['売る', '得る'],
+      'くれる': ['呉れる'],
+      'あげる': ['上げる', '揚げる'],
+      'もらう': ['貰う'],
+      'おもう': ['思う'],
+      'しる': ['知る'],
+      'わかる': ['分かる', '解る'],
+      'できる': ['出来る'],
+      'なる': ['成る', '鳴る', '慣る'],
+      'みえる': ['見える'],
+      'きこえる': ['聞こえる'],
+      // Adjectives
+      'おおきい': ['大きい'],
+      'ちいさい': ['小さい'],
+      'たかい': ['高い', '貴い'],
+      'やすい': ['安い', '易い'],
+      'あたらしい': ['新しい'],
+      'ふるい': ['古い'],
+      'いい': ['良い', '好い'],
+      'わるい': ['悪い'],
+      'おもしろい': ['面白い'],
+      'たのしい': ['楽しい'],
+      'かわいい': ['可愛い'],
+      'きれい': ['綺麗', 'きれい'],
+      'むずかしい': ['難しい'],
+      'やさしい': ['優しい', '易しい'],
+      'はやい': ['速い', '早い'],
+      'おそい': ['遅い'],
+      'おおい': ['多い'],
+      'すくない': ['少ない'],
+      'あかい': ['赤い'],
+      'あおい': ['青い', '蒼い'],
+      'しろい': ['白い'],
+      'くろい': ['黒い'],
+      // Tech / internet vocabulary
+      'いんたーねっと': ['インターネット'],
+      'すまーとふぉん': ['スマートフォン'],
+      'ぱそこん': ['パソコン'],
+      'でんわ': ['電話', '伝話'],
+      'めーる': ['メール'],
+      'うぇぶ': ['ウェブ'],
+      'あぷり': ['アプリ'],
+      'でーた': ['データ'],
+      'ふぁいる': ['ファイル'],
+      'ぱすわーど': ['パスワード'],
+      'めにゅー': ['メニュー'],
+      'せってい': ['設定'],
+      'かくにん': ['確認'],
+      'とうろく': ['登録'],
+      'ろぐいん': ['ログイン'],
+      'ろぐあうと': ['ログアウト'],
+      'けんさく': ['検索'],
+      'ほーむぺーじ': ['ホームページ'],
+      // VR / 3D
+      'ばーちゃるりありてぃ': ['バーチャルリアリティ'],
+      'VR': ['VR'],
+      'がぞう': ['画像', '画像'],
+      'どうが': ['動画'],
+      'さんじげん': ['三次元', '3次元'],
+      'あばたー': ['アバター'],
+      // Common kanji combos
+      'あり': ['有り', '在り', '蟻'],
       'かい': ['会', '回', '階', '海', '界'],
       'きかい': ['機会', '機械', '器械'],
-      'こんにちは': ['今日は', 'こんにちは'],
       'さくら': ['桜', '佐倉', 'さくら'],
       'せんせい': ['先生', '専制', '宣誓'],
-      'でんわ': ['電話', '伝話'],
-      'にほん': ['日本', '二本'],
-      'べんきょう': ['勉強', '勉教'],
+      'べんきょう': ['勉強'],
       'みず': ['水', '見ず'],
-      'やま': ['山', '病'],
+      'やま': ['山'],
       'りんご': ['林檎', 'りんご', 'リンゴ'],
-      'わたし': ['私', '渡し']
+      'ねこ': ['猫', 'ネコ'],
+      'いぬ': ['犬', 'イヌ'],
+      'さかな': ['魚', '肴'],
+      'くるま': ['車', '来るま'],
+      'でんしゃ': ['電車'],
+      'ひこうき': ['飛行機'],
+      'たべもの': ['食べ物'],
+      'のみもの': ['飲み物'],
+      'おちゃ': ['お茶'],
+      'みち': ['道', '未知'],
+      'そら': ['空', '宙'],
+      'うみ': ['海', '生み'],
+      'かわ': ['川', '河', '革', '皮'],
+      'はな': ['花', '鼻', '話'],
+      'き': ['木', '気', '機', '期', '記'],
+      'いえ': ['家', '言え'],
+      'かね': ['金', '鐘'],
+      'こと': ['事', '言', '琴'],
+      'もの': ['物', '者', '門'],
+      'とき': ['時', '溶き'],
+      'ところ': ['所', '処'],
+      'なまえ': ['名前'],
+      'ことば': ['言葉', '言語'],
+      'こえ': ['声', '越え'],
+      'め': ['目', '芽', '女'],
+      'て': ['手', '照'],
+      'あし': ['足', '脚', '葦'],
+      'かみ': ['神', '紙', '髪', '上'],
+      'こころ': ['心', '核'],
+      'ちから': ['力'],
+      'いのち': ['命']
     };
 
     return commonWords[hiragana] || [hiragana];
+  }
+
+  /**
+   * Remove the last character from the composition buffer (backspace).
+   * Returns the same shape as processInput so callers can refresh the display.
+   */
+  deleteLast() {
+    this.compositionBuffer = this.compositionBuffer.slice(0, -1);
+    let converted = this.compositionBuffer;
+    if (this.inputMode === 'hiragana') {
+      converted = this.convertRomajiToHiragana(this.compositionBuffer);
+    } else if (this.inputMode === 'katakana') {
+      const hiragana = this.convertRomajiToHiragana(this.compositionBuffer);
+      converted = this.convertHiraganaToKatakana(hiragana);
+    }
+    return { raw: this.compositionBuffer, converted, mode: this.inputMode };
   }
 
   /**
@@ -349,7 +607,7 @@ export class JapaneseIME {
   activate() {
     this.isActive = true;
     this.clear();
-    console.log('JapaneseIME: Activated');
+    console.debug('JapaneseIME: Activated');
   }
 
   /**
@@ -358,60 +616,393 @@ export class JapaneseIME {
   deactivate() {
     this.isActive = false;
     this.clear();
-    console.log('JapaneseIME: Deactivated');
+    console.debug('JapaneseIME: Deactivated');
+  }
+
+  /**
+   * Release all resources held by this instance.
+   * Any in-flight fetch (getKanjiCandidates) will complete but its result
+   * is discarded because candidates/compositionBuffer are cleared here.
+   */
+  dispose() {
+    this.clear();
+    this.isActive = false;
   }
 }
 
 /**
  * VR Keyboard Integration for Japanese IME
  */
+/**
+ * Visual cues for a conversion candidate at a given list position. The primary
+ * (default) candidate must not be signalled by colour alone (WCAG 1.4.1), so it
+ * also carries a heavier border (a shape cue) and every candidate gets a 1-based
+ * order number — the universal Japanese-IME convention — which conveys primacy
+ * and order independently of colour vision. Pure / unit-testable.
+ *
+ * @param {number} index  0-based position in the candidate list
+ * @returns {{bg:string, border:string, lineWidth:number, number:string}}
+ */
+export function candidateStyle(index) {
+  const primary = index === 0;
+  return {
+    bg: primary ? '#2a4a22' : '#1c2438',
+    border: primary ? '#44cc88' : '#4466aa',
+    lineWidth: primary ? 9 : 5,   // primary stands out by border WEIGHT, not hue alone
+    number: String(index + 1)      // 1-based order label
+  };
+}
+
+/**
+ * Display label for a URL suggestion button: the page title when one exists,
+ * otherwise the hostname (falling back to the raw URL when unparseable),
+ * truncated by code point so a long Japanese title can't split a surrogate
+ * pair at the cut. Pure / unit-testable.
+ *
+ * @param {{url?:string, title?:string}} entry — a BookmarkStore.search() result
+ * @param {number} [max=22] — max characters shown on the button
+ * @returns {string}
+ */
+export function suggestionLabel(entry, max = 22) {
+  if (!entry) {
+    return '';
+  }
+  const title = String(entry.title || '').trim();
+  if (title) {
+    return truncate(title, max);
+  }
+  const url = String(entry.url || '');
+  try {
+    return truncate(new URL(url).hostname || url, max);
+  } catch (_) {
+    return truncate(url, max);
+  }
+}
+
 export class VRJapaneseKeyboard {
-  constructor(scene, ime) {
+  /**
+   * @param {THREE.Scene} scene
+   * @param {JapaneseIME} ime
+   * @param {object} [opts]
+   * @param {Function} [opts.registerInteractable]   — (mesh, handlers) from VRApp
+   * @param {Function} [opts.unregisterInteractable] — (mesh) from VRApp
+   * @param {number}   [opts.scale=1] — uniform key-size multiplier (motor /
+   *   low-vision: larger targets reduce mis-taps; WCAG 2.5.5)
+   * @param {Function} [opts.onHoverCaption] — called with the key label when a
+   *   key is hovered, so the host can announce it for gaze-dwell users
+   *   (WCAG 1.3.3 Sensory Characteristics).
+   * @param {Function} [opts.onCancel] — called when the keyboard is dismissed
+   *   via the Esc key (without confirming text), so the host can announce the
+   *   cancellation as a status message (WCAG 4.1.3).
+   * @param {Function} [opts.suggestionProvider] — called with the current
+   *   composition text (≥ 2 chars) on every keystroke; returns
+   *   [{url, title}] suggestions (e.g. BookmarkStore.search()). Selecting a
+   *   suggestion confirms its URL directly, skipping the remaining typing —
+   *   the main mitigation for gaze-dwell typing's ~8-10 WPM ceiling.
+   */
+  constructor(scene, ime, opts = {}) {
     this.scene = scene;
     this.ime = ime;
     this.keyboard = null;
     this.candidatePanel = null;
+    this._onConfirmCallback = null;
+
+    this.registerInteractable = opts.registerInteractable || null;
+    this.unregisterInteractable = opts.unregisterInteractable || null;
+    this.scale = opts.scale || 1;
+    this.onHoverCaption = typeof opts.onHoverCaption === 'function' ? opts.onHoverCaption : null;
+    this.onCancel = typeof opts.onCancel === 'function' ? opts.onCancel : null;
+    this.suggestionProvider = typeof opts.suggestionProvider === 'function' ? opts.suggestionProvider : null;
+
+    // 3D objects (created lazily by createKeyboard()).
+    this.group = null;          // THREE.Group holding panel + keys + display
+    this.keyMeshes = [];        // [{ mesh, label }]
+    this._displayCanvas = null;
+    this._displayTex = null;
+    this._candidateMeshes = []; // live candidate button meshes (rebuilt on each showCandidates call)
+    this._candidatesGroup = null; // THREE.Group added to this.group for easy show/hide
+    this._suggestionMeshes = [];  // live URL-suggestion button meshes
+    this._suggestionsGroup = null; // THREE.Group sharing the candidates' strip zone
   }
 
   /**
-   * Create VR keyboard with Japanese layout
+   * Register a one-shot callback invoked when the user presses Enter.
+   * The callback receives the confirmed text.  It is automatically cleared
+   * after firing so it doesn't leak into the next input session.
+   */
+  setOnConfirm(callback) {
+    this._onConfirmCallback = typeof callback === 'function' ? callback : null;
+  }
+
+  clearOnConfirm() {
+    this._onConfirmCallback = null;
+  }
+
+  /**
+   * Build the 3D VR keyboard: a backing panel, a composition-text display, and
+   * one selectable mesh per key. Idempotent — returns the existing group if
+   * already built. Keys are registered as interactables so controller rays can
+   * select them; selection routes to onKeyPress().
    */
   createKeyboard() {
-    // This would create a 3D keyboard in the VR scene
-    // Simplified for demonstration
+    if (this.group) {
+      return this.keyboard;
+    }
 
-    const keyboard = {
-      keys: [],
-      position: { x: 0, y: 1, z: -0.5 },
-      scale: 0.02
-    };
+    const keys = computeKeyLayout(undefined, this.scale);
+    const { width, height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale; // composition-text strip above the keys
 
-    // Japanese keyboard layout (JIS)
-    const layout = [
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '¥'],
-      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '['],
-      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', ']'],
-      ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\\'],
-      ['shift', 'ctrl', 'alt', 'space', '変換', 'かな', 'enter']
-    ];
+    const group = new THREE.Group();
+    group.name = 'vrKeyboard';
 
-    // Create keys (simplified - would be 3D meshes in production)
-    layout.forEach((row, rowIndex) => {
-      row.forEach((key, colIndex) => {
-        keyboard.keys.push({
-          label: key,
-          position: {
-            x: (colIndex - 6) * 0.05,
-            y: -rowIndex * 0.05,
-            z: 0
+    // Backing panel (sits slightly behind the keys).
+    const panel = new THREE.Mesh(
+      new THREE.PlaneGeometry(width + 0.04, height + DISPLAY_H + 0.06),
+      new THREE.MeshBasicMaterial({ color: 0x0a0d18, transparent: true, opacity: 0.92 })
+    );
+    panel.position.set(0, (DISPLAY_H + 0.06) / 2 - 0.02, -0.005);
+    group.add(panel);
+
+    // Composition-text display strip.
+    this._displayCanvas = document.createElement('canvas');
+    this._displayCanvas.width = 1024;
+    this._displayCanvas.height = 96;
+    this._displayTex = configureUITexture(new THREE.CanvasTexture(this._displayCanvas));
+    this._displayTex.colorSpace = THREE.SRGBColorSpace;
+    const display = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, DISPLAY_H),
+      new THREE.MeshBasicMaterial({ map: this._displayTex, transparent: true })
+    );
+    display.position.set(0, height / 2 + DISPLAY_H / 2 + 0.01, 0);
+    group.add(display);
+    this._displayMesh = display;
+
+    // One mesh per key.
+    this.keyMeshes = [];
+    for (const k of keys) {
+      const tex = this._makeKeyTexture(k.glyph || k.label, false);
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(k.w, k.h),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      mesh.position.set(k.x, k.y, 0);
+      mesh.userData.keyLabel = k.label;
+      mesh.userData.keyTex = tex;
+      mesh.userData.keyGlyph = k.glyph || k.label;
+      group.add(mesh);
+      this.keyMeshes.push({ mesh, label: k.label });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => this.onKeyPress(k.label),
+          onHover: () => {
+            this._setKeyHover(mesh, true);
+            if (this.onHoverCaption) this.onHoverCaption(k.label);
           },
-          action: () => this.onKeyPress(key)
+          onHoverEnd: () => this._setKeyHover(mesh, false)
         });
-      });
-    });
+      }
+    }
 
-    this.keyboard = keyboard;
-    return keyboard;
+    // Default placement: in front of and below eye level, angled up slightly.
+    group.position.set(0, 1.0, -0.6);
+    group.rotation.x = -Math.PI / 9;
+    group.visible = false;
+
+    this.scene.add(group);
+    this.group = group;
+    this._refreshDisplay();
+
+    // Keep a small descriptor for back-compat with callers checking .keyboard.
+    this.keyboard = { keys, group };
+    return this.keyboard;
+  }
+
+  /** Draw a single key's label onto a CanvasTexture. */
+  /**
+   * @param {string}  glyph
+   * @param {boolean} hover   pointer is over this key
+   * @param {boolean} active  key is in a latched-on state (e.g. shift/katakana)
+   */
+  _makeKeyTexture(glyph, hover, active = false) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    // Active (latched) keys get a warm amber tint; hover overrides to blue.
+    if (hover) {
+      ctx.fillStyle = '#2d3a66';
+    } else if (active) {
+      ctx.fillStyle = '#5a3a10';
+    } else {
+      ctx.fillStyle = '#1c2438';
+    }
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.strokeStyle = active ? '#ffaa44' : '#3a4666';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(3, 3, 122, 122);
+    ctx.fillStyle = active ? '#ffcc88' : '#ffffff';
+    ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(glyph, 64, 70);
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Repaint a key to show/clear the hover highlight. */
+  _setKeyHover(mesh, hover) {
+    const old = mesh.userData.keyTex;
+    const active = mesh.userData.keyActive || false;
+    const tex = this._makeKeyTexture(mesh.userData.keyGlyph, hover, active);
+    mesh.material.map = tex;
+    mesh.material.needsUpdate = true;
+    mesh.userData.keyTex = tex;
+    if (old) {
+      old.dispose();
+    }
+  }
+
+  /**
+   * Update the visual active state of mode-toggle keys (shift) to reflect the
+   * current input mode.  Called whenever the mode changes.
+   */
+  _refreshKeyStates() {
+    if (!this.keyMeshes || !this.ime) {
+      return;
+    }
+    const katakanaActive = this.ime.inputMode === 'katakana';
+    for (const { mesh, label } of this.keyMeshes) {
+      if (label === 'shift') {
+        const wasActive = !!mesh.userData.keyActive;
+        if (wasActive !== katakanaActive) {
+          mesh.userData.keyActive = katakanaActive;
+          this._setKeyHover(mesh, false); // repaint at rest state
+        }
+      }
+    }
+  }
+
+  /**
+   * Remove all live candidate button meshes and hide the candidates group.
+   * Safe to call even if no candidates are showing.
+   */
+  _clearCandidates() {
+    if (!this._candidatesGroup) {
+      return;
+    }
+    for (const { mesh } of this._candidateMeshes) {
+      if (this.unregisterInteractable) {
+        this.unregisterInteractable(mesh);
+      }
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        if (mesh.material.map) {
+          mesh.material.map.dispose();
+        }
+        mesh.material.dispose();
+      }
+      this._candidatesGroup.remove(mesh);
+    }
+    this._candidateMeshes = [];
+    this._candidatesGroup.visible = false;
+  }
+
+  /**
+   * Remove all live URL-suggestion button meshes and hide the suggestions
+   * group. Safe to call even if no suggestions are showing. Same teardown
+   * pattern as _clearCandidates() (unregister + dispose geometry/material/map).
+   */
+  _clearSuggestions() {
+    if (!this._suggestionsGroup) {
+      return;
+    }
+    for (const { mesh } of this._suggestionMeshes) {
+      if (this.unregisterInteractable) {
+        this.unregisterInteractable(mesh);
+      }
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        if (mesh.material.map) {
+          mesh.material.map.dispose();
+        }
+        mesh.material.dispose();
+      }
+      this._suggestionsGroup.remove(mesh);
+    }
+    this._suggestionMeshes = [];
+    this._suggestionsGroup.visible = false;
+  }
+
+  /** Render the current composition buffer into the display strip. */
+  _refreshDisplay() {
+    if (!this._displayCanvas) {
+      return;
+    }
+    const ctx = this._displayCanvas.getContext('2d');
+    const w = this._displayCanvas.width;
+    const h = this._displayCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#111726';
+    ctx.fillRect(0, 0, w, h);
+
+    // Mode badge — top-right corner shows the current input mode so the user
+    // always knows whether they're typing hiragana, katakana, or kanji.
+    const mode = this.ime ? this.ime.inputMode : 'hiragana';
+    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢' };
+    const badge = BADGE[mode] || '?';
+    const badgeColors = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
+    const badgeBg = badgeColors[mode] || '#558';
+    const badgeW = 80;
+    ctx.fillStyle = badgeBg;
+    ctx.fillRect(w - badgeW - 4, 4, badgeW, h - 8);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badge, w - badgeW / 2 - 4, h / 2);
+
+    // Composition text
+    const text = this.ime ? (this.ime.compositionBuffer || '') : '';
+    ctx.fillStyle = text ? '#e8ecff' : '#667788';
+    ctx.font = '40px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text || 'type a URL or search…', 24, h / 2);
+
+    if (this._displayTex) {
+      this._displayTex.needsUpdate = true;
+    }
+    // Keep key active-state (e.g. shift/katakana tint) in sync with mode.
+    this._refreshKeyStates();
+  }
+
+  /** Show the keyboard (builds it on first use). */
+  show() {
+    if (!this.group) {
+      this.createKeyboard();
+    }
+    if (this.group) {
+      this.group.visible = true;
+    }
+    this._refreshDisplay();
+  }
+
+  /** Hide the keyboard. */
+  hide() {
+    if (this.group) {
+      this.group.visible = false;
+    }
+    // A hidden keyboard must not leave a stale suggestion row (with live
+    // interactables) behind for the next show(); the row is rebuilt from the
+    // fresh composition text on the first keystroke anyway.
+    this._clearSuggestions();
   }
 
   /**
@@ -422,75 +1013,344 @@ export class VRJapaneseKeyboard {
       this.ime.activate();
     }
 
-    switch(key) {
-      case 'space':
-        // Convert to kanji
-        const result = await this.ime.convertToKanji();
-        if (result) {
-          this.showCandidates(result.candidates);
-        }
-        break;
+    switch (key) {
+    case 'space': {
+      // Convert to kanji
+      const result = await this.ime.convertToKanji();
+      if (result) {
+        this.showCandidates(result.candidates);
+      }
+      break;
+    }
 
-      case '変換':
-        // Henkan key - convert to kanji
-        await this.ime.convertToKanji();
-        break;
+    case '変換':
+      // Henkan key - convert to kanji
+      await this.ime.convertToKanji();
+      break;
 
-      case 'かな':
-        // Kana key - switch to hiragana
-        this.ime.switchMode('hiragana');
-        break;
+    case 'かな':
+      // Kana key - switch to hiragana
+      this.ime.switchMode('hiragana');
+      break;
 
-      case 'enter':
-        // Confirm selection
-        const text = this.ime.confirmSelection();
-        this.onTextConfirmed(text);
-        break;
+    case 'enter': {
+      // Confirm selection
+      const text = this.ime.confirmSelection();
+      this.onTextConfirmed(text);
+      break;
+    }
 
-      case 'shift':
-        // Toggle katakana mode
-        const currentMode = this.ime.inputMode;
-        this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
-        break;
+    case 'shift': {
+      // Toggle katakana mode; refresh display so the mode badge updates and
+      // retint the shift key to show its latched-on state.
+      const currentMode = this.ime.inputMode;
+      this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
+      this._refreshKeyStates();
+      this._refreshDisplay();
+      break;
+    }
 
-      default:
-        // Regular character input
-        if (key.length === 1) {
-          const processed = await this.ime.processInput(key);
-          this.updateDisplay(processed);
-        }
-        break;
+    case 'esc':
+      // Dismiss the keyboard without confirming — clears the buffer and
+      // any candidate/suggestion row. Fire onCancel so the host can announce
+      // the dismissal as a status message (WCAG 4.1.3 Status Messages).
+      this.ime.compositionBuffer = '';
+      this._clearCandidates();
+      this._clearSuggestions();
+      this.hide();
+      if (this.onCancel) this.onCancel();
+      break;
+
+    case 'back':
+      // Backspace — remove the last composed character.
+      this.updateDisplay(this.ime.deleteLast());
+      break;
+
+    default:
+      // Regular character input
+      if (key.length === 1) {
+        const processed = await this.ime.processInput(key);
+        this.updateDisplay(processed);
+      }
+      break;
     }
   }
 
   /**
-   * Show kanji candidates
+   * Display a row of selectable kanji candidate buttons above the keyboard.
+   * Each button shows one candidate; selecting it commits that candidate.
+   * Previously-shown candidates are cleared first (idempotent).
+   *
+   * @param {string[]} candidates
    */
   showCandidates(candidates) {
-    // Create candidate selection panel in VR
-    console.log('Candidates:', candidates);
+    if (!this.group || !candidates || candidates.length === 0) {
+      return;
+    }
 
-    // Would create 3D UI panel in production
-    this.candidatePanel = {
-      candidates: candidates,
-      visible: true
-    };
+    this._clearCandidates();
+    // Kanji candidates and URL suggestions share the same strip zone; a
+    // conversion supersedes any suggestion row currently showing.
+    this._clearSuggestions();
+
+    // Lazily create the candidates group on first use.
+    if (!this._candidatesGroup) {
+      this._candidatesGroup = new THREE.Group();
+      this._candidatesGroup.name = 'candidatesRow';
+      this.group.add(this._candidatesGroup);
+    }
+
+    const MAX = 8;
+    const shown = candidates.slice(0, MAX);
+    const BTN_W = 0.09;
+    const BTN_H = 0.07;
+    const GAP_C = 0.008;
+    const rowWidth = shown.length * BTN_W + (shown.length - 1) * GAP_C;
+
+    // Position the strip above the display.  The display sits at
+    //   group-local y = height/2 + DISPLAY_H/2 + 0.01
+    // so the candidate row goes above that by another DISPLAY_H.
+    const { height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale;
+    const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
+
+    shown.forEach((kanji, i) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const style = candidateStyle(i);
+      ctx.fillStyle = style.bg;
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.strokeStyle = style.border;
+      ctx.lineWidth = style.lineWidth;
+      ctx.strokeRect(3, 3, 122, 122);
+      // Order number (top-left): conveys primacy/order without relying on colour.
+      ctx.fillStyle = '#cceeff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(style.number, 10, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 60px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(kanji, 64, 70);
+      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(BTN_W, BTN_H),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      const x = -rowWidth / 2 + i * (BTN_W + GAP_C) + BTN_W / 2;
+      mesh.position.set(x, stripY, 0);
+      this._candidatesGroup.add(mesh);
+      this._candidateMeshes.push({ mesh });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => {
+            const text = this.ime.selectCandidate
+              ? this.ime.selectCandidate(i)
+              : kanji;
+            this._clearCandidates();
+            this.onTextConfirmed(text || kanji);
+          },
+          onHover: () => {
+            // Lighten the selected candidate on hover.
+            ctx.fillStyle = '#3a5a32';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = '#66ee99';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(3, 3, 122, 122);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(kanji, 64, 70);
+            tex.needsUpdate = true;
+            if (this.onHoverCaption) this.onHoverCaption(kanji);
+          },
+          onHoverEnd: () => {
+            ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = i === 0 ? '#44cc88' : '#4466aa';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(3, 3, 122, 122);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(kanji, 64, 70);
+            tex.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    this._candidatesGroup.visible = true;
   }
 
   /**
-   * Update display with current composition
+   * Display a row of selectable URL-suggestion buttons (frecency-ranked
+   * history/bookmark hits for the current composition text). Selecting one
+   * confirms its URL directly — the user skips the rest of the typing.
+   *
+   * Shares the kanji candidates' strip zone: suggestions show while typing,
+   * kanji candidates show after 変換/space, and each clears the other, so the
+   * two never overlap. Rendering mirrors showCandidates() (canvas-texture
+   * buttons, candidateStyle colours, numbered order cue, hover repaint).
+   *
+   * @param {{url:string, title?:string}[]} entries
+   */
+  showSuggestions(entries) {
+    this._clearSuggestions();
+    if (!this.group || !entries || entries.length === 0) {
+      return;
+    }
+
+    if (!this._suggestionsGroup) {
+      this._suggestionsGroup = new THREE.Group();
+      this._suggestionsGroup.name = 'suggestionsRow';
+      this.group.add(this._suggestionsGroup);
+    }
+
+    const MAX = 4;
+    const shown = entries.slice(0, MAX).filter(e => e && e.url);
+    if (shown.length === 0) {
+      return;
+    }
+    const BTN_W = 0.22; // wider than kanji buttons — labels are words, not glyphs
+    const BTN_H = 0.07;
+    const GAP_S = 0.008;
+    const rowWidth = shown.length * BTN_W + (shown.length - 1) * GAP_S;
+
+    // Same strip zone as the kanji candidate row (mutually exclusive with it).
+    const { height } = keyboardBounds(undefined, this.scale);
+    const DISPLAY_H = 0.09 * this.scale;
+    const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
+
+    const CANVAS_W = 384;
+    const CANVAS_H = 128;
+    shown.forEach((entry, i) => {
+      const label = suggestionLabel(entry);
+      const canvas = document.createElement('canvas');
+      canvas.width = CANVAS_W;
+      canvas.height = CANVAS_H;
+      const ctx = canvas.getContext('2d');
+
+      const draw = (hover) => {
+        const style = candidateStyle(i);
+        ctx.fillStyle = hover ? '#3a5a32' : style.bg;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.strokeStyle = hover ? '#66ee99' : style.border;
+        ctx.lineWidth = hover ? 5 : style.lineWidth;
+        ctx.strokeRect(3, 3, CANVAS_W - 6, CANVAS_H - 6);
+        // Order number (left edge): primacy/order without relying on colour.
+        ctx.fillStyle = '#cceeff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(style.number, 10, 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2 + 10);
+      };
+      draw(false);
+      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(BTN_W, BTN_H),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+      );
+      const x = -rowWidth / 2 + i * (BTN_W + GAP_S) + BTN_W / 2;
+      mesh.position.set(x, stripY, 0);
+      this._suggestionsGroup.add(mesh);
+      this._suggestionMeshes.push({ mesh });
+
+      if (this.registerInteractable) {
+        this.registerInteractable(mesh, {
+          onSelect: () => {
+            // Confirm the suggested URL directly: clear the composition so a
+            // reopened keyboard starts fresh, then route through the normal
+            // confirm path (hides keyboard, fires the one-shot callback).
+            this._clearSuggestions();
+            if (this.ime) {
+              this.ime.compositionBuffer = '';
+            }
+            this.onTextConfirmed(entry.url);
+          },
+          onHover: () => {
+            draw(true);
+            tex.needsUpdate = true;
+            // Announce the FULL destination URL, not the truncated label, so
+            // gaze users know exactly where the button navigates (WCAG 1.3.3).
+            if (this.onHoverCaption) this.onHoverCaption(entry.url);
+          },
+          onHoverEnd: () => {
+            draw(false);
+            tex.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    this._suggestionsGroup.visible = true;
+  }
+
+  /**
+   * Re-query the suggestion provider for the current composition text and
+   * show/clear the suggestion row accordingly. Provider failures must never
+   * break typing — they degrade to "no suggestions".
+   */
+  _updateSuggestions() {
+    if (!this.suggestionProvider) {
+      return;
+    }
+    const query = this.ime ? String(this.ime.compositionBuffer || '') : '';
+    if (query.trim().length < 2) {
+      this._clearSuggestions();
+      return;
+    }
+    let results = [];
+    try {
+      results = this.suggestionProvider(query) || [];
+    } catch (e) {
+      console.debug('VRJapaneseKeyboard: suggestionProvider failed', e);
+      results = [];
+    }
+    this.showSuggestions(results);
+  }
+
+  /**
+   * Update display with current composition — repaints the 3D display strip,
+   * clears any candidate row (new input supersedes conversion candidates),
+   * and refreshes the URL-suggestion row for the new composition text.
    */
   updateDisplay(processed) {
-    console.log(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
-    // Would update 3D text display in production
+    console.debug(`Input: ${processed.raw} → ${processed.converted} [${processed.mode}]`);
+    this._clearCandidates();
+    this._refreshDisplay();
+    this._updateSuggestions();
   }
 
   /**
-   * Handle confirmed text
+   * Called when the user commits a text entry (Enter key).
+   * Fires the registered one-shot callback, then clears it, and hides the
+   * keyboard so it doesn't linger after input completes.
    */
   onTextConfirmed(text) {
-    console.log('Confirmed:', text);
-    // Would insert text into target field
+    console.debug('Confirmed:', text);
+    this.hide();
+    if (this._onConfirmCallback) {
+      const cb = this._onConfirmCallback;
+      this._onConfirmCallback = null; // clear before calling to prevent re-entrancy
+      cb(text);
+    }
   }
 
   /**
@@ -498,6 +1358,72 @@ export class VRJapaneseKeyboard {
    */
   getStats() {
     return this.ime.getState().stats;
+  }
+
+  dispose() {
+    this.clearOnConfirm();
+
+    // Tear down 3D resources: unregister interactables, dispose geometry/
+    // materials/textures, and remove the group from the scene. The candidate/
+    // suggestion rows are cleared first because their meshes hold registered
+    // interactables the generic group.traverse teardown below wouldn't
+    // unregister.
+    this._clearCandidates();
+    this._clearSuggestions();
+    for (const { mesh } of this.keyMeshes) {
+      this.unregisterInteractable?.(mesh);
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        mesh.material.dispose();
+      }
+      if (mesh.userData.keyTex) {
+        mesh.userData.keyTex.dispose();
+      }
+    }
+    this.keyMeshes = [];
+
+    if (this._displayMesh) {
+      if (this._displayMesh.geometry) {
+        this._displayMesh.geometry.dispose();
+      }
+      if (this._displayMesh.material) {
+        this._displayMesh.material.dispose();
+      }
+      this._displayMesh = null;
+    }
+    if (this._displayTex) {
+      this._displayTex.dispose(); this._displayTex = null;
+    }
+    this._displayCanvas = null;
+
+    if (this.group) {
+      // Dispose any remaining children (panel) and detach from scene.
+      this.group.traverse?.((o) => {
+        if (o.geometry) {
+          o.geometry.dispose?.();
+        }
+        if (o.material && o.material.dispose) {
+          o.material.dispose();
+        }
+      });
+      if (this.scene) {
+        this.scene.remove(this.group);
+      }
+      this.group = null;
+    }
+
+    // Candidate meshes are children of this.group which is traversed above,
+    // but we still need to unregister them as interactables.
+    this._clearCandidates();
+    this._candidatesGroup = null;
+
+    this.keyboard = null;
+    this.candidatePanel = null;
+    if (this.ime) {
+      this.ime.dispose();
+    }
   }
 }
 
@@ -522,9 +1448,9 @@ export class VRJapaneseKeyboard {
  *
  * // Convert to kanji
  * const result = await ime.convertToKanji();
- * console.log(result.candidates); // ['今日は', 'こんにちは']
+ * console.debug(result.candidates); // ['今日は', 'こんにちは']
  *
  * // Select first candidate
  * const confirmed = ime.confirmSelection();
- * console.log(confirmed); // '今日は'
+ * console.debug(confirmed); // '今日は'
  */

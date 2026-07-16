@@ -71,13 +71,12 @@ export class ProgressiveLoader {
         saveData: conn.saveData || false
       };
 
-      // Listen for network changes
-      conn.addEventListener('change', () => {
-        this.onNetworkChange();
-      });
+      // Listen for network changes (handler kept so dispose() can remove it).
+      this.networkChangeHandler = () => this.onNetworkChange();
+      conn.addEventListener('change', this.networkChangeHandler);
     }
 
-    console.log('ProgressiveLoader: Network detected', this.network);
+    console.debug('ProgressiveLoader: Network detected', this.network);
   }
 
   /**
@@ -95,7 +94,7 @@ export class ProgressiveLoader {
       saveData: conn.saveData || false
     };
 
-    console.log('ProgressiveLoader: Network changed', {
+    console.debug('ProgressiveLoader: Network changed', {
       from: oldType,
       to: this.network.effectiveType
     });
@@ -109,32 +108,32 @@ export class ProgressiveLoader {
    */
   adjustStrategy() {
     switch (this.network.effectiveType) {
-      case 'slow-2g':
-      case '2g':
-        this.strategy.parallelLimit = 2;
-        this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = false;
-        break;
+    case 'slow-2g':
+    case '2g':
+      this.strategy.parallelLimit = 2;
+      this.strategy.adaptiveQuality = true;
+      this.strategy.preloadNext = false;
+      break;
 
-      case '3g':
-        this.strategy.parallelLimit = 4;
-        this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = true;
-        break;
+    case '3g':
+      this.strategy.parallelLimit = 4;
+      this.strategy.adaptiveQuality = true;
+      this.strategy.preloadNext = true;
+      break;
 
-      case '4g':
-      default:
-        this.strategy.parallelLimit = 6;
-        this.strategy.adaptiveQuality = false;
-        this.strategy.preloadNext = true;
-        break;
+    case '4g':
+    default:
+      this.strategy.parallelLimit = 6;
+      this.strategy.adaptiveQuality = false;
+      this.strategy.preloadNext = true;
+      break;
     }
 
     // Respect save data
     if (this.network.saveData) {
       this.strategy.adaptiveQuality = true;
       this.strategy.preloadNext = false;
-      console.log('ProgressiveLoader: Data saver mode enabled');
+      console.debug('ProgressiveLoader: Data saver mode enabled');
     }
   }
 
@@ -168,7 +167,7 @@ export class ProgressiveLoader {
    */
   async start() {
     this.stats.startTime = performance.now();
-    console.log('ProgressiveLoader: Starting progressive load');
+    console.debug('ProgressiveLoader: Starting progressive load');
 
     // Phase 1: Critical resources (blocking)
     await this.loadPhase('critical');
@@ -196,9 +195,11 @@ export class ProgressiveLoader {
    */
   async loadPhase(priority) {
     const queue = this.loadQueue[priority];
-    if (queue.length === 0) return;
+    if (queue.length === 0) {
+      return;
+    }
 
-    console.log(`ProgressiveLoader: Loading ${priority} phase (${queue.length} items)`);
+    console.debug(`ProgressiveLoader: Loading ${priority} phase (${queue.length} items)`);
 
     // Process queue with parallel limit
     const chunks = this.chunkArray(queue, this.strategy.parallelLimit);
@@ -261,35 +262,34 @@ export class ProgressiveLoader {
    * Perform actual load based on type
    */
   async performLoad(item) {
-    const startTime = performance.now();
 
     switch (item.type) {
-      case 'image':
-        return this.loadImage(item.url);
+    case 'image':
+      return this.loadImage(item.url);
 
-      case 'script':
-        return this.loadScript(item.url);
+    case 'script':
+      return this.loadScript(item.url);
 
-      case 'style':
-        return this.loadStyle(item.url);
+    case 'style':
+      return this.loadStyle(item.url);
 
-      case 'json':
-        return this.loadJSON(item.url);
+    case 'json':
+      return this.loadJSON(item.url);
 
-      case 'audio':
-        return this.loadAudio(item.url);
+    case 'audio':
+      return this.loadAudio(item.url);
 
-      case 'video':
-        return this.loadVideo(item.url);
+    case 'video':
+      return this.loadVideo(item.url);
 
-      case 'model':
-        return this.loadModel(item.url);
+    case 'model':
+      return this.loadModel(item.url);
 
-      case 'texture':
-        return this.loadTexture(item.url);
+    case 'texture':
+      return this.loadTexture(item.url);
 
-      default:
-        return this.loadGeneric(item.url);
+    default:
+      return this.loadGeneric(item.url);
     }
   }
 
@@ -472,7 +472,7 @@ export class ProgressiveLoader {
   /**
    * Handle resource loaded
    */
-  onResourceLoaded(item, result) {
+  onResourceLoaded(item, _result) {
     this.stats.itemsLoaded++;
 
     if (item.size) {
@@ -481,7 +481,7 @@ export class ProgressiveLoader {
 
     const progress = this.stats.itemsLoaded / this.stats.itemsTotal;
 
-    console.log(`ProgressiveLoader: Loaded ${item.name} (${Math.round(progress * 100)}%)`);
+    console.debug(`ProgressiveLoader: Loaded ${item.name} (${Math.round(progress * 100)}%)`);
 
     if (this.callbacks.onProgress) {
       this.callbacks.onProgress({
@@ -518,7 +518,7 @@ export class ProgressiveLoader {
   onLoadComplete() {
     this.stats.loadTime = performance.now() - this.stats.startTime;
 
-    console.log('ProgressiveLoader: All resources loaded', {
+    console.debug('ProgressiveLoader: All resources loaded', {
       items: this.stats.itemsLoaded,
       bytes: this.stats.loadedBytes,
       time: `${this.stats.loadTime.toFixed(0)}ms`,
@@ -549,7 +549,9 @@ export class ProgressiveLoader {
    * Preload anticipated resources
    */
   preload(resources) {
-    if (!this.strategy.preloadNext) return;
+    if (!this.strategy.preloadNext) {
+      return;
+    }
 
     resources.forEach(resource => {
       this.addResource(resource, 'secondary');
@@ -588,7 +590,11 @@ export class ProgressiveLoader {
       network: this.network,
       failed: this.failed.size,
       pending: this.pending.size,
-      progressPercent: (this.stats.itemsLoaded / this.stats.itemsTotal * 100).toFixed(1)
+      // Guard against NaN when getStats() is called before any resource is
+      // queued (itemsTotal === 0).
+      progressPercent: (this.stats.itemsTotal > 0
+        ? (this.stats.itemsLoaded / this.stats.itemsTotal * 100)
+        : 0).toFixed(1)
     };
   }
 
@@ -596,6 +602,12 @@ export class ProgressiveLoader {
    * Dispose
    */
   dispose() {
+    // Remove the network 'change' listener registered in detectNetwork().
+    if (this.networkChangeHandler && 'connection' in navigator && navigator.connection) {
+      navigator.connection.removeEventListener('change', this.networkChangeHandler);
+      this.networkChangeHandler = null;
+    }
+
     this.loadQueue.critical = [];
     this.loadQueue.primary = [];
     this.loadQueue.secondary = [];
@@ -614,7 +626,7 @@ export class ProgressiveLoader {
  *
  * // Set callbacks
  * loader.callbacks.onProgress = (data) => {
- *   console.log(`Loading: ${data.loaded}/${data.total}`);
+ *   console.debug(`Loading: ${data.loaded}/${data.total}`);
  * };
  *
  * // Add critical resources

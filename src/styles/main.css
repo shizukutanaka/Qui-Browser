@@ -225,3 +225,71 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== Accessibility modes (toggled by src/a11y/accessibility.js) ===== */
+
+/* High contrast: maximise contrast and drop the gradient text. */
+body.a11y-high-contrast {
+    --color-background: #000000;
+    --color-surface: #000000;
+    --color-surface-elevated: #0a0a0a;
+    --color-text: #ffffff;
+    --color-text-subtle: #ffffff;
+    --color-border: #ffffff;
+    --color-vr: #ffff00;
+    --color-primary: #ffff00;
+    --color-primary-hover: #ffff66;
+}
+body.a11y-high-contrast .hero-title {
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    -webkit-text-fill-color: #ffff00 !important;
+    color: #ffff00 !important;
+}
+body.a11y-high-contrast .feature-card,
+body.a11y-high-contrast .header,
+body.a11y-high-contrast .cta-button {
+    border: 2px solid #ffffff !important;
+}
+
+/* Large text: bump the key reading sizes (use !important so it wins over px). */
+body.a11y-large-text .hero-title { font-size: 3.2rem !important; }
+body.a11y-large-text .hero-subtitle { font-size: 1.45rem !important; line-height: 1.7 !important; }
+body.a11y-large-text .cta-button { font-size: 1.3rem !important; }
+body.a11y-large-text .feature-title { font-size: 1.4rem !important; }
+body.a11y-large-text .feature-description { font-size: 1.2rem !important; }
+
+/* Reduced motion: neutralise animations/transitions. */
+body.a11y-reduced-motion *,
+body.a11y-reduced-motion *::before,
+body.a11y-reduced-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* Honor the OS prefers-reduced-motion signal directly in CSS, not only via the
+   JS-applied body class above. The class is toggled by applyAccessibility(),
+   which runs after the JS module loads — but the loading spinner's infinite
+   spin animates from first paint, through the whole load window (precisely when
+   it's on screen). A pure-CSS media query applies before any JS and also serves
+   as a fallback if the script never loads, so a motion-sensitive user never
+   sees the spin (WCAG 2.3.3). The accompanying "Loading…" text keeps the busy
+   state legible without rotation. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Visible state for pressed accessibility/utility toggle buttons. */
+.util-toggle[aria-pressed="true"] {
+    background: #3a6ea5 !important;
+    border-color: #88bbff !important;
+}

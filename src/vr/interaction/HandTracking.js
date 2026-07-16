@@ -32,6 +32,10 @@ export class HandTracking {
     // Gesture callbacks
     this.gestureCallbacks = new Map();
 
+    // Tracking-change callback: fired when a hand's visibility changes
+    // (tracked → lost, or lost → regained). Used for WCAG 4.1.3 status messages.
+    this._onTrackingChange = null;
+
     // Statistics
     this.stats = {
       framesTracked: 0,
@@ -56,10 +60,11 @@ export class HandTracking {
 
     // Gesture thresholds
     this.thresholds = {
-      pinch: 0.02,      // 2cm between thumb and index tips
-      fist: 0.1,        // Average finger curl threshold
-      pointSpeed: 0.5,  // m/s for pointing gesture
-      grabStrength: 0.7 // Strength threshold for grab
+      pinch: 0.02,        // 2cm between thumb and index tips to START a pinch
+      pinchRelease: 0.035,// 3.5cm to RELEASE — hysteresis against tremor chatter
+      fist: 0.1,          // Average finger curl threshold
+      pointSpeed: 0.5,    // m/s for pointing gesture
+      grabStrength: 0.7   // Strength threshold for grab
     };
   }
 
@@ -81,13 +86,14 @@ export class HandTracking {
     // Create hand models
     this.createHandModels();
 
-    // Setup input source handlers
-    session.addEventListener('inputsourceschange', (event) => {
-      this.onInputSourcesChange(event);
-    });
+    // Setup input source handlers. Keep references so dispose() can detach the
+    // listener (otherwise it pins this instance alive for the session).
+    this.session = session;
+    this._onInputSourcesChange = (event) => this.onInputSourcesChange(event);
+    session.addEventListener('inputsourceschange', this._onInputSourcesChange);
 
     this.enabled = true;
-    console.log('HandTracking: Initialized successfully');
+    console.debug('HandTracking: Initialized successfully');
     return true;
   }
 
@@ -101,14 +107,6 @@ export class HandTracking {
       emissive: 0x004400,
       transparent: true,
       opacity: 0.8
-    });
-
-    // Material for bones (connections between joints)
-    const boneMaterial = new THREE.MeshPhongMaterial({
-      color: 0x00ffff,
-      emissive: 0x004444,
-      transparent: true,
-      opacity: 0.6
     });
 
     // Create hand groups
@@ -136,21 +134,46 @@ export class HandTracking {
       this.scene.add(handGroup);
     });
 
-    console.log('HandTracking: Hand models created');
+    console.debug('HandTracking: Hand models created');
   }
 
   /**
    * Update hand tracking
    */
   update(frame, referenceSpace) {
-    if (!this.enabled || !frame || !frame.session) return;
+    if (!this.enabled || !frame || !frame.session) {
+      return;
+    }
 
     this.stats.framesTracked++;
 
-    // Process each input source
+    // Snapshot pre-frame visibility so we can detect both lost AND regained
+    // transitions after updateHand() has had a chance to set visible=true.
+    const prevVisible = {
+      left:  this.leftHand  ? this.leftHand.visible  : false,
+      right: this.rightHand ? this.rightHand.visible : false
+    };
+
+    const seenHands = new Set();
     for (const inputSource of frame.session.inputSources) {
       if (inputSource.hand) {
         this.updateHand(frame, inputSource, referenceSpace);
+        seenHands.add(inputSource.handedness);
+      }
+    }
+
+    // Set visibility from seenHands and fire tracking-change callback on
+    // transitions. A frozen hand at its last known position falsely signals
+    // "still tracking" — hiding it is both visually correct and prevents
+    // spurious gesture activations on a stale skeleton.
+    for (const handedness of ['left', 'right']) {
+      const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
+      if (handGroup) {
+        const nowTracked = seenHands.has(handedness);
+        handGroup.visible = nowTracked;
+        if (prevVisible[handedness] !== nowTracked && this._onTrackingChange) {
+          this._onTrackingChange(handedness, nowTracked);
+        }
       }
     }
 
@@ -159,11 +182,22 @@ export class HandTracking {
   }
 
   /**
+   * Register a callback for hand-tracking state changes (tracked ↔ lost).
+   * Called with (handedness: 'left'|'right', tracked: boolean).
+   * @param {(handedness: string, tracked: boolean) => void} cb
+   */
+  onTrackingChange(cb) {
+    this._onTrackingChange = cb;
+  }
+
+  /**
    * Update individual hand
    */
   updateHand(frame, inputSource, referenceSpace) {
     const handedness = inputSource.handedness;
-    if (!handedness || handedness === 'none') return;
+    if (!handedness || handedness === 'none') {
+      return;
+    }
 
     const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
     const joints = this.joints[handedness];
@@ -171,10 +205,14 @@ export class HandTracking {
     // Update each joint
     for (const jointName of this.jointNames) {
       const joint = inputSource.hand.get(jointName);
-      if (!joint) continue;
+      if (!joint) {
+        continue;
+      }
 
       const jointPose = frame.getJointPose(joint, referenceSpace);
-      if (!jointPose) continue;
+      if (!jointPose) {
+        continue;
+      }
 
       // Update joint position
       const jointMesh = joints.get(jointName);
@@ -213,9 +251,11 @@ export class HandTracking {
   recognizeGestures() {
     ['left', 'right'].forEach(handedness => {
       const joints = this.joints[handedness];
-      if (joints.size === 0) return;
+      if (joints.size === 0) {
+        return;
+      }
 
-      const gesture = this.detectGesture(joints);
+      const gesture = this.detectGesture(joints, this.gestures[handedness] === 'pinch');
 
       // Check if gesture changed
       if (gesture !== this.gestures[handedness]) {
@@ -228,19 +268,22 @@ export class HandTracking {
   /**
    * Detect current gesture
    */
-  detectGesture(joints) {
+  detectGesture(joints, wasPinching = false) {
     const thumbTip = joints.get('thumb-tip');
     const indexTip = joints.get('index-finger-tip');
-    const middleTip = joints.get('middle-finger-tip');
-    const ringTip = joints.get('ring-finger-tip');
-    const pinkyTip = joints.get('pinky-finger-tip');
     const wrist = joints.get('wrist');
 
-    if (!thumbTip || !indexTip || !wrist) return 'none';
+    if (!thumbTip || !indexTip || !wrist) {
+      return 'none';
+    }
 
-    // Pinch detection
+    // Pinch detection with hysteresis: a pinch starts at `pinch` but only
+    // releases past the wider `pinchRelease` gap. Without this, an unsteady
+    // hand hovering near the threshold flickers pinch↔none every frame,
+    // firing repeated selections/haptics — a barrier for users with tremor.
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
-    if (pinchDistance < this.thresholds.pinch) {
+    const pinchThreshold = wasPinching ? this.thresholds.pinchRelease : this.thresholds.pinch;
+    if (pinchDistance < pinchThreshold) {
       this.stats.gesturesRecognized++;
       return 'pinch';
     }
@@ -259,6 +302,7 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         this.isFingerExtended(joints, 'ring-finger') &&
         this.isFingerExtended(joints, 'pinky-finger')) {
+      this.stats.gesturesRecognized++;
       return 'open';
     }
 
@@ -297,7 +341,9 @@ export class HandTracking {
     const tip = joints.get(`${fingerName}-tip`);
     const wrist = joints.get('wrist');
 
-    if (!metacarpal || !tip || !wrist) return false;
+    if (!metacarpal || !tip || !wrist) {
+      return false;
+    }
 
     // Finger is extended if tip is far from wrist
     const tipDistance = tip.position.distanceTo(wrist.position);
@@ -314,10 +360,16 @@ export class HandTracking {
     const thumbProximal = joints.get('thumb-phalanx-proximal');
     const wrist = joints.get('wrist');
 
-    if (!thumbTip || !thumbProximal || !wrist) return false;
+    if (!thumbTip || !thumbProximal || !wrist) {
+      return false;
+    }
 
-    // Thumb should be pointing up (positive Y)
-    const thumbVector = new THREE.Vector3()
+    // Thumb should be pointing up (positive Y). Reuse scratch object to
+    // avoid allocating a Vector3 every frame at 90 Hz per tracked hand.
+    if (!this._tmpThumbVec) {
+      this._tmpThumbVec = new THREE.Vector3();
+    }
+    const thumbVector = this._tmpThumbVec
       .subVectors(thumbTip.position, thumbProximal.position)
       .normalize();
 
@@ -328,7 +380,7 @@ export class HandTracking {
    * Handle gesture changes
    */
   onGestureChange(handedness, oldGesture, newGesture) {
-    console.log(`HandTracking: ${handedness} hand gesture: ${oldGesture} → ${newGesture}`);
+    console.debug(`HandTracking: ${handedness} hand gesture: ${oldGesture} → ${newGesture}`);
 
     // Trigger callbacks
     const callback = this.gestureCallbacks.get(newGesture);
@@ -352,7 +404,9 @@ export class HandTracking {
     const thumbTip = joints.get('thumb-tip');
     const indexTip = joints.get('index-finger-tip');
 
-    if (!thumbTip || !indexTip) return null;
+    if (!thumbTip || !indexTip) {
+      return null;
+    }
 
     // Return midpoint between thumb and index
     return new THREE.Vector3()
@@ -368,7 +422,9 @@ export class HandTracking {
     const indexTip = joints.get('index-finger-tip');
     const indexProximal = joints.get('index-finger-phalanx-proximal');
 
-    if (!indexTip || !indexProximal) return null;
+    if (!indexTip || !indexProximal) {
+      return null;
+    }
 
     const origin = indexProximal.position.clone();
     const direction = new THREE.Vector3()
@@ -382,7 +438,7 @@ export class HandTracking {
    * Handle input source changes
    */
   onInputSourcesChange(event) {
-    console.log('HandTracking: Input sources changed', {
+    console.debug('HandTracking: Input sources changed', {
       added: event.added.length,
       removed: event.removed.length
     });
@@ -415,20 +471,35 @@ export class HandTracking {
   dispose() {
     this.enabled = false;
 
+    // Detach the session input-source listener.
+    if (this.session && this._onInputSourcesChange) {
+      this.session.removeEventListener('inputsourceschange', this._onInputSourcesChange);
+      this._onInputSourcesChange = null;
+      this.session = null;
+    }
+
     // Remove hand models from scene
     if (this.leftHand) {
       this.scene.remove(this.leftHand);
       this.leftHand.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          child.material.dispose();
+        }
       });
     }
 
     if (this.rightHand) {
       this.scene.remove(this.rightHand);
       this.rightHand.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          child.material.dispose();
+        }
       });
     }
 
@@ -436,7 +507,7 @@ export class HandTracking {
     this.joints.right.clear();
     this.gestureCallbacks.clear();
 
-    console.log('HandTracking: Disposed');
+    console.debug('HandTracking: Disposed');
   }
 }
 
@@ -450,7 +521,7 @@ export class HandTracking {
  *
  * // Register gesture callbacks
  * handTracking.onGesture('pinch', (hand, gesture) => {
- *   console.log(`${hand} hand pinched!`);
+ *   console.debug(`${hand} hand pinched!`);
  *   const position = handTracking.getPinchPosition(hand);
  *   // Use position for UI interaction
  * });
@@ -467,5 +538,5 @@ export class HandTracking {
  *
  * // Get statistics
  * const stats = handTracking.getStats();
- * console.log(`Gestures recognized: ${stats.gesturesRecognized}`);
+ * console.debug(`Gestures recognized: ${stats.gesturesRecognized}`);
  */

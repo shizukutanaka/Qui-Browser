@@ -22,6 +22,14 @@ export default defineConfig({
 
     // Rollup options
     rollupOptions: {
+      // Sentry is an optional, account-gated dependency loaded lazily by
+      // src/monitoring.js. It is NOT installed/bundled by default; mark it
+      // external so the build succeeds without it (the dynamic import is
+      // wrapped in try/catch and only runs when a DSN is configured). To
+      // actually enable Sentry: `npm i @sentry/browser @sentry/tracing
+      // @sentry/replay`, remove these from this external list, and set the
+      // SENTRY DSN. web-vitals IS installed and bundled normally.
+      external: ['@sentry/browser', '@sentry/tracing', '@sentry/replay'],
       output: {
         // Manual chunks for better caching
         manualChunks: {

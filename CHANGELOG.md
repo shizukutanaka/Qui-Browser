@@ -2,6 +2,114 @@
 
 All notable changes to Qui Browser VR will be documented in this file.
 
+## [Unreleased]
+
+### New features (in-VR usability)
+- **Search-engine integration** in the address bar: non-URL text becomes a
+  search query (DuckDuckGo by default; google/bing/ecosia via
+  `settings.searchEngine`). Dangerous schemes are blocked.
+- **Bookmark star button** in the browser chrome bar — toggle a persistent
+  bookmark for the current page without leaving VR.
+- **In-VR bookmarks & history panel** — browse and open saved bookmarks and
+  recent history; opened from a new "Bookmarks" button in the settings panel.
+  Each bookmark row now has a ✕ delete button so bookmarks can be removed
+  directly from the panel without returning to the page.
+- **3D kanji candidates panel** — pressing Space/変換 on the VR keyboard now
+  shows a horizontal row of selectable kanji candidate buttons above the
+  keyboard instead of logging to console. Selecting a button commits that
+  candidate; ESC or any new keypress clears the strip.
+- **Real 3D VR keyboard** — `createKeyboard()` now builds selectable 3D key
+  meshes with a composition-text display, hover highlight, and a backspace
+  key, replacing the old data-only stub. Text entry in immersive VR no longer
+  falls back to `window.prompt()`.
+- **VR keyboard ESC key** — bottom row now includes a ✕ dismiss key that
+  clears the composition buffer and hides the keyboard without confirming
+  any text.
+- **VR keyboard shift-mode badge** — the display strip shows a colour-coded
+  badge (ひ hiragana / カ katakana / 漢 kanji) and the Shift key mesh turns
+  amber when katakana mode is active, giving immediate visual feedback of the
+  current input mode.
+- **Numeric settings steppers** — the in-VR settings panel now exposes
+  −/+ steppers for Snap Angle, Move Speed, Gaze Time, and Panel Distance,
+  which were previously code-only. Values persist and apply live.
+- **Comfort preset selector** — the settings panel now shows a cycle button
+  for the comfort/motion-sensitivity preset (sensitive → moderate → tolerant →
+  disabled), replacing the keyboard-shortcut-only 'C' key.
+- **Search engine selector** — the settings panel exposes a cycle button for
+  the active search engine (DuckDuckGo → Google → Bing → Ecosia); the change
+  applies immediately to open tabs.
+
+### Fixed
+- Subsystem init failures (spatial audio, mixed reality) are now caught and
+  surfaced as camera-anchored HUD toasts inside VR (`showVRToast`), replacing
+  silent `console.error` calls that were invisible to users in the headset.
+- Service worker fetch handler now checks `request.mode === 'navigate'` first
+  for SPA navigation requests instead of relying on path-extension heuristics.
+- VR keyboard display strip now shows a colour-coded mode badge (ひ / カ / 漢)
+  that updates immediately when the Shift key cycles between hiragana and
+  katakana input modes — previously there was no visual indicator of the
+  active mode.
+- Browser chrome back ◀ and forward ▶ buttons are now visually dimmed when
+  navigation in that direction is impossible (no history, or already at the
+  latest entry), giving clear affordance of their availability.
+- Page-load failures now surface a ⚠ error message in the URL bar instead of
+  silently clearing the loading spinner.
+- Tab strip close ✕ button is now rendered inside a distinct red box, making
+  it visually recognisable as an interactive element consistent with the rest
+  of the UI.
+- VR app could not locate its mount point on WebXR devices (`#app` vs
+  `#app-container` mismatch); landing-page "Enter VR" buttons dispatched a
+  dead `enter-vr` event that nothing handled — now wired to start the session.
+- Service worker: resilient install (one missing asset no longer aborts the
+  whole precache), corrected precache paths, and the fetch handler now skips
+  non-GET / non-http(s) requests (avoids `cache.put` exceptions).
+- Stats getters no longer return `NaN`/`Infinity` before any data exists
+  (PerformanceMonitor, TextureManager, AIRecommendation, monitoring summary).
+- Listener/timer leaks fixed with proper teardown (DevTools, ProgressiveLoader,
+  MultiplayerSystem, PerformanceMonitor, AIRecommendation, VRApp subsystems).
+- VoiceCommands no longer spins in an infinite restart loop on fatal
+  recognition errors (e.g. microphone permission denied).
+- Unhandled promise rejections in monitoring's dynamic Sentry imports.
+- WebGPU FFR shader used a hardcoded 1920×1080 resolution; now baked from the
+  real canvas size.
+
+### Changed
+- Unified the project version to **2.0.0** across `package.json`,
+  `manifest.json`, and the service worker.
+- Generated all PWA icons / favicons / social images from `assets/icon.svg`
+  (previously 13/14 referenced assets were missing) via `npm run icons`.
+- Archived ~120 root status/report docs to `docs/archive/` and dead duplicate
+  files (legacy HTML/service-workers/webpack config) to `docs/archive/legacy/`.
+- Quarantined stale v5.x test suites to `tests/archive/`; `npm test` now
+  reflects the live v2.0.0 app and is green.
+- Added `SECURITY.md`, `.lighthouserc.json`, and `package.json` repository
+  metadata; fixed the Docker healthcheck.
+
+### Added
+- Previously-orphaned feature modules are now wired into the app, opt-in and
+  default-off: AI recommendations, voice commands, multiplayer, performance
+  monitor overlay (`enableAI` / `enableVoice` / `enableMultiplayer` /
+  `enablePerfMonitorUI`), DevTools (development builds only), and production
+  observability (`src/monitoring.js`).
+- **Experimental:** WebGPU renderer behind `enableWebGPU` (default off) with
+  `navigator.gpu` capability detection. Not yet integrated into the render
+  loop; WebGL remains the renderer.
+- VRJapaneseKeyboard now has a `dispose()` method; VRApp.dispose() cleans it up.
+- WindowManager pre-allocates scratch objects for `_updateGrab()` to eliminate
+  per-frame Vector3/Quaternion allocations during panel grab.
+- Japanese IME offline dictionary expanded from 14 to ~200 entries covering
+  greetings, common verbs, adjectives, tech, and VR-specific vocabulary.
+
+### Documentation
+- README feature tables now have Stable / Experimental / Requires-infra status.
+  Unverified "✅ Achieved" FPS claims replaced with target-FPS notes.
+- WebGPURenderer and MultiplayerSystem file headers updated with accurate
+  status and opt-in flag names.
+- Test count corrected: 21 suites / 231 tests; coverage thresholds raised
+  from 0 to 25% (branches 20%).
+- Service worker precache trimmed to path-stable assets only; hashed Vite
+  chunks are cached at fetch time.
+
 ## [5.7.0] - 2025-10-30
 
 ### Added

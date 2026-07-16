@@ -47,11 +47,13 @@ export class VoiceCommands {
 
     // Callbacks
     this.callbacks = {
-      onCommand: null,
+      onCommand: null,       // (key, result)  — command executed successfully
+      onCommandFailed: null, // ({reason, transcript}) — no match or action threw
       onTranscript: null,
       onError: null,
       onStart: null,
-      onEnd: null
+      onEnd: null,
+      onSpeak: null // mirror of spoken feedback for a visual channel (captions)
     };
 
     this.registerDefaultCommands();
@@ -85,7 +87,7 @@ export class VoiceCommands {
       this.setupRecognitionHandlers();
 
       this.isEnabled = true;
-      console.log('VoiceCommands: Initialized successfully');
+      console.debug('VoiceCommands: Initialized successfully');
       return true;
 
     } catch (error) {
@@ -100,7 +102,7 @@ export class VoiceCommands {
   setupRecognitionHandlers() {
     this.recognition.onstart = () => {
       this.isListening = true;
-      console.log('VoiceCommands: Listening started');
+      console.debug('VoiceCommands: Listening started');
 
       if (this.callbacks.onStart) {
         this.callbacks.onStart();
@@ -109,7 +111,7 @@ export class VoiceCommands {
 
     this.recognition.onend = () => {
       this.isListening = false;
-      console.log('VoiceCommands: Listening ended');
+      console.debug('VoiceCommands: Listening ended');
 
       if (this.callbacks.onEnd) {
         this.callbacks.onEnd();
@@ -132,6 +134,13 @@ export class VoiceCommands {
     this.recognition.onerror = (event) => {
       console.error('VoiceCommands: Recognition error', event.error);
 
+      // Permission/service errors are fatal: recognition ends immediately and
+      // onend's continuous-mode restart would spin in a tight loop (restart →
+      // error → restart). Disable so onend stops restarting.
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        this.isEnabled = false;
+      }
+
       if (this.callbacks.onError) {
         this.callbacks.onError(event.error);
       }
@@ -150,16 +159,23 @@ export class VoiceCommands {
     this.lastTranscript = transcript;
     this.confidence = confidence;
 
-    console.log(`VoiceCommands: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+    console.debug(`VoiceCommands: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
 
     // Callback for transcript
     if (this.callbacks.onTranscript) {
       this.callbacks.onTranscript(transcript, confidence, isFinal);
     }
 
-    // Check confidence threshold
-    if (confidence < this.settings.sensitivity) {
-      console.log('VoiceCommands: Low confidence, ignoring');
+    // Confidence threshold — but skip it when the engine reports exactly 0.
+    // Android Chrome (the Meta Quest browser's engine) routinely returns
+    // confidence === 0 even for correctly recognized FINAL results, especially
+    // with lang='ja-JP' (this app's default). A literal 0.7 cutoff would then
+    // silently drop EVERY Japanese command on the primary target device — the
+    // headset. A 0 means "no score provided", not "zero confidence", so we let
+    // it through and rely on command-pattern matching to reject true garbage.
+    // (Qiita: Web Speech API stability — confidence is unreliable on Android.)
+    if (confidence > 0 && confidence < this.settings.sensitivity) {
+      console.debug('VoiceCommands: Low confidence, ignoring');
       return;
     }
 
@@ -168,7 +184,7 @@ export class VoiceCommands {
       if (this.containsWakeWord(transcript)) {
         this.isAwake = true;
         this.speak('はい、聞いています'); // "Yes, I'm listening"
-        console.log('VoiceCommands: Wake word detected');
+        console.debug('VoiceCommands: Wake word detected');
       }
       return;
     }
@@ -238,7 +254,7 @@ export class VoiceCommands {
 
     // Execute command if found
     if (matchedCommand) {
-      console.log(`VoiceCommands: Executing command "${matchedKey}"`);
+      console.debug(`VoiceCommands: Executing command "${matchedKey}"`);
 
       try {
         const result = matchedCommand.action(transcript, confidence);
@@ -256,15 +272,21 @@ export class VoiceCommands {
         }
 
       } catch (error) {
-        console.error(`VoiceCommands: Command execution failed`, error);
+        console.error('VoiceCommands: Command execution failed', error);
         this.stats.commandsFailed++;
         this.speak('コマンドの実行に失敗しました'); // "Command execution failed"
+        if (this.callbacks.onCommandFailed) {
+          this.callbacks.onCommandFailed({ reason: 'execution_error', transcript });
+        }
       }
 
     } else {
-      console.log(`VoiceCommands: No matching command for "${transcript}"`);
+      console.debug(`VoiceCommands: No matching command for "${transcript}"`);
       this.stats.commandsFailed++;
       this.speak('コマンドが認識できませんでした'); // "Command not recognized"
+      if (this.callbacks.onCommandFailed) {
+        this.callbacks.onCommandFailed({ reason: 'no_match', transcript });
+      }
     }
   }
 
@@ -315,7 +337,8 @@ export class VoiceCommands {
         }
       },
       confirmationText: '検索します',
-      description: 'Search web'
+      description: 'Search web',
+      example: '検索：てんき'
     });
 
     // VR mode control
@@ -390,15 +413,19 @@ export class VoiceCommands {
       description: 'Toggle Japanese IME'
     });
 
-    // Help
+    // Help — read back the actual spoken phrases, not just a count. A voice-
+    // command user (often relying on voice because gaze/controller input is
+    // difficult) has no other way to discover what to say; announcing "12
+    // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる'],
       action: () => {
-        const commandList = Array.from(this.commands.entries())
-          .map(([key, cmd]) => `${key}: ${cmd.description}`)
-          .join(', ');
+        const phrases = Array.from(this.commands.values())
+          .map((cmd) => this._spokenExample(cmd))
+          .filter(Boolean);
+        const commandList = phrases.join('、');
 
-        this.speak(`使用可能なコマンドは、${this.commands.size}個です`);
+        this.speak(`使用可能なコマンドは、${phrases.length}個です。${commandList}`);
         return { action: 'help', commands: commandList };
       },
       description: 'Show help'
@@ -425,6 +452,10 @@ export class VoiceCommands {
       action: config.action,
       confirmationText: config.confirmationText || null,
       description: config.description || '',
+      // Spoken example for the 'help' command, used only when every pattern
+      // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to'
+      // accept a free-form spoken argument, so there's no single fixed string.
+      example: config.example || null,
       metadata: config.metadata || {}
     });
 
@@ -435,7 +466,17 @@ export class VoiceCommands {
       });
     }
 
-    console.log(`VoiceCommands: Registered command "${name}"`);
+    console.debug(`VoiceCommands: Registered command "${name}"`);
+  }
+
+  /**
+   * The literal phrase to read aloud for a command in the 'help' listing:
+   * the first plain-string pattern (what a user can say verbatim), or the
+   * registered example when every pattern is a RegExp (free-form arguments
+   * like search/go-to have no single fixed phrase to quote).
+   */
+  _spokenExample(cmd) {
+    return cmd.patterns.find((p) => typeof p === 'string') || cmd.example || null;
   }
 
   /**
@@ -453,6 +494,178 @@ export class VoiceCommands {
   }
 
   /**
+   * Replace the default window.* navigation commands with VR-aware versions
+   * that use the live TabManager / BookmarkPanel / keyboard references.
+   *
+   * Call this after initialize() and after the VR scene is built.
+   *
+   * @param {object} opts
+   * @param {object}   [opts.tabManager]    TabManager instance
+   * @param {object}   [opts.bookmarkPanel] BookmarkPanel instance
+   * @param {object}   [opts.vrKeyboard]    VRJapaneseKeyboard instance
+   * @param {Function} [opts.onSearch]      (query: string) => void — called for web search
+   * @param {Function} [opts.onGoTo]        (query: string) => void — called with the
+   *                                         extracted site name; host looks it up in
+   *                                         history/bookmarks and navigates or falls back
+   *                                         to search (decoupled like onTopSites/onSearch)
+   */
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo } = {}) {
+    // Top Sites — hands-free jump to the user's most-used destination
+    // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
+    // the host's via onTopSites, mirroring the onSearch decoupling.
+    this.registerCommand('top-sites', {
+      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
+      action: () => {
+        if (onTopSites) {
+          onTopSites();
+        }
+        return { action: 'top-sites' };
+      },
+      confirmationText: 'よく使うサイトを開きます',
+      description: 'Open most-used site'
+    });
+
+    // Browser forward / back
+    this.registerCommand('navigate', {
+      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      action: () => {
+        tabManager?.getActiveTab?.()?.goForward?.();
+        return { action: 'navigate', direction: 'forward' };
+      },
+      confirmationText: '進みます',
+      description: 'Navigate forward'
+    });
+
+    this.registerCommand('back', {
+      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      action: () => {
+        tabManager?.getActiveTab?.()?.goBack?.();
+        return { action: 'navigate', direction: 'back' };
+      },
+      confirmationText: '戻ります',
+      description: 'Navigate back'
+    });
+
+    this.registerCommand('refresh', {
+      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+      action: () => {
+        tabManager?.getActiveTab?.()?.reload?.();
+        return { action: 'refresh' };
+      },
+      confirmationText: '更新します',
+      description: 'Refresh page'
+    });
+
+    // Web search — route through VR address bar / tab navigation
+    this.registerCommand('search', {
+      patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
+      action: (transcript) => {
+        const match = transcript.match(/[：:]\s*(.+)/);
+        if (match && match[1]) {
+          const query = match[1].trim();
+          if (onSearch) {
+            onSearch(query);
+          } else {
+            tabManager?.getActiveTab?.()?.navigate?.(query);
+          }
+          return { action: 'search', query };
+        }
+      },
+      confirmationText: '検索します',
+      description: 'Search web',
+      example: '検索：てんき'
+    });
+
+    // Scroll inside the active page's iframe
+    this.registerCommand('scroll-down', {
+      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
+      action: () => {
+        const frame = tabManager?.getActiveTab?.()?.iframe;
+        try {
+          frame?.contentWindow?.scrollBy(0, 300);
+        } catch (_) { /* cross-origin */ }
+        return { action: 'scroll', direction: 'down' };
+      },
+      description: 'Scroll down'
+    });
+
+    this.registerCommand('scroll-up', {
+      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
+      action: () => {
+        const frame = tabManager?.getActiveTab?.()?.iframe;
+        try {
+          frame?.contentWindow?.scrollBy(0, -300);
+        } catch (_) { /* cross-origin */ }
+        return { action: 'scroll', direction: 'up' };
+      },
+      description: 'Scroll up'
+    });
+
+    // Bookmark panel toggle
+    this.registerCommand('bookmarks', {
+      patterns: ['ブックマーク', 'お気に入り', '履歴'],
+      action: () => {
+        bookmarkPanel?.toggle?.();
+        return { action: 'bookmarks' };
+      },
+      confirmationText: 'ブックマークパネルを開きます',
+      description: 'Toggle bookmarks panel'
+    });
+
+    // Keyboard toggle
+    this.registerCommand('keyboard', {
+      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる'],
+      action: () => {
+        if (vrKeyboard) {
+          vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
+        }
+        return { action: 'keyboard' };
+      },
+      confirmationText: 'キーボードを切り替えます',
+      description: 'Toggle VR keyboard'
+    });
+
+    // Go-to — open a named site from history/bookmarks; fall back to web search.
+    // "githubを開く" / "go to github" extracts the site name and hands it to
+    // onGoTo, which runs BookmarkStore.search() and navigates to the top hit —
+    // or falls back to navigation/search if no frecency match exists. This
+    // closes the loop on the autocomplete data layer: a user who has visited
+    // github.com 50 times says "open github" and lands there directly instead
+    // of at a search-results page.
+    //
+    // REGISTERED LAST ON PURPOSE: its `を開く` / `open X` capture is greedy and
+    // would otherwise swallow more specific commands (e.g. "キーボードを開く"
+    // → keyboard toggle). processCommand matches in registration order and
+    // stops at the first hit, so this generic catch-all must come after every
+    // specific command to act only on utterances none of them claimed.
+    this.registerCommand('go-to', {
+      patterns: [
+        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+        /^(?:open|go to|navigate to)\s+(.+)/i
+      ],
+      action: (transcript) => {
+        const t = transcript.toLowerCase().trim();
+        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+        const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
+        if (onGoTo && query) {
+          onGoTo(query);
+        }
+        return { action: 'go-to', query: query || null };
+      },
+      // Immediate "command understood" cue, like search/navigate/top-sites.
+      // Spoken via TTS (blind users) and mirrored to captions via onSpeak
+      // (deaf/HoH) the moment the command matches — before navigation, and
+      // independent of whether a frecency hit is found (WCAG 4.1.3).
+      confirmationText: '開きます',
+      description: 'Open site by name from history/bookmarks, fall back to search',
+      example: 'githubを開く'
+    });
+
+    console.debug('VoiceCommands: Browser integration connected');
+  }
+
+  /**
    * Start listening
    */
   start() {
@@ -462,7 +675,7 @@ export class VoiceCommands {
     }
 
     if (this.isListening) {
-      console.log('VoiceCommands: Already listening');
+      console.debug('VoiceCommands: Already listening');
       return true;
     }
 
@@ -485,16 +698,51 @@ export class VoiceCommands {
   }
 
   /**
+   * Permanently tear down: prevents the onend restart loop from re-starting
+   * after the recognition is stopped, then releases the recognition object.
+   */
+  dispose() {
+    this.isEnabled = false; // must happen before stop() to block onend restart
+    this.stop();
+    // Cancel any queued or in-progress utterance. Without this, an utterance
+    // queued just before dispose() keeps speaking into a torn-down object
+    // (null camera, freed GPU resources) — the same class of teardown bug
+    // fixed for showVRToast() setTimeout in Session 4.
+    if (this.synthesis) {
+      this.synthesis.cancel();
+    }
+    this.recognition = null;
+    this.synthesis = null;
+  }
+
+  /**
    * Speak text (TTS)
    */
   speak(text, options = {}) {
-    if (!this.synthesis) return;
+    // Mirror every spoken response to a visual channel so users who can speak
+    // but not hear (deaf / HoH voice-command users, or anyone in a muted /
+    // noisy space) still receive confirmations, errors and "not recognized"
+    // feedback. Fires regardless of TTS availability.
+    if (this.callbacks.onSpeak) {
+      this.callbacks.onSpeak(text);
+    }
+    if (!this.synthesis) {
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = options.lang || this.language;
     utterance.rate = options.rate || 1.0;
     utterance.pitch = options.pitch || 1.0;
     utterance.volume = options.volume || 1.0;
+    // Android/Quest Chrome can fire onerror with "network" or "not-allowed"
+    // (audio focus stolen by another app, or no TTS engine installed for
+    // ja-JP). The onSpeak callback already fired so captions reached the user;
+    // just log and don't crash. (Qiita SpeechSynthesis Android stability
+    // pattern: always wire onerror so a TTS failure isn't completely silent.)
+    utterance.onerror = (e) => {
+      console.debug('VoiceCommands: TTS utterance error', e.error);
+    };
 
     this.synthesis.speak(utterance);
   }
@@ -530,7 +778,7 @@ export class VoiceCommands {
       isEnabled: this.isEnabled,
       commandCount: this.commands.size,
       lastCommand: this.lastCommand,
-      successRate: this.stats.commandsExecuted / this.stats.commandsRecognized || 0
+      successRate: this.stats.commandsRecognized > 0 ? this.stats.commandsExecuted / this.stats.commandsRecognized : 0
     };
   }
 }
@@ -548,7 +796,7 @@ export class VoiceCommands {
  * voiceCommands.registerCommand('custom', {
  *   patterns: ['カスタム', 'custom'],
  *   action: () => {
- *     console.log('Custom command executed');
+ *     console.debug('Custom command executed');
  *     return { action: 'custom' };
  *   },
  *   confirmationText: 'カスタムコマンドを実行します',
@@ -557,6 +805,6 @@ export class VoiceCommands {
  *
  * // Set callbacks
  * voiceCommands.callbacks.onCommand = (name, result) => {
- *   console.log('Command:', name, result);
+ *   console.debug('Command:', name, result);
  * };
  */

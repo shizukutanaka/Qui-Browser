@@ -5,6 +5,11 @@
  * John Carmack principle: Pre-allocate, reuse, never garbage collect
  */
 
+// Needed by the typed Vector3Pool/QuaternionPool/Matrix4Pool subclasses below
+// (they reference THREE.* in their constructors). Without this import those
+// exported classes throw ReferenceError when instantiated.
+import * as THREE from 'three';
+
 export class ObjectPool {
   constructor(ObjectClass, initialSize = 50, maxSize = 500) {
     this.ObjectClass = ObjectClass;
@@ -39,11 +44,21 @@ export class ObjectPool {
     if (!obj.reset) {
       obj.reset = () => {
         // Default reset: clear common properties
-        if (obj.position) obj.position.set(0, 0, 0);
-        if (obj.rotation) obj.rotation.set(0, 0, 0);
-        if (obj.scale) obj.scale.set(1, 1, 1);
-        if (obj.visible !== undefined) obj.visible = true;
-        if (obj.userData) obj.userData = {};
+        if (obj.position) {
+          obj.position.set(0, 0, 0);
+        }
+        if (obj.rotation) {
+          obj.rotation.set(0, 0, 0);
+        }
+        if (obj.scale) {
+          obj.scale.set(1, 1, 1);
+        }
+        if (obj.visible !== undefined) {
+          obj.visible = true;
+        }
+        if (obj.userData) {
+          obj.userData = {};
+        }
       };
     }
 
@@ -135,7 +150,7 @@ export class ObjectPool {
     }
 
     this.stats.created += toCreate;
-    console.log(`ObjectPool: Pre-warmed to ${this.totalCreated} objects`);
+    console.debug(`ObjectPool: Pre-warmed to ${this.totalCreated} objects`);
   }
 
   /**
@@ -161,12 +176,14 @@ export class ObjectPool {
 
     for (let i = 0; i < toRemove; i++) {
       const obj = this.available.pop();
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
       this.totalCreated--;
     }
 
     if (toRemove > 0) {
-      console.log(`ObjectPool: Trimmed ${toRemove} unused objects`);
+      console.debug(`ObjectPool: Trimmed ${toRemove} unused objects`);
     }
   }
 
@@ -176,12 +193,16 @@ export class ObjectPool {
   dispose() {
     // Dispose all available objects
     for (const obj of this.available) {
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
     }
 
     // Dispose all in-use objects
     for (const obj of this.inUse) {
-      if (obj.dispose) obj.dispose();
+      if (obj.dispose) {
+        obj.dispose();
+      }
     }
 
     this.available = [];
@@ -288,14 +309,16 @@ export class PoolManager {
    * Start monitoring all pools
    */
   startMonitoring(interval = 5000) {
-    if (this.monitoring) return;
+    if (this.monitoring) {
+      return;
+    }
 
     this.monitoring = true;
     this.monitorInterval = setInterval(() => {
       console.group('ObjectPool Statistics');
       for (const [name, pool] of this.pools) {
         const stats = pool.getStats();
-        console.log(`${name}: ${stats.inUse}/${stats.total} in use (${stats.utilization}), GC prevented: ${stats.gcPrevented}`);
+        console.debug(`${name}: ${stats.inUse}/${stats.total} in use (${stats.utilization}), GC prevented: ${stats.gcPrevented}`);
       }
       console.groupEnd();
     }, interval);
@@ -316,7 +339,7 @@ export class PoolManager {
    * Trim all pools
    */
   trimAll(keepMinimum = 10) {
-    for (const [name, pool] of this.pools) {
+    for (const pool of this.pools.values()) {
       pool.trim(keepMinimum);
     }
   }

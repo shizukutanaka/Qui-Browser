@@ -10,26 +10,31 @@ import { VRApp } from './vr/VRApp.js';
 
 // Global app instance
 let vrApp = null;
+// Interval id for the simple performance overlay, cleared on teardown.
+let perfIntervalId = null;
 
 /**
  * Initialize application
  */
 async function initializeApp() {
-  console.log('====================================');
-  console.log('Qui Browser VR v2.0.0');
-  console.log('Optimized for Meta Quest 2/3');
-  console.log('====================================');
+  console.debug('====================================');
+  console.debug('Qui Browser VR v2.0.0');
+  console.debug('Optimized for Meta Quest 2/3');
+  console.debug('====================================');
 
-  // Check WebXR support
+  // Check WebXR support. The landing page is viewable on any browser, so
+  // a missing/unsupported WebXR runtime is logged rather than shown as a
+  // blocking error overlay — users who actively click "Enter VR" still get
+  // an explanatory message from the button handler in main.js.
   if (!navigator.xr) {
-    showError('WebXR not supported. Please use a VR-capable browser.');
+    console.warn('WebXR not supported. VR features disabled; landing page only.');
     return;
   }
 
   // Check for VR support
   const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
   if (!isVRSupported) {
-    showError('VR not supported on this device.');
+    console.warn('Immersive VR not supported on this device; landing page only.');
     return;
   }
 
@@ -50,7 +55,7 @@ async function initializeApp() {
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
 
-    console.log('Application initialized successfully');
+    console.debug('Application initialized successfully');
   } catch (error) {
     console.error('Failed to initialize application:', error);
     showError('Failed to initialize VR application. Check console for details.');
@@ -78,8 +83,12 @@ function setupPerformanceMonitor() {
   `;
   document.body.appendChild(perfDisplay);
 
-  // Update performance stats every second
-  setInterval(() => {
+  // Update performance stats every second. Stored so it can be cleared on
+  // dispose/unload instead of running for the page lifetime.
+  if (perfIntervalId) {
+    clearInterval(perfIntervalId);
+  }
+  perfIntervalId = setInterval(() => {
     if (vrApp && perfDisplay.style.display === 'block') {
       const stats = vrApp.getPerformanceStats();
       perfDisplay.innerHTML = `
@@ -87,6 +96,8 @@ function setupPerformanceMonitor() {
         <div>Frame Time: ${stats.frameTime}</div>
         <div>Memory: ${stats.memory}</div>
         <div>Draw Calls: ${stats.drawCalls}</div>
+        <div>Triangles: ${stats.triangles.toLocaleString()}</div>
+        <div>GPU: ${stats.programs} prog / ${stats.geometries} geo / ${stats.textures} tex</div>
         ${stats.ffrIntensity ? `<div>FFR: ${stats.ffrIntensity}</div>` : ''}
         ${stats.textureMemory ? `<div>Textures: ${stats.textureMemory}</div>` : ''}
         ${stats.pooledObjects ? `<div>Pooled Objects: ${stats.pooledObjects}</div>` : ''}
@@ -101,57 +112,66 @@ function setupPerformanceMonitor() {
  */
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
-    switch(event.key) {
-      case 'p':
-      case 'P':
-        // Toggle performance monitor
+    switch (event.key) {
+    case 'p':
+    case 'P': {
+      // Toggle rich PerformanceMonitor when available, otherwise fall back
+      // to the simple overlay.
+      if (vrApp && vrApp.perfMonitorUI) {
+        vrApp.perfMonitorUI.toggle();
+      } else {
         const perfDisplay = document.getElementById('performance-monitor');
         if (perfDisplay) {
           perfDisplay.style.display =
-            perfDisplay.style.display === 'none' ? 'block' : 'none';
+              perfDisplay.style.display === 'none' ? 'block' : 'none';
         }
-        break;
+      }
+      break;
+    }
 
-      case 'f':
-      case 'F':
-        // Toggle FFR
-        if (vrApp && vrApp.ffrSystem) {
-          const enabled = !vrApp.ffrSystem.enabled;
-          vrApp.ffrSystem.setEnabled(enabled);
-          console.log(`FFR ${enabled ? 'enabled' : 'disabled'}`);
-        }
-        break;
+    case 'f':
+    case 'F':
+      // Toggle FFR
+      if (vrApp && vrApp.ffrSystem) {
+        const enabling = !vrApp.ffrSystem.enabled;
+        enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
+        console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
+      }
+      break;
 
-      case 'c':
-      case 'C':
-        // Cycle comfort presets
-        if (vrApp && vrApp.comfortSystem) {
-          const presets = ['sensitive', 'moderate', 'tolerant', 'off'];
-          const current = vrApp.settings.motionSensitivity;
-          const nextIndex = (presets.indexOf(current) + 1) % presets.length;
-          const next = presets[nextIndex];
-          vrApp.comfortSystem.setPreset(next);
-          vrApp.settings.motionSensitivity = next;
-          console.log(`Comfort preset: ${next}`);
-        }
-        break;
+    case 'c':
+    case 'C':
+      // Cycle comfort presets
+      if (vrApp && vrApp.comfortSystem) {
+        const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+        const current = vrApp.settings.motionSensitivity;
+        const nextIndex = (presets.indexOf(current) + 1) % presets.length;
+        const next = presets[nextIndex];
+        vrApp.comfortSystem.setPreset(next);
+        vrApp.updateSetting('motionSensitivity', next); // persist across reloads
+        console.debug(`Comfort preset: ${next}`);
+      }
+      break;
 
-      case 'Escape':
-        // Emergency cleanup
-        if (vrApp) {
-          vrApp.dispose();
-          vrApp = null;
-          console.log('Application disposed');
+    case 'Escape':
+      // Emergency cleanup
+      if (vrApp) {
+        vrApp.dispose();
+        vrApp = null;
+        if (perfIntervalId) {
+          clearInterval(perfIntervalId); perfIntervalId = null;
         }
-        break;
+        console.debug('Application disposed');
+      }
+      break;
     }
   });
 
-  console.log('Keyboard shortcuts:');
-  console.log('  P - Toggle performance monitor');
-  console.log('  F - Toggle Fixed Foveated Rendering');
-  console.log('  C - Cycle comfort presets');
-  console.log('  ESC - Emergency cleanup');
+  console.debug('Keyboard shortcuts:');
+  console.debug('  P - Toggle performance monitor');
+  console.debug('  F - Toggle Fixed Foveated Rendering');
+  console.debug('  C - Cycle comfort presets');
+  console.debug('  ESC - Emergency cleanup');
 }
 
 /**
@@ -181,10 +201,10 @@ function showError(message) {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && vrApp) {
     // Pause or reduce activity when page is hidden
-    console.log('Page hidden - reducing activity');
+    console.debug('Page hidden - reducing activity');
   } else if (vrApp) {
     // Resume when page is visible
-    console.log('Page visible - resuming activity');
+    console.debug('Page visible - resuming activity');
   }
 });
 
@@ -195,6 +215,9 @@ window.addEventListener('beforeunload', () => {
   if (vrApp) {
     vrApp.dispose();
     vrApp = null;
+  }
+  if (perfIntervalId) {
+    clearInterval(perfIntervalId); perfIntervalId = null;
   }
 });
 

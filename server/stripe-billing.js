@@ -194,16 +194,16 @@ router.post('/create-checkout-session', async (req, res) => {
     // if (existingCustomer && existingCustomer.stripeCustomerId) {
     //   customerId = existingCustomer.stripeCustomerId;
     // } else {
-      const customer = await stripe.customers.create({
-        email: req.body.email,
-        metadata: {
-          userId: userId
-        }
-      });
-      customerId = customer.id;
+    const customer = await stripe.customers.create({
+      email: req.body.email,
+      metadata: {
+        userId: userId
+      }
+    });
+    customerId = customer.id;
 
-      // データベースに保存
-      // await db.users.update({ userId }, { stripeCustomerId: customerId });
+    // データベースに保存
+    // await db.users.update({ userId }, { stripeCustomerId: customerId });
     // }
 
     // Checkout Session作成
@@ -279,13 +279,18 @@ router.get('/subscription/:userId', async (req, res) => {
     // const subscription = subscriptions.data[0];
     // const planId = subscription.metadata.planId || 'free';
 
-    // 仮のレスポンス
+    // NOTE: no database is wired up yet (see commented-out calls above), so
+    // there is no way to look up a real subscription for this user. Defaulting
+    // to 'free'/'inactive' here (rather than fabricating an 'active premium'
+    // response) means a caller that skips checking `status` still can't be
+    // tricked into granting paid features — the same "safe empty result beats
+    // a fake one" principle used for the AI recommendation placeholders.
     res.json({
-      plan: 'premium_monthly',
-      status: 'active',
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      plan: 'free',
+      status: 'inactive',
+      currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
-      features: PRICING_PLANS['premium_monthly'].features
+      features: PRICING_PLANS.free.features
     });
 
   } catch (error) {
@@ -300,18 +305,19 @@ router.get('/subscription/:userId', async (req, res) => {
  */
 router.post('/create-portal-session', async (req, res) => {
   try {
-    const { userId, returnUrl } = req.body;
+    // No database is wired up yet (see the commented-out lookups throughout
+    // this file), so there is no userId -> Stripe customer id mapping to
+    // resolve server-side. Rather than falling back to a fake customer id
+    // (which would either fail with a confusing Stripe error, or worse,
+    // silently create a portal session for an unrelated real customer that
+    // happens to share that id in a test/sandbox account), the caller must
+    // supply the real Stripe customer id directly. A future database layer
+    // would resolve userId -> customerId before this same validation.
+    const { customerId, returnUrl } = req.body;
 
-    // データベースからStripe Customer ID取得
-    // const user = await db.users.findOne({ userId });
-    // if (!user || !user.stripeCustomerId) {
-    //   return res.status(404).json({ error: 'No subscription found' });
-    // }
-
-    // const customerId = user.stripeCustomerId;
-
-    // 仮のカスタマーID (実際にはDBから取得)
-    const customerId = 'cus_example';
+    if (!customerId || !/^cus_/.test(customerId)) {
+      return res.status(400).json({ error: 'A valid Stripe customerId is required' });
+    }
 
     // Customer Portal Session作成
     const session = await stripe.billingPortal.sessions.create({
@@ -399,32 +405,32 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   // イベント処理
   try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object);
-        break;
+    case 'checkout.session.completed':
+      await handleCheckoutCompleted(event.data.object);
+      break;
 
-      case 'customer.subscription.created':
-        await handleSubscriptionCreated(event.data.object);
-        break;
+    case 'customer.subscription.created':
+      await handleSubscriptionCreated(event.data.object);
+      break;
 
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object);
-        break;
+    case 'customer.subscription.updated':
+      await handleSubscriptionUpdated(event.data.object);
+      break;
 
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object);
-        break;
+    case 'customer.subscription.deleted':
+      await handleSubscriptionDeleted(event.data.object);
+      break;
 
-      case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(event.data.object);
-        break;
+    case 'invoice.payment_succeeded':
+      await handlePaymentSucceeded(event.data.object);
+      break;
 
-      case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object);
-        break;
+    case 'invoice.payment_failed':
+      await handlePaymentFailed(event.data.object);
+      break;
 
-      default:
-        console.log(`[Stripe] Unhandled event type: ${event.type}`);
+    default:
+      console.log(`[Stripe] Unhandled event type: ${event.type}`);
     }
 
     res.json({ received: true });
@@ -567,7 +573,14 @@ function checkFeatureAccess(featureName) {
       // サブスクリプション情報取得
       // const user = await db.users.findOne({ userId });
       // const planId = user.planId || 'free';
-      const planId = 'premium_monthly'; // 仮
+      //
+      // No database is wired up yet, so there is no real plan to look up.
+      // This MUST default to 'free' (fail-safe/fail-closed), not a paid plan
+      // — hardcoding a paid tier here would silently grant every
+      // authenticated user premium access to every gated feature the moment
+      // real auth middleware sets req.user, regardless of whether they ever
+      // paid. Wire in the real lookup above before using this in production.
+      const planId = 'free';
 
       const plan = Object.values(PRICING_PLANS).find(p => p.id === planId);
 

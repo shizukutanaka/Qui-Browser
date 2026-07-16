@@ -1,8 +1,11 @@
 /**
- * WebGPU Renderer - Next-generation GPU API
- * 30-50% performance improvement over WebGL
+ * WebGPU Renderer — EXPERIMENTAL
  *
- * John Carmack principle: Always bet on the future of hardware
+ * Status: Experimental. WebGPU adapter/device initialization is implemented
+ * but the uniform buffer write path (updateUniforms / per-frame data upload)
+ * is not yet complete. Do not enable in production without further validation.
+ *
+ * Enable via: VRApp.settings.enableWebGPU = true  (default: false)
  */
 
 export class WebGPURenderer {
@@ -75,25 +78,28 @@ export class WebGPURenderer {
         requiredFeatures.push('timestamp-query');
       }
 
+      // Cap each limit to what the adapter actually supports; requesting more
+      // than the hardware limit causes requestDevice() to throw.
+      const lim = this.adapter.limits;
       this.device = await this.adapter.requestDevice({
         requiredFeatures,
         requiredLimits: {
-          maxTextureDimension2D: 8192,
-          maxTextureDimension3D: 2048,
-          maxTextureArrayLayers: 2048,
-          maxBindGroups: 4,
-          maxDynamicUniformBuffersPerPipelineLayout: 8,
-          maxDynamicStorageBuffersPerPipelineLayout: 4,
-          maxSampledTexturesPerShaderStage: 16,
-          maxSamplersPerShaderStage: 16,
-          maxStorageBuffersPerShaderStage: 8,
-          maxStorageTexturesPerShaderStage: 4,
-          maxUniformBuffersPerShaderStage: 12,
-          maxUniformBufferBindingSize: 65536,
-          maxStorageBufferBindingSize: 134217728,
-          maxVertexBuffers: 8,
-          maxVertexAttributes: 16,
-          maxVertexBufferArrayStride: 2048
+          maxTextureDimension2D: Math.min(8192, lim.maxTextureDimension2D),
+          maxTextureDimension3D: Math.min(2048, lim.maxTextureDimension3D),
+          maxTextureArrayLayers: Math.min(2048, lim.maxTextureArrayLayers),
+          maxBindGroups: Math.min(4, lim.maxBindGroups),
+          maxDynamicUniformBuffersPerPipelineLayout: Math.min(8, lim.maxDynamicUniformBuffersPerPipelineLayout),
+          maxDynamicStorageBuffersPerPipelineLayout: Math.min(4, lim.maxDynamicStorageBuffersPerPipelineLayout),
+          maxSampledTexturesPerShaderStage: Math.min(16, lim.maxSampledTexturesPerShaderStage),
+          maxSamplersPerShaderStage: Math.min(16, lim.maxSamplersPerShaderStage),
+          maxStorageBuffersPerShaderStage: Math.min(8, lim.maxStorageBuffersPerShaderStage),
+          maxStorageTexturesPerShaderStage: Math.min(4, lim.maxStorageTexturesPerShaderStage),
+          maxUniformBuffersPerShaderStage: Math.min(12, lim.maxUniformBuffersPerShaderStage),
+          maxUniformBufferBindingSize: Math.min(65536, lim.maxUniformBufferBindingSize),
+          maxStorageBufferBindingSize: Math.min(134217728, lim.maxStorageBufferBindingSize),
+          maxVertexBuffers: Math.min(8, lim.maxVertexBuffers),
+          maxVertexAttributes: Math.min(16, lim.maxVertexAttributes),
+          maxVertexBufferArrayStride: Math.min(2048, lim.maxVertexBufferArrayStride)
         }
       });
 
@@ -111,8 +117,8 @@ export class WebGPURenderer {
       // Setup default pipeline
       await this.createDefaultPipeline();
 
-      console.log('WebGPURenderer: Initialized successfully');
-      console.log('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
+      console.info('WebGPURenderer: Initialized successfully');
+      console.info('WebGPURenderer: Adapter info:', await this.adapter.requestAdapterInfo());
 
       return true;
 
@@ -138,7 +144,7 @@ export class WebGPURenderer {
       shaderF16: features.has('shader-f16')
     };
 
-    console.log('WebGPURenderer: Features detected', this.features);
+    console.info('WebGPURenderer: Features detected', this.features);
   }
 
   /**
@@ -210,7 +216,7 @@ export class WebGPURenderer {
 
         // Apply Fixed Foveated Rendering
         let screenCenter = vec2<f32>(0.5, 0.5);
-        let screenPos = fragCoord.xy / vec2<f32>(1920.0, 1080.0); // Assuming resolution
+        let screenPos = fragCoord.xy / vec2<f32>(${(this.canvas.width || 1920).toFixed(1)}, ${(this.canvas.height || 1080).toFixed(1)}); // Actual render resolution baked at pipeline creation
         let distFromCenter = distance(screenPos, screenCenter);
 
         // Reduce quality at periphery
@@ -295,9 +301,11 @@ export class WebGPURenderer {
         format: 'depth24plus'
       },
 
-      multisample: {
-        count: 4 // 4x MSAA
-      }
+      // multisample count must match the render-pass attachment textures.
+      // getCurrentTexture() returns a single-sample swapchain texture, so
+      // count: 1 (the default) is required — count: 4 would cause a
+      // GPUValidationError on every frame.
+      multisample: { count: 1 }
     });
 
     this.pipelines.set('default', pipeline);
@@ -408,7 +416,9 @@ export class WebGPURenderer {
    * Render frame
    */
   render(scene, camera) {
-    if (!this.device || !this.context) return;
+    if (!this.device || !this.context) {
+      return;
+    }
 
     this.frameStats.drawCalls = 0;
     this.frameStats.triangles = 0;
@@ -479,7 +489,7 @@ export class WebGPURenderer {
   /**
    * Render scene objects
    */
-  renderScene(renderPass, scene, camera) {
+  renderScene(_renderPass, _scene, _camera) {
     // Simplified scene rendering
     // In production, would traverse Three.js scene graph
 
@@ -543,7 +553,7 @@ export class WebGPURenderer {
       this.context.unconfigure();
     }
 
-    console.log('WebGPURenderer: Disposed');
+    console.info('WebGPURenderer: Disposed');
   }
 }
 
@@ -565,13 +575,13 @@ export class HybridRenderer {
       if (success) {
         this.renderer = webgpu;
         this.backend = 'webgpu';
-        console.log('HybridRenderer: Using WebGPU backend');
+        console.info('HybridRenderer: Using WebGPU backend');
         return true;
       }
     }
 
     // Fallback to WebGL (Three.js)
-    console.log('HybridRenderer: Falling back to WebGL');
+    console.info('HybridRenderer: Falling back to WebGL');
     this.backend = 'webgl';
 
     // Would initialize Three.js WebGLRenderer here

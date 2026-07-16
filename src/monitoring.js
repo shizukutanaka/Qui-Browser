@@ -41,7 +41,7 @@ const MONITORING_CONFIG = {
     thresholds: {
       fcp: 1800,    // First Contentful Paint (ms)
       lcp: 2500,    // Largest Contentful Paint (ms)
-      fid: 100,     // First Input Delay (ms)
+      inp: 200,     // Interaction to Next Paint (ms) — replaced FID in web-vitals v3+
       cls: 0.1,     // Cumulative Layout Shift
       ttfb: 600     // Time to First Byte (ms)
     }
@@ -57,15 +57,15 @@ const MONITORING_CONFIG = {
  */
 export async function initSentry() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.sentry.dsn) {
-    console.log('Sentry: Disabled (no DSN or not in production)');
+    console.debug('Sentry: Disabled (no DSN or not in production)');
     return null;
   }
 
   try {
     // Dynamic import to avoid loading in development
-    const Sentry = await import('@sentry/browser');
-    const { BrowserTracing } = await import('@sentry/tracing');
-    const { Replay } = await import('@sentry/replay');
+    const Sentry = await import(/* @vite-ignore */ '@sentry/browser');
+    const { BrowserTracing } = await import(/* @vite-ignore */ '@sentry/tracing');
+    const { Replay } = await import(/* @vite-ignore */ '@sentry/replay');
 
     Sentry.init({
       dsn: MONITORING_CONFIG.sentry.dsn,
@@ -74,12 +74,12 @@ export async function initSentry() {
       // Performance monitoring
       integrations: [
         new BrowserTracing({
-          tracePropagationTargets: [location.origin, /^\/api\//],
+          tracePropagationTargets: [location.origin, /^\/api\//]
         }),
         new Replay({
           maskAllText: true,
-          blockAllMedia: true,
-        }),
+          blockAllMedia: true
+        })
       ],
 
       // Sampling rates
@@ -88,7 +88,7 @@ export async function initSentry() {
       replaysOnErrorSampleRate: MONITORING_CONFIG.sentry.replaysOnErrorSampleRate,
 
       // Before send hook (sanitize sensitive data)
-      beforeSend(event, hint) {
+      beforeSend(event, _hint) {
         // Remove sensitive data
         if (event.request) {
           delete event.request.cookies;
@@ -119,7 +119,7 @@ export async function initSentry() {
       }
     });
 
-    console.log('Sentry: Initialized');
+    console.debug('Sentry: Initialized');
     return Sentry;
   } catch (error) {
     console.error('Sentry: Failed to initialize', error);
@@ -131,35 +131,42 @@ export async function initSentry() {
  * Capture custom error
  */
 export function captureError(error, context = {}) {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
-  try {
-    import('@sentry/browser').then(({ captureException }) => {
+  // A synchronous try/catch cannot catch a rejected dynamic import; attach
+  // a .catch() so a failed Sentry load is logged rather than surfacing as an
+  // unhandled promise rejection.
+  import(/* @vite-ignore */ '@sentry/browser')
+    .then(({ captureException }) => {
       captureException(error, {
         contexts: { custom: context }
       });
+    })
+    .catch((err) => {
+      console.error('Failed to capture error:', err);
     });
-  } catch (err) {
-    console.error('Failed to capture error:', err);
-  }
 }
 
 /**
  * Capture custom message
  */
 export function captureMessage(message, level = 'info', context = {}) {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
-  try {
-    import('@sentry/browser').then(({ captureMessage: sentryCapture }) => {
+  import(/* @vite-ignore */ '@sentry/browser')
+    .then(({ captureMessage: sentryCapture }) => {
       sentryCapture(message, {
         level,
         contexts: { custom: context }
       });
+    })
+    .catch((err) => {
+      console.error('Failed to capture message:', err);
     });
-  } catch (err) {
-    console.error('Failed to capture message:', err);
-  }
 }
 
 // ============================================================================
@@ -171,7 +178,7 @@ export function captureMessage(message, level = 'info', context = {}) {
  */
 export function initGoogleAnalytics() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.analytics.measurementId) {
-    console.log('GA4: Disabled (no measurement ID or not in production)');
+    console.debug('GA4: Disabled (no measurement ID or not in production)');
     return;
   }
 
@@ -184,9 +191,11 @@ export function initGoogleAnalytics() {
 
     // Initialize gtag
     window.dataLayer = window.dataLayer || [];
-    function gtag() {
+    // Function expression (not a declaration) to satisfy no-inner-declarations;
+    // gtag relies on `arguments`, so it stays a regular function.
+    const gtag = function gtag() {
       window.dataLayer.push(arguments);
-    }
+    };
     window.gtag = gtag;
 
     gtag('js', new Date());
@@ -197,7 +206,7 @@ export function initGoogleAnalytics() {
       cookie_flags: 'SameSite=None;Secure'
     });
 
-    console.log('GA4: Initialized');
+    console.debug('GA4: Initialized');
   } catch (error) {
     console.error('GA4: Failed to initialize', error);
   }
@@ -207,7 +216,9 @@ export function initGoogleAnalytics() {
  * Track custom event
  */
 export function trackEvent(eventName, parameters = {}) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) return;
+  if (!MONITORING_CONFIG.enabled || !window.gtag) {
+    return;
+  }
 
   try {
     window.gtag('event', eventName, {
@@ -223,7 +234,9 @@ export function trackEvent(eventName, parameters = {}) {
  * Track page view
  */
 export function trackPageView(path, title) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) return;
+  if (!MONITORING_CONFIG.enabled || !window.gtag) {
+    return;
+  }
 
   try {
     window.gtag('config', MONITORING_CONFIG.analytics.measurementId, {
@@ -244,22 +257,23 @@ export function trackPageView(path, title) {
  */
 export async function initWebVitals() {
   if (!MONITORING_CONFIG.performance.enabled) {
-    console.log('Web Vitals: Disabled');
+    console.debug('Web Vitals: Disabled');
     return;
   }
 
   try {
-    // Dynamic import web-vitals library
-    const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals');
+    // web-vitals v3+ API: get* was renamed to on*, and FID was replaced by
+    // INP. Bundled normally (it is a real dependency, not externalized).
+    const { onCLS, onINP, onFCP, onLCP, onTTFB } = await import('web-vitals');
 
     // Report all vitals
-    getCLS(onVitalReport);
-    getFID(onVitalReport);
-    getFCP(onVitalReport);
-    getLCP(onVitalReport);
-    getTTFB(onVitalReport);
+    onCLS(onVitalReport);
+    onINP(onVitalReport);
+    onFCP(onVitalReport);
+    onLCP(onVitalReport);
+    onTTFB(onVitalReport);
 
-    console.log('Web Vitals: Initialized');
+    console.debug('Web Vitals: Initialized');
   } catch (error) {
     console.error('Web Vitals: Failed to initialize', error);
   }
@@ -273,7 +287,7 @@ function onVitalReport(metric) {
 
   // Log to console in development
   if (!MONITORING_CONFIG.enabled) {
-    console.log(`Web Vital - ${name}:`, {
+    console.debug(`Web Vital - ${name}:`, {
       value: Math.round(value),
       rating,
       threshold: MONITORING_CONFIG.performance.thresholds[name.toLowerCase()]
@@ -386,14 +400,16 @@ export function trackInteraction(type, details = {}) {
  * Report performance summary
  */
 export function reportPerformanceSummary() {
-  if (!MONITORING_CONFIG.enabled) return;
+  if (!MONITORING_CONFIG.enabled) {
+    return;
+  }
 
   const summary = {
     avgFPS: calculateAverage(performanceMetrics.fps.map(m => m.value)),
-    minFPS: Math.min(...performanceMetrics.fps.map(m => m.value)),
-    maxFPS: Math.max(...performanceMetrics.fps.map(m => m.value)),
+    minFPS: performanceMetrics.fps.length > 0 ? Math.min(...performanceMetrics.fps.map(m => m.value)) : 0,
+    maxFPS: performanceMetrics.fps.length > 0 ? Math.max(...performanceMetrics.fps.map(m => m.value)) : 0,
     avgMemory: calculateAverage(performanceMetrics.memory.map(m => m.value)),
-    maxMemory: Math.max(...performanceMetrics.memory.map(m => m.value)),
+    maxMemory: performanceMetrics.memory.length > 0 ? Math.max(...performanceMetrics.memory.map(m => m.value)) : 0,
     interactionCount: performanceMetrics.interactions.length,
     sessionDuration: Date.now() - (performanceMetrics.fps[0]?.timestamp || Date.now())
   };
@@ -407,7 +423,9 @@ export function reportPerformanceSummary() {
  * Calculate average
  */
 function calculateAverage(values) {
-  if (values.length === 0) return 0;
+  if (values.length === 0) {
+    return 0;
+  }
   return values.reduce((sum, val) => sum + val, 0) / values.length;
 }
 
@@ -446,11 +464,19 @@ export function trackVRError(error, context = {}) {
 // Initialization
 // ============================================================================
 
+// Module-level handles so initializeMonitoring() is idempotent and
+// disposeMonitoring() can clean up everything.
+let _perfIntervalId = null;
+let _listeners = null;
+
 /**
  * Initialize all monitoring systems
  */
 export async function initializeMonitoring() {
-  console.log('Monitoring: Initializing...');
+  console.debug('Monitoring: Initializing...');
+
+  // Tear down any previous registration first (idempotent re-init).
+  disposeMonitoring();
 
   // Initialize error tracking
   await initSentry();
@@ -463,27 +489,44 @@ export async function initializeMonitoring() {
 
   // Setup periodic performance reporting
   if (MONITORING_CONFIG.performance.enabled) {
-    setInterval(() => {
+    _perfIntervalId = setInterval(() => {
       reportPerformanceSummary();
     }, MONITORING_CONFIG.performance.reportInterval);
   }
 
-  // Setup visibility change handler
-  document.addEventListener('visibilitychange', () => {
+  const onVisibility = () => {
     if (document.hidden) {
       trackEvent('session_backgrounded');
     } else {
       trackEvent('session_resumed');
     }
-  });
+  };
 
-  // Setup unload handler
-  window.addEventListener('beforeunload', () => {
+  const onUnload = () => {
     reportPerformanceSummary();
     trackEvent('session_ended');
-  });
+  };
 
-  console.log('Monitoring: Initialized successfully');
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('beforeunload', onUnload);
+  _listeners = { onVisibility, onUnload };
+
+  console.debug('Monitoring: Initialized successfully');
+}
+
+/**
+ * Tear down all monitoring side-effects (interval + event listeners).
+ */
+export function disposeMonitoring() {
+  if (_perfIntervalId !== null) {
+    clearInterval(_perfIntervalId);
+    _perfIntervalId = null;
+  }
+  if (_listeners) {
+    document.removeEventListener('visibilitychange', _listeners.onVisibility);
+    window.removeEventListener('beforeunload', _listeners.onUnload);
+    _listeners = null;
+  }
 }
 
 // ============================================================================
@@ -492,6 +535,7 @@ export async function initializeMonitoring() {
 
 export default {
   init: initializeMonitoring,
+  dispose: disposeMonitoring,
   captureError,
   captureMessage,
   trackEvent,

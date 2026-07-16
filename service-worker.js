@@ -22,33 +22,27 @@
  * - Install prompt
  * - Update notification
  *
- * @version 3.7.1
+ * @version 2.0.0
  * @author Qui Browser Team
  * @license MIT
  */
 
-const CACHE_VERSION = 'v3.7.1';
+const CACHE_VERSION = 'v2.0.0';
 const CACHE_STATIC = `qui-browser-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `qui-browser-dynamic-${CACHE_VERSION}`;
 const CACHE_MEDIA = `qui-browser-media-${CACHE_VERSION}`;
 
-// Static assets to cache on install
+// Static assets to cache on install.
+// Vite hashes JS/CSS chunk names at build time, so only path-stable assets
+// (HTML shell, manifest, icons, offline fallback) are listed here.
+// Hashed chunks are cached at runtime by the fetch handler below.
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/assets/css/main.css',
-  '/assets/js/vr-webgpu-renderer.js',
-  '/assets/js/vr-foveated-rendering.js',
-  '/assets/js/vr-accessibility-wcag.js',
-  '/assets/js/vr-i18n-system.js',
-  '/assets/js/vr-voice-commands-i18n.js',
-  '/assets/js/vr-memory-manager.js',
-  '/assets/js/vr-security-manager.js',
-  '/assets/images/icon-192.png',
-  '/assets/images/icon-512.png',
-  '/assets/images/logo.png',
-  '/offline.html' // Offline fallback page
+  '/assets/icons/icon-192.png',
+  '/assets/icons/icon-512.png',
+  '/offline.html'
 ];
 
 // Maximum cache sizes
@@ -74,7 +68,16 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_STATIC).then((cache) => {
       console.log('[ServiceWorker] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
+      // Cache assets individually so one missing/404 asset does not reject
+      // the entire install (cache.addAll is atomic and would leave the SW
+      // with no precache, breaking offline support entirely).
+      return Promise.allSettled(
+        STATIC_ASSETS.map((url) =>
+          cache.add(url).catch((error) => {
+            console.warn('[ServiceWorker] Skipped uncacheable asset:', url, error);
+          })
+        )
+      );
     }).then(() => {
       console.log('[ServiceWorker] Static assets cached successfully');
       // Skip waiting to activate immediately
@@ -120,7 +123,24 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Determine caching strategy based on request type
+  // Only intercept same-scheme GET requests. Non-GET methods (POST/PUT/...)
+  // cannot be stored with cache.put — it throws — and non-http(s) schemes
+  // such as chrome-extension: or data: must not be intercepted at all.
+  // Returning without respondWith lets the browser handle them normally.
+  if (request.method !== 'GET' ||
+      (url.protocol !== 'http:' && url.protocol !== 'https:')) {
+    return;
+  }
+
+  // Navigation requests (SPA page loads) always go network-first so the
+  // browser gets a fresh shell.  request.mode === 'navigate' is the
+  // spec-compliant way to detect these, more reliable than path heuristics.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, CACHE_DYNAMIC));
+    return;
+  }
+
+  // Determine caching strategy based on asset type
   if (isStaticAsset(url)) {
     // Static assets: Cache-first
     event.respondWith(cacheFirst(request, CACHE_STATIC));
@@ -129,9 +149,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirstMedia(request, CACHE_MEDIA));
   } else if (isAPICall(url)) {
     // API calls: Network-first
-    event.respondWith(networkFirst(request, CACHE_DYNAMIC));
-  } else if (isHTMLPage(url)) {
-    // HTML pages: Network-first
     event.respondWith(networkFirst(request, CACHE_DYNAMIC));
   } else {
     // Default: Network-first with fallback
@@ -147,11 +164,14 @@ async function cacheFirst(request, cacheName) {
     // Try cache first
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
-      // Check cache age
-      const cacheDate = new Date(cachedResponse.headers.get('date'));
-      const age = Date.now() - cacheDate.getTime();
+      // Check cache age. A missing/invalid 'date' header yields NaN; treat
+      // that as "unknown age" and fall through to a network refresh rather
+      // than serving a possibly-stale entry.
+      const dateHeader = cachedResponse.headers.get('date');
+      const cacheTime = dateHeader ? new Date(dateHeader).getTime() : NaN;
+      const age = Date.now() - cacheTime;
 
-      if (age < MAX_CACHE_AGE.static) {
+      if (!Number.isNaN(age) && age < MAX_CACHE_AGE.static) {
         console.log('[ServiceWorker] Serving from cache:', request.url);
         return cachedResponse;
       }
@@ -211,8 +231,10 @@ async function networkFirst(request, cacheName) {
       return cachedResponse;
     }
 
-    // Return offline page for HTML requests
-    if (request.headers.get('accept').includes('text/html')) {
+    // Return offline page for HTML requests. The Accept header can be null
+    // for some GET requests, so guard before calling .includes().
+    const acceptHeader = request.headers.get('accept') || '';
+    if (acceptHeader.includes('text/html')) {
       return caches.match('/offline.html');
     }
 
@@ -402,8 +424,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'New notification from Qui Browser VR',
-    icon: '/assets/images/icon-192.png',
-    badge: '/assets/images/badge-72.png',
+    icon: '/assets/icons/icon-192.png',
+    badge: '/assets/icons/icon-96.png',
     vibrate: [200, 100, 200],
     data: data,
     actions: [

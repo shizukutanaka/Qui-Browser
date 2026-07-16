@@ -1,0 +1,245 @@
+/**
+ * Unit tests for TabManager (FR-1.3).
+ * THREE and WebPanel are mocked so the pure tab-lifecycle logic can be
+ * exercised without a WebGL context or real iframes.
+ */
+
+// ── THREE stub ────────────────────────────────────────────────────────────────
+class MockGroup {
+  constructor() {
+    this.position = { set: jest.fn() };
+    this._objects = [];
+  }
+  add(o) { this._objects.push(o); }
+  remove(o) { this._objects = this._objects.filter(x => x !== o); }
+  traverse(fn) { this._objects.forEach(fn); fn(this); }
+}
+class MockMesh {
+  constructor() {
+    this.name = '';
+    this.position = { set: jest.fn() };
+  }
+  worldToLocal(v) { return v; }
+}
+jest.mock('three', () => ({
+  Group: MockGroup,
+  Mesh: MockMesh,
+  PlaneGeometry: class { dispose() {} },
+  MeshBasicMaterial: class { dispose() {} },
+  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+}));
+
+// ── WebPanel stub ─────────────────────────────────────────────────────────────
+const panelInstances = [];
+jest.mock('../src/vr/browser/WebPanel.js', () => ({
+  WebPanel: class {
+    constructor(opts) {
+      this.opts = opts;
+      this.currentUrl = '';
+      this.group = { position: { set: jest.fn() } };
+      this.visible = false;
+      this.disposed = false;
+      this.curved = false;
+      panelInstances.push(this);
+    }
+    addToScene() {}
+    navigate(url) { this.currentUrl = url; }
+    show() { this.visible = true; }
+    hide() { this.visible = false; }
+    setCurved(v) { this.curved = !!v; }
+    dispose() { this.disposed = true; }
+  }
+}));
+
+// ── document/canvas stub ────────────────────────────────────────────────────────
+global.document = {
+  createElement: () => ({
+    width: 0, height: 0,
+    getContext: () => ({
+      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
+      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+    })
+  })
+};
+global.URL = URL;
+
+const { TabManager } = require('../src/vr/browser/TabManager.js');
+
+function makeManager() {
+  return new TabManager({
+    scene: { add: jest.fn(), remove: jest.fn() },
+    registerInteractable: jest.fn(),
+    unregisterInteractable: jest.fn(),
+    onNavigate: jest.fn()
+  });
+}
+
+describe('TabManager (FR-1.3)', () => {
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('starts with zero tabs', () => {
+    const tm = makeManager();
+    expect(tm.count).toBe(0);
+    expect(tm.getActiveTab()).toBeNull();
+  });
+
+  test('newTab() creates and activates a tab', () => {
+    const tm = makeManager();
+    const panel = tm.newTab();
+    expect(tm.count).toBe(1);
+    expect(tm.getActiveTab()).toBe(panel);
+    expect(panel.visible).toBe(true);
+  });
+
+  test('newTab(url) navigates the new tab', () => {
+    const tm = makeManager();
+    const panel = tm.newTab('https://example.com');
+    expect(panel.currentUrl).toBe('https://example.com');
+  });
+
+  test('opening a second tab hides the first', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    const b = tm.newTab();
+    expect(a.visible).toBe(false);
+    expect(b.visible).toBe(true);
+    expect(tm.getActiveTab()).toBe(b);
+  });
+
+  test('setActive() switches the visible tab', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    tm.newTab();
+    tm.setActive(0);
+    expect(a.visible).toBe(true);
+    expect(tm.getActiveTab()).toBe(a);
+  });
+
+  test('closeTab() disposes the panel and removes it', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    tm.closeTab(0);
+    expect(a.disposed).toBe(true);
+    expect(tm.count).toBe(0);
+  });
+
+  test('closing the active tab activates a neighbour', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    const b = tm.newTab(); // active
+    tm.closeTab(1);        // close active (b)
+    expect(b.disposed).toBe(true);
+    expect(tm.getActiveTab()).toBe(a);
+    expect(a.visible).toBe(true);
+  });
+
+  test('does not exceed MAX_TABS (8)', () => {
+    const tm = makeManager();
+    for (let i = 0; i < 10; i++) tm.newTab();
+    expect(tm.count).toBe(8);
+  });
+
+  test('fires onMaxTabsReached when newTab() is blocked (WCAG 4.1.3)', () => {
+    const onMaxTabsReached = jest.fn();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn(),
+      onMaxTabsReached
+    });
+    for (let i = 0; i < 8; i++) tm.newTab();
+    expect(onMaxTabsReached).not.toHaveBeenCalled();
+
+    const blocked = tm.newTab();
+
+    expect(blocked).toBeNull();
+    expect(onMaxTabsReached).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not throw when onMaxTabsReached is omitted and the cap is hit', () => {
+    const tm = makeManager(); // no onMaxTabsReached in opts
+    for (let i = 0; i < 8; i++) tm.newTab();
+    expect(() => tm.newTab()).not.toThrow();
+  });
+
+  test('dispose() disposes all tabs', () => {
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab();
+    const panels = [...panelInstances];
+    tm.dispose();
+    expect(panels.every(p => p.disposed)).toBe(true);
+    expect(tm.count).toBe(0);
+  });
+
+  test('setCurved() applies to every open tab', () => {
+    const tm = makeManager();
+    const a = tm.newTab();
+    const b = tm.newTab();
+    tm.setCurved(true);
+    expect(a.curved).toBe(true);
+    expect(b.curved).toBe(true);
+  });
+
+  test('new tabs inherit the curved preference', () => {
+    const tm = makeManager();
+    tm.setCurved(true);
+    const panel = tm.newTab();
+    expect(panel.curved).toBe(true);
+  });
+
+  test('_onStripSelect accepts the controller/gaze event format { intersection: { point } }', () => {
+    // Controllers and gaze both call onSelect({ intersection: hit, ... }).
+    // _onStripSelect must extract hit.point rather than calling .clone() on the
+    // wrapper directly (which has no .clone() method).
+    const tm = makeManager();
+    tm.newTab(); // need at least one tab so a click on a tab row does something
+
+    // A hit in the centre-left area (x slightly negative → first tab zone)
+    const fakePoint = { x: -0.5, y: 0, clone() { return this; } };
+    expect(() => tm._onStripSelect({ intersection: { point: fakePoint }, controller: {} })).not.toThrow();
+  });
+
+  test('_onStripSelect with direct Vector3 arg still works (regression)', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const fakePoint = { x: 0, y: 0, clone() { return this; } };
+    expect(() => tm._onStripSelect(fakePoint)).not.toThrow();
+  });
+
+  describe('grab-to-move passthrough', () => {
+    test('onGrabRequested is forwarded to every WebPanel', () => {
+      const onGrabRequested = jest.fn();
+      const tm = new TabManager({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        onNavigate: jest.fn(),
+        onGrabRequested
+      });
+      const panel = tm.newTab();
+      expect(panel.opts.onGrabRequested).toBe(onGrabRequested);
+    });
+
+    test('onMoveBarHoverCaption is forwarded to every WebPanel', () => {
+      const onMoveBarHoverCaption = jest.fn();
+      const tm = new TabManager({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        onNavigate: jest.fn(),
+        onMoveBarHoverCaption
+      });
+      const panel = tm.newTab();
+      expect(panel.opts.onMoveBarHoverCaption).toBe(onMoveBarHoverCaption);
+    });
+
+    test('both default to null when not provided', () => {
+      const tm = makeManager();
+      const panel = tm.newTab();
+      expect(panel.opts.onGrabRequested).toBeNull();
+      expect(panel.opts.onMoveBarHoverCaption).toBeNull();
+    });
+  });
+});
