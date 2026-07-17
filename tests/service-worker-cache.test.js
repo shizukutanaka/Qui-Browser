@@ -95,3 +95,28 @@ describe('networkFirst — bounds RUNTIME_CACHE after caching a response', () =>
     expect(urls).not.toContain('https://x/0');
   });
 });
+
+// The SW must work whether the app is served at the domain root or under a
+// subpath (GitHub Pages /Qui-Browser/). BASE is derived from where the worker
+// itself is served, and the precache list is resolved against it. With no
+// self.location in the test env, BASE defends to '/'.
+describe('BASE-relative precache (subpath deploy support)', () => {
+  const { BASE, CRITICAL_ASSETS } = sw;
+
+  test('BASE falls back to "/" without a self.location', () => {
+    expect(BASE).toBe('/');
+  });
+
+  test('critical assets are the app shell, resolved against BASE', () => {
+    expect(CRITICAL_ASSETS).toEqual([
+      '/', '/index.html', '/manifest.json', '/offline.html'
+    ]);
+  });
+
+  test('no dead /src/*.js or CDN entries remain (they never existed in the build)', () => {
+    for (const asset of CRITICAL_ASSETS) {
+      expect(asset).not.toMatch(/\/src\//);
+      expect(asset).not.toMatch(/^https?:\/\//);
+    }
+  });
+});

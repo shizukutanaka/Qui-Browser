@@ -10,7 +10,12 @@ import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   root: '.',
-  base: '/',
+  // Base public path. Defaults to '/' (root-served: local dev, Netlify,
+  // Vercel, custom domain). GitHub Pages serves under a repo subpath
+  // (https://<user>.github.io/Qui-Browser/), so the Pages workflow sets
+  // BASE_PATH=/Qui-Browser/ for that build only — keeping every other
+  // target root-served and unaffected.
+  base: process.env.BASE_PATH || '/',
   publicDir: 'public',
 
   build: {
