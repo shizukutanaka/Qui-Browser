@@ -111,6 +111,8 @@ export class WebPanel {
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
     this.quadLayer    = null;
     this.layersSystem = null;
+    this._layerId     = null;  // LayersSystem key for this panel's quad layer
+    this._onLayerDetach = null; // callback to release the native layer on close
     this._layerDirty  = false; // set true whenever chromeCanvas changes
 
     // Curved-screen state (Quest-style). Off = flat plane content area.
@@ -489,13 +491,20 @@ export class WebPanel {
    *
    * @param {XRQuadLayer}  quadLayer     — layer created by LayersSystem
    * @param {LayersSystem} layersSystem  — the owning LayersSystem instance
+   * @param {string}       [layerId]     — LayersSystem key for this layer, so
+   *   disableLayerMode() can release exactly this panel's layer on close.
+   * @param {Function}     [onDetach]    — called with (layerId) when the layer
+   *   should be released; the host (VRApp) supplies the session/base-layer
+   *   knowledge to re-commit the render state (WebPanel stays XR-session-agnostic).
    */
-  enableLayerMode(quadLayer, layersSystem) {
+  enableLayerMode(quadLayer, layersSystem, layerId = null, onDetach = null) {
     if (!quadLayer || !layersSystem) {
       return;
     }
     this.quadLayer    = quadLayer;
     this.layersSystem = layersSystem;
+    this._layerId     = layerId;
+    this._onLayerDetach = typeof onDetach === 'function' ? onDetach : null;
     // Hide the Three.js chrome mesh — the runtime composites the layer instead.
     if (this.chromeMesh) {
       this.chromeMesh.visible = false;
@@ -503,13 +512,29 @@ export class WebPanel {
     this._layerDirty = true;
   }
 
-  /** Revert to the standard Three.js mesh path (e.g. on session end). */
-  disableLayerMode() {
+  /**
+   * Revert to the standard Three.js mesh path.
+   *
+   * @param {boolean} [releaseLayer=true] — when true (a tab closed / panel
+   *   disposed during a live session), release the native XRQuadLayer via the
+   *   detach callback so it doesn't leak: without this the layer stayed
+   *   registered in LayersSystem._layers AND in the committed render state,
+   *   compositing a frozen "ghost chrome bar" and holding its GPU texture for
+   *   the rest of the session, compounding per closed tab. Session-end teardown
+   *   passes false — LayersSystem.dispose() clears the whole stack in one shot,
+   *   and calling session.updateRenderState() on an ending session throws.
+   */
+  disableLayerMode(releaseLayer = true) {
     if (this.chromeMesh) {
       this.chromeMesh.visible = true;
     }
+    if (releaseLayer && this._onLayerDetach && this._layerId) {
+      this._onLayerDetach(this._layerId);
+    }
     this.quadLayer    = null;
     this.layersSystem = null;
+    this._layerId     = null;
+    this._onLayerDetach = null;
   }
 
   /**

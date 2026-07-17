@@ -317,6 +317,64 @@ describe('WebPanel dispose() detaches iframe onload/onerror', () => {
   });
 });
 
+// ── FR-1.5 native quad-layer release on close ────────────────────────────────
+// Regression: disableLayerMode() previously just nulled the panel's own
+// quadLayer/layersSystem references and never released the native XRQuadLayer
+// through LayersSystem.removeLayer(). Closing a tab mid-session (closeTab →
+// dispose → disableLayerMode) therefore left the layer registered and
+// composited as a frozen "ghost chrome bar", holding its GPU texture for the
+// rest of the session (compounding per closed tab).
+describe('WebPanel quad-layer release on close (FR-1.5)', () => {
+  const fakeLayer = { transform: null };
+  const fakeLayersSystem = { renderCanvasToLayer: jest.fn() };
+
+  test('enableLayerMode stores the layer id and detach callback', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode(fakeLayer, fakeLayersSystem, 'panel_chrome_0', onDetach);
+    expect(p.quadLayer).toBe(fakeLayer);
+    expect(p._layerId).toBe('panel_chrome_0');
+  });
+
+  test('disableLayerMode() releases the layer via the detach callback (tab close, live session)', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode(fakeLayer, fakeLayersSystem, 'panel_chrome_2', onDetach);
+
+    p.disableLayerMode(); // default releaseLayer=true
+
+    expect(onDetach).toHaveBeenCalledWith('panel_chrome_2');
+    expect(p.quadLayer).toBeNull();
+    expect(p._layerId).toBeNull();
+  });
+
+  test('disableLayerMode(false) does NOT release the layer (session-end bulk teardown)', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode(fakeLayer, fakeLayersSystem, 'panel_chrome_1', onDetach);
+
+    p.disableLayerMode(false);
+
+    expect(onDetach).not.toHaveBeenCalled();
+    expect(p.quadLayer).toBeNull(); // references still cleared
+  });
+
+  test('dispose() (the tab-close path) releases the layer', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode(fakeLayer, fakeLayersSystem, 'panel_chrome_3', onDetach);
+
+    p.dispose();
+
+    expect(onDetach).toHaveBeenCalledWith('panel_chrome_3');
+  });
+
+  test('disableLayerMode() is a safe no-op when layer mode was never enabled', () => {
+    const p = makePanel();
+    expect(() => p.disableLayerMode()).not.toThrow();
+  });
+});
+
 // ── URL bar truncation ──────────────────────────────────────────────────────
 describe('urlBarMaxChars — URL bar character budget', () => {
   test('returns a positive integer glyph count', () => {

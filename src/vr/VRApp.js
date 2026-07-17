@@ -2652,7 +2652,10 @@ export class VRApp {
         ? this.tabManager.tabs
         : (this.webPanel ? [this.webPanel] : []);
       for (const panel of panels) {
-        panel.disableLayerMode();
+        // false: don't re-commit render state per panel — dispose() below
+        // clears the whole stack, and updateRenderState() on an ending
+        // session throws.
+        panel.disableLayerMode(false);
       }
       this.layersSystem.dispose();
       this.layersSystem = null;
@@ -2697,8 +2700,9 @@ export class VRApp {
 
     for (let i = 0; i < panels.length; i++) {
       const panel = panels[i];
+      const layerId = `panel_chrome_${i}`;
       const quadLayer = this.layersSystem.createQuadLayer({
-        id    : `panel_chrome_${i}`,
+        id    : layerId,
         space : refSpace,
         // Chrome bar: same physical dimensions as the Three.js chromeMesh
         // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
@@ -2708,7 +2712,10 @@ export class VRApp {
         pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
       });
       if (quadLayer) {
-        panel.enableLayerMode(quadLayer, this.layersSystem);
+        // Pass the id + a detach callback so closing this tab mid-session
+        // releases exactly its layer (see _detachPanelLayer).
+        panel.enableLayerMode(quadLayer, this.layersSystem, layerId,
+          (id) => this._detachPanelLayer(id));
       }
     }
 
@@ -2718,6 +2725,30 @@ export class VRApp {
       : null;
     this.layersSystem.updateRenderState(session, baseLayer);
     console.debug(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
+  }
+
+  /**
+   * Release a single panel's XRQuadLayer mid-session (invoked when a tab is
+   * closed, via WebPanel.disableLayerMode()'s detach callback). Reads the live
+   * session + base layer so LayersSystem.removeLayer() can re-commit the render
+   * state WITHOUT the closed tab's layer — otherwise the native layer stayed
+   * registered in LayersSystem._layers and in the committed render state,
+   * compositing a frozen "ghost chrome bar" and holding its GPU texture for the
+   * rest of the session (compounding per closed tab). Session-end teardown does
+   * NOT route through here — it bulk-disposes the whole LayersSystem instead.
+   * @param {string} layerId
+   */
+  _detachPanelLayer(layerId) {
+    if (!this.layersSystem) {
+      return;
+    }
+    const session = this.renderer.xr.getSession
+      ? this.renderer.xr.getSession()
+      : null;
+    const baseLayer = this.renderer.xr.getBaseLayer
+      ? this.renderer.xr.getBaseLayer()
+      : null;
+    this.layersSystem.removeLayer(layerId, session, baseLayer);
   }
 
   /**

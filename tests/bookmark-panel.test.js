@@ -236,6 +236,62 @@ describe('BookmarkPanel', () => {
     p.dispose();
     expect(unreg).toHaveBeenCalled();
   });
+
+  // Regression: scrollOffset was only clamped inside the deleteRow case (the
+  // panel's own ✕ button). Bookmarks removed through a path this panel never
+  // sees — the chrome-bar ★ button calls BookmarkStore.removeBookmark directly
+  // (VRApp wires WebPanel.onToggleBookmark → this.bookmarks.toggleBookmark) —
+  // left a stale offset that sliced an empty window: a blank page whose rows
+  // were all dead clicks, recoverable only via the up-arrow or a tab switch.
+  describe('scrollOffset clamps against external bookmark removal', () => {
+    // A mutable store so the test can shrink the list mid-session, exactly as
+    // the chrome-bar ★ button does (removeBookmark on the shared store).
+    function makeMutableStore(bookmarks) {
+      return {
+        getBookmarks: () => bookmarks,
+        getHistory: () => [],
+        removeBookmark: (url) => {
+          const i = bookmarks.findIndex(b => b.url === url);
+          if (i >= 0) bookmarks.splice(i, 1);
+        }
+      };
+    }
+
+    test('_draw() clamps a now-out-of-range offset back into the shrunk list', () => {
+      const marks = Array.from({ length: VISIBLE_ROWS + 5 }, (_, i) => ({ url: `https://s${i}.example` }));
+      const p = makePanel(makeMutableStore(marks));
+      p.show();
+      p.scrollOffset = VISIBLE_ROWS; // scrolled to a later page
+      // Externally remove everything but 2 bookmarks (chrome-bar ★ path).
+      marks.length = 2;
+      p._draw();
+      expect(p.scrollOffset).toBe(0); // clamped: max(0, 2 - VISIBLE_ROWS) === 0
+    });
+
+    test('a row click after an external shrink still hits a real, surviving row', () => {
+      const onSelect = jest.fn();
+      const marks = Array.from({ length: VISIBLE_ROWS + 5 }, (_, i) => ({ url: `https://s${i}.example` }));
+      const p = makePanel(makeMutableStore(marks), onSelect);
+      p.show();
+      p.scrollOffset = VISIBLE_ROWS; // page 2
+      // Shrink to a single surviving bookmark without any redraw yet.
+      marks.length = 1;
+      // Click the first visible row — pre-fix this sliced an empty window and
+      // the click resolved to nothing (onSelect never fired).
+      MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+      p._onSelect({ clone() { return MockMesh._nextLocal; } });
+      expect(onSelect).toHaveBeenCalledWith('https://s0.example');
+    });
+
+    test('offset is left untouched while the list still fills past the offset', () => {
+      const marks = Array.from({ length: VISIBLE_ROWS + 5 }, (_, i) => ({ url: `https://s${i}.example` }));
+      const p = makePanel(makeMutableStore(marks));
+      p.show();
+      p.scrollOffset = 2;
+      p._draw();
+      expect(p.scrollOffset).toBe(2); // still room to scroll — no clamp needed
+    });
+  });
 });
 
 describe('BookmarkPanel — large-text physical scaling', () => {
