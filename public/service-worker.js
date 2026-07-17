@@ -8,23 +8,24 @@
 const CACHE_VERSION = 'qui-browser-v2.0.0';
 const RUNTIME_CACHE = 'qui-browser-runtime';
 
-// Critical assets that must be cached for offline support
-const CRITICAL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/src/app.js',
-  '/src/vr/VRApp.js',
-  '/src/vr/rendering/FFRSystem.js',
-  '/src/vr/comfort/ComfortSystem.js',
-  '/src/utils/ObjectPool.js',
-  '/src/utils/TextureManager.js',
+// App base path, derived from where this worker is served. When the app is at
+// the domain root this is '/'; under a subpath (GitHub Pages
+// /Qui-Browser/service-worker.js) it is '/Qui-Browser/'. Everything the worker
+// precaches or falls back to is resolved against it so caching/offline work
+// regardless of where the app is deployed.
+const BASE = ((self.location && self.location.pathname) || '/service-worker.js')
+  .replace(/service-worker\.js$/, '');
 
-  // Three.js and dependencies
-  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
-  'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/KTX2Loader.js',
-  'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/basis_transcoder.js',
-  'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/basis_transcoder.wasm'
+// Critical assets that must be cached for offline support. Kept to the app
+// shell only: the hashed JS/CSS bundles Vite emits are picked up at runtime by
+// the fetch handler (their names aren't known here), and the previous list's
+// '/src/*.js' entries never existed in the production build (Vite bundles them)
+// while the CDN Three.js URLs are unused (Three is bundled locally).
+const CRITICAL_ASSETS = [
+  BASE,
+  `${BASE}index.html`,
+  `${BASE}manifest.json`,
+  `${BASE}offline.html`
 ];
 
 // Asset patterns to cache with different strategies
@@ -317,7 +318,7 @@ async function getOfflineFallback(request) {
   // Return offline page for navigation requests
   if (request.mode === 'navigate') {
     const cache = await caches.open(CACHE_VERSION);
-    return cache.match('/offline.html') ||
+    return cache.match(`${BASE}offline.html`) ||
            new Response('Offline - Please check your connection', {
              status: 503,
              statusText: 'Service Unavailable'
@@ -469,6 +470,8 @@ if (typeof module !== 'undefined' && module.exports) {
     networkFirst,
     CACHE_LIMITS,
     RUNTIME_CACHE,
+    BASE,
+    CRITICAL_ASSETS,
     _getCacheStats: () => cacheStats
   };
 }

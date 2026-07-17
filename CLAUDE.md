@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 53: Publish Infrastructure — GitHub Pages (subpath) + Versioned Release Workflow
+Goal was "publish the finished product on GitHub." The repo had no releases/tags and a broken Pages setup (`deploy.yml` uploaded raw source instead of the built app; `release.yml` depended on the legacy `assets/js/` benchmark and deployed unbuilt source to Pages). Made the build subpath-aware and rewrote both workflows so the built app is what actually ships.
+- 🔧 **infra (Pages subpath)**: GitHub Pages serves under a repo subpath (`https://<owner>.github.io/Qui-Browser/`), so every absolute asset URL broke. `vite.config.js` `base` is now `process.env.BASE_PATH || '/'` — default `/` keeps root-served targets (local/Netlify/Vercel) unchanged; the Pages workflow sets `BASE_PATH=/Qui-Browser/` for that build only. Vite then rebases index.html's JS/CSS/favicon/manifest hrefs automatically (verified in `dist/index.html`).
+- 🐛 **fix (SW — subpath + dead precache)**: `src/main.js` registered `/service-worker.js` (absolute); now `import.meta.env.BASE_URL + 'service-worker.js'` with a matching scope. `public/service-worker.js` derives `BASE` from `self.location.pathname` (defended to `/` when absent) and resolves its precache list + offline fallback against it. Dropped the pre-existing dead precache entries (`/src/*.js` never exist in the Vite build; the CDN Three.js URLs are unused since Three is bundled) — they only ever logged install warnings. 3 new tests in `tests/service-worker-cache.test.js`.
+- 🔧 **infra (workflows)**: rewrote `.github/workflows/deploy.yml` (build → `npm test` → `npm run build` with `BASE_PATH` → `configure-pages@v5` `enablement:true` → upload `dist` → `deploy-pages@v4`) and `.github/workflows/release.yml` (on `v*.*.*` tag / dispatch → test → build → tarball `dist/` + checksum → `softprops/action-gh-release@v2` with `generate_release_notes`). Removed the fragile legacy-asset benchmark, CHANGELOG-sed extraction, and raw-source Pages deploy.
+- `public/manifest.json` `start_url`/`scope` made relative (`./`) so the PWA resolves under any base. (The manifest's install-icon entries point at `assets/icons/` which isn't in the Vite publicDir — a separate pre-existing gap, not a publish blocker; the in-`dist` favicons cover the browser tab.)
+- Total 1010 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); both the default (`/`) and Pages (`/Qui-Browser/`) builds verified green.
+
 ### Session 52: Closed Session 51's Two Deferred C-5 Sub-Bugs (Reachable Once the WebPanel Toggle Exists)
 Session 51 added a discoverable `enableWebPanel` toggle, which made two already-verified-but-previously-unreachable bugs (recorded as `docs/OUTSTANDING_ISSUES.md` C-5's remaining items) reachable by a real user for the first time. Fixed both, with regression tests verified failing pre-fix.
 - 🐛 **fix (bookmarks — stale scroll → blank page + dead clicks)**: `BookmarkPanel.scrollOffset` was only clamped inside the panel's own `deleteRow` case (the per-row ✕ button). Bookmarks removed through a path the panel never observes — the chrome-bar ★ button calls `BookmarkStore.removeBookmark` directly (`WebPanel.onToggleBookmark` → VRApp → the shared store) — left a `scrollOffset` captured against a longer list. On the next draw/click it sliced an empty window: a blank page whose rows were all dead clicks (`hitTest` sees `windowRows.length === 0`), recoverable only by walking the up-arrow or switching tabs. Added a shared `_clampScroll(rowCount)` helper routed through by **all three** paths (`_draw()`, `_onSelect()` before the hit-test slice, and the `deleteRow` case) so the draw and interaction paths can never disagree. 3 new tests (2 fail pre-fix; the "still room to scroll → no clamp" negative correctly passes either way).
@@ -571,4 +579,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 52)
+**Last Revision**: 2026-07-04 (Session 53)

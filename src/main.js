@@ -184,7 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    // Resolve against the app's base path so the SW (and its scope) work when
+    // the app is served under a subpath (e.g. GitHub Pages /Qui-Browser/), not
+    // just at the domain root. import.meta.env.BASE_URL always ends with '/'.
+    const base = import.meta.env.BASE_URL;
+    navigator.serviceWorker.register(`${base}service-worker.js`, { scope: base })
       .then(registration => {
         console.debug('Service Worker registered:', registration);
         // Periodically check for updates so long-lived sessions
