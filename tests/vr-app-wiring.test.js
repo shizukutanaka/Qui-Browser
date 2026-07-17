@@ -842,3 +842,35 @@ describe('VRApp.onTeleportEnd (refactor-preserving behavior)', () => {
     expect(app.teleport.marker.visible).toBe(false);
   });
 });
+
+// ── FR-1.5: per-panel quad-layer release on tab close ────────────────────────
+// WebPanel.disableLayerMode()'s detach callback routes here so a closed tab's
+// XRQuadLayer is actually deregistered from LayersSystem AND dropped from the
+// committed render state, using the live session + base layer.
+describe('VRApp._detachPanelLayer', () => {
+  function makeLayerApp(overrides = {}) {
+    return makeVRAppLike({
+      layersSystem: { removeLayer: jest.fn() },
+      renderer: {
+        xr: {
+          getSession: () => ({ id: 'session' }),
+          getBaseLayer: () => ({ id: 'base' })
+        }
+      },
+      ...overrides
+    });
+  }
+
+  test('removes the layer with the live session and base layer', () => {
+    const app = makeLayerApp();
+    VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_1');
+    expect(app.layersSystem.removeLayer).toHaveBeenCalledWith(
+      'panel_chrome_1', { id: 'session' }, { id: 'base' }
+    );
+  });
+
+  test('no-ops safely when layersSystem is not present (Layers unsupported)', () => {
+    const app = makeLayerApp({ layersSystem: null });
+    expect(() => VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_0')).not.toThrow();
+  });
+});

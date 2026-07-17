@@ -196,6 +196,21 @@ export class BookmarkPanel {
 
   // ── Interaction ─────────────────────────────────────────────────────────────
 
+  /**
+   * Clamp scrollOffset into [0, max(0, rowCount - VISIBLE_ROWS)].
+   *
+   * Bookmarks can be removed through paths this panel never observes (the
+   * chrome-bar ★ button calls BookmarkStore.removeBookmark directly), so a
+   * scrollOffset captured against a longer list would otherwise slice an empty
+   * window — a blank page whose rows are all dead clicks, recoverable only by
+   * walking the up-arrow or switching tabs. Both the draw path and the
+   * hit-test path clamp through here so they can never disagree.
+   * @param {number} rowCount
+   */
+  _clampScroll(rowCount) {
+    this.scrollOffset = Math.min(this.scrollOffset, Math.max(0, rowCount - VISIBLE_ROWS));
+  }
+
   _onSelect(evt) {
     // Controllers fire onSelect({ intersection: THREE.Intersection, controller })
     // and gaze fires onSelect({ intersection: hit, gaze: true }). Both wrap the
@@ -214,6 +229,10 @@ export class BookmarkPanel {
     const rows = this._rows();
     // Enable the per-row delete zone only in bookmarks mode (history is read-only).
     const deleteZone = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
+    // Re-clamp against the live row count before slicing: bookmarks may have
+    // been removed externally (chrome-bar ★) since the last draw, leaving a
+    // stale offset that would slice an empty window and dead-click every row.
+    this._clampScroll(rows.length);
     // hitTest works in visible-window coordinates: translate row index by scrollOffset.
     const windowRows = rows.slice(this.scrollOffset, this.scrollOffset + VISIBLE_ROWS);
     const action = hitTest(px, py, windowRows.length, { deleteZone, scrollZone: true });
@@ -256,8 +275,7 @@ export class BookmarkPanel {
       if (entry && entry.url) {
         this.store.removeBookmark(entry.url);
         // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
-        const newRows = this._rows();
-        this.scrollOffset = Math.min(this.scrollOffset, Math.max(0, newRows.length - VISIBLE_ROWS));
+        this._clampScroll(this._rows().length);
         this._draw();
         if (this.onDeleteBookmark) {
           this.onDeleteBookmark(entry.url);
@@ -297,6 +315,9 @@ export class BookmarkPanel {
 
     // Scroll arrows (visible only when the list is longer than one page).
     const allRows = this._rows();
+    // Clamp against the CURRENT row count so a stale offset (e.g. bookmarks
+    // removed externally via the chrome-bar ★) never renders a blank page.
+    this._clampScroll(allRows.length);
     const scrollable = allRows.length > VISIBLE_ROWS;
     const canUp   = this.scrollOffset > 0;
     const canDown = this.scrollOffset + VISIBLE_ROWS < allRows.length;
