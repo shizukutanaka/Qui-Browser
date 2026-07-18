@@ -208,6 +208,10 @@ export class VRApp {
       // forgiveness window; precision users may want a shorter one.  Exposed as a
       // live stepper so the gaze-dwell path is tunable from inside VR.
       gazeGraceTime: 300,   // ms — off-target slip tolerated before dwell resets
+      // FR-2.6: controller haptics on interactions (select, teleport, grab,
+      // voice, etc.). ON by default, but users with sensory/tactile sensitivity
+      // can turn all haptics off from the settings panel (accessibility).
+      enableHaptics: true,
       // FR-13.1: in-VR captions/subtitles for recognized speech & system
       // events (accessibility). OFF by default.
       enableCaptions: false,
@@ -1229,6 +1233,11 @@ export class VRApp {
           this.gazeInteraction.setEnabled(v);
         }
       }],
+      [t('vr.settings.haptics'), 'enableHaptics', (v) => {
+        if (this.hapticFeedback) {
+          this.hapticFeedback.setEnabled(v);
+        }
+      }],
       [t('vr.settings.captions'), 'enableCaptions', (v) => {
         if (this.captionSystem) {
           this.captionSystem.setEnabled(v);
@@ -2176,6 +2185,9 @@ export class VRApp {
     // onVRSessionStart() once a session and gamepads are available.
     try {
       this.hapticFeedback = new HapticFeedback();
+      // Honour the persisted haptics preference so a user who turned haptics
+      // off keeps that from startup, not just after re-toggling it live.
+      this.hapticFeedback.setEnabled(this.settings.enableHaptics !== false);
       console.debug('VRApp: Haptic feedback ready');
     } catch (e) {
       console.error('VRApp: Haptic feedback init failed', e);

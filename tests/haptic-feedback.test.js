@@ -89,6 +89,21 @@ describe('HapticFeedback', () => {
     expect(hf.stats.pulsesGenerated).toBe(0);
   });
 
+  // setEnabled() is the entry point the "Haptics" settings-panel toggle wires
+  // to — disabling it must silence every pattern (all route through pulse()).
+  test('setEnabled(false) silences pulses; setEnabled(true) restores them', async () => {
+    const gamepad = hf.gamepads.get(0); // 'left' controller
+    hf.setEnabled(false);
+    await hf.playPattern('left', 'click');
+    expect(gamepad.hapticActuators[0].pulse).not.toHaveBeenCalled();
+    expect(hf.stats.pulsesGenerated).toBe(0);
+
+    hf.setEnabled(true);
+    await hf.playPattern('left', 'click');
+    expect(gamepad.hapticActuators[0].pulse).toHaveBeenCalled();
+    expect(hf.stats.pulsesGenerated).toBeGreaterThan(0);
+  });
+
   test('pulse() is a no-op when gamepads map is empty', async () => {
     hf.gamepads.clear();
     await hf.pulse('left', 50, 0.5);

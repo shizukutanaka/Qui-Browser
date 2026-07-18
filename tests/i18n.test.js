@@ -54,6 +54,14 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.settings.haptics (haptics enable toggle)', () => {
+    setLanguage('en');
+    expect(t('vr.settings.haptics')).toBe('Haptics');
+    setLanguage('ja');
+    expect(t('vr.settings.haptics')).toBe('触覚フィードバック');
+    setLanguage('en');
+  });
+
   test('translates vr.settings.soundVolume (master-volume stepper)', () => {
     setLanguage('en');
     expect(t('vr.settings.soundVolume')).toBe('Sound Volume');
