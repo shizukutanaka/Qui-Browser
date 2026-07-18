@@ -54,6 +54,14 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.settings.soundVolume (master-volume stepper)', () => {
+    setLanguage('en');
+    expect(t('vr.settings.soundVolume')).toBe('Sound Volume');
+    setLanguage('ja');
+    expect(t('vr.settings.soundVolume')).toBe('音量');
+    setLanguage('en');
+  });
+
   test('translates vr.settings.webPanel / vr.msg.webPanelReloadRequired (enableWebPanel toggle)', () => {
     setLanguage('en');
     expect(t('vr.settings.webPanel')).toBe('Web Browser Panel');

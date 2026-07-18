@@ -37,6 +37,7 @@ const CATALOG = {
     'vr.settings.captionHold': 'Caption Hold',
     'vr.settings.captionSize': 'Caption Size',
     'vr.settings.captionHeight': 'Caption Height',
+    'vr.settings.soundVolume': 'Sound Volume',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'Teleport',
     'vr.settings.snapTurn': 'Snap Turn',
@@ -126,6 +127,7 @@ const CATALOG = {
     'vr.settings.captionHold': 'キャプション保持時間',
     'vr.settings.captionSize': 'キャプションサイズ',
     'vr.settings.captionHeight': '字幕の高さ',
+    'vr.settings.soundVolume': '音量',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'テレポート',
     'vr.settings.snapTurn': 'スナップターン',

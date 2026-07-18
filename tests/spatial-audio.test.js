@@ -161,6 +161,46 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
   });
 });
 
+// setMasterVolume drives the "Sound Volume" settings-panel stepper — the first
+// real caller of this previously-unwired method. It must clamp to [0,1] and
+// re-scale every active source's gain by its own per-source volume.
+describe('SpatialAudio — master volume', () => {
+  let audio;
+  beforeEach(() => {
+    global.window.AudioContext = jest.fn(() => makeAudioContext());
+    audio = new SpatialAudio();
+  });
+
+  test('clamps the master volume into [0, 1]', () => {
+    audio.setMasterVolume(1.5);
+    expect(audio.settings.masterVolume).toBe(1);
+    audio.setMasterVolume(-0.5);
+    expect(audio.settings.masterVolume).toBe(0);
+    audio.setMasterVolume(0.4);
+    expect(audio.settings.masterVolume).toBeCloseTo(0.4);
+  });
+
+  test('re-scales each active source gain by source.volume * masterVolume', () => {
+    audio.sources.set('a', { volume: 0.5, gain: { gain: { value: 1 } } });
+    audio.sources.set('b', { volume: 1.0, gain: { gain: { value: 1 } } });
+
+    audio.setMasterVolume(0.5);
+
+    expect(audio.sources.get('a').gain.gain.value).toBeCloseTo(0.25); // 0.5 * 0.5
+    expect(audio.sources.get('b').gain.gain.value).toBeCloseTo(0.5);  // 1.0 * 0.5
+  });
+
+  test('muting (0) drops every source gain to 0 without discarding source.volume', () => {
+    audio.sources.set('a', { volume: 0.8, gain: { gain: { value: 0.8 } } });
+    audio.setMasterVolume(0);
+    expect(audio.sources.get('a').gain.gain.value).toBe(0);
+    // Per-source volume is preserved so restoring master volume brings it back.
+    expect(audio.sources.get('a').volume).toBe(0.8);
+    audio.setMasterVolume(1);
+    expect(audio.sources.get('a').gain.gain.value).toBeCloseTo(0.8);
+  });
+});
+
 describe('SpatialAudio — spatial voice (FR-7.2)', () => {
   let audio, mockCtx;
 
