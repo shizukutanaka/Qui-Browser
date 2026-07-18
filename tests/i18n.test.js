@@ -54,6 +54,16 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
+  test('translates vr.settings.clearHistory / vr.msg.historyCleared (privacy action)', () => {
+    setLanguage('en');
+    expect(t('vr.settings.clearHistory')).toBe('Clear History');
+    expect(t('vr.msg.historyCleared')).toBe('History cleared');
+    setLanguage('ja');
+    expect(t('vr.settings.clearHistory')).toBe('履歴を消去');
+    expect(t('vr.msg.historyCleared')).toBe('履歴を消去しました');
+    setLanguage('en');
+  });
+
   test('translates vr.settings.haptics (haptics enable toggle)', () => {
     setLanguage('en');
     expect(t('vr.settings.haptics')).toBe('Haptics');

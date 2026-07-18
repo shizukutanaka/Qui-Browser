@@ -811,6 +811,43 @@ describe('VRApp._onWebPanelToggleChanged', () => {
   });
 });
 
+describe('VRApp._clearBrowsingHistory (privacy action)', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test('clears the store and fires a cross-modal confirmation', () => {
+    const camera = { add: jest.fn(), remove: jest.fn() };
+    const bookmarks = { clearHistory: jest.fn() };
+    const app = makeVRAppLike({
+      isVREnabled: true, camera, bookmarks, bookmarkPanel: null,
+      showVRToast: VRApp.prototype.showVRToast
+    });
+    VRApp.prototype._clearBrowsingHistory.call(app);
+
+    expect(bookmarks.clearHistory).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/cleared/i);
+  });
+
+  test('refreshes an open bookmark/history panel so the cleared list shows', () => {
+    const camera = { add: jest.fn(), remove: jest.fn() };
+    const bookmarks = { clearHistory: jest.fn() };
+    const bookmarkPanel = { visible: true, _draw: jest.fn() };
+    const app = makeVRAppLike({
+      isVREnabled: true, camera, bookmarks, bookmarkPanel,
+      showVRToast: VRApp.prototype.showVRToast
+    });
+    VRApp.prototype._clearBrowsingHistory.call(app);
+
+    expect(bookmarkPanel._draw).toHaveBeenCalledTimes(1);
+  });
+
+  test('no-ops safely when the store is absent', () => {
+    const app = makeVRAppLike({ bookmarks: null, bookmarkPanel: null, showVRToast: jest.fn() });
+    expect(() => VRApp.prototype._clearBrowsingHistory.call(app)).not.toThrow();
+  });
+});
+
 describe('VRApp.onTeleportEnd (refactor-preserving behavior)', () => {
   test('completes a valid teleport (moves the rig, fires feedback) and resets aim state', () => {
     const controller = {};

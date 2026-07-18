@@ -1180,6 +1180,22 @@ export class VRApp {
   }
 
   /**
+   * Clear all persisted browsing history (privacy). Fires a cross-modal
+   * confirmation (caption + haptic + toast + semantic DOM) via showVRToast so
+   * the destructive action is acknowledged on every channel (WCAG 4.1.3). If a
+   * bookmark/history panel is open, refresh it so the cleared list shows.
+   */
+  _clearBrowsingHistory() {
+    if (this.bookmarks) {
+      this.bookmarks.clearHistory();
+    }
+    if (this.bookmarkPanel && this.bookmarkPanel.visible) {
+      this.bookmarkPanel._draw();
+    }
+    this.showVRToast(t('vr.msg.historyCleared'), { type: 'info' });
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -1359,6 +1375,10 @@ export class VRApp {
     const actions = [];
     // Immersive 360°/180° video: prompt for a URL (VR keyboard) and play it.
     actions.push([t('vr.settings.video360'), () => this._launchImmersiveVideo()]);
+    // Clear browsing history (privacy). Always shown: history is persisted in
+    // localStorage and outlives an enableWebPanel session, so a user must be
+    // able to clear residual history regardless of the current panel state.
+    actions.push([t('vr.settings.clearHistory'), () => this._clearBrowsingHistory()]);
     if (this.settings.enableWebPanel) {
       actions.push([t('vr.settings.bookmarks'), () => {
         if (this.bookmarkPanel) {

@@ -58,6 +58,7 @@ const CATALOG = {
     'vr.settings.search': 'Search',
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360° Video',
+    'vr.settings.clearHistory': 'Clear History',
     'vr.settings.bookmarks': 'Bookmarks',
     // VR Settings Panel Values
     'vr.value.on': 'ON',
@@ -74,6 +75,7 @@ const CATALOG = {
     'vr.msg.bookmarksOpen': 'Bookmarks: open',
     'vr.msg.bookmarksClosed': 'Bookmarks: closed',
     'vr.msg.bookmarksPanel': 'Bookmarks panel',
+    'vr.msg.historyCleared': 'History cleared',
     'vr.msg.browserControls': 'Browser controls',
     'vr.msg.tabStripLabel': 'Tab strip',
     'vr.msg.tabClosed': 'Tab closed',
@@ -149,6 +151,7 @@ const CATALOG = {
     'vr.settings.search': '検索',
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360°ビデオ',
+    'vr.settings.clearHistory': '履歴を消去',
     'vr.settings.bookmarks': 'ブックマーク',
     // VR Settings Panel Values
     'vr.value.on': 'オン',
@@ -164,6 +167,7 @@ const CATALOG = {
     'vr.msg.bookmarkDeleted': 'ブックマーク削除',
     'vr.msg.bookmarksOpen': 'ブックマーク: 開く',
     'vr.msg.bookmarksClosed': 'ブックマーク: 閉じる',
+    'vr.msg.historyCleared': '履歴を消去しました',
     'vr.msg.bookmarksPanel': 'ブックマークパネル',
     'vr.msg.browserControls': 'ブラウザコントロール',
     'vr.msg.tabStripLabel': 'タブストリップ',
