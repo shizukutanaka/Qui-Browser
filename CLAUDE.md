@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 55: Surfaced the Unwired Haptics Toggle (Sensory-Sensitivity Accessibility)
+Direct continuation of Session 54's "tested capability, never wired to UI" audit theme, this pass over the interaction layer. `HapticFeedback.setEnabled()` — the clean on/off gate that every pattern respects (all patterns route through `pulse()`, which early-returns on `!this.enabled`) — had **zero VRApp callers**, so controller haptics fired on every select/teleport/grab/voice interaction with no way for a user to turn them off. That's a genuine accessibility gap: users with tactile/sensory sensitivity (or who simply find the buzzing distracting) had no escape. Same shape as Session 54 (master volume), 48 (keyboard suggestions), 36 (grab-to-move).
+- ✨ **feat (a11y/haptics)**: added a "Haptics" settings-panel toggle (`vr.settings.haptics`, en: 'Haptics' / ja: '触覚フィードバック') in the accessibility toggle group, wired to `HapticFeedback.setEnabled()`. New `enableHaptics: true` setting (persisted via the existing `updateSetting` path); the persisted value is also applied at `HapticFeedback` construction in `initializeSystems()`, so a user who disabled haptics keeps that from startup, not just after re-toggling live. Turning it off silences *all* haptics in one shot since every pattern funnels through the single `pulse()` guard.
+- 2 new tests: 1 in `tests/haptic-feedback.test.js` (`setEnabled(false)` silences a full `playPattern` and `setEnabled(true)` restores it — exercising the now-wired entry point end-to-end, not just the `hf.enabled` field the pre-existing no-op test poked directly) + 1 i18n key test.
+- Total 1016 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 54: Surfaced the Unwired Master-Volume Control (Sound Volume Setting)
 Audit iteration over less-covered subsystems: `videoProjection.js` (clean — stereo UV crops, 180/360 sphere params, and the digit-boundary guard on `180` detection all verified correct) and `SpatialAudio.js` (well-guarded — `_listenerPos` is constructor-initialised, scratch objects reused per-frame, LOD math correct). The one genuine gap: `SpatialAudio.setMasterVolume()` (clamps to [0,1], re-scales every source's gain) had **zero callers repo-wide** — there was no way for a user to lower or mute spatial audio, an accessibility/preference gap. Same "tested capability exists, never wired to UI" shape as Session 36 (grab-to-move) and Session 48 (keyboard suggestions).
 - ✨ **feat (a11y/audio)**: added a "Sound Volume" settings-panel stepper (`vr.settings.soundVolume`, en/ja) wired to `setMasterVolume`. Stored as a 0–100 percentage for a readable stepper (`masterVolume: 100` default, step 10, `unit: '%'`), converted to the 0–1 gain `setMasterVolume` expects in the `apply` callback (`v / 100`). The persisted preference is also applied at `SpatialAudio` construction (`initializeSystems()`), so a user who muted/lowered audio keeps that across reloads, not just live. 0% = fully muted; per-source `volume` is preserved so restoring the slider brings levels back.
@@ -585,4 +591,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 54)
+**Last Revision**: 2026-07-04 (Session 55)
