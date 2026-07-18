@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 54: Surfaced the Unwired Master-Volume Control (Sound Volume Setting)
+Audit iteration over less-covered subsystems: `videoProjection.js` (clean — stereo UV crops, 180/360 sphere params, and the digit-boundary guard on `180` detection all verified correct) and `SpatialAudio.js` (well-guarded — `_listenerPos` is constructor-initialised, scratch objects reused per-frame, LOD math correct). The one genuine gap: `SpatialAudio.setMasterVolume()` (clamps to [0,1], re-scales every source's gain) had **zero callers repo-wide** — there was no way for a user to lower or mute spatial audio, an accessibility/preference gap. Same "tested capability exists, never wired to UI" shape as Session 36 (grab-to-move) and Session 48 (keyboard suggestions).
+- ✨ **feat (a11y/audio)**: added a "Sound Volume" settings-panel stepper (`vr.settings.soundVolume`, en/ja) wired to `setMasterVolume`. Stored as a 0–100 percentage for a readable stepper (`masterVolume: 100` default, step 10, `unit: '%'`), converted to the 0–1 gain `setMasterVolume` expects in the `apply` callback (`v / 100`). The persisted preference is also applied at `SpatialAudio` construction (`initializeSystems()`), so a user who muted/lowered audio keeps that across reloads, not just live. 0% = fully muted; per-source `volume` is preserved so restoring the slider brings levels back.
+- 4 new tests: 3 in `tests/spatial-audio.test.js` (clamp to [0,1]; re-scales each source's gain by `source.volume * masterVolume`; mute-then-restore round-trips without discarding per-source volume) — these also close the pre-existing coverage gap, since `setMasterVolume` was previously untested — plus 1 i18n key test (verified failing pre-fix).
+- Total 1014 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 53: Publish Infrastructure — GitHub Pages (subpath) + Versioned Release Workflow
 Goal was "publish the finished product on GitHub." The repo had no releases/tags and a broken Pages setup (`deploy.yml` uploaded raw source instead of the built app; `release.yml` depended on the legacy `assets/js/` benchmark and deployed unbuilt source to Pages). Made the build subpath-aware and rewrote both workflows so the built app is what actually ships.
 - 🔧 **infra (Pages subpath)**: GitHub Pages serves under a repo subpath (`https://<owner>.github.io/Qui-Browser/`), so every absolute asset URL broke. `vite.config.js` `base` is now `process.env.BASE_PATH || '/'` — default `/` keeps root-served targets (local/Netlify/Vercel) unchanged; the Pages workflow sets `BASE_PATH=/Qui-Browser/` for that build only. Vite then rebases index.html's JS/CSS/favicon/manifest hrefs automatically (verified in `dist/index.html`).
@@ -579,4 +585,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 53)
+**Last Revision**: 2026-07-04 (Session 54)

@@ -225,6 +225,10 @@ export class VRApp {
       // eye-tracking subtitle studies show the comfortable height varies
       // widely per user. Live stepper in the settings panel.
       captionHeight: -0.55,
+      // Master spatial-audio volume as a percentage (0 = muted, 100 = full).
+      // Wired to SpatialAudio.setMasterVolume via a settings-panel stepper so
+      // users can lower or mute audio (audio-sensitivity / preference).
+      masterVolume: 100,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
       // Default search engine for non-URL input in the address bar
@@ -1313,6 +1317,16 @@ export class VRApp {
             this.captionSystem.setVerticalOffset(v);
           }
         }
+      }],
+      // Master spatial-audio volume (0 = muted). Stored as a percentage for a
+      // readable stepper; SpatialAudio.setMasterVolume expects a 0–1 gain.
+      [t('vr.settings.soundVolume'), 'masterVolume', {
+        min: 0, max: 100, step: 10, unit: '%',
+        apply: (v) => {
+          if (this.spatialAudio) {
+            this.spatialAudio.setMasterVolume(v / 100);
+          }
+        }
       }]
     ];
 
@@ -2222,6 +2236,9 @@ export class VRApp {
     // 7. Spatial Audio
     try {
       this.spatialAudio = new SpatialAudio();
+      // Apply the persisted master-volume preference at startup so a user who
+      // lowered/muted audio keeps that on the next load (not just live).
+      this.spatialAudio.setMasterVolume((this.settings.masterVolume ?? 100) / 100);
       await this.loadAudioAssets();
       console.debug('VRApp: Spatial audio initialized');
     } catch (e) {
