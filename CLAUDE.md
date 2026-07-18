@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 56: Clear History — the Missing Privacy Control (Unwired clearHistory)
+Continuing the "tested capability, never surfaced" theme into the data layer. `BookmarkStore.clearHistory()` (and `removeHistory()`) had **zero UI/voice callers repo-wide** — browsing history is persisted in `localStorage` (bounded at 200 entries) with **no way for a user to clear it**, a genuine privacy gap every mainstream browser covers. History also outlives an `enableWebPanel` session (localStorage persists after the panel is toggled off), so residual history could linger indefinitely with no escape hatch.
+- ✨ **feat (privacy)**: added a "Clear History" settings-panel action button (`vr.settings.clearHistory`, en/ja), **always shown** (not gated on `enableWebPanel`) precisely because residual history can outlive a browsing session. New `_clearBrowsingHistory()` calls `BookmarkStore.clearHistory()`, refreshes an open bookmark/history panel so the emptied list shows immediately, and fires a cross-modal confirmation via the existing `showVRToast` (`vr.msg.historyCleared`, reaching caption + haptic + toast + semantic DOM for free — WCAG 4.1.3 for a destructive action).
+- 4 new tests: 1 i18n (both keys, en/ja) + 3 in `tests/vr-app-wiring.test.js` (clears the store + fires the cross-modal confirmation; refreshes an open panel; no-ops safely without a store).
+- Total 1020 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 55: Surfaced the Unwired Haptics Toggle (Sensory-Sensitivity Accessibility)
 Direct continuation of Session 54's "tested capability, never wired to UI" audit theme, this pass over the interaction layer. `HapticFeedback.setEnabled()` — the clean on/off gate that every pattern respects (all patterns route through `pulse()`, which early-returns on `!this.enabled`) — had **zero VRApp callers**, so controller haptics fired on every select/teleport/grab/voice interaction with no way for a user to turn them off. That's a genuine accessibility gap: users with tactile/sensory sensitivity (or who simply find the buzzing distracting) had no escape. Same shape as Session 54 (master volume), 48 (keyboard suggestions), 36 (grab-to-move).
 - ✨ **feat (a11y/haptics)**: added a "Haptics" settings-panel toggle (`vr.settings.haptics`, en: 'Haptics' / ja: '触覚フィードバック') in the accessibility toggle group, wired to `HapticFeedback.setEnabled()`. New `enableHaptics: true` setting (persisted via the existing `updateSetting` path); the persisted value is also applied at `HapticFeedback` construction in `initializeSystems()`, so a user who disabled haptics keeps that from startup, not just after re-toggling live. Turning it off silences *all* haptics in one shot since every pattern funnels through the single `pulse()` guard.
@@ -591,4 +597,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 55)
+**Last Revision**: 2026-07-04 (Session 56)
