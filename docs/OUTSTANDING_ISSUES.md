@@ -107,6 +107,39 @@
 
 ---
 
+## E. 長所短所改善案スナップショット（Session 57 時点）
+
+56セッションの改善で検証済みバグは枯渇。直近4イテレーション（Session 53-56）は「実装済みだが未配線の機能の表面化」（Sound Volume / Haptics / Clear History）に移行した。以下は現時点の正直な棚卸し。実行時のモデル使い分けは `docs/INSTRUCTIONS_OPUS.md` / `docs/INSTRUCTIONS_SONNET.md` を参照。
+
+### 長所（維持すべきもの）
+- **検証規律**: 1020テスト/46スイート・lint 0エラー（84件の既存 no-console warning は不変）・build green。新テストは pre-fix で fail 確認済み（`git stash` 方式）。
+- **クロスモーダル a11y**: 全ユーザー可視イベントが caption + haptic + toast + semantic DOM を通る（`showVRToast` / `notifyCrossModal`）。
+- **i18n**: 全 UI 文字列が en+ja（`src/i18n/i18n.js`、`t()` 経由）。
+- **日本語入力の実運用品質**: ん先読み・NFC・サロゲートペア・IDN 対応済み。
+- **公開準備完了のソース**: main（tested・release-ready・サブパス対応ビルド）。オーナー手順は `docs/PUBLISHING.md`。
+
+### 短所（未解決）
+- **`enableWebPanel` 既定 false**: 中核ブラウジング機能群（WebPanel/TabManager/BookmarkPanel/WindowManager/Layers）が休眠。既定値変更はプロダクト判断（C-5、ユーザー名指し待ち）。
+- **設定パネルの飽和**: Session 54-56 で項目が増え、フラット2カラムは発見性の限界（C-2、優先度を「低」→「高」に昇格）。
+- **VRApp モノリス（~3300行）**: 分割は AccessibilityCoordinator パターンで継続可能だが未完。
+- **視覚/E2E テスト不在**: canvas UI は headless で目視検証不能。Playwright 未導入（この実行環境は Chromium プリインストール済みで導入可能）。
+- **効果音アセット欠落**: `assets/sounds/*.mp3` はリポジトリに存在せず graceful 404（音声は無効に degrade）。
+- **docs/archive の肥大**: 117ファイル。陳腐化した主張を含むが A-1 凍結の一部として改変禁止。
+- **凍結事項**: A-1（死コード削除）・A-2（未使用 devDependencies 削除）はユーザーの明示的名指し待ち。main 上の `cd.yml`/`release.yml` は壊れているが本セッション権限（403）では修正不能。
+
+### 改善案（優先度・推奨モデル付き）
+| ID | 改善案 | 優先度 | 推奨 | 受け入れ基準 |
+|----|--------|--------|------|-------------|
+| E-1 | 設定パネルのグルーピング（=C-2） | 高 | Opus | レイアウトを pure 関数化しテスト・全設定到達可能・告知機能維持 |
+| E-2 | Playwright E2E スモーク（build→preview→console error 0→Enter VR/SW） | 中 | Opus | `npm run test:e2e` を Jest と分離・CI 非依存 |
+| E-3 | 効果音のプロシージャル生成フォールバック（WebAudio Oscillator） | 中 | Sonnet | 既存 graceful 404 を壊さない・SpatialAudio 経由 |
+| E-4 | Clear History の音声コマンド化 | 低 | Sonnet | `VoiceCommands.connectBrowser` の onXxx 分離パターン踏襲 |
+| E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
+| E-6 | Top Sites タイル（=C-3） | 低 | Opus | `hitTest` 全ゾーンをテスト・既存2タブ回帰なし |
+| E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

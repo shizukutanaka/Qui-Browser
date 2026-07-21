@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 57: Strengths/Weaknesses Snapshot + Per-Model Instruction Docs (Opus / Sonnet)
+Docs-only session (no runtime code touched). User asked for a fresh 長所短所改善案 (strengths/weaknesses/improvement) inventory plus self-contained instruction documents so future sessions — run by either Opus or Sonnet — inherit the established discipline and the honest current state.
+- 📋 **docs**: added `docs/OUTSTANDING_ISSUES.md` **Section E** — a Session-57 snapshot: strengths (1020-test/lint-0/build-green discipline, cross-modal a11y, en+ja i18n, release-ready source), weaknesses (`enableWebPanel` default false, settings-panel saturation after Sessions 54-56, VRApp monolith, no E2E/visual tests, missing sound mp3s, frozen A-1/A-2, workflow-edit 403 wall), and an improvement table (E-1..E-7) with priority + recommended model + acceptance criteria.
+- 📋 **docs**: added `docs/INSTRUCTIONS_OPUS.md` and `docs/INSTRUCTIONS_SONNET.md` — self-contained playbooks. Shared sections: the mandatory workflow (branch restart from origin/main, `git config user.email noreply@anthropic.com`, pre-fix-fail regression discipline via `git stash`, full gate, CLAUDE.md logging, PR→merge), the empirically-tested 403 permission wall (no workflow edits / tag push / release / Pages — see `docs/PUBLISHING.md`), and the frozen items (A-1/A-2/`enableWebPanel` default) pending explicit user naming. Opus doc owns the large/design tasks (settings-panel grouping now escalated to high priority, Playwright E2E harness, VRApp splitting, MixedReality wiring, Top Sites tiles); Sonnet doc owns the well-specified small/mid tasks (procedural sound fallback, Clear-History voice command, README/CHANGELOG sync, opportunistic B-item fixes).
+- No code changed, so the gate is a no-op confirmation: 1020 tests green, 0 lint errors, build green. Cross-links between the three docs verified to resolve.
+
 ### Session 56: Clear History — the Missing Privacy Control (Unwired clearHistory)
 Continuing the "tested capability, never surfaced" theme into the data layer. `BookmarkStore.clearHistory()` (and `removeHistory()`) had **zero UI/voice callers repo-wide** — browsing history is persisted in `localStorage` (bounded at 200 entries) with **no way for a user to clear it**, a genuine privacy gap every mainstream browser covers. History also outlives an `enableWebPanel` session (localStorage persists after the panel is toggled off), so residual history could linger indefinitely with no escape hatch.
 - ✨ **feat (privacy)**: added a "Clear History" settings-panel action button (`vr.settings.clearHistory`, en/ja), **always shown** (not gated on `enableWebPanel`) precisely because residual history can outlive a browsing session. New `_clearBrowsingHistory()` calls `BookmarkStore.clearHistory()`, refreshes an open bookmark/history panel so the emptied list shows immediately, and fires a cross-modal confirmation via the existing `showVRToast` (`vr.msg.historyCleared`, reaching caption + haptic + toast + semantic DOM for free — WCAG 4.1.3 for a destructive action).
@@ -597,4 +603,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 56)
+**Last Revision**: 2026-07-04 (Session 57)
