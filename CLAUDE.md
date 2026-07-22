@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 59: Clear History Voice Command (Hands-Free Privacy Control)
+Picked up `docs/INSTRUCTIONS_SONNET.md` S-2 (= `OUTSTANDING_ISSUES.md` E-4): Session 56 added a "Clear History" settings-panel action but there was no hands-free path to it, unlike every other browser action (navigate/back/refresh/top-sites/go-to all have voice commands). Voice is the primary modality for users who find gaze/controller input difficult, so a privacy control they can't reach hands-free is an accessibility gap.
+- ✨ **feat (a11y/voice)**: added a `clear-history` voice command to `VoiceCommands.connectBrowser` (`onClearHistory` callback, decoupled like `onGoTo`/`onTopSites`/`onSearch`). Patterns cover ja (`履歴を消去`/`履歴を削除`/`履歴クリア`/`履歴を消す` + a `/履歴を?(消去|削除|クリア|消す)/` regex) and en (`clear history`/`delete history`). `confirmationText: '履歴を消去します'` gives the immediate cross-modal "understood" cue (TTS + captions via onSpeak, WCAG 4.1.3). VRApp wires `onClearHistory` to the existing `_clearBrowsingHistory()` (Session 56), so voice and the settings button share one code path (store clear + panel refresh + cross-modal confirmation). **Registered before the greedy `go-to` catch-all** per the established registration-order rule (`processCommand` stops at the first match).
+- 4 new tests in `tests/voice-commands.test.js` (ja + en fire the callback; resolves to clear-history not go-to; no-throw when unwired), 3 verified failing pre-fix.
+- Total 1032 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 58: Procedural Sound Fallback — Interaction Audio Was Doubly Dead
 Picked up `docs/INSTRUCTIONS_SONNET.md` S-1 (= `OUTSTANDING_ISSUES.md` E-3). Discovered interaction sounds never worked at all: the packaged `/assets/sounds/*.mp3` files are **not committed to the repo**, so `SpatialAudio.loadAudio()` graceful-404'd every buffer — AND VRApp never called `createSource('click')`, so `play('click','click')` failed the `!source` guard too. Every click/hover/success/error was silent on two counts.
 - ✨ **feat (audio)**: added `synthesizeToneSamples(spec, sampleRate)` (pure, exported, THREE/DOM-free — a decaying, optionally frequency-gliding sine) and `SpatialAudio.registerProceduralBuffer(name, spec)` (wraps the samples into an `AudioBuffer` via `context.createBuffer`, stores it under `name`; no-ops if a real buffer already loaded — real files always win — or if there's no context). `VRApp.loadAudioAssets()` now, after the real-load attempt, synthesizes a fallback tone for any still-missing name (click=880Hz blip, hover=softer 620Hz, success=520→784Hz rising, error=200Hz low) **and** ensures a source exists (`createSource` if absent), so interaction feedback finally plays. Muteable via the Session 54 Sound Volume control.
@@ -609,4 +615,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 58)
+**Last Revision**: 2026-07-04 (Session 59)
