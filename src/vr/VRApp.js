@@ -2536,6 +2536,27 @@ export class VRApp {
         await this.spatialAudio.loadAudio(file.url, file.name);
       }
     }
+
+    // Procedural fallback: the packaged .mp3 files are not committed to the
+    // repo, so every interaction sound was doubly dead — no decoded buffer AND
+    // no source (play('click','click') needs both). Synthesize a short tone for
+    // any name still missing a buffer, and ensure a source exists, so click/
+    // hover/success/error feedback actually plays. Real files, when present,
+    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
+    if (this.spatialAudio) {
+      const PROCEDURAL = {
+        click:   { freq: 880, duration: 0.06, decay: 45 },
+        hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+        success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
+        error:   { freq: 200, duration: 0.16, decay: 10 }
+      };
+      for (const file of audioFiles) {
+        this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
+        if (!this.spatialAudio.sources.has(file.name)) {
+          this.spatialAudio.createSource(file.name, { volume: 0.6 });
+        }
+      }
+    }
   }
 
   /**

@@ -7,6 +7,39 @@
 
 import * as THREE from 'three';
 
+/**
+ * Synthesize PCM samples for a short procedural UI tone (a decaying, optionally
+ * gliding sine). THREE/DOM-free and deterministic so it is unit-testable; used
+ * as a fallback when the packaged sound files are absent, so interaction audio
+ * (click/hover/success/error) still plays instead of being silent.
+ *
+ * @param {object} spec
+ * @param {number} [spec.freq=440]      start frequency (Hz)
+ * @param {number} [spec.endFreq]       end frequency for a linear glide (defaults to freq)
+ * @param {number} [spec.duration=0.08] length in seconds
+ * @param {number} [spec.decay=30]      exponential amplitude decay rate (higher = faster fade)
+ * @param {number} [spec.gain=1]        peak amplitude scale (0..1)
+ * @param {number} [sampleRate=48000]
+ * @returns {Float32Array} mono samples in [-1, 1]
+ */
+export function synthesizeToneSamples(spec = {}, sampleRate = 48000) {
+  const { freq = 440, endFreq = null, duration = 0.08, decay = 30, gain = 1 } = spec;
+  const sr = sampleRate > 0 ? sampleRate : 48000;
+  const n = Math.max(1, Math.floor(sr * Math.max(0, duration)));
+  const out = new Float32Array(n);
+  const f2 = endFreq == null ? freq : endFreq;
+  let phase = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    const p = n > 1 ? i / (n - 1) : 0;        // 0..1 progress
+    const f = freq + (f2 - freq) * p;          // linear frequency glide
+    phase += (2 * Math.PI * f) / sr;
+    const env = Math.exp(-decay * t);          // exponential decay envelope
+    out[i] = Math.sin(phase) * env * gain;
+  }
+  return out;
+}
+
 export class SpatialAudio {
   constructor() {
     this.context = null;
@@ -132,6 +165,30 @@ export class SpatialAudio {
       console.error(`SpatialAudio: Failed to load ${url}`, error);
       return null;
     }
+  }
+
+  /**
+   * Register a synthesized fallback buffer under `name` (see
+   * synthesizeToneSamples). No-op if a buffer for that name is already loaded
+   * (real files take precedence) or if there is no AudioContext.
+   * @param {string} name
+   * @param {object} spec — passed to synthesizeToneSamples
+   * @returns {AudioBuffer|null}
+   */
+  registerProceduralBuffer(name, spec) {
+    if (!this.context || this.buffers.has(name)) {
+      return this.buffers.get(name) || null;
+    }
+    const sampleRate = this.context.sampleRate || 48000;
+    const samples = synthesizeToneSamples(spec, sampleRate);
+    const buffer = this.context.createBuffer(1, samples.length, sampleRate);
+    if (typeof buffer.getChannelData === 'function') {
+      buffer.getChannelData(0).set(samples);
+    }
+    this.buffers.set(name, buffer);
+    this.stats.buffersLoaded++;
+    console.debug(`SpatialAudio: Registered procedural buffer '${name}' (${samples.length} samples)`);
+    return buffer;
   }
 
   /**

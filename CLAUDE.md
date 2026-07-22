@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 58: Procedural Sound Fallback — Interaction Audio Was Doubly Dead
+Picked up `docs/INSTRUCTIONS_SONNET.md` S-1 (= `OUTSTANDING_ISSUES.md` E-3). Discovered interaction sounds never worked at all: the packaged `/assets/sounds/*.mp3` files are **not committed to the repo**, so `SpatialAudio.loadAudio()` graceful-404'd every buffer — AND VRApp never called `createSource('click')`, so `play('click','click')` failed the `!source` guard too. Every click/hover/success/error was silent on two counts.
+- ✨ **feat (audio)**: added `synthesizeToneSamples(spec, sampleRate)` (pure, exported, THREE/DOM-free — a decaying, optionally frequency-gliding sine) and `SpatialAudio.registerProceduralBuffer(name, spec)` (wraps the samples into an `AudioBuffer` via `context.createBuffer`, stores it under `name`; no-ops if a real buffer already loaded — real files always win — or if there's no context). `VRApp.loadAudioAssets()` now, after the real-load attempt, synthesizes a fallback tone for any still-missing name (click=880Hz blip, hover=softer 620Hz, success=520→784Hz rising, error=200Hz low) **and** ensures a source exists (`createSource` if absent), so interaction feedback finally plays. Muteable via the Session 54 Sound Volume control.
+- 8 new tests in `tests/spatial-audio.test.js` (5 for the pure synth: sample count, [-1,1] bound, decaying envelope, gain scaling, glide; 3 for registerProceduralBuffer: creates+stores, real-file-wins no-overwrite, no-context no-op). Added `createBuffer` to the shared AudioContext mock.
+- Total 1028 tests (46 suites); 0 lint errors (unchanged 84 pre-existing warnings); build verified green.
+
 ### Session 57: Strengths/Weaknesses Snapshot + Per-Model Instruction Docs (Opus / Sonnet)
 Docs-only session (no runtime code touched). User asked for a fresh 長所短所改善案 (strengths/weaknesses/improvement) inventory plus self-contained instruction documents so future sessions — run by either Opus or Sonnet — inherit the established discipline and the honest current state.
 - 📋 **docs**: added `docs/OUTSTANDING_ISSUES.md` **Section E** — a Session-57 snapshot: strengths (1020-test/lint-0/build-green discipline, cross-modal a11y, en+ja i18n, release-ready source), weaknesses (`enableWebPanel` default false, settings-panel saturation after Sessions 54-56, VRApp monolith, no E2E/visual tests, missing sound mp3s, frozen A-1/A-2, workflow-edit 403 wall), and an improvement table (E-1..E-7) with priority + recommended model + acceptance criteria.
@@ -603,4 +609,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 57)
+**Last Revision**: 2026-07-04 (Session 58)

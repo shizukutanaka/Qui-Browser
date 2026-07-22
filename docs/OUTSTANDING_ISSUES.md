@@ -132,7 +132,7 @@
 |----|--------|--------|------|-------------|
 | E-1 | 設定パネルのグルーピング（=C-2） | 高 | Opus | レイアウトを pure 関数化しテスト・全設定到達可能・告知機能維持 |
 | E-2 | Playwright E2E スモーク（build→preview→console error 0→Enter VR/SW） | 中 | Opus | `npm run test:e2e` を Jest と分離・CI 非依存 |
-| E-3 | 効果音のプロシージャル生成フォールバック（WebAudio Oscillator） | 中 | Sonnet | 既存 graceful 404 を壊さない・SpatialAudio 経由 |
+| ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | E-4 | Clear History の音声コマンド化 | 低 | Sonnet | `VoiceCommands.connectBrowser` の onXxx 分離パターン踏襲 |
 | E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
 | E-6 | Top Sites タイル（=C-3） | 低 | Opus | `hitTest` 全ゾーンをテスト・既存2タブ回帰なし |
