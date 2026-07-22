@@ -193,6 +193,46 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
   });
 });
 
+describe('VoiceCommands — connectBrowser clear-history command', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('"履歴を消去" fires onClearHistory', () => {
+    const onClearHistory = jest.fn();
+    vc.connectBrowser({ onClearHistory });
+    vc.processCommand('履歴を消去', 0.9);
+    expect(onClearHistory).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('clear-history');
+    expect(vc.lastCommand.result).toEqual({ action: 'clear-history' });
+  });
+
+  test('"clear history" (English) also triggers it', () => {
+    const onClearHistory = jest.fn();
+    vc.connectBrowser({ onClearHistory });
+    vc.processCommand('clear history', 0.9);
+    expect(onClearHistory).toHaveBeenCalledTimes(1);
+  });
+
+  test('resolves to clear-history, NOT the greedy go-to catch-all', () => {
+    // "履歴を削除" contains no "を開く", but confirm specific-before-catch-all
+    // registration order still routes it to clear-history and never onGoTo.
+    const onClearHistory = jest.fn();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onClearHistory, onGoTo });
+    vc.processCommand('履歴を削除', 0.9);
+    expect(vc.lastCommand.key).toBe('clear-history');
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+
+  test('does not throw when onClearHistory is not wired', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('履歴を消去', 0.9)).not.toThrow();
+  });
+});
+
 describe('VoiceCommands — help command announces actual phrases (WCAG 4.1.3 discoverability)', () => {
   // Socratic finding: a voice-command user (often relying on voice because
   // gaze/controller input is difficult) has no other way to learn the

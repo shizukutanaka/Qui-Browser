@@ -508,8 +508,11 @@ export class VoiceCommands {
    *                                         extracted site name; host looks it up in
    *                                         history/bookmarks and navigates or falls back
    *                                         to search (decoupled like onTopSites/onSearch)
+   * @param {Function} [opts.onClearHistory] () => void — called to clear browsing
+   *                                         history (privacy); host runs the clear +
+   *                                         cross-modal confirmation (decoupled like onGoTo)
    */
-  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo } = {}) {
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo, onClearHistory } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -554,6 +557,28 @@ export class VoiceCommands {
       },
       confirmationText: '更新します',
       description: 'Refresh page'
+    });
+
+    // Clear browsing history (privacy) — hands-free equivalent of the settings
+    // panel "Clear History" action (Session 56). Registered before the greedy
+    // go-to catch-all. The '履歴' patterns don't collide with go-to's 'を開く'
+    // capture, but specific-before-catch-all is the rule (processCommand stops
+    // at the first match in registration order).
+    this.registerCommand('clear-history', {
+      patterns: [
+        '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
+        /履歴を?(消去|削除|クリア|消す)/,
+        /clear\s+history/i, /delete\s+history/i
+      ],
+      action: () => {
+        if (onClearHistory) {
+          onClearHistory();
+        }
+        return { action: 'clear-history' };
+      },
+      confirmationText: '履歴を消去します',
+      description: 'Clear browsing history',
+      example: '履歴を消去'
     });
 
     // Web search — route through VR address bar / tab navigation

@@ -2405,7 +2405,9 @@ export class VRApp {
               }
               active.navigate(query);
             }
-          }
+          },
+          // Hands-free equivalent of the "Clear History" settings action.
+          onClearHistory: () => this._clearBrowsingHistory()
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();
