@@ -39,6 +39,14 @@ const makeAudioContext = () => ({
   },
   createPanner: jest.fn(() => makePanner()),
   createGain: jest.fn(() => makeGain()),
+  createBuffer: jest.fn((channels, length, sampleRate) => {
+    const data = Array.from({ length: channels }, () => new Float32Array(length));
+    return {
+      numberOfChannels: channels, length, sampleRate,
+      duration: length / sampleRate,
+      getChannelData: (c) => data[c]
+    };
+  }),
   // The real AudioContext.resume() always returns a Promise (per the Web Audio
   // spec); mirror that so the production .then()/.catch() chain is exercised.
   resume: jest.fn(() => Promise.resolve()),
@@ -51,7 +59,7 @@ global.window = {
   webkitAudioContext: undefined
 };
 
-const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+const { SpatialAudio, synthesizeToneSamples } = require('../src/vr/audio/SpatialAudio.js');
 
 describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
   let audio;
@@ -198,6 +206,72 @@ describe('SpatialAudio — master volume', () => {
     expect(audio.sources.get('a').volume).toBe(0.8);
     audio.setMasterVolume(1);
     expect(audio.sources.get('a').gain.gain.value).toBeCloseTo(0.8);
+  });
+});
+
+// Procedural fallback so interaction sounds play even though the packaged .mp3
+// files are absent from the repo (they never decoded, and no source existed).
+describe('synthesizeToneSamples (pure)', () => {
+  test('returns floor(sampleRate*duration) samples', () => {
+    expect(synthesizeToneSamples({ duration: 0.05 }, 48000)).toHaveLength(2400);
+  });
+
+  test('all samples stay within [-1, 1] for gain <= 1', () => {
+    const s = synthesizeToneSamples({ freq: 880, duration: 0.06, decay: 45 }, 48000);
+    for (const v of s) {
+      expect(v).toBeGreaterThanOrEqual(-1);
+      expect(v).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('amplitude envelope decays (early energy > late energy)', () => {
+    const s = synthesizeToneSamples({ freq: 600, duration: 0.1, decay: 30 }, 48000);
+    const peak = (arr, a, b) => arr.slice(a, b).reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    const early = peak(s, 0, Math.floor(s.length * 0.1));
+    const late = peak(s, Math.floor(s.length * 0.9), s.length);
+    expect(early).toBeGreaterThan(late);
+  });
+
+  test('gain scales the peak amplitude down', () => {
+    const full = synthesizeToneSamples({ freq: 600, duration: 0.05, decay: 20, gain: 1 }, 48000);
+    const half = synthesizeToneSamples({ freq: 600, duration: 0.05, decay: 20, gain: 0.5 }, 48000);
+    const peak = (arr) => arr.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    expect(peak(half)).toBeLessThan(peak(full));
+  });
+
+  test('a gliding tone (endFreq set) does not throw and stays bounded', () => {
+    const s = synthesizeToneSamples({ freq: 520, endFreq: 784, duration: 0.14, decay: 12 }, 48000);
+    expect(s.length).toBeGreaterThan(0);
+    expect(Math.max(...s.map(Math.abs))).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('SpatialAudio.registerProceduralBuffer', () => {
+  let audio;
+  beforeEach(() => {
+    global.window.AudioContext = jest.fn(() => makeAudioContext());
+    audio = new SpatialAudio();
+  });
+
+  test('creates and stores a buffer under the given name', () => {
+    const buf = audio.registerProceduralBuffer('click', { freq: 880, duration: 0.06 });
+    expect(buf).not.toBeNull();
+    expect(audio.buffers.get('click')).toBe(buf);
+    expect(buf.length).toBe(Math.floor(48000 * 0.06));
+  });
+
+  test('does not overwrite a buffer that is already loaded (real file wins)', () => {
+    const real = { length: 999, _real: true };
+    audio.buffers.set('click', real);
+    const out = audio.registerProceduralBuffer('click', { freq: 880, duration: 0.06 });
+    expect(out).toBe(real);
+    expect(audio.buffers.get('click')).toBe(real);
+  });
+
+  test('no-ops without an AudioContext', () => {
+    audio.context = null;
+    expect(audio.registerProceduralBuffer('x', { duration: 0.05 })).toBeNull();
+    expect(audio.buffers.has('x')).toBe(false);
   });
 });
 
