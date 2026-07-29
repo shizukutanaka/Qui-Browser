@@ -24,7 +24,26 @@
 
 ---
 
-A WebXR VR browser targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, and a range of Tier 1–3 features from comfort optimizations to experimental WebGPU and multiplayer capabilities.
+A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, immersive 360°/180° video, and a comfort/accessibility system — plus a range of Tier 1–3 features from performance optimizations to experimental WebGPU and multiplayer capabilities.
+
+> ### ⚠️ On the name: web page rendering is **not** implemented
+>
+> Despite the name, this project **cannot display arbitrary web pages in VR**, and
+> the browsing panel is disabled by default (`enableWebPanel: false`) for that
+> reason. The URL bar, tabs, bookmarks, and history are implemented and tested —
+> but they surround a viewport that renders no page content.
+>
+> This is a platform ceiling, not a to-do item: a WebXR **web app** cannot
+> composite cross-origin page pixels into a 3D texture. `X-Frame-Options` /
+> CSP `frame-ancestors` block framing most sites outright, and even a framed
+> document's pixels are not readable into WebGL. Wolvic and Quest Browser can do
+> this because they *are* browsers, with native engines. Reaching parity would
+> require a different architecture (content proxy + text extraction + canvas
+> rendering). See `docs/SPEC.md` FR-1.1 and `docs/OUTSTANDING_ISSUES.md` §F.
+>
+> **What does work today**: immersive 360°/180° video, the comfort/vestibular
+> system, in-VR captions and gaze-dwell accessibility, Japanese IME text entry,
+> spatial audio, hand tracking, and the VR settings shell.
 
 ## 🌟 Highlights
 

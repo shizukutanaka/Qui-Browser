@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 60: First Principles 監査 — 中核原子②「コンテンツ表示」の不在と、信頼性3件の修正
+59セッションすべてが「既存コードの監査」という枠内だった。前提を外し「ブラウザとは何の道具か → 不可欠な原子は何か」から測り直した。3方向の並列調査 + 主要主張の自己 grep 検証。
+- 🔍 **最重要の発見（実装バグではなく前提の誤り）**: Web ブラウザの既約な原子は ①移動 → **②表示** → ③読む → ④操作 → ⑤戻る → ⑥保存。本製品は**②が構造的に存在しない**。検証: `WebPanel.onDomOverlayStart()`（iframe を可視化する唯一の関数）は**呼び出し元ゼロ**、`dom-overlay` は VR セッションで**一度も要求されていない**（`VRButton` の sessionInit は `local-floor/bounded-floor/hand-tracking/layers` 固定）、コンテンツ canvas は `_build()` のローカル変数で再描画不可能、`contentMesh` は interactable 未登録。そして根本的に **WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない**（X-Frame-Options / CSP frame-ancestors + 画素非読み出し）。Wolvic/Quest Browser が可能なのはネイティブエンジンだから。**dom-overlay を配線しても解決しない**（AR用機能、かつ 2D HUD で 3D パネルに合成不可）。→ `enableWebPanel: false` は「プロダクト判断待ち」ではなく**②が実装されるまで正しい既定値**と再評価。`docs/OUTSTANDING_ISSUES.md` F-1 に記録。
+- 🔍 **過剰の定量**: `src+server+api` の **23.4%（5,224行）** が到達不能または非中核 — 決済UIが `src/` に皆無なのに認証なしエンドポイントを持つ Stripe 課金サーバ739行(テスト15件)、第2ピアに到達不能なマルチプレイヤー1,384行(テスト56件)、消費者ゼロの AI 推薦638行、レンダーループ外の WebGPU 600行、940/963行が死んでいる MixedReality、消費者ゼロの ObjectPool 404行。死んだ `assets/js/` 119,685行を含めると**リポジトリの JS のうち中核ループに奉仕するのは約12%**。F-2 に記録。
+- 🐛 **fix (safety — URL オリジン偽装)**: `https://www.google.com@evil.com` がアドレスバーに「google.com」と表示されていた（`truncate` は先頭保持なので偽装部分を見せ実ホストを隠す）。長い偽装サブドメイン連鎖で実登録ドメインが省略消失する問題も同型。新規純モジュール `src/vr/browser/urlDisplay.js`（`parseDisplayUrl`/`elideUrlForDisplay`）で URL を文字列でなく構造として扱い、**オリジンは絶対に省略せず**パス側を省略する方式に変更。userinfo は表示から排除し実ホストのみを見せる。
+- 🐛 **fix (safety — TLS 表示なし)**: `_drawChrome` の色分岐はロードエラーのみで、`http://` と `https://` が視覚的に区別不能だった。`securityLevel()`（secure/insecure/local/none）+ `securityIndicator()`（🔒/⚠/⌂）を追加。**グリフが意味を担保**し色は補強のみ（WCAG 1.4.1 色のみに依存しない）。`http://` はスキームを明示表示（`https://` は錠前が担うので省略）。
+- 🐛 **fix (正直さ — ブロックされたフレームの偽成功)**: X-Frame-Options / CSP で拒否されたページは Chromium では `onerror` ではなく **`onload`** を発火するため、`_loadError=false` のまま履歴に成功として記録され URL バーも正常色だった。さらにコンテンツ面は `_build()` で一度描かれたきりなので、移動成功後も永久に「Enter a URL to navigate」表示 = 何も起きなかったかのような誤表示。`this.contentCanvas` + `_drawContent()` + `_contentState`（empty/loading/unavailable/error）を導入し、ロード完了時は正直に「Page content cannot be shown in VR / navigation recorded」と表示。文言は純関数 `contentStateLines()` に切り出してテストで固定。
+- 📋 **docs**: `docs/SPEC.md` FR-1.1 を 🟡→❌ に是正し、FR-1.2〜1.7 の ✅ が「chrome としての実装済み」であって「内容が表示される」意味ではない旨を明記。`README.md` 冒頭に platform ceiling の警告を追加（従来「17機能」を謳いながらブラウジング自体が1つも載っていなかった矛盾を解消）。`docs/OUTSTANDING_ISSUES.md` に F 章を新設。
+- 33 new tests（`tests/url-display.test.js` 28 + `tests/webpanel-states.test.js` 5）。偽装ケースを明示的に固定（`@evil.com` → host は `evil.com` / 長大URLで origin が消えない）。`git stash -u` で pre-fix の失敗を確認済み（モジュール不在 + content-state 5件 fail）。
+- Total 1065 tests (47 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 59: Clear History Voice Command (Hands-Free Privacy Control)
 Picked up `docs/INSTRUCTIONS_SONNET.md` S-2 (= `OUTSTANDING_ISSUES.md` E-4): Session 56 added a "Clear History" settings-panel action but there was no hands-free path to it, unlike every other browser action (navigate/back/refresh/top-sites/go-to all have voice commands). Voice is the primary modality for users who find gaze/controller input difficult, so a privacy control they can't reach hands-free is an accessibility gap.
 - ✨ **feat (a11y/voice)**: added a `clear-history` voice command to `VoiceCommands.connectBrowser` (`onClearHistory` callback, decoupled like `onGoTo`/`onTopSites`/`onSearch`). Patterns cover ja (`履歴を消去`/`履歴を削除`/`履歴クリア`/`履歴を消す` + a `/履歴を?(消去|削除|クリア|消す)/` regex) and en (`clear history`/`delete history`). `confirmationText: '履歴を消去します'` gives the immediate cross-modal "understood" cue (TTS + captions via onSpeak, WCAG 4.1.3). VRApp wires `onClearHistory` to the existing `_clearBrowsingHistory()` (Session 56), so voice and the settings button share one code path (store clear + panel refresh + cross-modal confirmation). **Registered before the greedy `go-to` catch-all** per the established registration-order rule (`processCommand` stops at the first match).
@@ -615,4 +626,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 59)
+**Last Revision**: 2026-07-04 (Session 60)

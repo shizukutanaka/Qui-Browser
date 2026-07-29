@@ -317,6 +317,45 @@ describe('WebPanel dispose() detaches iframe onload/onerror', () => {
   });
 });
 
+// ── Content area reflects real state (no silent stale placeholder) ───────────
+// A frame refused by X-Frame-Options fires `load`, not `error`, so reaching
+// onload never proved the page rendered — and the content canvas was painted
+// once in _build() and never again, so the viewport kept reading "Enter a URL
+// to navigate" after a navigation the user believed had succeeded.
+describe('WebPanel content-area state', () => {
+  test('starts empty', () => {
+    const p = makePanel();
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('goes to loading while a navigation is in flight', () => {
+    const p = makePanel();
+    p._loadUrl('https://example.com');
+    expect(p._contentState).toBe('loading');
+  });
+
+  test('a completed load reports content unavailable, not empty', () => {
+    const p = makePanel();
+    p._loadUrl('https://example.com');
+    p.iframe.onload();
+    expect(p._contentState).toBe('unavailable');
+  });
+
+  test('an errored load reports error', () => {
+    const p = makePanel();
+    p._loadUrl('https://example.com');
+    p.iframe.onerror();
+    expect(p._contentState).toBe('error');
+  });
+
+  test('the content canvas is retained so it can be repainted (was a _build local)', () => {
+    const p = makePanel();
+    expect(p.contentCanvas).toBeTruthy();
+    expect(typeof p._drawContent).toBe('function');
+    expect(() => p._drawContent()).not.toThrow();
+  });
+});
+
 // ── FR-1.5 native quad-layer release on close ────────────────────────────────
 // Regression: disableLayerMode() previously just nulled the panel's own
 // quadLayer/layersSystem references and never released the native XRQuadLayer
