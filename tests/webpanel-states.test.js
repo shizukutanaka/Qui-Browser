@@ -356,6 +356,107 @@ describe('WebPanel content-area state', () => {
   });
 });
 
+// ── Reader viewport: the first implementation of "display page content" ──────
+// A WebXR web app can't composite cross-origin page pixels, so the panel
+// fetches the markup and renders the extracted text itself. Only CORS-
+// permissive origins are reachable; everything else must fall back honestly.
+describe('WebPanel reader viewport', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const ARTICLE = `
+    <html><head><title>Test Article</title></head><body>
+      <script>var x = 1;</script>
+      <nav>Nav junk</nav>
+      <article>
+        <h2>A Heading</h2>
+        <p>${'Sentence of real prose. '.repeat(20)}</p>
+        <p>${'More prose follows here. '.repeat(20)}</p>
+      </article>
+    </body></html>`;
+
+  test('a fetchable page renders as reader lines', async () => {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    expect(p._contentState).toBe('reader');
+    expect(p._readerLines.length).toBeGreaterThan(3);
+    expect(p._readerLines.some(l => l.text.includes('real prose'))).toBe(true);
+  });
+
+  test('script and nav content never reach the reader lines', async () => {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    const all = p._readerLines.map(l => l.text).join(' ');
+    expect(all).not.toContain('var x');
+    expect(all).not.toContain('Nav junk');
+  });
+
+  test('a CORS/network failure falls back to the honest unavailable state', async () => {
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    expect(p._contentState).toBe('unavailable');
+  });
+
+  test('a non-ok response falls back to unavailable', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    expect(p._contentState).toBe('unavailable');
+  });
+
+  test('a fetched page with no recoverable prose says so rather than showing blank', async () => {
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><div id="root"></div></body></html>')
+    });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/spa');
+    expect(p._contentState).toBe('unavailable');
+    expect(p._readerLines).toHaveLength(0);
+  });
+
+  test('a stale in-flight fetch cannot overwrite a newer navigation', async () => {
+    let resolveSlow;
+    const slow = new Promise((r) => { resolveSlow = r; });
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
+    const p = makePanel();
+    const first = p._loadReaderText('https://example.com/old');
+    p._readerSeq++;             // simulate a newer navigation starting
+    resolveSlow(ARTICLE);
+    await first;
+    expect(p._contentState).not.toBe('reader'); // stale result discarded
+  });
+
+  test('scrollContent moves the offset and clamps at both ends', async () => {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    expect(p._readerScroll).toBe(0);
+    expect(p.scrollContent(-5)).toBe(false);      // already at the top
+    const moved = p.scrollContent(3);
+    if (moved) {
+      expect(p._readerScroll).toBeGreaterThan(0);
+    }
+    p.scrollContent(99999);
+    expect(p._readerScroll).toBeLessThanOrEqual(p._readerLines.length);
+  });
+
+  test('scrollContent is a no-op when not in reader state', () => {
+    const p = makePanel();
+    expect(p.scrollContent(5)).toBe(false);
+  });
+
+  test('no fetch available degrades to unavailable without throwing', async () => {
+    global.fetch = undefined;
+    const p = makePanel();
+    await expect(p._loadReaderText('https://example.com/a')).resolves.toBeUndefined();
+    expect(p._contentState).toBe('unavailable');
+  });
+});
+
 // ── FR-1.5 native quad-layer release on close ────────────────────────────────
 // Regression: disableLayerMode() previously just nulled the panel's own
 // quadLayer/layersSystem references and never released the native XRQuadLayer

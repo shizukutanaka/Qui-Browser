@@ -252,6 +252,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 61: 原子②「コンテンツ表示」を実装 — リーダーモード
+Session 60 は「②が構造的に不在」と診断して終えた。本セッションは**治療**。iframe 路線に解が無い以上(WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない)、実現可能な唯一の道である「取得 → 本文抽出 → canvas テキスト描画」で②を実際に作った。同時に③(スクロール・可読性)も解決している。
+- ♻️ **refactor (共有化)**: `CaptionSystem._wrap`(日本語の空白なし hard-split・サロゲートペア非分断の硬化済み)を `src/vr/ui/textWrap.js` の `wrapTextToLines()` として抽出し、CaptionSystem はそれを呼ぶだけに変更。複製すれば硬化が分岐するため。**既存の字幕テスト39件が無改変で全通過**することが挙動不変の証明。
+- ✨ **feat (原子②)**: 新規純モジュール2本 — `readableText.js`(`extractReadableText()`: script/style/nav/header/footer/aside を内容ごと除去 → `<article>`/`<main>` があれば優先 → h1-3/p/li/blockquote を文書順に抽出 → 実体参照デコード)と `readerLayout.js`(`layoutReaderLines`/`clampReaderScroll`/`readerWindow`/`readerProgressLabel`、`bookmarkLayout.js` の設計を踏襲)。**jsdom/cheerio 未導入かつ jest は `testEnvironment:'node'` で DOMParser が無いため、依存ゼロの正規表現ベース**とし「パーサではなくリーダー用ヒューリスティック」であることを docstring に明記。
+- ✨ **feat (WebPanel)**: `_contentState` に `'reader'` を追加。`_loadUrl()` が `_loadReaderText()` を起動し、fetch(AbortController + 5s timeout + `clearTimeout`、`JapaneseIME.js:261` の作法)→ 抽出 → レイアウト → 描画。`_readerSeq` で**遅い fetch が新しいナビゲーションを上書きしないよう**ガード。取得不可(CORS/ネットワーク/本文抽出不能な SPA シェル)は Session 60 の正直な `'unavailable'` にフォールバック。`scrollContent(delta)` は draw 側と同じ `clampReaderScroll` を通す(`_setContentState` は早期 return するので明示再描画)。
+- 🐛 **fix (SW — キャッシュ汚染 / 既存バグ)**: `public/service-worker.js` の fetch ハンドラは非GET と `chrome-extension:` しか除外せず、**任意の cross-origin GET が既定の stale-while-revalidate でバージョン付きアプリシェルキャッシュに無制限に入っていた**(`enforceCacheLimit` は cacheFirst/networkFirst でしか走らない)。リーダーが任意ページを fetch する以上これは致命的なので、cross-origin は SW を通さずネットワーク直行に修正。
+- 🐛 **fix (音声スクロールが常に無効だった)**: `scroll-down`/`scroll-up` は `iframe.contentWindow.scrollBy` を呼んでおり、cross-origin では必ず throw(握り潰し)、same-origin でも VR で不可視の iframe を動かすだけで**実質何もしていなかった**。`onScrollContent` コールバック経由でリーダービューポートを動かすよう変更。加えて同一キーの**重複登録**(`:366` の `window.scrollBy` 版、`Map.set` で後勝ちのため死にコード)を削除。
+- **実 HTML での確認**: サンドボックスの proxy が外部取得を 403 で拒否するためライブ検証は不可。代わりにリポジトリ内の実 HTML 3本(`index.html`/`offline.html`/`vr-browser.html`、いずれもインライン `<script>`/`<style>` を多数含む)で抽出を実行し、タイトル・見出し・段落が正しく取れ、**コード/CSS が本文に混入しない**ことを確認。
+- 46 new tests(`readable-text.test.js` 32 + WebPanel リーダー 9 + SW cross-origin 5)。`git stash -u` で pre-fix 失敗を確認済み。
+- **到達範囲の正直な明示**: CORS を許可するオリジンのみ読める。非 CORS オリジンにはサーバ側プロキシが必要だが、SSRF 対策を要する新規ネットワーク面なので次セッションに分離(`OUTSTANDING_ISSUES.md` F-1)。
+- Total 1111 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 60: First Principles 監査 — 中核原子②「コンテンツ表示」の不在と、信頼性3件の修正
 59セッションすべてが「既存コードの監査」という枠内だった。前提を外し「ブラウザとは何の道具か → 不可欠な原子は何か」から測り直した。3方向の並列調査 + 主要主張の自己 grep 検証。
 - 🔍 **最重要の発見（実装バグではなく前提の誤り）**: Web ブラウザの既約な原子は ①移動 → **②表示** → ③読む → ④操作 → ⑤戻る → ⑥保存。本製品は**②が構造的に存在しない**。検証: `WebPanel.onDomOverlayStart()`（iframe を可視化する唯一の関数）は**呼び出し元ゼロ**、`dom-overlay` は VR セッションで**一度も要求されていない**（`VRButton` の sessionInit は `local-floor/bounded-floor/hand-tracking/layers` 固定）、コンテンツ canvas は `_build()` のローカル変数で再描画不可能、`contentMesh` は interactable 未登録。そして根本的に **WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない**（X-Frame-Options / CSP frame-ancestors + 画素非読み出し）。Wolvic/Quest Browser が可能なのはネイティブエンジンだから。**dom-overlay を配線しても解決しない**（AR用機能、かつ 2D HUD で 3D パネルに合成不可）。→ `enableWebPanel: false` は「プロダクト判断待ち」ではなく**②が実装されるまで正しい既定値**と再評価。`docs/OUTSTANDING_ISSUES.md` F-1 に記録。
@@ -626,4 +638,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 60)
+**Last Revision**: 2026-07-04 (Session 61)

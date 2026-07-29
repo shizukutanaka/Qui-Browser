@@ -16,6 +16,7 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
+import { wrapTextToLines } from '../ui/textWrap.js';
 
 const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
@@ -342,36 +343,9 @@ export class CaptionSystem {
    * @returns {string[]}
    */
   _wrap(text, maxChars) {
-    const words = String(text).trim().split(/\s+/);
-    const rows = [];
-    let cur = '';
-    const cpLen = (s) => Array.from(s).length; // code points, not UTF-16 units
-    for (const w of words) {
-      const wChars = Array.from(w);
-      if (wChars.length > maxChars) {
-        if (cur) {
-          rows.push(cur);
-          cur = '';
-        }
-        let start = 0;
-        while (wChars.length - start > maxChars) {
-          rows.push(wChars.slice(start, start + maxChars).join(''));
-          start += maxChars;
-        }
-        cur = wChars.slice(start).join('');
-      } else if (!cur) {
-        cur = w;
-      } else if (cpLen(cur + ' ' + w) <= maxChars) {
-        cur += ' ' + w;
-      } else {
-        rows.push(cur);
-        cur = w;
-      }
-    }
-    if (cur) {
-      rows.push(cur);
-    }
-    return rows.length ? rows : [''];
+    // Shared with the reader viewport (src/vr/ui/textWrap.js) so the
+    // code-point / surrogate-pair hardening lives in exactly one place.
+    return wrapTextToLines(text, maxChars);
   }
 
   _truncate(text, max) {

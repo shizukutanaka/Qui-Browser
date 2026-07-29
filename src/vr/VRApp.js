@@ -2407,7 +2407,12 @@ export class VRApp {
             }
           },
           // Hands-free equivalent of the "Clear History" settings action.
-          onClearHistory: () => this._clearBrowsingHistory()
+          onClearHistory: () => this._clearBrowsingHistory(),
+          // Scroll the active panel's reader viewport (the fetched article
+          // text), which is what "下にスクロール" can actually move in VR.
+          onScrollContent: (delta) => {
+            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+          }
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

@@ -1,0 +1,124 @@
+/**
+ * Pure layout for the reader viewport — the same split as `bookmarkLayout.js`:
+ * all geometry/paging maths lives here so it is unit-testable without a canvas
+ * (the test stubs have no `measureText`, and canvas output cannot be verified
+ * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
+ */
+
+import { wrapTextToLines } from '../ui/textWrap.js';
+
+// Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
+export const CONTENT_PX_W = 1024;
+export const CONTENT_PX_H = 942;
+export const CONTENT_PAD = 48;
+/** Baseline line height (px) and character budget at scale 1. */
+export const LINE_H = 34;
+export const WRAP_CHARS = 58;
+
+/** Lines that fit the viewport at a given scale. */
+export function visibleLineCount(scale = 1) {
+  const lh = LINE_H * (scale > 0 ? scale : 1);
+  return Math.max(1, Math.floor((CONTENT_PX_H - 2 * CONTENT_PAD) / lh));
+}
+
+/** Characters per line at a given scale — bigger text wraps sooner. */
+export function wrapCharsFor(scale = 1) {
+  return Math.max(12, Math.round(WRAP_CHARS / (scale > 0 ? scale : 1)));
+}
+
+/**
+ * Turn extracted blocks into a flat, renderable line list.
+ *
+ * Headings get a blank line before them (never a leading blank at the very
+ * top) so structure survives in a plain-text surface; paragraphs are separated
+ * by a blank line. Wrapping is code-point-aware via the shared
+ * `wrapTextToLines`, so spaceless Japanese hard-splits without severing
+ * surrogate pairs.
+ *
+ * @param {Array<{type:'h'|'p', text:string}>} blocks
+ * @param {{scale?: number, title?: string}} [opts]
+ * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'}>}
+ */
+export function layoutReaderLines(blocks, opts = {}) {
+  const scale = opts.scale > 0 ? opts.scale : 1;
+  const maxChars = wrapCharsFor(scale);
+  const lines = [];
+
+  const push = (text, style) => lines.push({ text, style });
+  const blank = () => {
+    if (lines.length) {
+      push('', 'blank');
+    }
+  };
+
+  if (opts.title) {
+    for (const row of wrapTextToLines(opts.title, maxChars)) {
+      push(row, 'title');
+    }
+  }
+
+  for (const b of Array.isArray(blocks) ? blocks : []) {
+    if (!b || !b.text) {
+      continue;
+    }
+    blank();
+    const style = b.type === 'h' ? 'h' : 'p';
+    for (const row of wrapTextToLines(b.text, maxChars)) {
+      push(row, style);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Clamp a scroll offset into range. Mirrors `BookmarkPanel._clampScroll`: the
+ * draw path and any input path must both route through this so they can never
+ * disagree and render an empty window.
+ *
+ * @param {number} offset
+ * @param {number} total   total line count
+ * @param {number} visible lines that fit
+ * @returns {number}
+ */
+export function clampReaderScroll(offset, total, visible) {
+  const max = Math.max(0, (total || 0) - Math.max(1, visible || 1));
+  const n = Number.isFinite(offset) ? Math.floor(offset) : 0;
+  return Math.min(Math.max(0, n), max);
+}
+
+/**
+ * The slice of lines to draw for a clamped offset.
+ * @returns {Array<{text: string, style: string}>}
+ */
+export function readerWindow(lines, offset, visible) {
+  const all = Array.isArray(lines) ? lines : [];
+  const start = clampReaderScroll(offset, all.length, visible);
+  return all.slice(start, start + Math.max(1, visible || 1));
+}
+
+/**
+ * "12–40/318" style progress label, matching the bookmark panel's convention.
+ * Empty string when everything fits (nothing to indicate).
+ */
+export function readerProgressLabel(offset, total, visible) {
+  const n = total || 0;
+  const v = Math.max(1, visible || 1);
+  if (n <= v) {
+    return '';
+  }
+  const start = clampReaderScroll(offset, n, v);
+  return `${start + 1}–${Math.min(start + v, n)}/${n}`;
+}
+
+/** Font px for a line style at a given scale. */
+export function fontPxFor(style, scale = 1) {
+  const s = scale > 0 ? scale : 1;
+  if (style === 'title') {
+    return Math.round(30 * s);
+  }
+  if (style === 'h') {
+    return Math.round(25 * s);
+  }
+  return Math.round(20 * s);
+}
