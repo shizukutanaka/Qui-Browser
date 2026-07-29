@@ -20,6 +20,10 @@ import { configureUITexture } from '../ui/canvasTexture.js';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
+import {
+  elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines
+} from './urlDisplay.js';
+import { prefersHighContrast } from '../../a11y/accessibility.js';
 
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
@@ -107,6 +111,11 @@ export class WebPanel {
     this.loading     = false;
     this._loadError  = false; // set true on iframe onerror, cleared on next navigate
     this.domOverlaySupported = false;
+    // What the content area should say. 'empty' | 'loading' | 'unavailable' |
+    // 'error'. There is deliberately no 'rendered' state: a WebXR *web app*
+    // cannot composite cross-origin page pixels into a 3D texture (see
+    // _drawContent), so claiming a page is displayed would be a lie.
+    this._contentState = 'empty';
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
     this.quadLayer    = null;
@@ -154,21 +163,18 @@ export class WebPanel {
     this.chromeMesh.name = 'webPanelChrome';
     this.group.add(this.chromeMesh);
 
-    // ── Content area placeholder ────────────────────────────────────────────
-    const contentCanvas = document.createElement('canvas');
-    contentCanvas.width  = 1024;
-    contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
-    const contentCtx = contentCanvas.getContext('2d');
-    contentCtx.fillStyle = '#1a1a2e';
-    contentCtx.fillRect(0, 0, contentCanvas.width, contentCanvas.height);
-    contentCtx.fillStyle = '#a0a0b8';
-    contentCtx.font = '28px sans-serif';
-    contentCtx.textAlign = 'center';
-    contentCtx.fillText('Enter a URL to navigate', contentCanvas.width / 2, contentCanvas.height / 2 - 20);
-    contentCtx.font = '18px sans-serif';
-    contentCtx.fillText('(WebXR dom-overlay required for external content)', contentCanvas.width / 2, contentCanvas.height / 2 + 20);
+    // ── Content area ────────────────────────────────────────────────────────
+    // Kept on `this` (was a _build() local) so it can be REDRAWN as the panel's
+    // state changes. Previously it was painted once and never again, so after a
+    // successful navigation the viewport still read "Enter a URL to navigate"
+    // forever — the panel silently misrepresented what it was showing.
+    this.contentCanvas = document.createElement('canvas');
+    this.contentCanvas.width  = 1024;
+    this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
+    this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
+    this._drawContent();
 
-    const contentTex = configureUITexture(new THREE.CanvasTexture(contentCanvas));
+    const contentTex = this.contentTex;
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
     const contentMat = new THREE.MeshBasicMaterial({ map: contentTex, side: THREE.FrontSide });
     this.contentMesh = new THREE.Mesh(contentGeo, contentMat);
@@ -215,6 +221,58 @@ export class WebPanel {
 
   // ── Chrome drawing ────────────────────────────────────────────────────────
 
+  /**
+   * Paint the content area to match `_contentState`.
+   *
+   * Honesty note: this panel renders browser *chrome* (URL bar, history,
+   * tabs); it does not render web page content. A WebXR web app cannot
+   * composite cross-origin page pixels into a 3D texture — X-Frame-Options /
+   * CSP `frame-ancestors` block framing most sites outright, and even a framed
+   * same-origin document's pixels are not readable into a WebGL texture. So
+   * rather than showing a stale "Enter a URL to navigate" placeholder after a
+   * navigation the user believes succeeded, the viewport states plainly what
+   * it can and cannot show.
+   */
+  _drawContent() {
+    if (!this.contentCanvas) {
+      return;
+    }
+    const ctx = this.contentCanvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+    const w = this.contentCanvas.width;
+    const h = this.contentCanvas.height;
+    const hc = prefersHighContrast();
+
+    ctx.fillStyle = hc ? '#000000' : '#1a1a2e';
+    ctx.fillRect(0, 0, w, h);
+    ctx.textAlign = 'center';
+
+    const lines = contentStateLines(this._contentState, this.currentUrl);
+    ctx.fillStyle = hc ? '#ffffff' : '#a0a0b8';
+    ctx.font = '28px sans-serif';
+    ctx.fillText(truncate(lines.title, 46), w / 2, h / 2 - 20);
+    if (lines.detail) {
+      ctx.font = '18px sans-serif';
+      ctx.fillStyle = hc ? '#dddddd' : '#8891ad';
+      ctx.fillText(truncate(lines.detail, 72), w / 2, h / 2 + 20);
+    }
+
+    if (this.contentTex) {
+      this.contentTex.needsUpdate = true;
+    }
+  }
+
+  /** Set the content-area state and repaint if it changed. */
+  _setContentState(state) {
+    if (this._contentState === state) {
+      return;
+    }
+    this._contentState = state;
+    this._drawContent();
+  }
+
   _drawChrome() {
     const c = this.chromeCanvas;
     const ctx = c.getContext('2d');
@@ -256,18 +314,37 @@ export class WebPanel {
     ctx.fillRect(212, 6, barW, h - 12);
     // Truncate to fit the bar so a long URL can't overflow into the buttons.
     const maxChars = urlBarMaxChars(barW, this._loadError ? 17 : 18);
-    let urlText;
+    ctx.textAlign = 'left';
     if (this._loadError) {
       ctx.fillStyle = '#ff7777';
       ctx.font = '17px sans-serif';
-      urlText = truncate(`⚠ Failed to load: ${this.currentUrl}`, maxChars);
+      ctx.fillText(truncate(`⚠ Failed to load: ${this.currentUrl}`, maxChars), 220, h / 2 + 6);
     } else {
+      // Security indicator + origin-preserving URL. The address bar is the
+      // user's only signal of which site they are on, so the origin is drawn
+      // verbatim and never elided (see urlDisplay.js): prefix truncation used
+      // to let `https://www.google.com@evil.com` read as "google.com", and let
+      // a padded subdomain chain push the real host out of view entirely.
+      const level = securityLevel(this.currentUrl);
+      const ind = securityIndicator(level, prefersHighContrast());
+      let x = 220;
+      if (ind.glyph) {
+        ctx.fillStyle = ind.color;
+        ctx.font = '18px sans-serif';
+        ctx.fillText(ind.glyph, x, h / 2 + 6);
+        x += 26;
+      }
       ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
       ctx.font = '18px monospace';
-      urlText = truncate(this.currentUrl || 'https://', maxChars);
+      // The glyph consumed ~26px of the bar; shrink the character budget to match.
+      const urlChars = this.currentUrl
+        ? urlBarMaxChars(barW - (x - 220), 18)
+        : maxChars;
+      const urlText = this.currentUrl
+        ? elideUrlForDisplay(this.currentUrl, urlChars)
+        : 'https://';
+      ctx.fillText(urlText, x, h / 2 + 6);
     }
-    ctx.textAlign = 'left';
-    ctx.fillText(urlText, 220, h / 2 + 6);
 
     // Bookmark (star) button
     if (hasBookmark) {
@@ -396,6 +473,8 @@ export class WebPanel {
     this._loadError = false;
     this._drawChrome();
 
+    this._setContentState('loading');
+
     // Load in iframe (visible only when dom-overlay is active).
     this.iframe.src = url;
     this.iframe.onload = () => {
@@ -406,12 +485,19 @@ export class WebPanel {
         title = this.iframe.contentDocument.title || url;
       } catch { /* cross-origin frame: keep the URL as the title */ }
       this.currentTitle = title;
+      // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
+      // `load`, not `error`, in Chromium — so reaching here does NOT mean the
+      // page rendered. Combined with the fact that page pixels can never reach
+      // the 3D texture anyway, the viewport must say so rather than keep a
+      // stale "Enter a URL" placeholder that implies nothing happened.
+      this._setContentState('unavailable');
       this._drawChrome();
       this.onNavigate(url, title);
     };
     this.iframe.onerror = () => {
       this.loading = false;
       this._loadError = true;
+      this._setContentState('error');
       this._drawChrome();
       this.onLoadError(this.currentUrl);
     };
