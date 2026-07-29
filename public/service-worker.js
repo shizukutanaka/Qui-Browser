@@ -144,6 +144,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip cross-origin requests entirely — let them go straight to the network.
+  //
+  // Without this, ANY cross-origin GET fell through to the default
+  // stale-while-revalidate strategy and was written into the versioned
+  // app-shell cache, which has no size limit (enforceCacheLimit only runs in
+  // the cacheFirst/networkFirst paths). Since the reader viewport now fetches
+  // arbitrary page HTML, that would grow the cache without bound and serve
+  // users stale article text. Caching third-party responses in the app shell
+  // was never intended regardless.
+  const selfOrigin = (self.location && self.location.origin) || null;
+  if (selfOrigin && url.origin !== selfOrigin) {
+    return;
+  }
+
   // Determine caching strategy
   const strategy = getCacheStrategy(url.pathname);
 

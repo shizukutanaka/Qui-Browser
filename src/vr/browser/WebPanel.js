@@ -23,6 +23,11 @@ import { truncate } from './bookmarkLayout.js';
 import {
   elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines
 } from './urlDisplay.js';
+import { extractReadableText } from './readableText.js';
+import {
+  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
+  visibleLineCount, fontPxFor, LINE_H, CONTENT_PAD
+} from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 
 const PANEL_W = 1.6;    // metres
@@ -78,10 +83,13 @@ export class WebPanel {
    *   navigate() resolves the typed text to null (a blocked scheme like
    *   javascript:/data:/file:, or an unparseable address) so callers can
    *   surface a status message (WCAG 4.1.3) instead of silently doing nothing.
+   * @param {number} [opts.readerScale=1] — text-size multiplier for the reader
+   *   viewport (compose with a11y largeTextScale at the call site).
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation }) {
+    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
+    readerScale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -111,11 +119,16 @@ export class WebPanel {
     this.loading     = false;
     this._loadError  = false; // set true on iframe onerror, cleared on next navigate
     this.domOverlaySupported = false;
-    // What the content area should say. 'empty' | 'loading' | 'unavailable' |
-    // 'error'. There is deliberately no 'rendered' state: a WebXR *web app*
-    // cannot composite cross-origin page pixels into a 3D texture (see
-    // _drawContent), so claiming a page is displayed would be a lie.
+    // What the content area shows. 'empty' | 'loading' | 'reader' |
+    // 'unavailable' | 'error'. There is deliberately no state claiming the
+    // *page* is rendered: a WebXR web app cannot composite cross-origin page
+    // pixels into a 3D texture. 'reader' means we fetched the markup and are
+    // rendering the extracted text ourselves (see readableText.js).
     this._contentState = 'empty';
+    this._readerLines = [];
+    this._readerScroll = 0;
+    this._readerScale = readerScale > 0 ? readerScale : 1;
+    this._readerSeq = 0; // guards against a slow fetch landing after a newer one
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
     this.quadLayer    = null;
@@ -247,8 +260,16 @@ export class WebPanel {
 
     ctx.fillStyle = hc ? '#000000' : '#1a1a2e';
     ctx.fillRect(0, 0, w, h);
-    ctx.textAlign = 'center';
 
+    if (this._contentState === 'reader') {
+      this._drawReader(ctx, w, h, hc);
+      if (this.contentTex) {
+        this.contentTex.needsUpdate = true;
+      }
+      return;
+    }
+
+    ctx.textAlign = 'center';
     const lines = contentStateLines(this._contentState, this.currentUrl);
     ctx.fillStyle = hc ? '#ffffff' : '#a0a0b8';
     ctx.font = '28px sans-serif';
@@ -262,6 +283,119 @@ export class WebPanel {
     if (this.contentTex) {
       this.contentTex.needsUpdate = true;
     }
+  }
+
+  /**
+   * Fetch a page's markup and render its readable text into the viewport.
+   *
+   * Only origins that send CORS headers are reachable from a browser context;
+   * everything else rejects and falls back to the honest 'unavailable' state.
+   * (Reaching non-CORS origins needs a server-side proxy — deliberately not
+   * built here, since that is a new network surface needing SSRF hardening.)
+   *
+   * Uses the AbortController + clearTimeout idiom from JapaneseIME so a hung
+   * request cannot pin the panel in 'loading' forever.
+   */
+  async _loadReaderText(url) {
+    const seq = ++this._readerSeq;
+    if (typeof fetch !== 'function') {
+      this._setContentState('unavailable');
+      return;
+    }
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
+    try {
+      const res = await fetch(url, controller ? { signal: controller.signal } : undefined);
+      if (!res || !res.ok) {
+        throw new Error(`HTTP ${res && res.status}`);
+      }
+      const html = await res.text();
+      // A newer navigation started while this was in flight — discard.
+      if (seq !== this._readerSeq) {
+        return;
+      }
+      const { title, blocks } = extractReadableText(html);
+      const lines = layoutReaderLines(blocks, { title, scale: this._readerScale });
+      if (!lines.length) {
+        // Fetched, but no prose recoverable (SPA shell, or markup we can't
+        // read). Say so rather than showing a blank page.
+        this._setContentState('unavailable');
+        return;
+      }
+      this._readerLines = lines;
+      this._readerScroll = 0;
+      this._contentState = 'reader';
+      this._drawContent();
+    } catch {
+      if (seq === this._readerSeq) {
+        this._setContentState('unavailable');
+      }
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  /**
+   * Draw the reader viewport: the visible slice of laid-out lines plus a
+   * progress label. Follows BookmarkPanel._draw()'s conventions (window slice
+   * + progress indicator) so scrolling behaves the same way across panels.
+   */
+  _drawReader(ctx, w, h, hc) {
+    const visible = visibleLineCount(this._readerScale);
+    const total = this._readerLines.length;
+    // Clamp on the draw path too — the same discipline as BookmarkPanel, so
+    // draw and input can never disagree and render an empty window.
+    this._readerScroll = clampReaderScroll(this._readerScroll, total, visible);
+    const window = readerWindow(this._readerLines, this._readerScroll, visible);
+
+    ctx.textAlign = 'left';
+    const lh = LINE_H * this._readerScale;
+    let y = CONTENT_PAD + lh;
+    for (const line of window) {
+      if (line.style !== 'blank' && line.text) {
+        ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
+        ctx.fillStyle = hc
+          ? '#ffffff'
+          : (line.style === 'p' ? '#d6dcf0' : '#ffffff');
+        ctx.fillText(line.text, CONTENT_PAD, y);
+      }
+      y += lh;
+    }
+
+    const label = readerProgressLabel(this._readerScroll, total, visible);
+    if (label) {
+      ctx.textAlign = 'right';
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = hc ? '#ffffff' : '#7788aa';
+      ctx.fillText(label, w - CONTENT_PAD, h - 16);
+    }
+  }
+
+  /**
+   * Scroll the reader viewport by `delta` lines. Routed through the same
+   * clamp as the draw path; repaints explicitly because `_setContentState`
+   * early-returns when the state is unchanged.
+   * @param {number} delta positive = further down the article
+   * @returns {boolean} true when the offset actually moved
+   */
+  scrollContent(delta) {
+    if (this._contentState !== 'reader') {
+      return false;
+    }
+    const visible = visibleLineCount(this._readerScale);
+    const next = clampReaderScroll(
+      this._readerScroll + (Number.isFinite(delta) ? delta : 0),
+      this._readerLines.length,
+      visible
+    );
+    if (next === this._readerScroll) {
+      return false;
+    }
+    this._readerScroll = next;
+    this._drawContent();
+    return true;
   }
 
   /** Set the content-area state and repaint if it changed. */
@@ -474,6 +608,9 @@ export class WebPanel {
     this._drawChrome();
 
     this._setContentState('loading');
+    // Reader pipeline: fetch the markup and render the readable text ourselves.
+    // This is the only way a WebXR web app can show page content at all.
+    this._loadReaderText(url);
 
     // Load in iframe (visible only when dom-overlay is active).
     this.iframe.src = url;

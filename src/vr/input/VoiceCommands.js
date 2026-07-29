@@ -362,24 +362,11 @@ export class VoiceCommands {
       description: 'Exit VR mode'
     });
 
-    // Scroll commands
-    this.registerCommand('scroll-down', {
-      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
-      action: () => {
-        window.scrollBy(0, 300);
-        return { action: 'scroll', direction: 'down' };
-      },
-      description: 'Scroll down'
-    });
-
-    this.registerCommand('scroll-up', {
-      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
-      action: () => {
-        window.scrollBy(0, -300);
-        return { action: 'scroll', direction: 'up' };
-      },
-      description: 'Scroll up'
-    });
+    // NOTE: scroll-down / scroll-up are registered in connectBrowser() instead.
+    // A duplicate pair used to live here calling `window.scrollBy`, which
+    // scrolls the host page — meaningless inside an immersive session — and was
+    // overwritten anyway (registerCommand is a Map.set, so the later
+    // connectBrowser registration always won once it ran).
 
     // Volume control
     this.registerCommand('volume-up', {
@@ -511,8 +498,11 @@ export class VoiceCommands {
    * @param {Function} [opts.onClearHistory] () => void — called to clear browsing
    *                                         history (privacy); host runs the clear +
    *                                         cross-modal confirmation (decoupled like onGoTo)
+   * @param {Function} [opts.onScrollContent] (deltaLines: number) => void — scroll
+   *                                         the active panel's reader viewport
    */
-  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo, onClearHistory } = {}) {
+  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
+    onClearHistory, onScrollContent } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -601,14 +591,19 @@ export class VoiceCommands {
       example: '検索：てんき'
     });
 
-    // Scroll inside the active page's iframe
+    // Scroll the reader viewport.
+    //
+    // This previously called `iframe.contentWindow.scrollBy`, which threw on
+    // every cross-origin page (swallowed) and, even same-origin, scrolled an
+    // iframe that is never visible in VR — so the command did nothing at all.
+    // It now drives the panel's own reader viewport via onScrollContent.
+    const SCROLL_LINES = 8;
     this.registerCommand('scroll-down', {
       patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
       action: () => {
-        const frame = tabManager?.getActiveTab?.()?.iframe;
-        try {
-          frame?.contentWindow?.scrollBy(0, 300);
-        } catch (_) { /* cross-origin */ }
+        if (onScrollContent) {
+          onScrollContent(SCROLL_LINES);
+        }
         return { action: 'scroll', direction: 'down' };
       },
       description: 'Scroll down'
@@ -617,10 +612,9 @@ export class VoiceCommands {
     this.registerCommand('scroll-up', {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
       action: () => {
-        const frame = tabManager?.getActiveTab?.()?.iframe;
-        try {
-          frame?.contentWindow?.scrollBy(0, -300);
-        } catch (_) { /* cross-origin */ }
+        if (onScrollContent) {
+          onScrollContent(-SCROLL_LINES);
+        }
         return { action: 'scroll', direction: 'up' };
       },
       description: 'Scroll up'

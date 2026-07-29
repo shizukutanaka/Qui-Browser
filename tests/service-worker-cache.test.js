@@ -6,8 +6,14 @@
  * reach the internals. The Cache API is mocked in-memory.
  */
 
-// Stub the worker globals the module touches at require time.
-global.self = { addEventListener: () => {} };
+// Stub the worker globals the module touches at require time. Handlers are
+// recorded so the fetch listener itself can be exercised (see the cross-origin
+// suite at the bottom).
+const swHandlers = {};
+global.self = {
+  addEventListener: (type, fn) => { swHandlers[type] = fn; },
+  location: { origin: 'https://app.example', pathname: '/service-worker.js' }
+};
 
 const sw = require('../public/service-worker.js');
 const { enforceCacheLimit, networkFirst, CACHE_LIMITS } = sw;
@@ -118,5 +124,54 @@ describe('BASE-relative precache (subpath deploy support)', () => {
       expect(asset).not.toMatch(/\/src\//);
       expect(asset).not.toMatch(/^https?:\/\//);
     }
+  });
+});
+
+// ── Cross-origin requests must bypass the service worker entirely ────────────
+// Regression: the handler skipped only non-GET and chrome-extension:, so ANY
+// cross-origin GET fell through to the default stale-while-revalidate strategy
+// and was written into the versioned app-shell cache — which has no size limit
+// (enforceCacheLimit runs only in the cacheFirst/networkFirst paths). Now that
+// the reader viewport fetches arbitrary page HTML, that would have grown the
+// cache without bound and served stale article text.
+describe('fetch handler — cross-origin bypass', () => {
+  // A handled request runs a real caching strategy, which touches caches/fetch.
+  beforeEach(() => {
+    global.caches = { open: async () => makeMockCache(), match: async () => undefined };
+    global.fetch = async () => ({ ok: true, clone: () => ({ body: 'x' }) });
+  });
+  afterEach(() => {
+    delete global.caches;
+    delete global.fetch;
+  });
+
+  function fire(url, method = 'GET') {
+    let responded = false;
+    swHandlers.fetch({
+      request: { url, method },
+      // Swallow the strategy promise so an async rejection can't fail the run.
+      respondWith: (p) => { responded = true; Promise.resolve(p).catch(() => {}); }
+    });
+    return responded;
+  }
+
+  test('is registered', () => {
+    expect(typeof swHandlers.fetch).toBe('function');
+  });
+
+  test('a cross-origin page fetch is NOT intercepted (no caching)', () => {
+    expect(fire('https://en.wikipedia.org/wiki/WebXR')).toBe(false);
+  });
+
+  test('same-origin requests are still handled', () => {
+    expect(fire('https://app.example/index.html')).toBe(true);
+  });
+
+  test('non-GET is still skipped', () => {
+    expect(fire('https://app.example/api/x', 'POST')).toBe(false);
+  });
+
+  test('chrome-extension: is still skipped', () => {
+    expect(fire('chrome-extension://abc/x.js')).toBe(false);
   });
 });
