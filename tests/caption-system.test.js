@@ -46,7 +46,7 @@ const {
   CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX,
   readingTimeMs, CPS_FULLWIDTH, CPS_HALFWIDTH
 } = require('../src/vr/accessibility/CaptionSystem.js');
-const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+const { textWidthEm, WIDTH_SAFETY } = require('../src/vr/ui/textWrap.js');
 
 function makeCamera() {
   return { add: jest.fn(), remove: jest.fn() };
@@ -235,8 +235,10 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('a larger scale raises the font cap and narrows the measure (low vision)', () => {
     const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
     expect(big._fontSizeFor(1)).toBe(66);              // 44 * 1.5
-    // Clamped so 66px text still fits: 976px / 66px ≈ 14.8 em.
-    expect(big._measureEm()).toBeCloseTo(976 / 66, 5);
+    // Clamped so 66px text still fits, with the WIDTH_SAFETY margin that
+    // absorbs the em model's ~1% under-estimate of real full-width advance
+    // (measured via tools/measure-text-metrics.mjs) and device font variance.
+    expect(big._measureEm()).toBeCloseTo((976 / 66) * WIDTH_SAFETY, 5);
     expect(big._measureEm()).toBeLessThan(cs._measureEm());
   });
 

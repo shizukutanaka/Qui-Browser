@@ -368,7 +368,7 @@ export class WebPanel {
         ctx.fillStyle = hc
           ? '#ffffff'
           : (line.style === 'p' ? '#d6dcf0' : '#ffffff');
-        ctx.fillText(line.text, CONTENT_PAD, y);
+        ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;
     }

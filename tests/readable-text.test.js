@@ -343,3 +343,36 @@ describe('reader scroll affordance', () => {
     expect(ARROW_UP_X0 + ARROW_W).toBeLessThan(ARROW_DN_X0);
   });
 });
+
+// The em model (full-width 1.0, Latin 0.5) is an approximation of UAX #11.
+// Measured against real Chromium + real CJK fonts (tools/measure-text-metrics.mjs):
+// full-width advance is 1.012 em, Latin 0.458-0.496, monospace 0.602. So the
+// model slightly UNDER-estimates full-width text, and any budget derived from
+// pixel geometry with zero slack would overflow.
+describe('WIDTH_SAFETY — budgets survive real font metrics', () => {
+  const { safeMeasureEm, WIDTH_SAFETY } = require('../src/vr/ui/textWrap.js');
+  const MEASURED_FULLWIDTH_EM = 1.012; // ground truth, see the tool
+
+  test('reserves headroom rather than using the full box', () => {
+    expect(WIDTH_SAFETY).toBeGreaterThan(0.8);
+    expect(WIDTH_SAFETY).toBeLessThan(1);
+    expect(safeMeasureEm(1000, 20)).toBeCloseTo(50 * WIDTH_SAFETY, 5);
+  });
+
+  test('the margin absorbs the measured 1.2% under-estimate', () => {
+    const avail = 976, font = 66;                 // caption at the large-text scale
+    const budget = safeMeasureEm(avail, font);
+    expect(budget * font * MEASURED_FULLWIDTH_EM).toBeLessThanOrEqual(avail);
+  });
+
+  test('a naive budget (no margin) would NOT survive it', () => {
+    const avail = 976, font = 66;
+    expect((avail / font) * font * MEASURED_FULLWIDTH_EM).toBeGreaterThan(avail);
+  });
+
+  test('degenerate inputs stay safe', () => {
+    expect(safeMeasureEm(0, 20)).toBe(0);
+    expect(safeMeasureEm(-100, 20)).toBe(0);
+    expect(Number.isFinite(safeMeasureEm(100, 0))).toBe(true);
+  });
+});

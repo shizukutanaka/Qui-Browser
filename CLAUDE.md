@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 67: em モデルを実測で裏取り — 近似の誤差が効く3箇所を修正
+Sessions 62〜66 の修正はすべて「全角=1em / 半角≈0.5em」という**近似**に依存していた。この近似が実際のフォント描画と合っているかは未検証だったので、実ブラウザの `measureText` で裏を取った。
+- 🔧 **tool (依存ゼロ)**: `tools/measure-text-metrics.mjs` を追加。Playwright のブラウザ束に同梱済みの Chromium を `--dump-dom` で駆動し、実フォントの advance を測る。**devDependency を1つも増やさない**(`@playwright/test` は未導入のまま)。
+- 📐 **実測結果**(DejaVu Sans + IPAGothic/WenQuanYi fallback): Latin 0.458(regular)〜0.496(bold) em、monospace **0.602 em**、**全角 1.012 em**(本=1.000 だが あ=**1.023**)。→ **Latin と monospace の近似は妥当**(0.5/0.6 は安全側)。しかし**全角は約1.2%過小評価**していた。
+- 🐛 **fix**: 1.2% の過小評価は、余裕ゼロで幾何から導いた予算では**そのまま溢れる**。該当3箇所を実測で特定し `safeMeasureEm()`(`WIDTH_SAFETY = 0.95`)経由に変更 — 字幕の大文字スケール(976px 枠に対し余裕0%)、サジェストラベル(360px 枠に余裕0%)、ブックマーク行タイトル(936px 枠に余裕0%)。修正後は実測1.012em を掛けても 938/346/900px で収まることを確認。
+- ✨ **マージンの根拠を明示**: 5% は測定値に合わせたのではなく、**Quest の `sans-serif` はこの Linux コンテナと別のフォントに解決される**ため測定値そのものは可搬でない、という理由で取った余裕。docstring に明記。
+- 🐛 **fix (IME 入力欄が無制限だった)**: 変換中テキストの表示(canvas 1024px / 40px monospace)は**切り詰めも maxWidth も無く**、長い URL を打つとモード表示バッジの下を通って枠外へ流れていた。バッジ幅を除いた実幅で切り詰め + maxWidth を追加。
+- ✨ **二重防御の完成**: `maxWidth` バックストップが無かった字幕・リーダー本文にも追加。これで全4面(字幕/リーダー/サジェスト/ブックマーク)が「em 予算で切り詰め + canvas 側で圧縮」の二重防御になった。
+- 4テスト追加(マージンが実測値を吸収する / マージン無しでは溢れる / 退化入力)。うち3件が pre-fix で失敗。
+- Total 1156 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 66: 研究駆動 — リーダーが音声でしかスクロールできなかった(自分の出荷物の欠陥)
 Session 61 で出荷したリーダーを見直したところ、**`scrollContent` の呼び出し元が音声コマンド1箇所だけ**で、しかも **`contentMesh` は interactable に登録すらされていなかった**(登録は `chromeMesh`/`moveBarMesh` のみ)。つまりレイが当たらず、**音声を使わないユーザーは記事の1画面目より先へ進めない**。音声は opt-in でマイク許可も要るため、実質ほとんどのユーザーが読めない状態だった。
 - 📐 **研究由来の設計判断**: HMD の読書課題では「**テキストの移動速度と移動様式**がサイバー酔いの有意な要因」(Nature Sci Rep 2024)、また「**予期しない/制御されていない vection** が酔いの最大の予測因子」。よって連続スクロールではなく**ユーザー起動の離散ページ送り**を採用。加えて「テキストを世界固定した方が HMD 固定より不快感が低い」という知見に対し、本パネルは元々ワールド固定であり**既に正しい**ことを確認(変更不要)。
@@ -685,4 +696,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 66)
+**Last Revision**: 2026-07-04 (Session 67)

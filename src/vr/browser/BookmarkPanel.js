@@ -15,7 +15,7 @@ import {
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
-import { truncateToWidth } from '../ui/textWrap.js';
+import { truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
 // Row text budgets in em, derived from the real row geometry: text starts at
@@ -27,8 +27,8 @@ const ROW_TEXT_X = 24;
 const ROW_TITLE_FONT = 26;   // bold sans
 const ROW_URL_FONT = 20;     // monospace
 const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
-const ROW_TITLE_EM = ROW_TEXT_W / ROW_TITLE_FONT;
-const ROW_URL_EM = ROW_TEXT_W / ROW_URL_FONT;
+const ROW_TITLE_EM = safeMeasureEm(ROW_TEXT_W, ROW_TITLE_FONT);
+const ROW_URL_EM = safeMeasureEm(ROW_TEXT_W, ROW_URL_FONT);
 
 /**
  * Canvas colour palette for the bookmark / history panel.
