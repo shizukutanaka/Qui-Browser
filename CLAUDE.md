@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 63: 研究駆動 — 字幕の全角オーバーフローを放送規格に基づいて修正(F-5 完了)
+Session 62 で発見・記録だけしていた `CaptionSystem` の同型欠陥を、日本語放送字幕の規格を調べたうえで修正した。ろう・難聴ユーザーの主チャネルで**日本語だけが panel の外に流れていた**ため、情報欠落そのものだった。
+- 📐 **研究由来の値**: 日本語放送字幕は **1行16文字・最大2行**(社内規定で13〜20の幅、企業向けは20文字も可)、読速度は1秒4文字・表示上限6.5秒。Latin 字幕ガイドは1行37〜42文字。**em で表すと両立する**: 20em が日本語20字／Latin40字を与え、どちらの慣行にも収まる。なお `MAX_ROWS_PER_LINE = 2` は既に放送規格どおりだった(変更不要)。
+- 🐛 **fix (a11y — 字幕が panel からはみ出していた)**: `WRAP_CHARS = 34`(文字数)を `MEASURE_EM = 20`(em)に置換し、`_wrapChars()` → `_measureEm()`。Session 62 で追加済みの `wrapTextToWidth`/`truncateToWidth` を使用。実測: 単一行フォント44px で **旧 1496px(canvas 1024px を46%超過) → 新 880px で収まる**。
+- ✨ **循環の解消がこの設計の要点**: フォントは行数から決まり(`_fontSizeFor`)、安全な折り返し幅はフォントに依存する、という循環があった。**em はフォント相対なので循環が消える** — 行幅は常に `measure × fontSize` px。さらに「そのスケールで出うる最大フォント(`MAX_FONT × scale`)」に対して em 予算をクランプするため、行数がいくつでも収まることが保証される(scale 1 → 20em、大文字モード scale 1.5 → ≈14.8em)。
+- 🐛 **fix (実装中に自分で作り込んだ欠陥)**: `truncateToWidth(row, measure)` は「既に収まる行」をそのまま返すため、2行超過時の省略記号が消えていた(テストが検出)。旧コードと同じく `row + '…'` を先に付けてから通す形に修正 — 省略記号は「行」ではなく「字幕が切られた」合図なので落としてはいけない。
+- `truncateToWidth()` を `textWrap.js` に追加。5テスト追加(日本語/Latin/混在/大文字スケール/放送規格の行長)、うち4件が pre-fix で失敗することを確認(Latin のみのケースは元から収まるため両方で通過 = 日本語固有の欠陥だった証明)。旧仕様を固定していた既存テスト2件は新仕様に更新。
+- Total 1124 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 62: 研究駆動 — 文字数ではなく em 幅で折り返す(日本語が panel からはみ出していた)
 Session 61 で実装したリーダーの組版パラメータは目分量で決めていたため、VR テキスト可読性の研究と実測で検証した。結果、**出荷したばかりの機能に実バグ**が見つかった。
 - 📐 **実測(パネル形状から)**: コンテンツ canvas 1024px = 物理 1.6m、既定距離 2.0m。本文 20px は em box **53.7 arcmin**(x-height ≈28 arcmin)で、研究が挙げる 16–32 arcmin 帯に収まる → **フォントサイズは妥当、変更不要**。距離 2.0m も「0.5m 未満/20m 超を避ける」「近視者には 2.5m が快適」という知見と整合。
@@ -648,4 +657,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 62)
+**Last Revision**: 2026-07-04 (Session 63)
