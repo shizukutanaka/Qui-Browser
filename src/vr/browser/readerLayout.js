@@ -5,15 +5,31 @@
  * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
  */
 
-import { wrapTextToLines } from '../ui/textWrap.js';
+import { wrapTextToWidth } from '../ui/textWrap.js';
 
 // Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
 export const CONTENT_PX_W = 1024;
 export const CONTENT_PX_H = 942;
 export const CONTENT_PAD = 48;
-/** Baseline line height (px) and character budget at scale 1. */
+/** Baseline line height (px) at scale 1. */
 export const LINE_H = 34;
-export const WRAP_CHARS = 58;
+
+/**
+ * Line measure in **em**, not characters.
+ *
+ * Typography research gives different optimal line lengths per script — the
+ * classic Latin measure is 45–75 characters, while horizontal Japanese is
+ * comfortable at 15–35 characters (NINJAL reading-speed work puts the fastest
+ * at ~30/line). Those look like conflicting targets until expressed in em:
+ * Latin averages ~0.5 em per character and Japanese exactly 1.0, so a single
+ * 34 em measure yields ~68 Latin characters and 34 Japanese characters —
+ * both inside their recommended ranges.
+ *
+ * It also fits: 34 em at the 20px body font is 680px inside the 928px text
+ * column. A naive 58-*character* budget (the previous model) rendered ~1160px
+ * of Japanese and ran 25% off the panel edge.
+ */
+export const MEASURE_EM = 34;
 
 /** Lines that fit the viewport at a given scale. */
 export function visibleLineCount(scale = 1) {
@@ -21,9 +37,20 @@ export function visibleLineCount(scale = 1) {
   return Math.max(1, Math.floor((CONTENT_PX_H - 2 * CONTENT_PAD) / lh));
 }
 
-/** Characters per line at a given scale — bigger text wraps sooner. */
-export function wrapCharsFor(scale = 1) {
-  return Math.max(12, Math.round(WRAP_CHARS / (scale > 0 ? scale : 1)));
+/**
+ * Line measure (em) at a given scale. Larger text wraps sooner because the
+ * text column is a fixed physical width.
+ */
+export function measureEmFor(scale = 1) {
+  return Math.max(8, MEASURE_EM / (scale > 0 ? scale : 1));
+}
+
+/**
+ * Widest measure (em) the text column can physically render at `fontPx`,
+ * so a caller can prove the chosen measure fits rather than assuming it.
+ */
+export function maxMeasureEmForFont(fontPx) {
+  return (CONTENT_PX_W - 2 * CONTENT_PAD) / Math.max(1, fontPx);
 }
 
 /**
@@ -41,7 +68,7 @@ export function wrapCharsFor(scale = 1) {
  */
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
-  const maxChars = wrapCharsFor(scale);
+  const measure = measureEmFor(scale);
   const lines = [];
 
   const push = (text, style) => lines.push({ text, style });
@@ -52,7 +79,7 @@ export function layoutReaderLines(blocks, opts = {}) {
   };
 
   if (opts.title) {
-    for (const row of wrapTextToLines(opts.title, maxChars)) {
+    for (const row of wrapTextToWidth(opts.title, measure)) {
       push(row, 'title');
     }
   }
@@ -63,7 +90,7 @@ export function layoutReaderLines(blocks, opts = {}) {
     }
     blank();
     const style = b.type === 'h' ? 'h' : 'p';
-    for (const row of wrapTextToLines(b.text, maxChars)) {
+    for (const row of wrapTextToWidth(b.text, measure)) {
       push(row, style);
     }
   }

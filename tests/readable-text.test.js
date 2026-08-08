@@ -9,9 +9,10 @@ const {
 } = require('../src/vr/browser/readableText.js');
 const {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLineCount, wrapCharsFor, fontPxFor
+  visibleLineCount, measureEmFor, maxMeasureEmForFont, fontPxFor, MEASURE_EM,
+  CONTENT_PX_W, CONTENT_PAD
 } = require('../src/vr/browser/readerLayout.js');
-const { wrapTextToLines } = require('../src/vr/ui/textWrap.js');
+const { wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm } = require('../src/vr/ui/textWrap.js');
 
 describe('decodeEntities', () => {
   test('decodes the named entities that occur in prose', () => {
@@ -119,13 +120,13 @@ describe('extractReadableText', () => {
 });
 
 describe('layoutReaderLines', () => {
-  test('wraps prose to the character budget for the scale', () => {
+  test('wraps prose to the em measure for the scale', () => {
     const long = 'word '.repeat(80).trim();
     const lines = layoutReaderLines([{ type: 'p', text: long }]);
-    const max = wrapCharsFor(1);
+    const max = measureEmFor(1);
     expect(lines.length).toBeGreaterThan(1);
     for (const l of lines) {
-      expect(Array.from(l.text).length).toBeLessThanOrEqual(max);
+      expect(textWidthEm(l.text)).toBeLessThanOrEqual(max);
     }
   });
 
@@ -157,8 +158,8 @@ describe('layoutReaderLines', () => {
     expect(lines.map(l => l.style)).toEqual(['p', 'blank', 'p']);
   });
 
-  test('bigger scale wraps sooner (fewer chars per line)', () => {
-    expect(wrapCharsFor(2)).toBeLessThan(wrapCharsFor(1));
+  test('bigger scale wraps sooner (narrower em measure)', () => {
+    expect(measureEmFor(2)).toBeLessThan(measureEmFor(1));
   });
 
   test('empty / non-array input yields no lines', () => {
@@ -209,6 +210,77 @@ describe('viewport metrics', () => {
     expect(fontPxFor('title', 1)).toBeGreaterThan(fontPxFor('h', 1));
     expect(fontPxFor('h', 1)).toBeGreaterThan(fontPxFor('p', 1));
     expect(fontPxFor('p', 2)).toBeGreaterThan(fontPxFor('p', 1));
+  });
+});
+
+// Script-correct line measure. A code-point budget silently assumes every
+// character has the same advance, which is false for the two scripts this app
+// targets: CJK is 1 em, Latin ~0.5 em (Unicode UAX #11 East Asian Width).
+describe('em-based measure — Japanese must not overflow the panel', () => {
+  const BODY_PX = fontPxFor('p', 1);          // 20
+  const COLUMN_EM = maxMeasureEmForFont(BODY_PX); // what physically fits
+
+  test('charWidthEm: CJK/kana/fullwidth are 1 em, Latin is 0.5', () => {
+    expect(charWidthEm('本'.codePointAt(0))).toBe(1);
+    expect(charWidthEm('あ'.codePointAt(0))).toBe(1);
+    expect(charWidthEm('Ａ'.codePointAt(0))).toBe(1);   // fullwidth Latin
+    expect(charWidthEm('A'.codePointAt(0))).toBe(0.5);
+    expect(charWidthEm('7'.codePointAt(0))).toBe(0.5);
+  });
+
+  test('textWidthEm measures mixed scripts, not code points', () => {
+    // 3 kanji (3 em) + 3 ASCII (1.5 em) = 4.5 em from 6 code points.
+    expect(textWidthEm('日本語abc')).toBeCloseTo(4.5);
+  });
+
+  test('the chosen measure physically fits the text column', () => {
+    expect(MEASURE_EM).toBeLessThanOrEqual(COLUMN_EM);
+  });
+
+  test('REGRESSION: Japanese prose no longer exceeds the column width', () => {
+    // Pre-fix, a 58-CHARACTER budget rendered 58 full-width glyphs = 1160px
+    // into a 928px column — 25% off the panel edge.
+    const jp = 'これは日本語の本文です。'.repeat(30);
+    for (const l of layoutReaderLines([{ type: 'p', text: jp }])) {
+      expect(textWidthEm(l.text) * BODY_PX).toBeLessThanOrEqual(CONTENT_PX_W - 2 * CONTENT_PAD);
+    }
+  });
+
+  test('one measure lands BOTH scripts in their researched optimum', () => {
+    // Latin classic measure 45–75 chars; horizontal Japanese 15–35.
+    const en = layoutReaderLines([{ type: 'p', text: 'word '.repeat(200).trim() }])
+      .filter(l => l.style === 'p');
+    const jp = layoutReaderLines([{ type: 'p', text: '本'.repeat(400) }])
+      .filter(l => l.style === 'p');
+    const enChars = Array.from(en[0].text).length;
+    const jpChars = Array.from(jp[0].text).length;
+    expect(enChars).toBeGreaterThanOrEqual(45);
+    expect(enChars).toBeLessThanOrEqual(75);
+    expect(jpChars).toBeGreaterThanOrEqual(15);
+    expect(jpChars).toBeLessThanOrEqual(35);
+  });
+
+  test('mixed Japanese/Latin lines also stay within the measure', () => {
+    const mixed = 'WebXRの仕様はW3Cが策定しています。'.repeat(20);
+    for (const l of layoutReaderLines([{ type: 'p', text: mixed }])) {
+      expect(textWidthEm(l.text)).toBeLessThanOrEqual(measureEmFor(1));
+    }
+  });
+
+  test('wrapTextToWidth never severs a surrogate pair', () => {
+    const rows = wrapTextToWidth('𠮷'.repeat(20), 5);
+    expect(rows.join('')).toBe('𠮷'.repeat(20));
+    expect(rows.join('')).not.toContain('�');
+    for (const r of rows) {
+      expect(textWidthEm(r)).toBeLessThanOrEqual(5);
+    }
+  });
+
+  test('headings wrap to the same measure as prose', () => {
+    const lines = layoutReaderLines([{ type: 'h', text: '見出し'.repeat(30) }]);
+    for (const l of lines) {
+      expect(textWidthEm(l.text)).toBeLessThanOrEqual(measureEmFor(1));
+    }
   });
 });
 
