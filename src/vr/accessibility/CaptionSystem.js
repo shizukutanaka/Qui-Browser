@@ -16,7 +16,7 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
-import { wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm } from '../ui/textWrap.js';
+import { wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm } from '../ui/textWrap.js';
 
 const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
@@ -47,6 +47,37 @@ const H_PAD = 24;             // horizontal inset so rows don't touch the edge
  */
 const MEASURE_EM = 20;
 const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
+
+/**
+ * Reading rates in characters per second, by East Asian Width class.
+ *
+ * Subtitle practice sets these per language rather than globally, because a
+ * full-width character carries far more meaning than a Latin one: Netflix caps
+ * Japanese at 4 CPS, Chinese at 9, Korean at 12, and Latin-script languages at
+ * 17–20; Japanese broadcast subtitling independently uses the same 1秒4文字
+ * figure. A single fixed hold time therefore cannot serve both scripts — which
+ * is exactly what this system used to do (a flat 5 s for every caption).
+ */
+export const CPS_FULLWIDTH = 4;   // Japanese / Chinese / Korean — 1 em glyphs
+export const CPS_HALFWIDTH = 17;  // Latin-script — ~0.5 em glyphs
+
+/**
+ * Time (ms) a reader needs for `text`, summed per character by width class.
+ *
+ * Pure and exported so the rate model is testable without a canvas or clock.
+ *
+ * @param {string} text
+ * @returns {number} milliseconds
+ */
+export function readingTimeMs(text) {
+  let seconds = 0;
+  for (const ch of String(text === null || text === undefined ? '' : text)) {
+    seconds += charWidthEm(ch.codePointAt(0)) === 1
+      ? 1 / CPS_FULLWIDTH
+      : 1 / CPS_HALFWIDTH;
+  }
+  return Math.round(seconds * 1000);
+}
 
 // Default caption panel height in the camera's local space (metres, negative =
 // below eye level). Exposed so the settings panel can offer a comfortable-
@@ -169,6 +200,29 @@ export class CaptionSystem {
   }
 
   /**
+   * How long this specific caption should stay up.
+   *
+   * `lineDuration` is a *floor*, not the answer: subtitle practice sets the
+   * hold time from the content, because reading rate differs sharply by script
+   * (Netflix caps Japanese at 4 CPS but Latin at 17–20). Holding every caption
+   * for a flat 5 s left a full two-row Japanese caption — 40 full-width
+   * characters at the 20 em measure, needing ~10 s — on screen for half the
+   * time required to read it, while short Latin captions lingered.
+   *
+   * The extension is capped at 3× the configured duration so a very long
+   * transcript cannot pin the queue; users who need longer still raise the
+   * base setting, which lifts floor and cap together (WCAG 2.2.1 Timing
+   * Adjustable stays satisfied by that control).
+   *
+   * @param {string} text
+   * @returns {number} ms
+   */
+  _durationFor(text) {
+    const needed = readingTimeMs(text);
+    return Math.min(Math.max(this.lineDuration, needed), this.lineDuration * 3);
+  }
+
+  /**
    * Set the caption panel's height in the camera's local space (metres,
    * negative = below eye level), clamped to [CAPTION_OFFSET_MIN, MAX]. The
    * comfortable caption position varies widely per user (XAUR requires
@@ -203,7 +257,7 @@ export class CaptionSystem {
       return;
     }
     const normalized = String(text).normalize('NFC').trim();
-    this._lines.push({ text: normalized, remaining: this.lineDuration });
+    this._lines.push({ text: normalized, remaining: this._durationFor(normalized) });
     while (this._lines.length > this.maxLines) {
       this._lines.shift();
     }
