@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
 import { truncate } from '../browser/bookmarkLayout.js';
+import { truncateToWidth } from '../ui/textWrap.js';
 
 export class JapaneseIME {
   constructor() {
@@ -654,28 +655,41 @@ export function candidateStyle(index) {
 }
 
 /**
+ * Line measure (em) for a suggestion button label.
+ *
+ * The button canvas is 384px and the label is drawn at bold 34px, so only
+ * ~10.6 em of glyphs fit. A code-point budget of 22 characters silently
+ * assumed Latin: 22 Latin characters are ~374px (just fits) but 22 full-width
+ * ones are 748px — **95% wider than the button**. Suggestion labels are page
+ * titles, which for a Japanese user are overwhelmingly Japanese, so this was
+ * the worst instance of the "full-width == half-width" assumption in the app.
+ */
+export const SUGGESTION_MEASURE_EM = (384 - 24) / 34;
+
+/**
  * Display label for a URL suggestion button: the page title when one exists,
  * otherwise the hostname (falling back to the raw URL when unparseable),
- * truncated by code point so a long Japanese title can't split a surrogate
- * pair at the cut. Pure / unit-testable.
+ * truncated by rendered **width** (Unicode UAX #11 East Asian Width) rather
+ * than character count, so a Japanese title can't overflow the button. Splits
+ * on code points, so a surrogate pair is never severed. Pure / unit-testable.
  *
  * @param {{url?:string, title?:string}} entry — a BookmarkStore.search() result
- * @param {number} [max=22] — max characters shown on the button
+ * @param {number} [maxEm] — label width budget in em
  * @returns {string}
  */
-export function suggestionLabel(entry, max = 22) {
+export function suggestionLabel(entry, maxEm = SUGGESTION_MEASURE_EM) {
   if (!entry) {
     return '';
   }
   const title = String(entry.title || '').trim();
   if (title) {
-    return truncate(title, max);
+    return truncateToWidth(title, maxEm);
   }
   const url = String(entry.url || '');
   try {
-    return truncate(new URL(url).hostname || url, max);
+    return truncateToWidth(new URL(url).hostname || url, maxEm);
   } catch (_) {
-    return truncate(url, max);
+    return truncateToWidth(url, maxEm);
   }
 }
 
@@ -1257,7 +1271,9 @@ export class VRJapaneseKeyboard {
         ctx.font = 'bold 34px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2 + 10);
+        // maxWidth backstop: even if a future budget slips, the canvas
+        // condenses rather than letting glyphs escape the button.
+        ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2 + 10, CANVAS_W - 20);
       };
       draw(false);
       const tex = configureUITexture(new THREE.CanvasTexture(canvas));

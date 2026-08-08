@@ -64,7 +64,8 @@ global.document = {
 };
 global.URL = URL;
 
-const { JapaneseIME, VRJapaneseKeyboard, suggestionLabel } =
+const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+const { JapaneseIME, VRJapaneseKeyboard, suggestionLabel, SUGGESTION_MEASURE_EM } =
   require('../src/vr/input/JapaneseIME.js');
 
 function makeKeyboard(opts = {}) {
@@ -101,8 +102,45 @@ describe('suggestionLabel (pure)', () => {
   test('truncates long titles by code point (no split surrogate pair)', () => {
     const long = 'x'.repeat(30);
     const label = suggestionLabel({ url: 'https://a.com', title: long });
-    expect(Array.from(label).length).toBeLessThanOrEqual(22);
+    expect(textWidthEm(label)).toBeLessThanOrEqual(SUGGESTION_MEASURE_EM);
     expect(label.endsWith('…')).toBe(true);
+  });
+
+  // Regression: the budget was 22 CHARACTERS, which silently assumed Latin.
+  // The button canvas is 384px and the label is drawn at bold 34px, so 22
+  // Latin characters (~374px) just fit while 22 full-width ones are 748px —
+  // 95% wider than the button. Suggestion labels are page titles, which for a
+  // Japanese user are overwhelmingly Japanese.
+  describe('label width never exceeds the button (either script)', () => {
+    const BUTTON_PX = 384;
+    const LABEL_FONT = 34;
+    const widthPx = (s) => textWidthEm(s) * LABEL_FONT;
+
+    test('a long Japanese title fits the button', () => {
+      const jp = 'これは非常に長い日本語のページタイトルです';
+      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: jp }))).toBeLessThan(BUTTON_PX);
+    });
+
+    test('a long Latin title fits the button', () => {
+      const en = 'An Extremely Long English Page Title That Goes On';
+      expect(widthPx(suggestionLabel({ url: 'https://a.com', title: en }))).toBeLessThan(BUTTON_PX);
+    });
+
+    test('a mixed title fits the button', () => {
+      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: 'WebXRの仕様とMDNドキュメント' })))
+        .toBeLessThan(BUTTON_PX);
+    });
+
+    test('a long Japanese hostname fallback also fits', () => {
+      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: '' })))
+        .toBeLessThan(BUTTON_PX);
+    });
+
+    test('a truncated Japanese label keeps the ellipsis and no mojibake', () => {
+      const label = suggestionLabel({ url: 'https://a.jp', title: '𠮷野家'.repeat(10) });
+      expect(label.endsWith('…')).toBe(true);
+      expect(label).not.toContain('�');
+    });
   });
 
   test('empty/missing entry yields an empty string', () => {

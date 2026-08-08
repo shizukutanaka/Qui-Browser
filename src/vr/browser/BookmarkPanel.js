@@ -15,7 +15,20 @@ import {
   hitTest, uvToPixels, truncate
 } from './bookmarkLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
+
+// Row text budgets in em, derived from the real row geometry: text starts at
+// x=24 and must clear the delete zone on the right. Expressed in em (Unicode
+// UAX #11 East Asian Width) so one budget is correct for both scripts — a
+// 44-*character* budget was ~572px of Latin but 1144px of Japanese, 22% past
+// the 936px available, so Japanese titles ran under the delete button.
+const ROW_TEXT_X = 24;
+const ROW_TITLE_FONT = 26;   // bold sans
+const ROW_URL_FONT = 20;     // monospace
+const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
+const ROW_TITLE_EM = ROW_TEXT_W / ROW_TITLE_FONT;
+const ROW_URL_EM = ROW_TEXT_W / ROW_URL_FONT;
 
 /**
  * Canvas colour palette for the bookmark / history panel.
@@ -374,11 +387,17 @@ export class BookmarkPanel {
         ctx.fillStyle = c.rowTitle;
         ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(truncate(entry.title || entry.url, 44), 24, top + 32);
+        // Truncate by rendered WIDTH, not character count: a 44-character
+        // budget is ~572px of Latin but 1144px of Japanese, 22% past the
+        // 936px available, so Japanese bookmark titles ran under the delete
+        // button and off the panel. ROW_TITLE_EM/ROW_URL_EM derive the budget
+        // from the real geometry; the fillText maxWidth argument is a backstop.
+        ctx.fillText(truncateToWidth(entry.title || entry.url, ROW_TITLE_EM), ROW_TEXT_X,
+          top + 32, ROW_TEXT_W);
         // URL
         ctx.fillStyle = c.rowUrl;
         ctx.font = '20px monospace';
-        ctx.fillText(truncate(entry.url, 52), 24, top + 58);
+        ctx.fillText(truncateToWidth(entry.url, ROW_URL_EM), ROW_TEXT_X, top + 58, ROW_TEXT_W);
         // Delete ✕ button (bookmarks mode only)
         if (showDelete) {
           ctx.fillStyle = c.deleteZoneBg;
