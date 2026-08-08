@@ -133,6 +133,34 @@ export function wrapTextToWidth(text, maxEm) {
 }
 
 /**
+ * Fraction of a geometry-derived budget to actually use.
+ *
+ * `charWidthEm` models full-width as exactly 1 em and Latin as 0.5, which is
+ * the UAX #11 semantic — but real fonts do not match it exactly. Measured in
+ * headless Chromium (`tools/measure-text-metrics.mjs`): full-width advance is
+ * **1.012 em** (本 = 1.000 but あ = 1.023), Latin 0.458–0.496, monospace 0.602.
+ * So the model slightly UNDER-estimates full-width text.
+ *
+ * Where a budget is computed from pixel geometry — `usable_px / font_px` — a
+ * 1% under-estimate means a line exactly fills, then overflows. Reserving 5%
+ * absorbs that, plus the larger unknown: a Quest headset resolves
+ * `sans-serif` to a different family than this Linux container, so the exact
+ * measured figures are not portable and the budget should not be tuned to them.
+ *
+ * Budgets that already sit well inside their box (e.g. the reader's fixed
+ * 34 em in a 46 em column) do not need it.
+ */
+export const WIDTH_SAFETY = 0.95;
+
+/**
+ * Largest safe em budget for `fontPx` within `availablePx`, including the
+ * safety margin above. Use this instead of dividing by hand.
+ */
+export function safeMeasureEm(availablePx, fontPx) {
+  return (Math.max(0, availablePx) / Math.max(1, fontPx)) * WIDTH_SAFETY;
+}
+
+/**
  * Truncate to `maxEm` em units, appending an ellipsis that is itself counted.
  * The em model matters for the same reason as wrapping: a code-point budget
  * lets full-width text overrun the box it was meant to fit.

@@ -9,7 +9,10 @@ import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
 import { truncate } from '../browser/bookmarkLayout.js';
-import { truncateToWidth } from '../ui/textWrap.js';
+import { truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
+
+// Mode badge occupies the right edge of the composition display.
+const COMPOSITION_BADGE_W = 80;
 
 export class JapaneseIME {
   constructor() {
@@ -664,7 +667,7 @@ export function candidateStyle(index) {
  * titles, which for a Japanese user are overwhelmingly Japanese, so this was
  * the worst instance of the "full-width == half-width" assumption in the app.
  */
-export const SUGGESTION_MEASURE_EM = (384 - 24) / 34;
+export const SUGGESTION_MEASURE_EM = safeMeasureEm(384 - 24, 34);
 
 /**
  * Display label for a URL suggestion button: the page title when one exists,
@@ -973,7 +976,7 @@ export class VRJapaneseKeyboard {
     const badge = BADGE[mode] || '?';
     const badgeColors = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
     const badgeBg = badgeColors[mode] || '#558';
-    const badgeW = 80;
+    const badgeW = COMPOSITION_BADGE_W;
     ctx.fillStyle = badgeBg;
     ctx.fillRect(w - badgeW - 4, 4, badgeW, h - 8);
     ctx.fillStyle = '#ffffff';
@@ -988,7 +991,13 @@ export class VRJapaneseKeyboard {
     ctx.font = '40px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text || 'type a URL or search…', 24, h / 2);
+    // Bounded to the space left of the mode badge. This was previously
+    // unbounded, so a long typed URL ran under the badge and off the panel.
+    const compW = w - 24 - COMPOSITION_BADGE_W - 12;
+    ctx.fillText(
+      truncateToWidth(text || 'type a URL or search…', safeMeasureEm(compW, 40)),
+      24, h / 2, compW
+    );
 
     if (this._displayTex) {
       this._displayTex.needsUpdate = true;

@@ -16,7 +16,9 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
-import { wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm } from '../ui/textWrap.js';
+import {
+  wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm, safeMeasureEm
+} from '../ui/textWrap.js';
 
 const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
@@ -351,7 +353,9 @@ export class CaptionSystem {
     for (let i = 0; i < nRows; i++) {
       const y = PAD + rowH * (i + 0.5);
       ctx.globalAlpha = rows[i].fade;
-      ctx.fillText(rows[i].text, CANVAS_W / 2, y);
+      // maxWidth backstop: the canvas condenses rather than letting a row
+      // escape the panel if a budget ever slips (device fonts vary).
+      ctx.fillText(rows[i].text, CANVAS_W / 2, y, CANVAS_W - 2 * H_PAD);
     }
     ctx.globalAlpha = 1;
 
@@ -407,7 +411,10 @@ export class CaptionSystem {
   _measureEm() {
     const usable = CANVAS_W - 2 * H_PAD;
     const largestFont = MAX_FONT * this.scale;
-    return Math.max(6, Math.min(MEASURE_EM, usable / largestFont));
+    // safeMeasureEm reserves headroom: the em model under-estimates real
+    // full-width advance by ~1%, and at the large-text scale this clamp is the
+    // binding constraint with zero slack, so the row would overflow.
+    return Math.max(6, Math.min(MEASURE_EM, safeMeasureEm(usable, largestFont)));
   }
 
   /** Row font size (px) for a given row count: scaled cap, bounded to the row. */
