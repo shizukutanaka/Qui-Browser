@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 64: 研究駆動 — 字幕の表示時間を「言語別の読速度」から決める
+Session 63 で字幕の**幅**を放送規格に合わせたが、**時間**は未検証だった。調べると、字幕実務は読速度を言語別に定めている: Netflix は**日本語 4 CPS / 中国語 9 / 韓国語 12 / Latin 系 17〜20**(全角1文字の情報量が多いため)、BBC は 160〜180 WPM・15 CPS 以下。Session 63 で見つけた日本語放送の「1秒4文字」と独立に一致する。
+- 🐛 **fix (a11y — 日本語字幕が読み終わる前に消えていた)**: `show()` は文字数に関係なく **一律 `lineDuration`(既定5秒)** を割り当てていた。Session 63 の 20em×2行では日本語字幕は最大40文字になりうるが、4 CPS では **10秒必要 → 5秒しか出ない(必要時間の50%)**。Latin は61文字でも3.6秒で足りるため問題が出ず、**またしても日本語固有の欠陥**だった。
+- ✨ **設計**: 純関数 `readingTimeMs(text)` を追加し、UAX #11 の幅クラスごとに所要時間を積算(全角 1/4 秒、半角 1/17 秒)。`_durationFor()` が `lineDuration` を**下限**、`lineDuration × 3` を上限として実所要時間を採用する。短い字幕は従来どおり(短縮しない)、長い日本語字幕だけが伸びる。上限を設定値の倍数にしたので、**ユーザーが基準値を上げれば下限と上限が一緒に上がる**(WCAG 2.2.1 Timing Adjustable は既存ステッパーで担保済み)。
+- 7テスト追加(レート計算、混在文、日本語が伸びる、同字数でも Latin は短い、下限維持、3倍上限、設定値追従)。うち**6件が pre-fix で失敗**を確認(下限のケースのみ両方で通過 = 短い字幕の挙動が不変である証明)。
+- Total 1131 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 63: 研究駆動 — 字幕の全角オーバーフローを放送規格に基づいて修正(F-5 完了)
 Session 62 で発見・記録だけしていた `CaptionSystem` の同型欠陥を、日本語放送字幕の規格を調べたうえで修正した。ろう・難聴ユーザーの主チャネルで**日本語だけが panel の外に流れていた**ため、情報欠落そのものだった。
 - 📐 **研究由来の値**: 日本語放送字幕は **1行16文字・最大2行**(社内規定で13〜20の幅、企業向けは20文字も可)、読速度は1秒4文字・表示上限6.5秒。Latin 字幕ガイドは1行37〜42文字。**em で表すと両立する**: 20em が日本語20字／Latin40字を与え、どちらの慣行にも収まる。なお `MAX_ROWS_PER_LINE = 2` は既に放送規格どおりだった(変更不要)。
@@ -657,4 +664,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 63)
+**Last Revision**: 2026-07-04 (Session 64)

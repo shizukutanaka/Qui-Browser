@@ -43,7 +43,8 @@ global.document = {
 
 const {
   CaptionSystem, clampCaptionOffset,
-  CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX
+  CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX,
+  readingTimeMs, CPS_FULLWIDTH, CPS_HALFWIDTH
 } = require('../src/vr/accessibility/CaptionSystem.js');
 const { textWidthEm } = require('../src/vr/ui/textWrap.js');
 
@@ -237,6 +238,57 @@ describe('CaptionSystem (FR-13.1)', () => {
     // Clamped so 66px text still fits: 976px / 66px ≈ 14.8 em.
     expect(big._measureEm()).toBeCloseTo(976 / 66, 5);
     expect(big._measureEm()).toBeLessThan(cs._measureEm());
+  });
+
+  // Hold time must come from the content, not a flat constant. Subtitle
+  // practice sets reading rate per script — Netflix caps Japanese at 4 CPS but
+  // Latin at 17-20, and Japanese broadcast independently uses 1秒4文字. A flat
+  // 5s left a full two-row Japanese caption (40 full-width chars at the 20 em
+  // measure, ~10s of reading) on screen for half the time needed.
+  describe('caption hold time follows the per-script reading rate', () => {
+    test('readingTimeMs charges full-width characters ~4x a Latin one', () => {
+      expect(readingTimeMs('あ'.repeat(4))).toBe(1000);   // 4 chars @ 4 CPS
+      expect(readingTimeMs('a'.repeat(17))).toBe(1000);   // 17 chars @ 17 CPS
+      expect(readingTimeMs('')).toBe(0);
+      expect(readingTimeMs(null)).toBe(0);
+    });
+
+    test('mixed text sums both rates', () => {
+      // 2 full-width (500ms) + 17 half-width (1000ms)
+      expect(readingTimeMs('日本' + 'a'.repeat(17))).toBe(1500);
+    });
+
+    test('a long Japanese caption is held longer than the flat default', () => {
+      cs.setEnabled(true);
+      cs.show('あ'.repeat(40)); // ~10s of reading
+      expect(cs._lines[0].remaining).toBeGreaterThan(cs.lineDuration);
+    });
+
+    test('the same character count in Latin needs less time', () => {
+      expect(readingTimeMs('a'.repeat(40))).toBeLessThan(readingTimeMs('あ'.repeat(40)));
+    });
+
+    test('short captions keep the configured duration as a floor', () => {
+      cs.setEnabled(true);
+      cs.show('短い'); // 500ms of reading — must not shorten below the setting
+      expect(cs._lines[0].remaining).toBe(cs.lineDuration);
+    });
+
+    test('the extension is capped at 3x so one caption cannot pin the queue', () => {
+      cs.setEnabled(true);
+      cs.show('あ'.repeat(400)); // ~100s of reading
+      expect(cs._lines[0].remaining).toBe(cs.lineDuration * 3);
+    });
+
+    test('raising the base duration lifts both the floor and the cap (WCAG 2.2.1)', () => {
+      cs.setEnabled(true);
+      cs.setLineDuration(20000);
+      cs.show('あ'.repeat(400));
+      expect(cs._lines[0].remaining).toBe(60000); // 20000 * 3
+      cs.clear();
+      cs.show('短い');
+      expect(cs._lines[0].remaining).toBe(20000); // floor still honoured
+    });
   });
 
   // Regression: the wrap budget used to be a fixed CHARACTER count (34), which
