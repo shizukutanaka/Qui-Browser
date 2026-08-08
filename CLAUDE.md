@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 62: 研究駆動 — 文字数ではなく em 幅で折り返す(日本語が panel からはみ出していた)
+Session 61 で実装したリーダーの組版パラメータは目分量で決めていたため、VR テキスト可読性の研究と実測で検証した。結果、**出荷したばかりの機能に実バグ**が見つかった。
+- 📐 **実測(パネル形状から)**: コンテンツ canvas 1024px = 物理 1.6m、既定距離 2.0m。本文 20px は em box **53.7 arcmin**(x-height ≈28 arcmin)で、研究が挙げる 16–32 arcmin 帯に収まる → **フォントサイズは妥当、変更不要**。距離 2.0m も「0.5m 未満/20m 超を避ける」「近視者には 2.5m が快適」という知見と整合。
+- 🐛 **fix (組版 — 日本語がはみ出していた)**: `wrapTextToLines` は**コードポイント数**で折り返しており、全角=1em / 半角≈0.5em という差(Unicode UAX #11 East Asian Width)を無視していた。テキスト段は 928px、本文 20px。`WRAP_CHARS=58` は Latin で 540px(幅の58%しか使わない)だが、**日本語では 1160px = 232px(25%)はみ出す**。日本語重視のブラウザで、日本語だけが panel の外に流れていた。
+- ✨ **研究由来の設計**: 最適行長は言語で異なる — Latin は古典的に 45–75 文字、日本語横組みは 15–35 文字(国立国語研究所・草島の実験では横組み **30文字/行が最速**)。一見矛盾するが **em で表すと一致する**: Latin ≈0.5em/字、日本語 =1.0em/字なので、**単一の 34em measure が Latin 64文字・日本語 34文字**を生み、両方とも推奨域に入る。`charWidthEm()`/`textWidthEm()`/`wrapTextToWidth()` を `textWrap.js` に追加し、`readerLayout` を `MEASURE_EM=34` に移行。34em×20px=680px < 928px なので収まることも `maxMeasureEmForFont()` でテストが証明。
+- 8 new tests(全角/半角判定、混在文の幅、**回帰: 日本語がテキスト段幅を超えない**、両言語が同時に推奨域に入る、サロゲートペア非分断)。実行前後を実データで比較: 旧 1160px OVERFLOW → 新 680px fits。
+- 🔍 **同型の欠陥を字幕にも確認(未修正・記録のみ)**: `CaptionSystem` も文字数折り返しで `WRAP_CHARS=34`、単一行時フォント 44px → **全角34字 = 1496px で canvas 1024px を46%超過**。ろう・難聴の主チャネルなので重要だが、字幕はフォントサイズが行数から決まり折り返し幅がそれに依存する**循環**があり、直すと `_wrap` の意味論と既存テストの前提が変わる。リーダー修正と混ぜると検証が濁るため分離し、`docs/OUTSTANDING_ISSUES.md` F-5 に手順込みで記録。
+- ⚠️ **セッション中に `node_modules` が消失**(ディスクは30G空き、当方の操作ではない)。`npm ci` で復旧して検証を継続。
+- Total 1119 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 61: 原子②「コンテンツ表示」を実装 — リーダーモード
 Session 60 は「②が構造的に不在」と診断して終えた。本セッションは**治療**。iframe 路線に解が無い以上(WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない)、実現可能な唯一の道である「取得 → 本文抽出 → canvas テキスト描画」で②を実際に作った。同時に③(スクロール・可読性)も解決している。
 - ♻️ **refactor (共有化)**: `CaptionSystem._wrap`(日本語の空白なし hard-split・サロゲートペア非分断の硬化済み)を `src/vr/ui/textWrap.js` の `wrapTextToLines()` として抽出し、CaptionSystem はそれを呼ぶだけに変更。複製すれば硬化が分岐するため。**既存の字幕テスト39件が無改変で全通過**することが挙動不変の証明。
@@ -638,4 +648,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 61)
+**Last Revision**: 2026-07-04 (Session 62)

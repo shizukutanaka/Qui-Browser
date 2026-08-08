@@ -180,6 +180,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**TLS 表示なし**~~ — **完了**: `securityLevel()` + `securityIndicator()`（🔒/⚠/⌂、グリフで意味を担保しWCAG 1.4.1準拠）を chrome bar に追加。`http://` は警告色かつスキームを明示（`https://` は錠前が担うので省略）。
 - ~~**ブロックされたフレームの偽成功**~~ — **完了**: X-Frame-Options で拒否されたページは Chromium では `onerror` ではなく `onload` を発火するため、成功として履歴記録され URL バーも正常色だった。`_contentState` を導入し、ロード完了時は正直に「Page content cannot be shown in VR / navigation recorded」と表示。
 
+### F-5. 字幕にも同じ全角幅オーバーフローがある（Session 62 で発見・未修正）
+- **場所**: `src/vr/accessibility/CaptionSystem.js`（`WRAP_CHARS = 34`、`_wrapChars()`、`_fontSizeFor()`）
+- **問題**: 字幕も「コードポイント数」で折り返しており、全角=1em / 半角≈0.5em の差を無視している。canvas 幅 1024px で、単一行字幕はフォント 44px を使うため、**全角34文字 = 1496px となり 46% はみ出す**（42px でも +404px、32px でも +64px）。Latin は 748px で収まるので、日本語だけが panel からはみ出す。字幕はろう・難聴ユーザーの主チャネルなので影響は小さくない。
+- **なぜ今回修正しなかったか**: リーダーと違い、字幕はフォントサイズが行数から決まり（`_fontSizeFor`）、折り返し幅がフォントサイズに依存するため**循環**している。正しく直すには「フォント決定 → em 予算算出 → 折り返し」の順に組み替える必要があり、`_wrap(text, 34)` の意味論が変わるので既存テスト（`caption-system.test.js` の 176/184/226/233 行付近が文字数を直接アサート）も更新が要る。リーダー修正と混ぜると検証が濁るため分離した。
+- **次にやること**: `wrapTextToWidth(text, maxEm)`（Session 62 で `src/vr/ui/textWrap.js` に追加済み・テスト済み）を使い、`maxEm = CANVAS_W / fontPx` で予算を導出する。該当テストは「文字数」ではなく `textWidthEm(row) <= maxEm` を検証する形に更新する。
+
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
 - **プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無（事後消去のみ）。真偽値ゲート1つ+設定トグルで実装可能
 - **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
