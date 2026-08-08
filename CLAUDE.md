@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 65: 全角幅前提の一掃 — 残る2箇所を実測で特定して修正
+Session 62〜64 で「全角=半角」という前提がリーダー(幅)・字幕(幅・時間)に潜んでいたことが判明した。本セッションはその前提が**他のどこに残っているか**を、推測でなく実測で網羅的に確認した。
+- 🔍 **網羅調査**: コードポイント基準の寸法計算をすべて洗い出し、実ジオメトリで px 換算した。結果、**2箇所が実際に溢れ、2箇所は安全**と判明。
+  - ✅ **安全だった**: `TabManager` はタブ名を `fillText(…, maxWidth)` の第4引数付きで描画しており、canvas 側が圧縮するので溢れない(既存の正しい実装)。`urlBarMaxChars`/`elideUrlForDisplay` は URL バー用だが、`new URL().host` が IDN を punycode に正規化するため実際には ASCII のみ。
+- 🐛 **fix (IME サジェスト — 最悪の事例、95%超過)**: `suggestionLabel(entry, max = 22)` は**22文字**制限。ボタン canvas は 384px、ラベルは bold 34px 中央揃え。Latin 22文字は約374pxで辛うじて収まるが、**全角22文字は748px = ボタン幅の95%超過**。サジェストの中身は**ページタイトル**であり、日本語ユーザーにとっては大半が日本語なので、アプリ内で最も深刻だった。`SUGGESTION_MEASURE_EM = (384-24)/34 ≈ 10.6em` に移行。
+- 🐛 **fix (ブックマーク行 — 22%超過)**: 行タイトルは `truncate(title, 44)` を bold 26px で描画。利用可能幅は 1024-24-64(削除ボタン) = **936px** に対し、全角44文字は **1144px(+208px, 22%)**。日本語のブックマーク名が削除ボタンの下を通ってパネル外へ流れていた。`ROW_TITLE_EM`/`ROW_URL_EM` を実ジオメトリから導出。
+- ✨ **二重防御**: 両箇所とも em 予算で切り詰めたうえで `fillText` の `maxWidth` 引数も渡すようにした。将来予算計算がずれても canvas 側が圧縮するので、グリフがボタン/行の外に出ることはない(`TabManager` が元々採っていた作法)。
+- 🐛 **fix (テスト自体の弱さ)**: 最初に書いたブックマークのテストは純関数 `truncateToWidth` を直接検証しており、**パネルがそれを使っているかを確かめていなかった**(pre-fix でも通過してしまった)。canvas スタブに `fillText` の記録を追加し、**実際に描画された文字列**を検証する形に書き直した。これで pre-fix に失敗するようになった。
+- 9テスト追加。うち**4件が pre-fix で失敗**を確認(Latin のみのケースは両方で通過 = 日本語固有の欠陥である証明)。
+- Total 1140 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 64: 研究駆動 — 字幕の表示時間を「言語別の読速度」から決める
 Session 63 で字幕の**幅**を放送規格に合わせたが、**時間**は未検証だった。調べると、字幕実務は読速度を言語別に定めている: Netflix は**日本語 4 CPS / 中国語 9 / 韓国語 12 / Latin 系 17〜20**(全角1文字の情報量が多いため)、BBC は 160〜180 WPM・15 CPS 以下。Session 63 で見つけた日本語放送の「1秒4文字」と独立に一致する。
 - 🐛 **fix (a11y — 日本語字幕が読み終わる前に消えていた)**: `show()` は文字数に関係なく **一律 `lineDuration`(既定5秒)** を割り当てていた。Session 63 の 20em×2行では日本語字幕は最大40文字になりうるが、4 CPS では **10秒必要 → 5秒しか出ない(必要時間の50%)**。Latin は61文字でも3.6秒で足りるため問題が出ず、**またしても日本語固有の欠陥**だった。
@@ -664,4 +675,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 64)
+**Last Revision**: 2026-07-04 (Session 65)

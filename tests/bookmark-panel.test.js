@@ -38,8 +38,10 @@ jest.mock('three', () => ({
 // NB: use plain functions (not jest.fn) — jest.config has resetMocks:true which
 // would wipe jest.fn implementations before each test, leaving createElement
 // returning undefined at panel-construction time.
+const drawnText = [];   // records fillText(text, x, y, maxWidth) for assertions
 const ctxStub = {
-  fillRect() {}, fillText() {}, strokeRect() {}, clearRect() {},
+  fillRect() {}, strokeRect() {}, clearRect() {},
+  fillText(t, x, y, maxWidth) { drawnText.push({ text: String(t), x, y, maxWidth }); },
   set fillStyle(v) {}, set strokeStyle(v) {},
   set font(v) {}, set textAlign(v) {}, set lineWidth(v) {}
 };
@@ -410,5 +412,52 @@ describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
     expect(c.tabInactive.text).toBe('#8899bb');
     expect(c.rowUrl).toBe('#7f8db5');
     expect(c.emptyText).toBe('#8899aa');
+  });
+});
+
+// Regression: row text was truncated by CHARACTER count (44 title / 52 url),
+// which silently assumed Latin. At bold 26px a 44-character title is ~572px of
+// Latin but 1144px of Japanese — 22% past the 936px available before the
+// delete button, so Japanese bookmark titles ran off the panel.
+describe('BookmarkPanel row text fits the row in either script', () => {
+  const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+  const { PANEL_PX_W: PW, DELETE_ZONE_W: DZ } = require('../src/vr/browser/bookmarkLayout.js');
+  const AVAIL = PW - 24 - DZ;
+  const TITLE_FONT = 26, URL_FONT = 20;
+
+  // Observe what the panel ACTUALLY draws, not just the helper it should use.
+  function drawnRowText(bookmarks) {
+    drawnText.length = 0;
+    const p = makePanel(makeStore(bookmarks));
+    p.show();
+    return drawnText.filter(d => d.x === 24);   // row title/url start at x=24
+  }
+
+  test('a long Japanese title is drawn within the row width', () => {
+    const jp = 'これは非常に長い日本語のブックマークのタイトルです'.repeat(3);
+    const rows = drawnRowText([{ url: 'https://a.jp', title: jp }]);
+    const title = rows.find(d => d.text.startsWith('これは'));
+    expect(title).toBeDefined();
+    expect(textWidthEm(title.text) * TITLE_FONT).toBeLessThanOrEqual(AVAIL);
+  });
+
+  test('a long Latin title is drawn within the row width', () => {
+    const en = 'An extremely long English bookmark title that keeps going '.repeat(3);
+    const rows = drawnRowText([{ url: 'https://a.com', title: en }]);
+    const title = rows.find(d => d.text.startsWith('An extremely'));
+    expect(textWidthEm(title.text) * TITLE_FONT).toBeLessThanOrEqual(AVAIL);
+  });
+
+  test('a long URL is drawn within the row width', () => {
+    const url = 'https://example.com/' + 'segment/'.repeat(20);
+    const rows = drawnRowText([{ url, title: 'T' }]);
+    const drawnUrl = rows.find(d => d.text.startsWith('https://example.com'));
+    expect(drawnUrl).toBeDefined();
+    expect(textWidthEm(drawnUrl.text) * URL_FONT).toBeLessThanOrEqual(AVAIL);
+  });
+
+  test('row text is drawn with a maxWidth backstop', () => {
+    const rows = drawnRowText([{ url: 'https://a.jp', title: '日本語' }]);
+    rows.forEach(d => expect(d.maxWidth).toBe(AVAIL));
   });
 });
