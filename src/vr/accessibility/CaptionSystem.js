@@ -16,7 +16,7 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
-import { wrapTextToLines } from '../ui/textWrap.js';
+import { wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm } from '../ui/textWrap.js';
 
 const PANEL_W = 1.2;          // metres
 const PANEL_H = 0.32;
@@ -26,7 +26,26 @@ const CANVAS_H = 256;
 const PAD = 24;               // vertical inset for text rows
 const MAX_FONT = 44;          // px — single short line
 const MIN_FONT = 22;          // px — floor when many rows are stacked
-const WRAP_CHARS = 34;        // approx chars per row at the panel width
+const H_PAD = 24;             // horizontal inset so rows don't touch the edge
+/**
+ * Caption line measure in **em**, not characters.
+ *
+ * Japanese broadcast subtitling standardises on ~16 full-width characters per
+ * row and at most 2 rows (some house styles allow 13–20), while Latin subtitle
+ * guidelines sit around 37–42 characters. Both are satisfied by one em figure:
+ * at 1.0 em per full-width and ~0.5 per Latin character, 20 em gives 20
+ * Japanese / 40 Latin characters per row.
+ *
+ * Expressing the measure in em also removes the circular dependency that made
+ * the old fixed character budget wrong: font size is chosen from the row count
+ * (`_fontSizeFor`), but the safe wrap width depends on the font size. An em
+ * budget is font-relative by definition, so a row is `measure × fontSize` px
+ * wide for whatever font is finally picked. The previous 34-*character* budget
+ * rendered 34 full-width glyphs at the 44px single-row font — 1496px on a
+ * 1024px canvas, 46% outside the panel. Captions are the deaf/HoH channel, so
+ * text leaving the panel is real information loss.
+ */
+const MEASURE_EM = 20;
 const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
 
 // Default caption panel height in the camera's local space (metres, negative =
@@ -294,15 +313,19 @@ export class CaptionSystem {
    */
   _layoutRows() {
     const n = this._lines.length;
-    const maxChars = this._wrapChars();
+    const measure = this._measureEm();
     const out = [];
     for (let i = 0; i < n; i++) {
       const fade = 0.55 + 0.45 * ((i + 1) / n);
-      let rows = this._wrap(this._lines[i].text, maxChars);
+      // Width-aware wrap: full-width (CJK) counts 1 em, Latin ~0.5, so a row
+      // never exceeds `measure × fontSize` px regardless of script.
+      let rows = wrapTextToWidth(this._lines[i].text, measure);
       if (rows.length > MAX_ROWS_PER_LINE) {
         rows = rows.slice(0, MAX_ROWS_PER_LINE);
         const last = MAX_ROWS_PER_LINE - 1;
-        rows[last] = this._truncate(rows[last] + '…', maxChars);
+        // Append the ellipsis first so it survives even when the row already
+        // fits: it signals that the CAPTION was cut, not just this row.
+        rows[last] = truncateToWidth(rows[last] + '…', measure);
       }
       for (const text of rows) {
         out.push({ text, fade });
@@ -317,8 +340,20 @@ export class CaptionSystem {
   }
 
   /** Chars per row at the current scale: bigger text wraps sooner. */
-  _wrapChars() {
-    return Math.max(10, Math.round(WRAP_CHARS / this.scale));
+  /**
+   * Line measure in em for the current scale.
+   *
+   * Clamped against the *largest* font this scale can produce
+   * (`MAX_FONT * scale`), so a row is guaranteed to fit the canvas no matter
+   * how many rows end up on screen — which is what breaks the wrap/font
+   * circularity. At scale 1 the clamp is inactive (20 em × 44px = 880px of
+   * 976px usable); at the 1.5 large-text scale it narrows the measure to
+   * ~14.8 em so 66px text still fits.
+   */
+  _measureEm() {
+    const usable = CANVAS_W - 2 * H_PAD;
+    const largestFont = MAX_FONT * this.scale;
+    return Math.max(6, Math.min(MEASURE_EM, usable / largestFont));
   }
 
   /** Row font size (px) for a given row count: scaled cap, bounded to the row. */

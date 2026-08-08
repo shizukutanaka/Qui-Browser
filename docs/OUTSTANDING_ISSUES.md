@@ -180,11 +180,13 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**TLS 表示なし**~~ — **完了**: `securityLevel()` + `securityIndicator()`（🔒/⚠/⌂、グリフで意味を担保しWCAG 1.4.1準拠）を chrome bar に追加。`http://` は警告色かつスキームを明示（`https://` は錠前が担うので省略）。
 - ~~**ブロックされたフレームの偽成功**~~ — **完了**: X-Frame-Options で拒否されたページは Chromium では `onerror` ではなく `onload` を発火するため、成功として履歴記録され URL バーも正常色だった。`_contentState` を導入し、ロード完了時は正直に「Page content cannot be shown in VR / navigation recorded」と表示。
 
-### F-5. 字幕にも同じ全角幅オーバーフローがある（Session 62 で発見・未修正）
-- **場所**: `src/vr/accessibility/CaptionSystem.js`（`WRAP_CHARS = 34`、`_wrapChars()`、`_fontSizeFor()`）
-- **問題**: 字幕も「コードポイント数」で折り返しており、全角=1em / 半角≈0.5em の差を無視している。canvas 幅 1024px で、単一行字幕はフォント 44px を使うため、**全角34文字 = 1496px となり 46% はみ出す**（42px でも +404px、32px でも +64px）。Latin は 748px で収まるので、日本語だけが panel からはみ出す。字幕はろう・難聴ユーザーの主チャネルなので影響は小さくない。
-- **なぜ今回修正しなかったか**: リーダーと違い、字幕はフォントサイズが行数から決まり（`_fontSizeFor`）、折り返し幅がフォントサイズに依存するため**循環**している。正しく直すには「フォント決定 → em 予算算出 → 折り返し」の順に組み替える必要があり、`_wrap(text, 34)` の意味論が変わるので既存テスト（`caption-system.test.js` の 176/184/226/233 行付近が文字数を直接アサート）も更新が要る。リーダー修正と混ぜると検証が濁るため分離した。
-- **次にやること**: `wrapTextToWidth(text, maxEm)`（Session 62 で `src/vr/ui/textWrap.js` に追加済み・テスト済み）を使い、`maxEm = CANVAS_W / fontPx` で予算を導出する。該当テストは「文字数」ではなく `textWidthEm(row) <= maxEm` を検証する形に更新する。
+### F-5. 字幕の全角幅オーバーフロー — **完了（Session 63）**
+- **場所**: `src/vr/accessibility/CaptionSystem.js`
+- **問題（Session 62 で発見）**: 字幕もコードポイント数で折り返しており（`WRAP_CHARS = 34`）、全角=1em / 半角≈0.5em の差を無視していた。単一行字幕はフォント 44px を使うため **全角34文字 = 1496px、canvas 1024px を46%超過**。日本語字幕だけが panel の外に流れていた。ろう・難聴ユーザーの主チャネルなので情報欠落そのもの。
+- **修正（Session 63）**: 予算を **em** で表す `MEASURE_EM = 20` に移行し、`_wrapChars()` を `_measureEm()` に置換。`wrapTextToWidth`/`truncateToWidth`（Session 62 で追加済み）を使用。
+  - **循環の解消**: フォントは行数から決まり（`_fontSizeFor`）、安全な折り返し幅はフォントに依存する、という循環があったが、**em はフォント相対なので循環が消える** — 行幅は常に `measure × fontSize` px。さらに「そのスケールで出うる最大フォント（`MAX_FONT × scale`）」に対して em 予算をクランプするので、行数がいくつになっても収まることが保証される（scale 1 で 20em、scale 1.5 で ≈14.8em）。
+  - **研究由来の値**: 日本語放送字幕は1行16文字・最大2行（社内規定で13〜20の幅）、Latin 字幕ガイドは37〜42文字。20em が日本語20字／Latin40字を与え、両方の慣行に収まる。`MAX_ROWS_PER_LINE = 2` は既に放送規格どおりだった。
+  - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
 - **プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無（事後消去のみ）。真偽値ゲート1つ+設定トグルで実装可能

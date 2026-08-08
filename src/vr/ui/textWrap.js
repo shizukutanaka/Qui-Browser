@@ -133,6 +133,35 @@ export function wrapTextToWidth(text, maxEm) {
 }
 
 /**
+ * Truncate to `maxEm` em units, appending an ellipsis that is itself counted.
+ * The em model matters for the same reason as wrapping: a code-point budget
+ * lets full-width text overrun the box it was meant to fit.
+ *
+ * @param {string} text
+ * @param {number} maxEm
+ * @returns {string}
+ */
+export function truncateToWidth(text, maxEm) {
+  const limit = Math.max(0.5, Number(maxEm) || 0.5);
+  const s = String(text === null || text === undefined ? '' : text);
+  if (textWidthEm(s) <= limit) {
+    return s;
+  }
+  const budget = limit - 0.5; // room for the ellipsis
+  let out = '';
+  let w = 0;
+  for (const ch of s) {
+    const cw = charWidthEm(ch.codePointAt(0));
+    if (w + cw > budget) {
+      break;
+    }
+    out += ch;
+    w += cw;
+  }
+  return out + '…';
+}
+
+/**
  * Greedy word-wrap into rows no longer than `maxChars` code points.
  * Words longer than a row are hard-split at code-point boundaries.
  *

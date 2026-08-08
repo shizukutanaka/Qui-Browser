@@ -45,6 +45,7 @@ const {
   CaptionSystem, clampCaptionOffset,
   CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX
 } = require('../src/vr/accessibility/CaptionSystem.js');
+const { textWidthEm } = require('../src/vr/ui/textWrap.js');
 
 function makeCamera() {
   return { add: jest.fn(), remove: jest.fn() };
@@ -221,17 +222,68 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(laid[1].text.endsWith('…')).toBe(true);
   });
 
-  test('scale defaults to 1 with the baseline font cap and wrap width', () => {
+  test('scale defaults to 1 with the baseline font cap and em measure', () => {
     expect(cs.scale).toBe(1);
-    expect(cs._wrapChars()).toBe(34);
+    // 20 em: 20 full-width / ~40 Latin chars per row, matching Japanese
+    // broadcast subtitling (~16, house styles 13–20) and Latin subtitle
+    // guidance (~37–42). Not clamped at scale 1 (976px/44px = 22.2 em).
+    expect(cs._measureEm()).toBe(20);
     expect(cs._fontSizeFor(1)).toBe(44); // single line → full 44px cap
   });
 
-  test('a larger scale raises the font cap and wraps sooner (low vision)', () => {
+  test('a larger scale raises the font cap and narrows the measure (low vision)', () => {
     const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
-    expect(big._fontSizeFor(1)).toBe(66);          // 44 * 1.5
-    expect(big._wrapChars()).toBe(23);             // round(34 / 1.5)
-    expect(big._wrapChars()).toBeLessThan(cs._wrapChars());
+    expect(big._fontSizeFor(1)).toBe(66);              // 44 * 1.5
+    // Clamped so 66px text still fits: 976px / 66px ≈ 14.8 em.
+    expect(big._measureEm()).toBeCloseTo(976 / 66, 5);
+    expect(big._measureEm()).toBeLessThan(cs._measureEm());
+  });
+
+  // Regression: the wrap budget used to be a fixed CHARACTER count (34), which
+  // ignored that CJK is 1 em wide and Latin ~0.5 (Unicode UAX #11). At the 44px
+  // single-row font that rendered 34 full-width glyphs as 1496px on a 1024px
+  // canvas — 46% outside the panel. Captions are the deaf/HoH channel.
+  describe('rows never exceed the panel width, in either script', () => {
+    const CANVAS_W = 1024;
+
+    function widestRowPx(system) {
+      const laid = system._layoutRows();
+      const font = system._fontSizeFor(laid.length);
+      return Math.max(...laid.map(r => textWidthEm(r.text) * font));
+    }
+
+    test('a long Japanese caption stays inside the canvas', () => {
+      cs.setEnabled(true);
+      cs.show('これは非常に長い日本語の字幕です。'.repeat(4));
+      expect(widestRowPx(cs)).toBeLessThanOrEqual(CANVAS_W);
+    });
+
+    test('a long Latin caption stays inside the canvas', () => {
+      cs.setEnabled(true);
+      cs.show('This is a fairly long English caption that must wrap. '.repeat(4));
+      expect(widestRowPx(cs)).toBeLessThanOrEqual(CANVAS_W);
+    });
+
+    test('mixed Japanese/Latin stays inside the canvas', () => {
+      cs.setEnabled(true);
+      cs.show('WebXRの仕様はW3Cが策定しています。'.repeat(4));
+      expect(widestRowPx(cs)).toBeLessThanOrEqual(CANVAS_W);
+    });
+
+    test('still fits at the 1.5 large-text scale, where the font is 66px', () => {
+      const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
+      big.setEnabled(true);
+      big.show('これは非常に長い日本語の字幕です。'.repeat(4));
+      expect(widestRowPx(big)).toBeLessThanOrEqual(CANVAS_W);
+    });
+
+    test('Japanese rows land near the broadcast measure (<= 20 full-width)', () => {
+      cs.setEnabled(true);
+      cs.show('あ'.repeat(120));
+      for (const r of cs._layoutRows()) {
+        expect(Array.from(r.text).length).toBeLessThanOrEqual(21); // +1 for '…'
+      }
+    });
   });
 
   test('setScale clamps to a sane range and redraws', () => {
