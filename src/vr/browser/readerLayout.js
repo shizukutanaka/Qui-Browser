@@ -138,6 +138,54 @@ export function readerProgressLabel(offset, total, visible) {
   return `${start + 1}–${Math.min(start + v, n)}/${n}`;
 }
 
+// ── Scroll affordance ────────────────────────────────────────────────────────
+// Arrow zones at the bottom-right of the content area, mirroring the bookmark
+// panel's convention so a controller ray and gaze-dwell both drive them
+// through the same onSelect path.
+export const ARROW_W = 96;
+export const ARROW_H = 72;
+export const ARROW_GAP = 12;
+export const ARROW_Y0 = CONTENT_PX_H - ARROW_H - 16;
+export const ARROW_DN_X0 = CONTENT_PX_W - ARROW_W - 16;
+export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
+
+/**
+ * Lines a page-jump moves.
+ *
+ * Discrete paging rather than continuous scrolling is the research-supported
+ * choice for reading in a headset: text speed and movement mode are significant
+ * contributors to cybersickness in HMD reading tasks, and *unexpected or
+ * uncontrolled* vection is the strongest predictor of sickness — so a
+ * user-initiated jump of a known size is safer than text sliding under the
+ * reader. Two lines of overlap preserve reading position across the jump, the
+ * same convention as Page Up/Down in a text editor.
+ */
+export const PAGE_OVERLAP_LINES = 2;
+
+export function pageJumpLines(visible) {
+  return Math.max(1, (visible || 1) - PAGE_OVERLAP_LINES);
+}
+
+/**
+ * Hit-test the reader content area in canvas pixels.
+ *
+ * @param {number} px
+ * @param {number} py
+ * @param {boolean} scrollable — arrows are only live when there is more to read
+ * @returns {{type: 'scrollUp'|'scrollDown'|'none'}}
+ */
+export function readerHitTest(px, py, scrollable = false) {
+  if (scrollable && py >= ARROW_Y0 && py <= ARROW_Y0 + ARROW_H) {
+    if (px >= ARROW_UP_X0 && px <= ARROW_UP_X0 + ARROW_W) {
+      return { type: 'scrollUp' };
+    }
+    if (px >= ARROW_DN_X0 && px <= ARROW_DN_X0 + ARROW_W) {
+      return { type: 'scrollDown' };
+    }
+  }
+  return { type: 'none' };
+}
+
 /** Font px for a line style at a given scale. */
 export function fontPxFor(style, scale = 1) {
   const s = scale > 0 ? scale : 1;

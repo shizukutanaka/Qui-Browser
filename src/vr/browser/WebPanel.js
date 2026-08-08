@@ -26,7 +26,8 @@ import {
 import { extractReadableText } from './readableText.js';
 import {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLineCount, fontPxFor, LINE_H, CONTENT_PAD
+  visibleLineCount, fontPxFor, LINE_H, CONTENT_PAD,
+  readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 
@@ -230,6 +231,14 @@ export class WebPanel {
       onHover: () => this._onMoveBarHover(true),
       onHoverEnd: () => this._onMoveBarHover(false)
     });
+
+    // The content area itself is selectable so the reader can be scrolled.
+    // Without this the mesh was never registered at all, so a ray could not
+    // reach it and the ONLY way to scroll was a voice command — leaving every
+    // controller and gaze user stuck on the first screen of an article.
+    this.registerInteractable(this.contentMesh, {
+      onSelect: (evt) => this._onContentSelect(evt)
+    });
   }
 
   // ── Chrome drawing ────────────────────────────────────────────────────────
@@ -366,10 +375,63 @@ export class WebPanel {
 
     const label = readerProgressLabel(this._readerScroll, total, visible);
     if (label) {
-      ctx.textAlign = 'right';
+      ctx.textAlign = 'left';
       ctx.font = '16px sans-serif';
       ctx.fillStyle = hc ? '#ffffff' : '#7788aa';
-      ctx.fillText(label, w - CONTENT_PAD, h - 16);
+      ctx.fillText(label, CONTENT_PAD, h - 30);
+    }
+
+    // Scroll arrows — the only visible affordance telling the user there is
+    // more to read and that the panel is selectable. Drawn whenever the
+    // article overflows one screen; dimmed at the ends so the state is legible
+    // without relying on colour alone (the glyph is always present).
+    if (total > visible) {
+      const canUp = this._readerScroll > 0;
+      const canDown = this._readerScroll < total - visible;
+      const drawArrow = (x, glyph, active) => {
+        ctx.fillStyle = active
+          ? (hc ? '#004adf' : 'rgba(50,80,140,0.9)')
+          : (hc ? '#222222' : 'rgba(30,35,55,0.6)');
+        ctx.fillRect(x, ARROW_Y0, ARROW_W, ARROW_H);
+        ctx.fillStyle = active
+          ? (hc ? '#ffffff' : '#aabbff')
+          : (hc ? '#aaccee' : '#445566');
+        ctx.font = 'bold 34px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(glyph, x + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2 + 12);
+      };
+      drawArrow(ARROW_UP_X0, '▲', canUp);
+      drawArrow(ARROW_DN_X0, '▼', canDown);
+    }
+  }
+
+  /**
+   * Selecting the content area: route to the reader's scroll arrows.
+   * Controllers and gaze both arrive here through the same registration, so
+   * one implementation serves both input modes.
+   */
+  _onContentSelect(evt) {
+    if (this._contentState !== 'reader' || !this.contentCanvas) {
+      return;
+    }
+    const rawPoint = evt?.intersection?.point ?? evt;
+    if (!rawPoint) {
+      return;
+    }
+    const local = this.contentMesh.worldToLocal(rawPoint.clone());
+    const contentH = PANEL_H * (1 - CHROME_H);
+    const u = (local.x / PANEL_W) + 0.5;
+    const v = (local.y / contentH) + 0.5;
+    const px = u * this.contentCanvas.width;
+    const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
+
+    const visible = visibleLineCount(this._readerScale);
+    const scrollable = this._readerLines.length > visible;
+    const action = readerHitTest(px, py, scrollable);
+    if (action.type === 'scrollUp') {
+      this.scrollContent(-pageJumpLines(visible));
+    } else if (action.type === 'scrollDown') {
+      this.scrollContent(pageJumpLines(visible));
     }
   }
 
@@ -840,6 +902,7 @@ export class WebPanel {
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
+    this.unregisterInteractable(this.contentMesh);
 
     this.group.traverse(obj => {
       if (obj.geometry) {

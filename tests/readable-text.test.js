@@ -301,3 +301,45 @@ describe('wrapTextToLines (shared with CaptionSystem)', () => {
     expect(wrapTextToLines('abc', 0).join('')).toBe('abc');
   });
 });
+
+// Discrete paging, not continuous scrolling: text speed and movement mode are
+// significant contributors to cybersickness in HMD reading, and *unexpected /
+// uncontrolled* vection is the strongest predictor — so a user-initiated jump
+// of a known size is the safer design.
+describe('reader scroll affordance', () => {
+  const {
+    readerHitTest, pageJumpLines, PAGE_OVERLAP_LINES,
+    ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0
+  } = require('../src/vr/browser/readerLayout.js');
+
+  const mid = (x0) => x0 + ARROW_W / 2;
+  const midY = ARROW_Y0 + ARROW_H / 2;
+
+  test('a page jump keeps overlap so reading position survives', () => {
+    expect(pageJumpLines(24)).toBe(24 - PAGE_OVERLAP_LINES);
+    expect(PAGE_OVERLAP_LINES).toBeGreaterThan(0);
+  });
+
+  test('a jump never advances by zero or negative lines', () => {
+    expect(pageJumpLines(1)).toBeGreaterThanOrEqual(1);
+    expect(pageJumpLines(0)).toBeGreaterThanOrEqual(1);
+  });
+
+  test('the up and down arrow zones resolve distinctly', () => {
+    expect(readerHitTest(mid(ARROW_UP_X0), midY, true).type).toBe('scrollUp');
+    expect(readerHitTest(mid(ARROW_DN_X0), midY, true).type).toBe('scrollDown');
+  });
+
+  test('arrows are inert when the article fits on one screen', () => {
+    expect(readerHitTest(mid(ARROW_DN_X0), midY, false).type).toBe('none');
+  });
+
+  test('a hit outside the arrow band is not a scroll', () => {
+    expect(readerHitTest(mid(ARROW_DN_X0), ARROW_Y0 - 50, true).type).toBe('none');
+    expect(readerHitTest(10, midY, true).type).toBe('none');
+  });
+
+  test('the two arrow zones do not overlap', () => {
+    expect(ARROW_UP_X0 + ARROW_W).toBeLessThan(ARROW_DN_X0);
+  });
+});
