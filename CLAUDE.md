@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 66: 研究駆動 — リーダーが音声でしかスクロールできなかった(自分の出荷物の欠陥)
+Session 61 で出荷したリーダーを見直したところ、**`scrollContent` の呼び出し元が音声コマンド1箇所だけ**で、しかも **`contentMesh` は interactable に登録すらされていなかった**(登録は `chromeMesh`/`moveBarMesh` のみ)。つまりレイが当たらず、**音声を使わないユーザーは記事の1画面目より先へ進めない**。音声は opt-in でマイク許可も要るため、実質ほとんどのユーザーが読めない状態だった。
+- 📐 **研究由来の設計判断**: HMD の読書課題では「**テキストの移動速度と移動様式**がサイバー酔いの有意な要因」(Nature Sci Rep 2024)、また「**予期しない/制御されていない vection** が酔いの最大の予測因子」。よって連続スクロールではなく**ユーザー起動の離散ページ送り**を採用。加えて「テキストを世界固定した方が HMD 固定より不快感が低い」という知見に対し、本パネルは元々ワールド固定であり**既に正しい**ことを確認(変更不要)。
+- ✨ **feat (a11y/入力)**: `contentMesh` を interactable に登録し `_onContentSelect()` を追加。コントローラのレイと gaze-dwell は**同じ onSelect 経路**を通るので、1実装で両方に効く。ヒットゾーンは純関数 `readerHitTest()`(`bookmarkLayout.hitTest` の作法を踏襲)。
+- ✨ **feat (発見性)**: コンテンツ面右下に ▲▼ ボタンを描画。記事が1画面を超えるときのみ表示し、端では減光。**グリフが常に存在する**ので色のみに依存しない(WCAG 1.4.1)。従来は進捗ラベルのテキストしか無く、スクロール可能であること自体が不可視だった。
+- ✨ **ページ送りの重なり**: `PAGE_OVERLAP_LINES = 2` — エディタの PageDown と同じ作法で、ジャンプ後も読み位置の手がかりが2行残る。
+- 🐛 **fix (teardown)**: `dispose()` が `contentMesh` を unregister していなかったので追加(本リポジトリの teardown 規律)。
+- 12テスト追加(純関数のヒットゾーン6 + パネル統合6)。**統合6件すべてが pre-fix で失敗**を確認。
+- Total 1152 tests (48 suites); 0 lint errors (unchanged 84 warnings); build verified green.
+
 ### Session 65: 全角幅前提の一掃 — 残る2箇所を実測で特定して修正
 Session 62〜64 で「全角=半角」という前提がリーダー(幅)・字幕(幅・時間)に潜んでいたことが判明した。本セッションはその前提が**他のどこに残っているか**を、推測でなく実測で網羅的に確認した。
 - 🔍 **網羅調査**: コードポイント基準の寸法計算をすべて洗い出し、実ジオメトリで px 換算した。結果、**2箇所が実際に溢れ、2箇所は安全**と判明。
@@ -675,4 +685,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 65)
+**Last Revision**: 2026-07-04 (Session 66)

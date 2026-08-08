@@ -55,11 +55,20 @@ global.document = {
 
 const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
 
+// Plain-function recorders (not jest.fn: jest.config sets resetMocks:true,
+// which would wipe implementations before each test).
+const _registered = [];
+const _unregistered = [];
+function registeredMeshes() { return _registered; }
+function unregisteredMeshes() { return _unregistered; }
+
 function makePanel(opts = {}) {
+  _registered.length = 0;
+  _unregistered.length = 0;
   return new WebPanel({
     scene: { add() {}, remove() {} },
-    registerInteractable: jest.fn(),
-    unregisterInteractable: jest.fn(),
+    registerInteractable: (mesh) => { _registered.push(mesh); },
+    unregisterInteractable: (mesh) => { _unregistered.push(mesh); },
     onNavigate: jest.fn(),
     ...opts
   });
@@ -554,5 +563,82 @@ describe('WebPanel URL bar does not overflow', () => {
     p.currentUrl = 'https://example.com/' + 'x'.repeat(200);
     p._loadError = true;
     expect(() => p._drawChrome()).not.toThrow();
+  });
+});
+
+// The reader was scrollable ONLY by voice: contentMesh was never registered as
+// an interactable, so a ray could not reach it. Controller and gaze users were
+// stuck on the first screen of any article.
+describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
+  const {
+    ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0,
+    visibleLineCount, pageJumpLines, CONTENT_PX_W, CONTENT_PX_H
+  } = require('../src/vr/browser/readerLayout.js');
+
+  const LONG = `<html><head><title>T</title></head><body><article>
+    ${Array.from({ length: 60 }, (_, i) => `<p>Paragraph number ${i} with enough words to wrap onto its own line.</p>`).join('')}
+  </article></body></html>`;
+
+  async function readerPanel() {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(LONG) });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    return p;
+  }
+
+  // contentMesh is PANEL_W x PANEL_H*(1-CHROME_H); worldToLocal is stubbed to
+  // return whatever we inject, so build the local point for a canvas pixel.
+  function localForContent(px, py) {
+    const PANEL_W = 1.6, contentH = 1.0 * (1 - 0.08);
+    const u = px / CONTENT_PX_W;
+    const v = 1 - py / CONTENT_PX_H;
+    return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * contentH, clone() { return this; } };
+  }
+
+  test('contentMesh is registered as an interactable', async () => {
+    const p = await readerPanel();
+    expect(registeredMeshes()).toContain(p.contentMesh);
+  });
+
+  test('selecting the down arrow advances by a page', async () => {
+    const p = await readerPanel();
+    expect(p._contentState).toBe('reader');
+    const before = p._readerScroll;
+    p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+    p._onContentSelect({ x: 0, y: 0, clone() { return this; } });
+    expect(p._readerScroll).toBe(before + pageJumpLines(visibleLineCount(1)));
+  });
+
+  test('selecting the up arrow goes back, clamped at the top', async () => {
+    const p = await readerPanel();
+    p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+    p._onContentSelect({ clone() { return this; } });
+    const afterDown = p._readerScroll;
+    expect(afterDown).toBeGreaterThan(0);
+
+    p.contentMesh.worldToLocal = () => localForContent(ARROW_UP_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+    p._onContentSelect({ clone() { return this; } });
+    expect(p._readerScroll).toBeLessThan(afterDown);
+  });
+
+  test('selecting the body text area does not scroll', async () => {
+    const p = await readerPanel();
+    p.contentMesh.worldToLocal = () => localForContent(200, 200);
+    p._onContentSelect({ clone() { return this; } });
+    expect(p._readerScroll).toBe(0);
+  });
+
+  test('selecting content is inert when not in reader state', () => {
+    const p = makePanel();
+    p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+    expect(() => p._onContentSelect({ clone() { return this; } })).not.toThrow();
+    expect(p._readerScroll).toBe(0);
+  });
+
+  test('dispose unregisters the content mesh too', async () => {
+    const p = await readerPanel();
+    const mesh = p.contentMesh;
+    p.dispose();
+    expect(unregisteredMeshes()).toContain(mesh);
   });
 });
