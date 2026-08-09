@@ -806,7 +806,7 @@ describe('VRApp._onWebPanelToggleChanged', () => {
     VRApp.prototype._onWebPanelToggleChanged.call(app);
 
     expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
-    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/reload/i);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/reload|再読み込み/i);
     expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledTimes(1);
   });
 });
@@ -826,7 +826,7 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
 
     expect(bookmarks.clearHistory).toHaveBeenCalledTimes(1);
     expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
-    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/cleared/i);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/cleared|消去/i);
   });
 
   test('refreshes an open bookmark/history panel so the cleared list shows', () => {

@@ -196,7 +196,7 @@ const CATALOG = {
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
     'vr.error.aiUnavailable': 'AIレコメンド利用不可',
     'vr.error.blockedUrl': 'このアドレスは開けません'
-  }
+  },
 };
 
 function detectLanguage() {
