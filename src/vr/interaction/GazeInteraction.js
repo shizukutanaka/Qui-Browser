@@ -30,7 +30,9 @@ const CONFIRM_MS = 250;       // duration of the activation-confirmation flash
 function _isWorldVisible(obj) {
   let o = obj;
   while (o) {
-    if (o.visible === false) return false;
+    if (o.visible === false) {
+      return false;
+    }
     o = o.parent;
   }
   return true;

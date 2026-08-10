@@ -259,7 +259,9 @@ export class ImmersiveVideo {
       },
       onHover: () => {
         draw(true);
-        if (this.onHoverCaption) this.onHoverCaption(label);
+        if (this.onHoverCaption) {
+          this.onHoverCaption(label);
+        }
       },
       onHoverEnd: () => draw(false)
     });

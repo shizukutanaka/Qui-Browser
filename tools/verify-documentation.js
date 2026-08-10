@@ -202,7 +202,7 @@ function main() {
     '.github/workflows/ci.yml',
     '.github/workflows/cd.yml',
     'src/app.js',
-    'src/VRApp.js',
+    'src/vr/VRApp.js',
     'src/monitoring.js',
     'index.html',
     'public/service-worker.js'

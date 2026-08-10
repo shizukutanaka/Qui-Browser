@@ -250,8 +250,14 @@ export class MultiplayerSystem {
         return; // disconnected while waiting
       }
       this.connectSignaling()
-        .then(() => { this._signalingReconnectAttempts = 0; }) // recovered
-        .catch(() => { this._scheduleSignalingReconnect(); }); // retry, longer backoff
+        .then(() => {
+          // recovered
+          this._signalingReconnectAttempts = 0;
+        })
+        .catch(() => {
+          // retry, longer backoff
+          this._scheduleSignalingReconnect();
+        });
     }, delay);
   }
 

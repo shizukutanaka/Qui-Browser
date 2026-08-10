@@ -27,7 +27,7 @@ export function synthesizeToneSamples(spec = {}, sampleRate = 48000) {
   const sr = sampleRate > 0 ? sampleRate : 48000;
   const n = Math.max(1, Math.floor(sr * Math.max(0, duration)));
   const out = new Float32Array(n);
-  const f2 = endFreq == null ? freq : endFreq;
+  const f2 = endFreq === null || endFreq === undefined ? freq : endFreq;
   let phase = 0;
   for (let i = 0; i < n; i++) {
     const t = i / sr;

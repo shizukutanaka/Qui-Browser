@@ -160,10 +160,18 @@ export class BookmarkPanel {
     this.registerInteractable(this.mesh, {
       onSelect: (evt) => this._onSelect(evt),
       onHover: () => {
-        if (this.mesh) this.mesh.material.color.set(0xbbccff);
-        if (this.onHoverCaption) this.onHoverCaption();
+        if (this.mesh) {
+          this.mesh.material.color.set(0xbbccff);
+        }
+        if (this.onHoverCaption) {
+          this.onHoverCaption();
+        }
       },
-      onHoverEnd: () => { if (this.mesh) this.mesh.material.color.set(0xffffff); }
+      onHoverEnd: () => {
+        if (this.mesh) {
+          this.mesh.material.color.set(0xffffff);
+        }
+      }
     });
     this._draw();
   }

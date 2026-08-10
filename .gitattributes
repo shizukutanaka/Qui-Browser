@@ -1,2 +1,4 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and normalize line endings to LF in repo and worktree.
+# eol=lf keeps the checkout LF on Windows so eslint's linebreak-style rule
+# (and LF-sensitive tests) behave the same as CI.
+* text=auto eol=lf

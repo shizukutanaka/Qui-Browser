@@ -259,7 +259,7 @@ async function checkSourceCode(results) {
 
   const requiredFiles = [
     'src/app.js',
-    'src/VRApp.js',
+    'src/vr/VRApp.js',
     'src/monitoring.js',
     'index.html'
   ];
@@ -301,19 +301,32 @@ async function checkTests(results) {
   console.log('🧪 Checking tests...\n');
 
   try {
-    const testFile = path.join(PROJECT_ROOT, 'tests', 'tier-system-integration.test.js');
-    if (fs.existsSync(testFile)) {
-      const content = fs.readFileSync(testFile, 'utf-8');
-      const suites = (content.match(/describe\(/g) || []).length;
-      const tests = (content.match(/test\(/g) || []).length;
+    // Scan every spec under tests/ rather than a single hard-coded file: the
+    // suite has been split into per-subsystem specs, so pinning one filename
+    // reported "no tests" on a repo with a full green suite.
+    const testsDir = path.join(PROJECT_ROOT, 'tests');
+    const specFiles = fs.existsSync(testsDir)
+      ? fs.readdirSync(testsDir).filter((f) => f.endsWith('.test.js'))
+      : [];
 
-      results.passed.push(`Test suite exists with ${suites} suites, ${tests} tests`);
-      console.log(`  ✅ tier-system-integration.test.js`);
+    if (specFiles.length > 0) {
+      let suites = 0;
+      let tests = 0;
+      for (const file of specFiles) {
+        const content = fs.readFileSync(path.join(testsDir, file), 'utf-8');
+        suites += (content.match(/describe\(/g) || []).length;
+        tests += (content.match(/\b(test|it)\(/g) || []).length;
+      }
+
+      results.passed.push(
+        `Test suites exist: ${specFiles.length} files, ${suites} describes, ${tests} tests`
+      );
+      console.log(`  ✅ tests/ (${specFiles.length} spec files)`);
       console.log(`     Suites: ${suites}`);
       console.log(`     Tests: ${tests}`);
     } else {
-      results.warnings.push('Main test file not found');
-      console.log('  ⚠️  tier-system-integration.test.js not found');
+      results.warnings.push('No test files found under tests/');
+      console.log('  ⚠️  no *.test.js files found under tests/');
     }
 
     // Check jest config

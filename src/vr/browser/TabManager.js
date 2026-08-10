@@ -73,10 +73,18 @@ export class TabManager {
     this.opts.registerInteractable(this.stripMesh, {
       onSelect: (evt) => this._onStripSelect(evt),
       onHover: () => {
-        if (this.stripMesh) this.stripMesh.material.color.set(0xbbccff);
-        if (this.opts.onHoverCaption) this.opts.onHoverCaption();
+        if (this.stripMesh) {
+          this.stripMesh.material.color.set(0xbbccff);
+        }
+        if (this.opts.onHoverCaption) {
+          this.opts.onHoverCaption();
+        }
       },
-      onHoverEnd: () => { if (this.stripMesh) this.stripMesh.material.color.set(0xffffff); }
+      onHoverEnd: () => {
+        if (this.stripMesh) {
+          this.stripMesh.material.color.set(0xffffff);
+        }
+      }
     });
 
     this._drawStrip();

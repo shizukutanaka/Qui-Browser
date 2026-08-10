@@ -815,7 +815,9 @@ export class VRJapaneseKeyboard {
           onSelect: () => this.onKeyPress(k.label),
           onHover: () => {
             this._setKeyHover(mesh, true);
-            if (this.onHoverCaption) this.onHoverCaption(k.label);
+            if (this.onHoverCaption) {
+              this.onHoverCaption(k.label);
+            }
           },
           onHoverEnd: () => this._setKeyHover(mesh, false)
         });
@@ -1081,7 +1083,9 @@ export class VRJapaneseKeyboard {
       this._clearCandidates();
       this._clearSuggestions();
       this.hide();
-      if (this.onCancel) this.onCancel();
+      if (this.onCancel) {
+        this.onCancel();
+      }
       break;
 
     case 'back':
@@ -1193,7 +1197,9 @@ export class VRJapaneseKeyboard {
             ctx.textBaseline = 'middle';
             ctx.fillText(kanji, 64, 70);
             tex.needsUpdate = true;
-            if (this.onHoverCaption) this.onHoverCaption(kanji);
+            if (this.onHoverCaption) {
+              this.onHoverCaption(kanji);
+            }
           },
           onHoverEnd: () => {
             ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
@@ -1314,7 +1320,9 @@ export class VRJapaneseKeyboard {
             tex.needsUpdate = true;
             // Announce the FULL destination URL, not the truncated label, so
             // gaze users know exactly where the button navigates (WCAG 1.3.3).
-            if (this.onHoverCaption) this.onHoverCaption(entry.url);
+            if (this.onHoverCaption) {
+              this.onHoverCaption(entry.url);
+            }
           },
           onHoverEnd: () => {
             draw(false);
