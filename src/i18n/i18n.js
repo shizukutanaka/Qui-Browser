@@ -208,7 +208,12 @@ function detectLanguage() {
       }
     }
   } catch (e) { /* ignore */ }
-  const nav = (typeof navigator !== 'undefined' && (navigator.language || '')).toLowerCase();
+  // NOTE: the `&&` chain yields `false` (a boolean) when navigator is absent —
+  // calling .toLowerCase() on it throws at module-evaluation time. Normalize
+  // to a string first so SSR / worker imports stay safe.
+  const nav = String(
+    (typeof navigator !== 'undefined' && navigator && navigator.language) || ''
+  ).toLowerCase();
   return nav.startsWith('ja') ? 'ja' : 'en';
 }
 

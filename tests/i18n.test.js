@@ -100,4 +100,52 @@ describe('src/i18n/i18n', () => {
     setLanguage('xx');
     expect(getLanguage()).toBe('en');
   });
+
+  describe('detectLanguage() in a navigator-less environment (SSR / worker)', () => {
+    const hadNavigator = 'navigator' in globalThis;
+    const originalNavigator = globalThis.navigator;
+
+    afterEach(() => {
+      if (hadNavigator) {
+        Object.defineProperty(globalThis, 'navigator', {
+          value: originalNavigator,
+          configurable: true,
+          writable: true
+        });
+      }
+      jest.resetModules();
+    });
+
+    test('module import does not throw when navigator is undefined', () => {
+      // Earlier tests persist a language choice via setLanguage(); detectLanguage()
+      // returns early on a saved value and would never reach the navigator branch,
+      // making this regression test pass even against the unfixed source.
+      localStorage.removeItem('qui-browser:lang');
+      delete globalThis.navigator;
+      expect('navigator' in globalThis).toBe(false);
+      jest.resetModules();
+      let mod;
+      // Regression: `(typeof navigator !== 'undefined' && ...)` evaluates to the
+      // BOOLEAN false here, and `false.toLowerCase()` threw a TypeError at
+      // module-evaluation time, taking down every importer of the i18n module.
+      expect(() => {
+        mod = require('../src/i18n/i18n.js');
+      }).not.toThrow();
+      expect(mod.getLanguage()).toBe('en');
+    });
+
+    test('falls back to ja when navigator.language is Japanese', () => {
+      // Earlier tests persist a language choice; detectLanguage() prefers it
+      // over navigator, so clear it to exercise the navigator branch.
+      localStorage.removeItem('qui-browser:lang');
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { language: 'ja-JP' },
+        configurable: true,
+        writable: true
+      });
+      jest.resetModules();
+      const mod = require('../src/i18n/i18n.js');
+      expect(mod.getLanguage()).toBe('ja');
+    });
+  });
 });
