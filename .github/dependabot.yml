@@ -33,6 +33,10 @@ updates:
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
+    allow:
+      - dependency-type: "direct"
+    automerge:
+      - dependency-type: "direct"
     schedule:
       interval: "weekly"
       day: "monday"
