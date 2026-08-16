@@ -13,67 +13,19 @@ import {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate,
-  ROW_TEXT_X, ROW_TEXT_W, ROW_TITLE_EM, ROW_URL_EM
+  ROW_TEXT_X, ROW_TEXT_W, ROW_TITLE_EM, ROW_URL_EM,
+  bookmarkPanelColors
 } from './bookmarkLayout.js';
+// Re-exported so existing importers (and tests) keep their import site while
+// the palette itself lives in the pure module, where the contrast sweep in
+// tests/contrast.test.js can reach it without mocking Three.js.
+export { bookmarkPanelColors };
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
 
 
-/**
- * Canvas colour palette for the bookmark / history panel.
- *
- * In high-contrast mode the panel switches to a pure-black backing and bright
- * foreground colours to satisfy WCAG 1.4.11 Non-text Contrast (≥ 3:1) and
- * 1.4.3 Text Contrast (≥ 4.5:1).  The most critical failures in normal mode:
- *   • inactive scroll-arrow glyph (#445566) on near-black — dark on dark
- *   • inactive tab label (#8899bb) on near-black — marginal
- *   • URL row text (#7f8db5) — readable but gains meaningful headroom in HC
- *
- * Pure and exported so the contrast choices are unit-testable without a GPU.
- *
- * @param {boolean} [highContrast=false]
- * @returns {object} colour palette used by _draw / _drawTab
- */
-export function bookmarkPanelColors(highContrast = false) {
-  if (highContrast) {
-    return {
-      bg:              '#000000',
-      headerBg:        '#000000',
-      scrollActive:    { bg: '#004adf', text: '#ffffff' },
-      scrollInactive:  { bg: '#222222', text: '#aaccee' },
-      pageIndicator:   '#ccddee',
-      closeBg:         '#7a0000',
-      rowTitle:        '#ffffff',
-      rowUrl:          '#aabbdd',
-      tabActive:       { bg: '#1a3080', text: '#ffffff' },
-      tabInactive:     { bg: '#111111', text: '#ccddee' },
-      rowZebraEven:    'rgba(255,255,255,0.0)',
-      rowZebraOdd:     'rgba(255,255,255,0.10)',
-      deleteZoneBg:    '#7a0000',
-      deleteText:      '#ffffff',
-      emptyText:       '#aabbcc'
-    };
-  }
-  return {
-    bg:              'rgba(10,13,20,0.95)',
-    headerBg:        '#161b2e',
-    scrollActive:    { bg: 'rgba(50,80,140,0.9)', text: '#aabbff' },
-    scrollInactive:  { bg: 'rgba(30,35,55,0.6)',  text: '#445566' },
-    pageIndicator:   '#7788aa',
-    closeBg:         '#5c1a1a',
-    rowTitle:        '#e8ecff',
-    rowUrl:          '#7f8db5',
-    tabActive:       { bg: '#2d3a66', text: '#ffffff' },
-    tabInactive:     { bg: '#1a1f33', text: '#8899bb' },
-    rowZebraEven:    'rgba(255,255,255,0.03)',
-    rowZebraOdd:     'rgba(255,255,255,0.06)',
-    deleteZoneBg:    'rgba(90,20,20,0.8)',
-    deleteText:      '#ffaaaa',
-    emptyText:       '#8899aa'
-  };
-}
 
 const PANEL_W = 1.2;  // metres
 const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);

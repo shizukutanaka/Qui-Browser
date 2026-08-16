@@ -99,21 +99,13 @@ describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
 // the stronger 4.5:1 normal-text bar. A future palette tweak that dims a colour
 // below these ratios now fails CI instead of silently regressing.
 describe('buttonStyle — high-contrast WCAG contrast ratios', () => {
-  // sRGB relative luminance per WCAG 2.x definition.
-  function relLuminance(hex) {
-    const m = hex.replace('#', '').match(/[0-9a-f]{2}/gi);
-    const [r, g, b] = m.map((h) => {
-      const c = parseInt(h, 16) / 255;
-      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  }
-  function contrastRatio(hexA, hexB) {
-    const la = relLuminance(hexA);
-    const lb = relLuminance(hexB);
-    const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
-    return (hi + 0.05) / (lo + 0.05);
-  }
+  // The WCAG maths used to be reimplemented inline here. That copy handled
+  // 6-digit hex only, so it could not evaluate a single `rgba()` value — and
+  // the button/toast/row backings this palette sits on are all `rgba()`. It now
+  // uses the shared implementation (src/vr/ui/contrast.js), which composites
+  // alpha before measuring; the sanity check below still pins the endpoints so
+  // a broken shared helper cannot quietly certify this palette.
+  const { contrastRatio } = require('../src/vr/ui/contrast.js');
 
   test('contrastRatio sanity: black/white is 21:1, identical is 1:1', () => {
     expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);

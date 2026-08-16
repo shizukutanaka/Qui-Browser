@@ -22,7 +22,8 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ```
 
 - **修正 → regression テスト → pre-fix fail 確認**: 新テストは必ず「修正前のコードで fail する」ことを `git stash push -- <src files>` → テスト実行 → `git stash pop` で確認する。fail しないテストは regression 保証にならない（56セッション一貫の流儀）。
-- **フルゲート**: `npm test`（全 green・現在1020件/46スイート）、`npm run lint`（**0 errors 維持**。84件の既存 no-console warning は増やさない）、`npm run build`（green）。
+- **フルゲート**: `npm test`（全 green・現在1341件/49スイート）、`npm run lint`（**0 errors 維持**。84件の既存 no-console warning は増やさない）、`npm run build`（green）。
+- **色を変える変更をしたら** `tests/contrast.test.js` が実パレットを掃引する。新しい描画面の色は `chromeColors.js` / `bookmarkLayout.js` / `keyboardLayout.js` のような**純パレット関数**に置き、掃引表に足すこと(canvas の色は目視検証不能 — Session 69)。
 - **テキストを描く変更をしたら** `npm run verify:layout` も走らせる。実 Chromium で本番の折り返し・切り詰めを実フォントで測り、パネルからはみ出さないか検証する(Sessions 62〜67 の日本語はみ出し欠陥ファミリーの再発防止。依存ゼロ)。
 - **ドキュメント更新**: `CLAUDE.md` に `### Session N:` エントリを既存フォーマット（🐛/✨/🧹/🔧 の絵文字bullet、テスト数、検証結果）で追記し、末尾の `**Last Revision**` を更新。課題を開閉したら `docs/OUTSTANDING_ISSUES.md` も更新。
 - **出荷**: commit → `git push -u origin claude/loop-improvements-L276b` → PR 作成 → main へマージ（PR 作成・マージは**可能**）。

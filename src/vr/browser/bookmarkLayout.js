@@ -137,3 +137,64 @@ export const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
  */
 export const ROW_TITLE_EM = safeMeasureEm(ROW_TEXT_W, ROW_TITLE_FONT);
 export const ROW_URL_EM = safeMeasureEm(ROW_TEXT_W, ROW_URL_FONT);
+
+/**
+ * Canvas colour palette for the bookmark / history panel.
+ *
+ * In high-contrast mode the panel switches to a pure-black backing and bright
+ * foreground colours; the normal-mode palette must clear WCAG 1.4.11 Non-text
+ * Contrast (≥ 3:1) and 1.4.3 Text Contrast (≥ 4.5:1) on its own, because
+ * high-contrast mode is an opt-in OS preference and most users never set it.
+ *
+ * The inactive scroll-arrow glyph used to be `#445566`, which measures 2.37:1
+ * against the rendered arrow backing — a glyph you cannot see rather than one
+ * you can see is unavailable. WCAG 2 formally exempts inactive components from
+ * both 1.4.3 and 1.4.11, so this was not a conformance failure; it was worse
+ * than that in practice, because the greyed glyph is the only evidence in the
+ * panel that a scroll control exists at all. It is now `#727f96` (4.5:1),
+ * still far dimmer than the active `#aabbff` so the disabled meaning survives.
+ *
+ * Pure and exported so the contrast choices are unit-testable without a GPU;
+ * tests/contrast.test.js sweeps every pair below against both WCAG 2 and APCA.
+ *
+ * @param {boolean} [highContrast=false]
+ * @returns {object} colour palette used by _draw / _drawTab
+ */
+export function bookmarkPanelColors(highContrast = false) {
+  if (highContrast) {
+    return {
+      bg:              '#000000',
+      headerBg:        '#000000',
+      scrollActive:    { bg: '#004adf', text: '#ffffff' },
+      scrollInactive:  { bg: '#222222', text: '#aaccee' },
+      pageIndicator:   '#ccddee',
+      closeBg:         '#7a0000',
+      rowTitle:        '#ffffff',
+      rowUrl:          '#aabbdd',
+      tabActive:       { bg: '#1a3080', text: '#ffffff' },
+      tabInactive:     { bg: '#111111', text: '#ccddee' },
+      rowZebraEven:    'rgba(255,255,255,0.0)',
+      rowZebraOdd:     'rgba(255,255,255,0.10)',
+      deleteZoneBg:    '#7a0000',
+      deleteText:      '#ffffff',
+      emptyText:       '#aabbcc'
+    };
+  }
+  return {
+    bg:              'rgba(10,13,20,0.95)',
+    headerBg:        '#161b2e',
+    scrollActive:    { bg: 'rgba(50,80,140,0.9)', text: '#aabbff' },
+    scrollInactive:  { bg: 'rgba(30,35,55,0.6)',  text: '#727f96' },
+    pageIndicator:   '#7788aa',
+    closeBg:         '#5c1a1a',
+    rowTitle:        '#e8ecff',
+    rowUrl:          '#7f8db5',
+    tabActive:       { bg: '#2d3a66', text: '#ffffff' },
+    tabInactive:     { bg: '#1a1f33', text: '#8899bb' },
+    rowZebraEven:    'rgba(255,255,255,0.03)',
+    rowZebraOdd:     'rgba(255,255,255,0.06)',
+    deleteZoneBg:    'rgba(90,20,20,0.8)',
+    deleteText:      '#ffaaaa',
+    emptyText:       '#8899aa'
+  };
+}

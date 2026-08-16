@@ -722,7 +722,7 @@ export class VRApp {
     const draw = (hover) => {
       const on = !!this.settings[key];
       const hc = prefersHighContrast();
-      const ind = toggleIndicatorColors(on, hc);
+      const ind = toggleIndicatorColors(on, hc, hover);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);
@@ -782,7 +782,7 @@ export class VRApp {
     const draw = (hover) => {
       const on = !!this.settings[key];
       const hc = prefersHighContrast();
-      const ind = toggleIndicatorColors(on, hc);
+      const ind = toggleIndicatorColors(on, hc, hover);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = buttonBg(hover, hc);
       ctx.fillRect(0, 0, w, h);

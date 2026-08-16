@@ -10,7 +10,8 @@ import { configureUITexture } from '../ui/canvasTexture.js';
 import {
   computeKeyLayout, keyboardBounds,
   SUGGESTION_BTN_PX_W, SUGGESTION_BTN_PX_H, SUGGESTION_LABEL_FONT_PX,
-  SUGGESTION_MEASURE_EM, COMPOSITION_BADGE_W, COMPOSITION_MEASURE_EM
+  SUGGESTION_MEASURE_EM, COMPOSITION_BADGE_W, COMPOSITION_MEASURE_EM,
+  imeBadgeColors
 } from './keyboardLayout.js';
 
 // Re-exported so existing importers (and tests) keep their import site.
@@ -978,12 +979,13 @@ export class VRJapaneseKeyboard {
     const mode = this.ime ? this.ime.inputMode : 'hiragana';
     const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢' };
     const badge = BADGE[mode] || '?';
-    const badgeColors = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
-    const badgeBg = badgeColors[mode] || '#558';
+    const badgeCol = imeBadgeColors(mode);
     const badgeW = COMPOSITION_BADGE_W;
-    ctx.fillStyle = badgeBg;
+    ctx.fillStyle = badgeCol.bg;
     ctx.fillRect(w - badgeW - 4, 4, badgeW, h - 8);
-    ctx.fillStyle = '#ffffff';
+    // Ink-on-bright, not white-on-bright: white measured 2.05:1 on the kanji
+    // green and 2.37:1 on the katakana orange (see imeBadgeColors).
+    ctx.fillStyle = badgeCol.text;
     ctx.font = 'bold 36px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
