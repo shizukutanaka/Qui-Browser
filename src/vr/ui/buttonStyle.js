@@ -53,18 +53,39 @@ export function buttonLineWidth(hover, highContrast = false) {
  * inactive indicator is clearly distinguishable from the pure-black background
  * (WCAG 1.4.11 Non-text Contrast ≥ 3:1, 1.4.3 Text ≥ 4.5:1).
  *
+ * `hover` exists because the indicator colours are drawn ON TOP of the hover
+ * fill, and the hover fill is deliberately much brighter than the idle one.
+ * Measured: the off-state label `#8899aa` is a comfortable 6.39:1 against the
+ * idle backing but collapses to **2.26:1** once the backing brightens to
+ * `#3e5d92`, and the off-state border falls to 1.43:1 — so pointing at a
+ * settings toggle used to make its state *less* readable than leaving it
+ * alone, which is the exact opposite of what a focus treatment is for
+ * (WCAG 2.4.7 Focus Visible, and a 1.4.3 failure in the focused state).
+ * The on-state green already clears 3:1 on both backings and is unchanged.
+ * High-contrast already cleared both backings too; only normal mode moves.
+ *
  * @param {boolean} on
  * @param {boolean} [highContrast=false]
+ * @param {boolean} [hover=false] true when drawn over the hover fill
  * @returns {{ border: string, label: string }}
  */
-export function toggleIndicatorColors(on, highContrast = false) {
+export function toggleIndicatorColors(on, highContrast = false, hover = false) {
   if (highContrast) {
-    return on
-      ? { border: '#00ff88', label: '#00ff88' }
+    if (on) {
+      return { border: '#00ff88', label: '#00ff88' };
+    }
+    // `#aaccee` is 12.6:1 on the pure-black idle backing but only 4.1:1 on the
+    // saturated hover blue — which would leave high-contrast mode *weaker* on
+    // hover than normal mode after its own hover fix below.
+    return hover
+      ? { border: '#e6f0ff', label: '#e6f0ff' }
       : { border: '#aaccee', label: '#aaccee' };
   }
-  return on
-    ? { border: '#44ff88', label: '#44ff88' }
+  if (on) {
+    return { border: '#44ff88', label: '#44ff88' };
+  }
+  return hover
+    ? { border: '#ccd6e4', label: '#ccd6e4' }
     : { border: '#667788', label: '#8899aa' };
 }
 

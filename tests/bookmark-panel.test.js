@@ -408,10 +408,24 @@ describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
 
   test('normal-mode values unchanged (regression guard)', () => {
     const c = bookmarkPanelColors(false);
-    expect(c.scrollInactive.text).toBe('#445566');
     expect(c.tabInactive.text).toBe('#8899bb');
     expect(c.rowUrl).toBe('#7f8db5');
     expect(c.emptyText).toBe('#8899aa');
+  });
+
+  // `scrollInactive.text` used to be pinned here as `#445566`. That pin was
+  // guarding a defect: the glyph measures 2.37:1 against its rendered backing,
+  // i.e. invisible rather than visibly-unavailable. Pinning a hex cannot tell
+  // the difference, so the guard now asserts the property that actually
+  // matters and tests/contrast.test.js sweeps the rest of the palette.
+  test('the inactive scroll glyph is perceivable, and dimmer than the active one', () => {
+    const { contrastRatio, compositeOver } = require('../src/vr/ui/contrast.js');
+    const c = bookmarkPanelColors(false);
+    const panel = compositeOver(c.bg, '#000000');
+    const idle = contrastRatio(c.scrollInactive.text, c.scrollInactive.bg, panel);
+    const active = contrastRatio(c.scrollActive.text, c.scrollActive.bg, panel);
+    expect(idle).toBeGreaterThanOrEqual(3);
+    expect(idle).toBeLessThan(active);
   });
 });
 

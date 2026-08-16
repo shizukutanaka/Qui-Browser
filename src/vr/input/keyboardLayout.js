@@ -108,3 +108,31 @@ export const COMPOSITION_BADGE_W = 80;
 /** Usable text width, left of the mode badge. */
 export const COMPOSITION_TEXT_W = COMPOSITION_CANVAS_W - 24 - COMPOSITION_BADGE_W - 12;
 export const COMPOSITION_MEASURE_EM = safeMeasureEm(COMPOSITION_TEXT_W, COMPOSITION_FONT_PX);
+
+/**
+ * Colours for the IME mode badge (ひ / カ / 漢) drawn in the composition strip.
+ *
+ * The badge is the only indicator of which script the next keystroke will
+ * produce, so it has to be legible — and it was not. The glyph was drawn in
+ * `#ffffff` on the saturated badge fill, which measures **2.37:1** on the
+ * katakana orange and **2.05:1** on the kanji green. At `bold 36px` that is
+ * large text, so WCAG 1.4.3 asks for 3:1 and both failed; the hiragana blue
+ * only scraped past at 3.38:1.
+ *
+ * Fixed by inverting the glyph rather than darkening the badge. Darkening the
+ * fill would have fixed the glyph (white on a dark blue reaches 5.8:1) but
+ * dropped the badge *rectangle* to ~3.0:1 against the `#111726` strip, right
+ * on the 1.4.11 line — trading a readable glyph for an indicator you cannot
+ * locate. Keeping the fill bright holds the rectangle at 5.3–8.7:1 and an ink
+ * glyph reaches 5.7–9.3:1, so both the badge and its content clear the bar.
+ *
+ * The glyph itself already carries the meaning (ひ / カ / 漢), so colour is
+ * reinforcement only — WCAG 1.4.1 is unaffected either way.
+ *
+ * @param {'hiragana'|'katakana'|'kanji'} mode
+ * @returns {{bg: string, text: string}}
+ */
+export function imeBadgeColors(mode) {
+  const BG = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
+  return { bg: BG[mode] || '#8899cc', text: '#0b0f1a' };
+}

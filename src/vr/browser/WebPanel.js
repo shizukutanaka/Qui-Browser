@@ -30,6 +30,7 @@ import {
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { webChromeColors, webContentColors } from './chromeColors.js';
 
 const PANEL_W = 1.6;    // metres
 const PANEL_H = 1.0;
@@ -265,13 +266,13 @@ export class WebPanel {
     }
     const w = this.contentCanvas.width;
     const h = this.contentCanvas.height;
-    const hc = prefersHighContrast();
+    const col = webContentColors(prefersHighContrast());
 
-    ctx.fillStyle = hc ? '#000000' : '#1a1a2e';
+    ctx.fillStyle = col.bg;
     ctx.fillRect(0, 0, w, h);
 
     if (this._contentState === 'reader') {
-      this._drawReader(ctx, w, h, hc);
+      this._drawReader(ctx, w, h, col);
       if (this.contentTex) {
         this.contentTex.needsUpdate = true;
       }
@@ -280,12 +281,12 @@ export class WebPanel {
 
     ctx.textAlign = 'center';
     const lines = contentStateLines(this._contentState, this.currentUrl);
-    ctx.fillStyle = hc ? '#ffffff' : '#a0a0b8';
+    ctx.fillStyle = col.stateTitle;
     ctx.font = '28px sans-serif';
     ctx.fillText(truncate(lines.title, 46), w / 2, h / 2 - 20);
     if (lines.detail) {
       ctx.font = '18px sans-serif';
-      ctx.fillStyle = hc ? '#dddddd' : '#8891ad';
+      ctx.fillStyle = col.stateDetail;
       ctx.fillText(truncate(lines.detail, 72), w / 2, h / 2 + 20);
     }
 
@@ -351,7 +352,7 @@ export class WebPanel {
    * progress label. Follows BookmarkPanel._draw()'s conventions (window slice
    * + progress indicator) so scrolling behaves the same way across panels.
    */
-  _drawReader(ctx, w, h, hc) {
+  _drawReader(ctx, w, h, col) {
     const visible = visibleLineCount(this._readerScale);
     const total = this._readerLines.length;
     // Clamp on the draw path too — the same discipline as BookmarkPanel, so
@@ -365,9 +366,7 @@ export class WebPanel {
     for (const line of window) {
       if (line.style !== 'blank' && line.text) {
         ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
-        ctx.fillStyle = hc
-          ? '#ffffff'
-          : (line.style === 'p' ? '#d6dcf0' : '#ffffff');
+        ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;
@@ -377,7 +376,7 @@ export class WebPanel {
     if (label) {
       ctx.textAlign = 'left';
       ctx.font = '16px sans-serif';
-      ctx.fillStyle = hc ? '#ffffff' : '#7788aa';
+      ctx.fillStyle = col.progress;
       ctx.fillText(label, CONTENT_PAD, h - 30);
     }
 
@@ -389,13 +388,9 @@ export class WebPanel {
       const canUp = this._readerScroll > 0;
       const canDown = this._readerScroll < total - visible;
       const drawArrow = (x, glyph, active) => {
-        ctx.fillStyle = active
-          ? (hc ? '#004adf' : 'rgba(50,80,140,0.9)')
-          : (hc ? '#222222' : 'rgba(30,35,55,0.6)');
+        ctx.fillStyle = active ? col.arrowActiveBg : col.arrowIdleBg;
         ctx.fillRect(x, ARROW_Y0, ARROW_W, ARROW_H);
-        ctx.fillStyle = active
-          ? (hc ? '#ffffff' : '#aabbff')
-          : (hc ? '#aaccee' : '#445566');
+        ctx.fillStyle = active ? col.arrowActiveText : col.arrowIdleText;
         ctx.font = 'bold 34px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(glyph, x + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2 + 12);
@@ -474,31 +469,35 @@ export class WebPanel {
     const ctx = c.getContext('2d');
     const w = c.width;
     const h = c.height;
+    // The chrome bar used to ignore prefers-contrast entirely — only the page
+    // viewport below it honoured the preference — so a low-vision user's
+    // address bar and navigation controls stayed at the normal-mode palette.
+    const col = webChromeColors(prefersHighContrast());
 
     // Background
-    ctx.fillStyle = '#1e1e3f';
+    ctx.fillStyle = col.bg;
     ctx.fillRect(0, 0, w, h);
 
     // Back button — dimmed when no history to go back to
     const canBack = this.historyIdx > 0;
-    ctx.fillStyle = canBack ? '#3a3a5c' : '#22222e';
+    ctx.fillStyle = canBack ? col.btnEnabledBg : col.btnDisabledBg;
     ctx.fillRect(8, 6, 60, h - 12);
-    ctx.fillStyle = canBack ? '#ffffff' : '#44445a';
+    ctx.fillStyle = canBack ? col.btnEnabledText : col.btnDisabledText;
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('◀', 38, h / 2 + 8);
 
     // Forward button — dimmed when at the latest history entry
     const canForward = this.historyIdx < this.history.length - 1;
-    ctx.fillStyle = canForward ? '#3a3a5c' : '#22222e';
+    ctx.fillStyle = canForward ? col.btnEnabledBg : col.btnDisabledBg;
     ctx.fillRect(76, 6, 60, h - 12);
-    ctx.fillStyle = canForward ? '#ffffff' : '#44445a';
+    ctx.fillStyle = canForward ? col.btnEnabledText : col.btnDisabledText;
     ctx.fillText('▶', 106, h / 2 + 8);
 
     // Reload button
-    ctx.fillStyle = '#3a3a5c';
+    ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
-    ctx.fillStyle = this.loading ? '#ffaa00' : '#ffffff';
+    ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
     ctx.fillText('↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
@@ -506,13 +505,19 @@ export class WebPanel {
     // URL bar: leave room for [bookmark][close] on the right when bookmarking.
     const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
     const barW = w - 212 - urlRight;          // URL bar inner width (px)
-    ctx.fillStyle = this._loadError ? '#3a1a1a' : '#2a2a4a';
+    ctx.fillStyle = this._loadError ? col.urlErrorBg : col.urlBg;
     ctx.fillRect(212, 6, barW, h - 12);
+    // The bar's fill is only 1.16:1 against the chrome background, and an empty
+    // address bar has no glyph of its own — so without a border nothing marks
+    // where the tap target is (WCAG 1.4.11 names text-input boundaries).
+    ctx.strokeStyle = col.urlBorder;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(213, 7, barW - 2, h - 14);
     // Truncate to fit the bar so a long URL can't overflow into the buttons.
     const maxChars = urlBarMaxChars(barW, this._loadError ? 17 : 18);
     ctx.textAlign = 'left';
     if (this._loadError) {
-      ctx.fillStyle = '#ff7777';
+      ctx.fillStyle = col.errorText;
       ctx.font = '17px sans-serif';
       ctx.fillText(truncate(`⚠ Failed to load: ${this.currentUrl}`, maxChars), 220, h / 2 + 6);
     } else {
@@ -530,7 +535,7 @@ export class WebPanel {
         ctx.fillText(ind.glyph, x, h / 2 + 6);
         x += 26;
       }
-      ctx.fillStyle = this.currentUrl ? '#e0e0ff' : '#888899';
+      ctx.fillStyle = this.currentUrl ? col.urlText : col.urlPlaceholder;
       ctx.font = '18px monospace';
       // The glyph consumed ~26px of the bar; shrink the character budget to match.
       const urlChars = this.currentUrl
@@ -545,18 +550,18 @@ export class WebPanel {
     // Bookmark (star) button
     if (hasBookmark) {
       const marked = this.isBookmarked ? !!this.isBookmarked(this.currentUrl) : false;
-      ctx.fillStyle = '#3a3a5c';
+      ctx.fillStyle = col.starBg;
       ctx.fillRect(w - 128, 6, 56, h - 12);
-      ctx.fillStyle = marked ? '#ffcc44' : '#aaaabb';
+      ctx.fillStyle = marked ? col.starMarked : col.starUnmarked;
       ctx.font = 'bold 26px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(marked ? '★' : '☆', w - 100, h / 2 + 9);
     }
 
     // Close button
-    ctx.fillStyle = '#5c1a1a';
+    ctx.fillStyle = col.closeBg;
     ctx.fillRect(w - 60, 6, 54, h - 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = col.closeText;
     ctx.textAlign = 'center';
     ctx.fillText('✕', w - 33, h / 2 + 8);
 
