@@ -1,3 +1,4 @@
+import { safeMeasureEm } from '../ui/textWrap.js';
 /**
  * Pure layout / hit-testing helpers for the in-VR bookmark & history panel.
  *
@@ -118,3 +119,21 @@ export function truncate(text, max = 48) {
   const chars = Array.from(s);
   return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : s;
 }
+
+// ── Row text budgets ────────────────────────────────────────────────────────
+// Kept in this pure module (rather than as locals in BookmarkPanel.js, which
+// imports THREE) so the real values are reachable by unit tests and by the
+// real-browser layout harness (tools/verify-text-layout.mjs).
+export const ROW_TEXT_X = 24;
+export const ROW_TITLE_FONT = 26;   // bold sans
+export const ROW_URL_FONT = 20;     // monospace
+/** Usable width: text starts at ROW_TEXT_X and must clear the delete zone. */
+export const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
+/**
+ * Budgets in em (UAX #11 East Asian Width) so one number is correct for both
+ * scripts — a 44-*character* budget was ~572px of Latin but 1144px of
+ * Japanese, 22% past the available width, so Japanese titles ran under the
+ * delete button.
+ */
+export const ROW_TITLE_EM = safeMeasureEm(ROW_TEXT_W, ROW_TITLE_FONT);
+export const ROW_URL_EM = safeMeasureEm(ROW_TEXT_W, ROW_URL_FONT);

@@ -252,6 +252,22 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 68: 実ブラウザ・レイアウト検証ハーネス — 作った初回に実欠陥を4種検出
+Sessions 62〜67 の欠陥ファミリー(日本語のはみ出し)の根因は「canvas UI がヘッドレスで検証不能」だった。Jest は `testEnvironment:'node'` でモックに `measureText` が無く、描かれた実幅を誰も観測できない。本セッションはその穴を塞ぐ。
+- 🔧 **tool `tools/verify-text-layout.mjs`(依存ゼロ)**: 一時 HTTP サーバ(Node 標準)でリポジトリを配信 → 実 Chromium が**本番の純レイアウトモジュールを実 import** → 敵対的文字列(長い日本語/Latin/混在/サロゲート/絵文字)を**本番の折り返し・切り詰め関数**に通し、**実 `measureText`** で本番の箱に収まるか判定。`npm run verify:layout`、溢れたら exit 1。
+- 📐 **設計上の2制約を実測で確定**(推測せず検証): (1) `file://` は module import が CORS 遮断 → HTTP 配信必須。(2) **`--dump-dom` は module script を待たない**(実験で `NOT_RUN` のまま)→ `--virtual-time-budget` が必要。また `execFileSync` は同一プロセスのサーバを止めるので `spawn` 必須。
+- ♻️ **refactor(前提条件)**: 予算定数が THREE 依存ファイルに埋まっていてブラウザから import 不能だったため、純モジュールへ抽出 — 新規 `captionLayout.js`、`keyboardLayout.js`(サジェスト/IME入力欄)、`bookmarkLayout.js`(行)。**既存テストが無改変で全通過**することが挙動不変の証明。
+- 🐛 **ハーネスが初回実行で検出した実欠陥4件**(いずれも6セッション分の手計算が見落としていた):
+  1. **半角の係数が下限でなく平均だった** — 実測は小文字sans 0.453 だが**太字大文字 0.584 / monospace 0.602**。モデルの 0.5 は URL やプロダクト名を過小評価し、ブックマークURL行と IME 入力欄が **+123px / +127px** 溢れていた。→ `HALFWIDTH_EM = 0.6`(下限として)
+  2. **リーダーのタイトルが本文の measure で折り返されていた** — タイトルは bold 30px で描かれるのに 20px 基準の 34em を使用。長い日本語タイトルが **+105px** 溢れる。→ `measureEmForStyle(style, scale)` を追加し字体ごとにクランプ
+  3. **絵文字を 1.0em と分類していた** — 実測 **1.248em**。→ `EMOJI_EM = 1.3` の独立クラス
+  4. **省略記号 `…` を 0.5em で予約していた** — 実測 **1.000em**(sans)。切り詰めた文字列が毎回予算超過。→ U+2026 を全角扱いにし、予約幅を実モデル値に
+- ✅ **捕捉能力の実証**: `HALFWIDTH_EM` を旧 0.5 に戻すと **3件 FAIL**、`WIDTH_SAFETY` を 1.0 に戻すと **14件 FAIL**。復元で PASS。
+- ✨ **condense 許容の明示**: 全テキスト面は `fillText` の maxWidth バックストップを持つので、5%以内の超過は「canvas が圧縮する=劣化するが壊れない」として警告に留め、それを超えるものだけを失敗とする。W 連続のような極端な文字列に合わせて係数を上げると通常の行長が3割犠牲になるため、この線引きを採った。
+- 🧹 `package.json`: 死んでいた `"test:e2e": "playwright test"`(config も依存も tests/e2e も無い)を削除し、`verify:layout` を追加。
+- 6テスト追加/更新(新クラスの直接検証、旧 0.5 を固定していた2件を実測値ベースに更新)。
+- Total 1160 tests (48 suites); 0 lint errors (unchanged 84 warnings); build green; `npm run verify:layout` PASS(55通り)。
+
 ### Session 67: em モデルを実測で裏取り — 近似の誤差が効く3箇所を修正
 Sessions 62〜66 の修正はすべて「全角=1em / 半角≈0.5em」という**近似**に依存していた。この近似が実際のフォント描画と合っているかは未検証だったので、実ブラウザの `measureText` で裏を取った。
 - 🔧 **tool (依存ゼロ)**: `tools/measure-text-metrics.mjs` を追加。Playwright のブラウザ束に同梱済みの Chromium を `--dump-dom` で駆動し、実フォントの advance を測る。**devDependency を1つも増やさない**(`@playwright/test` は未導入のまま)。
@@ -696,4 +712,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-07-04 (Session 67)
+**Last Revision**: 2026-07-04 (Session 68)

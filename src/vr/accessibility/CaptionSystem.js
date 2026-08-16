@@ -17,38 +17,23 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
-  wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm, safeMeasureEm
+  wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm
 } from '../ui/textWrap.js';
+import {
+  CAPTION_PANEL_W, CAPTION_PANEL_H, CAPTION_CANVAS_W, CAPTION_CANVAS_H,
+  CAPTION_PAD, CAPTION_H_PAD, MAX_ROWS_PER_LINE,
+  captionMeasureEm, captionFontSizeFor
+} from './captionLayout.js';
 
-const PANEL_W = 1.2;          // metres
-const PANEL_H = 0.32;
-const CANVAS_W = 1024;
-const CANVAS_H = 256;
-
-const PAD = 24;               // vertical inset for text rows
-const MAX_FONT = 44;          // px — single short line
-const MIN_FONT = 22;          // px — floor when many rows are stacked
-const H_PAD = 24;             // horizontal inset so rows don't touch the edge
-/**
- * Caption line measure in **em**, not characters.
- *
- * Japanese broadcast subtitling standardises on ~16 full-width characters per
- * row and at most 2 rows (some house styles allow 13–20), while Latin subtitle
- * guidelines sit around 37–42 characters. Both are satisfied by one em figure:
- * at 1.0 em per full-width and ~0.5 per Latin character, 20 em gives 20
- * Japanese / 40 Latin characters per row.
- *
- * Expressing the measure in em also removes the circular dependency that made
- * the old fixed character budget wrong: font size is chosen from the row count
- * (`_fontSizeFor`), but the safe wrap width depends on the font size. An em
- * budget is font-relative by definition, so a row is `measure × fontSize` px
- * wide for whatever font is finally picked. The previous 34-*character* budget
- * rendered 34 full-width glyphs at the 44px single-row font — 1496px on a
- * 1024px canvas, 46% outside the panel. Captions are the deaf/HoH channel, so
- * text leaving the panel is real information loss.
- */
-const MEASURE_EM = 20;
-const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
+// Geometry and budgets live in the pure captionLayout module so the real
+// values can be exercised by unit tests and by the real-browser layout harness
+// (tools/verify-text-layout.mjs) without importing THREE.
+const PANEL_W = CAPTION_PANEL_W;
+const PANEL_H = CAPTION_PANEL_H;
+const CANVAS_W = CAPTION_CANVAS_W;
+const CANVAS_H = CAPTION_CANVAS_H;
+const PAD = CAPTION_PAD;
+const H_PAD = CAPTION_H_PAD;
 
 /**
  * Reading rates in characters per second, by East Asian Width class.
@@ -409,18 +394,12 @@ export class CaptionSystem {
    * ~14.8 em so 66px text still fits.
    */
   _measureEm() {
-    const usable = CANVAS_W - 2 * H_PAD;
-    const largestFont = MAX_FONT * this.scale;
-    // safeMeasureEm reserves headroom: the em model under-estimates real
-    // full-width advance by ~1%, and at the large-text scale this clamp is the
-    // binding constraint with zero slack, so the row would overflow.
-    return Math.max(6, Math.min(MEASURE_EM, safeMeasureEm(usable, largestFont)));
+    return captionMeasureEm(this.scale);
   }
 
   /** Row font size (px) for a given row count: scaled cap, bounded to the row. */
   _fontSizeFor(nRows) {
-    const rowH = (CANVAS_H - 2 * PAD) / Math.max(nRows, 1);
-    return Math.max(MIN_FONT, Math.min(MAX_FONT * this.scale, Math.floor(rowH * 0.62)));
+    return captionFontSizeFor(nRows, this.scale);
   }
 
   /**
