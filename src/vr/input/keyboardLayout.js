@@ -1,3 +1,4 @@
+import { safeMeasureEm } from '../ui/textWrap.js';
 /**
  * Pure layout maths for the in-VR keyboard.
  *
@@ -81,3 +82,29 @@ export function keyboardBounds(rows = ROWS, scale = 1) {
   }
   return { width: maxRight * 2 + gap * 2, height: (maxTop - minBottom) + gap * 2 };
 }
+
+// ── Suggestion / composition text budgets ───────────────────────────────────
+// Kept here (a pure module) rather than inside JapaneseIME.js so the real
+// values are reachable by unit tests and by the real-browser layout harness
+// (tools/verify-text-layout.mjs) without importing THREE.
+
+/** URL-suggestion button: canvas size and label font. */
+export const SUGGESTION_BTN_PX_W = 384;
+export const SUGGESTION_BTN_PX_H = 128;
+export const SUGGESTION_LABEL_FONT_PX = 34;
+/**
+ * Label measure in em. A 22-*character* budget silently assumed Latin: 22
+ * Latin characters are ~374px (just fits) but 22 full-width ones are 748px —
+ * 95% wider than the button. Suggestion labels are page titles, which for a
+ * Japanese user are overwhelmingly Japanese.
+ */
+export const SUGGESTION_MEASURE_EM =
+  safeMeasureEm(SUGGESTION_BTN_PX_W - 24, SUGGESTION_LABEL_FONT_PX);
+
+/** Composition display: canvas width, font, and the mode badge on the right. */
+export const COMPOSITION_CANVAS_W = 1024;
+export const COMPOSITION_FONT_PX = 40;
+export const COMPOSITION_BADGE_W = 80;
+/** Usable text width, left of the mode badge. */
+export const COMPOSITION_TEXT_W = COMPOSITION_CANVAS_W - 24 - COMPOSITION_BADGE_W - 12;
+export const COMPOSITION_MEASURE_EM = safeMeasureEm(COMPOSITION_TEXT_W, COMPOSITION_FONT_PX);

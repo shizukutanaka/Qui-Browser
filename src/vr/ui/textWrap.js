@@ -28,13 +28,31 @@
  * 25% wider than the panel, so Japanese prose ran off the edge. Measuring in
  * em makes one budget correct for both scripts.
  *
- * Ranges are the standard Wide (W) / Fullwidth (F) blocks; the 0.5 default
- * approximates a proportional sans-serif's average Latin advance.
+ * The half-width figure is a BOUND, not an average. Measured with real fonts
+ * (tools/verify-text-layout.mjs): lowercase sans prose is 0.453 em, but bold
+ * caps/digits — product names, URLs, "W3C" — reach 0.584, and monospace is
+ * 0.602. A 0.5 "average" therefore under-counts exactly the content these
+ * surfaces carry: URLs in the bookmark rows and the IME input overflowed by
+ * ~13%. 0.6 bounds all three.
  *
  * @param {number} cp code point
  * @returns {number} 1 for full-width, 0.5 otherwise
  */
+export const HALFWIDTH_EM = 0.6;
+/** Emoji are Wide per UAX #11 but render wider than one em (measured 1.248). */
+export const EMOJI_EM = 1.3;
+/** Appended by truncateToWidth; a full em in sans-serif (measured 1.000). */
+export const ELLIPSIS = '…';
+
 export function charWidthEm(cp) {
+  if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf)) {
+    return EMOJI_EM;
+  }
+  // U+2026 is not East Asian but renders a full em in sans-serif. Every
+  // truncation appends it, so under-counting it pushed labels past their box.
+  if (cp === 0x2026) {
+    return 1;
+  }
   if (
     (cp >= 0x1100 && cp <= 0x115f) ||   // Hangul Jamo initial
     (cp >= 0x2e80 && cp <= 0x303e) ||   // CJK radicals, Kangxi, CJK punctuation
@@ -48,14 +66,12 @@ export function charWidthEm(cp) {
     (cp >= 0xfe30 && cp <= 0xfe6f) ||   // CJK compatibility forms
     (cp >= 0xff00 && cp <= 0xff60) ||   // Fullwidth forms
     (cp >= 0xffe0 && cp <= 0xffe6) ||   // Fullwidth signs
-    (cp >= 0x1f300 && cp <= 0x1f64f) || // Emoji
-    (cp >= 0x1f900 && cp <= 0x1f9ff) ||
     (cp >= 0x20000 && cp <= 0x2fffd) || // CJK Ext B..F
     (cp >= 0x30000 && cp <= 0x3fffd)
   ) {
     return 1;
   }
-  return 0.5;
+  return HALFWIDTH_EM;
 }
 
 /** Total advance width of a string in em units. */
@@ -175,7 +191,9 @@ export function truncateToWidth(text, maxEm) {
   if (textWidthEm(s) <= limit) {
     return s;
   }
-  const budget = limit - 0.5; // room for the ellipsis
+  // Reserve the ellipsis's REAL modeled width, not a guessed 0.5: it is a full
+  // em in sans-serif, so a fixed 0.5 left every truncated string over budget.
+  const budget = limit - charWidthEm(ELLIPSIS.codePointAt(0));
   let out = '';
   let w = 0;
   for (const ch of s) {
@@ -186,7 +204,7 @@ export function truncateToWidth(text, maxEm) {
     out += ch;
     w += cw;
   }
-  return out + '…';
+  return out + ELLIPSIS;
 }
 
 /**

@@ -7,12 +7,16 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
-import { computeKeyLayout, keyboardBounds } from './keyboardLayout.js';
-import { truncate } from '../browser/bookmarkLayout.js';
-import { truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
+import {
+  computeKeyLayout, keyboardBounds,
+  SUGGESTION_BTN_PX_W, SUGGESTION_BTN_PX_H, SUGGESTION_LABEL_FONT_PX,
+  SUGGESTION_MEASURE_EM, COMPOSITION_BADGE_W, COMPOSITION_MEASURE_EM
+} from './keyboardLayout.js';
 
-// Mode badge occupies the right edge of the composition display.
-const COMPOSITION_BADGE_W = 80;
+// Re-exported so existing importers (and tests) keep their import site.
+export { SUGGESTION_MEASURE_EM } from './keyboardLayout.js';
+import { truncate } from '../browser/bookmarkLayout.js';
+import { truncateToWidth } from '../ui/textWrap.js';
 
 export class JapaneseIME {
   constructor() {
@@ -667,8 +671,6 @@ export function candidateStyle(index) {
  * titles, which for a Japanese user are overwhelmingly Japanese, so this was
  * the worst instance of the "full-width == half-width" assumption in the app.
  */
-export const SUGGESTION_MEASURE_EM = safeMeasureEm(384 - 24, 34);
-
 /**
  * Display label for a URL suggestion button: the page title when one exists,
  * otherwise the hostname (falling back to the raw URL when unparseable),
@@ -997,7 +999,7 @@ export class VRJapaneseKeyboard {
     // unbounded, so a long typed URL ran under the badge and off the panel.
     const compW = w - 24 - COMPOSITION_BADGE_W - 12;
     ctx.fillText(
-      truncateToWidth(text || 'type a URL or search…', safeMeasureEm(compW, 40)),
+      truncateToWidth(text || 'type a URL or search…', COMPOSITION_MEASURE_EM),
       24, h / 2, compW
     );
 
@@ -1260,8 +1262,8 @@ export class VRJapaneseKeyboard {
     const DISPLAY_H = 0.09 * this.scale;
     const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
 
-    const CANVAS_W = 384;
-    const CANVAS_H = 128;
+    const CANVAS_W = SUGGESTION_BTN_PX_W;
+    const CANVAS_H = SUGGESTION_BTN_PX_H;
     shown.forEach((entry, i) => {
       const label = suggestionLabel(entry);
       const canvas = document.createElement('canvas');
@@ -1283,7 +1285,7 @@ export class VRJapaneseKeyboard {
         ctx.textBaseline = 'top';
         ctx.fillText(style.number, 10, 8);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 34px sans-serif';
+        ctx.font = `bold ${SUGGESTION_LABEL_FONT_PX}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         // maxWidth backstop: even if a future budget slips, the canvas

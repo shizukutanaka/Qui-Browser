@@ -5,7 +5,7 @@
  * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
  */
 
-import { wrapTextToWidth } from '../ui/textWrap.js';
+import { wrapTextToWidth, safeMeasureEm } from '../ui/textWrap.js';
 
 // Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
 export const CONTENT_PX_W = 1024;
@@ -46,6 +46,24 @@ export function measureEmFor(scale = 1) {
 }
 
 /**
+ * Measure (em) for a specific line style.
+ *
+ * Styles are drawn at different font sizes (`fontPxFor`), but the text column
+ * is one fixed physical width — so one measure cannot serve them all. Wrapping
+ * a title at the *body* measure produced 34 em of glyphs at the title's larger
+ * font, which overflowed the column (a long Japanese page title ran ~105px
+ * past it). Each style is therefore also clamped by what its own font can fit.
+ *
+ * @param {'title'|'h'|'p'} style
+ * @param {number} scale
+ * @returns {number} em
+ */
+export function measureEmForStyle(style, scale = 1) {
+  const textW = CONTENT_PX_W - 2 * CONTENT_PAD;
+  return Math.min(measureEmFor(scale), safeMeasureEm(textW, fontPxFor(style, scale)));
+}
+
+/**
  * Widest measure (em) the text column can physically render at `fontPx`,
  * so a caller can prove the chosen measure fits rather than assuming it.
  */
@@ -68,7 +86,6 @@ export function maxMeasureEmForFont(fontPx) {
  */
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
-  const measure = measureEmFor(scale);
   const lines = [];
 
   const push = (text, style) => lines.push({ text, style });
@@ -79,7 +96,7 @@ export function layoutReaderLines(blocks, opts = {}) {
   };
 
   if (opts.title) {
-    for (const row of wrapTextToWidth(opts.title, measure)) {
+    for (const row of wrapTextToWidth(opts.title, measureEmForStyle('title', scale))) {
       push(row, 'title');
     }
   }
@@ -90,7 +107,7 @@ export function layoutReaderLines(blocks, opts = {}) {
     }
     blank();
     const style = b.type === 'h' ? 'h' : 'p';
-    for (const row of wrapTextToWidth(b.text, measure)) {
+    for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
       push(row, style);
     }
   }

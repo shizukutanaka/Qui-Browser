@@ -12,7 +12,10 @@ const {
   visibleLineCount, measureEmFor, maxMeasureEmForFont, fontPxFor, MEASURE_EM,
   CONTENT_PX_W, CONTENT_PAD
 } = require('../src/vr/browser/readerLayout.js');
-const { wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm } = require('../src/vr/ui/textWrap.js');
+const {
+  wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm,
+  HALFWIDTH_EM, EMOJI_EM, WIDTH_SAFETY
+} = require('../src/vr/ui/textWrap.js');
 
 describe('decodeEntities', () => {
   test('decodes the named entities that occur in prose', () => {
@@ -220,17 +223,34 @@ describe('em-based measure — Japanese must not overflow the panel', () => {
   const BODY_PX = fontPxFor('p', 1);          // 20
   const COLUMN_EM = maxMeasureEmForFont(BODY_PX); // what physically fits
 
-  test('charWidthEm: CJK/kana/fullwidth are 1 em, Latin is 0.5', () => {
+  test('charWidthEm classes: full-width 1 em, half-width a measured BOUND', () => {
     expect(charWidthEm('本'.codePointAt(0))).toBe(1);
     expect(charWidthEm('あ'.codePointAt(0))).toBe(1);
     expect(charWidthEm('Ａ'.codePointAt(0))).toBe(1);   // fullwidth Latin
-    expect(charWidthEm('A'.codePointAt(0))).toBe(0.5);
-    expect(charWidthEm('7'.codePointAt(0))).toBe(0.5);
+    // 0.6 bounds real measured Latin: 0.453 lowercase sans, 0.584 bold caps,
+    // 0.602 monospace. The old 0.5 "average" under-counted URLs and caps.
+    expect(charWidthEm('A'.codePointAt(0))).toBe(HALFWIDTH_EM);
+    expect(charWidthEm('7'.codePointAt(0))).toBe(HALFWIDTH_EM);
+    // 0.6 covers proportional bold caps (0.584) outright. Monospace (0.602)
+    // is covered by the WIDTH_SAFETY margin on top, not by the bound alone —
+    // tools/verify-text-layout.mjs confirms the combination actually fits.
+    expect(HALFWIDTH_EM).toBeGreaterThanOrEqual(0.584);
+    expect(HALFWIDTH_EM / WIDTH_SAFETY).toBeGreaterThanOrEqual(0.602);
+  });
+
+  test('emoji get their own class — they render wider than one em', () => {
+    // Measured 1.248 em; classing them as 1.0 (plain Wide) overflowed titles.
+    expect(charWidthEm('😀'.codePointAt(0))).toBe(EMOJI_EM);
+    expect(EMOJI_EM).toBeGreaterThan(1);
+  });
+
+  test('the ellipsis counts as a full em (it is appended by every truncation)', () => {
+    expect(charWidthEm('…'.codePointAt(0))).toBe(1);
   });
 
   test('textWidthEm measures mixed scripts, not code points', () => {
-    // 3 kanji (3 em) + 3 ASCII (1.5 em) = 4.5 em from 6 code points.
-    expect(textWidthEm('日本語abc')).toBeCloseTo(4.5);
+    // 3 kanji (3 em) + 3 ASCII (3 * HALFWIDTH_EM) from 6 code points.
+    expect(textWidthEm('日本語abc')).toBeCloseTo(3 + 3 * HALFWIDTH_EM);
   });
 
   test('the chosen measure physically fits the text column', () => {

@@ -12,23 +12,14 @@ import { configureUITexture } from '../ui/canvasTexture.js';
 import {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
-  hitTest, uvToPixels, truncate
+  hitTest, uvToPixels, truncate,
+  ROW_TEXT_X, ROW_TEXT_W, ROW_TITLE_EM, ROW_URL_EM
 } from './bookmarkLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
-import { truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
+import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
-// Row text budgets in em, derived from the real row geometry: text starts at
-// x=24 and must clear the delete zone on the right. Expressed in em (Unicode
-// UAX #11 East Asian Width) so one budget is correct for both scripts — a
-// 44-*character* budget was ~572px of Latin but 1144px of Japanese, 22% past
-// the 936px available, so Japanese titles ran under the delete button.
-const ROW_TEXT_X = 24;
-const ROW_TITLE_FONT = 26;   // bold sans
-const ROW_URL_FONT = 20;     // monospace
-const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
-const ROW_TITLE_EM = safeMeasureEm(ROW_TEXT_W, ROW_TITLE_FONT);
-const ROW_URL_EM = safeMeasureEm(ROW_TEXT_W, ROW_URL_FONT);
+
 
 /**
  * Canvas colour palette for the bookmark / history panel.

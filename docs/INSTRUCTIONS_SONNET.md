@@ -22,6 +22,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 
 - **pre-fix fail 確認**: 新テストは `git stash push -- <src files>` → テスト → `git stash pop` で「修正前に fail する」ことを必ず確認。
 - **フルゲート**: `npm test`（全 green・1020件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
+- **テキストを描く変更をしたら** `npm run verify:layout` も走らせる。実 Chromium で本番の折り返し・切り詰めを実フォントで測り、パネルからはみ出さないか検証する(Sessions 62〜67 の日本語はみ出し欠陥ファミリーの再発防止。依存ゼロ)。
 - **ドキュメント**: `CLAUDE.md` に `### Session N:` を既存フォーマットで追記＋`**Last Revision**` 更新。
 - **出荷**: commit → push → PR → main マージ。
 - **報告**: 「結論 → 根拠 → 残課題」の順。未検証を検証済みと書かない。
