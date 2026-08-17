@@ -136,3 +136,85 @@ export function imeBadgeColors(mode) {
   const BG = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
   return { bg: BG[mode] || '#8899cc', text: '#0b0f1a' };
 }
+
+/**
+ * Canvas colour palette for the in-VR keyboard: keys, the composition strip,
+ * and the candidate / suggestion rows.
+ *
+ * Why this exists: `JapaneseIME.js` contained **zero** calls to
+ * `prefersHighContrast()`. After Session 69 wired the browser chrome and the
+ * bookmark panel to the OS contrast preference, the keyboard was the last
+ * surface still painting normal-mode colours unconditionally — and it is the
+ * product's headline feature, the one thing a Japanese user touches most.
+ *
+ * Two normal-mode values were also measured failing WCAG 1.4.11 (3:1 for
+ * information needed to identify a component):
+ *
+ *   • Key border was `#3a4666` on the `#1c2438` key fill — **1.65:1**. The key
+ *     fill is itself only 1.25:1 against the backing panel, so the border was
+ *     the *only* thing delimiting one key from the next, and it was invisible.
+ *     A keyboard whose keys have no perceivable edges gives you floating
+ *     glyphs and no idea where to aim. Now `#7d8dbb` (4.7:1 idle, and still
+ *     ≥3:1 over both the hover and latched fills).
+ *   • Non-primary candidate border was `#4466aa` on the same fill — **2.74:1**,
+ *     just under, with the same consequence for the candidate grid. Now
+ *     `#6486cc` (4.3:1).
+ *
+ * In high contrast the button *fills* stay dark against the black panel and the
+ * **borders** carry identification at 7–19:1. That is what 1.4.11 asks for —
+ * 3:1 against adjacent colours — and it keeps the bright-on-black polarity the
+ * rest of the high-contrast palette uses.
+ *
+ * Pure; measured end-to-end by tests/contrast.test.js in both modes.
+ *
+ * @param {boolean} [highContrast=false]
+ * @returns {object}
+ */
+export function imeColors(highContrast = false) {
+  if (highContrast) {
+    return {
+      panelBg: 0x000000,
+      panelOpacity: 1,
+      keyBg: '#111111',
+      keyBgHover: '#004adf',
+      keyBgActive: '#4a2a00',
+      keyBorder: '#ffffff',
+      keyBorderActive: '#ffdd00',
+      keyLabel: '#ffffff',
+      keyLabelActive: '#ffdd00',
+      displayBg: '#000000',
+      displayText: '#ffffff',
+      displayPlaceholder: '#cccccc',
+      candPrimaryBg: '#003a1a',
+      candPrimaryBorder: '#00ff88',
+      candBg: '#111111',
+      candBorder: '#aaccee',
+      candHoverBg: '#004adf',
+      candHoverBorder: '#ffffff',
+      candNumber: '#ffffff',
+      candLabel: '#ffffff'
+    };
+  }
+  return {
+    panelBg: 0x0a0d18,
+    panelOpacity: 0.92,
+    keyBg: '#1c2438',
+    keyBgHover: '#2d3a66',
+    keyBgActive: '#5a3a10',
+    keyBorder: '#7d8dbb',
+    keyBorderActive: '#ffaa44',
+    keyLabel: '#ffffff',
+    keyLabelActive: '#ffcc88',
+    displayBg: '#111726',
+    displayText: '#e8ecff',
+    displayPlaceholder: '#667788',
+    candPrimaryBg: '#2a4a22',
+    candPrimaryBorder: '#44cc88',
+    candBg: '#1c2438',
+    candBorder: '#6486cc',
+    candHoverBg: '#3a5a32',
+    candHoverBorder: '#66ee99',
+    candNumber: '#cceeff',
+    candLabel: '#ffffff'
+  };
+}

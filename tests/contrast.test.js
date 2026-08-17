@@ -26,7 +26,7 @@ const {
 } = require('../src/vr/ui/contrast.js');
 const { bookmarkPanelColors } = require('../src/vr/browser/bookmarkLayout.js');
 const { webChromeColors, webContentColors } = require('../src/vr/browser/chromeColors.js');
-const { imeBadgeColors } = require('../src/vr/input/keyboardLayout.js');
+const { imeBadgeColors, imeColors } = require('../src/vr/input/keyboardLayout.js');
 const { toggleIndicatorColors, buttonBg } = require('../src/vr/ui/buttonStyle.js');
 const { securityIndicator } = require('../src/vr/browser/urlDisplay.js');
 
@@ -207,6 +207,32 @@ function palettePairs(hc) {
     add(`IME badge glyph ${mode}`, b.text, b.bg, { fontPx: 36, bold: true });
     add(`IME badge rect ${mode}`, b.bg, '#111726', { nonText: true });
   }
+
+  // In-VR keyboard. `JapaneseIME.js` consulted prefersHighContrast() exactly
+  // zero times before Session 72, so none of this was reachable in HC mode.
+  const ime = imeColors(hc);
+  const panelHex = `#${ime.panelBg.toString(16).padStart(6, '0')}`;
+  add('IME key label', ime.keyLabel, ime.keyBg, { fontPx: 64, bold: true });
+  add('IME key label hover', ime.keyLabel, ime.keyBgHover, { fontPx: 64, bold: true });
+  add('IME key label latched', ime.keyLabelActive, ime.keyBgActive, { fontPx: 64, bold: true });
+  // The key border is what delimits one key from the next: the key fill is only
+  // ~1.25:1 against the backing panel, so without a perceivable border the grid
+  // is just floating glyphs with no aiming target (WCAG 1.4.11).
+  add('IME key border', ime.keyBorder, ime.keyBg, { nonText: true });
+  add('IME key border on hover fill', ime.keyBorder, ime.keyBgHover, { nonText: true });
+  add('IME key border on latched fill', ime.keyBorderActive, ime.keyBgActive, { nonText: true });
+  add('IME composition text', ime.displayText, ime.displayBg, { fontPx: 40 });
+  add('IME composition placeholder', ime.displayPlaceholder, ime.displayBg, { fontPx: 40 });
+  add('IME candidate label (primary)', ime.candLabel, ime.candPrimaryBg, { fontPx: 60, bold: true });
+  add('IME candidate label', ime.candLabel, ime.candBg, { fontPx: 60, bold: true });
+  add('IME candidate label hover', ime.candLabel, ime.candHoverBg, { fontPx: 60, bold: true });
+  add('IME candidate number (primary)', ime.candNumber, ime.candPrimaryBg, { fontPx: 28, bold: true });
+  add('IME candidate number', ime.candNumber, ime.candBg, { fontPx: 28, bold: true });
+  add('IME candidate number hover', ime.candNumber, ime.candHoverBg, { fontPx: 28, bold: true });
+  add('IME candidate border (primary)', ime.candPrimaryBorder, ime.candPrimaryBg, { nonText: true });
+  add('IME candidate border', ime.candBorder, ime.candBg, { nonText: true });
+  add('IME candidate border hover', ime.candHoverBorder, ime.candHoverBg, { nonText: true });
+  add('IME badge rect on panel', imeBadgeColors('kanji').bg, panelHex, { nonText: true });
 
   // Settings-panel buttons (buttonStyle.js). Both hover states matter: the
   // indicator is painted over whichever fill buttonBg() returns, and the hover
