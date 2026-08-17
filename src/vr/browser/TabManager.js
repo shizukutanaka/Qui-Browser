@@ -11,9 +11,12 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
+import {
+  STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
+  STRIP_NEW_TAB_PX, STRIP_TAB_MAX_PX, tabWidthPx, tabCloseZonePx
+} from './panelGeometry.js';
 
-const STRIP_W = 1.6;     // metres — matches panel width
-const STRIP_H = 0.07;
+
 const MAX_TABS = 8;
 
 export class TabManager {
@@ -51,8 +54,8 @@ export class TabManager {
     // Tab strip sits just above the active panel.
     this.stripGroup  = new THREE.Group();
     this.stripCanvas = document.createElement('canvas');
-    this.stripCanvas.width  = 1024;
-    this.stripCanvas.height = 96;
+    this.stripCanvas.width  = STRIP_CANVAS_W;
+    this.stripCanvas.height = STRIP_CANVAS_H;
     this.stripTex = configureUITexture(new THREE.CanvasTexture(this.stripCanvas));
 
     this._buildStrip();
@@ -96,9 +99,9 @@ export class TabManager {
     ctx.clearRect(0, 0, c.width, c.height);
 
     const n = this.tabs.length;
-    const newW = 90;                       // "+" button width
+    const newW = STRIP_NEW_TAB_PX;                       // "+" button width
     const tabsAreaW = c.width - newW;
-    const tabW = n > 0 ? Math.min(220, tabsAreaW / n) : 0;
+    const tabW = tabWidthPx(n, c.width);
 
     // Tabs
     for (let i = 0; i < n; i++) {
@@ -115,17 +118,21 @@ export class TabManager {
       const title = this.tabs[i].currentUrl
         ? this._shortTitle(this.tabs[i].currentUrl)
         : 'New Tab';
-      ctx.fillText(title, x + 14, c.height / 2, tabW - 50);
+      ctx.fillText(title, x + 14, c.height / 2, Math.max(8, tabCloseZonePx(tabW).x0 - 20));
 
-      // Close ✕ — drawn inside a small red box for discoverability
-      const closeBtnX = x + tabW - 38;
+      // Close ✕ — drawn inside a small red box for discoverability.
+      // Anchored to STRIP_CLOSE_PX, the same constant _onStripSelect's hit zone
+      // uses, so the box the user aims at and the region that responds cannot
+      // drift apart (the drawn box used to be 76px wide over a 36px hit zone).
+      const closeZone = tabCloseZonePx(tabW);
+      const closeBtnX = x + closeZone.x0;
       const closeBtnY = 10;
-      const closeBtnSize = c.height - 20;
+      const closeBtnH = c.height - 20;
       ctx.fillStyle = '#7a2020';
-      ctx.fillRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize);
+      ctx.fillRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
       ctx.fillStyle = '#ffaaaa';
       ctx.textAlign = 'center';
-      ctx.fillText('✕', closeBtnX + closeBtnSize / 2, c.height / 2);
+      ctx.fillText('✕', closeBtnX + closeZone.w / 2, c.height / 2);
     }
 
     // New-tab "+" button
@@ -163,7 +170,7 @@ export class TabManager {
     const u = (local.x / STRIP_W) + 0.5;        // 0–1
     const px = Math.round(u * this.stripCanvas.width);
 
-    const newW = 90;
+    const newW = STRIP_NEW_TAB_PX;
     if (px > this.stripCanvas.width - newW) {
       this.newTab();
       return;
@@ -173,15 +180,15 @@ export class TabManager {
     if (n === 0) {
       return;
     }
-    const tabW = Math.min(220, (this.stripCanvas.width - newW) / n);
+    const tabW = tabWidthPx(n, this.stripCanvas.width);
     const idx = Math.floor(px / tabW);
     if (idx < 0 || idx >= n) {
       return;
     }
 
-    // Close zone is the right ~30px of the tab.
+    // Close zone is the right STRIP_CLOSE_PX of the tab.
     const withinTab = px - idx * tabW;
-    if (withinTab > tabW - 36) {
+    if (withinTab >= tabCloseZonePx(tabW).x0) {
       this.closeTab(idx);
     } else {
       this.setActive(idx);

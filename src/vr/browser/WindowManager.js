@@ -20,6 +20,7 @@
 
 import * as THREE from 'three';
 import { t } from '../../i18n/i18n.js';
+import { PANEL_DISTANCE_DEFAULT, PANEL_DISTANCE_LARGE_TEXT } from './panelGeometry.js';
 
 export class WindowManager {
   /**
@@ -166,19 +167,10 @@ export class WindowManager {
   }
 }
 
-/** Default panel-to-user distance (m) — comfortable for most users. */
-export const PANEL_DISTANCE_DEFAULT = 2.0;
-
-/**
- * Panel distance (m) when the OS largeText preference is set.
- *
- * Text legibility in VR depends on angular size = physical_size / distance.
- * Bringing the panel from 2.0 m → 1.2 m gives a 1.67× angular size increase
- * for the same text — equivalent to a 67 % font scale with no DOM changes.
- * 1.2 m sits in the comfortable near-field reading zone (≥ minDistance 0.6 m)
- * without feeling claustrophobic.
- */
-export const PANEL_DISTANCE_LARGE_TEXT = 1.2;
+// Re-exported so every existing importer (and tests/window-manager.test.js)
+// keeps its import site while the values live in the pure geometry module,
+// where tests/target-size.test.js can reach them without a Three.js mock.
+export { PANEL_DISTANCE_DEFAULT, PANEL_DISTANCE_LARGE_TEXT } from './panelGeometry.js';
 
 /**
  * Resolve the initial panel distance based on OS preferences.

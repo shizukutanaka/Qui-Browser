@@ -31,13 +31,11 @@ import {
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
+import {
+  PANEL_W, PANEL_H, CHROME_H,
+  MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H
+} from './panelGeometry.js';
 
-const PANEL_W = 1.6;    // metres
-const PANEL_H = 1.0;
-const CHROME_H = 0.08;  // URL bar height fraction of total
-const MOVE_BAR_W = PANEL_W * 0.3; // grab handle: narrower than the full panel
-const MOVE_BAR_H = 0.035;
-const MOVE_BAR_GAP = 0.015; // gap between the panel's bottom edge and the bar
 
 /**
  * Character budget for the URL bar, derived from its pixel width and font.
@@ -217,12 +215,31 @@ export class WebPanel {
     });
 
     // ── Move bar (grab-to-move handle, Wolvic-style) ─────────────────────────
-    // A plain colored strip — no canvas texture needed since it shows no text,
-    // just a grabbable handle below the panel. Selecting it starts a
-    // WindowManager.beginGrab() drag; releasing the trigger ends it.
-    const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_H);
-    const moveBarMat = new THREE.MeshBasicMaterial({ color: 0x55556f, side: THREE.FrontSide });
+    // Selecting it starts a WindowManager.beginGrab() drag; releasing the
+    // trigger ends it. The mesh is MOVE_BAR_HIT_H tall (3° at the default
+    // panel distance) while only the middle MOVE_BAR_H band is painted, so the
+    // handle keeps its slim look and gains a hittable margin above and below.
+    // The bar is drawn white and tinted through `material.color`, which is how
+    // _onMoveBarHover already worked — so the rendered colours are unchanged.
+    this.moveBarCanvas = document.createElement('canvas');
+    this.moveBarCanvas.width = 64;
+    this.moveBarCanvas.height = Math.max(3, Math.round(64 * (MOVE_BAR_HIT_H / MOVE_BAR_W)));
+    const mbCtx = this.moveBarCanvas.getContext('2d');
+    if (mbCtx) {
+      const barPx = Math.max(1, Math.round(this.moveBarCanvas.height * (MOVE_BAR_H / MOVE_BAR_HIT_H)));
+      const y0 = Math.round((this.moveBarCanvas.height - barPx) / 2);
+      mbCtx.clearRect(0, 0, this.moveBarCanvas.width, this.moveBarCanvas.height);
+      mbCtx.fillStyle = '#ffffff';
+      mbCtx.fillRect(0, y0, this.moveBarCanvas.width, barPx);
+    }
+    this.moveBarTex = configureUITexture(new THREE.CanvasTexture(this.moveBarCanvas));
+    const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_HIT_H);
+    const moveBarMat = new THREE.MeshBasicMaterial({
+      color: 0x55556f, map: this.moveBarTex, transparent: true, side: THREE.FrontSide
+    });
     this.moveBarMesh = new THREE.Mesh(moveBarGeo, moveBarMat);
+    // Centre the mesh where the VISIBLE bar used to sit, so the handle does not
+    // appear to move; the extra height is split evenly above and below it.
     this.moveBarMesh.position.y = -PANEL_H / 2 - MOVE_BAR_GAP - MOVE_BAR_H / 2;
     this.moveBarMesh.name = 'webPanelMoveBar';
     this.group.add(this.moveBarMesh);
