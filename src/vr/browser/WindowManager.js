@@ -30,14 +30,19 @@ export class WindowManager {
    * @param {number} [opts.minDistance=0.6]
    * @param {number} [opts.maxDistance=6.0]
    * @param {number} [opts.followLerp=0.15]  — 0–1 smoothing per frame at 60fps
+   * @param {boolean} [opts.angularConstant=true] — keep the panel's apparent
+   *   size fixed as its distance changes (see _applyAngularScale)
    */
   constructor(camera, { distance = 2.0, minDistance = 0.6, maxDistance = 6.0,
-    followLerp = 0.15 } = {}) {
+    followLerp = 0.15, angularConstant = true } = {}) {
     this.camera = camera;
     this.distance = distance;
     this.minDistance = minDistance;
     this.maxDistance = maxDistance;
     this.followLerp = followLerp;
+    this.angularConstant = angularConstant;
+    /** Distance at which scale is exactly 1 — the shipped default placement. */
+    this.referenceDistance = PANEL_DISTANCE_DEFAULT;
 
     this.target = null;        // managed Object3D (panel group)
     this.followMode = false;   // head-lock
@@ -130,6 +135,7 @@ export class WindowManager {
 
     if (this._grab) {
       this._updateGrab();
+      this._applyAngularScale();
       return;
     }
 
@@ -139,9 +145,49 @@ export class WindowManager {
       const t = Math.min(1, this.followLerp * (dtMs / 16.6667));
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
+      this._applyAngularScale();
     } else if (this.billboard) {
       this._faceUser();
     }
+  }
+
+  /**
+   * Scale the panel so it subtends a constant visual angle at any distance.
+   *
+   * Without this the panel's apparent size is inversely proportional to
+   * distance, and the distance stepper spans 0.6–6.0 m — a 10× swing. Measured
+   * (see `angularSize.js` and tests/target-size.test.js): at the stepper's own
+   * 6 m maximum every browser control falls to 0.33–1.43°, below the 1.5°
+   * minimum object size the gaze-dwell literature gives for dwell selection, so
+   * the entire chrome bar became unusable for gaze users. At the 0.6 m minimum
+   * the opposite happens — the panel spans 106°, nearly double the comfortable
+   * central field of view.
+   *
+   * Scaling is the right answer rather than a distance cap because the reason to
+   * move a panel in depth is vergence-accommodation comfort, not apparent size
+   * (near work is the uncomfortable end; ~2.5 m suits myopic users). Holding the
+   * visual angle fixed lets the stepper control the thing users actually want
+   * from it while legibility and target size stay where they were verified.
+   *
+   * Anchored at `referenceDistance` = the shipped default, so scale is exactly 1
+   * there and the default configuration is bit-identical to before.
+   *
+   * Measured from the camera, not from the grabbing controller: the eye is what
+   * the visual angle is subtended at.
+   */
+  _applyAngularScale() {
+    if (!this.target || !this.angularConstant) {
+      return;
+    }
+    const d = this._camPos.distanceTo(this.target.position);
+    if (!Number.isFinite(d) || d <= 0) {
+      return;
+    }
+    const s = Math.max(
+      this.minDistance / this.referenceDistance,
+      Math.min(this.maxDistance / this.referenceDistance, d / this.referenceDistance)
+    );
+    this.target.scale.setScalar(s);
   }
 
   _updateGrab() {

@@ -1574,10 +1574,7 @@ export class VRApp {
       this.windowManager = new WindowManager(this.camera, {
         distance: this.settings.windowDistance
       });
-      const active = this.tabManager && this.tabManager.getActiveTab();
-      if (active && active.group) {
-        this.windowManager.attach(active.group);
-      }
+      this._attachManagedWindow();
       this.windowManager.setFollow(this.settings.enableWindowFollow);
     }
   }
@@ -2022,18 +2019,42 @@ export class VRApp {
    * drag on the panel it belongs to (the active tab's group, since the move
    * bar rides along with whichever panel is currently attached).
    */
+  /**
+   * Point the window manager at the browser window's managed transform.
+   *
+   * With TabManager this is its `rootGroup` — the tab strip and every panel are
+   * children of it, so there is exactly one thing to move and it never changes
+   * when the active tab does. Previously the manager was attached to the
+   * *active panel's* group, which had to be re-synced on every tab switch and
+   * left the tab strip behind whenever the panel was moved.
+   * Falls back to a standalone `webPanel` when tabs are not in use.
+   * @returns {boolean} true when a target is attached
+   */
+  _attachManagedWindow() {
+    if (!this.windowManager) {
+      return false;
+    }
+    const target = this.tabManager
+      ? this.tabManager.rootGroup
+      : (this.webPanel && this.webPanel.group);
+    if (!target) {
+      return false;
+    }
+    if (this.windowManager.target !== target) {
+      this.windowManager.attach(target);
+    }
+    return true;
+  }
+
   _onPanelGrabRequested(controller) {
     if (!this.windowManager || !controller) {
       return;
     }
-    // windowManager.target is only re-synced to the active tab per-frame while
-    // followMode/isGrabbing is already true (see the render-loop block below),
-    // so a tab switch that happened while both were off would otherwise leave
-    // beginGrab() computing distance from a stale, possibly-hidden panel.
-    const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
-    if (active && active.group && this.windowManager.target !== active.group) {
-      this.windowManager.attach(active.group);
-    }
+    // Re-checked here rather than assumed: beginGrab() measures from the
+    // target's current world position, so a detached or stale target would
+    // compute the grab offset from the wrong place. Not gated on success —
+    // WindowManager.beginGrab() already no-ops without a target.
+    this._attachManagedWindow();
     this.windowManager.beginGrab(controller);
     this._grabController = controller;
     firePanelGrabFeedback(controller, this.hapticFeedback, this.captionSystem);
@@ -2958,11 +2979,10 @@ export class VRApp {
 
     // Spatial window management: keep the active panel followed/billboarded.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
-      // Track tab switches so the manager always drives the visible panel.
-      const active = this.tabManager ? this.tabManager.getActiveTab() : this.webPanel;
-      if (active && active.group && this.windowManager.target !== active.group) {
-        this.windowManager.attach(active.group);
-      }
+      // The managed target is TabManager's rootGroup, which does not change
+      // with the active tab — so this only has to cover the case where the
+      // browser window was built after the manager.
+      this._attachManagedWindow();
       this.windowManager.update(dt * 1000);
     }
 

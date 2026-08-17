@@ -63,10 +63,16 @@ const {
 const { setLanguage } = require('../src/i18n/i18n.js');
 
 // A fake camera/object exposing world transform getters.
+// `scale` is real (not a jest.fn) so the angular-constant scaling applied by
+// update() can be asserted on the value it actually writes.
 function makeNode(pos = [0, 0, 0], quat = [0, 0, 0, 1]) {
   return {
     position: new V3(...pos),
     quaternion: new Quat(...quat),
+    scale: {
+      x: 1, y: 1, z: 1,
+      setScalar(v) { this.x = v; this.y = v; this.z = v; return this; }
+    },
     getWorldPosition: (v) => { v.set(pos[0], pos[1], pos[2]); return v; },
     getWorldQuaternion: (q) => { q.x = quat[0]; q.y = quat[1]; q.z = quat[2]; q.w = quat[3]; return q; }
   };
@@ -300,5 +306,95 @@ describe('firePanelGrabFeedback / firePanelReleaseFeedback — grab-to-move cros
   test('is null-safe with no haptic and no captions', () => {
     expect(() => firePanelGrabFeedback(makeController('left'), null, null)).not.toThrow();
     expect(() => firePanelReleaseFeedback(makeController('left'), null, null)).not.toThrow();
+  });
+});
+
+// ── Angular-constant scaling (Session 71) ────────────────────────────────────
+// Without this the panel's apparent size is inversely proportional to distance
+// and the distance stepper spans 0.6–6.0 m, so at its own maximum every browser
+// control fell below the 1.5° gaze-selection floor (tests/target-size.test.js).
+describe('WindowManager — constant apparent size across the distance range', () => {
+  const { angularSizeDeg, GAZE_TARGET_MIN_DEG } = require('../src/vr/ui/angularSize.js');
+  const { PANEL_DISTANCE_DEFAULT, PANEL_DISTANCE_MIN, PANEL_DISTANCE_MAX, STRIP_H } =
+    require('../src/vr/browser/panelGeometry.js');
+
+  const follow = (distance) => {
+    const wm = new WindowManager(makeNode(), { distance });
+    const panel = makeNode();
+    wm.attach(panel);
+    wm.setFollow(true);
+    wm.update(1000); // large dt → lerp completes, panel lands at `distance`
+    return { wm, panel };
+  };
+
+  test('the default distance leaves scale at exactly 1 (shipped behaviour unchanged)', () => {
+    const { panel } = follow(PANEL_DISTANCE_DEFAULT);
+    expect(panel.scale.x).toBeCloseTo(1, 10);
+  });
+
+  test('scale tracks distance, so apparent size is preserved', () => {
+    for (const d of [PANEL_DISTANCE_MIN, 1.2, PANEL_DISTANCE_DEFAULT, 4.0, PANEL_DISTANCE_MAX]) {
+      const { panel } = follow(d);
+      expect(panel.scale.x).toBeCloseTo(d / PANEL_DISTANCE_DEFAULT, 6);
+      // The invariant that matters: the tab strip's angular height is the same
+      // at every distance as it is at the verified default.
+      expect(angularSizeDeg(STRIP_H * panel.scale.x, d))
+        .toBeCloseTo(angularSizeDeg(STRIP_H, PANEL_DISTANCE_DEFAULT), 6);
+    }
+  });
+
+  test('at the stepper maximum the tab strip now clears the gaze floor (it did not before)', () => {
+    const { panel } = follow(PANEL_DISTANCE_MAX);
+    expect(angularSizeDeg(STRIP_H, PANEL_DISTANCE_MAX)).toBeLessThan(GAZE_TARGET_MIN_DEG);
+    expect(angularSizeDeg(STRIP_H * panel.scale.x, PANEL_DISTANCE_MAX))
+      .toBeGreaterThanOrEqual(GAZE_TARGET_MIN_DEG);
+  });
+
+  test('a grab rescales from the CAMERA distance, not the controller distance', () => {
+    // The visual angle is subtended at the eye, so the controller's own hold
+    // distance is the wrong measure whenever the hand is off to one side.
+    // Camera at the origin; controller 1 m to the right holding the panel which
+    // starts 3 m ahead, so beginGrab records |(1,0,0)-(0,0,-3)| = 3.162 m and
+    // _updateGrab then places the panel at (1, 0, -3.162) — 3.317 m from the eye.
+    const wm = new WindowManager(makeNode());
+    const panel = makeNode([0, 0, -3]);
+    wm.attach(panel);
+    wm.beginGrab(makeNode([1, 0, 0]));
+    wm.update(16);
+
+    expect(wm.isGrabbing).toBe(true);
+    const eyeDist = Math.hypot(panel.position.x, panel.position.y, panel.position.z);
+    expect(panel.scale.x).toBeCloseTo(eyeDist / PANEL_DISTANCE_DEFAULT, 6);
+    // Distinguishes the two measures: using the controller distance would give
+    // a different (smaller) scale here.
+    expect(eyeDist).toBeGreaterThan(wm._grab.distance);
+    expect(panel.scale.x).not.toBeCloseTo(wm._grab.distance / PANEL_DISTANCE_DEFAULT, 4);
+  });
+
+  test('scale is clamped to the stepper range even if a grab pushes further', () => {
+    const wm = new WindowManager(makeNode());
+    const panel = makeNode([0, 0, -50]); // far past maxDistance
+    wm.attach(panel);
+    wm.beginGrab(makeNode());
+    wm.update(16);
+    expect(panel.scale.x).toBeCloseTo(PANEL_DISTANCE_MAX / PANEL_DISTANCE_DEFAULT, 6);
+  });
+
+  test('opting out leaves the scale untouched', () => {
+    const wm = new WindowManager(makeNode(), { distance: 6.0, angularConstant: false });
+    const panel = makeNode();
+    wm.attach(panel);
+    wm.setFollow(true);
+    wm.update(1000);
+    expect(panel.scale.x).toBe(1);
+  });
+
+  test('billboard-only mode does not rescale (it never moves the panel)', () => {
+    const wm = new WindowManager(makeNode(), { distance: 6.0 });
+    const panel = makeNode();
+    wm.attach(panel);
+    wm.setBillboard(true);
+    wm.update(16);
+    expect(panel.scale.x).toBe(1);
   });
 });

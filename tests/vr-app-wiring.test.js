@@ -69,6 +69,11 @@ function makeVRAppLike(overrides = {}) {
     _grabController: null,
     _toastTimers: new Set(),
     playerRig: null,
+    // Real implementation, carried onto the flat object: the methods under test
+    // call it on `this`, and this harness deliberately stays a plain literal
+    // (binding VRApp.prototype instead would activate VRApp's own accessors,
+    // which delegate to an `a11y` coordinator this fixture does not build).
+    _attachManagedWindow: VRApp.prototype._attachManagedWindow,
     ...overrides
   };
 }
@@ -277,28 +282,63 @@ describe('VRApp._onPanelGrabRequested', () => {
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('left', 'click');
   });
 
-  test('re-syncs the window manager to the active tab before beginning the grab (stale-target fix)', () => {
+  // The manager targets TabManager's rootGroup — the tab strip and every panel
+  // are children of it. It used to target the *active panel's* group, which had
+  // to be re-synced on every tab switch and left the strip behind when the panel
+  // moved. Same stale-target guarantee, one target instead of N.
+  test('attaches the managed root group before beginning the grab (stale-target fix)', () => {
     const controller = makeController('right');
-    const activeGroup = makeGroup();
+    const rootGroup = makeGroup();
     const windowManager = { target: null, attach: jest.fn(), beginGrab: jest.fn() };
-    const tabManager = { getActiveTab: jest.fn(() => ({ group: activeGroup })) };
+    const tabManager = { rootGroup, getActiveTab: jest.fn(() => ({ group: makeGroup() })) };
     const app = makeVRAppLike({ windowManager, tabManager });
 
     VRApp.prototype._onPanelGrabRequested.call(app, controller);
 
-    expect(windowManager.attach).toHaveBeenCalledWith(activeGroup);
+    expect(windowManager.attach).toHaveBeenCalledWith(rootGroup);
+    // Explicitly NOT the active panel's own group.
+    expect(windowManager.attach).not.toHaveBeenCalledWith(tabManager.getActiveTab().group);
   });
 
-  test('does not re-attach when the window manager already targets the active tab', () => {
+  test('does not re-attach when the window manager already targets the root group', () => {
     const controller = makeController('right');
-    const activeGroup = makeGroup();
-    const windowManager = { target: activeGroup, attach: jest.fn(), beginGrab: jest.fn() };
-    const tabManager = { getActiveTab: jest.fn(() => ({ group: activeGroup })) };
+    const rootGroup = makeGroup();
+    const windowManager = { target: rootGroup, attach: jest.fn(), beginGrab: jest.fn() };
+    const tabManager = { rootGroup };
     const app = makeVRAppLike({ windowManager, tabManager });
 
     VRApp.prototype._onPanelGrabRequested.call(app, controller);
 
     expect(windowManager.attach).not.toHaveBeenCalled();
+    expect(windowManager.beginGrab).toHaveBeenCalledWith(controller);
+  });
+
+  test('falls back to a standalone webPanel when tabs are not in use', () => {
+    const controller = makeController('right');
+    const group = makeGroup();
+    const windowManager = { target: null, attach: jest.fn(), beginGrab: jest.fn() };
+    const app = makeVRAppLike({ windowManager });
+    app.tabManager = null;
+    app.webPanel = { group };
+
+    VRApp.prototype._onPanelGrabRequested.call(app, controller);
+
+    expect(windowManager.attach).toHaveBeenCalledWith(group);
+  });
+
+  test('still begins the grab when there is nothing to attach', () => {
+    // WindowManager.beginGrab() guards on its own missing target, so the grab
+    // request must not be swallowed here.
+    const controller = makeController('right');
+    const windowManager = { target: null, attach: jest.fn(), beginGrab: jest.fn() };
+    const app = makeVRAppLike({ windowManager });
+    app.tabManager = null;
+    app.webPanel = null;
+
+    VRApp.prototype._onPanelGrabRequested.call(app, controller);
+
+    expect(windowManager.attach).not.toHaveBeenCalled();
+    expect(windowManager.beginGrab).toHaveBeenCalledWith(controller);
   });
 
   test('is a no-op without a windowManager', () => {

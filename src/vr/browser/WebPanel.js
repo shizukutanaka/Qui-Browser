@@ -914,10 +914,35 @@ export class WebPanel {
     this.iframe.style.display = 'none';
   }
 
+  /**
+   * Show / hide without touching the transform.
+   *
+   * `show(position)` hard-sets the group position, which is right for a
+   * standalone panel but wrong for one parented to a managed container: it
+   * discarded the container's placement every time. TabManager switching tabs
+   * called `show(this.position)`, so any grab-to-move repositioning was
+   * silently thrown away on the next tab switch.
+   *
+   * @param {boolean} visible
+   */
+  setVisible(visible) {
+    const v = !!visible;
+    this.group.visible = v;
+    if (this.iframe) {
+      this.iframe.style.display = v ? '' : 'none';
+    }
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-  addToScene() {
-    this.scene.add(this.group);
+  /**
+   * Add the panel to the scene, or to a parent container when one is given.
+   * TabManager passes its managed root group so the panel, its siblings and the
+   * tab strip share one transform (see TabManager.rootGroup).
+   * @param {THREE.Object3D} [parent] defaults to the scene
+   */
+  addToScene(parent) {
+    (parent || this.scene).add(this.group);
   }
 
   dispose() {
