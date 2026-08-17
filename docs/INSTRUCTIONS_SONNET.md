@@ -21,7 +21,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ```
 
 - **pre-fix fail 確認**: 新テストは `git stash push -- <src files>` → テスト → `git stash pop` で「修正前に fail する」ことを必ず確認。
-- **フルゲート**: `npm test`（全 green・1465件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
+- **フルゲート**: `npm test`（全 green・1477件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
 - **ターゲットの寸法・距離を変える変更をしたら** `tests/target-size.test.js` が全ターゲットの**角サイズ**(度)を実ジオメトリから測る。寸法は `panelGeometry.js` のような**純モジュール**に置くこと(メートルのままでは押せるか判定できない — Session 70)。
 - **色を変える変更をしたら** `tests/contrast.test.js` が実パレットを掃引する。新しい描画面の色は `chromeColors.js` / `bookmarkLayout.js` / `keyboardLayout.js` のような**純パレット関数**に置き、掃引表に足すこと(canvas の色は目視検証不能 — Session 69)。
 - **テキストを描く変更をしたら** `npm run verify:layout` も走らせる。実 Chromium で本番の折り返し・切り詰めを実フォントで測り、パネルからはみ出さないか検証する(Sessions 62〜67 の日本語はみ出し欠陥ファミリーの再発防止。依存ゼロ)。
