@@ -168,21 +168,40 @@ describe('every panel target clears the gaze-dwell floor at the default distance
   });
 });
 
-describe('the panel-distance setting still degrades every target (documented, unfixed)', () => {
-  // Recorded rather than asserted-away: the panel does not scale with distance
-  // (WindowManager never touches target.scale), so the stepper's own maximum
-  // pushes every control below the gaze floor. Fixing that needs the tab strip
-  // to become a child of the managed group first — see OUTSTANDING_ISSUES H-2.
-  // This test pins the *shape* of the problem so it cannot be forgotten or
-  // silently worsened.
-  test('at the stepper maximum, no panel target reaches the gaze floor', () => {
+describe('the panel-distance setting no longer degrades any target', () => {
+  // WindowManager scales the managed group so the panel subtends a constant
+  // visual angle (`_applyAngularScale`). Before that, its own stepper maximum
+  // pushed every control to 0.33-1.43 degrees — below the gaze floor — because
+  // nothing ever touched target.scale.
+  const scaleFor = (d) => d / G.PANEL_DISTANCE_DEFAULT;
+
+  test('unscaled, the stepper maximum would put every target under the gaze floor', () => {
     const worst = panelTargets().map((t) => minAxisDeg(t, G.PANEL_DISTANCE_MAX));
     expect(Math.max(...worst)).toBeLessThan(GAZE_TARGET_MIN_DEG);
   });
 
-  test('at the stepper minimum the panel is far wider than the comfortable FOV', () => {
-    // ~60° is the usual comfortable central field; the panel spans 106°.
+  test.each([G.PANEL_DISTANCE_MIN, 1.2, G.PANEL_DISTANCE_DEFAULT, 4.0, G.PANEL_DISTANCE_MAX])(
+    'scaled, every target holds its default-distance angle at %s m',
+    (d) => {
+      const k = scaleFor(d);
+      for (const t of panelTargets()) {
+        const scaled = minAxisDeg({ w: t.w * k, h: t.h * k }, d);
+        expect(scaled).toBeCloseTo(minAxisDeg(t, G.PANEL_DISTANCE_DEFAULT), 6);
+        expect(scaled).toBeGreaterThanOrEqual(GAZE_TARGET_MIN_DEG);
+      }
+    }
+  );
+
+  test('the panel also stops spanning 106 degrees at the near end', () => {
+    // Unscaled at 0.6 m the panel is nearly double the ~60 degree comfortable
+    // central field; scaled it keeps its default-distance width.
     expect(angularSizeDeg(G.PANEL_W, G.PANEL_DISTANCE_MIN)).toBeGreaterThan(100);
+    expect(angularSizeDeg(G.PANEL_W * scaleFor(G.PANEL_DISTANCE_MIN), G.PANEL_DISTANCE_MIN))
+      .toBeCloseTo(angularSizeDeg(G.PANEL_W, G.PANEL_DISTANCE_DEFAULT), 6);
+  });
+
+  test('scale is exactly 1 at the shipped default, so nothing moved for it', () => {
+    expect(scaleFor(G.PANEL_DISTANCE_DEFAULT)).toBe(1);
   });
 
   test('the default distance sits inside the stepper bounds', () => {

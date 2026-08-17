@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 71: 角サイズ一定化 — パネル距離ステッパーが自分の最大値で全操作系を壊していた
+Session 70 が計測して**記録だけした H-2 を治療**した。`WindowManager` は `target.scale` を一度も触らないので、パネルの角サイズは距離に反比例する。設定ステッパー `vr.settings.panelDist` の範囲は **0.6〜6.0 m（10倍）**で、**6 m では全ターゲットが 0.33〜1.43° = 1.5° の視線フロア未満（視線では操作不能）**、0.6 m では逆に**パネル幅が 106°**（快適な中心視野 ~60° の倍）。設定が自分の許す値で自分を壊していた。
+- 🐛 **fix（前提の依存 その1 — ストリップがパネルを追随しない）**: `TabManager.stripGroup` はパネルの**兄弟**で固定座標に置かれ、`windowManager` は**アクティブパネルの group だけ**を管理していた。grab-to-move や follow でパネルを動かすと**ストリップだけ元の位置に取り残される**。
+- 🐛 **fix（前提の依存 その2 — タブ切替で移動が消える）**: `setActive()` が `panel.show(this.position)` を呼び、`show()` は transform を**ハードセット**する。パネルを動かしてからタブを切り替えると、新しいアクティブタブは**元の固定位置に出る**（grab-to-move が黙って破棄される）。
+- ♻️ **両方を1つの管理対象で解消**: `TabManager.rootGroup` を導入してストリップと全パネルをその子に。`windowManager` は `rootGroup` を**1度 attach するだけ**になり、VRApp の**アクティブタブごとの毎フレーム再 attach ロジックが不要**になった（`_attachManagedWindow()` に集約）。切替は transform に触らない新メソッド `WebPanel.setVisible()` を使う。
+- ✨ **feat（H-2 本体）**: `WindowManager._applyAngularScale()` —— 管理対象を `distance / PANEL_DISTANCE_DEFAULT` でスケールし**角サイズを距離に対して一定**に保つ。既定 2.0 m では scale がちょうど **1.0** なので**出荷時の挙動は完全に不変**（`enableWindowFollow` 既定 false では `update()` すら呼ばれない）。グラブ中は**カメラ**からの距離で測る —— 角度が張るのは眼であって手ではないので、手を横に出しているとコントローラ距離では過小評価になる。ステッパー範囲外へは clamp。
+- 📐 **なぜ「距離を制限する」ではなく「スケールする」か**: 距離を変える正当な理由は**輻輳・調節の眼の快適さ**（Session 62 の調査: 0.5 m 未満/20 m 超を避ける、近視者は 2.5 m が快適）であって見かけの大きさではない。角サイズを保ったまま奥行きだけ変わるのが本来の挙動で、「ステッパーはユーザーが実際に欲しいものを制御し、可読性とターゲットサイズは検証済みの値を保つ」が両立する。
+- 🐛 **fix（自分のテストが弱かった）**: 「タブ切替でパネルが再配置されない」テストは最初 **pre-fix でも通ってしまった** —— WebPanel スタブの `show()` が `group.position.set` を呼んでいなかったため。本物と同じく transform をハードセットするようスタブを直して初めて回帰を捕捉できた（Session 65 と同じ罠）。
+- ✅ **test 19件追加**: WindowManager 8（既定で scale 1.0、距離4点で角サイズ不変、6 m でフロア通過、カメラ距離 vs コントローラ距離、clamp、opt-out、billboard は非スケール）+ TabManager 6（rootGroup の親子関係、ローカル原点、切替で transform 不変、addToScene/dispose）+ VRApp 5（rootGroup を attach、二重 attach しない、webPanel フォールバック、attach 対象なしでも beginGrab は通す）。Session 70 が「6 m で全滅」を固定していたテストは**「未スケールなら全滅、スケール後は全距離で既定と同一角」**に書き換え。pre-fix 検証: 構造を残して**スケールと setVisible の判断だけ**戻すと **5件 FAIL**、復元で全通過。
+- Total 1401 tests (50 suites); 0 lint errors (unchanged 84 warnings); build green; `npm run verify:layout` PASS(55通り)。
+
 ### Session 70: ターゲットの角サイズ監査 — 「メートル」では押せるかどうか分からない
 Sessions 68/69 と同じ問い（**canvas/3D UI で目視できず静かに違反しうるルールは他にあるか**）を、色から**入力**へ向けた。本アプリの全ターゲットは**メートル**で指定されているが、押せるかを決めるのは**眼に張る角度**。Session 62 は*文字*について arcmin で検証済みだったが、**ターゲットについては一度も測っていなかった** —— しかもパネル距離は 0.6〜6.0 m のユーザー設定（見かけの大きさが10倍振れる）。
 - 📐 **閾値は外部由来**(自分で決めていない): **Meta Horizon OS** のアクセシビリティ指針が「快適なヒットターゲットは最小 22 mm / 48 dp / **0.42 m で 3° FOV**」「48 dp 未満の要素には**不可視の hitslop** を足せ」と明記。視線選択の研究まとめ(CasualGaze, arXiv:2408.12710)は「通常の対話系では dwell 500 ms、**オブジェクト 1.5° 以上・間隔 1.0° 以上**」。→ **1.5° をハード不変条件**(gaze-dwell は本プロジェクトの主入力路なので、下回るのは「押しにくい」ではなく「そのユーザーには到達不能」)、**3° は報告のみ**(満たすにはパネル寸法の再設計)。
@@ -738,4 +749,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-17 (Session 70)
+**Last Revision**: 2026-08-17 (Session 71)

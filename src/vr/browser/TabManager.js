@@ -51,6 +51,21 @@ export class TabManager {
     this.activeIndex = -1;
     this._curved = false; // curved-screen preference, applied to every tab
 
+    /**
+     * One managed transform for the whole browser window.
+     *
+     * The tab strip used to be a sibling of the panels, pinned to the same
+     * fixed `position`, and `windowManager` only ever managed the *active
+     * panel's* group — so moving the panel (grab-to-move, or follow mode) left
+     * the strip floating at the original spot, detached from the window it
+     * labels. Parenting the strip and every panel to one root fixes that and
+     * gives WindowManager a single, stable target, so it no longer has to be
+     * re-attached whenever the active tab changes.
+     */
+    this.rootGroup = new THREE.Group();
+    this.rootGroup.name = 'tabManagerRoot';
+    this.rootGroup.position.set(this.position.x, this.position.y, this.position.z);
+
     // Tab strip sits just above the active panel.
     this.stripGroup  = new THREE.Group();
     this.stripCanvas = document.createElement('canvas');
@@ -71,7 +86,9 @@ export class TabManager {
     // Above the panel (panel is ~1m tall centred at position.y).
     this.stripMesh.position.set(0, 0.58, 0);
     this.stripGroup.add(this.stripMesh);
-    this.stripGroup.position.set(this.position.x, this.position.y, this.position.z);
+    // Local to rootGroup — the root carries the world placement.
+    this.stripGroup.position.set(0, 0, 0);
+    this.rootGroup.add(this.stripGroup);
 
     this.opts.registerInteractable(this.stripMesh, {
       onSelect: (evt) => this._onStripSelect(evt),
@@ -230,8 +247,8 @@ export class TabManager {
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
       onBlockedNavigation: this.opts.onBlockedNavigation || null
     });
-    panel.addToScene();
-    panel.group.position.set(this.position.x, this.position.y, this.position.z);
+    panel.addToScene(this.rootGroup);
+    panel.group.position.set(0, 0, 0); // local to rootGroup
 
     this.tabs.push(panel);
     // New tabs inherit the current curved-screen preference.
@@ -280,11 +297,9 @@ export class TabManager {
     }
     this.activeIndex = index;
     this.tabs.forEach((panel, i) => {
-      if (i === index) {
-        panel.show(this.position);
-      } else {
-        panel.hide();
-      }
+      // setVisible, not show(position): show() would re-pin the panel to the
+      // original fixed spot and discard any grab-to-move placement.
+      panel.setVisible(i === index);
     });
     this._drawStrip();
     if (this.opts.onTabActivate) {
@@ -334,7 +349,8 @@ export class TabManager {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   addToScene() {
-    this.scene.add(this.stripGroup);
+    // The root carries the strip and every panel, so one add() is enough.
+    this.scene.add(this.rootGroup);
   }
 
   dispose() {
@@ -354,6 +370,6 @@ export class TabManager {
         obj.material.dispose();
       }
     });
-    this.scene.remove(this.stripGroup);
+    this.scene.remove(this.rootGroup);
   }
 }

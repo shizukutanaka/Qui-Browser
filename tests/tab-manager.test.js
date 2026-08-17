@@ -42,10 +42,20 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.curved = false;
       panelInstances.push(this);
     }
-    addToScene() {}
+    addToScene(parent) { this.parent = parent; }
     navigate(url) { this.currentUrl = url; }
-    show() { this.visible = true; }
+    // Mirrors the real WebPanel: show(position) HARD-SETS the transform. The
+    // stub must model that, otherwise a test asserting "switching tabs does not
+    // re-position a panel" passes even against the show(this.position) code it
+    // is meant to catch.
+    show(position = { x: 0, y: 1.5, z: -2 }) {
+      this.group.position.set(position.x, position.y, position.z);
+      this.visible = true;
+    }
     hide() { this.visible = false; }
+    // TabManager switches tabs via setVisible, which (unlike show(position))
+    // leaves the transform alone so the managed placement survives.
+    setVisible(v) { this.visible = !!v; }
     setCurved(v) { this.curved = !!v; }
     dispose() { this.disposed = true; }
   }
@@ -241,5 +251,68 @@ describe('TabManager (FR-1.3)', () => {
       expect(panel.opts.onGrabRequested).toBeNull();
       expect(panel.opts.onMoveBarHoverCaption).toBeNull();
     });
+  });
+});
+
+// ── One managed transform for the whole browser window (Session 71) ──────────
+// The strip used to be a sibling of the panels, pinned to the same fixed
+// position, while windowManager managed only the *active panel's* group — so
+// moving the panel left the strip behind, and setActive()'s show(this.position)
+// snapped the panel back, discarding any grab-to-move placement.
+describe('TabManager — rootGroup owns the strip and every panel', () => {
+  let tm;
+  beforeEach(() => {
+    panelInstances.length = 0;
+    tm = makeManager();
+  });
+
+  test('the strip is a child of rootGroup, at the group-local origin', () => {
+    expect(tm.rootGroup._objects).toContain(tm.stripGroup);
+    expect(tm.stripGroup.position.set).toHaveBeenCalledWith(0, 0, 0);
+  });
+
+  test('rootGroup carries the world placement', () => {
+    expect(tm.rootGroup.position.set).toHaveBeenCalledWith(
+      tm.position.x, tm.position.y, tm.position.z
+    );
+  });
+
+  test('new panels are parented to rootGroup at the local origin', () => {
+    tm.newTab();
+    const panel = panelInstances[panelInstances.length - 1];
+    expect(panel.parent).toBe(tm.rootGroup);
+    expect(panel.group.position.set).toHaveBeenCalledWith(0, 0, 0);
+  });
+
+  test('switching tabs does not re-position any panel (grab placement survives)', () => {
+    tm.newTab();
+    tm.newTab();
+    const [a, b] = panelInstances;
+    a.group.position.set.mockClear();
+    b.group.position.set.mockClear();
+
+    tm.setActive(0);
+    expect(a.visible).toBe(true);
+    expect(b.visible).toBe(false);
+    tm.setActive(1);
+    expect(b.visible).toBe(true);
+    expect(a.visible).toBe(false);
+
+    // The regression: show(this.position) used to fire here and reset the panel
+    // to the original fixed spot on every switch.
+    expect(a.group.position.set).not.toHaveBeenCalled();
+    expect(b.group.position.set).not.toHaveBeenCalled();
+  });
+
+  test('addToScene adds the root group (one add covers strip + panels)', () => {
+    tm.addToScene();
+    expect(tm.scene.add).toHaveBeenCalledWith(tm.rootGroup);
+    expect(tm.scene.add).not.toHaveBeenCalledWith(tm.stripGroup);
+  });
+
+  test('dispose removes the root group from the scene', () => {
+    tm.addToScene();
+    tm.dispose();
+    expect(tm.scene.remove).toHaveBeenCalledWith(tm.rootGroup);
   });
 });
