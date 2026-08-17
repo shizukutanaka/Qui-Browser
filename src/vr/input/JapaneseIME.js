@@ -11,13 +11,14 @@ import {
   computeKeyLayout, keyboardBounds,
   SUGGESTION_BTN_PX_W, SUGGESTION_BTN_PX_H, SUGGESTION_LABEL_FONT_PX,
   SUGGESTION_MEASURE_EM, COMPOSITION_BADGE_W, COMPOSITION_MEASURE_EM,
-  imeBadgeColors
+  imeBadgeColors, imeColors
 } from './keyboardLayout.js';
 
 // Re-exported so existing importers (and tests) keep their import site.
 export { SUGGESTION_MEASURE_EM } from './keyboardLayout.js';
 import { truncate } from '../browser/bookmarkLayout.js';
 import { truncateToWidth } from '../ui/textWrap.js';
+import { prefersHighContrast } from '../../a11y/accessibility.js';
 
 export class JapaneseIME {
   constructor() {
@@ -652,11 +653,12 @@ export class JapaneseIME {
  * @param {number} index  0-based position in the candidate list
  * @returns {{bg:string, border:string, lineWidth:number, number:string}}
  */
-export function candidateStyle(index) {
+export function candidateStyle(index, highContrast = false) {
   const primary = index === 0;
+  const c = imeColors(highContrast);
   return {
-    bg: primary ? '#2a4a22' : '#1c2438',
-    border: primary ? '#44cc88' : '#4466aa',
+    bg: primary ? c.candPrimaryBg : c.candBg,
+    border: primary ? c.candPrimaryBorder : c.candBorder,
     lineWidth: primary ? 9 : 5,   // primary stands out by border WEIGHT, not hue alone
     number: String(index + 1)      // 1-based order label
   };
@@ -779,7 +781,11 @@ export class VRJapaneseKeyboard {
     // Backing panel (sits slightly behind the keys).
     const panel = new THREE.Mesh(
       new THREE.PlaneGeometry(width + 0.04, height + DISPLAY_H + 0.06),
-      new THREE.MeshBasicMaterial({ color: 0x0a0d18, transparent: true, opacity: 0.92 })
+      new THREE.MeshBasicMaterial({
+        color: imeColors(prefersHighContrast()).panelBg,
+        transparent: true,
+        opacity: imeColors(prefersHighContrast()).panelOpacity
+      })
     );
     panel.position.set(0, (DISPLAY_H + 0.06) / 2 - 0.02, -0.005);
     group.add(panel);
@@ -852,19 +858,20 @@ export class VRJapaneseKeyboard {
     canvas.width = 128;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
+    const col = imeColors(prefersHighContrast());
     // Active (latched) keys get a warm amber tint; hover overrides to blue.
     if (hover) {
-      ctx.fillStyle = '#2d3a66';
+      ctx.fillStyle = col.keyBgHover;
     } else if (active) {
-      ctx.fillStyle = '#5a3a10';
+      ctx.fillStyle = col.keyBgActive;
     } else {
-      ctx.fillStyle = '#1c2438';
+      ctx.fillStyle = col.keyBg;
     }
     ctx.fillRect(0, 0, 128, 128);
-    ctx.strokeStyle = active ? '#ffaa44' : '#3a4666';
+    ctx.strokeStyle = active ? col.keyBorderActive : col.keyBorder;
     ctx.lineWidth = 5;
     ctx.strokeRect(3, 3, 122, 122);
-    ctx.fillStyle = active ? '#ffcc88' : '#ffffff';
+    ctx.fillStyle = active ? col.keyLabelActive : col.keyLabel;
     ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -971,7 +978,8 @@ export class VRJapaneseKeyboard {
     const w = this._displayCanvas.width;
     const h = this._displayCanvas.height;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#111726';
+    const col = imeColors(prefersHighContrast());
+    ctx.fillStyle = col.displayBg;
     ctx.fillRect(0, 0, w, h);
 
     // Mode badge — top-right corner shows the current input mode so the user
@@ -993,7 +1001,7 @@ export class VRJapaneseKeyboard {
 
     // Composition text
     const text = this.ime ? (this.ime.compositionBuffer || '') : '';
-    ctx.fillStyle = text ? '#e8ecff' : '#667788';
+    ctx.fillStyle = text ? col.displayText : col.displayPlaceholder;
     ctx.font = '40px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -1150,23 +1158,38 @@ export class VRJapaneseKeyboard {
       canvas.width = 128;
       canvas.height = 128;
       const ctx = canvas.getContext('2d');
-      const style = candidateStyle(i);
-      ctx.fillStyle = style.bg;
-      ctx.fillRect(0, 0, 128, 128);
-      ctx.strokeStyle = style.border;
-      ctx.lineWidth = style.lineWidth;
-      ctx.strokeRect(3, 3, 122, 122);
-      // Order number (top-left): conveys primacy/order without relying on colour.
-      ctx.fillStyle = '#cceeff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(style.number, 10, 8);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 60px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(kanji, 64, 70);
+
+      // ONE painter for all three states. This used to be three separate ad-hoc
+      // paint blocks (initial, onHover, onHoverEnd), and the two hover blocks
+      // both omitted the order number and hardcoded lineWidth 5 — so the first
+      // time a user pointed at any candidate, BOTH colour-independent cues for
+      // "this is the top candidate" were destroyed permanently: the 1-based
+      // number vanished and the primary's deliberate 9px border dropped to 5px,
+      // leaving only hue (green vs blue) to distinguish it. That is exactly the
+      // WCAG 1.4.1 reliance candidateStyle's number and lineWidth exist to
+      // avoid. The suggestion row below already used a single painter; this now
+      // matches it.
+      const draw = (hover) => {
+        const col = imeColors(prefersHighContrast());
+        const style = candidateStyle(i, prefersHighContrast());
+        ctx.fillStyle = hover ? col.candHoverBg : style.bg;
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.strokeStyle = hover ? col.candHoverBorder : style.border;
+        ctx.lineWidth = style.lineWidth;
+        ctx.strokeRect(3, 3, 122, 122);
+        // Order number (top-left): conveys primacy/order without relying on colour.
+        ctx.fillStyle = col.candNumber;
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(style.number, 10, 8);
+        ctx.fillStyle = col.candLabel;
+        ctx.font = 'bold 60px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(kanji, 64, 70);
+      };
+      draw(false);
       const tex = configureUITexture(new THREE.CanvasTexture(canvas));
       tex.colorSpace = THREE.SRGBColorSpace;
 
@@ -1189,33 +1212,14 @@ export class VRJapaneseKeyboard {
             this.onTextConfirmed(text || kanji);
           },
           onHover: () => {
-            // Lighten the selected candidate on hover.
-            ctx.fillStyle = '#3a5a32';
-            ctx.fillRect(0, 0, 128, 128);
-            ctx.strokeStyle = '#66ee99';
-            ctx.lineWidth = 5;
-            ctx.strokeRect(3, 3, 122, 122);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 60px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(kanji, 64, 70);
+            draw(true);
             tex.needsUpdate = true;
             if (this.onHoverCaption) {
               this.onHoverCaption(kanji);
             }
           },
           onHoverEnd: () => {
-            ctx.fillStyle = i === 0 ? '#2a4a22' : '#1c2438';
-            ctx.fillRect(0, 0, 128, 128);
-            ctx.strokeStyle = i === 0 ? '#44cc88' : '#4466aa';
-            ctx.lineWidth = 5;
-            ctx.strokeRect(3, 3, 122, 122);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 60px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(kanji, 64, 70);
+            draw(false);
             tex.needsUpdate = true;
           }
         });
@@ -1274,19 +1278,20 @@ export class VRJapaneseKeyboard {
       const ctx = canvas.getContext('2d');
 
       const draw = (hover) => {
-        const style = candidateStyle(i);
-        ctx.fillStyle = hover ? '#3a5a32' : style.bg;
+        const col = imeColors(prefersHighContrast());
+        const style = candidateStyle(i, prefersHighContrast());
+        ctx.fillStyle = hover ? col.candHoverBg : style.bg;
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.strokeStyle = hover ? '#66ee99' : style.border;
-        ctx.lineWidth = hover ? 5 : style.lineWidth;
+        ctx.strokeStyle = hover ? col.candHoverBorder : style.border;
+        ctx.lineWidth = style.lineWidth;
         ctx.strokeRect(3, 3, CANVAS_W - 6, CANVAS_H - 6);
         // Order number (left edge): primacy/order without relying on colour.
-        ctx.fillStyle = '#cceeff';
+        ctx.fillStyle = col.candNumber;
         ctx.font = 'bold 28px sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText(style.number, 10, 8);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = col.candLabel;
         ctx.font = `bold ${SUGGESTION_LABEL_FONT_PX}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 72: IME —— ホバーが「色に依存しない手がかり」を破壊していた + 高コントラスト未対応の最後の面
+Session 69 で chrome とブックマークを `prefers-contrast` に配線したあと、**`JapaneseIME.js` だけが `prefersHighContrast()` を一度も呼んでいなかった**（G-3）。本製品の看板機能が最後の取り残しだったので着手し、途中でより重い欠陥を見つけた。
+- 🐛 **fix (a11y — WCAG 1.4.1、ホバーで手がかりが消える)**: `candidateStyle` は先頭候補に**1始まりの順序番号**と**9px の太枠**を与え、docstring にも「primary stands out by border WEIGHT, **not hue alone**」と明記されている —— 緑/青の色差だけに依存しないための意図的な手がかり。ところが候補行は初期描画・`onHover`・`onHoverEnd` の**3つの独立した描画ブロック**を持ち、**ホバー系2つは番号を描かず `lineWidth = 5` を直書き**していた。結果、**候補にポインタを合わせた瞬間に番号が消え先頭の 9px 枠が 5px に落ち、`onHoverEnd` も描かないので二度と戻らない** —— 残るのは色だけ、という 1.4.1 違反そのもの。Session 48 で書いたサジェスト行は既に単一の `draw(hover)` を使っていたので、候補行を同じ形に統一した（描画ブロック3個 → `draw(false)`/`draw(true)` の2呼び出し）。
+- ✨ **feat (G-3 — 高コントラスト配線)**: `keyboardLayout.js` に純関数 `imeColors(highContrast)` を追加し、キー（idle/hover/latch の塗り・枠・ラベル）、変換候補列、URL サジェスト列、変換中入力欄、背面パネルのすべてを配線。`candidateStyle(index, highContrast)` も第2引数を取るよう拡張（既存呼び出しは後方互換）。
+- 🐛 **fix (実測した 1.4.11 違反2件)**: キーの枠線が塗りに対し **1.65:1**、非優先候補の枠線が **2.74:1**。どちらも**塗り自体がパネルに対し 1.25:1** なので、枠線が**キー同士を隔てる唯一の手がかり**だった —— 枠が見えないキーボードは「浮いたグリフの集合」で、どこを狙えばよいか分からない。`#7d8dbb`（4.7:1、hover/latch の塗りに対しても ≥3:1）と `#6486cc`（4.3:1）へ。
+- 📐 **高コントラストは「塗り」ではなく「枠」で識別を担保**: HC では塗りは黒パネルに対し低いまま（1.1〜1.6:1）で、**枠線が 7〜19:1** を持つ。1.4.11 が求めるのは「隣接色に対して 3:1」なので枠がそれを満たし、アプリ全体の「暗背景・明前景」という極性も保てる。
+- ✅ **test 64件追加**: 新規 `tests/vr-keyboard-candidates.test.js`（10件 —— **実際に描画された内容**を記録する canvas スタブで、`fillText` の文字列と `strokeRect` 時点の `lineWidth` を検証。パレット関数ではなく描画経路を見るのは、欠陥が描画側にしか無かったから）+ `tests/contrast.test.js` の掃引に IME の18ペア×2モードを追加（合計 234件）。pre-fix 検証: パレットと構造を残して**判断だけ**戻すと、ホバー破壊+HC で **5件 FAIL**、枠線の値だけ戻すと **3件 FAIL**。
+- ⚖️ **関連ソフトウェアの確認**: Wolvic（Igalia、Firefox Reality の後継）は "secure, open source, and **accessible**" を掲げるが、公開情報からは VR キーボードの高コントラスト対応の具体は確認できなかった。よって外部実装の模倣ではなく、**Session 69 で自前に確立した測定基盤（`contrast.js` + パレット掃引）**を同じ手順で適用する形を採った。
+- Total 1465 tests (51 suites); 0 lint errors (unchanged 84 warnings); build green; `npm run verify:layout` PASS(55通り)。
+
 ### Session 71: 角サイズ一定化 — パネル距離ステッパーが自分の最大値で全操作系を壊していた
 Session 70 が計測して**記録だけした H-2 を治療**した。`WindowManager` は `target.scale` を一度も触らないので、パネルの角サイズは距離に反比例する。設定ステッパー `vr.settings.panelDist` の範囲は **0.6〜6.0 m（10倍）**で、**6 m では全ターゲットが 0.33〜1.43° = 1.5° の視線フロア未満（視線では操作不能）**、0.6 m では逆に**パネル幅が 106°**（快適な中心視野 ~60° の倍）。設定が自分の許す値で自分を壊していた。
 - 🐛 **fix（前提の依存 その1 — ストリップがパネルを追随しない）**: `TabManager.stripGroup` はパネルの**兄弟**で固定座標に置かれ、`windowManager` は**アクティブパネルの group だけ**を管理していた。grab-to-move や follow でパネルを動かすと**ストリップだけ元の位置に取り残される**。
@@ -749,4 +759,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-17 (Session 71)
+**Last Revision**: 2026-08-17 (Session 72)
