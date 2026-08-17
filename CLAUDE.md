@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 73: 縦方向の監査 — 本文の最終行がページ送りボタンの下に潜り込んでいた
+Sessions 62〜68 は**横幅**を、70〜71 は**ターゲットの角サイズ**を測った。**縦**（行送り・下端の重なり）は一度も測っていなかったので、実 Chromium で本物のフォント垂直メトリクス（`actualBoundingBox`/`fontBoundingBox`）を実測して確認した。
+- 📐 **実測**: sans-serif のグリフ箱は **1.10〜1.14 em**、CJK の ink は **1.03〜1.05 em**。つまり baseline y の行は概ね y−0.95em 〜 y+0.22em に墨が乗る。
+- 🐛 **fix (a11y — 最終行が矢印帯と重なる)**: `visibleLineCount` は**コンテンツ領域の全高**で表示行数を決めていたが、その下端には **▲▼ 矢印（y 854〜926、x 804〜1008）と進捗ラベル（baseline 912）**が描かれる。実測すると **scale 1.0/1.3/1.5/2.0 の全てで最終行の ink が矢印帯（開始 y=854）に食い込む**（1.0 で 845〜868）。テキスト段は x 48〜976、矢印は x 804 から始まるので、**最終行が長ければ文字がボタンの下を通る**。しかも**低視力ユーザー向けのテキスト拡大が事態を悪化させる** —— scale 1.3 では進捗ラベルにも衝突する。
+- ✨ **循環の解き方**: 矢印は「記事が1画面を超えるときだけ」描かれるので、**予約するかどうかが行数に依存し、行数が予約に依存する**。新しい `visibleLinesFor(total, scale)` が2段階で解く —— 未予約数で収まるなら矢印は出ないのでそれが答え、収まらないなら予約は行数を**縮めるだけ**なのでスクロール可能性は変わらない（Session 63 で字幕のフォント/measure 循環を解いたのと同じ形）。
+- 🔒 **3箇所を1関数に集約**: 描画（`_drawReader`）・ヒットテスト（`_onContentSelect`）・`scrollContent` の3つが別々に `visibleLineCount` を呼んでいた。描画とヒットテストの不一致は **Session 52 で空白かつクリック不能なブックマークページを生んだ失敗モード**なので、全部 `visibleLinesFor` を通すようにした。
+- ⚖️ **直さなかったもの（I-2、記録のみ）**: `LINE_H = 34` 固定に対しフォントは title 30 / h 25 / p 20 で、行送り比は **1.13 / 1.36 / 1.70**。WCAG 1.4.12 が基準に使う 1.5 を**本文は満たすが title と heading は下回る**。ただし 1.4.12 は「ユーザーが 1.5 に上書きしても壊れないこと」の要件で canvas には上書き機構が無く、実測でも fontBox 33px < pitch 34px なので**文字は重ならない** —— 形式上の違反ではない。スタイルごとの行送りにすると行が可変高になり paging が「行数」から「積算ピクセル」へ変わるため、I-1 と混ぜず分離した。
+- ✅ **検証済み・変更不要（I-3）**: 字幕は `floor(rowH×0.62)` が効く間は行送り比 ≈ **1.61**。下限 22px が効くのは6行以上だが `maxLines 3 × MAX_ROWS_PER_LINE 2` で**最大6行**、そのとき **1.576** でぎりぎり満たす。`scale` は `min` の内側なので行を重ねる方向には効かない。
+- ✅ **test 12件追加**（`tests/readable-text.test.js`）: 4スケールで最終行が矢印帯を回避することを実測 ink 境界で assert + **未予約なら4スケール全てで衝突すること**を明示的に固定 + 進捗ラベル回避 + 短い記事は行を失わない + 予約は縮める方向にしか効かない。pre-fix 検証: ヘルパは残して**予約の値だけ**を 0 に戻すと **5件 FAIL**、復元で全通過。
+- Total 1477 tests (51 suites); 0 lint errors (unchanged 84 warnings); build green; `npm run verify:layout` PASS(55通り)。
+
 ### Session 72: IME —— ホバーが「色に依存しない手がかり」を破壊していた + 高コントラスト未対応の最後の面
 Session 69 で chrome とブックマークを `prefers-contrast` に配線したあと、**`JapaneseIME.js` だけが `prefersHighContrast()` を一度も呼んでいなかった**（G-3）。本製品の看板機能が最後の取り残しだったので着手し、途中でより重い欠陥を見つけた。
 - 🐛 **fix (a11y — WCAG 1.4.1、ホバーで手がかりが消える)**: `candidateStyle` は先頭候補に**1始まりの順序番号**と**9px の太枠**を与え、docstring にも「primary stands out by border WEIGHT, **not hue alone**」と明記されている —— 緑/青の色差だけに依存しないための意図的な手がかり。ところが候補行は初期描画・`onHover`・`onHoverEnd` の**3つの独立した描画ブロック**を持ち、**ホバー系2つは番号を描かず `lineWidth = 5` を直書き**していた。結果、**候補にポインタを合わせた瞬間に番号が消え先頭の 9px 枠が 5px に落ち、`onHoverEnd` も描かないので二度と戻らない** —— 残るのは色だけ、という 1.4.1 違反そのもの。Session 48 で書いたサジェスト行は既に単一の `draw(hover)` を使っていたので、候補行を同じ形に統一した（描画ブロック3個 → `draw(false)`/`draw(true)` の2呼び出し）。
@@ -759,4 +770,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-17 (Session 72)
+**Last Revision**: 2026-08-17 (Session 73)

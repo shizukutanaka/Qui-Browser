@@ -396,3 +396,72 @@ describe('WIDTH_SAFETY — budgets survive real font metrics', () => {
     expect(Number.isFinite(safeMeasureEm(100, 0))).toBe(true);
   });
 });
+
+// ── Vertical layout: text must not run under the paging affordance ──────────
+// Measured with real font metrics in headless Chromium: a sans-serif glyph box
+// is ~1.10–1.14 em and CJK ink ~1.03–1.05 em, so a baseline at y carries ink
+// from about y-0.95em to y+0.22em. `visibleLineCount` used to fill the whole
+// content height, putting the last baseline at y=864 — ink to y=868, inside the
+// arrow band that begins at y=854 — and the text column reaches x=976 while the
+// arrows start at x=804, so a long final line rendered under the buttons.
+describe('reader reserves the bottom strip for the arrows and progress label', () => {
+  const {
+    visibleLinesFor, visibleLineCount, CONTENT_BOTTOM_RESERVED,
+    ARROW_Y0, ARROW_H, ARROW_UP_X0, CONTENT_PX_W, CONTENT_PX_H, CONTENT_PAD, LINE_H
+  } = require('../src/vr/browser/readerLayout.js');
+
+  const INK_ASCENT = 0.95;   // measured upper bound (em)
+  const INK_DESCENT = 0.22;  // measured lower bound (em)
+  const lastInkBottom = (scale, visible) => {
+    const lh = LINE_H * scale;
+    return CONTENT_PAD + lh * visible + fontPxFor('p', scale) * INK_DESCENT;
+  };
+
+  test.each([1, 1.3, 1.5, 2])(
+    'at scale %s the last line clears the arrow band',
+    (scale) => {
+      const visible = visibleLinesFor(500, scale);
+      expect(lastInkBottom(scale, visible)).toBeLessThan(ARROW_Y0);
+    }
+  );
+
+  test.each([1, 1.3, 1.5, 2])(
+    'at scale %s the UNRESERVED count would have collided (the defect)',
+    (scale) => {
+      const naive = visibleLineCount(scale, false);
+      expect(lastInkBottom(scale, naive)).toBeGreaterThan(ARROW_Y0);
+    }
+  );
+
+  test('the last line also clears the progress label', () => {
+    for (const scale of [1, 1.3, 1.5, 2]) {
+      const visible = visibleLinesFor(500, scale);
+      const labelInkTop = (CONTENT_PX_H - 30) - 16 * INK_ASCENT;
+      expect(lastInkBottom(scale, visible)).toBeLessThan(labelInkTop);
+    }
+  });
+
+  test('the reserve covers the whole affordance band', () => {
+    expect(CONTENT_BOTTOM_RESERVED).toBeGreaterThanOrEqual(CONTENT_PX_H - ARROW_Y0);
+    // …and the arrows sit inside the text column horizontally, which is why a
+    // vertical reserve is required rather than just narrowing the last line.
+    expect(ARROW_UP_X0).toBeLessThan(CONTENT_PX_W - CONTENT_PAD);
+    expect(ARROW_Y0 + ARROW_H).toBeLessThanOrEqual(CONTENT_PX_H);
+  });
+
+  test('an article that fits on one screen keeps the full height (no arrows drawn)', () => {
+    // The reserve is conditional: with nothing to page through there is no
+    // affordance to avoid, so short articles must not lose lines to it.
+    const unreserved = visibleLineCount(1, false);
+    expect(visibleLinesFor(unreserved, 1)).toBe(unreserved);
+    expect(visibleLinesFor(1, 1)).toBe(unreserved);
+    expect(visibleLinesFor(unreserved + 1, 1)).toBeLessThan(unreserved);
+  });
+
+  test('reserving only ever shrinks the count, so the two-step is stable', () => {
+    for (const scale of [1, 1.3, 1.5, 2, 3]) {
+      expect(visibleLineCount(scale, true)).toBeLessThanOrEqual(visibleLineCount(scale, false));
+      expect(visibleLineCount(scale, true)).toBeGreaterThanOrEqual(1);
+    }
+  });
+});

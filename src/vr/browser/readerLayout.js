@@ -31,10 +31,65 @@ export const LINE_H = 34;
  */
 export const MEASURE_EM = 34;
 
+// ── Scroll affordance ────────────────────────────────────────────────────────
+// Arrow zones at the bottom-right of the content area, mirroring the bookmark
+// panel's convention so a controller ray and gaze-dwell both drive them
+// through the same onSelect path.
+export const ARROW_W = 96;
+export const ARROW_H = 72;
+export const ARROW_GAP = 12;
+export const ARROW_Y0 = CONTENT_PX_H - ARROW_H - 16;
+export const ARROW_DN_X0 = CONTENT_PX_W - ARROW_W - 16;
+export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
+
+/**
+ * Vertical strip at the bottom of the content area reserved for the paging
+ * affordance — the ▲▼ arrows and the "12–34/56" progress label.
+ *
+ * `visibleLineCount` used to fill the *whole* content height, so the last text
+ * line was drawn straight through that strip: measured at scale 1 the last
+ * baseline lands at y=864 with ink to y=868, inside the arrow band that starts
+ * at y=854, and a long line runs under the buttons horizontally too (the text
+ * column reaches x=976, the arrows start at x=804). It got worse, not better,
+ * with the reader text-scale control that low-vision users need — at scale 1.3
+ * the last line collides with the progress label as well.
+ */
+export const CONTENT_BOTTOM_GAP = 8;
+export const CONTENT_BOTTOM_RESERVED = (CONTENT_PX_H - ARROW_Y0) + CONTENT_BOTTOM_GAP;
+
 /** Lines that fit the viewport at a given scale. */
-export function visibleLineCount(scale = 1) {
+export function visibleLineCount(scale = 1, reserveBottom = false) {
   const lh = LINE_H * (scale > 0 ? scale : 1);
-  return Math.max(1, Math.floor((CONTENT_PX_H - 2 * CONTENT_PAD) / lh));
+  const avail = CONTENT_PX_H - 2 * CONTENT_PAD
+    - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
+  return Math.max(1, Math.floor(avail / lh));
+}
+
+/**
+ * Lines actually shown for an article of `total` lines.
+ *
+ * The reserve is conditional on the arrows being drawn, and the arrows are only
+ * drawn when the article overflows — a circular dependency, resolved the same
+ * way the caption font/measure circularity was: take the unreserved count
+ * first; if the article fits inside it there is no affordance to avoid, so that
+ * count stands. Otherwise the article is scrollable either way (reserving only
+ * ever shrinks the count), so the reserved count is the stable answer.
+ *
+ * Every caller must use THIS, not `visibleLineCount` directly — the draw path
+ * and the hit-test path disagreeing about how many lines are on screen is the
+ * failure mode that produced a blank, un-clickable bookmark page in Session 52.
+ *
+ * @param {number} total  lines in the article
+ * @param {number} [scale=1]
+ * @returns {number}
+ */
+export function visibleLinesFor(total, scale = 1) {
+  const unreserved = visibleLineCount(scale, false);
+  const n = Number(total) || 0;
+  if (n <= unreserved) {
+    return unreserved;
+  }
+  return visibleLineCount(scale, true);
 }
 
 /**
@@ -155,16 +210,6 @@ export function readerProgressLabel(offset, total, visible) {
   return `${start + 1}–${Math.min(start + v, n)}/${n}`;
 }
 
-// ── Scroll affordance ────────────────────────────────────────────────────────
-// Arrow zones at the bottom-right of the content area, mirroring the bookmark
-// panel's convention so a controller ray and gaze-dwell both drive them
-// through the same onSelect path.
-export const ARROW_W = 96;
-export const ARROW_H = 72;
-export const ARROW_GAP = 12;
-export const ARROW_Y0 = CONTENT_PX_H - ARROW_H - 16;
-export const ARROW_DN_X0 = CONTENT_PX_W - ARROW_W - 16;
-export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
 
 /**
  * Lines a page-jump moves.

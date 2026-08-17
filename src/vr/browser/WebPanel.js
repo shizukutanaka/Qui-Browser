@@ -26,7 +26,7 @@ import {
 import { extractReadableText } from './readableText.js';
 import {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLineCount, fontPxFor, LINE_H, CONTENT_PAD,
+  visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
@@ -370,7 +370,7 @@ export class WebPanel {
    * + progress indicator) so scrolling behaves the same way across panels.
    */
   _drawReader(ctx, w, h, col) {
-    const visible = visibleLineCount(this._readerScale);
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const total = this._readerLines.length;
     // Clamp on the draw path too — the same discipline as BookmarkPanel, so
     // draw and input can never disagree and render an empty window.
@@ -437,7 +437,7 @@ export class WebPanel {
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
 
-    const visible = visibleLineCount(this._readerScale);
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;
     const action = readerHitTest(px, py, scrollable);
     if (action.type === 'scrollUp') {
@@ -458,7 +458,7 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return false;
     }
-    const visible = visibleLineCount(this._readerScale);
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const next = clampReaderScroll(
       this._readerScroll + (Number.isFinite(delta) ? delta : 0),
       this._readerLines.length,
