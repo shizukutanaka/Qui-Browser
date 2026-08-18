@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き2）: step 4/5「サイクルタイム短縮・自動化」— アプリを一度も起動していなかった
+- 🔧 **new `tools/verify-app-boot.mjs`（依存ゼロ・Playwright 不使用）**: **このリポジトリのテストは一度もアプリを起動していなかった。** `new VRApp()` は Jest で構築不能（`setupRenderer()` が実 GPU を要求）なので全ユニットテストは prototype-binding で回避している —— 意図的な妥協だが、**モジュールの実行時エラーは原理的に捕捉できない**。実際この Session の削除では、死んだ `manualChunks` エントリと消えたクラスへの docstring 参照の2件が、手でビルドしてエラーを読んで初めて見つかった。それを自動化した。
+- **検証内容**: `dist/`（＝実際に出荷されるもの）を一時 HTTP で配信 → 実 Chromium で起動 → 主要 DOM（app-container / Enter VR / 言語トグル / a11y ボタン）の存在、module entry の実行、**ランタイム例外と console error がゼロ**であることを検査。
+- ✅ **捕捉能力を実証**: (1) `main.js` に**ビルドは通るランタイム例外**を仕込むと `FAIL … Uncaught TypeError` を検出（ビルドでは捕捉できない種類の欠陥）、(2) Enter-VR ボタンの id を改名すると `FAIL Enter VR control present`、(3) 復元で PASS。**green が意味を持つことを確認してから**採用した。
+- 🔧 `npm run ci:verify` を `build && verify:layout && verify:app` に。両 playbook の検証手順にも追記。
+- Total 1364 tests (46 suites); 0 lint errors (50 warnings); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き）: step 1「要件を賢くする」+ step 3「簡素化」
 削除（step 2）に続けて残りのアルゴリズムを適用した。
 - 📐 **step 1（実測による要件の訂正）**: `enableWebPanel` を既定 true にすべきか判断するため、実サイトが HTML に `Access-Control-Allow-Origin` を返すか**実測**した —— Wikipedia / MDN / example.com / NHK の **4/4 で無し**。つまり今フラグを立てると「ほぼ全ての遷移で『表示できません』と出るブラウザ」を出荷することになる。**既定 false が正しい**と再確認（推測ではなく実測で）。なお sandbox の proxy が外部 API を 403 で拒否するため、CORS 対応 API（Wikipedia REST 等）の可用性は**確認できなかった**ので、それを前提にした実装はしていない。

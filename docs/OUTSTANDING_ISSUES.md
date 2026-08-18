@@ -468,6 +468,25 @@ Sessions 46/54/55/56 が1つずつコントロールを足し続けた結果、�
 `tests/settings-layout.test.js` の `HONEST LIMIT` テストがこの値を明示的に固定しているので、
 「収まっている」と誤認されることはない。
 
+### J-4. 完了（step 4/5「サイクルタイム短縮・自動化」）: 起動スモーク `npm run verify:app`
+
+**このリポジトリのテストは一度もアプリを起動していなかった。** `new VRApp()` は Jest で構築不能
+（`setupRenderer()` が実 GPU を要求）なので、全ユニットテストは prototype-binding で回避している。
+これは意図的な妥協だが、**モジュールの実行時エラーは原理的に捕捉できない**という穴が残る。
+実際 Session 74 の削除では、死んだ `manualChunks` エントリと消えたクラスへの docstring 参照の2件が、
+手でビルドしてエラーを読んで初めて見つかった。
+
+`tools/verify-app-boot.mjs`（依存ゼロ・Playwright 不使用）が `dist/` を一時 HTTP で配信し、
+実 Chromium で起動して検証する: 主要 DOM（app-container / Enter VR / 言語トグル / a11y ボタン）の存在、
+module entry の実行、**ランタイム例外と console error がゼロ**であること。
+
+**捕捉能力を実証済み**:
+- `main.js` に**ビルドは通るランタイム例外**を仕込む → `FAIL … Uncaught TypeError` を検出
+- `index.html` の Enter-VR ボタン id を改名 → `FAIL Enter VR control present` を検出
+- 復元 → PASS
+
+`npm run ci:verify` が `build && verify:layout && verify:app` を実行する。
+
 ### J-3. 実測: 一般 Web は CORS 的に到達不能（`enableWebPanel` 既定 false の再確認）
 
 `enableWebPanel` を true にすべきか判断するため、実サイトが HTML ドキュメントに
