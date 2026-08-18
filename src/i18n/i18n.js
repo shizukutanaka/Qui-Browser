@@ -101,7 +101,8 @@ const CATALOG = {
     'vr.msg.moveBarLabel': 'Move bar',
     'vr.msg.panelGrabbed': 'Panel grabbed',
     'vr.msg.panelMoved': 'Panel moved',
-    'vr.msg.webPanelReloadRequired': 'Reload the page to apply this setting',
+    'vr.msg.webPanelOn': 'Browsing panel enabled',
+    'vr.msg.webPanelOff': 'Browsing panel closed',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -199,7 +200,8 @@ const CATALOG = {
     'vr.msg.moveBarLabel': '移動バー',
     'vr.msg.panelGrabbed': 'パネルをつかみました',
     'vr.msg.panelMoved': 'パネル移動完了',
-    'vr.msg.webPanelReloadRequired': 'この設定を反映するにはページを再読み込みしてください',
+    'vr.msg.webPanelOn': 'ブラウジングパネルを有効にしました',
+    'vr.msg.webPanelOff': 'ブラウジングパネルを閉じました',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',

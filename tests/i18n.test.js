@@ -80,13 +80,17 @@ describe('src/i18n/i18n', () => {
     setLanguage('en');
   });
 
-  test('translates vr.settings.webPanel / vr.msg.webPanelReloadRequired (enableWebPanel toggle)', () => {
+  test('translates vr.settings.webPanel and its on/off status messages', () => {
+    // The toggle used to say "reload the page"; it now applies immediately, so
+    // the messages describe what actually happened.
     setLanguage('en');
     expect(t('vr.settings.webPanel')).toBe('Web Browser Panel');
-    expect(t('vr.msg.webPanelReloadRequired')).toBe('Reload the page to apply this setting');
+    expect(t('vr.msg.webPanelOn')).toBe('Browsing panel enabled');
+    expect(t('vr.msg.webPanelOff')).toBe('Browsing panel closed');
     setLanguage('ja');
     expect(t('vr.settings.webPanel')).toBe('ブラウザパネル');
-    expect(t('vr.msg.webPanelReloadRequired')).toBe('この設定を反映するにはページを再読み込みしてください');
+    expect(t('vr.msg.webPanelOn')).toBe('ブラウジングパネルを有効にしました');
+    expect(t('vr.msg.webPanelOff')).toBe('ブラウジングパネルを閉じました');
     setLanguage('en');
   });
 
