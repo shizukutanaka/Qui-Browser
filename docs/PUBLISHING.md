@@ -23,8 +23,19 @@
 > | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
 > | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
 >
-> A good replacement for the removed checks, which runs everything this repo
-> actually verifies:
+> **A ready-to-apply patch is committed at
+> `docs/patches/0001-ci-drop-assets-js-steps.patch`** — verified to apply
+> cleanly to `main` and to leave zero `assets/js` references behind:
+>
+> ```bash
+> git checkout main && git pull
+> git am docs/patches/0001-ci-drop-assets-js-steps.patch
+> git push
+> ```
+>
+> (`git apply` instead of `git am` if you'd rather write your own commit message.)
+>
+> If you prefer to also add a job that runs what this repo actually verifies:
 >
 > ```yaml
 >       - run: npm ci
