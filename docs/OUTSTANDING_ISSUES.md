@@ -107,7 +107,12 @@ A-1 / A-2 は Session 38 から凍結されていたが、ユーザーが「イ�
 ### C-5. `enableWebPanel` が到達不能だった（優先度: 高、Session 51 で発見・部分修正）
 - **対象**: `src/vr/VRApp.js`（`settings.enableWebPanel` の既定値および参照箇所: 229, 546, 1318, 1509, 2476行目付近）
 - **発見の経緯**: マルチエージェントの並行監査ワークフローが「BookmarkPanel の scrollOffset 未クランプ」「LayersSystem の XRQuadLayer リーク」「WindowManager の grab 競合」という3件の候補バグを個別に「到達可能」と判定したが、うち1件（WindowManager 競合）を担当した検証エージェントが独自に `enableWebPanel` の既定値・構築経路を追跡した結果、**この設定が day 1 から `false` 固定で、設定パネル・音声コマンド・永続化設定のどの経路からも real user が `true` にする手段が一切存在しない**ことを発見。直接確認した結果、`tabManager`/`webPanel`/`bookmarkPanel`/`windowManager` の構築（546–668行目）および `_attachLayersToPanels()`（2476行目）は全て同じ `if (this.settings.enableWebPanel)` にゲートされており、`docs/SPEC.md` が FR-1.2〜FR-1.7（URL バー・タブ・ブックマーク・Layers・ウィンドウ管理・湾曲パネル）を軒並み「✅ 実装済み」と記載しているにもかかわらず、**25セッション分（Session 25前後〜48）の機能追加・改修が実際のアプリでは一度も real user に到達したことがない**という結論に至った。この事実確認により、上記3件の候補バグのうち BookmarkPanel と LayersSystem の2件は「機能自体は本物のバグだが、現状は enableWebPanel が false のため到達不能」であり、WindowManager 競合の1件は明確に到達不能と判定された。
-- **今回の対応（部分修正）**: 設定パネルに `enableWebPanel` のトグルボタンを追加（`vr.settings.webPanel` / 新規メソッド `_onWebPanelToggleChanged()`）。これは他の全トグルと違い、対象サブシステムの構築が `initializeSystems()`（constructor から一度だけ実行）に一度きりなので、トグルしても即座には反映されない — トグル時に `vr.msg.webPanelReloadRequired`（"Reload the page to apply this setting" / ja: "この設定を反映するにはページを再読み込みしてください"）を `showVRToast` で表示し、正直に次回リロードが必要である旨を伝える設計とした。**既定値そのもの（`false`）は意図的に変更していない** — 何が real な VR 体験のデフォルトになるかはプロダクト判断であり、単なるバグ修正の範疇を超えると判断したため、まずは「有効化する手段が皆無」という到達不能性そのものだけを解消した。ユーザーが既定値を `true` に変更してよいと明示的に指示すれば次のセッションで一行変更できる。
+- **Session 51（部分修正）**: 設定パネルに `enableWebPanel` のトグルを追加。ただし対象サブシステムの構築が `initializeSystems()`（constructor から一度だけ実行）に埋まっていたため、**トグルは「リロードが必要」と告げるだけで何もしなかった**。
+- **Session 74（完了）**: 「構築は一度きり」は**要件ではなく配置の事故**だったので、124行の構築ブロックを `_buildBrowsingSystems()` に抽出し、対称な `_teardownBrowsingSystems()` を追加。トグルは**その場で**構築/破棄するようになった。
+  - **なぜこれが本質的だったか**: VR で「ページを再読み込みしてください」は**ヘッドセットを外せ**という意味。トグルが存在しても、その代償を払う人はいない。つまり既定値が false かどうか以前に、**機能群は実質的に到達不能なままだった**。
+  - `_buildBrowsingSystems()` は冪等（二重トグルでパネルが二重生成されない）。`_teardownBrowsingSystems()` は interactable を確実に解放する（S49 のゴーストハンド・S52 の quad layer と同じ失敗モードを避けるため）。
+  - i18n は `vr.msg.webPanelReloadRequired` を廃し、実際に起きたことを言う `vr.msg.webPanelOn` / `webPanelOff` に置換。
+- **既定値そのもの（`false`）は依然として意図的に未変更**: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
 - **検証済みだった残課題2件 — 両方 Session 52 で修正完了**（`enableWebPanel: true` にして初めて到達可能になるが、トグルで到達可能になったため対応した）:
   - ~~**BookmarkPanel の scrollOffset 未クランプ**~~ — **完了（Session 52）**。共有ヘルパー `_clampScroll(rowCount)` を追加し、`_draw()`・`_onSelect()`（ヒットテスト前）・`deleteRow` ケースの3経路すべてがこれを通すようにした。チロームバー☆ボタン等パネル外経路でブックマークが減っても、描画・クリック双方でスタックした offset がクランプされ、空白ページ＋全クリック死亡が起きなくなった。3テスト（`tests/bookmark-panel.test.js`、うち2件 pre-fix で fail 確認）。
   - ~~**LayersSystem の XRQuadLayer リーク**~~ — **完了（Session 52）**。`WebPanel.enableLayerMode()` に layer id と detach コールバックを渡すよう拡張し、`disableLayerMode(releaseLayer=true)`（タブ close→dispose 経路）が `VRApp._detachPanelLayer(id)` 経由で `LayersSystem.removeLayer(id, session, baseLayer)` を呼んでネイティブ層をレンダーステートから外すようにした。session-end のバルクテアダウンは `disableLayerMode(false)` を渡す（`dispose()` が層スタックごと破棄するうえ、終了中セッションへの `updateRenderState()` は throw するため）。WebPanel は XRSession を知らないまま（session/baseLayer 解決は VRApp 側）。8テスト（`tests/webpanel-states.test.js` 5件・`tests/vr-app-wiring.test.js` 2件・pre-fix で fail 確認、`removeLayer` 単体は既に `tests/layers-system.test.js` でカバー済み）。
@@ -149,13 +154,13 @@ A-1 / A-2 は Session 38 から凍結されていたが、ユーザーが「イ�
 - **公開準備完了のソース**: main（tested・release-ready・サブパス対応ビルド）。オーナー手順は `docs/PUBLISHING.md`。
 
 ### 短所（未解決）
-- **`enableWebPanel` 既定 false**: 中核ブラウジング機能群（WebPanel/TabManager/BookmarkPanel/WindowManager/Layers）が休眠。既定値変更はプロダクト判断（C-5、ユーザー名指し待ち）。
-- **設定パネルの飽和**: Session 54-56 で項目が増え、フラット2カラムは発見性の限界（C-2、優先度を「低」→「高」に昇格）。
+- **`enableWebPanel` 既定 false**: ただし Session 74 でトグルが**その場で効く**ようになったため、ヘッドセットを外さず1タップで有効化できる。既定値変更のみプロダクト判断（C-5）。
+- ~~**設定パネルの飽和**~~ — **Session 74 で解消**（アコーディオン化、J-0/J-1）。
 - **VRApp モノリス（~3300行）**: 分割は AccessibilityCoordinator パターンで継続可能だが未完。
-- **視覚/E2E テスト不在**: canvas UI は headless で目視検証不能。Playwright 未導入（この実行環境は Chromium プリインストール済みで導入可能）。
+- ~~**E2E テスト不在**~~ — **Session 74 で `npm run verify:app` を追加**（実 Chromium で起動、依存ゼロ、J-4）。canvas の目視検証自体は依然不可だが、`verify:layout`/`contrast`/`target-size` が測定で代替。
 - **効果音アセット欠落**: `assets/sounds/*.mp3` はリポジトリに存在せず graceful 404（音声は無効に degrade）。
 - **docs/archive の肥大**: 117ファイル。陳腐化した主張を含むが A-1 凍結の一部として改変禁止。
-- **凍結事項**: A-1（死コード削除）・A-2（未使用 devDependencies 削除）はユーザーの明示的名指し待ち。main 上の `cd.yml`/`release.yml` は壊れているが本セッション権限（403）では修正不能。
+- ~~**凍結事項 A-1/A-2**~~ — **Session 74 で削除完了**。workflow の破損は依然 403 で修正不能（K-1、オーナー作業）。
 
 ### 改善案（優先度・推奨モデル付き）
 | ID | 改善案 | 優先度 | 推奨 | 受け入れ基準 |

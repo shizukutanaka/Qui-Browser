@@ -829,27 +829,68 @@ describe('VRApp._cancelTeleportIfAimedBy', () => {
 });
 
 describe('VRApp._onWebPanelToggleChanged', () => {
-  // enableWebPanel gates a one-shot construction in initializeSystems() (never
-  // re-run after the constructor), so toggling it live cannot retroactively
-  // build tabManager/webPanel/bookmarkPanel/windowManager — the toggle can
-  // only honestly tell the user a reload is required (WCAG 4.1.3), unlike
-  // every other settings-panel toggle, which takes effect immediately.
+  // This toggle used to be able to do nothing but say "reload the page":
+  // enableWebPanel gated a one-shot construction inside initializeSystems(),
+  // which runs once from the constructor. In a headset "reload" means take the
+  // device off, so the whole browsing feature area was unreachable in practice.
+  // Construction now lives in _buildBrowsingSystems(), callable at runtime.
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  test('fires a cross-modal status message explaining a reload is required', () => {
-    const camera = { add: jest.fn(), remove: jest.fn() };
-    // _onWebPanelToggleChanged() calls this.showVRToast() internally — supply
-    // the real prototype method (the fake `this` here is a plain object
-    // literal, not an instance of VRApp).
-    const app = makeVRAppLike({ isVREnabled: true, camera, showVRToast: VRApp.prototype.showVRToast });
-    VRApp.prototype._onWebPanelToggleChanged.call(app);
+  const makeToggleApp = (over = {}) => makeVRAppLike({
+    isVREnabled: true,
+    camera: { add: jest.fn(), remove: jest.fn() },
+    showVRToast: VRApp.prototype.showVRToast,
+    _buildBrowsingSystems: jest.fn(),
+    _teardownBrowsingSystems: jest.fn(),
+    _attachManagedWindow: jest.fn(),
+    settings: { enableWebPanel: false },
+    ...over
+  });
 
-    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
-    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/reload|再読み込み/i);
-    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledTimes(1);
+  test('turning it ON builds the browsing systems immediately', () => {
+    const app = makeToggleApp();
+    VRApp.prototype._onWebPanelToggleChanged.call(app, true);
+
+    expect(app._buildBrowsingSystems).toHaveBeenCalledTimes(1);
+    expect(app._teardownBrowsingSystems).not.toHaveBeenCalled();
+    // …and the window manager is pointed at the newly-built panels.
+    expect(app._attachManagedWindow).toHaveBeenCalled();
+  });
+
+  test('turning it OFF tears them down immediately', () => {
+    const app = makeToggleApp({ settings: { enableWebPanel: true } });
+    VRApp.prototype._onWebPanelToggleChanged.call(app, false);
+
+    expect(app._teardownBrowsingSystems).toHaveBeenCalledTimes(1);
+    expect(app._buildBrowsingSystems).not.toHaveBeenCalled();
+  });
+
+  test('confirms cross-modally which way it went (WCAG 4.1.3)', () => {
+    const on = makeToggleApp();
+    VRApp.prototype._onWebPanelToggleChanged.call(on, true);
+    expect(on.captionSystem.show).toHaveBeenCalledTimes(1);
+    expect(on.captionSystem.show.mock.calls[0][0]).toMatch(/enabled|有効/i);
+    expect(on.hapticFeedback.playPatternBothHands).toHaveBeenCalledTimes(1);
+
+    const off = makeToggleApp();
+    VRApp.prototype._onWebPanelToggleChanged.call(off, false);
+    expect(off.captionSystem.show.mock.calls[0][0]).toMatch(/closed|閉じ/i);
+  });
+
+  test('no longer tells the user to reload — that was the defect', () => {
+    const app = makeToggleApp();
+    VRApp.prototype._onWebPanelToggleChanged.call(app, true);
+    expect(app.captionSystem.show.mock.calls[0][0]).not.toMatch(/reload|再読み込み/i);
+  });
+
+  test('falls back to the persisted setting when called with no argument', () => {
+    const app = makeToggleApp({ settings: { enableWebPanel: true } });
+    VRApp.prototype._onWebPanelToggleChanged.call(app);
+    expect(app._buildBrowsingSystems).toHaveBeenCalledTimes(1);
   });
 });
+
 
 describe('VRApp._clearBrowsingHistory (privacy action)', () => {
   beforeEach(() => jest.useFakeTimers());
@@ -949,5 +990,61 @@ describe('VRApp._detachPanelLayer', () => {
   test('no-ops safely when layersSystem is not present (Layers unsupported)', () => {
     const app = makeLayerApp({ layersSystem: null });
     expect(() => VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_0')).not.toThrow();
+  });
+});
+
+describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
+  // Symmetry matters more than usual here: the toggle can now be flipped any
+  // number of times in a live session, so a leak or a double-build compounds.
+  const makeApp = () => makeVRAppLike({
+    scene: { add: jest.fn(), remove: jest.fn() },
+    windowManager: { detach: jest.fn(), attach: jest.fn(), target: null },
+    tabManager: null,
+    bookmarkPanel: null,
+    webPanel: null
+  });
+
+  test('teardown disposes the tab manager and the bookmark panel, and detaches', () => {
+    const app = makeApp();
+    app.tabManager = { dispose: jest.fn() };
+    app.bookmarkPanel = { dispose: jest.fn() };
+
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+
+    expect(app.tabManager).toBeNull();
+    expect(app.bookmarkPanel).toBeNull();
+    expect(app.webPanel).toBeNull();
+    // Leaving the manager attached to a disposed group is the ghost-target
+    // failure mode fixed for hand models (S49) and quad layers (S52).
+    expect(app.windowManager.detach).toHaveBeenCalledTimes(1);
+  });
+
+  test('teardown disposes a standalone webPanel when tabs are not in use', () => {
+    const app = makeApp();
+    const webPanel = { dispose: jest.fn() };
+    app.webPanel = webPanel;
+
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+
+    expect(webPanel.dispose).toHaveBeenCalledTimes(1);
+    expect(app.webPanel).toBeNull();
+  });
+
+  test('teardown is safe when nothing was ever built', () => {
+    const app = makeApp();
+    expect(() => VRApp.prototype._teardownBrowsingSystems.call(app)).not.toThrow();
+    expect(app.tabManager).toBeNull();
+  });
+
+  test('build is idempotent — a double toggle cannot create two panel sets', () => {
+    const app = makeApp();
+    const existing = { dispose: jest.fn() };
+    app.tabManager = existing;
+
+    VRApp.prototype._buildBrowsingSystems.call(app);
+
+    // Returned early: the existing manager is untouched, not replaced.
+    expect(app.tabManager).toBe(existing);
+    expect(app.scene.add).not.toHaveBeenCalled();
   });
 });

@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き5）: 「リロードしてください」は VR では「ヘッドセットを外せ」— トグルを実際に効かせた
+「もう一度試す」を受けてアルゴリズムを再適用。**step 1 で私がまだ十分に疑っていなかった要件**が1つ残っていた —— `enableWebPanel` の構築が「一度きり」であること。
+- 🔍 **診断**: Session 51 は設定トグルを追加したが、その apply コールバックは `showVRToast('リロードが必要')` **だけ**だった。構築が `initializeSystems()`（constructor から1回のみ実行）に埋まっていたため。つまり中核ブラウジング機能群に到達するには「トグルを探す → 押す → **ヘッドセットを外す** → ページを再読み込み → 被り直す → VR に再入場」が必要で、**既定値が false かどうか以前に実質到達不能**だった。
+- 📐 **要件の訂正**: 「構築は一度きり」は**要件ではなく配置の事故**。124行の構築ブロックを `_buildBrowsingSystems()` に抽出し、対称な `_teardownBrowsingSystems()` を追加。トグルは**その場で**構築/破棄する。
+- 🔒 **対称性を重視**: トグルはライブセッション中に何度でも往復しうるので、リークや二重生成が累積する。`_buildBrowsingSystems()` は**冪等**（既存があれば早期 return）、`_teardownBrowsingSystems()` は **interactable を確実に解放**（S49 のゴーストハンド・S52 の quad layer リークと同じ失敗モード）。
+- 🌐 **i18n**: `vr.msg.webPanelReloadRequired` を廃止し、実際に起きたことを言う `vr.msg.webPanelOn` / `webPanelOff` に置換（en/ja）。
+- ⚖️ **既定値は据え置き**: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる。ただし**ヘッドセットを外さず1タップで有効化できる**ようになったので、到達不能性の問題そのものは解消。既定値はプロダクト判断としてユーザーの名指し待ち。
+- ✅ **test 9件追加**（トグルの ON/OFF が即座に構築/破棄する・クロスモーダル確認・**「リロード」と言わないこと**・引数省略時は永続値・teardown の対称性・冪等性）。pre-fix 検証: 抽出は残して**トグルの中身だけ**を旧スタブに戻すと **5件 FAIL**。
+- Total 1428 tests (47 suites); 0 lint errors (52 warnings); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き4）: 削除の後始末 — 自分の削除が CI を壊していた
 - 🐛 **実測で発見**: `assets/js/` を消した結果、**`.github/workflows/` の5ファイル**が存在しないパスを参照。`deploy.yml` の `find assets/js -name "vr-*.js"` は **exit 1 で失敗する**（実行して確認）。つまり**自分の削除で CI を壊していた**。
 - ⚠️ **自動化では直せない**: `.github/workflows/**` の push は 403（`without workflows permission`）で複数セッション実測済み。**黙って放置せず**、`docs/PUBLISHING.md` の**冒頭に警告ブロック**として、どのファイルのどのステップを削除すべきかと代替 CI（`npm test && npm run lint && npm run ci:verify`）をコピー可能な形で明記。`OUTSTANDING_ISSUES.md` K-1 にも記録。該当ステップは全て「今は存在しないレガシーコードを検査するもの」なので修正ではなく**削除**が正しい。
