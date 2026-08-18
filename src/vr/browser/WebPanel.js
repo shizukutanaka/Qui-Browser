@@ -299,7 +299,7 @@ export class WebPanel {
     }
 
     ctx.textAlign = 'center';
-    const lines = contentStateLines(this._contentState, this.currentUrl);
+    const lines = contentStateLines(this._contentState, this.currentUrl, !!this.readerProxyUrl);
     ctx.fillStyle = col.stateTitle;
     ctx.font = '28px sans-serif';
     ctx.fillText(truncate(lines.title, 46), w / 2, h / 2 - 20);

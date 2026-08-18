@@ -155,22 +155,35 @@ export function elideUrlForDisplay(url, maxChars = 61) {
  *
  * @param {'empty'|'loading'|'unavailable'|'error'} state
  * @param {string} [url]
+ * @param {boolean} [hasProxy=false] whether a companion reader proxy is configured
  * @returns {{title: string, detail: string}}
  */
-export function contentStateLines(state, url = '') {
+export function contentStateLines(state, url = '', hasProxy = false) {
   const host = parseDisplayUrl(url).host;
   switch (state) {
   case 'loading':
     return { title: 'Loading…', detail: host };
   case 'unavailable':
-    // The honest message: the navigation itself worked, the *rendering* is
-    // what this architecture cannot do.
-    return {
-      title: 'Page content cannot be shown in VR',
-      detail: host
-        ? `${host} — navigation recorded; in-headset rendering is not supported`
-        : 'Navigation recorded; in-headset rendering is not supported'
-    };
+    // Honest AND actionable. It used to say only "in-headset rendering is not
+    // supported", which was a dead end and, once the companion proxy existed,
+    // no longer even accurate — with a proxy configured, rendering works.
+    // Measured cause: general sites send no Access-Control-Allow-Origin on
+    // their HTML, so the browser cannot fetch them directly. Saying which of
+    // the two situations the user is in is the difference between "this is
+    // broken" and "here is the one thing that fixes it".
+    return hasProxy
+      ? {
+        title: 'Could not read this page',
+        detail: host
+          ? `${host} — the reader proxy could not fetch it`
+          : 'The reader proxy could not fetch this page'
+      }
+      : {
+        title: 'This site does not allow direct reading',
+        detail: host
+          ? `${host} sends no CORS header — run a reader proxy (docs/PROXY.md)`
+          : 'Site sends no CORS header — run a reader proxy (docs/PROXY.md)'
+      };
   case 'error':
     return { title: 'Failed to load', detail: host };
   default:
