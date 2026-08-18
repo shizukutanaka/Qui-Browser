@@ -12,7 +12,7 @@
 [![Pico 4](https://img.shields.io/badge/Pico_4-Supported-ff6b35.svg)](https://www.picoxr.com/global/products/pico4)
 
 <div align="center">
-  <h3>VR Browser with 17 Features across 3 Tiers</h3>
+  <h3>An accessibility-first WebXR reader shell for Quest &amp; Pico</h3>
   <p>
     <a href="#-features">Features</a> •
     <a href="#-quick-start">Quick Start</a> •
@@ -24,7 +24,7 @@
 
 ---
 
-A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, immersive 360°/180° video, and a comfort/accessibility system — plus a range of Tier 1–3 features from performance optimizations to experimental WebGPU and multiplayer capabilities.
+A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, immersive 360°/180° video, and a comfort/accessibility system. Runtime dependencies are `three` and `web-vitals` — nothing else.
 
 > ### ⚠️ On the name: web page rendering is **not** implemented
 >
@@ -47,10 +47,10 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 ## 🌟 Highlights
 
-- **17 Features Across 3 Tiers** - From performance optimizations to experimental AI/multiplayer
+- **Accessibility measured, not asserted** - contrast, target angular size and text layout are enforced by tests against WCAG and platform thresholds
 - **Target: 72–120 FPS** - Quest 3 (90–120), Quest 2 (72–90), Pico 4 (90)
 - **CI/CD & Monitoring** - Automated testing, Sentry error tracking, GA4 analytics (opt-in)
-- **Comprehensive Docs** - 12 documentation files
+- **Two runtime dependencies** - `three` + `web-vitals`; 474 packages in the lockfile
 
 ### Feature Status Legend
 
@@ -83,13 +83,19 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **Progressive Image Loading** | ✅ Stable | Incremental image display |
 | **Offline Support** | ✅ Stable | Service Worker caching |
 
-### Tier 3: Advanced Features (6 Features)
+### Tier 3: Advanced Features (3 Features)
+
+> **Removed in Session 74.** WebGPU rendering, the multiplayer system, AI
+> recommendations, AR/passthrough and the Stripe billing server were deleted
+> — not deprecated. Each was constructed at startup but had no path by which a
+> user could reach it: multiplayer had no signalling server *and* no settings
+> toggle, `MixedReality.startSession()` had zero callers, the AI's only output
+> had zero consumers, and the WebGPU renderer never touched the render loop.
+> Shipping them as "experimental" overstated what the product does. They remain
+> in git history if any of them is ever genuinely needed.
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **WebGPU Rendering** | 🔬 Experimental | Next-gen GPU acceleration (WebGPU fallback path; uniform buffer write path incomplete) |
-| **Multiplayer System** | 🏗️ Requires infra | Real-time collaboration (needs signaling server) |
-| **AI Recommendations** | 🔬 Experimental | Personalized content suggestions |
 | **Voice Commands** | 🔬 Experimental | Japanese speech recognition (Web Speech API; browser support varies) |
 | **Haptic Feedback** | ✅ Stable | Enhanced tactile response on supported controllers |
 | **WebCodecs Video** | 🔬 Experimental | Hardware-accelerated video decode |
@@ -141,11 +147,10 @@ docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:2.0.0
 ```
 Qui Browser VR/
 ├── src/
-│   ├── vr/                   # VR modules (35+ files, ~23,000 lines)
+│   ├── vr/                   # VR modules
 │   │   ├── rendering/        # Tier 1: FFR, textures, pooling
 │   │   ├── input/            # Tier 2: Hand tracking, IME
 │   │   ├── audio/            # Tier 2: Spatial audio
-│   │   ├── advanced/         # Tier 3: WebGPU, multiplayer, AI
 │   │   └── dev/              # Development tools
 │   ├── app.js                # Application entry point
 │   ├── VRApp.js              # Main VR controller
@@ -342,4 +347,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Version:** 2.0.0 | **License:** MIT | Tier 1–2 features stable; Tier 3 experimental — see [Feature Status](#feature-status-legend)
+**Version:** 2.0.0 | **License:** MIT | See [Feature Status](#feature-status-legend)

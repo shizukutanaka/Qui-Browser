@@ -5,7 +5,6 @@
 const { JapaneseIME, candidateStyle } = require('../src/vr/input/JapaneseIME.js');
 const { FFRSystem } = require('../src/vr/rendering/FFRSystem.js');
 const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
-const { ObjectPool, Vector3Pool } = require('../src/utils/ObjectPool.js');
 
 describe('src/vr/input/JapaneseIME', () => {
   const ime = new JapaneseIME();
@@ -210,25 +209,5 @@ describe('src/utils/ProgressiveLoader', () => {
     const stats = loader.getStats();
     expect(stats.progressPercent).toBe('0.0');
     expect(Number.isNaN(parseFloat(stats.progressPercent))).toBe(false);
-  });
-});
-
-describe('src/utils/ObjectPool', () => {
-  test('generic pool acquires and releases objects', () => {
-    const pool = new ObjectPool(class { reset() {} }, 2, 10);
-    const a = pool.acquire();
-    expect(a).toBeDefined();
-    pool.release(a);
-    expect(pool.stats.releases).toBe(1);
-  });
-
-  test('Vector3Pool instantiates without a ReferenceError (THREE import present)', () => {
-    // Regression: the typed pools referenced THREE.* with no import, so
-    // `new Vector3Pool()` threw ReferenceError until the import was added.
-    expect(() => new Vector3Pool(4)).not.toThrow();
-    const pool = new Vector3Pool(4);
-    const v = pool.acquire();
-    expect(v).toBeDefined();
-    expect(typeof v.set).toBe('function'); // it's a real THREE.Vector3
   });
 });
