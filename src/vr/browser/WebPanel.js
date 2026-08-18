@@ -21,7 +21,7 @@ import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
 import {
-  elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines
+  elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines, readerFetchUrl
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
 import {
@@ -89,7 +89,7 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1 }) {
+    readerScale = 1, readerProxyUrl = '' }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -129,6 +129,8 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
+    this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
     this.quadLayer    = null;
@@ -332,7 +334,10 @@ export class WebPanel {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
-      const res = await fetch(url, controller ? { signal: controller.signal } : undefined);
+      // Routed through the companion proxy when one is configured; otherwise a
+      // direct fetch, which only reaches CORS-enabled origins (see readerFetchUrl).
+      const fetchUrl = readerFetchUrl(url, this.readerProxyUrl);
+      const res = await fetch(fetchUrl, controller ? { signal: controller.signal } : undefined);
       if (!res || !res.ok) {
         throw new Error(`HTTP ${res && res.status}`);
       }

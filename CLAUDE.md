@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き3）: 「削除した 10% を戻す」— SSRF 対策付き取得プロキシ
+マスクのアルゴリズムは「**削除したものの 10% を戻していないなら、削除が足りない**」と言う。Session 74 で `server/`（Stripe 課金）を消したが、**戻す価値があると自分で名指ししたのは取得プロキシだけ**だったので、それを作った。
+- 📐 **作る根拠は実測**: 一般サイトは HTML に `Access-Control-Allow-Origin` を返さない（Wikipedia / MDN / example.com / NHK の 4/4）。つまりブラウザ側だけではページを取得できない。なお sandbox の proxy が外部 API を 403（`CONNECT tunnel failed`）で拒否するため、**CORS 対応 API の可用性は今回も確認できず**、それを前提にした実装はしていない。
+- 🔧 **new `proxy/ssrfGuard.js`（純・依存ゼロ）**: 取得プロキシは「ユーザーの文字列を、ユーザーが管理しないマシンからの外向きリクエストに変える」唯一の部品なので、**判断ロジックを全て純関数に隔離**してソケットを開かずに網羅テストできるようにした。防御は ①スキーム allowlist ②URL 内認証情報の拒否 ③ポート allowlist ④リテラル private/reserved IP の拒否（v4 全レンジ + v6 loopback/ULA/link-local + **`::ffff:127.0.0.1` のような v4-mapped**）⑤**DNS 解決後の再チェック**（公開名が private A レコードを持つケース＝これが本丸）⑥**リダイレクト先も毎ホップ再チェック** ⑦content-type/サイズ/timeout/GET のみ ⑧cookie・authorization を上流に渡さない。
+- ✅ **実証（主張ではなく）**: 「秘密」サービスを **8080（allowlist に載っている port）**で待ち受けさせ、**host チェックだけが防壁**の状況を作って検証 —— `127.0.0.1` / `localhost` / `::ffff:127.0.0.1` / `0.0.0.0` の全綴りを REFUSED。**対照実験**として直接 fetch では 200 + 秘密が返ることも示したので、拒否に意味がある。
+- ✨ **クライアント配線**: 純関数 `readerFetchUrl(target, proxyUrl)` 1箇所で分岐。`readerProxyUrl` 未設定（既定）なら**target をそのまま返す**ので、**プロキシ無しの挙動は従来とバイト単位で同一**。
+- 📋 **同梱しない理由を明記**: 既定の配信先 GitHub Pages は静的で動かせないため、バンドルすると「できる」と嘘になる。また外向きネットワーク面を頼んでいない人に渡すべきでない。`docs/PROXY.md` に運用・限界（認証なし・レート制限なし・キャッシュなし・**これでもブラウザにはならない**）を明記。
+- ✅ **test 56件追加**（`tests/ssrf-guard.test.js` 51 + `url-display` 5）。Total 1420 tests (47 suites); 0 lint errors（lint 対象に `proxy/` を追加）; build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き2）: step 4/5「サイクルタイム短縮・自動化」— アプリを一度も起動していなかった
 - 🔧 **new `tools/verify-app-boot.mjs`（依存ゼロ・Playwright 不使用）**: **このリポジトリのテストは一度もアプリを起動していなかった。** `new VRApp()` は Jest で構築不能（`setupRenderer()` が実 GPU を要求）なので全ユニットテストは prototype-binding で回避している —— 意図的な妥協だが、**モジュールの実行時エラーは原理的に捕捉できない**。実際この Session の削除では、死んだ `manualChunks` エントリと消えたクラスへの docstring 参照の2件が、手でビルドしてエラーを読んで初めて見つかった。それを自動化した。
 - **検証内容**: `dist/`（＝実際に出荷されるもの）を一時 HTTP で配信 → 実 Chromium で起動 → 主要 DOM（app-container / Enter VR / 言語トグル / a11y ボタン）の存在、module entry の実行、**ランタイム例外と console error がゼロ**であることを検査。
