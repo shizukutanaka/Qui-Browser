@@ -47,6 +47,7 @@ import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
+import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -169,7 +170,6 @@ export class VRApp {
     // Settings
     this.settings = {
       targetFPS: 90,        // Quest 2 target
-      maxFPS: 120,          // Quest 3 capability
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
@@ -904,6 +904,127 @@ export class VRApp {
    * the supplied callback. Used for one-shot actions like opening a panel.
    * Returns the button mesh (already registered as interactable).
    */
+  /**
+   * Collapsible section header for the settings panel.
+   *
+   * The open/closed state is carried by a ▾ / ▸ glyph as well as by colour, so
+   * it does not depend on hue alone (WCAG 1.4.1), and the expanded state is
+   * announced through the same caption path every other settings control uses
+   * (WCAG 4.1.3) — a control that silently reorganises the panel under a gaze
+   * user would be worse than no grouping at all.
+   *
+   * State is read live from `settings.openSettingsSections` inside draw()
+   * rather than captured at construction, so a repaint (high-contrast toggle)
+   * can never show a stale disclosure glyph.
+   *
+   * @param {string} sectionId  i18n key, also the persisted identity
+   * @returns {THREE.Mesh}
+   */
+  makeSectionHeader(sectionId) {
+    const w = 512;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this._panelTextures.push(tex);
+    const label = t(sectionId);
+
+    const draw = (hover) => {
+      const hc = prefersHighContrast();
+      const isOpen = (this.settings.openSettingsSections || []).includes(sectionId);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = buttonBg(hover, hc);
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = buttonAccentColor('#8fa0ff', hc);
+      ctx.lineWidth = buttonLineWidth(hover, hc);
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px sans-serif';
+      // Glyph first: the disclosure state is legible without reading the label.
+      ctx.fillText(`${isOpen ? '▾' : '▸'}  ${label}`, 24, 62);
+      tex.needsUpdate = true;
+    };
+    draw(false);
+
+    const mesh = new THREE.Mesh(
+      this._sharedPlaneGeometry(1.0, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    this.registerInteractable(mesh, {
+      onSelect: () => this._toggleSettingsSection(sectionId),
+      onHover: () => {
+        draw(true);
+        this._announceSettingsButton('action', label);
+      },
+      onHoverEnd: () => draw(false)
+    });
+    mesh._redraw = () => draw(false);
+    return mesh;
+  }
+
+  /**
+   * Expand / collapse one settings section and rebuild the panel.
+   *
+   * The panel's height and every row position depend on which sections are
+   * open, so this rebuilds rather than hiding meshes in place: leaving stale
+   * interactables registered at their old positions is how a panel ends up
+   * with invisible controls that still take clicks.
+   *
+   * @param {string} sectionId
+   */
+  _toggleSettingsSection(sectionId) {
+    // Accordion: at most one section open at a time. Without this the panel is
+    // UNBOUNDED — with everything expanded the grouped layout measured 5.00 m
+    // (91.4° vertical), worse than the 3.56 m flat stack it replaced, because
+    // the headers add rows on top of every control. One-at-a-time makes the
+    // worst case `sections + largest section`, so adding the 25th control can
+    // no longer make the panel taller than its own section.
+    const wasOpen = (this.settings.openSettingsSections || []).includes(sectionId);
+    const nowOpen = !wasOpen;
+    this.updateSetting('openSettingsSections', nowOpen ? [sectionId] : []);
+    this._rebuildSettingsPanel();
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(`${t(sectionId)}: ${t(nowOpen ? 'vr.msg.sectionOpen' : 'vr.msg.sectionClosed')}`);
+    }
+  }
+
+  /** Tear down and rebuild the settings panel in place, preserving visibility. */
+  _rebuildSettingsPanel() {
+    if (!this.settingsPanel) {
+      return;
+    }
+    const wasVisible = this.settingsPanel.visible;
+    const parent = this.settingsPanel.parent;
+    this._disposeSettingsPanel();
+    this.settingsPanel = this.createSettingsPanel();
+    this.settingsPanel.visible = wasVisible;
+    (parent || this.scene).add(this.settingsPanel);
+  }
+
+  /** Unregister every interactable in the settings panel and free its GPU resources. */
+  _disposeSettingsPanel() {
+    const panel = this.settingsPanel;
+    if (!panel) {
+      return;
+    }
+    panel.traverse((obj) => {
+      if (obj.isMesh) {
+        this.unregisterInteractable(obj);
+      }
+    });
+    if (panel.parent) {
+      panel.parent.remove(panel);
+    }
+    // Geometries are shared via _sharedPlaneGeometry, so only the per-button
+    // textures are owned here; they are tracked in _panelTextures and disposed
+    // with the app.
+    this._settingsPanelDrawers = [];
+  }
+
   makeActionButton(label, onSelect) {
     const w = 512;
     const h = 96;
@@ -1383,59 +1504,92 @@ export class VRApp {
       }]);
     }
 
-    // Adaptive vertical layout.  Toggle items are shown in two columns so the
-    // panel stays compact enough for all controls to be reachable from eye level.
-    const ROW = 0.18;            // metres between rows
-    const PAD = 0.14;            // top/bottom padding
-    const toggleRows = Math.ceil(items.length / 2);
-    const rowCount = toggleRows + steppers.length + cycles.length + actions.length;
-    const height = rowCount * ROW + PAD;
+    // Grouped, collapsible layout. The flat stack reached 19 rows / 3.56 m,
+    // which subtends 72.2° vertically at this panel's 2.44 m placement — about
+    // double the ~30-40° you can take in without moving your head, so the lower
+    // half was effectively out of view and every new setting made it worse.
+    // Sections are keyed by what the user is trying to do, and only the open
+    // one occupies rows (see src/vr/ui/settingsLayout.js).
+    const byKey = (list, keys) => keys
+      .map((k) => list.find((e) => e[1] === k))
+      .filter(Boolean);
+    const actionByLabel = (label) => actions.filter((a) => a[0] === label);
+
+    const SECTIONS = [
+      ['settings.section.a11y',
+        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
+        byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
+        [], []],
+      ['settings.section.locomotion',
+        byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
+        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
+        cycles.filter((c) => c[1] === 'motionSensitivity'), []],
+      ['settings.section.display',
+        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
+        byKey(steppers, ['windowDistance']), [], []],
+      ['settings.section.browsing',
+        byKey(items, ['enableWebPanel']), [],
+        cycles.filter((c) => c[1] === 'searchEngine'),
+        actionByLabel(t('vr.settings.clearHistory')).concat(actionByLabel(t('vr.settings.bookmarks')))],
+      ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
+        actionByLabel(t('vr.settings.video360'))]
+    ];
+
+    // Anything not explicitly placed still has to appear — a control that
+    // silently vanished because a key was mistyped would be worse than a long
+    // panel. Collected into a trailing section rather than dropped.
+    const placed = new Set(SECTIONS.flatMap(([, tg, st, cy]) =>
+      [...tg, ...st, ...cy].map((e) => e[1])));
+    const placedActions = new Set(SECTIONS.flatMap(([, , , , ac]) => ac.map((a) => a[0])));
+    const leftover = [
+      items.filter((e) => !placed.has(e[1])),
+      steppers.filter((e) => !placed.has(e[1])),
+      cycles.filter((e) => !placed.has(e[1])),
+      actions.filter((a) => !placedActions.has(a[0]))
+    ];
+    if (leftover.some((l) => l.length)) {
+      SECTIONS.push(['settings.section.other', ...leftover]);
+    }
+
+    // Build the pure layout description, then render from it.
+    const sections = SECTIONS.map(([id, tg, st, cy, ac]) => ({
+      id,
+      controls: [
+        ...tg.map((e) => ({ wide: false, make: () => this.makeCompactToggleButton(e[0], e[1], e[2]) })),
+        ...st.map((e) => ({ wide: true, make: () => this.makeStepperButton(e[0], e[1], e[2]) })),
+        ...cy.map((e) => ({ wide: true, make: () => this.makeCycleButton(e[0], e[1], e[2], e[3]) })),
+        ...ac.map((a) => ({ wide: true, make: () => this.makeActionButton(a[0], a[1]) }))
+      ]
+    }));
+
+    // Persisted open/closed state. Accessibility opens by default: it is what
+    // this product is for, and it is the section a user most likely came to.
+    if (!Array.isArray(this.settings.openSettingsSections)) {
+      this.settings.openSettingsSections = ['settings.section.a11y'];
+    }
+    this._settingsSections = sections;
+    const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
 
     const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, height),
+      new THREE.PlaneGeometry(SETTINGS_PANEL_W, layout.height),
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
+    this._settingsBg = bg;
 
-    // Start at the top of the stack, centred about y=0.
-    let y = ((rowCount - 1) * ROW) / 2;
-
-    // Toggles: two compact buttons per row at ±0.27 m (gap = 0.02 m between them).
-    for (let i = 0; i < items.length; i += 2) {
-      const [la, ka, aa] = items[i];
-      const left = this.makeCompactToggleButton(la, ka, aa);
-      left.position.set(-0.27, y, 0.01);
-      group.add(left);
-      this._settingsPanelDrawers.push(left._redraw);
-      if (i + 1 < items.length) {
-        const [lb, kb, ab] = items[i + 1];
-        const right = this.makeCompactToggleButton(lb, kb, ab);
-        right.position.set(0.27, y, 0.01);
-        group.add(right);
-        this._settingsPanelDrawers.push(right._redraw);
+    for (const p of layout.placements) {
+      if (p.type === 'header') {
+        const btn = this.makeSectionHeader(p.sectionId);
+        btn.position.set(p.x, p.y, 0.01);
+        group.add(btn);
+        this._settingsPanelDrawers.push(btn._redraw);
+      } else {
+        const section = sections.find((sec) => sec.id === p.sectionId);
+        const btn = section.controls[p.index].make();
+        btn.position.set(p.x, p.y, 0.01);
+        group.add(btn);
+        this._settingsPanelDrawers.push(btn._redraw);
       }
-      y -= ROW;
-    }
-    for (const [label, key, cfg] of steppers) {
-      const btn = this.makeStepperButton(label, key, cfg);
-      btn.position.set(0, y, 0.01);
-      group.add(btn);
-      this._settingsPanelDrawers.push(btn._redraw);
-      y -= ROW;
-    }
-    for (const [label, key, opts, apply] of cycles) {
-      const btn = this.makeCycleButton(label, key, opts, apply);
-      btn.position.set(0, y, 0.01);
-      group.add(btn);
-      this._settingsPanelDrawers.push(btn._redraw);
-      y -= ROW;
-    }
-    for (const [label, onSelect] of actions) {
-      const btn = this.makeActionButton(label, onSelect);
-      btn.position.set(0, y, 0.01);
-      group.add(btn);
-      this._settingsPanelDrawers.push(btn._redraw);
-      y -= ROW;
     }
 
     // Front-left of the user, angled toward them.
