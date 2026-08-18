@@ -510,6 +510,23 @@ module entry の実行、**ランタイム例外と console error がゼロ**で
 
 ---
 
+## K. オーナー作業が必要（自動化では触れない）
+
+### K-1. 5つの workflow が削除済みの `assets/js/` を参照している（**CI が壊れている**）
+
+Session 74 の削除により、`.github/workflows/` の5ファイルが存在しないパスを参照している。
+`deploy.yml` の `find assets/js ...` は **exit 1 で失敗する**（実測）。
+
+**このリポジトリの自動化は `.github/workflows/**` を push できない**（403 `without workflows permission`、
+複数セッションで実測済み）ため、オーナーの手による修正が必要。**手順は `docs/PUBLISHING.md` の冒頭**に
+コピー可能な形で記載した。該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、
+修正ではなく**削除**が正しい。
+
+代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
+このリポジトリが実際に検証している内容がすべて走る。
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

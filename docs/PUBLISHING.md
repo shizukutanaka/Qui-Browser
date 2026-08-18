@@ -1,5 +1,42 @@
 # Publishing a Release + GitHub Pages
 
+> ## ⚠️ REQUIRED FIRST: five workflows still reference deleted code
+>
+> Session 74 deleted `assets/js/` (119,698 lines of unreachable legacy code).
+> **Five workflow files still reference it**, and at least one now fails:
+>
+> ```
+> $ find assets/js -name "vr-*.js" -exec ls -lh {} \;
+> find: 'assets/js': No such file or directory     # exit 1 -> deploy.yml fails
+> ```
+>
+> Automation in this repo **cannot push `.github/workflows/**`** (403,
+> `without workflows permission`), so this needs your hands. Every one of these
+> steps existed to audit the legacy code that is now gone, so the fix is
+> deletion, not repair:
+>
+> | file | what to do |
+> |---|---|
+> | `.github/workflows/deploy.yml` | delete the *Validate VR Modules*, *Check file sizes*, and the `npx eslint assets/js/*.js` / `MODULE_COUNT` steps (lines ~38–50, ~100, ~104) |
+> | `.github/workflows/test.yml` | delete every step globbing `assets/js/**` (lines ~60, 78–99, 143, 164–177, 203–226) — the real suite is `npm test` |
+> | `.github/workflows/benchmark.yml` | delete, or drop the `assets/js/vr-*.js` path trigger |
+> | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
+> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
+>
+> A good replacement for the removed checks, which runs everything this repo
+> actually verifies:
+>
+> ```yaml
+>       - run: npm ci
+>       - run: npm test
+>       - run: npm run lint
+>       - run: npm run ci:verify   # build + verify:layout + verify:app
+> ```
+>
+> Until this is done, CI results on `main` are not trustworthy.
+
+---
+
 The finished product is on `main` (tested, release-ready, subpath-aware build).
 Two owner-side steps remain to make it a conventional public release: a
 versioned **Release object** and a live **GitHub Pages** URL. Automation with

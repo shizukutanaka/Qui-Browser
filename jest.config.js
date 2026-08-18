@@ -63,9 +63,7 @@ module.exports = {
 
   // モジュール名マッパー（パスエイリアス）
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    '^@assets/(.*)$': '<rootDir>/assets/$1',
-    '^@js/(.*)$': '<rootDir>/assets/js/$1'
+    '^@/(.*)$': '<rootDir>/$1'
   },
 
   // 無視するパス
@@ -73,8 +71,7 @@ module.exports = {
     '/node_modules/',
     '/dist/',
     '/build/',
-    '/.git/',
-    '/tests/archive/'
+    '/.git/'
   ],
 
   // トランスフォーム
