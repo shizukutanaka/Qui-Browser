@@ -187,3 +187,43 @@ describe('securityIndicator — meaning carried by glyph, not colour alone (WCAG
     expect(hc.color).not.toBe(normal.color);
   });
 });
+
+// ── Reader fetch routing (Session 74, the "add back 10%") ───────────────────
+// Measured: no general site sends Access-Control-Allow-Origin on its HTML
+// (Wikipedia, MDN, example.com, NHK — 4 of 4 send none), so a browser-side
+// reader cannot fetch pages directly. The optional companion proxy closes
+// that; without it the behaviour is exactly what shipped before.
+describe('readerFetchUrl', () => {
+  const { readerFetchUrl } = require('../src/vr/browser/urlDisplay.js');
+
+  test('with no proxy configured it fetches the target directly (unchanged)', () => {
+    expect(readerFetchUrl('https://example.com/a')).toBe('https://example.com/a');
+    expect(readerFetchUrl('https://example.com/a', '')).toBe('https://example.com/a');
+    expect(readerFetchUrl('https://example.com/a', '   ')).toBe('https://example.com/a');
+  });
+
+  test('with a proxy it routes through /fetch with the target encoded', () => {
+    expect(readerFetchUrl('https://example.com/a?b=1&c=2', 'http://127.0.0.1:8080'))
+      .toBe('http://127.0.0.1:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1%26c%3D2');
+  });
+
+  test('query characters in the target cannot break out of the parameter', () => {
+    // A target containing & or # must not become extra proxy parameters.
+    const out = readerFetchUrl('https://x.test/?a=1&b=2#frag', 'http://p:8080');
+    expect(out.split('?').length).toBe(2);
+    expect(out).not.toContain('#');
+    expect(decodeURIComponent(out.split('url=')[1])).toBe('https://x.test/?a=1&b=2#frag');
+  });
+
+  test('a trailing slash on the proxy base does not double up', () => {
+    expect(readerFetchUrl('https://e.com/', 'http://p:8080/'))
+      .toBe(readerFetchUrl('https://e.com/', 'http://p:8080'));
+    expect(readerFetchUrl('https://e.com/', 'http://p:8080///')).not.toContain('////fetch');
+  });
+
+  test('degenerate input does not throw', () => {
+    for (const [t, p] of [[null, null], [undefined, undefined], ['', ''], [42, 7]]) {
+      expect(() => readerFetchUrl(t, p)).not.toThrow();
+    }
+  });
+});

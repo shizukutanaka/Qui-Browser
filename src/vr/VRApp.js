@@ -228,6 +228,10 @@ export class VRApp {
       masterVolume: 100,
 
       enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
+      // Optional companion proxy (proxy/server.js). Empty = direct fetch only,
+      // which reaches CORS-enabled origins only — measured: no general site
+      // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.
+      readerProxyUrl: '',
       // Default search engine for non-URL input in the address bar
       // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
       searchEngine: 'duckduckgo',
@@ -547,6 +551,7 @@ export class VRApp {
         registerInteractable: (m, h) => this.registerInteractable(m, h),
         unregisterInteractable: (m) => this.unregisterInteractable(m),
         onNavigate: (url, title) => this.navigate(url, title),
+        readerProxyUrl: this.settings.readerProxyUrl,
         onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
         onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
         position: { x: 0, y: 1.5, z: -2 },

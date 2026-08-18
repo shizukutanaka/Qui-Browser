@@ -199,3 +199,28 @@ export function securityIndicator(level, highContrast = false) {
     return { glyph: '', color: highContrast ? '#ffffff' : '#888899' };
   }
 }
+
+/**
+ * The URL the reader should actually fetch for a target page.
+ *
+ * Measured fact this exists for: no general site sends
+ * `Access-Control-Allow-Origin` on its HTML (Wikipedia, MDN, example.com and
+ * NHK all send none), so a browser-side reader cannot fetch pages directly. A
+ * user who runs the optional companion proxy (`proxy/server.js`) can point the
+ * reader at it and read the real web; a user who does not gets exactly today's
+ * behaviour — direct fetch, limited to CORS-enabled origins.
+ *
+ * Pure so both branches are testable without a network.
+ *
+ * @param {string} target    the page the user asked for
+ * @param {string} [proxyUrl] base URL of the companion proxy, '' when unset
+ * @returns {string} the URL to fetch
+ */
+export function readerFetchUrl(target, proxyUrl = '') {
+  const t = String(target == null ? '' : target);
+  const base = String(proxyUrl == null ? '' : proxyUrl).trim().replace(/\/+$/, '');
+  if (!base) {
+    return t;
+  }
+  return `${base}/fetch?url=${encodeURIComponent(t)}`;
+}
