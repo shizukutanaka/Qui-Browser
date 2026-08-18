@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き4）: 削除の後始末 — 自分の削除が CI を壊していた
+- 🐛 **実測で発見**: `assets/js/` を消した結果、**`.github/workflows/` の5ファイル**が存在しないパスを参照。`deploy.yml` の `find assets/js -name "vr-*.js"` は **exit 1 で失敗する**（実行して確認）。つまり**自分の削除で CI を壊していた**。
+- ⚠️ **自動化では直せない**: `.github/workflows/**` の push は 403（`without workflows permission`）で複数セッション実測済み。**黙って放置せず**、`docs/PUBLISHING.md` の**冒頭に警告ブロック**として、どのファイルのどのステップを削除すべきかと代替 CI（`npm test && npm run lint && npm run ci:verify`）をコピー可能な形で明記。`OUTSTANDING_ISSUES.md` K-1 にも記録。該当ステップは全て「今は存在しないレガシーコードを検査するもの」なので修正ではなく**削除**が正しい。
+- 🧹 `jest.config.js` の死んだ設定を削除（`@assets/*`・`@js/*` の moduleNameMapper、`/tests/archive/` の ignore パターン）。`docs/DEVELOPER_ONBOARDING.md` の解決しない相対リンク1件を修正。
+- 📐 **削除の収束を確認**: `src/` の全 export 272件を機械的に走査し、定義ファイル外から参照されないものは20件のみ、しかもその大半は**同一モジュール内で使われる定数**（テスト・文書のために export しているもの）。**step 2 は収束した** —— これ以上消すべき過剰は `src/` に無い。
+- Total 1420 tests (47 suites); 0 lint errors (52 warnings); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き3）: 「削除した 10% を戻す」— SSRF 対策付き取得プロキシ
 マスクのアルゴリズムは「**削除したものの 10% を戻していないなら、削除が足りない**」と言う。Session 74 で `server/`（Stripe 課金）を消したが、**戻す価値があると自分で名指ししたのは取得プロキシだけ**だったので、それを作った。
 - 📐 **作る根拠は実測**: 一般サイトは HTML に `Access-Control-Allow-Origin` を返さない（Wikipedia / MDN / example.com / NHK の 4/4）。つまりブラウザ側だけではページを取得できない。なお sandbox の proxy が外部 API を 403（`CONNECT tunnel failed`）で拒否するため、**CORS 対応 API の可用性は今回も確認できず**、それを前提にした実装はしていない。

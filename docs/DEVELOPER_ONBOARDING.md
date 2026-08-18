@@ -1134,7 +1134,7 @@ npx localtunnel --port 8080
 2. **[ARCHITECTURE.md](ARCHITECTURE.md)** - アーキテクチャ詳細
 3. **[API.md](API.md)** - API仕様
 4. **[COMPATIBILITY.md](COMPATIBILITY.md)** - 互換性情報
-5. **[TEST_COVERAGE_REPORT.md](../TEST_COVERAGE_REPORT.md)** - テストカバレッジ
+5. **[TEST_COVERAGE_REPORT.md](./TESTING.md)** - テストカバレッジ
 
 ### 🌐 外部リソース
 
