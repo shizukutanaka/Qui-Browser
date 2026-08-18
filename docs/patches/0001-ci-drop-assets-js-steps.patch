@@ -1,0 +1,732 @@
+From 50b125c316133a2bf821bbb2f5f107ea3b5cc33c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 18 Aug 2026 23:30:03 +0000
+Subject: [PATCH] ci: drop steps auditing the deleted assets/js legacy tree
+
+---
+ .github/workflows/benchmark.yml       |   1 -
+ .github/workflows/deploy.yml          |  16 --
+ .github/workflows/test.yml            | 138 --------------
+ .github/workflows/v5.8.0-planning.yml | 253 --------------------------
+ .github/workflows/wasm-build.yml      | 233 ------------------------
+ 5 files changed, 641 deletions(-)
+ delete mode 100644 .github/workflows/v5.8.0-planning.yml
+ delete mode 100644 .github/workflows/wasm-build.yml
+
+diff --git a/.github/workflows/benchmark.yml b/.github/workflows/benchmark.yml
+index b12f00f..4365e62 100644
+--- a/.github/workflows/benchmark.yml
++++ b/.github/workflows/benchmark.yml
+@@ -4,7 +4,6 @@ on:
+   pull_request:
+     branches: [main]
+     paths:
+-      - 'assets/js/vr-*.js'
+       - 'tools/benchmark.js'
+   schedule:
+     # 毎週日曜日 00:00 UTC に実行 / Run every Sunday at 00:00 UTC
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index 8332236..f97455c 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -35,20 +35,6 @@ jobs:
+       - name: Install dependencies
+         run: npm ci || npm install
+ 
+-      - name: Validate VR Modules
+-        run: |
+-          echo "Validating VR modules..."
+-          for file in assets/js/vr-*.js; do
+-            if [ -f "$file" ]; then
+-              echo "✓ Found: $file"
+-            fi
+-          done
+-
+-      - name: Check file sizes
+-        run: |
+-          echo "Checking file sizes..."
+-          find assets/js -name "vr-*.js" -exec ls -lh {} \;
+-
+       - name: Create build info
+         run: |
+           echo "{
+@@ -97,11 +83,9 @@ jobs:
+       - name: Lint JavaScript files
+         run: |
+           echo "Checking JavaScript syntax..."
+-          npx eslint assets/js/*.js || echo "ESLint not configured, skipping..."
+ 
+       - name: Check VR module count
+         run: |
+-          MODULE_COUNT=$(find assets/js -name "vr-*.js" | wc -l)
+           echo "Found $MODULE_COUNT VR modules"
+           if [ $MODULE_COUNT -lt 20 ]; then
+             echo "Warning: Expected at least 20 VR modules, found $MODULE_COUNT"
+diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
+index 8b1e04b..4962ed2 100644
+--- a/.github/workflows/test.yml
++++ b/.github/workflows/test.yml
+@@ -27,77 +27,6 @@ jobs:
+       - name: Install dependencies
+         run: npm ci || npm install
+ 
+-      - name: Check VR modules existence
+-        run: |
+-          echo "Checking VR modules..."
+-
+-          MODULES=(
+-            "vr-launcher.js"
+-            "vr-utils.js"
+-            "vr-text-renderer.js"
+-            "vr-ergonomic-ui.js"
+-            "vr-comfort-system.js"
+-            "vr-input-optimizer.js"
+-            "vr-accessibility-enhanced.js"
+-            "vr-environment-customizer.js"
+-            "vr-gesture-macro.js"
+-            "vr-content-optimizer.js"
+-            "vr-performance-profiler.js"
+-            "vr-bookmark-3d.js"
+-            "vr-tab-manager-3d.js"
+-            "vr-spatial-audio.js"
+-            "vr-hand-tracking.js"
+-            "vr-gesture-scroll.js"
+-            "vr-keyboard.js"
+-            "vr-navigation.js"
+-            "vr-video-player.js"
+-            "vr-settings.js"
+-            "vr-performance-monitor.js"
+-          )
+-
+-          MISSING=0
+-          for module in "${MODULES[@]}"; do
+-            if [ -f "assets/js/$module" ]; then
+-              echo "✓ $module"
+-            else
+-              echo "✗ $module MISSING"
+-              MISSING=$((MISSING + 1))
+-            fi
+-          done
+-
+-          if [ $MISSING -gt 0 ]; then
+-            echo "Error: $MISSING modules are missing!"
+-            exit 1
+-          fi
+-
+-          echo "All VR modules found!"
+-
+-      - name: Check module sizes
+-        run: |
+-          echo "Module sizes:"
+-          du -h assets/js/vr-*.js | sort -h
+-
+-      - name: Validate JavaScript syntax
+-        run: |
+-          echo "Validating JavaScript syntax..."
+-          for file in assets/js/vr-*.js; do
+-            node -c "$file" && echo "✓ $file" || echo "✗ $file has syntax errors"
+-          done
+-
+-      - name: Check for console.log (production check)
+-        run: |
+-          echo "Checking for console.log statements..."
+-          CONSOLE_COUNT=$(grep -r "console.log" assets/js/vr-*.js | wc -l || echo "0")
+-          echo "Found $CONSOLE_COUNT console.log statements"
+-          if [ $CONSOLE_COUNT -gt 50 ]; then
+-            echo "Warning: Many console.log statements found. Consider removing for production."
+-          fi
+-
+-      - name: Check for TODO comments
+-        run: |
+-          echo "Checking for TODO comments..."
+-          grep -rn "TODO" assets/js/vr-*.js || echo "No TODO comments found"
+-
+       - name: Validate documentation
+         run: |
+           echo "Validating documentation..."
+@@ -136,18 +65,6 @@ jobs:
+           test -f examples/advanced-features.html && echo "✓ advanced-features.html" || echo "✗ advanced-features.html missing"
+           test -f examples/README.md && echo "✓ examples/README.md" || echo "✗ examples/README.md missing"
+ 
+-      - name: Total code statistics
+-        run: |
+-          echo "Code statistics:"
+-          echo "VR JavaScript modules:"
+-          find assets/js -name "vr-*.js" -exec wc -l {} + | tail -1
+-          echo ""
+-          echo "Documentation:"
+-          wc -l docs/*.md README.md | tail -1
+-          echo ""
+-          echo "Examples:"
+-          wc -l examples/*.html examples/*.md | tail -1
+-
+   compatibility:
+     name: Check WebXR Compatibility
+     runs-on: ubuntu-latest
+@@ -156,26 +73,6 @@ jobs:
+       - name: Checkout code
+         uses: actions/checkout@v4
+ 
+-      - name: Check WebXR API usage
+-        run: |
+-          echo "Checking WebXR API usage..."
+-
+-          # Check for WebXR API calls
+-          grep -r "navigator.xr" assets/js/vr-*.js && echo "✓ Uses navigator.xr" || echo "✗ No navigator.xr usage"
+-          grep -r "XRSession" assets/js/vr-*.js && echo "✓ Uses XRSession" || echo "Note: No direct XRSession usage"
+-          grep -r "requestAnimationFrame" assets/js/vr-*.js && echo "✓ Uses requestAnimationFrame" || echo "Note: No requestAnimationFrame"
+-
+-      - name: Check Three.js compatibility
+-        run: |
+-          echo "Checking Three.js usage..."
+-          grep -r "THREE\." assets/js/vr-*.js | head -5
+-          echo "... (showing first 5 matches)"
+-
+-      - name: Check for deprecated APIs
+-        run: |
+-          echo "Checking for deprecated APIs..."
+-          grep -r "webkitGetUserMedia\|mozGetUserMedia" assets/js/*.js && echo "Warning: Deprecated APIs found" || echo "✓ No deprecated APIs"
+-
+   security:
+     name: Security Scan
+     runs-on: ubuntu-latest
+@@ -194,38 +91,3 @@ jobs:
+ 
+       - name: Run npm audit
+         run: npm audit --audit-level=high || true
+-
+-      - name: Check for hardcoded secrets
+-        run: |
+-          echo "Checking for potential secrets..."
+-
+-          # Check for API keys
+-          if grep -rE "(api_key|apikey|api-key)" assets/js/*.js; then
+-            echo "Warning: Potential API keys found"
+-          else
+-            echo "✓ No API keys found"
+-          fi
+-
+-          # Check for tokens
+-          if grep -rE "(token|access_token)" assets/js/*.js; then
+-            echo "Warning: Potential tokens found"
+-          else
+-            echo "✓ No tokens found"
+-          fi
+-
+-          # Check for passwords
+-          if grep -rE "(password|passwd|pwd)" assets/js/*.js; then
+-            echo "Warning: Potential passwords found"
+-          else
+-            echo "✓ No passwords found"
+-          fi
+-
+-      - name: Check for eval usage
+-        run: |
+-          echo "Checking for eval() usage..."
+-          if grep -r "eval(" assets/js/*.js; then
+-            echo "Warning: eval() usage found - potential security risk"
+-            exit 1
+-          else
+-            echo "✓ No eval() usage"
+-          fi
+diff --git a/.github/workflows/v5.8.0-planning.yml b/.github/workflows/v5.8.0-planning.yml
+deleted file mode 100644
+index 6a7b82b..0000000
+--- a/.github/workflows/v5.8.0-planning.yml
++++ /dev/null
+@@ -1,253 +0,0 @@
+-name: v5.8.0 Feature Planning & Tracking
+-
+-on:
+-  schedule:
+-    # Run weekly on Monday at 09:00 UTC for planning review
+-    - cron: '0 9 * * 1'
+-  workflow_dispatch:
+-    inputs:
+-      feature:
+-        description: 'Feature to plan'
+-        required: false
+-        default: 'all'
+-
+-env:
+-  PROJECT_VERSION: '5.8.0'
+-  TARGET_RELEASE: 'Q4 2025 / Q1 2026'
+-  QUALITY_GATE: '95'
+-
+-jobs:
+-  feature-planning:
+-    runs-on: ubuntu-latest
+-    name: v5.8.0 Feature Planning & Tracking
+-
+-    steps:
+-      - name: Checkout repository
+-        uses: actions/checkout@v4
+-        with:
+-          fetch-depth: 0
+-
+-      - name: Setup Node.js
+-        uses: actions/setup-node@v4
+-        with:
+-          node-version: '20'
+-
+-      - name: Check v5.8.0 Planning Status
+-        run: |
+-          echo "=== v5.8.0 Feature Planning Status ==="
+-          echo ""
+-          echo "Target Release: ${{ env.TARGET_RELEASE }}"
+-          echo "Primary Features Planned: 4"
+-          echo ""
+-
+-          # Feature 1: WASM SIMD Acceleration
+-          if grep -r "wasm-simd" assets/js/ > /dev/null 2>&1; then
+-            echo "✓ Feature 1: WebAssembly SIMD - IN PROGRESS"
+-          else
+-            echo "⏳ Feature 1: WebAssembly SIMD - NOT STARTED"
+-          fi
+-
+-          # Feature 2: Advanced Gesture Recognition
+-          if grep -r "advanced-gesture" assets/js/ > /dev/null 2>&1; then
+-            echo "✓ Feature 2: Advanced Gestures (35 types) - IN PROGRESS"
+-          else
+-            echo "⏳ Feature 2: Advanced Gestures (35 types) - NOT STARTED"
+-          fi
+-
+-          # Feature 3: Performance Dashboard
+-          if grep -r "performance-profiler" assets/js/ > /dev/null 2>&1; then
+-            echo "✓ Feature 3: Performance Dashboard - IN PROGRESS"
+-          else
+-            echo "⏳ Feature 3: Performance Dashboard - NOT STARTED"
+-          fi
+-
+-          # Feature 4: Gesture Macros
+-          if grep -r "gesture-customization\|gesture-macro" assets/js/ > /dev/null 2>&1; then
+-            echo "✓ Feature 4: Gesture Macros & Customization - IN PROGRESS"
+-          else
+-            echo "⏳ Feature 4: Gesture Macros & Customization - NOT STARTED"
+-          fi
+-
+-      - name: Check Advanced Performance Profiler Implementation
+-        run: |
+-          echo ""
+-          echo "=== Feature 3: Advanced Performance Profiler ==="
+-          if [ -f "assets/js/vr-advanced-performance-profiler.js" ]; then
+-            echo "✓ Advanced Performance Profiler Implemented"
+-
+-            # Check file size and content
+-            SIZE=$(wc -c < "assets/js/vr-advanced-performance-profiler.js")
+-            LINES=$(wc -l < "assets/js/vr-advanced-performance-profiler.js")
+-            echo "  File size: $((SIZE / 1024))KB"
+-            echo "  Lines of code: $LINES"
+-
+-            # Check key features
+-            if grep -q "class VRAdvancedPerformanceProfiler" assets/js/vr-advanced-performance-profiler.js; then
+-              echo "  ✓ Main class defined"
+-            fi
+-
+-            if grep -q "getPerformanceGrade" assets/js/vr-advanced-performance-profiler.js; then
+-              echo "  ✓ Performance grading implemented"
+-            fi
+-
+-            if grep -q "generateRecommendations\|recommendationRules" assets/js/vr-advanced-performance-profiler.js; then
+-              echo "  ✓ Recommendations engine implemented"
+-            fi
+-
+-            if grep -q "recordModuleTime\|moduleMetrics" assets/js/vr-advanced-performance-profiler.js; then
+-              echo "  ✓ Per-module metrics tracking"
+-            fi
+-
+-            if grep -q "exportAsCSV\|exportAsJSON" assets/js/vr-advanced-performance-profiler.js; then
+-              echo "  ✓ Export functionality implemented"
+-            fi
+-          else
+-            echo "✗ Advanced Performance Profiler NOT FOUND"
+-            exit 1
+-          fi
+-
+-      - name: Check Example Projects
+-        run: |
+-          echo ""
+-          echo "=== Example Projects Status ==="
+-          if [ -f "examples/EXAMPLE_PROJECTS.md" ]; then
+-            echo "✓ Example projects documentation found"
+-
+-            # Count examples
+-            EXAMPLES=$(grep -c "^## Example" examples/EXAMPLE_PROJECTS.md)
+-            echo "  Examples documented: $EXAMPLES"
+-
+-            # Check for specific examples
+-            echo "  Included examples:"
+-            grep "^## Example" examples/EXAMPLE_PROJECTS.md | cut -d: -f2 | sed 's/^/    - /'
+-          else
+-            echo "✗ Example projects documentation NOT FOUND"
+-          fi
+-
+-      - name: Check Community Infrastructure
+-        run: |
+-          echo ""
+-          echo "=== Community Infrastructure Status ==="
+-
+-          if [ -f ".github/DISCUSSION_TEMPLATES.md" ]; then
+-            echo "✓ GitHub Discussion templates configured"
+-          else
+-            echo "✗ GitHub Discussion templates NOT FOUND"
+-          fi
+-
+-          if [ -f "COMMUNITY_ENGAGEMENT_STRATEGY.md" ]; then
+-            echo "✓ Community engagement strategy documented"
+-          else
+-            echo "✗ Community engagement strategy NOT FOUND"
+-          fi
+-
+-      - name: Generate Planning Report
+-        run: |
+-          echo ""
+-          echo "=== v5.8.0 Planning Report ==="
+-          echo "Date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+-          echo "Status: FEATURE PLANNING IN PROGRESS"
+-          echo ""
+-          echo "Progress:"
+-          echo "  Infrastructure: ✓ COMPLETE"
+-          echo "    - Community templates ready"
+-          echo "    - Example projects documented"
+-          echo "    - Performance profiler implemented"
+-          echo ""
+-          echo "  Features: IN PROGRESS"
+-          echo "    - WASM SIMD: Awaiting development"
+-          echo "    - Advanced Gestures: Awaiting development"
+-          echo "    - Performance Dashboard: Profiler ready (UI pending)"
+-          echo "    - Gesture Macros: Awaiting development"
+-          echo ""
+-          echo "Timeline:"
+-          echo "  Target release: ${{ env.TARGET_RELEASE }}"
+-          echo "  Duration: 12 weeks"
+-          echo "  Milestones: 7 planned"
+-          echo ""
+-          echo "Quality Gates:"
+-          echo "  Code quality target: ${{ env.QUALITY_GATE }}%"
+-          echo "  Test coverage target: ${{ env.QUALITY_GATE }}%+"
+-          echo "  Performance: 20%+ FPS improvement"
+-          echo "  Security: 0 vulnerabilities"
+-
+-      - name: Create Planning Issue (if scheduled)
+-        if: github.event_name == 'schedule'
+-        uses: actions/github-script@v7
+-        with:
+-          script: |
+-            const date = new Date().toISOString().split('T')[0];
+-            const title = `v5.8.0 Planning Review - Week ${Math.ceil(new Date().getDate() / 7)}`;
+-            const body = `## v5.8.0 Feature Planning Review - ${date}
+-
+-            ### Status: IN PROGRESS
+-            - Target Release: Q4 2025 / Q1 2026
+-            - Duration: 12 weeks
+-            - 4 Primary Features Planned
+-
+-            ### Features
+-            - [ ] WebAssembly SIMD Acceleration (20%+ FPS boost)
+-            - [ ] Advanced Gesture Recognition (15→35 gestures)
+-            - [ ] Advanced Performance Dashboard
+-            - [ ] Extended Gesture Macros & Customization
+-
+-            ### Infrastructure Ready
+-            - ✓ Community engagement strategy documented
+-            - ✓ Example projects documented (7 examples)
+-            - ✓ Advanced performance profiler implemented
+-            - ✓ Discussion templates configured
+-
+-            ### Next Steps
+-            1. Begin WASM SIMD module development
+-            2. Expand gesture dataset to 35 types
+-            3. Create performance dashboard UI
+-            4. Implement gesture customization system
+-
+-            ### Timeline
+-            - Week 1-2: Foundation & planning
+-            - Week 3-4: Core feature development
+-            - Week 5-6: Feature completion
+-            - Week 7-8: Testing & refinement
+-            - Week 9-10: Release preparation
+-            - Week 11-12: Release & stabilization
+-
+-            See v5.8.0_FEATURE_ROADMAP.md for details.`;
+-
+-            // Check if issue already exists for today
+-            const issues = await github.rest.issues.listForRepo({
+-              owner: context.repo.owner,
+-              repo: context.repo.repo,
+-              state: 'all',
+-              labels: 'v5.8.0,planning'
+-            });
+-
+-            const existsToday = issues.data.some(issue =>
+-              issue.title.includes(date)
+-            );
+-
+-            if (!existsToday && issues.data.length < 10) {
+-              await github.rest.issues.create({
+-                owner: context.repo.owner,
+-                repo: context.repo.repo,
+-                title: title,
+-                body: body,
+-                labels: ['v5.8.0', 'planning', 'tracking']
+-              });
+-              console.log('Created v5.8.0 planning issue');
+-            } else {
+-              console.log('Planning issue already exists or limit reached');
+-            }
+-
+-      - name: Log Workflow Summary
+-        run: |
+-          echo ""
+-          echo "=== Workflow Summary ==="
+-          echo "Completed tasks:"
+-          echo "  ✓ Checked feature planning status"
+-          echo "  ✓ Verified advanced performance profiler"
+-          echo "  ✓ Verified example projects"
+-          echo "  ✓ Verified community infrastructure"
+-          echo "  ✓ Generated planning report"
+-          echo ""
+-          echo "Next run: Next Monday at 09:00 UTC"
+-          echo "Manual trigger: Available anytime"
+diff --git a/.github/workflows/wasm-build.yml b/.github/workflows/wasm-build.yml
+deleted file mode 100644
+index 1d1e2a2..0000000
+--- a/.github/workflows/wasm-build.yml
++++ /dev/null
+@@ -1,233 +0,0 @@
+-name: Qui Browser VR WebAssembly CI/CD
+-
+-on:
+-  push:
+-    branches: [ main, develop ]
+-    paths:
+-      - 'wasm/**'
+-      - 'assets/js/wasm/**'
+-      - '.github/workflows/wasm-build.yml'
+-  pull_request:
+-    branches: [ main, develop ]
+-    paths:
+-      - 'wasm/**'
+-      - 'assets/js/wasm/**'
+-
+-env:
+-  CARGO_TERM_COLOR: always
+-  NODE_VERSION: '18'
+-
+-jobs:
+-  # 品質チェックジョブ
+-  quality-check:
+-    name: Code Quality Check
+-    runs-on: ubuntu-latest
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-        with:
+-          fetch-depth: 0
+-
+-      - name: Install Rust toolchain
+-        uses: dtolnay/rust-toolchain@stable
+-        with:
+-          components: rustfmt, clippy
+-
+-      - name: Check Rust formatting
+-        run: |
+-          cd wasm
+-          cargo fmt -- --check
+-
+-      - name: Run Clippy
+-        run: |
+-          cd wasm
+-          cargo clippy -- -D warnings
+-
+-      - name: Run Rust tests
+-        run: |
+-          cd wasm
+-          cargo test
+-
+-  # セキュリティスキャンジョブ
+-  security-scan:
+-    name: Security Scan
+-    runs-on: ubuntu-latest
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-
+-      - name: Install Rust toolchain
+-        uses: dtolnay/rust-toolchain@stable
+-
+-      - name: Install cargo-audit
+-        run: cargo install cargo-audit
+-
+-      - name: Run security audit
+-        run: |
+-          cd wasm
+-          cargo audit
+-
+-  # WebAssemblyビルドジョブ
+-  build-wasm:
+-    name: Build WebAssembly
+-    runs-on: ubuntu-latest
+-    needs: [quality-check, security-scan]
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-
+-      - name: Install Rust toolchain
+-        uses: dtolnay/rust-toolchain@stable
+-
+-      - name: Install wasm-pack
+-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+-
+-      - name: Add wasm-pack to PATH
+-        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+-
+-      - name: Setup Node.js
+-        uses: actions/setup-node@v4
+-        with:
+-          node-version: ${{ env.NODE_VERSION }}
+-          cache: 'npm'
+-
+-      - name: Create build directories
+-        run: mkdir -p wasm/build assets/js/wasm
+-
+-      - name: Run WebAssembly build
+-        run: |
+-          cd wasm
+-          chmod +x build.sh
+-          ./build.sh
+-
+-      - name: Upload build artifacts
+-        uses: actions/upload-artifact@v4
+-        with:
+-          name: wasm-artifacts
+-          path: |
+-            assets/js/wasm/
+-            wasm/build/
+-          retention-days: 30
+-
+-  # パフォーマンステストジョブ
+-  performance-test:
+-    name: Performance Test
+-    runs-on: ubuntu-latest
+-    needs: build-wasm
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-
+-      - name: Download build artifacts
+-        uses: actions/download-artifact@v4
+-        with:
+-          name: wasm-artifacts
+-          path: .
+-
+-      - name: Setup Node.js
+-        uses: actions/setup-node@v4
+-        with:
+-          node-version: ${{ env.NODE_VERSION }}
+-
+-      - name: Install performance testing tools
+-        run: npm install -g lighthouse
+-
+-      - name: Create test HTML file
+-        run: |
+-          cat > test-wasm.html << 'EOF'
+-          <!DOCTYPE html>
+-          <html>
+-          <head>
+-              <title>Qui Browser WASM Test</title>
+-          </head>
+-          <body>
+-              <h1>WebAssembly Performance Test</h1>
+-              <div id="test-results"></div>
+-              <script type="module">
+-                  import init from './assets/js/wasm/qui_browser_wasm.js';
+-
+-                  async function runTests() {
+-                      const results = document.getElementById('test-results');
+-
+-                      try {
+-                          const wasm = await init();
+-                          const start = performance.now();
+-
+-                          // 行列計算テスト
+-                          const matrix1 = new Float32Array([1, 2, 3, 4]);
+-                          const matrix2 = new Float32Array([5, 6, 7, 8]);
+-
+-                          for (let i = 0; i < 1000; i++) {
+-                              wasm.multiply_matrices(matrix1, matrix2);
+-                          }
+-
+-                          const end = performance.now();
+-                          results.innerHTML = `<p>1000回の行列計算: ${end - start}ms</p>`;
+-
+-                      } catch (error) {
+-                          results.innerHTML = `<p>エラー: ${error.message}</p>`;
+-                      }
+-                  }
+-
+-                  runTests();
+-              </script>
+-          </body>
+-          </html>
+-          EOF
+-
+-      - name: Run WebAssembly performance test
+-        run: node -e "
+-          const fs = require('fs');
+-          const jsFile = 'assets/js/wasm/qui_browser_wasm.js';
+-          const wasmFile = 'assets/js/wasm/qui_browser_wasm_bg.wasm';
+-
+-          if (fs.existsSync(jsFile) && fs.existsSync(wasmFile)) {
+-              console.log('✅ WebAssemblyファイルが正常にビルドされています');
+-              console.log('📊 JavaScriptサイズ:', fs.statSync(jsFile).size, 'bytes');
+-              console.log('📊 WebAssemblyサイズ:', fs.statSync(wasmFile).size, 'bytes');
+-          } else {
+-              console.error('❌ WebAssemblyファイルが見つかりません');
+-              process.exit(1);
+-          }
+-        "
+-
+-  # デプロイジョブ（リリース時のみ）
+-  deploy:
+-    name: Deploy to Production
+-    runs-on: ubuntu-latest
+-    needs: performance-test
+-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-
+-      - name: Download build artifacts
+-        uses: actions/download-artifact@v4
+-        with:
+-          name: wasm-artifacts
+-          path: .
+-
+-      - name: Setup deployment configuration
+-        run: |
+-          echo "Deployment configuration for production"
+-          # 実際のデプロイ設定をここに追加
+-
+-      - name: Deploy to CDN
+-        run: |
+-          echo "Deploying WebAssembly modules to CDN..."
+-          # 実際のCDNデプロイロジックをここに追加
+-
+-  # 通知ジョブ
+-  notify:
+-    name: Send Notifications
+-    runs-on: ubuntu-latest
+-    needs: [quality-check, security-scan, build-wasm, performance-test]
+-    if: always()
+-    steps:
+-      - name: Notify build status
+-        run: |
+-          if [ "${{ needs.build-wasm.result }}" == "success" ]; then
+-            echo "✅ WebAssemblyビルドが成功しました"
+-          else
+-            echo "❌ WebAssemblyビルドが失敗しました"
+-          fi
+-- 
+2.43.0
+

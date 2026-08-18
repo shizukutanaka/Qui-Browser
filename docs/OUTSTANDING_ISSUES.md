@@ -512,10 +512,20 @@ Sessions 46/54/55/56 が1つずつコントロールを足し続けた結果、�
 Session 74 の削除により、`.github/workflows/` の5ファイルが存在しないパスを参照している。
 `deploy.yml` の `find assets/js ...` は **exit 1 で失敗する**（実測）。
 
-**このリポジトリの自動化は `.github/workflows/**` を push できない**（403 `without workflows permission`、
-複数セッションで実測済み）ため、オーナーの手による修正が必要。**手順は `docs/PUBLISHING.md` の冒頭**に
-コピー可能な形で記載した。該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、
-修正ではなく**削除**が正しい。
+**このリポジトリの自動化は `.github/workflows/**` を push できない**（403 `without workflows permission`。
+Session 74 で**改めて実際に push を試行して再確認**）ため、オーナーの手による修正が必要。
+
+**適用可能なパッチを同梱した**: `docs/patches/0001-ci-drop-assets-js-steps.patch`
+（`origin/main` に対しクリーンに適用でき、適用後 `.github/workflows/` から `assets/js` 参照が
+**ゼロになる**ことを worktree で検証済み）。
+
+```bash
+git checkout main && git pull
+git am docs/patches/0001-ci-drop-assets-js-steps.patch
+git push
+```
+
+該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、修正ではなく**削除**が正しい。
 
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。
