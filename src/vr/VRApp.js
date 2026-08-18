@@ -982,23 +982,29 @@ export class VRApp {
   }
 
   /**
-   * Collapsible section header for the settings panel.
+   * One tab in the settings panel's section selector.
    *
-   * The open/closed state is carried by a ▾ / ▸ glyph as well as by colour, so
-   * it does not depend on hue alone (WCAG 1.4.1), and the expanded state is
-   * announced through the same caption path every other settings control uses
-   * (WCAG 4.1.3) — a control that silently reorganises the panel under a gaze
-   * user would be worse than no grouping at all.
+   * Tabs replaced a stack of collapsible headers: five stacked headers plus the
+   * largest section measured 50.4° vertically, still past the ~40° a user takes
+   * in without moving their head, and four of those rows were pure chrome. One
+   * tab row is 35.9°.
+   *
+   * The selected state is carried by a ● / ○ glyph as well as by colour, so it
+   * does not depend on hue alone (WCAG 1.4.1), and selection is announced
+   * through the same caption path every other settings control uses
+   * (WCAG 4.1.3) — silently reorganising the panel under a gaze user would be
+   * worse than no grouping at all.
    *
    * State is read live from `settings.openSettingsSections` inside draw()
    * rather than captured at construction, so a repaint (high-contrast toggle)
-   * can never show a stale disclosure glyph.
+   * can never show a stale glyph.
    *
    * @param {string} sectionId  i18n key, also the persisted identity
+   * @param {number} widthM     tab width in metres (from the layout)
    * @returns {THREE.Mesh}
    */
-  makeSectionHeader(sectionId) {
-    const w = 512;
+  makeSectionTab(sectionId, widthM) {
+    const w = 256;
     const h = 96;
     const canvas = document.createElement('canvas');
     canvas.width = w;
@@ -1018,17 +1024,19 @@ export class VRApp {
       ctx.strokeStyle = buttonAccentColor('#8fa0ff', hc);
       ctx.lineWidth = buttonLineWidth(hover, hc);
       ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'left';
+      ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px sans-serif';
-      // Glyph first: the disclosure state is legible without reading the label.
-      ctx.fillText(`${isOpen ? '▾' : '▸'}  ${label}`, 24, 62);
+      ctx.font = 'bold 28px sans-serif';
+      // Glyph carries the selected state without relying on hue (WCAG 1.4.1).
+      // maxWidth backstop so a long translated label condenses instead of
+      // escaping the tab (the discipline from the text-overflow family).
+      ctx.fillText(`${isOpen ? '●' : '○'} ${label}`, w / 2, 60, w - 16);
       tex.needsUpdate = true;
     };
     draw(false);
 
     const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(1.0, 0.17),
+      this._sharedPlaneGeometry(widthM, 0.17),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true })
     );
     this.registerInteractable(mesh, {
@@ -1054,18 +1062,19 @@ export class VRApp {
    * @param {string} sectionId
    */
   _toggleSettingsSection(sectionId) {
-    // Accordion: at most one section open at a time. Without this the panel is
-    // UNBOUNDED — with everything expanded the grouped layout measured 5.00 m
-    // (91.4° vertical), worse than the 3.56 m flat stack it replaced, because
-    // the headers add rows on top of every control. One-at-a-time makes the
-    // worst case `sections + largest section`, so adding the 25th control can
-    // no longer make the panel taller than its own section.
-    const wasOpen = (this.settings.openSettingsSections || []).includes(sectionId);
-    const nowOpen = !wasOpen;
-    this.updateSetting('openSettingsSections', nowOpen ? [sectionId] : []);
+    // Tab semantics: selecting always selects. Exactly one section is shown, so
+    // the panel's height is bounded by `1 tab row + largest section` and adding
+    // a 25th control can only grow it by its own section. Re-selecting the
+    // active tab is a no-op rather than collapsing to an empty panel, which is
+    // what a tab affordance leads a user to expect.
+    const current = this.settings.openSettingsSections || [];
+    if (current.length === 1 && current[0] === sectionId) {
+      return;
+    }
+    this.updateSetting('openSettingsSections', [sectionId]);
     this._rebuildSettingsPanel();
     if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show(`${t(sectionId)}: ${t(nowOpen ? 'vr.msg.sectionOpen' : 'vr.msg.sectionClosed')}`);
+      this.captionSystem.show(`${t(sectionId)}: ${t('vr.msg.sectionOpen')}`);
     }
   }
 
@@ -1652,8 +1661,8 @@ export class VRApp {
     this._settingsBg = bg;
 
     for (const p of layout.placements) {
-      if (p.type === 'header') {
-        const btn = this.makeSectionHeader(p.sectionId);
+      if (p.type === 'tab') {
+        const btn = this.makeSectionTab(p.sectionId, p.w);
         btn.position.set(p.x, p.y, 0.01);
         group.add(btn);
         this._settingsPanelDrawers.push(btn._redraw);

@@ -27,90 +27,117 @@ export const COL_X = 0.27;
 /** Panel width (m). */
 export const PANEL_W = 1.1;
 
+/** Gap between adjacent section tabs (m). */
+export const TAB_GAP = 0.012;
+
 /**
- * Lay out sections and their controls into rows.
+ * Width (m) of one section tab when `count` of them share the panel row.
+ * @param {number} count
+ * @returns {number}
+ */
+export function tabWidth(count) {
+  const n = Math.max(1, Math.floor(Number(count) || 1));
+  return (PANEL_W - TAB_GAP * (n - 1)) / n;
+}
+
+/**
+ * Lay out sections and their controls.
+ *
+ * Sections are selected from a SINGLE row of tabs, not a stack of headers.
+ * Stacked headers cost one row each — five of them plus the largest section
+ * measured 12 rows / 2.30 m / **50.4°** vertically at the panel's 2.44 m
+ * placement, still well past the ~40° a user takes in without moving their
+ * head. Four of those rows were pure chrome carrying one bit of information
+ * apiece. Collapsing them into one tab row costs nothing in navigation and
+ * brings the worst case to 8 rows / 1.58 m / **35.9°**, inside the comfortable
+ * field for the first time.
  *
  * Controls declare `wide: true` when they need a full row (steppers, cycles,
- * actions); everything else pairs two-per-row into the left/right columns, the
- * same as the previous flat layout did for toggles. Pairing never spans a
- * section boundary, so a section always starts on a fresh row.
+ * actions); everything else pairs two-per-row into the left/right columns.
  *
  * @param {Array<{id: string, controls: Array<{wide?: boolean}>}>} sections
- * @param {Iterable<string>} [openIds] ids of the expanded sections
+ * @param {Iterable<string>} [openIds] the selected section (at most one)
  * @returns {{
  *   rows: number,
  *   height: number,
- *   placements: Array<{type: 'header'|'control', sectionId: string, index: number, x: number, y: number}>
+ *   placements: Array<{type: 'tab'|'control', sectionId: string, index: number, x: number, y: number, w?: number}>
  * }}
  */
 export function layoutSettingsPanel(sections, openIds = []) {
   const list = Array.isArray(sections) ? sections : [];
   const open = new Set(openIds || []);
+  const selected = list.find((s) => open.has(s.id)) || null;
+  const controls = selected && Array.isArray(selected.controls) ? selected.controls : [];
 
-  // First pass: how many rows will there be? The stack is centred on y=0, so
-  // the total has to be known before any y can be assigned.
-  let rows = 0;
-  for (const s of list) {
-    rows += 1; // the section header
-    if (!open.has(s.id)) {
-      continue;
-    }
-    const controls = Array.isArray(s.controls) ? s.controls : [];
+  // Row count: one tab row (when there is anything to tab between) plus the
+  // rows the selected section needs.
+  const rowsFor = (list2) => {
+    let n = 0;
     let i = 0;
-    while (i < controls.length) {
-      if (controls[i] && controls[i].wide) {
-        rows += 1;
+    while (i < list2.length) {
+      if (list2[i] && list2[i].wide) {
+        n += 1;
         i += 1;
       } else {
-        // Pair with the next control only if that one is also narrow.
-        const next = controls[i + 1];
+        const next = list2[i + 1];
         i += (next && !next.wide) ? 2 : 1;
-        rows += 1;
+        n += 1;
       }
     }
-  }
+    return n;
+  };
+  const tabRow = list.length ? 1 : 0;
+  const rows = tabRow + rowsFor(controls);
 
   const placements = [];
   let y = ((rows - 1) * ROW_H) / 2;
-  for (const s of list) {
-    placements.push({ type: 'header', sectionId: s.id, index: -1, x: 0, y });
+
+  if (tabRow) {
+    const w = tabWidth(list.length);
+    const total = list.length * w + TAB_GAP * (list.length - 1);
+    list.forEach((s, i) => {
+      placements.push({
+        type: 'tab',
+        sectionId: s.id,
+        index: i,
+        x: -total / 2 + i * (w + TAB_GAP) + w / 2,
+        y,
+        w
+      });
+    });
     y -= ROW_H;
-    if (!open.has(s.id)) {
-      continue;
-    }
-    const controls = Array.isArray(s.controls) ? s.controls : [];
-    let i = 0;
-    while (i < controls.length) {
-      if (controls[i] && controls[i].wide) {
-        placements.push({ type: 'control', sectionId: s.id, index: i, x: 0, y });
-        i += 1;
+  }
+
+  let i = 0;
+  while (i < controls.length) {
+    const sid = selected.id;
+    if (controls[i] && controls[i].wide) {
+      placements.push({ type: 'control', sectionId: sid, index: i, x: 0, y });
+      i += 1;
+    } else {
+      placements.push({ type: 'control', sectionId: sid, index: i, x: -COL_X, y });
+      const next = controls[i + 1];
+      if (next && !next.wide) {
+        placements.push({ type: 'control', sectionId: sid, index: i + 1, x: COL_X, y });
+        i += 2;
       } else {
-        placements.push({ type: 'control', sectionId: s.id, index: i, x: -COL_X, y });
-        const next = controls[i + 1];
-        if (next && !next.wide) {
-          placements.push({ type: 'control', sectionId: s.id, index: i + 1, x: COL_X, y });
-          i += 2;
-        } else {
-          i += 1;
-        }
+        i += 1;
       }
-      y -= ROW_H;
     }
+    y -= ROW_H;
   }
 
   return { rows, height: rows * ROW_H + PAD, placements };
 }
 
 /**
- * Worst-case height (m) under the accordion rule VRApp enforces: at most one
- * section open at a time.
+ * Worst-case height (m): one tab row plus the largest section.
  *
- * This is the number that actually bounds the panel. Allowing every section to
- * be open at once measured 5.00 m / 91.4° vertical — *worse* than the 3.56 m
- * flat stack the grouping replaced, because each header adds a row on top of
- * all the controls. With one section open the worst case is
- * `sections + largest section`, so a new control can only ever grow the panel
- * by its own section, never by the whole inventory.
+ * This is the number that bounds the panel. Two earlier shapes did not:
+ * the flat stack of all 24 controls was 3.56 m / 72.2°, and grouping with
+ * every section expanded was 5.00 m / 91.4° — *worse*, because each header
+ * added a row on top of all the controls. With a single tab row and one
+ * section shown, a new control can only grow the panel by its own section.
  *
  * @param {Array} sections
  * @returns {number} metres

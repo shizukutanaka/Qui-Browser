@@ -12,7 +12,7 @@
  */
 
 const {
-  layoutSettingsPanel, worstCaseHeight, ROW_H, PAD, COL_X, PANEL_W
+  layoutSettingsPanel, worstCaseHeight, tabWidth, ROW_H, PAD, COL_X, PANEL_W, TAB_GAP
 } = require('../src/vr/ui/settingsLayout.js');
 const { angularSizeDeg } = require('../src/vr/ui/angularSize.js');
 
@@ -25,11 +25,35 @@ const narrow = (n) => Array.from({ length: n }, () => ({ wide: false }));
 const wide = (n) => Array.from({ length: n }, () => ({ wide: true }));
 
 describe('layoutSettingsPanel', () => {
-  test('a collapsed section costs exactly one row (its header)', () => {
-    const out = layoutSettingsPanel([{ id: 'a', controls: narrow(6) }], []);
+  test('every section gets a tab, and they all share ONE row', () => {
+    const out = layoutSettingsPanel(
+      [{ id: 'a', controls: narrow(6) }, { id: 'b', controls: narrow(2) }], []
+    );
+    const tabs = out.placements.filter((p) => p.type === 'tab');
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0].y).toBe(tabs[1].y);          // one row, not a stack
     expect(out.rows).toBe(1);
-    expect(out.placements).toHaveLength(1);
-    expect(out.placements[0]).toMatchObject({ type: 'header', sectionId: 'a' });
+    // Unselected sections contribute no control rows.
+    expect(out.placements.filter((p) => p.type === 'control')).toHaveLength(0);
+  });
+
+  test('tabs are laid out side by side, centred, without overlapping', () => {
+    const sections = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    const out = layoutSettingsPanel(sections, []);
+    const tabs = out.placements.filter((p) => p.type === 'tab');
+    const w = tabWidth(3);
+    for (let i = 1; i < tabs.length; i++) {
+      expect(tabs[i].x - tabs[i - 1].x).toBeCloseTo(w + TAB_GAP, 10);
+    }
+    expect(tabs[0].x + tabs[tabs.length - 1].x).toBeCloseTo(0, 10); // centred
+    expect(tabs[0].x - w / 2).toBeGreaterThanOrEqual(-PANEL_W / 2 - 1e-9); // inside
+  });
+
+  test('tabWidth divides the panel among the tabs', () => {
+    for (const n of [1, 3, 5, 8]) {
+      expect(n * tabWidth(n) + TAB_GAP * (n - 1)).toBeCloseTo(PANEL_W, 10);
+    }
+    expect(tabWidth(0)).toBe(tabWidth(1)); // degenerate input clamps
   });
 
   test('narrow controls pair two per row, in left and right columns', () => {
@@ -66,14 +90,14 @@ describe('layoutSettingsPanel', () => {
     expect(new Set(ys).size).toBe(3);
   });
 
-  test('pairing never spans a section boundary', () => {
+  test('only the selected section contributes controls', () => {
     const out = layoutSettingsPanel(
-      [{ id: 'a', controls: narrow(1) }, { id: 'b', controls: narrow(1) }], ['a', 'b']
+      [{ id: 'a', controls: narrow(1) }, { id: 'b', controls: narrow(1) }], ['a']
     );
     const controls = out.placements.filter((p) => p.type === 'control');
-    expect(controls).toHaveLength(2);
-    expect(controls[0].y).not.toBe(controls[1].y);
-    expect(controls.every((c) => c.x === -COL_X)).toBe(true);
+    expect(controls).toHaveLength(1);
+    expect(controls[0].sectionId).toBe('a');
+    expect(controls[0].x).toBe(-COL_X);
   });
 
   test('rows are evenly pitched and centred on y = 0', () => {
@@ -90,15 +114,15 @@ describe('layoutSettingsPanel', () => {
     expect(out.height).toBeCloseTo(out.rows * ROW_H + PAD, 10);
   });
 
-  test('every control gets exactly one placement, and indices are its own', () => {
+  test('every control of the selected section gets exactly one placement', () => {
     const sections = [{ id: 'a', controls: narrow(3) }, { id: 'b', controls: wide(2) }];
-    const out = layoutSettingsPanel(sections, ['a', 'b']);
-    for (const s of sections) {
+    for (const sel of sections) {
+      const out = layoutSettingsPanel(sections, [sel.id]);
       const idx = out.placements
-        .filter((p) => p.type === 'control' && p.sectionId === s.id)
+        .filter((p) => p.type === 'control')
         .map((p) => p.index)
         .sort((x, y) => x - y);
-      expect(idx).toEqual(s.controls.map((_, i) => i));
+      expect(idx).toEqual(sel.controls.map((_, i) => i));
     }
   });
 
@@ -136,35 +160,45 @@ describe('the panel stays inside the comfortable field of view', () => {
     expect(worst / (19 * ROW_H + PAD)).toBeLessThan(0.7); // >30% shorter
   });
 
-  test('height is bounded by the LARGEST section, not the whole inventory', () => {
-    // This is the structural property the accordion buys: adding a control can
-    // only grow the panel by its own section. Without it, expanding everything
-    // measured 5.00 m — worse than the flat stack it replaced, because headers
-    // add rows on top of every control.
-    const everythingOpen = layoutSettingsPanel(REAL, REAL.map((s) => s.id)).height;
-    expect(everythingOpen).toBeGreaterThan(19 * ROW_H + PAD); // the trap
-    expect(worstCaseHeight(REAL)).toBeLessThan(everythingOpen * 0.5);
+  test('height is bounded by ONE tab row plus the largest section', () => {
+    // The structural property: adding a control can only grow the panel by its
+    // own section, never by the whole inventory.
+    const worst = worstCaseHeight(REAL);
+    const largest = Math.max(...REAL.map((s) => layoutSettingsPanel(REAL, [s.id]).rows));
+    expect(worst).toBeCloseTo(largest * ROW_H + PAD, 10);
 
-    // Adding a 25th control grows the panel by one row, not by the inventory.
     const grown = REAL.map((s) => (s.id === 'display'
       ? { ...s, controls: [...s.controls, { wide: true }] } : s));
     expect(worstCaseHeight(grown)).toBeLessThanOrEqual(worstCaseHeight(REAL) + ROW_H + 1e-9);
   });
 
-  test('all sections collapsed is a short header list', () => {
+  test('nothing selected is a single tab row', () => {
     const out = layoutSettingsPanel(REAL, []);
-    expect(out.rows).toBe(REAL.length);
+    expect(out.rows).toBe(1);
     expect(vertical(out.height)).toBeLessThan(COMFORTABLE_VERTICAL_DEG);
   });
 
-  test('HONEST LIMIT: the open panel still exceeds the comfortable field', () => {
-    // 2.30 m / 50.4° vs the ~40° a user takes in without moving their head.
-    // Recorded rather than papered over: closing the remaining gap needs a
-    // scrollable panel or shorter rows, which is a separate change.
-    // See docs/OUTSTANDING_ISSUES.md J-1.
+  test('the open panel NOW fits the comfortable field — J-2 closed', () => {
+    // Was 50.4° with five stacked headers; four of those rows were pure chrome.
+    // One tab row brings the worst case to 35.9°, inside the ~40° a user takes
+    // in without moving their head.
     const worst = worstCaseHeight(REAL);
-    expect(vertical(worst)).toBeGreaterThan(COMFORTABLE_VERTICAL_DEG);
-    expect(vertical(worst)).toBeLessThan(55);
+    expect(vertical(worst)).toBeLessThanOrEqual(COMFORTABLE_VERTICAL_DEG);
+    expect(vertical(worst)).toBeCloseTo(35.9, 0);
+  });
+
+  test('every section fits when selected, not just the smallest', () => {
+    for (const s of REAL) {
+      const out = layoutSettingsPanel(REAL, [s.id]);
+      expect(vertical(out.height)).toBeLessThanOrEqual(COMFORTABLE_VERTICAL_DEG);
+    }
+  });
+
+  test('the stacked-header shape it replaced did NOT fit', () => {
+    // 5 header rows + the largest section's 7 rows = 12 rows.
+    const stacked = 12 * ROW_H + PAD;
+    expect(vertical(stacked)).toBeCloseTo(50.4, 0);
+    expect(vertical(stacked)).toBeGreaterThan(COMFORTABLE_VERTICAL_DEG);
   });
 
   test('the panel is wider than a full-row control, so nothing overhangs', () => {
