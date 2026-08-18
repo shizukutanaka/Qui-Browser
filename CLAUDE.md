@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74: マスクのアルゴリズム step 2「削除」— リポジトリの JS の 78% を消した
+ユーザー指示「イーロン・マスク思考法でこのプロダクトを完成させて」。マスクのアルゴリズムは **①要件を賢くする → ②部品を削除する → ③簡素化・最適化する → ④サイクルタイム短縮 → ⑤自動化**、そして「**最も多い誤りは、そもそも存在すべきでない部品を最適化すること**」。Sessions 61〜73 はすべて ③ だった。本セッションは ① と ② をやった。
+- 🧹 **delete（129,204 行）**: すべて「構築はされるがユーザーが到達できる経路がゼロ」であることを**実測で確認**してから削除。`assets/js/`(119,698 — 唯一の参照元 `tests/archive/` と閉じた死のペア)、`multiplayer/`(1,390 — **トグルが存在せず、かつリポジトリに signaling サーバが無い**ので第2ピアは原理的に接続不能)、`server/`+`api/`(1,235 — `src/` に決済 UI が皆無)、`MixedReality`(963 — `startSession()` 呼び出し元ゼロ)、`AIRecommendation`(638 — 唯一の出力に消費者ゼロ)、`WebGPURenderer`(600 — レンダーループ未接続)、`ObjectPool`(404 — 参照ゼロ)。
+- 🧹 **依存の削除**: 未使用 devDependencies **19件**(webpack ツールチェーン一式 + TypeScript。`.ts` ファイルはゼロなので `tsconfig.json` も削除)、サーバ専用 runtime deps 5件、未使用 `i18next` 2件。**lockfile 807 → 474 パッケージ(−333)**、**runtime dependencies 9 → 2**(`three`, `web-vitals`)。
+- 📐 **実測した効果**: リポジトリの JS **165,443 → 36,239 行(−78%)**、**出荷バンドル gzip 235.2 → 218.9 kB(−6.9%)**(origin/main を worktree でビルドして直接比較)、lint warnings 84 → 50。
+- ⚖️ **要件の訂正(step ①)**: `docs/SPEC.md` は FR-6.3(永続アンカー)と FR-7.2(アバター/空間ボイス)を **✅「実装済み」**と認定していたが、**どちらもユーザーが到達できる経路を持っていなかった**。仕様書が「誰も体験できないもの」を完了と認定していたこと自体が誤りなので、コードと同時に要件を ❌ に訂正し、削除理由を表で明記。README の「17 Features across 3 Tiers」も、実際に動くものだけを謳う記述へ書き換えた。
+- ✅ **テスト 1,477 → 1,348 は劣化ではない**: 消えた129件は**到達不能なコードを検証していたテスト**（multiplayer 56件、AI、MR、ObjectPool、Stripe など）。残る 1,348 件はすべてユーザーが到達できる経路を守っている。専用テスト6ファイルを削除し、`app-smoke`/`subsystems` は該当 describe だけを外した。
+- 🔧 **削除が壊した2箇所を修正**: `vite.config.js` の `manualChunks` が削除済みモジュールを entry として参照していてビルドが落ちた(`tier1` の ObjectPool、`tier2-ar` の MixedReality)。`SpatialAudio` の docstring が消えたクラス名を参照していたのも修正。
+- 📌 **戻す候補は1つだけ**: マスクは「削除しすぎたら 10% を戻せ」と言うが、現時点で戻す価値があるのは **`server/` を SSRF 対策付きの取得プロキシとして作り直すこと**のみ(F-1)。課金・マルチプレイヤ・AI・WebGPU・AR は戻す理由が無い。**すべて git 履歴に残る**ので、必要になった時点で戻せる。
+- Total 1348 tests (45 suites); 0 lint errors (84 → 50 warnings); build green; `npm run verify:layout` PASS(55通り)。
+
 ### Session 73: 縦方向の監査 — 本文の最終行がページ送りボタンの下に潜り込んでいた
 Sessions 62〜68 は**横幅**を、70〜71 は**ターゲットの角サイズ**を測った。**縦**（行送り・下端の重なり）は一度も測っていなかったので、実 Chromium で本物のフォント垂直メトリクス（`actualBoundingBox`/`fontBoundingBox`）を実測して確認した。
 - 📐 **実測**: sans-serif のグリフ箱は **1.10〜1.14 em**、CJK の ink は **1.03〜1.05 em**。つまり baseline y の行は概ね y−0.95em 〜 y+0.22em に墨が乗る。
@@ -770,4 +781,4 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-17 (Session 73)
+**Last Revision**: 2026-08-18 (Session 74)

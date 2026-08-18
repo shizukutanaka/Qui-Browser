@@ -542,7 +542,7 @@ export class SpatialAudio {
   /**
    * Attach a remote peer's audio stream to a spatialized panner node.
    * Call this once when the WebRTC audio track for `peerId` becomes available
-   * (typically inside MultiplayerSystem's `ontrack` handler).
+   * (typically inside a WebRTC `ontrack` handler).
    *
    * The source is stored under the key `voice:${peerId}` so it participates in
    * the normal LOD pipeline and can be positioned via setSourcePosition.

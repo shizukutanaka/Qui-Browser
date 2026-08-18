@@ -32,13 +32,10 @@ import { searchEngineHosts } from './browser/urlResolver.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { MixedReality } from './ar/MixedReality.js';
 import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
-import { AIRecommendation } from '../ai/AIRecommendation.js';
 import { VoiceCommands } from './input/VoiceCommands.js';
-import { MultiplayerSystem } from './multiplayer/MultiplayerSystem.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
@@ -114,20 +111,16 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.mixedReality = null;
     this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
-    this.aiRecommendation = null;
     this.voiceCommands = null;
-    this.multiplayerSystem = null;
     this.webPanel = null;
     this.tabManager = null;
     this.windowManager = null;
     this.bookmarkPanel = null;
     this.devTools = null;
     this.perfMonitorUI = null;
-    this.webGPURenderer = null;
     this.homeEnvironment = null;
     this.layersSystem = null;
 
@@ -246,11 +239,8 @@ export class VRApp {
       enableCurvedPanel: false,
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
-      enableAI: false,
       enableVoice: false,
-      enableMultiplayer: false,
       enablePerfMonitorUI: false,
-      enableWebGPU: false, // experimental
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -2299,36 +2289,7 @@ export class VRApp {
       this.showVRToast(t('vr.error.spatialAudioUnavailable'), { type: 'warn' });
     }
 
-    // 8. Mixed Reality
-    try {
-      this.mixedReality = new MixedReality(this.renderer, this.scene);
-      const mrSupport = await this.mixedReality.checkSupport();
-      console.debug('VRApp: Mixed reality support:', mrSupport);
-    } catch (e) {
-      console.error('VRApp: Mixed reality init failed', e);
-      // Not user-facing — MR is an optional enhancement.
-    }
-
     // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
-
-    // 9. AI Recommendations (FR-8.1).
-    if (this.settings.enableAI) {
-      try {
-        this.aiRecommendation = new AIRecommendation();
-        await this.aiRecommendation.initialize();
-        // Seed the model with persisted browse history from BookmarkStore so
-        // recommendations are meaningful from the first session.
-        const seedHistory = this.bookmarks.getHistory(50);
-        seedHistory.forEach(entry => {
-          this.aiRecommendation.trackVisit(entry.url, entry.title, 0);
-        });
-        console.debug(`VRApp: AI recommendations ready (seeded with ${seedHistory.length} history entries)`);
-      } catch (e) {
-        console.error('VRApp: AI recommendations init failed', e);
-        this.showVRToast(t('vr.error.aiUnavailable'), { type: 'warn' });
-        this.aiRecommendation = null;
-      }
-    }
 
     // 10. Voice Commands
     if (this.settings.enableVoice) {
@@ -2444,29 +2405,6 @@ export class VRApp {
       }
     }
 
-    // 11. Multiplayer — requires a signaling server; connect() is called on
-    // demand by the caller, not here.
-    if (this.settings.enableMultiplayer) {
-      // FR-7.2: avatar presence (head + hands + name label) is handled by
-      // MultiplayerSystem's own createAvatar()/updatePlayerInfo() pipeline,
-      // driven by real 'player-info' data-channel messages — not by the
-      // separate AvatarSystem class, which was never wired to anything (no
-      // caller ever called its addPeer/removePeer/updatePeerPose, and its
-      // voice-streaming half needs a WebRTC ontrack handler that doesn't
-      // exist anywhere in this codebase either).
-      this.multiplayerSystem = new MultiplayerSystem(this.scene, this.spatialAudio);
-      // Cross-modal peer-presence events: toast (visual) + haptic + caption so
-      // a deaf user or someone not looking at the panel knows a peer has
-      // joined or left without relying on spatial audio alone.
-      this.multiplayerSystem.onPeerConnected = (_peerId) => {
-        this.showVRToast(t('vr.msg.playerJoined'), { type: 'info' });
-      };
-      this.multiplayerSystem.onPeerDisconnected = (_peerId) => {
-        this.showVRToast(t('vr.msg.playerLeft'), { type: 'warn' });
-      };
-      console.debug('VRApp: Multiplayer system ready (call connect() to join a room)');
-    }
-
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
     if (import.meta.env && import.meta.env.DEV) {
@@ -2481,19 +2419,6 @@ export class VRApp {
       this.perfMonitorUI = new PerformanceMonitor();
       this.perfMonitorUI.initialize();
       console.debug('VRApp: Performance monitor UI ready');
-    }
-
-    // 14. WebGPU renderer (experimental, opt-in). Gated behind capability
-    // detection; not yet integrated into the THREE render loop, so it is
-    // instantiated for availability/probing only.
-    if (this.settings.enableWebGPU) {
-      if (typeof navigator !== 'undefined' && navigator.gpu) {
-        const { WebGPURenderer } = await import('./rendering/WebGPURenderer.js');
-        this.webGPURenderer = new WebGPURenderer();
-        console.debug('VRApp: WebGPU available (experimental; not wired into the render loop yet)');
-      } else {
-        console.warn('VRApp: WebGPU requested but navigator.gpu is unavailable');
-      }
     }
 
     const loadTime = performance.now() - startTime;
@@ -2929,11 +2854,6 @@ export class VRApp {
       this.spatialAudio.updateListenerFromCamera(this.camera);
     }
 
-    // Update mixed reality
-    if (this.mixedReality && this.mixedReality.enabled && xrFrame) {
-      this.mixedReality.update(xrFrame);
-    }
-
     // FR-1.5: per-frame quad-layer canvas blit (only when dirty).
     if (this.layersSystem && this.layersSystem.isSupported && xrFrame) {
       const refSpace = this.renderer.xr.getReferenceSpace();
@@ -3136,9 +3056,6 @@ export class VRApp {
    */
   navigate(url, title = url) {
     this.bookmarks.addHistory(url, title);
-    if (this.aiRecommendation) {
-      this.aiRecommendation.trackVisit(url, title, 0);
-    }
     // Caption the page title so caption-enabled users who aren't looking at the
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
@@ -3289,20 +3206,11 @@ export class VRApp {
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
     }
-    if (this.mixedReality) {
-      this.mixedReality.dispose();
-    }
     if (this.progressiveLoader) {
       this.progressiveLoader.dispose();
     }
-    if (this.aiRecommendation) {
-      this.aiRecommendation.dispose();
-    }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();
-    }
-    if (this.multiplayerSystem) {
-      this.multiplayerSystem.disconnect();
     }
     if (this.windowManager) {
       this.windowManager.dispose();
@@ -3326,9 +3234,6 @@ export class VRApp {
     }
     if (this.perfMonitorUI) {
       this.perfMonitorUI.dispose();
-    }
-    if (this.webGPURenderer && this.webGPURenderer.dispose) {
-      this.webGPURenderer.dispose();
     }
     if (this._homePanelTexture) {
       this._homePanelTexture.dispose();

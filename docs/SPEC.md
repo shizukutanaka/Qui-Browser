@@ -56,7 +56,7 @@
 | FR-4.1 | Fixed Foveated Rendering | ✅ | `FFRSystem`（静的） |
 | FR-4.2 | 視線追従フォービエーション | 🟡 | 頭部角速度ベースの予測 gaze foveation（`FFRSystem.trackHeadPose`/`updatePredictedGazeFoveation`）。真の eye-tracking は Quest Pro ハードウェア待ち |
 | FR-4.3 | テクスチャ圧縮（KTX2/Basis） | ✅ | `TextureManager` |
-| FR-4.4 | WebGPU 描画 | 🟡 | `WebGPURenderer` 実験的・ループ未接続 |
+| FR-4.4 | WebGPU 描画 | ❌ | **削除（Session 74）**。`WebGPURenderer` は構築されるだけでレンダーループに一度も接続されず、画素を1つも描いていなかった。実装するなら THREE の WebGPU バックエンドを使うのが筋で、独自実装の 600 行は再利用価値が無い |
 | FR-4.5 | 3D Gaussian Splatting | ❌ | 未導入 |
 | FR-4.6 | ホーム環境（空/床/ウェルカム） | ✅ | `createHomeEnvironment()` |
 
@@ -65,13 +65,27 @@
 |----|------|------|-----------|
 | FR-5.1 | HRTF 空間オーディオ | ✅ | `SpatialAudio` |
 | FR-5.2 | アンビソニック/知覚的 LOD | ✅ | `SpatialAudio`: `hrtfThreshold`(15m)超はequalpower、以内はHRTF。`updateAllLOD()`/`updateSourceLOD()` で毎フレーム更新 |
-| FR-6.1 | AR パススルー（MR） | 🟡 | `MixedReality` |
-| FR-6.2 | ヒットテスト/アンカー配置 | 🟡 | `MixedReality.placeObject()` + hit-test。メモリ内アンカーは FR-6.3 で IndexedDB 永続化済 |
-| FR-6.3 | 永続アンカー（再訪復元） | ✅ | `MixedReality`: IndexedDB `QuiBrowserMR/anchors` に pose を保存。`loadSavedAnchors()` / `deletePersistedAnchor()` / `clearSavedAnchors()` API |
-| FR-6.4 | Depth sensing/平面・メッシュ検出 | 🟡 | 平面検出（`updatePlanes`）に加え、メッシュ検出（`updateMeshes`/`frame.detectedMeshes`、ワイヤフレーム可視化）と深度センシング（`updateDepth`/`frame.getDepthInformation`、`getDepthInMeters(x,y)` で遮蔽用サンプリング）を実装。真の遮蔽シェーダ合成は別途。実機 Quest 3 の depth-API 待ち |
-| FR-7.1 | マルチプレイヤー接続 | 🟡 | `MultiplayerSystem`（設定化済・要 signaling/TURN） |
-| FR-7.2 | アバター/プレゼンス/空間ボイス | ✅ | `AvatarSystem`: 幾何学的アバター（頭+手）、`addPeer/removePeer/updatePeerPose`、Canvas ラベル。`SpatialAudio.createVoiceSource/removeVoiceSource/updateVoicePosition` で WebRTC MediaStream を空間 PannerNode に接続。`AvatarSystem.setPeerVoiceStream/connectSpatialAudio` で配線、pose 更新時に音声位置を自動同期 |
-| FR-8.1 | AI コンテンツ推薦 | 🟡 | `AIRecommendation` ヒューリスティック（時間帯/カテゴリ重み）。`VRApp.navigate()` 経由で BookmarkStore 履歴とリアルタイム同期 |
+| FR-6.1〜6.4 | AR パススルー / アンカー / Depth | ❌ | **削除（Session 74）**。下記参照 |
+| FR-7.1 | マルチプレイヤー接続 | ❌ | **削除（Session 74）**。下記参照 |
+| FR-7.2 | アバター/プレゼンス/空間ボイス | ❌ | **削除（Session 74）**。下記参照 |
+| FR-8.1 | AI コンテンツ推薦 | ❌ | **削除（Session 74）**。下記参照 |
+
+#### なぜ削除したか（要件の訂正）
+
+この表は以前、FR-6.3 と FR-7.2 を **✅「実装済み」** と記載していた。しかし実際には
+**どの機能もユーザーが到達できる経路を持っていなかった**。仕様書が「誰も体験できないもの」を
+完了と認定していたこと自体が誤りだったので、コードと同時に要件を訂正する。
+
+| 削除対象 | 行数 | 到達不能だった理由（実測） |
+|---|---|---|
+| `MixedReality` | 963 | `startSession()` の呼び出し元がゼロ → `enabled` が真になることが無く、`update()` のガードも通らない。`checkSupport()` が `console.debug` を出すだけ |
+| `MultiplayerSystem` + `AvatarSystem` | 1,390 | `enableMultiplayer` は既定 false で**トグルが存在しない**。加えて**リポジトリに signaling サーバが無い**ので、有効化できたとしても第2ピアは接続できない |
+| `AIRecommendation` | 638 | 唯一の出力 `getRecommendations()` に消費者がゼロ。しかも Session 33 で全ソースがプレースホルダと判明し、出力は空に濾過済み |
+| `WebGPURenderer` | 600 | `new` と `dispose` のみ。レンダーループに接続されていない |
+| `ObjectPool` / `PoolManager` | 404 | 参照ゼロ（Session 34 で最後の消費者を削除済み） |
+| `server/` + `api/`（Stripe 課金） | 1,235 | `src/` に決済 UI が皆無、DB も無し。fail-closed スタブのみ |
+
+いずれも git 履歴に残るので、実際に必要になった時点で戻せる。
 
 ### 3.6 設定・永続化・PWA・監視・国際化・アクセシビリティ
 | ID | 要件 | 状態 | 根拠/備考 |
@@ -93,14 +107,14 @@
 | NFR-4 | 品質（テスト/カバレッジ） | 🟡 | 主要純ロジックに単体テスト追加。広域カバレッジは低 |
 | NFR-5 | CI 再現性（`npm ci`） | ✅ | lockfile コミット済 |
 | NFR-6 | 保守性（単一フレームクロック等） | ✅ | `render()` で dt を一度計算し `updateSystems(t,f,dt)` / `updateLocomotion(dt)` へ配布。`_lastLocoTime`/`_lastFFRTime` を廃止 |
-| NFR-7 | 廃止インフラ非依存 | ✅ | マルチプレイヤの死んだ signaling/TURN を除去・設定化 |
+| NFR-7 | 廃止インフラ非依存 | ✅ | 到達不能だったマルチプレイヤ/MR/AI/WebGPU/課金サーバを Session 74 で削除。ランタイム依存は `three` と `web-vitals` の2つのみ |
 
 ## 5. 不足の実装計画（本仕様から導出）
 
 **フェーズ1（中核）**: FR-1.1 実 Web 描画 → FR-1.2/1.3 クローム → FR-1.5 Layers。
 **フェーズ2（操作・移動の完成）**: FR-3.3 スムーズ移動、FR-3.4 rig 旋回修正、FR-2.3 interactable レジストリ。
 **フェーズ3（永続・UI・PWA）**: FR-9.2 設定 UI、FR-1.4 履歴/ブックマーク、FR-10.2 即没入、FR-6.3 永続アンカー。
-**フェーズ4（先端）**: FR-4.2 gaze フォービエーション、FR-4.4/4.5 WebGPU/3DGS、FR-7.2 アバター、FR-5.2 オーディオ高度化。
+**フェーズ4（先端）**: FR-4.2 gaze フォービエーション、FR-5.2 オーディオ高度化。WebGPU/3DGS/アバターは到達不能だったため削除（§3.5 参照）。
 **横断**: i18n(FR-12.1)、アクセシビリティ(FR-13.1)、NFR-1 実機計測、NFR-4 カバレッジ拡充。
 
 ## 6. 本セッションでの実装（適合改善の記録）

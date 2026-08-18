@@ -82,8 +82,6 @@ const CATALOG = {
     'vr.msg.videoPlaying': 'Video: playing',
     'vr.msg.videoPaused': 'Video: paused',
     'vr.msg.videoStopped': 'Video: stopped',
-    'vr.msg.playerJoined': 'Player joined',
-    'vr.msg.playerLeft': 'Player left',
     'vr.msg.noNextPage': 'No next page',
     'vr.msg.noPreviousPage': 'No previous page',
     'vr.msg.goingBack': 'Going back',
@@ -101,7 +99,6 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'Foveation unavailable',
     'vr.error.hapticUnavailable': 'Haptic feedback unavailable',
     'vr.error.layersUnavailable': 'Sharp text rendering unavailable',
-    'vr.error.aiUnavailable': 'AI recommendations unavailable',
     'vr.error.blockedUrl': 'Cannot open that address'
   },
   ja: {
@@ -175,8 +172,6 @@ const CATALOG = {
     'vr.msg.videoPlaying': 'ビデオ: 再生中',
     'vr.msg.videoPaused': 'ビデオ: 一時停止',
     'vr.msg.videoStopped': 'ビデオ: 停止',
-    'vr.msg.playerJoined': 'プレイヤー参加',
-    'vr.msg.playerLeft': 'プレイヤー退出',
     'vr.msg.noNextPage': '次ページなし',
     'vr.msg.noPreviousPage': '前ページなし',
     'vr.msg.goingBack': '戻る',
@@ -194,7 +189,6 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
     'vr.error.hapticUnavailable': 'ハプティックフィードバック利用不可',
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
-    'vr.error.aiUnavailable': 'AIレコメンド利用不可',
     'vr.error.blockedUrl': 'このアドレスは開けません'
   }
 };
