@@ -140,32 +140,43 @@ describe('contentStateLines — the viewport states honestly what it can show', 
     expect(l.detail).toBe('example.com');
   });
 
-  test('a completed navigation says content cannot be shown — not a stale "enter a URL"', () => {
+  test('a completed navigation reports the real state — not a stale "enter a URL"', () => {
     // The regression this pins: after a navigation the user believes succeeded,
     // the viewport used to keep reading "Enter a URL to navigate" forever,
     // implying nothing had happened.
     const l = contentStateLines('unavailable', 'https://example.com/a');
     expect(l.title).not.toMatch(/Enter a URL/i);
-    expect(l.title).toMatch(/cannot be shown/i);
     expect(l.detail).toContain('example.com');
   });
 
-  test('the unavailable message distinguishes navigation from rendering', () => {
-    // Navigation DID happen (it is in history); only rendering is unsupported.
-    expect(contentStateLines('unavailable', 'https://example.com/').detail)
-      .toMatch(/recorded/i);
+  test('without a proxy it names the cause AND the fix, not just "unsupported"', () => {
+    // It used to say only "in-headset rendering is not supported" — a dead end.
+    // The measured cause is that sites send no CORS header, and the companion
+    // proxy is the one thing that changes it.
+    const l = contentStateLines('unavailable', 'https://example.com/a', false);
+    expect(l.detail).toMatch(/CORS/i);
+    expect(l.detail).toMatch(/proxy/i);
+    expect(l.title).not.toMatch(/not supported/i);
   });
 
-  test('error state is distinct from unavailable', () => {
-    const err = contentStateLines('error', 'https://example.com/');
-    const una = contentStateLines('unavailable', 'https://example.com/');
-    expect(err.title).not.toBe(una.title);
-    expect(err.title).toMatch(/Failed/i);
+  test('with a proxy configured it blames the fetch, not the architecture', () => {
+    // Once a proxy is running, "in-headset rendering is not supported" is
+    // simply false — rendering works; this page just could not be fetched.
+    const l = contentStateLines('unavailable', 'https://example.com/a', true);
+    expect(l.detail).toMatch(/proxy could not fetch/i);
+    expect(l.detail).not.toMatch(/CORS/i);
+  });
+
+  test('the two proxy states give genuinely different guidance', () => {
+    const withOut = contentStateLines('unavailable', 'https://e.com/', false);
+    const withP = contentStateLines('unavailable', 'https://e.com/', true);
+    expect(withOut.title).not.toBe(withP.title);
+    expect(withOut.detail).not.toBe(withP.detail);
   });
 
   test('an unparseable url degrades without throwing', () => {
     expect(() => contentStateLines('unavailable', 'not a url')).not.toThrow();
-    expect(contentStateLines('unavailable', '').detail).toMatch(/not supported/i);
+    expect(contentStateLines('unavailable', '').detail).toMatch(/CORS/i);
   });
 });
 

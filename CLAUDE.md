@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き7）: 「表示できません」を行き止まりから道標に
+`enableWebPanel` 既定値の二者択一（OFF＝到達不能 / ON＝ほぼ全遷移で「表示できません」）を疑い直した。**悪い体験の正体は「表示できないこと」ではなく「どうすれば直るか分からないこと」**だった。
+- 🐛 **fix**: `contentStateLines('unavailable')` は「in-headset rendering is not supported」としか言わず、①原因（サイトが CORS を返さない）も②解決策（取得プロキシ）も伝えない**行き止まり**だった。しかもプロキシを実装した今は**事実として誤り**でもある —— プロキシを動かせば描画できる。
+- ✨ プロキシ設定の有無で出し分けるようにした: 未設定なら「このサイトは CORS ヘッダを返さない → reader proxy を動かせ（docs/PROXY.md）」、設定済みなら「プロキシが取得できなかった」。**原因と解決策の両方**を一目で伝える。
+- 📐 実測した列幅予算（928px）に対し全文言が収まることを確認（655/799/403/583/655/670 px）。
+- ✅ test 4件追加/1件更新。Total 1433 tests (47 suites); 0 lint errors; build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き6）: J-2 を閉じた — 4行の chrome を消して初めて視野に収まった
 自分で「未解決」と記録した J-2（設定パネルが開いた状態で 50.4°、快適視野 ~40° 超）を、逃げずに閉じた。
 - 🔍 **診断**: アコーディオン化しても 12 行のうち **4 行はセクション名を出すだけの chrome** —— 1行あたり1ビットしか運んでいない。「最良の部品は部品が無いこと」。

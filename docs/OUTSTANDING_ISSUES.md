@@ -112,7 +112,14 @@ A-1 / A-2 は Session 38 から凍結されていたが、ユーザーが「イ�
   - **なぜこれが本質的だったか**: VR で「ページを再読み込みしてください」は**ヘッドセットを外せ**という意味。トグルが存在しても、その代償を払う人はいない。つまり既定値が false かどうか以前に、**機能群は実質的に到達不能なままだった**。
   - `_buildBrowsingSystems()` は冪等（二重トグルでパネルが二重生成されない）。`_teardownBrowsingSystems()` は interactable を確実に解放する（S49 のゴーストハンド・S52 の quad layer と同じ失敗モードを避けるため）。
   - i18n は `vr.msg.webPanelReloadRequired` を廃し、実際に起きたことを言う `vr.msg.webPanelOn` / `webPanelOff` に置換。
-- **既定値そのもの（`false`）は依然として意図的に未変更**: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
+- **「表示できません」画面を行き止まりから道標に変えた（Session 74）**: 従来のメッセージは
+「in-headset rendering is not supported」だけで、①原因（サイトが CORS を返さない）も
+②解決策（取得プロキシ）も伝えていなかった。しかもプロキシ実装後は**事実として誤り**でもあった
+（プロキシを動かせば描画できる）。現在はプロキシ設定の有無で文言を出し分ける ——
+未設定なら「このサイトは CORS ヘッダを返さない → reader proxy を動かせ（docs/PROXY.md）」、
+設定済みなら「プロキシが取得できなかった」。実測した列幅予算にも収まることを確認済み。
+
+**既定値そのもの（`false`）は依然として意図的に未変更**: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
 - **検証済みだった残課題2件 — 両方 Session 52 で修正完了**（`enableWebPanel: true` にして初めて到達可能になるが、トグルで到達可能になったため対応した）:
   - ~~**BookmarkPanel の scrollOffset 未クランプ**~~ — **完了（Session 52）**。共有ヘルパー `_clampScroll(rowCount)` を追加し、`_draw()`・`_onSelect()`（ヒットテスト前）・`deleteRow` ケースの3経路すべてがこれを通すようにした。チロームバー☆ボタン等パネル外経路でブックマークが減っても、描画・クリック双方でスタックした offset がクランプされ、空白ページ＋全クリック死亡が起きなくなった。3テスト（`tests/bookmark-panel.test.js`、うち2件 pre-fix で fail 確認）。
   - ~~**LayersSystem の XRQuadLayer リーク**~~ — **完了（Session 52）**。`WebPanel.enableLayerMode()` に layer id と detach コールバックを渡すよう拡張し、`disableLayerMode(releaseLayer=true)`（タブ close→dispose 経路）が `VRApp._detachPanelLayer(id)` 経由で `LayersSystem.removeLayer(id, session, baseLayer)` を呼んでネイティブ層をレンダーステートから外すようにした。session-end のバルクテアダウンは `disableLayerMode(false)` を渡す（`dispose()` が層スタックごと破棄するうえ、終了中セッションへの `updateRenderState()` は throw するため）。WebPanel は XRSession を知らないまま（session/baseLayer 解決は VRApp 側）。8テスト（`tests/webpanel-states.test.js` 5件・`tests/vr-app-wiring.test.js` 2件・pre-fix で fail 確認、`removeLayer` 単体は既に `tests/layers-system.test.js` でカバー済み）。
