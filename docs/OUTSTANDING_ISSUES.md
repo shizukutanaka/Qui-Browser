@@ -539,6 +539,30 @@ git push
 
 ---
 
+## L. i18n の取り残し（Session 74 で修正）
+
+CLAUDE.md は Session 2 で「Phase 1 Complete（i18n 配線済み）」、Session 27 で
+「status-message/toast の呼び出し箇所も修正」と記録していた。しかしどちらも
+**トースト・設定ラベル**の話で、**パネルに直接描かれる文字列**は対象外だった。
+
+実測（`src/vr/browser/` の文字列リテラル走査）で判明した未翻訳:
+
+| 面 | 文字列 |
+|---|---|
+| `urlDisplay.contentStateLines` | `Loading…` / `Failed to load` / `Enter a URL to navigate` / 「表示できません」2種 |
+| `BookmarkPanel` | タブ `Bookmarks` / `History`、空状態 `No bookmarks yet` / `No history yet` |
+| `TabManager` | `New Tab` |
+
+`contentStateLines` は**コンテンツ領域が表示しうる全メッセージ** —— つまり
+日本語 IME を看板機能に掲げるブラウザの**主コンテンツ面が丸ごと英語だった**。
+WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたのは誤りだった。
+
+**修正**: 14キーを en/ja 両方に追加し3面を配線。あわせて**日本語版が実測の列幅予算に収まることを
+テストで固定**した —— 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは
+Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928px。
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

@@ -129,6 +129,8 @@ describe('securityLevel', () => {
   });
 });
 
+const { setLanguage } = require('../src/i18n/i18n.js');
+
 describe('contentStateLines — the viewport states honestly what it can show', () => {
   test('empty panel invites a URL', () => {
     expect(contentStateLines('empty').title).toMatch(/Enter a URL/i);
@@ -235,6 +237,79 @@ describe('readerFetchUrl', () => {
   test('degenerate input does not throw', () => {
     for (const [t, p] of [[null, null], [undefined, undefined], ['', ''], [42, 7]]) {
       expect(() => readerFetchUrl(t, p)).not.toThrow();
+    }
+  });
+});
+
+
+// ── The reader viewport speaks the user's language (WCAG 3.1.1 / 3.1.2) ──────
+// Session 27's i18n pass covered toasts and settings labels, not panel-drawn
+// text. contentStateLines — every message the content area can show — was
+// still English literals, on the primary content surface of a browser whose
+// headline feature is a Japanese IME.
+describe('contentStateLines is internationalised', () => {
+  const { contentStateLines } = require('../src/vr/browser/urlDisplay.js');
+  const { setLanguage, t } = require('../src/i18n/i18n.js');
+  afterEach(() => setLanguage('en'));
+
+  test.each(['loading', 'error', 'unavailable', 'empty'])(
+    'the %s state differs between en and ja', (state) => {
+      setLanguage('en');
+      const en = contentStateLines(state, 'https://example.com/a');
+      setLanguage('ja');
+      const ja = contentStateLines(state, 'https://example.com/a');
+      expect(ja.title).not.toBe(en.title);
+      expect(ja.title.length).toBeGreaterThan(0);
+      // Not a fallback-to-key: t() returns the key itself when missing.
+      expect(ja.title).not.toMatch(/^vr\./);
+    }
+  );
+
+  test('Japanese keeps the host verbatim — the origin is never translated', () => {
+    setLanguage('ja');
+    const l = contentStateLines('unavailable', 'https://en.wikipedia.org/wiki/X', false);
+    expect(l.detail).toContain('en.wikipedia.org');
+  });
+
+  test('both proxy states are translated, not just one', () => {
+    setLanguage('ja');
+    const noProxy = contentStateLines('unavailable', 'https://e.com/', false);
+    const withProxy = contentStateLines('unavailable', 'https://e.com/', true);
+    for (const l of [noProxy, withProxy]) {
+      expect(l.title).not.toMatch(/^[\x00-\x7F]*$/); // contains non-ASCII
+    }
+    expect(noProxy.title).not.toBe(withProxy.title);
+  });
+
+  test('every content key exists in both catalogues', () => {
+    const keys = [
+      'vr.content.loading', 'vr.content.failed', 'vr.content.empty',
+      'vr.content.noCorsTitle', 'vr.content.noCorsDetail', 'vr.content.noCorsDetailBare',
+      'vr.content.proxyFailedTitle', 'vr.content.proxyFailedDetail', 'vr.content.proxyFailedBare',
+      'vr.bookmarks.tabBookmarks', 'vr.bookmarks.tabHistory',
+      'vr.bookmarks.emptyBookmarks', 'vr.bookmarks.emptyHistory', 'vr.tabs.newTab'
+    ];
+    for (const lang of ['en', 'ja']) {
+      setLanguage(lang);
+      for (const k of keys) {
+        expect(t(k)).not.toBe(k); // a missing key falls back to itself
+      }
+    }
+  });
+
+  test('the Japanese strings fit the measured content column', () => {
+    // Full-width glyphs are 1 em, so a translation that reads fine in English
+    // can overrun the panel — the defect family of Sessions 62-68. Budget:
+    // 1024px canvas minus 2x48px padding, title at 28px, detail at 18px.
+    const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+    const AVAIL = 1024 - 2 * 48;
+    setLanguage('ja');
+    for (const state of ['loading', 'error', 'empty', 'unavailable']) {
+      for (const hasProxy of [false, true]) {
+        const l = contentStateLines(state, 'https://en.wikipedia.org/wiki/Something', hasProxy);
+        expect(textWidthEm(l.title) * 28).toBeLessThanOrEqual(AVAIL);
+        expect(textWidthEm(l.detail) * 18).toBeLessThanOrEqual(AVAIL);
+      }
     }
   });
 });

@@ -21,6 +21,7 @@
  */
 
 import { truncate } from './bookmarkLayout.js';
+import { t } from '../../i18n/i18n.js';
 
 /**
  * Security posture of a URL, for the address-bar indicator.
@@ -162,7 +163,7 @@ export function contentStateLines(state, url = '', hasProxy = false) {
   const host = parseDisplayUrl(url).host;
   switch (state) {
   case 'loading':
-    return { title: 'Loading…', detail: host };
+    return { title: t('vr.content.loading'), detail: host };
   case 'unavailable':
     // Honest AND actionable. It used to say only "in-headset rendering is not
     // supported", which was a dead end and, once the companion proxy existed,
@@ -173,21 +174,21 @@ export function contentStateLines(state, url = '', hasProxy = false) {
     // broken" and "here is the one thing that fixes it".
     return hasProxy
       ? {
-        title: 'Could not read this page',
+        title: t('vr.content.proxyFailedTitle'),
         detail: host
-          ? `${host} — the reader proxy could not fetch it`
-          : 'The reader proxy could not fetch this page'
+          ? `${host} — ${t('vr.content.proxyFailedDetail')}`
+          : t('vr.content.proxyFailedBare')
       }
       : {
-        title: 'This site does not allow direct reading',
+        title: t('vr.content.noCorsTitle'),
         detail: host
-          ? `${host} sends no CORS header — run a reader proxy (docs/PROXY.md)`
-          : 'Site sends no CORS header — run a reader proxy (docs/PROXY.md)'
+          ? `${host} ${t('vr.content.noCorsDetail')}`
+          : t('vr.content.noCorsDetailBare')
       };
   case 'error':
-    return { title: 'Failed to load', detail: host };
+    return { title: t('vr.content.failed'), detail: host };
   default:
-    return { title: 'Enter a URL to navigate', detail: '' };
+    return { title: t('vr.content.empty'), detail: '' };
   }
 }
 

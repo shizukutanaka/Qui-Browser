@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
+import { t } from '../../i18n/i18n.js';
 import {
   STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
   STRIP_NEW_TAB_PX, STRIP_TAB_MAX_PX, tabWidthPx, tabCloseZonePx
@@ -134,7 +135,7 @@ export class TabManager {
       ctx.textBaseline = 'middle';
       const title = this.tabs[i].currentUrl
         ? this._shortTitle(this.tabs[i].currentUrl)
-        : 'New Tab';
+        : t('vr.tabs.newTab');
       ctx.fillText(title, x + 14, c.height / 2, Math.max(8, tabCloseZonePx(tabW).x0 - 20));
 
       // Close ✕ — drawn inside a small red box for discoverability.

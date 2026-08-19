@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き8）: i18n の取り残し — 主コンテンツ面が丸ごと英語だった
+`contentStateLines` を編集していて、その文字列が**ハードコードされた英語リテラル**であることに気づいた。走査したところ、`src/vr/browser/` に未翻訳の面が3つ残っていた。
+- 🔍 **記録の誤りを訂正**: Session 2 は「Phase 1 Complete（i18n 配線済み）」、Session 27 は「status-message/toast も修正」と記録していたが、どちらも**トーストと設定ラベル**の話で、**パネルに直接描かれる文字列**は対象外だった。
+- 🐛 **fix (WCAG 3.1.1/3.1.2)**: `contentStateLines`（`Loading…`/`Failed to load`/`Enter a URL to navigate`/「表示できません」2種）、`BookmarkPanel`（タブ `Bookmarks`/`History`、空状態2種）、`TabManager`（`New Tab`）。とくに `contentStateLines` は**コンテンツ領域が表示しうる全メッセージ**であり、日本語 IME を看板に掲げるブラウザの**主コンテンツ面が丸ごと英語だった**。
+- 📐 **翻訳を「後から溢れる」前に測った**: 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは Sessions 62〜68 の欠陥ファミリーそのもの。日本語文言を**設計段階で実測**して選び（最長 828px / 予算 928px）、**列幅に収まることをテストで固定**した。
+- ✅ **test 8件追加**（en/ja で異なること・キーのフォールバック（`vr.` で始まらない）を検出・host は翻訳せず verbatim・両プロキシ状態とも翻訳済み・14キーが両カタログに存在・日本語が列幅に収まる）。pre-fix 検証: キーは残して**英語リテラルだけ**戻すと **5件 FAIL**。
+- Total 1441 tests (47 suites); 0 lint errors (52 warnings); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き7）: 「表示できません」を行き止まりから道標に
 `enableWebPanel` 既定値の二者択一（OFF＝到達不能 / ON＝ほぼ全遷移で「表示できません」）を疑い直した。**悪い体験の正体は「表示できないこと」ではなく「どうすれば直るか分からないこと」**だった。
 - 🐛 **fix**: `contentStateLines('unavailable')` は「in-headset rendering is not supported」としか言わず、①原因（サイトが CORS を返さない）も②解決策（取得プロキシ）も伝えない**行き止まり**だった。しかもプロキシを実装した今は**事実として誤り**でもある —— プロキシを動かせば描画できる。
