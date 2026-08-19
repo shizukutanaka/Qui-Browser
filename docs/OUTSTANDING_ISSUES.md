@@ -562,7 +562,14 @@ WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたの�
 **CLAUDE.md 自身が Session 2 で「Voice error messages only English」と Phase 1 の critical gap に
 挙げていたもの**で、そのまま残っていた。ほかに `ComfortSystem` の "Teleported" キャプション、
 `SemanticDOM` の aria-label 3種、`VRApp` のキャプション7種、`main.js`/`app.js` のエラー画面7種。
-合計 **37 キー**を en/ja に追加。
+合計 **39 キー**を en/ja に追加（トグルの `ON`/`OFF` キャプションを含む —— これは
+**全設定トグルの状態を聴覚チャネルに伝える唯一の文言**なので記号ではなくテキスト）。
+
+**収束の確認**: 同じ走査を再実行し、残る3件はいずれも**ユーザーに見えない**ことを個別に確認した ——
+`VRControllerInput.getDeviceName` は `console.debug` にしか流れない（ユーザー向けは
+`controllerReconnectMessage`）、`VoiceCommands` の `description` は `getCommands()` API 用の
+メタデータで読み上げには `_spokenExample` が使われる、`main.js` の `EN` は
+**言語トグル自身のラベル**で対象言語を名乗るものなので翻訳しないのが正しい。
 
 🔍 **なぜ見逃され続けたか（別の欠陥）**: `package.json` の lint は `eslint src/**/*.js` で、
 **シェルの glob は `src/*.js` にマッチしない**（globstar 無効時）。つまり

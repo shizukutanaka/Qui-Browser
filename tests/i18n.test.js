@@ -217,3 +217,21 @@ describe('captions, voice errors and screen-reader labels are translated', () =>
     expect(all.every((s) => /[^\x00-\x7F]/.test(s))).toBe(true); // actually Japanese
   });
 });
+
+// The ON/OFF in a toggle's caption is the deaf/HoH channel's only report of
+// that control's state, so it is user-visible text, not a symbol.
+describe('toggle state captions are translated', () => {
+  test('settingsButtonCaption reports state in the active language', () => {
+    const { settingsButtonCaption } = require('../src/vr/settingsStepper.js');
+    const i18n = require('../src/i18n/i18n.js');
+    i18n.setLanguage('en');
+    expect(settingsButtonCaption('toggle', 'Captions', true)).toBe('Captions: ON');
+    i18n.setLanguage('ja');
+    const ja = settingsButtonCaption('toggle', '字幕', true);
+    const jaOff = settingsButtonCaption('toggle', '字幕', false);
+    i18n.setLanguage('en');
+    expect(ja).toBe('字幕: オン');
+    expect(jaOff).toBe('字幕: オフ');
+    expect(ja).not.toBe(jaOff);
+  });
+});

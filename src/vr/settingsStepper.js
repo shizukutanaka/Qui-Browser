@@ -6,6 +6,8 @@
  * its width:  [ −  |  value  |  + ].
  */
 
+import { t } from '../i18n/i18n.js';
+
 // Fractional x boundaries of the minus / value / plus regions.
 export const MINUS_MAX_U = 0.25; // u < 0.25  → decrement
 export const PLUS_MIN_U = 0.75;  // u > 0.75  → increment
@@ -77,7 +79,7 @@ export function formatValue(value, { step = 1, unit = '' } = {}) {
  */
 export function settingsButtonCaption(type, label, value, opts = {}) {
   if (type === 'toggle') {
-    return `${label}: ${value ? 'ON' : 'OFF'}`;
+    return `${label}: ${t(value ? 'vr.msg.toggleOn' : 'vr.msg.toggleOff')}`;
   }
   if (type === 'stepper') {
     return `${label}: ${formatValue(value, opts)}`;
