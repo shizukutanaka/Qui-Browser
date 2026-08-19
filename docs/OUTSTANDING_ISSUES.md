@@ -557,6 +557,19 @@ CLAUDE.md は Session 2 で「Phase 1 Complete（i18n 配線済み）」、Sessi
 日本語 IME を看板機能に掲げるブラウザの**主コンテンツ面が丸ごと英語だった**。
 WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたのは誤りだった。
 
+**続き（同セッション）**: 走査を `src/` 全体に広げたところ、さらに **キャプション・音声エラー・
+スクリーンリーダのラベル**が未翻訳と判明。とくに `crossModal.voiceErrorNotification` は
+**CLAUDE.md 自身が Session 2 で「Voice error messages only English」と Phase 1 の critical gap に
+挙げていたもの**で、そのまま残っていた。ほかに `ComfortSystem` の "Teleported" キャプション、
+`SemanticDOM` の aria-label 3種、`VRApp` のキャプション7種、`main.js`/`app.js` のエラー画面7種。
+合計 **37 キー**を en/ja に追加。
+
+🔍 **なぜ見逃され続けたか（別の欠陥）**: `package.json` の lint は `eslint src/**/*.js` で、
+**シェルの glob は `src/*.js` にマッチしない**（globstar 無効時）。つまり
+`src/app.js` / `src/main.js` / `src/monitoring.js` —— **エントリポイントを含む3ファイルが
+一度も lint されていなかった**。実際この修正中に `app.js` へ import を入れ忘れた際、lint は
+0 errors を報告した。`eslint src proxy` に変更したところ即座に検出。
+
 **修正**: 14キーを en/ja 両方に追加し3面を配線。あわせて**日本語版が実測の列幅予算に収まることを
 テストで固定**した —— 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは
 Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928px。

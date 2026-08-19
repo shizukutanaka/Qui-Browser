@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き9）: 走査を全体に広げたら、lint されていないファイルが3つあった
+（続き8）で `src/vr/browser/` を走査したので、同じ走査を `src/` 全体に広げた。
+- 🐛 **fix (i18n)**: さらに未翻訳が判明 —— `crossModal.voiceErrorNotification`（**CLAUDE.md 自身が Session 2 で「Voice error messages only English」と Phase 1 の critical gap に挙げ、そのまま残っていたもの**）、`ComfortSystem` の "Teleported" キャプション、`SemanticDOM` の **aria-label 3種**（スクリーンリーダに読まれる文字列）、`VRApp` のキャプション7種（Recenter / VR Ready / 手の検出・喪失 / 利き手 / トップサイト無し / ブックマーク・履歴）、`main.js`/`app.js` の**エラー画面7種**（WebXR 非対応時に最初に見る文言）。計 **37 キー**を en/ja に追加。
+- 🐛 **fix (別の欠陥 — なぜ見逃され続けたか)**: `package.json` の lint は `eslint src/**/*.js`。**シェルの glob は globstar 無効時に `src/*.js` にマッチしない**ので、`src/app.js` / `src/main.js` / `src/monitoring.js` —— **エントリポイントを含む3ファイルが一度も lint されていなかった**。実際この修正中に `app.js` へ import を入れ忘れたが lint は 0 errors を報告し、`eslint src proxy` に直した瞬間に検出された。あわせて `readerFetchUrl` のローカル変数 `t` が i18n の `t()` を隠していたのも発覚（`raw` に改名）。
+- 🐛 **fix (テストの順序依存)**: 新しいテストが単独では通り**ファイル内では落ちた**。原因は `tests/i18n.test.js` の先行テストが `jest.resetModules()` を呼ぶため、ファイル冒頭で束縛した `setLanguage` が**古いモジュールインスタンス**を指し、テスト内の `require` が新しいインスタンスを得ていたこと。同一世代から両方を require するよう修正（コメントで罠を明記）。
+- 📐 **翻訳語順の判断**: 手の検出キャプションは `<hand> hand <state>` の合成をやめ **4つの独立キー**にした —— 語順と助詞が言語で異なるため、合成では正しい日本語にならない。
+- ✅ **test 24件追加**（37キーが両カタログに存在し互いに異なる・キーへのフォールバックを検出・voiceErrorNotification が実際に翻訳を返す・手のキャプション4種が全て相異なり非ASCII）。pre-fix 検証: 英語リテラルに戻すと FAIL。
+- Total 1465 tests (47 suites); 0 lint errors (128 warnings — lint 対象が3ファイル増えたぶん増加); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き8）: i18n の取り残し — 主コンテンツ面が丸ごと英語だった
 `contentStateLines` を編集していて、その文字列が**ハードコードされた英語リテラル**であることに気づいた。走査したところ、`src/vr/browser/` に未翻訳の面が3つ残っていた。
 - 🔍 **記録の誤りを訂正**: Session 2 は「Phase 1 Complete（i18n 配線済み）」、Session 27 は「status-message/toast も修正」と記録していたが、どちらも**トーストと設定ラベル**の話で、**パネルに直接描かれる文字列**は対象外だった。

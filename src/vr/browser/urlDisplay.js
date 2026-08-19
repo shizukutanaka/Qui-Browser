@@ -231,10 +231,10 @@ export function securityIndicator(level, highContrast = false) {
  * @returns {string} the URL to fetch
  */
 export function readerFetchUrl(target, proxyUrl = '') {
-  const t = String(target == null ? '' : target);
-  const base = String(proxyUrl == null ? '' : proxyUrl).trim().replace(/\/+$/, '');
+  const raw = String(target === null || target === undefined ? '' : target);
+  const base = String(proxyUrl === null || proxyUrl === undefined ? '' : proxyUrl).trim().replace(/\/+$/, '');
   if (!base) {
-    return t;
+    return raw;
   }
-  return `${base}/fetch?url=${encodeURIComponent(t)}`;
+  return `${base}/fetch?url=${encodeURIComponent(raw)}`;
 }

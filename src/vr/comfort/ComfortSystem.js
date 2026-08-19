@@ -5,6 +5,8 @@
  * John Carmack principle: Essential for user comfort, simple implementation
  */
 
+import { t } from '../../i18n/i18n.js';
+
 import * as THREE from 'three';
 
 export class ComfortSystem {
@@ -491,7 +493,7 @@ export function fireTeleportFeedback(controller, haptic, captions) {
     haptic.playPattern(hand, 'impact');
   }
   if (captions && captions.enabled) {
-    captions.show('Teleported');
+    captions.show(t('vr.msg.teleported'));
   }
 }
 

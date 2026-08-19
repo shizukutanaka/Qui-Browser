@@ -21,6 +21,8 @@
  * with a stubbed `document` and safely no-ops when `document` is unavailable.
  */
 
+import { t } from '../../i18n/i18n.js';
+
 const HIDDEN_STYLE =
   'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;' +
   'clip:rect(0,0,0,0);white-space:nowrap;border:0;';
@@ -52,18 +54,18 @@ export class SemanticDOM {
     this.captionRegion = document.createElement('div');
     this.captionRegion.setAttribute('role', 'status');
     this.captionRegion.setAttribute('aria-live', 'polite');
-    this.captionRegion.setAttribute('aria-label', 'VR captions');
+    this.captionRegion.setAttribute('aria-label', t('vr.a11y.captionsRegion'));
     this.container.appendChild(this.captionRegion);
 
     this.alertRegion = document.createElement('div');
     this.alertRegion.setAttribute('role', 'alert');
     this.alertRegion.setAttribute('aria-live', 'assertive');
-    this.alertRegion.setAttribute('aria-label', 'VR notifications');
+    this.alertRegion.setAttribute('aria-label', t('vr.a11y.alertsRegion'));
     this.container.appendChild(this.alertRegion);
 
     this.settingsRegion = document.createElement('div');
     this.settingsRegion.setAttribute('role', 'region');
-    this.settingsRegion.setAttribute('aria-label', 'VR settings panel');
+    this.settingsRegion.setAttribute('aria-label', t('vr.a11y.settingsRegion'));
     this.settingsRegion.setAttribute('aria-expanded', 'false');
     this.container.appendChild(this.settingsRegion);
 

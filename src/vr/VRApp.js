@@ -911,7 +911,7 @@ export class VRApp {
       },
       onTabChange: (tab) => {
         if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(tab === 'bookmarks' ? 'Bookmarks' : 'History');
+          this.captionSystem.show(t(tab === 'bookmarks' ? 'vr.bookmarks.tabBookmarks' : 'vr.bookmarks.tabHistory'));
         }
       },
       onHoverCaption: () => {
@@ -1429,7 +1429,7 @@ export class VRApp {
       }],
       [t('vr.settings.southpaw'), 'southpaw', (v) => {
         if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(v ? 'Primary hand: left' : 'Primary hand: right');
+          this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
         }
       }],
       [t('vr.settings.comfort'), 'enableComfort', null],
@@ -1767,7 +1767,7 @@ export class VRApp {
       onHover: () => {
         panel.material.color.set(0x88bbff);
         if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show('Recenter');
+          this.captionSystem.show(t('vr.msg.recenterLabel'));
         }
       },
       onHoverEnd: () => panel.material.color.set(0xffffff)
@@ -2442,8 +2442,14 @@ export class VRApp {
       clearTimeout(this._handTrackingTimers[hand]);
       this._handTrackingTimers[hand] = setTimeout(() => {
         if (this.captionSystem && this.captionSystem.enabled) {
-          const label = hand === 'left' ? 'Left' : 'Right';
-          this.captionSystem.show(tracked ? `${label} hand tracked` : `${label} hand lost`);
+          // Four explicit keys rather than composing "<hand> hand <state>":
+          // word order and particles differ by language, so composition would
+          // produce broken Japanese.
+          this.captionSystem.show(t(
+            hand === 'left'
+              ? (tracked ? 'vr.msg.leftHandTracked' : 'vr.msg.leftHandLost')
+              : (tracked ? 'vr.msg.rightHandTracked' : 'vr.msg.rightHandLost')
+          ));
         }
       }, 600);
     });
@@ -2597,7 +2603,7 @@ export class VRApp {
               }
               active.navigate(top.url);
             } else if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show('No top sites yet');
+              this.captionSystem.show(t('vr.msg.noTopSites'));
             }
           },
           // Go-to: look up the extracted site name in frecency-ranked
@@ -2885,7 +2891,7 @@ export class VRApp {
     // WCAG 4.1.3: announce that the VR environment is ready so caption-reliant
     // users know the session started without relying on the visual transition.
     if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show('VR Ready');
+      this.captionSystem.show(t('vr.msg.vrReady'));
     }
   }
 

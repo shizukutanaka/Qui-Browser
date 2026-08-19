@@ -18,6 +18,8 @@
  * controls and never forces feedback the user has turned off.
  */
 
+import { t } from '../../i18n/i18n.js';
+
 // Maps a toast severity to a predefined HapticFeedback pattern (see
 // HapticFeedback.patterns). Distinct rhythms let the hand alone tell error /
 // warning / info apart without sight.
@@ -158,9 +160,9 @@ export const VOICE_FATAL_ERRORS = new Set(['not-allowed', 'service-not-allowed']
  */
 export function voiceErrorNotification(errorCode) {
   if (VOICE_FATAL_ERRORS.has(errorCode)) {
-    return { message: 'Voice commands: microphone access denied', type: 'error' };
+    return { message: t('vr.error.voiceMicDenied'), type: 'error' };
   }
-  return { message: 'Voice commands temporarily unavailable', type: 'warn' };
+  return { message: t('vr.error.voiceUnavailable'), type: 'warn' };
 }
 
 /**
