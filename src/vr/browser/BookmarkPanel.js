@@ -21,6 +21,7 @@ import {
 // tests/contrast.test.js can reach it without mocking Three.js.
 export { bookmarkPanelColors };
 import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { t } from '../../i18n/i18n.js';
 import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
@@ -274,8 +275,8 @@ export class BookmarkPanel {
     ctx.fillRect(0, 0, w, HEADER_H);
 
     // Tabs
-    this._drawTab(ctx, 'Bookmarks', 0, this.mode === 'bookmarks', c);
-    this._drawTab(ctx, 'History', 220, this.mode === 'history', c);
+    this._drawTab(ctx, t('vr.bookmarks.tabBookmarks'), 0, this.mode === 'bookmarks', c);
+    this._drawTab(ctx, t('vr.bookmarks.tabHistory'), 220, this.mode === 'history', c);
 
     // Scroll arrows (visible only when the list is longer than one page).
     const allRows = this._rows();
@@ -323,7 +324,7 @@ export class BookmarkPanel {
       ctx.fillStyle = c.emptyText;
       ctx.font = '28px sans-serif';
       ctx.fillText(
-        this.mode === 'bookmarks' ? 'No bookmarks yet' : 'No history yet',
+        this.mode === 'bookmarks' ? t('vr.bookmarks.emptyBookmarks') : t('vr.bookmarks.emptyHistory'),
         32, HEADER_H + 56
       );
     } else {
