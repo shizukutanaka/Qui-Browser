@@ -4,7 +4,7 @@
  */
 
 import { initializeMonitoring } from './monitoring.js';
-import { applyTranslations, setLanguage, getLanguage } from './i18n/i18n.js';
+import { applyTranslations, setLanguage, getLanguage, t } from './i18n/i18n.js';
 import { applyAccessibility, togglePref, getPrefs } from './a11y/accessibility.js';
 
 // Apply accessibility preferences (high-contrast / large-text / reduced-motion)
@@ -111,14 +111,14 @@ import('./app.js').then(_module => {
     box.style.color = '#de350b';
 
     const heading = document.createElement('h2');
-    heading.textContent = 'Failed to load application';
+    heading.textContent = t('app.error.loadFailed');
 
     const detail = document.createElement('p');
     detail.style.color = '#a0a0b8';
-    detail.textContent = (error && error.message) ? String(error.message) : 'Unknown error';
+    detail.textContent = (error && error.message) ? String(error.message) : t('app.error.unknown');
 
     const reload = document.createElement('button');
-    reload.textContent = 'Reload';
+    reload.textContent = t('app.error.reload');
     reload.style.cssText = 'margin-top: 1rem; padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;';
     reload.addEventListener('click', () => location.reload());
 
@@ -162,14 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // VRApp will handle session creation
             window.dispatchEvent(new CustomEvent('enter-vr'));
           } else {
-            showVRError(enterVRButton, 'WebXR VR is not supported on this device. Please use a VR headset.');
+            showVRError(enterVRButton, t('app.error.noVRSupport'));
           }
         } else {
-          showVRError(enterVRButton, 'WebXR is not available. Please use a WebXR-compatible browser.');
+          showVRError(enterVRButton, t('app.error.noWebXR'));
         }
       } catch (error) {
         console.error('Error entering VR:', error);
-        showVRError(enterVRButton, 'Failed to enter VR mode. Check the browser console for details.');
+        showVRError(enterVRButton, t('app.error.enterVRFailed'));
       }
     });
   }

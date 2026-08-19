@@ -26,8 +26,6 @@ import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
 
-
-
 const PANEL_W = 1.2;  // metres
 const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
 

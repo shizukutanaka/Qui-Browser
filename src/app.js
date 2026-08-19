@@ -7,6 +7,7 @@
  */
 
 import { VRApp } from './vr/VRApp.js';
+import { t } from './i18n/i18n.js';
 
 // Global app instance
 let vrApp = null;
@@ -58,7 +59,7 @@ async function initializeApp() {
     console.debug('Application initialized successfully');
   } catch (error) {
     console.error('Failed to initialize application:', error);
-    showError('Failed to initialize VR application. Check console for details.');
+    showError(t('app.error.initFailed'));
   }
 }
 
