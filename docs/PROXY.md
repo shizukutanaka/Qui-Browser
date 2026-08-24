@@ -10,8 +10,10 @@ The VR reader can fetch pages itself **only from origins that send
 | `example.com` | none |
 | `www.nhk.or.jp` | none |
 
-**4 of 4 send none.** So out of the box the reader reaches almost nothing, and
-`enableWebPanel` correctly defaults to `false`.
+**4 of 4 send none.** So without a proxy the reader reaches only CORS-enabled
+origins; for anything else the viewport explains the cause and points here.
+(Browsing itself is enabled by default as of Session 74 — the failure state is
+honest guidance, not a dead end.)
 
 `proxy/server.js` closes that gap. It is **not part of the shipped app**, on
 purpose:

@@ -26,22 +26,24 @@
 
 A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japanese IME, hand tracking, spatial audio, immersive 360°/180° video, and a comfort/accessibility system. Runtime dependencies are `three` and `web-vitals` — nothing else.
 
-> ### ⚠️ On the name: web page rendering is **not** implemented
+> ### On the name: a text **reader**, not a pixel-perfect page renderer
 >
-> Despite the name, this project **cannot display arbitrary web pages in VR**, and
-> the browsing panel is disabled by default (`enableWebPanel: false`) for that
-> reason. The URL bar, tabs, bookmarks, and history are implemented and tested —
-> but they surround a viewport that renders no page content.
+> A WebXR **web app** cannot composite cross-origin page pixels into a 3D
+> texture — `X-Frame-Options` / CSP `frame-ancestors` block framing most sites,
+> and even a framed document's pixels are not readable into WebGL. Wolvic and
+> Quest Browser can because they *are* browsers with native engines. That is a
+> platform ceiling, not a to-do item.
 >
-> This is a platform ceiling, not a to-do item: a WebXR **web app** cannot
-> composite cross-origin page pixels into a 3D texture. `X-Frame-Options` /
-> CSP `frame-ancestors` block framing most sites outright, and even a framed
-> document's pixels are not readable into WebGL. Wolvic and Quest Browser can do
-> this because they *are* browsers, with native engines. Reaching parity would
-> require a different architecture (content proxy + text extraction + canvas
-> rendering). See `docs/SPEC.md` FR-1.1 and `docs/OUTSTANDING_ISSUES.md` §F.
+> What this project does instead is a **reader**: fetch → extract readable text
+> → render to the panel. CORS-enabled origins work directly; any other site
+> works through the optional **self-hosted fetch proxy** (`proxy/server.js`,
+> SSRF-guarded, configurable from inside VR — see `docs/PROXY.md`). When a page
+> cannot be fetched, the viewport says exactly why and what fixes it.
 >
-> **What does work today**: immersive 360°/180° video, the comfort/vestibular
+> Browsing is **enabled by default**; one tap in Settings → Browsing turns it
+> off, live.
+>
+> **Also on board**: immersive 360°/180° video, the comfort/vestibular
 > system, in-VR captions and gaze-dwell accessibility, Japanese IME text entry,
 > spatial audio, hand tracking, and the VR settings shell.
 

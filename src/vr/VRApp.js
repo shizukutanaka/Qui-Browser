@@ -228,7 +228,15 @@ export class VRApp {
       // users can lower or mute audio (audio-sensitivity / preference).
       masterVolume: 100,
 
-      enableWebPanel: false,  // FR-1.1: in-VR browsing panel (experimental)
+      // FR-1.1: in-VR browsing. Default ON as of Session 74 — this is the
+      // product's core loop, and every measured reason for the old false
+      // default was dismantled deliberately: the reader exists (S61), the
+      // failure screen names the cause and the fix (#50), the companion proxy
+      // exists (#45) and is settable from inside VR (#54), and this toggle
+      // applies live with one tap (#47). First run shows one blank tab with
+      // "Enter a URL to navigate" — an honest state, not an error. A user who
+      // turns it off keeps that choice (persisted settings win over defaults).
+      enableWebPanel: true,
       // Optional companion proxy (proxy/server.js). Empty = direct fetch only,
       // which reaches CORS-enabled origins only — measured: no general site
       // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.

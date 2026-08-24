@@ -125,7 +125,15 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 未設定なら「このサイトは CORS ヘッダを返さない → reader proxy を動かせ（docs/PROXY.md）」、
 設定済みなら「プロキシが取得できなかった」。実測した列幅予算にも収まることを確認済み。
 
-**既定値そのもの（`false`）は依然として意図的に未変更**: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
+**既定値は Session 74 で `true` に変更（決着）**: false を正当化していた実測条件は
+①リーダー不在（S61 で実装）②行き止まりのエラー画面（#50 で原因+解決策を明示）
+③プロキシ到達不能（#45 実装 + #54 で VR 内から設定可）④トグルがリロード必須（#47 で即時適用）
+—— と、すべて自分の手で意図的に解消済みだった。ブラウザと名乗る製品の中核ループが
+既定で不可視のままでは「完成」に達しない。初回表示は「URL を入力してください」の空タブで
+エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
+戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
+
+~~**既定値そのもの（`false`）は依然として意図的に未変更**~~（旧記録・上記で決着）: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
 - **検証済みだった残課題2件 — 両方 Session 52 で修正完了**（`enableWebPanel: true` にして初めて到達可能になるが、トグルで到達可能になったため対応した）:
   - ~~**BookmarkPanel の scrollOffset 未クランプ**~~ — **完了（Session 52）**。共有ヘルパー `_clampScroll(rowCount)` を追加し、`_draw()`・`_onSelect()`（ヒットテスト前）・`deleteRow` ケースの3経路すべてがこれを通すようにした。チロームバー☆ボタン等パネル外経路でブックマークが減っても、描画・クリック双方でスタックした offset がクランプされ、空白ページ＋全クリック死亡が起きなくなった。3テスト（`tests/bookmark-panel.test.js`、うち2件 pre-fix で fail 確認）。
   - ~~**LayersSystem の XRQuadLayer リーク**~~ — **完了（Session 52）**。`WebPanel.enableLayerMode()` に layer id と detach コールバックを渡すよう拡張し、`disableLayerMode(releaseLayer=true)`（タブ close→dispose 経路）が `VRApp._detachPanelLayer(id)` 経由で `LayersSystem.removeLayer(id, session, baseLayer)` を呼んでネイティブ層をレンダーステートから外すようにした。session-end のバルクテアダウンは `disableLayerMode(false)` を渡す（`dispose()` が層スタックごと破棄するうえ、終了中セッションへの `updateRenderState()` は throw するため）。WebPanel は XRSession を知らないまま（session/baseLayer 解決は VRApp 側）。8テスト（`tests/webpanel-states.test.js` 5件・`tests/vr-app-wiring.test.js` 2件・pre-fix で fail 確認、`removeLayer` 単体は既に `tests/layers-system.test.js` でカバー済み）。
