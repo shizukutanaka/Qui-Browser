@@ -11,6 +11,13 @@
  * entries, a docstring referencing a removed class) were only found by
  * running the build and reading errors by hand. This automates that.
  *
+ * SCOPE (measured, Session 74): initializeApp() returns early when the browser
+ * has no immersive-VR runtime, so in headless Chromium this harness exercises
+ * the LANDING SHELL only — module graph, static DOM, zero runtime errors on
+ * that path. It does NOT construct VRApp. The full construction path
+ * (renderer, settings panel, browsing systems) is covered by the companion
+ * `tools/verify-vr-boot.mjs`, which stubs WebXR over CDP.
+ *
  * What it asserts, against `dist/` (so it checks what actually ships):
  *   - the page loads and the module graph executes
  *   - zero uncaught exceptions and zero console errors
@@ -175,7 +182,7 @@ async function main() {
     }
     process.exit(1);
   }
-  console.log('PASS — the built app boots clean.');
+  console.log('PASS — the landing shell boots clean. (Full VRApp construction is verify:vr-boot.)');
 }
 
 main().catch((e) => {

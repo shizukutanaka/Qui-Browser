@@ -252,11 +252,20 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
+続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
+- 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
+- 🔍 **道中で潰した3つの罠（すべて実測）**: ①`--dump-dom --virtual-time-budget` は新旧どちらの headless でも **dynamic `import()` チェーンを汲まずに** load 時点で dump する（`import('./app.js')` の先が一切走らない）②デスクトップ Chromium は**本物の `navigator.xr` アクセサ**を持ち、sloppy mode の素の代入は**黙って無視**される — `!!navigator.xr` が true を返すため stub が効いたように見える（`Object.defineProperty` の own property で影を作るのが正解）③本番ビルドは `esbuild.drop: ['console']` で **console を全部 strip** するため、ログ文字列をマーカーにした検証は本番ビルドでは原理的に不可能 — 判定は DOM とオブジェクト状態のみで行う必要がある。
+- 🔧 **new `tools/verify-vr-boot.mjs`（依存ゼロ）**: Node 22 標準の WebSocket で CDP を直接叩き、`--headless=new` を実時間駆動。`dist/` を stub 注入付きで配信 → `Page.navigate` → ポーリングで **`QuiBrowser.getApp()` 非 null・canvas が `#app-container` 配下・`tabManager`（既定 ON の中核）・settingsPanel・captionSystem の構築**と **uncaught exception / console.error ゼロ**を検査。効果音の graceful 404 warn は既知として除外。
+- ✅ **捕捉能力を実証**: `_buildBrowsingSystems()` 先頭に**ビルドは通るランタイム例外**を注入 → build 成功・unit 1480中1479通過・**verify:app は PASS のまま**（＝旧主張の反証そのもの）・**verify:vr-boot は FAIL（exit 1）で正確な TypeError を報告**、しかも「settingsPanel は構築済み・tabManager と captionSystem が未構築」という**故障順序まで正しく示した**。復元で exit 0。
+- 🔧 `verify:app` の PASS 文言を「landing shell」に訂正（過大な自己申告の修正）。`ci:verify` は `build && verify:layout && verify:app && verify:vr-boot` の4段に。
+- Total 1480 tests (47 suites); 0 lint errors; build green; `verify:layout` PASS; `verify:app` PASS; `verify:vr-boot` PASS。
+
 ### Session 74（続き11）: 最後のプロダクト判断を下した — `enableWebPanel` 既定 true
 goal 条件が「完成を阻む2件」と名指しした残り2件に、もう一度アルゴリズムを当てた。
 - 🔍 **K-1 の壁を3経路目で実測**: git push ×2 に加え、GitHub **REST API 経由**（MCP `push_files`）も試行 —— `403 Resource not accessible by integration`。workflow 変更は**トークンの scope 制約であり経路の問題ではない**と確定。オーナーの `git am`（パッチ同梱済み）以外に道は無い。プローブ用の空ブランチ `probe/workflow-api-push`（main と同一コミット・差分ゼロ）は削除も proxy に阻まれたため無害なまま残置。
 - ⚖️ **既定値の判断**: false を正当化していた実測条件を再検証 —— ①リーダー不在→S61 で実装済み ②行き止まりエラー画面→#50 で原因+解決策明示 ③プロキシ到達不能→#45+#54 で VR 内設定可 ④トグルがリロード必須→#47 で即時適用。**4条件すべて自分の手で意図的に解消済み**で、残っていたのは判断だけ。ユーザーの反復指示（「イーロン・マスク思考法で完成させて」×6）と goal 条件の名指しを直接の指示と判断し、**`enableWebPanel: true` に変更**。ブラウザと名乗る製品の中核ループが既定で不可視では完成ではない。
-- 📐 **初回体験を確認してから**: `_buildBrowsingSystems()` は起動時に空タブを1枚開き、表示は「URL を入力してください」——エラーではない。明示的にオフにしたユーザーは永続値が勝つ。`verify:app` で**既定 ON の実ブラウザ起動を実測**（ランタイムエラーゼロ）。
+- 📐 **初回体験を確認してから**: `_buildBrowsingSystems()` は起動時に空タブを1枚開き、表示は「URL を入力してください」——エラーではない。明示的にオフにしたユーザーは永続値が勝つ。~~`verify:app` で既定 ON の実ブラウザ起動を実測~~ **← 続き12 で偽と判明**: verify:app は WebXR 不在で `initializeApp()` が早期 return するため landing page しか見ていなかった。実測は `verify:vr-boot`（続き12）が担う。
 - 📋 **陳腐化した記録も同時に是正**: `docs/SPEC.md` FR-1.1 は「実現にはリーダー方式への転換が必要」と書いたまま **S61 がまさにそれを実装済み**だった（❌ → 🟡 に訂正、画素描画不可のプラットフォーム上限は明記のまま）。README の「web page rendering is not implemented / disabled by default」ブロックをリーダー方式の実態に書き換え。PROXY.md / 両 playbook の凍結記述も更新。
 - ✅ **test 1件追加**: 既定 true をソースレベルで固定し、**戻す者は4条件のどれが再発したかを言える**ことをコメントで要求。Total 1480 tests (47 suites); 0 lint errors; build green; `verify:layout` PASS; `verify:app` PASS。
 
