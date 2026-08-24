@@ -477,6 +477,27 @@ export class WebPanel {
     return true;
   }
 
+  /**
+   * Point the reader at a companion proxy (or back to direct fetch with '').
+   *
+   * Live-settable because the proxy-URL settings control applies immediately —
+   * the same discipline as the enableWebPanel toggle. The 'unavailable' state
+   * screen words its guidance differently depending on whether a proxy is
+   * configured, so it repaints when the value changes.
+   *
+   * @param {string} url canonical base URL, '' to clear
+   */
+  setReaderProxyUrl(url) {
+    const next = typeof url === 'string' ? url : '';
+    if (next === this.readerProxyUrl) {
+      return;
+    }
+    this.readerProxyUrl = next;
+    if (this._contentState === 'unavailable') {
+      this._drawContent();
+    }
+  }
+
   /** Set the content-area state and repaint if it changed. */
   _setContentState(state) {
     if (this._contentState === state) {

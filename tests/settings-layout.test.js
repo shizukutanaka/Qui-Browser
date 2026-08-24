@@ -141,7 +141,7 @@ describe('the panel stays inside the comfortable field of view', () => {
     { id: 'a11y', controls: [...narrow(4), ...wide(5)] },
     { id: 'locomotion', controls: [...narrow(5), ...wide(3)] },
     { id: 'display', controls: [...narrow(3), ...wide(1)] },
-    { id: 'browsing', controls: [...narrow(1), ...wide(3)] },
+    { id: 'browsing', controls: [...narrow(1), ...wide(4)] },
     { id: 'audio', controls: wide(2) }
   ];
   const vertical = (h) => angularSizeDeg(h, PANEL_DISTANCE);

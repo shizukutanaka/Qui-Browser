@@ -38,19 +38,23 @@ Endpoints:
 | `GET /fetch?url=<encoded>` | returns the page's markup as `text/plain`, or `400 {"error": reason}` |
 | `GET /health` | `200 {"ok":true}` |
 
-Then set the reader's `readerProxyUrl` setting to the proxy's base URL.
-Empty (the default) means direct fetch only.
-
 ## Pointing the app at it
 
-```js
-// VRApp settings — persisted like any other preference
-readerProxyUrl: 'http://127.0.0.1:8080'
-```
+In VR: **Settings → Browsing → Reader Proxy**, then type the proxy's base URL
+on the VR keyboard (e.g. `http://192.168.x.x:8080` for a proxy on your LAN
+machine) and confirm. Empty input clears it. The value is validated (http/https
+only, no credentials), persisted, and applied to every open tab immediately —
+no reload, no taking the headset off.
 
 `readerFetchUrl(target, proxyUrl)` (in `src/vr/browser/urlDisplay.js`) is the
 single place that decides; with no proxy set it returns the target unchanged, so
 the no-proxy path is byte-identical to the previous behaviour.
+
+Note for Quest: the headset and the proxy machine must be on the same network,
+and the page is HTTPS while a LAN proxy is usually HTTP — browsers may block
+that as mixed content unless the proxy is served over HTTPS or via localhost
+ADB forwarding (`adb reverse tcp:8080 tcp:8080`, then `http://127.0.0.1:8080`
+works from the headset itself).
 
 ## Security
 

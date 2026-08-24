@@ -645,3 +645,45 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     expect(unregisteredMeshes()).toContain(mesh);
   });
 });
+
+describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
+  test('repaints the unavailable screen, whose wording depends on the proxy', async () => {
+    // A failed fetch shows "run a reader proxy" guidance; once the user sets
+    // one, the stale wording would be wrong, so the state screen repaints.
+    global.fetch = () => Promise.resolve({ ok: false, status: 0 });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/a');
+    expect(p._contentState).toBe('unavailable');
+
+    const draws = jest.spyOn(p, '_drawContent');
+    p.setReaderProxyUrl('http://p:8080');
+    expect(p.readerProxyUrl).toBe('http://p:8080');
+    expect(draws).toHaveBeenCalledTimes(1);
+
+    // Same value again is a no-op — no churn on redundant settings writes.
+    p.setReaderProxyUrl('http://p:8080');
+    expect(draws).toHaveBeenCalledTimes(1);
+    draws.mockRestore();
+  });
+
+  test('does not repaint while showing the reader (nothing visible changes)', () => {
+    const p = makePanel();
+    p._contentState = 'reader';
+    const draws = jest.spyOn(p, '_drawContent');
+    p.setReaderProxyUrl('http://p:8080');
+    expect(draws).not.toHaveBeenCalled();
+    draws.mockRestore();
+  });
+
+  test('the next reader fetch actually goes through the newly set proxy', async () => {
+    const seen = [];
+    global.fetch = (u) => {
+      seen.push(u);
+      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<html><body><article><p>Hello world text.</p></article></body></html>') });
+    };
+    const p = makePanel();
+    p.setReaderProxyUrl('http://p:8080');
+    await p._loadReaderText('https://example.com/a');
+    expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
+  });
+});

@@ -313,3 +313,37 @@ describe('contentStateLines is internationalised', () => {
     }
   });
 });
+
+// ── normalizeProxyUrl — the VR-keyboard input path for the reader proxy ─────
+// readerProxyUrl was a settings key with NO way for a real user to set it:
+// docs/PROXY.md said "set the setting" and no settings control existed. The
+// same unreachable-by-any-real-user shape as Session 74's deletions — this
+// validator backs the settings action that closes it.
+describe('normalizeProxyUrl', () => {
+  const { normalizeProxyUrl } = require('../src/vr/browser/urlDisplay.js');
+
+  test('empty or whitespace input clears the proxy (valid, value "")', () => {
+    for (const x of ['', '   ', null, undefined]) {
+      expect(normalizeProxyUrl(x)).toEqual({ ok: true, value: '' });
+    }
+  });
+
+  test('canonicalises a valid base URL — trailing slashes never double up', () => {
+    expect(normalizeProxyUrl('http://127.0.0.1:8080')).toEqual({ ok: true, value: 'http://127.0.0.1:8080' });
+    expect(normalizeProxyUrl('http://127.0.0.1:8080///')).toEqual({ ok: true, value: 'http://127.0.0.1:8080' });
+    expect(normalizeProxyUrl('https://p.example/base/')).toEqual({ ok: true, value: 'https://p.example/base' });
+  });
+
+  test('refuses non-web schemes and credentialed URLs — same rules as the proxy itself', () => {
+    expect(normalizeProxyUrl('ftp://x.com').ok).toBe(false);
+    expect(normalizeProxyUrl('file:///etc').ok).toBe(false);
+    expect(normalizeProxyUrl('http://u:p@h.com').ok).toBe(false);
+    expect(normalizeProxyUrl('not a url').ok).toBe(false);
+  });
+
+  test('the canonical value composes with readerFetchUrl without a double slash', () => {
+    const { readerFetchUrl } = require('../src/vr/browser/urlDisplay.js');
+    const v = normalizeProxyUrl('http://p:8080/').value;
+    expect(readerFetchUrl('https://e.com/a', v)).toBe('http://p:8080/fetch?url=https%3A%2F%2Fe.com%2Fa');
+  });
+});

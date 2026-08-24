@@ -1048,3 +1048,68 @@ describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
     expect(app.scene.add).not.toHaveBeenCalled();
   });
 });
+
+describe('VRApp._requestReaderProxyInput — the proxy setting is finally reachable', () => {
+  // readerProxyUrl existed as a settings key with no settings control, voice
+  // command or URL parameter — docs/PROXY.md said "set the setting" with no
+  // way to do it. This action button + VR keyboard is the closing of that gap,
+  // so the wiring itself is what these tests pin.
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const makeProxyApp = (over = {}) => makeVRAppLike({
+    isVREnabled: true,
+    camera: { add: jest.fn(), remove: jest.fn() },
+    showVRToast: VRApp.prototype.showVRToast,
+    settings: { readerProxyUrl: '' },
+    updateSetting: jest.fn(function (k, v) { this.settings[k] = v; }),
+    tabManager: { setReaderProxyUrl: jest.fn() },
+    // Captures the confirm callback so each test can play the typed input.
+    _requestVRKeyboardInput: jest.fn(function (prefill, onConfirm) {
+      this._kbPrefill = prefill;
+      this._kbConfirm = onConfirm;
+    }),
+    ...over
+  });
+
+  test('valid input persists, applies to open tabs immediately, and confirms', () => {
+    const app = makeProxyApp();
+    VRApp.prototype._requestReaderProxyInput.call(app);
+    app._kbConfirm('http://192.168.1.20:8080/');
+
+    expect(app.updateSetting).toHaveBeenCalledWith('readerProxyUrl', 'http://192.168.1.20:8080');
+    expect(app.tabManager.setReaderProxyUrl).toHaveBeenCalledWith('http://192.168.1.20:8080');
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/proxy set|設定しました/i);
+  });
+
+  test('empty input clears the proxy and says so', () => {
+    const app = makeProxyApp({ settings: { readerProxyUrl: 'http://old:8080' } });
+    VRApp.prototype._requestReaderProxyInput.call(app);
+    // Prefilled with the current value so the user edits rather than retypes.
+    expect(app._kbPrefill).toBe('http://old:8080');
+    app._kbConfirm('   ');
+
+    expect(app.updateSetting).toHaveBeenCalledWith('readerProxyUrl', '');
+    expect(app.tabManager.setReaderProxyUrl).toHaveBeenCalledWith('');
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/cleared|解除/i);
+  });
+
+  test('invalid input changes NOTHING and warns', () => {
+    const app = makeProxyApp();
+    VRApp.prototype._requestReaderProxyInput.call(app);
+    app._kbConfirm('ftp://not-a-web-proxy');
+
+    expect(app.updateSetting).not.toHaveBeenCalled();
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/invalid|不正/i);
+  });
+
+  test('falls back to a standalone webPanel when tabs are not built', () => {
+    const webPanel = { setReaderProxyUrl: jest.fn() };
+    const app = makeProxyApp({ tabManager: null, webPanel });
+    VRApp.prototype._requestReaderProxyInput.call(app);
+    app._kbConfirm('http://p:8080');
+
+    expect(webPanel.setReaderProxyUrl).toHaveBeenCalledWith('http://p:8080');
+  });
+});
