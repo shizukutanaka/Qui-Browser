@@ -1113,3 +1113,21 @@ describe('VRApp._requestReaderProxyInput — the proxy setting is finally reacha
     expect(webPanel.setReaderProxyUrl).toHaveBeenCalledWith('http://p:8080');
   });
 });
+
+describe('the browsing default', () => {
+  test('enableWebPanel defaults ON — the core loop ships enabled', () => {
+    // This pins a deliberate product decision (Session 74), not an accident.
+    // The old false default was justified by measured conditions that were
+    // then dismantled one by one: the reader exists (S61), the failure screen
+    // names the cause and the fix (#50), the proxy exists (#45) and is
+    // settable from inside VR (#54), and the toggle applies live (#47).
+    // A browser whose browsing is invisible by default is not finished.
+    // Reverting is one line here — but whoever flips it back inherits the
+    // burden of saying which of those conditions regressed.
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
+    );
+    expect(src).toMatch(/enableWebPanel:\s*true,/);
+    expect(src).not.toMatch(/enableWebPanel:\s*false,/);
+  });
+});

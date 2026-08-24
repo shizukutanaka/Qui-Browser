@@ -21,7 +21,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ```
 
 - **pre-fix fail 確認**: 新テストは `git stash push -- <src files>` → テスト → `git stash pop` で「修正前に fail する」ことを必ず確認。
-- **フルゲート**: `npm test`（全 green・1479件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
+- **フルゲート**: `npm test`（全 green・1480件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
 - **ターゲットの寸法・距離を変える変更をしたら** `tests/target-size.test.js` が全ターゲットの**角サイズ**(度)を実ジオメトリから測る。寸法は `panelGeometry.js` のような**純モジュール**に置くこと(メートルのままでは押せるか判定できない — Session 70)。
 - **色を変える変更をしたら** `tests/contrast.test.js` が実パレットを掃引する。新しい描画面の色は `chromeColors.js` / `bookmarkLayout.js` / `keyboardLayout.js` のような**純パレット関数**に置き、掃引表に足すこと(canvas の色は目視検証不能 — Session 69)。
 - **`src/main.js`・`index.html`・`VRApp` の配線を触ったら** `npm run build && npm run verify:app` を走らせる。実 Chromium で**ビルド済みアプリを実際に起動**し、ランタイム例外・console error・主要 DOM の欠落を検出する。`new VRApp()` は Jest で構築できない（実 GPU が要る）ので、**モジュールの実行時エラーは unit test では原理的に捕捉できない** — Session 74。
@@ -33,7 +33,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ## 2. 触ってはいけないもの（実測済みの壁・凍結事項）
 
 - `.github/workflows/*` の編集・タグ push・Release 作成・Pages 有効化は **403 で不可能**。試行しない。オーナー手順は `docs/PUBLISHING.md`。
-- ~~A-1 / A-2~~ は **Session 74 で削除完了**。`enableWebPanel` 既定値変更のみ **ユーザーの明示的名指しまで凍結**。
+- ~~A-1 / A-2~~ は **Session 74 で削除完了**。~~`enableWebPanel` 既定値~~ も **Session 74 で true に変更済み**（凍結解除）。
 - `docs/archive/` は履歴記録。**改変・削除禁止**（新規ドキュメントは `docs/` 直下に置く）。
 - **B-1〜B-4**（`docs/OUTSTANDING_ISSUES.md`）は「バグだが到達不能」。**単独で着手しない**。関連する別作業のついでにのみ修正。
 

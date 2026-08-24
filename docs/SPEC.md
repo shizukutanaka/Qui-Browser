@@ -20,7 +20,7 @@
 ### 3.1 ブラウジング中核
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
-| FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | ❌ | **未実装（Session 60 の First Principles 監査で判明）**。`WebPanel` は iframe を持つが、それを可視化する `onDomOverlayStart()` は**呼び出し元ゼロ**で、`dom-overlay` は VR セッションで一度も要求されていない（`VRButton` の sessionInit は `local-floor/bounded-floor/hand-tracking/layers` 固定）。加えて **WebXR ウェブアプリは原理的に cross-origin ページの画素を 3D テクスチャに合成できない**（X-Frame-Options / CSP frame-ancestors が大半のサイトの framing を拒否し、framing できても画素は読み出せない）。Wolvic/Quest Browser が可能なのはネイティブエンジンだから。**FR-1.2〜1.7 はこの「表示されないビューポート」の周囲の chrome である点に注意**。実現するにはコンテンツプロキシ + 本文抽出 + canvas テキスト描画（リーダー方式）への転換が必要 — `docs/OUTSTANDING_ISSUES.md` F 章参照 |
+| FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | 🟡 | **画素単位の描画は原理的に不可**（WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない — X-Frame-Options / CSP frame-ancestors + 画素非読み出し。Wolvic/Quest Browser はネイティブエンジンだから可能）。**代わりにリーダー方式を実装済み**（Session 61 + 74）: 取得 → 本文抽出（`readableText.js`）→ canvas テキスト描画。CORS 許可オリジンは直接、任意サイトは**自己ホストの取得プロキシ**（`proxy/server.js`、SSRF ガード付き、VR 内から設定可）経由で本文テキストを読める。取得不能時は原因と解決策を明示する状態画面 |
 | FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore + AI 連携 |
 | FR-1.3 | タブ／複数ウィンドウ | ✅ | `TabManager`: 複数 `WebPanel` を管理、タブストリップ（CanvasTexture）で切替/新規/閉じる。最大8タブ |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
@@ -28,7 +28,7 @@
 | FR-1.6 | 空間ウィンドウ管理（head-lock/移動/距離） | ✅ | `WindowManager`（Wolvic/Quest ブラウザ調査由来）: head-lock follow（視界中央追従）、billboard、距離調整、grab-to-move。設定パネル「Follow View」でトグル、アクティブタブに自動追従 |
 | FR-1.7 | 湾曲スクリーン（flat↔curved） | ✅ | `curvedPlaneData`/`buildCurvedPlaneGeometry` で content 面を凹面アーク化（Quest ブラウザ調査由来）。`WebPanel.setCurved`、`TabManager.setCurved`（全タブ＋新規タブ継承）、設定パネル「Curved」トグル。chrome bar は平面維持でヒットテスト正確性を担保 |
 
-> **FR-1.2〜1.7 の ✅ の読み方（Session 60 追記）**: これらは「ブラウザ chrome（URLバー・タブ・ブックマーク・Layers・ウィンドウ管理・湾曲）」として実装・テスト済みという意味であり、**その内側にページ内容が表示されるという意味ではない**。FR-1.1 が ❌ である以上、ユーザーから見た体験は「中身の出ないブラウザの外枠」になる。既定の `enableWebPanel: false` はこの意味で正しい既定値。
+> **FR-1.2〜1.7 の ✅ の読み方（Session 74 更新）**: これらはブラウザ chrome（URLバー・タブ・ブックマーク・Layers・ウィンドウ管理・湾曲）として実装・テスト済みで、その内側には **FR-1.1 のリーダービュー**（本文テキスト）が表示される。任意ページの*画素*描画は依然プラットフォーム上限で不可。`enableWebPanel` は **Session 74 から既定 true** —— false を正当化していた実測条件（リーダー不在・行き止まりのエラー画面・プロキシ未到達・リロード必須トグル）がすべて解消されたため。初回表示は「URL を入力してください」の空タブで、エラーではない。
 
 ### 3.2 入力・操作
 | ID | 要件 | 状態 | 根拠/備考 |
