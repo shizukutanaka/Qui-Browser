@@ -348,6 +348,19 @@ export class TabManager {
     });
   }
 
+  /**
+   * Update the reader-proxy base URL for every open tab and all future tabs.
+   * @param {string} url canonical base URL, '' to clear
+   */
+  setReaderProxyUrl(url) {
+    this.opts.readerProxyUrl = typeof url === 'string' ? url : '';
+    this.tabs.forEach((panel) => {
+      if (panel.setReaderProxyUrl) {
+        panel.setReaderProxyUrl(this.opts.readerProxyUrl);
+      }
+    });
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   addToScene() {

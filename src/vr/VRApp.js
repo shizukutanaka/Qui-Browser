@@ -29,6 +29,7 @@ import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandF
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
+import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -1374,6 +1375,36 @@ export class VRApp {
    */
 
   /**
+   * Ask for the reader-proxy base URL on the VR keyboard and apply it live.
+   *
+   * Prefills the current value so editing beats retyping; empty input clears
+   * the proxy (back to direct fetch). Valid input is persisted (FR-9.1),
+   * pushed to every open tab immediately — the same applies-now discipline as
+   * the enableWebPanel toggle — and confirmed cross-modally (WCAG 4.1.3).
+   * Invalid input changes nothing and says so.
+   */
+  _requestReaderProxyInput() {
+    const prefill = this.settings.readerProxyUrl || 'http://';
+    this._requestVRKeyboardInput(prefill, (typed) => {
+      const out = normalizeProxyUrl(typed);
+      if (!out.ok) {
+        this.showVRToast(t('vr.error.proxyInvalid'), { type: 'warn' });
+        return;
+      }
+      this.updateSetting('readerProxyUrl', out.value);
+      if (this.tabManager) {
+        this.tabManager.setReaderProxyUrl(out.value);
+      } else if (this.webPanel && this.webPanel.setReaderProxyUrl) {
+        this.webPanel.setReaderProxyUrl(out.value);
+      }
+      this.showVRToast(
+        t(out.value ? 'vr.msg.proxySet' : 'vr.msg.proxyCleared'),
+        { type: 'info' }
+      );
+    }, t('vr.prompt.proxyUrl'));
+  }
+
+  /**
    * Clear all persisted browsing history (privacy). Fires a cross-modal
    * confirmation (caption + haptic + toast + semantic DOM) via showVRToast so
    * the destructive action is acknowledged on every channel (WCAG 4.1.3). If a
@@ -1573,6 +1604,11 @@ export class VRApp {
     // localStorage and outlives an enableWebPanel session, so a user must be
     // able to clear residual history regardless of the current panel state.
     actions.push([t('vr.settings.clearHistory'), () => this._clearBrowsingHistory()]);
+    // Reader proxy: the ONLY way a real user can set readerProxyUrl. It was a
+    // settings key with no settings control, voice command or URL parameter —
+    // docs/PROXY.md said "set the setting" with no way to do it, the same
+    // unreachable-by-any-real-user shape that justified Session 74's deletions.
+    actions.push([t('vr.settings.readerProxy'), () => this._requestReaderProxyInput()]);
     if (this.settings.enableWebPanel) {
       actions.push([t('vr.settings.bookmarks'), () => {
         if (this.bookmarkPanel) {
@@ -1613,7 +1649,9 @@ export class VRApp {
       ['settings.section.browsing',
         byKey(items, ['enableWebPanel']), [],
         cycles.filter((c) => c[1] === 'searchEngine'),
-        actionByLabel(t('vr.settings.clearHistory')).concat(actionByLabel(t('vr.settings.bookmarks')))],
+        actionByLabel(t('vr.settings.clearHistory'))
+          .concat(actionByLabel(t('vr.settings.readerProxy')))
+          .concat(actionByLabel(t('vr.settings.bookmarks')))],
       ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
         actionByLabel(t('vr.settings.video360'))]
     ];

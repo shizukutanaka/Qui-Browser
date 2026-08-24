@@ -238,3 +238,41 @@ export function readerFetchUrl(target, proxyUrl = '') {
   }
   return `${base}/fetch?url=${encodeURIComponent(raw)}`;
 }
+
+/**
+ * Validate and canonicalise a user-typed reader-proxy base URL.
+ *
+ * Exists because `readerProxyUrl` was a settings key with **no way for a real
+ * user to set it** — docs/PROXY.md said "set the setting" and no settings
+ * control, voice command or URL parameter existed. That is the same
+ * unreachable-by-any-real-user shape that justified deleting 129k lines in
+ * Session 74; the proxy added back in the same session was itself unreachable.
+ * The VR keyboard is the input path, and typed input needs validation.
+ *
+ * Empty input is valid and means "clear the proxy" (back to direct fetch).
+ *
+ * @param {string} input raw text from the VR keyboard
+ * @returns {{ok: true, value: string} | {ok: false, reason: string}}
+ */
+export function normalizeProxyUrl(input) {
+  const raw = String(input === null || input === undefined ? '' : input).trim();
+  if (!raw) {
+    return { ok: true, value: '' };
+  }
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return { ok: false, reason: 'unparseable' };
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return { ok: false, reason: 'scheme' };
+  }
+  if (url.username || url.password) {
+    return { ok: false, reason: 'credentials' };
+  }
+  // Canonical form: origin plus any path prefix, no trailing slashes, no
+  // query/fragment — readerFetchUrl appends `/fetch?url=…` to this.
+  const path = url.pathname.replace(/\/+$/, '');
+  return { ok: true, value: `${url.origin}${path}` };
+}

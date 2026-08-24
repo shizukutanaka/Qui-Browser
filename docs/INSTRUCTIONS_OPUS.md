@@ -22,7 +22,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ```
 
 - **修正 → regression テスト → pre-fix fail 確認**: 新テストは必ず「修正前のコードで fail する」ことを `git stash push -- <src files>` → テスト実行 → `git stash pop` で確認する。fail しないテストは regression 保証にならない（56セッション一貫の流儀）。
-- **フルゲート**: `npm test`（全 green・現在1466件/47スイート）、`npm run lint`（**0 errors 維持**。128件の既存 no-console warning は増やさない）、`npm run build`（green）。
+- **フルゲート**: `npm test`（全 green・現在1479件/47スイート）、`npm run lint`（**0 errors 維持**。128件の既存 no-console warning は増やさない）、`npm run build`（green）。
 - **ターゲットの寸法・距離を変える変更をしたら** `tests/target-size.test.js` が全ターゲットの**角サイズ**(度)を実ジオメトリから測る。寸法は `panelGeometry.js` のような**純モジュール**に置くこと(メートルのままでは押せるか判定できない — Session 70)。
 - **色を変える変更をしたら** `tests/contrast.test.js` が実パレットを掃引する。新しい描画面の色は `chromeColors.js` / `bookmarkLayout.js` / `keyboardLayout.js` のような**純パレット関数**に置き、掃引表に足すこと(canvas の色は目視検証不能 — Session 69)。
 - **`src/main.js`・`index.html`・`VRApp` の配線を触ったら** `npm run build && npm run verify:app` を走らせる。実 Chromium で**ビルド済みアプリを実際に起動**し、ランタイム例外・console error・主要 DOM の欠落を検出する。`new VRApp()` は Jest で構築できない（実 GPU が要る）ので、**モジュールの実行時エラーは unit test では原理的に捕捉できない** — Session 74。

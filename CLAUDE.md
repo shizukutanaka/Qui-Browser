@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 74（続き10）: 追加したプロキシ自体が「到達不能」だった
+`readerProxyUrl` は設定キーとして存在するのに、**設定パネルにも音声にも URL パラメータにも設定手段が無かった** —— `docs/PROXY.md` は「setting に設定せよ」と言いながら方法が存在しない。**129k 行を消した基準「real user が到達できない」に、自分が追加し直したプロキシがそのまま該当していた。**
+- ✨ **feat**: 設定パネル Browsing セクションに「リーダープロキシ」アクション。VR キーボードで入力（**現在値をプリフィル**して再入力を回避、**空で解除**）→ 純関数 `normalizeProxyUrl` で検証（http/https のみ・認証情報付き URL 拒否・末尾スラッシュ正規化 —— プロキシ本体の SSRF ガードと同じ規律）→ `updateSetting` で永続化 → **開いている全タブへ即時適用**（`TabManager.setReaderProxyUrl` → 各 `WebPanel`。リロード不要 = enableWebPanel トグルと同じ applies-now 規律）→ クロスモーダル確認（設定/解除/不正で文言を出し分け）。
+- 🔒 **状態画面の整合**: 'unavailable' 画面の文言はプロキシ設定の有無で変わる（続き7）ので、`WebPanel.setReaderProxyUrl` は unavailable 表示中なら再描画する。同値の再設定は no-op。
+- 📐 **有界性の実証**: コントロールを1つ追加してもパネル最悪ケースは **35.9° のまま**（browsing セクション 6 行 < 最大の a11y 8 行）—— タブ設計の「自分のセクション分しか伸びない」がそのまま働いた。
+- 📋 `docs/PROXY.md` の「setting に設定せよ」を実際の経路（Settings → Browsing → Reader Proxy）に書き換え、Quest の mixed-content 制約と `adb reverse` の回避策も明記。
+- ✅ **test 13件追加**（validator 4 + VRApp 配線 4 + TabManager 伝播 2 + WebPanel 3、うち1件は**新プロキシ経由で実際に fetch URL が変わる**ことをエンドツーエンドで確認）。pre-fix 検証: アクションの中身だけ空にすると **4件 FAIL**。
+- Total 1479 tests (47 suites); 0 lint errors (128 warnings); build green; `verify:layout` PASS; `verify:app` PASS。
+
 ### Session 74（続き9）: 走査を全体に広げたら、lint されていないファイルが3つあった
 （続き8）で `src/vr/browser/` を走査したので、同じ走査を `src/` 全体に広げた。
 - 🐛 **fix (i18n)**: さらに未翻訳が判明 —— `crossModal.voiceErrorNotification`（**CLAUDE.md 自身が Session 2 で「Voice error messages only English」と Phase 1 の critical gap に挙げ、そのまま残っていたもの**）、`ComfortSystem` の "Teleported" キャプション、`SemanticDOM` の **aria-label 3種**（スクリーンリーダに読まれる文字列）、`VRApp` のキャプション7種（Recenter / VR Ready / 手の検出・喪失 / 利き手 / トップサイト無し / ブックマーク・履歴）、`main.js`/`app.js` の**エラー画面7種**（WebXR 非対応時に最初に見る文言）。計 **39 キー**を en/ja に追加（設定トグルの `ON`/`OFF` キャプションを含む）。**走査を再実行して収束を確認** —— 残る3件は個別に検証して**ユーザーに見えない**（`getDeviceName` は `console.debug` 専用、`description` は API メタデータ、`main.js` の `EN` は言語トグル自身のラベル）。

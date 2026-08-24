@@ -57,6 +57,7 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
     // leaves the transform alone so the managed placement survives.
     setVisible(v) { this.visible = !!v; }
     setCurved(v) { this.curved = !!v; }
+    setReaderProxyUrl(u) { this.readerProxyUrl = u; }
     dispose() { this.disposed = true; }
   }
 }));
@@ -314,5 +315,32 @@ describe('TabManager — rootGroup owns the strip and every panel', () => {
     tm.addToScene();
     tm.dispose();
     expect(tm.scene.remove).toHaveBeenCalledWith(tm.rootGroup);
+  });
+});
+
+describe('TabManager.setReaderProxyUrl', () => {
+  test('propagates to every open tab and to tabs opened afterwards', () => {
+    panelInstances.length = 0;
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab();
+
+    tm.setReaderProxyUrl('http://p:8080');
+
+    const [a, b] = panelInstances;
+    expect(a.readerProxyUrl).toBe('http://p:8080');
+    expect(b.readerProxyUrl).toBe('http://p:8080');
+    // Future tabs inherit through opts.
+    tm.newTab();
+    expect(panelInstances[2].opts.readerProxyUrl).toBe('http://p:8080');
+  });
+
+  test('clearing propagates too, and non-strings coerce to empty', () => {
+    panelInstances.length = 0;
+    const tm = makeManager();
+    tm.newTab();
+    tm.setReaderProxyUrl('http://p:8080');
+    tm.setReaderProxyUrl(null);
+    expect(panelInstances[0].readerProxyUrl).toBe('');
   });
 });
