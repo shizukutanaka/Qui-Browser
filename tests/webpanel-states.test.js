@@ -878,9 +878,10 @@ describe('WebPanel start page', () => {
     expect(rows[0].text).toContain('Alpha');
   });
 
-  test('selecting a row navigates there — no typing needed', () => {
+  test('selecting a row navigates there — no typing needed', async () => {
     const p = makePanel({ topSitesProvider: () => SITES });
-    global.fetch = () => new Promise(() => {});
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const idx = p._readerLines.findIndex((l) => l.href === 'https://b.example/');
     const visible = visibleLinesFor(p._readerLines.length, 1);
     const off = clampReaderScroll(p._readerScroll, p._readerLines.length, visible);
@@ -888,6 +889,9 @@ describe('WebPanel start page', () => {
       localFor(CONTENT_PAD + 10, CONTENT_PAD + LINE_H * (idx - off) + LINE_H / 2);
     p._onContentSelect({ clone() { return this; } });
     expect(p.currentUrl).toBe('https://b.example/');
+    // Let the load settle so its abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
   });
 
   test('a first-run user with no history keeps the honest empty message', () => {
@@ -916,12 +920,16 @@ describe('WebPanel start page', () => {
     expect(p._readerLines.filter((l) => l.style === 'link')).toHaveLength(2);
   });
 
-  test('navigating away leaves the start page behind', () => {
-    global.fetch = () => new Promise(() => {});
+  test('navigating away leaves the start page behind', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const p = makePanel({ topSitesProvider: () => SITES });
     expect(p._contentState).toBe('start');
     p.navigate('https://example.com/x');
     expect(p._contentState).toBe('loading');
+    // Let the load settle so its abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
   });
 
   test('the start page scrolls like any other reader content', () => {
@@ -929,5 +937,130 @@ describe('WebPanel start page', () => {
     const p = makePanel({ topSitesProvider: () => many });
     expect(p.scrollContent(5)).toBe(true);
     expect(p._readerScroll).toBeGreaterThan(0);
+  });
+});
+
+// ── Back/forward cache ───────────────────────────────────────────────────────
+// back() used to refetch. That loses the reading position — expensive in a
+// panel scrolled by gaze-dwell — and can fail where the first fetch succeeded,
+// so returning to a page you had already read could show 'unavailable'.
+describe('WebPanel back/forward restores the page instead of refetching', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const article = (marker) =>
+    `<html><head><title>${marker}</title></head><body><article><p>`
+    + `${marker} prose sentence. `.repeat(400) + '</p></article></body></html>';
+
+  /** Navigate to two pages in turn, counting fetches. */
+  async function twoPages() {
+    const fetched = [];
+    global.fetch = (u) => {
+      fetched.push(u);
+      const marker = u.includes('/two') ? 'TWO' : 'ONE';
+      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(article(marker)) });
+    };
+    const p = makePanel();
+    p.navigate('https://example.com/one');
+    await flush();
+    p.navigate('https://example.com/two');
+    await flush();
+    return { p, fetched };
+  }
+
+  test('going back does not hit the network again', async () => {
+    const { p, fetched } = await twoPages();
+    expect(fetched).toHaveLength(2);
+    p.back();
+    expect(fetched).toHaveLength(2);          // no third fetch
+    expect(p._contentState).toBe('reader');
+    expect(p.currentUrl).toBe('https://example.com/one');
+    expect(p.currentTitle).toBe('ONE');
+    expect(p._readerLines.some((l) => (l.text || '').includes('ONE prose'))).toBe(true);
+  });
+
+  test('the reading position survives the round trip', async () => {
+    const { p } = await twoPages();
+    p.back();                                  // on page one
+    const moved = p.scrollContent(3);
+    expect(moved).toBe(true);
+    const where = p._readerScroll;
+    expect(where).toBeGreaterThan(0);
+    p.forward();                               // page two, from cache
+    expect(p.currentUrl).toBe('https://example.com/two');
+    p.back();
+    expect(p._readerScroll).toBe(where);       // back where we were reading
+  });
+
+  test('a page that fails to refetch is still readable via back', async () => {
+    const { p } = await twoPages();
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    p.back();
+    await flush();
+    expect(p._contentState).toBe('reader');    // not 'unavailable'
+    expect(p.currentTitle).toBe('ONE');
+  });
+
+  test('reload bypasses the cache — asking again means asking the network', async () => {
+    const { p, fetched } = await twoPages();
+    p.reload();
+    await flush();
+    expect(fetched).toHaveLength(3);
+    expect(p._contentState).toBe('reader');
+  });
+
+  test('only successfully read pages are cached', async () => {
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const p = makePanel();
+    p.navigate('https://example.com/nope');
+    await flush();
+    expect(p._contentState).toBe('unavailable');
+    expect(p._pageCache.size).toBe(0);
+  });
+
+  test('the cache is bounded, evicting least-recently-visited', async () => {
+    global.fetch = (u) => Promise.resolve({
+      ok: true, status: 200, text: () => Promise.resolve(article('P' + u.slice(-3)))
+    });
+    const p = makePanel();
+    for (let i = 0; i < 25; i++) {
+      p.navigate(`https://example.com/p${String(i).padStart(2, '0')}`);
+      await flush();
+    }
+    expect(p._pageCache.size).toBeLessThanOrEqual(20);
+    expect(p._pageCache.has('https://example.com/p00')).toBe(false); // oldest gone
+    expect(p._pageCache.has('https://example.com/p23')).toBe(true);  // recent kept
+  });
+
+  test('a restored page cannot be clobbered by a fetch still in flight', async () => {
+    // The page being left has a slow fetch outstanding; it must not settle
+    // over the restored one — the same failure the deleted iframe caused.
+    let release;
+    const first = article('ONE');
+    let calls = 0;
+    global.fetch = () => {
+      calls++;
+      if (calls === 1) {
+        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(first) });
+      }
+      return new Promise((r) => { release = r; });   // page two never finishes
+    };
+    const p = makePanel();
+    p.navigate('https://example.com/one');
+    await flush();
+    p.navigate('https://example.com/two');            // in flight
+    p.back();                                          // restores page one
+    expect(p.currentTitle).toBe('ONE');
+    release({ ok: true, status: 200, text: () => Promise.resolve(article('TWO')) });
+    await flush();
+    expect(p.currentTitle).toBe('ONE');                 // stale load settled nothing
+    expect(p.currentUrl).toBe('https://example.com/one');
+  });
+
+  test('dispose drops the cache', async () => {
+    const { p } = await twoPages();
+    expect(p._pageCache.size).toBeGreaterThan(0);
+    p.dispose();
+    expect(p._pageCache.size).toBe(0);
   });
 });

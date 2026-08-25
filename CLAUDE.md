@@ -271,7 +271,12 @@ Stop hook が「アルゴリズムは1回applyしただけ」と指摘したの�
 - 🧹 **delete（`examples/` 6,430行 と `locales/` 105ファイル 1.1MB）**: 前回の走査が `src`/`proxy`/`netlify`＋root に閉じていたため見落としていた最後の2つ。
   - **`examples/`**: 12個の HTML デモが**全て `../assets/js/*.js` を読み込む** —— Session 74 で消した木。開いても 404 しか出ない。README からも docs からも**リンクゼロ**（grep で `three/examples/jsm` の誤検出だけだったことを確認）。`assets/js/`↔`tests/archive/` の死のペアの**3人目**。
   - **`locales/`**: 105言語の JSON。`i18n.js` の `CATALOG`（`vr.*` 111キー）と**キー空間の重なりがゼロ**（`meta`/`common`/`vr`/... のネスト構造で、実装とは別物）。**参照ゼロ**、`public/` 外なので出荷もされない。言語を足す正しい経路は `CATALOG` で、そこは `tests/i18n-coverage.test.js` が en/ja の対応を強制している。
-- ✅ Total 1552 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
+- 📐 **step 2 の収束を機械的に確認**: 全330追跡ファイルに対して inbound 参照を走査 —— 実質的な orphan は **`public/assets/icons/icon-152.png` の1件だけ**（生成器の `ICON_SIZES` にあるが manifest に載っておらず、生成されて出荷されるだけの死重。apple-touch-icon 180 が iOS を賄うので削除）。残りは Jest がパターンで拾うテストファイルとツール設定。**もう到達不能なものは無い。**
+- 🐛 **fix（戻るボタンが読んだページを捨てて取り直していた）**: `back()`/`forward()` は `_loadUrl` を呼ぶ＝**毎回ネットワークから取り直す**。これは二重に誤り —— ①**読んでいた位置を失う**（視線ドウェルでスクロールするパネルでは再構築が高くつく）②**最初は成功した取得が2回目に失敗しうる**（レート制限・回線・プロキシ停止）ので、**さっき読んだページに戻ると「表示できません」になりうる**。一度抽出したページに再びネットワークは要らない。
+- ✨ **feat**: 上限付き back/forward キャッシュ（`_pageCache`、**20ページ**・最近訪問順で追い出し）。`navigate()`/`back()`/`forward()` は離れる前に `_rememberPage()`（**`reader` 状態で本文がある場合のみ** —— エラーや「表示できません」は戻ったときに再試行すべきで保存すべきでない）。`_restorePage()` は **`_readerSeq` を進めてから** 復元する（離れるページの取得がまだ飛んでいる場合に**復元後のページを上書きさせない** —— 削除した iframe とまったく同じ失敗形）。`_setContentState` は同値で早期 return するので `_drawContent()` を明示（記事→記事は両方 `reader`）。`reload()` は**キャッシュを捨てて**取り直す（それが reload の意味）。`dispose()` で破棄。
+- 🐛 **fix（テストが本物のネットワークを叩いていた）**: `--detectOpenHandles` が **TLSWRAP** を報告 —— どこかのテストが `global.fetch` を差し替えず**実際に外へ出ていた**（TLS ソケットと 5 秒の abort タイマーを漏らし、Jest が終了後も生き残っていた）。`tests/setup.js` に `beforeEach` のネットワーク禁止ガードを追加し、**スタブ忘れを即座に失敗させる**。加えて「決して settle しない fetch」を使う2件を最後に解決するよう直し、**開いたハンドル 0** で終了するようにした。
+- ✅ **pre-fix 検証**: `back()`/`forward()` を取り直し版に戻すと **4件 FAIL**（ネットワーク再取得・読み位置の喪失・再取得失敗時に読めない・in-flight による上書き）、復元で全通過。
+- ✅ Total 1560 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
 
 ### Session 75（続き10）: 自分の「オーナーにしか触れない」判断が間違っていた
 前ターンの締めで「残る ci.yml の失敗2件はどちらもオーナーしか触れないファイル」と書いたが、**これは誤り**だった。

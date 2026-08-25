@@ -65,6 +65,15 @@ import {
  * @param {number} [fontPx=18] - monospace font size in px
  * @returns {number} max glyph count (≥ 8) that fits, accounting for padding
  */
+/**
+ * How many visited pages keep their extracted text for back/forward.
+ *
+ * Bounded because a tab lives for a whole session and each entry holds a
+ * page's worth of laid-out strings. 20 covers the depth anyone actually walks
+ * back through; beyond that the oldest is dropped and that page refetches.
+ */
+const MAX_CACHED_PAGES = 20;
+
 export function urlBarMaxChars(barWidthPx, fontPx = 18) {
   // Monospace advance width is ~0.6em; reserve ~16px of left/right padding.
   const advance = fontPx * 0.6;
@@ -160,6 +169,17 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    /**
+     * Back/forward cache: url -> {lines, title, scroll}.
+     *
+     * Without it, back() refetched. That is wrong twice over. It loses the
+     * reading position, which in a panel scrolled by gaze-dwell is expensive
+     * to rebuild; and the refetch can fail where the first fetch succeeded
+     * (rate limit, dropped network, proxy stopped), so going back to a page
+     * you have already read could land on 'unavailable'. A page already
+     * extracted does not need the network again.
+     */
+    this._pageCache = new Map();
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -787,6 +807,9 @@ export class WebPanel {
     }
     url = resolved;
 
+    // Keep the page being left, so Back returns to it where it was.
+    this._rememberPage();
+
     // Trim forward history and push new entry.
     this.history = this.history.slice(0, this.historyIdx + 1);
     this.history.push(url);
@@ -839,17 +862,72 @@ export class WebPanel {
     }
   }
 
+  /**
+   * Store the page being left, so returning to it restores text and position.
+   * Only a successfully read page is worth keeping — an error or 'unavailable'
+   * should be retried on the way back, not preserved.
+   */
+  _rememberPage() {
+    if (this._contentState !== 'reader' || !this.currentUrl || !this._readerLines.length) {
+      return;
+    }
+    // Re-insert so recency ordering is by last visit, not first.
+    this._pageCache.delete(this.currentUrl);
+    this._pageCache.set(this.currentUrl, {
+      lines: this._readerLines,
+      title: this.currentTitle,
+      scroll: this._readerScroll
+    });
+    while (this._pageCache.size > MAX_CACHED_PAGES) {
+      this._pageCache.delete(this._pageCache.keys().next().value);
+    }
+  }
+
+  /**
+   * Restore a cached page instead of refetching. Returns false when there is
+   * no entry, so the caller falls back to a normal load.
+   * @param {string} url
+   * @returns {boolean}
+   */
+  _restorePage(url) {
+    const hit = this._pageCache.get(url);
+    if (!hit) {
+      return false;
+    }
+    // Advance the sequence: a fetch still in flight for the page we are
+    // leaving must not settle over the restored one.
+    const seq = ++this._readerSeq;
+    this.currentUrl = url;
+    this._readerLines = hit.lines;
+    this._readerScroll = hit.scroll;
+    this.loading = false;
+    this._settleLoad(seq, 'reader', hit.title);
+    // _setContentState early-returns when the state is unchanged, and going
+    // back from one article to another leaves it on 'reader' — so without this
+    // the viewport would keep showing the page we just left.
+    this._drawContent();
+    return true;
+  }
+
   back() {
     if (this.historyIdx > 0) {
+      this._rememberPage();
       this.historyIdx--;
-      this._loadUrl(this.history[this.historyIdx]);
+      const url = this.history[this.historyIdx];
+      if (!this._restorePage(url)) {
+        this._loadUrl(url);
+      }
     }
   }
 
   forward() {
     if (this.historyIdx < this.history.length - 1) {
+      this._rememberPage();
       this.historyIdx++;
-      this._loadUrl(this.history[this.historyIdx]);
+      const url = this.history[this.historyIdx];
+      if (!this._restorePage(url)) {
+        this._loadUrl(url);
+      }
     }
   }
 
@@ -882,6 +960,8 @@ export class WebPanel {
 
   reload() {
     if (this.currentUrl) {
+      // Explicitly asking for the page again means asking the network again.
+      this._pageCache.delete(this.currentUrl);
       this._loadUrl(this.currentUrl);
     }
   }
@@ -1043,6 +1123,7 @@ export class WebPanel {
     // disposed texture, no onNavigate against a torn-down VRApp. This replaces
     // the handler-nulling the iframe needed, for the same reason.
     this._readerSeq++;
+    this._pageCache.clear();
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
