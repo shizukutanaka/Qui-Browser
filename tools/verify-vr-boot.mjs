@@ -301,10 +301,7 @@ async function main() {
       }
       if (ev.method === 'Runtime.consoleAPICalled' && ev.params.type === 'error') {
         const text = (ev.params.args || []).map((a) => a.value ?? a.description ?? '').join(' ');
-        // Missing optional sound assets degrade gracefully by design.
-        if (!/assets\/sounds/.test(text)) {
-          errors.push('console.error: ' + text.slice(0, 200));
-        }
+        errors.push('console.error: ' + text.slice(0, 200));
       }
     }
 

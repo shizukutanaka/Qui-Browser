@@ -91,10 +91,10 @@ qui-browser-vr/
 │       ├── benchmark.yml         # ベンチマーク
 │       └── release.yml           # リリース
 ├── index.html                    # エントリーポイント
-├── sw.js                         # Service Worker
-├── manifest.json                 # PWAマニフェスト
+├── public/service-worker.js      # Service Worker（唯一の正）
+├── public/manifest.json          # PWAマニフェスト
 ├── package.json                  # 依存関係
-├── webpack.config.js             # ビルド設定
+├── vite.config.js                # ビルド設定
 └── jest.config.js                # テスト設定
 ```
 

@@ -116,16 +116,14 @@ function setupKeyboardShortcuts() {
     switch (event.key) {
     case 'p':
     case 'P': {
-      // Toggle rich PerformanceMonitor when available, otherwise fall back
-      // to the simple overlay.
-      if (vrApp && vrApp.perfMonitorUI) {
-        vrApp.perfMonitorUI.toggle();
-      } else {
-        const perfDisplay = document.getElementById('performance-monitor');
-        if (perfDisplay) {
-          perfDisplay.style.display =
-              perfDisplay.style.display === 'none' ? 'block' : 'none';
-        }
+      // Toggle the perf overlay setupPerformanceMonitor() builds below. A
+      // second, richer overlay class used to be preferred here, but it was
+      // gated on a setting no UI could set, so this branch was the only one
+      // ever taken.
+      const perfDisplay = document.getElementById('performance-monitor');
+      if (perfDisplay) {
+        perfDisplay.style.display =
+            perfDisplay.style.display === 'none' ? 'block' : 'none';
       }
       break;
     }

@@ -13,7 +13,6 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
-import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -33,7 +32,6 @@ import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
@@ -42,7 +40,6 @@ import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelR
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
-import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
@@ -100,7 +97,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.textureManager = null;
 
     // Tier 2 systems
     this.japaneseIME = null;
@@ -113,7 +109,6 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
     this.voiceCommands = null;
@@ -122,7 +117,6 @@ export class VRApp {
     this.windowManager = null;
     this.bookmarkPanel = null;
     this.devTools = null;
-    this.perfMonitorUI = null;
     this.homeEnvironment = null;
     this.layersSystem = null;
 
@@ -174,7 +168,6 @@ export class VRApp {
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
@@ -253,7 +246,6 @@ export class VRApp {
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableVoice: false,
-      enablePerfMonitorUI: false,
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -2408,12 +2400,6 @@ export class VRApp {
     }
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
-    // Use progressive loader for efficient initialization
-    this.progressiveLoader = new ProgressiveLoader();
-    this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
-    };
-
     // === TIER 1 SYSTEMS ===
 
     // 1. Fixed Foveated Rendering
@@ -2437,13 +2423,6 @@ export class VRApp {
       );
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
-    }
-
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -2703,13 +2682,6 @@ export class VRApp {
       console.debug('VRApp: DevTools ready (F12 to toggle)');
     }
 
-    // 13. Performance monitor overlay (opt-in)
-    if (this.settings.enablePerfMonitorUI) {
-      this.perfMonitorUI = new PerformanceMonitor();
-      this.perfMonitorUI.initialize();
-      console.debug('VRApp: Performance monitor UI ready');
-    }
-
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
   }
@@ -2753,50 +2725,33 @@ export class VRApp {
   }
 
   /**
-   * Load audio assets progressively
+   * Build the interaction sounds.
+   *
+   * These used to be fetched as /assets/sounds/*.mp3 through a progressive
+   * loader. Measured: no .mp3 is committed to this repo (only a .gitkeep), and
+   * `assets/sounds/` is not under Vite's publicDir, so the path is not served
+   * even if files were added there. Every request 404'd, `loader.get()` handed
+   * back nothing, and `loadAudio` was never reached — the synthesizer below was
+   * always the only thing that made a sound. The fetch and the 659-line loader
+   * behind it were removed rather than left to log four errors per boot for a
+   * capability that never existed.
+   *
+   * Tones are short and quiet; the Sound Volume setting mutes them.
    */
-  async loadAudioAssets() {
-    // Add audio files to progressive loader
-    const audioFiles = [
-      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'primary' },
-      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'secondary' }
-    ];
-
-    for (const file of audioFiles) {
-      this.progressiveLoader.addResource(file, file.priority);
+  loadAudioAssets() {
+    if (!this.spatialAudio) {
+      return;
     }
-
-    // Start progressive loading
-    await this.progressiveLoader.start();
-
-    // Load into spatial audio system
-    for (const file of audioFiles) {
-      const audio = this.progressiveLoader.get(file.name);
-      if (audio) {
-        await this.spatialAudio.loadAudio(file.url, file.name);
-      }
-    }
-
-    // Procedural fallback: the packaged .mp3 files are not committed to the
-    // repo, so every interaction sound was doubly dead — no decoded buffer AND
-    // no source (play('click','click') needs both). Synthesize a short tone for
-    // any name still missing a buffer, and ensure a source exists, so click/
-    // hover/success/error feedback actually plays. Real files, when present,
-    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
-    if (this.spatialAudio) {
-      const PROCEDURAL = {
-        click:   { freq: 880, duration: 0.06, decay: 45 },
-        hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
-        success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
-        error:   { freq: 200, duration: 0.16, decay: 10 }
-      };
-      for (const file of audioFiles) {
-        this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
-        if (!this.spatialAudio.sources.has(file.name)) {
-          this.spatialAudio.createSource(file.name, { volume: 0.6 });
-        }
+    const TONES = {
+      click:   { freq: 880, duration: 0.06, decay: 45 },
+      hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+      success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
+      error:   { freq: 200, duration: 0.16, decay: 10 }
+    };
+    for (const [name, spec] of Object.entries(TONES)) {
+      this.spatialAudio.registerProceduralBuffer(name, spec);
+      if (!this.spatialAudio.sources.has(name)) {
+        this.spatialAudio.createSource(name, { volume: 0.6 });
       }
     }
   }
@@ -3069,11 +3024,6 @@ export class VRApp {
   render(timestamp, xrFrame) {
     this.frameCount++;
 
-    // Rich perf monitor — begin-frame timing.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.beginFrame();
-    }
-
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
     // resuming from background doesn't produce an enormous delta).
     const frameStart = performance.now();
@@ -3091,11 +3041,6 @@ export class VRApp {
     // Track performance
     const frameTime = performance.now() - frameStart;
     this.updatePerformanceMonitor(frameTime);
-
-    // Rich perf monitor — end-frame metrics + UI.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.endFrame(this.renderer);
-    }
 
     // Dynamic quality adjustment (every 60 frames)
     if (this.frameCount % 60 === 0) {
@@ -3271,19 +3216,6 @@ export class VRApp {
   }
 
   /**
-   * Load texture using optimized texture manager
-   */
-  async loadTexture(url, options = {}) {
-    if (this.textureManager) {
-      return await this.textureManager.loadTexture(url, options);
-    } else {
-      // Fallback to standard Three.js loader
-      const loader = new THREE.TextureLoader();
-      return await loader.loadAsync(url);
-    }
-  }
-
-  /**
    * Get performance statistics
    */
   /**
@@ -3370,12 +3302,6 @@ export class VRApp {
     // Add system-specific stats
     if (this.ffrSystem) {
       stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
-    }
-
-    if (this.textureManager) {
-      const memStats = this.textureManager.getMemoryStats();
-      stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
     }
 
     return stats;
@@ -3469,9 +3395,6 @@ export class VRApp {
     if (this.ffrSystem) {
       this.ffrSystem.dispose();
     }
-    if (this.textureManager) {
-      this.textureManager.dispose();
-    }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose(); this.vrKeyboard = null;
     } else if (this.japaneseIME) {
@@ -3495,9 +3418,6 @@ export class VRApp {
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
     }
-    if (this.progressiveLoader) {
-      this.progressiveLoader.dispose();
-    }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();
     }
@@ -3520,9 +3440,6 @@ export class VRApp {
     }
     if (this.devTools) {
       this.devTools.dispose();
-    }
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.dispose();
     }
     if (this._homePanelTexture) {
       this._homePanelTexture.dispose();

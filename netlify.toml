@@ -2,21 +2,17 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  # 公開ディレクトリ（静的サイトのため、ルートを指定）
-  publish = "."
+  # Vite の出力を公開する。以前は publish="." かつ command="echo ..." で、
+  # **ビルドされていないソースをそのまま配信**していた（src/ は bare specifier
+  # の ESM なのでブラウザでは動かない）。デプロイ先で必ず壊れる設定だった。
+  publish = "dist"
+  command = "npm ci && npm run build"
 
-  # ビルドコマンド（静的サイトのため不要）
-  command = "echo 'No build required for static site'"
-
-# Service Worker用のヘッダー設定
+# Service Worker用のヘッダー設定。canonical な worker は service-worker.js
+# ひとつだけ（src/main.js が登録するのはこれ）。/sw.js と /public/sw.js を
+# 指していた旧設定は、どのページも読み込まない第二の worker 向けだった。
 [[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Service-Worker-Allowed = "/"
-
-[[headers]]
-  for = "/public/sw.js"
+  for = "/service-worker.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
@@ -29,16 +25,10 @@
     Content-Type = "application/javascript; charset=utf-8"
 
 [[headers]]
-  for = "/assets/js/*.js"
+  for = "/js/*.js"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Content-Type = "application/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/assets/css/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Content-Type = "text/css; charset=utf-8"
 
 # HTML用のキャッシュ設定
 [[headers]]
@@ -87,7 +77,7 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
     # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
 
     # その他のセキュリティヘッダー
     X-Frame-Options = "SAMEORIGIN"
@@ -117,24 +107,6 @@
   status = 301
   force = true
 
-# プラグイン設定
-[[plugins]]
-  package = "@netlify/plugin-lighthouse"
-
-  # Lighthouseのしきい値設定
-  [plugins.inputs.thresholds]
-    performance = 0.9
-    accessibility = 1.0
-    best-practices = 0.9
-    seo = 0.9
-
-[[plugins]]
-  package = "netlify-plugin-checklinks"
-
-  [plugins.inputs]
-    # リンク切れチェック
-    skipPatterns = ["#", "mailto:"]
-
 # 環境変数（オプション）
 [context.production.environment]
   NODE_ENV = "production"
@@ -161,17 +133,7 @@
 [build.processing.images]
   compress = true
 
-# 関数（将来のAPI用、オプション）
-[functions]
-  directory = "netlify/functions"
-
-# エッジ関数（オプション）
-[edge_functions]
-  directory = "netlify/edge-functions"
-
 # 開発サーバー設定
 [dev]
-  command = "python -m http.server 8888"
-  port = 8888
-  targetPort = 8888
-  autoLaunch = true
+  command = "npm run dev"
+  targetPort = 3000

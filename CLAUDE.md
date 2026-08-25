@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き）: 走査を全体に広げた — 出荷物の 12.8% が誰にも届かない部品だった
+iframe を削除した根拠は「構築されるが到達経路がゼロ」。**同じ判定を残り全体に機械的に当てた**（Session 74 の削除は `src/` の export 走査で収束したが、**到達性の走査はしていなかった**）。5,843 行削除、**出荷バンドル gzip 227.5 → 198.3 kB（−28.5 kB / −12.8%、origin を worktree でビルドして直接比較）**。
+- 🧹 **`TextureManager`（394行）**: **このアプリは URL からテクスチャを一枚も読まない** —— 全て canvas から作る `CanvasTexture`。`VRApp.loadTexture()` は呼び出し元ゼロ、唯一の外部参照 `window.textureManager` は**どこからも代入されないグローバル**。しかも `initializeKTX2()` が **CDN の transcoder パス**を張り、three の `KTX2Loader` をバンドルに引き込んでいた（tier1 チャンク gzip **31.4 → 7.3 kB**）。**Session 40 はこの部品のメモリ計上バグを直していた** —— マスクの「最も多い誤りは、そもそも存在すべきでない部品を最適化すること」の実例が自分の履歴にあった。
+- 🧹 **`ProgressiveLoader`（659行）**: 唯一の本番用途は `/assets/sounds/*.mp3` 4本の読み込み。**mp3 はリポジトリに1つも無く（`.gitkeep` のみ）、`assets/sounds/` は Vite の publicDir 外なので置いても配信されない**。全て 404 →`get()` は空 → `loadAudio` に到達しない → **すぐ下の合成音（Session 58）だけが常に音を出していた**。659行の出力は丸ごと捨てられていた。`loadAudioAssets()` は合成のみに書き換え。
+- 🧹 **`PerformanceMonitor`（694行）**: `enablePerfMonitorUI: false` を読むだけで、**トグルも音声コマンドも永続化経路も存在しない** —— `enableWebPanel` と同じ形。`app.js` の `P` キーは「richer な方があればそれを、無ければ簡易オーバーレイ」という分岐だったが、**後者しか実行されたことがない**。簡易オーバーレイは実在するのでそちらを残した。
+- 🧹 **`public/` の出荷済み死骸 87 kB**: `css-containment-optimizer.js`/`lazy-loading-observer.js`/`view-transitions-manager.js`（**参照ゼロ**）、`vr-browser.html`+`vr-browser.js`（**生 WebGL による第三の並行実装**、リンク元ゼロ）、`vr-video.html`、`sw.js`+`js/pwa.js`。`public/` は verbatim で `dist/` に入るので、**全部ユーザーに配信されていた**。`dist/` は今 6 エントリだけ。
+- 🐛 **fix（死骸が隠していた実バグ）**: `offline.html` が `/sw.js` を **scope `/` で登録**していた —— 第二の service worker で、独自キャッシュ方式・base path 非対応。GitHub Pages のようなサブパス配信では誤った scope になり、登録できた環境では**本物の `service-worker.js` と競合**する。このページは service-worker.js がオフライン fallback として出した時にしか到達しないので、**そもそも登録は不要**。削除。
+- 🐛 **fix（`netlify.toml` は壊れたサイトをデプロイする設定だった）**: `publish = "."` かつ `command = "echo 'No build required for static site'"` —— **ビルドせずソースを配信**する（`src/` は bare specifier の ESM なのでブラウザで動かない）。加えて Session 74 で消した `assets/js/` と、今回消した `/sw.js`・`/public/sw.js` を指し、存在しない `netlify/functions` を宣言し、使っていない `cdnjs.cloudflare.com` を CSP で許可していた。`publish = "dist"` / `npm ci && npm run build` に是正。
+- 🔬 **検査の特例を1つ消せた**: `verify:vr-boot` は「`assets/sounds` の 404 は設計どおりの graceful」として console error から除外していた。**fetch 自体が無くなったので除外を削除**し、それでも `no console errors` が通ることを確認 —— 例外条項が「これは一度も動いたことがない」を隠していた側だった。
+- ✅ Total 1449 tests (45 suites — 消えた33件は到達不能なコードを検証していたもの); 0 lint errors (114 warnings); build green; 4段の verify 全 PASS。
+
 ### Session 75: step 2「部品を削除」— 見えない iframe が、読めたページを捨てていた
 続き12 で作った `verify:vr-boot` に「ナビゲーションが終端に達する」検査を足したところ、**リーダーに意図的なハングを注入しても PASS した**。自分の検査が飾りだった理由を追ったら、より重い欠陥が出た。
 - 🔍 **診断**: `WebPanel` は隠し `<iframe>` を毎パネル構築し、毎ナビゲーションで実際に読み込んでいた。**表示経路はゼロ**（`onDomOverlayStart()` は呼び出し元ゼロ、`dom-overlay` は一度も要求されない —— Session 60 で自分が確認済み）。にもかかわらず **`_contentState` を所有していた**: X-Frame-Options で拒否されたフレームは Chromium で `error` ではなく **`load`** を発火するので、その `onload` が無条件に `'unavailable'` を書き込む。

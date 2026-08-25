@@ -44,15 +44,13 @@ export default defineConfig({
           // Tier 1 optimizations
           'tier1': [
             '/src/vr/rendering/FFRSystem.js',
-            '/src/vr/comfort/ComfortSystem.js',
-            '/src/utils/TextureManager.js'
+            '/src/vr/comfort/ComfortSystem.js'
           ],
 
           // Tier 2 features (lazy loaded)
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
           'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
-          'tier2-audio': ['/src/vr/audio/SpatialAudio.js'],
-          'tier2-loading': ['/src/utils/ProgressiveLoader.js']
+          'tier2-audio': ['/src/vr/audio/SpatialAudio.js']
         },
 
         // Asset file naming
