@@ -268,7 +268,10 @@ Stop hook が「アルゴリズムは1回applyしただけ」と指摘したの�
 - 🧹 **delete（1,560行の陳腐化した「完了」宣言）**: `PROJECT_STATUS.md` / `FINAL_RELEASE_SUMMARY_v2.0.0.md` / `RELEASE_CHECKLIST.md` —— **Session 74 で到達不能として削除した機能を ✅ Complete と認定**し、存在しないファイル（`ObjectPoolSystem.js`・`WebGPURenderer.js`・`MultiplayerSystem.js`）を名指ししていた。「[x] Performance benchmarks completed」「[x] benchmark.yml: Performance monitoring active」も**両方とも事実ではない**。互いにしかリンクしない閉じたクラスタで、正確な情報は CLAUDE.md / SPEC.md / OUTSTANDING_ISSUES.md / CHANGELOG.md / PUBLISHING.md が既に持っている。**全部チェック済みのチェックリストはチェックリストではない。** `verify-documentation.js`（内部リンク42本を実際に検査する本物）と `pre-release-validation.js` の一覧から除去し、両者とも引き続き PASS。
 - 🐛 **fix（3つ目の「ビルドせずに配信する」設定）**: `vercel.json` が **`buildCommand: "echo 'No build required for static site'"` かつ `outputDirectory: "."`** —— `netlify.toml`（続き9で修正）・`Dockerfile`（本セッション）と**まったく同じ欠陥**。加えて CSP が使っていない `cdnjs.cloudflare.com` / Google Tag Manager / Analytics と `'unsafe-eval'` を許可し、削除済みの `/assets/css/` にヘッダ規則を持っていた。全て是正。
 - 🔬 **step 5（欠陥「クラス」を自動化）**: **3/3 の配信経路で同じ形が出た**ので走査をテストにした —— `tests/deploy-config.test.js` は vercel/netlify/Dockerfile/.dockerignore/docker-compose を読み、「実際にビルドすること」「dist を配信すること」「lockfile から入れること」「使っていないホストを CSP で許可しないこと」を要求する。**捕捉能力を実証**: 3つの設定を**実際の修正前の状態に戻す**と **13件中8件 FAIL**、復元で全通過（netlify の3件が通るのは続き9で既に直っているため —— 正しい挙動）。
-- ✅ Total 1552 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。
+- 🧹 **delete（`examples/` 6,430行 と `locales/` 105ファイル 1.1MB）**: 前回の走査が `src`/`proxy`/`netlify`＋root に閉じていたため見落としていた最後の2つ。
+  - **`examples/`**: 12個の HTML デモが**全て `../assets/js/*.js` を読み込む** —— Session 74 で消した木。開いても 404 しか出ない。README からも docs からも**リンクゼロ**（grep で `three/examples/jsm` の誤検出だけだったことを確認）。`assets/js/`↔`tests/archive/` の死のペアの**3人目**。
+  - **`locales/`**: 105言語の JSON。`i18n.js` の `CATALOG`（`vr.*` 111キー）と**キー空間の重なりがゼロ**（`meta`/`common`/`vr`/... のネスト構造で、実装とは別物）。**参照ゼロ**、`public/` 外なので出荷もされない。言語を足す正しい経路は `CATALOG` で、そこは `tests/i18n-coverage.test.js` が en/ja の対応を強制している。
+- ✅ Total 1552 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
 
 ### Session 75（続き10）: 自分の「オーナーにしか触れない」判断が間違っていた
 前ターンの締めで「残る ci.yml の失敗2件はどちらもオーナーしか触れないファイル」と書いたが、**これは誤り**だった。
