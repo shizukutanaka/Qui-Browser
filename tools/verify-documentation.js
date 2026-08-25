@@ -25,9 +25,6 @@ const DOCUMENTATION_FILES = [
   'CONTRIBUTING.md',
   'CODE_OF_CONDUCT.md',
   'SECURITY.md',
-  'PROJECT_STATUS.md',
-  'RELEASE_CHECKLIST.md',
-  'FINAL_RELEASE_SUMMARY_v2.0.0.md',
   'docs/API.md',
   'docs/USAGE_GUIDE.md',
   'docs/DEPLOYMENT_GUIDE.md',
@@ -53,25 +50,6 @@ const REQUIRED_SECTIONS = {
     '## 🤝 Contributing',
     '## 📞 Support',
     '## 📄 License'
-  ],
-  'PROJECT_STATUS.md': [
-    '# Qui Browser VR - Project Status',
-    '## 📊 Project Overview',
-    '## 🎯 Development Goals Achievement',
-    '## 🚀 Feature Completion Status',
-    '## 📈 Performance Metrics',
-    '## 🛠️ Technical Stack',
-    '## 🚢 Deployment Options',
-    '## 🧪 Testing Infrastructure',
-    '## 📚 Documentation'
-  ],
-  'RELEASE_CHECKLIST.md': [
-    '# Qui Browser VR v2.0.0 - Release Checklist',
-    '## 📋 Pre-Release Checklist',
-    '## 🚀 Release Process',
-    '## 🔄 Rollback Plan',
-    '## 📊 Success Metrics',
-    '## ✅ Final Sign-Off'
   ]
 };
 
@@ -232,8 +210,6 @@ function main() {
     // Check version in key documentation files
     const versionFiles = [
       'README.md',
-      'PROJECT_STATUS.md',
-      'FINAL_RELEASE_SUMMARY_v2.0.0.md'
     ];
 
     let versionConsistent = true;
