@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き8）: CI が直せないなら、直せる場所でゲートする
+「既定デプロイ先（GitHub Pages）にチェックが強制されていない」を、諦める前にもう一段考えた。
+- 🔍 **問い直し**: 強制できないのは *GitHub Actions* であって、*チェックそのもの*ではない。**push はあらゆるデプロイ経路の上流**（Pages も Netlify も手動ビルドも、まず push を経る）。workflow ファイルを触れなくても、**push を関門にすることはできる**。
+- ✨ **feat**: `.githooks/pre-push` が `npm run gate` を走らせ、赤ければ push を中断する。`package.json` の `prepare`（＝`npm install` で走る）が `core.hooksPath` をここへ向けるので、**clone してインストールすれば自動で有効**になる。依存ゼロ（husky 等は入れない）。
+- ✅ **実証**: `extractLinks` が全リンクを捨てる欠陥を実際に仕込んで push を試行 → **`GATE FAILED — push aborted.` で中断**、`failed to push some refs` を確認。復元して push 成功。
+- ⚖️ **限界を先に明記**: 開発者のマシンで走るだけ・`npm install` 後にのみ有効・`--no-verify` で回避可能。**CI の代替ではない**が、他の選択肢が全て閉じている場所での**実際に動く検査**ではある。`QUI_SKIP_GATE=1` で意図的にスキップ可。
+- 📋 **「プロキシは Netlify 専用」の訂正**: 自動検出は**ホストではなくパスを見る**ので、`<base>api/reader/{health,fetch}` の2ルートに応答すればどのプラットフォームでも動く。`proxy/server.js` は root に `/fetch` と `/health` を出すので、**リバースプロキシで `/api/reader/*` を剥がして渡せばそのまま**。`docs/PROXY.md` に契約表として明記した（Netlify は「設定ゼロで済む経路」であって唯一の経路ではない）。
+
 ### Session 75（続き7）: step 1 に戻った — 「どこから始めるのか」を一度も問うていなかった（C-3 解決）
 アルゴリズムを step 1 まで巻き戻し、原子②③の**要件**を問い直した。実装（fetch は CORS を要する）は物理的な壁だが、**問うべきはそこではなかった**。
 - 🔍 **問い直し**: 未検証の前提は「取得の方法」ではなく「**ユーザーはどこから始めるのか**」だった。新しいタブは「URL を入力してください」としか言わず、**唯一の入口が視線キーボード（~8〜10 WPM）**。リンク追跡（続き2）を足しても、**最初の1ページ目に到達する手段が無ければ意味が薄い**。

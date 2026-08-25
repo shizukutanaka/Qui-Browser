@@ -19,11 +19,26 @@ There are two ways to close that gap.
 
 ## 1. A deployment that carries its own proxy (no setup at all)
 
-`netlify/functions/reader.mjs` is the same guarded fetch as a serverless
-function, mounted at `/api/reader`. A Netlify deploy therefore ships with a
-same-origin reader proxy, and the app **finds it by itself**: at startup it
-probes `<base>api/reader/health`, and if that answers it routes reader fetches
-through it. Nothing to configure, nothing to type.
+The app **finds a same-origin proxy by itself**: at startup it probes
+`<base>api/reader/health`, and if that answers it routes reader fetches through
+it. Nothing to configure, nothing to type.
+
+That detection is **platform-neutral** — it looks for a path, not a host. Any
+deployment that answers these two routes works:
+
+| route | behaviour |
+|---|---|
+| `GET <base>api/reader/health` | `200 {"ok":true}` |
+| `GET <base>api/reader/fetch?url=<encoded>` | the page's markup as `text/plain`, or `400 {"error": reason}` |
+
+Two ways to provide them:
+
+- **Netlify**: `netlify/functions/reader.mjs` is already wired to `/api/reader`
+  by `netlify.toml`, so a deploy ships with one and nothing else is needed.
+- **Anywhere else** (Vercel, Cloudflare, your own box, a container): run
+  `proxy/server.js` and reverse-proxy `/api/reader/*` to it — it serves
+  `/fetch` and `/health` at its root, which is the same contract with the
+  prefix stripped. Or set the proxy URL by hand, below.
 
 A proxy URL you typed always wins over the detected one — including when you
 deliberately cleared it — and the detection is never persisted, because it

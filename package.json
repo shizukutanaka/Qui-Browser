@@ -58,7 +58,8 @@
     "release:major": "npm version major && git push && git push --tags",
     "clean": "rm -rf dist node_modules coverage .cache",
     "clean:install": "npm run clean && npm install",
-    "gate": "npm test && npm run lint && npm run ci:verify"
+    "gate": "npm test && npm run lint && npm run ci:verify",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "keywords": [
     "vr",

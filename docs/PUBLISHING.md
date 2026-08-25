@@ -50,6 +50,15 @@
 > red gate fails the deploy. That does not repair the five workflow files — only
 > the repository owner can, with the patch above — but it means the product can
 > be deployed with its checks actually enforced rather than nominally green.
+>
+> **And a push is gated locally.** `.githooks/pre-push` runs `npm run gate` and
+> aborts the push if anything is red; `npm install` points `core.hooksPath` at
+> it via the `prepare` script, so a clone picks it up. A push is upstream of
+> *every* deployment target, GitHub Pages included, so this is the one place a
+> check can be enforced without a workflow file. It is not a replacement for
+> CI — it runs on a developer's machine, only after an install, and
+> `git push --no-verify` bypasses it — but it is a real check where none of the
+> alternatives are available. `QUI_SKIP_GATE=1` skips it deliberately.
 
 ---
 
