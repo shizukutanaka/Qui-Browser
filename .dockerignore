@@ -3,11 +3,11 @@
 .gitignore
 .github
 
-# Node
+# Node — package-lock.json is deliberately NOT ignored: `npm ci` needs it,
+# and without it the build silently falls back to an unpinned `npm install`.
 node_modules
 npm-debug.log
 yarn-error.log
-package-lock.json
 yarn.lock
 
 # Docker

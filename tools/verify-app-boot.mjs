@@ -161,6 +161,40 @@ async function main() {
     failures.push(`root-absolute asset URLs break a subpath deploy: ${rootAbsolute.join(', ')}`);
   }
 
+  // Every asset the web-app manifest names must actually be in the build.
+  //
+  // The install icons lived in `assets/icons/` while Vite's publicDir is
+  // `public/`, so none of them ever reached dist and every one 404'd — measured
+  // in Chromium, "Error while trying to use the following icon from the
+  // Manifest". Nothing noticed, because a missing icon breaks installation
+  // rather than the page. Paths are relative so a subpath deploy resolves them.
+  const manifestOk = [];
+  try {
+    const manifest = JSON.parse(await readFile(join(DIST, 'manifest.json'), 'utf8'));
+    const refs = [
+      ...(manifest.icons || []),
+      ...(manifest.shortcuts || []).flatMap((s) => s.icons || []),
+      ...(manifest.screenshots || [])
+    ].map((e) => e.src).filter(Boolean);
+    if (!refs.length) {
+      failures.push('manifest declares no icons');
+    }
+    for (const src of refs) {
+      if (src.startsWith('/')) {
+        failures.push(`manifest asset "${src}" is root-absolute; breaks a subpath deploy`);
+        continue;
+      }
+      try {
+        await stat(join(DIST, src));
+        manifestOk.push(src);
+      } catch {
+        failures.push(`manifest asset missing from the build: ${src}`);
+      }
+    }
+  } catch (e) {
+    failures.push(`manifest.json unreadable in dist: ${e.message}`);
+  }
+
   // The module graph must actually have executed. Vite injects the hashed entry
   // script; if the graph failed to resolve, Chromium reports it on stderr.
   if (!/<script[^>]+type="module"/.test(dom.out)) {
@@ -183,6 +217,11 @@ async function main() {
     console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(width)}`);
   }
   console.log(`  ${rootAbsolute.length === 0 ? 'ok  ' : 'FAIL'}  ${'asset URLs are subpath-safe'.padEnd(width)}`);
+  const manifestClean = !failures.some((f) => f.startsWith('manifest'));
+  console.log(
+    `  ${manifestClean ? 'ok  ' : 'FAIL'}  ` +
+      `${`manifest assets ship (${manifestOk.length} found)`.padEnd(width)}`
+  );
   console.log(`  ${noisy.length === 0 ? 'ok  ' : 'FAIL'}  ${'no page errors'.padEnd(width)}`);
   console.log('');
 

@@ -17,7 +17,9 @@ services:
     # ボリュームマウント（開発時）
     volumes:
       # 本番環境ではコメントアウト推奨
-      - ./:/usr/share/nginx/html:ro
+      # dist/ only — serving the repo root means serving unbuilt src/, which the
+      # browser cannot execute (bare specifiers, unsubstituted import.meta.env).
+      - ./dist:/usr/share/nginx/html:ro
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       # ログ永続化
       - nginx-logs:/var/log/nginx

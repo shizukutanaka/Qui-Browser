@@ -1,8 +1,8 @@
-From a838d81909d94dc95e273773ba1943e9a5633190 Mon Sep 17 00:00:00 2001
+From 0248570b172c64f05d3c5b701c19d03f08c13784 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
-Date: Tue, 25 Aug 2026 12:36:21 +0000
-Subject: [PATCH] ci: drop the steps and jobs auditing code that no longer
- exists
+Date: Tue, 25 Aug 2026 12:42:23 +0000
+Subject: [PATCH] ci: drop the steps auditing code that no longer exists; make
+ Docker prove itself
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -23,22 +23,29 @@ entries in the summary job), and release.yml's benchmark step. Size is
 measured instead, by tools/check-bundle-size.mjs, which budgets the
 gzipped chunks that ship and runs inside `npm run gate`.
 
-Then Prettier. `npm run format:check` had never passed. The immediate
-cause was wasm-build.yml being malformed YAML at line 178, which Prettier
-cannot parse — but running `npm run format` to find out what else was
-wrong turned 127 files over (+6,016/-3,990) and took ESLint from 0 errors
-to 195, because `indent: ["error", 2]` and Prettier disagree. Adopting it
-would mean a new dependency to switch off the rules that are actually
-working. It was a declared standard nobody had ever applied, so it was
-removed from the repo; ESLint is the formatter of record. These steps go
-with it.
+Then Prettier. `npm run format:check` had never passed. Running
+`npm run format` to find out why turned over 127 files (+6,016/-3,990)
+and took ESLint from 0 errors to 195, because `indent: ["error", 2]` and
+Prettier disagree. It was a standard declared in package.json and never
+applied, whose adoption would damage the one that is enforced, so it was
+removed from the repo; ESLint is the formatter of record. Its steps go
+with it, and ESLint loses `continue-on-error` in the same breath — it is
+green, so there is no reason left to swallow its result.
 
-ESLint's step loses `continue-on-error` in the same breath: it is green,
-so there is no longer a reason to swallow its result.
+The Docker job is strengthened rather than removed. Its only assertion
+was `curl -f /health`, which nginx.conf answers with a static 200
+regardless of the document root — so it stayed green while the image
+served unbuilt src/. (Measured by reproducing the image's document root
+and loading it in Chromium: window.QuiBrowser undefined, uncaught
+"TypeError: Cannot read properties of undefined (reading 'PROD')", since
+import.meta.env is substituted at build time and never existed there.)
+The Dockerfile now builds, and this job checks the served page is the
+built bundle and that raw source is NOT reachable.
 
 Also deletes wasm-build.yml and v5.8.0-planning.yml, both of which only
-built or audited assets/js/. Every remaining workflow parses, checked
-with yaml.safe_load.
+built or audited assets/js/. wasm-build.yml was additionally malformed
+YAML at line 178. Every remaining workflow parses, checked with
+yaml.safe_load.
 
 Nothing in .github/workflows/ now references assets/js/, tools/benchmark.js,
 check-performance-regression.js, or prettier.
@@ -50,13 +57,13 @@ measured over git and the REST API. Apply with `git am`.
 Co-Authored-By: Claude <noreply@anthropic.com>
 ---
  .github/workflows/benchmark.yml       | 158 ----------------
- .github/workflows/ci.yml              |  43 +----
+ .github/workflows/ci.yml              |  53 +-----
  .github/workflows/deploy.yml          |  16 --
  .github/workflows/release.yml         |   8 -
  .github/workflows/test.yml            | 138 --------------
  .github/workflows/v5.8.0-planning.yml | 253 --------------------------
  .github/workflows/wasm-build.yml      | 233 ------------------------
- 7 files changed, 1 insertion(+), 848 deletions(-)
+ 7 files changed, 10 insertions(+), 849 deletions(-)
  delete mode 100644 .github/workflows/benchmark.yml
  delete mode 100644 .github/workflows/v5.8.0-planning.yml
  delete mode 100644 .github/workflows/wasm-build.yml
@@ -226,7 +233,7 @@ index b12f00f..0000000
 -
 -          echo "✓ Comparison complete (detailed comparison script to be implemented)" >> $GITHUB_STEP_SUMMARY
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7e514a4..b55872d 100644
+index 7e514a4..d9e0327 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -37,10 +37,6 @@ jobs:
@@ -283,7 +290,27 @@ index 7e514a4..b55872d 100644
    # ============================================================================
    # JOB 5: Build Verification
    # ============================================================================
-@@ -339,7 +299,7 @@ jobs:
+@@ -297,10 +257,18 @@ jobs:
+         run: |
+           docker run -d -p 8080:80 --name test-container qui-browser-vr:test
+           sleep 5
++          # /health is a static 200 from nginx.conf, so it stays green no matter
++          # what is in the document root — the image shipped unbuilt src/ for a
++          # long time behind exactly this check. Assert the built app instead.
+           curl -f http://localhost:8080/health || exit 1
++          curl -fsS http://localhost:8080/ -o page.html || exit 1
++          grep -q 'type="module"' page.html || { echo "no module entry served"; exit 1; }
++          grep -qE 'src="[^"]*js/index-[^"]*\.js"' page.html || { echo "not a built bundle"; exit 1; }
++          test -z "$(curl -fsS http://localhost:8080/src/main.js -o /dev/null -w '%{http_code}' | grep -x 200)" \
++            || { echo "raw source is being served"; exit 1; }
+           docker stop test-container
+           docker rm test-container
+-          echo "✅ Docker image working correctly"
++          echo "✅ Docker image serves the built app"
+ 
+   # ============================================================================
+   # JOB 8: Security Scan
+@@ -339,7 +307,7 @@ jobs:
    summary:
      name: CI Summary
      runs-on: ubuntu-latest
@@ -292,7 +319,7 @@ index 7e514a4..b55872d 100644
      if: always()
  
      steps:
-@@ -352,7 +312,6 @@ jobs:
+@@ -352,7 +320,6 @@ jobs:
            echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
            echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
            echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
