@@ -74,14 +74,13 @@ reloads (localStorage):
 Most toggles apply instantly. Hovering a setting announces it as a caption for
 gaze users.
 
-## Web browsing panel (opt-in)
+## Web browsing panel
 
 The in-VR web browsing surface — URL bar, tabs, bookmarks/history, WebXR Layers
-for sharp text, grab-to-move windows — is gated behind the **Web Browser
-Panel** setting, which is **off by default**. Turn it on in the settings panel;
-because these subsystems are constructed once at load, the panel announces that
-a **page reload is required** for the change to take effect. After reloading
-with it enabled you get:
+for sharp text, grab-to-move windows — is **on by default**. The **Web Browser
+Panel** setting turns it off and back on, and takes effect immediately: the
+subsystems are built and torn down live, so there is no reload and no need to
+take the headset off. You get:
 
 - **URL bar** — tap to open the VR keyboard; frecency-ranked suggestions from
   your history/bookmarks appear as you type, so you can jump to a known
@@ -92,6 +91,10 @@ with it enabled you get:
   bookmark for the current page.
 - **Grab-to-move** — a move bar below each panel lets you reposition it; grab
   and release are confirmed cross-modally.
+- **Following links** — the reader lists every followable link on the page as a
+  numbered row at the end of the article; select one to go there. The number is
+  what identifies a link (it does not rely on colour), and following one is
+  confirmed cross-modally like every other navigation.
 
 > Note: pages are shown in a reader view — the text is fetched, extracted and
 > laid out in VR, not rendered as authored. A WebXR web app cannot composite a

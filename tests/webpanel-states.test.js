@@ -636,7 +636,7 @@ describe('WebPanel URL bar does not overflow', () => {
 describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   const {
     ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0,
-    visibleLinesFor, pageJumpLines, CONTENT_PX_W, CONTENT_PX_H
+    visibleLinesFor, pageJumpLines, clampReaderScroll, CONTENT_PX_W, CONTENT_PX_H
   } = require('../src/vr/browser/readerLayout.js');
 
   const LONG = `<html><head><title>T</title></head><body><article>
@@ -700,6 +700,103 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
     expect(() => p._onContentSelect({ clone() { return this; } })).not.toThrow();
     expect(p._readerScroll).toBe(0);
+  });
+
+  // ── Following a link: atom (4) of the core loop ──────────────────────────
+  // The reader discarded every <a href>, so the only way to reach another page
+  // was retyping its URL on a gaze keyboard at ~8-10 WPM.
+  describe('link rows navigate', () => {
+    const { CONTENT_PAD, LINE_H } = require('../src/vr/browser/readerLayout.js');
+
+    // Long enough to overflow one screen, so the scroll offset is actually
+    // live rather than clamped to zero.
+    const WITH_LINKS = '<html><head><title>T</title></head><body><article>'
+      + ('<p>' + 'Prose sentence here. '.repeat(30) + '</p>').repeat(6)
+      + '<a href="/next">Next page</a><a href="/other">Other page</a>'
+      + '</article></body></html>';
+
+    async function linkPanel(opts) {
+      global.fetch = () => Promise.resolve(
+        { ok: true, status: 200, text: () => Promise.resolve(WITH_LINKS) });
+      const p = makePanel(opts);
+      await p._loadReaderText('https://example.com/dir/a.html');
+      return p;
+    }
+
+    /** Point the ray at the row holding a given line index. */
+    function aimAtLine(p, lineIndex) {
+      const visible = visibleLinesFor(p._readerLines.length, 1);
+      const row = lineIndex - clampReaderScroll(p._readerScroll, p._readerLines.length, visible);
+      p.contentMesh.worldToLocal = () =>
+        localForContent(CONTENT_PAD + 10, CONTENT_PAD + LINE_H * row + LINE_H / 2);
+    }
+
+    test('the fetched page yields followable link rows', async () => {
+      const p = await linkPanel();
+      const rows = p._readerLines.filter((l) => l.style === 'link');
+      expect(rows.map((r) => r.href)).toEqual([
+        'https://example.com/next', 'https://example.com/other'
+      ]);
+    });
+
+    test('selecting a link row navigates to it', async () => {
+      const onNavigate = jest.fn();
+      const p = await linkPanel({ onNavigate });
+      const idx = p._readerLines.findIndex((l) => l.href === 'https://example.com/other');
+      // Scroll the row into view first, the way a user would.
+      p._readerScroll = clampReaderScroll(idx, p._readerLines.length,
+        visibleLinesFor(p._readerLines.length, 1));
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe('https://example.com/other');
+      expect(p.history).toContain('https://example.com/other');
+    });
+
+    test('following a link fires the cross-modal confirmation (WCAG 4.1.3)', async () => {
+      const onLinkFollowed = jest.fn();
+      const p = await linkPanel({ onLinkFollowed });
+      const idx = p._readerLines.findIndex((l) => l.href);
+      p._readerScroll = clampReaderScroll(idx, p._readerLines.length,
+        visibleLinesFor(p._readerLines.length, 1));
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(onLinkFollowed).toHaveBeenCalledTimes(1);
+      expect(onLinkFollowed.mock.calls[0][1]).toBe('https://example.com/next');
+    });
+
+    test('selecting a prose row does nothing — only links are followable', async () => {
+      const onNavigate = jest.fn();
+      const p = await linkPanel({ onNavigate });
+      const before = p.currentUrl;
+      const idx = p._readerLines.findIndex((l) => l.style === 'p');
+      p._readerScroll = 0;
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe(before);
+    });
+
+    test('the row hit adds the scroll offset (draw and hit-test agree)', async () => {
+      // Scroll the SECOND link to the top of the viewport and aim at screen
+      // row 0. If the offset were ignored the hit would resolve to line 0 —
+      // the article title — and nothing would navigate.
+      const p = await linkPanel();
+      const idx = p._readerLines.findIndex((l) => l.href === 'https://example.com/other');
+      const visible = visibleLinesFor(p._readerLines.length, 1);
+      // Scroll to the end, where the links live, so the offset is non-zero.
+      const offset = clampReaderScroll(99999, p._readerLines.length, visible);
+      expect(offset).toBeGreaterThan(0);            // the offset must be live
+      expect(idx - offset).toBeLessThan(visible);   // ...and the link is on screen
+      p._readerScroll = offset;
+
+      // The link now sits at screen row (idx - offset). Ignoring the offset
+      // would resolve this hit to line (idx - offset) — prose — and navigate
+      // nowhere.
+      expect(p._readerLines[idx - offset].href).toBeUndefined();
+      p.contentMesh.worldToLocal = () => localForContent(
+        CONTENT_PAD + 10, CONTENT_PAD + LINE_H * (idx - offset) + LINE_H / 2);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe('https://example.com/other');
+    });
   });
 
   test('dispose unregisters the content mesh too', async () => {

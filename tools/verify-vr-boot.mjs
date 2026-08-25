@@ -93,6 +93,7 @@ const ARTICLE_HTML = `<!doctype html><html><head><title>${ARTICLE_TITLE}</title>
 <article><h2>Heading</h2>
 <p>${(ARTICLE_MARKER + ' sentence of prose. ').repeat(30)}</p>
 <p>${'A second paragraph of prose follows. '.repeat(30)}</p>
+<a href="${ARTICLE_PATH}?followed=1">Follow me</a>
 </article></body></html>`;
 
 function findChrome() {
@@ -266,7 +267,8 @@ async function main() {
                  loading: p.loading, history: p.history.length,
                  lines: p._readerLines.length,
                  prose: p._readerLines.some((l) => (l.text || '')
-                   .includes(${JSON.stringify(ARTICLE_MARKER)})) };
+                   .includes(${JSON.stringify(ARTICLE_MARKER)})),
+                 link: (p._readerLines.find((l) => l.href) || {}).href || '' };
       })()`;
       const sample = async () => {
         const r = await cdp.send('Runtime.evaluate',
@@ -317,6 +319,8 @@ async function main() {
         loop.state === 'reader'],
       ['the page prose reaches the viewport', loop.prose === true && loop.lines > 3],
       ['the title comes from the markup', loop.title === ARTICLE_TITLE],
+      ['the page\'s links are followable (hypertext, not just text)',
+        loop.link === url + ARTICLE_PATH.slice(1) + '?followed=1'],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 

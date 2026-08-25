@@ -197,6 +197,10 @@ function palettePairs(hc) {
   add('content state detail', ct.stateDetail, ct.bg, { fontPx: 18 });
   add('reader body', ct.readerBody, ct.bg, { fontPx: 20 });
   add('reader heading', ct.readerHeading, ct.bg, { fontPx: 30, bold: true });
+  // Link rows are body-sized, so they face the full 4.5:1 bar. The number
+  // prefix is what identifies them without colour (1.4.1); this only has to
+  // prove the tint is readable, not that it is distinguishable from body.
+  add('reader link', ct.readerLink, ct.bg, { fontPx: 20 });
   add('reader progress', ct.progress, ct.bg, { fontPx: 16 });
   add('reader arrow active', ct.arrowActiveText, ct.arrowActiveBg, { fontPx: 34, bold: true }, ct.bg);
   add('reader arrow idle', ct.arrowIdleText, ct.arrowIdleBg, { fontPx: 34, bold: true }, ct.bg);

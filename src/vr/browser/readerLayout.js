@@ -5,7 +5,7 @@
  * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
  */
 
-import { wrapTextToWidth, safeMeasureEm } from '../ui/textWrap.js';
+import { wrapTextToWidth, truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
 
 // Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
 export const CONTENT_PX_W = 1024;
@@ -135,9 +135,18 @@ export function maxMeasureEmForFont(fontPx) {
  * `wrapTextToLines`, so spaceless Japanese hard-splits without severing
  * surrogate pairs.
  *
+ * Followable links are appended as their own section: one line per link,
+ * numbered, carrying the `href` so the panel can navigate when the row is
+ * selected. They are ordinary reader lines, so they scroll and page with
+ * everything else and need no separate viewport. The number is what makes a
+ * link identifiable without relying on colour (WCAG 1.4.1); the colour is
+ * reinforcement, not the signal.
+ *
  * @param {Array<{type:'h'|'p', text:string}>} blocks
- * @param {{scale?: number, title?: string}} [opts]
- * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'}>}
+ * @param {{scale?: number, title?: string, links?: Array<{text:string, href:string}>,
+ *          linksLabel?: string}} [opts]
+ * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'|'link'|'linksHeading',
+ *                  href?: string}>}
  */
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
@@ -165,6 +174,24 @@ export function layoutReaderLines(blocks, opts = {}) {
     for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
       push(row, style);
     }
+  }
+
+  const links = Array.isArray(opts.links) ? opts.links.filter((l) => l && l.href) : [];
+  if (links.length) {
+    blank();
+    push(opts.linksLabel || 'Links', 'linksHeading');
+    links.forEach((link, i) => {
+      // One row per link, so a row hit maps to exactly one destination. The
+      // label is truncated rather than wrapped for the same reason: a wrapped
+      // link would occupy rows that all mean the same thing, and the row the
+      // user aimed at would be ambiguous to announce.
+      const label = `${i + 1}. ${link.text || link.href}`;
+      lines.push({
+        text: truncateToWidth(label, measureEmForStyle('p', scale)),
+        style: 'link',
+        href: link.href
+      });
+    });
   }
 
   return lines;
@@ -234,9 +261,10 @@ export function pageJumpLines(visible) {
  * @param {number} px
  * @param {number} py
  * @param {boolean} scrollable — arrows are only live when there is more to read
- * @returns {{type: 'scrollUp'|'scrollDown'|'none'}}
+ * @param {number} [scale=1] text scale, so a text row can be identified
+ * @returns {{type: 'scrollUp'|'scrollDown'|'row'|'none', row?: number}}
  */
-export function readerHitTest(px, py, scrollable = false) {
+export function readerHitTest(px, py, scrollable = false, scale = 1) {
   if (scrollable && py >= ARROW_Y0 && py <= ARROW_Y0 + ARROW_H) {
     if (px >= ARROW_UP_X0 && px <= ARROW_UP_X0 + ARROW_W) {
       return { type: 'scrollUp' };
@@ -245,7 +273,34 @@ export function readerHitTest(px, py, scrollable = false) {
       return { type: 'scrollDown' };
     }
   }
-  return { type: 'none' };
+  const row = readerRowAt(py, scale);
+  return row === -1 ? { type: 'none' } : { type: 'row', row };
+}
+
+/**
+ * Which drawn row a y coordinate falls in, or -1 outside the text column.
+ *
+ * `_drawReader` puts row i's baseline at `CONTENT_PAD + lh*(i+1)`, so row i
+ * occupies the band `(CONTENT_PAD + lh*i, CONTENT_PAD + lh*(i+1)]`. Deriving
+ * the hit band from the same constants as the draw is deliberate: a draw path
+ * and a hit path that compute rows independently is what produced a blank,
+ * un-clickable bookmark page in Session 52.
+ *
+ * The returned index is relative to the visible window, so callers add the
+ * scroll offset.
+ *
+ * @param {number} py canvas y
+ * @param {number} [scale=1]
+ * @returns {number} zero-based visible row, or -1
+ */
+export function readerRowAt(py, scale = 1) {
+  const lh = LINE_H * (scale > 0 ? scale : 1);
+  const rel = py - CONTENT_PAD;
+  if (!Number.isFinite(rel) || rel < 0) {
+    return -1;
+  }
+  const row = Math.floor(rel / lh);
+  return row >= 0 && row < visibleLineCount(scale, false) ? row : -1;
 }
 
 /** Font px for a line style at a given scale. */
@@ -254,7 +309,7 @@ export function fontPxFor(style, scale = 1) {
   if (style === 'title') {
     return Math.round(30 * s);
   }
-  if (style === 'h') {
+  if (style === 'h' || style === 'linksHeading') {
     return Math.round(25 * s);
   }
   return Math.round(20 * s);

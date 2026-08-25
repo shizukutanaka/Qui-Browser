@@ -118,13 +118,69 @@ export function extractTitle(html) {
   return h1 ? textOf(h1[1]) : '';
 }
 
+/** Most links carried out of one page. Beyond this the list stops being usable. */
+export const MAX_LINKS = 40;
+
+/**
+ * Extract the followable links from a document.
+ *
+ * The reader used to discard every `<a href>`, which left the browser unable
+ * to do the one thing hypertext is for: a user could reach a page and read it,
+ * but the only way to follow a link was to retype its URL on a gaze keyboard
+ * at roughly 8–10 WPM. Atom ④ of the core loop (navigate → display → read →
+ * *interact* → back → save) was simply missing.
+ *
+ * Runs over the same stripped main region as the prose, so navigation
+ * chrome, footers and asides do not flood the list with boilerplate.
+ *
+ * @param {string} html
+ * @param {string} [baseUrl] page URL, for resolving relative hrefs
+ * @returns {Array<{text: string, href: string}>} deduped, in document order
+ */
+export function extractLinks(html, baseUrl) {
+  const body = mainRegion(stripNonContent(String(html === null || html === undefined ? '' : html)));
+  const re = /<a\b[^>]*\shref\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi;
+  const seen = new Set();
+  const out = [];
+  let m;
+  while ((m = re.exec(body)) !== null && out.length < MAX_LINKS) {
+    const raw = decodeEntities(m[2] ?? m[3] ?? m[4] ?? '').trim();
+    const text = textOf(m[5]);
+    if (!raw || !text) {
+      continue; // an empty href, or an icon-only link with no readable label
+    }
+    let href;
+    try {
+      // Resolve against the page. Without a base a relative href is
+      // unusable, so it is dropped rather than guessed at.
+      href = baseUrl ? new URL(raw, baseUrl).href : new URL(raw).href;
+    } catch {
+      continue;
+    }
+    // Only what the panel can actually navigate to. javascript:, mailto:,
+    // data: and friends would fail resolveInput anyway; dropping them here
+    // keeps them off a list that promises every row is followable.
+    if (!/^https?:$/i.test(new URL(href).protocol)) {
+      continue;
+    }
+    if (seen.has(href)) {
+      continue;
+    }
+    seen.add(href);
+    out.push({ text, href });
+  }
+  return out;
+}
+
 /**
  * Extract readable blocks from an HTML document.
  *
  * @param {string} html
- * @returns {{title: string, blocks: Array<{type: 'h'|'p', text: string}>}}
+ * @param {string} [baseUrl] page URL, for resolving relative link hrefs
+ * @returns {{title: string, blocks: Array<{type: 'h'|'p', text: string}>,
+ *            links: Array<{text: string, href: string}>}}
  */
-export function extractReadableText(html) {
+export function extractReadableText(html, baseUrl) {
   const src = String(html === null || html === undefined ? '' : html);
   const title = extractTitle(src);
   const body = mainRegion(stripNonContent(src));
@@ -146,5 +202,5 @@ export function extractReadableText(html) {
     blocks.push({ type: tag.startsWith('h') ? 'h' : 'p', text });
   }
 
-  return { title, blocks };
+  return { title, blocks, links: extractLinks(src, baseUrl) };
 }

@@ -814,7 +814,13 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onNavigate: (url, title) => this.navigate(url, title),
       readerProxyUrl: this.settings.readerProxyUrl,
-      onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
+      // Reader links: the section heading is translated, and following one
+      // fires the usual cross-modal confirmation since it is a navigation the
+      // user did not type (WCAG 4.1.3).
+      linksLabel: t('vr.reader.links'),
+      onLinkFollowed: (text) =>
+        this.showVRToast(`${t('vr.msg.followingLink')}: ${text}`, { type: 'info' }),
+      onLoadError: (url) => this.showVRToast(`${t('vr.error.loadFailed')}: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
       // Replace window.prompt() with the VR keyboard.  vrKeyboard is
@@ -825,7 +831,7 @@ export class VRApp {
           // Immediate "Loading" caption so caption-reliant users know what URL
           // was submitted before the page loads (WCAG 4.1.3).
           if (url && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(url)}`);
           }
         }),
       searchEngine: this.settings.searchEngine,

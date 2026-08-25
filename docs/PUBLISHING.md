@@ -39,9 +39,7 @@
 >
 > ```yaml
 >       - run: npm ci
->       - run: npm test
->       - run: npm run lint
->       - run: npm run ci:verify   # build + verify:layout + verify:app
+>       - run: npm run gate        # tests + lint + build + all three verify stages
 > ```
 >
 > Until this is done, CI results on `main` are not trustworthy.

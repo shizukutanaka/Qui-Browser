@@ -351,12 +351,15 @@ describe('reader scroll affordance', () => {
   });
 
   test('arrows are inert when the article fits on one screen', () => {
-    expect(readerHitTest(mid(ARROW_DN_X0), midY, false).type).toBe('none');
+    expect(readerHitTest(mid(ARROW_DN_X0), midY, false).type).not.toBe('scrollDown');
   });
 
   test('a hit outside the arrow band is not a scroll', () => {
-    expect(readerHitTest(mid(ARROW_DN_X0), ARROW_Y0 - 50, true).type).toBe('none');
-    expect(readerHitTest(10, midY, true).type).toBe('none');
+    // It resolves to a text row instead — link rows are followable, and a row
+    // with no href is inert, which WebPanel enforces.
+    expect(readerHitTest(mid(ARROW_DN_X0), ARROW_Y0 - 50, true).type).not.toBe('scrollDown');
+    expect(readerHitTest(10, midY, true).type).not.toBe('scrollUp');
+    expect(readerHitTest(10, midY, true).type).not.toBe('scrollDown');
   });
 
   test('the two arrow zones do not overlap', () => {
@@ -463,5 +466,182 @@ describe('reader reserves the bottom strip for the arrows and progress label', (
       expect(visibleLineCount(scale, true)).toBeLessThanOrEqual(visibleLineCount(scale, false));
       expect(visibleLineCount(scale, true)).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+// ── Links: atom ④ of the core loop ───────────────────────────────────────────
+// The reader extracted prose and threw every <a href> away, so a user could
+// reach a page and read it but had no way to follow a link — the only route to
+// another page was retyping its URL on a gaze keyboard at ~8–10 WPM.
+describe('extractLinks', () => {
+  const { extractLinks, extractReadableText, MAX_LINKS } =
+    require('../src/vr/browser/readableText.js');
+  const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+  const BASE = 'https://example.com/dir/page.html';
+
+  test('pulls text and absolute href from an anchor', () => {
+    const out = extractLinks('<article><p>x</p><a href="/a">Alpha</a></article>', BASE);
+    expect(out).toEqual([{ text: 'Alpha', href: 'https://example.com/a' }]);
+  });
+
+  test('resolves relative, root-relative and protocol-relative hrefs', () => {
+    const out = extractLinks(
+      '<a href="sib.html">S</a><a href="/root">R</a><a href="//cdn.example.org/x">P</a>', BASE);
+    expect(out.map((l) => l.href)).toEqual([
+      'https://example.com/dir/sib.html',
+      'https://example.com/root',
+      'https://cdn.example.org/x'
+    ]);
+  });
+
+  test('accepts single-quoted and unquoted href attributes', () => {
+    const out = extractLinks("<a href='/q'>Q</a><a href=/u>U</a>", BASE);
+    expect(out.map((l) => l.href))
+      .toEqual(['https://example.com/q', 'https://example.com/u']);
+  });
+
+  test('drops schemes the panel cannot navigate to', () => {
+    const html = '<a href="javascript:alert(1)">J</a><a href="mailto:a@b.c">M</a>'
+      + '<a href="data:text/html,x">D</a><a href="/ok">OK</a>';
+    expect(extractLinks(html, BASE).map((l) => l.href)).toEqual(['https://example.com/ok']);
+  });
+
+  test('drops anchors with no readable label and empty hrefs', () => {
+    const html = '<a href="/icon"><img src="i.png"></a><a href="">E</a><a href="/ok">OK</a>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['OK']);
+  });
+
+  test('dedupes by resolved href, keeping document order', () => {
+    const html = '<a href="/a">First</a><a href="/b">B</a><a href="/a">Again</a>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['First', 'B']);
+  });
+
+  test('ignores links inside stripped boilerplate', () => {
+    const html = '<nav><a href="/nav">NavLink</a></nav><footer><a href="/f">Foot</a></footer>'
+      + '<p><a href="/real">Real</a></p>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['Real']);
+  });
+
+  test('decodes entities in both the label and the href', () => {
+    const out = extractLinks('<a href="/s?a=1&amp;b=2">Tom &amp; Jerry</a>', BASE);
+    expect(out[0].text).toBe('Tom & Jerry');
+    expect(out[0].href).toBe('https://example.com/s?a=1&b=2');
+  });
+
+  test('a relative href with no base is dropped rather than guessed at', () => {
+    expect(extractLinks('<a href="/a">A</a>')).toEqual([]);
+    expect(extractLinks('<a href="https://x.example/a">A</a>')[0].href)
+      .toBe('https://x.example/a');
+  });
+
+  test('caps the list so one link-farm page cannot swamp the reader', () => {
+    const html = Array.from({ length: MAX_LINKS + 25 },
+      (_, i) => `<a href="/p${i}">L${i}</a>`).join('');
+    expect(extractLinks(html, BASE)).toHaveLength(MAX_LINKS);
+  });
+
+  test('degenerate input does not throw', () => {
+    for (const bad of [undefined, null, '', 123, '<a href>']) {
+      expect(() => extractLinks(bad, BASE)).not.toThrow();
+    }
+  });
+
+  test('extractReadableText carries links alongside the prose', () => {
+    const html = `<html><head><title>T</title></head><body><article>
+      <p>${'Prose here. '.repeat(20)}</p><a href="/next">Next page</a>
+    </article></body></html>`;
+    const out = extractReadableText(html, BASE);
+    expect(out.blocks.length).toBeGreaterThan(0);
+    expect(out.links).toEqual([{ text: 'Next page', href: 'https://example.com/next' }]);
+  });
+});
+
+describe('layoutReaderLines — link rows', () => {
+  const { layoutReaderLines, measureEmForStyle } =
+    require('../src/vr/browser/readerLayout.js');
+  const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+  const LINKS = [
+    { text: 'Alpha', href: 'https://a.example/' },
+    { text: 'Beta', href: 'https://b.example/' }
+  ];
+
+  test('each link becomes exactly one selectable row carrying its href', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'Body' }], { links: LINKS });
+    const rows = lines.filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.href)).toEqual(LINKS.map((l) => l.href));
+  });
+
+  test('rows are numbered, so a link is identifiable without colour (1.4.1)', () => {
+    const rows = layoutReaderLines([], { links: LINKS }).filter((l) => l.style === 'link');
+    expect(rows[0].text.startsWith('1. ')).toBe(true);
+    expect(rows[1].text.startsWith('2. ')).toBe(true);
+  });
+
+  test('a heading introduces the section and can be translated', () => {
+    const lines = layoutReaderLines([], { links: LINKS, linksLabel: 'このページのリンク' });
+    const head = lines.find((l) => l.style === 'linksHeading');
+    expect(head.text).toBe('このページのリンク');
+    expect(head.href).toBeUndefined();
+  });
+
+  test('no links means no section at all', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'Body' }], { links: [] });
+    expect(lines.some((l) => l.style === 'link' || l.style === 'linksHeading')).toBe(false);
+    expect(layoutReaderLines([{ type: 'p', text: 'Body' }]).some((l) => l.href)).toBe(false);
+  });
+
+  test('a long label is truncated to one row, never wrapped across rows', () => {
+    // Wrapping would spread one destination over rows that all mean the same
+    // thing, making the row the user aimed at ambiguous to announce.
+    const long = [{ text: 'あ'.repeat(200), href: 'https://a.example/' }];
+    const rows = layoutReaderLines([], { links: long }).filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(1);
+    expect(textWidthEm(rows[0].text)).toBeLessThanOrEqual(measureEmForStyle('p', 1) + 1e-9);
+  });
+
+  test('link rows survive the larger text scale low-vision users need', () => {
+    const rows = layoutReaderLines([], { links: LINKS, scale: 1.5 })
+      .filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+    for (const r of rows) {
+      expect(textWidthEm(r.text)).toBeLessThanOrEqual(measureEmForStyle('p', 1.5) + 1e-9);
+    }
+  });
+
+  test('a link with no href is not rendered as a followable row', () => {
+    const rows = layoutReaderLines([], { links: [{ text: 'x' }, ...LINKS] })
+      .filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+  });
+});
+
+describe('readerRowAt — draw and hit-test share one row model', () => {
+  const {
+    readerRowAt, readerHitTest, LINE_H, CONTENT_PAD, visibleLineCount
+  } = require('../src/vr/browser/readerLayout.js');
+
+  test('row i covers the band the draw path paints it in', () => {
+    for (const scale of [1, 1.5]) {
+      const lh = LINE_H * scale;
+      for (const i of [0, 3, 7]) {
+        // _drawReader puts row i's baseline at CONTENT_PAD + lh*(i+1).
+        expect(readerRowAt(CONTENT_PAD + lh * i + 1, scale)).toBe(i);
+        expect(readerRowAt(CONTENT_PAD + lh * (i + 1) - 1, scale)).toBe(i);
+      }
+    }
+  });
+
+  test('above the text column and past the last row are misses', () => {
+    expect(readerRowAt(CONTENT_PAD - 5, 1)).toBe(-1);
+    expect(readerRowAt(CONTENT_PAD + LINE_H * visibleLineCount(1, false) + 5, 1)).toBe(-1);
+    expect(readerRowAt(NaN, 1)).toBe(-1);
+  });
+
+  test('the scroll arrows still win over the row underneath them', () => {
+    const { ARROW_Y0, ARROW_DN_X0 } = require('../src/vr/browser/readerLayout.js');
+    expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5, true, 1).type).toBe('scrollDown');
+    // ...but only while there is something to scroll.
+    expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5, false, 1).type).not.toBe('scrollDown');
   });
 });

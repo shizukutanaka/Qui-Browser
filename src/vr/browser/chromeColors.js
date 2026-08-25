@@ -108,6 +108,11 @@ export function webContentColors(highContrast = false) {
       stateDetail:     '#dddddd',
       readerHeading:   '#ffffff',
       readerBody:      '#ffffff',
+      // Links carry a number as their primary cue (WCAG 1.4.1); the colour is
+      // reinforcement. In high contrast it still has to be distinguishable
+      // from body text AND readable on the backing, so it is a light tint
+      // rather than a saturated hue.
+      readerLink:      '#8fd0ff',
       progress:        '#ffffff',
       arrowActiveBg:   '#004adf',
       arrowActiveText: '#ffffff',
@@ -121,6 +126,7 @@ export function webContentColors(highContrast = false) {
     stateDetail:     '#8891ad',
     readerHeading:   '#ffffff',
     readerBody:      '#d6dcf0',
+    readerLink:      '#7fb8ff',
     progress:        '#7788aa',
     arrowActiveBg:   'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',

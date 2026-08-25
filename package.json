@@ -57,7 +57,8 @@
     "release:minor": "npm version minor && git push && git push --tags",
     "release:major": "npm version major && git push && git push --tags",
     "clean": "rm -rf dist node_modules coverage .cache",
-    "clean:install": "npm run clean && npm install"
+    "clean:install": "npm run clean && npm install",
+    "gate": "npm test && npm run lint && npm run ci:verify"
   },
   "keywords": [
     "vr",

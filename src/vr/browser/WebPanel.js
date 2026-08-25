@@ -101,7 +101,7 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel } = {}) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -123,6 +123,11 @@ export class WebPanel {
     this.onGrabRequested = typeof onGrabRequested === 'function' ? onGrabRequested : null;
     this.onMoveBarHoverCaption = typeof onMoveBarHoverCaption === 'function' ? onMoveBarHoverCaption : null;
     this.currentTitle = '';
+    // Following a link is a navigation the user did not type, so it needs the
+    // same cross-modal confirmation every other state change gets (WCAG 4.1.3).
+    this.onLinkFollowed = typeof onLinkFollowed === 'function' ? onLinkFollowed : null;
+    // Heading for the links section, so it can be translated by the host.
+    this.linksLabel = typeof linksLabel === 'string' && linksLabel ? linksLabel : '';
 
     // Panel state
     this.currentUrl  = '';
@@ -354,8 +359,12 @@ export class WebPanel {
         return;
       }
       const html = await res.text();
-      const { title, blocks } = extractReadableText(html);
-      const lines = layoutReaderLines(blocks, { title, scale: this._readerScale });
+      // `url`, not the proxy URL, is the base: relative hrefs must resolve
+      // against the page the user is on, not against where it was fetched from.
+      const { title, blocks, links } = extractReadableText(html, url);
+      const lines = layoutReaderLines(blocks, {
+        title, links, linksLabel: this.linksLabel, scale: this._readerScale
+      });
       if (!lines.length) {
         // Fetched, but no prose recoverable (SPA shell, or markup we can't
         // read). Say so rather than showing a blank page.
@@ -398,8 +407,12 @@ export class WebPanel {
     let y = CONTENT_PAD + lh;
     for (const line of window) {
       if (line.style !== 'blank' && line.text) {
-        ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
-        ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
+        const bold = line.style !== 'p' && line.style !== 'link';
+        ctx.font = `${bold ? 'bold ' : ''}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
+        // A link's number (drawn as part of its text by layoutReaderLines) is
+        // the cue that does not depend on colour; the tint reinforces it.
+        ctx.fillStyle = line.style === 'link' ? col.readerLink
+          : line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;
@@ -455,11 +468,22 @@ export class WebPanel {
 
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;
-    const action = readerHitTest(px, py, scrollable);
+    const action = readerHitTest(px, py, scrollable, this._readerScale);
     if (action.type === 'scrollUp') {
       this.scrollContent(-pageJumpLines(visible));
     } else if (action.type === 'scrollDown') {
       this.scrollContent(pageJumpLines(visible));
+    } else if (action.type === 'row') {
+      // Follow a link. The row index is window-relative, so add the scroll
+      // offset — clamped through the same helper the draw path uses.
+      const start = clampReaderScroll(this._readerScroll, this._readerLines.length, visible);
+      const line = this._readerLines[start + action.row];
+      if (line && line.href) {
+        if (this.onLinkFollowed) {
+          this.onLinkFollowed(line.text, line.href);
+        }
+        this.navigate(line.href);
+      }
     }
   }
 

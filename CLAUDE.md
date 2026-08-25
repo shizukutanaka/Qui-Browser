@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き2）: 原子④「操作」を実装 — リーダーはリンクを全部捨てていた
+step 2 を2周したので step 3〜5 へ進む前に、**そもそも何を simplify するのか**を確かめた —— 原子（①移動 ②表示 ③読む ④操作 ⑤戻る ⑥保存）を数え直したところ、**④が無い**ことが判明した。
+- 🔍 **診断**: `extractReadableText` が返すのは `{type:'h'|'p', text}` だけで、**`<a href>` は1つ残らず捨てられていた**。つまりページに到達して読めても、**リンクを1本も辿れない**。次のページへ行く唯一の手段が視線キーボードでの URL 再入力（~8〜10 WPM）。ハイパーテキストから hyper- を抜いたものはテキストビューアであってブラウザではない。
+- ✨ **feat**: `extractLinks(html, baseUrl)`（純）—— 本文領域（nav/header/footer/aside 除去済み）の `<a href>` を走査し、**相対/ルート相対/プロトコル相対を絶対 URL に解決**、http(s) 以外（`javascript:`/`mailto:`/`data:`）を除外、href で重複排除、ラベルの無いアイコンリンクを除外、**40件上限**（リンクファーム対策）。base は**プロキシ URL ではなく閲覧中の URL** —— 相対リンクはユーザーが居るページに対して解決しなければならない。
+- 📐 **設計判断（インライン装飾ではなく行）**: リンクは記事末尾の**番号付き1行1リンク**として `layoutReaderLines` が追加する。理由は3つ —— ①**リンク行は通常のリーダー行**なので既存のスクロール・ページ送り・行予約をそのまま継承し、専用ビューポートが要らない ②1行=1宛先なので**ヒットした行と行き先が一意**（折り返すと同じ意味の行が複数でき、どれを狙ったか告知できない）③Sessions 62〜68 で築いた折り返し/measure の規律を壊さない。**番号が色に依存しない識別子**（WCAG 1.4.1 —— 実測でリンク色と本文色の比は 1.50/1.66 しかなく、**色だけでは識別できないことを数字で確認したうえで**番号を主たる手がかりにした）。色自体は背景に対し 8.29:1（通常）/ 12.63:1（HC）で 1.4.3 を満たす。
+- 🔒 **描画とヒットテストの単一の真実**: `readerRowAt(py, scale)` は `_drawReader` と**同じ定数**から行 band を導く（行 i のベースラインは `CONTENT_PAD + lh*(i+1)`）。両者が独立に行を計算するのは **Session 52 で空白かつクリック不能なブックマークページを生んだ失敗モード**なので、そこは踏まない。スクロールオフセットは `clampReaderScroll` を通して加算。
+- 🌐 **i18n**: `vr.reader.links` / `vr.msg.followingLink` を追加。ついでに**未翻訳のまま残っていた2件**も発見して修正 —— `onLoadError` の `Failed to load: ${url}` と URL 送信時の `Loading: ${host}` キャプション（どちらもハードコード英語）。`vr.error.loadFailed` / `vr.msg.loadingPage` を en/ja に追加。
+- 🔬 **step 4/5（サイクルタイム・自動化）**: 「出荷可能であること」を**1コマンドで証明する手段が無かった** —— `ci:verify` は build と3つの verify だけで、テストも lint も含まない。`npm run gate`（test → lint → build → verify ×3）を追加。**実測 21.7 秒**。`docs/PUBLISHING.md` の CI 案も 4 ステップから `npm run gate` 1本に。
+- ✅ **test 30件追加**（`extractLinks` 11 + リンク行レイアウト 7 + `readerRowAt` 3 + WebPanel の実navigation 5、contrast sweep にリンク色2件）。pre-fix 検証: 抽出とレイアウトは残して**ヒット処理の分岐だけ**を無効化すると **3件 FAIL**。`verify:vr-boot` の同一オリジン記事にリンクを1本足し、**実ブラウザで href が解決されて行に載る**ことを検査。
+- ✅ Total 1479 tests (45 suites); 0 lint errors (114 warnings); `npm run gate` PASS（21.7s）。
+
 ### Session 75（続き）: 走査を全体に広げた — 出荷物の 12.8% が誰にも届かない部品だった
 iframe を削除した根拠は「構築されるが到達経路がゼロ」。**同じ判定を残り全体に機械的に当てた**（Session 74 の削除は `src/` の export 走査で収束したが、**到達性の走査はしていなかった**）。5,843 行削除、**出荷バンドル gzip 227.5 → 198.3 kB（−28.5 kB / −12.8%、origin を worktree でビルドして直接比較）**。
 - 🧹 **`TextureManager`（394行）**: **このアプリは URL からテクスチャを一枚も読まない** —— 全て canvas から作る `CanvasTexture`。`VRApp.loadTexture()` は呼び出し元ゼロ、唯一の外部参照 `window.textureManager` は**どこからも代入されないグローバル**。しかも `initializeKTX2()` が **CDN の transcoder パス**を張り、three の `KTX2Loader` をバンドルに引き込んでいた（tier1 チャンク gzip **31.4 → 7.3 kB**）。**Session 40 はこの部品のメモリ計上バグを直していた** —— マスクの「最も多い誤りは、そもそも存在すべきでない部品を最適化すること」の実例が自分の履歴にあった。
