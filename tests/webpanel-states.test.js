@@ -1,7 +1,12 @@
 /**
  * Tests for WebPanel visual-state logic:
  *   - back/forward disabled state (driven by historyIdx / history.length)
- *   - load-error flag set by iframe onerror, cleared on subsequent navigate
+ *   - the content state machine, which the READER now solely owns
+ *
+ * The panel used to carry a hidden <iframe> that could never be displayed and
+ * whose load event overwrote the reader's result — measured clobbering a
+ * successfully read article back to 'unavailable'. It is gone; `createElement`
+ * below refuses to make one so its return can never quietly come back.
  *
  * Canvas, THREE, and DOM are stubbed to keep the test headless.
  */
@@ -43,10 +48,7 @@ global.document = {
   createElement(tag) {
     if (tag === 'canvas') return { width: 0, height: 0, getContext: () => ctx2d };
     if (tag === 'iframe') {
-      return {
-        src: '', style: { cssText: '' }, onload: null, onerror: null,
-        setAttribute() {}
-      };
+      throw new Error('WebPanel must not create an iframe');
     }
     return {};
   },
@@ -54,6 +56,9 @@ global.document = {
 };
 
 const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
+
+/** Drain pending microtasks so an awaited reader load can settle. */
+const flush = () => new Promise((r) => setImmediate(r));
 
 // Plain-function recorders (not jest.fn: jest.config sets resetMocks:true,
 // which would wipe implementations before each test).
@@ -123,8 +128,6 @@ describe('WebPanel history navigation state', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 0;
-    // point iframe at the forward URL to avoid triggering real load issues
-    p.iframe.src = '';
     p.forward();
     expect(p.historyIdx).toBe(1);
   });
@@ -205,39 +208,60 @@ describe('WebPanel goBack / goForward (WCAG 4.1.3)', () => {
 
 // ── Load-error state ──────────────────────────────────────────────────────────
 describe('WebPanel load-error state', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
   test('_loadError starts false', () => {
     const p = makePanel();
     expect(p._loadError).toBe(false);
   });
 
-  test('_loadError is set to true when iframe fires onerror', () => {
-    const p = makePanel();
+  test('an observable HTTP failure sets _loadError and fires onLoadError', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
     p.currentUrl = 'https://bad.example';
-    // Trigger _loadUrl which attaches the iframe handlers.
-    p._loadUrl('https://bad.example');
-    expect(p._loadError).toBe(false); // not yet
-    // Simulate iframe error
-    p.iframe.onerror();
+    await p._loadReaderText('https://bad.example');
     expect(p._loadError).toBe(true);
+    expect(p._contentState).toBe('error');
+    expect(onLoadError).toHaveBeenCalledWith('https://bad.example');
+  });
+
+  test('an opaque fetch rejection is NOT flagged as an error', async () => {
+    // No CORS header, or offline — indistinguishable, and the ordinary case
+    // without a proxy. Reddening the URL bar here would cry wolf on nearly
+    // every navigation, so the panel says 'unavailable' and claims nothing.
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
+    p.currentUrl = 'https://nocors.example';
+    await p._loadReaderText('https://nocors.example');
+    expect(p._loadError).toBe(false);
+    expect(p._contentState).toBe('unavailable');
+    expect(onLoadError).not.toHaveBeenCalled();
   });
 
   test('_loadError is cleared when a new _loadUrl call is made', () => {
     const p = makePanel();
-    p.iframe.onerror && p.iframe.onerror(); // prime an error
+    p._loadError = true;               // prime an error
     p._loadUrl('https://good.example');
     expect(p._loadError).toBe(false);   // cleared at the start of the new load
   });
 
-  test('_loadError is cleared when iframe fires onload', () => {
+  test('_loadError is cleared once a later load succeeds', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve('') });
     const p = makePanel();
-    p._loadUrl('https://site.example');
-    p.iframe.onerror();                 // set the error
+    p.currentUrl = 'https://site.example';
+    await p._loadReaderText('https://site.example');
     expect(p._loadError).toBe(true);
 
-    // Navigate to the same URL again — onerror fired, then onload fires.
-    p._loadUrl('https://site.example');
-    p.iframe.onload();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'prose here. '.repeat(40) + '</p></body></html>')
+    });
+    await p._loadReaderText('https://site.example');
     expect(p._loadError).toBe(false);
+    expect(p._contentState).toBe('reader');
   });
 });
 
@@ -281,79 +305,119 @@ describe('WebPanel navigate() blocked-navigation feedback', () => {
   });
 });
 
-// ── dispose() teardown — stale iframe handler leak ──────────────────────────
-describe('WebPanel dispose() detaches iframe onload/onerror', () => {
-  test('dispose() nulls onload and onerror before removing the iframe', () => {
+// ── dispose() teardown — a load landing after the panel is gone ─────────────
+// The iframe's handlers had to be nulled for exactly this reason. With the
+// frame deleted, the reader's sequence number does the same job: dispose()
+// bumps it, so an in-flight fetch settles nothing.
+describe('WebPanel dispose() invalidates an in-flight load', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  test('dispose() advances the reader sequence', () => {
     const p = makePanel();
-    p._loadUrl('https://example.com'); // attaches onload/onerror
-    expect(typeof p.iframe.onload).toBe('function');
-    expect(typeof p.iframe.onerror).toBe('function');
-
+    const before = p._readerSeq;
     p.dispose();
-
-    expect(p.iframe.onload).toBeNull();
-    expect(p.iframe.onerror).toBeNull();
+    expect(p._readerSeq).toBeGreaterThan(before);
   });
 
-  test('a load completing after dispose() does not reach onNavigate', () => {
-    // The DOM re-checks the onload IDL attribute at fire time rather than
-    // holding a captured reference, so simulate that: read p.iframe.onload
-    // *after* dispose() (not a pre-dispose capture) and invoke it if set —
-    // mirroring how a stale in-flight navigation's load event is dispatched.
+  test('a load completing after dispose() does not reach onNavigate', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const onNavigate = jest.fn();
     const p = makePanel({ onNavigate });
     p._loadUrl('https://example.com'); // navigation in flight
 
     p.dispose(); // tab/panel closed mid-load
+    release({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'prose. '.repeat(40) + '</p></body></html>')
+    });
+    await flush();
 
-    if (p.iframe.onload) {
-      p.iframe.onload();
-    }
     expect(onNavigate).not.toHaveBeenCalled();
+    expect(p.loading).toBe(true); // never settled — the panel is gone
   });
 
-  test('a load erroring after dispose() does not reach onLoadError', () => {
+  test('a load erroring after dispose() does not reach onLoadError', async () => {
+    let reject;
+    global.fetch = () => new Promise((_, r) => { reject = r; });
     const onLoadError = jest.fn();
     const p = makePanel({ onLoadError });
     p._loadUrl('https://example.com');
 
     p.dispose();
+    reject(new TypeError('Failed to fetch'));
+    await flush();
 
-    if (p.iframe.onerror) {
-      p.iframe.onerror();
-    }
     expect(onLoadError).not.toHaveBeenCalled();
   });
 });
 
 // ── Content area reflects real state (no silent stale placeholder) ───────────
-// A frame refused by X-Frame-Options fires `load`, not `error`, so reaching
-// onload never proved the page rendered — and the content canvas was painted
-// once in _build() and never again, so the viewport kept reading "Enter a URL
-// to navigate" after a navigation the user believed had succeeded.
+// The content canvas was painted once in _build() and never again, so the
+// viewport kept reading "Enter a URL to navigate" after a navigation the user
+// believed had succeeded. It is now repainted by whatever the reader finds —
+// and by nothing else, which is the point of deleting the frame.
 describe('WebPanel content-area state', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
   test('starts empty', () => {
     const p = makePanel();
     expect(p._contentState).toBe('empty');
   });
 
-  test('goes to loading while a navigation is in flight', () => {
+  test('goes to loading while a navigation is in flight', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const p = makePanel();
     p._loadUrl('https://example.com');
     expect(p._contentState).toBe('loading');
+    expect(p.loading).toBe(true);
+    // Let it settle so the abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
   });
 
-  test('a completed load reports content unavailable, not empty', () => {
-    const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onload();
+  test('a successful read is NOT overwritten — the regression the frame caused', async () => {
+    // Measured against a same-origin article before the fix: state reached
+    // 'reader' with 9 lines, then the hidden frame's load event clobbered it
+    // to 'unavailable'. Nothing but the reader may settle the state now.
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve(
+        '<html><head><title>Real Title</title></head><body><article><p>'
+        + 'Sentence of real prose. '.repeat(30) + '</p></article></body></html>')
+    });
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p.navigate('https://example.com/article');
+    await flush();
+
+    expect(p._contentState).toBe('reader');
+    expect(p._readerLines.length).toBeGreaterThan(3);
+    expect(p.loading).toBe(false);
+    // The title comes from the markup we actually read, not the URL — the
+    // frame could only ever supply one for a same-origin page.
+    expect(p.currentTitle).toBe('Real Title');
+    expect(onNavigate).toHaveBeenCalledWith('https://example.com/article', 'Real Title');
+  });
+
+  test('an unreadable page reports unavailable and still records the visit', async () => {
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p.navigate('https://example.com');
+    await flush();
     expect(p._contentState).toBe('unavailable');
+    expect(p.loading).toBe(false);
+    expect(onNavigate).toHaveBeenCalled();
   });
 
-  test('an errored load reports error', () => {
+  test('an errored load reports error', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve('') });
     const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onerror();
+    await p._loadReaderText('https://example.com');
     expect(p._contentState).toBe('error');
   });
 
@@ -409,11 +473,11 @@ describe('WebPanel reader viewport', () => {
     expect(p._contentState).toBe('unavailable');
   });
 
-  test('a non-ok response falls back to unavailable', async () => {
+  test('a non-ok response is a real error — the origin answered and said no', async () => {
     global.fetch = () => Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
-    expect(p._contentState).toBe('unavailable');
+    expect(p._contentState).toBe('error');
   });
 
   test('a fetched page with no recoverable prose says so rather than showing blank', async () => {
@@ -650,7 +714,7 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
   test('repaints the unavailable screen, whose wording depends on the proxy', async () => {
     // A failed fetch shows "run a reader proxy" guidance; once the user sets
     // one, the stale wording would be wrong, so the state screen repaints.
-    global.fetch = () => Promise.resolve({ ok: false, status: 0 });
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
     expect(p._contentState).toBe('unavailable');

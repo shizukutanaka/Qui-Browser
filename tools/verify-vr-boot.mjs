@@ -29,6 +29,18 @@
  *    in what ships.
  *  - fail on any uncaught exception or console.error event.
  *
+ * Phase 2 additionally drives a real navigation and asserts the page is
+ * actually READ — the core loop, in a real browser, with a real fetch. The
+ * target is served by this harness on the same origin, so it needs no network
+ * and no CORS header: what is verified is the machinery, not the internet.
+ *
+ * That check exists because it is the one that was missing. While WebPanel
+ * carried a hidden <iframe>, the frame's load event settled the content state
+ * independently of the reader — measured, it overwrote a successfully read
+ * article ('reader', 9 lines, 0.6 s) with 'unavailable' at 1.2 s, and an
+ * injected hang in the reader still passed. The frame is gone and the reader
+ * owns the state, so demanding 'reader' here catches both.
+ *
  * Usage: npm run build && npm run verify:vr-boot
  */
 
@@ -72,6 +84,17 @@ Object.defineProperty(navigator, 'xr', { configurable: true, value: {
 }});
 </script>`;
 
+/** Same-origin article for the Phase-2 reader check. */
+const ARTICLE_PATH = '/__verify-article';
+const ARTICLE_TITLE = 'Verify Reader Article';
+const ARTICLE_MARKER = 'quibrowserreadermarker';
+const ARTICLE_HTML = `<!doctype html><html><head><title>${ARTICLE_TITLE}</title></head>
+<body><nav>navigation junk</nav><script>var junk = 1;</script>
+<article><h2>Heading</h2>
+<p>${(ARTICLE_MARKER + ' sentence of prose. ').repeat(30)}</p>
+<p>${'A second paragraph of prose follows. '.repeat(30)}</p>
+</article></body></html>`;
+
 function findChrome() {
   for (const p of CHROME_CANDIDATES) {
     try {
@@ -90,6 +113,14 @@ function serveDistWithStub() {
         return;
       }
       const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      if (path === ARTICLE_PATH) {
+        // A same-origin page for the reader to actually read. Same origin, so
+        // no CORS header and no network are needed — the fetch is real, the
+        // extraction is real, only the internet is absent.
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(ARTICLE_HTML);
+        return;
+      }
       const target = resolve(join(DIST, path === '/' ? 'index.html' : path));
       if (target !== DIST && !target.startsWith(DIST + sep)) {
         res.writeHead(403).end();
@@ -208,6 +239,59 @@ async function main() {
       }
     }
 
+    // ── Phase 2: drive the core loop ──────────────────────────────────────
+    // Construction alone does not prove the browser browses. This navigates a
+    // real tab to a page this harness serves, exercising WebPanel.navigate ->
+    // _loadReaderText -> fetch -> extract -> layout -> content state in an
+    // actual browser. No unit test can: `new VRApp()` needs a GPU, and Jest
+    // has no fetch stack.
+    //
+    // Same origin, so no CORS header and no network are required — this stays
+    // green offline. The page IS readable, so the panel must end on 'reader'
+    // with the prose recovered. Ending anywhere else means the loop is broken:
+    // stuck on 'loading' is a hang, and 'unavailable' means something threw
+    // away a successful read (exactly what the deleted iframe did).
+    //
+    // The sample is taken AFTER a settling delay, not at the first terminal
+    // state. Polling until "something other than loading" and stopping there
+    // is blind to exactly the defect this exists to catch: the iframe reached
+    // its verdict ~600 ms after the reader, so an early sample sees 'reader'
+    // and never observes the overwrite. Verified — a reproduction of the frame
+    // passed the early-sample version of this check and fails this one.
+    let loop = {};
+    if (state.tabManager) {
+      const READ_STATE = `(() => {
+        const p = window.QuiBrowser.getApp().tabManager.getActiveTab();
+        return { state: p._contentState, url: p.currentUrl, title: p.currentTitle,
+                 loading: p.loading, history: p.history.length,
+                 lines: p._readerLines.length,
+                 prose: p._readerLines.some((l) => (l.text || '')
+                   .includes(${JSON.stringify(ARTICLE_MARKER)})) };
+      })()`;
+      const sample = async () => {
+        const r = await cdp.send('Runtime.evaluate',
+          { expression: READ_STATE, returnByValue: true }, sessionId);
+        return r.result?.result?.value || {};
+      };
+      await cdp.send('Runtime.evaluate', {
+        expression: `window.QuiBrowser.getApp().tabManager.getActiveTab()
+          .navigate(${JSON.stringify(url + ARTICLE_PATH.slice(1))})`,
+        awaitPromise: false
+      }, sessionId);
+      const loopDeadline = Date.now() + 15000;
+      while (Date.now() < loopDeadline) {
+        await new Promise((r) => setTimeout(r, 400));
+        loop = await sample();
+        if (loop.state && loop.state !== 'loading' && loop.state !== 'empty') {
+          break;
+        }
+      }
+      // Settle: give anything else that thinks it owns the state time to speak
+      // up, then take the authoritative reading.
+      await new Promise((r) => setTimeout(r, 3000));
+      loop = await sample();
+    }
+
     // Uncaught exceptions and console.error events collected during boot.
     const errors = [];
     for (const ev of cdp.events) {
@@ -230,6 +314,12 @@ async function main() {
       ['browsing systems constructed (tabManager — default ON)', !!state.tabManager],
       ['settings panel constructed', !!state.settingsPanel],
       ['caption system constructed', !!state.captionSystem],
+      ['navigation clears the loading flag (never stuck loading)', loop.loading === false],
+      ['the visit is recorded in history', (loop.history || 0) >= 1],
+      [`a readable page is READ, not discarded (state=${loop.state || 'none'})`,
+        loop.state === 'reader'],
+      ['the page prose reaches the viewport', loop.prose === true && loop.lines > 3],
+      ['the title comes from the markup', loop.title === ARTICLE_TITLE],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 

@@ -2,9 +2,9 @@
  * FR-1.3: Tab / multi-window manager for in-VR browsing.
  *
  * Owns a collection of WebPanel instances.  Only the active tab is shown at
- * the primary panel position; inactive tabs are hidden (their iframes are
- * detached from view but kept alive so switching back is instant).  A tab
- * strip rendered on a CanvasTexture lets the user switch/close tabs with the
+ * the primary panel position; inactive tabs stay constructed with their
+ * already-read content intact, so switching back is instant.  A tab strip
+ * rendered on a CanvasTexture lets the user switch/close tabs with the
  * controller ray.
  */
 

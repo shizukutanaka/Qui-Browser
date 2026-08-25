@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: step 2「部品を削除」— 見えない iframe が、読めたページを捨てていた
+続き12 で作った `verify:vr-boot` に「ナビゲーションが終端に達する」検査を足したところ、**リーダーに意図的なハングを注入しても PASS した**。自分の検査が飾りだった理由を追ったら、より重い欠陥が出た。
+- 🔍 **診断**: `WebPanel` は隠し `<iframe>` を毎パネル構築し、毎ナビゲーションで実際に読み込んでいた。**表示経路はゼロ**（`onDomOverlayStart()` は呼び出し元ゼロ、`dom-overlay` は一度も要求されない —— Session 60 で自分が確認済み）。にもかかわらず **`_contentState` を所有していた**: X-Frame-Options で拒否されたフレームは Chromium で `error` ではなく **`load`** を発火するので、その `onload` が無条件に `'unavailable'` を書き込む。
+- 🐛 **実測した被害（推測ではなく）**: 同一オリジンの記事を配信してリーダーが**確実に成功する**状況を作り、`_contentState` を時系列サンプリング —— `0.6s reader lines=9` → `1.2s unavailable lines=9`。**抽出に成功した9行を捨ててユーザーから隠していた。** ①正常に読めたページの破棄 ②ナビゲーションごとの無駄な全ページ取得 ③第三者スクリプトを `allow-scripts allow-same-origin` で不可視に実行 ④自分の検査が無意味だった理由 —— **1つの削除で4つが同時に消える**。
+- 🧹 **delete**: iframe の生成・`src`/`onload`/`onerror`・`onDomOverlayStart`/`onDomOverlayEnd`（呼び出し元ゼロ）・`domOverlaySupported`・`hide`/`setVisible`/`dispose` の iframe 分岐。**リーダーが `_contentState` の唯一の所有者**になり、`_settleLoad(seq, state, title, failed)` が全終端経路の単一の出口になった（`loading` 解除・chrome 再描画・`onNavigate`/`onLoadError` の通知が1箇所）。
+- ✨ **副産物 — `onLoadError` が初めて意味を持った**: iframe の `onerror` は cross-origin では事実上発火しないので、この経路は死んでいた。今は `res.ok === false`（CORS 許可オリジンかプロキシが**実際にステータスを返した**失敗）だけを error とする。**不透明な fetch 拒否は error にしない** —— CORS 無しとオフラインはブラウザから区別できず、プロキシ無しの通常経路そのものなので、ほぼ全ナビゲーションで URL バーを赤くするのは狼少年になる。
+- 🔒 **teardown 規律の移設**: iframe handler の null 化が担っていた「破棄後に着弾した読み込みが torn-down VRApp を触る」防止を、`dispose()` での `_readerSeq++` に置換。全終端が seq を検査するので、遅延 fetch は**何も settle しない**。
+- 🔬 **検査に牙を付けた（2段階）**: (1) 同一オリジンの記事を harness 自身が配信し、**実際に読めること**（`state === 'reader'`・本文マーカーが行に到達・**title は markup 由来**）を実ブラウザで検査。(2) **重要**: 最初の実装は「loading を抜けた最初の終端」を見ていたため、**iframe の再現（0.8s 後に上書き）が素通りした** —— 私が直したばかりの欠陥と同型。**3秒の沈静後に権威サンプルを取る**形に修正して初めて FAIL するようになった。
+- ✅ **捕捉能力を実証**: リーダーにハング注入 → **FAIL exit 1**（削除前は PASS）。iframe の上書きを再現 → **FAIL exit 1**（早期サンプル版では PASS）。どちらも復元で exit 0。
+- ✅ テスト書き換え: `createElement('iframe')` は**throw する**ようにして、フレームが黙って戻らないことを構造的に固定。Total 1482 tests (47 suites); 0 lint errors (128 warnings); build green; `verify:layout` / `verify:app` / `verify:vr-boot` すべて PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

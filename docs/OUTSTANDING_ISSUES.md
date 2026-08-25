@@ -215,6 +215,8 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 
 **Session 61 で一次実装完了（CORS 許可オリジン限定）**: iframe を捨て「取得 → 本文抽出 → canvas テキスト描画」を実装（`readableText.js` / `readerLayout.js` / `textWrap.js`、`WebPanel._loadReaderText()` + `'reader'` 状態 + `scrollContent()`）。これで原子②③が CORS 許可オリジンについては成立する。**残る到達範囲の制約**: 非 CORS オリジンにはサーバ側プロキシが不可欠。`server/` は Session 74 で削除したので、取得プロキシは**新規に最小構成で作る**ことになるが、**SSRF 対策（private/loopback IP 拒否、スキーム allowlist、サイズ上限、timeout）を要する新規ネットワーク面**なので独立セッションで設計すること。
 
+**Session 75 で iframe を実際に削除**: 「iframe を捨て」と書きながら、隠し iframe は**構築され続け、毎ナビゲーションで実際に読み込まれ、しかも `_contentState` を所有していた**。X-Frame-Options で拒否されたフレームは Chromium で `load` を発火するため、その `onload` が **リーダーの成功結果を 'unavailable' で上書き**していた。同一オリジンの記事で実測: 0.6s に `reader`（9行）→ 1.2s に `unavailable`。**読めたページを捨てて隠していた**。表示経路はゼロ（`onDomOverlayStart()` 呼び出し元ゼロ）なのに第三者スクリプトを `allow-scripts allow-same-origin` で走らせていた点も同時に解消。`_settleLoad(seq, …)` が唯一の終端で、`dispose()` は seq を進めて in-flight を無効化する（旧 handler-nulling の代替）。`verify:vr-boot` は**同一オリジンの記事を配信して実際に読ませ、3秒の沈静後**に `reader` であることを検査する（早期サンプルでは iframe の再現が**素通りした**ため）。
+
 **元の分析（参考）**: iframe を捨て、**取得 → 本文抽出 → canvas テキスト描画（リーダー方式）**へ転換。CORS プロキシが必要だが、**現在100%余剰の `server/`（Stripe課金739行）をコンテンツプロキシに転用すれば過剰を不足に転換できる**。描画側は本リポジトリが最も得意とする領域（字幕・ブックマーク・キーボードは全て canvas テキスト）で、抽出とレイアウトは純関数なので headless テスト可能。可読性・ズーム・リフローも自然に解決する。
 
 ### F-2. 過剰の定量 — src+server+api の 23.4% が到達不能または非中核

@@ -2,15 +2,27 @@
  * FR-1.1 / FR-1.2: In-VR web panel with URL bar, back/forward, and reload.
  *
  * Architecture:
- *   Three.js plane mesh (the "panel chrome") + a hidden <iframe> composited
- *   on top via WebXR dom-overlay or positioned absolutely over the canvas.
- *   The URL bar and navigation controls are drawn on a CanvasTexture and
- *   registered as interactables so controller rays can interact with them.
+ *   Three.js plane mesh for the chrome bar (URL + back/forward/reload) and a
+ *   second one for the viewport, both drawn on CanvasTextures and registered
+ *   as interactables. Page content reaches the viewport through the reader:
+ *   fetch the markup, extract the prose, lay it out ourselves.
+ *
+ * There is deliberately no <iframe>. One used to be created hidden on every
+ * panel and pointed at each navigation. It could never be shown — the only
+ * function that displayed it had zero callers and `dom-overlay` was never
+ * requested — so it existed purely to load a full third-party page, with
+ * scripts, out of sight. Worse, it OWNED the content state: because a frame
+ * refused by X-Frame-Options still fires `load` in Chromium, its handler
+ * overwrote a successful read with 'unavailable'. Measured against a
+ * same-origin article: state reached 'reader' with 9 lines at 0.6 s, then the
+ * frame's load event clobbered it to 'unavailable' at 1.2 s. A page the reader
+ * had already extracted was thrown away and hidden from the user.
  *
  * Limitations (documented honestly):
- *   - Cross-origin iframes are sandboxed: no cookies/autofill, no JS access.
- *   - On platforms without dom-overlay the iframe is not visible in VR;
- *     the panel shows a "Cannot render external content" placeholder.
+ *   - The reader shows extracted text, not the page as authored. A WebXR web
+ *     app cannot composite cross-origin page pixels into a 3D texture.
+ *   - Direct fetch reaches only origins that send CORS headers; the optional
+ *     companion proxy (docs/PROXY.md) covers the rest.
  *   - This class provides the shell; FR-1.5 quad/cylinder Layers are a
  *     separate enhancement for text clarity.
  */
@@ -117,8 +129,12 @@ export class WebPanel {
     this.history     = [];
     this.historyIdx  = -1;
     this.loading     = false;
-    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
-    this.domOverlaySupported = false;
+    // True only for a load that genuinely failed with a status we can see — an
+    // HTTP error from a CORS-enabled origin or the proxy. An opaque fetch
+    // rejection (no CORS header, offline) is NOT an error flag: it is the
+    // ordinary no-proxy case, and painting the URL bar red for it would cry
+    // wolf on nearly every navigation.
+    this._loadError  = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -152,7 +168,6 @@ export class WebPanel {
     // 2D resources
     this.chromeCanvas  = null;
     this.chromeTex     = null;
-    this.iframe        = null;
 
     this._build();
   }
@@ -198,16 +213,6 @@ export class WebPanel {
     this.group.add(this.contentMesh);
 
     this._drawChrome();
-
-    // ── iframe for actual content (when dom-overlay is available) ───────────
-    this.iframe = document.createElement('iframe');
-    this.iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
-    this.iframe.style.cssText = `
-      position: fixed; display: none; border: none;
-      width: 960px; height: 540px;
-      pointer-events: auto; z-index: 999;
-    `;
-    document.body.appendChild(this.iframe);
 
     // ── Register chrome bar as interactable for controller ray ──────────────
     this.registerInteractable(this.chromeMesh, {
@@ -323,12 +328,14 @@ export class WebPanel {
    * built here, since that is a new network surface needing SSRF hardening.)
    *
    * Uses the AbortController + clearTimeout idiom from JapaneseIME so a hung
-   * request cannot pin the panel in 'loading' forever.
+   * request cannot pin the panel in 'loading' forever. Every exit settles
+   * through `_settleLoad`, which is what clears `loading` and notifies the
+   * host — this method is the sole owner of the panel's content state.
    */
   async _loadReaderText(url) {
     const seq = ++this._readerSeq;
     if (typeof fetch !== 'function') {
-      this._setContentState('unavailable');
+      this._settleLoad(seq, 'unavailable');
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -339,29 +346,33 @@ export class WebPanel {
       const fetchUrl = readerFetchUrl(url, this.readerProxyUrl);
       const res = await fetch(fetchUrl, controller ? { signal: controller.signal } : undefined);
       if (!res || !res.ok) {
-        throw new Error(`HTTP ${res && res.status}`);
-      }
-      const html = await res.text();
-      // A newer navigation started while this was in flight — discard.
-      if (seq !== this._readerSeq) {
+        // A status we can actually see: the origin (or the proxy) answered and
+        // said no. That is a real load failure, unlike an opaque rejection —
+        // and it is the only way onLoadError can fire now that nothing pretends
+        // a refused frame is a successful load.
+        this._settleLoad(seq, 'error', '', true);
         return;
       }
+      const html = await res.text();
       const { title, blocks } = extractReadableText(html);
       const lines = layoutReaderLines(blocks, { title, scale: this._readerScale });
       if (!lines.length) {
         // Fetched, but no prose recoverable (SPA shell, or markup we can't
         // read). Say so rather than showing a blank page.
-        this._setContentState('unavailable');
+        this._settleLoad(seq, 'unavailable', title);
         return;
+      }
+      if (seq !== this._readerSeq) {
+        return; // a newer navigation started while this was in flight
       }
       this._readerLines = lines;
       this._readerScroll = 0;
-      this._contentState = 'reader';
-      this._drawContent();
+      this._settleLoad(seq, 'reader', title);
     } catch {
-      if (seq === this._readerSeq) {
-        this._setContentState('unavailable');
-      }
+      // Opaque: a CORS-less origin, an abort, or no network. Indistinguishable
+      // from each other in a browser, so claim nothing beyond 'unavailable' —
+      // whose text already names the likely cause and the fix.
+      this._settleLoad(seq, 'unavailable');
     } finally {
       if (timer) {
         clearTimeout(timer);
@@ -687,8 +698,7 @@ export class WebPanel {
   // ── Navigation API ────────────────────────────────────────────────────────
 
   /**
-   * Navigate to a URL.  Records history and loads the iframe if dom-overlay
-   * is available; otherwise just updates the chrome bar.
+   * Navigate to a URL. Records history and starts the reader load.
    */
   navigate(url) {
     // Resolve the raw input into a navigable URL. Text that looks like a host
@@ -719,35 +729,40 @@ export class WebPanel {
 
     this._setContentState('loading');
     // Reader pipeline: fetch the markup and render the readable text ourselves.
-    // This is the only way a WebXR web app can show page content at all.
+    // This is the only way a WebXR web app can show page content at all, and
+    // since the iframe is gone it is also the ONLY thing that can move the
+    // panel off 'loading' — so a hang here is a visible hang, not something a
+    // frame's load event papers over.
     this._loadReaderText(url);
+  }
 
-    // Load in iframe (visible only when dom-overlay is active).
-    this.iframe.src = url;
-    this.iframe.onload = () => {
-      this.loading = false;
-      this._loadError = false;
-      let title = url;
-      try {
-        title = this.iframe.contentDocument.title || url;
-      } catch { /* cross-origin frame: keep the URL as the title */ }
-      this.currentTitle = title;
-      // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
-      // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-      // page rendered. Combined with the fact that page pixels can never reach
-      // the 3D texture anyway, the viewport must say so rather than keep a
-      // stale "Enter a URL" placeholder that implies nothing happened.
-      this._setContentState('unavailable');
-      this._drawChrome();
-      this.onNavigate(url, title);
-    };
-    this.iframe.onerror = () => {
-      this.loading = false;
-      this._loadError = true;
-      this._setContentState('error');
-      this._drawChrome();
-      this.onLoadError(this.currentUrl);
-    };
+  /**
+   * Terminal step of a navigation: leave 'loading', repaint the chrome, and
+   * tell the host what happened. Every exit from `_loadReaderText` goes
+   * through here so no path can leave the panel stuck loading.
+   *
+   * @param {number}  seq    the load's sequence number; a superseded load (a
+   *   newer navigation started, or the panel was disposed) settles nothing
+   * @param {string}  state  content state to show
+   * @param {string}  [title] page title when the reader recovered one
+   * @param {boolean} [failed] true only for a load that failed with a status
+   *   we could actually observe — fires onLoadError instead of onNavigate
+   */
+  _settleLoad(seq, state, title, failed) {
+    if (seq !== this._readerSeq) {
+      return;
+    }
+    const url = this.currentUrl;
+    this.loading = false;
+    this._loadError = !!failed;
+    this.currentTitle = title || url;
+    this._setContentState(state);
+    this._drawChrome();
+    if (failed) {
+      this.onLoadError(url);
+    } else {
+      this.onNavigate(url, this.currentTitle);
+    }
   }
 
   back() {
@@ -795,24 +810,6 @@ export class WebPanel {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
     }
-  }
-
-  // ── DOM-overlay integration ───────────────────────────────────────────────
-
-  /**
-   * Call this when a WebXR session with dom-overlay starts.
-   * Shows the iframe positioned over the panel's projected screen area.
-   */
-  onDomOverlayStart() {
-    this.domOverlaySupported = true;
-    this.iframe.style.display = 'block';
-  }
-
-  /**
-   * Call this when the WebXR session ends.
-   */
-  onDomOverlayEnd() {
-    this.iframe.style.display = 'none';
   }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
@@ -937,7 +934,6 @@ export class WebPanel {
 
   hide() {
     this.group.visible = false;
-    this.iframe.style.display = 'none';
   }
 
   /**
@@ -952,11 +948,7 @@ export class WebPanel {
    * @param {boolean} visible
    */
   setVisible(visible) {
-    const v = !!visible;
-    this.group.visible = v;
-    if (this.iframe) {
-      this.iframe.style.display = v ? '' : 'none';
-    }
+    this.group.visible = !!visible;
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -972,6 +964,11 @@ export class WebPanel {
   }
 
   dispose() {
+    // Invalidate any in-flight reader load. `_settleLoad` checks the sequence,
+    // so a fetch that lands after teardown settles nothing — no redraw onto a
+    // disposed texture, no onNavigate against a torn-down VRApp. This replaces
+    // the handler-nulling the iframe needed, for the same reason.
+    this._readerSeq++;
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
@@ -990,20 +987,5 @@ export class WebPanel {
     });
 
     this.scene.remove(this.group);
-
-    if (this.iframe) {
-      // Detach the load/error handlers before removing the element. A
-      // navigation started just before dispose() (tab/panel closed mid-load)
-      // can still fire onload/onerror afterward; without this, the stale
-      // handler redraws chromeCanvas onto an already-disposed chromeTex and
-      // calls onNavigate()/onLoadError() against a torn-down VRApp — the same
-      // teardown-leak class fixed for toast timers, hand-tracking timers, and
-      // queued TTS utterances.
-      this.iframe.onload = null;
-      this.iframe.onerror = null;
-      if (this.iframe.parentNode) {
-        this.iframe.parentNode.removeChild(this.iframe);
-      }
-    }
   }
 }
