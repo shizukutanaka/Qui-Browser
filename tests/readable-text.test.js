@@ -645,3 +645,92 @@ describe('readerRowAt — draw and hit-test share one row model', () => {
     expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5, false, 1).type).not.toBe('scrollDown');
   });
 });
+
+// ── Untrusted markup: the reader runs regexes on whatever a page sends ───────
+// Extraction is synchronous, so a slow parse freezes the headset — in VR the
+// world stops tracking your head, which is a comfort problem rather than jank.
+describe('extraction is bounded and correct on malformed markup', () => {
+  const {
+    extractReadableText, extractLinks, MAX_BLOCKS, MAX_MARKUP_CHARS, MAX_ELEMENT_CHARS
+  } = require('../src/vr/browser/readableText.js');
+  const BASE = 'https://example.com/';
+
+  /** Generous ceiling: the point is linear-not-quadratic, not a exact figure. */
+  const BUDGET_MS = 2000;
+
+  const timed = (fn) => {
+    const t0 = Date.now();
+    const out = fn();
+    return { ms: Date.now() - t0, out };
+  };
+
+  test('an omitted </p> still yields BOTH paragraphs', () => {
+    // </p> is optional in HTML, so this is valid, ordinary markup. Matching
+    // lazily merged the two into one run of text; requiring a close dropped
+    // the first entirely. Neither is acceptable.
+    const { blocks } = extractReadableText(
+      `<article><p>${'A'.repeat(300)}<p>${'B'.repeat(300)}</p></article>`, BASE);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].text.startsWith('A')).toBe(true);
+    expect(blocks[1].text.startsWith('B')).toBe(true);
+  });
+
+  test('a block with no closing tag at all is still read', () => {
+    const { blocks } = extractReadableText('<p>tail with no close', BASE);
+    expect(blocks.map((b) => b.text)).toEqual(['tail with no close']);
+  });
+
+  test('mixed unclosed block tags keep their own identities', () => {
+    const { blocks } = extractReadableText(
+      '<h2>Head</h2><p>one<p>two</p><li>item</li>', BASE);
+    expect(blocks.map((b) => `${b.type}:${b.text}`))
+      .toEqual(['h:Head', 'p:one', 'p:two', 'p:item']);
+  });
+
+  test('thousands of unclosed tags do not go quadratic', () => {
+    // Measured before the fix: 40,000 unclosed <p> (117 KB) took 2.1s through
+    // extractReadableText and 10.8s in the block regex alone.
+    const { ms } = timed(() => extractReadableText('<p>'.repeat(40000), BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  test('unclosed <script> and unclosed <a> are bounded too', () => {
+    expect(timed(() => extractReadableText('<script>'.repeat(20000), BASE)).ms)
+      .toBeLessThan(BUDGET_MS);
+    expect(timed(() => extractLinks('<a href=/x>'.repeat(20000), BASE)).ms)
+      .toBeLessThan(BUDGET_MS);
+  });
+
+  test('an enormous page is truncated, not chewed through', () => {
+    const para = `<p>${'Sentence of ordinary prose. '.repeat(20)}</p>`;
+    const html = `<html><body><article>${para.repeat(20000)}</article></body></html>`;
+    expect(html.length).toBeGreaterThan(MAX_MARKUP_CHARS);
+    const { ms, out } = timed(() => extractReadableText(html, BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+    expect(out.blocks.length).toBeLessThanOrEqual(MAX_BLOCKS);
+    expect(out.blocks.length).toBeGreaterThan(0); // the start is still readable
+  });
+
+  test('a single absurdly long element cannot consume the document', () => {
+    const html = `<article><p>${'x'.repeat(MAX_ELEMENT_CHARS * 3)}</p><p>after</p></article>`;
+    const { ms, out } = timed(() => extractReadableText(html, BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+    // The oversized block is skipped rather than swallowing what follows.
+    expect(out.blocks.some((b) => b.text === 'after')).toBe(true);
+  });
+
+  test('well-formed articles are unaffected', () => {
+    const para = `<p>${'Sentence of ordinary prose. '.repeat(20)}</p>`;
+    const { blocks } = extractReadableText(`<article>${para.repeat(50)}</article>`, BASE);
+    expect(blocks).toHaveLength(50);
+    expect(blocks.every((b) => b.type === 'p')).toBe(true);
+  });
+
+  test('pathological shapes do not throw', () => {
+    for (const bad of ['<'.repeat(50000), '&amp;'.repeat(50000), '<p'.repeat(20000),
+      '<a href='.repeat(20000), '</p>'.repeat(20000)]) {
+      expect(() => extractReadableText(bad, BASE)).not.toThrow();
+      expect(() => extractLinks(bad, BASE)).not.toThrow();
+    }
+  });
+});
