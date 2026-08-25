@@ -1208,3 +1208,61 @@ describe('VRApp._onVoiceToggleChanged', () => {
     expect(() => VRApp.prototype._teardownVoiceCommands.call(app)).not.toThrow();
   });
 });
+
+// ── Deployment-carried reader proxy detection ───────────────────────────────
+describe('VRApp._detectReaderProxy', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const makeApp = (over = {}) => makeVRAppLike({
+    settings: { readerProxyUrl: '' },
+    tabManager: { setReaderProxyUrl: jest.fn() },
+    ...over
+  });
+
+  test('a deployment carrying a proxy is found and applied to open tabs', async () => {
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp();
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(String(global.fetch.mock.calls[0][0])).toMatch(/api\/reader\/health$/);
+    expect(app.tabManager.setReaderProxyUrl).toHaveBeenCalledWith(
+      expect.stringMatching(/api\/reader$/));
+  });
+
+  test('a static host without one changes nothing', async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+    const app = makeApp();
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('a probe that throws is not an error the user ever sees', async () => {
+    global.fetch = jest.fn(async () => { throw new TypeError('offline'); });
+    const app = makeApp();
+    await expect(VRApp.prototype._detectReaderProxy.call(app)).resolves.toBeUndefined();
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('a proxy the user configured is never probed over', async () => {
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp({ settings: { readerProxyUrl: 'https://mine.example' } });
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('detection is not persisted — it describes the deployment, not a preference', async () => {
+    // Persisting it would make a later deploy without a proxy look broken.
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp({ updateSetting: jest.fn() });
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(app.updateSetting).not.toHaveBeenCalled();
+    expect(app.settings.readerProxyUrl).toBe('');
+  });
+
+  test('no fetch at all (non-browser) is a safe no-op', async () => {
+    global.fetch = undefined;
+    const app = makeApp();
+    await expect(VRApp.prototype._detectReaderProxy.call(app)).resolves.toBeUndefined();
+  });
+});

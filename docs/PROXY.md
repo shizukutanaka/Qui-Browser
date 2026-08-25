@@ -15,8 +15,28 @@ origins; for anything else the viewport explains the cause and points here.
 (Browsing itself is enabled by default as of Session 74 — the failure state is
 honest guidance, not a dead end.)
 
-`proxy/server.js` closes that gap. It is **not part of the shipped app**, on
-purpose:
+There are two ways to close that gap.
+
+## 1. A deployment that carries its own proxy (no setup at all)
+
+`netlify/functions/reader.mjs` is the same guarded fetch as a serverless
+function, mounted at `/api/reader`. A Netlify deploy therefore ships with a
+same-origin reader proxy, and the app **finds it by itself**: at startup it
+probes `<base>api/reader/health`, and if that answers it routes reader fetches
+through it. Nothing to configure, nothing to type.
+
+A proxy URL you typed always wins over the detected one — including when you
+deliberately cleared it — and the detection is never persisted, because it
+describes the deployment rather than a preference.
+
+On a static host such as GitHub Pages the probe 404s and nothing changes: the
+reader falls back to direct fetch exactly as before. If you do not want your
+deployment to carry an outbound fetch surface, delete the file; the app works
+without it.
+
+## 2. `proxy/server.js`, run yourself
+
+The standalone server is **not bundled into the app**, on purpose:
 
 - the default deploy target is GitHub Pages, which is static and cannot run it —
   bundling it would imply a capability the deployment does not have
@@ -63,7 +83,9 @@ works from the headset itself).
 A fetch proxy is a confused-deputy risk: it turns a user-supplied string into an
 outbound request from a machine the user does not control. Every access decision
 lives in `proxy/ssrfGuard.js`, kept pure so it can be tested exhaustively
-without opening a socket (`tests/ssrf-guard.test.js`, 51 tests).
+without opening a socket (`tests/ssrf-guard.test.js`, 51 tests). The Netlify
+function imports the same `fetchThroughGuard` verbatim rather than
+reimplementing it — a second copy of SSRF logic is a second thing to get wrong.
 
 Defences, in order:
 

@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き4）: 「削除した10%を戻す」— デプロイ自体がプロキシを持つようにした + 実際に走る CI
+残る不足は**デプロイ可能性**だった。名指しされた2点に、それぞれ実際に効く手を打った。
+- ✨ **feat（原子②③の到達範囲 — マスクの「10%戻す」）**: `netlify/functions/reader.mjs` を追加。`proxy/server.js` の `fetchThroughGuard` を**そのまま import** して serverless function にしただけ（SSRF ロジックの二重実装は二重に間違える元なので複製しない）。`/api/reader` に生え、標準サーバと**同じ契約**（`/fetch?url=`・`/health`）なのでクライアント側の分岐は1つのまま。
+- ✨ **feat（設定ゼロで効く）**: 起動時に `<base>api/reader/health` を1回だけ叩き、応答すればリーダーの取得をそこへ通す（`_detectReaderProxy`、await しない・3秒 timeout）。**ユーザーが入力した値は常に勝つ**（意図的に空にした場合も含む）。**検出結果は永続化しない** —— それはデプロイの性質であって設定ではなく、永続化するとプロキシの無い次のデプロイが壊れて見える。GitHub Pages では 404 なので**従来と完全に同一の直接 fetch**。
+- ✅ **実証（主張ではなく）**: function ハンドラを実際に呼び、**allowlist に載っている 8080 番**で「秘密」サービスを立てて host チェックだけが防壁の状況を作った —— `127.0.0.1` / `localhost` / `::ffff:127.0.0.1` / `0.0.0.0` 全て 400 で拒否、`file:` / URL 内認証情報 / ポート 6379 も拒否、`/health` は 200。**対照実験**で直接 fetch なら 200 + 秘密が返ることも確認済み。なお**成功系の外部取得はサンドボックスの制約で実証できていない**（公開ホストへ出られない）ので、そこは guard の 51 テストと Session 74 の標準サーバ検証に依る。
+- 🔧 **K-1 への現実的な回答**: workflow ファイルは**依然として直せない**（token に `workflows` 権限が無い、再実測済み）。ただし「CI が信用できないので自信を持ってデプロイできない」という**影響の方**には手が届く —— `netlify.toml` の build command を **`npm ci && npm run gate`** にした。デプロイが**テスト・lint・ビルド・3つのブラウザハーネス全部**を走らせ、赤ければデプロイが落ちる。5つの壊れた workflow を修理したわけではない（それはオーナーのパッチ適用のみ）が、**チェックが実際に強制されるデプロイ経路が1つ存在する**状態にはなった。`docs/PUBLISHING.md` に正直に併記。
+- 🔧 lint 対象に `netlify/` を追加（`--ext .mjs`）。**実際に検査されていることを実証**してから採用（未使用変数を入れて検出 → 復元）—— 続き9 で「glob が `src/*.js` に当たっていなかった」を踏んだばかりなので。
+- ✅ **test 13件追加**（純関数 `readerHealthUrl`/`effectiveProxyUrl` 7 + 検出配線 6）。pre-fix 検証: 検出の適用だけ外すと FAIL。Total 1506 tests (46 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き3）: 音声コマンドが誰にも到達できなかった — そして「到達性」をテストにした
 今回の2大発見（`enableWebPanel`／`enablePerfMonitorUI`）はどちらも**「設定はあるが、それを変える手段がどこにも無い」**という同じ形だった。ならば**残り全部を機械的に走査すべき**なので、`this.settings` の全キーに対して ①読む者がいるか ②ユーザーが変えられるか を照合した。
 - 🐛 **fix（a11y — 最も重い1件）**: **`enableVoice: false` にコントロールが存在しなかった。** 設定パネルにも音声コマンドにも永続化経路にも無い。つまり `VoiceCommands.js`（829行）と Sessions 18/19/20/29/59 の作業（go-to・help・履歴消去・confidence=0 対応・TTS teardown）が**一度も誰にも届いていなかった**。しかも影響が最悪の相手に当たる —— **視線もコントローラも難しいユーザーにとって音声が主入力**であり、その人たちのための避難経路が「スイッチの無いスイッチ」でオフになっていた。`docs/USAGE_GUIDE.md` は「設定で Voice を有効に」と案内していたが、**そこには何も無かった**。

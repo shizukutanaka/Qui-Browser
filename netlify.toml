@@ -6,7 +6,12 @@
   # **ビルドされていないソースをそのまま配信**していた（src/ は bare specifier
   # の ESM なのでブラウザでは動かない）。デプロイ先で必ず壊れる設定だった。
   publish = "dist"
-  command = "npm ci && npm run build"
+  # The deploy runs the FULL gate, not just a build: tests, lint, build and the
+  # three browser harnesses. `.github/workflows/**` cannot be repaired from
+  # here (see docs/PUBLISHING.md — the token has no `workflows` permission and
+  # five workflows still reference paths deleted in Session 74), so this is the
+  # one deployment path whose checks actually run. A red gate fails the deploy.
+  command = "npm ci && npm run gate"
 
 # Service Worker用のヘッダー設定。canonical な worker は service-worker.js
 # ひとつだけ（src/main.js が登録するのはこれ）。/sw.js と /public/sw.js を
@@ -69,6 +74,17 @@
     Cache-Control = "public, max-age=86400"
     Content-Type = "application/manifest+json; charset=utf-8"
 
+# Reader proxy (netlify/functions/reader.js) — never cached: it returns other
+# sites' markup, keyed only by a query parameter.
+[[headers]]
+  for = "/api/reader*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # WebXR用のセキュリティヘッダー
 [[headers]]
   for = "/*"
@@ -95,6 +111,11 @@
   status = 200
 
 # 404ページ
+[[redirects]]
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

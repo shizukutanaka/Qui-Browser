@@ -28,7 +28,7 @@ import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandF
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
-import { normalizeProxyUrl } from './browser/urlDisplay.js';
+import { normalizeProxyUrl, readerHealthUrl, effectiveProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -2550,6 +2550,9 @@ export class VRApp {
     // never reach comfortSystem/gazeInteraction/captionSystem for the rest
     // of the page's lifetime, including across VR session enter/exit.
     this._setupOSAccessibilityListeners();
+    // Fire-and-forget: if this deployment carries its own reader proxy, use
+    // it. Never awaited — the reader works without one.
+    this._detectReaderProxy();
 
     // 7. Spatial Audio
     try {
@@ -2745,6 +2748,49 @@ export class VRApp {
     } else {
       this._teardownVoiceCommands();
       this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+    }
+  }
+
+  /**
+   * Find a same-origin reader proxy, if this deployment carries one.
+   *
+   * The reader can only fetch from origins that send CORS headers, which
+   * measured is almost none of the web, so without a proxy most navigations
+   * end on the "cannot be shown" screen. A deployment that ships
+   * `netlify/functions/reader.js` has one at `<base>api/reader`, and finding it
+   * means a deployed app needs no configuration at all. A static host such as
+   * GitHub Pages simply 404s and nothing changes.
+   *
+   * One same-origin HEAD-weight request, short timeout, never awaited by
+   * startup. A proxy URL the user typed always wins — including when they
+   * cleared it deliberately — so this only ever fills a blank.
+   */
+  async _detectReaderProxy() {
+    if (this.settings.readerProxyUrl || typeof fetch !== 'function') {
+      return; // the user's explicit choice, or no fetch to probe with
+    }
+    const base = ((typeof import.meta !== 'undefined' && import.meta.env
+      && import.meta.env.BASE_URL) || '/') + 'api/reader';
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 3000) : null;
+    try {
+      const res = await fetch(readerHealthUrl(base),
+        controller ? { signal: controller.signal } : undefined);
+      if (!res || !res.ok) {
+        return;
+      }
+      this._detectedProxyUrl = base;
+      // Not persisted: it is a property of the deployment, not a preference,
+      // and persisting it would make a later deploy without one look broken.
+      const url = effectiveProxyUrl(this.settings.readerProxyUrl, base);
+      this.tabManager?.setReaderProxyUrl?.(url);
+      this.webPanel?.setReaderProxyUrl?.(url);
+    } catch {
+      // No proxy here. Direct fetch, exactly as before.
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
     }
   }
 

@@ -43,6 +43,13 @@
 > ```
 >
 > Until this is done, CI results on `main` are not trustworthy.
+>
+> **In the meantime there is a deployment path whose checks do run.**
+> `netlify.toml`'s build command is `npm ci && npm run gate`, so a Netlify
+> deploy runs the tests, lint, the build and all three browser harnesses, and a
+> red gate fails the deploy. That does not repair the five workflow files — only
+> the repository owner can, with the patch above — but it means the product can
+> be deployed with its checks actually enforced rather than nominally green.
 
 ---
 
