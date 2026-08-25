@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き5）: 欠陥「クラス」を全部テストにした + 残る3件は権限と回線の問題だと確定させた
+残件を1つずつ実測し、**私に手が届くもの**と**届かないもの**を分けた。
+- 🔍 **回線（実測して確定）**: 「公開ホストへの取得成功を実証していない」件を再検証 —— `curl "$HTTPS_PROXY/__agentproxy/status"` が `connect_rejected … gateway answered 403 to CONNECT` を記録しており、外向きは**環境ポリシーで拒否**。しかも SSRF guard は private/loopback を**設計として全部拒否**するので、ローカルに代替上流を立てて成功系を作ることも**構造的に不可能**。これは私の作業の穴ではなく環境の制約なので、そう明記して終わりにする（成功系は guard の 51 テストと同一オリジンの `verify:vr-boot` が担保）。
+- 🔬 **欠陥クラスの自動化（step 5）**: 「作られているが誰も到達できない」という同じ形を手作業で何度も見つけてきたので、**走査自体をテストにした**。
+  - `tests/i18n-coverage.test.js`（新規）: src の全 `t()` 呼び出し 98 キーが en/ja **双方で解決**し、**英語のコピーのまま**でなく、**ja が ASCII のみでない**ことを要求。**捕捉能力を実証**: (a) ja からキーを1つ消す → FAIL（カタログのフォールバックで英語が出るため「解決する」検査だけでは通ってしまう。同一コピー検査が捕まえる＝層になっている） (b) ja を英語のまま置く → FAIL。どちらもキー名を名指し。Sessions 27・74続き8・74続き9 の3件は**これがあれば当時捕捉できた**。
+  - **コールバック到達性を走査** → コンポーネントが受け取る `on*` **16件**、音声コマンドの `on*` **12件**、いずれも**全て配線済み**。orphan ゼロを確認（設定と違い、こちらは既に健全だった）。
+- 📋 `docs/OUTSTANDING_ISSUES.md` に「到達性の3クラス（設定・i18n・コールバック）は自動化済み」と記録。
+- ✅ Total 1511 tests (47 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き4）: 「削除した10%を戻す」— デプロイ自体がプロキシを持つようにした + 実際に走る CI
 残る不足は**デプロイ可能性**だった。名指しされた2点に、それぞれ実際に効く手を打った。
 - ✨ **feat（原子②③の到達範囲 — マスクの「10%戻す」）**: `netlify/functions/reader.mjs` を追加。`proxy/server.js` の `fetchThroughGuard` を**そのまま import** して serverless function にしただけ（SSRF ロジックの二重実装は二重に間違える元なので複製しない）。`/api/reader` に生え、標準サーバと**同じ契約**（`/fetch?url=`・`/health`）なのでクライアント側の分岐は1つのまま。
