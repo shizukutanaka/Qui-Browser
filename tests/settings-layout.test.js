@@ -138,7 +138,7 @@ describe('layoutSettingsPanel', () => {
 describe('the panel stays inside the comfortable field of view', () => {
   // The real inventory: 24 controls across five sections.
   const REAL = [
-    { id: 'a11y', controls: [...narrow(4), ...wide(5)] },
+    { id: 'a11y', controls: [...narrow(5), ...wide(5)] },
     { id: 'locomotion', controls: [...narrow(5), ...wide(3)] },
     { id: 'display', controls: [...narrow(3), ...wide(1)] },
     { id: 'browsing', controls: [...narrow(1), ...wide(4)] },
@@ -178,13 +178,23 @@ describe('the panel stays inside the comfortable field of view', () => {
     expect(vertical(out.height)).toBeLessThan(COMFORTABLE_VERTICAL_DEG);
   });
 
-  test('the open panel NOW fits the comfortable field — J-2 closed', () => {
-    // Was 50.4° with five stacked headers; four of those rows were pure chrome.
-    // One tab row brings the worst case to 35.9°, inside the ~40° a user takes
-    // in without moving their head.
+  test('the open panel fits the comfortable field — J-2 stays closed', () => {
+    // Was 50.4° with five stacked headers, four of which were pure chrome. One
+    // tab row took it to 35.9°; the Voice toggle (Session 75) adds a row to the
+    // accessibility section, the largest, bringing the worst case to 39.6°.
     const worst = worstCaseHeight(REAL);
     expect(vertical(worst)).toBeLessThanOrEqual(COMFORTABLE_VERTICAL_DEG);
-    expect(vertical(worst)).toBeCloseTo(35.9, 0);
+    expect(vertical(worst)).toBeCloseTo(39.6, 0);
+  });
+
+  test('HEADROOM: the next accessibility control does NOT fit', () => {
+    // 0.4° of margin is left. This is not a failure — it is the honest state,
+    // pinned so the next person adding an a11y control finds out here rather
+    // than in a headset. Absorbing another one needs a structural change (a
+    // scrollable panel, or shorter rows), not another entry in the list.
+    const grown = REAL.map((s) => (s.id === 'a11y'
+      ? { ...s, controls: [...s.controls, { wide: false }] } : s));
+    expect(vertical(worstCaseHeight(grown))).toBeGreaterThan(COMFORTABLE_VERTICAL_DEG);
   });
 
   test('every section fits when selected, not just the smallest', () => {

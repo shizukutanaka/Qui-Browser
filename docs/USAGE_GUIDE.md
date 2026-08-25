@@ -54,9 +54,12 @@ You can drive every UI element with any of these — pick whichever suits you:
   uses a static highlight instead of an animated pulse.
 - **Japanese IME** — the VR keyboard converts romaji to hiragana/katakana/kanji
   with proper syllabic-ん handling and candidate selection.
-- **Voice commands** — enable Voice in settings. Say a command (e.g. navigate,
-  back, search, top sites, "go to <site>", or "help" to hear the phrase list).
-  Recognized speech is captioned; confirmations are spoken and captioned.
+- **Voice commands** — turn on **Voice** in the settings panel's Accessibility
+  section (it asks for microphone permission, which is why it is opt-in rather
+  than on by default; the toggle takes effect immediately, no reload). Then say
+  a command — navigate, back, search, top sites, "go to <site>", "clear
+  history", or "help" to hear the phrase list. Recognized speech is captioned;
+  confirmations are spoken and captioned.
 
 ## The settings panel
 
@@ -66,7 +69,7 @@ reloads (localStorage):
 - **Locomotion**: Teleport, Snap Turn, Snap Angle, Smooth Move, Move Speed,
   Southpaw (swap hands).
 - **Accessibility**: High Contrast, Captions (+ Caption Hold / Size / Height),
-  Gaze Select (+ Gaze Time / Grace Time).
+  Gaze Select (+ Gaze Time / Grace Time), Haptics, Voice.
 - **Rendering / comfort**: Comfort preset, Foveation (FFR).
 - **Browsing**: **Web Browser Panel** (see below), Follow View, Curved panel,
   Search engine.

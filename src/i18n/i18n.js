@@ -155,7 +155,11 @@ const CATALOG = {
     'vr.error.loadFailed': 'Failed to load',
     'vr.msg.loadingPage': 'Loading',
     'vr.reader.links': 'Links on this page',
-    'vr.msg.followingLink': 'Following link'
+    'vr.msg.followingLink': 'Following link',
+    'vr.settings.voice': 'Voice',
+    'vr.msg.voiceOn': 'Voice commands on',
+    'vr.msg.voiceOff': 'Voice commands off',
+    'vr.error.voiceStartFailed': 'Voice commands could not start (microphone or browser support)'
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -301,7 +305,11 @@ const CATALOG = {
     'vr.error.loadFailed': '読み込みに失敗しました',
     'vr.msg.loadingPage': '読み込み中',
     'vr.reader.links': 'このページのリンク',
-    'vr.msg.followingLink': 'リンクを開きます'
+    'vr.msg.followingLink': 'リンクを開きます',
+    'vr.settings.voice': '音声コマンド',
+    'vr.msg.voiceOn': '音声コマンドをオンにしました',
+    'vr.msg.voiceOff': '音声コマンドをオフにしました',
+    'vr.error.voiceStartFailed': '音声コマンドを開始できません（マイクまたはブラウザ非対応）'
   }
 };
 

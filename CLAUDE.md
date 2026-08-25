@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き3）: 音声コマンドが誰にも到達できなかった — そして「到達性」をテストにした
+今回の2大発見（`enableWebPanel`／`enablePerfMonitorUI`）はどちらも**「設定はあるが、それを変える手段がどこにも無い」**という同じ形だった。ならば**残り全部を機械的に走査すべき**なので、`this.settings` の全キーに対して ①読む者がいるか ②ユーザーが変えられるか を照合した。
+- 🐛 **fix（a11y — 最も重い1件）**: **`enableVoice: false` にコントロールが存在しなかった。** 設定パネルにも音声コマンドにも永続化経路にも無い。つまり `VoiceCommands.js`（829行）と Sessions 18/19/20/29/59 の作業（go-to・help・履歴消去・confidence=0 対応・TTS teardown）が**一度も誰にも届いていなかった**。しかも影響が最悪の相手に当たる —— **視線もコントローラも難しいユーザーにとって音声が主入力**であり、その人たちのための避難経路が「スイッチの無いスイッチ」でオフになっていた。`docs/USAGE_GUIDE.md` は「設定で Voice を有効に」と案内していたが、**そこには何も無かった**。
+- ✨ **feat**: アクセシビリティ節に Voice トグルを追加。`_buildVoiceCommands()` / `_teardownVoiceCommands()` を抽出し、**その場で構築・破棄**する（Session 74 続き5 で確立した「VR で『リロードして』は『ヘッドセットを外せ』」規律）。**既定は false のまま** —— `enableWebPanel` と違い、起動すると**マイク権限を要求する**ので、同意を要する機能を既定 ON にはしない。開始できなかった場合（非対応・権限拒否）は専用キーで告知する（既存の `voiceUnavailable` は「一時的に利用できません」で意味が違うため、lint の `no-dupe-keys` が私の重複を検出 → `vr.error.voiceStartFailed` を新設）。
+- 📐 **視野予算を再測して受け入れた**: a11y は最大セクションなので1行増えて **35.9° → 39.6°**。40° の予算内だが**残り 0.4°**。`HEADROOM` テストで「次に a11y へコントロールを足すと収まらない」ことを明示的に固定した —— 失敗ではなく**正直な現状**を、ヘッドセットではなくテストで知れるようにするため。
+- 🔬 **step 5（自動化）— 同じ欠陥を3度出しているので、テストにした**: `tests/settings-reachability.test.js` は VRApp のソースを読み、**全設定キー**と**全コントロールが書けるキー**を突き合わせ、差分は「理由付きで internal と명示された4件」だけであることを要求する。ハンドラの単体テストでは原理的に捕捉できない（ハンドラは正しく、**呼び出し元の不在**が欠陥だから）。**捕捉能力を実証**: Voice トグルの行を1行消すと `no setting is gated behind a control that does not exist` が **`["enableVoice"]` を名指しで FAIL**。`enableWebPanel`・`enablePerfMonitorUI`・`enableVoice` の3件すべてを、これがあれば当時捕捉できた。
+- 🐛 **fix**: 音声 go-to 経路にも `Loading: ${host}` のハードコード英語が残っていた（続き2 で2件直したが、3件目）。
+- ✅ **test 14件追加**（トグル配線7 + 到達性ガード6 + レイアウト HEADROOM 1）。Total 1493 tests (46 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き2）: 原子④「操作」を実装 — リーダーはリンクを全部捨てていた
 step 2 を2周したので step 3〜5 へ進む前に、**そもそも何を simplify するのか**を確かめた —— 原子（①移動 ②表示 ③読む ④操作 ⑤戻る ⑥保存）を数え直したところ、**④が無い**ことが判明した。
 - 🔍 **診断**: `extractReadableText` が返すのは `{type:'h'|'p', text}` だけで、**`<a href>` は1つ残らず捨てられていた**。つまりページに到達して読めても、**リンクを1本も辿れない**。次のページへ行く唯一の手段が視線キーボードでの URL 再入力（~8〜10 WPM）。ハイパーテキストから hyper- を抜いたものはテキストビューアであってブラウザではない。

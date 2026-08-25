@@ -1131,3 +1131,80 @@ describe('the browsing default', () => {
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
   });
 });
+
+// ── Voice commands: reachable at last ────────────────────────────────────────
+// `enableVoice` defaulted false and NO settings-panel control, voice command or
+// persisted path could set it — the enableWebPanel shape. It matters more here:
+// voice is the primary modality for users who find gaze/controller input hard,
+// so the escape hatch for the people who need it most had no switch. The usage
+// guide told them to "enable Voice in settings"; there was nothing there.
+describe('VRApp._onVoiceToggleChanged', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const makeVoiceApp = (over = {}) => makeVRAppLike({
+    isVREnabled: true,
+    camera: { add: jest.fn(), remove: jest.fn() },
+    showVRToast: VRApp.prototype.showVRToast,
+    _buildVoiceCommands: jest.fn(async () => true),
+    _teardownVoiceCommands: jest.fn(),
+    settings: { enableVoice: false },
+    ...over
+  });
+
+  test('a settings control exists for it (it is not gated behind nothing)', () => {
+    // The regression that made voice unreachable was a setting with no control,
+    // so assert the wiring method the control calls actually exists.
+    expect(typeof VRApp.prototype._onVoiceToggleChanged).toBe('function');
+    expect(typeof VRApp.prototype._buildVoiceCommands).toBe('function');
+    expect(typeof VRApp.prototype._teardownVoiceCommands).toBe('function');
+  });
+
+  test('turning it ON builds voice commands immediately', async () => {
+    const app = makeVoiceApp();
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    expect(app._buildVoiceCommands).toHaveBeenCalledTimes(1);
+    expect(app._teardownVoiceCommands).not.toHaveBeenCalled();
+  });
+
+  test('turning it OFF tears them down immediately', async () => {
+    const app = makeVoiceApp({ settings: { enableVoice: true } });
+    await VRApp.prototype._onVoiceToggleChanged.call(app, false);
+    expect(app._teardownVoiceCommands).toHaveBeenCalledTimes(1);
+    expect(app._buildVoiceCommands).not.toHaveBeenCalled();
+  });
+
+  test('it never tells the user to reload — it applies now', async () => {
+    const app = makeVoiceApp();
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    const said = app.captionSystem.show.mock.calls.map((c) => String(c[0])).join(' ');
+    expect(said).not.toMatch(/reload|リロード|再読み込み/i);
+  });
+
+  test('a refused microphone is reported, not silently swallowed', async () => {
+    // initialize() returning false means no browser support or denied
+    // permission. The user asked for voice and must be told it did not start.
+    const app = makeVoiceApp({ _buildVoiceCommands: jest.fn(async () => false) });
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    expect(app.captionSystem.show).toHaveBeenCalled();
+  });
+
+  test('building twice is idempotent (no second recognizer)', async () => {
+    const app = makeVRAppLike({
+      voiceCommands: { dispose: jest.fn() },
+      settings: { enableVoice: true }
+    });
+    await expect(VRApp.prototype._buildVoiceCommands.call(app)).resolves.toBe(true);
+  });
+
+  test('teardown releases the recognizer and is safe when absent', () => {
+    const dispose = jest.fn();
+    const app = makeVRAppLike({ voiceCommands: { dispose } });
+    VRApp.prototype._teardownVoiceCommands.call(app);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(app.voiceCommands).toBeNull();
+    expect(() => VRApp.prototype._teardownVoiceCommands.call(app)).not.toThrow();
+  });
+});
