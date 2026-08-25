@@ -1,37 +1,47 @@
-From cf7542bb8e0ccbcf497d2ceb685ffc973af3f54c Mon Sep 17 00:00:00 2001
+From a838d81909d94dc95e273773ba1943e9a5633190 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
-Date: Tue, 25 Aug 2026 12:31:12 +0000
+Date: Tue, 25 Aug 2026 12:36:21 +0000
 Subject: [PATCH] ci: drop the steps and jobs auditing code that no longer
  exists
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Two rounds of deletion left CI auditing things that are gone.
+Three rounds of deletion left CI auditing things that are gone.
 
 Session 74 deleted assets/js/ (119,698 lines, reachable only from
 tests/archive/). Five workflows still pointed at it; deploy.yml's
 `find assets/js -name "vr-*.js"` exits 1, so that job could only fail.
 
-This round deleted tools/benchmark.js and its regression checker. They
-timed require() of files under assets/js/, so after that tree went away
-the tool found zero modules and crashed in its own summary — the CI job
-running it was permanently red while saying nothing about the code. The
-regression checker compared against a baseline file that is not in the
-repo. Removed: benchmark.yml entirely, ci.yml's Performance Tests job
-(and its entries in the summary job), and release.yml's benchmark step.
+Then tools/benchmark.js and its regression checker went. They timed
+require() of files under assets/js/, so once that tree was gone the tool
+found zero modules and crashed in its own summary — the job running it
+was permanently red while saying nothing about the code, and the
+regression checker compared against a baseline file not in the repo.
+Removed: benchmark.yml entirely, ci.yml's Performance Tests job (and its
+entries in the summary job), and release.yml's benchmark step. Size is
+measured instead, by tools/check-bundle-size.mjs, which budgets the
+gzipped chunks that ship and runs inside `npm run gate`.
 
-Size is measured instead, by tools/check-bundle-size.mjs, which budgets
-the gzipped chunks that actually ship. It runs in `npm run gate` and
-`npm run ci:verify`.
+Then Prettier. `npm run format:check` had never passed. The immediate
+cause was wasm-build.yml being malformed YAML at line 178, which Prettier
+cannot parse — but running `npm run format` to find out what else was
+wrong turned 127 files over (+6,016/-3,990) and took ESLint from 0 errors
+to 195, because `indent: ["error", 2]` and Prettier disagree. Adopting it
+would mean a new dependency to switch off the rules that are actually
+working. It was a declared standard nobody had ever applied, so it was
+removed from the repo; ESLint is the formatter of record. These steps go
+with it.
+
+ESLint's step loses `continue-on-error` in the same breath: it is green,
+so there is no longer a reason to swallow its result.
 
 Also deletes wasm-build.yml and v5.8.0-planning.yml, both of which only
-built or audited assets/js/. wasm-build.yml is additionally malformed
-YAML (line 178), which is why `npm run format:check` could never pass —
-prettier cannot parse it. With it gone, every remaining workflow parses.
+built or audited assets/js/. Every remaining workflow parses, checked
+with yaml.safe_load.
 
-Nothing in .github/workflows/ now references assets/js/, tools/benchmark.js
-or check-performance-regression.js.
+Nothing in .github/workflows/ now references assets/js/, tools/benchmark.js,
+check-performance-regression.js, or prettier.
 
 This is supplied as a patch because the agent's token lacks the
 `workflows` permission; pushes touching .github/workflows/** return 403,
@@ -40,13 +50,13 @@ measured over git and the REST API. Apply with `git am`.
 Co-Authored-By: Claude <noreply@anthropic.com>
 ---
  .github/workflows/benchmark.yml       | 158 ----------------
- .github/workflows/ci.yml              |  39 +---
+ .github/workflows/ci.yml              |  43 +----
  .github/workflows/deploy.yml          |  16 --
- .github/workflows/release.yml         |   7 -
+ .github/workflows/release.yml         |   8 -
  .github/workflows/test.yml            | 138 --------------
  .github/workflows/v5.8.0-planning.yml | 253 --------------------------
  .github/workflows/wasm-build.yml      | 233 ------------------------
- 7 files changed, 1 insertion(+), 843 deletions(-)
+ 7 files changed, 1 insertion(+), 848 deletions(-)
  delete mode 100644 .github/workflows/benchmark.yml
  delete mode 100644 .github/workflows/v5.8.0-planning.yml
  delete mode 100644 .github/workflows/wasm-build.yml
@@ -216,10 +226,21 @@ index b12f00f..0000000
 -
 -          echo "✓ Comparison complete (detailed comparison script to be implemented)" >> $GITHUB_STEP_SUMMARY
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7e514a4..8b67d3c 100644
+index 7e514a4..b55872d 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -132,42 +132,6 @@ jobs:
+@@ -37,10 +37,6 @@ jobs:
+ 
+       - name: Run ESLint
+         run: npm run lint
+-        continue-on-error: true
+-
+-      - name: Run Prettier check
+-        run: npm run format:check
+ 
+       - name: Check for console.log
+         run: |
+@@ -132,42 +128,6 @@ jobs:
            path: test-results/
            retention-days: 30
  
@@ -262,7 +283,7 @@ index 7e514a4..8b67d3c 100644
    # ============================================================================
    # JOB 5: Build Verification
    # ============================================================================
-@@ -339,7 +303,7 @@ jobs:
+@@ -339,7 +299,7 @@ jobs:
    summary:
      name: CI Summary
      runs-on: ubuntu-latest
@@ -271,7 +292,7 @@ index 7e514a4..8b67d3c 100644
      if: always()
  
      steps:
-@@ -352,7 +316,6 @@ jobs:
+@@ -352,7 +312,6 @@ jobs:
            echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
            echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
            echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -317,10 +338,18 @@ index 8332236..f97455c 100644
            if [ $MODULE_COUNT -lt 20 ]; then
              echo "Warning: Expected at least 20 VR modules, found $MODULE_COUNT"
 diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
-index 8d508d1..3608fe4 100644
+index 8d508d1..cf835d1 100644
 --- a/.github/workflows/release.yml
 +++ b/.github/workflows/release.yml
-@@ -56,10 +56,6 @@ jobs:
+@@ -46,7 +46,6 @@ jobs:
+       - name: Run linting
+         run: |
+           npm run lint || echo "Linting warnings found"
+-          npm run format:check || echo "Formatting issues found"
+ 
+       - name: Build documentation
+         run: |
+@@ -56,10 +55,6 @@ jobs:
            test -f docs/USAGE_GUIDE.md && echo "✓ USAGE_GUIDE.md exists"
            test -f docs/QUICK_START.md && echo "✓ QUICK_START.md exists"
  
@@ -331,7 +360,7 @@ index 8d508d1..3608fe4 100644
        - name: Generate release notes
          id: release_notes
          run: |
-@@ -134,7 +130,6 @@ jobs:
+@@ -134,7 +129,6 @@ jobs:
              --exclude='*.log' \
              --exclude='coverage' \
              --exclude='.cache' \
@@ -339,7 +368,7 @@ index 8d508d1..3608fe4 100644
              .
  
            echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
-@@ -156,7 +151,6 @@ jobs:
+@@ -156,7 +150,6 @@ jobs:
            files: |
              ${{ env.ARCHIVE_NAME }}
              checksums.txt
@@ -347,7 +376,7 @@ index 8d508d1..3608fe4 100644
            token: ${{ secrets.GITHUB_TOKEN }}
  
        - name: Update latest release tag
-@@ -176,7 +170,6 @@ jobs:
+@@ -176,7 +169,6 @@ jobs:
            echo "### 📦 Assets" >> $GITHUB_STEP_SUMMARY
            echo "- \`${{ env.ARCHIVE_NAME }}\` ($(ls -lh ${{ env.ARCHIVE_NAME }} | awk '{print $5}'))" >> $GITHUB_STEP_SUMMARY
            echo "- \`checksums.txt\`" >> $GITHUB_STEP_SUMMARY

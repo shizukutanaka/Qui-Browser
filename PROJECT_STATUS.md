@@ -323,8 +323,6 @@ npm run test:e2e         # Run E2E tests (Playwright)
 ```bash
 npm run lint             # Lint JavaScript files
 npm run lint:fix         # Auto-fix linting issues
-npm run format           # Format all files
-npm run format:check     # Check formatting
 ```
 
 ### Benchmarking

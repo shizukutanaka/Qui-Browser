@@ -564,10 +564,24 @@ summary 内で crash する** —— 実行して確認。regression checker が
 ジョブの2箇所）、**`release.yml` の benchmark ステップ**も落とす。適用後、`.github/workflows/` から
 `assets/js` / `tools/benchmark` / `check-performance` の参照が**すべてゼロ**であることを worktree で再検証済み。
 
-**副次的に `format:check` が到達可能になる**: `npm run format:check` が通らない理由は
-**`wasm-build.yml` が YAML として壊れている**（178行目、prettier が parse できない）ことだった。
-パッチはこのファイルを削除するので、適用後は残る全 workflow が parse する
-（`yaml.safe_load` で全件確認済み）。それまでは `.prettierignore` で除外している。
+**`format:check` は「通す」のではなく Prettier ごと削除した（実測に基づく判断）**:
+通らない直接の原因は **`wasm-build.yml` が YAML として壊れている**（178行目）ことで、パッチが
+そのファイルを消せば parse 自体は通る（残る全 workflow が `yaml.safe_load` を通ることを確認済み）。
+そこで**実際に `npm run format` を全体に掛けて測った**ところ:
+
+- **127ファイル / +6,016 −3,990 行**が書き換わる
+- その結果 **`npm run lint` が 0 errors → 195 errors** になる。ESLint の `indent: ["error", 2]` と
+  Prettier の整形が正面から衝突する（`eslint-config-prettier` を新規依存として入れ、実際に効いている
+  スタイル規則群を無効化しない限り両立しない）
+- しかも Prettier は **`.github/workflows/ci.yml` まで書き換える** —— このリポジトリの自動化が
+  **push できないファイル**なので、`npm run format` はここでは実行しただけで commit 不能な差分を作る
+
+つまり Prettier は**一度も適用されたことがない宣言だけの標準**であり、採用すれば**実際に緑を保っている
+ESLint を壊す**。「存在すべきでない部品を最適化するな」に照らして、`prettier` devDependency・
+`.prettierrc.json`・`.prettierignore`・`format`/`format:check` スクリプトを削除し、`ci:lint` は
+`lint` のみにした。**整形の唯一の基準は ESLint**。パッチは `ci.yml` / `release.yml` の
+`format:check` ステップも落とす。将来 Prettier を入れたい場合の道は
+「`eslint-config-prettier` を追加 → 単発の整形コミット」で、設定は git 履歴に残っている。
 
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。

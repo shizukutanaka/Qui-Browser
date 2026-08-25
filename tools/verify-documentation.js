@@ -194,7 +194,6 @@ function main() {
     'vite.config.js',
     'jest.config.js',
     '.eslintrc.json',
-    '.prettierrc.json',
     'Dockerfile',
     'docker-compose.yml',
     'netlify.toml',

@@ -212,15 +212,15 @@ npm run test:tier             # Tier integration tests
 npm run test:integration      # Integration tests
 
 # Code Quality
-npm run lint                  # Lint JavaScript
+npm run lint                  # Lint JavaScript (ESLint is the only formatter of record)
 npm run lint:fix              # Auto-fix linting issues
-npm run format                # Format code (Prettier)
-npm run format:check          # Check formatting
+npm run gate                  # Everything: tests, lint, build, all four verifies
 
-# Performance
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:regression  # Check for regressions
+# Verification
+npm run verify:layout         # Real Chromium: no text overflows its box
+npm run verify:app            # Real Chromium: the landing shell boots clean
+npm run verify:vr-boot        # Real Chromium: the full VR app boots and reads a page
+npm run verify:size           # Gzipped bundle stays within its per-chunk budgets
 
 # CI/CD
 npm run ci:all                # Complete CI suite

@@ -244,8 +244,6 @@ npm run test:e2e              # E2E tests (Playwright)
 # Code Quality (4 scripts)
 npm run lint                  # Lint JavaScript
 npm run lint:fix              # Auto-fix linting
-npm run format                # Format code (Prettier)
-npm run format:check          # Check formatting
 
 # Performance (4 scripts)
 npm run benchmark             # Run benchmarks
