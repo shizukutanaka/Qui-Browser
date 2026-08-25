@@ -34,7 +34,10 @@ const iconsDir = join(root, 'public', 'assets', 'icons'); // shipped verbatim by
 const faviconDir = join(root, 'assets', 'icons'); // referenced from index.html, hashed by Vite
 
 // Square app/PWA icons -> public/assets/icons/icon-<n>.png
-const ICON_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+// Every size here must appear in public/manifest.json — verify:app fails on a
+// manifest entry with no file, and an unreferenced file is dead weight shipped.
+// 152 was generated for years and never listed; apple-touch-icon (180) covers iOS.
+const ICON_SIZES = [72, 96, 128, 144, 192, 384, 512];
 // Favicons + apple touch icon -> assets/icons/ (index.html references these)
 const NAMED = [
   { name: 'favicon-16x16.png', size: 16 },
