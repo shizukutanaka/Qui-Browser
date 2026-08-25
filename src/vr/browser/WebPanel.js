@@ -101,7 +101,8 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel } = {}) {
+    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel,
+    topSitesProvider, startPageLabel } = {}) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -128,6 +129,15 @@ export class WebPanel {
     this.onLinkFollowed = typeof onLinkFollowed === 'function' ? onLinkFollowed : null;
     // Heading for the links section, so it can be translated by the host.
     this.linksLabel = typeof linksLabel === 'string' && linksLabel ? linksLabel : '';
+    // Start page. A fresh tab used to show nothing but "Enter a URL to
+    // navigate", so the only way in was gaze-typing a URL at roughly 8-10 WPM.
+    // The frecency ranking behind this has existed since Session 17 with no
+    // surface at all; it was shelved as a third BookmarkPanel tab, whose
+    // coordinates collide with the scroll arrows. The empty viewport is the
+    // natural home, and a top site is just a link row, so it needs no new
+    // interaction code.
+    this.topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
+    this.startPageLabel = typeof startPageLabel === 'string' && startPageLabel ? startPageLabel : '';
 
     // Panel state
     this.currentUrl  = '';
@@ -207,7 +217,9 @@ export class WebPanel {
     this.contentCanvas.width  = 1024;
     this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
     this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
-    this._drawContent();
+    if (!this.showStartPage()) {
+      this._drawContent();
+    }
 
     const contentTex = this.contentTex;
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
@@ -300,7 +312,7 @@ export class WebPanel {
     ctx.fillStyle = col.bg;
     ctx.fillRect(0, 0, w, h);
 
-    if (this._contentState === 'reader') {
+    if (this._isReaderLike()) {
       this._drawReader(ctx, w, h, col);
       if (this.contentTex) {
         this.contentTex.needsUpdate = true;
@@ -452,7 +464,7 @@ export class WebPanel {
    * one implementation serves both input modes.
    */
   _onContentSelect(evt) {
-    if (this._contentState !== 'reader' || !this.contentCanvas) {
+    if (!this._isReaderLike() || !this.contentCanvas) {
       return;
     }
     const rawPoint = evt?.intersection?.point ?? evt;
@@ -495,7 +507,7 @@ export class WebPanel {
    * @returns {boolean} true when the offset actually moved
    */
   scrollContent(delta) {
-    if (this._contentState !== 'reader') {
+    if (!this._isReaderLike()) {
       return false;
     }
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
@@ -531,6 +543,44 @@ export class WebPanel {
     if (this._contentState === 'unavailable') {
       this._drawContent();
     }
+  }
+
+  /** States whose viewport shows selectable, scrollable rows. */
+  _isReaderLike() {
+    return this._contentState === 'reader' || this._contentState === 'start';
+  }
+
+  /**
+   * Show the frecency-ranked start page, if there is anything to show.
+   *
+   * Degrades honestly: a first-run user has no history, so there are no top
+   * sites and the viewport keeps its "Enter a URL" message rather than showing
+   * an empty list that implies something is missing.
+   *
+   * @returns {boolean} whether a start page was rendered
+   */
+  showStartPage() {
+    if (!this.topSitesProvider) {
+      return false;
+    }
+    let sites = [];
+    try {
+      sites = this.topSitesProvider() || [];
+    } catch {
+      return false; // a broken provider must not break the panel
+    }
+    const links = sites
+      .filter((s) => s && s.url)
+      .map((s) => ({ text: s.title || s.host || s.url, href: s.url }));
+    if (!links.length) {
+      return false;
+    }
+    this._readerLines = layoutReaderLines([], {
+      links, linksLabel: this.startPageLabel, scale: this._readerScale
+    });
+    this._readerScroll = 0;
+    this._setContentState('start');
+    return true;
   }
 
   /** Set the content-area state and repaint if it changed. */

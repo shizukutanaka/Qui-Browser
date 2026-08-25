@@ -226,7 +226,9 @@ async function main() {
         canvas: !!document.querySelector('#app-container canvas'),
         tabManager: !!(app && app.tabManager),
         settingsPanel: !!(app && app.settingsPanel),
-        captionSystem: !!(app && app.captionSystem)
+        captionSystem: !!(app && app.captionSystem),
+        firstState: (app && app.tabManager && app.tabManager.getActiveTab
+          && app.tabManager.getActiveTab() || {})._contentState || ''
       };
     })()`;
     const deadline = Date.now() + 20000;
@@ -313,6 +315,11 @@ async function main() {
       ['browsing systems constructed (tabManager — default ON)', !!state.tabManager],
       ['settings panel constructed', !!state.settingsPanel],
       ['caption system constructed', !!state.captionSystem],
+      // A fresh profile has no history, so the honest empty message is the
+      // correct first-run state — the start page appears once there is
+      // something to rank. Either is fine; being stuck on neither is not.
+      [`a fresh tab lands in a real state (${state.firstState || 'none'})`,
+        state.firstState === 'empty' || state.firstState === 'start'],
       ['navigation clears the loading flag (never stuck loading)', loop.loading === false],
       ['the visit is recorded in history', (loop.history || 0) >= 1],
       [`a readable page is READ, not discarded (state=${loop.state || 'none'})`,

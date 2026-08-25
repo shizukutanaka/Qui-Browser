@@ -249,7 +249,9 @@ export class TabManager {
       onBlockedNavigation: this.opts.onBlockedNavigation || null,
       readerProxyUrl: this.opts.readerProxyUrl || '',
       onLinkFollowed: this.opts.onLinkFollowed || null,
-      linksLabel: this.opts.linksLabel || ''
+      linksLabel: this.opts.linksLabel || '',
+      topSitesProvider: this.opts.topSitesProvider || null,
+      startPageLabel: this.opts.startPageLabel || ''
     });
     panel.addToScene(this.rootGroup);
     panel.group.position.set(0, 0, 0); // local to rootGroup

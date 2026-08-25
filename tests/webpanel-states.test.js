@@ -848,3 +848,86 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
     expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
   });
 });
+
+// ── Start page: getTopSites finally has a surface ───────────────────────────
+// A fresh tab showed nothing but "Enter a URL to navigate", so the only way in
+// was gaze-typing at ~8-10 WPM. The frecency ranking has existed since Session
+// 17 with no UI (recorded as C-3), shelved as a third BookmarkPanel tab whose
+// coordinates collide with the scroll arrows. A top site is just a link row.
+describe('WebPanel start page', () => {
+  const { CONTENT_PAD, LINE_H, visibleLinesFor, clampReaderScroll, CONTENT_PX_W, CONTENT_PX_H } =
+    require('../src/vr/browser/readerLayout.js');
+  const SITES = [
+    { url: 'https://a.example/', title: 'Alpha', host: 'a.example' },
+    { url: 'https://b.example/', title: 'Beta', host: 'b.example' }
+  ];
+  function localFor(px, py) {
+    const PANEL_W = 1.6, contentH = 1.0 * (1 - 0.08);
+    return {
+      x: (px / CONTENT_PX_W - 0.5) * PANEL_W,
+      y: ((1 - py / CONTENT_PX_H) - 0.5) * contentH,
+      clone() { return this; }
+    };
+  }
+
+  test('a fresh tab shows the most-visited sites as selectable rows', () => {
+    const p = makePanel({ topSitesProvider: () => SITES, startPageLabel: 'Top' });
+    expect(p._contentState).toBe('start');
+    const rows = p._readerLines.filter((l) => l.style === 'link');
+    expect(rows.map((r) => r.href)).toEqual(['https://a.example/', 'https://b.example/']);
+    expect(rows[0].text).toContain('Alpha');
+  });
+
+  test('selecting a row navigates there — no typing needed', () => {
+    const p = makePanel({ topSitesProvider: () => SITES });
+    global.fetch = () => new Promise(() => {});
+    const idx = p._readerLines.findIndex((l) => l.href === 'https://b.example/');
+    const visible = visibleLinesFor(p._readerLines.length, 1);
+    const off = clampReaderScroll(p._readerScroll, p._readerLines.length, visible);
+    p.contentMesh.worldToLocal = () =>
+      localFor(CONTENT_PAD + 10, CONTENT_PAD + LINE_H * (idx - off) + LINE_H / 2);
+    p._onContentSelect({ clone() { return this; } });
+    expect(p.currentUrl).toBe('https://b.example/');
+  });
+
+  test('a first-run user with no history keeps the honest empty message', () => {
+    const p = makePanel({ topSitesProvider: () => [] });
+    expect(p._contentState).toBe('empty');
+    expect(p._readerLines).toHaveLength(0);
+  });
+
+  test('no provider at all behaves exactly as before', () => {
+    expect(makePanel()._contentState).toBe('empty');
+  });
+
+  test('a provider that throws does not break the panel', () => {
+    const p = makePanel({ topSitesProvider: () => { throw new Error('store gone'); } });
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('entries missing a title fall back to the host, never to nothing', () => {
+    const p = makePanel({ topSitesProvider: () => [{ url: 'https://c.example/', host: 'c.example' }] });
+    const row = p._readerLines.find((l) => l.style === 'link');
+    expect(row.text).toContain('c.example');
+  });
+
+  test('entries with no url are skipped rather than rendered as dead rows', () => {
+    const p = makePanel({ topSitesProvider: () => [{ title: 'no url' }, ...SITES] });
+    expect(p._readerLines.filter((l) => l.style === 'link')).toHaveLength(2);
+  });
+
+  test('navigating away leaves the start page behind', () => {
+    global.fetch = () => new Promise(() => {});
+    const p = makePanel({ topSitesProvider: () => SITES });
+    expect(p._contentState).toBe('start');
+    p.navigate('https://example.com/x');
+    expect(p._contentState).toBe('loading');
+  });
+
+  test('the start page scrolls like any other reader content', () => {
+    const many = Array.from({ length: 80 }, (_, i) => ({ url: `https://s${i}.example/`, title: `S${i}` }));
+    const p = makePanel({ topSitesProvider: () => many });
+    expect(p.scrollContent(5)).toBe(true);
+    expect(p._readerScroll).toBeGreaterThan(0);
+  });
+});

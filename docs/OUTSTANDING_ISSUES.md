@@ -100,10 +100,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
 - **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
 
-### C-3. Top Sites の視覚的スピードダイヤルタイル（優先度: 低、難易度: 中、Session 17 から保留）
+### C-3. ~~Top Sites の視覚的スピードダイヤルタイル~~ — **Session 75 で解決**
 - **対象**: `src/vr/browser/BookmarkPanel.js`
 - **理由**: Session 16/17 でフレセンシーランキング機能自体（データ層・音声コマンド）は実装済みだが、視覚的な「よく使うサイト」タイル表示は未実装のまま。
-- **保留理由**: BookmarkPanel に3つ目のタブを追加するとスクロール矢印ゾーンと座標が衝突する。canvas描画のためVRヘッドセットなしでは見た目を目視確認できない制約もある。着手する場合はレイアウト設計からやり直す必要がある。
+- ~~**保留理由**: BookmarkPanel に3つ目のタブを追加するとスクロール矢印ゾーンと座標が衝突する。~~
+- ✅ **解決（Session 75）**: **保留理由そのものが誤った前提だった** —— タイルは BookmarkPanel に置く必要が無い。空のコンテンツ面（従来は「URL を入力してください」としか言わなかった）が本来の置き場所で、しかも同セッションで追加したリンク行モデル（`style:'link'` + `href` + 行ヒットテスト）がそのまま使えるので、**新しい操作コードはゼロ**。`_contentState: 'start'` を追加し、描画・選択・スクロールは reader と同一経路。履歴の無い初回ユーザーには**従来どおりの正直な空メッセージ**を出す（空リストを出して「壊れている」と誤認させない）。検索エンジンは除外済み。
 
 ### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
 - **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
@@ -191,7 +192,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
 | E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
-| E-6 | Top Sites タイル（=C-3） | 低 | Opus | `hitTest` 全ゾーンをテスト・既存2タブ回帰なし |
+| ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ | — | — | **Session 75 で解決**（空ビューポートに配置、リンク行モデルを再利用） |
 | E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
 
 ---

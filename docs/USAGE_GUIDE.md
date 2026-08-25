@@ -85,6 +85,11 @@ Panel** setting turns it off and back on, and takes effect immediately: the
 subsystems are built and torn down live, so there is no reload and no need to
 take the headset off. You get:
 
+- **Start page** — a fresh tab lists your most-visited sites as numbered,
+  selectable rows, so returning somewhere takes one tap instead of typing a URL
+  by gaze. Ranked by how often and how recently you visited (search engines
+  excluded, so the top entry is a real destination). A brand-new profile has no
+  history yet, so it says so rather than showing an empty list.
 - **URL bar** — tap to open the VR keyboard; frecency-ranked suggestions from
   your history/bookmarks appear as you type, so you can jump to a known
   destination in a couple of characters. Blocked/unsupported addresses (e.g.
