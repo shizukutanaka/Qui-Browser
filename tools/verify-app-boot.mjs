@@ -151,6 +151,16 @@ async function main() {
     }
   }
 
+  // Asset URLs must be relative, or the page is blank under a subpath.
+  // Measured before this was fixed: served from
+  // https://<owner>.github.io/Qui-Browser/, 9 of 9 of the page's own assets
+  // 404'd — including the module entry — because no workflow sets BASE_PATH
+  // and the build emitted root-absolute URLs.
+  const rootAbsolute = [...dom.out.matchAll(/(?:src|href)="(\/[^\/][^"]*)"/g)].map((m) => m[1]);
+  if (rootAbsolute.length) {
+    failures.push(`root-absolute asset URLs break a subpath deploy: ${rootAbsolute.join(', ')}`);
+  }
+
   // The module graph must actually have executed. Vite injects the hashed entry
   // script; if the graph failed to resolve, Chromium reports it on stderr.
   if (!/<script[^>]+type="module"/.test(dom.out)) {
@@ -172,6 +182,7 @@ async function main() {
   for (const [name, ok] of structural) {
     console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(width)}`);
   }
+  console.log(`  ${rootAbsolute.length === 0 ? 'ok  ' : 'FAIL'}  ${'asset URLs are subpath-safe'.padEnd(width)}`);
   console.log(`  ${noisy.length === 0 ? 'ok  ' : 'FAIL'}  ${'no page errors'.padEnd(width)}`);
   console.log('');
 

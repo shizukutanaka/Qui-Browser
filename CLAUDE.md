@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き9）: 「Pages は CI が無い」を疑ったら、**Pages が真っ白だった**
+最後に残った主張「既定デプロイ先にチェックが強制されていない」を、諦める前に**ファイル単位で実測**した。結果、**自分の以前の主張が2つとも誤り**で、しかもその過程で**実際に出荷を壊している重大バグ**が出た。
+- 🔍 **訂正1（K-1 の範囲を過大に言っていた）**: 壊れているのは5ファイルだが、**`cd.yml`（Pages へ実際にデプロイする workflow）と `ci.yml` は `assets/js` を1つも参照していない**。`cd.yml` は `npm ci` → **`npm test`** → build → `deploy-pages@v2` で、**テストが通らなければデプロイしない**。`ci.yml` は `npm run lint` + `npm test`。つまり **Pages にはチェックが強制されている**。壊れている `deploy.yml` は Pages への**2本目の重複 workflow**だった。`docs/PUBLISHING.md` に workflow 別の表として訂正を明記。
+- 🐛 **fix（実際に出荷を壊していた — 深刻）**: **どの workflow も `BASE_PATH` を設定していない**（grep で全 workflow を確認）。Vite の `base` は既定 `'/'` なので、Pages 用ビルドは `/js/index-*.js` のような**ルート絶対 URL** を吐く。`https://<owner>.github.io/Qui-Browser/` から配信すると、それらは全部**ドメイン直下**に解決される —— 実測ハーネスで **9/9 のアセットが 404、module entry を含む**。つまり**公開されている Pages は真っ白**。Session 53 は「Pages workflow が BASE_PATH を設定する」と記録していたが、**その記述は事実ではなかった**。
+- ✨ **workflow を触らずに直した**: `vite.config.js` の `base` を **`'./'`（相対）**に。1つのビルドがドメイン直下でもサブパスでも動く。これは workflow 側では**そもそも直せない** —— `cd.yml` は**1つの成果物**を Pages / Netlify / Vercel の3箇所へ配るので、絶対 base では3者を同時に満たせない。相対 base だけが3つとも正しい。`BASE_PATH` による上書きは維持。
+- ✅ **実証**: 専用ハーネスで `dist/` を `/Qui-Browser/` 配下に配信し、ページ自身のアセット URL を全部 fetch —— 修正前 **9/9 が 404**、修正後 **9/9 が 200**。root での `verify:app` / `verify:vr-boot` も引き続き PASS（挙動不変）。`verify:app` に「ルート絶対 URL を吐いていないか」の恒久ガードを追加し、`base` を `'/'` に戻すと **12件を名指しで FAIL** することを確認。
+- 🧹 **delete（走査漏れの発見）**: `mvp/`（1,959行）—— 参照元は **`docs/archive/` のみ**という閉じた死のペアで、Session 74 が 119,698 行を消した基準そのもの。前回の走査を `src`/`proxy`/`netlify`＋root に絞ったせいで見落としていた。
+- ⚖️ **やらなかったこと（churn の拒否）**: `ci.yml` の `format:check` を通そうと prettier を全体にかけたが、**`wasm-build.yml`（workflow）を prettier が parse できない**ため**どうやっても通らない**と判明。90ファイルの整形差分は目的を達成せず本質を埋もれさせるので**全部 revert**した。`docs/archive/` を `.prettierignore` に追加した分だけ残す（凍結資料を整形対象にすべきでないため、単体で正しい）。
+- ✅ Total 1529 tests (47 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き8）: CI が直せないなら、直せる場所でゲートする
 「既定デプロイ先（GitHub Pages）にチェックが強制されていない」を、諦める前にもう一段考えた。
 - 🔍 **問い直し**: 強制できないのは *GitHub Actions* であって、*チェックそのもの*ではない。**push はあらゆるデプロイ経路の上流**（Pages も Netlify も手動ビルドも、まず push を経る）。workflow ファイルを触れなくても、**push を関門にすることはできる**。

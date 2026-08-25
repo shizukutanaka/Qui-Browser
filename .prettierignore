@@ -30,6 +30,12 @@ Thumbs.db
 # Benchmark results
 benchmark-results.*
 
+# Frozen historical material. It is kept verbatim as a record and must not be
+# edited, so reformatting it is not an option — and 118 of the 130 files that
+# failed `npm run format:check` lived here, which is why that CI step could
+# never pass.
+docs/archive/
+
 # Temporary files
 *.tmp
 *.temp

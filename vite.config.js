@@ -15,7 +15,21 @@ export default defineConfig({
   // (https://<user>.github.io/Qui-Browser/), so the Pages workflow sets
   // BASE_PATH=/Qui-Browser/ for that build only — keeping every other
   // target root-served and unaffected.
-  base: process.env.BASE_PATH || '/',
+  // Relative asset URLs, so one build works at a domain root AND under a
+  // subpath. This is not a style preference — it was measured. No workflow
+  // sets BASE_PATH, so the GitHub Pages build emitted root-absolute URLs
+  // (`/js/index-*.js`, `/assets/...`), and served from
+  // `https://<owner>.github.io/Qui-Browser/` every one of them resolved to the
+  // domain root: 9 of 9 assets 404, including the module entry, so the
+  // published page was blank. Fixing that in the workflow is not possible from
+  // here (`.github/workflows/**` needs a token permission this repo's
+  // automation does not have), and it could not be fixed there anyway without
+  // building twice — cd.yml builds ONE artifact and deploys it to Pages,
+  // Netlify and Vercel, which need different bases. A relative base is correct
+  // for all three at once.
+  //
+  // BASE_PATH still overrides, for a deployment that wants absolute URLs.
+  base: process.env.BASE_PATH || './',
   publicDir: 'public',
 
   build: {
@@ -42,10 +56,7 @@ export default defineConfig({
           'vendor-three': ['three'],
 
           // Tier 1 optimizations
-          'tier1': [
-            '/src/vr/rendering/FFRSystem.js',
-            '/src/vr/comfort/ComfortSystem.js'
-          ],
+          tier1: ['/src/vr/rendering/FFRSystem.js', '/src/vr/comfort/ComfortSystem.js'],
 
           // Tier 2 features (lazy loaded)
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
@@ -81,13 +92,13 @@ export default defineConfig({
     // Terser minification options (built-in with Vite)
     terserOptions: {
       compress: {
-        drop_console: true,      // Remove console.log in production
+        drop_console: true, // Remove console.log in production
         drop_debugger: true,
         passes: 2,
         pure_funcs: ['console.log', 'console.info']
       },
       mangle: {
-        properties: false  // Don't mangle property names (breaks Three.js)
+        properties: false // Don't mangle property names (breaks Three.js)
       },
       format: {
         comments: false
@@ -106,7 +117,7 @@ export default defineConfig({
 
   // Development server
   server: {
-    host: true,  // Allow external connections (for Quest)
+    host: true, // Allow external connections (for Quest)
     port: 5173,
     https: false, // Use ngrok for HTTPS in development
     cors: true,

@@ -42,7 +42,26 @@
 >       - run: npm run gate        # tests + lint + build + all three verify stages
 > ```
 >
-> Until this is done, CI results on `main` are not trustworthy.
+> **Scope correction (Session 75).** An earlier version of this note implied
+> all CI and the Pages deployment were blocked. Re-checked file by file, that
+> was too broad:
+>
+> | workflow | references deleted paths | what it does |
+> |---|---|---|
+> | `cd.yml` | **no** | `npm ci` → `npm test` → build → deploy to Pages / Netlify / Vercel |
+> | `ci.yml` | **no** | `npm run lint`, `npm test`, audit, benchmark |
+> | `deploy.yml` | yes | a **second, redundant** Pages workflow — this is the one that exits 1 |
+> | `test.yml`, `benchmark.yml`, `v5.8.0-planning.yml`, `wasm-build.yml` | yes | audit legacy code that no longer exists |
+>
+> So Pages **does** deploy, with `npm test` enforced ahead of it, and lint is
+> enforced by `ci.yml`. What the patch removes is dead weight and a duplicate,
+> not the deployment itself. Two steps still fail for reasons outside those
+> files and cannot be fixed from here either: `ci.yml` runs
+> `tests/tier-system-integration.test.js`, which does not exist, and
+> `npm run format:check`, which Prettier cannot complete because it fails to
+> parse `wasm-build.yml`.
+>
+> Until this is done, some CI results on `main` are not trustworthy.
 >
 > **In the meantime there is a deployment path whose checks do run.**
 > `netlify.toml`'s build command is `npm ci && npm run gate`, so a Netlify

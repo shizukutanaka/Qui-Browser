@@ -53,8 +53,8 @@ without it.
 
 The standalone server is **not bundled into the app**, on purpose:
 
-- the default deploy target is GitHub Pages, which is static and cannot run it —
-  bundling it would imply a capability the deployment does not have
+- GitHub Pages, one of this repo's deploy targets, is static and cannot run it —
+  bundling it would imply a capability that deployment does not have
 - it is an outbound network surface, and nobody should get one they did not ask for
 
 Run it yourself and the reader reads the real web. Don't, and nothing changes.
