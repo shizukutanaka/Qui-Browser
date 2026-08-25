@@ -557,6 +557,18 @@ git push
 
 該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、修正ではなく**削除**が正しい。
 
+**Session 75（続き11）でパッチを拡張**: `tools/benchmark.js` と `check-performance-regression.js` を削除した
+（`assets/js/` 配下のファイルの `require()` を計測するツールで、計測対象が消えた今は**モジュール0件で自分の
+summary 内で crash する** —— 実行して確認。regression checker が比較する baseline はリポジトリに存在しない）。
+これに伴いパッチは **`benchmark.yml` を丸ごと削除**し、**`ci.yml` の Performance Tests ジョブ**（と summary
+ジョブの2箇所）、**`release.yml` の benchmark ステップ**も落とす。適用後、`.github/workflows/` から
+`assets/js` / `tools/benchmark` / `check-performance` の参照が**すべてゼロ**であることを worktree で再検証済み。
+
+**副次的に `format:check` が到達可能になる**: `npm run format:check` が通らない理由は
+**`wasm-build.yml` が YAML として壊れている**（178行目、prettier が parse できない）ことだった。
+パッチはこのファイルを削除するので、適用後は残る全 workflow が parse する
+（`yaml.safe_load` で全件確認済み）。それまでは `.prettierignore` で除外している。
+
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。
 

@@ -36,6 +36,14 @@ benchmark-results.*
 # never pass.
 docs/archive/
 
+# Malformed YAML (line 178) that prettier cannot parse, which is the single
+# reason `npm run format:check` errors out. It only builds and audits the
+# deleted assets/js/wasm/ tree, so the fix is deletion — but pushes touching
+# .github/workflows/** are 403 for this repo's automation, so it is queued in
+# docs/patches/0001-ci-drop-assets-js-steps.patch. Drop this entry once that
+# patch is applied; every other workflow parses fine.
+.github/workflows/wasm-build.yml
+
 # Temporary files
 *.tmp
 *.temp

@@ -19,9 +19,11 @@
 > |---|---|
 > | `.github/workflows/deploy.yml` | delete the *Validate VR Modules*, *Check file sizes*, and the `npx eslint assets/js/*.js` / `MODULE_COUNT` steps (lines ~38–50, ~100, ~104) |
 > | `.github/workflows/test.yml` | delete every step globbing `assets/js/**` (lines ~60, 78–99, 143, 164–177, 203–226) — the real suite is `npm test` |
-> | `.github/workflows/benchmark.yml` | delete, or drop the `assets/js/vr-*.js` path trigger |
+> | `.github/workflows/benchmark.yml` | delete — it runs `tools/benchmark.js`, which was deleted along with the code it timed |
+> | `.github/workflows/ci.yml` | delete the *Performance Tests* job and its two entries in the summary job — same reason |
+> | `.github/workflows/release.yml` | delete the *Run benchmark* step and the `benchmark-results.*` references |
 > | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
-> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
+> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build. It is also **malformed YAML** (line 178), which is the sole reason `npm run format:check` cannot pass: prettier fails to parse it. Removing it makes every remaining workflow parse. |
 >
 > **A ready-to-apply patch is committed at
 > `docs/patches/0001-ci-drop-assets-js-steps.patch`** — verified to apply
