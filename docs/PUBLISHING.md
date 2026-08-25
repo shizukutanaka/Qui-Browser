@@ -56,10 +56,11 @@
 > So Pages **does** deploy, with `npm test` enforced ahead of it, and lint is
 > enforced by `ci.yml`. What the patch removes is dead weight and a duplicate,
 > not the deployment itself. Two steps still fail for reasons outside those
-> files and cannot be fixed from here either: `ci.yml` runs
-> `tests/tier-system-integration.test.js`, which does not exist, and
-> `npm run format:check`, which Prettier cannot complete because it fails to
-> parse `wasm-build.yml`.
+> files. One of those has since been fixed —
+> `tests/tier-system-integration.test.js` now exists and covers both the build
+> chunk tiers and the device tiers. The other genuinely cannot be fixed from
+> here: `npm run format:check` never completes because Prettier fails to parse
+> `wasm-build.yml`, which is itself a workflow file.
 >
 > Until this is done, some CI results on `main` are not trustworthy.
 >

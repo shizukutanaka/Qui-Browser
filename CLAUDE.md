@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き10）: 自分の「オーナーにしか触れない」判断が間違っていた
+前ターンの締めで「残る ci.yml の失敗2件はどちらもオーナーしか触れないファイル」と書いたが、**これは誤り**だった。
+- 🔍 **自己訂正**: `ci.yml` が名指しで走らせる `tests/tier-system-integration.test.js` は **workflow ファイルではなくテストファイル**。**私が作れる。** 存在しないので専用ジョブが毎回赤く、しかもその赤はコードについて何も語っていなかった。
+- ✨ **feat**: スタブで黙らせるのではなく、「tier system」が実際に指す**2つの実体**を検証する統合テストを書いた。
+  - **ビルドの tier**: `vite.config.js` の `manualChunks` はモジュールをパス文字列で指定するが、**それが解決するか誰も検証していない**。Session 74 が `ObjectPool`/`MixedReality` を消したとき entry が残って **`npm run build` が落ちた** —— unit テストはビルド設定を読まないので**原理的に見えない**種類の欠陥。存在検査・重複割当・実際に import されているか・bare specifier が実依存かを検査。
+  - **デバイスの tier**: `_detectTier()` の分類（Quest 3/2・Pico 4・Android XR の実 UA）と `targetFPS()` の対応。**検出できる全 tier に FPS 分岐があること**を要求 —— 分岐漏れは 120Hz のヘッドセットを黙って 72 FPS で回すことになる。
+- 🐛 **自分のテストが vacuous だった（その場で発見・修正）**: パーサが `'tier2-input':` のような**引用符付きキーしか拾えず**、prettier が引用符を外した **`tier1:` を丸ごと見落としていた** —— まさに自分がそのテストのコメントで警告していた失敗そのもの。両形式を拾うよう修正し、**`tier1` の存在を名指しで assert** した。
+- ✅ **捕捉能力を実証**: (a) 削除済みモジュールを `tier1` に足す（Session 74 の実際の破壊）→ **2件 FAIL、`tier1 -> /src/utils/ObjectPool.js` を名指し** (b) `quest3` の FPS 分岐を消す → **1件 FAIL**。どちらも復元で全通過。
+- 📌 **残る ci.yml の失敗は1件だけ**: `npm run format:check` —— prettier が `wasm-build.yml` を parse できず、これは workflow ファイルなので本当に手が届かない。
+- ✅ Total 1539 tests (48 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き9）: 「Pages は CI が無い」を疑ったら、**Pages が真っ白だった**
 最後に残った主張「既定デプロイ先にチェックが強制されていない」を、諦める前に**ファイル単位で実測**した。結果、**自分の以前の主張が2つとも誤り**で、しかもその過程で**実際に出荷を壊している重大バグ**が出た。
 - 🔍 **訂正1（K-1 の範囲を過大に言っていた）**: 壊れているのは5ファイルだが、**`cd.yml`（Pages へ実際にデプロイする workflow）と `ci.yml` は `assets/js` を1つも参照していない**。`cd.yml` は `npm ci` → **`npm test`** → build → `deploy-pages@v2` で、**テストが通らなければデプロイしない**。`ci.yml` は `npm run lint` + `npm test`。つまり **Pages にはチェックが強制されている**。壊れている `deploy.yml` は Pages への**2本目の重複 workflow**だった。`docs/PUBLISHING.md` に workflow 別の表として訂正を明記。
