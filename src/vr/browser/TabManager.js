@@ -248,6 +248,12 @@ export class TabManager {
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
       onBlockedNavigation: this.opts.onBlockedNavigation || null,
       readerProxyUrl: this.opts.readerProxyUrl || '',
+      // Reader text size. Composed from the a11y large-text preference by
+      // VRApp; without this the option existed, was documented, and was passed
+      // by nobody, so a low-vision user got larger captions and toasts while
+      // the article body — nearly all the text they came to read — stayed at
+      // the default size.
+      readerScale: this.opts.readerScale || 1,
       onLinkFollowed: this.opts.onLinkFollowed || null,
       linksLabel: this.opts.linksLabel || '',
       topSitesProvider: this.opts.topSitesProvider || null,

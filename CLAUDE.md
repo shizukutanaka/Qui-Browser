@@ -276,7 +276,8 @@ Stop hook が「アルゴリズムは1回applyしただけ」と指摘したの�
 - ✨ **feat**: 上限付き back/forward キャッシュ（`_pageCache`、**20ページ**・最近訪問順で追い出し）。`navigate()`/`back()`/`forward()` は離れる前に `_rememberPage()`（**`reader` 状態で本文がある場合のみ** —— エラーや「表示できません」は戻ったときに再試行すべきで保存すべきでない）。`_restorePage()` は **`_readerSeq` を進めてから** 復元する（離れるページの取得がまだ飛んでいる場合に**復元後のページを上書きさせない** —— 削除した iframe とまったく同じ失敗形）。`_setContentState` は同値で早期 return するので `_drawContent()` を明示（記事→記事は両方 `reader`）。`reload()` は**キャッシュを捨てて**取り直す（それが reload の意味）。`dispose()` で破棄。
 - 🐛 **fix（テストが本物のネットワークを叩いていた）**: `--detectOpenHandles` が **TLSWRAP** を報告 —— どこかのテストが `global.fetch` を差し替えず**実際に外へ出ていた**（TLS ソケットと 5 秒の abort タイマーを漏らし、Jest が終了後も生き残っていた）。`tests/setup.js` に `beforeEach` のネットワーク禁止ガードを追加し、**スタブ忘れを即座に失敗させる**。加えて「決して settle しない fetch」を使う2件を最後に解決するよう直し、**開いたハンドル 0** で終了するようにした。
 - ✅ **pre-fix 検証**: `back()`/`forward()` を取り直し版に戻すと **4件 FAIL**（ネットワーク再取得・読み位置の喪失・再取得失敗時に読めない・in-flight による上書き）、復元で全通過。
-- ✅ Total 1560 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
+- 🐛 **fix（a11y — 大きな文字がリーダーに届いていなかった）**: `WebPanel` は `readerScale` オプションを持ち、docstring は「呼び出し側で a11y の `largeTextScale` と合成せよ」と指示していたが、**合成する呼び出し側が1つも存在しなかった**（`enableVoice` と同じ「宣言はあるが誰も渡さない」形）。結果、弱視ユーザーが大きな文字を有効にすると**字幕とトーストは大きくなるのに、記事本文＝その人が読みに来たテキストのほぼ全部は既定サイズのまま**だった。`VRApp` → `TabManager` → 各 `WebPanel` に `largeTextScale(getPrefs().largeText)` を通した。既定は 1 なので設定していないユーザーの挙動は不変。**pre-fix 検証**: 配線を外すと2件 FAIL。
+- ✅ Total 1565 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
 
 ### Session 75（続き10）: 自分の「オーナーにしか触れない」判断が間違っていた
 前ターンの締めで「残る ci.yml の失敗2件はどちらもオーナーしか触れないファイル」と書いたが、**これは誤り**だった。

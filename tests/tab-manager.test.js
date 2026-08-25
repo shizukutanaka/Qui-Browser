@@ -344,3 +344,32 @@ describe('TabManager.setReaderProxyUrl', () => {
     expect(panelInstances[0].readerProxyUrl).toBe('');
   });
 });
+
+// ── Reader text size reaches the panels ──────────────────────────────────────
+// WebPanel has always accepted `readerScale`, and its docstring said to compose
+// it with the a11y large-text preference at the call site. No call site did, so
+// a low-vision user got larger captions and toasts while the article body — the
+// text they actually came to read — stayed at the default size.
+describe('TabManager passes the reader text scale to its panels', () => {
+  const withScale = (opts) => new TabManager({
+    scene: { add: jest.fn(), remove: jest.fn() },
+    registerInteractable: jest.fn(),
+    unregisterInteractable: jest.fn(),
+    onNavigate: jest.fn(),
+    ...opts
+  });
+
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('a scale given to TabManager reaches every tab it opens', () => {
+    const tm = withScale({ readerScale: 1.4 });
+    tm.newTab();
+    tm.newTab();
+    expect(panelInstances.map((p) => p.opts.readerScale)).toEqual([1.4, 1.4]);
+  });
+
+  test('the default is unscaled, so nothing changes without the preference', () => {
+    withScale({}).newTab();
+    expect(panelInstances[panelInstances.length - 1].opts.readerScale).toBe(1);
+  });
+});

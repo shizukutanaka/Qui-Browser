@@ -1064,3 +1064,24 @@ describe('WebPanel back/forward restores the page instead of refetching', () => 
     expect(p._pageCache.size).toBe(0);
   });
 });
+
+// ── Reader text size honours the large-text preference ───────────────────────
+describe('WebPanel reader text scale', () => {
+  const { visibleLinesFor: visibleFor } = require('../src/vr/browser/readerLayout.js');
+  test('the constructor option is honoured', () => {
+    expect(makePanel({ readerScale: 1.4 })._readerScale).toBeCloseTo(1.4, 10);
+  });
+
+  test('a missing or nonsensical value falls back to unscaled', () => {
+    expect(makePanel()._readerScale).toBe(1);
+    expect(makePanel({ readerScale: 0 })._readerScale).toBe(1);
+    expect(makePanel({ readerScale: -2 })._readerScale).toBe(1);
+  });
+
+  test('a larger scale fits fewer lines on screen — the text really is bigger', () => {
+    const small = makePanel({ readerScale: 1 });
+    const large = makePanel({ readerScale: 1.4 });
+    expect(visibleFor(200, large._readerScale))
+      .toBeLessThan(visibleFor(200, small._readerScale));
+  });
+});

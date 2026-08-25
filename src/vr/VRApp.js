@@ -814,6 +814,9 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onNavigate: (url, title) => this.navigate(url, title),
       readerProxyUrl: this.settings.readerProxyUrl,
+      // Same scale the captions and toasts already use, so the reader honours
+      // the large-text preference too.
+      readerScale: largeTextScale(getPrefs().largeText),
       // Reader links: the section heading is translated, and following one
       // fires the usual cross-modal confirmation since it is a navigation the
       // user did not type (WCAG 4.1.3).
