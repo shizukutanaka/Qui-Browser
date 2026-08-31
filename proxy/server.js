@@ -28,6 +28,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
+import { decodeMarkup } from '../src/vr/browser/charset.js';
 import {
   assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
   MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, MAX_REDIRECTS
@@ -135,7 +136,12 @@ export async function fetchThroughGuard(target, headers = {}) {
         }
         chunks.push(c);
       });
-      r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      // Not toString('utf8'): the upstream page declares its charset in the
+      // header or a <meta>, and Japanese sites are frequently Shift_JIS or
+      // EUC-JP. Decode honouring the declaration, then serve UTF-8 as before.
+      r.on('end', () => resolve(decodeMarkup(
+        new Uint8Array(Buffer.concat(chunks)), r.headers['content-type'] || ''
+      )));
       r.on('error', () => resolve(null));
     });
     if (body === null) {

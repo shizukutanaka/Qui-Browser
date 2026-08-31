@@ -36,6 +36,7 @@ import {
   elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines, readerFetchUrl
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
+import { decodeMarkup } from './charset.js';
 import {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
@@ -390,7 +391,15 @@ export class WebPanel {
         this._settleLoad(seq, 'error', '', true);
         return;
       }
-      const html = await res.text();
+      // res.text() decodes as UTF-8 unconditionally (Fetch spec), which turns
+      // every Shift_JIS / EUC-JP page — still common in Japan — into mojibake
+      // presented as the article. Take the bytes and honour the declared
+      // charset instead. Stubs without arrayBuffer keep the old path.
+      const html = typeof res.arrayBuffer === 'function'
+        ? decodeMarkup(new Uint8Array(await res.arrayBuffer()),
+          res.headers && typeof res.headers.get === 'function'
+            ? res.headers.get('content-type') : '')
+        : await res.text();
       // `url`, not the proxy URL, is the base: relative hrefs must resolve
       // against the page the user is on, not against where it was fetched from.
       const { title, blocks, links } = extractReadableText(html, url);

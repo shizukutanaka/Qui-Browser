@@ -1085,3 +1085,51 @@ describe('WebPanel reader text scale', () => {
       .toBeLessThan(visibleFor(200, small._readerScale));
   });
 });
+
+// ── Legacy Japanese encodings reach the reader intact ────────────────────────
+// res.text() decodes as UTF-8 unconditionally (Fetch spec), so a Shift_JIS
+// page — still common in Japan — arrived as mojibake presented as the article.
+// The reader now takes the bytes and honours the declared charset.
+describe('WebPanel reader decodes Shift_JIS pages', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  // A Shift_JIS page: ASCII markup with こんにちは (82 B1 82 F1 82 C9 82 BF 82 CD)
+  // repeated as the prose. The fixture is self-verified in tests/charset.test.js.
+  const sjisPage = () => {
+    const ascii = (s) => Array.from(s, (c) => c.charCodeAt(0));
+    const kon = [0x82, 0xb1, 0x82, 0xf1, 0x82, 0xc9, 0x82, 0xbf, 0x82, 0xcd, 0x20];
+    const bytes = [
+      ...ascii('<html><head><title>sjis</title></head><body><article><p>'),
+      ...Array.from({ length: 60 }, () => kon).flat(),
+      ...ascii('</p></article></body></html>')
+    ];
+    return Uint8Array.from(bytes);
+  };
+
+  test('a Shift_JIS article shows こんにちは, not mojibake', async () => {
+    const body = sjisPage();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      headers: { get: (k) => (k.toLowerCase() === 'content-type' ? 'text/html; charset=shift_jis' : null) },
+      arrayBuffer: () => Promise.resolve(body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength)),
+      text: () => Promise.resolve(new TextDecoder('utf-8').decode(body)) // what the old path saw
+    });
+    const p = makePanel();
+    await p._loadReaderText('https://legacy.example/');
+    expect(p._contentState).toBe('reader');
+    const all = p._readerLines.map((l) => l.text || '').join(' ');
+    expect(all).toContain('こんにちは');
+    expect(all).not.toContain('�'); // no replacement characters
+  });
+
+  test('a stub without arrayBuffer still works via text() — old stubs unaffected', async () => {
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'plain utf-8 prose. '.repeat(40) + '</p></body></html>')
+    });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/');
+    expect(p._contentState).toBe('reader');
+  });
+});

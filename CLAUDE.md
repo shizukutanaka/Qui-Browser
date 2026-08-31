@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き12）: ソクラテス問答「日本語ブラウザは日本語ページを読めるか？」→ UTF-8 しか読めなかった
+新ゴール（マスク思考法＋ソクラテス問答法で長所短所改善点を洗い出し完成させる）に従い、製品の主張を一つずつ問うた。最初の問いで実欠陥が出た。
+- 🔍 **診断**: `Response.text()` は **WHATWG Fetch 仕様上、無条件に UTF-8 でデコード**する（Content-Type の charset も `<meta charset>` も無視）。`WebPanel._loadReaderText` は `res.text()`、同梱プロキシも `Buffer.toString('utf8')` — つまり**日本に多数現存する Shift_JIS / EUC-JP のページは、リーダーで全文が文字化け**していた。「表示できません」ですらなく、**壊れた文字列を本文として堂々と表示**する。日本語 IME を看板に掲げるブラウザとして失格級の欠陥。
+- ✨ **feat**: 新規純モジュール `src/vr/browser/charset.js`（依存ゼロ・ブラウザ/Node 両用）。`sniffCharset` は Encoding Standard の慣行どおり **BOM > ヘッダ charset > 先頭1024バイト内の meta > utf-8** の優先順位。`decodeMarkup` は未知ラベルで throw せず utf-8 にフォールバック（最悪でも従来の文字化けであり、読めるページをエラー画面にはしない）。`TextDecoder` の shift_jis / euc-jp / iso-2022-jp 対応は**実測してから**採用（Node 22 / Chromium とも Encoding Standard で必須）。
+- 🔧 **配線は2箇所・実装は1つ**: WebPanel は `res.arrayBuffer()` + `decodeMarkup`（`arrayBuffer` を持たない既存テストスタブは従来の `text()` 経路に落ちる後方互換）。プロキシは同じモジュールを import してデコードし、応答は従来どおり UTF-8 の text/plain（公開契約不変、netlify 関数の base64 問題も回避）。
+- ✅ **fixture は自己検証型**: 手書きの Shift_JIS バイト列（こんにちは = 82 B1 82 F1 82 C9 82 BF 82 CD）を**テスト内で先に `TextDecoder('shift_jis')` に掛けて正解と一致することを assert**（fixture 自体の誤りを機械で排除）。「UTF-8 で強制デコードすると化ける」ことも明示的に固定 = 直した欠陥そのものの証明。
+- ✅ **pre-fix 検証**: WebPanel のデコード配線だけを旧 `res.text()` に戻すと Shift_JIS E2E テストが **FAIL**（化けて こんにちは が現れない）、復元で全通過。
+- 📋 **成果物**: `docs/OUTSTANDING_ISSUES.md` に **E2章 = 最新の長所短所改善点スナップショット**を追加（長所5・短所4・改善候補4、全て実測根拠付き）。
+- ✅ Total 1582 tests (50 suites); 0 lint errors (114 warnings); `npm run gate` PASS。
+
 ### Session 75（続き11）: 「計測しているふり」を3つ潰した — 消えたコードのベンチ、適用されたことのない整形規約、ビルドしない Docker
 Stop hook が「アルゴリズムは1回applyしただけ」と指摘したので、step 2 と step 1 をもう一周させた。今回は**検査そのもの**が対象。
 - 🧹 **delete（830行）— 存在しないコードを計測していたベンチマーク**: `tools/benchmark.js` は `assets/js/` 配下のファイルの `require()` を計測するツールで、Session 74 でその木ごと消えた。**実行すると モジュール0件 → 自分の summary 内で `TypeError` を投げて落ちる**（実測）。つまり `ci.yml` の Performance Tests ジョブ・`benchmark.yml`・`release.yml` のベンチステップは**恒久的に赤いのにコードについて何も語っていなかった**。相方の `check-performance-regression.js` が比較する baseline はリポジトリに存在しない（＝構造的に不活性）。
