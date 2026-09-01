@@ -172,11 +172,21 @@ describe('isSearchQuery', () => {
 describe('searchEngineHosts', () => {
   test('derives the host of every built-in search engine', () => {
     const hosts = searchEngineHosts();
-    expect(hosts).toContain('duckduckgo.com');
+    expect(hosts).toContain('html.duckduckgo.com'); // the no-JS endpoint the reader can extract
     expect(hosts).toContain('www.google.com');
     expect(hosts).toContain('www.bing.com');
     expect(hosts).toContain('www.ecosia.org');
     expect(hosts).toHaveLength(Object.keys(SEARCH_ENGINES).length);
+  });
+
+  test('the DEFAULT engine is a no-JavaScript endpoint the reader can extract', () => {
+    // The reader never executes scripts: it extracts prose and links from the
+    // fetched markup. duckduckgo.com/?q= is an SPA shell whose results do not
+    // exist in the initial HTML, so with it as the default, every search from
+    // the URL bar dead-ended on 'unavailable'. /html/ is DDG's server-rendered
+    // interface, maintained for exactly this kind of client. Reverting this to
+    // the SPA breaks search as a whole — do not, without a reader that runs JS.
+    expect(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE]).toBe('https://html.duckduckgo.com/html/?q=');
   });
 
   test('returns lowercased, non-empty hosts', () => {
