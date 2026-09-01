@@ -26,9 +26,13 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
 }));
 
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
+// clearRect/measureText are here because a full _buildBrowsingSystems draws
+// the tab strip and the panel chrome; without them no test in this file could
+// exercise a real build at all.
 const ctx2d = {
   fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
-  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn()
+  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn(),
+  clearRect: jest.fn(), measureText: () => ({ width: 10 })
 };
 global.document = {
   createElement: (tag) => {
@@ -1001,7 +1005,12 @@ describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
     windowManager: { detach: jest.fn(), attach: jest.fn(), target: null },
     tabManager: null,
     bookmarkPanel: null,
-    webPanel: null
+    webPanel: null,
+    // The real method, not a stub: build and teardown both rebind voice to the
+    // current browsing systems, and with no voiceCommands present its guard
+    // must make that a no-op rather than a crash.
+    voiceCommands: null,
+    _connectVoiceToBrowsing: VRApp.prototype._connectVoiceToBrowsing
   });
 
   test('teardown disposes the tab manager and the bookmark panel, and detaches', () => {
@@ -1046,6 +1055,40 @@ describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
     // Returned early: the existing manager is untouched, not replaced.
     expect(app.tabManager).toBe(existing);
     expect(app.scene.add).not.toHaveBeenCalled();
+  });
+
+  // These assert the CALL, not the method: rebinding that nothing invokes is
+  // exactly as useless as no rebinding, and a test that only exercises
+  // _connectVoiceToBrowsing directly passes either way.
+  test('teardown rebinds voice, so no command keeps the disposed TabManager', () => {
+    const app = makeApp();
+    app._connectVoiceToBrowsing = jest.fn();
+    app.tabManager = { dispose: jest.fn() };
+
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+
+    expect(app._connectVoiceToBrowsing).toHaveBeenCalled();
+  });
+
+  test('a completed build rebinds voice to the systems it just created', () => {
+    const app = makeApp();
+    app._connectVoiceToBrowsing = jest.fn();
+    // The shape a real build reads. Kept minimal on purpose: anything more
+    // would be asserting the constructor rather than the rebind.
+    app.settings = { readerProxyUrl: '', searchEngine: 'duckduckgo' };
+    app.registerInteractable = jest.fn();
+    app.unregisterInteractable = jest.fn();
+    app.navigate = jest.fn();
+    app.bookmarks = {
+      isBookmarked: () => false, addBookmark: jest.fn(), removeBookmark: jest.fn(),
+      getTopSites: () => [], search: () => [],
+      getBookmarks: () => [], getHistory: () => [], addHistory: jest.fn()
+    };
+
+    VRApp.prototype._buildBrowsingSystems.call(app);
+
+    expect(app.tabManager).not.toBeNull();
+    expect(app._connectVoiceToBrowsing).toHaveBeenCalled();
   });
 });
 
@@ -1372,5 +1415,63 @@ describe('VRApp onFollowLink glue', () => {
     const { app, toasts } = makeApp(null);
     expect(() => follow(app, 1)).not.toThrow();
     expect(toasts).toHaveLength(1);
+  });
+});
+
+// ── Voice must follow a browsing rebuild ─────────────────────────────────────
+// connectBrowser captures tabManager and bookmarkPanel BY VALUE, and the
+// enableWebPanel toggle disposes those and builds new ones live. Without a
+// rebind, a user who turned browsing off and on left 戻る / 進む / 更新 /
+// ブックマーク and the search fallback addressing a disposed TabManager —
+// while the callbacks that read `this.tabManager` lazily used the new one, so
+// the voice commands disagreed with each other about which browser they drove.
+describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
+  const makeApp = (connected) => ({
+    voiceCommands: { connectBrowser: (opts) => connected.push(opts) },
+    tabManager: null,
+    bookmarkPanel: null,
+    vrKeyboard: null,
+    showVRToast: jest.fn(),
+    _announceFindResult: jest.fn(),
+    _connectVoiceToBrowsing: VRApp.prototype._connectVoiceToBrowsing
+  });
+
+  test('the binding carries whichever TabManager exists at the time', () => {
+    const connected = [];
+    const app = makeApp(connected);
+
+    const first = { id: 'A', getActiveTab: () => null };
+    app.tabManager = first;
+    app._connectVoiceToBrowsing();
+    expect(connected).toHaveLength(1);
+    expect(connected[0].tabManager).toBe(first);
+
+    // The toggle disposes A and builds B.
+    const second = { id: 'B', getActiveTab: () => null };
+    app.tabManager = second;
+    app._connectVoiceToBrowsing();
+    expect(connected).toHaveLength(2);
+    expect(connected[1].tabManager).toBe(second);
+    expect(connected[1].tabManager).not.toBe(first);
+  });
+
+  test('with browsing off it rebinds to nothing rather than to a disposed panel', () => {
+    const connected = [];
+    const app = makeApp(connected);
+    app.tabManager = { id: 'A', getActiveTab: () => null };
+    app.bookmarkPanel = { id: 'P' };
+    app._connectVoiceToBrowsing();
+
+    app.tabManager = null;      // what _teardownBrowsingSystems leaves behind
+    app.bookmarkPanel = null;
+    app._connectVoiceToBrowsing();
+    expect(connected[1].tabManager).toBeNull();
+    expect(connected[1].bookmarkPanel).toBeNull();
+  });
+
+  test('without voice enabled it is a silent no-op, not a crash', () => {
+    const app = makeApp([]);
+    app.voiceCommands = null;
+    expect(() => app._connectVoiceToBrowsing()).not.toThrow();
   });
 });

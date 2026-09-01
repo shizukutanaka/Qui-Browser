@@ -945,6 +945,10 @@ export class VRApp {
       }
     });
     this.bookmarkPanel.addToScene();
+
+    // Voice captured the previous TabManager/BookmarkPanel by value; rebind so
+    // every voice command addresses the instances that now exist.
+    this._connectVoiceToBrowsing();
   }
 
   /**
@@ -970,6 +974,9 @@ export class VRApp {
       this.webPanel.dispose();
     }
     this.webPanel = null;
+    // Same reason as the build path: leave no voice command holding a disposed
+    // TabManager. With browsing off these rebind to null and no-op honestly.
+    this._connectVoiceToBrowsing();
   }
 
   /**
@@ -2684,98 +2691,7 @@ export class VRApp {
         const { message, type } = voiceErrorNotification(errorCode);
         this.showVRToast(message, { type });
       };
-      // Replace window.* default commands with VR-aware implementations that
-      // route navigation and search through the live TabManager.
-      this.voiceCommands.connectBrowser({
-        tabManager:    this.tabManager,
-        bookmarkPanel: this.bookmarkPanel,
-        vrKeyboard:    this.vrKeyboard,
-        onFindInPage: (query) => {
-          const active = this.tabManager?.getActiveTab?.();
-          if (active && typeof active.findInPage === 'function') {
-            this._announceFindResult(active.findInPage(query));
-          }
-        },
-        onFollowLink: (n) => {
-          const active = this.tabManager?.getActiveTab?.();
-          const out = active && typeof active.followLink === 'function'
-            ? active.followLink(n) : { ok: false };
-          // Success already announces via onLinkFollowed (wired below); only
-          // the failure needs saying, since silence would leave the user
-          // wondering whether the number was even heard (WCAG 4.1.3).
-          if (!out.ok) {
-            this.showVRToast(t('vr.msg.noSuchLink'), { type: 'warn' });
-          }
-        },
-        onFindNext: () => {
-          const active = this.tabManager?.getActiveTab?.();
-          if (active && typeof active.findNext === 'function') {
-            this._announceFindResult(active.findNext());
-          }
-        },
-        onSearch: (query) => {
-          const active = this.tabManager?.getActiveTab?.();
-          if (active) {
-            // Mirror the immediate "Loading:" caption that the URL-bar and
-            // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-            // caption-reliant users know their voice command was accepted
-            // before the page finishes loading.
-            if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
-            }
-            active.navigate(query);
-          }
-        },
-        // Top Sites: jump to the most-used destination (frecency-ranked from
-        // history). Fewest-dwell navigation for hands-free users; announced
-        // cross-modally so it's perceivable without sight.
-        onTopSites: () => {
-          // Exclude search-engine result pages so the user's actual
-          // destinations win the slot, not their search engine.
-          const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
-          const active = this.tabManager?.getActiveTab?.();
-          if (top && active) {
-            if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
-            }
-            active.navigate(top.url);
-          } else if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(t('vr.msg.noTopSites'));
-          }
-        },
-        // Go-to: look up the extracted site name in frecency-ranked
-        // history/bookmarks. A history hit navigates directly (fewest dwells
-        // for a familiar destination); no hit falls back to web search so the
-        // command always produces a result. This closes the loop on the
-        // autocomplete data layer (BookmarkStore.search) for voice input.
-        onGoTo: (query) => {
-          const active = this.tabManager?.getActiveTab?.();
-          if (!active) {
-            return;
-          }
-          const hits = this.bookmarks.search(query, 1, Date.now());
-          if (hits.length > 0) {
-            const hit = hits[0];
-            if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
-            }
-            active.navigate(hit.url);
-          } else {
-            // No frecency match — treat as URL or web search
-            if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
-            }
-            active.navigate(query);
-          }
-        },
-        // Hands-free equivalent of the "Clear History" settings action.
-        onClearHistory: () => this._clearBrowsingHistory(),
-        // Scroll the active panel's reader viewport (the fetched article
-        // text), which is what "下にスクロール" can actually move in VR.
-        onScrollContent: (delta) => {
-          this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-        }
-      });
+      this._connectVoiceToBrowsing();
       // Begin listening immediately (user granted mic permission during initialize).
       this.voiceCommands.start();
       console.debug('VRApp: Voice commands ready and listening');
@@ -2784,6 +2700,115 @@ export class VRApp {
       this.voiceCommands = null;
     }
     return !!this.voiceCommands;
+  }
+
+  /**
+   * Bind the voice commands to the CURRENT browsing systems.
+   *
+   * Called on voice construction and again whenever the browsing systems are
+   * rebuilt. connectBrowser captures `tabManager` / `bookmarkPanel` by value,
+   * and the enableWebPanel toggle disposes those and builds new ones live —
+   * so a user who turned browsing off and on again left 戻る / 進む / 更新 /
+   * ブックマーク and the search fallback all pointing at a disposed
+   * TabManager, while the callbacks that read `this.tabManager` lazily used
+   * the new one. Re-binding here keeps every voice command on one instance.
+   */
+  _connectVoiceToBrowsing() {
+    if (!this.voiceCommands) {
+      return;
+    }
+    // Replace window.* default commands with VR-aware implementations that
+    // route navigation and search through the live TabManager.
+    this.voiceCommands.connectBrowser({
+      tabManager:    this.tabManager,
+      bookmarkPanel: this.bookmarkPanel,
+      vrKeyboard:    this.vrKeyboard,
+      onFindInPage: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active && typeof active.findInPage === 'function') {
+          this._announceFindResult(active.findInPage(query));
+        }
+      },
+      onFollowLink: (n) => {
+        const active = this.tabManager?.getActiveTab?.();
+        const out = active && typeof active.followLink === 'function'
+          ? active.followLink(n) : { ok: false };
+        // Success already announces via onLinkFollowed (wired below); only
+        // the failure needs saying, since silence would leave the user
+        // wondering whether the number was even heard (WCAG 4.1.3).
+        if (!out.ok) {
+          this.showVRToast(t('vr.msg.noSuchLink'), { type: 'warn' });
+        }
+      },
+      onFindNext: () => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active && typeof active.findNext === 'function') {
+          this._announceFindResult(active.findNext());
+        }
+      },
+      onSearch: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active) {
+          // Mirror the immediate "Loading:" caption that the URL-bar and
+          // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+          // caption-reliant users know their voice command was accepted
+          // before the page finishes loading.
+          if (query && this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
+          }
+          active.navigate(query);
+        }
+      },
+      // Top Sites: jump to the most-used destination (frecency-ranked from
+      // history). Fewest-dwell navigation for hands-free users; announced
+      // cross-modally so it's perceivable without sight.
+      onTopSites: () => {
+        // Exclude search-engine result pages so the user's actual
+        // destinations win the slot, not their search engine.
+        const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
+        const active = this.tabManager?.getActiveTab?.();
+        if (top && active) {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+          }
+          active.navigate(top.url);
+        } else if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(t('vr.msg.noTopSites'));
+        }
+      },
+      // Go-to: look up the extracted site name in frecency-ranked
+      // history/bookmarks. A history hit navigates directly (fewest dwells
+      // for a familiar destination); no hit falls back to web search so the
+      // command always produces a result. This closes the loop on the
+      // autocomplete data layer (BookmarkStore.search) for voice input.
+      onGoTo: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (!active) {
+          return;
+        }
+        const hits = this.bookmarks.search(query, 1, Date.now());
+        if (hits.length > 0) {
+          const hit = hits[0];
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+          }
+          active.navigate(hit.url);
+        } else {
+          // No frecency match — treat as URL or web search
+          if (query && this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
+          }
+          active.navigate(query);
+        }
+      },
+      // Hands-free equivalent of the "Clear History" settings action.
+      onClearHistory: () => this._clearBrowsingHistory(),
+      // Scroll the active panel's reader viewport (the fetched article
+      // text), which is what "下にスクロール" can actually move in VR.
+      onScrollContent: (delta) => {
+        this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+      }
+    });
   }
 
   /** Stop and release voice commands (the toggle's off path). */

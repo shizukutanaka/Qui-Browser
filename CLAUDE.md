@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き16）: 自分の「動線は閉じた」という主張を検証したら、閉じていなかった
+続き15 の締めで「音声だけで一周する」と書いた。**このリポジトリの規律は主張ではなく実測**なので、その主張自体をソクラテス的に問い直した。→ **条件付きで偽だった。**
+- 🔍 **診断**: `connectBrowser({ tabManager, bookmarkPanel, vrKeyboard })` は**値でキャプチャ**する。ところが `enableWebPanel` トグル（Session 74続き5 でライブ適用になった）は `_teardownBrowsingSystems` で `this.tabManager = null` にし、`_buildBrowsingSystems` で**新しいインスタンス**を作る。`connectBrowser` の呼び出し元は `_buildVoiceCommands` **1箇所だけ**で、そこは `this.voiceCommands` があれば早期 return する。つまり **ブラウジングを切って入れ直したユーザーは、`戻る`／`進む`／`更新`／`ブックマーク`／検索フォールバックが全て**破棄済みの** TabManager を指したまま**になる。
+- 🐛 **しかも不整合**: 続き13/15 で私が足した `onFindInPage`／`onFollowLink` は `this.tabManager` を**遅延参照**するので新インスタンスを使う。**同じ音声コマンド群が2つの異なるブラウザを相手にしている**状態だった。
+- ✨ **fix**: 接続を `_connectVoiceToBrowsing()` に抽出し、`_buildVoiceCommands` に加えて **`_buildBrowsingSystems` の末尾と `_teardownBrowsingSystems` の末尾**から呼ぶ。ブラウジング OFF のときは null に再束縛され、**破棄済みではなく「無い」を正直に指す**。音声が無ければ guard で no-op。
+- 🔬 **自分のテストが飾りだったのを即座に自覚して直した**: 最初に書いた3件は `_connectVoiceToBrowsing()` を**直接呼んで**検証しており、**呼び出し元が存在しなくても通る** —— 本セッション前半で verify:vr-boot に対して指摘したのと同じ失敗形。「**メソッドではなく呼び出しを検査する**」テスト2件に書き直した。**pre-fix 検証**: 両方の呼び出しを外すと**2件 FAIL**、復元で全通過。
+- 🐛 **副産物**: この検査を書くために `_buildBrowsingSystems` を実際に走らせたところ、`tests/vr-app-wiring.test.js` の canvas スタブに **`clearRect`/`measureText` が無く**、このファイルでは**実ビルドを一度も実行できなかった**ことが判明。補完した。
+- ✅ Total 1657 tests (51 suites); 0 lint errors; `npm run gate` PASS。
+
 ### Session 75（続き15）: 音声ユーザーはリンクを「見えるのに開けなかった」— Session 66 の鏡像
 ソクラテス問答:「リーダーは番号付きリンク行を出す。**音声ユーザーはその番号を使えるか？**」→ **使えない。**
 - 🔍 **診断**: `layoutReaderLines` は各リンクを `${i+1}. ラベル` として1行1宛先で並べる —— **番号という宛先指定機構が既に画面にある**。しかし活性化経路は `_onContentSelect`（行ヒットテスト＝視線ドウェル／コントローラのレイ）**のみ**で、`VoiceCommands.js` に link 系コマンドは**ゼロ**（grep 実測）。つまり**視線もコントローラも難しい人**（＝`enableVoice` が存在する理由の当人）は、行き先が番号付きで見えているのに**1つも開けない**。**Session 66 の鏡像**（あのときはスクロールが音声専用で視線ユーザーが読み進められなかった）。しかも続き14 で既定エンジンを no-JS 版にしたことで**検索結果がまさに番号付きリンク行**になったため、音声ユーザーの動線は最後の一歩で行き止まりだった。
