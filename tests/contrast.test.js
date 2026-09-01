@@ -202,6 +202,12 @@ function palettePairs(hc) {
   // prove the tint is readable, not that it is distinguishable from body.
   add('reader link', ct.readerLink, ct.bg, { fontPx: 20 });
   add('reader progress', ct.progress, ct.bg, { fontPx: 16 });
+  // Find-in-page highlight: matched rows keep their text ON the fill, so the
+  // pair that matters is text-on-highlight, for every text style a row can be.
+  add('find highlight body', ct.readerBody, ct.findRowBg, { fontPx: 20 });
+  add('find highlight link', ct.readerLink, ct.findRowBg, { fontPx: 20 });
+  add('find highlight heading', ct.readerHeading, ct.findRowBg, { fontPx: 25, bold: true });
+  add('find focus border', ct.findActiveBorder, ct.findRowBg, { nonText: true });
   add('reader arrow active', ct.arrowActiveText, ct.arrowActiveBg, { fontPx: 34, bold: true }, ct.bg);
   add('reader arrow idle', ct.arrowIdleText, ct.arrowIdleBg, { fontPx: 34, bold: true }, ct.bg);
 

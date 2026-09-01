@@ -141,7 +141,9 @@ describe('the panel stays inside the comfortable field of view', () => {
     { id: 'a11y', controls: [...narrow(5), ...wide(5)] },
     { id: 'locomotion', controls: [...narrow(5), ...wide(3)] },
     { id: 'display', controls: [...narrow(3), ...wide(1)] },
-    { id: 'browsing', controls: [...narrow(1), ...wide(4)] },
+    // browsing: enableWebPanel toggle + searchEngine cycle + clearHistory,
+    // readerProxy, findInPage, bookmarks actions (Session 75 続き13 added find).
+    { id: 'browsing', controls: [...narrow(1), ...wide(5)] },
     { id: 'audio', controls: wide(2) }
   ];
   const vertical = (h) => angularSizeDeg(h, PANEL_DISTANCE);

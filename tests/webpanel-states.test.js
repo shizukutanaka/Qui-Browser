@@ -1133,3 +1133,121 @@ describe('WebPanel reader decodes Shift_JIS pages', () => {
     expect(p._contentState).toBe('reader');
   });
 });
+
+// ── Find-in-page ─────────────────────────────────────────────────────────────
+// The reader can show a several-hundred-line article, but locating anything in
+// it meant paging through the whole thing — one dwell per page for a gaze
+// user. findInPage scrolls to the first match and highlights match rows.
+describe('WebPanel find-in-page', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const longArticle = () => {
+    const paras = [];
+    for (let i = 0; i < 40; i++) {
+      paras.push(`<p>${i === 25 ? 'the NEEDLE sentence appears here. ' : ''}${'filler prose sentence. '.repeat(20)}</p>`);
+    }
+    return `<html><head><title>long</title></head><body><article>${paras.join('')}</article></body></html>`;
+  };
+
+  async function readerPanelWith(html) {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(html) });
+    const p = makePanel();
+    p.navigate('https://example.com/long');
+    await flush();
+    expect(p._contentState).toBe('reader');
+    return p;
+  }
+
+  test('finds matches, scrolls to the first, and reports count/ordinal', async () => {
+    const p = await readerPanelWith(longArticle());
+    expect(p._readerScroll).toBe(0);
+    const out = p.findInPage('needle');
+    expect(out.count).toBeGreaterThanOrEqual(1);
+    expect(out.index).toBe(1);
+    // The viewport moved to put the match on screen (one row below the top).
+    expect(p._readerScroll).toBe(Math.max(0, p._findMatches[0] - 1));
+  });
+
+  test('findNext cycles through matches and wraps', async () => {
+    const html = `<html><body><article>
+      <p>${'alpha beta. '.repeat(30)}</p><p>${'gamma beta. '.repeat(30)}</p>
+      <p>${'plain filler. '.repeat(30)}</p><p>${'delta beta. '.repeat(30)}</p>
+    </article></body></html>`;
+    const p = await readerPanelWith(html);
+    const first = p.findInPage('beta');
+    expect(first.count).toBeGreaterThanOrEqual(3);
+    const seen = [p._findFocus];
+    for (let i = 1; i < first.count; i++) {
+      p.findNext();
+      seen.push(p._findFocus);
+    }
+    expect(new Set(seen).size).toBe(first.count);  // visited each once
+    const wrapped = p.findNext();
+    expect(p._findFocus).toBe(seen[0]);            // back to the first
+    expect(wrapped.index).toBe(1);
+  });
+
+  test('findPrev wraps backwards', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('filler');
+    const out = p.findPrev();                      // from first -> last
+    expect(out.index).toBe(out.count);
+  });
+
+  test('no matches reports zero and highlights nothing', async () => {
+    const p = await readerPanelWith(longArticle());
+    const out = p.findInPage('zxqvjk-not-present');
+    expect(out).toEqual({ count: 0, index: 0 });
+    expect(p._findMatches).toEqual([]);
+  });
+
+  test('matching is NFC + case-insensitive, per the repo discipline', async () => {
+    const p = await readerPanelWith(longArticle());
+    expect(p.findInPage('NeEdLe').count).toBeGreaterThanOrEqual(1);
+  });
+
+  test('a navigation clears the search — it belonged to the old page', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('needle');
+    expect(p._findMatches.length).toBeGreaterThan(0);
+    p.navigate('https://example.com/other');
+    expect(p._findMatches).toEqual([]);
+    expect(p._findFocus).toBe(-1);
+  });
+
+  test('restoring a cached page via back does not resurrect the search', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('needle');
+    p.navigate('https://example.com/two');
+    await flush();
+    p.back();
+    expect(p._findMatches).toEqual([]);
+  });
+
+  test('inert outside reader-like states', () => {
+    const p = makePanel();
+    expect(p.findInPage('x')).toEqual({ count: 0, index: 0 });
+    expect(p.findNext()).toEqual({ count: 0, index: 0 });
+  });
+
+  test('match rows are actually painted behind their text', async () => {
+    // Recording stub (Session 65 discipline: assert what was DRAWN, not just
+    // state) — count row-band fills while a search is active vs cleared.
+    const p = await readerPanelWith(longArticle());
+    const rects = [];
+    p.contentCanvas.getContext = () => ({
+      ...ctx2d,
+      fillRect: (x, y, w, h) => rects.push({ x, y, w, h }),
+      strokeRect: () => {}
+    });
+    p.findInPage('needle');
+    const bandFills = rects.filter((r) => r.h > 20 && r.h < 60); // row bands, not the bg clear
+    expect(bandFills.length).toBeGreaterThanOrEqual(1);
+
+    rects.length = 0;
+    p._clearFind();
+    p._drawContent();
+    expect(rects.filter((r) => r.h > 20 && r.h < 60)).toHaveLength(0);
+  });
+});

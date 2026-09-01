@@ -113,6 +113,12 @@ export function webContentColors(highContrast = false) {
       // from body text AND readable on the backing, so it is a light tint
       // rather than a saturated hue.
       readerLink:      '#8fd0ff',
+      // Find-in-page row highlight. Measured (tests/contrast.test.js sweep):
+      // #ffffff body 11.97:1 and #8fd0ff link 7.20:1 on this fill, and the
+      // fill itself reads against the black panel at 1.75:1 with the focused
+      // row additionally carrying a white border — weight, not hue alone.
+      findRowBg:       '#00337a',
+      findActiveBorder:'#ffffff',
       progress:        '#ffffff',
       arrowActiveBg:   '#004adf',
       arrowActiveText: '#ffffff',
@@ -127,6 +133,11 @@ export function webContentColors(highContrast = false) {
     readerHeading:   '#ffffff',
     readerBody:      '#d6dcf0',
     readerLink:      '#7fb8ff',
+    // Measured: #d6dcf0 body 8.03:1, #7fb8ff link 5.34:1, #ffffff heading
+    // 10.98:1 on this fill — all clear 4.5:1, so highlighted text stays as
+    // readable as unhighlighted. Focused row adds a white border (10.98:1).
+    findRowBg:       '#2a3a6a',
+    findActiveBorder:'#ffffff',
     progress:        '#7788aa',
     arrowActiveBg:   'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',

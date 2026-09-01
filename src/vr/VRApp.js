@@ -1420,6 +1420,31 @@ export class VRApp {
   }
 
   /**
+   * Prompt for a find-in-page query on the VR keyboard and run it on the
+   * active tab, announcing the result cross-modally (WCAG 4.1.3). The count
+   * matters most to a gaze user: "no matches" saves them a fruitless scroll.
+   */
+  _requestFindInPageInput() {
+    this._requestVRKeyboardInput('', (typed) => {
+      const active = this.tabManager?.getActiveTab?.();
+      if (!active || typeof active.findInPage !== 'function') {
+        return;
+      }
+      const out = active.findInPage(typed);
+      this._announceFindResult(out);
+    }, t('vr.prompt.findQuery'));
+  }
+
+  /** Shared announcement for find results from either modality. */
+  _announceFindResult(out) {
+    if (out && out.count > 0) {
+      this.showVRToast(`${t('vr.msg.findResults')}: ${out.index}/${out.count}`, { type: 'info' });
+    } else {
+      this.showVRToast(t('vr.msg.findNone'), { type: 'warn' });
+    }
+  }
+
+  /**
    * Clear all persisted browsing history (privacy). Fires a cross-modal
    * confirmation (caption + haptic + toast + semantic DOM) via showVRToast so
    * the destructive action is acknowledged on every channel (WCAG 4.1.3). If a
@@ -1625,6 +1650,10 @@ export class VRApp {
     // docs/PROXY.md said "set the setting" with no way to do it, the same
     // unreachable-by-any-real-user shape that justified Session 74's deletions.
     actions.push([t('vr.settings.readerProxy'), () => this._requestReaderProxyInput()]);
+    // Find in page: gaze/controller users get the same capability the voice
+    // command offers — a search voice-only would repeat the mistake the reader
+    // scroll had (Session 66: only reachable by an opt-in modality).
+    actions.push([t('vr.settings.findInPage'), () => this._requestFindInPageInput()]);
     if (this.settings.enableWebPanel) {
       actions.push([t('vr.settings.bookmarks'), () => {
         if (this.bookmarkPanel) {
@@ -1667,6 +1696,7 @@ export class VRApp {
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
+          .concat(actionByLabel(t('vr.settings.findInPage')))
           .concat(actionByLabel(t('vr.settings.bookmarks')))],
       ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
         actionByLabel(t('vr.settings.video360'))]
@@ -2660,6 +2690,18 @@ export class VRApp {
         tabManager:    this.tabManager,
         bookmarkPanel: this.bookmarkPanel,
         vrKeyboard:    this.vrKeyboard,
+        onFindInPage: (query) => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (active && typeof active.findInPage === 'function') {
+            this._announceFindResult(active.findInPage(query));
+          }
+        },
+        onFindNext: () => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (active && typeof active.findNext === 'function') {
+            this._announceFindResult(active.findNext());
+          }
+        },
         onSearch: (query) => {
           const active = this.tabManager?.getActiveTab?.();
           if (active) {

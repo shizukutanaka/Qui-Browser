@@ -37,6 +37,7 @@ import {
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
 import { decodeMarkup } from './charset.js';
+import { findMatches, matchOrdinal, nextMatch, prevMatch } from './readerSearch.js';
 import {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
@@ -181,6 +182,11 @@ export class WebPanel {
      * extracted does not need the network again.
      */
     this._pageCache = new Map();
+    // Find-in-page: line indices of matches and the focused one. Cleared on
+    // every navigation/restore — a search belongs to one page.
+    this._findQuery = '';
+    this._findMatches = [];
+    this._findFocus = -1;
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -446,7 +452,21 @@ export class WebPanel {
     ctx.textAlign = 'left';
     const lh = LINE_H * this._readerScale;
     let y = CONTENT_PAD + lh;
+    let row = this._readerScroll;
     for (const line of window) {
+      // Find-in-page: paint the match rows' band before their text, so the
+      // text keeps its measured contrast on top of the fill. The focused row
+      // adds a border — a weight cue, not colour alone (WCAG 1.4.1), and it is
+      // also where the viewport just scrolled.
+      if (this._findMatches.length && this._findMatches.includes(row)) {
+        ctx.fillStyle = col.findRowBg;
+        ctx.fillRect(CONTENT_PAD - 8, y - lh + 6, w - 2 * (CONTENT_PAD - 8), lh);
+        if (row === this._findFocus) {
+          ctx.strokeStyle = col.findActiveBorder;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(CONTENT_PAD - 8, y - lh + 6, w - 2 * (CONTENT_PAD - 8), lh);
+        }
+      }
       if (line.style !== 'blank' && line.text) {
         const bold = line.style !== 'p' && line.style !== 'link';
         ctx.font = `${bold ? 'bold ' : ''}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
@@ -457,9 +477,15 @@ export class WebPanel {
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;
+      row++;
     }
 
-    const label = readerProgressLabel(this._readerScroll, total, visible);
+    const progress = readerProgressLabel(this._readerScroll, total, visible);
+    // 3/7 alongside the progress: which match has focus, out of how many.
+    const find = this._findMatches.length
+      ? `${matchOrdinal(this._findMatches, this._findFocus)}/${this._findMatches.length}`
+      : '';
+    const label = [progress, find].filter(Boolean).join('   ');
     if (label) {
       ctx.textAlign = 'left';
       ctx.font = '16px sans-serif';
@@ -535,6 +561,71 @@ export class WebPanel {
    * @param {number} delta positive = further down the article
    * @returns {boolean} true when the offset actually moved
    */
+  _clearFind() {
+    this._findQuery = '';
+    this._findMatches = [];
+    this._findFocus = -1;
+  }
+
+  /** Scroll so line `i` sits one row below the top — the PAGE_OVERLAP idea. */
+  _scrollToLine(i) {
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    this._readerScroll = clampReaderScroll(i - 1, this._readerLines.length, visible);
+  }
+
+  /**
+   * Find-in-page over the laid-out lines (see readerSearch.js for the match
+   * semantics). Scrolls to the first match and highlights every match row.
+   *
+   * Exists because the reader can show a several-hundred-line article but the
+   * only way to locate anything in it was to page through the whole thing —
+   * and for a gaze user every page turn is a dwell, so searching a long text
+   * was the single most expensive thing this browser asked of them.
+   *
+   * @param {string} query
+   * @returns {{count: number, index: number}} match count and 1-based focus
+   *   ordinal, for the caller's cross-modal announcement (WCAG 4.1.3)
+   */
+  findInPage(query) {
+    if (!this._isReaderLike()) {
+      return { count: 0, index: 0 };
+    }
+    this._findQuery = typeof query === 'string' ? query : '';
+    this._findMatches = findMatches(this._readerLines, this._findQuery);
+    if (!this._findMatches.length) {
+      this._findFocus = -1;
+      this._drawContent();
+      return { count: 0, index: 0 };
+    }
+    this._findFocus = this._findMatches[0];
+    this._scrollToLine(this._findFocus);
+    this._drawContent();
+    return { count: this._findMatches.length, index: 1 };
+  }
+
+  /** Jump to the next match, wrapping — a cycle, like every browser's find. */
+  findNext() {
+    return this._stepFind(nextMatch);
+  }
+
+  /** Jump to the previous match, wrapping backwards. */
+  findPrev() {
+    return this._stepFind(prevMatch);
+  }
+
+  _stepFind(step) {
+    if (!this._isReaderLike() || !this._findMatches.length) {
+      return { count: 0, index: 0 };
+    }
+    this._findFocus = step(this._findMatches, this._findFocus);
+    this._scrollToLine(this._findFocus);
+    this._drawContent();
+    return {
+      count: this._findMatches.length,
+      index: matchOrdinal(this._findMatches, this._findFocus)
+    };
+  }
+
   scrollContent(delta) {
     if (!this._isReaderLike()) {
       return false;
@@ -828,6 +919,7 @@ export class WebPanel {
   }
 
   _loadUrl(url) {
+    this._clearFind();
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
@@ -903,6 +995,7 @@ export class WebPanel {
     if (!hit) {
       return false;
     }
+    this._clearFind();
     // Advance the sequence: a fetch still in flight for the page we are
     // leaving must not settle over the restored one.
     const seq = ++this._readerSeq;

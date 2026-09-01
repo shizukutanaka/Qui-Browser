@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き13）: ページ内検索 — 視線ユーザーは長い記事の中を「探せなかった」
+ソクラテス問答の続き:「視線ユーザーは長い記事から目当ての箇所を探せるか？」→ **探せない。1ドウェル=1ページ送りで全部眺めるしかなかった。** E2 スナップショット改善候補 #3 を実装。
+- ✨ **feat**: 新規純モジュール `readerSearch.js`（`findMatches`/`nextMatch`/`prevMatch`/`matchOrdinal` — 行インデックス基準。リーダーの操作モデル（スクロール・ヒットテスト・リンク）が全て行を宛先にしているので、マッチも「スクロールして強調する行」として既存機構をそのまま使う）。正規化は確立済みの **NFC + 小文字**（Sessions 11/18 と同じ — NFD の IME クエリが NFC 本文に当たることをテストで固定、fixture は `length===2` を assert して本当に分解形であることを機械で担保）。
+- ✨ **WebPanel**: `findInPage(query)` は最初のマッチへスクロール（上から2行目 = PAGE_OVERLAP と同じ思想）し `{count, index}` を返す。`findNext`/`findPrev` は循環。検索状態は**ナビゲーション・back/forward 復元・reload で必ずクリア**（検索は1ページに属する）。マッチ行は**テキストの下に行 band を塗り**、フォーカス行は**白枠**（色相ではなく太さの手がかり、WCAG 1.4.1）。進捗ラベルに `3/7`。
+- 📐 **色は書く前に実測**: `findRowBg` は normal `#2a3a6a`（body 8.03 / link 5.34 / heading 10.98 — 全て ≥4.5:1）、HC `#00337a`（11.97 / 7.20）。当初候補 `#3a4e8f` は **link 3.83 で不合格**だったので却下し、フォーカスは塗りではなく枠で示す設計に。4ペア×2モードを contrast 掃引（249件）に追加。
+- 🚪 **入り口は2モダリティ**（Session 66 の教訓 = 音声だけにしない）: 設定パネル Browsing のアクション（VR キーボードで入力 → 実行 → `1/7` / 「一致なし」をクロスモーダル告知）と音声（`ページ内検索：てんき` / `find on page …`、`次の検索結果` — 「次へ」は forward が既に所有）。browsing セクションは 7 行 < a11y 8 行なので視野予算 **35.9° 不変**（レイアウトテストの実在庫表を更新して確認）。
+- 🐛 **fix（Map の罠 — 実測で発見）**: 「search より前に registerCommand すれば勝つ」は**偽**だった。コンストラクタも 'search' を登録しており、**`Map.set` は既存キーの挿入位置を保持する**ため、connectBrowser 内でいくら前に書いても search が先にマッチして find-in-page は**一度も発火しなかった**（テストが即検出）。`commands.delete('search')` してから再登録し、re-registration が実際に後ろの슬롯を取るようにした。登録順の罠（Session 18）の一段深い変種としてコメントに明記。
+- ✅ **test 37件追加**（純関数11 + WebPanel 9（描画記録スタブでハイライトが実際に fillRect されることも）+ 音声6 + VRApp glue 4 + contrast 8 −再掲）。音声の登録順テストは**修正前に実際に FAIL した**（上記の Map 罠がそのまま pre-fix 証明になった）。
+- ✅ Total 1624 tests (51 suites); 0 lint errors (114 warnings); `npm run gate` PASS。
+
 ### Session 75（続き12）: ソクラテス問答「日本語ブラウザは日本語ページを読めるか？」→ UTF-8 しか読めなかった
 新ゴール（マスク思考法＋ソクラテス問答法で長所短所改善点を洗い出し完成させる）に従い、製品の主張を一つずつ問うた。最初の問いで実欠陥が出た。
 - 🔍 **診断**: `Response.text()` は **WHATWG Fetch 仕様上、無条件に UTF-8 でデコード**する（Content-Type の charset も `<meta charset>` も無視）。`WebPanel._loadReaderText` は `res.text()`、同梱プロキシも `Buffer.toString('utf8')` — つまり**日本に多数現存する Shift_JIS / EUC-JP のページは、リーダーで全文が文字化け**していた。「表示できません」ですらなく、**壊れた文字列を本文として堂々と表示**する。日本語 IME を看板に掲げるブラウザとして失格級の欠陥。

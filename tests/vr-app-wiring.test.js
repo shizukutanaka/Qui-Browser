@@ -1266,3 +1266,62 @@ describe('VRApp._detectReaderProxy', () => {
     await expect(VRApp.prototype._detectReaderProxy.call(app)).resolves.toBeUndefined();
   });
 });
+
+// ── Find-in-page: settings action and announcement glue ──────────────────────
+// Two modalities reach findInPage (settings-panel action + voice); both funnel
+// through _announceFindResult so the count is announced cross-modally
+// (WCAG 4.1.3) — "no matches" saves a gaze user a fruitless scroll.
+describe('VRApp find-in-page glue', () => {
+  const makeApp = () => {
+    const toasts = [];
+    const app = {
+      showVRToast: (msg, opts) => toasts.push({ msg, opts }),
+      _announceFindResult: VRApp.prototype._announceFindResult,
+      _requestFindInPageInput: VRApp.prototype._requestFindInPageInput,
+      _requestVRKeyboardInput: null,
+      tabManager: null
+    };
+    return { app, toasts };
+  };
+
+  test('a result with matches announces the ordinal and count', () => {
+    const { app, toasts } = makeApp();
+    app._announceFindResult({ count: 7, index: 3 });
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].msg).toContain('3/7');
+    expect(toasts[0].opts).toEqual({ type: 'info' });
+  });
+
+  test('no matches announces that, as a warning', () => {
+    const { app, toasts } = makeApp();
+    app._announceFindResult({ count: 0, index: 0 });
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].opts).toEqual({ type: 'warn' });
+  });
+
+  test('the settings action prompts on the VR keyboard and runs the search', () => {
+    const { app, toasts } = makeApp();
+    const findInPage = jest.fn(() => ({ count: 2, index: 1 }));
+    app.tabManager = { getActiveTab: () => ({ findInPage }) };
+    let confirmed;
+    app._requestVRKeyboardInput = (prefill, cb, label) => {
+      expect(prefill).toBe('');
+      expect(typeof label).toBe('string');
+      confirmed = cb;
+    };
+    app._requestFindInPageInput();
+    confirmed('needle');
+    expect(findInPage).toHaveBeenCalledWith('needle');
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].msg).toContain('1/2');
+  });
+
+  test('no active tab is a safe no-op', () => {
+    const { app, toasts } = makeApp();
+    let confirmed;
+    app._requestVRKeyboardInput = (_p, cb) => { confirmed = cb; };
+    app._requestFindInPageInput();
+    expect(() => confirmed('x')).not.toThrow();
+    expect(toasts).toHaveLength(0);
+  });
+});

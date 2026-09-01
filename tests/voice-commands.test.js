@@ -373,3 +373,63 @@ describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => 
     }
   });
 });
+
+describe('VoiceCommands — find-in-page commands', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('「ページ内検索：てんき」 fires onFindInPage with the query', () => {
+    const onFindInPage = jest.fn();
+    vc.connectBrowser({ onFindInPage });
+    vc.processCommand('ページ内検索：てんき', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('てんき');
+    expect(vc.lastCommand.key).toBe('find-in-page');
+  });
+
+  test('"find on page weather" (English) works too', () => {
+    const onFindInPage = jest.fn();
+    vc.connectBrowser({ onFindInPage });
+    vc.processCommand('find on page weather', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('weather');
+  });
+
+  test('resolves to find-in-page, NOT web search — the registration-order trap', () => {
+    // search's /検索[：:]/ pattern is unanchored, so it also matches
+    // 「ページ内検索：X」. Only registration order keeps these apart; this
+    // pins that order (the same trap the go-to catch-all documented).
+    const onFindInPage = jest.fn();
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onFindInPage, onSearch });
+    vc.processCommand('ページ内検索：りんご', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('りんご');
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  test('a plain web search still reaches onSearch', () => {
+    const onFindInPage = jest.fn();
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onFindInPage, onSearch });
+    vc.processCommand('検索：りんご', 0.9);
+    expect(onSearch).toHaveBeenCalledWith('りんご');
+    expect(onFindInPage).not.toHaveBeenCalled();
+  });
+
+  test('「次の検索結果」 fires onFindNext, and 「次へ」 still means forward', () => {
+    const onFindNext = jest.fn();
+    vc.connectBrowser({ onFindNext });
+    vc.processCommand('次の検索結果', 0.9);
+    expect(onFindNext).toHaveBeenCalledTimes(1);
+    vc.processCommand('次へ', 0.9);          // forward-navigation phrase
+    expect(onFindNext).toHaveBeenCalledTimes(1); // unchanged
+    expect(vc.lastCommand.key).not.toBe('find-next');
+  });
+
+  test('unwired callbacks do not throw', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('ページ内検索：x', 0.9)).not.toThrow();
+    expect(() => vc.processCommand('次の検索結果', 0.9)).not.toThrow();
+  });
+});

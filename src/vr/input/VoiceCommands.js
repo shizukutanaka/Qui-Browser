@@ -502,7 +502,7 @@ export class VoiceCommands {
    *                                         the active panel's reader viewport
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent } = {}) {
+    onClearHistory, onScrollContent, onFindInPage, onFindNext } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -569,6 +569,47 @@ export class VoiceCommands {
       confirmationText: '履歴を消去します',
       description: 'Clear browsing history',
       example: '履歴を消去'
+    });
+
+    // Find in page — search WITHIN the article the reader is showing.
+    //
+    // MUST come before 'search' in MATCH order: processCommand stops at the
+    // first hit and search's /検索[：:]/ pattern is unanchored, so 「ページ内
+    // 検索：てんき」 would otherwise be swallowed as a web search — the
+    // registration-order trap the go-to catch-all documented (Session 18).
+    // Registering earlier in this method is NOT enough: the constructor also
+    // registers a 'search', and Map.set on an existing key KEEPS its original
+    // insertion position — so the key must be deleted first for the browser
+    // re-registration below to actually take a later slot. (Measured: without
+    // the delete, find-in-page never fired.)
+    this.commands.delete('search');
+    this.registerCommand('find-in-page', {
+      patterns: [/ページ内検索[：:]\s*(.+)/, /find on page\s+(.+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/ページ内検索[：:]\s*(.+)/) || transcript.match(/find on page\s+(.+)/i);
+        if (m && m[1] && onFindInPage) {
+          onFindInPage(m[1].trim());
+          return { action: 'find-in-page', query: m[1].trim() };
+        }
+      },
+      confirmationText: 'ページ内を検索します',
+      description: 'Find text in the current page',
+      example: 'ページ内検索：てんき'
+    });
+
+    // Jump to the next find-in-page match. 「次へ」 belongs to forward
+    // navigation, so these phrases name the search result explicitly.
+    this.registerCommand('find-next', {
+      patterns: ['次の検索結果', '次のマッチ', /next match/i, /find next/i],
+      action: () => {
+        if (onFindNext) {
+          onFindNext();
+        }
+        return { action: 'find-next' };
+      },
+      confirmationText: '次の検索結果へ',
+      description: 'Jump to the next match',
+      example: '次の検索結果'
     });
 
     // Web search — route through VR address bar / tab navigation
