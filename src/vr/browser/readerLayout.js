@@ -148,6 +148,39 @@ export function maxMeasureEmForFont(fontPx) {
  * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'|'link'|'linksHeading',
  *                  href?: string}>}
  */
+/**
+ * Index of the nth link row, for addressing a link by its printed number.
+ *
+ * Link rows are labelled `1. …`, `2. …` at layout time, so the number is an
+ * ordinal *among link rows* — not among all lines. Counting lines instead
+ * would drift the moment a paragraph sits between two links, and the number
+ * the user reads would open something else.
+ *
+ * Exists because the printed numbers were, until now, only reachable by
+ * pointing at the row: gaze dwell or a controller ray. A voice-primary user —
+ * the person `enableVoice` exists for — could see every destination and open
+ * none of them.
+ *
+ * @param {Array<{style?: string}>} lines laid-out reader lines
+ * @param {number} n 1-based link ordinal
+ * @returns {number} line index, or -1 when there is no such link
+ */
+export function linkRowIndex(lines, n) {
+  if (!Array.isArray(lines) || !Number.isFinite(n) || n < 1) {
+    return -1;
+  }
+  let seen = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] && lines[i].style === 'link') {
+      seen++;
+      if (seen === n) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
   const lines = [];

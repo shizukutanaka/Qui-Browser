@@ -1325,3 +1325,52 @@ describe('VRApp find-in-page glue', () => {
     expect(toasts).toHaveLength(0);
   });
 });
+
+// ── Following a numbered link by voice ───────────────────────────────────────
+// Success is announced by the existing onLinkFollowed path; only the failure
+// needs its own message, since silence leaves the user unsure the number was
+// even heard (WCAG 4.1.3).
+describe('VRApp onFollowLink glue', () => {
+  const makeApp = (activeTab) => {
+    const toasts = [];
+    return {
+      toasts,
+      app: {
+        showVRToast: (msg, opts) => toasts.push({ msg, opts }),
+        tabManager: { getActiveTab: () => activeTab }
+      }
+    };
+  };
+
+  /** The wiring under test, mirroring VRApp's connectBrowser callback. */
+  const follow = (app, n) => {
+    const active = app.tabManager?.getActiveTab?.();
+    const out = active && typeof active.followLink === 'function'
+      ? active.followLink(n) : { ok: false };
+    if (!out.ok) {
+      app.showVRToast('no such link', { type: 'warn' });
+    }
+    return out;
+  };
+
+  test('a successful follow stays silent here — onLinkFollowed already announced', () => {
+    const followLink = jest.fn(() => ({ ok: true, href: 'https://x.example/' }));
+    const { app, toasts } = makeApp({ followLink });
+    follow(app, 2);
+    expect(followLink).toHaveBeenCalledWith(2);
+    expect(toasts).toHaveLength(0);
+  });
+
+  test('an out-of-range number warns instead of doing nothing visible', () => {
+    const { app, toasts } = makeApp({ followLink: () => ({ ok: false }) });
+    follow(app, 99);
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].opts).toEqual({ type: 'warn' });
+  });
+
+  test('no active tab warns rather than throwing', () => {
+    const { app, toasts } = makeApp(null);
+    expect(() => follow(app, 1)).not.toThrow();
+    expect(toasts).toHaveLength(1);
+  });
+});

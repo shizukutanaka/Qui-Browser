@@ -1251,3 +1251,58 @@ describe('WebPanel find-in-page', () => {
     expect(rects.filter((r) => r.h > 20 && r.h < 60)).toHaveLength(0);
   });
 });
+
+// ── Following a link by its printed number ───────────────────────────────────
+// The reader prints "1. label" rows, but opening one required pointing at it
+// (gaze dwell or a controller ray). A voice-primary user could see every
+// destination and reach none — the mirror of the Session 66 scroll gap.
+describe('WebPanel.followLink', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const pageWithLinks = `<html><head><title>Hub</title></head><body><article>
+    <p>${'intro prose sentence. '.repeat(30)}</p>
+    <a href="https://one.example/">First</a>
+    <a href="https://two.example/">Second</a>
+    <a href="https://three.example/">Third</a>
+  </article></body></html>`;
+
+  async function hub(extra = {}) {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(pageWithLinks) });
+    const p = makePanel(extra);
+    p.navigate('https://hub.example/');
+    await flush();
+    expect(p._contentState).toBe('reader');
+    return p;
+  }
+
+  test('follows the nth link and announces it, exactly as a row hit does', async () => {
+    const onLinkFollowed = jest.fn();
+    const p = await hub({ onLinkFollowed });
+    const out = p.followLink(2);
+    expect(out.ok).toBe(true);
+    expect(out.href).toBe('https://two.example/');
+    expect(p.currentUrl).toBe('https://two.example/');
+    expect(onLinkFollowed).toHaveBeenCalledWith(expect.any(String), 'https://two.example/');
+  });
+
+  test('the number matches what the row prints', async () => {
+    const p = await hub();
+    const rows = p._readerLines.filter((l) => l.style === 'link');
+    expect(rows[2].text).toMatch(/^3\./);
+    const out = p.followLink(3);
+    expect(out.href).toBe(rows[2].href);
+  });
+
+  test('an out-of-range number reports failure rather than navigating', async () => {
+    const p = await hub();
+    const before = p.currentUrl;
+    expect(p.followLink(99)).toEqual({ ok: false });
+    expect(p.followLink(0)).toEqual({ ok: false });
+    expect(p.currentUrl).toBe(before);
+  });
+
+  test('inert outside reader-like states', () => {
+    expect(makePanel().followLink(1)).toEqual({ ok: false });
+  });
+});

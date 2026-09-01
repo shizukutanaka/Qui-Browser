@@ -39,7 +39,7 @@ import { extractReadableText } from './readableText.js';
 import { decodeMarkup } from './charset.js';
 import { findMatches, matchOrdinal, nextMatch, prevMatch } from './readerSearch.js';
 import {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
+  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel, linkRowIndex,
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
@@ -561,6 +561,32 @@ export class WebPanel {
    * @param {number} delta positive = further down the article
    * @returns {boolean} true when the offset actually moved
    */
+  /**
+   * Follow the nth link by its printed number.
+   *
+   * The same path a row hit takes (onLinkFollowed then navigate), reached by
+   * number instead of by pointing — so gaze, controller and voice all end up
+   * in one place and the number on screen always opens what it says.
+   *
+   * @param {number} n 1-based link ordinal, as printed
+   * @returns {{ok: boolean, text?: string, href?: string}}
+   */
+  followLink(n) {
+    if (!this._isReaderLike()) {
+      return { ok: false };
+    }
+    const i = linkRowIndex(this._readerLines, n);
+    const line = i === -1 ? null : this._readerLines[i];
+    if (!line || !line.href) {
+      return { ok: false };
+    }
+    if (this.onLinkFollowed) {
+      this.onLinkFollowed(line.text, line.href);
+    }
+    this.navigate(line.href);
+    return { ok: true, text: line.text, href: line.href };
+  }
+
   _clearFind() {
     this._findQuery = '';
     this._findMatches = [];

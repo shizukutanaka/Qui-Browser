@@ -2696,6 +2696,17 @@ export class VRApp {
             this._announceFindResult(active.findInPage(query));
           }
         },
+        onFollowLink: (n) => {
+          const active = this.tabManager?.getActiveTab?.();
+          const out = active && typeof active.followLink === 'function'
+            ? active.followLink(n) : { ok: false };
+          // Success already announces via onLinkFollowed (wired below); only
+          // the failure needs saying, since silence would leave the user
+          // wondering whether the number was even heard (WCAG 4.1.3).
+          if (!out.ok) {
+            this.showVRToast(t('vr.msg.noSuchLink'), { type: 'warn' });
+          }
+        },
         onFindNext: () => {
           const active = this.tabManager?.getActiveTab?.();
           if (active && typeof active.findNext === 'function') {

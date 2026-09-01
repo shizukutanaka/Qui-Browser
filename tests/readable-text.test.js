@@ -760,3 +760,51 @@ describe('extractLinks unwraps search-result redirects', () => {
     expect(links.filter((l) => l.href === 'https://example.com/a')).toHaveLength(1);
   });
 });
+
+describe('linkRowIndex — addressing a link by its printed number', () => {
+  const { layoutReaderLines, linkRowIndex } = require('../src/vr/browser/readerLayout.js');
+
+  const laid = () => layoutReaderLines(
+    [{ type: 'h', text: 'Heading' }, { type: 'p', text: 'Some prose here.' }],
+    {
+      title: 'Doc',
+      links: [
+        { text: 'First', href: 'https://a.example/' },
+        { text: 'Second', href: 'https://b.example/' },
+        { text: 'Third', href: 'https://c.example/' }
+      ]
+    }
+  );
+
+  test('the ordinal counts LINK rows, not lines — prose in between never shifts it', () => {
+    const lines = laid();
+    for (const [n, href] of [[1, 'https://a.example/'], [2, 'https://b.example/'], [3, 'https://c.example/']]) {
+      const i = linkRowIndex(lines, n);
+      expect(i).toBeGreaterThan(-1);
+      expect(lines[i].href).toBe(href);
+    }
+  });
+
+  test('the number it resolves is the number actually printed on the row', () => {
+    // Reading the label back is what keeps the two in step: change the layout
+    // numbering or the lookup alone and this fails.
+    const lines = laid();
+    for (const n of [1, 2, 3]) {
+      expect(lines[linkRowIndex(lines, n)].text).toMatch(new RegExp(`^${n}\\.`));
+    }
+  });
+
+  test('out of range and degenerate input return -1', () => {
+    const lines = laid();
+    expect(linkRowIndex(lines, 4)).toBe(-1);
+    expect(linkRowIndex(lines, 0)).toBe(-1);
+    expect(linkRowIndex(lines, -1)).toBe(-1);
+    expect(linkRowIndex(lines, NaN)).toBe(-1);
+    expect(linkRowIndex(null, 1)).toBe(-1);
+  });
+
+  test('a page with no links has no addressable rows', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'no links here' }], { title: 'x' });
+    expect(linkRowIndex(lines, 1)).toBe(-1);
+  });
+});
