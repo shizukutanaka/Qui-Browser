@@ -42,6 +42,41 @@ export function searchEngineHosts() {
     .filter(Boolean);
 }
 
+/**
+ * Unwrap a known search-engine redirect wrapper to its real destination.
+ *
+ * DuckDuckGo's no-JS results wrap every hit as
+ * `https://duckduckgo.com/l/?uddg=<encoded target>`. Left wrapped, the
+ * address bar shows the wrapper (hiding where the user actually is — the
+ * opposite of the origin-first display discipline), and worse, relative
+ * links on the landed page resolve against duckduckgo.com and all break.
+ * Unwrapping at extraction time makes every link row carry its true
+ * destination, so the label, the address bar and the base URL all agree.
+ *
+ * Only http(s) targets are accepted; anything else keeps the original URL,
+ * whose scheme is known-good. Non-wrapper URLs pass through untouched.
+ *
+ * @param {string} url absolute URL
+ * @returns {string}
+ */
+export function unwrapKnownRedirect(url) {
+  try {
+    const u = new URL(url);
+    const host = u.host.toLowerCase();
+    if (!/^(html\.|lite\.)?duckduckgo\.com$/.test(host) || !u.pathname.startsWith('/l/')) {
+      return url;
+    }
+    const target = u.searchParams.get('uddg');
+    if (!target) {
+      return url;
+    }
+    const t = new URL(target);
+    return /^https?:$/i.test(t.protocol) ? t.href : url;
+  } catch {
+    return url;
+  }
+}
+
 // A conservative single-token host check. We only need to recognise the common
 // case (example.com, sub.example.co.jp) — anything ambiguous becomes a search.
 // Unicode-aware (\p{L}/\p{N}) so internationalized domain names (IDN) like

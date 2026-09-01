@@ -26,6 +26,8 @@
  * carries it, and return nothing rather than garbage when it does not.
  */
 
+import { unwrapKnownRedirect } from './urlResolver.js';
+
 /**
  * Longest run of characters one element may hold. A "paragraph" longer than
  * this is not prose, and letting a lazy match run to the end of the document
@@ -232,6 +234,9 @@ export function extractLinks(html, baseUrl) {
     if (!/^https?:$/i.test(new URL(href).protocol)) {
       continue;
     }
+    // Search-engine redirect wrappers unwrap to their real destination, so
+    // the row, the address bar and the next page's base URL all agree.
+    href = unwrapKnownRedirect(href);
     if (seen.has(href)) {
       continue;
     }

@@ -734,3 +734,29 @@ describe('extraction is bounded and correct on malformed markup', () => {
     }
   });
 });
+
+describe('extractLinks unwraps search-result redirects', () => {
+  const { extractLinks } = require('../src/vr/browser/readableText.js');
+
+  test('a DDG /l/?uddg result row carries its true destination', () => {
+    const target = 'https://example.com/story';
+    const html = `<html><body><div>
+      <a href="//duckduckgo.com/l/?uddg=${encodeURIComponent(target)}&rut=x">The Story</a>
+      <a href="https://other.example/page">Other</a>
+    </div></body></html>`;
+    const links = extractLinks(html, 'https://html.duckduckgo.com/html/?q=story');
+    expect(links.map((l) => l.href)).toContain(target);
+    expect(links.map((l) => l.href).join(' ')).not.toContain('/l/?uddg');
+    expect(links.map((l) => l.href)).toContain('https://other.example/page');
+  });
+
+  test('two wrappers for the same destination dedupe after unwrapping', () => {
+    const t = encodeURIComponent('https://example.com/a');
+    const html = `<html><body>
+      <a href="https://duckduckgo.com/l/?uddg=${t}&rut=1">One</a>
+      <a href="https://duckduckgo.com/l/?uddg=${t}&rut=2">Two</a>
+    </body></html>`;
+    const links = extractLinks(html, 'https://duckduckgo.com/html/');
+    expect(links.filter((l) => l.href === 'https://example.com/a')).toHaveLength(1);
+  });
+});

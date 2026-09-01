@@ -196,3 +196,36 @@ describe('searchEngineHosts', () => {
     }
   });
 });
+
+describe('unwrapKnownRedirect', () => {
+  const { unwrapKnownRedirect } = require('../src/vr/browser/urlResolver.js');
+  const wrapped = 'https://duckduckgo.com/l/?uddg=' + encodeURIComponent('https://example.com/article?x=1') + '&rut=abc';
+
+  test('unwraps a DDG /l/?uddg wrapper to its real destination', () => {
+    expect(unwrapKnownRedirect(wrapped)).toBe('https://example.com/article?x=1');
+  });
+
+  test('the html. and lite. subdomains unwrap too', () => {
+    const h = 'https://html.duckduckgo.com/l/?uddg=' + encodeURIComponent('https://example.com/');
+    expect(unwrapKnownRedirect(h)).toBe('https://example.com/');
+  });
+
+  test('a non-wrapper URL passes through untouched', () => {
+    expect(unwrapKnownRedirect('https://example.com/l/?uddg=x')).toBe('https://example.com/l/?uddg=x');
+    expect(unwrapKnownRedirect('https://duckduckgo.com/?q=cats')).toBe('https://duckduckgo.com/?q=cats');
+  });
+
+  test('a target that is not http(s) keeps the wrapper — never a scheme upgrade path', () => {
+    const evil = 'https://duckduckgo.com/l/?uddg=' + encodeURIComponent('javascript:alert(1)');
+    expect(unwrapKnownRedirect(evil)).toBe(evil);
+  });
+
+  test('a lookalike host does NOT unwrap — the suffix is anchored', () => {
+    const fake = 'https://evilduckduckgo.com/l/?uddg=' + encodeURIComponent('https://phish.example/');
+    expect(unwrapKnownRedirect(fake)).toBe(fake);
+  });
+
+  test('degenerate input passes through', () => {
+    expect(unwrapKnownRedirect('not a url')).toBe('not a url');
+  });
+});

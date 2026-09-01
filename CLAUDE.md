@@ -257,7 +257,8 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✨ **fix**: 既定を **`https://html.duckduckgo.com/html/?q=`**（DDG が非 JS クライアント向けに維持しているサーバレンダリング版）に変更。見出し＋スニペット＋リンクという構造は**リーダーの表示形式そのもの**で、結果は番号付きリンク行として辿れる（続き2 のリンク行モデルがそのまま効く）。他3エンジンはユーザー選択肢として温存（品質はエンジン依存 — no-JS で設計されているのは DDG html 版のみ、と正直に記録）。
 - 🔒 **性質をテストで固定**: 「既定エンジンは no-JS エンドポイントであること」を理由コメント付きで pin（SPA に戻す者は検索全体を壊すことをテストが名指しで告げる）。`searchEngineHosts()` は雛形から導出なので Top Sites 除外も自動追従。
 - ⚠️ **限界の明記**: sandbox は外向き 403 のため**ライブ検証は不可**。ただし「SPA シェルの初期 HTML に結果が無い」ことと「/html/ がサーバレンダリングである」ことは DDG の公開仕様・恒常挙動であり、no-JS 抽出器にとって /html/ が**設計上の正解**であることは構造的に確定。
-- ✅ Total 1625 tests (51 suites); 0 lint errors; `npm run gate` PASS。
+- ✨ **同じ糸をもう一段: リダイレクトラッパの解除**: DDG /html/ の結果リンクは `duckduckgo.com/l/?uddg=<encoded>` の**ラッパ** —— 放置するとアドレスバーが実際の居場所を隠し（origin-first 表示規律の逆）、着地ページの**相対リンクが duckduckgo.com 基準で解決されて全滅**する。純関数 `unwrapKnownRedirect`（ホストはアンカー付き正規表現 —— `evilduckduckgo.com` は解除しない、uddg が http(s) 以外なら**ラッパを保持**＝スキーム昇格経路にしない）を `extractLinks` の解決後に適用。**pre-fix 検証**: 適用行を外すと2件 FAIL。
+- ✅ Total 1633 tests (51 suites); 0 lint errors; `npm run gate` PASS。
 
 ### Session 75（続き13）: ページ内検索 — 視線ユーザーは長い記事の中を「探せなかった」
 ソクラテス問答の続き:「視線ユーザーは長い記事から目当ての箇所を探せるか？」→ **探せない。1ドウェル=1ページ送りで全部眺めるしかなかった。** E2 スナップショット改善候補 #3 を実装。
