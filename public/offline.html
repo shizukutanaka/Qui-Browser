@@ -247,16 +247,13 @@
         window.addEventListener('online', checkOnlineStatus);
         window.addEventListener('offline', checkOnlineStatus);
 
-        // Register service worker if not already registered
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(registration => {
-                    console.log('Service Worker registered for offline page');
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        }
+        // No service-worker registration here on purpose. This page is only
+        // ever reached BECAUSE service-worker.js served it as the offline
+        // fallback, so a worker is already installed. The registration that
+        // used to live here pointed at a second worker (/sw.js) claiming the
+        // same scope, with its own cache scheme and no base-path awareness —
+        // so under a subpath deploy such as GitHub Pages it registered at the
+        // wrong scope, and where it did register it competed with the real one.
     </script>
 </body>
 </html>

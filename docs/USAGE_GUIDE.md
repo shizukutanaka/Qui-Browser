@@ -54,9 +54,12 @@ You can drive every UI element with any of these — pick whichever suits you:
   uses a static highlight instead of an animated pulse.
 - **Japanese IME** — the VR keyboard converts romaji to hiragana/katakana/kanji
   with proper syllabic-ん handling and candidate selection.
-- **Voice commands** — enable Voice in settings. Say a command (e.g. navigate,
-  back, search, top sites, "go to <site>", or "help" to hear the phrase list).
-  Recognized speech is captioned; confirmations are spoken and captioned.
+- **Voice commands** — turn on **Voice** in the settings panel's Accessibility
+  section (it asks for microphone permission, which is why it is opt-in rather
+  than on by default; the toggle takes effect immediately, no reload). Then say
+  a command — navigate, back, search, top sites, "go to <site>", "clear
+  history", or "help" to hear the phrase list. Recognized speech is captioned;
+  confirmations are spoken and captioned.
 
 ## The settings panel
 
@@ -66,7 +69,7 @@ reloads (localStorage):
 - **Locomotion**: Teleport, Snap Turn, Snap Angle, Smooth Move, Move Speed,
   Southpaw (swap hands).
 - **Accessibility**: High Contrast, Captions (+ Caption Hold / Size / Height),
-  Gaze Select (+ Gaze Time / Grace Time).
+  Gaze Select (+ Gaze Time / Grace Time), Haptics, Voice.
 - **Rendering / comfort**: Comfort preset, Foveation (FFR).
 - **Browsing**: **Web Browser Panel** (see below), Follow View, Curved panel,
   Search engine.
@@ -74,15 +77,19 @@ reloads (localStorage):
 Most toggles apply instantly. Hovering a setting announces it as a caption for
 gaze users.
 
-## Web browsing panel (opt-in)
+## Web browsing panel
 
 The in-VR web browsing surface — URL bar, tabs, bookmarks/history, WebXR Layers
-for sharp text, grab-to-move windows — is gated behind the **Web Browser
-Panel** setting, which is **off by default**. Turn it on in the settings panel;
-because these subsystems are constructed once at load, the panel announces that
-a **page reload is required** for the change to take effect. After reloading
-with it enabled you get:
+for sharp text, grab-to-move windows — is **on by default**. The **Web Browser
+Panel** setting turns it off and back on, and takes effect immediately: the
+subsystems are built and torn down live, so there is no reload and no need to
+take the headset off. You get:
 
+- **Start page** — a fresh tab lists your most-visited sites as numbered,
+  selectable rows, so returning somewhere takes one tap instead of typing a URL
+  by gaze. Ranked by how often and how recently you visited (search engines
+  excluded, so the top entry is a real destination). A brand-new profile has no
+  history yet, so it says so rather than showing an empty list.
 - **URL bar** — tap to open the VR keyboard; frecency-ranked suggestions from
   your history/bookmarks appear as you type, so you can jump to a known
   destination in a couple of characters. Blocked/unsupported addresses (e.g.
@@ -92,10 +99,17 @@ with it enabled you get:
   bookmark for the current page.
 - **Grab-to-move** — a move bar below each panel lets you reposition it; grab
   and release are confirmed cross-modally.
+- **Following links** — the reader lists every followable link on the page as a
+  numbered row at the end of the article; select one to go there. The number is
+  what identifies a link (it does not rely on colour), and following one is
+  confirmed cross-modally like every other navigation.
 
-> Note: cross-origin pages render only where the platform supports WebXR
-> dom-overlay; elsewhere the panel shows a placeholder. This is a platform
-> limitation of in-VR web content, documented honestly rather than hidden.
+> Note: pages are shown in a reader view — the text is fetched, extracted and
+> laid out in VR, not rendered as authored. A WebXR web app cannot composite a
+> cross-origin page's pixels into a 3D texture; this is a platform limitation,
+> documented honestly rather than hidden. Sites that do not send CORS headers
+> need the optional companion proxy (see `docs/PROXY.md`); the viewport says so
+> when it hits one.
 
 ## Recentering
 

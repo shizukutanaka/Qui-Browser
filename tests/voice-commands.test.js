@@ -373,3 +373,137 @@ describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => 
     }
   });
 });
+
+describe('VoiceCommands — find-in-page commands', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('「ページ内検索：てんき」 fires onFindInPage with the query', () => {
+    const onFindInPage = jest.fn();
+    vc.connectBrowser({ onFindInPage });
+    vc.processCommand('ページ内検索：てんき', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('てんき');
+    expect(vc.lastCommand.key).toBe('find-in-page');
+  });
+
+  test('"find on page weather" (English) works too', () => {
+    const onFindInPage = jest.fn();
+    vc.connectBrowser({ onFindInPage });
+    vc.processCommand('find on page weather', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('weather');
+  });
+
+  test('resolves to find-in-page, NOT web search — the registration-order trap', () => {
+    // search's /検索[：:]/ pattern is unanchored, so it also matches
+    // 「ページ内検索：X」. Only registration order keeps these apart; this
+    // pins that order (the same trap the go-to catch-all documented).
+    const onFindInPage = jest.fn();
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onFindInPage, onSearch });
+    vc.processCommand('ページ内検索：りんご', 0.9);
+    expect(onFindInPage).toHaveBeenCalledWith('りんご');
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  test('a plain web search still reaches onSearch', () => {
+    const onFindInPage = jest.fn();
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onFindInPage, onSearch });
+    vc.processCommand('検索：りんご', 0.9);
+    expect(onSearch).toHaveBeenCalledWith('りんご');
+    expect(onFindInPage).not.toHaveBeenCalled();
+  });
+
+  test('「次の検索結果」 fires onFindNext, and 「次へ」 still means forward', () => {
+    const onFindNext = jest.fn();
+    vc.connectBrowser({ onFindNext });
+    vc.processCommand('次の検索結果', 0.9);
+    expect(onFindNext).toHaveBeenCalledTimes(1);
+    vc.processCommand('次へ', 0.9);          // forward-navigation phrase
+    expect(onFindNext).toHaveBeenCalledTimes(1); // unchanged
+    expect(vc.lastCommand.key).not.toBe('find-next');
+  });
+
+  test('unwired callbacks do not throw', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('ページ内検索：x', 0.9)).not.toThrow();
+    expect(() => vc.processCommand('次の検索結果', 0.9)).not.toThrow();
+  });
+});
+
+describe('VoiceCommands — open-link (follow a numbered link by voice)', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('「リンク3を開く」 fires onFollowLink with 3', () => {
+    const onFollowLink = jest.fn();
+    vc.connectBrowser({ onFollowLink });
+    vc.processCommand('リンク3を開く', 0.9);
+    expect(onFollowLink).toHaveBeenCalledWith(3);
+    expect(vc.lastCommand.key).toBe('open-link');
+  });
+
+  test('「1番を開く」 and 「リンク2」 work too', () => {
+    const onFollowLink = jest.fn();
+    vc.connectBrowser({ onFollowLink });
+    vc.processCommand('1番を開く', 0.9);
+    vc.processCommand('リンク2', 0.9);
+    expect(onFollowLink).toHaveBeenNthCalledWith(1, 1);
+    expect(onFollowLink).toHaveBeenNthCalledWith(2, 2);
+  });
+
+  test('"open link 4" (English) works', () => {
+    const onFollowLink = jest.fn();
+    vc.connectBrowser({ onFollowLink });
+    vc.processCommand('open link 4', 0.9);
+    expect(onFollowLink).toHaveBeenCalledWith(4);
+  });
+
+  test('full-width digits are normalised — Japanese ASR emits them routinely', () => {
+    const onFollowLink = jest.fn();
+    vc.connectBrowser({ onFollowLink });
+    vc.processCommand('リンク１２を開く', 0.9);
+    expect(onFollowLink).toHaveBeenCalledWith(12);
+  });
+
+  test('open-link beats the greedy go-to catch-all — the registration-order trap', () => {
+    // go-to's /^(.+)を開く?/ matches 「1番を開く」 and its
+    // /^(?:open|go to)\s+(.+)/i matches "open link 3" (both measured), and
+    // processCommand stops at the first hit. Only ordering separates them.
+    const onFollowLink = jest.fn();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onFollowLink, onGoTo });
+    vc.processCommand('1番を開く', 0.9);
+    vc.processCommand('open link 3', 0.9);
+    expect(onFollowLink).toHaveBeenCalledTimes(2);
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+
+  test('a real go-to still reaches onGoTo — the catch-all is not shadowed', () => {
+    const onFollowLink = jest.fn();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onFollowLink, onGoTo });
+    vc.processCommand('githubを開く', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+    expect(onFollowLink).not.toHaveBeenCalled();
+  });
+
+  test('「キーボードを開く」 still opens the keyboard, not a link', () => {
+    const onFollowLink = jest.fn();
+    vc.connectBrowser({ onFollowLink });
+    vc.processCommand('キーボードを開く', 0.9);
+    expect(vc.lastCommand.key).toBe('keyboard');
+    expect(onFollowLink).not.toHaveBeenCalled();
+  });
+
+  test('an unwired callback does not throw', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('リンク1を開く', 0.9)).not.toThrow();
+  });
+});

@@ -502,7 +502,7 @@ export class VoiceCommands {
    *                                         the active panel's reader viewport
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent } = {}) {
+    onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -569,6 +569,88 @@ export class VoiceCommands {
       confirmationText: '履歴を消去します',
       description: 'Clear browsing history',
       example: '履歴を消去'
+    });
+
+    // Follow a link by its printed number.
+    //
+    // The reader prints links as "1. label", one row per destination, but the
+    // only way to open one was to point at the row — gaze dwell or a
+    // controller ray. A voice-primary user (the person enableVoice exists for)
+    // could see every destination and open none of them. The mirror image of
+    // the Session 66 gap, where scrolling was voice-only.
+    //
+    // MUST come before 'go-to': its /^(.+)を開く?/ matches 「1番を開く」 and
+    // its /^(?:open|go to)\s+(.+)/i matches "open link 3" (both measured), and
+    // processCommand stops at the first hit. go-to is registered last as the
+    // catch-all, so registering here wins — pinned by a test.
+    this.registerCommand('open-link', {
+      patterns: [
+        /(?:リンク)?\s*([0-9０-９]+)\s*(?:番)?\s*(?:を)?\s*開く/,
+        /^リンク\s*([0-9０-９]+)$/,
+        /open\s+link\s+(\d+)/i,
+        /^link\s+(\d+)$/i
+      ],
+      action: (transcript) => {
+        const m = transcript.match(/(?:リンク)?\s*([0-9０-９]+)\s*(?:番)?\s*(?:を)?\s*開く/)
+          || transcript.match(/^リンク\s*([0-9０-９]+)$/)
+          || transcript.match(/open\s+link\s+(\d+)/i)
+          || transcript.match(/^link\s+(\d+)$/i);
+        if (!m || !m[1]) {
+          return;
+        }
+        // Japanese ASR and IMEs routinely emit full-width digits.
+        const n = parseInt(m[1].replace(/[０-９]/g, (d) =>
+          String.fromCharCode(d.charCodeAt(0) - 0xfee0)), 10);
+        if (!Number.isFinite(n) || !onFollowLink) {
+          return;
+        }
+        onFollowLink(n);
+        return { action: 'open-link', index: n };
+      },
+      confirmationText: 'リンクを開きます',
+      description: 'Follow a numbered link in the reader',
+      example: 'リンク3を開く'
+    });
+
+    // Find in page — search WITHIN the article the reader is showing.
+    //
+    // MUST come before 'search' in MATCH order: processCommand stops at the
+    // first hit and search's /検索[：:]/ pattern is unanchored, so 「ページ内
+    // 検索：てんき」 would otherwise be swallowed as a web search — the
+    // registration-order trap the go-to catch-all documented (Session 18).
+    // Registering earlier in this method is NOT enough: the constructor also
+    // registers a 'search', and Map.set on an existing key KEEPS its original
+    // insertion position — so the key must be deleted first for the browser
+    // re-registration below to actually take a later slot. (Measured: without
+    // the delete, find-in-page never fired.)
+    this.commands.delete('search');
+    this.registerCommand('find-in-page', {
+      patterns: [/ページ内検索[：:]\s*(.+)/, /find on page\s+(.+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/ページ内検索[：:]\s*(.+)/) || transcript.match(/find on page\s+(.+)/i);
+        if (m && m[1] && onFindInPage) {
+          onFindInPage(m[1].trim());
+          return { action: 'find-in-page', query: m[1].trim() };
+        }
+      },
+      confirmationText: 'ページ内を検索します',
+      description: 'Find text in the current page',
+      example: 'ページ内検索：てんき'
+    });
+
+    // Jump to the next find-in-page match. 「次へ」 belongs to forward
+    // navigation, so these phrases name the search result explicitly.
+    this.registerCommand('find-next', {
+      patterns: ['次の検索結果', '次のマッチ', /next match/i, /find next/i],
+      action: () => {
+        if (onFindNext) {
+          onFindNext();
+        }
+        return { action: 'find-next' };
+      },
+      confirmationText: '次の検索結果へ',
+      description: 'Jump to the next match',
+      example: '次の検索結果'
     });
 
     // Web search — route through VR address bar / tab navigation

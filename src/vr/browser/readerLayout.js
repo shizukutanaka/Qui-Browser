@@ -5,7 +5,7 @@
  * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
  */
 
-import { wrapTextToWidth, safeMeasureEm } from '../ui/textWrap.js';
+import { wrapTextToWidth, truncateToWidth, safeMeasureEm } from '../ui/textWrap.js';
 
 // Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
 export const CONTENT_PX_W = 1024;
@@ -113,6 +113,12 @@ export function measureEmFor(scale = 1) {
  * @param {number} scale
  * @returns {number} em
  */
+/**
+ * Rows a rendered image occupies. Six lines is a picture you can actually see
+ * at panel distance without a single figure pushing the article off screen.
+ */
+export const IMAGE_ROWS = 6;
+
 export function measureEmForStyle(style, scale = 1) {
   const textW = CONTENT_PX_W - 2 * CONTENT_PAD;
   return Math.min(measureEmFor(scale), safeMeasureEm(textW, fontPxFor(style, scale)));
@@ -135,10 +141,52 @@ export function maxMeasureEmForFont(fontPx) {
  * `wrapTextToLines`, so spaceless Japanese hard-splits without severing
  * surrogate pairs.
  *
+ * Followable links are appended as their own section: one line per link,
+ * numbered, carrying the `href` so the panel can navigate when the row is
+ * selected. They are ordinary reader lines, so they scroll and page with
+ * everything else and need no separate viewport. The number is what makes a
+ * link identifiable without relying on colour (WCAG 1.4.1); the colour is
+ * reinforcement, not the signal.
+ *
  * @param {Array<{type:'h'|'p', text:string}>} blocks
- * @param {{scale?: number, title?: string}} [opts]
- * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'}>}
+ * @param {{scale?: number, title?: string, links?: Array<{text:string, href:string}>,
+ *          linksLabel?: string}} [opts]
+ * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'|'link'|'linksHeading',
+ *                  href?: string}>}
  */
+/**
+ * Index of the nth link row, for addressing a link by its printed number.
+ *
+ * Link rows are labelled `1. …`, `2. …` at layout time, so the number is an
+ * ordinal *among link rows* — not among all lines. Counting lines instead
+ * would drift the moment a paragraph sits between two links, and the number
+ * the user reads would open something else.
+ *
+ * Exists because the printed numbers were, until now, only reachable by
+ * pointing at the row: gaze dwell or a controller ray. A voice-primary user —
+ * the person `enableVoice` exists for — could see every destination and open
+ * none of them.
+ *
+ * @param {Array<{style?: string}>} lines laid-out reader lines
+ * @param {number} n 1-based link ordinal
+ * @returns {number} line index, or -1 when there is no such link
+ */
+export function linkRowIndex(lines, n) {
+  if (!Array.isArray(lines) || !Number.isFinite(n) || n < 1) {
+    return -1;
+  }
+  let seen = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] && lines[i].style === 'link') {
+      seen++;
+      if (seen === n) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
   const lines = [];
@@ -157,14 +205,59 @@ export function layoutReaderLines(blocks, opts = {}) {
   }
 
   for (const b of Array.isArray(blocks) ? blocks : []) {
-    if (!b || !b.text) {
+    // An image block carries its content in `src`, so the empty-text guard
+    // that protects the prose path would otherwise drop every picture whose
+    // author gave it no alt attribute.
+    if (!b || (!b.text && !(b.type === 'img' && b.src))) {
       continue;
     }
     blank();
+    // An image contributes its text alternative, prefixed so it reads as a
+    // description of a picture rather than as the author's prose. The prefix
+    // is words, not a colour or an icon, so it survives every rendering mode
+    // (WCAG 1.1.1 with 1.4.1).
+    if (b.type === 'img') {
+      // A picture occupies whole rows, so it scrolls, pages and clips through
+      // exactly the machinery every other line uses — no separate viewport.
+      // The rows are reserved even before the image has loaded, so the text
+      // below does not jump when it arrives.
+      if (b.src) {
+        for (let i = 0; i < IMAGE_ROWS; i++) {
+          lines.push({ text: '', style: 'imgbox', src: b.src, first: i === 0, rows: IMAGE_ROWS });
+        }
+      }
+      // The alt text stays a real line whether or not the pixels arrive: it is
+      // the caption for sighted users and the whole content for everyone else.
+      if (b.text) {
+        for (const row of wrapTextToWidth(
+          `${opts.imageLabel || 'Image'}: ${b.text}`, measureEmForStyle('img', scale))) {
+          push(row, 'img');
+        }
+      }
+      continue;
+    }
     const style = b.type === 'h' ? 'h' : 'p';
     for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
       push(row, style);
     }
+  }
+
+  const links = Array.isArray(opts.links) ? opts.links.filter((l) => l && l.href) : [];
+  if (links.length) {
+    blank();
+    push(opts.linksLabel || 'Links', 'linksHeading');
+    links.forEach((link, i) => {
+      // One row per link, so a row hit maps to exactly one destination. The
+      // label is truncated rather than wrapped for the same reason: a wrapped
+      // link would occupy rows that all mean the same thing, and the row the
+      // user aimed at would be ambiguous to announce.
+      const label = `${i + 1}. ${link.text || link.href}`;
+      lines.push({
+        text: truncateToWidth(label, measureEmForStyle('p', scale)),
+        style: 'link',
+        href: link.href
+      });
+    });
   }
 
   return lines;
@@ -234,9 +327,10 @@ export function pageJumpLines(visible) {
  * @param {number} px
  * @param {number} py
  * @param {boolean} scrollable — arrows are only live when there is more to read
- * @returns {{type: 'scrollUp'|'scrollDown'|'none'}}
+ * @param {number} [scale=1] text scale, so a text row can be identified
+ * @returns {{type: 'scrollUp'|'scrollDown'|'row'|'none', row?: number}}
  */
-export function readerHitTest(px, py, scrollable = false) {
+export function readerHitTest(px, py, scrollable = false, scale = 1) {
   if (scrollable && py >= ARROW_Y0 && py <= ARROW_Y0 + ARROW_H) {
     if (px >= ARROW_UP_X0 && px <= ARROW_UP_X0 + ARROW_W) {
       return { type: 'scrollUp' };
@@ -245,7 +339,34 @@ export function readerHitTest(px, py, scrollable = false) {
       return { type: 'scrollDown' };
     }
   }
-  return { type: 'none' };
+  const row = readerRowAt(py, scale);
+  return row === -1 ? { type: 'none' } : { type: 'row', row };
+}
+
+/**
+ * Which drawn row a y coordinate falls in, or -1 outside the text column.
+ *
+ * `_drawReader` puts row i's baseline at `CONTENT_PAD + lh*(i+1)`, so row i
+ * occupies the band `(CONTENT_PAD + lh*i, CONTENT_PAD + lh*(i+1)]`. Deriving
+ * the hit band from the same constants as the draw is deliberate: a draw path
+ * and a hit path that compute rows independently is what produced a blank,
+ * un-clickable bookmark page in Session 52.
+ *
+ * The returned index is relative to the visible window, so callers add the
+ * scroll offset.
+ *
+ * @param {number} py canvas y
+ * @param {number} [scale=1]
+ * @returns {number} zero-based visible row, or -1
+ */
+export function readerRowAt(py, scale = 1) {
+  const lh = LINE_H * (scale > 0 ? scale : 1);
+  const rel = py - CONTENT_PAD;
+  if (!Number.isFinite(rel) || rel < 0) {
+    return -1;
+  }
+  const row = Math.floor(rel / lh);
+  return row >= 0 && row < visibleLineCount(scale, false) ? row : -1;
 }
 
 /** Font px for a line style at a given scale. */
@@ -254,8 +375,10 @@ export function fontPxFor(style, scale = 1) {
   if (style === 'title') {
     return Math.round(30 * s);
   }
-  if (style === 'h') {
+  if (style === 'h' || style === 'linksHeading') {
     return Math.round(25 * s);
   }
+  // 'img' (an image's alt text) and 'link' read at body size — they are prose
+  // about the page, not headings within it.
   return Math.round(20 * s);
 }

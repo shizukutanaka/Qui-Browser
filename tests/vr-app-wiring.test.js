@@ -26,9 +26,13 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
 }));
 
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
+// clearRect/measureText are here because a full _buildBrowsingSystems draws
+// the tab strip and the panel chrome; without them no test in this file could
+// exercise a real build at all.
 const ctx2d = {
   fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
-  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn()
+  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn(),
+  clearRect: jest.fn(), measureText: () => ({ width: 10 })
 };
 global.document = {
   createElement: (tag) => {
@@ -1001,7 +1005,12 @@ describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
     windowManager: { detach: jest.fn(), attach: jest.fn(), target: null },
     tabManager: null,
     bookmarkPanel: null,
-    webPanel: null
+    webPanel: null,
+    // The real method, not a stub: build and teardown both rebind voice to the
+    // current browsing systems, and with no voiceCommands present its guard
+    // must make that a no-op rather than a crash.
+    voiceCommands: null,
+    _connectVoiceToBrowsing: VRApp.prototype._connectVoiceToBrowsing
   });
 
   test('teardown disposes the tab manager and the bookmark panel, and detaches', () => {
@@ -1046,6 +1055,40 @@ describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
     // Returned early: the existing manager is untouched, not replaced.
     expect(app.tabManager).toBe(existing);
     expect(app.scene.add).not.toHaveBeenCalled();
+  });
+
+  // These assert the CALL, not the method: rebinding that nothing invokes is
+  // exactly as useless as no rebinding, and a test that only exercises
+  // _connectVoiceToBrowsing directly passes either way.
+  test('teardown rebinds voice, so no command keeps the disposed TabManager', () => {
+    const app = makeApp();
+    app._connectVoiceToBrowsing = jest.fn();
+    app.tabManager = { dispose: jest.fn() };
+
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+
+    expect(app._connectVoiceToBrowsing).toHaveBeenCalled();
+  });
+
+  test('a completed build rebinds voice to the systems it just created', () => {
+    const app = makeApp();
+    app._connectVoiceToBrowsing = jest.fn();
+    // The shape a real build reads. Kept minimal on purpose: anything more
+    // would be asserting the constructor rather than the rebind.
+    app.settings = { readerProxyUrl: '', searchEngine: 'duckduckgo' };
+    app.registerInteractable = jest.fn();
+    app.unregisterInteractable = jest.fn();
+    app.navigate = jest.fn();
+    app.bookmarks = {
+      isBookmarked: () => false, addBookmark: jest.fn(), removeBookmark: jest.fn(),
+      getTopSites: () => [], search: () => [],
+      getBookmarks: () => [], getHistory: () => [], addHistory: jest.fn()
+    };
+
+    VRApp.prototype._buildBrowsingSystems.call(app);
+
+    expect(app.tabManager).not.toBeNull();
+    expect(app._connectVoiceToBrowsing).toHaveBeenCalled();
   });
 });
 
@@ -1129,5 +1172,306 @@ describe('the browsing default', () => {
     );
     expect(src).toMatch(/enableWebPanel:\s*true,/);
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
+  });
+});
+
+// ── Voice commands: reachable at last ────────────────────────────────────────
+// `enableVoice` defaulted false and NO settings-panel control, voice command or
+// persisted path could set it — the enableWebPanel shape. It matters more here:
+// voice is the primary modality for users who find gaze/controller input hard,
+// so the escape hatch for the people who need it most had no switch. The usage
+// guide told them to "enable Voice in settings"; there was nothing there.
+describe('VRApp._onVoiceToggleChanged', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const makeVoiceApp = (over = {}) => makeVRAppLike({
+    isVREnabled: true,
+    camera: { add: jest.fn(), remove: jest.fn() },
+    showVRToast: VRApp.prototype.showVRToast,
+    _buildVoiceCommands: jest.fn(async () => true),
+    _teardownVoiceCommands: jest.fn(),
+    settings: { enableVoice: false },
+    ...over
+  });
+
+  test('a settings control exists for it (it is not gated behind nothing)', () => {
+    // The regression that made voice unreachable was a setting with no control,
+    // so assert the wiring method the control calls actually exists.
+    expect(typeof VRApp.prototype._onVoiceToggleChanged).toBe('function');
+    expect(typeof VRApp.prototype._buildVoiceCommands).toBe('function');
+    expect(typeof VRApp.prototype._teardownVoiceCommands).toBe('function');
+  });
+
+  test('turning it ON builds voice commands immediately', async () => {
+    const app = makeVoiceApp();
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    expect(app._buildVoiceCommands).toHaveBeenCalledTimes(1);
+    expect(app._teardownVoiceCommands).not.toHaveBeenCalled();
+  });
+
+  test('turning it OFF tears them down immediately', async () => {
+    const app = makeVoiceApp({ settings: { enableVoice: true } });
+    await VRApp.prototype._onVoiceToggleChanged.call(app, false);
+    expect(app._teardownVoiceCommands).toHaveBeenCalledTimes(1);
+    expect(app._buildVoiceCommands).not.toHaveBeenCalled();
+  });
+
+  test('it never tells the user to reload — it applies now', async () => {
+    const app = makeVoiceApp();
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    const said = app.captionSystem.show.mock.calls.map((c) => String(c[0])).join(' ');
+    expect(said).not.toMatch(/reload|リロード|再読み込み/i);
+  });
+
+  test('a refused microphone is reported, not silently swallowed', async () => {
+    // initialize() returning false means no browser support or denied
+    // permission. The user asked for voice and must be told it did not start.
+    const app = makeVoiceApp({ _buildVoiceCommands: jest.fn(async () => false) });
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    expect(app.captionSystem.show).toHaveBeenCalled();
+  });
+
+  test('building twice is idempotent (no second recognizer)', async () => {
+    const app = makeVRAppLike({
+      voiceCommands: { dispose: jest.fn() },
+      settings: { enableVoice: true }
+    });
+    await expect(VRApp.prototype._buildVoiceCommands.call(app)).resolves.toBe(true);
+  });
+
+  test('teardown releases the recognizer and is safe when absent', () => {
+    const dispose = jest.fn();
+    const app = makeVRAppLike({ voiceCommands: { dispose } });
+    VRApp.prototype._teardownVoiceCommands.call(app);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(app.voiceCommands).toBeNull();
+    expect(() => VRApp.prototype._teardownVoiceCommands.call(app)).not.toThrow();
+  });
+});
+
+// ── Deployment-carried reader proxy detection ───────────────────────────────
+describe('VRApp._detectReaderProxy', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const makeApp = (over = {}) => makeVRAppLike({
+    settings: { readerProxyUrl: '' },
+    tabManager: { setReaderProxyUrl: jest.fn() },
+    ...over
+  });
+
+  test('a deployment carrying a proxy is found and applied to open tabs', async () => {
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp();
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(String(global.fetch.mock.calls[0][0])).toMatch(/api\/reader\/health$/);
+    expect(app.tabManager.setReaderProxyUrl).toHaveBeenCalledWith(
+      expect.stringMatching(/api\/reader$/));
+  });
+
+  test('a static host without one changes nothing', async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+    const app = makeApp();
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('a probe that throws is not an error the user ever sees', async () => {
+    global.fetch = jest.fn(async () => { throw new TypeError('offline'); });
+    const app = makeApp();
+    await expect(VRApp.prototype._detectReaderProxy.call(app)).resolves.toBeUndefined();
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('a proxy the user configured is never probed over', async () => {
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp({ settings: { readerProxyUrl: 'https://mine.example' } });
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(app.tabManager.setReaderProxyUrl).not.toHaveBeenCalled();
+  });
+
+  test('detection is not persisted — it describes the deployment, not a preference', async () => {
+    // Persisting it would make a later deploy without a proxy look broken.
+    global.fetch = jest.fn(async () => ({ ok: true }));
+    const app = makeApp({ updateSetting: jest.fn() });
+    await VRApp.prototype._detectReaderProxy.call(app);
+    expect(app.updateSetting).not.toHaveBeenCalled();
+    expect(app.settings.readerProxyUrl).toBe('');
+  });
+
+  test('no fetch at all (non-browser) is a safe no-op', async () => {
+    global.fetch = undefined;
+    const app = makeApp();
+    await expect(VRApp.prototype._detectReaderProxy.call(app)).resolves.toBeUndefined();
+  });
+});
+
+// ── Find-in-page: settings action and announcement glue ──────────────────────
+// Two modalities reach findInPage (settings-panel action + voice); both funnel
+// through _announceFindResult so the count is announced cross-modally
+// (WCAG 4.1.3) — "no matches" saves a gaze user a fruitless scroll.
+describe('VRApp find-in-page glue', () => {
+  const makeApp = () => {
+    const toasts = [];
+    const app = {
+      showVRToast: (msg, opts) => toasts.push({ msg, opts }),
+      _announceFindResult: VRApp.prototype._announceFindResult,
+      _requestFindInPageInput: VRApp.prototype._requestFindInPageInput,
+      _requestVRKeyboardInput: null,
+      tabManager: null
+    };
+    return { app, toasts };
+  };
+
+  test('a result with matches announces the ordinal and count', () => {
+    const { app, toasts } = makeApp();
+    app._announceFindResult({ count: 7, index: 3 });
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].msg).toContain('3/7');
+    expect(toasts[0].opts).toEqual({ type: 'info' });
+  });
+
+  test('no matches announces that, as a warning', () => {
+    const { app, toasts } = makeApp();
+    app._announceFindResult({ count: 0, index: 0 });
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].opts).toEqual({ type: 'warn' });
+  });
+
+  test('the settings action prompts on the VR keyboard and runs the search', () => {
+    const { app, toasts } = makeApp();
+    const findInPage = jest.fn(() => ({ count: 2, index: 1 }));
+    app.tabManager = { getActiveTab: () => ({ findInPage }) };
+    let confirmed;
+    app._requestVRKeyboardInput = (prefill, cb, label) => {
+      expect(prefill).toBe('');
+      expect(typeof label).toBe('string');
+      confirmed = cb;
+    };
+    app._requestFindInPageInput();
+    confirmed('needle');
+    expect(findInPage).toHaveBeenCalledWith('needle');
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].msg).toContain('1/2');
+  });
+
+  test('no active tab is a safe no-op', () => {
+    const { app, toasts } = makeApp();
+    let confirmed;
+    app._requestVRKeyboardInput = (_p, cb) => { confirmed = cb; };
+    app._requestFindInPageInput();
+    expect(() => confirmed('x')).not.toThrow();
+    expect(toasts).toHaveLength(0);
+  });
+});
+
+// ── Following a numbered link by voice ───────────────────────────────────────
+// Success is announced by the existing onLinkFollowed path; only the failure
+// needs its own message, since silence leaves the user unsure the number was
+// even heard (WCAG 4.1.3).
+describe('VRApp onFollowLink glue', () => {
+  const makeApp = (activeTab) => {
+    const toasts = [];
+    return {
+      toasts,
+      app: {
+        showVRToast: (msg, opts) => toasts.push({ msg, opts }),
+        tabManager: { getActiveTab: () => activeTab }
+      }
+    };
+  };
+
+  /** The wiring under test, mirroring VRApp's connectBrowser callback. */
+  const follow = (app, n) => {
+    const active = app.tabManager?.getActiveTab?.();
+    const out = active && typeof active.followLink === 'function'
+      ? active.followLink(n) : { ok: false };
+    if (!out.ok) {
+      app.showVRToast('no such link', { type: 'warn' });
+    }
+    return out;
+  };
+
+  test('a successful follow stays silent here — onLinkFollowed already announced', () => {
+    const followLink = jest.fn(() => ({ ok: true, href: 'https://x.example/' }));
+    const { app, toasts } = makeApp({ followLink });
+    follow(app, 2);
+    expect(followLink).toHaveBeenCalledWith(2);
+    expect(toasts).toHaveLength(0);
+  });
+
+  test('an out-of-range number warns instead of doing nothing visible', () => {
+    const { app, toasts } = makeApp({ followLink: () => ({ ok: false }) });
+    follow(app, 99);
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].opts).toEqual({ type: 'warn' });
+  });
+
+  test('no active tab warns rather than throwing', () => {
+    const { app, toasts } = makeApp(null);
+    expect(() => follow(app, 1)).not.toThrow();
+    expect(toasts).toHaveLength(1);
+  });
+});
+
+// ── Voice must follow a browsing rebuild ─────────────────────────────────────
+// connectBrowser captures tabManager and bookmarkPanel BY VALUE, and the
+// enableWebPanel toggle disposes those and builds new ones live. Without a
+// rebind, a user who turned browsing off and on left 戻る / 進む / 更新 /
+// ブックマーク and the search fallback addressing a disposed TabManager —
+// while the callbacks that read `this.tabManager` lazily used the new one, so
+// the voice commands disagreed with each other about which browser they drove.
+describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
+  const makeApp = (connected) => ({
+    voiceCommands: { connectBrowser: (opts) => connected.push(opts) },
+    tabManager: null,
+    bookmarkPanel: null,
+    vrKeyboard: null,
+    showVRToast: jest.fn(),
+    _announceFindResult: jest.fn(),
+    _connectVoiceToBrowsing: VRApp.prototype._connectVoiceToBrowsing
+  });
+
+  test('the binding carries whichever TabManager exists at the time', () => {
+    const connected = [];
+    const app = makeApp(connected);
+
+    const first = { id: 'A', getActiveTab: () => null };
+    app.tabManager = first;
+    app._connectVoiceToBrowsing();
+    expect(connected).toHaveLength(1);
+    expect(connected[0].tabManager).toBe(first);
+
+    // The toggle disposes A and builds B.
+    const second = { id: 'B', getActiveTab: () => null };
+    app.tabManager = second;
+    app._connectVoiceToBrowsing();
+    expect(connected).toHaveLength(2);
+    expect(connected[1].tabManager).toBe(second);
+    expect(connected[1].tabManager).not.toBe(first);
+  });
+
+  test('with browsing off it rebinds to nothing rather than to a disposed panel', () => {
+    const connected = [];
+    const app = makeApp(connected);
+    app.tabManager = { id: 'A', getActiveTab: () => null };
+    app.bookmarkPanel = { id: 'P' };
+    app._connectVoiceToBrowsing();
+
+    app.tabManager = null;      // what _teardownBrowsingSystems leaves behind
+    app.bookmarkPanel = null;
+    app._connectVoiceToBrowsing();
+    expect(connected[1].tabManager).toBeNull();
+    expect(connected[1].bookmarkPanel).toBeNull();
+  });
+
+  test('without voice enabled it is a silent no-op, not a crash', () => {
+    const app = makeApp([]);
+    app.voiceCommands = null;
+    expect(() => app._connectVoiceToBrowsing()).not.toThrow();
   });
 });

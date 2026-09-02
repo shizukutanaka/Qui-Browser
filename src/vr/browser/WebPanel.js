@@ -2,15 +2,27 @@
  * FR-1.1 / FR-1.2: In-VR web panel with URL bar, back/forward, and reload.
  *
  * Architecture:
- *   Three.js plane mesh (the "panel chrome") + a hidden <iframe> composited
- *   on top via WebXR dom-overlay or positioned absolutely over the canvas.
- *   The URL bar and navigation controls are drawn on a CanvasTexture and
- *   registered as interactables so controller rays can interact with them.
+ *   Three.js plane mesh for the chrome bar (URL + back/forward/reload) and a
+ *   second one for the viewport, both drawn on CanvasTextures and registered
+ *   as interactables. Page content reaches the viewport through the reader:
+ *   fetch the markup, extract the prose, lay it out ourselves.
+ *
+ * There is deliberately no <iframe>. One used to be created hidden on every
+ * panel and pointed at each navigation. It could never be shown — the only
+ * function that displayed it had zero callers and `dom-overlay` was never
+ * requested — so it existed purely to load a full third-party page, with
+ * scripts, out of sight. Worse, it OWNED the content state: because a frame
+ * refused by X-Frame-Options still fires `load` in Chromium, its handler
+ * overwrote a successful read with 'unavailable'. Measured against a
+ * same-origin article: state reached 'reader' with 9 lines at 0.6 s, then the
+ * frame's load event clobbered it to 'unavailable' at 1.2 s. A page the reader
+ * had already extracted was thrown away and hidden from the user.
  *
  * Limitations (documented honestly):
- *   - Cross-origin iframes are sandboxed: no cookies/autofill, no JS access.
- *   - On platforms without dom-overlay the iframe is not visible in VR;
- *     the panel shows a "Cannot render external content" placeholder.
+ *   - The reader shows extracted text, not the page as authored. A WebXR web
+ *     app cannot composite cross-origin page pixels into a 3D texture.
+ *   - Direct fetch reaches only origins that send CORS headers; the optional
+ *     companion proxy (docs/PROXY.md) covers the rest.
  *   - This class provides the shell; FR-1.5 quad/cylinder Layers are a
  *     separate enhancement for text clarity.
  */
@@ -24,8 +36,10 @@ import {
   elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines, readerFetchUrl
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
+import { decodeMarkup } from './charset.js';
+import { findMatches, matchOrdinal, nextMatch, prevMatch } from './readerSearch.js';
 import {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
+  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel, linkRowIndex, IMAGE_ROWS,
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
@@ -53,6 +67,15 @@ import {
  * @param {number} [fontPx=18] - monospace font size in px
  * @returns {number} max glyph count (≥ 8) that fits, accounting for padding
  */
+/**
+ * How many visited pages keep their extracted text for back/forward.
+ *
+ * Bounded because a tab lives for a whole session and each entry holds a
+ * page's worth of laid-out strings. 20 covers the depth anyone actually walks
+ * back through; beyond that the oldest is dropped and that page refetches.
+ */
+const MAX_CACHED_PAGES = 20;
+
 export function urlBarMaxChars(barWidthPx, fontPx = 18) {
   // Monospace advance width is ~0.6em; reserve ~16px of left/right padding.
   const advance = fontPx * 0.6;
@@ -89,7 +112,8 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel, imageLabel,
+    topSitesProvider, startPageLabel } = {}) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -111,14 +135,34 @@ export class WebPanel {
     this.onGrabRequested = typeof onGrabRequested === 'function' ? onGrabRequested : null;
     this.onMoveBarHoverCaption = typeof onMoveBarHoverCaption === 'function' ? onMoveBarHoverCaption : null;
     this.currentTitle = '';
+    // Following a link is a navigation the user did not type, so it needs the
+    // same cross-modal confirmation every other state change gets (WCAG 4.1.3).
+    this.onLinkFollowed = typeof onLinkFollowed === 'function' ? onLinkFollowed : null;
+    // Heading for the links section, so it can be translated by the host.
+    this.linksLabel = typeof linksLabel === 'string' && linksLabel ? linksLabel : '';
+    // Prefix for an image's text alternative, translated by the host.
+    this.imageLabel = typeof imageLabel === 'string' && imageLabel ? imageLabel : '';
+    // Start page. A fresh tab used to show nothing but "Enter a URL to
+    // navigate", so the only way in was gaze-typing a URL at roughly 8-10 WPM.
+    // The frecency ranking behind this has existed since Session 17 with no
+    // surface at all; it was shelved as a third BookmarkPanel tab, whose
+    // coordinates collide with the scroll arrows. The empty viewport is the
+    // natural home, and a top site is just a link row, so it needs no new
+    // interaction code.
+    this.topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
+    this.startPageLabel = typeof startPageLabel === 'string' && startPageLabel ? startPageLabel : '';
 
     // Panel state
     this.currentUrl  = '';
     this.history     = [];
     this.historyIdx  = -1;
     this.loading     = false;
-    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
-    this.domOverlaySupported = false;
+    // True only for a load that genuinely failed with a status we can see — an
+    // HTTP error from a CORS-enabled origin or the proxy. An opaque fetch
+    // rejection (no CORS header, offline) is NOT an error flag: it is the
+    // ordinary no-proxy case, and painting the URL bar red for it would cry
+    // wolf on nearly every navigation.
+    this._loadError  = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -129,6 +173,33 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    /**
+     * Back/forward cache: url -> {lines, title, scroll}.
+     *
+     * Without it, back() refetched. That is wrong twice over. It loses the
+     * reading position, which in a panel scrolled by gaze-dwell is expensive
+     * to rebuild; and the refetch can fail where the first fetch succeeded
+     * (rate limit, dropped network, proxy stopped), so going back to a page
+     * you have already read could land on 'unavailable'. A page already
+     * extracted does not need the network again.
+     */
+    this._pageCache = new Map();
+    // Find-in-page: line indices of matches and the focused one. Cleared on
+    // every navigation/restore — a search belongs to one page.
+    this._findQuery = '';
+    this._findMatches = [];
+    this._findFocus = -1;
+    /**
+     * Decoded page images, by src.
+     *
+     * Loaded with crossOrigin='anonymous', which is what makes this possible
+     * at all: an image fetched cross-origin WITHOUT it taints the canvas, and
+     * a tainted canvas throws on texture upload — the panel would go black
+     * rather than show a picture. With it, only CORS-clean images decode,
+     * which is the same reach the reader already has for markup. Anything
+     * else quietly stays as its alt text, which is the honest fallback.
+     */
+    this._images = new Map();
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -152,7 +223,6 @@ export class WebPanel {
     // 2D resources
     this.chromeCanvas  = null;
     this.chromeTex     = null;
-    this.iframe        = null;
 
     this._build();
   }
@@ -187,7 +257,9 @@ export class WebPanel {
     this.contentCanvas.width  = 1024;
     this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
     this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
-    this._drawContent();
+    if (!this.showStartPage()) {
+      this._drawContent();
+    }
 
     const contentTex = this.contentTex;
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
@@ -198,16 +270,6 @@ export class WebPanel {
     this.group.add(this.contentMesh);
 
     this._drawChrome();
-
-    // ── iframe for actual content (when dom-overlay is available) ───────────
-    this.iframe = document.createElement('iframe');
-    this.iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
-    this.iframe.style.cssText = `
-      position: fixed; display: none; border: none;
-      width: 960px; height: 540px;
-      pointer-events: auto; z-index: 999;
-    `;
-    document.body.appendChild(this.iframe);
 
     // ── Register chrome bar as interactable for controller ray ──────────────
     this.registerInteractable(this.chromeMesh, {
@@ -290,7 +352,7 @@ export class WebPanel {
     ctx.fillStyle = col.bg;
     ctx.fillRect(0, 0, w, h);
 
-    if (this._contentState === 'reader') {
+    if (this._isReaderLike()) {
       this._drawReader(ctx, w, h, col);
       if (this.contentTex) {
         this.contentTex.needsUpdate = true;
@@ -323,12 +385,14 @@ export class WebPanel {
    * built here, since that is a new network surface needing SSRF hardening.)
    *
    * Uses the AbortController + clearTimeout idiom from JapaneseIME so a hung
-   * request cannot pin the panel in 'loading' forever.
+   * request cannot pin the panel in 'loading' forever. Every exit settles
+   * through `_settleLoad`, which is what clears `loading` and notifies the
+   * host — this method is the sole owner of the panel's content state.
    */
   async _loadReaderText(url) {
     const seq = ++this._readerSeq;
     if (typeof fetch !== 'function') {
-      this._setContentState('unavailable');
+      this._settleLoad(seq, 'unavailable');
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -339,29 +403,47 @@ export class WebPanel {
       const fetchUrl = readerFetchUrl(url, this.readerProxyUrl);
       const res = await fetch(fetchUrl, controller ? { signal: controller.signal } : undefined);
       if (!res || !res.ok) {
-        throw new Error(`HTTP ${res && res.status}`);
-      }
-      const html = await res.text();
-      // A newer navigation started while this was in flight — discard.
-      if (seq !== this._readerSeq) {
+        // A status we can actually see: the origin (or the proxy) answered and
+        // said no. That is a real load failure, unlike an opaque rejection —
+        // and it is the only way onLoadError can fire now that nothing pretends
+        // a refused frame is a successful load.
+        this._settleLoad(seq, 'error', '', true);
         return;
       }
-      const { title, blocks } = extractReadableText(html);
-      const lines = layoutReaderLines(blocks, { title, scale: this._readerScale });
+      // res.text() decodes as UTF-8 unconditionally (Fetch spec), which turns
+      // every Shift_JIS / EUC-JP page — still common in Japan — into mojibake
+      // presented as the article. Take the bytes and honour the declared
+      // charset instead. Stubs without arrayBuffer keep the old path.
+      const html = typeof res.arrayBuffer === 'function'
+        ? decodeMarkup(new Uint8Array(await res.arrayBuffer()),
+          res.headers && typeof res.headers.get === 'function'
+            ? res.headers.get('content-type') : '')
+        : await res.text();
+      // `url`, not the proxy URL, is the base: relative hrefs must resolve
+      // against the page the user is on, not against where it was fetched from.
+      const { title, blocks, links } = extractReadableText(html, url);
+      const lines = layoutReaderLines(blocks, {
+        title, links, linksLabel: this.linksLabel, imageLabel: this.imageLabel,
+        scale: this._readerScale
+      });
       if (!lines.length) {
         // Fetched, but no prose recoverable (SPA shell, or markup we can't
         // read). Say so rather than showing a blank page.
-        this._setContentState('unavailable');
+        this._settleLoad(seq, 'unavailable', title);
         return;
+      }
+      if (seq !== this._readerSeq) {
+        return; // a newer navigation started while this was in flight
       }
       this._readerLines = lines;
       this._readerScroll = 0;
-      this._contentState = 'reader';
-      this._drawContent();
+      this._settleLoad(seq, 'reader', title);
+      this._loadImages();
     } catch {
-      if (seq === this._readerSeq) {
-        this._setContentState('unavailable');
-      }
+      // Opaque: a CORS-less origin, an abort, or no network. Indistinguishable
+      // from each other in a browser, so claim nothing beyond 'unavailable' —
+      // whose text already names the likely cause and the fix.
+      this._settleLoad(seq, 'unavailable');
     } finally {
       if (timer) {
         clearTimeout(timer);
@@ -385,16 +467,44 @@ export class WebPanel {
     ctx.textAlign = 'left';
     const lh = LINE_H * this._readerScale;
     let y = CONTENT_PAD + lh;
+    let row = this._readerScroll;
     for (const line of window) {
+      // Find-in-page: paint the match rows' band before their text, so the
+      // text keeps its measured contrast on top of the fill. The focused row
+      // adds a border — a weight cue, not colour alone (WCAG 1.4.1), and it is
+      // also where the viewport just scrolled.
+      if (this._findMatches.length && this._findMatches.includes(row)) {
+        ctx.fillStyle = col.findRowBg;
+        ctx.fillRect(CONTENT_PAD - 8, y - lh + 6, w - 2 * (CONTENT_PAD - 8), lh);
+        if (row === this._findFocus) {
+          ctx.strokeStyle = col.findActiveBorder;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(CONTENT_PAD - 8, y - lh + 6, w - 2 * (CONTENT_PAD - 8), lh);
+        }
+      }
       if (line.style !== 'blank' && line.text) {
-        ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
-        ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
+        // Alt text is prose about the page, not a heading within it.
+        const bold = line.style !== 'p' && line.style !== 'link' && line.style !== 'img';
+        ctx.font = `${bold ? 'bold ' : ''}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
+        // A link's number (drawn as part of its text by layoutReaderLines) is
+        // the cue that does not depend on colour; the tint reinforces it.
+        ctx.fillStyle = line.style === 'link' ? col.readerLink
+          : line.style === 'img' ? col.readerImage
+            : line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;
+      row++;
     }
 
-    const label = readerProgressLabel(this._readerScroll, total, visible);
+    this._drawImages(ctx, w, h, visible);
+
+    const progress = readerProgressLabel(this._readerScroll, total, visible);
+    // 3/7 alongside the progress: which match has focus, out of how many.
+    const find = this._findMatches.length
+      ? `${matchOrdinal(this._findMatches, this._findFocus)}/${this._findMatches.length}`
+      : '';
+    const label = [progress, find].filter(Boolean).join('   ');
     if (label) {
       ctx.textAlign = 'left';
       ctx.font = '16px sans-serif';
@@ -428,7 +538,7 @@ export class WebPanel {
    * one implementation serves both input modes.
    */
   _onContentSelect(evt) {
-    if (this._contentState !== 'reader' || !this.contentCanvas) {
+    if (!this._isReaderLike() || !this.contentCanvas) {
       return;
     }
     const rawPoint = evt?.intersection?.point ?? evt;
@@ -444,11 +554,22 @@ export class WebPanel {
 
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;
-    const action = readerHitTest(px, py, scrollable);
+    const action = readerHitTest(px, py, scrollable, this._readerScale);
     if (action.type === 'scrollUp') {
       this.scrollContent(-pageJumpLines(visible));
     } else if (action.type === 'scrollDown') {
       this.scrollContent(pageJumpLines(visible));
+    } else if (action.type === 'row') {
+      // Follow a link. The row index is window-relative, so add the scroll
+      // offset — clamped through the same helper the draw path uses.
+      const start = clampReaderScroll(this._readerScroll, this._readerLines.length, visible);
+      const line = this._readerLines[start + action.row];
+      if (line && line.href) {
+        if (this.onLinkFollowed) {
+          this.onLinkFollowed(line.text, line.href);
+        }
+        this.navigate(line.href);
+      }
     }
   }
 
@@ -459,8 +580,177 @@ export class WebPanel {
    * @param {number} delta positive = further down the article
    * @returns {boolean} true when the offset actually moved
    */
+  /**
+   * Follow the nth link by its printed number.
+   *
+   * The same path a row hit takes (onLinkFollowed then navigate), reached by
+   * number instead of by pointing — so gaze, controller and voice all end up
+   * in one place and the number on screen always opens what it says.
+   *
+   * @param {number} n 1-based link ordinal, as printed
+   * @returns {{ok: boolean, text?: string, href?: string}}
+   */
+  followLink(n) {
+    if (!this._isReaderLike()) {
+      return { ok: false };
+    }
+    const i = linkRowIndex(this._readerLines, n);
+    const line = i === -1 ? null : this._readerLines[i];
+    if (!line || !line.href) {
+      return { ok: false };
+    }
+    if (this.onLinkFollowed) {
+      this.onLinkFollowed(line.text, line.href);
+    }
+    this.navigate(line.href);
+    return { ok: true, text: line.text, href: line.href };
+  }
+
+  /**
+   * Start decoding the images the current page reserved space for.
+   *
+   * Bounded by MAX_IMAGES at extraction and by this cache per panel. A failure
+   * is recorded as 'failed' rather than retried: a broken image that retries
+   * on every redraw would hammer the network from inside a render loop.
+   */
+  _loadImages() {
+    if (typeof Image !== 'function') {
+      return;
+    }
+    const seq = this._readerSeq;
+    for (const line of this._readerLines) {
+      if (line.style !== 'imgbox' || !line.first || this._images.has(line.src)) {
+        continue;
+      }
+      this._images.set(line.src, 'loading');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (seq !== this._readerSeq) {
+          return; // a newer navigation owns the viewport now
+        }
+        this._images.set(line.src, img);
+        this._drawContent();
+      };
+      img.onerror = () => {
+        this._images.set(line.src, 'failed');
+      };
+      img.src = line.src;
+    }
+  }
+
+  /**
+   * Draw any decoded images whose reserved rows intersect the viewport.
+   *
+   * Done in its own pass rather than inside the text loop because an image
+   * spans several rows and may start above the window — its band has to be
+   * positioned from the group's absolute row, then clipped to the text column,
+   * so a half-scrolled figure is cut cleanly instead of painted over the
+   * chrome or the arrows.
+   */
+  _drawImages(ctx, w, h, visible) {
+    if (!this._images.size || typeof ctx.drawImage !== 'function') {
+      return;
+    }
+    const lh = LINE_H * this._readerScale;
+    const bandH = IMAGE_ROWS * lh;
+    const colW = w - 2 * CONTENT_PAD;
+    for (let i = 0; i < this._readerLines.length; i++) {
+      const line = this._readerLines[i];
+      if (line.style !== 'imgbox' || !line.first) {
+        continue;
+      }
+      const img = this._images.get(line.src);
+      if (!img || img === 'loading' || img === 'failed' || !img.width || !img.height) {
+        continue;
+      }
+      const top = CONTENT_PAD + (i - this._readerScroll) * lh;
+      if (top > CONTENT_PAD + visible * lh || top + bandH < 0) {
+        continue; // entirely outside the viewport
+      }
+      // Contain, never upscale: a small image blown up to fill six rows looks
+      // broken, and the aspect ratio is the author's, not ours.
+      const scale = Math.min(colW / img.width, bandH / img.height, 1);
+      const dw = Math.max(1, Math.round(img.width * scale));
+      const dh = Math.max(1, Math.round(img.height * scale));
+      ctx.save();
+      if (typeof ctx.beginPath === 'function' && typeof ctx.clip === 'function') {
+        ctx.beginPath();
+        ctx.rect(CONTENT_PAD, CONTENT_PAD, colW, visible * lh);
+        ctx.clip();
+      }
+      ctx.drawImage(img, CONTENT_PAD + (colW - dw) / 2, top + (bandH - dh) / 2, dw, dh);
+      ctx.restore();
+    }
+  }
+
+  _clearFind() {
+    this._findQuery = '';
+    this._findMatches = [];
+    this._findFocus = -1;
+  }
+
+  /** Scroll so line `i` sits one row below the top — the PAGE_OVERLAP idea. */
+  _scrollToLine(i) {
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    this._readerScroll = clampReaderScroll(i - 1, this._readerLines.length, visible);
+  }
+
+  /**
+   * Find-in-page over the laid-out lines (see readerSearch.js for the match
+   * semantics). Scrolls to the first match and highlights every match row.
+   *
+   * Exists because the reader can show a several-hundred-line article but the
+   * only way to locate anything in it was to page through the whole thing —
+   * and for a gaze user every page turn is a dwell, so searching a long text
+   * was the single most expensive thing this browser asked of them.
+   *
+   * @param {string} query
+   * @returns {{count: number, index: number}} match count and 1-based focus
+   *   ordinal, for the caller's cross-modal announcement (WCAG 4.1.3)
+   */
+  findInPage(query) {
+    if (!this._isReaderLike()) {
+      return { count: 0, index: 0 };
+    }
+    this._findQuery = typeof query === 'string' ? query : '';
+    this._findMatches = findMatches(this._readerLines, this._findQuery);
+    if (!this._findMatches.length) {
+      this._findFocus = -1;
+      this._drawContent();
+      return { count: 0, index: 0 };
+    }
+    this._findFocus = this._findMatches[0];
+    this._scrollToLine(this._findFocus);
+    this._drawContent();
+    return { count: this._findMatches.length, index: 1 };
+  }
+
+  /** Jump to the next match, wrapping — a cycle, like every browser's find. */
+  findNext() {
+    return this._stepFind(nextMatch);
+  }
+
+  /** Jump to the previous match, wrapping backwards. */
+  findPrev() {
+    return this._stepFind(prevMatch);
+  }
+
+  _stepFind(step) {
+    if (!this._isReaderLike() || !this._findMatches.length) {
+      return { count: 0, index: 0 };
+    }
+    this._findFocus = step(this._findMatches, this._findFocus);
+    this._scrollToLine(this._findFocus);
+    this._drawContent();
+    return {
+      count: this._findMatches.length,
+      index: matchOrdinal(this._findMatches, this._findFocus)
+    };
+  }
+
   scrollContent(delta) {
-    if (this._contentState !== 'reader') {
+    if (!this._isReaderLike()) {
       return false;
     }
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
@@ -496,6 +786,44 @@ export class WebPanel {
     if (this._contentState === 'unavailable') {
       this._drawContent();
     }
+  }
+
+  /** States whose viewport shows selectable, scrollable rows. */
+  _isReaderLike() {
+    return this._contentState === 'reader' || this._contentState === 'start';
+  }
+
+  /**
+   * Show the frecency-ranked start page, if there is anything to show.
+   *
+   * Degrades honestly: a first-run user has no history, so there are no top
+   * sites and the viewport keeps its "Enter a URL" message rather than showing
+   * an empty list that implies something is missing.
+   *
+   * @returns {boolean} whether a start page was rendered
+   */
+  showStartPage() {
+    if (!this.topSitesProvider) {
+      return false;
+    }
+    let sites = [];
+    try {
+      sites = this.topSitesProvider() || [];
+    } catch {
+      return false; // a broken provider must not break the panel
+    }
+    const links = sites
+      .filter((s) => s && s.url)
+      .map((s) => ({ text: s.title || s.host || s.url, href: s.url }));
+    if (!links.length) {
+      return false;
+    }
+    this._readerLines = layoutReaderLines([], {
+      links, linksLabel: this.startPageLabel, scale: this._readerScale
+    });
+    this._readerScroll = 0;
+    this._setContentState('start');
+    return true;
   }
 
   /** Set the content-area state and repaint if it changed. */
@@ -687,8 +1015,7 @@ export class WebPanel {
   // ── Navigation API ────────────────────────────────────────────────────────
 
   /**
-   * Navigate to a URL.  Records history and loads the iframe if dom-overlay
-   * is available; otherwise just updates the chrome bar.
+   * Navigate to a URL. Records history and starts the reader load.
    */
   navigate(url) {
     // Resolve the raw input into a navigable URL. Text that looks like a host
@@ -703,6 +1030,9 @@ export class WebPanel {
     }
     url = resolved;
 
+    // Keep the page being left, so Back returns to it where it was.
+    this._rememberPage();
+
     // Trim forward history and push new entry.
     this.history = this.history.slice(0, this.historyIdx + 1);
     this.history.push(url);
@@ -712,6 +1042,8 @@ export class WebPanel {
   }
 
   _loadUrl(url) {
+    this._clearFind();
+    this._images.clear(); // decoded pixels belong to the page that reserved them
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
@@ -719,48 +1051,109 @@ export class WebPanel {
 
     this._setContentState('loading');
     // Reader pipeline: fetch the markup and render the readable text ourselves.
-    // This is the only way a WebXR web app can show page content at all.
+    // This is the only way a WebXR web app can show page content at all, and
+    // since the iframe is gone it is also the ONLY thing that can move the
+    // panel off 'loading' — so a hang here is a visible hang, not something a
+    // frame's load event papers over.
     this._loadReaderText(url);
+  }
 
-    // Load in iframe (visible only when dom-overlay is active).
-    this.iframe.src = url;
-    this.iframe.onload = () => {
-      this.loading = false;
-      this._loadError = false;
-      let title = url;
-      try {
-        title = this.iframe.contentDocument.title || url;
-      } catch { /* cross-origin frame: keep the URL as the title */ }
-      this.currentTitle = title;
-      // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
-      // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-      // page rendered. Combined with the fact that page pixels can never reach
-      // the 3D texture anyway, the viewport must say so rather than keep a
-      // stale "Enter a URL" placeholder that implies nothing happened.
-      this._setContentState('unavailable');
-      this._drawChrome();
-      this.onNavigate(url, title);
-    };
-    this.iframe.onerror = () => {
-      this.loading = false;
-      this._loadError = true;
-      this._setContentState('error');
-      this._drawChrome();
-      this.onLoadError(this.currentUrl);
-    };
+  /**
+   * Terminal step of a navigation: leave 'loading', repaint the chrome, and
+   * tell the host what happened. Every exit from `_loadReaderText` goes
+   * through here so no path can leave the panel stuck loading.
+   *
+   * @param {number}  seq    the load's sequence number; a superseded load (a
+   *   newer navigation started, or the panel was disposed) settles nothing
+   * @param {string}  state  content state to show
+   * @param {string}  [title] page title when the reader recovered one
+   * @param {boolean} [failed] true only for a load that failed with a status
+   *   we could actually observe — fires onLoadError instead of onNavigate
+   */
+  _settleLoad(seq, state, title, failed) {
+    if (seq !== this._readerSeq) {
+      return;
+    }
+    const url = this.currentUrl;
+    this.loading = false;
+    this._loadError = !!failed;
+    this.currentTitle = title || url;
+    this._setContentState(state);
+    this._drawChrome();
+    if (failed) {
+      this.onLoadError(url);
+    } else {
+      this.onNavigate(url, this.currentTitle);
+    }
+  }
+
+  /**
+   * Store the page being left, so returning to it restores text and position.
+   * Only a successfully read page is worth keeping — an error or 'unavailable'
+   * should be retried on the way back, not preserved.
+   */
+  _rememberPage() {
+    if (this._contentState !== 'reader' || !this.currentUrl || !this._readerLines.length) {
+      return;
+    }
+    // Re-insert so recency ordering is by last visit, not first.
+    this._pageCache.delete(this.currentUrl);
+    this._pageCache.set(this.currentUrl, {
+      lines: this._readerLines,
+      title: this.currentTitle,
+      scroll: this._readerScroll
+    });
+    while (this._pageCache.size > MAX_CACHED_PAGES) {
+      this._pageCache.delete(this._pageCache.keys().next().value);
+    }
+  }
+
+  /**
+   * Restore a cached page instead of refetching. Returns false when there is
+   * no entry, so the caller falls back to a normal load.
+   * @param {string} url
+   * @returns {boolean}
+   */
+  _restorePage(url) {
+    const hit = this._pageCache.get(url);
+    if (!hit) {
+      return false;
+    }
+    this._clearFind();
+    // Advance the sequence: a fetch still in flight for the page we are
+    // leaving must not settle over the restored one.
+    const seq = ++this._readerSeq;
+    this.currentUrl = url;
+    this._readerLines = hit.lines;
+    this._readerScroll = hit.scroll;
+    this.loading = false;
+    this._settleLoad(seq, 'reader', hit.title);
+    // _setContentState early-returns when the state is unchanged, and going
+    // back from one article to another leaves it on 'reader' — so without this
+    // the viewport would keep showing the page we just left.
+    this._drawContent();
+    return true;
   }
 
   back() {
     if (this.historyIdx > 0) {
+      this._rememberPage();
       this.historyIdx--;
-      this._loadUrl(this.history[this.historyIdx]);
+      const url = this.history[this.historyIdx];
+      if (!this._restorePage(url)) {
+        this._loadUrl(url);
+      }
     }
   }
 
   forward() {
     if (this.historyIdx < this.history.length - 1) {
+      this._rememberPage();
       this.historyIdx++;
-      this._loadUrl(this.history[this.historyIdx]);
+      const url = this.history[this.historyIdx];
+      if (!this._restorePage(url)) {
+        this._loadUrl(url);
+      }
     }
   }
 
@@ -793,26 +1186,10 @@ export class WebPanel {
 
   reload() {
     if (this.currentUrl) {
+      // Explicitly asking for the page again means asking the network again.
+      this._pageCache.delete(this.currentUrl);
       this._loadUrl(this.currentUrl);
     }
-  }
-
-  // ── DOM-overlay integration ───────────────────────────────────────────────
-
-  /**
-   * Call this when a WebXR session with dom-overlay starts.
-   * Shows the iframe positioned over the panel's projected screen area.
-   */
-  onDomOverlayStart() {
-    this.domOverlaySupported = true;
-    this.iframe.style.display = 'block';
-  }
-
-  /**
-   * Call this when the WebXR session ends.
-   */
-  onDomOverlayEnd() {
-    this.iframe.style.display = 'none';
   }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
@@ -937,7 +1314,6 @@ export class WebPanel {
 
   hide() {
     this.group.visible = false;
-    this.iframe.style.display = 'none';
   }
 
   /**
@@ -952,11 +1328,7 @@ export class WebPanel {
    * @param {boolean} visible
    */
   setVisible(visible) {
-    const v = !!visible;
-    this.group.visible = v;
-    if (this.iframe) {
-      this.iframe.style.display = v ? '' : 'none';
-    }
+    this.group.visible = !!visible;
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -972,6 +1344,13 @@ export class WebPanel {
   }
 
   dispose() {
+    // Invalidate any in-flight reader load. `_settleLoad` checks the sequence,
+    // so a fetch that lands after teardown settles nothing — no redraw onto a
+    // disposed texture, no onNavigate against a torn-down VRApp. This replaces
+    // the handler-nulling the iframe needed, for the same reason.
+    this._readerSeq++;
+    this._pageCache.clear();
+    this._images.clear();
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
@@ -990,20 +1369,5 @@ export class WebPanel {
     });
 
     this.scene.remove(this.group);
-
-    if (this.iframe) {
-      // Detach the load/error handlers before removing the element. A
-      // navigation started just before dispose() (tab/panel closed mid-load)
-      // can still fire onload/onerror afterward; without this, the stale
-      // handler redraws chromeCanvas onto an already-disposed chromeTex and
-      // calls onNavigate()/onLoadError() against a torn-down VRApp — the same
-      // teardown-leak class fixed for toast timers, hand-tracking timers, and
-      // queued TTS utterances.
-      this.iframe.onload = null;
-      this.iframe.onerror = null;
-      if (this.iframe.parentNode) {
-        this.iframe.parentNode.removeChild(this.iframe);
-      }
-    }
   }
 }

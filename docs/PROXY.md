@@ -15,11 +15,46 @@ origins; for anything else the viewport explains the cause and points here.
 (Browsing itself is enabled by default as of Session 74 — the failure state is
 honest guidance, not a dead end.)
 
-`proxy/server.js` closes that gap. It is **not part of the shipped app**, on
-purpose:
+There are two ways to close that gap.
 
-- the default deploy target is GitHub Pages, which is static and cannot run it —
-  bundling it would imply a capability the deployment does not have
+## 1. A deployment that carries its own proxy (no setup at all)
+
+The app **finds a same-origin proxy by itself**: at startup it probes
+`<base>api/reader/health`, and if that answers it routes reader fetches through
+it. Nothing to configure, nothing to type.
+
+That detection is **platform-neutral** — it looks for a path, not a host. Any
+deployment that answers these two routes works:
+
+| route | behaviour |
+|---|---|
+| `GET <base>api/reader/health` | `200 {"ok":true}` |
+| `GET <base>api/reader/fetch?url=<encoded>` | the page's markup as `text/plain`, or `400 {"error": reason}` |
+
+Two ways to provide them:
+
+- **Netlify**: `netlify/functions/reader.mjs` is already wired to `/api/reader`
+  by `netlify.toml`, so a deploy ships with one and nothing else is needed.
+- **Anywhere else** (Vercel, Cloudflare, your own box, a container): run
+  `proxy/server.js` and reverse-proxy `/api/reader/*` to it — it serves
+  `/fetch` and `/health` at its root, which is the same contract with the
+  prefix stripped. Or set the proxy URL by hand, below.
+
+A proxy URL you typed always wins over the detected one — including when you
+deliberately cleared it — and the detection is never persisted, because it
+describes the deployment rather than a preference.
+
+On a static host such as GitHub Pages the probe 404s and nothing changes: the
+reader falls back to direct fetch exactly as before. If you do not want your
+deployment to carry an outbound fetch surface, delete the file; the app works
+without it.
+
+## 2. `proxy/server.js`, run yourself
+
+The standalone server is **not bundled into the app**, on purpose:
+
+- GitHub Pages, one of this repo's deploy targets, is static and cannot run it —
+  bundling it would imply a capability that deployment does not have
 - it is an outbound network surface, and nobody should get one they did not ask for
 
 Run it yourself and the reader reads the real web. Don't, and nothing changes.
@@ -63,7 +98,9 @@ works from the headset itself).
 A fetch proxy is a confused-deputy risk: it turns a user-supplied string into an
 outbound request from a machine the user does not control. Every access decision
 lives in `proxy/ssrfGuard.js`, kept pure so it can be tested exhaustively
-without opening a socket (`tests/ssrf-guard.test.js`, 51 tests).
+without opening a socket (`tests/ssrf-guard.test.js`, 51 tests). The Netlify
+function imports the same `fetchThroughGuard` verbatim rather than
+reimplementing it — a second copy of SSRF logic is a second thing to get wrong.
 
 Defences, in order:
 

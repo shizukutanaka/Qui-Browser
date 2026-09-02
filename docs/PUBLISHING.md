@@ -19,9 +19,11 @@
 > |---|---|
 > | `.github/workflows/deploy.yml` | delete the *Validate VR Modules*, *Check file sizes*, and the `npx eslint assets/js/*.js` / `MODULE_COUNT` steps (lines ~38–50, ~100, ~104) |
 > | `.github/workflows/test.yml` | delete every step globbing `assets/js/**` (lines ~60, 78–99, 143, 164–177, 203–226) — the real suite is `npm test` |
-> | `.github/workflows/benchmark.yml` | delete, or drop the `assets/js/vr-*.js` path trigger |
+> | `.github/workflows/benchmark.yml` | delete — it runs `tools/benchmark.js`, which was deleted along with the code it timed |
+> | `.github/workflows/ci.yml` | delete the *Performance Tests* job and its two entries in the summary job — same reason |
+> | `.github/workflows/release.yml` | delete the *Run benchmark* step and the `benchmark-results.*` references |
 > | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
-> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
+> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build. It is also **malformed YAML** (line 178), which is the sole reason `npm run format:check` cannot pass: prettier fails to parse it. Removing it makes every remaining workflow parse. |
 >
 > **A ready-to-apply patch is committed at
 > `docs/patches/0001-ci-drop-assets-js-steps.patch`** — verified to apply
@@ -39,12 +41,46 @@
 >
 > ```yaml
 >       - run: npm ci
->       - run: npm test
->       - run: npm run lint
->       - run: npm run ci:verify   # build + verify:layout + verify:app
+>       - run: npm run gate        # tests + lint + build + all three verify stages
 > ```
 >
-> Until this is done, CI results on `main` are not trustworthy.
+> **Scope correction (Session 75).** An earlier version of this note implied
+> all CI and the Pages deployment were blocked. Re-checked file by file, that
+> was too broad:
+>
+> | workflow | references deleted paths | what it does |
+> |---|---|---|
+> | `cd.yml` | **no** | `npm ci` → `npm test` → build → deploy to Pages / Netlify / Vercel |
+> | `ci.yml` | **no** | `npm run lint`, `npm test`, audit, benchmark |
+> | `deploy.yml` | yes | a **second, redundant** Pages workflow — this is the one that exits 1 |
+> | `test.yml`, `benchmark.yml`, `v5.8.0-planning.yml`, `wasm-build.yml` | yes | audit legacy code that no longer exists |
+>
+> So Pages **does** deploy, with `npm test` enforced ahead of it, and lint is
+> enforced by `ci.yml`. What the patch removes is dead weight and a duplicate,
+> not the deployment itself. Two steps still fail for reasons outside those
+> files. One of those has since been fixed —
+> `tests/tier-system-integration.test.js` now exists and covers both the build
+> chunk tiers and the device tiers. The other genuinely cannot be fixed from
+> here: `npm run format:check` never completes because Prettier fails to parse
+> `wasm-build.yml`, which is itself a workflow file.
+>
+> Until this is done, some CI results on `main` are not trustworthy.
+>
+> **In the meantime there is a deployment path whose checks do run.**
+> `netlify.toml`'s build command is `npm ci && npm run gate`, so a Netlify
+> deploy runs the tests, lint, the build and all three browser harnesses, and a
+> red gate fails the deploy. That does not repair the five workflow files — only
+> the repository owner can, with the patch above — but it means the product can
+> be deployed with its checks actually enforced rather than nominally green.
+>
+> **And a push is gated locally.** `.githooks/pre-push` runs `npm run gate` and
+> aborts the push if anything is red; `npm install` points `core.hooksPath` at
+> it via the `prepare` script, so a clone picks it up. A push is upstream of
+> *every* deployment target, GitHub Pages included, so this is the one place a
+> check can be enforced without a workflow file. It is not a replacement for
+> CI — it runs on a developer's machine, only after an install, and
+> `git push --no-verify` bypasses it — but it is a real check where none of the
+> alternatives are available. `QUI_SKIP_GATE=1` skips it deliberately.
 
 ---
 

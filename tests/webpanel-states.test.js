@@ -1,7 +1,12 @@
 /**
  * Tests for WebPanel visual-state logic:
  *   - back/forward disabled state (driven by historyIdx / history.length)
- *   - load-error flag set by iframe onerror, cleared on subsequent navigate
+ *   - the content state machine, which the READER now solely owns
+ *
+ * The panel used to carry a hidden <iframe> that could never be displayed and
+ * whose load event overwrote the reader's result — measured clobbering a
+ * successfully read article back to 'unavailable'. It is gone; `createElement`
+ * below refuses to make one so its return can never quietly come back.
  *
  * Canvas, THREE, and DOM are stubbed to keep the test headless.
  */
@@ -43,10 +48,7 @@ global.document = {
   createElement(tag) {
     if (tag === 'canvas') return { width: 0, height: 0, getContext: () => ctx2d };
     if (tag === 'iframe') {
-      return {
-        src: '', style: { cssText: '' }, onload: null, onerror: null,
-        setAttribute() {}
-      };
+      throw new Error('WebPanel must not create an iframe');
     }
     return {};
   },
@@ -54,6 +56,9 @@ global.document = {
 };
 
 const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
+
+/** Drain pending microtasks so an awaited reader load can settle. */
+const flush = () => new Promise((r) => setImmediate(r));
 
 // Plain-function recorders (not jest.fn: jest.config sets resetMocks:true,
 // which would wipe implementations before each test).
@@ -123,8 +128,6 @@ describe('WebPanel history navigation state', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 0;
-    // point iframe at the forward URL to avoid triggering real load issues
-    p.iframe.src = '';
     p.forward();
     expect(p.historyIdx).toBe(1);
   });
@@ -205,39 +208,60 @@ describe('WebPanel goBack / goForward (WCAG 4.1.3)', () => {
 
 // ── Load-error state ──────────────────────────────────────────────────────────
 describe('WebPanel load-error state', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
   test('_loadError starts false', () => {
     const p = makePanel();
     expect(p._loadError).toBe(false);
   });
 
-  test('_loadError is set to true when iframe fires onerror', () => {
-    const p = makePanel();
+  test('an observable HTTP failure sets _loadError and fires onLoadError', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
     p.currentUrl = 'https://bad.example';
-    // Trigger _loadUrl which attaches the iframe handlers.
-    p._loadUrl('https://bad.example');
-    expect(p._loadError).toBe(false); // not yet
-    // Simulate iframe error
-    p.iframe.onerror();
+    await p._loadReaderText('https://bad.example');
     expect(p._loadError).toBe(true);
+    expect(p._contentState).toBe('error');
+    expect(onLoadError).toHaveBeenCalledWith('https://bad.example');
+  });
+
+  test('an opaque fetch rejection is NOT flagged as an error', async () => {
+    // No CORS header, or offline — indistinguishable, and the ordinary case
+    // without a proxy. Reddening the URL bar here would cry wolf on nearly
+    // every navigation, so the panel says 'unavailable' and claims nothing.
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
+    p.currentUrl = 'https://nocors.example';
+    await p._loadReaderText('https://nocors.example');
+    expect(p._loadError).toBe(false);
+    expect(p._contentState).toBe('unavailable');
+    expect(onLoadError).not.toHaveBeenCalled();
   });
 
   test('_loadError is cleared when a new _loadUrl call is made', () => {
     const p = makePanel();
-    p.iframe.onerror && p.iframe.onerror(); // prime an error
+    p._loadError = true;               // prime an error
     p._loadUrl('https://good.example');
     expect(p._loadError).toBe(false);   // cleared at the start of the new load
   });
 
-  test('_loadError is cleared when iframe fires onload', () => {
+  test('_loadError is cleared once a later load succeeds', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve('') });
     const p = makePanel();
-    p._loadUrl('https://site.example');
-    p.iframe.onerror();                 // set the error
+    p.currentUrl = 'https://site.example';
+    await p._loadReaderText('https://site.example');
     expect(p._loadError).toBe(true);
 
-    // Navigate to the same URL again — onerror fired, then onload fires.
-    p._loadUrl('https://site.example');
-    p.iframe.onload();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'prose here. '.repeat(40) + '</p></body></html>')
+    });
+    await p._loadReaderText('https://site.example');
     expect(p._loadError).toBe(false);
+    expect(p._contentState).toBe('reader');
   });
 });
 
@@ -281,79 +305,119 @@ describe('WebPanel navigate() blocked-navigation feedback', () => {
   });
 });
 
-// ── dispose() teardown — stale iframe handler leak ──────────────────────────
-describe('WebPanel dispose() detaches iframe onload/onerror', () => {
-  test('dispose() nulls onload and onerror before removing the iframe', () => {
+// ── dispose() teardown — a load landing after the panel is gone ─────────────
+// The iframe's handlers had to be nulled for exactly this reason. With the
+// frame deleted, the reader's sequence number does the same job: dispose()
+// bumps it, so an in-flight fetch settles nothing.
+describe('WebPanel dispose() invalidates an in-flight load', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  test('dispose() advances the reader sequence', () => {
     const p = makePanel();
-    p._loadUrl('https://example.com'); // attaches onload/onerror
-    expect(typeof p.iframe.onload).toBe('function');
-    expect(typeof p.iframe.onerror).toBe('function');
-
+    const before = p._readerSeq;
     p.dispose();
-
-    expect(p.iframe.onload).toBeNull();
-    expect(p.iframe.onerror).toBeNull();
+    expect(p._readerSeq).toBeGreaterThan(before);
   });
 
-  test('a load completing after dispose() does not reach onNavigate', () => {
-    // The DOM re-checks the onload IDL attribute at fire time rather than
-    // holding a captured reference, so simulate that: read p.iframe.onload
-    // *after* dispose() (not a pre-dispose capture) and invoke it if set —
-    // mirroring how a stale in-flight navigation's load event is dispatched.
+  test('a load completing after dispose() does not reach onNavigate', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const onNavigate = jest.fn();
     const p = makePanel({ onNavigate });
     p._loadUrl('https://example.com'); // navigation in flight
 
     p.dispose(); // tab/panel closed mid-load
+    release({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'prose. '.repeat(40) + '</p></body></html>')
+    });
+    await flush();
 
-    if (p.iframe.onload) {
-      p.iframe.onload();
-    }
     expect(onNavigate).not.toHaveBeenCalled();
+    expect(p.loading).toBe(true); // never settled — the panel is gone
   });
 
-  test('a load erroring after dispose() does not reach onLoadError', () => {
+  test('a load erroring after dispose() does not reach onLoadError', async () => {
+    let reject;
+    global.fetch = () => new Promise((_, r) => { reject = r; });
     const onLoadError = jest.fn();
     const p = makePanel({ onLoadError });
     p._loadUrl('https://example.com');
 
     p.dispose();
+    reject(new TypeError('Failed to fetch'));
+    await flush();
 
-    if (p.iframe.onerror) {
-      p.iframe.onerror();
-    }
     expect(onLoadError).not.toHaveBeenCalled();
   });
 });
 
 // ── Content area reflects real state (no silent stale placeholder) ───────────
-// A frame refused by X-Frame-Options fires `load`, not `error`, so reaching
-// onload never proved the page rendered — and the content canvas was painted
-// once in _build() and never again, so the viewport kept reading "Enter a URL
-// to navigate" after a navigation the user believed had succeeded.
+// The content canvas was painted once in _build() and never again, so the
+// viewport kept reading "Enter a URL to navigate" after a navigation the user
+// believed had succeeded. It is now repainted by whatever the reader finds —
+// and by nothing else, which is the point of deleting the frame.
 describe('WebPanel content-area state', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
   test('starts empty', () => {
     const p = makePanel();
     expect(p._contentState).toBe('empty');
   });
 
-  test('goes to loading while a navigation is in flight', () => {
+  test('goes to loading while a navigation is in flight', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
     const p = makePanel();
     p._loadUrl('https://example.com');
     expect(p._contentState).toBe('loading');
+    expect(p.loading).toBe(true);
+    // Let it settle so the abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
   });
 
-  test('a completed load reports content unavailable, not empty', () => {
-    const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onload();
+  test('a successful read is NOT overwritten — the regression the frame caused', async () => {
+    // Measured against a same-origin article before the fix: state reached
+    // 'reader' with 9 lines, then the hidden frame's load event clobbered it
+    // to 'unavailable'. Nothing but the reader may settle the state now.
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve(
+        '<html><head><title>Real Title</title></head><body><article><p>'
+        + 'Sentence of real prose. '.repeat(30) + '</p></article></body></html>')
+    });
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p.navigate('https://example.com/article');
+    await flush();
+
+    expect(p._contentState).toBe('reader');
+    expect(p._readerLines.length).toBeGreaterThan(3);
+    expect(p.loading).toBe(false);
+    // The title comes from the markup we actually read, not the URL — the
+    // frame could only ever supply one for a same-origin page.
+    expect(p.currentTitle).toBe('Real Title');
+    expect(onNavigate).toHaveBeenCalledWith('https://example.com/article', 'Real Title');
+  });
+
+  test('an unreadable page reports unavailable and still records the visit', async () => {
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p.navigate('https://example.com');
+    await flush();
     expect(p._contentState).toBe('unavailable');
+    expect(p.loading).toBe(false);
+    expect(onNavigate).toHaveBeenCalled();
   });
 
-  test('an errored load reports error', () => {
+  test('an errored load reports error', async () => {
+    global.fetch = () => Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve('') });
     const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onerror();
+    await p._loadReaderText('https://example.com');
     expect(p._contentState).toBe('error');
   });
 
@@ -409,11 +473,11 @@ describe('WebPanel reader viewport', () => {
     expect(p._contentState).toBe('unavailable');
   });
 
-  test('a non-ok response falls back to unavailable', async () => {
+  test('a non-ok response is a real error — the origin answered and said no', async () => {
     global.fetch = () => Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
-    expect(p._contentState).toBe('unavailable');
+    expect(p._contentState).toBe('error');
   });
 
   test('a fetched page with no recoverable prose says so rather than showing blank', async () => {
@@ -572,7 +636,7 @@ describe('WebPanel URL bar does not overflow', () => {
 describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   const {
     ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0,
-    visibleLinesFor, pageJumpLines, CONTENT_PX_W, CONTENT_PX_H
+    visibleLinesFor, pageJumpLines, clampReaderScroll, CONTENT_PX_W, CONTENT_PX_H
   } = require('../src/vr/browser/readerLayout.js');
 
   const LONG = `<html><head><title>T</title></head><body><article>
@@ -638,6 +702,103 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     expect(p._readerScroll).toBe(0);
   });
 
+  // ── Following a link: atom (4) of the core loop ──────────────────────────
+  // The reader discarded every <a href>, so the only way to reach another page
+  // was retyping its URL on a gaze keyboard at ~8-10 WPM.
+  describe('link rows navigate', () => {
+    const { CONTENT_PAD, LINE_H } = require('../src/vr/browser/readerLayout.js');
+
+    // Long enough to overflow one screen, so the scroll offset is actually
+    // live rather than clamped to zero.
+    const WITH_LINKS = '<html><head><title>T</title></head><body><article>'
+      + ('<p>' + 'Prose sentence here. '.repeat(30) + '</p>').repeat(6)
+      + '<a href="/next">Next page</a><a href="/other">Other page</a>'
+      + '</article></body></html>';
+
+    async function linkPanel(opts) {
+      global.fetch = () => Promise.resolve(
+        { ok: true, status: 200, text: () => Promise.resolve(WITH_LINKS) });
+      const p = makePanel(opts);
+      await p._loadReaderText('https://example.com/dir/a.html');
+      return p;
+    }
+
+    /** Point the ray at the row holding a given line index. */
+    function aimAtLine(p, lineIndex) {
+      const visible = visibleLinesFor(p._readerLines.length, 1);
+      const row = lineIndex - clampReaderScroll(p._readerScroll, p._readerLines.length, visible);
+      p.contentMesh.worldToLocal = () =>
+        localForContent(CONTENT_PAD + 10, CONTENT_PAD + LINE_H * row + LINE_H / 2);
+    }
+
+    test('the fetched page yields followable link rows', async () => {
+      const p = await linkPanel();
+      const rows = p._readerLines.filter((l) => l.style === 'link');
+      expect(rows.map((r) => r.href)).toEqual([
+        'https://example.com/next', 'https://example.com/other'
+      ]);
+    });
+
+    test('selecting a link row navigates to it', async () => {
+      const onNavigate = jest.fn();
+      const p = await linkPanel({ onNavigate });
+      const idx = p._readerLines.findIndex((l) => l.href === 'https://example.com/other');
+      // Scroll the row into view first, the way a user would.
+      p._readerScroll = clampReaderScroll(idx, p._readerLines.length,
+        visibleLinesFor(p._readerLines.length, 1));
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe('https://example.com/other');
+      expect(p.history).toContain('https://example.com/other');
+    });
+
+    test('following a link fires the cross-modal confirmation (WCAG 4.1.3)', async () => {
+      const onLinkFollowed = jest.fn();
+      const p = await linkPanel({ onLinkFollowed });
+      const idx = p._readerLines.findIndex((l) => l.href);
+      p._readerScroll = clampReaderScroll(idx, p._readerLines.length,
+        visibleLinesFor(p._readerLines.length, 1));
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(onLinkFollowed).toHaveBeenCalledTimes(1);
+      expect(onLinkFollowed.mock.calls[0][1]).toBe('https://example.com/next');
+    });
+
+    test('selecting a prose row does nothing — only links are followable', async () => {
+      const onNavigate = jest.fn();
+      const p = await linkPanel({ onNavigate });
+      const before = p.currentUrl;
+      const idx = p._readerLines.findIndex((l) => l.style === 'p');
+      p._readerScroll = 0;
+      aimAtLine(p, idx);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe(before);
+    });
+
+    test('the row hit adds the scroll offset (draw and hit-test agree)', async () => {
+      // Scroll the SECOND link to the top of the viewport and aim at screen
+      // row 0. If the offset were ignored the hit would resolve to line 0 —
+      // the article title — and nothing would navigate.
+      const p = await linkPanel();
+      const idx = p._readerLines.findIndex((l) => l.href === 'https://example.com/other');
+      const visible = visibleLinesFor(p._readerLines.length, 1);
+      // Scroll to the end, where the links live, so the offset is non-zero.
+      const offset = clampReaderScroll(99999, p._readerLines.length, visible);
+      expect(offset).toBeGreaterThan(0);            // the offset must be live
+      expect(idx - offset).toBeLessThan(visible);   // ...and the link is on screen
+      p._readerScroll = offset;
+
+      // The link now sits at screen row (idx - offset). Ignoring the offset
+      // would resolve this hit to line (idx - offset) — prose — and navigate
+      // nowhere.
+      expect(p._readerLines[idx - offset].href).toBeUndefined();
+      p.contentMesh.worldToLocal = () => localForContent(
+        CONTENT_PAD + 10, CONTENT_PAD + LINE_H * (idx - offset) + LINE_H / 2);
+      p._onContentSelect({ clone() { return this; } });
+      expect(p.currentUrl).toBe('https://example.com/other');
+    });
+  });
+
   test('dispose unregisters the content mesh too', async () => {
     const p = await readerPanel();
     const mesh = p.contentMesh;
@@ -650,7 +811,7 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
   test('repaints the unavailable screen, whose wording depends on the proxy', async () => {
     // A failed fetch shows "run a reader proxy" guidance; once the user sets
     // one, the stale wording would be wrong, so the state screen repaints.
-    global.fetch = () => Promise.resolve({ ok: false, status: 0 });
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
     expect(p._contentState).toBe('unavailable');
@@ -685,5 +846,578 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
     p.setReaderProxyUrl('http://p:8080');
     await p._loadReaderText('https://example.com/a');
     expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
+  });
+});
+
+// ── Start page: getTopSites finally has a surface ───────────────────────────
+// A fresh tab showed nothing but "Enter a URL to navigate", so the only way in
+// was gaze-typing at ~8-10 WPM. The frecency ranking has existed since Session
+// 17 with no UI (recorded as C-3), shelved as a third BookmarkPanel tab whose
+// coordinates collide with the scroll arrows. A top site is just a link row.
+describe('WebPanel start page', () => {
+  const { CONTENT_PAD, LINE_H, visibleLinesFor, clampReaderScroll, CONTENT_PX_W, CONTENT_PX_H } =
+    require('../src/vr/browser/readerLayout.js');
+  const SITES = [
+    { url: 'https://a.example/', title: 'Alpha', host: 'a.example' },
+    { url: 'https://b.example/', title: 'Beta', host: 'b.example' }
+  ];
+  function localFor(px, py) {
+    const PANEL_W = 1.6, contentH = 1.0 * (1 - 0.08);
+    return {
+      x: (px / CONTENT_PX_W - 0.5) * PANEL_W,
+      y: ((1 - py / CONTENT_PX_H) - 0.5) * contentH,
+      clone() { return this; }
+    };
+  }
+
+  test('a fresh tab shows the most-visited sites as selectable rows', () => {
+    const p = makePanel({ topSitesProvider: () => SITES, startPageLabel: 'Top' });
+    expect(p._contentState).toBe('start');
+    const rows = p._readerLines.filter((l) => l.style === 'link');
+    expect(rows.map((r) => r.href)).toEqual(['https://a.example/', 'https://b.example/']);
+    expect(rows[0].text).toContain('Alpha');
+  });
+
+  test('selecting a row navigates there — no typing needed', async () => {
+    const p = makePanel({ topSitesProvider: () => SITES });
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
+    const idx = p._readerLines.findIndex((l) => l.href === 'https://b.example/');
+    const visible = visibleLinesFor(p._readerLines.length, 1);
+    const off = clampReaderScroll(p._readerScroll, p._readerLines.length, visible);
+    p.contentMesh.worldToLocal = () =>
+      localFor(CONTENT_PAD + 10, CONTENT_PAD + LINE_H * (idx - off) + LINE_H / 2);
+    p._onContentSelect({ clone() { return this; } });
+    expect(p.currentUrl).toBe('https://b.example/');
+    // Let the load settle so its abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
+  });
+
+  test('a first-run user with no history keeps the honest empty message', () => {
+    const p = makePanel({ topSitesProvider: () => [] });
+    expect(p._contentState).toBe('empty');
+    expect(p._readerLines).toHaveLength(0);
+  });
+
+  test('no provider at all behaves exactly as before', () => {
+    expect(makePanel()._contentState).toBe('empty');
+  });
+
+  test('a provider that throws does not break the panel', () => {
+    const p = makePanel({ topSitesProvider: () => { throw new Error('store gone'); } });
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('entries missing a title fall back to the host, never to nothing', () => {
+    const p = makePanel({ topSitesProvider: () => [{ url: 'https://c.example/', host: 'c.example' }] });
+    const row = p._readerLines.find((l) => l.style === 'link');
+    expect(row.text).toContain('c.example');
+  });
+
+  test('entries with no url are skipped rather than rendered as dead rows', () => {
+    const p = makePanel({ topSitesProvider: () => [{ title: 'no url' }, ...SITES] });
+    expect(p._readerLines.filter((l) => l.style === 'link')).toHaveLength(2);
+  });
+
+  test('navigating away leaves the start page behind', async () => {
+    let release;
+    global.fetch = () => new Promise((r) => { release = r; });
+    const p = makePanel({ topSitesProvider: () => SITES });
+    expect(p._contentState).toBe('start');
+    p.navigate('https://example.com/x');
+    expect(p._contentState).toBe('loading');
+    // Let the load settle so its abort timer is cleared and Jest can exit.
+    release({ ok: false, status: 404, text: () => Promise.resolve('') });
+    await flush();
+  });
+
+  test('the start page scrolls like any other reader content', () => {
+    const many = Array.from({ length: 80 }, (_, i) => ({ url: `https://s${i}.example/`, title: `S${i}` }));
+    const p = makePanel({ topSitesProvider: () => many });
+    expect(p.scrollContent(5)).toBe(true);
+    expect(p._readerScroll).toBeGreaterThan(0);
+  });
+});
+
+// ── Back/forward cache ───────────────────────────────────────────────────────
+// back() used to refetch. That loses the reading position — expensive in a
+// panel scrolled by gaze-dwell — and can fail where the first fetch succeeded,
+// so returning to a page you had already read could show 'unavailable'.
+describe('WebPanel back/forward restores the page instead of refetching', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const article = (marker) =>
+    `<html><head><title>${marker}</title></head><body><article><p>`
+    + `${marker} prose sentence. `.repeat(400) + '</p></article></body></html>';
+
+  /** Navigate to two pages in turn, counting fetches. */
+  async function twoPages() {
+    const fetched = [];
+    global.fetch = (u) => {
+      fetched.push(u);
+      const marker = u.includes('/two') ? 'TWO' : 'ONE';
+      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(article(marker)) });
+    };
+    const p = makePanel();
+    p.navigate('https://example.com/one');
+    await flush();
+    p.navigate('https://example.com/two');
+    await flush();
+    return { p, fetched };
+  }
+
+  test('going back does not hit the network again', async () => {
+    const { p, fetched } = await twoPages();
+    expect(fetched).toHaveLength(2);
+    p.back();
+    expect(fetched).toHaveLength(2);          // no third fetch
+    expect(p._contentState).toBe('reader');
+    expect(p.currentUrl).toBe('https://example.com/one');
+    expect(p.currentTitle).toBe('ONE');
+    expect(p._readerLines.some((l) => (l.text || '').includes('ONE prose'))).toBe(true);
+  });
+
+  test('the reading position survives the round trip', async () => {
+    const { p } = await twoPages();
+    p.back();                                  // on page one
+    const moved = p.scrollContent(3);
+    expect(moved).toBe(true);
+    const where = p._readerScroll;
+    expect(where).toBeGreaterThan(0);
+    p.forward();                               // page two, from cache
+    expect(p.currentUrl).toBe('https://example.com/two');
+    p.back();
+    expect(p._readerScroll).toBe(where);       // back where we were reading
+  });
+
+  test('a page that fails to refetch is still readable via back', async () => {
+    const { p } = await twoPages();
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    p.back();
+    await flush();
+    expect(p._contentState).toBe('reader');    // not 'unavailable'
+    expect(p.currentTitle).toBe('ONE');
+  });
+
+  test('reload bypasses the cache — asking again means asking the network', async () => {
+    const { p, fetched } = await twoPages();
+    p.reload();
+    await flush();
+    expect(fetched).toHaveLength(3);
+    expect(p._contentState).toBe('reader');
+  });
+
+  test('only successfully read pages are cached', async () => {
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    const p = makePanel();
+    p.navigate('https://example.com/nope');
+    await flush();
+    expect(p._contentState).toBe('unavailable');
+    expect(p._pageCache.size).toBe(0);
+  });
+
+  test('the cache is bounded, evicting least-recently-visited', async () => {
+    global.fetch = (u) => Promise.resolve({
+      ok: true, status: 200, text: () => Promise.resolve(article('P' + u.slice(-3)))
+    });
+    const p = makePanel();
+    for (let i = 0; i < 25; i++) {
+      p.navigate(`https://example.com/p${String(i).padStart(2, '0')}`);
+      await flush();
+    }
+    expect(p._pageCache.size).toBeLessThanOrEqual(20);
+    expect(p._pageCache.has('https://example.com/p00')).toBe(false); // oldest gone
+    expect(p._pageCache.has('https://example.com/p23')).toBe(true);  // recent kept
+  });
+
+  test('a restored page cannot be clobbered by a fetch still in flight', async () => {
+    // The page being left has a slow fetch outstanding; it must not settle
+    // over the restored one — the same failure the deleted iframe caused.
+    let release;
+    const first = article('ONE');
+    let calls = 0;
+    global.fetch = () => {
+      calls++;
+      if (calls === 1) {
+        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(first) });
+      }
+      return new Promise((r) => { release = r; });   // page two never finishes
+    };
+    const p = makePanel();
+    p.navigate('https://example.com/one');
+    await flush();
+    p.navigate('https://example.com/two');            // in flight
+    p.back();                                          // restores page one
+    expect(p.currentTitle).toBe('ONE');
+    release({ ok: true, status: 200, text: () => Promise.resolve(article('TWO')) });
+    await flush();
+    expect(p.currentTitle).toBe('ONE');                 // stale load settled nothing
+    expect(p.currentUrl).toBe('https://example.com/one');
+  });
+
+  test('dispose drops the cache', async () => {
+    const { p } = await twoPages();
+    expect(p._pageCache.size).toBeGreaterThan(0);
+    p.dispose();
+    expect(p._pageCache.size).toBe(0);
+  });
+});
+
+// ── Reader text size honours the large-text preference ───────────────────────
+describe('WebPanel reader text scale', () => {
+  const { visibleLinesFor: visibleFor } = require('../src/vr/browser/readerLayout.js');
+  test('the constructor option is honoured', () => {
+    expect(makePanel({ readerScale: 1.4 })._readerScale).toBeCloseTo(1.4, 10);
+  });
+
+  test('a missing or nonsensical value falls back to unscaled', () => {
+    expect(makePanel()._readerScale).toBe(1);
+    expect(makePanel({ readerScale: 0 })._readerScale).toBe(1);
+    expect(makePanel({ readerScale: -2 })._readerScale).toBe(1);
+  });
+
+  test('a larger scale fits fewer lines on screen — the text really is bigger', () => {
+    const small = makePanel({ readerScale: 1 });
+    const large = makePanel({ readerScale: 1.4 });
+    expect(visibleFor(200, large._readerScale))
+      .toBeLessThan(visibleFor(200, small._readerScale));
+  });
+});
+
+// ── Legacy Japanese encodings reach the reader intact ────────────────────────
+// res.text() decodes as UTF-8 unconditionally (Fetch spec), so a Shift_JIS
+// page — still common in Japan — arrived as mojibake presented as the article.
+// The reader now takes the bytes and honours the declared charset.
+describe('WebPanel reader decodes Shift_JIS pages', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  // A Shift_JIS page: ASCII markup with こんにちは (82 B1 82 F1 82 C9 82 BF 82 CD)
+  // repeated as the prose. The fixture is self-verified in tests/charset.test.js.
+  const sjisPage = () => {
+    const ascii = (s) => Array.from(s, (c) => c.charCodeAt(0));
+    const kon = [0x82, 0xb1, 0x82, 0xf1, 0x82, 0xc9, 0x82, 0xbf, 0x82, 0xcd, 0x20];
+    const bytes = [
+      ...ascii('<html><head><title>sjis</title></head><body><article><p>'),
+      ...Array.from({ length: 60 }, () => kon).flat(),
+      ...ascii('</p></article></body></html>')
+    ];
+    return Uint8Array.from(bytes);
+  };
+
+  test('a Shift_JIS article shows こんにちは, not mojibake', async () => {
+    const body = sjisPage();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      headers: { get: (k) => (k.toLowerCase() === 'content-type' ? 'text/html; charset=shift_jis' : null) },
+      arrayBuffer: () => Promise.resolve(body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength)),
+      text: () => Promise.resolve(new TextDecoder('utf-8').decode(body)) // what the old path saw
+    });
+    const p = makePanel();
+    await p._loadReaderText('https://legacy.example/');
+    expect(p._contentState).toBe('reader');
+    const all = p._readerLines.map((l) => l.text || '').join(' ');
+    expect(all).toContain('こんにちは');
+    expect(all).not.toContain('�'); // no replacement characters
+  });
+
+  test('a stub without arrayBuffer still works via text() — old stubs unaffected', async () => {
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'plain utf-8 prose. '.repeat(40) + '</p></body></html>')
+    });
+    const p = makePanel();
+    await p._loadReaderText('https://example.com/');
+    expect(p._contentState).toBe('reader');
+  });
+});
+
+// ── Find-in-page ─────────────────────────────────────────────────────────────
+// The reader can show a several-hundred-line article, but locating anything in
+// it meant paging through the whole thing — one dwell per page for a gaze
+// user. findInPage scrolls to the first match and highlights match rows.
+describe('WebPanel find-in-page', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const longArticle = () => {
+    const paras = [];
+    for (let i = 0; i < 40; i++) {
+      paras.push(`<p>${i === 25 ? 'the NEEDLE sentence appears here. ' : ''}${'filler prose sentence. '.repeat(20)}</p>`);
+    }
+    return `<html><head><title>long</title></head><body><article>${paras.join('')}</article></body></html>`;
+  };
+
+  async function readerPanelWith(html) {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(html) });
+    const p = makePanel();
+    p.navigate('https://example.com/long');
+    await flush();
+    expect(p._contentState).toBe('reader');
+    return p;
+  }
+
+  test('finds matches, scrolls to the first, and reports count/ordinal', async () => {
+    const p = await readerPanelWith(longArticle());
+    expect(p._readerScroll).toBe(0);
+    const out = p.findInPage('needle');
+    expect(out.count).toBeGreaterThanOrEqual(1);
+    expect(out.index).toBe(1);
+    // The viewport moved to put the match on screen (one row below the top).
+    expect(p._readerScroll).toBe(Math.max(0, p._findMatches[0] - 1));
+  });
+
+  test('findNext cycles through matches and wraps', async () => {
+    const html = `<html><body><article>
+      <p>${'alpha beta. '.repeat(30)}</p><p>${'gamma beta. '.repeat(30)}</p>
+      <p>${'plain filler. '.repeat(30)}</p><p>${'delta beta. '.repeat(30)}</p>
+    </article></body></html>`;
+    const p = await readerPanelWith(html);
+    const first = p.findInPage('beta');
+    expect(first.count).toBeGreaterThanOrEqual(3);
+    const seen = [p._findFocus];
+    for (let i = 1; i < first.count; i++) {
+      p.findNext();
+      seen.push(p._findFocus);
+    }
+    expect(new Set(seen).size).toBe(first.count);  // visited each once
+    const wrapped = p.findNext();
+    expect(p._findFocus).toBe(seen[0]);            // back to the first
+    expect(wrapped.index).toBe(1);
+  });
+
+  test('findPrev wraps backwards', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('filler');
+    const out = p.findPrev();                      // from first -> last
+    expect(out.index).toBe(out.count);
+  });
+
+  test('no matches reports zero and highlights nothing', async () => {
+    const p = await readerPanelWith(longArticle());
+    const out = p.findInPage('zxqvjk-not-present');
+    expect(out).toEqual({ count: 0, index: 0 });
+    expect(p._findMatches).toEqual([]);
+  });
+
+  test('matching is NFC + case-insensitive, per the repo discipline', async () => {
+    const p = await readerPanelWith(longArticle());
+    expect(p.findInPage('NeEdLe').count).toBeGreaterThanOrEqual(1);
+  });
+
+  test('a navigation clears the search — it belonged to the old page', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('needle');
+    expect(p._findMatches.length).toBeGreaterThan(0);
+    p.navigate('https://example.com/other');
+    expect(p._findMatches).toEqual([]);
+    expect(p._findFocus).toBe(-1);
+  });
+
+  test('restoring a cached page via back does not resurrect the search', async () => {
+    const p = await readerPanelWith(longArticle());
+    p.findInPage('needle');
+    p.navigate('https://example.com/two');
+    await flush();
+    p.back();
+    expect(p._findMatches).toEqual([]);
+  });
+
+  test('inert outside reader-like states', () => {
+    const p = makePanel();
+    expect(p.findInPage('x')).toEqual({ count: 0, index: 0 });
+    expect(p.findNext()).toEqual({ count: 0, index: 0 });
+  });
+
+  test('match rows are actually painted behind their text', async () => {
+    // Recording stub (Session 65 discipline: assert what was DRAWN, not just
+    // state) — count row-band fills while a search is active vs cleared.
+    const p = await readerPanelWith(longArticle());
+    const rects = [];
+    p.contentCanvas.getContext = () => ({
+      ...ctx2d,
+      fillRect: (x, y, w, h) => rects.push({ x, y, w, h }),
+      strokeRect: () => {}
+    });
+    p.findInPage('needle');
+    const bandFills = rects.filter((r) => r.h > 20 && r.h < 60); // row bands, not the bg clear
+    expect(bandFills.length).toBeGreaterThanOrEqual(1);
+
+    rects.length = 0;
+    p._clearFind();
+    p._drawContent();
+    expect(rects.filter((r) => r.h > 20 && r.h < 60)).toHaveLength(0);
+  });
+});
+
+// ── Following a link by its printed number ───────────────────────────────────
+// The reader prints "1. label" rows, but opening one required pointing at it
+// (gaze dwell or a controller ray). A voice-primary user could see every
+// destination and reach none — the mirror of the Session 66 scroll gap.
+describe('WebPanel.followLink', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  const pageWithLinks = `<html><head><title>Hub</title></head><body><article>
+    <p>${'intro prose sentence. '.repeat(30)}</p>
+    <a href="https://one.example/">First</a>
+    <a href="https://two.example/">Second</a>
+    <a href="https://three.example/">Third</a>
+  </article></body></html>`;
+
+  async function hub(extra = {}) {
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(pageWithLinks) });
+    const p = makePanel(extra);
+    p.navigate('https://hub.example/');
+    await flush();
+    expect(p._contentState).toBe('reader');
+    return p;
+  }
+
+  test('follows the nth link and announces it, exactly as a row hit does', async () => {
+    const onLinkFollowed = jest.fn();
+    const p = await hub({ onLinkFollowed });
+    const out = p.followLink(2);
+    expect(out.ok).toBe(true);
+    expect(out.href).toBe('https://two.example/');
+    expect(p.currentUrl).toBe('https://two.example/');
+    expect(onLinkFollowed).toHaveBeenCalledWith(expect.any(String), 'https://two.example/');
+  });
+
+  test('the number matches what the row prints', async () => {
+    const p = await hub();
+    const rows = p._readerLines.filter((l) => l.style === 'link');
+    expect(rows[2].text).toMatch(/^3\./);
+    const out = p.followLink(3);
+    expect(out.href).toBe(rows[2].href);
+  });
+
+  test('an out-of-range number reports failure rather than navigating', async () => {
+    const p = await hub();
+    const before = p.currentUrl;
+    expect(p.followLink(99)).toEqual({ ok: false });
+    expect(p.followLink(0)).toEqual({ ok: false });
+    expect(p.currentUrl).toBe(before);
+  });
+
+  test('inert outside reader-like states', () => {
+    expect(makePanel().followLink(1)).toEqual({ ok: false });
+  });
+});
+
+// ── Rendered page images ─────────────────────────────────────────────────────
+// The reader carried alt text but not pixels, on the grounds that a tainted
+// canvas cannot be uploaded as a WebGL texture. True — but only for images
+// fetched WITHOUT crossOrigin. With crossOrigin='anonymous' a CORS-clean image
+// is not tainted, which is the same reach the reader already has for markup.
+describe('WebPanel renders page images', () => {
+  const realFetch = global.fetch;
+  const realImage = global.Image;
+  afterEach(() => {
+    global.fetch = realFetch;
+    global.Image = realImage;
+  });
+
+  /** Image stub whose load is driven by the test. */
+  const stubImage = (created) => {
+    global.Image = class {
+      constructor() {
+        this.width = 0;
+        this.height = 0;
+        created.push(this);
+      }
+      set src(v) {
+        this._src = v;
+      }
+      get src() {
+        return this._src;
+      }
+      succeed(w, h) {
+        this.width = w;
+        this.height = h;
+        this.onload();
+      }
+      fail() {
+        this.onerror();
+      }
+    };
+  };
+
+  async function pageWithImage(created) {
+    stubImage(created);
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve(
+        '<html><head><title>Fig</title></head><body><article><p>'
+        + 'prose sentence. '.repeat(30) + '</p><img src="/fig.png" alt="A figure"></article></body></html>')
+    });
+    const p = makePanel({ imageLabel: 'Image' });
+    p.navigate('https://e.example/doc');
+    await flush();
+    return p;
+  }
+
+  test('a page image is requested CORS-clean, or it could never be drawn', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    expect(p._contentState).toBe('reader');
+    expect(created).toHaveLength(1);
+    expect(created[0].crossOrigin).toBe('anonymous');
+    expect(created[0].src).toBe('https://e.example/fig.png');
+  });
+
+  test('rows are reserved before it loads, so text does not jump when it arrives', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    const boxes = p._readerLines.filter((l) => l.style === 'imgbox');
+    expect(boxes.length).toBeGreaterThan(1);
+    const before = p._readerLines.length;
+    created[0].succeed(400, 300);
+    expect(p._readerLines).toHaveLength(before);
+  });
+
+  test('once decoded it is actually drawn', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    const drawn = [];
+    p.contentCanvas.getContext = () => ({
+      ...ctx2d,
+      save: () => {}, restore: () => {}, beginPath: () => {}, rect: () => {}, clip: () => {},
+      drawImage: (img, x, y, w, h) => drawn.push({ img, x, y, w, h })
+    });
+    created[0].succeed(400, 300);
+    expect(drawn).toHaveLength(1);
+    // Contained, never upscaled: the aspect ratio is the author's.
+    expect(drawn[0].w / drawn[0].h).toBeCloseTo(400 / 300, 1);
+    expect(drawn[0].w).toBeLessThanOrEqual(400);
+  });
+
+  test('a failed image leaves its alt text standing and never retries', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    created[0].fail();
+    expect(p._readerLines.some((l) => (l.text || '').includes('A figure'))).toBe(true);
+    p._loadImages();
+    expect(created).toHaveLength(1); // 'failed' is remembered, not retried
+  });
+
+  test('navigating away drops the decoded pixels of the old page', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    created[0].succeed(400, 300);
+    expect(p._images.size).toBe(1);
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    p.navigate('https://e.example/other');
+    expect(p._images.size).toBe(0);
+  });
+
+  test('a load landing after a newer navigation is ignored', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    p._readerSeq++;                 // a newer navigation owns the viewport
+    created[0].succeed(400, 300);
+    expect(p._images.get('https://e.example/fig.png')).toBe('loading');
   });
 });

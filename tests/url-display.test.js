@@ -347,3 +347,51 @@ describe('normalizeProxyUrl', () => {
     expect(readerFetchUrl('https://e.com/a', v)).toBe('http://p:8080/fetch?url=https%3A%2F%2Fe.com%2Fa');
   });
 });
+
+// ── Deployment-carried reader proxy ─────────────────────────────────────────
+// The reader reaches only CORS-enabled origins, which measured is almost none
+// of the web. A deployment can carry its own same-origin proxy
+// (netlify/functions/reader.mjs); finding it means a deployed app needs no
+// configuration at all, while a static host simply has none.
+describe('readerHealthUrl / effectiveProxyUrl', () => {
+  const { readerHealthUrl, effectiveProxyUrl, readerFetchUrl } =
+    require('../src/vr/browser/urlDisplay.js');
+
+  test('health URL hangs off the proxy base', () => {
+    expect(readerHealthUrl('https://p.example')).toBe('https://p.example/health');
+    expect(readerHealthUrl('/api/reader')).toBe('/api/reader/health');
+  });
+
+  test('a trailing slash does not produce a double slash', () => {
+    expect(readerHealthUrl('https://p.example///')).toBe('https://p.example/health');
+  });
+
+  test('no base means no probe to make', () => {
+    for (const bad of ['', '   ', null, undefined]) {
+      expect(readerHealthUrl(bad)).toBe('');
+    }
+  });
+
+  test('a proxy the user typed always wins over a detected one', () => {
+    expect(effectiveProxyUrl('https://mine.example', '/api/reader'))
+      .toBe('https://mine.example');
+  });
+
+  test('a detected proxy fills a blank setting', () => {
+    expect(effectiveProxyUrl('', '/api/reader')).toBe('/api/reader');
+    expect(effectiveProxyUrl(null, '/api/reader')).toBe('/api/reader');
+  });
+
+  test('neither set means direct fetch, byte-identical to before', () => {
+    expect(effectiveProxyUrl('', '')).toBe('');
+    expect(readerFetchUrl('https://site.example/a', effectiveProxyUrl('', '')))
+      .toBe('https://site.example/a');
+  });
+
+  test('the detected base composes into the same fetch URL shape as a manual one', () => {
+    // The function mirrors the standalone server's `/fetch?url=` contract, so
+    // one client code path serves both.
+    expect(readerFetchUrl('https://site.example/a', effectiveProxyUrl('', '/api/reader')))
+      .toBe('/api/reader/fetch?url=' + encodeURIComponent('https://site.example/a'));
+  });
+});

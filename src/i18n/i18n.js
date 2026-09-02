@@ -78,6 +78,10 @@ const CATALOG = {
     'vr.msg.toggleOn': 'ON',
     'vr.msg.toggleOff': 'OFF',
     'vr.settings.readerProxy': 'Reader Proxy',
+    'vr.settings.findInPage': 'Find in Page',
+    'vr.prompt.findQuery': 'Find in page',
+    'vr.msg.findResults': 'Matches found',
+    'vr.msg.findNone': 'No matches on this page',
     'vr.msg.proxySet': 'Reader proxy set',
     'vr.msg.proxyCleared': 'Reader proxy cleared — direct fetch only',
     'vr.error.proxyInvalid': 'Invalid proxy URL — use http(s), no credentials',
@@ -151,7 +155,18 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'Foveation unavailable',
     'vr.error.hapticUnavailable': 'Haptic feedback unavailable',
     'vr.error.layersUnavailable': 'Sharp text rendering unavailable',
-    'vr.error.blockedUrl': 'Cannot open that address'
+    'vr.error.blockedUrl': 'Cannot open that address',
+    'vr.error.loadFailed': 'Failed to load',
+    'vr.msg.loadingPage': 'Loading',
+    'vr.reader.links': 'Links on this page',
+    'vr.reader.startPage': 'Your most-visited sites',
+    'vr.msg.followingLink': 'Following link',
+    'vr.msg.noSuchLink': 'No link with that number on this page',
+    'vr.reader.image': 'Image',
+    'vr.settings.voice': 'Voice',
+    'vr.msg.voiceOn': 'Voice commands on',
+    'vr.msg.voiceOff': 'Voice commands off',
+    'vr.error.voiceStartFailed': 'Voice commands could not start (microphone or browser support)'
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -220,6 +235,10 @@ const CATALOG = {
     'vr.msg.toggleOn': 'オン',
     'vr.msg.toggleOff': 'オフ',
     'vr.settings.readerProxy': 'リーダープロキシ',
+    'vr.settings.findInPage': 'ページ内検索',
+    'vr.prompt.findQuery': 'ページ内検索',
+    'vr.msg.findResults': '見つかりました',
+    'vr.msg.findNone': 'このページに一致はありません',
     'vr.msg.proxySet': 'リーダープロキシを設定しました',
     'vr.msg.proxyCleared': 'リーダープロキシを解除しました — 直接取得のみ',
     'vr.error.proxyInvalid': 'プロキシ URL が不正です — http(s)・認証情報なしで指定してください',
@@ -293,7 +312,18 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
     'vr.error.hapticUnavailable': 'ハプティックフィードバック利用不可',
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
-    'vr.error.blockedUrl': 'このアドレスは開けません'
+    'vr.error.blockedUrl': 'このアドレスは開けません',
+    'vr.error.loadFailed': '読み込みに失敗しました',
+    'vr.msg.loadingPage': '読み込み中',
+    'vr.reader.links': 'このページのリンク',
+    'vr.reader.startPage': 'よく見るサイト',
+    'vr.msg.followingLink': 'リンクを開きます',
+    'vr.msg.noSuchLink': 'その番号のリンクはありません',
+    'vr.reader.image': '画像',
+    'vr.settings.voice': '音声コマンド',
+    'vr.msg.voiceOn': '音声コマンドをオンにしました',
+    'vr.msg.voiceOff': '音声コマンドをオフにしました',
+    'vr.error.voiceStartFailed': '音声コマンドを開始できません（マイクまたはブラウザ非対応）'
   }
 };
 

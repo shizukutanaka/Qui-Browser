@@ -351,12 +351,15 @@ describe('reader scroll affordance', () => {
   });
 
   test('arrows are inert when the article fits on one screen', () => {
-    expect(readerHitTest(mid(ARROW_DN_X0), midY, false).type).toBe('none');
+    expect(readerHitTest(mid(ARROW_DN_X0), midY, false).type).not.toBe('scrollDown');
   });
 
   test('a hit outside the arrow band is not a scroll', () => {
-    expect(readerHitTest(mid(ARROW_DN_X0), ARROW_Y0 - 50, true).type).toBe('none');
-    expect(readerHitTest(10, midY, true).type).toBe('none');
+    // It resolves to a text row instead — link rows are followable, and a row
+    // with no href is inert, which WebPanel enforces.
+    expect(readerHitTest(mid(ARROW_DN_X0), ARROW_Y0 - 50, true).type).not.toBe('scrollDown');
+    expect(readerHitTest(10, midY, true).type).not.toBe('scrollUp');
+    expect(readerHitTest(10, midY, true).type).not.toBe('scrollDown');
   });
 
   test('the two arrow zones do not overlap', () => {
@@ -463,5 +466,552 @@ describe('reader reserves the bottom strip for the arrows and progress label', (
       expect(visibleLineCount(scale, true)).toBeLessThanOrEqual(visibleLineCount(scale, false));
       expect(visibleLineCount(scale, true)).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+// ── Links: atom ④ of the core loop ───────────────────────────────────────────
+// The reader extracted prose and threw every <a href> away, so a user could
+// reach a page and read it but had no way to follow a link — the only route to
+// another page was retyping its URL on a gaze keyboard at ~8–10 WPM.
+describe('extractLinks', () => {
+  const { extractLinks, extractReadableText, MAX_LINKS } =
+    require('../src/vr/browser/readableText.js');
+  const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+  const BASE = 'https://example.com/dir/page.html';
+
+  test('pulls text and absolute href from an anchor', () => {
+    const out = extractLinks('<article><p>x</p><a href="/a">Alpha</a></article>', BASE);
+    expect(out).toEqual([{ text: 'Alpha', href: 'https://example.com/a' }]);
+  });
+
+  test('resolves relative, root-relative and protocol-relative hrefs', () => {
+    const out = extractLinks(
+      '<a href="sib.html">S</a><a href="/root">R</a><a href="//cdn.example.org/x">P</a>', BASE);
+    expect(out.map((l) => l.href)).toEqual([
+      'https://example.com/dir/sib.html',
+      'https://example.com/root',
+      'https://cdn.example.org/x'
+    ]);
+  });
+
+  test('accepts single-quoted and unquoted href attributes', () => {
+    const out = extractLinks("<a href='/q'>Q</a><a href=/u>U</a>", BASE);
+    expect(out.map((l) => l.href))
+      .toEqual(['https://example.com/q', 'https://example.com/u']);
+  });
+
+  test('drops schemes the panel cannot navigate to', () => {
+    const html = '<a href="javascript:alert(1)">J</a><a href="mailto:a@b.c">M</a>'
+      + '<a href="data:text/html,x">D</a><a href="/ok">OK</a>';
+    expect(extractLinks(html, BASE).map((l) => l.href)).toEqual(['https://example.com/ok']);
+  });
+
+  test('drops anchors with no readable label and empty hrefs', () => {
+    const html = '<a href="/icon"><img src="i.png"></a><a href="">E</a><a href="/ok">OK</a>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['OK']);
+  });
+
+  test('dedupes by resolved href, keeping document order', () => {
+    const html = '<a href="/a">First</a><a href="/b">B</a><a href="/a">Again</a>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['First', 'B']);
+  });
+
+  test('ignores links inside stripped boilerplate', () => {
+    const html = '<nav><a href="/nav">NavLink</a></nav><footer><a href="/f">Foot</a></footer>'
+      + '<p><a href="/real">Real</a></p>';
+    expect(extractLinks(html, BASE).map((l) => l.text)).toEqual(['Real']);
+  });
+
+  test('decodes entities in both the label and the href', () => {
+    const out = extractLinks('<a href="/s?a=1&amp;b=2">Tom &amp; Jerry</a>', BASE);
+    expect(out[0].text).toBe('Tom & Jerry');
+    expect(out[0].href).toBe('https://example.com/s?a=1&b=2');
+  });
+
+  test('a relative href with no base is dropped rather than guessed at', () => {
+    expect(extractLinks('<a href="/a">A</a>')).toEqual([]);
+    expect(extractLinks('<a href="https://x.example/a">A</a>')[0].href)
+      .toBe('https://x.example/a');
+  });
+
+  test('caps the list so one link-farm page cannot swamp the reader', () => {
+    const html = Array.from({ length: MAX_LINKS + 25 },
+      (_, i) => `<a href="/p${i}">L${i}</a>`).join('');
+    expect(extractLinks(html, BASE)).toHaveLength(MAX_LINKS);
+  });
+
+  test('degenerate input does not throw', () => {
+    for (const bad of [undefined, null, '', 123, '<a href>']) {
+      expect(() => extractLinks(bad, BASE)).not.toThrow();
+    }
+  });
+
+  test('extractReadableText carries links alongside the prose', () => {
+    const html = `<html><head><title>T</title></head><body><article>
+      <p>${'Prose here. '.repeat(20)}</p><a href="/next">Next page</a>
+    </article></body></html>`;
+    const out = extractReadableText(html, BASE);
+    expect(out.blocks.length).toBeGreaterThan(0);
+    expect(out.links).toEqual([{ text: 'Next page', href: 'https://example.com/next' }]);
+  });
+});
+
+describe('layoutReaderLines — link rows', () => {
+  const { layoutReaderLines, measureEmForStyle } =
+    require('../src/vr/browser/readerLayout.js');
+  const { textWidthEm } = require('../src/vr/ui/textWrap.js');
+  const LINKS = [
+    { text: 'Alpha', href: 'https://a.example/' },
+    { text: 'Beta', href: 'https://b.example/' }
+  ];
+
+  test('each link becomes exactly one selectable row carrying its href', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'Body' }], { links: LINKS });
+    const rows = lines.filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.href)).toEqual(LINKS.map((l) => l.href));
+  });
+
+  test('rows are numbered, so a link is identifiable without colour (1.4.1)', () => {
+    const rows = layoutReaderLines([], { links: LINKS }).filter((l) => l.style === 'link');
+    expect(rows[0].text.startsWith('1. ')).toBe(true);
+    expect(rows[1].text.startsWith('2. ')).toBe(true);
+  });
+
+  test('a heading introduces the section and can be translated', () => {
+    const lines = layoutReaderLines([], { links: LINKS, linksLabel: 'このページのリンク' });
+    const head = lines.find((l) => l.style === 'linksHeading');
+    expect(head.text).toBe('このページのリンク');
+    expect(head.href).toBeUndefined();
+  });
+
+  test('no links means no section at all', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'Body' }], { links: [] });
+    expect(lines.some((l) => l.style === 'link' || l.style === 'linksHeading')).toBe(false);
+    expect(layoutReaderLines([{ type: 'p', text: 'Body' }]).some((l) => l.href)).toBe(false);
+  });
+
+  test('a long label is truncated to one row, never wrapped across rows', () => {
+    // Wrapping would spread one destination over rows that all mean the same
+    // thing, making the row the user aimed at ambiguous to announce.
+    const long = [{ text: 'あ'.repeat(200), href: 'https://a.example/' }];
+    const rows = layoutReaderLines([], { links: long }).filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(1);
+    expect(textWidthEm(rows[0].text)).toBeLessThanOrEqual(measureEmForStyle('p', 1) + 1e-9);
+  });
+
+  test('link rows survive the larger text scale low-vision users need', () => {
+    const rows = layoutReaderLines([], { links: LINKS, scale: 1.5 })
+      .filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+    for (const r of rows) {
+      expect(textWidthEm(r.text)).toBeLessThanOrEqual(measureEmForStyle('p', 1.5) + 1e-9);
+    }
+  });
+
+  test('a link with no href is not rendered as a followable row', () => {
+    const rows = layoutReaderLines([], { links: [{ text: 'x' }, ...LINKS] })
+      .filter((l) => l.style === 'link');
+    expect(rows).toHaveLength(2);
+  });
+});
+
+describe('readerRowAt — draw and hit-test share one row model', () => {
+  const {
+    readerRowAt, readerHitTest, LINE_H, CONTENT_PAD, visibleLineCount
+  } = require('../src/vr/browser/readerLayout.js');
+
+  test('row i covers the band the draw path paints it in', () => {
+    for (const scale of [1, 1.5]) {
+      const lh = LINE_H * scale;
+      for (const i of [0, 3, 7]) {
+        // _drawReader puts row i's baseline at CONTENT_PAD + lh*(i+1).
+        expect(readerRowAt(CONTENT_PAD + lh * i + 1, scale)).toBe(i);
+        expect(readerRowAt(CONTENT_PAD + lh * (i + 1) - 1, scale)).toBe(i);
+      }
+    }
+  });
+
+  test('above the text column and past the last row are misses', () => {
+    expect(readerRowAt(CONTENT_PAD - 5, 1)).toBe(-1);
+    expect(readerRowAt(CONTENT_PAD + LINE_H * visibleLineCount(1, false) + 5, 1)).toBe(-1);
+    expect(readerRowAt(NaN, 1)).toBe(-1);
+  });
+
+  test('the scroll arrows still win over the row underneath them', () => {
+    const { ARROW_Y0, ARROW_DN_X0 } = require('../src/vr/browser/readerLayout.js');
+    expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5, true, 1).type).toBe('scrollDown');
+    // ...but only while there is something to scroll.
+    expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5, false, 1).type).not.toBe('scrollDown');
+  });
+});
+
+// ── Untrusted markup: the reader runs regexes on whatever a page sends ───────
+// Extraction is synchronous, so a slow parse freezes the headset — in VR the
+// world stops tracking your head, which is a comfort problem rather than jank.
+describe('extraction is bounded and correct on malformed markup', () => {
+  const {
+    extractReadableText, extractLinks, MAX_BLOCKS, MAX_MARKUP_CHARS, MAX_ELEMENT_CHARS
+  } = require('../src/vr/browser/readableText.js');
+  const BASE = 'https://example.com/';
+
+  /** Generous ceiling: the point is linear-not-quadratic, not a exact figure. */
+  const BUDGET_MS = 2000;
+
+  const timed = (fn) => {
+    const t0 = Date.now();
+    const out = fn();
+    return { ms: Date.now() - t0, out };
+  };
+
+  test('an omitted </p> still yields BOTH paragraphs', () => {
+    // </p> is optional in HTML, so this is valid, ordinary markup. Matching
+    // lazily merged the two into one run of text; requiring a close dropped
+    // the first entirely. Neither is acceptable.
+    const { blocks } = extractReadableText(
+      `<article><p>${'A'.repeat(300)}<p>${'B'.repeat(300)}</p></article>`, BASE);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].text.startsWith('A')).toBe(true);
+    expect(blocks[1].text.startsWith('B')).toBe(true);
+  });
+
+  test('a block with no closing tag at all is still read', () => {
+    const { blocks } = extractReadableText('<p>tail with no close', BASE);
+    expect(blocks.map((b) => b.text)).toEqual(['tail with no close']);
+  });
+
+  test('mixed unclosed block tags keep their own identities', () => {
+    const { blocks } = extractReadableText(
+      '<h2>Head</h2><p>one<p>two</p><li>item</li>', BASE);
+    expect(blocks.map((b) => `${b.type}:${b.text}`))
+      .toEqual(['h:Head', 'p:one', 'p:two', 'p:item']);
+  });
+
+  test('thousands of unclosed tags do not go quadratic', () => {
+    // Measured before the fix: 40,000 unclosed <p> (117 KB) took 2.1s through
+    // extractReadableText and 10.8s in the block regex alone.
+    const { ms } = timed(() => extractReadableText('<p>'.repeat(40000), BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  test('unclosed <script> and unclosed <a> are bounded too', () => {
+    expect(timed(() => extractReadableText('<script>'.repeat(20000), BASE)).ms)
+      .toBeLessThan(BUDGET_MS);
+    expect(timed(() => extractLinks('<a href=/x>'.repeat(20000), BASE)).ms)
+      .toBeLessThan(BUDGET_MS);
+  });
+
+  test('an enormous page is truncated, not chewed through', () => {
+    const para = `<p>${'Sentence of ordinary prose. '.repeat(20)}</p>`;
+    const html = `<html><body><article>${para.repeat(20000)}</article></body></html>`;
+    expect(html.length).toBeGreaterThan(MAX_MARKUP_CHARS);
+    const { ms, out } = timed(() => extractReadableText(html, BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+    expect(out.blocks.length).toBeLessThanOrEqual(MAX_BLOCKS);
+    expect(out.blocks.length).toBeGreaterThan(0); // the start is still readable
+  });
+
+  test('a single absurdly long element cannot consume the document', () => {
+    const html = `<article><p>${'x'.repeat(MAX_ELEMENT_CHARS * 3)}</p><p>after</p></article>`;
+    const { ms, out } = timed(() => extractReadableText(html, BASE));
+    expect(ms).toBeLessThan(BUDGET_MS);
+    // The oversized block is skipped rather than swallowing what follows.
+    expect(out.blocks.some((b) => b.text === 'after')).toBe(true);
+  });
+
+  test('well-formed articles are unaffected', () => {
+    const para = `<p>${'Sentence of ordinary prose. '.repeat(20)}</p>`;
+    const { blocks } = extractReadableText(`<article>${para.repeat(50)}</article>`, BASE);
+    expect(blocks).toHaveLength(50);
+    expect(blocks.every((b) => b.type === 'p')).toBe(true);
+  });
+
+  test('pathological shapes do not throw', () => {
+    for (const bad of ['<'.repeat(50000), '&amp;'.repeat(50000), '<p'.repeat(20000),
+      '<a href='.repeat(20000), '</p>'.repeat(20000)]) {
+      expect(() => extractReadableText(bad, BASE)).not.toThrow();
+      expect(() => extractLinks(bad, BASE)).not.toThrow();
+    }
+  });
+});
+
+describe('extractLinks unwraps search-result redirects', () => {
+  const { extractLinks } = require('../src/vr/browser/readableText.js');
+
+  test('a DDG /l/?uddg result row carries its true destination', () => {
+    const target = 'https://example.com/story';
+    const html = `<html><body><div>
+      <a href="//duckduckgo.com/l/?uddg=${encodeURIComponent(target)}&rut=x">The Story</a>
+      <a href="https://other.example/page">Other</a>
+    </div></body></html>`;
+    const links = extractLinks(html, 'https://html.duckduckgo.com/html/?q=story');
+    expect(links.map((l) => l.href)).toContain(target);
+    expect(links.map((l) => l.href).join(' ')).not.toContain('/l/?uddg');
+    expect(links.map((l) => l.href)).toContain('https://other.example/page');
+  });
+
+  test('two wrappers for the same destination dedupe after unwrapping', () => {
+    const t = encodeURIComponent('https://example.com/a');
+    const html = `<html><body>
+      <a href="https://duckduckgo.com/l/?uddg=${t}&rut=1">One</a>
+      <a href="https://duckduckgo.com/l/?uddg=${t}&rut=2">Two</a>
+    </body></html>`;
+    const links = extractLinks(html, 'https://duckduckgo.com/html/');
+    expect(links.filter((l) => l.href === 'https://example.com/a')).toHaveLength(1);
+  });
+});
+
+describe('linkRowIndex — addressing a link by its printed number', () => {
+  const { layoutReaderLines, linkRowIndex } = require('../src/vr/browser/readerLayout.js');
+
+  const laid = () => layoutReaderLines(
+    [{ type: 'h', text: 'Heading' }, { type: 'p', text: 'Some prose here.' }],
+    {
+      title: 'Doc',
+      links: [
+        { text: 'First', href: 'https://a.example/' },
+        { text: 'Second', href: 'https://b.example/' },
+        { text: 'Third', href: 'https://c.example/' }
+      ]
+    }
+  );
+
+  test('the ordinal counts LINK rows, not lines — prose in between never shifts it', () => {
+    const lines = laid();
+    for (const [n, href] of [[1, 'https://a.example/'], [2, 'https://b.example/'], [3, 'https://c.example/']]) {
+      const i = linkRowIndex(lines, n);
+      expect(i).toBeGreaterThan(-1);
+      expect(lines[i].href).toBe(href);
+    }
+  });
+
+  test('the number it resolves is the number actually printed on the row', () => {
+    // Reading the label back is what keeps the two in step: change the layout
+    // numbering or the lookup alone and this fails.
+    const lines = laid();
+    for (const n of [1, 2, 3]) {
+      expect(lines[linkRowIndex(lines, n)].text).toMatch(new RegExp(`^${n}\\.`));
+    }
+  });
+
+  test('out of range and degenerate input return -1', () => {
+    const lines = laid();
+    expect(linkRowIndex(lines, 4)).toBe(-1);
+    expect(linkRowIndex(lines, 0)).toBe(-1);
+    expect(linkRowIndex(lines, -1)).toBe(-1);
+    expect(linkRowIndex(lines, NaN)).toBe(-1);
+    expect(linkRowIndex(null, 1)).toBe(-1);
+  });
+
+  test('a page with no links has no addressable rows', () => {
+    const lines = layoutReaderLines([{ type: 'p', text: 'no links here' }], { title: 'x' });
+    expect(linkRowIndex(lines, 1)).toBe(-1);
+  });
+});
+
+describe('image text alternatives reach the reader (WCAG 1.1.1)', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+  const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+
+  test('an alt attribute becomes a block, in document order with the prose', () => {
+    const html = `<html><body><article>
+      <p>Before the chart.</p>
+      <img src="c.png" alt="Chart showing 40% growth">
+      <p>After the chart.</p>
+    </article></body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.type)).toEqual(['p', 'img', 'p']);
+    expect(blocks[1].text).toBe('Chart showing 40% growth');
+  });
+
+  test('alt="" is decorative per the spec and contributes nothing', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><p>text</p><img src="spacer.gif" alt=""></body></html>', 'https://e.example/');
+    expect(blocks.filter((b) => b.type === 'img')).toHaveLength(0);
+  });
+
+  test('an image with no alt is carried for its pixels, but adds no caption row', () => {
+    // This assertion used to be "skipped entirely", on the grounds that a row
+    // reading "image" and nothing else is noise. That reasoning held while the
+    // reader could only show text. It can now render the picture, which is not
+    // noise — so the block is carried with an empty caption and only the
+    // pixels appear.
+    const { blocks } = extractReadableText(
+      '<html><body><p>text</p><img src="x.png"></body></html>', 'https://e.example/');
+    const imgs = blocks.filter((b) => b.type === 'img');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].text).toBe('');
+    expect(imgs[0].src).toBe('https://e.example/x.png');
+
+    const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+    const lines = layoutReaderLines(imgs, { imageLabel: 'Image' });
+    expect(lines.some((l) => l.style === 'imgbox')).toBe(true);
+    expect(lines.some((l) => l.style === 'img')).toBe(false); // no caption
+  });
+
+  test('an unresolvable or non-http src leaves the alt text standing alone', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><img src="javascript:evil()" alt="Described"></body></html>', 'https://e.example/');
+    const img = blocks.find((b) => b.type === 'img');
+    expect(img.text).toBe('Described');
+    expect(img.src).toBeNull();
+  });
+
+  test('images per page are bounded — a page cannot ask for unlimited decodes', () => {
+    const many = Array.from({ length: 30 }, (_, i) => `<img src="i${i}.png" alt="pic ${i}">`).join('');
+    const { blocks } = extractReadableText(
+      `<html><body><article>${many}</article></body></html>`, 'https://e.example/');
+    expect(blocks.filter((b) => b.type === 'img').length).toBeLessThanOrEqual(8);
+  });
+
+  test('single quotes, unquoted values and entities in alt all decode', () => {
+    const html = `<html><body>
+      <img src=a.png alt='Tom &amp; Jerry'>
+      <img src=b.png alt=Simple>
+    </body></html>`;
+    const alts = extractReadableText(html, 'https://e.example/')
+      .blocks.filter((b) => b.type === 'img').map((b) => b.text);
+    expect(alts).toEqual(['Tom & Jerry', 'Simple']);
+  });
+
+  test('images inside stripped regions stay stripped', () => {
+    const html = `<html><body>
+      <nav><img src="logo.png" alt="Site logo"></nav>
+      <article><p>real prose</p><img src="fig.png" alt="Figure one"></article>
+    </body></html>`;
+    const alts = extractReadableText(html, 'https://e.example/')
+      .blocks.filter((b) => b.type === 'img').map((b) => b.text);
+    expect(alts).toEqual(['Figure one']);
+  });
+
+  test('the laid-out row is labelled in words, not by colour alone', () => {
+    const lines = layoutReaderLines(
+      [{ type: 'img', text: 'Chart showing growth' }], { imageLabel: '画像' });
+    const row = lines.find((l) => l.style === 'img');
+    expect(row).toBeTruthy();
+    expect(row.text).toContain('画像');
+    expect(row.text).toContain('Chart showing growth');
+  });
+
+  test('alt text is findable, like any other prose in the page', () => {
+    const { findMatches } = require('../src/vr/browser/readerSearch.js');
+    const lines = layoutReaderLines(
+      [{ type: 'p', text: 'ordinary prose' }, { type: 'img', text: 'a red bicycle' }],
+      { imageLabel: 'Image' });
+    expect(findMatches(lines, 'bicycle')).toHaveLength(1);
+  });
+});
+
+describe('table rows reach the reader', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+
+  test('a data table keeps its numbers, in document order', () => {
+    const html = `<html><body><article>
+      <p>Intro.</p>
+      <table>
+        <tr><th>Year</th><th>Growth</th></tr>
+        <tr><td>2024</td><td>40%</td></tr>
+      </table>
+      <p>After.</p>
+    </article></body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual([
+      'Intro.', 'Year | Growth', '2024 | 40%', 'After.'
+    ]);
+  });
+
+  test('an all-th row is marked as a heading, so the structure survives', () => {
+    const html = '<html><body><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks[0].type).toBe('h');
+    expect(blocks[1].type).toBe('p');
+  });
+
+  test('a layout table does not print its cells twice', () => {
+    // Cells holding block elements are extracted as blocks already; emitting
+    // the row as well would duplicate every paragraph on table-laid-out pages.
+    const html = '<html><body><article><table><tr><td><p>Only once.</p></td></tr></table></article></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['Only once.']);
+  });
+
+  test('rows with optional closing tags still separate', () => {
+    // </tr> and </td> are optional in HTML; requiring them would drop the row.
+    const html = '<html><body><table><tr><td>a<td>b<tr><td>c<td>d</table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['a | b', 'c | d']);
+  });
+
+  test('an empty row contributes nothing', () => {
+    const html = '<html><body><p>x</p><table><tr><td></td><td></td></tr></table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.filter((b) => b.text.includes('|'))).toHaveLength(0);
+  });
+
+  test('tables inside stripped regions stay stripped', () => {
+    const html = `<html><body>
+      <footer><table><tr><td>junk</td><td>links</td></tr></table></footer>
+      <article><table><tr><td>real</td><td>data</td></tr></table></article>
+    </body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['real | data']);
+  });
+});
+
+// ── The class: content the extractor cannot see is silently discarded ────────
+// Images (void elements) and table cells (not block tags) were each found by
+// hand, one round apart. The shape is always the same — the page looks like it
+// had less to say, with nothing to indicate anything was lost. This enumerates
+// the content-bearing constructs a reader must carry, so the next one is
+// caught here rather than by someone noticing an article looks short.
+describe('no content-bearing construct is silently dropped', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+
+  const CONSTRUCTS = {
+    'paragraph': ['<p>Prose sentence.</p>', 'Prose sentence.'],
+    'h1-h3 heading': ['<h2>Section</h2>', 'Section'],
+    // BLOCK_TAGS was h[1-3]: every deeper heading, i.e. the structure of any
+    // long article, extracted to nothing.
+    'h4 heading': ['<h4>Subsection</h4>', 'Subsection'],
+    'h5 heading': ['<h5>Deeper</h5>', 'Deeper'],
+    'h6 heading': ['<h6>Deepest</h6>', 'Deepest'],
+    'list item': ['<ul><li>Item text</li></ul>', 'Item text'],
+    'blockquote': ['<blockquote>Quoted words</blockquote>', 'Quoted words'],
+    // A technical article's payload.
+    'code block': ['<pre><code>const answer = 42;</code></pre>', 'const answer = 42;'],
+    'definition term': ['<dl><dt>Term</dt><dd>Meaning</dd></dl>', 'Term'],
+    'definition body': ['<dl><dt>Term</dt><dd>Meaning</dd></dl>', 'Meaning'],
+    // Ironic one: alt text arrived a round earlier while the caption sitting
+    // beside the image was still being thrown away.
+    'figure caption': ['<figure><figcaption>What the figure shows</figcaption></figure>', 'What the figure shows'],
+    'table caption': ['<table><caption>What the table shows</caption></table>', 'What the table shows'],
+    'disclosure summary': ['<details><summary>Click to expand</summary></details>', 'Click to expand'],
+    'address': ['<address>Contact line</address>', 'Contact line'],
+    'table row': ['<table><tr><td>cell one</td><td>cell two</td></tr></table>', 'cell one | cell two'],
+    'image alt text': ['<img src="x.png" alt="A described picture">', 'A described picture']
+  };
+
+  for (const [name, [markup, expected]] of Object.entries(CONSTRUCTS)) {
+    test(`${name} survives extraction`, () => {
+      const { blocks } = extractReadableText(
+        `<html><body><article>${markup}</article></body></html>`, 'https://e.example/');
+      const texts = blocks.map((b) => b.text);
+      expect(texts.join(' ⏎ ')).toContain(expected);
+    });
+  }
+
+  test('headings of every level are typed as headings, not prose', () => {
+    const markup = [1, 2, 3, 4, 5, 6].map((n) => `<h${n}>Level ${n}</h${n}>`).join('');
+    const { blocks } = extractReadableText(
+      `<html><body><article>${markup}</article></body></html>`, 'https://e.example/');
+    expect(blocks).toHaveLength(6);
+    expect(blocks.every((b) => b.type === 'h')).toBe(true);
+  });
+
+  test('a code sample is not extracted twice by both pre and code', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><article><pre><code>once()</code></pre></article></body></html>',
+      'https://e.example/');
+    expect(blocks.filter((b) => b.text.includes('once()'))).toHaveLength(1);
   });
 });

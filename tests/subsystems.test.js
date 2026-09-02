@@ -4,7 +4,6 @@
  */
 const { JapaneseIME, candidateStyle } = require('../src/vr/input/JapaneseIME.js');
 const { FFRSystem } = require('../src/vr/rendering/FFRSystem.js');
-const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
 
 describe('src/vr/input/JapaneseIME', () => {
   const ime = new JapaneseIME();
@@ -186,28 +185,3 @@ describe('src/vr/rendering/FFRSystem', () => {
   });
 });
 
-describe('src/utils/ProgressiveLoader', () => {
-  test('addResource routes to the requested priority queue and updates stats', () => {
-    const loader = new ProgressiveLoader();
-    const item = loader.addResource({ url: 'a.png', size: 100 }, 'critical');
-
-    expect(item.priority).toBe('critical');
-    expect(loader.loadQueue.critical).toHaveLength(1);
-    expect(loader.stats.itemsTotal).toBe(1);
-    expect(loader.stats.totalBytes).toBe(100);
-  });
-
-  test('addResource defaults to the secondary queue', () => {
-    const loader = new ProgressiveLoader();
-    loader.addResource({ url: 'b.js' });
-    expect(loader.loadQueue.secondary).toHaveLength(1);
-    expect(loader.loadQueue.critical).toHaveLength(0);
-  });
-
-  test('getStats() reports 0.0% (not NaN) before any resource is queued', () => {
-    const loader = new ProgressiveLoader();
-    const stats = loader.getStats();
-    expect(stats.progressPercent).toBe('0.0');
-    expect(Number.isNaN(parseFloat(stats.progressPercent))).toBe(false);
-  });
-});

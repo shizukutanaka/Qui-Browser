@@ -1,0 +1,34 @@
+#!/bin/sh
+# Run the full gate before anything leaves this machine.
+#
+# Why here: CI cannot be repaired from inside this repository. Five workflows
+# under .github/workflows/ still reference paths deleted in Session 74, and
+# editing them needs a `workflows` token permission that is not available (see
+# docs/PUBLISHING.md, and the ready-to-apply patch in docs/patches/). Until an
+# owner applies that patch, a green checkmark on GitHub means nothing.
+#
+# A push is upstream of every deployment target — GitHub Pages, Netlify, a
+# manual build — so gating the push is the one place a check can be enforced
+# without a workflow file. It is not a substitute for CI: a hook runs on the
+# developer's machine, only after `npm install` has pointed core.hooksPath
+# here, and `git push --no-verify` skips it. It is a real check in the one
+# place still available.
+#
+# Set QUI_SKIP_GATE=1 to skip deliberately (e.g. pushing a docs-only branch on
+# a machine without a browser for the harnesses).
+
+if [ -n "$QUI_SKIP_GATE" ]; then
+  echo "pre-push: gate skipped (QUI_SKIP_GATE set)"
+  exit 0
+fi
+
+echo "pre-push: running npm run gate (set QUI_SKIP_GATE=1 to skip)"
+if npm run gate; then
+  echo "pre-push: gate green"
+  exit 0
+fi
+
+echo ""
+echo "pre-push: GATE FAILED — push aborted."
+echo "  Fix it, or push with --no-verify if you know why this is safe."
+exit 1

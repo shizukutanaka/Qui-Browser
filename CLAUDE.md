@@ -252,6 +252,240 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き21）: CI が赤いので追ったら、**「0 lint errors」という自分の主張が偽**だった
+PR #57 の CI が赤。2件は自分の PR が原因、4件は main でも同じく赤（workflow ファイルのみ、K-1 パッチが対象）。修正を押した後、**再チェックしたらまだ赤**だったので掘った。
+- 🔍 **根因（自分の測定環境が腐っていた）**: `package.json` は `eslint: ^9.39.0`、lockfile も **9.39.5**。ところが**私の `node_modules` には 8.57.1** が残っていた（セッション中に一度 node_modules が消えて復旧した際の残骸）。ESLint 9 は `.eslintrc.json` を**受け付けない** —— `eslint.config.js` が無いと**リント前に exit 2** で落ちる。CI では `continue-on-error: true` がその失敗を飲み込んでいたので誰にも見えず、私の `format:check` → `lint` エイリアスが**飲み込みを外した結果として初めて表面化**した。
+- ⚠️ **つまりこのセッションで繰り返してきた「0 lint errors」は、宣言されているバージョンではなく古い 8.x に対する測定だった。** 検査そのものが実態と食い違うという、まさに本セッションで何度も指摘してきた欠陥形を、私自身の作業環境がやっていた。
+- ✨ **fix**: `npm ci` で lockfile どおり（9.39.5）に同期してから、`.eslintrc.json` を **`eslint.config.js`（flat config）へ忠実に翻訳** —— 規則・重大度・オプションを1つも変えない（設定形式の移行に紛れて基準が動くのを避けるため）。機械的な差分は2つだけ: `env` は廃止なので `globals` パッケージ（ESLint 同梱）から browser/node/jest を取り込む、files/ignores を明示。legacy ファイルは**削除**して真実を1つにし、参照していた2ツール + onboarding doc も更新。`--ext` は flat config で廃止されたのでスクリプトから除去（**51/51 と 1/1 のファイルが実際に検査されていることを確認**してから）。
+- 🐛 **同じ「古い install」がもう1件を隠していた**: `npm ci` 後に **`verify:size` が FAIL** —— vendor-three が **118.7 → 140.5 kB**。three が急に太ったのではなく、**lockfile が入れる 0.181.2 に対して私が測っていなかった**だけ。予算を実測値ベース（vendor-three 152 kB / TOTAL 248 kB）に訂正し、**なぜ数字が動いたのかをファイルに明記**（次に読む人が「1コミットで 22 kB 増えた」と誤読しないため）。**捕捉能力は維持**: KTX2Loader を tier1 に引き込む実回帰を再注入すると tier1 が **263%** で FAIL。
+- ✅ 実際に CI が走らせるコマンドで再現・確認: `npm run lint` exit 0 / `npm run format:check` exit 0 / console.log ゲート exit 0。Total 1704 tests (52 suites); **ESLint 9 で 0 errors (122 warnings)**; `npm run gate` PASS。
+
+### Session 75（続き20）: 「画素は無理」という**自分の主張が誇張**だった —— 画像を実際に描いた
+Stop hook が「画像の*画素*は一度も問い直していない。理由を付けて未完成のまま置くのは完成ではない」と指摘。**正しい**ので、自分の「ブロッカー」を実測で問い直した。
+- 🔍 **自己訂正**: 私は「汚染 canvas は WebGL テクスチャにできないので画素は不可能」と書いた。**真だが不完全** —— 汚染するのは `crossOrigin` **無しで**取得した cross-origin 画像だけ。`crossOrigin='anonymous'` を付ければ CORS-clean な画像は**汚染されない**。つまり画素の到達範囲は「不可能」ではなく、**リーダーが markup について既に持っているのと同じ到達範囲**だった。壁ではなく、同じ壁の同じ側。
+- ✨ **feat**: `<img>` の `src` を base URL で解決して抽出（http(s) のみ、`alt=""` は装飾として除外、**1ページ8枚上限** —— モバイル SoC でデコードされるので枚数はページに委ねない）。レイアウトは画像に **6行を予約**（`imgbox`）—— 画像が既存の行モデルに乗るので、スクロール・ページ送り・クリップが**全て既存機構のまま**動き、専用ビューポートが要らない。**読み込み前から予約する**ので、到着時に下のテキストが飛ばない。描画は別パスで**行グループの絶対位置から**バンドを計算し、コンテンツ列にクリップする（画像は複数行に跨り、窓の上にはみ出しうるため）。`contain` で**拡大はしない**（小さい画像を6行に引き伸ばすと壊れて見えるし、アスペクト比は著者のもの）。
+- 🔒 **失敗は静かに正直**: 読めない画像は `'failed'` として**記憶**し再試行しない（レンダーループの中からネットワークを叩き続けるのを防ぐ）。**alt テキストの行は画素の成否に関わらず残る** —— 見える人にはキャプション、見えない人には内容そのもの。新しいネットワーク面はゼロ（プロキシの content-type allowlist は**触っていない** —— SSRF ガードの表面を安易に広げない）。
+- 🐛 **自分の実装バグをテストが即検出**: `layoutReaderLines` の `if (!b.text) continue` が、**alt 無しの画像を全部落としていた**（`text:''` なので）。画像はコンテンツを `src` に持つので、その guard を通す必要があった。
+- 🔬 **実ブラウザで検証 → 自分の fixture が壊れていた**: `verify:vr-boot` の同一オリジン記事に**本物の PNG** を配って「実際にデコードされたか」を検査したところ **FAIL**。原因は機能ではなく、**手書きした PNG の CRC が不正**だったこと（Chromium が正しく拒否していた）。CRC を計算して生成し、**自己検証してから**埋め込み → `img 4x4` を確認。
+- ⚖️ **検査の限界を明記**: このハーネスは画像を**同一オリジン**で配るので、`crossOrigin` の有無に関わらず通る —— つまり「画素がパネルに届く」ことは証明するが「属性が設定されている」ことは証明しない。**後者は unit テストが担保**（属性を消すと FAIL）。両方を混同しないようコメントに明記した。
+- ✅ **pre-fix 検証**: `crossOrigin` 行を消すと unit **1件 FAIL**。Total 1704 tests (52 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き19）: 手作業で2つ見つけたので**列挙した** —— さらに7種類が黙って捨てられていた
+続き18 で画像と表という**同じクラス**の欠陥を1ラウンド差で見つけた。3つ目を手で探すのではなく、**リーダーが運ぶべき構造を列挙して全部実測**した（マスク step 5）。
+- 🔍 **実測結果（7種類が `*** DROPPED ***`）**: **h4/h5/h6**（`BLOCK_TAGS` が `h[1-3]` —— **長い記事の構造そのもの**が消えていた）、**`pre`/`code`**（技術記事の本体）、**`dl`/`dt`/`dd`**（用語集・FAQ・仕様書）、**`figcaption`**（**続き18 で alt を足したのに、その隣のキャプションはまだ捨てていた**）、**`caption`**（表の説明）、**`summary`**（`details` の見出し。本文だけ通っていた）、**`address`**。
+- ✨ **fix**: `BLOCK_TAGS` を `h[1-6]|p|li|blockquote|pre|dt|dd|figcaption|caption|summary|address` に。`code` は**意図的に除外** —— `pre` の中にあるので両方入れると同じサンプルを2回抽出する（テストで固定）。`pre` の空白は他と同様に畳まれる（リーダーは measure で折り返すので、コードは散文として読める。**可逆ではないが、無いよりある**と明記）。
+- 🔬 **クラスをテストにした**: 「リーダーが運ぶべき content-bearing 構造」16件を markup と期待文字列の表として列挙し、各々が抽出を生き延びることを要求する。**画像・表・今回の7件すべてを、これがあれば当時捕捉できた**。次の1件も「記事が短い気がする」と誰かが気づく前に、ここで落ちる。
+- ✅ **pre-fix 検証**: `BLOCK_TAGS` を元の `h[1-3]|p|li|blockquote` に戻すと **12件 FAIL**、復元で全通過。
+- ✅ Total 1696 tests (52 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き18）: 「リーダーに必要なのは画像の画素か、情報か」→ 情報であり、それを黙って捨てていた
+Stop hook が「洗い出しはしたが**完成**していない」と指摘。E2 の残件2番目（画像対応）を「大規模だから後回し」と自分で棚上げしていたので、**要件そのものを問い直した**（マスク step 1）。
+- 🔍 **問い直し**: リーダーが伝えるべきは画像の**画素**か、画像の**情報**か。情報であり、それは `alt` にある。画素表示は ①CORS-clean な画像が必要（汚染 canvas は WebGL テクスチャにアップロードできない）②メモリ予算 ③レイアウト再設計 を要するが、`alt` は**既存の行モデルにそのまま乗り**、しかも **WCAG 1.1.1（仕様の最初の達成基準）**そのもの。アクセシビリティ公平性を掲げる製品にとって、こちらが本命だった。
+- 🐛 **診断**: `readableText.js` に `img` の文字列が**1つも無かった**。`<img>` は void 要素で本文も閉じタグも持たないため**ブロック走査の正規表現には原理的に見えない** —— つまり**全ての画像の代替テキストが黙って捨てられていた**。「表示できない」ではなく「存在しないことにしていた」。
+- ✨ **feat**: ブロックを**ソース位置つき**で集め、`alt` を持つ画像を別走査で集めて**位置でマージ**する（void 要素は本文走査に混ぜられないため）。結果、画像は**文書順のまま**散文の間に入る。`alt=""` は仕様上「装飾＝何も告知するな」なので除外、`alt` 自体が無い画像も除外（「画像」とだけ言う行はノイズで、ノイズはリーダーを無視する習慣を作る）。
+- 🎨 **提示**: 行は `画像: <説明>` と**言葉で**前置きする（色やアイコンではないので、あらゆる描画モードで残る —— 1.1.1 と 1.4.1）。専用スタイル `img` は**本文サイズ・非ボールド**（ページについての散文であって見出しではない）。色は実測してから採用: 通常 `#b9c2dd` = **9.60:1**、HC `#e8e8e8` = **17.14:1** —— 代替テキストが受けがちな「灰色にして重要でない扱い」を避け、contrast 掃引（252件）に追加。
+- 🔎 **副産物**: 代替テキストは通常の行なので、**ページ内検索（続き13）でそのまま引っかかる** —— テストで固定。
+- ✅ **pre-fix 検証**: 画像走査ブロックだけを外すと **3件 FAIL**、復元で全通過。
+- 🐛 **同じクラスがもう1つ: 表**（同セッション内で続けて発見）: セル（`td`/`th`）は `BLOCK_TAGS` に無いので、**データ表は丸ごと捨てられていた** —— 実測: `<table><tr><th>Year</th><th>Growth</th></tr><tr><td>2024</td><td>40%</td></tr></table>` から抽出されるブロックは **0**。ページが存在する理由そのものである数値が消えていた。
+- ✨ **feat**: `<tr>` を**1行1テキスト行**に（セルを ` | ` で連結 —— text ブラウザが昔からやっている形で、行単位でスクロールするリーダーの操作モデルにそのまま乗る）。`th` だけの行は `type:'h'` にして**表の構造を残す**。`</tr>`/`</td>` は HTML では省略可なので、閉じタグ必須にすると行が全部消える（ブロック走査で踏んだのと同じ罠）—— 次の `<tr` / `</table` / 入力末尾で終端。
+- 🔒 **二重表示とレイアウト表の回避を1つの規則で**: セルがブロック要素を含む行は**スキップ**する。それらは個別にブロックとして抽出済みなので、行としても出すと**全段落が2回**印字される。同じ規則がレイアウト目的の表（セルに段落が入っている）も自動的に除外する。
+- ⚖️ **フォームは意図的に未対応**: リーダーは JS を実行せず送信もできないので、**操作できない入力欄を見せるのは「番号は見えるのに開けないリンク」（続き15）と同じ不誠実さ**になる。
+- ✅ **pre-fix 検証**: 表の走査だけ外すと **4件 FAIL**、復元で全通過。
+- ✅ Total 1678 tests (52 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き17）: 欠陥「クラス」を4つ目として自動化 —— 走査したら実例は1件で、既に直っていた
+続き16 の修正は1件の bug だったのか、それとも**クラス**なのか。マスク step 5（自動化）の前に、まず**実測で範囲を確定**した。
+- 🔍 **走査結果（VRApp.js 全体）**: 値キャプチャは **`connectBrowser` の1箇所のみ**。他は全て `this.X` を呼び出し時に遅延参照している。`windowManager` は `_attachManagedWindow()` が `this.tabManager` を遅延参照し `target !== 新target` で**自動再アタッチ**するので古くならない（**確認して変更不要と判断** —— 疑ったが実測では正しかった）。つまり**クラスの実例は1件で、続き16 で既に解消済み**。残る仕事は再発防止だけ。
+- 🔬 **`tests/live-rebuild-capture.test.js`（新規・本番コード変更ゼロ）**: 対象を**ソースから導出**する —— 「`new` で構築され、かつ **`dispose` 以外の関数で** `null` にされる」フィールドが再構築対象。`dispose` は終端でありライブ再構築ではない、というこの区別が要で、`vrKeyboard`（dispose でのみ解放）は**正しく対象外**になり、その値渡しは安全と判定される。ハードコードしないので、将来ライブ再構築されるサブシステムが増えれば自動で対象に入る。
+- **3つの不変条件**: ①導出結果が空でないこと（パーサ回帰で全体が空虚に通るのを防ぐ）②値キャプチャは指定の再束縛関数の中にしか存在しないこと ③**その再束縛関数を、対象フィールドを作り直す全ての関数が実際に呼んでいること**。
+- 🎯 **③が本命**: 続き16 で私は「`_connectVoiceToBrowsing()` を直接呼ぶ」テストを書き、**呼び出し元が無くても通る**飾りを作った。本セッション前半で verify:vr-boot に対して自分で指摘した失敗形を、数時間後に自分で再現していた。その教訓を走査に埋め込んだ。
+- ✅ **捕捉能力を実証**（どちらも復元して全通過）: (a) `_buildBrowsingSystems` の再束縛呼び出しを削除 → **不変条件3が FAIL**（続き16 の欠陥そのものの再現） (b) 許可リスト外のメソッドに `tabManager: this.tabManager,` を置く → **不変条件2が FAIL**。
+- ✅ Total 1662 tests (52 suites); 0 lint errors; `npm run gate` PASS。**`src/` は1行も変更していない。**
+
+### Session 75（続き16）: 自分の「動線は閉じた」という主張を検証したら、閉じていなかった
+続き15 の締めで「音声だけで一周する」と書いた。**このリポジトリの規律は主張ではなく実測**なので、その主張自体をソクラテス的に問い直した。→ **条件付きで偽だった。**
+- 🔍 **診断**: `connectBrowser({ tabManager, bookmarkPanel, vrKeyboard })` は**値でキャプチャ**する。ところが `enableWebPanel` トグル（Session 74続き5 でライブ適用になった）は `_teardownBrowsingSystems` で `this.tabManager = null` にし、`_buildBrowsingSystems` で**新しいインスタンス**を作る。`connectBrowser` の呼び出し元は `_buildVoiceCommands` **1箇所だけ**で、そこは `this.voiceCommands` があれば早期 return する。つまり **ブラウジングを切って入れ直したユーザーは、`戻る`／`進む`／`更新`／`ブックマーク`／検索フォールバックが全て**破棄済みの** TabManager を指したまま**になる。
+- 🐛 **しかも不整合**: 続き13/15 で私が足した `onFindInPage`／`onFollowLink` は `this.tabManager` を**遅延参照**するので新インスタンスを使う。**同じ音声コマンド群が2つの異なるブラウザを相手にしている**状態だった。
+- ✨ **fix**: 接続を `_connectVoiceToBrowsing()` に抽出し、`_buildVoiceCommands` に加えて **`_buildBrowsingSystems` の末尾と `_teardownBrowsingSystems` の末尾**から呼ぶ。ブラウジング OFF のときは null に再束縛され、**破棄済みではなく「無い」を正直に指す**。音声が無ければ guard で no-op。
+- 🔬 **自分のテストが飾りだったのを即座に自覚して直した**: 最初に書いた3件は `_connectVoiceToBrowsing()` を**直接呼んで**検証しており、**呼び出し元が存在しなくても通る** —— 本セッション前半で verify:vr-boot に対して指摘したのと同じ失敗形。「**メソッドではなく呼び出しを検査する**」テスト2件に書き直した。**pre-fix 検証**: 両方の呼び出しを外すと**2件 FAIL**、復元で全通過。
+- 🐛 **副産物**: この検査を書くために `_buildBrowsingSystems` を実際に走らせたところ、`tests/vr-app-wiring.test.js` の canvas スタブに **`clearRect`/`measureText` が無く**、このファイルでは**実ビルドを一度も実行できなかった**ことが判明。補完した。
+- ✅ Total 1657 tests (51 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き15）: 音声ユーザーはリンクを「見えるのに開けなかった」— Session 66 の鏡像
+ソクラテス問答:「リーダーは番号付きリンク行を出す。**音声ユーザーはその番号を使えるか？**」→ **使えない。**
+- 🔍 **診断**: `layoutReaderLines` は各リンクを `${i+1}. ラベル` として1行1宛先で並べる —— **番号という宛先指定機構が既に画面にある**。しかし活性化経路は `_onContentSelect`（行ヒットテスト＝視線ドウェル／コントローラのレイ）**のみ**で、`VoiceCommands.js` に link 系コマンドは**ゼロ**（grep 実測）。つまり**視線もコントローラも難しい人**（＝`enableVoice` が存在する理由の当人）は、行き先が番号付きで見えているのに**1つも開けない**。**Session 66 の鏡像**（あのときはスクロールが音声専用で視線ユーザーが読み進められなかった）。しかも続き14 で既定エンジンを no-JS 版にしたことで**検索結果がまさに番号付きリンク行**になったため、音声ユーザーの動線は最後の一歩で行き止まりだった。
+- ✨ **feat**: 純関数 `linkRowIndex(lines, n)` を `readerLayout.js`（行の意味論を既に所有）に追加 —— **n 番目の `style==='link'` 行**を返す。全行の n 番目ではない点が要で、本文が間に挟まっても序数がずれない。`WebPanel.followLink(n)` は行ヒットと**同一の処理**（`onLinkFollowed` → `navigate`）を通すので、**見えている番号と開く先は構造的に一致**する。
+- 🗣️ **音声**: `open-link`（`リンク3を開く` / `1番を開く` / `リンク2` / `open link 4`）。**全角数字 `０-９` を正規化**（日本語 ASR/IME は日常的に全角を返す）。
+- 🐛 **登録順の罠（3度目・実測）**: `go-to` の `/^(.+)を開く?/` は「1番を開く」に、`/^(?:open|go to)\s+(.+)/i` は "open link 3" に**マッチする**。`go-to` は最後に登録される catch-all なので手前で登録すれば勝つが、**テストで固定**した —— `open-link` を `go-to` の後ろへ移すと **5件 FAIL**、戻すと全通過。「キーボードを開く」「githubを開く」が従来どおり動くことも同時に固定（catch-all を影にしていない証明）。
+- 🔊 **告知**: 成功は既存 `onLinkFollowed` 経路が既にクロスモーダル告知するので**追加しない**。範囲外のときだけ新キー `vr.msg.noSuchLink`（en/ja）で warn —— 黙って何も起きないのは「番号が聞き取れたのかすら分からない」状態（WCAG 4.1.3）。
+- ✅ **test 19件追加**（純関数5（**表示ラベルから番号を読み取って突き合わせる**ので片方だけ変えると落ちる）+ WebPanel 4 + 音声7 + VRApp glue 3）。
+- ✅ Total 1652 tests (51 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き14）: 「URL バーから検索したら、結果は読めるか？」→ 読めなかった（既定エンジンが JS SPA）
+ソクラテス問答の続き。リーダーは**スクリプトを実行しない**（fetch した markup から散文とリンクを抽出するだけ）のに、既定検索エンジンは `https://duckduckgo.com/?q=` —— **結果が初期 HTML に存在しない SPA シェル**。つまり URL バーに単語を打つ＝検索、という中核動線が**全件 'unavailable' で行き止まり**だった（プロキシ経由ですら）。
+- ✨ **fix**: 既定を **`https://html.duckduckgo.com/html/?q=`**（DDG が非 JS クライアント向けに維持しているサーバレンダリング版）に変更。見出し＋スニペット＋リンクという構造は**リーダーの表示形式そのもの**で、結果は番号付きリンク行として辿れる（続き2 のリンク行モデルがそのまま効く）。他3エンジンはユーザー選択肢として温存（品質はエンジン依存 — no-JS で設計されているのは DDG html 版のみ、と正直に記録）。
+- 🔒 **性質をテストで固定**: 「既定エンジンは no-JS エンドポイントであること」を理由コメント付きで pin（SPA に戻す者は検索全体を壊すことをテストが名指しで告げる）。`searchEngineHosts()` は雛形から導出なので Top Sites 除外も自動追従。
+- ⚠️ **限界の明記**: sandbox は外向き 403 のため**ライブ検証は不可**。ただし「SPA シェルの初期 HTML に結果が無い」ことと「/html/ がサーバレンダリングである」ことは DDG の公開仕様・恒常挙動であり、no-JS 抽出器にとって /html/ が**設計上の正解**であることは構造的に確定。
+- ✨ **同じ糸をもう一段: リダイレクトラッパの解除**: DDG /html/ の結果リンクは `duckduckgo.com/l/?uddg=<encoded>` の**ラッパ** —— 放置するとアドレスバーが実際の居場所を隠し（origin-first 表示規律の逆）、着地ページの**相対リンクが duckduckgo.com 基準で解決されて全滅**する。純関数 `unwrapKnownRedirect`（ホストはアンカー付き正規表現 —— `evilduckduckgo.com` は解除しない、uddg が http(s) 以外なら**ラッパを保持**＝スキーム昇格経路にしない）を `extractLinks` の解決後に適用。**pre-fix 検証**: 適用行を外すと2件 FAIL。
+- ✅ Total 1633 tests (51 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き13）: ページ内検索 — 視線ユーザーは長い記事の中を「探せなかった」
+ソクラテス問答の続き:「視線ユーザーは長い記事から目当ての箇所を探せるか？」→ **探せない。1ドウェル=1ページ送りで全部眺めるしかなかった。** E2 スナップショット改善候補 #3 を実装。
+- ✨ **feat**: 新規純モジュール `readerSearch.js`（`findMatches`/`nextMatch`/`prevMatch`/`matchOrdinal` — 行インデックス基準。リーダーの操作モデル（スクロール・ヒットテスト・リンク）が全て行を宛先にしているので、マッチも「スクロールして強調する行」として既存機構をそのまま使う）。正規化は確立済みの **NFC + 小文字**（Sessions 11/18 と同じ — NFD の IME クエリが NFC 本文に当たることをテストで固定、fixture は `length===2` を assert して本当に分解形であることを機械で担保）。
+- ✨ **WebPanel**: `findInPage(query)` は最初のマッチへスクロール（上から2行目 = PAGE_OVERLAP と同じ思想）し `{count, index}` を返す。`findNext`/`findPrev` は循環。検索状態は**ナビゲーション・back/forward 復元・reload で必ずクリア**（検索は1ページに属する）。マッチ行は**テキストの下に行 band を塗り**、フォーカス行は**白枠**（色相ではなく太さの手がかり、WCAG 1.4.1）。進捗ラベルに `3/7`。
+- 📐 **色は書く前に実測**: `findRowBg` は normal `#2a3a6a`（body 8.03 / link 5.34 / heading 10.98 — 全て ≥4.5:1）、HC `#00337a`（11.97 / 7.20）。当初候補 `#3a4e8f` は **link 3.83 で不合格**だったので却下し、フォーカスは塗りではなく枠で示す設計に。4ペア×2モードを contrast 掃引（249件）に追加。
+- 🚪 **入り口は2モダリティ**（Session 66 の教訓 = 音声だけにしない）: 設定パネル Browsing のアクション（VR キーボードで入力 → 実行 → `1/7` / 「一致なし」をクロスモーダル告知）と音声（`ページ内検索：てんき` / `find on page …`、`次の検索結果` — 「次へ」は forward が既に所有）。browsing セクションは 7 行 < a11y 8 行なので視野予算 **35.9° 不変**（レイアウトテストの実在庫表を更新して確認）。
+- 🐛 **fix（Map の罠 — 実測で発見）**: 「search より前に registerCommand すれば勝つ」は**偽**だった。コンストラクタも 'search' を登録しており、**`Map.set` は既存キーの挿入位置を保持する**ため、connectBrowser 内でいくら前に書いても search が先にマッチして find-in-page は**一度も発火しなかった**（テストが即検出）。`commands.delete('search')` してから再登録し、re-registration が実際に後ろの슬롯を取るようにした。登録順の罠（Session 18）の一段深い変種としてコメントに明記。
+- ✅ **test 37件追加**（純関数11 + WebPanel 9（描画記録スタブでハイライトが実際に fillRect されることも）+ 音声6 + VRApp glue 4 + contrast 8 −再掲）。音声の登録順テストは**修正前に実際に FAIL した**（上記の Map 罠がそのまま pre-fix 証明になった）。
+- ✅ Total 1624 tests (51 suites); 0 lint errors (114 warnings); `npm run gate` PASS。
+
+### Session 75（続き12）: ソクラテス問答「日本語ブラウザは日本語ページを読めるか？」→ UTF-8 しか読めなかった
+新ゴール（マスク思考法＋ソクラテス問答法で長所短所改善点を洗い出し完成させる）に従い、製品の主張を一つずつ問うた。最初の問いで実欠陥が出た。
+- 🔍 **診断**: `Response.text()` は **WHATWG Fetch 仕様上、無条件に UTF-8 でデコード**する（Content-Type の charset も `<meta charset>` も無視）。`WebPanel._loadReaderText` は `res.text()`、同梱プロキシも `Buffer.toString('utf8')` — つまり**日本に多数現存する Shift_JIS / EUC-JP のページは、リーダーで全文が文字化け**していた。「表示できません」ですらなく、**壊れた文字列を本文として堂々と表示**する。日本語 IME を看板に掲げるブラウザとして失格級の欠陥。
+- ✨ **feat**: 新規純モジュール `src/vr/browser/charset.js`（依存ゼロ・ブラウザ/Node 両用）。`sniffCharset` は Encoding Standard の慣行どおり **BOM > ヘッダ charset > 先頭1024バイト内の meta > utf-8** の優先順位。`decodeMarkup` は未知ラベルで throw せず utf-8 にフォールバック（最悪でも従来の文字化けであり、読めるページをエラー画面にはしない）。`TextDecoder` の shift_jis / euc-jp / iso-2022-jp 対応は**実測してから**採用（Node 22 / Chromium とも Encoding Standard で必須）。
+- 🔧 **配線は2箇所・実装は1つ**: WebPanel は `res.arrayBuffer()` + `decodeMarkup`（`arrayBuffer` を持たない既存テストスタブは従来の `text()` 経路に落ちる後方互換）。プロキシは同じモジュールを import してデコードし、応答は従来どおり UTF-8 の text/plain（公開契約不変、netlify 関数の base64 問題も回避）。
+- ✅ **fixture は自己検証型**: 手書きの Shift_JIS バイト列（こんにちは = 82 B1 82 F1 82 C9 82 BF 82 CD）を**テスト内で先に `TextDecoder('shift_jis')` に掛けて正解と一致することを assert**（fixture 自体の誤りを機械で排除）。「UTF-8 で強制デコードすると化ける」ことも明示的に固定 = 直した欠陥そのものの証明。
+- ✅ **pre-fix 検証**: WebPanel のデコード配線だけを旧 `res.text()` に戻すと Shift_JIS E2E テストが **FAIL**（化けて こんにちは が現れない）、復元で全通過。
+- 📋 **成果物**: `docs/OUTSTANDING_ISSUES.md` に **E2章 = 最新の長所短所改善点スナップショット**を追加（長所5・短所4・改善候補4、全て実測根拠付き）。
+- ✅ Total 1582 tests (50 suites); 0 lint errors (114 warnings); `npm run gate` PASS。
+
+### Session 75（続き11）: 「計測しているふり」を3つ潰した — 消えたコードのベンチ、適用されたことのない整形規約、ビルドしない Docker
+Stop hook が「アルゴリズムは1回applyしただけ」と指摘したので、step 2 と step 1 をもう一周させた。今回は**検査そのもの**が対象。
+- 🧹 **delete（830行）— 存在しないコードを計測していたベンチマーク**: `tools/benchmark.js` は `assets/js/` 配下のファイルの `require()` を計測するツールで、Session 74 でその木ごと消えた。**実行すると モジュール0件 → 自分の summary 内で `TypeError` を投げて落ちる**（実測）。つまり `ci.yml` の Performance Tests ジョブ・`benchmark.yml`・`release.yml` のベンチステップは**恒久的に赤いのにコードについて何も語っていなかった**。相方の `check-performance-regression.js` が比較する baseline はリポジトリに存在しない（＝構造的に不活性）。
+- ✨ **add-back（10%）— 実際に効く計測に置換**: `tools/check-bundle-size.mjs`。**出荷される gzip チャンクに予算**を課す。単体ヘッドセットでは全バイトがモバイル SoC でダウンロード＆パースされ、しかも**この種の回帰は静か** —— 実際 `TextureManager` が CDN transcoder パスを張って three の `KTX2Loader` を tier1 に引き込んでいたが、**無関係な理由でそのモジュールを消すまで誰も気づかなかった**（31.4 → 7.3 kB gzip）。**合計だけでなくチャンク別**に持つのが要点: 7 kB のチャンクに 24 kB が落ちても three が支配する合計はほとんど動かないが、そのチャンクは4倍になる。
+  - **捕捉能力を実証**（どちらも復元して exit 0 を再確認）: (a) `KTX2Loader` を tier1 から到達可能にする＝**実際に起きた回帰の再現** → **FAIL**、tier1 30.2 kB / 予算 12 kB を名指し＋合計も超過 (b) チャンク同定の正規表現を壊す＝このファイル唯一の fail-open 経路 → **FAIL**、全チャンクが「予算なし」として報告され、**黙って通ることがない**。
+- 🧹 **delete — Prettier（一度も適用されたことのない宣言だけの標準）**: `npm run format:check` は通ったことがない。諦める前に**採用コストを実測**した —— `npm run format` は **127ファイル / +6,016 −3,990行**を書き換え、その結果 **`npm run lint` が 0 errors → 195 errors**（ESLint の `indent` と正面衝突）。両立には `eslint-config-prettier` を新規依存として入れ、**今まさに緑で機能している規則群を無効化**するしかない。しかも Prettier は **`.github/workflows/ci.yml` まで書き換える** —— このリポジトリの自動化が push できないファイル。**実際に効いている標準（ESLint）を壊してまで、適用されたことのない標準を満たす理由はない**ので、devDependency・`.prettierrc.json`・`.prettierignore`・スクリプト2本を削除。整形の唯一の基準は ESLint。
+- 🐛 **fix（Docker が壊れたサイトを配信していた — しかも CI は緑）**: `Dockerfile` は `COPY . .` のあと **`npm run build` を一度も実行せず**、`/app` をそのまま nginx の document root にしていた（`netlify.toml` で Session 75続き が見つけたのと同型）。**実測**: 生成される document root を再現して Chromium で読むと `window.QuiBrowser` は **undefined**、`TypeError: Cannot read properties of undefined (reading 'PROD')`（`import.meta.env` は vite がビルド時に置換する値で素のブラウザには無い）。対照として `dist/` は正常起動。**CI の docker ジョブは `curl -f /health` しか見ておらず、これは `nginx.conf` が document root と無関係に静的な 200 を返す** —— だから壊れたまま緑だった。builder で `npm ci`＋`npm run build`、production は `dist/` だけを COPY するよう修正。
+- 🐛 **fix（`npm ci` が成立していなかった）**: `.dockerignore` が **`package-lock.json` を除外**していたので、`RUN npm ci || npm install` は常に後者にフォールバックし、**固定されない依存ツリー**を作っていた。除外を解除。`--only=production` も撤去（vite が入らずビルドできない）。`docker-compose.yml` の `./:/usr/share/nginx/html` も `./dist` に。
+- 🐛 **fix（PWA のインストールアイコンが全て 404）**: アイコンは `assets/icons/` にあるが Vite の publicDir は `public/` なので、**7枚すべて dist に入らず 404**（実ブラウザで "Error while trying to use the following icon from the Manifest" を観測）。ページは壊れないのでずっと気づかれなかった。`public/assets/icons/` へ移動し、manifest の `src` を**相対パス**に（`base: './'` のサブパス配信でも解決する）。
+- 🔬 **step 5（自動化）**: `verify:app` に「**manifest が名指しする資産が全てビルドに入っていること**」＋「root-absolute でないこと」の検査を追加。**捕捉能力を実証**: アイコンを1枚 dist から取り除くと **FAIL exit 1** で `assets/icons/icon-192.png` を名指し。修正後は実ブラウザの console error が **2件 → 0件**。
+- 📌 **K-1 パッチを拡張**: `benchmark.yml` の完全削除、`ci.yml` の Performance Tests ジョブ、`release.yml` のベンチステップ、両者の `format:check` ステップを削除。ESLint の `continue-on-error` も外した（緑なので結果を握り潰す理由がない）。docker ジョブは**削除ではなく強化** —— 配信されているのがビルド済みバンドルであること、**生ソースが到達不能であること**を検査する。`origin/main` にクリーン適用でき、適用後 `.github/workflows/` から `assets/js` / `tools/benchmark` / `check-performance` / `prettier` の参照が**すべてゼロ**、かつ**全 workflow が parse する**ことを worktree で検証済み。
+- 🧹 **delete（同じ判定を root と assets に広げた）**: `assets/styles/`(7 css) と `assets/css/vr-styles.css` —— 互いに import し合うだけの**閉じた死のクラスタ**（`assets/js/`↔`tests/archive/`、`mvp/`↔`docs/archive/` と同型）。`assets/test-precompressed.txt{,.gz}`（参照ゼロ）。**root の `manifest.json`**（`public/manifest.json` が出荷される方で、root 版は**削除済みの WebGPU/100+言語を謳う陳腐化した複製**）。**root の `service-worker.js`**（`src/main.js` は `${base}service-worker.js` = public 版を登録し、テストも public 版を require する）。ソーシャル画像2枚とその生成コード（**参照ゼロ** —— `og:image` タグが存在しない。正しく配線するには絶対 URL＝正典オリジンが要るが、`base` は相対で1つの成果物を3つのホストに配る設計なので**ビルド時には決められない**。オリジンと一緒に足すべきで、先に足すべきではない）。
+- 🐛 **fix（アイコン生成器が死んだ場所へ書いていた）**: `tools/generate-icons.mjs` は PWA アイコンを `assets/icons/` へ出力しており、**出荷されない**（＝上記404の発生源）。`public/assets/icons/` へ変更。favicon は index.html が直接参照して Vite がハッシュ付きで取り込むので `assets/icons/` のまま —— **2つの出力先は交換不能**であることを docstring に明記。実行して両方に正しく落ちることを確認。
+- 🧹 **delete（1,560行の陳腐化した「完了」宣言）**: `PROJECT_STATUS.md` / `FINAL_RELEASE_SUMMARY_v2.0.0.md` / `RELEASE_CHECKLIST.md` —— **Session 74 で到達不能として削除した機能を ✅ Complete と認定**し、存在しないファイル（`ObjectPoolSystem.js`・`WebGPURenderer.js`・`MultiplayerSystem.js`）を名指ししていた。「[x] Performance benchmarks completed」「[x] benchmark.yml: Performance monitoring active」も**両方とも事実ではない**。互いにしかリンクしない閉じたクラスタで、正確な情報は CLAUDE.md / SPEC.md / OUTSTANDING_ISSUES.md / CHANGELOG.md / PUBLISHING.md が既に持っている。**全部チェック済みのチェックリストはチェックリストではない。** `verify-documentation.js`（内部リンク42本を実際に検査する本物）と `pre-release-validation.js` の一覧から除去し、両者とも引き続き PASS。
+- 🐛 **fix（3つ目の「ビルドせずに配信する」設定）**: `vercel.json` が **`buildCommand: "echo 'No build required for static site'"` かつ `outputDirectory: "."`** —— `netlify.toml`（続き9で修正）・`Dockerfile`（本セッション）と**まったく同じ欠陥**。加えて CSP が使っていない `cdnjs.cloudflare.com` / Google Tag Manager / Analytics と `'unsafe-eval'` を許可し、削除済みの `/assets/css/` にヘッダ規則を持っていた。全て是正。
+- 🔬 **step 5（欠陥「クラス」を自動化）**: **3/3 の配信経路で同じ形が出た**ので走査をテストにした —— `tests/deploy-config.test.js` は vercel/netlify/Dockerfile/.dockerignore/docker-compose を読み、「実際にビルドすること」「dist を配信すること」「lockfile から入れること」「使っていないホストを CSP で許可しないこと」を要求する。**捕捉能力を実証**: 3つの設定を**実際の修正前の状態に戻す**と **13件中8件 FAIL**、復元で全通過（netlify の3件が通るのは続き9で既に直っているため —— 正しい挙動）。
+- 🧹 **delete（`examples/` 6,430行 と `locales/` 105ファイル 1.1MB）**: 前回の走査が `src`/`proxy`/`netlify`＋root に閉じていたため見落としていた最後の2つ。
+  - **`examples/`**: 12個の HTML デモが**全て `../assets/js/*.js` を読み込む** —— Session 74 で消した木。開いても 404 しか出ない。README からも docs からも**リンクゼロ**（grep で `three/examples/jsm` の誤検出だけだったことを確認）。`assets/js/`↔`tests/archive/` の死のペアの**3人目**。
+  - **`locales/`**: 105言語の JSON。`i18n.js` の `CATALOG`（`vr.*` 111キー）と**キー空間の重なりがゼロ**（`meta`/`common`/`vr`/... のネスト構造で、実装とは別物）。**参照ゼロ**、`public/` 外なので出荷もされない。言語を足す正しい経路は `CATALOG` で、そこは `tests/i18n-coverage.test.js` が en/ja の対応を強制している。
+- 📐 **step 2 の収束を機械的に確認**: 全330追跡ファイルに対して inbound 参照を走査 —— 実質的な orphan は **`public/assets/icons/icon-152.png` の1件だけ**（生成器の `ICON_SIZES` にあるが manifest に載っておらず、生成されて出荷されるだけの死重。apple-touch-icon 180 が iOS を賄うので削除）。残りは Jest がパターンで拾うテストファイルとツール設定。**もう到達不能なものは無い。**
+- 🐛 **fix（戻るボタンが読んだページを捨てて取り直していた）**: `back()`/`forward()` は `_loadUrl` を呼ぶ＝**毎回ネットワークから取り直す**。これは二重に誤り —— ①**読んでいた位置を失う**（視線ドウェルでスクロールするパネルでは再構築が高くつく）②**最初は成功した取得が2回目に失敗しうる**（レート制限・回線・プロキシ停止）ので、**さっき読んだページに戻ると「表示できません」になりうる**。一度抽出したページに再びネットワークは要らない。
+- ✨ **feat**: 上限付き back/forward キャッシュ（`_pageCache`、**20ページ**・最近訪問順で追い出し）。`navigate()`/`back()`/`forward()` は離れる前に `_rememberPage()`（**`reader` 状態で本文がある場合のみ** —— エラーや「表示できません」は戻ったときに再試行すべきで保存すべきでない）。`_restorePage()` は **`_readerSeq` を進めてから** 復元する（離れるページの取得がまだ飛んでいる場合に**復元後のページを上書きさせない** —— 削除した iframe とまったく同じ失敗形）。`_setContentState` は同値で早期 return するので `_drawContent()` を明示（記事→記事は両方 `reader`）。`reload()` は**キャッシュを捨てて**取り直す（それが reload の意味）。`dispose()` で破棄。
+- 🐛 **fix（テストが本物のネットワークを叩いていた）**: `--detectOpenHandles` が **TLSWRAP** を報告 —— どこかのテストが `global.fetch` を差し替えず**実際に外へ出ていた**（TLS ソケットと 5 秒の abort タイマーを漏らし、Jest が終了後も生き残っていた）。`tests/setup.js` に `beforeEach` のネットワーク禁止ガードを追加し、**スタブ忘れを即座に失敗させる**。加えて「決して settle しない fetch」を使う2件を最後に解決するよう直し、**開いたハンドル 0** で終了するようにした。
+- ✅ **pre-fix 検証**: `back()`/`forward()` を取り直し版に戻すと **4件 FAIL**（ネットワーク再取得・読み位置の喪失・再取得失敗時に読めない・in-flight による上書き）、復元で全通過。
+- 🐛 **fix（a11y — 大きな文字がリーダーに届いていなかった）**: `WebPanel` は `readerScale` オプションを持ち、docstring は「呼び出し側で a11y の `largeTextScale` と合成せよ」と指示していたが、**合成する呼び出し側が1つも存在しなかった**（`enableVoice` と同じ「宣言はあるが誰も渡さない」形）。結果、弱視ユーザーが大きな文字を有効にすると**字幕とトーストは大きくなるのに、記事本文＝その人が読みに来たテキストのほぼ全部は既定サイズのまま**だった。`VRApp` → `TabManager` → 各 `WebPanel` に `largeTextScale(getPrefs().largeText)` を通した。既定は 1 なので設定していないユーザーの挙動は不変。**pre-fix 検証**: 配線を外すと2件 FAIL。
+- ✅ Total 1565 tests (49 suites); 0 lint errors (114 warnings); `npm run gate` PASS（verify は layout / app / vr-boot / size の4段）。`verify:docs` も PASS（内部リンク42本）。
+
+### Session 75（続き10）: 自分の「オーナーにしか触れない」判断が間違っていた
+前ターンの締めで「残る ci.yml の失敗2件はどちらもオーナーしか触れないファイル」と書いたが、**これは誤り**だった。
+- 🔍 **自己訂正**: `ci.yml` が名指しで走らせる `tests/tier-system-integration.test.js` は **workflow ファイルではなくテストファイル**。**私が作れる。** 存在しないので専用ジョブが毎回赤く、しかもその赤はコードについて何も語っていなかった。
+- ✨ **feat**: スタブで黙らせるのではなく、「tier system」が実際に指す**2つの実体**を検証する統合テストを書いた。
+  - **ビルドの tier**: `vite.config.js` の `manualChunks` はモジュールをパス文字列で指定するが、**それが解決するか誰も検証していない**。Session 74 が `ObjectPool`/`MixedReality` を消したとき entry が残って **`npm run build` が落ちた** —— unit テストはビルド設定を読まないので**原理的に見えない**種類の欠陥。存在検査・重複割当・実際に import されているか・bare specifier が実依存かを検査。
+  - **デバイスの tier**: `_detectTier()` の分類（Quest 3/2・Pico 4・Android XR の実 UA）と `targetFPS()` の対応。**検出できる全 tier に FPS 分岐があること**を要求 —— 分岐漏れは 120Hz のヘッドセットを黙って 72 FPS で回すことになる。
+- 🐛 **自分のテストが vacuous だった（その場で発見・修正）**: パーサが `'tier2-input':` のような**引用符付きキーしか拾えず**、prettier が引用符を外した **`tier1:` を丸ごと見落としていた** —— まさに自分がそのテストのコメントで警告していた失敗そのもの。両形式を拾うよう修正し、**`tier1` の存在を名指しで assert** した。
+- ✅ **捕捉能力を実証**: (a) 削除済みモジュールを `tier1` に足す（Session 74 の実際の破壊）→ **2件 FAIL、`tier1 -> /src/utils/ObjectPool.js` を名指し** (b) `quest3` の FPS 分岐を消す → **1件 FAIL**。どちらも復元で全通過。
+- 📌 **残る ci.yml の失敗は1件だけ**: `npm run format:check` —— prettier が `wasm-build.yml` を parse できず、これは workflow ファイルなので本当に手が届かない。
+- ✅ Total 1539 tests (48 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き9）: 「Pages は CI が無い」を疑ったら、**Pages が真っ白だった**
+最後に残った主張「既定デプロイ先にチェックが強制されていない」を、諦める前に**ファイル単位で実測**した。結果、**自分の以前の主張が2つとも誤り**で、しかもその過程で**実際に出荷を壊している重大バグ**が出た。
+- 🔍 **訂正1（K-1 の範囲を過大に言っていた）**: 壊れているのは5ファイルだが、**`cd.yml`（Pages へ実際にデプロイする workflow）と `ci.yml` は `assets/js` を1つも参照していない**。`cd.yml` は `npm ci` → **`npm test`** → build → `deploy-pages@v2` で、**テストが通らなければデプロイしない**。`ci.yml` は `npm run lint` + `npm test`。つまり **Pages にはチェックが強制されている**。壊れている `deploy.yml` は Pages への**2本目の重複 workflow**だった。`docs/PUBLISHING.md` に workflow 別の表として訂正を明記。
+- 🐛 **fix（実際に出荷を壊していた — 深刻）**: **どの workflow も `BASE_PATH` を設定していない**（grep で全 workflow を確認）。Vite の `base` は既定 `'/'` なので、Pages 用ビルドは `/js/index-*.js` のような**ルート絶対 URL** を吐く。`https://<owner>.github.io/Qui-Browser/` から配信すると、それらは全部**ドメイン直下**に解決される —— 実測ハーネスで **9/9 のアセットが 404、module entry を含む**。つまり**公開されている Pages は真っ白**。Session 53 は「Pages workflow が BASE_PATH を設定する」と記録していたが、**その記述は事実ではなかった**。
+- ✨ **workflow を触らずに直した**: `vite.config.js` の `base` を **`'./'`（相対）**に。1つのビルドがドメイン直下でもサブパスでも動く。これは workflow 側では**そもそも直せない** —— `cd.yml` は**1つの成果物**を Pages / Netlify / Vercel の3箇所へ配るので、絶対 base では3者を同時に満たせない。相対 base だけが3つとも正しい。`BASE_PATH` による上書きは維持。
+- ✅ **実証**: 専用ハーネスで `dist/` を `/Qui-Browser/` 配下に配信し、ページ自身のアセット URL を全部 fetch —— 修正前 **9/9 が 404**、修正後 **9/9 が 200**。root での `verify:app` / `verify:vr-boot` も引き続き PASS（挙動不変）。`verify:app` に「ルート絶対 URL を吐いていないか」の恒久ガードを追加し、`base` を `'/'` に戻すと **12件を名指しで FAIL** することを確認。
+- 🧹 **delete（走査漏れの発見）**: `mvp/`（1,959行）—— 参照元は **`docs/archive/` のみ**という閉じた死のペアで、Session 74 が 119,698 行を消した基準そのもの。前回の走査を `src`/`proxy`/`netlify`＋root に絞ったせいで見落としていた。
+- ⚖️ **やらなかったこと（churn の拒否）**: `ci.yml` の `format:check` を通そうと prettier を全体にかけたが、**`wasm-build.yml`（workflow）を prettier が parse できない**ため**どうやっても通らない**と判明。90ファイルの整形差分は目的を達成せず本質を埋もれさせるので**全部 revert**した。`docs/archive/` を `.prettierignore` に追加した分だけ残す（凍結資料を整形対象にすべきでないため、単体で正しい）。
+- ✅ Total 1529 tests (47 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き8）: CI が直せないなら、直せる場所でゲートする
+「既定デプロイ先（GitHub Pages）にチェックが強制されていない」を、諦める前にもう一段考えた。
+- 🔍 **問い直し**: 強制できないのは *GitHub Actions* であって、*チェックそのもの*ではない。**push はあらゆるデプロイ経路の上流**（Pages も Netlify も手動ビルドも、まず push を経る）。workflow ファイルを触れなくても、**push を関門にすることはできる**。
+- ✨ **feat**: `.githooks/pre-push` が `npm run gate` を走らせ、赤ければ push を中断する。`package.json` の `prepare`（＝`npm install` で走る）が `core.hooksPath` をここへ向けるので、**clone してインストールすれば自動で有効**になる。依存ゼロ（husky 等は入れない）。
+- ✅ **実証**: `extractLinks` が全リンクを捨てる欠陥を実際に仕込んで push を試行 → **`GATE FAILED — push aborted.` で中断**、`failed to push some refs` を確認。復元して push 成功。
+- ⚖️ **限界を先に明記**: 開発者のマシンで走るだけ・`npm install` 後にのみ有効・`--no-verify` で回避可能。**CI の代替ではない**が、他の選択肢が全て閉じている場所での**実際に動く検査**ではある。`QUI_SKIP_GATE=1` で意図的にスキップ可。
+- 📋 **「プロキシは Netlify 専用」の訂正**: 自動検出は**ホストではなくパスを見る**ので、`<base>api/reader/{health,fetch}` の2ルートに応答すればどのプラットフォームでも動く。`proxy/server.js` は root に `/fetch` と `/health` を出すので、**リバースプロキシで `/api/reader/*` を剥がして渡せばそのまま**。`docs/PROXY.md` に契約表として明記した（Netlify は「設定ゼロで済む経路」であって唯一の経路ではない）。
+
+### Session 75（続き7）: step 1 に戻った — 「どこから始めるのか」を一度も問うていなかった（C-3 解決）
+アルゴリズムを step 1 まで巻き戻し、原子②③の**要件**を問い直した。実装（fetch は CORS を要する）は物理的な壁だが、**問うべきはそこではなかった**。
+- 🔍 **問い直し**: 未検証の前提は「取得の方法」ではなく「**ユーザーはどこから始めるのか**」だった。新しいタブは「URL を入力してください」としか言わず、**唯一の入口が視線キーボード（~8〜10 WPM）**。リンク追跡（続き2）を足しても、**最初の1ページ目に到達する手段が無ければ意味が薄い**。
+- 🔍 **保留理由そのものが誤りだった（C-3）**: `getTopSites()`（Sessions 16/17 のフレセンシー）は **UI がゼロのまま Session 17 から保留**され、理由は「BookmarkPanel に3つ目のタブを足すとスクロール矢印と座標が衝突する」。しかし**タイルを BookmarkPanel に置く必要はどこにも無い**。空のコンテンツ面が本来の置き場所で、しかも続き2 で追加したリンク行モデル（`style:'link'` + `href` + 行ヒットテスト）が**そのまま使える** —— **新しい操作コードはゼロ**。8セッション保留されていたのは、設計の難しさではなく**置き場所の思い込み**だった。
+- ✨ **feat**: `_contentState: 'start'` を追加。描画・選択・スクロール・ページ送りは reader と**完全に同一経路**（`_isReaderLike()`）。番号付き行なので色に依存せず（1.4.1）、検索エンジンは除外（Session 17 の知見）。**履歴の無い初回ユーザーには従来どおりの正直な空メッセージ** —— 空リストを出して「壊れている」と誤認させない。プロバイダが throw してもパネルは壊れない。
+- ✅ **test 9件追加** + `verify:vr-boot` に「新しいタブが実状態（`empty` か `start`）に落ち着く」検査を追加（実ブラウザの初回起動は履歴ゼロなので `empty` が正解 —— **どちらでもない**状態が異常）。pre-fix 検証: 起動時の呼び出しだけ外すと **6件 FAIL**。
+- ✅ Total 1529 tests (47 suites); 0 lint errors; `npm run gate` PASS。`docs/OUTSTANDING_ISSUES.md` C-3 / E-6 を解決済みに更新。
+
+### Session 75（続き6）: step 2 を一周回して収束を確認 → 余った力で実欠陥を掘ったら ReDoS と本文欠落が出た
+アルゴリズムを一周させた。**削除は収束**したので、残りの力を「構造の掃除」ではなく**実際の欠陥探し**に振り向けた。
+- 🔍 **step 2 の再走査（収束を確認）**: src/proxy/netlify の全 export 116件を機械走査 —— 消費者ゼロは**ゼロ**（`UNUSED` と出た十数件は全て**同一ファイル内で使用**されており、余っているのは `export` キーワードだけ）。root 直下の全ファイル・全 devDependencies・非 archive の docs も走査し、**未参照ゼロ**。唯一 `docs/QUICKSTART.md` が inbound link ゼロだが、これは**明示的なリダイレクト用スタブ**（正典へのリンクを含む）であり、消すと外部ブックマークが 404 になるだけで得が無いので**残す判断**。**指標のために削除しない。**
+- 🐛 **fix（ReDoS — リーダーは信頼できない markup に正規表現を掛けている）**: 抽出は**同期実行**なので、遅いパースは VR では「フレーム落ち」ではなく**世界が頭の動きに追従しなくなる硬直**＝快適性の問題。実測で3種の二次挙動を発見・修正:
+  - 本文の `[\s\S]*?` —— 閉じタグの無い `<p>` が各開始位置から文末まで再走査。**40,000個（117KB）で block 正規表現だけ 10.8 秒**。
+  - 属性の `[^>]*` —— `>` を1つも含まない入力（`'<p'.repeat(20000)`、切れた `<a href=`）で同じ形。**3.4 秒 / 15 秒超**。
+  - しかも**属性の bounded 化だけでは足りなかった** —— anchor パターンは属性 run を2つ持ち、**2つの上限は掛け算になる**。属性から `<` を除外（生の `<` は本来 `&lt;` でなければ書けない）して初めて、走査が次のタグで止まるようになった。
+  - **実測（修正後）**: `<p` ×20k **3446ms → 7ms**、`<a href=` ×20k **>15s → 20ms**、閉じない `<p>` ×40k **2103ms → 53ms**、10.8MB のページ **127ms**。
+- 🐛 **fix（正確さ —— 実は性能より重い）**: HTML では **`</p>` は省略可能**なので `<p>A<p>B</p>` は**正当な普通の markup**。旧実装は lazy match が次の `<p>` を跨いで **A と B を1つのブロックに融合**していた（B は段落として現れない）。上限だけ付けると今度は **A が丸ごと消えた**（閉じタグが無いので match しない）。正しい解は「**同種の開始タグを暗黙の閉じとして扱う**」——`(?:</tag>|(?=<次のブロックタグ)|$)`。これで A と B が**別々の段落**として出る。
+- 🔒 **入力の有界化**: 直接 CORS fetch には**サイズ上限が無かった**（プロキシ経由は 5MB 上限）。`MAX_MARKUP_CHARS = 2MB`（超過分は**切り詰め** —— 巨大ページでも冒頭は読む価値がある）、`MAX_BLOCKS = 2000`、ゼロ幅マッチの無限ループ防止も追加。
+- ✅ **test 9件追加**。pre-fix 検証: **構造は残して上限だけ**外すと、テストスイートが**完走できなくなる**（100秒でも終わらない）——欠陥そのもの。復元で 1 秒。
+- ✅ Total 1520 tests (47 suites); 0 lint errors; `npm run gate` PASS（22.8s）。
+
+### Session 75（続き5）: 欠陥「クラス」を全部テストにした + 残る3件は権限と回線の問題だと確定させた
+残件を1つずつ実測し、**私に手が届くもの**と**届かないもの**を分けた。
+- 🔍 **回線（実測して確定）**: 「公開ホストへの取得成功を実証していない」件を再検証 —— `curl "$HTTPS_PROXY/__agentproxy/status"` が `connect_rejected … gateway answered 403 to CONNECT` を記録しており、外向きは**環境ポリシーで拒否**。しかも SSRF guard は private/loopback を**設計として全部拒否**するので、ローカルに代替上流を立てて成功系を作ることも**構造的に不可能**。これは私の作業の穴ではなく環境の制約なので、そう明記して終わりにする（成功系は guard の 51 テストと同一オリジンの `verify:vr-boot` が担保）。
+- 🔬 **欠陥クラスの自動化（step 5）**: 「作られているが誰も到達できない」という同じ形を手作業で何度も見つけてきたので、**走査自体をテストにした**。
+  - `tests/i18n-coverage.test.js`（新規）: src の全 `t()` 呼び出し 98 キーが en/ja **双方で解決**し、**英語のコピーのまま**でなく、**ja が ASCII のみでない**ことを要求。**捕捉能力を実証**: (a) ja からキーを1つ消す → FAIL（カタログのフォールバックで英語が出るため「解決する」検査だけでは通ってしまう。同一コピー検査が捕まえる＝層になっている） (b) ja を英語のまま置く → FAIL。どちらもキー名を名指し。Sessions 27・74続き8・74続き9 の3件は**これがあれば当時捕捉できた**。
+  - **コールバック到達性を走査** → コンポーネントが受け取る `on*` **16件**、音声コマンドの `on*` **12件**、いずれも**全て配線済み**。orphan ゼロを確認（設定と違い、こちらは既に健全だった）。
+- 📋 `docs/OUTSTANDING_ISSUES.md` に「到達性の3クラス（設定・i18n・コールバック）は自動化済み」と記録。
+- ✅ Total 1511 tests (47 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き4）: 「削除した10%を戻す」— デプロイ自体がプロキシを持つようにした + 実際に走る CI
+残る不足は**デプロイ可能性**だった。名指しされた2点に、それぞれ実際に効く手を打った。
+- ✨ **feat（原子②③の到達範囲 — マスクの「10%戻す」）**: `netlify/functions/reader.mjs` を追加。`proxy/server.js` の `fetchThroughGuard` を**そのまま import** して serverless function にしただけ（SSRF ロジックの二重実装は二重に間違える元なので複製しない）。`/api/reader` に生え、標準サーバと**同じ契約**（`/fetch?url=`・`/health`）なのでクライアント側の分岐は1つのまま。
+- ✨ **feat（設定ゼロで効く）**: 起動時に `<base>api/reader/health` を1回だけ叩き、応答すればリーダーの取得をそこへ通す（`_detectReaderProxy`、await しない・3秒 timeout）。**ユーザーが入力した値は常に勝つ**（意図的に空にした場合も含む）。**検出結果は永続化しない** —— それはデプロイの性質であって設定ではなく、永続化するとプロキシの無い次のデプロイが壊れて見える。GitHub Pages では 404 なので**従来と完全に同一の直接 fetch**。
+- ✅ **実証（主張ではなく）**: function ハンドラを実際に呼び、**allowlist に載っている 8080 番**で「秘密」サービスを立てて host チェックだけが防壁の状況を作った —— `127.0.0.1` / `localhost` / `::ffff:127.0.0.1` / `0.0.0.0` 全て 400 で拒否、`file:` / URL 内認証情報 / ポート 6379 も拒否、`/health` は 200。**対照実験**で直接 fetch なら 200 + 秘密が返ることも確認済み。なお**成功系の外部取得はサンドボックスの制約で実証できていない**（公開ホストへ出られない）ので、そこは guard の 51 テストと Session 74 の標準サーバ検証に依る。
+- 🔧 **K-1 への現実的な回答**: workflow ファイルは**依然として直せない**（token に `workflows` 権限が無い、再実測済み）。ただし「CI が信用できないので自信を持ってデプロイできない」という**影響の方**には手が届く —— `netlify.toml` の build command を **`npm ci && npm run gate`** にした。デプロイが**テスト・lint・ビルド・3つのブラウザハーネス全部**を走らせ、赤ければデプロイが落ちる。5つの壊れた workflow を修理したわけではない（それはオーナーのパッチ適用のみ）が、**チェックが実際に強制されるデプロイ経路が1つ存在する**状態にはなった。`docs/PUBLISHING.md` に正直に併記。
+- 🔧 lint 対象に `netlify/` を追加（`--ext .mjs`）。**実際に検査されていることを実証**してから採用（未使用変数を入れて検出 → 復元）—— 続き9 で「glob が `src/*.js` に当たっていなかった」を踏んだばかりなので。
+- ✅ **test 13件追加**（純関数 `readerHealthUrl`/`effectiveProxyUrl` 7 + 検出配線 6）。pre-fix 検証: 検出の適用だけ外すと FAIL。Total 1506 tests (46 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き3）: 音声コマンドが誰にも到達できなかった — そして「到達性」をテストにした
+今回の2大発見（`enableWebPanel`／`enablePerfMonitorUI`）はどちらも**「設定はあるが、それを変える手段がどこにも無い」**という同じ形だった。ならば**残り全部を機械的に走査すべき**なので、`this.settings` の全キーに対して ①読む者がいるか ②ユーザーが変えられるか を照合した。
+- 🐛 **fix（a11y — 最も重い1件）**: **`enableVoice: false` にコントロールが存在しなかった。** 設定パネルにも音声コマンドにも永続化経路にも無い。つまり `VoiceCommands.js`（829行）と Sessions 18/19/20/29/59 の作業（go-to・help・履歴消去・confidence=0 対応・TTS teardown）が**一度も誰にも届いていなかった**。しかも影響が最悪の相手に当たる —— **視線もコントローラも難しいユーザーにとって音声が主入力**であり、その人たちのための避難経路が「スイッチの無いスイッチ」でオフになっていた。`docs/USAGE_GUIDE.md` は「設定で Voice を有効に」と案内していたが、**そこには何も無かった**。
+- ✨ **feat**: アクセシビリティ節に Voice トグルを追加。`_buildVoiceCommands()` / `_teardownVoiceCommands()` を抽出し、**その場で構築・破棄**する（Session 74 続き5 で確立した「VR で『リロードして』は『ヘッドセットを外せ』」規律）。**既定は false のまま** —— `enableWebPanel` と違い、起動すると**マイク権限を要求する**ので、同意を要する機能を既定 ON にはしない。開始できなかった場合（非対応・権限拒否）は専用キーで告知する（既存の `voiceUnavailable` は「一時的に利用できません」で意味が違うため、lint の `no-dupe-keys` が私の重複を検出 → `vr.error.voiceStartFailed` を新設）。
+- 📐 **視野予算を再測して受け入れた**: a11y は最大セクションなので1行増えて **35.9° → 39.6°**。40° の予算内だが**残り 0.4°**。`HEADROOM` テストで「次に a11y へコントロールを足すと収まらない」ことを明示的に固定した —— 失敗ではなく**正直な現状**を、ヘッドセットではなくテストで知れるようにするため。
+- 🔬 **step 5（自動化）— 同じ欠陥を3度出しているので、テストにした**: `tests/settings-reachability.test.js` は VRApp のソースを読み、**全設定キー**と**全コントロールが書けるキー**を突き合わせ、差分は「理由付きで internal と명示された4件」だけであることを要求する。ハンドラの単体テストでは原理的に捕捉できない（ハンドラは正しく、**呼び出し元の不在**が欠陥だから）。**捕捉能力を実証**: Voice トグルの行を1行消すと `no setting is gated behind a control that does not exist` が **`["enableVoice"]` を名指しで FAIL**。`enableWebPanel`・`enablePerfMonitorUI`・`enableVoice` の3件すべてを、これがあれば当時捕捉できた。
+- 🐛 **fix**: 音声 go-to 経路にも `Loading: ${host}` のハードコード英語が残っていた（続き2 で2件直したが、3件目）。
+- ✅ **test 14件追加**（トグル配線7 + 到達性ガード6 + レイアウト HEADROOM 1）。Total 1493 tests (46 suites); 0 lint errors; `npm run gate` PASS。
+
+### Session 75（続き2）: 原子④「操作」を実装 — リーダーはリンクを全部捨てていた
+step 2 を2周したので step 3〜5 へ進む前に、**そもそも何を simplify するのか**を確かめた —— 原子（①移動 ②表示 ③読む ④操作 ⑤戻る ⑥保存）を数え直したところ、**④が無い**ことが判明した。
+- 🔍 **診断**: `extractReadableText` が返すのは `{type:'h'|'p', text}` だけで、**`<a href>` は1つ残らず捨てられていた**。つまりページに到達して読めても、**リンクを1本も辿れない**。次のページへ行く唯一の手段が視線キーボードでの URL 再入力（~8〜10 WPM）。ハイパーテキストから hyper- を抜いたものはテキストビューアであってブラウザではない。
+- ✨ **feat**: `extractLinks(html, baseUrl)`（純）—— 本文領域（nav/header/footer/aside 除去済み）の `<a href>` を走査し、**相対/ルート相対/プロトコル相対を絶対 URL に解決**、http(s) 以外（`javascript:`/`mailto:`/`data:`）を除外、href で重複排除、ラベルの無いアイコンリンクを除外、**40件上限**（リンクファーム対策）。base は**プロキシ URL ではなく閲覧中の URL** —— 相対リンクはユーザーが居るページに対して解決しなければならない。
+- 📐 **設計判断（インライン装飾ではなく行）**: リンクは記事末尾の**番号付き1行1リンク**として `layoutReaderLines` が追加する。理由は3つ —— ①**リンク行は通常のリーダー行**なので既存のスクロール・ページ送り・行予約をそのまま継承し、専用ビューポートが要らない ②1行=1宛先なので**ヒットした行と行き先が一意**（折り返すと同じ意味の行が複数でき、どれを狙ったか告知できない）③Sessions 62〜68 で築いた折り返し/measure の規律を壊さない。**番号が色に依存しない識別子**（WCAG 1.4.1 —— 実測でリンク色と本文色の比は 1.50/1.66 しかなく、**色だけでは識別できないことを数字で確認したうえで**番号を主たる手がかりにした）。色自体は背景に対し 8.29:1（通常）/ 12.63:1（HC）で 1.4.3 を満たす。
+- 🔒 **描画とヒットテストの単一の真実**: `readerRowAt(py, scale)` は `_drawReader` と**同じ定数**から行 band を導く（行 i のベースラインは `CONTENT_PAD + lh*(i+1)`）。両者が独立に行を計算するのは **Session 52 で空白かつクリック不能なブックマークページを生んだ失敗モード**なので、そこは踏まない。スクロールオフセットは `clampReaderScroll` を通して加算。
+- 🌐 **i18n**: `vr.reader.links` / `vr.msg.followingLink` を追加。ついでに**未翻訳のまま残っていた2件**も発見して修正 —— `onLoadError` の `Failed to load: ${url}` と URL 送信時の `Loading: ${host}` キャプション（どちらもハードコード英語）。`vr.error.loadFailed` / `vr.msg.loadingPage` を en/ja に追加。
+- 🔬 **step 4/5（サイクルタイム・自動化）**: 「出荷可能であること」を**1コマンドで証明する手段が無かった** —— `ci:verify` は build と3つの verify だけで、テストも lint も含まない。`npm run gate`（test → lint → build → verify ×3）を追加。**実測 21.7 秒**。`docs/PUBLISHING.md` の CI 案も 4 ステップから `npm run gate` 1本に。
+- ✅ **test 30件追加**（`extractLinks` 11 + リンク行レイアウト 7 + `readerRowAt` 3 + WebPanel の実navigation 5、contrast sweep にリンク色2件）。pre-fix 検証: 抽出とレイアウトは残して**ヒット処理の分岐だけ**を無効化すると **3件 FAIL**。`verify:vr-boot` の同一オリジン記事にリンクを1本足し、**実ブラウザで href が解決されて行に載る**ことを検査。
+- ✅ Total 1479 tests (45 suites); 0 lint errors (114 warnings); `npm run gate` PASS（21.7s）。
+
+### Session 75（続き）: 走査を全体に広げた — 出荷物の 12.8% が誰にも届かない部品だった
+iframe を削除した根拠は「構築されるが到達経路がゼロ」。**同じ判定を残り全体に機械的に当てた**（Session 74 の削除は `src/` の export 走査で収束したが、**到達性の走査はしていなかった**）。5,843 行削除、**出荷バンドル gzip 227.5 → 198.3 kB（−28.5 kB / −12.8%、origin を worktree でビルドして直接比較）**。
+- 🧹 **`TextureManager`（394行）**: **このアプリは URL からテクスチャを一枚も読まない** —— 全て canvas から作る `CanvasTexture`。`VRApp.loadTexture()` は呼び出し元ゼロ、唯一の外部参照 `window.textureManager` は**どこからも代入されないグローバル**。しかも `initializeKTX2()` が **CDN の transcoder パス**を張り、three の `KTX2Loader` をバンドルに引き込んでいた（tier1 チャンク gzip **31.4 → 7.3 kB**）。**Session 40 はこの部品のメモリ計上バグを直していた** —— マスクの「最も多い誤りは、そもそも存在すべきでない部品を最適化すること」の実例が自分の履歴にあった。
+- 🧹 **`ProgressiveLoader`（659行）**: 唯一の本番用途は `/assets/sounds/*.mp3` 4本の読み込み。**mp3 はリポジトリに1つも無く（`.gitkeep` のみ）、`assets/sounds/` は Vite の publicDir 外なので置いても配信されない**。全て 404 →`get()` は空 → `loadAudio` に到達しない → **すぐ下の合成音（Session 58）だけが常に音を出していた**。659行の出力は丸ごと捨てられていた。`loadAudioAssets()` は合成のみに書き換え。
+- 🧹 **`PerformanceMonitor`（694行）**: `enablePerfMonitorUI: false` を読むだけで、**トグルも音声コマンドも永続化経路も存在しない** —— `enableWebPanel` と同じ形。`app.js` の `P` キーは「richer な方があればそれを、無ければ簡易オーバーレイ」という分岐だったが、**後者しか実行されたことがない**。簡易オーバーレイは実在するのでそちらを残した。
+- 🧹 **`public/` の出荷済み死骸 87 kB**: `css-containment-optimizer.js`/`lazy-loading-observer.js`/`view-transitions-manager.js`（**参照ゼロ**）、`vr-browser.html`+`vr-browser.js`（**生 WebGL による第三の並行実装**、リンク元ゼロ）、`vr-video.html`、`sw.js`+`js/pwa.js`。`public/` は verbatim で `dist/` に入るので、**全部ユーザーに配信されていた**。`dist/` は今 6 エントリだけ。
+- 🐛 **fix（死骸が隠していた実バグ）**: `offline.html` が `/sw.js` を **scope `/` で登録**していた —— 第二の service worker で、独自キャッシュ方式・base path 非対応。GitHub Pages のようなサブパス配信では誤った scope になり、登録できた環境では**本物の `service-worker.js` と競合**する。このページは service-worker.js がオフライン fallback として出した時にしか到達しないので、**そもそも登録は不要**。削除。
+- 🐛 **fix（`netlify.toml` は壊れたサイトをデプロイする設定だった）**: `publish = "."` かつ `command = "echo 'No build required for static site'"` —— **ビルドせずソースを配信**する（`src/` は bare specifier の ESM なのでブラウザで動かない）。加えて Session 74 で消した `assets/js/` と、今回消した `/sw.js`・`/public/sw.js` を指し、存在しない `netlify/functions` を宣言し、使っていない `cdnjs.cloudflare.com` を CSP で許可していた。`publish = "dist"` / `npm ci && npm run build` に是正。
+- 🔬 **検査の特例を1つ消せた**: `verify:vr-boot` は「`assets/sounds` の 404 は設計どおりの graceful」として console error から除外していた。**fetch 自体が無くなったので除外を削除**し、それでも `no console errors` が通ることを確認 —— 例外条項が「これは一度も動いたことがない」を隠していた側だった。
+- ✅ Total 1449 tests (45 suites — 消えた33件は到達不能なコードを検証していたもの); 0 lint errors (114 warnings); build green; 4段の verify 全 PASS。
+
+### Session 75: step 2「部品を削除」— 見えない iframe が、読めたページを捨てていた
+続き12 で作った `verify:vr-boot` に「ナビゲーションが終端に達する」検査を足したところ、**リーダーに意図的なハングを注入しても PASS した**。自分の検査が飾りだった理由を追ったら、より重い欠陥が出た。
+- 🔍 **診断**: `WebPanel` は隠し `<iframe>` を毎パネル構築し、毎ナビゲーションで実際に読み込んでいた。**表示経路はゼロ**（`onDomOverlayStart()` は呼び出し元ゼロ、`dom-overlay` は一度も要求されない —— Session 60 で自分が確認済み）。にもかかわらず **`_contentState` を所有していた**: X-Frame-Options で拒否されたフレームは Chromium で `error` ではなく **`load`** を発火するので、その `onload` が無条件に `'unavailable'` を書き込む。
+- 🐛 **実測した被害（推測ではなく）**: 同一オリジンの記事を配信してリーダーが**確実に成功する**状況を作り、`_contentState` を時系列サンプリング —— `0.6s reader lines=9` → `1.2s unavailable lines=9`。**抽出に成功した9行を捨ててユーザーから隠していた。** ①正常に読めたページの破棄 ②ナビゲーションごとの無駄な全ページ取得 ③第三者スクリプトを `allow-scripts allow-same-origin` で不可視に実行 ④自分の検査が無意味だった理由 —— **1つの削除で4つが同時に消える**。
+- 🧹 **delete**: iframe の生成・`src`/`onload`/`onerror`・`onDomOverlayStart`/`onDomOverlayEnd`（呼び出し元ゼロ）・`domOverlaySupported`・`hide`/`setVisible`/`dispose` の iframe 分岐。**リーダーが `_contentState` の唯一の所有者**になり、`_settleLoad(seq, state, title, failed)` が全終端経路の単一の出口になった（`loading` 解除・chrome 再描画・`onNavigate`/`onLoadError` の通知が1箇所）。
+- ✨ **副産物 — `onLoadError` が初めて意味を持った**: iframe の `onerror` は cross-origin では事実上発火しないので、この経路は死んでいた。今は `res.ok === false`（CORS 許可オリジンかプロキシが**実際にステータスを返した**失敗）だけを error とする。**不透明な fetch 拒否は error にしない** —— CORS 無しとオフラインはブラウザから区別できず、プロキシ無しの通常経路そのものなので、ほぼ全ナビゲーションで URL バーを赤くするのは狼少年になる。
+- 🔒 **teardown 規律の移設**: iframe handler の null 化が担っていた「破棄後に着弾した読み込みが torn-down VRApp を触る」防止を、`dispose()` での `_readerSeq++` に置換。全終端が seq を検査するので、遅延 fetch は**何も settle しない**。
+- 🔬 **検査に牙を付けた（2段階）**: (1) 同一オリジンの記事を harness 自身が配信し、**実際に読めること**（`state === 'reader'`・本文マーカーが行に到達・**title は markup 由来**）を実ブラウザで検査。(2) **重要**: 最初の実装は「loading を抜けた最初の終端」を見ていたため、**iframe の再現（0.8s 後に上書き）が素通りした** —— 私が直したばかりの欠陥と同型。**3秒の沈静後に権威サンプルを取る**形に修正して初めて FAIL するようになった。
+- ✅ **捕捉能力を実証**: リーダーにハング注入 → **FAIL exit 1**（削除前は PASS）。iframe の上書きを再現 → **FAIL exit 1**（早期サンプル版では PASS）。どちらも復元で exit 0。
+- ✅ テスト書き換え: `createElement('iframe')` は**throw する**ようにして、フレームが黙って戻らないことを構造的に固定。Total 1482 tests (47 suites); 0 lint errors (128 warnings); build green; `verify:layout` / `verify:app` / `verify:vr-boot` すべて PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

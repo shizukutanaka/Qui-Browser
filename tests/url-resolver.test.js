@@ -172,11 +172,21 @@ describe('isSearchQuery', () => {
 describe('searchEngineHosts', () => {
   test('derives the host of every built-in search engine', () => {
     const hosts = searchEngineHosts();
-    expect(hosts).toContain('duckduckgo.com');
+    expect(hosts).toContain('html.duckduckgo.com'); // the no-JS endpoint the reader can extract
     expect(hosts).toContain('www.google.com');
     expect(hosts).toContain('www.bing.com');
     expect(hosts).toContain('www.ecosia.org');
     expect(hosts).toHaveLength(Object.keys(SEARCH_ENGINES).length);
+  });
+
+  test('the DEFAULT engine is a no-JavaScript endpoint the reader can extract', () => {
+    // The reader never executes scripts: it extracts prose and links from the
+    // fetched markup. duckduckgo.com/?q= is an SPA shell whose results do not
+    // exist in the initial HTML, so with it as the default, every search from
+    // the URL bar dead-ended on 'unavailable'. /html/ is DDG's server-rendered
+    // interface, maintained for exactly this kind of client. Reverting this to
+    // the SPA breaks search as a whole — do not, without a reader that runs JS.
+    expect(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE]).toBe('https://html.duckduckgo.com/html/?q=');
   });
 
   test('returns lowercased, non-empty hosts', () => {
@@ -184,5 +194,38 @@ describe('searchEngineHosts', () => {
       expect(h).toBe(h.toLowerCase());
       expect(h.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('unwrapKnownRedirect', () => {
+  const { unwrapKnownRedirect } = require('../src/vr/browser/urlResolver.js');
+  const wrapped = 'https://duckduckgo.com/l/?uddg=' + encodeURIComponent('https://example.com/article?x=1') + '&rut=abc';
+
+  test('unwraps a DDG /l/?uddg wrapper to its real destination', () => {
+    expect(unwrapKnownRedirect(wrapped)).toBe('https://example.com/article?x=1');
+  });
+
+  test('the html. and lite. subdomains unwrap too', () => {
+    const h = 'https://html.duckduckgo.com/l/?uddg=' + encodeURIComponent('https://example.com/');
+    expect(unwrapKnownRedirect(h)).toBe('https://example.com/');
+  });
+
+  test('a non-wrapper URL passes through untouched', () => {
+    expect(unwrapKnownRedirect('https://example.com/l/?uddg=x')).toBe('https://example.com/l/?uddg=x');
+    expect(unwrapKnownRedirect('https://duckduckgo.com/?q=cats')).toBe('https://duckduckgo.com/?q=cats');
+  });
+
+  test('a target that is not http(s) keeps the wrapper — never a scheme upgrade path', () => {
+    const evil = 'https://duckduckgo.com/l/?uddg=' + encodeURIComponent('javascript:alert(1)');
+    expect(unwrapKnownRedirect(evil)).toBe(evil);
+  });
+
+  test('a lookalike host does NOT unwrap — the suffix is anchored', () => {
+    const fake = 'https://evilduckduckgo.com/l/?uddg=' + encodeURIComponent('https://phish.example/');
+    expect(unwrapKnownRedirect(fake)).toBe(fake);
+  });
+
+  test('degenerate input passes through', () => {
+    expect(unwrapKnownRedirect('not a url')).toBe('not a url');
   });
 });

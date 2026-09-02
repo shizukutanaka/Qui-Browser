@@ -9,7 +9,14 @@
 
 // Built-in search engines. The query is appended URL-encoded.
 export const SEARCH_ENGINES = {
-  duckduckgo: 'https://duckduckgo.com/?q=',
+  // The /html/ endpoint is DuckDuckGo's no-JavaScript interface — results are
+  // server-rendered into the markup. That is the only kind of page this
+  // browser can show: the reader extracts prose and links from fetched HTML
+  // and never executes scripts, so the default engine's SPA shell
+  // (duckduckgo.com/?q=) contained zero results at extraction time and every
+  // search from the URL bar dead-ended on 'unavailable'. Search results as
+  // headings + snippets + numbered links is exactly the reader's format.
+  duckduckgo: 'https://html.duckduckgo.com/html/?q=',
   google: 'https://www.google.com/search?q=',
   bing: 'https://www.bing.com/search?q=',
   ecosia: 'https://www.ecosia.org/search?q='
@@ -33,6 +40,41 @@ export function searchEngineHosts() {
       }
     })
     .filter(Boolean);
+}
+
+/**
+ * Unwrap a known search-engine redirect wrapper to its real destination.
+ *
+ * DuckDuckGo's no-JS results wrap every hit as
+ * `https://duckduckgo.com/l/?uddg=<encoded target>`. Left wrapped, the
+ * address bar shows the wrapper (hiding where the user actually is — the
+ * opposite of the origin-first display discipline), and worse, relative
+ * links on the landed page resolve against duckduckgo.com and all break.
+ * Unwrapping at extraction time makes every link row carry its true
+ * destination, so the label, the address bar and the base URL all agree.
+ *
+ * Only http(s) targets are accepted; anything else keeps the original URL,
+ * whose scheme is known-good. Non-wrapper URLs pass through untouched.
+ *
+ * @param {string} url absolute URL
+ * @returns {string}
+ */
+export function unwrapKnownRedirect(url) {
+  try {
+    const u = new URL(url);
+    const host = u.host.toLowerCase();
+    if (!/^(html\.|lite\.)?duckduckgo\.com$/.test(host) || !u.pathname.startsWith('/l/')) {
+      return url;
+    }
+    const target = u.searchParams.get('uddg');
+    if (!target) {
+      return url;
+    }
+    const t = new URL(target);
+    return /^https?:$/i.test(t.protocol) ? t.href : url;
+  } catch {
+    return url;
+  }
 }
 
 // A conservative single-token host check. We only need to recognise the common

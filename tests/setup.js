@@ -32,3 +32,15 @@ if (typeof navigator === 'undefined') {
 if (!('xr' in navigator)) {
   navigator.xr = undefined;
 }
+
+// ── network guard ─────────────────────────────────────────────────────────────
+// No test may reach the network. A real fetch was leaking a TLS socket and a
+// 5s abort timer out of the WebPanel reader suite, which kept Jest alive past
+// the run and made timing depend on an outside host. Tests that exercise the
+// reader stub `global.fetch` themselves; this makes the *absence* of a stub a
+// loud, immediate failure instead of a silent live request.
+beforeEach(() => {
+  global.fetch = () => Promise.reject(
+    new Error('network access in a test: stub global.fetch for this case')
+  );
+});

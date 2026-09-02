@@ -13,7 +13,6 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
-import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -29,11 +28,10 @@ import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandF
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
-import { normalizeProxyUrl } from './browser/urlDisplay.js';
+import { normalizeProxyUrl, readerHealthUrl, effectiveProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
@@ -42,7 +40,6 @@ import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelR
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
-import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
@@ -100,7 +97,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.textureManager = null;
 
     // Tier 2 systems
     this.japaneseIME = null;
@@ -113,7 +109,6 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
     this.voiceCommands = null;
@@ -122,7 +117,6 @@ export class VRApp {
     this.windowManager = null;
     this.bookmarkPanel = null;
     this.devTools = null;
-    this.perfMonitorUI = null;
     this.homeEnvironment = null;
     this.layersSystem = null;
 
@@ -174,7 +168,6 @@ export class VRApp {
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
@@ -253,7 +246,6 @@ export class VRApp {
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableVoice: false,
-      enablePerfMonitorUI: false,
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -822,7 +814,23 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onNavigate: (url, title) => this.navigate(url, title),
       readerProxyUrl: this.settings.readerProxyUrl,
-      onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
+      // Same scale the captions and toasts already use, so the reader honours
+      // the large-text preference too.
+      readerScale: largeTextScale(getPrefs().largeText),
+      // Reader links: the section heading is translated, and following one
+      // fires the usual cross-modal confirmation since it is a navigation the
+      // user did not type (WCAG 4.1.3).
+      linksLabel: t('vr.reader.links'),
+      imageLabel: t('vr.reader.image'),
+      // Start page: the frecency ranking built in Session 17 finally has a
+      // surface. Search engines are excluded so a frequent searcher's top
+      // "site" is a real destination rather than their search box.
+      startPageLabel: t('vr.reader.startPage'),
+      topSitesProvider: () =>
+        this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
+      onLinkFollowed: (text) =>
+        this.showVRToast(`${t('vr.msg.followingLink')}: ${text}`, { type: 'info' }),
+      onLoadError: (url) => this.showVRToast(`${t('vr.error.loadFailed')}: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
       // Replace window.prompt() with the VR keyboard.  vrKeyboard is
@@ -833,7 +841,7 @@ export class VRApp {
           // Immediate "Loading" caption so caption-reliant users know what URL
           // was submitted before the page loads (WCAG 4.1.3).
           if (url && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(url)}`);
           }
         }),
       searchEngine: this.settings.searchEngine,
@@ -907,7 +915,7 @@ export class VRApp {
           active.navigate(url);
         }
         if (this.captionSystem && this.captionSystem.enabled && url) {
-          this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+          this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(url)}`);
         }
       },
       onDeleteBookmark: () => {
@@ -938,6 +946,10 @@ export class VRApp {
       }
     });
     this.bookmarkPanel.addToScene();
+
+    // Voice captured the previous TabManager/BookmarkPanel by value; rebind so
+    // every voice command addresses the instances that now exist.
+    this._connectVoiceToBrowsing();
   }
 
   /**
@@ -963,6 +975,9 @@ export class VRApp {
       this.webPanel.dispose();
     }
     this.webPanel = null;
+    // Same reason as the build path: leave no voice command holding a disposed
+    // TabManager. With browsing off these rebind to null and no-op honestly.
+    this._connectVoiceToBrowsing();
   }
 
   /**
@@ -1413,6 +1428,31 @@ export class VRApp {
   }
 
   /**
+   * Prompt for a find-in-page query on the VR keyboard and run it on the
+   * active tab, announcing the result cross-modally (WCAG 4.1.3). The count
+   * matters most to a gaze user: "no matches" saves them a fruitless scroll.
+   */
+  _requestFindInPageInput() {
+    this._requestVRKeyboardInput('', (typed) => {
+      const active = this.tabManager?.getActiveTab?.();
+      if (!active || typeof active.findInPage !== 'function') {
+        return;
+      }
+      const out = active.findInPage(typed);
+      this._announceFindResult(out);
+    }, t('vr.prompt.findQuery'));
+  }
+
+  /** Shared announcement for find results from either modality. */
+  _announceFindResult(out) {
+    if (out && out.count > 0) {
+      this.showVRToast(`${t('vr.msg.findResults')}: ${out.index}/${out.count}`, { type: 'info' });
+    } else {
+      this.showVRToast(t('vr.msg.findNone'), { type: 'warn' });
+    }
+  }
+
+  /**
    * Clear all persisted browsing history (privacy). Fires a cross-modal
    * confirmation (caption + haptic + toast + semantic DOM) via showVRToast so
    * the destructive action is acknowledged on every channel (WCAG 4.1.3). If a
@@ -1499,9 +1539,10 @@ export class VRApp {
       // WindowManager) is constructed once, in initializeSystems(), gated on
       // this same setting — there was previously no way for a real user to
       // ever set it, since it was absent from every settings-panel/voice/
-      // persisted-setting path. Toggling it here persists the preference
-      // (FR-9.1) but can only take effect on the next page load, since
-      // construction is one-shot; the apply callback is honest about that.
+      // persisted-setting path. Construction was also one-shot, so the toggle
+      // could only ask for a page reload; both are fixed — it now builds and
+      // tears down live, and the preference persists (FR-9.1).
+      [t('vr.settings.voice'), 'enableVoice', (v) => this._onVoiceToggleChanged(v)],
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
@@ -1617,6 +1658,10 @@ export class VRApp {
     // docs/PROXY.md said "set the setting" with no way to do it, the same
     // unreachable-by-any-real-user shape that justified Session 74's deletions.
     actions.push([t('vr.settings.readerProxy'), () => this._requestReaderProxyInput()]);
+    // Find in page: gaze/controller users get the same capability the voice
+    // command offers — a search voice-only would repeat the mistake the reader
+    // scroll had (Session 66: only reachable by an opt-in modality).
+    actions.push([t('vr.settings.findInPage'), () => this._requestFindInPageInput()]);
     if (this.settings.enableWebPanel) {
       actions.push([t('vr.settings.bookmarks'), () => {
         if (this.bookmarkPanel) {
@@ -1644,7 +1689,7 @@ export class VRApp {
 
     const SECTIONS = [
       ['settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
+        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics', 'enableVoice']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
         [], []],
       ['settings.section.locomotion',
@@ -1659,6 +1704,7 @@ export class VRApp {
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
+          .concat(actionByLabel(t('vr.settings.findInPage')))
           .concat(actionByLabel(t('vr.settings.bookmarks')))],
       ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
         actionByLabel(t('vr.settings.video360'))]
@@ -2408,12 +2454,6 @@ export class VRApp {
     }
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
-    // Use progressive loader for efficient initialization
-    this.progressiveLoader = new ProgressiveLoader();
-    this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
-    };
-
     // === TIER 1 SYSTEMS ===
 
     // 1. Fixed Foveated Rendering
@@ -2437,13 +2477,6 @@ export class VRApp {
       );
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
-    }
-
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -2564,6 +2597,9 @@ export class VRApp {
     // never reach comfortSystem/gazeInteraction/captionSystem for the rest
     // of the page's lifetime, including across VR session enter/exit.
     this._setupOSAccessibilityListeners();
+    // Fire-and-forget: if this deployment carries its own reader proxy, use
+    // it. Never awaited — the reader works without one.
+    this._detectReaderProxy();
 
     // 7. Spatial Audio
     try {
@@ -2580,118 +2616,10 @@ export class VRApp {
 
     // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
 
-    // 10. Voice Commands
+    // 10. Voice Commands — opt-in (it asks for the microphone), but now
+    // actually reachable: see _buildVoiceCommands.
     if (this.settings.enableVoice) {
-      this.voiceCommands = new VoiceCommands();
-      const voiceReady = await this.voiceCommands.initialize();
-      if (voiceReady) {
-        // FR-13.1: caption recognized speech so it is visible in VR.
-        this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-          if (isFinal && this.captionSystem) {
-            this.captionSystem.show(transcript);
-          }
-        };
-        // Mirror spoken responses (confirmations / errors) to captions too, so a
-        // user who can speak but not hear sees whether a command was understood.
-        this.voiceCommands.callbacks.onSpeak = (text) => {
-          if (this.captionSystem) {
-            this.captionSystem.show(text);
-          }
-        };
-        // Haptic confirmation on every successful voice command — parity with
-        // controller presses, gaze-dwell activation, teleport, and snap turn.
-        // Voice is a hands-free modality, so both hands receive the click pulse.
-        this.voiceCommands.callbacks.onCommand = (_key, _result) => {
-          voiceCommandFeedback(this.hapticFeedback);
-        };
-        // Distinct double-bump on failure (no match or action exception) so a
-        // user not looking at captions knows to try again without audio.
-        this.voiceCommands.callbacks.onCommandFailed = (_info) => {
-          voiceCommandFailedFeedback(this.hapticFeedback);
-        };
-        // Surface speech-recognition errors as VR toasts with cross-modal
-        // feedback. Without this the recognizer goes silent and the user has
-        // no way of knowing voice commands stopped working.
-        this.voiceCommands.callbacks.onError = (errorCode) => {
-          const { message, type } = voiceErrorNotification(errorCode);
-          this.showVRToast(message, { type });
-        };
-        // Replace window.* default commands with VR-aware implementations that
-        // route navigation and search through the live TabManager.
-        this.voiceCommands.connectBrowser({
-          tabManager:    this.tabManager,
-          bookmarkPanel: this.bookmarkPanel,
-          vrKeyboard:    this.vrKeyboard,
-          onSearch: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (active) {
-              // Mirror the immediate "Loading:" caption that the URL-bar and
-              // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-              // caption-reliant users know their voice command was accepted
-              // before the page finishes loading.
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Top Sites: jump to the most-used destination (frecency-ranked from
-          // history). Fewest-dwell navigation for hands-free users; announced
-          // cross-modally so it's perceivable without sight.
-          onTopSites: () => {
-            // Exclude search-engine result pages so the user's actual
-            // destinations win the slot, not their search engine.
-            const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
-            const active = this.tabManager?.getActiveTab?.();
-            if (top && active) {
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
-              }
-              active.navigate(top.url);
-            } else if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(t('vr.msg.noTopSites'));
-            }
-          },
-          // Go-to: look up the extracted site name in frecency-ranked
-          // history/bookmarks. A history hit navigates directly (fewest dwells
-          // for a familiar destination); no hit falls back to web search so the
-          // command always produces a result. This closes the loop on the
-          // autocomplete data layer (BookmarkStore.search) for voice input.
-          onGoTo: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (!active) {
-              return;
-            }
-            const hits = this.bookmarks.search(query, 1, Date.now());
-            if (hits.length > 0) {
-              const hit = hits[0];
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
-              }
-              active.navigate(hit.url);
-            } else {
-              // No frecency match — treat as URL or web search
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Hands-free equivalent of the "Clear History" settings action.
-          onClearHistory: () => this._clearBrowsingHistory(),
-          // Scroll the active panel's reader viewport (the fetched article
-          // text), which is what "下にスクロール" can actually move in VR.
-          onScrollContent: (delta) => {
-            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-          }
-        });
-        // Begin listening immediately (user granted mic permission during initialize).
-        this.voiceCommands.start();
-        console.debug('VRApp: Voice commands ready and listening');
-      } else {
-        console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
-        this.voiceCommands = null;
-      }
+      await this._buildVoiceCommands();
     }
 
     // 12. DevTools (development builds only; hidden until toggled with F12).
@@ -2703,15 +2631,255 @@ export class VRApp {
       console.debug('VRApp: DevTools ready (F12 to toggle)');
     }
 
-    // 13. Performance monitor overlay (opt-in)
-    if (this.settings.enablePerfMonitorUI) {
-      this.perfMonitorUI = new PerformanceMonitor();
-      this.perfMonitorUI.initialize();
-      console.debug('VRApp: Performance monitor UI ready');
-    }
-
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
+  }
+
+  /**
+   * Build the voice-command subsystem.
+   *
+   * Extracted from initializeSystems() so the settings toggle can start and
+   * stop it live. It used to be inline and gated on `enableVoice: false`, a
+   * setting **no settings-panel control, voice command, or persisted path
+   * could ever set** — the same shape as `enableWebPanel` before Session 74.
+   * That made voice unreachable, which matters more here than anywhere else:
+   * voice is the primary modality for users who find gaze and controller
+   * input difficult, so the escape hatch for the people who need it most was
+   * switched off with no switch. The usage guide told them to "enable Voice in
+   * settings"; there was nothing there.
+   *
+   * Stays opt-in rather than default-on because starting it prompts for
+   * microphone permission — unlike enableWebPanel, which gated nothing that
+   * needed consent.
+   *
+   * @returns {Promise<boolean>} whether the recognizer actually started
+   */
+  async _buildVoiceCommands() {
+    if (this.voiceCommands) {
+      return true; // idempotent, like _buildBrowsingSystems
+    }
+    this.voiceCommands = new VoiceCommands();
+    const voiceReady = await this.voiceCommands.initialize();
+    if (voiceReady) {
+      // FR-13.1: caption recognized speech so it is visible in VR.
+      this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
+        if (isFinal && this.captionSystem) {
+          this.captionSystem.show(transcript);
+        }
+      };
+      // Mirror spoken responses (confirmations / errors) to captions too, so a
+      // user who can speak but not hear sees whether a command was understood.
+      this.voiceCommands.callbacks.onSpeak = (text) => {
+        if (this.captionSystem) {
+          this.captionSystem.show(text);
+        }
+      };
+      // Haptic confirmation on every successful voice command — parity with
+      // controller presses, gaze-dwell activation, teleport, and snap turn.
+      // Voice is a hands-free modality, so both hands receive the click pulse.
+      this.voiceCommands.callbacks.onCommand = (_key, _result) => {
+        voiceCommandFeedback(this.hapticFeedback);
+      };
+      // Distinct double-bump on failure (no match or action exception) so a
+      // user not looking at captions knows to try again without audio.
+      this.voiceCommands.callbacks.onCommandFailed = (_info) => {
+        voiceCommandFailedFeedback(this.hapticFeedback);
+      };
+      // Surface speech-recognition errors as VR toasts with cross-modal
+      // feedback. Without this the recognizer goes silent and the user has
+      // no way of knowing voice commands stopped working.
+      this.voiceCommands.callbacks.onError = (errorCode) => {
+        const { message, type } = voiceErrorNotification(errorCode);
+        this.showVRToast(message, { type });
+      };
+      this._connectVoiceToBrowsing();
+      // Begin listening immediately (user granted mic permission during initialize).
+      this.voiceCommands.start();
+      console.debug('VRApp: Voice commands ready and listening');
+    } else {
+      console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
+      this.voiceCommands = null;
+    }
+    return !!this.voiceCommands;
+  }
+
+  /**
+   * Bind the voice commands to the CURRENT browsing systems.
+   *
+   * Called on voice construction and again whenever the browsing systems are
+   * rebuilt. connectBrowser captures `tabManager` / `bookmarkPanel` by value,
+   * and the enableWebPanel toggle disposes those and builds new ones live —
+   * so a user who turned browsing off and on again left 戻る / 進む / 更新 /
+   * ブックマーク and the search fallback all pointing at a disposed
+   * TabManager, while the callbacks that read `this.tabManager` lazily used
+   * the new one. Re-binding here keeps every voice command on one instance.
+   */
+  _connectVoiceToBrowsing() {
+    if (!this.voiceCommands) {
+      return;
+    }
+    // Replace window.* default commands with VR-aware implementations that
+    // route navigation and search through the live TabManager.
+    this.voiceCommands.connectBrowser({
+      tabManager:    this.tabManager,
+      bookmarkPanel: this.bookmarkPanel,
+      vrKeyboard:    this.vrKeyboard,
+      onFindInPage: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active && typeof active.findInPage === 'function') {
+          this._announceFindResult(active.findInPage(query));
+        }
+      },
+      onFollowLink: (n) => {
+        const active = this.tabManager?.getActiveTab?.();
+        const out = active && typeof active.followLink === 'function'
+          ? active.followLink(n) : { ok: false };
+        // Success already announces via onLinkFollowed (wired below); only
+        // the failure needs saying, since silence would leave the user
+        // wondering whether the number was even heard (WCAG 4.1.3).
+        if (!out.ok) {
+          this.showVRToast(t('vr.msg.noSuchLink'), { type: 'warn' });
+        }
+      },
+      onFindNext: () => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active && typeof active.findNext === 'function') {
+          this._announceFindResult(active.findNext());
+        }
+      },
+      onSearch: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (active) {
+          // Mirror the immediate "Loading:" caption that the URL-bar and
+          // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+          // caption-reliant users know their voice command was accepted
+          // before the page finishes loading.
+          if (query && this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
+          }
+          active.navigate(query);
+        }
+      },
+      // Top Sites: jump to the most-used destination (frecency-ranked from
+      // history). Fewest-dwell navigation for hands-free users; announced
+      // cross-modally so it's perceivable without sight.
+      onTopSites: () => {
+        // Exclude search-engine result pages so the user's actual
+        // destinations win the slot, not their search engine.
+        const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
+        const active = this.tabManager?.getActiveTab?.();
+        if (top && active) {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+          }
+          active.navigate(top.url);
+        } else if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(t('vr.msg.noTopSites'));
+        }
+      },
+      // Go-to: look up the extracted site name in frecency-ranked
+      // history/bookmarks. A history hit navigates directly (fewest dwells
+      // for a familiar destination); no hit falls back to web search so the
+      // command always produces a result. This closes the loop on the
+      // autocomplete data layer (BookmarkStore.search) for voice input.
+      onGoTo: (query) => {
+        const active = this.tabManager?.getActiveTab?.();
+        if (!active) {
+          return;
+        }
+        const hits = this.bookmarks.search(query, 1, Date.now());
+        if (hits.length > 0) {
+          const hit = hits[0];
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+          }
+          active.navigate(hit.url);
+        } else {
+          // No frecency match — treat as URL or web search
+          if (query && this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
+          }
+          active.navigate(query);
+        }
+      },
+      // Hands-free equivalent of the "Clear History" settings action.
+      onClearHistory: () => this._clearBrowsingHistory(),
+      // Scroll the active panel's reader viewport (the fetched article
+      // text), which is what "下にスクロール" can actually move in VR.
+      onScrollContent: (delta) => {
+        this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+      }
+    });
+  }
+
+  /** Stop and release voice commands (the toggle's off path). */
+  _teardownVoiceCommands() {
+    if (this.voiceCommands) {
+      this.voiceCommands.dispose();
+      this.voiceCommands = null;
+    }
+  }
+
+  /**
+   * Settings toggle for voice commands. Applies immediately — building and
+   * tearing down live rather than asking for a page reload, which in VR means
+   * "take the headset off" (the discipline established for enableWebPanel).
+   */
+  async _onVoiceToggleChanged(enabled) {
+    const on = enabled === undefined ? !!this.settings.enableVoice : !!enabled;
+    if (on) {
+      const ok = await this._buildVoiceCommands();
+      this.showVRToast(
+        t(ok ? 'vr.msg.voiceOn' : 'vr.error.voiceStartFailed'),
+        { type: ok ? 'info' : 'warn' }
+      );
+    } else {
+      this._teardownVoiceCommands();
+      this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+    }
+  }
+
+  /**
+   * Find a same-origin reader proxy, if this deployment carries one.
+   *
+   * The reader can only fetch from origins that send CORS headers, which
+   * measured is almost none of the web, so without a proxy most navigations
+   * end on the "cannot be shown" screen. A deployment that ships
+   * `netlify/functions/reader.js` has one at `<base>api/reader`, and finding it
+   * means a deployed app needs no configuration at all. A static host such as
+   * GitHub Pages simply 404s and nothing changes.
+   *
+   * One same-origin HEAD-weight request, short timeout, never awaited by
+   * startup. A proxy URL the user typed always wins — including when they
+   * cleared it deliberately — so this only ever fills a blank.
+   */
+  async _detectReaderProxy() {
+    if (this.settings.readerProxyUrl || typeof fetch !== 'function') {
+      return; // the user's explicit choice, or no fetch to probe with
+    }
+    const base = ((typeof import.meta !== 'undefined' && import.meta.env
+      && import.meta.env.BASE_URL) || '/') + 'api/reader';
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 3000) : null;
+    try {
+      const res = await fetch(readerHealthUrl(base),
+        controller ? { signal: controller.signal } : undefined);
+      if (!res || !res.ok) {
+        return;
+      }
+      this._detectedProxyUrl = base;
+      // Not persisted: it is a property of the deployment, not a preference,
+      // and persisting it would make a later deploy without one look broken.
+      const url = effectiveProxyUrl(this.settings.readerProxyUrl, base);
+      this.tabManager?.setReaderProxyUrl?.(url);
+      this.webPanel?.setReaderProxyUrl?.(url);
+    } catch {
+      // No proxy here. Direct fetch, exactly as before.
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
   }
 
   /**
@@ -2753,50 +2921,33 @@ export class VRApp {
   }
 
   /**
-   * Load audio assets progressively
+   * Build the interaction sounds.
+   *
+   * These used to be fetched as /assets/sounds/*.mp3 through a progressive
+   * loader. Measured: no .mp3 is committed to this repo (only a .gitkeep), and
+   * `assets/sounds/` is not under Vite's publicDir, so the path is not served
+   * even if files were added there. Every request 404'd, `loader.get()` handed
+   * back nothing, and `loadAudio` was never reached — the synthesizer below was
+   * always the only thing that made a sound. The fetch and the 659-line loader
+   * behind it were removed rather than left to log four errors per boot for a
+   * capability that never existed.
+   *
+   * Tones are short and quiet; the Sound Volume setting mutes them.
    */
-  async loadAudioAssets() {
-    // Add audio files to progressive loader
-    const audioFiles = [
-      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'primary' },
-      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'secondary' }
-    ];
-
-    for (const file of audioFiles) {
-      this.progressiveLoader.addResource(file, file.priority);
+  loadAudioAssets() {
+    if (!this.spatialAudio) {
+      return;
     }
-
-    // Start progressive loading
-    await this.progressiveLoader.start();
-
-    // Load into spatial audio system
-    for (const file of audioFiles) {
-      const audio = this.progressiveLoader.get(file.name);
-      if (audio) {
-        await this.spatialAudio.loadAudio(file.url, file.name);
-      }
-    }
-
-    // Procedural fallback: the packaged .mp3 files are not committed to the
-    // repo, so every interaction sound was doubly dead — no decoded buffer AND
-    // no source (play('click','click') needs both). Synthesize a short tone for
-    // any name still missing a buffer, and ensure a source exists, so click/
-    // hover/success/error feedback actually plays. Real files, when present,
-    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
-    if (this.spatialAudio) {
-      const PROCEDURAL = {
-        click:   { freq: 880, duration: 0.06, decay: 45 },
-        hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
-        success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
-        error:   { freq: 200, duration: 0.16, decay: 10 }
-      };
-      for (const file of audioFiles) {
-        this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
-        if (!this.spatialAudio.sources.has(file.name)) {
-          this.spatialAudio.createSource(file.name, { volume: 0.6 });
-        }
+    const TONES = {
+      click:   { freq: 880, duration: 0.06, decay: 45 },
+      hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+      success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
+      error:   { freq: 200, duration: 0.16, decay: 10 }
+    };
+    for (const [name, spec] of Object.entries(TONES)) {
+      this.spatialAudio.registerProceduralBuffer(name, spec);
+      if (!this.spatialAudio.sources.has(name)) {
+        this.spatialAudio.createSource(name, { volume: 0.6 });
       }
     }
   }
@@ -3069,11 +3220,6 @@ export class VRApp {
   render(timestamp, xrFrame) {
     this.frameCount++;
 
-    // Rich perf monitor — begin-frame timing.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.beginFrame();
-    }
-
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
     // resuming from background doesn't produce an enormous delta).
     const frameStart = performance.now();
@@ -3091,11 +3237,6 @@ export class VRApp {
     // Track performance
     const frameTime = performance.now() - frameStart;
     this.updatePerformanceMonitor(frameTime);
-
-    // Rich perf monitor — end-frame metrics + UI.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.endFrame(this.renderer);
-    }
 
     // Dynamic quality adjustment (every 60 frames)
     if (this.frameCount % 60 === 0) {
@@ -3271,19 +3412,6 @@ export class VRApp {
   }
 
   /**
-   * Load texture using optimized texture manager
-   */
-  async loadTexture(url, options = {}) {
-    if (this.textureManager) {
-      return await this.textureManager.loadTexture(url, options);
-    } else {
-      // Fallback to standard Three.js loader
-      const loader = new THREE.TextureLoader();
-      return await loader.loadAsync(url);
-    }
-  }
-
-  /**
    * Get performance statistics
    */
   /**
@@ -3370,12 +3498,6 @@ export class VRApp {
     // Add system-specific stats
     if (this.ffrSystem) {
       stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
-    }
-
-    if (this.textureManager) {
-      const memStats = this.textureManager.getMemoryStats();
-      stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
     }
 
     return stats;
@@ -3469,9 +3591,6 @@ export class VRApp {
     if (this.ffrSystem) {
       this.ffrSystem.dispose();
     }
-    if (this.textureManager) {
-      this.textureManager.dispose();
-    }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose(); this.vrKeyboard = null;
     } else if (this.japaneseIME) {
@@ -3495,9 +3614,6 @@ export class VRApp {
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
     }
-    if (this.progressiveLoader) {
-      this.progressiveLoader.dispose();
-    }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();
     }
@@ -3520,9 +3636,6 @@ export class VRApp {
     }
     if (this.devTools) {
       this.devTools.dispose();
-    }
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.dispose();
     }
     if (this._homePanelTexture) {
       this._homePanelTexture.dispose();

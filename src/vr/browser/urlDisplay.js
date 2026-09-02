@@ -154,7 +154,7 @@ export function elideUrlForDisplay(url, maxChars = 61) {
  * about what it can actually display — is pinned by tests rather than buried
  * in a canvas draw call.
  *
- * @param {'empty'|'loading'|'unavailable'|'error'} state
+ * @param {'empty'|'loading'|'start'|'unavailable'|'error'} state
  * @param {string} [url]
  * @param {boolean} [hasProxy=false] whether a companion reader proxy is configured
  * @returns {{title: string, detail: string}}
@@ -275,4 +275,39 @@ export function normalizeProxyUrl(input) {
   // query/fragment — readerFetchUrl appends `/fetch?url=…` to this.
   const path = url.pathname.replace(/\/+$/, '');
   return { ok: true, value: `${url.origin}${path}` };
+}
+
+/**
+ * Health URL for a reader proxy base.
+ *
+ * Lets the app ask "does this deployment carry a proxy?" without sending a real
+ * target somewhere first. Mirrors the standalone server's `/health`.
+ *
+ * @param {string} base proxy base URL
+ * @returns {string}
+ */
+export function readerHealthUrl(base) {
+  const b = String(base === null || base === undefined ? '' : base).trim().replace(/\/+$/, '');
+  return b ? `${b}/health` : '';
+}
+
+/**
+ * Which proxy the reader should actually use.
+ *
+ * A deployment can carry its own same-origin proxy (netlify/functions/reader.js),
+ * which is the difference between a reader that reaches CORS-enabled origins
+ * only and one that reaches the web. Detecting it means a deployed app needs no
+ * configuration at all — but a value the user typed is a deliberate choice and
+ * must win, including when they deliberately cleared it after a detection.
+ *
+ * @param {string} userSetting persisted `readerProxyUrl` ('' = not set)
+ * @param {string} detected    same-origin proxy found at runtime, if any
+ * @returns {string}
+ */
+export function effectiveProxyUrl(userSetting, detected) {
+  const explicit = String(userSetting === null || userSetting === undefined ? '' : userSetting).trim();
+  if (explicit) {
+    return explicit;
+  }
+  return String(detected === null || detected === undefined ? '' : detected).trim();
 }

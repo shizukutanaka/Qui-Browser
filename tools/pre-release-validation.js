@@ -95,7 +95,7 @@ async function checkVersion(results) {
     }
 
     // Check version in documentation
-    const docFiles = ['README.md', 'PROJECT_STATUS.md', 'FINAL_RELEASE_SUMMARY_v2.0.0.md'];
+    const docFiles = ['README.md', 'CHANGELOG.md'];
     for (const docFile of docFiles) {
       const filePath = path.join(PROJECT_ROOT, docFile);
       if (fs.existsSync(filePath)) {
@@ -221,9 +221,6 @@ async function checkDocumentation(results) {
     'CONTRIBUTING.md',
     'CODE_OF_CONDUCT.md',
     'SECURITY.md',
-    'PROJECT_STATUS.md',
-    'RELEASE_CHECKLIST.md',
-    'FINAL_RELEASE_SUMMARY_v2.0.0.md',
     'docs/API.md',
     'docs/USAGE_GUIDE.md',
     'docs/DEPLOYMENT_GUIDE.md',
@@ -354,8 +351,7 @@ async function checkBuildConfiguration(results) {
 
   const configFiles = [
     'vite.config.js',
-    '.eslintrc.json',
-    '.prettierrc.json',
+    'eslint.config.js',
     '.babelrc'
   ];
 

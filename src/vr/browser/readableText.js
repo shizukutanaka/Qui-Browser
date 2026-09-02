@@ -26,6 +26,95 @@
  * carries it, and return nothing rather than garbage when it does not.
  */
 
+import { unwrapKnownRedirect } from './urlResolver.js';
+
+/**
+ * Longest run of characters one element may hold. A "paragraph" longer than
+ * this is not prose, and letting a lazy match run to the end of the document
+ * is what makes an unclosed tag quadratic.
+ */
+export const MAX_ELEMENT_CHARS = 20000;
+
+/**
+ * Most markup the reader will process. Measured: a realistic 5 MB article takes
+ * ~860 ms to extract, and extraction runs synchronously — in a headset that is
+ * a freeze of the world, not merely a dropped frame, so it is a comfort problem
+ * as much as a performance one. The proxy caps responses at 5 MB but a direct
+ * CORS fetch has no cap at all, so the reader imposes its own. Longer input is
+ * truncated rather than refused: the start of a huge page is still worth
+ * reading, and far more text than this never fits the viewport anyway.
+ */
+export const MAX_MARKUP_CHARS = 2 * 1024 * 1024;
+
+/** Most blocks laid out. Beyond this the reader is paging through noise. */
+export const MAX_BLOCKS = 2000;
+
+/**
+ * Images carried per page. Each one that renders decodes into memory on a
+ * mobile SoC, so the count is bounded rather than trusted to the page.
+ */
+const MAX_IMAGES = 8;
+
+/**
+ * Body pattern for an element that may not swallow another opening tag of the
+ * same kind, bounded in length.
+ *
+ * Both properties matter, and one of them is a correctness fix rather than a
+ * performance one:
+ *
+ *  - **Non-crossing.** `</p>` is optional in HTML, so `<p>A<p>B</p>` is ordinary
+ *    real-world markup. A lazy `[\s\S]*?` matched it as ONE block whose text
+ *    was "A" plus "B" run together, and B never appeared as a paragraph of its
+ *    own — structure silently lost on a very common shape.
+ *  - **Bounded.** With an unclosed tag the lazy form rescans to the end of the
+ *    document from every start position, which is quadratic: measured, 40,000
+ *    unclosed `<p>` (117 KB) took 10.8 s in the block regex alone, and the
+ *    reader runs on untrusted markup. The same input takes 1 ms here, with an
+ *    identical match count on well-formed articles.
+ *
+ * @param {string} alternation regex alternation of the tag names to exclude
+ * @returns {string} a regex source fragment for the element's body
+ */
+function elementBody(alternation) {
+  return `((?:(?!<\\/?(?:${alternation})\\b)[\\s\\S]){0,${MAX_ELEMENT_CHARS}})`;
+}
+
+/**
+ * Longest attribute run inside one tag.
+ *
+ * `[^>]*` looks harmless but is the second source of quadratic behaviour: on
+ * input containing no `>` at all — `'<p'.repeat(20000)`, or a truncated
+ * `<a href=` — it rescans to the end of the document from every start
+ * position. Measured, those took 3.4 s and over 15 s respectively. A tag
+ * carrying more than this many characters of attributes is not markup the
+ * reader needs to understand.
+ *
+ * It also excludes `<`. An attribute value cannot legitimately contain a raw
+ * `<` (it has to be `&lt;`), and forbidding it means a `>`-less run stops at
+ * the next tag instead of at the bound — which matters because the anchor
+ * pattern has two attribute runs, and two bounded runs multiply: with `[^>]`
+ * the truncated `'<a href='.repeat(20000)` still ran past 15 s.
+ */
+const MAX_ATTR_CHARS = 2000;
+const ATTRS = `[^<>]{0,${MAX_ATTR_CHARS}}`;
+
+/**
+ * Block-level elements the reader turns into paragraphs and headings.
+ *
+ * Anything content-bearing that is missing here is not "unsupported" — it is
+ * silently discarded, which is worse, because the page looks like it simply
+ * had less to say. Measured before this list was widened: h4-h6 headings, code
+ * blocks, definition lists, figure captions, table captions, <summary> and
+ * <address> all extracted to nothing. tests/readable-text.test.js pins the set
+ * so adding a reader feature cannot quietly narrow it again.
+ *
+ * `code` is deliberately absent: it lives inside `pre`, and listing both would
+ * extract the same sample twice. Whitespace inside `pre` is collapsed like any
+ * other text — the reader wraps by measure, so a code sample reads as prose
+ * rather than as formatted source. Lossy, but present beats absent.
+ */
+const BLOCK_TAGS = 'h[1-6]|p|li|blockquote|pre|dt|dd|figcaption|caption|summary|address';
+
 /** Elements whose contents are never reader text. */
 const STRIP_ELEMENTS = [
   'script', 'style', 'noscript', 'template', 'svg', 'canvas',
@@ -68,7 +157,7 @@ function safeFromCodePoint(cp) {
 
 /** Remove tags and collapse whitespace to a single-line string. */
 function textOf(html) {
-  return decodeEntities(String(html).replace(/<[^>]*>/g, ' '))
+  return decodeEntities(String(html).replace(/<[^<>]{0,2000}>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -78,9 +167,9 @@ function stripNonContent(html) {
   let out = String(html).replace(/<!--[\s\S]*?-->/g, ' ');
   for (const tag of STRIP_ELEMENTS) {
     // Non-greedy, case-insensitive, tolerant of attributes.
-    out = out.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, 'gi'), ' ');
+    out = out.replace(new RegExp(`<${tag}\\b${ATTRS}>${elementBody(tag)}<\\/${tag}\\s*>`, 'gi'), ' ');
     // Self-closing / unclosed variants.
-    out = out.replace(new RegExp(`<${tag}\\b[^>]*\\/?>`, 'gi'), ' ');
+    out = out.replace(new RegExp(`<${tag}\\b${ATTRS}\\/?>`, 'gi'), ' ');
   }
   return out;
 }
@@ -91,9 +180,9 @@ function stripNonContent(html) {
  */
 function mainRegion(html) {
   const candidates = [
-    /<article\b[^>]*>([\s\S]*?)<\/article\s*>/i,
-    /<main\b[^>]*>([\s\S]*?)<\/main\s*>/i,
-    /<[a-z]+\b[^>]*\srole\s*=\s*["']main["'][^>]*>([\s\S]*?)<\/[a-z]+\s*>/i
+    /<article\b[^<>]{0,2000}>([\s\S]*?)<\/article\s*>/i,
+    /<main\b[^<>]{0,2000}>([\s\S]*?)<\/main\s*>/i,
+    /<[a-z]+\b[^<>]{0,2000}\srole\s*=\s*["']main["'][^<>]{0,2000}>([\s\S]*?)<\/[a-z]+\s*>/i
   ];
   for (const re of candidates) {
     const m = html.match(re);
@@ -110,30 +199,111 @@ function mainRegion(html) {
  * @returns {string}
  */
 export function extractTitle(html) {
-  const t = String(html).match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i);
+  const t = String(html).match(/<title\b[^<>]{0,2000}>([\s\S]*?)<\/title\s*>/i);
   if (t && textOf(t[1])) {
     return textOf(t[1]);
   }
-  const h1 = String(html).match(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i);
+  const h1 = String(html).match(/<h1\b[^<>]{0,2000}>([\s\S]*?)<\/h1\s*>/i);
   return h1 ? textOf(h1[1]) : '';
+}
+
+/** Most links carried out of one page. Beyond this the list stops being usable. */
+export const MAX_LINKS = 40;
+
+/**
+ * Extract the followable links from a document.
+ *
+ * The reader used to discard every `<a href>`, which left the browser unable
+ * to do the one thing hypertext is for: a user could reach a page and read it,
+ * but the only way to follow a link was to retype its URL on a gaze keyboard
+ * at roughly 8–10 WPM. Atom ④ of the core loop (navigate → display → read →
+ * *interact* → back → save) was simply missing.
+ *
+ * Runs over the same stripped main region as the prose, so navigation
+ * chrome, footers and asides do not flood the list with boilerplate.
+ *
+ * @param {string} html
+ * @param {string} [baseUrl] page URL, for resolving relative hrefs
+ * @returns {Array<{text: string, href: string}>} deduped, in document order
+ */
+export function extractLinks(html, baseUrl) {
+  const body = mainRegion(stripNonContent(String(html === null || html === undefined ? '' : html)));
+  const re = new RegExp(
+    `<a\\b${ATTRS}\\shref\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))${ATTRS}>${elementBody('a')}<\\/a\\s*>`,
+    'gi');
+  const seen = new Set();
+  const out = [];
+  let m;
+  while ((m = re.exec(body)) !== null && out.length < MAX_LINKS) {
+    const raw = decodeEntities(m[2] ?? m[3] ?? m[4] ?? '').trim();
+    const text = textOf(m[5]);
+    if (!raw || !text) {
+      continue; // an empty href, or an icon-only link with no readable label
+    }
+    let href;
+    try {
+      // Resolve against the page. Without a base a relative href is
+      // unusable, so it is dropped rather than guessed at.
+      href = baseUrl ? new URL(raw, baseUrl).href : new URL(raw).href;
+    } catch {
+      continue;
+    }
+    // Only what the panel can actually navigate to. javascript:, mailto:,
+    // data: and friends would fail resolveInput anyway; dropping them here
+    // keeps them off a list that promises every row is followable.
+    if (!/^https?:$/i.test(new URL(href).protocol)) {
+      continue;
+    }
+    // Search-engine redirect wrappers unwrap to their real destination, so
+    // the row, the address bar and the next page's base URL all agree.
+    href = unwrapKnownRedirect(href);
+    if (seen.has(href)) {
+      continue;
+    }
+    seen.add(href);
+    out.push({ text, href });
+  }
+  return out;
 }
 
 /**
  * Extract readable blocks from an HTML document.
  *
  * @param {string} html
- * @returns {{title: string, blocks: Array<{type: 'h'|'p', text: string}>}}
+ * @param {string} [baseUrl] page URL, for resolving relative link hrefs
+ * @returns {{title: string, blocks: Array<{type: 'h'|'p', text: string}>,
+ *            links: Array<{text: string, href: string}>}}
  */
-export function extractReadableText(html) {
-  const src = String(html === null || html === undefined ? '' : html);
+export function extractReadableText(html, baseUrl) {
+  const raw = String(html === null || html === undefined ? '' : html);
+  // Truncate rather than refuse: the start of an enormous page is still worth
+  // reading, and extraction is synchronous, so an unbounded page freezes the
+  // headset rather than merely dropping frames.
+  const src = raw.length > MAX_MARKUP_CHARS ? raw.slice(0, MAX_MARKUP_CHARS) : raw;
   const title = extractTitle(src);
   const body = mainRegion(stripNonContent(src));
 
-  const blocks = [];
+  // Blocks are collected with their source position so images — which are void
+  // elements the block walk cannot see — can be merged back in document order.
+  const found = [];
   // Headings and prose, in document order.
-  const re = /<(h[1-3]|p|li|blockquote)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
+  // Ends at a real closing tag, at the next opening tag of the same family, or
+  // at end of input. HTML makes `</p>` and `</li>` optional, so requiring a
+  // close would silently DROP every unclosed block — and matching lazily past
+  // one merged two paragraphs into a single run of text. Both were wrong on
+  // markup that is entirely valid.
+  const re = new RegExp(
+    `<(${BLOCK_TAGS})\\b${ATTRS}>${elementBody(BLOCK_TAGS)}`
+    + `(?:<\\/\\1\\s*>|(?=<(?:${BLOCK_TAGS})\\b)|$)`,
+    'gi');
   let m;
   while ((m = re.exec(body)) !== null) {
+    if (m.index === re.lastIndex) {
+      re.lastIndex++; // a zero-length match would otherwise spin forever
+    }
+    if (found.length >= MAX_BLOCKS) {
+      break;
+    }
     const tag = m[1].toLowerCase();
     const text = textOf(m[2]);
     if (!text) {
@@ -143,8 +313,98 @@ export function extractReadableText(html) {
     if (tag === 'li' && text.length < 3) {
       continue;
     }
-    blocks.push({ type: tag.startsWith('h') ? 'h' : 'p', text });
+    found.push({ at: m.index, block: { type: tag.startsWith('h') ? 'h' : 'p', text } });
   }
 
-  return { title, blocks };
+  // Image text alternatives.
+  //
+  // <img> is a void element with no text content, so the block walk above
+  // cannot see it and every alt was discarded — the reader silently dropped
+  // the one part of an image it can actually convey. Showing pixels would
+  // need CORS-clean sources (a tainted canvas cannot be uploaded as a WebGL
+  // texture), a memory budget and a layout rework; the alt text is the
+  // information, and carrying it is WCAG 1.1.1.
+  //
+  // alt="" is the spec's way of saying "decorative — announce nothing", and an
+  // image with no alt at all tells us nothing worth a row, so both are skipped
+  // rather than turned into a row that says "image" and means it.
+  const imgRe = new RegExp(`<img\\b([^<>]{0,${MAX_ATTR_CHARS}})>`, 'gi');
+  const attr = (text, name) => {
+    const m = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(text);
+    return m ? decodeEntities(m[2] ?? m[3] ?? m[4] ?? '') : null;
+  };
+  let im;
+  let images = 0;
+  while ((im = imgRe.exec(body)) !== null) {
+    if (found.length >= MAX_BLOCKS || images >= MAX_IMAGES) {
+      break;
+    }
+    const attrs = im[1] || '';
+    const rawAlt = attr(attrs, 'alt');
+    if (rawAlt !== null && !rawAlt.trim()) {
+      continue; // alt="" — the spec's "decorative, announce nothing"
+    }
+    const alt = textOf(rawAlt || '');
+    let src = null;
+    const rawSrc = attr(attrs, 'src');
+    if (rawSrc && baseUrl) {
+      try {
+        const u = new URL(rawSrc, baseUrl);
+        src = /^https?:$/i.test(u.protocol) ? u.href : null;
+      } catch { /* unresolvable src: the alt text still stands on its own */ }
+    }
+    if (alt || src) {
+      found.push({ at: im.index, block: { type: 'img', text: alt, src } });
+      images++;
+    }
+  }
+
+  // Table rows.
+  //
+  // Cells are not in BLOCK_TAGS, so a data table's contents were dropped whole
+  // — the numbers a page exists to show simply were not there. Rendering a
+  // grid on a canvas the user scrolls by line is the wrong shape; one row per
+  // line with cells joined, the way text browsers have always done it, keeps
+  // the information and the row structure in the model the reader already has.
+  //
+  // A row whose cells contain block elements is skipped: those are extracted
+  // on their own above, and emitting the row too would print them twice. That
+  // also sidesteps layout tables, whose cells hold paragraphs rather than data.
+  const rowRe = new RegExp(`<tr\\b${ATTRS}>([\\s\\S]*?)(?:<\\/tr\\s*>|(?=<tr\\b)|(?=<\\/table)|$)`, 'gi');
+  const cellRe = new RegExp(`<(t[hd])\\b${ATTRS}>([\\s\\S]*?)(?:<\\/\\1\\s*>|(?=<t[hd]\\b)|$)`, 'gi');
+  let tr;
+  while ((tr = rowRe.exec(body)) !== null) {
+    if (tr.index === rowRe.lastIndex) {
+      rowRe.lastIndex++;
+    }
+    if (found.length >= MAX_BLOCKS) {
+      break;
+    }
+    const rowHtml = tr[1] || '';
+    if (new RegExp(`<(?:${BLOCK_TAGS})\\b`, 'i').test(rowHtml)) {
+      continue; // its content is already extracted as blocks
+    }
+    const cells = [];
+    let allHeader = true;
+    let c;
+    cellRe.lastIndex = 0;
+    while ((c = cellRe.exec(rowHtml)) !== null) {
+      if (c.index === cellRe.lastIndex) {
+        cellRe.lastIndex++;
+      }
+      if (c[1].toLowerCase() !== 'th') {
+        allHeader = false;
+      }
+      cells.push(textOf(c[2]));
+    }
+    const text = cells.join(' | ').trim();
+    if (text && text !== '|') {
+      found.push({ at: tr.index, block: { type: allHeader ? 'h' : 'p', text } });
+    }
+  }
+
+  found.sort((a, b) => a.at - b.at);
+  const blocks = found.slice(0, MAX_BLOCKS).map((f) => f.block);
+
+  return { title, blocks, links: extractLinks(src, baseUrl) };
 }
