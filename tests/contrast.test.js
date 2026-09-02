@@ -201,6 +201,7 @@ function palettePairs(hc) {
   // prefix is what identifies them without colour (1.4.1); this only has to
   // prove the tint is readable, not that it is distinguishable from body.
   add('reader link', ct.readerLink, ct.bg, { fontPx: 20 });
+  add('reader image alt', ct.readerImage, ct.bg, { fontPx: 20 });
   add('reader progress', ct.progress, ct.bg, { fontPx: 16 });
   // Find-in-page highlight: matched rows keep their text ON the fill, so the
   // pair that matters is text-on-highlight, for every text style a row can be.

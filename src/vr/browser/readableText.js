@@ -263,7 +263,9 @@ export function extractReadableText(html, baseUrl) {
   const title = extractTitle(src);
   const body = mainRegion(stripNonContent(src));
 
-  const blocks = [];
+  // Blocks are collected with their source position so images — which are void
+  // elements the block walk cannot see — can be merged back in document order.
+  const found = [];
   // Headings and prose, in document order.
   // Ends at a real closing tag, at the next opening tag of the same family, or
   // at end of input. HTML makes `</p>` and `</li>` optional, so requiring a
@@ -279,7 +281,7 @@ export function extractReadableText(html, baseUrl) {
     if (m.index === re.lastIndex) {
       re.lastIndex++; // a zero-length match would otherwise spin forever
     }
-    if (blocks.length >= MAX_BLOCKS) {
+    if (found.length >= MAX_BLOCKS) {
       break;
     }
     const tag = m[1].toLowerCase();
@@ -291,8 +293,35 @@ export function extractReadableText(html, baseUrl) {
     if (tag === 'li' && text.length < 3) {
       continue;
     }
-    blocks.push({ type: tag.startsWith('h') ? 'h' : 'p', text });
+    found.push({ at: m.index, block: { type: tag.startsWith('h') ? 'h' : 'p', text } });
   }
+
+  // Image text alternatives.
+  //
+  // <img> is a void element with no text content, so the block walk above
+  // cannot see it and every alt was discarded — the reader silently dropped
+  // the one part of an image it can actually convey. Showing pixels would
+  // need CORS-clean sources (a tainted canvas cannot be uploaded as a WebGL
+  // texture), a memory budget and a layout rework; the alt text is the
+  // information, and carrying it is WCAG 1.1.1.
+  //
+  // alt="" is the spec's way of saying "decorative — announce nothing", and an
+  // image with no alt at all tells us nothing worth a row, so both are skipped
+  // rather than turned into a row that says "image" and means it.
+  const imgRe = new RegExp(`<img\\b${ATTRS}?\\salt\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'gi');
+  let im;
+  while ((im = imgRe.exec(body)) !== null) {
+    if (found.length >= MAX_BLOCKS) {
+      break;
+    }
+    const alt = textOf(decodeEntities(im[2] ?? im[3] ?? im[4] ?? ''));
+    if (alt) {
+      found.push({ at: im.index, block: { type: 'img', text: alt } });
+    }
+  }
+
+  found.sort((a, b) => a.at - b.at);
+  const blocks = found.slice(0, MAX_BLOCKS).map((f) => f.block);
 
   return { title, blocks, links: extractLinks(src, baseUrl) };
 }

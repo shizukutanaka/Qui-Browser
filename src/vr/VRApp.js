@@ -821,6 +821,7 @@ export class VRApp {
       // fires the usual cross-modal confirmation since it is a navigation the
       // user did not type (WCAG 4.1.3).
       linksLabel: t('vr.reader.links'),
+      imageLabel: t('vr.reader.image'),
       // Start page: the frecency ranking built in Session 17 finally has a
       // surface. Search engines are excluded so a frequent searcher's top
       // "site" is a real destination rather than their search box.

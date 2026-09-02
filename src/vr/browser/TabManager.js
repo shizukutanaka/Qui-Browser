@@ -256,6 +256,7 @@ export class TabManager {
       readerScale: this.opts.readerScale || 1,
       onLinkFollowed: this.opts.onLinkFollowed || null,
       linksLabel: this.opts.linksLabel || '',
+      imageLabel: this.opts.imageLabel || '',
       topSitesProvider: this.opts.topSitesProvider || null,
       startPageLabel: this.opts.startPageLabel || ''
     });

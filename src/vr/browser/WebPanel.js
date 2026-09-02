@@ -112,7 +112,7 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel,
+    readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel, imageLabel,
     topSitesProvider, startPageLabel } = {}) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
@@ -140,6 +140,8 @@ export class WebPanel {
     this.onLinkFollowed = typeof onLinkFollowed === 'function' ? onLinkFollowed : null;
     // Heading for the links section, so it can be translated by the host.
     this.linksLabel = typeof linksLabel === 'string' && linksLabel ? linksLabel : '';
+    // Prefix for an image's text alternative, translated by the host.
+    this.imageLabel = typeof imageLabel === 'string' && imageLabel ? imageLabel : '';
     // Start page. A fresh tab used to show nothing but "Enter a URL to
     // navigate", so the only way in was gaze-typing a URL at roughly 8-10 WPM.
     // The frecency ranking behind this has existed since Session 17 with no
@@ -410,7 +412,8 @@ export class WebPanel {
       // against the page the user is on, not against where it was fetched from.
       const { title, blocks, links } = extractReadableText(html, url);
       const lines = layoutReaderLines(blocks, {
-        title, links, linksLabel: this.linksLabel, scale: this._readerScale
+        title, links, linksLabel: this.linksLabel, imageLabel: this.imageLabel,
+        scale: this._readerScale
       });
       if (!lines.length) {
         // Fetched, but no prose recoverable (SPA shell, or markup we can't
@@ -468,12 +471,14 @@ export class WebPanel {
         }
       }
       if (line.style !== 'blank' && line.text) {
-        const bold = line.style !== 'p' && line.style !== 'link';
+        // Alt text is prose about the page, not a heading within it.
+        const bold = line.style !== 'p' && line.style !== 'link' && line.style !== 'img';
         ctx.font = `${bold ? 'bold ' : ''}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
         // A link's number (drawn as part of its text by layoutReaderLines) is
         // the cue that does not depend on colour; the tint reinforces it.
         ctx.fillStyle = line.style === 'link' ? col.readerLink
-          : line.style === 'p' ? col.readerBody : col.readerHeading;
+          : line.style === 'img' ? col.readerImage
+            : line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;

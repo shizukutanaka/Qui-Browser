@@ -808,3 +808,70 @@ describe('linkRowIndex — addressing a link by its printed number', () => {
     expect(linkRowIndex(lines, 1)).toBe(-1);
   });
 });
+
+describe('image text alternatives reach the reader (WCAG 1.1.1)', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+  const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+
+  test('an alt attribute becomes a block, in document order with the prose', () => {
+    const html = `<html><body><article>
+      <p>Before the chart.</p>
+      <img src="c.png" alt="Chart showing 40% growth">
+      <p>After the chart.</p>
+    </article></body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.type)).toEqual(['p', 'img', 'p']);
+    expect(blocks[1].text).toBe('Chart showing 40% growth');
+  });
+
+  test('alt="" is decorative per the spec and contributes nothing', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><p>text</p><img src="spacer.gif" alt=""></body></html>', 'https://e.example/');
+    expect(blocks.filter((b) => b.type === 'img')).toHaveLength(0);
+  });
+
+  test('an image with no alt at all is skipped, not announced as "image"', () => {
+    // A row that says "image" and nothing else is noise, and noise in a
+    // reader is what trains people to ignore it.
+    const { blocks } = extractReadableText(
+      '<html><body><p>text</p><img src="x.png"></body></html>', 'https://e.example/');
+    expect(blocks.filter((b) => b.type === 'img')).toHaveLength(0);
+  });
+
+  test('single quotes, unquoted values and entities in alt all decode', () => {
+    const html = `<html><body>
+      <img src=a.png alt='Tom &amp; Jerry'>
+      <img src=b.png alt=Simple>
+    </body></html>`;
+    const alts = extractReadableText(html, 'https://e.example/')
+      .blocks.filter((b) => b.type === 'img').map((b) => b.text);
+    expect(alts).toEqual(['Tom & Jerry', 'Simple']);
+  });
+
+  test('images inside stripped regions stay stripped', () => {
+    const html = `<html><body>
+      <nav><img src="logo.png" alt="Site logo"></nav>
+      <article><p>real prose</p><img src="fig.png" alt="Figure one"></article>
+    </body></html>`;
+    const alts = extractReadableText(html, 'https://e.example/')
+      .blocks.filter((b) => b.type === 'img').map((b) => b.text);
+    expect(alts).toEqual(['Figure one']);
+  });
+
+  test('the laid-out row is labelled in words, not by colour alone', () => {
+    const lines = layoutReaderLines(
+      [{ type: 'img', text: 'Chart showing growth' }], { imageLabel: '画像' });
+    const row = lines.find((l) => l.style === 'img');
+    expect(row).toBeTruthy();
+    expect(row.text).toContain('画像');
+    expect(row.text).toContain('Chart showing growth');
+  });
+
+  test('alt text is findable, like any other prose in the page', () => {
+    const { findMatches } = require('../src/vr/browser/readerSearch.js');
+    const lines = layoutReaderLines(
+      [{ type: 'p', text: 'ordinary prose' }, { type: 'img', text: 'a red bicycle' }],
+      { imageLabel: 'Image' });
+    expect(findMatches(lines, 'bicycle')).toHaveLength(1);
+  });
+});

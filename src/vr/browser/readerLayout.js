@@ -203,8 +203,13 @@ export function layoutReaderLines(blocks, opts = {}) {
       continue;
     }
     blank();
-    const style = b.type === 'h' ? 'h' : 'p';
-    for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
+    // An image contributes its text alternative, prefixed so it reads as a
+    // description of a picture rather than as the author's prose. The prefix
+    // is words, not a colour or an icon, so it survives every rendering mode
+    // (WCAG 1.1.1 with 1.4.1).
+    const style = b.type === 'h' ? 'h' : b.type === 'img' ? 'img' : 'p';
+    const text = b.type === 'img' ? `${opts.imageLabel || 'Image'}: ${b.text}` : b.text;
+    for (const row of wrapTextToWidth(text, measureEmForStyle(style, scale))) {
       push(row, style);
     }
   }
@@ -345,5 +350,7 @@ export function fontPxFor(style, scale = 1) {
   if (style === 'h' || style === 'linksHeading') {
     return Math.round(25 * s);
   }
+  // 'img' (an image's alt text) and 'link' read at body size — they are prose
+  // about the page, not headings within it.
   return Math.round(20 * s);
 }
