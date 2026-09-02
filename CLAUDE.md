@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き17）: 欠陥「クラス」を4つ目として自動化 —— 走査したら実例は1件で、既に直っていた
+続き16 の修正は1件の bug だったのか、それとも**クラス**なのか。マスク step 5（自動化）の前に、まず**実測で範囲を確定**した。
+- 🔍 **走査結果（VRApp.js 全体）**: 値キャプチャは **`connectBrowser` の1箇所のみ**。他は全て `this.X` を呼び出し時に遅延参照している。`windowManager` は `_attachManagedWindow()` が `this.tabManager` を遅延参照し `target !== 新target` で**自動再アタッチ**するので古くならない（**確認して変更不要と判断** —— 疑ったが実測では正しかった）。つまり**クラスの実例は1件で、続き16 で既に解消済み**。残る仕事は再発防止だけ。
+- 🔬 **`tests/live-rebuild-capture.test.js`（新規・本番コード変更ゼロ）**: 対象を**ソースから導出**する —— 「`new` で構築され、かつ **`dispose` 以外の関数で** `null` にされる」フィールドが再構築対象。`dispose` は終端でありライブ再構築ではない、というこの区別が要で、`vrKeyboard`（dispose でのみ解放）は**正しく対象外**になり、その値渡しは安全と判定される。ハードコードしないので、将来ライブ再構築されるサブシステムが増えれば自動で対象に入る。
+- **3つの不変条件**: ①導出結果が空でないこと（パーサ回帰で全体が空虚に通るのを防ぐ）②値キャプチャは指定の再束縛関数の中にしか存在しないこと ③**その再束縛関数を、対象フィールドを作り直す全ての関数が実際に呼んでいること**。
+- 🎯 **③が本命**: 続き16 で私は「`_connectVoiceToBrowsing()` を直接呼ぶ」テストを書き、**呼び出し元が無くても通る**飾りを作った。本セッション前半で verify:vr-boot に対して自分で指摘した失敗形を、数時間後に自分で再現していた。その教訓を走査に埋め込んだ。
+- ✅ **捕捉能力を実証**（どちらも復元して全通過）: (a) `_buildBrowsingSystems` の再束縛呼び出しを削除 → **不変条件3が FAIL**（続き16 の欠陥そのものの再現） (b) 許可リスト外のメソッドに `tabManager: this.tabManager,` を置く → **不変条件2が FAIL**。
+- ✅ Total 1662 tests (52 suites); 0 lint errors; `npm run gate` PASS。**`src/` は1行も変更していない。**
+
 ### Session 75（続き16）: 自分の「動線は閉じた」という主張を検証したら、閉じていなかった
 続き15 の締めで「音声だけで一周する」と書いた。**このリポジトリの規律は主張ではなく実測**なので、その主張自体をソクラテス的に問い直した。→ **条件付きで偽だった。**
 - 🔍 **診断**: `connectBrowser({ tabManager, bookmarkPanel, vrKeyboard })` は**値でキャプチャ**する。ところが `enableWebPanel` トグル（Session 74続き5 でライブ適用になった）は `_teardownBrowsingSystems` で `this.tabManager = null` にし、`_buildBrowsingSystems` で**新しいインスタンス**を作る。`connectBrowser` の呼び出し元は `_buildVoiceCommands` **1箇所だけ**で、そこは `this.voiceCommands` があれば早期 return する。つまり **ブラウジングを切って入れ直したユーザーは、`戻る`／`進む`／`更新`／`ブックマーク`／検索フォールバックが全て**破棄済みの** TabManager を指したまま**になる。
