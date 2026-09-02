@@ -875,3 +875,59 @@ describe('image text alternatives reach the reader (WCAG 1.1.1)', () => {
     expect(findMatches(lines, 'bicycle')).toHaveLength(1);
   });
 });
+
+describe('table rows reach the reader', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+
+  test('a data table keeps its numbers, in document order', () => {
+    const html = `<html><body><article>
+      <p>Intro.</p>
+      <table>
+        <tr><th>Year</th><th>Growth</th></tr>
+        <tr><td>2024</td><td>40%</td></tr>
+      </table>
+      <p>After.</p>
+    </article></body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual([
+      'Intro.', 'Year | Growth', '2024 | 40%', 'After.'
+    ]);
+  });
+
+  test('an all-th row is marked as a heading, so the structure survives', () => {
+    const html = '<html><body><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks[0].type).toBe('h');
+    expect(blocks[1].type).toBe('p');
+  });
+
+  test('a layout table does not print its cells twice', () => {
+    // Cells holding block elements are extracted as blocks already; emitting
+    // the row as well would duplicate every paragraph on table-laid-out pages.
+    const html = '<html><body><article><table><tr><td><p>Only once.</p></td></tr></table></article></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['Only once.']);
+  });
+
+  test('rows with optional closing tags still separate', () => {
+    // </tr> and </td> are optional in HTML; requiring them would drop the row.
+    const html = '<html><body><table><tr><td>a<td>b<tr><td>c<td>d</table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['a | b', 'c | d']);
+  });
+
+  test('an empty row contributes nothing', () => {
+    const html = '<html><body><p>x</p><table><tr><td></td><td></td></tr></table></body></html>';
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.filter((b) => b.text.includes('|'))).toHaveLength(0);
+  });
+
+  test('tables inside stripped regions stay stripped', () => {
+    const html = `<html><body>
+      <footer><table><tr><td>junk</td><td>links</td></tr></table></footer>
+      <article><table><tr><td>real</td><td>data</td></tr></table></article>
+    </body></html>`;
+    const { blocks } = extractReadableText(html, 'https://e.example/');
+    expect(blocks.map((b) => b.text)).toEqual(['real | data']);
+  });
+});

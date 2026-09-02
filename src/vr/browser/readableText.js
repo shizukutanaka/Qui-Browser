@@ -320,6 +320,50 @@ export function extractReadableText(html, baseUrl) {
     }
   }
 
+  // Table rows.
+  //
+  // Cells are not in BLOCK_TAGS, so a data table's contents were dropped whole
+  // — the numbers a page exists to show simply were not there. Rendering a
+  // grid on a canvas the user scrolls by line is the wrong shape; one row per
+  // line with cells joined, the way text browsers have always done it, keeps
+  // the information and the row structure in the model the reader already has.
+  //
+  // A row whose cells contain block elements is skipped: those are extracted
+  // on their own above, and emitting the row too would print them twice. That
+  // also sidesteps layout tables, whose cells hold paragraphs rather than data.
+  const rowRe = new RegExp(`<tr\\b${ATTRS}>([\\s\\S]*?)(?:<\\/tr\\s*>|(?=<tr\\b)|(?=<\\/table)|$)`, 'gi');
+  const cellRe = new RegExp(`<(t[hd])\\b${ATTRS}>([\\s\\S]*?)(?:<\\/\\1\\s*>|(?=<t[hd]\\b)|$)`, 'gi');
+  let tr;
+  while ((tr = rowRe.exec(body)) !== null) {
+    if (tr.index === rowRe.lastIndex) {
+      rowRe.lastIndex++;
+    }
+    if (found.length >= MAX_BLOCKS) {
+      break;
+    }
+    const rowHtml = tr[1] || '';
+    if (new RegExp(`<(?:${BLOCK_TAGS})\\b`, 'i').test(rowHtml)) {
+      continue; // its content is already extracted as blocks
+    }
+    const cells = [];
+    let allHeader = true;
+    let c;
+    cellRe.lastIndex = 0;
+    while ((c = cellRe.exec(rowHtml)) !== null) {
+      if (c.index === cellRe.lastIndex) {
+        cellRe.lastIndex++;
+      }
+      if (c[1].toLowerCase() !== 'th') {
+        allHeader = false;
+      }
+      cells.push(textOf(c[2]));
+    }
+    const text = cells.join(' | ').trim();
+    if (text && text !== '|') {
+      found.push({ at: tr.index, block: { type: allHeader ? 'h' : 'p', text } });
+    }
+  }
+
   found.sort((a, b) => a.at - b.at);
   const blocks = found.slice(0, MAX_BLOCKS).map((f) => f.block);
 
