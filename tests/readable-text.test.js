@@ -830,12 +830,38 @@ describe('image text alternatives reach the reader (WCAG 1.1.1)', () => {
     expect(blocks.filter((b) => b.type === 'img')).toHaveLength(0);
   });
 
-  test('an image with no alt at all is skipped, not announced as "image"', () => {
-    // A row that says "image" and nothing else is noise, and noise in a
-    // reader is what trains people to ignore it.
+  test('an image with no alt is carried for its pixels, but adds no caption row', () => {
+    // This assertion used to be "skipped entirely", on the grounds that a row
+    // reading "image" and nothing else is noise. That reasoning held while the
+    // reader could only show text. It can now render the picture, which is not
+    // noise — so the block is carried with an empty caption and only the
+    // pixels appear.
     const { blocks } = extractReadableText(
       '<html><body><p>text</p><img src="x.png"></body></html>', 'https://e.example/');
-    expect(blocks.filter((b) => b.type === 'img')).toHaveLength(0);
+    const imgs = blocks.filter((b) => b.type === 'img');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].text).toBe('');
+    expect(imgs[0].src).toBe('https://e.example/x.png');
+
+    const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+    const lines = layoutReaderLines(imgs, { imageLabel: 'Image' });
+    expect(lines.some((l) => l.style === 'imgbox')).toBe(true);
+    expect(lines.some((l) => l.style === 'img')).toBe(false); // no caption
+  });
+
+  test('an unresolvable or non-http src leaves the alt text standing alone', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><img src="javascript:evil()" alt="Described"></body></html>', 'https://e.example/');
+    const img = blocks.find((b) => b.type === 'img');
+    expect(img.text).toBe('Described');
+    expect(img.src).toBeNull();
+  });
+
+  test('images per page are bounded — a page cannot ask for unlimited decodes', () => {
+    const many = Array.from({ length: 30 }, (_, i) => `<img src="i${i}.png" alt="pic ${i}">`).join('');
+    const { blocks } = extractReadableText(
+      `<html><body><article>${many}</article></body></html>`, 'https://e.example/');
+    expect(blocks.filter((b) => b.type === 'img').length).toBeLessThanOrEqual(8);
   });
 
   test('single quotes, unquoted values and entities in alt all decode', () => {

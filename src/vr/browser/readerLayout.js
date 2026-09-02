@@ -113,6 +113,12 @@ export function measureEmFor(scale = 1) {
  * @param {number} scale
  * @returns {number} em
  */
+/**
+ * Rows a rendered image occupies. Six lines is a picture you can actually see
+ * at panel distance without a single figure pushing the article off screen.
+ */
+export const IMAGE_ROWS = 6;
+
 export function measureEmForStyle(style, scale = 1) {
   const textW = CONTENT_PX_W - 2 * CONTENT_PAD;
   return Math.min(measureEmFor(scale), safeMeasureEm(textW, fontPxFor(style, scale)));
@@ -199,7 +205,10 @@ export function layoutReaderLines(blocks, opts = {}) {
   }
 
   for (const b of Array.isArray(blocks) ? blocks : []) {
-    if (!b || !b.text) {
+    // An image block carries its content in `src`, so the empty-text guard
+    // that protects the prose path would otherwise drop every picture whose
+    // author gave it no alt attribute.
+    if (!b || (!b.text && !(b.type === 'img' && b.src))) {
       continue;
     }
     blank();
@@ -207,9 +216,28 @@ export function layoutReaderLines(blocks, opts = {}) {
     // description of a picture rather than as the author's prose. The prefix
     // is words, not a colour or an icon, so it survives every rendering mode
     // (WCAG 1.1.1 with 1.4.1).
-    const style = b.type === 'h' ? 'h' : b.type === 'img' ? 'img' : 'p';
-    const text = b.type === 'img' ? `${opts.imageLabel || 'Image'}: ${b.text}` : b.text;
-    for (const row of wrapTextToWidth(text, measureEmForStyle(style, scale))) {
+    if (b.type === 'img') {
+      // A picture occupies whole rows, so it scrolls, pages and clips through
+      // exactly the machinery every other line uses — no separate viewport.
+      // The rows are reserved even before the image has loaded, so the text
+      // below does not jump when it arrives.
+      if (b.src) {
+        for (let i = 0; i < IMAGE_ROWS; i++) {
+          lines.push({ text: '', style: 'imgbox', src: b.src, first: i === 0, rows: IMAGE_ROWS });
+        }
+      }
+      // The alt text stays a real line whether or not the pixels arrive: it is
+      // the caption for sighted users and the whole content for everyone else.
+      if (b.text) {
+        for (const row of wrapTextToWidth(
+          `${opts.imageLabel || 'Image'}: ${b.text}`, measureEmForStyle('img', scale))) {
+          push(row, 'img');
+        }
+      }
+      continue;
+    }
+    const style = b.type === 'h' ? 'h' : 'p';
+    for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
       push(row, style);
     }
   }

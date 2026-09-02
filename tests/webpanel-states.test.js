@@ -1306,3 +1306,118 @@ describe('WebPanel.followLink', () => {
     expect(makePanel().followLink(1)).toEqual({ ok: false });
   });
 });
+
+// ── Rendered page images ─────────────────────────────────────────────────────
+// The reader carried alt text but not pixels, on the grounds that a tainted
+// canvas cannot be uploaded as a WebGL texture. True — but only for images
+// fetched WITHOUT crossOrigin. With crossOrigin='anonymous' a CORS-clean image
+// is not tainted, which is the same reach the reader already has for markup.
+describe('WebPanel renders page images', () => {
+  const realFetch = global.fetch;
+  const realImage = global.Image;
+  afterEach(() => {
+    global.fetch = realFetch;
+    global.Image = realImage;
+  });
+
+  /** Image stub whose load is driven by the test. */
+  const stubImage = (created) => {
+    global.Image = class {
+      constructor() {
+        this.width = 0;
+        this.height = 0;
+        created.push(this);
+      }
+      set src(v) {
+        this._src = v;
+      }
+      get src() {
+        return this._src;
+      }
+      succeed(w, h) {
+        this.width = w;
+        this.height = h;
+        this.onload();
+      }
+      fail() {
+        this.onerror();
+      }
+    };
+  };
+
+  async function pageWithImage(created) {
+    stubImage(created);
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve(
+        '<html><head><title>Fig</title></head><body><article><p>'
+        + 'prose sentence. '.repeat(30) + '</p><img src="/fig.png" alt="A figure"></article></body></html>')
+    });
+    const p = makePanel({ imageLabel: 'Image' });
+    p.navigate('https://e.example/doc');
+    await flush();
+    return p;
+  }
+
+  test('a page image is requested CORS-clean, or it could never be drawn', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    expect(p._contentState).toBe('reader');
+    expect(created).toHaveLength(1);
+    expect(created[0].crossOrigin).toBe('anonymous');
+    expect(created[0].src).toBe('https://e.example/fig.png');
+  });
+
+  test('rows are reserved before it loads, so text does not jump when it arrives', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    const boxes = p._readerLines.filter((l) => l.style === 'imgbox');
+    expect(boxes.length).toBeGreaterThan(1);
+    const before = p._readerLines.length;
+    created[0].succeed(400, 300);
+    expect(p._readerLines).toHaveLength(before);
+  });
+
+  test('once decoded it is actually drawn', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    const drawn = [];
+    p.contentCanvas.getContext = () => ({
+      ...ctx2d,
+      save: () => {}, restore: () => {}, beginPath: () => {}, rect: () => {}, clip: () => {},
+      drawImage: (img, x, y, w, h) => drawn.push({ img, x, y, w, h })
+    });
+    created[0].succeed(400, 300);
+    expect(drawn).toHaveLength(1);
+    // Contained, never upscaled: the aspect ratio is the author's.
+    expect(drawn[0].w / drawn[0].h).toBeCloseTo(400 / 300, 1);
+    expect(drawn[0].w).toBeLessThanOrEqual(400);
+  });
+
+  test('a failed image leaves its alt text standing and never retries', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    created[0].fail();
+    expect(p._readerLines.some((l) => (l.text || '').includes('A figure'))).toBe(true);
+    p._loadImages();
+    expect(created).toHaveLength(1); // 'failed' is remembered, not retried
+  });
+
+  test('navigating away drops the decoded pixels of the old page', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    created[0].succeed(400, 300);
+    expect(p._images.size).toBe(1);
+    global.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    p.navigate('https://e.example/other');
+    expect(p._images.size).toBe(0);
+  });
+
+  test('a load landing after a newer navigation is ignored', async () => {
+    const created = [];
+    const p = await pageWithImage(created);
+    p._readerSeq++;                 // a newer navigation owns the viewport
+    created[0].succeed(400, 300);
+    expect(p._images.get('https://e.example/fig.png')).toBe('loading');
+  });
+});

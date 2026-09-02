@@ -50,6 +50,12 @@ export const MAX_MARKUP_CHARS = 2 * 1024 * 1024;
 export const MAX_BLOCKS = 2000;
 
 /**
+ * Images carried per page. Each one that renders decodes into memory on a
+ * mobile SoC, so the count is bounded rather than trusted to the page.
+ */
+const MAX_IMAGES = 8;
+
+/**
  * Body pattern for an element that may not swallow another opening tag of the
  * same kind, bounded in length.
  *
@@ -322,15 +328,34 @@ export function extractReadableText(html, baseUrl) {
   // alt="" is the spec's way of saying "decorative — announce nothing", and an
   // image with no alt at all tells us nothing worth a row, so both are skipped
   // rather than turned into a row that says "image" and means it.
-  const imgRe = new RegExp(`<img\\b${ATTRS}?\\salt\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'gi');
+  const imgRe = new RegExp(`<img\\b([^<>]{0,${MAX_ATTR_CHARS}})>`, 'gi');
+  const attr = (text, name) => {
+    const m = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(text);
+    return m ? decodeEntities(m[2] ?? m[3] ?? m[4] ?? '') : null;
+  };
   let im;
+  let images = 0;
   while ((im = imgRe.exec(body)) !== null) {
-    if (found.length >= MAX_BLOCKS) {
+    if (found.length >= MAX_BLOCKS || images >= MAX_IMAGES) {
       break;
     }
-    const alt = textOf(decodeEntities(im[2] ?? im[3] ?? im[4] ?? ''));
-    if (alt) {
-      found.push({ at: im.index, block: { type: 'img', text: alt } });
+    const attrs = im[1] || '';
+    const rawAlt = attr(attrs, 'alt');
+    if (rawAlt !== null && !rawAlt.trim()) {
+      continue; // alt="" — the spec's "decorative, announce nothing"
+    }
+    const alt = textOf(rawAlt || '');
+    let src = null;
+    const rawSrc = attr(attrs, 'src');
+    if (rawSrc && baseUrl) {
+      try {
+        const u = new URL(rawSrc, baseUrl);
+        src = /^https?:$/i.test(u.protocol) ? u.href : null;
+      } catch { /* unresolvable src: the alt text still stands on its own */ }
+    }
+    if (alt || src) {
+      found.push({ at: im.index, block: { type: 'img', text: alt, src } });
+      images++;
     }
   }
 

@@ -88,9 +88,19 @@ Object.defineProperty(navigator, 'xr', { configurable: true, value: {
 const ARTICLE_PATH = '/__verify-article';
 const ARTICLE_TITLE = 'Verify Reader Article';
 const ARTICLE_MARKER = 'quibrowserreadermarker';
+/**
+ * A real 4x4 PNG, served same-origin so the reader genuinely decodes it.
+ * Generated with correct chunk CRCs — a hand-written one had bad CRCs, Chromium
+ * refused it, and this check caught that before it could be mistaken for a
+ * feature failure.
+ */
+const ARTICLE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAEElEQVR42mO4o6EBRwzEcQDzAxLBy9ItygAAAABJRU5ErkJggg==', 'base64');
+const ARTICLE_IMG_PATH = '/__verify-image.png';
+
 const ARTICLE_HTML = `<!doctype html><html><head><title>${ARTICLE_TITLE}</title></head>
 <body><nav>navigation junk</nav><script>var junk = 1;</script>
 <article><h2>Heading</h2>
+<img src="${ARTICLE_IMG_PATH}" alt="verification figure">
 <p>${(ARTICLE_MARKER + ' sentence of prose. ').repeat(30)}</p>
 <p>${'A second paragraph of prose follows. '.repeat(30)}</p>
 <a href="${ARTICLE_PATH}?followed=1">Follow me</a>
@@ -114,6 +124,11 @@ function serveDistWithStub() {
         return;
       }
       const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      if (path === ARTICLE_IMG_PATH) {
+        res.writeHead(200, { 'content-type': 'image/png' });
+        res.end(ARTICLE_PNG);
+        return;
+      }
       if (path === ARTICLE_PATH) {
         // A same-origin page for the reader to actually read. Same origin, so
         // no CORS header and no network are needed — the fetch is real, the
@@ -268,6 +283,9 @@ async function main() {
         return { state: p._contentState, url: p.currentUrl, title: p.currentTitle,
                  loading: p.loading, history: p.history.length,
                  lines: p._readerLines.length,
+                 imageRows: p._readerLines.filter((l) => l.style === 'imgbox').length,
+                 imageDecoded: [...p._images.values()].some(
+                   (v) => v && v !== 'loading' && v !== 'failed' && v.width > 0),
                  prose: p._readerLines.some((l) => (l.text || '')
                    .includes(${JSON.stringify(ARTICLE_MARKER)})),
                  link: (p._readerLines.find((l) => l.href) || {}).href || '' };
@@ -326,6 +344,12 @@ async function main() {
         loop.state === 'reader'],
       ['the page prose reaches the viewport', loop.prose === true && loop.lines > 3],
       ['the title comes from the markup', loop.title === ARTICLE_TITLE],
+      ['a page image reserves rows in the reader', (loop.imageRows || 0) > 0],
+      // Proves the image reaches the panel and decodes — end to end, real
+      // Chromium, real bytes. It does NOT prove crossOrigin='anonymous' is
+      // set: this image is same-origin, which is never tainted either way.
+      // That attribute is pinned by a unit test, which fails without it.
+      ['and is actually decoded in the browser', loop.imageDecoded === true],
       ['the page\'s links are followable (hypertext, not just text)',
         loop.link === url + ARTICLE_PATH.slice(1) + '?followed=1'],
       ['no uncaught exceptions / console errors', errors.length === 0]

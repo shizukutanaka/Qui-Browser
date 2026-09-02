@@ -39,7 +39,7 @@ import { extractReadableText } from './readableText.js';
 import { decodeMarkup } from './charset.js';
 import { findMatches, matchOrdinal, nextMatch, prevMatch } from './readerSearch.js';
 import {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel, linkRowIndex,
+  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel, linkRowIndex, IMAGE_ROWS,
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
@@ -189,6 +189,17 @@ export class WebPanel {
     this._findQuery = '';
     this._findMatches = [];
     this._findFocus = -1;
+    /**
+     * Decoded page images, by src.
+     *
+     * Loaded with crossOrigin='anonymous', which is what makes this possible
+     * at all: an image fetched cross-origin WITHOUT it taints the canvas, and
+     * a tainted canvas throws on texture upload — the panel would go black
+     * rather than show a picture. With it, only CORS-clean images decode,
+     * which is the same reach the reader already has for markup. Anything
+     * else quietly stays as its alt text, which is the honest fallback.
+     */
+    this._images = new Map();
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -427,6 +438,7 @@ export class WebPanel {
       this._readerLines = lines;
       this._readerScroll = 0;
       this._settleLoad(seq, 'reader', title);
+      this._loadImages();
     } catch {
       // Opaque: a CORS-less origin, an abort, or no network. Indistinguishable
       // from each other in a browser, so claim nothing beyond 'unavailable' —
@@ -484,6 +496,8 @@ export class WebPanel {
       y += lh;
       row++;
     }
+
+    this._drawImages(ctx, w, h, visible);
 
     const progress = readerProgressLabel(this._readerScroll, total, visible);
     // 3/7 alongside the progress: which match has focus, out of how many.
@@ -590,6 +604,84 @@ export class WebPanel {
     }
     this.navigate(line.href);
     return { ok: true, text: line.text, href: line.href };
+  }
+
+  /**
+   * Start decoding the images the current page reserved space for.
+   *
+   * Bounded by MAX_IMAGES at extraction and by this cache per panel. A failure
+   * is recorded as 'failed' rather than retried: a broken image that retries
+   * on every redraw would hammer the network from inside a render loop.
+   */
+  _loadImages() {
+    if (typeof Image !== 'function') {
+      return;
+    }
+    const seq = this._readerSeq;
+    for (const line of this._readerLines) {
+      if (line.style !== 'imgbox' || !line.first || this._images.has(line.src)) {
+        continue;
+      }
+      this._images.set(line.src, 'loading');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (seq !== this._readerSeq) {
+          return; // a newer navigation owns the viewport now
+        }
+        this._images.set(line.src, img);
+        this._drawContent();
+      };
+      img.onerror = () => {
+        this._images.set(line.src, 'failed');
+      };
+      img.src = line.src;
+    }
+  }
+
+  /**
+   * Draw any decoded images whose reserved rows intersect the viewport.
+   *
+   * Done in its own pass rather than inside the text loop because an image
+   * spans several rows and may start above the window — its band has to be
+   * positioned from the group's absolute row, then clipped to the text column,
+   * so a half-scrolled figure is cut cleanly instead of painted over the
+   * chrome or the arrows.
+   */
+  _drawImages(ctx, w, h, visible) {
+    if (!this._images.size || typeof ctx.drawImage !== 'function') {
+      return;
+    }
+    const lh = LINE_H * this._readerScale;
+    const bandH = IMAGE_ROWS * lh;
+    const colW = w - 2 * CONTENT_PAD;
+    for (let i = 0; i < this._readerLines.length; i++) {
+      const line = this._readerLines[i];
+      if (line.style !== 'imgbox' || !line.first) {
+        continue;
+      }
+      const img = this._images.get(line.src);
+      if (!img || img === 'loading' || img === 'failed' || !img.width || !img.height) {
+        continue;
+      }
+      const top = CONTENT_PAD + (i - this._readerScroll) * lh;
+      if (top > CONTENT_PAD + visible * lh || top + bandH < 0) {
+        continue; // entirely outside the viewport
+      }
+      // Contain, never upscale: a small image blown up to fill six rows looks
+      // broken, and the aspect ratio is the author's, not ours.
+      const scale = Math.min(colW / img.width, bandH / img.height, 1);
+      const dw = Math.max(1, Math.round(img.width * scale));
+      const dh = Math.max(1, Math.round(img.height * scale));
+      ctx.save();
+      if (typeof ctx.beginPath === 'function' && typeof ctx.clip === 'function') {
+        ctx.beginPath();
+        ctx.rect(CONTENT_PAD, CONTENT_PAD, colW, visible * lh);
+        ctx.clip();
+      }
+      ctx.drawImage(img, CONTENT_PAD + (colW - dw) / 2, top + (bandH - dh) / 2, dw, dh);
+      ctx.restore();
+    }
   }
 
   _clearFind() {
@@ -951,6 +1043,7 @@ export class WebPanel {
 
   _loadUrl(url) {
     this._clearFind();
+    this._images.clear(); // decoded pixels belong to the page that reserved them
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
@@ -1257,6 +1350,7 @@ export class WebPanel {
     // the handler-nulling the iframe needed, for the same reason.
     this._readerSeq++;
     this._pageCache.clear();
+    this._images.clear();
     this.disableLayerMode();
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
