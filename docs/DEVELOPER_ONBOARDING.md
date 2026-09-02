@@ -579,7 +579,7 @@ Closes #234
 **ESLint + Prettier設定:**
 
 ```javascript
-// .eslintrc.json
+// eslint.config.js
 {
   "env": {
     "browser": true,

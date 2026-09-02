@@ -47,7 +47,11 @@ const DIST = join(REPO_ROOT, 'dist');
  * is a normal thing to do; doing it without knowing what grew is not.
  */
 const BUDGETS = {
-  'vendor-three': 128_000, // three.js itself; only moves on an upgrade
+  // Measured against the tree `npm ci` installs (three 0.181.2). An earlier
+  // figure of 118.7 kB here came from a stale node_modules holding an older
+  // three — the same stale-install mistake that hid an ESLint 9 failure, found
+  // together. Three did not grow 22 kB in a commit; the old number was wrong.
+  'vendor-three': 152_000, // three.js itself; only moves on an upgrade
   app: 60_000,
   index: 5_000,
   tier1: 12_000, // was 31.4 kB while KTX2Loader was reachable — that is the shape to catch
@@ -60,7 +64,7 @@ const BUDGETS = {
 };
 
 /** Total gzipped JS + CSS. Guards growth spread too thinly to trip any one chunk. */
-const TOTAL_BUDGET = 224_000;
+const TOTAL_BUDGET = 248_000;
 
 /** Content hashes Vite appends: `-` plus 8 base64url characters. */
 const HASH = /-[A-Za-z0-9_-]{8}$/;

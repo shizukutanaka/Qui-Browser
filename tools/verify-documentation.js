@@ -171,7 +171,7 @@ function main() {
     'package.json',
     'vite.config.js',
     'jest.config.js',
-    '.eslintrc.json',
+    'eslint.config.js',
     'Dockerfile',
     'docker-compose.yml',
     'netlify.toml',

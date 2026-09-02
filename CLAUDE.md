@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き21）: CI が赤いので追ったら、**「0 lint errors」という自分の主張が偽**だった
+PR #57 の CI が赤。2件は自分の PR が原因、4件は main でも同じく赤（workflow ファイルのみ、K-1 パッチが対象）。修正を押した後、**再チェックしたらまだ赤**だったので掘った。
+- 🔍 **根因（自分の測定環境が腐っていた）**: `package.json` は `eslint: ^9.39.0`、lockfile も **9.39.5**。ところが**私の `node_modules` には 8.57.1** が残っていた（セッション中に一度 node_modules が消えて復旧した際の残骸）。ESLint 9 は `.eslintrc.json` を**受け付けない** —— `eslint.config.js` が無いと**リント前に exit 2** で落ちる。CI では `continue-on-error: true` がその失敗を飲み込んでいたので誰にも見えず、私の `format:check` → `lint` エイリアスが**飲み込みを外した結果として初めて表面化**した。
+- ⚠️ **つまりこのセッションで繰り返してきた「0 lint errors」は、宣言されているバージョンではなく古い 8.x に対する測定だった。** 検査そのものが実態と食い違うという、まさに本セッションで何度も指摘してきた欠陥形を、私自身の作業環境がやっていた。
+- ✨ **fix**: `npm ci` で lockfile どおり（9.39.5）に同期してから、`.eslintrc.json` を **`eslint.config.js`（flat config）へ忠実に翻訳** —— 規則・重大度・オプションを1つも変えない（設定形式の移行に紛れて基準が動くのを避けるため）。機械的な差分は2つだけ: `env` は廃止なので `globals` パッケージ（ESLint 同梱）から browser/node/jest を取り込む、files/ignores を明示。legacy ファイルは**削除**して真実を1つにし、参照していた2ツール + onboarding doc も更新。`--ext` は flat config で廃止されたのでスクリプトから除去（**51/51 と 1/1 のファイルが実際に検査されていることを確認**してから）。
+- 🐛 **同じ「古い install」がもう1件を隠していた**: `npm ci` 後に **`verify:size` が FAIL** —— vendor-three が **118.7 → 140.5 kB**。three が急に太ったのではなく、**lockfile が入れる 0.181.2 に対して私が測っていなかった**だけ。予算を実測値ベース（vendor-three 152 kB / TOTAL 248 kB）に訂正し、**なぜ数字が動いたのかをファイルに明記**（次に読む人が「1コミットで 22 kB 増えた」と誤読しないため）。**捕捉能力は維持**: KTX2Loader を tier1 に引き込む実回帰を再注入すると tier1 が **263%** で FAIL。
+- ✅ 実際に CI が走らせるコマンドで再現・確認: `npm run lint` exit 0 / `npm run format:check` exit 0 / console.log ゲート exit 0。Total 1704 tests (52 suites); **ESLint 9 で 0 errors (122 warnings)**; `npm run gate` PASS。
+
 ### Session 75（続き20）: 「画素は無理」という**自分の主張が誇張**だった —— 画像を実際に描いた
 Stop hook が「画像の*画素*は一度も問い直していない。理由を付けて未完成のまま置くのは完成ではない」と指摘。**正しい**ので、自分の「ブロッカー」を実測で問い直した。
 - 🔍 **自己訂正**: 私は「汚染 canvas は WebGL テクスチャにできないので画素は不可能」と書いた。**真だが不完全** —— 汚染するのは `crossOrigin` **無しで**取得した cross-origin 画像だけ。`crossOrigin='anonymous'` を付ければ CORS-clean な画像は**汚染されない**。つまり画素の到達範囲は「不可能」ではなく、**リーダーが markup について既に持っているのと同じ到達範囲**だった。壁ではなく、同じ壁の同じ側。
