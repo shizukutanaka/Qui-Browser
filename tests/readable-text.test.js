@@ -931,3 +931,61 @@ describe('table rows reach the reader', () => {
     expect(blocks.map((b) => b.text)).toEqual(['real | data']);
   });
 });
+
+// ── The class: content the extractor cannot see is silently discarded ────────
+// Images (void elements) and table cells (not block tags) were each found by
+// hand, one round apart. The shape is always the same — the page looks like it
+// had less to say, with nothing to indicate anything was lost. This enumerates
+// the content-bearing constructs a reader must carry, so the next one is
+// caught here rather than by someone noticing an article looks short.
+describe('no content-bearing construct is silently dropped', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+
+  const CONSTRUCTS = {
+    'paragraph': ['<p>Prose sentence.</p>', 'Prose sentence.'],
+    'h1-h3 heading': ['<h2>Section</h2>', 'Section'],
+    // BLOCK_TAGS was h[1-3]: every deeper heading, i.e. the structure of any
+    // long article, extracted to nothing.
+    'h4 heading': ['<h4>Subsection</h4>', 'Subsection'],
+    'h5 heading': ['<h5>Deeper</h5>', 'Deeper'],
+    'h6 heading': ['<h6>Deepest</h6>', 'Deepest'],
+    'list item': ['<ul><li>Item text</li></ul>', 'Item text'],
+    'blockquote': ['<blockquote>Quoted words</blockquote>', 'Quoted words'],
+    // A technical article's payload.
+    'code block': ['<pre><code>const answer = 42;</code></pre>', 'const answer = 42;'],
+    'definition term': ['<dl><dt>Term</dt><dd>Meaning</dd></dl>', 'Term'],
+    'definition body': ['<dl><dt>Term</dt><dd>Meaning</dd></dl>', 'Meaning'],
+    // Ironic one: alt text arrived a round earlier while the caption sitting
+    // beside the image was still being thrown away.
+    'figure caption': ['<figure><figcaption>What the figure shows</figcaption></figure>', 'What the figure shows'],
+    'table caption': ['<table><caption>What the table shows</caption></table>', 'What the table shows'],
+    'disclosure summary': ['<details><summary>Click to expand</summary></details>', 'Click to expand'],
+    'address': ['<address>Contact line</address>', 'Contact line'],
+    'table row': ['<table><tr><td>cell one</td><td>cell two</td></tr></table>', 'cell one | cell two'],
+    'image alt text': ['<img src="x.png" alt="A described picture">', 'A described picture']
+  };
+
+  for (const [name, [markup, expected]] of Object.entries(CONSTRUCTS)) {
+    test(`${name} survives extraction`, () => {
+      const { blocks } = extractReadableText(
+        `<html><body><article>${markup}</article></body></html>`, 'https://e.example/');
+      const texts = blocks.map((b) => b.text);
+      expect(texts.join(' ⏎ ')).toContain(expected);
+    });
+  }
+
+  test('headings of every level are typed as headings, not prose', () => {
+    const markup = [1, 2, 3, 4, 5, 6].map((n) => `<h${n}>Level ${n}</h${n}>`).join('');
+    const { blocks } = extractReadableText(
+      `<html><body><article>${markup}</article></body></html>`, 'https://e.example/');
+    expect(blocks).toHaveLength(6);
+    expect(blocks.every((b) => b.type === 'h')).toBe(true);
+  });
+
+  test('a code sample is not extracted twice by both pre and code', () => {
+    const { blocks } = extractReadableText(
+      '<html><body><article><pre><code>once()</code></pre></article></body></html>',
+      'https://e.example/');
+    expect(blocks.filter((b) => b.text.includes('once()'))).toHaveLength(1);
+  });
+});

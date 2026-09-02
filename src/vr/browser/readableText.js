@@ -92,8 +92,22 @@ function elementBody(alternation) {
 const MAX_ATTR_CHARS = 2000;
 const ATTRS = `[^<>]{0,${MAX_ATTR_CHARS}}`;
 
-/** Block-level elements the reader turns into paragraphs and headings. */
-const BLOCK_TAGS = 'h[1-3]|p|li|blockquote';
+/**
+ * Block-level elements the reader turns into paragraphs and headings.
+ *
+ * Anything content-bearing that is missing here is not "unsupported" — it is
+ * silently discarded, which is worse, because the page looks like it simply
+ * had less to say. Measured before this list was widened: h4-h6 headings, code
+ * blocks, definition lists, figure captions, table captions, <summary> and
+ * <address> all extracted to nothing. tests/readable-text.test.js pins the set
+ * so adding a reader feature cannot quietly narrow it again.
+ *
+ * `code` is deliberately absent: it lives inside `pre`, and listing both would
+ * extract the same sample twice. Whitespace inside `pre` is collapsed like any
+ * other text — the reader wraps by measure, so a code sample reads as prose
+ * rather than as formatted source. Lossy, but present beats absent.
+ */
+const BLOCK_TAGS = 'h[1-6]|p|li|blockquote|pre|dt|dd|figcaption|caption|summary|address';
 
 /** Elements whose contents are never reader text. */
 const STRIP_ELEMENTS = [
