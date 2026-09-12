@@ -243,6 +243,7 @@ export class TabManager {
       isBookmarked: this.opts.isBookmarked || null,
       onToggleBookmark: this.opts.onToggleBookmark || null,
       onLoadError: this.opts.onLoadError || null,
+      onLoadStopped: this.opts.onLoadStopped || null,
       onHoverCaption: this.opts.onPanelHoverCaption || null,
       onGrabRequested: this.opts.onGrabRequested || null,
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,

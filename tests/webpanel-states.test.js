@@ -1421,3 +1421,221 @@ describe('WebPanel renders page images', () => {
     expect(p._images.get('https://e.example/fig.png')).toBe('loading');
   });
 });
+
+
+// ── stop() — cancelling an in-flight load ────────────────────────────────────
+// The reload button never actually cancelled a hung load: pressing it while
+// `loading` just restarted an identical fetch, with its own fresh 5s timer,
+// so a user staring at a hung site could never get out any faster than
+// waiting for that timeout to fire on its own. Every desktop browser
+// overloads its reload button into a stop control while loading; this adds
+// the same thing, reusing the existing AbortController rather than just
+// discarding the stale result once it eventually arrives.
+describe('WebPanel.stop()', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  /**
+   * A fetch stub whose promise stays pending until its signal is aborted,
+   * mirroring how a real hung request behaves. Returns a getter for the
+   * signal of the most recent call, so a test can assert on it.
+   */
+  function pendingFetch() {
+    let signal;
+    global.fetch = (url, opts) => {
+      signal = opts && opts.signal;
+      return new Promise((_, reject) => {
+        if (signal) {
+          signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        }
+      });
+    };
+    return () => signal;
+  }
+
+  test('cancels the in-flight fetch and settles to \'stopped\', not \'unavailable\'', async () => {
+    const getSignal = pendingFetch();
+    const p = makePanel();
+    p.navigate('https://slow.example/');
+    expect(p.loading).toBe(true);
+    expect(p._contentState).toBe('loading');
+
+    const stopped = p.stop();
+    await flush();
+
+    expect(stopped).toBe(true);
+    expect(p.loading).toBe(false);
+    expect(p._contentState).toBe('stopped');
+    expect(getSignal().aborted).toBe(true);
+  });
+
+  test('does not fire onNavigate — a stopped load is not a visit worth recording', async () => {
+    const getSignal = pendingFetch();
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p.navigate('https://slow.example/');
+    p.stop();
+    await flush();
+    expect(getSignal().aborted).toBe(true);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  test('does not fire onLoadError — nothing actually failed', async () => {
+    pendingFetch();
+    const onLoadError = jest.fn();
+    const p = makePanel({ onLoadError });
+    p.navigate('https://slow.example/');
+    p.stop();
+    await flush();
+    expect(onLoadError).not.toHaveBeenCalled();
+    expect(p._loadError).toBe(false);
+  });
+
+  test('fires its own onLoadStopped callback with the url', async () => {
+    pendingFetch();
+    const onLoadStopped = jest.fn();
+    const p = makePanel({ onLoadStopped });
+    p.navigate('https://slow.example/');
+    p.stop();
+    await flush();
+    expect(onLoadStopped).toHaveBeenCalledWith('https://slow.example/');
+  });
+
+  test('is a no-op when nothing is loading', () => {
+    const p = makePanel();
+    expect(p.loading).toBe(false);
+    expect(p.stop()).toBe(false);
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('a genuine timeout still reaches \'unavailable\', not \'stopped\' — only stop() sets the flag', async () => {
+    // The 5s auto-abort reaches the exact same catch block via the exact same
+    // controller.abort() call stop() uses. Distinguishing "the user pressed
+    // stop" from "it just timed out" has to survive that, or a slow site
+    // would misreport as if the user had cancelled it themselves. Simulated
+    // here by calling abort() on the controller directly, exactly as the 5s
+    // setTimeout in _loadReaderText does — without going through stop().
+    pendingFetch();
+    const p = makePanel();
+    p.navigate('https://slow.example/');
+    p._loadAbort.abort();
+    await flush();
+    expect(p._contentState).toBe('unavailable');
+    expect(p._userStopped).toBe(false);
+  });
+
+  test('the chrome bar\'s reload slot calls stop() while loading, reload() while idle', async () => {
+    const PANEL_W = 1.6;
+    const localForChrome = (px) => {
+      const u = px / 1024; // chromeCanvas.width
+      return { x: (u - 0.5) * PANEL_W, clone() { return this; } };
+    };
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200, text: () => Promise.resolve('<html><body><p>hi</p></body></html>')
+    });
+    const p = makePanel();
+    p.navigate('https://example.com/');
+    await flush();
+    expect(p.loading).toBe(false);
+
+    // Idle: the slot reloads. The stub must actually honour abort(), or the
+    // pending-load assertion below would hang forever regardless of stop().
+    const fetched = [];
+    let signal;
+    global.fetch = (u, opts) => {
+      fetched.push(u);
+      signal = opts && opts.signal;
+      return new Promise((_, reject) => {
+        if (signal) {
+          signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        }
+      });
+    };
+    p.chromeMesh.worldToLocal = () => localForChrome(174);
+    p._onChromeSelect({ clone() { return this; } });
+    expect(fetched).toHaveLength(1);
+    expect(p.loading).toBe(true);
+
+    // Loading: the same slot now stops instead of starting a third fetch.
+    const stopSpy = jest.spyOn(p, 'stop');
+    const reloadSpy = jest.spyOn(p, 'reload');
+    p.chromeMesh.worldToLocal = () => localForChrome(174);
+    p._onChromeSelect({ clone() { return this; } });
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).not.toHaveBeenCalled();
+    await flush();
+    expect(p._contentState).toBe('stopped');
+  });
+
+  test('draws ✕ at the reload slot while loading, ↺ once idle', async () => {
+    // Recorded as (text, x) pairs and read back at x=174 — the reload glyph's
+    // own position — rather than just scanning for '✕' anywhere on the bar,
+    // since the close button at the far right always draws one regardless of
+    // loading state and would make a bare toContain('✕') pass for the wrong
+    // reason if the swap logic itself ever broke.
+    const glyphs = [];
+    pendingFetch();
+    const p = makePanel();
+    const realGetContext = p.chromeCanvas.getContext.bind(p.chromeCanvas);
+    p.chromeCanvas.getContext = (kind) => {
+      const ctx = realGetContext(kind);
+      const realFillText = ctx.fillText.bind(ctx);
+      ctx.fillText = (text, x, ...rest) => { glyphs.push({ text, x }); return realFillText(text, x, ...rest); };
+      return ctx;
+    };
+    const reloadSlotGlyph = () => glyphs.filter((g) => g.x === 174).map((g) => g.text).pop();
+
+    // Idle, before navigating: the reload glyph.
+    p._drawChrome();
+    expect(reloadSlotGlyph()).toBe('↺');
+
+    // Loading: the same slot now draws the stop glyph.
+    glyphs.length = 0;
+    p.navigate('https://slow.example/');
+    expect(reloadSlotGlyph()).toBe('✕');
+
+    p.dispose(); // cancel the still-pending fetch rather than leak its timer
+    await flush();
+  });
+
+  // Every fetch here honours its own signal — a promise that never settles
+  // would leave the 5s setTimeout in _loadReaderText pending as a real timer
+  // past the end of the test, which is exactly the leaked-timer/network class
+  // tests/setup.js's network guard exists to catch.
+  function hangingSignalAwareFetch() {
+    const signals = [];
+    global.fetch = (url, opts) => {
+      const signal = opts && opts.signal;
+      signals.push(signal);
+      return new Promise((_, reject) => {
+        if (signal) {
+          signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        }
+      });
+    };
+    return signals;
+  }
+
+  test('a superseded navigation aborts the load it replaces, not just its result', async () => {
+    const signals = hangingSignalAwareFetch();
+    const p = makePanel();
+    p.navigate('https://one.example/'); // in flight
+    p.navigate('https://two.example/'); // supersedes it
+    expect(signals).toHaveLength(2);
+    expect(signals[0].aborted).toBe(true);   // the FIRST request was cancelled
+    expect(signals[1].aborted).toBe(false);  // the second is the live one
+    await flush(); // let the first request's rejection clear its timer
+    p.dispose();    // and cancel the second, still-live one
+    await flush();
+  });
+
+  test('dispose() aborts an outstanding fetch rather than leaving it to finish on its own', async () => {
+    const signals = hangingSignalAwareFetch();
+    const p = makePanel();
+    p.navigate('https://slow.example/');
+    expect(signals[0].aborted).toBe(false);
+    p.dispose();
+    expect(signals[0].aborted).toBe(true);
+    await flush(); // let the rejection actually run and clear its timer
+  });
+});

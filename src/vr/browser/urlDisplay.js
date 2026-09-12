@@ -154,7 +154,7 @@ export function elideUrlForDisplay(url, maxChars = 61) {
  * about what it can actually display — is pinned by tests rather than buried
  * in a canvas draw call.
  *
- * @param {'empty'|'loading'|'start'|'unavailable'|'error'} state
+ * @param {'empty'|'loading'|'start'|'stopped'|'unavailable'|'error'} state
  * @param {string} [url]
  * @param {boolean} [hasProxy=false] whether a companion reader proxy is configured
  * @returns {{title: string, detail: string}}
@@ -164,6 +164,11 @@ export function contentStateLines(state, url = '', hasProxy = false) {
   switch (state) {
   case 'loading':
     return { title: t('vr.content.loading'), detail: host };
+  case 'stopped':
+    // Its own state, not 'unavailable': that one's copy claims a CORS or
+    // proxy failure, and neither happened — the user pressed Stop. Reusing
+    // 'unavailable' here would tell them the wrong thing about their own site.
+    return { title: t('vr.content.stopped'), detail: host };
   case 'unavailable':
     // Honest AND actionable. It used to say only "in-headset rendering is not
     // supported", which was a dead end and, once the companion proxy existed,

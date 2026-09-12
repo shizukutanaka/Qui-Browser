@@ -111,7 +111,7 @@ export class WebPanel {
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
+    onLoadStopped, onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
     readerScale = 1, readerProxyUrl = '', onLinkFollowed, linksLabel, imageLabel,
     topSitesProvider, startPageLabel } = {}) {
     this.scene = scene;
@@ -119,6 +119,10 @@ export class WebPanel {
     this.unregisterInteractable = unregisterInteractable;
     this.onNavigate = onNavigate || (() => {});
     this.onLoadError = onLoadError || (() => {});
+    // Fires when the user presses Stop mid-load — distinct from onLoadError
+    // (nothing failed) and onNavigate (nothing was actually read, so recording
+    // it as a visit would corrupt history/frecency with a page never seen).
+    this.onLoadStopped = typeof onLoadStopped === 'function' ? onLoadStopped : (() => {});
     this.onBlockedNavigation = typeof onBlockedNavigation === 'function' ? onBlockedNavigation : null;
     this.onUrlInputRequested = onUrlInputRequested || null;
     // Search engine for non-URL input (key into SEARCH_ENGINES). Defaults to
@@ -173,6 +177,14 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    // Handle of the in-flight fetch's AbortController, so stop() (and a
+    // superseding navigation) can actually cancel it instead of just letting
+    // the seq guard discard its result while the request keeps running.
+    this._loadAbort = null;
+    // True only between a stop() call and its abort's catch block running —
+    // tells _loadReaderText's catch apart from a real failure or the 5s
+    // timeout, both of which also reach it via the same abort() mechanism.
+    this._userStopped = false;
     /**
      * Back/forward cache: url -> {lines, title, scroll}.
      *
@@ -391,11 +403,13 @@ export class WebPanel {
    */
   async _loadReaderText(url) {
     const seq = ++this._readerSeq;
+    this._userStopped = false;
     if (typeof fetch !== 'function') {
       this._settleLoad(seq, 'unavailable');
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._loadAbort = controller;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       // Routed through the companion proxy when one is configured; otherwise a
@@ -440,13 +454,22 @@ export class WebPanel {
       this._settleLoad(seq, 'reader', title);
       this._loadImages();
     } catch {
-      // Opaque: a CORS-less origin, an abort, or no network. Indistinguishable
-      // from each other in a browser, so claim nothing beyond 'unavailable' —
-      // whose text already names the likely cause and the fix.
-      this._settleLoad(seq, 'unavailable');
+      if (this._userStopped) {
+        // The 5s timeout reaches this same catch via the same abort() call —
+        // only a real stop() sets this flag, so the two can't be confused.
+        this._settleLoad(seq, 'stopped');
+      } else {
+        // Opaque: a CORS-less origin, the 5s timeout, or no network.
+        // Indistinguishable from each other in a browser, so claim nothing
+        // beyond 'unavailable' — whose text already names the likely cause.
+        this._settleLoad(seq, 'unavailable');
+      }
     } finally {
       if (timer) {
         clearTimeout(timer);
+      }
+      if (this._loadAbort === controller) {
+        this._loadAbort = null;
       }
     }
   }
@@ -865,11 +888,13 @@ export class WebPanel {
     ctx.fillStyle = canForward ? col.btnEnabledText : col.btnDisabledText;
     ctx.fillText('▶', 106, h / 2 + 8);
 
-    // Reload button
+    // Reload button — becomes Stop while a load is in flight (the ↺/✕ swap
+    // every desktop browser makes), reusing the already-measured
+    // reloadLoading/reloadBg pair rather than introducing a new one.
     ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
     ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
-    ctx.fillText('↺', 174, h / 2 + 8);
+    ctx.fillText(this.loading ? '✕' : '↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
     const hasBookmark = !!this.onToggleBookmark;
@@ -963,8 +988,12 @@ export class WebPanel {
       this.back();
     } else if (px < 136) {   // forward
       this.forward();
-    } else if (px < 204) {   // reload
-      this.reload();
+    } else if (px < 204) {   // reload while idle, stop while loading
+      if (this.loading) {
+        this.stop();
+      } else {
+        this.reload();
+      }
     } else if (px > w - 60) { // close
       this.hide();
     } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
@@ -1044,6 +1073,17 @@ export class WebPanel {
   _loadUrl(url) {
     this._clearFind();
     this._images.clear(); // decoded pixels belong to the page that reserved them
+    if (this._loadAbort) {
+      // A navigation supersedes whatever was still in flight. The seq guard
+      // already stops its result from landing, but without this the old
+      // fetch kept running regardless — rapid link-clicking or back/forward
+      // could leave several abandoned requests in flight at once, each still
+      // spending bandwidth on a mobile SoC headset for up to 5s after nobody
+      // could ever see the result. Not a user stop, so _userStopped stays
+      // false; the seq mismatch alone is enough to make the catch a no-op.
+      this._loadAbort.abort();
+      this._loadAbort = null;
+    }
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
@@ -1080,11 +1120,31 @@ export class WebPanel {
     this.currentTitle = title || url;
     this._setContentState(state);
     this._drawChrome();
-    if (failed) {
+    if (state === 'stopped') {
+      this.onLoadStopped(url);
+    } else if (failed) {
       this.onLoadError(url);
     } else {
       this.onNavigate(url, this.currentTitle);
     }
+  }
+
+  /**
+   * Cancel an in-flight navigation. Desktop browsers overload their reload
+   * button into a stop control while a page is loading; this one didn't —
+   * pressing "reload" mid-load called _loadUrl() again, which restarted an
+   * identical fetch with its own fresh 5s clock, so a user staring at a hung
+   * page could never get out faster than just waiting for the timeout.
+   *
+   * @returns {boolean} true if a load was actually in flight to cancel
+   */
+  stop() {
+    if (!this.loading || !this._loadAbort) {
+      return false;
+    }
+    this._userStopped = true;
+    this._loadAbort.abort();
+    return true;
   }
 
   /**
@@ -1349,6 +1409,14 @@ export class WebPanel {
     // disposed texture, no onNavigate against a torn-down VRApp. This replaces
     // the handler-nulling the iframe needed, for the same reason.
     this._readerSeq++;
+    if (this._loadAbort) {
+      // Actually cancel the network request rather than leave it to finish
+      // on its own — the seq bump above already makes its result a no-op,
+      // but the fetch itself would otherwise keep running against a disposed
+      // panel for up to 5s.
+      this._loadAbort.abort();
+      this._loadAbort = null;
+    }
     this._pageCache.clear();
     this._images.clear();
     this.disableLayerMode();

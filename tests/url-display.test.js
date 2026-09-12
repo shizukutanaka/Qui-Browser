@@ -180,6 +180,17 @@ describe('contentStateLines — the viewport states honestly what it can show', 
     expect(() => contentStateLines('unavailable', 'not a url')).not.toThrow();
     expect(contentStateLines('unavailable', '').detail).toMatch(/CORS/i);
   });
+
+  test('a user-cancelled load gets its own honest message, not the CORS/proxy one', () => {
+    // 'unavailable' claims a CORS or proxy fetch failure — neither happened
+    // when the user pressed Stop, so reusing it here would tell them the
+    // wrong thing about a site that may work fine.
+    const stopped = contentStateLines('stopped', 'https://example.com/a');
+    expect(stopped.detail).toBe('example.com');
+    expect(stopped.title).not.toMatch(/CORS/i);
+    expect(stopped.title).not.toMatch(/proxy/i);
+    expect(stopped.title).not.toMatch(/Enter a URL/i);
+  });
 });
 
 describe('securityIndicator — meaning carried by glyph, not colour alone (WCAG 1.4.1)', () => {
@@ -252,7 +263,7 @@ describe('contentStateLines is internationalised', () => {
   const { setLanguage, t } = require('../src/i18n/i18n.js');
   afterEach(() => setLanguage('en'));
 
-  test.each(['loading', 'error', 'unavailable', 'empty'])(
+  test.each(['loading', 'stopped', 'error', 'unavailable', 'empty'])(
     'the %s state differs between en and ja', (state) => {
       setLanguage('en');
       const en = contentStateLines(state, 'https://example.com/a');

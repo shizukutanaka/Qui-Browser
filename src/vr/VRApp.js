@@ -831,6 +831,11 @@ export class VRApp {
       onLinkFollowed: (text) =>
         this.showVRToast(`${t('vr.msg.followingLink')}: ${text}`, { type: 'info' }),
       onLoadError: (url) => this.showVRToast(`${t('vr.error.loadFailed')}: ${url}`, { type: 'error' }),
+      // Neither an error (nothing failed) nor a navigation (nothing was
+      // actually read, so onNavigate would wrongly record it as a visit) —
+      // its own message so a caption/toast user knows Stop actually did
+      // something (WCAG 4.1.3), not that the page silently vanished.
+      onLoadStopped: (url) => this.showVRToast(`${t('vr.msg.loadStopped')}: ${url}`, { type: 'info' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
       // Replace window.prompt() with the VR keyboard.  vrKeyboard is
