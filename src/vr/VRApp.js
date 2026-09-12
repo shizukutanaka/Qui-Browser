@@ -2834,8 +2834,13 @@ export class VRApp {
     const on = enabled === undefined ? !!this.settings.enableVoice : !!enabled;
     if (on) {
       const ok = await this._buildVoiceCommands();
+      // The 'help' command (Session 29) reads back every actual trigger
+      // phrase — but only once someone already knows to say "help". Turning
+      // voice on is the one moment a user has neither spoken anything yet
+      // nor can see a phrase list any other way, so the discoverability hint
+      // belongs here, not buried in a command they don't know exists.
       this.showVRToast(
-        t(ok ? 'vr.msg.voiceOn' : 'vr.error.voiceStartFailed'),
+        ok ? `${t('vr.msg.voiceOn')} ${t('vr.msg.voiceOnHint')}` : t('vr.error.voiceStartFailed'),
         { type: ok ? 'info' : 'warn' }
       );
     } else {

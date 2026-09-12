@@ -167,6 +167,7 @@ const CATALOG = {
     'vr.reader.image': 'Image',
     'vr.settings.voice': 'Voice',
     'vr.msg.voiceOn': 'Voice commands on',
+    'vr.msg.voiceOnHint': 'Say "help" to hear the commands.',
     'vr.msg.voiceOff': 'Voice commands off',
     'vr.error.voiceStartFailed': 'Voice commands could not start (microphone or browser support)',
     // Voice command spoken feedback (VoiceCommands.js) — resolved via t() at
@@ -354,6 +355,7 @@ const CATALOG = {
     'vr.reader.image': '画像',
     'vr.settings.voice': '音声コマンド',
     'vr.msg.voiceOn': '音声コマンドをオンにしました',
+    'vr.msg.voiceOnHint': '「ヘルプ」と言うとコマンド一覧を聞けます。',
     'vr.msg.voiceOff': '音声コマンドをオフにしました',
     'vr.error.voiceStartFailed': '音声コマンドを開始できません（マイクまたはブラウザ非対応）',
     'vr.voice.wakeAck': 'はい、聞いています',

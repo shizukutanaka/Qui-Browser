@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き27）: 「help と言えば分かる」の一歩手前 — 音声を有効にした瞬間には誰も help を知らない
+続き26まで「help コマンドは実際のフレーズを読み上げる」（Session 29）を維持しつつ音声全体の多言語化を進めてきたが、**help 自体の発見可能性**が未解決のまま残っていた——ユーザーが「help」と言えばコマンド一覧を聞けるが、**そもそも「help」と言えばいいと誰が教えるのか**という鶏卵問題。
+- 🔍 **診断**: `_onVoiceToggleChanged(true)` が成功時に出すトースト/キャプションは `vr.msg.voiceOn`（「音声コマンドをオンにしました」）だけ。音声を有効にした瞬間はユーザーがまだ何も発話しておらず、他に一覧を見る手段も無い——**この一瞬を逃すと、次に使えるヒントは存在しない**。`docs/USAGE_GUIDE.md` も「設定でVoiceを有効に」としか案内していない。
+- ✨ **fix**: 新規キー `vr.msg.voiceOnHint`（en: `Say "help" to hear the commands.` / ja: `「ヘルプ」と言うとコマンド一覧を聞けます。`）を追加し、有効化成功時のトースト本文に**連結**（`${t('vr.msg.voiceOn')} ${t('vr.msg.voiceOnHint')}`）。失敗時（`voiceStartFailed`）には付けない——始まっていない機能に「ヘルプと言えば」は誤情報になる。
+- ✅ **test 2件追加**（`tests/vr-app-wiring.test.js`）: 成功時にヒントが caption 経由で届くこと／失敗時には**付かない**こと。**pre-fix 検証**: 直前のコミットに戻すと1件 FAIL（`t('vr.msg.voiceOnHint')` が未定義キーとしてそのまま返り、キャプション本文に含まれない）、復元で全通過。
+- ✅ Total 1752 tests (53 suites); 0 lint errors (122 warnings, unchanged); build green。
+
 ### Session 75（続き26）: 続き25の「正直な残課題」をその場で解消 — 認識パターンも英語化
 続き25の締めで「出力（読み上げ）は直したが、入力（認識パターン）は依然ほぼ日本語決め打ち」と明記した。英語 UI ユーザーは正しい英語の確認文言を聞けても、その大半のコマンドを英語で**発話できない**ままでは、直した意味が半分しかない。同じセッション内で棚上げせず解消した。
 - 🔍 **範囲確定**: 全 `registerCommand` を棚卸しし、英語パターンが既にあるもの（`open-link`/`find-in-page`/`find-next`/`stop-load`/`clear-history`/`go-to`）と、無いもの（`navigate`/`back`/`refresh`/`search`/`vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle`/`help`/`stop`/`top-sites`/`scroll-down`/`scroll-up`/`bookmarks`/`keyboard`）を分離。後者全部に英語パターンを追加。

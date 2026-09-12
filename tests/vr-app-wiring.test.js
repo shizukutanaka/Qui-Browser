@@ -1210,6 +1210,30 @@ describe('VRApp._onVoiceToggleChanged', () => {
     expect(app._teardownVoiceCommands).not.toHaveBeenCalled();
   });
 
+  test('turning it ON successfully hints how to discover the command list', async () => {
+    // The 'help' voice command (Session 29) reads back every real trigger
+    // phrase, closing the WCAG 4.1.3 discoverability gap for someone who
+    // already knows to say "help" — but nothing ever told a first-time user
+    // that "help" is the way in. Enabling voice is the one moment they have
+    // neither spoken anything yet nor can see a command list any other way.
+    const { t } = require('../src/i18n/i18n.js');
+    const app = makeVoiceApp();
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    const said = app.captionSystem.show.mock.calls.map((c) => String(c[0])).join(' ');
+    expect(said).toContain(t('vr.msg.voiceOnHint'));
+  });
+
+  test('a failed voice start does NOT append the discoverability hint', async () => {
+    // There is nothing to discover if voice never actually started.
+    const { t } = require('../src/i18n/i18n.js');
+    const app = makeVoiceApp({ _buildVoiceCommands: jest.fn(async () => false) });
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    await VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    const said = app.captionSystem.show.mock.calls.map((c) => String(c[0])).join(' ');
+    expect(said).not.toContain(t('vr.msg.voiceOnHint'));
+  });
+
   test('turning it OFF tears them down immediately', async () => {
     const app = makeVoiceApp({ settings: { enableVoice: true } });
     await VRApp.prototype._onVoiceToggleChanged.call(app, false);
