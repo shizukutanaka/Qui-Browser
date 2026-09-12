@@ -507,3 +507,76 @@ describe('VoiceCommands — open-link (follow a numbered link by voice)', () => 
     expect(() => vc.processCommand('リンク1を開く', 0.9)).not.toThrow();
   });
 });
+
+// ── Stopping a hung load by voice ────────────────────────────────────────────
+// The chrome bar's reload slot already swaps to a stop control while loading
+// (WebPanel), reachable by gaze dwell or a controller ray. Voice had no path
+// to it at all — the same "a control exists, but nothing lets a voice-primary
+// user reach it" shape found repeatedly in this codebase (enableVoice,
+// readerScale, link-following by number).
+describe('VoiceCommands — stopping a hung load', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  const tabWith = (props) => ({ getActiveTab: () => ({ stop: jest.fn(), reload: jest.fn(), ...props }) });
+
+  test('「読み込みを停止」 calls stop() on the active tab', () => {
+    const tab = { stop: jest.fn(), reload: jest.fn() };
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('読み込みを停止', 0.9);
+    expect(tab.stop).toHaveBeenCalledTimes(1);
+    expect(tab.reload).not.toHaveBeenCalled();
+    expect(vc.lastCommand.key).toBe('stop-load');
+  });
+
+  test('「読み込みを中止」 and "stop loading" (English) also work', () => {
+    const tab = { stop: jest.fn(), reload: jest.fn() };
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('読み込みを中止', 0.9);
+    vc.processCommand('stop loading', 0.9);
+    expect(tab.stop).toHaveBeenCalledTimes(2);
+  });
+
+  test('does NOT collide with the top-level "stop" (voice recognition itself)', () => {
+    // Bare '停止' is an exact-string match for the mic-stop command
+    // registered at construction time; only a longer phrase reaches
+    // stop-load. Confirms the two keys stay distinct in the same Map.
+    const tab = { stop: jest.fn(), reload: jest.fn() };
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('停止', 0.9);
+    expect(vc.lastCommand.key).toBe('stop');
+    expect(tab.stop).not.toHaveBeenCalled();
+  });
+
+  test('no active tab or no tabManager does not throw', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('読み込みを停止', 0.9)).not.toThrow();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => null } });
+    expect(() => vc.processCommand('読み込みを停止', 0.9)).not.toThrow();
+  });
+
+  test('「更新」 while loading stops instead of restarting an identical fetch', () => {
+    // The exact bug the chrome-bar reload button had: pressing it mid-load
+    // just called reload() again, with its own fresh 5s timer, so a user
+    // could never escape a hung page any faster than waiting it out. Voice
+    // had the identical bug — this is that same fix, on the same tab object.
+    const tab = tabWith({ loading: true });
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab.getActiveTab() } });
+    const activeTab = tab.getActiveTab();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => activeTab } });
+    vc.processCommand('更新', 0.9);
+    expect(activeTab.stop).toHaveBeenCalledTimes(1);
+    expect(activeTab.reload).not.toHaveBeenCalled();
+  });
+
+  test('「更新」 while idle still reloads as before', () => {
+    const activeTab = { loading: false, stop: jest.fn(), reload: jest.fn() };
+    vc.connectBrowser({ tabManager: { getActiveTab: () => activeTab } });
+    vc.processCommand('更新', 0.9);
+    expect(activeTab.reload).toHaveBeenCalledTimes(1);
+    expect(activeTab.stop).not.toHaveBeenCalled();
+  });
+});

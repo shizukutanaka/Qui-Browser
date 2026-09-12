@@ -542,11 +542,42 @@ export class VoiceCommands {
     this.registerCommand('refresh', {
       patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
       action: () => {
-        tabManager?.getActiveTab?.()?.reload?.();
+        // Mirrors the chrome-bar reload slot's own overload: while a page is
+        // still loading, "reload" has nothing finished to reload, so treat it
+        // as the stop it would otherwise force the user to wait out. This is
+        // the same fix as the reload button itself — voice had the identical
+        // bug (restart an identical fetch on its own fresh 5s timer, forever
+        // one press behind actually escaping a hung page).
+        const tab = tabManager?.getActiveTab?.();
+        if (tab?.loading) {
+          tab.stop?.();
+        } else {
+          tab?.reload?.();
+        }
         return { action: 'refresh' };
       },
       confirmationText: '更新します',
       description: 'Refresh page'
+    });
+
+    // Stop a page still loading. Separate command, separate key, from the
+    // top-level 'stop' (voice recognition itself, :422) — that one is a bare
+    // exact-string match on '停止'/'ストップ'/'やめて'/'聞くな' with no
+    // pattern here long enough to equal it, so the two cannot collide, but
+    // reusing the key 'stop' in this Map would silently replace it. A gaze or
+    // controller user already reaches this via the chrome bar's reload slot,
+    // which swaps to a stop control while loading; voice had no path there at
+    // all until now — the same "control exists, no way to reach it hands-free"
+    // shape this repo keeps finding.
+    this.registerCommand('stop-load', {
+      patterns: [/読み込みを?(停止|中止|やめ)/, /stop\s+loading/i],
+      action: () => {
+        tabManager?.getActiveTab?.()?.stop?.();
+        return { action: 'stop-load' };
+      },
+      confirmationText: '読み込みを停止します',
+      description: 'Stop the page currently loading',
+      example: '読み込みを停止'
     });
 
     // Clear browsing history (privacy) — hands-free equivalent of the settings
