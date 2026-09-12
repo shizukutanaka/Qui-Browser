@@ -5,6 +5,26 @@
  * John Carmack principle: Voice is the ultimate VR input
  */
 
+import { t, getLanguage } from '../../i18n/i18n.js';
+
+/**
+ * Map the app's 2-letter UI language code (from i18n.getLanguage(), 'en'/'ja')
+ * to the BCP-47 tag the Web Speech APIs (SpeechRecognition/SpeechSynthesis)
+ * require. Exported and pure so the mapping itself is directly testable
+ * without constructing a VoiceCommands instance.
+ *
+ * Until this existed, `this.language` was hardcoded to 'ja-JP' at
+ * construction with no i18n awareness anywhere in this file — an English-UI
+ * user with enableVoice on got Japanese recognition/TTS regardless of their
+ * chosen language, and all 25 confirmationText prompts were bare Japanese
+ * literals (WCAG 3.1.2 Language of Parts). Voice is opt-in specifically for
+ * users who find gaze/controller input difficult, so this silently defeated
+ * the feature for exactly that population on the English UI.
+ */
+export function bcp47ForLanguage(lang) {
+  return lang === 'en' ? 'en-US' : 'ja-JP';
+}
+
 export class VoiceCommands {
   constructor() {
     this.recognition = null;
@@ -16,8 +36,14 @@ export class VoiceCommands {
     this.commands = new Map();
     this.aliases = new Map();
 
-    // Language settings
-    this.language = 'ja-JP'; // Japanese default
+    // Language settings — follows the UI language (i18n.getLanguage()), not
+    // hardcoded. Sampled once at construction: there is currently no live
+    // in-VR language toggle to react to (the only setLanguage(lang, root)
+    // call site is the 2D landing page's button in src/main.js, before any
+    // VR session — and VRApp constructs a fresh VoiceCommands on each
+    // _buildVoiceCommands(), so a page reload after switching language on
+    // the landing page picks up the new value here too).
+    this.language = bcp47ForLanguage(getLanguage());
     this.fallbackLanguage = 'en-US';
 
     // Recognition settings
@@ -183,7 +209,7 @@ export class VoiceCommands {
     if (this.settings.requireWakeWord && !this.isAwake) {
       if (this.containsWakeWord(transcript)) {
         this.isAwake = true;
-        this.speak('はい、聞いています'); // "Yes, I'm listening"
+        this.speak(t('vr.voice.wakeAck'));
         console.debug('VoiceCommands: Wake word detected');
       }
       return;
@@ -266,15 +292,21 @@ export class VoiceCommands {
           this.callbacks.onCommand(matchedKey, result);
         }
 
-        // Speak confirmation if enabled
-        if (matchedCommand.confirmationText) {
+        // Speak confirmation if enabled — a catalog key (built-in commands)
+        // takes priority and is resolved fresh via t() every time, so it
+        // always speaks in the current language; a literal confirmationText
+        // (custom commands registered via the public registerCommand() API)
+        // is spoken exactly as given.
+        if (matchedCommand.confirmationKey) {
+          this.speak(t(matchedCommand.confirmationKey));
+        } else if (matchedCommand.confirmationText) {
           this.speak(matchedCommand.confirmationText);
         }
 
       } catch (error) {
         console.error('VoiceCommands: Command execution failed', error);
         this.stats.commandsFailed++;
-        this.speak('コマンドの実行に失敗しました'); // "Command execution failed"
+        this.speak(t('vr.voice.commandFailed'));
         if (this.callbacks.onCommandFailed) {
           this.callbacks.onCommandFailed({ reason: 'execution_error', transcript });
         }
@@ -283,7 +315,7 @@ export class VoiceCommands {
     } else {
       console.debug(`VoiceCommands: No matching command for "${transcript}"`);
       this.stats.commandsFailed++;
-      this.speak('コマンドが認識できませんでした'); // "Command not recognized"
+      this.speak(t('vr.voice.commandNotRecognized'));
       if (this.callbacks.onCommandFailed) {
         this.callbacks.onCommandFailed({ reason: 'no_match', transcript });
       }
@@ -301,7 +333,7 @@ export class VoiceCommands {
         window.history.forward();
         return { action: 'navigate', direction: 'forward' };
       },
-      confirmationText: '進みます',
+      confirmationKey: 'vr.voice.confirm.navigate',
       description: 'Navigate forward'
     });
 
@@ -311,7 +343,7 @@ export class VoiceCommands {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
       },
-      confirmationText: '戻ります',
+      confirmationKey: 'vr.voice.confirm.back',
       description: 'Navigate back'
     });
 
@@ -321,7 +353,7 @@ export class VoiceCommands {
         window.location.reload();
         return { action: 'refresh' };
       },
-      confirmationText: '更新します',
+      confirmationKey: 'vr.voice.confirm.refresh',
       description: 'Refresh page'
     });
 
@@ -336,7 +368,7 @@ export class VoiceCommands {
           return { action: 'search', query };
         }
       },
-      confirmationText: '検索します',
+      confirmationKey: 'vr.voice.confirm.search',
       description: 'Search web',
       example: '検索：てんき'
     });
@@ -348,7 +380,7 @@ export class VoiceCommands {
         // Would trigger VR mode
         return { action: 'vr', enabled: true };
       },
-      confirmationText: 'VRモードを開始します',
+      confirmationKey: 'vr.voice.confirm.vrEnter',
       description: 'Enter VR mode'
     });
 
@@ -358,7 +390,7 @@ export class VoiceCommands {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
       },
-      confirmationText: 'VRモードを終了します',
+      confirmationKey: 'vr.voice.confirm.vrExit',
       description: 'Exit VR mode'
     });
 
@@ -375,7 +407,7 @@ export class VoiceCommands {
         // Would adjust volume
         return { action: 'volume', change: 0.1 };
       },
-      confirmationText: '音量を上げます',
+      confirmationKey: 'vr.voice.confirm.volumeUp',
       description: 'Increase volume'
     });
 
@@ -385,7 +417,7 @@ export class VoiceCommands {
         // Would adjust volume
         return { action: 'volume', change: -0.1 };
       },
-      confirmationText: '音量を下げます',
+      confirmationKey: 'vr.voice.confirm.volumeDown',
       description: 'Decrease volume'
     });
 
@@ -396,7 +428,7 @@ export class VoiceCommands {
         // Would toggle IME
         return { action: 'ime', enabled: true };
       },
-      confirmationText: '日本語入力モードです',
+      confirmationKey: 'vr.voice.confirm.imeToggle',
       description: 'Toggle Japanese IME'
     });
 
@@ -410,9 +442,9 @@ export class VoiceCommands {
         const phrases = Array.from(this.commands.values())
           .map((cmd) => this._spokenExample(cmd))
           .filter(Boolean);
-        const commandList = phrases.join('、');
+        const commandList = phrases.join(t('vr.voice.helpSeparator'));
 
-        this.speak(`使用可能なコマンドは、${phrases.length}個です。${commandList}`);
+        this.speak(`${t('vr.voice.helpIntro')}${phrases.length}${t('vr.voice.helpIntroSuffix')}${commandList}`);
         return { action: 'help', commands: commandList };
       },
       description: 'Show help'
@@ -425,7 +457,7 @@ export class VoiceCommands {
         this.stop();
         return { action: 'stop' };
       },
-      confirmationText: '音声認識を停止します',
+      confirmationKey: 'vr.voice.confirm.stopListening',
       description: 'Stop listening'
     });
   }
@@ -437,7 +469,16 @@ export class VoiceCommands {
     this.commands.set(name, {
       patterns: config.patterns || [],
       action: config.action,
+      // confirmationText: a literal string spoken as-is — the extensibility
+      // point documented below for external/custom commands, which have no
+      // catalog entry to look up.
+      // confirmationKey: an i18n.js CATALOG key, resolved via t() at the
+      // moment the command fires (not at registration time), so it always
+      // reflects the current language even if it changes after
+      // registerDefaultCommands()/connectBrowser() ran. Every built-in
+      // command uses this instead of confirmationText.
       confirmationText: config.confirmationText || null,
+      confirmationKey: config.confirmationKey || null,
       description: config.description || '',
       // Spoken example for the 'help' command, used only when every pattern
       // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to'
@@ -514,7 +555,7 @@ export class VoiceCommands {
         }
         return { action: 'top-sites' };
       },
-      confirmationText: 'よく使うサイトを開きます',
+      confirmationKey: 'vr.voice.confirm.topSites',
       description: 'Open most-used site'
     });
 
@@ -525,7 +566,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.goForward?.();
         return { action: 'navigate', direction: 'forward' };
       },
-      confirmationText: '進みます',
+      confirmationKey: 'vr.voice.confirm.navigate',
       description: 'Navigate forward'
     });
 
@@ -535,7 +576,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.goBack?.();
         return { action: 'navigate', direction: 'back' };
       },
-      confirmationText: '戻ります',
+      confirmationKey: 'vr.voice.confirm.back',
       description: 'Navigate back'
     });
 
@@ -556,7 +597,7 @@ export class VoiceCommands {
         }
         return { action: 'refresh' };
       },
-      confirmationText: '更新します',
+      confirmationKey: 'vr.voice.confirm.refresh',
       description: 'Refresh page'
     });
 
@@ -575,7 +616,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.stop?.();
         return { action: 'stop-load' };
       },
-      confirmationText: '読み込みを停止します',
+      confirmationKey: 'vr.voice.confirm.stopLoad',
       description: 'Stop the page currently loading',
       example: '読み込みを停止'
     });
@@ -597,7 +638,7 @@ export class VoiceCommands {
         }
         return { action: 'clear-history' };
       },
-      confirmationText: '履歴を消去します',
+      confirmationKey: 'vr.voice.confirm.clearHistory',
       description: 'Clear browsing history',
       example: '履歴を消去'
     });
@@ -638,7 +679,7 @@ export class VoiceCommands {
         onFollowLink(n);
         return { action: 'open-link', index: n };
       },
-      confirmationText: 'リンクを開きます',
+      confirmationKey: 'vr.voice.confirm.openLink',
       description: 'Follow a numbered link in the reader',
       example: 'リンク3を開く'
     });
@@ -664,7 +705,7 @@ export class VoiceCommands {
           return { action: 'find-in-page', query: m[1].trim() };
         }
       },
-      confirmationText: 'ページ内を検索します',
+      confirmationKey: 'vr.voice.confirm.findInPage',
       description: 'Find text in the current page',
       example: 'ページ内検索：てんき'
     });
@@ -679,7 +720,7 @@ export class VoiceCommands {
         }
         return { action: 'find-next' };
       },
-      confirmationText: '次の検索結果へ',
+      confirmationKey: 'vr.voice.confirm.findNext',
       description: 'Jump to the next match',
       example: '次の検索結果'
     });
@@ -699,7 +740,7 @@ export class VoiceCommands {
           return { action: 'search', query };
         }
       },
-      confirmationText: '検索します',
+      confirmationKey: 'vr.voice.confirm.search',
       description: 'Search web',
       example: '検索：てんき'
     });
@@ -740,7 +781,7 @@ export class VoiceCommands {
         bookmarkPanel?.toggle?.();
         return { action: 'bookmarks' };
       },
-      confirmationText: 'ブックマークパネルを開きます',
+      confirmationKey: 'vr.voice.confirm.bookmarks',
       description: 'Toggle bookmarks panel'
     });
 
@@ -753,7 +794,7 @@ export class VoiceCommands {
         }
         return { action: 'keyboard' };
       },
-      confirmationText: 'キーボードを切り替えます',
+      confirmationKey: 'vr.voice.confirm.keyboard',
       description: 'Toggle VR keyboard'
     });
 
@@ -789,7 +830,7 @@ export class VoiceCommands {
       // Spoken via TTS (blind users) and mirrored to captions via onSpeak
       // (deaf/HoH) the moment the command matches — before navigation, and
       // independent of whether a frecency hit is found (WCAG 4.1.3).
-      confirmationText: '開きます',
+      confirmationKey: 'vr.voice.confirm.goTo',
       description: 'Open site by name from history/bookmarks, fall back to search',
       example: 'githubを開く'
     });

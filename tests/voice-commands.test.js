@@ -6,7 +6,21 @@
  * the command-matching and speak() paths are exercised directly.
  */
 
-const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
+const { VoiceCommands, bcp47ForLanguage } = require('../src/vr/input/VoiceCommands.js');
+const { setLanguage, getLanguage, t: translate } = require('../src/i18n/i18n.js');
+
+// This whole file's fixtures (patterns, confirmationText/expected spoken
+// output) were written assuming a Japanese-speaking VoiceCommands — true by
+// hardcoded default until this session. Now that confirmations/help/error
+// text resolve dynamically via t(), pin the UI language for this file
+// explicitly instead of relying on Jest's env (no navigator.language / empty
+// localStorage in testEnvironment:'node' resolves to 'en' by accident, which
+// would silently break every hardcoded-Japanese assertion below). The new
+// language-following behavior itself is covered by its own describe block,
+// which switches languages explicitly.
+const ORIGINAL_LANG = getLanguage();
+beforeAll(() => setLanguage('ja'));
+afterAll(() => setLanguage(ORIGINAL_LANG));
 
 describe('VoiceCommands — spoken feedback is mirrored for captions', () => {
   let vc, spoken;
@@ -578,5 +592,106 @@ describe('VoiceCommands — stopping a hung load', () => {
     vc.processCommand('更新', 0.9);
     expect(activeTab.reload).toHaveBeenCalledTimes(1);
     expect(activeTab.stop).not.toHaveBeenCalled();
+  });
+});
+
+describe('VoiceCommands — voice output follows the UI language, not a hardcoded default', () => {
+  // Until now this whole file (VoiceCommands.js) had zero i18n awareness:
+  // `this.language` was hardcoded 'ja-JP' at construction, `setLanguage()`
+  // had no callers, and all 25 confirmationText fields were bare Japanese
+  // literals. An English-UI user with enableVoice on — someone who finds
+  // gaze/controller input difficult, exactly who the feature exists for —
+  // got Japanese recognition/TTS regardless of their chosen language.
+  afterEach(() => setLanguage(ORIGINAL_LANG));
+
+  test('bcp47ForLanguage maps the app\'s 2-letter codes to BCP-47 tags', () => {
+    expect(bcp47ForLanguage('en')).toBe('en-US');
+    expect(bcp47ForLanguage('ja')).toBe('ja-JP');
+  });
+
+  test('bcp47ForLanguage defaults an unrecognized/undefined code to ja-JP', () => {
+    // Matches this app's own detectLanguage() fallback bias and the
+    // pre-existing hardcoded default, rather than silently picking English.
+    expect(bcp47ForLanguage('fr')).toBe('ja-JP');
+    expect(bcp47ForLanguage(undefined)).toBe('ja-JP');
+  });
+
+  test('a new instance samples the current UI language at construction', () => {
+    setLanguage('en');
+    expect(new VoiceCommands().language).toBe('en-US');
+
+    setLanguage('ja');
+    expect(new VoiceCommands().language).toBe('ja-JP');
+  });
+
+  test('a built-in command\'s spoken confirmation changes with the UI language', () => {
+    // 'volume-up' rather than 'navigate'/'back': registerDefaultCommands'
+    // versions of those call window.history.forward()/back(), which throws
+    // in this jsdom-less test env and would speak the failure fallback
+    // instead of the confirmation being tested here.
+    setLanguage('en');
+    const enVc = new VoiceCommands();
+    const enSpoken = [];
+    enVc.callbacks.onSpeak = (text) => enSpoken.push(text);
+    enVc.processCommand('音量上げる', 0.9);
+    expect(enSpoken).toContain(translate('vr.voice.confirm.volumeUp'));
+    expect(enSpoken).toContain('Increasing volume');
+
+    setLanguage('ja');
+    const jaVc = new VoiceCommands();
+    const jaSpoken = [];
+    jaVc.callbacks.onSpeak = (text) => jaSpoken.push(text);
+    jaVc.processCommand('音量上げる', 0.9);
+    expect(jaSpoken).toContain(translate('vr.voice.confirm.volumeUp'));
+    expect(jaSpoken).toContain('音量を上げます');
+  });
+
+  test('the "not recognized" and "execution failed" fallbacks also follow the language', () => {
+    setLanguage('en');
+    const vc = new VoiceCommands();
+    const spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+
+    vc.processCommand('zzzz nonsense zzzz', 0.9);
+    expect(spoken).toContain('Command not recognized');
+
+    vc.registerCommand('boom', {
+      patterns: ['boom'],
+      action: () => { throw new Error('kaboom'); }
+    });
+    vc.processCommand('boom', 0.9);
+    expect(spoken).toContain('Command execution failed');
+  });
+
+  test('a custom command\'s literal confirmationText is spoken as-is, NOT translated', () => {
+    // The public registerCommand() extensibility point (documented at the
+    // bottom of VoiceCommands.js) lets external callers pass an arbitrary
+    // confirmationText literal with no catalog entry. That contract must
+    // survive this change: only confirmationKey resolves through t().
+    setLanguage('en');
+    const vc = new VoiceCommands();
+    const spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+    vc.registerCommand('custom-thing', {
+      patterns: ['do the custom thing'],
+      action: () => ({ ok: true }),
+      confirmationText: 'カスタムコマンドを実行します'
+    });
+    vc.processCommand('do the custom thing', 0.9);
+    expect(spoken).toContain('カスタムコマンドを実行します');
+  });
+
+  test('recognition.lang follows the sampled language when initialize() runs', async () => {
+    setLanguage('en');
+    const vc = new VoiceCommands();
+    const FakeRecognition = function () {};
+    FakeRecognition.prototype.start = jest.fn();
+    global.window = global.window || {};
+    window.SpeechRecognition = FakeRecognition;
+    window.speechSynthesis = {};
+    await vc.initialize();
+    expect(vc.recognition.lang).toBe('en-US');
+    delete window.SpeechRecognition;
+    delete window.speechSynthesis;
   });
 });

@@ -252,6 +252,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き25）: 「Stop を実装した」の続きで気づいた — 音声はずっと日本語決め打ちだった
+続き22〜24 で Stop（読み込み中止）を追加し、その `confirmationText: '読み込みを停止します'` を書きながら次の問いが浮かんだ:「この文言、UI が英語のユーザーには英語で読み上げられるのか？」実測したら **No** だった。
+- 🔍 **診断**: `VoiceCommands.js` は `import` 文が1つも無く、i18n を一度も参照していなかった。`this.language = 'ja-JP'`（コンストラクタで固定）、`setLanguage(lang)` は存在するが**呼び出し元がゼロ**（`grep` で確認）。`speak()` の `utterance.lang` はこの固定値を読むので、**英語 UI を選んでいても認識・読み上げは常に日本語**。しかも `confirmationText` は25箇所すべてがベタ書きの日本語リテラルで、`help`/`聞いています`/`コマンドが認識できませんでした`/`コマンドの実行に失敗しました` も同様。`enableVoice`（Session 75続き3で発見・修正した「ジェスチャ/コントローラが難しいユーザーの主入力」）が、英語ユーザーに対してだけ言語非対応のまま放置されていた——WCAG 3.1.2 Language of Parts。
+- ✨ **fix**: 純関数 `bcp47ForLanguage(lang)`（`'en'→'en-US'`、それ以外は`'ja-JP'`——`detectLanguage()` 自身の日本語寄りフォールバックと既存の固定既定値に合わせた）を追加し、コンストラクタで `this.language = bcp47ForLanguage(getLanguage())`。VRApp 側の配線は不要——`_buildVoiceCommands()` は毎回 `new VoiceCommands()` するだけなので、i18n の現在値をコンストラクタが直接読みに行けば足りる（VR内にライブ言語切替が無いことも確認済み——`i18n.setLanguage(lang, root)` の呼び出し元は `src/main.js` の2Dランディングページのボタン1箇所のみ）。
+- ✨ **fix**: `registerCommand()` に `confirmationKey`（i18n.js の CATALOG キー、発火の瞬間に `t()` で解決）を追加し、既存の `confirmationText`（外部 registerCommand() 拡張点向けのリテラル、非翻訳のまま）と使い分け。組み込み25コマンド全部を `confirmationKey` に置換 + `vr.voice.confirm.*` を en/ja 両方の CATALOG に追加。`はい、聞いています`/`コマンドが認識できませんでした`/`コマンドの実行に失敗しました`/help の前置き・区切り文字も同様に `t()` 経由に。
+- 🔒 **後方互換を明示**: 外部が `registerCommand(name, {confirmationText: '...'})` で渡すカスタム文言は**翻訳されない**——カタログに存在しない任意文字列を通す拡張点なので、`confirmationKey` が無い場合だけリテラルを読み上げる契約を維持。テストで固定。
+- 🐛 **書きながら見つけた自分のテストの罠**: 新規テストで `enVc.processCommand('戻る', 0.9)` を使ったら「実行に失敗しました」が返った——`registerDefaultCommands` 版の `back` は `window.history.back()` を呼び、`window` が無い Jest（`testEnvironment:'node'`）では例外→ catch 経由で失敗メッセージが発火していただけ（言語バグではない）。`window` に触れない `volume-up` に差し替えて解消。
+- 🔬 **既存テストの前提を明示化**: `tests/voice-commands.test.js` 全体は元々「音声は日本語で喋る」という**暗黙の前提**（旧コードのハードコードそのもの）で書かれていたため、ファイル冒頭に `beforeAll(() => setLanguage('ja'))` を追加して前提を**明示**——挙動は無変更（Jest の `testEnvironment:'node'` は `navigator.language` が無いので、明示しなければ既定 'en' に事故的に倒れて既存57件が壊れていた。実際に確認済み）。
+- ✅ **test 7件追加**（`bcp47ForLanguage` の変換・既定値、コンストラクタが現在の UI 言語を採用、組み込みコマンドの読み上げが言語で変わる、not-recognized/failed も追従、カスタム `confirmationText` は非翻訳のまま、`initialize()` 後の `recognition.lang` も追従）。**pre-fix 検証**: 変更前のソースに戻すと6件 FAIL（`bcp47ForLanguage` 未定義・`language` 常に `ja-JP`・確認文言が言語に追従しない・`recognition.lang` が追従しない）、復元で全通過。
+- ✅ Total 1735 tests (53 suites); 0 lint errors (122 warnings, unchanged); build green; `npm run verify:size` PASS。
+- 📌 **正直な残課題**: 認識**パターン**自体（`'戻る'`, `'音量上げる'` 等）は依然ほぼ日本語決め打ちで、英語話者は多くの組み込みコマンドを英語で発話できない（`open X`/`go to X`/`stop loading`/`clear history`/`find on page` など一部だけ英語パターンを持つ）。今回直したのは**出力**（読み上げ・確認文言・言語コード）で、**入力**（認識パターンの多言語化）は別スコープの大きな作業として残している。
+
 ### Session 75（続き21）: CI が赤いので追ったら、**「0 lint errors」という自分の主張が偽**だった
 PR #57 の CI が赤。2件は自分の PR が原因、4件は main でも同じく赤（workflow ファイルのみ、K-1 パッチが対象）。修正を押した後、**再チェックしたらまだ赤**だったので掘った。
 - 🔍 **根因（自分の測定環境が腐っていた）**: `package.json` は `eslint: ^9.39.0`、lockfile も **9.39.5**。ところが**私の `node_modules` には 8.57.1** が残っていた（セッション中に一度 node_modules が消えて復旧した際の残骸）。ESLint 9 は `.eslintrc.json` を**受け付けない** —— `eslint.config.js` が無いと**リント前に exit 2** で落ちる。CI では `continue-on-error: true` がその失敗を飲み込んでいたので誰にも見えず、私の `format:check` → `lint` エイリアスが**飲み込みを外した結果として初めて表面化**した。
