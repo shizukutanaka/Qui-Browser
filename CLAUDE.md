@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き26）: 続き25の「正直な残課題」をその場で解消 — 認識パターンも英語化
+続き25の締めで「出力（読み上げ）は直したが、入力（認識パターン）は依然ほぼ日本語決め打ち」と明記した。英語 UI ユーザーは正しい英語の確認文言を聞けても、その大半のコマンドを英語で**発話できない**ままでは、直した意味が半分しかない。同じセッション内で棚上げせず解消した。
+- 🔍 **範囲確定**: 全 `registerCommand` を棚卸しし、英語パターンが既にあるもの（`open-link`/`find-in-page`/`find-next`/`stop-load`/`clear-history`/`go-to`）と、無いもの（`navigate`/`back`/`refresh`/`search`/`vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle`/`help`/`stop`/`top-sites`/`scroll-down`/`scroll-up`/`bookmarks`/`keyboard`）を分離。後者全部に英語パターンを追加。
+- 🔒 **衝突を1つずつ実測で確認**: `go-to` の英語キャッチオール `/^(?:open|go to|navigate to)\s+(.+)/i` は "go back"/"go forward" には**マッチしない**（"go to" の文字列一致が必要、"go back" は別語）。"open keyboard" は `keyboard` コマンドが `go-to` より**先に登録**されているので先に確定（既存の日本語「キーボードを開く」と同型の保証）。`stop`（新規 bare 文字列 'stop'/'stop listening'）と `stop-load`（"stop loading" 全体を要求する正規表現）は**完全一致 vs 部分正規表現**という異なる判定方式なので "stop" 単体では stop-load を誤爆しない。`bookmarks` の新規 bare 'history' は、Map 挿入順で先に登録されている `clear-history` の英語正規表現（"clear/delete history" の接頭辞必須）とは重ならない——既存の日本語 bare '履歴' と同型。
+- 📐 **help の読み上げ順を壊さない**: `_spokenExample()` は patterns 配列の**最初の文字列**を読む。英語パターンは全て**末尾に追加**（先頭に挿入しない）ことで、既存ユーザーが聞く「戻る」等の日本語例文が変わらないことをテストで固定。
+- 🐛 **テスト作成中に見つけた自分の罠（2回目）**: `navigate`/`back`/`refresh`/`search` の `registerDefaultCommands()` 版は `window.history.*()`/`window.open()` を直接呼ぶため、`window` の無い Jest 環境では例外→失敗扱いになる。実運用では `initialize()` 直後に必ず `connectBrowser()` が呼ばれ、これらは tabManager 版に**上書きされる**ので、テストも `connectBrowser()` 経由で検証する形に修正（続き25 で「戻る」を使って踏んだのと同じ罠を、再度別コマンドで踏んで直した）。
+- ✅ **test 15件追加**（衝突回避6件を含む）。**pre-fix 検証**: 直前のコミット（続き25 時点、英語パターン追加前）に戻すと13件 FAIL、復元で全通過。
+- ✅ Total 1750 tests (53 suites); 0 lint errors (122 warnings, unchanged); build green。
+- 📌 **正直な残課題**: `top-sites`/`bookmarks` の一部トリガー語（例: 'トップ' 単体）のような短い日本語の曖昧さに対応する英語の曖昧トリガーは意図的に増やしていない（false-positive を増やすだけなので）。wake word（`キューブラウザ`）自体は英語エイリアスを持たない——`requireWakeWord` は既定 false なので影響は限定的だが、有効にした英語ユーザーには日本語の起動語を覚える必要が残る。
+
 ### Session 75（続き25）: 「Stop を実装した」の続きで気づいた — 音声はずっと日本語決め打ちだった
 続き22〜24 で Stop（読み込み中止）を追加し、その `confirmationText: '読み込みを停止します'` を書きながら次の問いが浮かんだ:「この文言、UI が英語のユーザーには英語で読み上げられるのか？」実測したら **No** だった。
 - 🔍 **診断**: `VoiceCommands.js` は `import` 文が1つも無く、i18n を一度も参照していなかった。`this.language = 'ja-JP'`（コンストラクタで固定）、`setLanguage(lang)` は存在するが**呼び出し元がゼロ**（`grep` で確認）。`speak()` の `utterance.lang` はこの固定値を読むので、**英語 UI を選んでいても認識・読み上げは常に日本語**。しかも `confirmationText` は25箇所すべてがベタ書きの日本語リテラルで、`help`/`聞いています`/`コマンドが認識できませんでした`/`コマンドの実行に失敗しました` も同様。`enableVoice`（Session 75続き3で発見・修正した「ジェスチャ/コントローラが難しいユーザーの主入力」）が、英語ユーザーに対してだけ言語非対応のまま放置されていた——WCAG 3.1.2 Language of Parts。

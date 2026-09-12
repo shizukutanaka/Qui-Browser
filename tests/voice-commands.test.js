@@ -595,6 +595,176 @@ describe('VoiceCommands — stopping a hung load', () => {
   });
 });
 
+describe('VoiceCommands — English recognition patterns (input side of the i18n fix)', () => {
+  // The language fix above covers spoken OUTPUT (confirmations/errors/TTS
+  // language). Most built-in commands' recognition PATTERNS were still
+  // Japanese-only, which would have left an English-UI voice user unable to
+  // trigger the very commands whose confirmations now correctly speak
+  // English to them. Adding English patterns closes that gap for the
+  // commands that had none; a handful of commands (find-in-page, open-link,
+  // go-to, stop-load, clear-history) already had English patterns from
+  // earlier sessions and are not re-tested here.
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  // navigate/back/refresh/search's registerDefaultCommands() actions call
+  // bare window.history.*()/window.open() — meaningless (and undefined) in
+  // this window-less test env, and superseded in the real app anyway as soon
+  // as connectBrowser() runs (always, right after initialize()). Route
+  // through connectBrowser()'s tabManager-based versions instead, the same
+  // way every other command in this file that reads tab state does.
+  function stubTab() {
+    return { goForward: jest.fn(), goBack: jest.fn(), loading: false, reload: jest.fn(), stop: jest.fn() };
+  }
+
+  test('"forward"/"go forward" and "back"/"go back" trigger navigation', () => {
+    const tab = stubTab();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('forward', 0.9);
+    expect(vc.lastCommand.key).toBe('navigate');
+    vc.processCommand('go forward', 0.9);
+    expect(vc.lastCommand.key).toBe('navigate');
+    vc.processCommand('back', 0.9);
+    expect(vc.lastCommand.key).toBe('back');
+    vc.processCommand('go back', 0.9);
+    expect(vc.lastCommand.key).toBe('back');
+    expect(tab.goForward).toHaveBeenCalledTimes(2);
+    expect(tab.goBack).toHaveBeenCalledTimes(2);
+  });
+
+  test('"go back" does NOT fall through to the go-to catch-all', () => {
+    // go-to's English pattern requires the literal "go to"/"open"/"navigate
+    // to" prefix; "go back" must not match it even though both start with
+    // "go ". onGoTo is deliberately left unwired, so a false match would be
+    // visible as a no-op key rather than silently "working" by coincidence.
+    const tab = stubTab();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab }, onGoTo });
+    vc.processCommand('go back', 0.9);
+    expect(vc.lastCommand.key).toBe('back');
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+
+  test('"refresh"/"reload" trigger the refresh command', () => {
+    const tab = stubTab();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('refresh', 0.9);
+    expect(vc.lastCommand.key).toBe('refresh');
+    vc.processCommand('reload', 0.9);
+    expect(vc.lastCommand.key).toBe('refresh');
+    expect(tab.reload).toHaveBeenCalledTimes(2);
+  });
+
+  test('"search: query" (English colon syntax) fires a web search', () => {
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    vc.processCommand('search: weather', 0.9);
+    expect(vc.lastCommand.key).toBe('search');
+    expect(onSearch).toHaveBeenCalledWith('weather');
+  });
+
+  test('"enter vr"/"exit vr" trigger vr-enter/vr-exit', () => {
+    vc.processCommand('enter vr', 0.9);
+    expect(vc.lastCommand.key).toBe('vr-enter');
+    vc.processCommand('exit vr', 0.9);
+    expect(vc.lastCommand.key).toBe('vr-exit');
+  });
+
+  test('"volume up"/"volume down" trigger the volume commands', () => {
+    vc.processCommand('volume up', 0.9);
+    expect(vc.lastCommand.key).toBe('volume-up');
+    vc.processCommand('volume down', 0.9);
+    expect(vc.lastCommand.key).toBe('volume-down');
+  });
+
+  test('"help" and "what can i say" trigger the help command', () => {
+    vc.processCommand('help', 0.9);
+    expect(vc.lastCommand.key).toBe('help');
+    vc.processCommand('what can i say', 0.9);
+    expect(vc.lastCommand.key).toBe('help');
+  });
+
+  test('bare "stop" stops voice recognition, not any other command', () => {
+    vc.processCommand('stop', 0.9);
+    expect(vc.lastCommand.key).toBe('stop');
+    expect(vc.isEnabled).toBe(false);
+  });
+
+  test('"stop" does NOT collide with stop-load\'s "stop loading" phrase', () => {
+    const tab = { stop: jest.fn(), loading: true };
+    vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+    vc.processCommand('stop loading', 0.9);
+    expect(vc.lastCommand.key).toBe('stop-load');
+    expect(tab.stop).toHaveBeenCalledTimes(1);
+  });
+
+  describe('once connectBrowser() has run', () => {
+    beforeEach(() => vc.connectBrowser({}));
+
+    test('"top sites"/"most visited" trigger top-sites', () => {
+      vc.processCommand('top sites', 0.9);
+      expect(vc.lastCommand.key).toBe('top-sites');
+      vc.processCommand('most visited', 0.9);
+      expect(vc.lastCommand.key).toBe('top-sites');
+    });
+
+    test('"scroll down"/"down" and "scroll up"/"up" trigger scrolling', () => {
+      vc.processCommand('scroll down', 0.9);
+      expect(vc.lastCommand.key).toBe('scroll-down');
+      vc.processCommand('down', 0.9);
+      expect(vc.lastCommand.key).toBe('scroll-down');
+      vc.processCommand('scroll up', 0.9);
+      expect(vc.lastCommand.key).toBe('scroll-up');
+      vc.processCommand('up', 0.9);
+      expect(vc.lastCommand.key).toBe('scroll-up');
+    });
+
+    test('"bookmarks"/"favorites"/"history" toggle the bookmarks panel', () => {
+      vc.processCommand('bookmarks', 0.9);
+      expect(vc.lastCommand.key).toBe('bookmarks');
+      vc.processCommand('favorites', 0.9);
+      expect(vc.lastCommand.key).toBe('bookmarks');
+      vc.processCommand('history', 0.9);
+      expect(vc.lastCommand.key).toBe('bookmarks');
+    });
+
+    test('bare "history" does NOT collide with clear-history', () => {
+      const onClearHistory = jest.fn();
+      vc.connectBrowser({ onClearHistory });
+      vc.processCommand('history', 0.9);
+      expect(vc.lastCommand.key).toBe('bookmarks');
+      expect(onClearHistory).not.toHaveBeenCalled();
+    });
+
+    test('"keyboard"/"open keyboard"/"close keyboard" toggle the VR keyboard, not go-to', () => {
+      const onGoTo = jest.fn();
+      let toggled = false;
+      vc.connectBrowser({
+        onGoTo,
+        vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
+      });
+      vc.processCommand('open keyboard', 0.9);
+      expect(vc.lastCommand.key).toBe('keyboard');
+      expect(toggled).toBe(true);
+      expect(onGoTo).not.toHaveBeenCalled();
+    });
+  });
+
+  test('help still announces a Japanese phrase first (unaffected by the English additions)', () => {
+    // English patterns were appended, never prepended, to every patterns
+    // array. _spokenExample() reads the FIRST plain-string pattern, so this
+    // pins that the addition didn't silently change what existing
+    // (Japanese-primary) users hear from "help".
+    const spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+    vc.processCommand('ヘルプ', 0.9);
+    expect(spoken[0]).toContain('戻る');
+  });
+});
+
 describe('VoiceCommands — voice output follows the UI language, not a hardcoded default', () => {
   // Until now this whole file (VoiceCommands.js) had zero i18n awareness:
   // `this.language` was hardcoded 'ja-JP' at construction, `setLanguage()`

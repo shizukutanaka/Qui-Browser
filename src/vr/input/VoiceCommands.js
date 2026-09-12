@@ -327,8 +327,15 @@ export class VoiceCommands {
    */
   registerDefaultCommands() {
     // Navigation commands
+    //
+    // English patterns are appended (never prepended) to every array below:
+    // _spokenExample()/help reads the FIRST plain-string pattern as the
+    // phrase it announces, and prepending would silently switch what's read
+    // aloud for existing (Japanese-primary) users — tested by the
+    // pre-existing "every command with a literal string pattern appears in
+    // the list" case.
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/, 'forward', 'go forward'],
       action: () => {
         window.history.forward();
         return { action: 'navigate', direction: 'forward' };
@@ -338,7 +345,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/, 'back', 'go back'],
       action: () => {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
@@ -348,7 +355,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('refresh', {
-      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'refresh', 'reload'],
       action: () => {
         window.location.reload();
         return { action: 'refresh' };
@@ -359,7 +366,10 @@ export class VoiceCommands {
 
     // Search command
     this.registerCommand('search', {
-      patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
+      patterns: [
+        /検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/,
+        /^search\s*[：:]\s*(.+)/i
+      ],
       action: (transcript) => {
         const match = transcript.match(/[：:]\s*(.+)/);
         if (match && match[1]) {
@@ -375,7 +385,7 @@ export class VoiceCommands {
 
     // VR mode control
     this.registerCommand('vr-enter', {
-      patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ'],
+      patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ', 'vr mode', 'enter vr', 'start vr'],
       action: () => {
         // Would trigger VR mode
         return { action: 'vr', enabled: true };
@@ -385,7 +395,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('vr-exit', {
-      patterns: ['VR終了', 'VRやめる', '通常モード'],
+      patterns: ['VR終了', 'VRやめる', '通常モード', 'exit vr', 'stop vr', 'normal mode'],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -402,7 +412,7 @@ export class VoiceCommands {
 
     // Volume control
     this.registerCommand('volume-up', {
-      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ'],
+      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', 'volume up', 'increase volume'],
       action: () => {
         // Would adjust volume
         return { action: 'volume', change: 0.1 };
@@ -412,7 +422,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('volume-down', {
-      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン'],
+      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', 'volume down', 'decrease volume'],
       action: () => {
         // Would adjust volume
         return { action: 'volume', change: -0.1 };
@@ -423,7 +433,7 @@ export class VoiceCommands {
 
     // Japanese IME
     this.registerCommand('ime-toggle', {
-      patterns: ['日本語入力', '日本語モード', '入力切り替え'],
+      patterns: ['日本語入力', '日本語モード', '入力切り替え', 'japanese input', 'toggle ime'],
       action: () => {
         // Would toggle IME
         return { action: 'ime', enabled: true };
@@ -437,7 +447,7 @@ export class VoiceCommands {
     // difficult) has no other way to discover what to say; announcing "12
     // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
-      patterns: ['ヘルプ', '助けて', '使い方', '何ができる'],
+      patterns: ['ヘルプ', '助けて', '使い方', '何ができる', 'help', 'what can i say'],
       action: () => {
         const phrases = Array.from(this.commands.values())
           .map((cmd) => this._spokenExample(cmd))
@@ -452,7 +462,7 @@ export class VoiceCommands {
 
     // Stop listening
     this.registerCommand('stop', {
-      patterns: ['停止', 'ストップ', 'やめて', '聞くな'],
+      patterns: ['停止', 'ストップ', 'やめて', '聞くな', 'stop listening', 'stop'],
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -548,7 +558,7 @@ export class VoiceCommands {
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
     this.registerCommand('top-sites', {
-      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
+      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/, 'top sites', 'most visited'],
       action: () => {
         if (onTopSites) {
           onTopSites();
@@ -561,7 +571,7 @@ export class VoiceCommands {
 
     // Browser forward / back
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/, 'forward', 'go forward'],
       action: () => {
         tabManager?.getActiveTab?.()?.goForward?.();
         return { action: 'navigate', direction: 'forward' };
@@ -571,7 +581,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/, 'back', 'go back'],
       action: () => {
         tabManager?.getActiveTab?.()?.goBack?.();
         return { action: 'navigate', direction: 'back' };
@@ -581,7 +591,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('refresh', {
-      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'refresh', 'reload'],
       action: () => {
         // Mirrors the chrome-bar reload slot's own overload: while a page is
         // still loading, "reload" has nothing finished to reload, so treat it
@@ -602,14 +612,17 @@ export class VoiceCommands {
     });
 
     // Stop a page still loading. Separate command, separate key, from the
-    // top-level 'stop' (voice recognition itself, :422) — that one is a bare
-    // exact-string match on '停止'/'ストップ'/'やめて'/'聞くな' with no
-    // pattern here long enough to equal it, so the two cannot collide, but
-    // reusing the key 'stop' in this Map would silently replace it. A gaze or
-    // controller user already reaches this via the chrome bar's reload slot,
-    // which swaps to a stop control while loading; voice had no path there at
-    // all until now — the same "control exists, no way to reach it hands-free"
-    // shape this repo keeps finding.
+    // top-level 'stop' (voice recognition itself, registerDefaultCommands) —
+    // that one's patterns (including the English 'stop'/'stop listening')
+    // are all bare EXACT-STRING matches, and none of them equals the full
+    // phrase "stop loading" that this command's regex requires, so the two
+    // cannot collide even though 'stop' is a substring of 'stop-load's
+    // English pattern. Reusing the key 'stop' in this Map would silently
+    // replace it, which is why this lives under its own 'stop-load' key. A
+    // gaze or controller user already reaches this via the chrome bar's
+    // reload slot, which swaps to a stop control while loading; voice had no
+    // path there at all until now — the same "control exists, no way to
+    // reach it hands-free" shape this repo keeps finding.
     this.registerCommand('stop-load', {
       patterns: [/読み込みを?(停止|中止|やめ)/, /stop\s+loading/i],
       action: () => {
@@ -727,7 +740,10 @@ export class VoiceCommands {
 
     // Web search — route through VR address bar / tab navigation
     this.registerCommand('search', {
-      patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
+      patterns: [
+        /検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/,
+        /^search\s*[：:]\s*(.+)/i
+      ],
       action: (transcript) => {
         const match = transcript.match(/[：:]\s*(.+)/);
         if (match && match[1]) {
@@ -753,7 +769,7 @@ export class VoiceCommands {
     // It now drives the panel's own reader viewport via onScrollContent.
     const SCROLL_LINES = 8;
     this.registerCommand('scroll-down', {
-      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
+      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン', 'scroll down', 'down'],
       action: () => {
         if (onScrollContent) {
           onScrollContent(SCROLL_LINES);
@@ -764,7 +780,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('scroll-up', {
-      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
+      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ', 'scroll up', 'up'],
       action: () => {
         if (onScrollContent) {
           onScrollContent(-SCROLL_LINES);
@@ -776,7 +792,7 @@ export class VoiceCommands {
 
     // Bookmark panel toggle
     this.registerCommand('bookmarks', {
-      patterns: ['ブックマーク', 'お気に入り', '履歴'],
+      patterns: ['ブックマーク', 'お気に入り', '履歴', 'bookmarks', 'favorites', 'history'],
       action: () => {
         bookmarkPanel?.toggle?.();
         return { action: 'bookmarks' };
@@ -787,7 +803,7 @@ export class VoiceCommands {
 
     // Keyboard toggle
     this.registerCommand('keyboard', {
-      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる'],
+      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる', 'keyboard', 'open keyboard', 'close keyboard'],
       action: () => {
         if (vrKeyboard) {
           vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
