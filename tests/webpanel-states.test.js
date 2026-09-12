@@ -1638,4 +1638,29 @@ describe('WebPanel.stop()', () => {
     expect(signals[0].aborted).toBe(true);
     await flush(); // let the rejection actually run and clear its timer
   });
+
+  test('going back to a cached page aborts the fetch it left running, not just its result', async () => {
+    // _restorePage bumps _readerSeq so the abandoned fetch's RESULT can never
+    // land — but that alone leaves the request itself running for up to 5s on
+    // a mobile SoC headset, for a page nobody can ever see the outcome of.
+    // This is the same waste _loadUrl() and dispose() are already fixed for;
+    // the cache-restore path is the third place the same abort belongs.
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><p>' + 'prose one. '.repeat(40) + '</p></body></html>')
+    });
+    const p = makePanel();
+    p.navigate('https://example.com/one');
+    await flush();
+    expect(p._contentState).toBe('reader'); // page one cached
+
+    const signals = hangingSignalAwareFetch();
+    p.navigate('https://example.com/two'); // in flight, never resolves
+    expect(signals[0].aborted).toBe(false);
+
+    p.back(); // restores page one from cache — must abort page two's fetch
+    expect(signals[0].aborted).toBe(true);
+    expect(p.currentUrl).toBe('https://example.com/one');
+    await flush();
+  });
 });

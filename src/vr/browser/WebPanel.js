@@ -1183,6 +1183,14 @@ export class WebPanel {
     // Advance the sequence: a fetch still in flight for the page we are
     // leaving must not settle over the restored one.
     const seq = ++this._readerSeq;
+    if (this._loadAbort) {
+      // The seq bump above only stops the RESULT from landing; without this
+      // the abandoned request kept running for up to 5s on a mobile SoC
+      // headset, spending bandwidth on a page nobody could ever see the
+      // outcome of — the same waste _loadUrl() and dispose() were fixed for.
+      this._loadAbort.abort();
+      this._loadAbort = null;
+    }
     this.currentUrl = url;
     this._readerLines = hit.lines;
     this._readerScroll = hit.scroll;
