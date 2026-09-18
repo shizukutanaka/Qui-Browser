@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き28）: 「VRモードを開始します」と言って何も起きなかった — vr-enter/vr-exit が単なるスタブだった
+続き25〜27 で音声の出力側（言語・確認文言・発見性）を直したので、次に**中身**を疑った。`registerDefaultCommands()` の `vr-enter`/`vr-exit` を読むと、どちらも `// Would trigger VR mode` / `// Would exit VR mode` というコメントだけで**何もしていなかった**——「進みます」「戻ります」等25個の確認文言のうち、実際に効果があるのはブラウザ操作系だけで、この2つだけは口だけだった。
+- 🔍 **診断**: `VoiceCommands` クラスは `renderer`/XRセッションへの参照を一切持たない（`VRApp` から `connectBrowser()` 経由で渡されるコールバックのみが外界との接点）。`vr-enter`/`vr-exit` はコンストラクタ内の `registerDefaultCommands()` で登録されるが、`connectBrowser()` による上書きの対象にも一度もなっていなかった——`navigate`/`back`/`refresh`/`search` は皆 `connectBrowser()` で実体化されるのに、この2つだけ取り残されていた。
+- 🔬 **「実装すればいいのでは？」を検証したら、vr-enter は原理的に無理だった**: WebXR 仕様は `XRSystem.requestSession()` を「transient user activation」の中でしか呼べないよう定めている（クリック等の実ユーザー操作のみが対象で、`SpeechRecognition` の `onresult` イベントはこの対象に**含まれない**）。しかもこの制約は本リポジトリ自身の `src/main.js` が既に文書化していた——PWA 自動起動時に `vrButton.click()` を合成イベントで叩く箇所のコメントに「デスクトップでは SecurityError で拒否されうる。それでもボタンは押せる（ベストエフォート）」と明記されている。合成クリックですら「ベストエフォート」なら、クリックにすら該当しない音声イベントでは**ほぼ確実に失敗する**。確認文言で「VRモードを開始します」と言った直後に何も起きない——これはまさにこのセッションが Stop（続き22-24）で修正した「宣言したのに何も起きない」欠陥そのものを、別の場所で再現することになる。
+- ✨ **fix (vr-enter — 誠実な作り直し)**: 確認文言を廃止し、代わりに `vr.voice.vrEnterUnavailable`（「音声ではVRモードを開始できません。VR開始ボタンを押してください」）を**常に**読み上げる。嘘の成功宣言より、正直な制約の説明の方が音声ユーザーにとって有用（次に何をすればいいか分かる）。
+- ✨ **fix (vr-exit — 実装可能だったので実装)**: `XRSession.end()` には activation 制約が**無い**（開始のみが規制対象）。`VoiceCommands.connectBrowser()` に `onExitVR` コールバックを追加し、`_connectVoiceToBrowsing()`（ブラウジングON/OFFに関わらず毎回呼ばれる、続き16 で確立した「常に再配線」経路）から `this.renderer.xr.getSession()?.end()` を渡した。`this.renderer` は `setupRenderer()` で一度だけ構築されアプリの生存期間ずっと有効なので、tabManager のような再構築を気にする必要がない。
+- 🔒 **同じ Map キーの上書きで安全性を確認**: `vr-exit` は `registerDefaultCommands()` で安全な no-op スタブとして先に登録され、`connectBrowser()` が実体入りで再登録（`Map.set` は既存キーの挿入位置を保持——find-in-page で確認済みの規律）。voice 未接続時（テスト・初期化前）でも no-op のまま安全。
+- ✅ **test 7件追加**（VoiceCommands 4: 誠実な文言・onExitVR 呼び出し・未配線時 no-op・connectBrowser 未呼び出し時も no-op + VRApp wiring 3: セッションありで `end()` 呼び出し・セッションなしで no-op・renderer なしでも no-op）。**pre-fix 検証**: 直前コミットに戻すと該当2件 FAIL（誠実文言が飛ばず旧「VRモードを開始します」のまま／onExitVR が呼ばれない）、復元で全通過。
+- ✅ Total 1759 tests (53 suites); 0 lint errors (122 warnings, unchanged); build green。
+
 ### Session 75（続き27）: 「help と言えば分かる」の一歩手前 — 音声を有効にした瞬間には誰も help を知らない
 続き26まで「help コマンドは実際のフレーズを読み上げる」（Session 29）を維持しつつ音声全体の多言語化を進めてきたが、**help 自体の発見可能性**が未解決のまま残っていた——ユーザーが「help」と言えばコマンド一覧を聞けるが、**そもそも「help」と言えばいいと誰が教えるのか**という鶏卵問題。
 - 🔍 **診断**: `_onVoiceToggleChanged(true)` が成功時に出すトースト/キャプションは `vr.msg.voiceOn`（「音声コマンドをオンにしました」）だけ。音声を有効にした瞬間はユーザーがまだ何も発話しておらず、他に一覧を見る手段も無い——**この一瞬を逃すと、次に使えるヒントは存在しない**。`docs/USAGE_GUIDE.md` も「設定でVoiceを有効に」としか案内していない。

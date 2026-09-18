@@ -1498,4 +1498,32 @@ describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
     app.voiceCommands = null;
     expect(() => app._connectVoiceToBrowsing()).not.toThrow();
   });
+
+  test('onExitVR ends the live WebXR session, if any', () => {
+    // Ending a session needs no user activation (unlike requesting one), so
+    // this is the one 'vr-*' voice command that can actually work — see
+    // VoiceCommands.js's registerDefaultCommands() for why 'vr-enter' can't.
+    const connected = [];
+    const app = makeApp(connected);
+    const end = jest.fn(() => Promise.resolve());
+    app.renderer = { xr: { getSession: () => ({ end }) } };
+    app._connectVoiceToBrowsing();
+    connected[0].onExitVR();
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  test('onExitVR is a safe no-op with no active session', () => {
+    const connected = [];
+    const app = makeApp(connected);
+    app.renderer = { xr: { getSession: () => null } };
+    app._connectVoiceToBrowsing();
+    expect(() => connected[0].onExitVR()).not.toThrow();
+  });
+
+  test('onExitVR is a safe no-op with no renderer at all', () => {
+    const connected = [];
+    const app = makeApp(connected);
+    app._connectVoiceToBrowsing();
+    expect(() => connected[0].onExitVR()).not.toThrow();
+  });
 });

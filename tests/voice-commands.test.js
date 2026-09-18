@@ -865,3 +865,46 @@ describe('VoiceCommands — voice output follows the UI language, not a hardcode
     delete window.speechSynthesis;
   });
 });
+
+describe('VoiceCommands — "vr-enter"/"vr-exit" (WebXR user-activation constraint)', () => {
+  // 'vr-enter' used to speak "Starting VR mode" and then do nothing — the
+  // action was a stub ("Would trigger VR mode"). WebXR requires the
+  // requestSession() call behind it to run inside a real user gesture, and a
+  // SpeechRecognition result event never grants one, so wiring it up "for
+  // real" would just move the false promise one layer deeper (a synthetic
+  // click that silently fails). 'vr-exit', by contrast, calls
+  // XRSession.end(), which has no such restriction, so it CAN be wired for
+  // real via connectBrowser()'s onExitVR.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+  });
+
+  test('"enter vr" speaks the honest redirect, not a false "starting" claim', () => {
+    vc.processCommand('enter vr', 0.9);
+    expect(vc.lastCommand.key).toBe('vr-enter');
+    expect(spoken).toContain(translate('vr.voice.vrEnterUnavailable'));
+    expect(spoken.join(' ')).not.toMatch(/starting vr|vrモードを開始/i);
+  });
+
+  test('"exit vr" calls onExitVR when connectBrowser wired it', () => {
+    const onExitVR = jest.fn();
+    vc.connectBrowser({ onExitVR });
+    vc.processCommand('exit vr', 0.9);
+    expect(vc.lastCommand.key).toBe('vr-exit');
+    expect(onExitVR).toHaveBeenCalledTimes(1);
+  });
+
+  test('"exit vr" with no onExitVR wired is a silent no-op, not a throw', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('exit vr', 0.9)).not.toThrow();
+    expect(vc.lastCommand.key).toBe('vr-exit');
+  });
+
+  test('"exit vr" before connectBrowser() has run does not throw', () => {
+    expect(() => vc.processCommand('exit vr', 0.9)).not.toThrow();
+    expect(vc.lastCommand.key).toBe('vr-exit');
+  });
+});

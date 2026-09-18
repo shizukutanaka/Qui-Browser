@@ -2813,6 +2813,18 @@ export class VRApp {
       // text), which is what "下にスクロール" can actually move in VR.
       onScrollContent: (delta) => {
         this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+      },
+      // End the live WebXR session. Unlike entering, this needs no user
+      // activation, so it is a genuine hands-free "take the headset off"
+      // escape hatch. this.renderer is constructed once in setupRenderer()
+      // and outlives browsing-system rebuilds, so re-wiring this on every
+      // _connectVoiceToBrowsing() call (including with browsing off) is
+      // harmless — it always resolves the same live session getter.
+      onExitVR: () => {
+        const session = this.renderer?.xr?.getSession?.();
+        if (session) {
+          session.end().catch(() => {});
+        }
       }
     });
   }

@@ -383,21 +383,35 @@ export class VoiceCommands {
       example: '検索：てんき'
     });
 
-    // VR mode control
+    // VR mode control.
+    //
+    // 'vr-enter' cannot actually start a session from here: the WebXR spec
+    // gates XRSystem.requestSession() behind transient user activation, and
+    // a SpeechRecognition result event does not grant it — this app's own
+    // PWA-auto-launch code (src/main.js) documents the identical constraint
+    // for a *synthetic click*, which is closer to a real gesture than voice
+    // ever is ("If the browser rejects it (SecurityError on desktop) the
+    // user can still press the button"). Speaking a false "starting VR
+    // mode" confirmation and then silently failing would be exactly the
+    // "announced but nothing happened" defect voice commands exist to fix
+    // (see stop-load, Session 75 続き22-24) — so this redirects honestly to
+    // the one thing that does work, instead of pretending.
     this.registerCommand('vr-enter', {
       patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ', 'vr mode', 'enter vr', 'start vr'],
       action: () => {
-        // Would trigger VR mode
-        return { action: 'vr', enabled: true };
+        this.speak(t('vr.voice.vrEnterUnavailable'));
+        return { action: 'vr', enabled: false, unavailable: true };
       },
-      confirmationKey: 'vr.voice.confirm.vrEnter',
-      description: 'Enter VR mode'
+      description: 'Voice cannot start VR — WebXR requires a real user gesture'
     });
 
+    // Exiting has no such restriction — XRSession.end() is not gated behind
+    // activation — so this is a genuine hands-free command. The default
+    // action here is a safe no-op stub; connectBrowser()'s onExitVR gives it
+    // the real session handle once VRApp has wired one up.
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'exit vr', 'stop vr', 'normal mode'],
       action: () => {
-        // Would exit VR mode
         return { action: 'vr', enabled: false };
       },
       confirmationKey: 'vr.voice.confirm.vrExit',
@@ -551,9 +565,28 @@ export class VoiceCommands {
    *                                         cross-modal confirmation (decoupled like onGoTo)
    * @param {Function} [opts.onScrollContent] (deltaLines: number) => void — scroll
    *                                         the active panel's reader viewport
+   * @param {Function} [opts.onExitVR]       () => void — called to end the live WebXR
+   *                                         session (host holds the renderer/session
+   *                                         reference; VoiceCommands has none of its own)
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink } = {}) {
+    onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR } = {}) {
+    // Give 'vr-exit' the real session handle. Unlike 'vr-enter' (see
+    // registerDefaultCommands — starting a session needs user activation
+    // voice can never grant), ending one is unrestricted, so this is a
+    // genuine hands-free command once the host supplies onExitVR.
+    this.registerCommand('vr-exit', {
+      patterns: ['VR終了', 'VRやめる', '通常モード', 'exit vr', 'stop vr', 'normal mode'],
+      action: () => {
+        if (onExitVR) {
+          onExitVR();
+        }
+        return { action: 'vr', enabled: false };
+      },
+      confirmationKey: 'vr.voice.confirm.vrExit',
+      description: 'Exit VR mode'
+    });
+
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
