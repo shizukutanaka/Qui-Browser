@@ -1436,3 +1436,8 @@ src 呼び出しが1箇所のみの delegate 9本（perf 4・snapTurn・onTelepo
 
 ### 第57パス（継続中 — テスト死コード＋重複ブロック走査）
 tests/ 走査で未使用 `makeScene` ヘルパー削除。src 重複ブロック走査で `isWorldVisible`（可視性親遡り）が GazeInteraction と inputRouting に同一実装で重複 → inputRouting 側に集約。残りの重複（canvas 生成・dispose 巡回パターン等）は3行未満の定型で統合価値なし。
+
+### 第57–58パス（テスト死コード・重複ブロック・イディオム統合）
+- 未使用 `makeScene` テストヘルパー削除
+- `isWorldVisible` の同一実装を inputRouting に集約（GazeInteraction 側除去）
+- `showCaption(app, text)` seam を新設（src/vr/caption.js）: `if (captionSystem && captionSystem.enabled) { captionSystem.show(...) }` の ~25箇所ガード定型を統一 — アナウンスの意図が統一され、将来のガード変更は1箇所で済む。複合ガード（`&& enableGazeDwell` 等）や複文ブロックは構造保持
