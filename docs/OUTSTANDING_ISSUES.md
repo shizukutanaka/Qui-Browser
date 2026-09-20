@@ -1498,3 +1498,6 @@ VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テ�
 
 ### 第73パス（クリーンスキャン — イベントハンドラ対称）
 `addEventListener` 未解除イベント13種を走査: 全てページ生存期間（DOMContentLoaded/load/unhandledrejection）または XR オブジェクト生存期間（session*/select*/squeeze*/thumbstick — dispose 時に親オブジェクトごと破棄）のため除去不要。emit↔listen イベント名非対称ゼロ。
+
+### 第74パス（逆フィールド監査 — 実バグ摘出）
+読まれるが代入されないプロパティの走査で**実バグ摘出**: DevTools の `Ctrl+Shift+C`/`Ctrl+Shift+P` ショートカットが存在しない `this.selectElement()`/`this.showProfiler()` を呼び、押下時に TypeError を投げていた（DEV 専用経路のため検出圏外）。機能自体が未実装のため死ショートカットを削除。残る検出は全て偽陽性（destructuring 代入・コメント文字列）。
