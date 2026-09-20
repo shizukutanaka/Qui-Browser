@@ -1534,3 +1534,6 @@ package.json 全依存の実使用を確認（three→src、web-vitals→monitor
 
 ### 第85パス（クリーンスキャン — 動的プロパティアクセス）
 `this[key]`/`app[name]`/`obj['lit']` の動的参照ゼロ — 全プロパティアクセスが静的で、到達性解析に死角なし。解析不能で隠れる死コードの温床が存在しないことを確認。
+
+### 第86パス（クリーンスキャン — tests/helpers + proxy）
+tests/helpers/contrast.js の全5 export はテスト実使用を確認。proxy/server.js の `/fetch` は readerFetchUrl が実呼出、`/health` はデプロイヘルスチェック慣例として保持（検証不能な外部参照を臆断で削除しない）。
