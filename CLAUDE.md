@@ -283,6 +283,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✨ **feat: Stop ボタン**（F-4・同一 PR）。`loading=true` を解除する経路が onload/onerror しかなく、ハングしたロードが panel を永遠に 'loading' に固定していた。`WebPanel.stop()`（reader fetch abort + `_readerSeq` 破棄 + iframe handlers 切断して about:blank）を追加し、ロード中は reload hit zone が stop() を呼ぶ —— glyph も ↺→✕ に切替（Chrome と同じ二態）。描画済み reader は blank にしない。4テスト。
 - Total 1498 tests (47 suites); 0 lint errors / 135 warnings; `format:check` PASS; build green。
 
+### Session 75 (後半) — 2026-09-19: セッション復元・読み込み中止・Top Sites
+
+- ✨ feat: `TabManager.serialize()/restoreSession()` + VRApp `_saveSession/_restoreSession` — タブを localStorage (`qui-browser:sessionTabs`) に永続化。private モード中および `privateSession` タブは除外（save 止めるだけでは URL 漏れ）。`_restoringSession` ガードで replay 中の history/保存/activate caption を抑制。
+- ✨ feat: `WebPanel.stop()` — ロード中は ↺→✕ に切替、ヒットゾーンで navigate 停止（abort+iframe detach）。reader コンテンツがあれば残す。
+- ✨ feat: 新規タブ Top Sites — `getTopSites()` の描画先を実装。4×2 タイル + ヒットゾーンで navigate。private タブは描画しない。i18n `vr.content.topSites` en/ja。
+- ✅ verification: 新規テストは stash で pre-fix fail 確認済（session 4/4, stop 4/4, tiles 5/5 中4 fail→pass）。全 1503 pass。eslint 0 errors / prettier clean / vite build / verify:layout PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**

@@ -833,3 +833,46 @@ describe('WebPanel stop()', () => {
     expect(stopSpy).toHaveBeenCalled();
   });
 });
+
+// ── New-tab top sites (F-4 / C-3) ─────────────────────────────────────────────
+// BookmarkStore.getTopSites() was fully implemented but had no render target;
+// a blank tab shows the frecency-ranked grid instead of a dead "Enter a URL".
+describe('WebPanel top-sites tiles', () => {
+  const sites = () => [
+    { url: 'https://a.example/', title: 'Alpha', host: 'a.example' },
+    { url: 'https://b.example/', title: 'Beta', host: 'b.example' }
+  ];
+
+  test('a blank tab with a topSites source populates tile hit zones', () => {
+    const p = makePanel({ topSites: sites });
+    expect(p._tileRects).toHaveLength(2);
+    expect(p._tileRects[0].url).toBe('https://a.example/');
+  });
+
+  test('no topSites source keeps the bare empty state (no tiles)', () => {
+    const p = makePanel();
+    expect(p._tileRects).toHaveLength(0);
+  });
+
+  test('a private-mode tab never surfaces history tiles', () => {
+    const p = makePanel({ topSites: sites });
+    p.privateSession = true; // stamped by TabManager when opened under private mode
+    p._drawContent();
+    expect(p._tileRects).toHaveLength(0);
+  });
+
+  test('selecting a tile navigates to its URL', () => {
+    const p = makePanel({ topSites: sites });
+    const spy = jest.spyOn(p, 'navigate');
+    const rect = p._tileRects[1];
+    const cx = (rect.x0 + rect.x1) / 2;
+    const cy = (rect.y0 + rect.y1) / 2;
+    const contentH = 1.0 * (1 - 0.08); // PANEL_H * (1 - CHROME_H)
+    p.contentMesh.worldToLocal = () => ({
+      x: (cx / p.contentCanvas.width - 0.5) * 1.6, // PANEL_W
+      y: (0.5 - cy / p.contentCanvas.height) * contentH
+    });
+    p._onContentSelect({ clone: () => ({}) });
+    expect(spy).toHaveBeenCalledWith('https://b.example/');
+  });
+});

@@ -849,6 +849,9 @@ export class VRApp {
       onMaxTabsReached: () => {
         this.showVRToast(t('vr.msg.maxTabsReached'), { type: 'warn' });
       },
+      // Blank tabs render the frecency-ranked top sites (C-3): the store is
+      // already persistent and ranked — this just gives it a render target.
+      topSites: () => this.bookmarks.getTopSites(8),
       onHoverCaption: () => {
         if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
           this.captionSystem.show(t('vr.msg.tabStripLabel'));

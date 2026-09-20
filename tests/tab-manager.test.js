@@ -472,3 +472,21 @@ describe('TabManager session persistence (F-4)', () => {
     expect(tm.count).toBe(0);
   });
 });
+
+describe('TabManager topSites forwarding (F-4)', () => {
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
+
+  test('topSites opt reaches every created WebPanel', () => {
+    const sites = () => [];
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      topSites: sites
+    });
+    tm.newTab();
+    expect(panelInstances[0].opts.topSites).toBe(sites);
+  });
+});

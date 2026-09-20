@@ -20,6 +20,7 @@ import { configureUITexture } from '../ui/canvasTexture.js';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
+import { t } from '../../i18n/i18n.js';
 import {
   elideUrlForDisplay,
   securityLevel,
@@ -113,7 +114,8 @@ export class WebPanel {
     onMoveBarHoverCaption,
     onBlockedNavigation,
     readerScale = 1,
-    readerProxyUrl = ''
+    readerProxyUrl = '',
+    topSites
   }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
@@ -130,6 +132,8 @@ export class WebPanel {
     this.isBookmarked = typeof isBookmarked === 'function' ? isBookmarked : null;
     this.onToggleBookmark = typeof onToggleBookmark === 'function' ? onToggleBookmark : null;
     this.onHoverCaption = typeof onHoverCaption === 'function' ? onHoverCaption : null;
+    // FR-1.x new-tab page: () => [{url,title,host}] for the 'empty' tile grid.
+    this.topSites = typeof topSites === 'function' ? topSites : null;
     // Grab-to-move: the move bar below the panel is a WindowManager.beginGrab()
     // trigger. Both optional; without onGrabRequested the bar still renders and
     // tints on hover but selecting it does nothing (WindowManager not wired).
@@ -155,6 +159,7 @@ export class WebPanel {
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadAbort = null; // AbortController for the in-flight reader fetch
+    this._tileRects = []; // hit zones for the empty-state top-sites grid
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -327,6 +332,21 @@ export class WebPanel {
       return;
     }
 
+    this._tileRects = [];
+    // New-tab page: blank tabs draw the frecency-ranked top sites as a tile
+    // grid instead of a bare hint. Private-mode tabs skip it — an empty panel
+    // opened while private must not surface the browsing history.
+    if (this._contentState === 'empty' && !this.privateSession && this.topSites) {
+      const entries = this.topSites() || [];
+      if (entries.length) {
+        this._drawTopSites(ctx, w, h, col, entries);
+        if (this.contentTex) {
+          this.contentTex.needsUpdate = true;
+        }
+        return;
+      }
+    }
+
     ctx.textAlign = 'center';
     const lines = contentStateLines(this._contentState, this.currentUrl, !!this.readerProxyUrl);
     ctx.fillStyle = col.stateTitle;
@@ -458,7 +478,67 @@ export class WebPanel {
    * Controllers and gaze both arrive here through the same registration, so
    * one implementation serves both input modes.
    */
+  /**
+   * Draw the frecency-ranked top-sites grid for a blank tab. Records each
+   * tile's canvas rect in _tileRects so _onContentSelect can hit-test.
+   * Layout: 4 columns x 2 rows, centred; hostname prominent, title beneath.
+   */
+  _drawTopSites(ctx, w, h, col, entries) {
+    const cols = 4;
+    const gap = 20;
+    const tileW = Math.floor((w - gap * (cols + 1)) / cols);
+    const tileH = 150;
+    const rows = Math.ceil(entries.length / cols);
+    const gridH = rows * tileH + (rows - 1) * gap;
+    const top = Math.max(110, Math.floor((h - gridH) / 2) + 40);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = col.stateTitle;
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText(t('vr.content.topSites'), w / 2, top - 44);
+    ctx.fillStyle = col.stateDetail;
+    ctx.font = '17px sans-serif';
+    ctx.fillText(t('vr.content.empty'), w / 2, top - 12);
+
+    entries.slice(0, 8).forEach((entry, i) => {
+      const cx = gap + (i % cols) * (tileW + gap);
+      const cy = top + Math.floor(i / cols) * (tileH + gap);
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(cx, cy, tileW, tileH);
+      ctx.strokeStyle = '#3a3a5c';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx + 1, cy + 1, tileW - 2, tileH - 2);
+      this._tileRects.push({ x0: cx, y0: cy, x1: cx + tileW, y1: cy + tileH, url: entry.url });
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(truncate(entry.host || entry.url, 20), cx + tileW / 2, cy + 62, tileW - 16);
+      ctx.fillStyle = col.stateDetail;
+      ctx.font = '16px sans-serif';
+      const label = entry.title && entry.title !== entry.url ? entry.title : '';
+      if (label) {
+        ctx.fillText(truncate(label, 26), cx + tileW / 2, cy + 100, tileW - 16);
+      }
+    });
+  }
+
   _onContentSelect(evt) {
+    // Top-sites tiles take the 'empty' state (blank new tab).
+    if (this._contentState === 'empty' && this._tileRects.length) {
+      const p = evt?.intersection?.point ?? evt;
+      if (!p) {
+        return;
+      }
+      const local = this.contentMesh.worldToLocal(p.clone());
+      const contentH = PANEL_H * (1 - CHROME_H);
+      const px = (local.x / PANEL_W + 0.5) * this.contentCanvas.width;
+      const py = (0.5 - local.y / contentH) * this.contentCanvas.height;
+      const tile = this._tileRects.find((r) => px >= r.x0 && px <= r.x1 && py >= r.y0 && py <= r.y1);
+      if (tile) {
+        this.navigate(tile.url);
+      }
+      return;
+    }
     if (this._contentState !== 'reader' || !this.contentCanvas) {
       return;
     }
