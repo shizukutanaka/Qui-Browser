@@ -12,6 +12,7 @@ import { t } from '../../i18n/i18n.js';
 import { snapTurnLabel, fireTeleportFeedback } from '../comfort/ComfortSystem.js';
 import { firePanelReleaseFeedback } from '../browser/WindowManager.js';
 import { showCaption } from '../caption.js';
+import { haptic } from '../haptics.js';
 
 let _locoQ, _locoFwd, _locoRight, _locoMove;
 
@@ -152,9 +153,7 @@ export function updateButtonInput(app) {
       // Recenter: snap the player rig back to the origin.
       if (btn.thumbstickClick?.justPressed) {
         app.recenter();
-        if (app.hapticFeedback) {
-          app.hapticFeedback.playPattern(hand, 'click');
-        }
+        haptic(app, hand, 'click');
       }
 
     } else if (hand === utilityHand) {
@@ -196,8 +195,8 @@ export function snapTurn(app, direction, hand = null) {
   // Haptic confirmation on the triggering hand — same lightweight pulse as a
   // button click. Fires for all users: the turn always deserves tactile
   // acknowledgement regardless of whether it was animated.
-  if (app.hapticFeedback && hand) {
-    app.hapticFeedback.playPattern(hand, 'click');
+  if (hand) {
+    haptic(app, hand, 'click');
   }
 
   // Directional caption for caption-reliant users: the snap turn is always

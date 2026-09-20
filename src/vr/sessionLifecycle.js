@@ -10,6 +10,7 @@
 import { LayersSystem } from './rendering/LayersSystem.js';
 import { t } from '../i18n/i18n.js';
 import { showCaption } from './caption.js';
+import { haptic } from './haptics.js';
 
 export async function onVRSessionStart(app) {
   console.debug('VRApp: VR session started');
@@ -84,15 +85,11 @@ export async function onVRSessionStart(app) {
         }
       }
       // Haptic confirmation on pinch (lightweight click feel).
-      if (app.hapticFeedback) {
-        app.hapticFeedback.playPattern(hand, 'click');
-      }
+      haptic(app, hand, 'click');
     });
 
     app.handTracking.onGesture('grab', (hand) => {
-      if (app.hapticFeedback) {
-        app.hapticFeedback.playPattern(hand, 'impact');
-      }
+      haptic(app, hand, 'impact');
     });
 
     app.handTracking.onGesture('point', (hand, _gesture) => {

@@ -14,6 +14,7 @@ import { navigate } from './browserActions.js';
 import { getPrefs, largeTextScale } from '../../a11y/accessibility.js';
 import { t } from '../../i18n/i18n.js';
 import { showCaption } from '../caption.js';
+import { hapticBothHands } from '../haptics.js';
 
 export function buildBrowsingSystems(app) {
   if (app.tabManager) {
@@ -111,9 +112,7 @@ export function buildBrowsingSystems(app) {
     },
     onDeleteBookmark: () => {
       showCaption(app, t('vr.msg.bookmarkDeleted'));
-      if (app.hapticFeedback) {
-        app.hapticFeedback.playPatternBothHands('notification');
-      }
+      hapticBothHands(app, 'notification');
     },
     onTabChange: (tab) => {
       showCaption(app, t(tab === 'bookmarks' ? 'vr.bookmarks.tabBookmarks' : 'vr.bookmarks.tabHistory'));

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { setupRenderer, setupScene, setupCamera, setupVR } from './setupStages.js';
 import { initializeSystems } from './systemsLifecycle.js';
 import { updatePerformanceMonitor, adjustQuality } from './perfBudget.js';
+import { hapticBothHands } from './haptics.js';
 
 /**
  * The frame loop: staged boot (renderer → scene → camera → VR → systems), the
@@ -129,9 +130,7 @@ export function updateSystems(app, timestamp, xrFrame, dt) {
       // Parity with controller/pinch selection: confirm a hands-free gaze
       // activation on the non-visual channels too — a haptic click on any held
       // controller and a spatial click — so it isn't signalled by sight alone.
-      if (app.hapticFeedback) {
-        app.hapticFeedback.playPatternBothHands('click');
-      }
+      hapticBothHands(app, 'click');
       if (app.spatialAudio) {
         const pos = activated.getWorldPosition(new THREE.Vector3());
         app.spatialAudio.play('click', 'click', pos);
