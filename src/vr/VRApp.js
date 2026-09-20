@@ -29,7 +29,7 @@ import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { configureUITexture } from './ui/canvasTexture.js';
-import { canvasButton, controllerRay } from './ui/canvasMesh.js';
+import { controllerRay } from './ui/canvasMesh.js';
 import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -487,35 +487,6 @@ export class VRApp {
     }
 
     console.debug('VRApp: Scene created');
-  }
-
-  /**
-   * Return a shared PlaneGeometry of the given metre dimensions, creating it
-   * once and caching it for reuse. Settings-panel buttons of the same size
-   * share a single geometry rather than each allocating an identical GPU
-   * vertex buffer — a standard Three.js memory optimisation (identical
-   * geometries should be reused, not duplicated).
-   *
-   * Safe because the button meshes are only disposed at full teardown (via the
-   * scene.traverse in dispose()), where BufferGeometry.dispose() is idempotent.
-   *
-   * @param {number} w  width in metres
-   * @param {number} h  height in metres
-   * @returns {THREE.PlaneGeometry}
-   */
-  /**
-   * Shared scaffold for the canvas-textured settings buttons: allocates the
-   * canvas, a tracked texture, and a shared-geometry mesh. `draw(hover)`
-   * repaints; `mesh._redraw` restores the idle state after rebuilds.
-   */
-  _canvasButton(w, h, widthM) {
-    return canvasButton(this._sharedGeometries, this._panelTextures, w, h, widthM);
-  }
-
-  _registerCanvasButton(mesh, draw, handlers) {
-    this.registerInteractable(mesh, handlers);
-    mesh._redraw = () => draw(false);
-    return mesh;
   }
 
   // Context object handed to the ui/settingsButtons factories — keeps them

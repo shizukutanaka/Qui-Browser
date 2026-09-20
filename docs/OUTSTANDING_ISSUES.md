@@ -1229,6 +1229,20 @@ build 0.63s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.74s・vr-boot PASS。
 
+### 第40パス（抽出後の孤児再走査 + init⇄dispose 非対称走査）
+
+- ライフサイクル非対称: 全 this.X 代入フィールド × dispose() 参照を交差
+  → 実リークゼロ（scene.traverse が全 mesh の geometry/material を網羅、
+  _panelTextures/_homePanelTexture/_sharedGeometries/タイマー個別破棄済み、
+  a11y/controllerInput はリスナー非保持の純粋集約/読み取り器）。
+- 抽出で生まれた死 delegate を摘出: `_canvasButton` と
+  `_registerCanvasButton`（工場群が settingsButtons 内で直接
+  canvasButton/register を呼ぶため呼び出しゼロ）+ 孤立 JSDoc。
+- VRApp 2,287 → 2,269 行。
+
+計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
+build 0.7s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
