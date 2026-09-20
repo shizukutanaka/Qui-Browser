@@ -1840,3 +1840,6 @@ og:url・twitter:url が `qui-browser`（小文字）で Pages は `/Qui-Browser
 
 ### 第187パス（実修正 — noscript フォールバック）
 JS 無効時はヒーローは静的描画されるが Enter VR が無言で死んでいた → `role=alert` の noscript 通知を追加（日英併記）。sendBeacon/pagehide は GA4 内部処理で不要。
+
+### 第188パス（クリーンスキャン — エラー原因チェーン）
+`throw new` は HTTP status → Error の新規生成のみ（catch-再投げパターンなし）— `cause` 脱落経路ゼロ。
