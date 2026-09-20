@@ -24,11 +24,11 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
+import { notifyCrossModal, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl, hostnameCaption } from './browser/urlDisplay.js';
-import { configureUITexture } from './ui/canvasTexture.js';
+import { showVRToast } from './ui/vrToast.js';
 import { controllerRay } from './ui/canvasMesh.js';
 import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
@@ -500,77 +500,8 @@ export class VRApp {
    * @param {'error'|'warn'|'info'} [opts.type='error']
    * @param {number} [opts.duration=4000]  milliseconds before auto-dismiss
    */
-  showVRToast(message, { type = 'error', duration = 4000 } = {}) {
-    // Mirror to the hidden ARIA alert region unconditionally, before the
-    // VR-session guard below. Several subsystem-failure toasts (haptics,
-    // spatial audio) fire during initializeSystems() — before the user
-    // has entered VR at all — so gating the mirror on isVREnabled/camera the
-    // same way the 3D mesh is gated would silently drop them a second time.
-    this.semanticDOM?.announceAlert(withSeverity(message, type));
-
-    if (!this.isVREnabled || !this.camera) {
-      return;
-    }
-
-    const W = 512, H = 80;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    // Honour the high-contrast / large-text accessibility preferences (same
-    // signals as the 2D layer and the caption panel).
-    const c = toastColors(type, prefersHighContrast());
-    const fontPx = toastFontPx(largeTextScale(getPrefs().largeText));
-
-    ctx.fillStyle = c.bg;
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = c.bdr;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, W - 4, H - 4);
-    // Prefix a severity glyph so the level reads without relying on colour alone.
-    const labeled = withSeverity(message, type);
-    ctx.fillStyle = c.fg;
-    ctx.font = `bold ${fontPx}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    // Truncate by code point (not UTF-16 unit) so a long translated/Japanese
-    // toast can't be cut mid-surrogate-pair, leaving a broken � (see truncate()).
-    const labeledChars = Array.from(labeled);
-    const shown = labeledChars.length > 60
-      ? labeledChars.slice(0, 57).join('') + '…'
-      : labeled;
-    ctx.fillText(shown, W / 2, H / 2);
-
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-
-    const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.55, 0.085),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false })
-    );
-    // Centred slightly below eye level, 0.8 m in front.
-    mesh.position.set(0, -0.12, -0.8);
-    mesh.renderOrder = 999; // always on top
-    this.camera.add(mesh);
-
-    // Track the auto-dismiss timer so dispose() can clear it; otherwise the
-    // callback fires later against a torn-down VRApp (null camera, freed GPU
-    // resources) and produces a console error in tests / hot-reload / SPA nav.
-    const timer = setTimeout(() => {
-      this._toastTimers.delete(timer);
-      if (this.camera) {
-        this.camera.remove(mesh);
-      }
-      mesh.geometry.dispose();
-      tex.dispose();
-      mesh.material.dispose();
-    }, duration);
-    this._toastTimers.add(timer);
-
-    // Accessibility equity: a toast must never be conveyed by sight alone, so
-    // mirror it onto every available non-visual channel (haptic + captions).
-    // The caption gets the same severity-labelled text the panel shows.
-    notifyCrossModal(this.hapticFeedback, this.captionSystem, labeled, type);
+  showVRToast(message, opts = {}) {
+    return showVRToast(this, message, opts);
   }
 
   /**

@@ -1270,6 +1270,19 @@ build 0.7s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 92 warnings（0 errors）・
 build 4.5s（再起動後コールドキャッシュ）・vr-boot PASS。
 
+### 第43パス（C-1 追加スライス: vrToast 抽出）
+
+- `src/vr/ui/vrToast.js` 新設: showVRToast（71行）を `showVRToast(app, …)`
+  として移動 — トーストは dispatch ではなく自己完結した通知機能
+  （canvas 描画 + ARIA alert ミラー + haptic/caption 3ch 送出）。
+  _toastTimers は app フィールドのまま（dispose() が pending 解除を継続）。
+- 連鎖孤児: VRApp 側 configureUITexture/toastColors/toastFontPx/
+  withSeverity import 除去。
+- VRApp 2,128 → 2,059 行（−69行）。C-1 累計 −1,195行（3,254→2,059）。
+
+計測: 43 suites / 1,343 tests・lint 92 warnings（0 errors）・
+build 0.84s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
