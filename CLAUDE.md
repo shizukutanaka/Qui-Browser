@@ -278,7 +278,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **削除**: `makeToggleButton`（~55行・呼び出しゼロの死コード）削除、docstring は compact 版へ統合。navigate() の古い docstring（削除済み AI 推薦機能の記述）と enableWebPanel の stale コメント（PR #47 で即時適用化済みなのに「リロード必要」と書いていた）も訂正。
 - 🔍 **実測（CI）**: main 最新（PR #56）の走行ログを取得 — jest **1480 PASS なのにジョブ赤**（Java 用 jacoco-badge-generator が jacoco.csv 不在で fail）、test-integration は削除済みテストファイルを参照、build matrix に engines 違反の Node 16。`.github/workflows/**` は push 不可（K-1）なので `docs/patches/0002-ci-remove-dead-steps.patch` として同梱（`git apply --check` で origin/main へクリーン適用確認）。
 - ⚖️ **発見・未修正**: SW が2経路で発散 — vercel（`outputDirectory:"."`）は root `service-worker.js`、vite は `public/service-worker.js`、さらに `public/sw.js`（pwa.js が登録）は vercel 配信では 404。OUTSTANDING_ISSUES F-4 に記録。
-- Total 1484 tests (47 suites); 0 lint errors / 134 warnings; `format:check` PASS; build green。
+- ✨ **feat: セッション復元**（F-4・同一 PR に追加）。`TabManager.serialize()/restoreSession()` + VRApp が `qui-browser:sessionTabs` に navigate/close/activate で保存、`_buildBrowsingSystems` で復元。**private 連携の盲点を塞いだ**: 保存側の `privateBrowsing` ゲートだけでは「ON→タブ開く→OFF→navigate」で private URL が漏れるため、タブごとの `privateSession` フラグで serialize から除外する二重防御。restore 再生中は `_restoringSession` で履歴再書き込み・session save・activate caption を全部止める（8タブ復元で caption 8連発を防止）。
+- 🔍 **発見（CI 追補）**: PR #58 の CI で確認 — 私の lockfile 修正後 `npm ci` は ubuntu で正常（475pkg/6s）・**Lint ジョブは初の緑**。残る赤はすべてベースラインの workflow 欠陥（patch 0001/0002 が対象）。
+- Total 1494 tests (47 suites); 0 lint errors / 134 warnings; `format:check` PASS; build green。
 
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 

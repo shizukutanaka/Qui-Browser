@@ -186,7 +186,9 @@ describe('TabManager (FR-1.3)', () => {
 
   test('does not exceed MAX_TABS (8)', () => {
     const tm = makeManager();
-    for (let i = 0; i < 10; i++) tm.newTab();
+    for (let i = 0; i < 10; i++) {
+      tm.newTab();
+    }
     expect(tm.count).toBe(8);
   });
 
@@ -199,7 +201,9 @@ describe('TabManager (FR-1.3)', () => {
       onNavigate: jest.fn(),
       onMaxTabsReached
     });
-    for (let i = 0; i < 8; i++) tm.newTab();
+    for (let i = 0; i < 8; i++) {
+      tm.newTab();
+    }
     expect(onMaxTabsReached).not.toHaveBeenCalled();
 
     const blocked = tm.newTab();
@@ -210,7 +214,9 @@ describe('TabManager (FR-1.3)', () => {
 
   test('does not throw when onMaxTabsReached is omitted and the cap is hit', () => {
     const tm = makeManager(); // no onMaxTabsReached in opts
-    for (let i = 0; i < 8; i++) tm.newTab();
+    for (let i = 0; i < 8; i++) {
+      tm.newTab();
+    }
     expect(() => tm.newTab()).not.toThrow();
   });
 
@@ -392,5 +398,77 @@ describe('TabManager.setReaderProxyUrl', () => {
     tm.setReaderProxyUrl('http://p:8080');
     tm.setReaderProxyUrl(null);
     expect(panelInstances[0].readerProxyUrl).toBe('');
+  });
+});
+
+describe('TabManager session persistence (F-4)', () => {
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
+
+  test('serialize() captures URL-bearing tabs and marks the active one', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example/');
+    tm.newTab('https://b.example/');
+    tm.newTab('https://c.example/');
+    tm.setActive(1);
+    expect(tm.serialize()).toEqual([
+      { url: 'https://a.example/', active: false },
+      { url: 'https://b.example/', active: true },
+      { url: 'https://c.example/', active: false }
+    ]);
+  });
+
+  test('serialize() skips blank tabs — restoring a "New Tab" restores nothing', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example/');
+    tm.newTab(); // blank
+    const saved = tm.serialize();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].url).toBe('https://a.example/');
+  });
+
+  test('tabs opened under setPrivateMode(true) never enter serialize()', () => {
+    // Otherwise toggling private mode off later would leak private URLs into
+    // the persisted session snapshot.
+    const tm = makeManager();
+    tm.newTab('https://normal.example/');
+    tm.setPrivateMode(true);
+    tm.newTab('https://secret.example/');
+    tm.setPrivateMode(false);
+    expect(tm.serialize().map((e) => e.url)).toEqual(['https://normal.example/']);
+  });
+
+  test('restoreSession() re-opens saved URLs and lands on the active tab', () => {
+    const tm = makeManager();
+    const n = tm.restoreSession([
+      { url: 'https://a.example/' },
+      { url: 'https://b.example/', active: true },
+      { url: 'https://c.example/' }
+    ]);
+    expect(n).toBe(3);
+    expect(tm.count).toBe(3);
+    expect(tm.getActiveTab().currentUrl).toBe('https://b.example/');
+    expect(panelInstances.slice(0, 3).map((p) => p.currentUrl)).toEqual([
+      'https://a.example/',
+      'https://b.example/',
+      'https://c.example/'
+    ]);
+  });
+
+  test('restoreSession() ignores malformed entries and caps at MAX_TABS', () => {
+    const tm = makeManager();
+    const entries = Array.from({ length: 12 }, (_, i) => ({ url: `https://x${i}.example/` }));
+    expect(tm.restoreSession(entries)).toBe(8);
+    expect(tm.restoreSession([{ url: '' }, null, 'nope', {}])).toBe(0);
+    expect(tm.count).toBe(8);
+  });
+
+  test('restoreSession() on empty/garbage input is a no-op', () => {
+    const tm = makeManager();
+    expect(tm.restoreSession([])).toBe(0);
+    expect(tm.restoreSession(null)).toBe(0);
+    expect(tm.restoreSession('{}')).toBe(0);
+    expect(tm.count).toBe(0);
   });
 });

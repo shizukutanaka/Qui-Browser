@@ -246,7 +246,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
 - ~~**プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無~~ — **Session 75 で実装**。`settings.privateBrowsing`（既定 OFF）を `navigate()` が読み、`ON 時は履歴書き込みを完全にスキップ`（dedupe/visits 更新も発生しない）。設定パネルの Browsing セクションに `Private Mode` トグル追加（i18n en/ja、即時適用・リロード不要）。4テスト追加・pre-fix で2件失敗を確認済み
-- **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
+- ~~**セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）~~ — **Session 75 で実装**。`TabManager.serialize()/restoreSession()`（`{url,active}` 配列・MAX_TABS 上限・malformed 入力は skip）+ VRApp が `qui-browser:sessionTabs` に navigate/close/activate ごと保存・`_buildBrowsingSystems` で復元（なければ blank tab）。**private 連携**: `setPrivateMode(true)` 中に開いたタブは `panel.privateSession` で serialize から除外（private ON→tab 開く→OFF→navigate でも漏れない）＋ `_saveSession` は private ON 中・restore 再生中ともに書き込まず、restore された tab の navigate は履歴にも再書き込みしない。10テスト追加・pre-fix 失敗確認済み
 - **Stop（読み込み中断）**: `loading=true` を解除できるのは onload/onerror のみ
 - **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
 - ~~**`scroll-down`/`scroll-up` の二重登録**~~ — **解消済み**（Session 74 以前）。`VoiceCommands.js:365` の NOTE どおり `connectBrowser()` でのみ登録される。重複は存在しない

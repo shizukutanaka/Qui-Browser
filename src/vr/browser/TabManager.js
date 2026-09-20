@@ -56,6 +56,7 @@ export class TabManager {
     this.tabs = [];
     this.activeIndex = -1;
     this._curved = false; // curved-screen preference, applied to every tab
+    this._private = false; // private-browsing flag for newly opened tabs
 
     /**
      * One managed transform for the whole browser window.
@@ -260,6 +261,9 @@ export class TabManager {
     if (this._curved && panel.setCurved) {
       panel.setCurved(true);
     }
+    // Tabs opened while private mode is on are excluded from serialize() so a
+    // private visit can never be written into the persisted session snapshot.
+    panel.privateSession = this._private;
     this.setActive(this.tabs.length - 1);
 
     if (url) {
@@ -349,6 +353,60 @@ export class TabManager {
         panel.setSearchEngine(engine);
       }
     });
+  }
+
+  /**
+   * Mark tabs opened while private browsing is on so serialize() can skip
+   * them — a private visit must never reach the persisted session snapshot,
+   * even indirectly (e.g. private ON → open tab → private OFF → navigate).
+   * @param {boolean} value
+   */
+  setPrivateMode(value) {
+    this._private = !!value;
+    return this._private;
+  }
+
+  /**
+   * Snapshot the open tabs for session persistence: [{url, active}], with
+   * blank and private-mode tabs omitted. Restore order = tab order.
+   */
+  serialize() {
+    const entries = [];
+    this.tabs.forEach((panel, i) => {
+      if (panel.currentUrl && !panel.privateSession) {
+        entries.push({ url: panel.currentUrl, active: i === this.activeIndex });
+      }
+    });
+    return entries;
+  }
+
+  /**
+   * Re-open tabs from a serialize() snapshot. Entries are capped at MAX_TABS
+   * and malformed ones skipped; the stored `active` flag wins. Returns the
+   * number of tabs restored.
+   */
+  restoreSession(entries) {
+    if (!Array.isArray(entries)) {
+      return 0;
+    }
+    let restored = 0;
+    let restoreActive = -1;
+    for (const entry of entries.slice(0, MAX_TABS)) {
+      if (!entry || typeof entry.url !== 'string' || !entry.url) {
+        continue;
+      }
+      const panel = this.newTab(entry.url);
+      if (panel) {
+        restored++;
+        if (entry.active) {
+          restoreActive = this.tabs.length - 1;
+        }
+      }
+    }
+    if (restoreActive >= 0) {
+      this.setActive(restoreActive);
+    }
+    return restored;
   }
 
   /**

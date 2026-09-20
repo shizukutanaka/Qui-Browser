@@ -51,7 +51,7 @@ global.document = {
 };
 
 const THREE = require('three');
-const { VRApp } = require('../src/vr/VRApp.js');
+const { VRApp, SESSION_KEY } = require('../src/vr/VRApp.js');
 
 function makeGroup() {
   return { position: { set: jest.fn() }, quaternion: { identity: jest.fn() } };
@@ -85,6 +85,7 @@ function makeVRAppLike(overrides = {}) {
     // (binding VRApp.prototype instead would activate VRApp's own accessors,
     // which delegate to an `a11y` coordinator this fixture does not build).
     _attachManagedWindow: VRApp.prototype._attachManagedWindow,
+    _saveSession: VRApp.prototype._saveSession,
     ...overrides
   };
 }
@@ -1203,5 +1204,78 @@ describe('the browsing default', () => {
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
     expect(src).toMatch(/enableWebPanel:\s*true,/);
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
+  });
+});
+
+describe('VRApp session persistence', () => {
+  // F-4: closing the app used to lose the whole tab set — a data-loss class
+  // problem for a browser. TabManager.serialize()/restoreSession() carry the
+  // tab list; VRApp persists it to localStorage and gates both writes and
+  // history-recording so private-mode tabs leave no trace.
+  let store;
+  beforeEach(() => {
+    store = {};
+    global.localStorage = {
+      getItem: jest.fn((k) => (k in store ? store[k] : null)),
+      setItem: jest.fn((k, v) => {
+        store[k] = String(v);
+      }),
+      removeItem: jest.fn((k) => {
+        delete store[k];
+      })
+    };
+  });
+  afterEach(() => {
+    delete global.localStorage;
+  });
+
+  const makeSessionApp = (extra = {}) =>
+    makeVRAppLike({
+      settings: { privateBrowsing: false },
+      bookmarks: { addHistory: jest.fn() },
+      tabManager: null,
+      _restoringSession: false,
+      ...extra
+    });
+
+  test('navigate() persists the current tab snapshot', () => {
+    const snapshot = [{ url: 'https://a.example/', active: true }];
+    const app = makeSessionApp({ tabManager: { serialize: () => snapshot } });
+    VRApp.prototype.navigate.call(app, 'https://a.example/', 'A');
+    expect(localStorage.setItem).toHaveBeenCalledWith(SESSION_KEY, JSON.stringify(snapshot));
+  });
+
+  test('private mode skips the session write — private tabs never reach localStorage', () => {
+    const app = makeSessionApp({
+      settings: { privateBrowsing: true },
+      tabManager: { serialize: jest.fn(() => []) }
+    });
+    VRApp.prototype.navigate.call(app, 'https://a.example/', 'A');
+    expect(localStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  test('restore re-opens stored tabs and re-navigations do not re-write history', () => {
+    store[SESSION_KEY] = JSON.stringify([{ url: 'https://a.example/' }, { url: 'https://b.example/', active: true }]);
+    const app = makeSessionApp({
+      tabManager: {
+        // Mirror the real flow: restoreSession calls newTab(url) per entry,
+        // each WebPanel.navigate fires onNavigate → app.navigate.
+        restoreSession(entries) {
+          entries.forEach((e) => VRApp.prototype.navigate.call(app, e.url, e.url));
+          return entries.length;
+        }
+      }
+    });
+    const restored = VRApp.prototype._restoreSession.call(app);
+    expect(restored).toBe(2);
+    expect(app.bookmarks.addHistory).not.toHaveBeenCalled();
+    expect(app._restoringSession).toBe(false); // flag always released
+  });
+
+  test('_restoreSession() returns 0 on missing/corrupt storage so a blank tab opens instead', () => {
+    const app = makeSessionApp({ tabManager: { restoreSession: jest.fn(() => 0) } });
+    expect(VRApp.prototype._restoreSession.call(app)).toBe(0);
+    store[SESSION_KEY] = '{not json';
+    expect(VRApp.prototype._restoreSession.call(app)).toBe(0);
   });
 });

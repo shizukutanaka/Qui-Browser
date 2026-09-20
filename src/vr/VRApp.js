@@ -82,6 +82,9 @@ import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsL
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
 
+// localStorage key for the persisted open-tab snapshot (session restore).
+export const SESSION_KEY = 'qui-browser:sessionTabs';
+
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
  * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
@@ -148,6 +151,7 @@ export class VRApp {
     this.voiceCommands = null;
     this.webPanel = null;
     this.tabManager = null;
+    this._restoringSession = false;
     this.windowManager = null;
     this.bookmarkPanel = null;
     this.devTools = null;
@@ -825,12 +829,19 @@ export class VRApp {
         return nowBookmarked;
       },
       onTabActivate: (url) => {
+        this._saveSession();
+        // Skip the caption during session restore — re-opening N tabs would
+        // otherwise queue N "Tab: host" announcements at once.
+        if (this._restoringSession) {
+          return;
+        }
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
           this.captionSystem.show(`Tab: ${label}`);
         }
       },
       onTabClose: () => {
+        this._saveSession();
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(t('vr.msg.tabClosed'));
         }
@@ -862,10 +873,15 @@ export class VRApp {
       }
     });
     this.tabManager.addToScene();
+    this.tabManager.setPrivateMode(this.settings.privateBrowsing);
     if (this.settings.enableCurvedPanel) {
       this.tabManager.setCurved(true);
     }
-    this.tabManager.newTab(); // start with one blank tab
+    // Reopen the persisted session; fall back to one blank tab when there is
+    // nothing to restore (first run, private-only session, corrupt data).
+    if (!this._restoreSession()) {
+      this.tabManager.newTab();
+    }
     // Convenience alias: the active tab's panel.
     this.webPanel = this.tabManager.getActiveTab();
 
@@ -1506,9 +1522,10 @@ export class VRApp {
       // in place — in a headset, "reload the page" means taking the device off,
       // so a toggle that only lands on next load is a toggle nobody can use.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
-      // Private mode needs no apply callback: navigate() reads the setting
-      // live on every load, so the persisted flip is the entire effect.
-      [t('vr.settings.privateMode'), 'privateBrowsing'],
+      // navigate() reads the setting live on every load; the apply callback
+      // propagates it to TabManager so tabs opened while private are excluded
+      // from the persisted session snapshot too.
+      [t('vr.settings.privateMode'), 'privateBrowsing', (v) => this.tabManager?.setPrivateMode(v)],
       [
         t('vr.settings.followView'),
         'enableWindowFollow',
@@ -3417,15 +3434,62 @@ export class VRApp {
    * page (FR-1.1 prerequisite infrastructure).
    */
   navigate(url, title = url) {
-    if (!this.settings.privateBrowsing) {
+    if (!this.settings.privateBrowsing && !this._restoringSession) {
       this.bookmarks.addHistory(url, title);
     }
+    this._saveSession();
     // Caption the page title so caption-enabled users who aren't looking at the
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
     if (this.captionSystem && this.captionSystem.enabled) {
       const label = title !== url ? title : hostnameCaption(url);
       this.captionSystem.show(label);
+    }
+  }
+
+  /**
+   * Persist the open-tab snapshot so a restart reopens it (F-4 session
+   * restore). Skipped while a restore is replaying (restored navigations are
+   * not new visits) and while private mode is on — the per-tab
+   * `privateSession` flag in TabManager is the belt to this suspenders.
+   */
+  _saveSession() {
+    if (this._restoringSession || this.settings.privateBrowsing || !this.tabManager) {
+      return;
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(this.tabManager.serialize()));
+      }
+    } catch (e) {
+      console.warn('VRApp: session save failed', e);
+    }
+  }
+
+  /**
+   * Re-open the tabs saved by _saveSession(). Returns the number restored —
+   * 0 means no usable snapshot, so callers should open a blank tab instead.
+   */
+  _restoreSession() {
+    if (!this.tabManager) {
+      return 0;
+    }
+    let entries = [];
+    try {
+      if (typeof localStorage !== 'undefined') {
+        entries = JSON.parse(localStorage.getItem(SESSION_KEY) || '[]');
+      }
+    } catch (e) {
+      entries = [];
+    }
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return 0;
+    }
+    this._restoringSession = true;
+    try {
+      return this.tabManager.restoreSession(entries);
+    } finally {
+      this._restoringSession = false;
     }
   }
 
