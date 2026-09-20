@@ -1131,3 +1131,34 @@ describe('the browsing default', () => {
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
   });
 });
+
+describe('VRApp.navigate — private mode records no history', () => {
+  const makeNavApp = (privateMode) => makeVRAppLike({
+    bookmarks: { addHistory: jest.fn() },
+    settings: { privateMode },
+    captionSystem: { enabled: true, show: jest.fn(), update: jest.fn() }
+  });
+
+  test('records the visit when private mode is off', () => {
+    const app = makeNavApp(false);
+    VRApp.prototype.navigate.call(app, 'https://example.com', 'Example');
+    expect(app.bookmarks.addHistory).toHaveBeenCalledWith('https://example.com', 'Example');
+  });
+
+  test('records nothing when private mode is on, but still captions the title', () => {
+    const app = makeNavApp(true);
+    VRApp.prototype.navigate.call(app, 'https://example.com', 'Example');
+    expect(app.bookmarks.addHistory).not.toHaveBeenCalled();
+    // Suppressing the caption would silence the ambient channel for the same
+    // user — private mode governs recording, not feedback.
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Example');
+  });
+
+  test('the toggle ships in the browsing settings section', () => {
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
+    );
+    expect(src).toMatch(/privateMode:\s*false,/);
+    expect(src).toMatch(/'privateMode'/);
+  });
+});

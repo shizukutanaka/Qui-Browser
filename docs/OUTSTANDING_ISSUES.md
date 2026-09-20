@@ -245,11 +245,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
-- **プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無（事後消去のみ）。真偽値ゲート1つ+設定トグルで実装可能
+- ~~**プライベートモード**~~ — **完了（Session 75）**: `settings.privateMode`（既定 OFF）が `navigate()` の `addHistory` をゲート。Browsing セクションにトグル（en/ja 済み）、キャプションは維持。なお記述の `trackVisit` は AI レコメンド自体が Session 74 の削除で消えており、実際の記録経路は `addHistory` のみだった — navigate のドキュメントも訂正済み
 - **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
 - **Stop（読み込み中断）**: `loading=true` を解除できるのは onload/onerror のみ
 - **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
-- **`scroll-down`/`scroll-up` の二重登録**: `VoiceCommands.js:366` と `:605` で同一キーを登録（`Map.set` なので後者が勝つ）。前者は `window.scrollBy` で没入時には無意味。害は無いが混乱の元
+- ~~**`scroll-down`/`scroll-up` の二重登録**~~ — コード上は解消済み（`VoiceCommands.js:365` の NOTE 参照。没入時に無意味な `window.scrollBy` 側は削除済みで `connectBrowser` 登録のみ残る）
 
 ---
 

@@ -110,6 +110,7 @@ const CATALOG = {
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360° Video',
     'vr.settings.clearHistory': 'Clear History',
+    'vr.settings.privateMode': 'Private Mode',
     'vr.settings.bookmarks': 'Bookmarks',
     // VR Settings Panel Values
     'vr.value.on': 'ON',
@@ -252,6 +253,7 @@ const CATALOG = {
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360°ビデオ',
     'vr.settings.clearHistory': '履歴を消去',
+    'vr.settings.privateMode': 'プライベートモード',
     'vr.settings.bookmarks': 'ブックマーク',
     // VR Settings Panel Values
     'vr.value.on': 'オン',
