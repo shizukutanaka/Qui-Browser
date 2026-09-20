@@ -380,6 +380,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: package.json の全依存 × 全文書・ソース・設定・スクリプト照合 → **`core-js` が完全に死んだ依存**（`.babelrc`/`babel.config.js` に `useBuiltIns` 無し、vite の legacy plugin はコメントアウト、import ゼロ）→ `npm uninstall`。**`@tensorflow/tfjs` は `optimizeDeps.exclude` にだけ存在する幻**（インストールすらされていない — 旧手トラッキング実装の残滓）→ vite.config.js から除去。逆方向も実測: settings の33キーは全て生存（21件は `byKey` 文字列経由の動的参照 —— 直読み走査の誤検出で訂正）、テストだけが呼ぶメソッドも 0 件。`@babel/core` は babel-jest が内部 `require` する正当なエンジン依存（allowlist 理由を pin 内に明記）。
 - ✅ **pin**: `tests/no-dead-dependencies.test.js` 新設 — 全依存が src/tests/tools/proxy/public/設定/HTML/スクリプトの何れかに名前を持つことを assert。1838 tests、lint 0 errors、build green、verify:docs PASS。
 
+#### 続き24（同セッション）: リーダープロキシの実動実測 + ES モジュール警告解消
+- 🔍 **実測（ランタイム）**: `npm run proxy` を実起動し全ガードを live curl で検証 — `/health` OK、`localhost`→`port-not-allowed`、`169.254.169.254`（メタデータ）→`host-blocked:link-local`、`127.0.0.1`→`loopback`、`ftp:`→`scheme-not-allowed`、POST→405、`url` 無し→400、実 fetch（example.com）→200 で本文返却。**SSRF ガードはユニットテストだけでなく実サーバで機能**。同時に発見: `proxy/*.js` は ESM 構文だが package.json に `type` が無く、起動毎に Node の `MODULE_TYPELESS_PACKAGE_JSON` 再パース警告が出ていた。
+- 🧹 **fix**: `proxy/package.json` に `{"type":"module"}` を追加 — ルートに置くと jest/tests を巻き込むため proxy/ 限定のスコープ付き宣言（ssrf-guard.test.js 51件・全スイート 56 で非破壊を実測）。
+- ✅ 1838 tests (56 suites)、lint 0 errors、build green、verify:docs PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
