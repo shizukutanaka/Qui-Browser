@@ -1843,3 +1843,6 @@ JS 無効時はヒーローは静的描画されるが Enter VR が無言で死�
 
 ### 第188パス（クリーンスキャン — エラー原因チェーン）
 `throw new` は HTTP status → Error の新規生成のみ（catch-再投げパターンなし）— `cause` 脱落経路ゼロ。
+
+### 第189パス（クリーンスキャン — AbortController ライフサイクル）
+両 fetch 経路は呼出毎に新規 AbortController + 5s timeout + finally clear — abort 済み signal 再利用・リーク経路ゼロ。
