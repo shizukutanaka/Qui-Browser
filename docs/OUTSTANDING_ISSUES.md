@@ -1747,3 +1747,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第156パス（クリーンスキャン — southpaw ハンド割当）
 `settings.southpaw` は updateLocomotion が毎フレーム turnHand/moveHand/pointerHand/utilityHand を解決 — 即時反映・入替一貫。割当バグ経路なし。
+
+### 第157パス（クリーンスキャン — リスナー積増）
+addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/webglcontext）— 再描画・再生成経路内での重複登録経路なし。
