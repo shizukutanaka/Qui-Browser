@@ -1717,3 +1717,6 @@ innerHTML は全て静的テンプレートか数値のみ（DevTools タブ/per
 
 ### 第146パス（クリーンスキャン — gamepad 軸マッピング）
 `AXES_MAPS` はデバイスファミリ別（Quest/Pico/Index/Vive/WMR/generic）で標準レイアウト正確、radial dead zone は再正規化付きで cliff なし。speechSynthesis/vibrate 不使用。マッピング罠ゼロ。
+
+### 第147パス（クリーンスキャン — userData 名前空間）
+userData キーはオブジェクト種別ごとに専有（controller: inputSource/snapLatched/hovered — 全て inputRouting 単一書込、key mesh: keyTex/keyActive 等）— 同一キーの別用途衝突なし。
