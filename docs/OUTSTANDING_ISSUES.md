@@ -1651,3 +1651,6 @@ WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src ht
 
 ### 第124パス（クリーンスキャン — XR 入力端ケース）
 `handedness === 'none'` は HandTracking で明示ガード、updateLocomotion の stickX/Y はデフォルト値で axes 欠損安全、`joints.get`/`hand.get`/`getJointPose` は全て null ガード済み。音声/画面入力や欠損ジョイントでの null 参照経路ゼロ。
+
+### 第125パス（実修正 — renderer 設定の嘘コメントと計測不能コスト）
+① `antialias:false` の「use FXAA/TAA instead」は実装なしの嘘 → 真実（XR の MSAA は XR layer 由来）に修正。② **`logarithmicDepthBuffer=true` は全フラグメントに gl_FragDepth を書き Quest Adreno の early-z/depth 圧縮を無効化する常時コスト** — シーン（UI ~1m・床）は coplanar 面を持たず z-fighting 根拠なし、0.1–1000 の精度も標準深度で十分 → 削除してコメントで根拠を明記（未計測の投機的最適化の撤去）。WebGLRenderTarget dispose 対称は完璧。

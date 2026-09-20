@@ -23,7 +23,7 @@ import { notifyCrossModal, controllerDisconnectMessage, controllerReconnectMessa
 
 export function setupRenderer(app) {
   app.renderer = new THREE.WebGLRenderer({
-    antialias: false,  // Disabled for performance (use FXAA/TAA instead)
+    antialias: false,  // Mirror-canvas only: XR MSAA comes from the XR layer
     powerPreference: 'high-performance',
     preserveDrawingBuffer: false,
     stencil: false  // Disabled if not needed
@@ -34,8 +34,10 @@ export function setupRenderer(app) {
   app.renderer.shadowMap.enabled = false; // Expensive, disable by default
   app.renderer.xr.enabled = true;
 
-  // Optimization: Use logarithmic depth buffer for better precision
-  app.renderer.logarithmicDepthBuffer = true;
+  // No logarithmicDepthBuffer: it writes gl_FragDepth per fragment, which
+  // disables early-z rejection on tiled mobile GPUs (Quest Adreno) for the
+  // whole scene. The scene's geometry (UI panels ~1 m, floor) never approaches
+  // coplanar, so the 0.1–1000 depth range has ample precision without it.
 
   app.container.appendChild(app.renderer.domElement);
 
