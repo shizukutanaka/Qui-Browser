@@ -1720,3 +1720,6 @@ innerHTML は全て静的テンプレートか数値のみ（DevTools タブ/per
 
 ### 第147パス（クリーンスキャン — userData 名前空間）
 userData キーはオブジェクト種別ごとに専有（controller: inputSource/snapLatched/hovered — 全て inputRouting 単一書込、key mesh: keyTex/keyActive 等）— 同一キーの別用途衝突なし。
+
+### 第148パス（クリーンスキャン — インプレース配列破壊）
+`.sort`/`.splice` は全て所有配列のみ（byUrl.values() の spread 新配列・this.tabs・interactables・履歴）— 共有参照を呼出側配列ごと書き換える経路ゼロ。
