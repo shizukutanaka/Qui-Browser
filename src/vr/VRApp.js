@@ -6,24 +6,19 @@
  */
 
 import * as THREE from 'three';
-import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
-import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { ComfortSystem, resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
-import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
-import { VRControllerInput } from './input/VRControllerInput.js';
 import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
-import { notifyCrossModal, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl, hostnameCaption } from './browser/urlDisplay.js';
@@ -41,6 +36,7 @@ import { detectVideoFormat } from './media/videoProjection.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
+import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
 import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
@@ -297,6 +293,26 @@ export class VRApp {
   /**
    * Initialize VR application
    */
+  setupRenderer() {
+    return setupRenderer(this);
+  }
+
+  setupScene() {
+    return setupScene(this);
+  }
+
+  setupCamera() {
+    return setupCamera(this);
+  }
+
+  setupControllers() {
+    return setupControllers(this);
+  }
+
+  setupVR() {
+    return setupVR(this);
+  }
+
   async initialize() {
     console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
 
@@ -327,151 +343,10 @@ export class VRApp {
   /**
    * Setup WebGL renderer
    */
-  setupRenderer() {
-    this.renderer = new THREE.WebGLRenderer({
-      antialias: false,  // Disabled for performance (use FXAA/TAA instead)
-      powerPreference: 'high-performance',
-      preserveDrawingBuffer: false,
-      stencil: false  // Disabled if not needed
-    });
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.shadowMap.enabled = false; // Expensive, disable by default
-    this.renderer.xr.enabled = true;
-
-    // Optimization: Use logarithmic depth buffer for better precision
-    this.renderer.logarithmicDepthBuffer = true;
-
-    this.container.appendChild(this.renderer.domElement);
-
-    // WebGL context loss handling.
-    //
-    // On Quest the GPU context can be reclaimed when the system menu opens,
-    // the headset sleeps, another XR app takes over, or memory pressure forces
-    // a reset. Without `preventDefault()` on the lost event, Three.js cannot
-    // restore the context — the user sees a frozen / black scene with no
-    // explanation. Stopping the animation loop while the context is gone
-    // avoids per-frame WebGL errors that would otherwise spam the console.
-    //
-    // Listeners are stored on `this` so dispose() can remove them, and so
-    // setupRenderer() can be re-called safely in tests / hot reload.
-    this._onWebGLContextLost = (event) => {
-      event.preventDefault(); // critical — without this, restore never fires
-      console.warn('VRApp: WebGL context lost; pausing render loop until restored');
-      if (this.renderer) {
-        this.renderer.setAnimationLoop(null);
-      }
-      // notifyCrossModal handles missing subsystems gracefully (early in init
-      // the captions/haptic may not yet exist).
-      notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextLostMessage(), 'warn');
-    };
-    this._onWebGLContextRestored = () => {
-      console.debug('VRApp: WebGL context restored; resuming render loop');
-      if (this.renderer && this._renderBound) {
-        this.renderer.setAnimationLoop(this._renderBound);
-      }
-      notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextRestoredMessage(), 'info');
-    };
-    this.renderer.domElement.addEventListener('webglcontextlost',     this._onWebGLContextLost, false);
-    this.renderer.domElement.addEventListener('webglcontextrestored', this._onWebGLContextRestored, false);
-
-    // Window resize / DPI change.
-    //
-    // setSize() and camera.aspect were only set once at construction, so the
-    // 2D / desktop preview (before entering VR) stretched on a window resize,
-    // an orientation change, or a DPI shift (e.g. dragging across displays).
-    // While an immersive XR session is active Three.js drives sizing through
-    // the xr binding; outside that, we own it.
-    //
-    // The handler is debounced (150 ms quiet window) per the JP dev community
-    // resize-event guidance — browsers can fire dozens of events per drag,
-    // and reallocating the drawing buffer on each one is wasteful. The pending
-    // trailing-edge call is dropped on dispose() so it can't fire on a freed
-    // renderer.
-    this._onWindowResize = debounce(() => {
-      // Skip while presenting — WebXR owns the framebuffer size in that mode.
-      if (this.renderer.xr && this.renderer.xr.isPresenting) {
-        return;
-      }
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.setSize(w, h);
-      if (this.camera) {
-        this.camera.aspect = w / h;
-        this.camera.updateProjectionMatrix();
-      }
-    }, 150);
-    window.addEventListener('resize', this._onWindowResize);
-
-    console.debug('VRApp: Renderer initialized');
-  }
 
   /**
    * Setup scene
    */
-  setupScene() {
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111); // Dark for battery savings
-
-    // Simple ambient light (cheap)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    this.scene.add(ambientLight);
-
-    // Single directional light (for basic shading)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
-    directionalLight.position.set(5, 10, 5);
-    this.scene.add(directionalLight);
-
-    // Default home environment so entering VR shows a grounded space (and a
-    // static rest frame) rather than an empty void.
-    this.homeEnvironment = this.createHomeEnvironment();
-    this.scene.add(this.homeEnvironment);
-
-    // Immersive 360°/180° video player. Lightweight until play() is called
-    // (no video element or sphere is created up front), so it is always
-    // available and launched on demand from the settings panel.
-    this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
-      registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onError: (msg) => this.showVRToast(msg, { type: 'error' }),
-      onPlaybackChange: (state) => {
-        // Guard: session-end cleanup calls stop() with isVREnabled=false; those
-        // are not user-initiated actions and should not produce status messages.
-        if (!this.isVREnabled) {
-          return;
-        }
-        if (this.captionSystem && this.captionSystem.enabled) {
-          let label;
-          if (state === 'playing') {
-            label = t('vr.msg.videoPlaying');
-          } else if (state === 'stopped') {
-            label = t('vr.msg.videoStopped');
-          } else {
-            label = t('vr.msg.videoPaused');
-          }
-          this.captionSystem.show(label);
-        }
-      },
-      onHoverCaption: (label) => {
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(label);
-        }
-      }
-    });
-
-    // In-VR settings panel (toggle buttons wired to the persisted settings).
-    this.settingsPanel = this.createSettingsPanel();
-    this.scene.add(this.settingsPanel);
-
-    // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
-    if (this.settings.enableWebPanel) {
-      this._buildBrowsingSystems();
-    }
-
-    console.debug('VRApp: Scene created');
-  }
 
   // Context object handed to the ui/settingsButtons factories — keeps them
   // module-pure while reusing this instance's caches, registry and settings.
@@ -741,111 +616,11 @@ export class VRApp {
   /**
    * Setup camera
    */
-  setupCamera() {
-    this.camera = new THREE.PerspectiveCamera(
-      90,  // FOV - will be adjusted by comfort system
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    this.camera.position.set(0, 1.6, 3); // Average eye height
-
-    // Nest the camera in a player rig so the user can be moved/turned as a unit
-    // (WebXR positions the headset relative to this rig's transform).
-    this.playerRig = new THREE.Group();
-    this.playerRig.name = 'playerRig';
-    this.playerRig.add(this.camera);
-    this.scene.add(this.playerRig);
-
-    // Spatial window management for the in-VR browser panel (head-lock follow,
-    // billboard, distance). Attached to the active tab's group when present.
-    if (this.settings.enableWebPanel) {
-      this.windowManager = new WindowManager(this.camera, {
-        distance: this.settings.windowDistance
-      });
-      this._attachManagedWindow();
-      this.windowManager.setFollow(this.settings.enableWindowFollow);
-    }
-  }
 
   /**
    * Set up WebXR controllers: ray pointer + rendered controller models, parented
    * to the player rig. Dispatches 'select' on hit so interactables can respond.
    */
-  setupControllers() {
-    const factory = new XRControllerModelFactory();
-
-    // Profile-aware, dead-zone-filtered controller input.
-    this.controllerInput = new VRControllerInput({
-      deadZone: this.settings.controllerDeadZone
-    });
-
-    // Shared ray line geometry (pointing down -Z from the controller).
-    const rayGeometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0, -1)
-    ]);
-
-    for (let i = 0; i < 2; i++) {
-      const controller = this.renderer.xr.getController(i);
-      const ray = new THREE.Line(
-        rayGeometry,
-        new THREE.LineBasicMaterial({ color: 0x44aaff })
-      );
-      ray.name = 'pointerRay';
-      ray.scale.z = 5;
-      controller.add(ray);
-      controller.addEventListener('selectstart', () => this.onControllerSelect(controller, true));
-      controller.addEventListener('selectend', () => this.onControllerSelect(controller, false));
-      // Keep the live XRInputSource so we can read per-frame gamepad state.
-      controller.addEventListener('connected', (e) => {
-        // Distinguish initial session-start connect (inputSource undefined) from
-        // mid-session reconnect after a disconnect (inputSource was set to null).
-        const wasDisconnected = controller.userData.inputSource === null;
-        controller.userData.inputSource = e.data;
-        const name = this.controllerInput.getDeviceName(e.data);
-        console.debug(`VRApp: Controller connected — ${name}`);
-        if (wasDisconnected) {
-          const hand = e.data?.handedness;
-          const msg = controllerReconnectMessage(hand);
-          this.showVRToast(msg, { type: 'info' });
-        }
-      });
-      controller.addEventListener('disconnected', () => {
-        const hand = controller.userData.inputSource?.handedness;
-        const msg = controllerDisconnectMessage(hand);
-        this.showVRToast(msg, { type: 'warn' });
-        if (controller.userData.inputSource) {
-          this.controllerInput.forget(controller.userData.inputSource);
-        }
-        controller.userData.inputSource = null;
-        this._cancelTeleportIfAimedBy(controller);
-      });
-      this.playerRig.add(controller);
-      this.controllers.push(controller);
-
-      // Teleport: squeeze (grip) to aim, release to move.
-      controller.addEventListener('squeezestart', () => this.onTeleportStart(controller));
-      controller.addEventListener('squeezeend', () => this.onTeleportEnd());
-
-      const grip = this.renderer.xr.getControllerGrip(i);
-      grip.add(factory.createControllerModel(grip));
-      this.playerRig.add(grip);
-      this.controllerGrips.push(grip);
-    }
-
-    // Teleport target marker (flat ring on the floor), hidden until aiming.
-    const marker = new THREE.Mesh(
-      new THREE.RingGeometry(0.18, 0.28, 32),
-      new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
-    );
-    marker.rotation.x = -Math.PI / 2;
-    marker.visible = false;
-    this.scene.add(marker);
-    this.teleport.marker = marker;
-
-    console.debug('VRApp: Controllers ready');
-  }
 
   /**
    * Build a world-space raycaster from a controller's pose.
@@ -1316,40 +1091,6 @@ export class VRApp {
     return onVRSessionEnd(this);
   }
 
-  setupVR() {
-    // Add VR button to page
-    const vrButton = VRButton.createButton(this.renderer);
-    document.body.appendChild(vrButton);
-    this.vrButton = vrButton;
-
-    // Wire the landing-page "Enter VR" buttons (which dispatch a global
-    // 'enter-vr' event) to the WebXR session request. Without this the
-    // landing-page buttons dispatch an event that nothing handles.
-    this.onEnterVRRequest = () => vrButton.click();
-    window.addEventListener('enter-vr', this.onEnterVRRequest);
-
-    // Pause immersive video when the tab/headset is hidden (e.g. headset removed).
-    // Pause-only: do not auto-resume on re-show (gesture-gated autoplay is unreliable
-    // and a removed headset signals intentional stop; tap HUD Play to continue).
-    this.onDocumentVisibilityChange = () => {
-      if (document.hidden && this.immersiveVideo && this.immersiveVideo.playing) {
-        this.immersiveVideo.togglePause();
-      }
-    };
-    document.addEventListener('visibilitychange', this.onDocumentVisibilityChange);
-
-    // Controllers (ray pointer + rendered models) parented to the player rig.
-    this.setupControllers();
-
-    // Listen for VR session events
-    this.renderer.xr.addEventListener('sessionstart', () => {
-      this.onVRSessionStart();
-    });
-
-    this.renderer.xr.addEventListener('sessionend', () => {
-      this.onVRSessionEnd();
-    });
-  }
 
   /**
    * Handle VR session start
