@@ -247,3 +247,84 @@ describe('TextureManager — duplicate-URL accounting', () => {
     expect(tm.memoryUsage.textureCount).toBe(1);
   });
 });
+
+describe('TextureManager pruning + stats (uncovered layer)', () => {
+  // Bypass the loader mocks: drive cacheTexture directly with a fixed
+  // 1-byte estimate so eviction order is what is being measured.
+  function makeTM(bytesPerTex = 1, maxBytes = 4) {
+    const tm = new TextureManager();
+    tm.estimateTextureMemory = () => bytesPerTex;
+    tm.memoryUsage.maxBytes = maxBytes;
+    return tm;
+  }
+  const tex = () => ({ dispose: jest.fn(), image: { width: 4, height: 4 } });
+
+  test('pruneCache evicts down to 70% of maxBytes', () => {
+    const tm = makeTM(1, 4);
+    tm.cacheTexture('a', tex(), false);
+    tm.cacheTexture('b', tex(), false);
+    tm.cacheTexture('c', tex(), false);
+    tm.memoryUsage.estimatedBytes = 4; // over the cap
+    tm.pruneCache();
+    expect(tm.memoryUsage.estimatedBytes).toBeLessThanOrEqual(2); // floor(4*0.7)
+    expect(tm.textureCache.size).toBeLessThan(3);
+  });
+
+  test('a cache hit refreshes recency: hot texture survives eviction', async () => {
+    const tm = makeTM(1, 3);
+    tm.cacheTexture('a', tex(), false);
+    tm.cacheTexture('b', tex(), false);
+    tm.cacheTexture('c', tex(), false); // 3 bytes, at the cap
+    // 'a' is hit frequently — it must NOT be the first evicted.
+    await tm.loadTexture('a');
+    // 'd' pushes over the cap; pruneCache evicts to 70% of 3 = 2 bytes.
+    tm.cacheTexture('d', tex(), false);
+    // Order after the hit was [b, c, a]; adding 'd' over the cap prunes to
+    // 2 bytes: b and c evict, the hot 'a' and new 'd' remain.
+    expect(tm.textureCache.has('a')).toBe(true);
+    expect(tm.textureCache.has('b')).toBe(false);
+    expect(tm.textureCache.has('c')).toBe(false);
+    expect(tm.textureCache.has('d')).toBe(true);
+  });
+
+  test('loadKTX2 resolves through the mocked loader', async () => {
+    const tm = new TextureManager();
+    tm.ktx2Loader = { load: (url, onLoad) => onLoad(tex()) };
+    await expect(tm.loadKTX2('/x.ktx2')).resolves.toBeDefined();
+  });
+
+  test('loadStandardTexture resolves through THREE.TextureLoader', async () => {
+    const tm = new TextureManager();
+    await expect(tm.loadStandardTexture('/x.png')).resolves.toBeDefined();
+  });
+
+  test('getMemoryStats/getPerformanceStats report formatted values', () => {
+    const tm = new TextureManager();
+    tm.stats.cacheHits = 3;
+    tm.stats.cacheMisses = 1;
+    const mem = tm.getMemoryStats();
+    expect(mem).toHaveProperty('usedMB');
+    expect(mem).toHaveProperty('utilizationPercent');
+    const perf = tm.getPerformanceStats();
+    expect(perf.cacheHitRate).toBe(75); // numeric percent
+  });
+
+  test('getErrorTexture paints a checkerboard on a 2d canvas', () => {
+    const fills = [];
+    const origDoc = global.document;
+    global.document = {
+      createElement: () => ({
+        width: 0, height: 0,
+        getContext: () => ({ fillStyle: '', fillRect: (...a) => fills.push(a) })
+      })
+    };
+    try {
+      const tm = new TextureManager();
+      const t = tm.getErrorTexture();
+      expect(t).toBeDefined();
+      expect(fills.length).toBe(64); // 256/32 x 256/32 squares
+    } finally {
+      global.document = origDoc;
+    }
+  });
+});

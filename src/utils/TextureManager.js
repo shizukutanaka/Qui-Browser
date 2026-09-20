@@ -65,7 +65,12 @@ export class TextureManager {
     // Check cache first
     if (this.textureCache.has(url)) {
       this.stats.cacheHits++;
-      return this.textureCache.get(url).texture;
+      const entry = this.textureCache.get(url);
+      // Refresh recency: re-insert so pruneCache's LRU eviction order
+      // (Map insertion order) reflects the hit.
+      this.textureCache.delete(url);
+      this.textureCache.set(url, entry);
+      return entry.texture;
     }
 
     // A concurrent load of the same URL must share the in-flight promise:
