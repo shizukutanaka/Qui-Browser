@@ -1244,6 +1244,23 @@ build 0.74s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 96 warnings（0 errors）・
 build 0.72s・vr-boot PASS。
 
+### 第46パス（C-1 最大スライス: systemsLifecycle 抽出）
+
+- `src/vr/systemsLifecycle.js` 新設: initializeSystems（179行・全
+  サブシステム構築 orchestrator）と dispose（164行・対称 teardown）を
+  `fn(app)` として移動。サブシステム import 12本も同時に VRApp から流出。
+- 連鎖孤児: FFRSystem/ComfortSystem/JapaneseIME/HandTracking/
+  HapticFeedback/GazeInteraction/CaptionSystem/SemanticDOM/SpatialAudio/
+  WindowManager/ImmersiveVideo/disposeMonitoring import 除去
+  （resolveComfortPreset/fireTeleportFeedback は生存のため絞り込み復元）。
+- VRApp 1,660 → 1,313 行（−347行）。C-1 累計 −1,941行（3,254→1,313）。
+- VRApp はここで真の薄い orchestrator になった: 残るは constructor・
+  initialize・render/updateSystems・navigate・interactable registry・
+  settings delegates のみ。
+
+計測: 43 suites / 1,343 tests・lint 97 warnings（0 errors）・
+build 0.68s・vr-boot PASS。
+
 ### 第40パス（抽出後の孤児再走査 + init⇄dispose 非対称走査）
 
 - ライフサイクル非対称: 全 this.X 代入フィールド × dispose() 参照を交差
@@ -1324,6 +1341,23 @@ build 0.74s・vr-boot PASS。
 
 計測: 43 suites / 1,343 tests・lint 96 warnings（0 errors）・
 build 0.72s・vr-boot PASS。
+
+### 第46パス（C-1 最大スライス: systemsLifecycle 抽出）
+
+- `src/vr/systemsLifecycle.js` 新設: initializeSystems（179行・全
+  サブシステム構築 orchestrator）と dispose（164行・対称 teardown）を
+  `fn(app)` として移動。サブシステム import 12本も同時に VRApp から流出。
+- 連鎖孤児: FFRSystem/ComfortSystem/JapaneseIME/HandTracking/
+  HapticFeedback/GazeInteraction/CaptionSystem/SemanticDOM/SpatialAudio/
+  WindowManager/ImmersiveVideo/disposeMonitoring import 除去
+  （resolveComfortPreset/fireTeleportFeedback は生存のため絞り込み復元）。
+- VRApp 1,660 → 1,313 行（−347行）。C-1 累計 −1,941行（3,254→1,313）。
+- VRApp はここで真の薄い orchestrator になった: 残るは constructor・
+  initialize・render/updateSystems・navigate・interactable registry・
+  settings delegates のみ。
+
+計測: 43 suites / 1,343 tests・lint 97 warnings（0 errors）・
+build 0.68s・vr-boot PASS。
 
 ---
 

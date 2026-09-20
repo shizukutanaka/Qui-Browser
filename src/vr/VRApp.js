@@ -8,17 +8,10 @@
 import * as THREE from 'three';
 
 // Tier 1 Optimizations
-import { FFRSystem } from './rendering/FFRSystem.js';
-import { ComfortSystem, resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 
 // Tier 2 Features
-import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
-import { HandTracking } from './interaction/HandTracking.js';
-import { HapticFeedback } from './interaction/HapticFeedback.js';
-import { GazeInteraction } from './interaction/GazeInteraction.js';
-import { CaptionSystem } from './accessibility/CaptionSystem.js';
+import { resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
-import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl, hostnameCaption } from './browser/urlDisplay.js';
@@ -26,20 +19,18 @@ import { showVRToast } from './ui/vrToast.js';
 import { controllerRay } from './ui/canvasMesh.js';
 import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
-import { SpatialAudio } from './audio/SpatialAudio.js';
 
-import { WindowManager, resolveWindowDistance, firePanelGrabFeedback } from './browser/WindowManager.js';
+import { resolveWindowDistance, firePanelGrabFeedback } from './browser/WindowManager.js';
 import { buildBrowsingSystems } from './browser/browsingSystems.js';
-import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
 import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
+import { initializeSystems, dispose } from './systemsLifecycle.js';
 import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
-import { disposeMonitoring } from '../monitoring.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 
 
@@ -311,6 +302,14 @@ export class VRApp {
 
   setupVR() {
     return setupVR(this);
+  }
+
+  async initializeSystems() {
+    return initializeSystems(this);
+  }
+
+  dispose() {
+    return dispose(this);
   }
 
   async initialize() {
@@ -837,186 +836,6 @@ export class VRApp {
   /**
    * Initialize all optimization systems
    */
-  async initializeSystems() {
-    const startTime = performance.now();
-
-    // NFR-2: probe device capabilities first so downstream systems can
-    // respect what the runtime actually supports.
-    const compat = await this.deviceCompat.check();
-    // Override targetFPS from device detection if not already user-specified.
-    if (!this.settings._fpsOverridden) {
-      this.settings.targetFPS = this.deviceCompat.targetFPS();
-    }
-    console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
-
-    // === TIER 1 SYSTEMS ===
-
-    // 1. Fixed Foveated Rendering
-    if (this.settings.enableFFR) {
-      try {
-        this.ffrSystem = new FFRSystem();
-        console.debug('VRApp: FFR system ready');
-      } catch (e) {
-        console.error('VRApp: FFR init failed', e);
-        this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });
-      }
-    }
-
-    // 2. Comfort System
-    if (this.settings.enableComfort) {
-      this.comfortSystem = new ComfortSystem(
-        this.camera,
-        this.renderer,
-        { reduceMotion: osReducedMotion() }
-      );
-      this.comfortSystem.setPreset(this.settings.motionSensitivity);
-      console.debug('VRApp: Comfort system initialized');
-    }
-
-    // === TIER 2 SYSTEMS ===
-
-    // 5. Japanese IME — pass interactable hooks so the 3D keyboard keys can be
-    // selected with a controller ray.
-    this.japaneseIME = new JapaneseIME();
-    this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME, {
-      registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m),
-      // Larger keys (bigger targets) for the large-text accessibility preference.
-      scale: largeTextScale(getPrefs().largeText),
-      onHoverCaption: (label) => {
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(label);
-        }
-      },
-      onCancel: () => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(t('vr.msg.keyboardCancelled'));
-        }
-      },
-      // Frecency-ranked history/bookmark suggestions while typing (gaze-dwell
-      // typing is ~8-10 WPM, so jumping to a known destination after a couple
-      // of characters is the single biggest text-entry speedup available).
-      suggestionProvider: (query) => this.bookmarks.search(query, 4, Date.now())
-    });
-    console.debug('VRApp: Japanese IME ready');
-
-    // 6. Hand Tracking
-    this.handTracking = new HandTracking(this.scene);
-    // WCAG 4.1.3: announce hand-tracking state changes so users who rely on
-    // hand input know when it becomes unavailable. Brief flickers are common,
-    // so each hand's announcement is debounced: only fire if the state holds
-    // for 600 ms, preventing a storm of "lost"/"regained" captions.
-    // Tracked on `this` (not a closure-local) so dispose() can clear a pending
-    // timer — otherwise a flicker just before teardown fires this callback
-    // 600 ms later against a disposed captionSystem (same teardown-leak class
-    // as the toast auto-dismiss timers and the TTS utterance).
-    this._handTrackingTimers = {};
-    this.handTracking.onTrackingChange((hand, tracked) => {
-      clearTimeout(this._handTrackingTimers[hand]);
-      this._handTrackingTimers[hand] = setTimeout(() => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          // Four explicit keys rather than composing "<hand> hand <state>":
-          // word order and particles differ by language, so composition would
-          // produce broken Japanese.
-          this.captionSystem.show(t(
-            hand === 'left'
-              ? (tracked ? 'vr.msg.leftHandTracked' : 'vr.msg.leftHandLost')
-              : (tracked ? 'vr.msg.rightHandTracked' : 'vr.msg.rightHandLost')
-          ));
-        }
-      }, 600);
-    });
-    console.debug('VRApp: Hand tracking ready');
-
-    // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in
-    // onVRSessionStart() once a session and gamepads are available.
-    try {
-      this.hapticFeedback = new HapticFeedback();
-      // Honour the persisted haptics preference so a user who turned haptics
-      // off keeps that from startup, not just after re-toggling it live.
-      this.hapticFeedback.setEnabled(this.settings.enableHaptics !== false);
-      console.debug('VRApp: Haptic feedback ready');
-    } catch (e) {
-      console.error('VRApp: Haptic feedback init failed', e);
-      this.showVRToast(t('vr.error.hapticUnavailable'), { type: 'warn' });
-      // Set to null so notifyCrossModal() skips haptic gracefully
-      this.hapticFeedback = null;
-    }
-
-    // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
-    // can be toggled live from the settings panel; only active when enabled.
-    this.gazeInteraction = new GazeInteraction(this.camera, {
-      dwellTime: this.settings.gazeDwellTime,
-      graceTime: this.settings.gazeGraceTime,
-      // Honour the OS reduced-motion preference: static activation cue, no fade.
-      reduceMotion: osReducedMotion(),
-      // Honour high-contrast: full-opacity ring for visibility (WCAG 1.4.11).
-      highContrast: prefersHighContrast()
-    });
-    this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
-    console.debug('VRApp: Gaze-dwell interaction ready');
-
-    // 6c. Semantic DOM overlay (2D / screen-reader accessibility, Phase 2).
-    // A hidden ARIA-live region mirroring captions/toasts/settings state for
-    // consumers outside the WebGL render (Quest dom-overlay accessibility
-    // services, or assistive tech inspecting the page). Purely a redundant
-    // announcement surface, so a failure here is console-only, not toast-worthy.
-    try {
-      this.semanticDOM = new SemanticDOM();
-      console.debug('VRApp: Semantic DOM overlay ready');
-    } catch (e) {
-      console.error('VRApp: Semantic DOM overlay init failed', e);
-      this.semanticDOM = null;
-    }
-
-    // 6d. In-VR captions (FR-13.1, accessibility). Created always so it can be
-    // toggled live; only renders when enabled and lines are present.
-    // Honour the user's accessibility preferences so low-vision users get
-    // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
-    this.captionSystem = new CaptionSystem(this.camera, {
-      scale: this.settings.captionScale,
-      highContrast: prefersHighContrast(),
-      lineDuration: this.settings.captionDuration * 1000,
-      verticalOffset: this.settings.captionHeight,
-      onShow: (text) => this.semanticDOM?.announceCaption(text)
-    });
-    this.captionSystem.setEnabled(this.settings.enableCaptions);
-    console.debug('VRApp: Caption system ready');
-
-    // 6e. Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 /
-    // 1.4.11). osReducedMotion()/prefersHighContrast() were otherwise only
-    // read once, at each subsystem's construction above — an OS-level
-    // preference toggled after the page has already loaded (e.g. from the
-    // headset's system Quick Settings, without reloading the tab) would
-    // never reach comfortSystem/gazeInteraction/captionSystem for the rest
-    // of the page's lifetime, including across VR session enter/exit.
-    this._setupOSAccessibilityListeners();
-
-    // 7. Spatial Audio
-    try {
-      this.spatialAudio = new SpatialAudio();
-      // Apply the persisted master-volume preference at startup so a user who
-      // lowered/muted audio keeps that on the next load (not just live).
-      this.spatialAudio.setMasterVolume((this.settings.masterVolume ?? 100) / 100);
-      await this.loadAudioAssets();
-      console.debug('VRApp: Spatial audio initialized');
-    } catch (e) {
-      console.error('VRApp: Spatial audio init failed', e);
-      this.showVRToast(t('vr.error.spatialAudioUnavailable'), { type: 'warn' });
-    }
-
-    // 12. DevTools (development builds only; hidden until toggled with F12).
-    // Dynamically imported so it is dropped from production bundles.
-    if (import.meta.env.DEV) {
-      const { DevTools } = await import('../dev/DevTools.js');
-      this.devTools = new DevTools(this);
-      this.devTools.initialize();
-      console.debug('VRApp: DevTools ready (F12 to toggle)');
-    }
-
-    const loadTime = performance.now() - startTime;
-    console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
-  }
 
   /**
    * Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 / 1.4.11).
@@ -1474,171 +1293,6 @@ export class VRApp {
   /**
    * Cleanup and disposal
    */
-  dispose() {
-    console.debug('VRApp: Disposing...');
-
-    // Stop render loop
-    this.renderer.setAnimationLoop(null);
-
-    // Remove WebGL context-loss listeners so a late event after teardown
-    // doesn't fire a notification or try to restart the loop on a freed
-    // renderer. Guard each side: setupRenderer() may not have run in a test.
-    if (this.renderer && this.renderer.domElement) {
-      if (this._onWebGLContextLost) {
-        this.renderer.domElement.removeEventListener('webglcontextlost', this._onWebGLContextLost);
-      }
-      if (this._onWebGLContextRestored) {
-        this.renderer.domElement.removeEventListener('webglcontextrestored', this._onWebGLContextRestored);
-      }
-    }
-    this._onWebGLContextLost = null;
-    this._onWebGLContextRestored = null;
-    this._renderBound = null;
-
-    // Detach the window resize listener and drop any pending trailing-edge
-    // call so the debounced callback can't fire on a freed renderer.
-    if (this._onWindowResize) {
-      window.removeEventListener('resize', this._onWindowResize);
-      if (typeof this._onWindowResize.cancel === 'function') {
-        this._onWindowResize.cancel();
-      }
-      this._onWindowResize = null;
-    }
-
-    // Detach the OS accessibility signal (matchMedia) listeners so a change
-    // after teardown doesn't touch already-disposed subsystems.
-    if (this._osMotionMQ && this._onOSReducedMotionChange) {
-      this._osMotionMQ.removeEventListener('change', this._onOSReducedMotionChange);
-    }
-    if (this._osContrastMQ && this._onOSContrastChange) {
-      this._osContrastMQ.removeEventListener('change', this._onOSContrastChange);
-    }
-    if (this._osForcedColorsMQ && this._onOSContrastChange) {
-      this._osForcedColorsMQ.removeEventListener('change', this._onOSContrastChange);
-    }
-    this._osMotionMQ = null;
-    this._osContrastMQ = null;
-    this._osForcedColorsMQ = null;
-    this._onOSReducedMotionChange = null;
-    this._onOSContrastChange = null;
-
-    // Clear pending toast auto-dismiss timers so their callbacks don't fire
-    // against a torn-down VRApp (this.camera nulled, GPU resources already
-    // freed below). Without this the timer holds a closure over `this` and
-    // surfaces as a console error or a test-leak warning after teardown.
-    if (this._toastTimers) {
-      this._toastTimers.forEach((t) => clearTimeout(t));
-      this._toastTimers.clear();
-    }
-
-    // Clear pending hand-tracking debounce timers for the same reason: a hand
-    // flicker just before teardown would otherwise fire its "hand lost/tracked"
-    // caption 600 ms later against a disposed captionSystem.
-    if (this._handTrackingTimers) {
-      Object.values(this._handTrackingTimers).forEach((t) => clearTimeout(t));
-      this._handTrackingTimers = {};
-    }
-
-    // Remove global listeners and DOM nodes added during setup
-    if (this.onEnterVRRequest) {
-      window.removeEventListener('enter-vr', this.onEnterVRRequest);
-      this.onEnterVRRequest = null;
-    }
-    if (this.onDocumentVisibilityChange) {
-      document.removeEventListener('visibilitychange', this.onDocumentVisibilityChange);
-      this.onDocumentVisibilityChange = null;
-    }
-    if (this.vrButton && this.vrButton.parentNode) {
-      this.vrButton.parentNode.removeChild(this.vrButton);
-    }
-
-    // Dispose systems
-    if (this.comfortSystem) {
-      this.comfortSystem.dispose();
-    }
-    if (this.ffrSystem) {
-      this.ffrSystem.dispose();
-    }
-    if (this.vrKeyboard) {
-      this.vrKeyboard.dispose(); this.vrKeyboard = null;
-    } else if (this.japaneseIME) {
-      this.japaneseIME.dispose(); this.japaneseIME = null;
-    }
-    if (this.handTracking) {
-      this.handTracking.dispose();
-    }
-    if (this.hapticFeedback) {
-      this.hapticFeedback.enabled = false; this.hapticFeedback = null;
-    }
-    if (this.gazeInteraction) {
-      this.gazeInteraction.dispose();
-    }
-    if (this.captionSystem) {
-      this.captionSystem.dispose();
-    }
-    if (this.semanticDOM) {
-      this.semanticDOM.dispose();
-    }
-    if (this.spatialAudio) {
-      this.spatialAudio.dispose();
-    }
-    if (this.windowManager) {
-      this.windowManager.dispose();
-    }
-    if (this.layersSystem) {
-      this.layersSystem.dispose(); this.layersSystem = null;
-    }
-    if (this.bookmarkPanel) {
-      this.bookmarkPanel.dispose(); this.bookmarkPanel = null;
-    }
-    if (this.immersiveVideo) {
-      this.immersiveVideo.dispose(); this.immersiveVideo = null;
-    }
-    if (this.tabManager) {
-      this.tabManager.dispose();
-    } else if (this.webPanel) {
-      this.webPanel.dispose();
-    }
-    if (this.devTools) {
-      this.devTools.dispose();
-    }
-    if (this._homePanelTexture) {
-      this._homePanelTexture.dispose();
-    }
-    if (this._panelTextures) {
-      this._panelTextures.forEach((t) => t.dispose());
-    }
-    // Dispose the shared button geometries once. The scene.traverse below would
-    // also reach them via the button meshes, but disposing here keeps the cache
-    // authoritative and BufferGeometry.dispose() is idempotent.
-    if (this._sharedGeometries) {
-      this._sharedGeometries.forEach((g) => g.dispose());
-      this._sharedGeometries.clear();
-    }
-
-    // Dispose Three.js
-    this.renderer.dispose();
-    this.scene.traverse(object => {
-      if (object.geometry) {
-        object.geometry.dispose();
-      }
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(m => m.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
-    });
-
-    // Tear down monitoring side-effects (intervals + event listeners).
-    // Called last so any final metrics can still be reported above.
-    try {
-      disposeMonitoring();
-    } catch (_) { /* best-effort teardown; ignore */ }
-
-    console.debug('VRApp: Disposed');
-  }
 }
 
 /**
