@@ -9,6 +9,7 @@
 import { TabManager } from './TabManager.js';
 import { BookmarkPanel } from './BookmarkPanel.js';
 import { hostnameCaption } from './urlDisplay.js';
+import { firePanelGrabFeedback } from './WindowManager.js';
 import { getPrefs, largeTextScale } from '../../a11y/accessibility.js';
 import { t } from '../../i18n/i18n.js';
 
@@ -138,4 +139,51 @@ export function buildBrowsingSystems(app) {
     }
   });
   app.bookmarkPanel.addToScene();
+}
+
+export function _attachManagedWindow(app) {
+  if (!app.windowManager) {
+    return false;
+  }
+  const target = app.tabManager
+    ? app.tabManager.rootGroup
+    : (app.webPanel && app.webPanel.group);
+  if (!target) {
+    return false;
+  }
+  if (app.windowManager.target !== target) {
+    app.windowManager.attach(target);
+  }
+  return true;
+}
+
+export function _onPanelGrabRequested(app, controller) {
+  if (!app.windowManager || !controller) {
+    return;
+  }
+  // Re-checked here rather than assumed: beginGrab() measures from the
+  // target's current world position, so a detached or stale target would
+  // compute the grab offset from the wrong place. Not gated on success —
+  // WindowManager.beginGrab() already no-ops without a target.
+  app._attachManagedWindow();
+  app.windowManager.beginGrab(controller);
+  app._grabController = controller;
+  firePanelGrabFeedback(controller, app.hapticFeedback, app.captionSystem);
+}
+
+export function _teardownBrowsingSystems(app) {
+  if (app.windowManager) {
+    app.windowManager.detach();
+  }
+  if (app.bookmarkPanel) {
+    app.bookmarkPanel.dispose();
+    app.bookmarkPanel = null;
+  }
+  if (app.tabManager) {
+    app.tabManager.dispose();
+    app.tabManager = null;
+  } else if (app.webPanel) {
+    app.webPanel.dispose();
+  }
+  app.webPanel = null;
 }

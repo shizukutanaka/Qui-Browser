@@ -11,6 +11,7 @@ import * as THREE from 'three';
 
 // Tier 2 Features
 import { resolveComfortPreset } from './comfort/ComfortSystem.js';
+import { updatePerformanceMonitor, getPerformanceStats, adjustQuality, reduceQuality, increaseQuality } from './perfBudget.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
@@ -20,8 +21,8 @@ import { controllerRay } from './ui/canvasMesh.js';
 import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect, updateHover, onTeleportStart, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
 
-import { resolveWindowDistance, firePanelGrabFeedback } from './browser/WindowManager.js';
-import { buildBrowsingSystems } from './browser/browsingSystems.js';
+import { resolveWindowDistance } from './browser/WindowManager.js';
+import { buildBrowsingSystems, _attachManagedWindow, _onPanelGrabRequested, _teardownBrowsingSystems } from './browser/browsingSystems.js';
 import { detectVideoFormat } from './media/videoProjection.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
@@ -336,6 +337,38 @@ export class VRApp {
     return _detachPanelLayer(this, layerId);
   }
 
+  updatePerformanceMonitor(frameTime) {
+    return updatePerformanceMonitor(this, frameTime);
+  }
+
+  getPerformanceStats() {
+    return getPerformanceStats(this);
+  }
+
+  adjustQuality() {
+    return adjustQuality(this);
+  }
+
+  reduceQuality() {
+    return reduceQuality(this);
+  }
+
+  increaseQuality() {
+    return increaseQuality(this);
+  }
+
+  _attachManagedWindow() {
+    return _attachManagedWindow(this);
+  }
+
+  _onPanelGrabRequested(controller) {
+    return _onPanelGrabRequested(this, controller);
+  }
+
+  _teardownBrowsingSystems() {
+    return _teardownBrowsingSystems(this);
+  }
+
   async initialize() {
     console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
 
@@ -434,22 +467,6 @@ export class VRApp {
    * — the ghost-target failure mode fixed for hand models in Session 49 and for
    * native quad layers in Session 52.
    */
-  _teardownBrowsingSystems() {
-    if (this.windowManager) {
-      this.windowManager.detach();
-    }
-    if (this.bookmarkPanel) {
-      this.bookmarkPanel.dispose();
-      this.bookmarkPanel = null;
-    }
-    if (this.tabManager) {
-      this.tabManager.dispose();
-      this.tabManager = null;
-    } else if (this.webPanel) {
-      this.webPanel.dispose();
-    }
-    this.webPanel = null;
-  }
 
   /**
    * Apply the `enableWebPanel` toggle immediately.
@@ -729,35 +746,7 @@ export class VRApp {
    * Falls back to a standalone `webPanel` when tabs are not in use.
    * @returns {boolean} true when a target is attached
    */
-  _attachManagedWindow() {
-    if (!this.windowManager) {
-      return false;
-    }
-    const target = this.tabManager
-      ? this.tabManager.rootGroup
-      : (this.webPanel && this.webPanel.group);
-    if (!target) {
-      return false;
-    }
-    if (this.windowManager.target !== target) {
-      this.windowManager.attach(target);
-    }
-    return true;
-  }
 
-  _onPanelGrabRequested(controller) {
-    if (!this.windowManager || !controller) {
-      return;
-    }
-    // Re-checked here rather than assumed: beginGrab() measures from the
-    // target's current world position, so a detached or stale target would
-    // compute the grab offset from the wrong place. Not gated on success —
-    // WindowManager.beginGrab() already no-ops without a target.
-    this._attachManagedWindow();
-    this.windowManager.beginGrab(controller);
-    this._grabController = controller;
-    firePanelGrabFeedback(controller, this.hapticFeedback, this.captionSystem);
-  }
 
   /**
    * Register a mesh as interactable. handlers: { onSelect, onHover, onHoverEnd }.
@@ -1047,71 +1036,18 @@ export class VRApp {
   /**
    * Update performance monitor
    */
-  updatePerformanceMonitor(frameTime) {
-    // Exponential moving average for smooth values
-    const alpha = 0.1;
-    this.performanceMonitor.frameTime =
-      this.performanceMonitor.frameTime * (1 - alpha) + frameTime * alpha;
-
-    this.performanceMonitor.fps = 1000 / this.performanceMonitor.frameTime;
-
-    // Track memory usage
-    if (performance.memory) {
-      this.performanceMonitor.memoryUsed =
-        performance.memory.usedJSHeapSize / 1024 / 1024; // MB
-    }
-
-    // Real GPU metrics from the renderer.
-    const info = this.renderer.info;
-    this.performanceMonitor.drawCalls = info.render.calls;
-    this.performanceMonitor.triangles = info.render.triangles;
-  }
 
   /**
    * Dynamic quality adjustment
    */
-  adjustQuality() {
-    const targetFrameTime = 1000 / this.settings.targetFPS;
-    const currentFrameTime = this.performanceMonitor.frameTime;
-
-    if (currentFrameTime > targetFrameTime * 1.2) {
-      // Performance is poor, reduce quality
-      this.reduceQuality();
-    } else if (currentFrameTime < targetFrameTime * 0.8) {
-      // Performance is good, increase quality
-      this.increaseQuality();
-    }
-  }
 
   /**
    * Reduce rendering quality for better performance
    */
-  reduceQuality() {
-    // Increase FFR intensity
-    if (this.ffrSystem) {
-      this.ffrSystem.adjustIntensity(0.1);
-    }
-
-    // Reduce render scale (if implemented)
-    // this.renderer.setPixelRatio(0.8);
-
-    console.debug('VRApp: Quality reduced for performance');
-  }
 
   /**
    * Increase rendering quality when performance allows
    */
-  increaseQuality() {
-    // Decrease FFR intensity
-    if (this.ffrSystem) {
-      this.ffrSystem.adjustIntensity(-0.1);
-    }
-
-    // Increase render scale (if implemented)
-    // this.renderer.setPixelRatio(1.0);
-
-    console.debug('VRApp: Quality increased');
-  }
 
   /**
    * Get performance statistics
@@ -1183,26 +1119,6 @@ export class VRApp {
     }
   }
 
-  getPerformanceStats() {
-    const info = this.renderer.info;
-    const stats = {
-      fps: Math.round(this.performanceMonitor.fps),
-      frameTime: this.performanceMonitor.frameTime.toFixed(2) + 'ms',
-      memory: this.performanceMonitor.memoryUsed.toFixed(1) + 'MB',
-      drawCalls: this.performanceMonitor.drawCalls,
-      triangles: this.performanceMonitor.triangles,
-      geometries: info.memory.geometries,
-      textures: info.memory.textures,
-      programs: info.programs ? info.programs.length : 0
-    };
-
-    // Add system-specific stats
-    if (this.ffrSystem) {
-      stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
-    }
-
-    return stats;
-  }
 
   /**
    * Cleanup and disposal
