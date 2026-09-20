@@ -1831,3 +1831,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第184パス（実修正 — OG/配信 URL 整合）
 og:url・twitter:url が `qui-browser`（小文字）で Pages は `/Qui-Browser/` — case-sensitive 404。og:image/twitter:image は相対パス — クローラは絶対 URL 必須＋サブパス 404。両方を絶対 canonical URL へ。README の Pages URL・`cd qui-browser-vr`（実 dir は `Qui-Browser`）も修正。
+
+### 第185パス（クリーンスキャン — index.html 絶対パス）
+`BASE_PATH=/Qui-Browser/` ビルドで favicon・apple-touch-icon・manifest・modulepreload 全て base 前置済み（vite が index.html の link/script を書換）— 残存絶対パスゼロ。
