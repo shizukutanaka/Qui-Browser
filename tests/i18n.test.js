@@ -276,3 +276,23 @@ describe('landing page claims match shipped features', () => {
     }
   });
 });
+
+describe('VR welcome splash is localised', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const vrAppSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'vr', 'VRApp.js'), 'utf8');
+  const { CATALOG } = require('../src/i18n/i18n.js');
+
+  test.each(['en', 'ja'])('vr.welcome exists in the %s catalog', (lang) => {
+    expect(typeof CATALOG[lang]['vr.welcome']).toBe('string');
+    expect(CATALOG[lang]['vr.welcome'].length).toBeGreaterThan(0);
+  });
+
+  test('VRApp draws the welcome line through t(), not a hard-coded literal', () => {
+    // The splash is drawn once at boot inside the headset; a Japanese user
+    // must not get an English-only greeting (WCAG 3.1.1).
+    expect(vrAppSrc).not.toContain('look around to begin');
+    expect(vrAppSrc).toMatch(/fillText\(t\('vr\.welcome'\)/);
+  });
+});

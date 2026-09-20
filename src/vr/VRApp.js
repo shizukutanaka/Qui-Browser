@@ -1851,7 +1851,7 @@ export class VRApp {
     ctx.fillText('Qui Browser VR', canvas.width / 2, 120);
     ctx.fillStyle = '#a0b4d0';
     ctx.font = '40px sans-serif';
-    ctx.fillText('Welcome — look around to begin', canvas.width / 2, 190);
+    ctx.fillText(t('vr.welcome'), canvas.width / 2, 190);
 
     const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
     panelTex.colorSpace = THREE.SRGBColorSpace;

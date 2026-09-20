@@ -569,6 +569,15 @@ WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたの�
 メタデータで読み上げには `_spokenExample` が使われる、`main.js` の `EN` は
 **言語トグル自身のラベル**で対象言語を名乗るものなので翻訳しないのが正しい。
 
+**Session 75 続き12 でさらに刈り**: `getCommands()` 自体に呼び出し元がゼロと判明
+（help コマンドは `_spokenExample`/`patterns` でリストを話す）—— 英語メタデータ25件は
+「翻訳が要らない」ではなく「**存在する必要がない**」が正解だった。`getCommands()` と
+22件の `description:` フィールドを削除。あわせてホームパネルの
+`'Welcome — look around to begin'` も英語リテラルのまま描かれていたため
+`vr.welcome` キー（en/ja）に移行。テスト: `tests/i18n.test.js` で両カタログの
+`vr.welcome` 存在と VRApp が `t()` 経由であることを pin、`tests/voice-commands.test.js`
+で getCommands/description の非再発を pin。
+
 🔍 **なぜ見逃され続けたか（別の欠陥）**: `package.json` の lint は `eslint src/**/*.js` で、
 **シェルの glob は `src/*.js` にマッチしない**（globstar 無効時）。つまり
 `src/app.js` / `src/main.js` / `src/monitoring.js` —— **エントリポイントを含む3ファイルが
