@@ -1501,3 +1501,6 @@ VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テ�
 
 ### 第74パス（逆フィールド監査 — 実バグ摘出）
 読まれるが代入されないプロパティの走査で**実バグ摘出**: DevTools の `Ctrl+Shift+C`/`Ctrl+Shift+P` ショートカットが存在しない `this.selectElement()`/`this.showProfiler()` を呼び、押下時に TypeError を投げていた（DEV 専用経路のため検出圏外）。機能自体が未実装のため死ショートカットを削除。残る検出は全て偽陽性（destructuring 代入・コメント文字列）。
+
+### 第75パス（catch 走査 — 実バグ摘出）
+SpatialAudio の inner catch が async init 失敗を握り潰し、systemsLifecycle の外側 toast が構造的に到達不能だった（WCAG 4.1.3 違反）。`onInitError` コールバックで toast を実経路化。`offline.html` は SW precache+navigate fallback で生存確認。他の log-only catch（GA4/web-vitals/haptic/settings persist）は全て正当。
