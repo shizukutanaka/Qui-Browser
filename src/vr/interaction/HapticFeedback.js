@@ -183,6 +183,16 @@ export class HapticFeedback {
    * Play pattern on both hands
    */
   async playPatternBothHands(patternName, delay = 0) {
+    // With a single connected controller both hands resolve to the same
+    // gamepad via the first-available fallback — play once rather than
+    // double-firing the pattern on the same actuator.
+    const leftGp = this.getGamepadForHand('left');
+    const rightGp = this.getGamepadForHand('right');
+    if (leftGp && leftGp === rightGp) {
+      await this.playPattern('left', patternName);
+      return;
+    }
+
     const leftPromise = this.playPattern('left', patternName);
 
     if (delay > 0) {
@@ -271,7 +281,19 @@ export class HapticFeedback {
 
     const pattern = patterns[urgency] || patterns.normal;
 
-    // Play on both hands for alerts
+    // Play on both hands for alerts — but when both hands resolve to the
+    // same (sole connected) gamepad, fire once instead of doubling up.
+    const leftGp = this.getGamepadForHand('left');
+    const single = leftGp && leftGp === this.getGamepadForHand('right');
+    if (single) {
+      if (typeof pattern === 'string') {
+        await this.playPattern('left', pattern);
+      } else {
+        await this.playCustomSequence('left', pattern);
+      }
+      return;
+    }
+
     await Promise.all([
       typeof pattern === 'string'
         ? this.playPattern('left', pattern)

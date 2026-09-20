@@ -11,6 +11,7 @@ const makeActuator = () => ({
 
 const makeGamepad = (hand = 'left') => ({
   id: `Mock Controller (${hand})`,
+  hand,
   hapticActuators: [makeActuator()]
 });
 
@@ -160,5 +161,52 @@ describe('HapticFeedback', () => {
     expect(stats).toHaveProperty('totalDuration');
     expect(stats).toHaveProperty('averageIntensity');
     expect(stats).toHaveProperty('controllersDetected');
+  });
+});
+
+// One-controller edge: getGamepadForHand falls back to the first gamepad,
+// so 'left' and 'right' both resolve to the SAME actuator — a "both hands"
+// pattern would fire twice on the single connected controller.
+describe('HapticFeedback — single connected controller', () => {
+  let hf, actuator;
+  beforeEach(() => {
+    actuator = makeActuator();
+    const gp = makeGamepad('right');
+    gp.hand = 'right';
+    gp.hapticActuators = [actuator];
+    global.navigator.getGamepads = jest.fn(() => [gp]);
+    hf = new HapticFeedback();
+    hf.update();
+  });
+  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+
+  test('playPatternBothHands pulses the sole controller once, not twice', async () => {
+    await hf.playPatternBothHands('click');
+    const pattern = hf.patterns.click;
+    const expected = Array.isArray(pattern) ? pattern.length : 1;
+    expect(actuator.pulse).toHaveBeenCalledTimes(expected);
+  });
+});
+
+describe('HapticFeedback — alert() with a single controller', () => {
+  let hf, actuator;
+  beforeEach(() => {
+    actuator = makeActuator();
+    const gp = makeGamepad('right');
+    gp.hand = 'right';
+    gp.hapticActuators = [actuator];
+    global.navigator.getGamepads = jest.fn(() => [gp]);
+    hf = new HapticFeedback();
+    hf.update();
+  });
+  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+
+  test('alert("low") fires the pattern once on the sole actuator', async () => {
+    await hf.alert('low'); // maps to 'notification' (2 pulses + 1 pause)
+    const pattern = hf.patterns.notification;
+    const expected = Array.isArray(pattern)
+      ? pattern.filter(s => s.duration).length
+      : 1;
+    expect(actuator.pulse).toHaveBeenCalledTimes(expected);
   });
 });
