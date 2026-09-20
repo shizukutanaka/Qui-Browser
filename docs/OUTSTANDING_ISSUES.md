@@ -1789,3 +1789,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第170パス（クリーンスキャン — button type 暗黙 submit）
 全 button は type 未指定だが `<form>` がコードベースに存在せず暗黙送信は非到達 — セマンティクス誤用なし（全て aria-label/title 付き）。
+
+### 第171パス（クリーンスキャン — 再帰深さ）
+ユーザー入力由来の無制限再帰は存在しない（JSON.parse は localStorage のみ・try/catch 済み、DOM/オブジェクト走査は浅い or three 内部）— スタックオーバーフロー経路ゼロ。
