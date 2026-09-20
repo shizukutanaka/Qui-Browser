@@ -1466,3 +1466,6 @@ Mesh(PlaneGeometry+Material) 3連は material オプションが各サイトで�
 
 ### 第65パス（計測軸 → 潜在バグ摘出）
 bundle 計測中に発見: `initializeSystems` 抽出残滓 `new DevTools(this)` — ESM モジュール関数内の `this` は undefined のため dev 環境でのみ DevTools が壊れていた（`import.meta.env.DEV` ゲートのため vr-boot/unit テストのカバレッジ外）。`new DevTools(app)` に修正。抽出モジュール全体の `this` 残滓走査は他ゼロを確認。
+
+### 第66パス（検証圏外経路の走査）
+DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65修正済み）、DevTools が参照する app API は `app.scene` のみで実在確認。PROD 経路（monitoring・SW 登録）は vr-boot がカバー済み。検証圏外コードは残存ゼロ。変更なし。
