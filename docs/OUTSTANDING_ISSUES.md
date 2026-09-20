@@ -1777,3 +1777,6 @@ VideoTexture 全2経路＋homeEnvironment パネルは SRGBColorSpace 設定済�
 
 ### 第166パス（クリーンスキャン — フレーム内全走査）
 `traverse`/`getObjectByName` は全て teardown/一回限りの経路、raycast は interactables レジストリに限定（有界）— per-frame O(scene) 走査ゼロ。
+
+### 第167パス（クリーンスキャン — SemanticDOM 更新頻度）
+DOM ミラーは announceCaption/announceAlert/setSettingsExpanded のイベント駆動のみ — per-frame の DOM 変更経路なし。aria-live polite/assertive 分離も適切。
