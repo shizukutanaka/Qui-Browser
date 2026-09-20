@@ -271,7 +271,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 #### 続き2（同セッション）: F-4「Stop」— ロード中のパネルに脱出手段がなかった
 - 🔍 **実測した欠陥**: `loading=true` を解除できるのは iframe の `onload`/`onerror` のみ。reader フェッチには AbortController+5s タイムアウトがあるが `loading` フラグは iframe 側イベントにぶら下がっているので、解決しない iframe ロードはパネルを**永久に loading 表示**にし、ユーザーに脱出手段ゼロだった。標準ブラウザは全て reload ボタンがロード中に ✕ stop になる —— chromeColors に `reloadLoading` 色が既に存在し「ロード中は別の意味」という意図は描画側にあったが、**アクション側が未配線**だった。
 - ✨ **feat: `WebPanel.stop()`**: `_readerSeq++` で飛行中フェッチの結果を無効化 → 保持していた `_readerController.abort()`（従来ローカル変数だったものを `this._readerController` にホイスト。二重ロード時に古い finally が新しい参照を消さないよう同一性チェック）→ iframe の onload/onerror を detach してから `about:blank`（先に切らないと blank ロードが onNavigate を発火する）→ `loading=false` → contentState は「実際に表示できるもの」に戻す（直前ページの readerLines が残っていれば `reader`、無ければ `empty` —— 前ページを再表示はブラウザの stop 慣行どおり）。ロード中の reload ゾーンは stop に切替、グリフも ↺→✕ に切替。
-- ✅ **test 5件追加**（pre-fix 検証: stop 未実装で 5件 FAIL。abort 後の reject で stale ガードが state を 'unavailable' に上書きしないことも検証）。Total 1488 tests (47 suites); lint 0 errors; build green。
+- ✅ **test 5件追加**（pre-fix 検証: stop 未実装で 5件 FAIL。abort 後の reject で state が 'unavailable' に上書きされないことも検証）。Total 1488 tests (47 suites); lint 0 errors; build green。
+
+#### 続き3（同セッション）: lint 復活で露出した dead code を刈った
+- 🧹 **cleanup**: lint 警告監査で「バグではないがゴミ」の13件を削除 — dead import 4（`textWidthEm`、`truncate`×2、`STRIP_TAB_MAX_PX`）、dead 代入 1（`tabsAreaW`）、未使用 catch 引数 8 → ES2019 optional catch binding（`catch {`）に置換。警告 136→123。残りは no-console（大半が意図的なログ方針）と max-len のみ — 実信号ゼロでノイズ支配だった状態から、警告が意味を持つ状態へ。
+- ✅ tests 1488 全緑; lint 0 errors; build green。動作変更なし（全て到達不能/未参照コード）。
 
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**

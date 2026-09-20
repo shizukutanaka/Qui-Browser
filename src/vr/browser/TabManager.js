@@ -14,7 +14,7 @@ import { WebPanel } from './WebPanel.js';
 import { t } from '../../i18n/i18n.js';
 import {
   STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
-  STRIP_NEW_TAB_PX, STRIP_TAB_MAX_PX, tabWidthPx, tabCloseZonePx
+  STRIP_NEW_TAB_PX, tabWidthPx, tabCloseZonePx
 } from './panelGeometry.js';
 
 
@@ -118,7 +118,6 @@ export class TabManager {
 
     const n = this.tabs.length;
     const newW = STRIP_NEW_TAB_PX;                       // "+" button width
-    const tabsAreaW = c.width - newW;
     const tabW = tabWidthPx(n, c.width);
 
     // Tabs
