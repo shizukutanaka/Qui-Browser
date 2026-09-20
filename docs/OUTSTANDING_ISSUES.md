@@ -1726,3 +1726,6 @@ userData キーはオブジェクト種別ごとに専有（controller: inputSou
 
 ### 第149パス（クリーンスキャン — セッション終了/残存非同期）
 `session.end()` 呼出なし（終了はヘッドセット UI → sessionend 経路で正しい）。video.src は error イベントでロード失敗をユーザー告知、autoplay 拒否は HUD が「Play」のまま嘘をつかない設計。locale 表示は dev 統計のみ。未処理経路ゼロ。
+
+### 第150パス（クリーンスキャン — three.js 非推奨 API）
+three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeometry/SRGBColorSpace/Raycaster/WebGLRenderTarget 等 ~30種）が現行 — outputEncoding/sRGBEncoding/physicallyCorrectLights 等のレガシー名は不使用。
