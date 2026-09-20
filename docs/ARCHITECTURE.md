@@ -26,7 +26,7 @@ most subsystems are unit-testable in Node with no GPU context.
 |---|---|
 | `vr/rendering/` | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text), `WebGPURenderer` (optional backend) |
 | `vr/browser/` | `WebPanel`, `WindowManager`, `TabManager`, `BookmarkPanel`, `urlDisplay`, `urlResolver`, plus pure layout helpers (`curvedGeometry`, `readableText`, `readerLayout`, `bookmarkLayout`) |
-| `vr/input/` | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `VoiceCommands`, `keyboardLayout` |
+| `vr/input/` | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `keyboardLayout` |
 | `vr/interaction/` | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback` |
 | `vr/accessibility/` | `CaptionSystem`, `SemanticDOM` (ARIA mirror of VR state), `crossModal` (`notifyCrossModal`), `AccessibilityCoordinator` |
 | `vr/audio/` | `SpatialAudio` — procedurally synthesized UI cues, positional audio |
@@ -36,7 +36,7 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/ar/` | `MixedReality` — passthrough and depth |
 | `vr/ai/` | `AIRecommendation` |
 | `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |
-| `utils/` | `ObjectPool`, `TextureManager`, `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
+| `utils/` | `TextureManager`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
 | `i18n/` | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()` |
 | `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry |
 
@@ -63,8 +63,8 @@ most subsystems are unit-testable in Node with no GPU context.
    text-heavy panels to quad layers when the runtime supports them.
 3. The XR frame loop: poll input sources → hit-test the interactable registry →
    dispatch hover/select → update captions, comfort vignette and avatars → render.
-4. `PerformanceMonitor` samples frame timing; `ObjectPool` and `TextureManager` keep
-   per-frame allocation near zero to hold 72–90 fps on standalone headsets.
+4. `updatePerformanceMonitor` samples frame timing; `TextureManager` keeps
+   per-frame texture allocation near zero to hold 72–90 fps on standalone headsets.
 
 ## Build & bundling
 

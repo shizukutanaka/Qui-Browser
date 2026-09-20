@@ -16,7 +16,6 @@
   <p>
     <a href="#-features">Features</a> •
     <a href="#-quick-start">Quick Start</a> •
-    <a href="docs/API.md">API Docs</a> •
     <a href="docs/USAGE_GUIDE.md">Usage Guide</a> •
     <a href="CONTRIBUTING.md">Contributing</a>
   </p>
@@ -84,10 +83,11 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **MR Passthrough** | ✅ Stable | Real-world integration (Quest 3 passthrough) |
 | **Offline Support** | ✅ Stable | Service Worker caching |
 
-### Tier 3: Advanced Features (3 Features)
+### Tier 3: Advanced Features
 
-> **Removed in Session 74.** WebGPU rendering, the multiplayer system, AI
-> recommendations, AR/passthrough and the Stripe billing server were deleted
+> **Removed.** WebGPU rendering, the multiplayer system, AI
+> recommendations, AR/passthrough, voice commands, WebCodecs video and the
+> Stripe billing server were deleted
 > — not deprecated. Each was constructed at startup but had no path by which a
 > user could reach it: multiplayer had no signalling server *and* no settings
 > toggle, `MixedReality.startSession()` had zero callers, the AI's only output
@@ -97,9 +97,7 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **Voice Commands** | 🔬 Experimental | Japanese speech recognition (Web Speech API; browser support varies) |
 | **Haptic Feedback** | ✅ Stable | Enhanced tactile response on supported controllers |
-| **WebCodecs Video** | 🔬 Experimental | Hardware-accelerated video decode |
 
 ### Development Tools (2 Features)
 
@@ -274,7 +272,6 @@ npm run release:major         # Major version (X.0.0)
 
 - **[Quick Start](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[Usage Guide](docs/USAGE_GUIDE.md)** - Complete feature guide
-- **[API Reference](docs/API.md)** - Full API documentation
 - **[Architecture](docs/ARCHITECTURE.md)** - System design
 - **[Deployment](docs/DEPLOYMENT_GUIDE.md)** - Multi-platform deployment
 - **[Testing](docs/TESTING.md)** - Testing strategies

@@ -195,7 +195,6 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 | File | Lines | Purpose | Status |
 |------|-------|---------|--------|
-| **API.md** | 1,100+ | Complete API reference | ✅ |
 | **ARCHITECTURE.md** | 900+ | System architecture, design | ✅ |
 | **CONTRIBUTING.md** | 600+ | Contribution guidelines | ✅ |
 | **CODE_OF_CONDUCT.md** | 200+ | Community standards | ✅ |
@@ -459,7 +458,6 @@ git push origin v2.0.0
 ### Documentation
 - **Quick Start:** [docs/QUICK_START.md](docs/QUICK_START.md)
 - **Usage Guide:** [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
-- **API Reference:** [docs/API.md](docs/API.md)
 - **Deployment:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 - **FAQ:** [docs/FAQ.md](docs/FAQ.md)
 

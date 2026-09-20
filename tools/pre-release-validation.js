@@ -224,8 +224,7 @@ async function checkDocumentation(results) {
     'PROJECT_STATUS.md',
     'RELEASE_CHECKLIST.md',
     'FINAL_RELEASE_SUMMARY_v2.0.0.md',
-    'docs/API.md',
-    'docs/USAGE_GUIDE.md',
+      'docs/USAGE_GUIDE.md',
     'docs/DEPLOYMENT_GUIDE.md',
     'docs/QUICK_START.md'
   ];

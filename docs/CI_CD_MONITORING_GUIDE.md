@@ -617,7 +617,7 @@ vercel link
 **Custom Reports:**
 - VR session duration
 - Device distribution (Quest 2/3)
-- Feature usage (hand tracking, voice, etc.)
+- Feature usage (hand tracking, gaze-dwell, etc.)
 - Performance metrics (FPS, memory)
 
 ### Lighthouse CI

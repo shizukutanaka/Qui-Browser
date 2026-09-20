@@ -14,12 +14,6 @@ const {
   SEVERITY_PREFIX,
   toastColors,
   toastFontPx,
-  voiceCommandFeedback,
-  VOICE_CMD_HAPTIC_PATTERN,
-  voiceCommandFailedFeedback,
-  VOICE_CMD_FAILED_HAPTIC_PATTERN,
-  voiceErrorNotification,
-  VOICE_FATAL_ERRORS,
   controllerDisconnectMessage,
   controllerReconnectMessage,
   webglContextLostMessage,
@@ -127,50 +121,7 @@ describe('notifyCrossModal — graceful degradation', () => {
   });
 });
 
-describe('voiceCommandFeedback — haptic parity for hands-free input', () => {
-  test('fires the click pattern on both hands when haptics are available', () => {
-    const haptic = makeHaptic();
-    voiceCommandFeedback(haptic);
-    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(1);
-    expect(haptic.playPatternBothHands).toHaveBeenCalledWith(VOICE_CMD_HAPTIC_PATTERN);
-  });
 
-  test('does not throw when hapticFeedback is null', () => {
-    expect(() => voiceCommandFeedback(null)).not.toThrow();
-  });
-
-  test('VOICE_CMD_HAPTIC_PATTERN is the lightweight click (not impact or error)', () => {
-    expect(VOICE_CMD_HAPTIC_PATTERN).toBe('click');
-  });
-
-  test('fires exactly once per command (no double-pulse)', () => {
-    const haptic = makeHaptic();
-    voiceCommandFeedback(haptic);
-    voiceCommandFeedback(haptic);
-    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(2);
-  });
-});
-
-describe('voiceCommandFailedFeedback — distinct "try again" pulse', () => {
-  test('fires the notification pattern on both hands when haptics are available', () => {
-    const haptic = makeHaptic();
-    voiceCommandFailedFeedback(haptic);
-    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(1);
-    expect(haptic.playPatternBothHands).toHaveBeenCalledWith(VOICE_CMD_FAILED_HAPTIC_PATTERN);
-  });
-
-  test('does not throw when hapticFeedback is null', () => {
-    expect(() => voiceCommandFailedFeedback(null)).not.toThrow();
-  });
-
-  test('failure pattern differs from success pattern (distinct cues)', () => {
-    expect(VOICE_CMD_FAILED_HAPTIC_PATTERN).not.toBe(VOICE_CMD_HAPTIC_PATTERN);
-  });
-
-  test('VOICE_CMD_FAILED_HAPTIC_PATTERN is the gentle double-bump (not error/warning)', () => {
-    expect(VOICE_CMD_FAILED_HAPTIC_PATTERN).toBe('notification');
-  });
-});
 
 describe('controllerDisconnectMessage — WCAG 4.1.3 controller status', () => {
   test('names the left hand when handedness is "left"', () => {
@@ -216,37 +167,6 @@ describe('controllerReconnectMessage — WCAG 4.1.3 reconnect status', () => {
   });
 });
 
-describe('voiceErrorNotification — user-visible speech recognition errors', () => {
-  test('not-allowed returns error severity with mic-denied message', () => {
-    const r = voiceErrorNotification('not-allowed');
-    expect(r.type).toBe('error');
-    expect(r.message).toMatch(/microphone/i);
-  });
-
-  test('service-not-allowed also returns error severity', () => {
-    const r = voiceErrorNotification('service-not-allowed');
-    expect(r.type).toBe('error');
-  });
-
-  test('non-fatal errors (network, audio-capture, aborted) return warn severity', () => {
-    for (const code of ['network', 'audio-capture', 'aborted', 'no-speech']) {
-      expect(voiceErrorNotification(code).type).toBe('warn');
-    }
-  });
-
-  test('VOICE_FATAL_ERRORS includes both permission-denied codes', () => {
-    expect(VOICE_FATAL_ERRORS.has('not-allowed')).toBe(true);
-    expect(VOICE_FATAL_ERRORS.has('service-not-allowed')).toBe(true);
-  });
-
-  test('fatal errors map to error type, non-fatal to warn — no silent failures', () => {
-    const fatal = voiceErrorNotification('not-allowed');
-    const nonfatal = voiceErrorNotification('network');
-    expect(fatal.type).toBe('error');
-    expect(nonfatal.type).toBe('warn');
-    expect(fatal.type).not.toBe(nonfatal.type);
-  });
-});
 
 describe('webglContextLost / Restored messages — WCAG 4.1.3 graphics-state status', () => {
   test('lost message is non-empty and signals the paused/restoring state', () => {

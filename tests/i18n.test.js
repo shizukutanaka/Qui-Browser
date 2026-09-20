@@ -156,14 +156,12 @@ describe('src/i18n/i18n', () => {
 
 // ── Surfaces the earlier i18n passes missed (Session 74) ────────────────────
 // Session 2 recorded "Phase 1 Complete (i18n wired)" and Session 27 "toast call
-// sites fixed", but both covered toasts and settings labels. Captions, voice
-// errors and screen-reader region labels were still English literals — and
-// CLAUDE.md had itself listed the voice errors as an unfixed Phase 1 gap.
-describe('captions, voice errors and screen-reader labels are translated', () => {
+// sites fixed", but both covered toasts and settings labels. Captions and
+// screen-reader region labels were still English literals.
+describe('captions and screen-reader labels are translated', () => {
   const KEYS = [
-    'vr.error.voiceMicDenied', 'vr.error.voiceUnavailable',
     'vr.a11y.captionsRegion', 'vr.a11y.alertsRegion', 'vr.a11y.settingsRegion',
-    'vr.msg.teleported', 'vr.msg.recenterLabel', 'vr.msg.noTopSites', 'vr.msg.vrReady',
+    'vr.msg.teleported', 'vr.msg.recenterLabel', 'vr.msg.vrReady',
     'vr.msg.primaryHandLeft', 'vr.msg.primaryHandRight',
     'vr.msg.leftHandTracked', 'vr.msg.leftHandLost',
     'vr.msg.rightHandTracked', 'vr.msg.rightHandLost',
@@ -185,24 +183,6 @@ describe('captions, voice errors and screen-reader labels are translated', () =>
     expect(ja).not.toBe(en);
   });
 
-  test('voiceErrorNotification returns translated text, not a literal', () => {
-    // Earlier tests in this file call jest.resetModules(), so the file-level
-    // `setLanguage` binding points at a STALE i18n instance while a fresh
-    // require() gets a new one. Both modules must come from the same registry
-    // generation or the language switch silently does nothing — this test
-    // passed alone and failed in-file until they were required together.
-    const { voiceErrorNotification } = require('../src/vr/accessibility/crossModal.js');
-    const i18n = require('../src/i18n/i18n.js');
-    i18n.setLanguage('ja');
-    const denied = voiceErrorNotification('not-allowed');
-    const other = voiceErrorNotification('network');
-    i18n.setLanguage('en');
-    expect(denied.type).toBe('error');
-    expect(other.type).toBe('warn');
-    // Japanese output must not be the English literal it used to hardcode.
-    expect(denied.message).not.toMatch(/microphone access denied/);
-    expect(denied.message).toMatch(/マイク/);
-  });
 
   test('hand-tracking captions use four explicit keys, not composed fragments', () => {
     // Composing "<hand> hand <state>" cannot produce correct Japanese: word

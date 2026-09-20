@@ -26,13 +26,13 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 
 ### ✅ 完全対応 (Full Support)
 
-| デバイス | 対応状況 | FPS | 解像度 | ハンドトラッキング | 音声コマンド |
-|---------|---------|-----|--------|------------------|------------|
-| **Meta Quest 3** | ✅ 完全対応 | 90 FPS | 2064×2208/eye | ✅ 対応 | ✅ 対応 |
-| **Meta Quest Pro** | ✅ 完全対応 | 90 FPS | 1800×1920/eye | ✅ 対応 | ✅ 対応 |
-| **Meta Quest 2** | ✅ 完全対応 | 72 FPS | 1832×1920/eye | ✅ 対応 | ✅ 対応 |
-| **Pico 4** | ✅ 完全対応 | 90 FPS | 2160×2160/eye | ✅ 対応 | ⚠️ 部分対応 |
-| **Pico Neo 3** | ✅ 完全対応 | 72 FPS | 1832×1920/eye | ✅ 対応 | ⚠️ 部分対応 |
+| デバイス | 対応状況 | FPS | 解像度 | ハンドトラッキング |
+|---------|---------|-----|--------|------------------|
+| **Meta Quest 3** | ✅ 完全対応 | 90 FPS | 2064×2208/eye | ✅ 対応 |
+| **Meta Quest Pro** | ✅ 完全対応 | 90 FPS | 1800×1920/eye | ✅ 対応 |
+| **Meta Quest 2** | ✅ 完全対応 | 72 FPS | 1832×1920/eye | ✅ 対応 |
+| **Pico 4** | ✅ 完全対応 | 90 FPS | 2160×2160/eye | ✅ 対応 |
+| **Pico Neo 3** | ✅ 完全対応 | 72 FPS | 1832×1920/eye | ✅ 対応 |
 
 ### ⚠️ 部分対応 (Partial Support)
 
@@ -122,12 +122,12 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 
 ### VRデバイス内蔵ブラウザ
 
-| ブラウザ | バージョン | WebXR | ハンドトラッキング | 音声認識 | 評価 |
-|---------|-----------|-------|------------------|----------|------|
-| **Meta Quest Browser** | v28+ | ✅ 完全対応 | ✅ 対応 | ✅ 対応 | ⭐⭐⭐⭐⭐ |
-| **Pico Browser** | v1.8+ | ✅ 完全対応 | ✅ 対応 | ⚠️ 限定的 | ⭐⭐⭐⭐ |
-| **Wolvic** | v1.5+ | ✅ 完全対応 | ✅ 対応 | ❌ 非対応 | ⭐⭐⭐⭐ |
-| **Firefox Reality** | 非推奨 | ⚠️ 古い実装 | ❌ 非対応 | ❌ 非対応 | ⭐⭐ |
+| ブラウザ | バージョン | WebXR | ハンドトラッキング | 評価 |
+|---------|-----------|-------|------------------|------|
+| **Meta Quest Browser** | v28+ | ✅ 完全対応 | ✅ 対応 | ⭐⭐⭐⭐⭐ |
+| **Pico Browser** | v1.8+ | ✅ 完全対応 | ✅ 対応 | ⭐⭐⭐⭐ |
+| **Wolvic** | v1.5+ | ✅ 完全対応 | ✅ 対応 | ⭐⭐⭐⭐ |
+| **Firefox Reality** | 非推奨 | ⚠️ 古い実装 | ❌ 非対応 | ⭐⭐ |
 
 ### デスクトップブラウザ (PC VR)
 
@@ -160,8 +160,6 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 | **3Dタブマネージャー** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **3Dブックマーク** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **仮想キーボード** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **音声コマンド** | ✅ 日本語 | ✅ 日本語 | ⚠️ 限定的 | ⚠️ 限定的 | ⚠️ |
-| **ジェスチャー操作** | ✅ 12種類 | ✅ 12種類 | ✅ 10種類 | ⚠️ 8種類 | ❌ |
 
 ### メディア機能
 
@@ -171,7 +169,6 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 | **180°動画** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **空間音響** | ✅ HRTF | ✅ HRTF | ✅ HRTF | ✅ HRTF | ✅ HRTF |
 | **ステレオ音響** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **WebGPU** | ⚠️ 実験的 | ❌ | ❌ | ❌ | ⚠️ 実験的 |
 
 ### パフォーマンス
 
@@ -194,7 +191,6 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 ✅ **動作良好** - 既知の重大な問題なし
 
 **軽微な問題:**
-- WebGPUが実験的機能フラグ必要
 - 一部の360°動画で読み込み遅延あり
 
 #### Quest 2
@@ -205,26 +201,14 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 - 高解像度テクスチャでメモリ警告
 
 **回避策:**
-```javascript
-// Quest 2用の最適化設定
-VRSettings.set('performance.targetFPS', 72);
-VRSettings.set('performance.renderScale', 0.9);
-VRSettings.set('quality.textureQuality', 'medium');
-```
+- 設定パネルの Comfort vignette / FFR は既定で有効 — そのまま使う
+- タブ数を絞る（メモリ6GB制限のため）
 
 ### Pico シリーズ
 
 #### Pico 4
 
-⚠️ **音声認識の制限:**
-- 日本語音声コマンドが一部未対応
-- 英語音声コマンド推奨
-
-**回避策:**
-```javascript
-// 英語モードで起動
-VRSettings.set('voice.language', 'en-US');
-```
+✅ **動作良好** — 既知の重大な問題なし
 
 #### Pico Neo 3
 
@@ -343,32 +327,6 @@ VRInput.setPreferredMode('controller');
    });
    ```
 
-### 問題: 音声コマンドが反応しない
-
-**症状:** 音声が認識されない
-
-**対処法:**
-
-1. **マイク権限を許可**
-   ```
-   ブラウザ設定 > プライバシー > マイク > 許可
-   ```
-
-2. **言語設定を確認**
-   ```javascript
-   // 日本語設定
-   VRSettings.set('voice.language', 'ja-JP');
-
-   // または英語
-   VRSettings.set('voice.language', 'en-US');
-   ```
-
-3. **対応コマンド一覧**
-   ```
-   日本語: 「次のタブ」「前のタブ」「ブックマーク」「ホーム」
-   English: "next tab", "previous tab", "bookmark", "home"
-   ```
-
 ### 問題: 360°動画が読み込まれない
 
 **症状:** 動画が黒画面 / エラー表示
@@ -382,11 +340,7 @@ VRInput.setPreferredMode('controller');
    最大解像度: 4096x4096 (4K)
    ```
 
-2. **メモリ不足の場合**
-   ```javascript
-   // 解像度を下げる
-   VRSettings.set('video.maxResolution', 2048);
-   ```
+2. **メモリ不足の場合** — タブを減らすか低解像度の動画を使う
 
 3. **ネットワーク確認**
    ```
@@ -396,95 +350,6 @@ VRInput.setPreferredMode('controller');
    ```
 
 ---
-
-## デバイス別推奨設定 | Recommended Settings by Device
-
-### Meta Quest 3 (最高品質)
-
-```json
-{
-  "display": {
-    "ipd": 63,
-    "brightness": 1.0,
-    "renderScale": 1.2
-  },
-  "performance": {
-    "targetFPS": 90,
-    "dynamicResolution": true,
-    "foveatedRendering": true
-  },
-  "quality": {
-    "textureQuality": "high",
-    "shadows": true,
-    "shadowQuality": "high",
-    "antialiasing": "msaa4x",
-    "postProcessing": true
-  },
-  "comfort": {
-    "tunnelVision": false,
-    "snapRotation": false,
-    "smoothLocomotion": true
-  }
-}
-```
-
-### Meta Quest 2 (バランス)
-
-```json
-{
-  "display": {
-    "ipd": 63,
-    "brightness": 1.0,
-    "renderScale": 0.9
-  },
-  "performance": {
-    "targetFPS": 72,
-    "dynamicResolution": true,
-    "foveatedRendering": true
-  },
-  "quality": {
-    "textureQuality": "medium",
-    "shadows": true,
-    "shadowQuality": "medium",
-    "antialiasing": "msaa2x",
-    "postProcessing": false
-  },
-  "comfort": {
-    "tunnelVision": true,
-    "snapRotation": true,
-    "smoothLocomotion": false
-  }
-}
-```
-
-### Pico 4 (高品質)
-
-```json
-{
-  "display": {
-    "ipd": 62,
-    "brightness": 0.9,
-    "renderScale": 1.1
-  },
-  "performance": {
-    "targetFPS": 90,
-    "dynamicResolution": true,
-    "foveatedRendering": false
-  },
-  "quality": {
-    "textureQuality": "high",
-    "shadows": true,
-    "shadowQuality": "medium",
-    "antialiasing": "msaa2x",
-    "postProcessing": true
-  },
-  "comfort": {
-    "tunnelVision": false,
-    "snapRotation": false,
-    "smoothLocomotion": true
-  }
-}
-```
 
 ---
 
@@ -496,16 +361,13 @@ VRInput.setPreferredMode('controller');
 |---------|----------|----------|------|
 | **Quest 3** | 起動テスト | ✅ 合格 | 全機能動作確認 |
 | **Quest 3** | パフォーマンス | ✅ 合格 | 90 FPS安定 |
-| **Quest 3** | ハンドトラッキング | ✅ 合格 | 12ジェスチャー対応 |
-| **Quest 3** | 音声コマンド | ✅ 合格 | 日本語/英語対応 |
+| **Quest 3** | ハンドトラッキング | ✅ 合格 | ハンドトラッキング対応 |
 | **Quest 2** | 起動テスト | ✅ 合格 | 全機能動作確認 |
 | **Quest 2** | パフォーマンス | ✅ 合格 | 72 FPS安定 |
-| **Quest 2** | ハンドトラッキング | ✅ 合格 | 12ジェスチャー対応 |
-| **Quest 2** | 音声コマンド | ✅ 合格 | 日本語/英語対応 |
+| **Quest 2** | ハンドトラッキング | ✅ 合格 | ハンドトラッキング対応 |
 | **Pico 4** | 起動テスト | ✅ 合格 | 全機能動作確認 |
 | **Pico 4** | パフォーマンス | ✅ 合格 | 90 FPS安定 |
-| **Pico 4** | ハンドトラッキング | ✅ 合格 | 10ジェスチャー対応 |
-| **Pico 4** | 音声コマンド | ⚠️ 部分合格 | 英語のみ推奨 |
+| **Pico 4** | ハンドトラッキング | ✅ 合格 | ハンドトラッキング対応 |
 
 ---
 

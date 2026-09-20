@@ -215,69 +215,6 @@ export class BookmarkStore {
     writeJSON(HISTORY_KEY, []);
   }
 
-  /**
-   * Frecency-ranked "Top Sites": the most-used destinations, deduped per host
-   * so one busy site can't crowd out the rest, newest-and-most-frequent first.
-   *
-   * Powers a fewest-dwell quick-access surface for hands-free users. A host's
-   * rank is its *aggregate* frecency — the sum of its pages' scores — so broad
-   * engagement across many pages counts, not just the single best page. The
-   * tile's representative URL/title is the host's highest-scoring page. Returns
-   * `[{ url, title, host, visits, score }]` (score = host-aggregate frecency).
-   *
-   * `exclude` skips given hosts entirely — used to keep search-engine result
-   * pages (every search resolves to e.g. duckduckgo.com) from dominating the
-   * speed dial, which would otherwise surface the search engine as the user's
-   * "top site" and waste the highest-value, fewest-dwell slot.
-   *
-   * @param {number} [limit=8]         max tiles to return
-   * @param {number} [now=Date.now()]  reference time for the recency decay
-   * @param {string[]} [exclude=[]]    hosts to omit (case-insensitive)
-   * @returns {Array<{url:string,title:string,host:string,visits:number,score:number}>}
-   */
-  getTopSites(limit = 8, now = Date.now(), exclude = []) {
-    const history = readJSON(HISTORY_KEY, []);
-    // Normalise the exclude list the same way as entry hosts (lowercase +
-    // www-fold) so e.g. 'www.google.com' matches the folded 'google.com' key.
-    const skip = new Set((exclude || []).map(h => stripWww(String(h).toLowerCase())));
-    const byHost = new Map();
-    for (const entry of history) {
-      if (!entry || !entry.url) {
-        continue;
-      }
-      const host = hostOf(entry.url);
-      if (skip.has(host)) {
-        continue;
-      }
-      const score = frecencyScore(entry, now);
-      const visits = entry.visits > 0 ? entry.visits : 1;
-      const existing = byHost.get(host);
-      if (!existing) {
-        byHost.set(host, {
-          url: entry.url,
-          title: entry.title || entry.url,
-          host,
-          visits,
-          score,        // running host-aggregate frecency
-          _bestScore: score // highest single-page score → picks the representative
-        });
-      } else {
-        // Aggregate the host's total visits AND frecency so broad usage ranks;
-        // keep the best-scoring page as the representative URL/title.
-        existing.visits += visits;
-        existing.score += score;
-        if (score > existing._bestScore) {
-          existing._bestScore = score;
-          existing.url = entry.url;
-          existing.title = entry.title || entry.url;
-        }
-      }
-    }
-    return [...byHost.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(0, limit))
-      .map(({ _bestScore, ...site }) => site); // drop the internal field
-  }
 
   /**
    * Frecency-ranked URL completions for a partial query.

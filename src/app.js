@@ -116,16 +116,10 @@ function setupKeyboardShortcuts() {
     switch (event.key) {
     case 'p':
     case 'P': {
-      // Toggle rich PerformanceMonitor when available, otherwise fall back
-      // to the simple overlay.
-      if (vrApp && vrApp.perfMonitorUI) {
-        vrApp.perfMonitorUI.toggle();
-      } else {
-        const perfDisplay = document.getElementById('performance-monitor');
-        if (perfDisplay) {
-          perfDisplay.style.display =
-              perfDisplay.style.display === 'none' ? 'block' : 'none';
-        }
+      const perfDisplay = document.getElementById('performance-monitor');
+      if (perfDisplay) {
+        perfDisplay.style.display =
+            perfDisplay.style.display === 'none' ? 'block' : 'none';
       }
       break;
     }

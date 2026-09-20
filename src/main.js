@@ -206,10 +206,10 @@ console.debug(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                   Qui Browser VR v2.0.0                      ║
 ║                                                              ║
-║  WebXR browser with 17 features (Tier 1-3)                   ║
+║  Accessibility-first WebXR browser / reader shell            ║
 ║  • Japanese IME, Hand Tracking, Spatial Audio                ║
 ║  • Comfort system, KTX2 textures, Service Worker             ║
-║  • Experimental: WebGPU, Multiplayer, AI                     ║
+║  • Captions, gaze-dwell, haptics, high contrast              ║
 ║                                                              ║
 ║  GitHub: github.com/shizukutanaka/qui-browser               ║
 ║  Docs: github.com/shizukutanaka/qui-browser/tree/main/docs  ║

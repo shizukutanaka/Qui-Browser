@@ -199,7 +199,7 @@
 
 | リソース | URL | 概要 | Quiにとっての意味 |
 |---------|-----|------|------------------|
-| three.js `renderer.info` / BatchedMesh | github.com/mrdoob/three.js | draw call/メモリ計測・バッチ描画 | `PerformanceMonitor` 拡張 |
+| three.js `renderer.info` / BatchedMesh | github.com/mrdoob/three.js | draw call/メモリ計測・バッチ描画 | `VRApp.updatePerformanceMonitor` 拡張 |
 | mrdoob/stats.js | github.com/mrdoob/stats.js | FPS/フレーム計測 | 基本HUD |
 | BabylonJS/spector.js | github.com/BabylonJS/Spector.js | WebGLフレームデバッグ | 描画ボトルネック解析 |
 | utsuboco/r3f-perf | github.com/utsuboco/r3f-perf | R3F向け詳細perf | 計測指標の参照 |
@@ -209,7 +209,7 @@
 | WebGPU timestamp-query | gpuweb | GPU時間計測 | 正確なGPUプロファイル |
 
 **改善点**
-1. **GPU/CPUバジェット計測（P1/M）**: `renderer.info`＋WebGPU timestamp で実測。→ `src/utils/PerformanceMonitor.js` 拡張（現状はFPS/メモリ中心）。
+1. **GPU/CPUバジェット計測（P1/M）**: `renderer.info`＋WebGPU timestamp で実測。→ `src/vr/VRApp.js` の `updatePerformanceMonitor`/`performanceMonitor` を拡張（現状はFPS/メモリ/draw calls中心）。
 2. **draw call 削減（P1/S）**: `BatchedMesh`/ジオメトリ統合（UI/タブ多数時）。
 3. **動的解像度スケーリング（P1/M）**: GPU負荷で `framebufferScaleFactor` を可変（FFRと協調）。
 4. **glTF-Transform パイプライン（P1/M）**: prune/dedup/draco/ktx2 を build 時適用（Cat2-4と統合）。

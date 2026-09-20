@@ -43,7 +43,6 @@
   - [x] QUICK_START.md verified and tested
   - [x] USAGE_GUIDE.md covers all 17 features
   - [x] FAQ.md answers common questions
-  - [x] API.md documents all public APIs
 
 - [x] **Developer documentation complete**
   - [x] ARCHITECTURE.md explains system design

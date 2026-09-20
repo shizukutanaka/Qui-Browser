@@ -25,23 +25,19 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
+import { notifyCrossModal, withSeverity, toastColors, toastFontPx, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
-import { searchEngineHosts } from './browser/urlResolver.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 
-// Tier 3 / optional features (opt-in via settings, default off)
-import { VoiceCommands } from './input/VoiceCommands.js';
 import { TabManager } from './browser/TabManager.js';
 import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
-import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
@@ -114,13 +110,11 @@ export class VRApp {
     this.spatialAudio = null;
 
     // Tier 3 systems (opt-in)
-    this.voiceCommands = null;
     this.webPanel = null;
     this.tabManager = null;
     this.windowManager = null;
     this.bookmarkPanel = null;
     this.devTools = null;
-    this.perfMonitorUI = null;
     this.homeEnvironment = null;
     this.layersSystem = null;
 
@@ -248,10 +242,6 @@ export class VRApp {
       windowDistance: 2.0, // metres
       // Curved-screen mode for the browser content area (Quest-style). OFF.
       enableCurvedPanel: false,
-      // Tier 3 / optional features — opt-in, default off so the base
-      // experience is unchanged. Heavy/experimental features stay off.
-      enableVoice: false,
-      enablePerfMonitorUI: false,
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -2570,122 +2560,6 @@ export class VRApp {
       this.showVRToast(t('vr.error.spatialAudioUnavailable'), { type: 'warn' });
     }
 
-    // === TIER 3 / OPTIONAL SYSTEMS (opt-in, default off) ===
-
-    // 10. Voice Commands
-    if (this.settings.enableVoice) {
-      this.voiceCommands = new VoiceCommands();
-      const voiceReady = await this.voiceCommands.initialize();
-      if (voiceReady) {
-        // FR-13.1: caption recognized speech so it is visible in VR.
-        this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-          if (isFinal && this.captionSystem) {
-            this.captionSystem.show(transcript);
-          }
-        };
-        // Mirror spoken responses (confirmations / errors) to captions too, so a
-        // user who can speak but not hear sees whether a command was understood.
-        this.voiceCommands.callbacks.onSpeak = (text) => {
-          if (this.captionSystem) {
-            this.captionSystem.show(text);
-          }
-        };
-        // Haptic confirmation on every successful voice command — parity with
-        // controller presses, gaze-dwell activation, teleport, and snap turn.
-        // Voice is a hands-free modality, so both hands receive the click pulse.
-        this.voiceCommands.callbacks.onCommand = (_key, _result) => {
-          voiceCommandFeedback(this.hapticFeedback);
-        };
-        // Distinct double-bump on failure (no match or action exception) so a
-        // user not looking at captions knows to try again without audio.
-        this.voiceCommands.callbacks.onCommandFailed = (_info) => {
-          voiceCommandFailedFeedback(this.hapticFeedback);
-        };
-        // Surface speech-recognition errors as VR toasts with cross-modal
-        // feedback. Without this the recognizer goes silent and the user has
-        // no way of knowing voice commands stopped working.
-        this.voiceCommands.callbacks.onError = (errorCode) => {
-          const { message, type } = voiceErrorNotification(errorCode);
-          this.showVRToast(message, { type });
-        };
-        // Replace window.* default commands with VR-aware implementations that
-        // route navigation and search through the live TabManager.
-        this.voiceCommands.connectBrowser({
-          tabManager:    this.tabManager,
-          bookmarkPanel: this.bookmarkPanel,
-          vrKeyboard:    this.vrKeyboard,
-          onSearch: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (active) {
-              // Mirror the immediate "Loading:" caption that the URL-bar and
-              // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-              // caption-reliant users know their voice command was accepted
-              // before the page finishes loading.
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Top Sites: jump to the most-used destination (frecency-ranked from
-          // history). Fewest-dwell navigation for hands-free users; announced
-          // cross-modally so it's perceivable without sight.
-          onTopSites: () => {
-            // Exclude search-engine result pages so the user's actual
-            // destinations win the slot, not their search engine.
-            const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
-            const active = this.tabManager?.getActiveTab?.();
-            if (top && active) {
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
-              }
-              active.navigate(top.url);
-            } else if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(t('vr.msg.noTopSites'));
-            }
-          },
-          // Go-to: look up the extracted site name in frecency-ranked
-          // history/bookmarks. A history hit navigates directly (fewest dwells
-          // for a familiar destination); no hit falls back to web search so the
-          // command always produces a result. This closes the loop on the
-          // autocomplete data layer (BookmarkStore.search) for voice input.
-          onGoTo: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (!active) {
-              return;
-            }
-            const hits = this.bookmarks.search(query, 1, Date.now());
-            if (hits.length > 0) {
-              const hit = hits[0];
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
-              }
-              active.navigate(hit.url);
-            } else {
-              // No frecency match — treat as URL or web search
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Hands-free equivalent of the "Clear History" settings action.
-          onClearHistory: () => this._clearBrowsingHistory(),
-          // Scroll the active panel's reader viewport (the fetched article
-          // text), which is what "下にスクロール" can actually move in VR.
-          onScrollContent: (delta) => {
-            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-          }
-        });
-        // Begin listening immediately (user granted mic permission during initialize).
-        this.voiceCommands.start();
-        console.debug('VRApp: Voice commands ready and listening');
-      } else {
-        console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
-        this.voiceCommands = null;
-      }
-    }
-
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
     if (import.meta.env && import.meta.env.DEV) {
@@ -2693,13 +2567,6 @@ export class VRApp {
       this.devTools = new DevTools(this);
       this.devTools.initialize();
       console.debug('VRApp: DevTools ready (F12 to toggle)');
-    }
-
-    // 13. Performance monitor overlay (opt-in)
-    if (this.settings.enablePerfMonitorUI) {
-      this.perfMonitorUI = new PerformanceMonitor();
-      this.perfMonitorUI.initialize();
-      console.debug('VRApp: Performance monitor UI ready');
     }
 
     const loadTime = performance.now() - startTime;
@@ -3036,11 +2903,6 @@ export class VRApp {
   render(timestamp, xrFrame) {
     this.frameCount++;
 
-    // Rich perf monitor — begin-frame timing.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.beginFrame();
-    }
-
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
     // resuming from background doesn't produce an enormous delta).
     const frameStart = performance.now();
@@ -3058,11 +2920,6 @@ export class VRApp {
     // Track performance
     const frameTime = performance.now() - frameStart;
     this.updatePerformanceMonitor(frameTime);
-
-    // Rich perf monitor — end-frame metrics + UI.
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.endFrame(this.renderer);
-    }
 
     // Dynamic quality adjustment (every 60 frames)
     if (this.frameCount % 60 === 0) {
@@ -3462,9 +3319,6 @@ export class VRApp {
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
     }
-    if (this.voiceCommands) {
-      this.voiceCommands.dispose();
-    }
     if (this.windowManager) {
       this.windowManager.dispose();
     }
@@ -3484,9 +3338,6 @@ export class VRApp {
     }
     if (this.devTools) {
       this.devTools.dispose();
-    }
-    if (this.perfMonitorUI) {
-      this.perfMonitorUI.dispose();
     }
     if (this._homePanelTexture) {
       this._homePanelTexture.dispose();

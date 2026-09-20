@@ -37,13 +37,12 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 - [x] Development tools and debugging
 
 ### Phase 2: VR Modules (35+ modules) ✅
-- [x] **Tier 1 (5 features):** FFR, Comfort, Object Pooling, KTX2 Textures, Service Worker
-- [x] **Tier 2 (6 features):** Japanese IME, Hand Tracking, Spatial Audio, MR Passthrough, Progressive Loading, Offline Support
-- [x] **Tier 3 (6 features):** WebGPU, Multiplayer, AI Recommendations, Voice Commands, Haptic Feedback, WebCodecs
-- [x] **Development Tools:** Performance Monitor, DevTools
+- [x] **Tier 1 (performance):** FFR, Comfort vignette, KTX2 texture support (lazy CDN transcoder), Service Worker
+- [x] **Tier 2 (features):** Japanese IME, Hand Tracking, Spatial Audio, Tab/Window/Bookmark panels, Offline support
+- [x] **Accessibility:** Captions, Gaze-dwell, Haptic feedback, Semantic DOM, cross-modal notifications, high-contrast/reduced-motion prefs
+- [x] **Development Tools:** DevTools (dev builds, F12), performance overlay (P key)
 
 ### Phase 3: Documentation ✅
-- [x] Complete API documentation (API.md - 1,100+ lines)
 - [x] Usage guide (USAGE_GUIDE.md - 900+ lines)
 - [x] Deployment guide (DEPLOYMENT_GUIDE.md - 600+ lines)
 - [x] Build optimization guide (BUILD_OPTIMIZATION_GUIDE.md)
@@ -53,17 +52,13 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 - [x] Quick start guide (QUICK_START.md - 1,000+ lines)
 
 ### Phase 4: Development Infrastructure ✅
-- [x] Comprehensive test suite (34 test suites)
-- [x] CI/CD pipelines (9 CI jobs, 9 CD jobs)
-- [x] Performance benchmarking tools
-- [x] Performance regression detection
-- [x] Production monitoring (Sentry, GA4, Web Vitals)
+- [x] Jest test suite (46 suites / 1,463 tests)
+- [x] CI/CD pipelines (ci.yml / cd.yml / release.yml)
+- [x] Opt-in production monitoring (Sentry, GA4 via env vars; Web Vitals)
 - [x] Docker multi-platform builds
-- [x] Multi-platform deployment automation
 
 ### Phase 5: Examples & Assets ✅
-- [x] Example implementations (4 files)
-- [x] Asset directories (images, sounds)
+- [x] PWA assets (icons, manifest, offline page, service worker)
 - [x] Community guidelines (CONTRIBUTING.md, CODE_OF_CONDUCT.md)
 - [x] Security policy (SECURITY.md)
 
@@ -73,42 +68,35 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 
 ### Tier 1: Performance Optimizations (5/5 Complete)
 
-| Feature | Status | File | Lines | Performance Impact |
-|---------|--------|------|-------|-------------------|
-| **FFR (Fixed Foveated Rendering)** | ✅ Complete | FFRSystem.js | 580 | +15-20 FPS |
-| **Comfort System** | ✅ Complete | ComfortSystem.js | 620 | Reduced motion sickness |
-| **Object Pooling** | ✅ Complete | ObjectPoolSystem.js | 450 | -40% GC pauses |
-| **KTX2 Texture Compression** | ✅ Complete | TextureLoader.js | 380 | -94% texture memory |
-| **Service Worker** | ✅ Complete | service-worker.js | 290 | 100% offline capability |
+| Feature | Status | File | Performance Impact |
+|---------|--------|------|-------------------|
+| **FFR (Fixed Foveated Rendering)** | ✅ Complete | FFRSystem.js | Foveation on supported runtimes |
+| **Comfort System** | ✅ Complete | ComfortSystem.js | Vignette/FOV control for motion sickness |
+| **Texture Manager** | ✅ Complete | TextureManager.js | Texture cache + lazy KTX2 transcode |
+| **Service Worker** | ✅ Complete | public/service-worker.js | Offline capability |
 
 ### Tier 2: Enhanced Features (6/6 Complete)
 
-| Feature | Status | File | Lines | User Impact |
-|---------|--------|------|-------|-------------|
-| **Japanese IME** | ✅ Complete | JapaneseIME.js | 680 | Native Japanese input |
-| **Advanced Hand Tracking** | ✅ Complete | HandTracking.js | 720 | Controller-free interaction |
-| **3D Spatial Audio** | ✅ Complete | SpatialAudio.js | 540 | Immersive sound |
-| **MR Passthrough** | ✅ Complete | PassthroughManager.js | 420 | Real-world integration |
-| **Progressive Image Loading** | ✅ Complete | ProgressiveLoader.js | 380 | -60% initial load time |
-| **Offline Support** | ✅ Complete | OfflineManager.js | 320 | Works without internet |
+| Feature | Status | File | User Impact |
+|---------|--------|------|-------------|
+| **Japanese IME** | ✅ Complete | JapaneseIME.js | Native Japanese input |
+| **Advanced Hand Tracking** | ✅ Complete | HandTracking.js | Controller-free interaction |
+| **3D Spatial Audio** | ✅ Complete | SpatialAudio.js | Immersive sound |
+| **Tab/Window/Bookmark panels** | ✅ Complete | TabManager.js, WindowManager.js, BookmarkPanel.js | Spatial browsing |
+| **Offline Support** | ✅ Complete | public/service-worker.js | Works without internet |
 
-### Tier 3: Advanced Features (6/6 Complete)
+### Tier 3: Advanced Features
 
-| Feature | Status | File | Lines | Innovation |
-|---------|--------|------|-------|-----------|
-| **WebGPU Rendering** | ✅ Complete | WebGPURenderer.js | 840 | 2x rendering performance |
-| **Multiplayer System** | ✅ Complete | MultiplayerSystem.js | 760 | Real-time collaboration |
-| **AI Recommendations** | ✅ Complete | AIRecommendation.js | 560 | Personalized content |
-| **Voice Commands** | ✅ Complete | VoiceCommands.js | 480 | Hands-free control |
-| **Haptic Feedback** | ✅ Complete | HapticFeedback.js | 420 | Enhanced immersion |
-| **WebCodecs Video** | ✅ Complete | VideoPlayer.js | 380 | Hardware-accelerated video |
+Removed — WebGPU rendering, Multiplayer, AI Recommendations, Voice Commands
+and WebCodecs Video had no reachable user path and were deleted (see
+docs/OUTSTANDING_ISSUES.md §G). Haptic Feedback lives under Accessibility.
 
 ### Development Tools (2/2 Complete)
 
-| Tool | Status | File | Lines | Purpose |
-|------|--------|------|-------|---------|
-| **Performance Monitor** | ✅ Complete | PerformanceMonitor.js | 520 | Real-time FPS/memory tracking |
-| **VR DevTools** | ✅ Complete | DevTools.js | 600 | In-VR debugging interface |
+| Tool | Status | File | Purpose |
+|------|--------|------|---------|
+| **Performance overlay** | ✅ Complete | src/app.js (P key) | FPS/memory/draw-call overlay |
+| **VR DevTools** | ✅ Complete | src/dev/DevTools.js | In-VR debugging interface (dev builds) |
 
 ---
 
@@ -140,13 +128,12 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 
 ### Core Technologies
 - **WebXR Device API** - VR/AR immersive experiences
-- **Three.js r152** - 3D graphics and rendering
+- **Three.js r181** - 3D graphics and rendering
 - **Web Audio API** - Spatial audio and HRTF
 - **Service Worker** - Offline support and caching
-- **WebGPU** - Next-gen GPU acceleration (Tier 3)
 
 ### Build & Development
-- **Vite 4.x** - Fast development and optimized builds
+- **Vite 5.x** - Fast development and optimized builds
 - **Jest 29.x** - Unit and integration testing
 - **Babel 7.x** - JavaScript transpilation
 - **ESLint + Prettier** - Code quality and formatting
@@ -235,7 +222,6 @@ npm run docker:compose
 - **QUICK_START.md** (1,000+ lines) - Step-by-step setup guide
 - **USAGE_GUIDE.md** (900+ lines) - Complete feature usage guide
 - **FAQ.md** (500+ lines) - Common questions and troubleshooting
-- **API.md** (1,100+ lines) - Complete API reference
 
 ### Developer Documentation
 - **ARCHITECTURE.md** (900+ lines) - System architecture and design

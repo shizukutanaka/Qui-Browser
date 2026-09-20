@@ -4,8 +4,8 @@
  * Renders a HUD caption panel anchored to the camera (lower field of view) that
  * displays a short queue of text lines which fade out after a hold time.  Long
  * lines are word-wrapped (not truncated) so full utterances are preserved. Fed
- * by any source of textual events — recognized speech from VoiceCommands,
- * system notifications, or media subtitles — so deaf / hard-of-hearing users
+ * by any source of textual events — navigation status, system
+ * notifications, or media subtitles — so deaf / hard-of-hearing users
  * (and anyone in a noisy space) can follow spoken/audio content.
  *
  * The panel is drawn on a CanvasTexture and billboarded in front of the user;
@@ -86,7 +86,7 @@ export class CaptionSystem {
    *   semi-transparent default, so the scene can't bleed through and wash out
    *   the text (low-vision / high-contrast preference).
    * @param {Function} [opts.onShow] — called with the normalized text every
-   *   time show() runs, mirroring VoiceCommands' onSpeak pattern. Lets a host
+   *   time show() runs. Lets a host
    *   forward every caption to a second surface (e.g. a hidden ARIA live
    *   region for 2D/assistive-tech users) from one choke point instead of
    *   duplicating it at every call site.

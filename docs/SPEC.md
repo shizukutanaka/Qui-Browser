@@ -36,7 +36,7 @@
 | FR-2.1 | コントローラ表示＋レイポインタ＋select | ✅ | `setupControllers()` / `XRControllerModelFactory` |
 | FR-2.2 | ハンドトラッキング（pinch/point） | ✅ | `HandTracking` |
 | FR-2.3 | 選択ヒットのイベント配信（interactable） | ✅ | `registerInteractable()`＋ホバー（`updateHover`）。ウェルカム板を Recenter ボタン化 |
-| FR-2.4 | 音声コマンド | ✅ | `VoiceCommands`（`settings.enableVoice` で on/off、致命エラー時の再起動ループ修正済）、VRApp に配線済 |
+| FR-2.4 | 音声コマンド | 🗑 削除 | `VoiceCommands` は `enableVoice` を true にする経路が一切なく到達不能だったため削除（第一原理スイープ第5パス） |
 | FR-2.5 | 日本語 IME 入力 | ✅ | `JapaneseIME` + VR キーボード |
 | FR-2.6 | ハプティクスフィードバック | ✅ | `HapticFeedback` — pinch→click, grab→impact パターン。VRApp に配線済（`onVRSessionStart` でジェスチャー callback に登録） |
 
@@ -96,7 +96,7 @@
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ✅ | `display-mode: standalone` 検出時に `enter-vr` 自動発火（200ms 後）。非対応 UA はボタン操作に fallback |
 | FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
 | FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
-| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | ✅ | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、レティクル進捗）。VR内字幕（`CaptionSystem`：カメラ追従 HUD パネル、タイムアウト付きキュー、VoiceCommands の `onTranscript` から音声字幕化、設定パネルでトグル） |
+| FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | ✅ | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、レティクル進捗）。VR内字幕（`CaptionSystem`：カメラ追従 HUD パネル、タイムアウト付きキュー、設定パネルでトグル） |
 
 ## 4. 非機能要件（NFR）
 | ID | 要件 | 状態 | 根拠/備考 |

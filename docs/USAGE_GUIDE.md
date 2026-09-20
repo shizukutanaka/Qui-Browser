@@ -39,8 +39,8 @@ You can drive every UI element with any of these — pick whichever suits you:
 
 ## Accessibility features
 
-- **Captions** — an in-VR caption panel mirrors every status message, voice
-  transcript, and page title. Adjustable hold time (2–60 s), text scale
+- **Captions** — an in-VR caption panel mirrors every status message
+  and page title. Adjustable hold time (2–60 s), text scale
   (0.5–3×), and vertical height.
 - **Cross-modal feedback** — errors and state changes fire a caption, a haptic
   pulse on both hands, and a visual toast at once. Severity is shown by glyph
@@ -54,9 +54,6 @@ You can drive every UI element with any of these — pick whichever suits you:
   uses a static highlight instead of an animated pulse.
 - **Japanese IME** — the VR keyboard converts romaji to hiragana/katakana/kanji
   with proper syllabic-ん handling and candidate selection.
-- **Voice commands** — enable Voice in settings. Say a command (e.g. navigate,
-  back, search, top sites, "go to <site>", or "help" to hear the phrase list).
-  Recognized speech is captioned; confirmations are spoken and captioned.
 
 ## The settings panel
 

@@ -705,6 +705,29 @@ CDN ヒントを検証:
 | `index.html` ID 群・`.env.example`（6変数）・`QUICKSTART.md` | 全て実態と一致 → 保持 |
 | `TextureManager` jsdelivr 参照 | .ktx2 要求時のみ遅延フェッチ（起動時の無条件 CDN fetch は無い）→ 妥当な遅延依存として保持 |
 
+### 第5パス（フラグで塞がれた機能・架空ドキュメント・テストだけのコード）
+
+フラグ到達性検証で2つの**実質到達不能サブシステム**を発見・削除:
+
+| 対象 | 実測された不整合 |
+|---|---|
+| `src/vr/input/VoiceCommands.js`（829行）+ 配線 + `voice-commands.test.js` | `enableVoice: false` を true にする経路が**一切存在しない**（トグル無し・`new VRApp(container)` にオプション無し・URLパラメータ無し）。Web Speech API 依存の829行機能が完全に死んでいた → ファイル・配線・`voiceCommandFeedback`/`voiceCommandFailedFeedback`/`voiceErrorNotification`（crossModal）・i18n 音声エラーキー・テスト（voice-commands.test.js, app-smoke.test.js, cross-modal-notify.test.js/i18n.test.js の該当部）を全削除 |
+| `src/utils/PerformanceMonitor.js`（694行）+ 配線 | `enablePerfMonitorUI` も同様に永久 false。app.js の `P` キーは簡易オーバーレイにフォールバック済み → リッチ版（694行）+ init/dispose/beginFrame/endFrame を削除、P ハンドラ簡素化 |
+| `BookmarkStore.getTopSites` + `urlResolver.searchEngineHosts` | 唯一の本番呼び出し元が音声機能の `onTopSites` — テストだけが参照する「テストのためのコード」→ 本体+テスト+i18n `noTopSites` キー削除 |
+| `docs/API.md`（217行） | **全記述が架空**: `UnifiedPerformanceSystem`/`UnifiedSecuritySystem`/`UnifiedErrorHandler`/`moduleLoader` 等はコードベースに0件。verify:docs の必須リストにも残存 → ドキュメント削除＋必須リストと全被リンク（README×2, QUICK_START, RELEASE_CHECKLIST, PROJECT_STATUS×2, FINAL_RELEASE_SUMMARY×2, DEVELOPER_ONBOARDING×2）修復 |
+| `docs/DEVELOPER_ONBOARDING.md`（1,192行） | 同様に架空: `VRInputSystem`/`VRMediaSystem`/`VRGestureSystem`/`initWebGPU`/`processVoiceCommand` 全て0件、"Webpack Dev Server"・`core.js/vr.js/enhancements.js` 出力（実態は Vite）→ 削除 |
+| `docs/COMPATIBILITY.md` | 架空 `VRSettings.set(...)` API×4箇所・音声コマンド行×6・WebGPU 行・ジェスチャー/パススルーAR 行（削除済機能）・架空 JSON 推奨設定セクション → 全て実態に修正 |
+| `README.md` | Voice Commands/WebCodecs 行、"17 features" 系記述、API Docs リンク → 修正 |
+| `PROJECT_STATUS.md` | Tier 3 テーブルが削除済6機能を "Complete" と記載、ObjectPoolSystem/OfflineManager/PassthroughManager 等の不存在ファイル名、Three.js r152→r181・Vite 4→5、"34 test suites"→46、"9+9 CI jobs"→3 workflow → 書き換え |
+| `docs/ARCHITECTURE.md` | input/ に VoiceCommands、utils/ に不存在4ファイル（ObjectPool/ProgressiveLoader/PerformanceMonitor/DeviceCompatibility誤掲載分）→ 実在名に修正 |
+| `docs/SPEC.md` FR-2.4 | ✅ → 🗑削除（理由記載）、FR-13.1 の VoiceCommands 連携記述を除去 |
+| `src/main.js` 起動バナー | "17 features"・"Experimental: WebGPU, Multiplayer, AI" と削除済機能を宣伝 → 実態に修正 |
+| `src/app.js` P キー | `vrApp.perfMonitorUI` 分岐（永遠に null）を除去、簡易オーバーレイ直結化 |
+
+計測: 44 suites / 1,395 tests（−68テストは削除機能のもの）、build 2.1s、
+verify:docs **100%**・verify:layout/app/vr-boot 全 PASS・lint 0 errors。
+`VRApp.js` は 3,772 → 3,402 行。
+
 ---
 
 ## 使い方（次のセッションへ）

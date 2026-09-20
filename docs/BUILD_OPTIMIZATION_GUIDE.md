@@ -51,7 +51,7 @@ The project uses **Vite** for fast builds and excellent ES module support.
           'tier1': [/* FFR, Comfort, Pool, Texture */],
           'tier2-input': [/* IME, HandTracking */],
           'tier2-media': [/* Audio, MR, Loader */],
-          'tier3': [/* WebGPU, MP, AI, Voice, Haptics */],
+          'tier3': [/* deleted features — see OUTSTANDING_ISSUES.md §G */],
           'dev-tools': [/* Monitor, DevTools */]
         }
       }
