@@ -1012,6 +1012,27 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,367 tests・coverage PASS（新閾値）・lint 0 errors・build PASS。
 
+### 第25パス（Sentry 統合の削除 — 「文書化された opt-in」は実は構造的に壊れていた）
+
+- `monitoring.js` の Sentry 経路全削除: `@sentry/browser|tracing|replay`
+  は **dependencies に存在しない**上、`@sentry/tracing` は v8 で
+  本体にマージ済みの廃止パッケージ — パス12で「env var opt-in = 到達
+  可能」と保持した判断は誤り。DSN を設定しても dynamic import が
+  必ず throw → catch → console.error で**静かに壊れるだけ**だった。
+  （vite.config の external コメントが「使うには自分で npm i して」と
+  自白するスタブ実装だった。）
+- 連鎖削除: `sentry` config ブロック、`initSentry`、`captureMessage`
+  （中身が壊れた import のみ）＋threshold→captureMessage 呼び出し
+  （console.warn に置換、GA `trackEvent` 経路は生存）＋ vite external
+  ＋ `.env.example` `VITE_SENTRY_DSN`＋ README/main.js/CI_CD_GUIDE/
+  PROJECT_STATUS/RELEASE_CHECKLIST の現行状態クレーム。
+- 保持: GA4（script タグ注入で依存不要・真の opt-in）、web-vitals
+  →trackEvent→threshold 警告（実在パッケージ）。
+- tests/monitoring.test.js: 架空 sentry モック・captureMessage テスト
+  除去（INP 閾値テストは GA 経路で依然意味を持つため保持・コメント修正）。
+
+計測: 44 suites / 1,366 tests・lint 0 errors（警告 105→103）・build PASS・verify:vr-boot PASS・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

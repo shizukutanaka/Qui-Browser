@@ -3,10 +3,8 @@
  * Error tracking, performance monitoring, and analytics
  *
  * Integrations:
- * - Sentry (error tracking)
  * - Google Analytics 4 (user analytics)
  * - Web Vitals (performance)
- * - Custom metrics
  *
  * John Carmack principle: "You can't fix what you can't measure"
  */
@@ -18,15 +16,6 @@
 const MONITORING_CONFIG = {
   // Enable in production only
   enabled: import.meta.env.PROD,
-
-  // Sentry configuration
-  sentry: {
-    dsn: import.meta.env.VITE_SENTRY_DSN || '',
-    environment: import.meta.env.MODE || 'production',
-    tracesSampleRate: 0.1, // 10% of transactions
-    replaysSessionSampleRate: 0.1, // 10% of sessions
-    replaysOnErrorSampleRate: 1.0  // 100% when errors occur
-  },
 
   // Google Analytics
   analytics: {
@@ -46,105 +35,6 @@ const MONITORING_CONFIG = {
     }
   }
 };
-
-// ============================================================================
-// Sentry Integration
-// ============================================================================
-
-/**
- * Initialize Sentry error tracking
- */
-async function initSentry() {
-  if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.sentry.dsn) {
-    console.debug('Sentry: Disabled (no DSN or not in production)');
-    return null;
-  }
-
-  try {
-    // Dynamic import to avoid loading in development
-    const Sentry = await import(/* @vite-ignore */ '@sentry/browser');
-    const { BrowserTracing } = await import(/* @vite-ignore */ '@sentry/tracing');
-    const { Replay } = await import(/* @vite-ignore */ '@sentry/replay');
-
-    Sentry.init({
-      dsn: MONITORING_CONFIG.sentry.dsn,
-      environment: MONITORING_CONFIG.sentry.environment,
-
-      // Performance monitoring
-      integrations: [
-        new BrowserTracing({
-          tracePropagationTargets: [location.origin, /^\/api\//]
-        }),
-        new Replay({
-          maskAllText: true,
-          blockAllMedia: true
-        })
-      ],
-
-      // Sampling rates
-      tracesSampleRate: MONITORING_CONFIG.sentry.tracesSampleRate,
-      replaysSessionSampleRate: MONITORING_CONFIG.sentry.replaysSessionSampleRate,
-      replaysOnErrorSampleRate: MONITORING_CONFIG.sentry.replaysOnErrorSampleRate,
-
-      // Before send hook (sanitize sensitive data)
-      beforeSend(event, _hint) {
-        // Remove sensitive data
-        if (event.request) {
-          delete event.request.cookies;
-          delete event.request.headers;
-        }
-
-        // Ignore specific errors
-        const ignoredErrors = [
-          'ResizeObserver loop limit exceeded',
-          'Non-Error promise rejection captured',
-          'ChunkLoadError'
-        ];
-
-        const errorMessage = event.exception?.values?.[0]?.value || '';
-        if (ignoredErrors.some(msg => errorMessage.includes(msg))) {
-          return null;
-        }
-
-        return event;
-      },
-
-      // Custom tags
-      initialScope: {
-        tags: {
-          'app.version': import.meta.env.VITE_APP_VERSION || '2.0.0',
-          'app.buildTime': import.meta.env.VITE_BUILD_TIME || Date.now()
-        }
-      }
-    });
-
-    console.debug('Sentry: Initialized');
-    return Sentry;
-  } catch (error) {
-    console.error('Sentry: Failed to initialize', error);
-    return null;
-  }
-}
-
-/**
- * Capture custom message
- */
-export function captureMessage(message, level = 'info', context = {}) {
-  if (!MONITORING_CONFIG.enabled) {
-    return;
-  }
-
-  import(/* @vite-ignore */ '@sentry/browser')
-    .then(({ captureMessage: sentryCapture }) => {
-      sentryCapture(message, {
-        level,
-        contexts: { custom: context }
-      });
-    })
-    .catch((err) => {
-      console.error('Failed to capture message:', err);
-    });
-}
 
 // ============================================================================
 // Google Analytics Integration
@@ -262,15 +152,10 @@ function onVitalReport(metric) {
     metric_delta: Math.round(metric.delta)
   });
 
-  // Send to Sentry if threshold exceeded
+  // Threshold breach is already reported to analytics via trackEvent above.
   const threshold = MONITORING_CONFIG.performance.thresholds[name.toLowerCase()];
   if (threshold && value > threshold) {
-    captureMessage(`Performance issue: ${name} = ${Math.round(value)}ms (threshold: ${threshold}ms)`, 'warning', {
-      metric: name,
-      value: Math.round(value),
-      threshold,
-      rating
-    });
+    console.warn(`Performance issue: ${name} = ${Math.round(value)}ms (threshold: ${threshold}ms)`);
   }
 }
 
@@ -290,9 +175,6 @@ export async function initializeMonitoring() {
 
   // Tear down any previous registration first (idempotent re-init).
   disposeMonitoring();
-
-  // Initialize error tracking
-  await initSentry();
 
   // Initialize analytics
   initGoogleAnalytics();

@@ -54,7 +54,7 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 ### Phase 4: Development Infrastructure ✅
 - [x] Jest test suite (46 suites / 1,463 tests)
 - [x] CI/CD pipelines (ci.yml / cd.yml / release.yml)
-- [x] Opt-in production monitoring (Sentry, GA4 via env vars; Web Vitals)
+- [x] Opt-in production monitoring (GA4 via env var; Web Vitals)
 - [x] Docker multi-platform builds
 
 ### Phase 5: Examples & Assets ✅
@@ -145,7 +145,6 @@ docs/OUTSTANDING_ISSUES.md §G). Haptic Feedback lives under Accessibility.
 - **Trivy** - Security vulnerability scanning
 
 ### Monitoring & Analytics
-- **Sentry** - Error tracking and performance monitoring
 - **Google Analytics 4** - User analytics
 - **Web Vitals** - Core performance metrics (CLS, FID, FCP, LCP, TTFB)
 

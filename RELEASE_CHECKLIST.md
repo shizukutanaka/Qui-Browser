@@ -119,12 +119,6 @@
 
 ### 5. Monitoring & Analytics ✅
 
-- [x] **Error tracking (Sentry)**
-  - [x] Project created in Sentry
-  - [x] DSN configured in environment
-  - [x] Error filtering rules set
-  - [x] Alert rules configured
-
 - [x] **Analytics (Google Analytics 4)**
   - [x] GA4 property created
   - [x] Measurement ID configured
@@ -298,7 +292,7 @@ Major features:
 Infrastructure:
 - Complete CI/CD pipelines (9 CI jobs, 9 CD jobs)
 - Multi-platform deployment (GitHub Pages, Netlify, Vercel, Docker)
-- Production monitoring (Sentry, GA4, Web Vitals)
+- Production monitoring (GA4, Web Vitals)
 - Comprehensive documentation (12 docs, 7,340+ lines)
 
 Performance:
@@ -381,12 +375,7 @@ git push origin v2.0.0
 
 ### Step 5: Monitor Metrics (24 hours)
 
-1. **Error tracking (Sentry)**
-   - Check for new errors: https://sentry.io/your-org/qui-browser-vr/
-   - Verify error rate is acceptable (< 1%)
-   - Review error patterns
-
-2. **Analytics (GA4)**
+1. **Analytics (GA4)**
    - Check real-time users
    - Monitor page views
    - Review user engagement
@@ -428,7 +417,6 @@ git push origin v2.0.0
 ### Step 7: Post-Release Monitoring (1 week)
 
 1. **Daily checks (Days 1-3)**
-   - Check Sentry for new errors
    - Review GA4 metrics
    - Monitor GitHub Issues
    - Respond to community feedback

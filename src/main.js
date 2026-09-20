@@ -44,7 +44,7 @@ applyTranslations(document);
 }
 
 // Initialize observability in production builds only. web-vitals is bundled
-// and runs out of the box; Sentry/analytics are opt-in (see vite.config.js)
+// and runs out of the box; GA analytics are opt-in via VITE_GA_MEASUREMENT_ID
 // and degrade gracefully via try/catch when not installed/configured.
 if (import.meta.env.PROD) {
   initializeMonitoring().catch((e) => console.error('Monitoring init failed:', e));

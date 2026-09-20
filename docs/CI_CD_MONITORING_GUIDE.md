@@ -49,7 +49,6 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ┌─────────────────────────────────────┐
 │   Production Monitoring              │
 ├─────────────────────────────────────┤
-│ • Sentry (Error Tracking)           │
 │ • Google Analytics 4 (Usage)        │
 │ • Web Vitals (Performance)          │
 │ • Custom Metrics (FPS, Memory)      │
@@ -298,43 +297,7 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 
 **Systems:**
 
-#### 1. Sentry (Error Tracking)
-
-**Features:**
-- Automatic error capture
-- Performance tracing (10% sample)
-- Session replay (10% sample, 100% on errors)
-- Custom context and tags
-- Sensitive data sanitization
-
-**Configuration:**
-```javascript
-{
-  dsn: process.env.VITE_SENTRY_DSN,
-  environment: 'production',
-  tracesSampleRate: 0.1,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0
-}
-```
-
-**Usage:**
-```javascript
-import monitoring from './monitoring.js';
-
-// Capture message
-monitoring.captureMessage('Performance threshold exceeded', 'warning', {
-  fps: 45,
-  target: 90
-});
-```
-
-**Environment Variable:**
-```env
-VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
-```
-
-#### 2. Google Analytics 4 (User Analytics)
+#### 1. Google Analytics 4 (User Analytics)
 
 **Features:**
 - Page views
@@ -366,7 +329,7 @@ monitoring.trackEvent('vr_session_started', {
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-#### 3. Web Vitals (Performance)
+#### 2. Web Vitals (Performance)
 
 **Metrics Tracked:**
 - **CLS** (Cumulative Layout Shift) - Target: < 0.1
@@ -388,7 +351,7 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
 **Automatic Reporting:**
 - Sends to Google Analytics
-- Alerts in Sentry if threshold exceeded
+- Alerts via GA event if threshold exceeded
 
 ---
 
@@ -411,7 +374,6 @@ VERCEL_ORG_ID=your_org_id
 VERCEL_PROJECT_ID=your_project_id
 
 # Monitoring
-VITE_SENTRY_DSN=your_sentry_dsn
 VITE_GA_MEASUREMENT_ID=your_ga_id
 ```
 
@@ -449,16 +411,7 @@ vercel link
 # Create new token
 ```
 
-### 4. Sentry Setup
-
-```bash
-# 1. Create Sentry account: https://sentry.io/signup/
-# 2. Create new project (Browser JavaScript)
-# 3. Copy DSN from project settings
-# 4. Add to GitHub secrets
-```
-
-### 5. Google Analytics Setup
+### 4. Google Analytics Setup
 
 ```bash
 # 1. Create GA4 property: https://analytics.google.com/
@@ -466,7 +419,7 @@ vercel link
 # 3. Add to GitHub secrets
 ```
 
-### 6. Enable GitHub Pages
+### 5. Enable GitHub Pages
 
 ```bash
 # 1. Go to repository Settings
@@ -478,16 +431,6 @@ vercel link
 ---
 
 ## 📈 Monitoring Dashboards
-
-### Sentry Dashboard
-
-**URL:** `https://sentry.io/organizations/your-org/issues/`
-
-**Widgets:**
-- Error count by type
-- Performance by transaction
-- Session replay
-- User feedback
 
 ### Google Analytics Dashboard
 
@@ -575,16 +518,6 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 ### Monitoring Issues
 
-**Issue: Sentry not capturing errors**
-```bash
-# Check DSN is set
-console.log(import.meta.env.VITE_SENTRY_DSN);
-
-# Test manually
-import { captureException } from '@sentry/browser';
-captureException(new Error('Test error'));
-```
-
 **Issue: GA not tracking events**
 ```bash
 # Check measurement ID
@@ -610,7 +543,7 @@ console.log(window.gtag);
 - [x] Performance regression tool created
 
 ### Monitoring Setup
-- [x] Sentry integrated (src/monitoring.js)
+- [x] GA4 integrated (src/monitoring.js, opt-in via VITE_GA_MEASUREMENT_ID)
 - [x] Google Analytics integrated
 - [x] Web Vitals tracking
 - [x] Custom metrics (FPS, memory, VR)
@@ -647,9 +580,7 @@ The complete CI/CD and monitoring infrastructure is now in place for Qui Browser
 ✅ **Automated Testing** - All code changes are automatically tested
 ✅ **Multiple Deployments** - GitHub Pages, Netlify, Vercel, Docker
 ✅ **Performance Monitoring** - Real-time FPS, memory, Web Vitals
-✅ **Error Tracking** - Sentry captures all production errors
 ✅ **User Analytics** - Google Analytics tracks usage patterns
-✅ **Regression Detection** - Automatic performance regression checks
 
 **The system is production-ready and fully automated!** 🚀
 

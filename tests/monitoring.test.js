@@ -1,7 +1,7 @@
 /**
  * Unit tests for monitoring.js.
  * import.meta.env is stubbed via babel-plugin-transform-import-meta so the
- * module compiles under Jest/Node.  Sentry, GA, and web-vitals are optional
+ * module compiles under Jest/Node.  GA and web-vitals are optional
  * external deps — all mocked here so they are absent during tests.
  */
 
@@ -14,13 +14,6 @@ global.document.addEventListener    = jest.fn();
 global.document.removeEventListener = jest.fn();
 global.document.hidden = false;
 
-// ── Optional external deps — all missing in test env ─────────────────────────
-jest.mock('@sentry/browser', () => {
-  throw new Error('not installed');
-}, { virtual: true });
-jest.mock('@sentry/tracing', () => {
-  throw new Error('not installed');
-}, { virtual: true });
 jest.mock('web-vitals', () => ({
   onCLS: jest.fn(),
   onFCP: jest.fn(),
@@ -33,8 +26,7 @@ const {
   initializeMonitoring,
   disposeMonitoring,
   initWebVitals,
-  trackEvent,
-  captureMessage
+  trackEvent
 } = require('../src/monitoring.js');
 const { onINP } = require('web-vitals');
 
@@ -98,17 +90,12 @@ describe('monitoring.js', () => {
     expect(() => trackEvent('no_payload')).not.toThrow();
   });
 
-  // ── captureMessage ────────────────────────────────────────────────────────────
-  test('captureMessage does not throw', () => {
-    expect(() => captureMessage('hello', { level: 'info' })).not.toThrow();
-  });
-
   // ── Web Vitals INP threshold ──────────────────────────────────────────────────
   // web-vitals v3+ replaced FID with INP (initWebVitals already subscribes to
   // onINP, not the removed onFID), but MONITORING_CONFIG.performance.thresholds
   // still had a "fid" key, not "inp". onVitalReport looks the threshold up via
   // thresholds[name.toLowerCase()] — for an INP report that's thresholds.inp,
-  // which was undefined, so the Sentry escalation path could never fire for INP
+  // which was undefined, so the threshold check could never fire for INP
   // regardless of how bad the value was. Verified via the dev-mode console.debug
   // log (reachable in tests since MONITORING_CONFIG.enabled is false here), which
   // logs the same thresholds[name.toLowerCase()] lookup onVitalReport uses.

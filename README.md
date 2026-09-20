@@ -50,7 +50,7 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 - **Accessibility measured, not asserted** - contrast, target angular size and text layout are enforced by tests against WCAG and platform thresholds
 - **Target: 72–120 FPS** - Quest 3 (90–120), Quest 2 (72–90), Pico 4 (90)
-- **CI/CD & Monitoring** - Automated testing, Sentry error tracking, GA4 analytics (opt-in)
+- **CI/CD & Monitoring** - Automated testing, GA4 analytics (opt-in)
 - **Two runtime dependencies** - `three` + `web-vitals`; 474 packages in the lockfile
 
 ### Feature Status Legend
@@ -244,7 +244,6 @@ npm run release:major         # Major version (X.0.0)
 
 ## 📈 Monitoring & Analytics
 
-- **Error Tracking:** Sentry (10% sampling, 100% on errors)
 - **Analytics:** Google Analytics 4 (GDPR compliant)
 - **Performance:** Web Vitals (CLS, FID, FCP, LCP, TTFB)
 - **Custom Metrics:** VR-specific FPS, memory, session tracking
