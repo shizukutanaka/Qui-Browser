@@ -1489,3 +1489,6 @@ DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65�
 
 ### 第70パス（delegate 再走査）
 VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テスト seam・公開 API・外部コールバック）。唯一の内部専用 `loadPersistedSettings` delegate を直接呼出化して削除 + `onVRSessionStart` 孤児 import 除去。
+
+### 第71パス（クリーンスキャン — 内部メソッド・プライベートフィールド）
+`_` プレフィックス内部メソッドの完全デッド走査: ゼロ。プライベートフィールド write-only 走査: 検出7件は全て偽陽性（`_x.set()` 等のメソッド経由 read）— 変更なし。
