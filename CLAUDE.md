@@ -303,6 +303,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🐛 **B-1 fix**: `DeviceCompatibility._probeOptionalFeatures` の `hitTest`/`anchors`/`planeDetection` は AR（immersive-ar）機能なのに `vrSupported` で判定し、`arSupported` が渡されていなかった。VR-only 端末が AR 機能を「持つ」と報告する嘘の診断値（消費者ゼロとはいえ）。`check()` が `arSupported` を渡し、AR 系3フラグは `arSupported && tier条件` に。
 - ✅ **test 3件追加**（pre-fix: 全件 FAIL — _probe 直叩き 2件 + check() に xr/UA stub を注入する統合 1件）。Total 1520 tests; lint 0 errors; build green。
 
+#### 続き9（同セッション）: B-2/B-3/B-4 — 「意図的に未修正」の残り全部を潰した
+- 🔍 **ソクラテス式再問**: Section B は「調査済み・意図的に未修正」だが、各項目の保留理由は「現状到達不能だから」であって「直せない」ではない。到達不能な地雷は呼び出し元が増えた日に爆発する。一行〜数行で潰せるなら潰す方が筋が通る。
+- 🐛 **B-2**: `curvedPlaneData` の `Uint16Array` インデックスが頂点 65,536 超で暗黙ラップ → `cols*rows > 65536` で `Uint32Array` フォールバック。
+- 🐛 **B-3**: `ProgressiveLoader.loadResource` がリトライ時に `item.url`（既に `photo_high.jpg` 化済み）へ `getAdaptiveUrl` を再適用 → `_high` 累積で必ず 404。`item.url` を mutate せず `performLoad` へ派生コピーを渡す設計に → 常にオリジナルから再導出で冪等。
+- 🐛 **B-4**: `dispose()` が `stripMesh` を null にせず、遅延 `onHoverEnd` が破棄済み material に触れていた → 末尾で `= null`（既存ガードがそのまま遮断役になる）。
+- ✅ **test 6件追加**（pre-fix: 全件 FAIL）。Total 1526 tests; lint 0 errors; build green。**Section B 全件解消**。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

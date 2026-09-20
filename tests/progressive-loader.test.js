@@ -115,3 +115,36 @@ describe('ProgressiveLoader.dispose', () => {
     expect(() => loader.dispose()).not.toThrow();
   });
 });
+
+// B-3: the retry path re-entered loadResource(item), which re-ran
+// getAdaptiveUrl on the ALREADY-suffixed url — photo.jpg → photo_high.jpg →
+// photo_high_high.jpg → guaranteed 404 on every retry. Unreachable today
+// (only .mp3 is ever loaded) but a latent landmine for the first image caller.
+describe('B-3: adaptive URL must not compound across retries', () => {
+  test('retries re-request the same adapted URL', async () => {
+    const loader = new ProgressiveLoader();
+    loader.strategy.retryDelay = 0;
+    const requested = [];
+    let calls = 0;
+    loader.performLoad = async (item) => {
+      requested.push(item.url);
+      if (++calls === 1) { throw new Error('flaky'); }
+      return { ok: true };
+    };
+    const result = await loader.loadResource({ name: 'p', url: '/photo.jpg', type: 'image', retries: 0 });
+    expect(result.ok).toBe(true);
+    expect(requested).toHaveLength(2);
+    expect(requested[0]).toBe('/photo_high.jpg');       // 4g → _high
+    expect(requested[1]).toBe(requested[0]);            // not photo_high_high.jpg
+    loader.dispose();
+  });
+
+  test('item.url keeps the caller-supplied URL (no mutation)', async () => {
+    const loader = new ProgressiveLoader();
+    loader.performLoad = async () => ({ ok: true });
+    const item = { name: 'q', url: '/photo.jpg', type: 'image', retries: 0 };
+    await loader.loadResource(item);
+    expect(item.url).toBe('/photo.jpg');
+    loader.dispose();
+  });
+});
