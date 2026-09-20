@@ -1738,3 +1738,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第153パス（クリーンスキャン — forEach 内 return 罠）
 全 forEach は全要素への broadcast（dispose/redraw/clear/propagate）で早期終了意図なし — return 誤用（break 期待の continue 化）ゼロ。
+
+### 第154パス（クリーンスキャン — ナビ履歴）
+`back`/`forward` は境界ガード付き（historyIdx > 0 / < length-1）、navigate 時は forward 履歴を slice で正しく切断、ボタンは canBack/canForward で dim — index 境界バグなし。
