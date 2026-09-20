@@ -1520,3 +1520,94 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     expect(spTab.goForward).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('VRApp adjustQuality / keyboard input / loadTexture (bound prototypes)', () => {
+  function makeQualityApp(overrides = {}) {
+    const app = Object.assign({
+      settings: { targetFPS: 72 },
+      performanceMonitor: { frameTime: 10 },
+      ffrSystem: { adjustIntensity: jest.fn() }
+    }, overrides);
+    // adjustQuality calls this.reduceQuality()/increaseQuality() — bind them so
+    // the bound-prototype `this` resolves siblings like a real instance would.
+    app.reduceQuality = () => VRApp.prototype.reduceQuality.call(app);
+    app.increaseQuality = () => VRApp.prototype.increaseQuality.call(app);
+    return app;
+  }
+
+  test('adjustQuality reduces quality when frameTime > 1.2× target, raises it below 0.8×', () => {
+    const app = makeQualityApp();
+    app.performanceMonitor.frameTime = 1000 / 72 * 1.21; // just over the slow band
+    VRApp.prototype.adjustQuality.call(app);
+    expect(app.ffrSystem.adjustIntensity).toHaveBeenCalledWith(0.1); // FFR up = quality down
+
+    app.ffrSystem.adjustIntensity.mockClear();
+    app.performanceMonitor.frameTime = 1000 / 72 * 0.79; // fast band
+    VRApp.prototype.adjustQuality.call(app);
+    expect(app.ffrSystem.adjustIntensity).toHaveBeenCalledWith(-0.1);
+  });
+
+  test('adjustQuality does nothing inside the ±20% band', () => {
+    const app = makeQualityApp();
+    app.performanceMonitor.frameTime = 1000 / 72; // exactly on target
+    VRApp.prototype.adjustQuality.call(app);
+    expect(app.ffrSystem.adjustIntensity).not.toHaveBeenCalled();
+  });
+
+  test('reduceQuality/increaseQuality no-op without an FFR system', () => {
+    const app = makeQualityApp({ ffrSystem: null });
+    expect(() => VRApp.prototype.reduceQuality.call(app)).not.toThrow();
+    expect(() => VRApp.prototype.increaseQuality.call(app)).not.toThrow();
+  });
+
+  test('_requestVRKeyboardInput wires confirm, prefill, activation and the prompt caption', () => {
+    const app = {
+      vrKeyboard: { setOnConfirm: jest.fn(), show: jest.fn() },
+      japaneseIME: { activate: jest.fn(), compositionBuffer: '' },
+      captionSystem: { enabled: true, show: jest.fn() }
+    };
+    const onConfirm = jest.fn();
+    VRApp.prototype._requestVRKeyboardInput.call(app, 'https://example.com', onConfirm, 'Enter URL');
+    expect(app.vrKeyboard.setOnConfirm).toHaveBeenCalledWith(onConfirm);
+    expect(app.japaneseIME.activate).toHaveBeenCalledTimes(1);
+    expect(app.japaneseIME.compositionBuffer).toBe('https://example.com');
+    expect(app.vrKeyboard.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Enter URL');
+  });
+
+  test('_requestVRKeyboardInput clears the buffer for the bare https:// prefill', () => {
+    const app = {
+      vrKeyboard: { setOnConfirm: jest.fn(), show: jest.fn() },
+      japaneseIME: { activate: jest.fn(), compositionBuffer: 'stale' },
+      captionSystem: { enabled: true, show: jest.fn() }
+    };
+    VRApp.prototype._requestVRKeyboardInput.call(app, 'https://', jest.fn());
+    // 'https://' alone is a placeholder prefix — buffer starts empty, not pre-filled
+    expect(app.japaneseIME.compositionBuffer).toBe('');
+  });
+
+  test('_requestVRKeyboardInput falls back to window.prompt without a VR keyboard', () => {
+    const app = { vrKeyboard: null };
+    const onConfirm = jest.fn();
+    global.window = { prompt: jest.fn(() => 'https://a.example') };
+    VRApp.prototype._requestVRKeyboardInput.call(app, 'https://', onConfirm);
+    expect(onConfirm).toHaveBeenCalledWith('https://a.example');
+    global.window.prompt = jest.fn(() => null); // cancelled prompt → no confirm
+    onConfirm.mockClear();
+    VRApp.prototype._requestVRKeyboardInput.call(app, 'https://', onConfirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+    delete global.window;
+  });
+
+  test('loadTexture delegates to textureManager and falls back to THREE.TextureLoader', async () => {
+    const tex = { id: 't' };
+    const app = { textureManager: { loadTexture: jest.fn(async () => tex) } };
+    await expect(VRApp.prototype.loadTexture.call(app, 'u.png', { q: 1 })).resolves.toBe(tex);
+    expect(app.textureManager.loadTexture).toHaveBeenCalledWith('u.png', { q: 1 });
+
+    const fallbackTex = { id: 'f' };
+    jest.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValue(fallbackTex);
+    await expect(VRApp.prototype.loadTexture.call({ textureManager: null }, 'x.png')).resolves.toBe(fallbackTex);
+    THREE.TextureLoader.prototype.loadAsync.mockRestore();
+  });
+});
