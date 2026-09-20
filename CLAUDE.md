@@ -464,6 +464,10 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 5テスト追加（reject→全 false、android-xr で planeDetection/hitTest、desktop-xr で AR 系 false、ティア省略フォールバック、targetFPS 表）。`navigator.userAgent`/`xr` は getter-only なので `Object.defineProperty` パターン（既存テストと同型）。全緑 — ロジックは正しいことを実測で確認。
 - 📝 1900 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き40（同セッション）: VRApp — 永続化/navigate/perfStats の実プロトタイプ pin（欠陥ゼロ）
+- 🔍 **実測**: VRApp 16% の未カバーから、ヘッドレス検証可能な縫い目を pin: `loadPersistedSettings`（未知キー除外・破損JSON→{}）、`_saveTabSession`/`_restoreTabSession`（privateMode で書き込み・復元とも抑制、破損データ→0）、`navigate`（privateMode で履歴抑制、タイトル→ホスト名 caption）、`getPerformanceStats`（形状）。bound-prototype 手法（実メソッドを手作り this に束縛）。
+- ✅ **pin**: 6テスト追加（全緑 — 実装は正しいことを実測で確認）。1906 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
