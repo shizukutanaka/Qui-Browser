@@ -1693,3 +1693,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第138パス（クリーンスキャン — ハプティクス/セッション終了）
 `pulse()` は duration(1-5000ms)/intensity(0-1) を明示 clamp、プリセット表も全 ≤1.0。`sessionend` → `onVRSessionEnd` 経路完備、playEffect フォールバック有り。範囲逸脱・未クリーンアップ経路ゼロ。
+
+### 第139パス（クリーンスキャン — ストレージ書込耐性）
+全 setItem は try/catch 済み（saveSettings=warn、writeJSON=boolean 返却、履歴は quota 超過時 evict-and-retry で最古25%削り再試行）— プライベートモード/容量枯渇の未処理経路ゼロ。
