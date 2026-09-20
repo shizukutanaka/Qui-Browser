@@ -1609,3 +1609,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第110パス（クリーンスキャン — フレームループ割当・深掘り）
 全 update 経路の per-frame 割当を再走査: updateLocomotion は `_locoQ/_locoFwd/_locoRight/_locoMove` 遅延 scratch 済み（検出分は1回限りの lazy init）、SpatialAudio 同様 `_camPos/_camQuat` 済み、GazeInteraction `_tmp*` 済み、FFR/updateLayer 割当ゼロ。残存 per-frame alloc ゼロ（パス90の HandTracking が唯一の実修正）。
+
+### 第111パス（クリーンスキャン — 設定マージ共有参照）
+`this.settings` デフォルトは全てスカラー（ネストした object/array ゼロ）— `Object.assign` 浅いマージで共有参照汚染は原理的に発生しない。`loadPersistedSettings` のホワイトリストも stale key 注入を遮断。安全確認。
