@@ -452,6 +452,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **ついでに観測（未修正・判断事項）**: `confirmSelection()` は表示中の「か」ではなく生ローマ字 'ka' を返す（URL入力では偶然正動）。ascii モードが無い設計問題として OUTSTANDING_ISSUES N-3 に記録、テストには現行セマンティクスを pin。
 - ✅ 1893 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き38（同セッション）: ProgressiveLoader — 部分失敗で onComplete が永遠に不発 & requestIdleCallback 未存在環境で secondary 全損
+- 🔍 **実測**: 未カバー領域（start/loadPhase/loadResource オーケストレーション層）に2件の実バグ:
+  ①`onLoadComplete` は `itemsLoaded === itemsTotal` の時だけ発火するが、失敗品は `failed` に入り `itemsLoaded` を増やさない → **1件でも失敗すると onComplete コールバックが永久に発火しない**（全リソース決着後も）。
+  ②`start()` が素の `requestIdleCallback` を呼ぶ — 未実装環境（非 Chromium WebView 等）では ReferenceError で `start()` 自体が reject し、secondary フェーズごと静かに消失。
+- 🐛 **fix**: ①`onResourceFailed` に `itemsLoaded + failed.size === itemsTotal` の決着チェック追加 ②`globalThis.requestIdleCallback` 判定 → 無ければ `setTimeout` フォールバック。
+- ✅ 赤確認（修正前: onComplete 不発・start() クラッシュ）→ 2テスト追加。1895 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
