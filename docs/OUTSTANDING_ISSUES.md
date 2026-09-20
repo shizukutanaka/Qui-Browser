@@ -1591,3 +1591,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第104パス（実修正 — WCAG 1.4.3 コントラスト）
 `<html lang>` は setLanguage で動的更新済み（3.1.1 OK）。全配色を実測: text/surface 16.14:1、subtle 6.31:1、hover 4.88:1 全て合格だが **white-on-`--color-vr`(#5e72e4) = 4.20:1 で 4.5:1 未満** — `.cta-button`（18px/600＝大文字扱い外）と `.version-badge`（14px/600）が該当 → 両者の背景を #5669da（1段暗化、4.74:1）に修正。アクセント色自体はロゴ・グラデ等に使用され大文字/装飾として適格なので保持。
+
+### 第105パス（クリーンスキャン — セキュリティ境界）
+`postMessage`/message リスナー不使用（origin 検証問題は存在しない）、`target=_blank` は全て `noopener` 付き、文字列タイマーゼロ。UA スニッフィングは DeviceCompatibility のみ — Quest2/3/Pico4 の HW 差は機能検出で判別不能なため正当（文書化済み）。
