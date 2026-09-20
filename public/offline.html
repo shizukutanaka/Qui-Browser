@@ -247,16 +247,6 @@
         window.addEventListener('online', checkOnlineStatus);
         window.addEventListener('offline', checkOnlineStatus);
 
-        // Register service worker if not already registered
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(registration => {
-                    console.log('Service Worker registered for offline page');
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        }
     </script>
 </body>
 </html>
