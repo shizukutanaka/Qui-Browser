@@ -276,3 +276,15 @@ export function normalizeProxyUrl(input) {
   const path = url.pathname.replace(/\/+$/, '');
   return { ok: true, value: `${url.origin}${path}` };
 }
+
+/**
+ * Hostname for spoken captions (status announcements read the host, not the
+ * full URL). Falls back to a truncated raw string for unparseable input.
+ */
+export function hostnameCaption(url) {
+  try {
+    return new URL(url).hostname || url;
+  } catch {
+    return String(url).slice(0, 30);
+  }
+}

@@ -1254,6 +1254,22 @@ build 0.7s・vr-boot PASS。
 
 計測: build 0.66s（chunks 正常）。
 
+### 第42パス（設定キー実効性走査 + C-1 追加スライス: browsingSystems）
+
+- 新走査軸「設定キー実効性」: settings デフォルト全27キー × 実行時
+  読み取り経路を交差 → 全キーに実コンシューマあり（嘘の設定ゼロ）。
+- `src/vr/browser/browsingSystems.js` 新設: _buildBrowsingSystems（126行・
+  TabManager+BookmarkPanel 組み立てと15コールバック）を
+  `buildBrowsingSystems(app)` として browser/ ドメインに移動 — ブラウジング
+  サブシステムの組み立ては browser/ の責務。
+- `hostnameCaption` を `browser/urlDisplay.js`（既存 URL ヘルパー群）へ
+  移動・export。
+- 連鎖孤児: VRApp 側 TabManager/BookmarkPanel import 除去。
+- VRApp 2,268 → 2,128 行（−140行）。C-1 累計 −1,126行（3,254→2,128）。
+
+計測: 43 suites / 1,343 tests・lint 92 warnings（0 errors）・
+build 4.5s（再起動後コールドキャッシュ）・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
