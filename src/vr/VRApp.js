@@ -564,12 +564,11 @@ export class VRApp {
   }
 
   /**
-   * Half-width toggle button for the 2-column settings panel layout.
-   * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
+   * Shared scaffold for the canvas-textured settings buttons: allocates the
+   * canvas, a tracked texture, and a shared-geometry mesh. `draw(hover)`
+   * repaints; `mesh._redraw` restores the idle state after rebuilds.
    */
-  makeCompactToggleButton(label, key, apply) {
-    const w = 256;
-    const h = 96;
+  _canvasButton(w, h, widthM) {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -577,6 +576,27 @@ export class VRApp {
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
     tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
+    const mesh = new THREE.Mesh(
+      this._sharedPlaneGeometry(widthM, 0.17),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+    );
+    return { ctx, tex, mesh };
+  }
+
+  _registerCanvasButton(mesh, draw, handlers) {
+    this.registerInteractable(mesh, handlers);
+    mesh._redraw = () => draw(false);
+    return mesh;
+  }
+
+  /**
+   * Half-width toggle button for the 2-column settings panel layout.
+   * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
+   */
+  makeCompactToggleButton(label, key, apply) {
+    const w = 256;
+    const h = 96;
+    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.43);
 
     const draw = (hover) => {
       const on = !!this.settings[key];
@@ -599,11 +619,7 @@ export class VRApp {
     };
     draw(false);
 
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(0.43, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    this.registerInteractable(mesh, {
+    return this._registerCanvasButton(mesh, draw, {
       onSelect: () => {
         const value = !this.settings[key];
         this.updateSetting(key, value);
@@ -619,8 +635,6 @@ export class VRApp {
       },
       onHoverEnd: () => draw(false)
     });
-    mesh._redraw = () => draw(false);
-    return mesh;
   }
 
   /**
@@ -931,13 +945,7 @@ export class VRApp {
   makeSectionTab(sectionId, widthM) {
     const w = 256;
     const h = 96;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
+    const { ctx, tex, mesh } = this._canvasButton(w, h, widthM);
     const label = t(sectionId);
 
     const draw = (hover) => {
@@ -960,11 +968,7 @@ export class VRApp {
     };
     draw(false);
 
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(widthM, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    this.registerInteractable(mesh, {
+    return this._registerCanvasButton(mesh, draw, {
       onSelect: () => this._toggleSettingsSection(sectionId),
       onHover: () => {
         draw(true);
@@ -972,8 +976,6 @@ export class VRApp {
       },
       onHoverEnd: () => draw(false)
     });
-    mesh._redraw = () => draw(false);
-    return mesh;
   }
 
   /**
@@ -1039,13 +1041,7 @@ export class VRApp {
   makeActionButton(label, onSelect) {
     const w = 512;
     const h = 96;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
+    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
 
     const draw = (hover) => {
       const hc = prefersHighContrast();
@@ -1066,11 +1062,7 @@ export class VRApp {
     };
     draw(false);
 
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(0.9, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    this.registerInteractable(mesh, {
+    return this._registerCanvasButton(mesh, draw, {
       onSelect: () => {
         if (onSelect) {
           onSelect();
@@ -1084,8 +1076,6 @@ export class VRApp {
       },
       onHoverEnd: () => draw(false)
     });
-    mesh._redraw = () => draw(false);
-    return mesh;
   }
 
   /**
@@ -1102,13 +1092,8 @@ export class VRApp {
     const { min, max, step, unit = '', apply } = cfg;
     const w = 512;
     const h = 96;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
+    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
+
 
     const draw = (hover) => {
       const value = this.settings[key];
@@ -1132,11 +1117,6 @@ export class VRApp {
       tex.needsUpdate = true;
     };
     draw(false);
-
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(0.9, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
 
     const applyStep = (delta) => {
       const next = stepValue(this.settings[key], delta, { min, max, step });
@@ -1196,13 +1176,7 @@ export class VRApp {
   makeCycleButton(label, key, options, apply) {
     const w = 512;
     const h = 96;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
+    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
 
     const draw = (hover) => {
       const current = this.settings[key];
@@ -1224,11 +1198,7 @@ export class VRApp {
     };
     draw(false);
 
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(0.9, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    this.registerInteractable(mesh, {
+    return this._registerCanvasButton(mesh, draw, {
       onSelect: () => {
         const idx = options.indexOf(this.settings[key]);
         const next = options[(idx + 1) % options.length];
@@ -1245,8 +1215,6 @@ export class VRApp {
       },
       onHoverEnd: () => draw(false)
     });
-    mesh._redraw = () => draw(false);
-    return mesh;
   }
 
   /**

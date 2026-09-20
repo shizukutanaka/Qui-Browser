@@ -794,6 +794,21 @@ workflow-changes.patch を **v3 に再交付**: 加えて `release.yml` の
 
 計測: 44 suites / 1,381 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS・verify:docs 100%。
 
+### 第10パス（イベント・ストレージ・重複スキャフォールド）
+
+走査結果: DOM/カスタムイベントの発火・受信は全て対称（死リスナーゼロ）、
+localStorage キーは全て書き込み/読み込み対称、`tools/measure-text-metrics.mjs`
+はベースライン再計測用の文書化済みユーティリティとして生存判断。
+
+唯一の実発見 — **設定パネル 5 ボタン工場の同一スキャフォールド重複**:
+`canvas→ctx→tex→push` の導入部と `mesh→registerInteractable→_redraw→return`
+の終端部が `makeCompactToggleButton`/`makeSectionTab`/`makeActionButton`/
+`makeStepperButton`/`makeCycleButton` に完全コピーされていた。
+`_canvasButton(w,h,widthM)` + `_registerCanvasButton(mesh,draw,handlers)`
+に抽出して統合（net −32行）。描画ロジック・ハンドラは一切変更なし。
+
+計測: 44 suites / 1,381 tests・lint 0 errors・build 1.7s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
