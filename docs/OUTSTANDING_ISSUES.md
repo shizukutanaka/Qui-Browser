@@ -1702,3 +1702,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第141パス（クリーンスキャン — iframe 境界）
 `contentDocument.title` は try/catch で cross-origin 安全、X-Frame-Options 拒否が load を発火する Chromium 挙動も `unavailable` 状態で明示処理、sandbox 属性・dispose 時の handler 除去+node 除去全完備。境界越境例外経路ゼロ。
+
+### 第142パス（クリーンスキャン — エンコード/パース罠）
+`new URL` 全サイト try/catch または `safeParse` ヘルパー経由、atob/btoa 不使用（非 Latin1 例外経路なし）、RegExp 動的生成は定数タグのみ（ユーザー入力混入なし）。パース罠ゼロ。
