@@ -1705,3 +1705,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第142パス（クリーンスキャン — エンコード/パース罠）
 `new URL` 全サイト try/catch または `safeParse` ヘルパー経由、atob/btoa 不使用（非 Latin1 例外経路なし）、RegExp 動的生成は定数タグのみ（ユーザー入力混入なし）。パース罠ゼロ。
+
+### 第143パス（クリーンスキャン — 動的ロード/注入）
+`import()` は全て静的指定子（モジュール注入不可）、document.write 不使用、cssText テンプレートにユーザー入力混入なし、add/removeEventListener は capture 整合。注入経路ゼロ。
