@@ -332,6 +332,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: 27 メソッド + billboard フィールド/分岐 + domOverlaySupported フィールドを削除。**テストのみが呼んでいた3件**（goBack/goForward・billboard・removeHistory）は: goBack/goForward のテストは live の back()/forward() に向き直して index ガードのカバレッジを温存、billboard テストと removeHistory テストは dead 機能ごと削除。
 - ✅ **pin**: `tests/no-dead-public-api.test.js` 新設 —— 27 メソッドが再定義されないことをソース pin（スキャン自体の再実行は手動、ファイル内に手順記録）。test 1549 件（pin +27、削除 −4、向き直し ±0）、lint 0 errors、build green。
 
+#### 続き14（同セッション）: manifest.json の7アイコン全てが 404 —— PWA はアイコンなしで install されていた
+- 🔍 **実測**: export 棚卸し（`CHROME_CANVAS_H` など内部専用 const の不要 export を検出）の途中で manifest を確認したところ、`/assets/icons/icon-*.png` 参照は**リポジトリルートの `assets/`** を指しており、Vite がコピーするのは `public/` のみ —— **dist バンドルにアイコンが1枚も存在しなかった**。favicon 系は index.html 経由で Vite がバンドル済みだが manifest の7枚は丸ごと 404（Quest での install アイコンが空白）。ついでに `vr-boot` 再検証: 27メソッド削除後も実 VRApp 構築 PASS。
+- 📝 **fix**: `assets/icons/icon-{72,96,128,144,192,384,512}.png` を `public/icons/` に複製、manifest src を相対 `icons/icon-XX.png` に変更（`start_url: './'` と同じ流儀 —— BASE_PATH 非ルートでも正しい）。併せて `panelGeometry.js` の dead export `CHROME_CANVAS_H` を削除。
+- ✅ **pin**: `tests/manifest-icons.test.js` —— manifest の全 icon src が public/ 内に存在＋絶対パス不使用を assert（pre-fix 7件 RED → post-fix PASS）。1557 tests、lint 0 errors、build green、verify:vr-boot PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
