@@ -1771,3 +1771,6 @@ clipboard/execCommand API はコードベースに存在しない — 非セキ�
 
 ### 第164パス（実修正 — Referer 漏洩）
 リーダー `fetch` と iframe の両方に `referrerPolicy: 'no-referrer'` を追加 — アプリ URL/ホスティングパスが任意サイトの Referer ヘッダで漏洩する経路を閉塞（DDG 既定と同じプライバシー姿勢）。
+
+### 第165パス（クリーンスキャン — VideoTexture colorSpace）
+VideoTexture 全2経路＋homeEnvironment パネルは SRGBColorSpace 設定済み — 色空間漏れゼロ。
