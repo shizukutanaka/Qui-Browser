@@ -1828,3 +1828,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第183パス（クリーンスキャン — canvas 読戻し）
 `getImageData`/`drawImage`/`toDataURL`/`toBlob` 不使用 — canvas は書き込み専用（テクスチャ化のみ）、GPU→CPU ストール経路は非存在。
+
+### 第184パス（実修正 — OG/配信 URL 整合）
+og:url・twitter:url が `qui-browser`（小文字）で Pages は `/Qui-Browser/` — case-sensitive 404。og:image/twitter:image は相対パス — クローラは絶対 URL 必須＋サブパス 404。両方を絶対 canonical URL へ。README の Pages URL・`cd qui-browser-vr`（実 dir は `Qui-Browser`）も修正。
