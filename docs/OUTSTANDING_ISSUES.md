@@ -1579,3 +1579,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第100パス（クリーンスキャン — グローバル汚染・形状劣化）
 `window.*` 書込は全て契約的（GA4 dataLayer/gtag・DevTools fetch intercept は復元対称・QuiBrowser 公開 API）。`delete obj.prop` ゼロ、prototype 書換ゼロ。グローバル汚染・hidden-class 破壊・モンキーパッチなし。**100パス到達**。
+
+### 第101パス（クリーンスキャン — ReDoS/正規表現爆発）
+全正規表現リテラル走査: 入れ子量指定子候補は `urlResolver.js` のドメイン検証1件のみ — 外側グループが必ず `\.` 始まりで内側クラスに `.` を含まないため曖昧性ゼロ（線形）。壊滅的バックトラッキング経路ゼロ。
