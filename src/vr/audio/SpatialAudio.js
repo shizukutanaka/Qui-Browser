@@ -41,11 +41,12 @@ export function synthesizeToneSamples(spec = {}, sampleRate = 48000) {
 }
 
 export class SpatialAudio {
-  constructor() {
+  constructor({ onInitError = null } = {}) {
     this.context = null;
     this.listener = null;
     this.sources = new Map();
     this.buffers = new Map();
+    this._onInitError = onInitError;
 
     // Audio settings
     this.settings = {
@@ -121,6 +122,7 @@ export class SpatialAudio {
 
     } catch (error) {
       console.error('SpatialAudio: Initialization failed', error);
+      this._onInitError?.(error);
     }
   }
 

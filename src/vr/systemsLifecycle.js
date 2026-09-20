@@ -173,7 +173,11 @@ export async function initializeSystems(app) {
 
   // 7. Spatial Audio
   try {
-    app.spatialAudio = new SpatialAudio();
+    app.spatialAudio = new SpatialAudio({
+      // init() is async inside the constructor: WebAudio failures surface here,
+      // outside the enclosing try/catch, so the WCAG status toast lives here.
+      onInitError: () => app.showVRToast(t('vr.error.spatialAudioUnavailable'), { type: 'warn' })
+    });
     // Apply the persisted master-volume preference at startup so a user who
     // lowered/muted audio keeps that on the next load (not just live).
     app.spatialAudio.setMasterVolume((app.settings.masterVolume ?? 100) / 100);
