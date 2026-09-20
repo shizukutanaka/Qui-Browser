@@ -642,14 +642,9 @@ const vec = new Vector3(); // GC pressure!
 ### Monitoring
 
 ```bash
-# Run Lighthouse CI
-npm run lighthouse
-
-# Monitor bundle size
-npm run build:analyze
-
-# Check performance
-npm run benchmark:all
+# Real-browser verification (needs Chrome)
+npm run verify:layout   # text layout fits its boxes
+npm run verify:vr-boot  # full VRApp constructs headlessly
 ```
 
 ### Regression Prevention

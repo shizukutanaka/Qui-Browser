@@ -103,18 +103,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 
 **Test Files:**
 
-#### 4. Performance Tests (20 min)
-```yaml
-- Run benchmarks (100 iterations)
-- Check performance regression
-- Compare against baseline
-```
-
-**Outputs:**
-- `benchmark-results.json`
-- Performance regression report
-
-#### 5. Build Verification (15 min)
+#### 4. Build Verification (15 min)
 ```yaml
 - Test on Node 16, 18, 20
 - Build production
@@ -127,7 +116,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Bundle size within budget
 - All artifacts generated
 
-#### 6. Lighthouse CI (15 min)
+#### 5. Lighthouse CI (15 min)
 ```yaml
 - Build production
 - Run Lighthouse audit
@@ -140,7 +129,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Best Practices: > 90
 - SEO: > 90
 
-#### 7. Docker Build Test (20 min)
+#### 6. Docker Build Test (20 min)
 ```yaml
 - Build Docker image
 - Test health endpoint
@@ -151,7 +140,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Image builds successfully
 - Container responds to health check
 
-#### 8. Security Scanning (15 min)
+#### 7. Security Scanning (15 min)
 ```yaml
 - Trivy vulnerability scanner
 - npm audit
@@ -162,7 +151,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - No critical/high vulnerabilities
 - Security reports uploaded
 
-#### 9. CI Summary
+#### 8. CI Summary
 ```yaml
 - Aggregate all job results
 - Generate summary report
@@ -289,65 +278,6 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 - Generate deployment report
 - Notify success/failure
 - Update deployment status
-```
-
----
-
-## 🔧 Performance Regression Testing
-
-### Tool: check-performance-regression.js
-
-**Purpose:** Detect performance degradations by comparing current benchmarks against baseline.
-
-**Usage:**
-```bash
-# First run - create baseline
-node tools/check-performance-regression.js benchmark-results.json
-
-# Subsequent runs - compare against baseline
-node tools/check-performance-regression.js benchmark-results.json baseline-performance.json
-```
-
-**Thresholds:**
-
-| Metric | Warning | Error |
-|--------|---------|-------|
-| Load Time | +10% | +20% |
-| Memory | +15% | +30% |
-| File Size | +10% | +20% |
-
-**Output:**
-```
-==========================================================
-  Performance Regression Check
-==========================================================
-
-📊 Summary:
-   Total modules: 17
-   ✅ Improved: 5
-   ⚠️  Degraded: 2
-   ➡️  Unchanged: 10
-
-📈 Detailed Results:
-
-❌ VRTextRenderer
-   ┌─────────────┬──────────────┬──────────────┬──────────┬────────┐
-   │ Metric      │ Current      │ Baseline     │ Change   │ Status │
-   ├─────────────┼──────────────┼──────────────┼──────────┼────────┤
-   │ Load Time   │ 1.85ms       │ 1.50ms       │ +23.3%   │ ❌     │
-   │ Memory      │ 245 KB       │ 230 KB       │ +6.5%    │ ➡️     │
-   │ File Size   │ 42.3 KB      │ 41.8 KB      │ +1.2%    │ ➡️     │
-   └─────────────┴──────────────┴──────────────┴──────────┴────────┘
-
-❌ Performance regression detected!
-```
-
-**CI Integration:**
-```yaml
-- name: Check performance regression
-  run: |
-    node tools/check-performance-regression.js benchmark-results.json
-  continue-on-error: true
 ```
 
 ---

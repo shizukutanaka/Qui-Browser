@@ -166,8 +166,8 @@ Qui Browser VR/
 │   ├── VRApp.js              # Main VR controller
 │   └── monitoring.js         # Production monitoring
 ├── docs/                     # Complete documentation (24 files)
-├── tests/                    # Test suites (48 suites, 1510 tests)
-├── tools/                    # Performance benchmarking
+├── tests/                    # Test suites (56 suites, 1843 tests)
+├── tools/                    # Verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
 └── dist/                     # Production build output
@@ -220,11 +220,6 @@ npm run lint                  # Lint JavaScript
 npm run lint:fix              # Auto-fix linting issues
 npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
-
-# Performance
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:regression  # Check for regressions
 
 # CI/CD
 npm run ci:all                # Complete CI suite

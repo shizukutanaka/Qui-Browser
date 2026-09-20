@@ -73,9 +73,10 @@ Follow conventional commits:
 npm test
 ```
 
-### Performance Tests
+### Layout / Boot Verification
 ```bash
-npm run benchmark
+npm run verify:layout   # real-browser text-layout check (needs Chrome)
+npm run verify:vr-boot  # constructs the full VRApp headlessly
 ```
 
 

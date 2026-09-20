@@ -55,8 +55,7 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 ### Phase 4: Development Infrastructure ✅
 - [x] Comprehensive test suite (34 test suites)
 - [x] CI/CD pipelines (9 CI jobs, 9 CD jobs)
-- [x] Performance benchmarking tools
-- [x] Performance regression detection
+- [x] Real-browser verification harnesses (verify:layout / verify:app / verify:vr-boot)
 - [x] Production monitoring (Sentry, GA4, Web Vitals)
 - [x] Docker multi-platform builds
 - [x] Multi-platform deployment automation
@@ -325,19 +324,10 @@ npm run format           # Format all files
 npm run format:check     # Check formatting
 ```
 
-### Benchmarking
-```bash
-npm run benchmark                # Run benchmark tool
-npm run benchmark:all            # Benchmark all modules
-npm run benchmark:report         # Generate Markdown report
-npm run benchmark:regression     # Check for regressions
-```
-
 ### CI/CD
 ```bash
 npm run ci:lint          # Lint + format check
 npm run ci:test          # Tests with coverage
-npm run ci:benchmark     # Benchmark + regression check
 npm run ci:all           # Complete CI suite
 ```
 
