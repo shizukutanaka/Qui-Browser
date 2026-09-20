@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
+- 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
+- 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
+- ✅ 8テスト追加（修正前に8件赤確認）。2061 tests / 59 suites、lint 0 errors、build green。
+
 #### 続き58（同セッション）: DevTools（0%→非 DOM 配管層）を pin（欠陥ゼロ）
 - 🔍 **実測**: `src/dev/DevTools.js`（694行、`import.meta.env.DEV` で動的 import される開発者ツール）が全くテストされず 0% だった。DOM 構築部は重いが配管層は headless に検証可能 — console 傍受→messages リング（≤1000）、formatValue（null/undefined/オブジェクト/循環参照）、executeCode の式→文フォールバック+エラー捕捉、fetch 傍受→requests リング（成功/失敗両腕）、キーボードショートカット dispatch（F12 / Ctrl+Shift+I、plain キー無視、preventDefault）、toggle/show/hide、dispose の console+fetch 復元。
 - ✅ **pin**: 7テスト追加（tests/dev-tools.test.js 新規、59 suites）。全緑 — 実装は正しいことを実測確認。
