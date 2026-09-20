@@ -1825,3 +1825,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第182パス（クリーンスキャン — WebGL コンテキスト喪失）
 `webglcontextlost` は preventDefault（restore 有効化の必須条件）＋ループ停止＋restored 復帰＋dispose 解除の完全対称 — 黒画面固着経路なし。
+
+### 第183パス（クリーンスキャン — canvas 読戻し）
+`getImageData`/`drawImage`/`toDataURL`/`toBlob` 不使用 — canvas は書き込み専用（テクスチャ化のみ）、GPU→CPU ストール経路は非存在。
