@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { setupRenderer, setupScene, setupCamera, setupVR } from './setupStages.js';
+import { initializeSystems } from './systemsLifecycle.js';
 
 /**
  * The frame loop: staged boot (renderer → scene → camera → VR → systems), the
@@ -10,17 +12,17 @@ export async function initialize(app) {
   console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
 
   // Setup Three.js
-  app.setupRenderer();
-  app.setupScene();
-  app.setupCamera();
+  setupRenderer(app);
+  setupScene(app);
+  setupCamera(app);
 
   // Setup VR before the (potentially long) async system init so the
   // landing-page "Enter VR" buttons are wired immediately — otherwise an
   // 'enter-vr' event dispatched during initializeSystems() is dropped.
-  app.setupVR();
+  setupVR(app);
 
   // Initialize Tier 1 optimizations
-  await app.initializeSystems();
+  await initializeSystems(app);
 
   // Note: the service worker is registered once from src/main.js for all
   // device types; VRApp no longer registers it to avoid a duplicate.

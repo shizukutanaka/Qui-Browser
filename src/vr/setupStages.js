@@ -287,7 +287,7 @@ export function setupVR(app) {
   document.addEventListener('visibilitychange', app.onDocumentVisibilityChange);
 
   // Controllers (ray pointer + rendered models) parented to the player rig.
-  app.setupControllers();
+  setupControllers(app);
 
   // Listen for VR session events
   app.renderer.xr.addEventListener('sessionstart', () => {

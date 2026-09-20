@@ -27,7 +27,6 @@ import { requestReaderProxyInput, clearBrowsingHistory, navigate } from './brows
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
-import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
 import { initializeSystems, dispose, setupOSAccessibilityListeners } from './systemsLifecycle.js';
 import { initialize, render, updateSystems } from './frameLoop.js';
 import { onVRSessionStart, onVRSessionEnd, _detachPanelLayer } from './sessionLifecycle.js';
@@ -284,30 +283,6 @@ export class VRApp {
   /**
    * Initialize VR application
    */
-  setupRenderer() {
-    return setupRenderer(this);
-  }
-
-  setupScene() {
-    return setupScene(this);
-  }
-
-  setupCamera() {
-    return setupCamera(this);
-  }
-
-  setupControllers() {
-    return setupControllers(this);
-  }
-
-  setupVR() {
-    return setupVR(this);
-  }
-
-  async initializeSystems() {
-    return initializeSystems(this);
-  }
-
   dispose() {
     return dispose(this);
   }
