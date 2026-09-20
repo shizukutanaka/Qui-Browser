@@ -511,3 +511,90 @@ describe('VoiceCommands — recognition lifecycle (stub engine)', () => {
     expect(fired).toHaveLength(0);
   });
 });
+
+describe('VoiceCommands.connectBrowser — VR command actions', () => {
+  let vc, calls, tab, tabManager, opts;
+
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {}; // suppress speak() side-effects
+    calls = { search: [], goto: [], scroll: [], topSites: 0, clear: 0 };
+    tab = {
+      navigate: jest.fn(), goForward: jest.fn(), goBack: jest.fn(), reload: jest.fn()
+    };
+    tabManager = { getActiveTab: () => tab };
+    const bookmarkPanel = { toggle: jest.fn() };
+    const vrKeyboard = { visible: false, show: jest.fn(), hide: jest.fn() };
+    opts = {
+      tabManager, bookmarkPanel, vrKeyboard,
+      onSearch: (q) => calls.search.push(q),
+      onGoTo: (q) => calls.goto.push(q),
+      onTopSites: () => calls.topSites++,
+      onClearHistory: () => calls.clear++,
+      onScrollContent: (d) => calls.scroll.push(d)
+    };
+    vc.connectBrowser(opts);
+  });
+
+  test("'検索：てんき' extracts the query and calls onSearch", () => {
+    vc.processCommand('検索：てんき', 0.9);
+    expect(calls.search).toEqual(['てんき']);
+    expect(tab.navigate).not.toHaveBeenCalled();
+  });
+
+  test('search falls back to tabManager.navigate when onSearch is absent', () => {
+    vc.connectBrowser({ tabManager }); // re-register without onSearch
+    // note: second registration overwrites 'search' in the commands map
+    vc.processCommand('検索：ねこ', 0.9);
+    expect(tab.navigate).toHaveBeenCalledWith('ねこ');
+  });
+
+  test("'下にスクロール'/'上' scroll the reader viewport ±8 lines", () => {
+    vc.processCommand('下にスクロール', 0.9);
+    vc.processCommand('上', 0.9);
+    expect(calls.scroll).toEqual([8, -8]);
+  });
+
+  test("'ブックマーク' toggles the bookmark panel", () => {
+    vc.processCommand('ブックマーク', 0.9);
+    expect(opts.bookmarkPanel.toggle).toHaveBeenCalled();
+  });
+
+  test("'キーボード' toggles the VR keyboard based on visible state", () => {
+    vc.processCommand('キーボード', 0.9);
+    expect(opts.vrKeyboard.show).toHaveBeenCalled();
+    opts.vrKeyboard.visible = true;
+    vc.processCommand('キーボード', 0.9);
+    expect(opts.vrKeyboard.hide).toHaveBeenCalled();
+  });
+
+  test('forward/back/refresh drive the active tab', () => {
+    vc.processCommand('進む', 0.9);
+    vc.processCommand('戻る', 0.9);
+    vc.processCommand('更新', 0.9);
+    expect(tab.goForward).toHaveBeenCalled();
+    expect(tab.goBack).toHaveBeenCalled();
+    expect(tab.reload).toHaveBeenCalled();
+  });
+
+  test("'履歴を消去' calls onClearHistory (privacy command)", () => {
+    vc.processCommand('履歴を消去', 0.9);
+    expect(calls.clear).toBe(1);
+  });
+
+  test("'トップサイト' calls onTopSites", () => {
+    vc.processCommand('トップサイト', 0.9);
+    expect(calls.topSites).toBe(1);
+  });
+
+  test("'githubを開く' extracts the site name for onGoTo", () => {
+    vc.processCommand('githubを開く', 0.9);
+    expect(calls.goto).toEqual(['github']);
+  });
+
+  test('precedence: "キーボードを開く" hits keyboard, not the greedy go-to', () => {
+    vc.processCommand('キーボードを開く', 0.9);
+    expect(opts.vrKeyboard.show).toHaveBeenCalled();
+    expect(calls.goto).toEqual([]);
+  });
+});
