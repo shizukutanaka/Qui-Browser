@@ -1795,3 +1795,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第172パス（クリーンスキャン — Intl/Date 生成コスト）
 `new Intl.*` は存在せず、`new Date` は GA init の1回のみ、時刻取得は用途別に正しい（フレーム/アニメーション=performance.now 単調、永続化=Date.now）— ホットループ内高コスト生成なし。
+
+### 第173パス（クリーンスキャン — 反復中のコレクション変更）
+`clear`/`add`/`delete` は全て teardown 文脈 or 別コレクションへの追加 — 反復対象自身の変更経路ゼロ。
