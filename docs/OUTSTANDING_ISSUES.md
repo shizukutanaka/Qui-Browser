@@ -1690,3 +1690,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第137パス（クリーンスキャン — テキスト計測コスト）
 折返しは `wrapTextToWidth` の UAX#11 文字幅テーブル駆動（measureText 不使用は意図的設計 — テストスタブ互換＋文字単位APIコスト回避）。`fillText` のみで measureText 経路ゼロ。
+
+### 第138パス（クリーンスキャン — ハプティクス/セッション終了）
+`pulse()` は duration(1-5000ms)/intensity(0-1) を明示 clamp、プリセット表も全 ≤1.0。`sessionend` → `onVRSessionEnd` 経路完備、playEffect フォールバック有り。範囲逸脱・未クリーンアップ経路ゼロ。
