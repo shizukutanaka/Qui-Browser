@@ -1639,3 +1639,6 @@ WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src ht
 
 ### 第120パス（実修正 — 裸キーショートカットの衝突）
 `app.js` の単一キー p/f/c/Escape が修飾キー無チェック・発火元無チェック — **Ctrl+C（コピー）で comfort preset が回り、Ctrl+F（検索）で FFR が切替、DevTools REPL で 'p'/'f'/'c' を打つと入力しながらパネルがトグル**。`ctrlKey|metaKey|altKey|repeat`・INPUT/TEXTAREA/contentEditable のガードを追加（Escape はガード後でも生存 — 修飾無し時のみ）。
+
+### 第121パス（実修正 — 悪意ある Location でリクエスト永遠ハング）
+`decodeURIComponent` は存在せず URIError 経路は他になし。だが **`fetchThroughGuard` のリダイレクト `new URL(r.headers.location, url)` が未ガード** — 上流サーバーが壊れた Location を返すと TypeError が async ハンドラに伝播 → unhandled rejection → **レスポンスが書かれずソケットがタイムアウトまでハング** → try/catch で `bad-redirect-location` を返すよう修正。

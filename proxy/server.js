@@ -114,7 +114,13 @@ export async function fetchThroughGuard(target, headers = {}) {
 
     if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
       r.resume(); // drain
-      current = new URL(r.headers.location, url).toString();
+      // A hostile/garbage Location header throws in URL() — without this
+      // catch the request hangs forever (no response is ever written).
+      try {
+        current = new URL(r.headers.location, url).toString();
+      } catch {
+        return { ok: false, reason: 'bad-redirect-location' };
+      }
       continue;
     }
 
