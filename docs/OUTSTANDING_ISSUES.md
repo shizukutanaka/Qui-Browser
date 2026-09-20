@@ -1615,3 +1615,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第112パス（実修正 — 2D 側 WCAG 4.1.3）
 VR 側は SemanticDOM が `role=alert`/`aria-live` をミラーするが、ランディングの `showError`（init 失敗時の唯一の通知）は純粋な視覚 div でスクリーンリーダーに無言だった → `role="alert"` を追加して AT 経路を実在化。パス76 で届くようにした経路が AT にも届くよう補完。
+
+### 第113パス（実修正 — OS コントラスト切替時のパネル不整合）
+OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に live 反映され dispose で detach 済みだが、**contrast ハンドラが設定パネルの再描画を呼んでいなかった** — ボタン描画は `prefersHighContrast()` を draw 時に読むため OS 切替直後に開いたパネルだけ旧表示のまま → `_onOSContrastChange` に `redrawSettingsPanel(app)` を追加（IME も draw 時に読むため次描画で追随）。

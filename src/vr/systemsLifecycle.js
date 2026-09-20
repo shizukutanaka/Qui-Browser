@@ -19,6 +19,7 @@ import { disposeMonitoring } from '../monitoring.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { showCaption } from './caption.js';
+import { redrawSettingsPanel } from './ui/settingsPanel.js';
 
 export async function initializeSystems(app) {
   const startTime = performance.now();
@@ -396,6 +397,10 @@ export function setupOSAccessibilityListeners(app) {
     if (app.captionSystem) {
       app.captionSystem.setHighContrast(hc);
     }
+    // Panel buttons read prefersHighContrast() at draw time, so they need a
+    // repaint to follow an OS toggle while the panel is open (safe no-op when
+    // no drawers are registered).
+    redrawSettingsPanel(app);
   };
   app._osContrastMQ.addEventListener('change', app._onOSContrastChange);
   app._osForcedColorsMQ.addEventListener('change', app._onOSContrastChange);

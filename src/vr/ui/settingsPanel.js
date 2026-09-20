@@ -369,7 +369,7 @@ function _rebuildSettingsPanel(app) {
   (parent || app.scene).add(app.settingsPanel);
 }
 
-function redrawSettingsPanel(app) {
+export function redrawSettingsPanel(app) {
   if (app._settingsPanelDrawers) {
     app._settingsPanelDrawers.forEach(fn => fn && fn());
   }
