@@ -1714,3 +1714,6 @@ innerHTML は全て静的テンプレートか数値のみ（DevTools タブ/per
 
 ### 第145パス（クリーンスキャン — Blob/オブジェクトURL）
 `createObjectURL`/`Blob`/`FileReader` はコードベースに存在しない — オブジェクトURL リーク経路は構造的に非存在。queueMicrotask/requestIdleCallback も不使用。
+
+### 第146パス（クリーンスキャン — gamepad 軸マッピング）
+`AXES_MAPS` はデバイスファミリ別（Quest/Pico/Index/Vive/WMR/generic）で標準レイアウト正確、radial dead zone は再正規化付きで cliff なし。speechSynthesis/vibrate 不使用。マッピング罠ゼロ。
