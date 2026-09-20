@@ -1543,3 +1543,6 @@ tests/helpers/contrast.js の全5 export はテスト実使用を確認。proxy/
 
 ### 第88パス（時計ソース監査 — 実バグ摘出）
 `animateSnapTurn`（前庭快適性アニメーション）が壁時計 `Date.now()` 駆動で NTP 補正による途中逆行/跳躍の可能性 → `performance.now()` + rAF フレームタイムスタンプへ。初回呼出は `animate(startTime)` で progress=0 を決定的に固定。他の `Date.now()` は永続化タイムスタンプ/イベント時刻で全て正当。
+
+### 第89パス（クリーンスキャン — i18n 死キー）
+CATALOG 全120キーの逆方向監査: 検出12件は全て生存（三項演算子による動的キー選択・SECTIONS 配列のデータ駆動キー・`data-i18n-attr` HTML 属性参照）。真の死キーゼロ。
