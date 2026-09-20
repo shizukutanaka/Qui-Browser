@@ -1669,3 +1669,6 @@ navigate は javascript:/data:/file: を resolve 時に拒否し onBlockedNaviga
 
 ### 第130パス（クリーンスキャン — フォント鮮度）
 全 `ctx.font` は `sans-serif`/`monospace` の汎用ファミリのみ — webfont 依存ゼロで `document.fonts.ready` 待機の競合は構造的に存在しない（システムフォント即時解決）。
+
+### 第131パス（クリーンスキャン — XR セッション要求）
+セッション要求は three の VRButton（optionalFeatures に local-floor/bounded-floor/hand-tracking/layers 含む）+ 'enter-vr' イベント橋渡し+dispose 対称で完全。`updateTargetFrameRate` 未呼出は保留 — 90Hz 解放は没入感向上の候補だが、フレーム予算超過時は judder 悪化で、実機計測なしの変更は「推測最適化禁止」抵触。実機で supportedFrameRates 確認後に再検討。
