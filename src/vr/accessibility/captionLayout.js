@@ -48,7 +48,7 @@ const CAPTION_MEASURE_EM = 20;
 export const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
 
 /** Usable text width (px) inside the caption canvas. */
-const CAPTION_TEXT_W = CAPTION_CANVAS_W - 2 * CAPTION_H_PAD;
+export const CAPTION_TEXT_W = CAPTION_CANVAS_W - 2 * CAPTION_H_PAD;
 
 /**
  * Line measure in em for a given text scale.
