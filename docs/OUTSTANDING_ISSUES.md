@@ -1792,3 +1792,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第171パス（クリーンスキャン — 再帰深さ）
 ユーザー入力由来の無制限再帰は存在しない（JSON.parse は localStorage のみ・try/catch 済み、DOM/オブジェクト走査は浅い or three 内部）— スタックオーバーフロー経路ゼロ。
+
+### 第172パス（クリーンスキャン — Intl/Date 生成コスト）
+`new Intl.*` は存在せず、`new Date` は GA init の1回のみ、時刻取得は用途別に正しい（フレーム/アニメーション=performance.now 単調、永続化=Date.now）— ホットループ内高コスト生成なし。
