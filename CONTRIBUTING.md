@@ -73,16 +73,6 @@ Follow conventional commits:
 npm test
 ```
 
-### Performance Tests
-```bash
-npm run benchmark
-```
-
-### Build Analysis
-```bash
-npm run build:analyze
-```
-
 ## 📚 Documentation
 
 Update relevant documentation:

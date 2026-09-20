@@ -181,10 +181,10 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 git push origin main
 
 # Netlify
-npm run deploy:netlify
+# Push to main (cd.yml deploy-netlify job) or connect the repo to Netlify
 
 # Vercel
-npm run deploy:vercel
+# Push to main (cd.yml deploy-vercel job) or connect the repo to Vercel
 
 # Docker
 npm run docker:build
@@ -200,24 +200,19 @@ npm run docker:compose
 
 ### Test Suite Coverage
 
-| Test Type | Files | Suites | Tests | Coverage Target |
-|-----------|-------|--------|-------|-----------------|
-| **Unit Tests** | 10+ | 34 | 100+ | 60%+ |
-| **Integration Tests** | 3 | 8 | 30+ | 50%+ |
-| **Performance Tests** | 2 | 5 | 15+ | N/A |
-| **E2E Tests** | Planned | - | - | - |
+| Test Type | Suites | Tests |
+|-----------|--------|-------|
+| **Unit Tests** | 46 | 1,463 |
 
-### CI Pipeline (9 Jobs, ~25 min)
+### CI Pipeline (`.github/workflows/ci.yml`)
 
-1. **Code Quality & Linting** (10 min) - ESLint, Prettier, security audit
-2. **Unit Tests** (15 min) - Jest with coverage, Codecov upload
-3. **Integration Tests** (15 min) - Tier system integration
-4. **Performance Tests** (20 min) - Benchmarks with regression detection
-5. **Build Verification** (15 min) - Multi-version Node (16/18/20)
-6. **Lighthouse CI** (15 min) - Performance audits
-7. **Docker Build Test** (20 min) - Container build validation
-8. **Security Scanning** (15 min) - Trivy vulnerability scanner
-9. **CI Summary** - Aggregate results and notifications
+1. **Lint** - ESLint
+2. **Unit Tests** - Jest with coverage
+3. **Build Verification** - Node 18/20 matrix
+4. **Lighthouse CI** - Performance audits
+5. **Docker Build Test** - Container build validation
+6. **Security Scanning** - Trivy vulnerability scanner
+7. **CI Summary** - Aggregate results
 
 ### CD Pipeline (9 Jobs, ~40 min)
 
@@ -306,7 +301,6 @@ npm run docker:compose
 npm run dev              # Start Vite dev server
 npm run build            # Build for production
 npm run preview          # Preview production build
-npm run serve            # Serve production build
 ```
 
 ### Testing
@@ -314,9 +308,6 @@ npm run serve            # Serve production build
 npm test                 # Run all tests
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage
-npm run test:tier        # Run tier integration tests
-npm run test:integration # Run integration tests
-npm run test:e2e         # Run E2E tests (Playwright)
 ```
 
 ### Code Quality
@@ -327,20 +318,13 @@ npm run format           # Format all files
 npm run format:check     # Check formatting
 ```
 
-### Benchmarking
+### Verification
 ```bash
-npm run benchmark                # Run benchmark tool
-npm run benchmark:all            # Benchmark all modules
-npm run benchmark:report         # Generate Markdown report
-npm run benchmark:regression     # Check for regressions
-```
-
-### CI/CD
-```bash
-npm run ci:lint          # Lint + format check
-npm run ci:test          # Tests with coverage
-npm run ci:benchmark     # Benchmark + regression check
-npm run ci:all           # Complete CI suite
+npm run verify:docs      # Documentation/link check
+npm run verify:layout    # Text-layout invariants
+npm run verify:app       # Landing-shell boot smoke (headless Chrome)
+npm run verify:vr-boot   # Production bundle constructs VRApp (headless Chrome)
+npm run ci:verify        # build + layout + app + vr-boot
 ```
 
 ### Docker
@@ -354,11 +338,9 @@ npm run docker:logs      # View container logs
 ```
 
 ### Deployment
-```bash
-npm run deploy:gh-pages  # Deploy to GitHub Pages
-npm run deploy:netlify   # Deploy to Netlify
-npm run deploy:vercel    # Deploy to Vercel
-```
+Deployments run via `.github/workflows/cd.yml` (push to main / tags) and the
+platform Git integrations configured by `netlify.toml` / `vercel.json` — there
+are no npm deploy scripts.
 
 ### Release Management
 ```bash

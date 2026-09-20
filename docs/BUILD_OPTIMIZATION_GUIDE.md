@@ -356,17 +356,9 @@ npm run build
 
 ### Build Analysis
 
-```bash
-# Analyze bundle size
-npm run build:analyze
-
-# Opens webpack-bundle-analyzer
-# Shows:
-# - Chunk sizes
-# - Module dependencies
-# - Duplicate code
-# - Optimization opportunities
-```
+Bundle analysis is not currently wired into `package.json`. To inspect the
+bundle, run `npx vite-bundle-visualizer` (or `npx source-map-explorer`) against
+`dist/` — chunk layout is listed by `npm run build` itself.
 
 ---
 
@@ -635,14 +627,11 @@ const vec = new Vector3(); // GC pressure!
 ### Monitoring
 
 ```bash
-# Run Lighthouse CI
-npm run lighthouse
+# Run the full local verification (build + layout/app/vr-boot smoke)
+npm run ci:verify
 
-# Monitor bundle size
-npm run build:analyze
-
-# Check performance
-npm run benchmark:all
+# Lighthouse audits run in CI (ci.yml lighthouse job via @lhci/cli)
+npx vite preview  # then run Lighthouse against http://localhost:8080
 ```
 
 ### Regression Prevention
@@ -672,15 +661,14 @@ npm run benchmark:all
 ### Performance Budget CI
 
 ```yaml
-# .github/workflows/performance.yml
+# Example — these scripts do not exist today; adopt size-limit/@lhci first.
 - name: Check bundle size
   run: npm run test:size
 
 - name: Run Lighthouse
-  run: npm run lighthouse
-
-- name: Fail if budget exceeded
-  run: npm run check-budgets
+  uses: treosh/lighthouse-ci-action@v9
+  with:
+    uploadArtifacts: true
 ```
 
 ---

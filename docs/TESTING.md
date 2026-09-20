@@ -6,17 +6,14 @@
 npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
-npm run test:tier        # tier-system integration only
-npm run test:integration # **/tests/*integration*.test.js
-npm run test:e2e         # Playwright (requires a browser install)
-npm run lint             # ESLint over src/ and server/
+npm run lint             # ESLint over src/ and proxy/
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
-npm run ci:all           # lint + coverage + benchmarks
+npm run ci:verify        # build + verify:layout + verify:app + verify:vr-boot
 ```
 
-Current baseline on a clean checkout: **48 suites / 1156 tests passing**, ESLint
-0 errors (180 `no-console` style warnings are accepted in tooling/dev paths).
+Current baseline on a clean checkout: **46 suites / 1463 tests passing**, ESLint
+0 errors (`no-console` warnings are accepted in tooling/dev paths).
 
 ## Layout
 

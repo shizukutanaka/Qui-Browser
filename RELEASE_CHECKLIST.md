@@ -256,11 +256,10 @@
 
 1. **Run complete CI/CD suite locally**
    ```bash
-   npm run ci:all
+   npm test && npm run ci:verify
    ```
    - Verify all tests pass
-   - Check code quality
-   - Run benchmarks
+   - Check code quality (`npm run lint`)
    - Review results
 
 2. **Manual smoke test**

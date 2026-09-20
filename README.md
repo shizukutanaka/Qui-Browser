@@ -204,8 +204,6 @@ npm run proxy                 # Start the fetch proxy (defaults to :8080)
 # Testing
 npm test                      # Run all tests
 npm run test:coverage         # Tests with coverage
-npm run test:tier             # Tier integration tests
-npm run test:integration      # Integration tests
 
 # Code Quality
 npm run lint                  # Lint JavaScript
@@ -214,9 +212,7 @@ npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
 
 # CI/CD
-npm run ci:all                # Complete CI suite
-npm run deploy:netlify        # Deploy to Netlify
-npm run deploy:vercel         # Deploy to Vercel
+npm run ci:verify             # Build + verify:layout + verify:app + verify:vr-boot
 
 # Docker
 npm run docker:build          # Build Docker image
@@ -246,8 +242,8 @@ npm run release:major         # Major version (X.0.0)
 | Platform | Status | Deployment | Configuration |
 |----------|--------|-----------|---------------|
 | **GitHub Pages** | ✅ Auto | Push to main | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify** | ✅ Auto | `npm run deploy:netlify` | [netlify.toml](netlify.toml) |
-| **Vercel** | ✅ Auto | `npm run deploy:vercel` | [vercel.json](vercel.json) |
+| **Netlify** | ✅ Auto | Push to main ([cd.yml](.github/workflows/cd.yml)) or Netlify Git integration | [netlify.toml](netlify.toml) |
+| **Vercel** | ✅ Auto | Push to main ([cd.yml](.github/workflows/cd.yml)) or Vercel Git integration | [vercel.json](vercel.json) |
 | **Docker** | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile) |
 | **Custom Server** | ✅ Nginx | Manual setup | [docker/nginx.conf](docker/nginx.conf) |
 
@@ -302,7 +298,7 @@ cd qui-browser-vr
 git checkout -b feature/amazing-feature
 
 # Make changes and test
-npm run ci:all
+npm test && npm run ci:verify
 
 # Commit (use Conventional Commits)
 git commit -m "feat: add amazing feature"

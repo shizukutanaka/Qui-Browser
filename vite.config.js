@@ -6,7 +6,6 @@
  */
 
 import { defineConfig } from 'vite';
-import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   root: '.',
@@ -132,20 +131,11 @@ export default defineConfig({
     cors: true
   },
 
-  // Plugins
-  plugins: [
-    // Support older browsers if needed
-    // Disabled for now to simplify build
-    // legacy({
-    //   targets: ['defaults', 'not IE 11'],
-    //   additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-    // })
-  ],
+  plugins: [],
 
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three'],
-    exclude: ['@tensorflow/tfjs'] // Large, load on demand
+    include: ['three']
   },
 
   // Define global constants

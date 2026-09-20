@@ -34,7 +34,7 @@ npm run dev
 npm run build
 
 # Serve production build
-npm run serve
+npm run preview
 ```
 
 ## VR Device Setup
@@ -104,7 +104,7 @@ npm run test:coverage
 
 ### VR Testing
 1. Build project: `npm run build`
-2. Serve locally: `npm run serve`
+2. Serve locally: `npm run preview`
 3. Connect VR headset to same network
 4. Navigate to local IP address
 
@@ -137,8 +137,7 @@ docker run -p 8080:80 qui-browser-vr
 
 ### Bundle Analysis
 ```bash
-npm run build:analyze
-# Check bundle-report.html
+npx vite-bundle-visualizer   # inspect dist/ chunk layout
 ```
 
 ### Code Splitting
