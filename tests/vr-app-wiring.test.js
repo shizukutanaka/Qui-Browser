@@ -1611,3 +1611,262 @@ describe('VRApp adjustQuality / keyboard input / loadTexture (bound prototypes)'
     THREE.TextureLoader.prototype.loadAsync.mockRestore();
   });
 });
+
+describe('VRApp teleport aim raycast + immersive video launch (bound prototypes, real three)', () => {
+  function makeTeleportApp(overrides = {}) {
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10));
+    floor.rotation.x = -Math.PI / 2; // horizontal floor at y=0
+    floor.updateMatrixWorld(true);
+    const app = Object.assign({
+      floorMesh: floor,
+      settings: { enableTeleport: true },
+      teleport: { active: false, controller: null, valid: false, target: null, marker: null },
+      playerRig: new THREE.Object3D(),
+      camera: new THREE.PerspectiveCamera()
+    }, overrides);
+    // updateTeleport calls this.raycasterFromController — bind the real method.
+    app.raycasterFromController = (c) => VRApp.prototype.raycasterFromController.call(app, c);
+    return app;
+  }
+
+  function makeCtrl(position, euler) {
+    const ctl = new THREE.Object3D();
+    ctl.position.copy(position);
+    if (euler) { ctl.rotation.copy(euler); }
+    ctl.updateMatrixWorld(true);
+    ctl.userData = {};
+    return ctl;
+  }
+
+  test('raycasterFromController builds the ray from matrixWorld: origin + rotated -Z', () => {
+    const app = { _sharedRaycaster: null, _tmpRayMatrix: null };
+    const ctl = makeCtrl(new THREE.Vector3(0, 1.6, 0), new THREE.Euler(0, Math.PI / 2, 0)); // yaw +90° → faces -X
+    const rc = VRApp.prototype.raycasterFromController.call(app, ctl);
+    expect(rc.ray.origin.x).toBeCloseTo(0, 5);
+    expect(rc.ray.origin.y).toBeCloseTo(1.6, 5);
+    expect(rc.ray.direction.x).toBeCloseTo(-1, 5); // -Z rotated 90° about +Y → -X
+    expect(rc.ray.direction.z).toBeCloseTo(0, 5);
+    expect(app._sharedRaycaster).toBe(rc); // shared instance memoized
+  });
+
+  test('onTeleportStart only arms when enabled with a floor', () => {
+    const app = makeTeleportApp();
+    const ctl = makeCtrl(new THREE.Vector3());
+    VRApp.prototype.onTeleportStart.call(app, ctl);
+    expect(app.teleport.active).toBe(true);
+    expect(app.teleport.controller).toBe(ctl);
+
+    const disabled = makeTeleportApp({ settings: { enableTeleport: false } });
+    VRApp.prototype.onTeleportStart.call(disabled, ctl);
+    expect(disabled.teleport.active).toBe(false);
+
+    const noFloor = makeTeleportApp({ floorMesh: null });
+    VRApp.prototype.onTeleportStart.call(noFloor, ctl);
+    expect(noFloor.teleport.active).toBe(false);
+  });
+
+  test('updateTeleport marks the floor hit valid and parks the marker just above it', () => {
+    const app = makeTeleportApp();
+    app.teleport.marker = { position: new THREE.Vector3(), visible: false };
+    // Controller 1.6m up, pitched down 45° → hits floor ahead of the user
+    const ctl = makeCtrl(new THREE.Vector3(0, 1.6, 0), new THREE.Euler(-Math.PI / 4, 0, 0));
+    app.teleport.active = true;
+    app.teleport.controller = ctl;
+    VRApp.prototype.updateTeleport.call(app);
+    expect(app.teleport.valid).toBe(true);
+    expect(app.teleport.target.y).toBeCloseTo(0, 4);   // landed on the y=0 floor
+    expect(app.teleport.target.z).toBeLessThan(0);     // ahead of the controller (-Z)
+    expect(app.teleport.marker.visible).toBe(true);
+    expect(app.teleport.marker.position.y).toBeCloseTo(0.01, 4); // 1 cm above the floor
+    expect(app.teleport.marker.position.z).toBeCloseTo(app.teleport.target.z, 4);
+  });
+
+  test('updateTeleport clears validity and hides the marker on a miss', () => {
+    const app = makeTeleportApp();
+    app.teleport.marker = { position: new THREE.Vector3(), visible: true };
+    const ctl = makeCtrl(new THREE.Vector3(0, 1.6, 0), new THREE.Euler(Math.PI / 4, 0, 0)); // pitched UP
+    app.teleport.active = true;
+    app.teleport.controller = ctl;
+    app.teleport.valid = true;
+    VRApp.prototype.updateTeleport.call(app);
+    expect(app.teleport.valid).toBe(false);
+    expect(app.teleport.marker.visible).toBe(false);
+  });
+
+  test('updateTeleport is inert until onTeleportStart arms it', () => {
+    const app = makeTeleportApp();
+    VRApp.prototype.updateTeleport.call(app); // teleport.active false
+    expect(app.teleport.valid).toBe(false);
+  });
+
+  test('_launchImmersiveVideo plays the confirmed URL with auto-detected format', () => {
+    const app = { immersiveVideo: { play: jest.fn() }, _requestVRKeyboardInput: null };
+    VRApp.prototype._requestVRKeyboardInput = VRApp.prototype._requestVRKeyboardInput;
+    let captured;
+    app._requestVRKeyboardInput = (prefill, onConfirm, prompt) => {
+      captured = { prefill, onConfirm, prompt };
+    };
+    VRApp.prototype._launchImmersiveVideo.call(app);
+    expect(captured.prefill).toBe('https://');
+    captured.onConfirm('https://x.example/vr_360.mp4');
+    expect(app.immersiveVideo.play).toHaveBeenCalledTimes(1);
+    const [url, fmt] = app.immersiveVideo.play.mock.calls[0];
+    expect(url).toBe('https://x.example/vr_360.mp4');
+    expect(fmt).toEqual(expect.objectContaining({ projection: expect.any(String) }));
+    // cancelled / empty URL → no play
+    captured.onConfirm('');
+    expect(app.immersiveVideo.play).toHaveBeenCalledTimes(1);
+    // no immersiveVideo subsystem → no throw
+    app.immersiveVideo = null;
+    expect(() => captured.onConfirm('https://x.mp4')).not.toThrow();
+  });
+});
+
+describe('VRApp updateSystems middle arms + updatePerformanceMonitor (bound prototypes)', () => {
+  function makeSystemsApp(overrides = {}) {
+    const app = Object.assign({
+      settings: { enableComfort: true, targetFPS: 72 },
+      isVREnabled: true,
+      camera: new THREE.PerspectiveCamera(),
+      interactables: [],
+      controllers: [],
+      comfortSystem: { update: jest.fn() },
+      ffrSystem: {
+        trackHeadPose: jest.fn(),
+        updatePredictedGazeFoveation: jest.fn(),
+        adjustIntensity: jest.fn()
+      },
+      handTracking: { update: jest.fn() },
+      hapticFeedback: { update: jest.fn(), playPatternBothHands: jest.fn() },
+      spatialAudio: { updateListenerFromCamera: jest.fn() },
+      layersSystem: { isSupported: true },
+      tabManager: { tabs: [] },
+      windowManager: null,
+      immersiveVideo: { update: jest.fn() },
+      captionSystem: { enabled: false, update: jest.fn() },
+      gazeInteraction: { enabled: false, update: jest.fn() },
+      performanceMonitor: { frameTime: 10 },
+      renderer: { xr: { getReferenceSpace: () => null }, info: { render: { calls: 7, triangles: 9 } } }
+    }, overrides);
+    app.updateLocomotion = jest.fn();
+    app.updateButtonInput = jest.fn();
+    app.updateTeleport = jest.fn();
+    app.updateHover = jest.fn();
+    app._attachManagedWindow = jest.fn();
+    return app;
+  }
+
+  test('updateSystems fans out to locomotion/buttons/teleport/hover and per-frame subsystems', () => {
+    const app = makeSystemsApp();
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    expect(app.updateLocomotion).toHaveBeenCalledWith(0.016);
+    expect(app.updateButtonInput).toHaveBeenCalledTimes(1);
+    expect(app.updateTeleport).toHaveBeenCalledTimes(1);
+    expect(app.updateHover).toHaveBeenCalledTimes(1);
+    expect(app.comfortSystem.update).toHaveBeenCalledWith(0.016);
+    expect(app.ffrSystem.trackHeadPose).toHaveBeenCalledWith(app.camera.quaternion, 0.016);
+    expect(app.ffrSystem.updatePredictedGazeFoveation).toHaveBeenCalledTimes(1);
+    expect(app.hapticFeedback.update).toHaveBeenCalledTimes(1);
+    expect(app.spatialAudio.updateListenerFromCamera).toHaveBeenCalledWith(app.camera);
+    expect(app.immersiveVideo.update).toHaveBeenCalledWith(0.016);
+    // no xrFrame → hand tracking and layer blit skipped
+    expect(app.handTracking.update).not.toHaveBeenCalled();
+  });
+
+  test('updateSystems: FFR frame-budget adjusts ±0.01 only while VR is enabled', () => {
+    const app = makeSystemsApp();
+    app.performanceMonitor.frameTime = 1000 / 72 + 1; // over budget → tighten FFR
+    VRApp.prototype.updateSystems.call(app, 0, null);
+    expect(app.ffrSystem.adjustIntensity).toHaveBeenCalledWith(0.01);
+
+    app.ffrSystem.adjustIntensity.mockClear();
+    app.performanceMonitor.frameTime = 5; // under budget → relax
+    VRApp.prototype.updateSystems.call(app, 0, null);
+    expect(app.ffrSystem.adjustIntensity).toHaveBeenCalledWith(-0.01);
+
+    // Flat 2D: no FFR work at all
+    app.ffrSystem.adjustIntensity.mockClear();
+    app.ffrSystem.trackHeadPose.mockClear();
+    app.isVREnabled = false;
+    VRApp.prototype.updateSystems.call(app, 0, null);
+    expect(app.ffrSystem.trackHeadPose).not.toHaveBeenCalled();
+    expect(app.ffrSystem.adjustIntensity).not.toHaveBeenCalled();
+  });
+
+  test('updateSystems gates optional subsystems on their own flags', () => {
+    const app = makeSystemsApp({
+      settings: { enableComfort: false, targetFPS: 72 },
+      comfortSystem: { update: jest.fn() },
+      captionSystem: { enabled: true, update: jest.fn() },
+      gazeInteraction: { enabled: true, update: jest.fn(() => null) }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.1);
+    expect(app.comfortSystem.update).not.toHaveBeenCalled(); // comfort disabled
+    expect(app.gazeInteraction.update).toHaveBeenCalledWith([], 100); // dt s → ms
+    expect(app.captionSystem.update).toHaveBeenCalledWith(100);       // aging in ms
+  });
+
+  test('updatePerformanceMonitor: frameTime EMA, fps, renderer stats', () => {
+    const app = {
+      performanceMonitor: { frameTime: 20 },
+      renderer: { info: { render: { calls: 42, triangles: 12345 } } }
+    };
+    VRApp.prototype.updatePerformanceMonitor.call(app, 10);
+    // EMA alpha=0.1: 20*0.9 + 10*0.1 = 19
+    expect(app.performanceMonitor.frameTime).toBeCloseTo(19, 6);
+    expect(app.performanceMonitor.fps).toBeCloseTo(1000 / 19, 4);
+    expect(app.performanceMonitor.drawCalls).toBe(42);
+    expect(app.performanceMonitor.triangles).toBe(12345);
+  });
+});
+
+describe('VRApp render() frame cadence (bound prototype, stubbed renderer)', () => {
+  function makeRenderApp() {
+    const app = {
+      frameCount: 0,
+      _lastRenderTime: null,
+      perfMonitorUI: { beginFrame: jest.fn(), endFrame: jest.fn() },
+      performanceMonitor: { frameTime: 10 },
+      renderer: {
+        render: jest.fn(),
+        info: { render: { calls: 0, triangles: 0 } }
+      },
+      scene: new THREE.Scene(),
+      camera: new THREE.PerspectiveCamera()
+    };
+    app.updateSystems = jest.fn();
+    app.updatePerformanceMonitor = jest.fn();
+    app.adjustQuality = jest.fn();
+    return app;
+  }
+
+  test('render counts frames, calls updateSystems, renders the scene, and runs adjustQuality every 60 frames', () => {
+    const app = makeRenderApp();
+    for (let i = 0; i < 120; i++) {
+      VRApp.prototype.render.call(app, i * 16, null);
+    }
+    expect(app.frameCount).toBe(120);
+    expect(app.updateSystems).toHaveBeenCalledTimes(120);
+    expect(app.renderer.render).toHaveBeenCalledWith(app.scene, app.camera);
+    expect(app.renderer.render).toHaveBeenCalledTimes(120);
+    expect(app.adjustQuality).toHaveBeenCalledTimes(2); // frames 60 and 120 only
+    expect(app.perfMonitorUI.beginFrame).toHaveBeenCalledTimes(120);
+    expect(app.perfMonitorUI.endFrame).toHaveBeenCalledWith(app.renderer);
+  });
+
+  test('render caps dt at 50 ms so a backgrounded tab does not jump the world', () => {
+    const app = makeRenderApp();
+    VRApp.prototype.render.call(app, 0, null);
+    app._lastRenderTime = 1; // non-zero epoch (0 is falsy → dt falls back to default)
+    const nowSpy = jest.spyOn(performance, 'now').mockReturnValue(5000); // ~5 s gap
+    VRApp.prototype.render.call(app, 16, null);
+    expect(app.updateSystems).toHaveBeenLastCalledWith(16, null, 0.05); // capped, not 5.0
+    nowSpy.mockRestore();
+  });
+
+  test('first render uses the 16 ms default when no prior frame exists', () => {
+    const app = makeRenderApp();
+    VRApp.prototype.render.call(app, 0, null);
+    expect(app.updateSystems).toHaveBeenCalledWith(0, null, 0.016);
+  });
+});
