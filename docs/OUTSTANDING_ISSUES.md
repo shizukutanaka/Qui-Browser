@@ -1756,3 +1756,6 @@ addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/web
 
 ### 第159パス（クリーンスキャン — 文字列ソート locale）
 ソートは frecency スコアの数値比較のみで、タイトルの文字列ソート自体が存在しない — localeCompare 欠如の問題は構造的に非該当。
+
+### 第160パス（クリーンスキャン — ナビ競合）
+`_loadReaderText` は `_readerSeq` シーケンス番号で後着レスポンスを破棄（成功・失敗両経路）+ AbortController+5s timeout — stale-response 上書き経路ゼロ。
