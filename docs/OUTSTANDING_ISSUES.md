@@ -1549,3 +1549,6 @@ CATALOG 全120キーの逆方向監査: 検出12件は全て生存（三項演�
 
 ### 第90パス（フレームループ割当走査 — 実最適化）
 XR フレームループ内 `new` 割当を実測: SpatialAudio は既に scratch 再利用済み。`HandTracking.update` の `new Set()`+`prevVisible` リテラルは毎フレーム ~90回/秒の GC 餌 → コンストラクタの `_seenHands`/`_prevVisible` に再利用化。`getPinchPosition` の Vector3 はイベント時呼出で返却所有権が必要 → 保持。
+
+### 第91パス（クリーンスキャン — テスト健全性）
+`it.skip`/`xdescribe`/`test.todo` ゼロ — 黙殺されたテストなし。コメントアウトされたコード断片もゼロ（検出1件は英文散文の偽陽性）。テストスイートに隠れた無効化なし。
