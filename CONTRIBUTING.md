@@ -78,10 +78,6 @@ npm test
 npm run benchmark
 ```
 
-### Build Analysis
-```bash
-npm run build:analyze
-```
 
 ## 📚 Documentation
 

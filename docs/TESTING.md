@@ -6,9 +6,7 @@
 npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
-npm run test:tier        # tier-system integration only
 npm run test:integration # **/tests/*integration*.test.js
-npm run test:e2e         # Playwright (requires a browser install)
 npm run lint             # ESLint over src/ and server/
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification

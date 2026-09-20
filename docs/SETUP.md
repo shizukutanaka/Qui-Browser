@@ -137,8 +137,8 @@ docker run -p 8080:80 qui-browser-vr
 
 ### Bundle Analysis
 ```bash
-npm run build:analyze
-# Check bundle-report.html
+npm run build
+# Check the per-chunk sizes Vite prints at the end of the build
 ```
 
 ### Code Splitting

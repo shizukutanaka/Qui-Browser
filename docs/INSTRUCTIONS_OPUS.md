@@ -53,7 +53,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 
 ## 5. Opus 担当タスク（設計判断を伴う大規模作業）
 
-### O-1. 設定パネルのグルーピング（E-1 / C-2、優先度: 高に昇格）
+### ~~O-1. 設定パネルのグルーピング~~ — **解決済み（Session 75 頃: セクション化 `settings.section.*` + `openSettingsSections` + `layoutSettingsPanel` が実装済み）**
 - **背景**: Session 54-56 で Sound Volume / Haptics / Clear History が加わり、フラット2カラムは飽和。発見性が受忍限度を超えつつある。
 - **対象**: `src/vr/VRApp.js` `createSettingsPanel()`（~1180行以降）と `makeToggleButton` 系。
 - **方針**: 折りたたみセクション（Locomotion / Accessibility / Audio&Haptics / Browsing / Actions）。セクションヘッダは interactable、開閉状態は `settings` に永続化。ヒットテスト・`_redraw` レジストリ（high-contrast 切替の一括再描画）・`_announceSettingsButton`（WCAG 4.1.3）を壊さないこと。
@@ -68,11 +68,9 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 - 実証済みパターン: `AccessibilityCoordinator`（Sessions 44/45/47）の **getter/setter 委譲**（呼び出し箇所ゼロ変更）。
 - 次候補: teleport/locomotion 系（`this.teleport`、`snapTurn`、`updateLocomotion`）→ LocomotionCoordinator。着手前に Explore エージェントで全代入箇所を洗う（dispose 時の null 再代入が委譲を壊さないか確認）。
 
-### O-4. MixedReality 配線（E-7 / C-4、Plan エージェント必須）
-- 963行の完成済みARサブシステム（`src/vr/ar/MixedReality.js`）に `startSession()` 呼び出しゼロ。**着手前に Plan エージェントで設計**: `immersive-vr` と `immersive-ar` はセッション共存不可 → 既存VRセッションの終了/再入場フローの設計が本体。実機（Quest 3）検証不能のため、マージ基準は「ユニットテスト + 正直な制約ドキュメント」。
+### ~~O-4. MixedReality 配線~~ — **対象消滅（C-4 解決済み）**: `src/vr/ar/MixedReality.js` は Session 60 の大削除でリポジトリから消滅済み。AR/パススルーを将来やる場合は新規実装（OUTSTANDING_ISSUES.md C-4 参照）。
 
-### O-5. Top Sites スピードダイヤル（E-6 / C-3、Session 17 から保留）
-- 障害: `BookmarkPanel` に3タブ目を足すとスクロール矢印ゾーン（`bookmarkLayout.js` の `SCROLL_*` 定数）と座標衝突。ヘッダレイアウト再設計から。データ層は完成済み（`BookmarkStore.getTopSites`）。
+### ~~O-5. Top Sites スピードダイヤル~~ — **解決済み（Session 75 続き5）**: 描画先を BookmarkPanel 3タブ目ではなく新規タブの空コンテンツ面に変えて実装（`src/vr/browser/newTabPage.js` + `renderNewTabTiles`）。C-3 完了。
 
 ## 6. 完了時
 

@@ -314,9 +314,7 @@ npm run serve            # Serve production build
 npm test                 # Run all tests
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage
-npm run test:tier        # Run tier integration tests
 npm run test:integration # Run integration tests
-npm run test:e2e         # Run E2E tests (Playwright)
 ```
 
 ### Code Quality
@@ -415,7 +413,6 @@ We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for
 ## 📞 Support
 
 - **Documentation:** [docs/](docs/)
-- **Examples:** [examples/](examples/)
 - **Issues:** [GitHub Issues](https://github.com/your-username/qui-browser-vr/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/your-username/qui-browser-vr/discussions)
 - **Email:** support@qui-browser.example.com

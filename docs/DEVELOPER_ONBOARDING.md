@@ -192,8 +192,8 @@ ls -lh dist/
 # 全テスト実行
 npm test
 
-# 統合システムテストのみ
-npm run test:unified
+# 全テスト（統合テストを含む）
+npm test
 
 # カバレッジレポート
 npm run test:coverage
@@ -489,7 +489,7 @@ git checkout -b feature/add-new-gesture
 # ... コード編集 ...
 
 # 4. テスト実行
-npm run test:unified
+npm test
 
 # 5. Lint + Format
 npm run lint:fix
@@ -1055,7 +1055,7 @@ git checkout -b feature/my-new-feature
 # - ドキュメント更新
 
 # 4. テスト実行
-npm run test:unified
+npm test
 npm run lint:fix
 
 # 5. PR作成
@@ -1067,24 +1067,21 @@ npm run lint:fix
 
 | 機能 | ファイル |
 |-----|---------|
-| UI関連 | `assets/js/vr-ui-system.js` |
-| 入力処理 | `assets/js/vr-input-system.js` |
-| ナビゲーション | `assets/js/vr-navigation-system.js` |
-| メディア | `assets/js/vr-media-system.js` |
-| 監視 | `assets/js/vr-system-monitor.js` |
-| パフォーマンス | `assets/js/unified-performance-system.js` |
-| セキュリティ | `assets/js/unified-security-system.js` |
+| UI関連 | `src/vr/ui/` |
+| 入力処理 | `src/vr/input/` |
+| ナビゲーション | `src/vr/browser/` |
+| メディア | `src/vr/media/` |
+| 監視 | `src/monitoring.js` |
+| パフォーマンス | `src/utils/PerformanceMonitor.js` |
+| セキュリティ | `proxy/ssrfGuard.js` |
 
 ### Q3: ビルドが遅い
 
 **A:** 開発モード使用:
 
 ```bash
-# Webpack Dev Server (HMR有効)
+# Vite dev server (HMR有効)
 npm run dev
-
-# 変更時自動ビルド
-npm run start
 ```
 
 ### Q4: テストが失敗する

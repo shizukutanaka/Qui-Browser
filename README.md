@@ -213,7 +213,6 @@ npm run proxy                 # Start the companion proxy (proxy/server.js)
 # Testing
 npm test                      # Run all tests
 npm run test:coverage         # Tests with coverage
-npm run test:tier             # Tier integration tests
 npm run test:integration      # Integration tests
 
 # Code Quality
