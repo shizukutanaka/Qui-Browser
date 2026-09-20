@@ -1567,3 +1567,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第96パス（クリーンスキャン — lint 抑制監査）
 `eslint-disable` 4箇所を検証: `no-alert`×2 は desktop/2D の `window.prompt` フォールバック（没入外では正しい入力経路）、`no-new-func`×2 は DevTools コンソール REPL の意図的機能。全て文書化された正当な抑制 — 隠れた負債ゼロ。
+
+### 第97パス（クリーンスキャン — 変換・比較の罠）
+`parseInt` 2箇所は基数明示済み（16/10）、グローバル `isNaN` なし、緩い `==`/`!=` は null チェック慣用句以外ゼロ。変換・比較系の罠なし。
