@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き65（同セッション）: app.js のキーボードショートカット層を pin（欠陥ゼロ）
+- 🔍 **実測**: `setupKeyboardShortcuts` の dispatch — P→perfMonitorUI.toggle 優先・無ければフォールバック overlay の display トグル、F→ffrSystem.enabled に応じて enable(0.5)/disable、C→comfort preset を sensitive→moderate→tolerant→disabled→折返し で setPreset+updateSetting 永続化、Escape→dispose+clearInterval+QuiBrowser.getApp()=null。`QuiBrowser.getApp()` で実 instance を取得して subsystem stub を注入する手法で dispatch を実配線ごと検証（実バグ15の修正で constructor が到達可能になったため可能に）。
+- ✅ 3テスト追加（DOM stub の style.cssText はブラウザと違い display を parse しないため手動モデル化 — 分離記録）。
+- 📝 2108 tests / 60 suites、lint 0 errors、build green。app.js の残り未検証は perf overlay の innerHTML テンプレートのみ。
+
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
