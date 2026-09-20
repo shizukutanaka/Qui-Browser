@@ -12,10 +12,6 @@ updates:
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
-    reviewers:
-      - "yourusername"
-    assignees:
-      - "yourusername"
     labels:
       - "dependencies"
       - "npm"
@@ -35,16 +31,12 @@ updates:
     directory: "/"
     allow:
       - dependency-type: "direct"
-    automerge:
-      - dependency-type: "direct"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
-    reviewers:
-      - "yourusername"
     labels:
       - "dependencies"
       - "github-actions"
@@ -60,8 +52,6 @@ updates:
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
-    reviewers:
-      - "yourusername"
     labels:
       - "dependencies"
       - "docker"

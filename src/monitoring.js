@@ -55,7 +55,7 @@ const MONITORING_CONFIG = {
 /**
  * Initialize Sentry error tracking
  */
-export async function initSentry() {
+async function initSentry() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.sentry.dsn) {
     console.debug('Sentry: Disabled (no DSN or not in production)');
     return null;
@@ -176,7 +176,7 @@ export function captureMessage(message, level = 'info', context = {}) {
 /**
  * Initialize Google Analytics 4
  */
-export function initGoogleAnalytics() {
+function initGoogleAnalytics() {
   if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.analytics.measurementId) {
     console.debug('GA4: Disabled (no measurement ID or not in production)');
     return;
@@ -233,7 +233,7 @@ export function trackEvent(eventName, parameters = {}) {
 /**
  * Track page view
  */
-export function trackPageView(path, title) {
+function trackPageView(path, title) {
   if (!MONITORING_CONFIG.enabled || !window.gtag) {
     return;
   }

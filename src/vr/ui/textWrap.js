@@ -42,7 +42,7 @@ export const HALFWIDTH_EM = 0.6;
 /** Emoji are Wide per UAX #11 but render wider than one em (measured 1.248). */
 export const EMOJI_EM = 1.3;
 /** Appended by truncateToWidth; a full em in sans-serif (measured 1.000). */
-export const ELLIPSIS = '…';
+const ELLIPSIS = '…';
 
 export function charWidthEm(cp) {
   if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf)) {
