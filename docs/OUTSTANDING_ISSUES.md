@@ -1621,3 +1621,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第114パス（実削除 — 嘘コメント付き no-op ハンドラ）
 コントローラー接続/切断遷移は完璧（toast + inputSource forget + teleport cancel + inputsourceschange dispose 対称）。XRSession の `visibilitychange` は実機能（visible-blurred で video pause）。だが `app.js` の document レベル `visibilitychange` は `console.debug` のみで「Pause or reduce activity」のコメントが実装しない挙動を約束する嘘 → ハンドラごと削除（バックグラウンドタブで rAF はブラウザが自動 throttle、XR 側は実リスナーが担う）。
+
+### 第115パス（実修正 — prod で沈黙する unhandledrejection）
+`unhandledrejection` ハンドラは存在したが `console.error` のみ — **esbuild `drop:['console']` で本番ビルドでは完全に沈黙**していた。`trackEvent('exception', ...)` を追加して GA4 経路に配線（gtag 未初期化時は安全に no-op）。SW ライフサイクル（register+update poll+skipWaiting+clients.claim）と online/offline（offline.html 再試行）は完璧確認。

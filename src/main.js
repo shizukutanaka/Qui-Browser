@@ -3,7 +3,7 @@
  * Production-ready VR browser application
  */
 
-import { initializeMonitoring } from './monitoring.js';
+import { initializeMonitoring, trackEvent } from './monitoring.js';
 import { applyTranslations, setLanguage, getLanguage, t } from './i18n/i18n.js';
 import { applyAccessibility, togglePref, getPrefs } from './a11y/accessibility.js';
 
@@ -51,9 +51,14 @@ if (import.meta.env.PROD) {
 }
 
 // Catch async errors that escape their call-sites (e.g. failed fetch in a
-// click handler) so they surface as console errors rather than silent drops.
+// click handler). console.* is dropped from production builds, so also report
+// via trackEvent — otherwise prod unhandled rejections are completely silent.
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
+  trackEvent('exception', {
+    description: String(event.reason && event.reason.message || event.reason).slice(0, 150),
+    fatal: true
+  });
 });
 
 // Hide loading screen after DOM is ready
