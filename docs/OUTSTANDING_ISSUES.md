@@ -597,6 +597,60 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 ---
 
+## G. 第一原理スイープ（Devin セッション — 到達不能コード第2波 + 設定の真実化）
+
+Session 74 の「real user が到達できないコードは削除する」規準を、残っていた層 ——
+**ビルドに含まれず誰にも読まれないツリー、本番 `dist/` に混入する並行実装、
+嘘をついている設定ファイル** —— に適用した。すべて grep / ビルド実測で検証済み。
+
+### 削除（到達経路ゼロ、または死んだ双子）
+
+| 対象 | 削除理由（実測） |
+|---|---|
+| `docs/archive/`（117ファイル） | E章が「陳腐化した主張を含む」と記録済み。`docs/` 直下・README・コードからのリンクゼロ |
+| `docs/patches/` | 同上。どこからも参照されない |
+| `examples/` | ランディング・README・コードからリンクゼロ。中身は削除済み `assets/js/` 実装への参照 |
+| `mvp/` | `mvp/index.html` は `../assets/`（削除済み）と `../src/` を直読みするだけ — 本番では絶対に動かない素のモジュール参照 |
+| `locales/` | `i18next` 用 JSON。i18next は Session 74 で依存削除済み（`src/i18n/i18n.js` が唯一の i18n）。孤児 |
+| `wasm/` | `WebAssembly.instantiateStreaming` 呼び出しゼロ。`wasm-build.yml` も実体の無いパイプラインだったので同時削除 |
+| `assets/styles/`・`assets/css/` | link/import ゼロ。全 CSS は `index.html` インライン + `src/styles/` |
+| `assets/sounds/` | `.gitkeep` のみ。効果音は Session 58 のプロシージャル生成が担う — 空ディレクトリは「mp3 を置くべき」という嘘の約束 |
+| ルート `manifest.json`/`service-worker.js`/`offline.html` | vite `publicDir` が同名を dist にコピーして上書きするため**デッド双子**。`src/main.js` が登録するのは `${base}service-worker.js` = `public/` 版 |
+| `public/{vr-browser.html,vr-browser.js,vr-video.html,sw.js,pwa.js,js/,css-*,lazy-*,view-transitions-*}` | 削除済み `assets/js/` 実装の parallel app が publicDir 経由で **dist/ に混入していた** |
+| `src/utils/ProgressiveLoader.js` + テスト | Session 74 以降 import ゼロだった残存モジュール |
+| workflow `benchmark.yml`/`deploy.yml`/`test.yml`/`wasm-build.yml`/`v5.8.0-planning.yml` | 削除済み対象・重複（`test.yml` は ci.yml に包含）・tools/benchmark.js 不在を呼ぶ |
+| `tools/benchmark.js`・`check-performance-regression.js` | 参照元スクリプトが無い／削除済み ci ジョブ専用 |
+
+### 修正（嘘をついていた設定）
+
+| 対象 | 実測された不整合 |
+|---|---|
+| `Dockerfile` | **dist を一度もビルドせずリポジトリ直下を nginx で配信** — `import 'three'` の素の bare specifier はブラウザで解決不能 → 起動しないイメージ。multi-stage build に修正 |
+| `docker-compose.yml` | `./:/usr/share/nginx/html` マウントがイメージの dist を**素のソースで上書き**。`nginx-cache`（設定ゼロ・接続なし）も削除 |
+| `netlify.toml`/`vercel.json` | `publish="."`/`outputDirectory="."` + "No build required" — 同上の理由で起動不能。`dist` + `npm run build` に修正 |
+| `manifest.json` | `/assets/icons/icon-*.png` を参照するが **dist に存在しなかった**（vite は publicDir しかコピーしない）→ `assets/` を `public/assets/` へ移動し PWA アイコンを復活 |
+| `index.html` | Multiplayer・AI Recommendations のカードが Session 74 で削除済みの機能を宣伝していた → カード + i18n キー削除 |
+| `.env.example` | 44行中ほぼ全てがコードに存在しない変数（VR_*・ENABLE_*・STRIPE_*）→ 実際に読まれる6変数のみに |
+| `.github/workflows/ci.yml` | `test-performance` ジョブが削除済み tools を呼ぶ・node 16 は `engines: >=18` と矛盾 → 削除・matrix 修正 |
+| ESLint | eslint 9 + `.eslintrc.json` = **`npm run lint` が設定解決で落ちていた** → `eslint.config.js`（flat config）へ移行 |
+| `CODEOWNERS` | `/assets/js/`・`/examples/`・`manifest.json` 等の存在しないパス → 実在パスへ |
+
+### 実測された効果（before → after）
+
+| 指標 | before | after |
+|---|---|---|
+| リポジトリ総 LOC | 176,934 | **60,507（−66%）** |
+| テスト | 47 suites / 1,480 | 46 suites / 1,463（ProgressiveLoader 系のみ消滅） |
+| ビルド | 5.2s | **2.4s**、dist 28ファイル・icons 全て 200 |
+| verify:docs | — | 100% PASS |
+| verify:layout / verify:app / verify:vr-boot | — | 全 PASS（vr-boot: 本番 bundle で VRApp・tabManager・settingsPanel・captionSystem の構築を確認） |
+
+### 残った「戻す」候補
+マスクのアルゴリズムに従い10%戻す検討をしたが、**戻す価値があるものは今のところ無い**。
+`public/` 内の並行実装は git 履歴に残る。
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

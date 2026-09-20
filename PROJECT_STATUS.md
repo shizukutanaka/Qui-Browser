@@ -415,7 +415,6 @@ We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for
 ## 📞 Support
 
 - **Documentation:** [docs/](docs/)
-- **Examples:** [examples/](examples/)
 - **Issues:** [GitHub Issues](https://github.com/your-username/qui-browser-vr/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/your-username/qui-browser-vr/discussions)
 - **Email:** support@qui-browser.example.com

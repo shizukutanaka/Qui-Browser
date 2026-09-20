@@ -82,7 +82,6 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **Advanced Hand Tracking** | ✅ Stable | Controller-free interaction via WebXR hand APIs |
 | **3D Spatial Audio** | ✅ Stable | HRTF-based positional sound with Web Audio API |
 | **MR Passthrough** | ✅ Stable | Real-world integration (Quest 3 passthrough) |
-| **Progressive Image Loading** | ✅ Stable | Incremental image display |
 | **Offline Support** | ✅ Stable | Service Worker caching |
 
 ### Tier 3: Advanced Features (3 Features)
@@ -157,9 +156,9 @@ Qui Browser VR/
 │   ├── app.js                # Application entry point
 │   ├── VRApp.js              # Main VR controller
 │   └── monitoring.js         # Production monitoring
-├── docs/                     # Complete documentation (12 files)
-├── tests/                    # Test suites (21 suites, 231 tests)
-├── tools/                    # Performance benchmarking
+├── docs/                     # Documentation
+├── tests/                    # Test suites (46 suites, ~1450 tests)
+├── tools/                    # Icon generation + verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
 └── dist/                     # Production build output
@@ -199,11 +198,8 @@ npm run dev                   # Start dev server (Vite)
 npm run build                 # Production build
 npm run preview               # Preview production build
 
-# Backend (billing API — see server/index.js)
-npm run start:server          # Start the Express server (defaults to :3000)
-                               # Copy .env.example to .env and set STRIPE_* first;
-                               # without a real STRIPE_SECRET_KEY, /api/billing/*
-                               # returns 503 instead of failing. GET /health always works.
+# Reader proxy (proxy/server.js — required for reading sites that send no CORS)
+npm run proxy                 # Start the fetch proxy (defaults to :8080)
 
 # Testing
 npm test                      # Run all tests
@@ -216,11 +212,6 @@ npm run lint                  # Lint JavaScript
 npm run lint:fix              # Auto-fix linting issues
 npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
-
-# Performance
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:regression  # Check for regressions
 
 # CI/CD
 npm run ci:all                # Complete CI suite
@@ -240,7 +231,7 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 21 test suites, 231 tests
+- **Unit Tests:** 46 test suites, ~1450 tests
 - **Integration Tests:** Tier system integration
 - **Performance Tests:** Benchmarking and regression detection
 - **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)

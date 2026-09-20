@@ -33,19 +33,6 @@
       ]
     },
     {
-      "source": "/assets/css/(.*).css",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "text/css; charset=utf-8"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
       "source": "/(.*).html",
       "headers": [
         {
@@ -134,11 +121,10 @@
     "VR_BROWSER_VERSION": "2.0.0"
   },
   "regions": ["iad1"],
-  "framework": null,
-  "installCommand": "npm install",
-  "buildCommand": "echo 'No build required for static site'",
-  "devCommand": "python -m http.server 8000",
-  "outputDirectory": ".",
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "github": {
     "enabled": true,
     "autoAlias": true,

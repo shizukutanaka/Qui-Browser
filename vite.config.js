@@ -51,8 +51,7 @@ export default defineConfig({
           // Tier 2 features (lazy loaded)
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
           'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
-          'tier2-audio': ['/src/vr/audio/SpatialAudio.js'],
-          'tier2-loading': ['/src/utils/ProgressiveLoader.js']
+          'tier2-audio': ['/src/vr/audio/SpatialAudio.js']
         },
 
         // Asset file naming
@@ -161,8 +160,7 @@ export default defineConfig({
     alias: {
       '@': '/src',
       '@vr': '/src/vr',
-      '@utils': '/src/utils',
-      '@assets': '/assets'
+      '@utils': '/src/utils'
     },
     extensions: ['.js', '.jsx', '.json', '.wasm']
   },

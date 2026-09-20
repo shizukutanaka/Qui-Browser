@@ -25,10 +25,6 @@ const CATALOG = {
     'feat.audio.desc': '3D HRTF-based positional sound for immersive experience',
     'feat.ime.title': 'Japanese IME',
     'feat.ime.desc': 'Native Japanese text input with Hiragana/Katakana/Kanji',
-    'feat.mp.title': 'Multiplayer',
-    'feat.mp.desc': 'Real-time collaboration in shared VR spaces',
-    'feat.ai.title': 'AI Recommendations',
-    'feat.ai.desc': 'Personalized content suggestions with machine learning',
     'a11y.enterVR': 'Enter VR mode',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'Accessibility',
@@ -167,10 +163,6 @@ const CATALOG = {
     'feat.audio.desc': 'HRTF ベースの3D定位サウンドで没入体験',
     'feat.ime.title': '日本語IME',
     'feat.ime.desc': 'ひらがな/カタカナ/漢字のネイティブ日本語入力',
-    'feat.mp.title': 'マルチプレイヤー',
-    'feat.mp.desc': '共有VR空間でのリアルタイム協調',
-    'feat.ai.title': 'AIレコメンド',
-    'feat.ai.desc': '機械学習によるパーソナライズされたコンテンツ提案',
     'a11y.enterVR': 'VRモードに入る',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'アクセシビリティ',

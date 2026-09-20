@@ -33,7 +33,6 @@ import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
@@ -113,7 +112,6 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
     this.voiceCommands = null;
@@ -2408,12 +2406,6 @@ export class VRApp {
     }
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
-    // Use progressive loader for efficient initialization
-    this.progressiveLoader = new ProgressiveLoader();
-    this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
-    };
-
     // === TIER 1 SYSTEMS ===
 
     // 1. Fixed Foveated Rendering
@@ -2753,50 +2745,25 @@ export class VRApp {
   }
 
   /**
-   * Load audio assets progressively
+   * Register interaction sounds. No audio files are shipped — all feedback
+   * sounds are short synthesized tones registered as procedural buffers.
    */
   async loadAudioAssets() {
-    // Add audio files to progressive loader
-    const audioFiles = [
-      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'primary' },
-      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'secondary' }
-    ];
-
-    for (const file of audioFiles) {
-      this.progressiveLoader.addResource(file, file.priority);
+    if (!this.spatialAudio) {
+      return;
     }
 
-    // Start progressive loading
-    await this.progressiveLoader.start();
+    const PROCEDURAL = {
+      click:   { freq: 880, duration: 0.06, decay: 45 },
+      hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+      success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
+      error:   { freq: 200, duration: 0.16, decay: 10 }
+    };
 
-    // Load into spatial audio system
-    for (const file of audioFiles) {
-      const audio = this.progressiveLoader.get(file.name);
-      if (audio) {
-        await this.spatialAudio.loadAudio(file.url, file.name);
-      }
-    }
-
-    // Procedural fallback: the packaged .mp3 files are not committed to the
-    // repo, so every interaction sound was doubly dead — no decoded buffer AND
-    // no source (play('click','click') needs both). Synthesize a short tone for
-    // any name still missing a buffer, and ensure a source exists, so click/
-    // hover/success/error feedback actually plays. Real files, when present,
-    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
-    if (this.spatialAudio) {
-      const PROCEDURAL = {
-        click:   { freq: 880, duration: 0.06, decay: 45 },
-        hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
-        success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
-        error:   { freq: 200, duration: 0.16, decay: 10 }
-      };
-      for (const file of audioFiles) {
-        this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
-        if (!this.spatialAudio.sources.has(file.name)) {
-          this.spatialAudio.createSource(file.name, { volume: 0.6 });
-        }
+    for (const [name, cfg] of Object.entries(PROCEDURAL)) {
+      this.spatialAudio.registerProceduralBuffer(name, cfg);
+      if (!this.spatialAudio.sources.has(name)) {
+        this.spatialAudio.createSource(name, { volume: 0.6 });
       }
     }
   }
@@ -3494,9 +3461,6 @@ export class VRApp {
     }
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
-    }
-    if (this.progressiveLoader) {
-      this.progressiveLoader.dispose();
     }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();

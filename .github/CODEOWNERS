@@ -4,8 +4,9 @@
 # Default owners for everything in the repo
 * @yourusername
 
-# VR Modules
-/assets/js/vr-*.js @yourusername
+# VR modules
+/src/vr/ @yourusername
+/src/ @yourusername
 
 # Documentation
 /docs/ @yourusername
@@ -24,10 +25,7 @@ jest.config.js @yourusername
 
 # Configuration
 package.json @yourusername
-manifest.json @yourusername
-
-# Examples
-/examples/ @yourusername
+vite.config.js @yourusername
 
 # Security
 SECURITY.md @yourusername

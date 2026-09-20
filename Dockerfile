@@ -1,22 +1,25 @@
 # Qui Browser VR - Docker Configuration
 # Multi-stage build for optimized production image
 
-# ステージ1: ビルドステージ（将来の最適化用）
-FROM node:25-alpine AS builder
+# ステージ1: ビルドステージ — vite で dist/ を生成
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係インストール
-RUN npm ci --only=production || npm install --only=production
+# 依存関係インストール（vite 等の devDependencies がビルドに必要）
+RUN npm ci
 
 # ソースファイルをコピー
 COPY . .
 
+# プロダクションビルド
+RUN npm run build
+
 # ビルド情報生成
-RUN echo "{\"version\":\"2.0.0\",\"build\":\"$(date -u +%Y%m%d%H%M%S)\",\"date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > build-info.json
+RUN echo "{\"version\":\"2.0.0\",\"build\":\"$(date -u +%Y%m%d%H%M%S)\",\"date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > dist/build-info.json
 
 # ステージ2: プロダクションステージ
 FROM nginx:alpine
@@ -29,8 +32,8 @@ LABEL description="WebXR VR Browser optimized for Meta Quest, Pico, and other VR
 # Nginxの不要なデフォルトファイルを削除
 RUN rm -rf /usr/share/nginx/html/*
 
-# アプリケーションファイルをコピー
-COPY --from=builder /app /usr/share/nginx/html
+# ビルド済みアプリケーションのみをコピー（ソース・node_modules は含めない）
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Nginx設定ファイルをコピー
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
@@ -49,15 +52,6 @@ RUN apk add --no-cache tzdata && \
 RUN apk add --no-cache \
     nginx-mod-http-brotli \
     nginx-mod-http-geoip2
-
-# 不要なファイルを削除（最適化）
-RUN rm -rf /usr/share/nginx/html/node_modules \
-    /usr/share/nginx/html/.git \
-    /usr/share/nginx/html/.github \
-    /usr/share/nginx/html/docker \
-    /usr/share/nginx/html/tests \
-    /usr/share/nginx/html/.gitignore \
-    /usr/share/nginx/html/.dockerignore
 
 # 権限設定
 RUN chown -R nginx:nginx /usr/share/nginx/html && \

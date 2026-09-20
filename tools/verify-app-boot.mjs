@@ -162,7 +162,7 @@ async function main() {
     .split('\n')
     .filter((l) => /\b(ERROR|Uncaught|SyntaxError|TypeError|ReferenceError|Failed to load)\b/.test(l))
     // These are environment artefacts of headless-without-a-display, not app bugs.
-    .filter((l) => !/dbus|GPU|gpu_|Fontconfig|DevTools|sandbox|libva|Vulkan|udev|bluetooth|CreatePlatform/i.test(l));
+    .filter((l) => !/dbus|GPU|gpu_|Fontconfig|DevTools|sandbox|libva|Vulkan|udev|bluetooth|CreatePlatform|CVDisplayLink/i.test(l));
   for (const line of noisy) {
     failures.push(`page error: ${line.trim()}`);
   }
