@@ -151,14 +151,22 @@ Qui Browser VR/
 ├── src/
 │   ├── vr/                   # VR modules
 │   │   ├── rendering/        # Tier 1: FFR, textures, pooling
-│   │   ├── input/            # Tier 2: Hand tracking, IME
+│   │   ├── input/            # Tier 2: Hand tracking, IME, voice
 │   │   ├── audio/            # Tier 2: Spatial audio
-│   │   └── dev/              # Development tools
+│   │   ├── browser/          # WebPanel, TabManager, reader view
+│   │   ├── accessibility/    # Captions, gaze-dwell, semantic DOM
+│   │   ├── comfort/          # Vignette, snap turn
+│   │   ├── interaction/      # Gaze/controller interaction
+│   │   ├── media/            # Immersive video
+│   │   └── ui/               # Canvas texture, settings layout
+│   ├── a11y/                 # OS-level accessibility prefs
+│   ├── i18n/                 # en/ja catalogs
+│   ├── utils/                # BookmarkStore, loaders
 │   ├── app.js                # Application entry point
 │   ├── VRApp.js              # Main VR controller
 │   └── monitoring.js         # Production monitoring
-├── docs/                     # Complete documentation (12 files)
-├── tests/                    # Test suites (21 suites, 231 tests)
+├── docs/                     # Complete documentation (24 files)
+├── tests/                    # Test suites (48 suites, 1510 tests)
 ├── tools/                    # Performance benchmarking
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
@@ -199,11 +207,8 @@ npm run dev                   # Start dev server (Vite)
 npm run build                 # Production build
 npm run preview               # Preview production build
 
-# Backend (billing API — see server/index.js)
-npm run start:server          # Start the Express server (defaults to :3000)
-                               # Copy .env.example to .env and set STRIPE_* first;
-                               # without a real STRIPE_SECRET_KEY, /api/billing/*
-                               # returns 503 instead of failing. GET /health always works.
+# Reader proxy (fetches non-CORS pages for the reader view — see docs/PROXY.md)
+npm run proxy                 # Start the companion proxy (proxy/server.js)
 
 # Testing
 npm test                      # Run all tests
@@ -240,7 +245,7 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 21 test suites, 231 tests
+- **Unit Tests:** 48 test suites, 1510 tests
 - **Integration Tests:** Tier system integration
 - **Performance Tests:** Benchmarking and regression detection
 - **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)
