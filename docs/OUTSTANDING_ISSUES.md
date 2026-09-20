@@ -889,6 +889,24 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 0.73s・verify:vr-boot PASS。
 
+### 第16パス（デプロイ設定の実在性 — netlify.toml / vercel.json / nginx.conf）
+
+- `netlify.toml [dev]` の `python -m http.server 8888` — 生ソースを
+  静的配信するパス1 の Docker 嘘と同型（bare specifier で起動不能）。
+  `npm run dev` / port 5173 に修正。
+- 全 CSP（netlify / vercel / nginx ×2）から `'unsafe-eval'` と
+  `cdnjs.cloudflare.com` を削除 — `new Function` は DevTools 内のみ
+  （dev-only コード）なので本番 CSP に不要な権限。cdnjs は参照ゼロ。
+- netlify CSP `script-src` に `www.googletagmanager.com` を追加 —
+  opt-in GA が Netlify では構造的に発火できなかった不一致を修復
+  （vercel.json は済）。
+- 未参照環境変数 `VR_BROWSER_VERSION` を netlify + vercel から削除。
+- 確認済み生存: manifest icons・og-image/twitter-card（全実在）、
+  `/app/*` リライト、`/home`→`/` redirect、`plugin-lighthouse`、
+  `.gitignore` エントリ群。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 0.66s。
+
 ---
 
 ## 使い方（次のセッションへ）
