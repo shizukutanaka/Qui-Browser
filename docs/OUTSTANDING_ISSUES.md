@@ -532,6 +532,8 @@ git push
 
 該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、修正ではなく**削除**が正しい。
 
+**続き26 追記**: `benchmark.yml` はさらに `tools/benchmark.js` をトリガー条件に持ち、本体を `node tools/benchmark.js` で起動する — 同ツールは削除済み `assets/js/vr-*.js`（21モジュール全て 404）を計測対象にしていた完全な死んだツールであり、本セッションで `tools/benchmark.js`・`tools/check-performance-regression.js` と npm scripts (`benchmark*`・`ci:benchmark`) を削除した。`benchmark.yml` 自体も削除対象に追加すること（K-1 パッチに含めるか別 commit）。
+
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。
 

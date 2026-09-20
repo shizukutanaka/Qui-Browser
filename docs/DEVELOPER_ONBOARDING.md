@@ -64,37 +64,28 @@ Deployment:
 
 ```
 qui-browser-vr/
-├── assets/
-│   ├── js/                       # JavaScriptソース
-│   │   ├── unified-*.js          # 統合システム (4ファイル)
-│   │   ├── vr-*.js               # VRモジュール (20ファイル)
-│   │   └── vr-systems-index.js   # システムインデックス
-│   ├── css/                      # スタイルシート
-│   ├── images/                   # 画像アセット
-│   └── sounds/                   # 音響効果
+├── src/
+│   ├── app.js / main.js          # エントリーポイント
+│   ├── vr/
+│   │   ├── VRApp.js              # 中央オーケストレーション
+│   │   ├── browser/              # タブ・パネル・リーダー (TabManager/WebPanel/…)
+│   │   ├── accessibility/        # キャプション・SemanticDOM・クロスモーダル
+│   │   ├── comfort/              # 快適性システム (スナップターン等)
+│   │   ├── input/                # 日本語IME・音声・コントローラ
+│   │   └── ui/                   # textWrap・canvas ヘルパー
+│   ├── a11y/                     # ランディング側アクセシビリティ設定
+│   ├── i18n/                     # 翻訳カタログ (en/ja)
+│   └── utils/                    # BookmarkStore・URL解決等
+├── public/                       # dist/ にそのままコピーされる静的資産
+├── proxy/                        # 任意の SSRF ガード付きリーダープロキシ
+├── docker/                       # nginx.conf + healthcheck (セルフホスト用)
 ├── docs/                         # ドキュメント
-│   ├── API.md                    # API仕様
-│   ├── ARCHITECTURE.md           # アーキテクチャ
-│   ├── COMPATIBILITY.md          # 互換性情報
-│   └── DEVELOPER_ONBOARDING.md   # このファイル
-├── tests/                        # テストスイート
-│   ├── unified-systems.test.js   # 統合システムテスト
-│   ├── vr-modules.test.js        # モジュールテスト
-│   └── comprehensive.test.js     # 総合テスト
-├── tools/                        # 開発ツール
-│   ├── benchmark.js              # パフォーマンス計測
-│   └── README.md                 # ツール説明
-├── .github/
-│   └── workflows/                # CI/CDワークフロー
-│       ├── deploy.yml            # デプロイ
-│       ├── test.yml              # テスト
-│       ├── benchmark.yml         # ベンチマーク
-│       └── release.yml           # リリース
-├── index.html                    # エントリーポイント
-├── sw.js                         # Service Worker
-├── manifest.json                 # PWAマニフェスト
-├── package.json                  # 依存関係
-├── webpack.config.js             # ビルド設定
+├── tests/                        # Jest テストスイート
+├── tools/                        # verify-* 系の実走検証ハーネス
+├── .github/workflows/            # CI/CD
+├── index.html                    # ランディングシェル
+├── manifest.json                 # PWA マニフェスト
+├── vite.config.js                # ビルド設定 (Vite)
 └── jest.config.js                # テスト設定
 ```
 

@@ -390,6 +390,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: 5つの const を再 export。修正後に再測定 → **55/55 全適合 PASS**。ツールが報告した「オーバーフロー」は全て `undefinedpx` フォントの偽陽性で、実レイアウト予算は正しかった。
 - ✅ **pin 強化**: `no-dead-exports.test.js` の参照コーパスに `tools/**/*.{js,mjs}` を追加 — 文字列内 import を含むツール側参照を今後捕捉。1843 tests、lint 0 errors、build green、verify:docs + verify:layout PASS。
 
+#### 続き26（同セッション）: ツール全実走で benchmark 系が全滅していた — 削除済み SDK を計測する死んだパイプライン
+- 🔍 **実測**: tools/ 全スクリプトを実走 → `verify:app`・`verify:vr-boot`・`verify:prerelease`・`measure-text-metrics` は健全（全 PASS）。**`benchmark.js` は壊滅**: 21モジュール全てが削除済み `assets/js/vr-*.js`（旧モノリス SDK）を `path.join(__dirname,'..','assets','js',…)` で読み、「Module not found」×21 の後に `TypeError` でクラッシュ。`check-performance-regression.js` はその産物を比較するだけで入口から詰み。**`npm run benchmark:*` 5本と `ci:benchmark`/`ci:all` が常時失敗する劇場ゲートだった** — README・PROJECT_STATUS・CONTRIBUTING・FINAL_RELEASE_SUMMARY・CI_CD_MONITORING_GUIDE が宣伝し続けていた。
+- 🧹 **fix**: 2ツール（830行）+ 6スクリプト削除、`ci:all` を `ci:lint && ci:test` に縮退。文書は全箇所修正（README のコマンド節・PROJECT_STATUS のチェックリスト + suite 数 48→56 更新・CONTRIBUTING の「Performance Tests」節を verify:* 実走ハーネスに差替・CI_CD_GUIDE の Stage 4 と Regression 節を削除し番号繰り上げ・FINAL_RELEASE_SUMMARY のコマンド列・DEVELOPER_ONBOARDING の**完全に陳腐化したファイルツリー** —— `assets/js`/`sw.js`/`webpack.config.js`/存在しない tools/README.md を列挙していた —— を実測ツリーで全面差替）。`.github/workflows/benchmark.yml` は push 不能のため K-1 に追記。
+- ✅ 1838 tests、lint 0 errors、build green、verify:docs + verify:layout + verify:app + verify:vr-boot + verify:prerelease 全 PASS —— **実行可能な検証面の全滅状態が初めて「全部緑」になった**。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

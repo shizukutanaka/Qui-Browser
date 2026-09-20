@@ -245,16 +245,9 @@ npm run lint:fix              # Auto-fix linting
 npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
 
-# Performance (4 scripts)
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:report      # Generate report
-npm run benchmark:regression  # Check regressions
-
-# CI/CD (4 scripts)
+# CI/CD (3 scripts)
 npm run ci:lint               # Lint + format check
 npm run ci:test               # Tests with coverage
-npm run ci:benchmark          # Benchmark + regression
 npm run ci:all                # Complete CI suite
 
 # Docker (6 scripts)
