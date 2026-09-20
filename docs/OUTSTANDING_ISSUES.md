@@ -1507,3 +1507,6 @@ SpatialAudio の inner catch が async init 失敗を握り潰し、systemsLifec
 
 ### 第76パス（fire-and-forget async 走査 — 構造的嘘を摘出）
 `app.js` の `try { new VRApp() } catch { showError }` は async `initialize()` がコンストラクタ内で unawaited 発火するため**起動失敗が一切 catch に届かない死コード**だった（WebGL コンテキスト失敗等で白画面+console のみ）。`initPromise` を公開して app.js で await — showError が実経路化。`import('./app.js')`/isSessionSupported の無 catch .then は unhandledrejection/黙殺で仕様通りと判断し保持。
+
+### 第77パス（クリーンスキャン — タイマー対称）
+setInterval/setTimeout/rAF の clear 対称を全走査: 5件の非対称は全て正当（SW 更新 interval=ページ生存期間、JSDoc コメント内、`wait()` のワンショット、`animateSnapTurn` の自己終了ループ、`_toastTimers` は dispose で一括 clear — systemsLifecycle.js:256 で生存確認）。タイマーリークゼロ。
