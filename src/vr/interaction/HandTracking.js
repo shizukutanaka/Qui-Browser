@@ -12,6 +12,11 @@ export class HandTracking {
     this.scene = scene;
     this.enabled = false;
 
+    // Scratch state reused every frame — avoids a per-frame allocation in the
+    // XR update loop (~90 allocs/sec on Quest) that only feeds the GC.
+    this._seenHands = new Set();
+    this._prevVisible = { left: false, right: false };
+
     // Hand models
     this.leftHand = null;
     this.rightHand = null;
@@ -148,12 +153,12 @@ export class HandTracking {
 
     // Snapshot pre-frame visibility so we can detect both lost AND regained
     // transitions after updateHand() has had a chance to set visible=true.
-    const prevVisible = {
-      left:  this.leftHand  ? this.leftHand.visible  : false,
-      right: this.rightHand ? this.rightHand.visible : false
-    };
+    const prevVisible = this._prevVisible;
+    prevVisible.left  = this.leftHand  ? this.leftHand.visible  : false;
+    prevVisible.right = this.rightHand ? this.rightHand.visible : false;
 
-    const seenHands = new Set();
+    const seenHands = this._seenHands;
+    seenHands.clear();
     for (const inputSource of frame.session.inputSources) {
       if (inputSource.hand) {
         this.updateHand(frame, inputSource, referenceSpace);
