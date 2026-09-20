@@ -1630,3 +1630,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第117パス（実修正 — サブパス配信で壊れるアイコン絶対パス）
 `vite.config.js` は `BASE_PATH` で base 可変・SW も base 解決済みだが、**`public/manifest.json` と `public/offline.html` は vite の base 書換え対象外の verbatim コピー** — `/assets/icons/...` 絶対パスのまま GitHub Pages `/Qui-Browser/` 配信で全7アイコン+favicon が 404 → `./assets/...` 相対化（manifest URL/ページ URL から解決、root/subpath 両対応）。index.html 内の絶対パスはビルド時に base 結合されるため変更不要を確認。
+
+### 第118パス（クリーンスキャン — レンダリング確実性）
+カメラ子 UI（toast/reticle/caption）は world 位置がカメラ追従するため frustum culling は自然に正しい（bounding sphere が常に視錘内）。`depthTest:false`+renderOrder（caption 998/toast 999/reticle fill 1000）の階層は一貫。ImmersiveVideo の `frustumCulled=false` は全天球で厳密には不要だが無害な防御として保持。
