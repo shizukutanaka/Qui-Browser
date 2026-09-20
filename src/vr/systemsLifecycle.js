@@ -403,7 +403,7 @@ export function setupOSAccessibilityListeners(app) {
   app._osForcedColorsMQ.addEventListener('change', app._onOSContrastChange);
 }
 
-export async function loadAudioAssets(app) {
+async function loadAudioAssets(app) {
   if (!app.spatialAudio) {
     return;
   }

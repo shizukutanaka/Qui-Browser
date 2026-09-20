@@ -686,56 +686,10 @@ export class VRApp {
    * @param {string} layerId
    */
 
-  /**
-   * Main render loop
-
-  /**
-   * Update all systems
-   */
   onControllerSelect(controller, isStart) {
     return onControllerSelect(this, controller, isStart);
   }
 
-  /**
-   * Update performance monitor
-   */
-
-  /**
-   * Dynamic quality adjustment
-   */
-
-  /**
-   * Reduce rendering quality for better performance
-   */
-
-  /**
-   * Increase rendering quality when performance allows
-   */
-
-  /**
-   * Get performance statistics
-   */
-  /**
-   * Show the VR keyboard pre-filled with `prefill` and fire `onConfirm(text)`
-   * when the user commits.  Falls back to window.prompt() when the VR keyboard
-   * is not available (e.g. tests or desktop without XR).
-   *
-   * @param {string}   prefill   — initial text in the input buffer
-   * @param {Function} onConfirm — called with the confirmed string
-
-  /**
-   * Prompt for a video URL (via the VR keyboard, falling back to window.prompt
-   * on desktop) and play it as an immersive 360°/180° video. Projection and
-   * stereo layout are auto-detected from the URL.
-
-  /**
-   * Navigate to a URL: records the visit in BookmarkStore history.
-   * Call this whenever the in-VR panel loads a new page.
-
-
-  /**
-   * Cleanup and disposal
-   */
 }
 
 /**

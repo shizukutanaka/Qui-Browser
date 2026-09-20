@@ -326,7 +326,7 @@ export function onWebPanelToggleChanged(app, enabled) {
   );
 }
 
-export function toggleSettingsSection(app, sectionId) {
+function toggleSettingsSection(app, sectionId) {
   // Tab semantics: selecting always selects. Exactly one section is shown, so
   // the panel's height is bounded by `1 tab row + largest section` and adding
   // a 25th control can only grow it by its own section. Re-selecting the
@@ -344,7 +344,7 @@ export function toggleSettingsSection(app, sectionId) {
 }
 
 /** Unregister every interactable in the settings panel and remove it from the scene. */
-export function disposeSettingsPanel(app) {
+function disposeSettingsPanel(app) {
   const panel = app.settingsPanel;
   if (!panel) {
     return;
@@ -361,7 +361,7 @@ export function disposeSettingsPanel(app) {
 
 
 /** Tear down and rebuild the settings panel in place, preserving visibility. */
-export function _rebuildSettingsPanel(app) {
+function _rebuildSettingsPanel(app) {
   if (!app.settingsPanel) {
     return;
   }
@@ -373,13 +373,13 @@ export function _rebuildSettingsPanel(app) {
   (parent || app.scene).add(app.settingsPanel);
 }
 
-export function redrawSettingsPanel(app) {
+function redrawSettingsPanel(app) {
   if (app._settingsPanelDrawers) {
     app._settingsPanelDrawers.forEach(fn => fn && fn());
   }
 }
 
-export function announceSettingsButton(app, type, label, value, opts = {}, force = false) {
+function announceSettingsButton(app, type, label, value, opts = {}, force = false) {
   const captionsEnabled = !!(app.captionSystem && app.captionSystem.enabled);
   if (!shouldAnnounceSettingsButton({
     captionsEnabled, gazeDwell: app.settings.enableGazeDwell, force

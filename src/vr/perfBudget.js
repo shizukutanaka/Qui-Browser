@@ -57,7 +57,7 @@ export function adjustQuality(app) {
   }
 }
 
-export function reduceQuality(app) {
+function reduceQuality(app) {
   // Increase FFR intensity
   if (app.ffrSystem) {
     app.ffrSystem.adjustIntensity(0.1);
@@ -69,7 +69,7 @@ export function reduceQuality(app) {
   console.debug('VRApp: Quality reduced for performance');
 }
 
-export function increaseQuality(app) {
+function increaseQuality(app) {
   // Decrease FFR intensity
   if (app.ffrSystem) {
     app.ffrSystem.adjustIntensity(-0.1);

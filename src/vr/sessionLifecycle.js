@@ -175,7 +175,7 @@ export function _detachPanelLayer(app, layerId) {
   app.layersSystem.removeLayer(layerId, session, baseLayer);
 }
 
-export function attachLayersToPanels(app, session) {
+function attachLayersToPanels(app, session) {
   const refSpace = app.renderer.xr.getReferenceSpace();
   if (!refSpace) {
     return;
