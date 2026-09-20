@@ -50,6 +50,14 @@ async function initializeApp() {
     // Initialize VR application with all Tier 1 optimizations
     vrApp = new VRApp(container);
 
+    // VRApp's constructor kicks off async initialize() — its rejection would
+    // otherwise escape this try/catch as an unhandled rejection, leaving the
+    // user staring at the loading screen with no error. Surface it.
+    vrApp._initPromise.catch((error) => {
+      console.error('Failed to initialize application:', error);
+      showError(t('app.error.initFailed'));
+    });
+
     // Setup performance monitoring UI
     setupPerformanceMonitor();
 

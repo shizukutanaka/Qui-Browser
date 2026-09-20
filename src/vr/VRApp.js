@@ -296,7 +296,10 @@ export class VRApp {
       persisted: persisted.windowDistance
     });
 
-    this.initialize();
+    // Async init is fire-and-forget from the constructor; keep the promise so
+    // callers (app.js) can surface failures instead of them escaping as an
+    // unhandled rejection with a half-initialized app.
+    this._initPromise = this.initialize();
   }
 
   // captionSystem/hapticFeedback/gazeInteraction now live on this.a11y
