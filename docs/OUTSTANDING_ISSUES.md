@@ -188,7 +188,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | E-2 | ~~実ブラウザ検証~~ — **部分完了（Session 68）**: `npm run verify:layout` が実 Chromium で本番の折り返し×実フォントを検証（依存ゼロ）。**残**: ページ全体のスモーク（build→preview→console error 0→Enter VR/SW）は未着手。死んでいた `test:e2e` は削除済み | 中 | Opus | スモーク側は別途 |
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
-| E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
+| ~~E-5~~ | ~~README/CHANGELOG の現状同期~~ | ~~低~~ | 完了 S75 | README: tests 21/231→48/1510・docs 12→24・死んだ start:server 節→proxy、src ツリー同期。CHANGELOG は歴史記録として untouched |
 | ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ | ~~低~~ | 完了 S75 | WebPanel 'empty' 状態に実装（BookmarkPanel ルートは破棄） |
 | E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
 

@@ -287,6 +287,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✨ **feat: 新規タブページ**: 新規 `src/vr/browser/newTabPage.js`（純粋レイアウト `topSiteTiles`/`tileAt`、4×2 グリッド MAX 8）— **描画 rect とヒット判定 rect を同一オブジェクトで持つ**のでズレが原理的に起きない。`_drawTopSites`（header: Top Sites + ヒント、タイル: title+host、HC 対応色）→ `_onContentSelect` がタイルタップで `navigate`。VRApp は `getTopSites` を TabManager→各パネルに配線、**privateMode 中は `[]` を返して畳む**（private セッションは履歴を書かない・見せない）。i18n en/ja 追加。
 - ✅ **test 11件追加**（pre-fix 検証: 全件 FAIL — レイアウト 4件・WebPanel 6件・配線 1件）。Total 1510 tests (48 suites); lint 0 errors; build green。**F-4 完遂・C-3 解消**。なお canvas 描画の視覚確認はヘッドセットが無い限界は従来どおり —— だがレイアウトの正しさは純粋関数としてピン済み。
 
+#### 続き6（同セッション）: E-5 README 同期 — ドキュメントの主張を実測で照合
+- 🔍 **実測した乖離**: README「21 suites / 231 tests」（実測 48/1510 — 約6.5倍乖離）、「docs 12 files」（実測 24）、`npm run start:server` の「billing API (server/index.js)」節は **server/ ディレクトリごと存在しない**（実在する companion は `proxy/server.js` = reader proxy）。src ツリー図も陳腐（accessibility/browser/comfort/interaction/media/ui 各 dir 欠落・`dev/` の階層誤り）。「9 CI + 9 CD jobs」は実測で ci.yml=9/cd.yml=9 と一致 → 変更せず。
+- 📝 **fix**: 実測値に同期（48/1510・24 files）+ 死んだ節を `npm run proxy`（docs/PROXY.md 参照付き）に置換 + src ツリー現行化。CHANGELOG は「その時点の記録」として改竄しない方針で untouched。
+- ✅ docs-only; tests/lint/build に影響なし。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
