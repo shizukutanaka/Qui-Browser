@@ -279,11 +279,11 @@ export class ImmersiveVideo {
       if (p && p.catch) {
         p.catch(() => {});
       }
-      this.playing = true;
-      if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
-      }
-      this.onPlaybackChange('playing');
+      // Deliberately no eager `playing = true` here: the 'playing' listener
+      // attached in play() flips state + label + onPlaybackChange once
+      // playback actually starts. If the promise rejected (autoplay policy),
+      // claiming we resumed would lie about the HUD state — the same bug the
+      // play() comment documents.
     } else {
       this.video.pause();
       this.playing = false;
