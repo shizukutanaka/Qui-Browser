@@ -177,7 +177,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ### 短所（未解決）
 - **`enableWebPanel` 既定 false**: ただし Session 74 でトグルが**その場で効く**ようになったため、ヘッドセットを外さず1タップで有効化できる。既定値変更のみプロダクト判断（C-5）。
 - ~~**設定パネルの飽和**~~ — **Session 74 で解消**（アコーディオン化、J-0/J-1）。
-- **VRApp モノリス（~3300行）**: 分割は AccessibilityCoordinator パターンで継続可能だが未完。
+- ~~**VRApp モノリス（~3300行）**~~ — **第一原理スイープ第35–55パスで解消**。ドメイン別モジュールに抽出（settingsStore/homeEnvironment/settingsPanel/settingsButtons/inputRouting/sessionLifecycle/setupStages/systemsLifecycle/browsingSystems/browserActions/vrToast/perfBudget/frameLoop/canvasMesh/urlDisplay）し VRApp は 3,254→710 行の薄い orchestrator に。残りは constructor（状態スキーマ宣言＝不可分）とテスト/公開APIシームの delegate のみ。
 - ~~**E2E テスト不在**~~ — **Session 74 で `npm run verify:app` を追加**（実 Chromium で起動、依存ゼロ、J-4）。canvas の目視検証自体は依然不可だが、`verify:layout`/`contrast`/`target-size` が測定で代替。
 - **効果音アセット欠落**: `assets/sounds/*.mp3` はリポジトリに存在せず graceful 404（音声は無効に degrade）。
 - **docs/archive の肥大**: 117ファイル。陳腐化した主張を含むが A-1 凍結の一部として改変禁止。
