@@ -417,3 +417,73 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
     });
   });
 });
+
+describe('WebPanel curvature + visibility', () => {
+  test('setCurved(true) swaps the content geometry and disposes the old one', () => {
+    const panel = makePanel();
+    const oldGeo = panel.contentMesh.geometry;
+    oldGeo.dispose = jest.fn();
+    expect(panel.setCurved(true)).toBe(true);
+    expect(panel.curved).toBe(true);
+    expect(panel.contentMesh.geometry).not.toBe(oldGeo);
+    expect(oldGeo.dispose).toHaveBeenCalled();
+  });
+
+  test('setCurved(true) then setCurved(false) restores a flat geometry', () => {
+    const panel = makePanel();
+    panel.setCurved(true);
+    const curvedGeo = panel.contentMesh.geometry;
+    curvedGeo.dispose = jest.fn();
+    expect(panel.setCurved(false)).toBe(false);
+    expect(curvedGeo.dispose).toHaveBeenCalled();
+  });
+
+  test('setCurved is a no-op when the value is unchanged', () => {
+    const panel = makePanel();
+    const geo = panel.contentMesh.geometry;
+    expect(panel.setCurved(false)).toBe(false); // already flat
+    expect(panel.contentMesh.geometry).toBe(geo);
+  });
+
+  test('setCurved returns the current state when contentMesh is gone', () => {
+    const panel = makePanel();
+    panel.setCurved(true);
+    panel.contentMesh = null;
+    expect(panel.setCurved(false)).toBe(true);
+  });
+
+  test('show(position) places the group and makes it visible', () => {
+    const panel = makePanel();
+    panel.group.visible = false;
+    panel.show({ x: 1, y: 2, z: 3 });
+    expect(panel.group.visible).toBe(true);
+    expect(panel.group.position.set).toHaveBeenCalledWith(1, 2, 3);
+  });
+
+  test('hide() hides the group and the iframe', () => {
+    const panel = makePanel();
+    panel.hide();
+    expect(panel.group.visible).toBe(false);
+    expect(panel.iframe.style.display).toBe('none');
+  });
+
+  test('setVisible toggles without touching the transform', () => {
+    const panel = makePanel();
+    panel.group.position.set.mockClear();
+    panel.setVisible(false);
+    expect(panel.group.visible).toBe(false);
+    expect(panel.iframe.style.display).toBe('none');
+    expect(panel.group.position.set).not.toHaveBeenCalled();
+    panel.setVisible(true);
+    expect(panel.group.visible).toBe(true);
+    expect(panel.iframe.style.display).toBe('');
+  });
+
+  test('addToScene(parent) parents the group to the container, not the scene', () => {
+    const panel = makePanel();
+    const container = { add: jest.fn() };
+    panel.addToScene(container);
+    expect(container.add).toHaveBeenCalledWith(panel.group);
+    expect(panel.scene.add).not.toHaveBeenCalledWith(panel.group);
+  });
+});
