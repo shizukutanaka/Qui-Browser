@@ -2,30 +2,30 @@
 # These owners will be automatically requested for review when someone opens a pull request
 
 # Default owners for everything in the repo
-* @yourusername
+* @shizukutanaka
 
 # VR modules
-/src/vr/ @yourusername
-/src/ @yourusername
+/src/vr/ @shizukutanaka
+/src/ @shizukutanaka
 
 # Documentation
-/docs/ @yourusername
-*.md @yourusername
+/docs/ @shizukutanaka
+*.md @shizukutanaka
 
 # CI/CD & Deployment
-/.github/workflows/ @yourusername
-/docker/ @yourusername
-netlify.toml @yourusername
-vercel.json @yourusername
-Dockerfile @yourusername
+/.github/workflows/ @shizukutanaka
+/docker/ @shizukutanaka
+netlify.toml @shizukutanaka
+vercel.json @shizukutanaka
+Dockerfile @shizukutanaka
 
 # Tests
-/tests/ @yourusername
-jest.config.js @yourusername
+/tests/ @shizukutanaka
+jest.config.js @shizukutanaka
 
 # Configuration
-package.json @yourusername
-vite.config.js @yourusername
+package.json @shizukutanaka
+vite.config.js @shizukutanaka
 
 # Security
-SECURITY.md @yourusername
+SECURITY.md @shizukutanaka

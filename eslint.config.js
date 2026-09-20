@@ -23,12 +23,6 @@ export default [
         XRReferenceSpace: 'readonly',
         XRFrame: 'readonly',
         XRInputSource: 'readonly',
-        GPUShaderStage: 'readonly',
-        GPUTextureUsage: 'readonly',
-        GPUBufferUsage: 'readonly',
-        GPUMapMode: 'readonly',
-        GPUValidationError: 'readonly',
-        GPUOutOfMemoryError: 'readonly'
       }
     },
     rules: {

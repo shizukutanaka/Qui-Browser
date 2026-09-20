@@ -919,6 +919,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 0.66s・verify:docs PASS。
 
+### 第18パス（.github/ 非 workflow + eslint globals + env 対称）
+
+- `.github/FUNDING.yml` 削除 — 全フィールド空のテンプレート（実際の
+  funding 設定ゼロ、GitHub 側の描画も発生しない）。
+- `.github/DISCUSSION_TEMPLATES.md` 削除 — DISCUSSION_TEMPLATE/*.yml 型
+  の正規機能ではなく、0 inbound refs の孤立ドキュメント。
+- `CODEOWNERS` の `@yourusername` プレースホルダ → `@shizukutanaka`
+  に修正（dependabot と同型の未設定記述）。
+- eslint.config.js の GPU* globals 6件削除（src/ で使用ゼロ）。
+- `.env.example` 全項目生存確認: VITE_APP_VERSION/VITE_BUILD_TIME は
+  monitoring.js が実読み、PORT/ALLOW_ORIGIN は proxy/server.js が実読み。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
