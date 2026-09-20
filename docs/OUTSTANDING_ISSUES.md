@@ -1786,3 +1786,6 @@ suspended 時は click/touchstart/keydown の3経路で resume（`once:true` + d
 
 ### 第169パス（クリーンスキャン — Observer 自己ループ）
 ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存在しない（web-vitals 内部のみ）— 自己誘発リサイズループ経路は構造的に非存在。
+
+### 第170パス（クリーンスキャン — button type 暗黙 submit）
+全 button は type 未指定だが `<form>` がコードベースに存在せず暗黙送信は非到達 — セマンティクス誤用なし（全て aria-label/title 付き）。
