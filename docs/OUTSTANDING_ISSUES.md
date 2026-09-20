@@ -1837,3 +1837,6 @@ og:url・twitter:url が `qui-browser`（小文字）で Pages は `/Qui-Browser
 
 ### 第186パス（クリーンスキャン — env 参照）
 `import.meta.env` は全て Vite 定義済み（DEV/PROD/BASE_URL/VITE_GA_MEASUREMENT_ID）、`process.env` ブラウザ漏洩なし — 未定義 env 参照ゼロ。
+
+### 第187パス（実修正 — noscript フォールバック）
+JS 無効時はヒーローは静的描画されるが Enter VR が無言で死んでいた → `role=alert` の noscript 通知を追加（日英併記）。sendBeacon/pagehide は GA4 内部処理で不要。
