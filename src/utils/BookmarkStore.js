@@ -44,19 +44,6 @@ function stripWww(host) {
   return host.startsWith('www.') ? host.slice(4) : host;
 }
 
-/**
- * Normalised, lower-cased host of a URL for site grouping: a leading "www." is
- * folded so https://www.example.com and https://example.com count as the same
- * site (otherwise they'd split into two tiles, fragmenting the site's frecency
- * and visit count). Falls back to the raw string when the URL can't be parsed.
- */
-function hostOf(url) {
-  try {
-    return stripWww(new URL(url).host.toLowerCase());
-  } catch {
-    return stripWww(String(url).toLowerCase());
-  }
-}
 
 function readJSON(key, fallback) {
   try {

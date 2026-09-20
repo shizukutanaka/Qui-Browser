@@ -279,7 +279,7 @@ function detectLanguage() {
         return saved;
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
   // NOTE: the `&&` chain yields `false` (a boolean) when navigator is absent —
   // calling .toLowerCase() on it throws at module-evaluation time. Normalize
   // to a string first so SSR / worker imports stay safe.
@@ -317,7 +317,7 @@ export function setLanguage(lang, root) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, lang);
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lang;
   }

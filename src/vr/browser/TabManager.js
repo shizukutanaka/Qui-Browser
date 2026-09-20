@@ -118,7 +118,6 @@ export class TabManager {
 
     const n = this.tabs.length;
     const newW = STRIP_NEW_TAB_PX;                       // "+" button width
-    const tabsAreaW = c.width - newW;
     const tabW = tabWidthPx(n, c.width);
 
     // Tabs

@@ -1087,6 +1087,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 計測: 43 suites / 1,343 tests・lint 0 errors・build 0.7s・
 verify:docs・vr-boot 全 PASS。
 
+### 第30パス（同名メソッド重複走査 + 未使用変数の残滓）
+
+- 全サブシステムの read/assign 分布を測定: `immersiveVideo`（play/
+  pause/visibility 連動）・`devTools`（F12 自前リスナー）・
+  `deviceCompat`・`windowManager`/`tabManager` は全て生存を確認。
+- `BookmarkStore.hostOf` — 定義されて一度も呼ばれないヘルパー
+  （JSDoc 付き）を削除。`TabManager` の未使用ローカル `tabsAreaW`、
+  `catch (e)` の未使用 `e` 4件を `catch {` に整理。
+- JapaneseIME の dispose 二重定義は別クラス（IME 本体 vs キーボード
+  統合）で誤検出と確認。
+
+計測: 43 suites / 1,343 tests・lint warnings 103→95・
+build 0.64s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
