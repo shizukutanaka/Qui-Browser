@@ -1612,3 +1612,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第111パス（クリーンスキャン — 設定マージ共有参照）
 `this.settings` デフォルトは全てスカラー（ネストした object/array ゼロ）— `Object.assign` 浅いマージで共有参照汚染は原理的に発生しない。`loadPersistedSettings` のホワイトリストも stale key 注入を遮断。安全確認。
+
+### 第112パス（実修正 — 2D 側 WCAG 4.1.3）
+VR 側は SemanticDOM が `role=alert`/`aria-live` をミラーするが、ランディングの `showError`（init 失敗時の唯一の通知）は純粋な視覚 div でスクリーンリーダーに無言だった → `role="alert"` を追加して AT 経路を実在化。パス76 で届くようにした経路が AT にも届くよう補完。

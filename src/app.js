@@ -177,6 +177,9 @@ function setupKeyboardShortcuts() {
  */
 function showError(message) {
   const errorDiv = document.createElement('div');
+  // role="alert" makes screen readers announce the failure immediately —
+  // a purely visual div is silent to AT (WCAG 4.1.3 status messages).
+  errorDiv.setAttribute('role', 'alert');
   errorDiv.style.cssText = `
     position: fixed;
     top: 50%;
