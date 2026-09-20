@@ -488,6 +488,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: テスト追加（修正前赤確認 — reject 時に playing=false を維持）。既存の resume テストはイベント経路が真に駆動することを同時に証明（mock の成功 play() が 'playing' を発火）。
 - 📝 1929 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き45（同セッション）: ProgressiveLoader — 起動時のネットワーク検出が strategy に一度も反映されていなかった
+- 🐛 **実バグ**: `detectNetwork()` は `navigator.connection` を読んで `this.network` を更新するが **`adjustStrategy()` を呼ばない** — 起動時に 2g/3g/saveData のユーザーは `network.effectiveType` が正しく '2g' と記録されながら `strategy.parallelLimit` は 4g 既定の 6、`preloadNext` は true のまま。`adjustStrategy` は `onNetworkChange`（change イベント）からしか呼ばれないため、**接続が変わらない限り低速ユーザーの戦略は永遠に適用されない**。修正: `detectNetwork` の if ブロック末尾で `this.adjustStrategy()` を呼ぶ。
+- ✅ **pin**: detectNetwork/onNetworkChange 層に4テスト（起動時 2g→parallelLimit 2・preloadNext false〔修正前赤: 6/true〕、change リスナ登録と dispose 解除、change で再導出、saveData on 4g→preloadNext false〔赤〕）+ `performLoad` ディスパッチ5テスト（json fetch+json()/!ok reject、model arrayBuffer、unknown→generic blob、texture→window.textureManager 委譲）。
+- 📝 1938 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

@@ -254,3 +254,134 @@ describe('completion semantics', () => {
     expect(loader.loaded.has('sec')).toBe(true);
   });
 });
+
+describe('ProgressiveLoader.detectNetwork / onNetworkChange', () => {
+  let conn;
+  let origHad;
+  let origConn;
+
+  beforeEach(() => {
+    // navigator.connection is absent in jest's node env; install a stub.
+    origHad = 'connection' in navigator;
+    origConn = origHad ? navigator.connection : undefined;
+    conn = {
+      type: 'cellular',
+      effectiveType: '2g',
+      downlink: 0.4,
+      rtt: 800,
+      saveData: false,
+      _handlers: {},
+      addEventListener(type, fn) { this._handlers[type] = fn; },
+      removeEventListener: jest.fn()
+    };
+    Object.defineProperty(navigator, 'connection', {
+      value: conn,
+      configurable: true
+    });
+  });
+
+  afterEach(() => {
+    if (origHad) {
+      Object.defineProperty(navigator, 'connection', { value: origConn, configurable: true });
+    } else {
+      delete navigator.connection;
+    }
+  });
+
+  test('boot-time network state is applied to strategy (2g -> parallelLimit 2)', () => {
+    const loader = new ProgressiveLoader();
+    expect(loader.network.effectiveType).toBe('2g');
+    // The strategy table must reflect the detected connection, not 4g defaults.
+    expect(loader.strategy.parallelLimit).toBe(2);
+    expect(loader.strategy.preloadNext).toBe(false);
+    loader.dispose();
+  });
+
+  test('detectNetwork registers a change listener that dispose() removes', () => {
+    const loader = new ProgressiveLoader();
+    expect(conn._handlers.change).toBeInstanceOf(Function);
+    loader.dispose();
+    expect(conn.removeEventListener).toHaveBeenCalledWith('change', conn._handlers.change);
+  });
+
+  test('network change event re-derives network and strategy', () => {
+    const loader = new ProgressiveLoader();
+    conn.effectiveType = '4g';
+    conn.downlink = 10;
+    conn.rtt = 50;
+    conn._handlers.change();
+    expect(loader.network.effectiveType).toBe('4g');
+    expect(loader.strategy.parallelLimit).toBe(6);
+    loader.dispose();
+  });
+
+  test('saveData forces adaptiveQuality and disables preloadNext even on 4g', () => {
+    conn.effectiveType = '4g';
+    conn.saveData = true;
+    const loader = new ProgressiveLoader();
+    expect(loader.strategy.adaptiveQuality).toBe(true);
+    expect(loader.strategy.preloadNext).toBe(false);
+    loader.dispose();
+  });
+});
+
+describe('ProgressiveLoader.performLoad dispatch', () => {
+  let loader;
+  let origFetch;
+
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+    origFetch = global.fetch;
+  });
+  afterEach(() => {
+    global.fetch = origFetch;
+    loader.dispose();
+  });
+
+  test("type 'json' fetches and returns parsed json", async () => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ hello: 1 })
+    }));
+    const out = await loader.performLoad({ url: '/d.json', type: 'json' });
+    expect(out).toEqual({ hello: 1 });
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/d.json',
+      expect.objectContaining({ headers: { Accept: 'application/json' } })
+    );
+  });
+
+  test("type 'json' rejects on !response.ok", async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+    await expect(
+      loader.performLoad({ url: '/missing.json', type: 'json' })
+    ).rejects.toThrow('HTTP 404');
+  });
+
+  test("type 'model' returns an arrayBuffer", async () => {
+    const buf = new ArrayBuffer(8);
+    global.fetch = jest.fn(async () => ({ ok: true, arrayBuffer: async () => buf }));
+    const out = await loader.performLoad({ url: '/m.glb', type: 'model' });
+    expect(out).toBe(buf);
+  });
+
+  test('unknown type falls back to generic blob fetch', async () => {
+    const blob = { size: 3 };
+    global.fetch = jest.fn(async () => ({ ok: true, blob: async () => blob }));
+    const out = await loader.performLoad({ url: '/x.bin', type: 'weird' });
+    expect(out).toBe(blob);
+  });
+
+  test("type 'texture' delegates to window.textureManager when present", async () => {
+    const origWindow = global.window;
+    const tm = { loadTexture: jest.fn(async () => 'TEXTURE') };
+    global.window = { textureManager: tm };
+    try {
+      const out = await loader.performLoad({ url: '/t.png', type: 'texture' });
+      expect(out).toBe('TEXTURE');
+      expect(tm.loadTexture).toHaveBeenCalledWith('/t.png');
+    } finally {
+      global.window = origWindow;
+    }
+  });
+});
