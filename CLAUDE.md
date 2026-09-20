@@ -416,6 +416,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ⚠️ **自傷2件目**: 新規テストファイル作成時、既存の `tests/progressive-loader.test.js`（16テスト）を上書きしてしまった — 合計テスト数の減少（1851→1844）で発覚。復元＋追記で 22 件に統合。**教訓: `write` 前にファイル存在確認。総数の変化は常に原因を突き止める。**
 - ✅ 1857 tests / 57 suites、lint 0 errors、build green。
 
+#### 続き31（同セッション）: SpatialAudio の再生再開で旧ノードの onended が新再生状態を壊す競合
+- 🔍 **実測**: SpatialAudio 47% の未カバー領域を読むと **`play()` リスタート競合** — `onended` コールバックが `source` を無条件更新するため、再生中に `play()` し直すと旧ノードの遅延 `onended` が到着した時点で**新しい再生の `isPlaying` を false に上書きし `sourcesActive` を余分に減算**（UI が「再生中」なのに内部は停止済み・カウンタが実態より少ない/負になる）。
+- 🐛 **fix**: `onended` はノード参照を捕え `source.node === node` のときだけ適用。`stop()` は `isPlaying` が真のときだけ減算（自然終了後の明示 stop() で負にならない）。
+- ✅ **pin**: spatial-audio.test.js にライフサイクル describe 追加（28件、修正前2件赤確認）— リスタート競合・stop() の冪等・自然終了後の stop()。1861 tests、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

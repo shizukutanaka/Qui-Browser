@@ -326,3 +326,83 @@ describe('SpatialAudio — autoplay-policy resume (suspended context)', () => {
     expect(listeners).toHaveLength(0);
   });
 });
+
+// play()/stop() lifecycle + the stale-onended race: restarting a source must
+// not let the OLD buffer node's onended mutate the NEW playback's state.
+describe('SpatialAudio — play/stop lifecycle', () => {
+  const makeBufferSource = () => ({
+    buffer: null,
+    loop: false,
+    playbackRate: { value: 1 },
+    connect: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    disconnect: jest.fn(),
+    onended: null
+  });
+
+  let audio, ctx;
+  beforeEach(() => {
+    ctx = makeAudioContext();
+    ctx.createBufferSource = jest.fn(() => makeBufferSource());
+    global.window.AudioContext = jest.fn(() => ctx);
+    audio = new SpatialAudio();
+    audio.context = ctx; // constructor's async initialize may not have run yet
+  });
+
+  const wire = (name) => audio.sources.set(name, {
+    name, node: null, panner: makePanner(), gain: makeGain(),
+    position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
+    loop: false, volume: 1, playbackRate: 1, startTime: 0, isPlaying: false
+  });
+
+  test('play() wires buffer → panner, marks playing, counts active', () => {
+    wire('s');
+    audio.buffers.set('b', { _buf: true });
+    audio.play('s', 'b', { x: 1, y: 0, z: 0 });
+    const src = audio.sources.get('s');
+    expect(src.node.buffer._buf).toBe(true);
+    expect(src.node.connect).toHaveBeenCalledWith(src.panner);
+    expect(src.isPlaying).toBe(true);
+    expect(audio.stats.sourcesActive).toBe(1);
+  });
+
+  test('restart: old node onended must NOT clobber the new playback', () => {
+    wire('s');
+    audio.buffers.set('b', {});
+    audio.play('s', 'b');           // first play → node A
+    const nodeA = audio.sources.get('s').node;
+    audio.play('s', 'b');           // restart → stop() then node B
+    const src = audio.sources.get('s');
+    const nodeB = src.node;
+    expect(nodeB).not.toBe(nodeA);
+    expect(audio.stats.sourcesActive).toBe(1);
+    nodeA.onended();                // stale end event arrives late
+    expect(src.isPlaying).toBe(true);            // was wrongly set false
+    expect(audio.stats.sourcesActive).toBe(1);   // was wrongly decremented
+    nodeB.onended();                // the live node ends naturally
+    expect(src.isPlaying).toBe(false);
+    expect(audio.stats.sourcesActive).toBe(0);
+  });
+
+  test('explicit stop() decrements sourcesActive exactly once', () => {
+    wire('s');
+    audio.buffers.set('b', {});
+    audio.play('s', 'b');
+    const node = audio.sources.get('s').node;
+    audio.stop('s');
+    // The stopped node's onended may still fire — must not double-decrement.
+    if (node.onended) node.onended();
+    expect(audio.stats.sourcesActive).toBe(0);
+    expect(audio.sources.get('s').isPlaying).toBe(false);
+  });
+
+  test('stop() after a natural end does not drive sourcesActive negative', () => {
+    wire('s');
+    audio.buffers.set('b', {});
+    audio.play('s', 'b');
+    audio.sources.get('s').node.onended(); // natural end → active 0
+    audio.stop('s');                       // explicit stop on ended source
+    expect(audio.stats.sourcesActive).toBe(0);
+  });
+});
