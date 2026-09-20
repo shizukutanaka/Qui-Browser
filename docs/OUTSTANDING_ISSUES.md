@@ -1513,3 +1513,6 @@ setInterval/setTimeout/rAF の clear 対称を全走査: 5件の非対称は全�
 
 ### 第78パス（クリーンスキャン — CSS 死セレクタ）
 index.html/offline.html インライン CSS の全クラス/ID セレクタを実 DOM・JS と照合: 死セレクタゼロ（検出 `#d1d5db` 等は 16進カラーコードの偽陽性）。
+
+### 第79パス（クリーンスキャン — 依存・アセット実在性）
+package.json 全依存の実使用を確認（three→src、web-vitals→monitoring.js、sharp→tools/generate-icons.mjs、babel→jest 変換）。manifest の7アイコンは public/assets/icons/ に実在、SW precache と整合。fetch 先は Google transliterate API + プロキシのみ。死依存・死アセットゼロ。
