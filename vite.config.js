@@ -145,26 +145,8 @@ export default defineConfig({
     __PRODUCTION__: true
   },
 
-  // Module resolution
   resolve: {
-    alias: {
-      '@': '/src',
-      '@vr': '/src/vr',
-      '@utils': '/src/utils'
-    },
     extensions: ['.js', '.jsx', '.json', '.wasm']
-  },
-
-  // CSS handling
-  css: {
-    postcss: {
-      plugins: []
-    },
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@import "@/styles/variables.scss";`
-      }
-    }
   },
 
   // Worker configuration
