@@ -19,6 +19,7 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
+import { t } from '../../i18n/i18n.js';
 import { buildVideoSphereGeometry, eyeUVTransform, detectVideoFormat } from './videoProjection.js';
 
 export class ImmersiveVideo {
@@ -109,7 +110,7 @@ export class ImmersiveVideo {
     this._onVideoPlaying = () => {
       this.playing = true;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Pause');
+        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
       }
       this.onPlaybackChange('playing');
     };
@@ -158,7 +159,7 @@ export class ImmersiveVideo {
     if (this.playing) {
       this.playing = false;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Play');
+        this._playPauseBtn.userData.setLabel(t('vr.video.play'));
       }
       this.onPlaybackChange('stopped');
     }
@@ -203,7 +204,7 @@ export class ImmersiveVideo {
     const group = new THREE.Group();
     group.name = 'immersiveVideoControls';
 
-    this._playPauseBtn = this._makeButton('Play', () => this.togglePause());
+    this._playPauseBtn = this._makeButton(t('vr.video.play'), () => this.togglePause());
     this._playPauseBtn.position.set(-0.3, 0, 0);
     const exitBtn = this._makeButton('Exit', () => this.stop());
     exitBtn.position.set(0.3, 0, 0);
@@ -280,14 +281,14 @@ export class ImmersiveVideo {
       }
       this.playing = true;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Pause');
+        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
       }
       this.onPlaybackChange('playing');
     } else {
       this.video.pause();
       this.playing = false;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Play');
+        this._playPauseBtn.userData.setLabel(t('vr.video.play'));
       }
       this.onPlaybackChange('paused');
     }
