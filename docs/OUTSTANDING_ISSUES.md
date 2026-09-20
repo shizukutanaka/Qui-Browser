@@ -1582,3 +1582,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第101パス（クリーンスキャン — ReDoS/正規表現爆発）
 全正規表現リテラル走査: 入れ子量指定子候補は `urlResolver.js` のドメイン検証1件のみ — 外側グループが必ず `\.` 始まりで内側クラスに `.` を含まないため曖昧性ゼロ（線形）。壊滅的バックトラッキング経路ゼロ。
+
+### 第102パス（クリーンスキャン — DOM レイアウトスラッシュ）
+`innerText`/`getBoundingClientRect`/`offsetWidth`/`document.cookie`/`sessionStorage` ゼロ。唯一のレイアウト読取は DevTools の `scrollTop=scrollHeight` 自動スクロール（メッセージ毎に1回・ループ外）で正当。リフロー罠ゼロ。
