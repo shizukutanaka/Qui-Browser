@@ -1525,3 +1525,6 @@ package.json 全依存の実使用を確認（three→src、web-vitals→monitor
 
 ### 第82パス（クリーンスキャン — 危険シンク・残滓）
 `.bind(this)`/`var` 残滓ゼロ。`new Function` は DevTools コンソール REPL の意図的機能（DEV 専用バンドル）。`innerHTML` 代入は全て静的テンプレートまたは textContent 経由の安全構造 — 非リテラル注入シンクゼロ。
+
+### 第83パス（クリーンスキャン — localStorage キー対称）
+`quiBrowser_bookmarks`/`quiBrowser_history`/`SETTINGS_KEY` 全キーが書込↔読取対称（test 専用書込はシード用途で正当）。読み専・書き専・動的キー・死んだ永続化ゼロ。
