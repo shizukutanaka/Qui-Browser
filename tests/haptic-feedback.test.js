@@ -293,3 +293,74 @@ describe('HapticFeedback actuator fallback + physics helpers', () => {
     expect(hf.pulse).toHaveBeenNthCalledWith(2, 'left', 30, 0.9);
   });
 });
+
+describe('HapticFeedback sequence patterns + utilities', () => {
+  let hf;
+  beforeEach(() => {
+    hf = new HapticFeedback();
+    hf.wait = jest.fn().mockResolvedValue(undefined); // keep waits instant
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left'), makeGamepad('right')]);
+    hf.update();
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+  });
+  afterEach(() => {
+    global.navigator.getGamepads = jest.fn(() => []);
+  });
+
+  test('playPattern("notification") runs pulse-pause-pulse in order', async () => {
+    await hf.playPattern('left', 'notification');
+    expect(hf.pulse.mock.calls).toEqual([
+      ['left', 30, 0.5],
+      ['left', 30, 0.5]
+    ]);
+    expect(hf.wait).toHaveBeenCalledWith(30);
+  });
+
+  test('a failing step warns but the rest of the sequence still plays', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    hf.pulse.mockRejectedValueOnce(new Error('boom'));
+    await hf.playPattern('left', 'notification');
+    // Second pulse still ran despite the first rejecting.
+    expect(hf.pulse).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  test('unknown pattern warns and returns', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await hf.playPattern('left', 'no-such-pattern');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('no-such-pattern'));
+    expect(hf.pulse).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  test('alert() with two connected gamepads fires left and right arms', async () => {
+    const dbg = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    const spy = jest.spyOn(hf, 'playPattern');
+    await hf.alert('normal');
+    const hands = spy.mock.calls.map((c) => c[0]);
+    expect(hands).toEqual(expect.arrayContaining(['left', 'right']));
+    dbg.mockRestore();
+  });
+
+  test('playCustomSequence runs mixed duration/pause steps', async () => {
+    await hf.playCustomSequence('left', [
+      { duration: 10, intensity: 0.3 },
+      { pause: 15 },
+      { duration: 20, intensity: 0.9 }
+    ]);
+    expect(hf.pulse.mock.calls).toEqual([
+      ['left', 10, 0.3],
+      ['left', 20, 0.9]
+    ]);
+    expect(hf.wait).toHaveBeenCalledWith(15);
+  });
+
+  test('test() plays the four demo patterns in order', async () => {
+    const dbg = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    const spy = jest.spyOn(hf, 'playPattern');
+    await hf.test('left');
+    expect(spy.mock.calls.map((c) => c[1])).toEqual(['click', 'tap', 'impact', 'success']);
+    dbg.mockRestore();
+  });
+});

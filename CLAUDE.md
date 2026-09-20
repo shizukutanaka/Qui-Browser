@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き54（同セッション）: JapaneseIME 漢字候補パイプライン + HapticFeedback シーケンス経路を pin（欠陥ゼロ）
+- 🔍 **実測**: ①IME の `getKanjiCandidates`（5 秒 AbortController タイムアウト付き fetch→API 応答パース→統計記録）、`convertToKanji` のモード/バッファゲート、`selectCandidate`/`switchMode`/`getState` が無検証 ②HapticFeedback の複合パターン走査（pulse/pause ステップ列・途中失敗しても残ステップ継続・未知パターン warn）、`alert()` 両手経路、`playCustomSequence`、`test()` デモ巡回が無検証だった。
+- ✅ **pin**: 8+6=14テスト追加。全緑 — 実装は正しいことを実測確認。
+- 📝 2024 tests / 58 suites、lint 0 errors、build green。
+
 #### 続き53（同セッション）: ProgressiveLoader の型別 DOM ローダー層を pin（欠陥ゼロ）
 - 🔍 **実測**: `loadImage/loadScript/loadStyle/loadAudio/loadVideo`（DOM 要素ローダー群）と `loadModel/loadGeneric` の fetch 経路、`loadTexture` の `window.textureManager` 不在時フォールバックが無検証だった — node 環境でも `Image`/`Audio`/`document.createElement` を差し替えれば実配線ごと検証できる層。
 - ✅ **pin**: 8テスト追加（onload/onerror 両腕、script async+appendChild、stylesheet link、canplaythrough、textureManager 不在→Image フォールバック、fetch が abort signal を受ける）。全緑 — 実装は正しいことを実測確認。

@@ -211,3 +211,95 @@ describe('src/utils/ProgressiveLoader', () => {
     expect(Number.isNaN(parseFloat(stats.progressPercent))).toBe(false);
   });
 });
+
+describe('JapaneseIME — kanji candidate pipeline', () => {
+  let ime;
+  beforeEach(() => { ime = new JapaneseIME(); });
+
+  test('convertToKanji is gated on hiragana mode + non-empty buffer', async () => {
+    ime.inputMode = 'katakana';
+    ime.compositionBuffer = 'ka';
+    expect(await ime.convertToKanji()).toBeNull();
+    ime.inputMode = 'hiragana';
+    ime.compositionBuffer = '';
+    expect(await ime.convertToKanji()).toBeNull();
+  });
+
+  test('convertToKanji parses API candidates, records stats, selects index 0', async () => {
+    const origFetch = global.fetch;
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => [['かんじ', ['漢字', '感じ', '幹事']]]
+    }));
+    try {
+      ime.inputMode = 'hiragana';
+      ime.compositionBuffer = 'kanji';
+      const res = await ime.convertToKanji();
+      expect(res.candidates).toEqual(['漢字', '感じ', '幹事']);
+      expect(res.selected).toBe('漢字');
+      expect(ime.selectedIndex).toBe(0);
+      expect(ime.stats.conversions).toBe(1);
+      // The request URL carries the converted hiragana text.
+      expect(global.fetch.mock.calls[0][0]).toContain('text=%E3%81%8B%E3%82%93%E3%81%98');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('API !ok falls back to offline dictionary', async () => {
+    const origFetch = global.fetch;
+    global.fetch = jest.fn(async () => ({ ok: false, status: 503 }));
+    try {
+      const candidates = await ime.getKanjiCandidates('こんにちは');
+      expect(candidates).toContain('今日は');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('fetch throw falls back to offline dictionary', async () => {
+    const origFetch = global.fetch;
+    global.fetch = jest.fn(async () => { throw new Error('network down'); });
+    try {
+      const candidates = await ime.getKanjiCandidates('ありがとう');
+      expect(candidates).toContain('有り難う');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('empty API payload returns the raw hiragana', async () => {
+    const origFetch = global.fetch;
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => [[]] }));
+    try {
+      const candidates = await ime.getKanjiCandidates('xyz');
+      expect(candidates).toEqual(['xyz']);
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('selectCandidate bounds-checks the index', () => {
+    ime.candidates = ['a', 'b'];
+    expect(ime.selectCandidate(1)).toBe('b');
+    expect(ime.selectCandidate(5)).toBeNull();
+    expect(ime.selectCandidate(-1)).toBeNull();
+  });
+
+  test('switchMode accepts only the three real modes', () => {
+    expect(ime.switchMode('katakana')).toBe(true);
+    expect(ime.inputMode).toBe('katakana');
+    expect(ime.switchMode('latin')).toBe(false);
+    expect(ime.inputMode).toBe('katakana');
+  });
+
+  test('getState exposes buffer/candidates/mode coherently', () => {
+    ime.compositionBuffer = 'ka';
+    ime.candidates = ['か'];
+    ime.selectedIndex = 0;
+    const st = ime.getState();
+    expect(st.buffer).toBe('ka');
+    expect(st.candidates).toEqual(['か']);
+    expect(st.mode).toBe(ime.inputMode);
+  });
+});
