@@ -652,7 +652,7 @@ export class VRApp {
   showVRToast(message, { type = 'error', duration = 4000 } = {}) {
     // Mirror to the hidden ARIA alert region unconditionally, before the
     // VR-session guard below. Several subsystem-failure toasts (haptics,
-    // spatial audio, AI) fire during initializeSystems() — before the user
+    // spatial audio) fire during initializeSystems() — before the user
     // has entered VR at all — so gating the mirror on isVREnabled/camera the
     // same way the 3D mesh is gated would silently drop them a second time.
     this.semanticDOM?.announceAlert(withSeverity(message, type));
@@ -3051,9 +3051,8 @@ export class VRApp {
   }
 
   /**
-   * Navigate to a URL: records the visit in BookmarkStore history and feeds
-   * it to the AI recommendation engine.  Call this whenever the in-VR panel
-   * loads a new page (FR-1.1 prerequisite infrastructure).
+   * Navigate to a URL: records the visit in BookmarkStore history.
+   * Call this whenever the in-VR panel loads a new page.
    */
   navigate(url, title = url) {
     this.bookmarks.addHistory(url, title);

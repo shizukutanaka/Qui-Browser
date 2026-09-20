@@ -21,7 +21,7 @@
 | ID | 要件 | 状態 | 根拠/備考 |
 |----|------|------|-----------|
 | FR-1.1 | 任意 Web ページを 3D 空間内パネルに描画 | 🟡 | **画素単位の描画は原理的に不可**（WebXR ウェブアプリは cross-origin ページの画素を 3D テクスチャに合成できない — X-Frame-Options / CSP frame-ancestors + 画素非読み出し。Wolvic/Quest Browser はネイティブエンジンだから可能）。**代わりにリーダー方式を実装済み**（Session 61 + 74）: 取得 → 本文抽出（`readableText.js`）→ canvas テキスト描画。CORS 許可オリジンは直接、任意サイトは**自己ホストの取得プロキシ**（`proxy/server.js`、SSRF ガード付き、VR 内から設定可）経由で本文テキストを読める。取得不能時は原因と解決策を明示する状態画面 |
-| FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore + AI 連携 |
+| FR-1.2 | URL バー・戻る/進む・再読込 | ✅ | `WebPanel` の CanvasTexture chrome。back/forward/reload/URL入力・navigate() で BookmarkStore 履歴記録 |
 | FR-1.3 | タブ／複数ウィンドウ | ✅ | `TabManager`: 複数 `WebPanel` を管理、タブストリップ（CanvasTexture）で切替/新規/閉じる。最大8タブ |
 | FR-1.4 | ブックマーク・履歴 | ✅ | `BookmarkStore`（localStorage）: `addBookmark/removeBookmark/isBookmarked` + `addHistory/getHistory/clearHistory`。`VRApp.bookmarks` 経由でアクセス可 |
 | FR-1.5 | 鮮明なテキスト（WebXR quad/cylinder Layers） | ✅ | `LayersSystem`（`XRWebGLBinding.createQuadLayer`）: chrome bar を native 解像度で合成。未対応環境は Three.js mesh にフォールバック。`WebPanel.enableLayerMode/updateLayer`、VRApp にて session start/end でライフサイクル管理 |
@@ -94,7 +94,7 @@
 | FR-9.2 | VR 内設定パネル | ✅ | トグルボタン式パネル（Teleport/Snap Turn/Comfort/Foveation）。永続化＋即時反映 |
 | FR-10.1 | PWA インストール／オフライン | ✅ | `service-worker.js` + manifest |
 | FR-10.2 | 起動時の即没入（PWA→requestSession） | ✅ | `display-mode: standalone` 検出時に `enter-vr` 自動発火（200ms 後）。非対応 UA はボタン操作に fallback |
-| FR-11.1 | 監視（web-vitals/Sentry/分析） | 🟡 | web-vitals ✅、Sentry/分析は opt-in（本番のみ） |
+| FR-11.1 | 監視（web-vitals/GA 分析） | 🟡 | web-vitals ✅（しきい値超過で console.warn + GA イベント）、GA4 は `VITE_GA_MEASUREMENT_ID` opt-in |
 | FR-12.1 | i18n（多言語 UI） | ✅ | `src/i18n/i18n.js`（ja/en、`navigator.language` 自動判定＋永続化）。ランディングを data-i18n で多言語化、言語トグル付き |
 | FR-13.1 | アクセシビリティ（字幕/色覚/コントラスト/片手） | ✅ | ランディングに高コントラスト/大文字/reduced-motion（`src/a11y`）。VR内 gaze-dwell ハンズフリー選択（`GazeInteraction`、レティクル進捗）。VR内字幕（`CaptionSystem`：カメラ追従 HUD パネル、タイムアウト付きキュー、設定パネルでトグル） |
 

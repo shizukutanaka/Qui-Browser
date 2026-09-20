@@ -1047,6 +1047,18 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,366 tests・lint 0 errors・build PASS・verify:docs PASS。
 
+### 第27パス（SPEC.md FR 表 + コメント残滓）
+
+- SPEC.md: FR-11.1 の「Sentry opt-in」記述を削除済み実態に修正
+  （web-vitals + GA opt-in のみ）。FR-1.2 の「AI 連携」除去。
+- VRApp.js コメント残滓2件: `navigate()` JSDoc の「AI recommendation
+  engine に feed」（AIRecommendation 削除済）と showVRToast 内「AI」
+  言及を除去。
+- 生存再確認: `#performance-monitor` DOM overlay（'P' キートグル・
+  `getPerformanceStats` 実在）は NFR-1 主張を支持するため保持。
+
+計測: 44 suites / 1,366 tests・lint 0 errors・build PASS・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
