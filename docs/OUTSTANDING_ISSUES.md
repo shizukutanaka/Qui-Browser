@@ -1687,3 +1687,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第136パス（実修正 — SW キャッシュ無限増殖）
 `staleWhileRevalidate` は `CACHE_VERSION`（shell）へ書くが `enforceCacheLimit` が呼ばれず、**deploy 毎に新ハッシュ資産が無限蓄積**（コード自身が cross-origin 経路で同型を潰していた同じ罠）。上限適用時は precache（index.html 等）を eviction から除外する `keep` 引数を追加し、put 失敗も catch で可視化。index.html の SWR 1回 stale 配信は設計通り。
+
+### 第137パス（クリーンスキャン — テキスト計測コスト）
+折返しは `wrapTextToWidth` の UAX#11 文字幅テーブル駆動（measureText 不使用は意図的設計 — テストスタブ互換＋文字単位APIコスト回避）。`fillText` のみで measureText 経路ゼロ。
