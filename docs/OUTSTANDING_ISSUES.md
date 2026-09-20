@@ -1753,3 +1753,6 @@ addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/web
 
 ### 第158パス（クリーンスキャン — /g regex lastIndex）
 唯一の `.exec` ループ（readableText）は関数ローカルの新規 regex で lastIndex 持ち回りなし、マッチは最小でもタグ長>0で進行保証 — 状態共有/無限ループ経路ゼロ。
+
+### 第159パス（クリーンスキャン — 文字列ソート locale）
+ソートは frecency スコアの数値比較のみで、タイトルの文字列ソート自体が存在しない — localeCompare 欠如の問題は構造的に非該当。
