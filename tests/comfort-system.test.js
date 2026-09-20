@@ -473,3 +473,70 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
     expect(smoothMoveWarning(false, false)).toBeNull();
   });
 });
+
+describe('ComfortSystem update() + render() pass', () => {
+  test('update() is a no-op when the camera was cleared', () => {
+    const sys = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    sys.camera = null; // e.g. session ended; update must not throw
+    sys.settings.vignette.enabled = true;
+    expect(() => sys.update(0.016)).not.toThrow();
+    sys.dispose?.();
+  });
+
+  test('update() drives detectMotion + vignette + FOV when enabled', () => {
+    const camera = makeCamera();
+    const sys = new ComfortSystem(makeScene(), camera, makeRenderer());
+    sys.settings.vignette.enabled = true;
+    sys.settings.fov.enabled = true;
+    const dm = jest.spyOn(sys, 'detectMotion');
+    const uv = jest.spyOn(sys, 'updateVignette');
+    const uf = jest.spyOn(sys, 'updateFOV');
+    sys.update(0.016);
+    expect(dm).toHaveBeenCalled();
+    expect(uv).toHaveBeenCalled();
+    expect(uf).toHaveBeenCalled();
+    sys.dispose?.();
+  });
+
+  test('update() skips vignette/FOV stages when their flags are off', () => {
+    const camera = makeCamera();
+    const sys = new ComfortSystem(makeScene(), camera, makeRenderer());
+    sys.settings.vignette.enabled = false;
+    sys.settings.fov.enabled = false;
+    const uv = jest.spyOn(sys, 'updateVignette');
+    const uf = jest.spyOn(sys, 'updateFOV');
+    sys.update(0.016);
+    expect(uv).not.toHaveBeenCalled();
+    expect(uf).not.toHaveBeenCalled();
+    sys.dispose?.();
+  });
+
+  test('render() draws the scene directly when vignette is off or ~zero', () => {
+    const renderer = { render: jest.fn(), setRenderTarget: jest.fn() };
+    const camera = makeCamera();
+    const sys = new ComfortSystem(makeScene(), camera, renderer);
+    sys.settings.vignette.enabled = false;
+    const scene = {};
+    sys.render(scene, camera);
+    expect(renderer.render).toHaveBeenCalledWith(scene, camera);
+    expect(renderer.setRenderTarget).not.toHaveBeenCalled();
+    sys.dispose?.();
+  });
+
+  test('render() runs the post-process pass when the vignette is active', () => {
+    const renderer = { render: jest.fn(), setRenderTarget: jest.fn() };
+    const camera = makeCamera();
+    const sys = new ComfortSystem(makeScene(), camera, renderer);
+    sys.settings.vignette.enabled = true;
+    sys.currentVignette = 0.5; // force the post path
+    const scene = {};
+    sys.render(scene, camera);
+    // Scene renders into the target, then the quad pass renders to screen.
+    expect(renderer.setRenderTarget).toHaveBeenNthCalledWith(1, sys.renderTarget);
+    expect(renderer.setRenderTarget).toHaveBeenNthCalledWith(2, null);
+    expect(renderer.render).toHaveBeenNthCalledWith(1, scene, camera);
+    expect(renderer.render).toHaveBeenNthCalledWith(2, sys.vignetteQuad, sys.postCamera);
+    expect(sys.vignetteMaterial.uniforms.tDiffuse.value).toBe(sys.renderTarget.texture);
+    sys.dispose?.();
+  });
+});
