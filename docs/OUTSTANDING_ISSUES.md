@@ -1412,3 +1412,6 @@ build 0.70s・vr-boot PASS。
 
 ### 第48パス（継続中 — C-1 VRApp 分離、スライス12）
 perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/reduceQuality/increaseQuality）を `vr/perfBudget.js`、browsing 接着剤3本（_attachManagedWindow/_onPanelGrabRequested/_teardownBrowsingSystems）を `browser/browsingSystems.js` に移動。テストが `prototype.X` を直接呼ぶシームは delegate 保持。VRApp 1,227→**1,143** 行（C-1 累計 −2,111）。lint 0 errors・1,343 tests・build・vr-boot 全 PASS。
+
+### 第49パス（継続中 — C-1 VRApp 分離、スライス13 + バグ修正）
+設定パネルライフサイクル（btnCtx/toggleSection/rebuild/redraw/dispose/announce/webPanelToggle）を `ui/settingsPanel.js`、ブラウザ操作（requestReaderProxyInput/clearBrowsingHistory/launchImmersiveVideo/navigate）を `browser/browserActions.js`、VR キーボード入力要求を `interaction/inputRouting.js`、OS a11y listeners・loadAudioAssets を `systemsLifecycle.js` に移動。**パス38 の抽出で `_disposeSettingsPanel` 本体が誤って削除され呼び出しのみ残存していた実バグ（_toggleSettingsSection→rebuild で TypeError）を発見・復元。** テストシーム（prototype.X 呼び出し4本）は delegate 保持。VRApp 1,143→**962** 行（C-1 累計 −2,292）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
