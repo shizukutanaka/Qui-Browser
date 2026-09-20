@@ -13,6 +13,7 @@ import { firePanelGrabFeedback } from './WindowManager.js';
 import { navigate } from './browserActions.js';
 import { getPrefs, largeTextScale } from '../../a11y/accessibility.js';
 import { t } from '../../i18n/i18n.js';
+import { showCaption } from '../caption.js';
 
 export function buildBrowsingSystems(app) {
   if (app.tabManager) {
@@ -34,8 +35,8 @@ export function buildBrowsingSystems(app) {
         onConfirm(url);
         // Immediate "Loading" caption so caption-reliant users know what URL
         // was submitted before the page loads (WCAG 4.1.3).
-        if (url && app.captionSystem && app.captionSystem.enabled) {
-          app.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+        if (url) {
+          showCaption(app, `Loading: ${hostnameCaption(url)}`);
         }
       }),
     searchEngine: app.settings.searchEngine,
@@ -43,9 +44,7 @@ export function buildBrowsingSystems(app) {
     isBookmarked: (url) => app.bookmarks.isBookmarked(url),
     onToggleBookmark: (url, title) => {
       const nowBookmarked = app.bookmarks.toggleBookmark(url, title);
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
-      }
+      showCaption(app, nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
       return nowBookmarked;
     },
     onTabActivate: (url) => {
@@ -55,16 +54,14 @@ export function buildBrowsingSystems(app) {
       }
     },
     onTabClose: () => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t('vr.msg.tabClosed'));
-      }
+      showCaption(app, t('vr.msg.tabClosed'));
     },
     onMaxTabsReached: () => {
       app.showVRToast(t('vr.msg.maxTabsReached'), { type: 'warn' });
     },
     onHoverCaption: () => {
-      if (app.captionSystem?.enabled && app.settings.enableGazeDwell) {
-        app.captionSystem.show(t('vr.msg.tabStripLabel'));
+      if (app.settings.enableGazeDwell) {
+        showCaption(app, t('vr.msg.tabStripLabel'));
       }
     },
     onPanelHoverCaption: (url, title) => {
@@ -82,8 +79,8 @@ export function buildBrowsingSystems(app) {
     },
     onGrabRequested: (controller) => app._onPanelGrabRequested(controller),
     onMoveBarHoverCaption: () => {
-      if (app.captionSystem?.enabled && app.settings.enableGazeDwell) {
-        app.captionSystem.show(t('vr.msg.moveBarLabel'));
+      if (app.settings.enableGazeDwell) {
+        showCaption(app, t('vr.msg.moveBarLabel'));
       }
     }
   });
@@ -108,35 +105,29 @@ export function buildBrowsingSystems(app) {
       if (active) {
         active.navigate(url);
       }
-      if (app.captionSystem && app.captionSystem.enabled && url) {
-        app.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+      if (url) {
+        showCaption(app, `Loading: ${hostnameCaption(url)}`);
       }
     },
     onDeleteBookmark: () => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t('vr.msg.bookmarkDeleted'));
-      }
+      showCaption(app, t('vr.msg.bookmarkDeleted'));
       if (app.hapticFeedback) {
         app.hapticFeedback.playPatternBothHands('notification');
       }
     },
     onTabChange: (tab) => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t(tab === 'bookmarks' ? 'vr.bookmarks.tabBookmarks' : 'vr.bookmarks.tabHistory'));
-      }
+      showCaption(app, t(tab === 'bookmarks' ? 'vr.bookmarks.tabBookmarks' : 'vr.bookmarks.tabHistory'));
     },
     onHoverCaption: () => {
-      if (app.captionSystem?.enabled && app.settings.enableGazeDwell) {
-        app.captionSystem.show(t('vr.msg.bookmarksPanel'));
+      if (app.settings.enableGazeDwell) {
+        showCaption(app, t('vr.msg.bookmarksPanel'));
       }
     },
     onClose: () => {
       // Mirror the 'Bookmarks: closed' caption that the settings panel
       // 'Bookmarks' button emits, so the state change is announced
       // regardless of which path closed the panel (WCAG 4.1.3).
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t('vr.msg.bookmarksClosed'));
-      }
+      showCaption(app, t('vr.msg.bookmarksClosed'));
     }
   });
   app.bookmarkPanel.addToScene();

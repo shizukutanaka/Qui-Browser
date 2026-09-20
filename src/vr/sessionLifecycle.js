@@ -9,6 +9,7 @@
 
 import { LayersSystem } from './rendering/LayersSystem.js';
 import { t } from '../i18n/i18n.js';
+import { showCaption } from './caption.js';
 
 export async function onVRSessionStart(app) {
   console.debug('VRApp: VR session started');
@@ -104,9 +105,7 @@ export async function onVRSessionStart(app) {
 
   // WCAG 4.1.3: announce that the VR environment is ready so caption-reliant
   // users know the session started without relying on the visual transition.
-  if (app.captionSystem && app.captionSystem.enabled) {
-    app.captionSystem.show(t('vr.msg.vrReady'));
-  }
+  showCaption(app, t('vr.msg.vrReady'));
 }
 
 export function onVRSessionEnd(app) {

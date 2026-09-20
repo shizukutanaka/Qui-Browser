@@ -13,6 +13,7 @@ import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './settingsLayo
 import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButton } from './settingsButtons.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from '../settingsStepper.js';
 import { launchImmersiveVideo } from '../browser/browserActions.js';
+import { showCaption } from '../caption.js';
 
 /**
  * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
@@ -54,9 +55,7 @@ export function createSettingsPanel(app) {
       }
     }],
     [t('vr.settings.southpaw'), 'southpaw', (v) => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
-      }
+      showCaption(app, t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
     }],
     [t('vr.settings.comfort'), 'enableComfort', null],
     [t('vr.settings.foveation'), 'enableFFR', (v) => {
@@ -78,7 +77,7 @@ export function createSettingsPanel(app) {
       if (app.captionSystem) {
         app.captionSystem.setEnabled(v);
         if (v) {
-          app.captionSystem.show(t('vr.msg.captionsEnabled'));
+          showCaption(app, t('vr.msg.captionsEnabled'));
         }
       }
     }],
@@ -211,9 +210,7 @@ export function createSettingsPanel(app) {
         // Announce the resulting open/closed state as a status message
         // (WCAG 4.1.3) so caption-reliant users know whether the panel
         // appeared or disappeared.
-        if (app.captionSystem && app.captionSystem.enabled) {
-          app.captionSystem.show(app.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
-        }
+        showCaption(app, app.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
       }
     }]);
   }
@@ -338,9 +335,7 @@ function toggleSettingsSection(app, sectionId) {
   }
   app.updateSetting('openSettingsSections', [sectionId]);
   _rebuildSettingsPanel(app);
-  if (app.captionSystem && app.captionSystem.enabled) {
-    app.captionSystem.show(`${t(sectionId)}: ${t('vr.msg.sectionOpen')}`);
-  }
+  showCaption(app, `${t(sectionId)}: ${t('vr.msg.sectionOpen')}`);
 }
 
 /** Unregister every interactable in the settings panel and remove it from the scene. */

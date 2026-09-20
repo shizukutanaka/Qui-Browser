@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { t } from '../../i18n/i18n.js';
 import { snapTurnLabel, fireTeleportFeedback } from '../comfort/ComfortSystem.js';
 import { firePanelReleaseFeedback } from '../browser/WindowManager.js';
+import { showCaption } from '../caption.js';
 
 let _locoQ, _locoFwd, _locoRight, _locoMove;
 
@@ -141,15 +142,11 @@ export function updateButtonInput(app) {
       if (tab) {
         if (btn.faceA?.justPressed) {
           const moved = tab.goForward?.();
-          if (app.captionSystem?.enabled) {
-            app.captionSystem.show(moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
-          }
+          showCaption(app, moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
         }
         if (btn.faceB?.justPressed) {
           const moved = tab.goBack?.();
-          if (app.captionSystem?.enabled) {
-            app.captionSystem.show(moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
-          }
+          showCaption(app, moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
         }
       }
       // Recenter: snap the player rig back to the origin.
@@ -164,9 +161,7 @@ export function updateButtonInput(app) {
       // Toggle bookmarks/history panel.
       if (btn.faceA?.justPressed && app.bookmarkPanel) {
         app.bookmarkPanel.toggle();
-        if (app.captionSystem && app.captionSystem.enabled) {
-          app.captionSystem.show(app.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
-        }
+        showCaption(app, app.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
       }
       // Toggle settings panel.
       if ((btn.faceB?.justPressed || btn.menu?.justPressed) && app.settingsPanel) {
@@ -176,16 +171,12 @@ export function updateButtonInput(app) {
         // Caption so users who rely on text feedback know whether the panel
         // opened or closed — the face/menu button click haptic is generic
         // and doesn't distinguish panel-open from panel-close.
-        if (app.captionSystem && app.captionSystem.enabled) {
-          app.captionSystem.show(app.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
-        }
+        showCaption(app, app.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
       }
       // Toggle VR keyboard.
       if (btn.thumbstickClick?.justPressed && app.vrKeyboard) {
         app.vrKeyboard.visible ? app.vrKeyboard.hide() : app.vrKeyboard.show();
-        if (app.captionSystem && app.captionSystem.enabled) {
-          app.captionSystem.show(`Keyboard: ${app.vrKeyboard.visible ? 'open' : 'closed'}`);
-        }
+        showCaption(app, `Keyboard: ${app.vrKeyboard.visible ? 'open' : 'closed'}`);
       }
     }
   }
@@ -215,9 +206,7 @@ export function snapTurn(app, direction, hand = null) {
   // angle whenever captions are enabled (WCAG 1.3.3 Sensory Characteristics,
   // WCAG 4.1.3 Status Messages). Previously gated on osReducedMotion(), but
   // that excluded users who rely on captions without requesting reduced motion.
-  if (app.captionSystem && app.captionSystem.enabled) {
-    app.captionSystem.show(snapTurnLabel(direction, angleDeg));
-  }
+  showCaption(app, snapTurnLabel(direction, angleDeg));
 }
 
 export function updateTeleport(app) {
@@ -359,9 +348,7 @@ export function requestVRKeyboardInput(app, prefill, onConfirm, prompt = 'Enter 
     // WCAG 3.3.2 Labels or Instructions: announce what input is expected so
     // caption-reliant users know what the keyboard is for without having to
     // look at the visual prompt bar, which may be outside their focus area.
-    if (app.captionSystem && app.captionSystem.enabled) {
-      app.captionSystem.show(prompt);
-    }
+    showCaption(app, prompt);
   } else {
     // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
     // desktop/2D, where window.prompt is the correct input).

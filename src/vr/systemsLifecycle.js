@@ -21,6 +21,7 @@ import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
+import { showCaption } from './caption.js';
 
 export async function initializeSystems(app) {
   const startTime = performance.now();
@@ -69,14 +70,12 @@ export async function initializeSystems(app) {
     // Larger keys (bigger targets) for the large-text accessibility preference.
     scale: largeTextScale(getPrefs().largeText),
     onHoverCaption: (label) => {
-      if (app.captionSystem?.enabled && app.settings.enableGazeDwell) {
-        app.captionSystem.show(label);
+      if (app.settings.enableGazeDwell) {
+        showCaption(app, label);
       }
     },
     onCancel: () => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        app.captionSystem.show(t('vr.msg.keyboardCancelled'));
-      }
+      showCaption(app, t('vr.msg.keyboardCancelled'));
     },
     // Frecency-ranked history/bookmark suggestions while typing (gaze-dwell
     // typing is ~8-10 WPM, so jumping to a known destination after a couple
@@ -99,16 +98,14 @@ export async function initializeSystems(app) {
   app.handTracking.onTrackingChange((hand, tracked) => {
     clearTimeout(app._handTrackingTimers[hand]);
     app._handTrackingTimers[hand] = setTimeout(() => {
-      if (app.captionSystem && app.captionSystem.enabled) {
-        // Four explicit keys rather than composing "<hand> hand <state>":
-        // word order and particles differ by language, so composition would
-        // produce broken Japanese.
-        app.captionSystem.show(t(
-          hand === 'left'
-            ? (tracked ? 'vr.msg.leftHandTracked' : 'vr.msg.leftHandLost')
-            : (tracked ? 'vr.msg.rightHandTracked' : 'vr.msg.rightHandLost')
-        ));
-      }
+      // Four explicit keys rather than composing "<hand> hand <state>":
+      // word order and particles differ by language, so composition would
+      // produce broken Japanese.
+      showCaption(app, t(
+        hand === 'left'
+          ? (tracked ? 'vr.msg.leftHandTracked' : 'vr.msg.leftHandLost')
+          : (tracked ? 'vr.msg.rightHandTracked' : 'vr.msg.rightHandLost')
+      ));
     }, 600);
   });
   console.debug('VRApp: Hand tracking ready');
