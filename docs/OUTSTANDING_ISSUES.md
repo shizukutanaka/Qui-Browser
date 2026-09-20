@@ -1819,3 +1819,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第180パス（クリーンスキャン — キー識別）
 全キー識別は `e.key`（論理・配列非依存）を使用 — `e.code`（物理位置=QWERTY 前提）不使用。AZERTY/Dvorak でのショートカット破壊経路なし。
+
+### 第181パス（クリーンスキャン — 無限ループ）
+全 while ループは収束条件が単調（i 増分・shift 減少・exec lastIndex 前進・親鎖 walk は null 終端）— 無限ループ経路ゼロ。
