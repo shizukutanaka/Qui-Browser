@@ -1516,3 +1516,6 @@ index.html/offline.html インライン CSS の全クラス/ID セレクタを�
 
 ### 第79パス（クリーンスキャン — 依存・アセット実在性）
 package.json 全依存の実使用を確認（three→src、web-vitals→monitoring.js、sharp→tools/generate-icons.mjs、babel→jest 変換）。manifest の7アイコンは public/assets/icons/ に実在、SW precache と整合。fetch 先は Google transliterate API + プロキシのみ。死依存・死アセットゼロ。
+
+### 第80パス（クリーンスキャン — ループ内 await 直列化）
+ループ内 await の走査で検出3件は全て haptic パターンの時系列パルス列（pulse→wait→pulse）— 逐次実行がセマンティクス本体であり並列化は意味破壊。直列化ボトルネックゼロ。
