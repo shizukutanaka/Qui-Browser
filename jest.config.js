@@ -30,14 +30,14 @@ module.exports = {
     'lcov'
   ],
 
-  // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
-  // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
+  // カバレッジ閾値 — pass-21 実測（lines 60.4 / branches 55.1 / funcs 56.4 /
+  // stmts 60.75）から約5pt下に設定。実測を大幅に下回る閾値は衰退を防げない。
   coverageThreshold: {
     global: {
-      branches: 20,
-      functions: 25,
-      lines: 25,
-      statements: 25
+      branches: 50,
+      functions: 50,
+      lines: 55,
+      statements: 55
     }
   },
 

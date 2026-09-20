@@ -1001,6 +1001,17 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
 
+### 第24パス（jest カバレッジ閾値 — 機能しない飾りを実ガードへ）
+
+- 実測: lines 60.75 / branches 55.09 / funcs 56.43 / stmts 60.42 に対し
+  閾値は 20–25（コメントも「~28%」と古い実測を引用）— 衰退を全く
+  防げない飾りだった。
+- 実測−5pt に引き上げ: branches 50 / functions 50 / lines 55 /
+  statements 55（テストが本当のリグレッションで赤になる閾値）。
+- package.json メタデータ・index.html 残タグは実在確認済み。
+
+計測: 44 suites / 1,367 tests・coverage PASS（新閾値）・lint 0 errors・build PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
