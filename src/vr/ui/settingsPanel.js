@@ -368,7 +368,7 @@ export function _rebuildSettingsPanel(app) {
   const wasVisible = app.settingsPanel.visible;
   const parent = app.settingsPanel.parent;
   disposeSettingsPanel(app);
-  app.settingsPanel = app.createSettingsPanel();
+  app.settingsPanel = createSettingsPanel(app);
   app.settingsPanel.visible = wasVisible;
   (parent || app.scene).add(app.settingsPanel);
 }

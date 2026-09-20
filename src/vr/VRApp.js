@@ -5,29 +5,28 @@
  * John Carmack principle: Systems integration is where performance lives or dies
  */
 
-import * as THREE from 'three';
 
 // Tier 1 Optimizations
 
 // Tier 2 Features
 import { resolveComfortPreset } from './comfort/ComfortSystem.js';
-import { updatePerformanceMonitor, getPerformanceStats, adjustQuality, reduceQuality, increaseQuality } from './perfBudget.js';
+import { getPerformanceStats } from './perfBudget.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { osReducedMotion, getPrefs, largeTextScale } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { showVRToast } from './ui/vrToast.js';
 import { controllerRay } from './ui/canvasMesh.js';
-import { updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect, updateHover, onTeleportStart, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy, requestVRKeyboardInput } from './interaction/inputRouting.js';
-import { createSettingsPanel, onWebPanelToggleChanged } from './ui/settingsPanel.js';
+import { updateLocomotion, updateButtonInput, updateTeleport, onControllerSelect, updateHover, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy, requestVRKeyboardInput } from './interaction/inputRouting.js';
+import { onWebPanelToggleChanged } from './ui/settingsPanel.js';
 
 import { resolveWindowDistance } from './browser/WindowManager.js';
 import { buildBrowsingSystems, _attachManagedWindow, _onPanelGrabRequested, _teardownBrowsingSystems } from './browser/browsingSystems.js';
-import { requestReaderProxyInput, clearBrowsingHistory, navigate } from './browser/browserActions.js';
+import { requestReaderProxyInput, clearBrowsingHistory } from './browser/browserActions.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
-import { initializeSystems, dispose } from './systemsLifecycle.js';
+import { dispose } from './systemsLifecycle.js';
 import { initialize, render } from './frameLoop.js';
 import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
@@ -287,10 +286,6 @@ export class VRApp {
     return dispose(this);
   }
 
-  onTeleportStart(controller) {
-    return onTeleportStart(this, controller);
-  }
-
   onTeleportEnd() {
     return onTeleportEnd(this);
   }
@@ -307,32 +302,28 @@ export class VRApp {
     return updateHover(this);
   }
 
+  getPerformanceStats() {
+    return getPerformanceStats(this);
+  }
+
+  updateLocomotion(dt) {
+    return updateLocomotion(this, dt);
+  }
+
+  updateButtonInput() {
+    return updateButtonInput(this);
+  }
+
+  updateTeleport() {
+    return updateTeleport(this);
+  }
+
   async initialize() {
     return initialize(this);
   }
 
   render(timestamp, xrFrame) {
     return render(this, timestamp, xrFrame);
-  }
-
-  updatePerformanceMonitor(frameTime) {
-    return updatePerformanceMonitor(this, frameTime);
-  }
-
-  getPerformanceStats() {
-    return getPerformanceStats(this);
-  }
-
-  adjustQuality() {
-    return adjustQuality(this);
-  }
-
-  reduceQuality() {
-    return reduceQuality(this);
-  }
-
-  increaseQuality() {
-    return increaseQuality(this);
   }
 
   _attachManagedWindow() {
@@ -361,10 +352,6 @@ export class VRApp {
 
   _requestVRKeyboardInput(prefill, onConfirm, prompt) {
     return requestVRKeyboardInput(this, prefill, onConfirm, prompt);
-  }
-
-  navigate(url, title) {
-    return navigate(this, url, title);
   }
 
   /**
@@ -503,10 +490,6 @@ export class VRApp {
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
-  createSettingsPanel() {
-    return createSettingsPanel(this);
-  }
-
   /**
    * Build a lightweight default environment: gradient sky dome, floor with a
    * reference grid, and a welcome panel. Kept cheap for Quest-class GPUs
@@ -673,10 +656,6 @@ export class VRApp {
   /**
    * Setup WebXR
    */
-  async onVRSessionStart() {
-    return onVRSessionStart(this);
-  }
-
   onVRSessionEnd() {
     return onVRSessionEnd(this);
   }
@@ -713,18 +692,6 @@ export class VRApp {
   /**
    * Update all systems
    */
-  updateLocomotion(dt = 0.016) {
-    return updateLocomotion(this, dt);
-  }
-  updateButtonInput() {
-    return updateButtonInput(this);
-  }
-  snapTurn(direction, hand = null) {
-    return snapTurn(this, direction, hand);
-  }
-  updateTeleport() {
-    return updateTeleport(this);
-  }
   onControllerSelect(controller, isStart) {
     return onControllerSelect(this, controller, isStart);
   }

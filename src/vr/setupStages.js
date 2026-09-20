@@ -17,6 +17,8 @@ import { createHomeEnvironment } from './homeEnvironment.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { t } from '../i18n/i18n.js';
+import { onTeleportStart } from './interaction/inputRouting.js';
+import { onVRSessionStart } from './sessionLifecycle.js';
 import { notifyCrossModal, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 
 export function setupRenderer(app) {
@@ -151,7 +153,7 @@ export function setupScene(app) {
   });
 
   // In-VR settings panel (toggle buttons wired to the persisted settings).
-  app.settingsPanel = app.createSettingsPanel();
+  app.settingsPanel = createSettingsPanel(app);
   app.scene.add(app.settingsPanel);
 
   // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
@@ -242,7 +244,7 @@ export function setupControllers(app) {
     app.controllers.push(controller);
 
     // Teleport: squeeze (grip) to aim, release to move.
-    controller.addEventListener('squeezestart', () => app.onTeleportStart(controller));
+    controller.addEventListener('squeezestart', () => onTeleportStart(app, controller));
     controller.addEventListener('squeezeend', () => app.onTeleportEnd());
 
     const grip = app.renderer.xr.getControllerGrip(i);
@@ -291,7 +293,7 @@ export function setupVR(app) {
 
   // Listen for VR session events
   app.renderer.xr.addEventListener('sessionstart', () => {
-    app.onVRSessionStart();
+    onVRSessionStart(app);
   });
 
   app.renderer.xr.addEventListener('sessionend', () => {

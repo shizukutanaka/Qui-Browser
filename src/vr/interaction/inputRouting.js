@@ -62,7 +62,7 @@ export function updateLocomotion(app, dt = 0.016) {
     // Turn hand: snap turn.
     if (app.settings.enableSnapTurn && snap.hand === turnHand) {
       if (Math.abs(x) > snapThreshold && !controller.userData.snapLatched) {
-        app.snapTurn(x > 0 ? -1 : 1, snap.hand); // push right → turn clockwise
+        snapTurn(app, x > 0 ? -1 : 1, snap.hand); // push right → turn clockwise
         controller.userData.snapLatched = true;
       } else if (Math.abs(x) < snapRelease) {
         controller.userData.snapLatched = false;

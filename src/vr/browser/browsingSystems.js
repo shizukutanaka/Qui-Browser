@@ -10,6 +10,7 @@ import { TabManager } from './TabManager.js';
 import { BookmarkPanel } from './BookmarkPanel.js';
 import { hostnameCaption } from './urlDisplay.js';
 import { firePanelGrabFeedback } from './WindowManager.js';
+import { navigate } from './browserActions.js';
 import { getPrefs, largeTextScale } from '../../a11y/accessibility.js';
 import { t } from '../../i18n/i18n.js';
 
@@ -21,7 +22,7 @@ export function buildBrowsingSystems(app) {
     scene: app.scene,
     registerInteractable: (m, h) => app.registerInteractable(m, h),
     unregisterInteractable: (m) => app.unregisterInteractable(m),
-    onNavigate: (url, title) => app.navigate(url, title),
+    onNavigate: (url, title) => navigate(app, url, title),
     readerProxyUrl: app.settings.readerProxyUrl,
     onLoadError: (url) => app.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
     onBlockedNavigation: () => app.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),

@@ -50,10 +50,10 @@ export function adjustQuality(app) {
 
   if (currentFrameTime > targetFrameTime * 1.2) {
     // Performance is poor, reduce quality
-    app.reduceQuality();
+    reduceQuality(app);
   } else if (currentFrameTime < targetFrameTime * 0.8) {
     // Performance is good, increase quality
-    app.increaseQuality();
+    increaseQuality(app);
   }
 }
 

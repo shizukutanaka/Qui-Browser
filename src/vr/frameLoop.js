@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { setupRenderer, setupScene, setupCamera, setupVR } from './setupStages.js';
 import { initializeSystems } from './systemsLifecycle.js';
+import { updatePerformanceMonitor, adjustQuality } from './perfBudget.js';
 
 /**
  * The frame loop: staged boot (renderer → scene → camera → VR → systems), the
@@ -54,11 +55,11 @@ export function render(app, timestamp, xrFrame) {
 
   // Track performance
   const frameTime = performance.now() - frameStart;
-  app.updatePerformanceMonitor(frameTime);
+  updatePerformanceMonitor(app, frameTime);
 
   // Dynamic quality adjustment (every 60 frames)
   if (app.frameCount % 60 === 0) {
-    app.adjustQuality();
+    adjustQuality(app);
   }
 }
 
