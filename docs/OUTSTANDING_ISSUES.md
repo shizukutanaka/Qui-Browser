@@ -1444,3 +1444,6 @@ tests/ 走査で未使用 `makeScene` ヘルパー削除。src 重複ブロッ�
 
 ### 第59パス
 hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHands(app, pattern)` seam（src/vr/haptics.js）に統一（6箇所）。`update()`/`setEnabled`/複文ブロック（hand 解決付き）は構造保持。残る `if (app.hapticFeedback)` は dispose 系のみで正しい。
+
+### 第60パス（クリーンスキャン）
+`if (app.X) { app.X.method() }` ガード定型を全走査: 残存は dispose 系（異種メソッドの teardown ループ — seam 化不可）と単発呼出のみ。`showVRToast` は既に delegate seam で統一済み、cross-modal 3系統（caption/haptic/toast）の呼出形は正規化完了。変更なし。
