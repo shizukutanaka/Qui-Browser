@@ -96,9 +96,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **完了内容**: `captionSystem`（Session 44）、`hapticFeedback`（Session 45）、`gazeInteraction`（Session 47）の3系統すべてを `AccessibilityCoordinator` に移動。VRApp側は各々に `get`/`set` を追加し、`this.a11y.X` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・毎フレームの gaze-dwell ポーリング・dispose・`notifyCrossModal`/`fireTeleportFeedback` 等の呼び出し、合計40箇所以上）は一切変更不要——`tests/vr-app-wiring.test.js` の既存テストも無変更のまま通過することを確認済み。3系統とも「field-decl null → 構築 →（hapticFeedbackのみ）dispose時null再代入」という同一の形をしており、同じ getter/setter パターンがそのまま適用できた。挙動を変えない安全なリファクタであることを検証済み（フルスイート953件、無変更で通過）。
 - **スコープ外と判断したもの**: `highContrast`/`motionSensitivity`/`windowDistance` の同期ロジックは ComfortSystem/WindowManager 向けであり、この4系統（caption/haptic/gaze + 元々のhigh-contrast同期）のうち前者3つのみを対象とした。`highContrast` トグルの複合クロージャ（VRApp.js ~1177行）は `captionSystem.setHighContrast()`/`gazeInteraction.setHighContrast()` を呼ぶが、これらは対象オブジェクトのメソッド呼び出しであり `this.captionSystem`/`this.gazeInteraction` 自体の再代入ではないため、getter経由で問題なく動作する。
 
-### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）
-- **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
-- **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
+### ~~C-2. 設定パネルのグルーピング~~ — **完了済み**（記録のみ更新、Session 75 で実装を確認）
+- 実装確認: `createSettingsPanel()` は `SECTIONS`（a11y/locomotion/display/browsing/audio + 未分類は `other` に自動回収）で折りたたみセクション化済み。レイアウトは `src/vr/ui/settingsLayout.js` の `layoutSettingsPanel`（pure 関数・`tests/settings-layout.test.js` でテスト済み）。開閉は `vr.msg.sectionOpen/sectionClosed` で告知。E-1 の受入条件「pure 関数化・全設定到達可能・告知機能維持」を全て満たす。
 
 ### ~~C-3. Top Sites の視覚的スピードダイヤルタイル~~ — **完了（Session 75）**
 - **解決**: S17 の保留理由は「BookmarkPanel の3つ目のタブがスクロール矢印ゾーンと座標衝突する」だった —— **描画先を BookmarkPanel ではなく WebPanel の `empty` 状態（新規タブ）に取った**ことで座標衝突そのものが消えた。新規モジュール `src/vr/browser/newTabPage.js`（純粋レイアウト: `topSiteTiles`/`tileAt`/`MAX_TILES=8`）→ `_drawTopSites` がグリッド描画、`_onContentSelect` がタイルタップで `navigate`。タイル rect が描画とヒット判定で同一のためズレ不能。frecency データ層（`getTopSites`）は既存。privateMode 中は VRApp 側で `[]` に畳む（private セッションは履歴を書かない・見せない）。i18n `vr.content.topSites`/`topSitesHint` en/ja 追加、タイル色は `webContentColors`（HC 対応済み）。
@@ -184,7 +183,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ### 改善案（優先度・推奨モデル付き）
 | ID | 改善案 | 優先度 | 推奨 | 受け入れ基準 |
 |----|--------|--------|------|-------------|
-| E-1 | 設定パネルのグルーピング（=C-2） | 高 | Opus | レイアウトを pure 関数化しテスト・全設定到達可能・告知機能維持 |
+| ~~E-1~~ | ~~設定パネルのグルーピング（=C-2）~~ | ~~高~~ | 完了 S75 | C-2 参照 — 実装確認済みで記録のみ更新 |
 | E-2 | ~~実ブラウザ検証~~ — **部分完了（Session 68）**: `npm run verify:layout` が実 Chromium で本番の折り返し×実フォントを検証（依存ゼロ）。**残**: ページ全体のスモーク（build→preview→console error 0→Enter VR/SW）は未着手。死んでいた `test:e2e` は削除済み | 中 | Opus | スモーク側は別途 |
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
@@ -310,7 +309,7 @@ APCA（WCAG 3 候補）は「WCAG 2 は黒に近い明暗ペアのコントラ�
   背面パネルすべてを配線。あわせて**通常モードの 1.4.11 違反2件**を実測して修正（キー枠線 1.65:1、
   非優先候補の枠線 2.74:1 —— どちらも塗り自体がパネルに対し 1.25:1 なので、枠線が唯一の境界だった）。
   さらに**候補ボタンのホバーが色に依存しない手がかりを破壊していた**バグを修正（下記 G-4）。
-- **`TabManager` のタブストリップ本体の色**は未抽出（掃引に含まれていない）。同じ手順で閉じられる。
+- ~~**`TabManager` のタブストリップ本体の色**は未抽出（掃引に含まれていない）。同じ手順で閉じられる。~~ — **Session 75 で完了**: `tabStripColors(highContrast)` を chromeColors.js に追加（通常は現行色をそのまま抽出・HC は active 白/idle 黒+白縁・ボタン類に白枠）。ホバー tint もパレット化。contrast.test.js に全ペアの WCAG sweep + HC 分離 3:1 + 非リテラル化 pin を追加（+7 tests）。
 
 ### G-4. 修正済み（Session 72）: 候補ボタンのホバーが WCAG 1.4.1 の手がかりを消していた
 
