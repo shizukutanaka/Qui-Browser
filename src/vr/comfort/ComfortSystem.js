@@ -248,20 +248,6 @@ export class ComfortSystem {
     this.reduceMotion = !!value;
   }
 
-  handleSnapTurn(direction) {
-    if (!this.settings.snapTurn.enabled) {
-      // Smooth turning
-      this.camera.rotation.y += direction * 0.02;
-      return;
-    }
-
-    // Calculate snap angle
-    const snapAngle = Math.sign(direction) *
-                      THREE.MathUtils.degToRad(this.settings.snapTurn.angle);
-
-    // Animate rotation
-    this.animateSnapTurn(snapAngle);
-  }
 
   /**
    * Animate snap turn with easing.

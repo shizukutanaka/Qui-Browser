@@ -195,65 +195,6 @@ export class HapticFeedback {
   }
 
   /**
-   * Custom pattern builder
-   */
-  createCustomPattern(name, steps) {
-    this.patterns[name] = steps;
-    console.debug(`HapticFeedback: Created custom pattern "${name}"`);
-  }
-
-  /**
-   * Simulate texture feeling
-   */
-  async simulateTexture(hand, textureType, duration = 1000) {
-    const patterns = {
-      smooth: { pulseInterval: 100, intensity: 0.1 },
-      rough: { pulseInterval: 20, intensity: 0.5 },
-      bumpy: { pulseInterval: 50, intensity: 0.7 },
-      soft: { pulseInterval: 150, intensity: 0.2 },
-      hard: { pulseInterval: 10, intensity: 0.9 }
-    };
-
-    const pattern = patterns[textureType];
-    if (!pattern) {
-      return;
-    }
-
-    const startTime = Date.now();
-    while (Date.now() - startTime < duration) {
-      await this.pulse(hand, 10, pattern.intensity);
-      await this.wait(pattern.pulseInterval);
-    }
-  }
-
-  /**
-   * Simulate impact with physics
-   */
-  async simulateImpact(hand, velocity, mass) {
-    // Calculate impact intensity from physics
-    const kineticEnergy = 0.5 * mass * velocity * velocity;
-    const intensity = Math.min(kineticEnergy / 10, 1.0);
-    const duration = Math.min(50 + intensity * 100, 200);
-
-    await this.pulse(hand, duration, intensity);
-  }
-
-  /**
-   * Proximity feedback (intensity increases as object gets closer)
-   */
-  async proximityFeedback(hand, distance, maxDistance = 1.0) {
-    if (distance > maxDistance) {
-      return;
-    }
-
-    const normalizedDistance = distance / maxDistance;
-    const intensity = 1.0 - normalizedDistance;
-
-    // Very short pulse for proximity
-    await this.pulse(hand, 5, intensity * 0.5);
-  }
-
-  /**
    * Alert pattern (attention-grabbing)
    */
   async alert(urgency = 'normal') {

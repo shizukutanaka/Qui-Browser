@@ -413,25 +413,6 @@ export class HandTracking {
       .multiplyScalar(0.5);
   }
 
-  /**
-   * Get pointing ray (for selection)
-   */
-  getPointingRay(handedness) {
-    const joints = this.joints[handedness];
-    const indexTip = joints.get('index-finger-tip');
-    const indexProximal = joints.get('index-finger-phalanx-proximal');
-
-    if (!indexTip || !indexProximal) {
-      return null;
-    }
-
-    const origin = indexProximal.position.clone();
-    const direction = new THREE.Vector3()
-      .subVectors(indexTip.position, indexProximal.position)
-      .normalize();
-
-    return new THREE.Ray(origin, direction);
-  }
 
   /**
    * Handle input source changes

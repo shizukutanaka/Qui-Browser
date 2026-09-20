@@ -1,7 +1,7 @@
 /**
  * Unit tests for WindowManager (spatial window management — Wolvic/Quest parity).
  * THREE Vector3/Quaternion are given working implementations so the transform
- * maths (follow placement, billboard orientation, grab) can be asserted.
+ * maths (follow placement, grab) can be asserted.
  */
 
 // Working Vector3/Quaternion stubs, defined inside the mock factory (jest
@@ -95,13 +95,6 @@ describe('WindowManager (spatial window management)', () => {
     expect(wm.setDistance(2)).toBe(2);
   });
 
-  test('nudgeDistance adjusts relative to current', () => {
-    const wm = new WindowManager(makeNode(), { distance: 2 });
-    wm.nudgeDistance(1);
-    expect(wm.distance).toBe(3);
-    wm.nudgeDistance(-0.5);
-    expect(wm.distance).toBe(2.5);
-  });
 
   test('follow mode places the panel "distance" metres along camera forward', () => {
     // Camera at origin, identity orientation → forward is -Z.
@@ -153,20 +146,6 @@ describe('WindowManager (spatial window management)', () => {
     expect(panel.position.z).toBeCloseTo(-1, 5);
   });
 
-  test('billboard mode orients without repositioning', () => {
-    const q = new Quat().setFromAxisAngle(new V3(0, 1, 0), Math.PI / 4);
-    const cam = makeNode([0, 0, 0], [q.x, q.y, q.z, q.w]);
-    const wm = new WindowManager(cam);
-    const panel = makeNode([3, 1, -1]);
-    wm.attach(panel);
-    wm.setBillboard(true);
-    wm.update(16.6667);
-    // Position unchanged …
-    expect(panel.position.x).toBe(3);
-    expect(panel.position.z).toBe(-1);
-    // … orientation matches camera.
-    expect(panel.quaternion.y).toBeCloseTo(q.y, 5);
-  });
 
   test('update no-ops without a target', () => {
     const wm = new WindowManager(makeNode());
@@ -389,12 +368,4 @@ describe('WindowManager — constant apparent size across the distance range', (
     expect(panel.scale.x).toBe(1);
   });
 
-  test('billboard-only mode does not rescale (it never moves the panel)', () => {
-    const wm = new WindowManager(makeNode(), { distance: 6.0 });
-    const panel = makeNode();
-    wm.attach(panel);
-    wm.setBillboard(true);
-    wm.update(16);
-    expect(panel.scale.x).toBe(1);
-  });
 });

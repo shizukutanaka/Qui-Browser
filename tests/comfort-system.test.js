@@ -259,17 +259,7 @@ describe('ComfortSystem', () => {
   });
 
   // ── snap turn ─────────────────────────────────────────────────────────────────
-  test('handleSnapTurn triggers requestAnimationFrame', () => {
-    system.handleSnapTurn(1);
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
-  });
 
-  test('smooth turn when snapTurn disabled', () => {
-    system.settings.snapTurn.enabled = false;
-    const before = camera.rotation.y;
-    system.handleSnapTurn(1);
-    expect(camera.rotation.y).not.toBe(before);
-  });
 });
 
 describe('ComfortSystem — prefers-reduced-motion', () => {

@@ -24,7 +24,7 @@ import { buildBrowsingSystems, _attachManagedWindow, _onPanelGrabRequested, _tea
 import { requestReaderProxyInput, clearBrowsingHistory } from './browser/browserActions.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
-import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
+import { loadPersistedSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
 import { dispose } from './systemsLifecycle.js';
 import { initialize, render } from './frameLoop.js';
@@ -264,13 +264,6 @@ export class VRApp {
     return loadPersistedSettings(this.settings);
   }
 
-  /**
-   * Persist the current settings to localStorage. Safe to call from setting
-   * toggles/UI; no-ops when storage is unavailable.
-   */
-  saveSettings() {
-    return saveSettings(this.settings);
-  }
 
   /**
    * Update a single setting and persist. Returns the new value.

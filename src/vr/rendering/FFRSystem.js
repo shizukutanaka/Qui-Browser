@@ -94,35 +94,6 @@ export class FFRSystem {
     console.debug('FFRSystem: Disabled');
   }
 
-  /**
-   * Dynamically adjust FFR based on GPU load
-   * @param {number} gpuLoad - Current GPU load (0-1)
-   */
-  setDynamicFFR(gpuLoad) {
-    if (!this.enabled || !this.projectionLayer) {
-      return;
-    }
-
-    let targetIntensity;
-
-    if (gpuLoad > this.gpuLoadThresholds.high) {
-      // High GPU load: aggressive foveation
-      targetIntensity = 0.8;
-    } else if (gpuLoad > this.gpuLoadThresholds.medium) {
-      // Medium GPU load: moderate foveation
-      targetIntensity = 0.5;
-    } else if (gpuLoad > this.gpuLoadThresholds.low) {
-      // Low-medium GPU load: light foveation
-      targetIntensity = 0.2;
-    } else {
-      // Very low GPU load: minimal foveation
-      targetIntensity = 0.1;
-    }
-
-    // Smooth transition to avoid jarring changes
-    this.intensity += (targetIntensity - this.intensity) * 0.1;
-    this.projectionLayer.fixedFoveation = this.intensity;
-  }
 
   /**
    * Nudge intensity up or down by delta and clamp to [0, 1].

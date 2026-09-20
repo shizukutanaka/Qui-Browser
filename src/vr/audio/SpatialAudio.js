@@ -139,33 +139,6 @@ export class SpatialAudio {
     this._resumeEvents = null;
   }
 
-  /**
-   * Load audio buffer from URL
-   */
-  async loadAudio(url, name) {
-    if (this.buffers.has(name)) {
-      return this.buffers.get(name);
-    }
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} fetching audio: ${url}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
-
-      this.buffers.set(name, audioBuffer);
-      this.stats.buffersLoaded++;
-
-      console.debug(`SpatialAudio: Loaded '${name}' (${audioBuffer.duration.toFixed(2)}s)`);
-      return audioBuffer;
-
-    } catch (error) {
-      console.error(`SpatialAudio: Failed to load ${url}`, error);
-      return null;
-    }
-  }
 
   /**
    * Register a synthesized fallback buffer under `name` (see
