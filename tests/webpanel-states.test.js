@@ -70,7 +70,9 @@ const ctx2d = {
 };
 global.document = {
   createElement(tag) {
-    if (tag === 'canvas') return { width: 0, height: 0, getContext: () => ctx2d };
+    if (tag === 'canvas') {
+      return { width: 0, height: 0, getContext: () => ctx2d };
+    }
     if (tag === 'iframe') {
       return {
         src: '',
@@ -288,8 +290,10 @@ describe('WebPanel navigate() blocked-navigation feedback', () => {
     const onNavigate = jest.fn();
     const p = makePanel({ onBlockedNavigation, onNavigate });
 
+    // eslint-disable-next-line no-script-url -- the blocked scheme IS the test subject
     p.navigate('javascript:alert(1)');
 
+    // eslint-disable-next-line no-script-url -- expected payload of the blocked navigation
     expect(onBlockedNavigation).toHaveBeenCalledWith('javascript:alert(1)');
     expect(onNavigate).not.toHaveBeenCalled();
     expect(p.history).toHaveLength(0);
@@ -316,6 +320,7 @@ describe('WebPanel navigate() blocked-navigation feedback', () => {
 
   test('without onBlockedNavigation configured, a blocked scheme is still silently ignored (no throw)', () => {
     const p = makePanel(); // no onBlockedNavigation passed
+    // eslint-disable-next-line no-script-url -- the blocked scheme IS the test subject
     expect(() => p.navigate('javascript:alert(1)')).not.toThrow();
     expect(p.history).toHaveLength(0);
   });
@@ -772,5 +777,59 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
     p.setReaderProxyUrl('http://p:8080');
     await p._loadReaderText('https://example.com/a');
     expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
+  });
+});
+
+// ── Stop button (F-4) ─────────────────────────────────────────────────────────
+// loading=true could only be cleared by iframe onload/onerror — a hung load
+// pinned the panel forever with no user escape. The reload button becomes a
+// stop while loading (standard browser chrome behavior).
+describe('WebPanel stop()', () => {
+  test('stop() is a no-op when nothing is loading', () => {
+    const p = makePanel();
+    p.stop();
+    expect(p.loading).toBe(false);
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('stop() during a load clears loading, aborts the reader fetch and detaches iframe handlers', () => {
+    const p = makePanel();
+    p._loadUrl('https://hang.example');
+    expect(p.loading).toBe(true);
+    expect(p._contentState).toBe('loading');
+    const abortSpy = jest.fn();
+    p._loadAbort = { abort: abortSpy };
+    const seq = p._readerSeq;
+
+    p.stop();
+
+    expect(p.loading).toBe(false);
+    expect(abortSpy).toHaveBeenCalled();
+    expect(p._loadAbort).toBeNull();
+    expect(p._readerSeq).toBe(seq + 1); // in-flight result is discarded
+    expect(p.iframe.onload).toBeNull(); // about:blank must not fire onNavigate
+    expect(p.iframe.onerror).toBeNull();
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('stop() keeps the last rendered reader content instead of blanking it', () => {
+    const p = makePanel();
+    p._readerLines = [{ style: 'p', text: 'readable content' }];
+    p._loadUrl('https://hang.example');
+    p.stop();
+    expect(p._contentState).toBe('reader');
+  });
+
+  test('the reload hit zone routes to stop() while a load is in flight', () => {
+    const p = makePanel();
+    p._loadUrl('https://hang.example');
+    const stopSpy = jest.spyOn(p, 'stop');
+    // reload zone is px 136–204 in chrome canvas space (see _onChromeSelect);
+    // PANEL_W is the mesh's world width, canvas is 1024px wide.
+    p.chromeMesh.worldToLocal = () => ({
+      x: (160 / p.chromeCanvas.width - 0.5) * p.chromeMesh.geometry?.parameters?.width || -0.55
+    });
+    p._onChromeSelect({ clone: () => ({}) });
+    expect(stopSpy).toHaveBeenCalled();
   });
 });

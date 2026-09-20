@@ -280,7 +280,8 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ⚖️ **発見・未修正**: SW が2経路で発散 — vercel（`outputDirectory:"."`）は root `service-worker.js`、vite は `public/service-worker.js`、さらに `public/sw.js`（pwa.js が登録）は vercel 配信では 404。OUTSTANDING_ISSUES F-4 に記録。
 - ✨ **feat: セッション復元**（F-4・同一 PR に追加）。`TabManager.serialize()/restoreSession()` + VRApp が `qui-browser:sessionTabs` に navigate/close/activate で保存、`_buildBrowsingSystems` で復元。**private 連携の盲点を塞いだ**: 保存側の `privateBrowsing` ゲートだけでは「ON→タブ開く→OFF→navigate」で private URL が漏れるため、タブごとの `privateSession` フラグで serialize から除外する二重防御。restore 再生中は `_restoringSession` で履歴再書き込み・session save・activate caption を全部止める（8タブ復元で caption 8連発を防止）。
 - 🔍 **発見（CI 追補）**: PR #58 の CI で確認 — 私の lockfile 修正後 `npm ci` は ubuntu で正常（475pkg/6s）・**Lint ジョブは初の緑**。残る赤はすべてベースラインの workflow 欠陥（patch 0001/0002 が対象）。
-- Total 1494 tests (47 suites); 0 lint errors / 134 warnings; `format:check` PASS; build green。
+- ✨ **feat: Stop ボタン**（F-4・同一 PR）。`loading=true` を解除する経路が onload/onerror しかなく、ハングしたロードが panel を永遠に 'loading' に固定していた。`WebPanel.stop()`（reader fetch abort + `_readerSeq` 破棄 + iframe handlers 切断して about:blank）を追加し、ロード中は reload hit zone が stop() を呼ぶ —— glyph も ↺→✕ に切替（Chrome と同じ二態）。描画済み reader は blank にしない。4テスト。
+- Total 1498 tests (47 suites); 0 lint errors / 135 warnings; `format:check` PASS; build green。
 
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 

@@ -154,6 +154,7 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    this._loadAbort = null; // AbortController for the in-flight reader fetch
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -360,6 +361,7 @@ export class WebPanel {
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._loadAbort = controller;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       // Routed through the companion proxy when one is configured; otherwise a
@@ -394,6 +396,7 @@ export class WebPanel {
       if (timer) {
         clearTimeout(timer);
       }
+      this._loadAbort = null;
     }
   }
 
@@ -569,7 +572,7 @@ export class WebPanel {
     ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
     ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
-    ctx.fillText('↺', 174, h / 2 + 8);
+    ctx.fillText(this.loading ? '✕' : '↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
     const hasBookmark = !!this.onToggleBookmark;
@@ -662,8 +665,14 @@ export class WebPanel {
       // forward
       this.forward();
     } else if (px < 204) {
-      // reload
-      this.reload();
+      // reload — or stop while a load is in flight (standard chrome behavior:
+      // the same button toggles between the two). Otherwise a hung load pins
+      // the panel in 'loading' forever with no user escape.
+      if (this.loading) {
+        this.stop();
+      } else {
+        this.reload();
+      }
     } else if (px > w - 60) {
       // close
       this.hide();
@@ -827,6 +836,33 @@ export class WebPanel {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
     }
+  }
+
+  /**
+   * Abort the in-flight load: the reader fetch via its AbortController, the
+   * iframe navigation by detaching handlers and pointing it at about:blank
+   * (so its load event can no longer fire onNavigate for a dead navigation).
+   * Keeps the last rendered reader content when there is one — a stopped
+   * load shouldn't blank the page the user was already reading.
+   */
+  stop() {
+    if (!this.loading) {
+      return;
+    }
+    this.loading = false;
+    this._loadError = false;
+    this._readerSeq++; // discard any in-flight result even if abort is unavailable
+    if (this._loadAbort) {
+      this._loadAbort.abort();
+      this._loadAbort = null;
+    }
+    if (this.iframe) {
+      this.iframe.onload = null;
+      this.iframe.onerror = null;
+      this.iframe.src = 'about:blank';
+    }
+    this._setContentState(this._readerLines && this._readerLines.length ? 'reader' : 'empty');
+    this._drawChrome();
   }
 
   // ── DOM-overlay integration ───────────────────────────────────────────────
