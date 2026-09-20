@@ -264,10 +264,11 @@ export class ComfortSystem {
     }
 
     const duration = this.settings.snapTurn.duration * 1000; // Convert to ms
-    const startTime = Date.now();
+    // Monotonic clock — Date.now() can step backward on NTP sync mid-animation.
+    const startTime = performance.now();
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
+    const animate = (now = performance.now()) => {
+      const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
       // Ease-out cubic
@@ -285,7 +286,7 @@ export class ComfortSystem {
       }
     };
 
-    animate();
+    animate(startTime);
   }
 
   /**
