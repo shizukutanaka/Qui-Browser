@@ -34,14 +34,7 @@ const {
   disposeMonitoring,
   initWebVitals,
   trackEvent,
-  captureError,
-  captureMessage,
-  trackFPS,
-  trackMemory,
-  trackInteraction,
-  trackVRSession,
-  trackVRError,
-  reportPerformanceSummary
+  captureMessage
 } = require('../src/monitoring.js');
 const { onINP } = require('web-vitals');
 
@@ -78,7 +71,7 @@ describe('monitoring.js', () => {
     expect(addCalls).toBe(2); // one per initializeMonitoring call
   });
 
-  test('disposeMonitoring removes listeners and clears interval', async () => {
+  test('disposeMonitoring removes listeners', async () => {
     await initializeMonitoring();
     disposeMonitoring();
     expect(document.removeEventListener).toHaveBeenCalledWith(
@@ -96,13 +89,6 @@ describe('monitoring.js', () => {
     }).not.toThrow();
   });
 
-  test('initializeMonitoring starts the performance-report interval', async () => {
-    await initializeMonitoring();
-    // Advance by one report interval (60 000ms)
-    jest.advanceTimersByTime(60000);
-    // reportPerformanceSummary fires — no crash
-  });
-
   // ── trackEvent ────────────────────────────────────────────────────────────────
   test('trackEvent does not throw without GA configured', () => {
     expect(() => trackEvent('test_event', { foo: 'bar' })).not.toThrow();
@@ -112,48 +98,9 @@ describe('monitoring.js', () => {
     expect(() => trackEvent('no_payload')).not.toThrow();
   });
 
-  // ── captureError ──────────────────────────────────────────────────────────────
-  test('captureError accepts Error objects', () => {
-    expect(() => captureError(new Error('oops'), { context: 'test' })).not.toThrow();
-  });
-
-  test('captureError accepts string messages', () => {
-    expect(() => captureError('something went wrong')).not.toThrow();
-  });
-
   // ── captureMessage ────────────────────────────────────────────────────────────
   test('captureMessage does not throw', () => {
     expect(() => captureMessage('hello', { level: 'info' })).not.toThrow();
-  });
-
-  // ── metric trackers ───────────────────────────────────────────────────────────
-  test('trackFPS does not throw', () => {
-    expect(() => trackFPS(90)).not.toThrow();
-  });
-
-  test('trackMemory does not throw', () => {
-    expect(() => trackMemory(256)).not.toThrow();
-  });
-
-  test('trackInteraction does not throw', () => {
-    expect(() => trackInteraction('click', 12)).not.toThrow();
-  });
-
-  // ── VR helpers ────────────────────────────────────────────────────────────────
-  test('trackVRSession does not throw', () => {
-    expect(() => trackVRSession('start', { device: 'Quest 3' })).not.toThrow();
-  });
-
-  test('trackVRError accepts Error and context', () => {
-    expect(() => trackVRError(new Error('vr fail'), { step: 'init' })).not.toThrow();
-  });
-
-  // ── reportPerformanceSummary ──────────────────────────────────────────────────
-  // Note: in the test environment MONITORING_CONFIG.enabled = false (not PROD),
-  // so reportPerformanceSummary() returns undefined early.  We verify it at least
-  // does not throw and behaves consistently with the disabled guard.
-  test('reportPerformanceSummary does not throw when disabled', () => {
-    expect(() => reportPerformanceSummary()).not.toThrow();
   });
 
   // ── Web Vitals INP threshold ──────────────────────────────────────────────────

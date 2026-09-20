@@ -37,7 +37,6 @@ const MONITORING_CONFIG = {
   // Performance monitoring
   performance: {
     enabled: true,
-    reportInterval: 60000, // Report every 60 seconds
     thresholds: {
       fcp: 1800,    // First Contentful Paint (ms)
       lcp: 2500,    // Largest Contentful Paint (ms)
@@ -128,28 +127,6 @@ async function initSentry() {
 }
 
 /**
- * Capture custom error
- */
-export function captureError(error, context = {}) {
-  if (!MONITORING_CONFIG.enabled) {
-    return;
-  }
-
-  // A synchronous try/catch cannot catch a rejected dynamic import; attach
-  // a .catch() so a failed Sentry load is logged rather than surfacing as an
-  // unhandled promise rejection.
-  import(/* @vite-ignore */ '@sentry/browser')
-    .then(({ captureException }) => {
-      captureException(error, {
-        contexts: { custom: context }
-      });
-    })
-    .catch((err) => {
-      console.error('Failed to capture error:', err);
-    });
-}
-
-/**
  * Capture custom message
  */
 export function captureMessage(message, level = 'info', context = {}) {
@@ -230,24 +207,6 @@ export function trackEvent(eventName, parameters = {}) {
   }
 }
 
-/**
- * Track page view
- */
-function trackPageView(path, title) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) {
-    return;
-  }
-
-  try {
-    window.gtag('config', MONITORING_CONFIG.analytics.measurementId, {
-      page_path: path,
-      page_title: title
-    });
-  } catch (error) {
-    console.error('GA4: Failed to track page view', error);
-  }
-}
-
 // ============================================================================
 // Web Vitals Monitoring
 // ============================================================================
@@ -316,157 +275,11 @@ function onVitalReport(metric) {
 }
 
 // ============================================================================
-// Custom Performance Monitoring
-// ============================================================================
-
-const performanceMetrics = {
-  fps: [],
-  memory: [],
-  loadTime: null,
-  interactions: []
-};
-
-/**
- * Track FPS
- */
-export function trackFPS(fps) {
-  performanceMetrics.fps.push({
-    value: fps,
-    timestamp: Date.now()
-  });
-
-  // Keep only recent data (last 100 samples)
-  if (performanceMetrics.fps.length > 100) {
-    performanceMetrics.fps.shift();
-  }
-
-  // Report if FPS drops below threshold
-  if (fps < 60) {
-    trackEvent('performance_fps_drop', {
-      fps: Math.round(fps),
-      severity: fps < 30 ? 'critical' : fps < 45 ? 'high' : 'medium'
-    });
-  }
-}
-
-/**
- * Track memory usage
- */
-export function trackMemory(memoryMB) {
-  performanceMetrics.memory.push({
-    value: memoryMB,
-    timestamp: Date.now()
-  });
-
-  // Keep only recent data
-  if (performanceMetrics.memory.length > 100) {
-    performanceMetrics.memory.shift();
-  }
-
-  // Report if memory exceeds threshold (500MB)
-  if (memoryMB > 500) {
-    trackEvent('performance_high_memory', {
-      memory_mb: Math.round(memoryMB),
-      severity: memoryMB > 1000 ? 'critical' : memoryMB > 750 ? 'high' : 'medium'
-    });
-  }
-}
-
-/**
- * Track user interaction
- */
-export function trackInteraction(type, details = {}) {
-  const interaction = {
-    type,
-    timestamp: Date.now(),
-    ...details
-  };
-
-  performanceMetrics.interactions.push(interaction);
-
-  // Keep only recent interactions (last 50)
-  if (performanceMetrics.interactions.length > 50) {
-    performanceMetrics.interactions.shift();
-  }
-
-  // Track in analytics
-  trackEvent('user_interaction', {
-    interaction_type: type,
-    ...details
-  });
-}
-
-/**
- * Report performance summary
- */
-export function reportPerformanceSummary() {
-  if (!MONITORING_CONFIG.enabled) {
-    return;
-  }
-
-  const summary = {
-    avgFPS: calculateAverage(performanceMetrics.fps.map(m => m.value)),
-    minFPS: performanceMetrics.fps.length > 0 ? Math.min(...performanceMetrics.fps.map(m => m.value)) : 0,
-    maxFPS: performanceMetrics.fps.length > 0 ? Math.max(...performanceMetrics.fps.map(m => m.value)) : 0,
-    avgMemory: calculateAverage(performanceMetrics.memory.map(m => m.value)),
-    maxMemory: performanceMetrics.memory.length > 0 ? Math.max(...performanceMetrics.memory.map(m => m.value)) : 0,
-    interactionCount: performanceMetrics.interactions.length,
-    sessionDuration: Date.now() - (performanceMetrics.fps[0]?.timestamp || Date.now())
-  };
-
-  trackEvent('performance_summary', summary);
-
-  return summary;
-}
-
-/**
- * Calculate average
- */
-function calculateAverage(values) {
-  if (values.length === 0) {
-    return 0;
-  }
-  return values.reduce((sum, val) => sum + val, 0) / values.length;
-}
-
-// ============================================================================
-// VR-Specific Monitoring
-// ============================================================================
-
-/**
- * Track VR session
- */
-export function trackVRSession(action, details = {}) {
-  trackEvent(`vr_${action}`, {
-    device: details.device || 'unknown',
-    mode: details.mode || 'immersive-vr',
-    ...details
-  });
-}
-
-/**
- * Track VR error
- */
-export function trackVRError(error, context = {}) {
-  captureError(error, {
-    category: 'vr',
-    ...context
-  });
-
-  trackEvent('vr_error', {
-    error_message: error.message,
-    error_type: error.name,
-    ...context
-  });
-}
-
-// ============================================================================
 // Initialization
 // ============================================================================
 
-// Module-level handles so initializeMonitoring() is idempotent and
+// Module-level listener handles so initializeMonitoring() is idempotent and
 // disposeMonitoring() can clean up everything.
-let _perfIntervalId = null;
 let _listeners = null;
 
 /**
@@ -487,13 +300,6 @@ export async function initializeMonitoring() {
   // Initialize performance monitoring
   await initWebVitals();
 
-  // Setup periodic performance reporting
-  if (MONITORING_CONFIG.performance.enabled) {
-    _perfIntervalId = setInterval(() => {
-      reportPerformanceSummary();
-    }, MONITORING_CONFIG.performance.reportInterval);
-  }
-
   const onVisibility = () => {
     if (document.hidden) {
       trackEvent('session_backgrounded');
@@ -503,7 +309,6 @@ export async function initializeMonitoring() {
   };
 
   const onUnload = () => {
-    reportPerformanceSummary();
     trackEvent('session_ended');
   };
 
@@ -518,10 +323,6 @@ export async function initializeMonitoring() {
  * Tear down all monitoring side-effects (interval + event listeners).
  */
 export function disposeMonitoring() {
-  if (_perfIntervalId !== null) {
-    clearInterval(_perfIntervalId);
-    _perfIntervalId = null;
-  }
   if (_listeners) {
     document.removeEventListener('visibilitychange', _listeners.onVisibility);
     window.removeEventListener('beforeunload', _listeners.onUnload);
@@ -529,48 +330,3 @@ export function disposeMonitoring() {
   }
 }
 
-// ============================================================================
-// Export Utilities
-// ============================================================================
-
-export default {
-  init: initializeMonitoring,
-  dispose: disposeMonitoring,
-  captureError,
-  captureMessage,
-  trackEvent,
-  trackPageView,
-  trackFPS,
-  trackMemory,
-  trackInteraction,
-  trackVRSession,
-  trackVRError,
-  reportPerformanceSummary
-};
-
-/**
- * Usage Example:
- *
- * // In app.js:
- * import monitoring from './monitoring.js';
- *
- * // Initialize
- * await monitoring.init();
- *
- * // Track events
- * monitoring.trackEvent('button_clicked', { button_id: 'vr-toggle' });
- *
- * // Track errors
- * try {
- *   // ... code ...
- * } catch (error) {
- *   monitoring.captureError(error, { context: 'initialization' });
- * }
- *
- * // Track VR
- * monitoring.trackVRSession('started', { device: 'Quest 3' });
- *
- * // Track performance
- * monitoring.trackFPS(90);
- * monitoring.trackMemory(450);
- */

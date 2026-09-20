@@ -823,6 +823,24 @@ Phase-3 抽出ロードマップの途中経過として生存判断。
 
 計測: verify:docs PASS（lint/test/build は前パスから差分なし — ドキュメントのみ）。
 
+### 第12パス（monitoring.js — 書き込み側が全て死んでいた計測層）
+
+manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring.js`
+（540行）のカスタム計測層は**フィーダー関数が全てテストのみ参照**と判明:
+`trackInteraction`・`trackVRError`・`captureError`・`trackFPS`・
+`trackMemory`・`trackVRSession`・`trackPageView` の src/内部呼び出しゼロ
+（数え上げた1件は JSDoc 使用例内の架空コードだった）。
+
+カスケード: trackFPS/trackMemory が死ぬと `performanceMetrics` は永遠に空
+→ `reportPerformanceSummary` は常時ゼロの要約を60秒間隔で発火する**意味論的
+死コード** → フィーダー・集計・定期レポート・`calculateAverage`・
+`performance.reportInterval`・消費者ゼロの default export バッグまで除去
+（−246行）。残存は実経路のみ: initSentry/initGoogleAnalytics（環境変数で
+活性化）・web-vitals（`trackEvent`+閾値超過→`captureMessage`）・セッション
+ライフサイクル・dispose。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 1.85s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
