@@ -111,6 +111,7 @@ const CATALOG = {
     'vr.settings.video360': '360° Video',
     'vr.settings.clearHistory': 'Clear History',
     'vr.settings.bookmarks': 'Bookmarks',
+    'vr.settings.privateMode': 'Private Mode',
     // VR Settings Panel Values
     'vr.value.on': 'ON',
     'vr.value.off': 'OFF',
@@ -253,6 +254,7 @@ const CATALOG = {
     'vr.settings.video360': '360°ビデオ',
     'vr.settings.clearHistory': '履歴を消去',
     'vr.settings.bookmarks': 'ブックマーク',
+    'vr.settings.privateMode': 'プライベート',
     // VR Settings Panel Values
     'vr.value.on': 'オン',
     'vr.value.off': 'オフ',
@@ -305,13 +307,13 @@ function detectLanguage() {
         return saved;
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   // NOTE: the `&&` chain yields `false` (a boolean) when navigator is absent —
   // calling .toLowerCase() on it throws at module-evaluation time. Normalize
   // to a string first so SSR / worker imports stay safe.
-  const nav = String(
-    (typeof navigator !== 'undefined' && navigator && navigator.language) || ''
-  ).toLowerCase();
+  const nav = String((typeof navigator !== 'undefined' && navigator && navigator.language) || '').toLowerCase();
   return nav.startsWith('ja') ? 'ja' : 'en';
 }
 
@@ -347,7 +349,9 @@ export function setLanguage(lang, root) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, lang);
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lang;
   }
@@ -369,12 +373,14 @@ export function applyTranslations(root) {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
   scope.querySelectorAll('[data-i18n-attr]').forEach((el) => {
-    el.getAttribute('data-i18n-attr').split(';').forEach((pair) => {
-      const [attr, key] = pair.split(':').map((s) => (s ? s.trim() : s));
-      if (attr && key) {
-        el.setAttribute(attr, t(key));
-      }
-    });
+    el.getAttribute('data-i18n-attr')
+      .split(';')
+      .forEach((pair) => {
+        const [attr, key] = pair.split(':').map((s) => (s ? s.trim() : s));
+        if (attr && key) {
+          el.setAttribute(attr, t(key));
+        }
+      });
   });
   if (typeof document !== 'undefined') {
     document.documentElement.lang = currentLang;

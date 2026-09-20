@@ -245,11 +245,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
-- **プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無（事後消去のみ）。真偽値ゲート1つ+設定トグルで実装可能
+- ~~**プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無~~ — **Session 75 で実装**。`settings.privateBrowsing`（既定 OFF）を `navigate()` が読み、`ON 時は履歴書き込みを完全にスキップ`（dedupe/visits 更新も発生しない）。設定パネルの Browsing セクションに `Private Mode` トグル追加（i18n en/ja、即時適用・リロード不要）。4テスト追加・pre-fix で2件失敗を確認済み
 - **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
 - **Stop（読み込み中断）**: `loading=true` を解除できるのは onload/onerror のみ
 - **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
-- **`scroll-down`/`scroll-up` の二重登録**: `VoiceCommands.js:366` と `:605` で同一キーを登録（`Map.set` なので後者が勝つ）。前者は `window.scrollBy` で没入時には無意味。害は無いが混乱の元
+- ~~**`scroll-down`/`scroll-up` の二重登録**~~ — **解消済み**（Session 74 以前）。`VoiceCommands.js:365` の NOTE どおり `connectBrowser()` でのみ登録される。重複は存在しない
+- **SW が2経路で発散**: `vercel.json` は `outputDirectory: "."`（リポジトリルート配信）で **root の `service-worker.js`（457行・v2.0.0実装）** が配信物。vite ビルド（`publicDir: 'public'`）では **`public/service-worker.js`（492行・別実装）** が配信物。`public/sw.js`（418行・`public/js/pwa.js` が登録）は vercel-root 配信では `/sw.js` に到達しない = **pwa.js の登録パスが vercel では 404**。3つの SW 実装が併存し、どれが「正」かはデプロイ先で変わる。統一か整理が必要（Session 75 発見・未修正）
 
 ---
 
@@ -543,10 +544,25 @@ Session 74 で**改めて実際に push を試行して再確認**）ため、�
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch
+git am docs/patches/0002-ci-remove-dead-steps.patch
 git push
 ```
 
 該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、修正ではなく**削除**が正しい。
+
+**追記（Session 75）**: `ci.yml` には assets/js 参照以外にも**常に赤になる死んだステップ**があり、
+main の最新コミット（PR #56 マージ時点）の実走行ログで確認した:
+
+| ジョブ | 実測の失敗原因 |
+|---|---|
+| `test-unit` | jest は **1480件すべて PASS**。直後の `cicirello/jacoco-badge-generator`（**Java 用ツール**）が `target/site/jacoco/jacoco.csv` 不在で `on-missing-report: fail` → ジョブ全体が赤 |
+| `test-integration` | `tests/tier-system-integration.test.js` は Session 74 の削除で**存在しない** → "No tests found"。そもそも `test-unit` が全件走るので重複 |
+| `build` | matrix に **Node 16** — `engines: >=18` 違反（vite 5 / sharp 0.34 / babel-jest 30 すべて ≥18 要求） |
+| `lint` | `npm run lint` が ESLint 9 で起動すらしなかった（Session 75 で eslint.config.js に移行し解消）+ `format:check` は **261ファイル未フォーマットで一度も緑になっていなかった**（Session 75 で解消） |
+
+→ `docs/patches/0002-ci-remove-dead-steps.patch` が jacoco ステップ削除・test-integration ジョブ削除・
+matrix `[18,20]`・summary の needs/条件から test-integration 除去を行う（`git apply --check` で origin/main にクリーン適用を確認済み）。
+リポジトリ側の修正（eslint.config.js / package-lock の platform deps / .prettierignore + 全コード整形）は PR で別途入る。
 
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。

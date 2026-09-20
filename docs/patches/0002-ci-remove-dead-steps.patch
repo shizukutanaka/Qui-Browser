@@ -1,0 +1,124 @@
+From 050e4d60bf1bd6c369fb304ebf28b60eb28c89ce Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sat, 19 Sep 2026 22:50:02 -0700
+Subject: [PATCH] ci: remove dead steps that made every run red
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- test-unit: drop jacoco-badge-generator (Java coverage tool; jacoco.csv
+  never exists and on-missing-report:fail failed the job even though all
+  1480 jest tests passed)
+- test-integration: delete job (ran tests/tier-system-integration.test.js,
+  deleted in the Session 74 purge; the file no longer exists so the job
+  fails with 'No tests found', and it duplicated test-unit anyway)
+- build: drop node 16 from the matrix (package.json engines is >=18;
+  vite 5, sharp 0.34 and babel-jest 30 all require >=18)
+- summary: drop test-integration from needs/table/conditions
+
+Co-Authored-By: うめ <app.shizukutanaka@gmail.com>
+---
+ .github/workflows/ci.yml | 45 ++--------------------------------------
+ 1 file changed, 2 insertions(+), 43 deletions(-)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7e514a4..c097a5f 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -87,12 +87,6 @@ jobs:
+           name: codecov-umbrella
+           fail_ci_if_error: false
+ 
+-      - name: Generate coverage badge
+-        uses: cicirello/jacoco-badge-generator@v2
+-        with:
+-          badges-directory: badges
+-          generate-coverage-badge: true
+-
+       - name: Upload coverage reports
+         uses: actions/upload-artifact@v4
+         with:
+@@ -100,38 +94,6 @@ jobs:
+           path: coverage/
+           retention-days: 30
+ 
+-  # ============================================================================
+-  # JOB 3: Integration Tests
+-  # ============================================================================
+-  test-integration:
+-    name: Integration Tests
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 15
+-
+-    steps:
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-
+-      - name: Setup Node.js
+-        uses: actions/setup-node@v4
+-        with:
+-          node-version: ${{ env.NODE_VERSION }}
+-          cache: 'npm'
+-
+-      - name: Install dependencies
+-        run: npm ci
+-
+-      - name: Run tier system integration tests
+-        run: npm test -- tests/tier-system-integration.test.js --maxWorkers=2
+-
+-      - name: Upload test results
+-        uses: actions/upload-artifact@v4
+-        if: always()
+-        with:
+-          name: integration-test-results
+-          path: test-results/
+-          retention-days: 30
+-
+   # ============================================================================
+   # JOB 4: Performance Tests
+   # ============================================================================
+@@ -179,7 +141,7 @@ jobs:
+ 
+     strategy:
+       matrix:
+-        node-version: [16, 18, 20]
++        node-version: [18, 20]
+ 
+     steps:
+       - name: Checkout code
+@@ -339,7 +301,7 @@ jobs:
+   summary:
+     name: CI Summary
+     runs-on: ubuntu-latest
+-    needs: [lint, test-unit, test-integration, test-performance, build, lighthouse, docker, security]
++    needs: [lint, test-unit, test-performance, build, lighthouse, docker, security]
+     if: always()
+ 
+     steps:
+@@ -351,7 +313,6 @@ jobs:
+           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+           echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
+-          echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| Performance Tests | ${{ needs.test-performance.result }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| Lighthouse | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
+@@ -362,7 +323,6 @@ jobs:
+         if: |
+           needs.lint.result == 'failure' ||
+           needs.test-unit.result == 'failure' ||
+-          needs.test-integration.result == 'failure' ||
+           needs.build.result == 'failure'
+         run: |
+           echo "❌ CI pipeline failed. Please check the logs."
+@@ -372,7 +332,6 @@ jobs:
+         if: |
+           needs.lint.result == 'success' &&
+           needs.test-unit.result == 'success' &&
+-          needs.test-integration.result == 'success' &&
+           needs.build.result == 'success'
+         run: |
+           echo "✅ All CI checks passed successfully!"
+-- 
+2.50.1 (Apple Git-155)
+

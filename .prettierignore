@@ -33,3 +33,11 @@ benchmark-results.*
 # Temporary files
 *.tmp
 *.temp
+
+# Frozen archival docs and dead prototype — formatting churn has no value
+docs/
+examples/
+mvp/
+
+# Workflow files (push requires elevated token — see OUTSTANDING_ISSUES K-1)
+.github/

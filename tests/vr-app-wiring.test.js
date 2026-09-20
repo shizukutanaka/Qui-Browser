@@ -22,13 +22,24 @@ jest.mock('three/examples/jsm/webxr/VRButton.js', () => ({
   VRButton: { createButton: () => ({}) }
 }));
 jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
-  XRControllerModelFactory: class { createControllerModel() { return {}; } }
+  XRControllerModelFactory: class {
+    createControllerModel() {
+      return {};
+    }
+  }
 }));
 
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
 const ctx2d = {
-  fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
-  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn()
+  fillStyle: '',
+  strokeStyle: '',
+  lineWidth: 0,
+  font: '',
+  textAlign: '',
+  textBaseline: '',
+  fillRect: jest.fn(),
+  strokeRect: jest.fn(),
+  fillText: jest.fn()
 };
 global.document = {
   createElement: (tag) => {
@@ -149,7 +160,7 @@ describe('VRApp.registerInteractable / unregisterInteractable', () => {
     const mesh = { userData: {} };
     VRApp.prototype.registerInteractable.call(app, mesh, {});
     VRApp.prototype.registerInteractable.call(app, mesh, {});
-    expect(app.interactables.filter(o => o === mesh)).toHaveLength(1);
+    expect(app.interactables.filter((o) => o === mesh)).toHaveLength(1);
   });
 
   test('unregisterInteractable removes a previously registered object', () => {
@@ -175,7 +186,7 @@ describe('VRApp.onControllerSelect — press (hit-test dispatch)', () => {
     return app;
   }
 
-  test('fires the hit object\'s onSelect handler with the intersection and controller', () => {
+  test("fires the hit object's onSelect handler with the intersection and controller", () => {
     const onSelect = jest.fn();
     const target = { userData: { interactable: { onSelect } }, dispatchEvent: jest.fn() };
     const hit = { object: target };
@@ -468,7 +479,7 @@ function makeSystemsApp(overrides = {}) {
 }
 
 describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
-  test('an activation fires a both-hands haptic click and a spatial click at the activated object\'s position', () => {
+  test("an activation fires a both-hands haptic click and a spatial click at the activated object's position", () => {
     const activatedMesh = { getWorldPosition: jest.fn((v) => v) };
     const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
     const app = makeSystemsApp({ gazeInteraction });
@@ -618,8 +629,12 @@ describe('VRApp.gazeInteraction getter/setter (delegates to AccessibilityCoordin
 describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
   // onVRSessionEnd() restores desktop pixel ratio via window.devicePixelRatio;
   // this suite runs under the 'node' test environment, which has no window.
-  beforeEach(() => { global.window = { devicePixelRatio: 1 }; });
-  afterEach(() => { delete global.window; });
+  beforeEach(() => {
+    global.window = { devicePixelRatio: 1 };
+  });
+  afterEach(() => {
+    delete global.window;
+  });
 
   /** Bare `this` with just the fields onVRSessionEnd() reads/writes. */
   function makeSessionEndApp(overrides = {}) {
@@ -639,7 +654,7 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
     };
   }
 
-  test('disposes handTracking so re-entry does not leak the previous session\'s hand models', () => {
+  test("disposes handTracking so re-entry does not leak the previous session's hand models", () => {
     const handTracking = { dispose: jest.fn() };
     const app = makeSessionEndApp({ handTracking });
     VRApp.prototype.onVRSessionEnd.call(app);
@@ -656,7 +671,10 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
     const immersiveVideo = { stop: jest.fn() };
     const handTracking = { dispose: jest.fn() };
     const app = makeSessionEndApp({
-      layersSystem, immersiveVideo, handTracking, tabManager: { tabs: [] }
+      layersSystem,
+      immersiveVideo,
+      handTracking,
+      tabManager: { tabs: [] }
     });
     VRApp.prototype.onVRSessionEnd.call(app);
     expect(layersSystem.dispose).toHaveBeenCalledTimes(1);
@@ -696,12 +714,12 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
     const app = makeVRAppLike({ comfortSystem: null, gazeInteraction: null, captionSystem: null });
     VRApp.prototype._setupOSAccessibilityListeners.call(app);
 
-    expect(mqs['(prefers-reduced-motion: reduce)'].addEventListener)
-      .toHaveBeenCalledWith('change', expect.any(Function));
-    expect(mqs['(prefers-contrast: more)'].addEventListener)
-      .toHaveBeenCalledWith('change', expect.any(Function));
-    expect(mqs['(forced-colors: active)'].addEventListener)
-      .toHaveBeenCalledWith('change', expect.any(Function));
+    expect(mqs['(prefers-reduced-motion: reduce)'].addEventListener).toHaveBeenCalledWith(
+      'change',
+      expect.any(Function)
+    );
+    expect(mqs['(prefers-contrast: more)'].addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+    expect(mqs['(forced-colors: active)'].addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 
   test('a reduced-motion OS change propagates live to comfortSystem and gazeInteraction', () => {
@@ -768,7 +786,13 @@ function makeTeleportApp(overrides = {}) {
   return makeVRAppLike({
     teleport: { active: false, controller: null, marker: { visible: false }, target: null, valid: false },
     playerRig: { position: { x: 0, y: 0, z: 0 } },
-    camera: { getWorldPosition: (v) => { v.x = 0; v.z = 0; return v; } },
+    camera: {
+      getWorldPosition: (v) => {
+        v.x = 0;
+        v.z = 0;
+        return v;
+      }
+    },
     // onTeleportEnd()/_cancelTeleportIfAimedBy() call this.\_resetTeleportAim()
     // internally — supply the real prototype method so that internal call
     // resolves (the fake `this` here is a plain object literal, not an
@@ -792,7 +816,9 @@ describe('VRApp._resetTeleportAim', () => {
   });
 
   test('no-ops safely with no marker', () => {
-    const app = makeTeleportApp({ teleport: { active: true, valid: false, controller: {}, marker: null, target: null } });
+    const app = makeTeleportApp({
+      teleport: { active: true, valid: false, controller: {}, marker: null, target: null }
+    });
     expect(() => VRApp.prototype._resetTeleportAim.call(app)).not.toThrow();
   });
 });
@@ -813,7 +839,13 @@ describe('VRApp._cancelTeleportIfAimedBy', () => {
     const aimingController = {};
     const disconnectingController = {}; // a different controller
     const app = makeTeleportApp({
-      teleport: { active: true, valid: true, controller: aimingController, marker: { visible: true }, target: { x: 1, z: 2 } }
+      teleport: {
+        active: true,
+        valid: true,
+        controller: aimingController,
+        marker: { visible: true },
+        target: { x: 1, z: 2 }
+      }
     });
     VRApp.prototype._cancelTeleportIfAimedBy.call(app, disconnectingController);
     expect(app.teleport.active).toBe(true);
@@ -837,16 +869,17 @@ describe('VRApp._onWebPanelToggleChanged', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  const makeToggleApp = (over = {}) => makeVRAppLike({
-    isVREnabled: true,
-    camera: { add: jest.fn(), remove: jest.fn() },
-    showVRToast: VRApp.prototype.showVRToast,
-    _buildBrowsingSystems: jest.fn(),
-    _teardownBrowsingSystems: jest.fn(),
-    _attachManagedWindow: jest.fn(),
-    settings: { enableWebPanel: false },
-    ...over
-  });
+  const makeToggleApp = (over = {}) =>
+    makeVRAppLike({
+      isVREnabled: true,
+      camera: { add: jest.fn(), remove: jest.fn() },
+      showVRToast: VRApp.prototype.showVRToast,
+      _buildBrowsingSystems: jest.fn(),
+      _teardownBrowsingSystems: jest.fn(),
+      _attachManagedWindow: jest.fn(),
+      settings: { enableWebPanel: false },
+      ...over
+    });
 
   test('turning it ON builds the browsing systems immediately', () => {
     const app = makeToggleApp();
@@ -891,7 +924,6 @@ describe('VRApp._onWebPanelToggleChanged', () => {
   });
 });
 
-
 describe('VRApp._clearBrowsingHistory (privacy action)', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
@@ -900,7 +932,10 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
     const camera = { add: jest.fn(), remove: jest.fn() };
     const bookmarks = { clearHistory: jest.fn() };
     const app = makeVRAppLike({
-      isVREnabled: true, camera, bookmarks, bookmarkPanel: null,
+      isVREnabled: true,
+      camera,
+      bookmarks,
+      bookmarkPanel: null,
       showVRToast: VRApp.prototype.showVRToast
     });
     VRApp.prototype._clearBrowsingHistory.call(app);
@@ -915,7 +950,10 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
     const bookmarks = { clearHistory: jest.fn() };
     const bookmarkPanel = { visible: true, _draw: jest.fn() };
     const app = makeVRAppLike({
-      isVREnabled: true, camera, bookmarks, bookmarkPanel,
+      isVREnabled: true,
+      camera,
+      bookmarks,
+      bookmarkPanel,
       showVRToast: VRApp.prototype.showVRToast
     });
     VRApp.prototype._clearBrowsingHistory.call(app);
@@ -982,9 +1020,7 @@ describe('VRApp._detachPanelLayer', () => {
   test('removes the layer with the live session and base layer', () => {
     const app = makeLayerApp();
     VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_1');
-    expect(app.layersSystem.removeLayer).toHaveBeenCalledWith(
-      'panel_chrome_1', { id: 'session' }, { id: 'base' }
-    );
+    expect(app.layersSystem.removeLayer).toHaveBeenCalledWith('panel_chrome_1', { id: 'session' }, { id: 'base' });
   });
 
   test('no-ops safely when layersSystem is not present (Layers unsupported)', () => {
@@ -996,13 +1032,14 @@ describe('VRApp._detachPanelLayer', () => {
 describe('VRApp._buildBrowsingSystems / _teardownBrowsingSystems', () => {
   // Symmetry matters more than usual here: the toggle can now be flipped any
   // number of times in a live session, so a leak or a double-build compounds.
-  const makeApp = () => makeVRAppLike({
-    scene: { add: jest.fn(), remove: jest.fn() },
-    windowManager: { detach: jest.fn(), attach: jest.fn(), target: null },
-    tabManager: null,
-    bookmarkPanel: null,
-    webPanel: null
-  });
+  const makeApp = () =>
+    makeVRAppLike({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      windowManager: { detach: jest.fn(), attach: jest.fn(), target: null },
+      tabManager: null,
+      bookmarkPanel: null,
+      webPanel: null
+    });
 
   test('teardown disposes the tab manager and the bookmark panel, and detaches', () => {
     const app = makeApp();
@@ -1057,20 +1094,23 @@ describe('VRApp._requestReaderProxyInput — the proxy setting is finally reacha
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  const makeProxyApp = (over = {}) => makeVRAppLike({
-    isVREnabled: true,
-    camera: { add: jest.fn(), remove: jest.fn() },
-    showVRToast: VRApp.prototype.showVRToast,
-    settings: { readerProxyUrl: '' },
-    updateSetting: jest.fn(function (k, v) { this.settings[k] = v; }),
-    tabManager: { setReaderProxyUrl: jest.fn() },
-    // Captures the confirm callback so each test can play the typed input.
-    _requestVRKeyboardInput: jest.fn(function (prefill, onConfirm) {
-      this._kbPrefill = prefill;
-      this._kbConfirm = onConfirm;
-    }),
-    ...over
-  });
+  const makeProxyApp = (over = {}) =>
+    makeVRAppLike({
+      isVREnabled: true,
+      camera: { add: jest.fn(), remove: jest.fn() },
+      showVRToast: VRApp.prototype.showVRToast,
+      settings: { readerProxyUrl: '' },
+      updateSetting: jest.fn(function (k, v) {
+        this.settings[k] = v;
+      }),
+      tabManager: { setReaderProxyUrl: jest.fn() },
+      // Captures the confirm callback so each test can play the typed input.
+      _requestVRKeyboardInput: jest.fn(function (prefill, onConfirm) {
+        this._kbPrefill = prefill;
+        this._kbConfirm = onConfirm;
+      }),
+      ...over
+    });
 
   test('valid input persists, applies to open tabs immediately, and confirms', () => {
     const app = makeProxyApp();
@@ -1114,6 +1154,42 @@ describe('VRApp._requestReaderProxyInput — the proxy setting is finally reacha
   });
 });
 
+describe('VRApp.navigate — private browsing gate', () => {
+  // F-4: navigate() used to write every visit to the persisted history store
+  // unconditionally — a browser had "clear afterwards" but no "don't record"
+  // (the proactive half of the privacy control, FR-9.x). The setting toggles
+  // live in the Browsing section and needs no apply callback: navigate() reads
+  // it on every load, so the persisted flip is the entire effect.
+  const makeNavApp = (privateBrowsing) =>
+    makeVRAppLike({
+      settings: { privateBrowsing },
+      bookmarks: { addHistory: jest.fn() }
+    });
+
+  test('records the visit in history when private mode is off', () => {
+    const app = makeNavApp(false);
+    VRApp.prototype.navigate.call(app, 'https://example.com', 'Example');
+    expect(app.bookmarks.addHistory).toHaveBeenCalledWith('https://example.com', 'Example');
+  });
+
+  test('writes nothing to persisted history when private mode is on', () => {
+    const app = makeNavApp(true);
+    VRApp.prototype.navigate.call(app, 'https://example.com', 'Example');
+    expect(app.bookmarks.addHistory).not.toHaveBeenCalled();
+  });
+
+  test('still announces the loaded title — private mode hides persistence, not feedback', () => {
+    const app = makeNavApp(true);
+    VRApp.prototype.navigate.call(app, 'https://example.com', 'Example');
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Example');
+  });
+
+  test('defaults OFF — recording history stays the shipped behavior', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+    expect(src).toMatch(/privateBrowsing:\s*false,/);
+  });
+});
+
 describe('the browsing default', () => {
   test('enableWebPanel defaults ON — the core loop ships enabled', () => {
     // This pins a deliberate product decision (Session 74), not an accident.
@@ -1124,9 +1200,7 @@ describe('the browsing default', () => {
     // A browser whose browsing is invisible by default is not finished.
     // Reverting is one line here — but whoever flips it back inherits the
     // burden of saying which of those conditions regressed.
-    const src = require('fs').readFileSync(
-      require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
-    );
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
     expect(src).toMatch(/enableWebPanel:\s*true,/);
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
   });
