@@ -11,7 +11,6 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
-import { LayersSystem } from './rendering/LayersSystem.js';
 import { ComfortSystem, resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 import { debounce } from '../utils/debounce.js';
 
@@ -42,6 +41,7 @@ import { detectVideoFormat } from './media/videoProjection.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
+import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
@@ -1308,6 +1308,14 @@ export class VRApp {
   /**
    * Setup WebXR
    */
+  async onVRSessionStart() {
+    return onVRSessionStart(this);
+  }
+
+  onVRSessionEnd() {
+    return onVRSessionEnd(this);
+  }
+
   setupVR() {
     // Add VR button to page
     const vrButton = VRButton.createButton(this.renderer);
@@ -1346,159 +1354,10 @@ export class VRApp {
   /**
    * Handle VR session start
    */
-  async onVRSessionStart() {
-    console.debug('VRApp: VR session started');
-    this.isVREnabled = true;
-
-    // Get XR session
-    const session = this.renderer.xr.getSession();
-
-    // Headset removed / system menu shown / session blurred: the DOM
-    // 'visibilitychange' wired in setupVR() does NOT fire for this while an
-    // immersive session is presenting — XRSession.visibilityState
-    // ('hidden' | 'visible-blurred') is the authoritative signal. Pause the
-    // immersive video so audio doesn't keep playing to an empty headset.
-    if (session) {
-      this.onXRVisibilityChange = () => {
-        if (session.visibilityState !== 'visible'
-            && this.immersiveVideo && this.immersiveVideo.playing) {
-          this.immersiveVideo.togglePause();
-        }
-      };
-      session.addEventListener('visibilitychange', this.onXRVisibilityChange);
-    }
-
-    // Initialize FFR for this session
-    const gl = this.renderer.getContext();
-    if (this.ffrSystem && session) {
-      try {
-        await this.ffrSystem.initialize(session, gl);
-        this.ffrSystem.enable(0.5);
-        console.debug('VRApp: FFR enabled for session');
-      } catch (e) {
-        console.error('VRApp: FFR session init failed', e);
-        this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });
-        this.ffrSystem = null;
-      }
-    }
-
-    // FR-1.5: WebXR Layers for sharp browser-panel text.
-    // Initialise the binding and, if supported, attach a quad layer to every
-    // open WebPanel so the chrome bar renders at native display resolution.
-    if (this.settings.enableWebPanel && session) {
-      try {
-        this.layersSystem = new LayersSystem();
-        const layersOk = this.layersSystem.initialize(session, gl);
-        if (layersOk) {
-          this._attachLayersToPanels(session);
-        }
-      } catch (e) {
-        console.error('VRApp: WebXR Layers init failed', e);
-        this.showVRToast(t('vr.error.layersUnavailable'), { type: 'warn' });
-        this.layersSystem = null;
-      }
-    }
-
-    // Update comfort system FOV baseline for VR (reset to device-appropriate value).
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = 90;
-    }
-
-    // Initialize hand tracking
-    if (this.handTracking && session) {
-      await this.handTracking.initialize(session);
-
-      // Register gesture callbacks
-      this.handTracking.onGesture('pinch', (hand, _gesture) => {
-        console.debug(`${hand} hand pinch detected`);
-        // Play spatial sound at pinch position
-        if (this.spatialAudio) {
-          const pos = this.handTracking.getPinchPosition(hand);
-          if (pos) {
-            this.spatialAudio.play('click', 'click', pos);
-          }
-        }
-        // Haptic confirmation on pinch (lightweight click feel).
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'click');
-        }
-      });
-
-      this.handTracking.onGesture('grab', (hand) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'impact');
-        }
-      });
-
-      this.handTracking.onGesture('point', (hand, _gesture) => {
-        console.debug(`${hand} hand pointing`);
-      });
-    }
-
-    // Adjust render settings for VR
-    this.renderer.setPixelRatio(1); // Don't use device pixel ratio in VR
-
-    // WCAG 4.1.3: announce that the VR environment is ready so caption-reliant
-    // users know the session started without relying on the visual transition.
-    if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show(t('vr.msg.vrReady'));
-    }
-  }
 
   /**
    * Handle VR session end
    */
-  onVRSessionEnd() {
-    console.debug('VRApp: VR session ended');
-    this.isVREnabled = false;
-
-    // Disable FFR
-    if (this.ffrSystem) {
-      this.ffrSystem.disable();
-    }
-
-    // Restore desktop FOV baseline when leaving VR.
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = this.camera.fov || 90;
-    }
-
-    // FR-1.5: detach layers from panels and dispose binding.
-    if (this.layersSystem) {
-      const panels = this.tabManager
-        ? this.tabManager.tabs
-        : (this.webPanel ? [this.webPanel] : []);
-      for (const panel of panels) {
-        // false: don't re-commit render state per panel — dispose() below
-        // clears the whole stack, and updateRenderState() on an ending
-        // session throws.
-        panel.disableLayerMode(false);
-      }
-      this.layersSystem.dispose();
-      this.layersSystem = null;
-    }
-
-    // The immersive video only makes sense inside the session; tear it down with
-    // it so audio/GPU/sphere don't outlive the context that justified them.
-    if (this.immersiveVideo) {
-      this.immersiveVideo.stop();
-    }
-
-    // Hand models/joint meshes are session-scoped: initialize() rebuilds them
-    // unconditionally on the next onVRSessionStart() without ever removing the
-    // previous session's leftHand/rightHand groups from the scene. Without this,
-    // every VR re-entry (headset removed, system menu, re-enter) leaks a full
-    // set of 50 joint meshes as permanent, frozen "ghost hands".
-    if (this.handTracking) {
-      this.handTracking.dispose();
-    }
-
-    // The XRSession is discarded on end (its visibilitychange listener dies with
-    // it); just drop our reference so a stale closure can't be reused.
-    this.onXRVisibilityChange = null;
-
-    // Restore render settings
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  }
 
   /**
    * FR-1.5: Create one XRQuadLayer per open WebPanel and wire it up.

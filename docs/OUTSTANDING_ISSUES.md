@@ -1283,6 +1283,18 @@ build 4.5s（再起動後コールドキャッシュ）・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 92 warnings（0 errors）・
 build 0.84s・vr-boot PASS。
 
+### 第44パス（C-1 追加スライス: sessionLifecycle 抽出）
+
+- `src/vr/sessionLifecycle.js` 新設: onVRSessionStart/onVRSessionEnd
+  （~147行・FFR/Layers/handTracking/immersiveVideo の per-session 遷移）を
+  `fn(app)` として移動。
+- 連鎖孤児: VRApp 側 LayersSystem import 除去。
+- brace-style 違反を修正（delegate を複数行化 — パス39分も統一）。
+- VRApp 2,059 → 1,918 行（−141行）。C-1 累計 −1,336行（3,254→1,918）。
+
+計測: 43 suites / 1,343 tests・lint 92 warnings（0 errors）・
+build 0.74s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
