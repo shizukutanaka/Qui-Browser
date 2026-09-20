@@ -116,6 +116,15 @@ function setupPerformanceMonitor() {
  */
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
+    // Single-key shortcuts must not fire while the user is typing somewhere
+    // (DevTools REPL input), while a modifier is held (Ctrl+C = copy must not
+    // also cycle comfort presets), or on key autorepeat.
+    const target = event.target;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat
+        || (target && (target.isContentEditable
+          || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'))) {
+      return;
+    }
     switch (event.key) {
     case 'p':
     case 'P': {

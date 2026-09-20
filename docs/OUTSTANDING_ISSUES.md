@@ -1636,3 +1636,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第119パス（実修正 — CSP が GA4 スクリプトをブロック）
 WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src https:` は必要を確認。一方 **`script-src 'self'` が `googletagmanager.com/gtag.js` をブロック**し、VITE_GA_MEASUREMENT_ID 設定時でも GA4 は読み込めず完全に沈黙していた（catch→console.error→本番で strip）→ `script-src` に `https://www.googletagmanager.com` を追加。`object-src` は default-src 'self' 継承で適切、iframe sandbox 属性確認済み。
+
+### 第120パス（実修正 — 裸キーショートカットの衝突）
+`app.js` の単一キー p/f/c/Escape が修飾キー無チェック・発火元無チェック — **Ctrl+C（コピー）で comfort preset が回り、Ctrl+F（検索）で FFR が切替、DevTools REPL で 'p'/'f'/'c' を打つと入力しながらパネルがトグル**。`ctrlKey|metaKey|altKey|repeat`・INPUT/TEXTAREA/contentEditable のガードを追加（Escape はガード後でも生存 — 修飾無し時のみ）。
