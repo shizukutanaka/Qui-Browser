@@ -1711,3 +1711,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第144パス（クリーンスキャン — innerHTML 補間最終確認）
 innerHTML は全て静的テンプレートか数値のみ（DevTools タブ/perfDisplay）。ユーザー由来テキストは `createTextNode`/`textContent` 一貫使用 — HTML 注入経路ゼロ。
+
+### 第145パス（クリーンスキャン — Blob/オブジェクトURL）
+`createObjectURL`/`Blob`/`FileReader` はコードベースに存在しない — オブジェクトURL リーク経路は構造的に非存在。queueMicrotask/requestIdleCallback も不使用。
