@@ -1741,3 +1741,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第154パス（クリーンスキャン — ナビ履歴）
 `back`/`forward` は境界ガード付き（historyIdx > 0 / < length-1）、navigate 時は forward 履歴を slice で正しく切断、ボタンは canBack/canForward で dim — index 境界バグなし。
+
+### 第155パス（クリーンスキャン — Promise 実行子/部分失敗）
+`new Promise` は3箇所全て同期 executor（sleep・proxy リクエスト・ボディ収集）、各々 resolve 経路完備（end/error/size-limit）。async executor の reject 飲み込みゼロ。
