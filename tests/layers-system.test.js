@@ -173,3 +173,78 @@ describe('LayersSystem (FR-1.5)', () => {
     expect(ls.glBinding).toBeNull();
   });
 });
+
+describe('LayersSystem renderCanvasToLayer + error paths', () => {
+  let ls, gl, session;
+  beforeEach(() => {
+    ls = new LayersSystem();
+    gl = makeGL();
+    session = makeSession();
+    lastBinding = null;
+  });
+
+  test('blits the canvas into each view\'s sub-image, then unbinds', () => {
+    ls.initialize(session, gl);
+    const layer = ls.createQuadLayer({ id: 'p', space: {}, width: 1, height: 1 });
+    const source = { _canvas: true };
+    ls.renderCanvasToLayer(layer, source, {}, [{}, {}]);
+    expect(gl.bindFramebuffer).toHaveBeenCalledTimes(3); // per-view + final null
+    expect(gl.viewport).toHaveBeenCalledTimes(2);
+    expect(gl.bindTexture).toHaveBeenCalledTimes(2);
+    expect(gl.texSubImage2D).toHaveBeenCalledTimes(2);
+    // finally: framebuffer released
+    expect(gl.bindFramebuffer).toHaveBeenLastCalledWith(gl.FRAMEBUFFER, null);
+  });
+
+  test('views without a sub-image framebuffer are skipped, others still blit', () => {
+    ls.initialize(session, gl);
+    const layer = ls.createQuadLayer({ id: 'p', space: {}, width: 1, height: 1 });
+    const orig = ls.glBinding.getViewSubImage.bind(ls.glBinding);
+    let i = 0;
+    ls.glBinding.getViewSubImage = (l, v) =>
+      i++ === 0 ? { framebuffer: null } : orig(l, v);
+    ls.renderCanvasToLayer(layer, {}, {}, [{}, {}]);
+    expect(gl.texSubImage2D).toHaveBeenCalledTimes(1);
+  });
+
+  test('a GL failure warns once, not per-call', () => {
+    ls.initialize(session, gl);
+    const layer = ls.createQuadLayer({ id: 'p', space: {}, width: 1, height: 1 });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    gl.bindFramebuffer.mockImplementation(() => { throw new Error('gl dead'); });
+    ls.renderCanvasToLayer(layer, {}, {}, [{}]);
+    ls.renderCanvasToLayer(layer, {}, {}, [{}]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  test('no-ops before initialize / without gl / without views', () => {
+    const raw = new LayersSystem();
+    expect(() => raw.renderCanvasToLayer({}, {}, {}, [{}])).not.toThrow();
+    ls.initialize(session, gl);
+    ls._gl = null;
+    const layer = ls.createQuadLayer({ id: 'p', space: {}, width: 1, height: 1 });
+    expect(() => ls.renderCanvasToLayer(layer, {}, {}, [{}])).not.toThrow();
+    ls._gl = gl;
+    expect(() => ls.renderCanvasToLayer(layer, {}, {}, [])).not.toThrow();
+  });
+
+  test('createQuadLayer failure returns null and warns', () => {
+    ls.initialize(session, gl);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    ls.glBinding.createQuadLayer = () => { throw new Error('unsupported'); };
+    const layer = ls.createQuadLayer({ id: 'x', space: {}, width: 1, height: 1 });
+    expect(layer).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  test('updateRenderState failure warns but does not throw', () => {
+    ls.initialize(session, gl);
+    session.updateRenderState.mockImplementation(() => { throw new Error('gone'); });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => ls.updateRenderState(session, null)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith('LayersSystem: updateRenderState failed', expect.any(Error));
+    warn.mockRestore();
+  });
+});

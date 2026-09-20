@@ -162,7 +162,9 @@ export class LayersSystem {
       }
     } finally {
       if (gl) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        try {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        } catch { /* a dead GL context must not escape a per-frame path */ }
       }
     }
   }
