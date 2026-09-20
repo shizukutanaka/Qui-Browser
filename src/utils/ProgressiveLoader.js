@@ -74,6 +74,10 @@ export class ProgressiveLoader {
       // Listen for network changes (handler kept so dispose() can remove it).
       this.networkChangeHandler = () => this.onNetworkChange();
       conn.addEventListener('change', this.networkChangeHandler);
+
+      // Apply the strategy for the connection detected at boot — without this,
+      // a user who loads on 2g keeps the 4g defaults until the network changes.
+      this.adjustStrategy();
     }
 
     console.debug('ProgressiveLoader: Network detected', this.network);
