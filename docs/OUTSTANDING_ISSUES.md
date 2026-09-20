@@ -1504,3 +1504,6 @@ VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テ�
 
 ### 第75パス（catch 走査 — 実バグ摘出）
 SpatialAudio の inner catch が async init 失敗を握り潰し、systemsLifecycle の外側 toast が構造的に到達不能だった（WCAG 4.1.3 違反）。`onInitError` コールバックで toast を実経路化。`offline.html` は SW precache+navigate fallback で生存確認。他の log-only catch（GA4/web-vitals/haptic/settings persist）は全て正当。
+
+### 第76パス（fire-and-forget async 走査 — 構造的嘘を摘出）
+`app.js` の `try { new VRApp() } catch { showError }` は async `initialize()` がコンストラクタ内で unawaited 発火するため**起動失敗が一切 catch に届かない死コード**だった（WebGL コンテキスト失敗等で白画面+console のみ）。`initPromise` を公開して app.js で await — showError が実経路化。`import('./app.js')`/isSessionSupported の無 catch .then は unhandledrejection/黙殺で仕様通りと判断し保持。
