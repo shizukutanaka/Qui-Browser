@@ -137,6 +137,27 @@ describe('src/main.js (landing page entry)', () => {
     expect(toast.setAttribute).toHaveBeenCalledWith('role', 'alert');
   });
 
+  test('support probe rejection disables VR cleanly — no unhandled rejection', async () => {
+    const floatBtn = makeEl('vrFloatingButton');
+    installDom({
+      ids: { vrFloatingButton: floatBtn },
+      xr: { isSessionSupported: () => Promise.reject(new Error('probe failed')) }
+    });
+    const unhandled = [];
+    const onUnhandled = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      jest.isolateModules(() => require('../src/main.js'));
+      await tick();
+      await tick();
+      await tick();
+      expect(floatBtn.style.display).not.toBe('flex');
+      expect(unhandled).toHaveLength(0);
+    } finally {
+      process.removeListener('unhandledRejection', onUnhandled);
+    }
+  });
+
   test('supported Enter VR click dispatches the enter-vr event', async () => {
     const enterBtn = makeEl('enterVRButton');
     const { documentListeners } = installDom({

@@ -72,7 +72,7 @@ import('./app.js').then(_module => {
 
   // Check WebXR support
   if ('xr' in navigator) {
-    navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+    navigator.xr.isSessionSupported('immersive-vr').catch(() => false).then(supported => {
       if (supported) {
         const vrButton = document.getElementById('vrFloatingButton');
         if (vrButton) {

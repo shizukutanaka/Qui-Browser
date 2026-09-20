@@ -33,7 +33,9 @@ async function initializeApp() {
   }
 
   // Check for VR support
-  const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
+  const isVRSupported = await navigator.xr
+    .isSessionSupported('immersive-vr')
+    .catch(() => false);
   if (!isVRSupported) {
     console.warn('Immersive VR not supported on this device; landing page only.');
     return;

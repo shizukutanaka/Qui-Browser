@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き66（同セッション）: XR support プローブの reject が unhandled rejection に化ける（実バグ16件目）
+- 🐛 **実バグ**: `app.js:36` の `await isSessionSupported('immersive-vr')` が `initializeApp` の try ブロック**外**にあり、probe が reject すると関数 promise がそのまま reject → `unhandledrejection` で console.error に落ちるだけで VR 無効の説明なし。`main.js:75` の `.then()` も `.catch` なし（同じく unhandled）。実バグ15と同じ「catch 境界の外側で await」クラス — 全 async 関数の unawaited/reject 経路を走査して発見（他の未 await 呼び出しは内部 try/catch 済みと実測）。
+- 🔧 **修正**: 両方とも `DeviceCompatibility.js:28` の既存規約 `.catch(() => false)`（probe 失敗 = 対応不明 → 未対応として扱う）に統一。ランディングは従来通り機能し、Enter VR ボタンのハンドラは自身の try/catch で正直なエラートーストを出す。
+- ✅ テストで修正前赤確認（probe reject → unhandled rejection 検出）。2109 tests / 60 suites、lint 0 errors、build green。
+
 #### 続き65（同セッション）: app.js のキーボードショートカット層を pin（欠陥ゼロ）
 - 🔍 **実測**: `setupKeyboardShortcuts` の dispatch — P→perfMonitorUI.toggle 優先・無ければフォールバック overlay の display トグル、F→ffrSystem.enabled に応じて enable(0.5)/disable、C→comfort preset を sensitive→moderate→tolerant→disabled→折返し で setPreset+updateSetting 永続化、Escape→dispose+clearInterval+QuiBrowser.getApp()=null。`QuiBrowser.getApp()` で実 instance を取得して subsystem stub を注入する手法で dispatch を実配線ごと検証（実バグ15の修正で constructor が到達可能になったため可能に）。
 - ✅ 3テスト追加（DOM stub の style.cssText はブラウザと違い display を parse しないため手動モデル化 — 分離記録）。
