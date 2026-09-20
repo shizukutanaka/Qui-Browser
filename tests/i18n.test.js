@@ -296,3 +296,18 @@ describe('VR welcome splash is localised', () => {
     expect(vrAppSrc).toMatch(/fillText\(t\('vr\.welcome'\)/);
   });
 });
+
+describe('landing page aria-labels are localised (WCAG 3.1.2)', () => {
+  // A screen-reader user in the ja UI must not hear English labels —
+  // feature cards and the utility toggles carried English literals while
+  // their visible text was already data-i18n'd.
+  test('no element has a literal English aria-label without data-i18n-attr', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const offenders = [...html.matchAll(/<[a-z][^>]*>/gi)]
+      .filter((tag) => /aria-label="[A-Z][a-zA-Z ]+"/.test(tag[0]))
+      .filter((tag) => !/data-i18n-attr="[^"]*aria-label:/.test(tag[0]));
+    expect(offenders.map((m) => m[0].slice(0, 120))).toEqual([]);
+  });
+});

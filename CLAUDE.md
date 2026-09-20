@@ -342,6 +342,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: 6ファイルを削除。dist に該当ファイル0件を確認。
 - ✅ **pin 一般化**: `tests/public-assets.test.js` 新設 —— public/ 直下の全ファイルが index.html/SW/src/ のいずれかから参照されるか既知 entry point（manifest.json/service-worker.js/offline.html）であることを走査 assert + 削除済み7名の非再発 pin。1561 tests、lint 0 errors、build green。
 
+#### 続き16（同セッション）: スクリーンリーダーの aria-label が英語のまま —— ランディング面の i18n 残留
+- 🔍 **実測**: 1561 tests・lint 警告内訳（117 no-console + 2 max-len、実バグ混入なし）確認後、index.html の `aria-label` 走査で **機能カード6枚＋ユーティリティ3トグル＋ローディング文言が英語リテラルのまま**と判明 —— 可視テキストは data-i18n 済みだが AT 向けラベルだけ忘れられていた（WCAG 3.1.2: 日本語 UI で英語ラベルが読み上げられる）。アクセシビリティ第一を掲げる製品で、スクリーンリーダー経路だけが英語という矛盾。
+- 📝 **fix**: 機能カードは `data-i18n-attr="aria-label:feat.*.title"` で既存キー再利用（新規文字列ゼロ）。ユーティリティ3トグルに `a11y.highContrast`/`a11y.largeText`/`a11y.langToggle` キー追加（en/ja）+ `data-i18n-attr`（title+aria-label 両方）。ローディング文言に `app.loading` キー + `data-i18n`（バージョン番号の埋め込みを除去 —— 文言の固定化で version 表示は外れたが、起動中表示の版数は情報価値が低い）。
+- ✅ **pin**: `tests/i18n.test.js` に「英語リテラルの aria-label は data-i18n-attr で駆動されていること」の走査 pin 追加（pre-fix RED → post-fix PASS）。1562 tests、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
