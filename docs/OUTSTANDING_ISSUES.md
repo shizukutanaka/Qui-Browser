@@ -1807,3 +1807,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第176パス（クリーンスキャン — インターバルID管理）
 `perfIntervalId` は再作成前に必ずクリア＋unload/Escape で解放、SW update は意図的なページ生存期間設計 — 多重タイマー経路ゼロ。
+
+### 第177パス（クリーンスキャン — 数値パース）
+`parseInt` は radix 明示の2箇所のみ、parseFloat 不使用、設定値は stepper 演算で文字列パース非経路 — 罠ゼロ。
