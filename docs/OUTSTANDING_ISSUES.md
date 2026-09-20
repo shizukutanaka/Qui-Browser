@@ -1433,3 +1433,6 @@ src 呼び出しが1箇所のみの delegate 9本（perf 4・snapTurn・onTelepo
 
 ### 第55パス（継続中 — 抽出後 import グラフの全再走査）
 全 src モジュールの export × 実参照を再走査: 外部参照ゼロは `planeGeometry`（canvasMesh 内のみで使用）のみ → 通常関数化。それ以外の全 export は実参照あり。抽出シリーズ完了後のグラフは健全。
+
+### 第57パス（継続中 — テスト死コード＋重複ブロック走査）
+tests/ 走査で未使用 `makeScene` ヘルパー削除。src 重複ブロック走査で `isWorldVisible`（可視性親遡り）が GazeInteraction と inputRouting に同一実装で重複 → inputRouting 側に集約。残りの重複（canvas 生成・dispose 巡回パターン等）は3行未満の定型で統合価値なし。
