@@ -151,14 +151,4 @@ describe('HapticFeedback', () => {
     // 1 pulse per hand × 2 hands
     expect(hf.stats.pulsesGenerated).toBe(2);
   });
-
-  // ── getStats ──────────────────────────────────────────────────────────────────
-  test('getStats() returns expected shape', async () => {
-    await hf.pulse('left', 30, 0.6);
-    const stats = hf.getStats();
-    expect(stats).toHaveProperty('pulsesGenerated', 1);
-    expect(stats).toHaveProperty('totalDuration');
-    expect(stats).toHaveProperty('averageIntensity');
-    expect(stats).toHaveProperty('controllersDetected');
-  });
 });

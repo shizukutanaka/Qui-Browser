@@ -574,69 +574,7 @@ export class VRApp {
   }
 
   /**
-   * Build a canvas-textured toggle button bound to a boolean setting. Selecting
-   * it flips and persists the setting, applies an optional live effect, and
-   * redraws the ON/OFF state. Returns the button mesh (already registered as
-   * interactable).
-   */
-  makeToggleButton(label, key, apply) {
-    const w = 512;
-    const h = 96;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
-
-    const draw = (hover) => {
-      const on = !!this.settings[key];
-      const hc = prefersHighContrast();
-      const ind = toggleIndicatorColors(on, hc, hover);
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = ind.border;
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px sans-serif';
-      ctx.fillText(label, 24, 62);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = ind.label;
-      ctx.fillText(on ? 'ON' : 'OFF', w - 24, 62);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(0.9, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    this.registerInteractable(mesh, {
-      onSelect: () => {
-        const value = !this.settings[key];
-        this.updateSetting(key, value); // flips + persists (FR-9.1)
-        if (apply) {
-          apply(value);
-        }
-        draw(true);
-        this._announceSettingsButton('toggle', label, value, {}, true);
-      },
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('toggle', label, !!this.settings[key]);
-      },
-      onHoverEnd: () => draw(false)
-    });
-    mesh._redraw = () => draw(false);
-    return mesh;
-  }
-
-  /**
-   * Half-width (compact) variant of makeToggleButton for 2-column panel layout.
+   * Half-width toggle button for the 2-column settings panel layout.
    * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
    */
   makeCompactToggleButton(label, key, apply) {

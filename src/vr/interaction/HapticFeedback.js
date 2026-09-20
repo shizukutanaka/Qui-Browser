@@ -227,23 +227,6 @@ export class HapticFeedback {
   }
 
   /**
-   * Simulate force feedback
-   */
-  async simulateForce(hand, force, duration) {
-    // Map force (0-1) to haptic intensity
-    const intensity = Math.min(force * 1.5, 1.0);
-
-    // Continuous pulses to simulate sustained force
-    const pulseInterval = 50;
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < duration) {
-      await this.pulse(hand, pulseInterval, intensity);
-      await this.wait(pulseInterval);
-    }
-  }
-
-  /**
    * Simulate impact with physics
    */
   async simulateImpact(hand, velocity, mass) {
@@ -268,52 +251,6 @@ export class HapticFeedback {
 
     // Very short pulse for proximity
     await this.pulse(hand, 5, intensity * 0.5);
-  }
-
-  /**
-   * Directional haptic (indicate direction)
-   */
-  async directionalPulse(hand, direction) {
-    // Different patterns for different directions
-    const patterns = {
-      up: [
-        { duration: 20, intensity: 0.3 },
-        { pause: 10 },
-        { duration: 30, intensity: 0.6 }
-      ],
-      down: [
-        { duration: 30, intensity: 0.6 },
-        { pause: 10 },
-        { duration: 20, intensity: 0.3 }
-      ],
-      left: { duration: 40, intensity: 0.5 },
-      right: { duration: 40, intensity: 0.5 }
-    };
-
-    const pattern = patterns[direction];
-    if (Array.isArray(pattern)) {
-      for (const step of pattern) {
-        if (step.duration) {
-          await this.pulse(hand, step.duration, step.intensity);
-        } else if (step.pause) {
-          await this.wait(step.pause);
-        }
-      }
-    } else if (pattern) {
-      await this.pulse(hand, pattern.duration, pattern.intensity);
-    }
-  }
-
-  /**
-   * Rhythm pattern (for music/timing feedback)
-   */
-  async playRhythm(hand, bpm, beats) {
-    const beatDuration = 60000 / bpm; // ms per beat
-
-    for (let i = 0; i < beats; i++) {
-      await this.pulse(hand, 30, 0.6);
-      await this.wait(beatDuration - 30);
-    }
   }
 
   /**
@@ -381,13 +318,6 @@ export class HapticFeedback {
   }
 
   /**
-   * Get list of available patterns
-   */
-  getPatterns() {
-    return Object.keys(this.patterns);
-  }
-
-  /**
    * Test haptic feedback
    */
   async test(hand = 'right') {
@@ -411,29 +341,6 @@ export class HapticFeedback {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Get statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      enabled: this.enabled,
-      controllersConnected: this.gamepads.size,
-      patternsAvailable: Object.keys(this.patterns).length
-    };
-  }
-
-  /**
-   * Reset statistics
-   */
-  resetStats() {
-    this.stats = {
-      pulsesGenerated: 0,
-      totalDuration: 0,
-      averageIntensity: 0,
-      controllersDetected: this.stats.controllersDetected
-    };
-  }
 }
 
 /**

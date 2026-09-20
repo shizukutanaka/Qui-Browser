@@ -160,13 +160,6 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
     expect(audio.stats.hrtfSources).toBe(1);
     expect(audio.stats.equalPowerSources).toBe(1);
   });
-
-  test('getStats includes hrtfSources, equalPowerSources, and hrtfThreshold', () => {
-    const stats = audio.getStats();
-    expect(stats).toHaveProperty('hrtfSources');
-    expect(stats).toHaveProperty('equalPowerSources');
-    expect(stats).toHaveProperty('hrtfThreshold', 15);
-  });
 });
 
 // setMasterVolume drives the "Sound Volume" settings-panel stepper — the first
@@ -272,72 +265,6 @@ describe('SpatialAudio.registerProceduralBuffer', () => {
     audio.context = null;
     expect(audio.registerProceduralBuffer('x', { duration: 0.05 })).toBeNull();
     expect(audio.buffers.has('x')).toBe(false);
-  });
-});
-
-describe('SpatialAudio — spatial voice (FR-7.2)', () => {
-  let audio, mockCtx;
-
-  beforeEach(() => {
-    mockCtx = makeAudioContext();
-    // Add createMediaStreamSource to the mock context.
-    mockCtx.createMediaStreamSource = jest.fn(() => ({ connect: jest.fn(), disconnect: jest.fn() }));
-    global.window.AudioContext = jest.fn(() => mockCtx);
-    audio = new SpatialAudio();
-    // Manually set context for synchronous testing (initialize() is async).
-    audio.context = mockCtx;
-    audio.listener = mockCtx.listener;
-  });
-
-  test('createVoiceSource creates a source keyed as "voice:<peerId>"', () => {
-    const stream = {};
-    audio.createVoiceSource('peer1', stream);
-    expect(audio.sources.has('voice:peer1')).toBe(true);
-  });
-
-  test('createVoiceSource routes MediaStream through a panner', () => {
-    audio.createVoiceSource('peer1', {});
-    expect(mockCtx.createMediaStreamSource).toHaveBeenCalledTimes(1);
-    expect(mockCtx.createPanner).toHaveBeenCalled();
-  });
-
-  test('createVoiceSource sets initial position on the panner', () => {
-    const panner = makePanner();
-    mockCtx.createPanner = jest.fn(() => panner);
-    audio.createVoiceSource('peer1', {}, { x: 1, y: 2, z: 3 });
-    expect(panner.positionX.value).toBe(1);
-    expect(panner.positionY.value).toBe(2);
-    expect(panner.positionZ.value).toBe(3);
-  });
-
-  test('createVoiceSource is idempotent — returns existing source on repeat call', () => {
-    audio.createVoiceSource('peer1', {});
-    audio.createVoiceSource('peer1', {});
-    expect(mockCtx.createMediaStreamSource).toHaveBeenCalledTimes(1);
-  });
-
-  test('createVoiceSource returns null when context is absent', () => {
-    audio.context = null;
-    expect(audio.createVoiceSource('p', {})).toBeNull();
-  });
-
-  test('removeVoiceSource disconnects and deletes the source', () => {
-    audio.createVoiceSource('peer1', {});
-    audio.removeVoiceSource('peer1');
-    expect(audio.sources.has('voice:peer1')).toBe(false);
-  });
-
-  test('removeVoiceSource is safe when peer had no voice source', () => {
-    expect(() => audio.removeVoiceSource('unknown')).not.toThrow();
-  });
-
-  test('updateVoicePosition delegates to setSourcePosition', () => {
-    audio.createVoiceSource('peer1', {});
-    const panner = audio.sources.get('voice:peer1').panner;
-    audio.updateVoicePosition('peer1', 5, 1.7, -3);
-    expect(panner.positionX.value).toBe(5);
-    expect(panner.positionY.value).toBe(1.7);
-    expect(panner.positionZ.value).toBe(-3);
   });
 });
 

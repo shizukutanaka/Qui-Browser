@@ -728,6 +728,32 @@ CDN ヒントを検証:
 verify:docs **100%**・verify:layout/app/vr-boot 全 PASS・lint 0 errors。
 `VRApp.js` は 3,772 → 3,402 行。
 
+### 第6パス（メソッド単位の死コード・i18n 死キー）
+
+メソッド単位の `.name(` 呼び出し走査（src+tests）で呼び出し元ゼロのもの、および i18n
+カタログ 115 キー中 `t()`/`data-i18n*` 参照ゼロのものを実測削除:
+
+| 対象 | 内容 |
+|---|---|
+| `VRApp.makeToggleButton` | 60行 — 全サイトで `makeCompactToggleButton` に置き換わり呼び出しゼロ |
+| `WebPanel.onDomOverlayStart/End` + `domOverlaySupported` | DOM-overlay 連携 — addEventListener に未登録、フィールドは書き込み専用（一度も読まれない） |
+| `JapaneseIME.deactivate` / `JapaneseIME.getStats` / `HandTracking.getStats` | 呼び出し元ゼロ |
+| `ComfortSystem.getStatus`/`resize`、`FFRSystem.getStatus`/`setThresholds`、`LayersSystem.getLayer` | 同上（dev 用のつもりの診断アクセサ群、誰も呼ばない） |
+| `HapticFeedback` ×6 | `simulateForce`/`directionalPulse`/`playRhythm`/`getPatterns`/`resetStats`/`getStats` — 呼び出し元ゼロ |
+| `SpatialAudio` ×4 | `setSourceOrientation`/`setSourceVelocity`/`setSourceVolume`/`createReverb` — 呼び出し元ゼロ |
+| `SpatialAudio` 音声ブロック | `createVoiceSource`/`removeVoiceSource`/`updateVoicePosition` + `stop()` の `isVoice` 特例 — マルチプレイヤー音声の残骸、**テストのみ**が参照（パス5と同型の「テストだけが生かすコード」） |
+| `BookmarkStore.removeHistory` | 同上 — 生産側ゼロ、テストのみ |
+| i18n 死キー ×5 | `vr.msg.sectionClosed`、`vr.value.on/off/left/right`（en+ja 計10行 + 残存コメント）— `a11y.enterVR` は `data-i18n-attr` 経由で生存のため保持 |
+
+検出したが**保持**したもの（誤検出防止の記録）: `applyAccessibility`/`initializeApp`/
+`disposeMonitoring`/`trackEvent`/`captureError`/`safeMeasureEm`（裸呼び出し or 内部呼び出し）、
+`WebPanel.goBack/goForward`（`tab.goBack?.()` の optional-call 構文）、`targetFPS`/
+`enableTextureCompression`/`enableHomeEnvironment`/`enableSettingsPanel`（localStorage ホワイトリスト
+経由で読まれる設定、書き手不在だが読み手がいるため生存）。
+
+計測: 44 suites / 1,384 tests・lint 0 errors・build 1.9s・ci:verify（layout/app/vr-boot）全 PASS。
+本パスは −582 行。
+
 ---
 
 ## 使い方（次のセッションへ）

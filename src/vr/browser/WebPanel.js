@@ -118,7 +118,6 @@ export class WebPanel {
     this.historyIdx  = -1;
     this.loading     = false;
     this._loadError  = false; // set true on iframe onerror, cleared on next navigate
-    this.domOverlaySupported = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -795,24 +794,6 @@ export class WebPanel {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
     }
-  }
-
-  // ── DOM-overlay integration ───────────────────────────────────────────────
-
-  /**
-   * Call this when a WebXR session with dom-overlay starts.
-   * Shows the iframe positioned over the panel's projected screen area.
-   */
-  onDomOverlayStart() {
-    this.domOverlaySupported = true;
-    this.iframe.style.display = 'block';
-  }
-
-  /**
-   * Call this when the WebXR session ends.
-   */
-  onDomOverlayEnd() {
-    this.iframe.style.display = 'none';
   }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────

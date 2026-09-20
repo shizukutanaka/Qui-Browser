@@ -204,12 +204,6 @@ export class BookmarkStore {
     return all[0];
   }
 
-  /** Remove a single history entry by URL. */
-  removeHistory(url) {
-    const all = readJSON(HISTORY_KEY, []).filter(e => e.url !== url);
-    writeJSON(HISTORY_KEY, all);
-  }
-
   /** Wipe all history. */
   clearHistory() {
     writeJSON(HISTORY_KEY, []);

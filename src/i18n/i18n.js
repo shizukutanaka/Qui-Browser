@@ -34,7 +34,6 @@ const CATALOG = {
     'settings.section.audio': 'Audio & Media',
     'settings.section.other': 'Other',
     'vr.msg.sectionOpen': 'expanded',
-    'vr.msg.sectionClosed': 'collapsed',
     'vr.content.loading': 'Loading…',
     'vr.content.failed': 'Failed to load',
     'vr.content.empty': 'Enter a URL to navigate',
@@ -104,11 +103,6 @@ const CATALOG = {
     'vr.settings.video360': '360° Video',
     'vr.settings.clearHistory': 'Clear History',
     'vr.settings.bookmarks': 'Bookmarks',
-    // VR Settings Panel Values
-    'vr.value.on': 'ON',
-    'vr.value.off': 'OFF',
-    'vr.value.left': 'Left',
-    'vr.value.right': 'Right',
     // VR Status Messages
     'vr.msg.captionsEnabled': 'Captions enabled',
     'vr.msg.keyboardCancelled': 'Keyboard cancelled',
@@ -169,7 +163,6 @@ const CATALOG = {
     'settings.section.audio': '音声とメディア',
     'settings.section.other': 'その他',
     'vr.msg.sectionOpen': '展開',
-    'vr.msg.sectionClosed': '折りたたみ',
     'vr.content.loading': '読み込み中…',
     'vr.content.failed': '読み込みに失敗しました',
     'vr.content.empty': 'URL を入力してください',
@@ -239,11 +232,6 @@ const CATALOG = {
     'vr.settings.video360': '360°ビデオ',
     'vr.settings.clearHistory': '履歴を消去',
     'vr.settings.bookmarks': 'ブックマーク',
-    // VR Settings Panel Values
-    'vr.value.on': 'オン',
-    'vr.value.off': 'オフ',
-    'vr.value.left': '左',
-    'vr.value.right': '右',
     // VR Status Messages
     'vr.msg.captionsEnabled': 'キャプション有効',
     'vr.msg.keyboardCancelled': 'キーボードキャンセル',

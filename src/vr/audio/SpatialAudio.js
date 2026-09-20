@@ -296,13 +296,6 @@ export class SpatialAudio {
       return;
     }
 
-    // Voice sources wrap a MediaStreamAudioSourceNode, which has no start/stop;
-    // they are torn down via removeVoiceSource(), not stop().
-    if (source.isVoice) {
-      this.removeVoiceSource(sourceName.replace(/^voice:/, ''));
-      return;
-    }
-
     try {
       source.node.stop();
       source.node.disconnect();
@@ -341,45 +334,6 @@ export class SpatialAudio {
 
     // Re-evaluate LOD tier after position change.
     this.updateSourceLOD(sourceName);
-  }
-
-  /**
-   * Set source orientation (for directional sounds)
-   */
-  setSourceOrientation(sourceName, x, y, z) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.panner) {
-      return;
-    }
-
-    if (source.panner.orientationX) {
-      source.panner.orientationX.value = x;
-      source.panner.orientationY.value = y;
-      source.panner.orientationZ.value = z;
-    } else {
-      source.panner.setOrientation(x, y, z);
-    }
-  }
-
-  /**
-   * Set source velocity (for doppler effect)
-   */
-  setSourceVelocity(sourceName, x, y, z) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.panner) {
-      return;
-    }
-
-    source.velocity = { x, y, z };
-
-    if (source.panner.positionX) {
-      // Modern API doesn't directly support velocity
-      // Doppler effect needs to be simulated
-      this.simulateDoppler(source);
-    } else if (source.panner.setVelocity) {
-      // Deprecated but might still work
-      source.panner.setVelocity(x, y, z);
-    }
   }
 
   /**
@@ -540,121 +494,6 @@ export class SpatialAudio {
   // ── FR-7.2: Spatial voice — WebRTC peer audio → spatialized panner ─────────
 
   /**
-   * Attach a remote peer's audio stream to a spatialized panner node.
-   * Call this once when the WebRTC audio track for `peerId` becomes available
-   * (typically inside a WebRTC `ontrack` handler).
-   *
-   * The source is stored under the key `voice:${peerId}` so it participates in
-   * the normal LOD pipeline and can be positioned via setSourcePosition.
-   *
-   * @param {string}      peerId      — unique peer identifier
-   * @param {MediaStream} mediaStream — the remote peer's audio MediaStream
-   * @param {{x,y,z}}     [position]  — initial 3D position (default origin)
-   * @returns {object|null} the created source record, or null on failure
-   */
-  createVoiceSource(peerId, mediaStream, position = { x: 0, y: 0, z: 0 }) {
-    if (!this.context || !mediaStream) {
-      return null;
-    }
-
-    const sourceName = `voice:${peerId}`;
-    // Avoid duplicate sources for the same peer.
-    if (this.sources.has(sourceName)) {
-      return this.sources.get(sourceName);
-    }
-
-    try {
-      const streamNode = this.context.createMediaStreamSource(mediaStream);
-
-      const panner = this.context.createPanner();
-      panner.panningModel = this.settings.enableHRTF ? 'HRTF' : 'equalpower';
-      panner.distanceModel = this.settings.distanceModel;
-      panner.refDistance   = this.settings.refDistance;
-      panner.maxDistance   = this.settings.maxDistance;
-      panner.rolloffFactor = this.settings.rolloffFactor;
-
-      const gain = this.context.createGain();
-      gain.gain.value = this.settings.masterVolume;
-
-      streamNode.connect(panner);
-      panner.connect(gain);
-      gain.connect(this.context.destination);
-
-      const source = {
-        name  : sourceName,
-        node  : streamNode, // MediaStreamAudioSourceNode — no start/stop needed
-        panner,
-        gain,
-        position : { ...position },
-        velocity : { x: 0, y: 0, z: 0 },
-        isVoice  : true,
-        volume   : 1.0,
-        isPlaying: true
-      };
-
-      if (panner.positionX) {
-        panner.positionX.value = position.x;
-        panner.positionY.value = position.y;
-        panner.positionZ.value = position.z;
-      } else if (panner.setPosition) {
-        panner.setPosition(position.x, position.y, position.z);
-      }
-
-      this.sources.set(sourceName, source);
-      this.stats.sourcesActive++;
-      this.updateSourceLOD(sourceName);
-      console.debug(`SpatialAudio: Voice source created for peer '${peerId}'`);
-      return source;
-    } catch (e) {
-      console.warn(`SpatialAudio: createVoiceSource failed for '${peerId}'`, e);
-      return null;
-    }
-  }
-
-  /**
-   * Remove and disconnect the spatial voice source for a peer.
-   * Call when the peer disconnects or leaves the multiplayer session.
-   *
-   * @param {string} peerId
-   */
-  removeVoiceSource(peerId) {
-    const sourceName = `voice:${peerId}`;
-    const source = this.sources.get(sourceName);
-    if (!source) {
-      return;
-    }
-
-    try {
-      if (source.node) {
-        source.node.disconnect();
-      }
-      if (source.panner) {
-        source.panner.disconnect();
-      }
-      if (source.gain) {
-        source.gain.disconnect();
-      }
-    } catch (e) { /* ignore disconnect errors */ }
-
-    this.sources.delete(sourceName);
-    this.stats.sourcesActive = Math.max(0, this.stats.sourcesActive - 1);
-    console.debug(`SpatialAudio: Voice source removed for peer '${peerId}'`);
-  }
-
-  /**
-   * Update the spatial position of a peer's voice source.
-   * A thin wrapper around setSourcePosition using the voice: naming convention.
-   *
-   * @param {string} peerId
-   * @param {number} x
-   * @param {number} y
-   * @param {number} z
-   */
-  updateVoicePosition(peerId, x, y, z) {
-    this.setSourcePosition(`voice:${peerId}`, x, y, z);
-  }
-
-  /**
    * Set master volume
    */
   setMasterVolume(volume) {
@@ -666,19 +505,6 @@ export class SpatialAudio {
         source.gain.gain.value = source.volume * this.settings.masterVolume;
       }
     });
-  }
-
-  /**
-   * Set source volume
-   */
-  setSourceVolume(sourceName, volume) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.gain) {
-      return;
-    }
-
-    source.volume = Math.max(0, Math.min(1, volume));
-    source.gain.gain.value = source.volume * this.settings.masterVolume;
   }
 
   /**
@@ -701,45 +527,6 @@ export class SpatialAudio {
     );
 
     source.volume = targetVolume;
-  }
-
-  /**
-   * Create reverb effect
-   */
-  async createReverb(name, options = {}) {
-    const convolver = this.context.createConvolver();
-
-    // Generate impulse response
-    const length = options.duration || 2;
-    const decay = options.decay || 2;
-    const sampleRate = this.context.sampleRate;
-    const impulseLength = sampleRate * length;
-    const impulse = this.context.createBuffer(2, impulseLength, sampleRate);
-
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = impulse.getChannelData(channel);
-      for (let i = 0; i < impulseLength; i++) {
-        channelData[i] = (Math.random() * 2 - 1) *
-                         Math.pow(1 - i / impulseLength, decay);
-      }
-    }
-
-    convolver.buffer = impulse;
-    return convolver;
-  }
-
-  /**
-   * Get audio statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      contextState: this.context ? this.context.state : 'uninitialized',
-      currentTime: this.context ? this.context.currentTime : 0,
-      sampleRate: this.context ? this.context.sampleRate : 0,
-      latency: this.context ? this.context.baseLatency || this.context.outputLatency || 0 : 0,
-      hrtfThreshold: this.settings.hrtfThreshold
-    };
   }
 
   /**

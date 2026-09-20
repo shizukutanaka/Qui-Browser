@@ -204,8 +204,4 @@ export class LayersSystem {
     return this._layers.size;
   }
 
-  /** Retrieve a layer by id (for position updates etc.). */
-  getLayer(id) {
-    return this._layers.get(id) || null;
-  }
 }

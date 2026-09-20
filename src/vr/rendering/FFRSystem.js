@@ -125,17 +125,6 @@ export class FFRSystem {
   }
 
   /**
-   * Get current FFR status
-   */
-  getStatus() {
-    return {
-      enabled: this.enabled,
-      intensity: this.intensity,
-      supported: this.projectionLayer !== null
-    };
-  }
-
-  /**
    * Nudge intensity up or down by delta and clamp to [0, 1].
    * Intended for coarse load-driven adjustments made in the render loop.
    * Works on top of whatever intensity was set by enable() or
@@ -147,13 +136,6 @@ export class FFRSystem {
     }
     this.intensity = Math.max(0, Math.min(1, this.intensity + delta));
     this.projectionLayer.fixedFoveation = this.intensity;
-  }
-
-  /**
-   * Set GPU load thresholds for dynamic adjustment
-   */
-  setThresholds(high = 0.85, medium = 0.75, low = 0.5) {
-    this.gpuLoadThresholds = { high, medium, low };
   }
 
   /**
