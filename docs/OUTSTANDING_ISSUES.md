@@ -1774,3 +1774,6 @@ clipboard/execCommand API はコードベースに存在しない — 非セキ�
 
 ### 第165パス（クリーンスキャン — VideoTexture colorSpace）
 VideoTexture 全2経路＋homeEnvironment パネルは SRGBColorSpace 設定済み — 色空間漏れゼロ。
+
+### 第166パス（クリーンスキャン — フレーム内全走査）
+`traverse`/`getObjectByName` は全て teardown/一回限りの経路、raycast は interactables レジストリに限定（有界）— per-frame O(scene) 走査ゼロ。
