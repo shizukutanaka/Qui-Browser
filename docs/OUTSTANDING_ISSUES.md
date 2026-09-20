@@ -1447,3 +1447,10 @@ hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHand
 
 ### 第60パス（クリーンスキャン）
 `if (app.X) { app.X.method() }` ガード定型を全走査: 残存は dispose 系（異種メソッドの teardown ループ — seam 化不可）と単発呼出のみ。`showVRToast` は既に delegate seam で統一済み、cross-modal 3系統（caption/haptic/toast）の呼出形は正規化完了。変更なし。
+
+### 第61パス（単一ソース化違反の摘出 — 最重要発見）
+「テストだけが参照する export」走査で11件検出、うち6件は**死んだ spec 定数と実コード内リテラルの二重定義**だった:
+- WebPanel の `1024` リテラル×4 → `CHROME_CANVAS_W`、`PANEL_H*CHROME_H`/`PANEL_H*(1-CHROME_H)` 式複写×5 → `CHROME_M_H`/`CONTENT_M_H`
+- settingsPanel の stepper `min:0.6,max:6.0` → `PANEL_DISTANCE_MIN/MAX`
+- BookmarkPanel の `const PANEL_W = 1.2` → `BOOKMARK_PANEL_W` 単一ソース化
+- 残り5件（canvasRegionToMetres/classifyTarget/worstCaseHeight/maxMeasureEmForFont/isSearchQuery）は spec テスト用の純粋ヘルパーで、テストへのインライン再実装は実行時幾何とのドリフトを招くため API として保持
