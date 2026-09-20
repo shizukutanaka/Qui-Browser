@@ -73,15 +73,13 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **KTX2 Texture Compression** | ✅ Stable | GPU-optimized texture format | Lower texture memory |
 | **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
 
-### Tier 2: Enhanced Features (6 Features)
+### Tier 2: Enhanced Features (3 Features)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
 | **Japanese IME** | ✅ Stable | Native Japanese text input with VR keyboard |
 | **Advanced Hand Tracking** | ✅ Stable | Controller-free interaction via WebXR hand APIs |
 | **3D Spatial Audio** | ✅ Stable | HRTF-based positional sound with Web Audio API |
-| **MR Passthrough** | ✅ Stable | Real-world integration (Quest 3 passthrough) |
-| **Offline Support** | ✅ Stable | Service Worker caching |
 
 ### Tier 3: Advanced Features
 
@@ -99,9 +97,8 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 |---------|--------|-------------|
 | **Haptic Feedback** | ✅ Stable | Enhanced tactile response on supported controllers |
 
-### Development Tools (2 Features)
+### Development Tools
 
-- **Performance Monitor** - Real-time FPS, memory, GPU metrics
 - **VR DevTools** - In-VR debugging and profiling interface
 
 ## 📦 Quick Start

@@ -960,6 +960,22 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
 
+### 第21パス（README 機能表の実在性監査）
+
+- メソッド・書き込み専用フィールドの再走査: パス12–20 の削除連鎖で
+  新たに孤児化したものは**ゼロ**（全層クリーン維持を確認）。
+- README 機能表の嘘3件修正:
+  - Tier2「6 Features」→ 実3行（「Offline Support」は Tier1 Service
+    Worker と重複行、「MR Passthrough」は MixedReality 削除済みで
+    存在しない — DeviceCompatibility の `isSessionSupported` プローブ
+    のみ残存、機能ではない）
+  - Development Tools「2 Features」→ PerformanceMonitor はパス5 で
+    削除済み、VR DevTools のみ残るのでカウント行ごと除去
+- Tier3 の "Removed" 注記（パス5追記済み）と矛盾する Tier2 行を
+  突き合わせて解消した形。
+
+計測: 44 suites / 1,367 tests・lint 0 errors・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
