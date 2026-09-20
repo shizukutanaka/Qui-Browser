@@ -1564,3 +1564,6 @@ src の fetch 経路は2箇所のみ（JapaneseIME transliterate・WebPanel read
 
 ### 第95パス（クリーンスキャン — Observer/AbortController 対称）
 Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ。AbortController 2箇所は fetch タイムアウト用で finally で timer clear — 対称済み。SpatialAudio の node.disconnect/context.close も teardown 済み。リーク経路ゼロ。
+
+### 第96パス（クリーンスキャン — lint 抑制監査）
+`eslint-disable` 4箇所を検証: `no-alert`×2 は desktop/2D の `window.prompt` フォールバック（没入外では正しい入力経路）、`no-new-func`×2 は DevTools コンソール REPL の意図的機能。全て文書化された正当な抑制 — 隠れた負債ゼロ。
