@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from './canvasTexture.js';
 
-export function planeGeometry(cache, w, h) {
+function planeGeometry(cache, w, h) {
   const keyStr = `${w}x${h}`;
   let geo = cache.get(keyStr);
   if (!geo) {
