@@ -50,12 +50,15 @@ function installDom({ ids = {}, xr = null } = {}) {
     hidden: false,
     body,
     documentElement: docEl,
-    getElementById: (id) => ids[id] || null,
+    // Elements pre-seeded via `ids`, plus anything createElement() minted
+    // (app.js's perf overlay is created at runtime, then re-found by id).
+    getElementById: (id) => ids[id] || created.find((e) => e.id === id) || null,
     createElement: (tag) => { const el = makeEl(tag); created.push(el); return el; },
     querySelectorAll: () => ({ forEach: () => {} }),
     addEventListener: (type, fn) => { (documentListeners[type] ||= []).push(fn); },
     removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn()
+    dispatchEvent: jest.fn(),
+    _listeners: documentListeners
   };
   global.navigator = xr ? { xr } : {};
   global.window = {
@@ -176,5 +179,81 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
       (c) => typeof c.textContent === 'string' && c.textContent.length > 0
     );
     expect(errorDiv).toBeTruthy();
+  });
+
+  test('P toggles the perf overlay (fallback) or the rich monitor', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    let documentListeners;
+    jest.isolateModules(() => {
+      documentListeners = global.document._listeners;
+      require('../src/app.js');
+    });
+    await tick();
+    const vrApp = global.window.QuiBrowser.getApp();
+    expect(vrApp).toBeTruthy();
+
+    // Fallback overlay: created by setupPerformanceMonitor with cssText that
+    // includes display:none — browsers parse cssText into style.*; our stub's
+    // style is a plain object, so model the parsed property directly.
+    const perfDiv = global.document.getElementById('performance-monitor');
+    expect(perfDiv).toBeTruthy();
+    perfDiv.style.display = 'none';
+    (documentListeners.keydown || []).forEach((f) => f({ key: 'p' }));
+    expect(perfDiv.style.display).toBe('block');
+
+    // Rich monitor takes priority when present.
+    vrApp.perfMonitorUI = { toggle: jest.fn() };
+    (documentListeners.keydown || []).forEach((f) => f({ key: 'P' }));
+    expect(vrApp.perfMonitorUI.toggle).toHaveBeenCalledTimes(1);
+  });
+
+  test('F toggles FFR; C cycles comfort presets sensitive→moderate→tolerant→disabled', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    const vrApp = global.window.QuiBrowser.getApp();
+    const keydown = (key) =>
+      (global.document._listeners.keydown || []).forEach((f) => f({ key }));
+
+    vrApp.ffrSystem = { enabled: false, enable: jest.fn(), disable: jest.fn() };
+    keydown('f');
+    expect(vrApp.ffrSystem.enable).toHaveBeenCalledWith(0.5);
+    vrApp.ffrSystem.enabled = true;
+    keydown('F');
+    expect(vrApp.ffrSystem.disable).toHaveBeenCalledTimes(1);
+
+    vrApp.settings.motionSensitivity = 'sensitive';
+    vrApp.comfortSystem = { setPreset: jest.fn() };
+    vrApp.updateSetting = jest.fn();
+    keydown('c');
+    expect(vrApp.comfortSystem.setPreset).toHaveBeenCalledWith('moderate');
+    expect(vrApp.updateSetting).toHaveBeenCalledWith('motionSensitivity', 'moderate');
+    // wraps back to 'sensitive' after 'disabled'
+    vrApp.settings.motionSensitivity = 'disabled';
+    keydown('c');
+    expect(vrApp.comfortSystem.setPreset).toHaveBeenLastCalledWith('sensitive');
+  });
+
+  test('Escape disposes the app and clears the perf interval', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    const vrApp = global.window.QuiBrowser.getApp();
+    vrApp.dispose = jest.fn();
+    (global.document._listeners.keydown || []).forEach((f) => f({ key: 'Escape' }));
+    expect(vrApp.dispose).toHaveBeenCalledTimes(1);
+    expect(global.window.QuiBrowser.getApp()).toBeNull();
   });
 });
