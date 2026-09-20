@@ -301,8 +301,7 @@ export class VoiceCommands {
         window.history.forward();
         return { action: 'navigate', direction: 'forward' };
       },
-      confirmationText: '進みます',
-      description: 'Navigate forward'
+      confirmationText: '進みます'
     });
 
     this.registerCommand('back', {
@@ -311,8 +310,7 @@ export class VoiceCommands {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
       },
-      confirmationText: '戻ります',
-      description: 'Navigate back'
+      confirmationText: '戻ります'
     });
 
     this.registerCommand('refresh', {
@@ -321,8 +319,7 @@ export class VoiceCommands {
         window.location.reload();
         return { action: 'refresh' };
       },
-      confirmationText: '更新します',
-      description: 'Refresh page'
+      confirmationText: '更新します'
     });
 
     // Search command
@@ -337,7 +334,6 @@ export class VoiceCommands {
         }
       },
       confirmationText: '検索します',
-      description: 'Search web',
       example: '検索：てんき'
     });
 
@@ -348,8 +344,7 @@ export class VoiceCommands {
         // Would trigger VR mode
         return { action: 'vr', enabled: true };
       },
-      confirmationText: 'VRモードを開始します',
-      description: 'Enter VR mode'
+      confirmationText: 'VRモードを開始します'
     });
 
     this.registerCommand('vr-exit', {
@@ -358,8 +353,7 @@ export class VoiceCommands {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
       },
-      confirmationText: 'VRモードを終了します',
-      description: 'Exit VR mode'
+      confirmationText: 'VRモードを終了します'
     });
 
     // NOTE: scroll-down / scroll-up are registered in connectBrowser() instead.
@@ -375,8 +369,7 @@ export class VoiceCommands {
         // Would adjust volume
         return { action: 'volume', change: 0.1 };
       },
-      confirmationText: '音量を上げます',
-      description: 'Increase volume'
+      confirmationText: '音量を上げます'
     });
 
     this.registerCommand('volume-down', {
@@ -385,8 +378,7 @@ export class VoiceCommands {
         // Would adjust volume
         return { action: 'volume', change: -0.1 };
       },
-      confirmationText: '音量を下げます',
-      description: 'Decrease volume'
+      confirmationText: '音量を下げます'
     });
 
     // Japanese IME
@@ -396,8 +388,7 @@ export class VoiceCommands {
         // Would toggle IME
         return { action: 'ime', enabled: true };
       },
-      confirmationText: '日本語入力モードです',
-      description: 'Toggle Japanese IME'
+      confirmationText: '日本語入力モードです'
     });
 
     // Help — read back the actual spoken phrases, not just a count. A voice-
@@ -414,8 +405,7 @@ export class VoiceCommands {
 
         this.speak(`使用可能なコマンドは、${phrases.length}個です。${commandList}`);
         return { action: 'help', commands: commandList };
-      },
-      description: 'Show help'
+      }
     });
 
     // Stop listening
@@ -425,8 +415,7 @@ export class VoiceCommands {
         this.stop();
         return { action: 'stop' };
       },
-      confirmationText: '音声認識を停止します',
-      description: 'Stop listening'
+      confirmationText: '音声認識を停止します'
     });
   }
 
@@ -438,7 +427,6 @@ export class VoiceCommands {
       patterns: config.patterns || [],
       action: config.action,
       confirmationText: config.confirmationText || null,
-      description: config.description || '',
       // Spoken example for the 'help' command, used only when every pattern
       // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to'
       // accept a free-form spoken argument, so there's no single fixed string.
@@ -514,8 +502,7 @@ export class VoiceCommands {
         }
         return { action: 'top-sites' };
       },
-      confirmationText: 'よく使うサイトを開きます',
-      description: 'Open most-used site'
+      confirmationText: 'よく使うサイトを開きます'
     });
 
     // Browser forward / back
@@ -525,8 +512,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.goForward?.();
         return { action: 'navigate', direction: 'forward' };
       },
-      confirmationText: '進みます',
-      description: 'Navigate forward'
+      confirmationText: '進みます'
     });
 
     this.registerCommand('back', {
@@ -535,8 +521,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.goBack?.();
         return { action: 'navigate', direction: 'back' };
       },
-      confirmationText: '戻ります',
-      description: 'Navigate back'
+      confirmationText: '戻ります'
     });
 
     this.registerCommand('refresh', {
@@ -545,8 +530,7 @@ export class VoiceCommands {
         tabManager?.getActiveTab?.()?.reload?.();
         return { action: 'refresh' };
       },
-      confirmationText: '更新します',
-      description: 'Refresh page'
+      confirmationText: '更新します'
     });
 
     // Clear browsing history (privacy) — hands-free equivalent of the settings
@@ -567,7 +551,6 @@ export class VoiceCommands {
         return { action: 'clear-history' };
       },
       confirmationText: '履歴を消去します',
-      description: 'Clear browsing history',
       example: '履歴を消去'
     });
 
@@ -587,7 +570,6 @@ export class VoiceCommands {
         }
       },
       confirmationText: '検索します',
-      description: 'Search web',
       example: '検索：てんき'
     });
 
@@ -605,8 +587,7 @@ export class VoiceCommands {
           onScrollContent(SCROLL_LINES);
         }
         return { action: 'scroll', direction: 'down' };
-      },
-      description: 'Scroll down'
+      }
     });
 
     this.registerCommand('scroll-up', {
@@ -616,8 +597,7 @@ export class VoiceCommands {
           onScrollContent(-SCROLL_LINES);
         }
         return { action: 'scroll', direction: 'up' };
-      },
-      description: 'Scroll up'
+      }
     });
 
     // Bookmark panel toggle
@@ -627,8 +607,7 @@ export class VoiceCommands {
         bookmarkPanel?.toggle?.();
         return { action: 'bookmarks' };
       },
-      confirmationText: 'ブックマークパネルを開きます',
-      description: 'Toggle bookmarks panel'
+      confirmationText: 'ブックマークパネルを開きます'
     });
 
     // Keyboard toggle
@@ -640,8 +619,7 @@ export class VoiceCommands {
         }
         return { action: 'keyboard' };
       },
-      confirmationText: 'キーボードを切り替えます',
-      description: 'Toggle VR keyboard'
+      confirmationText: 'キーボードを切り替えます'
     });
 
     // Go-to — open a named site from history/bookmarks; fall back to web search.
@@ -677,7 +655,6 @@ export class VoiceCommands {
       // (deaf/HoH) the moment the command matches — before navigation, and
       // independent of whether a frecency hit is found (WCAG 4.1.3).
       confirmationText: '開きます',
-      description: 'Open site by name from history/bookmarks, fall back to search',
       example: 'githubを開く'
     });
 
@@ -776,16 +753,6 @@ export class VoiceCommands {
     }
   }
 
-  /**
-   * Get available commands
-   */
-  getCommands() {
-    return Array.from(this.commands.entries()).map(([name, cmd]) => ({
-      name,
-      description: cmd.description,
-      patterns: cmd.patterns
-    }));
-  }
 
   /**
    * Get statistics
@@ -818,8 +785,7 @@ export class VoiceCommands {
  *     console.debug('Custom command executed');
  *     return { action: 'custom' };
  *   },
- *   confirmationText: 'カスタムコマンドを実行します',
- *   description: 'Custom command'
+ *   confirmationText: 'カスタムコマンドを実行します'
  * });
  *
  * // Set callbacks

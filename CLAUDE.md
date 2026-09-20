@@ -322,6 +322,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: `public/sw.js`・`public/js/pwa.js` を削除（public/js/ は空に）、offline.html の dead `register` ブロックを除去。登録経路は `src/main.js` → `service-worker.js`（base-path aware・update ポーリング付き）に一本化。dist 確認: service-worker.js/offline.html あり・sw.js/pwa.js なし。
 - ✅ test 1522 件不変（対象ファイルは untested の dead asset）; lint 0 errors; build green; verify:app PASS。
 
+#### 続き12（同セッション）: i18n 網羅率の実測 — 残りは「翻訳漏れ」でなく「死んだメタデータ」
+- 🔍 **実測**: CLAUDE.md は VR UI i18n を "Critical Gap"（40+ ハードコード文字列）と記載するが、Session 2/27/74 でほぼ配線済み。全面再走査の残件は2つ: ①ホームパネルの `'Welcome — look around to begin'` が英語リテラルのまま canvas 描画（日本語ユーザーに英語の挨拶 —— WCAG 3.1.1）②`VoiceCommands` の `description` 25件（全て英語）。②は Section L が「getCommands() 用メタデータだから翻訳不要」と結論づけていたが、**`getCommands()` 自体に呼び出し元ゼロ**（help コマンドは `_spokenExample`/`patterns` を話す）—— 「翻訳が要らない」でなく「**存在する必要がない**」が正解（マスク的「削除」の適用）。
+- 📝 **fix**: `vr.welcome` キーを en/ja に追加し VRApp が `t()` 経由で描画。VoiceCommands から `getCommands()` + `description` フィールド保持 + 22件の `description:` 登録 + JSDoc 例を削除。
+- ✅ **pin**: `tests/i18n.test.js` に vr.welcome の両カタログ存在 + VRApp が `t()` 経由・リテラル不在のソース pin; `tests/voice-commands.test.js` に getCommands/description 非再発 pin（いずれも pre-fix で 4件 FAIL → post-fix PASS）。test 1526 件、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

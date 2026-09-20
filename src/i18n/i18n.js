@@ -154,7 +154,8 @@ export const CATALOG = {
     'vr.error.foveationUnavailable': 'Foveation unavailable',
     'vr.error.hapticUnavailable': 'Haptic feedback unavailable',
     'vr.error.layersUnavailable': 'Sharp text rendering unavailable',
-    'vr.error.blockedUrl': 'Cannot open that address'
+    'vr.error.blockedUrl': 'Cannot open that address',
+    'vr.welcome': 'Welcome — look around to begin'
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -299,7 +300,8 @@ export const CATALOG = {
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
     'vr.error.hapticUnavailable': 'ハプティックフィードバック利用不可',
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
-    'vr.error.blockedUrl': 'このアドレスは開けません'
+    'vr.error.blockedUrl': 'このアドレスは開けません',
+    'vr.welcome': 'ようこそ — 見回して始めましょう'
   }
 };
 

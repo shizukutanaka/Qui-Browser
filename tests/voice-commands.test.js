@@ -373,3 +373,21 @@ describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => 
     }
   });
 });
+
+describe('VoiceCommands — dead surface area stays deleted', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'vr', 'input', 'VoiceCommands.js'), 'utf8');
+
+  test('no getCommands()/description inventory survives', () => {
+    // getCommands() had zero callers (the help UI lists spoken patterns via
+    // _spokenExample, not descriptions) — the 25 English description strings
+    // existed only to feed it. Registering dead English-only metadata in a
+    // ja-first product is the i18n gap again at data level.
+    const vc = new VoiceCommands();
+    expect(vc.getCommands).toBeUndefined();
+    expect(src).not.toMatch(/getCommands\s*\(/);
+    expect(src).not.toMatch(/description:/);
+  });
+});
