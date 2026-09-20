@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き56（同セッション）: applyAccessibility + applyTranslations の DOM 適用経路を pin（欠陥ゼロ）
+- 🔍 **実測**: ①accessibility.js の `applyAccessibility()`（document.body の classList に a11y-high-contrast/large-text/reduced-motion を prefs+OS シグナルでトグル — 全ユーザーが実際に踏む適用経路）が無検証 ②i18n.js の `applyTranslations(root)`（`[data-i18n]` の textContent 書換 + `[data-i18n-attr]` の `attr:key;attr2:key2` パース）と `setLanguage` の `document.documentElement.lang` 更新が無検証だった。
+- ✅ **pin**: 3+3=6テスト追加。全緑 — 実装は正しいことを実測確認（キーは実在する `hero.title`/`cta.enterVR`/`feat.audio.title` を使用 — 生キー返しで誤検証しないため）。
+- 📝 2040 tests / 58 suites、lint 0 errors、build green。
+
 #### 続き55（同セッション）: ImmersiveVideo update/HUD + SpatialAudio loadAudio/guards を pin（欠陥ゼロ）
 - 🔍 **実測**: ①ImmersiveVideo `update()` のヘッド追従（meshes が毎フレーム camera の world position をコピー — 視聴者が動いても球体は頭中心のまま）と HUD ボタンの onSelect/onHover/onHoverEnd 配線（onHoverCaption 発火含む）、dispose→stop が無検証 ②SpatialAudio `loadAudio`（fetch→decodeAudioData→buffers キャッシュ→stats.buffersLoaded、失敗→null）、play() の未知 source/buffer ガード、stop() の totalPlayTime 累積が無検証だった。
 - ✅ **pin**: 5+5=10テスト追加。全緑 — 実装は正しいことを実測確認。

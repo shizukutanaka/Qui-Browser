@@ -409,3 +409,45 @@ describe('dynamic import() targets resolve to real files', () => {
     expect(bad).toEqual([]);
   });
 });
+
+describe('applyTranslations — DOM application', () => {
+  test('rewrites [data-i18n] text and [data-i18n-attr] attributes', () => {
+    const el1 = { getAttribute: (a) => a === 'data-i18n' ? 'hero.title' : null, textContent: '' };
+    const el2 = {
+      getAttribute: (a) => a === 'data-i18n-attr' ? 'aria-label:cta.enterVR; title:feat.audio.title' : null,
+      setAttribute: jest.fn()
+    };
+    const root = {
+      querySelectorAll: (sel) =>
+        sel === '[data-i18n]' ? [el1] :
+        sel === '[data-i18n-attr]' ? [el2] : []
+    };
+    const i18n = require('../src/i18n/i18n.js');
+    i18n.applyTranslations(root);
+    expect(el1.textContent.length).toBeGreaterThan(0);
+    expect(el1.textContent).toBe(i18n.t('hero.title'));
+    expect(el2.setAttribute).toHaveBeenCalledWith('aria-label', i18n.t('cta.enterVR'));
+    expect(el2.setAttribute).toHaveBeenCalledWith('title', i18n.t('feat.audio.title'));
+  });
+
+  test('a scope without querySelectorAll is a safe no-op', () => {
+    const i18n = require('../src/i18n/i18n.js');
+    expect(() => i18n.applyTranslations({})).not.toThrow();
+  });
+
+  test('setLanguage updates document.lang and re-applies translations to root', () => {
+    const saved = global.document;
+    global.document = { documentElement: { lang: 'en' } };
+    try {
+      const i18n = require('../src/i18n/i18n.js');
+      const el = { getAttribute: () => 'hero.title', textContent: '' };
+      const root = { querySelectorAll: (s) => s === '[data-i18n]' ? [el] : [] };
+      i18n.setLanguage('ja', root);
+      expect(global.document.documentElement.lang).toBe('ja');
+      expect(el.textContent).toBe(i18n.t('hero.title'));
+      i18n.setLanguage('en');
+    } finally {
+      if (saved === undefined) { delete global.document; } else { global.document = saved; }
+    }
+  });
+});

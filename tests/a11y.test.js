@@ -84,3 +84,51 @@ describe('prefersHighContrast — single source of truth for the effective HC de
     }
   });
 });
+
+describe('applyAccessibility — DOM class application', () => {
+  const saved = {};
+  beforeEach(() => {
+    for (const k of ['document', 'matchMedia']) {
+      saved[k] = global[k];
+    }
+  });
+  afterEach(() => {
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  function stubBody() {
+    const toggles = [];
+    global.document = { body: { classList: { toggle: jest.fn((c, on) => toggles.push([c, on])) } } };
+    return toggles;
+  }
+
+  test('toggles all three classes according to current prefs + OS signal', () => {
+    const toggles = stubBody();
+    global.matchMedia = jest.fn(() => ({ matches: false }));
+    setPref('highContrast', true);
+    setPref('largeText', true);
+    applyAccessibility();
+    expect(toggles).toEqual(expect.arrayContaining([
+      ['a11y-high-contrast', true],
+      ['a11y-large-text', true],
+      ['a11y-reduced-motion', false]
+    ]));
+    // restore
+    setPref('highContrast', false);
+    setPref('largeText', false);
+  });
+
+  test('a11y-reduced-motion follows the OS media query', () => {
+    const toggles = stubBody();
+    global.matchMedia = jest.fn((q) => ({ matches: q.includes('reduce') }));
+    applyAccessibility();
+    expect(toggles).toContainEqual(['a11y-reduced-motion', true]);
+  });
+
+  test('absent document.body is a safe no-op', () => {
+    global.document = {};
+    expect(() => applyAccessibility()).not.toThrow();
+  });
+});
