@@ -1469,3 +1469,6 @@ bundle 計測中に発見: `initializeSystems` 抽出残滓 `new DevTools(this)`
 
 ### 第66パス（検証圏外経路の走査）
 DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65修正済み）、DevTools が参照する app API は `app.scene` のみで実在確認。PROD 経路（monitoring・SW 登録）は vr-boot がカバー済み。検証圏外コードは残存ゼロ。変更なし。
+
+### 第67パス（クリーンスキャン — 依存グラフ構造）
+全 import グラフの循環検出: **0 cycles — 完全な DAG**。ドメイン分離後も双方向依存なし（抽出モジュールは app を引数で受け取り逆参照しない設計が維持されている）。変更なし。
