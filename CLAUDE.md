@@ -508,6 +508,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 9テスト追加（`initialize()` はコンストラクタから同期経路で context/listener を確定するため await 不要 — 非同期 await の必要があるという思い込みを実測で否定）。全緑 — 実装は正しいことを実測確認。
 - 📝 1964 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き49（同セッション）: VRJapaneseKeyboard.dispose + HandTracking ジョイント/ジェスチャ尾を pin（欠陥ゼロ）
+- 🔍 **実測**: ①VRJapaneseKeyboard `dispose()` の3Dリソース teardown（keyMesh ごとの unregisterInteractable、geometry/material/texture dispose、group traverse＋scene 除去、ime.dispose 委譲）が無検証 ②HandTracking `updateHand` のジョイントポーズ適用（position/quaternion/scale.setScalar/信頼度 opacity=0.4+quality×0.4、joint 不在・pose null のスキップ）、detectGesture の尾（fist/peace/thumbsup と **fist が thumbsup より先に判定される優先順位**）、isThumbUp の実ベクトル数学（y>0.7）、onInputSourcesChange の removed ハンド非表示化が無検証だった。
+- ✅ **pin**: keyboard dispose 2テスト + hand-tracking 9テスト追加。全緑 — 実装は正しいことを実測確認。
+- 📝 1976 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
