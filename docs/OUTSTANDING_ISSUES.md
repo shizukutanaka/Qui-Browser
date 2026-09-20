@@ -1531,3 +1531,6 @@ package.json 全依存の実使用を確認（three→src、web-vitals→monitor
 
 ### 第84パス（JSDoc 真実性監査）
 `@param` vs シグネチャ交差走査で VRApp 末尾の孤立 JSDoc クラスタ摘出（抽出時にメソッドだけ移り doc が残った死文書: session start/end ヘッダ・FR-1.5 層 doc・`@param layerId`）。`_detachPanelLayer` の doc を sessionLifecycle.js の実関数に再結合し孤立分を削除。残検出は destructured-param JSDoc の偽陽性。
+
+### 第85パス（クリーンスキャン — 動的プロパティアクセス）
+`this[key]`/`app[name]`/`obj['lit']` の動的参照ゼロ — 全プロパティアクセスが静的で、到達性解析に死角なし。解析不能で隠れる死コードの温床が存在しないことを確認。
