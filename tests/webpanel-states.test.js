@@ -687,3 +687,81 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
     expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
   });
 });
+
+// ── stop() — cancelling an in-flight load ───────────────────────────────────
+// The only exits from `loading` were iframe.onload/onerror: a load that never
+// resolves pins the panel in 'loading' forever (chrome tint stays, no way to
+// bail). stop() is the user escape; while loading, the reload zone acts as it.
+describe('WebPanel stop()', () => {
+  test('stop() while loading clears loading and detaches iframe handlers', () => {
+    const p = makePanel();
+    p._loadUrl('https://slow.example');
+    expect(p.loading).toBe(true);
+    expect(typeof p.iframe.onload).toBe('function');
+    p.stop();
+    expect(p.loading).toBe(false);
+    expect(p.iframe.onload).toBeNull();
+    expect(p.iframe.onerror).toBeNull();
+  });
+
+  test('stop() is a no-op when nothing is loading', () => {
+    const p = makePanel();
+    p.stop();
+    expect(p.loading).toBe(false);
+    expect(p.iframe.onload).toBeNull();
+  });
+
+  test('stop() aborts the in-flight reader fetch and invalidates its result', async () => {
+    let capturedSignal = null;
+    const oldFetch = global.fetch;
+    // Never resolves on its own, but honours abort like real fetch — so the
+    // rejection path (and its timer cleanup) actually runs.
+    global.fetch = (url, opts) => new Promise((resolve, reject) => {
+      capturedSignal = opts && opts.signal;
+      if (capturedSignal) {
+        capturedSignal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }
+    });
+    try {
+      const p = makePanel();
+      p._loadUrl('https://slow.example');
+      const seqAtStart = p._readerSeq;
+      p.stop();
+      expect(capturedSignal && capturedSignal.aborted).toBe(true);
+      expect(p._readerSeq).toBeGreaterThan(seqAtStart);
+      await Promise.resolve(); // flush the abort's rejection path
+      expect(p._contentState).toBe('empty'); // not stomped into 'unavailable'
+    } finally {
+      global.fetch = oldFetch;
+    }
+  });
+
+  test('stop() returns the content area to the page that was showing', () => {
+    const p = makePanel();
+    p._readerLines = [{ text: 'previous page' }]; // a prior page still buffered
+    p._loadUrl('https://next.example');
+    expect(p._contentState).toBe('loading');
+    p.stop();
+    expect(p._contentState).toBe('reader');
+  });
+
+  test('the reload zone dispatches stop() while loading, reload() when idle', () => {
+    // px 136–204 is the reload/stop zone on the 1024px chrome canvas.
+    // local.x -0.53 → u ≈ 0.169 → px 173.
+    const point = { x: -0.53, y: 0, z: 0, clone() { return this; } };
+    const loadingPanel = makePanel();
+    loadingPanel.loading = true;
+    loadingPanel.stop = jest.fn();
+    loadingPanel.reload = jest.fn();
+    loadingPanel._onChromeSelect(point);
+    expect(loadingPanel.stop).toHaveBeenCalledTimes(1);
+    expect(loadingPanel.reload).not.toHaveBeenCalled();
+
+    const idlePanel = makePanel();
+    idlePanel.stop = jest.fn();
+    idlePanel.reload = jest.fn();
+    idlePanel._onChromeSelect(point);
+    expect(idlePanel.reload).toHaveBeenCalledTimes(1);
+    expect(idlePanel.stop).not.toHaveBeenCalled();
+  });
+});

@@ -268,6 +268,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **ついでに訂正**: `navigate` のドキュメントが「AI recommendation engine に feed」と書いていたが、そのエンジンは Session 74 の削除で消滅済み —— F-4 の項目文も同じ幽霊を参照していた。
 - ✅ **test 3件追加**（pre-fix 検証: privateMode 未実装で 2件 FAIL）。Total 1483 tests (47 suites); lint 0 errors (136 warnings); build green。
 
+#### 続き2（同セッション）: F-4「Stop」— ロード中のパネルに脱出手段がなかった
+- 🔍 **実測した欠陥**: `loading=true` を解除できるのは iframe の `onload`/`onerror` のみ。reader フェッチには AbortController+5s タイムアウトがあるが `loading` フラグは iframe 側イベントにぶら下がっているので、解決しない iframe ロードはパネルを**永久に loading 表示**にし、ユーザーに脱出手段ゼロだった。標準ブラウザは全て reload ボタンがロード中に ✕ stop になる —— chromeColors に `reloadLoading` 色が既に存在し「ロード中は別の意味」という意図は描画側にあったが、**アクション側が未配線**だった。
+- ✨ **feat: `WebPanel.stop()`**: `_readerSeq++` で飛行中フェッチの結果を無効化 → 保持していた `_readerController.abort()`（従来ローカル変数だったものを `this._readerController` にホイスト。二重ロード時に古い finally が新しい参照を消さないよう同一性チェック）→ iframe の onload/onerror を detach してから `about:blank`（先に切らないと blank ロードが onNavigate を発火する）→ `loading=false` → contentState は「実際に表示できるもの」に戻す（直前ページの readerLines が残っていれば `reader`、無ければ `empty` —— 前ページを再表示はブラウザの stop 慣行どおり）。ロード中の reload ゾーンは stop に切替、グリフも ↺→✕ に切替。
+- ✅ **test 5件追加**（pre-fix 検証: stop 未実装で 5件 FAIL。abort 後の reject で stale ガードが state を 'unavailable' に上書きしないことも検証）。Total 1488 tests (47 suites); lint 0 errors; build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
