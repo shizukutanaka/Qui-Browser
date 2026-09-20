@@ -313,6 +313,21 @@ describe('ImmersiveVideo lifecycle', () => {
     expect(iv.playing).toBe(false);
   });
 
+  test('togglePause() resume does not claim playing when play() is rejected', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4'); // plays → playing=true
+    iv.togglePause();                            // pause → playing=false
+
+    nextVideoAutoplayBlocked = true;             // the resume's play() rejects
+    iv.togglePause();
+
+    // The promise rejected and no 'playing' event fired — resuming via the
+    // HUD must obey the same "don't lie about playback" invariant as the
+    // initial play() (whose comment documents exactly this failure mode).
+    expect(iv.playing).toBe(false);
+    expect(iv.video.paused).toBe(true);
+  });
+
   test('stop() is a safe no-op before any play()', () => {
     const { iv, scene } = makeHarness();
     expect(() => iv.stop()).not.toThrow();

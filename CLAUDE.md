@@ -483,6 +483,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 6テスト追加（ゾーン dispatch、+ ゾーン、dead ゾーン、0タブ no-op、描画定数との一致 pin、setSearchEngine 伝播 — WebPanel stub に `setSearchEngine` を追加して実配線を再現）。初回、spy を実メソッドに素通しさせて closeTab が配列を変異させ次クリックのゾーン境界がずれるテスト側バグを検出 → `mockImplementation` で dispatch 観測に限定。全緑 — 実装は正しいことを実測確認。
 - 📝 1928 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き44（同セッション）: ImmersiveVideo — togglePause の resume が autoplay 拒否を「再生中」と嘘ついていた
+- 🐛 **実バグ**: `play()` は「'playing' イベントが来るまで `playing` を立てない — autoplay 拒否時に HUD が嘘をつかない」設計なのに、`togglePause()` の resume 分岐は `video.play()` の rejection を catch で飲んだ上で **`playing = true` を即座に立てていた**。ポーズ→再開で autoplay policy が拒否すると HUD は「Pause」表示のまま映像は止まったまま（`play()` のコメントが文書化しているそのもののバグを別経路で再実装していた）。修正: resume はイベント駆動に委譲（'playing' リスナが `_onVideoPlaying` で state+label+onPlaybackChange を駆動）。
+- ✅ **pin**: テスト追加（修正前赤確認 — reject 時に playing=false を維持）。既存の resume テストはイベント経路が真に駆動することを同時に証明（mock の成功 play() が 'playing' を発火）。
+- 📝 1929 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
