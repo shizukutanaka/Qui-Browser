@@ -535,6 +535,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加（英語 caption は修正前に赤確認 — '進む' ではなく 'Going forward' が en 既定で来ることも検証してからの修正）。
 - 📝 2078 tests / 59 suites、lint 0 errors（119 warnings 据置）、build green。
 
+#### 続き62（同セッション）: VRApp の品質オートスケール・キーボード入力・loadTexture を pin（欠陥ゼロ）
+- 🔍 **実測**: `adjustQuality` の ±20% 閾値バンド（frameTime > target×1.2 → FFR +0.1、< 0.8 → FFR −0.1、帯内は不動）、`reduceQuality`/`increaseQuality` の ffrSystem 不在 no-op、`_requestVRKeyboardInput` の2経路（VR キーボード: setOnConfirm→IME activate→compositionBuffer プリフィル（'https://' 裸プレフィックスは空にする例外）→show→prompt caption 発表 / 非 VR: window.prompt フォールバック・キャンセル時 onConfirm 不発火）、`loadTexture` の textureManager 委譲と THREE.TextureLoader フォールバック。
+- ✅ **pin**: 7テスト追加（bound-prototype `this` は兄弟メソッドを持たないため reduceQuality/increaseQuality を明示束縛 — 以後の pin でも必要な作法）。
+- 📝 2085 tests / 59 suites、lint 0 errors、build green。
+
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
