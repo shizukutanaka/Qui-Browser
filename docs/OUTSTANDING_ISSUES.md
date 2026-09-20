@@ -1561,3 +1561,6 @@ src の fetch 経路は2箇所のみ（JapaneseIME transliterate・WebPanel read
 
 ### 第94パス（クリーンスキャン — シーングラフ対称）
 全 `.add()` サイトを dispose/remove 経路と交差: JapaneseIME/BookmarkPanel/TabManager/WebPanel/CaptionSystem/GazeInteraction/HandTracking 全てが `scene.remove`+geometry/material dispose の完全対称を保持。カメラ配下の toast mesh は `_toastTimers`+camera 破棄で回収。シーンリークゼロ。
+
+### 第95パス（クリーンスキャン — Observer/AbortController 対称）
+Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ。AbortController 2箇所は fetch タイムアウト用で finally で timer clear — 対称済み。SpatialAudio の node.disconnect/context.close も teardown 済み。リーク経路ゼロ。
