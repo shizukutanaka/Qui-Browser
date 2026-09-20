@@ -1558,3 +1558,6 @@ src の fetch 経路は2箇所のみ（JapaneseIME transliterate・WebPanel read
 
 ### 第93パス（クリーンスキャン — データ復元安全性）
 全 `JSON.parse` 3箇所（BookmarkStore.readJSON・settingsStore・a11y prefs）は全て try/catch+フォールバック+キーホワイトリスト付き — localStorage の壊れたデータで起動クラッシュしない構造を確認。
+
+### 第94パス（クリーンスキャン — シーングラフ対称）
+全 `.add()` サイトを dispose/remove 経路と交差: JapaneseIME/BookmarkPanel/TabManager/WebPanel/CaptionSystem/GazeInteraction/HandTracking 全てが `scene.remove`+geometry/material dispose の完全対称を保持。カメラ配下の toast mesh は `_toastTimers`+camera 破棄で回収。シーンリークゼロ。
