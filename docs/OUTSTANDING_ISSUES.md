@@ -1798,3 +1798,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第173パス（クリーンスキャン — 反復中のコレクション変更）
 `clear`/`add`/`delete` は全て teardown 文脈 or 別コレクションへの追加 — 反復対象自身の変更経路ゼロ。
+
+### 第174パス（実削除 — 死アニメーション経路）
+`animateSnapTurn` は呼出側ゼロの死コード（実 snapTurn は設計上インスタント — イーズ回転は酔いの引金）。しかも rAF 駆動は XR セッション中に停止するため到達しても動かない二重の嘘 → 削除。連鎖除去: `settings.snapTurn`（書き込み専用）・プリセットの snapTurn キー・`reduceMotion` フィールド・`setReducedMotion`・OS リスナー分岐・5死テスト・rAF stub。

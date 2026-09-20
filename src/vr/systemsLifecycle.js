@@ -48,11 +48,7 @@ export async function initializeSystems(app) {
 
   // 2. Comfort System
   if (app.settings.enableComfort) {
-    app.comfortSystem = new ComfortSystem(
-      app.camera,
-      app.renderer,
-      { reduceMotion: osReducedMotion() }
-    );
+    app.comfortSystem = new ComfortSystem(app.camera, app.renderer);
     app.comfortSystem.setPreset(app.settings.motionSensitivity);
     console.debug('VRApp: Comfort system initialized');
   }
@@ -376,9 +372,6 @@ export function setupOSAccessibilityListeners(app) {
 
   app._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
   app._onOSReducedMotionChange = (e) => {
-    if (app.comfortSystem) {
-      app.comfortSystem.setReducedMotion(e.matches);
-    }
     if (app.gazeInteraction) {
       app.gazeInteraction.setReducedMotion(e.matches);
     }

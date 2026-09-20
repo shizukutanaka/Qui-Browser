@@ -694,16 +694,14 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
       .toHaveBeenCalledWith('change', expect.any(Function));
   });
 
-  test('a reduced-motion OS change propagates live to comfortSystem and gazeInteraction', () => {
-    const comfortSystem = { setReducedMotion: jest.fn() };
+  test('a reduced-motion OS change propagates live to gazeInteraction', () => {
     const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
-    const app = makeVRAppLike({ comfortSystem, gazeInteraction, captionSystem: null });
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem: null });
     setupOSAccessibilityListeners(app);
 
     const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
     handler({ matches: true });
 
-    expect(comfortSystem.setReducedMotion).toHaveBeenCalledWith(true);
     expect(gazeInteraction.setReducedMotion).toHaveBeenCalledWith(true);
   });
 

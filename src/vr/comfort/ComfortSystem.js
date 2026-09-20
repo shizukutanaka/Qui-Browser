@@ -10,10 +10,9 @@ import { t } from '../../i18n/i18n.js';
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(camera, renderer, { reduceMotion = false } = {}) {
+  constructor(camera, renderer) {
     this.camera = camera;
     this.renderer = renderer;
-    this.reduceMotion = reduceMotion;
 
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
@@ -41,11 +40,6 @@ export class ComfortSystem {
         baseFOV: camera.fov || 90,
         reductionAmount: 25,  // Degrees to reduce during motion
         smoothing: 0.1        // Transition speed
-      },
-      snapTurn: {
-        enabled: true,
-        angle: 30,           // Degrees per snap
-        duration: 0.2        // Seconds for animation
       }
     };
 
@@ -212,9 +206,9 @@ export class ComfortSystem {
    * flow during locomotion — it reduces motion sickness rather than causing it.
    * The prefers-reduced-motion cohort is the vestibular-sensitive group that
    * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that is
-   * essential to functionality; comfort tunnelling qualifies. (Contrast with
-   * animateSnapTurn, where the eased rotation IS the nausea trigger and is
-   * therefore suppressed.)
+   * essential to functionality; comfort tunnelling qualifies. Snap turns are
+   * instantaneous by design — eased in-place rotation is itself a nausea
+   * trigger, so no animated-turn code exists here at all.
    */
   updateFOV(_deltaTime) {
     // Target FOV based on motion
@@ -234,66 +228,10 @@ export class ComfortSystem {
   }
 
   /**
-   * Handle snap turning
-   */
-  /**
-   * Live-update the reduced-motion preference (WCAG 2.3.3). Read once at
-   * construction from the OS signal; this lets a mid-session OS preference
-   * change (e.g. toggled from the headset's system Quick Settings without
-   * reloading the page) take effect immediately instead of staying frozen
-   * for the rest of the page's lifetime.
-   * @param {boolean} value
-   */
-  setReducedMotion(value) {
-    this.reduceMotion = !!value;
-  }
-
-
-  /**
-   * Animate snap turn with easing.
-   * Under prefers-reduced-motion the eased rAF loop is replaced with an
-   * immediate assignment — the turn still happens, the animation does not.
-   */
-  animateSnapTurn(targetAngle) {
-    const startRotation = this.camera.rotation.y;
-    const endRotation = startRotation + targetAngle;
-
-    if (this.reduceMotion) {
-      this.camera.rotation.y = endRotation;
-      return;
-    }
-
-    const duration = this.settings.snapTurn.duration * 1000; // Convert to ms
-    // Monotonic clock — Date.now() can step backward on NTP sync mid-animation.
-    const startTime = performance.now();
-
-    const animate = (now = performance.now()) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      // Apply rotation
-      this.camera.rotation.y = THREE.MathUtils.lerp(
-        startRotation,
-        endRotation,
-        eased
-      );
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate(startTime);
-  }
-
-  /**
    * Apply comfort preset
    */
   setPreset(preset) {
-    // Each preset explicitly sets `enabled` on all three effects. This is
+    // Each preset explicitly sets `enabled` on both effects. This is
     // required because settings are merged with Object.assign: switching FROM
     // 'disabled' (which sets enabled:false) TO a protective preset must
     // re-enable the effects. Omitting `enabled: true` here would leave a user
@@ -302,23 +240,19 @@ export class ComfortSystem {
     const presets = {
       'sensitive': {
         vignette: { enabled: true, intensity: 0.8, powerFactor: 1.2 },
-        fov: { enabled: true, reductionAmount: 35 },
-        snapTurn: { enabled: true, angle: 15 }
+        fov: { enabled: true, reductionAmount: 35 }
       },
       'moderate': {
         vignette: { enabled: true, intensity: 0.4, powerFactor: 1.5 },
-        fov: { enabled: true, reductionAmount: 25 },
-        snapTurn: { enabled: true, angle: 30 }
+        fov: { enabled: true, reductionAmount: 25 }
       },
       'tolerant': {
         vignette: { enabled: true, intensity: 0.2, powerFactor: 2.0 },
-        fov: { enabled: true, reductionAmount: 15 },
-        snapTurn: { enabled: true, angle: 45 }
+        fov: { enabled: true, reductionAmount: 15 }
       },
       'disabled': {
         vignette: { enabled: false },
-        fov: { enabled: false },
-        snapTurn: { enabled: false }
+        fov: { enabled: false }
       }
     };
 
@@ -330,7 +264,6 @@ export class ComfortSystem {
     // Apply preset settings
     Object.assign(this.settings.vignette, presetSettings.vignette);
     Object.assign(this.settings.fov, presetSettings.fov);
-    Object.assign(this.settings.snapTurn, presetSettings.snapTurn);
 
     this.settings.preset = preset;
   }
@@ -408,8 +341,9 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
 /**
  * Build a directional caption for a snap-turn confirmation.
  *
- * Used when prefers-reduced-motion removes the eased rotation animation;
- * the caption provides the second, non-visual channel that tells the user
+ * Snap turns are instantaneous by design (an eased in-place rotation is a
+ * nausea trigger), so there is no visual cue that the world moved; the
+ * caption provides the second, non-visual channel that tells the user
  * which way the world snapped. Pure so it is unit-testable.
  *
  * @param {number} direction   +1 = clockwise (right), -1 = counter-clockwise (left)
