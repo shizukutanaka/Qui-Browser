@@ -222,3 +222,35 @@ describe('ProgressiveLoader retry + adaptive-URL state machine', () => {
     expect(item.url).toBe('p.jpg');
   });
 });
+
+describe('completion semantics', () => {
+  let loader;
+  beforeEach(() => { loader = new ProgressiveLoader(); });
+  afterEach(() => { loader.dispose(); });
+
+  // onLoadComplete only fired when itemsLoaded === itemsTotal — a single
+  // failed resource left itemsLoaded < itemsTotal forever, so onComplete
+  // silently never fired on partial failure.
+  test('onComplete fires when all items are settled even if one failed', async () => {
+    const onComplete = jest.fn();
+    loader.callbacks.onComplete = onComplete;
+    loader.performLoad = async (item) =>
+      item.name === 'bad' ? Promise.reject(new Error('boom')) : Promise.resolve('ok');
+    loader.addResource({ url: '/ok', name: 'ok' }, 'critical');
+    loader.addResource({ url: '/bad', name: 'bad' }, 'critical');
+    await loader.loadPhase('critical');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  // start() calls bare requestIdleCallback — a ReferenceError where the API is
+  // missing (older WebViews / non-Chromium), which rejects start() AND drops
+  // the whole 'secondary' phase silently.
+  test('start() loads the secondary phase even without requestIdleCallback', async () => {
+    loader.performLoad = jest.fn().mockResolvedValue('ok');
+    loader.addResource({ url: '/sec', name: 'sec' }, 'secondary');
+    expect('requestIdleCallback' in globalThis).toBe(false); // node env: absent
+    await loader.start();
+    await new Promise(r => setTimeout(r, 20)); // let the idle fallback run
+    expect(loader.loaded.has('sec')).toBe(true);
+  });
+});

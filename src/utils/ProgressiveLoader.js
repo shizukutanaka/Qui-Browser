@@ -181,7 +181,13 @@ export class ProgressiveLoader {
     this.loadPhase('primary').catch(console.warn);
 
     // Phase 3: Secondary resources (background)
-    requestIdleCallback(() => {
+    // requestIdleCallback is absent on some WebViews — fall back to a plain
+    // timeout so the secondary phase isn't dropped (and start() doesn't
+    // throw) where the API is missing.
+    const requestIdle = typeof globalThis.requestIdleCallback === 'function'
+      ? globalThis.requestIdleCallback.bind(globalThis)
+      : (fn) => setTimeout(fn, 0);
+    requestIdle(() => {
       this.loadPhase('secondary').catch(console.warn);
     });
 
@@ -511,6 +517,13 @@ export class ProgressiveLoader {
         item: item,
         error: error
       });
+    }
+
+    // Failed items never reach itemsLoaded, so without this check a single
+    // failure would leave itemsLoaded < itemsTotal forever and onComplete
+    // would never fire — the settled-count includes failures.
+    if (this.stats.itemsLoaded + this.failed.size === this.stats.itemsTotal) {
+      this.onLoadComplete();
     }
   }
 
