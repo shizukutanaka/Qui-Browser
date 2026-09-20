@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -25,12 +25,12 @@ import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
-import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
+import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { canvasButton, controllerRay } from './ui/canvasMesh.js';
-import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButton } from './ui/settingsButtons.js';
+import { createSettingsPanel } from './ui/settingsPanel.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 
 import { TabManager } from './browser/TabManager.js';
@@ -45,7 +45,6 @@ import { createHomeEnvironment } from './homeEnvironment.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
-import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
@@ -549,13 +548,6 @@ export class VRApp {
     };
   }
 
-  /**
-   * Half-width toggle button for the 2-column settings panel layout.
-   * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
-   */
-  makeCompactToggleButton(label, key, apply) {
-    return compactToggleButton(this._btnCtx(), label, key, apply);
-  }
 
   /**
    * Show a brief heads-up notification inside VR.  Creates a canvas-textured
@@ -840,31 +832,6 @@ export class VRApp {
     );
   }
 
-  /**
-   * One tab in the settings panel's section selector.
-   *
-   * Tabs replaced a stack of collapsible headers: five stacked headers plus the
-   * largest section measured 50.4° vertically, still past the ~40° a user takes
-   * in without moving their head, and four of those rows were pure chrome. One
-   * tab row is 35.9°.
-   *
-   * The selected state is carried by a ● / ○ glyph as well as by colour, so it
-   * does not depend on hue alone (WCAG 1.4.1), and selection is announced
-   * through the same caption path every other settings control uses
-   * (WCAG 4.1.3) — silently reorganising the panel under a gaze user would be
-   * worse than no grouping at all.
-   *
-   * State is read live from `settings.openSettingsSections` inside draw()
-   * rather than captured at construction, so a repaint (high-contrast toggle)
-   * can never show a stale glyph.
-   *
-   * @param {string} sectionId  i18n key, also the persisted identity
-   * @param {number} widthM     tab width in metres (from the layout)
-   * @returns {THREE.Mesh}
-   */
-  makeSectionTab(sectionId, widthM) {
-    return sectionTab(this._btnCtx(), sectionId, widthM);
-  }
 
   /**
    * Expand / collapse one settings section and rebuild the panel.
@@ -906,58 +873,6 @@ export class VRApp {
     (parent || this.scene).add(this.settingsPanel);
   }
 
-  /** Unregister every interactable in the settings panel and free its GPU resources. */
-  _disposeSettingsPanel() {
-    const panel = this.settingsPanel;
-    if (!panel) {
-      return;
-    }
-    panel.traverse((obj) => {
-      if (obj.isMesh) {
-        this.unregisterInteractable(obj);
-      }
-    });
-    if (panel.parent) {
-      panel.parent.remove(panel);
-    }
-    // Geometries are shared via _sharedPlaneGeometry, so only the per-button
-    // textures are owned here; they are tracked in _panelTextures and disposed
-    // with the app.
-    this._settingsPanelDrawers = [];
-  }
-
-  makeActionButton(label, onSelect) {
-    return actionButton(this._btnCtx(), label, onSelect);
-  }
-
-  /**
-   * Build a canvas-textured numeric stepper bound to a numeric setting:
-   * [ −  |  label: value  |  + ]. Selecting the left/right region steps the
-   * value (clamped to min/max, snapped to step), persists it, and runs an
-   * optional live-apply callback. Returns the button mesh (registered).
-   *
-   * @param {string} label
-   * @param {string} key   setting key in this.settings
-   * @param {object} cfg   { min, max, step, unit, apply }
-   */
-  makeStepperButton(label, key, cfg) {
-    return stepperButton(this._btnCtx(), label, key, cfg);
-  }
-
-  /**
-   * Build a canvas-textured cycle button that steps through a fixed list of
-   * string options for a settings key. Selecting it advances to the next option
-   * (wrapping), persists the setting, and calls an optional live-apply callback.
-   * Returns the button mesh (already registered as interactable).
-   *
-   * @param {string}   label   displayed on the left
-   * @param {string}   key     setting key in this.settings
-   * @param {string[]} options ordered list of allowed values
-   * @param {Function} [apply] called with newValue after each cycle step
-   */
-  makeCycleButton(label, key, options, apply) {
-    return cycleButton(this._btnCtx(), label, key, options, apply);
-  }
 
   /**
    * Repaint all settings-panel buttons in their idle (non-hover) state.
@@ -1057,296 +972,7 @@ export class VRApp {
    * the runtime settings (all effects are immediate and safe).
    */
   createSettingsPanel() {
-    const group = new THREE.Group();
-    group.name = 'settingsPanel';
-    // Collect per-button redraw callbacks so that appearance-affecting setting
-    // changes (e.g. high-contrast) can repaint the whole panel in one shot.
-    this._settingsPanelDrawers = [];
-
-    const items = [
-      [t('vr.settings.highContrast'), 'highContrast', (v) => {
-        setPref('highContrast', v);
-        this._redrawSettingsPanel();
-        if (this.bookmarkPanel && this.bookmarkPanel.visible) {
-          this.bookmarkPanel._draw();
-        }
-        // Caption backing switches between semi-transparent (normal) and fully
-        // opaque (HC) — update live so the effect is immediate, not deferred
-        // until the next VR session restart.
-        if (this.captionSystem) {
-          this.captionSystem.setHighContrast(v);
-        }
-        // Gaze reticle ring: full opacity in HC so it is always visible
-        // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setHighContrast(prefersHighContrast());
-        }
-      }],
-      [t('vr.settings.teleport'), 'enableTeleport', null],
-      [t('vr.settings.snapTurn'), 'enableSnapTurn', null],
-      [t('vr.settings.smoothMove'), 'enableSmoothMove', (v) => {
-        const msg = smoothMoveWarning(v, osReducedMotion());
-        if (msg) {
-          this.showVRToast(msg, { type: 'warn' });
-        }
-      }],
-      [t('vr.settings.southpaw'), 'southpaw', (v) => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
-        }
-      }],
-      [t('vr.settings.comfort'), 'enableComfort', null],
-      [t('vr.settings.foveation'), 'enableFFR', (v) => {
-        if (this.ffrSystem) {
-          v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
-        }
-      }],
-      [t('vr.settings.gazeSelect'), 'enableGazeDwell', (v) => {
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setEnabled(v);
-        }
-      }],
-      [t('vr.settings.haptics'), 'enableHaptics', (v) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.setEnabled(v);
-        }
-      }],
-      [t('vr.settings.captions'), 'enableCaptions', (v) => {
-        if (this.captionSystem) {
-          this.captionSystem.setEnabled(v);
-          if (v) {
-            this.captionSystem.show(t('vr.msg.captionsEnabled'));
-          }
-        }
-      }],
-      // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
-      // WindowManager) is constructed once, in initializeSystems(), gated on
-      // this same setting — there was previously no way for a real user to
-      // ever set it, since it was absent from every settings-panel/voice/
-      // persisted-setting path. Toggling it here persists the preference
-      // (FR-9.1) but can only take effect on the next page load, since
-      // construction is one-shot; the apply callback is honest about that.
-      [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
-      [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
-        if (this.windowManager) {
-          this.windowManager.setFollow(v);
-        }
-      }],
-      [t('vr.settings.curved'), 'enableCurvedPanel', (v) => {
-        if (this.tabManager) {
-          this.tabManager.setCurved(v);
-        } else if (this.webPanel && this.webPanel.setCurved) {
-          this.webPanel.setCurved(v);
-        }
-      }]
-    ];
-
-    // Numeric steppers for tunable parameters that were previously code-only.
-    const steppers = [
-      [t('vr.settings.snapAngle'), 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
-      [t('vr.settings.moveSpeed'), 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
-      [t('vr.settings.gazeTime'), 'gazeDwellTime', {
-        min: 500, max: 3000, step: 250, unit: 'ms',
-        apply: (v) => {
-          if (this.gazeInteraction) {
-            this.gazeInteraction.dwellTime = v;
-          }
-        }
-      }],
-      // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus can widen
-      // this window so a brief involuntary slip off-target doesn't restart the
-      // dwell; precision-focused users can narrow it to 0 to disable forgiveness.
-      [t('vr.settings.graceTime'), 'gazeGraceTime', {
-        min: 0, max: 600, step: 50, unit: 'ms',
-        apply: (v) => {
-          if (this.gazeInteraction) {
-            this.gazeInteraction.graceTime = v;
-          }
-        }
-      }],
-      [t('vr.settings.panelDist'), 'windowDistance', {
-        min: 0.6, max: 6.0, step: 0.2, unit: ' m',
-        apply: (v) => {
-          if (this.windowManager) {
-            this.windowManager.setDistance(v);
-          }
-        }
-      }],
-      // WCAG 2.2.1 Timing Adjustable (Adjust option): range must reach ≥ 10× the
-      // default (5 s default → min ceiling 50 s). Using 60 s (12×) as the max.
-      [t('vr.settings.captionHold'), 'captionDuration', {
-        min: 2, max: 60, step: 2, unit: 's',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setLineDuration(v * 1000);
-          }
-        }
-      }],
-      [t('vr.settings.captionSize'), 'captionScale', {
-        min: 0.5, max: 3.0, step: 0.25, unit: 'x',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setScale(v);
-          }
-        }
-      }],
-      // XAUR: caption position customization. Height in metres below eye level
-      // (more-negative = lower in the field of view).
-      [t('vr.settings.captionHeight'), 'captionHeight', {
-        min: -0.85, max: -0.25, step: 0.1, unit: 'm',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setVerticalOffset(v);
-          }
-        }
-      }],
-      // Master spatial-audio volume (0 = muted). Stored as a percentage for a
-      // readable stepper; SpatialAudio.setMasterVolume expects a 0–1 gain.
-      [t('vr.settings.soundVolume'), 'masterVolume', {
-        min: 0, max: 100, step: 10, unit: '%',
-        apply: (v) => {
-          if (this.spatialAudio) {
-            this.spatialAudio.setMasterVolume(v / 100);
-          }
-        }
-      }]
-    ];
-
-    // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
-    const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
-    const SEARCH_ENGINES  = ['duckduckgo', 'google', 'bing', 'ecosia'];
-    const cycles = [
-      ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
-        if (this.comfortSystem) {
-          this.comfortSystem.setPreset(v);
-        }
-      }],
-      [t('vr.settings.search'), 'searchEngine', SEARCH_ENGINES, (v) => {
-        if (this.tabManager) {
-          this.tabManager.setSearchEngine(v);
-        }
-      }]
-    ];
-
-    // Action buttons (non-toggle). Only shown when their target exists.
-    const actions = [];
-    // Immersive 360°/180° video: prompt for a URL (VR keyboard) and play it.
-    actions.push([t('vr.settings.video360'), () => this._launchImmersiveVideo()]);
-    // Clear browsing history (privacy). Always shown: history is persisted in
-    // localStorage and outlives an enableWebPanel session, so a user must be
-    // able to clear residual history regardless of the current panel state.
-    actions.push([t('vr.settings.clearHistory'), () => this._clearBrowsingHistory()]);
-    // Reader proxy: the ONLY way a real user can set readerProxyUrl. It was a
-    // settings key with no settings control, voice command or URL parameter —
-    // docs/PROXY.md said "set the setting" with no way to do it, the same
-    // unreachable-by-any-real-user shape that justified Session 74's deletions.
-    actions.push([t('vr.settings.readerProxy'), () => this._requestReaderProxyInput()]);
-    if (this.settings.enableWebPanel) {
-      actions.push([t('vr.settings.bookmarks'), () => {
-        if (this.bookmarkPanel) {
-          this.bookmarkPanel.toggle();
-          // Announce the resulting open/closed state as a status message
-          // (WCAG 4.1.3) so caption-reliant users know whether the panel
-          // appeared or disappeared.
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
-          }
-        }
-      }]);
-    }
-
-    // Grouped, collapsible layout. The flat stack reached 19 rows / 3.56 m,
-    // which subtends 72.2° vertically at this panel's 2.44 m placement — about
-    // double the ~30-40° you can take in without moving your head, so the lower
-    // half was effectively out of view and every new setting made it worse.
-    // Sections are keyed by what the user is trying to do, and only the open
-    // one occupies rows (see src/vr/ui/settingsLayout.js).
-    const byKey = (list, keys) => keys
-      .map((k) => list.find((e) => e[1] === k))
-      .filter(Boolean);
-    const actionByLabel = (label) => actions.filter((a) => a[0] === label);
-
-    const SECTIONS = [
-      ['settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
-        byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
-        [], []],
-      ['settings.section.locomotion',
-        byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
-        cycles.filter((c) => c[1] === 'motionSensitivity'), []],
-      ['settings.section.display',
-        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
-        byKey(steppers, ['windowDistance']), [], []],
-      ['settings.section.browsing',
-        byKey(items, ['enableWebPanel']), [],
-        cycles.filter((c) => c[1] === 'searchEngine'),
-        actionByLabel(t('vr.settings.clearHistory'))
-          .concat(actionByLabel(t('vr.settings.readerProxy')))
-          .concat(actionByLabel(t('vr.settings.bookmarks')))],
-      ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
-        actionByLabel(t('vr.settings.video360'))]
-    ];
-
-    // Anything not explicitly placed still has to appear — a control that
-    // silently vanished because a key was mistyped would be worse than a long
-    // panel. Collected into a trailing section rather than dropped.
-    const placed = new Set(SECTIONS.flatMap(([, tg, st, cy]) =>
-      [...tg, ...st, ...cy].map((e) => e[1])));
-    const placedActions = new Set(SECTIONS.flatMap(([, , , , ac]) => ac.map((a) => a[0])));
-    const leftover = [
-      items.filter((e) => !placed.has(e[1])),
-      steppers.filter((e) => !placed.has(e[1])),
-      cycles.filter((e) => !placed.has(e[1])),
-      actions.filter((a) => !placedActions.has(a[0]))
-    ];
-    if (leftover.some((l) => l.length)) {
-      SECTIONS.push(['settings.section.other', ...leftover]);
-    }
-
-    // Build the pure layout description, then render from it.
-    const sections = SECTIONS.map(([id, tg, st, cy, ac]) => ({
-      id,
-      controls: [
-        ...tg.map((e) => ({ wide: false, make: () => this.makeCompactToggleButton(e[0], e[1], e[2]) })),
-        ...st.map((e) => ({ wide: true, make: () => this.makeStepperButton(e[0], e[1], e[2]) })),
-        ...cy.map((e) => ({ wide: true, make: () => this.makeCycleButton(e[0], e[1], e[2], e[3]) })),
-        ...ac.map((a) => ({ wide: true, make: () => this.makeActionButton(a[0], a[1]) }))
-      ]
-    }));
-
-    // Persisted open/closed state. Accessibility opens by default: it is what
-    // this product is for, and it is the section a user most likely came to.
-    if (!Array.isArray(this.settings.openSettingsSections)) {
-      this.settings.openSettingsSections = ['settings.section.a11y'];
-    }
-    const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
-
-    const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(SETTINGS_PANEL_W, layout.height),
-      new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
-    );
-    group.add(bg);
-
-    for (const p of layout.placements) {
-      if (p.type === 'tab') {
-        const btn = this.makeSectionTab(p.sectionId, p.w);
-        btn.position.set(p.x, p.y, 0.01);
-        group.add(btn);
-        this._settingsPanelDrawers.push(btn._redraw);
-      } else {
-        const section = sections.find((sec) => sec.id === p.sectionId);
-        const btn = section.controls[p.index].make();
-        btn.position.set(p.x, p.y, 0.01);
-        group.add(btn);
-        this._settingsPanelDrawers.push(btn._redraw);
-      }
-    }
-
-    // Front-left of the user, angled toward them.
-    group.position.set(-1.4, 1.5, -2.0);
-    group.rotation.y = Math.PI / 8;
-    return group;
+    return createSettingsPanel(this);
   }
 
   /**

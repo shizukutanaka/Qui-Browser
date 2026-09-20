@@ -1198,6 +1198,22 @@ build 0.68s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.73s・vr-boot PASS。
 
+### 第38パス（C-1 スライス4: createSettingsPanel 抽出 — C-1 核心）
+
+- `src/vr/ui/settingsPanel.js` 新設: createSettingsPanel（298行・依存20本）
+  を `createSettingsPanel(app)` として移動。全 apply クロージャが apply 時に
+  `app.X` を評価するため構築順序の遅延性を保持。セクション構成表（SECTIONS）
+  ・layoutSettingsPanel・ファクトリ呼び出しを全て同梱。
+- VRApp は delegate 保持（`_rebuildSettingsPanel` が再利用）。5つの
+  makeXxx delegate が死んだので削除し `_btnCtx()` 経由で直接ファクトリ
+  呼び出しに統一。
+- 連鎖孤児除去: VRApp 側の `setPref`/`smoothMoveWarning`/`layoutSettingsPanel`/
+  `SETTINGS_PANEL_W`/`settingsButtons` 各 import が未使用化。
+- VRApp 2,912 → 2,538 行（−374行）。C-1 累計 −716行（3,254→2,538）。
+
+計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
+build 0.63s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
