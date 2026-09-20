@@ -1441,3 +1441,6 @@ tests/ 走査で未使用 `makeScene` ヘルパー削除。src 重複ブロッ�
 - 未使用 `makeScene` テストヘルパー削除
 - `isWorldVisible` の同一実装を inputRouting に集約（GazeInteraction 側除去）
 - `showCaption(app, text)` seam を新設（src/vr/caption.js）: `if (captionSystem && captionSystem.enabled) { captionSystem.show(...) }` の ~25箇所ガード定型を統一 — アナウンスの意図が統一され、将来のガード変更は1箇所で済む。複合ガード（`&& enableGazeDwell` 等）や複文ブロックは構造保持
+
+### 第59パス
+hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHands(app, pattern)` seam（src/vr/haptics.js）に統一（6箇所）。`update()`/`setEnabled`/複文ブロック（hand 解決付き）は構造保持。残る `if (app.hapticFeedback)` は dispose 系のみで正しい。
