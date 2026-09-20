@@ -1424,3 +1424,6 @@ perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/red
 
 ### 第52パス（継続中 — テスト専用 delegate の削除）
 「テストだけが参照する delegate」を摘出: `updateSystems`・`_setupOSAccessibilityListeners`・`_detachPanelLayer` は src 呼び出しゼロ → 規約に従いテストをモジュール直接呼び出し（frameLoop/systemsLifecycle/sessionLifecycle から import）に書き換えて delegate 3本削除。`render` は frameLoop が `bind` するため生存。VRApp 801→**789** 行（C-1 累計 −2,465）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
+
+### 第53パス（継続中 — 単一呼出 delegate の直接呼出化）
+src 呼び出しが1箇所のみの delegate 9本（perf 4・snapTurn・onTeleportStart・onVRSessionStart・createSettingsPanel・navigate）を削除し、呼び出し側はモジュール関数を直接 import。`updateLocomotion`/`updateButtonInput`/`updateTeleport`/`updateHover`・`getPerformanceStats` はテストモック/公開APIのため保持（updateSystems 内の updateTeleport 直接化で7件失敗 → app.X 経由に復旧 = シーム確認）。VRApp 789→**756** 行（C-1 累計 −2,498）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
