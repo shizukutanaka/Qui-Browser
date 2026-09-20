@@ -907,6 +907,18 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 0.66s。
 
+### 第17パス（検証パス — 全層クリア確認）
+
+- `public/service-worker.js`: CRITICAL_ASSETS 全実在・パターン有効
+  （以前のパスで '/src/*.js' 嘘リストは既除去済み）。
+- package.json scripts ↔ tools/: 全マッピング実在確認。
+- docker-compose.yml → Dockerfile → healthcheck.sh / nginx.conf の
+  配線は正常。
+- `docker:compose` が非推奨 `docker-compose` v1 呼び出しだったため
+  `docker compose` v2 に修正 + DEPLOYMENT_GUIDE.md の例も整合。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 0.66s・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

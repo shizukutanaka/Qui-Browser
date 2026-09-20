@@ -621,7 +621,7 @@ docker build -t qui-browser-vr:2.0.0 .
 docker run -d -p 8080:80 --name qui-browser qui-browser-vr:2.0.0
 
 # Or use Docker Compose
-docker-compose up -d
+docker compose up -d
 
 # View logs
 docker logs qui-browser
