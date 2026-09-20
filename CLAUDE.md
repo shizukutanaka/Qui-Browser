@@ -478,6 +478,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 12テスト追加 — 全ゾーンの dispatch、loading 中は reload→stop、star 未配線時は URL バーにフォールスルー、`window.prompt` フォールバック、タイル内外、スクロール方向符号、非 reader 無視。全緑 — 境界条件は正しいことを実測で確認。
 - 📝 1922 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き43（同セッション）: TabManager — ストリップのヒットゾーン dispatch と setSearchEngine 伝播を pin（欠陥ゼロ）
+- 🔍 **実測**: `_onStripSelect`（タブ本体→setActive / 右端36px→closeTab / 末尾90pxの+→newTab / タブ右の空白は dead zone）が「投げない」スモークのみで無検証。`setSearchEngine` は `setReaderProxyUrl` と同型の全タブ+将来タブ伝播だが未検査。
+- ✅ **pin**: 6テスト追加（ゾーン dispatch、+ ゾーン、dead ゾーン、0タブ no-op、描画定数との一致 pin、setSearchEngine 伝播 — WebPanel stub に `setSearchEngine` を追加して実配線を再現）。初回、spy を実メソッドに素通しさせて closeTab が配列を変異させ次クリックのゾーン境界がずれるテスト側バグを検出 → `mockImplementation` で dispatch 観測に限定。全緑 — 実装は正しいことを実測確認。
+- 📝 1928 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
