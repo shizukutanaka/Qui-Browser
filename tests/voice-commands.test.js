@@ -270,7 +270,10 @@ describe('VoiceCommands — help command announces actual phrases (WCAG 4.1.3 di
   });
 
   test('regex-only commands (search, go-to) use their example instead of a raw RegExp', () => {
-    vc.connectBrowser({}); // registers 'go-to', whose patterns are all RegExp
+    // search/go-to are only registered when the host wires them — a command
+    // that confirms an action it cannot perform must not exist (nor appear in
+    // the help list).
+    vc.connectBrowser({ onSearch: () => {}, onGoTo: () => {} });
     spoken.length = 0;
     vc.processCommand('ヘルプ', 0.9);
     expect(spoken[0]).toContain('検索：てんき');

@@ -504,84 +504,88 @@ export class VoiceCommands {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
-    this.registerCommand('top-sites', {
-      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
-      action: () => {
-        if (onTopSites) {
+    if (onTopSites) {
+      this.registerCommand('top-sites', {
+        patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
+        action: () => {
           onTopSites();
-        }
-        return { action: 'top-sites' };
-      },
-      confirmationText: 'よく使うサイトを開きます'
-    });
+          return { action: 'top-sites' };
+        },
+        confirmationText: 'よく使うサイトを開きます'
+      });
+    }
 
     // Browser forward / back
-    this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
-      action: () => {
-        tabManager?.getActiveTab?.()?.goForward?.();
-        return { action: 'navigate', direction: 'forward' };
-      },
-      confirmationText: '進みます'
-    });
+    if (tabManager) {
+      this.registerCommand('navigate', {
+        patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+        action: () => {
+          tabManager.getActiveTab?.()?.goForward?.();
+          return { action: 'navigate', direction: 'forward' };
+        },
+        confirmationText: '進みます'
+      });
 
-    this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
-      action: () => {
-        tabManager?.getActiveTab?.()?.goBack?.();
-        return { action: 'navigate', direction: 'back' };
-      },
-      confirmationText: '戻ります'
-    });
+      this.registerCommand('back', {
+        patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+        action: () => {
+          tabManager.getActiveTab?.()?.goBack?.();
+          return { action: 'navigate', direction: 'back' };
+        },
+        confirmationText: '戻ります'
+      });
 
-    this.registerCommand('refresh', {
-      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
-      action: () => {
-        tabManager?.getActiveTab?.()?.reload?.();
-        return { action: 'refresh' };
-      },
-      confirmationText: '更新します'
-    });
+      this.registerCommand('refresh', {
+        patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+        action: () => {
+          tabManager.getActiveTab?.()?.reload?.();
+          return { action: 'refresh' };
+        },
+        confirmationText: '更新します'
+      });
+    }
 
     // Clear browsing history (privacy) — hands-free equivalent of the settings
     // panel "Clear History" action (Session 56). Registered before the greedy
     // go-to catch-all. The '履歴' patterns don't collide with go-to's 'を開く'
     // capture, but specific-before-catch-all is the rule (processCommand stops
     // at the first match in registration order).
-    this.registerCommand('clear-history', {
-      patterns: [
-        '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
-        /履歴を?(消去|削除|クリア|消す)/,
-        /clear\s+history/i, /delete\s+history/i
-      ],
-      action: () => {
-        if (onClearHistory) {
+    if (onClearHistory) {
+      this.registerCommand('clear-history', {
+        patterns: [
+          '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
+          /履歴を?(消去|削除|クリア|消す)/,
+          /clear\s+history/i, /delete\s+history/i
+        ],
+        action: () => {
           onClearHistory();
-        }
-        return { action: 'clear-history' };
-      },
-      confirmationText: '履歴を消去します',
-      example: '履歴を消去'
-    });
+          return { action: 'clear-history' };
+        },
+        confirmationText: '履歴を消去します',
+        example: '履歴を消去'
+      });
+    }
 
     // Web search — route through VR address bar / tab navigation
-    this.registerCommand('search', {
-      patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
-      action: (transcript) => {
-        const match = transcript.match(/[：:]\s*(.+)/);
-        if (match && match[1]) {
-          const query = match[1].trim();
-          if (onSearch) {
-            onSearch(query);
-          } else {
-            tabManager?.getActiveTab?.()?.navigate?.(query);
+    if (onSearch || tabManager) {
+      this.registerCommand('search', {
+        patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
+        action: (transcript) => {
+          const match = transcript.match(/[：:]\s*(.+)/);
+          if (match && match[1]) {
+            const query = match[1].trim();
+            if (onSearch) {
+              onSearch(query);
+            } else {
+              tabManager?.getActiveTab?.()?.navigate?.(query);
+            }
+            return { action: 'search', query };
           }
-          return { action: 'search', query };
-        }
-      },
-      confirmationText: '検索します',
-      example: '検索：てんき'
-    });
+        },
+        confirmationText: '検索します',
+        example: '検索：てんき'
+      });
+    }
 
     // Scroll the reader viewport.
     //
@@ -589,36 +593,36 @@ export class VoiceCommands {
     // every cross-origin page (swallowed) and, even same-origin, scrolled an
     // iframe that is never visible in VR — so the command did nothing at all.
     // It now drives the panel's own reader viewport via onScrollContent.
-    const SCROLL_LINES = 8;
-    this.registerCommand('scroll-down', {
-      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
-      action: () => {
-        if (onScrollContent) {
+    if (onScrollContent) {
+      const SCROLL_LINES = 8;
+      this.registerCommand('scroll-down', {
+        patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
+        action: () => {
           onScrollContent(SCROLL_LINES);
+          return { action: 'scroll', direction: 'down' };
         }
-        return { action: 'scroll', direction: 'down' };
-      }
-    });
+      });
 
-    this.registerCommand('scroll-up', {
-      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
-      action: () => {
-        if (onScrollContent) {
+      this.registerCommand('scroll-up', {
+        patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
+        action: () => {
           onScrollContent(-SCROLL_LINES);
+          return { action: 'scroll', direction: 'up' };
         }
-        return { action: 'scroll', direction: 'up' };
-      }
-    });
+      });
+    }
 
     // Bookmark panel toggle
-    this.registerCommand('bookmarks', {
-      patterns: ['ブックマーク', 'お気に入り', '履歴'],
-      action: () => {
-        bookmarkPanel?.toggle?.();
-        return { action: 'bookmarks' };
-      },
-      confirmationText: 'ブックマークパネルを開きます'
-    });
+    if (bookmarkPanel) {
+      this.registerCommand('bookmarks', {
+        patterns: ['ブックマーク', 'お気に入り', '履歴'],
+        action: () => {
+          bookmarkPanel.toggle?.();
+          return { action: 'bookmarks' };
+        },
+        confirmationText: 'ブックマークパネルを開きます'
+      });
+    }
 
     // Keyboard toggle
     this.registerCommand('keyboard', {
@@ -645,28 +649,30 @@ export class VoiceCommands {
     // → keyboard toggle). processCommand matches in registration order and
     // stops at the first hit, so this generic catch-all must come after every
     // specific command to act only on utterances none of them claimed.
-    this.registerCommand('go-to', {
-      patterns: [
-        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
-        /^(?:open|go to|navigate to)\s+(.+)/i
-      ],
-      action: (transcript) => {
-        const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
-        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
-        const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
-        if (onGoTo && query) {
-          onGoTo(query);
-        }
-        return { action: 'go-to', query: query || null };
-      },
-      // Immediate "command understood" cue, like search/navigate/top-sites.
-      // Spoken via TTS (blind users) and mirrored to captions via onSpeak
-      // (deaf/HoH) the moment the command matches — before navigation, and
-      // independent of whether a frecency hit is found (WCAG 4.1.3).
-      confirmationText: '開きます',
-      example: 'githubを開く'
-    });
+    if (onGoTo) {
+      this.registerCommand('go-to', {
+        patterns: [
+          /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+          /^(?:open|go to|navigate to)\s+(.+)/i
+        ],
+        action: (transcript) => {
+          const t = transcript.toLowerCase().trim();
+          const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+          const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+          const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
+          if (query) {
+            onGoTo(query);
+          }
+          return { action: 'go-to', query: query || null };
+        },
+        // Immediate "command understood" cue, like search/navigate/top-sites.
+        // Spoken via TTS (blind users) and mirrored to captions via onSpeak
+        // (deaf/HoH) the moment the command matches — before navigation, and
+        // independent of whether a frecency hit is found (WCAG 4.1.3).
+        confirmationText: '開きます',
+        example: 'githubを開く'
+      });
+    }
 
     console.debug('VoiceCommands: Browser integration connected');
   }

@@ -526,6 +526,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
+- 🧹 **同型を全件統一**: `connectBrowser` 内の既存コマンド（top-sites/navigate/back/refresh/clear-history/search/scroll/bookmarks/keyboard/go-to）も依存不在時に「開きます」だけ言って何もしない同型だった — 依存（tabManager/bookmarkPanel/vrKeyboard/onXxx）が無い限り登録しない条件付き登録に統一。VRApp は全依存を渡すため本番動作不変、未配線ホストのみ正直な挙動に。
 - ✅ 8テスト追加（修正前に8件赤確認）。2061 tests / 59 suites、lint 0 errors、build green。
 
 #### 続き58（同セッション）: DevTools（0%→非 DOM 配管層）を pin（欠陥ゼロ）
