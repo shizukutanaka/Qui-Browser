@@ -1750,3 +1750,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第157パス（クリーンスキャン — リスナー積増）
 addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/webglcontext）— 再描画・再生成経路内での重複登録経路なし。
+
+### 第158パス（クリーンスキャン — /g regex lastIndex）
+唯一の `.exec` ループ（readableText）は関数ローカルの新規 regex で lastIndex 持ち回りなし、マッチは最小でもタグ長>0で進行保証 — 状態共有/無限ループ経路ゼロ。
