@@ -664,6 +664,23 @@ workflow 変更は `workflow` OAuth スコープ不足で push 不能のため
 `workflow-changes.patch`（リポジトリ外の交付物）としてオーナーに手渡し。
 適用後の CI 緑化を想定。
 
+### 第3パス（依存・スクリプト・ドキュメントの嘘）
+
+package.json の各 script / devDependency / ドキュメント記載コマンドを
+「実在するか・呼ばれるか」で全件検証:
+
+| 対象 | 実測された不整合 |
+|---|---|
+| `@vitejs/plugin-legacy` + `core-js` (devDeps) | プラグイン呼び出しは vite.config.js で**コメントアウト** — インポートだけ残った死んだ依存 → 依存・import・コメント塊を除去 |
+| `optimizeDeps.exclude: ['@tensorflow/tfjs']` | tfjs は依存に存在しない → 無意味な除外設定を削除 |
+| scripts `serve` | `preview` と同一コマンドの重複 → 削除 |
+| `test:tier` / `test:integration` | 指すテストファイルが存在しない（tier-system は Session 74 で削除済み）→ 削除 |
+| `deploy:gh-pages` | `gh-pages` パッケージ未インストールで即失敗 → 削除 |
+| `deploy:netlify` / `deploy:vercel` | CLI 未インストール。真の deployer は cd.yml + プラットフォーム連携 → 削除 |
+| `ci:lint` / `ci:all` / `ci:test` | ci:lint は常時赤の `format:check` を内包（設計上必ず失敗）、ci:test は test:coverage の別名 → 削除（`ci:verify` のみ残す） |
+| docs（README / PROJECT_STATUS / TESTING / SETUP / CONTRIBUTING / RELEASE_CHECKLIST / BUILD_OPTIMIZATION_GUIDE） | `test:e2e`（Playwright 未導入）・`benchmark:*`（tools 削除済み）・`build:analyze`・`lighthouse` など**存在しないコマンドを推奨**していた → 実態に修正 |
+| `release.yml`（パッチ側） | `npm run benchmark:all`（スクリプト未存在 → タグリリースが確実に失敗）・生ソースを Pages に出す `deploy-pages` ジョブ・echo のみの `notify` ジョブ → 削除 |
+
 ### 残った「戻す」候補
 マスクのアルゴリズムに従い10%戻す検討をしたが、**戻す価値があるものは今のところ無い**。
 `public/` 内の並行実装は git 履歴に残る。

@@ -184,8 +184,8 @@ async function checkPackageJson(results) {
 
     // Check scripts
     const requiredScripts = [
-      'dev', 'build', 'test', 'lint', 'ci:all',
-      'docker:build', 'deploy:netlify', 'release:patch'
+      'dev', 'build', 'test', 'lint', 'ci:verify',
+      'docker:build', 'release:patch'
     ];
 
     let scriptsOk = true;
@@ -354,7 +354,7 @@ async function checkBuildConfiguration(results) {
 
   const configFiles = [
     'vite.config.js',
-    '.eslintrc.json',
+    'eslint.config.js',
     '.prettierrc.json',
     '.babelrc'
   ];
