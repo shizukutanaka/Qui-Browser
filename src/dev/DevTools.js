@@ -27,9 +27,7 @@ export class DevTools {
     // Keyboard shortcuts
     this.shortcuts = {
       'F12': () => this.toggle(),
-      'Ctrl+Shift+I': () => this.toggle(),
-      'Ctrl+Shift+C': () => this.selectElement(),
-      'Ctrl+Shift+P': () => this.showProfiler()
+      'Ctrl+Shift+I': () => this.toggle()
     };
 
     // Initialize
