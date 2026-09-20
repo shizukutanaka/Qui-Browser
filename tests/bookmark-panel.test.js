@@ -475,3 +475,86 @@ describe('BookmarkPanel row text fits the row in either script', () => {
     rows.forEach(d => expect(d.maxWidth).toBe(AVAIL));
   });
 });
+
+describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
+  const manyRows = (n) =>
+    Array.from({ length: n }, (_, i) => ({ url: `https://s${i}.example`, title: `S${i}` }));
+
+  function scrollablePanel() {
+    const store = makeStore(manyRows(VISIBLE_ROWS + 4));
+    const p = makePanel(store);
+    p.show();
+    return { p, store };
+  }
+
+  test('scroll-down then scroll-up moves scrollOffset within bounds', () => {
+    const { p } = scrollablePanel();
+    // ↓ arrow zone: SCROLL_DN_X0..X1 in the header row
+    MockMesh._nextLocal = localFor(700, HEADER_H / 2);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(p.scrollOffset).toBe(1);
+    // ↑ arrow zone
+    MockMesh._nextLocal = localFor(500, HEADER_H / 2);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(p.scrollOffset).toBe(0);
+    // ↑ at offset 0 does not go negative
+    MockMesh._nextLocal = localFor(500, HEADER_H / 2);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(p.scrollOffset).toBe(0);
+  });
+
+  test('scroll-down stops at the last full page', () => {
+    const { p } = scrollablePanel(); // VISIBLE_ROWS+4 rows -> max offset 4
+    for (let i = 0; i < 8; i++) {
+      MockMesh._nextLocal = localFor(700, HEADER_H / 2);
+      p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    }
+    expect(p.scrollOffset).toBe(4);
+  });
+
+  test('setMode resets scrollOffset and fires onTabChange via a tab click', () => {
+    const { p } = scrollablePanel();
+    p.scrollOffset = 3;
+    const onTabChange = jest.fn();
+    p.onTabChange = onTabChange;
+    MockMesh._nextLocal = localFor(300, HEADER_H / 2); // 'history' tab region
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(p.mode).toBe('history');
+    expect(p.scrollOffset).toBe(0);
+    expect(onTabChange).toHaveBeenCalledWith('history');
+  });
+
+  test('delete zone click removes the bookmark and fires onDeleteBookmark', () => {
+    const onDelete = jest.fn();
+    // removeBookmark must exist for the delete zone to be armed at all.
+    const store = {
+      getBookmarks: () => [{ url: 'https://del.me', title: 'D' }],
+      getHistory: () => [],
+      removeBookmark: jest.fn()
+    };
+    const p = makePanel(store);
+    p.onDeleteBookmark = onDelete;
+    p.show();
+    // First row, inside the right-hand delete zone (last DELETE_ZONE_W px)
+    MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(store.removeBookmark).toHaveBeenCalledWith('https://del.me');
+    expect(onDelete).toHaveBeenCalledWith('https://del.me');
+  });
+
+  test('history mode rows have no delete zone — same click selects instead', () => {
+    const onSelect = jest.fn();
+    const store = {
+      getBookmarks: () => [],
+      getHistory: () => [{ url: 'https://hist.example' }],
+      removeBookmark: jest.fn()
+    };
+    const p = makePanel(store, onSelect);
+    p.setMode('history');
+    p.show();
+    MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).toHaveBeenCalledWith('https://hist.example');
+    expect(store.removeBookmark).not.toHaveBeenCalled();
+  });
+});
