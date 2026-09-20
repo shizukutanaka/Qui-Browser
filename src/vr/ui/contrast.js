@@ -180,7 +180,7 @@ const APCA_DELTA_Y_MIN = 0.0005;
 const APCA_LO_CLIP = 0.1;
 
 /** APCA screen luminance (Y) — a different transfer curve to WCAG 2's. */
-export function apcaY(css) {
+function apcaY(css) {
   const c = parseCssColor(css);
   if (!c) {
     return 0;

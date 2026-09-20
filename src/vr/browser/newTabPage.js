@@ -8,14 +8,14 @@
  * test are unit-testable. WebPanel owns the drawing and the hit dispatch.
  */
 
-export const TILE_COLS = 4;
-export const TILE_ROWS = 2;
+const TILE_COLS = 4;
+const TILE_ROWS = 2;
 export const MAX_TILES = TILE_COLS * TILE_ROWS;
 
 // Canvas-px geometry. The content canvas is 1024×942; the top ~110px is the
 // header band (title + hint text), tiles tile the rest with a fixed margin.
-export const TILE_PAD_X = 24;
-export const TILE_GAP = 16;
+const TILE_PAD_X = 24;
+const TILE_GAP = 16;
 export const HEADER_PX = 110;
 
 /**

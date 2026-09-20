@@ -125,8 +125,8 @@ export function truncate(text, max = 48) {
 // imports THREE) so the real values are reachable by unit tests and by the
 // real-browser layout harness (tools/verify-text-layout.mjs).
 export const ROW_TEXT_X = 24;
-export const ROW_TITLE_FONT = 26;   // bold sans
-export const ROW_URL_FONT = 20;     // monospace
+const ROW_TITLE_FONT = 26;   // bold sans
+const ROW_URL_FONT = 20;     // monospace
 /** Usable width: text starts at ROW_TEXT_X and must clear the delete zone. */
 export const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
 /**
