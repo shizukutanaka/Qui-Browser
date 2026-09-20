@@ -1409,3 +1409,6 @@ build 0.70s・vr-boot PASS。
 2. **B章**は「バグではあるが今は到達不能」なものなので、単独で1セッション分の作業にはしない方がよい。もし関連する別の作業（例：ProgressiveLoaderを実際に使う新機能を追加するとき）のついでに直すのが自然。
 3. **C章**は大規模リファクタなので、Explore/Planエージェントで事前調査してから着手すること。
 4. 対応したら、この一覧から削除し、CLAUDE.md の Session Log に通常の形式で記録すること（🐛 fix / 🧹 cleanup / ✨ feat のいずれか、根拠と検証方法込み）。
+
+### 第48パス（継続中 — C-1 VRApp 分離、スライス12）
+perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/reduceQuality/increaseQuality）を `vr/perfBudget.js`、browsing 接着剤3本（_attachManagedWindow/_onPanelGrabRequested/_teardownBrowsingSystems）を `browser/browsingSystems.js` に移動。テストが `prototype.X` を直接呼ぶシームは delegate 保持。VRApp 1,227→**1,117** 行（C-1 累計 −2,137）。lint 0 errors・1,343 tests・build・vr-boot 全 PASS。
