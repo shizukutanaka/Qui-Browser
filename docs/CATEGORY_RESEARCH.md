@@ -260,7 +260,7 @@
 3. **PWA基盤の置換（P1/M）**: 手書き `service-worker.js` を `vite-plugin-pwa`/workbox に（自動precache/更新, B9と相乗）。
 4. **i18n 導入（P2/M）**: i18next/FormatJS（A6）。
 5. **a11y CIゲート（P1/S）**: `axe-core` をランディング/DOM overlay に（A7）。
-6. **Lighthouse CI 予算（P1/S）**: 既存 `.lighthouserc.json` を CI で実行・予算超過で失敗。
+6. **Lighthouse CI 予算（P1/S）**: `netlify.toml` の `@netlify/plugin-lighthouse` で実行・予算超過で失敗。
 7. **依存自動更新（P2/S）**: Renovate/Dependabot。
 8. **可観測性の実活用（P2/S）**: web-vitals(導入済)＋Sentry(opt-in) のダッシュボード化。
 9. **バンドル可視化（P2/S）**: rollup-plugin-visualizer でサイズ監視。

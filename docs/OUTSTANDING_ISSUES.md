@@ -809,6 +809,20 @@ localStorage キーは全て書き込み/読み込み対称、`tools/measure-tex
 
 計測: 44 suites / 1,381 tests・lint 0 errors・build 1.7s・verify:vr-boot PASS。
 
+### 第11パス（依存・設定・ドキュメントの層）
+
+監査結果 — devDependencies 全8件が実使用確認（`sharp`=generate-icons、
+`@babel/*`=jest transform、`babel.config.js`+`.babelrc` の二重化は
+node_modules 越境の仕様上必要と文書化済み）。AccessibilityCoordinator は
+Phase-3 抽出ロードマップの途中経過として生存判断。
+
+実発見: **`docs/QUICKSTART.md`** — ゼロ inbound のポインタ・スタブで
+内容は QUICK_START.md（canonical、全バリデータ/README が参照）の重複
+→ 削除。`CATEGORY_RESEARCH.md` の「既存 `.lighthouserc.json`」の虚偽
+記述も修正（実際の予算ゲートは netlify.toml の plugin-lighthouse）。
+
+計測: verify:docs PASS（lint/test/build は前パスから差分なし — ドキュメントのみ）。
+
 ---
 
 ## 使い方（次のセッションへ）
