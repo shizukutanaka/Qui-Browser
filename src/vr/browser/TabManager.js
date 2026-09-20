@@ -12,6 +12,8 @@ import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
 import { t } from '../../i18n/i18n.js';
+import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { tabStripColors } from './chromeColors.js';
 import {
   STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
   STRIP_NEW_TAB_PX, tabWidthPx, tabCloseZonePx
@@ -98,7 +100,7 @@ export class TabManager {
       onSelect: (evt) => this._onStripSelect(evt),
       onHover: () => {
         if (this.stripMesh) {
-          this.stripMesh.material.color.set(0xbbccff);
+          this.stripMesh.material.color.set(tabStripColors(prefersHighContrast()).hoverTint);
         }
         if (this.opts.onHoverCaption) {
           this.opts.onHoverCaption();
@@ -106,7 +108,7 @@ export class TabManager {
       },
       onHoverEnd: () => {
         if (this.stripMesh) {
-          this.stripMesh.material.color.set(0xffffff);
+          this.stripMesh.material.color.set(tabStripColors(prefersHighContrast()).baseTint);
         }
       }
     });
@@ -122,16 +124,21 @@ export class TabManager {
     const n = this.tabs.length;
     const newW = STRIP_NEW_TAB_PX;                       // "+" button width
     const tabW = tabWidthPx(n, c.width);
+    const col = tabStripColors(prefersHighContrast());
 
     // Tabs
     for (let i = 0; i < n; i++) {
       const x = i * tabW;
       const active = i === this.activeIndex;
-      ctx.fillStyle = active ? '#2a2a4a' : '#1a1a2e';
+      ctx.fillStyle = active ? col.tabActiveBg : col.tabIdleBg;
       ctx.fillRect(x + 2, 6, tabW - 4, c.height - 12);
+      if (!active && col.tabIdleBorder) {
+        ctx.strokeStyle = col.tabIdleBorder;
+        ctx.strokeRect(x + 2, 6, tabW - 4, c.height - 12);
+      }
 
       // Title
-      ctx.fillStyle = active ? '#ffffff' : '#9090a8';
+      ctx.fillStyle = active ? col.tabActiveText : col.tabIdleText;
       ctx.font = '22px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -148,17 +155,25 @@ export class TabManager {
       const closeBtnX = x + closeZone.x0;
       const closeBtnY = 10;
       const closeBtnH = c.height - 20;
-      ctx.fillStyle = '#7a2020';
+      ctx.fillStyle = col.closeBg;
       ctx.fillRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
-      ctx.fillStyle = '#ffaaaa';
+      if (col.closeBorder) {
+        ctx.strokeStyle = col.closeBorder;
+        ctx.strokeRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
+      }
+      ctx.fillStyle = col.closeText;
       ctx.textAlign = 'center';
       ctx.fillText('✕', closeBtnX + closeZone.w / 2, c.height / 2);
     }
 
     // New-tab "+" button
-    ctx.fillStyle = '#3a3a5c';
+    ctx.fillStyle = col.newTabBg;
     ctx.fillRect(c.width - newW + 2, 6, newW - 4, c.height - 12);
-    ctx.fillStyle = '#ffffff';
+    if (col.newTabBorder) {
+      ctx.strokeStyle = col.newTabBorder;
+      ctx.strokeRect(c.width - newW + 2, 6, newW - 4, c.height - 12);
+    }
+    ctx.fillStyle = col.newTabText;
     ctx.font = 'bold 40px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

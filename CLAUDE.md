@@ -292,6 +292,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 📝 **fix**: 実測値に同期（48/1510・24 files）+ 死んだ節を `npm run proxy`（docs/PROXY.md 参照付き）に置換 + src ツリー現行化。CHANGELOG は「その時点の記録」として改竄しない方針で untouched。
 - ✅ docs-only; tests/lint/build に影響なし。
 
+#### 続き7（同セッション）: G-3 残 — タブストリップ色の抽出（最後の未抽出 canvas 色）
+- 🔍 **実測**: `_drawStrip` は 7 色を inline hex リテラルで描画し `prefersHighContrast()` を参照していなかった —— G-69/72 の掃引が到達した最後の canvas 面。さらに 2 色の hover tint（0xbbccff/0xffffff）が MeshBasicMaterial にハードコードされていた。
+- 🎨 **fix**: `tabStripColors(highContrast)` を `chromeColors.js` に追加。通常パレットは現行色をそのまま抽出（contrast 全ペア ≥4.5 実測済みで据置）。HC パレットは active 白/idle 黒 + **idle タブ・close・+ ボタンに白枠**（ボーダーは `strokeRect` —— HC のみ描画、通常は `null` で skip）。ホバー tint も `hoverTint`/`baseTint` キーとしてパレット化。
+- 🔍 **記録のみの修正**: C-2（設定パネル group化）は**実装確認の結果すでに完了していた** —— `createSettingsPanel` が `SECTIONS` + pure `layoutSettingsPanel` + `sectionOpen/Closed` 告知を持ち、`tests/settings-layout.test.js` で検証済み。E-1 受入条件を全て満たすため台帳を完了扱いに訂正。
+- ✅ **test 7件追加**（pre-fix: 全件 FAIL）。Total 1517 tests; lint 0 errors; build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

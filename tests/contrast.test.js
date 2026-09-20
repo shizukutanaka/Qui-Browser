@@ -375,3 +375,71 @@ describe('regressions fixed in the contrast audit', () => {
       .toBeLessThan(contrastRatio('#ffffff', ct.arrowActiveBg, ct.bg));
   });
 });
+
+// ── tab strip colours (G-3 残: _drawStrip painted inline hex literals, the last
+// canvas colours left unextracted and unreachable by prefersHighContrast) ────
+describe('tabStripColors', () => {
+  const { tabStripColors } = require('../src/vr/browser/chromeColors.js');
+
+  const STRIP_TEXT_PAIRS = [
+    // [label, textKey, bgKey, fontPx, bold]
+    ['active tab title', 'tabActiveText', 'tabActiveBg', 22, false],
+    ['idle tab title',   'tabIdleText',   'tabIdleBg',   22, false],
+    ['close ✕',          'closeText',     'closeBg',     22, false],
+    ['new-tab +',        'newTabText',    'newTabBg',    40, true],
+  ];
+
+  test.each([false, true])('every text/bg pair clears its WCAG minimum (hc=%s)', (hc) => {
+    const col = tabStripColors(hc);
+    for (const [label, tk, bk, fontPx, bold] of STRIP_TEXT_PAIRS) {
+      expect(col[tk]).toBeTruthy();
+      expect(col[bk]).toBeTruthy();
+      expect(contrastRatio(col[tk], col[bk])).toBeGreaterThanOrEqual(
+        wcagMinimum({ fontPx, bold })
+      );
+    }
+  });
+
+  test('hover/base tints are exported as number colours for the mesh material', () => {
+    for (const hc of [false, true]) {
+      const col = tabStripColors(hc);
+      expect(typeof col.hoverTint).toBe('number');
+      expect(typeof col.baseTint).toBe('number');
+      expect(col.hoverTint).not.toBe(col.baseTint);
+    }
+  });
+
+  test('high contrast: active tab separates from idle by ≥3:1 (non-text cue)', () => {
+    const col = tabStripColors(true);
+    expect(contrastRatio(col.tabActiveBg, col.tabIdleBg)).toBeGreaterThanOrEqual(3);
+  });
+
+  test('high contrast: idle tab and buttons get a perceivable outline', () => {
+    const col = tabStripColors(true);
+    // An all-black idle tab on the dark strip would have no visible edge;
+    // a border is the non-colour cue WCAG 1.4.11 asks for.
+    for (const key of ['tabIdleBorder', 'closeBorder', 'newTabBorder']) {
+      expect(col[key]).toBeTruthy();
+      expect(contrastRatio(col[key], col.tabIdleBg)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  test('normal mode keeps the textual active cue (bg difference alone is only ~1.2:1)', () => {
+    const col = tabStripColors(false);
+    expect(col.tabActiveText).not.toBe(col.tabIdleText);
+    expect(contrastRatio(col.tabActiveBg, col.tabIdleBg)).toBeGreaterThanOrEqual(1);
+  });
+
+  test('TabManager consumes the palette instead of painting literals', () => {
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/browser/TabManager.js'), 'utf8');
+    expect(src).toMatch(/tabStripColors\(/);
+    expect(src).toMatch(/prefersHighContrast/);
+    for (const hex of ['#2a2a4a', '#1a1a2e', '#9090a8', '#7a2020', '#ffaaaa', '#3a3a5c']) {
+      expect(src).not.toMatch(new RegExp(hex));
+    }
+    for (const tint of ['0xbbccff', '0xffffff']) {
+      expect(src).not.toMatch(new RegExp(tint));
+    }
+  });
+});

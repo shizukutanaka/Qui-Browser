@@ -134,3 +134,50 @@ export function webContentColors(highContrast = false) {
     tileHost:        '#8891ad'
   };
 }
+
+/**
+ * Palette for the TabManager tab strip (`_drawStrip`).
+ *
+ * Strip geometry lives in panelGeometry.js; the colours used to be painted as
+ * inline hex literals inside TabManager, the last canvas surface unreachable
+ * by prefersHighContrast().
+ *
+ * Border keys are null in normal mode (fills already separate elements); in
+ * high-contrast mode they carry a colour and _drawStrip strokes the element.
+ * `hoverTint`/`baseTint` are number colours: they multiply the strip's canvas
+ * texture through the MeshBasicMaterial colour, they are not painted.
+ */
+export function tabStripColors(highContrast = false) {
+  if (highContrast) {
+    return {
+      tabActiveBg:   '#ffffff',
+      tabActiveText: '#000000',
+      tabIdleBg:     '#000000',
+      tabIdleText:   '#ffffff',
+      tabIdleBorder: '#ffffff',
+      closeBg:       '#3a0000',
+      closeText:     '#ffffff',
+      closeBorder:   '#ffffff',
+      newTabBg:      '#000000',
+      newTabText:    '#ffffff',
+      newTabBorder:  '#ffffff',
+      hoverTint:     0xbbccff,
+      baseTint:      0xffffff
+    };
+  }
+  return {
+    tabActiveBg:   '#2a2a4a',
+    tabActiveText: '#ffffff',
+    tabIdleBg:     '#1a1a2e',
+    tabIdleText:   '#9090a8',
+    tabIdleBorder: null,
+    closeBg:       '#7a2020',
+    closeText:     '#ffaaaa',
+    closeBorder:   null,
+    newTabBg:      '#3a3a5c',
+    newTabText:    '#ffffff',
+    newTabBorder:  null,
+    hoverTint:     0xbbccff,
+    baseTint:      0xffffff
+  };
+}
