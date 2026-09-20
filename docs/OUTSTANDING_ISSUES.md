@@ -754,6 +754,24 @@ verify:docs **100%**・verify:layout/app/vr-boot 全 PASS・lint 0 errors。
 計測: 44 suites / 1,384 tests・lint 0 errors・build 1.9s・ci:verify（layout/app/vr-boot）全 PASS。
 本パスは −582 行。
 
+### 第7パス（書き込み専用フィールド・未使用 import・DOM/CSS 走査）
+
+`this.X` の書き込み専用フィールド走査（write 回数 == 全参照回数）+ import 名の
+本文使用走査 + index.html の id/class と main.css・JS のクロス照合:
+
+| 対象 | 内容 |
+|---|---|
+| `VRControllerInput.southpaw` | **保存するだけで一度も読まれない ctor オプション** — `settings.southpaw` 自体は VRApp が手役割（pointerHand/utilityHand）に直読みして生存するが、VRControllerInput への受け渡し + フィールド + 「値が保存されることだけを検査する」テスト2件は全てデッド配管 → 削除 |
+| `CaptionSystem._dirty` | 4箇所書き込み・読み取りゼロの dirty フラグ（未実装の redraw 最適化の名残） |
+| `VRApp._settingsBg` / `VRApp._settingsSections` | 代入のみ・参照ゼロ |
+| `JapaneseIME.candidatePanel` | null 代入×2 のみ・参照ゼロ（候補パネル機能の残骸） |
+| 未使用 import ×4 | `textWidthEm`（CaptionSystem）、`truncate`（BookmarkPanel/JapaneseIME）、`STRIP_TAB_MAX_PX`（TabManager） |
+
+全ての index.html id・全ての main.css クラス・全イベントリスナー名（enter-vr 往復確認）
+は生存と判定 — DOM/CSS/イベント層はすでにクリーン。
+
+計測: 44 suites / 1,382 tests・lint 0 errors（警告 109→105）・build 2.4s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

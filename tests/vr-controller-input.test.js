@@ -301,22 +301,6 @@ describe('VRControllerInput.forget', () => {
 });
 
 // ---------------------------------------------------------------------------
-// southpaw (constructor option forwarded from VRControllerInput)
-// ---------------------------------------------------------------------------
-
-describe('VRControllerInput southpaw option', () => {
-  test('southpaw flag is stored', () => {
-    const ci = new VRControllerInput({ southpaw: true });
-    expect(ci.southpaw).toBe(true);
-  });
-
-  test('southpaw false by default', () => {
-    const ci = new VRControllerInput();
-    expect(ci.southpaw).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // applyRadialDeadZone — pure scaled-radial dead-zone curve
 // ---------------------------------------------------------------------------
 

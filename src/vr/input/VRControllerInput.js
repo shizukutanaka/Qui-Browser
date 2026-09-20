@@ -169,11 +169,9 @@ export class VRControllerInput {
   /**
    * @param {object} [opts]
    * @param {number}  [opts.deadZone=0.15]  Fraction of axis travel ignored near centre.
-   * @param {boolean} [opts.southpaw=false] When true, swap left/right stick roles.
    */
-  constructor({ deadZone = 0.15, southpaw = false } = {}) {
+  constructor({ deadZone = 0.15 } = {}) {
     this.deadZone = deadZone;
-    this.southpaw = southpaw;
 
     // WeakMap so GC can reclaim entries for disconnected XRInputSources automatically.
     this._state = new WeakMap();

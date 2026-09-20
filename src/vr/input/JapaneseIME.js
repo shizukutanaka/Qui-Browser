@@ -16,7 +16,6 @@ import {
 
 // Re-exported so existing importers (and tests) keep their import site.
 export { SUGGESTION_MEASURE_EM } from './keyboardLayout.js';
-import { truncate } from '../browser/bookmarkLayout.js';
 import { truncateToWidth } from '../ui/textWrap.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 
@@ -717,7 +716,6 @@ export class VRJapaneseKeyboard {
     this.scene = scene;
     this.ime = ime;
     this.keyboard = null;
-    this.candidatePanel = null;
     this._onConfirmCallback = null;
 
     this.registerInteractable = opts.registerInteractable || null;
@@ -1446,7 +1444,6 @@ export class VRJapaneseKeyboard {
     this._candidatesGroup = null;
 
     this.keyboard = null;
-    this.candidatePanel = null;
     if (this.ime) {
       this.ime.dispose();
     }
