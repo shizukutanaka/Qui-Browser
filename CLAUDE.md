@@ -503,6 +503,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 8テスト追加（curvedGeometry mock で PlaneGeometry 差替、dispose 呼出、setVisible が position.set を呼ばないことの pin）。全緑 — 実装は正しいことを実測確認。
 - 📝 1955 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き48（同セッション）: SpatialAudio — ソース/リスナーの配管層を pin（欠陥ゼロ）
+- 🔍 **実測**: `createSource` の panner→gain→destination 配線、`setSourcePosition` の AudioParam 書き込み＋LOD 再評価（15m 閾値で HRTF↔equalpower 切替）、`updateAllLOD` の stats 集計、`setListenerPosition`/`Orientation` の AudioParam↔レガシー setPosition 分岐、`updateListenerFromCamera`（実 THREE.Vector3/Quaternion でカメラ姿勢→リスナー変換＋LOD 全更新）、`simulateDoppler`（速度→playbackRate）、`setMasterVolume` クランプ＋全ゲイン再スケール、`fadeVolume` の AudioParam ランプが無検証だった。
+- ✅ **pin**: 9テスト追加（`initialize()` はコンストラクタから同期経路で context/listener を確定するため await 不要 — 非同期 await の必要があるという思い込みを実測で否定）。全緑 — 実装は正しいことを実測確認。
+- 📝 1964 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
