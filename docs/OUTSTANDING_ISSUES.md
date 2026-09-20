@@ -1555,3 +1555,6 @@ XR フレームループ内 `new` 割当を実測: SpatialAudio は既に scratc
 
 ### 第92パス（クリーンスキャン — fetch 応答検証）
 src の fetch 経路は2箇所のみ（JapaneseIME transliterate・WebPanel reader）— 双方 `response.ok` を検査して非2xx を throw。4xx/5xx を成功扱いする嘘の成功経路ゼロ。proxy は上流応答を statusCode ごと透過。
+
+### 第93パス（クリーンスキャン — データ復元安全性）
+全 `JSON.parse` 3箇所（BookmarkStore.readJSON・settingsStore・a11y prefs）は全て try/catch+フォールバック+キーホワイトリスト付き — localStorage の壊れたデータで起動クラッシュしない構造を確認。
