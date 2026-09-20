@@ -308,11 +308,15 @@ export class PerformanceMonitor {
    * Check performance thresholds
    */
   checkThresholds() {
-    // FPS check
-    if (this.metrics.fps.current < this.thresholds.fps.critical) {
-      this.addAlert('critical', `FPS dropped to ${this.metrics.fps.current.toFixed(1)}`);
-    } else if (this.metrics.fps.current < this.thresholds.fps.warning) {
-      this.addAlert('warning', `FPS below ${this.thresholds.fps.warning}`);
+    // FPS check — skip until the first real sample: current is 0 before
+    // the first 1s FPS update, which would raise a false "FPS dropped to
+    // 0.0" critical on every boot.
+    if (this.metrics.fps.current > 0) {
+      if (this.metrics.fps.current < this.thresholds.fps.critical) {
+        this.addAlert('critical', `FPS dropped to ${this.metrics.fps.current.toFixed(1)}`);
+      } else if (this.metrics.fps.current < this.thresholds.fps.warning) {
+        this.addAlert('warning', `FPS below ${this.thresholds.fps.warning}`);
+      }
     }
 
     // Frame time check
