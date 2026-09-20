@@ -664,7 +664,7 @@ export class VRApp {
       ctx.fillText(label, 14, 58);
       ctx.textAlign = 'right';
       ctx.fillStyle = ind.label;
-      ctx.fillText(on ? 'ON' : 'OFF', w - 14, 58);
+      ctx.fillText(t(on ? 'vr.msg.toggleOn' : 'vr.msg.toggleOff'), w - 14, 58);
       tex.needsUpdate = true;
     };
     draw(false);

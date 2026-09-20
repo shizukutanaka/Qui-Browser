@@ -391,6 +391,14 @@ describe('snapTurnLabel — directional caption for reduced-motion orientation c
   test('arrows are semantically distinct (not the same glyph)', () => {
     expect(snapTurnLabel(1, 30)[0]).not.toBe(snapTurnLabel(-1, 30)[0]);
   });
+
+  test('direction words are localised (vr.value.left/right)', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('ja');
+    expect(snapTurnLabel(1, 30)).toBe('↻ 右 30°');
+    expect(snapTurnLabel(-1, 30)).toBe('↺ 左 30°');
+    setLanguage('en');
+  });
 });
 
 describe('fireTeleportFeedback — landing haptic + caption', () => {

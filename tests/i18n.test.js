@@ -311,3 +311,32 @@ describe('landing page aria-labels are localised (WCAG 3.1.2)', () => {
     expect(offenders.map((m) => m[0].slice(0, 120))).toEqual([]);
   });
 });
+
+describe('catalog keys are all referenced (no dead translations)', () => {
+  // Measured 2026-09-20: 5 keys were defined but never referenced —
+  // vr.msg.sectionClosed (sections became tabs; nothing ever closes one),
+  // vr.value.on/off (exact duplicates of vr.msg.toggleOn/toggleOff) were
+  // deleted, and vr.value.left/right were wired into snapTurnLabel.
+  test('every catalog key is referenced outside i18n.js', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const i18nSrc = fs.readFileSync(path.join(root, 'src/i18n/i18n.js'), 'utf8');
+    const keys = new Set([...i18nSrc.matchAll(/'([\w.]+)':/g)].map((m) => m[1]));
+
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+    const bodies = [
+      path.join(root, 'index.html'),
+      path.join(root, 'public/offline.html'),
+      ...walk(path.join(root, 'src')).filter((p) => p.endsWith('.js')),
+      ...walk(path.join(root, 'tests')).filter((p) => p.endsWith('.js')),
+    ]
+      .map((p) => fs.readFileSync(p, 'utf8'))
+      .join('\n')
+      .replace(i18nSrc, '');
+
+    const dead = [...keys].filter((k) => !bodies.includes(k));
+    expect(dead).toEqual([]);
+  });
+});
