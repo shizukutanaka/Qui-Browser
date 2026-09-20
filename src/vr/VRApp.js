@@ -241,6 +241,10 @@ export class VRApp {
       // which reaches CORS-enabled origins only — measured: no general site
       // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.
       readerProxyUrl: '',
+      // Browse without recording: history/top-sites learning are suppressed
+      // while ON. Session-local back/forward still works (per-tab history is
+      // not persisted); bookmarks stay explicit saves. For shared headsets.
+      privateMode: false,
       // Default search engine for non-URL input in the address bar
       // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
       searchEngine: 'duckduckgo',
@@ -1503,6 +1507,8 @@ export class VRApp {
       // (FR-9.1) but can only take effect on the next page load, since
       // construction is one-shot; the apply callback is honest about that.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
+      // Read live in navigate() — no subsystem to wire.
+      [t('vr.settings.privateMode'), 'privateMode', null],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
           this.windowManager.setFollow(v);
@@ -1655,7 +1661,7 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel']), [],
+        byKey(items, ['enableWebPanel', 'privateMode']), [],
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -3339,12 +3345,14 @@ export class VRApp {
   }
 
   /**
-   * Navigate to a URL: records the visit in BookmarkStore history and feeds
-   * it to the AI recommendation engine.  Call this whenever the in-VR panel
-   * loads a new page (FR-1.1 prerequisite infrastructure).
+   * Navigate to a URL: records the visit in BookmarkStore history unless
+   * private mode is on.  Call this whenever the in-VR panel loads a new
+   * page (FR-1.1 prerequisite infrastructure).
    */
   navigate(url, title = url) {
-    this.bookmarks.addHistory(url, title);
+    if (!this.settings.privateMode) {
+      this.bookmarks.addHistory(url, title);
+    }
     // Caption the page title so caption-enabled users who aren't looking at the
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.

@@ -261,6 +261,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ⚖️ **format:check は未修正で記録のみ**（OUTSTANDING_ISSUES.md M-1）: 「全ファイル prettier-clean」の要件は一度も真でなく、解消は262ファイルの機械的整形（=オーナーが close した #58 と同型の PR）かゲート廃止かの判断待ち。lint+build の修復に全面整形を混ぜると PR がまた肥大するため、本 PR は外科的に留めた。
 - ✅ 修正後の実測: lint exit 0 (0 errors/136 warnings)、test 1480/47、build ✓ 1.95s、verify:app/verify:layout/verify:vr-boot/verify:docs すべて PASS（CHROME_PATH に macOS Chrome を指定）。
 
+#### 続き（同セッション）: 復活した lint の警告を台帳と照合し、F-4 のプライベートモードを実装
+- 🔍 **CI 失敗の切り分け（PR #61）**: 7 failed はすべて既存インフラ起因 —— 「build/Validate VR Modules/Integration Tests/Performance Tests」は K-1 の `assets/js` 参照死、「Unit Tests」は **テスト自体は Linux でも 1480 全緑**で codecov トークン欠如（"Token required"）と **Java 用 jacoco-badge-generator が JS リポに走っている** という2つの別欠陥、「Code Quality & Linting」は既知の format:check 262件。自分の差分由来はゼロ。なお修復済みロックファイルのおかげで CI 側の `npm ci` も初めて通るようになった。
+- 🔍 **lint 警告監査**: 136 warnings の内訳は no-console/max-len が大半、残りは dead import（`truncate`×2、`textWidthEm`）、dead 定数・代入（`STRIP_TAB_MAX_PX` — panelGeometry 内部で使用済み、`tabsAreaW`）、未使用 catch 引数 ×8。バグ級はゼロだった。
+- ✨ **feat: プライベートモード**（F-4 消化）: `navigate()` が無条件に `addHistory` していた —— **記録せずに閲覧する手段が一切なかった**（事後の履歴消去のみ）。共有ヘッドセットのブラウザとして privacy 欠落は製品ギャップ。`settings.privateMode`（既定 OFF）+ Browsing セクションのトグル（ON/OFF キャプションは `_announceSettingsButton` が自動供給）で `addHistory` をゲート。タブ内 back/forward のセッション履歴は従来どおり残る（永続化されないので private-mode 慣行と一致）。キャプション表示は記録ではなくフィードバックなので private 中も維持 —— その非対称をテストで固定。
+- 🧹 **ついでに訂正**: `navigate` のドキュメントが「AI recommendation engine に feed」と書いていたが、そのエンジンは Session 74 の削除で消滅済み —— F-4 の項目文も同じ幽霊を参照していた。
+- ✅ **test 3件追加**（pre-fix 検証: privateMode 未実装で 2件 FAIL）。Total 1483 tests (47 suites); lint 0 errors (136 warnings); build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
