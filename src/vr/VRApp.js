@@ -639,31 +639,6 @@ export class VRApp {
     return onVRSessionEnd(this);
   }
 
-  /**
-   * Handle VR session start
-   */
-
-  /**
-   * Handle VR session end
-   */
-
-  /**
-   * FR-1.5: Create one XRQuadLayer per open WebPanel and wire it up.
-   * Called from onVRSessionStart() after LayersSystem.initialize() succeeds.
-   */
-
-  /**
-   * Release a single panel's XRQuadLayer mid-session (invoked when a tab is
-   * closed, via WebPanel.disableLayerMode()'s detach callback). Reads the live
-   * session + base layer so LayersSystem.removeLayer() can re-commit the render
-   * state WITHOUT the closed tab's layer — otherwise the native layer stayed
-   * registered in LayersSystem._layers and in the committed render state,
-   * compositing a frozen "ghost chrome bar" and holding its GPU texture for the
-   * rest of the session (compounding per closed tab). Session-end teardown does
-   * NOT route through here — it bulk-disposes the whole LayersSystem instead.
-   * @param {string} layerId
-   */
-
   onControllerSelect(controller, isStart) {
     return onControllerSelect(this, controller, isStart);
   }
