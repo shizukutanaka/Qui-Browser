@@ -633,6 +633,30 @@ optional プラットフォームエントリ **68 件**をスクラッチロッ
 
 ---
 
+## N. ストアフロントの嘘（Session 75 で実測・修正）
+
+コードが消えた後も、**index.html・i18n カタログ・起動バナーは削除済み機能を宣伝し続けていた**。
+ドキュメント乖離（E-5）より悪質 —— これはユーザーが製品を選ぶ根拠になる文言。
+
+| 宣伝 | 実測 |
+|---|---|
+| feat.mp「Multiplayer / 共有VR空間でのリアルタイム協調」 | `src/multiplayer/` は F-2 で削除済み |
+| feat.ai「AI Recommendations / 機械学習によるコンテンツ提案」 | `AIRecommendation` 削除済み |
+| feat.perf「object pooling」 | `ObjectPool` 削除済み |
+| feat.hand「12 gesture patterns / 12種のジェスチャ」 | `detectGesture` の実装は **6種**（pinch/point/open/fist/peace/thumbsup） |
+| meta/hero「Tier 3 features (WebGPU, Multiplayer)」 | 両方とも削除済み |
+| main.js 起動バナー「Experimental: WebGPU, Multiplayer, AI」 | 同上 |
+
+**修正**: 2枚の死んだ機能カードを実在機能に置換（Multiplayer→In-VR Captions、AI→Reader View）。「12」→実測「6」。object pooling→quad-layer UI（LayersSystem 実在）。meta/hero/バナーの Tier-3 宣伝を除去。en/ja カタログ両方。
+
+**同時に刈った残滓**: `SpatialAudio` の FR-7.2 spatial-voice API（createVoiceSource/removeVoiceSource/updateVoicePosition、117行 + stop() の isVoice 特例）は multiplayer 削除の忘れ物で、src 内の呼び出し元ゼロ・テストのみが実行していた → API とテスト 66行を削除。
+
+**観測したが未対処（記録のみ）**: `public/sw.js`（418行・v1.1.0・root scope）と `public/service-worker.js`（492行・v2.0.0・base aware）が同居。sw.js は offline.html と未参照の `public/js/pwa.js` からのみ登録される —— offline で配信されるページからの SW 登録は鶏卵問題で事実上到達不能。削除は public/ 直下のため別の機会に（キャッシュ整合の検証が要る）。
+
+**再発防止**: `tests/i18n.test.js` に truthfulness pin を追加 —— index.html と両カタログが削除済み機能名（multiplayer/AI/object pooling/12 gestures/WebGPU）を含まないことを assert。
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

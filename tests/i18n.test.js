@@ -235,3 +235,44 @@ describe('toggle state captions are translated', () => {
     expect(ja).not.toBe(jaOff);
   });
 });
+
+// Landing-page truthfulness pin: the storefront must not advertise features
+// that were deleted (multiplayer, AI recommendations, object pooling, WebGPU)
+// or inflate what exists (12 gestures → measured 6). If a feature returns,
+// update the code AND the claim together.
+describe('landing page claims match shipped features', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  const { CATALOG } = require('../src/i18n/i18n.js');
+
+  const DEAD_CLAIMS = [
+    /multiplayer/i,
+    /machine learning|AI Recommendations|AIレコメンド/i,
+    /object pool/i,
+    /12\s*(gesture|種のジェスチャ)/i,
+    /WebGPU/i,
+  ];
+
+  test('index.html advertises only shipped features', () => {
+    for (const re of DEAD_CLAIMS) {
+      expect(html).not.toMatch(re);
+    }
+  });
+
+  test.each(['en', 'ja'])('the %s catalog advertises only shipped features', (lang) => {
+    const text = Object.values(CATALOG[lang]).join('\n');
+    for (const re of DEAD_CLAIMS) {
+      expect(text).not.toMatch(re);
+    }
+  });
+
+  test('every feature card key exists in both catalogs', () => {
+    const keys = [...html.matchAll(/data-i18n="(feat\.[^"]+)"/g)].map(m => m[1]);
+    expect(keys.length).toBeGreaterThanOrEqual(12); // 6 cards × title+desc
+    for (const k of keys) {
+      expect(CATALOG.en[k]).toBeTruthy();
+      expect(CATALOG.ja[k]).toBeTruthy();
+    }
+  });
+});
