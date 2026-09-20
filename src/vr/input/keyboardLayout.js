@@ -102,11 +102,11 @@ export const SUGGESTION_MEASURE_EM =
   safeMeasureEm(SUGGESTION_BTN_PX_W - 24, SUGGESTION_LABEL_FONT_PX);
 
 /** Composition display: canvas width, font, and the mode badge on the right. */
-export const COMPOSITION_CANVAS_W = 1024;
-export const COMPOSITION_FONT_PX = 40;
+const COMPOSITION_CANVAS_W = 1024;
+const COMPOSITION_FONT_PX = 40;
 export const COMPOSITION_BADGE_W = 80;
 /** Usable text width, left of the mode badge. */
-export const COMPOSITION_TEXT_W = COMPOSITION_CANVAS_W - 24 - COMPOSITION_BADGE_W - 12;
+const COMPOSITION_TEXT_W = COMPOSITION_CANVAS_W - 24 - COMPOSITION_BADGE_W - 12;
 export const COMPOSITION_MEASURE_EM = safeMeasureEm(COMPOSITION_TEXT_W, COMPOSITION_FONT_PX);
 
 /**

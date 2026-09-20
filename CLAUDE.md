@@ -352,6 +352,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: `test:tier` スクリプト削除（tier システム自体は F-2 で削除済み、対象テストなし）。
 - ✅ **pin 一般化**: `tests/npm-scripts.test.js` 新設 —— 全スクリプトのコマンド文字列から `tools|tests|src|proxy|bin/` 配下の入力パスを抽出し、実在を assert（pre-fix RED → post-fix PASS）。12 入力パス。1574 tests (52 suites)、lint 0 errors、build green。
 
+#### 続き18（同セッション）: export されたが誰も import しない「死んだ公開面」20件
+- 🔍 **実測**: src/ の全 export 名を走査し、他ファイル（src/・tests/・index.html）からの参照を機械照合 —— **23件が外部参照ゼロ**。うち monitoring.js の3件は N-2（テレメトリ意図、オーナー判断事項）として除外、残る **20件は全てモジュール内で実際に使用される定数・関数だが `export` キーワード自体が dead** —— 存在しない API を広告している公開面。`contrast.js`（唯一の「import 未到達」モジュール）はテスト専用の共有 util として生存と確認（docstring に意図明記）。
+- 🧹 **fix**: 20件の `export` キーワードを除去（本体は内部使用で生存のため削除せず）。対象: textWrap の ELLIPSIS、contrast の apcaY、keyboardLayout COMPOSITION_×3、readerLayout ×3、bookmarkLayout ROW_*×2、newTabPage TILE_*×4、captionLayout CAPTION_*×4、crossModal TOAST_COLORS×2。
+- ✅ **pin**: `tests/no-dead-exports.test.js` 新設 —— src/ の全 export 名が自モジュール外で参照されることを assert（同一判定の走査で pre-fix 20件違反を確認、post-fix PASS）。257 export 名。1831 tests (53 suites)、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
