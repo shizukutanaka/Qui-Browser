@@ -513,6 +513,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: keyboard dispose 2テスト + hand-tracking 9テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1976 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き50（同セッション）: TextureManager — 「LRU 追放」は実際には FIFO だった
+- 🐛 **実バグ**: `pruneCache` は「Prune least recently used textures」と謳うが、キャッシュヒット時に recency を更新しないため Map の挿入順 = **FIFO** で追放していた — 頻繁にヒットするテクスチャが、後から積まれた冷たいテクスチャより先に追放される。修正: キャッシュヒット時に delete+set で recency をリフレッシュ（Map 挿入順を真の LRU 順に保つ）。
+- ✅ **pin**: 6テスト追加 — ホットなテクスチャが追放を生き残る（修正前赤: a が追放されていた）、pruneCache の70%追放、loadKTX2/loadStandardTexture の promise 経路、stats フォーマット、getErrorTexture チェッカーボード描画（64矩形）。
+- 📝 1982 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
