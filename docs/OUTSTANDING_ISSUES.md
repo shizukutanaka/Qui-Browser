@@ -1780,3 +1780,6 @@ VideoTexture 全2経路＋homeEnvironment パネルは SRGBColorSpace 設定済�
 
 ### 第167パス（クリーンスキャン — SemanticDOM 更新頻度）
 DOM ミラーは announceCaption/announceAlert/setSettingsExpanded のイベント駆動のみ — per-frame の DOM 変更経路なし。aria-live polite/assertive 分離も適切。
+
+### 第168パス（クリーンスキャン — AudioContext autoplay）
+suspended 時は click/touchstart/keydown の3経路で resume（`once:true` + dispose 解除）— ジェスチャー種別依存の無言化なし。
