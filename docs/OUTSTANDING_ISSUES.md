@@ -1537,3 +1537,6 @@ package.json 全依存の実使用を確認（three→src、web-vitals→monitor
 
 ### 第86パス（クリーンスキャン — tests/helpers + proxy）
 tests/helpers/contrast.js の全5 export はテスト実使用を確認。proxy/server.js の `/fetch` は readerFetchUrl が実呼出、`/health` はデプロイヘルスチェック慣例として保持（検証不能な外部参照を臆断で削除しない）。
+
+### 第87パス（クリーンスキャン — i18n キー実在性）
+全 `t()` 呼出しキー（~120件・src+tests）が CATALOG に実在 — ユーザーに生キーが見える嘘ゼロ。唯一の不一致 `does.not.exist` は i18n.test.js の意図的な未知キーフォールバック検証。
