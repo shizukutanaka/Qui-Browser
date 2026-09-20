@@ -1834,3 +1834,6 @@ og:url・twitter:url が `qui-browser`（小文字）で Pages は `/Qui-Browser
 
 ### 第185パス（クリーンスキャン — index.html 絶対パス）
 `BASE_PATH=/Qui-Browser/` ビルドで favicon・apple-touch-icon・manifest・modulepreload 全て base 前置済み（vite が index.html の link/script を書換）— 残存絶対パスゼロ。
+
+### 第186パス（クリーンスキャン — env 参照）
+`import.meta.env` は全て Vite 定義済み（DEV/PROD/BASE_URL/VITE_GA_MEASUREMENT_ID）、`process.env` ブラウザ漏洩なし — 未定義 env 参照ゼロ。
