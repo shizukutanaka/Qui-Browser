@@ -1708,3 +1708,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第143パス（クリーンスキャン — 動的ロード/注入）
 `import()` は全て静的指定子（モジュール注入不可）、document.write 不使用、cssText テンプレートにユーザー入力混入なし、add/removeEventListener は capture 整合。注入経路ゼロ。
+
+### 第144パス（クリーンスキャン — innerHTML 補間最終確認）
+innerHTML は全て静的テンプレートか数値のみ（DevTools タブ/perfDisplay）。ユーザー由来テキストは `createTextNode`/`textContent` 一貫使用 — HTML 注入経路ゼロ。
