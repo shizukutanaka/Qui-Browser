@@ -473,6 +473,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: overlay DOM/canvas 層にミニ DOM stub（id 登録式 `getElementById` + 記録式 2d ctx）で4テスト追加 — `initialize`→container 構築・`dispose`→detach、`updateUI`/`updateAlerts` の innerHTML、`show`/`hide`/`toggle`、グラフ方向性。
 - 📝 1910 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き42（同セッション）: WebPanel — chrome ヒットゾーンとコンテンツタップの振り分けを pin（欠陥ゼロ）
+- 🔍 **実測**: WebPanel 89% カバーだが、`_onChromeSelect` のゾーン振り分け（back <68 / forward <136 / reload-or-stop <204 / close >w-60 / ブックマーク星 w-128..w-72 / 残り=URLバー）と `_onContentSelect`（トップサイトタイル→navigate、リーダー矢印→scrollContent ページジャンプ、短い記事では矢印なし）は「投げない」ことしか検証されていなかった。
+- ✅ **pin**: 12テスト追加 — 全ゾーンの dispatch、loading 中は reload→stop、star 未配線時は URL バーにフォールスルー、`window.prompt` フォールバック、タイル内外、スクロール方向符号、非 reader 無視。全緑 — 境界条件は正しいことを実測で確認。
+- 📝 1922 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
