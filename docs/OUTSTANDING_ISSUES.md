@@ -1486,3 +1486,6 @@ DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65�
 - テストのみ参照: `ComfortSystem.handleSnapTurn`（snap turn の実経路は inputRouting の `snapTurn()`）、`WindowManager.setBillboard`/`nudgeDistance`
 - `VRApp.saveSettings` デッド delegate
 - 連鎖: `setBillboard` 削除で `this.billboard` が恒偽化 → billboard ブランチ+フィールド除去
+
+### 第70パス（delegate 再走査）
+VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テスト seam・公開 API・外部コールバック）。唯一の内部専用 `loadPersistedSettings` delegate を直接呼出化して削除 + `onVRSessionStart` 孤児 import 除去。
