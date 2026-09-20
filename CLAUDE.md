@@ -441,6 +441,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 6テスト追加（中点計算・欠損関節 null・レイ方向・遷移時のみ発火・同ポーズ再発火なし・stats）。`jest.mock('three')` の Vector3 に addVectors 等の実数学を拡張（既存テスト非破壊）。全緑。
 - 📝 1890 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き36（同セッション）: TextureManager — 同一URL並行ロードでメモリ計測が永久膨張
+- 🔍 **実測**: TextureManager 71% — `loadTextures(['a.png','a.png'])` は各URLに同期的に `loadTexture` を map するため、重複URLはキャッシュ未完了時点で両方がミス → 二重fetch → `cacheTexture` が同一URLに2回加算 → cache は1エントリなのに `estimatedBytes`/`textureCount` が2倍。**unload しても 0 に戻らない** = 以後ずっと「Memory limit exceeded」誤警告＆過剰 prune。
+- 🐛 **fix**: ①`pendingLoads` map で並行同URLロードを1本に集約（ネットワーク二重fetchも解消）②`cacheTexture` に「既存エントリは先に unload」ガード（直接呼び出し経路も安全化）。
+- ✅ 赤確認（修正前: textureCount=2/drain 不可）→ 2テスト追加。1892 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

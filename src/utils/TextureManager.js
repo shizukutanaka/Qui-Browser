@@ -12,6 +12,7 @@ export class TextureManager {
   constructor(renderer) {
     this.renderer = renderer;
     this.textureCache = new Map();
+    this.pendingLoads = new Map(); // url → in-flight loadTexture promise
     this.ktx2Loader = null;
     this.textureLoader = new THREE.TextureLoader();
 
@@ -61,13 +62,30 @@ export class TextureManager {
    * Load texture with automatic KTX2/fallback support
    */
   async loadTexture(url, options = {}) {
-    const startTime = performance.now();
-
     // Check cache first
     if (this.textureCache.has(url)) {
       this.stats.cacheHits++;
       return this.textureCache.get(url).texture;
     }
+
+    // A concurrent load of the same URL must share the in-flight promise:
+    // loadTextures() maps URLs synchronously, so a duplicate URL misses the
+    // cache above and would otherwise fetch twice — and cacheTexture() would
+    // then double-count estimatedBytes/textureCount for a single entry.
+    if (this.pendingLoads.has(url)) {
+      return this.pendingLoads.get(url);
+    }
+
+    const pending = this._loadTexture(url, options)
+      .finally(() => {
+        this.pendingLoads.delete(url);
+      });
+    this.pendingLoads.set(url, pending);
+    return pending;
+  }
+
+  async _loadTexture(url, options) {
+    const startTime = performance.now();
 
     this.stats.cacheMisses++;
 
@@ -191,6 +209,12 @@ export class TextureManager {
    * Cache texture and update memory tracking
    */
   cacheTexture(url, texture, isCompressed) {
+    // Replacing an already-cached URL would double-count memory usage —
+    // evict the old entry first so estimatedBytes/textureCount stay exact.
+    if (this.textureCache.has(url)) {
+      this.unloadTexture(url);
+    }
+
     // isCompressed is stored alongside the texture (not re-derived from the
     // URL later) because it depends on how the texture was actually loaded,
     // not on the URL's file extension — options.preferKTX2 (the documented
@@ -361,6 +385,8 @@ export class TextureManager {
     if (this.ktx2Loader) {
       this.ktx2Loader.dispose();
     }
+
+    this.pendingLoads.clear();
   }
 }
 
