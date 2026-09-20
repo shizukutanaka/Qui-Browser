@@ -406,3 +406,116 @@ describe('SpatialAudio — play/stop lifecycle', () => {
     expect(audio.stats.sourcesActive).toBe(0);
   });
 });
+
+describe('SpatialAudio — source/listener plumbing (uncovered layer)', () => {
+  let audio;
+  let ctx;
+
+  // initialize() runs synchronously to this.context/this.listener, so a
+  // constructed instance is ready without awaiting anything.
+  const initAudio = async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const a = new SpatialAudio();
+    return { a, context };
+  };
+
+  test('createSource wires panner -> gain -> destination and registers the source', async () => {
+    const { a, context } = await initAudio();
+    const src = a.createSource('bell', { volume: 0.5, refDistance: 2 });
+    expect(src.panner.connect).toHaveBeenCalledWith(src.gain);
+    expect(src.gain.connect).toHaveBeenCalledWith(context.destination);
+    expect(src.gain.gain.value).toBeCloseTo(0.5 * a.settings.masterVolume);
+    expect(src.panner.refDistance).toBe(2);
+    expect(a.sources.get('bell')).toBe(src);
+  });
+
+  test('setSourcePosition writes AudioParams and re-evaluates LOD', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('s');
+    a.setListenerPosition(0, 0, 0);
+    a.updateSourceLOD('s');
+    expect(src.panner.panningModel).toBe('HRTF'); // at the listener
+    a.setSourcePosition('s', 0, 0, -100); // beyond hrtfThreshold (15 m)
+    expect(src.panner.positionZ.value).toBe(-100);
+    expect(src.panner.panningModel).toBe('equalpower');
+  });
+
+  test('updateAllLOD counts HRTF vs equalpower sources into stats', async () => {
+    const { a } = await initAudio();
+    const near = a.createSource('near');
+    const far = a.createSource('far');
+    a.setListenerPosition(0, 0, 0);
+    near.position = { x: 0, y: 0, z: 2 };
+    far.position = { x: 0, y: 0, z: 50 };
+    a.updateAllLOD();
+    expect(a.stats.hrtfSources).toBe(1);
+    expect(a.stats.equalPowerSources).toBe(1);
+  });
+
+  test('setListenerPosition uses AudioParams when present', async () => {
+    const { a, context } = await initAudio();
+    a.setListenerPosition(1, 2, 3);
+    expect(context.listener.positionX.value).toBe(1);
+    expect(context.listener.positionZ.value).toBe(3);
+    expect(a._listenerPos).toEqual({ x: 1, y: 2, z: 3 });
+  });
+
+  test('setListenerPosition falls back to setPosition on legacy listeners', async () => {
+    const { a } = await initAudio();
+    a.listener = { setPosition: jest.fn() }; // no positionX
+    a.setListenerPosition(4, 5, 6);
+    expect(a.listener.setPosition).toHaveBeenCalledWith(4, 5, 6);
+    expect(a._listenerPos).toEqual({ x: 4, y: 5, z: 6 });
+  });
+
+  test('updateListenerFromCamera copies camera pose and re-runs LOD', async () => {
+    const { a, context } = await initAudio();
+    const src = a.createSource('s');
+    a.setListenerPosition(0, 0, 0);
+    src.position = { x: 0, y: 0, z: 40 };
+    a.updateSourceLOD('s');
+    expect(src.panner.panningModel).toBe('equalpower');
+
+    const camera = {
+      getWorldPosition: (v) => v.set(0, 0, 39), // teleports next to the source
+      getWorldQuaternion: (q) => q // identity quaternion
+    };
+    a.updateListenerFromCamera(camera);
+    expect(context.listener.positionZ.value).toBe(39);
+    // Listener is now 1 m from the source -> HRTF tier.
+    expect(src.panner.panningModel).toBe('HRTF');
+  });
+
+  test('simulateDoppler raises playbackRate with radial velocity', async () => {
+    const { a } = await initAudio();
+    const node = { playbackRate: { value: 1 } };
+    const src = { velocity: { x: 34.33, y: 0, z: 0 }, playbackRate: 1.0, node };
+    a.simulateDoppler(src);
+    // 34.33 m/s = mach 0.1 -> factor 1.1
+    expect(node.playbackRate.value).toBeCloseTo(1.1);
+  });
+
+  test('setMasterVolume clamps to [0,1] and rescales every source gain', async () => {
+    const { a } = await initAudio();
+    const s1 = a.createSource('a', { volume: 0.8 });
+    a.setMasterVolume(1.5);
+    expect(a.settings.masterVolume).toBe(1);
+    expect(s1.gain.gain.value).toBeCloseTo(0.8);
+    a.setMasterVolume(0.5);
+    expect(s1.gain.gain.value).toBeCloseTo(0.4);
+  });
+
+  test('fadeVolume schedules a ramp on the gain AudioParam', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('f');
+    src.gain.gain.cancelScheduledValues = jest.fn();
+    src.gain.gain.setValueAtTime = jest.fn();
+    src.gain.gain.linearRampToValueAtTime = jest.fn();
+    a.fadeVolume('f', 0.2, 2);
+    expect(src.gain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      0.2 * a.settings.masterVolume, a.context.currentTime + 2
+    );
+    expect(src.volume).toBe(0.2);
+  });
+});
