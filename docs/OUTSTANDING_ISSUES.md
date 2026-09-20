@@ -1475,3 +1475,6 @@ DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65�
 
 ### 第67パス追記
 `no-unreachable` eslint ルールが未設定だった検出ギャップを閉塞（error で有効化、違反0件）。今後 return/throw 後の死コードは lint で自動検出。
+
+### 第68パス（lint ガードレール拡充）
+死コード検出系ルール8種を評価 → 全て違反ゼロ。`no-useless-catch`/`no-useless-return`/`no-unused-private-class-members`/`prefer-const` を error で恒久有効化（将来の死コード混入を lint 時点で自動防止）。
