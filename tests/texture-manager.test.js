@@ -29,10 +29,18 @@ jest.mock('three', () => {
     dispose: jest.fn()
   });
   class MockTextureLoader {
-    load(url, onLoad) { onLoad(mockTex()); }
+    load(url, onLoad) {
+      onLoad(mockTex());
+    }
   }
-  class MockMeshBasicMaterial { dispose() {} }
-  class MockCanvasTexture { constructor() { Object.assign(this, mockTex()); } }
+  class MockMeshBasicMaterial {
+    dispose() {}
+  }
+  class MockCanvasTexture {
+    constructor() {
+      Object.assign(this, mockTex());
+    }
+  }
   return {
     RepeatWrapping: 1000, LinearFilter: 1006, LinearMipMapLinearFilter: 1008,
     NearestFilter: 1003, LinearSRGBColorSpace: 'srgb-linear', SRGBColorSpace: 'srgb',
@@ -52,7 +60,9 @@ jest.mock('three/examples/jsm/loaders/KTX2Loader.js', () => {
     setTranscoderPath() {}
     detectSupport() {}
     dispose() {}
-    load(url, onLoad) { onLoad(mockTex()); }
+    load(url, onLoad) {
+      onLoad(mockTex());
+    }
   }
   return { KTX2Loader: MockKTX2Loader };
 });
@@ -203,5 +213,37 @@ describe('TextureManager', () => {
 
     tm.unloadTexture('b.jpg');
     expect(tm.memoryUsage.estimatedBytes).toBe(0);
+  });
+});
+
+describe('TextureManager — duplicate-URL accounting', () => {
+  let tm;
+  beforeEach(() => {
+    tm = new TextureManager(makeRenderer());
+  });
+  afterEach(() => {
+    tm.dispose();
+  });
+
+  // loadTextures() maps every URL to loadTexture() synchronously; a duplicate
+  // URL misses the cache (first load hasn't finished) → both loads run →
+  // cacheTexture() was called twice for one entry → estimatedBytes/textureCount
+  // permanently inflated even after unloadTexture.
+  test('batch with a duplicate URL counts memory once and drains fully', async () => {
+    await tm.loadTextures(['dup.png', 'dup.png']);
+    expect(tm.textureCache.size).toBe(1);
+    expect(tm.memoryUsage.textureCount).toBe(1);
+    tm.unloadTexture('dup.png');
+    expect(tm.memoryUsage.estimatedBytes).toBe(0);
+    expect(tm.memoryUsage.textureCount).toBe(0);
+  });
+
+  test('a concurrent load of an in-flight URL reuses the same pending load', async () => {
+    const p1 = tm.loadTexture('shared.png');
+    const p2 = tm.loadTexture('shared.png');
+    const [t1, t2] = await Promise.all([p1, p2]);
+    expect(t1).toBe(t2);
+    expect(tm.stats.fallbackLoaded).toBe(1); // one real fetch, not two
+    expect(tm.memoryUsage.textureCount).toBe(1);
   });
 });
