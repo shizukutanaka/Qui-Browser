@@ -645,6 +645,25 @@ Session 74 の「real user が到達できないコードは削除する」規�
 | verify:docs | — | 100% PASS |
 | verify:layout / verify:app / verify:vr-boot | — | 全 PASS（vr-boot: 本番 bundle で VRApp・tabManager・settingsPanel・captionSystem の構築を確認） |
 
+### 第2パス（同一セッション・export 走査 + 設定精査）
+
+import グラフを `index.html` エントリから全走査（モジュール単位の到達不能は
+**ゼロ**だった）のうえ、export 単位の未使用シンボルをスキャンした結果と、
+残存設定ファイルの真実性チェック:
+
+| 対象 | 実測された不整合 |
+|---|---|
+| `CHROME_CANVAS_H`（panelGeometry.js） | 宣言自身以外の参照ゼロ — 完全な死に定数 → 削除 |
+| 14個の export（monitoring.js ×3, captionLayout ×3, crossModal ×2, readerLayout ×3, keyboardLayout, contrast, textWrap） | 内部では使用中だが**ファイル外から誰にも参照されない** → `export` キーワードを除去して API 表面を実態化 |
+| `.env.stripe` | 「SUPERSEDED」と自己申告する廃止課金モデルの記録。参照先 `server/stripe-billing.js`・`npm run start:server` ともに不存在 → 削除 |
+| `dependabot.yml` | reviewers/assignees がリテラル `"yourusername"`（Dependabot が実在しないユーザーに割当失敗）+ 無効キー `automerge` → 除去 |
+| workflow `release.yml` | `npm run benchmark:all` は**スクリプト未存在**でタグ push ごとに必ず失敗する工程 → 削除。`deploy-pages` ジョブは `peaceiris/actions-gh-pages` で**リポジトリ直下（生ソース）を公開**＝旧 deploy.yml と同じバグ、かつ cd.yml の正式 Pages パイプラインと二重デプロイ → ジョブ削除。echo だけの `notify` ジョブも削除 |
+| workflow `deploy.yml` | cd.yml の `deploy-github-pages`（build→dist→deploy-pages）と完全重複し、こちらは削除済み `assets/js/` を検査→生ソース公開する壊れた側 → ファイルごと削除（cd.yml が上位集合） |
+
+workflow 変更は `workflow` OAuth スコープ不足で push 不能のため
+`workflow-changes.patch`（リポジトリ外の交付物）としてオーナーに手渡し。
+適用後の CI 緑化を想定。
+
 ### 残った「戻す」候補
 マスクのアルゴリズムに従い10%戻す検討をしたが、**戻す価値があるものは今のところ無い**。
 `public/` 内の並行実装は git 履歴に残る。
