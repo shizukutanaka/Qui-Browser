@@ -400,6 +400,10 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: 実在の統合系スイート `vr-app-wiring.test.js` + `app-smoke.test.js` を直接指す形に修正（95件実走で PASS）。
 - ✅ **pin**: `npm-scripts.test.js` に「`--testMatch` グロブが tests/ 内で1件以上にマッチする」検査を追加。1840 tests、lint 0 errors、build green、verify:docs PASS。
 
+#### 続き28（同セッション）: `t()` 呼び出し側のキー実在性と動的 `import()` 解決を pin 化
+- 🔍 **実測**: 既存 pin は「カタログのキーが参照されるか」（死んだ翻訳）だけで、逆方向「呼び出し側が存在しないキーを指す」は無検査だった —— その場合 `t()` は生キー文字列を UI に出す。全照合の結果: **t() 118サイト・data-i18n/data-i18n-attr 26キー・動的 `import()` 全て解決済みで欠陥ゼロ**。動的 import は verify:layout 自傷と同じく静的走査の死角だったため、参照解決 pin として恒久化。
+- ✅ **pin**: i18n.test.js に2検査追加 — ①全 `t('k')`・`data-i18n`・`data-i18n-attr` のキーが CATALOG に実在（i18n.js 自身のドキュメント例を除外）②src/ 内の全動的 `import('...')` が実在ファイルに解決。1842 tests、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
