@@ -1648,3 +1648,6 @@ WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src ht
 
 ### 第123パス（クリーンスキャン — ブロッキングダイアログ）
 `window.prompt` 2箇所は共に文書化済みの2Dフォールバック — VR 内では `requestVRKeyboardInput`（VR キーボード + caption 告知）が主経路で、prompt は `japaneseIME`/`vrKeyboard` 不在時のみ到達。`window.confirm`/`alert` は不使用。XR 内ブロッキング経路ゼロ。
+
+### 第124パス（クリーンスキャン — XR 入力端ケース）
+`handedness === 'none'` は HandTracking で明示ガード、updateLocomotion の stickX/Y はデフォルト値で axes 欠損安全、`joints.get`/`hand.get`/`getJointPose` は全て null ガード済み。音声/画面入力や欠損ジョイントでの null 参照経路ゼロ。
