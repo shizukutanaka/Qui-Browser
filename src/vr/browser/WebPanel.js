@@ -30,6 +30,8 @@ import {
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
+import { t } from '../../i18n/i18n.js';
+import { topSiteTiles, tileAt, MAX_TILES } from './newTabPage.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
 import {
   PANEL_W, PANEL_H, CHROME_H,
@@ -89,7 +91,7 @@ export class WebPanel {
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+    getTopSites, readerScale = 1, readerProxyUrl = '' }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -110,6 +112,11 @@ export class WebPanel {
     // tints on hover but selecting it does nothing (WindowManager not wired).
     this.onGrabRequested = typeof onGrabRequested === 'function' ? onGrabRequested : null;
     this.onMoveBarHoverCaption = typeof onMoveBarHoverCaption === 'function' ? onMoveBarHoverCaption : null;
+    // New-tab "Top Sites" tiles (C-3): a function returning
+    // [{url,title,host}] — usually backed by BookmarkStore.getTopSites. When
+    // absent or returning empty, the 'empty' state keeps its placeholder text.
+    this.getTopSites = typeof getTopSites === 'function' ? getTopSites : null;
+    this._topTiles = [];
     this.currentTitle = '';
 
     // Panel state
@@ -298,6 +305,21 @@ export class WebPanel {
       return;
     }
 
+    // C-3: a fresh tab is not a dead end — when the history knows top sites,
+    // the empty state becomes a tile grid the user can tap to navigate.
+    if (this._contentState === 'empty' && this.getTopSites) {
+      const tiles = topSiteTiles(this.getTopSites(MAX_TILES), w, h);
+      if (tiles.length) {
+        this._topTiles = tiles;
+        this._drawTopSites(ctx, w, tiles, col);
+        if (this.contentTex) {
+          this.contentTex.needsUpdate = true;
+        }
+        return;
+      }
+    }
+    this._topTiles = [];
+
     ctx.textAlign = 'center';
     const lines = contentStateLines(this._contentState, this.currentUrl, !!this.readerProxyUrl);
     ctx.fillStyle = col.stateTitle;
@@ -311,6 +333,34 @@ export class WebPanel {
 
     if (this.contentTex) {
       this.contentTex.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Paint the new-tab "Top Sites" page: header band (title + hint) and the
+   * tile grid. Tile rects come from topSiteTiles() — the same rects
+   * tileAt() hit-tests — so drawn geometry and tap geometry cannot drift.
+   */
+  _drawTopSites(ctx, w, tiles, col) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = col.stateTitle;
+    ctx.font = '28px sans-serif';
+    ctx.fillText(t('vr.content.topSites'), w / 2, 52);
+    ctx.font = '18px sans-serif';
+    ctx.fillStyle = col.stateDetail;
+    ctx.fillText(t('vr.content.topSitesHint'), w / 2, 86);
+
+    for (const tile of tiles) {
+      ctx.fillStyle = col.tileBg;
+      ctx.fillRect(tile.x, tile.y, tile.w, tile.h);
+      const cx = tile.x + tile.w / 2;
+      const cy = tile.y + tile.h / 2;
+      ctx.fillStyle = col.tileText;
+      ctx.font = '20px sans-serif';
+      ctx.fillText(truncate(tile.title || tile.host, 20), cx, cy - 10);
+      ctx.fillStyle = col.tileHost;
+      ctx.font = '14px sans-serif';
+      ctx.fillText(truncate(tile.host, 30), cx, cy + 18);
     }
   }
 
@@ -433,7 +483,7 @@ export class WebPanel {
    * one implementation serves both input modes.
    */
   _onContentSelect(evt) {
-    if (this._contentState !== 'reader' || !this.contentCanvas) {
+    if (!this.contentCanvas) {
       return;
     }
     const rawPoint = evt?.intersection?.point ?? evt;
@@ -446,6 +496,19 @@ export class WebPanel {
     const v = (local.y / contentH) + 0.5;
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
+
+    // New-tab page: tapping a top-site tile navigates there.
+    if (this._contentState === 'empty' && this._topTiles.length) {
+      const tile = tileAt(px, py, this._topTiles);
+      if (tile) {
+        this.navigate(tile.url);
+      }
+      return;
+    }
+
+    if (this._contentState !== 'reader') {
+      return;
+    }
 
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;

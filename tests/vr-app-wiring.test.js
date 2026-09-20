@@ -1220,6 +1220,16 @@ describe('VRApp — tab session persistence (F-4)', () => {
     expect(VRApp.prototype._restoreTabSession.call(app)).toBe(0);
   });
 
+  test('VRApp wires getTopSites into TabManager and gates it on private mode (C-3)', () => {
+    // Top-site tiles derive from history — which private mode must not touch
+    // in either direction (don't record it, don't surface it on a new tab).
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
+    );
+    expect(src).toMatch(/getTopSites:\s*\(n\)\s*=>/);
+    expect(src).toMatch(/privateMode\s*\?\s*\[\]/);
+  });
+
   test('_buildBrowsingSystems restores the saved session, falling back to one blank tab', () => {
     // Constructing a real TabManager needs a canvas/GPU stack this file doesn't
     // provide, so this pins the seam the same way 'the browsing default' does.

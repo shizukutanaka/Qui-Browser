@@ -688,6 +688,71 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
   });
 });
 
+// ── C-3: new-tab "Top Sites" page ─────────────────────────────────────────────
+// getTopSites() feeds the 'empty' content state: a new tab shows frecency
+// tiles instead of a dead-end placeholder, and tapping a tile navigates.
+describe('WebPanel new-tab top sites (C-3)', () => {
+  // Panel geometry mirrors production: PANEL_W=1.6m, contentH=1.0*(1-0.08)=0.92m,
+  // canvas 1024x942. Inverse of the _onContentSelect uv mapping.
+  const PANEL_W = 1.6;
+  const CONTENT_M_H = 1.0 * (1 - 0.08);
+  const pointFor = (panel, px, py) => {
+    const u = px / panel.contentCanvas.width;
+    const v = 1 - py / panel.contentCanvas.height;
+    return {
+      x: (u - 0.5) * PANEL_W,
+      y: (v - 0.5) * CONTENT_M_H,
+      z: 0,
+      clone() { return this; }
+    };
+  };
+  const SITES = [
+    { url: 'https://a.example', title: 'A', host: 'a.example' },
+    { url: 'https://b.example', title: 'B', host: 'b.example' }
+  ];
+
+  test('without getTopSites the empty state shows no tiles', () => {
+    const p = makePanel();
+    expect(p._topTiles).toHaveLength(0);
+  });
+
+  test('getTopSites populates tiles while the state is empty', () => {
+    const p = makePanel({ getTopSites: () => SITES });
+    expect(p._topTiles).toHaveLength(2);
+    expect(p._topTiles[0].url).toBe('https://a.example');
+  });
+
+  test('empty getTopSites result leaves _topTiles empty (falls back to placeholder text)', () => {
+    const p = makePanel({ getTopSites: () => [] });
+    expect(p._topTiles).toHaveLength(0);
+  });
+
+  test('tapping a tile navigates to its url', () => {
+    const p = makePanel({ getTopSites: () => SITES });
+    const spy = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+    const tile = p._topTiles[0];
+    p._onContentSelect(pointFor(p, tile.x + 2, tile.y + 2));
+    expect(spy).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('tapping the header band or empty space navigates nowhere', () => {
+    const p = makePanel({ getTopSites: () => SITES });
+    const spy = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+    p._onContentSelect(pointFor(p, 512, 10));            // header band
+    const gap = p._topTiles[0].y - 4;                    // above first tile row
+    p._onContentSelect(pointFor(p, 512, gap));
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test('navigating away clears the tiles (they belong to the empty state)', () => {
+    const p = makePanel({ getTopSites: () => SITES });
+    expect(p._topTiles.length).toBeGreaterThan(0);
+    p._setContentState('loading');
+    p._drawContent();
+    expect(p._topTiles).toHaveLength(0);
+  });
+});
+
 // ── stop() — cancelling an in-flight load ───────────────────────────────────
 // The only exits from `loading` were iframe.onload/onerror: a load that never
 // resolves pins the panel in 'loading' forever (chrome tint stays, no way to

@@ -100,10 +100,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
 - **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
 
-### C-3. Top Sites の視覚的スピードダイヤルタイル（優先度: 低、難易度: 中、Session 17 から保留）
-- **対象**: `src/vr/browser/BookmarkPanel.js`
-- **理由**: Session 16/17 でフレセンシーランキング機能自体（データ層・音声コマンド）は実装済みだが、視覚的な「よく使うサイト」タイル表示は未実装のまま。
-- **保留理由**: BookmarkPanel に3つ目のタブを追加するとスクロール矢印ゾーンと座標が衝突する。canvas描画のためVRヘッドセットなしでは見た目を目視確認できない制約もある。着手する場合はレイアウト設計からやり直す必要がある。
+### ~~C-3. Top Sites の視覚的スピードダイヤルタイル~~ — **完了（Session 75）**
+- **解決**: S17 の保留理由は「BookmarkPanel の3つ目のタブがスクロール矢印ゾーンと座標衝突する」だった —— **描画先を BookmarkPanel ではなく WebPanel の `empty` 状態（新規タブ）に取った**ことで座標衝突そのものが消えた。新規モジュール `src/vr/browser/newTabPage.js`（純粋レイアウト: `topSiteTiles`/`tileAt`/`MAX_TILES=8`）→ `_drawTopSites` がグリッド描画、`_onContentSelect` がタイルタップで `navigate`。タイル rect が描画とヒット判定で同一のためズレ不能。frecency データ層（`getTopSites`）は既存。privateMode 中は VRApp 側で `[]` に畳む（private セッションは履歴を書かない・見せない）。i18n `vr.content.topSites`/`topSitesHint` en/ja 追加、タイル色は `webContentColors`（HC 対応済み）。
 
 ### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
 - **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
@@ -191,7 +189,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
 | E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
-| E-6 | Top Sites タイル（=C-3） | 低 | Opus | `hitTest` 全ゾーンをテスト・既存2タブ回帰なし |
+| ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ | ~~低~~ | 完了 S75 | WebPanel 'empty' 状態に実装（BookmarkPanel ルートは破棄） |
 | E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
 
 ---
@@ -245,11 +243,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
-残: **新規タブページ**（= C-3）のみ。他は解消済み↓
+残: なし — **F-4 は全項目解消済み↓**
 - ~~**プライベートモード**~~ — **完了（Session 75）**: `settings.privateMode`（既定 OFF）が `navigate()` の `addHistory` をゲート。Browsing セクションにトグル（en/ja 済み）、キャプションは維持。なお記述の `trackVisit` は AI レコメンド自体が Session 74 の削除で消えており、実際の記録経路は `addHistory` のみだった — navigate のドキュメントも訂正済み
 - ~~**セッション復元**~~ — **完了（Session 75）**: `TabManager.serialize()`/`restoreSession()` + `onSessionChange` フック（newTab/closeTab/setActive/パネル navigate で発火）→ VRApp が `localStorage['qui.tabSession.v1']` に保存し `_buildBrowsingSystems` で復元（無ければ従来どおり空タブ1枚）。navigate 済みタブのみ保持・MAX_TABS/active クランプ・破損 JSON 安全。**privateMode は保存も復元も両方スキップ**（incognito と同じく ephemeral セッション）
 - ~~**Stop（読み込み中断）**~~ — **完了（Session 75）**: `loading=true` を解除できるのは iframe の onload/onerror のみで、解決しないロードはパネルを loading に永久ピン留めしていた。`WebPanel.stop()` を追加 — リーダーフェッチを AbortController で中断し `_readerSeq++` で結果を無効化、iframe ハンドラを切離してから `about:blank`、状態は直前の reader ページまたは empty に戻る。ロード中は reload ボタンが `✕` に変わりヒットゾーンが stop に切替（↺/✕ 切替は標準ブラウザ慣行）
-- **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
+- ~~**新規タブページ**~~ — **完了（Session 75）**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロだった（= C-3）。WebPanel `empty` 状態に 4×2 frecency タイルを描画しタップで navigate（= C-3 節参照）
 - ~~**`scroll-down`/`scroll-up` の二重登録**~~ — コード上は解消済み（`VoiceCommands.js:365` の NOTE 参照。没入時に無意味な `window.scrollBy` 側は削除済みで `connectBrowser` 登録のみ残る）
 
 ---

@@ -282,6 +282,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✨ **feat: タブセッション復元**: `TabManager.serialize()`（navigate 済みタブのみ `{url}` で保持・blank タブは復元価値ゼロ・active は filtered list 内 index に再表現）+ `restoreSession(data)`（MAX_TABS クランプ・malformed エントリ skip・stale active クランプ・復元数を返す）。永続化ポリシーは VRApp 側: `onSessionChange` フック（newTab/closeTab/setActive/パネル navigate の全変異点で発火）→ `_saveTabSession()` → `localStorage['qui.tabSession.v1']`、`_buildBrowsingSystems` で `_restoreTabSession()` → 0 なら従来の空タブ。**privateMode は保存も復元も両方スキップ** —— private 起動 = クリーンセッション（incognito 慣行）。ストレージ不可用・破損 JSON は warn+フォールバックのみ。
 - ✅ **test 11件追加**（pre-fix 検証: 全件 FAIL — serialize/restore 5件、save/restore/private ゲート/破損許容 5件、配線 seam 1件）。Total 1499 tests (47 suites); lint 0 errors (123 warnings); build green。F-4 はこれで新規タブページ（= C-3）を残して完遂。
 
+#### 続き5（同セッション）: C-3 新規タブページ — S17 からの保留を「描画先を変えて」解いた
+- 🔍 **実測した欠陥**: `BookmarkStore.getTopSites()`（host 集約 frecency・exclude 対応・テスト済み）は完全実装だったが**描画先がゼロ** —— 新規タブは「URL を入力してください」のデッドエンドだけを表示していた。S17 の保留理由は「BookmarkPanel の3つ目タブがスクロール矢印ゾーンと座標衝突」。ソクラテス式問い直し: 「Top Sites は BookmarkPanel のタブでなければならないのか？」—— **要件は「よく使うサイトへの素早い到達」であって場所ではない**。描画先を WebPanel の `empty` 状態に変えたことで座標衝突という制約そのものが消えた（Musk: delete the constraint, not the feature）。
+- ✨ **feat: 新規タブページ**: 新規 `src/vr/browser/newTabPage.js`（純粋レイアウト `topSiteTiles`/`tileAt`、4×2 グリッド MAX 8）— **描画 rect とヒット判定 rect を同一オブジェクトで持つ**のでズレが原理的に起きない。`_drawTopSites`（header: Top Sites + ヒント、タイル: title+host、HC 対応色）→ `_onContentSelect` がタイルタップで `navigate`。VRApp は `getTopSites` を TabManager→各パネルに配線、**privateMode 中は `[]` を返して畳む**（private セッションは履歴を書かない・見せない）。i18n en/ja 追加。
+- ✅ **test 11件追加**（pre-fix 検証: 全件 FAIL — レイアウト 4件・WebPanel 6件・配線 1件）。Total 1510 tests (48 suites); lint 0 errors; build green。**F-4 完遂・C-3 解消**。なお canvas 描画の視覚確認はヘッドセットが無い限界は従来どおり —— だがレイアウトの正しさは純粋関数としてピン済み。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

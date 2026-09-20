@@ -112,7 +112,10 @@ export function webContentColors(highContrast = false) {
       arrowActiveBg:   '#004adf',
       arrowActiveText: '#ffffff',
       arrowIdleBg:     '#222222',
-      arrowIdleText:   '#aaccee'
+      arrowIdleText:   '#aaccee',
+      tileBg:          '#001233',
+      tileText:        '#ffffff',
+      tileHost:        '#dddddd'
     };
   }
   return {
@@ -125,6 +128,9 @@ export function webContentColors(highContrast = false) {
     arrowActiveBg:   'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',
     arrowIdleBg:     'rgba(30,35,55,0.6)',
-    arrowIdleText:   '#727f96'
+    arrowIdleText:   '#727f96',
+    tileBg:          'rgba(45,55,85,0.85)',
+    tileText:        '#e8ecff',
+    tileHost:        '#8891ad'
   };
 }

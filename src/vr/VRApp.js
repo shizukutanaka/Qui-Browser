@@ -932,7 +932,10 @@ export class VRApp {
           this.captionSystem.show(t('vr.msg.moveBarLabel'));
         }
       },
-      onSessionChange: () => this._saveTabSession()
+      onSessionChange: () => this._saveTabSession(),
+      // C-3: the new-tab page lists frecency top sites. Private mode returns
+      // no tiles — a private session neither writes nor surfaces history.
+      getTopSites: (n) => (this.settings.privateMode ? [] : this.bookmarks.getTopSites(n))
     });
     this.tabManager.addToScene();
     if (this.settings.enableCurvedPanel) {
