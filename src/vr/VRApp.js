@@ -670,7 +670,7 @@ export class VRApp {
 /**
  * Usage Example:
  *
- * const app = new VRApp(document.getElementById('vr-container'));
+ * const app = new VRApp(document.getElementById('app-container'));
  *
  * // Get performance stats
  * setInterval(() => {
