@@ -152,6 +152,7 @@ export function contrastRatio(fg, bg, backdrop = '#000000') {
  * @param {{fontPx?: number, bold?: boolean, nonText?: boolean}} spec
  * @returns {number} 3 or 4.5
  */
+
 export function wcagMinimum(spec = {}) {
   if (spec.nonText) {
     return 3;
@@ -159,69 +160,4 @@ export function wcagMinimum(spec = {}) {
   const px = Number(spec.fontPx) || 0;
   const large = spec.bold ? px >= 18.66 : px >= 24;
   return large ? 3 : 4.5;
-}
-
-// ── APCA (WCAG 3 candidate) ────────────────────────────────────────────────
-// Constants from the APCA-W3 0.1.9 reference ("SAPC/APCA" lookup table).
-// Verified against the published reference values in tests/contrast.test.js.
-const APCA_R = 0.2126729;
-const APCA_G = 0.7151522;
-const APCA_B = 0.0721750;
-const APCA_TRC = 2.4;
-const APCA_NORM_BG = 0.56;
-const APCA_NORM_TXT = 0.57;
-const APCA_REV_TXT = 0.62;
-const APCA_REV_BG = 0.65;
-const APCA_BLK_THRS = 0.022;
-const APCA_BLK_CLMP = 1.414;
-const APCA_SCALE = 1.14;
-const APCA_LO_OFFSET = 0.027;
-const APCA_DELTA_Y_MIN = 0.0005;
-const APCA_LO_CLIP = 0.1;
-
-/** APCA screen luminance (Y) — a different transfer curve to WCAG 2's. */
-function apcaY(css) {
-  const c = parseCssColor(css);
-  if (!c) {
-    return 0;
-  }
-  return APCA_R * Math.pow(c.r / 255, APCA_TRC)
-    + APCA_G * Math.pow(c.g / 255, APCA_TRC)
-    + APCA_B * Math.pow(c.b / 255, APCA_TRC);
-}
-
-/**
- * APCA lightness contrast, `Lc`, roughly in [-108, 106].
- *
- * Sign encodes polarity: positive for dark text on a light background,
- * negative for light text on dark. Magnitude is what thresholds compare
- * against — APCA's guidance is Lc 75 for body text, 60 for large/headline,
- * 45 for very large (≥ 36px), and 30 as the absolute floor for any
- * non-decorative element.
- *
- * @param {string} fg
- * @param {string} bg
- * @param {string} [backdrop='#000000']
- * @returns {number}
- */
-export function apcaLc(fg, bg, backdrop = '#000000') {
-  const rbg = compositeOver(bg, backdrop);
-  const rfg = compositeOver(fg, rbg);
-  let txtY = apcaY(rfg);
-  let bgY = apcaY(rbg);
-  txtY = txtY > APCA_BLK_THRS ? txtY : txtY + Math.pow(APCA_BLK_THRS - txtY, APCA_BLK_CLMP);
-  bgY = bgY > APCA_BLK_THRS ? bgY : bgY + Math.pow(APCA_BLK_THRS - bgY, APCA_BLK_CLMP);
-  if (Math.abs(bgY - txtY) < APCA_DELTA_Y_MIN) {
-    return 0;
-  }
-  let sapc;
-  let out;
-  if (bgY > txtY) {
-    sapc = (Math.pow(bgY, APCA_NORM_BG) - Math.pow(txtY, APCA_NORM_TXT)) * APCA_SCALE;
-    out = sapc < APCA_LO_CLIP ? 0 : sapc - APCA_LO_OFFSET;
-  } else {
-    sapc = (Math.pow(bgY, APCA_REV_BG) - Math.pow(txtY, APCA_REV_TXT)) * APCA_SCALE;
-    out = sapc > -APCA_LO_CLIP ? 0 : sapc + APCA_LO_OFFSET;
-  }
-  return out * 100;
 }

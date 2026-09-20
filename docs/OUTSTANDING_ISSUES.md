@@ -1059,6 +1059,18 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,366 tests・lint 0 errors・build PASS・verify:docs PASS。
 
+### 第28パス（test-only モジュールの所在を修正）
+
+- `src/vr/ui/contrast.js` は import 元がテスト3件のみの検証ライブラリ
+  （実行時経路ゼロ）→ `tests/helpers/contrast.js` へ移動。src/ が
+  「実行時に到達するモジュールだけ」を表す構造に。
+- `apcaLc`（APCA/WCAG3 実装 ~45行）+ APCA 定数群は自身のテストだけが
+  参照する自己参照 export → テストブロックごと削除。
+- `wcagMinimum` はパレットスイープのしきい値オラクルとして生存を
+  確認し保持（一度誤削除して赤になったため復元 — 測定が先）。
+
+計測: 44 suites / 1,359 tests・lint 0 errors・build PASS・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

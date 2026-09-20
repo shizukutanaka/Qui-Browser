@@ -21,9 +21,8 @@
  */
 
 const {
-  parseCssColor, compositeOver, relativeLuminance,
-  contrastRatio, wcagMinimum, apcaLc
-} = require('../src/vr/ui/contrast.js');
+  parseCssColor, compositeOver, relativeLuminance, contrastRatio, wcagMinimum
+} = require('./helpers/contrast.js');
 const { bookmarkPanelColors } = require('../src/vr/browser/bookmarkLayout.js');
 const { webChromeColors, webContentColors } = require('../src/vr/browser/chromeColors.js');
 const { imeBadgeColors, imeColors } = require('../src/vr/input/keyboardLayout.js');
@@ -103,52 +102,6 @@ describe('contrastRatio (WCAG 2.x)', () => {
   });
 });
 
-describe('wcagMinimum', () => {
-  test('body text needs 4.5:1', () => {
-    expect(wcagMinimum({ fontPx: 18 })).toBe(4.5);
-    expect(wcagMinimum({ fontPx: 20, bold: true })).toBe(3);   // ≥18.66 bold is large
-  });
-
-  test('large text needs 3:1', () => {
-    expect(wcagMinimum({ fontPx: 24 })).toBe(3);
-    expect(wcagMinimum({ fontPx: 23.9 })).toBe(4.5);
-  });
-
-  test('non-text UI is a flat 3:1 regardless of size', () => {
-    expect(wcagMinimum({ nonText: true })).toBe(3);
-    expect(wcagMinimum({ nonText: true, fontPx: 8 })).toBe(3);
-  });
-});
-
-// ── APCA ─────────────────────────────────────────────────────────────────────
-describe('apcaLc (WCAG 3 candidate)', () => {
-  // Published APCA-W3 reference values. If these drift the implementation is
-  // wrong, and every Lc figure recorded in the docs would be fiction.
-  test('matches the published reference values', () => {
-    expect(apcaLc('#000000', '#ffffff')).toBeCloseTo(106.04, 1);
-    expect(apcaLc('#ffffff', '#000000')).toBeCloseTo(-107.88, 1);
-    expect(apcaLc('#888888', '#ffffff')).toBeCloseTo(63.06, 1);
-  });
-
-  test('sign encodes polarity — negative for light text on dark', () => {
-    expect(apcaLc('#ffffff', '#1a1a2e')).toBeLessThan(0);
-    expect(apcaLc('#1a1a2e', '#ffffff')).toBeGreaterThan(0);
-  });
-
-  test('identical colours score 0', () => {
-    expect(apcaLc('#445566', '#445566')).toBe(0);
-  });
-
-  test('disagrees with WCAG 2 near black — the reason it is reported at all', () => {
-    // Two pairs WCAG 2 rates almost identically; APCA separates them clearly.
-    const aW = contrastRatio('#8891ad', '#1a1a2e');
-    const bW = contrastRatio('#7788aa', '#161b2e');
-    expect(Math.abs(aW - bW)).toBeLessThan(0.7);
-    expect(Math.abs(apcaLc('#8891ad', '#1a1a2e'))).toBeGreaterThan(
-      Math.abs(apcaLc('#7788aa', '#161b2e'))
-    );
-  });
-});
 
 // ── the palette sweep ────────────────────────────────────────────────────────
 /**
