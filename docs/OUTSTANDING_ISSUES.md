@@ -245,9 +245,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
+残: **セッション復元**・**新規タブページ**（= C-3）。他は解消済み↓
 - ~~**プライベートモード**~~ — **完了（Session 75）**: `settings.privateMode`（既定 OFF）が `navigate()` の `addHistory` をゲート。Browsing セクションにトグル（en/ja 済み）、キャプションは維持。なお記述の `trackVisit` は AI レコメンド自体が Session 74 の削除で消えており、実際の記録経路は `addHistory` のみだった — navigate のドキュメントも訂正済み
 - **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
-- **Stop（読み込み中断）**: `loading=true` を解除できるのは onload/onerror のみ
+- ~~**Stop（読み込み中断）**~~ — **完了（Session 75）**: `loading=true` を解除できるのは iframe の onload/onerror のみで、解決しないロードはパネルを loading に永久ピン留めしていた。`WebPanel.stop()` を追加 — リーダーフェッチを AbortController で中断し `_readerSeq++` で結果を無効化、iframe ハンドラを切離してから `about:blank`、状態は直前の reader ページまたは empty に戻る。ロード中は reload ボタンが `✕` に変わりヒットゾーンが stop に切替（↺/✕ 切替は標準ブラウザ慣行）
 - **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
 - ~~**`scroll-down`/`scroll-up` の二重登録**~~ — コード上は解消済み（`VoiceCommands.js:365` の NOTE 参照。没入時に無意味な `window.scrollBy` 側は削除済みで `connectBrowser` 登録のみ残る）
 

@@ -332,6 +332,7 @@ export class WebPanel {
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._readerController = controller;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       // Routed through the companion proxy when one is configured; otherwise a
@@ -365,6 +366,10 @@ export class WebPanel {
     } finally {
       if (timer) {
         clearTimeout(timer);
+      }
+      // Only clear the ref if a newer load didn't already replace it.
+      if (this._readerController === controller) {
+        this._readerController = null;
       }
     }
   }
@@ -541,7 +546,7 @@ export class WebPanel {
     ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
     ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
-    ctx.fillText('↺', 174, h / 2 + 8);
+    ctx.fillText(this.loading ? '✕' : '↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
     const hasBookmark = !!this.onToggleBookmark;
@@ -635,8 +640,12 @@ export class WebPanel {
       this.back();
     } else if (px < 136) {   // forward
       this.forward();
-    } else if (px < 204) {   // reload
-      this.reload();
+    } else if (px < 204) {   // reload — or stop while a load is in flight
+      if (this.loading) {
+        this.stop();
+      } else {
+        this.reload();
+      }
     } else if (px > w - 60) { // close
       this.hide();
     } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
@@ -795,6 +804,33 @@ export class WebPanel {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
     }
+  }
+
+  /**
+   * Cancel an in-flight load. The only exits from `loading` used to be the
+   * iframe's onload/onerror — a load that never resolves pins the panel in
+   * 'loading' forever. Aborts the reader fetch (its result then fails the
+   * _readerSeq staleness check and cannot overwrite state), detaches the
+   * iframe handlers before blanking src so the about:blank load can't fire
+   * navigation callbacks, and returns the content area to whatever is
+   * actually displayable: the previous page's reader lines if still buffered,
+   * else the empty state.
+   */
+  stop() {
+    if (!this.loading) {
+      return;
+    }
+    this._readerSeq++;
+    if (this._readerController) {
+      this._readerController.abort();
+      this._readerController = null;
+    }
+    this.iframe.onload = null;
+    this.iframe.onerror = null;
+    this.iframe.src = 'about:blank';
+    this.loading = false;
+    this._setContentState(this._readerLines.length ? 'reader' : 'empty');
+    this._drawChrome();
   }
 
   // ── DOM-overlay integration ───────────────────────────────────────────────
