@@ -7,6 +7,7 @@
  * with controller-ray selection.
  */
 
+import { BOOKMARK_PANEL_W } from './panelGeometry.js';
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
@@ -26,7 +27,7 @@ import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
 
-const PANEL_W = 1.2;  // metres
+const PANEL_W = BOOKMARK_PANEL_W;
 const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
 
 export class BookmarkPanel {

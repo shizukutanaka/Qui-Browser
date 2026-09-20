@@ -14,6 +14,7 @@ import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButt
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from '../settingsStepper.js';
 import { launchImmersiveVideo } from '../browser/browserActions.js';
 import { showCaption } from '../caption.js';
+import { PANEL_DISTANCE_MIN, PANEL_DISTANCE_MAX } from '../browser/panelGeometry.js';
 
 /**
  * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
@@ -127,7 +128,7 @@ export function createSettingsPanel(app) {
       }
     }],
     [t('vr.settings.panelDist'), 'windowDistance', {
-      min: 0.6, max: 6.0, step: 0.2, unit: ' m',
+      min: PANEL_DISTANCE_MIN, max: PANEL_DISTANCE_MAX, step: 0.2, unit: ' m',
       apply: (v) => {
         if (app.windowManager) {
           app.windowManager.setDistance(v);

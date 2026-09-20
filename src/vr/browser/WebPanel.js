@@ -32,7 +32,7 @@ import {
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
 import {
-  PANEL_W, PANEL_H, CHROME_H,
+  PANEL_W, PANEL_H, CHROME_H, CHROME_M_H, CONTENT_M_H, CHROME_CANVAS_W,
   MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H
 } from './panelGeometry.js';
 
@@ -161,19 +161,19 @@ export class WebPanel {
   _build() {
     // ── Chrome bar (URL bar + back/forward/reload) ──────────────────────────
     this.chromeCanvas = document.createElement('canvas');
-    this.chromeCanvas.width  = 1024;
-    this.chromeCanvas.height = Math.round(1024 * CHROME_H);
+    this.chromeCanvas.width  = CHROME_CANVAS_W;
+    this.chromeCanvas.height = Math.round(CHROME_CANVAS_W * CHROME_H);
 
     this.chromeTex = configureUITexture(new THREE.CanvasTexture(this.chromeCanvas));
 
-    const chromeGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * CHROME_H);
+    const chromeGeo = new THREE.PlaneGeometry(PANEL_W, CHROME_M_H);
     const chromeMat = new THREE.MeshBasicMaterial({
       map: this.chromeTex,
       transparent: false,
       side: THREE.FrontSide
     });
     this.chromeMesh = new THREE.Mesh(chromeGeo, chromeMat);
-    this.chromeMesh.position.y = (PANEL_H - PANEL_H * CHROME_H) / 2;
+    this.chromeMesh.position.y = (PANEL_H - CHROME_M_H) / 2;
     this.chromeMesh.name = 'webPanelChrome';
     this.group.add(this.chromeMesh);
 
@@ -183,16 +183,16 @@ export class WebPanel {
     // successful navigation the viewport still read "Enter a URL to navigate"
     // forever — the panel silently misrepresented what it was showing.
     this.contentCanvas = document.createElement('canvas');
-    this.contentCanvas.width  = 1024;
-    this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
+    this.contentCanvas.width  = CHROME_CANVAS_W;
+    this.contentCanvas.height = Math.round(CHROME_CANVAS_W * (1 - CHROME_H));
     this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
     this._drawContent();
 
     const contentTex = this.contentTex;
-    const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
+    const contentGeo = new THREE.PlaneGeometry(PANEL_W, CONTENT_M_H);
     const contentMat = new THREE.MeshBasicMaterial({ map: contentTex, side: THREE.FrontSide });
     this.contentMesh = new THREE.Mesh(contentGeo, contentMat);
-    this.contentMesh.position.y = -PANEL_H * CHROME_H / 2;
+    this.contentMesh.position.y = -CHROME_M_H / 2;
     this.contentMesh.name = 'webPanelContent';
     this.group.add(this.contentMesh);
 
@@ -435,7 +435,7 @@ export class WebPanel {
       return;
     }
     const local = this.contentMesh.worldToLocal(rawPoint.clone());
-    const contentH = PANEL_H * (1 - CHROME_H);
+    const contentH = CONTENT_M_H;
     const u = (local.x / PANEL_W) + 0.5;
     const v = (local.y / contentH) + 0.5;
     const px = u * this.contentCanvas.width;
@@ -893,13 +893,13 @@ export class WebPanel {
     if (value) {
       this.contentMesh.geometry = buildCurvedPlaneGeometry(THREE, {
         width: PANEL_W,
-        height: PANEL_H * (1 - CHROME_H),
+        height: CONTENT_M_H,
         radius: this.curveRadius,
         segmentsX: 24,
         segmentsY: 1
       });
     } else {
-      this.contentMesh.geometry = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
+      this.contentMesh.geometry = new THREE.PlaneGeometry(PANEL_W, CONTENT_M_H);
     }
     if (oldGeo && oldGeo.dispose) {
       oldGeo.dispose();
