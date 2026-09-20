@@ -868,6 +868,27 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 4.9s・verify:vr-boot PASS。
 
+### 第15パス（vite.config.js — 死設定と未宣言依存の一掃）
+
+- `define` ブロック全削除 — `__APP_VERSION__`/`__BUILD_TIME__` は参照ゼロ、
+  `__PRODUCTION__: true` は dev ビルドでも true になる**嘘の定数**。
+- `minify: 'terser'` + `terserOptions` 全削除 — terser は devDeps に
+  未宣言の推移的依存で、かつ `esbuild.drop` と console 除去が完全に二重化。
+  esbuild minify（既定値）に戻す → **build 5s → 0.73s（約7倍速）**、
+  gzip 差 +2kB のみ。
+- `worker` ブロック（`new Worker` ゼロ）、`plugins: []`、
+  `resolve.extensions` の `.jsx`/`.wasm`（該当ファイルなし）、
+  `server.https:false`/`cors:true`/`preview` 同項（全て既定値）、
+  `assetsInlineLimit`（既定値）を削除。
+- COEP/COOP ヘッダー — SharedArrayBuffer 不使用かつ prod ヘッダー
+  （netlify/vercel/nginx）に存在しない不一致の dev-only 設定 → 削除。
+  `X-Content-Type-Options`/`X-Frame-Options`/`X-XSS-Protection` は実
+  セキュリティとして生存。
+- `chunkSizeWarningLimit` は vendor-three の既知サイズ抑制として意図的
+  なので保持（コメント付き）。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 0.73s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

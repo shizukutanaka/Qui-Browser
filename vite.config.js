@@ -21,7 +21,6 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false, // Disable in production for smaller size
-    minify: 'terser',
     emptyOutDir: true,
 
     // Rollup options
@@ -78,44 +77,19 @@ export default defineConfig({
       }
     },
 
-    // Terser minification options (built-in with Vite)
-    terserOptions: {
-      compress: {
-        drop_console: true,      // Remove console.log in production
-        drop_debugger: true,
-        passes: 2,
-        pure_funcs: ['console.log', 'console.info']
-      },
-      mangle: {
-        properties: false  // Don't mangle property names (breaks Three.js)
-      },
-      format: {
-        comments: false
-      }
-    },
-
     // Target modern browsers that support WebXR
     target: ['chrome90', 'firefox88', 'safari14'],
 
-    // Optimize chunk size
-    chunkSizeWarningLimit: 1000, // 1MB warning
-
-    // Asset inlining threshold
-    assetsInlineLimit: 4096 // 4KB
+    // The vendored three.js chunk is intentionally ~550 kB; keep the warning
+    // threshold above it so a genuinely oversized chunk still stands out.
+    chunkSizeWarningLimit: 1000
   },
 
   // Development server
   server: {
     host: true,  // Allow external connections (for Quest)
     port: 5173,
-    https: false, // Use ngrok for HTTPS in development
-    cors: true,
-
     headers: {
-      // Required for SharedArrayBuffer (if using)
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-
       // Security headers
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'SAMEORIGIN',
@@ -126,37 +100,12 @@ export default defineConfig({
   // Preview server (for testing production build)
   preview: {
     host: true,
-    port: 8080,
-    https: false,
-    cors: true
+    port: 8080
   },
-
-  plugins: [],
 
   // Optimize dependencies
   optimizeDeps: {
     include: ['three']
-  },
-
-  // Define global constants
-  define: {
-    __APP_VERSION__: JSON.stringify('2.0.0'),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __PRODUCTION__: true
-  },
-
-  resolve: {
-    extensions: ['.js', '.jsx', '.json', '.wasm']
-  },
-
-  // Worker configuration
-  worker: {
-    format: 'es',
-    rollupOptions: {
-      output: {
-        entryFileNames: 'workers/[name]-[hash].js'
-      }
-    }
   },
 
   // Build optimizations
