@@ -2,7 +2,7 @@
  * Unit tests for BookmarkStore (FR-1.4).
  * localStorage is shimmed by tests/setup.js so no extra mock needed.
  */
-const { BookmarkStore, isQuotaExceededError, frecencyScore } = require('../src/utils/BookmarkStore.js');
+const { BookmarkStore, frecencyScore } = require('../src/utils/BookmarkStore.js');
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -143,28 +143,6 @@ describe('BookmarkStore — history', () => {
     expect(store.getHistory()).toHaveLength(0);
   });
 
-});
-
-describe('isQuotaExceededError — cross-browser detection', () => {
-  test('detects Chrome QuotaExceededError by name', () => {
-    expect(isQuotaExceededError({ name: 'QuotaExceededError' })).toBe(true);
-  });
-
-  test('detects Firefox NS_ERROR_DOM_QUOTA_REACHED by name', () => {
-    expect(isQuotaExceededError({ name: 'NS_ERROR_DOM_QUOTA_REACHED' })).toBe(true);
-  });
-
-  test('detects by numeric code 22 (WebKit) and 1014 (Firefox)', () => {
-    expect(isQuotaExceededError({ code: 22 })).toBe(true);
-    expect(isQuotaExceededError({ code: 1014 })).toBe(true);
-  });
-
-  test('rejects unrelated errors and falsy values', () => {
-    expect(isQuotaExceededError(new Error('network'))).toBe(false);
-    expect(isQuotaExceededError({ name: 'TypeError', code: 5 })).toBe(false);
-    expect(isQuotaExceededError(null)).toBe(false);
-    expect(isQuotaExceededError(undefined)).toBe(false);
-  });
 });
 
 describe('BookmarkStore — history quota eviction', () => {

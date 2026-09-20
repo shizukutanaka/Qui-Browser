@@ -295,10 +295,6 @@ export function getLanguage() {
   return currentLang;
 }
 
-export function availableLanguages() {
-  return Object.keys(CATALOG);
-}
-
 /** Translate a key in the current language (falls back to English, then the key). */
 export function t(key) {
   const c = CATALOG[currentLang] || CATALOG.en;

@@ -58,30 +58,6 @@ function hostOf(url) {
   }
 }
 
-/**
- * Detect a localStorage quota-exceeded error across browsers. Chrome throws a
- * DOMException named 'QuotaExceededError' (code 22); Firefox uses
- * 'NS_ERROR_DOM_QUOTA_REACHED' (code 1014); older WebKit/private-mode builds
- * surface code 22 with an empty name. Checking all of these is the standard
- * cross-browser guard (per the JP dev community localStorage-quota posts).
- *
- * Pure — testable without a real Storage.
- *
- * @param {*} e  the caught error
- * @returns {boolean}
- */
-export function isQuotaExceededError(e) {
-  if (!e) {
-    return false;
-  }
-  return (
-    e.name === 'QuotaExceededError' ||
-    e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-    e.code === 22 ||
-    e.code === 1014
-  );
-}
-
 function readJSON(key, fallback) {
   try {
     const raw = typeof localStorage !== 'undefined'

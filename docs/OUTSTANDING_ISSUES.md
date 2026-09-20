@@ -947,6 +947,19 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build PASS・verify:docs PASS。
 
+### 第20パス（テスト専用コードの摘出 — 規約「テストだけが参照するコード」）
+
+- `BookmarkStore.isQuotaExceededError` 削除 — JSDoc は「呼び出し側が
+  再試行を判断する」と謳うが **モジュール内外で呼び出しゼロ**
+  （writeJSON の catch は結果を捨てる）。テスト5件と import も除去。
+- `i18n.availableLanguages` 削除 — 実消費者ゼロ（テスト1件のみ参照）。
+- `frecencyScore` は内部実使用（BookmarkStore:266/290）+ テスト → 生存。
+- 同名関数跨ファイル走査: `render` 重複は別クラスの正当メソッド。
+- JSDoc 残留引数（WebPanel `opts.scene` 等）は実在パラメータを指す
+  ため生存確認済み。
+
+計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
