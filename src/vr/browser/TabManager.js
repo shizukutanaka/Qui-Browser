@@ -250,6 +250,7 @@ export class TabManager {
       onGrabRequested: this.opts.onGrabRequested || null,
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
       onBlockedNavigation: this.opts.onBlockedNavigation || null,
+      getTopSites: this.opts.getTopSites || null,
       readerProxyUrl: this.opts.readerProxyUrl || ''
     });
     panel.addToScene(this.rootGroup);
