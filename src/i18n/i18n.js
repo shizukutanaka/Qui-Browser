@@ -41,7 +41,6 @@ export const CATALOG = {
     'settings.section.audio': 'Audio & Media',
     'settings.section.other': 'Other',
     'vr.msg.sectionOpen': 'expanded',
-    'vr.msg.sectionClosed': 'collapsed',
     'vr.content.loading': 'Loading…',
     'vr.content.failed': 'Failed to load',
     'vr.content.empty': 'Enter a URL to navigate',
@@ -119,8 +118,6 @@ export const CATALOG = {
     'vr.settings.privateMode': 'Private Mode',
     'vr.settings.bookmarks': 'Bookmarks',
     // VR Settings Panel Values
-    'vr.value.on': 'ON',
-    'vr.value.off': 'OFF',
     'vr.value.left': 'Left',
     'vr.value.right': 'Right',
     // VR Status Messages
@@ -191,7 +188,6 @@ export const CATALOG = {
     'settings.section.audio': '音声とメディア',
     'settings.section.other': 'その他',
     'vr.msg.sectionOpen': '展開',
-    'vr.msg.sectionClosed': '折りたたみ',
     'vr.content.loading': '読み込み中…',
     'vr.content.failed': '読み込みに失敗しました',
     'vr.content.empty': 'URL を入力してください',
@@ -269,8 +265,6 @@ export const CATALOG = {
     'vr.settings.privateMode': 'プライベートモード',
     'vr.settings.bookmarks': 'ブックマーク',
     // VR Settings Panel Values
-    'vr.value.on': 'オン',
-    'vr.value.off': 'オフ',
     'vr.value.left': '左',
     'vr.value.right': '右',
     // VR Status Messages
