@@ -1243,6 +1243,17 @@ build 0.74s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.7s・vr-boot PASS。
 
+### 第41パス（抽出モジュールの export 全生存 + manualChunks 整合）
+
+- 新規4モジュールの全 export を実参照で確認（inputRouting 6・
+  settingsPanel 1・settingsButtons 5・canvasMesh 3・homeEnvironment 1・
+  settingsStore 3 — 全生存、孤児ゼロ）。
+- vite.config.js の manualChunks「Tier 2 features (lazy loaded)」コメントは
+  嘘だった: JapaneseIME/HandTracking/SpatialAudio は VRApp から静的
+  import（真の lazy 境界は main.js→app.js のみ）。コメントを実態に修正。
+
+計測: build 0.66s（chunks 正常）。
+
 ---
 
 ## 使い方（次のセッションへ）

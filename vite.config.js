@@ -37,7 +37,8 @@ export default defineConfig({
             '/src/vr/comfort/ComfortSystem.js'
           ],
 
-          // Tier 2 features (lazy loaded)
+          // Tier 2 subsystems — statically imported by VRApp; grouped for
+          // parallel fetch and cache granularity, not lazy loading
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
           'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
           'tier2-audio': ['/src/vr/audio/SpatialAudio.js']
