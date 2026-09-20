@@ -21,7 +21,17 @@ jest.mock('three', () => ({
   SphereGeometry: class { dispose() {} },
   CylinderGeometry: class { dispose() {} },
   MeshPhongMaterial: class { clone() { return new this.constructor(); } dispose() {} },
-  Vector3: class { constructor() { this.set = () => {}; this.clone = () => this; } },
+  Vector3: class {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; }
+    clone() { return new this.constructor(this.x, this.y, this.z); }
+    addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+    normalize() { const l = Math.hypot(this.x, this.y, this.z) || 1; return this.multiplyScalar(1 / l); }
+    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  },
+  Ray: class { constructor(o, d) { this.origin = o; this.direction = d; } },
   Quaternion: class {}
 }));
 
@@ -204,5 +214,89 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     ht.update(makeFrame([makeInputSource('left')]), null);
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+// Spatial query helpers + gesture callback dispatch — previously uncovered
+// (getPinchPosition / getPointingRay / onGesture fan-out / getStats).
+// Joint positions need real vector math (production calls position.distanceTo),
+// so use a local real-math vector, not the mocked Vector3.
+class V {
+  constructor(x, y, z) { this.x = x; this.y = y; this.z = z; }
+  clone() { return new V(this.x, this.y, this.z); }
+  distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+}
+const jointsAt = (entries) => {
+  const m = new Map();
+  for (const [name, [x, y, z]] of entries) m.set(name, { position: new V(x, y, z) });
+  return m;
+};
+
+describe('HandTracking — spatial queries + gesture dispatch', () => {
+  let ht;
+  beforeEach(() => {
+    // renderer/scene unused by the query paths — pass minimal stubs
+    ht = new HandTracking(null, { remove: jest.fn() });
+  });
+
+  test('getPinchPosition returns thumb↔index midpoint', () => {
+    ht.joints.left = jointsAt([
+      ['thumb-tip', [0, 0, 0]],
+      ['index-finger-tip', [0.04, 0.02, 0]]
+    ]);
+    const p = ht.getPinchPosition('left');
+    expect(p.x).toBeCloseTo(0.02);
+    expect(p.y).toBeCloseTo(0.01);
+    expect(p.z).toBeCloseTo(0);
+  });
+
+  test('getPinchPosition is null when a joint is missing', () => {
+    ht.joints.right = jointsAt([['thumb-tip', [0, 0, 0]]]);
+    expect(ht.getPinchPosition('right')).toBeNull();
+  });
+
+  test('getPointingRay points from proximal toward tip', () => {
+    ht.joints.right = jointsAt([
+      ['index-finger-phalanx-proximal', [0, 0, 0]],
+      ['index-finger-tip', [0, 0, -1]]
+    ]);
+    const ray = ht.getPointingRay('right');
+    expect(ray.direction.z).toBeCloseTo(-1);
+    expect(ray.direction.x).toBeCloseTo(0);
+    expect(ray.origin.x).toBeCloseTo(0);
+  });
+
+  test('getPointingRay is null without both joints', () => {
+    ht.joints.left = jointsAt([['index-finger-tip', [0, 0, -1]]]);
+    expect(ht.getPointingRay('left')).toBeNull();
+  });
+
+  test('onGesture callback fires on transition only, with (handedness, gesture)', () => {
+    const calls = [];
+    ht.onGesture('point', (h, g) => calls.push([h, g]));
+    ht.joints.left = jointsAt([
+      ['thumb-tip', [0, 0.05, -0.1]],
+      ['index-finger-tip', [0, 0.09, -0.15]],
+      ['wrist', [0, 0, 0]],
+      ['index-finger-metacarpal', [0, 0.03, -0.05]],
+      ['middle-finger-metacarpal', [0.01, 0.03, -0.05]],
+      ['middle-finger-tip', [0.01, 0.02, -0.04]],   // curled
+      ['ring-finger-metacarpal', [0.02, 0.03, -0.05]],
+      ['ring-finger-tip', [0.02, 0.02, -0.04]],
+      ['pinky-finger-metacarpal', [0.03, 0.03, -0.05]],
+      ['pinky-finger-tip', [0.03, 0.02, -0.04]]
+    ]);
+    ht.recognizeGestures();
+    expect(calls).toEqual([['left', 'point']]);
+    ht.recognizeGestures(); // same pose again — no re-fire
+    expect(calls).toHaveLength(1);
+  });
+
+  test('getStats reflects per-hand gesture + tracking flag', () => {
+    ht.gestures.left = 'fist';
+    ht.gestures.right = 'none';
+    const s = ht.getStats();
+    expect(s.leftGesture).toBe('fist');
+    expect(s.rightGesture).toBe('none');
   });
 });

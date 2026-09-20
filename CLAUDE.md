@@ -436,6 +436,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **ついでに発見**: テスト stub の `makeGamepad` が `hand` プロパティを作っていなかった — 既存の「両手」テストは実は同一 gamepad へのフォールバックを2回通していた。stub 修正で本当の両手経路に。
 - ✅ 1884 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き35（同セッション）: HandTracking の空間クエリ層を pin — 欠陥ゼロ
+- 🔍 **実測**: HandTracking 67% — `getPinchPosition`（親指↔人差指中点）、`getPointingRay`（選択レイ）、`onGesture` コールバック伝播、`getStats` が無検査だった。
+- ✅ **pin**: 6テスト追加（中点計算・欠損関節 null・レイ方向・遷移時のみ発火・同ポーズ再発火なし・stats）。`jest.mock('three')` の Vector3 に addVectors 等の実数学を拡張（既存テスト非破壊）。全緑。
+- 📝 1890 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
