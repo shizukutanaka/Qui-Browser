@@ -237,9 +237,7 @@ npm run preview               # Preview production build
 npm test                      # Run all tests
 npm run test:watch            # Watch mode
 npm run test:coverage         # Tests with coverage
-npm run test:tier             # Tier integration tests
 npm run test:integration      # Integration tests
-npm run test:e2e              # E2E tests (Playwright)
 
 # Code Quality (4 scripts)
 npm run lint                  # Lint JavaScript

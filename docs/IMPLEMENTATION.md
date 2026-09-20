@@ -212,7 +212,7 @@ controller.addEventListener('thumbstick', (direction) => {
 **GC Pause Reduction**: 40%
 **Difficulty**: ⭐⭐ Easy-Medium
 
-**File**: `src/utils/ObjectPool.js`
+**File**: ~~`src/utils/ObjectPool.js`~~ *(removed — Session 60 cleanup)*
 
 ```javascript
 export class ObjectPool {
@@ -475,7 +475,7 @@ if ('serviceWorker' in navigator) {
 **Market Impact**: Unlocks 100M+ users
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/input/JapaneseIME.js`
+**File**: `src/vr/input/JapaneseIME.js`
 
 ```javascript
 export class JapaneseIME {
@@ -557,7 +557,7 @@ class VRKeyboardWithIME {
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/input/HandTracking.js`
+**File**: `src/vr/interaction/HandTracking.js`
 
 ```javascript
 export class HandTracking {
@@ -654,7 +654,7 @@ export class HandTracking {
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/audio/SpatialAudio.js`
+**File**: `src/vr/audio/SpatialAudio.js`
 
 ```javascript
 export class SpatialAudio {
@@ -798,9 +798,9 @@ Loading:
 
 ### Production Build
 ```bash
-npm run build:production
+npm run build
 
-# Output: build/ directory ready for deployment
+# Output: dist/ directory ready for deployment
 ```
 
 ### Deploy to Quest Store

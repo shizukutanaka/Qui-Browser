@@ -1,5 +1,12 @@
 # 🚀 Qui Browser VR - Build Optimization Guide
 
+> **⚠️ Stale (webpack-era)**: this guide was written for the webpack pipeline
+> and references scripts that no longer exist (`build:analyze`, `lighthouse`,
+> `test:size`, `check-budgets`, `test:unified`). The current build is Vite —
+> `npm run build` prints per-chunk sizes, `npm run ci:verify` runs the real
+> verification gates, and `proxy/server.js` replaced the old Express server.
+> Kept for reference; the performance *principles* still apply.
+
 **Version:** 2.0.0
 **Target:** Production deployment with maximum performance
 **Philosophy:** John Carmack - "Premature optimization is the root of all evil, but timely optimization is essential"

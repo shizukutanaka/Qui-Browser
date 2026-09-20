@@ -102,7 +102,6 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Test Files:**
-- `tests/tier-system-integration.test.js` (34 test suites)
 
 #### 4. Performance Tests (20 min)
 ```yaml
@@ -643,7 +642,7 @@ vercel link
 npm test
 
 # Check specific test
-npm test -- tests/tier-system-integration.test.js
+npm test -- tests/vr-app-wiring.test.js
 
 # With verbose output
 npm test -- --verbose

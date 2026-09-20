@@ -31,8 +31,9 @@ WebXR requires a secure context. Use `https://` or `localhost`. For headset test
 your LAN, tunnel it (e.g. via a dev-server HTTPS cert) or use ADB port forwarding.
 
 **Do I need the backend server?**
-Only for billing. `npm run start:server` runs the Express app; without Stripe
-credentials the billing routes deliberately answer `503` and everything else works.
+No. There is no bundled backend. `npm run proxy` optionally starts a small
+SSRF-guarded fetch proxy (`proxy/server.js`) so the in-VR reader can read
+non-CORS sites; without it the reader is limited to CORS-enabled origins.
 
 ## Accessibility
 
