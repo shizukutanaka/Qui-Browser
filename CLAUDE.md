@@ -421,6 +421,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🐛 **fix**: `onended` はノード参照を捕え `source.node === node` のときだけ適用。`stop()` は `isPlaying` が真のときだけ減算（自然終了後の明示 stop() で負にならない）。
 - ✅ **pin**: spatial-audio.test.js にライフサイクル describe 追加（28件、修正前2件赤確認）— リスタート競合・stop() の冪等・自然終了後の stop()。1861 tests、lint 0 errors、build green。
 
+#### 続き32（同セッション）: VoiceCommands のライフサイクル層（認識エンジン配線）を stub で pin — 欠陥ゼロ
+- 🔍 **実測**: VoiceCommands 54% — コマンド照合はテスト済みだが `initialize()/start()/onend` の連続リスタート・wake-word フローは無検査だった（これら全て stub SpeechRecognition で検証可能）。
+- ✅ **pin**: ライフサイクル describe 10件追加（47件）— init 配線、非対応環境で false、連続モード onend リスタート、**fatal error（not-allowed）で isEnabled=false → リスタートループ停止**（コード内コメントだけだった不変条件を pin 化）、dispose が遅延 onend でも再始動しない、wake word フロー、**confidence===0 を「スコア無し」として通す Quest/ja-JP 実機回避路**、非 final は実行しない。全件緑（修正対象なし — 不変条件が既に正しいことを実測）。
+- 📝 1871 tests / 57 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

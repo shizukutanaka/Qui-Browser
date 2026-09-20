@@ -391,3 +391,123 @@ describe('VoiceCommands — dead surface area stays deleted', () => {
     expect(src).not.toMatch(/description:/);
   });
 });
+
+// Recognition lifecycle — previously untested (initialize() needs
+// window.SpeechRecognition). A stub engine exercises start/stop/dispose,
+// the continuous-mode restart, and the fatal-error guard the code carries
+// as an untested comment invariant.
+describe('VoiceCommands — recognition lifecycle (stub engine)', () => {
+  const makeRecognition = () => ({
+    continuous: undefined, interimResults: undefined, maxAlternatives: undefined,
+    lang: undefined, onstart: null, onend: null, onresult: null, onerror: null,
+    start: jest.fn(), stop: jest.fn(), abort: jest.fn()
+  });
+
+  let vc, rec;
+  beforeEach(() => {
+    rec = makeRecognition();
+    global.window = {
+      SpeechRecognition: jest.fn(() => rec),
+      speechSynthesis: { cancel: jest.fn(), speak: jest.fn() }
+    };
+    global.SpeechSynthesisUtterance = jest.fn(() => ({}));
+    jest.useFakeTimers();
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+    delete global.window;
+    delete global.SpeechSynthesisUtterance;
+  });
+
+  test('initialize wires recognition config and enables', async () => {
+    expect(await vc.initialize()).toBe(true);
+    expect(vc.isEnabled).toBe(true);
+    expect(rec.lang).toBe('ja-JP');
+    expect(rec.continuous).toBe(true);
+  });
+
+  test('initialize returns false when SpeechRecognition is unsupported', async () => {
+    delete global.window.SpeechRecognition;
+    expect(await vc.initialize()).toBe(false);
+    expect(vc.isEnabled).toBe(false);
+  });
+
+  test('start() calls recognition.start once; repeated calls no-op while listening', async () => {
+    await vc.initialize();
+    expect(vc.start()).toBe(true);
+    rec.onstart();
+    expect(vc.start()).toBe(true);          // already listening → no second call
+    expect(rec.start).toHaveBeenCalledTimes(1);
+  });
+
+  test('continuous mode restarts on onend while enabled', async () => {
+    await vc.initialize();
+    vc.start(); rec.onstart();
+    rec.onend();
+    jest.advanceTimersByTime(150);
+    expect(rec.start).toHaveBeenCalledTimes(2);
+  });
+
+  test('fatal errors (not-allowed) disable — onend must NOT restart', async () => {
+    await vc.initialize();
+    vc.start(); rec.onstart();
+    rec.onerror({ error: 'not-allowed' });
+    rec.onend();
+    jest.advanceTimersByTime(10000);
+    expect(rec.start).toHaveBeenCalledTimes(1); // no restart loop
+  });
+
+  test('dispose blocks the pending onend restart and releases the engine', async () => {
+    await vc.initialize();
+    vc.start(); rec.onstart();
+    vc.dispose();
+    rec.onend();                            // late event after teardown
+    jest.advanceTimersByTime(10000);
+    expect(rec.start).toHaveBeenCalledTimes(1);
+    expect(vc.recognition).toBeNull();
+    expect(vc.synthesis).toBeNull();
+  });
+
+  test('wake word: sleeps until heard, then processes the next final', async () => {
+    await vc.initialize();
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    const fired = [];
+    vc.callbacks.onCommand = (k) => fired.push(k);
+    vc.registerCommand('greet', { patterns: ['hello'], action: () => true });
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'キューブラウザ', confidence: 0.9 }, isFinal: true }] });
+    expect(vc.isAwake).toBe(true);
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'hello', confidence: 0.9 }, isFinal: true }] });
+    expect(fired).toContain('greet');
+  });
+
+  test('confidence === 0 is treated as "no score" and still processed (Quest ja-JP)', async () => {
+    await vc.initialize();
+    const fired = [];
+    vc.callbacks.onCommand = (k) => fired.push(k);
+    vc.registerCommand('greet', { patterns: ['hello'], action: () => true });
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'hello', confidence: 0 }, isFinal: true }] });
+    expect(fired).toContain('greet');
+  });
+
+  test('low-but-nonzero confidence below sensitivity is dropped', async () => {
+    await vc.initialize();
+    const fired = [];
+    vc.callbacks.onCommand = (k) => fired.push(k);
+    vc.registerCommand('greet', { patterns: ['hello'], action: () => true });
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'hello', confidence: 0.2 }, isFinal: true }] });
+    expect(fired).toHaveLength(0);
+  });
+
+  test('interim (non-final) results update transcript but do not execute', async () => {
+    await vc.initialize();
+    const fired = [];
+    vc.callbacks.onCommand = (k) => fired.push(k);
+    vc.registerCommand('greet', { patterns: ['hello'], action: () => true });
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'hello', confidence: 0.9 }, isFinal: false }] });
+    expect(vc.lastTranscript).toBe('hello');
+    expect(fired).toHaveLength(0);
+  });
+});
