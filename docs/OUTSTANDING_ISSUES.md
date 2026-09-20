@@ -1454,3 +1454,6 @@ hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHand
 - settingsPanel の stepper `min:0.6,max:6.0` → `PANEL_DISTANCE_MIN/MAX`
 - BookmarkPanel の `const PANEL_W = 1.2` → `BOOKMARK_PANEL_W` 単一ソース化
 - 残り5件（canvasRegionToMetres/classifyTarget/worstCaseHeight/maxMeasureEmForFont/isSearchQuery）は spec テスト用の純粋ヘルパーで、テストへのインライン再実装は実行時幾何とのドリフトを招くため API として保持
+
+### 第62パス（クリーンスキャン — マジックナンバー二重定義）
+同一リテラルの跨ファイル複写を全走査（~50値）: 実違反はパス61で摘出済み（残存は全て無関係な同値 — 別面 palette の同色、defensive デフォルト（GazeInteraction dwellTime=1500 は settings 値とは別の defensive fallback、テストが裸 ctor で実使用）、JSDoc ミラー）。色 hex の跨 palette 一致は別 UI 面の偶然一致で統合価値なし。変更なし。
