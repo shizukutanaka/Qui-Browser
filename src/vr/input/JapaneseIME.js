@@ -1081,7 +1081,8 @@ export class VRJapaneseKeyboard {
       // Dismiss the keyboard without confirming — clears the buffer and
       // any candidate/suggestion row. Fire onCancel so the host can announce
       // the dismissal as a status message (WCAG 4.1.3 Status Messages).
-      this.ime.compositionBuffer = '';
+      this.ime.clear();          // candidates + selectedIndex, not just the buffer
+      this.ime.isActive = false; // next session must re-run activate()
       this._clearCandidates();
       this._clearSuggestions();
       this.hide();
