@@ -1478,3 +1478,11 @@ DEV/PROD ゲート経路を全走査: DEV 経路は DevTools のみ（パス65�
 
 ### 第68パス（lint ガードレール拡充）
 死コード検出系ルール8種を評価 → 全て違反ゼロ。`no-useless-catch`/`no-useless-return`/`no-unused-private-class-members`/`prefer-const` を error で恒久有効化（将来の死コード混入を lint 時点で自動防止）。
+
+### 第69パス（パブリックメソッド到達性 — −208行）
+全クラスメソッドの呼出再走査で**ランタイム呼出ゼロの public API 11件**を摘出削除:
+- `FFRSystem.setDynamicFFR`・`HandTracking.getPointingRay`・`SpatialAudio.loadAudio`（定義＋JSDoc例のみ、テスト参照すらゼロ）
+- `HapticFeedback` の `createCustomPattern`/`simulateTexture`/`simulateImpact`/`proximityFeedback`（同上 — 実 API は playPattern 系のみ消費）
+- テストのみ参照: `ComfortSystem.handleSnapTurn`（snap turn の実経路は inputRouting の `snapTurn()`）、`WindowManager.setBillboard`/`nudgeDistance`
+- `VRApp.saveSettings` デッド delegate
+- 連鎖: `setBillboard` 削除で `this.billboard` が恒偽化 → billboard ブランチ+フィールド除去
