@@ -523,6 +523,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き57（同セッション）: LayersSystem renderCanvasToLayer の `finally` が死んだ GL で投げる実バグを修正
+- 🐛 **実バグ**: `renderCanvasToLayer` の `finally` ブロックが `gl.bindFramebuffer(FRAMEBUFFER, null)` を無防備に呼んでおり、GL コンテキスト死亡時に catch 済みのエラー経路から**新しい例外が escape** していた — 毎フレーム呼ばれる経路なので、blit 失敗（既に warn 抑制あり）の後に毎フレーム uncaught になる設計だった。
+- 🔧 **修正**: finally 内の unbind を try/catch で防御（`/* a dead GL context must not escape a per-frame path */`）。修正前赤確認。
+- ✅ **pin**: 6テスト追加（両目 sub-image blit+finally unbind、framebuffer なし view のスキップ、GL 失敗の warn-once 抑制、初期化前/gl 無し/views 空の no-op、createQuadLayer 失敗→null+warn、updateRenderState 失敗→warn）。
+- 📝 2046 tests / 58 suites、lint 0 errors、build green。
+
 #### 続き56（同セッション）: applyAccessibility + applyTranslations の DOM 適用経路を pin（欠陥ゼロ）
 - 🔍 **実測**: ①accessibility.js の `applyAccessibility()`（document.body の classList に a11y-high-contrast/large-text/reduced-motion を prefs+OS シグナルでトグル — 全ユーザーが実際に踏む適用経路）が無検証 ②i18n.js の `applyTranslations(root)`（`[data-i18n]` の textContent 書換 + `[data-i18n-attr]` の `attr:key;attr2:key2` パース）と `setLanguage` の `document.documentElement.lang` 更新が無検証だった。
 - ✅ **pin**: 3+3=6テスト追加。全緑 — 実装は正しいことを実測確認（キーは実在する `hero.title`/`cta.enterVR`/`feat.audio.title` を使用 — 生キー返しで誤検証しないため）。
