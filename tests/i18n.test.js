@@ -340,3 +340,14 @@ describe('catalog keys are all referenced (no dead translations)', () => {
     expect(dead).toEqual([]);
   });
 });
+
+describe('immersive video HUD labels are localised', () => {
+  // The Play/Pause HUD button was re-labelled via setLabel('Play'/'Pause')
+  // literals — translated keys existed but the video path never used them.
+  test('no literal Play/Pause reaches a button label in ImmersiveVideo', () => {
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/media/ImmersiveVideo.js'), 'utf8');
+    const offenders = [...src.matchAll(/(?:setLabel|_makeButton)\(\s*['"](Play|Pause)['"]/g)];
+    expect(offenders).toEqual([]);
+  });
+});

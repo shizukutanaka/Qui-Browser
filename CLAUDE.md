@@ -362,6 +362,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **fix**: キー削除×3 + 英語リテラル 2箇所を t() 化。翻訳キーの「定義あり・呼び出しなし」は「可視文字列の英語固定」を意味する —— 翻訳済みなのに英語が出る、という二重の損失。
 - ✅ **pin**: i18n.test.js に「全カタログキーが i18n.js 外で参照される」走査 assert 追加 + comfort-system.test.js に ja 化検証（`snapTurnLabel(1,30)='↻ 右 30°'`）。1833 tests、lint 0 errors、build green。
 
+#### 続き20（同セッション）: VR 内最後の英語リテラル — 動画 HUD の Play/Pause
+- 🔍 **実測**: src/vr の「ユーザーに見える文字列を出す呼び出し」（fillText/captionSystem.show/showVRToast/setLabel/_makeButton）を全走査 → **残存リテラル5件**: VRApp のスプラッシュ題字 'Qui Browser VR'（ブランド固有名詞 —— 翻訳対象外として維持）と、**ImmersiveVideo の Play/Pause ラベル4箇所**（初期ボタン生成 + playing/stopped/toggle の遷移ごとに setLabel('Play'|'Pause') リテラル）。続き19 で配線した vr.value.* と同型 —— 「翻訳経路はあるのに HUD だけ英語」。
+- 🔧 **fix**: `vr.video.play`/`vr.video.pause` キー追加（en/ja: Play/Pause・再生/一時停止）、ImmersiveVideo に `t` import + 5箇所を t() 化。言語切替は HUD 再描画を介さずラベル更新時に効く（値は呼び出し時解決 —— セッション中の言語変更でも次の再生操作で追従）。
+- ✅ **pin**: i18n.test.js に「ImmersiveVideo に setLabel/_makeButton への Play/Pause リテラルが無い」assert 追加。1834 tests、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
