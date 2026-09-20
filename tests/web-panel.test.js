@@ -262,4 +262,158 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
       expect(unregisterInteractable).toHaveBeenCalledWith(panel.moveBarMesh);
     });
   });
+
+  describe('_onChromeSelect — zone dispatch', () => {
+    // chromeCanvas is 1024px wide; zones: back <68, forward <136,
+    // reload/stop <204, close >w-60, bookmark star w-128..w-72 (only when
+    // onToggleBookmark is wired), URL bar otherwise.
+    const { PANEL_W, PANEL_H, CHROME_H } = require('../src/vr/browser/panelGeometry.js');
+    const chromePx = (panel, px) => {
+      panel.chromeMesh._nextLocal = { x: (px / 1024 - 0.5) * PANEL_W, y: 0, z: 0 };
+    };
+    const click = (panel, px) => {
+      chromePx(panel, px);
+      panel._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+    };
+
+    test('left zones dispatch back / forward / reload', () => {
+      const p = makePanel();
+      const back = jest.spyOn(p, 'back').mockImplementation(() => {});
+      const forward = jest.spyOn(p, 'forward').mockImplementation(() => {});
+      const reload = jest.spyOn(p, 'reload').mockImplementation(() => {});
+      click(p, 30);
+      expect(back).toHaveBeenCalledTimes(1);
+      click(p, 100);
+      expect(forward).toHaveBeenCalledTimes(1);
+      click(p, 170);
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    test('reload zone calls stop() instead while a load is in flight', () => {
+      const p = makePanel();
+      const stop = jest.spyOn(p, 'stop').mockImplementation(() => {});
+      const reload = jest.spyOn(p, 'reload').mockImplementation(() => {});
+      p.loading = true;
+      click(p, 170);
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(reload).not.toHaveBeenCalled();
+    });
+
+    test('right edge closes the panel', () => {
+      const p = makePanel();
+      const hide = jest.spyOn(p, 'hide').mockImplementation(() => {});
+      click(p, 1000);
+      expect(hide).toHaveBeenCalledTimes(1);
+    });
+
+    test('bookmark star toggles the current URL when wired', () => {
+      const onToggleBookmark = jest.fn();
+      const p = makePanel({ onToggleBookmark });
+      p.currentUrl = 'https://example.com';
+      p.currentTitle = 'Example';
+      click(p, 920);
+      expect(onToggleBookmark).toHaveBeenCalledWith('https://example.com', 'Example');
+    });
+
+    test('bookmark zone falls through to the URL bar when unwired', () => {
+      const onUrlInputRequested = jest.fn();
+      const p = makePanel({ onUrlInputRequested });
+      click(p, 920);
+      expect(onUrlInputRequested).toHaveBeenCalledTimes(1);
+    });
+
+    test('URL bar zone requests input and navigates on commit', () => {
+      const p = makePanel({
+        onUrlInputRequested: (prefill, cb) => cb('https://chosen.example')
+      });
+      const navigate = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+      click(p, 500);
+      expect(navigate).toHaveBeenCalledWith('https://chosen.example');
+    });
+
+    test('URL bar falls back to window.prompt when no input callback is wired', () => {
+      const p = makePanel();
+      const navigate = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+      global.window = { prompt: jest.fn(() => 'https://prompted.example') };
+      try {
+        click(p, 500);
+        expect(global.window.prompt).toHaveBeenCalled();
+        expect(navigate).toHaveBeenCalledWith('https://prompted.example');
+      } finally {
+        delete global.window;
+      }
+    });
+  });
+
+  describe('_onContentSelect — reader arrows and top-site tiles', () => {
+    const { PANEL_W, PANEL_H, CHROME_H } = require('../src/vr/browser/panelGeometry.js');
+    const {
+      ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
+    } = require('../src/vr/browser/readerLayout.js');
+    const contentH = PANEL_H * (1 - CHROME_H);
+    const canvasH = Math.round(1024 * (1 - CHROME_H));
+    const contentPx = (panel, px, py) => {
+      panel.contentMesh._nextLocal = {
+        x: (px / 1024 - 0.5) * PANEL_W,
+        y: ((1 - py / canvasH) - 0.5) * contentH,
+        z: 0
+      };
+    };
+    const tap = (panel, px, py) => {
+      contentPx(panel, px, py);
+      panel._onContentSelect({ x: 0, y: 0, clone() { return this; } });
+    };
+
+    test('tapping a top-site tile on the empty state navigates to it', () => {
+      const p = makePanel();
+      const navigate = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+      p._contentState = 'empty';
+      p._topTiles = [{ x: 100, y: 200, w: 200, h: 100, url: 'https://tile.example', title: 'T', host: 'h' }];
+      tap(p, 200, 250);
+      expect(navigate).toHaveBeenCalledWith('https://tile.example');
+    });
+
+    test('tapping outside every tile does nothing', () => {
+      const p = makePanel();
+      const navigate = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+      p._contentState = 'empty';
+      p._topTiles = [{ x: 100, y: 200, w: 200, h: 100, url: 'https://tile.example', title: 'T', host: 'h' }];
+      tap(p, 10, 10);
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    test('reader scroll arrows drive scrollContent with page jumps', () => {
+      const p = makePanel();
+      const scroll = jest.spyOn(p, 'scrollContent').mockImplementation(() => true);
+      p._contentState = 'reader';
+      p._readerScale = 1;
+      p._readerLines = new Array(500).fill('line');
+      // Arrow hit zones live in CONTENT_PX (1024×942) space.
+      tap(p, ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+      expect(scroll).toHaveBeenCalledTimes(1);
+      expect(scroll.mock.calls[0][0]).toBeGreaterThan(0); // down = positive
+      tap(p, ARROW_UP_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+      expect(scroll).toHaveBeenCalledTimes(2);
+      expect(scroll.mock.calls[1][0]).toBeLessThan(0); // up = negative
+    });
+
+    test('short articles have no scroll arrows — taps do not scroll', () => {
+      const p = makePanel();
+      const scroll = jest.spyOn(p, 'scrollContent').mockImplementation(() => true);
+      p._contentState = 'reader';
+      p._readerScale = 1;
+      p._readerLines = new Array(3).fill('line');
+      tap(p, ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+      expect(scroll).not.toHaveBeenCalled();
+    });
+
+    test('non-reader content ignores the arrow zone entirely', () => {
+      const p = makePanel();
+      const scroll = jest.spyOn(p, 'scrollContent').mockImplementation(() => true);
+      p._contentState = 'loading';
+      p._topTiles = [];
+      tap(p, ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
+      expect(scroll).not.toHaveBeenCalled();
+    });
+  });
 });
