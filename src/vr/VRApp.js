@@ -222,7 +222,10 @@ export class VRApp {
       persisted: persisted.windowDistance
     });
 
-    this.initialize();
+    // Stored so the caller can await staged boot — a constructor cannot return
+    // a promise, but an unawaited initialize() would turn every boot failure
+    // into a silent unhandledrejection instead of the app's error UI.
+    this.initPromise = this.initialize();
   }
 
   // captionSystem/hapticFeedback/gazeInteraction now live on this.a11y

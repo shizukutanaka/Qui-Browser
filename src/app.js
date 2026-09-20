@@ -49,6 +49,9 @@ async function initializeApp() {
   try {
     // Initialize VR application with all Tier 1 optimizations
     vrApp = new VRApp(container);
+    // Boot is async inside the constructor; await it so failures reach
+    // the catch below (and showError) instead of becoming unhandled rejections.
+    await vrApp.initPromise;
 
     // Setup performance monitoring UI
     setupPerformanceMonitor();
