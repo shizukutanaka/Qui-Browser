@@ -1606,3 +1606,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第109パス（クリーンスキャン — needsUpdate 規律）
 全 canvas 描画経路を走査: `_drawReader`/`_drawTab` は呼出側が needsUpdate を設定（責務分離として正しい）、vrToast は生成時描画＋初回アップロードで needsUpdate 不要（一撃テクスチャ）、textWrap は純粋描画ヘルパー。古いまま表示される stale-texture 経路ゼロ。
+
+### 第110パス（クリーンスキャン — フレームループ割当・深掘り）
+全 update 経路の per-frame 割当を再走査: updateLocomotion は `_locoQ/_locoFwd/_locoRight/_locoMove` 遅延 scratch 済み（検出分は1回限りの lazy init）、SpatialAudio 同様 `_camPos/_camQuat` 済み、GazeInteraction `_tmp*` 済み、FFR/updateLayer 割当ゼロ。残存 per-frame alloc ゼロ（パス90の HandTracking が唯一の実修正）。
