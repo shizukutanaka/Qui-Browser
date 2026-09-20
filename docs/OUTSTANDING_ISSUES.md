@@ -1633,3 +1633,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第118パス（クリーンスキャン — レンダリング確実性）
 カメラ子 UI（toast/reticle/caption）は world 位置がカメラ追従するため frustum culling は自然に正しい（bounding sphere が常に視錘内）。`depthTest:false`+renderOrder（caption 998/toast 999/reticle fill 1000）の階層は一貫。ImmersiveVideo の `frustumCulled=false` は全天球で厳密には不要だが無害な防御として保持。
+
+### 第119パス（実修正 — CSP が GA4 スクリプトをブロック）
+WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src https:` は必要を確認。一方 **`script-src 'self'` が `googletagmanager.com/gtag.js` をブロック**し、VITE_GA_MEASUREMENT_ID 設定時でも GA4 は読み込めず完全に沈黙していた（catch→console.error→本番で strip）→ `script-src` に `https://www.googletagmanager.com` を追加。`object-src` は default-src 'self' 継承で適切、iframe sandbox 属性確認済み。
