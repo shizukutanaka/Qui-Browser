@@ -430,6 +430,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: FFRSystem 52% — `setDynamicFFR` の GPU 負荷ティア、head-velocity EMA、`updatePredictedGazeFoveation` の静止→0.8/スキャン→0.2 遷移が無検査だった。XRWebGLBinding を stub して実配線を全検証（ティア遷移・clamp・初期化失敗経路・dispose）。
 - ✅ **pin**: `ffr-system.test.js` 新設 11件。全緑 — 状態機械は正しいことを実測で確認。1882 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き34（同セッション）: 単一コントローラーで both-hands パターンが同一アクチュエータに二重発火
+- 🔍 **実測**: HapticFeedback 58% の未カバー領域 — `getGamepadForHand('left'|'right')` は一致する hand が無いと**先頭の gamepad にフォールバック**するため、コントローラーが1台だけ接続されている状態（他方スリープ等）で `playPatternBothHands()`/`alert()` が**同じアクチュエータにパターンを2回**打っていた。
+- 🐛 **fix**: 両手解決が同一 gamepad に収束したら1回だけ再生（`playPatternBothHands`・`alert` 両方）。
+- 🧹 **ついでに発見**: テスト stub の `makeGamepad` が `hand` プロパティを作っていなかった — 既存の「両手」テストは実は同一 gamepad へのフォールバックを2回通していた。stub 修正で本当の両手経路に。
+- ✅ 1884 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
