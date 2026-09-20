@@ -1162,3 +1162,71 @@ describe('VRApp.navigate — private mode records no history', () => {
     expect(src).toMatch(/'privateMode'/);
   });
 });
+
+describe('VRApp — tab session persistence (F-4)', () => {
+  const { TAB_SESSION_KEY } = require('../src/vr/browser/TabManager.js');
+  let store;
+  beforeEach(() => {
+    store = {};
+    global.localStorage = {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; }
+    };
+  });
+
+  const makeSessionApp = (privateMode) => makeVRAppLike({
+    settings: { privateMode },
+    tabManager: {
+      serialize: jest.fn(() => ({ v: 1, active: 0, tabs: [{ url: 'https://a.example' }] })),
+      restoreSession: jest.fn(() => 1)
+    }
+  });
+
+  test('_saveTabSession persists the serialized session under the session key', () => {
+    const app = makeSessionApp(false);
+    VRApp.prototype._saveTabSession.call(app);
+    expect(JSON.parse(store[TAB_SESSION_KEY])).toEqual(
+      { v: 1, active: 0, tabs: [{ url: 'https://a.example' }] }
+    );
+  });
+
+  test('_saveTabSession writes nothing in private mode — an incognito session stays ephemeral', () => {
+    const app = makeSessionApp(true);
+    VRApp.prototype._saveTabSession.call(app);
+    expect(Object.keys(store)).toHaveLength(0);
+  });
+
+  test('_restoreTabSession hands the parsed data to TabManager when private mode is off', () => {
+    const saved = { v: 1, active: 0, tabs: [{ url: 'https://a.example' }] };
+    store[TAB_SESSION_KEY] = JSON.stringify(saved);
+    const app = makeSessionApp(false);
+
+    expect(VRApp.prototype._restoreTabSession.call(app)).toBe(1);
+    expect(app.tabManager.restoreSession).toHaveBeenCalledWith(saved);
+  });
+
+  test('_restoreTabSession skips a saved session entirely in private mode', () => {
+    store[TAB_SESSION_KEY] = JSON.stringify({ tabs: [{ url: 'https://a.example' }] });
+    const app = makeSessionApp(true);
+
+    expect(VRApp.prototype._restoreTabSession.call(app)).toBe(0);
+    expect(app.tabManager.restoreSession).not.toHaveBeenCalled();
+  });
+
+  test('_restoreTabSession swallows corrupt storage and reports 0', () => {
+    store[TAB_SESSION_KEY] = '{not json';
+    const app = makeSessionApp(false);
+    expect(VRApp.prototype._restoreTabSession.call(app)).toBe(0);
+  });
+
+  test('_buildBrowsingSystems restores the saved session, falling back to one blank tab', () => {
+    // Constructing a real TabManager needs a canvas/GPU stack this file doesn't
+    // provide, so this pins the seam the same way 'the browsing default' does.
+    const src = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
+    );
+    expect(src).toMatch(/_restoreTabSession\(\)/);
+    expect(src).toMatch(/onSessionChange/);
+  });
+});

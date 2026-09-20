@@ -37,7 +37,7 @@ import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
-import { TabManager } from './browser/TabManager.js';
+import { TabManager, TAB_SESSION_KEY } from './browser/TabManager.js';
 import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
@@ -355,6 +355,50 @@ export class VRApp {
     } catch (e) {
       console.warn('VRApp: failed to load persisted settings', e);
       return {};
+    }
+  }
+
+  /**
+   * Persist the open tab set (TabManager.serialize()) under TAB_SESSION_KEY.
+   * Wired to TabManager.onSessionChange, so it runs after every mutation that
+   * changes what the next session should restore. Private mode writes nothing
+   * — an incognito session stays ephemeral, like history recording.
+   */
+  _saveTabSession() {
+    if (!this.tabManager || this.settings.privateMode) {
+      return;
+    }
+    try {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      localStorage.setItem(TAB_SESSION_KEY, JSON.stringify(this.tabManager.serialize()));
+    } catch (e) {
+      console.warn('VRApp: failed to persist tab session', e);
+    }
+  }
+
+  /**
+   * Restore the persisted tab set into a freshly built TabManager. Returns the
+   * number of tabs restored (0 = caller opens the usual blank tab). Private
+   * mode skips restore as well as save: a private boot is a clean session.
+   */
+  _restoreTabSession() {
+    if (!this.tabManager || this.settings.privateMode) {
+      return 0;
+    }
+    try {
+      if (typeof localStorage === 'undefined') {
+        return 0;
+      }
+      const raw = localStorage.getItem(TAB_SESSION_KEY);
+      if (!raw) {
+        return 0;
+      }
+      return this.tabManager.restoreSession(JSON.parse(raw));
+    } catch (e) {
+      console.warn('VRApp: failed to restore tab session', e);
+      return 0;
     }
   }
 
@@ -887,13 +931,17 @@ export class VRApp {
         if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
           this.captionSystem.show(t('vr.msg.moveBarLabel'));
         }
-      }
+      },
+      onSessionChange: () => this._saveTabSession()
     });
     this.tabManager.addToScene();
     if (this.settings.enableCurvedPanel) {
       this.tabManager.setCurved(true);
     }
-    this.tabManager.newTab(); // start with one blank tab
+    // Restore the persisted tab set; nothing saved → one blank tab as before.
+    if (!this._restoreTabSession()) {
+      this.tabManager.newTab();
+    }
     // Convenience alias: the active tab's panel.
     this.webPanel = this.tabManager.getActiveTab();
 

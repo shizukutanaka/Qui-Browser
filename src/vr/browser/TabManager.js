@@ -20,6 +20,9 @@ import {
 
 const MAX_TABS = 8;
 
+/** localStorage key for the persisted tab session (see serialize/restoreSession). */
+export const TAB_SESSION_KEY = 'qui.tabSession.v1';
+
 export class TabManager {
   /**
    * @param {object} opts
@@ -236,6 +239,7 @@ export class TabManager {
       onNavigate: (u, title) => {
         this._drawStrip();           // refresh tab title
         this.opts.onNavigate?.(u, title);
+        this.opts.onSessionChange?.();
       },
       onUrlInputRequested: this.opts.onUrlInputRequested || null,
       searchEngine: this.opts.searchEngine || undefined,
@@ -262,6 +266,7 @@ export class TabManager {
       panel.navigate(url);
     }
     this._drawStrip();
+    this.opts.onSessionChange?.();
     return panel;
   }
 
@@ -287,6 +292,7 @@ export class TabManager {
     if (this.opts.onTabClose) {
       this.opts.onTabClose();
     }
+    this.opts.onSessionChange?.();
   }
 
   /**
@@ -306,6 +312,52 @@ export class TabManager {
     if (this.opts.onTabActivate) {
       this.opts.onTabActivate(this.tabs[index].currentUrl || '');
     }
+    this.opts.onSessionChange?.();
+  }
+
+  /**
+   * Snapshot the session for persistence. Only navigated tabs are kept — a
+   * blank new tab has nothing worth restoring — and `active` is re-expressed
+   * as an index into that filtered list.
+   */
+  serialize() {
+    const tabs = [];
+    let active = 0;
+    this.tabs.forEach((panel, i) => {
+      if (panel.currentUrl) {
+        if (i === this.activeIndex) {
+          active = tabs.length;
+        }
+        tabs.push({ url: panel.currentUrl });
+      }
+    });
+    return { v: 1, active: tabs.length ? Math.min(active, tabs.length - 1) : 0, tabs };
+  }
+
+  /**
+   * Recreate a previously serialized session. Returns the number of tabs
+   * restored (0 on missing/corrupt input — callers fall back to a blank tab).
+   * Malformed entries are skipped; the list is clamped to MAX_TABS and a
+   * stale `active` index clamps to the last tab.
+   */
+  restoreSession(data) {
+    const list = data && Array.isArray(data.tabs) ? data.tabs : [];
+    let created = 0;
+    for (const entry of list) {
+      if (created >= MAX_TABS) {
+        break;
+      }
+      const url = entry && typeof entry.url === 'string' ? entry.url : '';
+      if (!url) {
+        continue;
+      }
+      this.newTab(url);
+      created++;
+    }
+    if (created > 0 && typeof data.active === 'number') {
+      this.setActive(Math.max(0, Math.min(Math.floor(data.active), this.count - 1)));
+    }
+    return created;
   }
 
   /** Return the currently active WebPanel, or null. */
