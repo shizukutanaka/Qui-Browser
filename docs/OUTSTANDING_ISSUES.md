@@ -1804,3 +1804,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第175パス（クリーンスキャン — レガシー MQ API / tabindex）
 `addListener`/`tabindex` は両方ゼロ — 非推奨 API 残滓・フォーカス順序破壊経路は非存在。
+
+### 第176パス（クリーンスキャン — インターバルID管理）
+`perfIntervalId` は再作成前に必ずクリア＋unload/Escape で解放、SW update は意図的なページ生存期間設計 — 多重タイマー経路ゼロ。
