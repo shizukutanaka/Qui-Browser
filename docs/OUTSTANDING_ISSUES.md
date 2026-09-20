@@ -1427,3 +1427,6 @@ perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/red
 
 ### 第53パス（継続中 — 単一呼出 delegate の直接呼出化）
 src 呼び出しが1箇所のみの delegate 9本（perf 4・snapTurn・onTeleportStart・onVRSessionStart・createSettingsPanel・navigate）を削除し、呼び出し側はモジュール関数を直接 import。`updateLocomotion`/`updateButtonInput`/`updateTeleport`/`updateHover`・`getPerformanceStats` はテストモック/公開APIのため保持（updateSystems 内の updateTeleport 直接化で7件失敗 → app.X 経由に復旧 = シーム確認）。VRApp 789→**756** 行（C-1 累計 −2,498）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
+
+### 第54パス（継続中 — 抽出残渣の清掃）
+抽出で残った孤児 JSDoc 塊（削除メソッドのコメントのみ残存した断片群、~46行）を除去。新モジュール内で外部参照ゼロの `export` 9件を通常関数化（perfBudget×2・systemsLifecycle・sessionLifecycle・settingsPanel×5 — 規約: 内部のみ使用なら export 不要）。constructor(192行)は状態スキーマ宣言そのもので不可分＝C-1 の床に到達確認。VRApp 756→**710** 行（C-1 累計 −2,544 / 78% 削減）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
