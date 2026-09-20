@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き55（同セッション）: ImmersiveVideo update/HUD + SpatialAudio loadAudio/guards を pin（欠陥ゼロ）
+- 🔍 **実測**: ①ImmersiveVideo `update()` のヘッド追従（meshes が毎フレーム camera の world position をコピー — 視聴者が動いても球体は頭中心のまま）と HUD ボタンの onSelect/onHover/onHoverEnd 配線（onHoverCaption 発火含む）、dispose→stop が無検証 ②SpatialAudio `loadAudio`（fetch→decodeAudioData→buffers キャッシュ→stats.buffersLoaded、失敗→null）、play() の未知 source/buffer ガード、stop() の totalPlayTime 累積が無検証だった。
+- ✅ **pin**: 5+5=10テスト追加。全緑 — 実装は正しいことを実測確認。
+- 📝 2034 tests / 58 suites、lint 0 errors、build green。
+
 #### 続き54（同セッション）: JapaneseIME 漢字候補パイプライン + HapticFeedback シーケンス経路を pin（欠陥ゼロ）
 - 🔍 **実測**: ①IME の `getKanjiCandidates`（5 秒 AbortController タイムアウト付き fetch→API 応答パース→統計記録）、`convertToKanji` のモード/バッファゲート、`selectCandidate`/`switchMode`/`getState` が無検証 ②HapticFeedback の複合パターン走査（pulse/pause ステップ列・途中失敗しても残ステップ継続・未知パターン warn）、`alert()` 両手経路、`playCustomSequence`、`test()` デモ巡回が無検証だった。
 - ✅ **pin**: 8+6=14テスト追加。全緑 — 実装は正しいことを実測確認。
