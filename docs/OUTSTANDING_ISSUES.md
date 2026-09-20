@@ -1642,3 +1642,6 @@ WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src ht
 
 ### 第121パス（実修正 — 悪意ある Location でリクエスト永遠ハング）
 `decodeURIComponent` は存在せず URIError 経路は他になし。だが **`fetchThroughGuard` のリダイレクト `new URL(r.headers.location, url)` が未ガード** — 上流サーバーが壊れた Location を返すと TypeError が async ハンドラに伝播 → unhandled rejection → **レスポンスが書かれずソケットがタイムアウトまでハング** → try/catch で `bad-redirect-location` を返すよう修正。
+
+### 第122パス（クリーンスキャン — matrixWorld 鮮度）
+全 `worldToLocal`/`intersectObject` 経路を監査: three.js は `updateMatrixWorld` を render 内で毎フレーム呼ぶためヒットテストは常に「1フレーム前の位置」を見る — 全オブジェクト一貫した 11ms ラグで有界・実害なし（grab 中のドラッグ追従のみ体感差ゼロの範囲）。手動 `updateMatrixWorld` 挿入の価値なし。
