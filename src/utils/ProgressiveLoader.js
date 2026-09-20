@@ -452,8 +452,8 @@ export class ProgressiveLoader {
    * Get adaptive URL based on network
    */
   getAdaptiveUrl(url) {
-    // Skip if not an image/video
-    if (!url.match(/\.(jpg|jpeg|png|webp|mp4|webm)$/i)) {
+    // Skip if not an image/video (extension may be followed by ?query/#hash)
+    if (!url.match(/\.(jpg|jpeg|png|webp|mp4|webm)([?#]|$)/i)) {
       return url;
     }
 
@@ -467,8 +467,8 @@ export class ProgressiveLoader {
 
     const quality = qualityMap[this.network.effectiveType] || '_high';
 
-    // Insert quality suffix before extension
-    return url.replace(/(\.[^.]+)$/, `${quality}$1`);
+    // Insert quality suffix before extension (keep any ?query/#hash)
+    return url.replace(/(\.[^.?#]+)([?#]|$)/, `${quality}$1$2`);
   }
 
   /**
