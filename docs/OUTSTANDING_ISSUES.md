@@ -1822,3 +1822,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第181パス（クリーンスキャン — 無限ループ）
 全 while ループは収束条件が単調（i 増分・shift 減少・exec lastIndex 前進・親鎖 walk は null 終端）— 無限ループ経路ゼロ。
+
+### 第182パス（クリーンスキャン — WebGL コンテキスト喪失）
+`webglcontextlost` は preventDefault（restore 有効化の必須条件）＋ループ停止＋restored 復帰＋dispose 解除の完全対称 — 黒画面固着経路なし。
