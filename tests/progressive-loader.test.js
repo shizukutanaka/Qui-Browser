@@ -148,3 +148,77 @@ describe('B-3: adaptive URL must not compound across retries', () => {
     loader.dispose();
   });
 });
+
+/**
+ * Retry/dedup/adaptive-URL state machine — added 2026-09-20 alongside the
+ * getAdaptiveUrl query/hash fix (media URLs with ?v=2 previously skipped
+ * adaptation entirely). performLoad is stubbed; no network.
+ */
+describe('ProgressiveLoader retry + adaptive-URL state machine', () => {
+  let loader;
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+    loader.delay = jest.fn().mockResolvedValue(); // no real sleeps
+  });
+  afterEach(() => { loader.dispose(); jest.restoreAllMocks(); });
+
+  test('loadResource caches results — second call skips performLoad', async () => {
+    loader.performLoad = jest.fn().mockResolvedValue('data');
+    const item = loader.addResource({ url: 'a.mp3', type: 'audio', name: 'a' });
+    expect(await loader.loadResource(item)).toBe('data');
+    expect(await loader.loadResource(item)).toBe('data');
+    expect(loader.performLoad).toHaveBeenCalledTimes(1);
+    expect(loader.get('a')).toBe('data');
+  });
+
+  test('concurrent callers share the pending promise', async () => {
+    loader.performLoad = jest.fn().mockResolvedValue('x');
+    const item = loader.addResource({ url: 'a', type: 'json', name: 'a' });
+    const [r1, r2] = await Promise.all([loader.loadResource(item), loader.loadResource(item)]);
+    expect([r1, r2]).toEqual(['x', 'x']);
+    expect(loader.performLoad).toHaveBeenCalledTimes(1);
+  });
+
+  test('failed loads retry up to retryAttempts then land in failed map', async () => {
+    loader.performLoad = jest.fn().mockRejectedValue(new Error('boom'));
+    loader.callbacks.onError = jest.fn();
+    const item = loader.addResource({ url: 'a', type: 'json', name: 'a' });
+    await expect(loader.loadResource(item)).rejects.toThrow('boom');
+    expect(loader.performLoad).toHaveBeenCalledTimes(1 + loader.strategy.retryAttempts);
+    expect(loader.failed.has('a')).toBe(true);
+    expect(loader.callbacks.onError).toHaveBeenCalledTimes(1);
+  });
+
+  test('retry succeeds — result cached, no failure recorded', async () => {
+    loader.performLoad = jest.fn()
+      .mockRejectedValueOnce(new Error('flaky'))
+      .mockResolvedValue('ok');
+    const item = loader.addResource({ url: 'a', type: 'json', name: 'a' });
+    expect(await loader.loadResource(item)).toBe('ok');
+    expect(loader.failed.size).toBe(0);
+    expect(loader.get('a')).toBe('ok');
+  });
+
+  test('adaptive quality rewrites media URLs even with query/hash suffix', () => {
+    loader.network.effectiveType = '2g';
+    expect(loader.getAdaptiveUrl('img.jpg')).toBe('img_low.jpg');
+    loader.network.effectiveType = '3g';
+    expect(loader.getAdaptiveUrl('img.png?v=2')).toBe('img_medium.png?v=2');
+    loader.network.effectiveType = '4g';
+    expect(loader.getAdaptiveUrl('clip.mp4')).toBe('clip_high.mp4');
+    expect(loader.getAdaptiveUrl('data.json')).toBe('data.json');
+  });
+
+  test('adaptive URLs are derived per attempt without mutating item.url', async () => {
+    loader.network.effectiveType = '2g';
+    loader.strategy.adaptiveQuality = true;
+    loader.performLoad = jest.fn()
+      .mockRejectedValueOnce(new Error('x'))
+      .mockResolvedValue('ok');
+    const item = loader.addResource({ url: 'p.jpg', type: 'image', name: 'p' });
+    await loader.loadResource(item);
+    // Retry must see p_low.jpg again — not p_low_low.jpg
+    expect(loader.performLoad.mock.calls[1][0].url).toBe('p_low.jpg');
+    expect(item.url).toBe('p.jpg');
+  });
+});
