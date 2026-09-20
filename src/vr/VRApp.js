@@ -2303,7 +2303,6 @@ export class VRApp {
     // 2. Comfort System
     if (this.settings.enableComfort) {
       this.comfortSystem = new ComfortSystem(
-        this.scene,
         this.camera,
         this.renderer,
         { reduceMotion: osReducedMotion() }
@@ -2345,7 +2344,7 @@ export class VRApp {
     console.debug('VRApp: Japanese IME ready');
 
     // 6. Hand Tracking
-    this.handTracking = new HandTracking(this.renderer, this.scene);
+    this.handTracking = new HandTracking(this.scene);
     // WCAG 4.1.3: announce hand-tracking state changes so users who rely on
     // hand input know when it becomes unavailable. Brief flickers are common,
     // so each hand's announcement is debounced: only fire if the state holds

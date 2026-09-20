@@ -8,8 +8,7 @@
 import * as THREE from 'three';
 
 export class HandTracking {
-  constructor(renderer, scene) {
-    this.renderer = renderer;
+  constructor(scene) {
     this.scene = scene;
     this.enabled = false;
 
@@ -502,7 +501,7 @@ export class HandTracking {
 /**
  * Usage Example:
  *
- * const handTracking = new HandTracking(renderer, scene);
+ * const handTracking = new HandTracking(scene);
  *
  * // Initialize with XR session
  * await handTracking.initialize(xrSession);

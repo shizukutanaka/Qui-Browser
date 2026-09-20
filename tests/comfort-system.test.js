@@ -70,7 +70,7 @@ describe('ComfortSystem', () => {
 
   beforeEach(() => {
     camera = makeCamera();
-    system = new ComfortSystem(makeScene(), camera, makeRenderer());
+    system = new ComfortSystem(camera, makeRenderer());
   });
 
   afterEach(() => {
@@ -277,7 +277,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
   // ── animateSnapTurn ───────────────────────────────────────────────────────────
   test('default: snap-turn animation defers rotation to rAF (not synchronous)', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    const cs = new ComfortSystem(cam, makeRenderer());
     cam.rotation.y = 0;
     global.requestAnimationFrame.mockClear();
     cs.animateSnapTurn(Math.PI / 2);
@@ -288,7 +288,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
 
   test('reduceMotion=true: snap turn applies immediately, no rAF queued', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    const cs = new ComfortSystem(cam, makeRenderer(), { reduceMotion: true });
     cam.rotation.y = 0;
     global.requestAnimationFrame.mockClear();
     cs.animateSnapTurn(Math.PI / 2);
@@ -298,7 +298,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
 
   test('reduceMotion=true: negative snap applies immediately', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    const cs = new ComfortSystem(cam, makeRenderer(), { reduceMotion: true });
     cam.rotation.y = Math.PI;
     cs.animateSnapTurn(-Math.PI / 4);
     expect(cam.rotation.y).toBeCloseTo(Math.PI - Math.PI / 4, 10);
@@ -310,7 +310,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
   // snap-turn rotation is suppressed, never the comfort FOV.
   test('reduceMotion=true: FOV reduction stays ON while moving (comfort aid)', () => {
     const cam = makeCamera(90);
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    const cs = new ComfortSystem(cam, makeRenderer(), { reduceMotion: true });
     cs.isMoving = true;
     cs.currentFOV = 90;
     cs.updateFOV(0.016);
@@ -325,7 +325,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
   // now live-propagates via this setter (WCAG 2.3.3).
   test('setReducedMotion(true) makes snap-turn apply immediately without rAF', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    const cs = new ComfortSystem(cam, makeRenderer());
     cs.setReducedMotion(true);
     cam.rotation.y = 0;
     global.requestAnimationFrame.mockClear();
@@ -336,7 +336,7 @@ describe('ComfortSystem — prefers-reduced-motion', () => {
 
   test('setReducedMotion(false) restores the eased rAF snap-turn animation', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
+    const cs = new ComfortSystem(cam, makeRenderer(), { reduceMotion: true });
     cs.setReducedMotion(false);
     cam.rotation.y = 0;
     global.requestAnimationFrame.mockClear();

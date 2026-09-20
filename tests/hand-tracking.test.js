@@ -41,7 +41,7 @@ function makeSession() {
 
 describe('HandTracking session listener lifecycle', () => {
   test('initialize attaches an inputsourceschange listener', async () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     const session = makeSession();
     await ht.initialize(session);
     expect(session.addEventListener).toHaveBeenCalledWith('inputsourceschange', expect.any(Function));
@@ -49,7 +49,7 @@ describe('HandTracking session listener lifecycle', () => {
   });
 
   test('dispose removes the inputsourceschange listener (no leak)', async () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     const session = makeSession();
     await ht.initialize(session);
     const handler = session._listeners['inputsourceschange'];
@@ -61,7 +61,7 @@ describe('HandTracking session listener lifecycle', () => {
   });
 
   test('initialize returns false without a session', async () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     await expect(ht.initialize(null)).resolves.toBe(false);
   });
 });
@@ -79,12 +79,12 @@ describe('HandTracking.detectGesture', () => {
   }
 
   test("returns 'none' when required joints are missing", () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     expect(ht.detectGesture(new Map())).toBe('none');
   });
 
   test("'open' hand is detected AND counted in stats (regression)", () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     ht.isFingerExtended = () => true; // all fingers extended → open hand
     const before = ht.stats.gesturesRecognized;
     expect(ht.detectGesture(makeJoints())).toBe('open');
@@ -92,7 +92,7 @@ describe('HandTracking.detectGesture', () => {
   });
 
   test("'point' is detected when only the index is extended", () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     ht.isFingerExtended = (_joints, finger) => finger === 'index-finger';
     expect(ht.detectGesture(makeJoints())).toBe('point');
   });
@@ -108,13 +108,13 @@ describe('HandTracking.detectGesture', () => {
   }
 
   test('pinch starts only inside the tight enter threshold', () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     expect(ht.detectGesture(pinchJoints(0.015), false)).toBe('pinch'); // < 0.02
     expect(ht.detectGesture(pinchJoints(0.025), false)).not.toBe('pinch'); // in dead-band
   });
 
   test('hysteresis holds a pinch through tremor near the threshold', () => {
-    const ht = new HandTracking({}, new MockObj());
+    const ht = new HandTracking(new MockObj());
     // Already pinching, gap drifts into the dead-band (0.02–0.035): stays pinched.
     expect(ht.detectGesture(pinchJoints(0.03), true)).toBe('pinch');
     // Only a clearly wider gap releases it.
@@ -140,7 +140,7 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
 
   async function makeReady() {
     const scene = new MockObj();
-    const ht = new HandTracking({}, scene);
+    const ht = new HandTracking(scene);
     const session = makeSession();
     await ht.initialize(session);
     // After initialize, both hand groups exist and start visible=false (group default).

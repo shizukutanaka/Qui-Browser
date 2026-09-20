@@ -841,6 +841,19 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 1.85s・verify:vr-boot PASS。
 
+### 第13パス（書き込み専用フィールドの最終層 — ctor 引数まで遡る）
+
+`this.X` 全走査の残存3件を処理:
+- `ComfortSystem.scene` — `render(scene,camera)` は引数で受けるため
+  フィールドは一度も読まれない → **ctor 引数自体を削除**（第1引数が
+  フィールド専用だった）: `(camera, renderer, opts)` に短縮。
+- `HandTracking.renderer` — 同型（`this.scene` は使用済みだが renderer
+  は不読）→ `(scene)` に短縮。
+- `DevTools.enabled` — 書き込みのみ・トグル経路なし（`visible` が実トグル）
+  → フィールド削除。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

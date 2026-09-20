@@ -10,8 +10,7 @@ import { t } from '../../i18n/i18n.js';
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(scene, camera, renderer, { reduceMotion = false } = {}) {
-    this.scene = scene;
+  constructor(camera, renderer, { reduceMotion = false } = {}) {
     this.camera = camera;
     this.renderer = renderer;
     this.reduceMotion = reduceMotion;
@@ -492,7 +491,7 @@ export function smoothMoveWarning(enabledNow, reduceMotion) {
 /**
  * Usage Example:
  *
- * const comfort = new ComfortSystem(scene, camera, renderer);
+ * const comfort = new ComfortSystem(camera, renderer);
  * comfort.setPreset('moderate');
  *
  * // In animation loop

@@ -8,7 +8,6 @@
 export class DevTools {
   constructor(app) {
     this.app = app;
-    this.enabled = false;
     this.visible = false;
 
     // Tools state
