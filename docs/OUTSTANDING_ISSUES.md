@@ -1570,3 +1570,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第97パス（クリーンスキャン — 変換・比較の罠）
 `parseInt` 2箇所は基数明示済み（16/10）、グローバル `isNaN` なし、緩い `==`/`!=` は null チェック慣用句以外ゼロ。変換・比較系の罠なし。
+
+### 第98パス（クリーンスキャン — ソート・反復の罠）
+`.sort()` 無比較器・`for...in`・switch フォールスルー全てゼロ（検出3件は case スタッキングと実際に break 済みの偽陽性）。データ処理系の罠なし。
