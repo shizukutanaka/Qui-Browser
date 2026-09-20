@@ -540,32 +540,6 @@ export class ProgressiveLoader {
   }
 
   /**
-   * Load resource on demand
-   */
-  async loadOnDemand(resource) {
-    const item = this.addResource(resource, 'lazy');
-    return this.loadResource(item);
-  }
-
-  /**
-   * Preload anticipated resources
-   */
-  preload(resources) {
-    if (!this.strategy.preloadNext) {
-      return;
-    }
-
-    resources.forEach(resource => {
-      this.addResource(resource, 'secondary');
-    });
-
-    // Load in background
-    requestIdleCallback(() => {
-      this.loadPhase('secondary').catch(console.warn);
-    });
-  }
-
-  /**
    * Utility: Chunk array
    */
   chunkArray(array, size) {

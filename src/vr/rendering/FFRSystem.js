@@ -150,13 +150,6 @@ export class FFRSystem {
   }
 
   /**
-   * Set GPU load thresholds for dynamic adjustment
-   */
-  setThresholds(high = 0.85, medium = 0.75, low = 0.5) {
-    this.gpuLoadThresholds = { high, medium, low };
-  }
-
-  /**
    * Record the current head quaternion for velocity estimation.
    * Call once per frame from the VR render loop.
    *

@@ -372,38 +372,6 @@ export class ComfortSystem {
   }
 
   /**
-   * Get current comfort status
-   */
-  getStatus() {
-    return {
-      preset: this.settings.preset,
-      vignette: {
-        enabled: this.settings.vignette.enabled,
-        current: this.currentVignette
-      },
-      fov: {
-        enabled: this.settings.fov.enabled,
-        current: this.currentFOV
-      },
-      snapTurn: {
-        enabled: this.settings.snapTurn.enabled,
-        angle: this.settings.snapTurn.angle
-      },
-      isMoving: this.isMoving,
-      isRotating: this.isRotating
-    };
-  }
-
-  /**
-   * Resize handler
-   */
-  resize(width, height) {
-    if (this.renderTarget) {
-      this.renderTarget.setSize(width, height);
-    }
-  }
-
-  /**
    * Cleanup resources
    */
   dispose() {

@@ -620,15 +620,6 @@ export class JapaneseIME {
   }
 
   /**
-   * Deactivate IME
-   */
-  deactivate() {
-    this.isActive = false;
-    this.clear();
-    console.debug('JapaneseIME: Deactivated');
-  }
-
-  /**
    * Release all resources held by this instance.
    * Any in-flight fetch (getKanjiCandidates) will complete but its result
    * is discarded because candidates/compositionBuffer are cleared here.

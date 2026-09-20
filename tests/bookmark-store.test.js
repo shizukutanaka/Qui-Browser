@@ -143,14 +143,6 @@ describe('BookmarkStore — history', () => {
     expect(store.getHistory()).toHaveLength(0);
   });
 
-  test('removeHistory() removes one entry', () => {
-    store.addHistory('https://a.com', 'A');
-    store.addHistory('https://b.com', 'B');
-    store.removeHistory('https://a.com');
-    const h = store.getHistory();
-    expect(h).toHaveLength(1);
-    expect(h[0].url).toBe('https://b.com');
-  });
 });
 
 describe('isQuotaExceededError — cross-browser detection', () => {
