@@ -1240,3 +1240,89 @@ describe('VRApp — tab session persistence (F-4)', () => {
     expect(src).toMatch(/onSessionChange/);
   });
 });
+
+// ── persistence + navigate + stats (bound-prototype, localStorage stub) ───────
+describe('VRApp — settings/tab-session persistence and navigate()', () => {
+  const P = VRApp.prototype;
+  let store;
+  beforeEach(() => {
+    store = {};
+    global.localStorage = {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; }
+    };
+  });
+  afterEach(() => { delete global.localStorage; });
+
+  test('loadPersistedSettings filters to known keys only', () => {
+    store['qui-browser:settings'] = JSON.stringify({ a11y: true, evil: 'x' });
+    const app = { settings: { a11y: false, other: 1 } };
+    expect(P.loadPersistedSettings.call(app)).toEqual({ a11y: true });
+  });
+
+  test('loadPersistedSettings returns {} on corrupt JSON', () => {
+    store['qui-browser:settings'] = '{{{not json';
+    const app = { settings: { a: 1 } };
+    expect(P.loadPersistedSettings.call(app)).toEqual({});
+  });
+
+  test('_saveTabSession writes serialize() output; privateMode writes nothing', () => {
+    const serialize = jest.fn(() => [{ url: 'x' }]);
+    const app = { tabManager: { serialize }, settings: {} };
+    P._saveTabSession.call(app);
+    expect(store['qui.tabSession.v1']).toBe('[{"url":"x"}]');
+
+    const appPriv = { tabManager: { serialize }, settings: { privateMode: true } };
+    store['qui.tabSession.v1'] = undefined;
+    delete store['qui.tabSession.v1'];
+    P._saveTabSession.call(appPriv);
+    expect('qui.tabSession.v1' in store).toBe(false);
+  });
+
+  test('_restoreTabSession: private boot returns 0; corrupt JSON returns 0', () => {
+    const restoreSession = jest.fn(() => 2);
+    const appPriv = { tabManager: { restoreSession }, settings: { privateMode: true } };
+    expect(P._restoreTabSession.call(appPriv)).toBe(0);
+    expect(restoreSession).not.toHaveBeenCalled();
+
+    store['qui.tabSession.v1'] = 'not-json';
+    const app = { tabManager: { restoreSession }, settings: {} };
+    expect(P._restoreTabSession.call(app)).toBe(0);
+
+    store['qui.tabSession.v1'] = '[{"url":"a"}]';
+    expect(P._restoreTabSession.call(app)).toBe(2);
+  });
+
+  test('navigate() suppresses history in privateMode; caption shows title or hostname', () => {
+    const addHistory = jest.fn();
+    const show = jest.fn();
+    const app = {
+      settings: { privateMode: true },
+      bookmarks: { addHistory },
+      captionSystem: { enabled: true, show }
+    };
+    P.navigate.call(app, 'https://a.example/path', 'Page A');
+    expect(addHistory).not.toHaveBeenCalled();
+    expect(show).toHaveBeenCalledWith('Page A');
+
+    app.settings.privateMode = false;
+    P.navigate.call(app, 'https://b.example/x'); // title defaults to url
+    expect(addHistory).toHaveBeenCalledWith('https://b.example/x', 'https://b.example/x');
+    expect(show).toHaveBeenLastCalledWith('b.example'); // hostname caption, not raw URL
+  });
+
+  test('getPerformanceStats reports monitor + renderer.info shape', () => {
+    const app = {
+      renderer: { info: { memory: { geometries: 3, textures: 5 }, programs: [{}, {}] } },
+      performanceMonitor: { fps: 89.6, frameTime: 11.234, memoryUsed: 42.34, drawCalls: 12, triangles: 999 }
+    };
+    const s = P.getPerformanceStats.call(app);
+    expect(s.fps).toBe(90);
+    expect(s.frameTime).toBe('11.23ms');
+    expect(s.memory).toBe('42.3MB');
+    expect(s.geometries).toBe(3);
+    expect(s.programs).toBe(2);
+    expect(s.ffrIntensity).toBeUndefined(); // no ffrSystem attached
+  });
+});
