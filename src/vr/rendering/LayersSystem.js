@@ -56,6 +56,9 @@ export class LayersSystem {
   }
 
   dispose() {
+    for (const layer of this._layers.values()) {
+      layer.destroy?.();
+    }
     this._layers.clear();
     this.glBinding   = null;
     this._gl         = null;
@@ -113,6 +116,10 @@ export class LayersSystem {
    * @param {XRLayer}   [baseLayer]
    */
   removeLayer(id, session, baseLayer) {
+    // destroy() releases the layer's native GPU texture eagerly — merely
+    // deleting the map entry leaves ~10 MB (2048×1280 RGBA8) allocated until
+    // session end, compounding per closed tab.
+    this._layers.get(id)?.destroy?.();
     this._layers.delete(id);
     if (session) {
       this.updateRenderState(session, baseLayer);

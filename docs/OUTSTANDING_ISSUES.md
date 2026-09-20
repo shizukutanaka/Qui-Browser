@@ -1594,3 +1594,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第105パス（クリーンスキャン — セキュリティ境界）
 `postMessage`/message リスナー不使用（origin 検証問題は存在しない）、`target=_blank` は全て `noopener` 付き、文字列タイマーゼロ。UA スニッフィングは DeviceCompatibility のみ — Quest2/3/Pico4 の HW 差は機能検出で判別不能なため正当（文書化済み）。
+
+### 第106パス（実修正 — XRQuadLayer GPU リーク）
+`LayersSystem.removeLayer`/`dispose` が `_layers.delete/clear` のみで `XRLayer.destroy()` を一度も呼んでいなかった — タブを閉じる度に native quad layer の GPU テクスチャ（2048×1280 RGBA8 ≈10MB）がセッション終了まで残存し複利的にリーク。render state の detach は既に正しく行われていたが、native リソース解放が欠落。両経路で `layer.destroy?.()` 呼出を追加。
