@@ -17,7 +17,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
-  wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm
+  wrapTextToLines, wrapTextToWidth, truncateToWidth, charWidthEm
 } from '../ui/textWrap.js';
 import {
   CAPTION_PANEL_W, CAPTION_PANEL_H, CAPTION_CANVAS_W, CAPTION_CANVAS_H,

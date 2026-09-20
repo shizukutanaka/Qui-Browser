@@ -81,7 +81,7 @@ function isWorldVisible(obj) {
 function hostnameCaption(url) {
   try {
     return new URL(url).hostname || url;
-  } catch (_) {
+  } catch {
     return String(url).slice(0, 30);
   }
 }
@@ -3565,7 +3565,7 @@ export class VRApp {
     // Called last so any final metrics can still be reported above.
     try {
       disposeMonitoring();
-    } catch (_) { /* best-effort teardown; ignore */ }
+    } catch { /* best-effort teardown; ignore */ }
 
     console.debug('VRApp: Disposed');
   }

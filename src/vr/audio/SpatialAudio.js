@@ -634,7 +634,7 @@ export class SpatialAudio {
       if (source.gain) {
         source.gain.disconnect();
       }
-    } catch (e) { /* ignore disconnect errors */ }
+    } catch { /* ignore disconnect errors */ }
 
     this.sources.delete(sourceName);
     this.stats.sourcesActive = Math.max(0, this.stats.sourcesActive - 1);

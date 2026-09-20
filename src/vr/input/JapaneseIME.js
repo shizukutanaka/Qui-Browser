@@ -16,7 +16,6 @@ import {
 
 // Re-exported so existing importers (and tests) keep their import site.
 export { SUGGESTION_MEASURE_EM } from './keyboardLayout.js';
-import { truncate } from '../browser/bookmarkLayout.js';
 import { truncateToWidth } from '../ui/textWrap.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 
@@ -696,7 +695,7 @@ export function suggestionLabel(entry, maxEm = SUGGESTION_MEASURE_EM) {
   const url = String(entry.url || '');
   try {
     return truncateToWidth(new URL(url).hostname || url, maxEm);
-  } catch (_) {
+  } catch {
     return truncateToWidth(url, maxEm);
   }
 }
