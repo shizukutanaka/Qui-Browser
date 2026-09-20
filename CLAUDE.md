@@ -446,6 +446,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🐛 **fix**: ①`pendingLoads` map で並行同URLロードを1本に集約（ネットワーク二重fetchも解消）②`cacheTexture` に「既存エントリは先に unload」ガード（直接呼び出し経路も安全化）。
 - ✅ 赤確認（修正前: textureCount=2/drain 不可）→ 2テスト追加。1892 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き37（同セッション）: JapaneseIME — esc 解散が IME 状態を残し、次セッションの Enter が陳腐候補を注入
+- 🔍 **実測**: JapaneseIME 71% の未カバー領域 — `esc` ハンドラが `compositionBuffer=''` を直接代入するだけで `candidates`/`selectedIndex`/`isActive` が生存 → 次の `show()` 後も `isActive` が真のまま `activate()`（=clear）がスキップされる → 候補未変換のまま Enter を押すと `confirmSelection()` が**前セッションで破棄した漢字候補を返す**。赤確認済み。
+- 🐛 **fix**: esc で `ime.clear()` + `isActive=false`（次セッションの activate を復活させる）。
+- 🔍 **ついでに観測（未修正・判断事項）**: `confirmSelection()` は表示中の「か」ではなく生ローマ字 'ka' を返す（URL入力では偶然正動）。ascii モードが無い設計問題として OUTSTANDING_ISSUES N-3 に記録、テストには現行セマンティクスを pin。
+- ✅ 1893 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

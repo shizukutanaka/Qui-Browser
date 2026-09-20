@@ -252,3 +252,36 @@ describe('the keyboard honours the OS contrast preference', () => {
     expect(registered.length).toBeGreaterThan(0);
   });
 });
+
+describe('esc dismissal resets IME state (regression: stale candidates injected)', () => {
+  // esc cleared compositionBuffer directly but left candidates/selectedIndex/
+  // isActive intact — so the next show() skipped activate()→clear() and a bare
+  // Enter emitted the previous session's kanji candidate instead of the typed
+  // composition.
+  test('esc after conversion, then fresh session Enter returns typed text', async () => {
+    const confirmed = [];
+    const { kb } = makeKeyboard();
+    kb.onTextConfirmed = (t) => confirmed.push(t);
+    global.fetch = jest.fn(() => Promise.reject(new Error('offline'))); // offline kanji dict
+
+    // Session 1: type こんにちは, convert, then dismiss with esc
+    for (const ch of 'konnichiha') await kb.onKeyPress(ch);
+    await kb.onKeyPress('space'); // candidates: ['今日は', 'こんにちは']
+    await kb.onKeyPress('esc');
+    expect(kb.ime.candidates.length).toBe(0);
+    expect(kb.ime.isActive).toBe(false);
+
+    // Session 2: reopen, type, press Enter — must NOT emit the stale '今日は'.
+    // (confirmSelection returns the raw composition 'ka' — converted-vs-raw
+    // confirm semantics are a separate open question, recorded in
+    // docs/OUTSTANDING_ISSUES.md.)
+    kb.show();
+    await kb.onKeyPress('k');
+    await kb.onKeyPress('a');
+    await kb.onKeyPress('enter');
+    expect(confirmed).toEqual(['ka']);
+    expect(confirmed[0]).not.toBe('今日は');
+
+    delete global.fetch;
+  });
+});

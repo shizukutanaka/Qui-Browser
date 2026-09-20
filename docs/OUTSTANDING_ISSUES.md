@@ -681,6 +681,20 @@ init が visibilitychange/beforeunload/web-vitals リスナーを配線して
 monitoring.js は init/dispose + 内部計装のみの構成になる。Sentry/GA の
 利用方針（本番で流すか）も絡むためオーナー判断。
 
+## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項）
+
+`JapaneseIME` は `compositionBuffer` に生のローマ字を保持し、`processInput` の
+戻り値 `converted` だけが表示用のかなを運ぶ。結果としてキーボード上の表示は
+「か」なのに Enter → `confirmSelection()` は **'ka'** を返す（候補選択済みなら漢字）。
+URL入力では偶然正しく動く（ASCII が欲しい）が、日本語テキストの意図では表示と
+出力が矛盾する。かつ `inputMode` に 'romaji'/'ascii' が存在しないため、
+URL入力でも画面には「ごおぎぇ.こm」のような変換表示が出る。
+
+**判断事項**: (a) confirm は表示と一致させる（converted を返す）+ URL用に
+ascii モードを追加するか、(b) 現状維持（表示は翻訳プレビュー、確定は生値）か。
+IME の仕様意図が絡むためオーナー判断。esc 経路の stale candidate 注入のみ
+修正済み（続き37）。
+
 ---
 
 ## 使い方（次のセッションへ）
