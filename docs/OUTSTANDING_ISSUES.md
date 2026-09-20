@@ -1684,3 +1684,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第135パス（実削除 — リスナーゼロの死イベント）
 `hit.object.dispatchEvent('qui-select')` は「外部リスナー向け DOM イベント」と自称するが購読者ゼロの死送信 → 3行削除＋言及する doc 修正＋死コード検証テスト削除（−1 test）。'enter-vr' 契約・preventDefault（webglcontextlost=必須/DevTools keydown）・instanceof 不使用は全て健全。
+
+### 第136パス（実修正 — SW キャッシュ無限増殖）
+`staleWhileRevalidate` は `CACHE_VERSION`（shell）へ書くが `enforceCacheLimit` が呼ばれず、**deploy 毎に新ハッシュ資産が無限蓄積**（コード自身が cross-origin 経路で同型を潰していた同じ罠）。上限適用時は precache（index.html 等）を eviction から除外する `keep` 引数を追加し、put 失敗も catch で可視化。index.html の SWR 1回 stale 配信は設計通り。

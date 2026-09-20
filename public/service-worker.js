@@ -290,7 +290,12 @@ async function staleWhileRevalidate(request) {
     .then(response => {
       // Update cache with fresh version
       if (response.ok) {
-        cache.put(request, response.clone());
+        // Bound growth: SWR writes hashed deploy assets into the versioned
+        // shell cache, which would otherwise accumulate forever. Precached
+        // shell entries are excluded from eviction so offline stays intact.
+        cache.put(request, response.clone())
+          .then(() => enforceCacheLimit(cache, 'runtime', CRITICAL_ASSETS))
+          .catch(err => console.warn('[ServiceWorker] SWR cache write failed:', err));
         cacheStats.updates++;
       }
       return response;
@@ -356,9 +361,10 @@ async function getOfflineFallback(request) {
 /**
  * Enforce cache size limits
  */
-async function enforceCacheLimit(cache, type) {
+async function enforceCacheLimit(cache, type, keep = []) {
   const limit = CACHE_LIMITS[type] || CACHE_LIMITS.runtime;
-  const keys = await cache.keys();
+  const keepSet = new Set(keep.map(u => new URL(u, self.location.href).href));
+  const keys = (await cache.keys()).filter(r => !keepSet.has(r.url));
 
   if (keys.length > limit) {
     // Remove oldest entries (FIFO)
