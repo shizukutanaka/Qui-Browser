@@ -337,29 +337,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Simulate doppler effect
-   */
-  simulateDoppler(source) {
-    if (!source.velocity) {
-      return;
-    }
-
-    // Calculate relative velocity
-    const speedOfSound = 343.3; // m/s at 20°C
-    const velocity = Math.sqrt(
-      source.velocity.x ** 2 +
-      source.velocity.y ** 2 +
-      source.velocity.z ** 2
-    );
-
-    // Apply pitch shift based on velocity
-    const dopplerFactor = 1 + (velocity / speedOfSound);
-    if (source.node) {
-      source.node.playbackRate.value = source.playbackRate * dopplerFactor;
-    }
-  }
-
-  /**
    * Set listener (user) position
    */
   setListenerPosition(x, y, z) {

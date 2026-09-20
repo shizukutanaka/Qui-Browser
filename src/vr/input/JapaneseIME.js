@@ -597,20 +597,6 @@ export class JapaneseIME {
   }
 
   /**
-   * Get current state
-   */
-  getState() {
-    return {
-      isActive: this.isActive,
-      mode: this.inputMode,
-      buffer: this.compositionBuffer,
-      candidates: this.candidates,
-      selectedIndex: this.selectedIndex,
-      stats: this.stats
-    };
-  }
-
-  /**
    * Activate IME
    */
   activate() {

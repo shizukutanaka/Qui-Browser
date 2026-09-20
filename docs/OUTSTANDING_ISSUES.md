@@ -1101,6 +1101,15 @@ verify:docs・vr-boot 全 PASS。
 計測: 43 suites / 1,343 tests・lint warnings 103→95・
 build 0.64s・vr-boot PASS。
 
+### 第31パス（削除連鎖後のメソッド再走査）
+
+- `JapaneseIME.getState` — 呼び出しゼロの診断アクセサを削除。
+- `SpatialAudio.simulateDoppler` — ドップラー効果メソッド、
+  呼び出しゼロ（どこからも velocity を持つ source が来ない）を削除。
+
+計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
+build 0.7s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
