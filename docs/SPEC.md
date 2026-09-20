@@ -55,7 +55,7 @@
 |----|------|------|-----------|
 | FR-4.1 | Fixed Foveated Rendering | ✅ | `FFRSystem`（静的） |
 | FR-4.2 | 視線追従フォービエーション | 🟡 | 頭部角速度ベースの予測 gaze foveation（`FFRSystem.trackHeadPose`/`updatePredictedGazeFoveation`）。真の eye-tracking は Quest Pro ハードウェア待ち |
-| FR-4.3 | テクスチャ圧縮（KTX2/Basis） | ✅ | `TextureManager` |
+| FR-4.3 | テクスチャ圧縮（KTX2/Basis） | 🗑 削除 | `TextureManager` は初期化のみで `loadTexture` の呼び出し元ゼロのため削除（第一原理スイープ第29パス） |
 | FR-4.4 | WebGPU 描画 | ❌ | **削除（Session 74）**。`WebGPURenderer` は構築されるだけでレンダーループに一度も接続されず、画素を1つも描いていなかった。実装するなら THREE の WebGPU バックエンドを使うのが筋で、独自実装の 600 行は再利用価値が無い |
 | FR-4.5 | 3D Gaussian Splatting | ❌ | 未導入 |
 | FR-4.6 | ホーム環境（空/床/ウェルカム） | ✅ | `createHomeEnvironment()` |

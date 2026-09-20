@@ -70,7 +70,6 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality | +15-20 FPS |
 | **Comfort System** | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort |
 | **Object Pooling** | ✅ Stable | Reusable object management | Fewer GC pauses |
-| **KTX2 Texture Compression** | ✅ Stable | GPU-optimized texture format | Lower texture memory |
 | **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
 
 ### Tier 2: Enhanced Features (3 Features)
@@ -220,10 +219,10 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 46 test suites, ~1450 tests
+- **Unit Tests:** 43 test suites, ~1340 tests
 - **Integration Tests:** Tier system integration
 - **Performance Tests:** Benchmarking and regression detection
-- **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)
+- **Code Coverage:** ≥50% enforced in CI (jest coverageThreshold)
 - **CI/CD:** Automated testing on every push/PR
 
 **📖 Testing Guide:** [docs/TESTING.md](docs/TESTING.md)

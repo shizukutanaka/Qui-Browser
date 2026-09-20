@@ -37,7 +37,7 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 - [x] Development tools and debugging
 
 ### Phase 2: VR Modules (35+ modules) ✅
-- [x] **Tier 1 (performance):** FFR, Comfort vignette, KTX2 texture support (lazy CDN transcoder), Service Worker
+- [x] **Tier 1 (performance):** FFR, Comfort vignette, object pooling, Service Worker
 - [x] **Tier 2 (features):** Japanese IME, Hand Tracking, Spatial Audio, Tab/Window/Bookmark panels, Offline support
 - [x] **Accessibility:** Captions, Gaze-dwell, Haptic feedback, Semantic DOM, cross-modal notifications, high-contrast/reduced-motion prefs
 - [x] **Development Tools:** DevTools (dev builds, F12), performance overlay (P key)
@@ -72,7 +72,6 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 |---------|--------|------|-------------------|
 | **FFR (Fixed Foveated Rendering)** | ✅ Complete | FFRSystem.js | Foveation on supported runtimes |
 | **Comfort System** | ✅ Complete | ComfortSystem.js | Vignette/FOV control for motion sickness |
-| **Texture Manager** | ✅ Complete | TextureManager.js | Texture cache + lazy KTX2 transcode |
 | **Service Worker** | ✅ Complete | public/service-worker.js | Offline capability |
 
 ### Tier 2: Enhanced Features (6/6 Complete)

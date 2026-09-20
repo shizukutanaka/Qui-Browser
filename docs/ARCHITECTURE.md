@@ -33,7 +33,7 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/comfort/` | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort |
 | `vr/media/` | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping) |
 | `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |
-| `utils/` | `TextureManager`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
+| `utils/` | `DeviceCompatibility`, `BookmarkStore`, `debounce` |
 | `i18n/` | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()` |
 | `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry |
 
@@ -60,8 +60,8 @@ most subsystems are unit-testable in Node with no GPU context.
    text-heavy panels to quad layers when the runtime supports them.
 3. The XR frame loop: poll input sources → hit-test the interactable registry →
    dispatch hover/select → update captions, comfort vignette and avatars → render.
-4. `updatePerformanceMonitor` samples frame timing; `TextureManager` keeps
-   per-frame texture allocation near zero to hold 72–90 fps on standalone headsets.
+4. `updatePerformanceMonitor` samples frame timing; pooled canvas textures keep
+   per-frame allocation near zero to hold 72–90 fps on standalone headsets.
 
 ## Build & bundling
 

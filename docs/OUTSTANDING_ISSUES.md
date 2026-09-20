@@ -1124,6 +1124,21 @@ build 0.7s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
 build 0.6s・verify:docs・vr-boot 全 PASS。
 
+### 第33パス（KTX2 削除の docs 連鎖 — 7ファイルで残存主張を摘出）
+
+パス29の TextureManager 削除後に docs/operational 系を再走査:
+- ARCHITECTURE.md: utils 行・パイプライン記述から TextureManager 除去
+- SPEC.md: FR-4.3 を 🗑 削除ステータスに（FR-2.4 と同形式）
+- README.md: KTX2 機能行削除 + テスト数を実測に更新（46→43 suites）
+- PROJECT_STATUS.md / RELEASE_CHECKLIST.md / DEPLOYMENT_GUIDE.md:
+  Tier1・モジュール表・チェックリストの KTX2 項目を除去
+- IMPLEMENTATION.md: 「### 4. KTX2 Texture Compression」節全体
+  （78行・コード例含む）を削除し節番号を繰り上げ
+- crossModal/a11y/chromeColors の export 全点検 → 全て実使用生存
+
+計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
+build 0.7s・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

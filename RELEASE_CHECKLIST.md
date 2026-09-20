@@ -156,7 +156,6 @@
 - [x] FFR System: Foveated rendering working
 - [x] Comfort System: Motion comfort features active
 - [x] Object Pooling: Memory management optimized
-- [x] KTX2 Textures: Texture compression working
 - [x] Service Worker: Offline functionality verified
 
 #### Tier 2: Enhanced Features
@@ -284,7 +283,7 @@ git tag -a v2.0.0 -m "Release v2.0.0 - Production Ready
 Complete VR browser with 17 features across 3 tiers.
 
 Major features:
-- Tier 1: FFR, Comfort, Object Pooling, KTX2, Service Worker
+- Tier 1: FFR, Comfort, Object Pooling, Service Worker
 - Tier 2: Japanese IME, Hand Tracking, Spatial Audio, MR, Progressive Loading
 - Tier 3: WebGPU, Multiplayer, AI, Voice Commands, Haptics, WebCodecs
 - Development Tools: Performance Monitor, DevTools
