@@ -1663,3 +1663,6 @@ window resize は debounce+XR presenting ガード+aspect 更新+解除対称で
 
 ### 第128パス（クリーンスキャン — ID 一意性）
 ID 生成コードが存在しない — interactables はオブジェクト同一性の配列（includes/indexOf）、タブは配列インデックス、mesh は three の uuid 自動採番。Date.now/random 由来の衝突経路は構造的に存在せず。
+
+### 第129パス（クリーンスキャン — URL スキーム/SSRF）
+navigate は javascript:/data:/file: を resolve 時に拒否し onBlockedNavigation でユーザー告知済み。proxy は `assertRequestAllowed`（スキーム許可リスト）+ `resolveSafely`（全 A/AAAA のプライベート帯ブロック）+ リダイレクト毎の再検証で SSRF 完備。危険スキーム到達経路ゼロ。
