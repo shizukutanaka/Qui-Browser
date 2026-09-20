@@ -585,13 +585,13 @@ import * as THREE from 'three';
 
 ```javascript
 // ✅ Good: Load on demand
-async function loadTier3() {
-  const { WebGPURenderer } = await import('./WebGPURenderer.js');
-  return new WebGPURenderer();
+async function loadSpatialAudio() {
+  const { SpatialAudio } = await import('./SpatialAudio.js');
+  return new SpatialAudio();
 }
 
 // ❌ Bad: Load everything upfront
-import { WebGPURenderer } from './WebGPURenderer.js';
+import { SpatialAudio } from './SpatialAudio.js';
 ```
 
 ### 4. Asset Loading

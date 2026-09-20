@@ -24,7 +24,7 @@ most subsystems are unit-testable in Node with no GPU context.
 
 | Directory | Responsibility |
 |---|---|
-| `vr/rendering/` | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text), `WebGPURenderer` (optional backend) |
+| `vr/rendering/` | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text) |
 | `vr/browser/` | `WebPanel`, `WindowManager`, `TabManager`, `BookmarkPanel`, `urlDisplay`, `urlResolver`, plus pure layout helpers (`curvedGeometry`, `readableText`, `readerLayout`, `bookmarkLayout`) |
 | `vr/input/` | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `keyboardLayout` |
 | `vr/interaction/` | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback` |
@@ -32,9 +32,6 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/audio/` | `SpatialAudio` — procedurally synthesized UI cues, positional audio |
 | `vr/comfort/` | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort |
 | `vr/media/` | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping) |
-| `vr/multiplayer/` | `MultiplayerSystem` (WebRTC + signaling with backoff reconnect), `AvatarSystem` |
-| `vr/ar/` | `MixedReality` — passthrough and depth |
-| `vr/ai/` | `AIRecommendation` |
 | `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |
 | `utils/` | `TextureManager`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
 | `i18n/` | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()` |
@@ -48,8 +45,8 @@ most subsystems are unit-testable in Node with no GPU context.
 2. **Cross-modal by default.** Every status or error is routed through
    `notifyCrossModal()` → haptic pulse + caption line + visual toast, with severity
    carried by glyphs (`✕ ⚠ ℹ`) rather than colour alone (WCAG 1.4.1, 4.1.3).
-3. **Optional subsystems must degrade.** FFR, quad layers, WebGPU, hand tracking,
-   haptics, spatial audio and multiplayer are all capability-detected; failure emits a
+3. **Optional subsystems must degrade.** FFR, quad layers, hand tracking,
+   haptics and spatial audio are capability-detected; failure emits a
    warning toast and the session continues.
 4. **Everything tunable is tunable at runtime.** Caption hold/scale, dwell time, grace
    time, snap-turn angle, window distance and 15+ other parameters are live steppers in
@@ -69,16 +66,15 @@ most subsystems are unit-testable in Node with no GPU context.
 ## Build & bundling
 
 Vite (`vite.config.js`) produces manual chunks so the headset only downloads what a
-tier needs: `vendor-three`, `app`, `tier1`, and lazy `tier2-*` chunks (input, audio,
-loading, interaction, ar) plus `WebGPURenderer`. See
-[BUILD_OPTIMIZATION_GUIDE.md](BUILD_OPTIMIZATION_GUIDE.md).
+tier needs: `vendor-three`, `app`, `tier1`, and lazy `tier2-*` chunks
+(`tier2-input`, `tier2-interaction`, `tier2-audio`).
 
 ## Server side
 
-`server/index.js` is a small Express app: `/health`, Stripe billing routes, and a
-webhook endpoint that keeps a raw body for signature verification. Stripe is optional —
-`isStripeConfigured()` gates the billing routes and returns `503` rather than throwing
-when no real key is present.
+`proxy/server.js` (`npm run proxy`) is a small zero-dependency dev proxy used when a
+target page cannot be fetched directly (CORS/X-Frame-Options). `ssrfGuard.js` blocks
+private/link-local targets. There is no production backend: the app is a static
+site plus this optional development helper.
 
 ## Related documents
 

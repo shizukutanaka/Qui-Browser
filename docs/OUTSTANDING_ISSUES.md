@@ -1033,6 +1033,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,366 tests・lint 0 errors（警告 105→103）・build PASS・verify:vr-boot PASS・verify:docs PASS。
 
+### 第26パス（dynamic import / opt-in 経路の実在性 + ARCHITECTURE 同期）
+
+- 残る dynamic import 全生存確認: `web-vitals`（実 dep）、
+  `../dev/DevTools.js`（DEV-gated）、`./app.js`、GA script 注入。
+- `DeviceCompatibility`・`a11y/accessibility.js` 消費者は実在。
+- `docs/ARCHITECTURE.md` モジュールマップを実態に同期:
+  `vr/multiplayer`/`vr/ar`/`vr/ai`/`WebGPURenderer` 行と
+  `server/index.js` Express+Stripe 節（削除済みの架空サーバー）を
+  除去、`proxy/server.js` の実説明に置換。手動 chunk 名も実値に修正。
+- `BUILD_OPTIMIZATION_GUIDE.md` の例コードを存在しない
+  `WebGPURenderer` から実在 `SpatialAudio` に差し替え。
+
+計測: 44 suites / 1,366 tests・lint 0 errors・build PASS・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
