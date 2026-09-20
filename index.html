@@ -48,7 +48,7 @@
     <!-- Loading Screen -->
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Loading Qui Browser VR v2.0.0...</div>
+        <div class="loading-text" data-i18n="app.loading">Loading Qui Browser VR...</div>
     </div>
 
     <!-- App Container -->
@@ -77,37 +77,37 @@
 
             <!-- Features Grid -->
             <div class="features-grid" role="list">
-                <div class="feature-card" role="listitem" aria-label="High Performance">
+                <div class="feature-card" role="listitem" aria-label="High Performance" data-i18n-attr="aria-label:feat.perf.title">
                     <div class="feature-icon" aria-hidden="true">⚡</div>
                     <h3 class="feature-title" data-i18n="feat.perf.title">High Performance</h3>
                     <p class="feature-description" data-i18n="feat.perf.desc">Targets 90-120 FPS on Quest 3 via foveated rendering, KTX2 textures, and quad-layer UI</p>
                 </div>
 
-                <div class="feature-card" role="listitem" aria-label="Hand Tracking">
+                <div class="feature-card" role="listitem" aria-label="Hand Tracking" data-i18n-attr="aria-label:feat.hand.title">
                     <div class="feature-icon" aria-hidden="true">🤝</div>
                     <h3 class="feature-title" data-i18n="feat.hand.title">Hand Tracking</h3>
                     <p class="feature-description" data-i18n="feat.hand.desc">Controller-free interaction with 6 gesture patterns</p>
                 </div>
 
-                <div class="feature-card" role="listitem" aria-label="Spatial Audio">
+                <div class="feature-card" role="listitem" aria-label="Spatial Audio" data-i18n-attr="aria-label:feat.audio.title">
                     <div class="feature-icon" aria-hidden="true">🎵</div>
                     <h3 class="feature-title" data-i18n="feat.audio.title">Spatial Audio</h3>
                     <p class="feature-description" data-i18n="feat.audio.desc">3D HRTF-based positional sound for immersive experience</p>
                 </div>
 
-                <div class="feature-card" role="listitem" aria-label="Japanese IME">
+                <div class="feature-card" role="listitem" aria-label="Japanese IME" data-i18n-attr="aria-label:feat.ime.title">
                     <div class="feature-icon" aria-hidden="true">🇯🇵</div>
                     <h3 class="feature-title" data-i18n="feat.ime.title">Japanese IME</h3>
                     <p class="feature-description" data-i18n="feat.ime.desc">Native Japanese text input with Hiragana/Katakana/Kanji</p>
                 </div>
 
-                <div class="feature-card" role="listitem" aria-label="In-VR Captions">
+                <div class="feature-card" role="listitem" aria-label="In-VR Captions" data-i18n-attr="aria-label:feat.captions.title">
                     <div class="feature-icon" aria-hidden="true">💬</div>
                     <h3 class="feature-title" data-i18n="feat.captions.title">In-VR Captions</h3>
                     <p class="feature-description" data-i18n="feat.captions.desc">Every status and error rendered as adjustable captions — timing, size, and contrast you control</p>
                 </div>
 
-                <div class="feature-card" role="listitem" aria-label="Reader View">
+                <div class="feature-card" role="listitem" aria-label="Reader View" data-i18n-attr="aria-label:feat.reader.title">
                     <div class="feature-icon" aria-hidden="true">📖</div>
                     <h3 class="feature-title" data-i18n="feat.reader.title">Reader View</h3>
                     <p class="feature-description" data-i18n="feat.reader.desc">Any page reflowed into clean paginated text, readable at your chosen distance</p>
@@ -121,9 +121,9 @@
 
     <!-- Utility toolbar: accessibility + language -->
     <div class="util-toolbar" style="position:fixed;top:12px;right:12px;z-index:3000;display:flex;gap:8px;">
-        <button id="a11yContrast" class="util-toggle" aria-pressed="false" title="High contrast" aria-label="Toggle high contrast" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">◐</button>
-        <button id="a11yText" class="util-toggle" aria-pressed="false" title="Large text" aria-label="Toggle large text" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">A+</button>
-        <button id="langToggle" class="util-toggle" aria-label="Toggle language" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">日本語</button>
+        <button id="a11yContrast" class="util-toggle" aria-pressed="false" title="High contrast" aria-label="Toggle high contrast" data-i18n-attr="title:a11y.highContrast;aria-label:a11y.highContrast" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">◐</button>
+        <button id="a11yText" class="util-toggle" aria-pressed="false" title="Large text" aria-label="Toggle large text" data-i18n-attr="title:a11y.largeText;aria-label:a11y.largeText" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">A+</button>
+        <button id="langToggle" class="util-toggle" aria-label="Toggle language" data-i18n-attr="aria-label:a11y.langToggle" style="padding:6px 12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #3a6ea5;border-radius:6px;font-size:14px;cursor:pointer;">日本語</button>
     </div>
     <script type="module" src="/src/main.js"></script>
 </body>
