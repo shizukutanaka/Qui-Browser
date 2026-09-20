@@ -385,6 +385,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: `proxy/package.json` に `{"type":"module"}` を追加 — ルートに置くと jest/tests を巻き込むため proxy/ 限定のスコープ付き宣言（ssrf-guard.test.js 51件・全スイート 56 で非破壊を実測）。
 - ✅ 1838 tests (56 suites)、lint 0 errors、build green、verify:docs PASS。
 
+#### 続き25（同セッション）: `verify:layout` は壊れていた — 犯人は PR #79（自分）だった
+- 🔍 **実測**: `verify:layout` を実走 → FAIL「28/55 がオーバーフロー」。しかし `--json` で内訳を見ると `font: "undefinedpx monospace"` —— ツールが参照する `ROW_TITLE_FONT`/`ROW_URL_FONT`/`CAPTION_TEXT_W`/`COMPOSITION_TEXT_W`/`COMPOSITION_FONT_PX` の **5つ全てが非 export** で、`ctx.font` 代入が無効化され測定値全体が偽物だった。**原因は自分の PR #79**: 「誰も import しない export」を外した際、`verify-text-layout.mjs` がブラウザページの**テンプレート文字列内**で `import()` するのを `no-dead-exports` 走査が見落としていた。静的走査が静的走査の網をすり抜けた格好の自傷。ソクラテス問答の教訓: 「export が誰にも使われていない」という主張は、文字列内 import・動的参照まで含めて検証しないと偽。
+- 🧹 **fix**: 5つの const を再 export。修正後に再測定 → **55/55 全適合 PASS**。ツールが報告した「オーバーフロー」は全て `undefinedpx` フォントの偽陽性で、実レイアウト予算は正しかった。
+- ✅ **pin 強化**: `no-dead-exports.test.js` の参照コーパスに `tools/**/*.{js,mjs}` を追加 — 文字列内 import を含むツール側参照を今後捕捉。1843 tests、lint 0 errors、build green、verify:docs + verify:layout PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

@@ -25,9 +25,14 @@ function* walk(dir) {
 }
 
 const srcFiles = [...walk(SRC)];
+const toolsDir = path.join(ROOT, 'tools');
+const toolsFiles = fs.existsSync(toolsDir)
+  ? fs.readdirSync(toolsDir).filter((f) => /\.(m?js)$/.test(f)).map((f) => path.join(toolsDir, f))
+  : [];
 const otherSources = [
   ...srcFiles,
   ...fs.readdirSync(path.join(ROOT, 'tests')).filter((f) => f.endsWith('.js')).map((f) => path.join(ROOT, 'tests', f)),
+  ...toolsFiles, // verify-text-layout.mjs imports src modules inside a page template string
   path.join(ROOT, 'index.html'),
 ].map((p) => [p, fs.readFileSync(p, 'utf8')]);
 
