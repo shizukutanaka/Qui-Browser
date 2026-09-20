@@ -990,6 +990,17 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
 
+### 第23パス（削除連鎖による新規孤児 export の再走査）
+
+- export 全再走査で5件の外参照ゼロ定数を検出:
+  `COMPOSITION_FONT_PX`/`COMPOSITION_TEXT_W`（keyboardLayout）、
+  `ROW_TITLE_FONT`/`ROW_URL_FONT`（bookmarkLayout）、
+  `CAPTION_TEXT_W`（captionLayout）— 全て内部で実使用なので
+  `export` キーワードのみ除去（パス2規約）。
+- これ以降の `export` 残存は全て src 外 or tests から実参照あり。
+
+計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
