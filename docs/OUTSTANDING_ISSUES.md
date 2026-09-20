@@ -1672,3 +1672,6 @@ navigate は javascript:/data:/file: を resolve 時に拒否し onBlockedNaviga
 
 ### 第131パス（クリーンスキャン — XR セッション要求）
 セッション要求は three の VRButton（optionalFeatures に local-floor/bounded-floor/hand-tracking/layers 含む）+ 'enter-vr' イベント橋渡し+dispose 対称で完全。`updateTargetFrameRate` 未呼出は保留 — 90Hz 解放は没入感向上の候補だが、フレーム予算超過時は judder 悪化で、実機計測なしの変更は「推測最適化禁止」抵触。実機で supportedFrameRates 確認後に再検討。
+
+### 第132パス（クリーンスキャン — ページライフサイクル）
+beforeunload → vrApp.dispose() 完備（設定は変更毎に settingsStore 永続化済みで unload 保存不要）。bfcache は beforeunload ハンドラ存在で Chrome が対象外にするため stale 復元は構造的に非到達。contextmenu 抑止なしは 2D ミラー限定の cosmetic。
