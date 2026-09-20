@@ -285,3 +285,39 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     delete global.fetch;
   });
 });
+
+describe('VRJapaneseKeyboard.dispose — 3D resource teardown', () => {
+  test('dispose unregisters every key interactable and detaches the group', () => {
+    const scene = { add: jest.fn(), remove: jest.fn() };
+    const unregister = jest.fn();
+    const kb = new VRJapaneseKeyboard(scene, new JapaneseIME(), {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: unregister
+    });
+    kb.createKeyboard();
+    const keyCount = kb.keyMeshes.length;
+    expect(keyCount).toBeGreaterThan(0);
+
+    kb.dispose();
+
+    expect(unregister).toHaveBeenCalledTimes(keyCount);
+    expect(kb.keyMeshes).toHaveLength(0);
+    expect(scene.remove).toHaveBeenCalled();
+    expect(kb.group).toBeNull();
+  });
+
+  test('dispose clears candidate meshes and calls ime.dispose', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn()
+    });
+    kb.createKeyboard();
+    kb.showCandidates(['a', 'b']);
+    const imeDispose = jest.spyOn(kb.ime, 'dispose');
+
+    kb.dispose();
+
+    expect(imeDispose).toHaveBeenCalled();
+    expect(kb._candidatesGroup).toBeNull();
+  });
+});

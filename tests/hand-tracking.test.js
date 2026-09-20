@@ -300,3 +300,138 @@ describe('HandTracking — spatial queries + gesture dispatch', () => {
     expect(s.rightGesture).toBe('none');
   });
 });
+
+describe('HandTracking.updateHand — joint pose application', () => {
+  function makeHand(jointMap) {
+    return {
+      handedness: 'left',
+      hand: { get: (name) => jointMap.get(name) }
+    };
+  }
+  function poseFrame(pose) {
+    return { getJointPose: jest.fn(() => pose) };
+  }
+  function jointMeshStub() {
+    return {
+      position: { set: jest.fn() },
+      quaternion: { set: jest.fn() },
+      scale: { setScalar: jest.fn() },
+      material: { opacity: 0 }
+    };
+  }
+
+  test('applies joint pose position/quaternion/scale and confidence opacity', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj(); // updateHand sets handGroup.visible
+    const mesh = jointMeshStub();
+    ht.joints.left.set('index-finger-tip', mesh);
+    const hand = new Map([['index-finger-tip', {}]]); // joint object exists
+    const frame = poseFrame({
+      transform: {
+        position: { x: 1, y: 2, z: 3 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 }
+      },
+      radius: 0.016 // double the nominal 0.008
+    });
+    ht.updateHand(frame, makeHand(hand), {});
+
+    expect(mesh.position.set).toHaveBeenCalledWith(1, 2, 3);
+    expect(mesh.quaternion.set).toHaveBeenCalledWith(0, 0, 0, 1);
+    expect(mesh.scale.setScalar).toHaveBeenCalledWith(2);
+    expect(mesh.material.opacity).toBeCloseTo(0.8); // 0.4 + 1.0*0.4
+  });
+
+  test('skips joints the hand does not report and joints without a pose', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj();
+    const mesh = jointMeshStub();
+    ht.joints.left.set('wrist', mesh);
+    // hand returns undefined for every joint -> all skipped
+    ht.updateHand(poseFrame(null), makeHand(new Map()), {});
+    expect(mesh.position.set).not.toHaveBeenCalled();
+
+    // Joint exists but getJointPose returns null -> skipped too
+    const hand = new Map([['wrist', {}]]);
+    ht.updateHand(poseFrame(null), makeHand(hand), {});
+    expect(mesh.position.set).not.toHaveBeenCalled();
+  });
+});
+
+describe('HandTracking gesture tail — fist / peace / thumbsup', () => {
+  function jointsMap() {
+    const far = { position: { distanceTo: () => 1 } };
+    return new Map([
+      ['thumb-tip', far],
+      ['index-finger-tip', far],
+      ['wrist', far]
+    ]);
+  }
+
+  test('all fingers curled -> fist', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = () => false;
+    expect(ht.detectGesture(jointsMap())).toBe('fist');
+  });
+
+  test('index + middle extended only -> peace', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = (_j, f) => f === 'index-finger' || f === 'middle-finger';
+    ht.isThumbUp = () => false;
+    expect(ht.detectGesture(jointsMap())).toBe('peace');
+  });
+
+  test('gesture precedence: fist wins over thumbsup when all fingers are curled', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = () => false;
+    ht.isThumbUp = () => true;
+    // Fist is checked before thumbsup — pin the precedence order.
+    expect(ht.detectGesture(jointsMap())).toBe('fist');
+  });
+
+  test('thumbsup fires when a finger extension defeats the fist check', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = (_j, f) => f === 'pinky-finger'; // breaks fist+peace+point+open
+    ht.isThumbUp = () => true;
+    expect(ht.detectGesture(jointsMap())).toBe('thumbsup');
+  });
+
+  test('isThumbUp uses the real thumb vector math (y > 0.7)', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const V = require('three').Vector3;
+    const joints = new Map([
+      ['thumb-tip', { position: new V(0, 2, 0) }],
+      ['thumb-phalanx-proximal', { position: new V(0, 1, 0) }],
+      ['wrist', { position: new V(0, 0, 0) }]
+    ]);
+    expect(ht.isThumbUp(joints)).toBe(true);
+
+    joints.set('thumb-tip', { position: new V(0, 0.2, 0) }); // pointing down
+    expect(ht.isThumbUp(joints)).toBe(false);
+  });
+
+  test('isThumbUp returns false when a required joint is missing', () => {
+    const ht = new HandTracking({}, new MockObj());
+    expect(ht.isThumbUp(new Map())).toBe(false);
+  });
+});
+
+describe('HandTracking.onInputSourcesChange', () => {
+  test('hides the hand group for each removed input source', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj();
+    ht.rightHand = new MockObj();
+    ht.onInputSourcesChange({
+      added: [],
+      removed: [{ handedness: 'left' }, { handedness: 'right' }]
+    });
+    expect(ht.leftHand.visible).toBe(false);
+    expect(ht.rightHand.visible).toBe(false);
+  });
+
+  test('ignores removed sources with unknown handedness', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj();
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'none' }] });
+    expect(ht.leftHand.visible).toBe(true);
+  });
+});
