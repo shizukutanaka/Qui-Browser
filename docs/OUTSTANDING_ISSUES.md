@@ -1603,3 +1603,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第108パス（実修正 — canvas テクスチャ colorSpace 不整合）
 `makeUICanvas` の `srgb` オプトイン漏れ3箇所を摘出: WebPanel chrome bar・content area・TabManager strip — 全て sRGB 筆記のテキスト/UI 面なのに SRGBColorSpace 未設定で mesh 経路で他 UI 面（captions/IME/toast は全て opt-in 済み）より暗く表示。`{ srgb: true }` 追加で整合（不可視の hit ゾーン WebPanel:222 のみ対象外）。
+
+### 第109パス（クリーンスキャン — needsUpdate 規律）
+全 canvas 描画経路を走査: `_drawReader`/`_drawTab` は呼出側が needsUpdate を設定（責務分離として正しい）、vrToast は生成時描画＋初回アップロードで needsUpdate 不要（一撃テクスチャ）、textWrap は純粋描画ヘルパー。古いまま表示される stale-texture 経路ゼロ。
