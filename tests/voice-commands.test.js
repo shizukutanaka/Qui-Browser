@@ -270,7 +270,10 @@ describe('VoiceCommands — help command announces actual phrases (WCAG 4.1.3 di
   });
 
   test('regex-only commands (search, go-to) use their example instead of a raw RegExp', () => {
-    vc.connectBrowser({}); // registers 'go-to', whose patterns are all RegExp
+    // search/go-to are only registered when the host wires them — a command
+    // that confirms an action it cannot perform must not exist (nor appear in
+    // the help list).
+    vc.connectBrowser({ onSearch: () => {}, onGoTo: () => {} });
     spoken.length = 0;
     vc.processCommand('ヘルプ', 0.9);
     expect(spoken[0]).toContain('検索：てんき');
@@ -596,5 +599,80 @@ describe('VoiceCommands.connectBrowser — VR command actions', () => {
     vc.processCommand('キーボードを開く', 0.9);
     expect(opts.vrKeyboard.show).toHaveBeenCalled();
     expect(calls.goto).toEqual([]);
+  });
+});
+
+describe('VoiceCommands — wired session/volume/IME commands (no announce-only stubs)', () => {
+  // Socratic finding: the default 'vr-enter'/'vr-exit'/'volume-up'/'volume-down'/
+  // 'ime-toggle' actions were placeholders that returned a result object and
+  // spoke a confirmation ("VRモードを終了します") while doing literally nothing —
+  // the worst possible failure mode for a voice-primary accessibility user, who
+  // hears a lie and cannot verify it. They are now deleted from the defaults and
+  // re-registered by connectBrowser() only against real host callbacks.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (t) => spoken.push(t);
+  });
+
+  test('without connectBrowser, "VR終了" is an honest no-match instead of a fake exit', () => {
+    vc.processCommand('VR終了', 0.9);
+    expect(spoken.some((s) => s.includes('認識できませんでした'))).toBe(true);
+    expect(spoken.some((s) => s.includes('終了します'))).toBe(false);
+    expect(vc.commands.has('vr-exit')).toBe(false);
+  });
+
+  test('"VR終了" calls onExitVR and confirms', () => {
+    const onExitVR = jest.fn();
+    vc.connectBrowser({ onExitVR });
+    vc.processCommand('VR終了', 0.9);
+    expect(onExitVR).toHaveBeenCalledTimes(1);
+    expect(spoken).toContain('VRモードを終了します');
+  });
+
+  test('"VRモード" calls onEnterVR (same path as the landing Enter-VR button)', () => {
+    const onEnterVR = jest.fn();
+    vc.connectBrowser({ onEnterVR });
+    vc.processCommand('VRモード', 0.9);
+    expect(onEnterVR).toHaveBeenCalledTimes(1);
+  });
+
+  test('"音量上げる" applies +0.1 and speaks the actual resulting level', () => {
+    const onVolumeChange = jest.fn(() => 70);
+    vc.connectBrowser({ onVolumeChange });
+    vc.processCommand('音量上げる', 0.9);
+    expect(onVolumeChange).toHaveBeenCalledWith(0.1);
+    expect(spoken.some((s) => s.includes('70'))).toBe(true);
+  });
+
+  test('"音量下げる" applies -0.1', () => {
+    const onVolumeChange = jest.fn(() => 40);
+    vc.connectBrowser({ onVolumeChange });
+    vc.processCommand('音量下げる', 0.9);
+    expect(onVolumeChange).toHaveBeenCalledWith(-0.1);
+  });
+
+  test('volume commands are honest no-match when the host has no volume control', () => {
+    vc.connectBrowser({}); // no onVolumeChange
+    vc.processCommand('音量上げる', 0.9);
+    expect(spoken.some((s) => s.includes('認識できませんでした'))).toBe(true);
+  });
+
+  test('"日本語入力" toggles the IME keyboard (show when hidden, hide when shown)', () => {
+    const vrKeyboard = { visible: false, show: jest.fn(), hide: jest.fn() };
+    vc.connectBrowser({ vrKeyboard });
+    vc.processCommand('日本語入力', 0.9);
+    expect(vrKeyboard.show).toHaveBeenCalledTimes(1);
+    vrKeyboard.visible = true;
+    vc.processCommand('日本語入力', 0.9);
+    expect(vrKeyboard.hide).toHaveBeenCalledTimes(1);
+  });
+
+  test('"ヘルプ" never advertises commands the host did not wire', () => {
+    vc.connectBrowser({}); // no onExitVR/onVolumeChange — those must not be listed
+    vc.processCommand('ヘルプ', 0.9);
+    expect(spoken[0]).not.toContain('VR終了');
+    expect(spoken[0]).not.toContain('音量上げる');
   });
 });

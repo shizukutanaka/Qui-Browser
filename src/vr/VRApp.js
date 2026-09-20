@@ -2676,6 +2676,24 @@ export class VRApp {
           // text), which is what "下にスクロール" can actually move in VR.
           onScrollContent: (delta) => {
             this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+          },
+          // Hands-free session control — the same paths as the landing
+          // Enter-VR button and the headset's own session end.
+          onEnterVR: () => this.vrButton?.click?.(),
+          onExitVR: () => {
+            this.renderer?.xr?.getSession?.()?.end?.();
+          },
+          // "音量上げる/下げる" — adjusts the same masterVolume setting the
+          // settings-panel stepper drives, persists it, and returns the new
+          // level so VoiceCommands can speak it back.
+          onVolumeChange: (delta) => {
+            const next = Math.max(0, Math.min(100,
+              (this.settings.masterVolume ?? 100) + delta * 100));
+            this.updateSetting('masterVolume', next);
+            if (this.spatialAudio) {
+              this.spatialAudio.setMasterVolume(next / 100);
+            }
+            return next;
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
