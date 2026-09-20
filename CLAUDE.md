@@ -498,6 +498,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 9テスト追加 — playEffect 引数（weakMagnitude=intensity×0.5）、統計 running mean（averageIntensity）、impact/proximity 数学、alert 高緊急度列の単一コントローラ重複排除経路、custom pattern 登録→再生。全緑 — 実装は正しいことを実測確認。
 - 📝 1947 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き47（同セッション）: WebPanel — setCurved ジオメトリ交換と可視性経路を pin（欠陥ゼロ）
+- 🔍 **実測**: `setCurved`（flat↔curved の contentMesh.geometry 交換＋旧ジオメトリ dispose、同一値 no-op、contentMesh 欠落時は現状態返却）、`show`/`hide`/`setVisible`（setVisible は transform 不触摸 — TabManager の grab-to-move 再配置を捨てない設計の意図を pin）、`addToScene(parent)` が scene でなく親コンテナに付ける経路が無検証だった。
+- ✅ **pin**: 8テスト追加（curvedGeometry mock で PlaneGeometry 差替、dispose 呼出、setVisible が position.set を呼ばないことの pin）。全緑 — 実装は正しいことを実測確認。
+- 📝 1955 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
