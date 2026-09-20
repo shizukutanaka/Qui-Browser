@@ -1768,3 +1768,6 @@ addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/web
 
 ### 第163パス（クリーンスキャン — クリップボード）
 clipboard/execCommand API はコードベースに存在しない — 非セキュアコンテキスト失敗経路は構造的に非存在。
+
+### 第164パス（実修正 — Referer 漏洩）
+リーダー `fetch` と iframe の両方に `referrerPolicy: 'no-referrer'` を追加 — アプリ URL/ホスティングパスが任意サイトの Referer ヘッダで漏洩する経路を閉塞（DDG 既定と同じプライバシー姿勢）。

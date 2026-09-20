@@ -196,6 +196,9 @@ export class WebPanel {
     // ── iframe for actual content (when dom-overlay is available) ───────────
     this.iframe = document.createElement('iframe');
     this.iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+    // Don't leak the app's own URL (and hosting path) to arbitrary pages via
+    // the Referer header — the reader browses third-party sites.
+    this.iframe.setAttribute('referrerpolicy', 'no-referrer');
     this.iframe.style.cssText = `
       position: fixed; display: none; border: none;
       width: 960px; height: 540px;
@@ -329,7 +332,12 @@ export class WebPanel {
       // Routed through the companion proxy when one is configured; otherwise a
       // direct fetch, which only reaches CORS-enabled origins (see readerFetchUrl).
       const fetchUrl = readerFetchUrl(url, this.readerProxyUrl);
-      const res = await fetch(fetchUrl, controller ? { signal: controller.signal } : undefined);
+      // no-referrer: third-party reader fetches must not disclose the
+      // hosting URL (privacy — same reason the default engine is DDG).
+      const res = await fetch(fetchUrl, {
+        referrerPolicy: 'no-referrer',
+        ...(controller ? { signal: controller.signal } : {})
+      });
       if (!res || !res.ok) {
         throw new Error(`HTTP ${res && res.status}`);
       }
