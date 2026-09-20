@@ -1552,3 +1552,6 @@ XR フレームループ内 `new` 割当を実測: SpatialAudio は既に scratc
 
 ### 第91パス（クリーンスキャン — テスト健全性）
 `it.skip`/`xdescribe`/`test.todo` ゼロ — 黙殺されたテストなし。コメントアウトされたコード断片もゼロ（検出1件は英文散文の偽陽性）。テストスイートに隠れた無効化なし。
+
+### 第92パス（クリーンスキャン — fetch 応答検証）
+src の fetch 経路は2箇所のみ（JapaneseIME transliterate・WebPanel reader）— 双方 `response.ok` を検査して非2xx を throw。4xx/5xx を成功扱いする嘘の成功経路ゼロ。proxy は上流応答を statusCode ごと透過。
