@@ -1813,3 +1813,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第178パス（クリーンスキャン — ページ遷移経路）
 `window.open`/`location.assign`/`location.href` 書込はゼロ（offline.html の reload のみ）— 全遷移は SPA 内部 or iframe 内完結。
+
+### 第179パス（クリーンスキャン — 乱数用途）
+`Math.random`/`crypto` 使用ゼロ — 非安全乱数・衝突可能 ID 生成経路は非存在。
