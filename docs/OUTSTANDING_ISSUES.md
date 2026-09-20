@@ -1660,3 +1660,6 @@ smooth 移動は `smoothMoveSpeed * dt` で dt 乗算済み（72Hz/90Hz で等�
 
 ### 第127パス（クリーンスキャン — resize/テクスチャ品質）
 window resize は debounce+XR presenting ガード+aspect 更新+解除対称で完全。anisotropy 未設定は正しいトレードオフ — generateMipmaps=false の動的テキスト canvas で aniso は mipmap 前提で死設定になる上、mipmap 再生成は再描画毎のコスト。変更なし。
+
+### 第128パス（クリーンスキャン — ID 一意性）
+ID 生成コードが存在しない — interactables はオブジェクト同一性の配列（includes/indexOf）、タブは配列インデックス、mesh は three の uuid 自動採番。Date.now/random 由来の衝突経路は構造的に存在せず。
