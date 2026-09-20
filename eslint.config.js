@@ -27,6 +27,10 @@ export default [
     },
     rules: {
         'no-unreachable': 'error',
+        'no-useless-catch': 'error',
+        'no-useless-return': 'error',
+        'no-unused-private-class-members': 'error',
+        'prefer-const': 'error',
       'indent': ['error', 2],
       'linebreak-style': ['error', 'unix'],
       'quotes': ['error', 'single', { 'avoidEscape': true }],
