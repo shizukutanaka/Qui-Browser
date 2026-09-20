@@ -518,6 +518,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 6テスト追加 — ホットなテクスチャが追放を生き残る（修正前赤: a が追放されていた）、pruneCache の70%追放、loadKTX2/loadStandardTexture の promise 経路、stats フォーマット、getErrorTexture チェッカーボード描画（64矩形）。
 - 📝 1982 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き51（同セッション）: VoiceCommands.connectBrowser — VR コマンドアクションを pin（欠陥ゼロ）
+- 🔍 **実測**: `connectBrowser` が登録する全 VR コマンド（top-sites/navigate/back/refresh/clear-history/search/scroll-down/scroll-up/bookmarks/keyboard/go-to）のアクション本体が無検証だった — クエリ抽出（'検索：てんき'→'てんき'、'githubを開く'→'github'）、onSearch 不在時の tabManager.navigate フォールバック、scroll ±8 行、keyboard visible 状態トグル、go-to の greedy キャッチオールが specific コマンドを呑まない登録順の優先度（'キーボードを開く'→keyboard）。
+- ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
+- 📝 1992 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
