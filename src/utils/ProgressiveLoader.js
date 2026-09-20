@@ -224,13 +224,15 @@ export class ProgressiveLoader {
       return this.pending.get(item.name);
     }
 
-    // Adapt quality based on network
-    if (this.strategy.adaptiveQuality) {
-      item.url = this.getAdaptiveUrl(item.url);
-    }
+    // Adapt quality based on network. Derive a fresh URL per attempt without
+    // mutating item.url — otherwise each retry re-suffixes the already-adapted
+    // URL (photo.jpg → photo_high.jpg → photo_high_high.jpg → 404).
+    const effectiveItem = this.strategy.adaptiveQuality
+      ? { ...item, url: this.getAdaptiveUrl(item.url) }
+      : item;
 
     // Create loading promise
-    const loadPromise = this.performLoad(item);
+    const loadPromise = this.performLoad(effectiveItem);
     this.pending.set(item.name, loadPromise);
 
     try {

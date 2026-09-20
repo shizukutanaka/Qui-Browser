@@ -65,23 +65,14 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ### ~~B-1. `DeviceCompatibility.js` の AR 機能フラグが不正確~~ — **完了（Session 75）**
 - 消費者ゼロの死んだ計算値とはいえ「VR専用端末が AR 機能を持つ」と嘘をつく診断値だったため修正。`check()` が `arSupported` を `_probeOptionalFeatures` に渡し、`hitTest`/`anchors`/`planeDetection` は `arSupported && tier条件` で判定（`handTracking`/`foveatedRendering` は引き続き `vrSupported` 基準）。`arSupported` 省略時は従来通り `vrSupported` にフォールバック。
 
-### B-2. `curvedGeometry.js` の頂点インデックスバッファがオーバーフローしうる（優先度: 低、難易度: 低）
-- **場所**: `src/vr/browser/curvedGeometry.js` の `curvedPlaneData()`（57行目: `new Uint16Array(sx * sy * 6)`）
-- **問題**: `Uint16Array` は 65,535 が上限。`cols * rows`（= `(segmentsX+1) * (segmentsY+1)`）がこれを超えると、頂点インデックスが暗黙にラップして破損したジオメトリになる（エラーは出ない）。
-- **なぜ未修正か**: 唯一の呼び出し元 `src/vr/browser/WebPanel.js:549-554` は `segmentsX: 24, segmentsY: 1` を固定値で渡しており、頂点数は50。65,536に到達する余地が現状ゼロ。
-- **対応するなら**: `cols * rows > 65536` の場合は `Uint32Array` にフォールバックする（`geo.setIndex` は Uint32BufferAttribute も受け付ける）。ただし今日的には到達不能なので優先度は低い。
+### ~~B-2. `curvedGeometry.js` の頂点インデックスバッファがオーバーフローしうる~~ — **完了（Session 75）**
+- 修正: `cols * rows > 65536` のとき `Uint32Array` にフォールバック（`setIndex` はどちらも受け付けるため呼び出し側の変更不要）。小メッシュは引き続き Uint16 を使う。到達不能でも「直すのが一行」なら潰す —— Musk「簡単に直せる潜在バグは直す」。
 
-### B-3. `TextureManager` 経由ではない `ProgressiveLoader.getAdaptiveUrl()` の非冪等性（優先度: 低、難易度: 中）
-- **場所**: `src/utils/ProgressiveLoader.js` の `loadResource()`（216–259行目付近）と `getAdaptiveUrl()`（452–470行目付近）
-- **問題**: `getAdaptiveUrl()` は拡張子の直前に品質サフィックスを挿入する（例: `photo.jpg` → `photo_high.jpg`）が、冪等ではない。`loadResource()` の再試行パスは自分自身を再帰呼び出しするため、リトライのたびに `item.url`（既に加工済み）に対して再度 `getAdaptiveUrl()` が適用され、`photo_high.jpg` → `photo_high_high.jpg` のようにサフィックスが累積し、ほぼ確実に404になる。
-- **なぜ未修正か**: `strategy.adaptiveQuality` はデフォルト `true` だが、現行コードで `addResource`/`loadResource` を実際に呼んでいるのは `VRApp.loadAudioAssets()` のみで、これは `.mp3` しか読み込まない。`getAdaptiveUrl()` の対象拡張子は `/\.(jpg|jpeg|png|webp|mp4|webm)$/i` なので `.mp3` にはマッチせず、このバグ自体は現状どこからも到達しない。
-- **対応するなら**: 加工済みURLかどうかを判定する（例えば正規表現でサフィックス済みかチェックする）か、リトライ時は「オリジナルURL」を別フィールドで保持し、毎回オリジナルから再導出する設計に直す。画像/動画を実際にロードする呼び出し元が将来追加されたときに顕在化するバグなので、その時点で一緒に直すのが自然。
+### ~~B-3. `ProgressiveLoader.getAdaptiveUrl()` の非冪等性~~ — **完了（Session 75）**
+- 修正: `item.url` を mutate せず、`performLoad` に `{ ...item, url: getAdaptiveUrl(item.url) }` の派生コピーを渡す方式に変更。リトライは常にオリジナル URL から再導出されるため冪等（`photo_high.jpg` 固定・`photo_high_high.jpg` にならない）。`item.url` の副作用が無くなったこともテストで pin。
 
-### B-4. `TabManager` のタブストリップのホバー色がdispose時にリセットされない（優先度: 極低、難易度: 低）
-- **場所**: `src/vr/browser/TabManager.js` の `stripMesh` のホバーハンドラ（73–79行目）と `dispose()`（324行目以降）
-- **問題**（Session 25 で指摘、未修正のまま）: `dispose()` は `unregisterInteractable(stripMesh)` を呼ぶが、ホバー中に破棄されると、次フレームの `updateHover()` が「以前ホバーしていたオブジェクト」の `onHoverEnd` を呼び、既に破棄済みの `material.color.set(...)` を実行する。
-- **なぜ優先度が低いか**: 自分で追跡・検証済み。`THREE.Material.dispose()` は `.color`（Colorインスタンス）自体をnullにしない — GPUリソース解放をレンダラーに通知するだけなので、破棄後に `.color.set()` を呼んでも例外は出ず、単に無駄な代入が発生するだけ。実害（クラッシュや誤表示）は無い。
-- **対応するなら**: `dispose()`内で `controller.userData.hovered` からこの `stripMesh` への参照も明示的にクリアするか、`onHoverEnd` ハンドラ内で `this.stripMesh` の生存確認を厳密にする。優先度が低いため急ぎ対応不要。
+### ~~B-4. `TabManager` のタブストリップのホバー色がdispose時にリセットされない~~ — **完了（Session 75）**
+- 修正: `dispose()` 末尾で `this.stripMesh = null`。既存の `if (this.stripMesh)` ガードが遅延 onHoverEnd からの `material.color.set()` を自然に遮断する。実害ゼロのバグでもハンドルの断絶は一行で済むため潰した。テストで dispose 後の handler 呼出しが no-op であることを pin。
 
 ---
 

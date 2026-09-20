@@ -428,3 +428,25 @@ describe('TabManager.setReaderProxyUrl', () => {
     expect(panelInstances[0].readerProxyUrl).toBe('');
   });
 });
+
+// B-4: dispose() unregistered the strip but left this.stripMesh pointing at the
+// dead mesh — a late onHoverEnd from the interaction system would then run
+// material.color.set() on a disposed material. Harmless today (Color.set never
+// throws), but a dangling handle is a dangling handle.
+describe('B-4: dispose severs the strip handle', () => {
+  test('dispose() nulls stripMesh and a late onHoverEnd is a no-op', () => {
+    const interactables = new Map();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: (mesh, h) => interactables.set(mesh, h),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn()
+    });
+    const handlers = interactables.get(tm.stripMesh);
+    expect(handlers).toBeTruthy();
+    tm.dispose();
+    expect(tm.stripMesh).toBeNull();
+    expect(() => handlers.onHoverEnd()).not.toThrow();
+    expect(() => handlers.onHover()).not.toThrow();
+  });
+});

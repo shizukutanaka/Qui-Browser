@@ -23,7 +23,7 @@
  * @param {number} opts.radius           — curve radius (≈ viewing distance)
  * @param {number} [opts.segmentsX=24]   — horizontal subdivisions
  * @param {number} [opts.segmentsY=1]    — vertical subdivisions
- * @returns {{positions:Float32Array, uvs:Float32Array, indices:Uint16Array}}
+ * @returns {{positions:Float32Array, uvs:Float32Array, indices:Uint16Array|Uint32Array}}
  */
 export function curvedPlaneData({ width, height, radius, segmentsX = 24, segmentsY = 1 }) {
   const sx = Math.max(1, Math.floor(segmentsX));
@@ -53,8 +53,11 @@ export function curvedPlaneData({ width, height, radius, segmentsX = 24, segment
     }
   }
 
-  // Two triangles per quad.
-  const indices = new Uint16Array(sx * sy * 6);
+  // Two triangles per quad. Uint16 tops out at 65,535 — over that, indices
+  // would silently wrap and produce corrupted triangles, so widen to Uint32.
+  const indices = cols * rows > 65536
+    ? new Uint32Array(sx * sy * 6)
+    : new Uint16Array(sx * sy * 6);
   let i = 0;
   for (let r = 0; r < sy; r++) {
     for (let c = 0; c < sx; c++) {

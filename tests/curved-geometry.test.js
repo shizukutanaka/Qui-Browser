@@ -113,3 +113,35 @@ describe('buildCurvedPlaneGeometry', () => {
     expect(geo._normals).toBe(true);
   });
 });
+
+// B-2: Uint16 tops out at 65,535 — a mesh with more vertices than that gets a
+// silently-wrapping index buffer and corrupted triangles (no error). The only
+// caller today pins 24×1 segments, but the function is public API and the fix
+// is one line: fall back to Uint32 when the vertex count needs it.
+describe('B-2: index buffer width', () => {
+  test('small meshes keep the compact Uint16 buffer', () => {
+    const { indices } = curvedPlaneData({ width: 1.6, height: 1, radius: 2.2 });
+    expect(indices).toBeInstanceOf(Uint16Array);
+  });
+
+  test('>65,535 vertices switches to Uint32 instead of wrapping', () => {
+    // 256×256 segments = 257² = 66,049 vertices — over the Uint16 ceiling.
+    const { positions, indices } = curvedPlaneData({
+      width: 1.6, height: 1, radius: 2.2, segmentsX: 256, segmentsY: 256
+    });
+    expect(indices).toBeInstanceOf(Uint32Array);
+    const vertexCount = positions.length / 3;
+    expect(vertexCount).toBeGreaterThan(65535);
+    for (let i = 0; i < indices.length; i++) {
+      expect(indices[i]).toBeLessThan(vertexCount);
+    }
+  });
+
+  test('the 65,536 boundary itself picks Uint32', () => {
+    // 255×256 segments = 256×257 = 65,792 vertices; index 65,536+ must exist.
+    const { indices } = curvedPlaneData({
+      width: 1.6, height: 1, radius: 2.2, segmentsX: 255, segmentsY: 256
+    });
+    expect(indices).toBeInstanceOf(Uint32Array);
+  });
+});

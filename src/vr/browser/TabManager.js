@@ -453,5 +453,8 @@ export class TabManager {
       }
     });
     this.scene.remove(this.rootGroup);
+    // Sever the handle: a late onHoverEnd from the interaction system would
+    // otherwise run material.color.set() on the disposed mesh (B-4).
+    this.stripMesh = null;
   }
 }
