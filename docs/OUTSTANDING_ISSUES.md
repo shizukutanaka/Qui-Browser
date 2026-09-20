@@ -1071,6 +1071,22 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,359 tests・lint 0 errors・build PASS・vr-boot PASS。
 
+### 第29パス（TextureManager — 初期化されるが一度も使われない subsystem 削除）
+
+- `TextureManager`（394行 + KTX2Loader）は production で
+  `initializeKTX2()` まで走るが、`loadTexture` の実呼び出し元は
+  `VRApp.loadTexture` ラッパーのみで、そのラッパーの呼び出し元は
+  **ゼロ**（JSDoc 例のみ）。パス5同型の「初期化だけする死んだ
+  サブシステム」→ モジュール + 専用テスト + VRApp 配線一式削除。
+- 連鎖孤児も除去: index.html の jsdelivr preconnect（KTX2
+  トランスコーダ CDN 先が唯一の用途）、SW の `/.ktx2$/` キャッシュ
+  ルール、vite manualChunks の tier1 エントリ。
+- `stats.textureMemory`/`textureCompression` フィールドは P-key
+  overlay が `? :` ガード付きで参照していたため安全に消滅。
+
+計測: 43 suites / 1,343 tests・lint 0 errors・build 0.7s・
+verify:docs・vr-boot 全 PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

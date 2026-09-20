@@ -34,8 +34,7 @@ export default defineConfig({
           // Tier 1 optimizations
           'tier1': [
             '/src/vr/rendering/FFRSystem.js',
-            '/src/vr/comfort/ComfortSystem.js',
-            '/src/utils/TextureManager.js'
+            '/src/vr/comfort/ComfortSystem.js'
           ],
 
           // Tier 2 features (lazy loaded)

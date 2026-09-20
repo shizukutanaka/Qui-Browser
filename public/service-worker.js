@@ -32,7 +32,6 @@ const CRITICAL_ASSETS = [
 const CACHE_PATTERNS = {
   // Cache first - static assets that rarely change
   cacheFirst: [
-    /\.ktx2$/,     // KTX2 compressed textures
     /\.wasm$/,     // WebAssembly modules
     /\.glb$/,      // 3D models
     /\.gltf$/,     // 3D models
