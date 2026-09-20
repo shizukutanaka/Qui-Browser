@@ -1765,3 +1765,6 @@ addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/web
 
 ### 第162パス（クリーンスキャン — frecency/時計逆行）
 `frecencyScore` は `Math.max(0, now - visitedAt)` で時計逆行を最新スコアとして安全に扱う — 負値・NaN 破綻経路なし。
+
+### 第163パス（クリーンスキャン — クリップボード）
+clipboard/execCommand API はコードベースに存在しない — 非セキュアコンテキスト失敗経路は構造的に非存在。
