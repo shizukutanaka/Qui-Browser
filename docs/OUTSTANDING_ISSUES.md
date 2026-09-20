@@ -1540,3 +1540,6 @@ tests/helpers/contrast.js の全5 export はテスト実使用を確認。proxy/
 
 ### 第87パス（クリーンスキャン — i18n キー実在性）
 全 `t()` 呼出しキー（~120件・src+tests）が CATALOG に実在 — ユーザーに生キーが見える嘘ゼロ。唯一の不一致 `does.not.exist` は i18n.test.js の意図的な未知キーフォールバック検証。
+
+### 第88パス（時計ソース監査 — 実バグ摘出）
+`animateSnapTurn`（前庭快適性アニメーション）が壁時計 `Date.now()` 駆動で NTP 補正による途中逆行/跳躍の可能性 → `performance.now()` + rAF フレームタイムスタンプへ。初回呼出は `animate(startTime)` で progress=0 を決定的に固定。他の `Date.now()` は永続化タイムスタンプ/イベント時刻で全て正当。
