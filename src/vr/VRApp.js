@@ -30,6 +30,7 @@ import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
+import { canvasButton, controllerRay } from './ui/canvasMesh.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 
 import { TabManager } from './browser/TabManager.js';
@@ -551,34 +552,13 @@ export class VRApp {
    * @param {number} h  height in metres
    * @returns {THREE.PlaneGeometry}
    */
-  _sharedPlaneGeometry(w, h) {
-    const keyStr = `${w}x${h}`;
-    let geo = this._sharedGeometries.get(keyStr);
-    if (!geo) {
-      geo = new THREE.PlaneGeometry(w, h);
-      this._sharedGeometries.set(keyStr, geo);
-    }
-    return geo;
-  }
-
   /**
    * Shared scaffold for the canvas-textured settings buttons: allocates the
    * canvas, a tracked texture, and a shared-geometry mesh. `draw(hover)`
    * repaints; `mesh._redraw` restores the idle state after rebuilds.
    */
   _canvasButton(w, h, widthM) {
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    this._panelTextures.push(tex);
-    const mesh = new THREE.Mesh(
-      this._sharedPlaneGeometry(widthM, 0.17),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-    );
-    return { ctx, tex, mesh };
+    return canvasButton(this._sharedGeometries, this._panelTextures, w, h, widthM);
   }
 
   _registerCanvasButton(mesh, draw, handlers) {
@@ -1819,15 +1799,7 @@ export class VRApp {
    * `new` in the render loop.)
    */
   raycasterFromController(controller) {
-    if (!this._sharedRaycaster) {
-      this._sharedRaycaster = new THREE.Raycaster();
-      this._tmpRayMatrix = new THREE.Matrix4();
-    }
-    const m = this._tmpRayMatrix.extractRotation(controller.matrixWorld);
-    const raycaster = this._sharedRaycaster;
-    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(m);
-    return raycaster;
+    return controllerRay(controller);
   }
 
   onTeleportStart(controller) {

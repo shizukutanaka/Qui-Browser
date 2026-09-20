@@ -1156,6 +1156,19 @@ docs/ランディング/テストインフラの全層で「目的を説明で�
 それは削除系スイープではなく設計変更 — 価値密度の比較では
 「何もしない」が正当化される地点に到達。
 
+### 第35パス（C-1 最初の安全スライス: canvas-mesh ヘルパー抽出）
+
+- `src/vr/ui/canvasMesh.js` を新設し3ヘルパーを移動:
+  `planeGeometry`（shared geometry cache、旧 _sharedPlaneGeometry）、
+  `canvasButton`（canvas+texture+mesh scaffold、旧 _canvasButton）、
+  `controllerRay`（共有 Raycaster、旧 raycasterFromController —
+  状態を VRApp インスタンスから module singleton へ移動）。
+- VRApp は薄い delegate 1行に置換（5+3 呼び出しサイトは不変）—
+  挙動不変の純粋移動で、設定ボタン工場の将来の抽出への縫い目を作る。
+
+計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
+build 0.7s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
