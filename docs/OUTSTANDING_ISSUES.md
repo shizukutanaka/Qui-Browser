@@ -1585,3 +1585,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第102パス（クリーンスキャン — DOM レイアウトスラッシュ）
 `innerText`/`getBoundingClientRect`/`offsetWidth`/`document.cookie`/`sessionStorage` ゼロ。唯一のレイアウト読取は DevTools の `scrollTop=scrollHeight` 自動スクロール（メッセージ毎に1回・ループ外）で正当。リフロー罠ゼロ。
+
+### 第103パス（実修正 — 2D a11y: キーボードフォーカス指標）
+`outline: none` なし（ブラウザ既定リングは生きている）・`aria-hidden` は装飾アイコンのみ正当。ただしフォーカス指標を UA 既定に丸投げしていた — 暗いパレット上で UA 青と `--color-vr`(#5e72e4) が近接しブラウザ間で一貫しない → `:focus-visible` に明示的ライトリング（#88bbff、util-toggle の既存アクセントと一致）を追加。WCAG 2.4.7 を設計意図として固定。

@@ -293,3 +293,12 @@ body.a11y-reduced-motion *::after {
     background: #3a6ea5 !important;
     border-color: #88bbff !important;
 }
+
+/* Keyboard focus indicator. The browser default outline is visible, but on the
+   dark landing palette its blue can sit close to --color-vr/#5e72e4 accents and
+   vary across browsers; a deliberate light ring keeps focus unambiguous for
+   keyboard users (WCAG 2.4.7) without changing pointer UX. */
+:focus-visible {
+    outline: 3px solid #88bbff;
+    outline-offset: 3px;
+}
