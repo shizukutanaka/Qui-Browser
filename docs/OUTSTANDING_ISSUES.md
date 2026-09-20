@@ -1546,3 +1546,6 @@ tests/helpers/contrast.js の全5 export はテスト実使用を確認。proxy/
 
 ### 第89パス（クリーンスキャン — i18n 死キー）
 CATALOG 全120キーの逆方向監査: 検出12件は全て生存（三項演算子による動的キー選択・SECTIONS 配列のデータ駆動キー・`data-i18n-attr` HTML 属性参照）。真の死キーゼロ。
+
+### 第90パス（フレームループ割当走査 — 実最適化）
+XR フレームループ内 `new` 割当を実測: SpatialAudio は既に scratch 再利用済み。`HandTracking.update` の `new Set()`+`prevVisible` リテラルは毎フレーム ~90回/秒の GC 餌 → コンストラクタの `_seenHands`/`_prevVisible` に再利用化。`getPinchPosition` の Vector3 はイベント時呼出で返却所有権が必要 → 保持。
