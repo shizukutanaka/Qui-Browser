@@ -272,10 +272,15 @@ export class SpatialAudio {
       this.setSourcePosition(sourceName, position.x, position.y, position.z);
     }
 
-    // Track end of playback
-    source.node.onended = () => {
-      source.isPlaying = false;
-      this.stats.sourcesActive--;
+    // Track end of playback. Capture the node and only apply state when it
+    // is still the source's current node — after a restart the OLD node's
+    // late onended must not clobber the new playback's isPlaying / counts.
+    const node = source.node;
+    node.onended = () => {
+      if (source.node === node) {
+        source.isPlaying = false;
+        this.stats.sourcesActive--;
+      }
     };
 
     // Start playback
@@ -300,7 +305,14 @@ export class SpatialAudio {
       source.node.stop();
       source.node.disconnect();
       source.node = null;
-      source.isPlaying = false;
+      // Decrement only when we counted this source as playing — after a
+      // natural end onended already decremented, and stop() must not
+      // double-count. The stopped node's late onended also sees
+      // source.node !== node and skips, so the count fires exactly once.
+      if (source.isPlaying) {
+        source.isPlaying = false;
+        this.stats.sourcesActive--;
+      }
 
       // Update play time statistics
       if (source.startTime) {
