@@ -597,6 +597,58 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 ---
 
+## M. 品質ゲートの死体（Session 75 で実測・一部修正）
+
+README/CLAUDE.md が「lint 0 errors・build 緑」を品質の根拠として掲げているが、
+`main` で 4 ゲートを実走したところ **3 つが一度も成功していない状態**だった。
+
+| ゲート | main の実測 | 結果 |
+|---|---|---|
+| `npm run lint` | exit 2 — ESLint 9.39.5 に flat config が無く `.eslintrc.json` は無視される | 修正済み |
+| `npm run build` | `MODULE_NOT_FOUND: @rollup/rollup-darwin-arm64` — ロックファイルにプラットフォーム別 optional エントリが未収録 | 修正済み |
+| `npm test` | 1480 pass / 47 suites | 元から緑 |
+| `npm run format:check` | exit 2 — **262 ファイルが未整形** | 未修正（下記） |
+
+**lint の修正**: `.eslintrc.json`（86 行）を `eslint.config.js` flat config に逐語移植。
+`env`/`globals`/`extends`/全 ~30 ルールを等価に写し、`@eslint/js` と `globals` を
+devDependencies に宣言（従来は transitive のみ）。`.eslintrc.json` は ESLint 9 に
+完全に無視される死体なので削除（アルゴリズム step 2）。ついでに2件の実バグ:
+旧 override の glob `*.test.js` は `tests/` にマッチしていなかった → `tests/**/*.test.js` に修正。
+`tools/verify-documentation.js`・`tools/pre-release-validation.js` が
+`.eslintrc.json` の存在を検査していたので `eslint.config.js` に更新。
+移植後の実測: **0 errors / 136 warnings**（すべて既存の no-console・max-len・未使用変数）、exit 0。
+
+**build の修正（外科的ロックファイル修復）**: `package-lock.json` に
+`@esbuild/*@0.21.5` ×22、`@img/sharp-*`/`libvips` ×21、`@rollup/rollup-*@4.61.1` ×25 の
+optional プラットフォームエントリ **68 件**をスクラッチロックファイルから移植
+（`optionalDependencies` 宣言 + `npm install --package-lock-only` で取得 — npm は
+直接 deps の cpu/os を強制するが optional には適用しない挙動を利用）。
+**既存バージョンの変化ゼロ・削除ゼロ**を実測で確認（全量再生成だと jest 29→30 等
+55 件の transitive churn が発生するため却下）。`rm -rf node_modules && npm ci`
+→ darwin バイナリが揃い `npm run build` 緑（1.95s）。
+
+**verify:app の macOS 修正**: stderr 走査の環境ノイズ除外リストが Linux 向け
+（`dbus|GPU|Vulkan|udev` 等）のみで、macOS ヘッドレス Chrome が必ず吐く
+`CVDisplayLinkCreateWithCGDisplay` / `task_policy_set` を「page error」と誤報していた。
+`*_mac.(cc|mm)` ソース由来の ERROR 行をクラス単位で除外 ——
+`Uncaught TypeError`・`Failed to load` が残ることを合成 stderr で検証済み。
+
+### M-1. 未修正（判断待ち）: `format:check` が 262 ファイルで赤
+
+失敗内訳（実測）: docs 139 / src 45 / tests 42 / root 13 / その他 23。
+「全ファイルが prettier-clean」という要件は**一度も真になっていない**。
+
+2つの解消経路:
+- **採用**: `npx prettier --write` 全面適用。262 ファイルの機械的差分が生じ、
+  eslint の `indent` ルールとの競合解消（ルール削除）も必要 —— PR #58 が
+  同型の全面整形を含んで**マージされず close** された実績がある。
+- **廃止**: `format`/`format:check` スクリプトと prettier devDep を削除し、
+  「整形はオーナーの任意」という現実を明文化。
+
+オーナーの判断が必要なため、本 PR では gate をそのまま残しこの記録のみ追加。
+
+---
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

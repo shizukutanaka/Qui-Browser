@@ -193,7 +193,7 @@ function main() {
     'package.json',
     'vite.config.js',
     'jest.config.js',
-    '.eslintrc.json',
+    'eslint.config.js',
     '.prettierrc.json',
     'Dockerfile',
     'docker-compose.yml',

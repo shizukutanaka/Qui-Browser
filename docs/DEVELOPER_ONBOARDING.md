@@ -579,27 +579,26 @@ Closes #234
 **ESLint + Prettier設定:**
 
 ```javascript
-// .eslintrc.json
-{
-  "env": {
-    "browser": true,
-    "es2021": true
-  },
-  "extends": "eslint:recommended",
-  "parserOptions": {
-    "ecmaVersion": 12,
-    "sourceType": "module"
-  },
-  "rules": {
-    "indent": ["error", 2],
-    "quotes": ["error", "single"],
-    "semi": ["error", "always"],
-    "no-console": ["warn", { "allow": ["warn", "error", "info"] }],
-    "no-var": "error",
-    "prefer-const": "error",
-    "eqeqeq": ["error", "always"]
+// eslint.config.js (flat config — ESLint 9)
+module.exports = [
+  require('@eslint/js').configs.recommended,
+  {
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'module',
+      globals: { /* browser, node, jest, THREE, XR*, GPU* */ }
+    },
+    rules: {
+      'indent': ['error', 2],
+      'quotes': ['error', 'single'],
+      'semi': ['error', 'always'],
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'always']
+    }
   }
-}
+];
 ```
 
 **Good Examples:**

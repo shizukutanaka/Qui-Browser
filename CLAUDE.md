@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 品質ゲートの4本中3本が死んでいた — lint は ESLint 9 に撃たれ、build はロックファイルが欠損だった
+「lint 0 errors・build green」はこのリポジトリが品質の根拠として繰り返し掲げてきた主張（続き12 の報告行にもある）。**ソクラテス式に検証したところ、主張と実装が矛盾していた — `main` で4ゲートを実走すると3つが死んでいた。**
+- 🔍 **実測（main、修正前）**: `npm run lint` → exit 2。ESLint 9.39.5 は `.eslintrc.json` を**完全に無視**し flat config を要求するが、リポジトリに `eslint.config.js` は存在しない。つまり「0 errors」は「lint が0件動いた」。`npm run build` → `MODULE_NOT_FOUND: @rollup/rollup-darwin-arm64`。`package-lock.json` にプラットフォーム別 optional 依存が**68件まるごと未収録**で、`npm ci` が darwin のネイティブバイナリを一切入れない。`npm run format:check` → exit 2、**262ファイル未整形**（docs 139 / src 45 / tests 42）。緑だったのは `npm test`（1480/47）のみ。
+- 🔍 **ロックファイル欠損の構造**: `npm install --package-lock-only` では治らない（npm bug 4828）。node_modules を残した全量再生成は `.package-lock.json` の poison で0件しか戻さず、両方消した全量再生成は **55件の transitive churn**（jest 29→30、picomatch 2→4、rollup 4.61→4.63）を引く —— ゲート修復に紛れて依存を擦り替えるのは最悪手。**外科的修復**: 68件のプラットフォームエントリだけをスクラッチロックファイルから移植し、**既存バージョン変化ゼロ・削除ゼロ**を実測で確認（取得方法: npm は直接 deps の cpu/os を強制するが `optionalDependencies` には適用しない —— これを利用してスクラッチ `package.json` で取り寄せた）。
+- 🔧 **lint 修復**: `.eslintrc.json`（86行）を `eslint.config.js` flat config に逐語移植 —— env（browser/es2021/node/jest）、globals（THREE/XR*/GPU*）、extends eslint:recommended、全 ~30 ルールを等価に。`@eslint/js`・`globals` を devDeps に宣言（従来 transitive のみ）。`.eslintrc.json` は死体なので削除（step 2）。移植で**2件の潜伏バグ**が露出したので同時修正: ①旧 override の glob `*.test.js` は `tests/` に一度もマッチしていなかった → `tests/**/*.test.js` ②`tools/verify-documentation.js`・`tools/pre-release-validation.js` が `.eslintrc.json` の存在を検査していた → `eslint.config.js` に更新。移植後実測: **0 errors / 136 warnings**（すべてコードが元から持つ no-console・max-len・未使用変数 —— これまで lint が一度も走っていなかったので警告は新規ではない）、exit 0。
+- 🔧 **verify:app の macOS 誤報**: stderr 走査の env-artifact 除外リストが Linux 向けのみ（`dbus|GPU|Vulkan|udev`…）で、macOS ヘッドレス Chrome が必ず吐く `CVDisplayLinkCreateWithCGDisplay`/`task_policy_set` を「page error」と誤報。`*_mac.(cc|mm)` ソース由来 ERROR をクラス単位で除外。`Uncaught TypeError`/`Failed to load` が残ることを合成 stderr で検証（検出経路は無傷）。
+- ⚖️ **format:check は未修正で記録のみ**（OUTSTANDING_ISSUES.md M-1）: 「全ファイル prettier-clean」の要件は一度も真でなく、解消は262ファイルの機械的整形（=オーナーが close した #58 と同型の PR）かゲート廃止かの判断待ち。lint+build の修復に全面整形を混ぜると PR がまた肥大するため、本 PR は外科的に留めた。
+- ✅ 修正後の実測: lint exit 0 (0 errors/136 warnings)、test 1480/47、build ✓ 1.95s、verify:app/verify:layout/verify:vr-boot/verify:docs すべて PASS（CHROME_PATH に macOS Chrome を指定）。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
