@@ -10,14 +10,14 @@ import * as THREE from 'three';
 // Tier 1 Optimizations
 
 // Tier 2 Features
-import { resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
+import { resolveComfortPreset } from './comfort/ComfortSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl, hostnameCaption } from './browser/urlDisplay.js';
 import { showVRToast } from './ui/vrToast.js';
 import { controllerRay } from './ui/canvasMesh.js';
-import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect } from './interaction/inputRouting.js';
+import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect, updateHover, onTeleportStart, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
 
 import { resolveWindowDistance, firePanelGrabFeedback } from './browser/WindowManager.js';
@@ -29,7 +29,7 @@ import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/set
 import { createHomeEnvironment } from './homeEnvironment.js';
 import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
 import { initializeSystems, dispose } from './systemsLifecycle.js';
-import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
+import { onVRSessionStart, onVRSessionEnd, _detachPanelLayer } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 
@@ -310,6 +310,30 @@ export class VRApp {
 
   dispose() {
     return dispose(this);
+  }
+
+  onTeleportStart(controller) {
+    return onTeleportStart(this, controller);
+  }
+
+  onTeleportEnd() {
+    return onTeleportEnd(this);
+  }
+
+  _resetTeleportAim() {
+    return _resetTeleportAim(this);
+  }
+
+  _cancelTeleportIfAimedBy(controller) {
+    return _cancelTeleportIfAimedBy(this, controller);
+  }
+
+  updateHover() {
+    return updateHover(this);
+  }
+
+  _detachPanelLayer(layerId) {
+    return _detachPanelLayer(this, layerId);
   }
 
   async initialize() {
@@ -634,30 +658,6 @@ export class VRApp {
     return controllerRay(controller);
   }
 
-  onTeleportStart(controller) {
-    if (!this.settings.enableTeleport || !this.floorMesh) {
-      return;
-    }
-    this.teleport.active = true;
-    this.teleport.controller = controller;
-  }
-
-  onTeleportEnd() {
-    const t = this.teleport;
-    if (t.active && t.valid && t.target) {
-      // Move the rig by the delta between the head's ground position and the
-      // target so the user ends up standing on the marker.
-      const head = new THREE.Vector3();
-      this.camera.getWorldPosition(head);
-      this.playerRig.position.x += t.target.x - head.x;
-      this.playerRig.position.z += t.target.z - head.z;
-
-      // Cross-modal landing confirmation: haptic impact on the triggering
-      // controller + caption for caption-enabled users.
-      fireTeleportFeedback(t.controller, this.hapticFeedback, this.captionSystem);
-    }
-    this._resetTeleportAim();
-  }
 
   /**
    * Clear teleport-aim state (active/controller/marker) WITHOUT completing a
@@ -666,15 +666,6 @@ export class VRApp {
    * mid-aim, where completing the teleport to a stale raycast target would be
    * the wrong behavior (the user never released the squeeze intentionally).
    */
-  _resetTeleportAim() {
-    const t = this.teleport;
-    t.active = false;
-    t.valid = false;
-    t.controller = null;
-    if (t.marker) {
-      t.marker.visible = false;
-    }
-  }
 
   /**
    * Cancel (not complete) an in-progress teleport aim if `controller` is the
@@ -685,11 +676,6 @@ export class VRApp {
    * stuck true and the marker frozen at its last raycast position
    * indefinitely, since updateTeleport() has no inputSource guard of its own.
    */
-  _cancelTeleportIfAimedBy(controller) {
-    if (this.teleport.active && this.teleport.controller === controller) {
-      this._resetTeleportAim();
-    }
-  }
 
   /**
    * Per-frame locomotion input: snap turn on the right thumbstick. Rotates the
@@ -797,28 +783,6 @@ export class VRApp {
    * Per-frame hover detection for each controller ray against interactables,
    * firing onHover/onHoverEnd as the hovered object changes.
    */
-  updateHover() {
-    if (this.interactables.length === 0) {
-      return;
-    }
-    for (const controller of this.controllers) {
-      const hit = this.raycasterFromController(controller)
-        .intersectObjects(this.interactables, false)
-        .find(h => isWorldVisible(h.object));
-      const obj = hit ? hit.object : null;
-      const prev = controller.userData.hovered || null;
-      if (prev === obj) {
-        continue;
-      }
-      if (prev && prev.userData.interactable && prev.userData.interactable.onHoverEnd) {
-        prev.userData.interactable.onHoverEnd();
-      }
-      if (obj && obj.userData.interactable && obj.userData.interactable.onHover) {
-        obj.userData.interactable.onHover();
-      }
-      controller.userData.hovered = obj;
-    }
-  }
 
   /** Return the player to the origin (useful after teleporting around). */
   recenter() {
@@ -923,44 +887,6 @@ export class VRApp {
    * FR-1.5: Create one XRQuadLayer per open WebPanel and wire it up.
    * Called from onVRSessionStart() after LayersSystem.initialize() succeeds.
    */
-  _attachLayersToPanels(session) {
-    const refSpace = this.renderer.xr.getReferenceSpace();
-    if (!refSpace) {
-      return;
-    }
-
-    const panels = this.tabManager
-      ? this.tabManager.tabs
-      : (this.webPanel ? [this.webPanel] : []);
-
-    for (let i = 0; i < panels.length; i++) {
-      const panel = panels[i];
-      const layerId = `panel_chrome_${i}`;
-      const quadLayer = this.layersSystem.createQuadLayer({
-        id    : layerId,
-        space : refSpace,
-        // Chrome bar: same physical dimensions as the Three.js chromeMesh
-        // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
-        width  : 1.6,
-        height : 0.08,
-        pixelWidth  : 2048,
-        pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
-      });
-      if (quadLayer) {
-        // Pass the id + a detach callback so closing this tab mid-session
-        // releases exactly its layer (see _detachPanelLayer).
-        panel.enableLayerMode(quadLayer, this.layersSystem, layerId,
-          (id) => this._detachPanelLayer(id));
-      }
-    }
-
-    // Commit the layer stack: Three.js base layer + our panel quad layers.
-    const baseLayer = this.renderer.xr.getBaseLayer
-      ? this.renderer.xr.getBaseLayer()
-      : null;
-    this.layersSystem.updateRenderState(session, baseLayer);
-    console.debug(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
-  }
 
   /**
    * Release a single panel's XRQuadLayer mid-session (invoked when a tab is
@@ -973,18 +899,6 @@ export class VRApp {
    * NOT route through here — it bulk-disposes the whole LayersSystem instead.
    * @param {string} layerId
    */
-  _detachPanelLayer(layerId) {
-    if (!this.layersSystem) {
-      return;
-    }
-    const session = this.renderer.xr.getSession
-      ? this.renderer.xr.getSession()
-      : null;
-    const baseLayer = this.renderer.xr.getBaseLayer
-      ? this.renderer.xr.getBaseLayer()
-      : null;
-    this.layersSystem.removeLayer(layerId, session, baseLayer);
-  }
 
   /**
    * Main render loop

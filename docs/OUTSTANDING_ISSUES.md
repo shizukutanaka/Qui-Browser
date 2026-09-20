@@ -1184,6 +1184,20 @@ build 0.7s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.68s・vr-boot PASS。
 
+### 第47パス（C-1 追加スライス: teleport/layers/updateHover 抽出）
+
+- `_attachLayersToPanels` + `_detachPanelLayer` を sessionLifecycle.js へ
+  （呼び出し元が onVRSessionStart のみ — detach はタブ閉鎖コールバック）。
+- teleport クラスタ（onTeleportStart/End/_resetTeleportAim/
+  _cancelTeleportIfAimedBy）+ updateHover を inputRouting.js へ
+  （入力→teleport・hover は入力ドメインの責務）。
+- 検出・復旧した回帰: `_detachPanelLayer` はテストが prototype 直叩きする
+  公開シーム → delegate 保持で復旧。
+- VRApp 1,313 → 1,227 行（−86行）。C-1 累計 −2,027行（3,254→1,227）。
+
+計測: 43 suites / 1,343 tests・lint 98 warnings（0 errors）・
+build 0.70s・vr-boot PASS。
+
 ### 第37パス（C-1 スライス3: settingsStore + homeEnvironment 抽出）
 
 - `src/utils/settingsStore.js` 新設: loadPersistedSettings/saveSettings/
@@ -1260,6 +1274,20 @@ build 0.72s・vr-boot PASS。
 
 計測: 43 suites / 1,343 tests・lint 97 warnings（0 errors）・
 build 0.68s・vr-boot PASS。
+
+### 第47パス（C-1 追加スライス: teleport/layers/updateHover 抽出）
+
+- `_attachLayersToPanels` + `_detachPanelLayer` を sessionLifecycle.js へ
+  （呼び出し元が onVRSessionStart のみ — detach はタブ閉鎖コールバック）。
+- teleport クラスタ（onTeleportStart/End/_resetTeleportAim/
+  _cancelTeleportIfAimedBy）+ updateHover を inputRouting.js へ
+  （入力→teleport・hover は入力ドメインの責務）。
+- 検出・復旧した回帰: `_detachPanelLayer` はテストが prototype 直叩きする
+  公開シーム → delegate 保持で復旧。
+- VRApp 1,313 → 1,227 行（−86行）。C-1 累計 −2,027行（3,254→1,227）。
+
+計測: 43 suites / 1,343 tests・lint 98 warnings（0 errors）・
+build 0.70s・vr-boot PASS。
 
 ### 第40パス（抽出後の孤児再走査 + init⇄dispose 非対称走査）
 
@@ -1358,6 +1386,20 @@ build 0.72s・vr-boot PASS。
 
 計測: 43 suites / 1,343 tests・lint 97 warnings（0 errors）・
 build 0.68s・vr-boot PASS。
+
+### 第47パス（C-1 追加スライス: teleport/layers/updateHover 抽出）
+
+- `_attachLayersToPanels` + `_detachPanelLayer` を sessionLifecycle.js へ
+  （呼び出し元が onVRSessionStart のみ — detach はタブ閉鎖コールバック）。
+- teleport クラスタ（onTeleportStart/End/_resetTeleportAim/
+  _cancelTeleportIfAimedBy）+ updateHover を inputRouting.js へ
+  （入力→teleport・hover は入力ドメインの責務）。
+- 検出・復旧した回帰: `_detachPanelLayer` はテストが prototype 直叩きする
+  公開シーム → delegate 保持で復旧。
+- VRApp 1,313 → 1,227 行（−86行）。C-1 累計 −2,027行（3,254→1,227）。
+
+計測: 43 suites / 1,343 tests・lint 98 warnings（0 errors）・
+build 0.70s・vr-boot PASS。
 
 ---
 

@@ -54,7 +54,7 @@ export async function onVRSessionStart(app) {
       app.layersSystem = new LayersSystem();
       const layersOk = app.layersSystem.initialize(session, gl);
       if (layersOk) {
-        app._attachLayersToPanels(session);
+        attachLayersToPanels(app, session);
       }
     } catch (e) {
       console.error('VRApp: WebXR Layers init failed', e);
@@ -161,3 +161,55 @@ export function onVRSessionEnd(app) {
   app.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 }
 
+
+export function _detachPanelLayer(app, layerId) {
+  if (!app.layersSystem) {
+    return;
+  }
+  const session = app.renderer.xr.getSession
+    ? app.renderer.xr.getSession()
+    : null;
+  const baseLayer = app.renderer.xr.getBaseLayer
+    ? app.renderer.xr.getBaseLayer()
+    : null;
+  app.layersSystem.removeLayer(layerId, session, baseLayer);
+}
+
+export function attachLayersToPanels(app, session) {
+  const refSpace = app.renderer.xr.getReferenceSpace();
+  if (!refSpace) {
+    return;
+  }
+
+  const panels = app.tabManager
+    ? app.tabManager.tabs
+    : (app.webPanel ? [app.webPanel] : []);
+
+  for (let i = 0; i < panels.length; i++) {
+    const panel = panels[i];
+    const layerId = `panel_chrome_${i}`;
+    const quadLayer = app.layersSystem.createQuadLayer({
+      id    : layerId,
+      space : refSpace,
+      // Chrome bar: same physical dimensions as the Three.js chromeMesh
+      // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
+      width  : 1.6,
+      height : 0.08,
+      pixelWidth  : 2048,
+      pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
+    });
+    if (quadLayer) {
+      // Pass the id + a detach callback so closing this tab mid-session
+      // releases exactly its layer (see _detachPanelLayer).
+      panel.enableLayerMode(quadLayer, app.layersSystem, layerId,
+        (id) => _detachPanelLayer(app, id));
+    }
+  }
+
+  // Commit the layer stack: Three.js base layer + our panel quad layers.
+  const baseLayer = app.renderer.xr.getBaseLayer
+    ? app.renderer.xr.getBaseLayer()
+    : null;
+  app.layersSystem.updateRenderState(session, baseLayer);
+  console.debug(`VRApp: LayersSystem attached ${app.layersSystem.count} quad layer(s)`);
+}

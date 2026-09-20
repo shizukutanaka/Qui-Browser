@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import { t } from '../../i18n/i18n.js';
-import { snapTurnLabel } from '../comfort/ComfortSystem.js';
+import { snapTurnLabel, fireTeleportFeedback } from '../comfort/ComfortSystem.js';
 import { firePanelReleaseFeedback } from '../browser/WindowManager.js';
 
 let _locoQ, _locoFwd, _locoRight, _locoMove;
@@ -278,3 +278,67 @@ export function onControllerSelect(app, controller, isStart) {
   }
 }
 
+
+export function updateHover(app ) {
+  if (app.interactables.length === 0) {
+    return;
+  }
+  for (const controller of app.controllers) {
+    const hit = app.raycasterFromController(controller)
+      .intersectObjects(app.interactables, false)
+      .find(h => isWorldVisible(h.object));
+    const obj = hit ? hit.object : null;
+    const prev = controller.userData.hovered || null;
+    if (prev === obj) {
+      continue;
+    }
+    if (prev && prev.userData.interactable && prev.userData.interactable.onHoverEnd) {
+      prev.userData.interactable.onHoverEnd();
+    }
+    if (obj && obj.userData.interactable && obj.userData.interactable.onHover) {
+      obj.userData.interactable.onHover();
+    }
+    controller.userData.hovered = obj;
+  }
+}
+
+export function onTeleportStart(app, controller) {
+  if (!app.settings.enableTeleport || !app.floorMesh) {
+    return;
+  }
+  app.teleport.active = true;
+  app.teleport.controller = controller;
+}
+
+export function onTeleportEnd(app ) {
+  const t = app.teleport;
+  if (t.active && t.valid && t.target) {
+    // Move the rig by the delta between the head's ground position and the
+    // target so the user ends up standing on the marker.
+    const head = new THREE.Vector3();
+    app.camera.getWorldPosition(head);
+    app.playerRig.position.x += t.target.x - head.x;
+    app.playerRig.position.z += t.target.z - head.z;
+
+    // Cross-modal landing confirmation: haptic impact on the triggering
+    // controller + caption for caption-enabled users.
+    fireTeleportFeedback(t.controller, app.hapticFeedback, app.captionSystem);
+  }
+  app._resetTeleportAim();
+}
+
+export function _resetTeleportAim(app ) {
+  const t = app.teleport;
+  t.active = false;
+  t.valid = false;
+  t.controller = null;
+  if (t.marker) {
+    t.marker.visible = false;
+  }
+}
+
+export function _cancelTeleportIfAimedBy(app, controller) {
+  if (app.teleport.active && app.teleport.controller === controller) {
+    app._resetTeleportAim();
+  }
+}
