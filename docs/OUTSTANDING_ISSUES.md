@@ -1618,3 +1618,6 @@ VR 側は SemanticDOM が `role=alert`/`aria-live` をミラーするが、ラ�
 
 ### 第113パス（実修正 — OS コントラスト切替時のパネル不整合）
 OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に live 反映され dispose で detach 済みだが、**contrast ハンドラが設定パネルの再描画を呼んでいなかった** — ボタン描画は `prefersHighContrast()` を draw 時に読むため OS 切替直後に開いたパネルだけ旧表示のまま → `_onOSContrastChange` に `redrawSettingsPanel(app)` を追加（IME も draw 時に読むため次描画で追随）。
+
+### 第114パス（実削除 — 嘘コメント付き no-op ハンドラ）
+コントローラー接続/切断遷移は完璧（toast + inputSource forget + teleport cancel + inputsourceschange dispose 対称）。XRSession の `visibilitychange` は実機能（visible-blurred で video pause）。だが `app.js` の document レベル `visibilitychange` は `console.debug` のみで「Pause or reduce activity」のコメントが実装しない挙動を約束する嘘 → ハンドラごと削除（バックグラウンドタブで rAF はブラウザが自動 throttle、XR 側は実リスナーが担う）。
