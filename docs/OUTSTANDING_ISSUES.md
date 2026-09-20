@@ -685,6 +685,26 @@ package.json の各 script / devDependency / ドキュメント記載コマン�
 マスクのアルゴリズムに従い10%戻す検討をしたが、**戻す価値があるものは今のところ無い**。
 `public/` 内の並行実装は git 履歴に残る。
 
+### 第4パス（public/・tools/・proxy・CDN ヒント・エイリアス）
+
+public/ アセットの全参照走査、tools/・proxy/ の到達性、index.html/nginx の
+CDN ヒントを検証:
+
+| 対象 | 判定 |
+|---|---|
+| `public/assets/icons/icon-152.png` | manifest・index.html・manifest.webmanifest 全てが参照しない孤児 PNG → 削除 |
+| `public/assets/images/.gitkeep` | 空ディレクトリのプレースホルダ → 削除 |
+| index.html `<link rel="preconnect" href="https://cdnjs.cloudflare.com">` | cdnjs は全コードで未使用 → 削除（jsdelivr は TextureManager が .ktx2 要求時に basis transcoder を遅延取得するため保持） |
+| `docker/nginx.conf` CSP `script-src https://cdnjs.cloudflare.com` | 同上の死んだ origin → CSP から除去（攻撃面も縮小） |
+| `vite.config.js` `resolve.alias`（@/@vr/@utils） | 3 エイリアスとも全ソース・テストで使用ゼロ → 削除 |
+| 同 `css.preprocessorOptions.scss` | 不存在の `src/styles/variables.scss` を `@import` 注入しようとしていた（sass 未導入で不発）→ 削除 |
+| `jest.config.js` `moduleNameMapper` `@/` | 未使用かつ向き先が `<rootDir>/`（vite の `/src` と不一致）→ 削除 |
+| `tools/`（verify-*.mjs 系・generate-icons・measure-text-metrics） | 全て package.json スクリプト経由で到達可能 → 保持 |
+| `proxy/`（nginx + squid）、`docker/`（nginx.conf + supervisord） | docker-compose.yml → Dockerfile → 両 conf の配線は正常 → 保持 |
+| `docs/RESEARCH.md` | docs/SPEC.md からリンク済みの実用資料 → 保持 |
+| `index.html` ID 群・`.env.example`（6変数）・`QUICKSTART.md` | 全て実態と一致 → 保持 |
+| `TextureManager` jsdelivr 参照 | .ktx2 要求時のみ遅延フェッチ（起動時の無条件 CDN fetch は無い）→ 妥当な遅延依存として保持 |
+
 ---
 
 ## 使い方（次のセッションへ）
