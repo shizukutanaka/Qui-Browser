@@ -41,6 +41,9 @@ global.document = {
 
 const THREE = require('three');
 const { VRApp } = require('../src/vr/VRApp.js');
+const { updateSystems } = require('../src/vr/frameLoop.js');
+const { setupOSAccessibilityListeners } = require('../src/vr/systemsLifecycle.js');
+const { _detachPanelLayer } = require('../src/vr/sessionLifecycle.js');
 
 function makeGroup() {
   return { position: { set: jest.fn() }, quaternion: { identity: jest.fn() } };
@@ -473,7 +476,7 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    updateSystems(app, 0, null, 0.016);
 
     expect(gazeInteraction.update).toHaveBeenCalledWith(app.interactables, 16);
     expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('click');
@@ -485,7 +488,7 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: true, update: jest.fn(() => null) };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    updateSystems(app, 0, null, 0.016);
 
     expect(app.hapticFeedback.playPatternBothHands).not.toHaveBeenCalled();
     expect(app.spatialAudio.play).not.toHaveBeenCalled();
@@ -495,21 +498,21 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: false, update: jest.fn() };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    updateSystems(app, 0, null, 0.016);
 
     expect(gazeInteraction.update).not.toHaveBeenCalled();
   });
 
   test('does not throw when gazeInteraction has not been created', () => {
     const app = makeSystemsApp({ gazeInteraction: null });
-    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+    expect(() => updateSystems(app, 0, null, 0.016)).not.toThrow();
   });
 
   test('activation feedback is null-safe without haptic or spatial audio wired', () => {
     const activatedMesh = { getWorldPosition: jest.fn((v) => v) };
     const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
     const app = makeSystemsApp({ gazeInteraction, hapticFeedback: null, spatialAudio: null });
-    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+    expect(() => updateSystems(app, 0, null, 0.016)).not.toThrow();
   });
 });
 
@@ -518,7 +521,7 @@ describe('VRApp.updateSystems — caption aging', () => {
     const captionSystem = { enabled: true, update: jest.fn(), show: jest.fn() };
     const app = makeSystemsApp({ captionSystem });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    updateSystems(app, 0, null, 0.016);
 
     expect(captionSystem.update).toHaveBeenCalledWith(16);
   });
@@ -527,7 +530,7 @@ describe('VRApp.updateSystems — caption aging', () => {
     const captionSystem = { enabled: false, update: jest.fn(), show: jest.fn() };
     const app = makeSystemsApp({ captionSystem });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    updateSystems(app, 0, null, 0.016);
 
     expect(captionSystem.update).not.toHaveBeenCalled();
   });
@@ -694,7 +697,7 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
 
   test('subscribes to reduced-motion, prefers-contrast, and forced-colors media queries', () => {
     const app = makeVRAppLike({ comfortSystem: null, gazeInteraction: null, captionSystem: null });
-    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    setupOSAccessibilityListeners(app);
 
     expect(mqs['(prefers-reduced-motion: reduce)'].addEventListener)
       .toHaveBeenCalledWith('change', expect.any(Function));
@@ -708,7 +711,7 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
     const comfortSystem = { setReducedMotion: jest.fn() };
     const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
     const app = makeVRAppLike({ comfortSystem, gazeInteraction, captionSystem: null });
-    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    setupOSAccessibilityListeners(app);
 
     const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
     handler({ matches: true });
@@ -721,7 +724,7 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
     const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
     const captionSystem = { setHighContrast: jest.fn() };
     const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem });
-    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    setupOSAccessibilityListeners(app);
 
     mqs['(prefers-contrast: more)'].matches = true; // simulate the OS flipping the signal
     const handler = mqs['(prefers-contrast: more)'].addEventListener.mock.calls[0][1];
@@ -735,7 +738,7 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
     const gazeInteraction = { setHighContrast: jest.fn() };
     const captionSystem = { setHighContrast: jest.fn() };
     const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem });
-    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    setupOSAccessibilityListeners(app);
 
     mqs['(forced-colors: active)'].matches = true;
     const handler = mqs['(forced-colors: active)'].addEventListener.mock.calls[0][1];
@@ -748,12 +751,12 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
   test('no-ops safely without matchMedia (test / non-browser env)', () => {
     global.matchMedia = undefined;
     const app = makeVRAppLike({});
-    expect(() => VRApp.prototype._setupOSAccessibilityListeners.call(app)).not.toThrow();
+    expect(() => setupOSAccessibilityListeners(app)).not.toThrow();
   });
 
   test('is null-safe when comfortSystem/gazeInteraction/captionSystem are not yet constructed', () => {
     const app = makeVRAppLike({ comfortSystem: null, gazeInteraction: null, captionSystem: null });
-    VRApp.prototype._setupOSAccessibilityListeners.call(app);
+    setupOSAccessibilityListeners(app);
     const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
     expect(() => handler({ matches: true })).not.toThrow();
   });
@@ -976,7 +979,7 @@ describe('VRApp._detachPanelLayer', () => {
 
   test('removes the layer with the live session and base layer', () => {
     const app = makeLayerApp();
-    VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_1');
+    _detachPanelLayer(app, 'panel_chrome_1');
     expect(app.layersSystem.removeLayer).toHaveBeenCalledWith(
       'panel_chrome_1', { id: 'session' }, { id: 'base' }
     );
@@ -984,7 +987,7 @@ describe('VRApp._detachPanelLayer', () => {
 
   test('no-ops safely when layersSystem is not present (Layers unsupported)', () => {
     const app = makeLayerApp({ layersSystem: null });
-    expect(() => VRApp.prototype._detachPanelLayer.call(app, 'panel_chrome_0')).not.toThrow();
+    expect(() => _detachPanelLayer(app, 'panel_chrome_0')).not.toThrow();
   });
 });
 

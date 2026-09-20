@@ -27,9 +27,9 @@ import { requestReaderProxyInput, clearBrowsingHistory, navigate } from './brows
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
-import { initializeSystems, dispose, setupOSAccessibilityListeners } from './systemsLifecycle.js';
-import { initialize, render, updateSystems } from './frameLoop.js';
-import { onVRSessionStart, onVRSessionEnd, _detachPanelLayer } from './sessionLifecycle.js';
+import { initializeSystems, dispose } from './systemsLifecycle.js';
+import { initialize, render } from './frameLoop.js';
+import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 
 
@@ -307,20 +307,12 @@ export class VRApp {
     return updateHover(this);
   }
 
-  _detachPanelLayer(layerId) {
-    return _detachPanelLayer(this, layerId);
-  }
-
   async initialize() {
     return initialize(this);
   }
 
   render(timestamp, xrFrame) {
     return render(this, timestamp, xrFrame);
-  }
-
-  updateSystems(timestamp, xrFrame, dt) {
-    return updateSystems(this, timestamp, xrFrame, dt);
   }
 
   updatePerformanceMonitor(frameTime) {
@@ -373,10 +365,6 @@ export class VRApp {
 
   navigate(url, title) {
     return navigate(this, url, title);
-  }
-
-  _setupOSAccessibilityListeners() {
-    return setupOSAccessibilityListeners(this);
   }
 
   /**
