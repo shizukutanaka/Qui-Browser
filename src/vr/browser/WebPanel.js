@@ -161,7 +161,7 @@ export class WebPanel {
   _build() {
     // ── Chrome bar (URL bar + back/forward/reload) ──────────────────────────
     ({ canvas: this.chromeCanvas, tex: this.chromeTex } =
-      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * CHROME_H)));
+      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * CHROME_H), { srgb: true }));
 
     const chromeGeo = new THREE.PlaneGeometry(PANEL_W, CHROME_M_H);
     const chromeMat = new THREE.MeshBasicMaterial({
@@ -180,7 +180,7 @@ export class WebPanel {
     // successful navigation the viewport still read "Enter a URL to navigate"
     // forever — the panel silently misrepresented what it was showing.
     ({ canvas: this.contentCanvas, tex: this.contentTex } =
-      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * (1 - CHROME_H))));
+      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * (1 - CHROME_H)), { srgb: true }));
     this._drawContent();
 
     const contentTex = this.contentTex;

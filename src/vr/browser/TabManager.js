@@ -70,7 +70,7 @@ export class TabManager {
     // Tab strip sits just above the active panel.
     this.stripGroup  = new THREE.Group();
     ({ canvas: this.stripCanvas, tex: this.stripTex } =
-      makeUICanvas(STRIP_CANVAS_W, STRIP_CANVAS_H));
+      makeUICanvas(STRIP_CANVAS_W, STRIP_CANVAS_H, { srgb: true }));
 
     this._buildStrip();
   }

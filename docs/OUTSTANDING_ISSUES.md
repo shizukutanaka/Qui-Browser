@@ -1600,3 +1600,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第107パス（クリーンスキャン — メディアリソース対称）
 `getUserMedia`/`SpeechRecognition` は全コードベースに存在しない（voice 系は過去パスで除去済み）— マイクリーク経路ゼロ。ImmersiveVideo は `removeAttribute('src')`+`load()` で正しく media 解放、AbortController は全箇所 finally clear。リソース対称完璧。
+
+### 第108パス（実修正 — canvas テクスチャ colorSpace 不整合）
+`makeUICanvas` の `srgb` オプトイン漏れ3箇所を摘出: WebPanel chrome bar・content area・TabManager strip — 全て sRGB 筆記のテキスト/UI 面なのに SRGBColorSpace 未設定で mesh 経路で他 UI 面（captions/IME/toast は全て opt-in 済み）より暗く表示。`{ srgb: true }` 追加で整合（不可視の hit ゾーン WebPanel:222 のみ対象外）。
