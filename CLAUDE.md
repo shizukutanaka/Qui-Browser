@@ -277,6 +277,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **cleanup**: lint 警告監査で「バグではないがゴミ」の13件を削除 — dead import 4（`textWidthEm`、`truncate`×2、`STRIP_TAB_MAX_PX`）、dead 代入 1（`tabsAreaW`）、未使用 catch 引数 8 → ES2019 optional catch binding（`catch {`）に置換。警告 136→123。残りは no-console（大半が意図的なログ方針）と max-len のみ — 実信号ゼロでノイズ支配だった状態から、警告が意味を持つ状態へ。
 - ✅ tests 1488 全緑; lint 0 errors; build green。動作変更なし（全て到達不能/未参照コード）。
 
+#### 続き4（同セッション）: F-4「セッション復元」— ブラウザなのにタブを記憶していなかった
+- 🔍 **実測した欠陥**: `TabManager` に serialize/restore が一切なく、VR セッション開始のたびタブ集合は消え「空タブ1枚から再構築」だった。ブックマークと履歴は永続化済みなのに「今開いているもの」だけ揮発する —— ブラウザの基本約束（再起動しても続きから）が欠落していた。
+- ✨ **feat: タブセッション復元**: `TabManager.serialize()`（navigate 済みタブのみ `{url}` で保持・blank タブは復元価値ゼロ・active は filtered list 内 index に再表現）+ `restoreSession(data)`（MAX_TABS クランプ・malformed エントリ skip・stale active クランプ・復元数を返す）。永続化ポリシーは VRApp 側: `onSessionChange` フック（newTab/closeTab/setActive/パネル navigate の全変異点で発火）→ `_saveTabSession()` → `localStorage['qui.tabSession.v1']`、`_buildBrowsingSystems` で `_restoreTabSession()` → 0 なら従来の空タブ。**privateMode は保存も復元も両方スキップ** —— private 起動 = クリーンセッション（incognito 慣行）。ストレージ不可用・破損 JSON は warn+フォールバックのみ。
+- ✅ **test 11件追加**（pre-fix 検証: 全件 FAIL — serialize/restore 5件、save/restore/private ゲート/破損許容 5件、配線 seam 1件）。Total 1499 tests (47 suites); lint 0 errors (123 warnings); build green。F-4 はこれで新規タブページ（= C-3）を残して完遂。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

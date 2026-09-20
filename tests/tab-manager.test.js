@@ -318,6 +318,90 @@ describe('TabManager — rootGroup owns the strip and every panel', () => {
   });
 });
 
+// ── Session persistence (F-4) ──────────────────────────────────────────────
+// The tab set was never persisted: every VR session started from one blank tab
+// no matter what was open at exit. serialize()/restoreSession() are the pure
+// half; storage policy (and the private-mode gate) lives in VRApp.
+describe('TabManager — session persistence (F-4)', () => {
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('serialize() captures only navigated tabs plus the filtered active index', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab();                      // blank tab — nothing to restore later
+    tm.newTab('https://b.example');
+    tm.setActive(2);
+
+    const s = tm.serialize();
+
+    expect(s.v).toBe(1);
+    expect(s.tabs).toEqual([{ url: 'https://a.example' }, { url: 'https://b.example' }]);
+    // Active index is expressed inside the filtered list, not the raw one.
+    expect(s.active).toBe(1);
+  });
+
+  test('restoreSession() recreates the saved tabs and restores the active tab', () => {
+    const tm = makeManager();
+    const n = tm.restoreSession({
+      v: 1, active: 1,
+      tabs: [{ url: 'https://a.example' }, { url: 'https://b.example' }]
+    });
+
+    expect(n).toBe(2);
+    expect(tm.count).toBe(2);
+    expect(panelInstances.map(p => p.currentUrl)).toEqual(
+      ['https://a.example', 'https://b.example']
+    );
+    expect(tm.getActiveTab()).toBe(panelInstances[1]);
+    expect(panelInstances[0].visible).toBe(false);
+  });
+
+  test('restoreSession() returns 0 and creates nothing on missing/corrupt data', () => {
+    const tm = makeManager();
+    expect(tm.restoreSession(null)).toBe(0);
+    expect(tm.restoreSession({})).toBe(0);
+    expect(tm.restoreSession({ tabs: 'no' })).toBe(0);
+    expect(tm.restoreSession({ tabs: [{ url: '' }, { url: 42 }, null] })).toBe(0);
+    expect(tm.count).toBe(0);
+  });
+
+  test('restoreSession() clamps to MAX_TABS and clamps a stale active index', () => {
+    const tm = makeManager();
+    const n = tm.restoreSession({
+      tabs: Array.from({ length: 12 }, (_, i) => ({ url: `https://${i}.example` })),
+      active: 99
+    });
+    expect(n).toBe(8);
+    expect(tm.count).toBe(8);
+    expect(tm.activeIndex).toBe(7);
+  });
+
+  test('onSessionChange fires on every mutation that changes the persisted state', () => {
+    const onSessionChange = jest.fn();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn(),
+      onSessionChange
+    });
+    tm.newTab();
+    expect(onSessionChange).toHaveBeenCalled();
+    onSessionChange.mockClear();
+
+    tm.newTab('https://a.example');
+    panelInstances[1].opts.onNavigate('https://a.example', 'A');
+    // newTab observes twice (its internal setActive + its own mutation) and the
+    // panel's navigate callback once — every persisted-state change is seen.
+    expect(onSessionChange).toHaveBeenCalledTimes(3);
+    onSessionChange.mockClear();
+
+    tm.setActive(0);
+    tm.closeTab(0);
+    expect(onSessionChange).toHaveBeenCalled();
+  });
+});
+
 describe('TabManager.setReaderProxyUrl', () => {
   test('propagates to every open tab and to tabs opened afterwards', () => {
     panelInstances.length = 0;
