@@ -2178,7 +2178,7 @@ export class VRApp {
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
           this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Keyboard: ${this.vrKeyboard.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(t(this.vrKeyboard.visible ? 'vr.msg.keyboardOpen' : 'vr.msg.keyboardClosed'));
           }
         }
       }

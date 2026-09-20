@@ -1326,3 +1326,197 @@ describe('VRApp — settings/tab-session persistence and navigate()', () => {
     expect(s.ffrIntensity).toBeUndefined(); // no ffrSystem attached
   });
 });
+
+describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototypes, real three)', () => {
+  // Locomotion math is the highest-frequency input path in the app (every
+  // frame, both sticks). It was entirely unverified: snap latch hysteresis,
+  // southpaw hand swap, head-projected movement, and button dispatch.
+
+  function makeLocoApp(overrides = {}) {
+    const rig = new THREE.Object3D();
+    const camera = new THREE.PerspectiveCamera();
+    rig.add(camera);
+    return Object.assign({
+      playerRig: rig,
+      camera,
+      controllers: [],
+      settings: {
+        southpaw: false, enableSnapTurn: true, enableSmoothMove: true,
+        snapTurnAngle: 30, smoothMoveSpeed: 2
+      },
+      controllerInput: null,
+      comfortSystem: null,
+      hapticFeedback: null,
+      captionSystem: null
+    }, overrides);
+  }
+
+  function makePad(handedness, axes = {}, buttons = {}) {
+    return {
+      userData: { inputSource: { handedness } },
+      read: { axes: { stickX: 0, stickY: 0, ...axes }, buttons, hand: handedness }
+    };
+  }
+
+  function withInput(app, pad) {
+    const ctl = { userData: { inputSource: { handedness: pad.read.hand } } };
+    app.controllers = [ctl];
+    app.controllerInput = { read: () => pad.read };
+    return ctl;
+  }
+
+  test('snapTurn rotates the rig around the head pivot by snapTurnAngle * direction', () => {
+    const app = makeLocoApp();
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    app.hapticFeedback = { playPattern: jest.fn() };
+    app.camera.position.set(1, 0, 2); // head off-axis — pivot must be the head, not origin
+    VRApp.prototype.snapTurn.call(app, 1, 'right');
+    // rotateOnWorldAxis(up, +30°): rig yaw changes by exactly the configured angle
+    expect(app.playerRig.rotation.y).toBeCloseTo(THREE.MathUtils.degToRad(30), 5);
+    // Pivot: head world position unchanged (rotation about the head itself)
+    const head = new THREE.Vector3();
+    app.camera.getWorldPosition(head);
+    expect(head.x).toBeCloseTo(1, 5);
+    expect(head.z).toBeCloseTo(2, 5);
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
+    expect(app.captionSystem.show).toHaveBeenCalledWith(expect.stringContaining('30°'));
+  });
+
+  test('snapTurn without a hand skips haptics; captions off skips the direction caption', () => {
+    const app = makeLocoApp();
+    app.hapticFeedback = { playPattern: jest.fn() };
+    app.captionSystem = { enabled: false, show: jest.fn() };
+    VRApp.prototype.snapTurn.call(app, -1); // no hand
+    expect(app.hapticFeedback.playPattern).not.toHaveBeenCalled();
+    expect(app.captionSystem.show).not.toHaveBeenCalled();
+  });
+
+  test('updateLocomotion: right-hand stick fires snapTurn once and latches until |x| < 0.3', () => {
+    const app = makeLocoApp();
+    app.snapTurn = jest.fn();
+    const ctl = withInput(app, makePad('right', { stickX: 0.8 }));
+    VRApp.prototype.updateLocomotion.call(app);
+    VRApp.prototype.updateLocomotion.call(app); // held — still latched
+    expect(app.snapTurn).toHaveBeenCalledTimes(1);
+    expect(app.snapTurn).toHaveBeenCalledWith(-1, 'right'); // push right → clockwise
+    ctl.read = void 0;
+    app.controllerInput.read = () => ({ axes: { stickX: 0.5, stickY: 0 }, buttons: {}, hand: 'right' });
+    VRApp.prototype.updateLocomotion.call(app); // between release 0.3 and threshold — latched
+    app.controllerInput.read = () => ({ axes: { stickX: 0.2, stickY: 0 }, buttons: {}, hand: 'right' });
+    VRApp.prototype.updateLocomotion.call(app); // released
+    app.controllerInput.read = () => ({ axes: { stickX: -0.9, stickY: 0 }, buttons: {}, hand: 'right' });
+    VRApp.prototype.updateLocomotion.call(app);
+    expect(app.snapTurn).toHaveBeenCalledTimes(2);
+    expect(app.snapTurn).toHaveBeenLastCalledWith(1, 'right'); // push left → counter-clockwise
+  });
+
+  test('updateLocomotion: southpaw swaps turn/move hands', () => {
+    const app = makeLocoApp({ settings: {
+      southpaw: true, enableSnapTurn: true, enableSmoothMove: true,
+      snapTurnAngle: 30, smoothMoveSpeed: 2
+    }});
+    app.snapTurn = jest.fn();
+    withInput(app, makePad('right', { stickX: 0.9 })); // right hand is MOVE in southpaw
+    VRApp.prototype.updateLocomotion.call(app);
+    expect(app.snapTurn).not.toHaveBeenCalled();
+    app.controllerInput.read = () => ({ axes: { stickX: 0.9, stickY: 0 }, buttons: {}, hand: 'left' });
+    VRApp.prototype.updateLocomotion.call(app);
+    expect(app.snapTurn).toHaveBeenCalledWith(-1, 'left');
+  });
+
+  test('updateLocomotion: stick up moves the rig along the head-projected forward, scaled by speed*dt', () => {
+    const app = makeLocoApp();
+    app.comfortSystem = { externalMotion: false, externalMotionLevel: 0 };
+    withInput(app, makePad('left', { stickY: -1 })); // stick up → forward
+    VRApp.prototype.updateLocomotion.call(app, 0.5); // dt=0.5s
+    // camera identity → forward (0,0,-1); speed 2 * dt 0.5 = 1 m
+    expect(app.playerRig.position.z).toBeCloseTo(-1, 5);
+    expect(app.playerRig.position.x).toBeCloseTo(0, 5);
+    expect(app.comfortSystem.externalMotion).toBe(true);
+    expect(app.comfortSystem.externalMotionLevel).toBe(1);
+  });
+
+  test('updateLocomotion: diagonal stick normalizes — displacement magnitude is exactly speed*dt', () => {
+    const app = makeLocoApp();
+    withInput(app, makePad('left', { stickX: 0.7, stickY: -0.7 }));
+    VRApp.prototype.updateLocomotion.call(app, 0.25); // dt=0.25 → expect 0.5 m
+    expect(app.playerRig.position.length()).toBeCloseTo(0.5, 5);
+  });
+
+  test('updateLocomotion: disabled flags and missing input source do nothing', () => {
+    const app = makeLocoApp({ settings: {
+      southpaw: false, enableSnapTurn: false, enableSmoothMove: false,
+      snapTurnAngle: 30, smoothMoveSpeed: 2
+    }});
+    app.snapTurn = jest.fn();
+    withInput(app, makePad('right', { stickX: 0.9, stickY: -0.9 }));
+    VRApp.prototype.updateLocomotion.call(app);
+    expect(app.snapTurn).not.toHaveBeenCalled();
+    expect(app.playerRig.position.length()).toBe(0);
+  });
+
+  test('updateButtonInput: pointer faceA/faceB navigate the active tab with honest captions', () => {
+    const app = makeLocoApp();
+    const tab = { goForward: jest.fn(() => true), goBack: jest.fn(() => false) };
+    app.tabManager = { getActiveTab: () => tab };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    app.hapticFeedback = { playPattern: jest.fn() };
+    withInput(app, makePad('right', {}, { faceA: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(tab.goForward).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Going forward'); // default lang = en
+    withInput(app, makePad('right', {}, { faceB: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(tab.goBack).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenLastCalledWith('No previous page');
+  });
+
+  test('updateButtonInput: utility hand toggles bookmarks/settings/keyboard + haptic click', () => {
+    const app = makeLocoApp();
+    app.bookmarkPanel = { toggle: jest.fn(), visible: true };
+    app.settingsPanel = { visible: false, mesh: { visible: false } };
+    app.semanticDOM = { setSettingsExpanded: jest.fn() };
+    app.vrKeyboard = {
+      visible: false,
+      show: jest.fn(function () { this.visible = true; }),
+      hide: jest.fn(function () { this.visible = false; })
+    };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    app.hapticFeedback = { playPattern: jest.fn() };
+    withInput(app, makePad('left', {}, {
+      faceA: { justPressed: true },
+      faceB: { justPressed: true },
+      thumbstickClick: { justPressed: true }
+    }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.bookmarkPanel.toggle).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Bookmarks: open');
+    expect(app.settingsPanel.visible).toBe(true);
+    expect(app.settingsPanel.mesh.visible).toBe(true);
+    expect(app.semanticDOM.setSettingsExpanded).toHaveBeenCalledWith(true);
+    expect(app.vrKeyboard.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Keyboard: open');
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('left', 'click');
+  });
+
+  test('updateButtonInput: pointer thumbstickClick recenters; southpaw swaps button hands', () => {
+    const app = makeLocoApp();
+    app.recenter = jest.fn();
+    withInput(app, makePad('right', {}, { thumbstickClick: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.recenter).toHaveBeenCalledTimes(1);
+    // Southpaw: left hand becomes pointer — its faceA now does navigation, not bookmarks.
+    const sp = makeLocoApp({ settings: {
+      southpaw: true, enableSnapTurn: true, enableSmoothMove: true,
+      snapTurnAngle: 30, smoothMoveSpeed: 2
+    }});
+    sp.bookmarkPanel = { toggle: jest.fn(), visible: false };
+    const spTab = { goForward: jest.fn(() => true) };
+    sp.tabManager = { getActiveTab: () => spTab };
+    sp.captionSystem = { enabled: true, show: jest.fn() };
+    withInput(sp, makePad('left', {}, { faceA: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(sp);
+    expect(sp.bookmarkPanel.toggle).not.toHaveBeenCalled();
+    expect(spTab.goForward).toHaveBeenCalledTimes(1);
+  });
+});
