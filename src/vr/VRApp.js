@@ -1691,7 +1691,6 @@ export class VRApp {
     if (!Array.isArray(this.settings.openSettingsSections)) {
       this.settings.openSettingsSections = ['settings.section.a11y'];
     }
-    this._settingsSections = sections;
     const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
 
     const bg = new THREE.Mesh(
@@ -1699,7 +1698,6 @@ export class VRApp {
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
-    this._settingsBg = bg;
 
     for (const p of layout.placements) {
       if (p.type === 'tab') {

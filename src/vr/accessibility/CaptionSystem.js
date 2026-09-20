@@ -104,7 +104,6 @@ export class CaptionSystem {
 
     /** @type {{text:string, remaining:number}[]} */
     this._lines = [];
-    this._dirty = false;
 
     this._buildPanel();
   }
@@ -248,7 +247,6 @@ export class CaptionSystem {
     while (this._lines.length > this.maxLines) {
       this._lines.shift();
     }
-    this._dirty = true;
     if (this.enabled && this.mesh) {
       this.mesh.visible = true;
     }
@@ -261,7 +259,6 @@ export class CaptionSystem {
   /** Remove all captions immediately. */
   clear() {
     this._lines = [];
-    this._dirty = true;
     if (this.mesh) {
       this.mesh.visible = false;
     }
@@ -345,7 +342,6 @@ export class CaptionSystem {
     ctx.globalAlpha = 1;
 
     this.texture.needsUpdate = true;
-    this._dirty = false;
   }
 
   /**
