@@ -1627,3 +1627,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第116パス（実修正 — ランディング i18n 未翻訳残り）
 `<title>`/meta title/description が `data-i18n` 系に未接続で日本語切替後もブラウザタブと OGP が英語のまま → `meta.title`/`meta.description` キーを en/ja に追加し `data-i18n`/`data-i18n-attr` で配線。loading テキストも既存 `vr.content.loading` で翻訳化。version-badge（v2.0.0）・アイコン（🇯🇵/A+/日本語）は言語非依存で正しく除外確認。
+
+### 第117パス（実修正 — サブパス配信で壊れるアイコン絶対パス）
+`vite.config.js` は `BASE_PATH` で base 可変・SW も base 解決済みだが、**`public/manifest.json` と `public/offline.html` は vite の base 書換え対象外の verbatim コピー** — `/assets/icons/...` 絶対パスのまま GitHub Pages `/Qui-Browser/` 配信で全7アイコン+favicon が 404 → `./assets/...` 相対化（manifest URL/ページ URL から解決、root/subpath 両対応）。index.html 内の絶対パスはビルド時に base 結合されるため変更不要を確認。
