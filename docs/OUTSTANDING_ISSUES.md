@@ -1139,6 +1139,23 @@ build 0.6s・verify:docs・vr-boot 全 PASS。
 計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
 build 0.7s・verify:docs PASS。
 
+### 第34パス（クリーンスキャン — 削除ゼロ＝「何もしない」）
+
+走査したが全て生存を確認し変更なし:
+- tests/setup.js — localStorage shim + navigator.xr stub のみ・実使用
+- jest.config.js — マッパー/デッド設定なし・閾値は実測連動
+- AccessibilityCoordinator — captionSystem/hapticFeedback/
+  gazeInteraction の delegate は VRApp が全使用
+- .github/ — CODEOWNERS・dependabot・workflows のみ残存
+- webPanel フィールド — tabManager 不在時の fallback 経路で生存
+- offline.html — SW 登録削除済み・アイコン実在
+
+**ソクラテス式結論**: モジュール/メソッド/フィールド/設定/イベント/
+docs/ランディング/テストインフラの全層で「目的を説明できないもの」は
+尽きた。残るは VRApp 3,300行の分離リファクタ（台帳 C-1）のみで、
+それは削除系スイープではなく設計変更 — 価値密度の比較では
+「何もしない」が正当化される地点に到達。
+
 ---
 
 ## 使い方（次のセッションへ）
