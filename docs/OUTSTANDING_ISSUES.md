@@ -1528,3 +1528,6 @@ package.json 全依存の実使用を確認（three→src、web-vitals→monitor
 
 ### 第83パス（クリーンスキャン — localStorage キー対称）
 `quiBrowser_bookmarks`/`quiBrowser_history`/`SETTINGS_KEY` 全キーが書込↔読取対称（test 専用書込はシード用途で正当）。読み専・書き専・動的キー・死んだ永続化ゼロ。
+
+### 第84パス（JSDoc 真実性監査）
+`@param` vs シグネチャ交差走査で VRApp 末尾の孤立 JSDoc クラスタ摘出（抽出時にメソッドだけ移り doc が残った死文書: session start/end ヘッダ・FR-1.5 層 doc・`@param layerId`）。`_detachPanelLayer` の doc を sessionLifecycle.js の実関数に再結合し孤立分を削除。残検出は destructured-param JSDoc の偽陽性。
