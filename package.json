@@ -21,7 +21,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.js'",
-    "test:integration": "jest --testMatch='**/tests/*integration*.test.js'",
+    "test:integration": "jest tests/vr-app-wiring.test.js tests/app-smoke.test.js",
     "icons": "node tools/generate-icons.mjs",
     "lint": "eslint src proxy",
     "lint:fix": "eslint src proxy --fix",

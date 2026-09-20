@@ -23,3 +23,21 @@ for (const [name, cmd] of Object.entries(pkg.scripts)) {
 test.each(refs.map(([name, f]) => [`${name} → ${f}`, f]))('%s exists', (_label, f) => {
   expect(fs.existsSync(path.join(ROOT, f))).toBe(true);
 });
+
+// A --testMatch glob that matches zero files exits "No tests found" — a
+// script that can never run anything is theater. `test:integration` pointed
+// at `*integration*` while no file carried that name (fixed to the real
+// wiring/smoke suites).
+const testMatchScripts = [];
+for (const [name, cmd] of Object.entries(pkg.scripts)) {
+  const m = cmd.match(/--testMatch=['"]([^'"]+)['"]/);
+  if (m) testMatchScripts.push([name, m[1]]);
+}
+for (const [name, glob] of testMatchScripts) {
+  test(`${name}'s --testMatch ${glob} matches at least one file`, () => {
+    const pat = glob.replace(/^.*\//, '');
+    const re = new RegExp('^' + pat.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*') + '$');
+    const hits = fs.readdirSync(path.join(ROOT, 'tests')).filter((f) => re.test(f));
+    expect(hits.length).toBeGreaterThan(0);
+  });
+}
