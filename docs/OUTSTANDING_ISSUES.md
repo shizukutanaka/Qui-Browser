@@ -1801,3 +1801,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第174パス（実削除 — 死アニメーション経路）
 `animateSnapTurn` は呼出側ゼロの死コード（実 snapTurn は設計上インスタント — イーズ回転は酔いの引金）。しかも rAF 駆動は XR セッション中に停止するため到達しても動かない二重の嘘 → 削除。連鎖除去: `settings.snapTurn`（書き込み専用）・プリセットの snapTurn キー・`reduceMotion` フィールド・`setReducedMotion`・OS リスナー分岐・5死テスト・rAF stub。
+
+### 第175パス（クリーンスキャン — レガシー MQ API / tabindex）
+`addListener`/`tabindex` は両方ゼロ — 非推奨 API 残滓・フォーカス順序破壊経路は非存在。
