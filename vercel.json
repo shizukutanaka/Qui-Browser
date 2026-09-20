@@ -66,7 +66,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
         },
         {
           "key": "Permissions-Policy",
@@ -117,8 +117,7 @@
   "trailingSlash": false,
   "cleanUrls": true,
   "env": {
-    "NODE_ENV": "production",
-    "VR_BROWSER_VERSION": "2.0.0"
+    "NODE_ENV": "production"
   },
   "regions": ["iad1"],
   "framework": "vite",

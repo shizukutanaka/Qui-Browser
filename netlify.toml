@@ -68,7 +68,7 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
     # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
 
     # その他のセキュリティヘッダー
     X-Frame-Options = "SAMEORIGIN"
@@ -119,7 +119,6 @@
 # 環境変数（オプション）
 [context.production.environment]
   NODE_ENV = "production"
-  VR_BROWSER_VERSION = "2.0.0"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
@@ -144,7 +143,7 @@
 
 # 開発サーバー設定
 [dev]
-  command = "python -m http.server 8888"
-  port = 8888
-  targetPort = 8888
+  command = "npm run dev"
+  port = 5173
+  targetPort = 5173
   autoLaunch = true
