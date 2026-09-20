@@ -1810,3 +1810,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第177パス（クリーンスキャン — 数値パース）
 `parseInt` は radix 明示の2箇所のみ、parseFloat 不使用、設定値は stepper 演算で文字列パース非経路 — 罠ゼロ。
+
+### 第178パス（クリーンスキャン — ページ遷移経路）
+`window.open`/`location.assign`/`location.href` 書込はゼロ（offline.html の reload のみ）— 全遷移は SPA 内部 or iframe 内完結。
