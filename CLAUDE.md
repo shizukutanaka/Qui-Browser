@@ -347,6 +347,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 📝 **fix**: 機能カードは `data-i18n-attr="aria-label:feat.*.title"` で既存キー再利用（新規文字列ゼロ）。ユーティリティ3トグルに `a11y.highContrast`/`a11y.largeText`/`a11y.langToggle` キー追加（en/ja）+ `data-i18n-attr`（title+aria-label 両方）。ローディング文言に `app.loading` キー + `data-i18n`（バージョン番号の埋め込みを除去 —— 文言の固定化で version 表示は外れたが、起動中表示の版数は情報価値が低い）。
 - ✅ **pin**: `tests/i18n.test.js` に「英語リテラルの aria-label は data-i18n-attr で駆動されていること」の走査 pin 追加（pre-fix RED → post-fix PASS）。1562 tests、lint 0 errors、build green。
 
+#### 続き17（同セッション）: `npm run test:tier` — 実行した瞬間にエラーになる「死んだコマンド」
+- 🔍 **実測**: package.json の全 45 スクリプトが参照するリポジトリ内ファイルを機械照合 —— **`test:tier` が `tests/tier-system-integration.test.js` を指すが、ファイルは tier システム削除時に消えていて実行即エラー**。スクリプトは package.json のユーザー向け約束事なので、死んだスクリプトは壊れた約束。同時に監査したもの: webpack/babel 系依存（devDeps は全て実在・活用中）、`.babelrc` と `babel.config.js` の二重設定（誤検出 —— babel の仕様上、root-wide config と file-relative .babelrc は併存が必要。.babelrc の env.test だけが `babel-plugin-import-meta.cjs` を持ち、src は `import.meta.env` を実際に使用）、index.html インライン CSS の dead クラス・id セレクタ（0件）、lighthouse 設定（`.lighthouserc.json` は CI が実際に参照 —— 生存）。
+- 🧹 **fix**: `test:tier` スクリプト削除（tier システム自体は F-2 で削除済み、対象テストなし）。
+- ✅ **pin 一般化**: `tests/npm-scripts.test.js` 新設 —— 全スクリプトのコマンド文字列から `tools|tests|src|proxy|bin/` 配下の入力パスを抽出し、実在を assert（pre-fix RED → post-fix PASS）。12 入力パス。1574 tests (52 suites)、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
