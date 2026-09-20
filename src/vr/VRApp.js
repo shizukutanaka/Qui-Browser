@@ -29,6 +29,7 @@ import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/set
 import { createHomeEnvironment } from './homeEnvironment.js';
 import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
 import { initializeSystems, dispose, setupOSAccessibilityListeners } from './systemsLifecycle.js';
+import { initialize, render, updateSystems } from './frameLoop.js';
 import { onVRSessionStart, onVRSessionEnd, _detachPanelLayer } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 
@@ -335,6 +336,18 @@ export class VRApp {
     return _detachPanelLayer(this, layerId);
   }
 
+  async initialize() {
+    return initialize(this);
+  }
+
+  render(timestamp, xrFrame) {
+    return render(this, timestamp, xrFrame);
+  }
+
+  updateSystems(timestamp, xrFrame, dt) {
+    return updateSystems(this, timestamp, xrFrame, dt);
+  }
+
   updatePerformanceMonitor(frameTime) {
     return updatePerformanceMonitor(this, frameTime);
   }
@@ -389,33 +402,6 @@ export class VRApp {
 
   _setupOSAccessibilityListeners() {
     return setupOSAccessibilityListeners(this);
-  }
-
-  async initialize() {
-    console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
-
-    // Setup Three.js
-    this.setupRenderer();
-    this.setupScene();
-    this.setupCamera();
-
-    // Setup VR before the (potentially long) async system init so the
-    // landing-page "Enter VR" buttons are wired immediately — otherwise an
-    // 'enter-vr' event dispatched during initializeSystems() is dropped.
-    this.setupVR();
-
-    // Initialize Tier 1 optimizations
-    await this.initializeSystems();
-
-    // Note: the service worker is registered once from src/main.js for all
-    // device types; VRApp no longer registers it to avoid a duplicate.
-
-    // Start render loop. Cache the bound callback so the WebGL
-    // context-restored handler can re-arm it with the same function reference.
-    this._renderBound = this.render.bind(this);
-    this.renderer.setAnimationLoop(this._renderBound);
-
-    console.debug('VRApp: Initialization complete');
   }
 
   /**
@@ -760,33 +746,6 @@ export class VRApp {
 
   /**
    * Main render loop
-   */
-  render(timestamp, xrFrame) {
-    this.frameCount++;
-
-    // Single frame clock: all systems share one dt (capped at 50 ms so a tab
-    // resuming from background doesn't produce an enormous delta).
-    const frameStart = performance.now();
-    const dt = this._lastRenderTime
-      ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05)
-      : 0.016;
-    this._lastRenderTime = frameStart;
-
-    // Update systems
-    this.updateSystems(timestamp, xrFrame, dt);
-
-    // Render scene
-    this.renderer.render(this.scene, this.camera);
-
-    // Track performance
-    const frameTime = performance.now() - frameStart;
-    this.updatePerformanceMonitor(frameTime);
-
-    // Dynamic quality adjustment (every 60 frames)
-    if (this.frameCount % 60 === 0) {
-      this.adjustQuality();
-    }
-  }
 
   /**
    * Update all systems
@@ -805,101 +764,6 @@ export class VRApp {
   }
   onControllerSelect(controller, isStart) {
     return onControllerSelect(this, controller, isStart);
-  }
-
-  updateSystems(timestamp, xrFrame, dt = 0.016) {
-    // Update comfort system (vignette, FOV)
-    if (this.comfortSystem && this.settings.enableComfort) {
-      this.comfortSystem.update(dt);
-    }
-
-    // Update FFR based on performance and predicted gaze (FR-4.2).
-    if (this.ffrSystem && this.isVREnabled) {
-      // Use the shared frame dt — no per-system timer needed.
-      this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
-      this.ffrSystem.updatePredictedGazeFoveation();
-
-      // Also coarse-adjust based on frame-budget pressure.
-      const targetFrameTime = 1000 / this.settings.targetFPS;
-      if (this.performanceMonitor.frameTime > targetFrameTime) {
-        this.ffrSystem.adjustIntensity(0.01);
-      } else {
-        this.ffrSystem.adjustIntensity(-0.01);
-      }
-    }
-
-    // Update hand tracking
-    if (this.handTracking && xrFrame) {
-      const referenceSpace = this.renderer.xr.getReferenceSpace();
-      this.handTracking.update(xrFrame, referenceSpace);
-    }
-
-    // Refresh gamepad list for haptic routing (safe no-op when no gamepads).
-    if (this.hapticFeedback) {
-      this.hapticFeedback.update();
-    }
-
-    // Update spatial audio listener position
-    if (this.spatialAudio) {
-      this.spatialAudio.updateListenerFromCamera(this.camera);
-    }
-
-    // FR-1.5: per-frame quad-layer canvas blit (only when dirty).
-    if (this.layersSystem && this.layersSystem.isSupported && xrFrame) {
-      const refSpace = this.renderer.xr.getReferenceSpace();
-      const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
-      const views = pose ? pose.views : [];
-      if (views.length > 0) {
-        const panels = this.tabManager
-          ? this.tabManager.tabs
-          : (this.webPanel ? [this.webPanel] : []);
-        for (const panel of panels) {
-          panel.updateLayer(xrFrame, views);
-        }
-      }
-    }
-
-    // Update locomotion input (snap turn), face-button actions, teleport, and hover.
-    this.updateLocomotion(dt);
-    this.updateButtonInput();
-    this.updateTeleport();
-    this.updateHover();
-
-    // FR-13.1: gaze-dwell selection (hands-free). dt is seconds; pass ms.
-    if (this.gazeInteraction && this.gazeInteraction.enabled) {
-      const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
-      if (activated) {
-        // Parity with controller/pinch selection: confirm a hands-free gaze
-        // activation on the non-visual channels too — a haptic click on any held
-        // controller and a spatial click — so it isn't signalled by sight alone.
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPatternBothHands('click');
-        }
-        if (this.spatialAudio) {
-          const pos = activated.getWorldPosition(new THREE.Vector3());
-          this.spatialAudio.play('click', 'click', pos);
-        }
-      }
-    }
-
-    // FR-13.1: age out in-VR captions.
-    if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.update(dt * 1000);
-    }
-
-    // Spatial window management: keep the active panel followed/billboarded.
-    if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
-      // The managed target is TabManager's rootGroup, which does not change
-      // with the active tab — so this only has to cover the case where the
-      // browser window was built after the manager.
-      this._attachManagedWindow();
-      this.windowManager.update(dt * 1000);
-    }
-
-    // Keep the immersive video sphere centred on the head while it plays.
-    if (this.immersiveVideo) {
-      this.immersiveVideo.update(dt);
-    }
   }
 
   /**
