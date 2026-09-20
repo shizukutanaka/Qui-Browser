@@ -772,6 +772,16 @@ verify:docs **100%**・verify:layout/app/vr-boot 全 PASS・lint 0 errors。
 
 計測: 44 suites / 1,382 tests・lint 0 errors（警告 109→105）・build 2.4s・verify:vr-boot PASS。
 
+### 第8パス（恒真分岐・書き手不在フラグの除去）
+
+| 対象 | 内容 |
+|---|---|
+| `enableTextureCompression` / `enableHomeEnvironment` / `enableSettingsPanel` | **書き手が git 履史上に一度も存在しない** 常時 true フラグ → persisted false はどのリリースでも生成不能（`saveSettings` は更新経由でしか書かない）→ フラグと `if` ラッパーを削除し無条件 init に単純化。動作は全ユーザーに対して不変 |
+| `if (this.bookmarks)` | `new BookmarkStore()` は ctor で必ず代入・null 化経路ゼロ → 恒真ガード除去（「ストア不在で no-op」のテストは**到達不能状態を検査していたため削除**） |
+| `if (import.meta.env && import.meta.env.DEV/PROD)` ×2 | Vite ビルド下で `import.meta.env` は常に定義済み → 前半を除去 |
+
+計測: 44 suites / 1,381 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

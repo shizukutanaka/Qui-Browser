@@ -46,7 +46,7 @@ applyTranslations(document);
 // Initialize observability in production builds only. web-vitals is bundled
 // and runs out of the box; Sentry/analytics are opt-in (see vite.config.js)
 // and degrade gracefully via try/catch when not installed/configured.
-if (import.meta.env && import.meta.env.PROD) {
+if (import.meta.env.PROD) {
   initializeMonitoring().catch((e) => console.error('Monitoring init failed:', e));
 }
 

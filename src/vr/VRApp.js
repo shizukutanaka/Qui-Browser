@@ -166,10 +166,6 @@ export class VRApp {
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
-      // Default home environment (floor + grid + sky + welcome panel). Doubles
-      // as a static comfort "rest frame"; without it the scene is an empty void.
-      enableHomeEnvironment: true,
       // Teleport locomotion (squeeze/grip to aim, release to move). Needs a
       // floor (provided by the home environment) and controllers.
       enableTeleport: true,
@@ -184,8 +180,6 @@ export class VRApp {
       // Controller input options.
       controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
       southpaw: false,          // swap left/right controller roles for left-handed users
-      // In-VR settings panel (toggle buttons).
-      enableSettingsPanel: true,
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
@@ -498,10 +492,8 @@ export class VRApp {
 
     // Default home environment so entering VR shows a grounded space (and a
     // static rest frame) rather than an empty void.
-    if (this.settings.enableHomeEnvironment) {
-      this.homeEnvironment = this.createHomeEnvironment();
-      this.scene.add(this.homeEnvironment);
-    }
+    this.homeEnvironment = this.createHomeEnvironment();
+    this.scene.add(this.homeEnvironment);
 
     // Immersive 360°/180° video player. Lightweight until play() is called
     // (no video element or sphere is created up front), so it is always
@@ -536,10 +528,8 @@ export class VRApp {
     });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
-    if (this.settings.enableSettingsPanel) {
-      this.settingsPanel = this.createSettingsPanel();
-      this.scene.add(this.settingsPanel);
-    }
+    this.settingsPanel = this.createSettingsPanel();
+    this.scene.add(this.settingsPanel);
 
     // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
     if (this.settings.enableWebPanel) {
@@ -1345,9 +1335,7 @@ export class VRApp {
    * bookmark/history panel is open, refresh it so the cleared list shows.
    */
   _clearBrowsingHistory() {
-    if (this.bookmarks) {
-      this.bookmarks.clearHistory();
-    }
+    this.bookmarks.clearHistory();
     if (this.bookmarkPanel && this.bookmarkPanel.visible) {
       this.bookmarkPanel._draw();
     }
@@ -2357,11 +2345,9 @@ export class VRApp {
     }
 
     // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
-    }
+    this.textureManager = new TextureManager(this.renderer);
+    await this.textureManager.initializeKTX2();
+    console.debug('VRApp: Texture manager ready with KTX2 support');
 
     // === TIER 2 SYSTEMS ===
 
@@ -2497,7 +2483,7 @@ export class VRApp {
 
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
-    if (import.meta.env && import.meta.env.DEV) {
+    if (import.meta.env.DEV) {
       const { DevTools } = await import('../dev/DevTools.js');
       this.devTools = new DevTools(this);
       this.devTools.initialize();

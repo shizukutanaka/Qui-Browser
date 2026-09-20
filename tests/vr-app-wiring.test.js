@@ -922,11 +922,6 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
 
     expect(bookmarkPanel._draw).toHaveBeenCalledTimes(1);
   });
-
-  test('no-ops safely when the store is absent', () => {
-    const app = makeVRAppLike({ bookmarks: null, bookmarkPanel: null, showVRToast: jest.fn() });
-    expect(() => VRApp.prototype._clearBrowsingHistory.call(app)).not.toThrow();
-  });
 });
 
 describe('VRApp.onTeleportEnd (refactor-preserving behavior)', () => {
