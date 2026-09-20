@@ -62,7 +62,6 @@ function makeCamera(fov = 90) {
   };
 }
 
-function makeScene() { return { add: jest.fn(), remove: jest.fn() }; }
 function makeRenderer() { return {}; }
 
 describe('ComfortSystem', () => {
