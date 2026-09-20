@@ -351,3 +351,61 @@ describe('immersive video HUD labels are localised', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('every t()/data-i18n call-site key exists in the catalog', () => {
+  // Direction opposite to the dead-key sweep above: a call site naming a
+  // missing key renders the raw key string in the UI (t() falls back to the
+  // key itself). Measured 2026-09-20: 118 t() sites + 26 data-i18n keys all
+  // resolve; this pin keeps it that way.
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const i18nSrc = fs.readFileSync(path.join(root, 'src/i18n/i18n.js'), 'utf8');
+  const catalogKeys = new Set([...i18nSrc.matchAll(/'([\w.]+)':/g)].map((m) => m[1]));
+
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+  const sources = [
+    ...walk(path.join(root, 'src')).filter((p) => p.endsWith('.js') && !p.endsWith('i18n.js')),
+    ...walk(path.join(root, 'public')).filter((p) => p.endsWith('.js')),
+  ].map((p) => [p, fs.readFileSync(p, 'utf8')]);
+  sources.push(['index.html', fs.readFileSync(path.join(root, 'index.html'), 'utf8')]);
+
+  const referenced = [];
+  for (const [f, s] of sources) {
+    for (const m of s.matchAll(/\bt\(\s*'([^']+)'/g)) referenced.push([f, m[1]]);
+    for (const m of s.matchAll(/data-i18n="([^"]+)"/g)) referenced.push([f, m[1]]);
+    for (const m of s.matchAll(/data-i18n-attr="[^"]*"/g)) {
+      for (const pair of m[0].split(/[;\s]+/).filter(Boolean)) {
+        const kv = pair.match(/(\w+):([\w.]+)/);
+        if (kv) referenced.push([f, kv[2]]);
+      }
+    }
+  }
+  const missing = referenced.filter(([, k]) => !catalogKeys.has(k));
+
+  test('no call site names a missing catalog key', () => {
+    expect(missing.map(([f, k]) => `${path.relative(root, f)}: ${k}`)).toEqual([]);
+  });
+});
+
+describe('dynamic import() targets resolve to real files', () => {
+  // Static scans miss import() specifiers — verify-text-layout.mjs's template
+  // imports and src/vr/VRApp.js's lazy DevTools import both live here.
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+  const bad = [];
+  for (const p of walk(path.join(root, 'src')).filter((p) => p.endsWith('.js'))) {
+    const s = fs.readFileSync(p, 'utf8');
+    for (const m of s.matchAll(/import\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
+      const target = path.resolve(path.dirname(p), m[1]);
+      if (!fs.existsSync(target)) bad.push(`${path.relative(root, p)}: ${m[1]}`);
+    }
+  }
+  test('every dynamic import target exists', () => {
+    expect(bad).toEqual([]);
+  });
+});
