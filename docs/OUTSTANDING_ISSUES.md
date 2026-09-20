@@ -1597,3 +1597,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第106パス（実修正 — XRQuadLayer GPU リーク）
 `LayersSystem.removeLayer`/`dispose` が `_layers.delete/clear` のみで `XRLayer.destroy()` を一度も呼んでいなかった — タブを閉じる度に native quad layer の GPU テクスチャ（2048×1280 RGBA8 ≈10MB）がセッション終了まで残存し複利的にリーク。render state の detach は既に正しく行われていたが、native リソース解放が欠落。両経路で `layer.destroy?.()` 呼出を追加。
+
+### 第107パス（クリーンスキャン — メディアリソース対称）
+`getUserMedia`/`SpeechRecognition` は全コードベースに存在しない（voice 系は過去パスで除去済み）— マイクリーク経路ゼロ。ImmersiveVideo は `removeAttribute('src')`+`load()` で正しく media 解放、AbortController は全箇所 finally clear。リソース対称完璧。
