@@ -145,8 +145,7 @@ export default defineConfig({
 
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three'],
-    exclude: ['@tensorflow/tfjs'] // Large, load on demand
+    include: ['three']
   },
 
   // Define global constants

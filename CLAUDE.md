@@ -376,6 +376,10 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧹 **fix**: 3フィールド + 6代入行を削除。aria-labelledby/describedby の id 参照走査は 0 件（全て aria-label 直接指定 —— 壊れうる構造が無い）。_プライベートメソッドの呼び出しゼロ走査も 0 件（74 の棚卸しで既に清掃済み）。
 - ✅ **pin**: `tests/no-write-only-state.test.js` 新設 — 全 `_` フィールドについて「書き込み − 読み出し」の分離カウントで assert（tests/ からの外部参照も読み出しとして計上）。1837 tests、lint 0 errors、build green。
 
+#### 続き23（同セッション）: 宣言されているが誰にも使われていない依存 — `core-js` と phantom tfjs
+- 🔍 **実測**: package.json の全依存 × 全文書・ソース・設定・スクリプト照合 → **`core-js` が完全に死んだ依存**（`.babelrc`/`babel.config.js` に `useBuiltIns` 無し、vite の legacy plugin はコメントアウト、import ゼロ）→ `npm uninstall`。**`@tensorflow/tfjs` は `optimizeDeps.exclude` にだけ存在する幻**（インストールすらされていない — 旧手トラッキング実装の残滓）→ vite.config.js から除去。逆方向も実測: settings の33キーは全て生存（21件は `byKey` 文字列経由の動的参照 —— 直読み走査の誤検出で訂正）、テストだけが呼ぶメソッドも 0 件。`@babel/core` は babel-jest が内部 `require` する正当なエンジン依存（allowlist 理由を pin 内に明記）。
+- ✅ **pin**: `tests/no-dead-dependencies.test.js` 新設 — 全依存が src/tests/tools/proxy/public/設定/HTML/スクリプトの何れかに名前を持つことを assert。1838 tests、lint 0 errors、build green、verify:docs PASS。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
