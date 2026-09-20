@@ -1214,6 +1214,21 @@ build 0.73s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.63s・vr-boot PASS。
 
+### 第39パス（C-1 スライス5: 入力ルーティング抽出 — C-1 完結）
+
+- `src/vr/interaction/inputRouting.js` 新設: updateLocomotion/
+  updateButtonInput/snapTurn/updateTeleport/onControllerSelect（計~284行）
+  を `fn(app, …)` 関数群として移動。スクラッチ Vector は module-scope
+  遅延 init（smoothMove 無効時ゼロコストを維持）。
+- `isWorldVisible` を同モジュールへ移動し export（updateHover が参照）。
+- `raycasterFromController` は delegate 経由を維持 — テストがモックする
+  公開シームのため直接 controllerRay 化は回帰（実測で5件失敗→復旧）。
+- VRApp は delegate 5本 + 残メソッドは orchestrator のみ。
+- VRApp 2,538 → 2,287 行（−251行）。C-1 累計 −967行（3,254→2,287）。
+
+計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
+build 0.74s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

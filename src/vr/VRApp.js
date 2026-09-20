@@ -12,7 +12,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback } from './comfort/ComfortSystem.js';
+import { ComfortSystem, resolveComfortPreset, fireTeleportFeedback } from './comfort/ComfortSystem.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -30,11 +30,12 @@ import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { canvasButton, controllerRay } from './ui/canvasMesh.js';
+import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect } from './interaction/inputRouting.js';
 import { createSettingsPanel } from './ui/settingsPanel.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 
 import { TabManager } from './browser/TabManager.js';
-import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
+import { WindowManager, resolveWindowDistance, firePanelGrabFeedback } from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
@@ -46,23 +47,6 @@ import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 
-/**
- * Returns false when the object or any ancestor in the scene hierarchy is not
- * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
- * (keyboard when closed, bookmark panel when toggled off) would otherwise still
- * intercept controller/gaze input while invisible.
- * @param {THREE.Object3D} obj
- */
-function isWorldVisible(obj) {
-  let o = obj;
-  while (o) {
-    if (o.visible === false) {
-      return false;
-    }
-    o = o.parent;
-  }
-  return true;
-}
 
 /**
  * Extract a short caption-friendly label from a URL: the hostname when the
@@ -1177,83 +1161,6 @@ export class VRApp {
    * the left stick is intentionally deferred until comfort-vignette coupling is
    * wired, since continuous motion is the main sickness trigger.)
    */
-  updateLocomotion(dt = 0.016) {
-    if (!this.playerRig) {
-      return;
-    }
-
-    // Southpaw swaps which hand drives snap-turn (typically right) vs move (left).
-    const turnHand  = this.settings.southpaw ? 'left'  : 'right';
-    const moveHand  = this.settings.southpaw ? 'right' : 'left';
-    // Snap activation and hysteresis thresholds.
-    const snapThreshold = 0.7;
-    const snapRelease   = 0.3;
-
-    let smoothMoving = false;
-    let smoothMoveLevel = 0; // strongest normalized stick deflection this frame
-    for (const controller of this.controllers) {
-      const src = controller.userData.inputSource;
-      if (!src) {
-        continue;
-      }
-
-      // Use profile-aware axis reading with configured dead zone.
-      const snap = this.controllerInput
-        ? this.controllerInput.read(src)
-        : { axes: { stickX: 0, stickY: 0 }, buttons: {}, hand: src.handedness };
-
-      const { stickX: x = 0, stickY: y = 0 } = snap.axes;
-
-      // Turn hand: snap turn.
-      if (this.settings.enableSnapTurn && snap.hand === turnHand) {
-        if (Math.abs(x) > snapThreshold && !controller.userData.snapLatched) {
-          this.snapTurn(x > 0 ? -1 : 1, snap.hand); // push right → turn clockwise
-          controller.userData.snapLatched = true;
-        } else if (Math.abs(x) < snapRelease) {
-          controller.userData.snapLatched = false;
-        }
-      }
-
-      // Move hand: smooth locomotion (opt-in) in the head's facing plane.
-      if (this.settings.enableSmoothMove && snap.hand === moveHand && Math.hypot(x, y) > 0) {
-        // Lazy-init scratch objects; reused every frame instead of allocating
-        // 4 objects per active gamepad at 90 Hz (Qiita "avoid new in render loop").
-        if (!this._locoQ) {
-          this._locoQ = new THREE.Quaternion();
-          this._locoFwd = new THREE.Vector3();
-          this._locoRight = new THREE.Vector3();
-          this._locoMove = new THREE.Vector3();
-        }
-        this.camera.getWorldQuaternion(this._locoQ);
-        const forward = this._locoFwd.set(0, 0, -1).applyQuaternion(this._locoQ);
-        forward.y = 0;
-        forward.normalize();
-        const right = this._locoRight.set(1, 0, 0).applyQuaternion(this._locoQ);
-        right.y = 0;
-        right.normalize();
-        const move = this._locoMove.set(0, 0, 0)
-          .addScaledVector(forward, -y) // stick up → forward
-          .addScaledVector(right, x);
-        if (move.lengthSq() > 0) {
-          move.normalize().multiplyScalar(this.settings.smoothMoveSpeed * dt);
-          this.playerRig.position.add(move);
-          smoothMoving = true;
-          // Track how far the stick is pushed (dead-zone output is already
-          // normalized to (0,1]) so the comfort vignette can scale with actual
-          // glide speed rather than snapping to full strength (adaptive FOV
-          // restriction). Take the strongest deflection across both hands.
-          smoothMoveLevel = Math.max(smoothMoveLevel, Math.min(1, Math.hypot(x, y)));
-        }
-      }
-    }
-
-    // Engage the comfort vignette while continuously moving, scaled by how
-    // fast the user is actually gliding (see ComfortSystem.updateVignette).
-    if (this.comfortSystem) {
-      this.comfortSystem.externalMotion = smoothMoving;
-      this.comfortSystem.externalMotionLevel = smoothMoveLevel;
-    }
-  }
 
   /**
    * Per-frame face-button / thumbstick-click input for all connected controllers.
@@ -1272,138 +1179,10 @@ export class VRApp {
    *
    * Haptic click feedback is fired on any justPressed event.
    */
-  updateButtonInput() {
-    if (!this.controllerInput) {
-      return;
-    }
-
-    // Which hand is which depends on southpaw setting.
-    const pointerHand = this.settings.southpaw ? 'left'  : 'right';
-    const utilityHand = this.settings.southpaw ? 'right' : 'left';
-
-    for (const controller of this.controllers) {
-      const src = controller.userData.inputSource;
-      if (!src) {
-        continue;
-      }
-
-      const snap = this.controllerInput.read(src);
-      const hand = snap.hand;
-      const btn  = snap.buttons;
-
-      // Play a brief haptic click for any face/thumb button press.
-      const anyJustPressed = Object.values(btn).some(b => b.justPressed);
-      if (anyJustPressed && this.hapticFeedback) {
-        this.hapticFeedback.playPattern(hand, 'click');
-      }
-
-      if (hand === pointerHand) {
-        // Browser navigation — available only when a tab is open.
-        const tab = this.tabManager?.getActiveTab();
-        if (tab) {
-          if (btn.faceA?.justPressed) {
-            const moved = tab.goForward?.();
-            if (this.captionSystem?.enabled) {
-              this.captionSystem.show(moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
-            }
-          }
-          if (btn.faceB?.justPressed) {
-            const moved = tab.goBack?.();
-            if (this.captionSystem?.enabled) {
-              this.captionSystem.show(moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
-            }
-          }
-        }
-        // Recenter: snap the player rig back to the origin.
-        if (btn.thumbstickClick?.justPressed) {
-          this.recenter();
-          if (this.hapticFeedback) {
-            this.hapticFeedback.playPattern(hand, 'click');
-          }
-        }
-
-      } else if (hand === utilityHand) {
-        // Toggle bookmarks/history panel.
-        if (btn.faceA?.justPressed && this.bookmarkPanel) {
-          this.bookmarkPanel.toggle();
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
-          }
-        }
-        // Toggle settings panel.
-        if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
-          this.settingsPanel.visible = !this.settingsPanel.visible;
-          this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
-          this.semanticDOM?.setSettingsExpanded(this.settingsPanel.visible);
-          // Caption so users who rely on text feedback know whether the panel
-          // opened or closed — the face/menu button click haptic is generic
-          // and doesn't distinguish panel-open from panel-close.
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
-          }
-        }
-        // Toggle VR keyboard.
-        if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
-          this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Keyboard: ${this.vrKeyboard.visible ? 'open' : 'closed'}`);
-          }
-        }
-      }
-    }
-  }
 
   /** Rotate the player rig in place about the head by snapTurnAngle * direction. */
-  snapTurn(direction, hand = null) {
-    const angleDeg = this.settings.snapTurnAngle || 30;
-    const angle = direction * THREE.MathUtils.degToRad(angleDeg);
-    const head = new THREE.Vector3();
-    this.camera.getWorldPosition(head);
-    const up = new THREE.Vector3(0, 1, 0);
-    // Rotate the rig's origin around the head pivot, then rotate its orientation;
-    // together this keeps the head fixed while turning the world.
-    this.playerRig.position.sub(head).applyAxisAngle(up, angle).add(head);
-    this.playerRig.rotateOnWorldAxis(up, angle);
-
-    // Haptic confirmation on the triggering hand — same lightweight pulse as a
-    // button click. Fires for all users: the turn always deserves tactile
-    // acknowledgement regardless of whether it was animated.
-    if (this.hapticFeedback && hand) {
-      this.hapticFeedback.playPattern(hand, 'click');
-    }
-
-    // Directional caption for caption-reliant users: the snap turn is always
-    // instantaneous (no animation regardless of prefers-reduced-motion), so
-    // there is no visual cue that the world moved. Announce direction and
-    // angle whenever captions are enabled (WCAG 1.3.3 Sensory Characteristics,
-    // WCAG 4.1.3 Status Messages). Previously gated on osReducedMotion(), but
-    // that excluded users who rely on captions without requesting reduced motion.
-    if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show(snapTurnLabel(direction, angleDeg));
-    }
-  }
 
   /** Per-frame teleport aiming: project the controller ray onto the floor. */
-  updateTeleport() {
-    const t = this.teleport;
-    if (!t.active || !t.controller || !this.floorMesh) {
-      return;
-    }
-    const hit = this.raycasterFromController(t.controller).intersectObject(this.floorMesh, false)[0];
-    if (hit) {
-      t.valid = true;
-      t.target = hit.point.clone();
-      if (t.marker) {
-        t.marker.position.set(hit.point.x, hit.point.y + 0.01, hit.point.z);
-        t.marker.visible = true;
-      }
-    } else {
-      t.valid = false;
-      if (t.marker) {
-        t.marker.visible = false;
-      }
-    }
-  }
 
   /**
    * Handle a controller select. On press (isStart), raycasts the controller
@@ -1411,42 +1190,6 @@ export class VRApp {
    * onSelect handler plus a 'qui-select' DOM-style event. On release, ends an
    * in-progress panel grab (grab-to-move) if this controller started one.
    */
-  onControllerSelect(controller, isStart) {
-    if (!isStart) {
-      // Releasing the trigger ends an in-progress panel grab (grab-to-move).
-      // This is independent of the interactables hit-test below, which only
-      // ever fires on press — a drag has no "hit" to re-test on release.
-      if (this.windowManager?.isGrabbing && controller === this._grabController) {
-        this.windowManager.endGrab();
-        this._grabController = null;
-        firePanelReleaseFeedback(controller, this.hapticFeedback, this.captionSystem);
-      }
-      return;
-    }
-    if (this.interactables.length === 0) {
-      return;
-    }
-    const hit = this.raycasterFromController(controller)
-      .intersectObjects(this.interactables, false)
-      .find(h => isWorldVisible(h.object));
-    if (!hit) {
-      return;
-    }
-    const handlers = hit.object.userData.interactable;
-    if (handlers && handlers.onSelect) {
-      handlers.onSelect({ intersection: hit, controller });
-    }
-    // Haptic click on the selecting hand confirms that the trigger registered
-    // on an interactable, giving tactile parity with face-button presses.
-    if (this.hapticFeedback) {
-      const hand = controller.userData?.inputSource?.handedness || 'right';
-      this.hapticFeedback.playPattern(hand, 'click');
-    }
-    // Also emit a DOM-style event for any external listeners.
-    if (hit.object.dispatchEvent) {
-      hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
-    }
-  }
 
   /**
    * WebPanel's move bar was selected — begin a WindowManager grab-to-move
@@ -2095,6 +1838,22 @@ export class VRApp {
   /**
    * Update all systems
    */
+  updateLocomotion(dt = 0.016) {
+    return updateLocomotion(this, dt);
+  }
+  updateButtonInput() {
+    return updateButtonInput(this);
+  }
+  snapTurn(direction, hand = null) {
+    return snapTurn(this, direction, hand);
+  }
+  updateTeleport() {
+    return updateTeleport(this);
+  }
+  onControllerSelect(controller, isStart) {
+    return onControllerSelect(this, controller, isStart);
+  }
+
   updateSystems(timestamp, xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
