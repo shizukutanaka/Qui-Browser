@@ -117,3 +117,111 @@ describe('PerformanceMonitor metric bookkeeping', () => {
     expect(mon.getColorForMemory(2000)).toBe('#ff0000');
   });
 });
+
+describe('PerformanceMonitor overlay DOM + graph layer', () => {
+  // Minimal DOM: elements register themselves by id so getElementById
+  // resolves nodes createUI built; unknown ids (the perf-close button
+  // injected via innerHTML) vend a stub.
+  function makeEl(tag, byId) {
+    const el = {
+      tagName: tag,
+      style: {},
+      children: [],
+      parentNode: null,
+      innerHTML: '',
+      _ctx: null,
+      appendChild(c) { c.parentNode = el; el.children.push(c); },
+      removeChild(c) { el.children = el.children.filter(x => x !== c); c.parentNode = null; },
+      addEventListener() {},
+      getContext() {
+        if (!el._ctx) {
+          const calls = [];
+          const rec = (n) => (...a) => calls.push([n, ...a]);
+          el._ctx = {
+            calls,
+            fillRect: rec('fillRect'), beginPath: rec('beginPath'),
+            moveTo: rec('moveTo'), lineTo: rec('lineTo'), stroke: rec('stroke'),
+            setLineDash: rec('setLineDash'), fillText: rec('fillText'),
+            strokeStyle: '', fillStyle: '', lineWidth: 0, font: ''
+          };
+        }
+        return el._ctx;
+      }
+    };
+    Object.defineProperty(el, 'id', {
+      get() { return this._id; },
+      set(v) { this._id = v; byId[v] = el; }
+    });
+    return el;
+  }
+  function installDom() {
+    const byId = {};
+    const body = makeEl('body', byId);
+    global.document = {
+      body,
+      createElement: (t) => makeEl(t, byId),
+      getElementById: (id) => byId[id] || makeEl('div', byId)
+    };
+    return byId;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    installDom();
+  });
+  afterEach(() => {
+    delete global.document;
+    jest.restoreAllMocks();
+  });
+
+  test('initialize() builds the overlay and dispose() detaches it', () => {
+    const mon = new PerformanceMonitor();
+    mon.initialize();
+    expect(mon.container.id).toBe('perf-monitor-overlay');
+    expect(global.document.body.children).toContain(mon.container);
+    expect(global.document.getElementById('perf-metrics')).toBeTruthy();
+    expect(mon.graphCtx).toBeTruthy();
+    mon.dispose();
+    expect(global.document.body.children).toHaveLength(0);
+    expect(mon.container).toBeNull();
+  });
+
+  test('updateUI writes metric markup; updateAlerts swaps empty-state for entries', () => {
+    const mon = new PerformanceMonitor();
+    mon.initialize();
+    mon.updateMetric('fps', 90);
+    mon.updateUI();
+    const metrics = global.document.getElementById('perf-metrics');
+    expect(metrics.innerHTML).toContain('FPS: 90.0');
+    const alerts = global.document.getElementById('perf-alerts');
+    expect(alerts.innerHTML).toContain('No alerts');
+    mon.addAlert('critical', 'FPS dropped to 10.0');
+    mon.updateAlerts();
+    expect(alerts.innerHTML).toContain('FPS dropped to 10.0');
+  });
+
+  test('show/hide/toggle drive container.style.display', () => {
+    const mon = new PerformanceMonitor();
+    mon.initialize();
+    mon.hide();
+    expect(mon.container.style.display).toBe('none');
+    mon.toggle();
+    expect(mon.container.style.display).toBe('block');
+    mon.toggle();
+    expect(mon.container.style.display).toBe('none');
+  });
+
+  test('graph plots newest samples toward the right edge', () => {
+    const mon = new PerformanceMonitor();
+    mon.initialize();
+    // history.push appends: index 0 is the oldest sample, last is newest
+    mon.metrics.fps.history = [10, 20, 30];
+    mon.drawMetricGraph(mon.metrics.fps.history, '#00ff00', 0, 120);
+    const xs = mon.graphCtx.calls
+      .filter(([n]) => n === 'moveTo' || n === 'lineTo')
+      .map(([, x]) => x);
+    expect(xs[xs.length - 1]).toBe(Math.max(...xs));
+    expect(xs[0]).toBe(Math.min(...xs));
+  });
+});

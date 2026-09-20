@@ -468,6 +468,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: VRApp 16% の未カバーから、ヘッドレス検証可能な縫い目を pin: `loadPersistedSettings`（未知キー除外・破損JSON→{}）、`_saveTabSession`/`_restoreTabSession`（privateMode で書き込み・復元とも抑制、破損データ→0）、`navigate`（privateMode で履歴抑制、タイトル→ホスト名 caption）、`getPerformanceStats`（形状）。bound-prototype 手法（実メソッドを手作り this に束縛）。
 - ✅ **pin**: 6テスト追加（全緑 — 実装は正しいことを実測で確認）。1906 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き41（同セッション）: PerformanceMonitor — グラフの時間軸が左右ミラーだった
+- 🐛 **実バグ**: `drawMetricGraph` の x 座標が `x = (history.length - index - 1) * pointSpacing` — `history.push` は新しい値を末尾に追加するので index 0 = 最古サンプルが**右端**、最新値が**左端**に描かれ、FPS/フレームタイムグラフが時間反転していた（ターゲットラインは水平なので気づきにくい純粋な視覚バグ）。`x = index * pointSpacing` に修正 — 最古→左、最新→右（テストで修正前赤確認）。
+- ✅ **pin**: overlay DOM/canvas 層にミニ DOM stub（id 登録式 `getElementById` + 記録式 2d ctx）で4テスト追加 — `initialize`→container 構築・`dispose`→detach、`updateUI`/`updateAlerts` の innerHTML、`show`/`hide`/`toggle`、グラフ方向性。
+- 📝 1910 tests / 58 suites、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

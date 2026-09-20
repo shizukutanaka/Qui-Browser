@@ -480,7 +480,9 @@ export class PerformanceMonitor {
     const pointSpacing = width / this.historyLength;
 
     history.forEach((value, index) => {
-      const x = (history.length - index - 1) * pointSpacing;
+      // history.push appends the newest sample, so index 0 is the oldest —
+      // plot time left-to-right with the newest point at the right edge.
+      const x = index * pointSpacing;
       const normalizedValue = (value - min) / (max - min);
       const y = height - (normalizedValue * height);
 
