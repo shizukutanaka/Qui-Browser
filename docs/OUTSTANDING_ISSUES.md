@@ -1816,3 +1816,6 @@ ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存
 
 ### 第179パス（クリーンスキャン — 乱数用途）
 `Math.random`/`crypto` 使用ゼロ — 非安全乱数・衝突可能 ID 生成経路は非存在。
+
+### 第180パス（クリーンスキャン — キー識別）
+全キー識別は `e.key`（論理・配列非依存）を使用 — `e.code`（物理位置=QWERTY 前提）不使用。AZERTY/Dvorak でのショートカット破壊経路なし。
