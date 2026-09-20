@@ -5,7 +5,6 @@
  * John Carmack principle: Systems integration is where performance lives or dies
  */
 
-
 // Tier 1 Optimizations
 
 // Tier 2 Features
@@ -30,7 +29,6 @@ import { dispose } from './systemsLifecycle.js';
 import { initialize, render } from './frameLoop.js';
 import { onVRSessionStart, onVRSessionEnd } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
-
 
 export class VRApp {
   constructor(container) {
@@ -194,7 +192,7 @@ export class VRApp {
     };
 
     // Merge any persisted user overrides (settings survive reloads).
-    const persisted = this.loadPersistedSettings();
+    const persisted = loadPersistedSettings(this.settings);
     Object.assign(this.settings, persisted);
     // Re-sync the a11y mirror: the a11y module's own storage always wins over the
     // VRApp persisted copy so changes made outside VR (2D landing page) are honoured.
@@ -254,16 +252,6 @@ export class VRApp {
   set gazeInteraction(value) {
     this.a11y.gazeInteraction = value;
   }
-
-  /**
-   * Load persisted settings overrides from localStorage. Returns {} when none
-   * exist or storage is unavailable. Only known keys are accepted so stale or
-   * malformed entries cannot inject arbitrary fields.
-   */
-  loadPersistedSettings() {
-    return loadPersistedSettings(this.settings);
-  }
-
 
   /**
    * Update a single setting and persist. Returns the new value.
@@ -358,7 +346,6 @@ export class VRApp {
   // Context object handed to the ui/settingsButtons factories — keeps them
   // module-pure while reusing this instance's caches, registry and settings.
 
-
   /**
    * Show a brief heads-up notification inside VR.  Creates a canvas-textured
    * plane attached to the camera so it stays in view, then auto-removes it.
@@ -419,7 +406,6 @@ export class VRApp {
    *
    * @param {boolean} enabled
 
-
   /**
    * Expand / collapse one settings section and rebuild the panel.
    *
@@ -429,7 +415,6 @@ export class VRApp {
    * with invisible controls that still take clicks.
    *
    * @param {string} sectionId
-
 
   /**
    * Repaint all settings-panel buttons in their idle (non-hover) state.
@@ -522,7 +507,6 @@ export class VRApp {
     return controllerRay(controller);
   }
 
-
   /**
    * Clear teleport-aim state (active/controller/marker) WITHOUT completing a
    * move — unlike onTeleportEnd(), which this factors the shared reset out
@@ -594,7 +578,6 @@ export class VRApp {
    * @returns {boolean} true when a target is attached
    */
 
-
   /**
    * Register a mesh as interactable. handlers: { onSelect, onHover, onHoverEnd }.
    * Returns the object for chaining.
@@ -652,7 +635,6 @@ export class VRApp {
   onVRSessionEnd() {
     return onVRSessionEnd(this);
   }
-
 
   /**
    * Handle VR session start
