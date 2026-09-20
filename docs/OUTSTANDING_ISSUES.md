@@ -1762,3 +1762,6 @@ addEventListener は全て初期化時一回のみ（lifecycle/controller/mq/web
 
 ### 第161パス（クリーンスキャン — プロトタイプ汚染）
 `loadPersistedSettings` は `Object.keys(defaults)` のホワイトリスト逆方向マージ — `__proto__`/`constructor` は defaults キーに存在せず流入不可能。BookmarkStore も `byUrl` Map で安全。汚染経路ゼロ。
+
+### 第162パス（クリーンスキャン — frecency/時計逆行）
+`frecencyScore` は `Math.max(0, now - visitedAt)` で時計逆行を最新スコアとして安全に扱う — 負値・NaN 破綻経路なし。
