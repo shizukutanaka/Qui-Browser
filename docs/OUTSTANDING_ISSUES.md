@@ -1418,3 +1418,6 @@ perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/red
 
 ### 第50パス（継続中 — C-1 VRApp 分離、スライス14）
 フレームループ trio（initialize 段階起動 / render / updateSystems 毎フレーム dispatch、計 ~150行）を `frameLoop.js` に抽出。`bind(this)` → `bind(app)` の捕捉と THREE import 追加を実施。VRApp 962→**826** 行（C-1 累計 −2,428 / 開始時 3,254 の 75% 削減）。残りは constructor(192・フィールド宣言)＋小メソッド群＋delegate 層のみ。1,343 tests・lint 0 errors・build 0.73s・vr-boot 全 PASS。
+
+### 第51パス（継続中 — delegate 必要性監査）
+40本の delegate 全走査: `dispose`/`render`/`getPerformanceStats` 等は app.js・frameLoop バインド・テストの実呼び出しありで生存。唯一の発見: setup×5＋initializeSystems の6 delegate は frameLoop 経由のみ → モジュール直接呼び出しに切替えて6本削除（setupControllers は setupStages 内部呼び出しも直接化 — vr-boot が `app.setupControllers is not a function` で捕捉、修正済）。VRApp 826→**801** 行（C-1 累計 −2,453）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
