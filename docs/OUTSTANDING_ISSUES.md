@@ -1492,3 +1492,6 @@ VRApp 残存 delegate を全監査 — 全てに実呼出ありを確認（テ�
 
 ### 第71パス（クリーンスキャン — 内部メソッド・プライベートフィールド）
 `_` プレフィックス内部メソッドの完全デッド走査: ゼロ。プライベートフィールド write-only 走査: 検出7件は全て偽陽性（`_x.set()` 等のメソッド経由 read）— 変更なし。
+
+### 第72パス（DOM 参照実在性監査）
+全 `getElementById` 参照を index.html/offline.html/動的生成 id と照合: `vr-container` は JSDoc 例の残滓（実在 id は `app-container`）→ 修正。DevTools の `scene-tree`/`network-tbody` は innerHTML 内で動的生成を確認して生存。DOM 参照の嘘ゼロ。
