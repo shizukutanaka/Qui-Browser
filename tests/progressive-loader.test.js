@@ -385,3 +385,118 @@ describe('ProgressiveLoader.performLoad dispatch', () => {
     }
   });
 });
+
+describe('ProgressiveLoader per-type DOM loaders', () => {
+  let loader;
+  const saved = {};
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+    for (const k of ['Image', 'Audio', 'document', 'window']) {
+      saved[k] = global[k];
+    }
+  });
+  afterEach(() => {
+    loader.dispose();
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  function stubImageConstructor() {
+    const imgs = [];
+    global.Image = jest.fn(function () { imgs.push(this); });
+    return imgs;
+  }
+  function stubDocument() {
+    const appended = [];
+    const els = [];
+    global.document = {
+      createElement: jest.fn((tag) => { const el = { tagName: tag, load: jest.fn() }; els.push(el); return el; }),
+      head: { appendChild: jest.fn((el) => appended.push(el)) }
+    };
+    return { appended, els };
+  }
+
+  test('loadImage resolves on img.onload and sets crossorigin + src', async () => {
+    const imgs = stubImageConstructor();
+    const p = loader.loadImage('/tex.png');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].crossOrigin).toBe('anonymous');
+    expect(imgs[0].src).toBe('/tex.png');
+    imgs[0].onload();
+    await expect(p).resolves.toBe(imgs[0]);
+  });
+
+  test('loadImage rejects on img.onerror', async () => {
+    const imgs = stubImageConstructor();
+    const p = loader.loadImage('/missing.png');
+    const err = new Error('nope');
+    imgs[0].onerror(err);
+    await expect(p).rejects.toBe(err);
+  });
+
+  test('loadScript appends an async <script> and resolves on load', async () => {
+    const { appended, els } = stubDocument();
+    const p = loader.loadScript('/app.js');
+    const el = els[0];
+    expect(el.src).toBe('/app.js');
+    expect(el.async).toBe(true);
+    expect(appended).toContain(el);
+    el.onload();
+    await expect(p).resolves.toBe(el);
+  });
+
+  test('loadStyle appends a stylesheet <link>', async () => {
+    const { els } = stubDocument();
+    const p = loader.loadStyle('/ui.css');
+    const el = els[0];
+    expect(el.rel).toBe('stylesheet');
+    expect(el.href).toBe('/ui.css');
+    el.onload();
+    await expect(p).resolves.toBe(el);
+  });
+
+  test('loadAudio resolves on oncanplaythrough and calls load()', async () => {
+    const instances = [];
+    global.Audio = jest.fn(function () { this.load = jest.fn(); instances.push(this); });
+    const p = loader.loadAudio('/beep.ogg');
+    const a = instances[0];
+    expect(a.src).toBe('/beep.ogg');
+    expect(a.load).toHaveBeenCalled();
+    a.oncanplaythrough();
+    await expect(p).resolves.toBe(a);
+  });
+
+  test('loadVideo creates a <video> element via document', async () => {
+    const { els } = stubDocument();
+    const p = loader.loadVideo('/clip.mp4');
+    const v = els[0];
+    expect(v.tagName).toBe('video');
+    expect(v.src).toBe('/clip.mp4');
+    v.oncanplaythrough();
+    await expect(p).resolves.toBe(v);
+  });
+
+  test('loadTexture falls back to loadImage when window.textureManager is absent', async () => {
+    const imgs = stubImageConstructor();
+    global.window = {}; // no textureManager
+    const p = loader.loadTexture('/tex.png');
+    imgs[0].onload();
+    await expect(p).resolves.toBe(imgs[0]);
+  });
+
+  test('loadModel/loadGeneric fetch with the abort signal', async () => {
+    const origFetch = global.fetch;
+    try {
+      global.fetch = jest.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+      const buf = await loader.loadModel('/m.glb');
+      expect(buf.byteLength).toBe(4);
+      expect(global.fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+
+      global.fetch = jest.fn(async () => ({ ok: true, blob: async () => 'blobbed' }));
+      await expect(loader.loadGeneric('/x.bin')).resolves.toBe('blobbed');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+});

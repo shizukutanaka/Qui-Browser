@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き53（同セッション）: ProgressiveLoader の型別 DOM ローダー層を pin（欠陥ゼロ）
+- 🔍 **実測**: `loadImage/loadScript/loadStyle/loadAudio/loadVideo`（DOM 要素ローダー群）と `loadModel/loadGeneric` の fetch 経路、`loadTexture` の `window.textureManager` 不在時フォールバックが無検証だった — node 環境でも `Image`/`Audio`/`document.createElement` を差し替えれば実配線ごと検証できる層。
+- ✅ **pin**: 8テスト追加（onload/onerror 両腕、script async+appendChild、stylesheet link、canplaythrough、textureManager 不在→Image フォールバック、fetch が abort signal を受ける）。全緑 — 実装は正しいことを実測確認。
+- 📝 2010 tests / 58 suites、lint 0 errors、build green。
+
 #### 続き52（同セッション）: ComfortSystem update/render + BookmarkPanel スクロール/削除を pin（欠陥ゼロ）
 - 🔍 **実測**: ①ComfortSystem `update()`（detectMotion→updateVignette→updateFOV のステージ駆動、camera null ガード、フラグ off 時のスキップ）と `render()` のポストプロセス経路（vignette 非活性→直接描画、活性→renderTarget パス→quad 合成）が無検証 ②BookmarkPanel のスクロール矢印 dispatch（↑↓・境界クランプ）、bookmarks モード限定の delete ゾーン（history は read-only — `removeBookmark` 関数の有無で zone を武装する実装も pin）、setMode の scrollOffset リセット、onTabChange/onDeleteBookmark コールバックが無検証だった。
 - ✅ **pin**: 5+5=10テスト追加。全緑 — 実装は正しいことを実測確認。
