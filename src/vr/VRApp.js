@@ -560,7 +560,7 @@ export class VRApp {
   /**
    * Handle a controller select. On press (isStart), raycasts the controller
    * ray against the interactables registry and fires the hit object's
-   * onSelect handler plus a 'qui-select' DOM-style event. On release, ends an
+   * onSelect handler. On release, ends an
    * in-progress panel grab (grab-to-move) if this controller started one.
    */
 

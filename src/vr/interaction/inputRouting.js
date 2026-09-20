@@ -260,10 +260,6 @@ export function onControllerSelect(app, controller, isStart) {
     const hand = controller.userData?.inputSource?.handedness || 'right';
     app.hapticFeedback.playPattern(hand, 'click');
   }
-  // Also emit a DOM-style event for any external listeners.
-  if (hit.object.dispatchEvent) {
-    hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, controller });
-  }
 }
 
 

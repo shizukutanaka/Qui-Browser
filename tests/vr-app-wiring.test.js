@@ -212,19 +212,6 @@ describe('VRApp.onControllerSelect — press (hit-test dispatch)', () => {
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
   });
 
-  test('dispatches a qui-select DOM-style event on the hit object', () => {
-    const target = { userData: { interactable: {} }, dispatchEvent: jest.fn() };
-    const hit = { object: target };
-    const app = withHitApp(hit);
-    const controller = makeController('right');
-
-    VRApp.prototype.onControllerSelect.call(app, controller, true);
-
-    expect(target.dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'qui-select', intersection: hit, controller })
-    );
-  });
-
   test('does nothing when there are no interactables', () => {
     const app = makeVRAppLike({ interactables: [] });
     app.raycasterFromController = jest.fn();

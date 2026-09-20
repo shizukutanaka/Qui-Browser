@@ -1681,3 +1681,6 @@ beforeunload → vrApp.dispose() 完備（設定は変更毎に settingsStore �
 
 ### 第134パス（クリーンスキャン — 透過深度/ジオメトリ共有）
 transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで正当、HUD（toast/caption）のみ depthTest:false で意図的。PlaneGeometry 18個はサイズ別・dispose 対称維持のため非共有が正解（共有は dispose 競合を招く）。変更なし。
+
+### 第135パス（実削除 — リスナーゼロの死イベント）
+`hit.object.dispatchEvent('qui-select')` は「外部リスナー向け DOM イベント」と自称するが購読者ゼロの死送信 → 3行削除＋言及する doc 修正＋死コード検証テスト削除（−1 test）。'enter-vr' 契約・preventDefault（webglcontextlost=必須/DevTools keydown）・instanceof 不使用は全て健全。
