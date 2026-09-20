@@ -39,11 +39,6 @@ export function frecencyScore(entry, now = Date.now(), halfLifeDays = FRECENCY_H
   return visits * decay;
 }
 
-/** Strip a leading "www." so apex and www variants group as one site. */
-function stripWww(host) {
-  return host.startsWith('www.') ? host.slice(4) : host;
-}
-
 
 function readJSON(key, fallback) {
   try {

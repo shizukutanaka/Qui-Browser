@@ -18,8 +18,6 @@
  * controls and never forces feedback the user has turned off.
  */
 
-import { t } from '../../i18n/i18n.js';
-
 // Maps a toast severity to a predefined HapticFeedback pattern (see
 // HapticFeedback.patterns). Distinct rhythms let the hand alone tell error /
 // warning / info apart without sight.

@@ -1169,6 +1169,21 @@ docs/ランディング/テストインフラの全層で「目的を説明で�
 計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
 build 0.7s・vr-boot PASS。
 
+### 第36パス（C-1 スライス2: 設定ボタン工場を settingsButtons.js へ抽出）
+
+- `src/vr/ui/settingsButtons.js` 新設: `compactToggleButton`・
+  `sectionTab`・`actionButton`・`stepperButton`・`cycleButton` の
+  5工場（~350行）を移動。VRApp 状態は `b` コンテキスト
+  （geoCache/texPool/register/settings/updateSetting/announce/
+  toggleSection）経由に置き換え、モジュール純粋化。
+- VRApp メソッドは delegate に（呼び出し側全点不変）— 3,254→3,023行。
+- 連鎖孤児除去: VRApp の buttonStyle/settingsStepper 部分 import、
+  BookmarkStore.stripWww（hostOf 削除の残滓）、crossModal の
+  未使用 `t` import。
+
+計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
+build 0.68s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

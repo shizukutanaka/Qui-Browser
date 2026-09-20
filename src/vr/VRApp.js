@@ -28,9 +28,9 @@ import { notifyCrossModal, withSeverity, toastColors, toastFontPx, controllerDis
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
-import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { canvasButton, controllerRay } from './ui/canvasMesh.js';
+import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButton } from './ui/settingsButtons.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
 
 import { TabManager } from './browser/TabManager.js';
@@ -42,7 +42,7 @@ import { detectVideoFormat } from './media/videoProjection.js';
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
-import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
+import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
 // localStorage key for persisted user settings overrides.
@@ -567,52 +567,26 @@ export class VRApp {
     return mesh;
   }
 
+  // Context object handed to the ui/settingsButtons factories — keeps them
+  // module-pure while reusing this instance's caches, registry and settings.
+  _btnCtx() {
+    return {
+      geoCache: this._sharedGeometries,
+      texPool: this._panelTextures,
+      register: (m, h) => this.registerInteractable(m, h),
+      settings: this.settings,
+      updateSetting: (k, v) => this.updateSetting(k, v),
+      announce: (...a) => this._announceSettingsButton(...a),
+      toggleSection: (id) => this._toggleSettingsSection(id)
+    };
+  }
+
   /**
    * Half-width toggle button for the 2-column settings panel layout.
    * Uses a 256×96 canvas so text renders correctly at the narrower geometry size.
    */
   makeCompactToggleButton(label, key, apply) {
-    const w = 256;
-    const h = 96;
-    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.43);
-
-    const draw = (hover) => {
-      const on = !!this.settings[key];
-      const hc = prefersHighContrast();
-      const ind = toggleIndicatorColors(on, hc, hover);
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = ind.border;
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(label, 14, 58);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = ind.label;
-      ctx.fillText(on ? 'ON' : 'OFF', w - 14, 58);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    return this._registerCanvasButton(mesh, draw, {
-      onSelect: () => {
-        const value = !this.settings[key];
-        this.updateSetting(key, value);
-        if (apply) {
-          apply(value);
-        }
-        draw(true);
-        this._announceSettingsButton('toggle', label, value, {}, true);
-      },
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('toggle', label, !!this.settings[key]);
-      },
-      onHoverEnd: () => draw(false)
-    });
+    return compactToggleButton(this._btnCtx(), label, key, apply);
   }
 
   /**
@@ -921,39 +895,7 @@ export class VRApp {
    * @returns {THREE.Mesh}
    */
   makeSectionTab(sectionId, widthM) {
-    const w = 256;
-    const h = 96;
-    const { ctx, tex, mesh } = this._canvasButton(w, h, widthM);
-    const label = t(sectionId);
-
-    const draw = (hover) => {
-      const hc = prefersHighContrast();
-      const isOpen = (this.settings.openSettingsSections || []).includes(sectionId);
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = buttonAccentColor('#8fa0ff', hc);
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px sans-serif';
-      // Glyph carries the selected state without relying on hue (WCAG 1.4.1).
-      // maxWidth backstop so a long translated label condenses instead of
-      // escaping the tab (the discipline from the text-overflow family).
-      ctx.fillText(`${isOpen ? '●' : '○'} ${label}`, w / 2, 60, w - 16);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    return this._registerCanvasButton(mesh, draw, {
-      onSelect: () => this._toggleSettingsSection(sectionId),
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('action', label);
-      },
-      onHoverEnd: () => draw(false)
-    });
+    return sectionTab(this._btnCtx(), sectionId, widthM);
   }
 
   /**
@@ -1017,43 +959,7 @@ export class VRApp {
   }
 
   makeActionButton(label, onSelect) {
-    const w = 512;
-    const h = 96;
-    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
-
-    const draw = (hover) => {
-      const hc = prefersHighContrast();
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = buttonAccentColor('#5e72e4', hc);
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px sans-serif';
-      ctx.fillText(label, 24, 62);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = buttonAccentColor('#8fa0ff', hc);
-      ctx.fillText('▸', w - 24, 62);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    return this._registerCanvasButton(mesh, draw, {
-      onSelect: () => {
-        if (onSelect) {
-          onSelect();
-        }
-        draw(true);
-        this._announceSettingsButton('action', label, undefined, {}, true);
-      },
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('action', label);
-      },
-      onHoverEnd: () => draw(false)
-    });
+    return actionButton(this._btnCtx(), label, onSelect);
   }
 
   /**
@@ -1067,77 +973,7 @@ export class VRApp {
    * @param {object} cfg   { min, max, step, unit, apply }
    */
   makeStepperButton(label, key, cfg) {
-    const { min, max, step, unit = '', apply } = cfg;
-    const w = 512;
-    const h = 96;
-    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
-
-
-    const draw = (hover) => {
-      const value = this.settings[key];
-      const hc = prefersHighContrast();
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = buttonAccentColor('#5e72e4', hc);
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      // − / + glyphs at the edges
-      ctx.fillStyle = buttonAccentColor('#8fa0ff', hc);
-      ctx.font = 'bold 54px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('−', w * 0.12, h / 2 + 18);
-      ctx.fillText('+', w * 0.88, h / 2 + 18);
-      // label + value in the middle
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px sans-serif';
-      ctx.fillText(`${label}: ${formatValue(value, { step, unit })}`, w / 2, h / 2 + 11);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    const applyStep = (delta) => {
-      const next = stepValue(this.settings[key], delta, { min, max, step });
-      if (next !== this.settings[key]) {
-        this.updateSetting(key, next); // persists (FR-9.1)
-        if (apply) {
-          apply(next);
-        }
-        this._announceSettingsButton('stepper', label, next, { step, unit }, true);
-      }
-      draw(true);
-    };
-
-    this.registerInteractable(mesh, {
-      onSelect: (evt) => {
-        // Map the hit point to a horizontal fraction of the button to decide
-        // whether the − or + region was pressed.
-        // Controllers fire onSelect({ intersection: hit, controller }) and gaze
-        // fires onSelect({ intersection: hit, gaze: true }); fall back to evt
-        // itself for direct calls (tests / legacy).
-        const rawPoint = evt?.intersection?.point ?? evt;
-        let u = 0.5;
-        if (rawPoint && mesh.worldToLocal) {
-          const local = mesh.worldToLocal(rawPoint.clone());
-          u = (local.x / 0.9) + 0.5; // PlaneGeometry width is 0.9
-        }
-        const region = stepperRegion(u);
-        if (region === 'decrement') {
-          applyStep(-1);
-        } else if (region === 'increment') {
-          applyStep(1);
-        } else {
-          draw(true);
-        }
-      },
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('stepper', label, this.settings[key], { step, unit });
-      },
-      onHoverEnd: () => draw(false)
-    });
-    mesh._redraw = () => draw(false);
-    return mesh;
+    return stepperButton(this._btnCtx(), label, key, cfg);
   }
 
   /**
@@ -1152,47 +988,7 @@ export class VRApp {
    * @param {Function} [apply] called with newValue after each cycle step
    */
   makeCycleButton(label, key, options, apply) {
-    const w = 512;
-    const h = 96;
-    const { ctx, tex, mesh } = this._canvasButton(w, h, 0.9);
-
-    const draw = (hover) => {
-      const current = this.settings[key];
-      const hc = prefersHighContrast();
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = buttonBg(hover, hc);
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = buttonAccentColor('#e4a85e', hc);
-      ctx.lineWidth = buttonLineWidth(hover, hc);
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px sans-serif';
-      ctx.fillText(label, 24, 62);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = buttonAccentColor('#ffcc88', hc);
-      ctx.fillText(`${current} ▸`, w - 24, 62);
-      tex.needsUpdate = true;
-    };
-    draw(false);
-
-    return this._registerCanvasButton(mesh, draw, {
-      onSelect: () => {
-        const idx = options.indexOf(this.settings[key]);
-        const next = options[(idx + 1) % options.length];
-        this.updateSetting(key, next);
-        if (apply) {
-          apply(next);
-        }
-        draw(true);
-        this._announceSettingsButton('cycle', label, next, {}, true);
-      },
-      onHover: () => {
-        draw(true);
-        this._announceSettingsButton('cycle', label, this.settings[key]);
-      },
-      onHoverEnd: () => draw(false)
-    });
+    return cycleButton(this._btnCtx(), label, key, options, apply);
   }
 
   /**
