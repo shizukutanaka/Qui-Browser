@@ -1696,3 +1696,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第139パス（クリーンスキャン — ストレージ書込耐性）
 全 setItem は try/catch 済み（saveSettings=warn、writeJSON=boolean 返却、履歴は quota 超過時 evict-and-retry で最古25%削り再試行）— プライベートモード/容量枯渇の未処理経路ゼロ。
+
+### 第140パス（クリーンスキャン — canvas リサイズ罠）
+`canvas.width=` 代入は全て生成時のみ（ctx 取得前）、draw 関数は呼出毎に font/fillStyle を全再設定 — 「リサイズでコンテキスト状態消失」の経路は構造的に存在しない。
