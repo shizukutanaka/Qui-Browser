@@ -188,7 +188,7 @@ export async function initializeSystems(app) {
   // Dynamically imported so it is dropped from production bundles.
   if (import.meta.env.DEV) {
     const { DevTools } = await import('../dev/DevTools.js');
-    app.devTools = new DevTools(this);
+    app.devTools = new DevTools(app);
     app.devTools.initialize();
     console.debug('VRApp: DevTools ready (F12 to toggle)');
   }
