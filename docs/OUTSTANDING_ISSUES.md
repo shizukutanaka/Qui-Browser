@@ -1457,3 +1457,6 @@ hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHand
 
 ### 第62パス（クリーンスキャン — マジックナンバー二重定義）
 同一リテラルの跨ファイル複写を全走査（~50値）: 実違反はパス61で摘出済み（残存は全て無関係な同値 — 別面 palette の同色、defensive デフォルト（GazeInteraction dwellTime=1500 は settings 値とは別の defensive fallback、テストが裸 ctor で実使用）、JSDoc ミラー）。色 hex の跨 palette 一致は別 UI 面の偶然一致で統合価値なし。変更なし。
+
+### 第63パス（canvas/texture 生成定型の統一）
+`createElement('canvas')`+`CanvasTexture`+`configureUITexture`+`colorSpace` 定型が12箇所に散在 → `makeUICanvas(w, h, {srgb})` seam（canvasTexture.js）に統一（−35行）。忘れられがちな srgb 指定が明示オプション化され、将来の追加サイトは1行で済む。孤児 import（configureUITexture×6・THREE・WindowManager・ImmersiveVideo・onVRSessionStart・createHomeEnvironment）も連鎖除去し lint warnings を 97→94 に削減。
