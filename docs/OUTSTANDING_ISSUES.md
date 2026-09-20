@@ -1510,3 +1510,6 @@ SpatialAudio の inner catch が async init 失敗を握り潰し、systemsLifec
 
 ### 第77パス（クリーンスキャン — タイマー対称）
 setInterval/setTimeout/rAF の clear 対称を全走査: 5件の非対称は全て正当（SW 更新 interval=ページ生存期間、JSDoc コメント内、`wait()` のワンショット、`animateSnapTurn` の自己終了ループ、`_toastTimers` は dispose で一括 clear — systemsLifecycle.js:256 で生存確認）。タイマーリークゼロ。
+
+### 第78パス（クリーンスキャン — CSS 死セレクタ）
+index.html/offline.html インライン CSS の全クラス/ID セレクタを実 DOM・JS と照合: 死セレクタゼロ（検出 `#d1d5db` 等は 16進カラーコードの偽陽性）。
