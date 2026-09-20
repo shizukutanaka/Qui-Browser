@@ -523,6 +523,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き58（同セッション）: DevTools（0%→非 DOM 配管層）を pin（欠陥ゼロ）
+- 🔍 **実測**: `src/dev/DevTools.js`（694行、`import.meta.env.DEV` で動的 import される開発者ツール）が全くテストされず 0% だった。DOM 構築部は重いが配管層は headless に検証可能 — console 傍受→messages リング（≤1000）、formatValue（null/undefined/オブジェクト/循環参照）、executeCode の式→文フォールバック+エラー捕捉、fetch 傍受→requests リング（成功/失敗両腕）、キーボードショートカット dispatch（F12 / Ctrl+Shift+I、plain キー無視、preventDefault）、toggle/show/hide、dispose の console+fetch 復元。
+- ✅ **pin**: 7テスト追加（tests/dev-tools.test.js 新規、59 suites）。全緑 — 実装は正しいことを実測確認。
+- 📝 2053 tests / 59 suites、lint 0 errors、build green。
+- 📝 monitoring.js（46.8%）は enabled 経路が `import.meta.env.PROD` 固定で jest から到達不能 — N-2 判断待ちのまま保留（track*/capture* の実体は全て enabled ゲートの奥）。
+
 #### 続き57（同セッション）: LayersSystem renderCanvasToLayer の `finally` が死んだ GL で投げる実バグを修正
 - 🐛 **実バグ**: `renderCanvasToLayer` の `finally` ブロックが `gl.bindFramebuffer(FRAMEBUFFER, null)` を無防備に呼んでおり、GL コンテキスト死亡時に catch 済みのエラー経路から**新しい例外が escape** していた — 毎フレーム呼ばれる経路なので、blit 失敗（既に warn 抑制あり）の後に毎フレーム uncaught になる設計だった。
 - 🔧 **修正**: finally 内の unbind を try/catch で防御（`/* a dead GL context must not escape a per-frame path */`）。修正前赤確認。
