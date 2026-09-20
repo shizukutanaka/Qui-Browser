@@ -1460,3 +1460,6 @@ hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHand
 
 ### 第63パス（canvas/texture 生成定型の統一）
 `createElement('canvas')`+`CanvasTexture`+`configureUITexture`+`colorSpace` 定型が12箇所に散在 → `makeUICanvas(w, h, {srgb})` seam（canvasTexture.js）に統一（−35行）。忘れられがちな srgb 指定が明示オプション化され、将来の追加サイトは1行で済む。孤児 import（configureUITexture×6・THREE・WindowManager・ImmersiveVideo・onVRSessionStart・createHomeEnvironment）も連鎖除去し lint warnings を 97→94 に削減。
+
+### 第64パス（クリーンスキャン — 構造定型・テストモック重複）
+Mesh(PlaneGeometry+Material) 3連は material オプションが各サイトで異質（統合すると条件分岐化で価値密度負）。dispose 定型はリスナー解除/タイマー/破棄が各ブロック別物。テストの同名モック（makeCamera×4/makePanel×3 等）は各 SUT 向けの別形状で共有化不能。変更なし — コード面の構造定型走査は収束。
