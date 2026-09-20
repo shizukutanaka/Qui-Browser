@@ -1657,3 +1657,6 @@ WebPanel の iframe（sandbox 付き正当使用）があるため `frame-src ht
 
 ### 第126パス（クリーンスキャン — フレームレート独立性）
 smooth 移動は `smoothMoveSpeed * dt` で dt 乗算済み（72Hz/90Hz で等速）、snap turn はラッチ式（イベント駆動）、gaze/caption/windowManager は dtMs 渡し。フレームレート依存の速度ズレ経路ゼロ。
+
+### 第127パス（クリーンスキャン — resize/テクスチャ品質）
+window resize は debounce+XR presenting ガード+aspect 更新+解除対称で完全。anisotropy 未設定は正しいトレードオフ — generateMipmaps=false の動的テキスト canvas で aniso は mipmap 前提で死設定になる上、mipmap 再生成は再描画毎のコスト。変更なし。
