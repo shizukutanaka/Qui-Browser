@@ -1783,3 +1783,6 @@ DOM ミラーは announceCaption/announceAlert/setSettingsExpanded のイベン�
 
 ### 第168パス（クリーンスキャン — AudioContext autoplay）
 suspended 時は click/touchstart/keydown の3経路で resume（`once:true` + dispose 解除）— ジェスチャー種別依存の無言化なし。
+
+### 第169パス（クリーンスキャン — Observer 自己ループ）
+ResizeObserver/MutationObserver/IntersectionObserver はコードベースに存在しない（web-vitals 内部のみ）— 自己誘発リサイズループ経路は構造的に非存在。
