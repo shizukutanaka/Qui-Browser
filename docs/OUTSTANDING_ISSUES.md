@@ -1678,3 +1678,6 @@ beforeunload → vrApp.dispose() 完備（設定は変更毎に settingsStore �
 
 ### 第133パス（クリーンスキャン — シェーダーコンパイル）
 マテリアルは Basic/Line/Phong/Shader で計 ~5 プログラムのみ — 初回コンパイル停滞は ~10-50ms 一回で、`compileAsync` 導入の価値密度が低い（推測最適化禁止）。変更なし。
+
+### 第134パス（クリーンスキャン — 透過深度/ジオメトリ共有）
+transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで正当、HUD（toast/caption）のみ depthTest:false で意図的。PlaneGeometry 18個はサイズ別・dispose 対称維持のため非共有が正解（共有は dispose 競合を招く）。変更なし。
