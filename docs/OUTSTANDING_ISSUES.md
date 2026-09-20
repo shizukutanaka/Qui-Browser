@@ -1744,3 +1744,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第155パス（クリーンスキャン — Promise 実行子/部分失敗）
 `new Promise` は3箇所全て同期 executor（sleep・proxy リクエスト・ボディ収集）、各々 resolve 経路完備（end/error/size-limit）。async executor の reject 飲み込みゼロ。
+
+### 第156パス（クリーンスキャン — southpaw ハンド割当）
+`settings.southpaw` は updateLocomotion が毎フレーム turnHand/moveHand/pointerHand/utilityHand を解決 — 即時反映・入替一貫。割当バグ経路なし。
