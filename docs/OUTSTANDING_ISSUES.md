@@ -1184,6 +1184,20 @@ build 0.7s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
 build 0.68s・vr-boot PASS。
 
+### 第37パス（C-1 スライス3: settingsStore + homeEnvironment 抽出）
+
+- `src/utils/settingsStore.js` 新設: loadPersistedSettings/saveSettings/
+  updateSetting の永続化トリオ（~50行）を移動。VRApp は delegate 保持
+  （app.js と tests が公開 API として使用）。
+- `src/vr/homeEnvironment.js` 新設: sky dome/floor/grid/welcome panel
+  ビルダー（~95行）を移動。captionSystem は構築時点では未代入のため
+  getCaptionSystem 遅延 getter に変更（キャプチャだと常に null になる
+  回帰を実測で検出）。
+- VRApp 3,023 → 2,912 行。
+
+計測: 43 suites / 1,343 tests・lint 93 warnings（0 errors）・
+build 0.73s・vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

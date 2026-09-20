@@ -40,13 +40,12 @@ import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
+import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
+import { createHomeEnvironment } from './homeEnvironment.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
-
-// localStorage key for persisted user settings overrides.
-const SETTINGS_KEY = 'qui-browser:settings';
 
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
@@ -310,29 +309,7 @@ export class VRApp {
    * malformed entries cannot inject arbitrary fields.
    */
   loadPersistedSettings() {
-    try {
-      if (typeof localStorage === 'undefined') {
-        return {};
-      }
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (!raw) {
-        return {};
-      }
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') {
-        return {};
-      }
-      const allowed = {};
-      for (const key of Object.keys(this.settings)) {
-        if (key in parsed) {
-          allowed[key] = parsed[key];
-        }
-      }
-      return allowed;
-    } catch (e) {
-      console.warn('VRApp: failed to load persisted settings', e);
-      return {};
-    }
+    return loadPersistedSettings(this.settings);
   }
 
   /**
@@ -340,23 +317,14 @@ export class VRApp {
    * toggles/UI; no-ops when storage is unavailable.
    */
   saveSettings() {
-    try {
-      if (typeof localStorage === 'undefined') {
-        return;
-      }
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
-    } catch (e) {
-      console.warn('VRApp: failed to persist settings', e);
-    }
+    return saveSettings(this.settings);
   }
 
   /**
    * Update a single setting and persist. Returns the new value.
    */
   updateSetting(key, value) {
-    this.settings[key] = value;
-    this.saveSettings();
-    return value;
+    return updateSetting(this.settings, key, value);
   }
 
   /**
@@ -1387,92 +1355,14 @@ export class VRApp {
    * (basic materials, no shadows). Returns a Group added to the scene.
    */
   createHomeEnvironment() {
-    const env = new THREE.Group();
-    env.name = 'homeEnvironment';
-
-    // Gradient sky dome (inside-out sphere, vertex-interpolated colors).
-    const skyGeo = new THREE.SphereGeometry(500, 24, 12);
-    const skyMat = new THREE.ShaderMaterial({
-      side: THREE.BackSide,
-      depthWrite: false,
-      uniforms: {
-        topColor: { value: new THREE.Color(0x1b2a4a) },
-        bottomColor: { value: new THREE.Color(0x0a0d14) }
-      },
-      vertexShader: `
-        varying vec3 vWorldPos;
-        void main() {
-          vec4 wp = modelMatrix * vec4(position, 1.0);
-          vWorldPos = wp.xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 topColor;
-        uniform vec3 bottomColor;
-        varying vec3 vWorldPos;
-        void main() {
-          float h = clamp((normalize(vWorldPos).y + 1.0) * 0.5, 0.0, 1.0);
-          gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
-        }
-      `
+    const { env, floor, panelTex } = createHomeEnvironment({
+      registerInteractable: (o, h) => this.registerInteractable(o, h),
+      recenter: () => this.recenter(),
+      getCaptionSystem: () => this.captionSystem,
+      settings: this.settings
     });
-    env.add(new THREE.Mesh(skyGeo, skyMat));
-
-    // Floor (subtle, non-reflective).
-    const floorMat = new THREE.MeshBasicMaterial({ color: 0x141821 });
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.name = 'floor';
     this.floorMesh = floor; // teleport target surface
-    env.add(floor);
-
-    // Reference grid — a static rest frame that reduces vection/sickness.
-    const grid = new THREE.GridHelper(60, 60, 0x335577, 0x223344);
-    grid.position.y = 0.001; // avoid z-fighting with the floor
-    env.add(grid);
-
-    // Welcome panel rendered from a canvas texture.
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#3a6ea5';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 96px sans-serif';
-    ctx.fillText('Qui Browser VR', canvas.width / 2, 120);
-    ctx.fillStyle = '#a0b4d0';
-    ctx.font = '40px sans-serif';
-    ctx.fillText('Welcome — look around to begin', canvas.width / 2, 190);
-
-    const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
-    panelTex.colorSpace = THREE.SRGBColorSpace;
     this._homePanelTexture = panelTex; // kept for explicit disposal
-    const panel = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.4, 0.6),
-      new THREE.MeshBasicMaterial({ map: panelTex, transparent: true })
-    );
-    panel.position.set(0, 1.6, -2.5);
-    env.add(panel);
-
-    // Make the panel a working "Recenter" button (also exercises the
-    // interactable + hover pipeline end-to-end).
-    this.registerInteractable(panel, {
-      onSelect: () => this.recenter(),
-      onHover: () => {
-        panel.material.color.set(0x88bbff);
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(t('vr.msg.recenterLabel'));
-        }
-      },
-      onHoverEnd: () => panel.material.color.set(0xffffff)
-    });
-
     return env;
   }
 
