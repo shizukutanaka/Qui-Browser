@@ -342,3 +342,33 @@ export function _cancelTeleportIfAimedBy(app, controller) {
     app._resetTeleportAim();
   }
 }
+
+export function requestVRKeyboardInput(app, prefill, onConfirm, prompt = 'Enter URL') {
+  if (app.vrKeyboard) {
+    app.vrKeyboard.setOnConfirm(onConfirm);
+    app.japaneseIME.activate();
+    // Pre-fill the composition buffer with the current URL so the user
+    // can edit it rather than typing from scratch.
+    if (prefill && prefill !== 'https://') {
+      app.japaneseIME.compositionBuffer = prefill;
+    } else {
+      app.japaneseIME.compositionBuffer = '';
+    }
+    // Build (if needed) and show the 3D keyboard, then refresh its display.
+    app.vrKeyboard.show();
+    // WCAG 3.3.2 Labels or Instructions: announce what input is expected so
+    // caption-reliant users know what the keyboard is for without having to
+    // look at the visual prompt bar, which may be outside their focus area.
+    if (app.captionSystem && app.captionSystem.enabled) {
+      app.captionSystem.show(prompt);
+    }
+  } else {
+    // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
+    // desktop/2D, where window.prompt is the correct input).
+    // eslint-disable-next-line no-alert
+    const url = window.prompt('Enter URL', prefill);
+    if (url) {
+      onConfirm(url);
+    }
+  }
+}

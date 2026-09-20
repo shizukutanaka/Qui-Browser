@@ -175,7 +175,7 @@ export async function initializeSystems(app) {
   // headset's system Quick Settings, without reloading the tab) would
   // never reach comfortSystem/gazeInteraction/captionSystem for the rest
   // of the page's lifetime, including across VR session enter/exit.
-  app._setupOSAccessibilityListeners();
+  setupOSAccessibilityListeners(app);
 
   // 7. Spatial Audio
   try {
@@ -183,7 +183,7 @@ export async function initializeSystems(app) {
     // Apply the persisted master-volume preference at startup so a user who
     // lowered/muted audio keeps that on the next load (not just live).
     app.spatialAudio.setMasterVolume((app.settings.masterVolume ?? 100) / 100);
-    await app.loadAudioAssets();
+    await loadAudioAssets(app);
     console.debug('VRApp: Spatial audio initialized');
   } catch (e) {
     console.error('VRApp: Spatial audio init failed', e);
@@ -369,3 +369,56 @@ export function dispose(app) {
   console.debug('VRApp: Disposed');
 }
 
+
+export function setupOSAccessibilityListeners(app) {
+  if (typeof matchMedia === 'undefined') {
+    return;
+  }
+
+  app._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
+  app._onOSReducedMotionChange = (e) => {
+    if (app.comfortSystem) {
+      app.comfortSystem.setReducedMotion(e.matches);
+    }
+    if (app.gazeInteraction) {
+      app.gazeInteraction.setReducedMotion(e.matches);
+    }
+  };
+  app._osMotionMQ.addEventListener('change', app._onOSReducedMotionChange);
+
+  // osHighContrast() ORs prefers-contrast and forced-colors, so either query
+  // changing can flip the effective decision; both share the same handler.
+  app._osContrastMQ = matchMedia('(prefers-contrast: more)');
+  app._osForcedColorsMQ = matchMedia('(forced-colors: active)');
+  app._onOSContrastChange = () => {
+    const hc = prefersHighContrast();
+    if (app.gazeInteraction) {
+      app.gazeInteraction.setHighContrast(hc);
+    }
+    if (app.captionSystem) {
+      app.captionSystem.setHighContrast(hc);
+    }
+  };
+  app._osContrastMQ.addEventListener('change', app._onOSContrastChange);
+  app._osForcedColorsMQ.addEventListener('change', app._onOSContrastChange);
+}
+
+export async function loadAudioAssets(app) {
+  if (!app.spatialAudio) {
+    return;
+  }
+
+  const PROCEDURAL = {
+    click:   { freq: 880, duration: 0.06, decay: 45 },
+    hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+    success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
+    error:   { freq: 200, duration: 0.16, decay: 10 }
+  };
+
+  for (const [name, cfg] of Object.entries(PROCEDURAL)) {
+    app.spatialAudio.registerProceduralBuffer(name, cfg);
+    if (!app.spatialAudio.sources.has(name)) {
+      app.spatialAudio.createSource(name, { volume: 0.6 });
+    }
+  }
+}

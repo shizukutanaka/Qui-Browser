@@ -13,26 +13,24 @@ import * as THREE from 'three';
 import { resolveComfortPreset } from './comfort/ComfortSystem.js';
 import { updatePerformanceMonitor, getPerformanceStats, adjustQuality, reduceQuality, increaseQuality } from './perfBudget.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
-import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
+import { osReducedMotion, getPrefs, largeTextScale } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
-import { normalizeProxyUrl, hostnameCaption } from './browser/urlDisplay.js';
 import { showVRToast } from './ui/vrToast.js';
 import { controllerRay } from './ui/canvasMesh.js';
-import { isWorldVisible, updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect, updateHover, onTeleportStart, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy } from './interaction/inputRouting.js';
-import { createSettingsPanel } from './ui/settingsPanel.js';
+import { updateLocomotion, updateButtonInput, snapTurn, updateTeleport, onControllerSelect, updateHover, onTeleportStart, onTeleportEnd, _resetTeleportAim, _cancelTeleportIfAimedBy, requestVRKeyboardInput } from './interaction/inputRouting.js';
+import { createSettingsPanel, onWebPanelToggleChanged } from './ui/settingsPanel.js';
 
 import { resolveWindowDistance } from './browser/WindowManager.js';
 import { buildBrowsingSystems, _attachManagedWindow, _onPanelGrabRequested, _teardownBrowsingSystems } from './browser/browsingSystems.js';
-import { detectVideoFormat } from './media/videoProjection.js';
+import { requestReaderProxyInput, clearBrowsingHistory, navigate } from './browser/browserActions.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { loadPersistedSettings, saveSettings, updateSetting } from '../utils/settingsStore.js';
 import { createHomeEnvironment } from './homeEnvironment.js';
 import { setupRenderer, setupScene, setupCamera, setupControllers, setupVR } from './setupStages.js';
-import { initializeSystems, dispose } from './systemsLifecycle.js';
+import { initializeSystems, dispose, setupOSAccessibilityListeners } from './systemsLifecycle.js';
 import { onVRSessionStart, onVRSessionEnd, _detachPanelLayer } from './sessionLifecycle.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
-import { settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 
 
 export class VRApp {
@@ -369,6 +367,30 @@ export class VRApp {
     return _teardownBrowsingSystems(this);
   }
 
+  _onWebPanelToggleChanged(enabled) {
+    return onWebPanelToggleChanged(this, enabled);
+  }
+
+  _requestReaderProxyInput() {
+    return requestReaderProxyInput(this);
+  }
+
+  _clearBrowsingHistory() {
+    return clearBrowsingHistory(this);
+  }
+
+  _requestVRKeyboardInput(prefill, onConfirm, prompt) {
+    return requestVRKeyboardInput(this, prefill, onConfirm, prompt);
+  }
+
+  navigate(url, title) {
+    return navigate(this, url, title);
+  }
+
+  _setupOSAccessibilityListeners() {
+    return setupOSAccessibilityListeners(this);
+  }
+
   async initialize() {
     console.debug('VRApp: Initializing Qui Browser VR v2.0.0');
 
@@ -406,17 +428,6 @@ export class VRApp {
 
   // Context object handed to the ui/settingsButtons factories — keeps them
   // module-pure while reusing this instance's caches, registry and settings.
-  _btnCtx() {
-    return {
-      geoCache: this._sharedGeometries,
-      texPool: this._panelTextures,
-      register: (m, h) => this.registerInteractable(m, h),
-      settings: this.settings,
-      updateSetting: (k, v) => this.updateSetting(k, v),
-      announce: (...a) => this._announceSettingsButton(...a),
-      toggleSection: (id) => this._toggleSettingsSection(id)
-    };
-  }
 
 
   /**
@@ -478,20 +489,6 @@ export class VRApp {
    * caption-reliant user knows the panel appeared or went away.
    *
    * @param {boolean} enabled
-   */
-  _onWebPanelToggleChanged(enabled) {
-    const on = enabled === undefined ? !!this.settings.enableWebPanel : !!enabled;
-    if (on) {
-      this._buildBrowsingSystems();
-      this._attachManagedWindow();
-    } else {
-      this._teardownBrowsingSystems();
-    }
-    this.showVRToast(
-      t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'),
-      { type: 'info' }
-    );
-  }
 
 
   /**
@@ -503,48 +500,12 @@ export class VRApp {
    * with invisible controls that still take clicks.
    *
    * @param {string} sectionId
-   */
-  _toggleSettingsSection(sectionId) {
-    // Tab semantics: selecting always selects. Exactly one section is shown, so
-    // the panel's height is bounded by `1 tab row + largest section` and adding
-    // a 25th control can only grow it by its own section. Re-selecting the
-    // active tab is a no-op rather than collapsing to an empty panel, which is
-    // what a tab affordance leads a user to expect.
-    const current = this.settings.openSettingsSections || [];
-    if (current.length === 1 && current[0] === sectionId) {
-      return;
-    }
-    this.updateSetting('openSettingsSections', [sectionId]);
-    this._rebuildSettingsPanel();
-    if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.show(`${t(sectionId)}: ${t('vr.msg.sectionOpen')}`);
-    }
-  }
-
-  /** Tear down and rebuild the settings panel in place, preserving visibility. */
-  _rebuildSettingsPanel() {
-    if (!this.settingsPanel) {
-      return;
-    }
-    const wasVisible = this.settingsPanel.visible;
-    const parent = this.settingsPanel.parent;
-    this._disposeSettingsPanel();
-    this.settingsPanel = this.createSettingsPanel();
-    this.settingsPanel.visible = wasVisible;
-    (parent || this.scene).add(this.settingsPanel);
-  }
 
 
   /**
    * Repaint all settings-panel buttons in their idle (non-hover) state.
    * Called after appearance-affecting settings change (e.g. high-contrast) so
    * the whole panel updates atomically rather than one button at a time.
-   */
-  _redrawSettingsPanel() {
-    if (this._settingsPanelDrawers) {
-      this._settingsPanelDrawers.forEach(fn => fn && fn());
-    }
-  }
 
   /**
    * Speak a settings-button caption for non-visual users. Two call contexts:
@@ -563,16 +524,6 @@ export class VRApp {
    * @param {*} value
    * @param {object} [opts]   forwarded to settingsButtonCaption (stepper format)
    * @param {boolean} [force] announce even when gaze-dwell is off (for select)
-   */
-  _announceSettingsButton(type, label, value, opts = {}, force = false) {
-    const captionsEnabled = !!(this.captionSystem && this.captionSystem.enabled);
-    if (!shouldAnnounceSettingsButton({
-      captionsEnabled, gazeDwell: this.settings.enableGazeDwell, force
-    })) {
-      return;
-    }
-    this.captionSystem.show(settingsButtonCaption(type, label, value, opts));
-  }
 
   /**
    * enableWebPanel gates the one-shot construction of tabManager/webPanel/
@@ -592,41 +543,12 @@ export class VRApp {
    * pushed to every open tab immediately — the same applies-now discipline as
    * the enableWebPanel toggle — and confirmed cross-modally (WCAG 4.1.3).
    * Invalid input changes nothing and says so.
-   */
-  _requestReaderProxyInput() {
-    const prefill = this.settings.readerProxyUrl || 'http://';
-    this._requestVRKeyboardInput(prefill, (typed) => {
-      const out = normalizeProxyUrl(typed);
-      if (!out.ok) {
-        this.showVRToast(t('vr.error.proxyInvalid'), { type: 'warn' });
-        return;
-      }
-      this.updateSetting('readerProxyUrl', out.value);
-      if (this.tabManager) {
-        this.tabManager.setReaderProxyUrl(out.value);
-      } else if (this.webPanel && this.webPanel.setReaderProxyUrl) {
-        this.webPanel.setReaderProxyUrl(out.value);
-      }
-      this.showVRToast(
-        t(out.value ? 'vr.msg.proxySet' : 'vr.msg.proxyCleared'),
-        { type: 'info' }
-      );
-    }, t('vr.prompt.proxyUrl'));
-  }
 
   /**
    * Clear all persisted browsing history (privacy). Fires a cross-modal
    * confirmation (caption + haptic + toast + semantic DOM) via showVRToast so
    * the destructive action is acknowledged on every channel (WCAG 4.1.3). If a
    * bookmark/history panel is open, refresh it so the cleared list shows.
-   */
-  _clearBrowsingHistory() {
-    this.bookmarks.clearHistory();
-    if (this.bookmarkPanel && this.bookmarkPanel.visible) {
-      this.bookmarkPanel._draw();
-    }
-    this.showVRToast(t('vr.msg.historyCleared'), { type: 'info' });
-  }
 
   /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
@@ -794,63 +716,10 @@ export class VRApp {
    * Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 / 1.4.11).
    * Called once from initializeSystems(). No-ops without matchMedia (test env
    * / non-browser). Listeners are detached in dispose().
-   */
-  _setupOSAccessibilityListeners() {
-    if (typeof matchMedia === 'undefined') {
-      return;
-    }
-
-    this._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
-    this._onOSReducedMotionChange = (e) => {
-      if (this.comfortSystem) {
-        this.comfortSystem.setReducedMotion(e.matches);
-      }
-      if (this.gazeInteraction) {
-        this.gazeInteraction.setReducedMotion(e.matches);
-      }
-    };
-    this._osMotionMQ.addEventListener('change', this._onOSReducedMotionChange);
-
-    // osHighContrast() ORs prefers-contrast and forced-colors, so either query
-    // changing can flip the effective decision; both share the same handler.
-    this._osContrastMQ = matchMedia('(prefers-contrast: more)');
-    this._osForcedColorsMQ = matchMedia('(forced-colors: active)');
-    this._onOSContrastChange = () => {
-      const hc = prefersHighContrast();
-      if (this.gazeInteraction) {
-        this.gazeInteraction.setHighContrast(hc);
-      }
-      if (this.captionSystem) {
-        this.captionSystem.setHighContrast(hc);
-      }
-    };
-    this._osContrastMQ.addEventListener('change', this._onOSContrastChange);
-    this._osForcedColorsMQ.addEventListener('change', this._onOSContrastChange);
-  }
 
   /**
    * Register interaction sounds. No audio files are shipped — all feedback
    * sounds are short synthesized tones registered as procedural buffers.
-   */
-  async loadAudioAssets() {
-    if (!this.spatialAudio) {
-      return;
-    }
-
-    const PROCEDURAL = {
-      click:   { freq: 880, duration: 0.06, decay: 45 },
-      hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
-      success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
-      error:   { freq: 200, duration: 0.16, decay: 10 }
-    };
-
-    for (const [name, cfg] of Object.entries(PROCEDURAL)) {
-      this.spatialAudio.registerProceduralBuffer(name, cfg);
-      if (!this.spatialAudio.sources.has(name)) {
-        this.spatialAudio.createSource(name, { volume: 0.6 });
-      }
-    }
-  }
 
   /**
    * Setup WebXR
@@ -1059,65 +928,15 @@ export class VRApp {
    *
    * @param {string}   prefill   — initial text in the input buffer
    * @param {Function} onConfirm — called with the confirmed string
-   */
-  _requestVRKeyboardInput(prefill, onConfirm, prompt = 'Enter URL') {
-    if (this.vrKeyboard) {
-      this.vrKeyboard.setOnConfirm(onConfirm);
-      this.japaneseIME.activate();
-      // Pre-fill the composition buffer with the current URL so the user
-      // can edit it rather than typing from scratch.
-      if (prefill && prefill !== 'https://') {
-        this.japaneseIME.compositionBuffer = prefill;
-      } else {
-        this.japaneseIME.compositionBuffer = '';
-      }
-      // Build (if needed) and show the 3D keyboard, then refresh its display.
-      this.vrKeyboard.show();
-      // WCAG 3.3.2 Labels or Instructions: announce what input is expected so
-      // caption-reliant users know what the keyboard is for without having to
-      // look at the visual prompt bar, which may be outside their focus area.
-      if (this.captionSystem && this.captionSystem.enabled) {
-        this.captionSystem.show(prompt);
-      }
-    } else {
-      // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
-      // desktop/2D, where window.prompt is the correct input).
-      // eslint-disable-next-line no-alert
-      const url = window.prompt('Enter URL', prefill);
-      if (url) {
-        onConfirm(url);
-      }
-    }
-  }
 
   /**
    * Prompt for a video URL (via the VR keyboard, falling back to window.prompt
    * on desktop) and play it as an immersive 360°/180° video. Projection and
    * stereo layout are auto-detected from the URL.
-   */
-  _launchImmersiveVideo() {
-    this._requestVRKeyboardInput('https://', (url) => {
-      if (!url || !this.immersiveVideo) {
-        return;
-      }
-      this.immersiveVideo.play(url, detectVideoFormat(url));
-    }, 'Enter video URL');
-  }
 
   /**
    * Navigate to a URL: records the visit in BookmarkStore history.
    * Call this whenever the in-VR panel loads a new page.
-   */
-  navigate(url, title = url) {
-    this.bookmarks.addHistory(url, title);
-    // Caption the page title so caption-enabled users who aren't looking at the
-    // URL bar know which page loaded — the visual chrome update is the primary
-    // channel but only helps users whose gaze is already on the panel.
-    if (this.captionSystem && this.captionSystem.enabled) {
-      const label = (title !== url) ? title : hostnameCaption(url);
-      this.captionSystem.show(label);
-    }
-  }
 
 
   /**

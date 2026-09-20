@@ -11,6 +11,8 @@ import { setPref, prefersHighContrast, osReducedMotion } from '../../a11y/access
 import { smoothMoveWarning } from '../comfort/ComfortSystem.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './settingsLayout.js';
 import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButton } from './settingsButtons.js';
+import { settingsButtonCaption, shouldAnnounceSettingsButton } from '../settingsStepper.js';
+import { launchImmersiveVideo } from '../browser/browserActions.js';
 
 /**
  * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
@@ -18,7 +20,7 @@ import { compactToggleButton, sectionTab, actionButton, stepperButton, cycleButt
  */
 export function createSettingsPanel(app) {
   const group = new THREE.Group();
-  const b = app._btnCtx();
+  const b = btnCtx(app);
   group.name = 'settingsPanel';
   // Collect per-button redraw callbacks so that appearance-affecting setting
   // changes (e.g. high-contrast) can repaint the whole panel in one shot.
@@ -27,7 +29,7 @@ export function createSettingsPanel(app) {
   const items = [
     [t('vr.settings.highContrast'), 'highContrast', (v) => {
       setPref('highContrast', v);
-      app._redrawSettingsPanel();
+      redrawSettingsPanel(app);
       if (app.bookmarkPanel && app.bookmarkPanel.visible) {
         app.bookmarkPanel._draw();
       }
@@ -192,7 +194,7 @@ export function createSettingsPanel(app) {
   // Action buttons (non-toggle). Only shown when their target exists.
   const actions = [];
   // Immersive 360°/180° video: prompt for a URL (VR keyboard) and play it.
-  actions.push([t('vr.settings.video360'), () => app._launchImmersiveVideo()]);
+  actions.push([t('vr.settings.video360'), () => launchImmersiveVideo(app)]);
   // Clear browsing history (privacy). Always shown: history is persisted in
   // localStorage and outlives an enableWebPanel session, so a user must be
   // able to clear residual history regardless of the current panel state.
@@ -308,4 +310,93 @@ export function createSettingsPanel(app) {
   group.position.set(-1.4, 1.5, -2.0);
   group.rotation.y = Math.PI / 8;
   return group;
+}
+
+export function onWebPanelToggleChanged(app, enabled) {
+  const on = enabled === undefined ? !!app.settings.enableWebPanel : !!enabled;
+  if (on) {
+    app._buildBrowsingSystems();
+    app._attachManagedWindow();
+  } else {
+    app._teardownBrowsingSystems();
+  }
+  app.showVRToast(
+    t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'),
+    { type: 'info' }
+  );
+}
+
+export function toggleSettingsSection(app, sectionId) {
+  // Tab semantics: selecting always selects. Exactly one section is shown, so
+  // the panel's height is bounded by `1 tab row + largest section` and adding
+  // a 25th control can only grow it by its own section. Re-selecting the
+  // active tab is a no-op rather than collapsing to an empty panel, which is
+  // what a tab affordance leads a user to expect.
+  const current = app.settings.openSettingsSections || [];
+  if (current.length === 1 && current[0] === sectionId) {
+    return;
+  }
+  app.updateSetting('openSettingsSections', [sectionId]);
+  _rebuildSettingsPanel(app);
+  if (app.captionSystem && app.captionSystem.enabled) {
+    app.captionSystem.show(`${t(sectionId)}: ${t('vr.msg.sectionOpen')}`);
+  }
+}
+
+/** Unregister every interactable in the settings panel and remove it from the scene. */
+export function disposeSettingsPanel(app) {
+  const panel = app.settingsPanel;
+  if (!panel) {
+    return;
+  }
+  panel.traverse((obj) => {
+    if (obj.isMesh) {
+      app.unregisterInteractable(obj);
+    }
+  });
+  if (panel.parent) {
+    panel.parent.remove(panel);
+  }
+}
+
+
+/** Tear down and rebuild the settings panel in place, preserving visibility. */
+export function _rebuildSettingsPanel(app) {
+  if (!app.settingsPanel) {
+    return;
+  }
+  const wasVisible = app.settingsPanel.visible;
+  const parent = app.settingsPanel.parent;
+  disposeSettingsPanel(app);
+  app.settingsPanel = app.createSettingsPanel();
+  app.settingsPanel.visible = wasVisible;
+  (parent || app.scene).add(app.settingsPanel);
+}
+
+export function redrawSettingsPanel(app) {
+  if (app._settingsPanelDrawers) {
+    app._settingsPanelDrawers.forEach(fn => fn && fn());
+  }
+}
+
+export function announceSettingsButton(app, type, label, value, opts = {}, force = false) {
+  const captionsEnabled = !!(app.captionSystem && app.captionSystem.enabled);
+  if (!shouldAnnounceSettingsButton({
+    captionsEnabled, gazeDwell: app.settings.enableGazeDwell, force
+  })) {
+    return;
+  }
+  app.captionSystem.show(settingsButtonCaption(type, label, value, opts));
+}
+
+function btnCtx(app) {
+  return {
+    geoCache: app._sharedGeometries,
+    texPool: app._panelTextures,
+    register: (m, h) => app.registerInteractable(m, h),
+    settings: app.settings,
+    updateSetting: (k, v) => app.updateSetting(k, v),
+    announce: (...a) => announceSettingsButton(app, ...a),
+    toggleSection: (id) => toggleSettingsSection(app, id)
+  };
 }
