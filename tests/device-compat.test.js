@@ -105,3 +105,62 @@ describe('B-1: AR feature flags key off immersive-ar support', () => {
     }
   });
 });
+
+describe('DeviceCompatibility — probe edge cases', () => {
+  let dc;
+  const setUA = (ua) => Object.defineProperty(navigator, 'userAgent',
+    { configurable: true, value: ua });
+  const setXR = (xr) => Object.defineProperty(navigator, 'xr',
+    { configurable: true, value: xr });
+  const clearStubs = () => {
+    delete navigator.xr;
+    delete navigator.userAgent;
+  };
+  beforeEach(() => { dc = new DeviceCompatibility(); });
+  afterEach(clearStubs);
+
+  test('isSessionSupported rejecting resolves to false, not a crash', async () => {
+    setXR({ isSessionSupported: () => Promise.reject(new Error('no XR')) });
+    const report = await dc.check();
+    expect(report.vrSupported).toBe(false);
+    expect(report.arSupported).toBe(false);
+    expect(report.hitTest).toBe(false);
+  });
+
+  test('android-xr tier: Android+XR UA reports AR features when arSupported', async () => {
+    setXR({ isSessionSupported: (mode) => Promise.resolve(mode === 'immersive-ar') });
+    setUA('Mozilla/5.0 (Linux; Android 14; XR) Chrome/120');
+    const report = await dc.check();
+    expect(report.deviceTier).toBe('android-xr');
+    expect(report.vrSupported).toBe(false);
+    expect(report.arSupported).toBe(true);
+    expect(report.planeDetection).toBe(true);
+    expect(report.hitTest).toBe(true);
+    expect(report.handTracking).toBe(false); // keyed off vrSupported
+  });
+
+  test('unrecognised UA with navigator.xr present is desktop-xr', async () => {
+    setXR({ isSessionSupported: () => Promise.resolve(true) });
+    setUA('Mozilla/5.0 (Windows NT 10.0) Chrome/120');
+    const report = await dc.check();
+    expect(report.deviceTier).toBe('desktop-xr');
+    expect(report.hitTest).toBe(false);   // gated to real AR devices
+    expect(report.anchors).toBe(false);
+  });
+
+  test('_probeOptionalFeatures falls back to UA detection when tier is omitted', async () => {
+    setUA('Mozilla/5.0 (Linux; Android 12; Quest 3)');
+    const xr = { isSessionSupported: () => Promise.resolve(true) };
+    const f = await dc._probeOptionalFeatures(xr, true, null, true);
+    expect(f.planeDetection).toBe(true); // quest3 detected from UA
+  });
+
+  test('targetFPS: pico4 and quest2 are 90, unknown tier is 72', () => {
+    dc.report = { deviceTier: 'pico4' };
+    expect(dc.targetFPS()).toBe(90);
+    dc.report = { deviceTier: 'quest2' };
+    expect(dc.targetFPS()).toBe(90);
+    dc.report = { deviceTier: 'unknown' };
+    expect(dc.targetFPS()).toBe(72);
+  });
+});
