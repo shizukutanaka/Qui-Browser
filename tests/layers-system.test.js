@@ -11,22 +11,22 @@ let lastBinding = null;
 class MockXRWebGLBinding {
   constructor(session, gl) {
     this.session = session;
-    this.gl      = gl;
-    lastBinding  = this;
+    this.gl = gl;
+    lastBinding = this;
   }
   createQuadLayer(init) {
     return {
-      _init    : init,
+      _init: init,
       transform: null,
-      width    : init.width,
-      height   : init.height
+      width: init.width,
+      height: init.height
     };
   }
   getViewSubImage(layer, view) {
     return {
-      framebuffer  : {},
-      colorTexture : {},
-      viewport     : { x: 0, y: 0, width: 2048, height: 1280 }
+      framebuffer: {},
+      colorTexture: {},
+      viewport: { x: 0, y: 0, width: 2048, height: 1280 }
     };
   }
 }
@@ -38,14 +38,14 @@ const { LayersSystem } = require('../src/vr/rendering/LayersSystem.js');
 
 function makeGL() {
   return {
-    FRAMEBUFFER : 0x8D40,
-    RGBA        : 0x1908,
+    FRAMEBUFFER: 0x8d40,
+    RGBA: 0x1908,
     UNSIGNED_BYTE: 0x1401,
-    TEXTURE_2D  : 0x0DE1,
-    bindFramebuffer : jest.fn(),
-    viewport        : jest.fn(),
-    bindTexture     : jest.fn(),
-    texSubImage2D   : jest.fn()
+    TEXTURE_2D: 0x0de1,
+    bindFramebuffer: jest.fn(),
+    viewport: jest.fn(),
+    bindTexture: jest.fn(),
+    texSubImage2D: jest.fn()
   };
 }
 function makeSession() {
@@ -58,8 +58,8 @@ describe('LayersSystem (FR-1.5)', () => {
   let ls, gl, session;
 
   beforeEach(() => {
-    ls      = new LayersSystem();
-    gl      = makeGL();
+    ls = new LayersSystem();
+    gl = makeGL();
     session = makeSession();
     lastBinding = null;
   });
@@ -86,7 +86,11 @@ describe('LayersSystem (FR-1.5)', () => {
   });
 
   test('initialize() returns false and does not throw when binding throws', () => {
-    class ThrowingBinding { constructor() { throw new Error('not allowed'); } }
+    class ThrowingBinding {
+      constructor() {
+        throw new Error('not allowed');
+      }
+    }
     global.XRWebGLBinding = ThrowingBinding;
     expect(() => ls.initialize(session, gl)).not.toThrow();
     expect(ls.isSupported).toBe(false);
@@ -99,7 +103,10 @@ describe('LayersSystem (FR-1.5)', () => {
     ls.initialize(session, gl);
     const refSpace = {};
     const layer = ls.createQuadLayer({
-      id: 'panel_0', space: refSpace, width: 1.6, height: 0.08
+      id: 'panel_0',
+      space: refSpace,
+      width: 1.6,
+      height: 0.08
     });
     expect(layer).not.toBeNull();
     expect(layer.width).toBe(1.6);
@@ -149,10 +156,10 @@ describe('LayersSystem (FR-1.5)', () => {
 
   test('renderCanvasToLayer() calls gl.bindFramebuffer for each view', () => {
     ls.initialize(session, gl);
-    const layer  = ls.createQuadLayer({ id: 'c', space: {}, width: 1, height: 1 });
+    const layer = ls.createQuadLayer({ id: 'c', space: {}, width: 1, height: 1 });
     const canvas = {};
-    const frame  = {};
-    const views  = [{}, {}];
+    const frame = {};
+    const views = [{}, {}];
     ls.renderCanvasToLayer(layer, canvas, frame, views);
     expect(gl.bindFramebuffer).toHaveBeenCalledTimes(views.length + 1); // +1 for null unbind
   });

@@ -109,7 +109,7 @@ describe('toast theming — honours high-contrast and large-text', () => {
   test('toastFontPx scales the base size and defaults to 26', () => {
     expect(toastFontPx()).toBe(26);
     expect(toastFontPx(1.3)).toBe(34); // round(33.8)
-    expect(toastFontPx(0)).toBe(26);   // invalid coerced to 1
+    expect(toastFontPx(0)).toBe(26); // invalid coerced to 1
   });
 });
 

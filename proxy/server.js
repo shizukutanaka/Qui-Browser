@@ -29,8 +29,13 @@ import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
 import {
-  assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
-  MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, MAX_REDIRECTS
+  assertRequestAllowed,
+  isBlockedAddress,
+  safeUpstreamHeaders,
+  isReadableContentType,
+  MAX_RESPONSE_BYTES,
+  UPSTREAM_TIMEOUT_MS,
+  MAX_REDIRECTS
 } from './ssrfGuard.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -94,11 +99,15 @@ export async function fetchThroughGuard(target, headers = {}) {
 
     const res = await new Promise((resolve) => {
       const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
-      const req = send(url, {
-        method: 'GET',
-        headers: { ...safeUpstreamHeaders(headers), host: url.host },
-        timeout: UPSTREAM_TIMEOUT_MS
-      }, (r) => resolve({ kind: 'response', r }));
+      const req = send(
+        url,
+        {
+          method: 'GET',
+          headers: { ...safeUpstreamHeaders(headers), host: url.host },
+          timeout: UPSTREAM_TIMEOUT_MS
+        },
+        (r) => resolve({ kind: 'response', r })
+      );
       req.on('timeout', () => {
         req.destroy();
         resolve({ kind: 'error', reason: 'upstream-timeout' });
@@ -166,8 +175,7 @@ export function createProxyServer() {
       return;
     }
     if (req.method !== 'GET') {
-      res.writeHead(405, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'method-not-allowed' }));
+      res.writeHead(405, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'method-not-allowed' }));
       return;
     }
     const url = new URL(req.url, 'http://localhost');
@@ -176,22 +184,19 @@ export function createProxyServer() {
       return;
     }
     if (url.pathname !== '/fetch') {
-      res.writeHead(404, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'not-found' }));
+      res.writeHead(404, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'not-found' }));
       return;
     }
     const target = url.searchParams.get('url');
     if (!target) {
-      res.writeHead(400, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'missing-url' }));
+      res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'missing-url' }));
       return;
     }
     const out = await fetchThroughGuard(target, req.headers);
     if (!out.ok) {
       // The reason is returned so the reader can say something honest, but it
       // never includes anything resolved about the internal network.
-      res.writeHead(400, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: out.reason }));
+      res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: out.reason }));
       return;
     }
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' }).end(out.body);

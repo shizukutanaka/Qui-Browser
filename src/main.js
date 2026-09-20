@@ -67,65 +67,67 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Import main application
-import('./app.js').then(_module => {
-  console.debug('Qui Browser VR v2.0.0 loaded successfully');
+import('./app.js')
+  .then((_module) => {
+    console.debug('Qui Browser VR v2.0.0 loaded successfully');
 
-  // Check WebXR support
-  if ('xr' in navigator) {
-    navigator.xr.isSessionSupported('immersive-vr').then(supported => {
-      if (supported) {
-        const vrButton = document.getElementById('vrFloatingButton');
-        if (vrButton) {
-          vrButton.style.display = 'flex';
+    // Check WebXR support
+    if ('xr' in navigator) {
+      navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+        if (supported) {
+          const vrButton = document.getElementById('vrFloatingButton');
+          if (vrButton) {
+            vrButton.style.display = 'flex';
+          }
+
+          // FR-10.2: PWA immediate immersion.
+          // When launched from the home screen (standalone mode) on a
+          // device that supports VR, fire enter-vr automatically so the
+          // user enters the experience without a manual click.  Quest
+          // Browser treats the PWA launch as a user-gesture context, so
+          // requestSession is permitted.  If the browser rejects it
+          // (SecurityError on desktop) the user can still press the
+          // button — this is a best-effort optimisation.
+          const isStandalone =
+            window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; // iOS Safari
+          if (isStandalone) {
+            console.debug('PWA standalone launch detected — auto-entering VR');
+            // Small delay so VRApp finishes registering its enter-vr
+            // listener before we fire the event.
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('enter-vr'));
+            }, 200);
+          }
         }
+      });
+    }
+  })
+  .catch((error) => {
+    console.error('Failed to load application:', error);
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+      // Build the error UI with the DOM API so the (untrusted) error message
+      // is inserted as text, never parsed as HTML (avoids XSS).
+      const box = document.createElement('div');
+      box.style.color = '#de350b';
 
-        // FR-10.2: PWA immediate immersion.
-        // When launched from the home screen (standalone mode) on a
-        // device that supports VR, fire enter-vr automatically so the
-        // user enters the experience without a manual click.  Quest
-        // Browser treats the PWA launch as a user-gesture context, so
-        // requestSession is permitted.  If the browser rejects it
-        // (SecurityError on desktop) the user can still press the
-        // button — this is a best-effort optimisation.
-        const isStandalone =
-                    window.matchMedia('(display-mode: standalone)').matches ||
-                    window.navigator.standalone === true; // iOS Safari
-        if (isStandalone) {
-          console.debug('PWA standalone launch detected — auto-entering VR');
-          // Small delay so VRApp finishes registering its enter-vr
-          // listener before we fire the event.
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('enter-vr'));
-          }, 200);
-        }
-      }
-    });
-  }
-}).catch(error => {
-  console.error('Failed to load application:', error);
-  const loadingScreen = document.getElementById('loadingScreen');
-  if (loadingScreen) {
-    // Build the error UI with the DOM API so the (untrusted) error message
-    // is inserted as text, never parsed as HTML (avoids XSS).
-    const box = document.createElement('div');
-    box.style.color = '#de350b';
+      const heading = document.createElement('h2');
+      heading.textContent = t('app.error.loadFailed');
 
-    const heading = document.createElement('h2');
-    heading.textContent = t('app.error.loadFailed');
+      const detail = document.createElement('p');
+      detail.style.color = '#a0a0b8';
+      detail.textContent = error && error.message ? String(error.message) : t('app.error.unknown');
 
-    const detail = document.createElement('p');
-    detail.style.color = '#a0a0b8';
-    detail.textContent = (error && error.message) ? String(error.message) : t('app.error.unknown');
+      const reload = document.createElement('button');
+      reload.textContent = t('app.error.reload');
+      reload.style.cssText =
+        'margin-top: 1rem; padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;';
+      reload.addEventListener('click', () => location.reload());
 
-    const reload = document.createElement('button');
-    reload.textContent = t('app.error.reload');
-    reload.style.cssText = 'margin-top: 1rem; padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;';
-    reload.addEventListener('click', () => location.reload());
-
-    box.append(heading, detail, reload);
-    loadingScreen.replaceChildren(box);
-  }
-});
+      box.append(heading, detail, reload);
+      loadingScreen.replaceChildren(box);
+    }
+  });
 
 // Show a non-blocking error message near the VR entry button (avoids alert()).
 function showVRError(anchor, message) {
@@ -138,10 +140,19 @@ function showVRError(anchor, message) {
   toast.id = 'vr-error-toast';
   toast.setAttribute('role', 'alert');
   toast.style.cssText = [
-    'position:fixed', 'bottom:2rem', 'left:50%', 'transform:translateX(-50%)',
-    'background:#1e1e2e', 'color:#f87171', 'padding:0.75rem 1.25rem',
-    'border-radius:0.5rem', 'border:1px solid #f87171', 'font-size:0.9rem',
-    'z-index:9999', 'max-width:90vw', 'text-align:center'
+    'position:fixed',
+    'bottom:2rem',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'background:#1e1e2e',
+    'color:#f87171',
+    'padding:0.75rem 1.25rem',
+    'border-radius:0.5rem',
+    'border:1px solid #f87171',
+    'font-size:0.9rem',
+    'z-index:9999',
+    'max-width:90vw',
+    'text-align:center'
   ].join(';');
   toast.textContent = message;
   document.body.appendChild(toast);
@@ -188,14 +199,15 @@ if ('serviceWorker' in navigator) {
     // the app is served under a subpath (e.g. GitHub Pages /Qui-Browser/), not
     // just at the domain root. import.meta.env.BASE_URL always ends with '/'.
     const base = import.meta.env.BASE_URL;
-    navigator.serviceWorker.register(`${base}service-worker.js`, { scope: base })
-      .then(registration => {
+    navigator.serviceWorker
+      .register(`${base}service-worker.js`, { scope: base })
+      .then((registration) => {
         console.debug('Service Worker registered:', registration);
         // Periodically check for updates so long-lived sessions
         // pick up new releases without a manual reload.
         setInterval(() => registration.update(), 60000);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Service Worker registration failed:', error);
       });
   });

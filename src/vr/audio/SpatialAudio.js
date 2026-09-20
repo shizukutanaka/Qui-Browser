@@ -31,10 +31,10 @@ export function synthesizeToneSamples(spec = {}, sampleRate = 48000) {
   let phase = 0;
   for (let i = 0; i < n; i++) {
     const t = i / sr;
-    const p = n > 1 ? i / (n - 1) : 0;        // 0..1 progress
-    const f = freq + (f2 - freq) * p;          // linear frequency glide
+    const p = n > 1 ? i / (n - 1) : 0; // 0..1 progress
+    const f = freq + (f2 - freq) * p; // linear frequency glide
     phase += (2 * Math.PI * f) / sr;
-    const env = Math.exp(-decay * t);          // exponential decay envelope
+    const env = Math.exp(-decay * t); // exponential decay envelope
     out[i] = Math.sin(phase) * env * gain;
   }
   return out;
@@ -105,11 +105,14 @@ export class SpatialAudio {
         this._resumeEvents = ['click', 'touchstart', 'keydown'];
         this._resumeOnGesture = () => {
           this._removeResumeListeners();
-          this.context.resume().then(() => {
-            console.debug('SpatialAudio: Context resumed');
-          }).catch((e) => {
-            console.warn('SpatialAudio: Context resume failed', e);
-          });
+          this.context
+            .resume()
+            .then(() => {
+              console.debug('SpatialAudio: Context resumed');
+            })
+            .catch((e) => {
+              console.warn('SpatialAudio: Context resume failed', e);
+            });
         };
         for (const evt of this._resumeEvents) {
           document.addEventListener(evt, this._resumeOnGesture, { once: true });
@@ -118,7 +121,6 @@ export class SpatialAudio {
 
       console.debug('SpatialAudio: Initialized successfully');
       console.debug('SpatialAudio: Sample rate:', this.context.sampleRate, 'Hz');
-
     } catch (error) {
       console.error('SpatialAudio: Initialization failed', error);
     }
@@ -160,7 +162,6 @@ export class SpatialAudio {
 
       console.debug(`SpatialAudio: Loaded '${name}' (${audioBuffer.duration.toFixed(2)}s)`);
       return audioBuffer;
-
     } catch (error) {
       console.error(`SpatialAudio: Failed to load ${url}`, error);
       return null;
@@ -392,14 +393,10 @@ export class SpatialAudio {
 
     // Calculate relative velocity
     const speedOfSound = 343.3; // m/s at 20°C
-    const velocity = Math.sqrt(
-      source.velocity.x ** 2 +
-      source.velocity.y ** 2 +
-      source.velocity.z ** 2
-    );
+    const velocity = Math.sqrt(source.velocity.x ** 2 + source.velocity.y ** 2 + source.velocity.z ** 2);
 
     // Apply pitch shift based on velocity
-    const dopplerFactor = 1 + (velocity / speedOfSound);
+    const dopplerFactor = 1 + velocity / speedOfSound;
     if (source.node) {
       source.node.playbackRate.value = source.playbackRate * dopplerFactor;
     }
@@ -473,10 +470,7 @@ export class SpatialAudio {
     const forward = this._fwd.set(0, 0, -1).applyQuaternion(quaternion);
     const up = this._up.set(0, 1, 0).applyQuaternion(quaternion);
 
-    this.setListenerOrientation(
-      forward.x, forward.y, forward.z,
-      up.x, up.y, up.z
-    );
+    this.setListenerOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
 
     // Re-evaluate perceptual LOD tier for all sources now that the
     // listener has moved.
@@ -505,8 +499,7 @@ export class SpatialAudio {
       return;
     }
 
-    const useHRTF = this.settings.enableHRTF &&
-      this._sourceDistance(source) <= this.settings.hrtfThreshold;
+    const useHRTF = this.settings.enableHRTF && this._sourceDistance(source) <= this.settings.hrtfThreshold;
     const targetModel = useHRTF ? 'HRTF' : 'equalpower';
 
     if (source.panner.panningModel !== targetModel) {
@@ -569,8 +562,8 @@ export class SpatialAudio {
       const panner = this.context.createPanner();
       panner.panningModel = this.settings.enableHRTF ? 'HRTF' : 'equalpower';
       panner.distanceModel = this.settings.distanceModel;
-      panner.refDistance   = this.settings.refDistance;
-      panner.maxDistance   = this.settings.maxDistance;
+      panner.refDistance = this.settings.refDistance;
+      panner.maxDistance = this.settings.maxDistance;
       panner.rolloffFactor = this.settings.rolloffFactor;
 
       const gain = this.context.createGain();
@@ -581,14 +574,14 @@ export class SpatialAudio {
       gain.connect(this.context.destination);
 
       const source = {
-        name  : sourceName,
-        node  : streamNode, // MediaStreamAudioSourceNode — no start/stop needed
+        name: sourceName,
+        node: streamNode, // MediaStreamAudioSourceNode — no start/stop needed
         panner,
         gain,
-        position : { ...position },
-        velocity : { x: 0, y: 0, z: 0 },
-        isVoice  : true,
-        volume   : 1.0,
+        position: { ...position },
+        velocity: { x: 0, y: 0, z: 0 },
+        isVoice: true,
+        volume: 1.0,
         isPlaying: true
       };
 
@@ -634,7 +627,9 @@ export class SpatialAudio {
       if (source.gain) {
         source.gain.disconnect();
       }
-    } catch (e) { /* ignore disconnect errors */ }
+    } catch (e) {
+      /* ignore disconnect errors */
+    }
 
     this.sources.delete(sourceName);
     this.stats.sourcesActive = Math.max(0, this.stats.sourcesActive - 1);
@@ -661,7 +656,7 @@ export class SpatialAudio {
     this.settings.masterVolume = Math.max(0, Math.min(1, volume));
 
     // Update all active sources
-    this.sources.forEach(source => {
+    this.sources.forEach((source) => {
       if (source.gain) {
         source.gain.gain.value = source.volume * this.settings.masterVolume;
       }
@@ -695,10 +690,7 @@ export class SpatialAudio {
 
     source.gain.gain.cancelScheduledValues(startTime);
     source.gain.gain.setValueAtTime(source.gain.gain.value, startTime);
-    source.gain.gain.linearRampToValueAtTime(
-      targetVolume * this.settings.masterVolume,
-      endTime
-    );
+    source.gain.gain.linearRampToValueAtTime(targetVolume * this.settings.masterVolume, endTime);
 
     source.volume = targetVolume;
   }
@@ -719,8 +711,7 @@ export class SpatialAudio {
     for (let channel = 0; channel < 2; channel++) {
       const channelData = impulse.getChannelData(channel);
       for (let i = 0; i < impulseLength; i++) {
-        channelData[i] = (Math.random() * 2 - 1) *
-                         Math.pow(1 - i / impulseLength, decay);
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLength, decay);
       }
     }
 

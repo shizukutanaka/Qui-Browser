@@ -5,6 +5,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [Unreleased]
 
 ### New features (in-VR usability)
+
 - **Search-engine integration** in the address bar: non-URL text becomes a
   search query (DuckDuckGo by default; google/bing/ecosia via
   `settings.searchEngine`). Dangerous schemes are blocked.
@@ -40,6 +41,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   applies immediately to open tabs.
 
 ### Fixed
+
 - Subsystem init failures (spatial audio, mixed reality) are now caught and
   surfaced as camera-anchored HUD toasts inside VR (`showVRToast`), replacing
   silent `console.error` calls that were invisible to users in the headset.
@@ -74,6 +76,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   real canvas size.
 
 ### Changed
+
 - Unified the project version to **2.0.0** across `package.json`,
   `manifest.json`, and the service worker.
 - Generated all PWA icons / favicons / social images from `assets/icon.svg`
@@ -86,6 +89,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   metadata; fixed the Docker healthcheck.
 
 ### Added
+
 - Previously-orphaned feature modules are now wired into the app, opt-in and
   default-off: AI recommendations, voice commands, multiplayer, performance
   monitor overlay (`enableAI` / `enableVoice` / `enableMultiplayer` /
@@ -101,6 +105,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   greetings, common verbs, adjectives, tech, and VR-specific vocabulary.
 
 ### Documentation
+
 - README feature tables now have Stable / Experimental / Requires-infra status.
   Unverified "✅ Achieved" FPS claims replaced with target-FPS notes.
 - WebGPURenderer and MultiplayerSystem file headers updated with accurate
@@ -113,6 +118,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [5.7.0] - 2025-10-30
 
 ### Added
+
 - **ML Gesture Recognition Module** (850+ lines)
   - CNN-LSTM based hand gesture recognition
   - 25 joint tracking per hand
@@ -161,6 +167,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   - 30+ configuration options
 
 ### Changed
+
 - **Consolidated Modules** (5 files removed)
   - Removed vr-foveated-rendering.js (v3.7.0 duplicate)
   - Removed vr-eye-tracked-foveated-rendering.js (v5.2.0 duplicate)
@@ -178,11 +185,13 @@ All notable changes to Qui Browser VR will be documented in this file.
   - Comprehensive error logging
 
 ### Fixed
+
 - vr-performance-monitor.js: Added missing checkMemoryStatus() method
 - vr-ml-gesture-recognition.js: Fixed XRSession optional handling
 - Test compatibility: All 9 test categories now passing
 
 ### Compliance
+
 - ✅ SRP (Single Responsibility Principle) - 95%
 - ✅ Security - Input validation, no hardcoded credentials
 - ✅ Performance - 90 FPS optimal, 72 FPS minimum
@@ -194,6 +203,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [3.3.0] - 2025-10-23
 
 ### Added
+
 - **Comprehensive Test Suite** (85 tests, 82.5% passing)
   - unified-systems.test.js (64 tests, 720+ lines)
   - Complete coverage for all 9 unified systems
@@ -223,6 +233,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   - npm run format / format:check - Code formatting
 
 ### Changed
+
 - **Consolidated VR Modules** (21 modules → 5 unified systems)
   - Reduced from 41 VR modules to 20 total files
   - File reduction: 65% (128 → 45 JavaScript files)
@@ -242,6 +253,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   - Updated version to 3.2.0 → 3.3.0
 
 ### Validated
+
 - ✅ **FPS Targets**: 90 optimal (Quest 3), 72 minimum (Quest 2)
 - ✅ **Frame Time**: 11.1ms @90fps, 13.9ms @72fps
 - ✅ **Memory Limits**: 1.5GB warning, 2GB critical
@@ -252,6 +264,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 - ✅ **Texture Cache**: 20 textures (LRU eviction)
 
 ### Test Coverage
+
 - **Module Existence**: 13 tests ✅
 - **VRUISystem**: 5 tests ✅ (viewing zones, font sizing, themes, panels)
 - **VRInputSystem**: 5 tests ✅ (pinch, swipe, gaze, hand tracking)
@@ -263,6 +276,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 - **Total**: 85/103 tests passing (82.5%)
 
 ### Removed
+
 - **21 Consolidated Modules** (13,426 lines)
   - vr-text-renderer.js, vr-ergonomic-ui.js, vr-settings-ui.js, vr-theme-editor.js
   - vr-gesture-controls.js, vr-gesture-macro.js, vr-gesture-scroll.js
@@ -273,6 +287,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 - **cleanup-consolidated-modules.sh** - Automated cleanup script executed
 
 ### Fixed
+
 - **Test Issues**
   - Navigator property mocking (hardwareConcurrency, deviceMemory)
   - Module existence tests for deleted files
@@ -288,6 +303,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   - Consistent code style across all modules
 
 ### Documentation
+
 - **New Files**: 5 major documentation files (8,000+ lines)
   - COMPATIBILITY.md (3,500+ lines) - Complete device compatibility
   - DEVELOPER_ONBOARDING.md (3,500+ lines) - Developer guide
@@ -297,6 +313,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 - **Updated Files**: README.md, CHANGELOG.md (this file)
 
 ### Architecture
+
 - **11 Total Systems**:
   - 3 Core Systems (VRLauncher, VRUtils, VRSettings)
   - 4 Unified Systems (Performance, Security, ErrorHandler, Extensions)
@@ -310,6 +327,7 @@ All notable changes to Qui Browser VR will be documented in this file.
   - Improved performance
 
 ### Bundle Analysis
+
 - **core.js**: 65.5 KB (contains: unified systems, core modules)
 - **vr.js**: 78.1 KB (contains: VR-specific systems, Three.js integration)
 - **enhancements.js**: 44.6 KB (contains: optional features)
@@ -318,6 +336,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [3.2.0] - 2024-10-23
 
 ### Added
+
 - Unified Performance System combining 7 monitoring modules
 - Unified Security System with Web Crypto API
 - Unified Error Handler with auto-recovery
@@ -328,12 +347,14 @@ All notable changes to Qui Browser VR will be documented in this file.
 - Comprehensive test suite
 
 ### Changed
+
 - Reduced JavaScript files from 128 to 52 (60% reduction)
 - Optimized Service Worker caching strategy
 - Improved initialization time by 70%
 - Reduced memory usage by 40%
 
 ### Removed
+
 - 76 duplicate and unused files
 - All legacy MD documentation (will be recreated)
 - Redundant core folder duplicates
@@ -341,6 +362,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 - Deprecated VR extension loaders
 
 ### Fixed
+
 - Memory leaks from infinite setInterval
 - Security vulnerabilities in encryption key storage
 - Circular dependencies in module loading
@@ -349,6 +371,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [3.1.0] - Previous Release
 
 ### Added
+
 - Initial VR browser implementation
 - Basic WebXR support
 - Hand tracking and gesture controls
@@ -357,6 +380,7 @@ All notable changes to Qui Browser VR will be documented in this file.
 ## [3.0.0] - Initial Version
 
 ### Added
+
 - Core browser functionality
 - VR mode support
 - Basic navigation features

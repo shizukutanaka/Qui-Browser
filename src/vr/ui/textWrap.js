@@ -54,18 +54,18 @@ export function charWidthEm(cp) {
     return 1;
   }
   if (
-    (cp >= 0x1100 && cp <= 0x115f) ||   // Hangul Jamo initial
-    (cp >= 0x2e80 && cp <= 0x303e) ||   // CJK radicals, Kangxi, CJK punctuation
-    (cp >= 0x3041 && cp <= 0x33ff) ||   // Kana, Bopomofo, Hangul compat, enclosed CJK
-    (cp >= 0x3400 && cp <= 0x4dbf) ||   // CJK Ext A
-    (cp >= 0x4e00 && cp <= 0x9fff) ||   // CJK Unified
-    (cp >= 0xa000 && cp <= 0xa4cf) ||   // Yi
-    (cp >= 0xac00 && cp <= 0xd7a3) ||   // Hangul syllables
-    (cp >= 0xf900 && cp <= 0xfaff) ||   // CJK compatibility ideographs
-    (cp >= 0xfe10 && cp <= 0xfe19) ||   // Vertical forms
-    (cp >= 0xfe30 && cp <= 0xfe6f) ||   // CJK compatibility forms
-    (cp >= 0xff00 && cp <= 0xff60) ||   // Fullwidth forms
-    (cp >= 0xffe0 && cp <= 0xffe6) ||   // Fullwidth signs
+    (cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo initial
+    (cp >= 0x2e80 && cp <= 0x303e) || // CJK radicals, Kangxi, CJK punctuation
+    (cp >= 0x3041 && cp <= 0x33ff) || // Kana, Bopomofo, Hangul compat, enclosed CJK
+    (cp >= 0x3400 && cp <= 0x4dbf) || // CJK Ext A
+    (cp >= 0x4e00 && cp <= 0x9fff) || // CJK Unified
+    (cp >= 0xa000 && cp <= 0xa4cf) || // Yi
+    (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul syllables
+    (cp >= 0xf900 && cp <= 0xfaff) || // CJK compatibility ideographs
+    (cp >= 0xfe10 && cp <= 0xfe19) || // Vertical forms
+    (cp >= 0xfe30 && cp <= 0xfe6f) || // CJK compatibility forms
+    (cp >= 0xff00 && cp <= 0xff60) || // Fullwidth forms
+    (cp >= 0xffe0 && cp <= 0xffe6) || // Fullwidth signs
     (cp >= 0x20000 && cp <= 0x2fffd) || // CJK Ext B..F
     (cp >= 0x30000 && cp <= 0x3fffd)
   ) {
@@ -100,7 +100,9 @@ export function textWidthEm(text) {
  */
 export function wrapTextToWidth(text, maxEm) {
   const limit = Math.max(1, Number(maxEm) || 1);
-  const words = String(text === null || text === undefined ? '' : text).trim().split(/\s+/);
+  const words = String(text === null || text === undefined ? '' : text)
+    .trim()
+    .split(/\s+/);
   const rows = [];
   let cur = '';
   let curW = 0;
@@ -135,7 +137,8 @@ export function wrapTextToWidth(text, maxEm) {
     } else if (!cur) {
       cur = w;
       curW = wW;
-    } else if (curW + 0.5 + wW <= limit) { // 0.5 em for the joining space
+    } else if (curW + 0.5 + wW <= limit) {
+      // 0.5 em for the joining space
       cur += ' ' + w;
       curW += 0.5 + wW;
     } else {
@@ -221,7 +224,9 @@ export function truncateToWidth(text, maxEm) {
  */
 export function wrapTextToLines(text, maxChars) {
   const limit = Math.max(1, Math.floor(maxChars) || 1);
-  const words = String(text === null || text === undefined ? '' : text).trim().split(/\s+/);
+  const words = String(text === null || text === undefined ? '' : text)
+    .trim()
+    .split(/\s+/);
   const rows = [];
   let cur = '';
   const cpLen = (s) => Array.from(s).length; // code points, not UTF-16 units

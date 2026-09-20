@@ -28,15 +28,37 @@
 
 /** Elements whose contents are never reader text. */
 const STRIP_ELEMENTS = [
-  'script', 'style', 'noscript', 'template', 'svg', 'canvas',
-  'nav', 'header', 'footer', 'aside', 'form', 'iframe'
+  'script',
+  'style',
+  'noscript',
+  'template',
+  'svg',
+  'canvas',
+  'nav',
+  'header',
+  'footer',
+  'aside',
+  'form',
+  'iframe'
 ];
 
 /** Minimal HTML entity set — the ones that actually show up in prose. */
 const ENTITIES = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’',
-  ldquo: '“', rdquo: '”', middot: '·', bull: '•'
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  middot: '·',
+  bull: '•'
 };
 
 /**

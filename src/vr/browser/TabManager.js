@@ -13,10 +13,15 @@ import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
 import { t } from '../../i18n/i18n.js';
 import {
-  STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
-  STRIP_NEW_TAB_PX, STRIP_TAB_MAX_PX, tabWidthPx, tabCloseZonePx
+  STRIP_W,
+  STRIP_H,
+  STRIP_CANVAS_W,
+  STRIP_CANVAS_H,
+  STRIP_NEW_TAB_PX,
+  STRIP_TAB_MAX_PX,
+  tabWidthPx,
+  tabCloseZonePx
 } from './panelGeometry.js';
-
 
 const MAX_TABS = 8;
 
@@ -68,9 +73,9 @@ export class TabManager {
     this.rootGroup.position.set(this.position.x, this.position.y, this.position.z);
 
     // Tab strip sits just above the active panel.
-    this.stripGroup  = new THREE.Group();
+    this.stripGroup = new THREE.Group();
     this.stripCanvas = document.createElement('canvas');
-    this.stripCanvas.width  = STRIP_CANVAS_W;
+    this.stripCanvas.width = STRIP_CANVAS_W;
     this.stripCanvas.height = STRIP_CANVAS_H;
     this.stripTex = configureUITexture(new THREE.CanvasTexture(this.stripCanvas));
 
@@ -117,7 +122,7 @@ export class TabManager {
     ctx.clearRect(0, 0, c.width, c.height);
 
     const n = this.tabs.length;
-    const newW = STRIP_NEW_TAB_PX;                       // "+" button width
+    const newW = STRIP_NEW_TAB_PX; // "+" button width
     const tabsAreaW = c.width - newW;
     const tabW = tabWidthPx(n, c.width);
 
@@ -133,9 +138,7 @@ export class TabManager {
       ctx.font = '22px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const title = this.tabs[i].currentUrl
-        ? this._shortTitle(this.tabs[i].currentUrl)
-        : t('vr.tabs.newTab');
+      const title = this.tabs[i].currentUrl ? this._shortTitle(this.tabs[i].currentUrl) : t('vr.tabs.newTab');
       ctx.fillText(title, x + 14, c.height / 2, Math.max(8, tabCloseZonePx(tabW).x0 - 20));
 
       // Close ✕ — drawn inside a small red box for discoverability.
@@ -185,7 +188,7 @@ export class TabManager {
       return;
     }
     const local = this.stripMesh.worldToLocal(rawPoint.clone());
-    const u = (local.x / STRIP_W) + 0.5;        // 0–1
+    const u = local.x / STRIP_W + 0.5; // 0–1
     const px = Math.round(u * this.stripCanvas.width);
 
     const newW = STRIP_NEW_TAB_PX;
@@ -235,7 +238,7 @@ export class TabManager {
       registerInteractable: this.opts.registerInteractable,
       unregisterInteractable: this.opts.unregisterInteractable,
       onNavigate: (u, title) => {
-        this._drawStrip();           // refresh tab title
+        this._drawStrip(); // refresh tab title
         this.opts.onNavigate?.(u, title);
       },
       onUrlInputRequested: this.opts.onUrlInputRequested || null,
@@ -326,7 +329,7 @@ export class TabManager {
    */
   setCurved(value) {
     this._curved = !!value;
-    this.tabs.forEach(panel => {
+    this.tabs.forEach((panel) => {
       if (panel.setCurved) {
         panel.setCurved(this._curved);
       }
@@ -341,7 +344,7 @@ export class TabManager {
    */
   setSearchEngine(engine) {
     this.opts.searchEngine = engine;
-    this.tabs.forEach(panel => {
+    this.tabs.forEach((panel) => {
       if (panel.setSearchEngine) {
         panel.setSearchEngine(engine);
       }
@@ -370,11 +373,11 @@ export class TabManager {
 
   dispose() {
     this.opts.unregisterInteractable(this.stripMesh);
-    this.tabs.forEach(panel => panel.dispose());
+    this.tabs.forEach((panel) => panel.dispose());
     this.tabs = [];
     this.activeIndex = -1;
 
-    this.stripGroup.traverse(obj => {
+    this.stripGroup.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();
       }

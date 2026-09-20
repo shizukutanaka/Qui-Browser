@@ -30,7 +30,7 @@ describe('debounce', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  test('forwards the LAST call\'s arguments (trailing-edge semantics)', () => {
+  test("forwards the LAST call's arguments (trailing-edge semantics)", () => {
     const fn = jest.fn();
     const d = debounce(fn, 100);
     d('first');

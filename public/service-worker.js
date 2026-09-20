@@ -13,56 +13,50 @@ const RUNTIME_CACHE = 'qui-browser-runtime';
 // /Qui-Browser/service-worker.js) it is '/Qui-Browser/'. Everything the worker
 // precaches or falls back to is resolved against it so caching/offline work
 // regardless of where the app is deployed.
-const BASE = ((self.location && self.location.pathname) || '/service-worker.js')
-  .replace(/service-worker\.js$/, '');
+const BASE = ((self.location && self.location.pathname) || '/service-worker.js').replace(/service-worker\.js$/, '');
 
 // Critical assets that must be cached for offline support. Kept to the app
 // shell only: the hashed JS/CSS bundles Vite emits are picked up at runtime by
 // the fetch handler (their names aren't known here), and the previous list's
 // '/src/*.js' entries never existed in the production build (Vite bundles them)
 // while the CDN Three.js URLs are unused (Three is bundled locally).
-const CRITICAL_ASSETS = [
-  BASE,
-  `${BASE}index.html`,
-  `${BASE}manifest.json`,
-  `${BASE}offline.html`
-];
+const CRITICAL_ASSETS = [BASE, `${BASE}index.html`, `${BASE}manifest.json`, `${BASE}offline.html`];
 
 // Asset patterns to cache with different strategies
 const CACHE_PATTERNS = {
   // Cache first - static assets that rarely change
   cacheFirst: [
-    /\.ktx2$/,     // KTX2 compressed textures
-    /\.wasm$/,     // WebAssembly modules
-    /\.glb$/,      // 3D models
-    /\.gltf$/,     // 3D models
-    /fonts\//,     // Font files
-    /\.woff2?$/    // Web fonts
+    /\.ktx2$/, // KTX2 compressed textures
+    /\.wasm$/, // WebAssembly modules
+    /\.glb$/, // 3D models
+    /\.gltf$/, // 3D models
+    /fonts\//, // Font files
+    /\.woff2?$/ // Web fonts
   ],
 
   // Network first - dynamic content
   networkFirst: [
-    /api\//,       // API calls
-    /\.json$/,     // JSON data (except manifest)
-    /socket/       // WebSocket connections
+    /api\//, // API calls
+    /\.json$/, // JSON data (except manifest)
+    /socket/ // WebSocket connections
   ],
 
   // Stale while revalidate - balance freshness and speed
   staleWhileRevalidate: [
-    /\.js$/,       // JavaScript files
-    /\.css$/,      // Stylesheets
-    /\.html$/,     // HTML pages
-    /\.jpg$/,      // Images
-    /\.png$/,      // Images
-    /\.svg$/       // SVG graphics
+    /\.js$/, // JavaScript files
+    /\.css$/, // Stylesheets
+    /\.html$/, // HTML pages
+    /\.jpg$/, // Images
+    /\.png$/, // Images
+    /\.svg$/ // SVG graphics
   ]
 };
 
 // Maximum cache sizes (in entries)
 const CACHE_LIMITS = {
-  textures: 100,   // ~100MB with KTX2 compression
-  models: 50,      // ~50MB of 3D models
-  runtime: 200     // General runtime cache
+  textures: 100, // ~100MB with KTX2 compression
+  models: 50, // ~50MB of 3D models
+  runtime: 200 // General runtime cache
 };
 
 // Memory usage tracking
@@ -80,13 +74,14 @@ self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then(cache => {
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) => {
         console.log('[ServiceWorker] Pre-caching critical assets');
         // Cache all critical assets in parallel for speed
         return Promise.all(
-          CRITICAL_ASSETS.map(url =>
-            cache.add(url).catch(err => {
+          CRITICAL_ASSETS.map((url) =>
+            cache.add(url).catch((err) => {
               console.warn(`[ServiceWorker] Failed to cache ${url}:`, err);
             })
           )
@@ -107,10 +102,11 @@ self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
+    caches
+      .keys()
+      .then((cacheNames) => {
         return Promise.all(
-          cacheNames.map(cacheName => {
+          cacheNames.map((cacheName) => {
             if (cacheName !== CACHE_VERSION && cacheName !== RUNTIME_CACHE) {
               console.log('[ServiceWorker] Deleting old cache:', cacheName);
               cacheStats.evictions++;
@@ -161,9 +157,7 @@ self.addEventListener('fetch', (event) => {
   // Determine caching strategy
   const strategy = getCacheStrategy(url.pathname);
 
-  event.respondWith(
-    executeStrategy(strategy, request)
-  );
+  event.respondWith(executeStrategy(strategy, request));
 });
 
 /**
@@ -288,7 +282,7 @@ async function staleWhileRevalidate(request) {
 
   // Fetch fresh version in background
   const fetchPromise = fetch(request)
-    .then(response => {
+    .then((response) => {
       // Update cache with fresh version
       if (response.ok) {
         cache.put(request, response.clone());
@@ -296,7 +290,7 @@ async function staleWhileRevalidate(request) {
       }
       return response;
     })
-    .catch(error => {
+    .catch((error) => {
       console.warn('[ServiceWorker] Background fetch failed:', error);
       return cached; // Return cached version on error
     });
@@ -317,9 +311,7 @@ async function staleWhileRevalidate(request) {
 function fetchWithTimeout(request, timeout = 5000) {
   return Promise.race([
     fetch(request),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
   ]);
 }
 
@@ -332,11 +324,13 @@ async function getOfflineFallback(request) {
   // Return offline page for navigation requests
   if (request.mode === 'navigate') {
     const cache = await caches.open(CACHE_VERSION);
-    return cache.match(`${BASE}offline.html`) ||
-           new Response('Offline - Please check your connection', {
-             status: 503,
-             statusText: 'Service Unavailable'
-           });
+    return (
+      cache.match(`${BASE}offline.html`) ||
+      new Response('Offline - Please check your connection', {
+        status: 503,
+        statusText: 'Service Unavailable'
+      })
+    );
   }
 
   // Return placeholder for images
@@ -420,7 +414,7 @@ async function getCacheInfo() {
     const keys = await cache.keys();
     info[name] = {
       entries: keys.length,
-      urls: keys.map(req => req.url)
+      urls: keys.map((req) => req.url)
     };
   }
 
@@ -433,7 +427,7 @@ async function getCacheInfo() {
 async function clearCache(cacheType) {
   if (cacheType === 'all') {
     const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
     cacheStats = { hits: 0, misses: 0, updates: 0, evictions: 0 };
   } else {
     await caches.delete(cacheType);
@@ -446,14 +440,14 @@ async function clearCache(cacheType) {
 async function preloadAssets(urls) {
   const cache = await caches.open(CACHE_VERSION);
 
-  const promises = urls.map(url =>
+  const promises = urls.map((url) =>
     fetch(url)
-      .then(response => {
+      .then((response) => {
         if (response.ok) {
           return cache.put(url, response);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.warn(`[ServiceWorker] Failed to preload ${url}:`, error);
       })
   );

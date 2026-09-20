@@ -55,13 +55,12 @@ export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
  * the last line collides with the progress label as well.
  */
 export const CONTENT_BOTTOM_GAP = 8;
-export const CONTENT_BOTTOM_RESERVED = (CONTENT_PX_H - ARROW_Y0) + CONTENT_BOTTOM_GAP;
+export const CONTENT_BOTTOM_RESERVED = CONTENT_PX_H - ARROW_Y0 + CONTENT_BOTTOM_GAP;
 
 /** Lines that fit the viewport at a given scale. */
 export function visibleLineCount(scale = 1, reserveBottom = false) {
   const lh = LINE_H * (scale > 0 ? scale : 1);
-  const avail = CONTENT_PX_H - 2 * CONTENT_PAD
-    - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
+  const avail = CONTENT_PX_H - 2 * CONTENT_PAD - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
   return Math.max(1, Math.floor(avail / lh));
 }
 
@@ -209,7 +208,6 @@ export function readerProgressLabel(offset, total, visible) {
   const start = clampReaderScroll(offset, n, v);
   return `${start + 1}–${Math.min(start + v, n)}/${n}`;
 }
-
 
 /**
  * Lines a page-jump moves.

@@ -20,8 +20,8 @@ const path = require('path');
 const THRESHOLDS = {
   // Percentage increases that trigger warnings/failures
   loadTime: {
-    warning: 10,  // 10% slower = warning
-    error: 20     // 20% slower = error
+    warning: 10, // 10% slower = warning
+    error: 20 // 20% slower = error
   },
   memory: {
     warning: 15,
@@ -137,10 +137,7 @@ function compareResults(current, baseline) {
   };
 
   // Get all module names
-  const moduleNames = new Set([
-    ...Object.keys(current.results || {}),
-    ...Object.keys(baseline.results || {})
-  ]);
+  const moduleNames = new Set([...Object.keys(current.results || {}), ...Object.keys(baseline.results || {})]);
 
   for (const moduleName of moduleNames) {
     const currentData = current.results?.[moduleName];
@@ -313,16 +310,20 @@ function printReport(comparison) {
 
         for (const metric of module.metrics) {
           const statusIcon =
-            metric.status === 'error' ? '❌' :
-            metric.status === 'warning' ? '⚠️' :
-            metric.status === 'improved' ? '✅' : '➡️';
+            metric.status === 'error'
+              ? '❌'
+              : metric.status === 'warning'
+                ? '⚠️'
+                : metric.status === 'improved'
+                  ? '✅'
+                  : '➡️';
 
           console.log(
             `   │ ${metric.name.padEnd(11)} │ ` +
-            `${metric.current.padEnd(12)} │ ` +
-            `${metric.baseline.padEnd(12)} │ ` +
-            `${metric.change.padEnd(8)} │ ` +
-            `${statusIcon.padEnd(6)} │`
+              `${metric.current.padEnd(12)} │ ` +
+              `${metric.baseline.padEnd(12)} │ ` +
+              `${metric.change.padEnd(8)} │ ` +
+              `${statusIcon.padEnd(6)} │`
           );
         }
 

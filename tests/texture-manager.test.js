@@ -14,9 +14,12 @@ const THREE_CONSTANTS = {
 };
 
 const makeMockTexture = () => ({
-  wrapS: null, wrapT: null,
-  magFilter: null, minFilter: null,
-  anisotropy: null, colorSpace: null,
+  wrapS: null,
+  wrapT: null,
+  magFilter: null,
+  minFilter: null,
+  anisotropy: null,
+  colorSpace: null,
   generateMipmaps: false,
   dispose: jest.fn()
 });
@@ -24,18 +27,35 @@ const makeMockTexture = () => ({
 jest.mock('three', () => {
   // makeMockTexture isn't in scope here (jest.mock is hoisted), so define inline.
   const mockTex = () => ({
-    wrapS: null, wrapT: null, magFilter: null, minFilter: null,
-    anisotropy: null, colorSpace: null, generateMipmaps: false,
+    wrapS: null,
+    wrapT: null,
+    magFilter: null,
+    minFilter: null,
+    anisotropy: null,
+    colorSpace: null,
+    generateMipmaps: false,
     dispose: jest.fn()
   });
   class MockTextureLoader {
-    load(url, onLoad) { onLoad(mockTex()); }
+    load(url, onLoad) {
+      onLoad(mockTex());
+    }
   }
-  class MockMeshBasicMaterial { dispose() {} }
-  class MockCanvasTexture { constructor() { Object.assign(this, mockTex()); } }
+  class MockMeshBasicMaterial {
+    dispose() {}
+  }
+  class MockCanvasTexture {
+    constructor() {
+      Object.assign(this, mockTex());
+    }
+  }
   return {
-    RepeatWrapping: 1000, LinearFilter: 1006, LinearMipMapLinearFilter: 1008,
-    NearestFilter: 1003, LinearSRGBColorSpace: 'srgb-linear', SRGBColorSpace: 'srgb',
+    RepeatWrapping: 1000,
+    LinearFilter: 1006,
+    LinearMipMapLinearFilter: 1008,
+    NearestFilter: 1003,
+    LinearSRGBColorSpace: 'srgb-linear',
+    SRGBColorSpace: 'srgb',
     TextureLoader: MockTextureLoader,
     MeshBasicMaterial: MockMeshBasicMaterial,
     CanvasTexture: MockCanvasTexture
@@ -44,15 +64,22 @@ jest.mock('three', () => {
 
 jest.mock('three/examples/jsm/loaders/KTX2Loader.js', () => {
   const mockTex = () => ({
-    wrapS: null, wrapT: null, magFilter: null, minFilter: null,
-    anisotropy: null, colorSpace: null, generateMipmaps: false,
+    wrapS: null,
+    wrapT: null,
+    magFilter: null,
+    minFilter: null,
+    anisotropy: null,
+    colorSpace: null,
+    generateMipmaps: false,
     dispose: jest.fn()
   });
   class MockKTX2Loader {
     setTranscoderPath() {}
     detectSupport() {}
     dispose() {}
-    load(url, onLoad) { onLoad(mockTex()); }
+    load(url, onLoad) {
+      onLoad(mockTex());
+    }
   }
   return { KTX2Loader: MockKTX2Loader };
 });

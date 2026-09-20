@@ -25,7 +25,7 @@ const MONITORING_CONFIG = {
     environment: import.meta.env.MODE || 'production',
     tracesSampleRate: 0.1, // 10% of transactions
     replaysSessionSampleRate: 0.1, // 10% of sessions
-    replaysOnErrorSampleRate: 1.0  // 100% when errors occur
+    replaysOnErrorSampleRate: 1.0 // 100% when errors occur
   },
 
   // Google Analytics
@@ -39,11 +39,11 @@ const MONITORING_CONFIG = {
     enabled: true,
     reportInterval: 60000, // Report every 60 seconds
     thresholds: {
-      fcp: 1800,    // First Contentful Paint (ms)
-      lcp: 2500,    // Largest Contentful Paint (ms)
-      inp: 200,     // Interaction to Next Paint (ms) — replaced FID in web-vitals v3+
-      cls: 0.1,     // Cumulative Layout Shift
-      ttfb: 600     // Time to First Byte (ms)
+      fcp: 1800, // First Contentful Paint (ms)
+      lcp: 2500, // Largest Contentful Paint (ms)
+      inp: 200, // Interaction to Next Paint (ms) — replaced FID in web-vitals v3+
+      cls: 0.1, // Cumulative Layout Shift
+      ttfb: 600 // Time to First Byte (ms)
     }
   }
 };
@@ -103,7 +103,7 @@ export async function initSentry() {
         ];
 
         const errorMessage = event.exception?.values?.[0]?.value || '';
-        if (ignoredErrors.some(msg => errorMessage.includes(msg))) {
+        if (ignoredErrors.some((msg) => errorMessage.includes(msg))) {
           return null;
         }
 
@@ -405,11 +405,11 @@ export function reportPerformanceSummary() {
   }
 
   const summary = {
-    avgFPS: calculateAverage(performanceMetrics.fps.map(m => m.value)),
-    minFPS: performanceMetrics.fps.length > 0 ? Math.min(...performanceMetrics.fps.map(m => m.value)) : 0,
-    maxFPS: performanceMetrics.fps.length > 0 ? Math.max(...performanceMetrics.fps.map(m => m.value)) : 0,
-    avgMemory: calculateAverage(performanceMetrics.memory.map(m => m.value)),
-    maxMemory: performanceMetrics.memory.length > 0 ? Math.max(...performanceMetrics.memory.map(m => m.value)) : 0,
+    avgFPS: calculateAverage(performanceMetrics.fps.map((m) => m.value)),
+    minFPS: performanceMetrics.fps.length > 0 ? Math.min(...performanceMetrics.fps.map((m) => m.value)) : 0,
+    maxFPS: performanceMetrics.fps.length > 0 ? Math.max(...performanceMetrics.fps.map((m) => m.value)) : 0,
+    avgMemory: calculateAverage(performanceMetrics.memory.map((m) => m.value)),
+    maxMemory: performanceMetrics.memory.length > 0 ? Math.max(...performanceMetrics.memory.map((m) => m.value)) : 0,
     interactionCount: performanceMetrics.interactions.length,
     sessionDuration: Date.now() - (performanceMetrics.fps[0]?.timestamp || Date.now())
   };

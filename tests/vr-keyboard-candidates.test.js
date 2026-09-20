@@ -14,7 +14,9 @@
  * the whole time.
  */
 
-class MockGeometry { dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
 class MockMaterial {
   constructor(o = {}) {
     Object.assign(this, o);
@@ -35,7 +37,9 @@ class MockMesh {
     this.userData = {};
     this.name = '';
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 class MockGroup {
   constructor() {
@@ -45,13 +49,25 @@ class MockGroup {
     this.visible = true;
     this.name = '';
   }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter((c) => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c))); }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter((c) => c !== o);
+  }
+  traverse(fn) {
+    fn(this);
+    this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
-  dispose() { this.disposed = true; }
+  constructor() {
+    this.needsUpdate = false;
+    this.colorSpace = '';
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
@@ -81,11 +97,20 @@ function makeRecordingCanvas() {
   const paints = [];
   const strokes = [];
   const ctx = {
-    fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 0,
+    font: '',
+    textAlign: '',
+    textBaseline: '',
     clearRect() {},
     fillRect() {},
-    fillText(text) { paints.push({ text: String(text), fillStyle: ctx.fillStyle, font: ctx.font }); },
-    strokeRect() { strokes.push({ strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth }); }
+    fillText(text) {
+      paints.push({ text: String(text), fillStyle: ctx.fillStyle, font: ctx.font });
+    },
+    strokeRect() {
+      strokes.push({ strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth });
+    }
   };
   return { ctx, paints, strokes };
 }
@@ -99,8 +124,7 @@ global.document = {
   }
 };
 
-const { JapaneseIME, VRJapaneseKeyboard, candidateStyle } =
-  require('../src/vr/input/JapaneseIME.js');
+const { JapaneseIME, VRJapaneseKeyboard, candidateStyle } = require('../src/vr/input/JapaneseIME.js');
 const { imeColors } = require('../src/vr/input/keyboardLayout.js');
 
 function makeKeyboard() {
@@ -149,8 +173,8 @@ describe('candidate buttons keep their order number through hover', () => {
     candidateAt(registered, 0).handlers.onHover();
 
     const texts = rec.paints.map((p) => p.text);
-    expect(texts).toContain('1');   // the cue survives
-    expect(texts).toContain('技');  // …alongside the candidate itself
+    expect(texts).toContain('1'); // the cue survives
+    expect(texts).toContain('技'); // …alongside the candidate itself
   });
 
   test('un-hovering restores the number too (onHoverEnd also used to drop it)', () => {
@@ -247,8 +271,7 @@ describe('the keyboard honours the OS contrast preference', () => {
     expect(rec.paints.map((p) => p.fillStyle)).toContain(hc.candNumber);
     expect(rec.strokes.map((k) => k.strokeStyle)).toContain(hc.candPrimaryBorder);
     // …and the normal-mode border must be absent, proving the switch happened.
-    expect(rec.strokes.map((k) => k.strokeStyle))
-      .not.toContain(imeColors(false).candPrimaryBorder);
+    expect(rec.strokes.map((k) => k.strokeStyle)).not.toContain(imeColors(false).candPrimaryBorder);
     expect(registered.length).toBeGreaterThan(0);
   });
 });

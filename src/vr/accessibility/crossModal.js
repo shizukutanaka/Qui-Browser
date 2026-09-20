@@ -38,13 +38,13 @@ export const SEVERITY_PREFIX = { error: '✕ ', warn: '⚠ ', info: 'ℹ ' };
 // no information.
 export const TOAST_COLORS = {
   error: { bg: '#5a0a0a', fg: '#ffaaaa', bdr: '#ff4444' },
-  warn:  { bg: '#4a3a00', fg: '#ffdd88', bdr: '#ffbb33' },
-  info:  { bg: '#0a2a4a', fg: '#88ccff', bdr: '#44aaff' }
+  warn: { bg: '#4a3a00', fg: '#ffdd88', bdr: '#ffbb33' },
+  info: { bg: '#0a2a4a', fg: '#88ccff', bdr: '#44aaff' }
 };
 export const TOAST_COLORS_HC = {
   error: { bg: '#000000', fg: '#ffffff', bdr: '#ff5555' },
-  warn:  { bg: '#000000', fg: '#ffffff', bdr: '#ffcc44' },
-  info:  { bg: '#000000', fg: '#ffffff', bdr: '#55ccff' }
+  warn: { bg: '#000000', fg: '#ffffff', bdr: '#ffcc44' },
+  info: { bg: '#000000', fg: '#ffffff', bdr: '#55ccff' }
 };
 
 /**

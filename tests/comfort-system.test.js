@@ -4,21 +4,35 @@
  */
 
 class MockVector3 {
-  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-  copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+  copy(v) {
+    this.x = v.x;
+    this.y = v.y;
+    this.z = v.z;
+    return this;
+  }
   distanceTo(v) {
-    return Math.sqrt(
-      (this.x - v.x) ** 2 + (this.y - v.y) ** 2 + (this.z - v.z) ** 2
-    );
+    return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2 + (this.z - v.z) ** 2);
   }
 }
 
 class MockWebGLRenderTarget {
-  constructor() { this.dispose = jest.fn(); }
+  constructor() {
+    this.dispose = jest.fn();
+  }
 }
-class MockPlaneGeometry { dispose() {} }
+class MockPlaneGeometry {
+  dispose() {}
+}
 class MockShaderMaterial {
-  constructor(opts) { this.uniforms = opts ? opts.uniforms || {} : {}; this.dispose = jest.fn(); }
+  constructor(opts) {
+    this.uniforms = opts ? opts.uniforms || {} : {};
+    this.dispose = jest.fn();
+  }
 }
 class MockMesh {
   constructor() {
@@ -48,10 +62,17 @@ global.requestAnimationFrame = jest.fn();
 
 // Stub window.innerWidth / innerHeight used by WebGLRenderTarget.
 global.window = global.window || {};
-global.window.innerWidth  = 1280;
+global.window.innerWidth = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } = require('../src/vr/comfort/ComfortSystem.js');
+const {
+  ComfortSystem,
+  resolveComfortPreset,
+  COMFORT_PRESET_KEYS,
+  snapTurnLabel,
+  fireTeleportFeedback,
+  smoothMoveWarning
+} = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -62,8 +83,12 @@ function makeCamera(fov = 90) {
   };
 }
 
-function makeScene() { return { add: jest.fn(), remove: jest.fn() }; }
-function makeRenderer() { return {}; }
+function makeScene() {
+  return { add: jest.fn(), remove: jest.fn() };
+}
+function makeRenderer() {
+  return {};
+}
 
 describe('ComfortSystem', () => {
   let system, camera;
@@ -251,8 +276,8 @@ describe('ComfortSystem', () => {
 
   test('every non-disabled preset explicitly enables all three effects', () => {
     for (const preset of ['sensitive', 'moderate', 'tolerant']) {
-      system.setPreset('disabled');     // force all effects off first
-      system.setPreset(preset);         // then switch in
+      system.setPreset('disabled'); // force all effects off first
+      system.setPreset(preset); // then switch in
       expect(system.settings.vignette.enabled).toBe(true);
       expect(system.settings.fov.enabled).toBe(true);
       expect(system.settings.snapTurn.enabled).toBe(true);

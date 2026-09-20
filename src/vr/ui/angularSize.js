@@ -73,7 +73,7 @@ export function sizeForAngleM(deg, distanceM) {
   if (!Number.isFinite(a) || !Number.isFinite(d) || a <= 0 || d <= 0 || a >= 180) {
     return 0;
   }
-  return 2 * d * Math.tan((a * Math.PI / 180) / 2);
+  return 2 * d * Math.tan((a * Math.PI) / 180 / 2);
 }
 
 /**

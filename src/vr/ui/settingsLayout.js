@@ -80,7 +80,7 @@ export function layoutSettingsPanel(sections, openIds = []) {
         i += 1;
       } else {
         const next = list2[i + 1];
-        i += (next && !next.wide) ? 2 : 1;
+        i += next && !next.wide ? 2 : 1;
         n += 1;
       }
     }

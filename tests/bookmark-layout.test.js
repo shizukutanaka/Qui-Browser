@@ -2,9 +2,19 @@
  * Unit tests for the pure bookmark-panel layout / hit-testing helpers.
  */
 const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
-  SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
-  hitTest, uvToPixels, truncate
+  PANEL_PX_W,
+  PANEL_PX_H,
+  HEADER_H,
+  ROW_H,
+  VISIBLE_ROWS,
+  DELETE_ZONE_W,
+  SCROLL_UP_X0,
+  SCROLL_UP_X1,
+  SCROLL_DN_X0,
+  SCROLL_DN_X1,
+  hitTest,
+  uvToPixels,
+  truncate
 } = require('../src/vr/browser/bookmarkLayout.js');
 
 describe('hitTest', () => {
@@ -115,7 +125,7 @@ describe('scrollZone option', () => {
   });
 
   test('scroll zone exports are consistent numbers', () => {
-    expect(SCROLL_UP_X0).toBeGreaterThan(440);  // after history tab
+    expect(SCROLL_UP_X0).toBeGreaterThan(440); // after history tab
     expect(SCROLL_UP_X1).toBeGreaterThan(SCROLL_UP_X0);
     expect(SCROLL_DN_X0).toBeGreaterThan(SCROLL_UP_X1);
     expect(SCROLL_DN_X1).toBeLessThan(PANEL_PX_W - 96); // before close button
@@ -160,8 +170,8 @@ describe('truncate', () => {
     // Truncating to 3 keeps 2 chars + ellipsis; each kept char must be intact.
     const out = truncate('😀😀😀😀😀', 3);
     expect(out).toBe('😀😀…');
-    expect(out).not.toContain('�');     // no replacement char
-    expect(Array.from(out)).toHaveLength(3);  // 2 emoji + ellipsis
+    expect(out).not.toContain('�'); // no replacement char
+    expect(Array.from(out)).toHaveLength(3); // 2 emoji + ellipsis
   });
 
   test('mixed ASCII + full-width truncates on a code-point boundary', () => {

@@ -40,9 +40,9 @@ export const PANEL_DISTANCE_MAX = 6.0;
 
 // ── Web panel ───────────────────────────────────────────────────────────────
 
-export const PANEL_W = 1.6;    // metres
+export const PANEL_W = 1.6; // metres
 export const PANEL_H = 1.0;
-export const CHROME_H = 0.08;  // URL bar height as a fraction of PANEL_H
+export const CHROME_H = 0.08; // URL bar height as a fraction of PANEL_H
 
 /** Chrome-bar mesh height in metres, and its canvas dimensions. */
 export const CHROME_M_H = PANEL_H * CHROME_H;
@@ -55,8 +55,8 @@ export const CONTENT_M_H = PANEL_H * (1 - CHROME_H);
 // ── Move bar (grab-to-move handle) ──────────────────────────────────────────
 
 export const MOVE_BAR_W = PANEL_W * 0.3; // narrower than the full panel
-export const MOVE_BAR_H = 0.035;         // VISIBLE bar height
-export const MOVE_BAR_GAP = 0.015;       // gap below the panel's bottom edge
+export const MOVE_BAR_H = 0.035; // VISIBLE bar height
+export const MOVE_BAR_GAP = 0.015; // gap below the panel's bottom edge
 
 /**
  * Hit height of the grab handle — deliberately larger than the visible bar.
@@ -76,7 +76,7 @@ export const MOVE_BAR_HIT_H = sizeForAngleM(HIT_TARGET_MIN_DEG, PANEL_DISTANCE_D
 
 // ── Tab strip ───────────────────────────────────────────────────────────────
 
-export const STRIP_W = 1.6;   // metres — matches panel width
+export const STRIP_W = 1.6; // metres — matches panel width
 export const STRIP_H = 0.07;
 export const STRIP_CANVAS_W = 1024;
 export const STRIP_CANVAS_H = 96;

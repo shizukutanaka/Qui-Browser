@@ -4,7 +4,7 @@
  */
 
 const BOOKMARKS_KEY = 'quiBrowser_bookmarks';
-const HISTORY_KEY   = 'quiBrowser_history';
+const HISTORY_KEY = 'quiBrowser_history';
 // Exported so UI consumers (e.g. BookmarkPanel) can fetch the full persisted
 // history rather than guessing a cap — see getHistory()'s limit parameter.
 export const MAX_HISTORY = 200;
@@ -74,19 +74,12 @@ export function isQuotaExceededError(e) {
   if (!e) {
     return false;
   }
-  return (
-    e.name === 'QuotaExceededError' ||
-    e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-    e.code === 22 ||
-    e.code === 1014
-  );
+  return e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014;
 }
 
 function readJSON(key, fallback) {
   try {
-    const raw = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(key)
-      : null;
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
@@ -103,7 +96,9 @@ function writeJSON(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     }
-  } catch { /* storage full or unavailable — caller decides whether to retry */ }
+  } catch {
+    /* storage full or unavailable — caller decides whether to retry */
+  }
   return false;
 }
 
@@ -120,7 +115,7 @@ export class BookmarkStore {
    * and `addedAt` is refreshed.
    */
   addBookmark(url, title = url) {
-    const list = this.getBookmarks().filter(b => b.url !== url);
+    const list = this.getBookmarks().filter((b) => b.url !== url);
     list.unshift({ url, title, addedAt: Date.now() });
     writeJSON(BOOKMARKS_KEY, list);
     return list[0];
@@ -128,13 +123,13 @@ export class BookmarkStore {
 
   /** Remove a bookmark by URL. */
   removeBookmark(url) {
-    const list = this.getBookmarks().filter(b => b.url !== url);
+    const list = this.getBookmarks().filter((b) => b.url !== url);
     writeJSON(BOOKMARKS_KEY, list);
   }
 
   /** Return true when the URL is bookmarked. */
   isBookmarked(url) {
-    return this.getBookmarks().some(b => b.url === url);
+    return this.getBookmarks().some((b) => b.url === url);
   }
 
   /**
@@ -171,7 +166,7 @@ export class BookmarkStore {
     // revisits created separate visits:1 entries: that undercounts true visit
     // frequency (the signal Top Sites / frecency rank on) and bloats the bounded
     // history with duplicates of the same URL.
-    const existingIdx = all.findIndex(e => e && e.url === url);
+    const existingIdx = all.findIndex((e) => e && e.url === url);
     if (existingIdx !== -1) {
       const [entry] = all.splice(existingIdx, 1);
       entry.visits = (entry.visits || 1) + 1;
@@ -206,7 +201,7 @@ export class BookmarkStore {
 
   /** Remove a single history entry by URL. */
   removeHistory(url) {
-    const all = readJSON(HISTORY_KEY, []).filter(e => e.url !== url);
+    const all = readJSON(HISTORY_KEY, []).filter((e) => e.url !== url);
     writeJSON(HISTORY_KEY, all);
   }
 
@@ -239,7 +234,7 @@ export class BookmarkStore {
     const history = readJSON(HISTORY_KEY, []);
     // Normalise the exclude list the same way as entry hosts (lowercase +
     // www-fold) so e.g. 'www.google.com' matches the folded 'google.com' key.
-    const skip = new Set((exclude || []).map(h => stripWww(String(h).toLowerCase())));
+    const skip = new Set((exclude || []).map((h) => stripWww(String(h).toLowerCase())));
     const byHost = new Map();
     for (const entry of history) {
       if (!entry || !entry.url) {
@@ -258,7 +253,7 @@ export class BookmarkStore {
           title: entry.title || entry.url,
           host,
           visits,
-          score,        // running host-aggregate frecency
+          score, // running host-aggregate frecency
           _bestScore: score // highest single-page score → picks the representative
         });
       } else {
@@ -306,7 +301,7 @@ export class BookmarkStore {
     // so a Japanese user who just typed a title gets zero suggestions despite
     // the page being in history. ASCII is unaffected.
     const q = String(query).normalize('NFC').toLowerCase();
-    const history   = readJSON(HISTORY_KEY,   []);
+    const history = readJSON(HISTORY_KEY, []);
     const bookmarks = readJSON(BOOKMARKS_KEY, []);
 
     // Case- and NFC-insensitive substring test over an entry's url + title.
@@ -316,8 +311,13 @@ export class BookmarkStore {
       if (!q) {
         return true;
       }
-      return String(url).normalize('NFC').toLowerCase().includes(q) ||
-        String(title || '').normalize('NFC').toLowerCase().includes(q);
+      return (
+        String(url).normalize('NFC').toLowerCase().includes(q) ||
+        String(title || '')
+          .normalize('NFC')
+          .toLowerCase()
+          .includes(q)
+      );
     };
 
     const byUrl = new Map();
@@ -330,7 +330,7 @@ export class BookmarkStore {
         continue;
       }
       byUrl.set(entry.url, {
-        url:   entry.url,
+        url: entry.url,
         title: entry.title || entry.url,
         score: frecencyScore(entry, now)
       });
@@ -354,14 +354,12 @@ export class BookmarkStore {
       // building real history, or it stays visible.
       const addedAt = bm.addedAt || now;
       byUrl.set(bm.url, {
-        url:   bm.url,
+        url: bm.url,
         title: bm.title || bm.url,
         score: frecencyScore({ visitedAt: addedAt, visits: 1 }, now)
       });
     }
 
-    return [...byUrl.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(0, limit));
+    return [...byUrl.values()].sort((a, b) => b.score - a.score).slice(0, Math.max(0, limit));
   }
 }

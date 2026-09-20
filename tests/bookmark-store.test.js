@@ -101,9 +101,9 @@ describe('BookmarkStore — history', () => {
     store.addHistory('https://b.com', 'B');
     store.addHistory('https://a.com', 'A'); // revisit A after B
     const h = store.getHistory();
-    expect(h).toHaveLength(2);              // not 3 — A was not duplicated
+    expect(h).toHaveLength(2); // not 3 — A was not duplicated
     expect(h[0].url).toBe('https://a.com'); // most-recent visit moved to front
-    expect(h[0].visits).toBe(2);            // A's visits accurately counted
+    expect(h[0].visits).toBe(2); // A's visits accurately counted
     expect(h[1].url).toBe('https://b.com');
   });
 
@@ -111,7 +111,7 @@ describe('BookmarkStore — history', () => {
     store.addHistory('https://a.com', 'Real Title');
     store.addHistory('https://b.com', 'B');
     store.addHistory('https://a.com'); // no title (defaults to url)
-    const a = store.getHistory().find(e => e.url === 'https://a.com');
+    const a = store.getHistory().find((e) => e.url === 'https://a.com');
     expect(a.title).toBe('Real Title'); // not clobbered with the url
     expect(a.visits).toBe(2);
   });
@@ -120,7 +120,7 @@ describe('BookmarkStore — history', () => {
     store.addHistory('https://a.com', 'Old Title');
     store.addHistory('https://b.com', 'B');
     store.addHistory('https://a.com', 'New Title');
-    const a = store.getHistory().find(e => e.url === 'https://a.com');
+    const a = store.getHistory().find((e) => e.url === 'https://a.com');
     expect(a.title).toBe('New Title');
   });
 
@@ -248,7 +248,7 @@ describe('frecencyScore — visit frequency weighted by recency', () => {
   test('a frequent-but-old site can rank below a rare-but-fresh one', () => {
     const now = 1_000_000_000_000;
     const oldFrequent = frecencyScore({ visits: 10, visitedAt: now - 28 * DAY }, now); // 10 * 0.5^4 = 0.625
-    const freshRare   = frecencyScore({ visits: 1, visitedAt: now }, now);             // 1
+    const freshRare = frecencyScore({ visits: 1, visitedAt: now }, now); // 1
     expect(freshRare).toBeGreaterThan(oldFrequent);
   });
 
@@ -291,19 +291,19 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
       { url: 'https://old.com/', title: 'Old', visits: 50, visitedAt: now - 60 * DAY }
     ]);
     const top = store.getTopSites(8, now);
-    expect(top.map(s => s.host)).toEqual(['daily.com', 'rare.com', 'old.com']);
+    expect(top.map((s) => s.host)).toEqual(['daily.com', 'rare.com', 'old.com']);
   });
 
-  test('dedupes per host and aggregates that host\'s visits', () => {
+  test("dedupes per host and aggregates that host's visits", () => {
     seed([
       { url: 'https://news.com/a', title: 'A', visits: 3, visitedAt: now },
       { url: 'https://news.com/b', title: 'B', visits: 4, visitedAt: now },
       { url: 'https://other.com/', title: 'Other', visits: 5, visitedAt: now }
     ]);
     const top = store.getTopSites(8, now);
-    const news = top.find(s => s.host === 'news.com');
-    expect(news.visits).toBe(7);                 // 3 + 4 aggregated
-    expect(top.filter(s => s.host === 'news.com')).toHaveLength(1); // single tile
+    const news = top.find((s) => s.host === 'news.com');
+    expect(news.visits).toBe(7); // 3 + 4 aggregated
+    expect(top.filter((s) => s.host === 'news.com')).toHaveLength(1); // single tile
   });
 
   test('ranks a host by AGGREGATE frecency, so broad multi-page usage wins', () => {
@@ -316,10 +316,10 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
       { url: 'https://many.com/a', title: 'A', visits: 1, visitedAt: now },
       { url: 'https://many.com/b', title: 'B', visits: 1, visitedAt: now },
       { url: 'https://many.com/c', title: 'C', visits: 1, visitedAt: now },
-      { url: 'https://few.com/x',  title: 'X', visits: 2, visitedAt: now }
+      { url: 'https://few.com/x', title: 'X', visits: 2, visitedAt: now }
     ]);
     const top = store.getTopSites(8, now);
-    expect(top.map(s => s.host)).toEqual(['many.com', 'few.com']);
+    expect(top.map((s) => s.host)).toEqual(['many.com', 'few.com']);
     expect(top[0].score).toBeCloseTo(3, 5);
     expect(top[1].score).toBeCloseTo(2, 5);
   });
@@ -353,7 +353,7 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     expect(store.getTopSites(8, now)[0].host).toBe('duckduckgo.com');
     // Excluded → the user's real destination wins the slot.
     const top = store.getTopSites(8, now, ['duckduckgo.com']);
-    expect(top.map(s => s.host)).toEqual(['news.com']);
+    expect(top.map((s) => s.host)).toEqual(['news.com']);
   });
 
   test('folds www. so apex and www variants merge into one tile', () => {
@@ -362,9 +362,9 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
       { url: 'https://example.com/b', title: 'Apex', visits: 4, visitedAt: now }
     ]);
     const top = store.getTopSites(8, now);
-    expect(top).toHaveLength(1);             // not two separate tiles
+    expect(top).toHaveLength(1); // not two separate tiles
     expect(top[0].host).toBe('example.com'); // displayed without www
-    expect(top[0].visits).toBe(7);           // 3 + 4 combined
+    expect(top[0].visits).toBe(7); // 3 + 4 combined
   });
 
   test('exclude with a www-prefixed host matches the folded entry host', () => {
@@ -374,7 +374,7 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
     ]);
     // 'www.google.com' in the exclude list must match the folded 'google.com'.
     const top = store.getTopSites(8, now, ['www.google.com']);
-    expect(top.map(s => s.host)).toEqual(['news.com']);
+    expect(top.map((s) => s.host)).toEqual(['news.com']);
   });
 
   test('exclude matching is case-insensitive', () => {
@@ -383,9 +383,14 @@ describe('BookmarkStore.getTopSites — frecency-ranked quick access', () => {
   });
 
   test('respects the limit', () => {
-    seed(Array.from({ length: 12 }, (_, i) => ({
-      url: `https://s${i}.com/`, title: `S${i}`, visits: i + 1, visitedAt: now
-    })));
+    seed(
+      Array.from({ length: 12 }, (_, i) => ({
+        url: `https://s${i}.com/`,
+        title: `S${i}`,
+        visits: i + 1,
+        visitedAt: now
+      }))
+    );
     expect(store.getTopSites(5, now)).toHaveLength(5);
   });
 
@@ -426,7 +431,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('empty query returns all history sorted by frecency', () => {
     seedHistory([
       { url: 'https://a.com/', title: 'A', visits: 1, visitedAt: now },
-      { url: 'https://b.com/', title: 'B', visits: 5, visitedAt: now },
+      { url: 'https://b.com/', title: 'B', visits: 5, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results).toHaveLength(2);
@@ -436,7 +441,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('matches URL substring case-insensitively', () => {
     seedHistory([
       { url: 'https://github.com/user', title: 'GitHub', visits: 3, visitedAt: now },
-      { url: 'https://example.com/', title: 'Example', visits: 5, visitedAt: now },
+      { url: 'https://example.com/', title: 'Example', visits: 5, visitedAt: now }
     ]);
     const results = store.search('GITHUB', 5, now);
     expect(results).toHaveLength(1);
@@ -446,7 +451,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('matches title substring case-insensitively', () => {
     seedHistory([
       { url: 'https://x.com/', title: 'My Dashboard', visits: 2, visitedAt: now },
-      { url: 'https://y.com/', title: 'Settings', visits: 1, visitedAt: now },
+      { url: 'https://y.com/', title: 'Settings', visits: 1, visitedAt: now }
     ]);
     const results = store.search('dashboard', 5, now);
     expect(results).toHaveLength(1);
@@ -470,9 +475,9 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
 
   test('results are sorted by score descending', () => {
     seedHistory([
-      { url: 'https://low.com/',  title: 'Low',  visits:  1, visitedAt: now },
+      { url: 'https://low.com/', title: 'Low', visits: 1, visitedAt: now },
       { url: 'https://high.com/', title: 'High', visits: 20, visitedAt: now },
-      { url: 'https://mid.com/',  title: 'Mid',  visits:  5, visitedAt: now },
+      { url: 'https://mid.com/', title: 'Mid', visits: 5, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results[0].url).toBe('https://high.com/');
@@ -481,9 +486,14 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   });
 
   test('respects the limit parameter', () => {
-    seedHistory(Array.from({ length: 10 }, (_, i) => ({
-      url: `https://s${i}.com/`, title: `S${i}`, visits: 1, visitedAt: now
-    })));
+    seedHistory(
+      Array.from({ length: 10 }, (_, i) => ({
+        url: `https://s${i}.com/`,
+        title: `S${i}`,
+        visits: 1,
+        visitedAt: now
+      }))
+    );
     expect(store.search('', 3, now)).toHaveLength(3);
   });
 
@@ -491,7 +501,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     seedHistory([
       null,
       { title: 'No URL', visits: 5, visitedAt: now },
-      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results).toHaveLength(1);
@@ -503,10 +513,12 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     // whole search via entry.url.normalize — autocomplete runs on every keystroke.
     seedHistory([
       { url: 12345, title: 'Numeric', visits: 3, visitedAt: now },
-      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now }
     ]);
     let results;
-    expect(() => { results = store.search('ok', 10, now); }).not.toThrow();
+    expect(() => {
+      results = store.search('ok', 10, now);
+    }).not.toThrow();
     expect(results).toHaveLength(1);
     expect(results[0].url).toBe('https://ok.com/');
   });
@@ -521,7 +533,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('older entries score lower than newer ones with the same visit count', () => {
     seedHistory([
       { url: 'https://old.com/', title: 'Old', visits: 3, visitedAt: now - 30 * DAY },
-      { url: 'https://new.com/', title: 'New', visits: 3, visitedAt: now },
+      { url: 'https://new.com/', title: 'New', visits: 3, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results[0].url).toBe('https://new.com/');
@@ -567,9 +579,10 @@ describe('BookmarkStore.search — Unicode normalization (NFC/NFD)', () => {
 
   test('NFD query matches NFC-stored history title', () => {
     // Page title stored NFC (the common form from HTML + navigate()).
-    localStorage.setItem('quiBrowser_history', JSON.stringify([
-      { url: 'https://jp.example.com/', title: SEARCH_GA_NFC + 'ページ', visits: 1, visitedAt: now }
-    ]));
+    localStorage.setItem(
+      'quiBrowser_history',
+      JSON.stringify([{ url: 'https://jp.example.com/', title: SEARCH_GA_NFC + 'ページ', visits: 1, visitedAt: now }])
+    );
     // Query arrives NFD (some IME / macOS paste path).
     const results = store.search(SEARCH_GA_NFD, 5, now);
     expect(results).toHaveLength(1);
@@ -578,18 +591,20 @@ describe('BookmarkStore.search — Unicode normalization (NFC/NFD)', () => {
 
   test('NFC query matches NFD-stored history title', () => {
     // Stored title happens to be NFD (raw page source without normalization).
-    localStorage.setItem('quiBrowser_history', JSON.stringify([
-      { url: 'https://jp2.example.com/', title: SEARCH_GA_NFD + 'テスト', visits: 1, visitedAt: now }
-    ]));
+    localStorage.setItem(
+      'quiBrowser_history',
+      JSON.stringify([{ url: 'https://jp2.example.com/', title: SEARCH_GA_NFD + 'テスト', visits: 1, visitedAt: now }])
+    );
     const results = store.search(SEARCH_GA_NFC, 5, now);
     expect(results).toHaveLength(1);
     expect(results[0].url).toBe('https://jp2.example.com/');
   });
 
   test('NFD and NFC queries for the same word return identical results', () => {
-    localStorage.setItem('quiBrowser_history', JSON.stringify([
-      { url: 'https://jp3.example.com/', title: SEARCH_GA_NFC + 'サイト', visits: 2, visitedAt: now }
-    ]));
+    localStorage.setItem(
+      'quiBrowser_history',
+      JSON.stringify([{ url: 'https://jp3.example.com/', title: SEARCH_GA_NFC + 'サイト', visits: 2, visitedAt: now }])
+    );
     expect(store.search(SEARCH_GA_NFD, 5, now)).toEqual(store.search(SEARCH_GA_NFC, 5, now));
   });
 });

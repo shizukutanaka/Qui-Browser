@@ -10,23 +10,41 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter((x) => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
 class MockMesh {
   constructor() {
     this.name = '';
     this.position = { set: jest.fn() };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  }
 }));
 
 // ── WebPanel stub ─────────────────────────────────────────────────────────────
@@ -42,8 +60,12 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.curved = false;
       panelInstances.push(this);
     }
-    addToScene(parent) { this.parent = parent; }
-    navigate(url) { this.currentUrl = url; }
+    addToScene(parent) {
+      this.parent = parent;
+    }
+    navigate(url) {
+      this.currentUrl = url;
+    }
     // Mirrors the real WebPanel: show(position) HARD-SETS the transform. The
     // stub must model that, otherwise a test asserting "switching tabs does not
     // re-position a panel" passes even against the show(this.position) code it
@@ -52,23 +74,39 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.group.position.set(position.x, position.y, position.z);
       this.visible = true;
     }
-    hide() { this.visible = false; }
+    hide() {
+      this.visible = false;
+    }
     // TabManager switches tabs via setVisible, which (unlike show(position))
     // leaves the transform alone so the managed placement survives.
-    setVisible(v) { this.visible = !!v; }
-    setCurved(v) { this.curved = !!v; }
-    setReaderProxyUrl(u) { this.readerProxyUrl = u; }
-    dispose() { this.disposed = true; }
+    setVisible(v) {
+      this.visible = !!v;
+    }
+    setCurved(v) {
+      this.curved = !!v;
+    }
+    setReaderProxyUrl(u) {
+      this.readerProxyUrl = u;
+    }
+    dispose() {
+      this.disposed = true;
+    }
   }
 }));
 
 // ── document/canvas stub ────────────────────────────────────────────────────────
 global.document = {
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      clearRect: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: ''
     })
   })
 };
@@ -86,7 +124,9 @@ function makeManager() {
 }
 
 describe('TabManager (FR-1.3)', () => {
-  beforeEach(() => { panelInstances.length = 0; });
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
 
   test('starts with zero tabs', () => {
     const tm = makeManager();
@@ -138,7 +178,7 @@ describe('TabManager (FR-1.3)', () => {
     const tm = makeManager();
     const a = tm.newTab();
     const b = tm.newTab(); // active
-    tm.closeTab(1);        // close active (b)
+    tm.closeTab(1); // close active (b)
     expect(b.disposed).toBe(true);
     expect(tm.getActiveTab()).toBe(a);
     expect(a.visible).toBe(true);
@@ -180,7 +220,7 @@ describe('TabManager (FR-1.3)', () => {
     tm.newTab();
     const panels = [...panelInstances];
     tm.dispose();
-    expect(panels.every(p => p.disposed)).toBe(true);
+    expect(panels.every((p) => p.disposed)).toBe(true);
     expect(tm.count).toBe(0);
   });
 
@@ -208,14 +248,26 @@ describe('TabManager (FR-1.3)', () => {
     tm.newTab(); // need at least one tab so a click on a tab row does something
 
     // A hit in the centre-left area (x slightly negative → first tab zone)
-    const fakePoint = { x: -0.5, y: 0, clone() { return this; } };
+    const fakePoint = {
+      x: -0.5,
+      y: 0,
+      clone() {
+        return this;
+      }
+    };
     expect(() => tm._onStripSelect({ intersection: { point: fakePoint }, controller: {} })).not.toThrow();
   });
 
   test('_onStripSelect with direct Vector3 arg still works (regression)', () => {
     const tm = makeManager();
     tm.newTab();
-    const fakePoint = { x: 0, y: 0, clone() { return this; } };
+    const fakePoint = {
+      x: 0,
+      y: 0,
+      clone() {
+        return this;
+      }
+    };
     expect(() => tm._onStripSelect(fakePoint)).not.toThrow();
   });
 
@@ -273,9 +325,7 @@ describe('TabManager — rootGroup owns the strip and every panel', () => {
   });
 
   test('rootGroup carries the world placement', () => {
-    expect(tm.rootGroup.position.set).toHaveBeenCalledWith(
-      tm.position.x, tm.position.y, tm.position.z
-    );
+    expect(tm.rootGroup.position.set).toHaveBeenCalledWith(tm.position.x, tm.position.y, tm.position.z);
   });
 
   test('new panels are parented to rootGroup at the local origin', () => {

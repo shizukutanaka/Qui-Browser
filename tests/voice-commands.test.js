@@ -11,7 +11,7 @@ const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
 describe('VoiceCommands — spoken feedback is mirrored for captions', () => {
   let vc, spoken;
   beforeEach(() => {
-    vc = new VoiceCommands();        // synthesis stays null (not initialized)
+    vc = new VoiceCommands(); // synthesis stays null (not initialized)
     spoken = [];
     vc.callbacks.onSpeak = (t) => spoken.push(t);
   });
@@ -40,7 +40,9 @@ describe('VoiceCommands — spoken feedback is mirrored for captions', () => {
   test('a failing command action mirrors the failure feedback', () => {
     vc.registerCommand('boom', {
       patterns: ['boom'],
-      action: () => { throw new Error('kaboom'); },
+      action: () => {
+        throw new Error('kaboom');
+      },
       confirmationText: 'should not appear'
     });
     vc.processCommand('boom', 0.9);
@@ -73,7 +75,9 @@ describe('VoiceCommands — onCommandFailed callback', () => {
   test('fires with reason "execution_error" when the action throws', () => {
     vc.registerCommand('broken', {
       patterns: ['broken'],
-      action: () => { throw new Error('test error'); }
+      action: () => {
+        throw new Error('test error');
+      }
     });
     vc.processCommand('broken', 0.9);
     expect(failures).toHaveLength(1);
@@ -184,7 +188,15 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     let toggled = false;
     vc.connectBrowser({
       onGoTo,
-      vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
+      vrKeyboard: {
+        visible: false,
+        show() {
+          toggled = true;
+        },
+        hide() {
+          toggled = true;
+        }
+      }
     });
     vc.processCommand('キーボードを開く', 0.9);
     expect(vc.lastCommand.key).toBe('keyboard');
@@ -311,7 +323,11 @@ describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk
     // Android Chrome — the Quest browser engine — reports confidence=0 even for
     // correctly recognized ja-JP commands; a 0.7 cutoff must not drop them.
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({
+      onTopSites: () => {
+        fired = true;
+      }
+    });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0, true));
     expect(fired).toBe(true);
     expect(vc.lastCommand.key).toBe('top-sites');
@@ -320,14 +336,22 @@ describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk
   test('a genuinely low non-zero confidence is still filtered out', () => {
     // 0 means "no score"; a real low score (e.g. 0.3 < 0.7) is still rejected.
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({
+      onTopSites: () => {
+        fired = true;
+      }
+    });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0.3, true));
     expect(fired).toBe(false);
   });
 
   test('a high-confidence result fires normally', () => {
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({
+      onTopSites: () => {
+        fired = true;
+      }
+    });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0.95, true));
     expect(fired).toBe(true);
   });
@@ -354,13 +378,17 @@ describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => 
     // jsdom has no SpeechSynthesisUtterance; provide a minimal stub so the
     // speak() path runs and we can assert the onerror handler is attached.
     const origSSU = global.SpeechSynthesisUtterance;
-    global.SpeechSynthesisUtterance = function(text) { this.text = text; };
+    global.SpeechSynthesisUtterance = function (text) {
+      this.text = text;
+    };
     try {
       const vc = new VoiceCommands();
       vc.callbacks.onSpeak = () => {};
       const utterances = [];
       vc.synthesis = {
-        speak: (utt) => { utterances.push(utt); },
+        speak: (utt) => {
+          utterances.push(utt);
+        },
         cancel: jest.fn()
       };
       vc.speak('テスト');

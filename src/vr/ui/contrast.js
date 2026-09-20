@@ -59,9 +59,13 @@ export function parseCssColor(css) {
   if (!hx) {
     return null;
   }
-  const h = hx[1].length === 3
-    ? hx[1].split('').map((c) => c + c).join('')
-    : hx[1];
+  const h =
+    hx[1].length === 3
+      ? hx[1]
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hx[1];
   return {
     r: parseInt(h.slice(0, 2), 16),
     g: parseInt(h.slice(2, 4), 16),
@@ -95,11 +99,7 @@ export function compositeOver(css, backdrop) {
   if (!b || f.a >= 1) {
     return toHex(f.r, f.g, f.b);
   }
-  return toHex(
-    f.r * f.a + b.r * (1 - f.a),
-    f.g * f.a + b.g * (1 - f.a),
-    f.b * f.a + b.b * (1 - f.a)
-  );
+  return toHex(f.r * f.a + b.r * (1 - f.a), f.g * f.a + b.g * (1 - f.a), f.b * f.a + b.b * (1 - f.a));
 }
 
 function toHex(r, g, b) {
@@ -166,7 +166,7 @@ export function wcagMinimum(spec = {}) {
 // Verified against the published reference values in tests/contrast.test.js.
 const APCA_R = 0.2126729;
 const APCA_G = 0.7151522;
-const APCA_B = 0.0721750;
+const APCA_B = 0.072175;
 const APCA_TRC = 2.4;
 const APCA_NORM_BG = 0.56;
 const APCA_NORM_TXT = 0.57;
@@ -185,9 +185,11 @@ export function apcaY(css) {
   if (!c) {
     return 0;
   }
-  return APCA_R * Math.pow(c.r / 255, APCA_TRC)
-    + APCA_G * Math.pow(c.g / 255, APCA_TRC)
-    + APCA_B * Math.pow(c.b / 255, APCA_TRC);
+  return (
+    APCA_R * Math.pow(c.r / 255, APCA_TRC) +
+    APCA_G * Math.pow(c.g / 255, APCA_TRC) +
+    APCA_B * Math.pow(c.b / 255, APCA_TRC)
+  );
 }
 
 /**

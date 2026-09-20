@@ -12,7 +12,14 @@
  */
 
 const {
-  layoutSettingsPanel, worstCaseHeight, tabWidth, ROW_H, PAD, COL_X, PANEL_W, TAB_GAP
+  layoutSettingsPanel,
+  worstCaseHeight,
+  tabWidth,
+  ROW_H,
+  PAD,
+  COL_X,
+  PANEL_W,
+  TAB_GAP
 } = require('../src/vr/ui/settingsLayout.js');
 const { angularSizeDeg } = require('../src/vr/ui/angularSize.js');
 
@@ -27,11 +34,15 @@ const wide = (n) => Array.from({ length: n }, () => ({ wide: true }));
 describe('layoutSettingsPanel', () => {
   test('every section gets a tab, and they all share ONE row', () => {
     const out = layoutSettingsPanel(
-      [{ id: 'a', controls: narrow(6) }, { id: 'b', controls: narrow(2) }], []
+      [
+        { id: 'a', controls: narrow(6) },
+        { id: 'b', controls: narrow(2) }
+      ],
+      []
     );
     const tabs = out.placements.filter((p) => p.type === 'tab');
     expect(tabs).toHaveLength(2);
-    expect(tabs[0].y).toBe(tabs[1].y);          // one row, not a stack
+    expect(tabs[0].y).toBe(tabs[1].y); // one row, not a stack
     expect(out.rows).toBe(1);
     // Unselected sections contribute no control rows.
     expect(out.placements.filter((p) => p.type === 'control')).toHaveLength(0);
@@ -82,9 +93,7 @@ describe('layoutSettingsPanel', () => {
 
   test('a narrow control is not paired across a wide neighbour', () => {
     // narrow, wide, narrow -> three separate rows, never a narrow+wide row.
-    const out = layoutSettingsPanel(
-      [{ id: 'a', controls: [{ wide: false }, { wide: true }, { wide: false }] }], ['a']
-    );
+    const out = layoutSettingsPanel([{ id: 'a', controls: [{ wide: false }, { wide: true }, { wide: false }] }], ['a']);
     expect(out.rows).toBe(1 + 3);
     const ys = out.placements.filter((p) => p.type === 'control').map((p) => p.y);
     expect(new Set(ys).size).toBe(3);
@@ -92,7 +101,11 @@ describe('layoutSettingsPanel', () => {
 
   test('only the selected section contributes controls', () => {
     const out = layoutSettingsPanel(
-      [{ id: 'a', controls: narrow(1) }, { id: 'b', controls: narrow(1) }], ['a']
+      [
+        { id: 'a', controls: narrow(1) },
+        { id: 'b', controls: narrow(1) }
+      ],
+      ['a']
     );
     const controls = out.placements.filter((p) => p.type === 'control');
     expect(controls).toHaveLength(1);
@@ -115,7 +128,10 @@ describe('layoutSettingsPanel', () => {
   });
 
   test('every control of the selected section gets exactly one placement', () => {
-    const sections = [{ id: 'a', controls: narrow(3) }, { id: 'b', controls: wide(2) }];
+    const sections = [
+      { id: 'a', controls: narrow(3) },
+      { id: 'b', controls: wide(2) }
+    ];
     for (const sel of sections) {
       const out = layoutSettingsPanel(sections, [sel.id]);
       const idx = out.placements
@@ -167,8 +183,7 @@ describe('the panel stays inside the comfortable field of view', () => {
     const largest = Math.max(...REAL.map((s) => layoutSettingsPanel(REAL, [s.id]).rows));
     expect(worst).toBeCloseTo(largest * ROW_H + PAD, 10);
 
-    const grown = REAL.map((s) => (s.id === 'display'
-      ? { ...s, controls: [...s.controls, { wide: true }] } : s));
+    const grown = REAL.map((s) => (s.id === 'display' ? { ...s, controls: [...s.controls, { wide: true }] } : s));
     expect(worstCaseHeight(grown)).toBeLessThanOrEqual(worstCaseHeight(REAL) + ROW_H + 1e-9);
   });
 
@@ -203,6 +218,6 @@ describe('the panel stays inside the comfortable field of view', () => {
 
   test('the panel is wider than a full-row control, so nothing overhangs', () => {
     expect(PANEL_W).toBeGreaterThan(2 * COL_X + 0.43); // compact button half-width
-    expect(PANEL_W).toBeGreaterThanOrEqual(1.0);       // section-header width
+    expect(PANEL_W).toBeGreaterThanOrEqual(1.0); // section-header width
   });
 });

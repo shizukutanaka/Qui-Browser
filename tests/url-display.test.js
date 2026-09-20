@@ -8,7 +8,10 @@
  */
 
 const {
-  parseDisplayUrl, elideUrlForDisplay, securityLevel, securityIndicator,
+  parseDisplayUrl,
+  elideUrlForDisplay,
+  securityLevel,
+  securityIndicator,
   contentStateLines
 } = require('../src/vr/browser/urlDisplay.js');
 
@@ -216,8 +219,9 @@ describe('readerFetchUrl', () => {
   });
 
   test('with a proxy it routes through /fetch with the target encoded', () => {
-    expect(readerFetchUrl('https://example.com/a?b=1&c=2', 'http://127.0.0.1:8080'))
-      .toBe('http://127.0.0.1:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1%26c%3D2');
+    expect(readerFetchUrl('https://example.com/a?b=1&c=2', 'http://127.0.0.1:8080')).toBe(
+      'http://127.0.0.1:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1%26c%3D2'
+    );
   });
 
   test('query characters in the target cannot break out of the parameter', () => {
@@ -229,18 +233,21 @@ describe('readerFetchUrl', () => {
   });
 
   test('a trailing slash on the proxy base does not double up', () => {
-    expect(readerFetchUrl('https://e.com/', 'http://p:8080/'))
-      .toBe(readerFetchUrl('https://e.com/', 'http://p:8080'));
+    expect(readerFetchUrl('https://e.com/', 'http://p:8080/')).toBe(readerFetchUrl('https://e.com/', 'http://p:8080'));
     expect(readerFetchUrl('https://e.com/', 'http://p:8080///')).not.toContain('////fetch');
   });
 
   test('degenerate input does not throw', () => {
-    for (const [t, p] of [[null, null], [undefined, undefined], ['', ''], [42, 7]]) {
+    for (const [t, p] of [
+      [null, null],
+      [undefined, undefined],
+      ['', ''],
+      [42, 7]
+    ]) {
       expect(() => readerFetchUrl(t, p)).not.toThrow();
     }
   });
 });
-
 
 // ── The reader viewport speaks the user's language (WCAG 3.1.1 / 3.1.2) ──────
 // Session 27's i18n pass covered toasts and settings labels, not panel-drawn
@@ -252,18 +259,16 @@ describe('contentStateLines is internationalised', () => {
   const { setLanguage, t } = require('../src/i18n/i18n.js');
   afterEach(() => setLanguage('en'));
 
-  test.each(['loading', 'error', 'unavailable', 'empty'])(
-    'the %s state differs between en and ja', (state) => {
-      setLanguage('en');
-      const en = contentStateLines(state, 'https://example.com/a');
-      setLanguage('ja');
-      const ja = contentStateLines(state, 'https://example.com/a');
-      expect(ja.title).not.toBe(en.title);
-      expect(ja.title.length).toBeGreaterThan(0);
-      // Not a fallback-to-key: t() returns the key itself when missing.
-      expect(ja.title).not.toMatch(/^vr\./);
-    }
-  );
+  test.each(['loading', 'error', 'unavailable', 'empty'])('the %s state differs between en and ja', (state) => {
+    setLanguage('en');
+    const en = contentStateLines(state, 'https://example.com/a');
+    setLanguage('ja');
+    const ja = contentStateLines(state, 'https://example.com/a');
+    expect(ja.title).not.toBe(en.title);
+    expect(ja.title.length).toBeGreaterThan(0);
+    // Not a fallback-to-key: t() returns the key itself when missing.
+    expect(ja.title).not.toMatch(/^vr\./);
+  });
 
   test('Japanese keeps the host verbatim — the origin is never translated', () => {
     setLanguage('ja');
@@ -283,11 +288,20 @@ describe('contentStateLines is internationalised', () => {
 
   test('every content key exists in both catalogues', () => {
     const keys = [
-      'vr.content.loading', 'vr.content.failed', 'vr.content.empty',
-      'vr.content.noCorsTitle', 'vr.content.noCorsDetail', 'vr.content.noCorsDetailBare',
-      'vr.content.proxyFailedTitle', 'vr.content.proxyFailedDetail', 'vr.content.proxyFailedBare',
-      'vr.bookmarks.tabBookmarks', 'vr.bookmarks.tabHistory',
-      'vr.bookmarks.emptyBookmarks', 'vr.bookmarks.emptyHistory', 'vr.tabs.newTab'
+      'vr.content.loading',
+      'vr.content.failed',
+      'vr.content.empty',
+      'vr.content.noCorsTitle',
+      'vr.content.noCorsDetail',
+      'vr.content.noCorsDetailBare',
+      'vr.content.proxyFailedTitle',
+      'vr.content.proxyFailedDetail',
+      'vr.content.proxyFailedBare',
+      'vr.bookmarks.tabBookmarks',
+      'vr.bookmarks.tabHistory',
+      'vr.bookmarks.emptyBookmarks',
+      'vr.bookmarks.emptyHistory',
+      'vr.tabs.newTab'
     ];
     for (const lang of ['en', 'ja']) {
       setLanguage(lang);

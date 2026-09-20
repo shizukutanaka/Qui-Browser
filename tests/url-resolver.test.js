@@ -82,9 +82,7 @@ describe('resolveInput', () => {
     expect(new URL(resolveInput('日本語.jp')).host).toBe('xn--wgv71a119e.jp');
   });
   test('Japanese text without a dot is still a search, not a host', () => {
-    expect(resolveInput('東京タワー')).toBe(
-      SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京タワー')
-    );
+    expect(resolveInput('東京タワー')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京タワー'));
   });
   test('Japanese text with a full-width space is still a search', () => {
     // U+3000 (ideographic space) is matched by \s, so this stays a query.
@@ -98,14 +96,10 @@ describe('resolveInput', () => {
     expect(resolveInput('weather')).toBe(SEARCH_ENGINES.duckduckgo + 'weather');
   });
   test('multi-word phrase becomes a search', () => {
-    expect(resolveInput('best vr browser')).toBe(
-      SEARCH_ENGINES.duckduckgo + encodeURIComponent('best vr browser')
-    );
+    expect(resolveInput('best vr browser')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('best vr browser'));
   });
   test('text with a dot but spaces becomes a search', () => {
-    expect(resolveInput('what is three.js')).toBe(
-      SEARCH_ENGINES.duckduckgo + encodeURIComponent('what is three.js')
-    );
+    expect(resolveInput('what is three.js')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('what is three.js'));
   });
   test('query characters are URL-encoded', () => {
     expect(resolveInput('a & b')).toBe(SEARCH_ENGINES.duckduckgo + 'a%20%26%20b');
@@ -113,19 +107,13 @@ describe('resolveInput', () => {
 
   // ── engine selection ──────────────────────────────────────────────────────
   test('respects google engine', () => {
-    expect(resolveInput('cats', { searchEngine: 'google' })).toBe(
-      SEARCH_ENGINES.google + 'cats'
-    );
+    expect(resolveInput('cats', { searchEngine: 'google' })).toBe(SEARCH_ENGINES.google + 'cats');
   });
   test('falls back to default for unknown engine key', () => {
-    expect(resolveInput('cats', { searchEngine: 'nope' })).toBe(
-      SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + 'cats'
-    );
+    expect(resolveInput('cats', { searchEngine: 'nope' })).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + 'cats');
   });
   test('accepts a full template string as engine', () => {
-    expect(resolveInput('cats', { searchEngine: 'https://s.example/?q=' })).toBe(
-      'https://s.example/?q=cats'
-    );
+    expect(resolveInput('cats', { searchEngine: 'https://s.example/?q=' })).toBe('https://s.example/?q=cats');
   });
 
   // ── Unicode normalization (NFD → NFC) ─────────────────────────────────────
@@ -148,9 +136,7 @@ describe('buildSearchUrl', () => {
     expect(buildSearchUrl('hello')).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + 'hello');
   });
   test('encodes the query', () => {
-    expect(buildSearchUrl('a/b?c')).toBe(
-      SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + encodeURIComponent('a/b?c')
-    );
+    expect(buildSearchUrl('a/b?c')).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + encodeURIComponent('a/b?c'));
   });
 });
 

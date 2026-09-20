@@ -18,15 +18,15 @@
  * Pure / dependency-free so the focus-indicator logic is unit-testable.
  */
 
-export const BUTTON_BG        = 'rgba(16,20,30,0.92)';   // idle: near-black
-export const BUTTON_BG_HOVER  = 'rgba(64,96,150,0.97)';  // hover: clearly brighter blue
-export const BUTTON_LINE       = 4;                       // idle border width (px)
-export const BUTTON_LINE_HOVER = 6;                       // hover border width (px)
+export const BUTTON_BG = 'rgba(16,20,30,0.92)'; // idle: near-black
+export const BUTTON_BG_HOVER = 'rgba(64,96,150,0.97)'; // hover: clearly brighter blue
+export const BUTTON_LINE = 4; // idle border width (px)
+export const BUTTON_LINE_HOVER = 6; // hover border width (px)
 
 // High-contrast: pure-black backing, saturated-blue hover, wider borders.
-export const BUTTON_BG_HC        = '#000000';
-export const BUTTON_BG_HOVER_HC  = '#004adf';
-export const BUTTON_LINE_HC       = 5;
+export const BUTTON_BG_HC = '#000000';
+export const BUTTON_BG_HOVER_HC = '#004adf';
+export const BUTTON_LINE_HC = 5;
 export const BUTTON_LINE_HOVER_HC = 8;
 
 /** Background fill for a button in the given hover state. */
@@ -77,16 +77,12 @@ export function toggleIndicatorColors(on, highContrast = false, hover = false) {
     // `#aaccee` is 12.6:1 on the pure-black idle backing but only 4.1:1 on the
     // saturated hover blue — which would leave high-contrast mode *weaker* on
     // hover than normal mode after its own hover fix below.
-    return hover
-      ? { border: '#e6f0ff', label: '#e6f0ff' }
-      : { border: '#aaccee', label: '#aaccee' };
+    return hover ? { border: '#e6f0ff', label: '#e6f0ff' } : { border: '#aaccee', label: '#aaccee' };
   }
   if (on) {
     return { border: '#44ff88', label: '#44ff88' };
   }
-  return hover
-    ? { border: '#ccd6e4', label: '#ccd6e4' }
-    : { border: '#667788', label: '#8899aa' };
+  return hover ? { border: '#ccd6e4', label: '#ccd6e4' } : { border: '#667788', label: '#8899aa' };
 }
 
 /**

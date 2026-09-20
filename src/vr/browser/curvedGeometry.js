@@ -32,22 +32,23 @@ export function curvedPlaneData({ width, height, radius, segmentsX = 24, segment
   const rows = sy + 1;
 
   const positions = new Float32Array(cols * rows * 3);
-  const uvs       = new Float32Array(cols * rows * 2);
+  const uvs = new Float32Array(cols * rows * 2);
 
   // Total subtended angle: arc length (width) / radius, centred on 0.
   const halfAngle = width / (2 * radius);
 
-  let p = 0, u = 0;
+  let p = 0,
+    u = 0;
   for (let r = 0; r < rows; r++) {
-    const v  = r / sy;            // 0 (bottom) → 1 (top)
+    const v = r / sy; // 0 (bottom) → 1 (top)
     const py = (v - 0.5) * height;
     for (let c = 0; c < cols; c++) {
-      const hx = c / sx;          // 0 (left) → 1 (right)
+      const hx = c / sx; // 0 (left) → 1 (right)
       // Angle for this column, from -halfAngle to +halfAngle.
       const angle = (hx - 0.5) * 2 * halfAngle;
-      positions[p++] = radius * Math.sin(angle);          // x
-      positions[p++] = py;                                // y
-      positions[p++] = radius * (1 - Math.cos(angle));    // z toward viewer
+      positions[p++] = radius * Math.sin(angle); // x
+      positions[p++] = py; // y
+      positions[p++] = radius * (1 - Math.cos(angle)); // z toward viewer
       uvs[u++] = hx;
       uvs[u++] = v;
     }
@@ -63,8 +64,12 @@ export function curvedPlaneData({ width, height, radius, segmentsX = 24, segment
       const d = a + cols;
       const e = d + 1;
       // CCW winding so the concave (+z) face points at the viewer.
-      indices[i++] = a; indices[i++] = d; indices[i++] = b;
-      indices[i++] = b; indices[i++] = d; indices[i++] = e;
+      indices[i++] = a;
+      indices[i++] = d;
+      indices[i++] = b;
+      indices[i++] = b;
+      indices[i++] = d;
+      indices[i++] = e;
     }
   }
 

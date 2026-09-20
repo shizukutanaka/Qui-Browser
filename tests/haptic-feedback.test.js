@@ -26,10 +26,7 @@ describe('HapticFeedback', () => {
   beforeEach(() => {
     hf = new HapticFeedback();
     // Inject two mock controllers.
-    global.navigator.getGamepads = jest.fn(() => [
-      makeGamepad('left'),
-      makeGamepad('right')
-    ]);
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left'), makeGamepad('right')]);
     hf.update(); // populate gamepads map
   });
 
@@ -137,9 +134,7 @@ describe('HapticFeedback', () => {
   test('playPattern() continues remaining steps after a failed step', async () => {
     // Make the first pulse fail.
     const gamepad = hf.gamepads.get(0);
-    gamepad.hapticActuators[0].pulse
-      .mockRejectedValueOnce(new Error('actuator error'))
-      .mockResolvedValue(undefined);
+    gamepad.hapticActuators[0].pulse.mockRejectedValueOnce(new Error('actuator error')).mockResolvedValue(undefined);
     await hf.playPattern('left', 'notification'); // 2-pulse pattern
     // Second pulse should still run; stats.pulsesGenerated would be 1.
     expect(hf.stats.pulsesGenerated).toBe(1);

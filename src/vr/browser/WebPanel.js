@@ -21,21 +21,33 @@ import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
 import {
-  elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines, readerFetchUrl
+  elideUrlForDisplay,
+  securityLevel,
+  securityIndicator,
+  contentStateLines,
+  readerFetchUrl
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
 import {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
-  readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
+  layoutReaderLines,
+  clampReaderScroll,
+  readerWindow,
+  readerProgressLabel,
+  visibleLinesFor,
+  fontPxFor,
+  LINE_H,
+  CONTENT_PAD,
+  readerHitTest,
+  pageJumpLines,
+  ARROW_W,
+  ARROW_H,
+  ARROW_Y0,
+  ARROW_UP_X0,
+  ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
-import {
-  PANEL_W, PANEL_H, CHROME_H,
-  MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H
-} from './panelGeometry.js';
-
+import { PANEL_W, PANEL_H, CHROME_H, MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H } from './panelGeometry.js';
 
 /**
  * Character budget for the URL bar, derived from its pixel width and font.
@@ -86,10 +98,23 @@ export class WebPanel {
    * @param {number} [opts.readerScale=1] — text-size multiplier for the reader
    *   viewport (compose with a11y largeTextScale at the call site).
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
-    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+  constructor({
+    scene,
+    registerInteractable,
+    unregisterInteractable,
+    onNavigate,
+    onUrlInputRequested,
+    searchEngine,
+    isBookmarked,
+    onToggleBookmark,
+    onLoadError,
+    onHoverCaption,
+    onGrabRequested,
+    onMoveBarHoverCaption,
+    onBlockedNavigation,
+    readerScale = 1,
+    readerProxyUrl = ''
+  }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -113,11 +138,11 @@ export class WebPanel {
     this.currentTitle = '';
 
     // Panel state
-    this.currentUrl  = '';
-    this.history     = [];
-    this.historyIdx  = -1;
-    this.loading     = false;
-    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
+    this.currentUrl = '';
+    this.history = [];
+    this.historyIdx = -1;
+    this.loading = false;
+    this._loadError = false; // set true on iframe onerror, cleared on next navigate
     this.domOverlaySupported = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
@@ -133,26 +158,26 @@ export class WebPanel {
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
-    this.quadLayer    = null;
+    this.quadLayer = null;
     this.layersSystem = null;
-    this._layerId     = null;  // LayersSystem key for this panel's quad layer
+    this._layerId = null; // LayersSystem key for this panel's quad layer
     this._onLayerDetach = null; // callback to release the native layer on close
-    this._layerDirty  = false; // set true whenever chromeCanvas changes
+    this._layerDirty = false; // set true whenever chromeCanvas changes
 
     // Curved-screen state (Quest-style). Off = flat plane content area.
-    this.curved       = false;
-    this.curveRadius  = 2.2; // metres
+    this.curved = false;
+    this.curveRadius = 2.2; // metres
 
     // Three.js objects
-    this.group       = new THREE.Group();
-    this.chromeMesh  = null;   // URL bar + controls
-    this.contentMesh = null;   // web content area
-    this.moveBarMesh = null;   // grab-to-move handle (WindowManager.beginGrab)
+    this.group = new THREE.Group();
+    this.chromeMesh = null; // URL bar + controls
+    this.contentMesh = null; // web content area
+    this.moveBarMesh = null; // grab-to-move handle (WindowManager.beginGrab)
 
     // 2D resources
-    this.chromeCanvas  = null;
-    this.chromeTex     = null;
-    this.iframe        = null;
+    this.chromeCanvas = null;
+    this.chromeTex = null;
+    this.iframe = null;
 
     this._build();
   }
@@ -162,7 +187,7 @@ export class WebPanel {
   _build() {
     // ── Chrome bar (URL bar + back/forward/reload) ──────────────────────────
     this.chromeCanvas = document.createElement('canvas');
-    this.chromeCanvas.width  = 1024;
+    this.chromeCanvas.width = 1024;
     this.chromeCanvas.height = Math.round(1024 * CHROME_H);
 
     this.chromeTex = configureUITexture(new THREE.CanvasTexture(this.chromeCanvas));
@@ -184,7 +209,7 @@ export class WebPanel {
     // successful navigation the viewport still read "Enter a URL to navigate"
     // forever — the panel silently misrepresented what it was showing.
     this.contentCanvas = document.createElement('canvas');
-    this.contentCanvas.width  = 1024;
+    this.contentCanvas.width = 1024;
     this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
     this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
     this._drawContent();
@@ -193,7 +218,7 @@ export class WebPanel {
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
     const contentMat = new THREE.MeshBasicMaterial({ map: contentTex, side: THREE.FrontSide });
     this.contentMesh = new THREE.Mesh(contentGeo, contentMat);
-    this.contentMesh.position.y = -PANEL_H * CHROME_H / 2;
+    this.contentMesh.position.y = (-PANEL_H * CHROME_H) / 2;
     this.contentMesh.name = 'webPanelContent';
     this.group.add(this.contentMesh);
 
@@ -237,7 +262,10 @@ export class WebPanel {
     this.moveBarTex = configureUITexture(new THREE.CanvasTexture(this.moveBarCanvas));
     const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_HIT_H);
     const moveBarMat = new THREE.MeshBasicMaterial({
-      color: 0x55556f, map: this.moveBarTex, transparent: true, side: THREE.FrontSide
+      color: 0x55556f,
+      map: this.moveBarTex,
+      transparent: true,
+      side: THREE.FrontSide
     });
     this.moveBarMesh = new THREE.Mesh(moveBarGeo, moveBarMat);
     // Centre the mesh where the VISIBLE bar used to sit, so the handle does not
@@ -437,8 +465,8 @@ export class WebPanel {
     }
     const local = this.contentMesh.worldToLocal(rawPoint.clone());
     const contentH = PANEL_H * (1 - CHROME_H);
-    const u = (local.x / PANEL_W) + 0.5;
-    const v = (local.y / contentH) + 0.5;
+    const u = local.x / PANEL_W + 0.5;
+    const v = local.y / contentH + 0.5;
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
 
@@ -547,7 +575,7 @@ export class WebPanel {
     const hasBookmark = !!this.onToggleBookmark;
     // URL bar: leave room for [bookmark][close] on the right when bookmarking.
     const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
-    const barW = w - 212 - urlRight;          // URL bar inner width (px)
+    const barW = w - 212 - urlRight; // URL bar inner width (px)
     ctx.fillStyle = this._loadError ? col.urlErrorBg : col.urlBg;
     ctx.fillRect(212, 6, barW, h - 12);
     // The bar's fill is only 1.16:1 against the chrome background, and an empty
@@ -581,12 +609,8 @@ export class WebPanel {
       ctx.fillStyle = this.currentUrl ? col.urlText : col.urlPlaceholder;
       ctx.font = '18px monospace';
       // The glyph consumed ~26px of the bar; shrink the character budget to match.
-      const urlChars = this.currentUrl
-        ? urlBarMaxChars(barW - (x - 220), 18)
-        : maxChars;
-      const urlText = this.currentUrl
-        ? elideUrlForDisplay(this.currentUrl, urlChars)
-        : 'https://';
+      const urlChars = this.currentUrl ? urlBarMaxChars(barW - (x - 220), 18) : maxChars;
+      const urlText = this.currentUrl ? elideUrlForDisplay(this.currentUrl, urlChars) : 'https://';
       ctx.fillText(urlText, x, h / 2 + 6);
     }
 
@@ -625,26 +649,32 @@ export class WebPanel {
     // Map intersection point on the mesh to canvas UV.
     // chromeMesh is PANEL_W × (PANEL_H * CHROME_H) centred at chromeMesh.position.
     const local = this.chromeMesh.worldToLocal(rawPoint.clone());
-    const u = (local.x / PANEL_W) + 0.5;       // 0–1
+    const u = local.x / PANEL_W + 0.5; // 0–1
     const px = Math.round(u * this.chromeCanvas.width);
 
     const w = this.chromeCanvas.width;
     const hasBookmark = !!this.onToggleBookmark;
 
-    if (px < 68) {           // back button
+    if (px < 68) {
+      // back button
       this.back();
-    } else if (px < 136) {   // forward
+    } else if (px < 136) {
+      // forward
       this.forward();
-    } else if (px < 204) {   // reload
+    } else if (px < 204) {
+      // reload
       this.reload();
-    } else if (px > w - 60) { // close
+    } else if (px > w - 60) {
+      // close
       this.hide();
-    } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
+    } else if (hasBookmark && px >= w - 128 && px <= w - 72) {
+      // bookmark star
       if (this.currentUrl) {
         this.onToggleBookmark(this.currentUrl, this.currentTitle || this.currentUrl);
         this._drawChrome(); // reflect the new ★/☆ state
       }
-    } else {                  // URL bar — request text input
+    } else {
+      // URL bar — request text input
       const prefill = this.currentUrl || 'https://';
       if (this.onUrlInputRequested) {
         this.onUrlInputRequested(prefill, (url) => {
@@ -730,7 +760,9 @@ export class WebPanel {
       let title = url;
       try {
         title = this.iframe.contentDocument.title || url;
-      } catch { /* cross-origin frame: keep the URL as the title */ }
+      } catch {
+        /* cross-origin frame: keep the URL as the title */
+      }
       this.currentTitle = title;
       // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
       // `load`, not `error`, in Chromium — so reaching here does NOT mean the
@@ -834,9 +866,9 @@ export class WebPanel {
     if (!quadLayer || !layersSystem) {
       return;
     }
-    this.quadLayer    = quadLayer;
+    this.quadLayer = quadLayer;
     this.layersSystem = layersSystem;
-    this._layerId     = layerId;
+    this._layerId = layerId;
     this._onLayerDetach = typeof onDetach === 'function' ? onDetach : null;
     // Hide the Three.js chrome mesh — the runtime composites the layer instead.
     if (this.chromeMesh) {
@@ -864,9 +896,9 @@ export class WebPanel {
     if (releaseLayer && this._onLayerDetach && this._layerId) {
       this._onLayerDetach(this._layerId);
     }
-    this.quadLayer    = null;
+    this.quadLayer = null;
     this.layersSystem = null;
-    this._layerId     = null;
+    this._layerId = null;
     this._onLayerDetach = null;
   }
 
@@ -881,9 +913,7 @@ export class WebPanel {
     if (!this.quadLayer || !this.layersSystem || !this._layerDirty) {
       return;
     }
-    this.layersSystem.renderCanvasToLayer(
-      this.quadLayer, this.chromeCanvas, frame, views
-    );
+    this.layersSystem.renderCanvasToLayer(this.quadLayer, this.chromeCanvas, frame, views);
     this._layerDirty = false;
   }
 
@@ -977,7 +1007,7 @@ export class WebPanel {
     this.unregisterInteractable(this.moveBarMesh);
     this.unregisterInteractable(this.contentMesh);
 
-    this.group.traverse(obj => {
+    this.group.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();
       }

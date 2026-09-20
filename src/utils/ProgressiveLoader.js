@@ -8,10 +8,10 @@
 export class ProgressiveLoader {
   constructor() {
     this.loadQueue = {
-      critical: [],     // Must load before interaction
-      primary: [],      // Load immediately after critical
-      secondary: [],    // Load in background
-      lazy: []         // Load on demand only
+      critical: [], // Must load before interaction
+      primary: [], // Load immediately after critical
+      secondary: [], // Load in background
+      lazy: [] // Load on demand only
     };
 
     this.loaded = new Map();
@@ -20,12 +20,12 @@ export class ProgressiveLoader {
 
     // Loading strategy
     this.strategy = {
-      parallelLimit: 6,        // Max parallel downloads
-      retryAttempts: 3,        // Retry failed loads
-      retryDelay: 1000,        // Delay between retries
-      timeout: 30000,          // Request timeout
-      adaptiveQuality: true,   // Adjust quality based on connection
-      preloadNext: true        // Preload anticipated resources
+      parallelLimit: 6, // Max parallel downloads
+      retryAttempts: 3, // Retry failed loads
+      retryDelay: 1000, // Delay between retries
+      timeout: 30000, // Request timeout
+      adaptiveQuality: true, // Adjust quality based on connection
+      preloadNext: true // Preload anticipated resources
     };
 
     // Network detection
@@ -108,25 +108,25 @@ export class ProgressiveLoader {
    */
   adjustStrategy() {
     switch (this.network.effectiveType) {
-    case 'slow-2g':
-    case '2g':
-      this.strategy.parallelLimit = 2;
-      this.strategy.adaptiveQuality = true;
-      this.strategy.preloadNext = false;
-      break;
+      case 'slow-2g':
+      case '2g':
+        this.strategy.parallelLimit = 2;
+        this.strategy.adaptiveQuality = true;
+        this.strategy.preloadNext = false;
+        break;
 
-    case '3g':
-      this.strategy.parallelLimit = 4;
-      this.strategy.adaptiveQuality = true;
-      this.strategy.preloadNext = true;
-      break;
+      case '3g':
+        this.strategy.parallelLimit = 4;
+        this.strategy.adaptiveQuality = true;
+        this.strategy.preloadNext = true;
+        break;
 
-    case '4g':
-    default:
-      this.strategy.parallelLimit = 6;
-      this.strategy.adaptiveQuality = false;
-      this.strategy.preloadNext = true;
-      break;
+      case '4g':
+      default:
+        this.strategy.parallelLimit = 6;
+        this.strategy.adaptiveQuality = false;
+        this.strategy.preloadNext = true;
+        break;
     }
 
     // Respect save data
@@ -205,7 +205,7 @@ export class ProgressiveLoader {
     const chunks = this.chunkArray(queue, this.strategy.parallelLimit);
 
     for (const chunk of chunks) {
-      const promises = chunk.map(item => this.loadResource(item));
+      const promises = chunk.map((item) => this.loadResource(item));
       await Promise.allSettled(promises);
     }
   }
@@ -239,7 +239,6 @@ export class ProgressiveLoader {
       this.pending.delete(item.name);
       this.onResourceLoaded(item, result);
       return result;
-
     } catch (error) {
       this.pending.delete(item.name);
 
@@ -262,34 +261,33 @@ export class ProgressiveLoader {
    * Perform actual load based on type
    */
   async performLoad(item) {
-
     switch (item.type) {
-    case 'image':
-      return this.loadImage(item.url);
+      case 'image':
+        return this.loadImage(item.url);
 
-    case 'script':
-      return this.loadScript(item.url);
+      case 'script':
+        return this.loadScript(item.url);
 
-    case 'style':
-      return this.loadStyle(item.url);
+      case 'style':
+        return this.loadStyle(item.url);
 
-    case 'json':
-      return this.loadJSON(item.url);
+      case 'json':
+        return this.loadJSON(item.url);
 
-    case 'audio':
-      return this.loadAudio(item.url);
+      case 'audio':
+        return this.loadAudio(item.url);
 
-    case 'video':
-      return this.loadVideo(item.url);
+      case 'video':
+        return this.loadVideo(item.url);
 
-    case 'model':
-      return this.loadModel(item.url);
+      case 'model':
+        return this.loadModel(item.url);
 
-    case 'texture':
-      return this.loadTexture(item.url);
+      case 'texture':
+        return this.loadTexture(item.url);
 
-    default:
-      return this.loadGeneric(item.url);
+      default:
+        return this.loadGeneric(item.url);
     }
   }
 
@@ -351,7 +349,7 @@ export class ProgressiveLoader {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
+        Accept: 'application/json'
       },
       signal: this.getAbortSignal()
     });
@@ -522,7 +520,7 @@ export class ProgressiveLoader {
       items: this.stats.itemsLoaded,
       bytes: this.stats.loadedBytes,
       time: `${this.stats.loadTime.toFixed(0)}ms`,
-      speed: `${(this.stats.loadedBytes / this.stats.loadTime * 1000 / 1024).toFixed(0)} KB/s`
+      speed: `${(((this.stats.loadedBytes / this.stats.loadTime) * 1000) / 1024).toFixed(0)} KB/s`
     });
 
     if (this.callbacks.onComplete) {
@@ -553,7 +551,7 @@ export class ProgressiveLoader {
       return;
     }
 
-    resources.forEach(resource => {
+    resources.forEach((resource) => {
       this.addResource(resource, 'secondary');
     });
 
@@ -578,7 +576,7 @@ export class ProgressiveLoader {
    * Utility: Delay
    */
   delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -592,9 +590,9 @@ export class ProgressiveLoader {
       pending: this.pending.size,
       // Guard against NaN when getStats() is called before any resource is
       // queued (itemsTotal === 0).
-      progressPercent: (this.stats.itemsTotal > 0
-        ? (this.stats.itemsLoaded / this.stats.itemsTotal * 100)
-        : 0).toFixed(1)
+      progressPercent: (this.stats.itemsTotal > 0 ? (this.stats.itemsLoaded / this.stats.itemsTotal) * 100 : 0).toFixed(
+        1
+      )
     };
   }
 

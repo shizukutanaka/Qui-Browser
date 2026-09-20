@@ -219,9 +219,10 @@ class PerformanceBenchmark {
     const mean = sum / values.length;
 
     // 中央値 / Median
-    const median = sorted.length % 2 === 0
-      ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-      : sorted[Math.floor(sorted.length / 2)];
+    const median =
+      sorted.length % 2 === 0
+        ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+        : sorted[Math.floor(sorted.length / 2)];
 
     // 標準偏差 / Standard deviation
     const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
@@ -370,7 +371,7 @@ class PerformanceBenchmark {
       'Memory Mean (bytes)'
     ];
 
-    const rows = this.results.map(r => [
+    const rows = this.results.map((r) => [
       r.module,
       r.fileSizeKB,
       r.loadTime.min.toFixed(3),
@@ -383,7 +384,7 @@ class PerformanceBenchmark {
       r.memoryUsage.mean.toFixed(0)
     ]);
 
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
   }
 
   /**
@@ -407,14 +408,14 @@ class PerformanceBenchmark {
     md += '| Module | Size (KB) | Load Time (ms) | Memory (KB) |\n';
     md += '|--------|-----------|----------------|-------------|\n';
 
-    this.results.forEach(r => {
+    this.results.forEach((r) => {
       md += `| ${r.module} | ${r.fileSizeKB} | ${r.loadTime.mean.toFixed(2)} | ${(r.memoryUsage.mean / 1024).toFixed(2)} |\n`;
     });
 
     md += '\n## Performance Grades\n\n';
 
     // パフォーマンスグレードを割り当て / Assign performance grades
-    this.results.forEach(r => {
+    this.results.forEach((r) => {
       const loadTime = r.loadTime.mean;
       let grade;
 
@@ -465,7 +466,7 @@ process.on('unhandledRejection', (error) => {
 
 // 実行 / Run
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('Error:', error);
     process.exit(1);
   });

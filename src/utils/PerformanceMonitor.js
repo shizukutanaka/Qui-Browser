@@ -294,7 +294,7 @@ export class PerformanceMonitor {
    * Sample metrics for history
    */
   sampleMetrics() {
-    Object.values(this.metrics).forEach(metric => {
+    Object.values(this.metrics).forEach((metric) => {
       metric.history.push(metric.current);
 
       // Keep history length limited
@@ -340,10 +340,7 @@ export class PerformanceMonitor {
     };
 
     // Check if same alert exists recently
-    const recent = this.alerts.find(a =>
-      a.message === message &&
-      performance.now() - a.time < 5000
-    );
+    const recent = this.alerts.find((a) => a.message === message && performance.now() - a.time < 5000);
 
     if (recent) {
       recent.count++;
@@ -478,7 +475,7 @@ export class PerformanceMonitor {
     history.forEach((value, index) => {
       const x = (history.length - index - 1) * pointSpacing;
       const normalizedValue = (value - min) / (max - min);
-      const y = height - (normalizedValue * height);
+      const y = height - normalizedValue * height;
 
       if (index === 0) {
         ctx.moveTo(x, y);
@@ -504,15 +501,18 @@ export class PerformanceMonitor {
       return;
     }
 
-    alertsDiv.innerHTML = this.alerts.slice(0, 5).map(alert => {
-      const color = alert.level === 'critical' ? '#ff0000' : '#ffaa00';
-      const countText = alert.count > 1 ? ` (×${alert.count})` : '';
-      return `
+    alertsDiv.innerHTML = this.alerts
+      .slice(0, 5)
+      .map((alert) => {
+        const color = alert.level === 'critical' ? '#ff0000' : '#ffaa00';
+        const countText = alert.count > 1 ? ` (×${alert.count})` : '';
+        return `
         <div style="color: ${color}; margin: 2px 0;">
           [${alert.timestamp}] ${alert.message}${countText}
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   /**
@@ -592,9 +592,7 @@ export class PerformanceMonitor {
     return {
       summary: {
         totalFrames: this.stats.totalFrames,
-        averageFrameTime: this.stats.totalFrames > 0
-          ? this.stats.totalTime / this.stats.totalFrames
-          : 0,
+        averageFrameTime: this.stats.totalFrames > 0 ? this.stats.totalTime / this.stats.totalFrames : 0,
         bestFrame: this.stats.bestFrame,
         worstFrame: this.stats.worstFrame,
         alertsGenerated: this.stats.alertsGenerated
@@ -628,11 +626,11 @@ export class PerformanceMonitor {
     const rows = [headers.join(',')];
 
     // Get max history length
-    const maxLength = Math.max(...Object.values(this.metrics).map(m => m.history.length));
+    const maxLength = Math.max(...Object.values(this.metrics).map((m) => m.history.length));
 
     // Build rows
     for (let i = 0; i < maxLength; i++) {
-      const row = headers.map(name => {
+      const row = headers.map((name) => {
         const history = this.metrics[name].history;
         return history[i] !== undefined ? history[i].toFixed(2) : '';
       });
@@ -656,7 +654,7 @@ export class PerformanceMonitor {
 
     this.alerts = [];
 
-    Object.values(this.metrics).forEach(metric => {
+    Object.values(this.metrics).forEach((metric) => {
       metric.min = 999;
       metric.max = 0;
       metric.avg = 0;

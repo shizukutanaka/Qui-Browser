@@ -27,10 +27,10 @@ export const DELETE_ZONE_W = 64;
 
 // Scroll arrow zones inside the header (between the history tab and close button).
 // ↑ arrow: 480–640 px, ↓ arrow: 660–820 px.
-export const SCROLL_UP_X0  = 480;
-export const SCROLL_UP_X1  = 640;
-export const SCROLL_DN_X0  = 660;
-export const SCROLL_DN_X1  = 820;
+export const SCROLL_UP_X0 = 480;
+export const SCROLL_UP_X1 = 640;
+export const SCROLL_DN_X0 = 660;
+export const SCROLL_DN_X1 = 820;
 
 /**
  * Resolve a click at canvas pixel (px, py) into a semantic action.
@@ -125,8 +125,8 @@ export function truncate(text, max = 48) {
 // imports THREE) so the real values are reachable by unit tests and by the
 // real-browser layout harness (tools/verify-text-layout.mjs).
 export const ROW_TEXT_X = 24;
-export const ROW_TITLE_FONT = 26;   // bold sans
-export const ROW_URL_FONT = 20;     // monospace
+export const ROW_TITLE_FONT = 26; // bold sans
+export const ROW_URL_FONT = 20; // monospace
 /** Usable width: text starts at ROW_TEXT_X and must clear the delete zone. */
 export const ROW_TEXT_W = PANEL_PX_W - ROW_TEXT_X - DELETE_ZONE_W;
 /**
@@ -163,38 +163,38 @@ export const ROW_URL_EM = safeMeasureEm(ROW_TEXT_W, ROW_URL_FONT);
 export function bookmarkPanelColors(highContrast = false) {
   if (highContrast) {
     return {
-      bg:              '#000000',
-      headerBg:        '#000000',
-      scrollActive:    { bg: '#004adf', text: '#ffffff' },
-      scrollInactive:  { bg: '#222222', text: '#aaccee' },
-      pageIndicator:   '#ccddee',
-      closeBg:         '#7a0000',
-      rowTitle:        '#ffffff',
-      rowUrl:          '#aabbdd',
-      tabActive:       { bg: '#1a3080', text: '#ffffff' },
-      tabInactive:     { bg: '#111111', text: '#ccddee' },
-      rowZebraEven:    'rgba(255,255,255,0.0)',
-      rowZebraOdd:     'rgba(255,255,255,0.10)',
-      deleteZoneBg:    '#7a0000',
-      deleteText:      '#ffffff',
-      emptyText:       '#aabbcc'
+      bg: '#000000',
+      headerBg: '#000000',
+      scrollActive: { bg: '#004adf', text: '#ffffff' },
+      scrollInactive: { bg: '#222222', text: '#aaccee' },
+      pageIndicator: '#ccddee',
+      closeBg: '#7a0000',
+      rowTitle: '#ffffff',
+      rowUrl: '#aabbdd',
+      tabActive: { bg: '#1a3080', text: '#ffffff' },
+      tabInactive: { bg: '#111111', text: '#ccddee' },
+      rowZebraEven: 'rgba(255,255,255,0.0)',
+      rowZebraOdd: 'rgba(255,255,255,0.10)',
+      deleteZoneBg: '#7a0000',
+      deleteText: '#ffffff',
+      emptyText: '#aabbcc'
     };
   }
   return {
-    bg:              'rgba(10,13,20,0.95)',
-    headerBg:        '#161b2e',
-    scrollActive:    { bg: 'rgba(50,80,140,0.9)', text: '#aabbff' },
-    scrollInactive:  { bg: 'rgba(30,35,55,0.6)',  text: '#727f96' },
-    pageIndicator:   '#7788aa',
-    closeBg:         '#5c1a1a',
-    rowTitle:        '#e8ecff',
-    rowUrl:          '#7f8db5',
-    tabActive:       { bg: '#2d3a66', text: '#ffffff' },
-    tabInactive:     { bg: '#1a1f33', text: '#8899bb' },
-    rowZebraEven:    'rgba(255,255,255,0.03)',
-    rowZebraOdd:     'rgba(255,255,255,0.06)',
-    deleteZoneBg:    'rgba(90,20,20,0.8)',
-    deleteText:      '#ffaaaa',
-    emptyText:       '#8899aa'
+    bg: 'rgba(10,13,20,0.95)',
+    headerBg: '#161b2e',
+    scrollActive: { bg: 'rgba(50,80,140,0.9)', text: '#aabbff' },
+    scrollInactive: { bg: 'rgba(30,35,55,0.6)', text: '#727f96' },
+    pageIndicator: '#7788aa',
+    closeBg: '#5c1a1a',
+    rowTitle: '#e8ecff',
+    rowUrl: '#7f8db5',
+    tabActive: { bg: '#2d3a66', text: '#ffffff' },
+    tabInactive: { bg: '#1a1f33', text: '#8899bb' },
+    rowZebraEven: 'rgba(255,255,255,0.03)',
+    rowZebraOdd: 'rgba(255,255,255,0.06)',
+    deleteZoneBg: 'rgba(90,20,20,0.8)',
+    deleteText: '#ffaaaa',
+    emptyText: '#8899aa'
   };
 }

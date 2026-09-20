@@ -38,7 +38,6 @@ class QuiPWA {
         navigator.serviceWorker.addEventListener('message', (event) => {
           this.handleServiceWorkerMessage(event);
         });
-
       } catch (error) {
         console.error('Service Worker registration failed:', error);
       }
@@ -86,8 +85,7 @@ class QuiPWA {
    */
   checkInstallStatus() {
     // Check for standalone mode (installed PWA)
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true) {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
       this.isInstalled = true;
     }
 
@@ -363,9 +361,11 @@ class QuiPWA {
     }
 
     // Emit custom event
-    window.dispatchEvent(new CustomEvent('onlinestatuschange', {
-      detail: { online: isOnline }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('onlinestatuschange', {
+        detail: { online: isOnline }
+      })
+    );
 
     this.trackEvent(isOnline ? 'came_online' : 'went_offline');
   }
@@ -468,7 +468,6 @@ class QuiPWA {
 
           // Send subscription to server
           this.sendPushSubscription(subscription);
-
         } catch (error) {
           console.error('Push subscription failed:', error);
         }
@@ -526,9 +525,11 @@ class QuiPWA {
 
       default:
         // Emit custom event for other components to handle
-        window.dispatchEvent(new CustomEvent('sw-message', {
-          detail: { type, data }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('sw-message', {
+            detail: { type, data }
+          })
+        );
     }
   }
 
@@ -587,21 +588,15 @@ class QuiPWA {
    * Check if PWA features are supported
    */
   static isSupported() {
-    return (
-      'serviceWorker' in navigator &&
-      'fetch' in window &&
-      'caches' in window
-    );
+    return 'serviceWorker' in navigator && 'fetch' in window && 'caches' in window;
   }
 
   /**
    * Utility function to convert VAPID key
    */
   urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);

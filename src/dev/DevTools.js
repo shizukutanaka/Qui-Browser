@@ -27,7 +27,7 @@ export class DevTools {
 
     // Keyboard shortcuts
     this.shortcuts = {
-      'F12': () => this.toggle(),
+      F12: () => this.toggle(),
       'Ctrl+Shift+I': () => this.toggle(),
       'Ctrl+Shift+C': () => this.selectElement(),
       'Ctrl+Shift+P': () => this.showProfiler()
@@ -89,7 +89,7 @@ export class DevTools {
       { id: 'settings', label: '⚙️ Settings', icon: '🔧' }
     ];
 
-    tabs.forEach(tab => {
+    tabs.forEach((tab) => {
       const btn = document.createElement('button');
       btn.textContent = tab.label;
       btn.style.cssText = `
@@ -336,12 +336,12 @@ export class DevTools {
 
       // Update tab content
       switch (tabId) {
-      case 'scene':
-        this.updateSceneTree();
-        break;
-      case 'network':
-        this.updateNetworkTable();
-        break;
+        case 'scene':
+          this.updateSceneTree();
+          break;
+        case 'network':
+          this.updateNetworkTable();
+          break;
       }
     }
   }
@@ -382,7 +382,7 @@ export class DevTools {
   logMessage(type, args) {
     const message = {
       type,
-      args: args.map(arg => this.formatValue(arg)),
+      args: args.map((arg) => this.formatValue(arg)),
       timestamp: new Date().toLocaleTimeString()
     };
 
@@ -490,7 +490,7 @@ export class DevTools {
 
     const row = document.createElement('div');
     row.style.cssText = 'cursor: pointer; padding: 2px;';
-    row.style.paddingLeft = (level * 16) + 'px';
+    row.style.paddingLeft = level * 16 + 'px';
     row.textContent = `${object.type || 'Object'} "${object.name || 'unnamed'}"`;
     frag.appendChild(row);
 
@@ -582,7 +582,7 @@ export class DevTools {
         const td = document.createElement('td');
         td.style.padding = '5px';
         if (i === 2) {
-          td.style.color = (typeof req.status === 'number' && req.status < 400) ? '#4ec9b0' : '#f48771';
+          td.style.color = typeof req.status === 'number' && req.status < 400 ? '#4ec9b0' : '#f48771';
         }
         td.textContent = val;
         tr.appendChild(td);

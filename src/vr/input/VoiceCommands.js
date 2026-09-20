@@ -47,7 +47,7 @@ export class VoiceCommands {
 
     // Callbacks
     this.callbacks = {
-      onCommand: null,       // (key, result)  — command executed successfully
+      onCommand: null, // (key, result)  — command executed successfully
       onCommandFailed: null, // ({reason, transcript}) — no match or action threw
       onTranscript: null,
       onError: null,
@@ -89,7 +89,6 @@ export class VoiceCommands {
       this.isEnabled = true;
       console.debug('VoiceCommands: Initialized successfully');
       return true;
-
     } catch (error) {
       console.error('VoiceCommands: Initialization failed', error);
       return false;
@@ -216,7 +215,8 @@ export class VoiceCommands {
    */
   processCommand(transcript, confidence) {
     this.stats.commandsRecognized++;
-    this.stats.averageConfidence = (this.stats.averageConfidence * (this.stats.commandsRecognized - 1) + confidence) / this.stats.commandsRecognized;
+    this.stats.averageConfidence =
+      (this.stats.averageConfidence * (this.stats.commandsRecognized - 1) + confidence) / this.stats.commandsRecognized;
 
     // Normalize transcript
     const normalized = transcript.toLowerCase().trim();
@@ -227,14 +227,16 @@ export class VoiceCommands {
 
     // Check exact matches
     for (const [key, command] of this.commands) {
-      if (command.patterns.some(pattern => {
-        if (typeof pattern === 'string') {
-          return normalized === pattern.toLowerCase();
-        } else if (pattern instanceof RegExp) {
-          return pattern.test(normalized);
-        }
-        return false;
-      })) {
+      if (
+        command.patterns.some((pattern) => {
+          if (typeof pattern === 'string') {
+            return normalized === pattern.toLowerCase();
+          } else if (pattern instanceof RegExp) {
+            return pattern.test(normalized);
+          }
+          return false;
+        })
+      ) {
         matchedCommand = command;
         matchedKey = key;
         break;
@@ -270,7 +272,6 @@ export class VoiceCommands {
         if (matchedCommand.confirmationText) {
           this.speak(matchedCommand.confirmationText);
         }
-
       } catch (error) {
         console.error('VoiceCommands: Command execution failed', error);
         this.stats.commandsFailed++;
@@ -279,7 +280,6 @@ export class VoiceCommands {
           this.callbacks.onCommandFailed({ reason: 'execution_error', transcript });
         }
       }
-
     } else {
       console.debug(`VoiceCommands: No matching command for "${transcript}"`);
       this.stats.commandsFailed++;
@@ -448,7 +448,7 @@ export class VoiceCommands {
 
     // Register aliases if provided
     if (config.aliases) {
-      config.aliases.forEach(alias => {
+      config.aliases.forEach((alias) => {
         this.aliases.set(alias, name);
       });
     }
@@ -501,8 +501,16 @@ export class VoiceCommands {
    * @param {Function} [opts.onScrollContent] (deltaLines: number) => void — scroll
    *                                         the active panel's reader viewport
    */
-  connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent } = {}) {
+  connectBrowser({
+    tabManager,
+    bookmarkPanel,
+    vrKeyboard,
+    onSearch,
+    onTopSites,
+    onGoTo,
+    onClearHistory,
+    onScrollContent
+  } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -556,9 +564,14 @@ export class VoiceCommands {
     // at the first match in registration order).
     this.registerCommand('clear-history', {
       patterns: [
-        '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
+        '履歴を消去',
+        '履歴を削除',
+        '履歴クリア',
+        '履歴を消す',
+        'りれきを消去',
         /履歴を?(消去|削除|クリア|消す)/,
-        /clear\s+history/i, /delete\s+history/i
+        /clear\s+history/i,
+        /delete\s+history/i
       ],
       action: () => {
         if (onClearHistory) {
@@ -658,10 +671,7 @@ export class VoiceCommands {
     // stops at the first hit, so this generic catch-all must come after every
     // specific command to act only on utterances none of them claimed.
     this.registerCommand('go-to', {
-      patterns: [
-        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
-        /^(?:open|go to|navigate to)\s+(.+)/i
-      ],
+      patterns: [/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/, /^(?:open|go to|navigate to)\s+(.+)/i],
       action: (transcript) => {
         const t = transcript.toLowerCase().trim();
         const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);

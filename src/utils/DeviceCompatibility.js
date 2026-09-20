@@ -30,7 +30,7 @@ export class DeviceCompatibility {
     ]);
 
     // Detect device tier from user-agent hints.
-    const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
     const deviceTier = this._detectTier(ua);
 
     // Probe optional WebXR features (supported = the runtime accepts them in
@@ -41,7 +41,7 @@ export class DeviceCompatibility {
     this.report = {
       vrSupported,
       arSupported,
-      deviceTier,          // 'quest3' | 'quest2' | 'pico4' | 'desktop' | 'unknown'
+      deviceTier, // 'quest3' | 'quest2' | 'pico4' | 'desktop' | 'unknown'
       webgpu: typeof navigator !== 'undefined' && 'gpu' in navigator,
       webgl2: this._hasWebGL2(),
       ...optionalFeatures,
@@ -86,11 +86,11 @@ export class DeviceCompatibility {
   async _probeOptionalFeatures(xr, vrSupported, tier) {
     // These are available on all devices that support immersive-vr.
     const base = {
-      handTracking:  vrSupported,
-      hitTest:       false,
-      anchors:       false,
+      handTracking: vrSupported,
+      hitTest: false,
+      anchors: false,
       planeDetection: false,
-      eyeTracking:   false,
+      eyeTracking: false,
       foveatedRendering: vrSupported
     };
 
@@ -101,17 +101,15 @@ export class DeviceCompatibility {
     // Quest 3 / Quest Pro support additional features. Fall back to detecting
     // the tier here if the caller didn't supply it.
     if (!tier) {
-      tier = this._detectTier(
-        typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
-      );
+      tier = this._detectTier(typeof navigator !== 'undefined' ? navigator.userAgent || '' : '');
     }
 
     return {
       ...base,
-      hitTest:        tier !== 'unknown' && tier !== 'desktop-xr',
-      anchors:        tier !== 'unknown' && tier !== 'desktop-xr',
+      hitTest: tier !== 'unknown' && tier !== 'desktop-xr',
+      anchors: tier !== 'unknown' && tier !== 'desktop-xr',
       planeDetection: tier === 'quest3' || tier === 'android-xr',
-      eyeTracking:    false // Quest Pro only; Quest 2/3/Pico 4 = false
+      eyeTracking: false // Quest Pro only; Quest 2/3/Pico 4 = false
     };
   }
 
@@ -121,7 +119,7 @@ export class DeviceCompatibility {
     }
     try {
       const canvas = document.createElement('canvas');
-      return !!(canvas.getContext('webgl2'));
+      return !!canvas.getContext('webgl2');
     } catch {
       return false;
     }
@@ -135,10 +133,14 @@ export class DeviceCompatibility {
       return 72;
     }
     switch (this.report.deviceTier) {
-    case 'quest3':   return 120;
-    case 'quest2':   return 90;
-    case 'pico4':    return 90;
-    default:         return 72;
+      case 'quest3':
+        return 120;
+      case 'quest2':
+        return 90;
+      case 'pico4':
+        return 90;
+      default:
+        return 72;
     }
   }
 }

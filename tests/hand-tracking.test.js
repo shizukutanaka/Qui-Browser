@@ -6,22 +6,52 @@
  */
 
 class MockObj {
-  constructor() { this.name = ''; this.children = []; this.position = { set: jest.fn(), distanceTo: () => 1 }; this.visible = true; }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter(c => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
+  constructor() {
+    this.name = '';
+    this.children = [];
+    this.position = { set: jest.fn(), distanceTo: () => 1 };
+    this.visible = true;
+  }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter((c) => c !== o);
+  }
+  traverse(fn) {
+    fn(this);
+    this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockMesh extends MockObj {
-  constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; }
+  constructor(geometry, material) {
+    super();
+    this.geometry = geometry;
+    this.material = material;
+  }
 }
 
 jest.mock('three', () => ({
   Group: MockObj,
   Mesh: MockMesh,
-  SphereGeometry: class { dispose() {} },
-  CylinderGeometry: class { dispose() {} },
-  MeshPhongMaterial: class { clone() { return new this.constructor(); } dispose() {} },
-  Vector3: class { constructor() { this.set = () => {}; this.clone = () => this; } },
+  SphereGeometry: class {
+    dispose() {}
+  },
+  CylinderGeometry: class {
+    dispose() {}
+  },
+  MeshPhongMaterial: class {
+    clone() {
+      return new this.constructor();
+    }
+    dispose() {}
+  },
+  Vector3: class {
+    constructor() {
+      this.set = () => {};
+      this.clone = () => this;
+    }
+  },
   Quaternion: class {}
 }));
 
@@ -32,7 +62,9 @@ function makeSession() {
   return {
     inputSources: [],
     _listeners: listeners,
-    addEventListener: jest.fn((type, fn) => { listeners[type] = fn; }),
+    addEventListener: jest.fn((type, fn) => {
+      listeners[type] = fn;
+    }),
     removeEventListener: jest.fn((type, fn) => {
       if (listeners[type] === fn) delete listeners[type];
     })
@@ -128,13 +160,13 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
   function makeInputSource(handedness) {
     return {
       handedness,
-      hand: { get: () => null }  // hand property present; no joint data (poses null)
+      hand: { get: () => null } // hand property present; no joint data (poses null)
     };
   }
   function makeFrame(inputSources) {
     return {
       session: { inputSources },
-      getJointPose: () => null  // updateHand skips all joint updates, visible=true still set
+      getJointPose: () => null // updateHand skips all joint updates, visible=true still set
     };
   }
 
@@ -144,7 +176,7 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     const session = makeSession();
     await ht.initialize(session);
     // After initialize, both hand groups exist and start visible=false (group default).
-    ht.leftHand.visible  = false;
+    ht.leftHand.visible = false;
     ht.rightHand.visible = false;
     return ht;
   }
@@ -175,7 +207,7 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     ht.onTrackingChange(onChange);
 
     ht.update(makeFrame([makeInputSource('right')]), null); // right appears
-    ht.update(makeFrame([]), null);                         // right disappears
+    ht.update(makeFrame([]), null); // right disappears
 
     expect(onChange).toHaveBeenCalledWith('right', false);
   });
@@ -185,10 +217,10 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     const onChange = jest.fn();
     ht.onTrackingChange(onChange);
 
-    ht.update(makeFrame([makeInputSource('left')]), null);  // left appears → tracked
+    ht.update(makeFrame([makeInputSource('left')]), null); // left appears → tracked
     onChange.mockClear();
-    ht.update(makeFrame([]), null);                         // left lost
-    ht.update(makeFrame([makeInputSource('left')]), null);  // left regained
+    ht.update(makeFrame([]), null); // left lost
+    ht.update(makeFrame([makeInputSource('left')]), null); // left regained
 
     expect(onChange).toHaveBeenLastCalledWith('left', true);
   });

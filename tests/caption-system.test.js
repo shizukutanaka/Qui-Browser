@@ -4,8 +4,15 @@
  * verified headlessly.
  */
 
-class MockGeometry { dispose() {} }
-class MockMaterial { constructor(o = {}) { Object.assign(this, o); } dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
+class MockMaterial {
+  constructor(o = {}) {
+    Object.assign(this, o);
+  }
+  dispose() {}
+}
 class MockMesh {
   constructor(geometry, material) {
     this.geometry = geometry;
@@ -17,7 +24,10 @@ class MockMesh {
   }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
+  constructor() {
+    this.needsUpdate = false;
+    this.colorSpace = '';
+  }
   dispose() {}
 }
 
@@ -32,9 +42,17 @@ jest.mock('three', () => ({
 // Canvas 2D context stub.
 function makeCtx() {
   return {
-    clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-    beginPath: jest.fn(), roundRect: jest.fn(), fill: jest.fn(),
-    fillStyle: '', font: '', textAlign: '', textBaseline: '', globalAlpha: 1
+    clearRect: jest.fn(),
+    fillRect: jest.fn(),
+    fillText: jest.fn(),
+    beginPath: jest.fn(),
+    roundRect: jest.fn(),
+    fill: jest.fn(),
+    fillStyle: '',
+    font: '',
+    textAlign: '',
+    textBaseline: '',
+    globalAlpha: 1
   };
 }
 global.document = {
@@ -42,9 +60,14 @@ global.document = {
 };
 
 const {
-  CaptionSystem, clampCaptionOffset,
-  CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX,
-  readingTimeMs, CPS_FULLWIDTH, CPS_HALFWIDTH
+  CaptionSystem,
+  clampCaptionOffset,
+  CAPTION_OFFSET_DEFAULT,
+  CAPTION_OFFSET_MIN,
+  CAPTION_OFFSET_MAX,
+  readingTimeMs,
+  CPS_FULLWIDTH,
+  CPS_HALFWIDTH
 } = require('../src/vr/accessibility/CaptionSystem.js');
 const { textWidthEm, WIDTH_SAFETY } = require('../src/vr/ui/textWrap.js');
 
@@ -82,7 +105,7 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('show() normalizes NFD text to NFC so combining marks stay attached', () => {
     cs.setEnabled(true);
     const nfd = 'が'; // か + combining voiced mark = 2 code points (NFD)
-    const nfc = 'が';       // precomposed が = 1 code point (NFC)
+    const nfc = 'が'; // precomposed が = 1 code point (NFC)
     expect(Array.from(nfd)).toHaveLength(2); // fixture really is NFD
     cs.show(nfd);
     const stored = cs._lines[cs._lines.length - 1].text;
@@ -92,7 +115,10 @@ describe('CaptionSystem (FR-13.1)', () => {
 
   test('queue is capped at maxLines (oldest dropped)', () => {
     cs.setEnabled(true);
-    cs.show('one'); cs.show('two'); cs.show('three'); cs.show('four');
+    cs.show('one');
+    cs.show('two');
+    cs.show('three');
+    cs.show('four');
     expect(cs.lineCount).toBe(3);
     // 'one' should have been dropped.
     expect(cs._lines[0].text).toBe('two');
@@ -101,9 +127,9 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('update() expires lines after lineDuration', () => {
     cs.setEnabled(true);
     cs.show('temporary');
-    cs.update(600);  // 0.6s — still alive
+    cs.update(600); // 0.6s — still alive
     expect(cs.lineCount).toBe(1);
-    cs.update(600);  // 1.2s total — expired
+    cs.update(600); // 1.2s total — expired
     expect(cs.lineCount).toBe(0);
     expect(cs.mesh.visible).toBe(false);
   });
@@ -111,7 +137,7 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('update() no-ops while disabled', () => {
     cs.setEnabled(true);
     cs.show('keep me');
-    cs.setEnabled(false);   // clears
+    cs.setEnabled(false); // clears
     cs.setEnabled(true);
     cs.show('keep me');
     cs.setEnabled(false);
@@ -123,9 +149,9 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('lines expire independently based on insertion time', () => {
     cs.setEnabled(true);
     cs.show('first');
-    cs.update(500);         // first has 500ms left
-    cs.show('second');      // second has full 1000ms
-    cs.update(600);         // first expires (−100), second has 400ms
+    cs.update(500); // first has 500ms left
+    cs.show('second'); // second has full 1000ms
+    cs.update(600); // first expires (−100), second has 400ms
     expect(cs.lineCount).toBe(1);
     expect(cs._lines[0].text).toBe('second');
   });
@@ -158,7 +184,8 @@ describe('CaptionSystem (FR-13.1)', () => {
 
   test('clear() removes all captions and hides the panel', () => {
     cs.setEnabled(true);
-    cs.show('a'); cs.show('b');
+    cs.show('a');
+    cs.show('b');
     cs.clear();
     expect(cs.lineCount).toBe(0);
     expect(cs.mesh.visible).toBe(false);
@@ -177,7 +204,7 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(() => cs.show(sentence)).not.toThrow();
     const rows = cs._wrap(sentence, 34);
     expect(rows.length).toBeGreaterThan(1);
-    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
+    rows.forEach((r) => expect(r.length).toBeLessThanOrEqual(34));
     // No information lost: the words rejoin to the original.
     expect(rows.join(' ')).toBe(sentence);
   });
@@ -185,7 +212,7 @@ describe('CaptionSystem (FR-13.1)', () => {
   test('_wrap hard-splits a word longer than a row', () => {
     const rows = cs._wrap('x'.repeat(80), 34);
     expect(rows.length).toBe(3); // 34 + 34 + 12
-    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
+    rows.forEach((r) => expect(r.length).toBeLessThanOrEqual(34));
     expect(rows.join('')).toBe('x'.repeat(80));
   });
 
@@ -194,7 +221,7 @@ describe('CaptionSystem (FR-13.1)', () => {
     const jp = 'これはとても長い日本語のキャプションでテキストの折り返しを確認します';
     const rows = cs._wrap(jp, 10);
     expect(rows.length).toBeGreaterThan(1);
-    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(10));
+    rows.forEach((r) => expect(Array.from(r).length).toBeLessThanOrEqual(10));
     // Lossless: rejoining the rows reproduces the original exactly.
     expect(rows.join('')).toBe(jp);
   });
@@ -204,7 +231,7 @@ describe('CaptionSystem (FR-13.1)', () => {
     // UTF-16 slice would have severed a surrogate pair.
     const rows = cs._wrap('😀'.repeat(12), 5);
     expect(rows.join('')).not.toContain('�'); // no replacement char
-    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(5));
+    rows.forEach((r) => expect(Array.from(r).length).toBeLessThanOrEqual(5));
     expect(rows.join('')).toBe('😀'.repeat(12));
   });
 
@@ -234,7 +261,7 @@ describe('CaptionSystem (FR-13.1)', () => {
 
   test('a larger scale raises the font cap and narrows the measure (low vision)', () => {
     const big = new CaptionSystem(makeCamera(), { scale: 1.5 });
-    expect(big._fontSizeFor(1)).toBe(66);              // 44 * 1.5
+    expect(big._fontSizeFor(1)).toBe(66); // 44 * 1.5
     // Clamped so 66px text still fits, with the WIDTH_SAFETY margin that
     // absorbs the em model's ~1% under-estimate of real full-width advance
     // (measured via tools/measure-text-metrics.mjs) and device font variance.
@@ -249,8 +276,8 @@ describe('CaptionSystem (FR-13.1)', () => {
   // measure, ~10s of reading) on screen for half the time needed.
   describe('caption hold time follows the per-script reading rate', () => {
     test('readingTimeMs charges full-width characters ~4x a Latin one', () => {
-      expect(readingTimeMs('あ'.repeat(4))).toBe(1000);   // 4 chars @ 4 CPS
-      expect(readingTimeMs('a'.repeat(17))).toBe(1000);   // 17 chars @ 17 CPS
+      expect(readingTimeMs('あ'.repeat(4))).toBe(1000); // 4 chars @ 4 CPS
+      expect(readingTimeMs('a'.repeat(17))).toBe(1000); // 17 chars @ 17 CPS
       expect(readingTimeMs('')).toBe(0);
       expect(readingTimeMs(null)).toBe(0);
     });
@@ -303,7 +330,7 @@ describe('CaptionSystem (FR-13.1)', () => {
     function widestRowPx(system) {
       const laid = system._layoutRows();
       const font = system._fontSizeFor(laid.length);
-      return Math.max(...laid.map(r => textWidthEm(r.text) * font));
+      return Math.max(...laid.map((r) => textWidthEm(r.text) * font));
     }
 
     test('a long Japanese caption stays inside the canvas', () => {
@@ -341,7 +368,7 @@ describe('CaptionSystem (FR-13.1)', () => {
   });
 
   test('setScale clamps to a sane range and redraws', () => {
-    expect(cs.setScale(10)).toBe(3);    // clamped up
+    expect(cs.setScale(10)).toBe(3); // clamped up
     expect(cs.setScale(0.1)).toBe(0.5); // clamped down
     expect(cs.setScale(1.4)).toBeCloseTo(1.4, 5);
   });
@@ -386,18 +413,18 @@ describe('CaptionSystem (FR-13.1)', () => {
 
     test('does not shorten already-queued captions (no abrupt cut)', () => {
       cs.setEnabled(true);
-      cs.show('in-flight');         // queued with lineDuration=1000ms
-      cs.update(800);               // 0.8s remaining
-      cs.setLineDuration(2000);     // changes only FUTURE captions
-      cs.update(300);               // total 1.1s — old line expires per original 1s
+      cs.show('in-flight'); // queued with lineDuration=1000ms
+      cs.update(800); // 0.8s remaining
+      cs.setLineDuration(2000); // changes only FUTURE captions
+      cs.update(300); // total 1.1s — old line expires per original 1s
       expect(cs.lineCount).toBe(0);
     });
 
     test('clamps to [2000, 60000] ms (WCAG 2.2.1: max ≥ 10× default 5 s)', () => {
-      expect(cs.setLineDuration(100)).toBe(2000);    // clamped up
+      expect(cs.setLineDuration(100)).toBe(2000); // clamped up
       expect(cs.setLineDuration(99999)).toBe(60000); // clamped to new ceiling
       expect(cs.setLineDuration(60000)).toBe(60000); // ceiling itself is valid
-      expect(cs.setLineDuration(8000)).toBe(8000);   // in range, exact
+      expect(cs.setLineDuration(8000)).toBe(8000); // in range, exact
     });
 
     test('coerces non-numeric to 5000 fallback', () => {

@@ -1,9 +1,7 @@
 /**
  * Unit tests for the pure VR keyboard layout maths.
  */
-const {
-  KEY_W, KEY_H, GAP, ROWS, computeKeyLayout, keyboardBounds
-} = require('../src/vr/input/keyboardLayout.js');
+const { KEY_W, KEY_H, GAP, ROWS, computeKeyLayout, keyboardBounds } = require('../src/vr/input/keyboardLayout.js');
 
 describe('computeKeyLayout', () => {
   test('produces one entry per key in the layout', () => {
@@ -24,8 +22,8 @@ describe('computeKeyLayout', () => {
 
   test('wide keys are wider than standard keys', () => {
     const keys = computeKeyLayout();
-    const space = keys.find(k => k.label === 'space');
-    const letter = keys.find(k => k.label === 'q');
+    const space = keys.find((k) => k.label === 'space');
+    const letter = keys.find((k) => k.label === 'q');
     expect(space.w).toBeGreaterThan(letter.w);
   });
 
@@ -38,21 +36,21 @@ describe('computeKeyLayout', () => {
       byRow.set(k.y, arr);
     }
     for (const arr of byRow.values()) {
-      const left = Math.min(...arr.map(k => k.x - k.w / 2));
-      const right = Math.max(...arr.map(k => k.x + k.w / 2));
+      const left = Math.min(...arr.map((k) => k.x - k.w / 2));
+      const right = Math.max(...arr.map((k) => k.x + k.w / 2));
       expect(Math.abs(left + right)).toBeLessThan(1e-9); // symmetric
     }
   });
 
   test('rows are stacked top-to-bottom (decreasing y)', () => {
     const keys = computeKeyLayout();
-    const firstRowY = keys[0].y;            // first key of first row
+    const firstRowY = keys[0].y; // first key of first row
     const lastRowY = keys[keys.length - 1].y; // last key of last row
     expect(firstRowY).toBeGreaterThan(lastRowY);
   });
 
   test('back, enter, space and esc keys are present', () => {
-    const labels = computeKeyLayout().map(k => k.label);
+    const labels = computeKeyLayout().map((k) => k.label);
     expect(labels).toContain('back');
     expect(labels).toContain('enter');
     expect(labels).toContain('space');
@@ -60,7 +58,7 @@ describe('computeKeyLayout', () => {
   });
 
   test('glyph differs from label for special keys', () => {
-    const back = computeKeyLayout().find(k => k.label === 'back');
+    const back = computeKeyLayout().find((k) => k.label === 'back');
     expect(back.glyph).toBe('⌫');
   });
 

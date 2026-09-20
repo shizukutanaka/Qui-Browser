@@ -7,28 +7,16 @@ module.exports = {
   testEnvironment: 'node',
 
   // テストファイルのパターン
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/__tests__/**/*.js'
-  ],
+  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js'],
 
   // カバレッジ収集対象
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!**/node_modules/**',
-    '!**/vendor/**'
-  ],
+  collectCoverageFrom: ['src/**/*.js', '!**/node_modules/**', '!**/vendor/**'],
 
   // カバレッジディレクトリ
   coverageDirectory: 'coverage',
 
   // カバレッジレポーター
-  coverageReporters: [
-    'text',
-    'text-summary',
-    'html',
-    'lcov'
-  ],
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov'],
 
   // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
   // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
@@ -57,8 +45,8 @@ module.exports = {
 
   // グローバル変数
   globals: {
-    'NODE_ENV': 'test',
-    'VR_BROWSER_VERSION': '2.0.0'
+    NODE_ENV: 'test',
+    VR_BROWSER_VERSION: '2.0.0'
   },
 
   // モジュール名マッパー（パスエイリアス）
@@ -67,12 +55,7 @@ module.exports = {
   },
 
   // 無視するパス
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-    '/build/',
-    '/.git/'
-  ],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/build/', '/.git/'],
 
   // トランスフォーム
   transform: {
@@ -80,7 +63,5 @@ module.exports = {
   },
 
   // トランスフォーム無視
-  transformIgnorePatterns: [
-    'node_modules/(?!(three)/)'
-  ]
+  transformIgnorePatterns: ['node_modules/(?!(three)/)']
 };

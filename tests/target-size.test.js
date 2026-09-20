@@ -18,17 +18,25 @@
  */
 
 const {
-  angularSizeDeg, sizeForAngleM, canvasRegionToMetres, classifyTarget,
-  HIT_TARGET_MIN_DEG, GAZE_TARGET_MIN_DEG, GAZE_SPACING_MIN_DEG
+  angularSizeDeg,
+  sizeForAngleM,
+  canvasRegionToMetres,
+  classifyTarget,
+  HIT_TARGET_MIN_DEG,
+  GAZE_TARGET_MIN_DEG,
+  GAZE_SPACING_MIN_DEG
 } = require('../src/vr/ui/angularSize.js');
 const G = require('../src/vr/browser/panelGeometry.js');
 const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, DELETE_ZONE_W,
-  SCROLL_UP_X0, SCROLL_UP_X1
+  PANEL_PX_W,
+  PANEL_PX_H,
+  HEADER_H,
+  ROW_H,
+  DELETE_ZONE_W,
+  SCROLL_UP_X0,
+  SCROLL_UP_X1
 } = require('../src/vr/browser/bookmarkLayout.js');
-const {
-  CONTENT_PX_W, CONTENT_PX_H, ARROW_W, ARROW_H
-} = require('../src/vr/browser/readerLayout.js');
+const { CONTENT_PX_W, CONTENT_PX_H, ARROW_W, ARROW_H } = require('../src/vr/browser/readerLayout.js');
 
 // ── the maths ────────────────────────────────────────────────────────────────
 describe('angularSizeDeg', () => {
@@ -51,7 +59,15 @@ describe('angularSizeDeg', () => {
   });
 
   test('degenerate input yields 0 rather than NaN or Infinity', () => {
-    for (const [s, d] of [[0, 2], [-1, 2], [1, 0], [1, -2], [NaN, 2], [1, NaN], ['x', 2]]) {
+    for (const [s, d] of [
+      [0, 2],
+      [-1, 2],
+      [1, 0],
+      [1, -2],
+      [NaN, 2],
+      [1, NaN],
+      ['x', 2]
+    ]) {
       expect(angularSizeDeg(s, d)).toBe(0);
     }
   });
@@ -67,7 +83,13 @@ describe('sizeForAngleM', () => {
   });
 
   test('degenerate input yields 0', () => {
-    for (const [a, d] of [[0, 2], [-3, 2], [180, 2], [3, 0], [NaN, 2]]) {
+    for (const [a, d] of [
+      [0, 2],
+      [-3, 2],
+      [180, 2],
+      [3, 0],
+      [NaN, 2]
+    ]) {
       expect(sizeForAngleM(a, d)).toBe(0);
     }
   });
@@ -132,9 +154,21 @@ function panelTargets() {
       h: canvasRegionToMetres(ARROW_H, CONTENT_PX_H, G.CONTENT_M_H)
     },
     // Tab strip.
-    { label: 'tab strip: tab body', w: canvasRegionToMetres(tabW - G.STRIP_CLOSE_PX, G.STRIP_CANVAS_W, G.STRIP_W), h: G.STRIP_H },
-    { label: 'tab strip: close zone', w: canvasRegionToMetres(G.STRIP_CLOSE_PX, G.STRIP_CANVAS_W, G.STRIP_W), h: G.STRIP_H },
-    { label: 'tab strip: new tab', w: canvasRegionToMetres(G.STRIP_NEW_TAB_PX, G.STRIP_CANVAS_W, G.STRIP_W), h: G.STRIP_H },
+    {
+      label: 'tab strip: tab body',
+      w: canvasRegionToMetres(tabW - G.STRIP_CLOSE_PX, G.STRIP_CANVAS_W, G.STRIP_W),
+      h: G.STRIP_H
+    },
+    {
+      label: 'tab strip: close zone',
+      w: canvasRegionToMetres(G.STRIP_CLOSE_PX, G.STRIP_CANVAS_W, G.STRIP_W),
+      h: G.STRIP_H
+    },
+    {
+      label: 'tab strip: new tab',
+      w: canvasRegionToMetres(G.STRIP_NEW_TAB_PX, G.STRIP_CANVAS_W, G.STRIP_W),
+      h: G.STRIP_H
+    },
     // Bookmark / history panel.
     { label: 'bookmark row', w: bmw(PANEL_PX_W - DELETE_ZONE_W), h: bmh(ROW_H) },
     { label: 'bookmark delete', w: bmw(DELETE_ZONE_W), h: bmh(ROW_H) },
@@ -162,8 +196,9 @@ describe('every panel target clears the gaze-dwell floor at the default distance
 
   test('…and at the OS large-text distance, which is closer still', () => {
     for (const t of targets) {
-      expect(minAxisDeg(t, G.PANEL_DISTANCE_LARGE_TEXT))
-        .toBeGreaterThanOrEqual(minAxisDeg(t, G.PANEL_DISTANCE_DEFAULT));
+      expect(minAxisDeg(t, G.PANEL_DISTANCE_LARGE_TEXT)).toBeGreaterThanOrEqual(
+        minAxisDeg(t, G.PANEL_DISTANCE_DEFAULT)
+      );
     }
   });
 });
@@ -196,8 +231,10 @@ describe('the panel-distance setting no longer degrades any target', () => {
     // Unscaled at 0.6 m the panel is nearly double the ~60 degree comfortable
     // central field; scaled it keeps its default-distance width.
     expect(angularSizeDeg(G.PANEL_W, G.PANEL_DISTANCE_MIN)).toBeGreaterThan(100);
-    expect(angularSizeDeg(G.PANEL_W * scaleFor(G.PANEL_DISTANCE_MIN), G.PANEL_DISTANCE_MIN))
-      .toBeCloseTo(angularSizeDeg(G.PANEL_W, G.PANEL_DISTANCE_DEFAULT), 6);
+    expect(angularSizeDeg(G.PANEL_W * scaleFor(G.PANEL_DISTANCE_MIN), G.PANEL_DISTANCE_MIN)).toBeCloseTo(
+      angularSizeDeg(G.PANEL_W, G.PANEL_DISTANCE_DEFAULT),
+      6
+    );
   });
 
   test('scale is exactly 1 at the shipped default, so nothing moved for it', () => {
@@ -239,8 +276,7 @@ describe('move bar hitslop', () => {
   });
 
   test('the hit area reaches the comfortable hit-target figure', () => {
-    expect(angularSizeDeg(G.MOVE_BAR_HIT_H, G.PANEL_DISTANCE_DEFAULT))
-      .toBeCloseTo(HIT_TARGET_MIN_DEG, 6);
+    expect(angularSizeDeg(G.MOVE_BAR_HIT_H, G.PANEL_DISTANCE_DEFAULT)).toBeCloseTo(HIT_TARGET_MIN_DEG, 6);
     expect(G.MOVE_BAR_HIT_H).toBeGreaterThan(G.MOVE_BAR_H * 2.5);
   });
 
@@ -268,7 +304,7 @@ describe('tab close zone — draw and hit test share one definition', () => {
     // tabW - 38, so with 8 tabs (tabW ≈ 117 px) it ran 38 px past the tab edge
     // — and that overflow selected the next tab instead of closing.
     const tabW = G.tabWidthPx(8);
-    const oldBoxRight = (tabW - 38) + (G.STRIP_CANVAS_H - 20);
+    const oldBoxRight = tabW - 38 + (G.STRIP_CANVAS_H - 20);
     expect(oldBoxRight).toBeGreaterThan(tabW);
     expect(G.tabCloseZonePx(tabW).x1).toBeLessThanOrEqual(tabW + 1e-9);
   });

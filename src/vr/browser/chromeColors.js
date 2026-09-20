@@ -42,47 +42,47 @@
 export function webChromeColors(highContrast = false) {
   if (highContrast) {
     return {
-      bg:              '#000000',
-      btnEnabledBg:    '#004adf',
-      btnEnabledText:  '#ffffff',
-      btnDisabledBg:   '#222222',
+      bg: '#000000',
+      btnEnabledBg: '#004adf',
+      btnEnabledText: '#ffffff',
+      btnDisabledBg: '#222222',
       btnDisabledText: '#aaccee',
-      reloadBg:        '#004adf',
-      reloadText:      '#ffffff',
-      reloadLoading:   '#ffff00',
-      urlBg:           '#000000',
-      urlErrorBg:      '#3a0000',
-      urlBorder:       '#ffffff',
-      urlText:         '#ffffff',
-      urlPlaceholder:  '#cccccc',
-      errorText:       '#ffaaaa',
-      starBg:          '#004adf',
-      starMarked:      '#ffdd00',
-      starUnmarked:    '#ffffff',
-      closeBg:         '#7a0000',
-      closeText:       '#ffffff'
+      reloadBg: '#004adf',
+      reloadText: '#ffffff',
+      reloadLoading: '#ffff00',
+      urlBg: '#000000',
+      urlErrorBg: '#3a0000',
+      urlBorder: '#ffffff',
+      urlText: '#ffffff',
+      urlPlaceholder: '#cccccc',
+      errorText: '#ffaaaa',
+      starBg: '#004adf',
+      starMarked: '#ffdd00',
+      starUnmarked: '#ffffff',
+      closeBg: '#7a0000',
+      closeText: '#ffffff'
     };
   }
   return {
-    bg:              '#1e1e3f',
-    btnEnabledBg:    '#3a3a5c',
-    btnEnabledText:  '#ffffff',
-    btnDisabledBg:   '#22222e',
+    bg: '#1e1e3f',
+    btnEnabledBg: '#3a3a5c',
+    btnEnabledText: '#ffffff',
+    btnDisabledBg: '#22222e',
     btnDisabledText: '#74788f',
-    reloadBg:        '#3a3a5c',
-    reloadText:      '#ffffff',
-    reloadLoading:   '#ffaa00',
-    urlBg:           '#2a2a4a',
-    urlErrorBg:      '#3a1a1a',
-    urlBorder:       '#7d88bd',
-    urlText:         '#e0e0ff',
-    urlPlaceholder:  '#9aa0b8',
-    errorText:       '#ff7777',
-    starBg:          '#3a3a5c',
-    starMarked:      '#ffcc44',
-    starUnmarked:    '#aaaabb',
-    closeBg:         '#5c1a1a',
-    closeText:       '#ffffff'
+    reloadBg: '#3a3a5c',
+    reloadText: '#ffffff',
+    reloadLoading: '#ffaa00',
+    urlBg: '#2a2a4a',
+    urlErrorBg: '#3a1a1a',
+    urlBorder: '#7d88bd',
+    urlText: '#e0e0ff',
+    urlPlaceholder: '#9aa0b8',
+    errorText: '#ff7777',
+    starBg: '#3a3a5c',
+    starMarked: '#ffcc44',
+    starUnmarked: '#aaaabb',
+    closeBg: '#5c1a1a',
+    closeText: '#ffffff'
   };
 }
 
@@ -103,28 +103,28 @@ export function webChromeColors(highContrast = false) {
 export function webContentColors(highContrast = false) {
   if (highContrast) {
     return {
-      bg:              '#000000',
-      stateTitle:      '#ffffff',
-      stateDetail:     '#dddddd',
-      readerHeading:   '#ffffff',
-      readerBody:      '#ffffff',
-      progress:        '#ffffff',
-      arrowActiveBg:   '#004adf',
+      bg: '#000000',
+      stateTitle: '#ffffff',
+      stateDetail: '#dddddd',
+      readerHeading: '#ffffff',
+      readerBody: '#ffffff',
+      progress: '#ffffff',
+      arrowActiveBg: '#004adf',
       arrowActiveText: '#ffffff',
-      arrowIdleBg:     '#222222',
-      arrowIdleText:   '#aaccee'
+      arrowIdleBg: '#222222',
+      arrowIdleText: '#aaccee'
     };
   }
   return {
-    bg:              '#1a1a2e',
-    stateTitle:      '#a0a0b8',
-    stateDetail:     '#8891ad',
-    readerHeading:   '#ffffff',
-    readerBody:      '#d6dcf0',
-    progress:        '#7788aa',
-    arrowActiveBg:   'rgba(50,80,140,0.9)',
+    bg: '#1a1a2e',
+    stateTitle: '#a0a0b8',
+    stateDetail: '#8891ad',
+    readerHeading: '#ffffff',
+    readerBody: '#d6dcf0',
+    progress: '#7788aa',
+    arrowActiveBg: 'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',
-    arrowIdleBg:     'rgba(30,35,55,0.6)',
-    arrowIdleText:   '#727f96'
+    arrowIdleBg: 'rgba(30,35,55,0.6)',
+    arrowIdleText: '#727f96'
   };
 }

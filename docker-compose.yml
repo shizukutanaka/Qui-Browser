@@ -11,7 +11,7 @@ services:
 
     # ポートマッピング
     ports:
-      - "8080:80"
+      - '8080:80'
       # - "8443:443"  # HTTPS用（SSL証明書がある場合）
 
     # ボリュームマウント（開発時）
@@ -33,7 +33,7 @@ services:
 
     # ヘルスチェック
     healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      test: ['CMD', '/usr/local/bin/healthcheck.sh']
       interval: 30s
       timeout: 3s
       retries: 3
@@ -55,10 +55,10 @@ services:
 
     # ログ設定
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
     # 依存関係
     depends_on:

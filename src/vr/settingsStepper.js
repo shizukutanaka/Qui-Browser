@@ -10,7 +10,7 @@ import { t } from '../i18n/i18n.js';
 
 // Fractional x boundaries of the minus / value / plus regions.
 export const MINUS_MAX_U = 0.25; // u < 0.25  → decrement
-export const PLUS_MIN_U = 0.75;  // u > 0.75  → increment
+export const PLUS_MIN_U = 0.75; // u > 0.75  → increment
 
 /**
  * Step a numeric value by `delta` steps, clamped to [min, max] and snapped to

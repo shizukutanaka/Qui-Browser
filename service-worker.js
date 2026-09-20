@@ -66,25 +66,29 @@ self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.open(CACHE_STATIC).then((cache) => {
-      console.log('[ServiceWorker] Caching static assets');
-      // Cache assets individually so one missing/404 asset does not reject
-      // the entire install (cache.addAll is atomic and would leave the SW
-      // with no precache, breaking offline support entirely).
-      return Promise.allSettled(
-        STATIC_ASSETS.map((url) =>
-          cache.add(url).catch((error) => {
-            console.warn('[ServiceWorker] Skipped uncacheable asset:', url, error);
-          })
-        )
-      );
-    }).then(() => {
-      console.log('[ServiceWorker] Static assets cached successfully');
-      // Skip waiting to activate immediately
-      return self.skipWaiting();
-    }).catch((error) => {
-      console.error('[ServiceWorker] Failed to cache static assets:', error);
-    })
+    caches
+      .open(CACHE_STATIC)
+      .then((cache) => {
+        console.log('[ServiceWorker] Caching static assets');
+        // Cache assets individually so one missing/404 asset does not reject
+        // the entire install (cache.addAll is atomic and would leave the SW
+        // with no precache, breaking offline support entirely).
+        return Promise.allSettled(
+          STATIC_ASSETS.map((url) =>
+            cache.add(url).catch((error) => {
+              console.warn('[ServiceWorker] Skipped uncacheable asset:', url, error);
+            })
+          )
+        );
+      })
+      .then(() => {
+        console.log('[ServiceWorker] Static assets cached successfully');
+        // Skip waiting to activate immediately
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('[ServiceWorker] Failed to cache static assets:', error);
+      })
   );
 });
 
@@ -95,24 +99,29 @@ self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Delete old caches
-          if (cacheName.startsWith('qui-browser-') &&
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            // Delete old caches
+            if (
+              cacheName.startsWith('qui-browser-') &&
               cacheName !== CACHE_STATIC &&
               cacheName !== CACHE_DYNAMIC &&
-              cacheName !== CACHE_MEDIA) {
-            console.log('[ServiceWorker] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      console.log('[ServiceWorker] Old caches cleaned up');
-      // Claim clients immediately
-      return self.clients.claim();
-    })
+              cacheName !== CACHE_MEDIA
+            ) {
+              console.log('[ServiceWorker] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        console.log('[ServiceWorker] Old caches cleaned up');
+        // Claim clients immediately
+        return self.clients.claim();
+      })
   );
 });
 
@@ -127,8 +136,7 @@ self.addEventListener('fetch', (event) => {
   // cannot be stored with cache.put — it throws — and non-http(s) schemes
   // such as chrome-extension: or data: must not be intercepted at all.
   // Returning without respondWith lets the browser handle them normally.
-  if (request.method !== 'GET' ||
-      (url.protocol !== 'http:' && url.protocol !== 'https:')) {
+  if (request.method !== 'GET' || (url.protocol !== 'http:' && url.protocol !== 'https:')) {
     return;
   }
 
@@ -188,7 +196,6 @@ async function cacheFirst(request, cacheName) {
     }
 
     return networkResponse;
-
   } catch (error) {
     console.error('[ServiceWorker] Cache-first failed:', error);
 
@@ -220,7 +227,6 @@ async function networkFirst(request, cacheName) {
     }
 
     return networkResponse;
-
   } catch (error) {
     console.error('[ServiceWorker] Network-first failed, trying cache:', error);
 
@@ -266,7 +272,8 @@ async function cacheFirstMedia(request, cacheName) {
       const contentLength = networkResponse.headers.get('content-length');
       const sizeMB = contentLength ? parseInt(contentLength) / (1024 * 1024) : 0;
 
-      if (sizeMB < 50) { // Only cache files < 50 MB
+      if (sizeMB < 50) {
+        // Only cache files < 50 MB
         const cache = await caches.open(cacheName);
         cache.put(request, networkResponse.clone());
         console.log('[ServiceWorker] Cached media from network:', request.url);
@@ -276,7 +283,6 @@ async function cacheFirstMedia(request, cacheName) {
     }
 
     return networkResponse;
-
   } catch (error) {
     console.error('[ServiceWorker] Cache-first media failed:', error);
 
@@ -299,7 +305,7 @@ async function cacheFirstMedia(request, cacheName) {
  */
 function isStaticAsset(url) {
   const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf'];
-  return staticExtensions.some(ext => url.pathname.endsWith(ext));
+  return staticExtensions.some((ext) => url.pathname.endsWith(ext));
 }
 
 /**
@@ -307,7 +313,7 @@ function isStaticAsset(url) {
  */
 function isMediaFile(url) {
   const mediaExtensions = ['.mp4', '.webm', '.mp3', '.wav', '.ogg', '.m4a'];
-  return mediaExtensions.some(ext => url.pathname.endsWith(ext));
+  return mediaExtensions.some((ext) => url.pathname.endsWith(ext));
 }
 
 /**
@@ -321,9 +327,7 @@ function isAPICall(url) {
  * Check if request is HTML page
  */
 function isHTMLPage(url) {
-  return url.pathname.endsWith('.html') ||
-         url.pathname.endsWith('/') ||
-         !url.pathname.includes('.');
+  return url.pathname.endsWith('.html') || url.pathname.endsWith('/') || !url.pathname.includes('.');
 }
 
 /**
@@ -338,19 +342,22 @@ self.addEventListener('message', (event) => {
 
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName.startsWith('qui-browser-')) {
-              console.log('[ServiceWorker] Clearing cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      }).then(() => {
-        console.log('[ServiceWorker] All caches cleared');
-        event.ports[0].postMessage({ success: true });
-      })
+      caches
+        .keys()
+        .then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => {
+              if (cacheName.startsWith('qui-browser-')) {
+                console.log('[ServiceWorker] Clearing cache:', cacheName);
+                return caches.delete(cacheName);
+              }
+            })
+          );
+        })
+        .then(() => {
+          console.log('[ServiceWorker] All caches cleared');
+          event.ports[0].postMessage({ success: true });
+        })
     );
   }
 
@@ -387,7 +394,6 @@ async function syncBookmarks() {
 
     console.log('[ServiceWorker] Bookmarks synced successfully');
     return true;
-
   } catch (error) {
     console.error('[ServiceWorker] Failed to sync bookmarks:', error);
     throw error; // Retry sync
@@ -407,7 +413,6 @@ async function syncHistory() {
 
     console.log('[ServiceWorker] History synced successfully');
     return true;
-
   } catch (error) {
     console.error('[ServiceWorker] Failed to sync history:', error);
     throw error; // Retry sync
@@ -434,9 +439,7 @@ self.addEventListener('push', (event) => {
     ]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Qui Browser VR', options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title || 'Qui Browser VR', options));
 });
 
 /**
@@ -448,9 +451,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'open') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
+    event.waitUntil(clients.openWindow('/'));
   }
 });
 

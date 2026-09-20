@@ -4,17 +4,28 @@
  * decision that matters lives in these functions.
  */
 
+const { extractReadableText, extractTitle, decodeEntities } = require('../src/vr/browser/readableText.js');
 const {
-  extractReadableText, extractTitle, decodeEntities
-} = require('../src/vr/browser/readableText.js');
-const {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLineCount, measureEmFor, maxMeasureEmForFont, fontPxFor, MEASURE_EM,
-  CONTENT_PX_W, CONTENT_PAD
+  layoutReaderLines,
+  clampReaderScroll,
+  readerWindow,
+  readerProgressLabel,
+  visibleLineCount,
+  measureEmFor,
+  maxMeasureEmForFont,
+  fontPxFor,
+  MEASURE_EM,
+  CONTENT_PX_W,
+  CONTENT_PAD
 } = require('../src/vr/browser/readerLayout.js');
 const {
-  wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm,
-  HALFWIDTH_EM, EMOJI_EM, WIDTH_SAFETY
+  wrapTextToLines,
+  wrapTextToWidth,
+  textWidthEm,
+  charWidthEm,
+  HALFWIDTH_EM,
+  EMOJI_EM,
+  WIDTH_SAFETY
 } = require('../src/vr/ui/textWrap.js');
 
 describe('decodeEntities', () => {
@@ -61,7 +72,7 @@ describe('extractReadableText', () => {
         <p>Visible prose.</p>
       </body></html>`;
     const { blocks } = extractReadableText(html);
-    const all = blocks.map(b => b.text).join(' ');
+    const all = blocks.map((b) => b.text).join(' ');
     expect(all).toContain('Visible prose.');
     expect(all).not.toContain('secret');
     expect(all).not.toContain('color: red');
@@ -76,7 +87,9 @@ describe('extractReadableText', () => {
         <aside>Related junk</aside>
         <footer>Copyright notice</footer>
       </body>`;
-    const all = extractReadableText(html).blocks.map(b => b.text).join(' ');
+    const all = extractReadableText(html)
+      .blocks.map((b) => b.text)
+      .join(' ');
     expect(all).toContain('The actual article body.');
     expect(all).not.toContain('Nav Link');
     expect(all).not.toContain('Copyright notice');
@@ -90,7 +103,9 @@ describe('extractReadableText', () => {
         <div><p>Sidebar chatter that should lose.</p></div>
         <article><p>${filler}</p></article>
       </body>`;
-    const all = extractReadableText(html).blocks.map(b => b.text).join(' ');
+    const all = extractReadableText(html)
+      .blocks.map((b) => b.text)
+      .join(' ');
     expect(all).toContain('real article content');
     expect(all).not.toContain('Sidebar chatter');
   });
@@ -98,7 +113,7 @@ describe('extractReadableText', () => {
   test('keeps headings and paragraphs in document order with types', () => {
     const html = '<body><h2>First Heading</h2><p>Body one.</p><h3>Second</h3><p>Body two.</p></body>';
     const { blocks } = extractReadableText(html);
-    expect(blocks.map(b => b.type)).toEqual(['h', 'p', 'h', 'p']);
+    expect(blocks.map((b) => b.type)).toEqual(['h', 'p', 'h', 'p']);
     expect(blocks[0].text).toBe('First Heading');
     expect(blocks[3].text).toBe('Body two.');
   });
@@ -112,7 +127,7 @@ describe('extractReadableText', () => {
     const html = '<body><h1>日本語の見出し</h1><p>これは本文です。空白がありません。</p></body>';
     const { title, blocks } = extractReadableText(html);
     expect(title).toBe('日本語の見出し');
-    expect(blocks.some(b => b.text.includes('これは本文です'))).toBe(true);
+    expect(blocks.some((b) => b.text.includes('これは本文です'))).toBe(true);
   });
 
   test('an empty shell yields no blocks rather than garbage', () => {
@@ -135,9 +150,12 @@ describe('layoutReaderLines', () => {
 
   test('spaceless Japanese hard-splits without severing surrogate pairs', () => {
     // 𠮷 is a surrogate pair; a UTF-16 slice would break it.
-    const jp = ('𠮷野家'.repeat(40));
+    const jp = '𠮷野家'.repeat(40);
     const lines = layoutReaderLines([{ type: 'p', text: jp }], { scale: 1 });
-    const joined = lines.filter(l => l.style === 'p').map(l => l.text).join('');
+    const joined = lines
+      .filter((l) => l.style === 'p')
+      .map((l) => l.text)
+      .join('');
     expect(joined).toBe(jp);
     expect(joined).not.toContain('�');
   });
@@ -158,7 +176,7 @@ describe('layoutReaderLines', () => {
       { type: 'p', text: 'One.' },
       { type: 'p', text: 'Two.' }
     ]);
-    expect(lines.map(l => l.style)).toEqual(['p', 'blank', 'p']);
+    expect(lines.map((l) => l.style)).toEqual(['p', 'blank', 'p']);
   });
 
   test('bigger scale wraps sooner (narrower em measure)', () => {
@@ -220,13 +238,13 @@ describe('viewport metrics', () => {
 // character has the same advance, which is false for the two scripts this app
 // targets: CJK is 1 em, Latin ~0.5 em (Unicode UAX #11 East Asian Width).
 describe('em-based measure — Japanese must not overflow the panel', () => {
-  const BODY_PX = fontPxFor('p', 1);          // 20
+  const BODY_PX = fontPxFor('p', 1); // 20
   const COLUMN_EM = maxMeasureEmForFont(BODY_PX); // what physically fits
 
   test('charWidthEm classes: full-width 1 em, half-width a measured BOUND', () => {
     expect(charWidthEm('本'.codePointAt(0))).toBe(1);
     expect(charWidthEm('あ'.codePointAt(0))).toBe(1);
-    expect(charWidthEm('Ａ'.codePointAt(0))).toBe(1);   // fullwidth Latin
+    expect(charWidthEm('Ａ'.codePointAt(0))).toBe(1); // fullwidth Latin
     // 0.6 bounds real measured Latin: 0.453 lowercase sans, 0.584 bold caps,
     // 0.602 monospace. The old 0.5 "average" under-counted URLs and caps.
     expect(charWidthEm('A'.codePointAt(0))).toBe(HALFWIDTH_EM);
@@ -268,10 +286,8 @@ describe('em-based measure — Japanese must not overflow the panel', () => {
 
   test('one measure lands BOTH scripts in their researched optimum', () => {
     // Latin classic measure 45–75 chars; horizontal Japanese 15–35.
-    const en = layoutReaderLines([{ type: 'p', text: 'word '.repeat(200).trim() }])
-      .filter(l => l.style === 'p');
-    const jp = layoutReaderLines([{ type: 'p', text: '本'.repeat(400) }])
-      .filter(l => l.style === 'p');
+    const en = layoutReaderLines([{ type: 'p', text: 'word '.repeat(200).trim() }]).filter((l) => l.style === 'p');
+    const jp = layoutReaderLines([{ type: 'p', text: '本'.repeat(400) }]).filter((l) => l.style === 'p');
     const enChars = Array.from(en[0].text).length;
     const jpChars = Array.from(jp[0].text).length;
     expect(enChars).toBeGreaterThanOrEqual(45);
@@ -328,8 +344,14 @@ describe('wrapTextToLines (shared with CaptionSystem)', () => {
 // of a known size is the safer design.
 describe('reader scroll affordance', () => {
   const {
-    readerHitTest, pageJumpLines, PAGE_OVERLAP_LINES,
-    ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0
+    readerHitTest,
+    pageJumpLines,
+    PAGE_OVERLAP_LINES,
+    ARROW_UP_X0,
+    ARROW_DN_X0,
+    ARROW_W,
+    ARROW_H,
+    ARROW_Y0
   } = require('../src/vr/browser/readerLayout.js');
 
   const mid = (x0) => x0 + ARROW_W / 2;
@@ -380,13 +402,15 @@ describe('WIDTH_SAFETY — budgets survive real font metrics', () => {
   });
 
   test('the margin absorbs the measured 1.2% under-estimate', () => {
-    const avail = 976, font = 66;                 // caption at the large-text scale
+    const avail = 976,
+      font = 66; // caption at the large-text scale
     const budget = safeMeasureEm(avail, font);
     expect(budget * font * MEASURED_FULLWIDTH_EM).toBeLessThanOrEqual(avail);
   });
 
   test('a naive budget (no margin) would NOT survive it', () => {
-    const avail = 976, font = 66;
+    const avail = 976,
+      font = 66;
     expect((avail / font) * font * MEASURED_FULLWIDTH_EM).toBeGreaterThan(avail);
   });
 
@@ -406,37 +430,39 @@ describe('WIDTH_SAFETY — budgets survive real font metrics', () => {
 // arrows start at x=804, so a long final line rendered under the buttons.
 describe('reader reserves the bottom strip for the arrows and progress label', () => {
   const {
-    visibleLinesFor, visibleLineCount, CONTENT_BOTTOM_RESERVED,
-    ARROW_Y0, ARROW_H, ARROW_UP_X0, CONTENT_PX_W, CONTENT_PX_H, CONTENT_PAD, LINE_H
+    visibleLinesFor,
+    visibleLineCount,
+    CONTENT_BOTTOM_RESERVED,
+    ARROW_Y0,
+    ARROW_H,
+    ARROW_UP_X0,
+    CONTENT_PX_W,
+    CONTENT_PX_H,
+    CONTENT_PAD,
+    LINE_H
   } = require('../src/vr/browser/readerLayout.js');
 
-  const INK_ASCENT = 0.95;   // measured upper bound (em)
-  const INK_DESCENT = 0.22;  // measured lower bound (em)
+  const INK_ASCENT = 0.95; // measured upper bound (em)
+  const INK_DESCENT = 0.22; // measured lower bound (em)
   const lastInkBottom = (scale, visible) => {
     const lh = LINE_H * scale;
     return CONTENT_PAD + lh * visible + fontPxFor('p', scale) * INK_DESCENT;
   };
 
-  test.each([1, 1.3, 1.5, 2])(
-    'at scale %s the last line clears the arrow band',
-    (scale) => {
-      const visible = visibleLinesFor(500, scale);
-      expect(lastInkBottom(scale, visible)).toBeLessThan(ARROW_Y0);
-    }
-  );
+  test.each([1, 1.3, 1.5, 2])('at scale %s the last line clears the arrow band', (scale) => {
+    const visible = visibleLinesFor(500, scale);
+    expect(lastInkBottom(scale, visible)).toBeLessThan(ARROW_Y0);
+  });
 
-  test.each([1, 1.3, 1.5, 2])(
-    'at scale %s the UNRESERVED count would have collided (the defect)',
-    (scale) => {
-      const naive = visibleLineCount(scale, false);
-      expect(lastInkBottom(scale, naive)).toBeGreaterThan(ARROW_Y0);
-    }
-  );
+  test.each([1, 1.3, 1.5, 2])('at scale %s the UNRESERVED count would have collided (the defect)', (scale) => {
+    const naive = visibleLineCount(scale, false);
+    expect(lastInkBottom(scale, naive)).toBeGreaterThan(ARROW_Y0);
+  });
 
   test('the last line also clears the progress label', () => {
     for (const scale of [1, 1.3, 1.5, 2]) {
       const visible = visibleLinesFor(500, scale);
-      const labelInkTop = (CONTENT_PX_H - 30) - 16 * INK_ASCENT;
+      const labelInkTop = CONTENT_PX_H - 30 - 16 * INK_ASCENT;
       expect(lastInkBottom(scale, visible)).toBeLessThan(labelInkTop);
     }
   });

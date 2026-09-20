@@ -8,16 +8,45 @@
 // forbids referencing out-of-scope vars there) and re-required for the tests.
 jest.mock('three', () => {
   class V3 {
-    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
-    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
-    add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
-    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+    }
+    set(x, y, z) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+      return this;
+    }
+    copy(v) {
+      this.x = v.x;
+      this.y = v.y;
+      this.z = v.z;
+      return this;
+    }
+    add(v) {
+      this.x += v.x;
+      this.y += v.y;
+      this.z += v.z;
+      return this;
+    }
+    addScaledVector(v, s) {
+      this.x += v.x * s;
+      this.y += v.y * s;
+      this.z += v.z * s;
+      return this;
+    }
     normalize() {
       const l = Math.hypot(this.x, this.y, this.z) || 1;
-      this.x /= l; this.y /= l; this.z /= l; return this;
+      this.x /= l;
+      this.y /= l;
+      this.z /= l;
+      return this;
     }
-    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+    distanceTo(v) {
+      return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
     lerp(v, t) {
       this.x += (v.x - this.x) * t;
       this.y += (v.y - this.y) * t;
@@ -26,10 +55,13 @@ jest.mock('three', () => {
     }
     applyQuaternion(q) {
       const { x, y, z } = this;
-      const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
-      const ix =  qw * x + qy * z - qz * y;
-      const iy =  qw * y + qz * x - qx * z;
-      const iz =  qw * z + qx * y - qy * x;
+      const qx = q.x,
+        qy = q.y,
+        qz = q.z,
+        qw = q.w;
+      const ix = qw * x + qy * z - qz * y;
+      const iy = qw * y + qz * x - qx * z;
+      const iz = qw * z + qx * y - qy * x;
       const iw = -qx * x - qy * y - qz * z;
       this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
       this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
@@ -38,11 +70,26 @@ jest.mock('three', () => {
     }
   }
   class Quat {
-    constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
-    copy(q) { this.x = q.x; this.y = q.y; this.z = q.z; this.w = q.w; return this; }
+    constructor(x = 0, y = 0, z = 0, w = 1) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+      this.w = w;
+    }
+    copy(q) {
+      this.x = q.x;
+      this.y = q.y;
+      this.z = q.z;
+      this.w = q.w;
+      return this;
+    }
     setFromAxisAngle(axis, angle) {
-      const h = angle / 2, s = Math.sin(h);
-      this.x = axis.x * s; this.y = axis.y * s; this.z = axis.z * s; this.w = Math.cos(h);
+      const h = angle / 2,
+        s = Math.sin(h);
+      this.x = axis.x * s;
+      this.y = axis.y * s;
+      this.z = axis.z * s;
+      this.w = Math.cos(h);
       return this;
     }
   }
@@ -70,11 +117,27 @@ function makeNode(pos = [0, 0, 0], quat = [0, 0, 0, 1]) {
     position: new V3(...pos),
     quaternion: new Quat(...quat),
     scale: {
-      x: 1, y: 1, z: 1,
-      setScalar(v) { this.x = v; this.y = v; this.z = v; return this; }
+      x: 1,
+      y: 1,
+      z: 1,
+      setScalar(v) {
+        this.x = v;
+        this.y = v;
+        this.z = v;
+        return this;
+      }
     },
-    getWorldPosition: (v) => { v.set(pos[0], pos[1], pos[2]); return v; },
-    getWorldQuaternion: (q) => { q.x = quat[0]; q.y = quat[1]; q.z = quat[2]; q.w = quat[3]; return q; }
+    getWorldPosition: (v) => {
+      v.set(pos[0], pos[1], pos[2]);
+      return v;
+    },
+    getWorldQuaternion: (q) => {
+      q.x = quat[0];
+      q.y = quat[1];
+      q.z = quat[2];
+      q.w = quat[3];
+      return q;
+    }
   };
 }
 
@@ -315,8 +378,12 @@ describe('firePanelGrabFeedback / firePanelReleaseFeedback — grab-to-move cros
 // control fell below the 1.5° gaze-selection floor (tests/target-size.test.js).
 describe('WindowManager — constant apparent size across the distance range', () => {
   const { angularSizeDeg, GAZE_TARGET_MIN_DEG } = require('../src/vr/ui/angularSize.js');
-  const { PANEL_DISTANCE_DEFAULT, PANEL_DISTANCE_MIN, PANEL_DISTANCE_MAX, STRIP_H } =
-    require('../src/vr/browser/panelGeometry.js');
+  const {
+    PANEL_DISTANCE_DEFAULT,
+    PANEL_DISTANCE_MIN,
+    PANEL_DISTANCE_MAX,
+    STRIP_H
+  } = require('../src/vr/browser/panelGeometry.js');
 
   const follow = (distance) => {
     const wm = new WindowManager(makeNode(), { distance });
@@ -338,16 +405,17 @@ describe('WindowManager — constant apparent size across the distance range', (
       expect(panel.scale.x).toBeCloseTo(d / PANEL_DISTANCE_DEFAULT, 6);
       // The invariant that matters: the tab strip's angular height is the same
       // at every distance as it is at the verified default.
-      expect(angularSizeDeg(STRIP_H * panel.scale.x, d))
-        .toBeCloseTo(angularSizeDeg(STRIP_H, PANEL_DISTANCE_DEFAULT), 6);
+      expect(angularSizeDeg(STRIP_H * panel.scale.x, d)).toBeCloseTo(
+        angularSizeDeg(STRIP_H, PANEL_DISTANCE_DEFAULT),
+        6
+      );
     }
   });
 
   test('at the stepper maximum the tab strip now clears the gaze floor (it did not before)', () => {
     const { panel } = follow(PANEL_DISTANCE_MAX);
     expect(angularSizeDeg(STRIP_H, PANEL_DISTANCE_MAX)).toBeLessThan(GAZE_TARGET_MIN_DEG);
-    expect(angularSizeDeg(STRIP_H * panel.scale.x, PANEL_DISTANCE_MAX))
-      .toBeGreaterThanOrEqual(GAZE_TARGET_MIN_DEG);
+    expect(angularSizeDeg(STRIP_H * panel.scale.x, PANEL_DISTANCE_MAX)).toBeGreaterThanOrEqual(GAZE_TARGET_MIN_DEG);
   });
 
   test('a grab rescales from the CAMERA distance, not the controller distance', () => {

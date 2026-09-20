@@ -38,8 +38,8 @@ describe('curvedPlaneData', () => {
     const right = cols - 1;
     const xr = positions[right * 3 + 0];
     const zr = positions[right * 3 + 2];
-    expect(xr).toBeGreaterThan(0);   // bends toward +x
-    expect(zr).toBeGreaterThan(0);   // wraps toward the viewer (+z)
+    expect(xr).toBeGreaterThan(0); // bends toward +x
+    expect(zr).toBeGreaterThan(0); // wraps toward the viewer (+z)
 
     // Left edge mirrors the right edge.
     const xl = positions[0];
@@ -50,11 +50,11 @@ describe('curvedPlaneData', () => {
 
   test('a larger radius produces a flatter curve (less z displacement)', () => {
     const tight = curvedPlaneData({ ...base, radius: 1.0 });
-    const wide  = curvedPlaneData({ ...base, radius: 8.0 });
+    const wide = curvedPlaneData({ ...base, radius: 8.0 });
     const cols = base.segmentsX + 1;
     const edge = cols - 1;
     const zTight = tight.positions[edge * 3 + 2];
-    const zWide  = wide.positions[edge * 3 + 2];
+    const zWide = wide.positions[edge * 3 + 2];
     expect(zWide).toBeLessThan(zTight);
   });
 
@@ -71,8 +71,8 @@ describe('curvedPlaneData', () => {
 
   test('UVs span the full 0..1 range', () => {
     const { uvs } = curvedPlaneData(base);
-    expect(uvs[0]).toBeCloseTo(0, 5);       // first u
-    expect(uvs[1]).toBeCloseTo(0, 5);       // first v
+    expect(uvs[0]).toBeCloseTo(0, 5); // first u
+    expect(uvs[1]).toBeCloseTo(0, 5); // first v
     const last = uvs.length;
     expect(uvs[last - 2]).toBeCloseTo(1, 5); // last u
     expect(uvs[last - 1]).toBeCloseTo(1, 5); // last v
@@ -81,8 +81,8 @@ describe('curvedPlaneData', () => {
   test('top row is higher than bottom row', () => {
     const data = curvedPlaneData({ ...base, segmentsY: 2 });
     const cols = base.segmentsX + 1;
-    const bottomY = data.positions[1];               // row 0, col 0, y
-    const topY = data.positions[(2 * cols) * 3 + 1]; // row 2, col 0, y
+    const bottomY = data.positions[1]; // row 0, col 0, y
+    const topY = data.positions[2 * cols * 3 + 1]; // row 2, col 0, y
     expect(topY).toBeGreaterThan(bottomY);
     expect(topY).toBeCloseTo(base.height / 2, 5);
     expect(bottomY).toBeCloseTo(-base.height / 2, 5);
@@ -97,12 +97,26 @@ describe('buildCurvedPlaneGeometry', () => {
   // Minimal THREE stub capturing attribute wiring.
   const THREE = {
     BufferGeometry: class {
-      constructor() { this._attrs = {}; this._index = null; }
-      setAttribute(name, attr) { this._attrs[name] = attr; }
-      setIndex(attr) { this._index = attr; }
-      computeVertexNormals() { this._normals = true; }
+      constructor() {
+        this._attrs = {};
+        this._index = null;
+      }
+      setAttribute(name, attr) {
+        this._attrs[name] = attr;
+      }
+      setIndex(attr) {
+        this._index = attr;
+      }
+      computeVertexNormals() {
+        this._normals = true;
+      }
     },
-    BufferAttribute: class { constructor(array, itemSize) { this.array = array; this.itemSize = itemSize; } }
+    BufferAttribute: class {
+      constructor(array, itemSize) {
+        this.array = array;
+        this.itemSize = itemSize;
+      }
+    }
   };
 
   test('wires position, uv attributes and an index buffer', () => {

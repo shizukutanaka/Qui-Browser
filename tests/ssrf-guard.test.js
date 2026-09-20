@@ -10,8 +10,14 @@
  */
 
 const {
-  isBlockedAddress, assertRequestAllowed, safeUpstreamHeaders, isReadableContentType,
-  ALLOWED_SCHEMES, ALLOWED_PORTS, MAX_RESPONSE_BYTES, MAX_REDIRECTS
+  isBlockedAddress,
+  assertRequestAllowed,
+  safeUpstreamHeaders,
+  isReadableContentType,
+  ALLOWED_SCHEMES,
+  ALLOWED_PORTS,
+  MAX_RESPONSE_BYTES,
+  MAX_REDIRECTS
 } = require('../proxy/ssrfGuard.js');
 
 describe('isBlockedAddress — literal IPv4 ranges', () => {
@@ -21,7 +27,7 @@ describe('isBlockedAddress — literal IPv4 ranges', () => {
     ['127.1.2.3', 'loopback'],
     ['10.0.0.1', 'private-10'],
     ['100.64.0.1', 'shared-cgnat'],
-    ['169.254.169.254', 'link-local'],   // cloud metadata — the classic target
+    ['169.254.169.254', 'link-local'], // cloud metadata — the classic target
     ['172.16.0.1', 'private-172'],
     ['172.31.255.255', 'private-172'],
     ['192.0.0.1', 'ietf-protocol'],
@@ -49,16 +55,15 @@ describe('isBlockedAddress — literal IPv4 ranges', () => {
 });
 
 describe('isBlockedAddress — IPv6', () => {
-  test.each(['::1', '::', 'fc00::1', 'fd12:3456::1', 'fe80::1', '[::1]'])(
-    '%s is blocked', (ip) => {
-      expect(isBlockedAddress(ip).blocked).toBe(true);
-    }
-  );
+  test.each(['::1', '::', 'fc00::1', 'fd12:3456::1', 'fe80::1', '[::1]'])('%s is blocked', (ip) => {
+    expect(isBlockedAddress(ip).blocked).toBe(true);
+  });
 
   test('an IPv4-mapped private address cannot smuggle past the v6 path', () => {
     // ::ffff:127.0.0.1 is loopback wearing a v6 costume.
     expect(isBlockedAddress('::ffff:127.0.0.1')).toEqual({
-      blocked: true, reason: 'ipv4-mapped-private'
+      blocked: true,
+      reason: 'ipv4-mapped-private'
     });
     expect(isBlockedAddress('::ffff:169.254.169.254').blocked).toBe(true);
     expect(isBlockedAddress('::ffff:8.8.8.8').blocked).toBe(false);
@@ -74,11 +79,9 @@ describe('isBlockedAddress — IPv6', () => {
 });
 
 describe('isBlockedAddress — hostnames', () => {
-  test.each(['localhost', 'foo.localhost', 'printer.local', 'db.internal', 'x.home.arpa'])(
-    '%s is blocked', (h) => {
-      expect(isBlockedAddress(h).blocked).toBe(true);
-    }
-  );
+  test.each(['localhost', 'foo.localhost', 'printer.local', 'db.internal', 'x.home.arpa'])('%s is blocked', (h) => {
+    expect(isBlockedAddress(h).blocked).toBe(true);
+  });
 
   test('a bare label is a LAN name, not a public site', () => {
     expect(isBlockedAddress('intranet')).toEqual({ blocked: true, reason: 'bare-hostname' });
@@ -105,7 +108,8 @@ describe('assertRequestAllowed', () => {
   });
 
   test.each(['file:///etc/passwd', 'gopher://x.com/', 'data:text/html,<b>', 'ftp://example.com/'])(
-    'refuses %s', (u) => {
+    'refuses %s',
+    (u) => {
       const out = assertRequestAllowed(u);
       expect(out.ok).toBe(false);
       expect(out.reason).toMatch(/scheme-not-allowed|unparseable/);
@@ -120,13 +124,12 @@ describe('assertRequestAllowed', () => {
   test('refuses non-web ports (an internal service on 6379 is not a web page)', () => {
     expect(assertRequestAllowed('http://example.com:6379/').reason).toBe('port-not-allowed:6379');
     expect(assertRequestAllowed('http://example.com:22/').reason).toBe('port-not-allowed:22');
-    expect(assertRequestAllowed('https://example.com/').ok).toBe(true);   // implicit 443
-    expect(assertRequestAllowed('http://example.com/').ok).toBe(true);    // implicit 80
+    expect(assertRequestAllowed('https://example.com/').ok).toBe(true); // implicit 443
+    expect(assertRequestAllowed('http://example.com/').ok).toBe(true); // implicit 80
   });
 
   test('refuses literal internal addresses, including cloud metadata', () => {
-    expect(assertRequestAllowed('http://169.254.169.254/latest/meta-data/').reason)
-      .toBe('host-blocked:link-local');
+    expect(assertRequestAllowed('http://169.254.169.254/latest/meta-data/').reason).toBe('host-blocked:link-local');
     expect(assertRequestAllowed('http://127.0.0.1:8080/').reason).toBe('host-blocked:loopback');
     expect(assertRequestAllowed('http://[::1]/').reason).toMatch(/host-blocked/);
   });
@@ -167,10 +170,8 @@ describe('safeUpstreamHeaders', () => {
   });
 
   test('passes a sane accept-language through but bounds it', () => {
-    expect(safeUpstreamHeaders({ 'accept-language': 'ja,en;q=0.8' })['accept-language'])
-      .toBe('ja,en;q=0.8');
-    expect(safeUpstreamHeaders({ 'accept-language': 'x'.repeat(500) })['accept-language'])
-      .toBeUndefined();
+    expect(safeUpstreamHeaders({ 'accept-language': 'ja,en;q=0.8' })['accept-language']).toBe('ja,en;q=0.8');
+    expect(safeUpstreamHeaders({ 'accept-language': 'x'.repeat(500) })['accept-language']).toBeUndefined();
   });
 });
 

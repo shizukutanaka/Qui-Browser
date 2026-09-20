@@ -4,9 +4,7 @@
  * math is covered separately in bookmark-layout.test.js.
  */
 
-const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS
-} = require('../src/vr/browser/bookmarkLayout.js');
+const { PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS } = require('../src/vr/browser/bookmarkLayout.js');
 
 // Panel mesh dimensions (mirror BookmarkPanel.js).
 const PANEL_W = 1.2;
@@ -14,23 +12,47 @@ const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
 
 // ── THREE mock ────────────────────────────────────────────────────────────────
 class MockGroup {
-  constructor() { this.position = { set: jest.fn() }; this.rotation = {}; this._o = []; }
-  add(o) { this._o.push(o); }
-  remove(o) { this._o = this._o.filter(x => x !== o); }
+  constructor() {
+    this.position = { set: jest.fn() };
+    this.rotation = {};
+    this._o = [];
+  }
+  add(o) {
+    this._o.push(o);
+  }
+  remove(o) {
+    this._o = this._o.filter((x) => x !== o);
+  }
 }
 class MockMesh {
-  constructor() { this.name = ''; this.visible = true; this.geometry = { dispose: jest.fn() }; this.material = { dispose: jest.fn() }; }
+  constructor() {
+    this.name = '';
+    this.visible = true;
+    this.geometry = { dispose: jest.fn() };
+    this.material = { dispose: jest.fn() };
+  }
   // Return whatever was injected via _nextLocal.
-  worldToLocal() { return MockMesh._nextLocal; }
+  worldToLocal() {
+    return MockMesh._nextLocal;
+  }
 }
 MockMesh._nextLocal = { x: 0, y: 0 };
 
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} },
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  },
   SRGBColorSpace: 'srgb'
 }));
 
@@ -38,16 +60,25 @@ jest.mock('three', () => ({
 // NB: use plain functions (not jest.fn) — jest.config has resetMocks:true which
 // would wipe jest.fn implementations before each test, leaving createElement
 // returning undefined at panel-construction time.
-const drawnText = [];   // records fillText(text, x, y, maxWidth) for assertions
+const drawnText = []; // records fillText(text, x, y, maxWidth) for assertions
 const ctxStub = {
-  fillRect() {}, strokeRect() {}, clearRect() {},
-  fillText(t, x, y, maxWidth) { drawnText.push({ text: String(t), x, y, maxWidth }); },
-  set fillStyle(v) {}, set strokeStyle(v) {},
-  set font(v) {}, set textAlign(v) {}, set lineWidth(v) {}
+  fillRect() {},
+  strokeRect() {},
+  clearRect() {},
+  fillText(t, x, y, maxWidth) {
+    drawnText.push({ text: String(t), x, y, maxWidth });
+  },
+  set fillStyle(v) {},
+  set strokeStyle(v) {},
+  set font(v) {},
+  set textAlign(v) {},
+  set lineWidth(v) {}
 };
 global.document = global.document || {};
 global.document.createElement = () => ({
-  width: 0, height: 0, getContext: () => ctxStub
+  width: 0,
+  height: 0,
+  getContext: () => ctxStub
 });
 
 const { BookmarkPanel, bookmarkPanelColors } = require('../src/vr/browser/BookmarkPanel.js');
@@ -56,7 +87,13 @@ const { BookmarkPanel, bookmarkPanelColors } = require('../src/vr/browser/Bookma
 function localFor(px, py) {
   const u = px / PANEL_PX_W;
   const v = 1 - py / PANEL_PX_H;
-  return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * PANEL_H, clone() { return this; } };
+  return {
+    x: (u - 0.5) * PANEL_W,
+    y: (v - 0.5) * PANEL_H,
+    clone() {
+      return this;
+    }
+  };
 }
 
 function makeStore(bookmarks = [], history = []) {
@@ -143,7 +180,11 @@ describe('BookmarkPanel', () => {
     p.show();
     // Click first row: py in [HEADER_H, HEADER_H+ROW_H)
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(onSelect).toHaveBeenCalledWith('https://first.com');
     expect(p.visible).toBe(false);
   });
@@ -158,27 +199,38 @@ describe('BookmarkPanel', () => {
     p.show();
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
     // Simulate the event shape emitted by VRApp.onControllerSelect / GazeInteraction:
-    const fakeHit = { point: { clone() { return MockMesh._nextLocal; } } };
+    const fakeHit = {
+      point: {
+        clone() {
+          return MockMesh._nextLocal;
+        }
+      }
+    };
     p._onSelect({ intersection: fakeHit, controller: {} });
     expect(onSelect).toHaveBeenCalledWith('https://wrapped.com');
   });
 
   test('selecting the second row picks the second url', () => {
     const onSelect = jest.fn();
-    const store = makeStore([
-      { url: 'https://first.com' },
-      { url: 'https://second.com' }
-    ]);
+    const store = makeStore([{ url: 'https://first.com' }, { url: 'https://second.com' }]);
     const p = makePanel(store, onSelect);
     MockMesh._nextLocal = localFor(100, HEADER_H + ROW_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(onSelect).toHaveBeenCalledWith('https://second.com');
   });
 
   test('clicking the history tab switches mode', () => {
     const p = makePanel(makeStore());
     MockMesh._nextLocal = localFor(300, HEADER_H / 2); // history tab region
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(p.mode).toBe('history');
   });
 
@@ -186,7 +238,11 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore());
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2); // close region
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(p.visible).toBe(false);
   });
 
@@ -203,7 +259,11 @@ describe('BookmarkPanel', () => {
     p.addToScene();
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(p.visible).toBe(false);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -212,7 +272,13 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore());
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
-    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+    expect(() =>
+      p._onSelect({
+        clone() {
+          return MockMesh._nextLocal;
+        }
+      })
+    ).not.toThrow();
   });
 
   test('selecting empty area does nothing', () => {
@@ -220,7 +286,11 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore(), onSelect);
     p.show();
     MockMesh._nextLocal = localFor(600, HEADER_H / 2); // gap between tabs and close
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(onSelect).not.toHaveBeenCalled();
     expect(p.visible).toBe(true);
   });
@@ -253,7 +323,7 @@ describe('BookmarkPanel', () => {
         getBookmarks: () => bookmarks,
         getHistory: () => [],
         removeBookmark: (url) => {
-          const i = bookmarks.findIndex(b => b.url === url);
+          const i = bookmarks.findIndex((b) => b.url === url);
           if (i >= 0) bookmarks.splice(i, 1);
         }
       };
@@ -281,7 +351,11 @@ describe('BookmarkPanel', () => {
       // Click the first visible row — pre-fix this sliced an empty window and
       // the click resolved to nothing (onSelect never fired).
       MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-      p._onSelect({ clone() { return MockMesh._nextLocal; } });
+      p._onSelect({
+        clone() {
+          return MockMesh._nextLocal;
+        }
+      });
       expect(onSelect).toHaveBeenCalledWith('https://s0.example');
     });
 
@@ -314,7 +388,13 @@ describe('BookmarkPanel — large-text physical scaling', () => {
   function localForScaled(px, py, panelW, panelH) {
     const u = px / PANEL_PX_W;
     const v = 1 - py / PANEL_PX_H;
-    return { x: (u - 0.5) * panelW, y: (v - 0.5) * panelH, clone() { return this; } };
+    return {
+      x: (u - 0.5) * panelW,
+      y: (v - 0.5) * panelH,
+      clone() {
+        return this;
+      }
+    };
   }
 
   test('default scale = 1 leaves base metre dimensions', () => {
@@ -349,7 +429,11 @@ describe('BookmarkPanel — large-text physical scaling', () => {
     // normalises by this.panelW/this.panelH, the UV (and thus the row) is the
     // same as it would be at scale 1.
     MockMesh._nextLocal = localForScaled(100, HEADER_H + ROW_H + 10, p.panelW, p.panelH);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({
+      clone() {
+        return MockMesh._nextLocal;
+      }
+    });
     expect(onSelect).toHaveBeenCalledWith('https://second.com');
   });
 });
@@ -358,7 +442,7 @@ describe('BookmarkPanel — large-text physical scaling', () => {
 describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
   test('normal mode returns the expected dark-glass background', () => {
     const c = bookmarkPanelColors(false);
-    expect(c.bg).toMatch(/rgba?\(10/);        // near-black
+    expect(c.bg).toMatch(/rgba?\(10/); // near-black
     expect(c.rowTitle).toBe('#e8ecff');
   });
 
@@ -370,12 +454,14 @@ describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
 
   test('HC inactive scroll text is brighter than normal (contrast fix)', () => {
     const normal = bookmarkPanelColors(false);
-    const hc     = bookmarkPanelColors(true);
+    const hc = bookmarkPanelColors(true);
     const brightness = (s) =>
-      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
-    expect(brightness(hc.scrollInactive.text)).toBeGreaterThan(
-      brightness(normal.scrollInactive.text)
-    );
+      s
+        .match(/[0-9a-f]{2}/gi)
+        .slice(0, 3)
+        .map((h) => parseInt(h, 16))
+        .reduce((a, b) => a + b, 0);
+    expect(brightness(hc.scrollInactive.text)).toBeGreaterThan(brightness(normal.scrollInactive.text));
   });
 
   test('HC active and inactive scroll use different colours', () => {
@@ -386,19 +472,25 @@ describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
 
   test('HC inactive tab text is brighter than normal inactive tab text', () => {
     const normal = bookmarkPanelColors(false);
-    const hc     = bookmarkPanelColors(true);
+    const hc = bookmarkPanelColors(true);
     const brightness = (s) =>
-      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
-    expect(brightness(hc.tabInactive.text)).toBeGreaterThan(
-      brightness(normal.tabInactive.text)
-    );
+      s
+        .match(/[0-9a-f]{2}/gi)
+        .slice(0, 3)
+        .map((h) => parseInt(h, 16))
+        .reduce((a, b) => a + b, 0);
+    expect(brightness(hc.tabInactive.text)).toBeGreaterThan(brightness(normal.tabInactive.text));
   });
 
   test('HC row URL text is brighter than normal', () => {
     const normal = bookmarkPanelColors(false);
-    const hc     = bookmarkPanelColors(true);
+    const hc = bookmarkPanelColors(true);
     const brightness = (s) =>
-      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+      s
+        .match(/[0-9a-f]{2}/gi)
+        .slice(0, 3)
+        .map((h) => parseInt(h, 16))
+        .reduce((a, b) => a + b, 0);
     expect(brightness(hc.rowUrl)).toBeGreaterThan(brightness(normal.rowUrl));
   });
 
@@ -437,20 +529,21 @@ describe('BookmarkPanel row text fits the row in either script', () => {
   const { textWidthEm } = require('../src/vr/ui/textWrap.js');
   const { PANEL_PX_W: PW, DELETE_ZONE_W: DZ } = require('../src/vr/browser/bookmarkLayout.js');
   const AVAIL = PW - 24 - DZ;
-  const TITLE_FONT = 26, URL_FONT = 20;
+  const TITLE_FONT = 26,
+    URL_FONT = 20;
 
   // Observe what the panel ACTUALLY draws, not just the helper it should use.
   function drawnRowText(bookmarks) {
     drawnText.length = 0;
     const p = makePanel(makeStore(bookmarks));
     p.show();
-    return drawnText.filter(d => d.x === 24);   // row title/url start at x=24
+    return drawnText.filter((d) => d.x === 24); // row title/url start at x=24
   }
 
   test('a long Japanese title is drawn within the row width', () => {
     const jp = 'これは非常に長い日本語のブックマークのタイトルです'.repeat(3);
     const rows = drawnRowText([{ url: 'https://a.jp', title: jp }]);
-    const title = rows.find(d => d.text.startsWith('これは'));
+    const title = rows.find((d) => d.text.startsWith('これは'));
     expect(title).toBeDefined();
     expect(textWidthEm(title.text) * TITLE_FONT).toBeLessThanOrEqual(AVAIL);
   });
@@ -458,20 +551,20 @@ describe('BookmarkPanel row text fits the row in either script', () => {
   test('a long Latin title is drawn within the row width', () => {
     const en = 'An extremely long English bookmark title that keeps going '.repeat(3);
     const rows = drawnRowText([{ url: 'https://a.com', title: en }]);
-    const title = rows.find(d => d.text.startsWith('An extremely'));
+    const title = rows.find((d) => d.text.startsWith('An extremely'));
     expect(textWidthEm(title.text) * TITLE_FONT).toBeLessThanOrEqual(AVAIL);
   });
 
   test('a long URL is drawn within the row width', () => {
     const url = 'https://example.com/' + 'segment/'.repeat(20);
     const rows = drawnRowText([{ url, title: 'T' }]);
-    const drawnUrl = rows.find(d => d.text.startsWith('https://example.com'));
+    const drawnUrl = rows.find((d) => d.text.startsWith('https://example.com'));
     expect(drawnUrl).toBeDefined();
     expect(textWidthEm(drawnUrl.text) * URL_FONT).toBeLessThanOrEqual(AVAIL);
   });
 
   test('row text is drawn with a maxWidth backstop', () => {
     const rows = drawnRowText([{ url: 'https://a.jp', title: '日本語' }]);
-    rows.forEach(d => expect(d.maxWidth).toBe(AVAIL));
+    rows.forEach((d) => expect(d.maxWidth).toBe(AVAIL));
   });
 });

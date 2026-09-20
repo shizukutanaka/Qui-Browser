@@ -161,14 +161,27 @@ describe('src/i18n/i18n', () => {
 // CLAUDE.md had itself listed the voice errors as an unfixed Phase 1 gap.
 describe('captions, voice errors and screen-reader labels are translated', () => {
   const KEYS = [
-    'vr.error.voiceMicDenied', 'vr.error.voiceUnavailable',
-    'vr.a11y.captionsRegion', 'vr.a11y.alertsRegion', 'vr.a11y.settingsRegion',
-    'vr.msg.teleported', 'vr.msg.recenterLabel', 'vr.msg.noTopSites', 'vr.msg.vrReady',
-    'vr.msg.primaryHandLeft', 'vr.msg.primaryHandRight',
-    'vr.msg.leftHandTracked', 'vr.msg.leftHandLost',
-    'vr.msg.rightHandTracked', 'vr.msg.rightHandLost',
-    'app.error.loadFailed', 'app.error.unknown', 'app.error.reload',
-    'app.error.initFailed', 'app.error.noVRSupport', 'app.error.noWebXR',
+    'vr.error.voiceMicDenied',
+    'vr.error.voiceUnavailable',
+    'vr.a11y.captionsRegion',
+    'vr.a11y.alertsRegion',
+    'vr.a11y.settingsRegion',
+    'vr.msg.teleported',
+    'vr.msg.recenterLabel',
+    'vr.msg.noTopSites',
+    'vr.msg.vrReady',
+    'vr.msg.primaryHandLeft',
+    'vr.msg.primaryHandRight',
+    'vr.msg.leftHandTracked',
+    'vr.msg.leftHandLost',
+    'vr.msg.rightHandTracked',
+    'vr.msg.rightHandLost',
+    'app.error.loadFailed',
+    'app.error.unknown',
+    'app.error.reload',
+    'app.error.initFailed',
+    'app.error.noVRSupport',
+    'app.error.noWebXR',
     'app.error.enterVRFailed'
   ];
 
@@ -209,11 +222,13 @@ describe('captions, voice errors and screen-reader labels are translated', () =>
     // order and particles differ, so each combination gets its own key.
     setLanguage('ja');
     const all = [
-      t('vr.msg.leftHandTracked'), t('vr.msg.leftHandLost'),
-      t('vr.msg.rightHandTracked'), t('vr.msg.rightHandLost')
+      t('vr.msg.leftHandTracked'),
+      t('vr.msg.leftHandLost'),
+      t('vr.msg.rightHandTracked'),
+      t('vr.msg.rightHandLost')
     ];
     setLanguage('en');
-    expect(new Set(all).size).toBe(4);          // all distinct
+    expect(new Set(all).size).toBe(4); // all distinct
     expect(all.every((s) => /[^\x00-\x7F]/.test(s))).toBe(true); // actually Japanese
   });
 });

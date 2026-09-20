@@ -4,9 +4,18 @@
  * fill AND a thicker border (a hue-independent shape cue).
  */
 const {
-  buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor,
-  BUTTON_BG, BUTTON_BG_HOVER, BUTTON_LINE, BUTTON_LINE_HOVER,
-  BUTTON_BG_HC, BUTTON_BG_HOVER_HC, BUTTON_LINE_HC, BUTTON_LINE_HOVER_HC
+  buttonBg,
+  buttonLineWidth,
+  toggleIndicatorColors,
+  buttonAccentColor,
+  BUTTON_BG,
+  BUTTON_BG_HOVER,
+  BUTTON_LINE,
+  BUTTON_LINE_HOVER,
+  BUTTON_BG_HC,
+  BUTTON_BG_HOVER_HC,
+  BUTTON_LINE_HC,
+  BUTTON_LINE_HOVER_HC
 } = require('../src/vr/ui/buttonStyle.js');
 
 describe('buttonStyle — focus/hover indicator', () => {
@@ -60,7 +69,7 @@ describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
 
   test('toggleIndicatorColors ON — normal green, HC vivid green', () => {
     const normal = toggleIndicatorColors(true, false);
-    const hc     = toggleIndicatorColors(true, true);
+    const hc = toggleIndicatorColors(true, true);
     expect(normal.border).toBe('#44ff88');
     expect(normal.label).toBe('#44ff88');
     expect(hc.border).toBe('#00ff88');
@@ -69,10 +78,14 @@ describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
 
   test('toggleIndicatorColors OFF HC is brighter than normal OFF', () => {
     const normal = toggleIndicatorColors(false, false);
-    const hc     = toggleIndicatorColors(false, true);
+    const hc = toggleIndicatorColors(false, true);
     // HC off-border must be visibly brighter: compare R+G+B hex sums.
     const brightness = (s) =>
-      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+      s
+        .match(/[0-9a-f]{2}/gi)
+        .slice(0, 3)
+        .map((h) => parseInt(h, 16))
+        .reduce((a, b) => a + b, 0);
     expect(brightness(hc.border)).toBeGreaterThan(brightness(normal.border));
     expect(brightness(hc.label)).toBeGreaterThan(brightness(normal.label));
   });
@@ -112,14 +125,14 @@ describe('buttonStyle — high-contrast WCAG contrast ratios', () => {
     expect(contrastRatio('#004adf', '#004adf')).toBeCloseTo(1, 5);
   });
 
-  const HC_BG_IDLE  = BUTTON_BG_HC;        // '#000000'
-  const HC_BG_HOVER = BUTTON_BG_HOVER_HC;  // '#004adf'
+  const HC_BG_IDLE = BUTTON_BG_HC; // '#000000'
+  const HC_BG_HOVER = BUTTON_BG_HOVER_HC; // '#004adf'
 
   test('every HC indicator colour clears 3:1 against BOTH the idle and hover backings', () => {
     const fg = [
-      toggleIndicatorColors(true, true).label,   // '#00ff88'
-      toggleIndicatorColors(false, true).label,  // '#aaccee'
-      buttonAccentColor('#5e72e4', true)         // '#ffffff'
+      toggleIndicatorColors(true, true).label, // '#00ff88'
+      toggleIndicatorColors(false, true).label, // '#aaccee'
+      buttonAccentColor('#5e72e4', true) // '#ffffff'
     ];
     for (const c of fg) {
       expect(contrastRatio(c, HC_BG_IDLE)).toBeGreaterThanOrEqual(3);

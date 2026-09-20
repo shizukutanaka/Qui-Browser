@@ -2,8 +2,14 @@
  * Unit tests for the pure numeric settings-stepper helpers.
  */
 const {
-  stepValue, decimalsFor, stepperRegion, formatValue, settingsButtonCaption,
-  shouldAnnounceSettingsButton, MINUS_MAX_U, PLUS_MIN_U
+  stepValue,
+  decimalsFor,
+  stepperRegion,
+  formatValue,
+  settingsButtonCaption,
+  shouldAnnounceSettingsButton,
+  MINUS_MAX_U,
+  PLUS_MIN_U
 } = require('../src/vr/settingsStepper.js');
 
 describe('stepValue', () => {
@@ -88,10 +94,10 @@ describe('settingsButtonCaption — gaze-dwell hover announcement text', () => {
   });
 
   test('stepper announces label and formatted value', () => {
-    expect(settingsButtonCaption('stepper', 'Snap Angle', 30, { step: 15, unit: '°' }))
-      .toBe('Snap Angle: 30°');
-    expect(settingsButtonCaption('stepper', 'Move Speed', 1.5, { step: 0.5, unit: ' m/s' }))
-      .toBe('Move Speed: 1.5 m/s');
+    expect(settingsButtonCaption('stepper', 'Snap Angle', 30, { step: 15, unit: '°' })).toBe('Snap Angle: 30°');
+    expect(settingsButtonCaption('stepper', 'Move Speed', 1.5, { step: 0.5, unit: ' m/s' })).toBe(
+      'Move Speed: 1.5 m/s'
+    );
   });
 
   test('cycle announces label and current selection', () => {

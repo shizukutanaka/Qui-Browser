@@ -136,7 +136,12 @@ async function checkGitStatus(results) {
     } else {
       results.warnings.push('Uncommitted changes detected');
       console.log('  ⚠️  Uncommitted changes detected:');
-      console.log(status.split('\n').map(line => `     ${line}`).join('\n'));
+      console.log(
+        status
+          .split('\n')
+          .map((line) => `     ${line}`)
+          .join('\n')
+      );
     }
 
     // Check current branch
@@ -184,8 +189,14 @@ async function checkPackageJson(results) {
 
     // Check scripts
     const requiredScripts = [
-      'dev', 'build', 'test', 'lint', 'ci:all',
-      'docker:build', 'deploy:netlify', 'release:patch'
+      'dev',
+      'build',
+      'test',
+      'lint',
+      'ci:all',
+      'docker:build',
+      'deploy:netlify',
+      'release:patch'
     ];
 
     let scriptsOk = true;
@@ -257,12 +268,7 @@ async function checkDocumentation(results) {
 async function checkSourceCode(results) {
   console.log('💻 Checking source code...\n');
 
-  const requiredFiles = [
-    'src/app.js',
-    'src/vr/VRApp.js',
-    'src/monitoring.js',
-    'index.html'
-  ];
+  const requiredFiles = ['src/app.js', 'src/vr/VRApp.js', 'src/monitoring.js', 'index.html'];
 
   let allFilesExist = true;
   for (const file of requiredFiles) {
@@ -305,9 +311,7 @@ async function checkTests(results) {
     // suite has been split into per-subsystem specs, so pinning one filename
     // reported "no tests" on a repo with a full green suite.
     const testsDir = path.join(PROJECT_ROOT, 'tests');
-    const specFiles = fs.existsSync(testsDir)
-      ? fs.readdirSync(testsDir).filter((f) => f.endsWith('.test.js'))
-      : [];
+    const specFiles = fs.existsSync(testsDir) ? fs.readdirSync(testsDir).filter((f) => f.endsWith('.test.js')) : [];
 
     if (specFiles.length > 0) {
       let suites = 0;
@@ -318,9 +322,7 @@ async function checkTests(results) {
         tests += (content.match(/\b(test|it)\(/g) || []).length;
       }
 
-      results.passed.push(
-        `Test suites exist: ${specFiles.length} files, ${suites} describes, ${tests} tests`
-      );
+      results.passed.push(`Test suites exist: ${specFiles.length} files, ${suites} describes, ${tests} tests`);
       console.log(`  ✅ tests/ (${specFiles.length} spec files)`);
       console.log(`     Suites: ${suites}`);
       console.log(`     Tests: ${tests}`);
@@ -352,12 +354,7 @@ async function checkTests(results) {
 async function checkBuildConfiguration(results) {
   console.log('⚙️  Checking build configuration...\n');
 
-  const configFiles = [
-    'vite.config.js',
-    '.eslintrc.json',
-    '.prettierrc.json',
-    '.babelrc'
-  ];
+  const configFiles = ['vite.config.js', '.eslintrc.json', '.prettierrc.json', '.babelrc'];
 
   for (const config of configFiles) {
     const configPath = path.join(PROJECT_ROOT, config);
@@ -379,10 +376,7 @@ async function checkBuildConfiguration(results) {
 async function checkCICDWorkflows(results) {
   console.log('🔄 Checking CI/CD workflows...\n');
 
-  const workflows = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/cd.yml'
-  ];
+  const workflows = ['.github/workflows/ci.yml', '.github/workflows/cd.yml'];
 
   for (const workflow of workflows) {
     const workflowPath = path.join(PROJECT_ROOT, workflow);
@@ -407,12 +401,7 @@ async function checkCICDWorkflows(results) {
 async function checkDockerConfiguration(results) {
   console.log('🐳 Checking Docker configuration...\n');
 
-  const dockerFiles = [
-    'Dockerfile',
-    'docker-compose.yml',
-    'docker/nginx.conf',
-    '.dockerignore'
-  ];
+  const dockerFiles = ['Dockerfile', 'docker-compose.yml', 'docker/nginx.conf', '.dockerignore'];
 
   for (const file of dockerFiles) {
     const filePath = path.join(PROJECT_ROOT, file);
@@ -434,10 +423,7 @@ async function checkDockerConfiguration(results) {
 async function checkSecurityFiles(results) {
   console.log('🔒 Checking security files...\n');
 
-  const securityFiles = [
-    'SECURITY.md',
-    '.env.example'
-  ];
+  const securityFiles = ['SECURITY.md', '.env.example'];
 
   for (const file of securityFiles) {
     const filePath = path.join(PROJECT_ROOT, file);
@@ -556,7 +542,7 @@ function getScoreEmoji(score) {
 // ============================================================================
 
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('Fatal error:', error);
     process.exit(1);
   });

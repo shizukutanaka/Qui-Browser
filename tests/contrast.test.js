@@ -21,8 +21,12 @@
  */
 
 const {
-  parseCssColor, compositeOver, relativeLuminance,
-  contrastRatio, wcagMinimum, apcaLc
+  parseCssColor,
+  compositeOver,
+  relativeLuminance,
+  contrastRatio,
+  wcagMinimum,
+  apcaLc
 } = require('../src/vr/ui/contrast.js');
 const { bookmarkPanelColors } = require('../src/vr/browser/bookmarkLayout.js');
 const { webChromeColors, webContentColors } = require('../src/vr/browser/chromeColors.js');
@@ -106,7 +110,7 @@ describe('contrastRatio (WCAG 2.x)', () => {
 describe('wcagMinimum', () => {
   test('body text needs 4.5:1', () => {
     expect(wcagMinimum({ fontPx: 18 })).toBe(4.5);
-    expect(wcagMinimum({ fontPx: 20, bold: true })).toBe(3);   // ≥18.66 bold is large
+    expect(wcagMinimum({ fontPx: 20, bold: true })).toBe(3); // ≥18.66 bold is large
   });
 
   test('large text needs 3:1', () => {
@@ -144,9 +148,7 @@ describe('apcaLc (WCAG 3 candidate)', () => {
     const aW = contrastRatio('#8891ad', '#1a1a2e');
     const bW = contrastRatio('#7788aa', '#161b2e');
     expect(Math.abs(aW - bW)).toBeLessThan(0.7);
-    expect(Math.abs(apcaLc('#8891ad', '#1a1a2e'))).toBeGreaterThan(
-      Math.abs(apcaLc('#7788aa', '#161b2e'))
-    );
+    expect(Math.abs(apcaLc('#8891ad', '#1a1a2e'))).toBeGreaterThan(Math.abs(apcaLc('#7788aa', '#161b2e')));
   });
 });
 
@@ -163,8 +165,7 @@ function palettePairs(hc) {
   const bmBack = hc ? '#000000' : '#000000'; // panel sits on the dark scene
   const bmBg = compositeOver(bm.bg, bmBack);
   const pairs = [];
-  const add = (label, fg, bg, spec, backdrop) =>
-    pairs.push({ label, fg, bg, spec, backdrop: backdrop || '#000000' });
+  const add = (label, fg, bg, spec, backdrop) => pairs.push({ label, fg, bg, spec, backdrop: backdrop || '#000000' });
 
   // Bookmark / history panel
   add('bookmark rowTitle', bm.rowTitle, bm.bg, { fontPx: 26, bold: true }, bmBack);
@@ -258,32 +259,35 @@ function palettePairs(hc) {
   return pairs;
 }
 
-describe.each([['normal', false], ['high-contrast', true]])(
-  'palette sweep — %s mode meets WCAG 2 (1.4.3 / 1.4.11)',
-  (_name, hc) => {
-    const pairs = palettePairs(hc);
+describe.each([
+  ['normal', false],
+  ['high-contrast', true]
+])('palette sweep — %s mode meets WCAG 2 (1.4.3 / 1.4.11)', (_name, hc) => {
+  const pairs = palettePairs(hc);
 
-    test('the sweep actually covers the palette (guards against an empty loop)', () => {
-      expect(pairs.length).toBeGreaterThanOrEqual(40);
-      // Every colour must be parseable — an unparseable one would score as
-      // black and could pass while being invisible on screen.
-      for (const p of pairs) {
-        expect(parseCssColor(p.fg)).not.toBeNull();
-        expect(parseCssColor(p.bg)).not.toBeNull();
-      }
-    });
+  test('the sweep actually covers the palette (guards against an empty loop)', () => {
+    expect(pairs.length).toBeGreaterThanOrEqual(40);
+    // Every colour must be parseable — an unparseable one would score as
+    // black and could pass while being invisible on screen.
+    for (const p of pairs) {
+      expect(parseCssColor(p.fg)).not.toBeNull();
+      expect(parseCssColor(p.bg)).not.toBeNull();
+    }
+  });
 
-    test.each(pairs.map((p) => [p.label, p]))('%s', (_label, p) => {
-      const need = wcagMinimum(p.spec);
-      const got = contrastRatio(p.fg, p.bg, p.backdrop);
-      // Reported on failure so the message names the measured value, not just
-      // "expected true".
-      expect({ pair: `${p.fg} on ${p.bg}`, ratio: Number(got.toFixed(2)), need })
-        .toEqual({ pair: `${p.fg} on ${p.bg}`, ratio: expect.any(Number), need });
-      expect(got).toBeGreaterThanOrEqual(need);
+  test.each(pairs.map((p) => [p.label, p]))('%s', (_label, p) => {
+    const need = wcagMinimum(p.spec);
+    const got = contrastRatio(p.fg, p.bg, p.backdrop);
+    // Reported on failure so the message names the measured value, not just
+    // "expected true".
+    expect({ pair: `${p.fg} on ${p.bg}`, ratio: Number(got.toFixed(2)), need }).toEqual({
+      pair: `${p.fg} on ${p.bg}`,
+      ratio: expect.any(Number),
+      need
     });
-  }
-);
+    expect(got).toBeGreaterThanOrEqual(need);
+  });
+});
 
 describe('high-contrast mode strengthens the pairs that need it', () => {
   // A flat "high contrast never reduces any ratio" rule sounds right and is
@@ -319,9 +323,7 @@ describe('high-contrast mode strengthens the pairs that need it', () => {
   });
 
   test('the weakest pair in the palette is stronger in high-contrast mode', () => {
-    const worst = (pairs) => Math.min(
-      ...pairs.map((p) => contrastRatio(p.fg, p.bg, p.backdrop) / wcagMinimum(p.spec))
-    );
+    const worst = (pairs) => Math.min(...pairs.map((p) => contrastRatio(p.fg, p.bg, p.backdrop) / wcagMinimum(p.spec)));
     expect(worst(palettePairs(true))).toBeGreaterThan(worst(palettePairs(false)));
   });
 });
@@ -332,8 +334,8 @@ describe('regressions fixed in the contrast audit', () => {
     const ch = webChromeColors(false);
     const disabled = contrastRatio(ch.btnDisabledText, ch.btnDisabledBg);
     const enabled = contrastRatio(ch.btnEnabledText, ch.btnEnabledBg);
-    expect(disabled).toBeGreaterThanOrEqual(3);     // was #44445a → 1.66:1
-    expect(disabled).toBeLessThan(enabled / 2);     // still reads as unavailable
+    expect(disabled).toBeGreaterThanOrEqual(3); // was #44445a → 1.66:1
+    expect(disabled).toBeLessThan(enabled / 2); // still reads as unavailable
   });
 
   test('address-bar placeholder clears the body-text bar', () => {
@@ -366,12 +368,13 @@ describe('regressions fixed in the contrast audit', () => {
   test('inactive scroll arrows are perceivable in both panels', () => {
     const bm = bookmarkPanelColors(false);
     const ct = webContentColors(false);
-    expect(contrastRatio(bm.scrollInactive.text, bm.scrollInactive.bg, compositeOver(bm.bg, '#000000')))
-      .toBeGreaterThanOrEqual(3); // was #445566 → 2.37:1
-    expect(contrastRatio(ct.arrowIdleText, ct.arrowIdleBg, ct.bg))
-      .toBeGreaterThanOrEqual(3); // was #445566 → 2.12:1
+    expect(
+      contrastRatio(bm.scrollInactive.text, bm.scrollInactive.bg, compositeOver(bm.bg, '#000000'))
+    ).toBeGreaterThanOrEqual(3); // was #445566 → 2.37:1
+    expect(contrastRatio(ct.arrowIdleText, ct.arrowIdleBg, ct.bg)).toBeGreaterThanOrEqual(3); // was #445566 → 2.12:1
     // …and still visibly weaker than the active arrow, so the state reads.
-    expect(contrastRatio(ct.arrowIdleText, ct.arrowIdleBg, ct.bg))
-      .toBeLessThan(contrastRatio('#ffffff', ct.arrowActiveBg, ct.bg));
+    expect(contrastRatio(ct.arrowIdleText, ct.arrowIdleBg, ct.bg)).toBeLessThan(
+      contrastRatio('#ffffff', ct.arrowActiveBg, ct.bg)
+    );
   });
 });

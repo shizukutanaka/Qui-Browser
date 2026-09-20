@@ -80,8 +80,13 @@ export function parseDisplayUrl(url) {
     // Not parseable (e.g. a partially-typed address): render it verbatim
     // rather than inventing structure we can't verify.
     return {
-      valid: false, scheme: '', host: '', rest: raw,
-      security: 'none', hasUserinfo: false, raw
+      valid: false,
+      scheme: '',
+      host: '',
+      rest: raw,
+      security: 'none',
+      hasUserinfo: false,
+      raw
     };
   }
   return {
@@ -162,33 +167,29 @@ export function elideUrlForDisplay(url, maxChars = 61) {
 export function contentStateLines(state, url = '', hasProxy = false) {
   const host = parseDisplayUrl(url).host;
   switch (state) {
-  case 'loading':
-    return { title: t('vr.content.loading'), detail: host };
-  case 'unavailable':
-    // Honest AND actionable. It used to say only "in-headset rendering is not
-    // supported", which was a dead end and, once the companion proxy existed,
-    // no longer even accurate — with a proxy configured, rendering works.
-    // Measured cause: general sites send no Access-Control-Allow-Origin on
-    // their HTML, so the browser cannot fetch them directly. Saying which of
-    // the two situations the user is in is the difference between "this is
-    // broken" and "here is the one thing that fixes it".
-    return hasProxy
-      ? {
-        title: t('vr.content.proxyFailedTitle'),
-        detail: host
-          ? `${host} — ${t('vr.content.proxyFailedDetail')}`
-          : t('vr.content.proxyFailedBare')
-      }
-      : {
-        title: t('vr.content.noCorsTitle'),
-        detail: host
-          ? `${host} ${t('vr.content.noCorsDetail')}`
-          : t('vr.content.noCorsDetailBare')
-      };
-  case 'error':
-    return { title: t('vr.content.failed'), detail: host };
-  default:
-    return { title: t('vr.content.empty'), detail: '' };
+    case 'loading':
+      return { title: t('vr.content.loading'), detail: host };
+    case 'unavailable':
+      // Honest AND actionable. It used to say only "in-headset rendering is not
+      // supported", which was a dead end and, once the companion proxy existed,
+      // no longer even accurate — with a proxy configured, rendering works.
+      // Measured cause: general sites send no Access-Control-Allow-Origin on
+      // their HTML, so the browser cannot fetch them directly. Saying which of
+      // the two situations the user is in is the difference between "this is
+      // broken" and "here is the one thing that fixes it".
+      return hasProxy
+        ? {
+            title: t('vr.content.proxyFailedTitle'),
+            detail: host ? `${host} — ${t('vr.content.proxyFailedDetail')}` : t('vr.content.proxyFailedBare')
+          }
+        : {
+            title: t('vr.content.noCorsTitle'),
+            detail: host ? `${host} ${t('vr.content.noCorsDetail')}` : t('vr.content.noCorsDetailBare')
+          };
+    case 'error':
+      return { title: t('vr.content.failed'), detail: host };
+    default:
+      return { title: t('vr.content.empty'), detail: '' };
   }
 }
 
@@ -203,14 +204,14 @@ export function contentStateLines(state, url = '', hasProxy = false) {
  */
 export function securityIndicator(level, highContrast = false) {
   switch (level) {
-  case 'secure':
-    return { glyph: '🔒', color: highContrast ? '#ffffff' : '#7fdca4' };
-  case 'insecure':
-    return { glyph: '⚠', color: highContrast ? '#ffdd00' : '#ffb454' };
-  case 'local':
-    return { glyph: '⌂', color: highContrast ? '#ffffff' : '#9db4d0' };
-  default:
-    return { glyph: '', color: highContrast ? '#ffffff' : '#888899' };
+    case 'secure':
+      return { glyph: '🔒', color: highContrast ? '#ffffff' : '#7fdca4' };
+    case 'insecure':
+      return { glyph: '⚠', color: highContrast ? '#ffdd00' : '#ffb454' };
+    case 'local':
+      return { glyph: '⌂', color: highContrast ? '#ffffff' : '#9db4d0' };
+    default:
+      return { glyph: '', color: highContrast ? '#ffffff' : '#888899' };
   }
 }
 
@@ -232,7 +233,9 @@ export function securityIndicator(level, highContrast = false) {
  */
 export function readerFetchUrl(target, proxyUrl = '') {
   const raw = String(target === null || target === undefined ? '' : target);
-  const base = String(proxyUrl === null || proxyUrl === undefined ? '' : proxyUrl).trim().replace(/\/+$/, '');
+  const base = String(proxyUrl === null || proxyUrl === undefined ? '' : proxyUrl)
+    .trim()
+    .replace(/\/+$/, '');
   if (!base) {
     return raw;
   }

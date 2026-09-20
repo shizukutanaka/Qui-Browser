@@ -7,27 +7,39 @@
 
 // ── browser API stubs (missing in Node) ──────────────────────────────────────
 global.window = global.window || {};
-global.window.addEventListener    = jest.fn();
+global.window.addEventListener = jest.fn();
 global.window.removeEventListener = jest.fn();
 global.document = global.document || {};
-global.document.addEventListener    = jest.fn();
+global.document.addEventListener = jest.fn();
 global.document.removeEventListener = jest.fn();
 global.document.hidden = false;
 
 // ── Optional external deps — all missing in test env ─────────────────────────
-jest.mock('@sentry/browser', () => {
-  throw new Error('not installed');
-}, { virtual: true });
-jest.mock('@sentry/tracing', () => {
-  throw new Error('not installed');
-}, { virtual: true });
-jest.mock('web-vitals', () => ({
-  onCLS: jest.fn(),
-  onFCP: jest.fn(),
-  onLCP: jest.fn(),
-  onTTFB: jest.fn(),
-  onINP: jest.fn()
-}), { virtual: true });
+jest.mock(
+  '@sentry/browser',
+  () => {
+    throw new Error('not installed');
+  },
+  { virtual: true }
+);
+jest.mock(
+  '@sentry/tracing',
+  () => {
+    throw new Error('not installed');
+  },
+  { virtual: true }
+);
+jest.mock(
+  'web-vitals',
+  () => ({
+    onCLS: jest.fn(),
+    onFCP: jest.fn(),
+    onLCP: jest.fn(),
+    onTTFB: jest.fn(),
+    onINP: jest.fn()
+  }),
+  { virtual: true }
+);
 
 const {
   initializeMonitoring,
@@ -60,33 +72,23 @@ describe('monitoring.js', () => {
   // ── initializeMonitoring / disposeMonitoring ──────────────────────────────────
   test('initializeMonitoring registers visibilitychange and beforeunload', async () => {
     await initializeMonitoring();
-    expect(document.addEventListener).toHaveBeenCalledWith(
-      'visibilitychange', expect.any(Function)
-    );
-    expect(window.addEventListener).toHaveBeenCalledWith(
-      'beforeunload', expect.any(Function)
-    );
+    expect(document.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(window.addEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
   });
 
   test('initializeMonitoring is idempotent (double-init cleans up first)', async () => {
     await initializeMonitoring();
     await initializeMonitoring();
     // disposeMonitoring called at start of second init; listeners re-registered once
-    const addCalls = document.addEventListener.mock.calls.filter(
-      c => c[0] === 'visibilitychange'
-    ).length;
+    const addCalls = document.addEventListener.mock.calls.filter((c) => c[0] === 'visibilitychange').length;
     expect(addCalls).toBe(2); // one per initializeMonitoring call
   });
 
   test('disposeMonitoring removes listeners and clears interval', async () => {
     await initializeMonitoring();
     disposeMonitoring();
-    expect(document.removeEventListener).toHaveBeenCalledWith(
-      'visibilitychange', expect.any(Function)
-    );
-    expect(window.removeEventListener).toHaveBeenCalledWith(
-      'beforeunload', expect.any(Function)
-    );
+    expect(document.removeEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(window.removeEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
   });
 
   test('disposeMonitoring is safe to call multiple times', () => {
@@ -173,7 +175,7 @@ describe('monitoring.js', () => {
 
       onVitalReport({ name: 'INP', value: 250, rating: 'needs-improvement', delta: 250 });
 
-      const call = debugSpy.mock.calls.find(c => c[0] === 'Web Vital - INP:');
+      const call = debugSpy.mock.calls.find((c) => c[0] === 'Web Vital - INP:');
       expect(call).toBeTruthy();
       expect(call[1].threshold).toBe(200);
 

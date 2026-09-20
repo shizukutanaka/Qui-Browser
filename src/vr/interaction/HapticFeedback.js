@@ -19,18 +19,9 @@ export class HapticFeedback {
       error: { duration: 100, intensity: 1.0 },
 
       // Complex patterns
-      heartbeat: [
-        { duration: 50, intensity: 0.7 },
-        { pause: 50 },
-        { duration: 50, intensity: 0.7 },
-        { pause: 500 }
-      ],
+      heartbeat: [{ duration: 50, intensity: 0.7 }, { pause: 50 }, { duration: 50, intensity: 0.7 }, { pause: 500 }],
 
-      notification: [
-        { duration: 30, intensity: 0.5 },
-        { pause: 30 },
-        { duration: 30, intensity: 0.5 }
-      ],
+      notification: [{ duration: 30, intensity: 0.5 }, { pause: 30 }, { duration: 30, intensity: 0.5 }],
 
       success: [
         { duration: 20, intensity: 0.4 },
@@ -141,9 +132,7 @@ export class HapticFeedback {
       this.stats.pulsesGenerated++;
       this.stats.totalDuration += duration;
       this.stats.averageIntensity =
-        (this.stats.averageIntensity * (this.stats.pulsesGenerated - 1) + intensity) /
-        this.stats.pulsesGenerated;
-
+        (this.stats.averageIntensity * (this.stats.pulsesGenerated - 1) + intensity) / this.stats.pulsesGenerated;
     } catch (error) {
       console.warn('HapticFeedback: Pulse failed', error);
     }
@@ -276,16 +265,8 @@ export class HapticFeedback {
   async directionalPulse(hand, direction) {
     // Different patterns for different directions
     const patterns = {
-      up: [
-        { duration: 20, intensity: 0.3 },
-        { pause: 10 },
-        { duration: 30, intensity: 0.6 }
-      ],
-      down: [
-        { duration: 30, intensity: 0.6 },
-        { pause: 10 },
-        { duration: 20, intensity: 0.3 }
-      ],
+      up: [{ duration: 20, intensity: 0.3 }, { pause: 10 }, { duration: 30, intensity: 0.6 }],
+      down: [{ duration: 30, intensity: 0.6 }, { pause: 10 }, { duration: 20, intensity: 0.3 }],
       left: { duration: 40, intensity: 0.5 },
       right: { duration: 40, intensity: 0.5 }
     };
@@ -336,12 +317,8 @@ export class HapticFeedback {
 
     // Play on both hands for alerts
     await Promise.all([
-      typeof pattern === 'string'
-        ? this.playPattern('left', pattern)
-        : this.playCustomSequence('left', pattern),
-      typeof pattern === 'string'
-        ? this.playPattern('right', pattern)
-        : this.playCustomSequence('right', pattern)
+      typeof pattern === 'string' ? this.playPattern('left', pattern) : this.playCustomSequence('left', pattern),
+      typeof pattern === 'string' ? this.playPattern('right', pattern) : this.playCustomSequence('right', pattern)
     ]);
   }
 
@@ -408,7 +385,7 @@ export class HapticFeedback {
    * Utility: Wait for specified duration
    */
   wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

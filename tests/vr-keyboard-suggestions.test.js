@@ -11,10 +11,18 @@
  * headlessly (same conventions as caption-system.test.js).
  */
 
-class MockGeometry { dispose() { this.disposed = true; } }
+class MockGeometry {
+  dispose() {
+    this.disposed = true;
+  }
+}
 class MockMaterial {
-  constructor(o = {}) { Object.assign(this, o); }
-  dispose() { this.disposed = true; }
+  constructor(o = {}) {
+    Object.assign(this, o);
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 class MockMesh {
   constructor(geometry, material) {
@@ -36,13 +44,25 @@ class MockGroup {
     this.rotation = { x: 0 };
     this.children = [];
   }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter(c => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter((c) => c !== o);
+  }
+  traverse(fn) {
+    fn(this);
+    this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
-  dispose() { this.disposed = true; }
+  constructor() {
+    this.needsUpdate = false;
+    this.colorSpace = '';
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 
 jest.mock('three', () => ({
@@ -56,8 +76,16 @@ jest.mock('three', () => ({
 
 // Canvas 2D context stub.
 const ctx2d = {
-  clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(), strokeRect: jest.fn(),
-  fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: ''
+  clearRect: jest.fn(),
+  fillRect: jest.fn(),
+  fillText: jest.fn(),
+  strokeRect: jest.fn(),
+  fillStyle: '',
+  strokeStyle: '',
+  lineWidth: 0,
+  font: '',
+  textAlign: '',
+  textBaseline: ''
 };
 global.document = {
   createElement: () => ({ width: 0, height: 0, getContext: () => ctx2d })
@@ -65,8 +93,12 @@ global.document = {
 global.URL = URL;
 
 const { textWidthEm } = require('../src/vr/ui/textWrap.js');
-const { JapaneseIME, VRJapaneseKeyboard, suggestionLabel, SUGGESTION_MEASURE_EM } =
-  require('../src/vr/input/JapaneseIME.js');
+const {
+  JapaneseIME,
+  VRJapaneseKeyboard,
+  suggestionLabel,
+  SUGGESTION_MEASURE_EM
+} = require('../src/vr/input/JapaneseIME.js');
 
 function makeKeyboard(opts = {}) {
   const scene = { add: jest.fn(), remove: jest.fn() };
@@ -82,13 +114,12 @@ function makeKeyboard(opts = {}) {
 
 /** The interactable registrations belonging to suggestion buttons only. */
 function suggestionRegs(kb, registered) {
-  return registered.filter(r => kb._suggestionMeshes.some(s => s.mesh === r.mesh));
+  return registered.filter((r) => kb._suggestionMeshes.some((s) => s.mesh === r.mesh));
 }
 
 describe('suggestionLabel (pure)', () => {
   test('prefers the page title', () => {
-    expect(suggestionLabel({ url: 'https://example.com/x', title: 'Example Site' }))
-      .toBe('Example Site');
+    expect(suggestionLabel({ url: 'https://example.com/x', title: 'Example Site' })).toBe('Example Site');
   });
 
   test('falls back to the hostname when there is no title', () => {
@@ -127,13 +158,13 @@ describe('suggestionLabel (pure)', () => {
     });
 
     test('a mixed title fits the button', () => {
-      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: 'WebXRの仕様とMDNドキュメント' })))
-        .toBeLessThan(BUTTON_PX);
+      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: 'WebXRの仕様とMDNドキュメント' }))).toBeLessThan(
+        BUTTON_PX
+      );
     });
 
     test('a long Japanese hostname fallback also fits', () => {
-      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: '' })))
-        .toBeLessThan(BUTTON_PX);
+      expect(widthPx(suggestionLabel({ url: 'https://a.jp', title: '' }))).toBeLessThan(BUTTON_PX);
     });
 
     test('a truncated Japanese label keeps the ellipsis and no mojibake', () => {
@@ -198,7 +229,9 @@ describe('VRJapaneseKeyboard suggestion row', () => {
   });
 
   test('a provider that throws does not break typing (degrades to no suggestions)', async () => {
-    const provider = jest.fn(() => { throw new Error('storage exploded'); });
+    const provider = jest.fn(() => {
+      throw new Error('storage exploded');
+    });
     const { kb } = makeKeyboard({ suggestionProvider: provider });
 
     await kb.onKeyPress('g');

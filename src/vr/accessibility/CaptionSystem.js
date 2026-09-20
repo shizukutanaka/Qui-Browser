@@ -16,13 +16,17 @@
 
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
+import { wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm } from '../ui/textWrap.js';
 import {
-  wrapTextToLines, wrapTextToWidth, truncateToWidth, textWidthEm, charWidthEm
-} from '../ui/textWrap.js';
-import {
-  CAPTION_PANEL_W, CAPTION_PANEL_H, CAPTION_CANVAS_W, CAPTION_CANVAS_H,
-  CAPTION_PAD, CAPTION_H_PAD, MAX_ROWS_PER_LINE,
-  captionMeasureEm, captionFontSizeFor
+  CAPTION_PANEL_W,
+  CAPTION_PANEL_H,
+  CAPTION_CANVAS_W,
+  CAPTION_CANVAS_H,
+  CAPTION_PAD,
+  CAPTION_H_PAD,
+  MAX_ROWS_PER_LINE,
+  captionMeasureEm,
+  captionFontSizeFor
 } from './captionLayout.js';
 
 // Geometry and budgets live in the pure captionLayout module so the real
@@ -45,8 +49,8 @@ const H_PAD = CAPTION_H_PAD;
  * figure. A single fixed hold time therefore cannot serve both scripts — which
  * is exactly what this system used to do (a flat 5 s for every caption).
  */
-export const CPS_FULLWIDTH = 4;   // Japanese / Chinese / Korean — 1 em glyphs
-export const CPS_HALFWIDTH = 17;  // Latin-script — ~0.5 em glyphs
+export const CPS_FULLWIDTH = 4; // Japanese / Chinese / Korean — 1 em glyphs
+export const CPS_HALFWIDTH = 17; // Latin-script — ~0.5 em glyphs
 
 /**
  * Time (ms) a reader needs for `text`, summed per character by width class.
@@ -59,9 +63,7 @@ export const CPS_HALFWIDTH = 17;  // Latin-script — ~0.5 em glyphs
 export function readingTimeMs(text) {
   let seconds = 0;
   for (const ch of String(text === null || text === undefined ? '' : text)) {
-    seconds += charWidthEm(ch.codePointAt(0)) === 1
-      ? 1 / CPS_FULLWIDTH
-      : 1 / CPS_HALFWIDTH;
+    seconds += charWidthEm(ch.codePointAt(0)) === 1 ? 1 / CPS_FULLWIDTH : 1 / CPS_HALFWIDTH;
   }
   return Math.round(seconds * 1000);
 }
@@ -91,8 +93,17 @@ export class CaptionSystem {
    *   region for 2D/assistive-tech users) from one choke point instead of
    *   duplicating it at every call site.
    */
-  constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false,
-    verticalOffset = CAPTION_OFFSET_DEFAULT, onShow = null } = {}) {
+  constructor(
+    camera,
+    {
+      maxLines = 3,
+      lineDuration = 5000,
+      scale = 1,
+      highContrast = false,
+      verticalOffset = CAPTION_OFFSET_DEFAULT,
+      onShow = null
+    } = {}
+  ) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
@@ -113,7 +124,7 @@ export class CaptionSystem {
 
   _buildPanel() {
     this.canvas = document.createElement('canvas');
-    this.canvas.width  = CANVAS_W;
+    this.canvas.width = CANVAS_W;
     this.canvas.height = CANVAS_H;
     this.texture = configureUITexture(new THREE.CanvasTexture(this.canvas));
     if ('colorSpace' in this.texture) {
@@ -122,7 +133,9 @@ export class CaptionSystem {
 
     const geo = new THREE.PlaneGeometry(PANEL_W, PANEL_H);
     const mat = new THREE.MeshBasicMaterial({
-      map: this.texture, transparent: true, depthTest: false
+      map: this.texture,
+      transparent: true,
+      depthTest: false
     });
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.name = 'captionPanel';
@@ -284,7 +297,7 @@ export class CaptionSystem {
       line.remaining -= dtMs;
     }
     const before = this._lines.length;
-    this._lines = this._lines.filter(l => l.remaining > 0);
+    this._lines = this._lines.filter((l) => l.remaining > 0);
     if (this._lines.length !== before) {
       changed = true;
     }

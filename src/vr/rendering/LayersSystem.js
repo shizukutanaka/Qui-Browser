@@ -19,10 +19,10 @@ export class LayersSystem {
   constructor() {
     this.supported = false;
     /** @type {XRWebGLBinding|null} */
-    this.glBinding   = null;
-    this._gl         = null;
+    this.glBinding = null;
+    this._gl = null;
     /** @type {Map<string, XRQuadLayer>} */
-    this._layers     = new Map();
+    this._layers = new Map();
     this._blitWarned = false;
   }
 
@@ -57,9 +57,9 @@ export class LayersSystem {
 
   dispose() {
     this._layers.clear();
-    this.glBinding   = null;
-    this._gl         = null;
-    this.supported   = false;
+    this.glBinding = null;
+    this._gl = null;
+    this.supported = false;
     this._blitWarned = false;
   }
 
@@ -78,8 +78,7 @@ export class LayersSystem {
    * @param {number}           [opts.pixelHeight]  — texture resolution y  (default 1280)
    * @returns {XRQuadLayer|null}  null when unsupported or on error
    */
-  createQuadLayer({ id, space, transform, width, height,
-    pixelWidth = 2048, pixelHeight = 1280 }) {
+  createQuadLayer({ id, space, transform, width, height, pixelWidth = 2048, pixelHeight = 1280 }) {
     if (!this.supported || !this.glBinding) {
       return null;
     }
@@ -87,13 +86,13 @@ export class LayersSystem {
     try {
       const layer = this.glBinding.createQuadLayer({
         space,
-        colorFormat : 0x8058, // GL_RGBA8
+        colorFormat: 0x8058, // GL_RGBA8
         width,
         height,
-        viewPixelWidth  : pixelWidth,
-        viewPixelHeight : pixelHeight,
-        layout   : 'mono',
-        isStatic : false
+        viewPixelWidth: pixelWidth,
+        viewPixelHeight: pixelHeight,
+        layout: 'mono',
+        isStatic: false
       });
       if (transform) {
         layer.transform = transform;
@@ -148,12 +147,10 @@ export class LayersSystem {
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sub.framebuffer);
-        gl.viewport(sub.viewport.x, sub.viewport.y,
-          sub.viewport.width, sub.viewport.height);
+        gl.viewport(sub.viewport.x, sub.viewport.y, sub.viewport.width, sub.viewport.height);
         // Upload the canvas pixels into the layer's backing texture.
         gl.bindTexture(gl.TEXTURE_2D, sub.colorTexture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0,
-          gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
       }
     } catch (e) {
       if (!this._blitWarned) {
@@ -183,7 +180,7 @@ export class LayersSystem {
     if (!session || !this.supported) {
       return;
     }
-    const quads  = [...this._layers.values()];
+    const quads = [...this._layers.values()];
     const layers = baseLayer ? [baseLayer, ...quads] : quads;
     try {
       session.updateRenderState({ layers });

@@ -8,10 +8,16 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
-  computeKeyLayout, keyboardBounds,
-  SUGGESTION_BTN_PX_W, SUGGESTION_BTN_PX_H, SUGGESTION_LABEL_FONT_PX,
-  SUGGESTION_MEASURE_EM, COMPOSITION_BADGE_W, COMPOSITION_MEASURE_EM,
-  imeBadgeColors, imeColors
+  computeKeyLayout,
+  keyboardBounds,
+  SUGGESTION_BTN_PX_W,
+  SUGGESTION_BTN_PX_H,
+  SUGGESTION_LABEL_FONT_PX,
+  SUGGESTION_MEASURE_EM,
+  COMPOSITION_BADGE_W,
+  COMPOSITION_MEASURE_EM,
+  imeBadgeColors,
+  imeColors
 } from './keyboardLayout.js';
 
 // Re-exported so existing importers (and tests) keep their import site.
@@ -60,67 +66,155 @@ export class JapaneseIME {
   buildRomajiMap() {
     return {
       // Vowels
-      'a': 'あ', 'i': 'い', 'u': 'う', 'e': 'え', 'o': 'お',
+      a: 'あ',
+      i: 'い',
+      u: 'う',
+      e: 'え',
+      o: 'お',
 
       // K series
-      'ka': 'か', 'ki': 'き', 'ku': 'く', 'ke': 'け', 'ko': 'こ',
-      'kya': 'きゃ', 'kyu': 'きゅ', 'kyo': 'きょ',
+      ka: 'か',
+      ki: 'き',
+      ku: 'く',
+      ke: 'け',
+      ko: 'こ',
+      kya: 'きゃ',
+      kyu: 'きゅ',
+      kyo: 'きょ',
 
       // G series
-      'ga': 'が', 'gi': 'ぎ', 'gu': 'ぐ', 'ge': 'げ', 'go': 'ご',
-      'gya': 'ぎゃ', 'gyu': 'ぎゅ', 'gyo': 'ぎょ',
+      ga: 'が',
+      gi: 'ぎ',
+      gu: 'ぐ',
+      ge: 'げ',
+      go: 'ご',
+      gya: 'ぎゃ',
+      gyu: 'ぎゅ',
+      gyo: 'ぎょ',
 
       // S series
-      'sa': 'さ', 'shi': 'し', 'su': 'す', 'se': 'せ', 'so': 'そ',
-      'sha': 'しゃ', 'shu': 'しゅ', 'sho': 'しょ',
+      sa: 'さ',
+      shi: 'し',
+      su: 'す',
+      se: 'せ',
+      so: 'そ',
+      sha: 'しゃ',
+      shu: 'しゅ',
+      sho: 'しょ',
 
       // Z series
-      'za': 'ざ', 'ji': 'じ', 'zu': 'ず', 'ze': 'ぜ', 'zo': 'ぞ',
-      'ja': 'じゃ', 'ju': 'じゅ', 'jo': 'じょ',
+      za: 'ざ',
+      ji: 'じ',
+      zu: 'ず',
+      ze: 'ぜ',
+      zo: 'ぞ',
+      ja: 'じゃ',
+      ju: 'じゅ',
+      jo: 'じょ',
 
       // T series
-      'ta': 'た', 'chi': 'ち', 'tsu': 'つ', 'te': 'て', 'to': 'と',
-      'cha': 'ちゃ', 'chu': 'ちゅ', 'cho': 'ちょ',
+      ta: 'た',
+      chi: 'ち',
+      tsu: 'つ',
+      te: 'て',
+      to: 'と',
+      cha: 'ちゃ',
+      chu: 'ちゅ',
+      cho: 'ちょ',
 
       // D series
-      'da': 'だ', 'di': 'ぢ', 'du': 'づ', 'de': 'で', 'do': 'ど',
+      da: 'だ',
+      di: 'ぢ',
+      du: 'づ',
+      de: 'で',
+      do: 'ど',
 
       // N series
-      'na': 'な', 'ni': 'に', 'nu': 'ぬ', 'ne': 'ね', 'no': 'の',
-      'nya': 'にゃ', 'nyu': 'にゅ', 'nyo': 'にょ',
+      na: 'な',
+      ni: 'に',
+      nu: 'ぬ',
+      ne: 'ね',
+      no: 'の',
+      nya: 'にゃ',
+      nyu: 'にゅ',
+      nyo: 'にょ',
 
       // H series
-      'ha': 'は', 'hi': 'ひ', 'fu': 'ふ', 'he': 'へ', 'ho': 'ほ',
-      'hya': 'ひゃ', 'hyu': 'ひゅ', 'hyo': 'ひょ',
+      ha: 'は',
+      hi: 'ひ',
+      fu: 'ふ',
+      he: 'へ',
+      ho: 'ほ',
+      hya: 'ひゃ',
+      hyu: 'ひゅ',
+      hyo: 'ひょ',
 
       // B series
-      'ba': 'ば', 'bi': 'び', 'bu': 'ぶ', 'be': 'べ', 'bo': 'ぼ',
-      'bya': 'びゃ', 'byu': 'びゅ', 'byo': 'びょ',
+      ba: 'ば',
+      bi: 'び',
+      bu: 'ぶ',
+      be: 'べ',
+      bo: 'ぼ',
+      bya: 'びゃ',
+      byu: 'びゅ',
+      byo: 'びょ',
 
       // P series
-      'pa': 'ぱ', 'pi': 'ぴ', 'pu': 'ぷ', 'pe': 'ぺ', 'po': 'ぽ',
-      'pya': 'ぴゃ', 'pyu': 'ぴゅ', 'pyo': 'ぴょ',
+      pa: 'ぱ',
+      pi: 'ぴ',
+      pu: 'ぷ',
+      pe: 'ぺ',
+      po: 'ぽ',
+      pya: 'ぴゃ',
+      pyu: 'ぴゅ',
+      pyo: 'ぴょ',
 
       // M series
-      'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'も',
-      'mya': 'みゃ', 'myu': 'みゅ', 'myo': 'みょ',
+      ma: 'ま',
+      mi: 'み',
+      mu: 'む',
+      me: 'め',
+      mo: 'も',
+      mya: 'みゃ',
+      myu: 'みゅ',
+      myo: 'みょ',
 
       // Y series
-      'ya': 'や', 'yu': 'ゆ', 'yo': 'よ',
+      ya: 'や',
+      yu: 'ゆ',
+      yo: 'よ',
 
       // R series
-      'ra': 'ら', 'ri': 'り', 'ru': 'る', 're': 'れ', 'ro': 'ろ',
-      'rya': 'りゃ', 'ryu': 'りゅ', 'ryo': 'りょ',
+      ra: 'ら',
+      ri: 'り',
+      ru: 'る',
+      re: 'れ',
+      ro: 'ろ',
+      rya: 'りゃ',
+      ryu: 'りゅ',
+      ryo: 'りょ',
 
       // W series
-      'wa': 'わ', 'wi': 'ゐ', 'we': 'ゑ', 'wo': 'を', 'n': 'ん',
+      wa: 'わ',
+      wi: 'ゐ',
+      we: 'ゑ',
+      wo: 'を',
+      n: 'ん',
 
       // Small characters
-      'xa': 'ぁ', 'xi': 'ぃ', 'xu': 'ぅ', 'xe': 'ぇ', 'xo': 'ぉ',
-      'xya': 'ゃ', 'xyu': 'ゅ', 'xyo': 'ょ', 'xtu': 'っ', 'xtsu': 'っ',
+      xa: 'ぁ',
+      xi: 'ぃ',
+      xu: 'ぅ',
+      xe: 'ぇ',
+      xo: 'ぉ',
+      xya: 'ゃ',
+      xyu: 'ゅ',
+      xyo: 'ょ',
+      xtu: 'っ',
+      xtsu: 'っ',
 
       // Special combinations
-      'nn': 'ん',
+      nn: 'ん',
       '-': 'ー'
     };
   }
@@ -131,7 +225,7 @@ export class JapaneseIME {
   buildKatakanaMap() {
     const map = {};
     const hiraganaStart = 0x3041;
-    const katakanaStart = 0x30A1;
+    const katakanaStart = 0x30a1;
 
     for (let i = 0; i < 96; i++) {
       const hiragana = String.fromCharCode(hiraganaStart + i);
@@ -169,8 +263,7 @@ export class JapaneseIME {
       // excluded — it is syllabic ん, handled below, not a small っ.
       // 'c' is included so that 'cc' before 'ch' (ecchi → えっち, kocchi → こっち)
       // is recognised; 'cc' before a non-h is not valid romaji and stays as-is.
-      if (buffer.length === 2 && buffer[0] === buffer[1] &&
-          'kgsztdhbpmyrc'.includes(buffer[0])) {
+      if (buffer.length === 2 && buffer[0] === buffer[1] && 'kgsztdhbpmyrc'.includes(buffer[0])) {
         result += 'っ';
         buffer = buffer[1];
         continue;
@@ -192,7 +285,7 @@ export class JapaneseIME {
           continue; // form な/に/にゃ… on the following iterations
         }
         if (next === 'n') {
-          const after = (i + 2 < romaji.length) ? romaji[i + 2].toLowerCase() : '';
+          const after = i + 2 < romaji.length ? romaji[i + 2].toLowerCase() : '';
           result += 'ん';
           buffer = '';
           if (!isVowelOrY(after)) {
@@ -275,7 +368,7 @@ export class JapaneseIME {
         response = await fetch(`${this.apiEndpoint}?${params}`, {
           method: 'GET',
           headers: {
-            'Accept': 'application/json'
+            Accept: 'application/json'
           },
           signal: controller.signal
         });
@@ -297,14 +390,12 @@ export class JapaneseIME {
         const conversionTime = performance.now() - startTime;
         this.stats.conversions++;
         this.stats.averageConversionTime =
-          (this.stats.averageConversionTime * (this.stats.conversions - 1) + conversionTime) /
-          this.stats.conversions;
+          (this.stats.averageConversionTime * (this.stats.conversions - 1) + conversionTime) / this.stats.conversions;
 
         return candidates.slice(0, 10); // Return top 10 candidates
       }
 
       return [hiragana]; // Return original if no candidates
-
     } catch (error) {
       console.error('JapaneseIME: Kanji conversion failed', error);
 
@@ -320,178 +411,178 @@ export class JapaneseIME {
     // Common word dictionary for offline use (~200 entries)
     const commonWords = {
       // Greetings & phrases
-      'こんにちは': ['今日は', 'こんにちは'],
-      'こんばんは': ['今晩は'],
-      'おはよう': ['お早う', 'おはよう'],
-      'おはようございます': ['お早うございます'],
-      'ありがとう': ['有り難う', 'ありがとう'],
-      'ありがとうございます': ['有り難うございます'],
-      'すみません': ['済みません', 'すみません'],
-      'ごめんなさい': ['御免なさい'],
-      'はい': ['はい', '灰', '肺'],
-      'いいえ': ['いいえ'],
-      'よろしく': ['宜しく'],
-      'おねがいします': ['お願いします'],
-      'さようなら': ['さようなら'],
-      'またね': ['また、ね', '又ね'],
-      'おやすみ': ['お休み'],
+      こんにちは: ['今日は', 'こんにちは'],
+      こんばんは: ['今晩は'],
+      おはよう: ['お早う', 'おはよう'],
+      おはようございます: ['お早うございます'],
+      ありがとう: ['有り難う', 'ありがとう'],
+      ありがとうございます: ['有り難うございます'],
+      すみません: ['済みません', 'すみません'],
+      ごめんなさい: ['御免なさい'],
+      はい: ['はい', '灰', '肺'],
+      いいえ: ['いいえ'],
+      よろしく: ['宜しく'],
+      おねがいします: ['お願いします'],
+      さようなら: ['さようなら'],
+      またね: ['また、ね', '又ね'],
+      おやすみ: ['お休み'],
       // Pronouns & common nouns
-      'わたし': ['私', '渡し'],
-      'わたしたち': ['私たち'],
-      'あなた': ['あなた', '貴方'],
-      'かれ': ['彼', '彼れ'],
-      'かのじょ': ['彼女'],
-      'みんな': ['皆', '皆な'],
-      'ひと': ['人', '一'],
-      'こども': ['子供', '子ども'],
-      'おとな': ['大人'],
-      'ともだち': ['友達', '友人'],
-      'かぞく': ['家族'],
-      'ちち': ['父', '乳'],
-      'はは': ['母', '波波'],
-      'おとうさん': ['お父さん'],
-      'おかあさん': ['お母さん'],
+      わたし: ['私', '渡し'],
+      わたしたち: ['私たち'],
+      あなた: ['あなた', '貴方'],
+      かれ: ['彼', '彼れ'],
+      かのじょ: ['彼女'],
+      みんな: ['皆', '皆な'],
+      ひと: ['人', '一'],
+      こども: ['子供', '子ども'],
+      おとな: ['大人'],
+      ともだち: ['友達', '友人'],
+      かぞく: ['家族'],
+      ちち: ['父', '乳'],
+      はは: ['母', '波波'],
+      おとうさん: ['お父さん'],
+      おかあさん: ['お母さん'],
       // Time
-      'きょう': ['今日', '京', '強'],
-      'あした': ['明日', '明日'],
-      'きのう': ['昨日'],
-      'いま': ['今', '居ま'],
-      'じかん': ['時間'],
-      'ねん': ['年', '念', '燃'],
-      'つき': ['月', '付き', '槻'],
-      'ひ': ['日', '火', '費', '妃'],
-      'あさ': ['朝', '麻', '浅'],
-      'よる': ['夜', '寄る'],
-      'ごご': ['午後'],
-      'ごぜん': ['午前'],
+      きょう: ['今日', '京', '強'],
+      あした: ['明日', '明日'],
+      きのう: ['昨日'],
+      いま: ['今', '居ま'],
+      じかん: ['時間'],
+      ねん: ['年', '念', '燃'],
+      つき: ['月', '付き', '槻'],
+      ひ: ['日', '火', '費', '妃'],
+      あさ: ['朝', '麻', '浅'],
+      よる: ['夜', '寄る'],
+      ごご: ['午後'],
+      ごぜん: ['午前'],
       // Places
-      'にほん': ['日本', '二本'],
-      'とうきょう': ['東京'],
-      'おおさか': ['大阪'],
-      'がっこう': ['学校'],
-      'うち': ['家', '内', '打ち'],
-      'みせ': ['店', '見せ'],
-      'えき': ['駅', '液', '易'],
-      'びょういん': ['病院'],
-      'ぎんこう': ['銀行'],
-      'としょかん': ['図書館'],
-      'こうえん': ['公園', '講演', '公演'],
-      'かいしゃ': ['会社'],
+      にほん: ['日本', '二本'],
+      とうきょう: ['東京'],
+      おおさか: ['大阪'],
+      がっこう: ['学校'],
+      うち: ['家', '内', '打ち'],
+      みせ: ['店', '見せ'],
+      えき: ['駅', '液', '易'],
+      びょういん: ['病院'],
+      ぎんこう: ['銀行'],
+      としょかん: ['図書館'],
+      こうえん: ['公園', '講演', '公演'],
+      かいしゃ: ['会社'],
       // Actions (verbs — plain / て-form common roots)
-      'いる': ['要る', '居る', '入る'],
-      'ある': ['有る', '在る', '或る'],
-      'する': ['する', '刷る'],
-      'くる': ['来る', '繰る'],
-      'いく': ['行く', '逝く'],
-      'みる': ['見る', '観る'],
-      'きく': ['聞く', '聴く', '効く'],
-      'はなす': ['話す', '放す'],
-      'よむ': ['読む'],
-      'かく': ['書く', '描く', '欠く'],
-      'たべる': ['食べる'],
-      'のむ': ['飲む', '呑む'],
-      'かう': ['買う', '飼う', '交う'],
-      'うる': ['売る', '得る'],
-      'くれる': ['呉れる'],
-      'あげる': ['上げる', '揚げる'],
-      'もらう': ['貰う'],
-      'おもう': ['思う'],
-      'しる': ['知る'],
-      'わかる': ['分かる', '解る'],
-      'できる': ['出来る'],
-      'なる': ['成る', '鳴る', '慣る'],
-      'みえる': ['見える'],
-      'きこえる': ['聞こえる'],
+      いる: ['要る', '居る', '入る'],
+      ある: ['有る', '在る', '或る'],
+      する: ['する', '刷る'],
+      くる: ['来る', '繰る'],
+      いく: ['行く', '逝く'],
+      みる: ['見る', '観る'],
+      きく: ['聞く', '聴く', '効く'],
+      はなす: ['話す', '放す'],
+      よむ: ['読む'],
+      かく: ['書く', '描く', '欠く'],
+      たべる: ['食べる'],
+      のむ: ['飲む', '呑む'],
+      かう: ['買う', '飼う', '交う'],
+      うる: ['売る', '得る'],
+      くれる: ['呉れる'],
+      あげる: ['上げる', '揚げる'],
+      もらう: ['貰う'],
+      おもう: ['思う'],
+      しる: ['知る'],
+      わかる: ['分かる', '解る'],
+      できる: ['出来る'],
+      なる: ['成る', '鳴る', '慣る'],
+      みえる: ['見える'],
+      きこえる: ['聞こえる'],
       // Adjectives
-      'おおきい': ['大きい'],
-      'ちいさい': ['小さい'],
-      'たかい': ['高い', '貴い'],
-      'やすい': ['安い', '易い'],
-      'あたらしい': ['新しい'],
-      'ふるい': ['古い'],
-      'いい': ['良い', '好い'],
-      'わるい': ['悪い'],
-      'おもしろい': ['面白い'],
-      'たのしい': ['楽しい'],
-      'かわいい': ['可愛い'],
-      'きれい': ['綺麗', 'きれい'],
-      'むずかしい': ['難しい'],
-      'やさしい': ['優しい', '易しい'],
-      'はやい': ['速い', '早い'],
-      'おそい': ['遅い'],
-      'おおい': ['多い'],
-      'すくない': ['少ない'],
-      'あかい': ['赤い'],
-      'あおい': ['青い', '蒼い'],
-      'しろい': ['白い'],
-      'くろい': ['黒い'],
+      おおきい: ['大きい'],
+      ちいさい: ['小さい'],
+      たかい: ['高い', '貴い'],
+      やすい: ['安い', '易い'],
+      あたらしい: ['新しい'],
+      ふるい: ['古い'],
+      いい: ['良い', '好い'],
+      わるい: ['悪い'],
+      おもしろい: ['面白い'],
+      たのしい: ['楽しい'],
+      かわいい: ['可愛い'],
+      きれい: ['綺麗', 'きれい'],
+      むずかしい: ['難しい'],
+      やさしい: ['優しい', '易しい'],
+      はやい: ['速い', '早い'],
+      おそい: ['遅い'],
+      おおい: ['多い'],
+      すくない: ['少ない'],
+      あかい: ['赤い'],
+      あおい: ['青い', '蒼い'],
+      しろい: ['白い'],
+      くろい: ['黒い'],
       // Tech / internet vocabulary
-      'いんたーねっと': ['インターネット'],
-      'すまーとふぉん': ['スマートフォン'],
-      'ぱそこん': ['パソコン'],
-      'でんわ': ['電話', '伝話'],
-      'めーる': ['メール'],
-      'うぇぶ': ['ウェブ'],
-      'あぷり': ['アプリ'],
-      'でーた': ['データ'],
-      'ふぁいる': ['ファイル'],
-      'ぱすわーど': ['パスワード'],
-      'めにゅー': ['メニュー'],
-      'せってい': ['設定'],
-      'かくにん': ['確認'],
-      'とうろく': ['登録'],
-      'ろぐいん': ['ログイン'],
-      'ろぐあうと': ['ログアウト'],
-      'けんさく': ['検索'],
-      'ほーむぺーじ': ['ホームページ'],
+      いんたーねっと: ['インターネット'],
+      すまーとふぉん: ['スマートフォン'],
+      ぱそこん: ['パソコン'],
+      でんわ: ['電話', '伝話'],
+      めーる: ['メール'],
+      うぇぶ: ['ウェブ'],
+      あぷり: ['アプリ'],
+      でーた: ['データ'],
+      ふぁいる: ['ファイル'],
+      ぱすわーど: ['パスワード'],
+      めにゅー: ['メニュー'],
+      せってい: ['設定'],
+      かくにん: ['確認'],
+      とうろく: ['登録'],
+      ろぐいん: ['ログイン'],
+      ろぐあうと: ['ログアウト'],
+      けんさく: ['検索'],
+      ほーむぺーじ: ['ホームページ'],
       // VR / 3D
-      'ばーちゃるりありてぃ': ['バーチャルリアリティ'],
-      'VR': ['VR'],
-      'がぞう': ['画像', '画像'],
-      'どうが': ['動画'],
-      'さんじげん': ['三次元', '3次元'],
-      'あばたー': ['アバター'],
+      ばーちゃるりありてぃ: ['バーチャルリアリティ'],
+      VR: ['VR'],
+      がぞう: ['画像', '画像'],
+      どうが: ['動画'],
+      さんじげん: ['三次元', '3次元'],
+      あばたー: ['アバター'],
       // Common kanji combos
-      'あり': ['有り', '在り', '蟻'],
-      'かい': ['会', '回', '階', '海', '界'],
-      'きかい': ['機会', '機械', '器械'],
-      'さくら': ['桜', '佐倉', 'さくら'],
-      'せんせい': ['先生', '専制', '宣誓'],
-      'べんきょう': ['勉強'],
-      'みず': ['水', '見ず'],
-      'やま': ['山'],
-      'りんご': ['林檎', 'りんご', 'リンゴ'],
-      'ねこ': ['猫', 'ネコ'],
-      'いぬ': ['犬', 'イヌ'],
-      'さかな': ['魚', '肴'],
-      'くるま': ['車', '来るま'],
-      'でんしゃ': ['電車'],
-      'ひこうき': ['飛行機'],
-      'たべもの': ['食べ物'],
-      'のみもの': ['飲み物'],
-      'おちゃ': ['お茶'],
-      'みち': ['道', '未知'],
-      'そら': ['空', '宙'],
-      'うみ': ['海', '生み'],
-      'かわ': ['川', '河', '革', '皮'],
-      'はな': ['花', '鼻', '話'],
-      'き': ['木', '気', '機', '期', '記'],
-      'いえ': ['家', '言え'],
-      'かね': ['金', '鐘'],
-      'こと': ['事', '言', '琴'],
-      'もの': ['物', '者', '門'],
-      'とき': ['時', '溶き'],
-      'ところ': ['所', '処'],
-      'なまえ': ['名前'],
-      'ことば': ['言葉', '言語'],
-      'こえ': ['声', '越え'],
-      'め': ['目', '芽', '女'],
-      'て': ['手', '照'],
-      'あし': ['足', '脚', '葦'],
-      'かみ': ['神', '紙', '髪', '上'],
-      'こころ': ['心', '核'],
-      'ちから': ['力'],
-      'いのち': ['命']
+      あり: ['有り', '在り', '蟻'],
+      かい: ['会', '回', '階', '海', '界'],
+      きかい: ['機会', '機械', '器械'],
+      さくら: ['桜', '佐倉', 'さくら'],
+      せんせい: ['先生', '専制', '宣誓'],
+      べんきょう: ['勉強'],
+      みず: ['水', '見ず'],
+      やま: ['山'],
+      りんご: ['林檎', 'りんご', 'リンゴ'],
+      ねこ: ['猫', 'ネコ'],
+      いぬ: ['犬', 'イヌ'],
+      さかな: ['魚', '肴'],
+      くるま: ['車', '来るま'],
+      でんしゃ: ['電車'],
+      ひこうき: ['飛行機'],
+      たべもの: ['食べ物'],
+      のみもの: ['飲み物'],
+      おちゃ: ['お茶'],
+      みち: ['道', '未知'],
+      そら: ['空', '宙'],
+      うみ: ['海', '生み'],
+      かわ: ['川', '河', '革', '皮'],
+      はな: ['花', '鼻', '話'],
+      き: ['木', '気', '機', '期', '記'],
+      いえ: ['家', '言え'],
+      かね: ['金', '鐘'],
+      こと: ['事', '言', '琴'],
+      もの: ['物', '者', '門'],
+      とき: ['時', '溶き'],
+      ところ: ['所', '処'],
+      なまえ: ['名前'],
+      ことば: ['言葉', '言語'],
+      こえ: ['声', '越え'],
+      め: ['目', '芽', '女'],
+      て: ['手', '照'],
+      あし: ['足', '脚', '葦'],
+      かみ: ['神', '紙', '髪', '上'],
+      こころ: ['心', '核'],
+      ちから: ['力'],
+      いのち: ['命']
     };
 
     return commonWords[hiragana] || [hiragana];
@@ -659,8 +750,8 @@ export function candidateStyle(index, highContrast = false) {
   return {
     bg: primary ? c.candPrimaryBg : c.candBg,
     border: primary ? c.candPrimaryBorder : c.candBorder,
-    lineWidth: primary ? 9 : 5,   // primary stands out by border WEIGHT, not hue alone
-    number: String(index + 1)      // 1-based order label
+    lineWidth: primary ? 9 : 5, // primary stands out by border WEIGHT, not hue alone
+    number: String(index + 1) // 1-based order label
   };
 }
 
@@ -737,13 +828,13 @@ export class VRJapaneseKeyboard {
     this.suggestionProvider = typeof opts.suggestionProvider === 'function' ? opts.suggestionProvider : null;
 
     // 3D objects (created lazily by createKeyboard()).
-    this.group = null;          // THREE.Group holding panel + keys + display
-    this.keyMeshes = [];        // [{ mesh, label }]
+    this.group = null; // THREE.Group holding panel + keys + display
+    this.keyMeshes = []; // [{ mesh, label }]
     this._displayCanvas = null;
     this._displayTex = null;
     this._candidateMeshes = []; // live candidate button meshes (rebuilt on each showCandidates call)
     this._candidatesGroup = null; // THREE.Group added to this.group for easy show/hide
-    this._suggestionMeshes = [];  // live URL-suggestion button meshes
+    this._suggestionMeshes = []; // live URL-suggestion button meshes
     this._suggestionsGroup = null; // THREE.Group sharing the candidates' strip zone
   }
 
@@ -872,7 +963,7 @@ export class VRJapaneseKeyboard {
     ctx.lineWidth = 5;
     ctx.strokeRect(3, 3, 122, 122);
     ctx.fillStyle = active ? col.keyLabelActive : col.keyLabel;
-    ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
+    ctx.font = glyph && glyph.length > 1 ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(glyph, 64, 70);
@@ -1000,7 +1091,7 @@ export class VRJapaneseKeyboard {
     ctx.fillText(badge, w - badgeW / 2 - 4, h / 2);
 
     // Composition text
-    const text = this.ime ? (this.ime.compositionBuffer || '') : '';
+    const text = this.ime ? this.ime.compositionBuffer || '' : '';
     ctx.fillStyle = text ? col.displayText : col.displayPlaceholder;
     ctx.font = '40px monospace';
     ctx.textAlign = 'left';
@@ -1008,10 +1099,7 @@ export class VRJapaneseKeyboard {
     // Bounded to the space left of the mode badge. This was previously
     // unbounded, so a long typed URL ran under the badge and off the panel.
     const compW = w - 24 - COMPOSITION_BADGE_W - 12;
-    ctx.fillText(
-      truncateToWidth(text || 'type a URL or search…', COMPOSITION_MEASURE_EM),
-      24, h / 2, compW
-    );
+    ctx.fillText(truncateToWidth(text || 'type a URL or search…', COMPOSITION_MEASURE_EM), 24, h / 2, compW);
 
     if (this._displayTex) {
       this._displayTex.needsUpdate = true;
@@ -1051,67 +1139,67 @@ export class VRJapaneseKeyboard {
     }
 
     switch (key) {
-    case 'space': {
-      // Convert to kanji
-      const result = await this.ime.convertToKanji();
-      if (result) {
-        this.showCandidates(result.candidates);
+      case 'space': {
+        // Convert to kanji
+        const result = await this.ime.convertToKanji();
+        if (result) {
+          this.showCandidates(result.candidates);
+        }
+        break;
       }
-      break;
-    }
 
-    case '変換':
-      // Henkan key - convert to kanji
-      await this.ime.convertToKanji();
-      break;
+      case '変換':
+        // Henkan key - convert to kanji
+        await this.ime.convertToKanji();
+        break;
 
-    case 'かな':
-      // Kana key - switch to hiragana
-      this.ime.switchMode('hiragana');
-      break;
+      case 'かな':
+        // Kana key - switch to hiragana
+        this.ime.switchMode('hiragana');
+        break;
 
-    case 'enter': {
-      // Confirm selection
-      const text = this.ime.confirmSelection();
-      this.onTextConfirmed(text);
-      break;
-    }
-
-    case 'shift': {
-      // Toggle katakana mode; refresh display so the mode badge updates and
-      // retint the shift key to show its latched-on state.
-      const currentMode = this.ime.inputMode;
-      this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
-      this._refreshKeyStates();
-      this._refreshDisplay();
-      break;
-    }
-
-    case 'esc':
-      // Dismiss the keyboard without confirming — clears the buffer and
-      // any candidate/suggestion row. Fire onCancel so the host can announce
-      // the dismissal as a status message (WCAG 4.1.3 Status Messages).
-      this.ime.compositionBuffer = '';
-      this._clearCandidates();
-      this._clearSuggestions();
-      this.hide();
-      if (this.onCancel) {
-        this.onCancel();
+      case 'enter': {
+        // Confirm selection
+        const text = this.ime.confirmSelection();
+        this.onTextConfirmed(text);
+        break;
       }
-      break;
 
-    case 'back':
-      // Backspace — remove the last composed character.
-      this.updateDisplay(this.ime.deleteLast());
-      break;
-
-    default:
-      // Regular character input
-      if (key.length === 1) {
-        const processed = await this.ime.processInput(key);
-        this.updateDisplay(processed);
+      case 'shift': {
+        // Toggle katakana mode; refresh display so the mode badge updates and
+        // retint the shift key to show its latched-on state.
+        const currentMode = this.ime.inputMode;
+        this.ime.switchMode(currentMode === 'katakana' ? 'hiragana' : 'katakana');
+        this._refreshKeyStates();
+        this._refreshDisplay();
+        break;
       }
-      break;
+
+      case 'esc':
+        // Dismiss the keyboard without confirming — clears the buffer and
+        // any candidate/suggestion row. Fire onCancel so the host can announce
+        // the dismissal as a status message (WCAG 4.1.3 Status Messages).
+        this.ime.compositionBuffer = '';
+        this._clearCandidates();
+        this._clearSuggestions();
+        this.hide();
+        if (this.onCancel) {
+          this.onCancel();
+        }
+        break;
+
+      case 'back':
+        // Backspace — remove the last composed character.
+        this.updateDisplay(this.ime.deleteLast());
+        break;
+
+      default:
+        // Regular character input
+        if (key.length === 1) {
+          const processed = await this.ime.processInput(key);
+          this.updateDisplay(processed);
+        }
+        break;
     }
   }
 
@@ -1205,9 +1293,7 @@ export class VRJapaneseKeyboard {
       if (this.registerInteractable) {
         this.registerInteractable(mesh, {
           onSelect: () => {
-            const text = this.ime.selectCandidate
-              ? this.ime.selectCandidate(i)
-              : kanji;
+            const text = this.ime.selectCandidate ? this.ime.selectCandidate(i) : kanji;
             this._clearCandidates();
             this.onTextConfirmed(text || kanji);
           },
@@ -1254,7 +1340,7 @@ export class VRJapaneseKeyboard {
     }
 
     const MAX = 4;
-    const shown = entries.slice(0, MAX).filter(e => e && e.url);
+    const shown = entries.slice(0, MAX).filter((e) => e && e.url);
     if (shown.length === 0) {
       return;
     }
@@ -1436,7 +1522,8 @@ export class VRJapaneseKeyboard {
       this._displayMesh = null;
     }
     if (this._displayTex) {
-      this._displayTex.dispose(); this._displayTex = null;
+      this._displayTex.dispose();
+      this._displayTex = null;
     }
     this._displayCanvas = null;
 

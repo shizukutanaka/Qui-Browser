@@ -81,7 +81,9 @@ function parseV4(host) {
  * @returns {{blocked: boolean, reason?: string}}
  */
 export function isBlockedAddress(address) {
-  const raw = String(address === null || address === undefined ? '' : address).trim().toLowerCase();
+  const raw = String(address === null || address === undefined ? '' : address)
+    .trim()
+    .toLowerCase();
   if (!raw) {
     return { blocked: true, reason: 'empty-host' };
   }
@@ -158,7 +160,7 @@ export function assertRequestAllowed(target) {
   if (url.username || url.password) {
     return { ok: false, reason: 'credentials-in-url' };
   }
-  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80);
+  const port = url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80;
   if (!ALLOWED_PORTS.includes(port)) {
     return { ok: false, reason: `port-not-allowed:${port}` };
   }
@@ -199,7 +201,5 @@ export function safeUpstreamHeaders(headers = {}) {
  */
 export function isReadableContentType(contentType) {
   const ct = String(contentType || '').toLowerCase();
-  return ct.startsWith('text/html')
-    || ct.startsWith('application/xhtml+xml')
-    || ct.startsWith('text/plain');
+  return ct.startsWith('text/html') || ct.startsWith('application/xhtml+xml') || ct.startsWith('text/plain');
 }

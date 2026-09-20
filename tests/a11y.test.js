@@ -1,7 +1,15 @@
 /**
  * Unit tests for the accessibility preferences module.
  */
-const { getPrefs, setPref, togglePref, applyAccessibility, largeTextScale, LARGE_TEXT_SCALE, prefersHighContrast } = require('../src/a11y/accessibility.js');
+const {
+  getPrefs,
+  setPref,
+  togglePref,
+  applyAccessibility,
+  largeTextScale,
+  LARGE_TEXT_SCALE,
+  prefersHighContrast
+} = require('../src/a11y/accessibility.js');
 
 describe('src/a11y/accessibility', () => {
   test('defaults to no overrides', () => {

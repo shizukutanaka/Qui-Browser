@@ -117,7 +117,7 @@ class LazyLoadingObserver {
   createObserver() {
     this.observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
             this.loadElement(entry.target);
           }
@@ -153,7 +153,7 @@ class LazyLoadingObserver {
   observeElements(selector, type) {
     const elements = document.querySelectorAll(selector);
 
-    elements.forEach(element => {
+    elements.forEach((element) => {
       // Skip if native lazy loading is supported and enabled
       if (this.options.useNativeLazy && this.supportsNativeLazy() && type === 'image') {
         element.loading = 'lazy';
@@ -251,7 +251,8 @@ class LazyLoadingObserver {
       this.stats.loading--;
 
       // Update average load time
-      this.stats.averageLoadTime = (this.stats.averageLoadTime * (this.stats.loaded - 1) + info.loadTime) / this.stats.loaded;
+      this.stats.averageLoadTime =
+        (this.stats.averageLoadTime * (this.stats.loaded - 1) + info.loadTime) / this.stats.loaded;
 
       // Update classes
       element.classList.remove(this.options.loadingClass, this.options.placeholderClass);
@@ -271,7 +272,6 @@ class LazyLoadingObserver {
         type: info.type,
         loadTime: info.loadTime
       });
-
     } catch (error) {
       info.loading = false;
       info.error = error;
@@ -351,7 +351,7 @@ class LazyLoadingObserver {
       // Check if video has source elements
       const sources = video.querySelectorAll('source[data-src]');
       if (sources.length > 0) {
-        sources.forEach(source => {
+        sources.forEach((source) => {
           source.src = source.getAttribute('data-src');
           source.removeAttribute('data-src');
         });
@@ -446,7 +446,7 @@ class LazyLoadingObserver {
    */
   loadAllImmediately() {
     const images = document.querySelectorAll(this.options.imageSelector);
-    images.forEach(img => {
+    images.forEach((img) => {
       const src = img.getAttribute('data-src') || img.getAttribute('data-lazy');
       if (src) {
         img.src = src;
@@ -454,7 +454,7 @@ class LazyLoadingObserver {
     });
 
     const videos = document.querySelectorAll(this.options.videoSelector);
-    videos.forEach(video => {
+    videos.forEach((video) => {
       const src = video.getAttribute('data-src');
       if (src) {
         video.src = src;
@@ -462,7 +462,7 @@ class LazyLoadingObserver {
     });
 
     const iframes = document.querySelectorAll(this.options.iframeSelector);
-    iframes.forEach(iframe => {
+    iframes.forEach((iframe) => {
       const src = iframe.getAttribute('data-src');
       if (src) {
         iframe.src = src;
@@ -475,8 +475,8 @@ class LazyLoadingObserver {
    */
   setupMutationObserver() {
     const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if node itself is lazy element
             if (this.isLazyElement(node)) {
@@ -532,16 +532,16 @@ class LazyLoadingObserver {
     const elements = [];
 
     const images = container.querySelectorAll(this.options.imageSelector);
-    images.forEach(el => elements.push({ element: el, type: 'image' }));
+    images.forEach((el) => elements.push({ element: el, type: 'image' }));
 
     const videos = container.querySelectorAll(this.options.videoSelector);
-    videos.forEach(el => elements.push({ element: el, type: 'video' }));
+    videos.forEach((el) => elements.push({ element: el, type: 'video' }));
 
     const iframes = container.querySelectorAll(this.options.iframeSelector);
-    iframes.forEach(el => elements.push({ element: el, type: 'iframe' }));
+    iframes.forEach((el) => elements.push({ element: el, type: 'iframe' }));
 
     const bgs = container.querySelectorAll(this.options.bgSelector);
-    bgs.forEach(el => elements.push({ element: el, type: 'background' }));
+    bgs.forEach((el) => elements.push({ element: el, type: 'background' }));
 
     return elements;
   }
@@ -564,12 +564,8 @@ class LazyLoadingObserver {
     return {
       ...this.stats,
       pending: this.stats.totalElements - this.stats.loaded - this.stats.errors,
-      loadRate: this.stats.totalElements > 0
-        ? (this.stats.loaded / this.stats.totalElements) * 100
-        : 0,
-      errorRate: this.stats.totalElements > 0
-        ? (this.stats.errors / this.stats.totalElements) * 100
-        : 0,
+      loadRate: this.stats.totalElements > 0 ? (this.stats.loaded / this.stats.totalElements) * 100 : 0,
+      errorRate: this.stats.totalElements > 0 ? (this.stats.errors / this.stats.totalElements) * 100 : 0,
       bytesSavedMB: (this.stats.bytesSaved / (1024 * 1024)).toFixed(2),
       averageLoadTimeMs: Math.round(this.stats.averageLoadTime)
     };

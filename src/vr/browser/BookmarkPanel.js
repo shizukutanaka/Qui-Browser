@@ -10,10 +10,23 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
-  SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
-  hitTest, uvToPixels, truncate,
-  ROW_TEXT_X, ROW_TEXT_W, ROW_TITLE_EM, ROW_URL_EM,
+  PANEL_PX_W,
+  PANEL_PX_H,
+  HEADER_H,
+  ROW_H,
+  VISIBLE_ROWS,
+  DELETE_ZONE_W,
+  SCROLL_UP_X0,
+  SCROLL_UP_X1,
+  SCROLL_DN_X0,
+  SCROLL_DN_X1,
+  hitTest,
+  uvToPixels,
+  truncate,
+  ROW_TEXT_X,
+  ROW_TEXT_W,
+  ROW_TITLE_EM,
+  ROW_URL_EM,
   bookmarkPanelColors
 } from './bookmarkLayout.js';
 // Re-exported so existing importers (and tests) keep their import site while
@@ -25,8 +38,7 @@ import { t } from '../../i18n/i18n.js';
 import { truncateToWidth } from '../ui/textWrap.js';
 import { MAX_HISTORY } from '../../utils/BookmarkStore.js';
 
-
-const PANEL_W = 1.2;  // metres
+const PANEL_W = 1.2; // metres
 const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
 
 export class BookmarkPanel {
@@ -47,8 +59,18 @@ export class BookmarkPanel {
    *   normalised UV space) is unchanged; only the mesh's metre dimensions grow,
    *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect,
-    onDeleteBookmark, onTabChange, onHoverCaption, onClose, scale = 1 }) {
+  constructor({
+    scene,
+    registerInteractable,
+    unregisterInteractable,
+    store,
+    onSelect,
+    onDeleteBookmark,
+    onTabChange,
+    onHoverCaption,
+    onClose,
+    scale = 1
+  }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -69,11 +91,10 @@ export class BookmarkPanel {
     this.panelH = PANEL_H * this.scale;
 
     this.mode = 'bookmarks'; // 'bookmarks' | 'history'
-    this.scrollOffset = 0;  // index of the first visible row
+    this.scrollOffset = 0; // index of the first visible row
     this.visible = false;
 
-    this.canvas = (typeof document !== 'undefined')
-      ? document.createElement('canvas') : null;
+    this.canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
     if (this.canvas) {
       this.canvas.width = PANEL_PX_W;
       this.canvas.height = PANEL_PX_H;
@@ -128,9 +149,7 @@ export class BookmarkPanel {
     // previously meant allRows.length could never exceed VISIBLE_ROWS, so the
     // "scrollable" check in _draw() was always false and the scroll arrows
     // never appeared: only the newest page of history was ever reachable.
-    return this.mode === 'bookmarks'
-      ? this.store.getBookmarks()
-      : this.store.getHistory(MAX_HISTORY);
+    return this.mode === 'bookmarks' ? this.store.getBookmarks() : this.store.getHistory(MAX_HISTORY);
   }
 
   show() {
@@ -185,8 +204,8 @@ export class BookmarkPanel {
       return;
     }
     const local = this.mesh.worldToLocal(rawPoint.clone());
-    const u = (local.x / this.panelW) + 0.5;
-    const v = (local.y / this.panelH) + 0.5;
+    const u = local.x / this.panelW + 0.5;
+    const v = local.y / this.panelH + 0.5;
     const { px, py } = uvToPixels(u, v);
 
     const rows = this._rows();
@@ -201,53 +220,53 @@ export class BookmarkPanel {
     const action = hitTest(px, py, windowRows.length, { deleteZone, scrollZone: true });
 
     switch (action.type) {
-    case 'close':
-      this.hide();
-      if (this.onClose) {
-        this.onClose();
-      }
-      break;
-    case 'tab':
-      this.setMode(action.tab);
-      if (this.onTabChange) {
-        this.onTabChange(action.tab);
-      }
-      break;
-    case 'scrollUp':
-      if (this.scrollOffset > 0) {
-        this.scrollOffset--;
-        this._draw();
-      }
-      break;
-    case 'scrollDown':
-      if (this.scrollOffset + VISIBLE_ROWS < rows.length) {
-        this.scrollOffset++;
-        this._draw();
-      }
-      break;
-    case 'row': {
-      const entry = rows[this.scrollOffset + action.index];
-      if (entry && entry.url) {
-        this.onSelect(entry.url);
+      case 'close':
         this.hide();
-      }
-      break;
-    }
-    case 'deleteRow': {
-      const entry = rows[this.scrollOffset + action.index];
-      if (entry && entry.url) {
-        this.store.removeBookmark(entry.url);
-        // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
-        this._clampScroll(this._rows().length);
-        this._draw();
-        if (this.onDeleteBookmark) {
-          this.onDeleteBookmark(entry.url);
+        if (this.onClose) {
+          this.onClose();
         }
+        break;
+      case 'tab':
+        this.setMode(action.tab);
+        if (this.onTabChange) {
+          this.onTabChange(action.tab);
+        }
+        break;
+      case 'scrollUp':
+        if (this.scrollOffset > 0) {
+          this.scrollOffset--;
+          this._draw();
+        }
+        break;
+      case 'scrollDown':
+        if (this.scrollOffset + VISIBLE_ROWS < rows.length) {
+          this.scrollOffset++;
+          this._draw();
+        }
+        break;
+      case 'row': {
+        const entry = rows[this.scrollOffset + action.index];
+        if (entry && entry.url) {
+          this.onSelect(entry.url);
+          this.hide();
+        }
+        break;
       }
-      break;
-    }
-    default:
-      break;
+      case 'deleteRow': {
+        const entry = rows[this.scrollOffset + action.index];
+        if (entry && entry.url) {
+          this.store.removeBookmark(entry.url);
+          // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
+          this._clampScroll(this._rows().length);
+          this._draw();
+          if (this.onDeleteBookmark) {
+            this.onDeleteBookmark(entry.url);
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
   }
 
@@ -282,7 +301,7 @@ export class BookmarkPanel {
     // removed externally via the chrome-bar ★) never renders a blank page.
     this._clampScroll(allRows.length);
     const scrollable = allRows.length > VISIBLE_ROWS;
-    const canUp   = this.scrollOffset > 0;
+    const canUp = this.scrollOffset > 0;
     const canDown = this.scrollOffset + VISIBLE_ROWS < allRows.length;
     if (scrollable) {
       // ↑ arrow
@@ -323,7 +342,8 @@ export class BookmarkPanel {
       ctx.font = '28px sans-serif';
       ctx.fillText(
         this.mode === 'bookmarks' ? t('vr.bookmarks.emptyBookmarks') : t('vr.bookmarks.emptyHistory'),
-        32, HEADER_H + 56
+        32,
+        HEADER_H + 56
       );
     } else {
       const showDelete = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
@@ -331,7 +351,7 @@ export class BookmarkPanel {
         const entry = rows[i];
         const top = HEADER_H + i * ROW_H;
         // Zebra striping
-        ctx.fillStyle = (i % 2 === 0) ? c.rowZebraEven : c.rowZebraOdd;
+        ctx.fillStyle = i % 2 === 0 ? c.rowZebraEven : c.rowZebraOdd;
         ctx.fillRect(0, top, w, ROW_H);
         // Title (leave room for delete button on the right)
         ctx.fillStyle = c.rowTitle;
@@ -342,8 +362,7 @@ export class BookmarkPanel {
         // 936px available, so Japanese bookmark titles ran under the delete
         // button and off the panel. ROW_TITLE_EM/ROW_URL_EM derive the budget
         // from the real geometry; the fillText maxWidth argument is a backstop.
-        ctx.fillText(truncateToWidth(entry.title || entry.url, ROW_TITLE_EM), ROW_TEXT_X,
-          top + 32, ROW_TEXT_W);
+        ctx.fillText(truncateToWidth(entry.title || entry.url, ROW_TITLE_EM), ROW_TEXT_X, top + 32, ROW_TEXT_W);
         // URL
         ctx.fillStyle = c.rowUrl;
         ctx.font = '20px monospace';

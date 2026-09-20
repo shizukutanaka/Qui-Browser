@@ -33,7 +33,12 @@ export class ImmersiveVideo {
    * @param {(label:string) => void} [deps.onHoverCaption] — called when a HUD button is
    *   hovered so the host can show a gaze-dwell preview caption (WCAG 1.3.3).
    */
-  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError, onPlaybackChange, onHoverCaption } = {}) {
+  constructor(
+    scene,
+    camera,
+    renderer,
+    { registerInteractable, unregisterInteractable, onError, onPlaybackChange, onHoverCaption } = {}
+  ) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
@@ -136,7 +141,7 @@ export class ImmersiveVideo {
     const p = video.play();
     if (p && p.catch) {
       p.catch(() => {
-      /* gesture-gated autoplay; HUD Play can retry. this.playing stays false
+        /* gesture-gated autoplay; HUD Play can retry. this.playing stays false
          and the 'playing' listener flips state once playback truly starts. */
       });
     }

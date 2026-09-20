@@ -21,21 +21,17 @@ const STATIC_ASSETS = [
 ];
 
 // API endpoints that should be cached
-const API_CACHE_PATTERNS = [
-  /\/api\/bookmarks$/,
-  /\/api\/settings$/,
-  /\/api\/health$/
-];
+const API_CACHE_PATTERNS = [/\/api\/bookmarks$/, /\/api\/settings$/, /\/api\/health$/];
 
 // Files that should not be cached
 const EXCLUDE_PATTERNS = [
-  /\/api\//,  // API calls (except cached ones above)
-  /\/metrics$/,  // Metrics endpoint
-  /\/logs/,  // Log files
-  /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/,  // Video files
-  /\.(mp3|wav|flac|aac|ogg)$/,  // Audio files
-  /\.(zip|rar|7z|tar|gz)$/,  // Archives
-  /\/uploads\//  // User uploads
+  /\/api\//, // API calls (except cached ones above)
+  /\/metrics$/, // Metrics endpoint
+  /\/logs/, // Log files
+  /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/, // Video files
+  /\.(mp3|wav|flac|aac|ogg)$/, // Audio files
+  /\.(zip|rar|7z|tar|gz)$/, // Archives
+  /\/uploads\// // User uploads
 ];
 
 self.addEventListener('install', (event) => {
@@ -44,7 +40,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
       // Cache static assets
-      caches.open(STATIC_CACHE).then(cache => {
+      caches.open(STATIC_CACHE).then((cache) => {
         console.log('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       }),
@@ -79,7 +75,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip excluded patterns
-  if (EXCLUDE_PATTERNS.some(pattern => pattern.test(request.url))) {
+  if (EXCLUDE_PATTERNS.some((pattern) => pattern.test(request.url))) {
     return;
   }
 
@@ -152,9 +148,7 @@ self.addEventListener('push', (event) => {
     silent: data.silent || false
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -167,9 +161,7 @@ self.addEventListener('notificationclick', (event) => {
 
   switch (action) {
     case 'view':
-      event.waitUntil(
-        clients.openWindow(data.url || '/')
-      );
+      event.waitUntil(clients.openWindow(data.url || '/'));
       break;
 
     case 'dismiss':
@@ -177,9 +169,7 @@ self.addEventListener('notificationclick', (event) => {
       break;
 
     default:
-      event.waitUntil(
-        clients.openWindow('/')
-      );
+      event.waitUntil(clients.openWindow('/'));
   }
 });
 
@@ -195,17 +185,17 @@ async function handleApiRequest(request) {
   const url = new URL(request.url);
 
   // Check if this API endpoint should be cached
-  const shouldCache = API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+  const shouldCache = API_CACHE_PATTERNS.some((pattern) => pattern.test(url.pathname));
 
   if (shouldCache) {
     // Cache-first strategy for important API data
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       // Update cache in background
-      fetch(request).then(response => {
+      fetch(request).then((response) => {
         if (response.ok) {
           const cacheResponse = response.clone();
-          caches.open(DYNAMIC_CACHE).then(cache => {
+          caches.open(DYNAMIC_CACHE).then((cache) => {
             cache.put(request, cacheResponse);
           });
         }
@@ -220,7 +210,7 @@ async function handleApiRequest(request) {
 
     if (response.ok && shouldCache) {
       const cacheResponse = response.clone();
-      caches.open(DYNAMIC_CACHE).then(cache => {
+      caches.open(DYNAMIC_CACHE).then((cache) => {
         cache.put(request, cacheResponse);
       });
     }
@@ -234,13 +224,16 @@ async function handleApiRequest(request) {
     }
 
     // Return offline response for API calls
-    return new Response(JSON.stringify({
-      error: 'Offline',
-      message: 'This feature requires an internet connection'
-    }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Offline',
+        message: 'This feature requires an internet connection'
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
@@ -265,7 +258,8 @@ async function handleNavigationRequest(request) {
     }
 
     // Ultimate fallback
-    return new Response(`
+    return new Response(
+      `
       <!DOCTYPE html>
       <html>
       <head>
@@ -283,9 +277,11 @@ async function handleNavigationRequest(request) {
         <button onclick="window.location.reload()">Retry</button>
       </body>
       </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' }
-    });
+    `,
+      {
+        headers: { 'Content-Type': 'text/html' }
+      }
+    );
   }
 }
 
@@ -305,7 +301,7 @@ async function handleResourceRequest(request) {
     if (response.ok) {
       // Cache successful responses
       const cacheResponse = response.clone();
-      caches.open(DYNAMIC_CACHE).then(cache => {
+      caches.open(DYNAMIC_CACHE).then((cache) => {
         cache.put(request, cacheResponse);
       });
     }
@@ -331,7 +327,7 @@ async function cleanupOldCaches() {
   const cacheNames = await caches.keys();
 
   return Promise.all(
-    cacheNames.map(cacheName => {
+    cacheNames.map((cacheName) => {
       if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
         console.log('[SW] Deleting old cache:', cacheName);
         return caches.delete(cacheName);
@@ -346,9 +342,7 @@ async function cleanupOldCaches() {
 async function clearAllCaches() {
   const cacheNames = await caches.keys();
 
-  return Promise.all(
-    cacheNames.map(cacheName => caches.delete(cacheName))
-  );
+  return Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 }
 
 /**
@@ -370,13 +364,12 @@ async function handleBackgroundSync(data) {
 
     // Notify clients
     const clients = await self.clients.matchAll();
-    clients.forEach(client => {
+    clients.forEach((client) => {
       client.postMessage({
         type: 'SYNC_COMPLETE',
         success: true
       });
     });
-
   } catch (error) {
     console.error('[SW] Background sync failed:', error);
   }

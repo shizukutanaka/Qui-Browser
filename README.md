@@ -31,7 +31,7 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 > A WebXR **web app** cannot composite cross-origin page pixels into a 3D
 > texture — `X-Frame-Options` / CSP `frame-ancestors` block framing most sites,
 > and even a framed document's pixels are not readable into WebGL. Wolvic and
-> Quest Browser can because they *are* browsers with native engines. That is a
+> Quest Browser can because they _are_ browsers with native engines. That is a
 > platform ceiling, not a to-do item.
 >
 > What this project does instead is a **reader**: fetch → extract readable text
@@ -56,51 +56,51 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 ### Feature Status Legend
 
-| Badge | Meaning |
-|-------|---------|
-| ✅ **Stable** | Shipped, tested, works in-browser |
-| 🔬 **Experimental** | Implemented but not fully validated; may have rough edges |
-| 🏗️ **Requires infra** | Needs external server / hardware to function |
+| Badge                 | Meaning                                                   |
+| --------------------- | --------------------------------------------------------- |
+| ✅ **Stable**         | Shipped, tested, works in-browser                         |
+| 🔬 **Experimental**   | Implemented but not fully validated; may have rough edges |
+| 🏗️ **Requires infra** | Needs external server / hardware to function              |
 
 ## 🚀 Features
 
 ### Tier 1: Performance Optimizations (5 Features)
 
-| Feature | Status | Description | Impact |
-|---------|--------|-------------|--------|
-| **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality | +15-20 FPS |
-| **Comfort System** | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort |
-| **Object Pooling** | ✅ Stable | Reusable object management | Fewer GC pauses |
-| **KTX2 Texture Compression** | ✅ Stable | GPU-optimized texture format | Lower texture memory |
-| **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
+| Feature                            | Status    | Description                                | Impact               |
+| ---------------------------------- | --------- | ------------------------------------------ | -------------------- |
+| **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality       | +15-20 FPS           |
+| **Comfort System**                 | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort   |
+| **Object Pooling**                 | ✅ Stable | Reusable object management                 | Fewer GC pauses      |
+| **KTX2 Texture Compression**       | ✅ Stable | GPU-optimized texture format               | Lower texture memory |
+| **Service Worker**                 | ✅ Stable | Offline support and caching                | Offline capability   |
 
 ### Tier 2: Enhanced Features (6 Features)
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Japanese IME** | ✅ Stable | Native Japanese text input with VR keyboard |
-| **Advanced Hand Tracking** | ✅ Stable | Controller-free interaction via WebXR hand APIs |
-| **3D Spatial Audio** | ✅ Stable | HRTF-based positional sound with Web Audio API |
-| **MR Passthrough** | ✅ Stable | Real-world integration (Quest 3 passthrough) |
-| **Progressive Image Loading** | ✅ Stable | Incremental image display |
-| **Offline Support** | ✅ Stable | Service Worker caching |
+| Feature                       | Status    | Description                                     |
+| ----------------------------- | --------- | ----------------------------------------------- |
+| **Japanese IME**              | ✅ Stable | Native Japanese text input with VR keyboard     |
+| **Advanced Hand Tracking**    | ✅ Stable | Controller-free interaction via WebXR hand APIs |
+| **3D Spatial Audio**          | ✅ Stable | HRTF-based positional sound with Web Audio API  |
+| **MR Passthrough**            | ✅ Stable | Real-world integration (Quest 3 passthrough)    |
+| **Progressive Image Loading** | ✅ Stable | Incremental image display                       |
+| **Offline Support**           | ✅ Stable | Service Worker caching                          |
 
 ### Tier 3: Advanced Features (3 Features)
 
 > **Removed in Session 74.** WebGPU rendering, the multiplayer system, AI
 > recommendations, AR/passthrough and the Stripe billing server were deleted
 > — not deprecated. Each was constructed at startup but had no path by which a
-> user could reach it: multiplayer had no signalling server *and* no settings
+> user could reach it: multiplayer had no signalling server _and_ no settings
 > toggle, `MixedReality.startSession()` had zero callers, the AI's only output
 > had zero consumers, and the WebGPU renderer never touched the render loop.
 > Shipping them as "experimental" overstated what the product does. They remain
 > in git history if any of them is ever genuinely needed.
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Voice Commands** | 🔬 Experimental | Japanese speech recognition (Web Speech API; browser support varies) |
-| **Haptic Feedback** | ✅ Stable | Enhanced tactile response on supported controllers |
-| **WebCodecs Video** | 🔬 Experimental | Hardware-accelerated video decode |
+| Feature             | Status          | Description                                                          |
+| ------------------- | --------------- | -------------------------------------------------------------------- |
+| **Voice Commands**  | 🔬 Experimental | Japanese speech recognition (Web Speech API; browser support varies) |
+| **Haptic Feedback** | ✅ Stable       | Enhanced tactile response on supported controllers                   |
+| **WebCodecs Video** | 🔬 Experimental | Hardware-accelerated video decode                                    |
 
 ### Development Tools (2 Features)
 
@@ -112,6 +112,7 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 ### Option 1: Try Online (Recommended)
 
 Visit the live demo on your VR device:
+
 - **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/
 - **Netlify**: https://qui-browser-vr.netlify.app/
 - **Vercel**: https://qui-browser-vr.vercel.app/
@@ -171,21 +172,21 @@ Qui Browser VR/
 
 ### Build Optimization
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Bundle Size** | 2.4 MB | 1.08 MB | -55% |
-| **Initial Load** | 5.2s | 2.4s | -54% |
-| **Time to Interactive** | 7.1s | 2.8s | -61% |
-| **First Paint** | 2.4s | 0.8s | -67% |
-| **Lighthouse Score** | 72 | 96 | +33% |
+| Metric                  | Before | After   | Improvement |
+| ----------------------- | ------ | ------- | ----------- |
+| **Bundle Size**         | 2.4 MB | 1.08 MB | -55%        |
+| **Initial Load**        | 5.2s   | 2.4s    | -54%        |
+| **Time to Interactive** | 7.1s   | 2.8s    | -61%        |
+| **First Paint**         | 2.4s   | 0.8s    | -67%        |
+| **Lighthouse Score**    | 72     | 96      | +33%        |
 
 ### VR Performance Targets
 
-| Device | Target FPS | Frame Time | Notes |
-|--------|-----------|------------|-------|
-| **Meta Quest 2** | 72-90 | 11.1ms | Primary dev target |
-| **Meta Quest 3** | 90-120 | 8.3ms | Optimal |
-| **Pico 4** | 90 | 11.1ms | Compatible |
+| Device           | Target FPS | Frame Time | Notes              |
+| ---------------- | ---------- | ---------- | ------------------ |
+| **Meta Quest 2** | 72-90      | 11.1ms     | Primary dev target |
+| **Meta Quest 3** | 90-120     | 8.3ms      | Optimal            |
+| **Pico 4**       | 90         | 11.1ms     | Compatible         |
 
 **Memory Usage:** < 2GB (Quest 2), < 4GB (Quest 3)
 
@@ -252,13 +253,13 @@ npm run release:major         # Major version (X.0.0)
 
 ### Multi-Platform Support
 
-| Platform | Status | Deployment | Configuration |
-|----------|--------|-----------|---------------|
-| **GitHub Pages** | ✅ Auto | Push to main | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify** | ✅ Auto | `npm run deploy:netlify` | [netlify.toml](netlify.toml) |
-| **Vercel** | ✅ Auto | `npm run deploy:vercel` | [vercel.json](vercel.json) |
-| **Docker** | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile) |
-| **Custom Server** | ✅ Nginx | Manual setup | [docker/nginx.conf](docker/nginx.conf) |
+| Platform          | Status            | Deployment               | Configuration                                        |
+| ----------------- | ----------------- | ------------------------ | ---------------------------------------------------- |
+| **GitHub Pages**  | ✅ Auto           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
+| **Netlify**       | ✅ Auto           | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
+| **Vercel**        | ✅ Auto           | `npm run deploy:vercel`  | [vercel.json](vercel.json)                           |
+| **Docker**        | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile)                             |
+| **Custom Server** | ✅ Nginx          | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
 
 **📖 Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
@@ -273,15 +274,15 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🎮 Supported Devices
 
-| Device | Support Level | Performance | Notes |
-|--------|--------------|-------------|-------|
-| **Meta Quest 2** | ✅ Full | 72-90 FPS | Primary target |
-| **Meta Quest 3** | ✅ Full | 90-120 FPS | Optimal |
-| **Meta Quest Pro** | ✅ Full | 90 FPS | All features |
-| **Pico 4** | ✅ Full | 90 FPS | Tested |
-| **Pico Neo 3** | ✅ Supported | 72-90 FPS | Compatible |
-| **HTC Vive Focus** | ⚠️ Partial | 72 FPS | Some limitations |
-| **PC VR Headsets** | ⚠️ Partial | Varies | WebXR varies |
+| Device             | Support Level | Performance | Notes            |
+| ------------------ | ------------- | ----------- | ---------------- |
+| **Meta Quest 2**   | ✅ Full       | 72-90 FPS   | Primary target   |
+| **Meta Quest 3**   | ✅ Full       | 90-120 FPS  | Optimal          |
+| **Meta Quest Pro** | ✅ Full       | 90 FPS      | All features     |
+| **Pico 4**         | ✅ Full       | 90 FPS      | Tested           |
+| **Pico Neo 3**     | ✅ Supported  | 72-90 FPS   | Compatible       |
+| **HTC Vive Focus** | ⚠️ Partial    | 72 FPS      | Some limitations |
+| **PC VR Headsets** | ⚠️ Partial    | Varies      | WebXR varies     |
 
 ## 📚 Documentation
 

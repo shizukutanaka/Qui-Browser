@@ -33,8 +33,10 @@ export class WindowManager {
    * @param {boolean} [opts.angularConstant=true] — keep the panel's apparent
    *   size fixed as its distance changes (see _applyAngularScale)
    */
-  constructor(camera, { distance = 2.0, minDistance = 0.6, maxDistance = 6.0,
-    followLerp = 0.15, angularConstant = true } = {}) {
+  constructor(
+    camera,
+    { distance = 2.0, minDistance = 0.6, maxDistance = 6.0, followLerp = 0.15, angularConstant = true } = {}
+  ) {
     this.camera = camera;
     this.distance = distance;
     this.minDistance = minDistance;
@@ -44,29 +46,31 @@ export class WindowManager {
     /** Distance at which scale is exactly 1 — the shipped default placement. */
     this.referenceDistance = PANEL_DISTANCE_DEFAULT;
 
-    this.target = null;        // managed Object3D (panel group)
-    this.followMode = false;   // head-lock
-    this.billboard = false;    // face user without following position
-    this._grab = null;         // { controller, distance } while grabbing
+    this.target = null; // managed Object3D (panel group)
+    this.followMode = false; // head-lock
+    this.billboard = false; // face user without following position
+    this._grab = null; // { controller, distance } while grabbing
 
     // Scratch objects (avoid per-frame allocation).
-    this._camPos   = new THREE.Vector3();
-    this._camQuat  = new THREE.Quaternion();
-    this._forward  = new THREE.Vector3();
+    this._camPos = new THREE.Vector3();
+    this._camQuat = new THREE.Quaternion();
+    this._forward = new THREE.Vector3();
     this._targetPos = new THREE.Vector3();
-    this._grabPos  = new THREE.Vector3();
+    this._grabPos = new THREE.Vector3();
     this._grabQuat = new THREE.Quaternion();
-    this._grabFwd  = new THREE.Vector3();
+    this._grabFwd = new THREE.Vector3();
   }
 
   // ── Attach / detach ──────────────────────────────────────────────────────────
 
   /** Manage the given object (a panel group). */
   attach(object3D) {
-    this.target = object3D; return this;
+    this.target = object3D;
+    return this;
   }
   detach() {
-    this.target = null; this._grab = null;
+    this.target = null;
+    this._grab = null;
   }
 
   // ── Mode control ─────────────────────────────────────────────────────────────

@@ -43,9 +43,7 @@ export class TextureManager {
       this.ktx2Loader = new KTX2Loader();
 
       // Set transcoder path (use CDN or local path)
-      this.ktx2Loader.setTranscoderPath(
-        'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/'
-      );
+      this.ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/');
 
       // Detect WebGL capabilities and set target format
       this.ktx2Loader.detectSupport(this.renderer);
@@ -116,7 +114,7 @@ export class TextureManager {
         (texture) => resolve(texture),
         (progress) => {
           // Progress callback
-          const percent = (progress.loaded / progress.total * 100).toFixed(1);
+          const percent = ((progress.loaded / progress.total) * 100).toFixed(1);
           console.debug(`Loading KTX2: ${percent}%`);
         },
         (error) => reject(error)
@@ -166,8 +164,7 @@ export class TextureManager {
     texture.minFilter = options.minFilter || THREE.LinearMipMapLinearFilter;
 
     // Anisotropy (improves quality at angles)
-    texture.anisotropy = options.anisotropy ||
-                         this.renderer.capabilities.getMaxAnisotropy();
+    texture.anisotropy = options.anisotropy || this.renderer.capabilities.getMaxAnisotropy();
 
     // Color space (replaces the deprecated .encoding API in THREE r152+)
     if (options.colorSpace) {
@@ -175,14 +172,14 @@ export class TextureManager {
     } else if (options.encoding) {
       // Legacy callers: map old LinearEncoding/sRGBEncoding constants to the
       // new colorSpace strings so existing call-sites keep working.
-      texture.colorSpace = options.encoding === 3001  // THREE.sRGBEncoding
-        ? 'srgb'
-        : 'srgb-linear';
+      texture.colorSpace =
+        options.encoding === 3001 // THREE.sRGBEncoding
+          ? 'srgb'
+          : 'srgb-linear';
     }
 
     // Generate mipmaps for better quality
-    if (texture.minFilter !== THREE.NearestFilter &&
-        texture.minFilter !== THREE.LinearFilter) {
+    if (texture.minFilter !== THREE.NearestFilter && texture.minFilter !== THREE.LinearFilter) {
       texture.generateMipmaps = true;
     }
   }
@@ -208,7 +205,7 @@ export class TextureManager {
     // Calculate compression ratio
     if (isCompressed && texture.image) {
       const uncompressedSize = texture.image.width * texture.image.height * 4;
-      this.memoryUsage.compressionRatio = 1 - (bytes / uncompressedSize);
+      this.memoryUsage.compressionRatio = 1 - bytes / uncompressedSize;
     }
 
     // Check memory limit
@@ -306,7 +303,7 @@ export class TextureManager {
     // Create checkerboard pattern
     for (let y = 0; y < canvas.height; y += size) {
       for (let x = 0; x < canvas.width; x += size) {
-        const isEven = ((x / size) + (y / size)) % 2 === 0;
+        const isEven = (x / size + y / size) % 2 === 0;
         context.fillStyle = isEven ? '#FF00FF' : '#000000';
         context.fillRect(x, y, size, size);
       }
@@ -319,7 +316,7 @@ export class TextureManager {
    * Batch load textures
    */
   async loadTextures(urls, options = {}) {
-    const promises = urls.map(url => this.loadTexture(url, options));
+    const promises = urls.map((url) => this.loadTexture(url, options));
     return Promise.all(promises);
   }
 
@@ -343,12 +340,14 @@ export class TextureManager {
     return {
       ktx2Loaded: this.stats.ktx2Loaded,
       fallbackLoaded: this.stats.fallbackLoaded,
-      cacheHitRate: (this.stats.cacheHits + this.stats.cacheMisses) > 0
-        ? this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses) * 100
-        : 0,
-      avgLoadTime: (this.stats.ktx2Loaded + this.stats.fallbackLoaded) > 0
-        ? this.stats.totalLoadTime / (this.stats.ktx2Loaded + this.stats.fallbackLoaded)
-        : 0
+      cacheHitRate:
+        this.stats.cacheHits + this.stats.cacheMisses > 0
+          ? (this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses)) * 100
+          : 0,
+      avgLoadTime:
+        this.stats.ktx2Loaded + this.stats.fallbackLoaded > 0
+          ? this.stats.totalLoadTime / (this.stats.ktx2Loaded + this.stats.fallbackLoaded)
+          : 0
     };
   }
 

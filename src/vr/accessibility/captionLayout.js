@@ -21,10 +21,10 @@ export const CAPTION_PANEL_H = 0.32;
 export const CAPTION_CANVAS_W = 1024;
 export const CAPTION_CANVAS_H = 256;
 
-export const CAPTION_PAD = 24;        // vertical inset for text rows
-export const CAPTION_H_PAD = 24;      // horizontal inset so rows don't touch the edge
-export const CAPTION_MAX_FONT = 44;   // px — single short line
-export const CAPTION_MIN_FONT = 22;   // px — floor when many rows are stacked
+export const CAPTION_PAD = 24; // vertical inset for text rows
+export const CAPTION_H_PAD = 24; // horizontal inset so rows don't touch the edge
+export const CAPTION_MAX_FONT = 44; // px — single short line
+export const CAPTION_MIN_FONT = 22; // px — floor when many rows are stacked
 
 /**
  * Caption line measure in **em**, not characters.
@@ -45,7 +45,7 @@ export const CAPTION_MIN_FONT = 22;   // px — floor when many rows are stacked
  * text leaving the panel is real information loss.
  */
 export const CAPTION_MEASURE_EM = 20;
-export const MAX_ROWS_PER_LINE = 2;  // wrap a caption onto at most this many rows
+export const MAX_ROWS_PER_LINE = 2; // wrap a caption onto at most this many rows
 
 /** Usable text width (px) inside the caption canvas. */
 export const CAPTION_TEXT_W = CAPTION_CANVAS_W - 2 * CAPTION_H_PAD;

@@ -51,13 +51,7 @@ class CSSContainmentOptimizer {
       threshold: options.threshold || 0.01,
 
       // Skip elements
-      skipSelectors: options.skipSelectors || [
-        'script',
-        'style',
-        'link',
-        'meta',
-        '[data-no-optimize]'
-      ],
+      skipSelectors: options.skipSelectors || ['script', 'style', 'link', 'meta', '[data-no-optimize]'],
 
       // Performance monitoring
       enableMonitoring: options.enableMonitoring || false,
@@ -143,7 +137,7 @@ class CSSContainmentOptimizer {
   applyToAll() {
     const elements = document.querySelectorAll(this.options.selector);
 
-    elements.forEach(element => {
+    elements.forEach((element) => {
       this.optimize(element);
     });
 
@@ -320,7 +314,7 @@ class CSSContainmentOptimizer {
   setupIntersectionObserver() {
     this.observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
             this.optimize(entry.target);
           }
@@ -334,7 +328,7 @@ class CSSContainmentOptimizer {
 
     // Observe all matching elements
     const elements = document.querySelectorAll(this.options.selector);
-    elements.forEach(element => {
+    elements.forEach((element) => {
       if (!this.optimizedElements.has(element)) {
         this.observer.observe(element);
       }
@@ -346,8 +340,8 @@ class CSSContainmentOptimizer {
    */
   observeDOMChanges() {
     const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if node matches selector
             if (node.matches && node.matches(this.options.selector)) {
@@ -361,7 +355,7 @@ class CSSContainmentOptimizer {
             // Check children
             const children = node.querySelectorAll && node.querySelectorAll(this.options.selector);
             if (children) {
-              children.forEach(child => {
+              children.forEach((child) => {
                 if (this.options.useIntersectionObserver) {
                   this.observer.observe(child);
                 } else {
@@ -410,7 +404,7 @@ class CSSContainmentOptimizer {
    * Remove optimization from all elements
    */
   unoptimizeAll() {
-    this.optimizedElements.forEach(element => {
+    this.optimizedElements.forEach((element) => {
       this.unoptimize(element);
     });
   }
@@ -433,8 +427,8 @@ class CSSContainmentOptimizer {
     }
 
     const paintEntries = performance.getEntriesByType('paint');
-    const firstPaint = paintEntries.find(e => e.name === 'first-paint');
-    const firstContentfulPaint = paintEntries.find(e => e.name === 'first-contentful-paint');
+    const firstPaint = paintEntries.find((e) => e.name === 'first-paint');
+    const firstContentfulPaint = paintEntries.find((e) => e.name === 'first-contentful-paint');
 
     const stats = {
       firstPaint: firstPaint ? firstPaint.startTime : 0,

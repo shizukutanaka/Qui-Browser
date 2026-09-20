@@ -11,7 +11,9 @@
 // suite at the bottom).
 const swHandlers = {};
 global.self = {
-  addEventListener: (type, fn) => { swHandlers[type] = fn; },
+  addEventListener: (type, fn) => {
+    swHandlers[type] = fn;
+  },
   location: { origin: 'https://app.example', pathname: '/service-worker.js' }
 };
 
@@ -24,14 +26,19 @@ function makeMockCache() {
   return {
     entries,
     keys: async () => entries.map((e) => e[0]),
-    put: async (req, res) => { entries.push([req, res]); },
+    put: async (req, res) => {
+      entries.push([req, res]);
+    },
     match: async (req) => {
       const hit = entries.find((e) => e[0].url === (req.url || req));
       return hit ? hit[1] : undefined;
     },
     delete: async (key) => {
       const idx = entries.findIndex((e) => e[0] === key);
-      if (idx >= 0) { entries.splice(idx, 1); return true; }
+      if (idx >= 0) {
+        entries.splice(idx, 1);
+        return true;
+      }
       return false;
     }
   };
@@ -114,9 +121,7 @@ describe('BASE-relative precache (subpath deploy support)', () => {
   });
 
   test('critical assets are the app shell, resolved against BASE', () => {
-    expect(CRITICAL_ASSETS).toEqual([
-      '/', '/index.html', '/manifest.json', '/offline.html'
-    ]);
+    expect(CRITICAL_ASSETS).toEqual(['/', '/index.html', '/manifest.json', '/offline.html']);
   });
 
   test('no dead /src/*.js or CDN entries remain (they never existed in the build)', () => {
@@ -150,7 +155,10 @@ describe('fetch handler — cross-origin bypass', () => {
     swHandlers.fetch({
       request: { url, method },
       // Swallow the strategy promise so an async rejection can't fail the run.
-      respondWith: (p) => { responded = true; Promise.resolve(p).catch(() => {}); }
+      respondWith: (p) => {
+        responded = true;
+        Promise.resolve(p).catch(() => {});
+      }
     });
     return responded;
   }

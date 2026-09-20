@@ -18,8 +18,8 @@
 import * as THREE from 'three';
 
 const RETICLE_DISTANCE = 2.0; // metres in front of the camera
-const RING_OPACITY = 0.35;    // resting opacity of the outline ring
-const CONFIRM_MS = 250;       // duration of the activation-confirmation flash
+const RING_OPACITY = 0.35; // resting opacity of the outline ring
+const CONFIRM_MS = 250; // duration of the activation-confirmation flash
 
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
@@ -62,11 +62,11 @@ export class GazeInteraction {
     this.enabled = false;
 
     // Dwell state
-    this._target   = null; // interactable currently gazed at
-    this._elapsed  = 0;     // ms accumulated on the current target
-    this._fired    = false; // guard so onSelect fires once per dwell
-    this._confirmMs = 0;    // remaining ms of the activation-confirmation flash
-    this._graceMs   = 0;    // ms spent slipped off the held target (grace window)
+    this._target = null; // interactable currently gazed at
+    this._elapsed = 0; // ms accumulated on the current target
+    this._fired = false; // guard so onSelect fires once per dwell
+    this._confirmMs = 0; // remaining ms of the activation-confirmation flash
+    this._graceMs = 0; // ms spent slipped off the held target (grace window)
 
     this._raycaster = new THREE.Raycaster();
     this._buildReticle();
@@ -82,7 +82,10 @@ export class GazeInteraction {
     // Outline ring — marks the gaze point.
     const ringGeo = new THREE.RingGeometry(0.018, 0.024, 24);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: this._ringOpacity, depthTest: false
+      color: 0xffffff,
+      transparent: true,
+      opacity: this._ringOpacity,
+      depthTest: false
     });
     this._ring = new THREE.Mesh(ringGeo, ringMat);
     this._ring.renderOrder = 999;
@@ -91,7 +94,10 @@ export class GazeInteraction {
     // Progress fill — scales 0→1 while dwelling.
     const fillGeo = new THREE.CircleGeometry(0.016, 24);
     const fillMat = new THREE.MeshBasicMaterial({
-      color: 0x44ff88, transparent: true, opacity: 0.9, depthTest: false
+      color: 0x44ff88,
+      transparent: true,
+      opacity: 0.9,
+      depthTest: false
     });
     this._fill = new THREE.Mesh(fillGeo, fillMat);
     this._fill.renderOrder = 1000;
@@ -140,11 +146,11 @@ export class GazeInteraction {
   }
 
   _reset() {
-    this._target  = null;
+    this._target = null;
     this._elapsed = 0;
-    this._fired   = false;
+    this._fired = false;
     this._confirmMs = 0;
-    this._graceMs   = 0;
+    this._graceMs = 0;
     if (this._fill) {
       this._fill.scale.setScalar(0.001);
     }
@@ -206,9 +212,9 @@ export class GazeInteraction {
     } else if (obj) {
       // Gaze landed on a DIFFERENT interactable — an intentional move. Restart.
       this._onTargetChange(this._target, obj);
-      this._target  = obj;
+      this._target = obj;
       this._elapsed = 0;
-      this._fired   = false;
+      this._fired = false;
       this._graceMs = 0;
     } else if (this._target && !this._fired && this._graceMs + dtMs < this.graceTime) {
       // Gaze slipped off onto nothing while charging. Forgive brief slips
@@ -221,9 +227,9 @@ export class GazeInteraction {
     } else {
       // Grace exhausted (or no target to hold) — release.
       this._onTargetChange(this._target, null);
-      this._target  = null;
+      this._target = null;
       this._elapsed = 0;
-      this._fired   = false;
+      this._fired = false;
       this._graceMs = 0;
     }
 
@@ -255,12 +261,10 @@ export class GazeInteraction {
 
   /** Fire hover enter/leave so the gaze path matches controller hover feedback. */
   _onTargetChange(prev, next) {
-    if (prev && prev.userData && prev.userData.interactable &&
-        prev.userData.interactable.onHoverEnd) {
+    if (prev && prev.userData && prev.userData.interactable && prev.userData.interactable.onHoverEnd) {
       prev.userData.interactable.onHoverEnd();
     }
-    if (next && next.userData && next.userData.interactable &&
-        next.userData.interactable.onHover) {
+    if (next && next.userData && next.userData.interactable && next.userData.interactable.onHover) {
       next.userData.interactable.onHover();
     }
   }
@@ -289,7 +293,7 @@ export class GazeInteraction {
     // raycasting does not walk parent visibility, so a closed keyboard/panel
     // would otherwise still intercept gaze while visually absent.
     const hits = this._raycaster.intersectObjects(interactables, false);
-    return hits.find(h => _isWorldVisible(h.object)) || null;
+    return hits.find((h) => _isWorldVisible(h.object)) || null;
   }
 
   _updateFill(progress) {
@@ -307,7 +311,7 @@ export class GazeInteraction {
       if (this.camera && this.camera.remove) {
         this.camera.remove(this.reticle);
       }
-      this.reticle.traverse(obj => {
+      this.reticle.traverse((obj) => {
         if (obj.geometry) {
           obj.geometry.dispose();
         }

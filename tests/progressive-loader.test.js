@@ -7,8 +7,12 @@ const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
 
 describe('ProgressiveLoader queue management', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('addResource adds to the secondary queue by default', () => {
     loader.addResource({ url: '/a.js', name: 'a' });
@@ -44,8 +48,12 @@ describe('ProgressiveLoader queue management', () => {
 
 describe('ProgressiveLoader.adjustStrategy', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('slow-2g reduces parallelLimit to 2 and disables preload', () => {
     loader.network.effectiveType = 'slow-2g';
@@ -78,8 +86,12 @@ describe('ProgressiveLoader.adjustStrategy', () => {
 
 describe('ProgressiveLoader.getStats', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('returns object with expected keys', () => {
     const s = loader.getStats();

@@ -33,20 +33,20 @@ export class ComfortSystem {
       preset: 'moderate',
       vignette: {
         enabled: true,
-        intensity: 0.4,      // 0-1 range
-        powerFactor: 1.5,    // Falloff curve
-        smoothing: 0.1       // Transition speed
+        intensity: 0.4, // 0-1 range
+        powerFactor: 1.5, // Falloff curve
+        smoothing: 0.1 // Transition speed
       },
       fov: {
         enabled: true,
         baseFOV: camera.fov || 90,
-        reductionAmount: 25,  // Degrees to reduce during motion
-        smoothing: 0.1        // Transition speed
+        reductionAmount: 25, // Degrees to reduce during motion
+        smoothing: 0.1 // Transition speed
       },
       snapTurn: {
         enabled: true,
-        angle: 30,           // Degrees per snap
-        duration: 0.2        // Seconds for animation
+        angle: 30, // Degrees per snap
+        duration: 0.2 // Seconds for animation
       }
     };
 
@@ -121,10 +121,7 @@ export class ComfortSystem {
     this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
     // Create render target for post-processing
-    this.renderTarget = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight
-    );
+    this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
   }
 
   /**
@@ -186,18 +183,12 @@ export class ComfortSystem {
    * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
   updateVignette(_deltaTime) {
-    const externalLevel = this.externalMotion
-      ? Math.max(0, Math.min(1, this.externalMotionLevel))
-      : 0;
-    const motionLevel = Math.max(
-      (this._headMoving || this.isRotating) ? 1 : 0,
-      externalLevel
-    );
+    const externalLevel = this.externalMotion ? Math.max(0, Math.min(1, this.externalMotionLevel)) : 0;
+    const motionLevel = Math.max(this._headMoving || this.isRotating ? 1 : 0, externalLevel);
     const targetVignette = this.settings.vignette.intensity * motionLevel;
 
     // Smooth transition
-    this.currentVignette += (targetVignette - this.currentVignette) *
-                             this.settings.vignette.smoothing;
+    this.currentVignette += (targetVignette - this.currentVignette) * this.settings.vignette.smoothing;
 
     // Update shader uniform
     if (this.vignetteMaterial) {
@@ -226,8 +217,7 @@ export class ComfortSystem {
     }
 
     // Smooth transition
-    this.currentFOV += (targetFOV - this.currentFOV) *
-                       this.settings.fov.smoothing;
+    this.currentFOV += (targetFOV - this.currentFOV) * this.settings.fov.smoothing;
 
     // Apply to camera
     this.camera.fov = this.currentFOV;
@@ -257,8 +247,7 @@ export class ComfortSystem {
     }
 
     // Calculate snap angle
-    const snapAngle = Math.sign(direction) *
-                      THREE.MathUtils.degToRad(this.settings.snapTurn.angle);
+    const snapAngle = Math.sign(direction) * THREE.MathUtils.degToRad(this.settings.snapTurn.angle);
 
     // Animate rotation
     this.animateSnapTurn(snapAngle);
@@ -289,11 +278,7 @@ export class ComfortSystem {
       const eased = 1 - Math.pow(1 - progress, 3);
 
       // Apply rotation
-      this.camera.rotation.y = THREE.MathUtils.lerp(
-        startRotation,
-        endRotation,
-        eased
-      );
+      this.camera.rotation.y = THREE.MathUtils.lerp(startRotation, endRotation, eased);
 
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -314,22 +299,22 @@ export class ComfortSystem {
     // who picked 'disabled' and then switched to 'sensitive' with NO comfort
     // mitigations at all — the exact opposite of their request.
     const presets = {
-      'sensitive': {
+      sensitive: {
         vignette: { enabled: true, intensity: 0.8, powerFactor: 1.2 },
         fov: { enabled: true, reductionAmount: 35 },
         snapTurn: { enabled: true, angle: 15 }
       },
-      'moderate': {
+      moderate: {
         vignette: { enabled: true, intensity: 0.4, powerFactor: 1.5 },
         fov: { enabled: true, reductionAmount: 25 },
         snapTurn: { enabled: true, angle: 30 }
       },
-      'tolerant': {
+      tolerant: {
         vignette: { enabled: true, intensity: 0.2, powerFactor: 2.0 },
         fov: { enabled: true, reductionAmount: 15 },
         snapTurn: { enabled: true, angle: 45 }
       },
-      'disabled': {
+      disabled: {
         vignette: { enabled: false },
         fov: { enabled: false },
         snapTurn: { enabled: false }
@@ -463,9 +448,7 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
  * @returns {string}           e.g. "↺ Left 30°" or "↻ Right 30°"
  */
 export function snapTurnLabel(direction, angleDeg) {
-  return direction > 0
-    ? `↻ Right ${angleDeg}°`
-    : `↺ Left ${angleDeg}°`;
+  return direction > 0 ? `↻ Right ${angleDeg}°` : `↺ Left ${angleDeg}°`;
 }
 
 /**

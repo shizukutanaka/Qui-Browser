@@ -17,7 +17,9 @@ function load() {
         return JSON.parse(raw) || {};
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   return {};
 }
 
@@ -96,7 +98,9 @@ export function setPref(key, value) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   applyAccessibility();
   return value;
 }

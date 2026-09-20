@@ -9,22 +9,46 @@
 let nextHit = null; // { object } or null
 
 class MockVec3 {
-  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-  set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
-  applyQuaternion() { return this; }
-  normalize() { return this; }
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+  set(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    return this;
+  }
+  applyQuaternion() {
+    return this;
+  }
+  normalize() {
+    return this;
+  }
 }
 class MockQuat {}
 class MockRaycaster {
   set() {}
-  intersectObjects() { return nextHit ? [nextHit] : []; }
+  intersectObjects() {
+    return nextHit ? [nextHit] : [];
+  }
 }
-class MockGeometry { dispose() {} }
-class MockMaterial { dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
+class MockMaterial {
+  dispose() {}
+}
 class MockMesh {
   constructor() {
     this.renderOrder = 0;
-    this.scale = { _s: 1, setScalar(s) { this._s = s; } };
+    this.scale = {
+      _s: 1,
+      setScalar(s) {
+        this._s = s;
+      }
+    };
     this.geometry = new MockGeometry();
     this.material = new MockMaterial();
   }
@@ -36,8 +60,13 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
 
 jest.mock('three', () => ({
@@ -67,7 +96,9 @@ function makeInteractable(handlers = {}) {
 }
 
 describe('GazeInteraction (FR-13.1)', () => {
-  beforeEach(() => { nextHit = null; });
+  beforeEach(() => {
+    nextHit = null;
+  });
 
   test('starts disabled with a hidden reticle', () => {
     const gi = new GazeInteraction(makeCamera());
@@ -99,7 +130,7 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect });
     nextHit = { object: obj };
 
-    gi.update([obj], 500);          // 0.5s — not yet
+    gi.update([obj], 500); // 0.5s — not yet
     expect(onSelect).not.toHaveBeenCalled();
     const fired = gi.update([obj], 600); // 1.1s — crosses threshold
     expect(onSelect).toHaveBeenCalledTimes(1);
@@ -126,25 +157,27 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect });
 
     nextHit = { object: obj };
-    gi.update([obj], 700);    // partway
-    nextHit = null;           // look away
-    gi.update([obj], 700);    // timer resets
+    gi.update([obj], 700); // partway
+    nextHit = null; // look away
+    gi.update([obj], 700); // timer resets
     nextHit = { object: obj };
-    gi.update([obj], 700);    // only 0.7s again — still under threshold
+    gi.update([obj], 700); // only 0.7s again — still under threshold
     expect(onSelect).not.toHaveBeenCalled();
   });
 
   test('fires hover enter/leave as the gaze target changes', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
     gi.setEnabled(true);
-    const aHover = jest.fn(), aEnd = jest.fn(), bHover = jest.fn();
+    const aHover = jest.fn(),
+      aEnd = jest.fn(),
+      bHover = jest.fn();
     const a = makeInteractable({ onHover: aHover, onHoverEnd: aEnd });
     const b = makeInteractable({ onHover: bHover });
 
     nextHit = { object: a };
-    gi.update([a, b], 100);   // enter a
+    gi.update([a, b], 100); // enter a
     nextHit = { object: b };
-    gi.update([a, b], 100);   // leave a, enter b
+    gi.update([a, b], 100); // leave a, enter b
     expect(aHover).toHaveBeenCalledTimes(1);
     expect(aEnd).toHaveBeenCalledTimes(1);
     expect(bHover).toHaveBeenCalledTimes(1);
@@ -169,9 +202,9 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect });
     nextHit = { object: obj };
 
-    gi.update([obj], 800);   // 0.8s charged
+    gi.update([obj], 800); // 0.8s charged
     nextHit = null;
-    gi.update([obj], 200);   // slip off-target for 0.2s (< grace) — held, no charge
+    gi.update([obj], 200); // slip off-target for 0.2s (< grace) — held, no charge
     expect(onSelect).not.toHaveBeenCalled();
     expect(gi._fill.scale._s).toBeCloseTo(0.8, 2); // progress preserved, not reset
     nextHit = { object: obj };
@@ -187,12 +220,12 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect });
     nextHit = { object: obj };
 
-    gi.update([obj], 800);   // 0.8s charged
+    gi.update([obj], 800); // 0.8s charged
     nextHit = null;
-    gi.update([obj], 400);   // off-target beyond grace → released
+    gi.update([obj], 400); // off-target beyond grace → released
     expect(gi._target).toBeNull();
     nextHit = { object: obj };
-    gi.update([obj], 300);   // restart from zero → only 0.3s, no fire
+    gi.update([obj], 300); // restart from zero → only 0.3s, no fire
     expect(onSelect).not.toHaveBeenCalled();
     expect(gi._fill.scale._s).toBeCloseTo(0.3, 2);
   });
@@ -200,14 +233,15 @@ describe('GazeInteraction (FR-13.1)', () => {
   test('moving to a different interactable restarts immediately (no grace carry-over)', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
     gi.setEnabled(true);
-    const aSel = jest.fn(), bSel = jest.fn();
+    const aSel = jest.fn(),
+      bSel = jest.fn();
     const a = makeInteractable({ onSelect: aSel });
     const b = makeInteractable({ onSelect: bSel });
 
     nextHit = { object: a };
-    gi.update([a, b], 900);  // a nearly charged
+    gi.update([a, b], 900); // a nearly charged
     nextHit = { object: b };
-    gi.update([a, b], 300);  // switch to b → b starts at zero, not 0.9 + 0.3
+    gi.update([a, b], 300); // switch to b → b starts at zero, not 0.9 + 0.3
     expect(aSel).not.toHaveBeenCalled();
     expect(bSel).not.toHaveBeenCalled();
     expect(gi._target).toBe(b);
@@ -220,11 +254,11 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
 
-    gi.update([obj], 1200);                         // crosses threshold → fires
-    expect(gi._confirmMs).toBeGreaterThan(0);       // flash armed
+    gi.update([obj], 1200); // crosses threshold → fires
+    expect(gi._confirmMs).toBeGreaterThan(0); // flash armed
     expect(gi._ring.material.opacity).toBeCloseTo(1, 3); // full-bright pulse
 
-    gi.update([obj], 100);                          // still gazing — flash decays
+    gi.update([obj], 100); // still gazing — flash decays
     expect(gi._confirmMs).toBeLessThan(250);
     expect(gi._ring.material.opacity).toBeGreaterThan(0.35);
     expect(gi._ring.material.opacity).toBeLessThan(1);
@@ -236,11 +270,11 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
 
-    gi.update([obj], 1200);                          // fires
+    gi.update([obj], 1200); // fires
     expect(gi._ring.material.opacity).toBeCloseTo(1, 3);
-    gi.update([obj], 100);                           // mid-window — must NOT fade down
+    gi.update([obj], 100); // mid-window — must NOT fade down
     expect(gi._ring.material.opacity).toBeCloseTo(1, 3);
-    gi.update([obj], 300);                           // window exhausted — snap back
+    gi.update([obj], 300); // window exhausted — snap back
     expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
   });
 
@@ -250,8 +284,8 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
 
-    gi.update([obj], 1200);          // fires, flash armed
-    gi.update([obj], 300);           // > CONFIRM_MS later → flash done
+    gi.update([obj], 1200); // fires, flash armed
+    gi.update([obj], 300); // > CONFIRM_MS later → flash done
     expect(gi._confirmMs).toBe(0);
     expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
   });
@@ -262,9 +296,9 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
 
-    gi.update([obj], 1200);          // fires, flash armed
+    gi.update([obj], 1200); // fires, flash armed
     expect(gi._confirmMs).toBeGreaterThan(0);
-    gi.update([], 50);               // nothing to gaze at → _reset()
+    gi.update([], 50); // nothing to gaze at → _reset()
     expect(gi._confirmMs).toBe(0);
     expect(gi._ring.material.opacity).toBeCloseTo(0.35, 3);
   });
@@ -301,8 +335,8 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect: jest.fn() });
     nextHit = { object: obj };
 
-    gi.update([obj], 1200);                 // fires
-    gi.update([obj], 300);                  // flash window exhausted
+    gi.update([obj], 1200); // fires
+    gi.update([obj], 300); // flash window exhausted
     expect(gi._ring.material.opacity).toBeCloseTo(1.0, 3); // stays at HC level
   });
 
@@ -354,12 +388,12 @@ describe('GazeInteraction (FR-13.1)', () => {
     const obj = makeInteractable({ onSelect });
     nextHit = { object: obj };
 
-    gi.update([obj], 800);   // 0.8s charged
+    gi.update([obj], 800); // 0.8s charged
     nextHit = null;
     // Tighten grace to 100 ms while a slip is in progress — the grace budget
     // has already been exceeded; next update should release the target.
     gi.graceTime = 100;
-    gi.update([obj], 200);   // 200 ms > new graceTime(100) → release
+    gi.update([obj], 200); // 200 ms > new graceTime(100) → release
     expect(gi._target).toBeNull();
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -380,7 +414,9 @@ describe('GazeInteraction (FR-13.1)', () => {
 
     // Unhide the group — should now dwell and fire.
     hiddenGroup.visible = true;
-    gi._target = null; gi._elapsed = 0; gi._fired = false; // reset state
+    gi._target = null;
+    gi._elapsed = 0;
+    gi._fired = false; // reset state
     gi.update([obj], 1200);
     expect(onSelect).toHaveBeenCalledTimes(1);
   });

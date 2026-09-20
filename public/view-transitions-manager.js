@@ -70,10 +70,7 @@ class ViewTransitionsManager {
    * Check if View Transitions API is supported
    */
   checkSupport() {
-    return (
-      typeof document !== 'undefined' &&
-      'startViewTransition' in document
-    );
+    return typeof document !== 'undefined' && 'startViewTransition' in document;
   }
 
   /**
@@ -296,14 +293,14 @@ class ViewTransitionsManager {
     // Apply custom transition names
     for (const [selector, name] of Object.entries(transitionNames)) {
       const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
+      elements.forEach((element) => {
         element.style.viewTransitionName = name;
       });
     }
 
     // Apply from data attributes
     const transitionElements = document.querySelectorAll(this.options.transitionElements);
-    transitionElements.forEach(element => {
+    transitionElements.forEach((element) => {
       const name = element.getAttribute('data-transition');
       if (name) {
         element.style.viewTransitionName = name;
@@ -343,14 +340,14 @@ class ViewTransitionsManager {
     const currentMetas = document.querySelectorAll('meta');
 
     // Remove old metas
-    currentMetas.forEach(meta => {
+    currentMetas.forEach((meta) => {
       if (meta.name || meta.property) {
         meta.remove();
       }
     });
 
     // Add new metas
-    newMetas.forEach(meta => {
+    newMetas.forEach((meta) => {
       if (meta.name || meta.property) {
         document.head.appendChild(meta.cloneNode(true));
       }
@@ -363,11 +360,11 @@ class ViewTransitionsManager {
   executeScripts(container) {
     const scripts = container.querySelectorAll('script');
 
-    scripts.forEach(oldScript => {
+    scripts.forEach((oldScript) => {
       const newScript = document.createElement('script');
 
       // Copy attributes
-      Array.from(oldScript.attributes).forEach(attr => {
+      Array.from(oldScript.attributes).forEach((attr) => {
         newScript.setAttribute(attr.name, attr.value);
       });
 
@@ -455,7 +452,7 @@ class ViewTransitionsManager {
    * Wait helper
    */
   wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
