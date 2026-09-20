@@ -528,6 +528,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 7テスト追加。全緑 — 実装は正しいことを実測確認。dispose 後も `speak()` が caption ミラー（onSpeak）だけは続ける設計意図を pin。
 - 📝 2068 tests / 59 suites、lint 0 errors、build green。
 
+#### 続き61（同セッション）: VRApp の locomotion/ボタン入力を pin + キーボードトグル caption の英語直書きを修正（実バグ14件目）
+- 🐛 **実バグ**: `updateButtonInput` の VR キーボードトグル caption が `Keyboard: ${visible?'open':'closed'}` の**英語リテラル**で `t()` 非経由 — 続き系の i18n 一掃（#81「src/vr の最後の英語リテラル」を名乗った）が取りこぼしていた最後の1箇所。日本語セッションの caption に英語が出ていた。
+- 🔧 **修正**: `vr.msg.keyboardOpen`/`keyboardClosed` を en/ja カタログに追加し `t()` 経由に。
+- 🔍 **実測**: 未検証だった毎フレーム入力経路を bound-prototype + 実 three で pin — ①`snapTurn` の head ピボット回転（ヘッド位置を不変に保つ pivot 数学、角度=snapTurnAngle×direction、haptic は hand 指定時のみ、caption は enabled 時のみ）②`updateLocomotion` の snap ラッチ（0.7 発火→0.3 未満で解除、保持中は1回のみ）、push-right→時計回り（-1）、southpaw の turn/move 手交換、smooth move の head-projected 前進（speed×dt 正確、斜めスティックは正規化して magnitude 保存）、comfort vignette への externalMotion/level 伝播 ③`updateButtonInput` の pointer 手 faceA/faceB→タブ前進/後退+正直 caption、thumbstickClick→recenter、utility 手 faceA→bookmarks/faceB・menu→settings（semanticDOM.setSettingsExpanded 連動）/thumbstickClick→キーボードトグル、任意 justPressed→haptic click。
+- ✅ **pin**: 10テスト追加（英語 caption は修正前に赤確認 — '進む' ではなく 'Going forward' が en 既定で来ることも検証してからの修正）。
+- 📝 2078 tests / 59 suites、lint 0 errors（119 warnings 据置）、build green。
+
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
