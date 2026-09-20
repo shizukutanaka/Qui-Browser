@@ -1666,3 +1666,6 @@ ID 生成コードが存在しない — interactables はオブジェクト同�
 
 ### 第129パス（クリーンスキャン — URL スキーム/SSRF）
 navigate は javascript:/data:/file: を resolve 時に拒否し onBlockedNavigation でユーザー告知済み。proxy は `assertRequestAllowed`（スキーム許可リスト）+ `resolveSafely`（全 A/AAAA のプライベート帯ブロック）+ リダイレクト毎の再検証で SSRF 完備。危険スキーム到達経路ゼロ。
+
+### 第130パス（クリーンスキャン — フォント鮮度）
+全 `ctx.font` は `sans-serif`/`monospace` の汎用ファミリのみ — webfont 依存ゼロで `document.fonts.ready` 待機の競合は構造的に存在しない（システムフォント即時解決）。
