@@ -1735,3 +1735,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第152パス（クリーンスキャン — 設定 live-apply 対称）
 全 toggle/stepper/cycle に apply コールバック or フレーム毎 live-read のどちらか — `enableComfort`（apply:null）は frameLoop が毎フレーム `settings.enableComfort` を読むため即時反映される正当な null。トグルしても効果ゼロの死設定なし。
+
+### 第153パス（クリーンスキャン — forEach 内 return 罠）
+全 forEach は全要素への broadcast（dispose/redraw/clear/propagate）で早期終了意図なし — return 誤用（break 期待の continue 化）ゼロ。
