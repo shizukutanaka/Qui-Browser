@@ -664,6 +664,21 @@ optional プラットフォームエントリ **68 件**をスクラッチロッ
 
 **再発防止**: `tests/i18n.test.js` に truthfulness pin を追加 —— index.html と両カタログが削除済み機能名（multiplayer/AI/object pooling/12 gestures/WebGPU）を含まないことを assert。
 
+## N-2. monitoring.js の外部計装点が全て未配線（Session 75 で観測・判断事項）
+
+`src/monitoring.js` の本番呼び出しは `initializeMonitoring()`（main.js）と
+`disposeMonitoring()`（VRApp.js）のみ。公開する `trackPageView` / `trackFPS` /
+`trackMemory` / `trackInteraction` / `trackVRSession` / `trackVRError` は
+**アプリ側から1回も呼ばれない**（tests が唯一の実行元）。内部では
+init が visibilitychange/beforeunload/web-vitals リスナーを配線して
+`trackEvent`/`captureError` を叩くためモジュール自体は機能するが、
+「VRセッション開始時に trackVRSession('start')」のような計装呼び出しは存在しない。
+
+**判断事項**: (a) VRApp に計装呼び出しを配線する（telemetry 価値あり）か、
+(b) getCommands と同じ基準で未使用 verb を削除するか。削除すると
+monitoring.js は init/dispose + 内部計装のみの構成になる。Sentry/GA の
+利用方針（本番で流すか）も絡むためオーナー判断。
+
 ---
 
 ## 使い方（次のセッションへ）

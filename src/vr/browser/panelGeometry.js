@@ -44,10 +44,9 @@ export const PANEL_W = 1.6;    // metres
 export const PANEL_H = 1.0;
 export const CHROME_H = 0.08;  // URL bar height as a fraction of PANEL_H
 
-/** Chrome-bar mesh height in metres, and its canvas dimensions. */
+/** Chrome-bar mesh height in metres, and its canvas width. */
 export const CHROME_M_H = PANEL_H * CHROME_H;
 export const CHROME_CANVAS_W = 1024;
-export const CHROME_CANVAS_H = Math.round(CHROME_CANVAS_W * CHROME_H);
 
 /** Content-viewport mesh height in metres (canvas dims live in readerLayout). */
 export const CONTENT_M_H = PANEL_H * (1 - CHROME_H);
