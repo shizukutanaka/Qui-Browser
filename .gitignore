@@ -66,3 +66,5 @@ coverage/
 # Misc
 .DS_Store
 *.sw?
+.agents/
+FIRST_PRINCIPLES_REPORT.md
