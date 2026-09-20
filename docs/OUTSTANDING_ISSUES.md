@@ -1675,3 +1675,6 @@ navigate は javascript:/data:/file: を resolve 時に拒否し onBlockedNaviga
 
 ### 第132パス（クリーンスキャン — ページライフサイクル）
 beforeunload → vrApp.dispose() 完備（設定は変更毎に settingsStore 永続化済みで unload 保存不要）。bfcache は beforeunload ハンドラ存在で Chrome が対象外にするため stale 復元は構造的に非到達。contextmenu 抑止なしは 2D ミラー限定の cosmetic。
+
+### 第133パス（クリーンスキャン — シェーダーコンパイル）
+マテリアルは Basic/Line/Phong/Shader で計 ~5 プログラムのみ — 初回コンパイル停滞は ~10-50ms 一回で、`compileAsync` 導入の価値密度が低い（推測最適化禁止）。変更なし。
