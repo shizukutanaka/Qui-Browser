@@ -310,6 +310,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🐛 **B-4**: `dispose()` が `stripMesh` を null にせず、遅延 `onHoverEnd` が破棄済み material に触れていた → 末尾で `= null`（既存ガードがそのまま遮断役になる）。
 - ✅ **test 6件追加**（pre-fix: 全件 FAIL）。Total 1526 tests; lint 0 errors; build green。**Section B 全件解消**。
 
+#### 続き10（同セッション）: ストアフロントの嘘 — index.html/起動バナーが削除済み機能を宣伝していた
+- 🔍 **実測した矛盾**: landing page の features grid が **Multiplayer**（src/multiplayer/ は F-2 で削除済み）と **AI Recommendations**（削除済み）を売り文句にし、feat.perf は消えた **object pooling**、feat.hand は実測 **6種**（pinch/point/open/fist/peace/thumbsup）のところを「12 gesture patterns」と記載。meta description と hero.subtitle の「Tier 3 features (WebGPU, Multiplayer) are experimental」、起動 console バナーの「Experimental: WebGPU, Multiplayer, AI」も全て死んだ機能の宣伝。README の乖離（続き6）より悪質 —— 製品選択の根拠文言が嘘。
+- 📝 **fix**: 死んだ2枚の機能カードを実在機能に置換（Multiplayer→**In-VR Captions**、AI→**Reader View** — どちらも本プロダクトの実差別化）、12→6、object pooling→quad-layer UI、Tier-3 宣伝を meta/hero/バナーから除去。en/ja 両カタログ。
+- 🧹 **同時に刈った残滓**: `SpatialAudio` の FR-7.2 spatial-voice API（createVoiceSource/removeVoiceSource/updateVoicePosition、117行 + `stop()` の `isVoice` 特例）は multiplayer 削除の忘れ物 —— src 内呼び出し元ゼロ・テストのみが実行。API+テスト66行を削除。
+- 📝 **観測・未対処（記録のみ）**: `public/sw.js` と `public/service-worker.js` の2個の SW が同居 —— sw.js は offline.html/未参照の pwa.js からのみ登録される鶏卵型 dead registration。public/ 直下でキャッシュ整合の検証が要るため今回は触らず。
+- ✅ test: 1522 件（voice API 削除で −66、truthfulness pin +3 ほか相殺）。lint 0 errors; build green; verify:app PASS。**削除コードを売り続けない pin を恒久化**（CATALOG export 化 + i18n.test.js で index.html/両カタログの dead-claim 正規表現を assert）。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
