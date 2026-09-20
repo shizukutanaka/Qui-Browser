@@ -1588,3 +1588,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第103パス（実修正 — 2D a11y: キーボードフォーカス指標）
 `outline: none` なし（ブラウザ既定リングは生きている）・`aria-hidden` は装飾アイコンのみ正当。ただしフォーカス指標を UA 既定に丸投げしていた — 暗いパレット上で UA 青と `--color-vr`(#5e72e4) が近接しブラウザ間で一貫しない → `:focus-visible` に明示的ライトリング（#88bbff、util-toggle の既存アクセントと一致）を追加。WCAG 2.4.7 を設計意図として固定。
+
+### 第104パス（実修正 — WCAG 1.4.3 コントラスト）
+`<html lang>` は setLanguage で動的更新済み（3.1.1 OK）。全配色を実測: text/surface 16.14:1、subtle 6.31:1、hover 4.88:1 全て合格だが **white-on-`--color-vr`(#5e72e4) = 4.20:1 で 4.5:1 未満** — `.cta-button`（18px/600＝大文字扱い外）と `.version-badge`（14px/600）が該当 → 両者の背景を #5669da（1段暗化、4.74:1）に修正。アクセント色自体はロゴ・グラデ等に使用され大文字/装飾として適格なので保持。

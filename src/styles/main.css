@@ -94,7 +94,9 @@ body {
 }
 
 .version-badge {
-    background: var(--color-vr);
+    /* #5669da: --color-vr darkened one step — 14px/600 white text needs
+       ≥4.5:1 under WCAG 1.4.3 (4.74:1 measured; var(--color-vr) was 4.20:1). */
+    background: #5669da;
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
@@ -131,7 +133,9 @@ body {
 }
 
 .cta-button {
-    background: var(--color-vr);
+    /* #5669da: --color-vr darkened one step — white label at 18px/600 is not
+       "large text" under WCAG 1.4.3, so it needs ≥4.5:1 (4.74:1 measured). */
+    background: #5669da;
     color: white;
     padding: 1rem 2rem;
     border: none;
