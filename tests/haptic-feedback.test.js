@@ -210,3 +210,86 @@ describe('HapticFeedback — alert() with a single controller', () => {
     expect(actuator.pulse).toHaveBeenCalledTimes(expected);
   });
 });
+
+describe('HapticFeedback actuator fallback + physics helpers', () => {
+  let hf;
+
+  beforeEach(() => {
+    hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+  });
+
+  afterEach(() => {
+    global.navigator.getGamepads = jest.fn(() => []);
+  });
+
+  test('pulse() falls back to playEffect("dual-rumble") when actuator.pulse is absent', async () => {
+    const gp = hf.gamepads.get(0);
+    gp.hapticActuators = [{ playEffect: jest.fn().mockResolvedValue(undefined) }];
+    await hf.pulse('left', 100, 0.8);
+    expect(gp.hapticActuators[0].playEffect).toHaveBeenCalledWith('dual-rumble', {
+      duration: 100,
+      strongMagnitude: 0.8,
+      weakMagnitude: 0.4
+    });
+  });
+
+  test('pulse() with neither API resolves without throwing', async () => {
+    hf.gamepads.get(0).hapticActuators = [{}];
+    await expect(hf.pulse('left', 10, 0.5)).resolves.toBeUndefined();
+  });
+
+  test('stats.averageIntensity is a running mean over pulses', async () => {
+    await hf.pulse('left', 10, 1.0);
+    await hf.pulse('left', 10, 0.5);
+    expect(hf.stats.pulsesGenerated).toBe(2);
+    expect(hf.stats.averageIntensity).toBeCloseTo(0.75);
+  });
+
+  test('simulateImpact maps kinetic energy to intensity and duration', async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    await hf.simulateImpact('left', 2, 1); // KE = 0.5*1*4 = 2 -> intensity 0.2
+    expect(hf.pulse).toHaveBeenCalledWith('left', 70, 0.2);
+  });
+
+  test('simulateImpact saturates intensity at 1.0', async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    await hf.simulateImpact('left', 10, 10); // KE = 500 -> clamp 1.0
+    expect(hf.pulse).toHaveBeenCalledWith('left', 150, 1.0);
+  });
+
+  test('proximityFeedback skips beyond maxDistance and scales by 1-d', async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    await hf.proximityFeedback('left', 2.0, 1.0);
+    expect(hf.pulse).not.toHaveBeenCalled();
+    await hf.proximityFeedback('left', 0.5, 1.0);
+    expect(hf.pulse).toHaveBeenCalledWith('left', 5, 0.25);
+  });
+
+  test("simulateTexture with an unknown texture type is a no-op", async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    await hf.simulateTexture('left', 'velvet', 10);
+    expect(hf.pulse).not.toHaveBeenCalled();
+  });
+
+  test("alert('high') plays the triple-pulse sequence on a single connected gamepad", async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    await hf.alert('high');
+    // Triple 100ms/1.0 pulses, fired once (single controller dedup).
+    expect(hf.pulse).toHaveBeenCalledTimes(3);
+    expect(hf.pulse).toHaveBeenNthCalledWith(1, 'left', 100, 1.0);
+  });
+
+  test('createCustomPattern registers a sequence playable via playPattern', async () => {
+    hf.pulse = jest.fn().mockResolvedValue(undefined);
+    hf.createCustomPattern('double', [
+      { duration: 30, intensity: 0.6 },
+      { pause: 10 },
+      { duration: 30, intensity: 0.9 }
+    ]);
+    await hf.playPattern('left', 'double');
+    expect(hf.pulse).toHaveBeenCalledTimes(2);
+    expect(hf.pulse).toHaveBeenNthCalledWith(2, 'left', 30, 0.9);
+  });
+});
