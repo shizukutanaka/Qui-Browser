@@ -1421,3 +1421,6 @@ perf 統計5点（updatePerformanceMonitor/getPerformanceStats/adjustQuality/red
 
 ### 第51パス（継続中 — delegate 必要性監査）
 40本の delegate 全走査: `dispose`/`render`/`getPerformanceStats` 等は app.js・frameLoop バインド・テストの実呼び出しありで生存。唯一の発見: setup×5＋initializeSystems の6 delegate は frameLoop 経由のみ → モジュール直接呼び出しに切替えて6本削除（setupControllers は setupStages 内部呼び出しも直接化 — vr-boot が `app.setupControllers is not a function` で捕捉、修正済）。VRApp 826→**801** 行（C-1 累計 −2,453）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
+
+### 第52パス（継続中 — テスト専用 delegate の削除）
+「テストだけが参照する delegate」を摘出: `updateSystems`・`_setupOSAccessibilityListeners`・`_detachPanelLayer` は src 呼び出しゼロ → 規約に従いテストをモジュール直接呼び出し（frameLoop/systemsLifecycle/sessionLifecycle から import）に書き換えて delegate 3本削除。`render` は frameLoop が `bind` するため生存。VRApp 801→**789** 行（C-1 累計 −2,465）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
