@@ -540,6 +540,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 7テスト追加（bound-prototype `this` は兄弟メソッドを持たないため reduceQuality/increaseQuality を明示束縛 — 以後の pin でも必要な作法）。
 - 📝 2085 tests / 59 suites、lint 0 errors、build green。
 
+#### 続き63（同セッション）: VRApp の teleport レイキャスト・render ループ・updateSystems 中層を pin（欠陥ゼロ）
+- 🔍 **実測**: 実 three の Raycaster（純粋数学）でヘッドレス検証可能と判明 — ①`raycasterFromController` の matrixWorld→ray 構築（origin=位置、direction=-Z 回転済み、_sharedRaycaster メモ化）②`onTeleportStart` のガード（enableTeleport/floorMesh 不在で no-op）③`updateTeleport` の床 hit→valid+target+マーカー hit+0.01y 配置、miss→valid=false+マーカー非表示、active 前は不活性 ④`_launchImmersiveVideo` の keyboard prompt→`immersiveVideo.play(url, detectVideoFormat(url))` 委譲+空URL/欠損ガード ⑤`updateSystems` 中層（locomotion/button/teleport/hover fan-out、FFR の isVREnabled ゲート+frame-budget ±0.01、handTracking の xrFrame ゲート、hapticFeedback.update、spatialAudio リスナー、caption/gaze の dt×1000 ms 変換、comfort の enableComfort ゲート）⑥`updatePerformanceMonitor` の frameTime EMA(α=0.1)+fps=1000/ft+renderer.info 読取 ⑦`render()` の dt 50ms キャップ（バックグラウンド復帰ジャンプ防止）+ frameCount%60 の adjustQuality ケイデンス。
+- ✅ **pin**: 13テスト追加（実 PlaneGeometry 床に実レイキャスト — stub ではなく本物の交差判定を通して検証）。全緑、実装は全て正しいことを実測確認。
+- 📝 2098 tests / 59 suites、lint 0 errors、build green。VRApp の headless 検証可能面はほぼ網羅 — 残りは WebGL/XR セッション直結の setup*/initialize*/onVRSessionStart のみ。
+
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。
