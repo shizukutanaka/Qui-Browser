@@ -206,8 +206,6 @@ npm run test:coverage         # Tests with coverage
 # Code Quality
 npm run lint                  # Lint JavaScript
 npm run lint:fix              # Auto-fix linting issues
-npm run format                # Format code (Prettier)
-npm run format:check          # Check formatting
 
 # CI/CD
 npm run ci:verify             # Build + verify:layout + verify:app + verify:vr-boot

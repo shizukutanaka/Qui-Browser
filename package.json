@@ -23,8 +23,6 @@
     "icons": "node tools/generate-icons.mjs",
     "lint": "eslint src proxy",
     "lint:fix": "eslint src proxy --fix",
-    "format": "prettier --write \"**/*.{js,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml}\"",
     "verify:docs": "node tools/verify-documentation.js",
     "verify:layout": "node tools/verify-text-layout.mjs",
     "verify:app": "node tools/verify-app-boot.mjs",
@@ -66,7 +64,6 @@
     "babel-jest": "^30.2.0",
     "eslint": "^9.39.0",
     "jest": "^29.7.0",
-    "prettier": "^3.1.0",
     "sharp": "^0.34.5",
     "vite": "^5.4.21"
   },

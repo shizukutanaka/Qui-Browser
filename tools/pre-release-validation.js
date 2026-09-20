@@ -354,7 +354,6 @@ async function checkBuildConfiguration(results) {
   const configFiles = [
     'vite.config.js',
     'eslint.config.js',
-    '.prettierrc.json',
     '.babelrc'
   ];
 

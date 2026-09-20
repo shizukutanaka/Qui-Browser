@@ -7,7 +7,6 @@ npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
 npm run lint             # ESLint over src/ and proxy/
-npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
 npm run ci:verify        # build + verify:layout + verify:app + verify:vr-boot
 ```

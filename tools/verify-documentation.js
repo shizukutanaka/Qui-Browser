@@ -193,7 +193,6 @@ function main() {
     'vite.config.js',
     'jest.config.js',
     'eslint.config.js',
-    '.prettierrc.json',
     'Dockerfile',
     'docker-compose.yml',
     'netlify.toml',

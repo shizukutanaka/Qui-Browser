@@ -14,7 +14,6 @@ Thank you for your interest in contributing to Qui Browser VR!
 ### Code Style
 - Use 2 spaces for indentation
 - Follow ESLint rules
-- Run `npm run format` before committing
 
 ### Testing
 - Write tests for new features

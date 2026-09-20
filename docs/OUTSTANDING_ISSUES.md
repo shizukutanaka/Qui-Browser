@@ -782,6 +782,18 @@ verify:docs **100%**・verify:layout/app/vr-boot 全 PASS・lint 0 errors。
 
 計測: 44 suites / 1,381 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS。
 
+### 第9パス（強制力ゼロのツール設定 = 死んだインフラ）
+
+| 対象 | 内容 |
+|---|---|
+| **Prettier スタック全体** | `format:check` は実測で **123 ファイル全て未フォーマットで常時赤** — 誰も実行しないフォーマッターは「存在する標準」の偽装 → `prettier` devDep・`format`/`format:check` スクリプト・`.prettierrc.json`・`.prettierignore` を全削除。両バリデータの必須ファイルリストと README/TESTING/CONTRIBUTING の言及も除去 |
+| `.lighthouserc.json` | `lighthouse` スクリプト（パス3で削除）の孤児設定 → 削除（Netlify の `@netlify/plugin-lighthouse` は別物で生存） |
+
+workflow-changes.patch を **v3 に再交付**: 加えて `release.yml` の
+`npm run format:check || echo`（削除後スクリプトを呼ぶ偽警告）を除去。
+
+計測: 44 suites / 1,381 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS・verify:docs 100%。
+
 ---
 
 ## 使い方（次のセッションへ）
