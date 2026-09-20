@@ -641,30 +641,6 @@ export class PerformanceMonitor {
 
     return rows.join('\n');
   }
-
-  /**
-   * Reset statistics
-   */
-  reset() {
-    this.stats = {
-      totalFrames: 0,
-      totalTime: 0,
-      alertsGenerated: 0,
-      worstFrame: { time: 0, timestamp: 0 },
-      bestFrame: { time: 999, timestamp: 0 }
-    };
-
-    this.alerts = [];
-
-    Object.values(this.metrics).forEach(metric => {
-      metric.min = 999;
-      metric.max = 0;
-      metric.avg = 0;
-      metric.history = [];
-    });
-
-    console.debug('PerformanceMonitor: Statistics reset');
-  }
 }
 
 /**

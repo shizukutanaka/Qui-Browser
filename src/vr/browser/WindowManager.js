@@ -46,7 +46,6 @@ export class WindowManager {
 
     this.target = null;        // managed Object3D (panel group)
     this.followMode = false;   // head-lock
-    this.billboard = false;    // face user without following position
     this._grab = null;         // { controller, distance } while grabbing
 
     // Scratch objects (avoid per-frame allocation).
@@ -75,17 +74,10 @@ export class WindowManager {
     this.followMode = !!value;
     return this.followMode;
   }
-  setBillboard(value) {
-    this.billboard = !!value;
-    return this.billboard;
-  }
 
   setDistance(d) {
     this.distance = Math.max(this.minDistance, Math.min(this.maxDistance, d));
     return this.distance;
-  }
-  nudgeDistance(delta) {
-    return this.setDistance(this.distance + delta);
   }
 
   // ── Grab-to-move ─────────────────────────────────────────────────────────────
@@ -118,8 +110,7 @@ export class WindowManager {
 
   /**
    * Update the managed panel's transform for this frame.
-   * Precedence: grab > follow. Billboard orientation is applied in follow and
-   * grab modes (and standalone when billboard is on but follow is off).
+   * Precedence: grab > follow.
    *
    * @param {number} [dtMs=16] — frame delta (ms); scales the follow lerp
    */
@@ -146,8 +137,6 @@ export class WindowManager {
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
       this._applyAngularScale();
-    } else if (this.billboard) {
-      this._faceUser();
     }
   }
 

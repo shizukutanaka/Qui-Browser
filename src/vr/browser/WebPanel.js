@@ -125,7 +125,6 @@ export class WebPanel {
     this.historyIdx  = -1;
     this.loading     = false;
     this._loadError  = false; // set true on iframe onerror, cleared on next navigate
-    this.domOverlaySupported = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -836,33 +835,6 @@ export class WebPanel {
     }
   }
 
-  /**
-   * Navigate back one step.  Returns true if navigation occurred, false if
-   * already at the earliest history entry (WCAG 4.1.3: callers can announce
-   * the blocked state via caption / haptic rather than silently no-oping).
-   * @returns {boolean}
-   */
-  goBack() {
-    if (this.historyIdx > 0) {
-      this.back();
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Navigate forward one step.  Returns true if navigation occurred, false if
-   * already at the latest history entry.
-   * @returns {boolean}
-   */
-  goForward() {
-    if (this.historyIdx < this.history.length - 1) {
-      this.forward();
-      return true;
-    }
-    return false;
-  }
-
   reload() {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
@@ -897,22 +869,6 @@ export class WebPanel {
   }
 
   // ── DOM-overlay integration ───────────────────────────────────────────────
-
-  /**
-   * Call this when a WebXR session with dom-overlay starts.
-   * Shows the iframe positioned over the panel's projected screen area.
-   */
-  onDomOverlayStart() {
-    this.domOverlaySupported = true;
-    this.iframe.style.display = 'block';
-  }
-
-  /**
-   * Call this when the WebXR session ends.
-   */
-  onDomOverlayEnd() {
-    this.iframe.style.display = 'none';
-  }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
 

@@ -337,45 +337,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Set source orientation (for directional sounds)
-   */
-  setSourceOrientation(sourceName, x, y, z) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.panner) {
-      return;
-    }
-
-    if (source.panner.orientationX) {
-      source.panner.orientationX.value = x;
-      source.panner.orientationY.value = y;
-      source.panner.orientationZ.value = z;
-    } else {
-      source.panner.setOrientation(x, y, z);
-    }
-  }
-
-  /**
-   * Set source velocity (for doppler effect)
-   */
-  setSourceVelocity(sourceName, x, y, z) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.panner) {
-      return;
-    }
-
-    source.velocity = { x, y, z };
-
-    if (source.panner.positionX) {
-      // Modern API doesn't directly support velocity
-      // Doppler effect needs to be simulated
-      this.simulateDoppler(source);
-    } else if (source.panner.setVelocity) {
-      // Deprecated but might still work
-      source.panner.setVelocity(x, y, z);
-    }
-  }
-
-  /**
    * Simulate doppler effect
    */
   simulateDoppler(source) {
@@ -545,19 +506,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Set source volume
-   */
-  setSourceVolume(sourceName, volume) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.gain) {
-      return;
-    }
-
-    source.volume = Math.max(0, Math.min(1, volume));
-    source.gain.gain.value = source.volume * this.settings.masterVolume;
-  }
-
-  /**
    * Fade volume over time
    */
   fadeVolume(sourceName, targetVolume, duration) {
@@ -577,31 +525,6 @@ export class SpatialAudio {
     );
 
     source.volume = targetVolume;
-  }
-
-  /**
-   * Create reverb effect
-   */
-  async createReverb(name, options = {}) {
-    const convolver = this.context.createConvolver();
-
-    // Generate impulse response
-    const length = options.duration || 2;
-    const decay = options.decay || 2;
-    const sampleRate = this.context.sampleRate;
-    const impulseLength = sampleRate * length;
-    const impulse = this.context.createBuffer(2, impulseLength, sampleRate);
-
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = impulse.getChannelData(channel);
-      for (let i = 0; i < impulseLength; i++) {
-        channelData[i] = (Math.random() * 2 - 1) *
-                         Math.pow(1 - i / impulseLength, decay);
-      }
-    }
-
-    convolver.buffer = impulse;
-    return convolver;
   }
 
   /**

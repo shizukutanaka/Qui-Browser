@@ -327,6 +327,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 📝 **fix**: `vr.welcome` キーを en/ja に追加し VRApp が `t()` 経由で描画。VoiceCommands から `getCommands()` + `description` フィールド保持 + 22件の `description:` 登録 + JSDoc 例を削除。
 - ✅ **pin**: `tests/i18n.test.js` に vr.welcome の両カタログ存在 + VRApp が `t()` 経由・リテラル不在のソース pin; `tests/voice-commands.test.js` に getCommands/description 非再発 pin（いずれも pre-fix で 4件 FAIL → post-fix PASS）。test 1526 件、lint 0 errors、build green。
 
+#### 続き13（同セッション）: 公開 API 棚卸し — 360 メソッド中 27 個に呼び出し元ゼロ（〜400行）
+- 🔍 **実測**: getCommands() のパターンを全 src に一般化 —— クラスの public メソッド名を機械抽出し、`x.name(`・`x['name'](`・分割代入・コールバック配線まで含む全呼び出し経路を走査。**360 中 27 メソッドが本番呼び出し元ゼロ**だった。内訳: SpatialAudio 4（setSourceOrientation/Velocity/Volume/createReverb —— multiplayer 残滓と同族）、HapticFeedback 5（simulateForce/directionalPulse/playRhythm/getPatterns/resetStats）、WebPanel 4（goBack/goForward は live の back()/forward() の**テストのみの複製**、onDomOverlayStart/End + domOverlaySupported フィールドは DOM-overlay 試みの忘れ物）、WindowManager（setBillboard/nudgeDistance + **`this.billboard` 自体が誰にも立てられない死んだ機能** —— update() の billboard 分岐も dead）、VoiceCommands 2、ComfortSystem 2、他 BookmarkStore.removeHistory・PerformanceMonitor.reset・ProgressiveLoader.loadOnDemand/preload・FFRSystem.setThresholds・LayersSystem.getLayer・JapaneseIME.deactivate・VRApp.makeToggleButton。
+- 🧹 **fix**: 27 メソッド + billboard フィールド/分岐 + domOverlaySupported フィールドを削除。**テストのみが呼んでいた3件**（goBack/goForward・billboard・removeHistory）は: goBack/goForward のテストは live の back()/forward() に向き直して index ガードのカバレッジを温存、billboard テストと removeHistory テストは dead 機能ごと削除。
+- ✅ **pin**: `tests/no-dead-public-api.test.js` 新設 —— 27 メソッドが再定義されないことをソース pin（スキャン自体の再実行は手動、ファイル内に手順記録）。test 1549 件（pin +27、削除 −4、向き直し ±0）、lint 0 errors、build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

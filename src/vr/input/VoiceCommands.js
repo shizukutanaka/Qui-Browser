@@ -455,20 +455,6 @@ export class VoiceCommands {
   }
 
   /**
-   * Unregister command
-   */
-  unregisterCommand(name) {
-    this.commands.delete(name);
-
-    // Remove aliases
-    for (const [alias, commandName] of this.aliases) {
-      if (commandName === name) {
-        this.aliases.delete(alias);
-      }
-    }
-  }
-
-  /**
    * Replace the default window.* navigation commands with VR-aware versions
    * that use the live TabManager / BookmarkPanel / keyboard references.
    *
@@ -741,16 +727,6 @@ export class VoiceCommands {
     };
 
     this.synthesis.speak(utterance);
-  }
-
-  /**
-   * Set language
-   */
-  setLanguage(lang) {
-    this.language = lang;
-    if (this.recognition) {
-      this.recognition.lang = lang;
-    }
   }
 
 
