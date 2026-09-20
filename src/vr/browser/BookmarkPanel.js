@@ -9,7 +9,7 @@
 
 import { BOOKMARK_PANEL_W } from './panelGeometry.js';
 import * as THREE from 'three';
-import { configureUITexture } from '../ui/canvasTexture.js';
+import { makeUICanvas } from '../ui/canvasTexture.js';
 import {
   PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
@@ -73,16 +73,10 @@ export class BookmarkPanel {
     this.scrollOffset = 0;  // index of the first visible row
     this.visible = false;
 
-    this.canvas = (typeof document !== 'undefined')
-      ? document.createElement('canvas') : null;
-    if (this.canvas) {
-      this.canvas.width = PANEL_PX_W;
-      this.canvas.height = PANEL_PX_H;
-    }
-    this.tex = this.canvas ? configureUITexture(new THREE.CanvasTexture(this.canvas)) : null;
-    if (this.tex) {
-      this.tex.colorSpace = THREE.SRGBColorSpace;
-    }
+    const ui = (typeof document !== 'undefined')
+      ? makeUICanvas(PANEL_PX_W, PANEL_PX_H, { srgb: true }) : null;
+    this.canvas = ui ? ui.canvas : null;
+    this.tex = ui ? ui.tex : null;
 
     this.mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(this.panelW, this.panelH),

@@ -8,7 +8,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from './canvasTexture.js';
+import { makeUICanvas } from './canvasTexture.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx } from '../accessibility/crossModal.js';
 import { getPrefs, largeTextScale, prefersHighContrast } from '../../a11y/accessibility.js';
 
@@ -25,9 +25,7 @@ export function showVRToast(app, message, { type = 'error', duration = 4000 } = 
   }
 
   const W = 512, H = 80;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const { ctx, tex } = makeUICanvas(W, H, { srgb: true });
 
   // Honour the high-contrast / large-text accessibility preferences (same
   // signals as the 2D layer and the caption panel).
@@ -53,8 +51,6 @@ export function showVRToast(app, message, { type = 'error', duration = 4000 } = 
     : labeled;
   ctx.fillText(shown, W / 2, H / 2);
 
-  const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-  tex.colorSpace = THREE.SRGBColorSpace;
 
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(0.55, 0.085),

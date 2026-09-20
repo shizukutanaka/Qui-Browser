@@ -15,7 +15,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from '../ui/canvasTexture.js';
+import { makeUICanvas } from '../ui/canvasTexture.js';
 import {
   wrapTextToLines, wrapTextToWidth, truncateToWidth, charWidthEm
 } from '../ui/textWrap.js';
@@ -111,13 +111,7 @@ export class CaptionSystem {
   // ── Panel construction ──────────────────────────────────────────────────────
 
   _buildPanel() {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width  = CANVAS_W;
-    this.canvas.height = CANVAS_H;
-    this.texture = configureUITexture(new THREE.CanvasTexture(this.canvas));
-    if ('colorSpace' in this.texture) {
-      this.texture.colorSpace = THREE.SRGBColorSpace;
-    }
+    ({ canvas: this.canvas, tex: this.texture } = makeUICanvas(CANVAS_W, CANVAS_H, { srgb: true }));
 
     const geo = new THREE.PlaneGeometry(PANEL_W, PANEL_H);
     const mat = new THREE.MeshBasicMaterial({

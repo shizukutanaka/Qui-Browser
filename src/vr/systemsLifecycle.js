@@ -6,7 +6,6 @@
  * getters (captionSystem etc. via a11y coordinator) keep working.
  */
 
-import * as THREE from 'three';
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { ComfortSystem } from './comfort/ComfortSystem.js';
 import { JapaneseIME, VRJapaneseKeyboard } from './input/JapaneseIME.js';
@@ -16,8 +15,6 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { WindowManager } from './browser/WindowManager.js';
-import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { osReducedMotion, getPrefs, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';

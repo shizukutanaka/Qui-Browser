@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from './canvasTexture.js';
+import { makeUICanvas } from './canvasTexture.js';
 
 function planeGeometry(cache, w, h) {
   const keyStr = `${w}x${h}`;
@@ -29,12 +29,7 @@ function planeGeometry(cache, w, h) {
 }
 
 export function canvasButton(geoCache, texPool, w, h, widthM) {
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-  tex.colorSpace = THREE.SRGBColorSpace;
+  const { ctx, tex } = makeUICanvas(w, h, { srgb: true });
   texPool.push(tex);
   const mesh = new THREE.Mesh(
     planeGeometry(geoCache, widthM, 0.17),

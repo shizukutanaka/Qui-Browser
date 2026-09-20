@@ -6,7 +6,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from '../ui/canvasTexture.js';
+import { makeUICanvas } from '../ui/canvasTexture.js';
 import {
   computeKeyLayout, keyboardBounds,
   SUGGESTION_BTN_PX_W, SUGGESTION_BTN_PX_H, SUGGESTION_LABEL_FONT_PX,
@@ -766,11 +766,7 @@ export class VRJapaneseKeyboard {
     group.add(panel);
 
     // Composition-text display strip.
-    this._displayCanvas = document.createElement('canvas');
-    this._displayCanvas.width = 1024;
-    this._displayCanvas.height = 96;
-    this._displayTex = configureUITexture(new THREE.CanvasTexture(this._displayCanvas));
-    this._displayTex.colorSpace = THREE.SRGBColorSpace;
+    ({ canvas: this._displayCanvas, tex: this._displayTex } = makeUICanvas(1024, 96, { srgb: true }));
     const display = new THREE.Mesh(
       new THREE.PlaneGeometry(width, DISPLAY_H),
       new THREE.MeshBasicMaterial({ map: this._displayTex, transparent: true })
@@ -829,10 +825,7 @@ export class VRJapaneseKeyboard {
    * @param {boolean} active  key is in a latched-on state (e.g. shift/katakana)
    */
   _makeKeyTexture(glyph, hover, active = false) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
+    const { ctx, tex } = makeUICanvas(128, 128, { srgb: true });
     const col = imeColors(prefersHighContrast());
     // Active (latched) keys get a warm amber tint; hover overrides to blue.
     if (hover) {
@@ -851,8 +844,6 @@ export class VRJapaneseKeyboard {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(glyph, 64, 70);
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
 
@@ -1129,10 +1120,7 @@ export class VRJapaneseKeyboard {
     const stripY = height / 2 + DISPLAY_H + DISPLAY_H / 2 + 0.02;
 
     shown.forEach((kanji, i) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 128;
-      const ctx = canvas.getContext('2d');
+      const { ctx, tex } = makeUICanvas(128, 128, { srgb: true });
 
       // ONE painter for all three states. This used to be three separate ad-hoc
       // paint blocks (initial, onHover, onHoverEnd), and the two hover blocks
@@ -1165,8 +1153,6 @@ export class VRJapaneseKeyboard {
         ctx.fillText(kanji, 64, 70);
       };
       draw(false);
-      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-      tex.colorSpace = THREE.SRGBColorSpace;
 
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(BTN_W, BTN_H),
@@ -1247,10 +1233,7 @@ export class VRJapaneseKeyboard {
     const CANVAS_H = SUGGESTION_BTN_PX_H;
     shown.forEach((entry, i) => {
       const label = suggestionLabel(entry);
-      const canvas = document.createElement('canvas');
-      canvas.width = CANVAS_W;
-      canvas.height = CANVAS_H;
-      const ctx = canvas.getContext('2d');
+      const { ctx, tex } = makeUICanvas(CANVAS_W, CANVAS_H, { srgb: true });
 
       const draw = (hover) => {
         const col = imeColors(prefersHighContrast());
@@ -1275,8 +1258,6 @@ export class VRJapaneseKeyboard {
         ctx.fillText(label, CANVAS_W / 2, CANVAS_H / 2 + 10, CANVAS_W - 20);
       };
       draw(false);
-      const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-      tex.colorSpace = THREE.SRGBColorSpace;
 
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(BTN_W, BTN_H),

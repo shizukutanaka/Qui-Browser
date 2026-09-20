@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from '../ui/canvasTexture.js';
+import { makeUICanvas } from '../ui/canvasTexture.js';
 import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
@@ -160,11 +160,8 @@ export class WebPanel {
 
   _build() {
     // ── Chrome bar (URL bar + back/forward/reload) ──────────────────────────
-    this.chromeCanvas = document.createElement('canvas');
-    this.chromeCanvas.width  = CHROME_CANVAS_W;
-    this.chromeCanvas.height = Math.round(CHROME_CANVAS_W * CHROME_H);
-
-    this.chromeTex = configureUITexture(new THREE.CanvasTexture(this.chromeCanvas));
+    ({ canvas: this.chromeCanvas, tex: this.chromeTex } =
+      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * CHROME_H)));
 
     const chromeGeo = new THREE.PlaneGeometry(PANEL_W, CHROME_M_H);
     const chromeMat = new THREE.MeshBasicMaterial({
@@ -182,10 +179,8 @@ export class WebPanel {
     // state changes. Previously it was painted once and never again, so after a
     // successful navigation the viewport still read "Enter a URL to navigate"
     // forever — the panel silently misrepresented what it was showing.
-    this.contentCanvas = document.createElement('canvas');
-    this.contentCanvas.width  = CHROME_CANVAS_W;
-    this.contentCanvas.height = Math.round(CHROME_CANVAS_W * (1 - CHROME_H));
-    this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
+    ({ canvas: this.contentCanvas, tex: this.contentTex } =
+      makeUICanvas(CHROME_CANVAS_W, Math.round(CHROME_CANVAS_W * (1 - CHROME_H))));
     this._drawContent();
 
     const contentTex = this.contentTex;
@@ -222,10 +217,9 @@ export class WebPanel {
     // handle keeps its slim look and gains a hittable margin above and below.
     // The bar is drawn white and tinted through `material.color`, which is how
     // _onMoveBarHover already worked — so the rendered colours are unchanged.
-    this.moveBarCanvas = document.createElement('canvas');
-    this.moveBarCanvas.width = 64;
-    this.moveBarCanvas.height = Math.max(3, Math.round(64 * (MOVE_BAR_HIT_H / MOVE_BAR_W)));
-    const mbCtx = this.moveBarCanvas.getContext('2d');
+    let mbCtx;
+    ({ canvas: this.moveBarCanvas, ctx: mbCtx, tex: this.moveBarTex } =
+      makeUICanvas(64, Math.max(3, Math.round(64 * (MOVE_BAR_HIT_H / MOVE_BAR_W)))));
     if (mbCtx) {
       const barPx = Math.max(1, Math.round(this.moveBarCanvas.height * (MOVE_BAR_H / MOVE_BAR_HIT_H)));
       const y0 = Math.round((this.moveBarCanvas.height - barPx) / 2);
@@ -233,7 +227,6 @@ export class WebPanel {
       mbCtx.fillStyle = '#ffffff';
       mbCtx.fillRect(0, y0, this.moveBarCanvas.width, barPx);
     }
-    this.moveBarTex = configureUITexture(new THREE.CanvasTexture(this.moveBarCanvas));
     const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_HIT_H);
     const moveBarMat = new THREE.MeshBasicMaterial({
       color: 0x55556f, map: this.moveBarTex, transparent: true, side: THREE.FrontSide

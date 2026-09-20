@@ -9,7 +9,7 @@
  */
 
 import * as THREE from 'three';
-import { configureUITexture } from '../ui/canvasTexture.js';
+import { makeUICanvas } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
 import { t } from '../../i18n/i18n.js';
 import {
@@ -69,10 +69,8 @@ export class TabManager {
 
     // Tab strip sits just above the active panel.
     this.stripGroup  = new THREE.Group();
-    this.stripCanvas = document.createElement('canvas');
-    this.stripCanvas.width  = STRIP_CANVAS_W;
-    this.stripCanvas.height = STRIP_CANVAS_H;
-    this.stripTex = configureUITexture(new THREE.CanvasTexture(this.stripCanvas));
+    ({ canvas: this.stripCanvas, tex: this.stripTex } =
+      makeUICanvas(STRIP_CANVAS_W, STRIP_CANVAS_H));
 
     this._buildStrip();
   }

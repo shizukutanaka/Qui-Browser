@@ -35,3 +35,20 @@ export function configureUITexture(tex) {
   }
   return tex;
 }
+
+/**
+ * Canvas + UI texture pair, in one call. Every panel needs the same trio —
+ * canvas, 2D context, and a mip-free CanvasTexture — so build them together.
+ * `srgb` opts into SRGBColorSpace for texture-blit content (keys, captions).
+ */
+export function makeUICanvas(w, h, { srgb = false } = {}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const tex = configureUITexture(new THREE.CanvasTexture(canvas));
+  if (srgb && 'colorSpace' in tex && THREE.SRGBColorSpace !== undefined) {
+    tex.colorSpace = THREE.SRGBColorSpace;
+  }
+  return { canvas, ctx, tex };
+}
