@@ -314,8 +314,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測した矛盾**: landing page の features grid が **Multiplayer**（src/multiplayer/ は F-2 で削除済み）と **AI Recommendations**（削除済み）を売り文句にし、feat.perf は消えた **object pooling**、feat.hand は実測 **6種**（pinch/point/open/fist/peace/thumbsup）のところを「12 gesture patterns」と記載。meta description と hero.subtitle の「Tier 3 features (WebGPU, Multiplayer) are experimental」、起動 console バナーの「Experimental: WebGPU, Multiplayer, AI」も全て死んだ機能の宣伝。README の乖離（続き6）より悪質 —— 製品選択の根拠文言が嘘。
 - 📝 **fix**: 死んだ2枚の機能カードを実在機能に置換（Multiplayer→**In-VR Captions**、AI→**Reader View** — どちらも本プロダクトの実差別化）、12→6、object pooling→quad-layer UI、Tier-3 宣伝を meta/hero/バナーから除去。en/ja 両カタログ。
 - 🧹 **同時に刈った残滓**: `SpatialAudio` の FR-7.2 spatial-voice API（createVoiceSource/removeVoiceSource/updateVoicePosition、117行 + `stop()` の `isVoice` 特例）は multiplayer 削除の忘れ物 —— src 内呼び出し元ゼロ・テストのみが実行。API+テスト66行を削除。
-- 📝 **観測・未対処（記録のみ）**: `public/sw.js` と `public/service-worker.js` の2個の SW が同居 —— sw.js は offline.html/未参照の pwa.js からのみ登録される鶏卵型 dead registration。public/ 直下でキャッシュ整合の検証が要るため今回は触らず。
+- 📝 **観測 → 続き11 で解決**: `public/sw.js` と `public/service-worker.js` の2個の SW が同居 —— sw.js は offline.html/未参照の pwa.js からのみ登録される鶏卵型 dead registration（続き11 で削除）。
 - ✅ test: 1522 件（voice API 削除で −66、truthfulness pin +3 ほか相殺）。lint 0 errors; build green; verify:app PASS。**削除コードを売り続けない pin を恒久化**（CATALOG export 化 + i18n.test.js で index.html/両カタログの dead-claim 正規表現を assert）。
+
+#### 続き11（同セッション）: 二重 Service Worker の解消 — sw.js は鶏卵 dead だった
+- 🔍 **実測**: `public/sw.js`（v1.1.0・root scope、418行）の登録経路は2つしかなく、どちらも死んでいた: ①`offline.html` からの `register('/sw.js')` —— このページは `service-worker.js` が offline 時の fallback として配信するもので、**offline 状態で新しい SW スクリプトは fetch できない**ため登録が成立しえない（登録→インストールはネットワーク必須）②`public/js/pwa.js` —— どの HTML からも load されていない（index.html は `/src/main.js` のみ）。さらに scope '/' での登録が成立した場合でも `service-worker.js`（base scope）と同一 scope で**交互に置き換え合う競合**になる。
+- 🧹 **fix**: `public/sw.js`・`public/js/pwa.js` を削除（public/js/ は空に）、offline.html の dead `register` ブロックを除去。登録経路は `src/main.js` → `service-worker.js`（base-path aware・update ポーリング付き）に一本化。dist 確認: service-worker.js/offline.html あり・sw.js/pwa.js なし。
+- ✅ test 1522 件不変（対象ファイルは untested の dead asset）; lint 0 errors; build green; verify:app PASS。
 
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**

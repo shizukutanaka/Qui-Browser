@@ -651,7 +651,7 @@ optional プラットフォームエントリ **68 件**をスクラッチロッ
 
 **同時に刈った残滓**: `SpatialAudio` の FR-7.2 spatial-voice API（createVoiceSource/removeVoiceSource/updateVoicePosition、117行 + stop() の isVoice 特例）は multiplayer 削除の忘れ物で、src 内の呼び出し元ゼロ・テストのみが実行していた → API とテスト 66行を削除。
 
-**観測したが未対処（記録のみ）**: `public/sw.js`（418行・v1.1.0・root scope）と `public/service-worker.js`（492行・v2.0.0・base aware）が同居。sw.js は offline.html と未参照の `public/js/pwa.js` からのみ登録される —— offline で配信されるページからの SW 登録は鶏卵問題で事実上到達不能。削除は public/ 直下のため別の機会に（キャッシュ整合の検証が要る）。
+~~**観測したが未対処**: `public/sw.js` と `public/service-worker.js` の同居~~ — **Session 75 で解決**: sw.js（v1.1.0・root scope）の登録元は offline.html（SW fallback ページ自身 —— offline 配信時には fetch 不能な鶏卵）と未参照の `public/js/pwa.js` のみだったことを grep で確認。sw.js・pwa.js を削除し、offline.html の dead `register('/sw.js')` ブロックを除去。本物の SW（service-worker.js）は `src/main.js` から base-path aware で登録される経路に一本化。dist ビルドで sw.js/pwa.js 不在を検証済み。
 
 **再発防止**: `tests/i18n.test.js` に truthfulness pin を追加 —— index.html と両カタログが削除済み機能名（multiplayer/AI/object pooling/12 gestures/WebGPU）を含まないことを assert。
 
