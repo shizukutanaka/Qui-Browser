@@ -26,6 +26,7 @@ export default [
       }
     },
     rules: {
+        'no-unreachable': 'error',
       'indent': ['error', 2],
       'linebreak-style': ['error', 'unix'],
       'quotes': ['error', 'single', { 'avoidEscape': true }],
