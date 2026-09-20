@@ -976,6 +976,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,367 tests・lint 0 errors・verify:docs PASS。
 
+### 第22パス（manifest.json の嘘 + i18n 対称監査）
+
+- manifest `shortcuts` 3件全削除 — `/bookmarks`・`/history`・
+  `?action=new-tab` は全て **app が一切読まない URL**（URLSearchParams
+  の実読み取りゼロ、SPA ルートも無し）。PWA ショートカットは宣言的に
+  見えるが「届かない機能へのリンク」は嘘。
+- `related_applications`（空）・`prefer_related_applications`・
+  `edge_side_panel`（サイドパネル対応の設計が存在しない宣言）を除去。
+- アイコン7件は全実在を再確認。
+- i18n en/ja カタログ対称性: 119 vs 119、キー完全一致（非対称ゼロ）。
+- docs 内 `npm run` 参照は全て実在スクリプトに一致。
+
+計測: 44 suites / 1,367 tests・lint 0 errors・build PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
