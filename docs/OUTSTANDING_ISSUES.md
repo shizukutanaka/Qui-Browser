@@ -1573,3 +1573,6 @@ Observer 系（Mutation/Resize/Intersection/Worker/EventSource）は存在ゼロ
 
 ### 第98パス（クリーンスキャン — ソート・反復の罠）
 `.sort()` 無比較器・`for...in`・switch フォールスルー全てゼロ（検出3件は case スタッキングと実際に break 済みの偽陽性）。データ処理系の罠なし。
+
+### 第99パス（クリーンスキャン — canvas コンテキスト）
+`getImageData` 呼出しゼロ — 全 getContext('2d') は書込専用（テキスト描画→texture アップロード）で GPU readback なし。`willReadFrequently` ヒント不要、canvas ピクセル同期ストール経路ゼロ。
