@@ -1463,3 +1463,6 @@ hapticFeedback ガード定型を `haptic(app, hand, pattern)` / `hapticBothHand
 
 ### 第64パス（クリーンスキャン — 構造定型・テストモック重複）
 Mesh(PlaneGeometry+Material) 3連は material オプションが各サイトで異質（統合すると条件分岐化で価値密度負）。dispose 定型はリスナー解除/タイマー/破棄が各ブロック別物。テストの同名モック（makeCamera×4/makePanel×3 等）は各 SUT 向けの別形状で共有化不能。変更なし — コード面の構造定型走査は収束。
+
+### 第65パス（計測軸 → 潜在バグ摘出）
+bundle 計測中に発見: `initializeSystems` 抽出残滓 `new DevTools(this)` — ESM モジュール関数内の `this` は undefined のため dev 環境でのみ DevTools が壊れていた（`import.meta.env.DEV` ゲートのため vr-boot/unit テストのカバレッジ外）。`new DevTools(app)` に修正。抽出モジュール全体の `this` 残滓走査は他ゼロを確認。
