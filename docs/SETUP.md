@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 14+
+- Node.js 20+
 - npm or yarn
 - Modern browser with WebXR support
 - VR headset (Meta Quest or Pico recommended)

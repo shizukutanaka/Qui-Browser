@@ -55,12 +55,6 @@ module.exports = {
   // セットアップファイル
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
-  // グローバル変数
-  globals: {
-    'NODE_ENV': 'test',
-    'VR_BROWSER_VERSION': '2.0.0'
-  },
-
   // 無視するパス
   testPathIgnorePatterns: [
     '/node_modules/',

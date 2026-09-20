@@ -854,6 +854,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build 1.9s・verify:vr-boot PASS。
 
+### 第14パス（メタフィールド・jest globals・デッドパラメータ）
+
+- `jest.config.js` の `globals` ブロック（`NODE_ENV`/`VR_BROWSER_VERSION`）—
+  全 tests/src で参照ゼロ → ブロックごと削除。
+- `package.json` の `main: 'dist/index.html'` — private アプリで誰も
+  エントリ解決しない + JS ではない偽の main → 削除。`engines` を >=18→>=20
+  に揃え（QUICK_START.md と整合。`SETUP.md` の「Node 14+」も修正）。
+- `WebPanel.setCurved(value, radius)` — 全呼び出し元が第2引数を渡さず、
+  `radius` の唯一の書き手は setCurved 自身（常に 2.2 の自己デフォルト）
+  → 引数削除して `this.curveRadius` 直読みに。
+- export const 全走査・`createQuadLayer` の分割代入デフォルトは生存確認。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build 4.9s・verify:vr-boot PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

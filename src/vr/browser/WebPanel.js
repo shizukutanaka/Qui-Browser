@@ -876,27 +876,25 @@ export class WebPanel {
    * its UV-based hit-testing remains exact.
    *
    * @param {boolean} value
-   * @param {number}  [radius] — curve radius in metres (defaults to curveRadius)
    */
   /** Update the search engine used by address-bar queries on this panel. */
   setSearchEngine(engine) {
     this.searchEngine = engine;
   }
 
-  setCurved(value, radius = this.curveRadius) {
+  setCurved(value) {
     value = !!value;
     if (value === this.curved || !this.contentMesh) {
       return this.curved;
     }
     this.curved = value;
-    this.curveRadius = radius;
 
     const oldGeo = this.contentMesh.geometry;
     if (value) {
       this.contentMesh.geometry = buildCurvedPlaneGeometry(THREE, {
         width: PANEL_W,
         height: PANEL_H * (1 - CHROME_H),
-        radius,
+        radius: this.curveRadius,
         segmentsX: 24,
         segmentsY: 1
       });

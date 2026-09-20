@@ -2,7 +2,6 @@
   "name": "qui-browser-vr",
   "version": "2.0.0",
   "description": "Qui Browser VR v2.0.0 - Accessibility-first WebXR reader shell for Meta Quest 2/3 and Pico. Japanese IME, hand tracking, spatial audio, comfort system, captions, gaze-dwell input.",
-  "main": "dist/index.html",
   "private": true,
   "homepage": "https://github.com/shizukutanaka/qui-browser#readme",
   "repository": {
@@ -70,6 +69,6 @@
   "author": "Qui Browser Team",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
