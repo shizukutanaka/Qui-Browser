@@ -56,3 +56,52 @@ describe('DeviceCompatibility', () => {
     expect(dc.targetFPS()).toBe(90);
   });
 });
+
+// B-1: hitTest/anchors/planeDetection are immersive-ar session features, but the
+// probe keyed them off vrSupported — a VR-only device would report AR
+// capabilities it cannot have (and vice-versa an AR-capable, VR-less runtime
+// would report none).
+describe('B-1: AR feature flags key off immersive-ar support', () => {
+  let dc;
+
+  beforeEach(() => {
+    dc = new DeviceCompatibility();
+  });
+
+  test('VR-only device reports no AR features', async () => {
+    const feats = await dc._probeOptionalFeatures({}, true, 'quest3', false);
+    expect(feats.hitTest).toBe(false);
+    expect(feats.anchors).toBe(false);
+    expect(feats.planeDetection).toBe(false);
+    // VR-keyed features are unaffected by the AR flag.
+    expect(feats.handTracking).toBe(true);
+    expect(feats.foveatedRendering).toBe(true);
+  });
+
+  test('AR-capable device reports AR features', async () => {
+    const feats = await dc._probeOptionalFeatures({}, false, 'quest3', true);
+    expect(feats.hitTest).toBe(true);
+    expect(feats.anchors).toBe(true);
+    expect(feats.planeDetection).toBe(true);
+    // …and VR-keyed features correctly report the (absent) VR support.
+    expect(feats.handTracking).toBe(false);
+  });
+
+  test('check() threads the measured arSupported into the probe', async () => {
+    const xrStub = { isSessionSupported: async (mode) => mode === 'immersive-vr' };
+    Object.defineProperty(navigator, 'xr', { value: xrStub, configurable: true });
+    Object.defineProperty(navigator, 'userAgent',
+      { value: 'Mozilla/5.0 (Linux; Android 12; Quest 3)', configurable: true });
+    try {
+      const report = await dc.check();
+      expect(report.vrSupported).toBe(true);
+      expect(report.arSupported).toBe(false);
+      expect(report.deviceTier).toBe('quest3');
+      expect(report.hitTest).toBe(false);
+      expect(report.planeDetection).toBe(false);
+    } finally {
+      delete navigator.xr;
+      delete navigator.userAgent;
+    }
+  });
+});

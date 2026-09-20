@@ -62,11 +62,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 
 ## B. 調査済み・意図的に未修正（理由付き）
 
-### B-1. `DeviceCompatibility.js` の AR 機能フラグが不正確（優先度: 低、難易度: 低〜中）
-- **場所**: `src/utils/DeviceCompatibility.js` の `_probeOptionalFeatures(xr, vrSupported, tier)`（86–116行目）
-- **問題**: `hitTest`/`anchors`/`planeDetection` は本来 AR（`immersive-ar`）セッションの機能だが、`vrSupported` を基準に判定しており、`arSupported` を一切参照していない（`check()` 内でも `arSupported` はこの関数に渡されていない）。VR専用でARに非対応な端末があれば誤った値になる。
-- **なぜ未修正か**: `deviceCompat.check()` の戻り値のうち、VRApp が実際に読むのは `deviceTier`（`targetFPS()` 経由）だけ。`hitTest`/`anchors`/`planeDetection`/`eyeTracking` はどこからも参照されていない（`grep` で確認済み）。つまり不正確ではあるが実害ゼロの死んだ計算値。
-- **対応するなら**: `check()` 内で `this._probeOptionalFeatures(xr, vrSupported, deviceTier, arSupported)` のように `arSupported` を渡し、AR系フラグは `arSupported` を基準に判定するよう修正。ただし前述の通り消費者が存在しないため、優先度は低い。
+### ~~B-1. `DeviceCompatibility.js` の AR 機能フラグが不正確~~ — **完了（Session 75）**
+- 消費者ゼロの死んだ計算値とはいえ「VR専用端末が AR 機能を持つ」と嘘をつく診断値だったため修正。`check()` が `arSupported` を `_probeOptionalFeatures` に渡し、`hitTest`/`anchors`/`planeDetection` は `arSupported && tier条件` で判定（`handTracking`/`foveatedRendering` は引き続き `vrSupported` 基準）。`arSupported` 省略時は従来通り `vrSupported` にフォールバック。
 
 ### B-2. `curvedGeometry.js` の頂点インデックスバッファがオーバーフローしうる（優先度: 低、難易度: 低）
 - **場所**: `src/vr/browser/curvedGeometry.js` の `curvedPlaneData()`（57行目: `new Uint16Array(sx * sy * 6)`）
@@ -102,10 +99,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ### ~~C-3. Top Sites の視覚的スピードダイヤルタイル~~ — **完了（Session 75）**
 - **解決**: S17 の保留理由は「BookmarkPanel の3つ目のタブがスクロール矢印ゾーンと座標衝突する」だった —— **描画先を BookmarkPanel ではなく WebPanel の `empty` 状態（新規タブ）に取った**ことで座標衝突そのものが消えた。新規モジュール `src/vr/browser/newTabPage.js`（純粋レイアウト: `topSiteTiles`/`tileAt`/`MAX_TILES=8`）→ `_drawTopSites` がグリッド描画、`_onContentSelect` がタイルタップで `navigate`。タイル rect が描画とヒット判定で同一のためズレ不能。frecency データ層（`getTopSites`）は既存。privateMode 中は VRApp 側で `[]` に畳む（private セッションは履歴を書かない・見せない）。i18n `vr.content.topSites`/`topSitesHint` en/ja 追加、タイル色は `webContentColors`（HC 対応済み）。
 
-### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
-- **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
-- **現状**: `VRApp` は `new MixedReality(...)` を構築し `checkSupport()` を呼ぶだけ。`enabled` フラグは `startSession()` の中でのみ `true` になるが、`startSession()` を呼ぶコード（設定パネルボタン・音声コマンド・メニュー等）がリポジトリ内に一つも存在しない。平面/メッシュ検出・ヒットテスト設置・IndexedDB永続化アンカーなど、docstring に書かれた機能一式が実行時には完全に不動作 — Session 39 で削除した `AvatarSystem`（完全に重複した未配線コード）と同型だが、こちらは重複ではなく本当に唯一のAR実装なので削除ではなく配線が必要。
-- **保留理由**: (1) 実機（Quest 3等のARパススルー対応ヘッドセット）がないと動作検証不能。(2) WebXRの `immersive-vr` セッションが既に張られている状態で `immersive-ar` セッションをどう共存/切り替えするかという設計判断が必要（同時に2セッションは張れない仕様のため、既存VRセッションの終了 or 専用の入場フローが要る）。(3) 新規UI導入（設定パネル or 専用ボタン）+ 入力配線のセットが必要で、一発修正では終わらない規模。着手する場合はPlanエージェントで事前設計してから。
+### ~~C-4. `MixedReality`（AR/パススルー）が完全に未配線~~ — **削除で解決済み（記録訂正、Session 75）**
+- 台帳は「未配線・配線が必要」と記録していたが、実際には **`src/vr/ar/MixedReality.js` は Session 60 の大削除（commit 1eb7f8d、F-2 監査）で既にリポジトリから消えている**。到達不能コードとして判断されたため、「配線するか」の設計判断は問題自体が消滅。AR/パススルーを将来やる場合は新規実装になる（実機必須・immersive-ar セッション共存設計が要るという制約自体は依然として有効）。同様に E-7 も完了扱い。
 
 ### C-5. `enableWebPanel` が到達不能だった（優先度: 高、Session 51 で発見・部分修正）
 - **対象**: `src/vr/VRApp.js`（`settings.enableWebPanel` の既定値および参照箇所: 229, 546, 1318, 1509, 2476行目付近）
@@ -145,11 +140,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ### D-1. キャプションの lag（遅延追従）オプション（優先度: 低）
 - Live Captions in VR (arXiv:2210.15072) は head-locked / lag / appear の3挙動を比較。ただし82.5%が単純なヘッドロック支持であり、現行のヘッドロック実装で研究上の最適解を満たしている。lag はごく一部のユーザー向けの微調整に留まるため優先度低。
 
-### D-2. WebXR-WebGPU Binding 対応（優先度: 中、難易度: 高）
-- WebGPU が 2026-01 に全ブラウザ Baseline 化、WebXR-WebGPU Binding が Editor's Draft（2026-06）。Three.js の WebGPURenderer 経由で native-class 性能が得られる。`src/vr/rendering/WebGPURenderer.js` は実験的スタブのまま。レンダリングパイプライン全体に関わる大規模変更のため、Plan エージェントでの事前設計が必須。出典: https://vr.org/articles/webgpu-baseline-2026-three-js-webxr-default
+### ~~D-2. WebXR-WebGPU Binding 対応~~ — **対象コード削除済み（記録訂正、Session 75）**
+- スタブ `src/vr/rendering/WebGPURenderer.js` は Session 60 の大削除（F-2）で消滅済み。WebGPU 対応自体を将来やる場合は一からの導入になる（Editor's Draft の仕様安定待ちが合理的）。
 
-### D-3. Quest Browser 40.4 の Depth API ヒットテスト（優先度: 低、難易度: 中、実機必須）
-- Horizon Browser 40.4 で WebXR Hit Testing が Depth API ベースになり、MR での instant placement が可能に。`src/vr/ar/MixedReality.js` に関連。ただし Quest 3/3S 実機がないと検証不能。出典: https://www.uploadvr.com/quest-browser-depth-api-webxr-hit-testing-instant-placement/
+### ~~D-3. Quest Browser 40.4 の Depth API ヒットテスト~~ — **対象コード削除済み（記録訂正、Session 75）**
+- 関連先の `src/vr/ar/MixedReality.js` が削除済み（C-4 参照）。MR hit-test をやるなら AR 実装の新規導入とセットの話になる。実機必須の制約は不変。
 
 ### D-4. キーボード候補表示UI — **完了（Session 48）**
 - 視線タイピングは 8–10 WPM が限界（Text Entry for XR Trove, arXiv:2503.11357）。予測入力・候補提示で補うのが定石。既存の `BookmarkStore.search()`（frecency ランキング、Session 18 実装済み）を流用。
@@ -189,7 +184,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
 | ~~E-5~~ | ~~README/CHANGELOG の現状同期~~ | ~~低~~ | 完了 S75 | README: tests 21/231→48/1510・docs 12→24・死んだ start:server 節→proxy、src ツリー同期。CHANGELOG は歴史記録として untouched |
 | ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ | ~~低~~ | 完了 S75 | WebPanel 'empty' 状態に実装（BookmarkPanel ルートは破棄） |
-| E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
+| ~~E-7~~ | ~~MixedReality 配線（=C-4）~~ | ~~中~~ | 完了 S75 | 対象コードは Session 60 の削除で消滅済み — C-4 参照 |
 
 ---
 

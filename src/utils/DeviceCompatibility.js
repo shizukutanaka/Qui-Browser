@@ -36,7 +36,7 @@ export class DeviceCompatibility {
     // Probe optional WebXR features (supported = the runtime accepts them in
     // requestSession; actual availability depends on hardware). Reuse the
     // already-detected tier rather than recomputing it.
-    const optionalFeatures = await this._probeOptionalFeatures(xr, vrSupported, deviceTier);
+    const optionalFeatures = await this._probeOptionalFeatures(xr, vrSupported, deviceTier, arSupported);
 
     this.report = {
       vrSupported,
@@ -83,8 +83,10 @@ export class DeviceCompatibility {
    * user gesture.  Instead we rely on the device tier as a heuristic, which
    * is accurate for all shipping consumer devices.
    */
-  async _probeOptionalFeatures(xr, vrSupported, tier) {
-    // These are available on all devices that support immersive-vr.
+  async _probeOptionalFeatures(xr, vrSupported, tier, arSupported = vrSupported) {
+    // handTracking / foveatedRendering ship with every immersive-vr runtime.
+    // hitTest / anchors / planeDetection are immersive-ar features — keying
+    // them off vrSupported would report AR capability on a VR-only device.
     const base = {
       handTracking:  vrSupported,
       hitTest:       false,
@@ -94,7 +96,7 @@ export class DeviceCompatibility {
       foveatedRendering: vrSupported
     };
 
-    if (!xr || !vrSupported) {
+    if (!xr || (!vrSupported && !arSupported)) {
       return base;
     }
 
@@ -108,9 +110,9 @@ export class DeviceCompatibility {
 
     return {
       ...base,
-      hitTest:        tier !== 'unknown' && tier !== 'desktop-xr',
-      anchors:        tier !== 'unknown' && tier !== 'desktop-xr',
-      planeDetection: tier === 'quest3' || tier === 'android-xr',
+      hitTest:        arSupported && tier !== 'unknown' && tier !== 'desktop-xr',
+      anchors:        arSupported && tier !== 'unknown' && tier !== 'desktop-xr',
+      planeDetection: arSupported && (tier === 'quest3' || tier === 'android-xr'),
       eyeTracking:    false // Quest Pro only; Quest 2/3/Pico 4 = false
     };
   }

@@ -298,6 +298,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **記録のみの修正**: C-2（設定パネル group化）は**実装確認の結果すでに完了していた** —— `createSettingsPanel` が `SECTIONS` + pure `layoutSettingsPanel` + `sectionOpen/Closed` 告知を持ち、`tests/settings-layout.test.js` で検証済み。E-1 受入条件を全て満たすため台帳を完了扱いに訂正。
 - ✅ **test 7件追加**（pre-fix: 全件 FAIL）。Total 1517 tests; lint 0 errors; build green。
 
+#### 続き8（同セッション）: B-1 修正 + 台帳の大量 stale 訂正 — 「未配線」は既に「削除済み」だった
+- 🔍 **実測で判明した台帳の嘘**: C-4/E-7「MixedReality 未配線・要配線」と D-3 は **`src/vr/ar/MixedReality.js` が Session 60 の大削除（commit 1eb7f8d）で既に消滅**していることを前提に書かれていなかった —— 「配線か設計判断か」の問い自体が消えたコードについてのものだった。D-2 の `WebGPURenderer.js` スタブも同じく削除済み。F-2 の表（server/api/multiplayer/AI/ObjectPool/assets/js）は全領域が既に GONE。台帳は修正して「削除で解決済み」と訂正。
+- 🐛 **B-1 fix**: `DeviceCompatibility._probeOptionalFeatures` の `hitTest`/`anchors`/`planeDetection` は AR（immersive-ar）機能なのに `vrSupported` で判定し、`arSupported` が渡されていなかった。VR-only 端末が AR 機能を「持つ」と報告する嘘の診断値（消費者ゼロとはいえ）。`check()` が `arSupported` を渡し、AR 系3フラグは `arSupported && tier条件` に。
+- ✅ **test 3件追加**（pre-fix: 全件 FAIL — _probe 直叩き 2件 + check() に xr/UA stub を注入する統合 1件）。Total 1520 tests; lint 0 errors; build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。
