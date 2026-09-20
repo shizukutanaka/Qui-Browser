@@ -933,6 +933,20 @@ manifest フィールド・web-vitals 配線は実在確認。一方 `monitoring
 
 計測: 44 suites / 1,372 tests・lint 0 errors・build PASS。
 
+### 第19パス（残留参照監査 + i18n 全キー検証）
+
+- `docs/CI_CD_MONITORING_GUIDE.md`: 不存在の `check-performance-regression.js`
+  ツール節、削除済み monitoring API（trackFPS/trackMemory/trackVRSession/
+  trackVRError/trackInteraction/captureError/trackPageView）の使用例、
+  Prettier 行を切除（783 → 662 行）。生存 API（trackEvent/captureMessage/
+  web-vitals threshold 連携）は保持。
+- i18n CATALOG 119キー全検証 — 一見 dead に見える18キーは全て
+  `t(cond ? 'k1' : 'k2')` 型の動的選択で生存（誤検出を個別確認）。
+- tests/setup.js（localStorage/navigator stub）・monitoring.js の
+  実消費者（main.js init / VRApp dispose）は生存確認。
+
+計測: 44 suites / 1,372 tests・lint 0 errors・build PASS・verify:docs PASS。
+
 ---
 
 ## 使い方（次のセッションへ）

@@ -72,14 +72,12 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 #### 1. Code Quality & Linting (10 min)
 ```yaml
 - ESLint check
-- Prettier format check
 - No console.log in production code
 - npm audit (security)
 ```
 
 **Success Criteria:**
 - All ESLint rules pass
-- Code is properly formatted
 - No security vulnerabilities (high/critical)
 
 #### 2. Unit Tests (15 min)
@@ -294,65 +292,6 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 
 ---
 
-## 🔧 Performance Regression Testing
-
-### Tool: check-performance-regression.js
-
-**Purpose:** Detect performance degradations by comparing current benchmarks against baseline.
-
-**Usage:**
-```bash
-# First run - create baseline
-node tools/check-performance-regression.js benchmark-results.json
-
-# Subsequent runs - compare against baseline
-node tools/check-performance-regression.js benchmark-results.json baseline-performance.json
-```
-
-**Thresholds:**
-
-| Metric | Warning | Error |
-|--------|---------|-------|
-| Load Time | +10% | +20% |
-| Memory | +15% | +30% |
-| File Size | +10% | +20% |
-
-**Output:**
-```
-==========================================================
-  Performance Regression Check
-==========================================================
-
-📊 Summary:
-   Total modules: 17
-   ✅ Improved: 5
-   ⚠️  Degraded: 2
-   ➡️  Unchanged: 10
-
-📈 Detailed Results:
-
-❌ VRTextRenderer
-   ┌─────────────┬──────────────┬──────────────┬──────────┬────────┐
-   │ Metric      │ Current      │ Baseline     │ Change   │ Status │
-   ├─────────────┼──────────────┼──────────────┼──────────┼────────┤
-   │ Load Time   │ 1.85ms       │ 1.50ms       │ +23.3%   │ ❌     │
-   │ Memory      │ 245 KB       │ 230 KB       │ +6.5%    │ ➡️     │
-   │ File Size   │ 42.3 KB      │ 41.8 KB      │ +1.2%    │ ➡️     │
-   └─────────────┴──────────────┴──────────────┴──────────┴────────┘
-
-❌ Performance regression detected!
-```
-
-**CI Integration:**
-```yaml
-- name: Check performance regression
-  run: |
-    node tools/check-performance-regression.js benchmark-results.json
-  continue-on-error: true
-```
-
----
-
 ## 📊 Production Monitoring
 
 ### Monitoring Setup (src/monitoring.js)
@@ -382,16 +321,6 @@ node tools/check-performance-regression.js benchmark-results.json baseline-perfo
 **Usage:**
 ```javascript
 import monitoring from './monitoring.js';
-
-// Capture error
-try {
-  // ... code ...
-} catch (error) {
-  monitoring.captureError(error, {
-    context: 'vr-initialization',
-    device: 'Quest 3'
-  });
-}
 
 // Capture message
 monitoring.captureMessage('Performance threshold exceeded', 'warning', {
@@ -430,9 +359,6 @@ monitoring.trackEvent('vr_session_started', {
   device: 'Quest 3',
   duration: 1800 // seconds
 });
-
-// Track page view
-monitoring.trackPageView('/vr-mode', 'VR Browsing');
 ```
 
 **Environment Variable:**
@@ -463,53 +389,6 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 **Automatic Reporting:**
 - Sends to Google Analytics
 - Alerts in Sentry if threshold exceeded
-
-#### 4. Custom Metrics (VR-Specific)
-
-**FPS Monitoring:**
-```javascript
-monitoring.trackFPS(90);
-
-// Alerts if FPS < 60
-// Critical if FPS < 30
-```
-
-**Memory Monitoring:**
-```javascript
-monitoring.trackMemory(450); // MB
-
-// Alerts if > 500MB
-// Critical if > 1GB
-```
-
-**VR Session Tracking:**
-```javascript
-// Session started
-monitoring.trackVRSession('started', {
-  device: 'Quest 3',
-  mode: 'immersive-vr'
-});
-
-// Session ended
-monitoring.trackVRSession('ended', {
-  duration: 1800,
-  interactions: 42
-});
-
-// VR error
-monitoring.trackVRError(error, {
-  context: 'hand-tracking',
-  device: 'Quest 2'
-});
-```
-
-**User Interactions:**
-```javascript
-monitoring.trackInteraction('pinch_gesture', {
-  hand: 'right',
-  target: 'bookmark'
-});
-```
 
 ---
 
