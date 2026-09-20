@@ -1430,3 +1430,6 @@ src 呼び出しが1箇所のみの delegate 9本（perf 4・snapTurn・onTelepo
 
 ### 第54パス（継続中 — 抽出残渣の清掃）
 抽出で残った孤児 JSDoc 塊（削除メソッドのコメントのみ残存した断片群、~46行）を除去。新モジュール内で外部参照ゼロの `export` 9件を通常関数化（perfBudget×2・systemsLifecycle・sessionLifecycle・settingsPanel×5 — 規約: 内部のみ使用なら export 不要）。constructor(192行)は状態スキーマ宣言そのもので不可分＝C-1 の床に到達確認。VRApp 756→**710** 行（C-1 累計 −2,544 / 78% 削減）。1,343 tests・lint 0 errors・build・vr-boot 全 PASS。
+
+### 第55パス（継続中 — 抽出後 import グラフの全再走査）
+全 src モジュールの export × 実参照を再走査: 外部参照ゼロは `planeGeometry`（canvasMesh 内のみで使用）のみ → 通常関数化。それ以外の全 export は実参照あり。抽出シリーズ完了後のグラフは健全。
