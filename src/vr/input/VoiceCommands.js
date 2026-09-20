@@ -337,59 +337,17 @@ export class VoiceCommands {
       example: '検索：てんき'
     });
 
-    // VR mode control
-    this.registerCommand('vr-enter', {
-      patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ'],
-      action: () => {
-        // Would trigger VR mode
-        return { action: 'vr', enabled: true };
-      },
-      confirmationText: 'VRモードを開始します'
-    });
-
-    this.registerCommand('vr-exit', {
-      patterns: ['VR終了', 'VRやめる', '通常モード'],
-      action: () => {
-        // Would exit VR mode
-        return { action: 'vr', enabled: false };
-      },
-      confirmationText: 'VRモードを終了します'
-    });
-
-    // NOTE: scroll-down / scroll-up are registered in connectBrowser() instead.
-    // A duplicate pair used to live here calling `window.scrollBy`, which
-    // scrolls the host page — meaningless inside an immersive session — and was
-    // overwritten anyway (registerCommand is a Map.set, so the later
-    // connectBrowser registration always won once it ran).
-
-    // Volume control
-    this.registerCommand('volume-up', {
-      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ'],
-      action: () => {
-        // Would adjust volume
-        return { action: 'volume', change: 0.1 };
-      },
-      confirmationText: '音量を上げます'
-    });
-
-    this.registerCommand('volume-down', {
-      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン'],
-      action: () => {
-        // Would adjust volume
-        return { action: 'volume', change: -0.1 };
-      },
-      confirmationText: '音量を下げます'
-    });
-
-    // Japanese IME
-    this.registerCommand('ime-toggle', {
-      patterns: ['日本語入力', '日本語モード', '入力切り替え'],
-      action: () => {
-        // Would toggle IME
-        return { action: 'ime', enabled: true };
-      },
-      confirmationText: '日本語入力モードです'
-    });
+    // NOTE: vr-enter / vr-exit / volume-up / volume-down / ime-toggle are
+    // registered in connectBrowser() instead. They used to live here as
+    // placeholders that returned a result and spoke a confirmation while
+    // performing no action — "VRモードを終了します" announced to a
+    // voice-primary user who could not verify it, with the session still
+    // running. Announcing an action that never happens is worse than no
+    // command: those now exist only as real host-callback wiring.
+    //
+    // (scroll-down / scroll-up moved the same way earlier; navigate, back,
+    // refresh and search keep host-page fallbacks that work when VoiceCommands
+    // is embedded without connectBrowser.)
 
     // Help — read back the actual spoken phrases, not just a count. A voice-
     // command user (often relying on voice because gaze/controller input is
@@ -474,9 +432,75 @@ export class VoiceCommands {
    *                                         cross-modal confirmation (decoupled like onGoTo)
    * @param {Function} [opts.onScrollContent] (deltaLines: number) => void — scroll
    *                                         the active panel's reader viewport
+   * @param {Function} [opts.onEnterVR]     () => void — request the VR session
+   *                                         (same path as the landing Enter-VR button)
+   * @param {Function} [opts.onExitVR]      () => void — end the current XR session
+   * @param {Function} [opts.onVolumeChange] (delta: number) => number — apply a
+   *                                         master-volume step and return the new
+   *                                         level (0-100) so it can be spoken back
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent } = {}) {
+    onClearHistory, onScrollContent, onEnterVR, onExitVR, onVolumeChange } = {}) {
+    // Session / volume / IME commands are registered only when the host wires
+    // them — a command that confirms an action it cannot perform is a lie the
+    // voice-primary user cannot verify, so an unwired capability stays an
+    // honest "command not recognized" (and stays out of the 'help' list).
+    if (onEnterVR) {
+      this.registerCommand('vr-enter', {
+        patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ'],
+        action: () => {
+          onEnterVR();
+          return { action: 'vr', enabled: true };
+        },
+        confirmationText: 'VRモードを開始します'
+      });
+    }
+
+    if (onExitVR) {
+      this.registerCommand('vr-exit', {
+        patterns: ['VR終了', 'VRやめる', '通常モード'],
+        action: () => {
+          onExitVR();
+          return { action: 'vr', enabled: false };
+        },
+        confirmationText: 'VRモードを終了します'
+      });
+    }
+
+    if (onVolumeChange) {
+      // Speak the resulting level (the callback returns it) — a bare "音量を
+      // 上げます" would leave the user unable to tell a real change from no-op.
+      const volumeAction = (delta) => () => {
+        const level = onVolumeChange(delta);
+        if (typeof level === 'number') {
+          this.speak(`音量 ${level}%`);
+        }
+        return { action: 'volume', level };
+      };
+      this.registerCommand('volume-up', {
+        patterns: ['音量上げる', '音量アップ', 'ボリュームアップ'],
+        action: volumeAction(0.1)
+      });
+      this.registerCommand('volume-down', {
+        patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン'],
+        action: volumeAction(-0.1)
+      });
+    }
+
+    // "日本語入力" — the Japanese IME lives inside the VR keyboard, so the
+    // honest toggle is the keyboard itself (show() activates the IME; hide()
+    // deactivates it). Registered only when the host supplies the keyboard.
+    if (vrKeyboard) {
+      this.registerCommand('ime-toggle', {
+        patterns: ['日本語入力', '日本語モード', '入力切り替え'],
+        action: () => {
+          vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
+          return { action: 'ime' };
+        },
+        confirmationText: '日本語入力を切り替えます'
+      });
+    }
+
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
