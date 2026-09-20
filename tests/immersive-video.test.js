@@ -384,3 +384,47 @@ describe('ImmersiveVideo lifecycle', () => {
     expect(onPlaybackChange).not.toHaveBeenCalled();
   });
 });
+
+describe('ImmersiveVideo update() + HUD button wiring', () => {
+  test('update() is a no-op before play (no meshes)', () => {
+    const { iv } = makeHarness();
+    expect(() => iv.update()).not.toThrow();
+  });
+
+  test('update() re-centres the sphere(s) on the head position', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    const sphere = iv.meshes[0];
+    sphere.position.set(9, 9, 9); // drifted
+    iv.update();
+    expect(sphere.position).toMatchObject({ x: 1, y: 2, z: 3 }); // makeCamera's world pos
+  });
+
+  test('HUD button onSelect calls the wrapped action (Exit stops)', () => {
+    const { iv, register } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    // Find the registration for the Exit button (the one not holding setLabel
+    // is indistinguishable; pick by the exit semantics — second registered).
+    const exitEntry = register.mock.calls[1];
+    exitEntry[1].onSelect();
+    expect(iv.active).toBe(false);
+  });
+
+  test('HUD button hover redraws + fires onHoverCaption, hover-end redraws', () => {
+    const { iv, register } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.onHoverCaption = jest.fn();
+    const opts = register.mock.calls[0][1]; // play/pause button
+    expect(() => opts.onHover()).not.toThrow();
+    expect(iv.onHoverCaption).toHaveBeenCalledWith(expect.any(String));
+    expect(() => opts.onHoverEnd()).not.toThrow();
+  });
+
+  test('dispose() tears down like stop()', () => {
+    const { iv, scene } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.dispose();
+    expect(iv.active).toBe(false);
+    expect(scene.children).toHaveLength(0);
+  });
+});

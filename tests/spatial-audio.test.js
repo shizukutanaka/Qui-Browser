@@ -519,3 +519,87 @@ describe('SpatialAudio — source/listener plumbing (uncovered layer)', () => {
     expect(src.volume).toBe(0.2);
   });
 });
+
+describe('SpatialAudio — loadAudio + play/stop guards', () => {
+  const makeBufferSource = () => ({
+    buffer: null, loop: false, playbackRate: { value: 1 },
+    connect: jest.fn(), start: jest.fn(), stop: jest.fn(), disconnect: jest.fn(),
+    onended: null
+  });
+  const wire = (a, name) => a.sources.set(name, {
+    name, node: null, panner: makePanner(), gain: makeGain(),
+    position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
+    loop: false, volume: 1, playbackRate: 1, startTime: 0, isPlaying: false
+  });
+
+  let audio, ctx;
+  beforeEach(() => {
+    ctx = makeAudioContext();
+    ctx.createBufferSource = jest.fn(() => makeBufferSource());
+    ctx.decodeAudioData = jest.fn(async () => ({ duration: 1.5 }));
+    global.window.AudioContext = jest.fn(() => ctx);
+    audio = new SpatialAudio();
+    audio.context = ctx;
+  });
+
+  test('loadAudio fetches, decodes, caches, and counts the buffer', async () => {
+    const origFetch = global.fetch;
+    global.fetch = jest.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }));
+    try {
+      const buf = await audio.loadAudio('/a.ogg', 'a');
+      expect(buf.duration).toBe(1.5);
+      expect(audio.buffers.get('a')).toBe(buf);
+      expect(audio.stats.buffersLoaded).toBe(1);
+      // Repeat: cache hit, no second fetch.
+      global.fetch.mockClear();
+      await expect(audio.loadAudio('/a.ogg', 'a')).resolves.toBe(buf);
+      expect(global.fetch).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('loadAudio returns null on HTTP error and decode failure', async () => {
+    const origFetch = global.fetch;
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+      await expect(audio.loadAudio('/missing.ogg', 'm')).resolves.toBeNull();
+      expect(audio.buffers.has('m')).toBe(false);
+      ctx.decodeAudioData.mockRejectedValueOnce(new Error('bad data'));
+      global.fetch = jest.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+      await expect(audio.loadAudio('/bad.ogg', 'bad')).resolves.toBeNull();
+    } finally {
+      global.fetch = origFetch;
+      err.mockRestore();
+    }
+  });
+
+  test('play() with unknown source or buffer names warns and returns', () => {
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    wire(audio, 's');
+    audio.buffers.set('b', { _b: true });
+    audio.play('nope', 'b');
+    audio.play('s', 'nope');
+    expect(err).toHaveBeenCalledTimes(2);
+    expect(audio.sources.get('s').isPlaying).toBe(false);
+    err.mockRestore();
+  });
+
+  test('stop() accumulates totalPlayTime from the recorded startTime', () => {
+    wire(audio, 's');
+    audio.buffers.set('b', { _b: true });
+    audio.context.currentTime = 100;
+    audio.play('s', 'b');
+    audio.context.currentTime = 140; // 40 s later
+    const before = audio.stats.totalPlayTime;
+    audio.stop('s');
+    expect(audio.stats.totalPlayTime).toBe(before + 40);
+  });
+
+  test('stop() on a source with no node is a no-op', () => {
+    wire(audio, 's');
+    expect(() => audio.stop('s')).not.toThrow();
+    expect(audio.stats.sourcesActive).toBe(0);
+  });
+});
