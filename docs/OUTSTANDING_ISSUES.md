@@ -1110,6 +1110,20 @@ build 0.64s・vr-boot PASS。
 計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
 build 0.7s・vr-boot PASS。
 
+### 第32パス（ランディングページの嘘を修正）
+
+- index.html + i18n: 「KTX2 textures」記述を3箇所から除去
+  （パス29で TextureManager 削除済み — 見えない所を先に掃いて
+  見える所が嘘のまま残る典型例）。
+- ジェスチャ「12種」は誇大 — HandTracking.detectGesture の実装は
+  pinch/point/open/fist/thumbsup の5種 → en/ja 共に 5 に修正。
+- hero.subtitle の「Tier 3 features are experimental」除去
+  （Tier3 = 音声/パフォーマンス監視はパス5で削除済み）。
+- proxy/server.js は文書化済み opt-in のため生存確認。
+
+計測: 43 suites / 1,343 tests・lint 95 warnings（0 errors）・
+build 0.6s・verify:docs・vr-boot 全 PASS。
+
 ---
 
 ## 使い方（次のセッションへ）
