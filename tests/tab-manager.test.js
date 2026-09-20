@@ -58,6 +58,7 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
     setVisible(v) { this.visible = !!v; }
     setCurved(v) { this.curved = !!v; }
     setReaderProxyUrl(u) { this.readerProxyUrl = u; }
+    setSearchEngine(e) { this.searchEngine = e; }
     dispose() { this.disposed = true; }
   }
 }));
@@ -448,5 +449,95 @@ describe('B-4: dispose severs the strip handle', () => {
     expect(tm.stripMesh).toBeNull();
     expect(() => handlers.onHoverEnd()).not.toThrow();
     expect(() => handlers.onHover()).not.toThrow();
+  });
+});
+
+// ── Strip hit-zone dispatch ──────────────────────────────────────────────────
+// _onStripSelect's zones were only covered by 'does not throw' smoke tests:
+// the tab body/close-zone/new-tab-button routing itself was unverified.
+// Canvas is STRIP_CANVAS_W px wide; MockMesh.worldToLocal returns its arg,
+// so fakePoint.x IS the local x: px = round((x / STRIP_W + 0.5) * width).
+describe('TabManager — strip hit-zone dispatch', () => {
+  const { STRIP_W, STRIP_NEW_TAB_PX, tabWidthPx, tabCloseZonePx } =
+    require('../src/vr/browser/panelGeometry.js');
+  const CANVAS_W = 1024;
+  const xForPx = (px) => (px / CANVAS_W - 0.5) * STRIP_W;
+  const clickAt = (tm, px) =>
+    tm._onStripSelect({ x: xForPx(px), y: 0, clone() { return this; } });
+
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('tab body activates; right 36px of a tab closes it', () => {
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab(); // 2 tabs → tabW = 220, close zone = last 36px of each
+    // Spies must not call through — a real closeTab mutates tabs.length and
+    // shifts every zone boundary under the next click.
+    const setActive = jest.spyOn(tm, 'setActive').mockImplementation(() => {});
+    const closeTab = jest.spyOn(tm, 'closeTab').mockImplementation(() => {});
+
+    clickAt(tm, 100);          // inside tab 0, left of its close zone
+    expect(setActive).toHaveBeenCalledWith(0);
+    setActive.mockClear();
+
+    clickAt(tm, 200);          // inside tab 0 close zone (184–219)
+    expect(closeTab).toHaveBeenCalledWith(0);
+    closeTab.mockClear();
+
+    clickAt(tm, 300);          // inside tab 1 body
+    expect(setActive).toHaveBeenCalledWith(1);
+  });
+
+  test('the + zone at the strip edge opens a new tab', () => {
+    const tm = makeManager();
+    const newTab = jest.spyOn(tm, 'newTab');
+    clickAt(tm, CANVAS_W - STRIP_NEW_TAB_PX / 2 - 5);
+    expect(newTab).toHaveBeenCalledTimes(1);
+  });
+
+  test('empty space right of the tabs is dead — no activation, no close', () => {
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab(); // tabs end at px 440; 440–934 is dead space
+    const setActive = jest.spyOn(tm, 'setActive');
+    const closeTab = jest.spyOn(tm, 'closeTab');
+    const newTab = jest.spyOn(tm, 'newTab');
+    clickAt(tm, 700);
+    expect(setActive).not.toHaveBeenCalled();
+    expect(closeTab).not.toHaveBeenCalled();
+    expect(newTab).not.toHaveBeenCalled();
+  });
+
+  test('with zero tabs a body-zone click is a no-op', () => {
+    const tm = makeManager();
+    const setActive = jest.spyOn(tm, 'setActive');
+    expect(() => clickAt(tm, 300)).not.toThrow();
+    expect(setActive).not.toHaveBeenCalled();
+  });
+
+  test('zone edges agree with the drawn layout (tabWidthPx / tabCloseZonePx)', () => {
+    // Pin the contract this test relies on: 2 tabs are 220px each, the +
+    // button takes the last 90px, and the close zone is the rightmost 36px.
+    expect(tabWidthPx(2, CANVAS_W)).toBe(220);
+    const zone = tabCloseZonePx(220);
+    expect([zone.x0, zone.x1]).toEqual([220 - 36, 220]);
+    expect(CANVAS_W - STRIP_NEW_TAB_PX).toBe(934);
+  });
+});
+
+describe('TabManager.setSearchEngine', () => {
+  test('propagates to every open tab and to tabs opened afterwards', () => {
+    panelInstances.length = 0;
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab();
+
+    tm.setSearchEngine('google');
+
+    const [a, b] = panelInstances;
+    expect(a.searchEngine).toBe('google');
+    expect(b.searchEngine).toBe('google');
+    tm.newTab();
+    expect(panelInstances[2].opts.searchEngine).toBe('google');
   });
 });
