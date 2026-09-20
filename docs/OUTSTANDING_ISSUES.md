@@ -1729,3 +1729,6 @@ userData キーはオブジェクト種別ごとに専有（controller: inputSou
 
 ### 第150パス（クリーンスキャン — three.js 非推奨 API）
 three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeometry/SRGBColorSpace/Raycaster/WebGLRenderTarget 等 ~30種）が現行 — outputEncoding/sRGBEncoding/physicallyCorrectLights 等のレガシー名は不使用。
+
+### 第151パス（クリーンスキャン — サロゲートペア）
+文字反復は `for...of`（コードポイント単位）+ `codePointAt`/`fromCodePoint` + NFC normalize で補助平面・絵文字安全 — `charAt`/`[i]` 分断経路ゼロ。
