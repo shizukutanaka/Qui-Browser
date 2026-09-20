@@ -12,6 +12,9 @@ const STORAGE_KEY = 'qui-browser:lang';
 
 const CATALOG = {
   en: {
+    'meta.title': 'Qui Browser VR — WebXR Browser for Meta Quest & Pico',
+    'meta.description':
+      'WebXR VR browser featuring Japanese IME, hand tracking, spatial audio, comfort system. Targets Meta Quest 2/3 and Pico 4.',
     'hero.title': 'Experience the Future of VR Browsing',
     'hero.subtitle':
       'WebXR browser with Japanese IME, hand tracking, spatial audio, and comfort system. ' +
@@ -141,6 +144,9 @@ const CATALOG = {
     'vr.error.blockedUrl': 'Cannot open that address'
   },
   ja: {
+    'meta.title': 'Qui Browser VR — Meta Quest・Pico 対応 WebXR ブラウザ',
+    'meta.description':
+      '日本語IME・ハンドトラッキング・空間オーディオ・コンフォートシステムを搭載した WebXR VR ブラウザ。Meta Quest 2/3・Pico 4 対応。',
     'hero.title': 'VRブラウジングの未来を体験',
     'hero.subtitle':
       '日本語IME・ハンドトラッキング・空間オーディオ・コンフォートシステムを搭載した WebXR ブラウザ。' +

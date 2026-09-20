@@ -1624,3 +1624,6 @@ OS a11y リスナーは motion（comfort+gaze）・contrast（gaze+caption）に
 
 ### 第115パス（実修正 — prod で沈黙する unhandledrejection）
 `unhandledrejection` ハンドラは存在したが `console.error` のみ — **esbuild `drop:['console']` で本番ビルドでは完全に沈黙**していた。`trackEvent('exception', ...)` を追加して GA4 経路に配線（gtag 未初期化時は安全に no-op）。SW ライフサイクル（register+update poll+skipWaiting+clients.claim）と online/offline（offline.html 再試行）は完璧確認。
+
+### 第116パス（実修正 — ランディング i18n 未翻訳残り）
+`<title>`/meta title/description が `data-i18n` 系に未接続で日本語切替後もブラウザタブと OGP が英語のまま → `meta.title`/`meta.description` キーを en/ja に追加し `data-i18n`/`data-i18n-attr` で配線。loading テキストも既存 `vr.content.loading` で翻訳化。version-badge（v2.0.0）・アイコン（🇯🇵/A+/日本語）は言語非依存で正しく除外確認。
