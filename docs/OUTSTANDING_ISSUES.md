@@ -1699,3 +1699,6 @@ transparent:true は全て clearRect/角丸由来の実 alpha コンテンツで
 
 ### 第140パス（クリーンスキャン — canvas リサイズ罠）
 `canvas.width=` 代入は全て生成時のみ（ctx 取得前）、draw 関数は呼出毎に font/fillStyle を全再設定 — 「リサイズでコンテキスト状態消失」の経路は構造的に存在しない。
+
+### 第141パス（クリーンスキャン — iframe 境界）
+`contentDocument.title` は try/catch で cross-origin 安全、X-Frame-Options 拒否が load を発火する Chromium 挙動も `unavailable` 状態で明示処理、sandbox 属性・dispose 時の handler 除去+node 除去全完備。境界越境例外経路ゼロ。
