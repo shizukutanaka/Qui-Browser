@@ -1732,3 +1732,6 @@ three ^0.181 に対し全使用 API（Vector3/Mesh/MeshBasicMaterial/PlaneGeomet
 
 ### 第151パス（クリーンスキャン — サロゲートペア）
 文字反復は `for...of`（コードポイント単位）+ `codePointAt`/`fromCodePoint` + NFC normalize で補助平面・絵文字安全 — `charAt`/`[i]` 分断経路ゼロ。
+
+### 第152パス（クリーンスキャン — 設定 live-apply 対称）
+全 toggle/stepper/cycle に apply コールバック or フレーム毎 live-read のどちらか — `enableComfort`（apply:null）は frameLoop が毎フレーム `settings.enableComfort` を読むため即時反映される正当な null。トグルしても効果ゼロの死設定なし。
