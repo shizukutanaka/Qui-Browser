@@ -1723,3 +1723,6 @@ userData キーはオブジェクト種別ごとに専有（controller: inputSou
 
 ### 第148パス（クリーンスキャン — インプレース配列破壊）
 `.sort`/`.splice` は全て所有配列のみ（byUrl.values() の spread 新配列・this.tabs・interactables・履歴）— 共有参照を呼出側配列ごと書き換える経路ゼロ。
+
+### 第149パス（クリーンスキャン — セッション終了/残存非同期）
+`session.end()` 呼出なし（終了はヘッドセット UI → sessionend 経路で正しい）。video.src は error イベントでロード失敗をユーザー告知、autoplay 拒否は HUD が「Play」のまま嘘をつかない設計。locale 表示は dev 統計のみ。未処理経路ゼロ。
