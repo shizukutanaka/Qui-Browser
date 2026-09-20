@@ -523,6 +523,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ **pin**: 10テスト追加。全緑 — 実装は正しいことを実測確認。
 - 📝 1992 tests / 58 suites、lint 0 errors、build green。
 
+#### 続き60（同セッション）: VoiceCommands の尻尾層を pin（欠陥ゼロ）
+- 🔍 **実測**: 残り未検証領域 — `aliases` の substring マッチ経路と未知キー fallthrough、`start()` の3ガード（disabled/already-listening/start() throw）、`stop()` の isListening 条件、`dispose()` の「isEnabled=false を stop() より先」（onend リスタートループ封じ）+ synthesis.cancel + 両参照の null 化、`speak()` の TTS 経路（SpeechSynthesisUtterance stub で lang/rate/onerror 配線まで）、`getStats()` の successRate=executed/recognized と averageConfidence EMA。
+- ✅ **pin**: 7テスト追加。全緑 — 実装は正しいことを実測確認。dispose 後も `speak()` が caption ミラー（onSpeak）だけは続ける設計意図を pin。
+- 📝 2068 tests / 59 suites、lint 0 errors、build green。
+
 #### 続き59（同セッション）: 「確認は言うが何もしない」音声コマンド5件を実配線/削除（実バグ13件目）
 - 🐛 **実バグ**: `registerDefaultCommands` の `vr-enter`/`vr-exit`/`volume-up`/`volume-down`/`ime-toggle` はアクション本体が `// Would trigger VR mode` 型のスタブ — 「VRモードを終了します」「音量を上げます」と**アナウンスだけして何もしない**。音声主入力ユーザー（a11y の最対象）は検証手段を持たず、最悪の嘘。しかも `ヘルプ` がこれらの存在しない機能を案内していた。
 - 🔧 **修正**: スタブを `registerDefaultCommands` から削除し、`connectBrowser` がホストコールバック提供時のみ実コマンドを登録（未配線なら正直な「認識できませんでした」＋help 一覧にも出ない）。VRApp で `onEnterVR`→`vrButton.click()`（ランディングの Enter VR と同経路）、`onExitVR`→`renderer.xr.getSession().end()`、`onVolumeChange`→`masterVolume` 設定更新+永続化+`spatialAudio.setMasterVolume`（新レベルを音声で読み返し）、`ime-toggle`→`vrKeyboard` トグル（IME はキーボード内蔵なので正直な写像）。

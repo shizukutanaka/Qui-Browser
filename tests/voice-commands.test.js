@@ -676,3 +676,102 @@ describe('VoiceCommands — wired session/volume/IME commands (no announce-only 
     expect(spoken[0]).not.toContain('音量上げる');
   });
 });
+
+describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, stats', () => {
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (t) => spoken.push(t);
+  });
+
+  test('a registered alias matches on substring inclusion', () => {
+    const action = jest.fn(() => ({ action: 'x' }));
+    vc.registerCommand('x', { patterns: ['zzz'], action, aliases: ['エイリアス'] });
+    vc.processCommand('エイリアスをお願い', 0.9);
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('x');
+  });
+
+  test('an alias pointing at an unknown command key falls through to no-match', () => {
+    vc.aliases.set('幽霊', 'does-not-exist');
+    vc.processCommand('幽霊が出た', 0.9);
+    expect(spoken.some((s) => s.includes('認識できませんでした'))).toBe(true);
+    expect(vc.stats.commandsFailed).toBe(1);
+  });
+
+  test('start() refuses when disabled, no-ops when already listening, reports start() throw', () => {
+    vc.isEnabled = false;
+    expect(vc.start()).toBe(false);
+    vc.isEnabled = true;
+    vc.isListening = true;
+    expect(vc.start()).toBe(true); // already listening — no recognition call
+    vc.isListening = false;
+    vc.recognition = { start: jest.fn(() => { throw new Error('not allowed'); }) };
+    expect(vc.start()).toBe(false);
+  });
+
+  test('stop() only touches recognition while listening', () => {
+    const recognition = { stop: jest.fn() };
+    vc.recognition = recognition;
+    vc.isListening = false;
+    vc.stop();
+    expect(recognition.stop).not.toHaveBeenCalled();
+    vc.isListening = true;
+    vc.stop();
+    expect(recognition.stop).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispose() disables before stopping (blocks onend restart) and releases both objects', () => {
+    const recognition = { stop: jest.fn() };
+    const synthesis = { cancel: jest.fn() };
+    vc.isListening = true;
+    vc.isEnabled = true;
+    vc.recognition = recognition;
+    vc.synthesis = synthesis;
+    vc.dispose();
+    expect(vc.isEnabled).toBe(false);
+    expect(recognition.stop).toHaveBeenCalledTimes(1);
+    expect(synthesis.cancel).toHaveBeenCalledTimes(1);
+    expect(vc.recognition).toBeNull();
+    expect(vc.synthesis).toBeNull();
+    // speak() still mirrors to captions post-dispose (TTS gone, onSpeak stays)
+    vc.speak('まだ聞こえます');
+    expect(spoken).toEqual(['まだ聞こえます']);
+  });
+
+  test('speak() builds a SpeechSynthesisUtterance with the session language and options', () => {
+    const synthesis = { speak: jest.fn(), cancel: jest.fn() };
+    const utterances = [];
+    const prevUtterance = global.SpeechSynthesisUtterance;
+    global.SpeechSynthesisUtterance = class {
+      constructor(text) { this.text = text; utterances.push(this); }
+    };
+    try {
+      vc.synthesis = synthesis;
+      vc.language = 'ja-JP';
+      vc.speak('テストです', { rate: 1.5 });
+      expect(synthesis.speak).toHaveBeenCalledTimes(1);
+      expect(utterances[0].text).toBe('テストです');
+      expect(utterances[0].lang).toBe('ja-JP');
+      expect(utterances[0].rate).toBe(1.5);
+      expect(typeof utterances[0].onerror).toBe('function'); // TTS error must not crash
+      expect(spoken).toEqual(['テストです']); // caption mirror still fired first
+    } finally {
+      global.SpeechSynthesisUtterance = prevUtterance;
+    }
+  });
+
+  test('getStats() reports successRate as executed/recognized (0 before any command)', () => {
+    expect(vc.getStats().successRate).toBe(0);
+    vc.registerCommand('ok', { patterns: ['ok'], action: () => ({ ok: 1 }) });
+    vc.processCommand('ok', 0.9);        // executed
+    vc.processCommand('zzz', 0.9);       // failed
+    const stats = vc.getStats();
+    expect(stats.commandsRecognized).toBe(2);
+    expect(stats.commandsExecuted).toBe(1);
+    expect(stats.commandsFailed).toBe(1);
+    expect(stats.successRate).toBe(0.5);
+    expect(stats.averageConfidence).toBeCloseTo(0.9);
+  });
+});
