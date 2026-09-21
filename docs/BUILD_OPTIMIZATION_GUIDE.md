@@ -45,7 +45,7 @@ The project uses **Vite** for fast builds and excellent ES module support.
     outDir: 'dist',
 
     // Minification
-    minify: 'terser',
+    minify: 'esbuild',
 
     // Source maps (disabled in production)
     sourcemap: false,
@@ -55,11 +55,15 @@ The project uses **Vite** for fast builds and excellent ES module support.
       output: {
         manualChunks: {
           'vendor-three': ['three'],
-          'tier1': [/* FFR, Comfort, Pool, Texture */],
-          'tier2-input': [/* IME, HandTracking */],
-          'tier2-media': [/* Audio, MR, Loader */],
-          'tier3': [/* WebGPU, MP, AI, Voice, Haptics */],
-          'dev-tools': [/* Monitor, DevTools */]
+          'tier1': [
+            '/src/vr/rendering/FFRSystem.js',
+            '/src/vr/comfort/ComfortSystem.js',
+            '/src/utils/TextureManager.js'
+          ],
+          'tier2-input': ['/src/vr/input/JapaneseIME.js'],
+          'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
+          'tier2-audio': ['/src/vr/audio/SpatialAudio.js'],
+          'tier2-loading': ['/src/utils/ProgressiveLoader.js']
         }
       }
     }
@@ -70,18 +74,20 @@ The project uses **Vite** for fast builds and excellent ES module support.
 ### Chunk Strategy
 
 **Critical Path (load immediately):**
-1. `main.js` - Entry point (~10KB)
-2. `tier1.js` - Performance optimizations (~50KB)
-3. `vendor-three.js` - Three.js library (~600KB compressed)
+1. `index.js` - Entry point (7 KB / 3 KB gzipped)
+2. `app.js` - Application core (195 KB / 56 KB gzipped)
+3. `vendor-three.js` - Three.js library (541 KB / 139 KB gzipped)
+4. `tier1.js` - FFR + Comfort + TextureManager (83 KB / 32 KB gzipped)
 
 **Lazy Loaded (on demand):**
-4. `tier2-input.js` - IME, Hand tracking (~80KB)
-5. `tier2-media.js` - Audio, MR, Loading (~70KB)
-6. `tier3.js` - Advanced features (~120KB)
-7. `dev-tools.js` - Debugging tools (~60KB)
+5. `tier2-input.js` - JapaneseIME (24 KB / 9 KB gzipped)
+6. `tier2-interaction.js` - HandTracking (5 KB / 1 KB gzipped)
+7. `tier2-audio.js` - SpatialAudio (6 KB / 2 KB gzipped)
+8. `tier2-loading.js` - ProgressiveLoader (6 KB / 2 KB gzipped)
+9. `web-vitals.js` - Web Vitals reporting (5 KB / 2 KB gzipped)
 
-**Total Initial:** ~660KB (gzipped)
-**Total Application:** ~1.08MB (gzipped)
+**Total Initial:** ~230 KB (gzipped)
+**Total Application:** ~250 KB (gzipped)
 
 ---
 
@@ -94,27 +100,17 @@ The project uses **Vite** for fast builds and excellent ES module support.
 #### Implementation
 
 ```javascript
-// Dynamic imports for Tier 2 features
-async function initializeTier2() {
-  const { JapaneseIME } = await import('./vr/input/JapaneseIME.js');
-  const { HandTracking } = await import('./vr/interaction/HandTracking.js');
-  // ... initialize
-}
-
-// Load on VR button click
-document.getElementById('vr-toggle').addEventListener('click', async () => {
-  if (!window.tier2Loaded) {
-    await initializeTier2();
-    window.tier2Loaded = true;
-  }
-  enterVRMode();
+// Real pattern used by this app (src/main.js):
+// the landing page stays light and imports the app only on demand
+import('./app.js').then(module => {
+  // app boots here — dev tooling (DevTools) lazy-loads the same way
 });
 ```
 
 #### Benefits
-- **Initial load:** -50% (660KB vs 1.3MB)
-- **Time to interactive:** -40% (1.8s vs 3.0s)
-- **User experience:** Faster perceived load
+- **Initial load:** entry + vendor + tier1 only (~230 KB gzipped measured)
+- **Time to interactive:** tier2 chunks never block first paint
+- **User experience:** faster perceived load
 
 ### 2. Tree Shaking
 
@@ -122,13 +118,10 @@ document.getElementById('vr-toggle').addEventListener('click', async () => {
 
 #### Configuration
 
-```javascript
-// package.json
-{
-  "sideEffects": false, // Enable aggressive tree shaking
-  "type": "module"      // Use ES modules
-}
-```
+Vite/Rollup tree-shakes ES-module imports by default in production
+builds — no config needed. `sideEffects: false` is deliberately NOT
+set in package.json: `main.js`/`app.js` are side-effectful entry
+modules (DOM wiring, listeners) and the flag would be unsafe.
 
 #### Best Practices
 
@@ -148,29 +141,16 @@ import { Vector3, Quaternion, Scene, WebGLRenderer } from 'three';
 
 **Principle:** Reduce file size through compression.
 
-#### Terser Configuration
+#### esbuild (actual config)
 
-```javascript
-terser({
-  compress: {
-    drop_console: true,     // Remove console.log
-    drop_debugger: true,    // Remove debugger statements
-    passes: 2,              // Two-pass optimization
-    pure_funcs: ['console.log', 'console.info']
-  },
-  mangle: {
-    properties: false       // Don't mangle Three.js properties
-  },
-  format: {
-    comments: false         // Remove all comments
-  }
-})
-```
+`vite.config.js` sets `build.minify: 'esbuild'` — Vite's default
+minifier path. No extra config is required; it handles the whole
+bundle in a single pass (~0.7s cold build measured).
 
 #### Results
-- JavaScript: -40% size reduction
+- JavaScript: minified + whitespace/comment stripped
 - No runtime performance impact
-- Preserves source map generation (if enabled)
+- Source maps disabled in production (`sourcemap: false`)
 
 ### 4. Asset Optimization
 
@@ -201,7 +181,7 @@ const texture = await textureManager.loadTexture('wood.ktx2', {
 npm install -g imagemin imagemin-mozjpeg imagemin-pngquant
 
 # Optimize images
-imagemin assets/images/*.{jpg,png} --out-dir=dist/assets/images --plugin=mozjpeg --plugin=pngquant
+imagemin public/icons/*.png --out-dir=public/icons --plugin=pngquant
 ```
 
 **Results:**
@@ -381,14 +361,13 @@ npm run build:analyze
 
 ### Size Budgets
 
-| Asset Type | Budget | Current | Status |
+| Asset Type | Budget | Current (measured, raw) | Status |
 |------------|--------|---------|--------|
-| **JavaScript (initial)** | 700KB | 660KB | ✅ |
-| **JavaScript (total)** | 1.5MB | 1.08MB | ✅ |
-| **CSS** | 50KB | 32KB | ✅ |
-| **Fonts** | 100KB | 45KB | ✅ |
-| **Images** | 500KB | 280KB | ✅ |
-| **Total** | 2.5MB | 2.1MB | ✅ |
+| **JavaScript (initial)** | 700KB | ~830KB index+app+vendor+tier1 | ⚠️ |
+| **JavaScript (total)** | 1.5MB | ~870KB | ✅ |
+| **JavaScript (total, gzip)** | 700KB | ~250KB | ✅ |
+| **CSS** | 50KB | ~10KB | ✅ |
+| **Images (icons)** | 500KB | ~50KB | ✅ |
 
 ### Performance Budgets
 
@@ -431,19 +410,17 @@ npm run build:analyze
 
 - [x] Vite config optimized
 - [x] Code splitting configured
-- [x] Terser minification enabled
+- [x] esbuild minification enabled
 - [x] Source maps disabled (production)
-- [x] Tree shaking enabled
+- [x] Tree shaking enabled (Rollup default)
 - [x] Manual chunks defined
-- [x] Asset optimization configured
 
 ### Assets
 
-- [x] Images optimized (imagemin)
-- [x] Fonts subsetted (woff2)
-- [x] Textures compressed (KTX2)
-- [x] SVGs minified (svgo)
-- [x] Audio files compressed (mp3/ogg)
+- [x] Icons generated (`npm run icons` → public/icons)
+- [ ] Fonts — none shipped (system fonts only)
+- [ ] Textures — none shipped yet (KTX2 loader is wired in TextureManager for when they land)
+- [ ] Audio — procedural WebAudio synth only, no audio files
 
 ### Caching
 
@@ -600,13 +577,14 @@ import * as THREE from 'three';
 
 ```javascript
 // ✅ Good: Load on demand
-async function loadTier3() {
-  const { WebGPURenderer } = await import('./WebGPURenderer.js');
-  return new WebGPURenderer();
+async function openDevTools() {
+  // Real example from VRApp.js — DevTools is only loaded on demand
+  const { DevTools } = await import('../dev/DevTools.js');
+  return new DevTools();
 }
 
 // ❌ Bad: Load everything upfront
-import { WebGPURenderer } from './WebGPURenderer.js';
+import { DevTools } from '../dev/DevTools.js';
 ```
 
 ### 4. Asset Loading
@@ -626,10 +604,9 @@ Promise.all(assets.map(a => fetch(a)));
 ### 5. Memory Management
 
 ```javascript
-// ✅ Good: Use object pools
-const vec = vectorPool.acquire();
-// ... use vector ...
-vectorPool.release(vec);
+// ✅ Good: Reuse module-scope scratch objects across frames
+const _scratchVec = new Vector3();
+_scratchVec.copy(input); // ... use it ...
 
 // ❌ Bad: Create new objects every frame
 const vec = new Vector3(); // GC pressure!
@@ -658,14 +635,19 @@ npm run verify:vr-boot  # full VRApp constructs headlessly
   },
   "size-limit": [
     {
-      "name": "Main bundle",
-      "path": "dist/js/main-*.js",
-      "limit": "700 KB"
+      "name": "Entry",
+      "path": "dist/js/index-*.js",
+      "limit": "50 KB"
+    },
+    {
+      "name": "App + vendor",
+      "path": "dist/js/{app,vendor-three}-*.js",
+      "limit": "800 KB"
     },
     {
       "name": "Tier 1",
       "path": "dist/js/tier1-*.js",
-      "limit": "60 KB"
+      "limit": "100 KB"
     }
   ]
 }
