@@ -4367,3 +4367,106 @@ describe('VRApp — complementary arms round 5', () => {
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
   });
 });
+
+
+describe('VRApp setupRenderer — context-loss/resize handler bodies (patched ctor)', () => {
+  test('context lost pauses loop + warns; restored re-arms; debounced resize resizes', () => {
+    jest.useFakeTimers();
+    const handlers = {};
+    const setAnimationLoop = jest.fn();
+    const setSize = jest.fn();
+    const setPixelRatio = jest.fn();
+    class FakeRenderer {
+      constructor() {
+        this.domElement = {
+          style: {},
+          addEventListener: jest.fn((t, f) => { handlers[t] = f; }),
+          removeEventListener: jest.fn()
+        };
+        this.shadowMap = {};
+        this.xr = {};
+        this.setAnimationLoop = setAnimationLoop;
+        this.setSize = setSize;
+        this.setPixelRatio = setPixelRatio;
+      }
+    }
+    const savedWin = global.window;
+    const winAdd = jest.fn();
+    global.window = {
+      innerWidth: 800, innerHeight: 600, devicePixelRatio: 1, addEventListener: winAdd
+    };
+    try {
+      // isolateModules gives three a fresh module instance, so the patch must
+      // land on the isolated registry's copy BEFORE VRApp is re-required
+      // (babel's wildcard interop snapshots the exports at that require).
+      let VRM;
+      jest.isolateModules(() => {
+        const T = require('three');
+        T.WebGLRenderer = FakeRenderer;
+        VRM = require('../src/vr/VRApp.js');
+      });
+      const app = makeVRAppLike({ container: { appendChild: jest.fn() } });
+      VRM.VRApp.prototype.setupRenderer.call(app);
+      expect(setSize).toHaveBeenCalledTimes(1); // initial size
+      const lost = { preventDefault: jest.fn() };
+      handlers['webglcontextlost'](lost);
+      expect(lost.preventDefault).toHaveBeenCalled();
+      expect(setAnimationLoop).toHaveBeenLastCalledWith(null);
+      app._renderBound = function bound() {};
+      handlers['webglcontextrestored']();
+      expect(setAnimationLoop).toHaveBeenLastCalledWith(app._renderBound);
+      // Debounced trailing-edge resize updates size + camera aspect.
+      app.camera = { aspect: 0, updateProjectionMatrix: jest.fn() };
+      const resize = winAdd.mock.calls.find((c) => c[0] === 'resize')[1];
+      resize();
+      expect(setSize).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(200);
+      expect(setSize).toHaveBeenLastCalledWith(800, 600);
+      expect(app.camera.aspect).toBe(800 / 600);
+      expect(app.camera.updateProjectionMatrix).toHaveBeenCalled();
+    } finally {
+      if (savedWin === undefined) { delete global.window; } else { global.window = savedWin; }
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('VRApp misc tail — updateSetting + selectend/squeezestart wrappers', () => {
+  test('updateSetting writes the setting, persists, and returns the value', () => {
+    const app = makeVRAppLike({ settings: {}, saveSettings: jest.fn() });
+    const v = VRApp.prototype.updateSetting.call(app, 'masterVolume', 55);
+    expect(v).toBe(55);
+    expect(app.settings.masterVolume).toBe(55);
+    expect(app.saveSettings).toHaveBeenCalled();
+  });
+
+  test('selectend + squeezestart listeners forward to release/teleport handlers', () => {
+    const app = makeVRAppLike({
+      settings: { controllerDeadZone: 0.15, southpaw: false },
+      playerRig: new THREE.Group(),
+      scene: new THREE.Scene(),
+      controllers: [],
+      controllerGrips: [],
+      teleport: {},
+      showVRToast: jest.fn(),
+      onControllerSelect: jest.fn(),
+      onTeleportStart: jest.fn(),
+      onTeleportEnd: jest.fn(),
+      _cancelTeleportIfAimedBy: jest.fn()
+    });
+    const ctl = new THREE.Group();
+    ctl.userData = {};
+    app.renderer = {
+      xr: {
+        getController: jest.fn(() => ctl),
+        getControllerGrip: jest.fn(() => new THREE.Group())
+      }
+    };
+    VRApp.prototype.setupControllers.call(app);
+    ctl.dispatchEvent({ type: 'selectend' });
+    expect(app.onControllerSelect).toHaveBeenCalledWith(ctl, false);
+    ctl.dispatchEvent({ type: 'squeezestart' });
+    expect(app.onTeleportStart).toHaveBeenCalledWith(ctl);
+  });
+});
+

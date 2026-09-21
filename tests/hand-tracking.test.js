@@ -655,3 +655,19 @@ test('thumbsup wins when no other gesture matches; none when isThumbUp false', (
   ht.isThumbUp = () => false;
   expect(ht.detectGesture(joints)).toBe('none');
 });
+
+
+describe('HandTracking inputsourceschange dispatch', () => {
+  test('session event reaches onInputSourcesChange and hides removed hands', async () => {
+    const ht = new HandTracking({}, new MockObj());
+    const session = makeSession();
+    await ht.initialize(session);
+    ht.leftHand.visible = true;
+    const spy = jest.spyOn(ht, 'onInputSourcesChange');
+    const evt = { added: [], removed: [{ handedness: 'left' }] };
+    session._listeners['inputsourceschange'](evt);
+    expect(spy).toHaveBeenCalledWith(evt);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+});
+

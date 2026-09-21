@@ -810,3 +810,16 @@ describe('TabManager — closeTab above the active index', () => {
     expect(tm.activeIndex).toBe(0); // index > activeIndex → no shift
   });
 });
+
+
+describe('TabManager — strip handler wrapper arrows', () => {
+  test('registered strip onSelect forwards the raw event to _onStripSelect', () => {
+    const m = makeManager();
+    const cfg = m.opts.registerInteractable.mock.calls.find((c) => c[0] === m.stripMesh)[1];
+    m._onStripSelect = jest.fn();
+    const evt = { point: { x: 0.1, y: 0, z: 0 } };
+    cfg.onSelect(evt);
+    expect(m._onStripSelect).toHaveBeenCalledWith(evt);
+  });
+});
+

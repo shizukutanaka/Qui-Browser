@@ -877,3 +877,37 @@ describe('WebPanel — dispose before any navigation (no iframe)', () => {
     expect(() => p.dispose()).not.toThrow();
   });
 });
+
+
+describe('WebPanel — ctor default arrows + reader abort', () => {
+  test('omitted onNavigate/onLoadError install no-op fallbacks', () => {
+    const p = new WebPanel({
+      scene: { add() {}, remove() {} },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn()
+    });
+    expect(() => { p.onNavigate('https://x'); p.onLoadError('https://x'); }).not.toThrow();
+  });
+
+  test('reader fetch aborts after the 5s watchdog', async () => {
+    jest.useFakeTimers();
+    const p = makePanel();
+    let sig;
+    global.fetch = jest.fn((u, opts) => {
+      sig = opts.signal;
+      return new Promise((_, rej) => {
+        opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+      });
+    });
+    try {
+      const pr = p._loadReaderText('https://example.com');
+      jest.advanceTimersByTime(5000);
+      await pr;
+      expect(sig.aborted).toBe(true);
+    } finally {
+      delete global.fetch;
+      jest.useRealTimers();
+    }
+  });
+});
+

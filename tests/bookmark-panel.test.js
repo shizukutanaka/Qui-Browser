@@ -926,3 +926,25 @@ describe('BookmarkPanel — ctor + delete-zone guard arms', () => {
     expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
   });
 });
+
+
+describe('BookmarkPanel — ctor default arrows', () => {
+  test('omitted onSelect installs a no-op fallback that swallows the event', () => {
+    const reg = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: reg,
+      unregisterInteractable: jest.fn(),
+      store: makeStore()
+    });
+    expect(() => p.onSelect('https://example.com')).not.toThrow();
+    p.addToScene();
+    const handlers = reg.mock.calls[0][1];
+    p.onHoverCaption = jest.fn();
+    p.mesh.material = { color: { set: jest.fn() }, dispose: jest.fn() };
+    handlers.onHover();
+    expect(p.mesh.material.color.set).toHaveBeenCalledWith(0xbbccff);
+    expect(p.onHoverCaption).toHaveBeenCalled();
+  });
+});
+

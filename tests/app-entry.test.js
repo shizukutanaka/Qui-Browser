@@ -904,3 +904,38 @@ describe('main.js — final arms', () => {
     expect(global.window.dispatchEvent.mock.calls.map(([e]) => e.type)).toContain('enter-vr');
   });
 });
+
+
+describe('src/main.js — toast/SW tail coverage', () => {
+  test('unsupported-VR toast auto-removes after 6s', async () => {
+    jest.useFakeTimers();
+    const enterBtn = makeEl('enterVRButton');
+    const { documentListeners } = installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
+    for (let i = 0; i < 8; i++) { await Promise.resolve(); }
+    await enterBtn.listeners.click[0]({});
+    const toast = global.document.body.children.find((c) => c.id === 'vr-error-toast');
+    expect(toast).toBeTruthy();
+    jest.advanceTimersByTime(6000);
+    expect(toast.remove).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  test('registered service worker polls for updates on a 60s interval', async () => {
+    jest.useFakeTimers();
+    const registration = { update: jest.fn() };
+    const register = jest.fn().mockResolvedValue(registration);
+    const { windowListeners } = installDom({ serviceWorker: { register } });
+    jest.isolateModules(() => require('../src/main.js'));
+    (windowListeners.load || []).forEach((f) => f());
+    for (let i = 0; i < 8; i++) { await Promise.resolve(); }
+    jest.advanceTimersByTime(60000);
+    expect(registration.update).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+});
+

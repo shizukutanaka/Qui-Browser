@@ -668,3 +668,16 @@ describe('ImmersiveVideo — _reportError without a HUD button', () => {
     expect(errs).toEqual(['decode failed']);
   });
 });
+
+
+describe('ImmersiveVideo — ctor default arrows', () => {
+  test('omitted interactable hooks install no-ops', () => {
+    const scene = { add: jest.fn(), remove: jest.fn() };
+    const iv = new ImmersiveVideo(scene, makeCamera(), {}, {});
+    expect(() => {
+      iv.registerInteractable({}, {});
+      iv.unregisterInteractable({});
+    }).not.toThrow();
+  });
+});
+

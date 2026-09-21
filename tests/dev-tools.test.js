@@ -706,3 +706,40 @@ describe('DevTools — last guard arms', () => {
     expect(() => dt.updateNetworkTable()).not.toThrow();
   });
 });
+
+
+describe('DevTools toolbar button dispatch', () => {
+  test('tab button onclick routes to showTab; close button onclick hides', () => {
+    const saved = global.document;
+    const byId = new Map();
+    global.document = {
+      addEventListener() {},
+      removeEventListener() {},
+      getElementById: (id) => byId.get(id) || null,
+      createDocumentFragment: () => makeEl('#frag'),
+      createElement: () => makeEl(),
+      createTextNode: (t) => ({ textContent: t }),
+      body: makeEl('body')
+    };
+    try {
+      const dt = new DevTools({ scene: {}, renderer: {} });
+      dt.initialize();
+      const showSpy = jest.spyOn(dt, 'showTab');
+      const hideSpy = jest.spyOn(dt, 'hide');
+      const toolbar = dt.container.children.find(
+        (c) => Array.isArray(c.children) && c.children.length > 1 && typeof c.children[0].onclick === 'function'
+      );
+      expect(toolbar).toBeTruthy();
+      const buttons = toolbar.children.filter((c) => typeof c.onclick === 'function');
+      buttons[0].onclick();
+      expect(showSpy).toHaveBeenCalledTimes(1);
+      buttons[buttons.length - 1].onclick();
+      expect(hideSpy).toHaveBeenCalledTimes(1);
+      expect(dt.visible).toBe(false);
+      dt.dispose && dt.dispose();
+    } finally {
+      global.document = saved;
+    }
+  });
+});
+

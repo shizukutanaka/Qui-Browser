@@ -315,16 +315,24 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     const mon = new PerformanceMonitor();
     mon.stats.bestFrame.time = 999;
     mon.stats.worstFrame.time = -1;
-    // renderer without info → the `renderer && renderer.info` false arm
-    mon.beginFrame();
-    mon.endFrame({});
-    expect(mon.frameCount).toBe(1);
-    expect(mon.stats.bestFrame.time).not.toBe(999);
-    expect(mon.stats.worstFrame.time).not.toBe(-1);
-    mon.beginFrame(); mon.endFrame();
-    const best = mon.stats.bestFrame.time;
-    mon.beginFrame(); mon.endFrame();
-    expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+    // Deterministic frame durations — real performance.now() can return the
+    // same value for consecutive calls (ms granularity) making min==max.
+    let t = 0;
+    const spy = jest.spyOn(performance, 'now').mockImplementation(() => (t += 10));
+    try {
+      // renderer without info → the `renderer && renderer.info` false arm
+      mon.beginFrame();
+      mon.endFrame({});
+      expect(mon.frameCount).toBe(1);
+      expect(mon.stats.bestFrame.time).not.toBe(999);
+      expect(mon.stats.worstFrame.time).not.toBe(-1);
+      mon.beginFrame(); mon.endFrame();
+      const best = mon.stats.bestFrame.time;
+      mon.beginFrame(); mon.endFrame();
+      expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test('updateMemoryMetrics tolerates absent performance.memory', () => {
@@ -551,5 +559,55 @@ describe('PerformanceMonitor — fps update interval arm', () => {
     pm.frameStartTime = performance.now();
     pm.endFrame(r);
     expect(pm.metrics.fps.current).toBeGreaterThan(0);
+  });
+});
+
+
+describe('PerformanceMonitor perf-close + memory interval bodies', () => {
+  // Local element stub (the suite's makeEl is scoped inside another describe).
+  function stubEl() {
+    const el = {
+      style: {}, children: [], innerHTML: '', parentNode: null, _h: {},
+      appendChild(c) { el.children.push(c); return c; },
+      removeChild(c) { el.children = el.children.filter((x) => x !== c); },
+      addEventListener(t, f) { el._h[t] = f; },
+      getContext() { return { calls: [] }; }
+    };
+    return el;
+  }
+
+  test('perf-close click handler hides the overlay', () => {
+    const saved = global.document;
+    const byId = {};
+    const close = stubEl(); byId['perf-close'] = close;
+    const body = stubEl();
+    global.document = {
+      body,
+      createElement: () => stubEl(),
+      getElementById: (id) => byId[id] || null
+    };
+    try {
+      const mon = new PerformanceMonitor();
+      mon.createUI();
+      close._h.click();
+      expect(mon.visible).toBe(false);
+      mon.dispose();
+    } finally {
+      if (saved === undefined) { delete global.document; } else { global.document = saved; }
+    }
+  });
+
+  test('startMonitoring memory interval fires updateMemoryMetrics each second', () => {
+    jest.useFakeTimers();
+    const saved = performance.memory;
+    performance.memory = { usedJSHeapSize: 1024 * 1024 };
+    const mon = new PerformanceMonitor();
+    const spy = jest.spyOn(mon, 'updateMemoryMetrics');
+    mon.startMonitoring();
+    jest.advanceTimersByTime(1000);
+    expect(spy).toHaveBeenCalled();
+    mon.dispose();
+    if (saved === undefined) { delete performance.memory; } else { performance.memory = saved; }
+    jest.useRealTimers();
   });
 });

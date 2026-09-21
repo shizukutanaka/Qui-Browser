@@ -1162,3 +1162,98 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
     expect(app.layersSystem).toBeNull();
   });
 });
+
+
+describe('cfg passthrough arrows — interactable registration + session callbacks', () => {
+  test('ImmersiveVideo cfg passthroughs delegate to app registration', () => {
+    const ivCalls = [];
+    patch('ImmersiveVideo', ctor(ivCalls, {}));
+    const app = makeInitLike({
+      enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false
+    });
+    VRApp.prototype.setupScene.call(app);
+    const cfg = ivCalls[0][3];
+    const handlers = { onSelect() {} };
+    cfg.registerInteractable('mesh', handlers);
+    cfg.unregisterInteractable('mesh');
+    expect(app.registerInteractable).toHaveBeenCalledWith('mesh', handlers);
+    expect(app.unregisterInteractable).toHaveBeenCalledWith('mesh');
+  });
+
+  test('TabManager + BookmarkPanel cfg passthroughs delegate to app registration', () => {
+    const tmCalls = [];
+    const bpCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {}, getActiveTab: () => null
+    }));
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike();
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    for (const cfg of [tmCalls[0][0], bpCalls[0][0]]) {
+      cfg.registerInteractable('m', 'h');
+      cfg.unregisterInteractable('m');
+    }
+    expect(app.registerInteractable).toHaveBeenCalledWith('m', 'h');
+    expect(app.unregisterInteractable).toHaveBeenCalledWith('m');
+  });
+
+  test('keyboard cfg passthroughs, suggestionProvider, caption onShow, voice onEnterVR, loader onProgress', async () => {
+    const kbCalls = [];
+    const capCalls = [];
+    patch('VRJapaneseKeyboard', ctor(kbCalls, {}));
+    patch('CaptionSystem', ctor(capCalls, { setEnabled() {}, enabled: false }));
+    const vcFixture = {
+      callbacks: {},
+      initialize: async () => true,
+      start() {},
+      connectBrowser: jest.fn()
+    };
+    patch('VoiceCommands', function () { return vcFixture; });
+    const app = makeInitLike({ enableVoice: true });
+    await VRApp.prototype.initializeSystems.call(app);
+
+    const kbCfg = kbCalls[0][2];
+    kbCfg.registerInteractable('m', 'h');
+    kbCfg.unregisterInteractable('m');
+    expect(app.registerInteractable).toHaveBeenCalledWith('m', 'h');
+    expect(app.unregisterInteractable).toHaveBeenCalledWith('m');
+    app.bookmarks.search = jest.fn(() => ['sug']);
+    expect(kbCfg.suggestionProvider('ab')).toEqual(['sug']);
+    expect(app.bookmarks.search).toHaveBeenCalledWith('ab', 4, expect.any(Number));
+
+    const capCfg = capCalls[0][1];
+    app.semanticDOM = { announceCaption: jest.fn() };
+    capCfg.onShow('hello');
+    expect(app.semanticDOM.announceCaption).toHaveBeenCalledWith('hello');
+
+    expect(vcFixture.connectBrowser).toHaveBeenCalled();
+    const vcCfg = vcFixture.connectBrowser.mock.calls[0][0];
+    app.vrButton = { click: jest.fn() };
+    vcCfg.onEnterVR();
+    expect(app.vrButton.click).toHaveBeenCalled();
+    const end = jest.fn();
+    app.renderer = { xr: { getSession: () => ({ end }) } };
+    vcCfg.onExitVR();
+    expect(end).toHaveBeenCalled();
+
+    app.progressiveLoader.callbacks.onProgress({ item: { name: 'x' }, progress: 0.5 });
+  });
+
+  test('layer attach passes a detach callback that routes to _detachPanelLayer', () => {
+    const app = makeInitLike();
+    let detachCb;
+    const panel = { enableLayerMode: jest.fn((q, ls, id, cb) => { detachCb = cb; }) };
+    app.tabManager = { tabs: [panel] };
+    app.layersSystem = {
+      createQuadLayer: jest.fn(() => ({ id: 'q' })),
+      updateRenderState: jest.fn()
+    };
+    app.renderer = { xr: { getReferenceSpace: () => 'ref' } };
+    app._detachPanelLayer = jest.fn();
+    VRApp.prototype._attachLayersToPanels.call(app, { fake: 'session' });
+    expect(typeof detachCb).toBe('function');
+    detachCb('panel_chrome_0');
+    expect(app._detachPanelLayer).toHaveBeenCalledWith('panel_chrome_0');
+  });
+});
+

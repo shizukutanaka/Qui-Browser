@@ -544,6 +544,21 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き126（同セッション）: 関数カバレッジ枯渇 — 98.11%、残は全て PROD ゲートまたは istanbul の虚レコード
+
+続き125 の「残は全て構造的死腕」をソクラテス式に再検証 — **その内訳に誤りがあった**。「setupRenderer 内の GPU リスナー本体（520/529/552/559）は WebGL コンテキスト必須」と記したが、実測で覆った: `require('three').WebGLRenderer` は writable なデータプロパティであり、失敗していた本当の原因は babel の wildcard interop が **require 時点で export をコピー**するためロード済み SUT にパッチが届かないことだった。`jest.isolateModules` 内で先に `require('three')` をパッチしてから SUT を re-require すれば FakeRenderer が載る — context lost/restored/resize の3リスナー本体を pin 済み。**「GPU 必須だから未検証」という断言自体が未検証だった。**
+
+- **実測**: 関数 94.73% → **98.11%**（986/1005）、行 98.44%、分岐 97.92%。残存19件の内訳:
+  - `monitoring.js` 17件 — `import.meta.env.PROD` ゲート（N-2 = owner 判断待ち）
+  - `main.js` L50 monitoring `.catch` — 同じく PROD ゲートで jest 到達不能
+  - `BookmarkPanel` L103 `(anonymous_3)` — **istanbul の虚レコード**: onHover 矢印は実際に実行され `0xbbccff` のボディ効果を3テストが断言するが、ヒットは隣接レコード（anonymous_4）に帰属される。FNDA:0 は計測器の属性ミスであってコードの未実行ではない。
+- **Musk step 2（delete）を続き125 の死腕記録に適用**: 検証不能と記録した腕のうち2件は「呼出側が常に値を供給する防御」ではなく**純粋な到達不能**と確定したため削除:
+  - `JapaneseIME.js` 末尾 `if (buffer === 'n')` — ループ内 n-ハンドラが全経路（vowel→継続・nn→ん・他→ん）で消費するため post-loop では buffer=='n' が成立し得ない（全分岐を実トレースで確認）。
+  - `k.glyph || k.label` ×2 — `computeKeyLayout` は必ず `glyph` を出力（`entry.glyph ? entry.glyph : label`）。フォールバック側は定義上到達不能。
+- **今 stretch で pin した残関数面**: toast 6s 自動除去・SW 60s update（app-entry）、DevTools ツールバー onclick dispatch + removeEventListener、perf-close click + startMonitoring interval、BookmarkPanel/ImmersiveVideo/WebPanel の ctor デフォルト `() => {}`、reader 5s abort watchdog（signal は finally で `_readerController=null` されるため fetch stub 内で捕捉）、ProgressiveLoader getAbortSignal、strip onSelect ラッパー、IME 漢字 fetch 5s watchdog、HandTracking inputsourceschange、IV/TabManager/BookmarkPanel の register パススルー `(m,h)=>registerInteractable(m,h)`、keyboard cfg/suggestionProvider/caption onShow/voice onEnterVR+onExitVR/loader onProgress、panel detach cb ルーティング、updateSetting 本体。
+- **flaky 修正**: performance-monitor の best/worst frame テストは実 `performance.now()` の ms 粒度で連続呼出が同値を返しうるため mock で +10ms 固定刻みに確定化。
+- **テスト技術メモ（再確認）**: ① isolateModules は node_modules を含む全モジュールの新規レジストリを作る — パッチは isolate 内で `require('three')` したコピーに当てる ② フェイクタイマーはタイマー登録前に有効化 ③ babel interop は wildcard の値コピー — ロード後の export 書換は SUT に伝播しない。
+
 #### 続き125（同セッション）: 補腕スイープ完走 — 分岐カバレッジ 97.67%、残は全て構造的死腕
 
 - **実測**: 2994 tests / 67 suites 全緑、lint 0 errors、branches **97.67%**（94/4038 未カバー、続き124 時点の 93.4% / 266 から +4.3pt）。

@@ -240,11 +240,6 @@ export class JapaneseIME {
       }
     }
 
-    // A trailing lone 'n' is syllabic ん.
-    if (buffer === 'n') {
-      result += 'ん';
-      buffer = '';
-    }
     // Append remaining buffer
     result += buffer;
 
@@ -807,7 +802,7 @@ export class VRJapaneseKeyboard {
     // One mesh per key.
     this.keyMeshes = [];
     for (const k of keys) {
-      const tex = this._makeKeyTexture(k.glyph || k.label, false);
+      const tex = this._makeKeyTexture(k.glyph, false);
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(k.w, k.h),
         new THREE.MeshBasicMaterial({ map: tex, transparent: true })
@@ -815,7 +810,7 @@ export class VRJapaneseKeyboard {
       mesh.position.set(k.x, k.y, 0);
       mesh.userData.keyLabel = k.label;
       mesh.userData.keyTex = tex;
-      mesh.userData.keyGlyph = k.glyph || k.label;
+      mesh.userData.keyGlyph = k.glyph;
       group.add(mesh);
       this.keyMeshes.push({ mesh, label: k.label });
 

@@ -748,3 +748,17 @@ describe('ProgressiveLoader — remaining tail arms', () => {
     expect(onComplete).not.toHaveBeenCalled(); // settled 1/2 — the false arm
   });
 });
+
+
+describe('ProgressiveLoader — getAbortSignal watchdog', () => {
+  test('aborts the signal after strategy.timeout', () => {
+    jest.useFakeTimers();
+    const loader = new ProgressiveLoader();
+    const signal = loader.getAbortSignal();
+    expect(signal.aborted).toBe(false);
+    jest.advanceTimersByTime(loader.strategy.timeout);
+    expect(signal.aborted).toBe(true);
+    jest.useRealTimers();
+  });
+});
+

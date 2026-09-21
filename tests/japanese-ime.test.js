@@ -220,3 +220,24 @@ describe('VRJapaneseKeyboard — suggestion query without an IME', () => {
     expect(kb._clearSuggestions).toHaveBeenCalled();
   });
 });
+
+
+describe('JapaneseIME — remote fetch watchdog', () => {
+  test('getKanjiCandidates aborts a hung remote fetch after 5s and falls back', async () => {
+    jest.useFakeTimers();
+    const ime = new JapaneseIME();
+    const prevFetch = global.fetch;
+    global.fetch = jest.fn((u, opts) => new Promise((_, rej) => {
+      opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+    }));
+    try {
+      const pr = ime.getKanjiCandidates('かんじ');
+      jest.advanceTimersByTime(5000);
+      await expect(pr).resolves.toContain('かんじ');
+    } finally {
+      if (prevFetch === undefined) { delete global.fetch; } else { global.fetch = prevFetch; }
+      jest.useRealTimers();
+    }
+  });
+});
+
