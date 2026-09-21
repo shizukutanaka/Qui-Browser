@@ -3055,3 +3055,75 @@ describe('VRApp — remaining toggle/toast arms', () => {
     expect(() => jest.runAllTimers()).not.toThrow();
   });
 });
+
+describe('VRApp — settings section + action/stepper apply arms', () => {
+  test('_toggleSettingsSection: re-selecting the open tab is a no-op', () => {
+    const app = makeVRAppLike({
+      settings: { openSettingsSections: ['settings.section.a11y'] },
+      updateSetting: jest.fn(),
+      _rebuildSettingsPanel: jest.fn(),
+      captionSystem: { enabled: true, show: jest.fn() }
+    });
+    VRApp.prototype._toggleSettingsSection.call(app, 'settings.section.a11y');
+    expect(app.updateSetting).not.toHaveBeenCalled();
+  });
+
+  test('_toggleSettingsSection: a different tab persists, rebuilds and captions', () => {
+    const app = makeVRAppLike({
+      settings: { openSettingsSections: [] },
+      updateSetting: jest.fn(),
+      _rebuildSettingsPanel: jest.fn(),
+      captionSystem: { enabled: true, show: jest.fn() }
+    });
+    VRApp.prototype._toggleSettingsSection.call(app, 'settings.section.display');
+    expect(app.updateSetting).toHaveBeenCalledWith('openSettingsSections', ['settings.section.display']);
+    expect(app._rebuildSettingsPanel).toHaveBeenCalled();
+    expect(app.captionSystem.show).toHaveBeenCalled();
+  });
+
+  test('_rebuildSettingsPanel returns early with no panel', () => {
+    const app = makeVRAppLike({ settingsPanel: null });
+    expect(() => VRApp.prototype._rebuildSettingsPanel.call(app)).not.toThrow();
+  });
+
+  test('_disposeSettingsPanel tolerates a parent-less panel', () => {
+    const mesh = { isMesh: true };
+    const panel = { traverse: (cb) => cb(mesh), parent: null };
+    const app = makeVRAppLike({ settingsPanel: panel, unregisterInteractable: jest.fn(), _settingsPanelDrawers: [{}] });
+    VRApp.prototype._disposeSettingsPanel.call(app);
+    expect(app.unregisterInteractable).toHaveBeenCalledWith(mesh);
+    expect(app._settingsPanelDrawers).toEqual([]);
+  });
+
+  test('makeActionButton onSelect tolerates a missing callback', () => {
+    const THREE = require('three');
+    const app = makeVRAppLike({
+      _panelTextures: [],
+      _sharedPlaneGeometry: () => new THREE.PlaneGeometry(1, 1),
+      registerInteractable: jest.fn(),
+      _announceSettingsButton: jest.fn()
+    });
+    VRApp.prototype.makeActionButton.call(app, 'L', undefined);
+    const handlers = app.registerInteractable.mock.calls[0][1];
+    expect(() => handlers.onSelect()).not.toThrow();
+  });
+
+  test('makeStepperButton onSelect applies step+apply and persists', () => {
+    const THREE = require('three');
+    const apply = jest.fn();
+    const app = makeVRAppLike({
+      settings: { gazeDwellTime: 1000 },
+      _panelTextures: [],
+      _sharedPlaneGeometry: () => new THREE.PlaneGeometry(1, 1),
+      registerInteractable: jest.fn(),
+      updateSetting: jest.fn(),
+      _announceSettingsButton: jest.fn()
+    });
+    VRApp.prototype.makeStepperButton.call(app, 'L', 'gazeDwellTime', { min: 500, max: 3000, step: 250, apply });
+    const handlers = app.registerInteractable.mock.calls[0][1];
+    // Hit far right of the stepper → 'increment' region (u = x/0.9 + 0.5).
+    handlers.onSelect(new THREE.Vector3(0.8, 0, 0));
+    expect(app.updateSetting).toHaveBeenCalledWith('gazeDwellTime', 1250);
+    expect(apply).toHaveBeenCalledWith(1250);
+  });
+});
