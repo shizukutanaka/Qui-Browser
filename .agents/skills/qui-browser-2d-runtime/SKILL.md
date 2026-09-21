@@ -67,10 +67,25 @@ attribute, no applied classes) — re-eval after readyState settles before judgi
   console.debug/console.error will never appear in a prod build; SW logs DO show
   (public/ ships verbatim) but only in the SW's own console/CDP target.
 - The service worker idle-terminates within ~30 s of the last request
-  (`service_worker` target disappears from /json). Fetches fired while it is dead
-  intermittently hang FOREVER instead of resolving — cold-start requests sometimes
-  bypass the SW (200) and sometimes spawn it yet never get a settled respondWith.
-  Navigations always render (app shell is precached). Repro ~50% of dead-SW fetches.
+  (`service_worker` target disappears from /json). Historically, fetches fired
+  while it was dead intermittently hung FOREVER (~50% of dead-SW fetches) —
+  fixed via `settleWithin()` (10 s hard cap → bare fetch → offline fallback).
+  If hangs reappear, that fix regressed. Navigations always render (app shell
+  is precached) even with server down.
+- To force the dead-SW state on demand, use the `ServiceWorker` CDP domain on
+  the PAGE target's session (NOT the browser-level ws — that's `-32601`):
+  `ServiceWorker.enable` → collect `workerVersionUpdated` (versionId,
+  runningStatus) → `ServiceWorker.stopWorker {versionId}` to kill, or
+  `ServiceWorker.startWorker {scopeURL}` to spawn.
+- To prove a fetch actually dispatched to a cold SW (vs Chrome bypassing it):
+  temporarily instrument `dist/service-worker.js` — e.g.
+  `caches.open('sw-dispatch').then(c => c.put(new Request('/dispatch?p='+encodeURIComponent(url.pathname+url.search)), new Response('x')))`
+  inside the fetch handler — reload (update check picks up the byte diff,
+  skipWaiting+claims activates it), fire dead-SW fetches, then read
+  `caches.open('sw-dispatch').keys()` from the page. Rebuild afterwards to
+  restore the pristine file. Only the SW can emit its synthetic statuses:
+  a `503` on a non-nav/non-image or `204` on an image while the server is
+  DOWN proves `getOfflineFallback` ran.
 - `Runtime.evaluate` on a `service_worker` CDP target cannot see top-level
   `const`/`let` bindings (ReferenceError even though the script ran) — eval
   `self.*`-reachable state or treat const-globals as unreadable.
