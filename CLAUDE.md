@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き171 — プロキシ起動失敗が生スタックで死ぬ（EADDRINUSE 等）
+- 🔍 **実害（起動 UX）**: `createProxyServer().listen()` に `'error'` ハンドラが無く、ポート占有等の起動失敗が未ハンドル error イベント → 生のスタックトレースで終了。手動で起動する開発者ツールで最も頻度の高い失敗経路が無案内だった。
+- 🔧 **修正**: `server.on('error')` で EADDRINUSE → 「Port N is already in use — is another proxy instance running?」、その他は `err.message` を添えて exit 1。実測で2重起動がフレンドリメッセージ＋exit 1 で終了することを確認。
+- ✅ proxy 25 tests 全緑、lint 0 errors。
+
 ### Session 75: 続き170 — TextureManager の three ローダーも timeout 無し（同クラス横展開）
 - 🔍 **実害（同クラスの残件）**: ProgressiveLoader と同じ「コールバック非発火で永遠 pending」が TextureManager にも存在 — `loadKTX2`(FileLoader 経由)/`loadStandardTexture`(ImageLoader→Image) に three 側の timeout が設定されていない（既定 0=無制限）。スタールしたサーバーではテクスチャ未解決＋pendingLoads のデデュープエントリが永久に残る二重被害。
 - 🔧 **修正**: `_withTimeout()` ヘルパーで Promise.race watchdog（30s、`timeout loading texture: <url>` で reject + clearTimeout）。基底リクエストは裏で完走するだけなので害なし、呼び出し側にはエラーパスが返る。

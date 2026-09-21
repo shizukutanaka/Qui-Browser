@@ -311,7 +311,16 @@ export function createProxyServer() {
 
 // Only listen when run directly, so tests can import the pieces.
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {
-  createProxyServer().listen(PORT, () => {
+  const server = createProxyServer();
+  server.on('error', (err) => {
+    // Without a handler a failed listen (port taken, permission denied)
+    // surfaces as an unhandled 'error' event — a raw stack, no hint.
+    console.error(err.code === 'EADDRINUSE'
+      ? `Port ${PORT} is already in use — is another proxy instance running?`
+      : `Proxy failed to start: ${err.message}`);
+    process.exit(1);
+  });
+  server.listen(PORT, () => {
     console.log(`Qui-Browser reader proxy on http://127.0.0.1:${PORT}`);
     console.log(`  GET /fetch?url=https://example.com/article   (allowed origin: ${ALLOW_ORIGIN})`);
   });
