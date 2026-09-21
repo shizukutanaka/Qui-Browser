@@ -170,7 +170,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ID | 改善案 | 優先度 | 推奨 | 受け入れ基準 |
 |----|--------|--------|------|-------------|
 | ~~E-1~~ | ~~設定パネルのグルーピング（=C-2）~~ | ~~高~~ | 完了 S75 | C-2 参照 — 実装確認済みで記録のみ更新 |
-| E-2 | ~~実ブラウザ検証~~ — **部分完了（Session 68）**: `npm run verify:layout` が実 Chromium で本番の折り返し×実フォントを検証（依存ゼロ）。**残**: ページ全体のスモーク（build→preview→console error 0→Enter VR/SW）は未着手。死んでいた `test:e2e` は削除済み | 中 | Opus | スモーク側は別途 |
+| ~~E-2~~ | ~~実ブラウザ検証~~ — **完了**: `verify:layout`（Session 68、本番折り返し×実フォント）+ `verify:app`（dist ブート・console error 0・Enter VR/SW）+ `verify:vr-boot`（stub WebXR で VRApp 全構築・browsing systems 含む）。3ハーネス全緑を実測（macOS では Playwright キャッシュの Chromium を使用 — CHROME_CANDIDATES に追加済み、env 変数不要） | — | — | 完了 |
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
 | ~~E-5~~ | ~~README/CHANGELOG の現状同期~~ | ~~低~~ | 完了 S75 | README: tests 21/231→48/1510・docs 12→24・死んだ start:server 節→proxy、src ツリー同期。CHANGELOG は歴史記録として untouched |
@@ -526,7 +526,7 @@ Session 74 で**改めて実際に push を試行して再確認**）ため、�
 
 ```bash
 git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch
+git am docs/patches/000*.patch   # 番号順に8本 — 逐次適用をテスト済み
 git push
 ```
 
@@ -549,14 +549,44 @@ git push
 `path: '.'` で生ソースを公開していた**（vercel.json の #130 と同じ破損クラス）→
 `npm run build`（`BASE_PATH=/Qui-Browser/`）+ `path: './dist'` に修正。
 
+**続き135 追記**: Build Verification の Node マトリクス `[16, 18, 20]` は
+**16 が永赤**（vite@5 は Node ^18||>=20 を要求し node@16 で `resolveConfig` が投げる ——
+`vite build` を node@16/18/20 で実測確認: 16=exit1、18/20=green）。
+`docs/patches/0005-ci-drop-node16-build-leg.patch` に修正を同梱（`[18, 20]` に縮退、クリーン適用検証済み）。
+
+**続き136 追記**: `test-unit` はテスト全緑でも**常に赤** — 後続ステップの
+`cicirello/jacoco-badge-generator` が Java 専用の `target/site/jacoco/jacoco.csv`
+（jest が絶対に生成しない）を `on-missing-report: fail` で要求するため。
+カバレッジは直上の Codecov アップロードが受け皿で済 → `docs/patches/0006-ci-delete-jacoco-badge-step.patch` にステップ削除を同梱（クリーン適用検証済み）。
+
+**併せて2件の codecov 不備を修正済み（本ブランチ側）**: ①jest の `coverageReporters` に `'json'` を追加 — 以前は `files: ./coverage/coverage-final.json` が指すファイルが一度も生成されていなかった。②アップロードは `CODECOV_TOKEN` シークレットが必要（CI ログで "Token required - not valid tokenless upload"）— owner がリポジトリ Settings に追加するまでアップロードは fail_ci_if_error:false でスキップされる。また README の静的 fake badge（常時 "passing" 表示）を実際の Actions バッジに置換。
+
+**併せて verify 配線の欠落を patch 化**: `npm run ci:verify`（build + verify:layout/app/vr-boot on real Chromium）は package.json に存在するがどの workflow も呼んでいなかった → `docs/patches/0007-ci-wire-runtime-verification.patch` に `verify-runtime` ジョブを同梱（ubuntu-latest の `/usr/bin/google-chrome`、tools の CHROME_CANDIDATES・`--no-sandbox` 済みで互換確認）。
+
+**さらに cd.yml に同型の BASE_PATH 破損**: Pages ジョブが `base: '/'` でビルドされた共有 `production-build` artifact をそのまま Pages に push していた → `…/Qui-Browser/` 配下では全 asset が 404（deploy.yml の patch 0003 と同じ欠陥クラス）。ただし同一 artifact は Netlify/Vercel（ドメインルート配信、`/` が正しい）にも使われるため、Pages ジョブに `BASE_PATH=/Qui-Browser/` の専用ビルドを持たせる形で `docs/patches/0008-ci-pages-base-path.patch` に同梱（クリーン適用検証済み）。
+
+**release.yml も同クラスの死んだステップを保有**: `npm run benchmark:all`（削除済みスクリプト）がリリース作成の前に走り、**タグ push が毎回リリース未作成で失敗する**。`docs/patches/0009-ci-drop-release-benchmark.patch` に同梱。
+
 ```bash
 git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
-git am docs/patches/0002-ci-fix-dead-jobs.patch               # 既存（ci.yml 死んだジョブ修復）
-git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復
-git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
+git am docs/patches/0001-ci-fix-dead-jobs.patch               # ci.yml 死んだジョブ修復
+git am docs/patches/0002-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復（assets/js 除去も包含）
+git am docs/patches/0003-ci-delete-dead-workflows.patch       # 3 workflow 削除
+git am docs/patches/0004-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
+git am docs/patches/0005-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
+git am docs/patches/0006-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
+git am docs/patches/0007-ci-pages-base-path.patch             # cd.yml の Pages が base '/' で 404
+git am docs/patches/0008-ci-drop-release-benchmark.patch      # release.yml の死んだ benchmark ステップ
+git am docs/patches/0009-ci-gate-all-prs.patch                # pull_request を全ブランチ向けに（チェーン PR が無ゲートだった）
 git push
 ```
+
+**続き138 追記（系列自体の破損を修正）**: 旧 9 本のパッチ列は各パッチが pristine な
+ワークフローに対して個別検証されており、**逐次 `git am` では 3 本目で破綻**していた
+（旧0001 が deploy.yml/test.yml の死骸を削除済みの領域を旧0003 が書き換え対象にしていた
+＋旧0004 が旧0001 で削除済みのファイルを再削除）。旧0001 の内容は旧0003・旧0004 に
+完全に包含されるため削除し、残り8本を採番し直した。`tests/ci-patches.test.js` が
+系列の逐次適用＋最終状態を恒久的に pin する。
 
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。

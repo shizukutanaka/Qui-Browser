@@ -373,7 +373,9 @@ describe('TextureManager — error arms', () => {
   test('KTX2 init failure falls back to standard textures (initKTX2 catch arm)', async () => {
     const tm = new TextureManager(makeRenderer());
     // Force the constructor-path loader into throwing on init
-    const bad = () => { throw new Error('no transcoder'); };
+    const bad = () => {
+      throw new Error('no transcoder');
+    };
     tm.initKTX2Loader && (tm.ktx2Loader = { setTranscoderPath: bad, detectSupport() {} });
     // Simulate the catch arm directly through the real method if exposed
     const tex = await tm.loadTexture('y.png'); // standard path still works

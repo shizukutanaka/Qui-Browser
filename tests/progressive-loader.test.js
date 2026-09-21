@@ -7,8 +7,12 @@ const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
 
 describe('ProgressiveLoader queue management', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('addResource adds to the secondary queue by default', () => {
     loader.addResource({ url: '/a.js', name: 'a' });
@@ -44,8 +48,12 @@ describe('ProgressiveLoader queue management', () => {
 
 describe('ProgressiveLoader.adjustStrategy', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('slow-2g reduces parallelLimit to 2 and disables preload', () => {
     loader.network.effectiveType = 'slow-2g';
@@ -78,8 +86,12 @@ describe('ProgressiveLoader.adjustStrategy', () => {
 
 describe('ProgressiveLoader.getStats', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('returns object with expected keys', () => {
     const s = loader.getStats();
@@ -128,7 +140,9 @@ describe('B-3: adaptive URL must not compound across retries', () => {
     let calls = 0;
     loader.performLoad = async (item) => {
       requested.push(item.url);
-      if (++calls === 1) { throw new Error('flaky'); }
+      if (++calls === 1) {
+        throw new Error('flaky');
+      }
       return { ok: true };
     };
     const result = await loader.loadResource({ name: 'p', url: '/photo.jpg', type: 'image', retries: 0 });
@@ -160,7 +174,9 @@ describe('ProgressiveLoader retry + adaptive-URL state machine', () => {
     loader = new ProgressiveLoader();
     loader.delay = jest.fn().mockResolvedValue(); // no real sleeps
   });
-  afterEach(() => { loader.dispose(); jest.restoreAllMocks(); });
+  afterEach(() => {
+    loader.dispose(); jest.restoreAllMocks();
+  });
 
   test('loadResource caches results — second call skips performLoad', async () => {
     loader.performLoad = jest.fn().mockResolvedValue('data');
@@ -225,8 +241,12 @@ describe('ProgressiveLoader retry + adaptive-URL state machine', () => {
 
 describe('completion semantics', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   // onLoadComplete only fired when itemsLoaded === itemsTotal — a single
   // failed resource left itemsLoaded < itemsTotal forever, so onComplete
@@ -271,7 +291,9 @@ describe('ProgressiveLoader.detectNetwork / onNetworkChange', () => {
       rtt: 800,
       saveData: false,
       _handlers: {},
-      addEventListener(type, fn) { this._handlers[type] = fn; },
+      addEventListener(type, fn) {
+        this._handlers[type] = fn;
+      },
       removeEventListener: jest.fn()
     };
     Object.defineProperty(navigator, 'connection', {
@@ -398,20 +420,28 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
   afterEach(() => {
     loader.dispose();
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
   function stubImageConstructor() {
     const imgs = [];
-    global.Image = jest.fn(function () { imgs.push(this); });
+    global.Image = jest.fn(function () {
+      imgs.push(this);
+    });
     return imgs;
   }
   function stubDocument() {
     const appended = [];
     const els = [];
     global.document = {
-      createElement: jest.fn((tag) => { const el = { tagName: tag, load: jest.fn() }; els.push(el); return el; }),
+      createElement: jest.fn((tag) => {
+        const el = { tagName: tag, load: jest.fn() }; els.push(el); return el;
+      }),
       head: { appendChild: jest.fn((el) => appended.push(el)) }
     };
     return { appended, els };
@@ -458,7 +488,9 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
 
   test('loadAudio resolves on oncanplaythrough and calls load()', async () => {
     const instances = [];
-    global.Audio = jest.fn(function () { this.load = jest.fn(); instances.push(this); });
+    global.Audio = jest.fn(function () {
+      this.load = jest.fn(); instances.push(this);
+    });
     const p = loader.loadAudio('/beep.ogg');
     const a = instances[0];
     expect(a.src).toBe('/beep.ogg');
@@ -503,8 +535,12 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
 
 describe('ProgressiveLoader — performLoad type dispatch + completion arms', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('performLoad dispatches script/style/audio/video to their loaders', async () => {
     loader.loadScript = jest.fn(async (u) => `s:${u}`);
@@ -563,8 +599,11 @@ describe('ProgressiveLoader — remaining branch arms', () => {
     expect(loader.network.downlink).toBe(10);
     expect(loader.network.rtt).toBe(50);
     expect(loader.network.saveData).toBe(false);
-    if (prev === undefined) { delete global.navigator.connection; }
-    else { global.navigator.connection = prev; }
+    if (prev === undefined) {
+      delete global.navigator.connection;
+    } else {
+      global.navigator.connection = prev;
+    }
   });
 
   test('onNetworkChange re-reads with the same fallbacks', () => {
@@ -575,8 +614,11 @@ describe('ProgressiveLoader — remaining branch arms', () => {
     loader.onNetworkChange();
     expect(loader.network.type).toBe('wifi');
     expect(loader.network.effectiveType).toBe('4g');
-    if (prev === undefined) { delete global.navigator.connection; }
-    else { global.navigator.connection = prev; }
+    if (prev === undefined) {
+      delete global.navigator.connection;
+    } else {
+      global.navigator.connection = prev;
+    }
   });
 
   test('getAdaptiveUrl unknown effectiveType → _high suffix', () => {
@@ -607,7 +649,9 @@ describe('ProgressiveLoader — last branch arms', () => {
     const pl = new ProgressiveLoader();
     pl.strategy.adaptiveQuality = false;
     const seen = [];
-    pl.performLoad = (item) => { seen.push(item.url); return Promise.resolve('ok'); };
+    pl.performLoad = (item) => {
+      seen.push(item.url); return Promise.resolve('ok');
+    };
     await pl.loadResource({ url: 'https://x/img.png', type: 'image' });
     expect(seen[0]).toBe('https://x/img.png');
   });
@@ -644,7 +688,9 @@ describe('ProgressiveLoader — complementary arms', () => {
     global.navigator = { connection: conn };
     try {
       pl.detectNetwork?.();
-      if (pl.network) expect(pl.network.type).toBe('wifi');
+      if (pl.network) {
+        expect(pl.network.type).toBe('wifi');
+      }
     } finally {
       global.navigator = saved;
     }
@@ -688,19 +734,29 @@ describe('ProgressiveLoader — last complementary arms', () => {
     global.navigator.connection = { type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false, addEventListener() {} };
     const pl = new ProgressiveLoader();
     expect(pl.network.type).toBe('wifi');
-    if (prev === undefined) { delete global.navigator.connection; } else { global.navigator.connection = prev; }
+    if (prev === undefined) {
+      delete global.navigator.connection;
+    } else {
+      global.navigator.connection = prev;
+    }
   });
 
   test('start() uses requestIdleCallback when it exists', async () => {
     const rIC = [];
     const saved = globalThis.requestIdleCallback;
-    globalThis.requestIdleCallback = (fn) => { rIC.push(fn); fn(); };
+    globalThis.requestIdleCallback = (fn) => {
+      rIC.push(fn); fn();
+    };
     const pl = new ProgressiveLoader();
     pl.performLoad = jest.fn().mockResolvedValue('ok');
     pl.addResource({ url: '/s', name: 's' }, 'secondary');
     await pl.start();
     expect(rIC.length).toBe(1);
-    if (saved === undefined) { delete globalThis.requestIdleCallback; } else { globalThis.requestIdleCallback = saved; }
+    if (saved === undefined) {
+      delete globalThis.requestIdleCallback;
+    } else {
+      globalThis.requestIdleCallback = saved;
+    }
   });
 
   test('an all-failed queue still fires onLoadComplete once everything settled', async () => {
@@ -722,7 +778,9 @@ describe('ProgressiveLoader — remaining tail arms', () => {
     const conn = {
       type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false,
       _handlers: {},
-      addEventListener(t, f) { this._handlers[t] = f; },
+      addEventListener(t, f) {
+        this._handlers[t] = f;
+      },
       removeEventListener() {}
     };
     Object.defineProperty(navigator, 'connection', { value: conn, configurable: true });
@@ -733,8 +791,11 @@ describe('ProgressiveLoader — remaining tail arms', () => {
       expect(loader.network.type).toBe('unknown');
       loader.dispose();
     } finally {
-      if (had) Object.defineProperty(navigator, 'connection', { value: orig, configurable: true });
-      else delete navigator.connection;
+      if (had) {
+        Object.defineProperty(navigator, 'connection', { value: orig, configurable: true });
+      } else {
+        delete navigator.connection;
+      }
     }
   });
 
@@ -748,3 +809,17 @@ describe('ProgressiveLoader — remaining tail arms', () => {
     expect(onComplete).not.toHaveBeenCalled(); // settled 1/2 — the false arm
   });
 });
+
+
+describe('ProgressiveLoader — getAbortSignal watchdog', () => {
+  test('aborts the signal after strategy.timeout', () => {
+    jest.useFakeTimers();
+    const loader = new ProgressiveLoader();
+    const signal = loader.getAbortSignal();
+    expect(signal.aborted).toBe(false);
+    jest.advanceTimersByTime(loader.strategy.timeout);
+    expect(signal.aborted).toBe(true);
+    jest.useRealTimers();
+  });
+});
+

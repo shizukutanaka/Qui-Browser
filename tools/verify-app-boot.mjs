@@ -45,7 +45,10 @@ const CHROME_CANDIDATES = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome'
+  '/usr/bin/google-chrome',
+  // macOS: Playwright's browser cache (verify tools run on dev machines too)
+  `${process.env.HOME}/Library/Caches/ms-playwright/chromium-1194/chrome-mac/Chromium.app/Contents/MacOS/Chromium`,
+  `${process.env.HOME}/Library/Caches/ms-playwright/chromium_headless_shell-1194/chrome-mac/headless_shell`
 ].filter(Boolean);
 
 const MIME = {
@@ -127,8 +130,12 @@ async function main() {
     const p = spawn(chrome, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
-    p.stdout.on('data', (d) => { out += d; });
-    p.stderr.on('data', (d) => { err += d; });
+    p.stdout.on('data', (d) => {
+      out += d;
+    });
+    p.stderr.on('data', (d) => {
+      err += d;
+    });
     p.on('error', rej);
     p.on('close', () => res({ out, err }));
   });

@@ -5,9 +5,13 @@
  */
 
 // ── THREE stub ────────────────────────────────────────────────────────────────
-class MockGeometry { constructor() {} dispose() {} scale() {} }
+class MockGeometry {
+  dispose() {} scale() {}
+}
 class MockMaterial {
-  constructor() { this.color = { set: jest.fn() }; this.map = null; }
+  constructor() {
+    this.color = { set: jest.fn() }; this.map = null;
+  }
   dispose() {}
 }
 class MockMesh {
@@ -19,15 +23,29 @@ class MockMesh {
     this.renderOrder = 0;
     this._nextLocal = { x: 0, y: 0, z: 0 };
   }
-  worldToLocal(v) { return this._nextLocal || v; }
+  worldToLocal(v) {
+    return this._nextLocal || v;
+  }
 }
 class MockGroup {
-  constructor() { this.position = { set: jest.fn() }; this._objects = []; }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  constructor() {
+    this.position = { set: jest.fn() }; this._objects = [];
+  }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter(x => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn); fn(this);
+  }
 }
-class MockTexture { constructor() { this.needsUpdate = false; } dispose() {} }
+class MockTexture {
+  constructor() {
+    this.needsUpdate = false;
+  } dispose() {}
+}
 
 jest.mock('three', () => ({
   Group: MockGroup,
@@ -53,6 +71,16 @@ jest.mock('../src/vr/browser/urlResolver.js', () => ({
 jest.mock('../src/vr/browser/bookmarkLayout.js', () => ({
   truncate: (s) => s
 }));
+
+// _loadUrl always fires the reader fetch — stub it file-wide so no real socket
+// opens (a settled response lets the 5s abort watchdog's clearTimeout run).
+const _realFetch = global.fetch;
+beforeEach(() => {
+  global.fetch = jest.fn(async () => ({ ok: false, status: 503, text: async () => '' }));
+});
+afterEach(() => {
+  global.fetch = _realFetch;
+});
 
 // ── document/canvas stub ─────────────────────────────────────────────────────
 global.document = {
@@ -96,7 +124,9 @@ function makePanel(extraOpts = {}) {
   // Expose the registered handlers for direct testing.
   panel._handlers = registerInteractable.mock.calls[0]?.[1];
   // Give the chromeMesh a controllable worldToLocal return value.
-  panel._setLocal = (x) => { panel.chromeMesh._nextLocal = { x, y: 0, z: 0 }; };
+  panel._setLocal = (x) => {
+    panel.chromeMesh._nextLocal = { x, y: 0, z: 0 };
+  };
   panel._setLocal(0);
   return panel;
 }
@@ -136,14 +166,18 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
     test('accepts direct Vector3 (legacy / test path)', () => {
       const p = makePanel();
       p._setLocal(-0.7); // left zone → back button
-      const fakePoint = { x: -0.7, y: 0, clone() { return this; } };
+      const fakePoint = { x: -0.7, y: 0, clone() {
+        return this;
+      } };
       expect(() => p._handlers.onSelect(fakePoint)).not.toThrow();
     });
 
     test('accepts the controller/gaze event format { intersection: { point } }', () => {
       const p = makePanel();
       p._setLocal(-0.7);
-      const fakePoint = { x: -0.7, y: 0, clone() { return this; } };
+      const fakePoint = { x: -0.7, y: 0, clone() {
+        return this;
+      } };
       expect(() =>
         p._handlers.onSelect({ intersection: { point: fakePoint }, controller: {} })
       ).not.toThrow();
@@ -273,7 +307,9 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
     };
     const click = (panel, px) => {
       chromePx(panel, px);
-      panel._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+      panel._onChromeSelect({ x: 0, y: 0, clone() {
+        return this;
+      } });
     };
 
     test('left zones dispatch back / forward / reload', () => {
@@ -361,7 +397,9 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
     };
     const tap = (panel, px, py) => {
       contentPx(panel, px, py);
-      panel._onContentSelect({ x: 0, y: 0, clone() { return this; } });
+      panel._onContentSelect({ x: 0, y: 0, clone() {
+        return this;
+      } });
     };
 
     test('tapping a top-site tile on the empty state navigates to it', () => {
@@ -654,7 +692,9 @@ describe('WebPanel — remaining branch arms', () => {
     const p = makePanel({ onToggleBookmark, isBookmarked: () => true });
     const click = (px) => {
       p.chromeMesh._nextLocal = { x: (px / 1024 - 0.5) * PANEL_W, y: 0, z: 0 };
-      p._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+      p._onChromeSelect({ x: 0, y: 0, clone() {
+        return this;
+      } });
     };
     // no currentUrl → `if (this.currentUrl)` false arm (px 900 = star zone at w=1024)
     p.currentUrl = null;
@@ -673,11 +713,15 @@ describe('WebPanel — remaining branch arms', () => {
       const { PANEL_W } = require('../src/vr/browser/panelGeometry.js');
       const cbHolder = {};
       const p = makePanel({
-        onUrlInputRequested: (prefill, cb) => { cbHolder.cb = cb; }
+        onUrlInputRequested: (prefill, cb) => {
+          cbHolder.cb = cb;
+        }
       });
       // land on the URL-bar zone (not back/fwd/reload/star/close)
       p.chromeMesh._nextLocal = { x: (500 / 1024 - 0.5) * PANEL_W, y: 0, z: 0 };
-      p._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+      p._onChromeSelect({ x: 0, y: 0, clone() {
+        return this;
+      } });
       expect(cbHolder.cb).toBeInstanceOf(Function);
       navigateSpy.mockClear();
       cbHolder.cb(null); // user cancelled — `if (url)` false arm
@@ -736,7 +780,9 @@ describe('WebPanel — remaining branch arms', () => {
   test('setVisible/dispose tolerate a missing iframe', () => {
     const p = makePanel();
     p.iframe = null;
-    expect(() => { p.setVisible(false); p.setVisible(true); }).not.toThrow();
+    expect(() => {
+      p.setVisible(false); p.setVisible(true);
+    }).not.toThrow();
   });
 
   test('iframe onload falls back to the URL when the frame title is empty', () => {
@@ -795,14 +841,18 @@ describe('WebPanel — complementary arms', () => {
     const wp = makePanel();
     wp.chromeMesh = { visible: true };
     wp.enableLayerMode?.({}, {}, 'layer-1');
-    if (wp.chromeMesh) expect(wp.chromeMesh.visible).toBe(false);
+    if (wp.chromeMesh) {
+      expect(wp.chromeMesh.visible).toBe(false);
+    }
   });
 
   test('disableLayerMode shows the chrome mesh when present', () => {
     const wp = makePanel();
     wp.chromeMesh = { visible: false };
     wp.disableLayerMode?.();
-    if (wp.chromeMesh) expect(wp.chromeMesh.visible).toBe(true);
+    if (wp.chromeMesh) {
+      expect(wp.chromeMesh.visible).toBe(true);
+    }
   });
 
   test('dispose detaches iframe handlers before removal', () => {
@@ -824,13 +874,17 @@ describe('WebPanel — prompt/reload/layer/dispose slivers', () => {
     p._setLocal(0); // middle of chrome = URL bar
     const nav = jest.spyOn(p, 'navigate').mockImplementation(() => {});
     global.window = { prompt: jest.fn(() => 'https://typed.example') };
-    p._onChromeSelect({ clone() { return { x: 0, y: 0, z: 0 }; } });
+    p._onChromeSelect({ clone() {
+      return { x: 0, y: 0, z: 0 };
+    } });
     expect(window.prompt).toHaveBeenCalled();
     expect(nav).toHaveBeenCalledWith('https://typed.example');
 
     window.prompt.mockReturnValue(null);
     nav.mockClear();
-    p._onChromeSelect({ clone() { return { x: 0, y: 0, z: 0 }; } });
+    p._onChromeSelect({ clone() {
+      return { x: 0, y: 0, z: 0 };
+    } });
     expect(nav).not.toHaveBeenCalled();
   });
 
@@ -877,3 +931,39 @@ describe('WebPanel — dispose before any navigation (no iframe)', () => {
     expect(() => p.dispose()).not.toThrow();
   });
 });
+
+
+describe('WebPanel — ctor default arrows + reader abort', () => {
+  test('omitted onNavigate/onLoadError install no-op fallbacks', () => {
+    const p = new WebPanel({
+      scene: { add() {}, remove() {} },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn()
+    });
+    expect(() => {
+      p.onNavigate('https://x'); p.onLoadError('https://x');
+    }).not.toThrow();
+  });
+
+  test('reader fetch aborts after the 5s watchdog', async () => {
+    jest.useFakeTimers();
+    const p = makePanel();
+    let sig;
+    global.fetch = jest.fn((u, opts) => {
+      sig = opts.signal;
+      return new Promise((_, rej) => {
+        opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+      });
+    });
+    try {
+      const pr = p._loadReaderText('https://example.com');
+      jest.advanceTimersByTime(5000);
+      await pr;
+      expect(sig.aborted).toBe(true);
+    } finally {
+      delete global.fetch;
+      jest.useRealTimers();
+    }
+  });
+});
+

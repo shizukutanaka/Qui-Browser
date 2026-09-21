@@ -49,7 +49,9 @@ describe('FFRSystem — initialize/enable/disable', () => {
 
   test('enable/disable no-op before initialization', () => {
     const ffr = new FFRSystem();
-    expect(() => { ffr.enable(); ffr.disable(); }).not.toThrow();
+    expect(() => {
+      ffr.enable(); ffr.disable();
+    }).not.toThrow();
   });
 
   test('disable writes 0 to the layer', async () => {
@@ -64,9 +66,13 @@ describe('FFRSystem — dynamic foveation tiers', () => {
   test('GPU load tiers steer intensity toward their targets', async () => {
     const { ffr } = await boot();
     ffr.enable(0);
-    for (let i = 0; i < 60; i++) ffr.setDynamicFFR(0.95); // > high
+    for (let i = 0; i < 60; i++) {
+      ffr.setDynamicFFR(0.95);
+    } // > high
     expect(ffr.intensity).toBeCloseTo(0.8, 1);
-    for (let i = 0; i < 60; i++) ffr.setDynamicFFR(0.3);  // below low
+    for (let i = 0; i < 60; i++) {
+      ffr.setDynamicFFR(0.3);
+    }  // below low
     expect(ffr.intensity).toBeCloseTo(0.1, 1);
   });
 
@@ -108,7 +114,9 @@ describe('FFRSystem — head-velocity predicted gaze foveation (FR-4.2)', () => 
     ffr.enable(0.5);
     ffr.trackHeadPose(IDENT, 0.016);
     ffr.trackHeadPose(IDENT, 0.016); // zero delta → velocity → 0
-    for (let i = 0; i < 100; i++) { ffr.trackHeadPose(IDENT, 0.016); ffr.updatePredictedGazeFoveation(); }
+    for (let i = 0; i < 100; i++) {
+      ffr.trackHeadPose(IDENT, 0.016); ffr.updatePredictedGazeFoveation();
+    }
     expect(layer.fixedFoveation).toBeCloseTo(0.8, 1); // fixation → aggressive
 
     ffr.trackHeadPose(IDENT, 0.016);
@@ -140,7 +148,9 @@ describe('FFRSystem — remaining init/guard arms', () => {
   });
 
   test('initialize returns false when XRWebGLBinding ctor throws', async () => {
-    global.XRWebGLBinding = jest.fn(() => { throw new Error('no binding'); });
+    global.XRWebGLBinding = jest.fn(() => {
+      throw new Error('no binding');
+    });
     const ffr = new FFRSystem();
     expect(await ffr.initialize({ s: 1 }, { gl: 1 })).toBe(false);
     delete global.XRWebGLBinding;
@@ -175,8 +185,12 @@ test('setDynamicFFR hits medium and low tiers', () => {
   ffr.enabled = true;
   ffr.projectionLayer = { fixedFoveation: 0 };
   const th = ffr.gpuLoadThresholds;
-  for (let i = 0; i < 60; i++) ffr.setDynamicFFR((th.medium + th.high) / 2);
+  for (let i = 0; i < 60; i++) {
+    ffr.setDynamicFFR((th.medium + th.high) / 2);
+  }
   expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.5, 2);
-  for (let i = 0; i < 60; i++) ffr.setDynamicFFR((th.low + th.medium) / 2);
+  for (let i = 0; i < 60; i++) {
+    ffr.setDynamicFFR((th.low + th.medium) / 2);
+  }
   expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.2, 2);
 });

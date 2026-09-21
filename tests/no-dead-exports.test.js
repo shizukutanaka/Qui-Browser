@@ -19,8 +19,11 @@ const EXCLUDED_FILES = new Set([path.join(SRC, 'monitoring.js')]);
 function* walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) yield* walk(p);
-    else if (e.name.endsWith('.js')) yield p;
+    if (e.isDirectory()) {
+      yield* walk(p);
+    } else if (e.name.endsWith('.js')) {
+      yield p;
+    }
   }
 }
 
@@ -33,12 +36,14 @@ const otherSources = [
   ...srcFiles,
   ...fs.readdirSync(path.join(ROOT, 'tests')).filter((f) => f.endsWith('.js')).map((f) => path.join(ROOT, 'tests', f)),
   ...toolsFiles, // verify-text-layout.mjs imports src modules inside a page template string
-  path.join(ROOT, 'index.html'),
+  path.join(ROOT, 'index.html')
 ].map((p) => [p, fs.readFileSync(p, 'utf8')]);
 
 const cases = [];
 for (const file of srcFiles) {
-  if (EXCLUDED_FILES.has(file)) continue;
+  if (EXCLUDED_FILES.has(file)) {
+    continue;
+  }
   const src = fs.readFileSync(file, 'utf8');
   const names = new Set();
   for (const m of src.matchAll(/export\s+(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/g)) {
@@ -47,7 +52,9 @@ for (const file of srcFiles) {
   for (const m of src.matchAll(/export\s*\{([^}]*)\}/g)) {
     for (const part of m[1].split(',')) {
       const n = part.trim().split(/\s+as\s+/).pop().trim();
-      if (n && /^[A-Za-z_$][\w$]*$/.test(n)) names.add(n);
+      if (n && /^[A-Za-z_$][\w$]*$/.test(n)) {
+        names.add(n);
+      }
     }
   }
   for (const name of names) {

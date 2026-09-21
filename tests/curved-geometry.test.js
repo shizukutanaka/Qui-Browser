@@ -97,12 +97,24 @@ describe('buildCurvedPlaneGeometry', () => {
   // Minimal THREE stub capturing attribute wiring.
   const THREE = {
     BufferGeometry: class {
-      constructor() { this._attrs = {}; this._index = null; }
-      setAttribute(name, attr) { this._attrs[name] = attr; }
-      setIndex(attr) { this._index = attr; }
-      computeVertexNormals() { this._normals = true; }
+      constructor() {
+        this._attrs = {}; this._index = null;
+      }
+      setAttribute(name, attr) {
+        this._attrs[name] = attr;
+      }
+      setIndex(attr) {
+        this._index = attr;
+      }
+      computeVertexNormals() {
+        this._normals = true;
+      }
     },
-    BufferAttribute: class { constructor(array, itemSize) { this.array = array; this.itemSize = itemSize; } }
+    BufferAttribute: class {
+      constructor(array, itemSize) {
+        this.array = array; this.itemSize = itemSize;
+      }
+    }
   };
 
   test('wires position, uv attributes and an index buffer', () => {

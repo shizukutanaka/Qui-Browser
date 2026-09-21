@@ -8,6 +8,16 @@
 
 const { PerformanceMonitor } = require('../src/utils/PerformanceMonitor.js');
 
+
+// performance.now is read-only (not configurable via spyOn's assignment path)
+// on Node ≤20 — shadow it with an own-property stub that works everywhere.
+function stubPerformanceNow(fn) {
+  Object.defineProperty(performance, 'now', {
+    value: fn, configurable: true, writable: true
+  });
+  return { restore: () => delete performance.now };
+}
+
 describe('PerformanceMonitor metric bookkeeping', () => {
   beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -38,11 +48,12 @@ describe('PerformanceMonitor metric bookkeeping', () => {
   test('endFrame records best/worst and renderer info', () => {
     const mon = new PerformanceMonitor();
     const renderer = { info: { render: { calls: 7, triangles: 9000 }, memory: { textures: 4 }, programs: [1, 2] } };
-    jest.spyOn(performance, 'now').mockReturnValueOnce(0); // beginFrame
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(100); // every endFrame read → frameTime 100ms
+    t = 100; // every endFrame read → frameTime 100ms
     mon.endFrame(renderer);
-    performance.now.mockRestore();
+    spy.restore();
     expect(mon.stats.totalFrames).toBe(1);
     expect(mon.stats.worstFrame.time).toBe(100);
     expect(mon.metrics.drawCalls.current).toBe(7);
@@ -55,11 +66,12 @@ describe('PerformanceMonitor metric bookkeeping', () => {
     const mon = new PerformanceMonitor();
     // First frame: fps.current is still 0 — "FPS dropped to 0.0" is a
     // false critical: no measurement exists yet.
-    jest.spyOn(performance, 'now').mockReturnValueOnce(0); // beginFrame
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(50);
+    t = 50;
     mon.endFrame(null);
-    performance.now.mockRestore();
+    spy.restore();
     const fpsAlerts = mon.alerts.filter(a => /FPS/i.test(a.message));
     expect(fpsAlerts).toEqual([]);
   });
@@ -86,7 +98,9 @@ describe('PerformanceMonitor metric bookkeeping', () => {
   test('alerts are capped at maxAlerts', () => {
     const mon = new PerformanceMonitor();
     mon.maxAlerts = 5;
-    for (let i = 0; i < 12; i++) mon.addAlert('warning', `w${i}-${Math.random()}`);
+    for (let i = 0; i < 12; i++) {
+      mon.addAlert('warning', `w${i}-${Math.random()}`);
+    }
     expect(mon.alerts.length).toBeLessThanOrEqual(5);
   });
 
@@ -130,8 +144,12 @@ describe('PerformanceMonitor overlay DOM + graph layer', () => {
       parentNode: null,
       innerHTML: '',
       _ctx: null,
-      appendChild(c) { c.parentNode = el; el.children.push(c); },
-      removeChild(c) { el.children = el.children.filter(x => x !== c); c.parentNode = null; },
+      appendChild(c) {
+        c.parentNode = el; el.children.push(c);
+      },
+      removeChild(c) {
+        el.children = el.children.filter(x => x !== c); c.parentNode = null;
+      },
       addEventListener() {},
       getContext() {
         if (!el._ctx) {
@@ -149,8 +167,12 @@ describe('PerformanceMonitor overlay DOM + graph layer', () => {
       }
     };
     Object.defineProperty(el, 'id', {
-      get() { return this._id; },
-      set(v) { this._id = v; byId[v] = el; }
+      get() {
+        return this._id;
+      },
+      set(v) {
+        this._id = v; byId[v] = el;
+      }
     });
     return el;
   }
@@ -251,11 +273,12 @@ describe('PerformanceMonitor — remaining guard arms', () => {
   test('endFrame samples renderer.info when provided', () => {
     const mon = new PerformanceMonitor();
     const renderer = { info: { render: { calls: 3, triangles: 42 }, memory: { textures: 9 }, programs: [1] } };
-    jest.spyOn(performance, 'now').mockReturnValue(0);
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(5);
+    t = 5;
     mon.endFrame(renderer);
-    performance.now.mockRestore();
+    spy.restore();
     expect(mon.metrics.drawCalls.current).toBe(3);
     expect(mon.metrics.triangles.current).toBe(42);
     expect(mon.metrics.textures.current).toBe(9);
@@ -290,13 +313,23 @@ describe('PerformanceMonitor — remaining branch arms', () => {
       const el = {
         tagName: t, style: {}, innerHTML: '', children: [],
         setAttribute() {}, addEventListener() {},
-        appendChild(c) { el.children.push(c); return c; },
-        removeChild(c) { el.children = el.children.filter(x => x !== c); },
-        getContext() { return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} }; }
+        appendChild(c) {
+          el.children.push(c); return c;
+        },
+        removeChild(c) {
+          el.children = el.children.filter(x => x !== c);
+        },
+        getContext() {
+          return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} };
+        }
       };
       Object.defineProperty(el, 'id', {
-        get() { return this._id; },
-        set(v) { this._id = v; byId[v] = el; }
+        get() {
+          return this._id;
+        },
+        set(v) {
+          this._id = v; byId[v] = el;
+        }
       });
       return el;
     };
@@ -308,23 +341,35 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     return byId;
   }
 
-  beforeEach(() => { installDom2(); });
-  afterEach(() => { delete global.document; jest.restoreAllMocks(); });
+  beforeEach(() => {
+    installDom2();
+  });
+  afterEach(() => {
+    delete global.document; jest.restoreAllMocks();
+  });
 
   test('endFrame(renderer): frameCount gate + best/worst + renderer.info absent arms', () => {
     const mon = new PerformanceMonitor();
     mon.stats.bestFrame.time = 999;
     mon.stats.worstFrame.time = -1;
-    // renderer without info → the `renderer && renderer.info` false arm
-    mon.beginFrame();
-    mon.endFrame({});
-    expect(mon.frameCount).toBe(1);
-    expect(mon.stats.bestFrame.time).not.toBe(999);
-    expect(mon.stats.worstFrame.time).not.toBe(-1);
-    mon.beginFrame(); mon.endFrame();
-    const best = mon.stats.bestFrame.time;
-    mon.beginFrame(); mon.endFrame();
-    expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+    // Deterministic frame durations — real performance.now() can return the
+    // same value for consecutive calls (ms granularity) making min==max.
+    let t = 0;
+    const spy = stubPerformanceNow(() => (t += 10));
+    try {
+      // renderer without info → the `renderer && renderer.info` false arm
+      mon.beginFrame();
+      mon.endFrame({});
+      expect(mon.frameCount).toBe(1);
+      expect(mon.stats.bestFrame.time).not.toBe(999);
+      expect(mon.stats.worstFrame.time).not.toBe(-1);
+      mon.beginFrame(); mon.endFrame();
+      const best = mon.stats.bestFrame.time;
+      mon.beginFrame(); mon.endFrame();
+      expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+    } finally {
+      spy.restore();
+    }
   });
 
   test('updateMemoryMetrics tolerates absent performance.memory', () => {
@@ -334,7 +379,9 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     delete global.performance.memory;
     mon.updateMemoryMetrics();
     expect(mon.metrics.memory.current).toBe(prev);
-    if (orig !== undefined) global.performance.memory = orig;
+    if (orig !== undefined) {
+      global.performance.memory = orig;
+    }
   });
 
   test('checkThresholds fires warning band and memory thresholds', () => {
@@ -382,7 +429,9 @@ describe('PerformanceMonitor — remaining branch arms', () => {
 
   test('show/hide with container null do not throw', () => {
     const mon = new PerformanceMonitor();
-    expect(() => { mon.show(); mon.hide(); }).not.toThrow();
+    expect(() => {
+      mon.show(); mon.hide();
+    }).not.toThrow();
   });
 
   test('getReport totalFrames 0 → averageFrameTime 0', () => {
@@ -456,7 +505,9 @@ describe('PerformanceMonitor — complementary arms', () => {
     pm.frameTime = 5;
     pm.endFrame?.();
     // best updated only if frameTime < 100 — drive through checkThresholds path
-    if (pm.stats.bestFrame.time <= 100) expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+    if (pm.stats.bestFrame.time <= 100) {
+      expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+    }
   });
 });
 
@@ -464,25 +515,25 @@ describe('PerformanceMonitor — fps/best/threshold slivers', () => {
   test('endFrame records new best and worst frames', () => {
     const mon = new PerformanceMonitor();
     let t = 1000;
-    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    const spy = stubPerformanceNow(() => t);
     mon.frameStartTime = 0;
     t = 5;    mon.endFrame(); // new best
     t = 500;  mon.endFrame(); // new worst
     expect(mon.stats.bestFrame.time).toBe(5);
     expect(mon.stats.worstFrame.time).toBe(500);
-    performance.now.mockRestore();
+    spy.restore();
   });
 
   test('fps metric only refreshes after the update interval', () => {
     const mon = new PerformanceMonitor();
-    let t = performance.now();
-    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    const t = performance.now();
+    const spy = stubPerformanceNow(() => t);
     mon.lastFpsUpdate = t;
     mon.frameCount = 0;
     mon.frameStartTime = t;
     mon.endFrame();
     expect(mon.frameCount).toBe(1); // interval not elapsed → kept counting
-    performance.now.mockRestore();
+    spy.restore();
   });
 
   test('fps between warning and critical raises a warning alert', () => {
@@ -551,5 +602,71 @@ describe('PerformanceMonitor — fps update interval arm', () => {
     pm.frameStartTime = performance.now();
     pm.endFrame(r);
     expect(pm.metrics.fps.current).toBeGreaterThan(0);
+  });
+});
+
+
+describe('PerformanceMonitor perf-close + memory interval bodies', () => {
+  // Local element stub (the suite's makeEl is scoped inside another describe).
+  function stubEl() {
+    const el = {
+      style: {}, children: [], innerHTML: '', parentNode: null, _h: {},
+      appendChild(c) {
+        el.children.push(c); return c;
+      },
+      removeChild(c) {
+        el.children = el.children.filter((x) => x !== c);
+      },
+      addEventListener(t, f) {
+        el._h[t] = f;
+      },
+      getContext() {
+        return { calls: [] };
+      }
+    };
+    return el;
+  }
+
+  test('perf-close click handler hides the overlay', () => {
+    const saved = global.document;
+    const byId = {};
+    const close = stubEl(); byId['perf-close'] = close;
+    const body = stubEl();
+    global.document = {
+      body,
+      createElement: () => stubEl(),
+      getElementById: (id) => byId[id] || null
+    };
+    try {
+      const mon = new PerformanceMonitor();
+      mon.createUI();
+      close._h.click();
+      expect(mon.visible).toBe(false);
+      mon.dispose();
+    } finally {
+      if (saved === undefined) {
+        delete global.document;
+      } else {
+        global.document = saved;
+      }
+    }
+  });
+
+  test('startMonitoring memory interval fires updateMemoryMetrics each second', () => {
+    jest.useFakeTimers();
+    const saved = performance.memory;
+    performance.memory = { usedJSHeapSize: 1024 * 1024 };
+    const mon = new PerformanceMonitor();
+    const spy = jest.spyOn(mon, 'updateMemoryMetrics');
+    mon.startMonitoring();
+    jest.advanceTimersByTime(1000);
+    expect(spy).toHaveBeenCalled();
+    mon.dispose();
+    if (saved === undefined) {
+      delete performance.memory;
+    } else {
+      performance.memory = saved;
+    }
+    jest.useRealTimers();
   });
 });

@@ -245,6 +245,64 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き143 — 実バグ22件目：リーダープロキシが丸ごと死んでいた（Node≥20 の lookup 契約違反）
+`npm run proxy` を実起動して `/fetch?url=https://example.com` を実測したら **`400 upstream-error`**（直接 egress は 200）— 原因は SSRF 対策（DNS rebinding pin）で渡す `lookup: cb(null, addr, family)` が**スカラー形式**だったこと。Node≥20 の http は lookup を `{all: true}` で呼び**配列 `[{address, family}]` を要求**するため `ERR_INVALID_IP_ADDRESS` で全リクエストが死ぬ — #138 の強化修正が本番経路を丸ごと壊していた（テストは transport を stub していて実ソケットで一度も検証されていなかった）。resolveSafely が既に全アドレスを検査済みなので、pin を「検証済み全アドレスの配列」返却に変更（v4/v6 間の happy-eyeballs も復活）。**実エンドポイントで 200 + 実HTML を確認**、配列形式を pin するテスト追加。3028 tests / 70 suites 全緑、lint 0 errors。
+
+### Session 75: 続き142 — Dockerfile が参照する docker/ を .dockerignore が除外していた（docker build 必敗）
+静的照合で発見：`.dockerignore` の `docker` 行が `docker/nginx.conf` と `docker/healthcheck.sh` をビルドコンテキストから除外していたが、Dockerfile nginx stage がまさにその2ファイルを COPY する — **docker 経路は一度も実 build に通っていなかった**（#132 で dist 配信を直しても build 自体が文脈エラーで失敗する状態のままだった）。除外行を削除＋ `tests/docker-context.test.js` を新設して「非 --from COPY の全ソースが実在し非除外」を pin。3027 tests / 70 suites 全緑、lint 0 errors。
+
+### Session 75: 続き141 — `npm run dev` の解決エラーと lint スコープの第3層
+`vite` 開発サーバー起動で「@sentry/browser が解決不能」— monitoring.js の `@vite-ignore` 動的 import（N-2 の PROD ゲート面、未インストール意図的）が optimizeDeps スキャナに裸指定子として見えていた。`optimizeDeps.exclude` で静黙化（実行経路は不変、dev ブート実測クリーン）。さらに lint を `.` に再拡大 — 「src proxy tests tools」に広げたはずが**ルート設定（vite.config.js・jest.config.js・eslint.config.js）と public/ は依然スキャン外**で、拡大で public/service-worker.js の33エラー・vite.config.js の5エラー・docs/archive の死骸数千エラーが露出。出荷コードは autofix し、archive/vendored（basis_transcoder）は ignores に追加（doc-references の「履歴」除外と同クラス）。`eslint .`: **0 errors** / 379 warnings、3026 tests 全緑、build 緑、dev ブート実測クリーン。
+
+### Session 75: 続き140 — 発見したゲートの抜け道は自分のワークフロー自体だった：チェーン PR が一度も CI を受けていなかった
+PR #165 に CI が一切付かないことから気づいた：ci.yml・test.yml の `pull_request` は `branches: [main, develop]` に限定されており、**devin チェーン宛の PR は全て無ゲートでマージされてきた**（押し目の「CI green」は main 宛の時のみ存在した）。docs/patches/0009-ci-gate-all-prs.patch として同梱。さらに **patch 0009 の初版は系列内で適用不能**（0002 の挿入コメントと hunk context が衝突）— 直前に修正した系列破損クラスを自作パッチで再発させた。恒久対策として `tests/ci-patches.test.js` が系列の逐次適用を pin しているので同クラスは再発しない（この新パッチもそのテストが即座に捕捉した）。3026 tests / 69 suites 全緑、lint 0 errors。PR #165 を発行（チェーンの最終 merge 点からの 22-commit 差分、#163 包含）。
+
+### Session 75: 続き139 — パッチ列自体が壊れていた：逐次 `git am` は3本目で必ず失敗（検証済み）
+K-1 の9本パッチは各々「pristine ワークフローへの単独適用」だけを検証していて、**系列としての適用を一度も試していなかった**。実走したところ旧0003 が deploy.yml/test.yml で旧0001 と hunk 衝突して適用不能、旧0004 は旧0001 が既に削除したファイルを再削除して必敗 — オーナーが `git am` を回すと**3本目で途中停止する壊れた手順を出荷していた**。さらに精査すると旧0001 の効果は旧0003（同一領域の削除＋本物の置換）と旧0004（同一ファイル削除）に完全に包含されることが判明し、旧0001 を削除・残り8本を採番し直した。`tests/ci-patches.test.js` を新設して系列の逐次適用と最終状態（死んだワークフロー消滅・BASE_PATH・benchmark:all なし等）を恒久 pin。3026 tests / 69 suites 全緑、lint 0 errors。
+
+### Session 75: 続き138 — docs 内部リンクの盲域を塞いだ：テストは `npm run`/パス言及だけ見ていて `[text](file.md)` リンクは不検査だった
+続き137 で CODEOWNERS・npm scripts・hooks の残宣言面は全照合でグリーンと確定したので、doc-references 系のテストが**何を見ていないか**をソクラテス式に疑った — PATH_RE は `src/` 始まりのコード風パスだけ拾い、マークダウンリンク構文は素通りしていた。実測スイープ: 生存 .md の `[..](relative)` リンク全件を存在チェックしたところ **0 件の死リンク**（#82 の 19 件修正が効いて健全）。だが不検査のままでは再発が黙って通るため `LINK_RE` 検査を doc-references.test.js に追加して恒久的に pin。3024 tests / 68 suites 全緑、lint 0 errors。
+
+### 続き135/136: CI 残赤の完全解剖 — 全て patch 化済み、main 着地は owner 判断に
+PR #164 の CI を1ジョブずつログ解剖した。実ゲート `Unit Tests` は **3023/68 全緑**（Node 18 で実行 — `spyOn(performance,'now')` 修正 + generator `.filter` 修正が効いた）。残る赤は全て既知の死んだジョブ＋新たに2件を発見して patch 化:
+- **jacoco-badge-generator**（Java ツール）が jest の絶対に生成しない `target/site/jacoco/jacoco.csv` を `on-missing-report: fail` で要求 → テスト全緑でも test-unit は常に赤。**patch 0006** に削除を同梱（カバレッジは直上の Codecov ステップが受け皿）。
+- **Build Verification matrix の Node 16 leg** — vite@5 は Node ≥18 要求で `vite build` が node@16 で exit 1（18/20 は green を実測）→ **patch 0005** に `[18, 20]` 縮退を同梱。
+- 派生 doc drift も修正: SETUP.md の「Node.js 14+」、README の `cd qui-browser-vr`（clone 先と不一致）、package.json description の実在しない機能謳い（multiplayer/AI recommendations/WebGPU/完全な CI/CD）。
+
+⚠️ **着地状況**: PR #164（233コミットの main 宛ロールアップ）と #163 は**コメントなしで closed・unmerged**。main は依然 PR #56 のまま — 238 commits がブランチ上に存在。`docs/patches/0001–0006` + M-1 prettier が適用されれば全ジョブが緑になる設計は完備。
+
+- 📦 **gate**: 3023 tests 全緑（Node 18/20/24 実測）、lint 0 errors、build green（SW スタンプ動作確認 `qui-browser-2.0.0-mub0hgd5`）。
+
+### 続き134/135: チェーンが main に未着地 + CI は Node 20 で2つのバージョン乖離を踏んだ
+**(a) 構造的発見**: この arc の積層チェーンは底の PR #61（唯一 main 宛）が未マージ close で、以後全 PR が前の devin ブランチにマージ — **main は PR #56 時点のまま、233 commits が宙に浮いていた**。tip → main のロールアップ PR #164 を発行。
+
+**(b) Node 20 乖離**（CI は Node 20、本機は 24）: `jest.spyOn(performance, 'now')` が Node 20 の `Performance.now`（read-only）で投げ、generator の `.filter`（Iterator helpers、Node 22+）が未存在 → 7テスト/3スイート赤。`defineProperty` で own-property スタブに置換（全バージョン安全）、generator は `[...walk()].filter` に修正。**`npx node@20` で全スイート実走グリーン確認** —— ローカル Node と CI Node の乖離は今後 `npx -y node@20` で検証可能。
+
+- 🔍 **同クラス横展開**: Build Verification のマトリクス `[16, 18, 20]` は **Node 16 leg が永赤**（vite@5 が Node ^18||>=20 要求、`vite build` を node@16/18/20 で実測: 16=exit1/18・20=green）→ `docs/patches/0005-ci-drop-node16-build-leg.patch` に修正を同梱（K-1 パッチ列に追加、クリーン適用検証済み）。tests/tools に Node 21+ API（groupBy/Set.union/Iterator helpers 他）の残置はゼロ。
+- 📦 **gate**: 3023 tests / 68 suites 全緑（Node 20 + 24 両方）、lint 0 errors。CI の残る赤は全て K-1 パッチ対象の死んだジョブ + M-1 の format:check（既知 owner 判断）。
+
+### 続き133: KTX2 トランスコーダが CDN の three@0.160.0 に固定 — 同梱は 0.181.2 で 21 リリースの skew
+`TextureManager.initializeKTX2` が `cdn.jsdelivr.net/npm/three@0.160.0/.../basis/` を指していた。**同梱 three は 0.181.2** — トランスコーダの .js/.wasm はローダーの API 面とバージョン結合するため skew は不整合リスク。加えてランタイム CDN 依存はオフライン経路を破壊し、jsdelivr の preconnect もこの1本のためだけに生きていた。
+
+- 🔧 **修正**: `node_modules/three/examples/jsm/libs/basis/` の2ファイル（~585KB）を `public/libs/basis/` に vendored、`setTranscoderPath` を `${import.meta.env.BASE_URL}libs/basis/` に（Pages のサブパス対応は既存の BASE_URL 規約に合流）。**CDN 依存ゼロ・バージョン常に一致・オフライン動作**。死んだ jsdelivr preconnect も削除。
+- ✅ **pin**: `tests/asset-paths.test.js` に vendored バイナリが node_modules/three と byte 一致する旨の drift-pin を追加 —— three 更新時に vendored だけ取り残す再発を防ぐ。
+- 📦 **gate**: 3023 tests / 68 suites 全緑、lint 0 errors、dist に libs/basis/ 同梱＋index.html の jsdelivr 参照 0 実測。
+
+### 続き132: SW の CACHE_VERSION は静的リテラル — activate クリーンアップが no-op で precache が永続 stale
+`public/service-worker.js` の `CACHE_VERSION = 'qui-browser-v2.0.0'` は手動リテラルで、ビルドもリリースも一切更新しない。**ブラウザは SW ファイルのバイト比較で更新検知するため内容が変わらなければ install/activate が走らず、activate ハンドラのキャッシュ掃除も同名キャッシュを残すだけ —— デプロイしても前リリースの precache が配信され続ける**典型 PWA staleness。ソクラテス的に言えば「versioned cache」を名乗りながら version が一度も versioned されていなかった。
+
+- 🔧 **修正**: `tools/stamp-sw-version.mjs` を新設し `"build"` に接続 — `dist/service-worker.js` の CACHE_VERSION を `qui-browser-<pkg.version>-<base36 timestamp>` にビルド毎スタンプ。SW バイト列が変わる → update 検知 → activate が旧キャッシュ名を実際に削除。
+- ✅ **pin**: `tests/sw-version-stamp.test.js` — 実 CLI を spawn して書換・連続スタンプの非同一性・リテラル欠落時の明示失敗・public/ 実物の適合を assert（.mjs は babel-jest の transform 外なので CLI 経路で駆動 = build が呼ぶのと同じ経路）。
+- 📦 **gate**: build で dist SW に `qui-browser-2.0.0-muazr082` が刻まれることを実測、verify:app green。3021 tests / 68 suites 全緑、lint 0 errors。
+
+### 続き131: lint ゲートは `src proxy` しか走査していなかった — tests/ に 1150 errors、tools/ に 19 errors が潜伏
+「`npm run lint` = 0 errors」は gate として機能していたが、スコープが `eslint src proxy` のみ — flat config の `tests/**/*.test.js` override は一度も発火していなかった（適用対象が lint に含まれないため）。tests/ を走査すると **1150 errors** が露出: 1141件は eslint --fix で機械的に修復（trailing spaces / blank lines / curly / brace-style）、残り9件のうち6件は正当なテスト fixture（`javascript:` URL を scheme ブロッカーに食わせる検査・非ASCII検出の制御文字正規表現）で tests override に `no-script-url`/`no-control-regex` off を追加、3件は実際のテスト不良（self-assign のデッド行・empty destructure・empty constructor）。
+
+**落とし穴が1つ**: `prefer-arrow-callback` (warn) が --fix で mock ファクトリを `function()` → `() =>` に変換し、`new` 不能にして26テストを壊した —— tests override で同ルールを off にして再 --fix で回避。tools/ も同様に機械修復（0 errors、warnings は CLI 本来の console.log）。`"lint"` を `eslint src proxy tests tools` に拡大。
+
+- gate 実測: lint 0 errors（369 warnings、大半は tools/ CLI の正当な console.log）、tests 3016/67 全緑、verify:docs + prerelease 実走 green。
+- `test.yml`（assets/js/ を grep する K-1 の死んだワークフロー）と ci.yml の tier-system/benchmark ジョブは patches 0001-0004 が全てカバー・クリーン適用を確認済み（owner の適用待ち、.github/workflows 非push 制約）。
+
 ### Session 75: 品質ゲートの4本中3本が死んでいた — lint は ESLint 9 に撃たれ、build はロックファイルが欠損だった
 「lint 0 errors・build green」はこのリポジトリが品質の根拠として繰り返し掲げてきた主張（続き12 の報告行にもある）。**ソクラテス式に検証したところ、主張と実装が矛盾していた — `main` で4ゲートを実走すると3つが死んでいた。**
 - 🔍 **実測（main、修正前）**: `npm run lint` → exit 2。ESLint 9.39.5 は `.eslintrc.json` を**完全に無視**し flat config を要求するが、リポジトリに `eslint.config.js` は存在しない。つまり「0 errors」は「lint が0件動いた」。`npm run build` → `MODULE_NOT_FOUND: @rollup/rollup-darwin-arm64`。`package-lock.json` にプラットフォーム別 optional 依存が**68件まるごと未収録**で、`npm ci` が darwin のネイティブバイナリを一切入れない。`npm run format:check` → exit 2、**262ファイル未整形**（docs 139 / src 45 / tests 42）。緑だったのは `npm test`（1480/47）のみ。
@@ -543,6 +601,42 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: constructor で `this._initPromise = this.initialize()` に保持し、app.js が `.catch → showError(t('app.error.initFailed'))` を接続。修正前に赤確認。
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
+
+#### 続き128（同セッション）: IME 変換の staleness — fetch 中の追加入力で候補混入＋バッファ喪失（実バグ18件目）
+
+`convertToKanji` は `await getKanjiCandidates(hiragana)`（ネットワーク、最大5秒）の後に**無条件で** `this.candidates = …` を代入し、`confirmSelection` は `candidates[selectedIndex]` を返して `clear()` で `compositionBuffer` 全消去する。つまり「きょう→変換→（fetch 中に 'd' 追加入力）→候補到着→Enter」で**古いクエリの候補が確定し、追加分 'd' が clear で消失**していた。WebPanel の `seq !== this._readerSeq` と同じ staleness クラス — IME 側にガードがなかった。
+
+修正: リクエスト時のバッファをスナップショットし、await 後に `compositionBuffer` が変化していれば候補を破棄して `null` を返す（追加入力は残り、再変換可能）。pre-fix 赤確認 → green。同パターンの横展開（ProgressiveLoader retry・SpatialAudio loadAudio・BookmarkStore）は監査済みで欠陥なし —— 前者は result を loaded map に置くだけで再利用しない、後者は name キーの last-write-wins で意図通り。
+
+その他実測（欠陥ゼロ）: JSON.parse 4箇所全て try/catch で破損耐性あり。innerHTML 使用箇所（PerformanceMonitor/DevTools/app.js perfDisplay）は全て自己生成テンプレートのみでユーザー制御データは textContent 経由 — XSS 面なし。`npm run verify:prerelease` 28 pass。
+
+#### 続き127（同セッション）: leaked-handle 警告の実害を根絶 + 実ブラウザ検証ハーネス全緑（E-2 完走）
+
+`jest --detectOpenHandles` が毎回吐いていた警告を放置しないで実測 — **実害17件目**が見つかった。
+
+- **ProgressiveLoader.getAbortSignal**: `setTimeout(abort, 30000)` が fetch settle 後も**解除されない**。loadJSON/loadModel/loadGeneric 1回ごとに30秒タイマーが残留（`_fetchWithTimeout` で finally clearTimeout — getAbortSignal は API 互換で残置）。
+- **webpanel 系テストが実 fetch を実行**: `_loadUrl` が `_loadReaderText` を呼び、stub 無しの describe では実 TLSWRAP ソケットを開いていた（example.com への実リクエスト）。両ファイルに file-wide の settled-503 stub を追加。
+- **app-entry 'noWebXR'**: 実 6s toast タイマーを fake timers 化。
+- 結果: `--detectOpenHandles` で **open handles ゼロ**（従来 14+）。「テストが緑でも teardown が汚いとリークを埋め込む」は実測で確認 — 今後の退行はこのフラグで即座に見える。
+
+**E-2 残件（実ブラウザ smoke）を完走**: `verify:app`（dist ブート・console error 0・Enter VR/i18n/a11y 全要素）+ `verify:vr-boot`（stub WebXR で VRApp 全構築・tabManager/settings/captions 含む）+ `verify:layout`（55 組み合わせ全 fits）を全て実 Chromium で全緑実測。macOS で Chromium が見つからなかったので両ハーネスの CHROME_CANDIDATES に Playwright キャッシュパスを追加（env 変数不要化）。
+
+**monitoring.js（PROD ゲート=最後の出荷済み未検証塊）を精読監査**: `initializeMonitoring`/`disposeMonitoring` は冪等・対称（interval+listeners を dispose で解除）、`initSentry`/`initGA`/`initWebVitals` は全経路 try/catch、beforeSend で cookies/headers 除去・anonymize_ip — **欠陥ゼロ**。track*/capture*/reportPerformanceSummary の公開 API は無呼出死体だが、これは N-2（PROD ゲートと合わせた owner 判断）として記録済みのため触らない。JSON.parse 4箇所も全て try/catch 済みで破損耐性あり。
+
+#### 続き126（同セッション）: 関数カバレッジ枯渇 — 98.11%、残は全て PROD ゲートまたは istanbul の虚レコード
+
+続き125 の「残は全て構造的死腕」をソクラテス式に再検証 — **その内訳に誤りがあった**。「setupRenderer 内の GPU リスナー本体（520/529/552/559）は WebGL コンテキスト必須」と記したが、実測で覆った: `require('three').WebGLRenderer` は writable なデータプロパティであり、失敗していた本当の原因は babel の wildcard interop が **require 時点で export をコピー**するためロード済み SUT にパッチが届かないことだった。`jest.isolateModules` 内で先に `require('three')` をパッチしてから SUT を re-require すれば FakeRenderer が載る — context lost/restored/resize の3リスナー本体を pin 済み。**「GPU 必須だから未検証」という断言自体が未検証だった。**
+
+- **実測**: 関数 94.73% → **98.11%**（986/1005）、行 98.44%、分岐 97.92%。残存19件の内訳:
+  - `monitoring.js` 17件 — `import.meta.env.PROD` ゲート（N-2 = owner 判断待ち）
+  - `main.js` L50 monitoring `.catch` — 同じく PROD ゲートで jest 到達不能
+  - `BookmarkPanel` L103 `(anonymous_3)` — **istanbul の虚レコード**: onHover 矢印は実際に実行され `0xbbccff` のボディ効果を3テストが断言するが、ヒットは隣接レコード（anonymous_4）に帰属される。FNDA:0 は計測器の属性ミスであってコードの未実行ではない。
+- **Musk step 2（delete）を続き125 の死腕記録に適用**: 検証不能と記録した腕のうち2件は「呼出側が常に値を供給する防御」ではなく**純粋な到達不能**と確定したため削除:
+  - `JapaneseIME.js` 末尾 `if (buffer === 'n')` — ループ内 n-ハンドラが全経路（vowel→継続・nn→ん・他→ん）で消費するため post-loop では buffer=='n' が成立し得ない（全分岐を実トレースで確認）。
+  - `k.glyph || k.label` ×2 — `computeKeyLayout` は必ず `glyph` を出力（`entry.glyph ? entry.glyph : label`）。フォールバック側は定義上到達不能。
+- **今 stretch で pin した残関数面**: toast 6s 自動除去・SW 60s update（app-entry）、DevTools ツールバー onclick dispatch + removeEventListener、perf-close click + startMonitoring interval、BookmarkPanel/ImmersiveVideo/WebPanel の ctor デフォルト `() => {}`、reader 5s abort watchdog（signal は finally で `_readerController=null` されるため fetch stub 内で捕捉）、ProgressiveLoader getAbortSignal、strip onSelect ラッパー、IME 漢字 fetch 5s watchdog、HandTracking inputsourceschange、IV/TabManager/BookmarkPanel の register パススルー `(m,h)=>registerInteractable(m,h)`、keyboard cfg/suggestionProvider/caption onShow/voice onEnterVR+onExitVR/loader onProgress、panel detach cb ルーティング、updateSetting 本体。
+- **flaky 修正**: performance-monitor の best/worst frame テストは実 `performance.now()` の ms 粒度で連続呼出が同値を返しうるため mock で +10ms 固定刻みに確定化。
+- **テスト技術メモ（再確認）**: ① isolateModules は node_modules を含む全モジュールの新規レジストリを作る — パッチは isolate 内で `require('three')` したコピーに当てる ② フェイクタイマーはタイマー登録前に有効化 ③ babel interop は wildcard の値コピー — ロード後の export 書換は SUT に伝播しない。
 
 #### 続き125（同セッション）: 補腕スイープ完走 — 分岐カバレッジ 97.67%、残は全て構造的死腕
 

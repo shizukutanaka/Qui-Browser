@@ -44,11 +44,15 @@ describe('static asset paths resolve to shipped files', () => {
     for (const m of fs.readFileSync(file, 'utf8')
       .matchAll(/(?:href|src)="([^"#]+)"/g)) {
       const url = m[1];
-      if (!url.startsWith('/') || url.startsWith('//')) continue;
+      if (!url.startsWith('/') || url.startsWith('//')) {
+        continue;
+      }
       const ok =
         fs.existsSync(path.join(PUBLIC, url)) ||
         fs.existsSync(path.join(ROOT, url));
-      if (!ok) violations.push(url);
+      if (!ok) {
+        violations.push(url);
+      }
     }
     expect(violations).toEqual([]);
   });
@@ -59,7 +63,9 @@ describe('static asset paths resolve to shipped files', () => {
       for (const m of fs.readFileSync(file, 'utf8')
         .matchAll(/(?:href|src)="([^"#]+)"/g)) {
         const url = m[1];
-        if (!url.startsWith('/')) continue;
+        if (!url.startsWith('/')) {
+          continue;
+        }
         if (!fs.existsSync(path.join(PUBLIC, url))) {
           violations.push(`${path.relative(PUBLIC, file)}: ${url}`);
         }
@@ -77,4 +83,22 @@ describe('static asset paths resolve to shipped files', () => {
       expect(fs.existsSync(path.join(ROOT, name))).toBe(false);
     }
   });
+});
+
+describe('vendored basis transcoder stays in sync with bundled three', () => {
+  // TextureManager points KTX2Loader at public/libs/basis/. If three is
+  // upgraded without re-copying, the transcoder skews against the loader —
+  // same failure class as the previous cdn.jsdelivr.net/three@0.160.0 pin.
+  for (const name of ['basis_transcoder.js', 'basis_transcoder.wasm']) {
+    test(`public/libs/basis/${name} byte-matches node_modules/three`, () => {
+      const vendored = path.join(PUBLIC, 'libs/basis', name);
+      const upstream = path.join(
+        ROOT,
+        'node_modules/three/examples/jsm/libs/basis',
+        name
+      );
+      expect(fs.existsSync(vendored)).toBe(true);
+      expect(fs.readFileSync(vendored)).toEqual(fs.readFileSync(upstream));
+    });
+  }
 });

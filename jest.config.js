@@ -27,7 +27,10 @@ module.exports = {
     'text',
     'text-summary',
     'html',
-    'lcov'
+    'lcov',
+    // ci.yml's Codecov step uploads ./coverage/coverage-final.json — without
+    // the 'json' reporter the file is never emitted and the upload no-ops.
+    'json'
   ],
 
   // カバレッジ閾値 — ratchet per docs/TESTING.md: set just under the measured
@@ -35,10 +38,10 @@ module.exports = {
   // coverage regression fails the gate instead of silently landing.
   coverageThreshold: {
     global: {
-      branches: 81,
-      functions: 90,
-      lines: 94,
-      statements: 93
+      branches: 95,
+      functions: 96,
+      lines: 97,
+      statements: 96
     }
   },
 

@@ -386,7 +386,7 @@ describe('tabStripColors', () => {
     ['active tab title', 'tabActiveText', 'tabActiveBg', 22, false],
     ['idle tab title',   'tabIdleText',   'tabIdleBg',   22, false],
     ['close ✕',          'closeText',     'closeBg',     22, false],
-    ['new-tab +',        'newTabText',    'newTabBg',    40, true],
+    ['new-tab +',        'newTabText',    'newTabBg',    40, true]
   ];
 
   test.each([false, true])('every text/bg pair clears its WCAG minimum (hc=%s)', (hc) => {

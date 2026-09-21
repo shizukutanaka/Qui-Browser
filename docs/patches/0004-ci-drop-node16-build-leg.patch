@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] ci: drop the permanently-red Node 16 build leg
+
+vite@5 requires Node ^18 || >=20 — the matrix leg on Node 16 fails at
+resolveConfig every run (verified: `vite build` exits 1 under node@16,
+0 under node@18 and node@20). Trim the matrix to [18, 20].
+
+---
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7e514a4..c2757df 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -179,7 +179,7 @@ jobs:
+ 
+     strategy:
+       matrix:
+-        node-version: [16, 18, 20]
++        node-version: [18, 20]
+ 
+     steps:
+       - name: Checkout code

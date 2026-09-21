@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] ci: drop the dead benchmark step from the release workflow
+
+release.yml ran `npm run benchmark:all` — the script was deleted along
+with the benchmark pipeline (it measured a removed SDK), so every tag
+push fails at this step before the release is ever created.
+
+---
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 8d508d1..a952e54 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -56,10 +56,6 @@ jobs:
+           test -f docs/USAGE_GUIDE.md && echo "✓ USAGE_GUIDE.md exists"
+           test -f docs/QUICK_START.md && echo "✓ QUICK_START.md exists"
+ 
+-      - name: Run benchmark
+-        run: |
+-          npm run benchmark:all -- --iterations 100 --output benchmark-results.md --format markdown
+-
+       - name: Generate release notes
+         id: release_notes
+         run: |

@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] ci: delete the jacoco badge step — a Java tool on a JS repo
+
+test-unit fails even when all 3023 tests pass: cicirello/
+jacoco-badge-generator expects target/site/jacoco/jacoco.csv (a Java
+report jest can never emit) and defaults on-missing-report to 'fail'.
+Jest's coverage already flows to Codecov in the step above; the badge
+step is dead weight that turns every green run red. Verified: with all
+tests passing the job exits 1 solely on this step.
+
+---
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7e514a4..0e71084 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -87,12 +87,6 @@ jobs:
+           name: codecov-umbrella
+           fail_ci_if_error: false
+ 
+-      - name: Generate coverage badge
+-        uses: cicirello/jacoco-badge-generator@v2
+-        with:
+-          badges-directory: badges
+-          generate-coverage-badge: true
+-
+       - name: Upload coverage reports
+         uses: actions/upload-artifact@v4
+         with:

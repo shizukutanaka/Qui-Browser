@@ -418,7 +418,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('empty query returns all history sorted by frecency', () => {
     seedHistory([
       { url: 'https://a.com/', title: 'A', visits: 1, visitedAt: now },
-      { url: 'https://b.com/', title: 'B', visits: 5, visitedAt: now },
+      { url: 'https://b.com/', title: 'B', visits: 5, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results).toHaveLength(2);
@@ -428,7 +428,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('matches URL substring case-insensitively', () => {
     seedHistory([
       { url: 'https://github.com/user', title: 'GitHub', visits: 3, visitedAt: now },
-      { url: 'https://example.com/', title: 'Example', visits: 5, visitedAt: now },
+      { url: 'https://example.com/', title: 'Example', visits: 5, visitedAt: now }
     ]);
     const results = store.search('GITHUB', 5, now);
     expect(results).toHaveLength(1);
@@ -438,7 +438,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('matches title substring case-insensitively', () => {
     seedHistory([
       { url: 'https://x.com/', title: 'My Dashboard', visits: 2, visitedAt: now },
-      { url: 'https://y.com/', title: 'Settings', visits: 1, visitedAt: now },
+      { url: 'https://y.com/', title: 'Settings', visits: 1, visitedAt: now }
     ]);
     const results = store.search('dashboard', 5, now);
     expect(results).toHaveLength(1);
@@ -464,7 +464,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     seedHistory([
       { url: 'https://low.com/',  title: 'Low',  visits:  1, visitedAt: now },
       { url: 'https://high.com/', title: 'High', visits: 20, visitedAt: now },
-      { url: 'https://mid.com/',  title: 'Mid',  visits:  5, visitedAt: now },
+      { url: 'https://mid.com/',  title: 'Mid',  visits:  5, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results[0].url).toBe('https://high.com/');
@@ -483,7 +483,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     seedHistory([
       null,
       { title: 'No URL', visits: 5, visitedAt: now },
-      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results).toHaveLength(1);
@@ -495,10 +495,12 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
     // whole search via entry.url.normalize — autocomplete runs on every keystroke.
     seedHistory([
       { url: 12345, title: 'Numeric', visits: 3, visitedAt: now },
-      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now },
+      { url: 'https://ok.com/', title: 'OK', visits: 1, visitedAt: now }
     ]);
     let results;
-    expect(() => { results = store.search('ok', 10, now); }).not.toThrow();
+    expect(() => {
+      results = store.search('ok', 10, now);
+    }).not.toThrow();
     expect(results).toHaveLength(1);
     expect(results[0].url).toBe('https://ok.com/');
   });
@@ -513,7 +515,7 @@ describe('BookmarkStore.search — frecency-ranked URL autocomplete', () => {
   test('older entries score lower than newer ones with the same visit count', () => {
     seedHistory([
       { url: 'https://old.com/', title: 'Old', visits: 3, visitedAt: now - 30 * DAY },
-      { url: 'https://new.com/', title: 'New', visits: 3, visitedAt: now },
+      { url: 'https://new.com/', title: 'New', visits: 3, visitedAt: now }
     ]);
     const results = store.search('', 10, now);
     expect(results[0].url).toBe('https://new.com/');
@@ -658,7 +660,7 @@ describe('BookmarkStore — remaining branch arms', () => {
   test('readJSON/writeJSON tolerate localStorage being undefined', () => {
     // jsdom always has localStorage — temporarily remove it.
     const saved = global.localStorage;
-    // eslint-disable-next-line no-global-assign
+
     Object.defineProperty(globalThis, 'localStorage', { value: undefined, configurable: true, writable: true });
     try {
       const s2 = new BookmarkStore();

@@ -15,7 +15,9 @@ describe('JapaneseIME raw conversion arms', () => {
     const ime = new JapaneseIME();
     ime.activate();
     ime.inputMode = 'katakana';
-    for (const ch of 'konnichiwa') await ime.processInput(ch);
+    for (const ch of 'konnichiwa') {
+      await ime.processInput(ch);
+    }
     // The converted text is surfaced via the composition path; assert the
     // two-hop conversion itself.
     const hira = ime.convertRomajiToHiragana(ime.compositionBuffer);
@@ -220,3 +222,82 @@ describe('VRJapaneseKeyboard — suggestion query without an IME', () => {
     expect(kb._clearSuggestions).toHaveBeenCalled();
   });
 });
+
+
+describe('JapaneseIME — remote fetch watchdog', () => {
+  test('getKanjiCandidates aborts a hung remote fetch after 5s and falls back', async () => {
+    jest.useFakeTimers();
+    const ime = new JapaneseIME();
+    const prevFetch = global.fetch;
+    global.fetch = jest.fn((u, opts) => new Promise((_, rej) => {
+      opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+    }));
+    try {
+      const pr = ime.getKanjiCandidates('かんじ');
+      jest.advanceTimersByTime(5000);
+      await expect(pr).resolves.toContain('かんじ');
+    } finally {
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('JapaneseIME — convertToKanji staleness', () => {
+  test('keystrokes typed while the kanji fetch is in flight are not lost and stale candidates are discarded', async () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'hiragana';
+    ime.compositionBuffer = 'kyou';
+    // Fetch resolves slowly — while it is in flight the user keeps typing.
+    let resolveFetch;
+    const prevFetch = global.fetch;
+    global.fetch = jest.fn(() => new Promise((res) => {
+      resolveFetch = res;
+    }));
+    try {
+      const pr = ime.convertToKanji();
+      // User types 'd' mid-flight: buffer is now 'kyoud'.
+      ime.compositionBuffer += 'd';
+      resolveFetch({ ok: true, status: 200, json: async () => [['きょう', ['今日', '強']]] });
+      const result = await pr;
+      // The candidates must not be applied for a buffer that has moved on —
+      // otherwise confirmSelection would commit a stale kanji and clear()
+      // would wipe the 'd' the user just typed.
+      expect(result).toBeNull();
+      expect(ime.compositionBuffer).toBe('kyoud');
+      expect(ime.candidates).toEqual([]);
+    } finally {
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
+    }
+  });
+
+  test('convertToKanji still applies candidates when the buffer is unchanged', async () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'hiragana';
+    ime.compositionBuffer = 'kyou';
+    const prevFetch = global.fetch;
+    global.fetch = jest.fn(async () => ({
+      ok: true, status: 200, json: async () => [['きょう', ['今日', '強']]]
+    }));
+    try {
+      const result = await ime.convertToKanji();
+      expect(result.candidates).toEqual(['今日', '強']);
+      expect(ime.candidates).toEqual(['今日', '強']);
+    } finally {
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
+    }
+  });
+});
+

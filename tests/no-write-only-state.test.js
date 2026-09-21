@@ -17,8 +17,11 @@ const SRC = path.join(ROOT, 'src');
 function* walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) yield* walk(p);
-    else if (e.name.endsWith('.js')) yield p;
+    if (e.isDirectory()) {
+      yield* walk(p);
+    } else if (e.name.endsWith('.js')) {
+      yield p;
+    }
   }
 }
 
@@ -32,12 +35,16 @@ const joined = bodies.map(([, s]) => s).join('\n') + '\n' + testBodies.join('\n'
 const offenders = [];
 for (const [p, src] of bodies) {
   const assigned = new Set();
-  for (const m of src.matchAll(/this\.(_[a-zA-Z]\w*)\s*=(?!=)/g)) assigned.add(m[1]);
+  for (const m of src.matchAll(/this\.(_[a-zA-Z]\w*)\s*=(?!=)/g)) {
+    assigned.add(m[1]);
+  }
   for (const f of assigned) {
     // Reads: any `._f` site (this._f, panel._f, …) minus assignment writes.
     const total = (joined.match(new RegExp(`\\.${f}\\b`, 'g')) || []).length;
     const writes = (joined.match(new RegExp(`\\.${f}\\s*(?<![=!<>])=(?!=)`, 'g')) || []).length;
-    if (total - writes === 0) offenders.push(`${path.relative(ROOT, p)}: this.${f}`);
+    if (total - writes === 0) {
+      offenders.push(`${path.relative(ROOT, p)}: this.${f}`);
+    }
   }
 }
 

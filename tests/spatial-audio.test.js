@@ -392,7 +392,9 @@ describe('SpatialAudio — play/stop lifecycle', () => {
     const node = audio.sources.get('s').node;
     audio.stop('s');
     // The stopped node's onended may still fire — must not double-decrement.
-    if (node.onended) node.onended();
+    if (node.onended) {
+      node.onended();
+    }
     expect(audio.stats.sourcesActive).toBe(0);
     expect(audio.sources.get('s').isPlaying).toBe(false);
   });
@@ -671,7 +673,9 @@ describe('SpatialAudio — guard + fallback slivers', () => {
 
   test('setListenerOrientation falls back to setOrientation without AudioParams', async () => {
     const { a, context } = await initAudio();
-    for (const k of ['forwardX','forwardY','forwardZ','upX','upY','upZ']) delete context.listener[k];
+    for (const k of ['forwardX','forwardY','forwardZ','upX','upY','upZ']) {
+      delete context.listener[k];
+    }
     context.listener.setOrientation = jest.fn();
     a.setListenerOrientation(0, 0, -1, 0, 1, 0);
     expect(context.listener.setOrientation).toHaveBeenCalledWith(0, 0, -1, 0, 1, 0);
@@ -706,7 +710,9 @@ describe('SpatialAudio — last two slivers', () => {
   test('stop() warn-logs when node.stop() throws', async () => {
     const { a } = await initAudio();
     const src = a.createSource('s');
-    src.node = { stop: jest.fn(() => { throw new Error('not started'); }) };
+    src.node = { stop: jest.fn(() => {
+      throw new Error('not started');
+    }) };
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     a.stop('s');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("Error stopping source 's'"), expect.any(Error));
@@ -864,11 +870,15 @@ describe('SpatialAudio — sliver arms', () => {
     const sa = new SpatialAudio();
     await Promise.resolve(); await Promise.resolve();
     sa.context = makeAudioContext();
-    if (!sa.context.createPanner) sa.context.createPanner = () => ({ setPosition(){}, setOrientation(){}, connect(){} });
+    if (!sa.context.createPanner) {
+      sa.context.createPanner = () => ({ setPosition(){}, setOrientation(){}, connect(){} });
+    }
     sa.settings.enableHRTF = false;
     sa.buffers.set('b', { duration: 1 });
     const src = sa.createSource ? sa.createSource('b', {}) : null;
-    if (src) expect(src.panner.panningModel).toBe('equalpower');
+    if (src) {
+      expect(src.panner.panningModel).toBe('equalpower');
+    }
   });
 });
 
@@ -888,7 +898,9 @@ describe('SpatialAudio — remaining guard arms', () => {
     const rates = [];
     a.context = {
       sampleRate: 0,
-      createBuffer: (c, len, rate) => { rates.push(rate); return { getChannelData: () => new Float32Array(len) }; }
+      createBuffer: (c, len, rate) => {
+        rates.push(rate); return { getChannelData: () => new Float32Array(len) };
+      }
     };
     a.registerProceduralBuffer('tone', { frequency: 440 });
     expect(rates[0]).toBe(48000);

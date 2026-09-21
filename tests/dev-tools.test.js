@@ -13,9 +13,13 @@ describe('DevTools plumbing', () => {
 
   beforeEach(() => {
     listeners = {};
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     global.document = {
-      addEventListener: (t, fn) => { listeners[t] = fn; },
+      addEventListener: (t, fn) => {
+        listeners[t] = fn;
+      },
       removeEventListener: jest.fn(),
       getElementById: () => null,
       createDocumentFragment: () => ({ appendChild() {} }),
@@ -30,7 +34,11 @@ describe('DevTools plumbing', () => {
   afterEach(() => {
     dt.dispose();
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -60,7 +68,9 @@ describe('DevTools plumbing', () => {
   });
 
   test('message log is capped at 1000 entries', () => {
-    for (let i = 0; i < 1100; i++) dt.logMessage('log', [`m${i}`]);
+    for (let i = 0; i < 1100; i++) {
+      dt.logMessage('log', [`m${i}`]);
+    }
     expect(dt.tools.console.messages).toHaveLength(1000);
     expect(dt.tools.console.messages[0].args[0]).toBe('m100');
   });
@@ -123,9 +133,13 @@ describe('DevTools dead-surface sweep', () => {
 
   beforeEach(() => {
     listeners = {};
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     global.document = {
-      addEventListener: (t, fn) => { listeners[t] = fn; },
+      addEventListener: (t, fn) => {
+        listeners[t] = fn;
+      },
       removeEventListener: jest.fn(),
       getElementById: () => null,
       createDocumentFragment: () => ({ appendChild() {} }),
@@ -141,7 +155,11 @@ describe('DevTools dead-surface sweep', () => {
   afterEach(() => {
     dt.dispose();
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -176,15 +194,22 @@ function makeEl(id) {
     text: '',
     // fragments flatten into their parent on append, like real DOM
     appendChild(c) {
-      if (c && c.id === '#frag') { el.children.push(...c.children); }
-      else { el.children.push(c); }
+      if (c && c.id === '#frag') {
+        el.children.push(...c.children);
+      } else {
+        el.children.push(c);
+      }
       return c;
     },
-    set innerHTML(_v) { el.children.length = 0; el.text = ''; },
+    set innerHTML(_v) {
+      el.children.length = 0; el.text = '';
+    },
     get textContent() {
       return el.text + el.children.map((c) => c.textContent ?? '').join('');
     },
-    set textContent(v) { el.children.length = 0; el.text = v; },
+    set textContent(v) {
+      el.children.length = 0; el.text = v;
+    },
     scrollTop: 0,
     scrollHeight: 0
   };
@@ -197,7 +222,9 @@ describe('DevTools DOM output layer', () => {
   const saved = {};
 
   beforeEach(() => {
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     byId = new Map();
     global.document = {
       addEventListener() {},
@@ -215,7 +242,11 @@ describe('DevTools DOM output layer', () => {
   afterEach(() => {
     dt.dispose();
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -304,9 +335,13 @@ describe('DevTools — remaining DOM arms', () => {
 
   beforeEach(() => {
     listeners = {};
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     global.document = {
-      addEventListener: (t, fn) => { listeners[t] = fn; },
+      addEventListener: (t, fn) => {
+        listeners[t] = fn;
+      },
       removeEventListener: jest.fn(),
       getElementById: () => null,
       createDocumentFragment: () => ({ appendChild() {} }),
@@ -320,7 +355,11 @@ describe('DevTools — remaining DOM arms', () => {
 
   afterEach(() => {
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -328,7 +367,11 @@ describe('DevTools — remaining DOM arms', () => {
     const input = {};
     dt.executeCode = jest.fn();
     // Grab the handler createUI assigns via the same shape production uses.
-    input.onkeypress = (e) => { if (e.key === 'Enter') { dt.executeCode(input.value); input.value = ''; } };
+    input.onkeypress = (e) => {
+      if (e.key === 'Enter') {
+        dt.executeCode(input.value); input.value = '';
+      }
+    };
     input.value = '1+1';
     input.onkeypress({ key: 'Enter' });
     expect(dt.executeCode).toHaveBeenCalledWith('1+1');
@@ -358,7 +401,9 @@ describe('DevTools — remaining DOM arms', () => {
 
   test('network monitor ring buffer drops the oldest request past 100', () => {
     const requests = dt.tools.networkMonitor.requests;
-    for (let i = 0; i < 100; i++) requests.push({ url: 'u' + i });
+    for (let i = 0; i < 100; i++) {
+      requests.push({ url: 'u' + i });
+    }
     dt.logNetworkRequest({ url: 'overflow' });
     expect(requests.length).toBe(100);
     expect(requests[0].url).toBe('u1');      // u0 evicted
@@ -385,7 +430,9 @@ describe('DevTools — last branch arms', () => {
 
   beforeEach(() => {
     byId = new Map();
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     global.document = {
       addEventListener() {},
       removeEventListener: jest.fn(),
@@ -400,7 +447,11 @@ describe('DevTools — last branch arms', () => {
   afterEach(() => {
     dt.dispose();
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -457,7 +508,9 @@ describe('DevTools — complementary arms', () => {
   let dt;
   const saved = {};
   beforeEach(() => {
-    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    for (const k of ['document', 'window', 'performance']) {
+      saved[k] = global[k];
+    }
     global.document = {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
@@ -471,7 +524,11 @@ describe('DevTools — complementary arms', () => {
   });
   afterEach(() => {
     for (const k of ['document', 'window', 'performance']) {
-      if (saved[k] === undefined) delete global[k]; else global[k] = saved[k];
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -579,7 +636,11 @@ describe('DevTools — sliver arms', () => {
     global.window = global.window || {};
   });
   afterEach(() => {
-    if (savedDoc === undefined) { delete global.document; } else { global.document = savedDoc; }
+    if (savedDoc === undefined) {
+      delete global.document;
+    } else {
+      global.document = savedDoc;
+    }
   });
 
   test('constructor hidden mode renders display:none', () => {
@@ -592,7 +653,9 @@ describe('DevTools — sliver arms', () => {
     const executed = [];
     jest.spyOn(d, 'executeCode').mockImplementation((s) => executed.push(s));
     const input = d._consoleInput || (d.tools && d.tools.consoleInput);
-    if (input && input.onkeypress) input.onkeypress({ key: 'Enter' });
+    if (input && input.onkeypress) {
+      input.onkeypress({ key: 'Enter' });
+    }
   });
 
   test('showTab skips tabs with no content and tolerates missing ids', () => {
@@ -649,12 +712,16 @@ describe('DevTools — last guard arms', () => {
     const savedDoc = global.document;
     made.length = 0;
     global.document = {
-      addEventListener: (t, fn) => { listeners[t] = fn; },
+      addEventListener: (t, fn) => {
+        listeners[t] = fn;
+      },
       removeEventListener: jest.fn(),
       getElementById: () => null,
       createDocumentFragment: () => ({ appendChild() {}, children: [] }),
       createElement: () => {
-        const el = { style: { cssText: '' }, children: [], appendChild(c) { this.children.push(c); }, id: '' };
+        const el = { style: { cssText: '' }, children: [], appendChild(c) {
+          this.children.push(c);
+        }, id: '' };
         made.push(el);
         return el;
       },
@@ -666,7 +733,9 @@ describe('DevTools — last guard arms', () => {
   });
 
   afterEach(() => {
-    try { dt.dispose(); } catch { /* partial UI is fine */ }
+    try {
+      dt.dispose();
+    } catch { /* partial UI is fine */ }
     global.document = dt._savedDoc;
   });
 
@@ -700,9 +769,48 @@ describe('DevTools — last guard arms', () => {
   });
 
   test('updateNetworkTable String()-formats a non-numeric req.time', () => {
-    const tbody = { children: [], appendChild(c) { this.children.push(c); } };
+    const tbody = { children: [], appendChild(c) {
+      this.children.push(c);
+    } };
     global.document.getElementById = (id) => (id === 'network-tbody' ? tbody : null);
     dt.tools.networkMonitor.requests.push({ method: 'GET', url: 'u', status: 200, time: 'pending', size: 1 });
     expect(() => dt.updateNetworkTable()).not.toThrow();
   });
 });
+
+
+describe('DevTools toolbar button dispatch', () => {
+  test('tab button onclick routes to showTab; close button onclick hides', () => {
+    const saved = global.document;
+    const byId = new Map();
+    global.document = {
+      addEventListener() {},
+      removeEventListener() {},
+      getElementById: (id) => byId.get(id) || null,
+      createDocumentFragment: () => makeEl('#frag'),
+      createElement: () => makeEl(),
+      createTextNode: (t) => ({ textContent: t }),
+      body: makeEl('body')
+    };
+    try {
+      const dt = new DevTools({ scene: {}, renderer: {} });
+      dt.initialize();
+      const showSpy = jest.spyOn(dt, 'showTab');
+      const hideSpy = jest.spyOn(dt, 'hide');
+      const toolbar = dt.container.children.find(
+        (c) => Array.isArray(c.children) && c.children.length > 1 && typeof c.children[0].onclick === 'function'
+      );
+      expect(toolbar).toBeTruthy();
+      const buttons = toolbar.children.filter((c) => typeof c.onclick === 'function');
+      buttons[0].onclick();
+      expect(showSpy).toHaveBeenCalledTimes(1);
+      buttons[buttons.length - 1].onclick();
+      expect(hideSpy).toHaveBeenCalledTimes(1);
+      expect(dt.visible).toBe(false);
+      dt.dispose && dt.dispose();
+    } finally {
+      global.document = saved;
+    }
+  });
+});
+

@@ -3,8 +3,7 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/shizukutanaka/qui-browser/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![WebXR](https://img.shields.io/badge/WebXR-Supported-purple.svg)](https://immersiveweb.dev/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/shizukutanaka/qui-browser/actions)
-[![Coverage](https://img.shields.io/badge/coverage-passing-yellow.svg)](https://codecov.io/gh/shizukutanaka/qui-browser)
+[![CI](https://github.com/shizukutanaka/qui-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/qui-browser/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [![Meta Quest 2](https://img.shields.io/badge/Meta_Quest_2-Supported-00a8e8.svg)](https://www.meta.com/quest/products/quest-2/)
@@ -121,7 +120,7 @@ Visit the live demo on your VR device:
 ```bash
 # Clone repository
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Install dependencies
 npm install
@@ -306,7 +305,7 @@ We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for deta
 ```bash
 # Fork and clone
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Create feature branch
 git checkout -b feature/amazing-feature

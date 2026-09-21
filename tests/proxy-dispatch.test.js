@@ -20,7 +20,9 @@ function req(path, { method = 'GET', headers = {} } = {}) {
   return new Promise((resolve, reject) => {
     const r = http.request(base + path, { method, headers }, (res) => {
       let body = '';
-      res.on('data', (c) => { body += c; });
+      res.on('data', (c) => {
+        body += c;
+      });
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
     });
     r.on('error', reject);

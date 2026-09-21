@@ -193,17 +193,17 @@ function getCacheStrategy(pathname) {
  */
 async function executeStrategy(strategy, request) {
   switch (strategy) {
-    case 'cache-first':
-      return cacheFirst(request);
+  case 'cache-first':
+    return cacheFirst(request);
 
-    case 'network-first':
-      return networkFirst(request);
+  case 'network-first':
+    return networkFirst(request);
 
-    case 'stale-while-revalidate':
-      return staleWhileRevalidate(request);
+  case 'stale-while-revalidate':
+    return staleWhileRevalidate(request);
 
-    default:
-      return fetch(request);
+  default:
+    return fetch(request);
   }
 }
 
@@ -381,33 +381,33 @@ self.addEventListener('message', async (event) => {
   const { type, payload } = event.data;
 
   switch (type) {
-    case 'SKIP_WAITING':
-      self.skipWaiting();
-      break;
+  case 'SKIP_WAITING':
+    self.skipWaiting();
+    break;
 
-    case 'GET_STATS':
-      event.ports[0].postMessage({
-        type: 'CACHE_STATS',
-        stats: cacheStats,
-        caches: await getCacheInfo()
-      });
-      break;
+  case 'GET_STATS':
+    event.ports[0].postMessage({
+      type: 'CACHE_STATS',
+      stats: cacheStats,
+      caches: await getCacheInfo()
+    });
+    break;
 
-    case 'CLEAR_CACHE':
-      await clearCache(payload.cacheType);
-      event.ports[0].postMessage({
-        type: 'CACHE_CLEARED',
-        success: true
-      });
-      break;
+  case 'CLEAR_CACHE':
+    await clearCache(payload.cacheType);
+    event.ports[0].postMessage({
+      type: 'CACHE_CLEARED',
+      success: true
+    });
+    break;
 
-    case 'PRELOAD_ASSETS':
-      await preloadAssets(payload.urls);
-      event.ports[0].postMessage({
-        type: 'PRELOAD_COMPLETE',
-        success: true
-      });
-      break;
+  case 'PRELOAD_ASSETS':
+    await preloadAssets(payload.urls);
+    event.ports[0].postMessage({
+      type: 'PRELOAD_COMPLETE',
+      success: true
+    });
+    break;
   }
 });
 
