@@ -705,3 +705,62 @@ describe('BookmarkPanel — remaining branch arms', () => {
     expect(p.canvas).toBeNull();
   });
 });
+
+describe('BookmarkPanel — last branch arms', () => {
+  test('constructor without document leaves canvas/tex null', () => {
+    const saved = global.document;
+    try {
+      delete global.document;
+      const p = new BookmarkPanel({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        store: makeStore(),
+        onSelect: jest.fn()
+      });
+      expect(p.canvas).toBeNull();
+      expect(p.tex).toBeNull();
+    } finally {
+      global.document = saved;
+    }
+  });
+
+  test('row click with url-less entry is a no-op', () => {
+    const store = makeStore([{ title: 'no-url', url: '' }], []);
+    const onSelect = jest.fn();
+    const p = makePanel(store, onSelect);
+    p.show();
+    p._onSelect({ intersection: { point: localFor(60, 120) } });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('deleteRow click with url-less entry is a no-op', () => {
+    const store = makeStore([{ title: 'x', url: '' }], []);
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store,
+      onSelect: jest.fn(),
+      onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    p._onSelect({ intersection: { point: localFor(430, 120) } });
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  test('_draw with tex null does not throw', () => {
+    const p = makePanel(makeStore([{ url: 'https://a' }], []));
+    p.tex = null;
+    expect(() => p._draw()).not.toThrow();
+  });
+
+  test('dispose without mesh/material does not throw', () => {
+    const p = makePanel(makeStore([], []));
+    p.mesh = null;
+    p.tex = { dispose: jest.fn() };
+    expect(() => p.dispose()).not.toThrow();
+  });
+});
