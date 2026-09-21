@@ -83,4 +83,18 @@ describe('static asset paths resolve to shipped files', () => {
       expect(fs.existsSync(path.join(ROOT, name))).toBe(false);
     }
   });
+
+  test('index.html never links to public/ assets with a root-absolute path', () => {
+    // Vite does not rewrite hrefs that point into public/ — the URL ships
+    // verbatim. Under the Pages subpath (BASE_PATH=/Qui-Browser/) a leading
+    // slash escapes the subpath and 404s (manifest.json was the offender).
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const violations = [];
+    for (const m of html.matchAll(/(?:href|src)="\/([^"#]+)"/g)) {
+      if (fs.existsSync(path.join(PUBLIC, m[1]))) {
+        violations.push(m[0]);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
 });

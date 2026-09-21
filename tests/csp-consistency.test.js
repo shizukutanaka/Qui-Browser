@@ -51,7 +51,9 @@ test('media-src permits user-supplied video URLs', () => {
   // https:// video is dead on Pages (no headers there to widen it).
   const ms = directives.get('media-src');
   expect(ms).toContain('https:');
-  expect(ms).toContain('blob:');
+  // No code path ever produces a blob: media URL (no createObjectURL calls) —
+  // keep it out of the policy.
+  expect(ms).not.toContain('blob:');
 });
 
 test('connect-src permits a loopback reader proxy', () => {
