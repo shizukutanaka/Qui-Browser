@@ -511,3 +511,55 @@ describe('DevTools — complementary arms', () => {
     }
   });
 });
+
+describe('DevTools — remaining arms', () => {
+  let dt;
+  beforeEach(() => {
+    global.document = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      getElementById: jest.fn(() => null),
+      createDocumentFragment: jest.fn(() => ({ appendChild: jest.fn() })),
+      createElement: jest.fn(() => ({ style: {}, appendChild: jest.fn(), addEventListener: jest.fn() })),
+      createTextNode: jest.fn((t) => ({ text: t })),
+      body: { appendChild: jest.fn() }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+
+  test('intercepted fetch logs a POST with the response content-length', async () => {
+    const logged = [];
+    dt.logNetworkRequest = (r) => logged.push(r);
+    global.window = global.window || {};
+    global.window.fetch = async () => ({ status: 200, headers: { get: () => '123' } });
+    dt.setupNetworkMonitor();
+    await global.window.fetch('https://x.example', { method: 'POST' });
+    expect(logged[0].method).toBe('POST');
+    expect(logged[0].size).toBe('123');
+  });
+
+  test('scene-tree rows fall back to Object/unnamed when fields are missing', () => {
+    const appended = [];
+    const frag = { appendChild: (r) => appended.push(r) };
+    global.document.createDocumentFragment = () => frag;
+    global.document.createElement = () => ({ style: {}, appendChild: jest.fn() });
+    dt.buildSceneTree({ children: [{}] });
+    expect(appended[0].textContent).toContain('Object');
+    expect(appended[0].textContent).toContain('unnamed');
+  });
+
+  test('showTab hides other tab content and switches on the target', () => {
+    const content = { innerHTML: '', appendChild: jest.fn() };
+    global.document.getElementById = jest.fn(() => content);
+    const hidden = { style: { display: 'flex' } };
+    dt.tabs = new Map([
+      ['scene', { content: hidden, button: { style: {} } }],
+      ['network', { content: { style: { display: 'flex' } }, button: { style: {} } }]
+    ]);
+    dt.updateSceneTree = jest.fn();
+    global.document.createElement = () => ({ style: {}, appendChild: jest.fn() });
+    dt.showTab('scene');
+    expect(hidden.style.display).toBe('block');
+    expect(dt.updateSceneTree).toHaveBeenCalled();
+  });
+});
