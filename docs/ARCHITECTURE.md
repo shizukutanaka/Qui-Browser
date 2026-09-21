@@ -66,9 +66,11 @@ most subsystems are unit-testable in Node with no GPU context.
 
 ## Build & bundling
 
-Vite (`vite.config.js`) produces manual chunks so the headset only downloads what a
-tier needs: `vendor-three`, `app`, `tier1` (FFR, comfort, textures), and lazy
-`tier2-*` chunks (`tier2-input`, `tier2-interaction`, `tier2-audio`, `tier2-loading`).
+Vite (`vite.config.js`) produces manual chunks for cache granularity:
+`vendor-three`, `app`, `tier1` (FFR, comfort, textures), and `tier2-*`
+(`tier2-input`, `tier2-interaction`, `tier2-audio`, `tier2-loading`). All chunks
+are eagerly imported at boot — the tier2 split affects cache lifetime, not
+load laziness; the only real lazy boundary is `import('./app.js')` in main.js.
 See [BUILD_OPTIMIZATION_GUIDE.md](BUILD_OPTIMIZATION_GUIDE.md).
 
 ## Related documents

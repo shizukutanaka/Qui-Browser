@@ -245,6 +245,21 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き187 — raycast の結果配列も毎コール確保されていた
+- 🔍 **実測（確保掃引の残り）**: `updateHover` がコントローラ毎フレーム × `intersectObjects` で**結果配列を毎コール新規確保**（180回/秒 × hover + select）。three の `intersectObjects(objects, recursive, target)` は第3引数に再利用バッファを取れるのに未指定だった。`_sharedRaycaster` 自体は共有済みだったが結果側が漏れ。
+- 🔧 **修正**: `intersectInteractables(controller)` ヘルパー追加（`_hitScratch` 共有バッファ + `length=0` リセット + 先頭 visible hit 返却）— `updateHover`・`onControllerSelect` の2呼出を集約。`intersection` は全コンシューマーが `evt.intersection.point` を同期的に読むだけで保持なしを確認済み。
+- ✅ 3086 tests / 72 suites 全緑（fixture に `intersectInteractables` キャリー追加 — bound-prototype パターン継続）、lint 0 errors。
+
+### Session 75: 続き186 — 熱パスの per-frame 確保を実測で潰す
+- 🔍 **実測（「allocation near zero」主張の検証）**: ARCHITECTURE.md が「allocation near zero to hold 72–90 fps」を謳うのに対し、全サブシステムの update() を掃引。2件の per-frame 確保を発見: ①`CaptionSystem.update` が毎フレーム `_lines.filter()` で新配列（90fps×長時間セッションで小確保が GC 圧力に累積）②`HandTracking.update` が毎フレーム `new Set()` + `prevVisible` オブジェクトリテラルを確保。
+- 🔧 **修正**: ①in-place 掃引（write-index + length 切詰）— changed 検出は維持 ②`seenLeft/seenRight` ブール＋`prevLeft/prevRight` スカラー化（'none' handedness の誤右判定を防ぐため `else if === 'right'` で厳密化）。挙動同一・確保ゼロ。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors。残りの `updateSystems` 直下・サブシステム update 群は無確保を確認（`render()` 本体・Raycaster 呼出を含む）。
+
+### Session 75: 続き185 — 「lazy loaded」と称する tier2 チャンクは全部 eager import
+- 🔍 **実測（宣言と実態）**: vite.config.js の `// Tier 2 features (lazy loaded)` と ARCHITECTURE.md の「lazy `tier2-*` chunks」を検証 — `JapaneseIME`/`HandTracking`/`SpatialAudio`/`ProgressiveLoader` は全て VRApp.js から**静的 import** で、eager に fetch される。「lazy」はコードスプリットの意図表明に過ぎず、実態は別ファイルへの分割のみ（キャッシュ粒度はあるが遅延ではない）。唯一の真の lazy 境界は `main.js` の `import('./app.js')`。
+- 🔧 **修正**: vite.config.js のコメントと ARCHITECTURE.md の節を実態記述に置換（「separate cacheable chunks, eagerly imported」）。manualChunks 列挙パス7件の実在性、vendor-three の tree-shake（52クラスのみ・OrbitControls/KTX2 等なし）、beforeunload→pagehide の teardown 信頼性も併せて監査 — いずれもクリーン。
+- ✅ 全緑（doc 変更のみ、build 再確認済み）。
+
 ### Session 75: 続き184 — 見えない canvas に毎フレーム全シーンを描く常駐 RAF
 - 🔍 **実測（ループ寿命の照合）**: `initialize()` が `setAnimationLoop` を起動直後に武装し、VR 対応機では**VR に一度も入らなくても** RAF が常駐。canvas は `app-container` 末尾（折りたたみ下）に挿入されるので、ランディングを読むだけ/VR 退出後に読むだけの間も全シーンの updateSystems+render が毎フレーム走る — バッテリー端末での純粋な無駄。
 - 🔧 **修正**: IntersectionObserver で canvas の可視性を監視し、非交差時は `setAnimationLoop(null)`。`_syncAnimationLoop()` が唯一の武装/停止点として `xr.isPresenting` をバイパス条件に持つ（XR フレームはランタイム駆動なので presenting 中は絶対に止めない）。sessionstart で再武装→退出後にオフスクリーンなら再停止、webglcontextrestored も同経路に集約、dispose で observer 切断。

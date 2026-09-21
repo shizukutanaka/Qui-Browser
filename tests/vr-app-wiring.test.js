@@ -78,6 +78,9 @@ function makeVRAppLike(overrides = {}) {
     // (binding VRApp.prototype instead would activate VRApp's own accessors,
     // which delegate to an `a11y` coordinator this fixture does not build).
     _attachManagedWindow: VRApp.prototype._attachManagedWindow,
+    // Hit-tests go through intersectInteractables, which consults the
+    // per-fixture raycasterFromController mock.
+    intersectInteractables: VRApp.prototype.intersectInteractables,
     ...overrides
   };
 }
