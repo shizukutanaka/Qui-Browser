@@ -259,8 +259,8 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
   });
 });
 
-// Spatial query helpers + gesture callback dispatch — previously uncovered
-// (getPinchPosition / getPointingRay / onGesture fan-out / getStats).
+// Gesture callback dispatch + stats — previously uncovered
+// (onGesture fan-out / getStats).
 // Joint positions need real vector math (production calls position.distanceTo),
 // so use a local real-math vector, not the mocked Vector3.
 class V {
@@ -287,38 +287,6 @@ describe('HandTracking — spatial queries + gesture dispatch', () => {
   beforeEach(() => {
     // renderer/scene unused by the query paths — pass minimal stubs
     ht = new HandTracking(null, { remove: jest.fn() });
-  });
-
-  test('getPinchPosition returns thumb↔index midpoint', () => {
-    ht.joints.left = jointsAt([
-      ['thumb-tip', [0, 0, 0]],
-      ['index-finger-tip', [0.04, 0.02, 0]]
-    ]);
-    const p = ht.getPinchPosition('left');
-    expect(p.x).toBeCloseTo(0.02);
-    expect(p.y).toBeCloseTo(0.01);
-    expect(p.z).toBeCloseTo(0);
-  });
-
-  test('getPinchPosition is null when a joint is missing', () => {
-    ht.joints.right = jointsAt([['thumb-tip', [0, 0, 0]]]);
-    expect(ht.getPinchPosition('right')).toBeNull();
-  });
-
-  test('getPointingRay points from proximal toward tip', () => {
-    ht.joints.right = jointsAt([
-      ['index-finger-phalanx-proximal', [0, 0, 0]],
-      ['index-finger-tip', [0, 0, -1]]
-    ]);
-    const ray = ht.getPointingRay('right');
-    expect(ray.direction.z).toBeCloseTo(-1);
-    expect(ray.direction.x).toBeCloseTo(0);
-    expect(ray.origin.x).toBeCloseTo(0);
-  });
-
-  test('getPointingRay is null without both joints', () => {
-    ht.joints.left = jointsAt([['index-finger-tip', [0, 0, -1]]]);
-    expect(ht.getPointingRay('left')).toBeNull();
   });
 
   test('onGesture callback fires on transition only, with (handedness, gesture)', () => {

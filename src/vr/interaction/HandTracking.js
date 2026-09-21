@@ -402,44 +402,6 @@ export class HandTracking {
   }
 
   /**
-   * Get pinch position (for UI interaction)
-   */
-  getPinchPosition(handedness) {
-    const joints = this.joints[handedness];
-    const thumbTip = joints.get('thumb-tip');
-    const indexTip = joints.get('index-finger-tip');
-
-    if (!thumbTip || !indexTip) {
-      return null;
-    }
-
-    // Return midpoint between thumb and index
-    return new THREE.Vector3()
-      .addVectors(thumbTip.position, indexTip.position)
-      .multiplyScalar(0.5);
-  }
-
-  /**
-   * Get pointing ray (for selection)
-   */
-  getPointingRay(handedness) {
-    const joints = this.joints[handedness];
-    const indexTip = joints.get('index-finger-tip');
-    const indexProximal = joints.get('index-finger-phalanx-proximal');
-
-    if (!indexTip || !indexProximal) {
-      return null;
-    }
-
-    const origin = indexProximal.position.clone();
-    const direction = new THREE.Vector3()
-      .subVectors(indexTip.position, indexProximal.position)
-      .normalize();
-
-    return new THREE.Ray(origin, direction);
-  }
-
-  /**
    * Handle input source changes
    */
   onInputSourcesChange(event) {
@@ -527,13 +489,10 @@ export class HandTracking {
  * // Register gesture callbacks
  * handTracking.onGesture('pinch', (hand, gesture) => {
  *   console.debug(`${hand} hand pinched!`);
- *   const position = handTracking.getPinchPosition(hand);
- *   // Use position for UI interaction
  * });
  *
  * handTracking.onGesture('point', (hand, gesture) => {
- *   const ray = handTracking.getPointingRay(hand);
- *   // Use ray for selection
+ *   console.debug(`${hand} hand pointing`);
  * });
  *
  * // Update in render loop

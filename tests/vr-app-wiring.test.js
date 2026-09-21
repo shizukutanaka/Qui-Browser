@@ -2189,45 +2189,30 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.captionSystem.show).toHaveBeenCalledWith(expect.any(String));
   });
 
-  const makePinchApp = async (hit) => {
+  test('pinch gesture fires a haptic tick but never a select or click sound — selection arrives via the runtime\'s selectstart on the hand inputSource', async () => {
     const session = makeSession();
     let pinchCb;
-    const hitObj = { userData: { interactable: { onSelect: jest.fn() } }, dispatchEvent: jest.fn() };
     const app = makeSessionApp({
       renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
       handTracking: {
         initialize: jest.fn().mockResolvedValue(true),
         onGesture: jest.fn((name, cb) => { if (name === 'pinch') { pinchCb = cb; } }),
-        getPointingRay: jest.fn(() => ({ origin: {}, direction: {} })),
-        getPinchPosition: jest.fn(() => ({ x: 0, y: 1, z: 0 })),
         dispose: jest.fn()
       },
       interactables: [{}],
-      intersectInteractablesRay: jest.fn(() => (hit ? { object: hitObj } : null)),
+      intersectInteractables: jest.fn(),
       spatialAudio: { play: jest.fn() },
       hapticFeedback: { playPattern: jest.fn() }
     });
     await VRApp.prototype.onVRSessionStart.call(app);
-    return { app, pinchCb, hitObj };
-  };
-
-  test('pinch gesture raycasts the pointing ray and fires onSelect + qui-select on the hit', async () => {
-    const { app, pinchCb, hitObj } = await makePinchApp(true);
     pinchCb('right', {});
-    expect(app.handTracking.getPointingRay).toHaveBeenCalledWith('right');
-    expect(app.intersectInteractablesRay).toHaveBeenCalled();
-    expect(hitObj.userData.interactable.onSelect)
-      .toHaveBeenCalledWith(expect.objectContaining({ hand: 'right' }));
-    expect(hitObj.dispatchEvent)
-      .toHaveBeenCalledWith(expect.objectContaining({ type: 'qui-select' }));
-    expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.anything());
-  });
-
-  test('pinch on empty space plays no click cue — no feedback for a non-action', async () => {
-    const { app, pinchCb } = await makePinchApp(false);
-    pinchCb('right', {});
-    expect(app.intersectInteractablesRay).toHaveBeenCalled();
+    // No second raycast/dispatch — the XR runtime raises selectstart on the
+    // hand inputSource, which onControllerSelect already handles. A double
+    // select would toggle every interactable twice per pinch.
+    expect(app.intersectInteractables).not.toHaveBeenCalled();
+    // No click cue on a bare pinch: mid-air pinches perform no action.
     expect(app.spatialAudio.play).not.toHaveBeenCalled();
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
   });
 
   test('FFR init failure warns the user via toast instead of failing silently', async () => {
@@ -2322,37 +2307,11 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(video.togglePause).not.toHaveBeenCalled();
   });
 
-  test('pinch gesture callback fans out to spatial click + haptic', async () => {
-    const session = makeSession();
-    const hand = {
-      initialize: jest.fn().mockResolvedValue(true),
-      onGesture: jest.fn(),
-      getPointingRay: jest.fn(() => new THREE.Ray()),
-      getPinchPosition: jest.fn(() => new THREE.Vector3(1, 2, 3)),
-      dispose: jest.fn()
-    };
-    const hitObj = { userData: { interactable: { onSelect: jest.fn() } }, dispatchEvent: jest.fn() };
-    const app = makeSessionApp({
-      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
-      handTracking: hand,
-      spatialAudio: { play: jest.fn() },
-      interactables: [{}],
-      intersectInteractablesRay: jest.fn(() => ({ object: hitObj }))
-    });
-    await VRApp.prototype.onVRSessionStart.call(app);
-    const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    pinchCb('right', {});
-    expect(hitObj.userData.interactable.onSelect).toHaveBeenCalled();
-    expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.any(THREE.Vector3));
-    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
-  });
-
   test('grab gesture fires an impact haptic on the grabbing hand; point is a no-op log', async () => {
     const session = makeSession();
     const hand = {
       initialize: jest.fn().mockResolvedValue(true),
       onGesture: jest.fn(),
-      getPinchPosition: jest.fn(),
       dispose: jest.fn()
     };
     const app = makeSessionApp({
@@ -4635,8 +4594,6 @@ describe('VRApp — complementary arms round 4', () => {
     const hand = {
       initialize: jest.fn().mockResolvedValue(true),
       onGesture: jest.fn(),
-      getPointingRay: jest.fn(() => null),
-      getPinchPosition: jest.fn(() => null), // pos-null arm
       dispose: jest.fn()
     };
     const app = makeVRAppLike({
@@ -4648,7 +4605,7 @@ describe('VRApp — complementary arms round 4', () => {
     });
     await VRApp.prototype.onVRSessionStart.call(app);
     const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    expect(() => pinchCb('right', {})).not.toThrow(); // ray null / subsystems absent guards
+    expect(() => pinchCb('right', {})).not.toThrow(); // haptic absent guard
     const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
     expect(() => grabCb('left')).not.toThrow();
   });
@@ -4696,31 +4653,6 @@ describe('VRApp — complementary arms round 5', () => {
     delete global.localStorage;
   });
 
-  test('pinch with spatialAudio present but pinch position null skips play', async () => {
-    const session = { addEventListener: jest.fn(), visibilityState: 'visible' };
-    const hand = {
-      initialize: jest.fn().mockResolvedValue(true),
-      onGesture: jest.fn(),
-      getPointingRay: jest.fn(() => new THREE.Ray()),
-      getPinchPosition: jest.fn(() => null),
-      dispose: jest.fn()
-    };
-    const hitObj = { userData: { interactable: { onSelect: jest.fn() } }, dispatchEvent: jest.fn() };
-    const app = makeVRAppLike({
-      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
-      settings: { enableWebPanel: false },
-      handTracking: hand,
-      interactables: [{}],
-      intersectInteractablesRay: jest.fn(() => ({ object: hitObj })),
-      spatialAudio: { play: jest.fn() },
-      hapticFeedback: { playPattern: jest.fn() }
-    });
-    await VRApp.prototype.onVRSessionStart.call(app);
-    const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    pinchCb('right', {});
-    expect(app.spatialAudio.play).not.toHaveBeenCalled();   // pos null arm
-    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
-  });
 });
 
 
