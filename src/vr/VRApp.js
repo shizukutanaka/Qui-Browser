@@ -2987,12 +2987,16 @@ export class VRApp {
    * Setup WebXR
    */
   setupVR() {
-    // Add VR button to page. 'hand-tracking' must be requested up front:
-    // WebXR populates XRInputSource.hand only for sessions granted that
-    // feature — without it HandTracking initialises 'successfully' but sees
-    // zero hands forever.
+    // Add VR button to page. Both features must be requested up front —
+    // WebXR only exposes gated APIs on granted sessions:
+    //   • 'hand-tracking': without it XRInputSource.hand stays null and
+    //     HandTracking initialises 'successfully' but sees zero hands forever.
+    //   • 'layers': without it `new XRWebGLBinding()` throws, so both
+    //     FFRSystem (fixedFoveation on the projection layer) and LayersSystem
+    //     (native quad layers — the sharpest text path on Quest) fall back
+    //     silently even on hardware that supports them.
     const vrButton = VRButton.createButton(this.renderer, {
-      optionalFeatures: ['hand-tracking']
+      optionalFeatures: ['hand-tracking', 'layers']
     });
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;

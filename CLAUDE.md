@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き193 — `'layers'` をセッション要求に追加（FFR+ネイティブ quad layer が全滅していた）
+- 🔍 **発見（続き178 hand-tracking と同クラス）**: `XRWebGLBinding` はセッションの `'layers'` 付与なしでは `new XRWebGLBinding()`/`createQuadLayer()` が失敗するのに `sessionInit` は `optionalFeatures: ['hand-tracking']` のみ。LayersSystem の自前コメントすら「layers 要求必須」と明記していたのに要求側が未追随 — **Quest 実機で FFRSystem（fixedFoveation）と LayersSystem（ネイティブ quad layer＝最鮮明なパネル文字経路）の両方が静かに mesh フォールバックに落ちていた**。
+- 🔧 **修正**: `optionalFeatures` に `'layers'` 追加（optional のため非対応環境で requestSession は壊れない）。pin テストを `arrayContaining(['hand-tracking','layers'])` に拡張。
+- ✅ 3088 tests / 72 suites 全緑（該当 suite 63件を含む）。
+
 ### Session 75: 続き192 — Meta 公式 WebXR 性能指針をコードに実測適用（4件）
 - 🔍 **外部調査（developers.meta.com webxr-perf-bp + webxr-frames）**: Meta の公式ベストプラクティスを逐条監査。適用済み = 前面→背面ソート（three 既定）、透明・影の制限（実装済み）、UI テクスチャの mipmap 無効化（canvasTexture.js 済み）。**未適用だった3件を発見**: ①clear color が 0x111111 — Adreno のハードウェア fast-clear は黒/白のみ ②`antialias: false` — three の WebXRManager は `samples: antialias ? 4 : 0` で XR framebuffer の 4× MSAA を切っており、旧コメントが代替に挙げた FXAA/TAA/composer は src/ に存在しない（**MSAA ゼロ＋代替ゼロで XR は常時ジャギー**）③`updateTargetFrameRate` は最大レート要求のみで、持続的フレーム超過時の降格が無かった。
 - 🔧 **修正**: ①scene.background → `0x000000`（fast-clear + OLED 消灯効果も）②`antialias: true`（XR framebuffer に 4× MSAA が実際に付与される）③過負荷ステップダウン — `supportedFrameRates` を降順ラダー `_rateLadder` として保持し、予算超過が 240 フレーム連続したら次の低レートへ `updateTargetFrameRate`、実 refreshRate で targetFPS 再同期。`_fpsOverridden`（ユーザー固定）なら降格しない。onVRSessionEnd でラダー破棄。④`renderer.compile(scene, camera)` をシステム初期化末尾に追加 — 初フレーム（≒VR セッション突入直後）に集中していたシェーダーコンパイルヒッチを 2D アイドル時に前倒し。

@@ -682,9 +682,11 @@ describe('setupVR — button/session/visibility wiring', () => {
     expect(global.document.body.appendChild).toHaveBeenCalledWith(app.vrButton);
     // Without 'hand-tracking' granted at requestSession, XRInputSource.hand
     // stays null and HandTracking sees zero hands on real hardware.
+    // Without 'layers', `new XRWebGLBinding()` throws — FFRSystem and the
+    // native quad-layer path are silently dead on supporting hardware.
     expect(createButton).toHaveBeenCalledWith(
       app.renderer,
-      expect.objectContaining({ optionalFeatures: expect.arrayContaining(['hand-tracking']) })
+      expect.objectContaining({ optionalFeatures: expect.arrayContaining(['hand-tracking', 'layers']) })
     );
     expect(app.setupControllers).toHaveBeenCalled();
     expect(global.window.addEventListener).toHaveBeenCalledWith('enter-vr', app.onEnterVRRequest);
