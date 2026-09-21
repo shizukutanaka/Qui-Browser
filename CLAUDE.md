@@ -245,6 +245,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### 続き135/136: CI 残赤の完全解剖 — 全て patch 化済み、main 着地は owner 判断に
+PR #164 の CI を1ジョブずつログ解剖した。実ゲート `Unit Tests` は **3023/68 全緑**（Node 18 で実行 — `spyOn(performance,'now')` 修正 + generator `.filter` 修正が効いた）。残る赤は全て既知の死んだジョブ＋新たに2件を発見して patch 化:
+- **jacoco-badge-generator**（Java ツール）が jest の絶対に生成しない `target/site/jacoco/jacoco.csv` を `on-missing-report: fail` で要求 → テスト全緑でも test-unit は常に赤。**patch 0006** に削除を同梱（カバレッジは直上の Codecov ステップが受け皿）。
+- **Build Verification matrix の Node 16 leg** — vite@5 は Node ≥18 要求で `vite build` が node@16 で exit 1（18/20 は green を実測）→ **patch 0005** に `[18, 20]` 縮退を同梱。
+- 派生 doc drift も修正: SETUP.md の「Node.js 14+」、README の `cd qui-browser-vr`（clone 先と不一致）、package.json description の実在しない機能謳い（multiplayer/AI recommendations/WebGPU/完全な CI/CD）。
+
+⚠️ **着地状況**: PR #164（233コミットの main 宛ロールアップ）と #163 は**コメントなしで closed・unmerged**。main は依然 PR #56 のまま — 238 commits がブランチ上に存在。`docs/patches/0001–0006` + M-1 prettier が適用されれば全ジョブが緑になる設計は完備。
+
+- 📦 **gate**: 3023 tests 全緑（Node 18/20/24 実測）、lint 0 errors、build green（SW スタンプ動作確認 `qui-browser-2.0.0-mub0hgd5`）。
+
 ### 続き134/135: チェーンが main に未着地 + CI は Node 20 で2つのバージョン乖離を踏んだ
 **(a) 構造的発見**: この arc の積層チェーンは底の PR #61（唯一 main 宛）が未マージ close で、以後全 PR が前の devin ブランチにマージ — **main は PR #56 時点のまま、233 commits が宙に浮いていた**。tip → main のロールアップ PR #164 を発行。
 
