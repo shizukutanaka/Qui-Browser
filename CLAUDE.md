@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き151 — manifest.json の shortcuts が死んでいた（存在しないルート×サブパス 404）
+start_url/scope/icons は相対で正しかったが、shortcuts の3本は `/?action=new-tab`・`/bookmarks`・`/history` — **いずれの URL もハンドラが存在しない**（SPA、ルーターなし、ブックマーク/履歴は VR 内パネル）＋ root-absolute のため `/Qui-Browser/` 配下ではさらに 404（offline.html と同型）。shortcuts を削除し、public-assets.test.js に2ピン追加（manifest の全 URL は相対必須／shortcuts は `./` 始まりのみ許可）。dist 実測で shortcuts 消滅確認。3037 tests 全緑。
+
 ### Session 75: 続き150 — Chrome 検出の4重複を1モジュールへ（1つは既に腐っていた）
 `findChrome()`/`CHROME_CANDIDATES` が verify-app-boot・verify-vr-boot・verify-text-layout・measure-text-metrics に**逐語同一で4重複**。続き127 で macOS Playwright キャッシュを3つに追加した時点で4つ目は更新漏れ — `node tools/measure-text-metrics.mjs` がこのマシンで「No Chromium found」出口を打っていた。`tools/chrome-path.mjs` に抽出して全4箇所が import する形に。統合後 measure-text-metrics は実走し、em 幅モデルを実 Chrome フォントで再検証（全角 1.00em・欧文 ~0.5em・等幅 0.60em — 全てモデル予算内）。verify:app・verify:vr-boot・verify:layout 全て PASS。
 

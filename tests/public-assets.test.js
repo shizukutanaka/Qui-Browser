@@ -44,6 +44,27 @@ test('public/*.html has no root-absolute asset refs (vite copies public/ verbati
   }
 });
 
+test('manifest.json URLs stay relative (verbatim copy → root-absolute 404s under a subpath base)', () => {
+  // Same hazard as the html refs: start_url/scope/icons/shortcuts served from
+  // /Qui-Browser/manifest.json must resolve relative to the manifest, not /.
+  const m = JSON.parse(fs.readFileSync(path.join(PUB, 'manifest.json'), 'utf8'));
+  const urls = [
+    m.start_url, m.scope,
+    ...(m.icons ?? []).map((i) => i.src),
+    ...(m.shortcuts ?? []).map((s) => s.url)
+  ].filter(Boolean);
+  expect(urls.filter((u) => u.startsWith('/'))).toEqual([]);
+});
+
+test('manifest shortcuts point at real routes (no router exists — only ./ works)', () => {
+  // The app is a single-page shell with no client-side router: /bookmarks or
+  // /?action=new-tab have no handler and only ever 404.
+  const m = JSON.parse(fs.readFileSync(path.join(PUB, 'manifest.json'), 'utf8'));
+  for (const s of m.shortcuts ?? []) {
+    expect(s.url.startsWith('./')).toBe(true);
+  }
+});
+
 test('known dead cluster stays deleted', () => {
   for (const name of [
     'vr-browser.html', 'vr-video.html', 'vr-browser.js',
