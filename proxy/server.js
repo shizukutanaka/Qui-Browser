@@ -28,6 +28,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
+import zlib from 'node:zlib';
 import {
   assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
   MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, UPSTREAM_DEADLINE_MS, MAX_REDIRECTS
@@ -174,20 +175,42 @@ export async function fetchThroughGuard(target, headers = {},
         return { ok: false, reason: `content-type-not-readable:${r.headers['content-type'] || 'none'}` };
       }
 
+      // Node's http client never decodes Content-Encoding — a gzipped body
+      // would reach the reader as utf8 mojibake. Decode known encodings and
+      // apply the size cap to the DECODED stream, so a compression bomb
+      // cannot amplify past MAX_RESPONSE_BYTES.
+      const encoding = String(r.headers['content-encoding'] || 'identity').toLowerCase();
+      const decoders = {
+        'gzip': zlib.createUnzip,      // Unzip sniffs gzip vs zlib-wrapped
+        'x-gzip': zlib.createUnzip,    // deflate; raw deflate errors surface
+        'deflate': zlib.createUnzip,   // as 'truncated' rather than mojibake.
+        'br': zlib.createBrotliDecompress
+      };
+      let source = r;
+      if (encoding !== 'identity') {
+        const make = decoders[encoding];
+        if (!make) {
+          r.resume();
+          return { ok: false, reason: `content-encoding-unsupported:${encoding}` };
+        }
+        source = r.pipe(make());
+      }
+
       const body = await new Promise((resolve) => {
         let size = 0;
         const chunks = [];
-        r.on('data', (c) => {
+        source.on('data', (c) => {
           size += c.length;
           if (size > MAX_RESPONSE_BYTES) {
             r.destroy();
+            source.destroy();
             resolve(null);
             return;
           }
           chunks.push(c);
         });
-        r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-        r.on('error', () => resolve(null));
+        source.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        source.on('error', () => resolve(null));
       });
       if (body === null) {
         return { ok: false, reason: abortReason() ?? 'response-too-large-or-truncated' };
