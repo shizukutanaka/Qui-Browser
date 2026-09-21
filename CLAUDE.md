@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き154 — a11y-first を謳う自前ランディングが WCAG 1.4.3 違反だった
+実コントラスト計算で検出: ① `.cta-button`・`.version-badge` の 白 on `--color-vr` #5e72e4 = **4.20:1**（AA 4.5:1 未達。バッジは 14px、CTA は 18px/600 でラージテキスト閾値未満）② **ハイコントラストモードで最悪化**: 塗りが #ffff00 に差し替わるのに文字は白のまま = **1.07:1（ほぼ不可視）** — 低視力ユーザー向け機能が自ら最大の可読性バグを産んでいた。修正: `--color-vr-strong: #5468d9`（4.82:1）を塗り背景用に導入＋HC では塗り要素の文字を黒に反転（黄上 19.6:1 = AAA）。`tests/contrast.test.js` 新設 — :root/HC 両テーマの実使用ペア10組を CSS 変数から実計算して pin。3053 tests 全緑。
+
 ### Session 75: 続き153 — GA4 は設定しても meta CSP に殺される「設定しても死んでいる機能」だった
 `.env.example` が `VITE_GA_MEASUREMENT_ID` を案内し initAnalytics() が gtag.js を動的注入するが、index.html の **meta CSP `script-src 'self'`** がそれをブロック — meta CSP は GitHub Pages（ヘッダなし）を含む全配信先で効き、かつヘッダ CSP とは積で効くため vercel の gtm 許可も無意味だった。docs が手順を案内する機能が全ターゲットで dead-on-arrival。script-src に googletagmanager を追加（connect-src は `https:` で GA 収集・sentry ingest 双方を包含）。`tests/csp-consistency.test.js` 新設 — meta CSP が「コードが正当にロードし得る物を全て許す」ことを pin。3043 tests 全緑。
 

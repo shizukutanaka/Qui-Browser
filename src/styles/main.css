@@ -9,6 +9,10 @@
     --color-primary: #0052cc;
     --color-primary-hover: #0065ff;
     --color-vr: #5e72e4;
+    /* Filled backgrounds carrying white text/icons need AA 4.5:1 —
+       #5e72e4 on white is only 4.20:1 (version-badge, cta-button).
+       Borders and accent text keep --color-vr (3:1 non-text is fine). */
+    --color-vr-strong: #5468d9;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -89,7 +93,7 @@ body {
 }
 
 .version-badge {
-    background: var(--color-vr);
+    background: var(--color-vr-strong);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
@@ -126,7 +130,7 @@ body {
 }
 
 .cta-button {
-    background: var(--color-vr);
+    background: var(--color-vr-strong);
     color: white;
     padding: 1rem 2rem;
     border: none;
@@ -190,7 +194,7 @@ body {
     right: 2rem;
     width: 64px;
     height: 64px;
-    background: var(--color-vr);
+    background: var(--color-vr-strong);
     border: none;
     border-radius: 50%;
     cursor: pointer;
@@ -231,6 +235,7 @@ body.a11y-high-contrast {
     --color-text-subtle: #ffffff;
     --color-border: #ffffff;
     --color-vr: #ffff00;
+    --color-vr-strong: #ffff00;
     --color-primary: #ffff00;
     --color-primary-hover: #ffff66;
 }
@@ -244,6 +249,14 @@ body.a11y-high-contrast .feature-card,
 body.a11y-high-contrast .header,
 body.a11y-high-contrast .cta-button {
     border: 2px solid #ffffff !important;
+}
+
+/* In high-contrast the filled elements are yellow — white text on #ffff00 is
+   1.07:1 (invisible). Flip them to black text: 19.6:1 (AAA). */
+body.a11y-high-contrast .cta-button,
+body.a11y-high-contrast .version-badge,
+body.a11y-high-contrast .vr-button {
+    color: #000000 !important;
 }
 
 /* Large text: bump the key reading sizes (use !important so it wins over px). */
