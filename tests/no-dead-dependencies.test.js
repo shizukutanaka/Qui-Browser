@@ -27,19 +27,28 @@ const SCAN_FILES = [
 function* walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) yield* walk(p);
-    else yield p;
+    if (e.isDirectory()) {
+      yield* walk(p);
+    } else {
+      yield p;
+    }
   }
 }
 
 const corpus = [];
 for (const d of SCAN_DIRS) {
   const abs = path.join(ROOT, d);
-  if (fs.existsSync(abs)) for (const p of walk(abs)) corpus.push(fs.readFileSync(p, 'utf8'));
+  if (fs.existsSync(abs)) {
+    for (const p of walk(abs)) {
+      corpus.push(fs.readFileSync(p, 'utf8'));
+    }
+  }
 }
 for (const f of SCAN_FILES) {
   const abs = path.join(ROOT, f);
-  if (fs.existsSync(abs)) corpus.push(fs.readFileSync(abs, 'utf8'));
+  if (fs.existsSync(abs)) {
+    corpus.push(fs.readFileSync(abs, 'utf8'));
+  }
 }
 corpus.push(JSON.stringify(pkg.scripts));
 const haystack = corpus.join('\n');

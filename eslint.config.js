@@ -68,7 +68,13 @@ module.exports = [
   {
     files: ['tests/**/*.test.js', '**/*.test.js', '**/*.spec.js'],
     rules: {
-      'no-unused-expressions': 'off'
+      'no-unused-expressions': 'off',
+      // Test fixtures legitimately hand javascript: URLs to scheme-blockers
+      // and control-char regexes to non-ASCII checks.
+      'no-script-url': 'off',
+      'no-control-regex': 'off',
+      // Mock factories are deliberately function() — the harness `new`s them.
+      'prefer-arrow-callback': 'off'
     }
   },
   {

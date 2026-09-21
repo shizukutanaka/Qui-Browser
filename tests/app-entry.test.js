@@ -9,7 +9,11 @@ jest.mock('three/examples/jsm/webxr/VRButton.js', () => ({
   VRButton: { createButton: () => ({}) }
 }));
 jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
-  XRControllerModelFactory: class { createControllerModel() { return {}; } }
+  XRControllerModelFactory: class {
+    createControllerModel() {
+      return {};
+    }
+  }
 }));
 
 /** Minimal element stub: id registry + listener capture + DOM tree bits. */
@@ -23,14 +27,26 @@ function makeEl(id = '') {
     listeners,
     setAttribute: jest.fn(),
     classList: { add: jest.fn(), toggle: jest.fn(), remove: jest.fn() },
-    addEventListener: jest.fn((type, fn) => { (listeners[type] ||= []).push(fn); }),
+    addEventListener: jest.fn((type, fn) => {
+      (listeners[type] ||= []).push(fn);
+    }),
     removeEventListener: jest.fn(),
-    appendChild: jest.fn(function (c) { this.children.push(c); return c; }),
-    append: jest.fn(function (...cs) { this.children.push(...cs); }),
-    replaceChildren: jest.fn(function (...cs) { this.children = cs; }),
+    appendChild: jest.fn(function (c) {
+      this.children.push(c); return c;
+    }),
+    append: jest.fn(function (...cs) {
+      this.children.push(...cs);
+    }),
+    replaceChildren: jest.fn(function (...cs) {
+      this.children = cs;
+    }),
     remove: jest.fn(),
-    click() { (listeners.click || []).forEach((f) => f({})); },
-    dispatch(type, ev = {}) { (listeners[type] || []).forEach((f) => f(ev)); }
+    click() {
+      (listeners.click || []).forEach((f) => f({}));
+    },
+    dispatch(type, ev = {}) {
+      (listeners[type] || []).forEach((f) => f(ev));
+    }
   };
 }
 
@@ -53,9 +69,13 @@ function installDom({ ids = {}, xr = null, serviceWorker = null, standalone = fa
     // Elements pre-seeded via `ids`, plus anything createElement() minted
     // (app.js's perf overlay is created at runtime, then re-found by id).
     getElementById: (id) => ids[id] || created.find((e) => e.id === id) || null,
-    createElement: (tag) => { const el = makeEl(tag); created.push(el); return el; },
+    createElement: (tag) => {
+      const el = makeEl(tag); created.push(el); return el;
+    },
     querySelectorAll: () => ({ forEach: () => {} }),
-    addEventListener: (type, fn) => { (documentListeners[type] ||= []).push(fn); },
+    addEventListener: (type, fn) => {
+      (documentListeners[type] ||= []).push(fn);
+    },
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
     _listeners: documentListeners
@@ -63,14 +83,20 @@ function installDom({ ids = {}, xr = null, serviceWorker = null, standalone = fa
   global.navigator = { standalone, ...(xr ? { xr } : {}), ...(serviceWorker ? { serviceWorker } : {}) };
   global.window = {
     navigator: global.navigator, // window.navigator === navigator in browsers
-    addEventListener: (type, fn) => { (windowListeners[type] ||= []).push(fn); },
+    addEventListener: (type, fn) => {
+      (windowListeners[type] ||= []).push(fn);
+    },
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
     matchMedia: (q) => ({ matches: standalone && q.includes('standalone') }),
     standalone,
     QuiBrowser: undefined
   };
-  global.CustomEvent = class { constructor(type, init) { this.type = type; Object.assign(this, init); } };
+  global.CustomEvent = class {
+    constructor(type, init) {
+      this.type = type; Object.assign(this, init);
+    }
+  };
   global.location = { reload: jest.fn() };
 
   return { documentListeners, windowListeners, created, body };
@@ -78,7 +104,9 @@ function installDom({ ids = {}, xr = null, serviceWorker = null, standalone = fa
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-beforeEach(() => { jest.resetModules(); });
+beforeEach(() => {
+  jest.resetModules();
+});
 afterEach(() => {
   delete global.document;
   delete global.window;
@@ -177,7 +205,9 @@ describe('src/main.js (landing page entry)', () => {
     const loading = makeEl('loadingScreen');
     installDom({ ids: { loadingScreen: loading } });
     jest.isolateModules(() => {
-      jest.doMock('../src/app.js', () => { throw new Error('chunk missing'); });
+      jest.doMock('../src/app.js', () => {
+        throw new Error('chunk missing');
+      });
       require('../src/main.js');
     });
     await tick();
@@ -454,7 +484,9 @@ describe('src/main.js — remaining entry arms', () => {
     const enterBtn = makeEl('enterVRButton');
     const { documentListeners } = installDom({
       ids: { enterVRButton: enterBtn },
-      xr: { isSessionSupported: async () => { throw new Error('xr exploded'); } }
+      xr: { isSessionSupported: async () => {
+        throw new Error('xr exploded');
+      } }
     });
     jest.isolateModules(() => require('../src/main.js'));
     (documentListeners.DOMContentLoaded || []).forEach((f) => f());
@@ -476,7 +508,9 @@ describe('src/main.js — remaining entry arms', () => {
   test('service worker registration failure logs a console error, no throw', async () => {
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { windowListeners } = installDom({
-      serviceWorker: { register: jest.fn(async () => { throw new Error('sw fail'); }) }
+      serviceWorker: { register: jest.fn(async () => {
+        throw new Error('sw fail');
+      }) }
     });
     jest.isolateModules(() => require('../src/main.js'));
     (windowListeners.load || []).forEach((f) => f());
@@ -588,11 +622,15 @@ describe('src/app.js — remaining branch arms', () => {
     vrApp.comfortSystem = null;
     const keydown = (key) =>
       (global.document._listeners.keydown || []).forEach((f) => f({ key }));
-    expect(() => { keydown('f'); keydown('c'); }).not.toThrow();
+    expect(() => {
+      keydown('f'); keydown('c');
+    }).not.toThrow();
     // vrApp itself null after Escape — P/F/C are all no-ops
     vrApp.dispose = jest.fn();
     keydown('Escape');
-    expect(() => { keydown('p'); keydown('f'); keydown('c'); }).not.toThrow();
+    expect(() => {
+      keydown('p'); keydown('f'); keydown('c');
+    }).not.toThrow();
   });
 
   test('beforeunload with vrApp null and no interval does not throw', async () => {
@@ -704,7 +742,9 @@ describe('src/main.js — last branch arms', () => {
     const click = (enterBtn.addEventListener?.mock?.calls || [])
       .find(([t]) => t === 'click')?.[1]
       || enterBtn._listeners?.click?.[0];
-    if (click) await expect(click()).resolves.toBeUndefined();
+    if (click) {
+      await expect(click()).resolves.toBeUndefined();
+    }
     expect(true).toBe(true);
   });
 
@@ -712,8 +752,12 @@ describe('src/main.js — last branch arms', () => {
     const loading = makeEl('loadingScreen');
     const { created } = installDom({ ids: { loadingScreen: loading } });
     jest.isolateModules(() => {
-      jest.doMock('../src/app.js', () => { throw new Error('chunk gone'); });
-      try { require('../src/main.js'); } catch { /* init error lands async */ }
+      jest.doMock('../src/app.js', () => {
+        throw new Error('chunk gone');
+      });
+      try {
+        require('../src/main.js');
+      } catch { /* init error lands async */ }
     });
     await tick(); await tick();
     // error path ran — loading screen populated with the reload UI
@@ -763,7 +807,9 @@ describe('src/app.js — complementary arms', () => {
     await tick();
     document.hidden = true;
     const vc = (documentListeners.visibilitychange || [])[0];
-    if (vc) expect(() => vc()).not.toThrow();
+    if (vc) {
+      expect(() => vc()).not.toThrow();
+    }
     document.hidden = false;
   });
 });
@@ -795,7 +841,9 @@ describe('src/main.js — false-side arms', () => {
     const click = (enterBtn.addEventListener?.mock?.calls || [])
       .find(([t]) => t === 'click')?.[1]
       || enterBtn._listeners?.click?.[0];
-    if (click) await click();
+    if (click) {
+      await click();
+    }
     expect(true).toBe(true); // no throw, no navigation
   });
 
@@ -803,8 +851,12 @@ describe('src/main.js — false-side arms', () => {
     const loading = makeEl('loadingScreen');
     installDom({ ids: { loadingScreen: loading } });
     jest.isolateModules(() => {
-      jest.doMock('../src/app.js', () => { throw 'string-failure'; });
-      try { require('../src/main.js'); } catch { /* async */ }
+      jest.doMock('../src/app.js', () => {
+        throw 'string-failure';
+      });
+      try {
+        require('../src/main.js');
+      } catch { /* async */ }
     });
     await tick(); await tick();
     jest.dontMock('../src/app.js');
@@ -835,7 +887,9 @@ describe('src/app.js — false-side arms', () => {
     app.perfMonitorUI = null;
     // remove the perf element so getElementById returns null
     const perf = document.getElementById('performance-monitor');
-    if (perf && perf.remove) perf.remove();
+    if (perf && perf.remove) {
+      perf.remove();
+    }
     const doc = document;
     doc.getElementById = ((orig) => (id) => id === 'performance-monitor' ? null : orig.call(doc, id))(doc.getElementById.bind(doc));
     expect(() => documentListeners.keydown[0]({ key: 'p' })).not.toThrow();
@@ -868,20 +922,28 @@ test('main.js enter-vr click tolerates a navigator without xr; showError without
   Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true });
   jest.isolateModules(() => require('../src/main.js'));
   await tick();
-  if (desc) Object.defineProperty(globalThis, 'navigator', desc);
+  if (desc) {
+    Object.defineProperty(globalThis, 'navigator', desc);
+  }
 });
 
 describe('main.js — final arms', () => {
   test('module-load failure without a loadingScreen element just logs', async () => {
     jest.resetModules();
     installDom({}); // no loadingScreen element
-    jest.doMock('../src/app.js', () => { throw new Error('gone'); });
+    jest.doMock('../src/app.js', () => {
+      throw new Error('gone');
+    });
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     let thrown = null;
     try {
-      jest.isolateModules(() => { require('../src/main.js'); });
+      jest.isolateModules(() => {
+        require('../src/main.js');
+      });
       await new Promise((r) => setTimeout(r, 50));
-    } catch (e) { thrown = e; }
+    } catch (e) {
+      thrown = e;
+    }
     jest.dontMock('../src/app.js');
     errSpy.mockRestore();
     expect(thrown).toBeNull();
@@ -894,7 +956,9 @@ describe('main.js — final arms', () => {
     // Fake timers BEFORE the module loads: the noWebXR path registers a real
     // 6s toast-removal timeout which would otherwise leak an open handle.
     jest.useFakeTimers();
-    jest.isolateModules(() => { require('../src/main.js'); });
+    jest.isolateModules(() => {
+      require('../src/main.js');
+    });
     (documentListeners.DOMContentLoaded || []).forEach((fn) => fn());
 
     await enterBtn.click();
@@ -920,7 +984,9 @@ describe('src/main.js — toast/SW tail coverage', () => {
     });
     jest.isolateModules(() => require('../src/main.js'));
     (documentListeners.DOMContentLoaded || []).forEach((f) => f());
-    for (let i = 0; i < 8; i++) { await Promise.resolve(); }
+    for (let i = 0; i < 8; i++) {
+      await Promise.resolve();
+    }
     await enterBtn.listeners.click[0]({});
     const toast = global.document.body.children.find((c) => c.id === 'vr-error-toast');
     expect(toast).toBeTruthy();
@@ -936,7 +1002,9 @@ describe('src/main.js — toast/SW tail coverage', () => {
     const { windowListeners } = installDom({ serviceWorker: { register } });
     jest.isolateModules(() => require('../src/main.js'));
     (windowListeners.load || []).forEach((f) => f());
-    for (let i = 0; i < 8; i++) { await Promise.resolve(); }
+    for (let i = 0; i < 8; i++) {
+      await Promise.resolve();
+    }
     jest.advanceTimersByTime(60000);
     expect(registration.update).toHaveBeenCalled();
     jest.useRealTimers();

@@ -14,20 +14,38 @@ class MockMesh {
     this.material = { map: null, dispose() {} };
     this.position = { set() {} };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 
 jest.mock('three', () => ({
   Group: class {
-    constructor() { this.position = { set() {} }; this.rotation = {}; this._objects = []; }
-    add(o) { this._objects.push(o); }
-    remove(o) { this._objects = this._objects.filter(x => x !== o); }
-    traverse(fn) { this._objects.forEach(fn); fn(this); }
+    constructor() {
+      this.position = { set() {} }; this.rotation = {}; this._objects = [];
+    }
+    add(o) {
+      this._objects.push(o);
+    }
+    remove(o) {
+      this._objects = this._objects.filter(x => x !== o);
+    }
+    traverse(fn) {
+      this._objects.forEach(fn); fn(this);
+    }
   },
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; this.colorSpace = ''; } dispose() {} },
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false; this.colorSpace = '';
+    } dispose() {}
+  },
   SRGBColorSpace: 'srgb',
   MathUtils: { degToRad: (d) => d * Math.PI / 180 }
 }));
@@ -41,7 +59,9 @@ const ctx2d = {
 };
 global.document = {
   createElement(tag) {
-    if (tag === 'canvas') return { width: 0, height: 0, getContext: () => ctx2d };
+    if (tag === 'canvas') {
+      return { width: 0, height: 0, getContext: () => ctx2d };
+    }
     if (tag === 'iframe') {
       return {
         src: '', style: { cssText: '' }, onload: null, onerror: null,
@@ -67,17 +87,27 @@ const _realFetch = global.fetch;
 beforeEach(() => {
   global.fetch = () => Promise.resolve({ ok: false, status: 503, text: () => Promise.resolve('') });
 });
-afterEach(() => { global.fetch = _realFetch; });
-function registeredMeshes() { return _registered; }
-function unregisteredMeshes() { return _unregistered; }
+afterEach(() => {
+  global.fetch = _realFetch;
+});
+function registeredMeshes() {
+  return _registered;
+}
+function unregisteredMeshes() {
+  return _unregistered;
+}
 
 function makePanel(opts = {}) {
   _registered.length = 0;
   _unregistered.length = 0;
   return new WebPanel({
     scene: { add() {}, remove() {} },
-    registerInteractable: (mesh) => { _registered.push(mesh); },
-    unregisterInteractable: (mesh) => { _unregistered.push(mesh); },
+    registerInteractable: (mesh) => {
+      _registered.push(mesh);
+    },
+    unregisterInteractable: (mesh) => {
+      _unregistered.push(mesh);
+    },
     onNavigate: jest.fn(),
     ...opts
   });
@@ -383,7 +413,9 @@ describe('WebPanel content-area state', () => {
 // permissive origins are reachable; everything else must fall back honestly.
 describe('WebPanel reader viewport', () => {
   const realFetch = global.fetch;
-  afterEach(() => { global.fetch = realFetch; });
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
 
   const ARTICLE = `
     <html><head><title>Test Article</title></head><body>
@@ -441,7 +473,9 @@ describe('WebPanel reader viewport', () => {
 
   test('a stale in-flight fetch cannot overwrite a newer navigation', async () => {
     let resolveSlow;
-    const slow = new Promise((r) => { resolveSlow = r; });
+    const slow = new Promise((r) => {
+      resolveSlow = r;
+    });
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
     const p = makePanel();
     const first = p._loadReaderText('https://example.com/old');
@@ -604,7 +638,9 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     const PANEL_W = 1.6, contentH = 1.0 * (1 - 0.08);
     const u = px / CONTENT_PX_W;
     const v = 1 - py / CONTENT_PX_H;
-    return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * contentH, clone() { return this; } };
+    return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * contentH, clone() {
+      return this;
+    } };
   }
 
   test('contentMesh is registered as an interactable', async () => {
@@ -617,7 +653,9 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     expect(p._contentState).toBe('reader');
     const before = p._readerScroll;
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ x: 0, y: 0, clone() { return this; } });
+    p._onContentSelect({ x: 0, y: 0, clone() {
+      return this;
+    } });
     // visibleLinesFor, not visibleLineCount: a scrollable article reserves the
     // bottom strip the arrows and progress label occupy, so fewer lines show.
     expect(p._readerScroll)
@@ -627,26 +665,34 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   test('selecting the up arrow goes back, clamped at the top', async () => {
     const p = await readerPanel();
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({ clone() {
+      return this;
+    } });
     const afterDown = p._readerScroll;
     expect(afterDown).toBeGreaterThan(0);
 
     p.contentMesh.worldToLocal = () => localForContent(ARROW_UP_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({ clone() {
+      return this;
+    } });
     expect(p._readerScroll).toBeLessThan(afterDown);
   });
 
   test('selecting the body text area does not scroll', async () => {
     const p = await readerPanel();
     p.contentMesh.worldToLocal = () => localForContent(200, 200);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({ clone() {
+      return this;
+    } });
     expect(p._readerScroll).toBe(0);
   });
 
   test('selecting content is inert when not in reader state', () => {
     const p = makePanel();
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    expect(() => p._onContentSelect({ clone() { return this; } })).not.toThrow();
+    expect(() => p._onContentSelect({ clone() {
+      return this;
+    } })).not.toThrow();
     expect(p._readerScroll).toBe(0);
   });
 
@@ -715,7 +761,9 @@ describe('WebPanel new-tab top sites (C-3)', () => {
       x: (u - 0.5) * PANEL_W,
       y: (v - 0.5) * CONTENT_M_H,
       z: 0,
-      clone() { return this; }
+      clone() {
+        return this;
+      }
     };
   };
   const SITES = [
@@ -825,7 +873,9 @@ describe('WebPanel stop()', () => {
   test('the reload zone dispatches stop() while loading, reload() when idle', () => {
     // px 136–204 is the reload/stop zone on the 1024px chrome canvas.
     // local.x -0.53 → u ≈ 0.169 → px 173.
-    const point = { x: -0.53, y: 0, z: 0, clone() { return this; } };
+    const point = { x: -0.53, y: 0, z: 0, clone() {
+      return this;
+    } };
     const loadingPanel = makePanel();
     loadingPanel.loading = true;
     loadingPanel.stop = jest.fn();

@@ -8,16 +8,28 @@
 // forbids referencing out-of-scope vars there) and re-required for the tests.
 jest.mock('three', () => {
   class V3 {
-    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
-    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
-    add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
-    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x; this.y = y; this.z = z;
+    }
+    set(x, y, z) {
+      this.x = x; this.y = y; this.z = z; return this;
+    }
+    copy(v) {
+      this.x = v.x; this.y = v.y; this.z = v.z; return this;
+    }
+    add(v) {
+      this.x += v.x; this.y += v.y; this.z += v.z; return this;
+    }
+    addScaledVector(v, s) {
+      this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this;
+    }
     normalize() {
       const l = Math.hypot(this.x, this.y, this.z) || 1;
       this.x /= l; this.y /= l; this.z /= l; return this;
     }
-    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+    distanceTo(v) {
+      return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
     lerp(v, t) {
       this.x += (v.x - this.x) * t;
       this.y += (v.y - this.y) * t;
@@ -38,8 +50,12 @@ jest.mock('three', () => {
     }
   }
   class Quat {
-    constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
-    copy(q) { this.x = q.x; this.y = q.y; this.z = q.z; this.w = q.w; return this; }
+    constructor(x = 0, y = 0, z = 0, w = 1) {
+      this.x = x; this.y = y; this.z = z; this.w = w;
+    }
+    copy(q) {
+      this.x = q.x; this.y = q.y; this.z = q.z; this.w = q.w; return this;
+    }
     setFromAxisAngle(axis, angle) {
       const h = angle / 2, s = Math.sin(h);
       this.x = axis.x * s; this.y = axis.y * s; this.z = axis.z * s; this.w = Math.cos(h);
@@ -71,10 +87,16 @@ function makeNode(pos = [0, 0, 0], quat = [0, 0, 0, 1]) {
     quaternion: new Quat(...quat),
     scale: {
       x: 1, y: 1, z: 1,
-      setScalar(v) { this.x = v; this.y = v; this.z = v; return this; }
+      setScalar(v) {
+        this.x = v; this.y = v; this.z = v; return this;
+      }
     },
-    getWorldPosition: (v) => { v.set(pos[0], pos[1], pos[2]); return v; },
-    getWorldQuaternion: (q) => { q.x = quat[0]; q.y = quat[1]; q.z = quat[2]; q.w = quat[3]; return q; }
+    getWorldPosition: (v) => {
+      v.set(pos[0], pos[1], pos[2]); return v;
+    },
+    getWorldQuaternion: (q) => {
+      q.x = quat[0]; q.y = quat[1]; q.z = quat[2]; q.w = quat[3]; return q;
+    }
   };
 }
 
@@ -95,7 +117,6 @@ describe('WindowManager (spatial window management)', () => {
     expect(wm.setDistance(2)).toBe(2);
   });
 
-  
 
   test('follow mode places the panel "distance" metres along camera forward', () => {
     // Camera at origin, identity orientation → forward is -Z.
@@ -147,7 +168,6 @@ describe('WindowManager (spatial window management)', () => {
     expect(panel.position.z).toBeCloseTo(-1, 5);
   });
 
-  
 
   test('update no-ops without a target', () => {
     const wm = new WindowManager(makeNode());
@@ -370,7 +390,7 @@ describe('WindowManager — constant apparent size across the distance range', (
     expect(panel.scale.x).toBe(1);
   });
 
-  
+
 });
 
 describe('WindowManager — remaining guard arms', () => {

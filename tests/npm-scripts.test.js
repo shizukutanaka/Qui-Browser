@@ -17,7 +17,9 @@ const refs = [];
 for (const [name, cmd] of Object.entries(pkg.scripts)) {
   const inputs = (cmd.match(/(?:^|\s)(?:node\s+)?(?:tools|tests|src|proxy|bin)\/[\w./-]+/g) || [])
     .map((s) => s.trim().replace(/^node\s+/, ''));
-  for (const f of inputs) refs.push([name, f]);
+  for (const f of inputs) {
+    refs.push([name, f]);
+  }
 }
 
 test.each(refs.map(([name, f]) => [`${name} → ${f}`, f]))('%s exists', (_label, f) => {
@@ -31,7 +33,9 @@ test.each(refs.map(([name, f]) => [`${name} → ${f}`, f]))('%s exists', (_label
 const testMatchScripts = [];
 for (const [name, cmd] of Object.entries(pkg.scripts)) {
   const m = cmd.match(/--testMatch=['"]([^'"]+)['"]/);
-  if (m) testMatchScripts.push([name, m[1]]);
+  if (m) {
+    testMatchScripts.push([name, m[1]]);
+  }
 }
 for (const [name, glob] of testMatchScripts) {
   test(`${name}'s --testMatch ${glob} matches at least one file`, () => {

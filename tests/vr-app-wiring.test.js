@@ -22,7 +22,11 @@ jest.mock('three/examples/jsm/webxr/VRButton.js', () => ({
   VRButton: { createButton: () => ({}) }
 }));
 jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
-  XRControllerModelFactory: class { createControllerModel() { return {}; } }
+  XRControllerModelFactory: class {
+    createControllerModel() {
+      return {};
+    }
+  }
 }));
 
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
@@ -549,7 +553,9 @@ describe('VRApp.updateSystems — per-frame arms (hand tracking, haptic refresh,
     });
     VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
     expect(xrFrame.getViewerPose).toHaveBeenCalledWith(refSpace);
-    for (const p of panels) expect(p.updateLayer).toHaveBeenCalledWith(xrFrame, views);
+    for (const p of panels) {
+      expect(p.updateLayer).toHaveBeenCalledWith(xrFrame, views);
+    }
   });
 
   test('layers fall back to the single webPanel when no tabManager; skip when pose unavailable', () => {
@@ -680,8 +686,12 @@ describe('VRApp.gazeInteraction getter/setter (delegates to AccessibilityCoordin
 describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
   // onVRSessionEnd() restores desktop pixel ratio via window.devicePixelRatio;
   // this suite runs under the 'node' test environment, which has no window.
-  beforeEach(() => { global.window = { devicePixelRatio: 1 }; });
-  afterEach(() => { delete global.window; });
+  beforeEach(() => {
+    global.window = { devicePixelRatio: 1 };
+  });
+  afterEach(() => {
+    delete global.window;
+  });
 
   /** Bare `this` with just the fields onVRSessionEnd() reads/writes. */
   function makeSessionEndApp(overrides = {}) {
@@ -830,7 +840,9 @@ function makeTeleportApp(overrides = {}) {
   return makeVRAppLike({
     teleport: { active: false, controller: null, marker: { visible: false }, target: null, valid: false },
     playerRig: { position: { x: 0, y: 0, z: 0 } },
-    camera: { getWorldPosition: (v) => { v.x = 0; v.z = 0; return v; } },
+    camera: { getWorldPosition: (v) => {
+      v.x = 0; v.z = 0; return v;
+    } },
     // onTeleportEnd()/_cancelTeleportIfAimedBy() call this.\_resetTeleportAim()
     // internally — supply the real prototype method so that internal call
     // resolves (the fake `this` here is a plain object literal, not an
@@ -1124,7 +1136,9 @@ describe('VRApp._requestReaderProxyInput — the proxy setting is finally reacha
     camera: { add: jest.fn(), remove: jest.fn() },
     showVRToast: VRApp.prototype.showVRToast,
     settings: { readerProxyUrl: '' },
-    updateSetting: jest.fn(function (k, v) { this.settings[k] = v; }),
+    updateSetting: jest.fn(function (k, v) {
+      this.settings[k] = v;
+    }),
     tabManager: { setReaderProxyUrl: jest.fn() },
     // Captures the confirm callback so each test can play the typed input.
     _requestVRKeyboardInput: jest.fn(function (prefill, onConfirm) {
@@ -1232,8 +1246,12 @@ describe('VRApp — tab session persistence (F-4)', () => {
     store = {};
     global.localStorage = {
       getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
-      setItem: (k, v) => { store[k] = String(v); },
-      removeItem: (k) => { delete store[k]; }
+      setItem: (k, v) => {
+        store[k] = String(v);
+      },
+      removeItem: (k) => {
+        delete store[k];
+      }
     };
   });
 
@@ -1311,11 +1329,17 @@ describe('VRApp — settings/tab-session persistence and navigate()', () => {
     store = {};
     global.localStorage = {
       getItem: (k) => (k in store ? store[k] : null),
-      setItem: (k, v) => { store[k] = String(v); },
-      removeItem: (k) => { delete store[k]; }
+      setItem: (k, v) => {
+        store[k] = String(v);
+      },
+      removeItem: (k) => {
+        delete store[k];
+      }
     };
   });
-  afterEach(() => { delete global.localStorage; });
+  afterEach(() => {
+    delete global.localStorage;
+  });
 
   test('loadPersistedSettings filters to known keys only', () => {
     store['qui-browser:settings'] = JSON.stringify({ a11y: true, evil: 'x' });
@@ -1514,7 +1538,7 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     const app = makeLocoApp({ settings: {
       southpaw: true, enableSnapTurn: true, enableSmoothMove: true,
       snapTurnAngle: 30, smoothMoveSpeed: 2
-    }});
+    } });
     app.snapTurn = jest.fn();
     withInput(app, makePad('right', { stickX: 0.9 })); // right hand is MOVE in southpaw
     VRApp.prototype.updateLocomotion.call(app);
@@ -1547,7 +1571,7 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     const app = makeLocoApp({ settings: {
       southpaw: false, enableSnapTurn: false, enableSmoothMove: false,
       snapTurnAngle: 30, smoothMoveSpeed: 2
-    }});
+    } });
     app.snapTurn = jest.fn();
     withInput(app, makePad('right', { stickX: 0.9, stickY: -0.9 }));
     VRApp.prototype.updateLocomotion.call(app);
@@ -1578,8 +1602,12 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     app.semanticDOM = { setSettingsExpanded: jest.fn() };
     app.vrKeyboard = {
       visible: false,
-      show: jest.fn(function () { this.visible = true; }),
-      hide: jest.fn(function () { this.visible = false; })
+      show: jest.fn(function () {
+        this.visible = true;
+      }),
+      hide: jest.fn(function () {
+        this.visible = false;
+      })
     };
     app.captionSystem = { enabled: true, show: jest.fn() };
     app.hapticFeedback = { playPattern: jest.fn() };
@@ -1609,7 +1637,7 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     const sp = makeLocoApp({ settings: {
       southpaw: true, enableSnapTurn: true, enableSmoothMove: true,
       snapTurnAngle: 30, smoothMoveSpeed: 2
-    }});
+    } });
     sp.bookmarkPanel = { toggle: jest.fn(), visible: false };
     const spTab = { goForward: jest.fn(() => true) };
     sp.tabManager = { getActiveTab: () => spTab };
@@ -1643,8 +1671,12 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     const app = makeLocoApp();
     app.vrKeyboard = {
       visible: true,
-      show: jest.fn(function () { this.visible = true; }),
-      hide: jest.fn(function () { this.visible = false; })
+      show: jest.fn(function () {
+        this.visible = true;
+      }),
+      hide: jest.fn(function () {
+        this.visible = false;
+      })
     };
     app.captionSystem = { enabled: true, show: jest.fn() };
     withInput(app, makePad('left', {}, { thumbstickClick: { justPressed: true } }));
@@ -1791,7 +1823,9 @@ describe('VRApp teleport aim raycast + immersive video launch (bound prototypes,
   function makeCtrl(position, euler) {
     const ctl = new THREE.Object3D();
     ctl.position.copy(position);
-    if (euler) { ctl.rotation.copy(euler); }
+    if (euler) {
+      ctl.rotation.copy(euler);
+    }
     ctl.updateMatrixWorld(true);
     ctl.userData = {};
     return ctl;
@@ -1860,7 +1894,6 @@ describe('VRApp teleport aim raycast + immersive video launch (bound prototypes,
 
   test('_launchImmersiveVideo plays the confirmed URL with auto-detected format', () => {
     const app = { immersiveVideo: { play: jest.fn() }, _requestVRKeyboardInput: null };
-    VRApp.prototype._requestVRKeyboardInput = VRApp.prototype._requestVRKeyboardInput;
     let captured;
     app._requestVRKeyboardInput = (prefill, onConfirm, prompt) => {
       captured = { prefill, onConfirm, prompt };
@@ -2202,9 +2235,15 @@ describe('VRApp settings-panel button builders + layer attach (bound prototypes)
       settingsPanel: null,
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
-      registerInteractable(mesh, handlers) { app.interactables.push({ mesh, ...handlers }); },
-      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
-      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      registerInteractable(mesh, handlers) {
+        app.interactables.push({ mesh, ...handlers });
+      },
+      unregisterInteractable(mesh) {
+        app.interactables = app.interactables.filter((i) => i.mesh !== mesh);
+      },
+      updateSetting(key, value) {
+        app.settings[key] = value; app.saveSettings(); return value;
+      },
       _announceSettingsButton: VRApp.prototype._announceSettingsButton,
       _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
       ...over
@@ -2339,8 +2378,12 @@ describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure constructi
       scene: null, camera: null,
       renderer: {},
       interactables: [],
-      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
-      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      registerInteractable(mesh, h) {
+        app.interactables.push({ mesh, ...h });
+      },
+      unregisterInteractable(mesh) {
+        app.interactables = app.interactables.filter((i) => i.mesh !== mesh);
+      },
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
       _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
@@ -2424,7 +2467,9 @@ describe('VRApp setupControllers + loadAudioAssets (bound prototypes)', () => {
     const app = makeControllerApp();
     // Controllers are real THREE Groups — EventDispatcher works natively.
     const ctl = [new THREE.Group(), new THREE.Group()];
-    ctl.forEach((c) => { c.userData = {}; });
+    ctl.forEach((c) => {
+      c.userData = {};
+    });
     const grips = [new THREE.Group(), new THREE.Group()];
     app.renderer = {
       xr: {
@@ -2518,9 +2563,15 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
       captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(), setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
-      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
-      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
-      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      registerInteractable(mesh, h) {
+        app.interactables.push({ mesh, ...h });
+      },
+      unregisterInteractable(mesh) {
+        app.interactables = app.interactables.filter((i) => i.mesh !== mesh);
+      },
+      updateSetting(key, value) {
+        app.settings[key] = value; app.saveSettings(); return value;
+      },
       _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
       _announceSettingsButton: VRApp.prototype._announceSettingsButton,
       makeSectionTab: VRApp.prototype.makeSectionTab,
@@ -2598,7 +2649,9 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       interactables: [], scene: new THREE.Scene(),
       tabManager: { setSearchEngine: jest.fn(), setCurved: jest.fn() },
       webPanel: { setCurved: jest.fn() },
-      bookmarkPanel: { visible: false, toggle: jest.fn(function () { this.visible = !this.visible; }) },
+      bookmarkPanel: { visible: false, toggle: jest.fn(function () {
+        this.visible = !this.visible;
+      }) },
       windowManager: { setFollow: jest.fn(), setDistance: jest.fn() },
       gazeInteraction: { setEnabled: jest.fn(), setHighContrast: jest.fn() },
       ffrSystem: { enable: jest.fn(), disable: jest.fn() },
@@ -2609,9 +2662,15 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
         setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
-      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
-      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
-      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      registerInteractable(mesh, h) {
+        app.interactables.push({ mesh, ...h });
+      },
+      unregisterInteractable(mesh) {
+        app.interactables = app.interactables.filter((i) => i.mesh !== mesh);
+      },
+      updateSetting(key, value) {
+        app.settings[key] = value; app.saveSettings(); return value;
+      },
       _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
       _announceSettingsButton: VRApp.prototype._announceSettingsButton,
       _redrawSettingsPanel: VRApp.prototype._redrawSettingsPanel,
@@ -2690,7 +2749,9 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       const C = app.interactables.slice(5);
       C[2].onSelect(); // enableSmoothMove false->true with OS reduced-motion
       expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
-    } finally { global.matchMedia = origMM; }
+    } finally {
+      global.matchMedia = origMM;
+    }
   });
 
   test('display: FFR enable/disable, curved panel (tabManager), follow, distance', () => {
@@ -3027,9 +3088,15 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
       interactables: [], scene: new THREE.Scene(),
       captionSystem: null, gazeInteraction: null, hapticFeedback: null, ffrSystem: null,
       saveSettings: jest.fn(), showVRToast: jest.fn(),
-      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
-      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
-      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      registerInteractable(mesh, h) {
+        app.interactables.push({ mesh, ...h });
+      },
+      unregisterInteractable(mesh) {
+        app.interactables = app.interactables.filter((i) => i.mesh !== mesh);
+      },
+      updateSetting(key, value) {
+        app.settings[key] = value; app.saveSettings(); return value;
+      },
       _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
       _announceSettingsButton: VRApp.prototype._announceSettingsButton,
       _redrawSettingsPanel: VRApp.prototype._redrawSettingsPanel,
@@ -3233,7 +3300,9 @@ describe('VRApp constructor + storage boundary arms', () => {
       expect(app.settings.captionScale).toBe(1.4);
     } finally {
       setPref('largeText', prev);
-      if (prevLS) global.localStorage = prevLS;
+      if (prevLS) {
+        global.localStorage = prevLS;
+      }
     }
   });
 
@@ -3472,11 +3541,11 @@ describe('VRApp — render/updateSystems/navigate/stats/dispose arms', () => {
 });
 
 describe('WindowManager — sliver arm', () => {
-test('WindowManager update early-returns without a target', async () => {
-  const { WindowManager } = await import('../src/vr/browser/WindowManager.js');
-  const wm = new WindowManager({ camera: {} });
-  expect(() => wm.update(16)).not.toThrow();
-});
+  test('WindowManager update early-returns without a target', async () => {
+    const { WindowManager } = await import('../src/vr/browser/WindowManager.js');
+    const wm = new WindowManager({ camera: {} });
+    expect(() => wm.update(16)).not.toThrow();
+  });
 });
 
 describe('WindowManager — follow arms', () => {
@@ -3519,7 +3588,11 @@ describe('VRApp — sliver arms (persist, teardown, guards)', () => {
       expect(app.settings.captionScale).toBe(2.5);
     } finally {
       setPref('largeText', prev);
-      if (prevLS) global.localStorage = prevLS; else delete global.localStorage;
+      if (prevLS) {
+        global.localStorage = prevLS;
+      } else {
+        delete global.localStorage;
+      }
     }
   });
 
@@ -3528,7 +3601,11 @@ describe('VRApp — sliver arms (persist, teardown, guards)', () => {
     delete global.localStorage;
     try {
       expect(() => VRApp.prototype.saveSettings.call({ settings: { a: 1 } })).not.toThrow();
-    } finally { if (prevLS) global.localStorage = prevLS; }
+    } finally {
+      if (prevLS) {
+        global.localStorage = prevLS;
+      }
+    }
   });
 
   test('_teardownBrowsingSystems detaches a live windowManager', () => {
@@ -3965,7 +4042,11 @@ describe('VRApp render/perf tails', () => {
       expect(app.performanceMonitor.memoryUsed).toBe(7); // absent-arm: unchanged
       expect(app.performanceMonitor.fps).toBeCloseTo(1000 / 19);
     } finally {
-      if (had) Object.defineProperty(global.performance, 'memory', had); else delete global.performance.memory;
+      if (had) {
+        Object.defineProperty(global.performance, 'memory', had);
+      } else {
+        delete global.performance.memory;
+      }
     }
   });
 
@@ -3995,7 +4076,9 @@ describe('VRApp — setupCamera/home-environment remaining arms', () => {
       _panelTextures: [], _sharedGeometries: new Map(),
       scene: new THREE.Scene(), camera: null,
       interactables: [],
-      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
+      registerInteractable(mesh, h) {
+        app.interactables.push({ mesh, ...h });
+      },
       _attachManagedWindow: jest.fn(),
       ...over
     });
@@ -4054,7 +4137,9 @@ describe('VRApp — complementary arms round 3', () => {
   test('openSettingsSections absent → || [] arms in tab draw + section toggle', () => {
     const app = makeVRAppLike({
       settings: { openSettingsSections: undefined },
-      updateSetting(key, v) { app.settings[key] = v; },
+      updateSetting(key, v) {
+        app.settings[key] = v;
+      },
       _rebuildSettingsPanel: jest.fn(),
       captionSystem: { enabled: false, show: jest.fn() }
     });
@@ -4083,10 +4168,14 @@ describe('VRApp — complementary arms round 3', () => {
     const app = makeVRAppLike({
       settings: { s: 500 },
       _panelTextures: [],
-      updateSetting: jest.fn((k, v) => { app.settings[k] = v; }),
+      updateSetting: jest.fn((k, v) => {
+        app.settings[k] = v;
+      }),
       _announceSettingsButton: jest.fn(),
       _sharedPlaneGeometry: () => new THREE.PlaneGeometry(0.9, 0.17),
-      registerInteractable: jest.fn((m, h) => { app._h = h; }),
+      registerInteractable: jest.fn((m, h) => {
+        app._h = h;
+      }),
       scene: new THREE.Scene()
     });
     VRApp.prototype.makeStepperButton.call(app, 'L', 's', { min: 0, max: 1000, step: 100 }); // no apply
@@ -4185,7 +4274,11 @@ describe('VRApp — complementary arms round 3', () => {
       VRApp.prototype.updatePerformanceMonitor.call(app, 10);
       expect(app.performanceMonitor.memoryUsed).toBe(2);
     } finally {
-      if (had) Object.defineProperty(global.performance, 'memory', had); else delete global.performance.memory;
+      if (had) {
+        Object.defineProperty(global.performance, 'memory', had);
+      } else {
+        delete global.performance.memory;
+      }
     }
   });
 
@@ -4232,7 +4325,9 @@ describe('VRApp — complementary arms round 4', () => {
     try {
       expect(() => VRApp.prototype.saveSettings.call({ settings: { a: 1 } })).not.toThrow();
     } finally {
-      if (had) Object.defineProperty(globalThis, 'localStorage', had);
+      if (had) {
+        Object.defineProperty(globalThis, 'localStorage', had);
+      }
     }
   });
 
@@ -4247,7 +4342,9 @@ describe('VRApp — complementary arms round 4', () => {
     VRApp.prototype.makeSectionTab.call(app, 'settings.section.audio', 'Audio');
     const entry = app.registerInteractable.mock.calls[0];
     const drawer = entry[1].draw || entry[1].redraw; // whichever the builder registers
-    if (drawer) drawer(true);
+    if (drawer) {
+      drawer(true);
+    }
     expect(app.registerInteractable).toHaveBeenCalled();
   });
 
@@ -4380,7 +4477,9 @@ describe('VRApp setupRenderer — context-loss/resize handler bodies (patched ct
       constructor() {
         this.domElement = {
           style: {},
-          addEventListener: jest.fn((t, f) => { handlers[t] = f; }),
+          addEventListener: jest.fn((t, f) => {
+            handlers[t] = f;
+          }),
           removeEventListener: jest.fn()
         };
         this.shadowMap = {};
@@ -4425,7 +4524,11 @@ describe('VRApp setupRenderer — context-loss/resize handler bodies (patched ct
       expect(app.camera.aspect).toBe(800 / 600);
       expect(app.camera.updateProjectionMatrix).toHaveBeenCalled();
     } finally {
-      if (savedWin === undefined) { delete global.window; } else { global.window = savedWin; }
+      if (savedWin === undefined) {
+        delete global.window;
+      } else {
+        global.window = savedWin;
+      }
       jest.useRealTimers();
     }
   });

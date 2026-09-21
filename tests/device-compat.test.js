@@ -116,7 +116,9 @@ describe('DeviceCompatibility — probe edge cases', () => {
     delete navigator.xr;
     delete navigator.userAgent;
   };
-  beforeEach(() => { dc = new DeviceCompatibility(); });
+  beforeEach(() => {
+    dc = new DeviceCompatibility();
+  });
   afterEach(clearStubs);
 
   test('isSessionSupported rejecting resolves to false, not a crash', async () => {
@@ -180,7 +182,9 @@ describe('DeviceCompatibility — _hasWebGL2 arms', () => {
   test('returns false when getContext throws (driver-blacklisted GPU)', () => {
     const dc = new (require('../src/utils/DeviceCompatibility.js').DeviceCompatibility || Object)();
     const prevDoc = global.document;
-    global.document = { createElement: () => ({ getContext: () => { throw new Error('blacklisted'); } }) };
+    global.document = { createElement: () => ({ getContext: () => {
+      throw new Error('blacklisted');
+    } }) };
     try {
       expect(dc._hasWebGL2()).toBe(false);
     } finally {
@@ -243,7 +247,9 @@ describe('DeviceCompatibility — navigator/ua sliver arms', () => {
       const report = await dc.check();
       expect(report.vrSupported).toBe(false);
     } finally {
-      if (saved) Object.defineProperty(globalThis, 'navigator', saved);
+      if (saved) {
+        Object.defineProperty(globalThis, 'navigator', saved);
+      }
     }
   });
 
@@ -255,7 +261,9 @@ describe('DeviceCompatibility — navigator/ua sliver arms', () => {
       const report = await dc.check();
       expect(report.deviceTier).toBeTruthy();
     } finally {
-      if (saved) Object.defineProperty(navigator, 'userAgent', saved);
+      if (saved) {
+        Object.defineProperty(navigator, 'userAgent', saved);
+      }
     }
   });
 
@@ -276,7 +284,9 @@ describe('DeviceCompatibility — navigator-absent arm', () => {
       expect(feats.handTracking).toBe(true);
       expect(feats.hitTest).toBe(false);
     } finally {
-      if (had) Object.defineProperty(globalThis, 'navigator', had);
+      if (had) {
+        Object.defineProperty(globalThis, 'navigator', had);
+      }
     }
   });
 });

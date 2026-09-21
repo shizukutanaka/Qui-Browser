@@ -251,7 +251,7 @@ describe('landing page claims match shipped features', () => {
     /machine learning|AI Recommendations|AIレコメンド/i,
     /object pool/i,
     /12\s*(gesture|種のジェスチャ)/i,
-    /WebGPU/i,
+    /WebGPU/i
   ];
 
   test('index.html advertises only shipped features', () => {
@@ -330,7 +330,7 @@ describe('catalog keys are all referenced (no dead translations)', () => {
       path.join(root, 'index.html'),
       path.join(root, 'public/offline.html'),
       ...walk(path.join(root, 'src')).filter((p) => p.endsWith('.js')),
-      ...walk(path.join(root, 'tests')).filter((p) => p.endsWith('.js')),
+      ...walk(path.join(root, 'tests')).filter((p) => p.endsWith('.js'))
     ]
       .map((p) => fs.readFileSync(p, 'utf8'))
       .join('\n')
@@ -367,18 +367,24 @@ describe('every t()/data-i18n call-site key exists in the catalog', () => {
     e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
   const sources = [
     ...walk(path.join(root, 'src')).filter((p) => p.endsWith('.js') && !p.endsWith('i18n.js')),
-    ...walk(path.join(root, 'public')).filter((p) => p.endsWith('.js')),
+    ...walk(path.join(root, 'public')).filter((p) => p.endsWith('.js'))
   ].map((p) => [p, fs.readFileSync(p, 'utf8')]);
   sources.push(['index.html', fs.readFileSync(path.join(root, 'index.html'), 'utf8')]);
 
   const referenced = [];
   for (const [f, s] of sources) {
-    for (const m of s.matchAll(/\bt\(\s*'([^']+)'/g)) referenced.push([f, m[1]]);
-    for (const m of s.matchAll(/data-i18n="([^"]+)"/g)) referenced.push([f, m[1]]);
+    for (const m of s.matchAll(/\bt\(\s*'([^']+)'/g)) {
+      referenced.push([f, m[1]]);
+    }
+    for (const m of s.matchAll(/data-i18n="([^"]+)"/g)) {
+      referenced.push([f, m[1]]);
+    }
     for (const m of s.matchAll(/data-i18n-attr="[^"]*"/g)) {
       for (const pair of m[0].split(/[;\s]+/).filter(Boolean)) {
         const kv = pair.match(/(\w+):([\w.]+)/);
-        if (kv) referenced.push([f, kv[2]]);
+        if (kv) {
+          referenced.push([f, kv[2]]);
+        }
       }
     }
   }
@@ -402,7 +408,9 @@ describe('dynamic import() targets resolve to real files', () => {
     const s = fs.readFileSync(p, 'utf8');
     for (const m of s.matchAll(/import\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
       const target = path.resolve(path.dirname(p), m[1]);
-      if (!fs.existsSync(target)) bad.push(`${path.relative(root, p)}: ${m[1]}`);
+      if (!fs.existsSync(target)) {
+        bad.push(`${path.relative(root, p)}: ${m[1]}`);
+      }
     }
   }
   test('every dynamic import target exists', () => {
@@ -420,7 +428,7 @@ describe('applyTranslations — DOM application', () => {
     const root = {
       querySelectorAll: (sel) =>
         sel === '[data-i18n]' ? [el1] :
-        sel === '[data-i18n-attr]' ? [el2] : []
+          sel === '[data-i18n-attr]' ? [el2] : []
     };
     const i18n = require('../src/i18n/i18n.js');
     i18n.applyTranslations(root);
@@ -447,7 +455,11 @@ describe('applyTranslations — DOM application', () => {
       expect(el.textContent).toBe(i18n.t('hero.title'));
       i18n.setLanguage('en');
     } finally {
-      if (saved === undefined) { delete global.document; } else { global.document = saved; }
+      if (saved === undefined) {
+        delete global.document;
+      } else {
+        global.document = saved;
+      }
     }
   });
 });
@@ -483,7 +495,9 @@ describe('i18n — last branch arms', () => {
     const el = {
       attrs: {},
       getAttribute: () => 'aria-label:vr.app.title;;:empty-key',
-      setAttribute(k, v) { this.attrs[k] = v; }
+      setAttribute(k, v) {
+        this.attrs[k] = v;
+      }
     };
     const scope = { querySelectorAll: (sel) => (sel === '[data-i18n-attr]' ? [el] : { forEach() {} }) };
     scope.querySelectorAll = (sel) => ({ forEach: (fn) => (sel === '[data-i18n-attr]' ? [el] : []).forEach(fn) });
@@ -621,8 +635,11 @@ describe('applyTranslations — root argument + absent-document arms', () => {
       require('../src/i18n/i18n.js').applyTranslations();
       expect(qsa).toHaveBeenCalled();
     } finally {
-      if (had) Object.defineProperty(globalThis, 'document', had);
-      else delete globalThis.document;
+      if (had) {
+        Object.defineProperty(globalThis, 'document', had);
+      } else {
+        delete globalThis.document;
+      }
     }
   });
 });

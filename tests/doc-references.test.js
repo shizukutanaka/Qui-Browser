@@ -21,8 +21,11 @@ const pkg = require('../package.json');
 function* walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) yield* walk(p);
-    else if (e.name.endsWith('.md')) yield p;
+    if (e.isDirectory()) {
+      yield* walk(p);
+    } else if (e.name.endsWith('.md')) {
+      yield p;
+    }
   }
 }
 
@@ -30,7 +33,7 @@ const mdFiles = [
   ...walk(ROOT).filter((p) => {
     const rel = path.relative(ROOT, p);
     return !rel.includes('node_modules') && !rel.startsWith('docs/archive') && !rel.startsWith('dist/');
-  }),
+  })
 ];
 
 // Path mentions: `backticked` or plain src/ tests/ tools/ proxy/ docker/ refs
@@ -53,16 +56,24 @@ for (const p of mdFiles) {
     rel === 'docs/CATEGORY_RESEARCH.md' ||
     rel === 'docs/IMPROVEMENT_ANALYSIS.md' ||
     rel === 'docs/BUILD_OPTIMIZATION_GUIDE.md'
-  ) continue;
+  ) {
+    continue;
+  }
   for (const m of body.matchAll(SCRIPT_RE)) {
-    if (!(m[1] in pkg.scripts)) badScripts.push(`${rel}: npm run ${m[1]}`);
+    if (!(m[1] in pkg.scripts)) {
+      badScripts.push(`${rel}: npm run ${m[1]}`);
+    }
   }
   // `three/examples/…` is a node_modules path, not a repo path.
   const live = body.replace(/~~[^~]+~~/g, '');
   for (const m of live.matchAll(PATH_RE)) {
     const ref = m[0].replace(/^\.?\//, '');
-    if (ref.startsWith('three/') || ref.includes('...')) continue;
-    if (!fs.existsSync(path.join(ROOT, ref))) badPaths.push(`${rel}: ${ref}`);
+    if (ref.startsWith('three/') || ref.includes('...')) {
+      continue;
+    }
+    if (!fs.existsSync(path.join(ROOT, ref))) {
+      badPaths.push(`${rel}: ${ref}`);
+    }
   }
 }
 

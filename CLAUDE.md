@@ -245,6 +245,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### 続き131: lint ゲートは `src proxy` しか走査していなかった — tests/ に 1150 errors、tools/ に 19 errors が潜伏
+「`npm run lint` = 0 errors」は gate として機能していたが、スコープが `eslint src proxy` のみ — flat config の `tests/**/*.test.js` override は一度も発火していなかった（適用対象が lint に含まれないため）。tests/ を走査すると **1150 errors** が露出: 1141件は eslint --fix で機械的に修復（trailing spaces / blank lines / curly / brace-style）、残り9件のうち6件は正当なテスト fixture（`javascript:` URL を scheme ブロッカーに食わせる検査・非ASCII検出の制御文字正規表現）で tests override に `no-script-url`/`no-control-regex` off を追加、3件は実際のテスト不良（self-assign のデッド行・empty destructure・empty constructor）。
+
+**落とし穴が1つ**: `prefer-arrow-callback` (warn) が --fix で mock ファクトリを `function()` → `() =>` に変換し、`new` 不能にして26テストを壊した —— tests override で同ルールを off にして再 --fix で回避。tools/ も同様に機械修復（0 errors、warnings は CLI 本来の console.log）。`"lint"` を `eslint src proxy tests tools` に拡大。
+
+- gate 実測: lint 0 errors（369 warnings、大半は tools/ CLI の正当な console.log）、tests 3016/67 全緑、verify:docs + prerelease 実走 green。
+- `test.yml`（assets/js/ を grep する K-1 の死んだワークフロー）と ci.yml の tier-system/benchmark ジョブは patches 0001-0004 が全てカバー・クリーン適用を確認済み（owner の適用待ち、.github/workflows 非push 制約）。
+
 ### Session 75: 品質ゲートの4本中3本が死んでいた — lint は ESLint 9 に撃たれ、build はロックファイルが欠損だった
 「lint 0 errors・build green」はこのリポジトリが品質の根拠として繰り返し掲げてきた主張（続き12 の報告行にもある）。**ソクラテス式に検証したところ、主張と実装が矛盾していた — `main` で4ゲートを実走すると3つが死んでいた。**
 - 🔍 **実測（main、修正前）**: `npm run lint` → exit 2。ESLint 9.39.5 は `.eslintrc.json` を**完全に無視**し flat config を要求するが、リポジトリに `eslint.config.js` は存在しない。つまり「0 errors」は「lint が0件動いた」。`npm run build` → `MODULE_NOT_FOUND: @rollup/rollup-darwin-arm64`。`package-lock.json` にプラットフォーム別 optional 依存が**68件まるごと未収録**で、`npm ci` が darwin のネイティブバイナリを一切入れない。`npm run format:check` → exit 2、**262ファイル未整形**（docs 139 / src 45 / tests 42）。緑だったのは `npm test`（1480/47）のみ。

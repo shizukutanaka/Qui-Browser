@@ -16,7 +16,11 @@ jest.mock('three/examples/jsm/webxr/VRButton.js', () => ({
   VRButton: { createButton: () => ({}) }
 }));
 jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
-  XRControllerModelFactory: class { createControllerModel() { return {}; } }
+  XRControllerModelFactory: class {
+    createControllerModel() {
+      return {};
+    }
+  }
 }));
 
 const THREE = require('three');
@@ -44,12 +48,16 @@ const M = {
 
 const ORIGINALS = {};
 function patch(name, impl) {
-  if (!(name in ORIGINALS)) ORIGINALS[name] = M[parentOf(name)][name];
+  if (!(name in ORIGINALS)) {
+    ORIGINALS[name] = M[parentOf(name)][name];
+  }
   M[parentOf(name)][name] = impl;
 }
 function parentOf(name) {
   for (const k of Object.keys(M)) {
-    if (M[k][name] !== undefined) return k;
+    if (M[k][name] !== undefined) {
+      return k;
+    }
   }
   throw new Error(`unknown export ${name}`);
 }
@@ -112,11 +120,15 @@ const GENERIC = {
   TextureManager: () => ({ initializeKTX2: async () => {} }),
   JapaneseIME: () => ({}),
   VRJapaneseKeyboard: () => ({}),
-  HandTracking: () => ({ onTrackingChange(cb) { this._cb = cb; } }),
+  HandTracking: () => ({ onTrackingChange(cb) {
+    this._cb = cb;
+  } }),
   HapticFeedback: () => ({ setEnabled() {} }),
   GazeInteraction: () => ({ setEnabled() {} }),
   SemanticDOM: () => ({ announceCaption() {} }),
-  CaptionSystem: () => ({ enabled: false, setEnabled(v) { this.enabled = v; }, show() {} }),
+  CaptionSystem: () => ({ enabled: false, setEnabled(v) {
+    this.enabled = v;
+  }, show() {} }),
   SpatialAudio: () => ({ setMasterVolume() {} }),
   VoiceCommands: () => ({ initialize: async () => false, callbacks: {}, connectBrowser() {}, start() {} }),
   PerformanceMonitor: () => ({ initialize() {} }),
@@ -126,7 +138,9 @@ const GENERIC = {
 };
 function patchAll() {
   for (const [name, make] of Object.entries(GENERIC)) {
-    patch(name, function () { return make(); });
+    patch(name, function () {
+      return make();
+    });
   }
 }
 
@@ -181,7 +195,9 @@ describe('initializeSystems — construction gates honor persisted settings', ()
 
 describe('initializeSystems — WCAG 4.1.3 error boundaries', () => {
   test('HapticFeedback init failure → warn toast, app keeps booting', async () => {
-    patch('HapticFeedback', function () { throw new Error('no gamepads'); });
+    patch('HapticFeedback', function () {
+      throw new Error('no gamepads');
+    });
     const app = makeInitLike();
     await VRApp.prototype.initializeSystems.call(app);
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
@@ -189,14 +205,18 @@ describe('initializeSystems — WCAG 4.1.3 error boundaries', () => {
   });
 
   test('SpatialAudio init failure → warn toast, init continues', async () => {
-    patch('SpatialAudio', function () { throw new Error('no AudioContext'); });
+    patch('SpatialAudio', function () {
+      throw new Error('no AudioContext');
+    });
     const app = makeInitLike();
     await VRApp.prototype.initializeSystems.call(app);
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
   });
 
   test('SemanticDOM init failure is console-only — no toast, field nulled', async () => {
-    patch('SemanticDOM', function () { throw new Error('DOM gone'); });
+    patch('SemanticDOM', function () {
+      throw new Error('DOM gone');
+    });
     const app = makeInitLike();
     await VRApp.prototype.initializeSystems.call(app);
     expect(app.semanticDOM).toBeNull();
@@ -208,7 +228,9 @@ describe('initializeSystems — wiring contracts', () => {
   test('haptics honour the persisted enableHaptics flag at construction', async () => {
     let captured;
     patch('HapticFeedback', function () {
-      return { setEnabled: jest.fn(function (v) { captured = v; }) };
+      return { setEnabled: jest.fn(function (v) {
+        captured = v;
+      }) };
     });
     const app = makeInitLike({ enableHaptics: false });
     await VRApp.prototype.initializeSystems.call(app);
@@ -218,7 +240,9 @@ describe('initializeSystems — wiring contracts', () => {
   test('spatial audio applies persisted masterVolume at startup', async () => {
     let vol;
     patch('SpatialAudio', function () {
-      return { setMasterVolume: (v) => { vol = v; } };
+      return { setMasterVolume: (v) => {
+        vol = v;
+      } };
     });
     const app = makeInitLike({ masterVolume: 30 });
     await VRApp.prototype.initializeSystems.call(app);
@@ -230,7 +254,9 @@ describe('initializeSystems — wiring contracts', () => {
     jest.useFakeTimers();
     let trackingCb;
     patch('HandTracking', function () {
-      return { onTrackingChange: (cb) => { trackingCb = cb; } };
+      return { onTrackingChange: (cb) => {
+        trackingCb = cb;
+      } };
     });
     const shown = [];
     patch('CaptionSystem', function () {
@@ -269,7 +295,9 @@ describe('initializeSystems — wiring contracts', () => {
       connectBrowser: jest.fn(),
       start: jest.fn()
     };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const app = makeInitLike({ enableVoice: true });
     await VRApp.prototype.initializeSystems.call(app);
     expect(vc.connectBrowser).toHaveBeenCalledWith(
@@ -297,7 +325,9 @@ describe('initializeSystems — wiring contracts', () => {
       connectBrowser: jest.fn(),
       start: jest.fn()
     };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const app = makeInitLike({ enableVoice: true, masterVolume: 95 });
     const end = jest.fn();
     app.renderer = { xr: { getSession: () => ({ end }) } };
@@ -452,7 +482,9 @@ describe('callback bodies — the wiring runs when invoked', () => {
 
     // URL input → VR keyboard + immediate Loading caption
     let confirmed;
-    tmCfg.onUrlInputRequested('https://pre', (u) => { confirmed = u; });
+    tmCfg.onUrlInputRequested('https://pre', (u) => {
+      confirmed = u;
+    });
     expect(app._requestVRKeyboardInput).toHaveBeenCalledWith('https://pre', expect.any(Function));
     app._requestVRKeyboardInput.mock.calls[0][1]('https://typed.example');
     expect(confirmed).toBe('https://typed.example');
@@ -485,7 +517,9 @@ describe('callback bodies — the wiring runs when invoked', () => {
       initialize: jest.fn(async () => true), callbacks: {},
       connectBrowser: jest.fn(), start: jest.fn()
     };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const tab = { navigate: jest.fn() };
     const shown = [];
     patch('CaptionSystem', function () {
@@ -525,13 +559,17 @@ describe('callback bodies — the wiring runs when invoked', () => {
       initialize: jest.fn(async () => true), callbacks: {},
       connectBrowser: jest.fn(), start: jest.fn()
     };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const shown = [];
     patch('CaptionSystem', function () {
       return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
     });
     const haptic = { playPatternBothHands: jest.fn(), setEnabled() {} };
-    patch('HapticFeedback', function () { return haptic; });
+    patch('HapticFeedback', function () {
+      return haptic;
+    });
     const app = makeInitLike({ enableVoice: true });
     await VRApp.prototype.initializeSystems.call(app);
 
@@ -586,7 +624,9 @@ describe('setupScene — ImmersiveVideo cfg callback bodies', () => {
   });
 
   test('enableHomeEnvironment + enableSettingsPanel + enableWebPanel gates', () => {
-    patch('ImmersiveVideo', function () { return {}; });
+    patch('ImmersiveVideo', function () {
+      return {};
+    });
     const app = makeInitLike({
       enableHomeEnvironment: true, enableSettingsPanel: true, enableWebPanel: true
     });
@@ -614,7 +654,9 @@ describe('setupVR — button/session/visibility wiring', () => {
     global.window = { addEventListener: jest.fn() };
     docAdded.length = 0;
   });
-  afterEach(() => { global.document = origDoc; global.window = origWin; });
+  afterEach(() => {
+    global.document = origDoc; global.window = origWin;
+  });
 
   test('wires enter-vr -> vrButton.click, session events, and hidden-tab video pause', () => {
     const xrListeners = {};
@@ -622,7 +664,9 @@ describe('setupVR — button/session/visibility wiring', () => {
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
     VRButton.createButton = () => ({ click: clicked });
     const app = makeInitLike();
-    app.renderer = { xr: { addEventListener: (t, fn) => { xrListeners[t] = fn; } } };
+    app.renderer = { xr: { addEventListener: (t, fn) => {
+      xrListeners[t] = fn;
+    } } };
     app.setupControllers = jest.fn();
     app.onVRSessionStart = jest.fn();
     app.onVRSessionEnd = jest.fn();
@@ -745,7 +789,9 @@ describe('callback bodies — remaining cfg false-arms', () => {
   test('onUrlInputRequested confirm with empty url skips the Loading caption', () => {
     const { app, tmCfg, shown } = build();
     let confirm;
-    app._requestVRKeyboardInput = jest.fn((prefill, cb) => { confirm = cb; });
+    app._requestVRKeyboardInput = jest.fn((prefill, cb) => {
+      confirm = cb;
+    });
     tmCfg.onUrlInputRequested('', () => {});
     confirm('');
     expect(shown.length).toBe(0);
@@ -835,13 +881,17 @@ describe('voice cfg — inner false/guard arms', () => {
       initialize: jest.fn(async () => true), callbacks: {},
       connectBrowser: jest.fn(), start: jest.fn()
     };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const shown = [];
     patch('CaptionSystem', function () {
       return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
     });
     const app = makeInitLike({ enableVoice: true });
-    if ('tabManager' in overrides) app.tabManager = overrides.tabManager;
+    if ('tabManager' in overrides) {
+      app.tabManager = overrides.tabManager;
+    }
     await VRApp.prototype.initializeSystems.call(app);
     return { app, vc, cfg: vc.connectBrowser.mock.calls[0][0], shown };
   }
@@ -972,15 +1022,25 @@ describe('initializeSystems — remaining cfg-callback guard arms', () => {
     const kbCalls = [];
     patch('VRJapaneseKeyboard', ctor(kbCalls, {}));
     let trackingCb;
-    patch('HandTracking', function () { return { onTrackingChange: (cb) => { trackingCb = cb; } }; });
+    patch('HandTracking', function () {
+      return { onTrackingChange: (cb) => {
+        trackingCb = cb;
+      } };
+    });
     const vc = { initialize: jest.fn(async () => true), callbacks: {}, connectBrowser: jest.fn(), start: jest.fn() };
-    patch('VoiceCommands', function () { return vc; });
+    patch('VoiceCommands', function () {
+      return vc;
+    });
     const shown = [];
     patch('CaptionSystem', function () {
-      return { enabled: true, setEnabled(v) { this.enabled = v; }, show: (m) => shown.push(m) };
+      return { enabled: true, setEnabled(v) {
+        this.enabled = v;
+      }, show: (m) => shown.push(m) };
     });
     const spatial = { setMasterVolume: jest.fn() };
-    patch('SpatialAudio', function () { return spatial; });
+    patch('SpatialAudio', function () {
+      return spatial;
+    });
     const app = makeInitLike({ enableVoice: true, enableGazeDwell: true, enableCaptions: true, ...settingsOver });
     await VRApp.prototype.initializeSystems.call(app);
     return { app, vc, kbCfg: kbCalls[0][2], trackingCb, shown, spatial };
@@ -1014,7 +1074,9 @@ describe('initializeSystems — remaining cfg-callback guard arms', () => {
       trackingCb('right', true);
       jest.advanceTimersByTime(700);
       expect(shown).toHaveLength(0);
-    } finally { jest.useRealTimers(); }
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('masterVolume unset → startup gain falls back to 1.0', async () => {
@@ -1125,7 +1187,9 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
   M.LayersSystem = require('../src/vr/rendering/LayersSystem.js');
 
   function makeSessionApp(layersImpl) {
-    patch('LayersSystem', function () { return layersImpl; });
+    patch('LayersSystem', function () {
+      return layersImpl;
+    });
     const session = { addEventListener: jest.fn(), visibilityState: 'visible' };
     const app = makeInitLike({ enableWebPanel: true });
     app.renderer = {
@@ -1156,7 +1220,9 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
   });
 
   test('layers init throws → warn toast + layersSystem torn down to null', async () => {
-    const { app } = makeSessionApp({ initialize: () => { throw new Error('no layers'); } });
+    const { app } = makeSessionApp({ initialize: () => {
+      throw new Error('no layers');
+    } });
     await VRApp.prototype.onVRSessionStart.call(app);
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
     expect(app.layersSystem).toBeNull();
@@ -1208,7 +1274,9 @@ describe('cfg passthrough arrows — interactable registration + session callbac
       start() {},
       connectBrowser: jest.fn()
     };
-    patch('VoiceCommands', function () { return vcFixture; });
+    patch('VoiceCommands', function () {
+      return vcFixture;
+    });
     const app = makeInitLike({ enableVoice: true });
     await VRApp.prototype.initializeSystems.call(app);
 
@@ -1242,7 +1310,9 @@ describe('cfg passthrough arrows — interactable registration + session callbac
   test('layer attach passes a detach callback that routes to _detachPanelLayer', () => {
     const app = makeInitLike();
     let detachCb;
-    const panel = { enableLayerMode: jest.fn((q, ls, id, cb) => { detachCb = cb; }) };
+    const panel = { enableLayerMode: jest.fn((q, ls, id, cb) => {
+      detachCb = cb;
+    }) };
     app.tabManager = { tabs: [panel] };
     app.layersSystem = {
       createQuadLayer: jest.fn(() => ({ id: 'q' })),

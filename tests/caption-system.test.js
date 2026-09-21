@@ -4,8 +4,14 @@
  * verified headlessly.
  */
 
-class MockGeometry { dispose() {} }
-class MockMaterial { constructor(o = {}) { Object.assign(this, o); } dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
+class MockMaterial {
+  constructor(o = {}) {
+    Object.assign(this, o);
+  } dispose() {}
+}
 class MockMesh {
   constructor(geometry, material) {
     this.geometry = geometry;
@@ -17,7 +23,9 @@ class MockMesh {
   }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
+  constructor() {
+    this.needsUpdate = false; this.colorSpace = '';
+  }
   dispose() {}
 }
 
@@ -485,7 +493,9 @@ describe('CaptionSystem — remaining branch arms', () => {
   test('setEnabled/hide with mesh null never touches .visible', () => {
     const cs = new CaptionSystem(makeCamera(), {});
     cs.mesh = null;
-    expect(() => { cs.setEnabled(true); cs.setEnabled(false); cs.clear(); }).not.toThrow();
+    expect(() => {
+      cs.setEnabled(true); cs.setEnabled(false); cs.clear();
+    }).not.toThrow();
     expect(cs.enabled).toBe(false);
   });
 
@@ -617,10 +627,16 @@ describe('CaptionSystem — texture without colorSpace', () => {
   test('_buildPanel skips the colorSpace assignment on older three mocks', () => {
     const THREE = require('three');
     const Original = THREE.CanvasTexture;
-    THREE.CanvasTexture = class { constructor() { this.needsUpdate = false; } };
+    THREE.CanvasTexture = class {
+      constructor() {
+        this.needsUpdate = false;
+      }
+    };
     let Mod;
     try {
-      jest.isolateModules(() => { Mod = require('../src/vr/accessibility/CaptionSystem.js'); });
+      jest.isolateModules(() => {
+        Mod = require('../src/vr/accessibility/CaptionSystem.js');
+      });
       const c = new Mod.CaptionSystem({ add() {}, remove() {} }, {});
       expect(c.texture).toBeTruthy();
       expect('colorSpace' in c.texture).toBe(false);

@@ -9,22 +9,38 @@
 let nextHit = null; // { object } or null
 
 class MockVec3 {
-  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-  set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
-  applyQuaternion() { return this; }
-  normalize() { return this; }
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x; this.y = y; this.z = z;
+  }
+  set(x, y, z) {
+    this.x = x; this.y = y; this.z = z; return this;
+  }
+  applyQuaternion() {
+    return this;
+  }
+  normalize() {
+    return this;
+  }
 }
 class MockQuat {}
 class MockRaycaster {
   set() {}
-  intersectObjects() { return nextHit ? [nextHit] : []; }
+  intersectObjects() {
+    return nextHit ? [nextHit] : [];
+  }
 }
-class MockGeometry { dispose() {} }
-class MockMaterial { dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
+class MockMaterial {
+  dispose() {}
+}
 class MockMesh {
   constructor() {
     this.renderOrder = 0;
-    this.scale = { _s: 1, setScalar(s) { this._s = s; } };
+    this.scale = { _s: 1, setScalar(s) {
+      this._s = s;
+    } };
     this.geometry = new MockGeometry();
     this.material = new MockMaterial();
   }
@@ -36,8 +52,12 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn); fn(this);
+  }
 }
 
 jest.mock('three', () => ({
@@ -67,7 +87,9 @@ function makeInteractable(handlers = {}) {
 }
 
 describe('GazeInteraction (FR-13.1)', () => {
-  beforeEach(() => { nextHit = null; });
+  beforeEach(() => {
+    nextHit = null;
+  });
 
   test('starts disabled with a hidden reticle', () => {
     const gi = new GazeInteraction(makeCamera());

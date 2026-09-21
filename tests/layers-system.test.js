@@ -86,7 +86,11 @@ describe('LayersSystem (FR-1.5)', () => {
   });
 
   test('initialize() returns false and does not throw when binding throws', () => {
-    class ThrowingBinding { constructor() { throw new Error('not allowed'); } }
+    class ThrowingBinding {
+      constructor() {
+        throw new Error('not allowed');
+      }
+    }
     global.XRWebGLBinding = ThrowingBinding;
     expect(() => ls.initialize(session, gl)).not.toThrow();
     expect(ls.isSupported).toBe(false);
@@ -211,7 +215,9 @@ describe('LayersSystem renderCanvasToLayer + error paths', () => {
     ls.initialize(session, gl);
     const layer = ls.createQuadLayer({ id: 'p', space: {}, width: 1, height: 1 });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    gl.bindFramebuffer.mockImplementation(() => { throw new Error('gl dead'); });
+    gl.bindFramebuffer.mockImplementation(() => {
+      throw new Error('gl dead');
+    });
     ls.renderCanvasToLayer(layer, {}, {}, [{}]);
     ls.renderCanvasToLayer(layer, {}, {}, [{}]);
     expect(warn).toHaveBeenCalledTimes(1);
@@ -232,7 +238,9 @@ describe('LayersSystem renderCanvasToLayer + error paths', () => {
   test('createQuadLayer failure returns null and warns', () => {
     ls.initialize(session, gl);
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    ls.glBinding.createQuadLayer = () => { throw new Error('unsupported'); };
+    ls.glBinding.createQuadLayer = () => {
+      throw new Error('unsupported');
+    };
     const layer = ls.createQuadLayer({ id: 'x', space: {}, width: 1, height: 1 });
     expect(layer).toBeNull();
     expect(warn).toHaveBeenCalled();
@@ -241,7 +249,9 @@ describe('LayersSystem renderCanvasToLayer + error paths', () => {
 
   test('updateRenderState failure warns but does not throw', () => {
     ls.initialize(session, gl);
-    session.updateRenderState.mockImplementation(() => { throw new Error('gone'); });
+    session.updateRenderState.mockImplementation(() => {
+      throw new Error('gone');
+    });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     expect(() => ls.updateRenderState(session, null)).not.toThrow();
     expect(warn).toHaveBeenCalledWith('LayersSystem: updateRenderState failed', expect.any(Error));

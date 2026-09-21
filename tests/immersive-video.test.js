@@ -18,35 +18,59 @@ jest.mock('three', () => {
   const registry = { disposables: [] };
 
   class V3 {
-    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
-    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x; this.y = y; this.z = z;
+    }
+    set(x, y, z) {
+      this.x = x; this.y = y; this.z = z; return this;
+    }
+    copy(v) {
+      this.x = v.x; this.y = v.y; this.z = v.z; return this;
+    }
   }
   class Disp {
-    constructor() { this.disposed = false; registry.disposables.push(this); }
-    dispose() { this.disposed = true; }
+    constructor() {
+      this.disposed = false; registry.disposables.push(this);
+    }
+    dispose() {
+      this.disposed = true;
+    }
   }
   class SphereGeometry extends Disp {
-    constructor(...args) { super(); this.args = args; }
-    scale() { return this; }
+    constructor(...args) {
+      super(); this.args = args;
+    }
+    scale() {
+      return this;
+    }
   }
   class PlaneGeometry extends Disp {
-    constructor(w, h) { super(); this.w = w; this.h = h; }
+    constructor(w, h) {
+      super(); this.w = w; this.h = h;
+    }
   }
   class MeshBasicMaterial extends Disp {
-    constructor(opts) { super(); this.opts = opts; }
+    constructor(opts) {
+      super(); this.opts = opts;
+    }
   }
   class VideoTexture extends Disp {
     constructor(video) {
       super();
       this.video = video;
       this.colorSpace = null;
-      this.offset = { x: 0, y: 0, set(x, y) { this.x = x; this.y = y; } };
-      this.repeat = { x: 1, y: 1, set(x, y) { this.x = x; this.y = y; } };
+      this.offset = { x: 0, y: 0, set(x, y) {
+        this.x = x; this.y = y;
+      } };
+      this.repeat = { x: 1, y: 1, set(x, y) {
+        this.x = x; this.y = y;
+      } };
     }
   }
   class CanvasTexture extends Disp {
-    constructor() { super(); this.needsUpdate = false; this.colorSpace = null; }
+    constructor() {
+      super(); this.needsUpdate = false; this.colorSpace = null;
+    }
   }
   class Mesh {
     constructor(geometry, material) {
@@ -65,8 +89,14 @@ jest.mock('three', () => {
       this.parent = null;
       this.position = { set() {} };
     }
-    add(...objs) { for (const o of objs) this.children.push(o); }
-    remove(o) { this.children = this.children.filter((x) => x !== o); }
+    add(...objs) {
+      for (const o of objs) {
+        this.children.push(o);
+      }
+    }
+    remove(o) {
+      this.children = this.children.filter((x) => x !== o);
+    }
   }
 
   return {
@@ -98,25 +128,37 @@ function makeVideoEl() {
   return {
     crossOrigin: '', loop: false, playsInline: false, preload: '', src: '', paused: true,
     _listeners: {},
-    setAttribute() {}, removeAttribute() { this.src = ''; },
+    setAttribute() {}, removeAttribute() {
+      this.src = '';
+    },
     play() {
       if (nextVideoAutoplayBlocked) {
         // Stays paused; mirrors a rejected play() promise with no 'playing' event.
-        return { catch(cb) { cb(new Error('NotAllowedError')); return this; } };
+        return { catch(cb) {
+          cb(new Error('NotAllowedError')); return this;
+        } };
       }
       // A real <video> fires 'playing' once playback actually starts.
       this.paused = false;
       this._emit('playing');
       return { catch() {} };
     },
-    pause() { this.paused = true; },
+    pause() {
+      this.paused = true;
+    },
     load() {},
-    addEventListener(type, fn) { (this._listeners[type] ||= []).push(fn); },
+    addEventListener(type, fn) {
+      (this._listeners[type] ||= []).push(fn);
+    },
     removeEventListener(type, fn) {
       this._listeners[type] = (this._listeners[type] || []).filter((f) => f !== fn);
     },
     // Test helper: invoke every handler registered for `type`.
-    _emit(type) { for (const fn of this._listeners[type] || []) fn(); }
+    _emit(type) {
+      for (const fn of this._listeners[type] || []) {
+        fn();
+      }
+    }
   };
 }
 global.document = global.document || {};
@@ -131,16 +173,26 @@ function makeCamera() {
   return {
     layers: { enable() {}, set() {} },
     children: [],
-    add(o) { o.parent = this; this.children.push(o); },
-    remove(o) { this.children = this.children.filter((x) => x !== o); },
-    getWorldPosition(v) { v.set(1, 2, 3); return v; }
+    add(o) {
+      o.parent = this; this.children.push(o);
+    },
+    remove(o) {
+      this.children = this.children.filter((x) => x !== o);
+    },
+    getWorldPosition(v) {
+      v.set(1, 2, 3); return v;
+    }
   };
 }
 function makeHarness() {
   const scene = {
     children: [],
-    add(o) { scene.children.push(o); },
-    remove(o) { scene.children = scene.children.filter((x) => x !== o); }
+    add(o) {
+      scene.children.push(o);
+    },
+    remove(o) {
+      scene.children = scene.children.filter((x) => x !== o);
+    }
   };
   const camera = makeCamera();
   const register = jest.fn();
@@ -201,7 +253,9 @@ describe('ImmersiveVideo lifecycle', () => {
 
     // …and crucially every disposable — including the HUD button geometry and
     // material that the leak fix now disposes — was released exactly once.
-    for (const d of allocated) expect(d.disposed).toBe(true);
+    for (const d of allocated) {
+      expect(d.disposed).toBe(true);
+    }
   });
 
   test('play() replaces a previous video, disposing the old resources', () => {
@@ -211,7 +265,9 @@ describe('ImmersiveVideo lifecycle', () => {
 
     iv.play('https://cdn.example.com/second.mp4');
 
-    for (const d of first) expect(d.disposed).toBe(true); // old set freed
+    for (const d of first) {
+      expect(d.disposed).toBe(true);
+    } // old set freed
     expect(scene.children).toHaveLength(1);               // only the new sphere
   });
 
@@ -233,7 +289,11 @@ describe('ImmersiveVideo lifecycle', () => {
   // both keep all three in lockstep).
   test('a mid-stream error resets playing, the HUD label, and fires onPlaybackChange("stopped")', () => {
     const onPlaybackChange = jest.fn();
-    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove(o) {
+      scene.children = scene.children.filter((x) => x !== o);
+    } };
     const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
       registerInteractable: jest.fn(),
       unregisterInteractable: jest.fn(),
@@ -254,7 +314,11 @@ describe('ImmersiveVideo lifecycle', () => {
   test('an error before playback ever started does not fire onPlaybackChange (unchanged no-op)', () => {
     const onPlaybackChange = jest.fn();
     nextVideoAutoplayBlocked = true; // stays paused, 'playing' never fires
-    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove(o) {
+      scene.children = scene.children.filter((x) => x !== o);
+    } };
     const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
       registerInteractable: jest.fn(),
       unregisterInteractable: jest.fn(),
@@ -360,7 +424,11 @@ describe('ImmersiveVideo lifecycle', () => {
 
   test('stop() fires onPlaybackChange("stopped") when video was active (WCAG 4.1.3)', () => {
     const onPlaybackChange = jest.fn();
-    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove(o) {
+      scene.children = scene.children.filter((x) => x !== o);
+    } };
     const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
       registerInteractable: jest.fn(),
       unregisterInteractable: jest.fn(),
@@ -374,7 +442,11 @@ describe('ImmersiveVideo lifecycle', () => {
 
   test('stop() does NOT fire onPlaybackChange when nothing was playing', () => {
     const onPlaybackChange = jest.fn();
-    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) { scene.children = scene.children.filter((x) => x !== o); } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove(o) {
+      scene.children = scene.children.filter((x) => x !== o);
+    } };
     const iv = new ImmersiveVideo(scene, makeCamera(), {}, {
       registerInteractable: jest.fn(),
       unregisterInteractable: jest.fn(),
@@ -446,7 +518,9 @@ describe('ImmersiveVideo — guard + stereo-layer arms', () => {
     const eye1 = { layers: { enable: jest.fn() } };
     const eye2 = { layers: { enable: jest.fn() } };
     const renderer = { xr: { getCamera: () => ({ cameras: [eye1, eye2] }) } };
-    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) {} };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove(o) {} };
     const iv = new ImmersiveVideo(scene, makeCamera(), renderer, {
       registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
     });
@@ -509,7 +583,9 @@ describe('ImmersiveVideo — remaining branch arms', () => {
     // every registered button handler must be safe with onSelect/onHoverCaption absent
     for (const call of register.mock.calls) {
       const h = call[1];
-      expect(() => { h.onHover?.(); h.onHoverEnd?.(); }).not.toThrow();
+      expect(() => {
+        h.onHover?.(); h.onHoverEnd?.();
+      }).not.toThrow();
     }
   });
 
@@ -529,7 +605,9 @@ describe('ImmersiveVideo — last branch arms', () => {
     const origCreate = global.document.createElement;
     global.document.createElement = (tag) => {
       const el = origCreate(tag);
-      if (tag === 'video') el.play = () => undefined;
+      if (tag === 'video') {
+        el.play = () => undefined;
+      }
       return el;
     };
     try {
@@ -592,7 +670,9 @@ describe('ImmersiveVideo — complementary present arms', () => {
 
   test('togglePause with paused=false pauses the video', () => {
     const { iv } = makeHarness();
-    const v = { paused: false, pause: jest.fn(function () { v.paused = true; }), play: jest.fn() };
+    const v = { paused: false, pause: jest.fn(function () {
+      v.paused = true;
+    }), play: jest.fn() };
     iv.video = v;
     iv.playing = true;
     iv.togglePause();

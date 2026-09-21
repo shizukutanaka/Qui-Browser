@@ -27,7 +27,7 @@ const DEAD = {
   'src/vr/input/VoiceCommands.js': ['unregisterCommand', 'setLanguage'],
   'src/vr/interaction/HapticFeedback.js': ['simulateForce', 'directionalPulse', 'playRhythm', 'getPatterns', 'resetStats'],
   'src/vr/rendering/FFRSystem.js': ['setThresholds'],
-  'src/vr/rendering/LayersSystem.js': ['getLayer'],
+  'src/vr/rendering/LayersSystem.js': ['getLayer']
 };
 
 for (const [file, names] of Object.entries(DEAD)) {

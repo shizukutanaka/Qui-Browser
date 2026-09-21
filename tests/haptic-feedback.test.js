@@ -178,7 +178,9 @@ describe('HapticFeedback — single connected controller', () => {
     hf = new HapticFeedback();
     hf.update();
   });
-  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+  afterEach(() => {
+    global.navigator.getGamepads = jest.fn(() => []);
+  });
 
   test('playPatternBothHands pulses the sole controller once, not twice', async () => {
     await hf.playPatternBothHands('click');
@@ -199,7 +201,9 @@ describe('HapticFeedback — alert() with a single controller', () => {
     hf = new HapticFeedback();
     hf.update();
   });
-  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+  afterEach(() => {
+    global.navigator.getGamepads = jest.fn(() => []);
+  });
 
   test('alert("low") fires the pattern once on the sole actuator', async () => {
     await hf.alert('low'); // maps to 'notification' (2 pulses + 1 pause)
@@ -267,7 +271,7 @@ describe('HapticFeedback actuator fallback + physics helpers', () => {
     expect(hf.pulse).toHaveBeenCalledWith('left', 5, 0.25);
   });
 
-  test("simulateTexture with an unknown texture type is a no-op", async () => {
+  test('simulateTexture with an unknown texture type is a no-op', async () => {
     hf.pulse = jest.fn().mockResolvedValue(undefined);
     await hf.simulateTexture('left', 'velvet', 10);
     expect(hf.pulse).not.toHaveBeenCalled();
@@ -374,25 +378,33 @@ describe('HapticFeedback — both-hands delay + texture loop', () => {
     ]);
     hf.update();
   });
-  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+  afterEach(() => {
+    global.navigator.getGamepads = jest.fn(() => []);
+  });
 
   test('playPatternBothHands with delay>0 waits between hands', async () => {
     const delays = [];
-    hf.wait = (ms) => { delays.push(ms); return Promise.resolve(); };
+    hf.wait = (ms) => {
+      delays.push(ms); return Promise.resolve();
+    };
     await hf.playPatternBothHands('click', 50);
     expect(delays).toEqual([50]);
   });
 
   test('playPatternBothHands with delay=0 plays back-to-back (no wait)', async () => {
     const delays = [];
-    hf.wait = (ms) => { delays.push(ms); return Promise.resolve(); };
+    hf.wait = (ms) => {
+      delays.push(ms); return Promise.resolve();
+    };
     await hf.playPatternBothHands('click');
     expect(delays).toEqual([]);
   });
 
   test('simulateTexture loops pulse+wait until the duration elapses', async () => {
     const pulses = [];
-    hf.pulse = async (h, d, i) => { pulses.push([h, d, i]); };
+    hf.pulse = async (h, d, i) => {
+      pulses.push([h, d, i]);
+    };
     hf.wait = async () => {};
     let t = 0;
     const realNow = Date.now;
@@ -478,11 +490,14 @@ describe('HapticFeedback — complementary arms', () => {
     hf.playCustomSequence = jest.fn(async () => {});
     hf.playPattern = jest.fn(async () => {});
     const pattern = { steps: [{ duration: 10, intensity: 0.5 }] };
-    if (typeof hf.playBothHands === 'function') await hf.playBothHands(pattern);
-    else await Promise.all([
-      hf.playCustomSequence('left', pattern),
-      hf.playCustomSequence('right', pattern)
-    ]);
+    if (typeof hf.playBothHands === 'function') {
+      await hf.playBothHands(pattern);
+    } else {
+      await Promise.all([
+        hf.playCustomSequence('left', pattern),
+        hf.playCustomSequence('right', pattern)
+      ]);
+    }
     expect(hf.playCustomSequence).toHaveBeenCalledWith('left', pattern);
   });
 

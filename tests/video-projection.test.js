@@ -130,7 +130,9 @@ describe('videoProjection — complementary arms', () => {
 
   test('buildVideoSphereGeometry honours custom opts', () => {
     const { buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
-    const THREE = { SphereGeometry: jest.fn(function (...a) { Object.assign(this, { args: a }); }) };
+    const THREE = { SphereGeometry: jest.fn(function (...a) {
+      Object.assign(this, { args: a });
+    }) };
     buildVideoSphereGeometry(THREE, { radius: 50, projection: '180', widthSegments: 16, heightSegments: 8 });
     expect(THREE.SphereGeometry).toHaveBeenCalled();
   });

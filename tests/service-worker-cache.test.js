@@ -11,7 +11,9 @@
 // suite at the bottom).
 const swHandlers = {};
 global.self = {
-  addEventListener: (type, fn) => { swHandlers[type] = fn; },
+  addEventListener: (type, fn) => {
+    swHandlers[type] = fn;
+  },
   location: { origin: 'https://app.example', pathname: '/service-worker.js' }
 };
 
@@ -24,14 +26,18 @@ function makeMockCache() {
   return {
     entries,
     keys: async () => entries.map((e) => e[0]),
-    put: async (req, res) => { entries.push([req, res]); },
+    put: async (req, res) => {
+      entries.push([req, res]);
+    },
     match: async (req) => {
       const hit = entries.find((e) => e[0].url === (req.url || req));
       return hit ? hit[1] : undefined;
     },
     delete: async (key) => {
       const idx = entries.findIndex((e) => e[0] === key);
-      if (idx >= 0) { entries.splice(idx, 1); return true; }
+      if (idx >= 0) {
+        entries.splice(idx, 1); return true;
+      }
       return false;
     }
   };
@@ -150,7 +156,9 @@ describe('fetch handler — cross-origin bypass', () => {
     swHandlers.fetch({
       request: { url, method },
       // Swallow the strategy promise so an async rejection can't fail the run.
-      respondWith: (p) => { responded = true; Promise.resolve(p).catch(() => {}); }
+      respondWith: (p) => {
+        responded = true; Promise.resolve(p).catch(() => {});
+      }
     });
     return responded;
   }
@@ -182,11 +190,15 @@ describe('fetch handler — cross-origin bypass', () => {
 describe('install — precaches the app shell and activates immediately', () => {
   test('waitUntil resolves after all CRITICAL_ASSETS are added and skipWaiting runs', async () => {
     const added = [];
-    const cache = { add: async (u) => { added.push(u); } };
+    const cache = { add: async (u) => {
+      added.push(u);
+    } };
     global.caches = { open: async (name) => (name === 'qui-browser-v2.0.0' ? cache : makeMockCache()) };
     self.skipWaiting = jest.fn(async () => {});
     let done;
-    swHandlers.install({ waitUntil: (p) => { done = p; } });
+    swHandlers.install({ waitUntil: (p) => {
+      done = p;
+    } });
     await done;
     expect(added).toEqual(['/', '/index.html', '/manifest.json', '/offline.html']);
     expect(self.skipWaiting).toHaveBeenCalled();
@@ -200,11 +212,15 @@ describe('activate — evicts every cache that is not the current pair', () => {
     const deleted = [];
     global.caches = {
       keys: async () => ['qui-browser-v1.0.0', 'qui-browser-v2.0.0', 'qui-browser-runtime', 'junk'],
-      delete: async (name) => { deleted.push(name); return true; }
+      delete: async (name) => {
+        deleted.push(name); return true;
+      }
     };
     self.clients = { claim: jest.fn(async () => {}) };
     let done;
-    swHandlers.activate({ waitUntil: (p) => { done = p; } });
+    swHandlers.activate({ waitUntil: (p) => {
+      done = p;
+    } });
     await done;
     expect(deleted.sort()).toEqual(['junk', 'qui-browser-v1.0.0']);
     expect(self.clients.claim).toHaveBeenCalled();
@@ -217,7 +233,9 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
   beforeEach(() => {
     global.caches = { open: async () => makeMockCache(), match: async () => undefined };
   });
-  afterEach(() => { delete global.caches; delete global.fetch; });
+  afterEach(() => {
+    delete global.caches; delete global.fetch;
+  });
 
   function fireAndWait(url) {
     return new Promise((resolve) => {
@@ -259,12 +277,16 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
     // makeMockCache.match compares req.url; the SW passes the literal path.
     cache.match = async (key) => (key === '/offline.html' ? shell : undefined);
     global.caches = { open: async () => cache, match: async () => undefined };
-    global.fetch = async () => { throw new Error('offline'); };
+    global.fetch = async () => {
+      throw new Error('offline');
+    };
     // request.mode 'navigate' → getOfflineFallback serves the cached shell
     let p;
     swHandlers.fetch({
       request: { url: 'https://app.example/some/page', method: 'GET', mode: 'navigate' },
-      respondWith: (r) => { p = r; }
+      respondWith: (r) => {
+        p = r;
+      }
     });
     const res = await p;
     expect(res.body).toBe('offline-page');

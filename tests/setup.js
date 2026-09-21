@@ -18,7 +18,9 @@ if (typeof localStorage === 'undefined') {
     setItem: (key, value) => store.set(key, String(value)),
     removeItem: (key) => store.delete(key),
     clear: () => store.clear(),
-    get length() { return store.size; },
+    get length() {
+      return store.size;
+    },
     key: (i) => [...store.keys()][i] ?? null
   };
 }

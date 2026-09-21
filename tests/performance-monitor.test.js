@@ -86,7 +86,9 @@ describe('PerformanceMonitor metric bookkeeping', () => {
   test('alerts are capped at maxAlerts', () => {
     const mon = new PerformanceMonitor();
     mon.maxAlerts = 5;
-    for (let i = 0; i < 12; i++) mon.addAlert('warning', `w${i}-${Math.random()}`);
+    for (let i = 0; i < 12; i++) {
+      mon.addAlert('warning', `w${i}-${Math.random()}`);
+    }
     expect(mon.alerts.length).toBeLessThanOrEqual(5);
   });
 
@@ -130,8 +132,12 @@ describe('PerformanceMonitor overlay DOM + graph layer', () => {
       parentNode: null,
       innerHTML: '',
       _ctx: null,
-      appendChild(c) { c.parentNode = el; el.children.push(c); },
-      removeChild(c) { el.children = el.children.filter(x => x !== c); c.parentNode = null; },
+      appendChild(c) {
+        c.parentNode = el; el.children.push(c);
+      },
+      removeChild(c) {
+        el.children = el.children.filter(x => x !== c); c.parentNode = null;
+      },
       addEventListener() {},
       getContext() {
         if (!el._ctx) {
@@ -149,8 +155,12 @@ describe('PerformanceMonitor overlay DOM + graph layer', () => {
       }
     };
     Object.defineProperty(el, 'id', {
-      get() { return this._id; },
-      set(v) { this._id = v; byId[v] = el; }
+      get() {
+        return this._id;
+      },
+      set(v) {
+        this._id = v; byId[v] = el;
+      }
     });
     return el;
   }
@@ -290,13 +300,23 @@ describe('PerformanceMonitor — remaining branch arms', () => {
       const el = {
         tagName: t, style: {}, innerHTML: '', children: [],
         setAttribute() {}, addEventListener() {},
-        appendChild(c) { el.children.push(c); return c; },
-        removeChild(c) { el.children = el.children.filter(x => x !== c); },
-        getContext() { return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} }; }
+        appendChild(c) {
+          el.children.push(c); return c;
+        },
+        removeChild(c) {
+          el.children = el.children.filter(x => x !== c);
+        },
+        getContext() {
+          return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} };
+        }
       };
       Object.defineProperty(el, 'id', {
-        get() { return this._id; },
-        set(v) { this._id = v; byId[v] = el; }
+        get() {
+          return this._id;
+        },
+        set(v) {
+          this._id = v; byId[v] = el;
+        }
       });
       return el;
     };
@@ -308,8 +328,12 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     return byId;
   }
 
-  beforeEach(() => { installDom2(); });
-  afterEach(() => { delete global.document; jest.restoreAllMocks(); });
+  beforeEach(() => {
+    installDom2();
+  });
+  afterEach(() => {
+    delete global.document; jest.restoreAllMocks();
+  });
 
   test('endFrame(renderer): frameCount gate + best/worst + renderer.info absent arms', () => {
     const mon = new PerformanceMonitor();
@@ -342,7 +366,9 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     delete global.performance.memory;
     mon.updateMemoryMetrics();
     expect(mon.metrics.memory.current).toBe(prev);
-    if (orig !== undefined) global.performance.memory = orig;
+    if (orig !== undefined) {
+      global.performance.memory = orig;
+    }
   });
 
   test('checkThresholds fires warning band and memory thresholds', () => {
@@ -390,7 +416,9 @@ describe('PerformanceMonitor — remaining branch arms', () => {
 
   test('show/hide with container null do not throw', () => {
     const mon = new PerformanceMonitor();
-    expect(() => { mon.show(); mon.hide(); }).not.toThrow();
+    expect(() => {
+      mon.show(); mon.hide();
+    }).not.toThrow();
   });
 
   test('getReport totalFrames 0 → averageFrameTime 0', () => {
@@ -464,7 +492,9 @@ describe('PerformanceMonitor — complementary arms', () => {
     pm.frameTime = 5;
     pm.endFrame?.();
     // best updated only if frameTime < 100 — drive through checkThresholds path
-    if (pm.stats.bestFrame.time <= 100) expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+    if (pm.stats.bestFrame.time <= 100) {
+      expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+    }
   });
 });
 
@@ -483,7 +513,7 @@ describe('PerformanceMonitor — fps/best/threshold slivers', () => {
 
   test('fps metric only refreshes after the update interval', () => {
     const mon = new PerformanceMonitor();
-    let t = performance.now();
+    const t = performance.now();
     jest.spyOn(performance, 'now').mockImplementation(() => t);
     mon.lastFpsUpdate = t;
     mon.frameCount = 0;
@@ -568,10 +598,18 @@ describe('PerformanceMonitor perf-close + memory interval bodies', () => {
   function stubEl() {
     const el = {
       style: {}, children: [], innerHTML: '', parentNode: null, _h: {},
-      appendChild(c) { el.children.push(c); return c; },
-      removeChild(c) { el.children = el.children.filter((x) => x !== c); },
-      addEventListener(t, f) { el._h[t] = f; },
-      getContext() { return { calls: [] }; }
+      appendChild(c) {
+        el.children.push(c); return c;
+      },
+      removeChild(c) {
+        el.children = el.children.filter((x) => x !== c);
+      },
+      addEventListener(t, f) {
+        el._h[t] = f;
+      },
+      getContext() {
+        return { calls: [] };
+      }
     };
     return el;
   }
@@ -593,7 +631,11 @@ describe('PerformanceMonitor perf-close + memory interval bodies', () => {
       expect(mon.visible).toBe(false);
       mon.dispose();
     } finally {
-      if (saved === undefined) { delete global.document; } else { global.document = saved; }
+      if (saved === undefined) {
+        delete global.document;
+      } else {
+        global.document = saved;
+      }
     }
   });
 
@@ -607,7 +649,11 @@ describe('PerformanceMonitor perf-close + memory interval bodies', () => {
     jest.advanceTimersByTime(1000);
     expect(spy).toHaveBeenCalled();
     mon.dispose();
-    if (saved === undefined) { delete performance.memory; } else { performance.memory = saved; }
+    if (saved === undefined) {
+      delete performance.memory;
+    } else {
+      performance.memory = saved;
+    }
     jest.useRealTimers();
   });
 });

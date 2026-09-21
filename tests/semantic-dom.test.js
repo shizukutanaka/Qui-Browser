@@ -14,9 +14,15 @@ class FakeElement {
     this.parentNode = null;
     this.textContent = '';
   }
-  setAttribute(name, value) { this.attributes[name] = String(value); }
-  getAttribute(name) { return this.attributes[name]; }
-  appendChild(child) { child.parentNode = this; this.children.push(child); return child; }
+  setAttribute(name, value) {
+    this.attributes[name] = String(value);
+  }
+  getAttribute(name) {
+    return this.attributes[name];
+  }
+  appendChild(child) {
+    child.parentNode = this; this.children.push(child); return child;
+  }
   removeChild(child) {
     this.children = this.children.filter((c) => c !== child);
     child.parentNode = null;

@@ -20,7 +20,11 @@ function fakeResponse() {
   return {
     statusCode: 200,
     headers: { 'content-type': 'text/html' },
-    on(ev, cb) { if (ev === 'end') setImmediate(cb); return this; },
+    on(ev, cb) {
+      if (ev === 'end') {
+        setImmediate(cb);
+      } return this;
+    },
     resume() {},
     destroy() {}
   };
@@ -72,10 +76,14 @@ describe('fetchThroughGuard — redirect hops', () => {
   function fakeReq() {
     const listeners = {};
     return {
-      on(ev, cb) { (listeners[ev] ||= []).push(cb); return this; },
+      on(ev, cb) {
+        (listeners[ev] ||= []).push(cb); return this;
+      },
       end() {},
       destroy() {},
-      _emit(ev, ...args) { (listeners[ev] || []).forEach((f) => f(...args)); }
+      _emit(ev, ...args) {
+        (listeners[ev] || []).forEach((f) => f(...args));
+      }
     };
   }
 
@@ -83,9 +91,13 @@ describe('fetchThroughGuard — redirect hops', () => {
     const listeners = {};
     const r = {
       statusCode, headers,
-      on(ev, cb) { (listeners[ev] ||= []).push(cb); return this; },
+      on(ev, cb) {
+        (listeners[ev] ||= []).push(cb); return this;
+      },
       resume() {},
-      destroy() { r.destroyed = true; },
+      destroy() {
+        r.destroyed = true;
+      },
       _drive() {
         bodyChunks.forEach((c) => (listeners.data || []).forEach((f) => f(Buffer.from(c))));
         (listeners.end || []).forEach((f) => f());
@@ -103,14 +115,18 @@ describe('fetchThroughGuard — redirect hops', () => {
       const req = fakeReq();
       const spec = responses[http.request.mock.calls.length - 1];
       const res = fakeRes(spec.statusCode, spec.headers);
-      setImmediate(() => { cb(res); setImmediate(() => res._drive()); });
+      setImmediate(() => {
+        cb(res); setImmediate(() => res._drive());
+      });
       return req;
     });
     const https = require('node:https');
     https.request.mockImplementation((url, opts, cb) => {
       const req = fakeReq();
       const res = fakeRes(200, { 'content-type': 'text/html' });
-      setImmediate(() => { cb(res); setImmediate(() => res._drive()); });
+      setImmediate(() => {
+        cb(res); setImmediate(() => res._drive());
+      });
       return req;
     });
     const out = await fetchThroughGuard('http://example.com/start');
@@ -125,7 +141,9 @@ describe('fetchThroughGuard — redirect hops', () => {
     http.request.mockImplementation((url, opts, cb) => {
       const req = fakeReq();
       const res = fakeRes(302, { location: 'http://example.com/loop' });
-      setImmediate(() => { cb(res); });
+      setImmediate(() => {
+        cb(res);
+      });
       return req;
     });
     const out = await fetchThroughGuard('http://example.com/start');
@@ -139,7 +157,9 @@ describe('fetchThroughGuard — redirect hops', () => {
     http.request.mockImplementation((url, opts, cb) => {
       const req = fakeReq();
       const res = fakeRes(302, { location: 'http://169.254.169.254/latest/meta-data' });
-      setImmediate(() => { cb(res); });
+      setImmediate(() => {
+        cb(res);
+      });
       return req;
     });
     const out = await fetchThroughGuard('http://example.com/start');
@@ -152,7 +172,9 @@ describe('fetchThroughGuard — redirect hops', () => {
       const req = fakeReq();
       const res = fakeRes(200, { 'content-type': 'application/octet-stream' });
       res._drive = jest.fn();
-      setImmediate(() => { cb(res); setImmediate(() => res._drive()); });
+      setImmediate(() => {
+        cb(res); setImmediate(() => res._drive());
+      });
       return req;
     });
     const out = await fetchThroughGuard('http://example.com/file');
@@ -165,7 +187,9 @@ describe('fetchThroughGuard — redirect hops', () => {
     http.request.mockImplementation((url, opts, cb) => {
       const req = fakeReq();
       const res = fakeRes(200, { 'content-type': 'text/html' }, [big]);
-      setImmediate(() => { cb(res); setImmediate(() => res._drive()); });
+      setImmediate(() => {
+        cb(res); setImmediate(() => res._drive());
+      });
       return req;
     });
     const out = await fetchThroughGuard('http://example.com/huge');

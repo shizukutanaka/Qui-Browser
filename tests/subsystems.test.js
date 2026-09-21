@@ -214,7 +214,9 @@ describe('src/utils/ProgressiveLoader', () => {
 
 describe('JapaneseIME — kanji candidate pipeline', () => {
   let ime;
-  beforeEach(() => { ime = new JapaneseIME(); });
+  beforeEach(() => {
+    ime = new JapaneseIME();
+  });
 
   test('convertToKanji is gated on hiragana mode + non-empty buffer', async () => {
     ime.inputMode = 'katakana';
@@ -259,7 +261,9 @@ describe('JapaneseIME — kanji candidate pipeline', () => {
 
   test('fetch throw falls back to offline dictionary', async () => {
     const origFetch = global.fetch;
-    global.fetch = jest.fn(async () => { throw new Error('network down'); });
+    global.fetch = jest.fn(async () => {
+      throw new Error('network down');
+    });
     try {
       const candidates = await ime.getKanjiCandidates('ありがとう');
       expect(candidates).toContain('有り難う');

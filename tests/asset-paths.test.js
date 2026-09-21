@@ -44,11 +44,15 @@ describe('static asset paths resolve to shipped files', () => {
     for (const m of fs.readFileSync(file, 'utf8')
       .matchAll(/(?:href|src)="([^"#]+)"/g)) {
       const url = m[1];
-      if (!url.startsWith('/') || url.startsWith('//')) continue;
+      if (!url.startsWith('/') || url.startsWith('//')) {
+        continue;
+      }
       const ok =
         fs.existsSync(path.join(PUBLIC, url)) ||
         fs.existsSync(path.join(ROOT, url));
-      if (!ok) violations.push(url);
+      if (!ok) {
+        violations.push(url);
+      }
     }
     expect(violations).toEqual([]);
   });
@@ -59,7 +63,9 @@ describe('static asset paths resolve to shipped files', () => {
       for (const m of fs.readFileSync(file, 'utf8')
         .matchAll(/(?:href|src)="([^"#]+)"/g)) {
         const url = m[1];
-        if (!url.startsWith('/')) continue;
+        if (!url.startsWith('/')) {
+          continue;
+        }
         if (!fs.existsSync(path.join(PUBLIC, url))) {
           violations.push(`${path.relative(PUBLIC, file)}: ${url}`);
         }

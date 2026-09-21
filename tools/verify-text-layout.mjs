@@ -244,7 +244,9 @@ function dumpDom(chrome, url) {
       '--dump-dom', url
     ], { stdio: ['ignore', 'pipe', 'ignore'] });
     let out = '';
-    child.stdout.on('data', (d) => { out += d; });
+    child.stdout.on('data', (d) => {
+      out += d;
+    });
     child.on('error', fail);
     child.on('close', () => ok(out));
   });

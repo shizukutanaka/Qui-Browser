@@ -14,14 +14,14 @@ function makeSource(profiles = [], handedness = 'right', buttons = [], axes = []
   return {
     profiles,
     handedness,
-    gamepad: { buttons, axes },
+    gamepad: { buttons, axes }
   };
 }
 
 function makeButtons(count, pressed = []) {
   return Array.from({ length: count }, (_, i) => ({
     pressed: pressed.includes(i),
-    value:   pressed.includes(i) ? 1 : 0,
+    value:   pressed.includes(i) ? 1 : 0
   }));
 }
 
@@ -31,7 +31,9 @@ function makeButtons(count, pressed = []) {
 
 describe('VRControllerInput.detectFamily', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('detects meta-quest from oculus-touch-v3', () => {
     const src = makeSource(['oculus-touch-v3'], 'right');
@@ -85,7 +87,9 @@ describe('VRControllerInput.detectFamily', () => {
 
 describe('VRControllerInput.getDeviceName', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('returns Meta Quest label with handedness', () => {
     const src = makeSource(['oculus-touch-v3'], 'right');
@@ -111,7 +115,9 @@ describe('VRControllerInput.getDeviceName', () => {
 
 describe('VRControllerInput.read — axes', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput({ deadZone: 0.15 }); });
+  beforeEach(() => {
+    ci = new VRControllerInput({ deadZone: 0.15 });
+  });
 
   test('returns stickX and stickY for meta-quest (axes 2,3)', () => {
     const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7), [0, 0, 0.8, -0.6]);
@@ -189,7 +195,9 @@ describe('VRControllerInput.read — axes', () => {
 
 describe('VRControllerInput.read — buttons', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('pressed is true when button held', () => {
     // faceA = buttons[4] for meta-quest
@@ -259,7 +267,9 @@ describe('VRControllerInput.read — buttons', () => {
 
 describe('VRControllerInput.read — family and hand', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('snapshot includes correct family', () => {
     const src = makeSource(['pico-4'], 'left', makeButtons(7), [0,0,0,0]);
@@ -285,7 +295,9 @@ describe('VRControllerInput.read — family and hand', () => {
 
 describe('VRControllerInput.forget', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('after forget, next read has justPressed=true again for held button', () => {
     const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, [4]), [0,0,0,0]);
@@ -408,7 +420,9 @@ describe('Exported constants', () => {
 
 describe('VRControllerInput — last branch arms', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('getDeviceName falls back to Controller + unknown hand', () => {
     expect(ci.getDeviceName(makeSource(['unknown-hw'], 'x'))).toContain('(x)');
@@ -445,7 +459,9 @@ describe('VRControllerInput — last branch arms', () => {
 
 describe('VRControllerInput — complementary arms', () => {
   let ci;
-  beforeEach(() => { ci = new VRControllerInput(); });
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
 
   test('getDeviceName uses the family label when present', () => {
     const name = ci.getDeviceName(makeSource(['oculus-touch-v3'], 'right'));

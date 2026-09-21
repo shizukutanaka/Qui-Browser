@@ -94,7 +94,11 @@ describe('applyAccessibility — DOM class application', () => {
   });
   afterEach(() => {
     for (const k of Object.keys(saved)) {
-      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+      if (saved[k] === undefined) {
+        delete global[k];
+      } else {
+        global[k] = saved[k];
+      }
     }
   });
 
@@ -135,10 +139,14 @@ describe('applyAccessibility — DOM class application', () => {
 
 describe('storage-failure arms — private browsing / quota exhaustion', () => {
   const origLS = global.localStorage;
-  afterEach(() => { global.localStorage = origLS; });
+  afterEach(() => {
+    global.localStorage = origLS;
+  });
 
   test('getPrefs survives localStorage.getItem throwing (private mode)', () => {
-    global.localStorage = { getItem() { throw new Error('denied'); } };
+    global.localStorage = { getItem() {
+      throw new Error('denied');
+    } };
     const { getPrefs } = require('../src/a11y/accessibility.js');
     const p = getPrefs();
     expect(typeof p.highContrast).toBe('boolean');
@@ -147,7 +155,9 @@ describe('storage-failure arms — private browsing / quota exhaustion', () => {
   test('setPref still applies in-memory when setItem throws (quota)', () => {
     global.localStorage = {
       getItem: () => null,
-      setItem() { throw new Error('QuotaExceededError'); }
+      setItem() {
+        throw new Error('QuotaExceededError');
+      }
     };
     const { setPref, getPrefs } = require('../src/a11y/accessibility.js');
     expect(() => setPref('highContrast', true)).not.toThrow();
@@ -214,7 +224,9 @@ test('stored prefs that parse to falsy degrade to defaults', () => {
   global.localStorage = { getItem: () => 'null', setItem() {}, removeItem() {} };
   jest.resetModules();
   let mod;
-  expect(() => { mod = require('../src/a11y/accessibility.js'); }).not.toThrow();
+  expect(() => {
+    mod = require('../src/a11y/accessibility.js');
+  }).not.toThrow();
   expect(mod).toBeTruthy();
   delete global.localStorage;
   jest.resetModules();

@@ -16,7 +16,7 @@ const REFS = [
   fs.readFileSync(path.join(PUB, 'service-worker.js'), 'utf8'),
   ...fs.readdirSync(path.join(__dirname, '..', 'src'), { recursive: true })
     .filter((f) => f.endsWith('.js') || f.endsWith('.html'))
-    .map((f) => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8')),
+    .map((f) => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'))
 ].join('\n');
 
 // Standard entry points that need no inbound reference.
@@ -37,7 +37,7 @@ test('known dead cluster stays deleted', () => {
   for (const name of [
     'vr-browser.html', 'vr-video.html', 'vr-browser.js',
     'css-containment-optimizer.js', 'lazy-loading-observer.js',
-    'view-transitions-manager.js', 'sw.js',
+    'view-transitions-manager.js', 'sw.js'
   ]) {
     expect(fs.existsSync(path.join(PUB, name))).toBe(false);
   }

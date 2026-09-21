@@ -40,7 +40,9 @@ describe('VoiceCommands — spoken feedback is mirrored for captions', () => {
   test('a failing command action mirrors the failure feedback', () => {
     vc.registerCommand('boom', {
       patterns: ['boom'],
-      action: () => { throw new Error('kaboom'); },
+      action: () => {
+        throw new Error('kaboom');
+      },
       confirmationText: 'should not appear'
     });
     vc.processCommand('boom', 0.9);
@@ -73,7 +75,9 @@ describe('VoiceCommands — onCommandFailed callback', () => {
   test('fires with reason "execution_error" when the action throws', () => {
     vc.registerCommand('broken', {
       patterns: ['broken'],
-      action: () => { throw new Error('test error'); }
+      action: () => {
+        throw new Error('test error');
+      }
     });
     vc.processCommand('broken', 0.9);
     expect(failures).toHaveLength(1);
@@ -184,7 +188,11 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     let toggled = false;
     vc.connectBrowser({
       onGoTo,
-      vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
+      vrKeyboard: { visible: false, show() {
+        toggled = true;
+      }, hide() {
+        toggled = true;
+      } }
     });
     vc.processCommand('キーボードを開く', 0.9);
     expect(vc.lastCommand.key).toBe('keyboard');
@@ -314,7 +322,9 @@ describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk
     // Android Chrome — the Quest browser engine — reports confidence=0 even for
     // correctly recognized ja-JP commands; a 0.7 cutoff must not drop them.
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({ onTopSites: () => {
+      fired = true;
+    } });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0, true));
     expect(fired).toBe(true);
     expect(vc.lastCommand.key).toBe('top-sites');
@@ -323,14 +333,18 @@ describe('VoiceCommands — confidence filtering (Web Speech API / Android quirk
   test('a genuinely low non-zero confidence is still filtered out', () => {
     // 0 means "no score"; a real low score (e.g. 0.3 < 0.7) is still rejected.
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({ onTopSites: () => {
+      fired = true;
+    } });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0.3, true));
     expect(fired).toBe(false);
   });
 
   test('a high-confidence result fires normally', () => {
     let fired = false;
-    vc.connectBrowser({ onTopSites: () => { fired = true; } });
+    vc.connectBrowser({ onTopSites: () => {
+      fired = true;
+    } });
     vc.handleRecognitionResult(makeEvent('トップサイト', 0.95, true));
     expect(fired).toBe(true);
   });
@@ -357,13 +371,17 @@ describe('VoiceCommands — SpeechSynthesis teardown & error resilience', () => 
     // jsdom has no SpeechSynthesisUtterance; provide a minimal stub so the
     // speak() path runs and we can assert the onerror handler is attached.
     const origSSU = global.SpeechSynthesisUtterance;
-    global.SpeechSynthesisUtterance = function(text) { this.text = text; };
+    global.SpeechSynthesisUtterance = function (text) {
+      this.text = text;
+    };
     try {
       const vc = new VoiceCommands();
       vc.callbacks.onSpeak = () => {};
       const utterances = [];
       vc.synthesis = {
-        speak: (utt) => { utterances.push(utt); },
+        speak: (utt) => {
+          utterances.push(utt);
+        },
         cancel: jest.fn()
       };
       vc.speak('テスト');
@@ -707,7 +725,9 @@ describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, 
     vc.isListening = true;
     expect(vc.start()).toBe(true); // already listening — no recognition call
     vc.isListening = false;
-    vc.recognition = { start: jest.fn(() => { throw new Error('not allowed'); }) };
+    vc.recognition = { start: jest.fn(() => {
+      throw new Error('not allowed');
+    }) };
     expect(vc.start()).toBe(false);
   });
 
@@ -745,7 +765,9 @@ describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, 
     const utterances = [];
     const prevUtterance = global.SpeechSynthesisUtterance;
     global.SpeechSynthesisUtterance = class {
-      constructor(text) { this.text = text; utterances.push(this); }
+      constructor(text) {
+        this.text = text; utterances.push(this);
+      }
     };
     try {
       vc.synthesis = synthesis;
@@ -879,7 +901,9 @@ describe('VoiceCommands — handler callbacks + init catch + pattern arm', () =>
   });
 
   test('initialize returns false when the SpeechRecognition ctor throws', async () => {
-    global.window.SpeechRecognition = jest.fn(() => { throw new Error('denied'); });
+    global.window.SpeechRecognition = jest.fn(() => {
+      throw new Error('denied');
+    });
     expect(await vc.initialize()).toBe(false);
     expect(vc.isEnabled).toBe(false);
   });
@@ -918,7 +942,9 @@ describe('VoiceCommands — remaining branch arms', () => {
 
   test('command with RegExp pattern matches; non-string/non-RegExp pattern skipped', () => {
     vc.registerCommand('rx', { patterns: [/^reload|reload$/], action: () => ({ ok: 1 }) });
-    vc.registerCommand('badpat', { patterns: [123], action: () => { throw new Error('never'); } });
+    vc.registerCommand('badpat', { patterns: [123], action: () => {
+      throw new Error('never');
+    } });
     vc.processCommand('reload', 0.9);
     expect(vc.lastCommand.key).toBe('rx');
   });
@@ -1030,12 +1056,15 @@ describe('VoiceCommands — final arms', () => {
       vc.start = jest.fn();
       // drive the onend restart path
       vc.recognition = { onend: null };
-      const { } = vc;
       // Simulate what setupRecognitionHandlers wires: onend schedules a restart
       // only when still enabled.
       const onend = () => {
         if (vc.settings.continuous && vc.isEnabled) {
-          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+          setTimeout(() => {
+            if (vc.isEnabled) {
+              vc.start();
+            }
+          }, 100);
         }
       };
       onend();
@@ -1071,7 +1100,11 @@ describe('VoiceCommands — complementary arms', () => {
       vc.start = jest.fn();
       const onend = () => {
         if (vc.settings.continuous && vc.isEnabled) {
-          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+          setTimeout(() => {
+            if (vc.isEnabled) {
+              vc.start();
+            }
+          }, 100);
         }
       };
       onend();
@@ -1161,7 +1194,11 @@ describe('VoiceCommands — remaining false-side arms', () => {
       // simulate recognition onend scheduling the restart
       const schedule = () => {
         if (vc.settings.continuous && vc.isEnabled) {
-          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+          setTimeout(() => {
+            if (vc.isEnabled) {
+              vc.start();
+            }
+          }, 100);
         }
       };
       schedule();
@@ -1246,7 +1283,7 @@ describe('VoiceCommands — sliver arms', () => {
 
   test('browser-less search opens a Google tab', () => {
     const vc = new VoiceCommands();
-        const cmd = vc.commands.get('search');
+    const cmd = vc.commands.get('search');
     global.window = global.window || {};
     window.open = jest.fn();
     const out = cmd.action('検索：てんき');

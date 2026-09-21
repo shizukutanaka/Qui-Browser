@@ -130,8 +130,12 @@ async function main() {
     const p = spawn(chrome, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
-    p.stdout.on('data', (d) => { out += d; });
-    p.stderr.on('data', (d) => { err += d; });
+    p.stdout.on('data', (d) => {
+      out += d;
+    });
+    p.stderr.on('data', (d) => {
+      err += d;
+    });
     p.on('error', rej);
     p.on('close', () => res({ out, err }));
   });

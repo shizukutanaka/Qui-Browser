@@ -15,7 +15,9 @@ describe('JapaneseIME raw conversion arms', () => {
     const ime = new JapaneseIME();
     ime.activate();
     ime.inputMode = 'katakana';
-    for (const ch of 'konnichiwa') await ime.processInput(ch);
+    for (const ch of 'konnichiwa') {
+      await ime.processInput(ch);
+    }
     // The converted text is surfaced via the composition path; assert the
     // two-hop conversion itself.
     const hira = ime.convertRomajiToHiragana(ime.compositionBuffer);
@@ -235,7 +237,11 @@ describe('JapaneseIME — remote fetch watchdog', () => {
       jest.advanceTimersByTime(5000);
       await expect(pr).resolves.toContain('かんじ');
     } finally {
-      if (prevFetch === undefined) { delete global.fetch; } else { global.fetch = prevFetch; }
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
       jest.useRealTimers();
     }
   });
@@ -249,7 +255,9 @@ describe('JapaneseIME — convertToKanji staleness', () => {
     // Fetch resolves slowly — while it is in flight the user keeps typing.
     let resolveFetch;
     const prevFetch = global.fetch;
-    global.fetch = jest.fn(() => new Promise((res) => { resolveFetch = res; }));
+    global.fetch = jest.fn(() => new Promise((res) => {
+      resolveFetch = res;
+    }));
     try {
       const pr = ime.convertToKanji();
       // User types 'd' mid-flight: buffer is now 'kyoud'.
@@ -263,7 +271,11 @@ describe('JapaneseIME — convertToKanji staleness', () => {
       expect(ime.compositionBuffer).toBe('kyoud');
       expect(ime.candidates).toEqual([]);
     } finally {
-      if (prevFetch === undefined) { delete global.fetch; } else { global.fetch = prevFetch; }
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
     }
   });
 
@@ -280,7 +292,11 @@ describe('JapaneseIME — convertToKanji staleness', () => {
       expect(result.candidates).toEqual(['今日', '強']);
       expect(ime.candidates).toEqual(['今日', '強']);
     } finally {
-      if (prevFetch === undefined) { delete global.fetch; } else { global.fetch = prevFetch; }
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
     }
   });
 });

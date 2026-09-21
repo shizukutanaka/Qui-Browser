@@ -4,8 +4,12 @@
  */
 
 class MockVector3 {
-  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-  copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x; this.y = y; this.z = z;
+  }
+  copy(v) {
+    this.x = v.x; this.y = v.y; this.z = v.z; return this;
+  }
   distanceTo(v) {
     return Math.sqrt(
       (this.x - v.x) ** 2 + (this.y - v.y) ** 2 + (this.z - v.z) ** 2
@@ -14,11 +18,17 @@ class MockVector3 {
 }
 
 class MockWebGLRenderTarget {
-  constructor() { this.dispose = jest.fn(); }
+  constructor() {
+    this.dispose = jest.fn();
+  }
 }
-class MockPlaneGeometry { dispose() {} }
+class MockPlaneGeometry {
+  dispose() {}
+}
 class MockShaderMaterial {
-  constructor(opts) { this.uniforms = opts ? opts.uniforms || {} : {}; this.dispose = jest.fn(); }
+  constructor(opts) {
+    this.uniforms = opts ? opts.uniforms || {} : {}; this.dispose = jest.fn();
+  }
 }
 class MockMesh {
   constructor() {
@@ -62,8 +72,12 @@ function makeCamera(fov = 90) {
   };
 }
 
-function makeScene() { return { add: jest.fn(), remove: jest.fn() }; }
-function makeRenderer() { return {}; }
+function makeScene() {
+  return { add: jest.fn(), remove: jest.fn() };
+}
+function makeRenderer() {
+  return {};
+}
 
 describe('ComfortSystem', () => {
   let system, camera;
@@ -607,7 +621,9 @@ describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
     const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
     cs.reduceMotion = false;
     let cb;
-    global.requestAnimationFrame = jest.fn((fn) => { cb = fn; });
+    global.requestAnimationFrame = jest.fn((fn) => {
+      cb = fn;
+    });
     let now = 1000;
     jest.spyOn(Date, 'now').mockImplementation(() => now);
     cs.animateSnapTurn(0.5);
@@ -622,7 +638,9 @@ describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
     const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
     const geo = cs.vignetteQuad && cs.vignetteQuad.geometry;
     cs.dispose();
-    if (geo) expect(geo.dispose).toHaveBeenCalled();
+    if (geo) {
+      expect(geo.dispose).toHaveBeenCalled();
+    }
   });
 });
 

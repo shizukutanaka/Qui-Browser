@@ -11,10 +11,18 @@
  * headlessly (same conventions as caption-system.test.js).
  */
 
-class MockGeometry { dispose() { this.disposed = true; } }
+class MockGeometry {
+  dispose() {
+    this.disposed = true;
+  }
+}
 class MockMaterial {
-  constructor(o = {}) { Object.assign(this, o); }
-  dispose() { this.disposed = true; }
+  constructor(o = {}) {
+    Object.assign(this, o);
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 class MockMesh {
   constructor(geometry, material) {
@@ -36,13 +44,23 @@ class MockGroup {
     this.rotation = { x: 0 };
     this.children = [];
   }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter(c => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter(c => c !== o);
+  }
+  traverse(fn) {
+    fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
-  dispose() { this.disposed = true; }
+  constructor() {
+    this.needsUpdate = false; this.colorSpace = '';
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 
 jest.mock('three', () => ({
@@ -198,7 +216,9 @@ describe('VRJapaneseKeyboard suggestion row', () => {
   });
 
   test('a provider that throws does not break typing (degrades to no suggestions)', async () => {
-    const provider = jest.fn(() => { throw new Error('storage exploded'); });
+    const provider = jest.fn(() => {
+      throw new Error('storage exploded');
+    });
     const { kb } = makeKeyboard({ suggestionProvider: provider });
 
     await kb.onKeyPress('g');

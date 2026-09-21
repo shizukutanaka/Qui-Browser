@@ -6,32 +6,70 @@
  */
 
 class MockObj {
-  constructor() { this.name = ''; this.children = []; this.position = { set: jest.fn(), distanceTo: () => 1 }; this.visible = true; }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter(c => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c))); }
+  constructor() {
+    this.name = ''; this.children = []; this.position = { set: jest.fn(), distanceTo: () => 1 }; this.visible = true;
+  }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter(c => c !== o);
+  }
+  traverse(fn) {
+    fn(this); this.children.forEach(c => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockMesh extends MockObj {
-  constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; }
+  constructor(geometry, material) {
+    super(); this.geometry = geometry; this.material = material;
+  }
 }
 
 jest.mock('three', () => ({
   Group: MockObj,
   Mesh: MockMesh,
-  SphereGeometry: class { dispose() {} },
-  CylinderGeometry: class { dispose() {} },
-  MeshPhongMaterial: class { clone() { return new this.constructor(); } dispose() {} },
-  Vector3: class {
-    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-    set(x, y, z) { this.x = x; this.y = y; this.z = z; }
-    clone() { return new this.constructor(this.x, this.y, this.z); }
-    addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
-    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
-    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
-    normalize() { const l = Math.hypot(this.x, this.y, this.z) || 1; return this.multiplyScalar(1 / l); }
-    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  SphereGeometry: class {
+    dispose() {}
   },
-  Ray: class { constructor(o, d) { this.origin = o; this.direction = d; } },
+  CylinderGeometry: class {
+    dispose() {}
+  },
+  MeshPhongMaterial: class {
+    clone() {
+      return new this.constructor();
+    } dispose() {}
+  },
+  Vector3: class {
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x; this.y = y; this.z = z;
+    }
+    set(x, y, z) {
+      this.x = x; this.y = y; this.z = z;
+    }
+    clone() {
+      return new this.constructor(this.x, this.y, this.z);
+    }
+    addVectors(a, b) {
+      this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this;
+    }
+    subVectors(a, b) {
+      this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this;
+    }
+    multiplyScalar(s) {
+      this.x *= s; this.y *= s; this.z *= s; return this;
+    }
+    normalize() {
+      const l = Math.hypot(this.x, this.y, this.z) || 1; return this.multiplyScalar(1 / l);
+    }
+    distanceTo(v) {
+      return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
+  },
+  Ray: class {
+    constructor(o, d) {
+      this.origin = o; this.direction = d;
+    }
+  },
   Quaternion: class {}
 }));
 
@@ -42,9 +80,13 @@ function makeSession() {
   return {
     inputSources: [],
     _listeners: listeners,
-    addEventListener: jest.fn((type, fn) => { listeners[type] = fn; }),
+    addEventListener: jest.fn((type, fn) => {
+      listeners[type] = fn;
+    }),
     removeEventListener: jest.fn((type, fn) => {
-      if (listeners[type] === fn) delete listeners[type];
+      if (listeners[type] === fn) {
+        delete listeners[type];
+      }
     })
   };
 }
@@ -222,13 +264,21 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
 // Joint positions need real vector math (production calls position.distanceTo),
 // so use a local real-math vector, not the mocked Vector3.
 class V {
-  constructor(x, y, z) { this.x = x; this.y = y; this.z = z; }
-  clone() { return new V(this.x, this.y, this.z); }
-  distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  constructor(x, y, z) {
+    this.x = x; this.y = y; this.z = z;
+  }
+  clone() {
+    return new V(this.x, this.y, this.z);
+  }
+  distanceTo(v) {
+    return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z);
+  }
 }
 const jointsAt = (entries) => {
   const m = new Map();
-  for (const [name, [x, y, z]] of entries) m.set(name, { position: new V(x, y, z) });
+  for (const [name, [x, y, z]] of entries) {
+    m.set(name, { position: new V(x, y, z) });
+  }
   return m;
 };
 
@@ -566,7 +616,9 @@ describe('HandTracking — complementary present-side arms', () => {
     await ht.initialize(session);
     const calls = [];
     ht._onTrackingChange = (h, t) => calls.push([h, t]);
-    ht.updateHand = jest.fn(function () { this.leftHand.visible = true; });
+    ht.updateHand = jest.fn(function () {
+      this.leftHand.visible = true;
+    });
     const src = { hand: { get: () => null }, handedness: 'left' };
     ht.update({ session: { inputSources: [src] } }, null);
     expect(ht.updateHand).toHaveBeenCalled();

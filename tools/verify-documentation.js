@@ -148,7 +148,9 @@ function main() {
 
   for (const docFile of DOCUMENTATION_FILES) {
     const filePath = path.join(PROJECT_ROOT, docFile);
-    if (!fs.existsSync(filePath)) continue;
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
 
     const content = fs.readFileSync(filePath, 'utf-8');
     const fileDir = path.dirname(filePath);
@@ -348,10 +350,12 @@ function printSummary(results) {
  * Calculate overall score
  */
 function calculateScore(results) {
-  let totalChecks = results.filesChecked + results.sectionsChecked + results.linksChecked;
-  let totalPassed = results.filesFound + results.sectionsFound + results.linksValid;
+  const totalChecks = results.filesChecked + results.sectionsChecked + results.linksChecked;
+  const totalPassed = results.filesFound + results.sectionsFound + results.linksValid;
 
-  if (totalChecks === 0) return 0;
+  if (totalChecks === 0) {
+    return 0;
+  }
   return (totalPassed / totalChecks) * 100;
 }
 
@@ -359,10 +363,18 @@ function calculateScore(results) {
  * Get score emoji
  */
 function getScoreEmoji(score) {
-  if (score === 100) return '🏆';
-  if (score >= 95) return '✅';
-  if (score >= 85) return '👍';
-  if (score >= 70) return '⚠️';
+  if (score === 100) {
+    return '🏆';
+  }
+  if (score >= 95) {
+    return '✅';
+  }
+  if (score >= 85) {
+    return '👍';
+  }
+  if (score >= 70) {
+    return '⚠️';
+  }
   return '❌';
 }
 

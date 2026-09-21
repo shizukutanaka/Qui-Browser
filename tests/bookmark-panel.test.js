@@ -14,23 +14,41 @@ const PANEL_H = PANEL_W * (PANEL_PX_H / PANEL_PX_W);
 
 // ── THREE mock ────────────────────────────────────────────────────────────────
 class MockGroup {
-  constructor() { this.position = { set: jest.fn() }; this.rotation = {}; this._o = []; }
-  add(o) { this._o.push(o); }
-  remove(o) { this._o = this._o.filter(x => x !== o); }
+  constructor() {
+    this.position = { set: jest.fn() }; this.rotation = {}; this._o = [];
+  }
+  add(o) {
+    this._o.push(o);
+  }
+  remove(o) {
+    this._o = this._o.filter(x => x !== o);
+  }
 }
 class MockMesh {
-  constructor() { this.name = ''; this.visible = true; this.geometry = { dispose: jest.fn() }; this.material = { dispose: jest.fn() }; }
+  constructor() {
+    this.name = ''; this.visible = true; this.geometry = { dispose: jest.fn() }; this.material = { dispose: jest.fn() };
+  }
   // Return whatever was injected via _nextLocal.
-  worldToLocal() { return MockMesh._nextLocal; }
+  worldToLocal() {
+    return MockMesh._nextLocal;
+  }
 }
 MockMesh._nextLocal = { x: 0, y: 0 };
 
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} },
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    } dispose() {}
+  },
   SRGBColorSpace: 'srgb'
 }));
 
@@ -41,7 +59,9 @@ jest.mock('three', () => ({
 const drawnText = [];   // records fillText(text, x, y, maxWidth) for assertions
 const ctxStub = {
   fillRect() {}, strokeRect() {}, clearRect() {},
-  fillText(t, x, y, maxWidth) { drawnText.push({ text: String(t), x, y, maxWidth }); },
+  fillText(t, x, y, maxWidth) {
+    drawnText.push({ text: String(t), x, y, maxWidth });
+  },
   set fillStyle(v) {}, set strokeStyle(v) {},
   set font(v) {}, set textAlign(v) {}, set lineWidth(v) {}
 };
@@ -56,7 +76,9 @@ const { BookmarkPanel, bookmarkPanelColors } = require('../src/vr/browser/Bookma
 function localFor(px, py) {
   const u = px / PANEL_PX_W;
   const v = 1 - py / PANEL_PX_H;
-  return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * PANEL_H, clone() { return this; } };
+  return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * PANEL_H, clone() {
+    return this;
+  } };
 }
 
 function makeStore(bookmarks = [], history = []) {
@@ -143,7 +165,9 @@ describe('BookmarkPanel', () => {
     p.show();
     // Click first row: py in [HEADER_H, HEADER_H+ROW_H)
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).toHaveBeenCalledWith('https://first.com');
     expect(p.visible).toBe(false);
   });
@@ -158,7 +182,9 @@ describe('BookmarkPanel', () => {
     p.show();
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
     // Simulate the event shape emitted by VRApp.onControllerSelect / GazeInteraction:
-    const fakeHit = { point: { clone() { return MockMesh._nextLocal; } } };
+    const fakeHit = { point: { clone() {
+      return MockMesh._nextLocal;
+    } } };
     p._onSelect({ intersection: fakeHit, controller: {} });
     expect(onSelect).toHaveBeenCalledWith('https://wrapped.com');
   });
@@ -171,14 +197,18 @@ describe('BookmarkPanel', () => {
     ]);
     const p = makePanel(store, onSelect);
     MockMesh._nextLocal = localFor(100, HEADER_H + ROW_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).toHaveBeenCalledWith('https://second.com');
   });
 
   test('clicking the history tab switches mode', () => {
     const p = makePanel(makeStore());
     MockMesh._nextLocal = localFor(300, HEADER_H / 2); // history tab region
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.mode).toBe('history');
   });
 
@@ -186,7 +216,9 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore());
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2); // close region
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.visible).toBe(false);
   });
 
@@ -203,7 +235,9 @@ describe('BookmarkPanel', () => {
     p.addToScene();
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.visible).toBe(false);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -212,7 +246,9 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore());
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 20, HEADER_H / 2);
-    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+    expect(() => p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } })).not.toThrow();
   });
 
   test('selecting empty area does nothing', () => {
@@ -220,7 +256,9 @@ describe('BookmarkPanel', () => {
     const p = makePanel(makeStore(), onSelect);
     p.show();
     MockMesh._nextLocal = localFor(600, HEADER_H / 2); // gap between tabs and close
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).not.toHaveBeenCalled();
     expect(p.visible).toBe(true);
   });
@@ -254,7 +292,9 @@ describe('BookmarkPanel', () => {
         getHistory: () => [],
         removeBookmark: (url) => {
           const i = bookmarks.findIndex(b => b.url === url);
-          if (i >= 0) bookmarks.splice(i, 1);
+          if (i >= 0) {
+            bookmarks.splice(i, 1);
+          }
         }
       };
     }
@@ -281,7 +321,9 @@ describe('BookmarkPanel', () => {
       // Click the first visible row — pre-fix this sliced an empty window and
       // the click resolved to nothing (onSelect never fired).
       MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-      p._onSelect({ clone() { return MockMesh._nextLocal; } });
+      p._onSelect({ clone() {
+        return MockMesh._nextLocal;
+      } });
       expect(onSelect).toHaveBeenCalledWith('https://s0.example');
     });
 
@@ -314,7 +356,9 @@ describe('BookmarkPanel — large-text physical scaling', () => {
   function localForScaled(px, py, panelW, panelH) {
     const u = px / PANEL_PX_W;
     const v = 1 - py / PANEL_PX_H;
-    return { x: (u - 0.5) * panelW, y: (v - 0.5) * panelH, clone() { return this; } };
+    return { x: (u - 0.5) * panelW, y: (v - 0.5) * panelH, clone() {
+      return this;
+    } };
   }
 
   test('default scale = 1 leaves base metre dimensions', () => {
@@ -349,7 +393,9 @@ describe('BookmarkPanel — large-text physical scaling', () => {
     // normalises by this.panelW/this.panelH, the UV (and thus the row) is the
     // same as it would be at scale 1.
     MockMesh._nextLocal = localForScaled(100, HEADER_H + ROW_H + 10, p.panelW, p.panelH);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).toHaveBeenCalledWith('https://second.com');
   });
 });
@@ -491,15 +537,21 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     const { p } = scrollablePanel();
     // ↓ arrow zone: SCROLL_DN_X0..X1 in the header row
     MockMesh._nextLocal = localFor(700, HEADER_H / 2);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.scrollOffset).toBe(1);
     // ↑ arrow zone
     MockMesh._nextLocal = localFor(500, HEADER_H / 2);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.scrollOffset).toBe(0);
     // ↑ at offset 0 does not go negative
     MockMesh._nextLocal = localFor(500, HEADER_H / 2);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.scrollOffset).toBe(0);
   });
 
@@ -507,7 +559,9 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     const { p } = scrollablePanel(); // VISIBLE_ROWS+4 rows -> max offset 4
     for (let i = 0; i < 8; i++) {
       MockMesh._nextLocal = localFor(700, HEADER_H / 2);
-      p._onSelect({ clone() { return MockMesh._nextLocal; } });
+      p._onSelect({ clone() {
+        return MockMesh._nextLocal;
+      } });
     }
     expect(p.scrollOffset).toBe(4);
   });
@@ -518,7 +572,9 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     const onTabChange = jest.fn();
     p.onTabChange = onTabChange;
     MockMesh._nextLocal = localFor(300, HEADER_H / 2); // 'history' tab region
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(p.mode).toBe('history');
     expect(p.scrollOffset).toBe(0);
     expect(onTabChange).toHaveBeenCalledWith('history');
@@ -537,7 +593,9 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     p.show();
     // First row, inside the right-hand delete zone (last DELETE_ZONE_W px)
     MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(store.removeBookmark).toHaveBeenCalledWith('https://del.me');
     expect(onDelete).toHaveBeenCalledWith('https://del.me');
   });
@@ -553,7 +611,9 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     p.setMode('history');
     p.show();
     MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).toHaveBeenCalledWith('https://hist.example');
     expect(store.removeBookmark).not.toHaveBeenCalled();
   });
@@ -617,7 +677,9 @@ describe('BookmarkPanel — final guards', () => {
     // Land the click far inside the panel body but on no row: centre-bottom.
     MockMesh._nextLocal = { x: 0, y: -0.4 };
     const before = p.mode;
-    expect(() => p._onSelect({ x: 0, y: -0.4, clone() { return this; } })).not.toThrow();
+    expect(() => p._onSelect({ x: 0, y: -0.4, clone() {
+      return this;
+    } })).not.toThrow();
     expect(p.mode).toBe(before);
   });
 });
@@ -663,7 +725,9 @@ describe('BookmarkPanel — remaining branch arms', () => {
     p.addToScene();
     const h = reg.mock.calls[0][1];
     p.mesh = null; // mesh-null arm
-    expect(() => { h.onHover(); h.onHoverEnd(); }).not.toThrow();
+    expect(() => {
+      h.onHover(); h.onHoverEnd();
+    }).not.toThrow();
   });
 
   test('row action with entry lacking url is a no-op', () => {
@@ -788,7 +852,9 @@ describe('BookmarkPanel — complementary arms', () => {
     const p = makePanel(store, onSelect);
     p.show();
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).toHaveBeenCalledWith('https://a.example');
     expect(p.visible).toBe(false);
   });
@@ -810,7 +876,9 @@ describe('BookmarkPanel — complementary arms', () => {
     p.addToScene();
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(removed).toEqual(['https://a.example']);
     expect(onDelete).toHaveBeenCalledWith('https://a.example');
   });
@@ -843,7 +911,9 @@ describe('BookmarkPanel — false-side arms', () => {
     p.addToScene();
     p.show();
     MockMesh._nextLocal = localFor(100, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(onSelect).not.toHaveBeenCalled();
   });
 
@@ -864,7 +934,9 @@ describe('BookmarkPanel — false-side arms', () => {
     p.addToScene();
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
-    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
     expect(removed).toEqual([]);
     expect(onDelete).not.toHaveBeenCalled();
   });
@@ -898,7 +970,9 @@ test('delete zone click fires onDeleteBookmark (ctor-provided callback)', () => 
   p.onDeleteBookmark = onDelete;
   p.show();
   MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
-  p._onSelect({ clone() { return MockMesh._nextLocal; } });
+  p._onSelect({ clone() {
+    return MockMesh._nextLocal;
+  } });
   expect(onDelete).toHaveBeenCalledWith('https://del.me');
 });
 
@@ -923,7 +997,9 @@ describe('BookmarkPanel — ctor + delete-zone guard arms', () => {
     });
     p.show();
     MockMesh._nextLocal = localFor(PANEL_PX_W - 10, HEADER_H + 10); // delete zone over row 0
-    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+    expect(() => p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } })).not.toThrow();
   });
 });
 

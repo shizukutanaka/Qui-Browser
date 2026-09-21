@@ -14,7 +14,9 @@
  * the whole time.
  */
 
-class MockGeometry { dispose() {} }
+class MockGeometry {
+  dispose() {}
+}
 class MockMaterial {
   constructor(o = {}) {
     Object.assign(this, o);
@@ -35,7 +37,9 @@ class MockMesh {
     this.userData = {};
     this.name = '';
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 class MockGroup {
   constructor() {
@@ -45,13 +49,23 @@ class MockGroup {
     this.visible = true;
     this.name = '';
   }
-  add(o) { this.children.push(o); }
-  remove(o) { this.children = this.children.filter((c) => c !== o); }
-  traverse(fn) { fn(this); this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c))); }
+  add(o) {
+    this.children.push(o);
+  }
+  remove(o) {
+    this.children = this.children.filter((c) => c !== o);
+  }
+  traverse(fn) {
+    fn(this); this.children.forEach((c) => (c.traverse ? c.traverse(fn) : fn(c)));
+  }
 }
 class MockCanvasTexture {
-  constructor() { this.needsUpdate = false; this.colorSpace = ''; }
-  dispose() { this.disposed = true; }
+  constructor() {
+    this.needsUpdate = false; this.colorSpace = '';
+  }
+  dispose() {
+    this.disposed = true;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
@@ -84,8 +98,12 @@ function makeRecordingCanvas() {
     fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
     clearRect() {},
     fillRect() {},
-    fillText(text) { paints.push({ text: String(text), fillStyle: ctx.fillStyle, font: ctx.font }); },
-    strokeRect() { strokes.push({ strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth }); }
+    fillText(text) {
+      paints.push({ text: String(text), fillStyle: ctx.fillStyle, font: ctx.font });
+    },
+    strokeRect() {
+      strokes.push({ strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth });
+    }
   };
   return { ctx, paints, strokes };
 }
@@ -265,7 +283,9 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     global.fetch = jest.fn(() => Promise.reject(new Error('offline'))); // offline kanji dict
 
     // Session 1: type こんにちは, convert, then dismiss with esc
-    for (const ch of 'konnichiha') await kb.onKeyPress(ch);
+    for (const ch of 'konnichiha') {
+      await kb.onKeyPress(ch);
+    }
     await kb.onKeyPress('space'); // candidates: ['今日は', 'こんにちは']
     await kb.onKeyPress('esc');
     expect(kb.ime.candidates.length).toBe(0);
@@ -507,10 +527,14 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     kb.showSuggestions([{ url: 'https://example.com', title: 'x' }]);
     expect(kb._suggestionMeshes.length).toBe(1);
     // _clear* guards with unregisterInteractable absent
-    expect(() => { kb._clearSuggestions(); }).not.toThrow();
+    expect(() => {
+      kb._clearSuggestions();
+    }).not.toThrow();
     kb.showCandidates(['あ']); // candidate row supersedes the suggestion strip
     expect(kb._candidateMeshes.length).toBe(1);
-    expect(() => { kb._clearCandidates(); }).not.toThrow();
+    expect(() => {
+      kb._clearCandidates();
+    }).not.toThrow();
   });
 
   test('hide() before createKeyboard is a no-op', () => {
@@ -590,7 +614,9 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     expect(() => kb._updateSuggestions()).not.toThrow();
     expect(kb._suggestionMeshes.length).toBe(0);
     // provider throws → caught, empty results
-    kb.suggestionProvider = () => { throw new Error('boom'); };
+    kb.suggestionProvider = () => {
+      throw new Error('boom');
+    };
     kb.ime.compositionBuffer = 'exa';
     expect(() => kb._updateSuggestions()).not.toThrow();
     expect(kb._suggestionMeshes.length).toBe(0);
@@ -612,7 +638,9 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     kb._suggestionsGroup = new MockGroup();
     kb.showSuggestions([{ url: 'https://example.com', title: 'Example' }]);
     const sug = registered[registered.length - 1];
-    expect(() => { sug.handlers.onHover(); sug.handlers.onHoverEnd(); sug.handlers.onSelect(); }).not.toThrow();
+    expect(() => {
+      sug.handlers.onHover(); sug.handlers.onHoverEnd(); sug.handlers.onSelect();
+    }).not.toThrow();
   });
 });
 
@@ -751,7 +779,9 @@ describe('VRJapaneseKeyboard — complementary arms', () => {
     kb.group = { visible: false };
     kb._displayCanvas = null;
     kb.show?.();
-    if (kb.group) expect(kb.group.visible).toBe(true);
+    if (kb.group) {
+      expect(kb.group.visible).toBe(true);
+    }
   });
 });
 
@@ -797,7 +827,9 @@ describe('VRJapaneseKeyboard — remaining member-guard arms', () => {
     const scene = { add: jest.fn(), remove: jest.fn() };
     const cap = jest.fn();
     const kb = new VRJapaneseKeyboard(scene, new JapaneseIME(), {
-      registerInteractable: (m, h) => { kb._h = h; },
+      registerInteractable: (m, h) => {
+        kb._h = h;
+      },
       unregisterInteractable: jest.fn(),
       onHoverCaption: cap
     });
@@ -938,7 +970,9 @@ describe('VRJapaneseKeyboard — dispose/suggestion tail arms', () => {
     kb._suggestionMeshes = [{ mesh: meshB }];
     kb._candidatesGroup = { remove: jest.fn(), visible: true };
     kb._suggestionsGroup = { remove: jest.fn(), visible: true };
-    expect(() => { kb._clearCandidates(); kb._clearSuggestions(); }).not.toThrow();
+    expect(() => {
+      kb._clearCandidates(); kb._clearSuggestions();
+    }).not.toThrow();
     expect(meshA.material.dispose).toHaveBeenCalled();
   });
 
