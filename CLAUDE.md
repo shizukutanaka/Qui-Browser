@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き200 — FFR に base-layer フォールバック（layers 非対応ランタイムで FFR が全滅していた）
+- 🔍 **発見**: `FFRSystem.initialize` が `XRWebGLBinding`/`getProjectionLayer()` 一本依存 — この経路は `'layers'` grant が必要で、非対応/拒否ランタイムでは**FFR 全体が初期化失敗**。だが WebXR の base `XRWebGLLayer` 自身が `fixedFoveation` を持ち grant 不要（three は `renderer.xr.setFoveation()` で書く）。
+- 🔧 **修正**: `initialize(session, gl, xrManager)` — XRWebGLBinding が投げた/フォービューション不可の時、`session.renderState.baseLayer.fixedFoveation` の存在を確認して `xrManager.setFoveation` 経路にフォールバック。両経路がある時は**デュアル書込み**（quad layer 使用時、base layer 側もフォービューションする）。全書込サイトを `_writeFoveation()` に集約、enabled ガードを projectionLayer 依存から解放。
+- 🧪 pin: binding 不可時の base-layer 経路初期化・書込み・dual-write、の3本追加。3089 tests 全緑。
+
 ### Session 75: 続き199 — 過負荷ラダーに「解像度優先」を追加（requestViewportScale → その後 frame rate）
 - 🔍 **発見（Meta 指針 + WebXR spec）**: 持続予算超過時に**リフレッシュレートを先に下げていた** — Meta の推奨順序は逆で、「同じ Hz で描画ピクセルを減らす動的解像度（`XRView.requestViewportScale`）を先に試し、それでも駄目ならレートを下げる」。レートを落とすとジャダーするので解像度が先。
 - 🔧 **修正**: `_viewScaleLadder = [0.85, 0.7]` — 240フレーム連続超過ごとに `getViewerPose` → `view.requestViewportScale(scale)`（capability check + try/catch）。ラダー枯渇後に従来の frame-rate ステップダウンへ。
