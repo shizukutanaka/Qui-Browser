@@ -3027,6 +3027,14 @@ export class VRApp {
     // it); just drop our reference so a stale closure can't be reused.
     this.onXRVisibilityChange = null;
 
+    // onVRSessionStart re-based targetFPS on the session's real refresh rate.
+    // Restore the device-tier value: the animation loop (and its adjustQuality
+    // budget check) also runs for the desktop mirror, where the headset rate
+    // would mark every healthy frame over-budget and ratchet quality down.
+    if (!this.settings._fpsOverridden && this.deviceCompat) {
+      this.settings.targetFPS = this.deviceCompat.targetFPS();
+    }
+
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }

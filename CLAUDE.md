@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き183 — セッション境界の非対称: targetFPS が end で戻らない
+- 🔍 **実測（start/end 対称性）**: `onVRSessionStart` は `settings.targetFPS` を `session.refreshRate` で上書きするが `onVRSessionEnd` は戻さない。`render()` → `adjustQuality()` は無ゲートで60フレーム毎に走り、**デスクトップミラーループでも** `targetFPS` を読む — 120Hz セッション退出後、デスクトップ 60fps（16.7ms）は残留予算 8.33ms を毎回超過 → `reduceQuality()` が無限 ratchet。Quest3 で VR 入退室するだけで2D 側の画質が底まで落ちる。同時に既存テスト2件が `settings`/`deviceCompat` 無しの bare `this` で `onVRSessionEnd` を呼んでいた（新コードが TypeError を起こし `not.toThrow` で落ちる）→ フィクスチャを実オブジェクトに近づけて修正。
+- 🔧 **修正**: `onVRSessionEnd` で `_fpsOverridden` 無しなら `deviceCompat.targetFPS()` へ復帰（ユーザー指定値は保護）。pin 2件: 復帰すること・`_fpsOverridden` を潰さないこと。
+- 📝 **自身の前コミットをゲートが捕捉**: 続き182 の削除注記に書いた `src/utils/ObjectPool.js` 参照を `doc-references.test.js` が検出 — `~~strike~~` 規約で履歴扱いに修正（ゲートの実効性を実証）。
+- ✅ 3082 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き182 — docs が削除済み API を今も教えていた
 - 🔍 **実測（doc の死参照照合）**: docs/*.md + CLAUDE.md + README 内の `src|tests|tools|proxy|public|docker` パス参照を機械照合 — 16件の不存在パス。大半は削除台帳（正当な履歴）だが、**現状記述部に2件の実害**: ①IMPLEMENTATION.md の「Object Pooling」節が削除済み `ObjectPool` の完全な実装+利用例を未削除で教えていた（コピペで死んだ API を書かせる）②同じく「Service Worker Caching」節が `qui-browser-v1`・`/js/vr-core.js`・`/models/default.glb`・架空 `/api/` 分岐を含む**全編虚構の SW コード**を掲載（実装は stamp 版・BUILD_ASSETS precache・settle キャップ・BASE 解決で全く別物）。DEVELOPER_ONBOARDING.md も不存在の `VRSystemMonitor`/`ObjectPool` をチュートリアルで教えていた。
 - 🔧 **修正**: ①Object Pooling 節を削除済み注記＋実在の TextureManager 案内に置換 ②SW 節を実装の実態記述（stamp-sw-version・BUILD_ASSETS・respondWith キャップ・BASE・main.js 登録経路）に置換 — 全記述を public/service-worker.js と src/main.js で検証済み ③ONBOARDING を `vrApp.getPerformanceStats()` と FFR/TextureManager に差し替え。OUTSTANDING_ISSUES F-1 の `MixedReality.js:270` 参照も削除済みファイルへの死参照だったため同期（dom-overlay 要求コードは今やリポジトリに皆無）。

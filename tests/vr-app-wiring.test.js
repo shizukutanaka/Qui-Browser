@@ -707,6 +707,8 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
       camera: { fov: 90 },
       onXRVisibilityChange: () => {},
       renderer: { setPixelRatio: jest.fn() },
+      settings: { targetFPS: 90 },
+      deviceCompat: { targetFPS: () => 90 },
       ...overrides
     };
   }
@@ -734,6 +736,27 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
     expect(layersSystem.dispose).toHaveBeenCalledTimes(1);
     expect(immersiveVideo.stop).toHaveBeenCalledTimes(1);
     expect(handTracking.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  test('restores targetFPS to the device-tier value after the session re-based it', () => {
+    // onVRSessionStart() sets targetFPS from session.refreshRate; the render
+    // loop's adjustQuality() also runs for the desktop mirror, so a stale
+    // headset rate would mark every desktop frame over-budget.
+    const app = makeSessionEndApp({
+      settings: { targetFPS: 120 },
+      deviceCompat: { targetFPS: () => 90 }
+    });
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(app.settings.targetFPS).toBe(90);
+  });
+
+  test('does not clobber a user-specified targetFPS (_fpsOverridden)', () => {
+    const app = makeSessionEndApp({
+      settings: { targetFPS: 120, _fpsOverridden: true },
+      deviceCompat: { targetFPS: () => 90 }
+    });
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(app.settings.targetFPS).toBe(120);
   });
 });
 
@@ -3987,7 +4010,8 @@ describe('VRApp onVRSessionEnd — restore arms', () => {
       hapticFeedback: null, handTracking: null, voiceCommands: null,
       captionSystem: null, spatialAudio: null,
       renderer: { xr: { getSession: () => null, setReferenceSpaceType: jest.fn() }, setPixelRatio: jest.fn(), setSize: jest.fn() },
-      scene: new THREE.Scene()
+      scene: new THREE.Scene(),
+      settings: { targetFPS: 90 }
     };
     expect(() => VRApp.prototype.onVRSessionEnd.call(app)).not.toThrow();
     expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
@@ -4363,7 +4387,8 @@ describe('VRApp — complementary arms round 3', () => {
       tabManager: null, webPanel: null,
       camera: { fov: 75 },
       renderer: { setPixelRatio: jest.fn(), xr: {} },
-      ffrSystem: null, handTracking: null, immersiveVideo: null, comfortSystem: null
+      ffrSystem: null, handTracking: null, immersiveVideo: null, comfortSystem: null,
+      settings: { targetFPS: 90 }
     });
     global.window = { devicePixelRatio: 1 };
     expect(() => VRApp.prototype.onVRSessionEnd.call(app2)).not.toThrow();
