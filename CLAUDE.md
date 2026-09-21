@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き182 — docs が削除済み API を今も教えていた
+- 🔍 **実測（doc の死参照照合）**: docs/*.md + CLAUDE.md + README 内の `src|tests|tools|proxy|public|docker` パス参照を機械照合 — 16件の不存在パス。大半は削除台帳（正当な履歴）だが、**現状記述部に2件の実害**: ①IMPLEMENTATION.md の「Object Pooling」節が削除済み `ObjectPool` の完全な実装+利用例を未削除で教えていた（コピペで死んだ API を書かせる）②同じく「Service Worker Caching」節が `qui-browser-v1`・`/js/vr-core.js`・`/models/default.glb`・架空 `/api/` 分岐を含む**全編虚構の SW コード**を掲載（実装は stamp 版・BUILD_ASSETS precache・settle キャップ・BASE 解決で全く別物）。DEVELOPER_ONBOARDING.md も不存在の `VRSystemMonitor`/`ObjectPool` をチュートリアルで教えていた。
+- 🔧 **修正**: ①Object Pooling 節を削除済み注記＋実在の TextureManager 案内に置換 ②SW 節を実装の実態記述（stamp-sw-version・BUILD_ASSETS・respondWith キャップ・BASE・main.js 登録経路）に置換 — 全記述を public/service-worker.js と src/main.js で検証済み ③ONBOARDING を `vrApp.getPerformanceStats()` と FFR/TextureManager に差し替え。OUTSTANDING_ISSUES F-1 の `MixedReality.js:270` 参照も削除済みファイルへの死参照だったため同期（dom-overlay 要求コードは今やリポジトリに皆無）。
+- ✅ verify:docs 100% 緑、lint 0 errors。
+
 ### Session 75: 続き181 — dispose() が生きた XR セッションを終了しなかった
 - 🔍 **実測（セッション寿命の照合）**: `dispose()` は `Escape` 緊急クリーンアップと `beforeunload` で呼ばれるのに **`session.end()` を一度も呼んでいなかった**。没入セッション中に dispose が走ると、renderer/subsystem は全破棄されるのにセッションは提示し続ける — ユーザーは死んだシーンを見続けるか手動脱出するしかない。
 - 🔧 **修正**: dispose 冒頭で `renderer.xr.getSession()` が生きていれば `session.end()` を発行（失敗は握り潰し — 既終了は正常）。'sessionend' が `onVRSessionEnd` の正規クリーンアップ（video 停止・layer detach・hand mesh 除去）を走らせるので重複実装不要。

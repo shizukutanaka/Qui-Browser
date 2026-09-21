@@ -997,21 +997,14 @@ const session = await navigator.xr.requestSession('immersive-vr', {
 #### 問題3: パフォーマンス低下
 
 ```javascript
-// パフォーマンスモニタリング
-const monitor = new VRSystemMonitor();
-
+// パフォーマンスモニタリング（実在 API: vrApp.getPerformanceStats()）
 setInterval(() => {
-  const metrics = {
-    fps: monitor.getCurrentFPS(),
-    memory: monitor.getMemoryUsage(),
-    drawCalls: renderer.info.render.calls,
-    triangles: renderer.info.render.triangles
-  };
-
-  console.table(metrics);
-
-  if (metrics.fps < 72) {
-    console.warn('FPS drop detected!', metrics);
+  const stats = vrApp.getPerformanceStats();
+  if (stats) {
+    console.table(stats);
+    if (stats.fps < 72) {
+      console.warn('FPS drop detected!', stats);
+    }
   }
 }, 1000);
 
@@ -1026,8 +1019,9 @@ const geometry = new THREE.SphereGeometry(1, 16, 16); // 32→16
 texture.minFilter = THREE.LinearFilter;
 texture.generateMipmaps = false;
 
-// 4. Object Pooling使用
-const pool = new ObjectPool(MyClass, 100);
+// 4. 実装済みの適応機構に任せる
+//    FFRSystem がフレーム予算超過時に窩窩強度を自動調整し、
+//    TextureManager が LRU + byte cap でテクスチャを退避する
 ```
 
 ---
