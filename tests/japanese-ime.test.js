@@ -61,3 +61,32 @@ describe('JapaneseIME — deleteLast katakana arm + getStats', () => {
     expect(r.converted).toBe('カン');
   });
 });
+
+describe('JapaneseIME — remaining branch arms (fallbacks)', () => {
+  test('getOfflineKanjiCandidates falls back to [hiragana] for a word outside the dict', () => {
+    const ime = new JapaneseIME();
+    expect(ime.getOfflineKanjiCandidates('ぬぬぬ')).toEqual(['ぬぬぬ']);
+    expect(ime.getOfflineKanjiCandidates('かみ')).toEqual(['神', '紙', '髪', '上']);
+  });
+
+  test('suggestionLabel: empty hostname falls back to the raw URL; unparseable hits the catch arm', () => {
+    const { suggestionLabel } = require('../src/vr/input/JapaneseIME.js');
+    // 'about:blank' parses but has an empty hostname → `|| url` arm.
+    expect(suggestionLabel({ url: 'about:blank' })).toBe('about:blank');
+    // Unparseable → catch → truncateToWidth(raw url).
+    expect(suggestionLabel({ url: ':::bad' })).toBe(':::bad');
+    expect(suggestionLabel(null)).toBe('');
+    expect(suggestionLabel({ title: 'タイトル', url: 'https://x' })).toBe('タイトル');
+    expect(suggestionLabel({ url: 'https://example.com/path' })).toBe('example.com');
+  });
+
+  test('processInput/deleteLast convert through the katakana path', async () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'katakana';
+    const r = await ime.processInput('ka');
+    expect(r.converted).toBe('カ');
+    ime.inputMode = 'hiragana';
+    const r2 = await ime.processInput('n');
+    expect(r2.converted).toContain('ん');
+  });
+});

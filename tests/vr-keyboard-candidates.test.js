@@ -482,3 +482,136 @@ describe('candidate select/hover + suggestions arms', () => {
     sug.handlers.onHoverEnd();
   });
 });
+
+describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
+  test('keyboard works end-to-end with no optional callbacks wired', async () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: () => {} // present, but no onKeyPress/onHoverCaption/onCancel/suggestionProvider
+    });
+    kb.createKeyboard();
+    expect(() => {
+      kb.show();
+      kb.hide();
+    }).not.toThrow();
+    // esc without onCancel → no throw (arm at ~1099)
+    await kb.onKeyPress('esc');
+    // enter without _onConfirmCallback → hide + debug only
+    await kb.onKeyPress('enter');
+    expect(kb._onConfirmCallback).toBeNull();
+  });
+
+  test('no registerInteractable at all — keys/suggestions still build', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {});
+    kb.createKeyboard();
+    kb.show(); // assigns nothing new — group already built; keeps the group visible
+    kb.showSuggestions([{ url: 'https://example.com', title: 'x' }]);
+    expect(kb._suggestionMeshes.length).toBe(1);
+    // _clear* guards with unregisterInteractable absent
+    expect(() => { kb._clearSuggestions(); }).not.toThrow();
+    kb.showCandidates(['あ']); // candidate row supersedes the suggestion strip
+    expect(kb._candidateMeshes.length).toBe(1);
+    expect(() => { kb._clearCandidates(); }).not.toThrow();
+  });
+
+  test('hide() before createKeyboard is a no-op', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn() }, new JapaneseIME(), {});
+    expect(() => kb.hide()).not.toThrow();
+    expect(kb.group).toBeFalsy();
+  });
+
+  test('_refreshKeyStates early-returns when ime or keyMeshes absent', () => {
+    const { kb } = makeKeyboard();
+    kb.ime = null;
+    expect(() => kb._refreshKeyStates()).not.toThrow();
+    kb.ime = new JapaneseIME();
+    kb.keyMeshes = null;
+    expect(() => kb._refreshKeyStates()).not.toThrow();
+  });
+
+  test('_refreshDisplay covers ime-absent badge + unknown-mode badge', () => {
+    const { kb } = makeKeyboard();
+    // The display canvas was the first canvas createKeyboard() made.
+    const rec = canvases[0];
+    kb.ime = null;
+    rec.paints.length = 0;
+    expect(() => kb._refreshDisplay()).not.toThrow();
+    expect(rec.paints.map((p) => p.text)).toContain('ひ'); // null-ime → 'hiragana' badge
+    kb.ime = { inputMode: 'latin', compositionBuffer: '' };
+    rec.paints.length = 0;
+    kb._refreshDisplay();
+    expect(rec.paints.map((p) => p.text)).toContain('?'); // BADGE[mode] || '?'
+  });
+
+  test('_setKeyHover tolerates a mesh whose prior texture was never stored', () => {
+    const { kb } = makeKeyboard();
+    const mesh = { userData: {}, material: { map: null, needsUpdate: false } };
+    expect(() => kb._setKeyHover(mesh, true)).not.toThrow();
+    expect(mesh.material.map).toBeTruthy();
+  });
+
+  test('multi-char non-switch key in onKeyPress does nothing', async () => {
+    const { kb } = makeKeyboard();
+    await expect(kb.onKeyPress('nope')).resolves.not.toThrow();
+    expect(kb.ime.compositionBuffer).toBe('');
+  });
+
+  test('showCandidates reuses the lazy group on a second call', () => {
+    const { kb } = makeKeyboard();
+    kb.showCandidates(['あ']);
+    const first = kb._candidatesGroup;
+    kb.showCandidates(['い', 'う']);
+    expect(kb._candidatesGroup).toBe(first);
+    expect(kb._candidateMeshes.length).toBe(2);
+  });
+
+  test('candidate onSelect without ime.selectCandidate falls back to the kanji text', () => {
+    const registered = [];
+    const confirmed = [];
+    const kb = new VRJapaneseKeyboard({ add: jest.fn() }, { }, {
+      registerInteractable: (mesh, handlers) => registered.push({ mesh, handlers }),
+      unregisterInteractable: jest.fn()
+    });
+    kb.setOnConfirm((t) => confirmed.push(t));
+    kb.createKeyboard();
+    kb.show();
+    kb.showCandidates(['あ']);
+    const cand = registered[registered.length - 1];
+    cand.handlers.onSelect();
+    expect(confirmed).toEqual(['あ']); // `selectCandidate` absent → `kanji` fallback
+  });
+
+  test('_updateSuggestions: null provider / short query / throwing provider / null results', () => {
+    const { kb } = makeKeyboard();
+    // no provider at all → immediate return
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    // provider but query too short → clears suggestions
+    kb.suggestionProvider = () => [{ url: 'https://x.com' }];
+    kb.ime.compositionBuffer = 'a';
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb._suggestionMeshes.length).toBe(0);
+    // provider throws → caught, empty results
+    kb.suggestionProvider = () => { throw new Error('boom'); };
+    kb.ime.compositionBuffer = 'exa';
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb._suggestionMeshes.length).toBe(0);
+    // provider returns null → `|| []` arm
+    kb.suggestionProvider = () => null;
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb._suggestionMeshes.length).toBe(0);
+    // ime absent → query '' → early return
+    kb.ime = null;
+    expect(() => kb._updateSuggestions()).not.toThrow();
+  });
+
+  test('suggestion onHover without onHoverCaption / onSelect without ime', () => {
+    const registered = [];
+    const kb = new VRJapaneseKeyboard({ add: jest.fn() }, null, {
+      registerInteractable: (mesh, handlers) => registered.push({ mesh, handlers })
+    });
+    kb.createKeyboard();
+    kb._suggestionsGroup = new MockGroup();
+    kb.showSuggestions([{ url: 'https://example.com', title: 'Example' }]);
+    const sug = registered[registered.length - 1];
+    expect(() => { sug.handlers.onHover(); sug.handlers.onHoverEnd(); sug.handlers.onSelect(); }).not.toThrow();
+  });
+});
