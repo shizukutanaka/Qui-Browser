@@ -674,3 +674,33 @@ describe('TabManager — remaining branch arms', () => {
     expect(tm.stripMesh).toBeNull();
   });
 });
+
+describe('TabManager — last branch arms', () => {
+  test('closeTab without onTabClose callback does not throw', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    expect(() => tm.closeTab(0)).not.toThrow();
+    expect(tm.tabs).toHaveLength(1);
+  });
+
+  test('setActive without onTabActivate callback does not throw', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    expect(() => tm.setActive(0)).not.toThrow();
+  });
+
+  test('serialize with zero tabs clamps active to 0', () => {
+    const tm = makeManager();
+    const json = tm.serialize();
+    expect(json.active).toBe(0);
+    expect(json.tabs).toEqual([]);
+  });
+
+  test('dispose traverse skips material without .map', () => {
+    const tm = makeManager();
+    tm.stripGroup.traverse = (fn) => fn({ material: { dispose: jest.fn() } });
+    expect(() => tm.dispose()).not.toThrow();
+  });
+});
