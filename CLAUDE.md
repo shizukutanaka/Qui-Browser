@@ -551,6 +551,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き76（同セッション）: プロキシの SSRF ガードに2つの実穴 — 実バグ33-34件目
+- 🐛 **実バグ33（TOCTOU / DNS rebinding）**: `resolveSafely()` が DNS 解決結果を検査したあと、`httpRequest(url)` が接続時に**ホスト名を再解決**していた — TTL=0 や問い合わせ毎に異なる応答を返す攻撃者 DNS で、2回目の解決が内部アドレスを返せばガードを素通り。`lookup` オプションで検査済みアドレスにピン留め（Socket が実際に接続する先 = 検査した先）。
+- 🐛 **実バグ34（IPv6 埋め込み v4 バイパス）**: `::ffff:` の検査が dotted 形 `::ffff:127.0.0.1` のみで、WHATWG URL パーサーが実際に生成する hex 形 `::ffff:7f00:1`、および NAT64 `64:ff9b::/96`・6to4 `2002::/16`・Teredo `2001:0::/32`・ISATAP `5efe` IID が全て素通し → どれも loopback/private v4 へ接続できた。v6 を8 hextet に展開して機構別に埋め込み v4 を復号し、既存の V4_BLOCKED 表で再検査（Teredo は XOR 復号）。公開埋め込み（::ffff:8.8.8.8 等）は従来通り許可。
+- ✅ pin: ssrf-guard.test.js に6テスト群（全機構の private/public 両腕）、新設 proxy-server.test.js に lookup ピン留め・全アドレス検査の2テスト — 全て修正前赤確認。
+- 📝 2128 tests / 62 suites、lint 0 errors、build green。proxy/ は SSRF 境界が実戦品質に。
+- 🔍 同時棚卸し（欠陥ゼロ）: index.html CSP `script-src 'self'` は外部 module のみで整合（inline なし）、service-worker.js precache は BASE/index/manifest/offline の4実在ファイル＋個別 catch。
+
 #### 続き75（同セッション）: CI の死んだジョブを実測で特定 — main マージ時に確実に失敗する3経路をパッチ化
 - 🔍 **実測**: `ci.yml` `test-integration` は削除済み `tests/tier-system-integration.test.js` を指す（jest no-tests → exit 1）。`test-performance` は削除済み `benchmark:all` + `check-performance-regression.js` を指す（job 丸ごと死骸）。`benchmark.yml` は週次 cron で削除済み `tools/benchmark.js` を起動し**毎週失敗通知を出し続ける**。`v5.8.0-planning.yml`（週次、削除済み assets/js を grep する echo のみ）と `wasm-build.yml`（削除済み wasm/ パスフィルタで dormant）も死骸。スタック PR では CI が走らない（base が main/develop 以外のため）ので、これらは**このスタックが main にマージされた瞬間に全て発火する**潜伏破損。
 - 🔧 `.github/workflows/**` は Devin が push 不能（403 再確認済み・K-1）なため、**適用検証済みパッチ**として同梱: `docs/patches/0002-ci-fix-dead-jobs.patch`（origin/main に `git am` でクリーン適用を実測）— test-integration を実在エイリアス `npm run test:integration` に付け替え、test-performance ジョブと `needs:`/サマリ参照を削除。死んだ3ワークフローの削除は `git rm` コマンドを K-1 に追記。

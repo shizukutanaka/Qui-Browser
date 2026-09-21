@@ -100,16 +100,12 @@ export function isBlockedAddress(address) {
 
   if (host.includes(':')) {
     // IPv6. Reject loopback, unspecified, unique-local (fc00::/7) and
-    // link-local (fe80::/10) outright, plus any v4-mapped form, which would
-    // otherwise smuggle a private v4 address past the check above.
+    // link-local (fe80::/10) outright, plus every transition mechanism that
+    // embeds a v4 address — each would smuggle a private v4 past the checks
+    // above (the WHATWG URL parser itself normalises ::ffff:a.b.c.d into the
+    // hex tail ::ffff:HHHH:HHHH, so the dotted form alone is not enough).
     if (host === '::1' || host === '::') {
       return { blocked: true, reason: 'ipv6-loopback' };
-    }
-    const mapped = /::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(host);
-    if (mapped) {
-      return isBlockedAddress(mapped[1]).blocked
-        ? { blocked: true, reason: 'ipv4-mapped-private' }
-        : { blocked: false };
     }
     const head = host.split(':')[0];
     if (/^f[cd]/.test(head)) {
@@ -117,6 +113,10 @@ export function isBlockedAddress(address) {
     }
     if (/^fe[89ab]/.test(head)) {
       return { blocked: true, reason: 'ipv6-link-local' };
+    }
+    const embedded = embeddedV4(host);
+    if (embedded) {
+      return embedded.blocked ? { blocked: true, reason: embedded.reason } : { blocked: false };
     }
     return { blocked: false };
   }
@@ -133,6 +133,80 @@ export function isBlockedAddress(address) {
     return { blocked: true, reason: 'bare-hostname' };
   }
   return { blocked: false };
+}
+
+/**
+ * Expand an IPv6 literal into its eight 16-bit groups. Returns null when the
+ * string is not valid IPv6 (caller already gated on ':').
+ */
+function parseV6(host) {
+  if (!/^[0-9a-f:]+$/i.test(host)) {
+    return null;
+  }
+  const halves = host.split('::');
+  if (halves.length > 2) {
+    return null;
+  }
+  const parseHalf = (s) => (s === '' ? [] : s.split(':').map((h) => parseInt(h, 16)));
+  const left = parseHalf(halves[0]);
+  const right = halves.length === 2 ? parseHalf(halves[1]) : [];
+  if (left.length + right.length > 8 || left.some(Number.isNaN) || right.some(Number.isNaN)) {
+    return null;
+  }
+  const zeros = new Array(8 - left.length - right.length).fill(0);
+  return [...left, ...zeros, ...right];
+}
+
+/**
+ * Pull the IPv4 address embedded by a transition mechanism out of an IPv6
+ * literal and re-run the v4 rules on it. Returns null when the literal is not
+ * a known embedded-v4 form.
+ *
+ *   ::ffff:0/96      v4-mapped        → low 32 bits (incl. ::a.b.c.d compat form)
+ *   64:ff9b::/96     NAT64            → low 32 bits (also 64:ff9b:1::/48)
+ *   2002::/16        6to4             → bits 16..47
+ *   2001:0::/32      Teredo           → low 32 bits XOR 0xffffffff
+ *   00-00-5e-fe IID  ISATAP           → low 32 bits
+ */
+function embeddedV4(host) {
+  // Normalise a dotted-quad tail (…:a.b.c.d) into hex hextets so the paths
+  // below only ever see the expanded form.
+  const dotted = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(host);
+  if (dotted) {
+    const o = dotted[1].split('.').map(Number);
+    if (!o.every((n) => n <= 255)) {
+      return null;
+    }
+    const hex = ((o[0] << 8) | o[1]).toString(16) + ':' + ((o[2] << 8) | o[3]).toString(16);
+    return embeddedV4(host.slice(0, host.length - dotted[1].length) + hex);
+  }
+  const h = parseV6(host);
+  if (!h) {
+    return null;
+  }
+  const low32 = [h[6] >> 8, h[6] & 0xff, h[7] >> 8, h[7] & 0xff];
+  const check = (octets, reason) => isBlockedAddress(octets.join('.')).blocked
+    ? { blocked: true, reason }
+    : { blocked: false };
+
+  if (h[0] === 0x2002) {
+    // 6to4: the relay's v4 sits in hextets 1-2, not the tail.
+    return check([h[1] >> 8, h[1] & 0xff, h[2] >> 8, h[2] & 0xff], 'ipv6-embedded-v4-6to4');
+  }
+  if (h[0] === 0x2001 && h[1] === 0x0000) {
+    // Teredo obscures the client v4 with an XOR.
+    return check(low32.map((o) => o ^ 0xff), 'ipv6-embedded-v4-teredo');
+  }
+  if (h[0] === 0x0064 && h[1] === 0xff9b) {
+    return check(low32, 'ipv6-embedded-v4-nat64');
+  }
+  if (h[0] === 0 && h[1] === 0 && h[2] === 0 && h[3] === 0 && h[4] === 0 && (h[5] === 0xffff || h[5] === 0)) {
+    return check(low32, 'ipv4-mapped-private');
+  }
+  if ((h[4] === 0x0000 || h[4] === 0x0200) && h[5] === 0x5efe) {
+    return check(low32, 'ipv6-embedded-v4-isatap');
+  }
+  return null;
 }
 
 /**

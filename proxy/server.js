@@ -97,7 +97,11 @@ export async function fetchThroughGuard(target, headers = {}) {
       const req = send(url, {
         method: 'GET',
         headers: { ...safeUpstreamHeaders(headers), host: url.host },
-        timeout: UPSTREAM_TIMEOUT_MS
+        timeout: UPSTREAM_TIMEOUT_MS,
+        // Pin the connection to the address the guard already checked —
+        // letting httpRequest re-resolve the hostname opens a DNS-rebinding
+        // window where the second answer points inward.
+        lookup: (_host, _opts, cb) => cb(null, dns.address, dns.family)
       }, (r) => resolve({ kind: 'response', r }));
       req.on('timeout', () => {
         req.destroy();

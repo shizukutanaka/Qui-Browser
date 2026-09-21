@@ -187,3 +187,42 @@ describe('isReadableContentType', () => {
     }
   });
 });
+
+describe('isBlockedAddress — embedded-IPv4 transition mechanisms', () => {
+  test('::ffff: hex tail (what the URL parser produces for ::ffff:a.b.c.d) is blocked', () => {
+    // new URL('http://[::ffff:127.0.0.1]/').hostname === '[::ffff:7f00:1]'
+    expect(isBlockedAddress('::ffff:7f00:1').blocked).toBe(true);
+    expect(isBlockedAddress('::ffff:a9fe:a9fe').blocked).toBe(true); // 169.254.169.254
+    expect(isBlockedAddress('::ffff:808:808').blocked).toBe(false);   // 8.8.8.8
+  });
+
+  test('deprecated v4-compatible ::a.b.c.d form is blocked for private targets', () => {
+    expect(isBlockedAddress('::7f00:1').blocked).toBe(true);
+    expect(isBlockedAddress('::c0a8:1').blocked).toBe(true); // 192.168.0.1
+  });
+
+  test('NAT64 well-known prefix carrying a private v4 is blocked', () => {
+    expect(isBlockedAddress('64:ff9b::7f00:1').blocked).toBe(true);   // 127.0.0.1
+    expect(isBlockedAddress('64:ff9b:1::a00:1').blocked).toBe(true);  // 10.0.0.1
+    expect(isBlockedAddress('64:ff9b::808:808').blocked).toBe(false); // 8.8.8.8
+  });
+
+  test('6to4 prefix embedding a private v4 is blocked', () => {
+    expect(isBlockedAddress('2002:7f00:1::').blocked).toBe(true);   // 127.0.0.1
+    expect(isBlockedAddress('2002:c0a8:1::1').blocked).toBe(true);  // 192.168.0.1
+    expect(isBlockedAddress('2002:808:808::').blocked).toBe(false); // 8.8.8.8
+  });
+
+  test('Teredo tunnel encoding a private client v4 is blocked', () => {
+    // client v4 is XORed with 0xffffffff in the low 32 bits:
+    // 0x80fffffe ^ 0xffffffff = 127.0.0.1
+    expect(isBlockedAddress('2001:0:4136:e378:8000:63bf:80ff:fffe').blocked).toBe(true);
+    // 0xf7f7f7f7 ^ 0xffffffff = 8.8.8.8 — public, allowed
+    expect(isBlockedAddress('2001:0:4136:e378:8000:63bf:f7f7:f7f7').blocked).toBe(false);
+  });
+
+  test('ISATAP interface id embedding a private v4 is blocked', () => {
+    expect(isBlockedAddress('2001:db8::5efe:7f00:1').blocked).toBe(true);
+    expect(isBlockedAddress('2001:db8::5efe:808:808').blocked).toBe(false);
+  });
+});
