@@ -132,6 +132,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip Range requests — a 206 Partial Content response is rejected by
+  // cache.put (Cache Storage only accepts complete 200 responses), so
+  // intercepting byte-range fetches turns media seeking into a strategy
+  // failure. No same-origin media ships today, but the intercept would be
+  // wrong for any that does.
+  if (request.headers.get('range')) {
+    return;
+  }
+
   // Skip chrome extension requests
   if (url.protocol === 'chrome-extension:') {
     return;

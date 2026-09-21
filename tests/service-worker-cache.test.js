@@ -184,10 +184,17 @@ describe('fetch handler — cross-origin bypass', () => {
     delete global.fetch;
   });
 
-  function fire(url, method = 'GET') {
+  function fire(url, method = 'GET', headers = {}) {
     let responded = false;
     swHandlers.fetch({
-      request: { url, method },
+      request: {
+        url,
+        method,
+        headers: { get: (name) => headers[name.toLowerCase()] || null },
+        clone() {
+          return { ...this, headers: this.headers };
+        }
+      },
       // Swallow the strategy promise so an async rejection can't fail the run.
       respondWith: (p) => {
         responded = true; Promise.resolve(p).catch(() => {});
@@ -214,6 +221,13 @@ describe('fetch handler — cross-origin bypass', () => {
 
   test('chrome-extension: is still skipped', () => {
     expect(fire('chrome-extension://abc/x.js')).toBe(false);
+  });
+
+  test('Range requests bypass the handler — 206 responses cannot be cached', () => {
+    // cache.put rejects a 206 Partial Content; intercepting a byte-range
+    // fetch would turn media seeking into a strategy failure.
+    expect(fire('https://app.example/media/clip.mp4', 'GET', { range: 'bytes=0-1023' })).toBe(false);
+    expect(fire('https://app.example/js/app.js', 'GET', { range: '' })).toBe(true);
   });
 });
 
@@ -273,7 +287,14 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
   function fireAndWait(url) {
     return new Promise((resolve) => {
       swHandlers.fetch({
-        request: { url, method: 'GET' },
+        request: {
+          url,
+          method: 'GET',
+          headers: { get: () => null },
+          clone() {
+            return { ...this, headers: this.headers };
+          }
+        },
         respondWith: (p) => resolve(Promise.resolve(p))
       });
     });
@@ -328,7 +349,15 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
     // request.mode 'navigate' → getOfflineFallback serves the cached shell
     let p;
     swHandlers.fetch({
-      request: { url: 'https://app.example/some/page', method: 'GET', mode: 'navigate' },
+      request: {
+        url: 'https://app.example/some/page',
+        method: 'GET',
+        mode: 'navigate',
+        headers: { get: () => null },
+        clone() {
+          return { ...this, headers: this.headers };
+        }
+      },
       respondWith: (r) => {
         p = r;
       }

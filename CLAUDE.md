@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き219 — SW が Range リクエストをインターセプトしていた（206 は cache.put で拒否される）
+- 🐛 **fix（潜在欠陥）**: service-worker の fetch ハンドラが byte-range リクエストを捕捉していた — `cache.put` は 206 Partial Content を InvalidStateError で拒否するため、同一 origin のメディアが将来追加された時点でシーク操作が戦略失敗 → offline フォールバック化する罠だった。`request.headers.get('range')` 非空で早期 return（ネットワーク直行）。現状同一 origin メディアは不在だが、インターセプト自体が仕様上誤り。
+- 🔍 **同軸照合（クリーン）**: VideoTexture は three が requestVideoFrameCallback で新フレーム時のみ needsUpdate（90Hz での無駄な再アップロードなし）・SW activate の旧キャッシュ削除＋skipWaiting/claim・ランタイムキャッシュ eviction・modulepreload 正規付与・favicon は vite が hashed /assets/images/ へ書換え＋BASE_PATH 接頭辞で全デプロイ先正解（一見の404疑いは誤判定・実測で否定）。
+- 🧪 **pin**: Range バイパス（bytes=0-1023 → 非捕捉、range 空 → 捕捉）＋ fire/fireAndWait モック request に headers/clone を追加（実 Request と同形）。
+- ✅ 3116 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き218 — Cache-Control 平仄の実害3件（immutable が mutable ファイルに当たる/当たらない）
 - 🐛 **fix（キャッシュ）**: 3デプロイ先の `Cache-Control` 平仄を実測照合 — **vercel `/(.*).js` と nginx `~* \.(js|css)$` が非ハッシュ `offline.js` を1年 immutable 化**（更新が永遠に伝播しない、SW と同問題クラス）。**netlify の immutable は `/assets/*` のみで vite の hashed bundle 出力先 `js/` を未カバー** — vendor-three 553KB が再訪毎に再フェッチされていた。修正: vercel を `/js/(.*)` スコープ化＋`/offline.js` に 3600、netlify に `/js/*` immutable 追加、nginx に `location = /offline.js` exact-match 追加（regex より優先）。
 - 🔧 **X-XSS-Protection → `0`**: レガシー auditor は Chrome で2019年削除済み、残る挙動は誤検知による害のみ（MDN/OWASP 推奨に準拠）— vercel/netlify/nginx 計5箇所を統一。
