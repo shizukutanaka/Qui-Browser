@@ -44,6 +44,34 @@ export const EMOJI_EM = 1.3;
 /** Appended by truncateToWidth; a full em in sans-serif (measured 1.000). */
 const ELLIPSIS = '…';
 
+/**
+ * Kinsoku (UAX #14 line-break prohibitions) for the hard-split path.
+ *
+ * Japanese has no spaces, so a paragraph of it always takes the
+ * char-by-char split below — without these sets, a break could put a closing
+ * punctuation mark at the head of a row or an open bracket at its tail.
+ *
+ * KIN_START (行頭禁則): chars that must not open a row — closing punctuation
+ * and brackets, small kana, prolonged-sound and iteration marks, etc.
+ * KIN_END (行末禁則): chars that must not end a row — opening brackets/quotes.
+ *
+ * The set is the common Japanese subset (JIS X 4051 style); it is deliberately
+ * not the whole UAX #14 table — canvas layout here uses an approximate em
+ * model anyway, so the 95% WIDTH_SAFETY budget absorbs the occasional
+ * one-char overhang this strategy produces (ぶら下げ).
+ */
+export const KIN_START = new Set(Array.from(
+  '、。，．！？：；…‥・ー〜～ゝゞ々〻' +            // closes/punct/prolonged/iteration
+  'ぁぃぅぇぉゃゅょゎっゕゖ' +                  // small hiragana
+  'ァィゥェォャュョヮッヵヶ' +                  // small katakana
+  '）］｝〉》」』】〕〗〙〛' +                  // closing brackets
+  '”),.!?;:%'                                 // ASCII closes + inline punct
+));
+const KIN_END = new Set(Array.from(
+  '（［｛〈《「『【〔〖〘〚' +                  // opening brackets
+  '“('                                        // ASCII opens
+));
+
 export function charWidthEm(cp) {
   if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf)) {
     return EMOJI_EM;
@@ -116,13 +144,31 @@ export function wrapTextToWidth(text, maxEm) {
   for (const w of words) {
     const wW = textWidthEm(w);
     if (wW > limit) {
-      // Word wider than a whole row: hard-split it by accumulated em width.
+      // Word wider than a whole row: hard-split it by accumulated em width,
+      // honouring kinsoku — a KIN_START char overhangs the current row
+      // (ぶら下げ) rather than opening the next, and a KIN_END char is
+      // carried down to open the next row (追い出し).
       pushCur();
       let chunk = '';
       let chunkW = 0;
       for (const ch of w) {
         const cw = charWidthEm(ch.codePointAt(0));
         if (chunkW + cw > limit && chunk) {
+          if (KIN_START.has(ch)) {
+            chunk += ch;
+            chunkW += cw;
+            continue;
+          }
+          const cps = Array.from(chunk);
+          const last = cps.pop();
+          // Move the open bracket down only if a real char stays behind —
+          // a chunk that is only the bracket can't split without an empty row.
+          if (cps.length > 0 && KIN_END.has(last)) {
+            rows.push(cps.join(''));
+            chunk = last + ch;
+            chunkW = charWidthEm(last.codePointAt(0)) + cw;
+            continue;
+          }
           rows.push(chunk);
           chunk = '';
           chunkW = 0;
@@ -136,6 +182,11 @@ export function wrapTextToWidth(text, maxEm) {
       cur = w;
       curW = wW;
     } else if (curW + 0.5 + wW <= limit) { // 0.5 em for the joining space
+      cur += ' ' + w;
+      curW += 0.5 + wW;
+    } else if (cur && KIN_START.has(w[0])) {
+      // A space-split word beginning with closing punctuation must not open a
+      // row either — let it overhang the current one (ぶら下げ).
       cur += ' ' + w;
       curW += 0.5 + wW;
     } else {

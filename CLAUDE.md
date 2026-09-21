@@ -245,11 +245,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
-### Session 75: 続き216 — patch 0009 の陳腐化を修復（context 行ドリフト）
-- 🔍 **実測（ledger 適用可能性監査）**: `git apply --check` を docs/patches/ 全9件に実行 — 8件 OK、**0009（chain PR の CI ゲート）のみ STALE**。原因: patch が context として期待する `jobs:` 直下のコメント行（`# The previous 'validate' and 'compatibility' jobs...`）が後続の workflow 整理で除去されており hunk が不一致。パッチの意図（pull_request の branches フィルタ除去）は依然正しい。
-- 🔧 **修復**: 現行 .github/workflows に対して同変更（ci.yml・test.yml 両方の `pull_request:` 下 `branches:` フィルタ削除、push 側は維持）を再適用 → `git diff` から patch を再生成し `git apply --check` で適用可能を実証。owner の適用作業が再度 unblock。
-- 🔍 **同 stretch の照合（全クリーン）**: WebPanel iframe sandbox（cross-origin 外部サイトのみ、proxy 経路は reader 用で iframe.src 非経由 — allow-same-origin の自 origin 脱出問題は非該当）・cross-origin contentWindow 読取の try/catch + X-Frame-Options → 'unavailable' 表示・videoProjection/ImmersiveVideo の per-eye stereo（layers 1/2 + eyeUVTransform、tb 上=左目は慣例通り）・tools/ 9本全参照済み（chrome-path は内部 import、measure-text-metrics は手動診断として正当）・resource-hints なしは正しい（CDN 参照ゼロ＋module graph が並列化済み）。
-- ✅ 3093 tests / 72 suites 全緑、lint 0 errors（patch のみの変更でコード不変）。
+### Session 75: 続き217 — 禁則処理（UAX #14）をハード分割に実装 + patch 0009 の真の修復
+- 🐛 **fix（日本語組版）**: `wrapTextToWidth` のハード分割に**禁則処理が皆無**だった — 日本語は空白を持たないため全文がこの経路を通り、`、。）」っ` 等の行頭禁則文字が行頭に・`「（` 等の行末禁則文字が行末に来うる組版違反状態だった。KIN_START（行頭禁則: 閉じ punctuation/括弧・小書き仮名・長音・踊り字・ASCII closes）/KIN_END（行末禁則: 開き括弧）の Set を実装 — **ぶら下げ**（行頭禁則文字は前行に overhang）と**追い出し**（行末禁則文字は次行頭へ carry）の2方式で対処。空白分割経路にも行頭禁則語の overhang を適用。キャプション・リーダー・トーストが共通 helper を共有するため1箇所の修正で全経路に適用。
+- 🧪 **pin**: text-wrap.test.js に5件 — ぶら下げ（`あいうえ、おかき` → `あいうえ、`/`おかき`）・促音、小書き仮名・追い出し（`あいう「かきく` → `あいう`/`「かきく`）・孤立 bracket が空行を生まないこと・空白区切り語の行頭禁則 overhang。readable-text の「全行 ≤ measure」pin は**意図的に緩和** — 行頭禁則文字の trailing run を除いて幅契約を検証する形に（ぶら下げは1字分の正当なはみ出し）。
+- 🔧 **patch 0009 の真の修復**: 当初 `git apply --check` で「context 行ドリフト」と診断して現行ファイルに対して再生成したが、ci-patches.test.js の**直列適用**で失敗し続け — 真因は「patch が 0001–0008 適用後の状態を期待するのに、0002 が test.yml に挿入するコメント行を context に含んでいなかった」こと。**元の patch は authored 時点から in-series で不適合**だった潜在欠陥。0001–0008 適用後の temp ツリーに対して再生成し、直列適用テスト3件全緑で実証。
+- ✅ 3099 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き216 — patch 0009 の陳腐化調査（訂正: 続き217で真因特定）
+- 🔍 **実測（ledger 適用可能性監査）**: `git apply --check` を docs/patches/ 全9件に実行 — 8件 OK、0009 のみ不一致を検出。**この調査の `git apply --check` は単独適用を試すため誤った結論を出した** — patch は系列適用が前提で、真の不整合は続き217で特定・修復（下記参照）。このセッションで一度コミットした再生成版は直列適用で壊れる誤った修復だったため revert して正しい形に置き換えた。
+- 🔍 **同 stretch の照合（全クリーン）**: WebPanel iframe sandbox（cross-origin 外部サイトのみ、proxy 経路は reader 用で iframe.src 非経由 — allow-same-origin の自 origin 脱出問題は非該当）・cross-origin contentWindow 読取の try/catch + X-Frame-Options → 'unavailable' 表示・videoProjection/ImmersiveVideo の per-eye stereo（layers 1/2 + eyeUVTransform、tb 上=左目は慣例通り）・tools/ 9本全参照済み（chrome-path は内部 import、measure-text-metrics は手動診断として正当）・resource-hints なしは正しい（CDN 参照ゼロ＋module graph が並列化済み）・storage キー名前空間（qui-browser:* / qui.*）＋quota guard。
+- ✅ 変更は patch のみ（コード不変）— 3093 tests / 72 suites・lint 0 errors 継続。
 
 ### Session 75: 続き215 — three 0.181 deprecated-API 掃討: 死んだ encoding 互換分岐の削除
 - 🔍 **外部知見照合（three r152+ 廃止 API 掃引）**: `outputEncoding`/`physicallyCorrectLights`/`useLegacyLights`/`sRGBEncoding`/`LinearEncoding`/`toneMapping`/`outputColorSpace` を src/ 全体で grep — 唯一の残滓は `TextureManager.applyTextureSettings` の `else if (options.encoding)` 互換分岐のみ。他経路（canvasTexture.js・ImmersiveVideo.js の `THREE.SRGBColorSpace` 直指定）は現行 API で正しい。

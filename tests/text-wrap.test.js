@@ -76,6 +76,42 @@ describe('wrapTextToWidth', () => {
     expect(wrapTextToWidth('', 10)).toEqual(['']);
     expect(wrapTextToWidth('   ', 10)).toEqual(['']);
   });
+
+  it('kinsoku: closing punctuation never opens a row (ぶら下げ)', () => {
+    // limit 4 em: 'あいうえ' fills row 1 — '、' would land at row 2's head
+    // without kinsoku; it must overhang row 1 instead.
+    const rows = wrapTextToWidth('あいうえ、おかき', 4);
+    expect(rows[0]).toBe('あいうえ、');
+    expect(rows[1]).toBe('おかき');
+  });
+
+  it('kinsoku: small kana and prolonged marks also never open a row', () => {
+    // 'ちいさな' + 'っ' at the boundary — sokuon must not start a line.
+    const rows = wrapTextToWidth('きょうはっぴょう', 5);
+    expect(rows[0].endsWith('っ')).toBe(true);
+  });
+
+  it('kinsoku: an open bracket never ends a row (追い出し)', () => {
+    // 'あいう「' fills row 1 exactly; 'か' would break after '「' — instead the
+    // bracket is carried down to open the next row.
+    const rows = wrapTextToWidth('あいう「かきく', 4);
+    expect(rows).toEqual(['あいう', '「かきく']);
+  });
+
+  it('kinsoku: a lone bracket chunk cannot split into an empty row', () => {
+    // At a 1-em budget the bracket is alone on its row — the only options are
+    // a line-end violation or an empty row; the violation is the lesser evil.
+    const rows = wrapTextToWidth('「あい', 1);
+    expect(rows.every((r) => r.length > 0)).toBe(true);
+    expect(rows.join('')).toBe('「あい');
+  });
+
+  it('kinsoku: a space-split word starting with closing punct overhangs too', () => {
+    // 'aa' fits row 1 (1.2 em); '、bb' would open row 2 with '、'.
+    const rows = wrapTextToWidth('aa 、bb', 3);
+    expect(rows[0].startsWith('、')).toBe(false);
+    expect(rows.length).toBe(1);
+  });
 });
 
 describe('safeMeasureEm / truncateToWidth', () => {

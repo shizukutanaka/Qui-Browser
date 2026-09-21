@@ -14,7 +14,7 @@ const {
 } = require('../src/vr/browser/readerLayout.js');
 const {
   wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm,
-  HALFWIDTH_EM, EMOJI_EM, WIDTH_SAFETY
+  HALFWIDTH_EM, EMOJI_EM, WIDTH_SAFETY, KIN_START
 } = require('../src/vr/ui/textWrap.js');
 
 describe('decodeEntities', () => {
@@ -287,10 +287,19 @@ describe('em-based measure — Japanese must not overflow the panel', () => {
     expect(jpChars).toBeLessThanOrEqual(35);
   });
 
-  test('mixed Japanese/Latin lines also stay within the measure', () => {
+  test('mixed Japanese/Latin lines stay within the measure modulo kinsoku', () => {
+    // Kinsoku (ぶら下げ) lets a trailing run of line-start-prohibited chars
+    // overhang the measure — strip it before asserting the width contract.
+    const strip = (s) => {
+      const cps = Array.from(s);
+      while (cps.length && KIN_START.has(cps[cps.length - 1])) {
+        cps.pop();
+      }
+      return cps.join('');
+    };
     const mixed = 'WebXRの仕様はW3Cが策定しています。'.repeat(20);
     for (const l of layoutReaderLines([{ type: 'p', text: mixed }])) {
-      expect(textWidthEm(l.text)).toBeLessThanOrEqual(measureEmFor(1));
+      expect(textWidthEm(strip(l.text))).toBeLessThanOrEqual(measureEmFor(1));
     }
   });
 
