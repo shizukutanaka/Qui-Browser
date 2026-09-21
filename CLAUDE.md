@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き205 — OS リセンター（XRReferenceSpace 'reset'）に無反応だった実害を修正
+- 🔍 **発見（WebXR spec）**: `XRReferenceSpace` はランタイムが原点を再定義した際に `reset` を発火する（Quest で Meta ボタン長押し＝OS リセンター、トラッキング復帰等）。イベントが来ると head が新原点・新 forward に置き直されるのに、アプリの playerRig は旧 locomotion オフセットを保持 — **ワールド空間のパネルが背後/横に取り残される**。リスナーが一度も存在しなかった（thumbstick クリックの `recenter()` は存在するが OS 経路では発火しない）。
+- 🔧 **修正**: `onVRSessionStart` で `renderer.xr.getReferenceSpace()` に 'reset' リスナーを付け `recenter()` を呼ぶ（three の `sessionstart` は `requestReferenceSpace` 解決後に発火するため同期取得可能）。`onVRSessionEnd` で参照を null 化（空間オブジェクトはセッションと共に破棄）。
+- 🧪 pin 2本: reset 発火で rig が (0,0,0)+identity に戻る、sessionend でハンドラ参照が落ちる。
+- 🔍 **同クラス掃引（全クリーン）**: `setReferenceSpaceType` 未設定だが three 既定 `local-floor` が正しい、inputsourceschange/visibilitychange/sessionend/select/squeeze 全て配線済み、setFoveation は FFRSystem が防御付きで使用済み、dispose 経路の traverse は全て teardown（熱パスに走査なし）。
+- ✅ 3085 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き204 — 手ジョイントポーズを `fillPoses`/`fillJointRadii` にバッチ化（毎フレーム ~50 個の XRPose 確保を解消）
 - 🔍 **発見（WebXR hand-input spec）**: `updateHand` が `frame.getJointPose()` を25ジョイント×2手で呼出 — 各コールが新 `XRPose` を確保し **90fps で秒間 ~4,500 オブジェクト**。spec の `fillPoses(spaces, baseSpace, transforms)`/`fillJointRadii(spaces, radii)` は共有 Float32Array へ直接書くバッチ API。
 - 🔧 **修正**: 手ごとに `{hand, spaces, names, poses: Float32Array(n*16), radii}` を `inputSource.hand` 変更時のみ再構築。fillPoses が false（一部ジョイント未追跡）や API 不在のランタイムでは従来の per-joint 経路へフォールバック。dispose で `_batch` をクリア（joint spaces が session を pin するため）。列-major 行列の平行移動は [12..14]。

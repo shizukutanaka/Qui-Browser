@@ -734,6 +734,12 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
     expect(() => VRApp.prototype.onVRSessionEnd.call(app)).not.toThrow();
   });
 
+  test('drops the reference-space reset handler set by onVRSessionStart', () => {
+    const app = makeSessionEndApp({ onRefSpaceReset: () => {} });
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(app.onRefSpaceReset).toBeNull();
+  });
+
   test('still disposes layersSystem and stops immersiveVideo alongside handTracking', () => {
     const layersSystem = { dispose: jest.fn() };
     const immersiveVideo = { stop: jest.fn() };

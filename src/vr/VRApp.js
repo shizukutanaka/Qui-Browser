@@ -3057,6 +3057,18 @@ export class VRApp {
       session.addEventListener('visibilitychange', this.onXRVisibilityChange);
     }
 
+    // The runtime re-fires 'reset' on the XRReferenceSpace when it redefines
+    // the origin — OS-level recenter (Quest: holding the Meta button) or a
+    // tracking recovery. The reference origin and forward direction may jump
+    // while the rig keeps its locomotion offset, leaving the world-space
+    // panels behind the viewer. Mirror the thumbstick recenter so the rig
+    // returns to the new origin facing its forward direction.
+    const refSpace = this.renderer.xr.getReferenceSpace?.();
+    if (refSpace && typeof refSpace.addEventListener === 'function') {
+      this.onRefSpaceReset = () => this.recenter();
+      refSpace.addEventListener('reset', this.onRefSpaceReset);
+    }
+
     // Frame-rate module (supportedFrameRates/updateTargetFrameRate) needs no
     // session feature grant. Without a request the runtime stays at its
     // default (Quest: 90Hz); a tier-derived 120fps budget would then mark
@@ -3207,6 +3219,8 @@ export class VRApp {
     // The XRSession is discarded on end (its visibilitychange listener dies with
     // it); just drop our reference so a stale closure can't be reused.
     this.onXRVisibilityChange = null;
+    // Same for the reference space — the runtime discards it with the session.
+    this.onRefSpaceReset = null;
 
     // onVRSessionStart re-based targetFPS on the session's real refresh rate.
     // Restore the device-tier value: the animation loop (and its adjustQuality

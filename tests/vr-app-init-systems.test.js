@@ -1239,6 +1239,29 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
     expect(app.layersSystem).toBeNull();
   });
+
+  test('reference-space reset re-syncs the rig to the new origin', async () => {
+    const { app } = makeSessionApp({ initialize: () => false });
+    const listeners = {};
+    const refSpace = {
+      addEventListener: jest.fn((type, fn) => {
+        listeners[type] = fn;
+      })
+    };
+    app.renderer.xr.getReferenceSpace = () => refSpace;
+    app.playerRig = {
+      position: { set: jest.fn(), x: 5, y: 0, z: 3 },
+      quaternion: { identity: jest.fn() }
+    };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    app.recenter = () => VRApp.prototype.recenter.call(app);
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(refSpace.addEventListener).toHaveBeenCalledWith('reset', expect.any(Function));
+    listeners.reset();
+    expect(app.playerRig.position.set).toHaveBeenCalledWith(0, 0, 0);
+    expect(app.playerRig.quaternion.identity).toHaveBeenCalled();
+  });
+
 });
 
 
