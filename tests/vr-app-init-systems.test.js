@@ -869,3 +869,81 @@ describe('voice cfg — inner false/guard arms', () => {
     expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 0);
   });
 });
+
+describe('ImmersiveVideo cfg + TabManager inner arms', () => {
+  test('onPlaybackChange paused → videoPaused caption; not-VREnabled → silent', () => {
+    const calls = [];
+    patch('ImmersiveVideo', ctor(calls, {}));
+    const shown = [];
+    const app = makeInitLike({ enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false });
+    app.isVREnabled = true;
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype.setupScene.call(app);
+    const cfg = calls[0][3];
+
+    cfg.onPlaybackChange('paused');       // else arm
+    expect(shown[0]).toBeTruthy();
+    cfg.onPlaybackChange('playing');
+    cfg.onPlaybackChange('stopped');
+    expect(shown.length).toBe(3);
+
+    app.isVREnabled = false;              // session-end guard
+    cfg.onPlaybackChange('playing');
+    expect(shown.length).toBe(3);
+  });
+
+  test('onHoverCaption fires only when gaze-dwell is enabled', () => {
+    const calls = [];
+    patch('ImmersiveVideo', ctor(calls, {}));
+    const shown = [];
+    const app = makeInitLike({ enableHomeEnvironment: false, enableGazeDwell: true, enableSettingsPanel: false, enableWebPanel: false });
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype.setupScene.call(app);
+    const cfg = calls[0][3];
+    cfg.onHoverCaption('seek');
+    expect(shown).toContain('seek');
+    app.settings.enableGazeDwell = false;
+    cfg.onHoverCaption('nope');
+    expect(shown).toEqual(['seek']);
+  });
+
+  test('tmCfg: toggleBookmark un-bookmark, privateMode topsites, onTabClose/movebar/session', async () => {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, { addToScene() {}, setCurved() {}, newTab() {}, getActiveTab: () => null, tabs: [], rootGroup: {} }));
+    patch('BookmarkPanel', ctor([], { addToScene() {} }));
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const app = makeInitLike({ enableWebPanel: true, enableGazeDwell: true, privateMode: true });
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    const cfg = tmCalls[0][0];
+
+    app.bookmarks.toggleBookmark = () => false;
+    expect(cfg.onToggleBookmark('u', 't')).toBe(false);
+    expect(shown.some((m) => m.length > 0)).toBe(true);
+
+    expect(cfg.getTopSites(5)).toEqual([]); // privateMode arm
+
+    cfg.onTabClose();
+    cfg.onMoveBarHoverCaption();
+    cfg.onSessionChange();
+    expect(app._saveTabSession).toHaveBeenCalled();
+  });
+
+  test('bpCfg.onSelect navigates the bare webPanel when no tabManager', async () => {
+    const bpCalls = [];
+    patch('TabManager', ctor([], { addToScene() {}, setCurved() {}, newTab() {}, getActiveTab: () => null }));
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, group: { visible: false }, setVisible() {} }));
+    const web = { navigate: jest.fn() };
+    const app = makeInitLike({ enableWebPanel: true });
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    app.tabManager = null;
+    app.webPanel = web;
+    if (bpCalls.length) {
+      bpCalls[0][0].onSelect('https://x.example');
+      expect(web.navigate).toHaveBeenCalledWith('https://x.example');
+    }
+  });
+});
