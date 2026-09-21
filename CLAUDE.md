@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き100（同セッション）: proxy dispatch 全腕を実 HTTP で pin + 設定キー対称スイープ（欠陥ゼロ）
+- 🔍 **実測**: `collectCoverageFrom` は全51 src ファイルを収録（未測定ファイルなし）。`proxy/server.js` は fetchThroughGuard の内部しかテストされていなかった → `createProxyServer()` をエフェメラルポートで実起動し dispatch 腕を全網羅: OPTIONS→204+CORS、POST→405、/health→200、未知パス→404、url 欠落→400、ブロック対象→400（理由文字列が内部情報を漏洩しないことも断言）、非httpスキーム→ソケットを開く前に拒否、エラー時も CORS ヘッダ付き。成功経路のみ未実走（guard が local upstream を拒否する設計上の到達不能、メモで明示）。
+- 🔍 **横展開**: `this.settings.*` 読取35キー vs `defaultSettings()` 34キーを機械照合 — 唯一の差 `_fpsOverridden` は意図的なユーザーオーバーライドマーカー（undefined チェックで使用）。ドリフトゼロ。
+- ✅ 実 Chromium 回帰: `verify:app` / `verify:vr-boot` とも現在 tip で PASS（ユニットが捉えないランタイム破損なし）。2216 tests / 66 suites、lint 0 errors。
+
 #### 続き99（同セッション）: initializeSystems/_buildBrowsingSystems 両オーケストレーターを pin — VRApp 最後の大ブロック
 - 🔍 **実測**: カバレッジ再計測で残る大きな未検証面は `initializeSystems()`（~330行、全サブシステム構築+配線）と `_buildBrowsingSystems()`（~130行、TabManager/BookmarkPanel 構築と15のコールバック配線）のみ。構築が内部で `new X()` するため bound-prototype では届かないと見えていたが、babel 変換後の ESM named export は書き込み可能なモジュールプロパティ —— エクスポートを直接差し替えて ctor を記録する方式で pin 可能と実証。
 - ✅ 新規 suite（17テスト）: 全 opt-in サブシステムの settings ゲート、device probe → targetFPS 上書き（ユーザー指定時は尊重）、WCAG 4.1.3 エラー境界3件（HapticFeedback/SpatialAudio 失敗→warn toast、SemanticDOM 失敗→console のみで field null、toast なし）、persisted 設定の構築時適用（enableHaptics/masterVolume）、hand-tracking の 600ms デバウンス付き caption 通知、voice commands の全配線（connectBrowser の8コールバック+callbacks.onTranscript/onSpeak+start()）、_buildBrowsingSystems の冪等性・空タブ既定・curved 伝播・private mode の getTopSites 空化・toast/caption 分岐。欠陥ゼロを実測確認。
