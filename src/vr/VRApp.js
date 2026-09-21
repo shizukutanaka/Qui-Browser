@@ -2817,8 +2817,13 @@ export class VRApp {
    * Setup WebXR
    */
   setupVR() {
-    // Add VR button to page
-    const vrButton = VRButton.createButton(this.renderer);
+    // Add VR button to page. 'hand-tracking' must be requested up front:
+    // WebXR populates XRInputSource.hand only for sessions granted that
+    // feature — without it HandTracking initialises 'successfully' but sees
+    // zero hands forever.
+    const vrButton = VRButton.createButton(this.renderer, {
+      optionalFeatures: ['hand-tracking']
+    });
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;
 

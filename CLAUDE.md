@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き178 — hand-tracking がセッションに一度も要求されていなかった
+- 🔍 **実測（WebXR 機能付与の照合）**: `navigator.xr.requestSession` を src/ 全体で grep → ヒットゼロ。実際のセッション要求は three.js `VRButton.createButton(renderer)` 経由で、その既定 optionalFeatures は `['local-floor','bounded-floor','layers']` — **`'hand-tracking'` を含まない**。WebXR 仕様上 `inputSource.hand` はセッションに機能許可された場合のみ生えるため、**Quest 実機で HandTracking は「初期化成功」しながら `inputSource.hand` が永遠に null → 手が一度も検出されない**（pinch/grab/point ジェスチャ経路が全て死んでいた）。KTX2/GA4 と同じ「宣言しても死んでいる機能」クラス。
+- 📌 **docs との矛盾も発見**: OUTSTANDING_ISSUES.md F-1 が `sessionInit は ['local-floor','bounded-floor','hand-tracking','layers'] 固定`と記述していた — コードと嘘が食い違っていた（修正後は実態と一致）。
+- 🔧 **修正**: `setupVR()` で `VRButton.createButton(this.renderer, { optionalFeatures: ['hand-tracking'] })`。optional なので非対応端末では無害に無視される。setupVR テストに「createButton が hand-tracking を含む sessionInit で呼ばれる」pin を追加。OUTSTANDING_ISSUES の sessionInit 記述を実態に同期。
+- 🔍 **横展開（他の WebXR 機能）**: light-estimation/hit-test source/anchors/planeDetection/depth/secondaryView/camera-access — VR パスに使用ゼロ（要求不要を確認）。`local-floor`/`bounded-floor`/`layers` は three 既定で要求済み。
+- ✅ scoped jest 63/63 緑、全体ゲート実行中。
+
 ### Session 75: 続き177 — CSP media-src blob: 締め + manifest リンクのサブパス破壊修正
 - 🔍 **実測**: `createObjectURL` を生産するコードが src/ 全体にゼロ → CSP `media-src blob:` は消費者不在の死んだ許可。`img-src data:` はユーザー供給 data URI の可能性があり温存、`connect-src` ループバックは docs 化されたローカルプロキシ経路なので温存。
 - 🔧 **修正①**: `media-src 'self' https: blob:` → `'self' https:`（6箇所全て）。csp-consistency が blob: 不在を pin。
