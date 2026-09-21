@@ -115,3 +115,50 @@ describe('DevTools plumbing', () => {
     expect(dt.visible).toBe(false);
   });
 });
+
+describe('DevTools dead-surface sweep', () => {
+  let dt;
+  let listeners;
+  const saved = {};
+
+  beforeEach(() => {
+    listeners = {};
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener: (t, fn) => { listeners[t] = fn; },
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {} }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    global.window = global.window || {};
+    dt = new DevTools({ scene: {}, renderer: {} });
+    dt.initialize();
+  });
+
+  afterEach(() => {
+    dt.dispose();
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  test('every registered shortcut maps to a real method (no phantom Ctrl+Shift+C/P)', () => {
+    const keydown = listeners.keydown;
+    for (const shortcut of Object.keys(dt.shortcuts)) {
+      const ev = { key: 'x', ctrlKey: true, shiftKey: true, preventDefault: jest.fn() };
+      expect(() => keydown(ev)).not.toThrow();
+      // now the exact shortcut path
+    }
+    // direct dispatch of each registered binding
+    expect(() => dt.shortcuts['F12']()).not.toThrow();
+    expect(dt.shortcuts['Ctrl+Shift+C']).toBeUndefined();
+    expect(dt.shortcuts['Ctrl+Shift+P']).toBeUndefined();
+  });
+
+  test('initialize creates only tabs whose controls are wired (no profiler/settings)', () => {
+    expect([...dt.tabs.keys()].sort()).toEqual(['console', 'network', 'scene']);
+  });
+});

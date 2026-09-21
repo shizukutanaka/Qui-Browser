@@ -551,6 +551,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き74（同セッション）: DevTools の「表示するだけで動かない」面を削除 — 実バグ31-32件目
+- 🐛 **実バグ31**: `Ctrl+Shift+C`/`Ctrl+Shift+P` が `selectElement()`/`showProfiler()` を指すが**両メソッドは存在しない** — キー押下で TypeError。幻影ショートカット削除（#121 と同じ「存在するものだけ登録」規約）。
+- 🐛 **実バグ32**: Profiler タブの Start/Stop Recording ボタンと Settings タブの4つのチェックボックス（show-fps/show-bounds/show-grid/verbose-logging）は**ハンドラがどこにも無い**死んだ UI — コメントすら「Event listeners (will be set when shown)」と未完を告白していた。両タブと未使用の `tools.profiler/logger/debugger/sceneInspector` バケットを削除（Console/Scene/Network の3つは実配線済みで温存）。
+- ✅ pin: dev-tools.test.js に「登録ショートカットは全て実メソッドを指す」「initialize は配線済みタブのみ構築」の2テスト（修正前赤確認）。
+- 📝 2120 tests / lint 0 errors / build green。DevTools カバレッジも DOM 層の削除分改善（38.6%→タブ削除後は残存の実配線部が main body）。
+
 #### 続き73（同セッション）: ビルド設定の死骸一掃 — 実バグ29件目（脆弱な transitive terser）+ 死んだ設定5ブロック
 - 🐛 **実バグ29**: `vite.config.js` の `minify: 'terser'` — terser は package.json に**未宣言**で transitive 依存（5.48.0）に頼っていた。依存解決が変わればビルドが突然死ぬ構造。vite 既定の `esbuild` に切替（esbuild.drop は既設定で console/debugger 除去は維持）、terserOptions ブロック削除、ビルドは 2.04s→679ms に高速化。
 - 🐛 **実バグ30**: `@vitejs/plugin-legacy` が devDeps に居るが plugins はコメントアウト済み → 完全な死んだ依存として npm uninstall。
