@@ -65,14 +65,6 @@ const CACHE_LIMITS = {
   runtime: 200     // General runtime cache
 };
 
-// Memory usage tracking
-let cacheStats = {
-  hits: 0,
-  misses: 0,
-  updates: 0,
-  evictions: 0
-};
-
 /**
  * Install event - cache critical assets
  */
@@ -113,7 +105,6 @@ self.addEventListener('activate', (event) => {
           cacheNames.map(cacheName => {
             if (cacheName !== CACHE_VERSION && cacheName !== RUNTIME_CACHE) {
               console.log('[ServiceWorker] Deleting old cache:', cacheName);
-              cacheStats.evictions++;
               return caches.delete(cacheName);
             }
           })
@@ -248,23 +239,21 @@ async function cacheFirst(request) {
   // Try cache first
   const cached = await cache.match(request);
   if (cached) {
-    cacheStats.hits++;
     return cached;
   }
 
   // Cache miss - fetch from network
-  cacheStats.misses++;
   try {
     const response = await fetch(request);
 
-    // Cache successful responses
+    // Cache successful responses. A floated cache write may reject on quota
+    // pressure — that must degrade quietly, never as an unhandled rejection.
     if (response.ok) {
       // Clone response before caching (response can only be used once)
-      cache.put(request, response.clone());
-      cacheStats.updates++;
+      cache.put(request, response.clone()).catch(() => {});
 
       // Enforce cache limits
-      enforceCacheLimit(cache, 'textures');
+      enforceCacheLimit(cache, 'textures').catch(() => {});
     }
 
     return response;
@@ -286,13 +275,14 @@ async function networkFirst(request) {
     // Cache successful responses
     if (response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
-      await cache.put(request, response.clone());
-      cacheStats.updates++;
+      // A quota/cache-write failure must not eat the fresh response — degrade
+      // the bookkeeping, still return what the network gave us.
+      await cache.put(request, response.clone()).catch(() => {});
       // Bound the runtime cache. RUNTIME_CACHE is never versioned and never
       // cleared by the activate handler, so without this it grows without limit
       // across every app version — the documented "Service Worker cache eats
       // all your storage" failure. FIFO-evict the oldest entries past the limit.
-      await enforceCacheLimit(cache, 'runtime');
+      await enforceCacheLimit(cache, 'runtime').catch(() => {});
     }
 
     return response;
@@ -300,7 +290,6 @@ async function networkFirst(request) {
     // Network failed - try cache
     const cached = await caches.match(request);
     if (cached) {
-      cacheStats.hits++;
       return cached;
     }
 
@@ -323,8 +312,7 @@ async function staleWhileRevalidate(request) {
     .then(response => {
       // Update cache with fresh version
       if (response.ok) {
-        cache.put(request, response.clone());
-        cacheStats.updates++;
+        cache.put(request, response.clone()).catch(() => {});
       }
       return response;
     })
@@ -338,12 +326,9 @@ async function staleWhileRevalidate(request) {
 
   // Return cached immediately if available, otherwise wait for network
   if (cached) {
-    cacheStats.hits++;
     return cached;
-  } else {
-    cacheStats.misses++;
-    return fetchPromise;
   }
+  return fetchPromise;
 }
 
 /**
@@ -402,113 +387,8 @@ async function enforceCacheLimit(cache, type) {
     const toDelete = keys.length - limit;
     for (let i = 0; i < toDelete; i++) {
       await cache.delete(keys[i]);
-      cacheStats.evictions++;
     }
   }
-}
-
-/**
- * Message handler for cache management
- */
-self.addEventListener('message', async (event) => {
-  const { type, payload } = event.data;
-
-  switch (type) {
-  case 'SKIP_WAITING':
-    self.skipWaiting();
-    break;
-
-  case 'GET_STATS':
-    event.ports[0].postMessage({
-      type: 'CACHE_STATS',
-      stats: cacheStats,
-      caches: await getCacheInfo()
-    });
-    break;
-
-  case 'CLEAR_CACHE':
-    await clearCache(payload.cacheType);
-    event.ports[0].postMessage({
-      type: 'CACHE_CLEARED',
-      success: true
-    });
-    break;
-
-  case 'PRELOAD_ASSETS':
-    await preloadAssets(payload.urls);
-    event.ports[0].postMessage({
-      type: 'PRELOAD_COMPLETE',
-      success: true
-    });
-    break;
-  }
-});
-
-/**
- * Get cache information
- */
-async function getCacheInfo() {
-  const info = {};
-  const cacheNames = await caches.keys();
-
-  for (const name of cacheNames) {
-    const cache = await caches.open(name);
-    const keys = await cache.keys();
-    info[name] = {
-      entries: keys.length,
-      urls: keys.map(req => req.url)
-    };
-  }
-
-  return info;
-}
-
-/**
- * Clear specific cache type
- */
-async function clearCache(cacheType) {
-  if (cacheType === 'all') {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
-    cacheStats = { hits: 0, misses: 0, updates: 0, evictions: 0 };
-  } else {
-    await caches.delete(cacheType);
-  }
-}
-
-/**
- * Preload assets into cache
- */
-async function preloadAssets(urls) {
-  const cache = await caches.open(CACHE_VERSION);
-
-  const promises = urls.map(url =>
-    fetch(url)
-      .then(response => {
-        if (response.ok) {
-          return cache.put(url, response);
-        }
-      })
-      .catch(error => {
-        console.warn(`[ServiceWorker] Failed to preload ${url}:`, error);
-      })
-  );
-
-  await Promise.all(promises);
-}
-
-/**
- * Background sync for offline actions
- */
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-offline-actions') {
-    event.waitUntil(syncOfflineActions());
-  }
-});
-
-async function syncOfflineActions() {
-  // Implement offline action sync if needed
-  console.log('[ServiceWorker] Syncing offline actions');
 }
 
 // Test-only export hook: in a CommonJS (Jest) context the internals are exposed
@@ -523,8 +403,7 @@ if (typeof module !== 'undefined' && module.exports) {
     CACHE_LIMITS,
     RUNTIME_CACHE,
     BASE,
-    CRITICAL_ASSETS,
-    _getCacheStats: () => cacheStats
+    CRITICAL_ASSETS
   };
 }
 

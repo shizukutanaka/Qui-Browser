@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き160
+- 🔍 **実測（SW の quota/死面）**: `cache.put` が3箇所で floated（未await・未catch）— QuotaExceededError で unhandled rejection。さらに `networkFirst` の `await cache.put` は catch に飛んで**取得成功した fresh response を捨てて stale キャッシュを返す**セマンティックバグ。そして SW の `message`/`sync` ハンドラ群（SKIP_WAITING/GET_STATS/CLEAR_CACHE/PRELOAD_ASSETS + sync-offline-actions）は src/index.html 全体で呼び手ゼロ — `cacheStats` カウンタ含めて write-only の死面。
+- 🗑 **削除**: message/sync リスナー・getCacheInfo/clearCache/preloadAssets/syncOfflineActions・cacheStats 全 increment・`_getCacheStats` export（約90行）。呼び手ゼロを grep で全検証。
+- 🔧 **修正**: floated `cache.put`/`enforceCacheLimit` に `.catch(() => {})`（best-effort 化）、networkFirst は quota 失敗時も fresh response を返すよう修正＋回帰テスト（put 拒否 → `marker:'fresh'` が返ることを pin）。
+- ✅ 3057 tests / 72 suites 全緑、build・verify:app（9 checks）全緑、lint 0 errors。
+
 ### Session 75: 続き159
 - 🔍 **実測（プロキシの上流フェッチ耐性 — 残る2穴）**: `UPSTREAM_TIMEOUT_MS`（10s）は**ソケット無活動タイムアウト**に過ぎず、9.9秒毎に1バイトを垂れ流す slow-drip upstream は永遠にリクエストスロットを占有し得た。さらにクライアントがソケットを切断しても upstream fetch は走り続け（`res.on('close')` 未配線）、誰も読まないレスポンスのためにスロットを燃やし続けていた。
 - 🔧 **修正**: `UPSTREAM_DEADLINE_MS=30s` の総デッドライン（接続+リダイレクト+ボディ全行程）を追加し、hop 毎の `AbortController` を `http.request` の `signal` に接続。deadline 超過と client abort の2経路で hopAbort が発火し、`abortReason()` で `deadline-exceeded`/`client-gone` を `upstream-error`/`response-too-large` と区別。ハンドラは `res.on('close')` + `!writableFinished` で clientGone.abort() を配線 — 切断クライアントの upstream 作業が即座にキャンセルされる。

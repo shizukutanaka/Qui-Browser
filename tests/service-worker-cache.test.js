@@ -108,6 +108,39 @@ describe('networkFirst — bounds RUNTIME_CACHE after caching a response', () =>
   });
 });
 
+describe('networkFirst — a failed cache write must not eat the fresh response', () => {
+  let cache;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    cache = makeMockCache();
+    // A full-quota rejection on cache.put must degrade to "not cached", never
+    // to losing the response the network already delivered.
+    cache.put = async () => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    };
+    global.caches = { open: async () => cache, match: async () => undefined };
+    global.fetch = async () => ({
+      ok: true,
+      marker: 'fresh',
+      clone() {
+        return this;
+      }
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    delete global.caches;
+    delete global.fetch;
+  });
+
+  test('quota rejection still returns the fetched response', async () => {
+    const res = await networkFirst({ url: 'https://x/new' });
+    expect(res.marker).toBe('fresh');
+  });
+});
+
 // The SW must work whether the app is served at the domain root or under a
 // subpath (GitHub Pages /Qui-Browser/). BASE is derived from where the worker
 // itself is served, and the precache list is resolved against it. With no
