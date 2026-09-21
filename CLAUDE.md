@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き80（同セッション）: README の再実測同期 — 60 セッション分の漂移を修正
+- 🔍 **実測で一致を確認**: 構造ツリーに存在しない `src/VRApp.js`（実際は `src/vr/VRApp.js`）・docs/ 24 files（実 26）・tests 56 suites/1843 tests と Unit Tests 48/1510（実 63/2148）・「Integration: Tier system integration」（tier テストは削除済み、実際は vr-app-wiring + app-smoke）・「Performance Tests: Benchmarking」（benchmark は #87 で削除）・「4 modules newly covered」（実 ~80%）・「Custom Metrics: session tracking」（N-2 の通り未配線）。全て実測値・誠実な記述に同期。codecov badge は ci.yml の codecov-action が実在するため維持、Sentry/GA/Web Vitals は production init 実配線があるため「initialized in production builds」と正確化。
+- 🔍 同時棚卸し（欠陥ゼロ）: dependabot.yml は npm+github-actions の実在エコシステムのみ、.gitignore は網羅的（.claude/settings.local.json 含む）、README の全リンク先ファイル実在、verify:docs PASS。
+- 📝 2148 tests / 63 suites、lint 0 errors、build green。
+
 #### 続き79（同セッション）: カバレッジ下限のラチェットが一度も回されていなかった — 実測 80% に対し floor 25% のまま
 - 🔍 **実測**: TESTING.md は「閾値はラチェット：実カバレッジが上がったら上げる」と規約を謳うが、jest.config.js の `coverageThreshold` は `branches 20 / functions 25 / lines 25 / statements 25` でコメントも「baseline ~28%」のまま — 現在の実測は **stmts 80.2 / branch 71.1 / funcs 75.3 / lines 80.7**（63 suites / 2148 tests）。40+ セッション分のカバレッジ増加分が全く閾値に反映されておらず、退行は一切捕捉されない状態だった。
 - 🔧 **ラチェット適用**: floor を実測の直下に引き上げ（branches 65 / functions 70 / lines 75 / statements 75）— `ci:test` = `test:coverage` なので、以後カバレッジを下げる PR は main マージ時に落ちる。per-file 下限は掛けずグローバルのみ（VRApp 34% は XR セッション直結層の headless 限界、monitoring.js 47% は PROD ゲートで N-2 判断待ち — 両者は個別 floor では潰せない既知の空白）。
