@@ -590,3 +590,194 @@ describe('WebPanel — last slivers', () => {
     expect(disposes.length).toBe(1);
   });
 });
+
+describe('WebPanel — remaining branch arms', () => {
+  test('constructor clamps non-positive readerScale and non-string readerProxyUrl', () => {
+    const p = makePanel({ readerScale: 0, readerProxyUrl: 42 });
+    expect(p._readerScale).toBe(1);
+    expect(p.readerProxyUrl).toBe('');
+    const p2 = makePanel({ readerScale: -2, readerProxyUrl: null });
+    expect(p2._readerScale).toBe(1);
+    expect(p2.readerProxyUrl).toBe('');
+  });
+
+  test('_drawContent with contentTex absent still paints (no throw)', () => {
+    const p = makePanel();
+    p.contentTex = null;
+    expect(() => p._drawContent()).not.toThrow();
+    // reader arm too
+    p._contentState = 'reader';
+    p._readerLines = [{ text: 'line' }];
+    expect(() => p._drawContent()).not.toThrow();
+    // top-sites arm: tiles exist → early return path also guards contentTex
+    p._contentState = 'empty';
+    p.getTopSites = () => [{ title: '', host: 'example.com', url: 'https://example.com' }];
+    expect(() => p._drawContent()).not.toThrow();
+  });
+
+  test('top-site tile without a title draws the host', () => {
+    const p = makePanel();
+    const { webContentColors } = require('../src/vr/browser/chromeColors.js');
+    const fillTexts = [];
+    const ctx = {
+      clearRect: jest.fn(), fillRect: jest.fn(), strokeRect: jest.fn(),
+      fillText: (t) => fillTexts.push(String(t)),
+      fillStyle: '', font: '', textAlign: '', textBaseline: '', lineWidth: 0, strokeStyle: ''
+    };
+    p._drawTopSites(ctx, 512, [{ title: '', host: 'example.com', x: 0, y: 0, w: 100, h: 100 }], webContentColors(false));
+    expect(fillTexts).toContain('example.com');
+  });
+
+  test('scrollContent treats a non-finite delta as 0', () => {
+    const p = makePanel();
+    p._contentState = 'reader';
+    p._readerLines = Array.from({ length: 50 }, (_, i) => ({ text: `l${i}` }));
+    p._readerScroll = 5;
+    const before = p._readerScroll;
+    p.scrollContent(NaN);
+    expect(p._readerScroll).toBe(before); // NaN → +0 → unchanged → early return
+  });
+
+  test('setReaderProxyUrl coerces non-string input', () => {
+    const p = makePanel();
+    p.setReaderProxyUrl(undefined);
+    expect(p.readerProxyUrl).toBe('');
+    p.setReaderProxyUrl('https://proxy.example.com');
+    expect(p.readerProxyUrl).toBe('https://proxy.example.com');
+    p.setReaderProxyUrl(null); // clears
+    expect(p.readerProxyUrl).toBe('');
+  });
+
+  test('bookmark-star tap with no currentUrl is a no-op; no title falls back to url', () => {
+    const { PANEL_W } = require('../src/vr/browser/panelGeometry.js');
+    const onToggleBookmark = jest.fn();
+    const p = makePanel({ onToggleBookmark, isBookmarked: () => true });
+    const click = (px) => {
+      p.chromeMesh._nextLocal = { x: (px / 1024 - 0.5) * PANEL_W, y: 0, z: 0 };
+      p._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+    };
+    // no currentUrl → `if (this.currentUrl)` false arm (px 900 = star zone at w=1024)
+    p.currentUrl = null;
+    click(900);
+    expect(onToggleBookmark).not.toHaveBeenCalled();
+    // url but no title → `currentTitle || currentUrl` fallback
+    p.currentUrl = 'https://example.com';
+    p.currentTitle = null;
+    click(900);
+    expect(onToggleBookmark).toHaveBeenCalledWith('https://example.com', 'https://example.com');
+  });
+
+  test('url-input callback receiving null navigates nowhere', () => {
+    const navigateSpy = jest.spyOn(WebPanel.prototype, 'navigate');
+    try {
+      const { PANEL_W } = require('../src/vr/browser/panelGeometry.js');
+      const cbHolder = {};
+      const p = makePanel({
+        onUrlInputRequested: (prefill, cb) => { cbHolder.cb = cb; }
+      });
+      // land on the URL-bar zone (not back/fwd/reload/star/close)
+      p.chromeMesh._nextLocal = { x: (500 / 1024 - 0.5) * PANEL_W, y: 0, z: 0 };
+      p._onChromeSelect({ x: 0, y: 0, clone() { return this; } });
+      expect(cbHolder.cb).toBeInstanceOf(Function);
+      navigateSpy.mockClear();
+      cbHolder.cb(null); // user cancelled — `if (url)` false arm
+      expect(navigateSpy).not.toHaveBeenCalled();
+      cbHolder.cb('https://example.com');
+      expect(navigateSpy).toHaveBeenCalledWith('https://example.com');
+    } finally {
+      navigateSpy.mockRestore();
+    }
+  });
+
+  test('chrome/move-bar hover with material absent does not throw', () => {
+    const p = makePanel();
+    p.chromeMesh.material = null;
+    p.moveBarMesh.material = null;
+    expect(() => {
+      p._onChromeHover(true);
+      p._onMoveBarHover(true);
+    }).not.toThrow();
+  });
+
+  test('stop() with no in-flight reader controller still clears the load', () => {
+    const p = makePanel();
+    p.loading = true;
+    p._readerController = null; // fetch already finished or never started
+    p.stop();
+    expect(p.loading).toBe(false);
+    expect(p._contentState).toBe('empty');
+  });
+
+  test('enableLayerMode with a non-function onDetach stores null', () => {
+    const p = makePanel();
+    p.enableLayerMode({}, { add: jest.fn() }, 'layer-1', 'not-a-function');
+    expect(p._onLayerDetach).toBeNull();
+    expect(p.chromeMesh.visible).toBe(false);
+    p.disableLayerMode(); // releaseLayer=true but no detach callback
+    expect(p._layerId).toBeNull();
+  });
+
+  test('setCurved with a geometry lacking dispose does not throw', () => {
+    const p = makePanel();
+    p.contentMesh.geometry = {}; // truthy, but no dispose method
+    expect(() => p.setCurved(true)).not.toThrow();
+    expect(p.curved).toBe(true);
+  });
+
+  test('show() uses the default position when none is given; addToScene falls back to scene', () => {
+    const p = makePanel();
+    p.show();
+    expect(p.group.position.set).toHaveBeenCalledWith(0, 1.5, -2);
+    const p2 = makePanel();
+    p2.addToScene(); // no parent → this.scene.add
+    expect(p2.scene.add).toHaveBeenCalledWith(p2.group);
+  });
+
+  test('setVisible/dispose tolerate a missing iframe', () => {
+    const p = makePanel();
+    p.iframe = null;
+    expect(() => { p.setVisible(false); p.setVisible(true); }).not.toThrow();
+  });
+
+  test('iframe onload falls back to the URL when the frame title is empty', () => {
+    const p = makePanel();
+    p.navigate('https://example.com');
+    p.iframe.contentDocument = { title: '' };
+    p.iframe.onload();
+    expect(p.currentTitle).toBe('https://example.com');
+  });
+
+  test('_loadReaderText works when AbortController is unavailable', async () => {
+    const p = makePanel();
+    const saved = global.AbortController;
+    delete global.AbortController;
+    global.fetch = jest.fn(async () => ({ ok: false, status: 500 }));
+    try {
+      await p._loadReaderText('https://example.com');
+      // controller was null → fetch called without a signal, no abort timer
+      expect(global.fetch).toHaveBeenCalledWith(expect.any(String), undefined);
+      expect(p._contentState).toBe('unavailable');
+    } finally {
+      global.AbortController = saved;
+      delete global.fetch;
+    }
+  });
+
+  test('move bar canvas getContext returning null skips the paint', () => {
+    const origCreate = global.document.createElement;
+    let canvasCount = 0;
+    global.document.createElement = (tag) => {
+      const el = origCreate(tag);
+      // canvas order: chrome, content, moveBar — null the move bar's ctx
+      if (tag === 'canvas' && ++canvasCount === 3) {
+        el.getContext = () => null;
+      }
+      return el;
+    };
+    try {
+      expect(() => makePanel()).not.toThrow();
+    } finally {
+      global.document.createElement = origCreate;
+    }
+  });
+});
