@@ -2770,35 +2770,10 @@ export class VRApp {
    * Load audio assets progressively
    */
   async loadAudioAssets() {
-    // Add audio files to progressive loader
-    const audioFiles = [
-      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'primary' },
-      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'secondary' }
-    ];
-
-    for (const file of audioFiles) {
-      this.progressiveLoader.addResource(file, file.priority);
-    }
-
-    // Start progressive loading
-    await this.progressiveLoader.start();
-
-    // Load into spatial audio system
-    for (const file of audioFiles) {
-      const audio = this.progressiveLoader.get(file.name);
-      if (audio) {
-        await this.spatialAudio.loadAudio(file.url, file.name);
-      }
-    }
-
-    // Procedural fallback: the packaged .mp3 files are not committed to the
-    // repo, so every interaction sound was doubly dead — no decoded buffer AND
-    // no source (play('click','click') needs both). Synthesize a short tone for
-    // any name still missing a buffer, and ensure a source exists, so click/
-    // hover/success/error feedback actually plays. Real files, when present,
-    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
+    // Interaction sounds are synthesized procedurally — the packaged .mp3
+    // files are not committed to the repo, so the previous loader queue fetched
+    // four URLs that 404'd on every session. Synthesize a short tone per name
+    // and ensure a source exists so click/hover/success/error feedback plays.
     if (this.spatialAudio) {
       const PROCEDURAL = {
         click:   { freq: 880, duration: 0.06, decay: 45 },
@@ -2806,10 +2781,10 @@ export class VRApp {
         success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
         error:   { freq: 200, duration: 0.16, decay: 10 }
       };
-      for (const file of audioFiles) {
-        this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
-        if (!this.spatialAudio.sources.has(file.name)) {
-          this.spatialAudio.createSource(file.name, { volume: 0.6 });
+      for (const name of Object.keys(PROCEDURAL)) {
+        this.spatialAudio.registerProceduralBuffer(name, PROCEDURAL[name]);
+        if (!this.spatialAudio.sources.has(name)) {
+          this.spatialAudio.createSource(name, { volume: 0.6 });
         }
       }
     }
