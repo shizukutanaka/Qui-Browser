@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き155
+- 🔍 **実測（ランディング残 WCAG 面）**: util-toggle ~32px は WCAG 2.5.8 AA（≥24px）適合、focus は UA デフォルトで有効、toast に `role="alert"` 済み、外部リンク `rel="noopener noreferrer"` 済み、iframe は dom-overlay ブラウジング経路で `frame-src https:` が必須（`'none'` に締められないと判明）。
+- 🔧 **軽微な不整合**: `og:url`/`twitter:url` が `qui-browser`（小文字）で canonical デプロイパス `/Qui-Browser/` と不一致 → 大文字に統一（ソーシャル共有 URL）。
+- ✅ **検証**: 実 Chrome で HC モード CTA/バッジ = 黒 on 黄 19.6:1 を computed style で実測（修正前 1.07:1 不可視を確認）。録画・スクショを PR #166 に添付。
+- 📝 **skill 更新**: リビルド中の旧 SW が削除済み hashed CSS を参照する一時的スタイル崩れを `.agents/skills/qui-browser-2d-runtime/SKILL.md` に記録（precache 運用上の既知トレードオフ）。
+
 ### Session 75: 続き154 — a11y-first を謳う自前ランディングが WCAG 1.4.3 違反だった
 実コントラスト計算で検出: ① `.cta-button`・`.version-badge` の 白 on `--color-vr` #5e72e4 = **4.20:1**（AA 4.5:1 未達。バッジは 14px、CTA は 18px/600 でラージテキスト閾値未満）② **ハイコントラストモードで最悪化**: 塗りが #ffff00 に差し替わるのに文字は白のまま = **1.07:1（ほぼ不可視）** — 低視力ユーザー向け機能が自ら最大の可読性バグを産んでいた。修正: `--color-vr-strong: #5468d9`（4.82:1）を塗り背景用に導入＋HC では塗り要素の文字を黒に反転（黄上 19.6:1 = AAA）。`tests/contrast.test.js` 新設 — :root/HC 両テーマの実使用ペア10組を CSS 変数から実計算して pin。3053 tests 全緑。
 
