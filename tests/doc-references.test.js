@@ -84,3 +84,36 @@ test('no `npm run` mention points at a missing script', () => {
 test('no live doc references a non-existent repo path', () => {
   expect(badPaths).toEqual([]);
 });
+
+// Markdown links to relative files — distinct from PATH_RE mentions, which
+// only match backticked/plain code-y paths, not `[text](target)` syntax.
+const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g;
+const badLinks = [];
+for (const p of mdFiles) {
+  const rel = path.relative(ROOT, p);
+  if (
+    rel === 'CLAUDE.md' ||
+    rel === 'CHANGELOG.md' ||
+    rel === 'docs/OUTSTANDING_ISSUES.md' ||
+    rel === 'docs/INSTRUCTIONS_OPUS.md' ||
+    rel === 'docs/CATEGORY_RESEARCH.md' ||
+    rel === 'docs/IMPROVEMENT_ANALYSIS.md' ||
+    rel === 'docs/BUILD_OPTIMIZATION_GUIDE.md'
+  ) {
+    continue;
+  }
+  const live = fs.readFileSync(p, 'utf8').replace(/~~[^~]+~~/g, '');
+  for (const m of live.matchAll(LINK_RE)) {
+    const target = m[1].split('#')[0].split('?')[0];
+    if (!target || /^(https?|mailto|javascript):/.test(target)) {
+      continue;
+    }
+    if (!fs.existsSync(path.join(path.dirname(p), target))) {
+      badLinks.push(`${rel}: ${m[1]}`);
+    }
+  }
+}
+
+test('no live doc markdown link points at a missing file', () => {
+  expect(badLinks).toEqual([]);
+});

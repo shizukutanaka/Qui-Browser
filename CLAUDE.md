@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き138 — docs 内部リンクの盲域を塞いだ：テストは `npm run`/パス言及だけ見ていて `[text](file.md)` リンクは不検査だった
+続き137 で CODEOWNERS・npm scripts・hooks の残宣言面は全照合でグリーンと確定したので、doc-references 系のテストが**何を見ていないか**をソクラテス式に疑った — PATH_RE は `src/` 始まりのコード風パスだけ拾い、マークダウンリンク構文は素通りしていた。実測スイープ: 生存 .md の `[..](relative)` リンク全件を存在チェックしたところ **0 件の死リンク**（#82 の 19 件修正が効いて健全）。だが不検査のままでは再発が黙って通るため `LINK_RE` 検査を doc-references.test.js に追加して恒久的に pin。3024 tests / 68 suites 全緑、lint 0 errors。
+
 ### 続き135/136: CI 残赤の完全解剖 — 全て patch 化済み、main 着地は owner 判断に
 PR #164 の CI を1ジョブずつログ解剖した。実ゲート `Unit Tests` は **3023/68 全緑**（Node 18 で実行 — `spyOn(performance,'now')` 修正 + generator `.filter` 修正が効いた）。残る赤は全て既知の死んだジョブ＋新たに2件を発見して patch 化:
 - **jacoco-badge-generator**（Java ツール）が jest の絶対に生成しない `target/site/jacoco/jacoco.csv` を `on-missing-report: fail` で要求 → テスト全緑でも test-unit は常に赤。**patch 0006** に削除を同梱（カバレッジは直上の Codecov ステップが受け皿）。
