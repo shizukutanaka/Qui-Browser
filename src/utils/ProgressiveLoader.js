@@ -360,12 +360,11 @@ export class ProgressiveLoader {
    * Load JSON
    */
   async loadJSON(url) {
-    const response = await fetch(url, {
+    const response = await this._fetchWithTimeout(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
-      },
-      signal: this.getAbortSignal()
+      }
     });
 
     if (!response.ok) {
@@ -410,9 +409,7 @@ export class ProgressiveLoader {
    */
   async loadModel(url) {
     // Would use Three.js loaders in production
-    const response = await fetch(url, {
-      signal: this.getAbortSignal()
-    });
+    const response = await this._fetchWithTimeout(url);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -438,15 +435,28 @@ export class ProgressiveLoader {
    * Load generic resource
    */
   async loadGeneric(url) {
-    const response = await fetch(url, {
-      signal: this.getAbortSignal()
-    });
+    const response = await this._fetchWithTimeout(url);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
 
     return response.blob();
+  }
+
+  /**
+   * Fetch with an abort watchdog. The timer is cleared as soon as the request
+   * settles — otherwise every load leaves a strategy.timeout-long timer
+   * holding the controller alive (and Jest sees a leaked handle per load).
+   */
+  async _fetchWithTimeout(url, opts = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.strategy.timeout);
+    try {
+      return await fetch(url, { ...opts, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**

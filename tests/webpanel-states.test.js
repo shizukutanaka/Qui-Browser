@@ -59,6 +59,15 @@ const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
 // which would wipe implementations before each test).
 const _registered = [];
 const _unregistered = [];
+
+// _loadUrl always fires the reader fetch — stub it file-wide so no real socket
+// opens (the per-describe stubs below override this where they need control).
+// A settled response also lets the 5s abort watchdog's clearTimeout run.
+const _realFetch = global.fetch;
+beforeEach(() => {
+  global.fetch = () => Promise.resolve({ ok: false, status: 503, text: () => Promise.resolve('') });
+});
+afterEach(() => { global.fetch = _realFetch; });
 function registeredMeshes() { return _registered; }
 function unregisteredMeshes() { return _unregistered; }
 

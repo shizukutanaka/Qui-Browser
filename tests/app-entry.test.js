@@ -891,17 +891,21 @@ describe('main.js — final arms', () => {
     const enterBtn = makeEl('enterVRButton');
     const floatBtn = makeEl('vrFloatingButton');
     const { documentListeners } = installDom({ ids: { enterVRButton: enterBtn, vrFloatingButton: floatBtn } });
+    // Fake timers BEFORE the module loads: the noWebXR path registers a real
+    // 6s toast-removal timeout which would otherwise leak an open handle.
+    jest.useFakeTimers();
     jest.isolateModules(() => { require('../src/main.js'); });
     (documentListeners.DOMContentLoaded || []).forEach((fn) => fn());
 
     await enterBtn.click();
-    await tick(); await tick();
+    jest.advanceTimersByTime(10); await Promise.resolve(); await Promise.resolve();
     const dispatched = global.window.dispatchEvent.mock.calls.map(([e]) => e.type);
     expect(dispatched).not.toContain('enter-vr');
     expect(global.document.body.children.some((c) => c.id === 'vr-error-toast')).toBe(true);
 
     floatBtn.click();
     expect(global.window.dispatchEvent.mock.calls.map(([e]) => e.type)).toContain('enter-vr');
+    jest.useRealTimers();
   });
 });
 

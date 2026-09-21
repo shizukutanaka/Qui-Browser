@@ -54,6 +54,14 @@ jest.mock('../src/vr/browser/bookmarkLayout.js', () => ({
   truncate: (s) => s
 }));
 
+// _loadUrl always fires the reader fetch — stub it file-wide so no real socket
+// opens (a settled response lets the 5s abort watchdog's clearTimeout run).
+const _realFetch = global.fetch;
+beforeEach(() => {
+  global.fetch = jest.fn(async () => ({ ok: false, status: 503, text: async () => '' }));
+});
+afterEach(() => { global.fetch = _realFetch; });
+
 // ── document/canvas stub ─────────────────────────────────────────────────────
 global.document = {
   createElement: (tag) => {
