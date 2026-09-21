@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き159
+- 🔍 **実測（プロキシの上流フェッチ耐性 — 残る2穴）**: `UPSTREAM_TIMEOUT_MS`（10s）は**ソケット無活動タイムアウト**に過ぎず、9.9秒毎に1バイトを垂れ流す slow-drip upstream は永遠にリクエストスロットを占有し得た。さらにクライアントがソケットを切断しても upstream fetch は走り続け（`res.on('close')` 未配線）、誰も読まないレスポンスのためにスロットを燃やし続けていた。
+- 🔧 **修正**: `UPSTREAM_DEADLINE_MS=30s` の総デッドライン（接続+リダイレクト+ボディ全行程）を追加し、hop 毎の `AbortController` を `http.request` の `signal` に接続。deadline 超過と client abort の2経路で hopAbort が発火し、`abortReason()` で `deadline-exceeded`/`client-gone` を `upstream-error`/`response-too-large` と区別。ハンドラは `res.on('close')` + `!writableFinished` で clientGone.abort() を配線 — 切断クライアントの upstream 作業が即座にキャンセルされる。
+- ✅ **検証**: 新テスト5本（事前 abort / 飛行中 abort / slow-drip deadline / 消耗済み deadline / server 側 close→abort 配線）。実 egress で 200+実HTML の回帰なし確認。3056 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き158
 - 🔍 **実測（reader のタグストリップ）**: `textOf` の `/<[^>]*>/g` は `<a title="x>y">` のような**クォート内 `>` で止まる**ため、属性の末尾 `y">` がリーダーテキストにゴミとして漏れていた。DOMParser を使えない node 環境の手書きパーサーだからこそのクラス。
 - 🔧 **修正**: `TAG_RE = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g` — クォート済み属性値を丸ごと飛ばす。テスト先行で赤確認→緑化。

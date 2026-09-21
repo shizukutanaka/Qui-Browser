@@ -14,7 +14,7 @@ jest.mock('node:dns/promises', () => ({ lookup: jest.fn() }));
 
 const http = require('node:http');
 const { lookup } = require('node:dns/promises');
-const { fetchThroughGuard } = require('../proxy/server.js');
+const { fetchThroughGuard, createProxyServer } = require('../proxy/server.js');
 
 function fakeResponse() {
   return {
@@ -253,5 +253,114 @@ describe('fetchThroughGuard — redirect hops', () => {
     const out = await fetchThroughGuard('http://example.com/down');
     expect(out.ok).toBe(false);
     expect(out.reason).toBe('upstream-error');
+  });
+});
+
+/**
+ * The socket's inactivity timeout only fires when nothing arrives — an
+ * upstream trickling one byte at a time keeps resetting it, so a fetch can be
+ * held open forever. fetchThroughGuard therefore also enforces a total
+ * deadline and honours a client-abort signal: when the browser closes its
+ * socket mid-fetch, the upstream request must die with it instead of burning
+ * a slot for nobody.
+ */
+describe('fetchThroughGuard — total deadline & client abort', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    // Honour the abort signal the fetch wires in: abort -> 'error' on the req.
+    http.request.mockImplementation((_url, opts, _cb) => {
+      const listeners = {};
+      const req = {
+        on(ev, fn) {
+          (listeners[ev] ||= []).push(fn);
+          return req;
+        },
+        end() {},
+        destroy() {}
+      };
+      const fire = () => (listeners.error || []).forEach((f) => f(new Error('aborted')));
+      if (opts.signal?.aborted) {
+        queueMicrotask(fire);
+      } else {
+        opts.signal?.addEventListener('abort', fire);
+      }
+      return req;
+    });
+  });
+
+  test('a client that already disconnected never issues a socket', async () => {
+    const ctl = new AbortController();
+    ctl.abort();
+    const out = await fetchThroughGuard('http://example.com/', {}, { signal: ctl.signal });
+    expect(out).toEqual({ ok: false, reason: 'client-gone' });
+    expect(http.request).not.toHaveBeenCalled();
+  });
+
+  test('client disconnect mid-flight aborts the upstream request', async () => {
+    const ctl = new AbortController();
+    const pending = fetchThroughGuard('http://example.com/', {}, { signal: ctl.signal });
+    ctl.abort();
+    await expect(pending).resolves.toEqual({ ok: false, reason: 'client-gone' });
+  });
+
+  test('a slow-drip upstream is stopped by the total deadline', async () => {
+    const out = await fetchThroughGuard('http://example.com/', {}, { deadlineMs: 30 });
+    expect(out).toEqual({ ok: false, reason: 'deadline-exceeded' });
+  });
+
+  test('an already-spent deadline returns before any request is issued', async () => {
+    const out = await fetchThroughGuard('http://example.com/', {}, { deadlineMs: 0 });
+    expect(out).toEqual({ ok: false, reason: 'deadline-exceeded' });
+    expect(http.request).not.toHaveBeenCalled();
+  });
+});
+
+describe('createProxyServer — client disconnect', () => {
+  test('closing the response mid-fetch aborts the upstream request', async () => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    let handler;
+    http.createServer.mockImplementation((h) => {
+      handler = h;
+      return { listen: jest.fn() };
+    });
+    createProxyServer();
+    let requestOpts;
+    http.request.mockImplementation((_url, opts, _cb) => {
+      requestOpts = opts;
+      const listeners = {};
+      const req = {
+        on(ev, fn) {
+          (listeners[ev] ||= []).push(fn);
+          return req;
+        },
+        end() {},
+        destroy() {}
+      };
+      opts.signal?.addEventListener('abort', () =>
+        (listeners.error || []).forEach((f) => f(new Error('aborted'))));
+      return req;
+    });
+    const resListeners = {};
+    const res = {
+      writableFinished: false,
+      setHeader() {},
+      on(ev, fn) {
+        (resListeners[ev] ||= []).push(fn);
+        return res;
+      },
+      writeHead: jest.fn(() => res),
+      end: jest.fn()
+    };
+    const req = { method: 'GET', url: '/fetch?url=http://example.com/x', headers: {} };
+    const done = handler(req, res);
+    await new Promise((r) => setImmediate(r));
+    expect(http.request).toHaveBeenCalled();
+    expect(requestOpts.signal).toBeInstanceOf(AbortSignal);
+    (resListeners.close || []).forEach((f) => f());
+    await done;
+    expect(res.writeHead).toHaveBeenCalledWith(400, { 'content-type': 'application/json' });
+    expect(res.end.mock.calls[0][0]).toContain('client-gone');
   });
 });
