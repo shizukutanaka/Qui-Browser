@@ -544,6 +544,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き119（同セッション）: BookmarkPanel/TabManager/PerformanceMonitor/ImmersiveVideo/JapaneseIME のブランチ腕 + removeAttribute 未ガード修正
+- ✅ BookmarkPanel: コンストラクタの非関数コールバック強制、toggle 両方向、hover の mesh/caption 不在腕、row/deleteRow の url 不在 no-op、tex 不在 _draw、dispose の scene/unregister 不在腕。
+- ✅ TabManager: `_onStripSelect` の null evt 早期 return、closeTab の空/先頭シフト腕、setActive 範囲外 no-op、serialize の URL 不在スキップ+active クランプ、setCurved/setSearchEngine/setReaderProxyUrl のメソッド不在パネル腕、dispose traverse の member 不在子。
+- ✅ PerformanceMonitor: `renderer && renderer.info` 不成立腕、best/worst 更新、performance.memory 不在、checkThresholds の warning/critical バンド（fps 80/60・memory 1500/1800）、updateUI metricsDiv 不在腕、addAlert count++ の ×2、show/hide container null、getReport totalFrames 0 フォールバック、exportCSV history[i] 欠落→空セル。
+- ✅ ImmersiveVideo: `_playPauseBtn` 不在の playing/stop/togglePause、HUD ハンドラの onSelect/onHoverCaption 不在、dispose の mesh member 不在・video スタブ腕。
+- 🔧 **修正**: `stop()` の `video.removeAttribute('src')` が直上の `if (this.video.load)` ガードと不整合で無ガードだった → `removeAttribute?.()` に統一。
+- ✅ JapaneseIME/VRJapaneseKeyboard: 語尾 'n'→ん、deleteLast katakana 再変換、コンストラクタ scale/callback 強制、setOnConfirm 非関数→null、show() 遅延 createKeyboard、space で convertToKanji falsy→候補非表示、ime null の _updateSuggestions、部分状態 dispose、_displayTex null。
+- ✅ 2483 tests / 66 suites 全緑、lint 0 errors。実測ブランチカバレッジ 83.18% → 87.69%。
+
 #### 続き118（同セッション）: WebPanel/BookmarkStore/SpatialAudio/readerLayout/app.js のブランチ腕
 - ✅ WebPanel: `readerScale>0`/`readerProxyUrl` 型ガード、contentTex 不在描画、title||host タイル、NaN delta→0、setReaderProxyUrl 非文字列、ブックマーク星の url 不在/title フォールバック、url-input null キャンセル、chrome/moveBar material 不在 hover、stop() controller 不在、enableLayerMode 非関数 onDetach、dispose 不在 geometry、show() デフォルト座標、addToScene parent 不在、iframe 不在/空タイトル、AbortController 不在の reader load、move-bar ctx null。
 - ✅ BookmarkStore: frecencyScore の visits≤0/visitedAt 欠落、localStorage 未定義環境、(entry.visits||1) レガシー再訪、title 無再訪で上書きしない、getTopSites の www-fold exclude・title||url・host 単位 dedupe 置換、search の malformed スキップ・bookmark-only 仮想 visit・limit。
