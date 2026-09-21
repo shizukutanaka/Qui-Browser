@@ -246,119 +246,6 @@ export class HapticFeedback {
   }
 
   /**
-   * Custom pattern builder
-   */
-  createCustomPattern(name, steps) {
-    this.patterns[name] = steps;
-    console.debug(`HapticFeedback: Created custom pattern "${name}"`);
-  }
-
-  /**
-   * Simulate texture feeling
-   */
-  async simulateTexture(hand, textureType, duration = 1000) {
-    const patterns = {
-      smooth: { pulseInterval: 100, intensity: 0.1 },
-      rough: { pulseInterval: 20, intensity: 0.5 },
-      bumpy: { pulseInterval: 50, intensity: 0.7 },
-      soft: { pulseInterval: 150, intensity: 0.2 },
-      hard: { pulseInterval: 10, intensity: 0.9 }
-    };
-
-    const pattern = patterns[textureType];
-    if (!pattern) {
-      return;
-    }
-
-    const startTime = Date.now();
-    while (Date.now() - startTime < duration) {
-      await this.pulse(hand, 10, pattern.intensity);
-      await this.wait(pattern.pulseInterval);
-    }
-  }
-
-  /**
-   * Simulate impact with physics
-   */
-  async simulateImpact(hand, velocity, mass) {
-    // Calculate impact intensity from physics
-    const kineticEnergy = 0.5 * mass * velocity * velocity;
-    const intensity = Math.min(kineticEnergy / 10, 1.0);
-    const duration = Math.min(50 + intensity * 100, 200);
-
-    await this.pulse(hand, duration, intensity);
-  }
-
-  /**
-   * Proximity feedback (intensity increases as object gets closer)
-   */
-  async proximityFeedback(hand, distance, maxDistance = 1.0) {
-    if (distance > maxDistance) {
-      return;
-    }
-
-    const normalizedDistance = distance / maxDistance;
-    const intensity = 1.0 - normalizedDistance;
-
-    // Very short pulse for proximity
-    await this.pulse(hand, 5, intensity * 0.5);
-  }
-
-  /**
-   * Alert pattern (attention-grabbing)
-   */
-  async alert(urgency = 'normal') {
-    const patterns = {
-      low: 'notification',
-      normal: 'warning',
-      high: [
-        { duration: 100, intensity: 1.0 },
-        { pause: 50 },
-        { duration: 100, intensity: 1.0 },
-        { pause: 50 },
-        { duration: 100, intensity: 1.0 }
-      ]
-    };
-
-    const pattern = patterns[urgency] || patterns.normal;
-
-    // Play on both hands for alerts — but when both hands resolve to the
-    // same (sole connected) gamepad, fire once instead of doubling up.
-    const leftGp = this.getGamepadForHand('left');
-    const single = leftGp && leftGp === this.getGamepadForHand('right');
-    if (single) {
-      if (typeof pattern === 'string') {
-        await this.playPattern('left', pattern);
-      } else {
-        await this.playCustomSequence('left', pattern);
-      }
-      return;
-    }
-
-    await Promise.all([
-      typeof pattern === 'string'
-        ? this.playPattern('left', pattern)
-        : this.playCustomSequence('left', pattern),
-      typeof pattern === 'string'
-        ? this.playPattern('right', pattern)
-        : this.playCustomSequence('right', pattern)
-    ]);
-  }
-
-  /**
-   * Play custom sequence
-   */
-  async playCustomSequence(hand, sequence) {
-    for (const step of sequence) {
-      if (step.duration) {
-        await this.pulse(hand, step.duration, step.intensity);
-      } else if (step.pause) {
-        await this.wait(step.pause);
-      }
-    }
-  }
-
-  /**
    * Get gamepad for specified hand
    */
   getGamepadForHand(hand) {
@@ -381,40 +268,12 @@ export class HapticFeedback {
   }
 
   /**
-   * Test haptic feedback
-   */
-  async test(hand = 'right') {
-    console.debug('HapticFeedback: Testing...');
-
-    const testPatterns = ['click', 'tap', 'impact', 'success'];
-
-    for (const pattern of testPatterns) {
-      console.debug(`Testing pattern: ${pattern}`);
-      await this.playPattern(hand, pattern);
-      await this.wait(500);
-    }
-
-    console.debug('HapticFeedback: Test complete');
-  }
-
-  /**
    * Utility: Wait for specified duration
    */
   wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Get statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      enabled: this.enabled,
-      controllersConnected: this.gamepads.size,
-      patternsAvailable: Object.keys(this.patterns).length
-    };
-  }
 }
 
 /**
@@ -435,22 +294,4 @@ export class HapticFeedback {
  * // Both hands
  * haptics.playPatternBothHands('notification');
  *
- * // Custom pattern
- * haptics.createCustomPattern('mypattern', [
- *   { duration: 30, intensity: 0.5 },
- *   { pause: 20 },
- *   { duration: 50, intensity: 0.8 }
- * ]);
- *
- * // Texture simulation
- * haptics.simulateTexture('right', 'rough', 2000);
- *
- * // Impact with physics
- * haptics.simulateImpact('right', velocity, mass);
- *
- * // Proximity feedback
- * haptics.proximityFeedback('right', distance, maxDistance);
- *
- * // Alert
- * haptics.alert('high');
  */

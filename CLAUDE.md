@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き222 — HapticFeedback の死 public API 8メソッド削除
+- 🗑 **削除（呼出元ゼロ実測）**: `simulateTexture`/`simulateImpact`/`proximityFeedback`/`alert`/`playCustomSequence`/`createCustomPattern`/`test`/`getStats` — src 全体で生産呼出 0（#74 と同基準）。`playCustomSequence` は `playPattern` の配列パターン腕と完全重複、`alert`/`test`/`getStats` は誰にも辿り着けない棚晒し API。合計 ~160 行削減。`pulse`/`playPattern`/`playPatternBothHands`/`update`/`setEnabled`/`getGamepadForHand`/`wait` は生きているため残置。
+- 🧪 **テスト整理**: 死メソッドを pin していた ~14 テスト＋vacuous 複合テストを除去。配列パターン経路（pause ステップ・duration/pause なしステップのスキップ）の正当な pin は `hf.patterns` 直接注入に書換えて存続 — `createCustomPattern` という死 setter に依存しない形へ。
+- 🔍 **同軸照合（クリーン）**: 全 fetch が AbortSignal 付き（IME 5s タイムアウト・ProgressiveLoader・WebPanel）・iframe postMessage 不使用・localStorage は BookmarkStore/i18n/VRApp で全 try/catch+shape 検証・`Math.random` ID 生成なし・beforeunload+pagehide 両経路で teardown 済み。
+- ✅ 3083 tests / 73 suites 全緑、lint 0 errors（警告 366→361: 削除メソッド内の debug 文ごと消滅）、build 緑。
+
 ### Session 75: 続き221 — reference space の local-floor → local フォールバック
 - 🐛 **fix（ポータビリティ）**: WebXR 仕様上 `local` は immersive-vr の必須空間だが `local-floor` は optional — three が既定 `local-floor` で `requestReferenceSpace` を投げ、非対応ランタイム（一部 PCVR/エミュレータ）では NotSupportedError で setSession 全体が失敗していた（ユーザへは汎用エラーのみ）。setSession を try/catch し NotSupportedError のみ `setReferenceSpaceType('local')` でリトライ — 原点が床→頭位基準に劣化するがセッションは存続。
 - 🔍 **同軸照合（クリーン）**: `<html lang="ja">`＋setLanguage の documentElement.lang 動的更新（WCAG 3.1.1）・index.html 無アニメーションで landing の reduced-motion 不要・Dockerfile に nginx brotli モジュール実装済み（gzip+brotli 双方実配信）・src/utils 全6モジュール参照済み。
