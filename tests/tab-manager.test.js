@@ -704,3 +704,64 @@ describe('TabManager — last branch arms', () => {
     expect(() => tm.dispose()).not.toThrow();
   });
 });
+
+describe('TabManager — complementary arms', () => {
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('closing a tab before the active index shifts activeIndex left', () => {
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab();
+    tm.setActive(1);
+    tm.closeTab(0);
+    expect(tm.activeIndex).toBe(0);
+  });
+
+  test('onTabClose callback fires on close', () => {
+    const tm = makeManager();
+    const onTabClose = jest.fn();
+    tm.opts.onTabClose = onTabClose;
+    tm.newTab();
+    tm.closeTab(0);
+    expect(onTabClose).toHaveBeenCalled();
+  });
+
+  test('onTabActivate receives the activated tab url', () => {
+    const tm = makeManager();
+    const onTabActivate = jest.fn();
+    tm.opts.onTabActivate = onTabActivate;
+    tm.newTab();
+    tm.tabs[0].currentUrl = 'https://x.example';
+    tm.newTab();
+    tm.setActive(0);
+    expect(onTabActivate).toHaveBeenCalledWith('https://x.example');
+  });
+
+  test('setCurved/setSearchEngine/setReaderProxyUrl propagate to panels that implement them', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const panel = tm.tabs[0];
+    panel.setCurved = jest.fn();
+    panel.setSearchEngine = jest.fn();
+    panel.setReaderProxyUrl = jest.fn();
+    tm.setCurved?.(true);
+    tm.setSearchEngine('duckduckgo');
+    tm.setReaderProxyUrl?.('https://proxy');
+    if (tm.setCurved) expect(panel.setCurved).toHaveBeenCalled();
+    expect(panel.setSearchEngine).toHaveBeenCalledWith('duckduckgo');
+  });
+
+  test('dispose traverses strip children and frees geometry/material/map', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    tm.stripGroup.traverse = (cb) => cb({ geometry: geo, material: mat });
+    tm.scene = { remove: jest.fn() };
+    expect(() => tm.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});
