@@ -3138,6 +3138,17 @@ export class VRApp {
       } else {
         syncBudget();
       }
+      // The runtime can also change the rate on its own — thermal throttling
+      // or power-save negotiation fires 'frameratechange' without asking.
+      // Re-sync the budget (and clear the miss window) so an externally
+      // lowered rate doesn't mark every healthy frame over-budget, which
+      // would ratchet FFR and trigger our own step-down ladder for a drop
+      // the OS already made.
+      this.onFrameRateChange = () => {
+        syncBudget();
+        this._overBudgetFrames = 0;
+      };
+      session.addEventListener?.('frameratechange', this.onFrameRateChange);
     }
 
     // Initialize FFR for this session
@@ -3259,6 +3270,7 @@ export class VRApp {
     this.onXRVisibilityChange = null;
     // Same for the reference space — the runtime discards it with the session.
     this.onRefSpaceReset = null;
+    this.onFrameRateChange = null;
 
     // onVRSessionStart re-based targetFPS on the session's real refresh rate.
     // Restore the device-tier value: the animation loop (and its adjustQuality

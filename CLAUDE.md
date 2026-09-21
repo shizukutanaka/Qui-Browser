@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き208 — ランタイム自身のフレームレート変更（frameratechange）を未聴取 — OS サーマル低下で予算が腐る
+- 🔍 **発見（WebXR spec）**: `XRSession` の `frameratechange` は runtime が**自分の判断で** refreshRate を変えた際にも発火する（Quest のサーマルスロットル・省電力ネゴシエーション）。続き180で「起動時に実レートを予算へ同期」は入れたが、外部変化への再同期はゼロ — OS が 90→72Hz に落とすと `targetFPS` が旧値のまま残り、健全フレームが全て「予算超過」扱い → FFR ラチェット＋既に OS が落としたレートを自分で `updateTargetFrameRate` し直す二重劣化。
+- 🔧 **修正**: `onVRSessionStart` の fps ブロック内で `session.addEventListener('frameratechange', …)` を付与し、発火時に `syncBudget()`（実 `refreshRate` で `targetFPS` 更新）＋ `_overBudgetFrames = 0`（OS 起因の低下はアプリのミスではないのでミス窓をリセット）。`sessionend` で参照を null 化。`_fpsOverridden`（ユーザー固定）は既存ブロック外に出さず尊重を維持。
+- 🧪 pin: リスナー登録＋発火で targetFPS が 120→72 へ同期、ミス窓リセット。
+- 🔍 **同クラス掃引（全クリーン）**: 死設定4件（perfMonitorUI/homeEnvironment/textureManager/deadZone）は既に live 配線済み、`renderer` パラメータ（antialias/powerPreference/stencil/preserveDrawingBuffer）全て有効、SpatialAudio は HRTF→equalpower の距離 LOD＋スクラッチ再利用済み、quad-layer ブラッツは `_layerDirty` ゲート済み、CaptionSystem の redraw は変化駆動のみ。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き207 — キー hover の度に CanvasTexture を new→dispose していた GPU churn を解消
 - 🔍 **発見**: `_setKeyHover` が hover enter/exit の度に `_makeKeyTexture`（128×128 canvas + CanvasTexture + GPU upload）を呼び旧テクスチャを dispose — キーボード上の pointer sweep で秒間数十のテクスチャ生成/破棄。候補・サジェスト行は既に repaint-in-place（同じ `draw()` で再描画＋`tex.needsUpdate`）なのにキーだけが allocate 経路だった。
 - 🔧 **修正**: 描画を `_drawKey(canvas, glyph, hover, active)` に抽出し、`_setKeyHover` は `keyTex.image`（既存 canvas）へ再描画して `needsUpdate` のみ。`keyTex` 未保持のメッシュには allocate フォールバックを残す。dispose 対称は変わらず（キーごと1テクスチャが teardown で1回 dispose — むしろ純粋化）。

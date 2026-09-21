@@ -1327,6 +1327,20 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
     expect(app.playerRig.quaternion.identity).toHaveBeenCalled();
   });
 
+  test('frameratechange re-syncs the frame budget when the runtime lowers the rate', async () => {
+    const { app, session } = makeSessionApp({ initialize: () => false });
+    app.settings.targetFPS = 120;
+    app._overBudgetFrames = 99;
+    await VRApp.prototype.onVRSessionStart.call(app);
+    const listener = session.addEventListener.mock.calls
+      .find(c => c[0] === 'frameratechange')?.[1];
+    expect(listener).toBeDefined();
+    session.refreshRate = 72;
+    listener();
+    expect(app.settings.targetFPS).toBe(72);
+    expect(app._overBudgetFrames).toBe(0);
+  });
+
 });
 
 
