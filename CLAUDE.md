@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き213 — XR セッション寿命・イベント面の全照合（仕様準拠確認）
+- 🔍 **外部知見照合（WebXR spec/Gamepads Module）**: XR イベント名（XRSession `'end'` / WebXRManager `'sessionend'`）正、`inputsourceschange` が HandTracking で attach/dispose 対称・`added`/`removed` 両方向処理（removed で非表示、`updateHand` で再表示）、three の既定 `referenceSpaceType='local-floor'` でスタンディング体験は正しい。
+- 🔍 **コントローラ寿命**: `disconnected` でトースト＋`controllerInput.forget()`＋テレポートキャンセル＋`inputSource=null`、`connected` で再接続トースト — WeakMap ベースで切断ソースの状態も自動回収。`squeeze`/`select` 配線は W3C 標準ボタン配置と一致。
+- 🔍 **updateRenderState ガード**: セッション終了中の `session.updateRenderState()` 呼出を WebPanel/LayersSystem/VRApp の3箇所全てで防御済み（「ending session throws」のコメント付き）。`updateLayer` は `_layerDirty` ゲートで変更時のみ blit。
+- 🔍 **PROFILE_MAP**: oculus-touch v2/v3・meta-quest-touch(-pro)・pico・valve-index・htc-vive・wmr・generic 全て WebXR Gamepads Module 標準レイアウトと一致（trigger=0/squeeze=1）。
+- ✅ 変更なしの純検証 stretch — 3091 tests / 72 suites・lint 0 errors・build 緑は継続。
+
 ### Session 75: 続き212 — SW の KTX2 残骸パターン削除＋キャッシュバケット名の正直化
 - 🗑 **削除（削除済み機能の残滓）**: `CACHE_PATTERNS.cacheFirst` に `/\.ktx2$/` が残留 — KTX2 ローダー/transcoder は続き176 で全除去済み（CSP 不可・資産ゼロ・呼出ゼロ）。パターンを削除し、`.ktx2` は default SWR へ落ちることを pin。
 - 🔧 **修正（名実不一致）**: `cacheFirst` は wasm/glb/gltf/fonts/woff を全て `'textures'` バケットで計量し、`CACHE_LIMITS.models` は呼出ゼロの死設定 → バケット名を `'static'` に正名し models キー削除。`.ktx2` pin テストは `.wasm` へ差替＋「ktx2 は cache-first ではない」否定 pin を追加。
