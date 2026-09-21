@@ -1047,3 +1047,60 @@ describe('VoiceCommands — final arms', () => {
     }
   });
 });
+
+describe('VoiceCommands — complementary arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('alias loop iterates past non-matching aliases to a match', () => {
+    vc.registerCommand('home', { patterns: ['ホーム'], action: () => ({ action: 'home' }) });
+    vc.aliases.set('zzz-not-present', 'home');   // non-matching alias first
+    vc.aliases.set('ホーム', 'home');            // matching alias second
+    vc.processCommand('ホームに行く', 0.9);
+    expect(vc.lastCommand.key).toBe('home');
+  });
+
+  test('continuous restart calls start() when still enabled after 100ms', () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      const onend = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      onend();
+      jest.advanceTimersByTime(150);
+      expect(vc.start).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('volume action speaks the numeric level', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => 75 });
+    vc.processCommand('音量上げる', 0.9);
+    expect(spoken.some((s) => s.includes('75'))).toBe(true);
+  });
+
+  test('search with colon payload fires onSearch(query)', () => {
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(onSearch).toHaveBeenCalledWith('てんき');
+  });
+
+  test('go-to with japanese suffix extracts the site name', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('githubに行く', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+});
