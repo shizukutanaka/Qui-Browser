@@ -557,3 +557,44 @@ describe('HandTracking — last branch arms', () => {
     expect(ht.detectGesture(joints)).toBe('thumbsup');
   });
 });
+
+describe('HandTracking — complementary present-side arms', () => {
+  test('update() calls updateHand for sources with .hand and fires tracking-change', async () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const session = makeSession();
+    await ht.initialize(session);
+    const calls = [];
+    ht._onTrackingChange = (h, t) => calls.push([h, t]);
+    ht.updateHand = jest.fn(function () { this.leftHand.visible = true; });
+    const src = { hand: { get: () => null }, handedness: 'left' };
+    ht.update({ session: { inputSources: [src] } }, null);
+    expect(ht.updateHand).toHaveBeenCalled();
+  });
+
+  test('updateHand writes position, orientation and opacity when all present', async () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const session = makeSession();
+    await ht.initialize(session);
+    const mesh = {
+      position: { set: jest.fn() },
+      quaternion: { set: jest.fn() },
+      scale: { setScalar: jest.fn() },
+      material: { opacity: 0, color: { setHex() {} } }
+    };
+    ht.joints.left = new Map([['wrist', mesh]]);
+    ht.leftHand = { visible: false };
+    const src = { hand: { get: () => ({}) }, handedness: 'left' };
+    const frame = {
+      getJointPose: () => ({
+        transform: { position: { x: 1, y: 2, z: 3 }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
+        radius: 0.02
+      })
+    };
+    ht.updateHand(frame, src, null);
+    expect(mesh.position.set).toHaveBeenCalledWith(1, 2, 3);
+    expect(mesh.quaternion.set).toHaveBeenCalled();
+    expect(mesh.material.opacity).toBeGreaterThan(0.4);
+  });
+});
