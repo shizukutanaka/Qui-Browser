@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き139 — パッチ列自体が壊れていた：逐次 `git am` は3本目で必ず失敗（検証済み）
+K-1 の9本パッチは各々「pristine ワークフローへの単独適用」だけを検証していて、**系列としての適用を一度も試していなかった**。実走したところ旧0003 が deploy.yml/test.yml で旧0001 と hunk 衝突して適用不能、旧0004 は旧0001 が既に削除したファイルを再削除して必敗 — オーナーが `git am` を回すと**3本目で途中停止する壊れた手順を出荷していた**。さらに精査すると旧0001 の効果は旧0003（同一領域の削除＋本物の置換）と旧0004（同一ファイル削除）に完全に包含されることが判明し、旧0001 を削除・残り8本を採番し直した。`tests/ci-patches.test.js` を新設して系列の逐次適用と最終状態（死んだワークフロー消滅・BASE_PATH・benchmark:all なし等）を恒久 pin。3026 tests / 69 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き138 — docs 内部リンクの盲域を塞いだ：テストは `npm run`/パス言及だけ見ていて `[text](file.md)` リンクは不検査だった
 続き137 で CODEOWNERS・npm scripts・hooks の残宣言面は全照合でグリーンと確定したので、doc-references 系のテストが**何を見ていないか**をソクラテス式に疑った — PATH_RE は `src/` 始まりのコード風パスだけ拾い、マークダウンリンク構文は素通りしていた。実測スイープ: 生存 .md の `[..](relative)` リンク全件を存在チェックしたところ **0 件の死リンク**（#82 の 19 件修正が効いて健全）。だが不検査のままでは再発が黙って通るため `LINK_RE` 検査を doc-references.test.js に追加して恒久的に pin。3024 tests / 68 suites 全緑、lint 0 errors。
 

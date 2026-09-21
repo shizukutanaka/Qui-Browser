@@ -526,7 +526,7 @@ Session 74 で**改めて実際に push を試行して再確認**）ため、�
 
 ```bash
 git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch
+git am docs/patches/000*.patch   # 番号順に8本 — 逐次適用をテスト済み
 git push
 ```
 
@@ -569,17 +569,23 @@ git push
 
 ```bash
 git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
-git am docs/patches/0002-ci-fix-dead-jobs.patch               # 既存（ci.yml 死んだジョブ修復）
-git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復
-git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
-git am docs/patches/0005-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
-git am docs/patches/0006-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
-git am docs/patches/0007-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
-git am docs/patches/0008-ci-pages-base-path.patch             # cd.yml の Pages が base '/' で 404
-git am docs/patches/0009-ci-drop-release-benchmark.patch      # release.yml の死んだ benchmark ステップ
+git am docs/patches/0001-ci-fix-dead-jobs.patch               # ci.yml 死んだジョブ修復
+git am docs/patches/0002-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復（assets/js 除去も包含）
+git am docs/patches/0003-ci-delete-dead-workflows.patch       # 3 workflow 削除
+git am docs/patches/0004-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
+git am docs/patches/0005-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
+git am docs/patches/0006-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
+git am docs/patches/0007-ci-pages-base-path.patch             # cd.yml の Pages が base '/' で 404
+git am docs/patches/0008-ci-drop-release-benchmark.patch      # release.yml の死んだ benchmark ステップ
 git push
 ```
+
+**続き138 追記（系列自体の破損を修正）**: 旧 9 本のパッチ列は各パッチが pristine な
+ワークフローに対して個別検証されており、**逐次 `git am` では 3 本目で破綻**していた
+（旧0001 が deploy.yml/test.yml の死骸を削除済みの領域を旧0003 が書き換え対象にしていた
+＋旧0004 が旧0001 で削除済みのファイルを再削除）。旧0001 の内容は旧0003・旧0004 に
+完全に包含されるため削除し、残り8本を採番し直した。`tests/ci-patches.test.js` が
+系列の逐次適用＋最終状態を恒久的に pin する。
 
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。
