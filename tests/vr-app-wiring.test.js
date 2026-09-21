@@ -40,7 +40,7 @@ global.document = {
 };
 
 const THREE = require('three');
-const { VRApp } = require('../src/vr/VRApp.js');
+const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
 
 function makeGroup() {
   return { position: { set: jest.fn() }, quaternion: { identity: jest.fn() } };
@@ -1264,6 +1264,44 @@ describe('VRApp — settings/tab-session persistence and navigate()', () => {
   test('loadPersistedSettings returns {} on corrupt JSON', () => {
     store['qui-browser:settings'] = '{{{not json';
     const app = { settings: { a: 1 } };
+    expect(P.loadPersistedSettings.call(app)).toEqual({});
+  });
+
+  test('loadPersistedSettings rejects values whose type does not match the default', () => {
+    // A poisoned entry like snapTurnAngle:"abc" reaches the steppers and
+    // renders NaN forever — "malformed entries cannot inject" must hold for
+    // values, not just keys.
+    store['qui-browser:settings'] = JSON.stringify({
+      snapTurnAngle: 'abc',      // number → string: reject
+      enableCaptions: 1,         // boolean → number: reject
+      openSettingsSections: ['settings.section.audio'], // array → array: keep
+      motionSensitivity: 'sensitive'                    // string → string: keep
+    });
+    const app = { settings: {
+      snapTurnAngle: 30, enableCaptions: false,
+      openSettingsSections: ['settings.section.a11y'], motionSensitivity: 'moderate'
+    } };
+    expect(P.loadPersistedSettings.call(app)).toEqual({
+      openSettingsSections: ['settings.section.audio'],
+      motionSensitivity: 'sensitive'
+    });
+  });
+
+  test('openSettingsSections persists across reloads — it is a defaulted key', () => {
+    // _toggleSettingsSection persists via updateSetting; on the next boot the
+    // key must survive loadPersistedSettings' known-key filter, which only
+    // passes keys present in the constructor defaults. Pin the invariant on
+    // the real defaults object — a regression that drops the key there makes
+    // the user's section choice silently stop persisting.
+    const app = { settings: defaultSettings() };
+    store['qui-browser:settings'] = JSON.stringify({ openSettingsSections: ['settings.section.browsing'] });
+    expect(P.loadPersistedSettings.call(app))
+      .toEqual({ openSettingsSections: ['settings.section.browsing'] });
+  });
+
+  test('loadPersistedSettings rejects a non-array value for an array default', () => {
+    store['qui-browser:settings'] = JSON.stringify({ openSettingsSections: 'a11y' });
+    const app = { settings: { openSettingsSections: ['settings.section.a11y'] } };
     expect(P.loadPersistedSettings.call(app)).toEqual({});
   });
 
