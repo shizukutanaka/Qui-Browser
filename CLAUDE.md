@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き229 — `<ruby>` ふりがな二重化と `<dl>`/`<summary>` 消滅を解消
+- 🔍 **実測**: ①`<ruby>漢字<rt>かんじ</rt></ruby>` が `漢字 ( かんじ ) を読む` と**ふりがな＋括弧が本文へインライン二重化**（rt は基底文字の上に描く注釈であり、本文ではない）②`<dl>` の dt/dd が抽出対象外で用語定義が全消滅 ③`<details>` の `<summary>` ラベル消失（中身は拾えていた）。
+- 🔧 **修正**: `liftUnreachable` に rt/rp の内容物除去を追加（基底文字のみ残す — canvas リーダーではふりがなを行上に描けないため正直に落とす）。抽出 alternation に `dt`/`dd`/`summary` を追加（全て 'p' 扱い）。
+- 🧪 pin 2件: ruby が基底文字のみ・dl/details 全要素が抽出。
+- ✅ 3004 tests / 72 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 75: 続き228 — リーダーの `<table>`/`<ol>`/`<img alt>`/`h4-6` 喪失を解消
 - 🔍 **実測（続き227 の同クラス横展開）**: 平坦なブロック走査が拾えない要素が更に4種残っていた — ①`<table>`（全セルが p/li 外のため表ごと消滅 — スペック比較表が消える）②`<ol>`（li だけ拾って序数が落ち、手順系記事で「1. 2. 3.」の順序が喪失）③`<img alt>`（タグごと剥がされ意味ある alt が蒸発）④`h4-6`（alternation が h1-3 のみ）。
 - 🔧 **修正**: `liftUnreachable` 前処理パスを新設 — 走査前に本文へ昇格: img は ` [img: alt] ` を段落内へインライン（構造を壊さない）、ol の li へ序数を焼付け、table 行は `cell | cell` の `<p>` へ。昇格テキストはデコード済みのため `<`/`&` を再エンコード（TAG_RE 誤発火で後続テキストを食わない）。`figcaption` も抽出対象に追加。

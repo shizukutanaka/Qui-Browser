@@ -191,6 +191,21 @@ describe('extractReadableText', () => {
     const { blocks } = extractReadableText(html);
     expect(blocks[0]).toEqual({ type: 'h', text: 'Deep' });
   });
+
+  test('<ruby> keeps only base text — rt/rp furigana is not duplicated inline', () => {
+    const html = '<body><p><ruby>漢字<rp>(</rp><rt>かんじ</rt><rp>)</rp></ruby>を読む</p></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks[0].text).toBe('漢字 を読む');
+    expect(blocks[0].text).not.toContain('かんじ');
+  });
+
+  test('<dl> terms/definitions and <summary> labels are extracted', () => {
+    const html = '<body><dl><dt>Term</dt><dd>Definition here</dd></dl>' +
+      '<details><summary>Open</summary><p>hidden</p></details></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toEqual(expect.arrayContaining(['Term', 'Definition here', 'Open', 'hidden']));
+  });
 });
 
 describe('layoutReaderLines', () => {

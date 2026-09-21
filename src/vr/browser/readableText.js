@@ -154,6 +154,8 @@ export function extractTitle(html) {
  *   procedure silently renders as an unordered list.
  * - `<table>` — no cell lands inside a p/li, so tables vanished entirely.
  *   Each row becomes a paragraph of `cell | cell` (already-decoded text).
+ * - `<rt>`/`<rp>` — ruby annotations are furigana rendered *above* the base
+ *   text; inlined they duplicate it (`漢字 ( かんじ ) を読む`). Stripped.
  *
  * Text lifted into markup is decoded already; a literal `<`/`&` inside it
  * would restart tag scanning, so it is re-encoded (the block scan decodes
@@ -163,6 +165,7 @@ const reEncode = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 function liftUnreachable(html) {
   return String(html)
+    .replace(/<(rt|rp)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
     .replace(/<img\b[^>]*>/gi, (tag) => {
       const m = tag.match(/\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/);
       const alt = m ? decodeEntities(m[1] || m[2] || m[3] || '').trim() : '';
@@ -212,7 +215,7 @@ export function extractReadableText(html) {
   // Headings, prose and preformatted code, in document order. Without `pre`
   // in the alternation a tech article's code samples silently vanished —
   // fatal for exactly the Qiita/Zenn posts this reader exists for.
-  const re = /<(h[1-6]|p|li|blockquote|pre|figcaption)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
+  const re = /<(h[1-6]|p|li|blockquote|pre|figcaption|dt|dd|summary)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
   let m;
   while ((m = re.exec(body)) !== null) {
     const tag = m[1].toLowerCase();
