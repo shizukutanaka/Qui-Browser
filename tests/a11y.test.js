@@ -132,3 +132,34 @@ describe('applyAccessibility — DOM class application', () => {
     expect(() => applyAccessibility()).not.toThrow();
   });
 });
+
+describe('storage-failure arms — private browsing / quota exhaustion', () => {
+  const origLS = global.localStorage;
+  afterEach(() => { global.localStorage = origLS; });
+
+  test('getPrefs survives localStorage.getItem throwing (private mode)', () => {
+    global.localStorage = { getItem() { throw new Error('denied'); } };
+    const { getPrefs } = require('../src/a11y/accessibility.js');
+    const p = getPrefs();
+    expect(typeof p.highContrast).toBe('boolean');
+  });
+
+  test('setPref still applies in-memory when setItem throws (quota)', () => {
+    global.localStorage = {
+      getItem: () => null,
+      setItem() { throw new Error('QuotaExceededError'); }
+    };
+    const { setPref, getPrefs } = require('../src/a11y/accessibility.js');
+    expect(() => setPref('highContrast', true)).not.toThrow();
+    expect(getPrefs().highContrast).toBe(true);
+    setPref('highContrast', false);
+  });
+
+  test('corrupt stored JSON degrades to defaults instead of crashing', () => {
+    global.localStorage = { getItem: () => '{not json', setItem() {} };
+    // module cached prefs may be polluted by earlier tests — clear and reload
+    jest.resetModules();
+    const fresh = require('../src/a11y/accessibility.js');
+    expect(typeof fresh.getPrefs().highContrast).toBe('boolean');
+  });
+});

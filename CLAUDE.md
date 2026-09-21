@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き102（同セッション）: 散在の未カバー腕を消化 — storage 例外耐性 + ImmersiveVideo cfg + setupScene ゲート
+- ✅ `a11y/accessibility.js` のストレージ失敗腕3件 pin（localStorage.getItem/setItem throw → クラッシュせず defaults/メモリ適用、破損 JSON → defaults）。private browsing / quota 超過時の実害パス。
+- ✅ `setupScene` の ImmersiveVideo cfg コールバック本体を起動: onPlaybackChange は isVREnabled=false では caption を出さない（セッション終了 cleanup が偽状態を通知しない設計）、playing/paused/stopped の3キー分岐、onError→error toast、onHoverCaption の gaze-dwell ゲート。enableHomeEnvironment/enableSettingsPanel/enableWebPanel の3ゲートも pin。
+- ✅ 2224 tests / 65 suites、lint 0 errors。
+
 #### 続き101（同セッション）: 捕捉済みコールバック本体を全起動 — cfg オブジェクト内の最後の未実行行を消化
 - 🔍 **実測**: initializeSystems/_buildBrowsingSystems の pin で ctor は捕捉されたが、cfg オブジェクト内のコールバック本体（関数として存在は証明済みだが未起動）が残っていた。それらこそが coverage 上の最後の非 GPU 未実行行（TabManager 15コールバック・BookmarkPanel 6コールバック・voice 8コールバック+transcript/speak/error/command）。
 - ✅ 4テスト追加で全起動+効果断言: onNavigate→navigate、onTabActivate の url 有無両腕（hostnameCaption vs newTab キー）、gaze-dwell ゲートの on/off 双方向、onPanelHoverCaption の title>hostname>browserControls 優先順位、onUrlInputRequested→VR キーボード+即時 Loading caption、onSelect→active.navigate、onDeleteBookmark→caption+haptic 'notification'、onTabChange の bookmarks/history キー分岐、voice の onSearch/onGoTo(frecency hit/miss)/onTopSites 全腕、onTranscript の isFinal ゲート（interim は出さない）、onCommand/onCommandFailed の両手 haptic、onError→toast。
