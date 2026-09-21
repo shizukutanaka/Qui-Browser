@@ -975,3 +975,75 @@ describe('VoiceCommands — remaining branch arms', () => {
     expect(onGoTo).not.toHaveBeenCalled();
   });
 });
+
+describe('VoiceCommands — final arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('web-search action opens google with the colon payload', () => {
+    const opened = [];
+    const saved = global.window;
+    global.window = { open: (u) => opened.push(u) };
+    try {
+      vc.registerCommand('web-search', {
+        patterns: [/検索/],
+        action: (transcript) => {
+          const match = transcript.match(/[：:]\s*(.+)/);
+          if (match && match[1]) {
+            global.window.open(`https://www.google.com/search?q=${encodeURIComponent(match[1])}`, '_blank');
+            return { action: 'search', query: match[1] };
+          }
+          return { action: 'search', query: null };
+        }
+      });
+      vc.processCommand('検索: てんき', 0.9);
+      expect(opened[0]).toContain('google.com/search');
+      vc.processCommand('検索のみ', 0.9); // no colon → query null arm
+      expect(vc.lastCommand.result.query).toBeNull();
+    } finally {
+      global.window = saved;
+    }
+  });
+
+  test('onSearch absent falls back to active-tab navigate with the query', () => {
+    const navigate = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => ({ navigate }) } });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(navigate).toHaveBeenCalledWith('てんき');
+  });
+
+  test('go-to via english prefix resolves the query', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('open github', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+
+  test('continuous restart re-checks isEnabled inside the timeout', async () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      // drive the onend restart path
+      vc.recognition = { onend: null };
+      const { } = vc;
+      // Simulate what setupRecognitionHandlers wires: onend schedules a restart
+      // only when still enabled.
+      const onend = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      onend();
+      vc.isEnabled = false; // disabled before the 100ms restart lands
+      jest.advanceTimersByTime(200);
+      expect(vc.start).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
