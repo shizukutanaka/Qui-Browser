@@ -551,6 +551,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き83（同セッション）: 残 docs の主張系ドリフトを一括修正 — BUILD_OPTIMIZATION_GUIDE / COMPATIBILITY / O-1 拡張
+- 🔍 **実測走査**: docs/ 11件が削除済みモジュールを参照。仕分け: SPEC.md は削除済みと正確に記述・PROXY.md は IP レンジの legit 記述・IMPLEMENTATION.md は削除注記付きで概ね正・PUBLISHING.md は K-1 と同じワークフロー問題の正確な作業指示。実ドリフトは BUILD_OPTIMIZATION_GUIDE・COMPATIBILITY・API.md。
+- 🔧 **BUILD_OPTIMIZATION_GUIDE.md**: manualChunks 例・chunk 一覧・サイズ（実測: index 7KB/app 195KB/vendor-three 541KB/tier1 83KB/tier2 各 5-24KB、gzip 計 ~250KB）を実構成に同期。`minify: 'terser'`→esbuild、terser 設定例・vr-toggle 架空 id・sideEffects:false 推奨（main.js は副作用モジュールで unsafe）・ObjectPool 例・`assets/images/` imagemin パス（削除済み）を全て実値化。チェックリストの虚偽 [x]（imagemin 済・font subset・KTX2・svgo・音声圧縮 — 同梱物は icons のみ）を実測に修正。
+- 🔧 **COMPATIBILITY.md**: WebGPU を「⚠️ 実験的」掲載していたが機能は削除済み → 未実装行に修正、Quest3 既知問題の WebGPU 項目も削除。
+- 📝 **O-1 拡張**: API.md も全文が架空 Unified* クラスの API リファレンスと確認（DEVELOPER_ONBOARDING と同一クラスの問題）。IMPROVEMENT_ANALYSIS/CATEGORY_RESEARCH は分析当時記録として前提廃止の注記推奨を併記。
+- 📝 2148 tests / 63 suites、lint 0 errors、verify:docs PASS、build green。
+
 #### 続き82（同セッション）: デプロイ CSP の死んだ緩和を除去 — 未使用 CDN と eval を許可していた
 - 🔍 **実測**: `script-src` が全3デプロイ設定（netlify.toml / vercel.json / docker/nginx.conf ×2箇所）で `'unsafe-eval'` と `https://cdnjs.cloudflare.com` を許可していたが、repo 全体に cdnjs 参照ゼロ（#134 の preconnect 除去の残滓）、dist バンドルにも `eval(`/`new Function` ゼロ（vendor-three の一致は `evaluate()` メソッド名の偽陽性）。
 - 🔧 **締め付け**: cdnjs と unsafe-eval を全 CSP から削除。`unsafe-inline` は保持 — `public/offline.html` が inline `<script>` を持つ実依存。vercel の googletagmanager は保持 — monitoring.js が PROD で gtag.js を注入する実配線。netlify/nginx は従来から GA 非対応（script-src に googletagmanager なし）で gtag はブロック済み — 今回の変更ではなく既存の非整合として PR に注記。

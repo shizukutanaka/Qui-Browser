@@ -732,13 +732,23 @@ docs/ が旧構造を語り続けていた箇所の棚卸し。
   実在しなかった `textWrap.js` のテストを実装 — 7+ モジュールが依存する em 幅モデル
   （charWidthEm/wrapTextToWidth/truncateToWidth/safeMeasureEm）を15テストで pin。
 
-### O-1. 未修正（判断事項）: `docs/DEVELOPER_ONBOARDING.md` が別コードベースを説明
+### O-1. 未修正（判断事項）: `docs/DEVELOPER_ONBOARDING.md` と `docs/API.md` が別コードベースを説明
 
 1182 行のオンボーディング文書が `VRMediaSystem`/`VRSystemMonitor`/`VRUISystem`/
 `VRInputSystem`/`VRNavigationSystem`/`UnifiedSecuritySystem`/`ObjectPool`/
 `initWebGPU` 等を現在のアーキテクチャとして図解・サンプルコード付きで教えているが、
 **これらのクラスは一つも存在しない**（src/ 全体に grep でヒットなし）。部分修正では
 なく文書の中枢が異なる旧設計を語っているため、新規開発者は実コードと齟齬を起こす。
+
+同じ問題が `docs/API.md` にもある（続き83で確認）: 文書全体が
+`UnifiedSecuritySystem`/`UnifiedPerformanceSystem`/`UnifiedErrorHandler`/
+`UnifiedVRExtensionSystem` という架空クラスの API リファレンスで、存在しない
+`encrypt`/`decrypt` 等のメソッドをサンプルコード付きで掲載している。
+
+参考: `docs/IMPROVEMENT_ANALYSIS.md` と `docs/CATEGORY_RESEARCH.md` も削除済み
+モジュール（MultiplayerSystem/AIRecommendation/ObjectPool/WebGPURenderer）を
+「現状の課題」「置換対象」として分析・提案している — 分析当時の記録としての値は
+あるが、前提が廃止済みである旨の冒頭注記があると誤読を防げる。
 
 **判断事項**: (a) 現構造に合わせ全面改訂、(b) 文書冒頭に「旧設計のアーカイブ」と
 明記してリンク先を ARCHITECTURE.md に差し替え、(c) 削除（ARCHITECTURE.md +

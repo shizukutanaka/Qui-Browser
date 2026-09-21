@@ -171,7 +171,7 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 | **180°動画** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **空間音響** | ✅ HRTF | ✅ HRTF | ✅ HRTF | ✅ HRTF | ✅ HRTF |
 | **ステレオ音響** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **WebGPU** | ⚠️ 実験的 | ❌ | ❌ | ❌ | ⚠️ 実験的 |
+| **WebGPU** | — 未実装 | — | — | — | — |
 
 ### パフォーマンス
 
@@ -194,7 +194,6 @@ This document describes Qui Browser VR's compatibility with various VR devices, 
 ✅ **動作良好** - 既知の重大な問題なし
 
 **軽微な問題:**
-- WebGPUが実験的機能フラグ必要
 - 一部の360°動画で読み込み遅延あり
 
 #### Quest 2
