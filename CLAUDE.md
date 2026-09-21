@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き108（同セッション）: VoiceCommands のデフォルトコマンド action 本体を実発火で pin
+- ✅ 「進む」→window.history.forward、「戻る」→back、「更新」→location.reload、「検索：X」→window.open(google?q=encodeURI)、「停止」→this.stop()、requireWakeWord の5秒再武装タイマー（`handleRecognitionResult` の isFinal 経路 — processCommand ではなく）。
+- 🔍 仕様確認: 文字列パターンは **完全一致**（substring ではない）—「進んでください」は無マッチが正しい挙動。エイリアスのみ substring。
+- ✅ 2263 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き107（同セッション）: 実バグ39件目 — 訓令式ローマ字（si/ti/tu/hu/zi + sya/tya/zyo/cya）が全く変換されなかった
 - 🔴 `convertRomajiToHiragana` がヘボン式のみで、日本語入力者の多くが打つ訓令式 `sigoto`→「siごと」のようにローマ字のまま残る。VR 日本語ブラウザの IME が標準的なタイピングで壊れる実害。
 - 🔧 buildRomajiMap に訓令式エイリアスを追加: si/ti/tu/hu/zi、sya/syu/syo、tya/tyu/tyo、zya/zyu/zyo、cya/cyu/cyo。`_romajiPrefixes` はマップキーから自動導出されるため長打遅延も連動。赤確認→緑の19バリアント。
