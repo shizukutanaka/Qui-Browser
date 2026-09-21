@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### 続き133: KTX2 トランスコーダが CDN の three@0.160.0 に固定 — 同梱は 0.181.2 で 21 リリースの skew
+`TextureManager.initializeKTX2` が `cdn.jsdelivr.net/npm/three@0.160.0/.../basis/` を指していた。**同梱 three は 0.181.2** — トランスコーダの .js/.wasm はローダーの API 面とバージョン結合するため skew は不整合リスク。加えてランタイム CDN 依存はオフライン経路を破壊し、jsdelivr の preconnect もこの1本のためだけに生きていた。
+
+- 🔧 **修正**: `node_modules/three/examples/jsm/libs/basis/` の2ファイル（~585KB）を `public/libs/basis/` に vendored、`setTranscoderPath` を `${import.meta.env.BASE_URL}libs/basis/` に（Pages のサブパス対応は既存の BASE_URL 規約に合流）。**CDN 依存ゼロ・バージョン常に一致・オフライン動作**。死んだ jsdelivr preconnect も削除。
+- ✅ **pin**: `tests/asset-paths.test.js` に vendored バイナリが node_modules/three と byte 一致する旨の drift-pin を追加 —— three 更新時に vendored だけ取り残す再発を防ぐ。
+- 📦 **gate**: 3023 tests / 68 suites 全緑、lint 0 errors、dist に libs/basis/ 同梱＋index.html の jsdelivr 参照 0 実測。
+
 ### 続き132: SW の CACHE_VERSION は静的リテラル — activate クリーンアップが no-op で precache が永続 stale
 `public/service-worker.js` の `CACHE_VERSION = 'qui-browser-v2.0.0'` は手動リテラルで、ビルドもリリースも一切更新しない。**ブラウザは SW ファイルのバイト比較で更新検知するため内容が変わらなければ install/activate が走らず、activate ハンドラのキャッシュ掃除も同名キャッシュを残すだけ —— デプロイしても前リリースの precache が配信され続ける**典型 PWA staleness。ソクラテス的に言えば「versioned cache」を名乗りながら version が一度も versioned されていなかった。
 

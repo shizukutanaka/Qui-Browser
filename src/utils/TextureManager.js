@@ -43,9 +43,11 @@ export class TextureManager {
     try {
       this.ktx2Loader = new KTX2Loader();
 
-      // Set transcoder path (use CDN or local path)
+      // Vendored under public/libs/basis/ — copied from the installed three
+      // package so the transcoder always matches the bundled loader version
+      // and works offline. BASE_URL keeps this correct under a Pages subpath.
       this.ktx2Loader.setTranscoderPath(
-        'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/'
+        `${import.meta.env.BASE_URL}libs/basis/`
       );
 
       // Detect WebGL capabilities and set target format
