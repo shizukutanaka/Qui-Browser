@@ -30,14 +30,15 @@ module.exports = {
     'lcov'
   ],
 
-  // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
-  // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
+  // カバレッジ閾値 — ratchet per docs/TESTING.md: set just under the measured
+  // baseline (80.2% stmts / 71.1% branch / 75.3% funcs / 80.7% lines) so a
+  // coverage regression fails the gate instead of silently landing.
   coverageThreshold: {
     global: {
-      branches: 20,
-      functions: 25,
-      lines: 25,
-      statements: 25
+      branches: 65,
+      functions: 70,
+      lines: 75,
+      statements: 75
     }
   },
 
