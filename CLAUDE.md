@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き209 — 残る per-frame 確保の掃引完了（Set/values 配列）＋死んだ mixedReality フィクスチャ除去
+- 🔧 **修正**: ①`HapticFeedback.update()` が毎フレーム `new Set()` を確保（inputSources 差分検出用）→ 永続 `_seen` Set を `clear()` 再利用 ②`updateButtonInput` が `Object.values(btn).some()` でコントローラ×フレーム毎に配列確保 → for-in + break に置換。これで `updateSystems` の熱パス（locomotion/button/teleport/hover/gaze/haptic/audio/hand）が完全に確保ゼロ。
+- 🗑 **削除**: `vr-app-wiring.test.js` の `mixedReality: null` フィクスチャフィールド — MixedReality モジュール自体は既に削除済みで `this.mixedReality` の読み手ゼロ。
+- 🔍 **同クラス掃引**: manifest start_url/scope/icon src 全て相対（Pages サブパス整合）、`frustumCulled=false` 済み（InstancedMesh の既知ピットフォール対応済み）、WebPanel/TabManager/BookmarkPanel の texture update は全てイベント/ダーティ駆動、interactables レジストリは register/unregister 対称＋hovered 自動治癒。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き208 — ランタイム自身のフレームレート変更（frameratechange）を未聴取 — OS サーマル低下で予算が腐る
 - 🔍 **発見（WebXR spec）**: `XRSession` の `frameratechange` は runtime が**自分の判断で** refreshRate を変えた際にも発火する（Quest のサーマルスロットル・省電力ネゴシエーション）。続き180で「起動時に実レートを予算へ同期」は入れたが、外部変化への再同期はゼロ — OS が 90→72Hz に落とすと `targetFPS` が旧値のまま残り、健全フレームが全て「予算超過」扱い → FFR ラチェット＋既に OS が落としたレートを自分で `updateTargetFrameRate` し直す二重劣化。
 - 🔧 **修正**: `onVRSessionStart` の fps ブロック内で `session.addEventListener('frameratechange', …)` を付与し、発火時に `syncBudget()`（実 `refreshRate` で `targetFPS` 更新）＋ `_overBudgetFrames = 0`（OS 起因の低下はアプリのミスではないのでミス窓をリセット）。`sessionend` で参照を null 化。`_fpsOverridden`（ユーザー固定）は既存ブロック外に出さず尊重を維持。

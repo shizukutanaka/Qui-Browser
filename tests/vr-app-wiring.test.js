@@ -467,7 +467,6 @@ function makeSystemsApp(overrides = {}) {
     comfortSystem: null,
     ffrSystem: null,
     handTracking: null,
-    mixedReality: null,
     layersSystem: null,
     gazeInteraction: null,
     windowManager: null,

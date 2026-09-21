@@ -2286,8 +2286,16 @@ export class VRApp {
       const hand = snap.hand;
       const btn  = snap.buttons;
 
-      // Play a brief haptic click for any face/thumb button press.
-      const anyJustPressed = Object.values(btn).some(b => b.justPressed);
+      // Play a brief haptic click for any face/thumb button press. for-in over
+      // the snapshot's own keys — Object.values() would allocate an array per
+      // controller per frame.
+      let anyJustPressed = false;
+      for (const k in btn) {
+        if (btn[k].justPressed) {
+          anyJustPressed = true;
+          break;
+        }
+      }
       if (anyJustPressed && this.hapticFeedback) {
         this.hapticFeedback.playPattern(hand, 'click');
       }

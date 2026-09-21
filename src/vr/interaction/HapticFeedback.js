@@ -94,7 +94,13 @@ export class HapticFeedback {
    *   (no XR session / desktop mirror), the Gamepad API list is used instead.
    */
   update(inputSources) {
-    const seen = new Set();
+    // Reuse one Set across frames — update() runs every render frame, so a
+    // fresh Set per call is pure GC churn on the headset.
+    if (!this._seen) {
+      this._seen = new Set();
+    }
+    const seen = this._seen;
+    seen.clear();
 
     if (inputSources) {
       for (const src of inputSources) {
