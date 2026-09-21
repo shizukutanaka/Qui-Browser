@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き211 — dt を rAF タイムスタンプ（XR predictedDisplayTime）駆動へ
+- 🔍 **発見（WebXR 仕様軸）**: `render(timestamp, xrFrame)` の dt が `performance.now()` の差分で計算されていた。WebXR では rAF の timestamp 引数 = `XRFrame.predictedDisplayTime`（表示ケイデンス）— spec/MDN がアニメーション delta に推奨する時計。callback 発火タイミングではなく表示タイミングを追うべき。
+- 🔧 **修正**: dt を timestamp 差分へ（`typeof timestamp === 'number'` でなければ performance.now にフォールバック、timestamp 未定義の直接呼出でも NaN 不感染）。CPU 計測の frameTime は performance.now のまま維持 — 仕事量計測には wall 時計が正しい。
+- 🧪 **pin**: 「dt は rAF timestamp 差分」「50ms キャップは巨大 timestamp gap で発火」「timestamp 未定義は 16ms デフォルト」の3件。旧テストが `performance.now` をスタブして旧契約を pin していた → 新契約へ pin し直し。
+- 🔍 **同軸掃引（全クリーン）**: HandTracking は `fillPoses`/`fillJointRadii` バッチ経路済み（per-joint XRPose 確保なし）、`XRSession.visibilityState` 対応済み（document.visibilitychange は没入中に発火しない旨コメント済み）、`powerPreference:'high-performance'` 済み、monitoring の unload 配送は gtag/Sentry 側の sendBeacon 経由で健全。
+- ✅ 3089 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き210 — PROJECT_STATUS/README の計測値を実測へ再同期
 - 🔍 **発見**: PROJECT_STATUS が「63 suites/2,148 tests/~18,200行・floor 65/70/75」を掲載 — 実測は 72 suites/3,087 tests/~32,000行・floor 95/96/97/96（jest.config.js）と大幅乖離。README も同数値が3箇所＋「docs 26 files」（実 24+archive）＋PROJECT_STATUS で削除済みの **unverifiable before/after マーケ表（Bundle 2.4→1.08MB・Lighthouse 72→96 等）が残留**。
 - 🔧 **修正**: 両ファイルを実測値へ同期（50 files/~20,000 src・72/3,087/~32,000 tests・floor 95/96/97/96・docs 24+archive×110+patch×9）。README の before/after 表は実測 chunk 表（vendor-three 553.64kB/app 206.02kB）へ置換 — 存在しない測定値を書かない方針に統一。npm scripts 記載19件全て実在を確認。

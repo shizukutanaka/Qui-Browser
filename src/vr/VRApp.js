@@ -3378,12 +3378,16 @@ export class VRApp {
     }
 
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
-    // resuming from background doesn't produce an enormous delta).
+    // resuming from background doesn't produce an enormous delta). The rAF
+    // timestamp is used over performance.now(): in an XR session it is the
+    // frame's predictedDisplayTime — the display cadence the spec intends
+    // animation deltas to track — and both live on the same timeline.
     const frameStart = performance.now();
-    const dt = this._lastRenderTime
-      ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05)
+    const now = typeof timestamp === 'number' ? timestamp : frameStart;
+    const dt = typeof this._lastRenderTime === 'number'
+      ? Math.min((now - this._lastRenderTime) / 1000, 0.05)
       : 0.016;
-    this._lastRenderTime = frameStart;
+    this._lastRenderTime = now;
 
     // Update systems
     this.updateSystems(timestamp, xrFrame, dt);
