@@ -597,3 +597,58 @@ describe('setupScene — ImmersiveVideo cfg callback bodies', () => {
     expect(app._buildBrowsingSystems).toHaveBeenCalled();
   });
 });
+
+describe('setupVR — button/session/visibility wiring', () => {
+  const docAdded = [];
+  let origDoc, origWin;
+  beforeEach(() => {
+    origDoc = global.document; origWin = global.window;
+    global.document = {
+      hidden: false,
+      body: { appendChild: jest.fn() },
+      addEventListener: (t, fn) => docAdded.push([t, fn])
+    };
+    global.window = { addEventListener: jest.fn() };
+    docAdded.length = 0;
+  });
+  afterEach(() => { global.document = origDoc; global.window = origWin; });
+
+  test('wires enter-vr -> vrButton.click, session events, and hidden-tab video pause', () => {
+    const xrListeners = {};
+    const clicked = jest.fn();
+    const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
+    VRButton.createButton = () => ({ click: clicked });
+    const app = makeInitLike();
+    app.renderer = { xr: { addEventListener: (t, fn) => { xrListeners[t] = fn; } } };
+    app.setupControllers = jest.fn();
+    app.onVRSessionStart = jest.fn();
+    app.onVRSessionEnd = jest.fn();
+    app.immersiveVideo = { playing: true, togglePause: jest.fn() };
+
+    VRApp.prototype.setupVR.call(app);
+
+    expect(global.document.body.appendChild).toHaveBeenCalledWith(app.vrButton);
+    expect(app.setupControllers).toHaveBeenCalled();
+    expect(global.window.addEventListener).toHaveBeenCalledWith('enter-vr', app.onEnterVRRequest);
+    app.onEnterVRRequest();
+    expect(clicked).toHaveBeenCalled();
+
+    xrListeners.sessionstart();
+    xrListeners.sessionend();
+    expect(app.onVRSessionStart).toHaveBeenCalled();
+    expect(app.onVRSessionEnd).toHaveBeenCalled();
+
+    // hidden + playing -> pause; visible or not-playing -> no pause
+    const visFn = docAdded.find(([t]) => t === 'visibilitychange')[1];
+    global.document.hidden = false;
+    visFn();
+    expect(app.immersiveVideo.togglePause).not.toHaveBeenCalled();
+    global.document.hidden = true;
+    app.immersiveVideo.playing = false;
+    visFn();
+    expect(app.immersiveVideo.togglePause).not.toHaveBeenCalled();
+    app.immersiveVideo.playing = true;
+    visFn();
+    expect(app.immersiveVideo.togglePause).toHaveBeenCalled();
+  });
+});

@@ -513,6 +513,68 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
   });
 });
 
+describe('VRApp.updateSystems — per-frame arms (hand tracking, haptic refresh, layers blit)', () => {
+  test('xrFrame present: handTracking.update gets the reference space; haptics and listener refresh every frame', () => {
+    const refSpace = { kind: 'local' };
+    const xrFrame = { id: 1 };
+    const handTracking = { update: jest.fn() };
+    const hapticFeedback = { update: jest.fn(), playPatternBothHands: jest.fn() };
+    const spatialAudio = { updateListenerFromCamera: jest.fn(), play: jest.fn() };
+    const app = makeSystemsApp({
+      handTracking, hapticFeedback, spatialAudio,
+      renderer: { xr: { getReferenceSpace: () => refSpace } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(handTracking.update).toHaveBeenCalledWith(xrFrame, refSpace);
+    expect(hapticFeedback.update).toHaveBeenCalled();
+    expect(spatialAudio.updateListenerFromCamera).toHaveBeenCalledWith(app.camera);
+  });
+
+  test('no xrFrame → handTracking.update skipped (desktop frames)', () => {
+    const handTracking = { update: jest.fn() };
+    const app = makeSystemsApp({ handTracking });
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    expect(handTracking.update).not.toHaveBeenCalled();
+  });
+
+  test('supported layers blit: every tab panel gets updateLayer(xrFrame, views)', () => {
+    const views = [{ eye: 'left' }, { eye: 'right' }];
+    const xrFrame = { getViewerPose: jest.fn(() => ({ views })) };
+    const refSpace = {};
+    const panels = [{ updateLayer: jest.fn() }, { updateLayer: jest.fn() }];
+    const app = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: { tabs: panels },
+      renderer: { xr: { getReferenceSpace: () => refSpace } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(xrFrame.getViewerPose).toHaveBeenCalledWith(refSpace);
+    for (const p of panels) expect(p.updateLayer).toHaveBeenCalledWith(xrFrame, views);
+  });
+
+  test('layers fall back to the single webPanel when no tabManager; skip when pose unavailable', () => {
+    const xrFrame = { getViewerPose: jest.fn(() => ({ views: [{}] })) };
+    const panel = { updateLayer: jest.fn() };
+    const app = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: null, webPanel: panel,
+      renderer: { xr: { getReferenceSpace: () => ({}) } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(panel.updateLayer).toHaveBeenCalled();
+
+    const xrFrameNoPose = { getViewerPose: jest.fn(() => null) };
+    const panel2 = { updateLayer: jest.fn() };
+    const app2 = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: { tabs: [panel2] },
+      renderer: { xr: { getReferenceSpace: () => ({}) } }
+    });
+    VRApp.prototype.updateSystems.call(app2, 0, xrFrameNoPose, 0.016);
+    expect(panel2.updateLayer).not.toHaveBeenCalled();
+  });
+});
+
 describe('VRApp.updateSystems — caption aging', () => {
   test('ages captions (converting dt to milliseconds) when captions are enabled', () => {
     const captionSystem = { enabled: true, update: jest.fn(), show: jest.fn() };
@@ -2002,6 +2064,26 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     pinchCb('right', {});
     expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.any(THREE.Vector3));
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
+  });
+
+  test('grab gesture fires an impact haptic on the grabbing hand; point is a no-op log', async () => {
+    const session = makeSession();
+    const hand = {
+      initialize: jest.fn().mockResolvedValue(true),
+      onGesture: jest.fn(),
+      getPinchPosition: jest.fn(),
+      dispose: jest.fn()
+    };
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      handTracking: hand
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
+    grabCb('left');
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('left', 'impact');
+    const pointCb = hand.onGesture.mock.calls.find((c) => c[0] === 'point')[1];
+    expect(() => pointCb('left', {})).not.toThrow();
   });
 
   test('session end unwires in reverse: ffr off, panels out of layer mode, video stopped, hands disposed', async () => {
