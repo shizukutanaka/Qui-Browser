@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き188 — 確保掃引の横展開: gaze raycast + teleport 照準
+- 🔍 **実測（同一クラスの残存確認）**: 続き187 の intersectObjects バッファ化を全呼出に展開 — `GazeInteraction._raycastGaze`（毎フレーム）と `updateTeleport`（照準中毎フレーム + `hit.point.clone()`）が同一パターンで確保。これで src/ の raycast 呼出4箇所全てが再利用バッファ経由に。
+- 🔧 **修正**: GazeInteraction に `_hitScratch` 追加、updateTeleport は共有スクラッチ + `_teleportTarget`（`clone()` → `copy()`）。`t.target` の消費は onTeleportEnd の同期読みのみで安全。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き187 — raycast の結果配列も毎コール確保されていた
 - 🔍 **実測（確保掃引の残り）**: `updateHover` がコントローラ毎フレーム × `intersectObjects` で**結果配列を毎コール新規確保**（180回/秒 × hover + select）。three の `intersectObjects(objects, recursive, target)` は第3引数に再利用バッファを取れるのに未指定だった。`_sharedRaycaster` 自体は共有済みだったが結果側が漏れ。
 - 🔧 **修正**: `intersectInteractables(controller)` ヘルパー追加（`_hitScratch` 共有バッファ + `length=0` リセット + 先頭 visible hit 返却）— `updateHover`・`onControllerSelect` の2呼出を集約。`intersection` は全コンシューマーが `evt.intersection.point` を同期的に読むだけで保持なしを確認済み。
