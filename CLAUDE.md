@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き170 — TextureManager の three ローダーも timeout 無し（同クラス横展開）
+- 🔍 **実害（同クラスの残件）**: ProgressiveLoader と同じ「コールバック非発火で永遠 pending」が TextureManager にも存在 — `loadKTX2`(FileLoader 経由)/`loadStandardTexture`(ImageLoader→Image) に three 側の timeout が設定されていない（既定 0=無制限）。スタールしたサーバーではテクスチャ未解決＋pendingLoads のデデュープエントリが永久に残る二重被害。
+- 🔧 **修正**: `_withTimeout()` ヘルパーで Promise.race watchdog（30s、`timeout loading texture: <url>` で reject + clearTimeout）。基底リクエストは裏で完走するだけなので害なし、呼び出し側にはエラーパスが返る。
+- 🧪 **pin**: test.each で両メソッドが「コールバックを一度も呼ばないローダー」で 30s 後に timeout reject することを fake timers で実証。
+- ✅ 3084 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
 ### Session 75: 続き169 — ProgressiveLoader の DOM ローダー全5種に timeout 無し＋誤イベント
 - 🔍 **実害（DOM ロードは永遠ハング）**: `loadImage`/`loadScript`/`loadStyle`/`loadAudio`/`loadVideo` が onload/onerror のみで timeout 無し — DOM 要素ロードにはネイティブのタイムアウトがなく、スタールしたサーバーではプロミスが永遠 pending → ロードキューが詰まる。fetch 経路（JSON/model/generic）は strategy.timeout 済みだったが DOM 経路だけ欠落。
 - 🔍 **実害（誤イベント）**: audio/video が `oncanplaythrough` を待機 — バッファ予測ヒューリスティックで、長尺/ストリーミングメディアでは健全な回線でも正当に永遠不発火し得る → `onloadeddata`（データ到達＝利用可能）に修正。

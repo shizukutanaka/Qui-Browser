@@ -135,7 +135,7 @@ export class TextureManager {
    * Load KTX2 compressed texture
    */
   async loadKTX2(url) {
-    return new Promise((resolve, reject) => {
+    return this._withTimeout(new Promise((resolve, reject) => {
       this.ktx2Loader.load(
         url,
         (texture) => resolve(texture),
@@ -146,21 +146,37 @@ export class TextureManager {
         },
         (error) => reject(error)
       );
-    });
+    }), url);
   }
 
   /**
    * Load standard texture (PNG/JPG)
    */
   async loadStandardTexture(url) {
-    return new Promise((resolve, reject) => {
+    return this._withTimeout(new Promise((resolve, reject) => {
       this.textureLoader.load(
         url,
         (texture) => resolve(texture),
         undefined,
         (error) => reject(error)
       );
+    }), url);
+  }
+
+  /**
+   * Bound a loader promise: three's loaders carry no built-in timeout, so a
+   * stalled server leaves the promise pending forever — the texture never
+   * resolves AND the pendingLoads dedupe entry is never released. The
+   * underlying request still runs to completion harmlessly when it loses
+   * the race; the caller gets an error path either way.
+   */
+  _withTimeout(promise, url) {
+    let timer;
+    const watchdog = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`timeout loading texture: ${url}`)),
+        this.constructor.LOAD_TIMEOUT_MS ?? 30000);
     });
+    return Promise.race([promise, watchdog]).finally(() => clearTimeout(timer));
   }
 
   /**

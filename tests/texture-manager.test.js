@@ -365,6 +365,26 @@ describe('TextureManager — error arms', () => {
     progressSpy.mockRestore();
   });
 
+  test.each(['loadStandardTexture', 'loadKTX2'])(
+    '%s rejects after the timeout when the loader never calls back', async (method) => {
+      // three's loaders carry no built-in timeout — a stalled server would
+      // leave the promise pending forever and pin the pendingLoads entry.
+      jest.useFakeTimers();
+      try {
+        const tm = new TextureManager(makeRenderer());
+        const neverCalls = () => {};
+        tm.textureLoader.load = neverCalls;
+        tm.ktx2Loader = { load: neverCalls };
+        const p = tm[method]('/stalled');
+        const settled = p.then(() => 'resolved', (e) => `rejected:${e.message}`);
+        jest.advanceTimersByTime(30000);
+        await expect(settled).resolves.toMatch(/^rejected:timeout loading texture/);
+        await expect(p).rejects.toThrow('timeout loading texture');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
   test('unloadTexture on an uncached URL is a no-op', () => {
     const tm = new TextureManager(makeRenderer());
     expect(() => tm.unloadTexture('https://never-loaded.example.com/x.png')).not.toThrow();
