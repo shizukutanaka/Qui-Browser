@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き153 — GA4 は設定しても meta CSP に殺される「設定しても死んでいる機能」だった
+`.env.example` が `VITE_GA_MEASUREMENT_ID` を案内し initAnalytics() が gtag.js を動的注入するが、index.html の **meta CSP `script-src 'self'`** がそれをブロック — meta CSP は GitHub Pages（ヘッダなし）を含む全配信先で効き、かつヘッダ CSP とは積で効くため vercel の gtm 許可も無意味だった。docs が手順を案内する機能が全ターゲットで dead-on-arrival。script-src に googletagmanager を追加（connect-src は `https:` で GA 収集・sentry ingest 双方を包含）。`tests/csp-consistency.test.js` 新設 — meta CSP が「コードが正当にロードし得る物を全て許す」ことを pin。3043 tests 全緑。
+
 ### Session 75: 続き152 — プロキシのリダイレクト Location がプロセスを殺し得た（リモート DoS）
 `fetchThroughGuard` の `new URL(r.headers.location, url)` は upstream が返す任意の文字列をパース — `http://[::bad` 等で `ERR_INVALID_URL` が投げ、async リクエストハンドラ内の throw は **unhandled rejection → Node プロセス終了**（Node≥15 のデフォルト）。つまり任意の upstream が1レスポンスでプロキシを落とせた。同じ穴として配列 Location（繰り返しヘッダ）は `String()` でカンマ結合され「一見有効な変な URL」化して追従され得た。修正: 非文字列 location を明示拒否＋URL 解決を try/catch → `bad-redirect-location`。さらにハンドラ側に多層防御 — `fetchThroughGuard` 全体を try/catch して将来のどんな throw も 502 `upstream-failure` 化（プロセスは生きる）。テスト2本で pin。77 proxy tests 全緑。
 
