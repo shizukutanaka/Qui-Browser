@@ -3428,6 +3428,18 @@ export class VRApp {
   dispose() {
     console.debug('VRApp: Disposing...');
 
+    // End a live immersive session first: its 'sessionend' runs
+    // onVRSessionEnd's normal teardown (video stop, layer detach, hand-mesh
+    // removal) — without it the headset keeps presenting a dead renderer
+    // until the user exits manually (dispose can fire mid-session via the
+    // Escape shortcut).
+    const xrSession = this.renderer && this.renderer.xr && this.renderer.xr.getSession
+      ? this.renderer.xr.getSession()
+      : null;
+    if (xrSession && typeof xrSession.end === 'function') {
+      xrSession.end().catch(() => { /* session may already be ending */ });
+    }
+
     // Stop render loop
     this.renderer.setAnimationLoop(null);
 

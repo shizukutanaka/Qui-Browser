@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き181 — dispose() が生きた XR セッションを終了しなかった
+- 🔍 **実測（セッション寿命の照合）**: `dispose()` は `Escape` 緊急クリーンアップと `beforeunload` で呼ばれるのに **`session.end()` を一度も呼んでいなかった**。没入セッション中に dispose が走ると、renderer/subsystem は全破棄されるのにセッションは提示し続ける — ユーザーは死んだシーンを見続けるか手動脱出するしかない。
+- 🔧 **修正**: dispose 冒頭で `renderer.xr.getSession()` が生きていれば `session.end()` を発行（失敗は握り潰し — 既終了は正常）。'sessionend' が `onVRSessionEnd` の正規クリーンアップ（video 停止・layer detach・hand mesh 除去）を走らせるので重複実装不要。
+- 🧪 **pin 2件**: 生セッションで end() 呼出、セッション無しでも dispose が完走すること。
+- ✅ 3080 tests / 72 suites 全緑、lint 0 errors、build + verify:app 緑。
+
 ### Session 75: 続き180 — フレームレート未要求で予算が永遠に「超過」になるループ
 - 🔍 **実測（連鎖した実害）**: `DeviceCompatibility.targetFPS()` は quest3 で **120** を返し `settings.targetFPS` に設定（L2423）。しかし `updateTargetFrameRate`/`supportedFrameRates`/`refreshRate` は src/ 全体でゼロ — フレームレートを**一度も要求していない**。Quest Browser の既定リフレッシュは 90Hz → 正常動作時の frameTime ≈11.1ms は予算 8.33ms を常時超過 → `updateSystems` が**毎フレーム** `ffrSystem.adjustIntensity(+0.01)` を呼び続け FFR が健全なセッションでも最大強度に張り付く（`adjustQuality` も常に「poor」判定）。「90〜120FPS 目標」の公称値が内部計測を腐らせていた構造。
 - 🔧 **修正**: `onVRSessionStart` で `session.supportedFrameRates` があれば最大レートを `updateTargetFrameRate` 要求（機能許可不要のモジュール）。settle 後に `settings.targetFPS = Math.round(session.refreshRate)` で**実レートに予算を同期**（モジュール非搭載なら refreshRate のみ同期、両方無ければ tier 値温存）。`_fpsOverridden` ガードは initializeSystems と同じ契約を継承。

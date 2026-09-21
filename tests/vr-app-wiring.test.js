@@ -2935,6 +2935,32 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
 });
 
 describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
+  test('ends a live XR session before tearing down the renderer', () => {
+    const end = jest.fn(() => Promise.resolve());
+    const session = { end };
+    const app = {
+      renderer: {
+        setAnimationLoop: jest.fn(), dispose: jest.fn(),
+        domElement: { removeEventListener: jest.fn() },
+        xr: { getSession: () => session }
+      },
+      scene: new THREE.Scene()
+    };
+    VRApp.prototype.dispose.call(app);
+    expect(end).toHaveBeenCalled();
+  });
+
+  test('dispose stays total when no session is live (xr.getSession → null)', () => {
+    const renderer = {
+      setAnimationLoop: jest.fn(), dispose: jest.fn(),
+      domElement: { removeEventListener: jest.fn() },
+      xr: { getSession: () => null }
+    };
+    const app = { renderer, scene: new THREE.Scene() };
+    expect(() => VRApp.prototype.dispose.call(app)).not.toThrow();
+    expect(renderer.dispose).toHaveBeenCalled();
+  });
+
   test('unwires every listener/timer/subsystem it registered — a mid-teardown throw would strand the rest', () => {
     const added = [];
     const removed = [];
