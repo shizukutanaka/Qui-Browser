@@ -248,6 +248,8 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ### Session 75: 続き212 — SW の KTX2 残骸パターン削除＋キャッシュバケット名の正直化
 - 🗑 **削除（削除済み機能の残滓）**: `CACHE_PATTERNS.cacheFirst` に `/\.ktx2$/` が残留 — KTX2 ローダー/transcoder は続き176 で全除去済み（CSP 不可・資産ゼロ・呼出ゼロ）。パターンを削除し、`.ktx2` は default SWR へ落ちることを pin。
 - 🔧 **修正（名実不一致）**: `cacheFirst` は wasm/glb/gltf/fonts/woff を全て `'textures'` バケットで計量し、`CACHE_LIMITS.models` は呼出ゼロの死設定 → バケット名を `'static'` に正名し models キー削除。`.ktx2` pin テストは `.wasm` へ差替＋「ktx2 は cache-first ではない」否定 pin を追加。
+- 🗑 **KTX2 残滓の掃討**: vite.config の `ktx2|basis` assetFileNames 分岐、SPEC.md FR-4.3 の虚偽 ✅ 表記（→「削除」に訂正）、DEPLOYMENT_GUIDE の4箇所の ktx2 cache ルール雛形 — 全て除去。repo 全体の ktx2/basis grep が archive/履歴を除きゼロヒット。
+- 🔍 **クリーン確認**: vite dev COEP/COOP（SharedArrayBuffer 不使用だが dev 専用で害なし）、three 0.181 の WebGL renderer に multiview なし（WebGPU 専用 — アプリ側で打つ手なし、既知制約）、tools/ 全スクリプトが npm scripts または手動診断として文書化済み、コンフリクトマーカー混入ゼロ。
 - ✅ 3091 tests / 72 suites 全緑、lint 0 errors、build 緑（SW version stamp 正常）。
 
 ### Session 75: 続き211 — dt を rAF タイムスタンプ（XR predictedDisplayTime）駆動へ
