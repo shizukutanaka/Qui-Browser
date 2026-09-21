@@ -148,7 +148,18 @@ export class SpatialAudio {
     }
 
     try {
-      const response = await fetch(url);
+      // Bound the fetch: an absent signal means a stalled server leaves the
+      // promise pending forever — no buffer, no error state, no retry.
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 15000) : null;
+      let response;
+      try {
+        response = await fetch(url, controller ? { signal: controller.signal } : undefined);
+      } finally {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status} fetching audio: ${url}`);
       }

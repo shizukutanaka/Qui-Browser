@@ -53,10 +53,12 @@ single place that decides; with no proxy set it returns the target unchanged, so
 the no-proxy path is byte-identical to the previous behaviour.
 
 Note for Quest: the headset and the proxy machine must be on the same network,
-and the page is HTTPS while a LAN proxy is usually HTTP — browsers may block
-that as mixed content unless the proxy is served over HTTPS or via localhost
-ADB forwarding (`adb reverse tcp:8080 tcp:8080`, then `http://127.0.0.1:8080`
-works from the headset itself).
+and the page is HTTPS while a LAN proxy is usually HTTP — browsers block that
+as mixed content (the site `connect-src` CSP also refuses non-loopback `http:`),
+so the supported path is localhost ADB forwarding:
+`adb reverse tcp:8080 tcp:8080`, then `http://127.0.0.1:8080` works from the
+headset itself. Loopback is a potentially-trustworthy origin, so it passes
+both mixed-content rules and the CSP's `http://localhost:*`/loopback entries.
 
 ## Security
 
@@ -85,7 +87,13 @@ Defences, in order:
    `http://169.254.169.254/`, and a client that follows redirects automatically
    would take it. Max 3 hops.
 7. **Response limits** — `text/html`, `application/xhtml+xml` or `text/plain`
-   only (so it is not a general file relay), 5 MB cap, 10 s timeout, `GET` only.
+   only (so it is not a general file relay), 5 MB cap on the *decoded* body,
+   `GET` only. `gzip`/`deflate`/`br` bodies are decompressed; unknown
+   encodings are refused. Text is decoded by the declared `charset`
+   (Shift_JIS/EUC-JP and other WHATWG labels via `TextDecoder`; unknown
+   labels fall back to UTF-8). Each hop gets a 10 s socket-inactivity
+   timeout and the whole fetch — redirects included — a 30 s total
+   deadline, plus immediate cancellation when the client disconnects.
 8. **No credential forwarding** — cookies, `authorization` and
    `x-forwarded-*` are dropped; only a self-identifying UA, `accept`, and a
    length-bounded `accept-language` go upstream.

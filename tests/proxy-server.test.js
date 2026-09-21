@@ -364,3 +364,189 @@ describe('createProxyServer — client disconnect', () => {
     expect(res.end.mock.calls[0][0]).toContain('client-gone');
   });
 });
+
+/**
+ * Node's http client never decodes Content-Encoding — a gzipped upstream body
+ * would reach the reader as utf8 mojibake. The proxy must decode known
+ * encodings (and reject unknown ones) so readers get real text.
+ */
+describe('fetchThroughGuard — content-encoding', () => {
+  const { Readable } = require('node:stream');
+  const zlib = require('node:zlib');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  function fakeReq() {
+    return { on() {}, end() {}, destroy() {} };
+  }
+
+  function streamingRes(statusCode, headers, bodyBuf) {
+    const r = Readable.from([bodyBuf]);
+    r.statusCode = statusCode;
+    r.headers = headers;
+    return r;
+  }
+
+  test('gzip-encoded upstream bodies are decoded before handing back text', async () => {
+    const html = '<html><body>gzip me</body></html>';
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html', 'content-encoding': 'gzip' },
+        zlib.gzipSync(html)
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe(html);
+  });
+
+  test('unsupported encodings are rejected instead of returning mojibake', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html', 'content-encoding': 'zstd' },
+        Buffer.from('whatever')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('content-encoding-unsupported:zstd');
+  });
+
+  test('identity/absent encoding still passes through untouched', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html' },
+        Buffer.from('<html>plain</html>')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('<html>plain</html>');
+  });
+});
+
+describe('fetchThroughGuard — charset decoding', () => {
+  const { Readable } = require('node:stream');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  function fakeReq() {
+    return { on() {}, end() {}, destroy() {} };
+  }
+
+  function streamingRes(statusCode, headers, bodyBuf) {
+    const r = Readable.from([bodyBuf]);
+    r.statusCode = statusCode;
+    r.headers = headers;
+    return r;
+  }
+
+  test('a shift_jis body decodes via the declared charset, not utf8', async () => {
+    // 'テスト' in Shift_JIS. Under the old toString('utf8') path this arrived
+    // at the reader as mojibake — real for a Japanese-first browser.
+    const sjis = Buffer.from([0x83, 0x65, 0x83, 0x58, 0x83, 0x67]);
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html; charset=shift_jis' },
+        sjis
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('テスト');
+  });
+
+  test('a bogus charset label falls back to utf-8', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html; charset=not-a-real-charset' },
+        Buffer.from('<html>ok</html>', 'utf8')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('<html>ok</html>');
+  });
+
+  test('absent charset defaults to utf-8', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html' },
+        Buffer.from('<html>日本語</html>', 'utf8')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('<html>日本語</html>');
+  });
+});
+
+describe('fetchThroughGuard — decoder error propagation', () => {
+  const { Readable } = require('node:stream');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  function fakeReq() {
+    return { on() {}, end() {}, destroy() {} };
+  }
+
+  test('an upstream error mid-body destroys the decoder — body wait resolves', async () => {
+    // pipe() never forwards 'error' — without the explicit forward, a failing
+    // upstream leaves the decoder waiting and the body promise hangs forever.
+    // The stream fails itself on first pull so the error fires only after the
+    // pipe and error-forward listeners are attached.
+    http.request.mockImplementation((url, opts, cb) => {
+      const upstream = new Readable({
+        read() {
+          this.destroy(new Error('socket reset'));
+        }
+      });
+      upstream.statusCode = 200;
+      upstream.headers = {
+        'content-type': 'text/html',
+        'content-encoding': 'gzip'
+      };
+      setImmediate(() => cb(upstream));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('response-too-large-or-truncated');
+  });
+
+  test('corrupt gzip data surfaces as failure, not mojibake', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      const r = Readable.from([Buffer.from('not-actually-gzip-bytes')]);
+      r.statusCode = 200;
+      r.headers = {
+        'content-type': 'text/html',
+        'content-encoding': 'gzip'
+      };
+      setImmediate(() => cb(r));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(false);
+  });
+});

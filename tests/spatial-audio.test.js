@@ -577,6 +577,29 @@ describe('SpatialAudio — loadAudio + play/stop guards', () => {
     }
   });
 
+  test('a stalled fetch aborts instead of pending forever', async () => {
+    // Without the watchdog a server that never responds leaves loadAudio
+    // pending — no buffer, no error state, no retry.
+    const origFetch = global.fetch;
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.useFakeTimers();
+    try {
+      global.fetch = jest.fn((url, opts) => new Promise((resolve, reject) => {
+        opts.signal.addEventListener('abort', () =>
+          reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+      }));
+      const pending = audio.loadAudio('/stall.ogg', 's');
+      expect(global.fetch).toHaveBeenCalledWith('/stall.ogg',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }));
+      jest.advanceTimersByTime(15000);
+      await expect(pending).resolves.toBeNull();
+    } finally {
+      jest.useRealTimers();
+      global.fetch = origFetch;
+      err.mockRestore();
+    }
+  });
+
   test('play() with unknown source or buffer names warns and returns', () => {
     const err = jest.spyOn(console, 'error').mockImplementation(() => {});
     wire(audio, 's');

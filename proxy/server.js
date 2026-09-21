@@ -28,6 +28,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
+import zlib from 'node:zlib';
 import {
   assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
   MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, UPSTREAM_DEADLINE_MS, MAX_REDIRECTS
@@ -174,29 +175,67 @@ export async function fetchThroughGuard(target, headers = {},
         return { ok: false, reason: `content-type-not-readable:${r.headers['content-type'] || 'none'}` };
       }
 
+      // Node's http client never decodes Content-Encoding — a gzipped body
+      // would reach the reader as utf8 mojibake. Decode known encodings and
+      // apply the size cap to the DECODED stream, so a compression bomb
+      // cannot amplify past MAX_RESPONSE_BYTES.
+      const encoding = String(r.headers['content-encoding'] || 'identity').toLowerCase();
+      const decoders = {
+        'gzip': zlib.createUnzip,      // Unzip sniffs gzip vs zlib-wrapped
+        'x-gzip': zlib.createUnzip,    // deflate; raw deflate errors surface
+        'deflate': zlib.createUnzip,   // as 'truncated' rather than mojibake.
+        'br': zlib.createBrotliDecompress
+      };
+      let source = r;
+      if (encoding !== 'identity') {
+        const make = decoders[encoding];
+        if (!make) {
+          r.resume();
+          return { ok: false, reason: `content-encoding-unsupported:${encoding}` };
+        }
+        source = r.pipe(make());
+        // pipe() never forwards 'error': an upstream failure mid-body would
+        // leave the decoder waiting forever and the body promise hanging past
+        // the deadline. Forward it so source 'error' resolves the wait.
+        r.once('error', (e) => source.destroy(e));
+      }
+
       const body = await new Promise((resolve) => {
         let size = 0;
         const chunks = [];
-        r.on('data', (c) => {
+        source.on('data', (c) => {
           size += c.length;
           if (size > MAX_RESPONSE_BYTES) {
             r.destroy();
+            source.destroy();
             resolve(null);
             return;
           }
           chunks.push(c);
         });
-        r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-        r.on('error', () => resolve(null));
+        source.on('end', () => resolve(Buffer.concat(chunks)));
+        source.on('error', () => resolve(null));
       });
       if (body === null) {
         return { ok: false, reason: abortReason() ?? 'response-too-large-or-truncated' };
       }
+      // The declared charset decides the decode — toString('utf8') would
+      // mangle non-UTF-8 pages (Shift_JIS/EUC-JP remain common on Japanese
+      // sites, this browser's primary audience). TextDecoder covers the
+      // WHATWG label set; unknown labels fall back to UTF-8.
+      const contentType = r.headers['content-type'] || '';
+      let text;
+      try {
+        const charset = /charset="?([\w.-]+)"?/i.exec(contentType)?.[1] ?? 'utf-8';
+        text = new TextDecoder(charset).decode(body);
+      } catch {
+        text = new TextDecoder('utf-8').decode(body);
+      }
       return {
         ok: true,
         status: r.statusCode,
-        contentType: r.headers['content-type'] || '',
-        body,
+        contentType,
+        body: text,
         finalUrl: url.toString()
       };
     } finally {
@@ -272,7 +311,16 @@ export function createProxyServer() {
 
 // Only listen when run directly, so tests can import the pieces.
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {
-  createProxyServer().listen(PORT, () => {
+  const server = createProxyServer();
+  server.on('error', (err) => {
+    // Without a handler a failed listen (port taken, permission denied)
+    // surfaces as an unhandled 'error' event — a raw stack, no hint.
+    console.error(err.code === 'EADDRINUSE'
+      ? `Port ${PORT} is already in use — is another proxy instance running?`
+      : `Proxy failed to start: ${err.message}`);
+    process.exit(1);
+  });
+  server.listen(PORT, () => {
     console.log(`Qui-Browser reader proxy on http://127.0.0.1:${PORT}`);
     console.log(`  GET /fetch?url=https://example.com/article   (allowed origin: ${ALLOW_ORIGIN})`);
   });

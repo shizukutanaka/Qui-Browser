@@ -19,8 +19,9 @@ const REFS = [
     .map((f) => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'))
 ].join('\n');
 
-// Standard entry points that need no inbound reference.
-const ENTRY = new Set(['manifest.json', 'service-worker.js', 'offline.html']);
+// Standard entry points that need no inbound reference. offline.js is loaded
+// by offline.html (a public file this test's REFS scan doesn't cover).
+const ENTRY = new Set(['manifest.json', 'service-worker.js', 'offline.html', 'offline.js']);
 
 const topFiles = fs.readdirSync(PUB, { withFileTypes: true })
   .filter((d) => d.isFile())
@@ -60,17 +61,20 @@ test('offline.html never auto-reloads on polled navigator.onLine', () => {
   // navigator.onLine reflects OS connectivity, not server reachability — while
   // the site is down it stays true, so auto-reloading on it loops forever
   // (reload → SW serves offline.html again → reload…). Only a real `online`
-  // event transition may trigger reload().
+  // event transition may trigger reload(). The logic lives in offline.js —
+  // the CSP allows no 'unsafe-inline' script, so inline JS here is dead code.
   const html = fs.readFileSync(path.join(PUB, 'offline.html'), 'utf8');
-  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-  // Inside the script, reload() is allowed exactly once: the 'online'
-  // listener. (The Try Again button's reload lives in its onclick attribute.)
+  expect(html).not.toMatch(/<script>(?!\s*<\/script>)/); // no inline script
+  expect(html).not.toMatch(/ on(click|load|error)=/); // no inline handlers
+  const script = fs.readFileSync(path.join(PUB, 'offline.js'), 'utf8');
+  // reload() is allowed exactly twice: the 'online' listener and the Try
+  // Again button's click handler.
   const reloadCalls = [...script.matchAll(/location\.reload\(\)/g)];
-  expect(reloadCalls.length).toBe(1);
+  expect(reloadCalls.length).toBe(2);
   const onlineListener = script.match(/addEventListener\('online',[\s\S]*?\}\)/);
   expect(onlineListener[0]).toContain('reload');
   // The polled check must not reload.
-  const check = script.match(/function checkOnlineStatus\(\) \{([\s\S]*?)\n {8}\}/)[1];
+  const check = script.match(/function checkOnlineStatus\(\) \{([\s\S]*?)\n\}/)[1];
   expect(check).not.toContain('reload(');
 });
 

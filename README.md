@@ -70,7 +70,6 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality | +15-20 FPS |
 | **Comfort System** | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort |
 | **Object Pooling** | ✅ Stable | Reusable object management | Fewer GC pauses |
-| **KTX2 Texture Compression** | ✅ Stable | GPU-optimized texture format | Lower texture memory |
 | **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
 
 ### Tier 2: Enhanced Features (6 Features)

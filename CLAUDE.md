@@ -245,6 +245,91 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き176 — KTX2 全体削除（実 Chrome で CSP が wasm を拒否することを実証）
+- 🔍 **実測（実 Chrome CSP 検証）**: 出荷 CSP `script-src 'self'`（`wasm-unsafe-eval`/`unsafe-eval` 無し）の meta を持つページで `WebAssembly.compile` を実測 → **CompileError: Refused** を確認。three の KTX2Loader は blob ワーカー内で wasm を instantiate するが、ワーカーは文書 CSP を継承するため本番では transcoder init が必ず失敗する。**KTX2 テクスチャ経路は全デプロイ先で dead-on-arrival** だった。
+- 🔍 **三重の死**: .ktx2 資産ゼロ、`preferKTX2`/.ktx2 URL の呼出ゼロ（JSDoc 例のみ）、本番 CSP で読み込み不能 — それでも `public/libs/basis/`（57KB js + 527KB wasm = **584KB**）を全デプロイに出荷し、起動毎に `initializeKTX2()` が走っていた。
+- 🗑 **削除（Musk の「削除」）**: KTX2Loader import・initializeKTX2・loadKTX2・getKTX2Url・preferKTX2・isCompressed 配管・compressionRatio・ktx2Loaded stat・public/libs/basis/ 584KB・README の偽 Stable 行・IMPLEMENTATION.md §4・BUILD_OPTIMIZATION_GUIDE の KTX2 例・i18n feat.perf.desc の KTX2 記述・main.js バナー・index.html の死んだ BASIS preconnect コメント・参照ゼロの assets/icon.svg。
+- 🔧 **CSP 引締め**: `worker-src 'self' blob:` → `'self'`（6箇所全て）— blob: ワーカーの唯一の消費者は KTX2 だった。csp-consistency.test.js が `'self'` 限定を pin。
+- 🔧 **副次修正**: `window.textureManager` はどこにも代入されていなかった死んだグローバル委譲（ProgressiveLoader.loadTexture が常に loadImage フォールバック）→ `this.textureManager` 注入 + VRApp が `progressiveLoader.textureManager` を配線。`enableTextureCompression` → `enableTextureManager` に改名（圧縮機能はもう無いので旧名は嘘）。
+- ✅ 3074 tests / 72 suites 全緑、lint 0 errors / 363 warnings、build + verify:app 10/10 緑、dist が 584KB 軽量化。
+
+### Session 75: 続き175 — noscript 不在 + DevTools ゲート確認
+- 🔍 **照合**: DevTools は `import.meta.env.DEV` + dynamic import で本番バンドルから正しく除外、dispose() で console/fetch を復元 — クリーン。ランディングは静的 HTML なので no-JS でも本文は読めるが、Enter VR ボタンは無言で死ぬ。
+- 🔧 **修正**: `<noscript>` に「Enter VR requires JavaScript」を追加（JS 必須経路の正直な案内）。
+- ✅ dist に noscript 実在確認、verify:app 10/10 緑、3083 tests 全緑。
+
+### Session 75: 続き174 — BookmarkStore の型ポイズン（#154 と同クラス）
+- 🔍 **実害**: `readJSON` は構文エラーのみ fallback に落としていた — `42` や `{"a":1}` のような**構文正しいが型が違う** poisoned JSON がそのまま返り、`getBookmarks().filter` が TypeError で全コンシューマーを潰す（ユーザーが手動で localStorage を編集した時、#154 の設定値ポイズンと同じクラス）。
+- 🔧 **修正**: fallback が配列の場合、parse 結果が配列でなければ fallback を返す検査を追加（全 call site が `[]` fallback のため一箇所で完結）。
+- 🧪 **pin**: `'42'`/`'"text"'/`'{"a":1}'`/`'null'`/`'true'` の5種ポイズン + history のポイズン + 構文不正 JSON が全て `[]` に落ちることを実証。
+- ✅ 3083 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き173 — app.js の死んだ visibilitychange ハンドラ削除
+- 🔍 **死んだ計装**: `document.visibilitychange` ハンドラが「Pause or reduce activity」とコメントしながら console.debug のみ — 実際の一時停止は XRSession.visibilityState リスナー（ImmersiveVideo pause）が担い、2D ページでは「reduce activity」は意味を持たない空振り。
+- 🗑 **削除**: ハンドラ削除（9行）。それを pin していたテスト4件も削除/整理 — 削除後は `(listeners||[])` で空配列を走るだけの真空テストになっていた（続き157 と同クラスの suite 自身の嘘）。
+- ✅ 3081 tests / 72 suites 全緑（-3テストは真空削除で正）、lint 0 errors。
+
+### Session 75: 続き172 — 音声検索フォールバックがポップアップブロックで無言死
+- 🔍 **実害（偽アクション告知）**: スタンドアロン（connectBrowser 未接続）時の 'search' コマンドが `window.open('_blank')` に依存 — 音声認識結果イベントには transient user activation が無く、popup blocker が null を返すのが通常経路。「検索します」と告げて何も起きない（120/121 と同じ fake-action クラス）。
+- 🔧 **修正**: `window.open` が null（ブロック）なら `location.href` で現タブ遷移にフォールバック（実ブラウザでは location 常存、テスト用スタブ窓では `window.location` ガード）。クエリに trim 追加（接続済み版と parity）。
+- 🧪 **pin**: open→null で location.href が google URL になることを実証するテスト追加。
+- ✅ 3085 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き171 — プロキシ起動失敗が生スタックで死ぬ（EADDRINUSE 等）
+- 🔍 **実害（起動 UX）**: `createProxyServer().listen()` に `'error'` ハンドラが無く、ポート占有等の起動失敗が未ハンドル error イベント → 生のスタックトレースで終了。手動で起動する開発者ツールで最も頻度の高い失敗経路が無案内だった。
+- 🔧 **修正**: `server.on('error')` で EADDRINUSE → 「Port N is already in use — is another proxy instance running?」、その他は `err.message` を添えて exit 1。実測で2重起動がフレンドリメッセージ＋exit 1 で終了することを確認。
+- ✅ proxy 25 tests 全緑、lint 0 errors。
+
+### Session 75: 続き170 — TextureManager の three ローダーも timeout 無し（同クラス横展開）
+- 🔍 **実害（同クラスの残件）**: ProgressiveLoader と同じ「コールバック非発火で永遠 pending」が TextureManager にも存在 — `loadKTX2`(FileLoader 経由)/`loadStandardTexture`(ImageLoader→Image) に three 側の timeout が設定されていない（既定 0=無制限）。スタールしたサーバーではテクスチャ未解決＋pendingLoads のデデュープエントリが永久に残る二重被害。
+- 🔧 **修正**: `_withTimeout()` ヘルパーで Promise.race watchdog（30s、`timeout loading texture: <url>` で reject + clearTimeout）。基底リクエストは裏で完走するだけなので害なし、呼び出し側にはエラーパスが返る。
+- 🧪 **pin**: test.each で両メソッドが「コールバックを一度も呼ばないローダー」で 30s 後に timeout reject することを fake timers で実証。
+- ✅ 3084 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
+### Session 75: 続き169 — ProgressiveLoader の DOM ローダー全5種に timeout 無し＋誤イベント
+- 🔍 **実害（DOM ロードは永遠ハング）**: `loadImage`/`loadScript`/`loadStyle`/`loadAudio`/`loadVideo` が onload/onerror のみで timeout 無し — DOM 要素ロードにはネイティブのタイムアウトがなく、スタールしたサーバーではプロミスが永遠 pending → ロードキューが詰まる。fetch 経路（JSON/model/generic）は strategy.timeout 済みだったが DOM 経路だけ欠落。
+- 🔍 **実害（誤イベント）**: audio/video が `oncanplaythrough` を待機 — バッファ予測ヒューリスティックで、長尺/ストリーミングメディアでは健全な回線でも正当に永遠不発火し得る → `onloadeddata`（データ到達＝利用可能）に修正。
+- 🔧 **修正**: 5ローダー全てに `strategy.timeout`(30s) watchdog + ハンドラ無効化を追加（遅延解決は inert に）。pin テスト5本（test.each で全メソッドが timeout 後 reject することを fake timers で実証）+ oncanplaythrough 依存の既存テスト2本を onloadeddata に更新。
+- ✅ 3082 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
+### Session 75: 続き168 — SpatialAudio.loadAudio の無信号 fetch（永遠ペンディング）
+- 🔍 **実害（タイムアウト無し）**: `loadAudio()` が `fetch(url)` を signal なしで発行 — スタールしたサーバーではプロミスが永遠に pending のまま、バッファ・エラー状態・リトライのいずれも得られない（SW respondWith hang と同クラス）。`src/` の全 fetch サイトを走査した残りの唯一の未防御経路（JapaneseIME 5s・WebPanel reader 5s・ProgressiveLoader strategy.timeout は既に防御済み）。
+- 🔧 **修正**: 既存イディオム（AbortController + clearTimeout、JapaneseIME 由来）に揃えて 15 秒 watchdog を追加。AbortController 不在環境では従来挙動を維持。pin テスト追加: stall した fetch が signal で abort され `null` で解決することを fake timers で実証。
+- ✅ 3077 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
+### Session 75: 続き167 — プロキシの charset 無視で日本語サイトが文字化けしていた
+- 🔍 **実害（charset 無視）**: プロキシがボディを常に `toString('utf8')` — `charset=shift_jis`/`euc-jp` 等の非 UTF-8 ページはリーダーに文字化けしたゴミを返していた。日本語ファーストのブラウザとして直撃の欠陥。
+- 🔧 **修正**: Content-Type の `charset` をパースし `TextDecoder`（WHATWG ラベル全対応: shift_jis/euc-jp/iso-2022-jp 等）でデコード — 未知ラベルは utf-8 フォールバック。ボディは Buffer のまま運び最終段でデコード。テスト3本追加（shift_jis 実バイト→'テスト'、bogus charset→utf-8、charset なし→utf-8）。PROXY.md の制限節に charset 挙動を追記。
+- 🔍 **他照合**: Permissions-Policy は全 HTML 経路で一致（pin 済み）、`isReadableContentType` は `startsWith` で charset 付きも通過、Dockerfile `EXPOSE 443` は listener 皆無で削除済み（前 commit）。
+- ✅ 3076 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
+### Session 75: 続き166 — CSP のデプロイ先間乖離が機能ごと殺していた
+- 🔍 **実害（CSP intersection）**: meta CSP（index.html）は**全デプロイ先で効く**ため、ヘッダ CSP と AND で効く — 片側だけ厳しいとその機能はそのターゲットでのみ死ぬ。計測した乖離: ①`media-src` 不在 → `default-src 'self'` にフォールバックし ImmersiveVideo の任意 https URL が全ターゲットで死滅 ②`worker-src 'self'` のみ → KTX2Loader が Blob URL から生成する basis ワーカーが全ターゲットで死滅 ③`connect-src` が loopback http を拒否 → adb reverse プロキシ経路が死滅 ④docker `location ~* \.html$` は独自 add_header を持つため server の CSP を継承せず — `/index.html` 直撃に CSP が**一切無かった** ⑤docker/vercel/netlify の `frame-src 'self'` が meta の `frame-src https:` と衝突 → iframe ブラウジングが 3 ターゲットで死滅。
+- 🔧 **正準 CSP 一元化**: 全5箇所（meta・nginx×3・vercel・netlify）を同一文字列に揃え、`csp-consistency.test.js` で全ヘッダ CSP ≡ meta CSP を構造比較 pin。`media-src https: blob:`・`worker-src blob:`・`connect-src` に loopback 3 エントリ（localhost/127.0.0.1/[::1]）を追加、`object-src 'none'`・`base-uri`・`form-action` も統一。meta の `script-src` からは 'unsafe-inline' が元々ないので維持（external script のみ — offline.html のインライン script+onclick が障害となり `public/offline.js` に抽出、ボタンに id 化して addEventListener 化）。
+- 🔗 **連鎖修正**: offline.js を SW precache（CRITICAL_ASSETS）に追加 — 未キャッシュではオフライン時に 404 でボタン・ステータス確認が全て死ぬところだった。public-assets テストは offline.js を読み、インライン script/handler 不在を pin。PROXY.md は loopback が mixed-content+CSP を両方通る唯一の経路と明記。
+- 🔒 **frame-ancestors 'self' + Permissions-Policy parity pin**: frame-ancestors を全6箇所に追加（XFO の DENY/SAMEORIGIN 不統一を CSP 側で一元化）。PP は meta 非対応のためヘッダのみ — 全 HTML 経路（nginx×2・vercel・netlify）で WebXR PP が一致することを実測し、`csp-consistency.test.js` に pin 追加。ついでに Dockerfile `EXPOSE 80 443` → `80`（443 に listener なし、TLS 設定は全てコメントアウト — 実態乖離の解消）。 — XFO が DENY(html)/SAMEORIGIN(他) で不統一だった clickjacking 防御を CSP で一元化（このアプリが他サイトに frame される正当経路なし）。
+- ✅ 3072 tests / 72 suites 全緑、lint 0 errors / 368 warnings、`npm run build` + `verify:app` 10 checks 全緑（dist に offline.js・bundle precache を実測）。
+
+### Session 75: 続き165
+- 🔍 **実測（npm audit）**: `sharp ≤0.35.4-rc.0` に libvips/libheif の高脆弱性4件 — devDep（generate-icons.mjs のみ使用、出荷物非含有）だが修正は廉価 → `0.35.4` へ bump、`npm run icons` 実走で再生成確認（libvips 版差の AA 微差のみ、バイナリは保持せず revert）。
+- 🔍 **残存2件は vite/esbuild dev-server 限定**（map traversal・Windows UNC NTLM・`server.fs.deny` Windows bypass — 全て dev サーバー経路で出荷静的ファイルに無影響、修正は vite@8 breaking が必要）→ 意図的に据え置き、PROXY.md には deadline/decode/切断キャンセルを同期追記。
+- 🔍 **他照合クリーン**: SW 削除面にクライアント側 postMessage 参照ゼロ、`skipWaiting`+`clients.claim`+60秒 update poll でライフサイクル完備、リダイレクトは `r.resume()` drain 済み、readerFetchUrl は encodeURIComponent + normalizeProxyUrl で検証済み、verify:docs 100%、LICENSE=MIT 整合、git 追跡に混入ゴミなし。
+- ✅ 3066 tests / 72 suites 全緑、lint 0 errors、npm audit の出荷物経路 vuln = 0。
+
+### Session 75: 続き164
+- 🔍 **実害（プロキシ Content-Encoding 不処理）**: Node の http client は `content-encoding` をデコードしない — upstream が gzip/br を返すと圧縮バイトを `utf8` 文字列化して reader に文字化けしたゴミを転送していた。
+- 🔧 **修正**: `content-encoding` に応じて zlib デコーダを pipe（`gzip`/`x-gzip`/`deflate` は `createUnzip` がヘッダ判別、`br` は brotli）。**サイズ上限はデコード後ストリームに適用** — 圧縮爆弾が MAX_RESPONSE_BYTES を超過増幅できない。未知エンコーディングは `content-encoding-unsupported:*` で明示拒否（mojibake を返さない）。
+- ⚠️ **自作退行を捕捉**: `pipe()` は `error` を転送しない（Node 既知仕様）— upstream が mid-body で失敗/abort すると decoder が永遠に待ち、body promise が deadline を越えてハング。`r.once('error', e => source.destroy(e))` で転送（pin テストが修正なしでは 10 秒タイムアウトすることを確認）。
+- 📌 **pin**: proxy-server.test.js に5テスト（実 zlib.gzipSync ボディの decode・zstd 拒否・identity パススルー・upstream mid-body エラーで decoder 破棄→即解決・腐敗 gzip は失敗として表面化）— `Readable.from` で実ストリームを返すよう pipe() が必要なため。
+- ✅ 3066 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き163
+- 🔍 **実機発見（テストエージェントのオフライン回帰検証）**: offline.html リロードループ修正を実ブラウザで検証（サーバー実 kill → 52 秒間ループなし・正直な文言を確認）する過程で新たなギャップを炙り出し — **SW 更新直後のオフラインで `/` が無スタイル**。毎ビルド CACHE_VERSION が回転 → activate が旧ランタイムキャッシュを削除 → precache が CRITICAL_ASSETS（シェルのみ）のため hashed JS/CSS 未到達。
+- 🔧 **修正**: `stamp-sw-version.mjs` が dist 内の `js/*.js` + `assets/*.css`（計 ~900K）を `BUILD_ASSETS` マーカーへ注入 → precache が全バンドルを含有し、デプロイ直後の初回オフラインでも完全に動作するシェルが提供される。
+- 📌 **pin**: sw-version-stamp.test.js に3テスト（マーカー注入・マーカー無しは無変更・実 SW にマーカー存在）、verify:app に「built bundles precached」チェック追加（出荷物で注入脱落を遮断）。
+- 🔍 **他照合クリーン**: MutationObserver/ResizeObserver 不使用、setInterval/setTimeout の clear 対称完備（_handTrackingTimers/_toastTimers は dispose でクリア）、i18n は補間なし静カタログ、WebPanel dispose は geometry/material.map/material 全解放、ストレージ上限（MAX_HISTORY/MAX_TABS/MAX_TILES）全強制、wrapTextToWidth は超幅語を hard-split（無限ループ不可）。
+- ✅ 3061 tests / 72 suites 全緑、lint 0 errors、verify:app 10 checks 全緑。
+
 ### Session 75: 続き162
 - 🔍 **実測（offline.html の無限リロードループ — 実バグ32件目）**: `navigator.onLine` は OS の接続性のみ反映し、**サイトが落ちていても true のまま**。サーバー停止時に offline.html が配られると `checkOnlineStatus()` が「Connection restored! Reloading…」と偽表示 → 1.5秒後 `reload()` → SW が再び offline.html を返す → 永遠に1.5〜6.5秒毎リロード（E2E エージェントが実観測した「Connection restored」バナー表示から発覚）。
 - 🔧 **修正**: ポーリング/初期チェックから自動リロードを除去 — `navigator.onLine === true` は正直な文言（'Network available — tap Try Again to reload.'）に留め、自動リロードは**真の `online` イベント遷移のみ**に限定（接続が実際に変化した唯一の信頼できるシグナル）。`public-assets.test.js` に pin 追加（ポーリング経路に reload がないこと）。

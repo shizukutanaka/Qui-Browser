@@ -18,6 +18,10 @@ export class ProgressiveLoader {
     this.pending = new Map();
     this.failed = new Map();
 
+    // Optional TextureManager — injected by the app when texture caching is
+    // enabled; when absent, 'texture' items fall back to a plain Image load.
+    this.textureManager = null;
+
     // Loading strategy
     this.strategy = {
       parallelLimit: 6,        // Max parallel downloads
@@ -312,8 +316,19 @@ export class ProgressiveLoader {
     return new Promise((resolve, reject) => {
       const img = new Image();
 
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+      // DOM loads carry no timeout: a stalled server never fires onerror and
+      // the promise stays pending forever, wedging the queue. Reject after
+      // strategy.timeout and drop the handlers so a late load is inert.
+      const timer = setTimeout(() => {
+        img.onload = img.onerror = null;
+        reject(new Error(`timeout loading image: ${url}`));
+      }, this.strategy.timeout);
+      img.onload = () => {
+        clearTimeout(timer); resolve(img);
+      };
+      img.onerror = (e) => {
+        clearTimeout(timer); reject(e);
+      };
 
       // Set crossorigin for CORS
       img.crossOrigin = 'anonymous';
@@ -329,8 +344,16 @@ export class ProgressiveLoader {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
 
-      script.onload = () => resolve(script);
-      script.onerror = reject;
+      const timer = setTimeout(() => {
+        script.onload = script.onerror = null;
+        reject(new Error(`timeout loading script: ${url}`));
+      }, this.strategy.timeout);
+      script.onload = () => {
+        clearTimeout(timer); resolve(script);
+      };
+      script.onerror = (e) => {
+        clearTimeout(timer); reject(e);
+      };
 
       script.src = url;
       script.async = true;
@@ -346,8 +369,16 @@ export class ProgressiveLoader {
     return new Promise((resolve, reject) => {
       const link = document.createElement('link');
 
-      link.onload = () => resolve(link);
-      link.onerror = reject;
+      const timer = setTimeout(() => {
+        link.onload = link.onerror = null;
+        reject(new Error(`timeout loading stylesheet: ${url}`));
+      }, this.strategy.timeout);
+      link.onload = () => {
+        clearTimeout(timer); resolve(link);
+      };
+      link.onerror = (e) => {
+        clearTimeout(timer); reject(e);
+      };
 
       link.rel = 'stylesheet';
       link.href = url;
@@ -381,8 +412,19 @@ export class ProgressiveLoader {
     return new Promise((resolve, reject) => {
       const audio = new Audio();
 
-      audio.oncanplaythrough = () => resolve(audio);
-      audio.onerror = reject;
+      const timer = setTimeout(() => {
+        audio.onloadeddata = audio.onerror = null;
+        reject(new Error(`timeout loading audio: ${url}`));
+      }, this.strategy.timeout);
+      // loadeddata, not canplaythrough: the latter is a buffer heuristic that
+      // legitimately never fires for long/streamed media even on a healthy
+      // network — the element is usable once data has arrived.
+      audio.onloadeddata = () => {
+        clearTimeout(timer); resolve(audio);
+      };
+      audio.onerror = (e) => {
+        clearTimeout(timer); reject(e);
+      };
 
       audio.src = url;
       audio.load();
@@ -396,8 +438,16 @@ export class ProgressiveLoader {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
 
-      video.oncanplaythrough = () => resolve(video);
-      video.onerror = reject;
+      const timer = setTimeout(() => {
+        video.onloadeddata = video.onerror = null;
+        reject(new Error(`timeout loading video: ${url}`));
+      }, this.strategy.timeout);
+      video.onloadeddata = () => {
+        clearTimeout(timer); resolve(video);
+      };
+      video.onerror = (e) => {
+        clearTimeout(timer); reject(e);
+      };
 
       video.src = url;
       video.load();
@@ -422,9 +472,9 @@ export class ProgressiveLoader {
    * Load texture
    */
   async loadTexture(url) {
-    // Delegate to TextureManager if available
-    if (window.textureManager) {
-      return window.textureManager.loadTexture(url);
+    // Delegate to TextureManager when the app injected one
+    if (this.textureManager) {
+      return this.textureManager.loadTexture(url);
     }
 
     // Fallback to image load

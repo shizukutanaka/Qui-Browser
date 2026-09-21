@@ -208,7 +208,7 @@ console.debug(`
 ║                                                              ║
 ║  Accessibility-first WebXR browser                             ║
 ║  • Japanese IME, Hand Tracking, Spatial Audio                  ║
-║  • Captions, Gaze-Dwell, Comfort system, KTX2 textures         ║
+║  • Captions, Gaze-Dwell, Comfort system, Reader View            ║
 ║  • Reader View, Tabs, Private Mode, Service Worker             ║
 ║                                                              ║
 ║  GitHub: github.com/shizukutanaka/qui-browser               ║

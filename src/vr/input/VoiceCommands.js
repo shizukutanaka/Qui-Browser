@@ -322,14 +322,22 @@ export class VoiceCommands {
       confirmationText: '更新します'
     });
 
-    // Search command
+    // Search command — standalone fallback (connectBrowser replaces this with
+    // real in-VR wiring). window.open returns null when the popup blocker
+    // refuses it — speech results carry no transient user activation, so that
+    // is the common case; falling back to location.href keeps the announced
+    // action real instead of announcing a search that never happens.
     this.registerCommand('search', {
       patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
       action: (transcript) => {
         const match = transcript.match(/[：:]\s*(.+)/);
         if (match && match[1]) {
-          const query = match[1];
-          window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+          const query = match[1].trim();
+          const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+          const opened = window.open(url, '_blank');
+          if (!opened && window.location) {
+            window.location.href = url;
+          }
           return { action: 'search', query };
         }
       },

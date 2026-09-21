@@ -394,17 +394,12 @@ describe('ProgressiveLoader.performLoad dispatch', () => {
     expect(out).toBe(blob);
   });
 
-  test("type 'texture' delegates to window.textureManager when present", async () => {
-    const origWindow = global.window;
+  test("type 'texture' delegates to an injected textureManager when present", async () => {
     const tm = { loadTexture: jest.fn(async () => 'TEXTURE') };
-    global.window = { textureManager: tm };
-    try {
-      const out = await loader.performLoad({ url: '/t.png', type: 'texture' });
-      expect(out).toBe('TEXTURE');
-      expect(tm.loadTexture).toHaveBeenCalledWith('/t.png');
-    } finally {
-      global.window = origWindow;
-    }
+    loader.textureManager = tm;
+    const out = await loader.performLoad({ url: '/t.png', type: 'texture' });
+    expect(out).toBe('TEXTURE');
+    expect(tm.loadTexture).toHaveBeenCalledWith('/t.png');
   });
 });
 
@@ -486,7 +481,10 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
     await expect(p).resolves.toBe(el);
   });
 
-  test('loadAudio resolves on oncanplaythrough and calls load()', async () => {
+  test('loadAudio resolves on onloadeddata and calls load()', async () => {
+    // loadeddata, not canplaythrough: the latter is a buffering heuristic
+    // that legitimately never fires for large/streamed media on a healthy
+    // network — the promise would hang on a perfectly usable element.
     const instances = [];
     global.Audio = jest.fn(function () {
       this.load = jest.fn(); instances.push(this);
@@ -495,7 +493,7 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
     const a = instances[0];
     expect(a.src).toBe('/beep.ogg');
     expect(a.load).toHaveBeenCalled();
-    a.oncanplaythrough();
+    a.onloadeddata();
     await expect(p).resolves.toBe(a);
   });
 
@@ -505,13 +503,37 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
     const v = els[0];
     expect(v.tagName).toBe('video');
     expect(v.src).toBe('/clip.mp4');
-    v.oncanplaythrough();
+    v.onloadeddata();
     await expect(p).resolves.toBe(v);
   });
 
-  test('loadTexture falls back to loadImage when window.textureManager is absent', async () => {
+  test.each(['loadImage', 'loadScript', 'loadStyle', 'loadAudio', 'loadVideo'])(
+    '%s rejects after strategy.timeout when the element never fires', async (method) => {
+      // DOM loads carry no native timeout — a stalled server would leave the
+      // promise pending forever and wedge the load queue.
+      jest.useFakeTimers();
+      try {
+        if (method === 'loadImage') {
+          stubImageConstructor();
+        } else if (method === 'loadAudio') {
+          global.Audio = jest.fn(function () {
+            this.load = jest.fn();
+          });
+        } else {
+          stubDocument();
+        }
+        const p = loader[method]('/stalled');
+        const settled = p.then(() => 'resolved', (e) => `rejected:${e.message}`);
+        jest.advanceTimersByTime(loader.strategy.timeout);
+        await expect(settled).resolves.toMatch(/^rejected:timeout/);
+        await expect(p).rejects.toThrow('timeout');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+  test('loadTexture falls back to loadImage when no textureManager is injected', async () => {
     const imgs = stubImageConstructor();
-    global.window = {}; // no textureManager
     const p = loader.loadTexture('/tex.png');
     imgs[0].onload();
     await expect(p).resolves.toBe(imgs[0]);

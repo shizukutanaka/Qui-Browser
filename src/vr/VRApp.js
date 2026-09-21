@@ -64,7 +64,7 @@ export function defaultSettings() {
     motionSensitivity: 'moderate',
     enableFFR: true,
     enableComfort: true,
-    enableTextureCompression: true,
+    enableTextureManager: true,
     // Default home environment (floor + grid + sky + welcome panel). Doubles
     // as a static comfort "rest frame"; without it the scene is an empty void.
     enableHomeEnvironment: true,
@@ -2458,11 +2458,11 @@ export class VRApp {
       console.debug('VRApp: Comfort system initialized');
     }
 
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
+    // 4. Texture Manager (LRU cache + memory cap)
+    if (this.settings.enableTextureManager) {
       this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
+      this.progressiveLoader.textureManager = this.textureManager;
+      console.debug('VRApp: Texture manager ready');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -3394,7 +3394,6 @@ export class VRApp {
     if (this.textureManager) {
       const memStats = this.textureManager.getMemoryStats();
       stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
     }
 
     return stats;
@@ -3587,10 +3586,8 @@ export class VRApp {
  *
  * const app = new VRApp(document.getElementById('vr-container'));
  *
- * // Load optimized texture
- * const texture = await app.loadTexture('assets/wood.ktx2', {
- *   preferKTX2: true
- * });
+ * // Load texture
+ * const texture = await app.loadTexture('assets/wood.png');
  *
  * // Get performance stats
  * setInterval(() => {

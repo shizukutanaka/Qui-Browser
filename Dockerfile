@@ -51,8 +51,9 @@ RUN apk add --no-cache \
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
 
-# ポート公開
-EXPOSE 80 443
+# ポート公開 — nginx は 80 のみ listen（HTTPS ブロックは nginx.conf でコメント
+# アウト済み。TLS は手前のリバースプロキシに任せる構成）
+EXPOSE 80
 
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

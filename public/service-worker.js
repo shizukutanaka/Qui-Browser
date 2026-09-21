@@ -16,16 +16,26 @@ const RUNTIME_CACHE = 'qui-browser-runtime';
 const BASE = ((self.location && self.location.pathname) || '/service-worker.js')
   .replace(/service-worker\.js$/, '');
 
-// Critical assets that must be cached for offline support. Kept to the app
-// shell only: the hashed JS/CSS bundles Vite emits are picked up at runtime by
-// the fetch handler (their names aren't known here), and the previous list's
-// '/src/*.js' entries never existed in the production build (Vite bundles them)
-// while the CDN Three.js URLs are unused (Three is bundled locally).
+// Hashed JS/CSS bundles this build emitted. tools/stamp-sw-version.mjs fills
+// the marker after `vite build`, when the content-hashed filenames are known.
+// They must be precached, not left to runtime caching: every build rotates
+// CACHE_VERSION, so activate deletes the old runtime cache — a user who goes
+// offline right after an update otherwise gets the shell markup with no
+// script or style (the fetch handler has nothing stale to revalidate).
+const BUILD_ASSETS = [
+  /* __BUILD_ASSETS__ */
+];
+
+// Critical assets that must be cached for offline support.
 const CRITICAL_ASSETS = [
   BASE,
   `${BASE}index.html`,
   `${BASE}manifest.json`,
-  `${BASE}offline.html`
+  `${BASE}offline.html`,
+  // offline.html's logic lives here (CSP forbids inline scripts) — uncached,
+  // the offline page renders but its buttons and status checks do nothing.
+  `${BASE}offline.js`,
+  ...BUILD_ASSETS
 ];
 
 // Asset patterns to cache with different strategies
