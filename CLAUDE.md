@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き161
+- 🔍 **実測（オフライン経路を実機で初検証）**: `getOfflineFallback` を2度修正済みだが実ブラウザで一度も発火していなかった。headed Chrome + vite preview で検証: SW install+precache 正常、未キャッシュルート×サーバー停止で **offline.html 描画**（Chrome dino なし）、オフライン中の root リロードはプリキャッシュシェル完全描画、復帰後正常、全フローでコンソール 0 エラー。
+- ⚠️ **計測方法の発見**: `Network.emulateNetworkConditions offline:true` は **SW 制御下のページでは no-op**（SW 自身の fetch に届かない — 実測でエミュ中も 200 を返す）。真のオフラインはサーバーを kill するしかない — skill に記録。
+- 🔧 **小修正**: `networkFirst` のコメント「JSON data (except manifest)」は嘘（manifest は実際 networkFirst ルートに載る）→ 実態に修正＋freshness 的に正しい挙動を明記。`CACHE_PATTERNS.staleWhileRevalidate` は `getCacheStrategy` が一度も読まない死んだ設定配列 → 削除。
+- ✅ 3057 tests / 72 suites、build、verify:app 全緑。E2E 録画・スクショを PR #166 に投稿済み。
+
 ### Session 75: 続き160
 - 🔍 **実測（SW の quota/死面）**: `cache.put` が3箇所で floated（未await・未catch）— QuotaExceededError で unhandled rejection。さらに `networkFirst` の `await cache.put` は catch に飛んで**取得成功した fresh response を捨てて stale キャッシュを返す**セマンティックバグ。そして SW の `message`/`sync` ハンドラ群（SKIP_WAITING/GET_STATS/CLEAR_CACHE/PRELOAD_ASSETS + sync-offline-actions）は src/index.html 全体で呼び手ゼロ — `cacheStats` カウンタ含めて write-only の死面。
 - 🗑 **削除**: message/sync リスナー・getCacheInfo/clearCache/preloadAssets/syncOfflineActions・cacheStats 全 increment・`_getCacheStats` export（約90行）。呼び手ゼロを grep で全検証。
