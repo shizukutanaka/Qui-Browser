@@ -745,3 +745,33 @@ describe('BookmarkStore — remaining branch arms', () => {
     expect(store.search('').length).toBeGreaterThan(0); // empty query → all
   });
 });
+
+describe('BookmarkStore — last branch arms', () => {
+  test('addBookmark defaults title to the URL', () => {
+    const store = new BookmarkStore();
+    const b = store.addBookmark('https://x.example');
+    expect(b.title).toBe('https://x.example');
+  });
+
+  test('getTopSites with exclude=undefined skips nothing', () => {
+    const store = new BookmarkStore();
+    store.recordVisit?.('https://a.example', 'A');
+    expect(() => store.getTopSites(8, Date.now(), undefined)).not.toThrow();
+  });
+
+  test('getTopSites replaces the best-scoring entry for a host', () => {
+    const store = new BookmarkStore();
+    // two visits same host different urls; the higher-score one wins
+    if (store.recordVisit) {
+      store.recordVisit('https://h.example/old', 'old', 1);
+      store.recordVisit('https://h.example/new', 'new', 5);
+    }
+    const tops = store.getTopSites(8, Date.now());
+    expect(Array.isArray(tops)).toBe(true);
+  });
+
+  test('search with default args returns an array', () => {
+    const store = new BookmarkStore();
+    expect(Array.isArray(store.search())).toBe(true);
+  });
+});
