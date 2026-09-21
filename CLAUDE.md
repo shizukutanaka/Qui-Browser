@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き143 — 実バグ22件目：リーダープロキシが丸ごと死んでいた（Node≥20 の lookup 契約違反）
+`npm run proxy` を実起動して `/fetch?url=https://example.com` を実測したら **`400 upstream-error`**（直接 egress は 200）— 原因は SSRF 対策（DNS rebinding pin）で渡す `lookup: cb(null, addr, family)` が**スカラー形式**だったこと。Node≥20 の http は lookup を `{all: true}` で呼び**配列 `[{address, family}]` を要求**するため `ERR_INVALID_IP_ADDRESS` で全リクエストが死ぬ — #138 の強化修正が本番経路を丸ごと壊していた（テストは transport を stub していて実ソケットで一度も検証されていなかった）。resolveSafely が既に全アドレスを検査済みなので、pin を「検証済み全アドレスの配列」返却に変更（v4/v6 間の happy-eyeballs も復活）。**実エンドポイントで 200 + 実HTML を確認**、配列形式を pin するテスト追加。3028 tests / 70 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き142 — Dockerfile が参照する docker/ を .dockerignore が除外していた（docker build 必敗）
 静的照合で発見：`.dockerignore` の `docker` 行が `docker/nginx.conf` と `docker/healthcheck.sh` をビルドコンテキストから除外していたが、Dockerfile nginx stage がまさにその2ファイルを COPY する — **docker 経路は一度も実 build に通っていなかった**（#132 で dist 配信を直しても build 自体が文脈エラーで失敗する状態のままだった）。除外行を削除＋ `tests/docker-context.test.js` を新設して「非 --from COPY の全ソースが実在し非除外」を pin。3027 tests / 70 suites 全緑、lint 0 errors。
 

@@ -51,6 +51,24 @@ describe('fetchThroughGuard — DNS pinning (TOCTOU)', () => {
     expect(cb).toHaveBeenCalledWith(null, '93.184.216.34', 4);
   });
 
+  test('lookup returns the validated array when the caller asks all=true', async () => {
+    lookup.mockResolvedValue([
+      { address: '93.184.216.34', family: 4 },
+      { address: '2606:2800:220:1:248:1893:25c8:1946', family: 6 }
+    ]);
+    await fetchThroughGuard('http://example.com/page');
+    const opts = http.request.mock.calls[0][1];
+    const cb = jest.fn();
+    // Node >= 20's http stack always invokes lookup with all: true and
+    // requires an array — the scalar form throws ERR_INVALID_IP_ADDRESS and
+    // every proxied fetch died with upstream-error before this fix.
+    opts.lookup('example.com', { all: true }, cb);
+    expect(cb).toHaveBeenCalledWith(null, [
+      { address: '93.184.216.34', family: 4 },
+      { address: '2606:2800:220:1:248:1893:25c8:1946', family: 6 }
+    ], 4);
+  });
+
   test('all resolved addresses are checked before any socket opens', async () => {
     lookup.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },

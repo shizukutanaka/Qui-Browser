@@ -64,7 +64,12 @@ export async function resolveSafely(hostname) {
       return { ok: false, reason: `resolved-to-blocked:${blocked.reason}` };
     }
   }
-  return { ok: true, address: addresses[0].address, family: addresses[0].family };
+  return {
+    ok: true,
+    addresses,
+    address: addresses[0].address,
+    family: addresses[0].family
+  };
 }
 
 /**
@@ -101,7 +106,12 @@ export async function fetchThroughGuard(target, headers = {}) {
         // Pin the connection to the address the guard already checked —
         // letting httpRequest re-resolve the hostname opens a DNS-rebinding
         // window where the second answer points inward.
-        lookup: (_host, _opts, cb) => cb(null, dns.address, dns.family)
+        // Node >= 20 calls lookup with { all: true } and requires an array
+        // of {address, family} — the scalar form throws ERR_INVALID_IP_ADDRESS.
+        // resolveSafely already vetted every address, so hand back the whole
+        // list: Node then races/falls back across them like normal DNS.
+        lookup: (_host, opts, cb) =>
+          cb(null, opts && opts.all ? dns.addresses : dns.address, dns.family)
       }, (r) => resolve({ kind: 'response', r }));
       req.on('timeout', () => {
         req.destroy();
