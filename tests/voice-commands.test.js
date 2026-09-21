@@ -1160,6 +1160,22 @@ describe('VoiceCommands — complementary arms 2', () => {
     }
   });
 
+  test('blocked popup (window.open returns null) navigates the current tab instead', () => {
+    // Speech results carry no transient user activation, so popup-blocked is
+    // the common case — without the fallback the command announced 「検索します」
+    // while nothing happened.
+    const location = { href: '' };
+    const origWindow = global.window;
+    global.window = { open: () => null, location };
+    try {
+      const out = vc.commands.get('search').action('検索：てんき');
+      expect(out.query).toBe('てんき');
+      expect(location.href).toContain('google.com/search?q=');
+    } finally {
+      global.window = origWindow;
+    }
+  });
+
   test('go-to command on English transcript extracts the site via enMatch', () => {
     const onGoTo = jest.fn();
     vc.connectBrowser({ onGoTo });

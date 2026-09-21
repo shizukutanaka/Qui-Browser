@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き172 — 音声検索フォールバックがポップアップブロックで無言死
+- 🔍 **実害（偽アクション告知）**: スタンドアロン（connectBrowser 未接続）時の 'search' コマンドが `window.open('_blank')` に依存 — 音声認識結果イベントには transient user activation が無く、popup blocker が null を返すのが通常経路。「検索します」と告げて何も起きない（120/121 と同じ fake-action クラス）。
+- 🔧 **修正**: `window.open` が null（ブロック）なら `location.href` で現タブ遷移にフォールバック（実ブラウザでは location 常存、テスト用スタブ窓では `window.location` ガード）。クエリに trim 追加（接続済み版と parity）。
+- 🧪 **pin**: open→null で location.href が google URL になることを実証するテスト追加。
+- ✅ 3085 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き171 — プロキシ起動失敗が生スタックで死ぬ（EADDRINUSE 等）
 - 🔍 **実害（起動 UX）**: `createProxyServer().listen()` に `'error'` ハンドラが無く、ポート占有等の起動失敗が未ハンドル error イベント → 生のスタックトレースで終了。手動で起動する開発者ツールで最も頻度の高い失敗経路が無案内だった。
 - 🔧 **修正**: `server.on('error')` で EADDRINUSE → 「Port N is already in use — is another proxy instance running?」、その他は `err.message` を添えて exit 1。実測で2重起動がフレンドリメッセージ＋exit 1 で終了することを確認。
