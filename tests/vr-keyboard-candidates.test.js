@@ -321,3 +321,42 @@ describe('VRJapaneseKeyboard.dispose — 3D resource teardown', () => {
     expect(kb._candidatesGroup).toBeNull();
   });
 });
+
+describe('key texture/hover layer — repaint + dispose + shift latch', () => {
+  test('key hover fires onHoverCaption and repaints with hover colors', () => {
+    const captions = [];
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: (mesh, handlers) => registeredKeys.push({ mesh, handlers }),
+      unregisterInteractable: jest.fn(),
+      onHoverCaption: (c) => captions.push(c)
+    });
+    const registeredKeys = [];
+    kb.createKeyboard();
+    const key = registeredKeys[0];
+    const before = key.mesh.userData.keyTex;
+    const disposeSpy = jest.spyOn(before, 'dispose');
+    key.handlers.onHover();
+    expect(captions).toHaveLength(1);
+    expect(key.mesh.userData.keyTex).not.toBe(before);
+    expect(disposeSpy).toHaveBeenCalled(); // old texture freed
+    key.handlers.onHoverEnd();
+  });
+
+  test('shift latch repaints to the active color only when katakana mode changes', () => {
+    const { kb } = makeKeyboard();
+    const shift = kb.keyMeshes.find(k => k.label === 'shift');
+    expect(shift).toBeDefined();
+    const texBefore = shift.mesh.userData.keyTex;
+    kb._refreshKeyStates(); // mode still romaji — no repaint
+    expect(shift.mesh.userData.keyTex).toBe(texBefore);
+    kb.ime.inputMode = 'katakana';
+    const disposeSpy = jest.spyOn(texBefore, 'dispose');
+    kb._refreshKeyStates();
+    expect(shift.mesh.userData.keyActive).toBe(true);
+    expect(shift.mesh.userData.keyTex).not.toBe(texBefore);
+    expect(disposeSpy).toHaveBeenCalled();
+    kb.ime.inputMode = 'romaji';
+    kb._refreshKeyStates();
+    expect(shift.mesh.userData.keyActive).toBe(false);
+  });
+});

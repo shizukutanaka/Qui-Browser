@@ -544,6 +544,10 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き106（同セッション）: VRJapaneseKeyboard のキーテクスチャ層を pin — hover repaint・旧テクスチャ dispose・shift の katakana ラッチ再描画
+- ✅ キー hover で onHoverCaption 発火＋`_setKeyHover` が新テクスチャを割当て**旧テクスチャを dispose**（GPU リーク防止）、`_refreshKeyStates` が katakana モード変化時のみ shift キーを active 色へ再描画（romaji で repaint しない消極腕も pin）。
+- ✅ 2234 tests / 65 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き105（同セッション）: setupVR の配線 + updateSystems の毎フレーム残腕 + grab/point ジェスチャ本体を pin
 - ✅ `setupVR()` を stub document/window/xr で pin: VRButton を body へ append、landing の 'enter-vr' イベント → vrButton.click()、sessionstart/end → onVRSessionStart/End 配線、document visibilitychange で hidden+playing のみ immersiveVideo.togglePause（visible や非再生では呼ばない両腕）、setupControllers 呼出。
 - ✅ `updateSystems()` の残腕: xrFrame 有りで handTracking.update(xrFrame, refSpace)、hapticFeedback.update() 毎フレーム、spatialAudio.updateListenerFromCamera、**layers blit ループ**（isSupported+xrFrame → getViewerPose → tabManager.tabs 各 panel.updateLayer、tabManager 不在時は webPanel 単体フォールバック、pose null で skip）。
