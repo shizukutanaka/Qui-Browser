@@ -522,3 +522,60 @@ describe('ImmersiveVideo — remaining branch arms', () => {
     expect(() => iv.dispose()).not.toThrow();
   });
 });
+
+describe('ImmersiveVideo — last branch arms', () => {
+  test('play() tolerates video.play returning a non-promise', () => {
+    const { iv } = makeHarness();
+    const origCreate = global.document.createElement;
+    global.document.createElement = (tag) => {
+      const el = origCreate(tag);
+      if (tag === 'video') el.play = () => undefined;
+      return el;
+    };
+    try {
+      expect(() => iv.play('https://cdn.example.com/clip.mp4')).not.toThrow();
+      expect(iv.active).toBe(true);
+    } finally {
+      global.document.createElement = origCreate;
+    }
+  });
+
+  test('_reportError while playing flips the button label back to Play', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    const btn = { userData: { setLabel: jest.fn() } };
+    iv._playPauseBtn = btn;
+    iv.playing = true;
+    iv._reportError('stream dropped');
+    expect(btn.userData.setLabel).toHaveBeenCalled();
+    expect(iv.playing).toBe(false);
+  });
+
+  test('HUD interactable onSelect no-ops when callback absent', () => {
+    const { iv, register } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    // Each registered cfg wraps onSelect — invoking the wrapper hits the
+    // `if (onSelect)` guard even though every wired button passes one.
+    register.mock.calls.forEach(([, cfg]) => cfg.onSelect && cfg.onSelect());
+    expect(register).toHaveBeenCalledTimes(2);
+  });
+
+  test('togglePause with video.paused=false pauses and clears playing', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.video.paused = false;
+    iv.playing = true;
+    iv.togglePause();
+    expect(iv.video.paused).toBe(true);
+    expect(iv.playing).toBe(false);
+  });
+
+  test('dispose tolerates video without removeEventListener and no _onVideo* refs', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.video.removeEventListener = undefined;
+    iv._onVideoError = null;
+    iv._onVideoPlaying = null;
+    expect(() => iv.dispose()).not.toThrow();
+  });
+});
