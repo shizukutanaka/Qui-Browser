@@ -245,6 +245,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き201 — ComfortSystem を実測したら**全出力経路が没入中は死んでいた** → vignette を実働化し残りを削除
+- 🔍 **発見（three ソース実読 + WebXR spec）**: ComfortSystem の3つの効果が全て XR では無効だった:
+  - **vignette**: `setupVignette` が renderTarget+shader+quad を構築し `updateVignette` が毎フレーム uniform を更新するが、`comfortSystem.render()` を呼ぶ者がゼロ（VRApp は直接 `renderer.render`）— 描かれたことは一度もない。
+  - **FOV トンネリング**: `camera.fov` 書換は XR では無効 — ランタイムが投影を所有し、WebXRManager（819行目）が「camera.fov は XR では使われない」と明記、毎フレーム上書き。
+  - **snap-turn アニメーション**: `handleSnapTurn`/`animateSnapTurn` に呼出元ゼロ — VRApp は自前で即時回転。
+- 🔧 **修正（削除ではなく実働化）**: vignette は**カメラ子のグラデーション quad**（canvas radial-gradient `CanvasTexture`、depthTest/Write off、0.6 m 前方、opacity=currentVignette、<0.01 で非描画）に置換 — `WebXRManager.updateUserCamera` が XR pose をユーザー camera に書き戻すため子メッシュは頭に追従し XR で実際に効く。FOV・snap アニメ・post-process・`setReducedMotion`・`powerFactor` を削除、ctor を `(camera)` に縮小（scene/renderer も不要に）、`enableComfort` OFF 時に vignette を即座クリアする callback を追加。`externalMotion`/`externalMotionLevel` は残存（今や本物の vignette を滑走速度比例で駆動）。`smoothMoveWarning` の英語リテラルは `vr.msg.smoothMoveWarning`（en/ja）へ（WCAG 3.1.2 漏れ）。
+- 🧪 テスト全面書替（node 環境へ canvas stub、`camera.add`/`remove` pin、opacity/visible 断言、dispose の mesh teardown）。vr-app-wiring の死んだ baseFOV pin 3件を除去、brace-style の既存 error 1件も修正。IMPLEMENTATION.md の架空 API 例（scene 引数・fov/snapTurn 設定・handleSnapTurn）を実装記述へ同期。
+- ✅ 3075 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き200 — FFR に base-layer フォールバック（layers 非対応ランタイムで FFR が全滅していた）
 - 🔍 **発見**: `FFRSystem.initialize` が `XRWebGLBinding`/`getProjectionLayer()` 一本依存 — この経路は `'layers'` grant が必要で、非対応/拒否ランタイムでは**FFR 全体が初期化失敗**。だが WebXR の base `XRWebGLLayer` 自身が `fixedFoveation` を持ち grant 不要（three は `renderer.xr.setFoveation()` で書く）。
 - 🔧 **修正**: `initialize(session, gl, xrManager)` — XRWebGLBinding が投げた/フォービューション不可の時、`session.renderState.baseLayer.fixedFoveation` の存在を確認して `xrManager.setFoveation` 経路にフォールバック。両経路がある時は**デュアル書込み**（quad layer 使用時、base layer 側もフォービューションする）。全書込サイトを `_writeFoveation()` に集約、enabled ガードを projectionLayer 依存から解放。

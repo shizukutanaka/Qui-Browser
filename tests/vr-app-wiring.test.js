@@ -854,16 +854,14 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
       .toHaveBeenCalledWith('change', expect.any(Function));
   });
 
-  test('a reduced-motion OS change propagates live to comfortSystem and gazeInteraction', () => {
-    const comfortSystem = { setReducedMotion: jest.fn() };
+  test('a reduced-motion OS change propagates live to gazeInteraction', () => {
     const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
-    const app = makeVRAppLike({ comfortSystem, gazeInteraction, captionSystem: null });
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem: null });
     VRApp.prototype._setupOSAccessibilityListeners.call(app);
 
     const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
     handler({ matches: true });
 
-    expect(comfortSystem.setReducedMotion).toHaveBeenCalledWith(true);
     expect(gazeInteraction.setReducedMotion).toHaveBeenCalledWith(true);
   });
 
@@ -2162,7 +2160,7 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     ffrSystem: null,
     handTracking: null,
     spatialAudio: null,
-    comfortSystem: { settings: { fov: { baseFOV: 70 } } },
+    comfortSystem: { externalMotion: false, externalMotionLevel: 1 },
     immersiveVideo: null,
     layersSystem: null,
     showVRToast: jest.fn(),
@@ -2185,7 +2183,6 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.ffrSystem.enable).toHaveBeenCalledWith(0.5);
     expect(app.handTracking.onGesture).toHaveBeenCalledWith('pinch', expect.any(Function));
     expect(app.renderer.setPixelRatio).toHaveBeenCalledWith(1);
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
     expect(app.captionSystem.show).toHaveBeenCalledWith(expect.any(String));
   });
 
@@ -2196,7 +2193,11 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
       renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
       handTracking: {
         initialize: jest.fn().mockResolvedValue(true),
-        onGesture: jest.fn((name, cb) => { if (name === 'pinch') { pinchCb = cb; } }),
+        onGesture: jest.fn((name, cb) => {
+          if (name === 'pinch') {
+            pinchCb = cb;
+          }
+        }),
         dispose: jest.fn()
       },
       interactables: [{}],
@@ -2399,7 +2400,6 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     // Ghost-hands fix: every re-entry would otherwise leak 50 joint meshes.
     expect(hand.dispose).toHaveBeenCalled();
     expect(app.onXRVisibilityChange).toBeNull();
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(75); // camera.fov restored
     expect(app.renderer.setPixelRatio).toHaveBeenLastCalledWith(1); // min(dpr=1, 2)
     delete global.window;
   });
@@ -4164,14 +4164,14 @@ describe('VRApp updateLocomotion — axes defaults + reuse + zero-move arms', ()
 });
 
 describe('VRApp onVRSessionEnd — restore arms', () => {
-  test('camera.fov falsy restores 90; webPanel-only arm detaches its layer', () => {
+  test('webPanel-only arm detaches its layer', () => {
     const layers = { removeLayer: jest.fn(), dispose: jest.fn(), updateRenderState: jest.fn() };
     const webPanel = { disableLayerMode: jest.fn() };
     const app = {
       isVREnabled: true,
       ffrSystem: { disable: jest.fn() },
-      comfortSystem: { settings: { fov: { baseFOV: 0 } } },
-      camera: { fov: 0 }, // falsy → || 90
+      comfortSystem: null,
+      camera: { fov: 75 },
       layersSystem: layers,
       tabManager: null,
       webPanel,
@@ -4182,7 +4182,7 @@ describe('VRApp onVRSessionEnd — restore arms', () => {
       settings: { targetFPS: 90 }
     };
     expect(() => VRApp.prototype.onVRSessionEnd.call(app)).not.toThrow();
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
+    expect(webPanel.disableLayerMode).toHaveBeenCalledWith(false);
   });
 });
 

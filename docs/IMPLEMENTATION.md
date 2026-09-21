@@ -81,130 +81,51 @@ ffrSystem.setDynamic(gpuMonitor.getLoad());
 
 ---
 
-### 2. Comfort System (Vignette + FOV + Snap Turn)
+### 2. Comfort System (Motion-Activated Vignette)
 
-**Time**: 4-6 hours
-**Effectiveness**: 60-70% motion sickness reduction
+**Status**: Implemented — camera-parented vignette quad.
+**Effectiveness**: Vignette tunnelling is a well-established motion-sickness
+mitigation (reduces peripheral optical flow during locomotion).
 **Difficulty**: ⭐⭐ Easy-Medium
 
 **File**: `src/vr/comfort/ComfortSystem.js`
 
+The shipped implementation differs deliberately from the common textbook
+pattern — two of its three textbook mechanisms do not work in WebXR:
+
+- **No render-target post-process pass.** A screen-space vignette pass
+  (scene → `WebGLRenderTarget` → fullscreen quad) breaks stereo XR
+  presentation: the XR framebuffer is owned by the compositor, not
+  `setRenderTarget`. Instead the vignette is a `PlaneGeometry` with a
+  canvas-baked radial-gradient `CanvasTexture`, parented to the camera —
+  three.js writes the XR pose back into the user camera each frame
+  (`WebXRManager.updateUserCamera`), so the quad tracks the head in both
+  immersive and mirror rendering.
+- **No camera FOV tunnelling.** `camera.fov` is ignored under XR — the runtime
+  owns the eye projections and WebXRManager overwrites `camera.fov` every
+  frame. Peripheral restriction is achieved by the vignette's opacity instead.
+- **No eased snap-turn animation.** Snap turns are applied instantly to the
+  `playerRig` (`VRApp.snapTurn`) — an animated rotation is itself the nausea
+  trigger the feature exists to prevent, so `handleSnapTurn`/`animateSnapTurn`
+  were removed rather than kept as dead surface.
+
 ```javascript
-export class ComfortSystem {
-  constructor(scene, camera) {
-    this.scene = scene;
-    this.camera = camera;
-    this.baseFOV = camera.fov;
-    this.isMoving = false;
+const comfort = new ComfortSystem(camera); // builds + parents the quad
+comfort.setPreset('moderate');             // vignette intensity 0.4
 
-    this.settings = {
-      preset: 'moderate', // 'sensitive', 'moderate', 'tolerant'
-      vignette: 0.4,
-      fov: 90,
-      snapTurn: 30, // degrees (false for smooth)
-      vignetteDistance: 0.5
-    };
+// In the frame loop (VRApp):
+comfort.externalMotion = gliding;          // smooth locomotion bypasses
+comfort.externalMotionLevel = stick;       // head-delta detection (0..1)
+comfort.update(dt);                        // eases vignette opacity
 
-    this.setupVignette();
-  }
-
-  setupVignette() {
-    const vignetteShader = `
-      varying vec2 vUv;
-      uniform float intensity;
-
-      void main() {
-        vec2 center = vec2(0.5);
-        float dist = distance(vUv, center);
-        float vignette = pow(1.0 - (dist * dist), 1.5);
-        vignette = mix(0.0, vignette, intensity);
-
-        gl_FragColor = vec4(vec3(1.0 - vignette * 0.5), 1.0);
-      }
-    `;
-
-    this.vignetteMaterial = new THREE.ShaderMaterial({
-      uniforms: { intensity: { value: this.settings.vignette } },
-      fragmentShader: vignetteShader
-      // ... vertex shader ...
-    });
-  }
-
-  update(time, deltaTime) {
-    // Detect movement
-    const lastPos = this.lastPosition || this.camera.position.clone();
-    const distance = this.camera.position.distanceTo(lastPos);
-
-    this.isMoving = distance > 0.01;
-    this.lastPosition = this.camera.position.clone();
-
-    // Update FOV
-    const targetFOV = this.isMoving ? (this.settings.fov - 25) : this.settings.fov;
-    this.camera.fov += (targetFOV - this.camera.fov) * deltaTime;
-    this.camera.updateProjectionMatrix();
-
-    // Update vignette
-    const targetVignette = this.isMoving ? this.settings.vignette : 0;
-    this.vignetteMaterial.uniforms.intensity.value +=
-      (targetVignette - this.vignetteMaterial.uniforms.intensity.value) * deltaTime;
-  }
-
-  handleSnapTurn(degrees) {
-    if (!this.settings.snapTurn) return;
-
-    const snapAngle = Math.round(degrees / this.settings.snapTurn) * this.settings.snapTurn;
-    const targetRotation = this.camera.rotation.y + THREE.MathUtils.degToRad(snapAngle);
-
-    this.animateRotation(this.camera.rotation.y, targetRotation, 0.2);
-  }
-
-  animateRotation(start, target, duration) {
-    const startTime = Date.now();
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      this.camera.rotation.y = THREE.MathUtils.lerp(start, target, eased);
-
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    animate();
-  }
-
-  setPreset(preset) {
-    const presets = {
-      'sensitive': { vignette: 0.8, fov: 60, snapTurn: 15 },
-      'moderate': { vignette: 0.4, fov: 75, snapTurn: 30 },
-      'tolerant': { vignette: 0, fov: 90, snapTurn: 45 }
-    };
-
-    Object.assign(this.settings, presets[preset] || {});
-  }
-}
-```
-
-**Usage**:
-```javascript
-const comfort = new ComfortSystem(scene, camera);
-comfort.setPreset('moderate');
-
-// In animation loop
-comfort.update(clock.getElapsedTime(), deltaTime);
-
-// On user rotation input
-controller.addEventListener('thumbstick', (direction) => {
-  comfort.handleSnapTurn(direction.x * 45);
-});
+// Presets: sensitive 0.8 / moderate 0.4 / tolerant 0.2 / disabled.
 ```
 
 **Validation**:
-- [ ] Vignette darkens during movement
-- [ ] FOV smoothly changes
-- [ ] Snap turning feels smooth
-- [ ] Presets changeable in UI
-
----
+- [ ] Vignette darkens the periphery during smooth locomotion and head turns
+- [ ] Fades out within ~1s of stopping
+- [ ] `setPreset('disabled')` keeps it fully hidden
+- [ ] Presets changeable from the in-VR settings panel
 
 ### 3. Object Pooling
 

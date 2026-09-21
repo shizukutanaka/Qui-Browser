@@ -30,7 +30,7 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/interaction/` | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback` |
 | `vr/accessibility/` | `CaptionSystem`, `SemanticDOM` (ARIA mirror of VR state), `crossModal` (`notifyCrossModal`), `AccessibilityCoordinator` |
 | `vr/audio/` | `SpatialAudio` — procedurally synthesized UI cues, positional audio |
-| `vr/comfort/` | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort |
+| `vr/comfort/` | `ComfortSystem` — motion-activated vignette for vestibular comfort |
 | `vr/media/` | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping) |
 | `dev/` | `DevTools` — floating console/scene/network inspector |
 | `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |

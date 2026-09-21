@@ -1,8 +1,13 @@
 /**
  * VR Comfort System
- * Reduces motion sickness by 60-70% through vignetting, FOV reduction, and snap turning
+ * Reduces motion sickness through a camera-parented vignette that narrows
+ * peripheral optical flow while the user is moving.
  *
- * John Carmack principle: Essential for user comfort, simple implementation
+ * The vignette is a gradient quad parented to the camera, not a post-process
+ * pass: three.js updates the user camera's world matrix from the XR pose every
+ * frame (WebXRManager.updateUserCamera), so children of it track the head in
+ * both immersive and mirror rendering — where a screen-space render-target
+ * pass would break stereo presentation entirely.
  */
 
 import { t } from '../../i18n/i18n.js';
@@ -10,19 +15,16 @@ import { t } from '../../i18n/i18n.js';
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(scene, camera, renderer, { reduceMotion = false } = {}) {
-    this.scene = scene;
+  constructor(camera) {
     this.camera = camera;
-    this.renderer = renderer;
-    this.reduceMotion = reduceMotion;
 
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
     this.externalMotion = false;
     // Intensity of the external motion, 0..1 (normalized stick deflection).
-    // Drives a speed-proportional vignette: restricting the FOV more than the
-    // current optical flow warrants is itself a comfort/usability cost, so the
-    // vignette target scales with how fast the user is actually gliding
+    // Drives a speed-proportional vignette: restricting the periphery more than
+    // the current optical flow warrants is itself a comfort/usability cost, so
+    // the vignette target scales with how fast the user is actually gliding
     // (adaptive FOV restriction — Adaptive Field-of-view Restriction, VRST '22;
     // adaptive FFR+FoV, arXiv:2502.03419). Defaults to 1 so callers that only
     // set the boolean keep the pre-existing full-intensity behavior.
@@ -33,20 +35,8 @@ export class ComfortSystem {
       preset: 'moderate',
       vignette: {
         enabled: true,
-        intensity: 0.4,      // 0-1 range
-        powerFactor: 1.5,    // Falloff curve
+        intensity: 0.4,      // 0-1 range — caps the vignette opacity
         smoothing: 0.1       // Transition speed
-      },
-      fov: {
-        enabled: true,
-        baseFOV: camera.fov || 90,
-        reductionAmount: 25,  // Degrees to reduce during motion
-        smoothing: 0.1        // Transition speed
-      },
-      snapTurn: {
-        enabled: true,
-        angle: 30,           // Degrees per snap
-        duration: 0.2        // Seconds for animation
       }
     };
 
@@ -56,75 +46,50 @@ export class ComfortSystem {
     this.isMoving = false;
     this.isRotating = false;
     this.currentVignette = 0;
-    this.currentFOV = this.settings.fov.baseFOV;
 
-    // Initialize vignette post-processing
+    // Initialize the vignette quad
     this.setupVignette();
   }
 
   /**
-   * Setup vignette shader material
+   * Build the vignette quad: a canvas radial gradient (transparent centre,
+   * opaque black rim) on a plane fixed in front of the camera. Depth reads and
+   * writes are off so it always composes over the scene.
    */
   setupVignette() {
-    // Vertex shader
-    const vertexShader = `
-      varying vec2 vUv;
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const half = size / 2;
+    const gradient = ctx.createRadialGradient(half, half, 0, half, half, half);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(0.55, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
 
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-
-    // Fragment shader for vignette effect
-    const fragmentShader = `
-      uniform sampler2D tDiffuse;
-      uniform float intensity;
-      uniform float powerFactor;
-      varying vec2 vUv;
-
-      void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-
-        // Calculate distance from center
-        vec2 center = vec2(0.5, 0.5);
-        float dist = distance(vUv, center);
-
-        // Apply vignette with power curve
-        float vignette = pow(1.0 - dist * dist, powerFactor);
-        vignette = mix(1.0, vignette, intensity);
-
-        // Darken edges
-        color.rgb *= vignette;
-
-        gl_FragColor = color;
-      }
-    `;
-
-    // Create post-processing material
-    this.vignetteMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        tDiffuse: { value: null },
-        intensity: { value: 0.0 },
-        powerFactor: { value: this.settings.vignette.powerFactor }
-      },
-      vertexShader,
-      fragmentShader
+    this.vignetteTexture = new THREE.CanvasTexture(canvas);
+    this.vignetteMaterial = new THREE.MeshBasicMaterial({
+      map: this.vignetteTexture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      opacity: 0
     });
 
-    // Create screen quad for post-processing
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    this.vignetteQuad = new THREE.Mesh(geometry, this.vignetteMaterial);
-
-    // Full-screen ortho camera for the post-process pass, created once and
-    // reused (previously allocated every frame in render()).
-    this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    // Create render target for post-processing
-    this.renderTarget = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight
+    // 2 m × 2 m at 0.6 m ≈ ±118° of coverage — spans past the edges of every
+    // supported headset's display FOV.
+    this.vignetteMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      this.vignetteMaterial
     );
+    this.vignetteMesh.position.z = -0.6;
+    this.vignetteMesh.renderOrder = 999;
+    this.vignetteMesh.frustumCulled = false;
+    this.vignetteMesh.visible = false;
+    this.camera.add(this.vignetteMesh);
   }
 
   /**
@@ -141,11 +106,6 @@ export class ComfortSystem {
     // Update vignette effect
     if (this.settings.vignette.enabled) {
       this.updateVignette(deltaTime);
-    }
-
-    // Update FOV
-    if (this.settings.fov.enabled) {
-      this.updateFOV(deltaTime);
     }
   }
 
@@ -178,10 +138,10 @@ export class ComfortSystem {
    *
    * The target scales with how much optical flow the user is actually being
    * exposed to, rather than snapping to full strength for any motion at all:
-   * over-restricting the FOV during slow drift is itself a comfort/usability
-   * cost (adaptive FOV restriction — VRST '22; adaptive FFR+FoV,
-   * arXiv:2502.03419). Head-tracked movement and rotation still count as
-   * full-strength motion (their real-world speed isn't measurable here);
+   * over-restricting the periphery during slow drift is itself a
+   * comfort/usability cost (adaptive FOV restriction — VRST '22; adaptive
+   * FFR+FoV, arXiv:2502.03419). Head-tracked movement and rotation still count
+   * as full-strength motion (their real-world speed isn't measurable here);
    * smooth locomotion contributes proportionally to externalMotionLevel
    * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
@@ -199,140 +159,32 @@ export class ComfortSystem {
     this.currentVignette += (targetVignette - this.currentVignette) *
                              this.settings.vignette.smoothing;
 
-    // Update shader uniform
+    // Apply to the quad; skip its draw call entirely once it has faded out.
     if (this.vignetteMaterial) {
-      this.vignetteMaterial.uniforms.intensity.value = this.currentVignette;
+      this.vignetteMaterial.opacity = this.currentVignette;
+      this.vignetteMesh.visible = this.currentVignette > 0.01;
     }
   }
 
-  /**
-   * Update FOV based on motion.
-   *
-   * NOTE: intentionally NOT gated on reduceMotion. Dynamic FOV reduction
-   * (tunnelling vision) is a *comfort* technique that lowers peripheral optical
-   * flow during locomotion — it reduces motion sickness rather than causing it.
-   * The prefers-reduced-motion cohort is the vestibular-sensitive group that
-   * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that is
-   * essential to functionality; comfort tunnelling qualifies. (Contrast with
-   * animateSnapTurn, where the eased rotation IS the nausea trigger and is
-   * therefore suppressed.)
-   */
-  updateFOV(_deltaTime) {
-    // Target FOV based on motion
-    let targetFOV = this.settings.fov.baseFOV;
-
-    if (this.isMoving || this.isRotating) {
-      targetFOV = this.settings.fov.baseFOV - this.settings.fov.reductionAmount;
-    }
-
-    // Smooth transition
-    this.currentFOV += (targetFOV - this.currentFOV) *
-                       this.settings.fov.smoothing;
-
-    // Apply to camera
-    this.camera.fov = this.currentFOV;
-    this.camera.updateProjectionMatrix();
-  }
-
-  /**
-   * Handle snap turning
-   */
-  /**
-   * Live-update the reduced-motion preference (WCAG 2.3.3). Read once at
-   * construction from the OS signal; this lets a mid-session OS preference
-   * change (e.g. toggled from the headset's system Quick Settings without
-   * reloading the page) take effect immediately instead of staying frozen
-   * for the rest of the page's lifetime.
-   * @param {boolean} value
-   */
-  setReducedMotion(value) {
-    this.reduceMotion = !!value;
-  }
-
-  handleSnapTurn(direction) {
-    if (!this.settings.snapTurn.enabled) {
-      // Smooth turning
-      this.camera.rotation.y += direction * 0.02;
-      return;
-    }
-
-    // Calculate snap angle
-    const snapAngle = Math.sign(direction) *
-                      THREE.MathUtils.degToRad(this.settings.snapTurn.angle);
-
-    // Animate rotation
-    this.animateSnapTurn(snapAngle);
-  }
-
-  /**
-   * Animate snap turn with easing.
-   * Under prefers-reduced-motion the eased rAF loop is replaced with an
-   * immediate assignment — the turn still happens, the animation does not.
-   */
-  animateSnapTurn(targetAngle) {
-    const startRotation = this.camera.rotation.y;
-    const endRotation = startRotation + targetAngle;
-
-    if (this.reduceMotion) {
-      this.camera.rotation.y = endRotation;
-      return;
-    }
-
-    const duration = this.settings.snapTurn.duration * 1000; // Convert to ms
-    const startTime = Date.now();
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      // Apply rotation
-      this.camera.rotation.y = THREE.MathUtils.lerp(
-        startRotation,
-        endRotation,
-        eased
-      );
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate();
-  }
-
-  /**
-   * Apply comfort preset
-   */
   setPreset(preset) {
-    // Each preset explicitly sets `enabled` on all three effects. This is
-    // required because settings are merged with Object.assign: switching FROM
-    // 'disabled' (which sets enabled:false) TO a protective preset must
-    // re-enable the effects. Omitting `enabled: true` here would leave a user
-    // who picked 'disabled' and then switched to 'sensitive' with NO comfort
-    // mitigations at all — the exact opposite of their request.
+    // Each preset explicitly sets `enabled`. This is required because settings
+    // are merged with Object.assign: switching FROM 'disabled' (which sets
+    // enabled:false) TO a protective preset must re-enable the vignette.
+    // Omitting `enabled: true` here would leave a user who picked 'disabled'
+    // and then switched to 'sensitive' with NO comfort mitigation at all — the
+    // exact opposite of their request.
     const presets = {
       'sensitive': {
-        vignette: { enabled: true, intensity: 0.8, powerFactor: 1.2 },
-        fov: { enabled: true, reductionAmount: 35 },
-        snapTurn: { enabled: true, angle: 15 }
+        vignette: { enabled: true, intensity: 0.8 }
       },
       'moderate': {
-        vignette: { enabled: true, intensity: 0.4, powerFactor: 1.5 },
-        fov: { enabled: true, reductionAmount: 25 },
-        snapTurn: { enabled: true, angle: 30 }
+        vignette: { enabled: true, intensity: 0.4 }
       },
       'tolerant': {
-        vignette: { enabled: true, intensity: 0.2, powerFactor: 2.0 },
-        fov: { enabled: true, reductionAmount: 15 },
-        snapTurn: { enabled: true, angle: 45 }
+        vignette: { enabled: true, intensity: 0.2 }
       },
       'disabled': {
-        vignette: { enabled: false },
-        fov: { enabled: false },
-        snapTurn: { enabled: false }
+        vignette: { enabled: false }
       }
     };
 
@@ -343,46 +195,23 @@ export class ComfortSystem {
 
     // Apply preset settings
     Object.assign(this.settings.vignette, presetSettings.vignette);
-    Object.assign(this.settings.fov, presetSettings.fov);
-    Object.assign(this.settings.snapTurn, presetSettings.snapTurn);
 
     this.settings.preset = preset;
-  }
-
-  /**
-   * Render with vignette post-processing
-   */
-  render(scene, camera) {
-    if (!this.settings.vignette.enabled || this.currentVignette < 0.01) {
-      // Render directly without post-processing
-      this.renderer.render(scene, camera);
-      return;
-    }
-
-    // Render scene to texture
-    this.renderer.setRenderTarget(this.renderTarget);
-    this.renderer.render(scene, camera);
-
-    // Apply vignette post-processing
-    this.vignetteMaterial.uniforms.tDiffuse.value = this.renderTarget.texture;
-
-    // Render to screen
-    this.renderer.setRenderTarget(null);
-    this.renderer.render(this.vignetteQuad, this.postCamera);
   }
 
   /**
    * Cleanup resources
    */
   dispose() {
-    if (this.renderTarget) {
-      this.renderTarget.dispose();
+    if (this.vignetteMesh) {
+      this.camera?.remove(this.vignetteMesh);
+      this.vignetteMesh.geometry.dispose();
     }
     if (this.vignetteMaterial) {
       this.vignetteMaterial.dispose();
     }
-    if (this.vignetteQuad) {
-      this.vignetteQuad.geometry.dispose();
+    if (this.vignetteTexture) {
+      this.vignetteTexture.dispose();
     }
   }
 }
@@ -422,9 +251,9 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
 /**
  * Build a directional caption for a snap-turn confirmation.
  *
- * Used when prefers-reduced-motion removes the eased rotation animation;
- * the caption provides the second, non-visual channel that tells the user
- * which way the world snapped. Pure so it is unit-testable.
+ * The snap turn itself is instantaneous (applied to the player rig by
+ * VRApp.snapTurn); this caption is the second, non-visual channel that tells
+ * the user which way the world snapped. Pure so it is unit-testable.
  *
  * @param {number} direction   +1 = clockwise (right), -1 = counter-clockwise (left)
  * @param {number} angleDeg    magnitude of the snap in degrees
@@ -484,7 +313,7 @@ export function fireTeleportFeedback(controller, haptic, captions) {
  */
 export function smoothMoveWarning(enabledNow, reduceMotion) {
   if (enabledNow && reduceMotion) {
-    return 'Smooth move may cause motion sickness';
+    return t('vr.msg.smoothMoveWarning');
   }
   return null;
 }
@@ -492,15 +321,12 @@ export function smoothMoveWarning(enabledNow, reduceMotion) {
 /**
  * Usage Example:
  *
- * const comfort = new ComfortSystem(scene, camera, renderer);
+ * const comfort = new ComfortSystem(camera);
  * comfort.setPreset('moderate');
  *
  * // In animation loop
  * comfort.update(deltaTime);
- * comfort.render(scene, camera);
- *
- * // Handle controller input
- * controller.addEventListener('thumbstick', (e) => {
- *   comfort.handleSnapTurn(e.axes[0]);
- * });
+ * // Feed smooth-locomotion state so the vignette engages while gliding:
+ * comfort.externalMotion = gliding;
+ * comfort.externalMotionLevel = stickDeflection; // 0..1
  */

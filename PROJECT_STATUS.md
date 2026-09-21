@@ -38,7 +38,7 @@ What actually exists in `src/` today:
   `HandTracking`, `GazeInteraction` (dwell + grace), `HapticFeedback`
 - **Rendering/perf:** `FFRSystem`, `LayersSystem` (quad layers), `TextureManager`
   (LRU), `ProgressiveLoader`, `PerformanceMonitor`
-- **Comfort/a11y:** `ComfortSystem` (vignette, snap turn, teleport), `CaptionSystem`,
+- **Comfort/a11y:** `ComfortSystem` (motion-activated vignette), `CaptionSystem`,
   `SemanticDOM`, `crossModal` routing, `AccessibilityCoordinator`
 - **Media/dev:** `ImmersiveVideo` (equirect/180/360), `DevTools` (console/scene/network)
 - **Shell:** `main.js`, `app.js` landing, `i18n` (en/ja), `monitoring`

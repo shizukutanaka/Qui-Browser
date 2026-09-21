@@ -1,6 +1,7 @@
 /**
  * Unit tests for ComfortSystem (VR motion-sickness reduction).
- * THREE is mocked so the vignette/FOV logic can be tested headlessly.
+ * THREE and document.createElement('canvas') are mocked so the
+ * camera-parented vignette logic can be tested headlessly.
  */
 
 class MockVector3 {
@@ -17,49 +18,59 @@ class MockVector3 {
   }
 }
 
-class MockWebGLRenderTarget {
-  constructor() {
-    this.dispose = jest.fn();
+class MockCanvasTexture {
+  constructor(canvas) {
+    this.image = canvas;
   }
+  dispose() {}
 }
 class MockPlaneGeometry {
   dispose() {}
 }
-class MockShaderMaterial {
+class MockMeshBasicMaterial {
   constructor(opts) {
-    this.uniforms = opts ? opts.uniforms || {} : {}; this.dispose = jest.fn();
+    Object.assign(this, opts);
+    this.dispose = jest.fn();
   }
 }
 class MockMesh {
-  constructor() {
+  constructor(geometry, material) {
+    this.geometry = geometry;
+    this.material = material;
+    this.position = { x: 0, y: 0, z: 0 };
     this.renderOrder = 0;
-    this.frustumCulled = false;
-    this.geometry = { dispose: jest.fn() };
-    this.material = { dispose: jest.fn() };
+    this.frustumCulled = true;
+    this.visible = true;
   }
 }
-class MockOrthographicCamera {}
 
 jest.mock('three', () => ({
   Vector3: MockVector3,
-  PlaneGeometry: MockPlaneGeometry,
-  ShaderMaterial: MockShaderMaterial,
+  CanvasTexture: MockCanvasTexture,
+  MeshBasicMaterial: MockMeshBasicMaterial,
   Mesh: MockMesh,
-  OrthographicCamera: MockOrthographicCamera,
-  WebGLRenderTarget: MockWebGLRenderTarget,
+  PlaneGeometry: MockPlaneGeometry,
   MathUtils: {
     degToRad: (d) => d * (Math.PI / 180),
     lerp: (a, b, t) => a + (b - a) * t
   }
 }));
 
-// Stub requestAnimationFrame so animateSnapTurn doesn't blow up.
-global.requestAnimationFrame = jest.fn();
-
-// Stub window.innerWidth / innerHeight used by WebGLRenderTarget.
-global.window = global.window || {};
-global.window.innerWidth  = 1280;
-global.window.innerHeight = 720;
+// Minimal document stub — createElement('canvas') for the vignette gradient;
+// documentElement/querySelectorAll because i18n's setLanguage touches them.
+global.document = {
+  documentElement: { lang: 'en' },
+  querySelectorAll: () => [],
+  createElement: () => ({
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      createRadialGradient: () => ({ addColorStop: jest.fn() }),
+      fillRect: jest.fn(),
+      set fillStyle(_v) {}
+    })
+  })
+};
 
 const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } = require('../src/vr/comfort/ComfortSystem.js');
 
@@ -68,15 +79,10 @@ function makeCamera(fov = 90) {
     fov,
     position: new MockVector3(0, 1.6, 0),
     rotation: { y: 0 },
+    add: jest.fn(),
+    remove: jest.fn(),
     updateProjectionMatrix: jest.fn()
   };
-}
-
-function makeScene() {
-  return { add: jest.fn(), remove: jest.fn() };
-}
-function makeRenderer() {
-  return {};
 }
 
 describe('ComfortSystem', () => {
@@ -84,7 +90,7 @@ describe('ComfortSystem', () => {
 
   beforeEach(() => {
     camera = makeCamera();
-    system = new ComfortSystem(makeScene(), camera, makeRenderer());
+    system = new ComfortSystem(camera);
   });
 
   afterEach(() => {
@@ -95,7 +101,12 @@ describe('ComfortSystem', () => {
   test('initialises with default moderate preset', () => {
     expect(system.settings.preset).toBe('moderate');
     expect(system.settings.vignette.enabled).toBe(true);
-    expect(system.settings.fov.baseFOV).toBe(90);
+  });
+
+  test('parents the vignette quad to the camera, hidden until motion', () => {
+    expect(camera.add).toHaveBeenCalledWith(system.vignetteMesh);
+    expect(system.vignetteMesh.visible).toBe(false);
+    expect(system.vignetteMaterial.opacity).toBe(0);
   });
 
   // ── motion detection ─────────────────────────────────────────────────────────
@@ -144,10 +155,26 @@ describe('ComfortSystem', () => {
     expect(system.currentVignette).toBeLessThan(0.4);
   });
 
+  test('updateVignette writes opacity to the quad material', () => {
+    system.currentVignette = 0.35;
+    system.isMoving = true;
+    system.updateVignette(0.016);
+    expect(system.vignetteMaterial.opacity).toBe(system.currentVignette);
+    expect(system.vignetteMesh.visible).toBe(true);
+  });
+
+  test('quad hides again once the vignette has fully faded', () => {
+    system.currentVignette = 0.005; // below the visible threshold
+    system.isMoving = false;
+    system.isRotating = false;
+    system.updateVignette(0.016);
+    expect(system.vignetteMesh.visible).toBe(false);
+  });
+
   // ── speed-proportional (adaptive) vignette ──────────────────────────────────
   // The vignette target scales with actual glide speed (externalMotionLevel)
   // rather than snapping to full strength for any smooth locomotion at all —
-  // over-restricting the FOV during slow drift is itself a comfort cost
+  // over-restricting the periphery during slow drift is itself a comfort cost
   // (adaptive FOV restriction, VRST '22; adaptive FFR+FoV, arXiv:2502.03419).
   test('externalMotionLevel=0.5 halves the vignette target vs full deflection', () => {
     system.settings.vignette.smoothing = 1; // snap straight to target
@@ -212,20 +239,6 @@ describe('ComfortSystem', () => {
     expect(system.externalMotionLevel).toBe(1);
   });
 
-  // ── FOV update ────────────────────────────────────────────────────────────────
-  test('FOV narrows when moving', () => {
-    system.isMoving = true;
-    system.currentFOV = 90;
-    system.updateFOV(0.016);
-    expect(system.currentFOV).toBeLessThan(90);
-  });
-
-  test('camera updateProjectionMatrix called after FOV change', () => {
-    system.isMoving = true;
-    system.updateFOV(0.016);
-    expect(camera.updateProjectionMatrix).toHaveBeenCalled();
-  });
-
   // ── presets ───────────────────────────────────────────────────────────────────
   test('setPreset("sensitive") increases vignette intensity', () => {
     const before = system.settings.vignette.intensity;
@@ -233,10 +246,9 @@ describe('ComfortSystem', () => {
     expect(system.settings.vignette.intensity).toBeGreaterThan(before);
   });
 
-  test('setPreset("disabled") disables vignette and FOV effects', () => {
+  test('setPreset("disabled") disables the vignette', () => {
     system.setPreset('disabled');
     expect(system.settings.vignette.enabled).toBe(false);
-    expect(system.settings.fov.enabled).toBe(false);
   });
 
   test('setPreset ignores unknown preset', () => {
@@ -245,118 +257,85 @@ describe('ComfortSystem', () => {
     expect(system.settings.preset).toBe(before);
   });
 
-  test('switching from "disabled" back to a protective preset re-enables all effects', () => {
+  test('switching from "disabled" back to a protective preset re-enables it', () => {
     // Regression: Object.assign-merged presets that omit `enabled: true` left a
     // user who picked "disabled" then switched to a protective preset with NO
-    // comfort mitigations — the opposite of their request.
+    // comfort mitigation — the opposite of their request.
     system.setPreset('disabled');
     expect(system.settings.vignette.enabled).toBe(false);
-    expect(system.settings.fov.enabled).toBe(false);
-    expect(system.settings.snapTurn.enabled).toBe(false);
 
     system.setPreset('sensitive');
     expect(system.settings.vignette.enabled).toBe(true);
-    expect(system.settings.fov.enabled).toBe(true);
-    expect(system.settings.snapTurn.enabled).toBe(true);
-    // …and the protective values are applied, not just re-enabled.
+    // …and the protective value is applied, not just re-enabled.
     expect(system.settings.vignette.intensity).toBeCloseTo(0.8, 5);
-    expect(system.settings.snapTurn.angle).toBe(15);
   });
 
-  test('every non-disabled preset explicitly enables all three effects', () => {
+  test('every non-disabled preset explicitly enables the vignette', () => {
     for (const preset of ['sensitive', 'moderate', 'tolerant']) {
-      system.setPreset('disabled');     // force all effects off first
+      system.setPreset('disabled');     // force it off first
       system.setPreset(preset);         // then switch in
       expect(system.settings.vignette.enabled).toBe(true);
-      expect(system.settings.fov.enabled).toBe(true);
-      expect(system.settings.snapTurn.enabled).toBe(true);
     }
-  });
-
-  // ── snap turn ─────────────────────────────────────────────────────────────────
-  test('handleSnapTurn triggers requestAnimationFrame', () => {
-    system.handleSnapTurn(1);
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
-  });
-
-  test('smooth turn when snapTurn disabled', () => {
-    system.settings.snapTurn.enabled = false;
-    const before = camera.rotation.y;
-    system.handleSnapTurn(1);
-    expect(camera.rotation.y).not.toBe(before);
   });
 });
 
-describe('ComfortSystem — prefers-reduced-motion', () => {
-  // ── animateSnapTurn ───────────────────────────────────────────────────────────
-  test('default: snap-turn animation defers rotation to rAF (not synchronous)', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    // The first rAF tick lerps by t=0, so rotation stays at startRotation.
-    expect(cam.rotation.y).toBe(0);
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
+describe('ComfortSystem update() + dispose()', () => {
+  test('update() is a no-op when the camera was cleared', () => {
+    const sys = new ComfortSystem(makeCamera());
+    sys.camera = null; // e.g. session ended; update must not throw
+    sys.settings.vignette.enabled = true;
+    expect(() => sys.update(0.016)).not.toThrow();
+    sys.dispose?.();
   });
 
-  test('reduceMotion=true: snap turn applies immediately, no rAF queued', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
-    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
+  test('update() drives detectMotion + vignette when enabled', () => {
+    const camera = makeCamera();
+    const sys = new ComfortSystem(camera);
+    sys.settings.vignette.enabled = true;
+    const dm = jest.spyOn(sys, 'detectMotion');
+    const uv = jest.spyOn(sys, 'updateVignette');
+    sys.update(0.016);
+    expect(dm).toHaveBeenCalled();
+    expect(uv).toHaveBeenCalled();
+    sys.dispose?.();
   });
 
-  test('reduceMotion=true: negative snap applies immediately', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
-    cam.rotation.y = Math.PI;
-    cs.animateSnapTurn(-Math.PI / 4);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI - Math.PI / 4, 10);
+  test('update() skips the vignette stage when its flag is off', () => {
+    const camera = makeCamera();
+    const sys = new ComfortSystem(camera);
+    sys.settings.vignette.enabled = false;
+    const uv = jest.spyOn(sys, 'updateVignette');
+    sys.update(0.016);
+    expect(uv).not.toHaveBeenCalled();
+    sys.dispose?.();
   });
 
-  // ── updateFOV ─────────────────────────────────────────────────────────────────
-  // FOV reduction (tunnelling) is a comfort aid that LOWERS sickness, so it must
-  // stay enabled for reduced-motion users — they benefit most. Only the eased
-  // snap-turn rotation is suppressed, never the comfort FOV.
-  test('reduceMotion=true: FOV reduction stays ON while moving (comfort aid)', () => {
-    const cam = makeCamera(90);
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
-    cs.isMoving = true;
-    cs.currentFOV = 90;
-    cs.updateFOV(0.016);
-    // Tunnelling must still narrow the FOV for the vestibular-sensitive cohort.
-    expect(cam.fov).toBeLessThan(90);
-    expect(cam.updateProjectionMatrix).toHaveBeenCalled();
+  test('updateVignette without vignetteMaterial does not throw', () => {
+    const cs = new ComfortSystem(makeCamera());
+    cs.vignetteMaterial = null;
+    expect(() => cs.updateVignette?.(0.5)).not.toThrow();
+    cs.dispose();
   });
 
-  // A mid-session OS "Reduce Motion" toggle (e.g. from the headset's system
-  // Quick Settings) previously never reached an already-constructed
-  // ComfortSystem — reduceMotion was a plain constructor-only field. VRApp
-  // now live-propagates via this setter (WCAG 2.3.3).
-  test('setReducedMotion(true) makes snap-turn apply immediately without rAF', () => {
+  test('dispose frees the quad geometry, material, and texture and detaches it', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    cs.setReducedMotion(true);
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
-    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
+    const cs = new ComfortSystem(cam);
+    const geo = cs.vignetteMesh.geometry;
+    geo.dispose = jest.fn();
+    cs.vignetteTexture.dispose = jest.fn();
+    cs.dispose();
+    expect(cam.remove).toHaveBeenCalledWith(cs.vignetteMesh);
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(cs.vignetteMaterial.dispose).toHaveBeenCalled();
+    expect(cs.vignetteTexture.dispose).toHaveBeenCalled();
   });
 
-  test('setReducedMotion(false) restores the eased rAF snap-turn animation', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer(), { reduceMotion: true });
-    cs.setReducedMotion(false);
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBe(0); // t=0 on the first rAF tick, not applied yet
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
+  test('dispose tolerates missing resources', () => {
+    const cs = new ComfortSystem(makeCamera());
+    cs.vignetteMesh = null;
+    cs.vignetteMaterial = null;
+    cs.vignetteTexture = null;
+    expect(() => cs.dispose()).not.toThrow();
   });
 });
 
@@ -475,6 +454,13 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
     expect(smoothMoveWarning(true, true)).toMatch(/motion sickness/i);
   });
 
+  test('warning is localised (Japanese catalog)', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('ja');
+    expect(smoothMoveWarning(true, true)).toBe('スムーズ移動は酔いを引き起こすことがあります');
+    setLanguage('en');
+  });
+
   test('disabling under reduceMotion → no warning (turning off is always safe)', () => {
     expect(smoothMoveWarning(false, true)).toBeNull();
   });
@@ -485,200 +471,5 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
 
   test('disabling without reduceMotion → no warning', () => {
     expect(smoothMoveWarning(false, false)).toBeNull();
-  });
-});
-
-describe('ComfortSystem update() + render() pass', () => {
-  test('update() is a no-op when the camera was cleared', () => {
-    const sys = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
-    sys.camera = null; // e.g. session ended; update must not throw
-    sys.settings.vignette.enabled = true;
-    expect(() => sys.update(0.016)).not.toThrow();
-    sys.dispose?.();
-  });
-
-  test('update() drives detectMotion + vignette + FOV when enabled', () => {
-    const camera = makeCamera();
-    const sys = new ComfortSystem(makeScene(), camera, makeRenderer());
-    sys.settings.vignette.enabled = true;
-    sys.settings.fov.enabled = true;
-    const dm = jest.spyOn(sys, 'detectMotion');
-    const uv = jest.spyOn(sys, 'updateVignette');
-    const uf = jest.spyOn(sys, 'updateFOV');
-    sys.update(0.016);
-    expect(dm).toHaveBeenCalled();
-    expect(uv).toHaveBeenCalled();
-    expect(uf).toHaveBeenCalled();
-    sys.dispose?.();
-  });
-
-  test('update() skips vignette/FOV stages when their flags are off', () => {
-    const camera = makeCamera();
-    const sys = new ComfortSystem(makeScene(), camera, makeRenderer());
-    sys.settings.vignette.enabled = false;
-    sys.settings.fov.enabled = false;
-    const uv = jest.spyOn(sys, 'updateVignette');
-    const uf = jest.spyOn(sys, 'updateFOV');
-    sys.update(0.016);
-    expect(uv).not.toHaveBeenCalled();
-    expect(uf).not.toHaveBeenCalled();
-    sys.dispose?.();
-  });
-
-  test('render() draws the scene directly when vignette is off or ~zero', () => {
-    const renderer = { render: jest.fn(), setRenderTarget: jest.fn() };
-    const camera = makeCamera();
-    const sys = new ComfortSystem(makeScene(), camera, renderer);
-    sys.settings.vignette.enabled = false;
-    const scene = {};
-    sys.render(scene, camera);
-    expect(renderer.render).toHaveBeenCalledWith(scene, camera);
-    expect(renderer.setRenderTarget).not.toHaveBeenCalled();
-    sys.dispose?.();
-  });
-
-  test('render() runs the post-process pass when the vignette is active', () => {
-    const renderer = { render: jest.fn(), setRenderTarget: jest.fn() };
-    const camera = makeCamera();
-    const sys = new ComfortSystem(makeScene(), camera, renderer);
-    sys.settings.vignette.enabled = true;
-    sys.currentVignette = 0.5; // force the post path
-    const scene = {};
-    sys.render(scene, camera);
-    // Scene renders into the target, then the quad pass renders to screen.
-    expect(renderer.setRenderTarget).toHaveBeenNthCalledWith(1, sys.renderTarget);
-    expect(renderer.setRenderTarget).toHaveBeenNthCalledWith(2, null);
-    expect(renderer.render).toHaveBeenNthCalledWith(1, scene, camera);
-    expect(renderer.render).toHaveBeenNthCalledWith(2, sys.vignetteQuad, sys.postCamera);
-    expect(sys.vignetteMaterial.uniforms.tDiffuse.value).toBe(sys.renderTarget.texture);
-    sys.dispose?.();
-  });
-});
-
-describe('ComfortSystem — last branch arms', () => {
-  test('constructor defaults baseFOV to 90 when camera.fov falsy', () => {
-    const cam = { fov: 0, position: { set() {} }, updateProjectionMatrix() {} };
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    expect(cs.settings.fov.baseFOV).toBe(90);
-    cs.dispose();
-  });
-
-  test('updateVignette without vignetteMaterial does not throw', () => {
-    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
-    cs.vignetteMaterial = null;
-    expect(() => cs.updateVignette?.(0.5)).not.toThrow();
-    cs.dispose();
-  });
-
-  test('FOV update while stationary keeps baseFOV (no reduction)', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    cs.isMoving = false;
-    cs.isRotating = false;
-    cs._updateFOV?.(0.016);
-    cs.dispose();
-  });
-
-  test('dispose without renderTarget/vignetteMaterial does not throw', () => {
-    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
-    cs.renderTarget = null;
-    cs.vignetteMaterial = null;
-    expect(() => cs.dispose()).not.toThrow();
-  });
-});
-
-describe('ComfortSystem — complementary arms', () => {
-  test('moving state reduces the target FOV by the configured amount', () => {
-    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
-    sys.settings.fov.reductionAmount = 20;
-    sys.isMoving = true;
-    sys.update?.(0.016);
-    // FOV shrinks toward 70 (90 - 20)
-    expect(sys.camera.fov).toBeLessThanOrEqual(90);
-    sys.dispose?.();
-  });
-
-  test('dispose with vignetteQuad present frees its geometry', () => {
-    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
-    const geo = { dispose: jest.fn() };
-    sys.vignetteQuad = { geometry: geo };
-    expect(() => sys.dispose()).not.toThrow();
-    expect(geo.dispose).toHaveBeenCalled();
-  });
-});
-
-describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
-  test('updateFOV narrows the target while moving', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    cs.isMoving = true;
-    cs.updateFOV(0.016);
-    expect(cs.currentFOV).toBeLessThan(cs.settings.fov.baseFOV);
-  });
-
-  test('animateSnapTurn does not re-request once progress hits 1', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    cs.reduceMotion = false;
-    let cb;
-    global.requestAnimationFrame = jest.fn((fn) => {
-      cb = fn;
-    });
-    let now = 1000;
-    jest.spyOn(Date, 'now').mockImplementation(() => now);
-    cs.animateSnapTurn(0.5);
-    now += 5000; // force progress >= 1 on the next tick
-    cb();
-    expect(global.requestAnimationFrame).toHaveBeenCalledTimes(1);
-    Date.now.mockRestore();
-  });
-
-  test('dispose frees the vignette quad when present', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
-    const geo = cs.vignetteQuad && cs.vignetteQuad.geometry;
-    cs.dispose();
-    if (geo) {
-      expect(geo.dispose).toHaveBeenCalled();
-    }
-  });
-});
-
-test('dispose frees the vignette quad when present', () => {
-  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
-  cs.vignetteQuad = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() }, parent: { remove: jest.fn() } };
-  expect(() => cs.dispose()).not.toThrow();
-});
-
-test('updateFOV narrows while rotating only; readerHitTest non-scrollable arm via readerLayout', () => {
-  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
-  cs.isMoving = false; cs.isRotating = true;
-  cs.updateFOV?.(0.016);
-});
-
-describe('ComfortSystem — remaining guard arms', () => {
-  test('updateFOV tightens the FOV while moving only (isMoving arm)', () => {
-    const cs = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
-    cs.isMoving = true;
-    cs.isRotating = false;
-    const before = cs.currentFOV;
-    cs.updateFOV(16);
-    expect(cs.currentFOV).toBeLessThan(before);
-  });
-
-  test('dispose() without a vignette quad skips its teardown', () => {
-    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
-    cs.vignetteQuad = null;
-    expect(() => cs.dispose()).not.toThrow();
-  });
-});
-
-describe('ComfortSystem — no-motion FOV arm', () => {
-  test('updateFOV keeps baseFOV when neither moving nor rotating', () => {
-    const cs = new ComfortSystem(makeScene(), { fov: 90, updateProjectionMatrix: jest.fn() }, makeRenderer());
-    cs.isMoving = false; cs.isRotating = false;
-    const before = cs.currentFOV;
-    cs.updateFOV(0.016);
-    expect(cs.currentFOV).toBeLessThanOrEqual(before + cs.settings.fov.baseFOV * cs.settings.fov.smoothing);
   });
 });

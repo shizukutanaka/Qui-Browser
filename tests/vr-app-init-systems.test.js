@@ -1211,7 +1211,7 @@ describe('onVRSessionStart — WebXR Layers attach arms', () => {
     };
     app.ffrSystem = null;
     app.handTracking = null;
-    app.comfortSystem = { settings: { fov: {} } };
+    app.comfortSystem = null;
     app._attachLayersToPanels = jest.fn();
     return { app, session };
   }

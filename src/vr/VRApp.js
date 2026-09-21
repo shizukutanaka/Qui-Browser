@@ -76,7 +76,8 @@ export function defaultSettings() {
     snapTurnAngle: 30, // degrees per snap
     // Smooth (continuous) locomotion on the left thumbstick. OFF by default —
     // it is the main sickness trigger; the comfort vignette engages while it
-    // is active. Teleport remains the comfortable default.
+    // is active (opacity scales with stick deflection). Teleport remains the
+    // comfortable default.
     enableSmoothMove: false,
     smoothMoveSpeed: 1.8, // metres/second
     // Controller input options.
@@ -1522,7 +1523,19 @@ export class VRApp {
           this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
         }
       }],
-      [t('vr.settings.comfort'), 'enableComfort', null],
+      [t('vr.settings.comfort'), 'enableComfort', (v) => {
+        // Turning comfort off mid-glide would otherwise leave the vignette
+        // frozen at its current opacity — clear it on disable.
+        if (!v && this.comfortSystem) {
+          this.comfortSystem.currentVignette = 0;
+          if (this.comfortSystem.vignetteMaterial) {
+            this.comfortSystem.vignetteMaterial.opacity = 0;
+          }
+          if (this.comfortSystem.vignetteMesh) {
+            this.comfortSystem.vignetteMesh.visible = false;
+          }
+        }
+      }],
       [t('vr.settings.foveation'), 'enableFFR', (v) => {
         if (this.ffrSystem) {
           v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
@@ -2154,10 +2167,10 @@ export class VRApp {
   }
 
   /**
-   * Per-frame locomotion input: snap turn on the right thumbstick. Rotates the
-   * whole player rig about the head so the user spins in place. (Smooth-move on
-   * the left stick is intentionally deferred until comfort-vignette coupling is
-   * wired, since continuous motion is the main sickness trigger.)
+   * Per-frame locomotion input: snap turn on the right thumbstick (rotates the
+   * whole player rig about the head so the user spins in place), smooth move on
+   * the left thumbstick. Smooth-move deflection feeds ComfortSystem.externalMotion
+   * so the comfort vignette tracks actual glide speed.
    */
   updateLocomotion(dt = 0.016) {
     if (!this.playerRig) {
@@ -2222,7 +2235,7 @@ export class VRApp {
           smoothMoving = true;
           // Track how far the stick is pushed (dead-zone output is already
           // normalized to (0,1]) so the comfort vignette can scale with actual
-          // glide speed rather than snapping to full strength (adaptive FOV
+          // glide speed rather than snapping to full strength (adaptive
           // restriction). Take the strongest deflection across both hands.
           smoothMoveLevel = Math.max(smoothMoveLevel, Math.min(1, Math.hypot(x, y)));
         }
@@ -2572,12 +2585,7 @@ export class VRApp {
 
     // 2. Comfort System
     if (this.settings.enableComfort) {
-      this.comfortSystem = new ComfortSystem(
-        this.scene,
-        this.camera,
-        this.renderer,
-        { reduceMotion: osReducedMotion() }
-      );
+      this.comfortSystem = new ComfortSystem(this.camera);
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
     }
@@ -2926,9 +2934,6 @@ export class VRApp {
 
     this._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
     this._onOSReducedMotionChange = (e) => {
-      if (this.comfortSystem) {
-        this.comfortSystem.setReducedMotion(e.matches);
-      }
       if (this.gazeInteraction) {
         this.gazeInteraction.setReducedMotion(e.matches);
       }
@@ -3116,11 +3121,6 @@ export class VRApp {
       }
     }
 
-    // Update comfort system FOV baseline for VR (reset to device-appropriate value).
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = 90;
-    }
-
     // Initialize hand tracking
     if (this.handTracking && session) {
       await this.handTracking.initialize(session);
@@ -3172,11 +3172,6 @@ export class VRApp {
     // Disable FFR
     if (this.ffrSystem) {
       this.ffrSystem.disable();
-    }
-
-    // Restore desktop FOV baseline when leaving VR.
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = this.camera.fov || 90;
     }
 
     // FR-1.5: detach layers from panels and dispose binding.
