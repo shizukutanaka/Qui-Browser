@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き225 — DeviceCompatibility の書き込み専用 report 縮小
+- 🔍 **実測**: `deviceCompat.check()` が毎 VR 起動で `isSessionSupported('immersive-vr')` + `('immersive-ar')` の両 probe と `_hasWebGL2()` canvas コンテキスト確保を行い、`vrSupported`/`arSupported`/`webgpu`/`webgl2`/`timestamp` + optionalFeatures 6キー（handTracking/hitTest/anchors/planeDetection/eyeTracking/foveatedRendering）の計11フィールドを生成していた — しかし src 全体の読者は `deviceTier`（targetFPS と telemetry）**のみ**。write-only state と同クラス（#83 基準）。セッション可否の判定自体は entry 層（main.js/app.js）が独自に isSessionSupported しているので、この probe は完全な重複。
+- 🗑 **削除**: report を `{ deviceTier }` に縮小（−146→74行）。`_probeOptionalFeatures`・`_hasWebGL2`・両 isSessionSupported probe を除去。テストは probe 契約 pin を削り tier 検出＋navigator 欠落系のみに整理（−15件）。
+- ✅ 2993 tests / 72 suites 全緑、lint 0 errors（352 warnings）、build 緑。
+
 ### Session 75: 続き224 — WebPanel の非表示 iframe 全廃止（F-1 検証事実の解決）
 - 🔍 **実測**: WebPanel が `navigate()` 毎に**非表示 iframe を二重フェッチ**していた — reader パイプライン（`_loadReaderText`＝proxy/直接 fetch→extractReadableText）とは別に、対象サイトを `allow-scripts` sandbox で**オフスクリーン実行**（広告/トラッカーの JS も走る）。描画経路は構造的に不通: `dom-overlay` は optionalFeatures に含まれず要求されたことがなく、仮に要求しても spec 上 dom-overlay はフラット HUD であってワールド空間 quad への合成は不能（OUTSTANDING_ISSUES F-1 が記録した前提誤りそのもの）。
 - 🔧 **修正**: iframe 機構を全削除 — title/onNavigate/onLoadError/`loading`/`_loadError`/content 状態を `_loadReaderText` の**同一応答**で駆動（`extractReadableText` が既に `{title, blocks}` を返していたので新たな取得は不要）。フェッチ失敗は actionable な `'unavailable'`（CORS/proxy 案内）＋ `_loadError` ＋ `onLoadError` トースト発火（旧コードでは XFO 拒否が onload に化けて無言だった）。`'error'` 状態は到達不能になったので contentStateLines から除去＋i18n `vr.content.failed`（en/ja）も削除。`_frameNavigated`（VR で成立不可能な概念）と chrome の ↪ マーカー描画も除去。`stop()` は reader controller の abort のみに。

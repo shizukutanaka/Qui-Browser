@@ -1,8 +1,12 @@
 /**
- * NFR-2: Device compatibility feature-detection matrix.
- * Probes the WebXR runtime for features available on the current device
- * (Quest 2 / 3, Pico 4, desktop) so VRApp can enable/disable subsystems
- * without hard-coded device guards.
+ * NFR-2: Device tier detection.
+ * Maps the user-agent to a device tier (Quest 2 / 3, Pico 4, Android XR,
+ * desktop, unknown) so VRApp can pick a target frame rate without hard-coded
+ * device guards.
+ *
+ * Session support itself is probed separately by the entry layer
+ * (main.js/app.js call navigator.xr.isSessionSupported directly) — a second
+ * probe here would be a wasted round-trip on every VR boot.
  */
 
 export class DeviceCompatibility {
@@ -12,41 +16,18 @@ export class DeviceCompatibility {
   }
 
   /**
-   * Run all feature probes and return a capability report object.
+   * Detect the device tier and cache the report.
    * Safe to call multiple times — caches the result after the first run.
    *
-   * @returns {Promise<CompatibilityReport>}
+   * @returns {Promise<{deviceTier: string}>}
    */
   async check() {
     if (this.report) {
       return this.report;
     }
 
-    const xr = typeof navigator !== 'undefined' ? navigator.xr : null;
-
-    const [vrSupported, arSupported] = await Promise.all([
-      xr ? xr.isSessionSupported('immersive-vr').catch(() => false) : Promise.resolve(false),
-      xr ? xr.isSessionSupported('immersive-ar').catch(() => false) : Promise.resolve(false)
-    ]);
-
-    // Detect device tier from user-agent hints.
     const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
-    const deviceTier = this._detectTier(ua);
-
-    // Probe optional WebXR features (supported = the runtime accepts them in
-    // requestSession; actual availability depends on hardware). Reuse the
-    // already-detected tier rather than recomputing it.
-    const optionalFeatures = await this._probeOptionalFeatures(xr, vrSupported, deviceTier, arSupported);
-
-    this.report = {
-      vrSupported,
-      arSupported,
-      deviceTier,          // 'quest3' | 'quest2' | 'pico4' | 'desktop' | 'unknown'
-      webgpu: typeof navigator !== 'undefined' && 'gpu' in navigator,
-      webgl2: this._hasWebGL2(),
-      ...optionalFeatures,
-      timestamp: Date.now()
-    };
+    this.report = { deviceTier: this._detectTier(ua) };
 
     console.debug('DeviceCompatibility: report', this.report);
     return this.report;
@@ -74,59 +55,6 @@ export class DeviceCompatibility {
       return 'desktop-xr';
     }
     return 'unknown';
-  }
-
-  /**
-   * Attempt to probe optional WebXR features without actually opening a
-   * session.  The only reliable method is trying requestSession with the
-   * feature as optional and checking enabledFeatures, but that requires a
-   * user gesture.  Instead we rely on the device tier as a heuristic, which
-   * is accurate for all shipping consumer devices.
-   */
-  async _probeOptionalFeatures(xr, vrSupported, tier, arSupported = vrSupported) {
-    // handTracking / foveatedRendering ship with every immersive-vr runtime.
-    // hitTest / anchors / planeDetection are immersive-ar features — keying
-    // them off vrSupported would report AR capability on a VR-only device.
-    const base = {
-      handTracking:  vrSupported,
-      hitTest:       false,
-      anchors:       false,
-      planeDetection: false,
-      eyeTracking:   false,
-      foveatedRendering: vrSupported
-    };
-
-    if (!xr || (!vrSupported && !arSupported)) {
-      return base;
-    }
-
-    // Quest 3 / Quest Pro support additional features. Fall back to detecting
-    // the tier here if the caller didn't supply it.
-    if (!tier) {
-      tier = this._detectTier(
-        typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
-      );
-    }
-
-    return {
-      ...base,
-      hitTest:        arSupported && tier !== 'unknown' && tier !== 'desktop-xr',
-      anchors:        arSupported && tier !== 'unknown' && tier !== 'desktop-xr',
-      planeDetection: arSupported && (tier === 'quest3' || tier === 'android-xr'),
-      eyeTracking:    false // Quest Pro only; Quest 2/3/Pico 4 = false
-    };
-  }
-
-  _hasWebGL2() {
-    if (typeof document === 'undefined') {
-      return false;
-    }
-    try {
-      const canvas = document.createElement('canvas');
-      return !!(canvas.getContext('webgl2'));
-    } catch {
-      return false;
-    }
   }
 
   /**
