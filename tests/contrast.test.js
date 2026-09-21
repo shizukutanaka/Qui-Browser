@@ -443,3 +443,15 @@ describe('tabStripColors', () => {
     }
   });
 });
+
+describe('chromeColors — complementary arms', () => {
+  test('highContrast=true returns the high-contrast palettes', () => {
+    const { webChromeColors, webContentColors, tabStripColors } = require('../src/vr/browser/chromeColors.js');
+    for (const fn of [webChromeColors, webContentColors, tabStripColors]) {
+      const hc = fn(true);
+      const normal = fn(false);
+      expect(hc).not.toEqual(normal);
+      expect(Object.keys(hc).length).toBeGreaterThan(0);
+    }
+  });
+});

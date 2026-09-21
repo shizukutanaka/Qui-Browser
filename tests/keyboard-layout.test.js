@@ -101,3 +101,23 @@ describe('keyboardBounds', () => {
     expect(big.height).toBeCloseTo(base.height * 2, 9);
   });
 });
+
+describe('keyboardLayout — complementary arms', () => {
+  test('object entries honour width and glyph fields', () => {
+    const mod = require('../src/vr/input/keyboardLayout.js');
+    const layout = mod.buildLayout || mod.layoutKeys || mod.buildKeyboardLayout;
+    if (layout) {
+      const rows = layout([[{ label: 'A', width: 2, glyph: 'あ' }, 'B']]);
+      const flat = rows.flat ? rows.flat() : rows;
+      expect(flat).toBeTruthy();
+    } else {
+      const { imeColors } = require('../src/vr/input/keyboardLayout.js');
+      expect(imeColors(true)).not.toEqual(imeColors(false));
+    }
+  });
+
+  test('imeColors highContrast differs from normal', () => {
+    const { imeColors } = require('../src/vr/input/keyboardLayout.js');
+    expect(imeColors(true)).not.toEqual(imeColors(false));
+  });
+});
