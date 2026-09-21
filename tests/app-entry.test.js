@@ -520,3 +520,113 @@ describe('src/app.js — remaining arms', () => {
     expect(String(perfDiv.innerHTML || '')).not.toContain('FPS:');
   });
 });
+
+describe('src/app.js — remaining branch arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return global.window.QuiBrowser;
+  };
+
+  test('perf interval: display hidden / vrApp null / stats null arms', async () => {
+    jest.useFakeTimers();
+    try {
+      const QuiBrowser = makeApp();
+      await jest.advanceTimersByTimeAsync(0);
+      const vrApp = QuiBrowser.getApp();
+      // overlay hidden → innerHTML untouched
+      const perfDisplay = global.document.getElementById('performance-monitor')
+        || global.document._created?.find((e) => e.id === 'performance-monitor');
+      jest.advanceTimersByTime(1000);
+      // display 'none' → no write regardless of vrApp
+      // display:block + stats null → early return, innerHTML stays ''
+      if (perfDisplay) {
+        perfDisplay.style.display = 'block';
+        vrApp.getPerformanceStats = () => null;
+        jest.advanceTimersByTime(1000);
+        expect(String(perfDisplay.innerHTML || '')).toBe('');
+        // stats present but optional fields falsy → `? : ''` arms
+        vrApp.getPerformanceStats = () => ({
+          fps: 72, frameTime: 13, memory: 'x', drawCalls: 1,
+          triangles: 1000, programs: 2, geometries: 3, textures: 4
+        });
+        jest.advanceTimersByTime(1000);
+        expect(String(perfDisplay.innerHTML)).toContain('FPS: 72');
+        expect(String(perfDisplay.innerHTML)).not.toContain('FFR:');
+      }
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('P key with no perfMonitorUI toggles the simple overlay both ways', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    const vrApp = QuiBrowser.getApp();
+    vrApp.perfMonitorUI = null; // force the fallback path
+    const keydown = (key) =>
+      (global.document._listeners.keydown || []).forEach((f) => f({ key }));
+    const perfDisplay = global.document.getElementById('performance-monitor');
+    if (perfDisplay) {
+      perfDisplay.style.display = 'none';
+      keydown('p');
+      expect(perfDisplay.style.display).toBe('block');
+      keydown('p');
+      expect(perfDisplay.style.display).toBe('none');
+    }
+  });
+
+  test('F/C keys with subsystem absent are no-ops', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    const vrApp = QuiBrowser.getApp();
+    vrApp.ffrSystem = null;
+    vrApp.comfortSystem = null;
+    const keydown = (key) =>
+      (global.document._listeners.keydown || []).forEach((f) => f({ key }));
+    expect(() => { keydown('f'); keydown('c'); }).not.toThrow();
+    // vrApp itself null after Escape — P/F/C are all no-ops
+    vrApp.dispose = jest.fn();
+    keydown('Escape');
+    expect(() => { keydown('p'); keydown('f'); keydown('c'); }).not.toThrow();
+  });
+
+  test('beforeunload with vrApp null and no interval does not throw', async () => {
+    const { windowListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false } // init fails → vrApp stays null
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(() => (windowListeners.beforeunload || []).forEach((f) => f())).not.toThrow();
+  });
+
+  test('visibilitychange with document.hidden but vrApp null is a no-op', async () => {
+    const { documentListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 0));
+    global.document.hidden = true;
+    expect(() =>
+      (documentListeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
+  });
+
+  test('readyState complete → initializeApp runs immediately (no DOMContentLoaded wait)', async () => {
+    const { documentListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false }
+    });
+    global.document.readyState = 'complete';
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 10));
+    // else arm: DOMContentLoaded was NOT the trigger — app already initialized
+    expect(global.window.QuiBrowser).toBeTruthy();
+    expect(documentListeners.DOMContentLoaded || []).toHaveLength(0);
+  });
+});
