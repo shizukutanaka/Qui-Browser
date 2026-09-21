@@ -121,7 +121,7 @@ Visit the live demo on your VR device:
 ```bash
 # Clone repository
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Install dependencies
 npm install
@@ -306,7 +306,7 @@ We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for deta
 ```bash
 # Fork and clone
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Create feature branch
 git checkout -b feature/amazing-feature

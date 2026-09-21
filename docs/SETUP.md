@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 14+
+- Node.js 18+ (`package.json` engines; vite@5 refuses Node 16 and below)
 - npm or yarn
 - Modern browser with WebXR support
 - VR headset (Meta Quest or Pico recommended)
@@ -11,8 +11,8 @@
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-org/qui-browser-vr.git
-cd qui-browser-vr
+git clone https://github.com/shizukutanaka/Qui-Browser.git
+cd Qui-Browser
 ```
 
 ### 2. Install Dependencies
