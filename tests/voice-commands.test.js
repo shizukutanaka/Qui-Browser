@@ -836,3 +836,58 @@ describe('VoiceCommands — default command action bodies actually execute', () 
     }
   });
 });
+
+describe('VoiceCommands — handler callbacks + init catch + pattern arm', () => {
+  let vc, rec;
+  beforeEach(() => {
+    rec = {
+      continuous: undefined, interimResults: undefined, maxAlternatives: undefined,
+      lang: undefined, onstart: null, onend: null, onresult: null, onerror: null,
+      start: jest.fn(), stop: jest.fn(), abort: jest.fn()
+    };
+    global.window = {
+      SpeechRecognition: jest.fn(() => rec),
+      speechSynthesis: { cancel: jest.fn(), speak: jest.fn() }
+    };
+    global.SpeechSynthesisUtterance = jest.fn(() => ({}));
+    jest.useFakeTimers();
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+    delete global.window;
+    delete global.SpeechSynthesisUtterance;
+  });
+
+  test('onstart/onend/onerror/onresult forward to the user callbacks', async () => {
+    await vc.initialize();
+    const onStart = jest.fn(), onEnd = jest.fn(), onError = jest.fn(), onTranscript = jest.fn();
+    vc.callbacks.onStart = onStart;
+    vc.callbacks.onEnd = onEnd;
+    vc.callbacks.onError = onError;
+    vc.callbacks.onTranscript = onTranscript;
+    rec.onstart();
+    expect(onStart).toHaveBeenCalled();
+    rec.onerror({ error: 'network' }); // non-fatal → stays enabled
+    expect(onError).toHaveBeenCalledWith('network');
+    rec.onend();
+    expect(onEnd).toHaveBeenCalled();
+    // onresult forwards into handleRecognitionResult → onTranscript
+    rec.onresult({ results: [{ 0: { transcript: 'x', confidence: 0.9 }, isFinal: true }] });
+    expect(onTranscript).toHaveBeenCalledWith('x', 0.9, true);
+  });
+
+  test('initialize returns false when the SpeechRecognition ctor throws', async () => {
+    global.window.SpeechRecognition = jest.fn(() => { throw new Error('denied'); });
+    expect(await vc.initialize()).toBe(false);
+    expect(vc.isEnabled).toBe(false);
+  });
+
+  test('a command pattern that is neither string nor RegExp is skipped', () => {
+    vc.registerCommand('weird', { patterns: [42, null, /fire/], action: () => 'ok' });
+    // only the regex pattern can match; the non-matcher arms must not throw
+    vc.processCommand('fire now', 0.9);
+    expect(vc.stats.commandsExecuted).toBe(1);
+  });
+});

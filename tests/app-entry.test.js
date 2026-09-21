@@ -414,3 +414,74 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
     }
   });
 });
+
+describe('src/main.js — remaining entry arms', () => {
+  test('floating VR button click dispatches the enter-vr event', async () => {
+    const floatBtn = makeEl('vrFloatingButton');
+    const { documentListeners } = installDom({
+      ids: { vrFloatingButton: floatBtn },
+      xr: { isSessionSupported: async () => true }
+    });
+    const dispatched = [];
+    global.window.dispatchEvent = (e) => dispatched.push(e); // after installDom — it rebuilds window
+    jest.isolateModules(() => require('../src/main.js'));
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
+    await tick(); await tick();
+    floatBtn.listeners.click[0]({});
+    expect(dispatched.find((e) => e.type === 'enter-vr')).toBeTruthy();
+  });
+
+  test('a second error toast replaces the first (existing.remove arm)', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    const { documentListeners } = installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
+    await enterBtn.listeners.click[0]({});
+    const first = global.document.body.children.find((c) => c.id === 'vr-error-toast');
+    expect(first).toBeTruthy();
+    expect(first.remove).not.toHaveBeenCalled();
+    await enterBtn.listeners.click[0]({}); // second failure → remove prior toast
+    expect(first.remove).toHaveBeenCalled();
+    // stub remove() doesn't splice — a fresh toast was still appended
+    const toasts = global.document.body.children.filter((c) => c.id === 'vr-error-toast');
+    expect(toasts).toHaveLength(2);
+  });
+
+  test('enterVR handler catch arm → error toast when probe throws', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    const { documentListeners } = installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => { throw new Error('xr exploded'); } }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
+    await enterBtn.listeners.click[0]({});
+    const toast = global.document.body.children.find((c) => c.id === 'vr-error-toast');
+    expect(toast).toBeTruthy();
+  });
+
+  test('unhandledrejection listener logs instead of dropping silently', async () => {
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { windowListeners } = installDom({});
+    jest.isolateModules(() => require('../src/main.js'));
+    (windowListeners.unhandledrejection || []).forEach((f) =>
+      f({ reason: new Error('escaped'), preventDefault: () => {} }));
+    expect(errSpy).toHaveBeenCalledWith('Unhandled promise rejection:', expect.any(Error));
+    errSpy.mockRestore();
+  });
+
+  test('service worker registration failure logs a console error, no throw', async () => {
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { windowListeners } = installDom({
+      serviceWorker: { register: jest.fn(async () => { throw new Error('sw fail'); }) }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    (windowListeners.load || []).forEach((f) => f());
+    await tick(); await tick();
+    expect(errSpy).toHaveBeenCalledWith('Service Worker registration failed:', expect.any(Error));
+    errSpy.mockRestore();
+  });
+});

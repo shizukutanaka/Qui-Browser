@@ -544,6 +544,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き112（同セッション）: VoiceCommands/ProgressiveLoader/readableText/HapticFeedback/main.js の残腕
+- ✅ VoiceCommands: onstart/onend/onerror/onresult のユーザー callback 転送、SpeechRecognition ctor throw→false、非 string/RegExp パターン skip。
+- ✅ ProgressiveLoader: performLoad の script/style/audio/video ディスパッチ、loadModel/loadGeneric の HTTP !ok throw、onResourceLoaded の bytes+onProgress、start() の onCriticalComplete フェーズ間配置。
+- ✅ readableText: safeFromCodePoint 範囲外→''（`&#-1;` は `\d+` 非マッチでリテラル温存=正）、extractReadableText の `<li>` 1語クラム drop + h/p 型付け。
+- ✅ HapticFeedback: playPatternBothHands の delay>0→wait 腕・delay=0→連続再生、simulateTexture の pulse+wait ループ、未知テクスチャ即 return。
+- ✅ main.js: vrFloatingButton click→enter-vr dispatch、二連続エラーで旧 toast remove、enterVR catch→toast、unhandledrejection ログ、SW 登録失敗 catch。
+- ✅ 2314 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き111（同セッション）: VRApp 残 sliver — toast タイマー発火・recenter ボタン・updateButtonInput 腕
 - ✅ showVRToast の自動消去タイマー発火本体: camera.remove + geometry/material/texture 3リソース dispose + `_toastTimers` クリーンアップ。
 - ✅ createHomeEnvironment の recenter パネル: onHover→0x88bbff ティント+（gaze 有効時）recenter キャプション、onHoverEnd→白復帰、onSelect→recenter()。

@@ -500,3 +500,52 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
     }
   });
 });
+
+describe('ProgressiveLoader — performLoad type dispatch + completion arms', () => {
+  let loader;
+  beforeEach(() => { loader = new ProgressiveLoader(); });
+  afterEach(() => { loader.dispose(); });
+
+  test('performLoad dispatches script/style/audio/video to their loaders', async () => {
+    loader.loadScript = jest.fn(async (u) => `s:${u}`);
+    loader.loadStyle = jest.fn(async (u) => `c:${u}`);
+    loader.loadAudio = jest.fn(async (u) => `a:${u}`);
+    loader.loadVideo = jest.fn(async (u) => `v:${u}`);
+    expect(await loader.performLoad({ url: '/x.js', type: 'script' })).toBe('s:/x.js');
+    expect(await loader.performLoad({ url: '/x.css', type: 'style' })).toBe('c:/x.css');
+    expect(await loader.performLoad({ url: '/x.ogg', type: 'audio' })).toBe('a:/x.ogg');
+    expect(await loader.performLoad({ url: '/x.mp4', type: 'video' })).toBe('v:/x.mp4');
+  });
+
+  test('loadModel/loadGeneric throw on HTTP error status', async () => {
+    const origFetch = global.fetch;
+    try {
+      global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+      await expect(loader.loadModel('/m.glb')).rejects.toThrow('HTTP 404');
+      await expect(loader.loadGeneric('/x.bin')).rejects.toThrow('HTTP 404');
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('onResourceLoaded accumulates bytes and fires onProgress with the running ratio', () => {
+    const onProgress = jest.fn();
+    loader.callbacks.onProgress = onProgress;
+    loader.stats.itemsTotal = 2;
+    loader.onResourceLoaded({ name: 'a', size: 100 }, 'r');
+    expect(loader.stats.loadedBytes).toBe(100);
+    expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+      progress: 0.5, loaded: 1, total: 2
+    }));
+  });
+
+  test('start() fires onCriticalComplete between the critical and primary phases', async () => {
+    const order = [];
+    loader.callbacks.onCriticalComplete = () => order.push('critical-done');
+    loader.loadPhase = jest.fn(async (phase) => order.push(`phase-${phase}`));
+    await loader.start();
+    expect(order[0]).toBe('phase-critical');
+    expect(order[1]).toBe('critical-done');
+    expect(order[2]).toBe('phase-primary');
+  });
+});
