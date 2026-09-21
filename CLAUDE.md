@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き216 — patch 0009 の陳腐化を修復（context 行ドリフト）
+- 🔍 **実測（ledger 適用可能性監査）**: `git apply --check` を docs/patches/ 全9件に実行 — 8件 OK、**0009（chain PR の CI ゲート）のみ STALE**。原因: patch が context として期待する `jobs:` 直下のコメント行（`# The previous 'validate' and 'compatibility' jobs...`）が後続の workflow 整理で除去されており hunk が不一致。パッチの意図（pull_request の branches フィルタ除去）は依然正しい。
+- 🔧 **修復**: 現行 .github/workflows に対して同変更（ci.yml・test.yml 両方の `pull_request:` 下 `branches:` フィルタ削除、push 側は維持）を再適用 → `git diff` から patch を再生成し `git apply --check` で適用可能を実証。owner の適用作業が再度 unblock。
+- 🔍 **同 stretch の照合（全クリーン）**: WebPanel iframe sandbox（cross-origin 外部サイトのみ、proxy 経路は reader 用で iframe.src 非経由 — allow-same-origin の自 origin 脱出問題は非該当）・cross-origin contentWindow 読取の try/catch + X-Frame-Options → 'unavailable' 表示・videoProjection/ImmersiveVideo の per-eye stereo（layers 1/2 + eyeUVTransform、tb 上=左目は慣例通り）・tools/ 9本全参照済み（chrome-path は内部 import、measure-text-metrics は手動診断として正当）・resource-hints なしは正しい（CDN 参照ゼロ＋module graph が並列化済み）。
+- ✅ 3093 tests / 72 suites 全緑、lint 0 errors（patch のみの変更でコード不変）。
+
 ### Session 75: 続き215 — three 0.181 deprecated-API 掃討: 死んだ encoding 互換分岐の削除
 - 🔍 **外部知見照合（three r152+ 廃止 API 掃引）**: `outputEncoding`/`physicallyCorrectLights`/`useLegacyLights`/`sRGBEncoding`/`LinearEncoding`/`toneMapping`/`outputColorSpace` を src/ 全体で grep — 唯一の残滓は `TextureManager.applyTextureSettings` の `else if (options.encoding)` 互換分岐のみ。他経路（canvasTexture.js・ImmersiveVideo.js の `THREE.SRGBColorSpace` 直指定）は現行 API で正しい。
 - 🗑 **削除**: `options.encoding === 3001` の旧 sRGBEncoding マッピング — 全 call site（`VRApp.loadTexture`・`ProgressiveLoader.loadTexture`・icon/texture 経路）を追跡し `encoding` を渡す caller が**ゼロ**を確認してから削除。死んだ compat 層が「encoding を渡せば動く」という誤った契約を約束し続けるのを解消。

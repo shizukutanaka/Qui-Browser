@@ -11,7 +11,7 @@ feature-branch push.
 
 ---
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 315a202..f1817fc 100644
+index 7e514a4..b566105 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -4,7 +4,6 @@ on:
@@ -23,7 +23,7 @@ index 315a202..f1817fc 100644
  
  env:
 diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
-index 05d6b5c..65bd056 100644
+index 8b1e04b..ec4fc7b 100644
 --- a/.github/workflows/test.yml
 +++ b/.github/workflows/test.yml
 @@ -6,9 +6,6 @@ on:
@@ -35,4 +35,4 @@ index 05d6b5c..65bd056 100644
 -      - develop
  
  jobs:
-   # The previous `validate` and `compatibility` jobs globbed assets/js/vr-*.js
+   validate:
