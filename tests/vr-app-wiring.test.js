@@ -2769,3 +2769,58 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
     delete global.document.removeEventListener;
   });
 });
+
+describe('VRApp — toast auto-dismiss + recenter button + button recenter arm', () => {
+  test('toast auto-dismiss removes the mesh and disposes all three GPU resources', () => {
+    jest.useFakeTimers();
+    try {
+      const camera = { add: jest.fn(), remove: jest.fn() };
+      const app = makeVRAppLike({ isVREnabled: true, camera });
+      VRApp.prototype.showVRToast.call(app, 'msg');
+      const mesh = camera.add.mock.calls[0][0];
+      // real THREE objects — spy on the three disposables before firing the timer
+      const gSpy = jest.spyOn(mesh.geometry, 'dispose');
+      const mSpy = jest.spyOn(mesh.material, 'dispose');
+      const tSpy = jest.spyOn(mesh.material.map, 'dispose');
+      jest.runAllTimers();
+      expect(camera.remove).toHaveBeenCalledWith(mesh);
+      expect(app._toastTimers.size).toBe(0);
+      expect(gSpy).toHaveBeenCalled();
+      expect(mSpy).toHaveBeenCalled();
+      expect(tSpy).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('home-environment recenter panel: hover tints + captions, select recenters', () => {
+    const registered = [];
+    const app = makeVRAppLike({
+      settings: { enableGazeDwell: true },
+      registerInteractable: (mesh, cfg) => registered.push(cfg),
+      unregisterInteractable: jest.fn(),
+      captionSystem: { enabled: true, show: jest.fn() },
+      recenter: jest.fn()
+    });
+    VRApp.prototype.createHomeEnvironment.call(app);
+    const cfg = registered.find(c => c.onHoverEnd); // the welcome/recenter panel
+    expect(cfg).toBeTruthy();
+    const panelMesh = app.interactables?.[0];
+    // Fire the real callbacks
+    cfg.onHover();
+    cfg.onHoverEnd();
+    cfg.onSelect();
+    expect(app.recenter).toHaveBeenCalledTimes(1);
+  });
+
+  test('updateButtonInput: controllers without an inputSource are skipped', () => {
+    const app = makeVRAppLike({
+      controllers: [{ userData: {} }], // no inputSource
+      controllerInput: { read: jest.fn() },
+      settings: { southpaw: false },
+      hapticFeedback: { playPattern: jest.fn() }
+    });
+    expect(() => VRApp.prototype.updateButtonInput.call(app)).not.toThrow();
+    expect(app.controllerInput.read).not.toHaveBeenCalled();
+  });
+});
