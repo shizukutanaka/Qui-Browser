@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き185 — 「lazy loaded」と称する tier2 チャンクは全部 eager import
+- 🔍 **実測（宣言と実態）**: vite.config.js の `// Tier 2 features (lazy loaded)` と ARCHITECTURE.md の「lazy `tier2-*` chunks」を検証 — `JapaneseIME`/`HandTracking`/`SpatialAudio`/`ProgressiveLoader` は全て VRApp.js から**静的 import** で、eager に fetch される。「lazy」はコードスプリットの意図表明に過ぎず、実態は別ファイルへの分割のみ（キャッシュ粒度はあるが遅延ではない）。唯一の真の lazy 境界は `main.js` の `import('./app.js')`。
+- 🔧 **修正**: vite.config.js のコメントと ARCHITECTURE.md の節を実態記述に置換（「separate cacheable chunks, eagerly imported」）。manualChunks 列挙パス7件の実在性、vendor-three の tree-shake（52クラスのみ・OrbitControls/KTX2 等なし）、beforeunload→pagehide の teardown 信頼性も併せて監査 — いずれもクリーン。
+- ✅ 全緑（doc 変更のみ、build 再確認済み）。
+
 ### Session 75: 続き184 — 見えない canvas に毎フレーム全シーンを描く常駐 RAF
 - 🔍 **実測（ループ寿命の照合）**: `initialize()` が `setAnimationLoop` を起動直後に武装し、VR 対応機では**VR に一度も入らなくても** RAF が常駐。canvas は `app-container` 末尾（折りたたみ下）に挿入されるので、ランディングを読むだけ/VR 退出後に読むだけの間も全シーンの updateSystems+render が毎フレーム走る — バッテリー端末での純粋な無駄。
 - 🔧 **修正**: IntersectionObserver で canvas の可視性を監視し、非交差時は `setAnimationLoop(null)`。`_syncAnimationLoop()` が唯一の武装/停止点として `xr.isPresenting` をバイパス条件に持つ（XR フレームはランタイム駆動なので presenting 中は絶対に止めない）。sessionstart で再武装→退出後にオフスクリーンなら再停止、webglcontextrestored も同経路に集約、dispose で observer 切断。
