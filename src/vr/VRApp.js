@@ -54,6 +54,114 @@ import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsL
 const SETTINGS_KEY = 'qui-browser:settings';
 
 /**
+ * Fresh settings object with factory defaults. Exported so callers (and tests)
+ * can assert on the key set — loadPersistedSettings' known-key filter only
+ * accepts keys that exist here.
+ */
+export function defaultSettings() {
+  return {
+    targetFPS: 90,        // Quest 2 target
+    motionSensitivity: 'moderate',
+    enableFFR: true,
+    enableComfort: true,
+    enableTextureCompression: true,
+    // Default home environment (floor + grid + sky + welcome panel). Doubles
+    // as a static comfort "rest frame"; without it the scene is an empty void.
+    enableHomeEnvironment: true,
+    // Teleport locomotion (squeeze/grip to aim, release to move). Needs a
+    // floor (provided by the home environment) and controllers.
+    enableTeleport: true,
+    // Snap turn on the right thumbstick (comfortable rotation in XR).
+    enableSnapTurn: true,
+    snapTurnAngle: 30, // degrees per snap
+    // Smooth (continuous) locomotion on the left thumbstick. OFF by default —
+    // it is the main sickness trigger; the comfort vignette engages while it
+    // is active. Teleport remains the comfortable default.
+    enableSmoothMove: false,
+    smoothMoveSpeed: 1.8, // metres/second
+    // Controller input options.
+    controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
+    southpaw: false,          // swap left/right controller roles for left-handed users
+    // In-VR settings panel (toggle buttons).
+    enableSettingsPanel: true,
+    // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
+    // interactable for gazeDwellTime ms to activate it. OFF by default.
+    enableGazeDwell: false,
+    gazeDwellTime: 1500,  // ms — time eyes must rest on target to activate
+    // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus need a longer
+    // forgiveness window; precision users may want a shorter one.  Exposed as a
+    // live stepper so the gaze-dwell path is tunable from inside VR.
+    gazeGraceTime: 300,   // ms — off-target slip tolerated before dwell resets
+    // FR-2.6: controller haptics on interactions (select, teleport, grab,
+    // voice, etc.). ON by default, but users with sensory/tactile sensitivity
+    // can turn all haptics off from the settings panel (accessibility).
+    enableHaptics: true,
+    // FR-13.1: in-VR captions/subtitles for recognized speech & system
+    // events (accessibility). OFF by default.
+    enableCaptions: false,
+    // How long (seconds) each caption line stays on screen. WCAG 2.2.1
+    // Timing Adjustable: exposed as a stepper in the VR settings panel so
+    // slow readers and cognitive-disability users can extend the hold time.
+    captionDuration: 5,
+    // Text-size multiplier for captions. WCAG 1.4.4 Resize Text: users must
+    // be able to resize text up to 200 % without losing content. The default
+    // is derived from the OS large-text preference at session start; exposing
+    // it as a live stepper lets low-vision users tune it from inside VR.
+    captionScale: 1.0,
+    // Caption panel height in the camera's local space (metres, negative =
+    // below eye level). XAUR requires caption position customization; VR
+    // eye-tracking subtitle studies show the comfortable height varies
+    // widely per user. Live stepper in the settings panel.
+    captionHeight: -0.55,
+    // Master spatial-audio volume as a percentage (0 = muted, 100 = full).
+    // Wired to SpatialAudio.setMasterVolume via a settings-panel stepper so
+    // users can lower or mute audio (audio-sensitivity / preference).
+    masterVolume: 100,
+
+    // FR-1.1: in-VR browsing. Default ON as of Session 74 — this is the
+    // product's core loop, and every measured reason for the old false
+    // default was dismantled deliberately: the reader exists (S61), the
+    // failure screen names the cause and the fix (#50), the companion proxy
+    // exists (#45) and is settable from inside VR (#54), and this toggle
+    // applies live with one tap (#47). First run shows one blank tab with
+    // "Enter a URL to navigate" — an honest state, not an error. A user who
+    // turns it off keeps that choice (persisted settings win over defaults).
+    enableWebPanel: true,
+    // Optional companion proxy (proxy/server.js). Empty = direct fetch only,
+    // which reaches CORS-enabled origins only — measured: no general site
+    // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.
+    readerProxyUrl: '',
+    // Browse without recording: history/top-sites learning are suppressed
+    // while ON. Session-local back/forward still works (per-tab history is
+    // not persisted); bookmarks stay explicit saves. For shared headsets.
+    privateMode: false,
+    // Default search engine for non-URL input in the address bar
+    // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
+    searchEngine: 'duckduckgo',
+    // Spatial window management (parity with Wolvic/Quest browser): head-lock
+    // follow keeps the active panel centred in view. OFF by default.
+    enableWindowFollow: false,
+    windowDistance: 2.0, // metres
+    // Curved-screen mode for the browser content area (Quest-style). OFF.
+    enableCurvedPanel: false,
+    // Tier 3 / optional features — opt-in, default off so the base
+    // experience is unchanged. Heavy/experimental features stay off.
+    enableVoice: false,
+    enablePerfMonitorUI: false,
+    // Which settings-panel sections are open. Must be a defaulted key:
+    // updateSetting persists it, and loadPersistedSettings only accepts keys
+    // present in these defaults — absent here, the user's choice never
+    // survives a reload.
+    openSettingsSections: ['settings.section.a11y'],
+    // Accessibility preferences mirrored here so the in-VR settings panel can
+    // read/toggle them.  The a11y module is the authoritative store (it persists
+    // separately); these keys are re-synced from it at startup so a change made
+    // via the 2D landing page is never shadowed by a stale VRApp persisted copy.
+    highContrast: getPrefs().highContrast
+  };
+}
+
+/**
  * Returns false when the object or any ancestor in the scene hierarchy is not
  * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
  * (keyboard when closed, bookmark panel when toggled off) would otherwise still
@@ -169,101 +277,7 @@ export class VRApp {
     };
 
     // Settings
-    this.settings = {
-      targetFPS: 90,        // Quest 2 target
-      motionSensitivity: 'moderate',
-      enableFFR: true,
-      enableComfort: true,
-      enableTextureCompression: true,
-      // Default home environment (floor + grid + sky + welcome panel). Doubles
-      // as a static comfort "rest frame"; without it the scene is an empty void.
-      enableHomeEnvironment: true,
-      // Teleport locomotion (squeeze/grip to aim, release to move). Needs a
-      // floor (provided by the home environment) and controllers.
-      enableTeleport: true,
-      // Snap turn on the right thumbstick (comfortable rotation in XR).
-      enableSnapTurn: true,
-      snapTurnAngle: 30, // degrees per snap
-      // Smooth (continuous) locomotion on the left thumbstick. OFF by default —
-      // it is the main sickness trigger; the comfort vignette engages while it
-      // is active. Teleport remains the comfortable default.
-      enableSmoothMove: false,
-      smoothMoveSpeed: 1.8, // metres/second
-      // Controller input options.
-      controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
-      southpaw: false,          // swap left/right controller roles for left-handed users
-      // In-VR settings panel (toggle buttons).
-      enableSettingsPanel: true,
-      // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
-      // interactable for gazeDwellTime ms to activate it. OFF by default.
-      enableGazeDwell: false,
-      gazeDwellTime: 1500,  // ms — time eyes must rest on target to activate
-      // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus need a longer
-      // forgiveness window; precision users may want a shorter one.  Exposed as a
-      // live stepper so the gaze-dwell path is tunable from inside VR.
-      gazeGraceTime: 300,   // ms — off-target slip tolerated before dwell resets
-      // FR-2.6: controller haptics on interactions (select, teleport, grab,
-      // voice, etc.). ON by default, but users with sensory/tactile sensitivity
-      // can turn all haptics off from the settings panel (accessibility).
-      enableHaptics: true,
-      // FR-13.1: in-VR captions/subtitles for recognized speech & system
-      // events (accessibility). OFF by default.
-      enableCaptions: false,
-      // How long (seconds) each caption line stays on screen. WCAG 2.2.1
-      // Timing Adjustable: exposed as a stepper in the VR settings panel so
-      // slow readers and cognitive-disability users can extend the hold time.
-      captionDuration: 5,
-      // Text-size multiplier for captions. WCAG 1.4.4 Resize Text: users must
-      // be able to resize text up to 200 % without losing content. The default
-      // is derived from the OS large-text preference at session start; exposing
-      // it as a live stepper lets low-vision users tune it from inside VR.
-      captionScale: 1.0,
-      // Caption panel height in the camera's local space (metres, negative =
-      // below eye level). XAUR requires caption position customization; VR
-      // eye-tracking subtitle studies show the comfortable height varies
-      // widely per user. Live stepper in the settings panel.
-      captionHeight: -0.55,
-      // Master spatial-audio volume as a percentage (0 = muted, 100 = full).
-      // Wired to SpatialAudio.setMasterVolume via a settings-panel stepper so
-      // users can lower or mute audio (audio-sensitivity / preference).
-      masterVolume: 100,
-
-      // FR-1.1: in-VR browsing. Default ON as of Session 74 — this is the
-      // product's core loop, and every measured reason for the old false
-      // default was dismantled deliberately: the reader exists (S61), the
-      // failure screen names the cause and the fix (#50), the companion proxy
-      // exists (#45) and is settable from inside VR (#54), and this toggle
-      // applies live with one tap (#47). First run shows one blank tab with
-      // "Enter a URL to navigate" — an honest state, not an error. A user who
-      // turns it off keeps that choice (persisted settings win over defaults).
-      enableWebPanel: true,
-      // Optional companion proxy (proxy/server.js). Empty = direct fetch only,
-      // which reaches CORS-enabled origins only — measured: no general site
-      // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.
-      readerProxyUrl: '',
-      // Browse without recording: history/top-sites learning are suppressed
-      // while ON. Session-local back/forward still works (per-tab history is
-      // not persisted); bookmarks stay explicit saves. For shared headsets.
-      privateMode: false,
-      // Default search engine for non-URL input in the address bar
-      // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
-      searchEngine: 'duckduckgo',
-      // Spatial window management (parity with Wolvic/Quest browser): head-lock
-      // follow keeps the active panel centred in view. OFF by default.
-      enableWindowFollow: false,
-      windowDistance: 2.0, // metres
-      // Curved-screen mode for the browser content area (Quest-style). OFF.
-      enableCurvedPanel: false,
-      // Tier 3 / optional features — opt-in, default off so the base
-      // experience is unchanged. Heavy/experimental features stay off.
-      enableVoice: false,
-      enablePerfMonitorUI: false,
-      // Accessibility preferences mirrored here so the in-VR settings panel can
-      // read/toggle them.  The a11y module is the authoritative store (it persists
-      // separately); these keys are re-synced from it at startup so a change made
-      // via the 2D landing page is never shadowed by a stale VRApp persisted copy.
-      highContrast: getPrefs().highContrast
-    };
+    this.settings = defaultSettings();
 
     // Merge any persisted user overrides (settings survive reloads).
     const persisted = this.loadPersistedSettings();
@@ -350,9 +364,18 @@ export class VRApp {
       }
       const allowed = {};
       for (const key of Object.keys(this.settings)) {
-        if (key in parsed) {
-          allowed[key] = parsed[key];
+        if (!(key in parsed)) {
+          continue;
         }
+        const value = parsed[key];
+        const fallback = this.settings[key];
+        // Reject a value whose type differs from the default: a poisoned entry
+        // (e.g. snapTurnAngle:"abc") would otherwise reach the steppers and
+        // render NaN on every boot until the user clears site data.
+        if (Array.isArray(fallback) ? !Array.isArray(value) : typeof value !== typeof fallback) {
+          continue;
+        }
+        allowed[key] = value;
       }
       return allowed;
     } catch (e) {
