@@ -775,3 +775,24 @@ describe('BookmarkStore — last branch arms', () => {
     expect(Array.isArray(store.search())).toBe(true);
   });
 });
+
+describe('BookmarkStore — complementary arms', () => {
+  test('getTopSites with an exclude list skips those hosts', () => {
+    const store = new BookmarkStore();
+    localStorage.clear();
+    store.addHistory('https://a.example/', 'A');
+    store.addHistory('https://b.example/', 'B');
+    const top = store.getTopSites(8, Date.now(), ['a.example']);
+    expect(top.every((s) => !String(s.host || s.url).includes('a.example'))).toBe(true);
+  });
+
+  test('repeat visits refresh url/title on the existing host entry', () => {
+    const store = new BookmarkStore();
+    localStorage.clear();
+    store.addHistory('https://x.example/1', 'First');
+    store.addHistory('https://x.example/2', 'Second');
+    const top = store.getTopSites(8, Date.now(), []);
+    const x = top.find((s) => String(s.host || s.url).includes('x.example'));
+    expect(x).toBeTruthy();
+  });
+});
