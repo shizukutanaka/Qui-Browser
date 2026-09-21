@@ -748,3 +748,48 @@ describe('callback bodies — remaining cfg false-arms', () => {
     expect(shown.length).toBe(0);
   });
 });
+
+describe('callback bodies — bookmark panel + teardown arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => ({ navigate: jest.fn() }),
+      dispose: jest.fn()
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, dispose: jest.fn() }));
+    const app = makeInitLike(overrides);
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, bpCfg: bpCalls[0][0], shown };
+  }
+
+  test('bpCfg.onHoverCaption announces the panel purpose when gaze-dwell is on', () => {
+    const { bpCfg, shown } = build({ enableGazeDwell: true });
+    bpCfg.onHoverCaption();
+    expect(shown.length).toBe(1);
+  });
+
+  test('bpCfg.onHoverCaption is silent when gaze-dwell is off', () => {
+    const { bpCfg, shown } = build({ enableGazeDwell: false });
+    bpCfg.onHoverCaption();
+    expect(shown.length).toBe(0);
+  });
+
+  test('bpCfg.onClose announces the closed state', () => {
+    const { bpCfg, shown } = build();
+    bpCfg.onClose();
+    expect(shown.length).toBe(1);
+  });
+
+  test('_teardownBrowsingSystems detaches windowManager when present', () => {
+    const { app } = build();
+    app.windowManager = { detach: jest.fn() };
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+    expect(app.windowManager.detach).toHaveBeenCalled();
+    expect(app.bookmarkPanel).toBeNull();
+    expect(app.tabManager).toBeNull();
+  });
+});
