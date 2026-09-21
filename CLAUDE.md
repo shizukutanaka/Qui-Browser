@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き212 — SW の KTX2 残骸パターン削除＋キャッシュバケット名の正直化
+- 🗑 **削除（削除済み機能の残滓）**: `CACHE_PATTERNS.cacheFirst` に `/\.ktx2$/` が残留 — KTX2 ローダー/transcoder は続き176 で全除去済み（CSP 不可・資産ゼロ・呼出ゼロ）。パターンを削除し、`.ktx2` は default SWR へ落ちることを pin。
+- 🔧 **修正（名実不一致）**: `cacheFirst` は wasm/glb/gltf/fonts/woff を全て `'textures'` バケットで計量し、`CACHE_LIMITS.models` は呼出ゼロの死設定 → バケット名を `'static'` に正名し models キー削除。`.ktx2` pin テストは `.wasm` へ差替＋「ktx2 は cache-first ではない」否定 pin を追加。
+- ✅ 3091 tests / 72 suites 全緑、lint 0 errors、build 緑（SW version stamp 正常）。
+
 ### Session 75: 続き211 — dt を rAF タイムスタンプ（XR predictedDisplayTime）駆動へ
 - 🔍 **発見（WebXR 仕様軸）**: `render(timestamp, xrFrame)` の dt が `performance.now()` の差分で計算されていた。WebXR では rAF の timestamp 引数 = `XRFrame.predictedDisplayTime`（表示ケイデンス）— spec/MDN がアニメーション delta に推奨する時計。callback 発火タイミングではなく表示タイミングを追うべき。
 - 🔧 **修正**: dt を timestamp 差分へ（`typeof timestamp === 'number'` でなければ performance.now にフォールバック、timestamp 未定義の直接呼出でも NaN 不感染）。CPU 計測の frameTime は performance.now のまま維持 — 仕事量計測には wall 時計が正しい。
