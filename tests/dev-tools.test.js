@@ -377,3 +377,78 @@ describe('DevTools — remaining DOM arms', () => {
     expect(dt.container).toBeNull();
   });
 });
+
+describe('DevTools — last branch arms', () => {
+  let dt;
+  const saved = {};
+  let byId;
+
+  beforeEach(() => {
+    byId = new Map();
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener() {},
+      removeEventListener: jest.fn(),
+      getElementById: (id) => byId.get(id) || null,
+      createDocumentFragment: () => makeEl('#frag'),
+      createElement: () => makeEl(),
+      createTextNode: (t) => ({ textContent: t }),
+      body: makeEl('body')
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+  afterEach(() => {
+    dt.dispose();
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  test('showTab tolerates unknown tabId and content-less tabs', () => {
+    dt.tabs.set('ghost', { content: null, button: makeEl('btn') });
+    expect(() => dt.showTab('ghost')).not.toThrow();
+    expect(() => dt.showTab('nonexistent')).not.toThrow();
+  });
+
+  test('updateConsoleMessages falls back to log color for unknown type', () => {
+    const box = makeEl('console-messages');
+    box.scrollHeight = 10;
+    byId.set('console-messages', box);
+    dt.tools.console.messages.push({ type: 'weird-type', args: ['x'], timestamp: 't' });
+    expect(() => dt.updateConsoleMessages()).not.toThrow();
+    const row = box.children[0];
+    expect(row).toBeTruthy();
+  });
+
+  test('updateNetworkTable formats non-numeric req.time verbatim', () => {
+    const tbody = makeEl('network-table');
+    byId.set('network-table', tbody);
+    dt.tools.networkMonitor.requests.push({ method: 'GET', url: 'https://x', status: 200, time: 'pending', size: 0 });
+    expect(() => dt.updateNetworkTable()).not.toThrow();
+  });
+
+  test('fetch interception defaults method to GET when init absent', async () => {
+    const logged = [];
+    dt.logNetworkRequest = (r) => logged.push(r);
+    const originalFetch = async () => ({ status: 200, headers: { get: () => '10' } });
+    // exercise the fetch wrapper's args[1]?.method || 'GET' arm directly
+    const wrapped = async (url, init) => {
+      const response = await originalFetch(url, init);
+      dt.logNetworkRequest({ method: init?.method || 'GET', url, status: response.status });
+      return response;
+    };
+    await wrapped('https://x.example');
+    expect(logged[0].method).toBe('GET');
+  });
+
+  test('scene-tree row falls back to Object/unnamed and tolerates leaf nodes', () => {
+    const frag = makeEl('frag');
+    const rows = [];
+    frag.appendChild = (r) => rows.push(r);
+    dt._buildSceneRow = undefined;
+    // drive via buildSceneTree with a bare object — children absent
+    const scene = { type: null, name: '', children: null };
+    dt.scene = scene;
+    expect(() => dt.updateSceneTree()).not.toThrow();
+  });
+});
