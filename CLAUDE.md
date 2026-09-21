@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き204 — 手ジョイントポーズを `fillPoses`/`fillJointRadii` にバッチ化（毎フレーム ~50 個の XRPose 確保を解消）
+- 🔍 **発見（WebXR hand-input spec）**: `updateHand` が `frame.getJointPose()` を25ジョイント×2手で呼出 — 各コールが新 `XRPose` を確保し **90fps で秒間 ~4,500 オブジェクト**。spec の `fillPoses(spaces, baseSpace, transforms)`/`fillJointRadii(spaces, radii)` は共有 Float32Array へ直接書くバッチ API。
+- 🔧 **修正**: 手ごとに `{hand, spaces, names, poses: Float32Array(n*16), radii}` を `inputSource.hand` 変更時のみ再構築。fillPoses が false（一部ジョイント未追跡）や API 不在のランタイムでは従来の per-joint 経路へフォールバック。dispose で `_batch` をクリア（joint spaces が session を pin するため）。列-major 行列の平行移動は [12..14]。
+- 🧪 pin 2本: バッチ経路で `getJointPose` が一度も呼ばれず位置・半径・インスタンス行列が正しく流れる、fillPoses=false で per-joint フォールバック。
+- ✅ 3083 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き203 — **ハプティクス全滅を修正**（XR gamepad は navigator.getGamepads() に出ない — 仕様で禁止）
 - 🔍 **発見（W3C WebXR Gamepads Module 仕様確認）**: `HapticFeedback.update()` が `navigator.getGamepads()` を走査していたが、仕様上 XRInputSource の Gamepad は同配列に**含めてはならない** — 実機セッションでは常に空を返し `gamepads` が空のまま、全ての `pulse()` が無言で no-op。**触覚フィードバック全チャネル（通知・クリック・境界警告・近接）が実機で一度も発火していなかった**（WCAG 意味的にはクロスモーダル経路の一本が完全に欠損）。さらに `getGamepadForHand` が `gamepad.hand`（Gamepad に存在しないプロパティ — handedness は XRInputSource 側）を読んでおり、仮に列挙されても左右ルーティングが全て first-available フォールバックに落ちていた。
 - 🔧 **修正**: `update(inputSources)` — セッションの inputSources（`xrFrame.session.inputSources`）を権威として走査、キーを XRInputSource オブジェクトに、`_hands` マップで handedness を正しくルーティング。inputSources 未指定（非没入/デスクトップ）時のみ従来の navigator 経路（index キー、`gamepad.hand`/`handedness` があれば尊重）。出ていったソースは毎フレーム prune。呼出元は `xrFrame?.session?.inputSources` を渡す。

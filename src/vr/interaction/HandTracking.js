@@ -35,6 +35,13 @@ export class HandTracking {
     this._jointQ = null;
     this._jointS = null;
 
+    // Per-hand batch state for XRFrame.fillPoses/fillJointRadii — the batched
+    // pose APIs write into a shared Float32Array so the joint loop allocates
+    // zero XRPose objects (was ~50 allocations × 90 fps ≈ 4,500/sec).
+    //   { hand, spaces, names, poses, radii } — rebuilt when the XRHand object
+    //   changes (new input source / reconnect).
+    this._batch = { left: null, right: null };
+
     // Gesture recognition
     this.gestures = {
       left: null,
@@ -236,40 +243,89 @@ export class HandTracking {
     // Update each joint
     let seen = 0;
     let qualitySum = 0;
-    for (const jointName of this.jointNames) {
-      const joint = inputSource.hand.get(jointName);
-      if (!joint) {
-        continue;
+
+    // Preferred path: one fillPoses + fillJointRadii batch fills a reusable
+    // Float32Array — zero per-joint XRPose allocation. fillPoses returns false
+    // when any pose is undeterminable this frame; fall back to per-joint then.
+    let batch = this._batch[handedness];
+    if (inputSource.hand && (!batch || batch.hand !== inputSource.hand)) {
+      batch = this._batch[handedness] = { hand: inputSource.hand, spaces: [], names: [], poses: null, radii: null };
+      for (const jointName of this.jointNames) {
+        const joint = inputSource.hand.get(jointName);
+        if (joint) {
+          batch.spaces.push(joint);
+          batch.names.push(jointName);
+        }
       }
+      batch.poses = new Float32Array(batch.spaces.length * 16);
+      batch.radii = new Float32Array(batch.spaces.length);
+    }
 
-      const jointPose = frame.getJointPose(joint, referenceSpace);
-      if (!jointPose) {
-        continue;
+    const canBatch = batch
+      && typeof frame.fillPoses === 'function'
+      && typeof frame.fillJointRadii === 'function'
+      && batch.spaces.length > 0;
+    const batched = canBatch && frame.fillPoses(batch.spaces, referenceSpace, batch.poses) === true;
+    const hasRadii = batched && frame.fillJointRadii(batch.spaces, batch.radii) === true;
+
+    if (batched) {
+      for (let i = 0; i < batch.names.length; i++) {
+        const jointName = batch.names[i];
+        const record = joints.get(jointName);
+        if (!record) {
+          continue;
+        }
+        const o = i * 16; // 4x4 column-major — translation lives at 12..14
+        record.position.set(batch.poses[o + 12], batch.poses[o + 13], batch.poses[o + 14]);
+        const radius = (hasRadii && batch.radii[i] > 0) ? batch.radii[i] : 0.008;
+        const instanceIndex = index ? index.get(jointName) : undefined;
+        if (instanced && instanceIndex !== undefined) {
+          this._jointM.compose(
+            record.position,
+            this._jointQ,
+            this._jointS.set(radius / 0.008, radius / 0.008, radius / 0.008)
+          );
+          instanced.setMatrixAt(instanceIndex, this._jointM);
+        }
+        seen++;
+        qualitySum += (hasRadii && batch.radii[i] > 0) ? 1.0 : 0.5;
       }
+    } else {
+      for (const jointName of this.jointNames) {
+        const joint = inputSource.hand.get(jointName);
+        if (!joint) {
+          continue;
+        }
 
-      const record = joints.get(jointName);
-      if (!record) {
-        continue;
+        const jointPose = frame.getJointPose(joint, referenceSpace);
+        if (!jointPose) {
+          continue;
+        }
+
+        const record = joints.get(jointName);
+        if (!record) {
+          continue;
+        }
+
+        const { position } = jointPose.transform;
+        record.position.set(position.x, position.y, position.z);
+
+        // Joint radius scales the sphere; orientation is invisible on a sphere.
+        const radius = jointPose.radius || 0.008;
+        const scale = radius / 0.008;
+        const instanceIndex = index ? index.get(jointName) : undefined;
+        if (instanced && instanceIndex !== undefined) {
+          this._jointM.compose(
+            record.position,
+            this._jointQ,
+            this._jointS.set(scale, scale, scale)
+          );
+          instanced.setMatrixAt(instanceIndex, this._jointM);
+        }
+
+        seen++;
+        qualitySum += jointPose.radius ? 1.0 : 0.5;
       }
-
-      const { position } = jointPose.transform;
-      record.position.set(position.x, position.y, position.z);
-
-      // Joint radius scales the sphere; orientation is invisible on a sphere.
-      const radius = jointPose.radius || 0.008;
-      const scale = radius / 0.008;
-      const instanceIndex = index ? index.get(jointName) : undefined;
-      if (instanced && instanceIndex !== undefined) {
-        this._jointM.compose(
-          record.position,
-          this._jointQ,
-          this._jointS.set(scale, scale, scale)
-        );
-        instanced.setMatrixAt(instanceIndex, this._jointM);
-      }
-
-      seen++;
-      qualitySum += jointPose.radius ? 1.0 : 0.5;
     }
 
     if (instanced) {
@@ -513,6 +569,9 @@ export class HandTracking {
     this.joints.left.clear();
     this.joints.right.clear();
     this.gestureCallbacks.clear();
+    // Drop the cached joint spaces — they pin the XRSession's input sources.
+    this._batch.left = null;
+    this._batch.right = null;
 
     console.debug('HandTracking: Disposed');
   }

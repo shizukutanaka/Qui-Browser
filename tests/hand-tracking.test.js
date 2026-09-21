@@ -388,6 +388,71 @@ describe('HandTracking.updateHand — joint pose application', () => {
     ht.updateHand(poseFrame(null), makeHand(hand), {});
     expect(record.position.set).not.toHaveBeenCalled();
   });
+
+  test('batched path: fillPoses/fillJointRadii drive joints with zero per-joint pose calls', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj();
+    const record = { position: { set: jest.fn() } };
+    ht.joints.left.set('index-finger-tip', record);
+    const instanced = {
+      setMatrixAt: jest.fn(),
+      instanceMatrix: { setUsage: jest.fn(), needsUpdate: false },
+      material: { opacity: 0 }
+    };
+    ht._jointMesh.left = instanced;
+    ht._jointIndex.left = new Map([['index-finger-tip', 4]]);
+    ht._jointM = { compose: jest.fn(() => 'M') };
+    ht._jointQ = {};
+    ht._jointS = { set: jest.fn() };
+
+    const jointSpace = {};
+    const hand = new Map([['index-finger-tip', jointSpace]]);
+    const frame = {
+      getJointPose: jest.fn(() => {
+        throw new Error('must not be called on the batch path');
+      }),
+      fillPoses: jest.fn((spaces, _ref, out) => {
+        expect(spaces).toEqual([jointSpace]);
+        // 4x4 column-major — translation at [12..14]
+        out[12] = 0.1; out[13] = 0.2; out[14] = 0.3;
+        return true;
+      }),
+      fillJointRadii: jest.fn((_spaces, out) => {
+        out[0] = 0.016;
+        return true;
+      })
+    };
+    ht.updateHand(frame, makeHand(hand), {});
+
+    expect(frame.fillPoses).toHaveBeenCalledTimes(1);
+    expect(frame.getJointPose).not.toHaveBeenCalled();
+    const [px, py, pz] = record.position.set.mock.calls[0];
+    expect(px).toBeCloseTo(0.1, 5);
+    expect(py).toBeCloseTo(0.2, 5);
+    expect(pz).toBeCloseTo(0.3, 5);
+    const [sx, sy, sz] = ht._jointS.set.mock.calls[0];
+    expect(sx).toBeCloseTo(2, 4); // radius 0.016 / 0.008
+    expect(sy).toBeCloseTo(2, 4);
+    expect(sz).toBeCloseTo(2, 4);
+    expect(instanced.setMatrixAt).toHaveBeenCalledWith(4, ht._jointM);
+  });
+
+  test('fillPoses returning false falls back to per-joint getJointPose', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = new MockObj();
+    const record = { position: { set: jest.fn() } };
+    ht.joints.left.set('wrist', record);
+    const jointSpace = {};
+    const hand = new Map([['wrist', jointSpace]]);
+    const frame = {
+      getJointPose: jest.fn(() => ({ transform: { position: { x: 5, y: 6, z: 7 } }, radius: 0.008 })),
+      fillPoses: jest.fn(() => false), // e.g. partially untracked frame
+      fillJointRadii: jest.fn(() => false)
+    };
+    ht.updateHand(frame, makeHand(hand), {});
+    expect(frame.getJointPose).toHaveBeenCalledWith(jointSpace, expect.anything());
+    expect(record.position.set).toHaveBeenCalledWith(5, 6, 7);
+  });
 });
 
 describe('HandTracking gesture tail — fist / peace / thumbsup', () => {
