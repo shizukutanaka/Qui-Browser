@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き75（同セッション）: CI の死んだジョブを実測で特定 — main マージ時に確実に失敗する3経路をパッチ化
+- 🔍 **実測**: `ci.yml` `test-integration` は削除済み `tests/tier-system-integration.test.js` を指す（jest no-tests → exit 1）。`test-performance` は削除済み `benchmark:all` + `check-performance-regression.js` を指す（job 丸ごと死骸）。`benchmark.yml` は週次 cron で削除済み `tools/benchmark.js` を起動し**毎週失敗通知を出し続ける**。`v5.8.0-planning.yml`（週次、削除済み assets/js を grep する echo のみ）と `wasm-build.yml`（削除済み wasm/ パスフィルタで dormant）も死骸。スタック PR では CI が走らない（base が main/develop 以外のため）ので、これらは**このスタックが main にマージされた瞬間に全て発火する**潜伏破損。
+- 🔧 `.github/workflows/**` は Devin が push 不能（403 再確認済み・K-1）なため、**適用検証済みパッチ**として同梱: `docs/patches/0002-ci-fix-dead-jobs.patch`（origin/main に `git am` でクリーン適用を実測）— test-integration を実在エイリアス `npm run test:integration` に付け替え、test-performance ジョブと `needs:`/サマリ参照を削除。死んだ3ワークフローの削除は `git rm` コマンドを K-1 に追記。
+- 🔍 同時に `tools/` の検証スクリプト7本を実走で棚卸し: `verify:docs`・`verify:prerelease` は全参照実在で PASS、verify:layout/app/vr-boot は実 Chromium 必須で変更なし。
+
 #### 続き74（同セッション）: DevTools の「表示するだけで動かない」面を削除 — 実バグ31-32件目
 - 🐛 **実バグ31**: `Ctrl+Shift+C`/`Ctrl+Shift+P` が `selectElement()`/`showProfiler()` を指すが**両メソッドは存在しない** — キー押下で TypeError。幻影ショートカット削除（#121 と同じ「存在するものだけ登録」規約）。
 - 🐛 **実バグ32**: Profiler タブの Start/Stop Recording ボタンと Settings タブの4つのチェックボックス（show-fps/show-bounds/show-grid/verbose-logging）は**ハンドラがどこにも無い**死んだ UI — コメントすら「Event listeners (will be set when shown)」と未完を告白していた。両タブと未使用の `tools.profiler/logger/debugger/sceneInspector` バケットを削除（Console/Scene/Network の3つは実配線済みで温存）。
