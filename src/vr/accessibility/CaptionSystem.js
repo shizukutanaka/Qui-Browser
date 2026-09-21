@@ -276,13 +276,19 @@ export class CaptionSystem {
       return;
     }
 
+    // In-place sweep: filter() would allocate a fresh array every frame —
+    // meaningful GC churn at 90 fps on a headset for a 1-3-entry list.
+    let w = 0;
     let changed = false;
-    for (const line of this._lines) {
+    for (let i = 0; i < this._lines.length; i++) {
+      const line = this._lines[i];
       line.remaining -= dtMs;
+      if (line.remaining > 0) {
+        this._lines[w++] = line;
+      }
     }
-    const before = this._lines.length;
-    this._lines = this._lines.filter(l => l.remaining > 0);
-    if (this._lines.length !== before) {
+    if (w !== this._lines.length) {
+      this._lines.length = w;
       changed = true;
     }
 

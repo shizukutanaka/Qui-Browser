@@ -149,29 +149,34 @@ export class HandTracking {
 
     // Snapshot pre-frame visibility so we can detect both lost AND regained
     // transitions after updateHand() has had a chance to set visible=true.
-    const prevVisible = {
-      left:  this.leftHand  ? this.leftHand.visible  : false,
-      right: this.rightHand ? this.rightHand.visible : false
-    };
+    const prevLeft = this.leftHand ? this.leftHand.visible : false;
+    const prevRight = this.rightHand ? this.rightHand.visible : false;
 
-    const seenHands = new Set();
+    // Two boolean flags — not a Set — so update() allocates nothing per frame.
+    let seenLeft = false;
+    let seenRight = false;
     for (const inputSource of frame.session.inputSources) {
       if (inputSource.hand) {
         this.updateHand(frame, inputSource, referenceSpace);
-        seenHands.add(inputSource.handedness);
+        if (inputSource.handedness === 'left') {
+          seenLeft = true;
+        } else if (inputSource.handedness === 'right') {
+          seenRight = true;
+        }
       }
     }
 
-    // Set visibility from seenHands and fire tracking-change callback on
+    // Set visibility from the seen flags and fire tracking-change callback on
     // transitions. A frozen hand at its last known position falsely signals
     // "still tracking" — hiding it is both visually correct and prevents
     // spurious gesture activations on a stale skeleton.
     for (const handedness of ['left', 'right']) {
       const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
       if (handGroup) {
-        const nowTracked = seenHands.has(handedness);
+        const nowTracked = handedness === 'left' ? seenLeft : seenRight;
+        const prevVisible = handedness === 'left' ? prevLeft : prevRight;
         handGroup.visible = nowTracked;
-        if (prevVisible[handedness] !== nowTracked && this._onTrackingChange) {
+        if (prevVisible !== nowTracked && this._onTrackingChange) {
           this._onTrackingChange(handedness, nowTracked);
         }
       }

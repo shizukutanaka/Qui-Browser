@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き186 — 熱パスの per-frame 確保を実測で潰す
+- 🔍 **実測（「allocation near zero」主張の検証）**: ARCHITECTURE.md が「allocation near zero to hold 72–90 fps」を謳うのに対し、全サブシステムの update() を掃引。2件の per-frame 確保を発見: ①`CaptionSystem.update` が毎フレーム `_lines.filter()` で新配列（90fps×長時間セッションで小確保が GC 圧力に累積）②`HandTracking.update` が毎フレーム `new Set()` + `prevVisible` オブジェクトリテラルを確保。
+- 🔧 **修正**: ①in-place 掃引（write-index + length 切詰）— changed 検出は維持 ②`seenLeft/seenRight` ブール＋`prevLeft/prevRight` スカラー化（'none' handedness の誤右判定を防ぐため `else if === 'right'` で厳密化）。挙動同一・確保ゼロ。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors。残りの `updateSystems` 直下・サブシステム update 群は無確保を確認（`render()` 本体・Raycaster 呼出を含む）。
+
 ### Session 75: 続き185 — 「lazy loaded」と称する tier2 チャンクは全部 eager import
 - 🔍 **実測（宣言と実態）**: vite.config.js の `// Tier 2 features (lazy loaded)` と ARCHITECTURE.md の「lazy `tier2-*` chunks」を検証 — `JapaneseIME`/`HandTracking`/`SpatialAudio`/`ProgressiveLoader` は全て VRApp.js から**静的 import** で、eager に fetch される。「lazy」はコードスプリットの意図表明に過ぎず、実態は別ファイルへの分割のみ（キャッシュ粒度はあるが遅延ではない）。唯一の真の lazy 境界は `main.js` の `import('./app.js')`。
 - 🔧 **修正**: vite.config.js のコメントと ARCHITECTURE.md の節を実態記述に置換（「separate cacheable chunks, eagerly imported」）。manualChunks 列挙パス7件の実在性、vendor-three の tree-shake（52クラスのみ・OrbitControls/KTX2 等なし）、beforeunload→pagehide の teardown 信頼性も併せて監査 — いずれもクリーン。
