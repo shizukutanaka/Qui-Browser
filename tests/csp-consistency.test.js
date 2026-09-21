@@ -104,7 +104,31 @@ test('every header CSP across deploy targets is identical to the meta CSP', () =
   const csps = headerCsps();
   // nginx (server + location / + location ~*.html$), vercel, netlify.
   expect(csps.length).toBeGreaterThanOrEqual(5);
-  for (const [source, csp] of csps) {
+  for (const [_source, csp] of csps) {
     expect(toMap(csp)).toEqual(toMap(metaCsp[1]));
   }
+});
+
+// Same divergence class as CSP: a Permissions-Policy that denies
+// xr-spatial-tracking kills WebXR on that deploy target only, and the meta
+// tag cannot carry Permissions-Policy at all — headers are the whole story.
+const WEBXR_PP = 'accelerometer=*, camera=*, gyroscope=*, magnetometer=*, microphone=*, xr-spatial-tracking=*';
+
+test('every deploy target permits the WebXR Permissions-Policy on HTML', () => {
+  const nginx = fs.readFileSync(
+    path.join(__dirname, '..', 'docker', 'nginx.conf'), 'utf8');
+  // Both HTML-serving locations must carry it: location / (SPA fallback) and
+  // location ~* .html$ (direct hits) — a location with its own add_header
+  // inherits none of the server-level headers.
+  expect(nginx.split(WEBXR_PP).length - 1).toBe(2);
+
+  const vercel = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'vercel.json'), 'utf8'));
+  const ppValues = (vercel.headers ?? []).flatMap((r) => r.headers ?? [])
+    .filter((h) => h.key === 'Permissions-Policy').map((h) => h.value);
+  expect(ppValues).toContain(WEBXR_PP);
+
+  const netlify = fs.readFileSync(
+    path.join(__dirname, '..', 'netlify.toml'), 'utf8');
+  expect(netlify).toContain(WEBXR_PP);
 });
