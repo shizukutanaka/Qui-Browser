@@ -3089,7 +3089,7 @@ export class VRApp {
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
       try {
-        await this.ffrSystem.initialize(session, gl);
+        await this.ffrSystem.initialize(session, gl, this.renderer.xr);
         this.ffrSystem.enable(0.5);
         console.debug('VRApp: FFR enabled for session');
       } catch (e) {
