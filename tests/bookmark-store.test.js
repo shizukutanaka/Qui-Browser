@@ -796,3 +796,28 @@ describe('BookmarkStore — complementary arms', () => {
     expect(x).toBeTruthy();
   });
 });
+
+describe('BookmarkStore — getTopSites sliver arms', () => {
+  test('entries without url are skipped; title falls back to url', () => {
+    localStorage.clear();
+    const store = new BookmarkStore();
+    store.addHistory('https://a.example', 'A');
+    store.addHistory('https://a.example/deeper');  // no title → url fallback
+    const orig = localStorage.getItem('quiBrowser_history');
+    const arr = JSON.parse(orig);
+    arr.unshift({}); // malformed entry → skip arm
+    localStorage.setItem('quiBrowser_history', JSON.stringify(arr));
+    const top = store.getTopSites(5);
+    expect(top.some(s => s.host === 'a.example')).toBe(true);
+    const host = top.find(s => s.host === 'a.example');
+    expect(host.title).toBeTruthy();
+  });
+
+  test('exclude=null and empty behave like no exclusions', () => {
+    localStorage.clear();
+    const store = new BookmarkStore();
+    store.addHistory('https://b.example', 'B');
+    expect(store.getTopSites(5, Date.now(), null)).toHaveLength(1);
+    expect(store.getTopSites(5, Date.now(), ['b.example'])).toHaveLength(0);
+  });
+});

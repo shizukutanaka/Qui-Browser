@@ -765,3 +765,27 @@ describe('TabManager — complementary arms', () => {
     expect(mat.dispose).toHaveBeenCalled();
   });
 });
+
+describe('TabManager — sliver arms', () => {
+  test('closeTab before activeIndex shifts it down; closing active resets it', () => {
+    const tm = makeManager();
+    tm.tabs = [{ dispose() {}, setVisible() {} }, { dispose() {}, setVisible() {} }, { dispose() {}, setVisible() {} }];
+    tm.activeIndex = 2;
+    tm.closeTab(0);                  // earlier tab → decrement
+    expect(tm.activeIndex).toBe(1);
+    tm.closeTab(1);                  // closes the active slot → clamps to 0
+    expect(tm.activeIndex).toBe(0);
+  });
+
+  test('setCurved/setSearchEngine/setReaderProxyUrl skip panels lacking the method', () => {
+    const tm = makeManager({ readerProxyUrl: 'https://proxy.example' });
+    tm.tabs = [{}, { setCurved: jest.fn(), setSearchEngine: jest.fn(), setReaderProxyUrl: jest.fn() }];
+    expect(() => {
+      tm.setCurved(true);
+      tm.setSearchEngine('duckduckgo');
+      tm.setReaderProxyUrl();
+    }).not.toThrow();
+    expect(tm.tabs[1].setCurved).toHaveBeenCalledWith(true);
+    expect(tm.tabs[1].setSearchEngine).toHaveBeenCalledWith('duckduckgo');
+  });
+});

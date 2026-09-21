@@ -459,3 +459,37 @@ describe('PerformanceMonitor — complementary arms', () => {
     if (pm.stats.bestFrame.time <= 100) expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
   });
 });
+
+describe('PerformanceMonitor — fps/best/threshold slivers', () => {
+  test('endFrame records new best and worst frames', () => {
+    const mon = new PerformanceMonitor();
+    let t = 1000;
+    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    mon.frameStartTime = 0;
+    t = 5;    mon.endFrame(); // new best
+    t = 500;  mon.endFrame(); // new worst
+    expect(mon.stats.bestFrame.time).toBe(5);
+    expect(mon.stats.worstFrame.time).toBe(500);
+    performance.now.mockRestore();
+  });
+
+  test('fps metric only refreshes after the update interval', () => {
+    const mon = new PerformanceMonitor();
+    let t = performance.now();
+    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    mon.lastFpsUpdate = t;
+    mon.frameCount = 0;
+    mon.frameStartTime = t;
+    mon.endFrame();
+    expect(mon.frameCount).toBe(1); // interval not elapsed → kept counting
+    performance.now.mockRestore();
+  });
+
+  test('fps between warning and critical raises a warning alert', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.current = mon.thresholds.fps.warning - 1;
+    mon.addAlert = jest.fn();
+    mon.checkThresholds();
+    expect(mon.addAlert).toHaveBeenCalledWith('warning', expect.any(String));
+  });
+});
