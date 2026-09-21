@@ -245,6 +245,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き176 — KTX2 全体削除（実 Chrome で CSP が wasm を拒否することを実証）
+- 🔍 **実測（実 Chrome CSP 検証）**: 出荷 CSP `script-src 'self'`（`wasm-unsafe-eval`/`unsafe-eval` 無し）の meta を持つページで `WebAssembly.compile` を実測 → **CompileError: Refused** を確認。three の KTX2Loader は blob ワーカー内で wasm を instantiate するが、ワーカーは文書 CSP を継承するため本番では transcoder init が必ず失敗する。**KTX2 テクスチャ経路は全デプロイ先で dead-on-arrival** だった。
+- 🔍 **三重の死**: .ktx2 資産ゼロ、`preferKTX2`/.ktx2 URL の呼出ゼロ（JSDoc 例のみ）、本番 CSP で読み込み不能 — それでも `public/libs/basis/`（57KB js + 527KB wasm = **584KB**）を全デプロイに出荷し、起動毎に `initializeKTX2()` が走っていた。
+- 🗑 **削除（Musk の「削除」）**: KTX2Loader import・initializeKTX2・loadKTX2・getKTX2Url・preferKTX2・isCompressed 配管・compressionRatio・ktx2Loaded stat・public/libs/basis/ 584KB・README の偽 Stable 行・IMPLEMENTATION.md §4・BUILD_OPTIMIZATION_GUIDE の KTX2 例・i18n feat.perf.desc の KTX2 記述・main.js バナー・index.html の死んだ BASIS preconnect コメント・参照ゼロの assets/icon.svg。
+- 🔧 **CSP 引締め**: `worker-src 'self' blob:` → `'self'`（6箇所全て）— blob: ワーカーの唯一の消費者は KTX2 だった。csp-consistency.test.js が `'self'` 限定を pin。
+- 🔧 **副次修正**: `window.textureManager` はどこにも代入されていなかった死んだグローバル委譲（ProgressiveLoader.loadTexture が常に loadImage フォールバック）→ `this.textureManager` 注入 + VRApp が `progressiveLoader.textureManager` を配線。`enableTextureCompression` → `enableTextureManager` に改名（圧縮機能はもう無いので旧名は嘘）。
+- ✅ 3074 tests / 72 suites 全緑、lint 0 errors / 363 warnings、build + verify:app 10/10 緑、dist が 584KB 軽量化。
+
 ### Session 75: 続き175 — noscript 不在 + DevTools ゲート確認
 - 🔍 **照合**: DevTools は `import.meta.env.DEV` + dynamic import で本番バンドルから正しく除外、dispose() で console/fetch を復元 — クリーン。ランディングは静的 HTML なので no-JS でも本文は読めるが、Enter VR ボタンは無言で死ぬ。
 - 🔧 **修正**: `<noscript>` に「Enter VR requires JavaScript」を追加（JS 必須経路の正直な案内）。

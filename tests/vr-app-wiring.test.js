@@ -3748,12 +3748,11 @@ describe('VRApp — sliver arms (persist, teardown, guards)', () => {
       renderer: { info: { memory: { geometries: 1, textures: 2 }, programs: [{}] } },
       performanceMonitor: { fps: 72, frameTime: 13.9, memoryUsed: 10, drawCalls: 5, triangles: 42 },
       ffrSystem: { intensity: 0.5 },
-      textureManager: { getMemoryStats: () => ({ usedMB: 8, maxMB: 256, compressionRatio: 2 }) }
+      textureManager: { getMemoryStats: () => ({ usedMB: 8, maxMB: 256 }) }
     };
     const s = VRApp.prototype.getPerformanceStats.call(app);
     expect(s.ffrIntensity).toBe('50%');
     expect(s.textureMemory).toBe('8/256MB');
-    expect(s.textureCompression).toBe(2);
   });
 
   test('raycasterFromController reuses the shared raycaster across calls', () => {

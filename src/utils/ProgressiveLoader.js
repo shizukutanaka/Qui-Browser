@@ -18,6 +18,10 @@ export class ProgressiveLoader {
     this.pending = new Map();
     this.failed = new Map();
 
+    // Optional TextureManager — injected by the app when texture caching is
+    // enabled; when absent, 'texture' items fall back to a plain Image load.
+    this.textureManager = null;
+
     // Loading strategy
     this.strategy = {
       parallelLimit: 6,        // Max parallel downloads
@@ -468,9 +472,9 @@ export class ProgressiveLoader {
    * Load texture
    */
   async loadTexture(url) {
-    // Delegate to TextureManager if available
-    if (window.textureManager) {
-      return window.textureManager.loadTexture(url);
+    // Delegate to TextureManager when the app injected one
+    if (this.textureManager) {
+      return this.textureManager.loadTexture(url);
     }
 
     // Fallback to image load

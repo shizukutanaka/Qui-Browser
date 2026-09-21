@@ -1,67 +1,36 @@
 /**
- * KTX2 Texture Manager
- * Reduces texture memory by 75% with GPU-native compression
+ * Texture Manager — LRU cache + memory accounting for THREE textures.
  *
  * John Carmack principle: Optimize where it matters - textures are biggest memory consumers
  */
 
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 
 export class TextureManager {
   constructor(renderer) {
     this.renderer = renderer;
     this.textureCache = new Map();
     this.pendingLoads = new Map(); // url → in-flight loadTexture promise
-    this.ktx2Loader = null;
     this.textureLoader = new THREE.TextureLoader();
 
     // Memory tracking
     this.memoryUsage = {
       textureCount: 0,
       estimatedBytes: 0,
-      maxBytes: 512 * 1024 * 1024, // 512MB limit for Quest 2
-      compressionRatio: 0
+      maxBytes: 512 * 1024 * 1024 // 512MB limit for Quest 2
     };
 
     // Statistics
     this.stats = {
-      ktx2Loaded: 0,
-      fallbackLoaded: 0,
+      texturesLoaded: 0,
       cacheHits: 0,
       cacheMisses: 0,
       totalLoadTime: 0
     };
-
-    this.initializeKTX2();
   }
 
   /**
-   * Initialize KTX2 loader with Basis transcoder
-   */
-  async initializeKTX2() {
-    try {
-      this.ktx2Loader = new KTX2Loader();
-
-      // Vendored under public/libs/basis/ — copied from the installed three
-      // package so the transcoder always matches the bundled loader version
-      // and works offline. BASE_URL keeps this correct under a Pages subpath.
-      this.ktx2Loader.setTranscoderPath(
-        `${import.meta.env.BASE_URL}libs/basis/`
-      );
-
-      // Detect WebGL capabilities and set target format
-      this.ktx2Loader.detectSupport(this.renderer);
-
-      console.debug('TextureManager: KTX2 loader initialized');
-    } catch (error) {
-      console.error('TextureManager: KTX2 initialization failed', error);
-      console.warn('TextureManager: Falling back to standard textures');
-    }
-  }
-
-  /**
-   * Load texture with automatic KTX2/fallback support
+   * Load a texture (PNG/JPG/…) with caching and memory accounting.
    */
   async loadTexture(url, options = {}) {
     // Check cache first
@@ -97,27 +66,16 @@ export class TextureManager {
     this.stats.cacheMisses++;
 
     let texture;
-    let isCompressed = false;
 
     try {
-      // Try loading KTX2 version first
-      const ktx2Url = this.getKTX2Url(url);
-
-      if (this.ktx2Loader && (url.endsWith('.ktx2') || options.preferKTX2)) {
-        texture = await this.loadKTX2(ktx2Url || url);
-        isCompressed = true;
-        this.stats.ktx2Loaded++;
-      } else {
-        // Fallback to standard texture
-        texture = await this.loadStandardTexture(url);
-        this.stats.fallbackLoaded++;
-      }
+      texture = await this.loadStandardTexture(url);
+      this.stats.texturesLoaded++;
 
       // Apply texture settings
       this.applyTextureSettings(texture, options);
 
       // Cache the texture
-      this.cacheTexture(url, texture, isCompressed);
+      this.cacheTexture(url, texture);
 
       // Track load time
       this.stats.totalLoadTime += performance.now() - startTime;
@@ -129,24 +87,6 @@ export class TextureManager {
       // Return error texture
       return this.getErrorTexture();
     }
-  }
-
-  /**
-   * Load KTX2 compressed texture
-   */
-  async loadKTX2(url) {
-    return this._withTimeout(new Promise((resolve, reject) => {
-      this.ktx2Loader.load(
-        url,
-        (texture) => resolve(texture),
-        (progress) => {
-          // Progress callback
-          const percent = (progress.loaded / progress.total * 100).toFixed(1);
-          console.debug(`Loading KTX2: ${percent}%`);
-        },
-        (error) => reject(error)
-      );
-    }), url);
   }
 
   /**
@@ -176,21 +116,6 @@ export class TextureManager {
       timer = setTimeout(() => reject(new Error(`timeout loading texture: ${url}`)), 30000);
     });
     return Promise.race([promise, watchdog]).finally(() => clearTimeout(timer));
-  }
-
-  /**
-   * Get KTX2 URL from standard texture URL
-   */
-  getKTX2Url(url) {
-    // Replace extension with .ktx2
-    const ktx2Url = url.replace(/\.(jpg|jpeg|png)$/i, '.ktx2');
-
-    // Check if KTX2 version likely exists
-    if (ktx2Url !== url) {
-      return ktx2Url;
-    }
-
-    return null;
   }
 
   /**
@@ -230,32 +155,19 @@ export class TextureManager {
   /**
    * Cache texture and update memory tracking
    */
-  cacheTexture(url, texture, isCompressed) {
+  cacheTexture(url, texture) {
     // Replacing an already-cached URL would double-count memory usage —
     // evict the old entry first so estimatedBytes/textureCount stay exact.
     if (this.textureCache.has(url)) {
       this.unloadTexture(url);
     }
 
-    // isCompressed is stored alongside the texture (not re-derived from the
-    // URL later) because it depends on how the texture was actually loaded,
-    // not on the URL's file extension — options.preferKTX2 (the documented
-    // way to request KTX2 for a non-.ktx2 URL, e.g. a normal map) sets
-    // isCompressed=true for a URL that doesn't end in .ktx2. Re-guessing it
-    // from the URL suffix at unload time would silently use the wrong (8x
-    // larger) uncompressed formula, corrupting memoryUsage.estimatedBytes.
-    this.textureCache.set(url, { texture, isCompressed });
+    this.textureCache.set(url, { texture });
 
     // Estimate memory usage
-    const bytes = this.estimateTextureMemory(texture, isCompressed);
+    const bytes = this.estimateTextureMemory(texture);
     this.memoryUsage.estimatedBytes += bytes;
     this.memoryUsage.textureCount++;
-
-    // Calculate compression ratio
-    if (isCompressed && texture.image) {
-      const uncompressedSize = texture.image.width * texture.image.height * 4;
-      this.memoryUsage.compressionRatio = 1 - (bytes / uncompressedSize);
-    }
 
     // Check memory limit
     if (this.memoryUsage.estimatedBytes > this.memoryUsage.maxBytes) {
@@ -265,9 +177,9 @@ export class TextureManager {
   }
 
   /**
-   * Estimate texture memory usage
+   * Estimate texture memory usage (uncompressed RGBA).
    */
-  estimateTextureMemory(texture, isCompressed) {
+  estimateTextureMemory(texture) {
     if (!texture.image) {
       return 0;
     }
@@ -275,13 +187,7 @@ export class TextureManager {
     const width = texture.image.width || 512;
     const height = texture.image.height || 512;
 
-    if (isCompressed) {
-      // KTX2 compressed size (approximately 8x smaller)
-      return (width * height * 4) / 8;
-    } else {
-      // Uncompressed RGBA
-      return width * height * 4;
-    }
+    return width * height * 4;
   }
 
   /**
@@ -305,14 +211,11 @@ export class TextureManager {
     if (!cached) {
       return;
     }
-    const { texture, isCompressed } = cached;
+    const { texture } = cached;
 
     // Estimate memory BEFORE disposing — dispose() may clear texture.image,
-    // which would make the size estimate wrong (and skew tracking). Uses the
-    // isCompressed flag recorded at cache time (see cacheTexture) rather than
-    // re-deriving it from the URL, which disagreed for any texture loaded via
-    // options.preferKTX2 with a non-.ktx2 URL.
-    const bytes = this.estimateTextureMemory(texture, isCompressed);
+    // which would make the size estimate wrong (and skew tracking).
+    const bytes = this.estimateTextureMemory(texture);
 
     // Dispose texture
     texture.dispose();
@@ -377,8 +280,7 @@ export class TextureManager {
       textureCount: this.memoryUsage.textureCount,
       usedMB: (this.memoryUsage.estimatedBytes / 1024 / 1024).toFixed(2),
       maxMB: (this.memoryUsage.maxBytes / 1024 / 1024).toFixed(2),
-      utilizationPercent: ((this.memoryUsage.estimatedBytes / this.memoryUsage.maxBytes) * 100).toFixed(1),
-      compressionRatio: (this.memoryUsage.compressionRatio * 100).toFixed(1) + '%'
+      utilizationPercent: ((this.memoryUsage.estimatedBytes / this.memoryUsage.maxBytes) * 100).toFixed(1)
     };
   }
 
@@ -387,13 +289,12 @@ export class TextureManager {
    */
   getPerformanceStats() {
     return {
-      ktx2Loaded: this.stats.ktx2Loaded,
-      fallbackLoaded: this.stats.fallbackLoaded,
+      texturesLoaded: this.stats.texturesLoaded,
       cacheHitRate: (this.stats.cacheHits + this.stats.cacheMisses) > 0
         ? this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses) * 100
         : 0,
-      avgLoadTime: (this.stats.ktx2Loaded + this.stats.fallbackLoaded) > 0
-        ? this.stats.totalLoadTime / (this.stats.ktx2Loaded + this.stats.fallbackLoaded)
+      avgLoadTime: this.stats.texturesLoaded > 0
+        ? this.stats.totalLoadTime / this.stats.texturesLoaded
         : 0
     };
   }
@@ -403,11 +304,6 @@ export class TextureManager {
    */
   dispose() {
     this.unloadAll();
-
-    if (this.ktx2Loader) {
-      this.ktx2Loader.dispose();
-    }
-
     this.pendingLoads.clear();
   }
 }
@@ -417,20 +313,19 @@ export class TextureManager {
  *
  * const textureManager = new TextureManager(renderer);
  *
- * // Load single texture (auto-detects KTX2)
- * const texture = await textureManager.loadTexture('assets/textures/wood.ktx2');
+ * // Load single texture
+ * const texture = await textureManager.loadTexture('assets/textures/wood.png');
  *
  * // Load with options
  * const normalMap = await textureManager.loadTexture('assets/textures/wood_normal.png', {
- *   preferKTX2: true,
  *   colorSpace: THREE.LinearSRGBColorSpace
  * });
  *
  * // Batch load
  * const textures = await textureManager.loadTextures([
- *   'assets/textures/diffuse.ktx2',
- *   'assets/textures/normal.ktx2',
- *   'assets/textures/roughness.ktx2'
+ *   'assets/textures/diffuse.png',
+ *   'assets/textures/normal.png',
+ *   'assets/textures/roughness.png'
  * ]);
  *
  * // Check memory usage

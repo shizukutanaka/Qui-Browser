@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' https: blob:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' https: blob:; frame-src https:; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
 
     <!-- Primary Meta Tags -->
     <title>Qui Browser VR v2.0.0 — WebXR Browser for Meta Quest &amp; Pico</title>
@@ -37,8 +37,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
-
-    <!-- Preconnect (BASIS transcoder for KTX2 textures, TextureManager.js) -->
 
     <!-- Main Styles -->
     <link rel="stylesheet" href="/src/styles/main.css">
@@ -82,7 +80,7 @@
                 <div class="feature-card" role="listitem" aria-label="High Performance" data-i18n-attr="aria-label:feat.perf.title">
                     <div class="feature-icon" aria-hidden="true">⚡</div>
                     <h3 class="feature-title" data-i18n="feat.perf.title">High Performance</h3>
-                    <p class="feature-description" data-i18n="feat.perf.desc">Targets 90-120 FPS on Quest 3 via foveated rendering, KTX2 textures, and quad-layer UI</p>
+                    <p class="feature-description" data-i18n="feat.perf.desc">Targets 90-120 FPS on Quest 3 via foveated rendering and quad-layer UI</p>
                 </div>
 
                 <div class="feature-card" role="listitem" aria-label="Hand Tracking" data-i18n-attr="aria-label:feat.hand.title">

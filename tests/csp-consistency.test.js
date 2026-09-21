@@ -39,10 +39,10 @@ test('worker-src permits the same-origin service worker', () => {
   expect(directives.get('worker-src')).toContain("'self'");
 });
 
-test('worker-src permits blob: workers (KTX2 transcoder needs them)', () => {
-  // KTX2Loader builds its basis transcoder workers from a Blob URL —
-  // worker-src 'self' alone leaves KTX2 texture decode dead on every target.
-  expect(directives.get('worker-src')).toContain('blob:');
+test('worker-src is locked to self — nothing spawns blob: workers', () => {
+  // blob: workers existed only for the KTX2 transcoder, which is deleted; the
+  // service worker registers under 'self'. Keep blob: out of the policy.
+  expect(directives.get('worker-src')).toEqual(["'self'"]);
 });
 
 test('media-src permits user-supplied video URLs', () => {

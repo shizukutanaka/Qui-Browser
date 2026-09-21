@@ -156,23 +156,19 @@ bundle in a single pass (~0.7s cold build measured).
 
 **Principle:** Optimize static assets for fast loading.
 
-#### Texture Compression
+#### Textures
 
 ```javascript
-// Use KTX2 for textures
-const texture = await textureManager.loadTexture('wood.ktx2', {
-  preferKTX2: true,
+// TextureManager caches textures in an LRU with a memory cap
+const texture = await textureManager.loadTexture('wood.png', {
   maxSize: 2048,
   priority: 'high'
 });
-
-// Fallback to PNG/JPG if KTX2 unavailable
 ```
 
 **Size Comparison:**
 - PNG 4K: 8MB
-- JPG 4K: 2MB
-- KTX2 4K: 512KB (-94% vs PNG)
+- JPG 4K: 2MB — prefer JPG/WebP for large photographic textures
 
 #### Image Optimization
 
@@ -419,7 +415,7 @@ npm run build:analyze
 
 - [x] Icons generated (`npm run icons` → public/icons)
 - [ ] Fonts — none shipped (system fonts only)
-- [ ] Textures — none shipped yet (KTX2 loader is wired in TextureManager for when they land)
+- [ ] Textures — none shipped (TextureManager provides caching + memory cap for when they land)
 - [ ] Audio — procedural WebAudio synth only, no audio files
 
 ### Caching
@@ -592,7 +588,7 @@ import { DevTools } from '../dev/DevTools.js';
 ```javascript
 // ✅ Good: Progressive loading with priorities
 loader.addResource({
-  url: 'texture.ktx2',
+  url: 'texture.png',
   priority: 'high',
   type: 'texture'
 });

@@ -117,7 +117,7 @@ const GENERIC = {
   ProgressiveLoader: () => ({ callbacks: {} }),
   FFRSystem: () => ({}),
   ComfortSystem: () => ({ setPreset() {} }),
-  TextureManager: () => ({ initializeKTX2: async () => {} }),
+  TextureManager: () => ({}),
   JapaneseIME: () => ({}),
   VRJapaneseKeyboard: () => ({}),
   HandTracking: () => ({ onTrackingChange(cb) {
@@ -163,7 +163,7 @@ describe('initializeSystems — construction gates honor persisted settings', ()
     for (const [name, fixture] of Object.entries({
       FFRSystem: {},
       ComfortSystem: { setPreset: jest.fn() },
-      TextureManager: { initializeKTX2: jest.fn(async () => {}) },
+      TextureManager: {},
       PerformanceMonitor: { initialize: jest.fn() }
     })) {
       calls[name] = [];
@@ -172,7 +172,7 @@ describe('initializeSystems — construction gates honor persisted settings', ()
     const app = makeInitLike({
       enableFFR: false,
       enableComfort: false,
-      enableTextureCompression: false,
+      enableTextureManager: false,
       enablePerfMonitorUI: true
     });
     await VRApp.prototype.initializeSystems.call(app);

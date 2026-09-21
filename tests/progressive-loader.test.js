@@ -394,17 +394,12 @@ describe('ProgressiveLoader.performLoad dispatch', () => {
     expect(out).toBe(blob);
   });
 
-  test("type 'texture' delegates to window.textureManager when present", async () => {
-    const origWindow = global.window;
+  test("type 'texture' delegates to an injected textureManager when present", async () => {
     const tm = { loadTexture: jest.fn(async () => 'TEXTURE') };
-    global.window = { textureManager: tm };
-    try {
-      const out = await loader.performLoad({ url: '/t.png', type: 'texture' });
-      expect(out).toBe('TEXTURE');
-      expect(tm.loadTexture).toHaveBeenCalledWith('/t.png');
-    } finally {
-      global.window = origWindow;
-    }
+    loader.textureManager = tm;
+    const out = await loader.performLoad({ url: '/t.png', type: 'texture' });
+    expect(out).toBe('TEXTURE');
+    expect(tm.loadTexture).toHaveBeenCalledWith('/t.png');
   });
 });
 
@@ -537,9 +532,8 @@ describe('ProgressiveLoader per-type DOM loaders', () => {
       }
     });
 
-  test('loadTexture falls back to loadImage when window.textureManager is absent', async () => {
+  test('loadTexture falls back to loadImage when no textureManager is injected', async () => {
     const imgs = stubImageConstructor();
-    global.window = {}; // no textureManager
     const p = loader.loadTexture('/tex.png');
     imgs[0].onload();
     await expect(p).resolves.toBe(imgs[0]);

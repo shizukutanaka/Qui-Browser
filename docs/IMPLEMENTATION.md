@@ -305,85 +305,7 @@ function createButton(position, callback) {
 
 ---
 
-### 4. KTX2 Texture Compression
-
-**Time**: 1-2 hours
-**Memory Savings**: 75%
-**Difficulty**: ⭐ Very Easy
-
-**File**: `src/utils/TextureManager.js`
-
-```javascript
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-
-export class TextureManager {
-  constructor() {
-    this.ktx2Loader = new KTX2Loader();
-    this.ktx2Loader.setTranscoderPath(
-      'https://cdn.jsdelivr.net/npm/basis-universal@latest/basis_transcoder.js'
-    );
-    this.textureCache = new Map();
-  }
-
-  async loadTexture(url) {
-    if (this.textureCache.has(url)) {
-      return this.textureCache.get(url);
-    }
-
-    let texture;
-    if (url.endsWith('.ktx2')) {
-      texture = await this.ktx2Loader.loadAsync(url);
-    } else {
-      // Fallback for PNG/JPG
-      const textureLoader = new THREE.TextureLoader();
-      texture = await textureLoader.loadAsync(url);
-    }
-
-    this.textureCache.set(url, texture);
-    return texture;
-  }
-
-  unloadTexture(url) {
-    if (this.textureCache.has(url)) {
-      const texture = this.textureCache.get(url);
-      texture.dispose();
-      this.textureCache.delete(url);
-    }
-  }
-
-  getMemoryUsage() {
-    let total = 0;
-    for (const [url, texture] of this.textureCache) {
-      if (texture.image) {
-        total += texture.image.width * texture.image.height * 4;
-      }
-    }
-    return {
-      bytes: total,
-      megabytes: (total / 1024 / 1024).toFixed(2)
-    };
-  }
-}
-```
-
-**Conversion Tool** (Command line):
-```bash
-# Install
-npm install --save-dev @replit/basis-universal
-
-# Convert
-basisu input.png -output_file output.ktx2
-basisu input.jpg -output_file output.ktx2 -q 185
-```
-
-**Validation**:
-- [ ] KTX2 loads correctly
-- [ ] Memory usage at 75% of original
-- [ ] Visual quality acceptable
-
----
-
-### 5. Service Worker Caching
+### 4. Service Worker Caching
 
 **Time**: 2-3 hours
 **Load Time Improvement**: 70%
@@ -469,7 +391,7 @@ if ('serviceWorker' in navigator) {
 
 ## Tier 2a: Text Input (Week 3-4)
 
-### 6. Japanese IME Integration
+### 5. Japanese IME Integration
 
 **Time**: 8-12 hours
 **Market Impact**: Unlocks 100M+ users
@@ -552,7 +474,7 @@ class VRKeyboardWithIME {
 
 ## Tier 2b: Advanced Features (Week 5-6)
 
-### 7. Hand Tracking
+### 6. Hand Tracking
 
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
@@ -649,7 +571,7 @@ export class HandTracking {
 
 ---
 
-### 8. Spatial Audio
+### 7. Spatial Audio
 
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
@@ -762,7 +684,6 @@ All Devices:
 - [ ] FFR working (verify visual fidelity at edges)
 - [ ] Comfort system functional
 - [ ] Object pooling active (no GC pauses)
-- [ ] Textures compressed (KTX2)
 - [ ] Service worker caching assets
 ```
 

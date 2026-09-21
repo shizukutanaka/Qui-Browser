@@ -50,23 +50,6 @@ jest.mock('three', () => {
   };
 });
 
-jest.mock('three/examples/jsm/loaders/KTX2Loader.js', () => {
-  const mockTex = () => ({
-    wrapS: null, wrapT: null, magFilter: null, minFilter: null,
-    anisotropy: null, colorSpace: null, generateMipmaps: false,
-    dispose: jest.fn()
-  });
-  class MockKTX2Loader {
-    setTranscoderPath() {}
-    detectSupport() {}
-    dispose() {}
-    load(url, onLoad) {
-      onLoad(mockTex());
-    }
-  }
-  return { KTX2Loader: MockKTX2Loader };
-});
-
 // ── browser APIs ──────────────────────────────────────────────────────────────
 global.performance = global.performance || { now: () => Date.now() };
 
@@ -96,19 +79,6 @@ describe('TextureManager', () => {
     expect(tm.stats.cacheMisses).toBe(0);
   });
 
-  // ── getKTX2Url ────────────────────────────────────────────────────────────────
-  test('getKTX2Url replaces jpg extension with ktx2', () => {
-    expect(tm.getKTX2Url('assets/wood.jpg')).toBe('assets/wood.ktx2');
-  });
-
-  test('getKTX2Url replaces png extension with ktx2', () => {
-    expect(tm.getKTX2Url('tex.png')).toBe('tex.ktx2');
-  });
-
-  test('getKTX2Url returns null when no replaceable extension', () => {
-    expect(tm.getKTX2Url('tex.ktx2')).toBeNull();
-  });
-
   // ── loadTexture — cache ───────────────────────────────────────────────────────
   test('loadTexture caches the result and returns hit on second call', async () => {
     const t1 = await tm.loadTexture('test.png');
@@ -118,16 +88,9 @@ describe('TextureManager', () => {
     expect(tm.stats.cacheMisses).toBe(1);
   });
 
-  test('loadTexture increments fallbackLoaded for standard PNG', async () => {
+  test('loadTexture increments texturesLoaded for a standard PNG', async () => {
     await tm.loadTexture('sprite.png');
-    expect(tm.stats.fallbackLoaded).toBe(1);
-    expect(tm.stats.ktx2Loaded).toBe(0);
-  });
-
-  test('loadTexture increments ktx2Loaded for .ktx2 URL', async () => {
-    await tm.loadTexture('sprite.ktx2');
-    expect(tm.stats.ktx2Loaded).toBe(1);
-    expect(tm.stats.fallbackLoaded).toBe(0);
+    expect(tm.stats.texturesLoaded).toBe(1);
   });
 
   // ── applyTextureSettings — colorSpace ────────────────────────────────────────
@@ -179,37 +142,29 @@ describe('TextureManager', () => {
     expect(s).toHaveProperty('utilizationPercent');
   });
 
-  // ── memory accounting: isCompressed tracked, not re-derived from URL ─────────
-  // options.preferKTX2 (the documented way to request KTX2 for a non-.ktx2 URL,
-  // e.g. loadTexture('wood_normal.png', { preferKTX2: true })) sets
-  // isCompressed=true for a URL that doesn't end in .ktx2. unloadTexture() must
-  // use the isCompressed flag recorded at cache time, not re-guess it from the
-  // URL suffix (which would use the 8x-larger uncompressed formula instead).
-  test('unloadTexture reverses the exact byte count cacheTexture recorded for a compressed, non-.ktx2-suffixed URL', () => {
+  // ── memory accounting ───────────────────────────────────────────────────────
+  test('unloadTexture reverses the exact byte count cacheTexture recorded', () => {
     const texture = { image: { width: 512, height: 512 }, dispose: jest.fn() };
-    const url = 'assets/textures/wood_normal.png'; // no .ktx2 suffix
+    const url = 'assets/textures/wood_normal.png';
 
-    tm.cacheTexture(url, texture, true); // isCompressed=true, as preferKTX2 would pass
-    const compressedBytes = (512 * 512 * 4) / 8;
-    expect(tm.memoryUsage.estimatedBytes).toBe(compressedBytes);
+    tm.cacheTexture(url, texture);
+    expect(tm.memoryUsage.estimatedBytes).toBe(512 * 512 * 4);
 
     tm.unloadTexture(url);
     expect(tm.memoryUsage.estimatedBytes).toBe(0);
   });
 
-  test('cacheTexture stores isCompressed per-entry so mixed compressed/uncompressed textures unload correctly', () => {
-    const compressed = { image: { width: 256, height: 256 }, dispose: jest.fn() };
-    const uncompressed = { image: { width: 256, height: 256 }, dispose: jest.fn() };
+  test('mixed-size textures accumulate and unload independently', () => {
+    const a = { image: { width: 256, height: 256 }, dispose: jest.fn() };
+    const b = { image: { width: 128, height: 128 }, dispose: jest.fn() };
 
-    tm.cacheTexture('a.png', compressed, true);
-    tm.cacheTexture('b.jpg', uncompressed, false);
+    tm.cacheTexture('a.png', a);
+    tm.cacheTexture('b.jpg', b);
 
-    const compressedBytes = (256 * 256 * 4) / 8;
-    const uncompressedBytes = 256 * 256 * 4;
-    expect(tm.memoryUsage.estimatedBytes).toBe(compressedBytes + uncompressedBytes);
+    expect(tm.memoryUsage.estimatedBytes).toBe(256 * 256 * 4 + 128 * 128 * 4);
 
     tm.unloadTexture('a.png');
-    expect(tm.memoryUsage.estimatedBytes).toBe(uncompressedBytes);
+    expect(tm.memoryUsage.estimatedBytes).toBe(128 * 128 * 4);
 
     tm.unloadTexture('b.jpg');
     expect(tm.memoryUsage.estimatedBytes).toBe(0);
@@ -243,7 +198,7 @@ describe('TextureManager — duplicate-URL accounting', () => {
     const p2 = tm.loadTexture('shared.png');
     const [t1, t2] = await Promise.all([p1, p2]);
     expect(t1).toBe(t2);
-    expect(tm.stats.fallbackLoaded).toBe(1); // one real fetch, not two
+    expect(tm.stats.texturesLoaded).toBe(1); // one real fetch, not two
     expect(tm.memoryUsage.textureCount).toBe(1);
   });
 });
@@ -261,9 +216,9 @@ describe('TextureManager pruning + stats (uncovered layer)', () => {
 
   test('pruneCache evicts down to 70% of maxBytes', () => {
     const tm = makeTM(1, 4);
-    tm.cacheTexture('a', tex(), false);
-    tm.cacheTexture('b', tex(), false);
-    tm.cacheTexture('c', tex(), false);
+    tm.cacheTexture('a', tex());
+    tm.cacheTexture('b', tex());
+    tm.cacheTexture('c', tex());
     tm.memoryUsage.estimatedBytes = 4; // over the cap
     tm.pruneCache();
     expect(tm.memoryUsage.estimatedBytes).toBeLessThanOrEqual(2); // floor(4*0.7)
@@ -272,25 +227,19 @@ describe('TextureManager pruning + stats (uncovered layer)', () => {
 
   test('a cache hit refreshes recency: hot texture survives eviction', async () => {
     const tm = makeTM(1, 3);
-    tm.cacheTexture('a', tex(), false);
-    tm.cacheTexture('b', tex(), false);
-    tm.cacheTexture('c', tex(), false); // 3 bytes, at the cap
+    tm.cacheTexture('a', tex());
+    tm.cacheTexture('b', tex());
+    tm.cacheTexture('c', tex()); // 3 bytes, at the cap
     // 'a' is hit frequently — it must NOT be the first evicted.
     await tm.loadTexture('a');
     // 'd' pushes over the cap; pruneCache evicts to 70% of 3 = 2 bytes.
-    tm.cacheTexture('d', tex(), false);
+    tm.cacheTexture('d', tex());
     // Order after the hit was [b, c, a]; adding 'd' over the cap prunes to
     // 2 bytes: b and c evict, the hot 'a' and new 'd' remain.
     expect(tm.textureCache.has('a')).toBe(true);
     expect(tm.textureCache.has('b')).toBe(false);
     expect(tm.textureCache.has('c')).toBe(false);
     expect(tm.textureCache.has('d')).toBe(true);
-  });
-
-  test('loadKTX2 resolves through the mocked loader', async () => {
-    const tm = new TextureManager();
-    tm.ktx2Loader = { load: (url, onLoad) => onLoad(tex()) };
-    await expect(tm.loadKTX2('/x.ktx2')).resolves.toBeDefined();
   });
 
   test('loadStandardTexture resolves through THREE.TextureLoader', async () => {
@@ -342,7 +291,7 @@ describe('TextureManager — error arms', () => {
     const tex = await tm.loadTexture('https://x.example.com/gone.png');
     global.document = prevDoc;
     expect(tex).toBeTruthy(); // CanvasTexture error placeholder, not a rejection
-    expect(tm.stats.fallbackLoaded).toBe(0);
+    expect(tm.stats.texturesLoaded).toBe(0);
   });
 
   test('loadStandardTexture rejects when the loader calls onError', async () => {
@@ -351,56 +300,33 @@ describe('TextureManager — error arms', () => {
     await expect(tm.loadStandardTexture('x.png')).rejects.toThrow('bad');
   });
 
-  test('loadKTX2 rejects on onError and forwards progress', async () => {
-    const tm = new TextureManager(makeRenderer());
-    const progressSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
-    tm.ktx2Loader = {
-      load(url, onLoad, onProgress, onError) {
-        onProgress({ loaded: 50, total: 100 });
-        onError(new Error('ktx2 fail'));
-      }
-    };
-    await expect(tm.loadKTX2('x.ktx2')).rejects.toThrow('ktx2 fail');
-    expect(progressSpy).toHaveBeenCalledWith(expect.stringContaining('50.0%'));
-    progressSpy.mockRestore();
+  test('loadStandardTexture rejects after the timeout when the loader never calls back', async () => {
+    // three's loaders carry no built-in timeout — a stalled server would
+    // leave the promise pending forever and pin the pendingLoads entry.
+    jest.useFakeTimers();
+    try {
+      const tm = new TextureManager(makeRenderer());
+      tm.textureLoader.load = () => {};
+      const p = tm.loadStandardTexture('/stalled');
+      const settled = p.then(() => 'resolved', (e) => `rejected:${e.message}`);
+      jest.advanceTimersByTime(30000);
+      await expect(settled).resolves.toMatch(/^rejected:timeout loading texture/);
+      await expect(p).rejects.toThrow('timeout loading texture');
+    } finally {
+      jest.useRealTimers();
+    }
   });
-
-  test.each(['loadStandardTexture', 'loadKTX2'])(
-    '%s rejects after the timeout when the loader never calls back', async (method) => {
-      // three's loaders carry no built-in timeout — a stalled server would
-      // leave the promise pending forever and pin the pendingLoads entry.
-      jest.useFakeTimers();
-      try {
-        const tm = new TextureManager(makeRenderer());
-        const neverCalls = () => {};
-        tm.textureLoader.load = neverCalls;
-        tm.ktx2Loader = { load: neverCalls };
-        const p = tm[method]('/stalled');
-        const settled = p.then(() => 'resolved', (e) => `rejected:${e.message}`);
-        jest.advanceTimersByTime(30000);
-        await expect(settled).resolves.toMatch(/^rejected:timeout loading texture/);
-        await expect(p).rejects.toThrow('timeout loading texture');
-      } finally {
-        jest.useRealTimers();
-      }
-    });
 
   test('unloadTexture on an uncached URL is a no-op', () => {
     const tm = new TextureManager(makeRenderer());
     expect(() => tm.unloadTexture('https://never-loaded.example.com/x.png')).not.toThrow();
   });
 
-  test('KTX2 init failure falls back to standard textures (initKTX2 catch arm)', async () => {
+  test('a standard texture loads end-to-end through loadTexture', async () => {
     const tm = new TextureManager(makeRenderer());
-    // Force the constructor-path loader into throwing on init
-    const bad = () => {
-      throw new Error('no transcoder');
-    };
-    tm.initKTX2Loader && (tm.ktx2Loader = { setTranscoderPath: bad, detectSupport() {} });
-    // Simulate the catch arm directly through the real method if exposed
-    const tex = await tm.loadTexture('y.png'); // standard path still works
+    const tex = await tm.loadTexture('y.png');
     expect(tex).toBeTruthy();
-    expect(tm.stats.fallbackLoaded).toBe(1);
+    expect(tm.stats.texturesLoaded).toBe(1);
   });
 });
 
@@ -420,7 +346,7 @@ describe('TextureManager — last branch arms', () => {
 
   test('estimateTextureMemory defaults image dimensions when absent', () => {
     const tm = new TextureManager();
-    const bytes = tm.estimateTextureMemory({ image: {} }, false);
+    const bytes = tm.estimateTextureMemory({ image: {} });
     expect(bytes).toBeGreaterThan(0);
   });
 
@@ -431,9 +357,8 @@ describe('TextureManager — last branch arms', () => {
     expect(stats.avgLoadTime).toBe(0);
   });
 
-  test('dispose without ktx2Loader does not throw', () => {
+  test('dispose does not throw on a fresh manager', () => {
     const tm = new TextureManager();
-    tm.ktx2Loader = null;
     expect(() => tm.dispose()).not.toThrow();
   });
 });

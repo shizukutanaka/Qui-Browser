@@ -45,7 +45,6 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 ### Assets
 
 - [ ] Images optimized
-- [ ] Textures compressed (KTX2)
 - [ ] Fonts subsetted
 - [ ] Audio files optimized
 
