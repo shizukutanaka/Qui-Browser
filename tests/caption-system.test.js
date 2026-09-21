@@ -526,3 +526,29 @@ describe('captionLayout — complementary arms', () => {
     expect(captionFontSizeFor(3, -1)).toBe(captionFontSizeFor(3, 1));
   });
 });
+
+describe('CaptionSystem — complementary arms', () => {
+  test('overlong lines get truncated with an ellipsis', () => {
+    const cam = makeCamera();
+    const cs = new CaptionSystem(cam, { maxLines: 3, lineDuration: 1000 });
+    const long = 'x'.repeat(200);
+    const t = cs._truncate(long, 60);
+    expect(t.endsWith('…')).toBe(true);
+    cs.dispose?.();
+  });
+
+  test('dispose with mesh.material.map disposes the map and detaches', () => {
+    const cam = makeCamera();
+    cam.remove = jest.fn();
+    const cs = new CaptionSystem(cam, {});
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    cs.mesh = { geometry: geo, material: mat, traverse: (cb) => cb(cs.mesh) };
+    cs.dispose();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+    expect(cam.remove).toHaveBeenCalled();
+  });
+});
