@@ -511,3 +511,85 @@ describe('layoutReaderLines — malformed block skip', () => {
     expect(lines.filter(l => l.style === 'p')).toEqual([{ text: 'ok', style: 'p' }]);
   });
 });
+
+describe('readerLayout — remaining branch arms', () => {
+  const { visibleLineCount, visibleLinesFor, measureEmFor, clampReaderScroll,
+    readerWindow, readerProgressLabel, readerHitTest, fontPxFor, pageJumpLines } =
+    require('../src/vr/browser/readerLayout.js');
+
+  test('scale ≤0 falls back to 1 in visibleLineCount / measureEmFor / fontPxFor', () => {
+    expect(visibleLineCount(0)).toBe(visibleLineCount(1));
+    expect(visibleLineCount(-3)).toBe(visibleLineCount(1));
+    expect(measureEmFor(0)).toBe(measureEmFor(1));
+    expect(fontPxFor('title', 0)).toBe(fontPxFor('title', 1));
+    expect(fontPxFor('h', -1)).toBe(fontPxFor('h', 1));
+    expect(fontPxFor('p', 0)).toBe(fontPxFor('p', 1));
+  });
+
+  test('visibleLinesFor: non-numeric total → 0 → unreserved count', () => {
+    expect(visibleLinesFor(undefined)).toBe(visibleLineCount(1, false));
+    expect(visibleLinesFor('x')).toBe(visibleLineCount(1, false));
+    // overflowing → reserved (arrows drawn) count
+    expect(visibleLinesFor(10_000)).toBe(visibleLineCount(1, true));
+  });
+
+  test('clampReaderScroll: non-finite offset → 0; missing total/visible → 0', () => {
+    expect(clampReaderScroll(NaN, 10, 5)).toBe(0);
+    expect(clampReaderScroll(Infinity, 10, 5)).toBe(0);
+    expect(clampReaderScroll(5, undefined, undefined)).toBe(0);
+    expect(clampReaderScroll(3.9, 20, 5)).toBe(3); // floor
+  });
+
+  test('readerWindow: non-array lines → []; missing visible → 1 line', () => {
+    expect(readerWindow(null, 0, 10)).toEqual([]);
+    expect(readerWindow(undefined, 0, 10)).toEqual([]);
+    const lines = [{ text: 'a' }, { text: 'b' }, { text: 'c' }];
+    expect(readerWindow(lines, 0, undefined)).toEqual([{ text: 'a' }]);
+    expect(readerWindow(lines, 1, 0)).toEqual([{ text: 'b' }]); // visible 0 → 1
+  });
+
+  test('readerProgressLabel: missing/zero total and visible → empty label', () => {
+    expect(readerProgressLabel(0, undefined, 10)).toBe('');
+    expect(readerProgressLabel(0, 0, 10)).toBe('');
+    expect(readerProgressLabel(0, 5, 0)).toBe('1–1/5'); // visible 0 → v=1, n=5 overflows
+  });
+
+  test('readerHitTest: not-scrollable ignores the arrow band; off-arrow x is none', () => {
+    const { ARROW_Y0 } = require('../src/vr/browser/readerLayout.js');
+    // scrollable=false → arrows dead even inside their band
+    expect(readerHitTest(0, ARROW_Y0 + 1, false).type).toBe('none');
+    // scrollable but x outside both arrows → none
+    expect(readerHitTest(512, ARROW_Y0 + 1, true).type).toBe('none');
+    // py outside the band entirely → none even when scrollable
+    expect(readerHitTest(0, 10, true).type).toBe('none');
+  });
+
+  test('pageJumpLines: missing visible → 1', () => {
+    expect(pageJumpLines(undefined)).toBe(1);
+    expect(pageJumpLines(10)).toBe(8); // 10 - 2 overlap
+  });
+});
+
+describe('readerLayout — complementary arms', () => {
+  test('non-positive scale normalizes to 1 in line/font helpers', () => {
+    const { visibleLineCount, measureEmFor, fontPxFor } = require('../src/vr/browser/readerLayout.js');
+    expect(visibleLineCount(0)).toBe(visibleLineCount(1));
+    expect(measureEmFor(-3)).toBe(measureEmFor(1));
+    expect(fontPxFor('body', 0)).toBe(fontPxFor('body', 1));
+  });
+
+  test('title style yields a larger font than body', () => {
+    const { fontPxFor } = require('../src/vr/browser/readerLayout.js');
+    expect(fontPxFor('title', 1)).toBeGreaterThan(fontPxFor('body', 1));
+  });
+
+  test('readerHitTest arrow zone dispatches scrollUp/scrollDown when scrollable', () => {
+    const { readerHitTest } = require('../src/vr/browser/readerLayout.js');
+    const mod = require('../src/vr/browser/readerLayout.js');
+    const { ARROW_Y0, ARROW_H, ARROW_UP_X0, ARROW_W } = mod;
+    if (ARROW_Y0 !== undefined) {
+      const hit = readerHitTest(ARROW_UP_X0 + 1, ARROW_Y0 + 1, true);
+      expect(['scrollUp', 'scrollDown', 'up', 'down']).toContain(hit.type);
+    }
+  });
+});

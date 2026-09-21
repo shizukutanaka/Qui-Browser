@@ -464,3 +464,165 @@ describe('t() — fallback arms', () => {
     setLanguage('en');
   });
 });
+
+describe('i18n — last branch arms', () => {
+  const { applyTranslations } = require('../src/i18n/i18n.js');
+
+  test('applyTranslations(null) with no document returns silently', () => {
+    const saved = global.document;
+    delete global.document;
+    try {
+      expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
+      expect(() => applyTranslations({})).not.toThrow(); // no querySelectorAll
+    } finally {
+      global.document = saved;
+    }
+  });
+
+  test('applyTranslations skips malformed data-i18n-attr pairs', () => {
+    const el = {
+      attrs: {},
+      getAttribute: () => 'aria-label:vr.app.title;;:empty-key',
+      setAttribute(k, v) { this.attrs[k] = v; }
+    };
+    const scope = { querySelectorAll: (sel) => (sel === '[data-i18n-attr]' ? [el] : { forEach() {} }) };
+    scope.querySelectorAll = (sel) => ({ forEach: (fn) => (sel === '[data-i18n-attr]' ? [el] : []).forEach(fn) });
+    expect(() => applyTranslations(scope)).not.toThrow();
+    expect(el.attrs['aria-label']).toBeTruthy();
+  });
+
+  test('detectLanguage ignores saved value absent from the catalog', () => {
+    // localStorage holds a language the catalog doesn't define → falls through
+    // to navigator/default rather than resurrecting a removed language.
+    const saved = global.localStorage;
+    global.localStorage = { getItem: () => 'xx', setItem() {}, removeItem() {} };
+    try {
+      jest.resetModules();
+      const mod = require('../src/i18n/i18n.js');
+      expect(['en', 'ja']).toContain(mod.getLanguage());
+    } finally {
+      global.localStorage = saved;
+    }
+  });
+});
+
+describe('i18n — complementary arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('t() falls back to the en catalog for a key missing in ja', () => {
+    const { t, setLanguage, CATALOG } = require('../src/i18n/i18n.js');
+    // find a key present in en but absent in ja; if none exists, fabricate one
+    const enOnly = Object.keys(CATALOG.en).find((k) => !(k in CATALOG.ja));
+    if (!enOnly) {
+      CATALOG.en['vr.__enOnlyTest'] = 'EN-ONLY';
+    }
+    setLanguage('ja');
+    expect(t(enOnly || 'vr.__enOnlyTest')).toBe(enOnly ? CATALOG.en[enOnly] : 'EN-ONLY');
+    setLanguage('en');
+  });
+
+  test('setLanguage writes localStorage and applies to a provided root', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    const el = {
+      getAttribute: (a) => (a === 'data-i18n' ? 'app.title' : null),
+      textContent: ''
+    };
+    const root = { querySelectorAll: (sel) => (sel === '[data-i18n]' ? [el] : []) };
+    setLanguage('ja', root);
+    expect(localStorage.getItem('qui-browser:lang')).toBe('ja');
+    expect(el.textContent).toBeTruthy();
+    setLanguage('en');
+  });
+
+  test('detectLanguage honours a valid saved language', () => {
+    localStorage.setItem('qui-browser:lang', 'ja');
+    const { getLanguage } = require('../src/i18n/i18n.js');
+    expect(getLanguage()).toBe('ja');
+    localStorage.removeItem('qui-browser:lang');
+    jest.resetModules();
+    require('../src/i18n/i18n.js').setLanguage('en');
+  });
+});
+
+describe('i18n — storage/fallback sliver arms', () => {
+  test('t() falls back to the en catalog for keys missing in current lang', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('xx'); // unknown language -> en catalog
+    expect(t('nonexistent.key')).toBeTruthy();
+    setLanguage('en');
+  });
+
+  test('applyTranslations tolerates a scope without querySelectorAll', () => {
+    const { applyTranslations } = require('../src/i18n/i18n.js');
+    expect(() => applyTranslations({})).not.toThrow();
+    expect(() => applyTranslations(null)).not.toThrow();
+  });
+
+  test('storage guards survive localStorage absence', () => {
+    const orig = global.localStorage;
+    delete global.localStorage;
+    jest.resetModules();
+    expect(() => require('../src/i18n/i18n.js')).not.toThrow();
+    global.localStorage = orig;
+    jest.resetModules();
+  });
+});
+
+describe('i18n — module-init fallback arms', () => {
+  test('localStorage seeded with an unknown language falls back to en catalog', () => {
+    global.localStorage = { getItem: () => 'xx', setItem() {}, removeItem() {} };
+    jest.resetModules();
+    const mod = require('../src/i18n/i18n.js');
+    expect(mod.t('app.loading')).toBeTruthy();   // resolves via CATALOG.en
+    jest.resetModules();
+    delete global.localStorage;
+  });
+
+  test('setLanguage tolerates absent localStorage; applyTranslations returns on null scope', () => {
+    jest.resetModules();
+    delete global.localStorage;
+    delete global.document;
+    const mod = require('../src/i18n/i18n.js');
+    expect(() => mod.setLanguage('ja')).not.toThrow();
+    expect(() => mod.applyTranslations(null)).not.toThrow();
+    jest.resetModules();
+  });
+});
+
+describe('i18n — document-absent arm', () => {
+  test('applyTranslations() with no root and no document returns silently', async () => {
+    const savedDoc = global.document;
+    delete global.document;
+    const { applyTranslations } = await import('../src/i18n/i18n.js');
+    expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
+    global.document = savedDoc;
+  });
+});
+
+describe('applyTranslations — root argument + absent-document arms', () => {
+  test('returns early when no document and no root', () => {
+    expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
+  });
+
+  test('an explicit root is queried instead of the global document', () => {
+    const qsa = jest.fn(() => []);
+    require('../src/i18n/i18n.js').applyTranslations({ querySelectorAll: qsa });
+    expect(qsa).toHaveBeenCalled();
+  });
+
+  test('a present global document is used as the default scope', () => {
+    const qsa = jest.fn(() => []);
+    const had = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    Object.defineProperty(globalThis, 'document', { value: { querySelectorAll: qsa, documentElement: {} }, configurable: true });
+    try {
+      require('../src/i18n/i18n.js').applyTranslations();
+      expect(qsa).toHaveBeenCalled();
+    } finally {
+      if (had) Object.defineProperty(globalThis, 'document', had);
+      else delete globalThis.document;
+    }
+  });
+});

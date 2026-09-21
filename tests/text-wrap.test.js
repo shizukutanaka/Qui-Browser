@@ -113,3 +113,61 @@ describe('wrapTextToLines — long-word split flushes the pending row first', ()
     expect(wrapTextToLines('ab cdefg', 3)).toEqual(['ab', 'cde', 'fg']);
   });
 });
+
+describe('textWrap — complementary arms', () => {
+  test('CJK characters measure wider than ASCII', () => {
+    const { charWidthEm } = require('../src/vr/ui/textWrap.js');
+    expect(charWidthEm('あ'.codePointAt(0))).toBeGreaterThan(charWidthEm('a'.codePointAt(0)));
+    expect(charWidthEm('中'.codePointAt(0))).toBeGreaterThan(charWidthEm('a'.codePointAt(0)));
+  });
+
+  test('wrapTextToWidth with NaN/zero maxEm falls back to 1', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(Array.isArray(wrapTextToWidth('a b c', NaN))).toBe(true);
+    expect(Array.isArray(wrapTextToWidth('a b c', 0))).toBe(true);
+  });
+
+  test('wrapTextToWidth on null/undefined text returns empty rows', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(wrapTextToWidth(null, 10).join('')).toBe('');
+    expect(wrapTextToWidth(undefined, 10).join('')).toBe('');
+  });
+
+  test('truncateToWidth with null text returns empty string', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(truncateToWidth(null, 10)).toBe('');
+  });
+});
+
+describe('textWrap — width/lines sliver arms', () => {
+  test('truncateToWidth clips CJK glyphs by em budget', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    const out = truncateToWidth('あいうえおかきくけこ', 3);
+    expect(out.endsWith('…')).toBe(true);
+    expect(truncateToWidth('hi', 10)).toBe('hi');
+    expect(truncateToWidth(null, 5)).toBe('');
+  });
+
+  test('wrapTextToLines splits long words at code-point boundaries', () => {
+    const { wrapTextToLines } = require('../src/vr/ui/textWrap.js');
+    expect(wrapTextToLines('', 5)).toEqual(['']);
+    const rows = wrapTextToLines('abcdefghij', 4);
+    expect(rows.every((r) => Array.from(r).length <= 4)).toBe(true);
+  });
+});
+
+describe('textWrap — remaining wide-char ranges', () => {
+  test('Hangul syllables, Yi, compat ideographs, vertical and fullwidth forms are wide', () => {
+    expect(charWidthEm(0xac00)).toBe(1); // 한 Hangul syllable
+    expect(charWidthEm(0xa000)).toBe(1); // Yi syllable
+    expect(charWidthEm(0xf900)).toBe(1); // CJK compat ideograph
+    expect(charWidthEm(0xfe10)).toBe(1); // vertical form
+    expect(charWidthEm(0xfe30)).toBe(1); // CJK compat form
+    expect(charWidthEm(0xff21)).toBe(1); // Ａ fullwidth A
+    expect(charWidthEm(0xffe5)).toBe(1); // ￥ fullwidth sign
+    expect(charWidthEm(0x2e80)).toBe(1); // CJK radical
+    expect(charWidthEm(0x3400)).toBe(1); // CJK Ext A
+    expect(charWidthEm(0x20000)).toBe(1); // 𠀀 CJK Ext B
+    expect(charWidthEm(0x30000)).toBe(1); // 𰀀 CJK Ext G
+  });
+});

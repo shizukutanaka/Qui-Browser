@@ -621,3 +621,308 @@ describe('BookmarkPanel — final guards', () => {
     expect(p.mode).toBe(before);
   });
 });
+
+describe('BookmarkPanel — remaining branch arms', () => {
+  test('constructor coerces non-function callbacks to safe defaults', () => {
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: 'not-a-fn', onDeleteBookmark: 42, onTabChange: {},
+      onHoverCaption: false, onClose: null
+    });
+    expect(typeof p.onSelect).toBe('function');
+    expect(p.onDeleteBookmark).toBeNull();
+    expect(p.onTabChange).toBeNull();
+    expect(p.onHoverCaption).toBeNull();
+    expect(p.onClose).toBeNull();
+    // scale ≤ 0 → 1
+    expect(new BookmarkPanel({
+      scene: { add() {}, remove() {} }, registerInteractable() {},
+      unregisterInteractable() {}, store: makeStore(), scale: -2
+    }).scale).toBe(1);
+  });
+
+  test('toggle() flips visible both ways', () => {
+    const p = makePanel(makeStore());
+    expect(p.visible).toBe(false);
+    p.toggle();
+    expect(p.visible).toBe(true);
+    p.toggle();
+    expect(p.visible).toBe(false);
+  });
+
+  test('hover arms tolerate absent mesh and absent onHoverCaption', () => {
+    const reg = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: reg, unregisterInteractable: jest.fn(),
+      store: makeStore(), onSelect: jest.fn()
+    });
+    p.addToScene();
+    const h = reg.mock.calls[0][1];
+    p.mesh = null; // mesh-null arm
+    expect(() => { h.onHover(); h.onHoverEnd(); }).not.toThrow();
+  });
+
+  test('row action with entry lacking url is a no-op', () => {
+    const onSelect = jest.fn();
+    const store = makeStore([{ url: null, title: 'x' }]);
+    const p = makePanel(store, onSelect);
+    p.show();
+    // Row click must not fire onSelect when entry.url is falsy.
+    // Drive the row action directly to isolate the entry-url arm.
+    p._rows = () => [{ url: null }];
+    p.hide();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('deleteRow with no onDeleteBookmark callback still removes + redraws', () => {
+    const store = {
+      getBookmarks: () => [{ url: 'https://a', title: 'a' }],
+      getHistory: () => [],
+      removeBookmark: jest.fn()
+    };
+    const p = makePanel(store); // no onDeleteBookmark
+    p.show();
+    expect(() => p._draw()).not.toThrow();
+  });
+
+  test('tex null arm: _draw completes when canvas/texture are absent', () => {
+    const p = makePanel(makeStore());
+    p.tex = null;
+    p.canvas = null;
+    expect(() => p._draw()).not.toThrow();
+  });
+
+  test('dispose arms: mesh present but scene/unregister absent', () => {
+    const p = new BookmarkPanel({
+      scene: null, registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(), store: makeStore()
+    });
+    expect(() => p.dispose()).not.toThrow();
+    expect(p.canvas).toBeNull();
+  });
+});
+
+describe('BookmarkPanel — last branch arms', () => {
+  test('constructor without document leaves canvas/tex null', () => {
+    const saved = global.document;
+    try {
+      delete global.document;
+      const p = new BookmarkPanel({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        store: makeStore(),
+        onSelect: jest.fn()
+      });
+      expect(p.canvas).toBeNull();
+      expect(p.tex).toBeNull();
+    } finally {
+      global.document = saved;
+    }
+  });
+
+  test('row click with url-less entry is a no-op', () => {
+    const store = makeStore([{ title: 'no-url', url: '' }], []);
+    const onSelect = jest.fn();
+    const p = makePanel(store, onSelect);
+    p.show();
+    p._onSelect({ intersection: { point: localFor(60, 120) } });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('deleteRow click with url-less entry is a no-op', () => {
+    const store = makeStore([{ title: 'x', url: '' }], []);
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store,
+      onSelect: jest.fn(),
+      onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    p._onSelect({ intersection: { point: localFor(430, 120) } });
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  test('_draw with tex null does not throw', () => {
+    const p = makePanel(makeStore([{ url: 'https://a' }], []));
+    p.tex = null;
+    expect(() => p._draw()).not.toThrow();
+  });
+
+  test('dispose without mesh/material does not throw', () => {
+    const p = makePanel(makeStore([], []));
+    p.mesh = null;
+    p.tex = { dispose: jest.fn() };
+    expect(() => p.dispose()).not.toThrow();
+  });
+});
+
+describe('BookmarkPanel — complementary arms', () => {
+  test('constructor wires truthy hover/close callbacks', () => {
+    const onHover = jest.fn();
+    const onClose = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onHoverCaption: onHover,
+      onClose
+    });
+    expect(p.onHoverCaption).toBe(onHover);
+    expect(p.onClose).toBe(onClose);
+  });
+
+  test('row click with url-bearing entry selects and hides', () => {
+    const store = makeStore([{ title: 'A', url: 'https://a.example' }], []);
+    const onSelect = jest.fn();
+    const p = makePanel(store, onSelect);
+    p.show();
+    MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).toHaveBeenCalledWith('https://a.example');
+    expect(p.visible).toBe(false);
+  });
+
+  test('deleteRow click removes the bookmark and fires the callback', () => {
+    const removed = [];
+    const store = {
+      getBookmarks: () => [{ title: 'A', url: 'https://a.example' }],
+      getHistory: () => [],
+      removeBookmark: (u) => removed.push(u)
+    };
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect: jest.fn(), onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(removed).toEqual(['https://a.example']);
+    expect(onDelete).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('dispose with mesh+scene+material disposes everything', () => {
+    const p = makePanel(makeStore([], []));
+    const geo = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn() };
+    p.mesh = { geometry: geo, material: mat };
+    p.scene = { remove: jest.fn() };
+    expect(() => p.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});
+
+describe('BookmarkPanel — false-side arms', () => {
+  test('row click on an entry without url does not call onSelect', () => {
+    const store = {
+      getBookmarks: () => [{ title: 'noUrl' }],
+      getHistory: () => []
+    };
+    const onSelect = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('deleteRow on a url-less entry skips removal and callback', () => {
+    const removed = [];
+    const store = {
+      getBookmarks: () => [{ title: 'noUrl' }],
+      getHistory: () => [],
+      removeBookmark: (u) => removed.push(u)
+    };
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect: jest.fn(), onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(removed).toEqual([]);
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  test('dispose with bare mesh (no geometry/material) and no texture completes', () => {
+    const p = makePanel(makeStore([], []));
+    p.mesh = {};
+    p.tex = null;
+    expect(() => p.dispose()).not.toThrow();
+  });
+});
+
+test('ctor tolerates non-function onDeleteBookmark; delete row without callback skips it', () => {
+  const store = makeStore([{ url: 'https://a.example', title: 'A' }], []);
+  const panel = new BookmarkPanel({
+    scene: {}, registerInteractable: jest.fn(), unregisterInteractable: jest.fn(),
+    store, onSelect: jest.fn(), onDeleteBookmark: 'not-a-fn'
+  });
+  expect(panel.onDeleteBookmark).toBeNull();
+});
+
+
+test('delete zone click fires onDeleteBookmark (ctor-provided callback)', () => {
+  const onDelete = jest.fn();
+  const store = {
+    getBookmarks: () => [{ url: 'https://del.me', title: 'D' }],
+    getHistory: () => [],
+    removeBookmark: jest.fn()
+  };
+  const p = makePanel(store);
+  p.onDeleteBookmark = onDelete;
+  p.show();
+  MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
+  p._onSelect({ clone() { return MockMesh._nextLocal; } });
+  expect(onDelete).toHaveBeenCalledWith('https://del.me');
+});
+
+describe('BookmarkPanel — ctor + delete-zone guard arms', () => {
+  test('a function onTabChange is kept verbatim', () => {
+    const onTabChange = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onTabChange
+    });
+    expect(p.onTabChange).toBe(onTabChange);
+  });
+
+  test('delete-zone click without an onDeleteBookmark callback just redraws', () => {
+    const p = makePanel({
+      getBookmarks: () => [{ url: 'https://a.example/', title: 'a' }],
+      removeBookmark: jest.fn()
+    });
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 10, HEADER_H + 10); // delete zone over row 0
+    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+  });
+});

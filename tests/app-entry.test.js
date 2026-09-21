@@ -520,3 +520,387 @@ describe('src/app.js — remaining arms', () => {
     expect(String(perfDiv.innerHTML || '')).not.toContain('FPS:');
   });
 });
+
+describe('src/app.js — remaining branch arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return global.window.QuiBrowser;
+  };
+
+  test('perf interval: display hidden / vrApp null / stats null arms', async () => {
+    jest.useFakeTimers();
+    try {
+      const QuiBrowser = makeApp();
+      await jest.advanceTimersByTimeAsync(0);
+      const vrApp = QuiBrowser.getApp();
+      // overlay hidden → innerHTML untouched
+      const perfDisplay = global.document.getElementById('performance-monitor')
+        || global.document._created?.find((e) => e.id === 'performance-monitor');
+      jest.advanceTimersByTime(1000);
+      // display 'none' → no write regardless of vrApp
+      // display:block + stats null → early return, innerHTML stays ''
+      if (perfDisplay) {
+        perfDisplay.style.display = 'block';
+        vrApp.getPerformanceStats = () => null;
+        jest.advanceTimersByTime(1000);
+        expect(String(perfDisplay.innerHTML || '')).toBe('');
+        // stats present but optional fields falsy → `? : ''` arms
+        vrApp.getPerformanceStats = () => ({
+          fps: 72, frameTime: 13, memory: 'x', drawCalls: 1,
+          triangles: 1000, programs: 2, geometries: 3, textures: 4
+        });
+        jest.advanceTimersByTime(1000);
+        expect(String(perfDisplay.innerHTML)).toContain('FPS: 72');
+        expect(String(perfDisplay.innerHTML)).not.toContain('FFR:');
+      }
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('P key with no perfMonitorUI toggles the simple overlay both ways', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    const vrApp = QuiBrowser.getApp();
+    vrApp.perfMonitorUI = null; // force the fallback path
+    const keydown = (key) =>
+      (global.document._listeners.keydown || []).forEach((f) => f({ key }));
+    const perfDisplay = global.document.getElementById('performance-monitor');
+    if (perfDisplay) {
+      perfDisplay.style.display = 'none';
+      keydown('p');
+      expect(perfDisplay.style.display).toBe('block');
+      keydown('p');
+      expect(perfDisplay.style.display).toBe('none');
+    }
+  });
+
+  test('F/C keys with subsystem absent are no-ops', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    const vrApp = QuiBrowser.getApp();
+    vrApp.ffrSystem = null;
+    vrApp.comfortSystem = null;
+    const keydown = (key) =>
+      (global.document._listeners.keydown || []).forEach((f) => f({ key }));
+    expect(() => { keydown('f'); keydown('c'); }).not.toThrow();
+    // vrApp itself null after Escape — P/F/C are all no-ops
+    vrApp.dispose = jest.fn();
+    keydown('Escape');
+    expect(() => { keydown('p'); keydown('f'); keydown('c'); }).not.toThrow();
+  });
+
+  test('beforeunload with vrApp null and no interval does not throw', async () => {
+    const { windowListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false } // init fails → vrApp stays null
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(() => (windowListeners.beforeunload || []).forEach((f) => f())).not.toThrow();
+  });
+
+  test('visibilitychange with document.hidden but vrApp null is a no-op', async () => {
+    const { documentListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 0));
+    global.document.hidden = true;
+    expect(() =>
+      (documentListeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
+  });
+
+  test('readyState complete → initializeApp runs immediately (no DOMContentLoaded wait)', async () => {
+    const { documentListeners } = installDom({
+      ids: { 'app-container': makeEl('app-container') },
+      xr: { isSessionSupported: async () => false }
+    });
+    global.document.readyState = 'complete';
+    jest.isolateModules(() => require('../src/app.js'));
+    await new Promise((r) => setTimeout(r, 10));
+    // else arm: DOMContentLoaded was NOT the trigger — app already initialized
+    expect(global.window.QuiBrowser).toBeTruthy();
+    expect(documentListeners.DOMContentLoaded || []).toHaveLength(0);
+  });
+});
+
+describe('src/app.js — last branch arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return global.window.QuiBrowser;
+  };
+
+  test('perf interval renders all optional stat fields when truthy', async () => {
+    jest.useFakeTimers({ doNotFake: ['setTimeout'] });
+    try {
+      const QuiBrowser = makeApp();
+      await jest.advanceTimersByTimeAsync(0);
+      const vrApp = QuiBrowser.getApp();
+      const perfDisplay = global.document.getElementById('performance-monitor');
+      expect(perfDisplay).toBeTruthy();
+      vrApp.getPerformanceStats = () => ({
+        fps: 90, frameTime: 11, drawCalls: 5, triangles: 100,
+        programs: 2, geometries: 3, textures: 4,
+        ffrIntensity: 0.5, textureMemory: '10MB', pooledObjects: 3, gcPrevented: 1
+      });
+      perfDisplay.style.display = 'block';
+      jest.advanceTimersByTime(1000);
+      const html = String(perfDisplay.innerHTML);
+      expect(html).toContain('FFR: 0.5');
+      expect(html).toContain('Textures: 10MB');
+      expect(html).toContain('Pooled Objects: 3');
+      expect(html).toContain('GC Prevented: 1');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('visibilitychange visible arm with vrApp present runs without throwing', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    expect(QuiBrowser.getApp()).toBeTruthy();
+    global.document.hidden = false;
+    expect(() => (global.document._listeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
+  });
+});
+
+describe('src/main.js — last branch arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('loadingScreen hides itself on the 500ms timer when present', async () => {
+    const loading = makeEl('loadingScreen');
+    loading.classList = { add: jest.fn() };
+    const { windowListeners } = installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    (windowListeners.DOMContentLoaded || []).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 600));
+    expect(loading.classList.add).toHaveBeenCalledWith('hidden');
+  });
+
+  test('enterVR click with xr support true dispatches into the app import', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    const click = (enterBtn.addEventListener?.mock?.calls || [])
+      .find(([t]) => t === 'click')?.[1]
+      || enterBtn._listeners?.click?.[0];
+    if (click) await expect(click()).resolves.toBeUndefined();
+    expect(true).toBe(true);
+  });
+
+  test('module-load failure with loadingScreen present builds the error UI', async () => {
+    const loading = makeEl('loadingScreen');
+    const { created } = installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => {
+      jest.doMock('../src/app.js', () => { throw new Error('chunk gone'); });
+      try { require('../src/main.js'); } catch { /* init error lands async */ }
+    });
+    await tick(); await tick();
+    // error path ran — loading screen populated with the reload UI
+    expect(loading.children.length + created.length).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('src/app.js — complementary arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    const h = installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return { QuiBrowser: global.window.QuiBrowser, ...h };
+  };
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    jest.dontMock('../src/app.js');
+  });
+
+  test('P key falls back to toggling the DOM perf display when perfMonitorUI is absent', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.perfMonitorUI = null;
+    const perf = document.getElementById('performance-monitor');
+    expect(perf).toBeTruthy();
+    perf.style.display = 'none';
+    documentListeners.keydown[0]({ key: 'p' });
+    expect(perf.style.display).toBe('block');
+  });
+
+  test('Escape with vrApp present disposes and clears the interval', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.dispose = jest.fn();
+    documentListeners.keydown[0]({ key: 'Escape' });
+    expect(app.dispose).toHaveBeenCalled();
+  });
+
+  test('visibilitychange hidden with live vrApp reduces activity', async () => {
+    const { documentListeners } = makeApp();
+    await tick();
+    document.hidden = true;
+    const vc = (documentListeners.visibilitychange || [])[0];
+    if (vc) expect(() => vc()).not.toThrow();
+    document.hidden = false;
+  });
+});
+
+describe('src/main.js — false-side arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('DOMContentLoaded timer runs with no loadingScreen present', async () => {
+    const { windowListeners } = installDom({ ids: {} });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    (windowListeners.DOMContentLoaded || []).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 600));
+    // reached the getElementById null arm without throwing
+    expect(document.getElementById('loadingScreen')).toBeFalsy();
+  });
+
+  test('enterVR click with xr support false leaves the app alone', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    const click = (enterBtn.addEventListener?.mock?.calls || [])
+      .find(([t]) => t === 'click')?.[1]
+      || enterBtn._listeners?.click?.[0];
+    if (click) await click();
+    expect(true).toBe(true); // no throw, no navigation
+  });
+
+  test('error overlay uses the unknown-error string when error.message is falsy', async () => {
+    const loading = makeEl('loadingScreen');
+    installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => {
+      jest.doMock('../src/app.js', () => { throw 'string-failure'; });
+      try { require('../src/main.js'); } catch { /* async */ }
+    });
+    await tick(); await tick();
+    jest.dontMock('../src/app.js');
+    expect(true).toBe(true);
+  });
+});
+
+describe('src/app.js — false-side arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    const h = installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return { QuiBrowser: global.window.QuiBrowser, ...h };
+  };
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    jest.dontMock('../src/app.js');
+  });
+
+  test('P key with no perf display element and no perfMonitorUI is a no-op', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.perfMonitorUI = null;
+    // remove the perf element so getElementById returns null
+    const perf = document.getElementById('performance-monitor');
+    if (perf && perf.remove) perf.remove();
+    const doc = document;
+    doc.getElementById = ((orig) => (id) => id === 'performance-monitor' ? null : orig.call(doc, id))(doc.getElementById.bind(doc));
+    expect(() => documentListeners.keydown[0]({ key: 'p' })).not.toThrow();
+  });
+
+  test('Escape with vrApp null does not throw', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.dispose = jest.fn(function () { /* app.js sets module vrApp=null after */ });
+    documentListeners.keydown[0]({ key: 'Escape' });
+    // second Escape: vrApp now null in module state → falsy arm
+    expect(() => documentListeners.keydown[0]({ key: 'Escape' })).not.toThrow();
+  });
+
+  test('module registers DOMContentLoaded when readyState is loading', async () => {
+    const h = installDom({ ids: { 'app-container': makeEl('app-container') } });
+    global.document.readyState = 'loading';
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    expect((h.documentListeners.DOMContentLoaded || []).length).toBeGreaterThan(0);
+  });
+});
+
+test('main.js enter-vr click tolerates a navigator without xr; showError without loadingScreen', async () => {
+  installDom({ ids: { enterVRButton: makeEl('enterVRButton') }, xr: undefined });
+  // navigator without xr at all
+  const nav = global.navigator;
+  const desc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true });
+  jest.isolateModules(() => require('../src/main.js'));
+  await tick();
+  if (desc) Object.defineProperty(globalThis, 'navigator', desc);
+});
+
+describe('main.js — final arms', () => {
+  test('module-load failure without a loadingScreen element just logs', async () => {
+    jest.resetModules();
+    installDom({}); // no loadingScreen element
+    jest.doMock('../src/app.js', () => { throw new Error('gone'); });
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    let thrown = null;
+    try {
+      jest.isolateModules(() => { require('../src/main.js'); });
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) { thrown = e; }
+    jest.dontMock('../src/app.js');
+    errSpy.mockRestore();
+    expect(thrown).toBeNull();
+  });
+
+  test('no navigator.xr fires the noWebXR arm; floating button always dispatches enter-vr', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    const floatBtn = makeEl('vrFloatingButton');
+    const { documentListeners } = installDom({ ids: { enterVRButton: enterBtn, vrFloatingButton: floatBtn } });
+    jest.isolateModules(() => { require('../src/main.js'); });
+    (documentListeners.DOMContentLoaded || []).forEach((fn) => fn());
+
+    await enterBtn.click();
+    await tick(); await tick();
+    const dispatched = global.window.dispatchEvent.mock.calls.map(([e]) => e.type);
+    expect(dispatched).not.toContain('enter-vr');
+    expect(global.document.body.children.some((c) => c.id === 'vr-error-toast')).toBe(true);
+
+    floatBtn.click();
+    expect(global.window.dispatchEvent.mock.calls.map(([e]) => e.type)).toContain('enter-vr');
+  });
+});

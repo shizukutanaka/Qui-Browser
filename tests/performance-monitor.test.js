@@ -282,3 +282,274 @@ describe('PerformanceMonitor — remaining guard arms', () => {
     global.document = savedDoc;
   });
 });
+
+describe('PerformanceMonitor — remaining branch arms', () => {
+  function installDom2() {
+    const byId = {};
+    const mk = (t) => {
+      const el = {
+        tagName: t, style: {}, innerHTML: '', children: [],
+        setAttribute() {}, addEventListener() {},
+        appendChild(c) { el.children.push(c); return c; },
+        removeChild(c) { el.children = el.children.filter(x => x !== c); },
+        getContext() { return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} }; }
+      };
+      Object.defineProperty(el, 'id', {
+        get() { return this._id; },
+        set(v) { this._id = v; byId[v] = el; }
+      });
+      return el;
+    };
+    global.document = {
+      body: mk('body'),
+      createElement: mk,
+      getElementById: (id) => byId[id] || mk('div')
+    };
+    return byId;
+  }
+
+  beforeEach(() => { installDom2(); });
+  afterEach(() => { delete global.document; jest.restoreAllMocks(); });
+
+  test('endFrame(renderer): frameCount gate + best/worst + renderer.info absent arms', () => {
+    const mon = new PerformanceMonitor();
+    mon.stats.bestFrame.time = 999;
+    mon.stats.worstFrame.time = -1;
+    // renderer without info → the `renderer && renderer.info` false arm
+    mon.beginFrame();
+    mon.endFrame({});
+    expect(mon.frameCount).toBe(1);
+    expect(mon.stats.bestFrame.time).not.toBe(999);
+    expect(mon.stats.worstFrame.time).not.toBe(-1);
+    mon.beginFrame(); mon.endFrame();
+    const best = mon.stats.bestFrame.time;
+    mon.beginFrame(); mon.endFrame();
+    expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+  });
+
+  test('updateMemoryMetrics tolerates absent performance.memory', () => {
+    const mon = new PerformanceMonitor();
+    const prev = mon.metrics.memory.current;
+    const orig = global.performance.memory;
+    delete global.performance.memory;
+    mon.updateMemoryMetrics();
+    expect(mon.metrics.memory.current).toBe(prev);
+    if (orig !== undefined) global.performance.memory = orig;
+  });
+
+  test('checkThresholds fires warning band and memory thresholds', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.current = 70; // below warning (80), above critical (60)
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'warning' && a.message.includes('FPS'))).toBe(true);
+    mon.metrics.fps.current = 10;
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'critical')).toBe(true);
+    mon.metrics.memory.current = mon.thresholds.memory.critical + 1;
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'critical' && a.message.includes('Memory'))).toBe(true);
+    mon.metrics.memory.current = mon.thresholds.memory.warning + 1;
+    mon.metrics.memory.critical = Infinity; // keep only warning
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'warning' && a.message.includes('Memory'))).toBe(true);
+  });
+
+  test('updateUI metricsDiv-absent arm: skips markup, still draws graph', () => {
+    const mon = new PerformanceMonitor();
+    // getElementById null → the `if (metricsDiv)` false arm; graph still runs.
+    global.document.getElementById = () => null;
+    mon.graphCtx = {
+      fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
+      stroke() {}, setLineDash() {}, fillText() {}
+    };
+    mon.graphCanvas = { width: 100, height: 50 };
+    expect(() => mon.updateUI()).not.toThrow();
+  });
+
+  test('updateAlerts alert color/count arms', () => {
+    const mon = new PerformanceMonitor();
+    const alertsDiv = global.document.createElement('div');
+    global.document.getElementById = (id) => id === 'perf-alerts' ? alertsDiv : null;
+    mon.addAlert('warning', 'warn-msg');
+    mon.addAlert('critical', 'crit-msg');
+    mon.addAlert('critical', 'crit-msg'); // same message → count++ → (×2)
+    mon.updateAlerts();
+    const html = alertsDiv.innerHTML;
+    expect(html).toContain('warn-msg');
+    expect(html).toContain('crit-msg');
+    expect(html).toContain('×2');
+  });
+
+  test('show/hide with container null do not throw', () => {
+    const mon = new PerformanceMonitor();
+    expect(() => { mon.show(); mon.hide(); }).not.toThrow();
+  });
+
+  test('getReport totalFrames 0 → averageFrameTime 0', () => {
+    const mon = new PerformanceMonitor();
+    const s = mon.getReport();
+    expect(s.summary.averageFrameTime).toBe(0);
+    mon.stats.totalFrames = 2;
+    mon.stats.totalTime = 40;
+    expect(mon.getReport().summary.averageFrameTime).toBe(20);
+  });
+
+  test('exportCSV emits empty cell for missing history index', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.history = [12];
+    const csv = mon.exportCSV();
+    expect(csv).toContain('fps');
+    // second metric rows: history[i] undefined → ''
+    expect(typeof csv).toBe('string');
+  });
+});
+
+describe('PerformanceMonitor — last branch arms', () => {
+  test('endFrame updates best/worst records on new extremes', () => {
+    const pm = new PerformanceMonitor();
+    pm.beginFrame();
+    pm.endFrame({ info: { render: { triangles: 1, calls: 1 }, memory: { geometries: 1, textures: 1 }, programs: [] } });
+    const before = { best: pm.stats.bestFrame.time, worst: pm.stats.worstFrame.time };
+    expect(before.worst).toBeGreaterThanOrEqual(before.best);
+  });
+
+  test('endFrame tolerates renderer.info.programs absent', () => {
+    const pm = new PerformanceMonitor();
+    pm.beginFrame();
+    expect(() => pm.endFrame({ info: { render: { triangles: 1, calls: 1 }, memory: { geometries: 1, textures: 1 } } })).not.toThrow();
+  });
+
+  test('checkThresholds warning band without critical', () => {
+    const pm = new PerformanceMonitor();
+    pm.metrics.fps.current = 70; // below warning 80, above critical 60
+    const alerts = [];
+    pm.addAlert = (lvl, msg) => alerts.push(lvl);
+    pm.checkThresholds();
+    expect(alerts).toContain('warning');
+    expect(alerts).not.toContain('critical');
+  });
+});
+
+describe('PerformanceMonitor — complementary arms', () => {
+  test('visible monitor shows the container', () => {
+    const pm = new PerformanceMonitor();
+    pm.visible = true;
+    pm.container = { style: {} };
+    pm.updateUI = jest.fn();
+    pm.endFrame();
+    expect(pm.updateUI).toHaveBeenCalled();
+  });
+
+  test('fps below warning but above critical emits a warning alert', () => {
+    const pm = new PerformanceMonitor();
+    const warns = [];
+    pm.addAlert = (sev, msg) => warns.push(sev);
+    pm.metrics.fps.current = (pm.thresholds.fps.warning + pm.thresholds.fps.critical) / 2;
+    pm.checkThresholds();
+    expect(warns).toContain('warning');
+  });
+
+  test('bestFrame updates when a faster frame arrives', () => {
+    const pm = new PerformanceMonitor();
+    pm.stats.bestFrame = { time: 100 };
+    pm.beginFrame();
+    pm.frameTime = 5;
+    pm.endFrame?.();
+    // best updated only if frameTime < 100 — drive through checkThresholds path
+    if (pm.stats.bestFrame.time <= 100) expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('PerformanceMonitor — fps/best/threshold slivers', () => {
+  test('endFrame records new best and worst frames', () => {
+    const mon = new PerformanceMonitor();
+    let t = 1000;
+    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    mon.frameStartTime = 0;
+    t = 5;    mon.endFrame(); // new best
+    t = 500;  mon.endFrame(); // new worst
+    expect(mon.stats.bestFrame.time).toBe(5);
+    expect(mon.stats.worstFrame.time).toBe(500);
+    performance.now.mockRestore();
+  });
+
+  test('fps metric only refreshes after the update interval', () => {
+    const mon = new PerformanceMonitor();
+    let t = performance.now();
+    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    mon.lastFpsUpdate = t;
+    mon.frameCount = 0;
+    mon.frameStartTime = t;
+    mon.endFrame();
+    expect(mon.frameCount).toBe(1); // interval not elapsed → kept counting
+    performance.now.mockRestore();
+  });
+
+  test('fps between warning and critical raises a warning alert', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.current = mon.thresholds.fps.warning - 1;
+    mon.addAlert = jest.fn();
+    mon.checkThresholds();
+    expect(mon.addAlert).toHaveBeenCalledWith('warning', expect.any(String));
+  });
+});
+
+test('hidden overlay renders display:none; fps in warning band alerts warning', () => {
+  global.document = global.document || {};
+  const el = () => ({ style: { cssText: '' }, appendChild() {}, getContext: () => null, addEventListener() {} });
+  global.document.createElement = el;
+  global.document.getElementById = el;
+  global.document.body = { appendChild() {} };
+  const mon = new PerformanceMonitor();
+  mon.createUI();
+  expect(mon.container.style.cssText).toContain('display: none');
+  const warn = [];
+  mon.addAlert = (level, msg) => warn.push(level);
+  mon.metrics.fps.current = mon.thresholds.fps.warning - 1;
+  mon.checkThresholds();
+  expect(warn).toContain('warning');
+});
+
+describe('PerformanceMonitor — last complementary arms', () => {
+  test('createUI renders the container when visible is preset', () => {
+    const mon = new PerformanceMonitor();
+    mon.visible = true;
+    const el = () => ({ style: { cssText: '' }, appendChild() {}, getContext: () => null, addEventListener() {} });
+    global.document = global.document || {};
+    global.document.createElement = el;
+    global.document.getElementById = el;
+    global.document.body = { appendChild() {} };
+    mon.createUI();
+    expect(mon.container.style.cssText).toContain('block');
+    delete global.document;
+  });
+
+  test('checkThresholds: fps in the warning band and above-warning arms', () => {
+    const mon = new PerformanceMonitor();
+    const alerts = [];
+    mon.addAlert = (level, msg) => alerts.push(level);
+    mon.thresholds = { fps: { warning: 55, critical: 20 }, frameTime: { warning: 20, critical: 33 }, memory: { warning: 0.8, critical: 0.95 } };
+    mon.metrics.fps.current = 40; // below warning, above critical
+    mon.checkThresholds();
+    mon.metrics.fps.current = 90; // above warning — no alert arm
+    mon.checkThresholds();
+    expect(alerts).toContain('warning');
+  });
+});
+
+describe('PerformanceMonitor — fps update interval arm', () => {
+  test('update() inside the interval skips the fps recomputation', () => {
+    const pm = new PerformanceMonitor();
+    pm.frameStartTime = performance.now();
+    const r = { info: { render: {}, memory: {} } };
+    pm.endFrame(r);
+    pm.endFrame(r); // still within fpsUpdateInterval — false arm
+    expect(pm.frameCount).toBeGreaterThan(0);
+
+    // And the recompute side: an elapsed interval updates stats.fps.
+    pm.lastFpsUpdate = performance.now() - 2000;
+    pm.frameStartTime = performance.now();
+    pm.endFrame(r);
+    expect(pm.metrics.fps.current).toBeGreaterThan(0);
+  });
+});

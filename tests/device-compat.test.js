@@ -199,3 +199,84 @@ describe('DeviceCompatibility — _hasWebGL2 arms', () => {
     }
   });
 });
+
+describe('DeviceCompatibility — remaining arms', () => {
+  test('check() with navigator.xr absent reports no VR/AR support', async () => {
+    const dc = new DeviceCompatibility();
+    const saved = global.navigator;
+    global.navigator = { userAgent: 'x' }; // no .xr
+    try {
+      const r = await dc.check();
+      expect(r.vrSupported ?? r.vr ?? false).toBeFalsy();
+    } finally {
+      global.navigator = saved;
+    }
+  });
+
+  test('_probeOptionalFeatures with neither VR nor AR returns the false base', async () => {
+    const dc = new DeviceCompatibility();
+    const f = await dc._probeOptionalFeatures({}, false, 'quest3', false);
+    expect(f.handTracking).toBe(false);
+    expect(f.hitTest).toBe(false);
+    expect(f.foveatedRendering).toBe(false);
+  });
+
+  test('check() with an empty UA still resolves a tier', async () => {
+    const dc = new DeviceCompatibility();
+    const saved = global.navigator;
+    global.navigator = { userAgent: '', xr: null };
+    try {
+      await dc.check();
+      expect(dc.deviceTier ?? dc.tier ?? dc.report?.deviceTier).toBeTruthy();
+    } finally {
+      global.navigator = saved;
+    }
+  });
+});
+
+describe('DeviceCompatibility — navigator/ua sliver arms', () => {
+  test('check() tolerates navigator entirely absent', async () => {
+    const saved = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    try {
+      Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true });
+      const dc = new DeviceCompatibility();
+      const report = await dc.check();
+      expect(report.vrSupported).toBe(false);
+    } finally {
+      if (saved) Object.defineProperty(globalThis, 'navigator', saved);
+    }
+  });
+
+  test('check() tolerates an absent userAgent', async () => {
+    const dc = new DeviceCompatibility();
+    const saved = Object.getOwnPropertyDescriptor(navigator, 'userAgent');
+    try {
+      Object.defineProperty(navigator, 'userAgent', { value: undefined, configurable: true });
+      const report = await dc.check();
+      expect(report.deviceTier).toBeTruthy();
+    } finally {
+      if (saved) Object.defineProperty(navigator, 'userAgent', saved);
+    }
+  });
+
+  test('_probeOptionalFeatures re-detects tier when not supplied', async () => {
+    const dc = new DeviceCompatibility();
+    const out = await dc._probeOptionalFeatures({ requestSession: async () => ({ enabledFeatures: [] }) }, true, null);
+    expect(out).toBeTruthy();
+  });
+});
+
+describe('DeviceCompatibility — navigator-absent arm', () => {
+  test('_probeOptionalFeatures detects the tier with an empty UA when navigator is gone', async () => {
+    const had = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true, writable: true });
+    try {
+      const dc = new DeviceCompatibility();
+      const feats = await dc._probeOptionalFeatures({ isSessionSupported: async () => true }, true, null);
+      expect(feats.handTracking).toBe(true);
+      expect(feats.hitTest).toBe(false);
+    } finally {
+      if (had) Object.defineProperty(globalThis, 'navigator', had);
+    }
+  });
+});

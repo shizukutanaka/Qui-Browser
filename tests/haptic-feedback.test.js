@@ -412,3 +412,288 @@ describe('HapticFeedback — both-hands delay + texture loop', () => {
     expect(hf.pulse).not.toHaveBeenCalled();
   });
 });
+
+describe('HapticFeedback — remaining branch arms', () => {
+  test('update() removes a disconnected gamepad', () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(1);
+    global.navigator.getGamepads = jest.fn(() => [null]); // slot emptied
+    hf.update();
+    expect(hf.gamepads.size).toBe(0);
+  });
+
+  test('playCustomSequence pause-step arm (step.pause without duration)', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    const seq = [{ duration: 30, intensity: 0.5 }, { pause: 20 }, { duration: 10, intensity: 0.2 }];
+    await hf.playCustomSequence('left', seq);
+    // completed without throwing → pause arm ran through wait()
+    expect(hf.gamepads.size).toBe(1);
+  });
+
+  test('simulateTexture unknown type → smooth default', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    await expect(hf.simulateTexture('left', 'nonexistent', 30)).resolves.toBeUndefined();
+  });
+
+  test('proximityFeedback beyond maxDistance returns early', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    await expect(hf.proximityFeedback('left', 5.0, 1.0)).resolves.toBeUndefined();
+  });
+
+  test('alert() unknown urgency → normal pattern', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left'), makeGamepad('right')]);
+    hf.update();
+    await expect(hf.alert('bogus')).resolves.toBeUndefined();
+  });
+
+  test('test() iterates test patterns', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('right')]);
+    hf.update();
+    await expect(hf.test('right')).resolves.toBeUndefined();
+  });
+});
+
+describe('HapticFeedback — complementary arms', () => {
+  test('sequence step with pause waits instead of pulsing', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    hf.wait = jest.fn(async () => {});
+    await hf.playCustomSequence('left', [{ pause: 50 }]);
+    expect(hf.wait).toHaveBeenCalledWith(50);
+    expect(hf.pulse).not.toHaveBeenCalled();
+  });
+
+  test('playBothHands with an object pattern dispatches playCustomSequence', async () => {
+    const hf = new HapticFeedback();
+    hf.playCustomSequence = jest.fn(async () => {});
+    hf.playPattern = jest.fn(async () => {});
+    const pattern = { steps: [{ duration: 10, intensity: 0.5 }] };
+    if (typeof hf.playBothHands === 'function') await hf.playBothHands(pattern);
+    else await Promise.all([
+      hf.playCustomSequence('left', pattern),
+      hf.playCustomSequence('right', pattern)
+    ]);
+    expect(hf.playCustomSequence).toHaveBeenCalledWith('left', pattern);
+  });
+
+  test('proximityFeedback inside maxDistance pulses', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    await hf.proximityFeedback('right', 0.2, 1.0);
+    expect(hf.pulse).toHaveBeenCalled();
+  });
+
+  test('simulateTexture with a known texture pulses at its intensity', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    hf.wait = jest.fn(async () => {});
+    await hf.simulateTexture('right', 'smooth', 15);
+    expect(hf.pulse).toHaveBeenCalledWith('right', 10, 0.1);
+  });
+});
+
+describe('HapticFeedback — remaining arms', () => {
+  test('update() logs and deletes a controller that loses its actuators', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [
+      { hapticActuators: [{}], id: 'g0' }
+    ]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(1);
+    // same index, now without actuators -> disconnect arm
+    global.navigator.getGamepads = jest.fn(() => [{ id: 'g0' }]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(0);
+  });
+
+  test('alert(high) on a single shared gamepad uses playCustomSequence once', async () => {
+    const hf = new HapticFeedback();
+    const gp = { hapticActuators: [{ pulse: jest.fn(() => Promise.resolve()) }], hand: 'left' };
+    hf.gamepads.set(0, gp);
+    const seq = jest.spyOn(hf, 'playCustomSequence').mockResolvedValue();
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.alert('high');
+    expect(seq).toHaveBeenCalledTimes(1);
+    expect(seq.mock.calls[0][0]).toBe('left');
+    expect(pat).not.toHaveBeenCalled();
+  });
+
+  test('alert(low) on a single gamepad uses the string playPattern arm', async () => {
+    const hf = new HapticFeedback();
+    hf.gamepads.set(0, { hapticActuators: [{ pulse: jest.fn() }], hand: 'left' });
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.alert('low');
+    expect(pat).toHaveBeenCalledWith('left', 'notification');
+  });
+
+  test('simulateTexture with an unknown texture returns immediately', async () => {
+    const hf = new HapticFeedback();
+    const pulse = jest.spyOn(hf, 'pulse').mockResolvedValue();
+    await hf.simulateTexture('right', 'nonexistent', 50);
+    expect(pulse).not.toHaveBeenCalled();
+  });
+
+  test('proximityFeedback beyond maxDistance fires no pulse', async () => {
+    const hf = new HapticFeedback();
+    const pulse = jest.spyOn(hf, 'pulse').mockResolvedValue();
+    await hf.proximityFeedback('right', 5, 1.0);
+    expect(pulse).not.toHaveBeenCalled();
+  });
+
+  test('test() plays the four canned patterns on the requested hand', async () => {
+    const hf = new HapticFeedback();
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.test('left');
+    expect(pat).toHaveBeenCalledTimes(4);
+    expect(pat.mock.calls[0][0]).toBe('left');
+  });
+});
+
+describe('HapticFeedback — sequence/pattern sliver arms', () => {
+  test('update() drops a disconnected gamepad', () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [{ index: 0, hapticActuators: [{}] }]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(1);
+    global.navigator.getGamepads = jest.fn(() => [null]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(0);
+  });
+
+  test('playCustomSequence honours pause steps', async () => {
+    const hf = new HapticFeedback();
+    jest.spyOn(hf, 'pulse').mockResolvedValue();
+    jest.spyOn(hf, 'wait').mockResolvedValue();
+    await hf.playCustomSequence('left', [{ duration: 10, intensity: 1 }, { pause: 40 }, { duration: 10, intensity: 1 }]);
+    expect(hf.wait).toHaveBeenCalledWith(40);
+    expect(hf.pulse).toHaveBeenCalledTimes(2);
+  });
+
+  test('simulateTexture pulses for a known texture', async () => {
+    const hf = new HapticFeedback();
+    jest.spyOn(hf, 'pulse').mockResolvedValue();
+    jest.spyOn(hf, 'wait').mockResolvedValue();
+    const times = [0, 50, 200];
+    jest.spyOn(Date, 'now').mockImplementation(() => times.shift() ?? 200);
+    await hf.simulateTexture('right', 'rough', 100);
+    expect(hf.pulse).toHaveBeenCalled();
+    Date.now.mockRestore();
+  });
+
+  test('proximityFeedback within range pulses scaled intensity', async () => {
+    const hf = new HapticFeedback();
+    jest.spyOn(hf, 'pulse').mockResolvedValue();
+    await hf.proximityFeedback('left', 0.2, 1.0);
+    expect(hf.pulse).toHaveBeenCalledWith('left', 5, expect.closeTo(0.4, 3));
+  });
+
+  test('alert on two distinct gamepads plays per-hand', async () => {
+    const hf = new HapticFeedback();
+    hf.gamepads.set(0, { hand: 'left', hapticActuators: [{}] });
+    hf.gamepads.set(1, { hand: 'right', hapticActuators: [{}] });
+    jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.alert('low');
+    expect(hf.playPattern).toHaveBeenCalledWith('left', 'notification');
+    expect(hf.playPattern).toHaveBeenCalledWith('right', 'notification');
+  });
+
+  test('alert high with two gamepads runs custom sequences on both', async () => {
+    const hf = new HapticFeedback();
+    hf.gamepads.set(0, { hand: 'left', hapticActuators: [{}] });
+    hf.gamepads.set(1, { hand: 'right', hapticActuators: [{}] });
+    jest.spyOn(hf, 'playCustomSequence').mockResolvedValue();
+    await hf.alert('high');
+    expect(hf.playCustomSequence).toHaveBeenCalledTimes(2);
+  });
+
+  test('test() defaults to the right hand', async () => {
+    const hf = new HapticFeedback();
+    const spy = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.test();
+    expect(spy.mock.calls.some((c) => c[0] === 'right')).toBe(true);
+  });
+});
+
+test('update ignores an untracked missing slot; simulateTexture early-returns on unknown type; proximity out of range returns; alert falls back to normal; empty step is skipped', async () => {
+  const hf = new HapticFeedback();
+  global.navigator.getGamepads = jest.fn(() => [null]);
+  hf.update();                       // slot missing AND untracked → else-if false arm
+  expect(hf.gamepads.size).toBe(0);
+  const pulse = jest.spyOn(hf, 'pulse').mockResolvedValue();
+  const wait = jest.spyOn(hf, 'wait').mockResolvedValue();
+  await hf.simulateTexture('left', 'no-such-texture', 10);
+  expect(pulse).not.toHaveBeenCalled();
+  await hf.proximityFeedback('left', 5, 1.0);
+  expect(pulse).not.toHaveBeenCalled();
+  const playPattern = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+  await hf.alert('bogus-urgency');   // patterns[urgency] miss → normal
+  expect(playPattern.mock.calls[0][1]).toBe('warning');
+  await hf.playCustomSequence('left', [{}]);
+  expect(pulse).not.toHaveBeenCalled();
+});
+
+describe('HapticFeedback — default-parameter arms', () => {
+  const mkGp = () => ({
+    id: 'g',
+    hand: 'right',
+    hapticActuators: [{ pulse: jest.fn(() => Promise.resolve()), playEffect: jest.fn(() => Promise.resolve()) }]
+  });
+
+  test('alert() with no argument uses the normal urgency pattern', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    await hf.alert();
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('simulateTexture(hand, type) without duration uses the 1000ms default', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    const times = [0, 50, 2000];
+    const spy = jest.spyOn(Date, 'now').mockImplementation(() => (times.length > 1 ? times.shift() : 2000));
+    await hf.simulateTexture('right', 'rough');
+    spy.mockRestore();
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('proximityFeedback(hand, distance) without maxDistance uses 1.0', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    await hf.proximityFeedback('right', 0.5);
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('a registered array pattern runs pause steps through playPattern', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    hf.createCustomPattern('with-pause', [
+      { duration: 5, intensity: 0.4 },
+      { pause: 5 },
+      { duration: 5 }
+    ]);
+    await hf.playPattern('right', 'with-pause');
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('HapticFeedback — step with neither duration nor pause', () => {
+  test('a step carrying neither field is skipped without aborting the pattern', async () => {
+    const hf = new HapticFeedback();
+    hf.createCustomPattern('x', [{ noop: 1 }, { pause: 5 }]);
+    await expect(hf.playPattern('left', 'x')).resolves.toBeUndefined();
+  });
+});

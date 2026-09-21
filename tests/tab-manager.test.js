@@ -601,3 +601,212 @@ describe('TabManager — strip hover + high-contrast draw arms', () => {
     expect(tm._shortTitle('not a url at all — this is long')).toBe('not a url at all —');
   });
 });
+
+describe('TabManager — remaining branch arms', () => {
+  test('_onStripSelect with null evt returns early (no crash)', () => {
+    const tm = makeManager();
+    expect(() => tm._onStripSelect(null)).not.toThrow();
+    expect(() => tm._onStripSelect(undefined)).not.toThrow();
+  });
+
+  test('closeTab: missing index is a no-op; closing the last tab resets activeIndex', () => {
+    const tm = makeManager();
+    expect(() => tm.closeTab(0)).not.toThrow(); // empty → early return
+    tm.newTab('https://a.example');
+    tm.closeTab(0);
+    expect(tm.activeIndex).toBe(-1); // tabs.length === 0 arm
+    expect(tm.tabs).toHaveLength(0);
+  });
+
+  test('closeTab non-active earlier tab shifts activeIndex and re-activates', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    tm.newTab('https://c.example');
+    tm.setActive(2);
+    tm.closeTab(0); // index <= activeIndex → decrement + re-activate
+    expect(tm.activeIndex).toBe(1);
+    expect(tm.getActiveTab()).toBe(tm.tabs[1]);
+  });
+
+  test('setActive out-of-bounds is a no-op', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    const before = tm.activeIndex;
+    tm.setActive(-1);
+    tm.setActive(99);
+    expect(tm.activeIndex).toBe(before);
+  });
+
+  test('serialize skips url-less panels and clamps active past the end', () => {
+    const tm = makeManager();
+    tm.newTab('');               // no currentUrl → skipped in tabs[]
+    tm.newTab('https://b.example');
+    tm.setActive(1);             // active panel index 1, but only 1 serialized tab
+    const s = tm.serialize();
+    expect(s.tabs).toEqual([{ url: 'https://b.example' }]);
+    expect(s.active).toBe(0);    // clamped min(active, len-1)
+  });
+
+  test('setCurved / setSearchEngine / setReaderProxyUrl tolerate panels without the method', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    // Strip the methods the real WebPanel provides — guards must skip them.
+    const p = tm.tabs[0];
+    delete p.setCurved; delete p.setSearchEngine; delete p.setReaderProxyUrl;
+    expect(() => {
+      tm.setCurved(true);
+      tm.setSearchEngine('bing');
+      tm.setReaderProxyUrl('https://proxy');
+    }).not.toThrow();
+    expect(tm.opts.searchEngine).toBe('bing');
+    // non-string url → ''
+    tm.setReaderProxyUrl(null);
+    expect(tm.opts.readerProxyUrl).toBe('');
+  });
+
+  test('dispose traverse skips children lacking geometry/material', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    // Bare object in the strip group exercises both missing-member arms.
+    tm.stripGroup.add({});
+    expect(() => tm.dispose()).not.toThrow();
+    expect(tm.stripMesh).toBeNull();
+  });
+});
+
+describe('TabManager — last branch arms', () => {
+  test('closeTab without onTabClose callback does not throw', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    expect(() => tm.closeTab(0)).not.toThrow();
+    expect(tm.tabs).toHaveLength(1);
+  });
+
+  test('setActive without onTabActivate callback does not throw', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    expect(() => tm.setActive(0)).not.toThrow();
+  });
+
+  test('serialize with zero tabs clamps active to 0', () => {
+    const tm = makeManager();
+    const json = tm.serialize();
+    expect(json.active).toBe(0);
+    expect(json.tabs).toEqual([]);
+  });
+
+  test('dispose traverse skips material without .map', () => {
+    const tm = makeManager();
+    tm.stripGroup.traverse = (fn) => fn({ material: { dispose: jest.fn() } });
+    expect(() => tm.dispose()).not.toThrow();
+  });
+});
+
+describe('TabManager — complementary arms', () => {
+  beforeEach(() => { panelInstances.length = 0; });
+
+  test('closing a tab before the active index shifts activeIndex left', () => {
+    const tm = makeManager();
+    tm.newTab();
+    tm.newTab();
+    tm.setActive(1);
+    tm.closeTab(0);
+    expect(tm.activeIndex).toBe(0);
+  });
+
+  test('onTabClose callback fires on close', () => {
+    const tm = makeManager();
+    const onTabClose = jest.fn();
+    tm.opts.onTabClose = onTabClose;
+    tm.newTab();
+    tm.closeTab(0);
+    expect(onTabClose).toHaveBeenCalled();
+  });
+
+  test('onTabActivate receives the activated tab url', () => {
+    const tm = makeManager();
+    const onTabActivate = jest.fn();
+    tm.opts.onTabActivate = onTabActivate;
+    tm.newTab();
+    tm.tabs[0].currentUrl = 'https://x.example';
+    tm.newTab();
+    tm.setActive(0);
+    expect(onTabActivate).toHaveBeenCalledWith('https://x.example');
+  });
+
+  test('setCurved/setSearchEngine/setReaderProxyUrl propagate to panels that implement them', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const panel = tm.tabs[0];
+    panel.setCurved = jest.fn();
+    panel.setSearchEngine = jest.fn();
+    panel.setReaderProxyUrl = jest.fn();
+    tm.setCurved?.(true);
+    tm.setSearchEngine('duckduckgo');
+    tm.setReaderProxyUrl?.('https://proxy');
+    if (tm.setCurved) expect(panel.setCurved).toHaveBeenCalled();
+    expect(panel.setSearchEngine).toHaveBeenCalledWith('duckduckgo');
+  });
+
+  test('dispose traverses strip children and frees geometry/material/map', () => {
+    const tm = makeManager();
+    tm.newTab();
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    tm.stripGroup.traverse = (cb) => cb({ geometry: geo, material: mat });
+    tm.scene = { remove: jest.fn() };
+    expect(() => tm.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});
+
+describe('TabManager — sliver arms', () => {
+  test('closeTab before activeIndex shifts it down; closing active resets it', () => {
+    const tm = makeManager();
+    tm.tabs = [{ dispose() {}, setVisible() {} }, { dispose() {}, setVisible() {} }, { dispose() {}, setVisible() {} }];
+    tm.activeIndex = 2;
+    tm.closeTab(0);                  // earlier tab → decrement
+    expect(tm.activeIndex).toBe(1);
+    tm.closeTab(1);                  // closes the active slot → clamps to 0
+    expect(tm.activeIndex).toBe(0);
+  });
+
+  test('setCurved/setSearchEngine/setReaderProxyUrl skip panels lacking the method', () => {
+    const tm = makeManager({ readerProxyUrl: 'https://proxy.example' });
+    tm.tabs = [{}, { setCurved: jest.fn(), setSearchEngine: jest.fn(), setReaderProxyUrl: jest.fn() }];
+    expect(() => {
+      tm.setCurved(true);
+      tm.setSearchEngine('duckduckgo');
+      tm.setReaderProxyUrl();
+    }).not.toThrow();
+    expect(tm.tabs[1].setCurved).toHaveBeenCalledWith(true);
+    expect(tm.tabs[1].setSearchEngine).toHaveBeenCalledWith('duckduckgo');
+  });
+});
+
+test('closeTab on a tab before the active one shifts activeIndex down', () => {
+  const tm = makeManager();
+  tm.newTab('https://a.example');
+  tm.newTab('https://b.example');
+  tm.newTab('https://c.example');
+  tm.setActive(2);                    // activeIndex = 2
+  tm.closeTab(0);                     // index 0 < activeIndex → decrement to 1
+  expect(tm.activeIndex).toBe(1);
+  expect(tm.tabs[tm.activeIndex]).toBeTruthy();
+});
+
+describe('TabManager — closeTab above the active index', () => {
+  test('closing a tab to the RIGHT of the active one keeps activeIndex', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example'); tm.newTab('https://b.example'); tm.newTab('https://c.example');
+    tm.setActive(0);
+    tm.closeTab(2);
+    expect(tm.activeIndex).toBe(0); // index > activeIndex → no shift
+  });
+});

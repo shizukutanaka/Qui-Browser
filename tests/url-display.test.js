@@ -347,3 +347,10 @@ describe('normalizeProxyUrl', () => {
     expect(readerFetchUrl('https://e.com/a', v)).toBe('http://p:8080/fetch?url=https%3A%2F%2Fe.com%2Fa');
   });
 });
+
+describe('urlDisplay — default-parameter arms', () => {
+  test('elideUrlForDisplay uses the 61-char budget when maxChars is omitted', () => {
+    const long = 'https://example.com/' + 'p'.repeat(80);
+    expect(elideUrlForDisplay(long).length).toBeLessThanOrEqual(61);
+  });
+});

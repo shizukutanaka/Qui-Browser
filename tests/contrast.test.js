@@ -443,3 +443,24 @@ describe('tabStripColors', () => {
     }
   });
 });
+
+describe('chromeColors — complementary arms', () => {
+  test('highContrast=true returns the high-contrast palettes', () => {
+    const { webChromeColors, webContentColors, tabStripColors } = require('../src/vr/browser/chromeColors.js');
+    for (const fn of [webChromeColors, webContentColors, tabStripColors]) {
+      const hc = fn(true);
+      const normal = fn(false);
+      expect(hc).not.toEqual(normal);
+      expect(Object.keys(hc).length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('chromeColors — high-contrast arms', () => {
+  test('webChromeColors / webContentColors / tabStripColors honor highContrast', () => {
+    const { webChromeColors, webContentColors, tabStripColors } = require('../src/vr/browser/chromeColors.js');
+    expect(webChromeColors(true)).not.toEqual(webChromeColors(false));
+    expect(webContentColors(true)).not.toEqual(webContentColors(false));
+    expect(tabStripColors(true)).not.toEqual(tabStripColors(false));
+  });
+});

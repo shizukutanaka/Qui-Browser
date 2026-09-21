@@ -405,3 +405,126 @@ describe('Exported constants', () => {
     expect(AXES_MAPS['generic'].stickX).toBe(0);
   });
 });
+
+describe('VRControllerInput — last branch arms', () => {
+  let ci;
+  beforeEach(() => { ci = new VRControllerInput(); });
+
+  test('getDeviceName falls back to Controller + unknown hand', () => {
+    expect(ci.getDeviceName(makeSource(['unknown-hw'], 'x'))).toContain('(x)');
+    expect(ci.getDeviceName(null)).toContain('unknown');
+  });
+
+  test('read() on a source with no matching family uses generic maps', () => {
+    const src = makeSource(['mystery-device'], 'left', makeButtons(5, [0]), [0.2, 0.3]);
+    const out = ci.read(src);
+    expect(out.family).toBe('generic');
+    expect(out.buttons).toBeTruthy();
+  });
+
+  test('read() tolerates buttons shorter than the map (btn absent → pressed false)', () => {
+    const src = makeSource(['oculus-touch'], 'right', makeButtons(1, []), []);
+    const out = ci.read(src);
+    // trigger index 0 exists; grip/thumbstick indices absent → btn undefined arm
+    expect(Object.values(out.buttons).some((b) => b.pressed === false)).toBe(true);
+  });
+
+  test('read() with no gamepad axes emits zeroed stick pair', () => {
+    const src = makeSource([], 'right', [], []);
+    const out = ci.read(src);
+    expect(out.axes.stickX).toBe(0);
+  });
+
+  test('read() on null-ish source returns the empty snapshot', () => {
+    const out = ci.read({ handedness: undefined, gamepad: null });
+    expect(out.family).toBeDefined();
+    expect(out.hand).toBe('unknown');
+    expect(out.axes).toEqual({ stickX: 0, stickY: 0 });
+  });
+});
+
+describe('VRControllerInput — complementary arms', () => {
+  let ci;
+  beforeEach(() => { ci = new VRControllerInput(); });
+
+  test('getDeviceName uses the family label when present', () => {
+    const name = ci.getDeviceName(makeSource(['oculus-touch-v3'], 'right'));
+    expect(name).toContain('(right)');
+    expect(name).toMatch(/Quest|Touch|Meta/);
+  });
+
+  test('read() on a known family uses the named button/axes maps', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, [0]), [0.1, 0.2, 0.3, 0.4]);
+    const out = ci.read(src);
+    expect(out.family).toBe('meta-quest');
+    expect(out.buttons.trigger).toBeTruthy();
+    expect(out.buttons.trigger.pressed).toBe(true);
+  });
+
+  test('read() reports an analog (non-binary) button value', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', [{ pressed: false, value: 0.7 }], []);
+    const out = ci.read(src);
+    expect(out.buttons.trigger.value).toBeCloseTo(0.7);
+  });
+
+  test('read() passes both axes through the radial dead zone', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, []), [0, 0, 0.9, -0.9]);
+    const out = ci.read(src);
+    expect(out.axes.stickX).toBeGreaterThan(0.5);
+    expect(out.axes.stickY).toBeLessThan(-0.5);
+  });
+});
+
+describe('VRControllerInput — generic-fallback arms', () => {
+  test('getDeviceName falls back to "Controller (unknown)" for unrecognised sources', () => {
+    const ci = new VRControllerInput();
+    const src = { profiles: ['totally-unknown-pad'], handedness: undefined };
+    expect(ci.getDeviceName(src)).toBe('Controller (unknown)');
+  });
+
+  test('read() uses generic maps + nullish fallbacks for sparse gamepads', () => {
+    const ci = new VRControllerInput();
+    const src = {
+      profiles: ['totally-unknown-pad'],
+      handedness: undefined,
+      gamepad: {
+        buttons: [{ pressed: true }], // no .value field
+        axes: []                     // no axes at all
+      }
+    };
+    const snap = ci.read(src);
+    expect(snap.hand).toBe('unknown');
+    expect(snap.buttons).toBeDefined();
+  });
+
+  test('button without .value resolves to pressed?1:0', () => {
+    const ci = new VRControllerInput();
+    const src = makeSource(['oculus-touch-v3'], 'right');
+    src.gamepad.buttons = [{ pressed: true }, { pressed: false }];
+    const snap = ci.read(src);
+    const vals = Object.values(snap.buttons).map(b => b.value);
+    expect(Math.max(...vals)).toBe(1);
+  });
+});
+
+describe('VRControllerInput — label/map sliver arms', () => {
+  test('getDeviceName labels an inputSource with no handedness and unknown family', () => {
+    const ci = new VRControllerInput();
+    expect(ci.getDeviceName(null)).toContain('unknown');
+    expect(ci.getDeviceName(makeSource(['totally-custom-profile']))).toContain('Controller');
+  });
+
+  test('read() uses generic maps and zero-fills missing axes', () => {
+    const ci = new VRControllerInput();
+    const src = makeSource(['unknown-pad'], 'right', [true], []); // sparse axes
+    const out = ci.read(src);
+    expect(out.axes.stickX).toBe(0);
+    expect(out.buttons).toBeTruthy();
+  });
+});
+
+test('getDeviceName with undefined handedness; read on a family with no explicit map', () => {
+  const ci = new VRControllerInput();
+  const src = { profiles: ['totally-custom-profile'], handedness: null, gamepad: { buttons: [], axes: [] } };
+  expect(ci.getDeviceName(src)).toContain('unknown');
+});

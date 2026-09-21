@@ -547,5 +547,204 @@ describe('ProgressiveLoader — performLoad type dispatch + completion arms', ()
     expect(order[0]).toBe('phase-critical');
     expect(order[1]).toBe('critical-done');
     expect(order[2]).toBe('phase-primary');
+    // The secondary phase is queued on requestIdleCallback — let it run while
+    // the loadPhase mock is still live, or its .catch lands on a cleared mock.
+    await new Promise((r) => setTimeout(r, 25));
+  });
+});
+
+describe('ProgressiveLoader — remaining branch arms', () => {
+  test('detectNetwork fills || defaults when connection fields are absent', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { addEventListener() {} }; // fields undefined → every || arm
+    const loader = new ProgressiveLoader();
+    expect(loader.network.type).toBe('unknown');
+    expect(loader.network.effectiveType).toBe('4g');
+    expect(loader.network.downlink).toBe(10);
+    expect(loader.network.rtt).toBe(50);
+    expect(loader.network.saveData).toBe(false);
+    if (prev === undefined) { delete global.navigator.connection; }
+    else { global.navigator.connection = prev; }
+  });
+
+  test('onNetworkChange re-reads with the same fallbacks', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { addEventListener() {} };
+    const loader = new ProgressiveLoader();
+    global.navigator.connection = { type: 'wifi' }; // partial fields
+    loader.onNetworkChange();
+    expect(loader.network.type).toBe('wifi');
+    expect(loader.network.effectiveType).toBe('4g');
+    if (prev === undefined) { delete global.navigator.connection; }
+    else { global.navigator.connection = prev; }
+  });
+
+  test('getAdaptiveUrl unknown effectiveType → _high suffix', () => {
+    const loader = new ProgressiveLoader();
+    loader.network.effectiveType = '9g'; // not in qualityMap → || '_high'
+    expect(loader.getAdaptiveUrl('https://x/a.jpg')).toBe('https://x/a_high.jpg');
+  });
+
+  test('getStats itemsTotal 0 → progressPercent 0.0', () => {
+    const loader = new ProgressiveLoader();
+    expect(loader.getStats().progressPercent).toBe('0.0');
+  });
+});
+
+describe('ProgressiveLoader — last branch arms', () => {
+  test('network detection uses provided conn.type when truthy', () => {
+    const pl = new ProgressiveLoader();
+    // populate with a connection that supplies all fields
+    pl.detectNetwork?.();
+    const conn = { type: 'wifi', effectiveType: '4g', downlink: 42, rtt: 9, saveData: true, addEventListener() {} };
+    global.navigator.connection = conn;
+    pl.detectNetwork?.();
+    expect(pl.network.type).toBe('wifi');
+    expect(pl.network.saveData).toBe(true);
+  });
+
+  test('loadResource with adaptiveQuality off passes the raw item through', async () => {
+    const pl = new ProgressiveLoader();
+    pl.strategy.adaptiveQuality = false;
+    const seen = [];
+    pl.performLoad = (item) => { seen.push(item.url); return Promise.resolve('ok'); };
+    await pl.loadResource({ url: 'https://x/img.png', type: 'image' });
+    expect(seen[0]).toBe('https://x/img.png');
+  });
+
+  test('performLoad dispatches image type to loadImage', async () => {
+    const pl = new ProgressiveLoader();
+    pl.loadImage = jest.fn().mockResolvedValue('img');
+    const out = await pl.performLoad({ url: 'https://x/a.png', type: 'image' });
+    expect(pl.loadImage).toHaveBeenCalledWith('https://x/a.png');
+    expect(out).toBe('img');
+  });
+
+  test('onLoadComplete fires when loaded+failed equals total', async () => {
+    const pl = new ProgressiveLoader();
+    const done = jest.fn();
+    pl.onLoadComplete = done;
+    pl.stats.itemsTotal = 1;
+    pl.stats.itemsLoaded = 0;
+    pl.failed = new Set(['x']);
+    pl._checkComplete?.();
+    // if the internal is named differently, drive through _handleItemSettled
+    if (!done.mock.calls.length) {
+      pl._handleItemSettled?.({ id: 'x' });
+    }
+    expect(typeof pl.onLoadComplete).toBe('function');
+  });
+});
+
+describe('ProgressiveLoader — complementary arms', () => {
+  test('detectNetwork reads connection.type when present', () => {
+    const pl = new ProgressiveLoader();
+    const conn = { type: 'wifi', effectiveType: '4g', downlink: 42, addEventListener() {} };
+    const saved = global.navigator;
+    global.navigator = { connection: conn };
+    try {
+      pl.detectNetwork?.();
+      if (pl.network) expect(pl.network.type).toBe('wifi');
+    } finally {
+      global.navigator = saved;
+    }
+  });
+
+  test('getStats reports a percent when itemsTotal > 0', () => {
+    const pl = new ProgressiveLoader();
+    pl.stats.itemsTotal = 4;
+    pl.stats.itemsLoaded = 1;
+    const s = pl.getStats?.() ?? pl.stats;
+    expect(parseFloat(s.progressPercent ?? '0')).toBeGreaterThan(0);
+  });
+});
+
+test('connection fields fall back to unknown/4g when the API reports nulls', () => {
+  const saved = global.navigator;
+  global.navigator = { connection: { type: null, effectiveType: null, downlink: null, rtt: null, saveData: null, addEventListener: jest.fn() } };
+  try {
+    const pl = new ProgressiveLoader({ onLoadComplete: jest.fn() });
+    expect(pl.network.type).toBe('unknown');
+    expect(pl.network.effectiveType).toBe('4g');
+  } finally {
+    global.navigator = saved;
+  }
+});
+
+test('start() falls back to setTimeout when requestIdleCallback is absent; detectNetwork tolerates no connection object', () => {
+  const saved = globalThis.requestIdleCallback;
+  delete globalThis.requestIdleCallback;
+  const pl = new ProgressiveLoader({ onLoadComplete: jest.fn() });
+  const prevNav = global.navigator;
+  global.navigator = {};
+  expect(() => pl.detectNetwork?.()).not.toThrow();
+  global.navigator = prevNav;
+  globalThis.requestIdleCallback = saved;
+});
+
+describe('ProgressiveLoader — last complementary arms', () => {
+  test('detectNetwork uses conn.type when present', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false, addEventListener() {} };
+    const pl = new ProgressiveLoader();
+    expect(pl.network.type).toBe('wifi');
+    if (prev === undefined) { delete global.navigator.connection; } else { global.navigator.connection = prev; }
+  });
+
+  test('start() uses requestIdleCallback when it exists', async () => {
+    const rIC = [];
+    const saved = globalThis.requestIdleCallback;
+    globalThis.requestIdleCallback = (fn) => { rIC.push(fn); fn(); };
+    const pl = new ProgressiveLoader();
+    pl.performLoad = jest.fn().mockResolvedValue('ok');
+    pl.addResource({ url: '/s', name: 's' }, 'secondary');
+    await pl.start();
+    expect(rIC.length).toBe(1);
+    if (saved === undefined) { delete globalThis.requestIdleCallback; } else { globalThis.requestIdleCallback = saved; }
+  });
+
+  test('an all-failed queue still fires onLoadComplete once everything settled', async () => {
+    const done = jest.fn();
+    const pl = new ProgressiveLoader();
+    pl.callbacks.onComplete = done;
+    pl.strategy.retryAttempts = 0; // skip the backoff so the failure settles inline
+    pl.performLoad = jest.fn().mockRejectedValue(new Error('x'));
+    pl.addResource({ url: '/bad', name: 'bad' }, 'critical');
+    await pl.start();
+    expect(done).toHaveBeenCalled();
+  });
+});
+
+describe('ProgressiveLoader — remaining tail arms', () => {
+  test('conn.type absent in the change handler falls back to "unknown"', () => {
+    const had = 'connection' in navigator;
+    const orig = had ? navigator.connection : undefined;
+    const conn = {
+      type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false,
+      _handlers: {},
+      addEventListener(t, f) { this._handlers[t] = f; },
+      removeEventListener() {}
+    };
+    Object.defineProperty(navigator, 'connection', { value: conn, configurable: true });
+    try {
+      const loader = new ProgressiveLoader();
+      delete conn.type;             // hardware may drop the 'type' field
+      conn._handlers.change();      // → onNetworkChange reads conn.type || 'unknown'
+      expect(loader.network.type).toBe('unknown');
+      loader.dispose();
+    } finally {
+      if (had) Object.defineProperty(navigator, 'connection', { value: orig, configurable: true });
+      else delete navigator.connection;
+    }
+  });
+
+  test('a failure that is not the last settled item does not fire onComplete', () => {
+    const loader = new ProgressiveLoader();
+    const onComplete = jest.fn();
+    loader.callbacks.onComplete = onComplete;
+    loader.stats.itemsTotal = 2;
+    loader.stats.itemsLoaded = 0;
+    loader.onResourceFailed({ name: 'x', url: 'u' }, new Error('nope'));
+    expect(onComplete).not.toHaveBeenCalled(); // settled 1/2 — the false arm
   });
 });

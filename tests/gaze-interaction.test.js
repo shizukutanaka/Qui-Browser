@@ -393,3 +393,107 @@ describe('GazeInteraction — _updateFill guard', () => {
     expect(() => g._updateFill(0.5)).not.toThrow();
   });
 });
+
+describe('GazeInteraction — last branch arms', () => {
+  test('setHighContrast with no ring built does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._ring = null;
+    expect(() => g.setHighContrast(true)).not.toThrow();
+    expect(g._ringOpacity).toBe(1.0);
+  });
+
+  test('_reset with fill/ring absent does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._fill = null; g._ring = null;
+    expect(() => g._reset()).not.toThrow();
+  });
+
+  test('_tickConfirm with ring absent does not throw (both reduceMotion arms)', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._ring = null; g._confirmMs = 50;
+    g.reduceMotion = true;
+    expect(() => g._tickConfirm(16)).not.toThrow();
+    g._confirmMs = 50;
+    g.reduceMotion = false;
+    expect(() => g._tickConfirm(16)).not.toThrow();
+  });
+
+  test('dwell completion with target lacking interactable handlers returns without dispatch', () => {
+    const g = new GazeInteraction(makeCamera(), { dwellTime: 10, graceTime: 0 });
+    g._ring = null;
+    g._target = { userData: null };
+    g._dwellMs = 999;
+    expect(() => g.update(16, [])).not.toThrow();
+  });
+
+  test('dispose without camera or reticle does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g.camera = null;
+    g.reticle = null;
+    expect(() => g.dispose()).not.toThrow();
+  });
+});
+
+describe('GazeInteraction — complementary arms', () => {
+  test('dwell fire calls onSelect with the hit when handlers exist', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+    gi.update([obj], 600);
+    gi.update([obj], 600);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0][0].gaze).toBe(true);
+  });
+
+  test('dwell fire restores ring opacity when the ring exists', () => {
+    const cam = makeCamera();
+    const gi = new GazeInteraction(cam, { dwellTime: 1000 });
+    gi.setEnabled(true);
+    gi._ring = { material: { opacity: 0.3 } };
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+    gi.update([obj], 600);
+    gi.update([obj], 600);
+    expect(gi._ring.material.opacity).toBe(1);
+  });
+
+  test('dispose detaches the reticle via camera.remove when available', () => {
+    const cam = makeCamera();
+    cam.remove = jest.fn();
+    const gi = new GazeInteraction(cam, {});
+    const reticle = { traverse() {} };
+    gi.reticle = reticle;
+    gi.dispose?.();
+    expect(cam.remove).toHaveBeenCalledWith(reticle);
+  });
+});
+
+describe('GazeInteraction — ring/onSelect/dispose sliver arms', () => {
+  test('dwell-fire works when the confirm ring is absent', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+    gi._ring = null; // ring not built (e.g. reduced-motion minimal path)
+    const fired = gi.update([obj], 1200);
+    expect(fired).toBe(obj);
+    expect(onSelect).toHaveBeenCalled();
+  });
+
+  test('dwell-fire on a handler-less target returns it without calling select', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({}); // interactable registered, no onSelect
+    nextHit = { object: obj };
+    const fired = gi.update([obj], 1200);
+    expect(fired).toBe(obj);
+  });
+
+  test('dispose tolerates a camera without remove()', () => {
+    const gi = new GazeInteraction({ add: jest.fn() }); // builds reticle, no .remove
+    expect(() => gi.dispose()).not.toThrow();
+  });
+});

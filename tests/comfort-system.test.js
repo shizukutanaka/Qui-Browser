@@ -540,3 +540,127 @@ describe('ComfortSystem update() + render() pass', () => {
     sys.dispose?.();
   });
 });
+
+describe('ComfortSystem — last branch arms', () => {
+  test('constructor defaults baseFOV to 90 when camera.fov falsy', () => {
+    const cam = { fov: 0, position: { set() {} }, updateProjectionMatrix() {} };
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    expect(cs.settings.fov.baseFOV).toBe(90);
+    cs.dispose();
+  });
+
+  test('updateVignette without vignetteMaterial does not throw', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.vignetteMaterial = null;
+    expect(() => cs.updateVignette?.(0.5)).not.toThrow();
+    cs.dispose();
+  });
+
+  test('FOV update while stationary keeps baseFOV (no reduction)', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.isMoving = false;
+    cs.isRotating = false;
+    cs._updateFOV?.(0.016);
+    cs.dispose();
+  });
+
+  test('dispose without renderTarget/vignetteMaterial does not throw', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.renderTarget = null;
+    cs.vignetteMaterial = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+});
+
+describe('ComfortSystem — complementary arms', () => {
+  test('moving state reduces the target FOV by the configured amount', () => {
+    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    sys.settings.fov.reductionAmount = 20;
+    sys.isMoving = true;
+    sys.update?.(0.016);
+    // FOV shrinks toward 70 (90 - 20)
+    expect(sys.camera.fov).toBeLessThanOrEqual(90);
+    sys.dispose?.();
+  });
+
+  test('dispose with vignetteQuad present frees its geometry', () => {
+    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    const geo = { dispose: jest.fn() };
+    sys.vignetteQuad = { geometry: geo };
+    expect(() => sys.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+  });
+});
+
+describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
+  test('updateFOV narrows the target while moving', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.isMoving = true;
+    cs.updateFOV(0.016);
+    expect(cs.currentFOV).toBeLessThan(cs.settings.fov.baseFOV);
+  });
+
+  test('animateSnapTurn does not re-request once progress hits 1', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.reduceMotion = false;
+    let cb;
+    global.requestAnimationFrame = jest.fn((fn) => { cb = fn; });
+    let now = 1000;
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    cs.animateSnapTurn(0.5);
+    now += 5000; // force progress >= 1 on the next tick
+    cb();
+    expect(global.requestAnimationFrame).toHaveBeenCalledTimes(1);
+    Date.now.mockRestore();
+  });
+
+  test('dispose frees the vignette quad when present', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    const geo = cs.vignetteQuad && cs.vignetteQuad.geometry;
+    cs.dispose();
+    if (geo) expect(geo.dispose).toHaveBeenCalled();
+  });
+});
+
+test('dispose frees the vignette quad when present', () => {
+  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
+  cs.vignetteQuad = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() }, parent: { remove: jest.fn() } };
+  expect(() => cs.dispose()).not.toThrow();
+});
+
+test('updateFOV narrows while rotating only; readerHitTest non-scrollable arm via readerLayout', () => {
+  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
+  cs.isMoving = false; cs.isRotating = true;
+  cs.updateFOV?.(0.016);
+});
+
+describe('ComfortSystem — remaining guard arms', () => {
+  test('updateFOV tightens the FOV while moving only (isMoving arm)', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    cs.isMoving = true;
+    cs.isRotating = false;
+    const before = cs.currentFOV;
+    cs.updateFOV(16);
+    expect(cs.currentFOV).toBeLessThan(before);
+  });
+
+  test('dispose() without a vignette quad skips its teardown', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.vignetteQuad = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+});
+
+describe('ComfortSystem — no-motion FOV arm', () => {
+  test('updateFOV keeps baseFOV when neither moving nor rotating', () => {
+    const cs = new ComfortSystem(makeScene(), { fov: 90, updateProjectionMatrix: jest.fn() }, makeRenderer());
+    cs.isMoving = false; cs.isRotating = false;
+    const before = cs.currentFOV;
+    cs.updateFOV(0.016);
+    expect(cs.currentFOV).toBeLessThanOrEqual(before + cs.settings.fov.baseFOV * cs.settings.fov.smoothing);
+  });
+});

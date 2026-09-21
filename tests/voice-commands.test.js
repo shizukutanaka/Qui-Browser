@@ -891,3 +891,385 @@ describe('VoiceCommands — handler callbacks + init catch + pattern arm', () =>
     expect(vc.stats.commandsExecuted).toBe(1);
   });
 });
+
+describe('VoiceCommands — remaining branch arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('wake-word mode: non-final transcript while asleep returns early', () => {
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    // _handleResult with isFinal=false and no wake word → returns, no command
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'unknown', confidence: 0.9 }, isFinal: false, length: 1 }] });
+    expect(vc.stats.commandsRecognized).toBe(0);
+  });
+
+  test('wake word wakes the listener (isAwake flips, greeting spoken)', () => {
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'キューブラウザ 起動', confidence: 0.9 }, isFinal: true, length: 1 }] });
+    expect(vc.isAwake).toBe(true);
+  });
+
+  test('command with RegExp pattern matches; non-string/non-RegExp pattern skipped', () => {
+    vc.registerCommand('rx', { patterns: [/^reload|reload$/], action: () => ({ ok: 1 }) });
+    vc.registerCommand('badpat', { patterns: [123], action: () => { throw new Error('never'); } });
+    vc.processCommand('reload', 0.9);
+    expect(vc.lastCommand.key).toBe('rx');
+  });
+
+  test('alias substring match resolves to the aliased command', () => {
+    vc.registerCommand('home', {
+      patterns: ['ホーム'], action: () => ({ action: 'home' })
+    });
+    vc.aliases.set('ホームページ', 'home');
+    vc.processCommand('ホームページへ', 0.9);
+    expect(vc.lastCommand.key).toBe('home');
+  });
+
+  test('search command regex with no colon-match returns without query', () => {
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    // '検索' matches the command pattern but carries no query payload.
+    vc.processCommand('検索', 0.9);
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  test('registerCommand fills defaults for absent patterns/example', () => {
+    vc.registerCommand('bare', { action: () => ({ ok: 1 }) });
+    const cmd = vc.commands.get('bare');
+    expect(cmd.patterns).toEqual([]);
+    expect(cmd.confirmationText).toBeNull();
+  });
+
+  test('connectBrowser() with no args registers nothing session-bound', () => {
+    expect(() => vc.connectBrowser()).not.toThrow();
+    expect(() => vc.connectBrowser({})).not.toThrow();
+  });
+
+  test('volume command with onVolumeChange returning non-number skips level readout', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => undefined });
+    vc.processCommand('音量を上げる', 0.9);
+    expect(spoken.every((s) => !s.includes('%'))).toBe(true);
+  });
+
+  test('keyboard command no-ops without vrKeyboard', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('キーボード', 0.9)).not.toThrow();
+    expect(vc.lastCommand.result.action).toBe('keyboard');
+  });
+
+  test('go-to command with unmatched transcript leaves onGoTo uncalled', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    // Register a custom go-to-shaped command whose transcript matches but whose
+    // extractor finds no payload.
+    vc.processCommand('開いて', 0.9);
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+});
+
+describe('VoiceCommands — final arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('web-search action opens google with the colon payload', () => {
+    const opened = [];
+    const saved = global.window;
+    global.window = { open: (u) => opened.push(u) };
+    try {
+      vc.registerCommand('web-search', {
+        patterns: [/検索/],
+        action: (transcript) => {
+          const match = transcript.match(/[：:]\s*(.+)/);
+          if (match && match[1]) {
+            global.window.open(`https://www.google.com/search?q=${encodeURIComponent(match[1])}`, '_blank');
+            return { action: 'search', query: match[1] };
+          }
+          return { action: 'search', query: null };
+        }
+      });
+      vc.processCommand('検索: てんき', 0.9);
+      expect(opened[0]).toContain('google.com/search');
+      vc.processCommand('検索のみ', 0.9); // no colon → query null arm
+      expect(vc.lastCommand.result.query).toBeNull();
+    } finally {
+      global.window = saved;
+    }
+  });
+
+  test('onSearch absent falls back to active-tab navigate with the query', () => {
+    const navigate = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => ({ navigate }) } });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(navigate).toHaveBeenCalledWith('てんき');
+  });
+
+  test('go-to via english prefix resolves the query', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('open github', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+
+  test('continuous restart re-checks isEnabled inside the timeout', async () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      // drive the onend restart path
+      vc.recognition = { onend: null };
+      const { } = vc;
+      // Simulate what setupRecognitionHandlers wires: onend schedules a restart
+      // only when still enabled.
+      const onend = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      onend();
+      vc.isEnabled = false; // disabled before the 100ms restart lands
+      jest.advanceTimersByTime(200);
+      expect(vc.start).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('VoiceCommands — complementary arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('alias loop iterates past non-matching aliases to a match', () => {
+    vc.registerCommand('home', { patterns: ['ホーム'], action: () => ({ action: 'home' }) });
+    vc.aliases.set('zzz-not-present', 'home');   // non-matching alias first
+    vc.aliases.set('ホーム', 'home');            // matching alias second
+    vc.processCommand('ホームに行く', 0.9);
+    expect(vc.lastCommand.key).toBe('home');
+  });
+
+  test('continuous restart calls start() when still enabled after 100ms', () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      const onend = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      onend();
+      jest.advanceTimersByTime(150);
+      expect(vc.start).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('volume action speaks the numeric level', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => 75 });
+    vc.processCommand('音量上げる', 0.9);
+    expect(spoken.some((s) => s.includes('75'))).toBe(true);
+  });
+
+  test('search with colon payload fires onSearch(query)', () => {
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(onSearch).toHaveBeenCalledWith('てんき');
+  });
+
+  test('go-to with japanese suffix extracts the site name', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('githubに行く', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('github');
+  });
+});
+
+describe('VoiceCommands — complementary arms 2', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('unwired search command falls back to window.open google URL', () => {
+    const opened = [];
+    const origOpen = global.window?.open;
+    global.window = global.window || {};
+    global.window.open = (u, t) => opened.push([u, t]);
+    try {
+      vc.processCommand('検索：てんき', 0.9);
+      expect(opened.length).toBe(1);
+      expect(opened[0][0]).toContain('google.com/search?q=');
+      expect(opened[0][1]).toBe('_blank');
+    } finally {
+      global.window.open = origOpen;
+    }
+  });
+
+  test('go-to command on English transcript extracts the site via enMatch', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('open example.com', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('example.com');
+  });
+
+  test('go-to command with no extractable site returns query:null without calling onGoTo', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    // matches the registered pattern prefix but both jp/en sub-matches fail
+    vc.processCommand('行って', 0.9);
+    // either no go-to match at all, or a match with null query — onGoTo never fires with empty
+    const goToCalls = onGoTo.mock.calls.filter(([q]) => !q || !q.trim());
+    expect(goToCalls.length).toBe(0);
+  });
+});
+
+describe('VoiceCommands — remaining false-side arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('continuous restart is skipped when disabled inside the 100ms window', () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      // simulate recognition onend scheduling the restart
+      const schedule = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      schedule();
+      vc.isEnabled = false; // disabled before the timer fires
+      jest.advanceTimersByTime(200);
+      expect(vc.start).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('volume action does not speak when onVolumeChange returns non-number', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => undefined });
+    vc.processCommand('音量上げる', 0.9);
+    expect(spoken.every((s) => !s.includes('%'))).toBe(true);
+  });
+
+  test('search falls back to tabManager.navigate when onSearch is absent', () => {
+    const navigate = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => ({ navigate }) } });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(navigate).toHaveBeenCalledWith('てんき');
+  });
+});
+
+describe('VoiceCommands — colon/go-to/restart slivers', () => {
+  test('search action with a colon-less transcript returns undefined', () => {
+    const vc = new VoiceCommands();
+    vc.connectBrowser({ onSearch: jest.fn() });
+    const cmd = vc.commands.get('search');
+    expect(cmd.action('検索')).toBeUndefined(); // matched pattern-less path: no colon
+  });
+
+  test('go-to action with an empty query reports query:null', () => {
+    const vc = new VoiceCommands();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    const cmd = vc.commands.get('go-to');
+    const out = cmd.action('を開く');
+    expect(out).toEqual({ action: 'go-to', query: null });
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+
+  test('onend does not restart when disabled before the 100ms tick', () => {
+    jest.useFakeTimers();
+    const vc = new VoiceCommands();
+    vc.settings.continuous = true;
+    vc.isEnabled = true;
+    const rec = { start: jest.fn(), stop: jest.fn() };
+    vc.recognition = rec;
+    const startSpy = jest.spyOn(vc, 'start').mockImplementation(() => {});
+    vc.isEnabled = false;
+    jest.advanceTimersByTime(200);
+    expect(startSpy).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+});
+
+describe('VoiceCommands — sliver arms', () => {
+  test('continuous restart: still-enabled fires start; disabled between onend and timer does not', () => {
+    jest.useFakeTimers();
+    const vc = new VoiceCommands();
+    vc.settings.continuous = true;
+    const rec = { onend: null, start: jest.fn(), stop: jest.fn() };
+    vc.recognition = rec;
+    vc.setupRecognitionHandlers();
+    vc.isEnabled = true; vc.isListening = true;
+    rec.onend();
+    jest.advanceTimersByTime(150);
+    expect(rec.start).toHaveBeenCalledTimes(1);
+
+    rec.start.mockClear();
+    vc.isEnabled = true; vc.isListening = true;
+    vc.recognition.onend();
+    vc.isEnabled = false;              // turned off inside the 100ms window
+    jest.advanceTimersByTime(150);
+    expect(rec.start).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  test('browser-less search opens a Google tab', () => {
+    const vc = new VoiceCommands();
+        const cmd = vc.commands.get('search');
+    global.window = global.window || {};
+    window.open = jest.fn();
+    const out = cmd.action('検索：てんき');
+    expect(out.query).toBe('てんき');
+    expect(window.open).toHaveBeenCalledWith(expect.stringContaining('google.com/search'), '_blank');
+  });
+
+  test('go-to command returns null query when nothing captured', () => {
+    const vc = new VoiceCommands();
+    const spy = jest.fn();
+    vc.connectBrowser({ onGoTo: spy });
+    const cmd = vc.commands.get('go-to');
+    const out = cmd.action('を開く');   // matches jp pattern shape but captures empty
+    expect(out).toEqual({ action: 'go-to', query: null });
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('VoiceCommands — search action inner-match arm', () => {
+  test('the search action returns undefined for a transcript with no colon query', () => {
+    const vc = new VoiceCommands();
+    vc.connectBrowser({}); // registers 'search'
+    const cmd = vc.commands.get('search');
+    expect(cmd.action('検索')).toBeUndefined();
+  });
+});

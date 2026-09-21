@@ -119,3 +119,42 @@ describe('buildVideoSphereGeometry', () => {
     expect(geo.parameters.phiLength).toBeCloseTo(Math.PI, 6);
   });
 });
+
+describe('videoProjection — complementary arms', () => {
+  test('stereo-tb right eye gets the bottom-half UV', () => {
+    const { eyeUVTransform } = require('../src/vr/media/videoProjection.js');
+    const left = eyeUVTransform('stereo-tb', 'left');
+    const right = eyeUVTransform('stereo-tb', 'right');
+    expect(right).not.toEqual(left);
+  });
+
+  test('buildVideoSphereGeometry honours custom opts', () => {
+    const { buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
+    const THREE = { SphereGeometry: jest.fn(function (...a) { Object.assign(this, { args: a }); }) };
+    buildVideoSphereGeometry(THREE, { radius: 50, projection: '180', widthSegments: 16, heightSegments: 8 });
+    expect(THREE.SphereGeometry).toHaveBeenCalled();
+  });
+});
+
+describe('videoProjection — default-arg arms', () => {
+  test('eyeUVTransform handles stereo-tb and defaults', () => {
+    const { eyeUVTransform } = require('../src/vr/media/videoProjection.js');
+    expect(eyeUVTransform('stereo-tb', 'left')).toBeTruthy();
+    expect(eyeUVTransform('stereo-tb', 'right')).toBeTruthy();
+    expect(eyeUVTransform()).toBeTruthy();
+    expect(eyeUVTransform('mono')).toBeTruthy();
+  });
+
+  test('detectVideoFormat with no url and unknown url', () => {
+    const { detectVideoFormat } = require('../src/vr/media/videoProjection.js');
+    expect(detectVideoFormat()).toBeTruthy();
+    expect(detectVideoFormat('blob:xyz')).toBeTruthy();
+  });
+
+  test('buildVideoSphereGeometry with defaults', () => {
+    const THREE = require('three');
+    const { buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
+    expect(buildVideoSphereGeometry(THREE)).toBeTruthy();
+    expect(buildVideoSphereGeometry(THREE, { projection: '180' })).toBeTruthy();
+  });
+});

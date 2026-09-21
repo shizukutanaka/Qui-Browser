@@ -381,3 +381,47 @@ describe('TextureManager — error arms', () => {
     expect(tm.stats.fallbackLoaded).toBe(1);
   });
 });
+
+describe('TextureManager — last branch arms', () => {
+  test('applyTextureSettings skips mipmaps when minFilter is Linear', () => {
+    const tm = new TextureManager(makeRenderer());
+    const tex = { generateMipmaps: false };
+    tm.applyTextureSettings(tex, { minFilter: 1006 /* LinearFilter */ });
+    expect(tex.generateMipmaps).toBe(false);
+  });
+
+  test('cacheTexture on an already-cached URL evicts the old entry first', () => {
+    const tm = new TextureManager();
+    tm.textureCache.set('u', { texture: { dispose: jest.fn() }, estimatedBytes: 1 });
+    expect(() => tm.cacheTexture('u', { dispose: jest.fn() })).not.toThrow();
+  });
+
+  test('estimateTextureMemory defaults image dimensions when absent', () => {
+    const tm = new TextureManager();
+    const bytes = tm.estimateTextureMemory({ image: {} }, false);
+    expect(bytes).toBeGreaterThan(0);
+  });
+
+  test('getPerformanceStats zero-count arms → 0 rates', () => {
+    const tm = new TextureManager();
+    const stats = tm.getPerformanceStats();
+    expect(stats.cacheHitRate).toBe(0);
+    expect(stats.avgLoadTime).toBe(0);
+  });
+
+  test('dispose without ktx2Loader does not throw', () => {
+    const tm = new TextureManager();
+    tm.ktx2Loader = null;
+    expect(() => tm.dispose()).not.toThrow();
+  });
+});
+
+describe('TextureManager — populated cacheHitRate arm', () => {
+  test('getPerformanceStats reports a nonzero hit rate after a real hit', async () => {
+    const tm = new TextureManager(makeRenderer());
+    await tm.loadTexture('a.png');
+    await tm.loadTexture('a.png'); // cache hit
+    const stats = tm.getPerformanceStats();
+    expect(stats.cacheHitRate).toBeGreaterThan(0);
+  });
+});

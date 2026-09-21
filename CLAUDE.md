@@ -544,6 +544,112 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き125（同セッション）: 補腕スイープ完走 — 分岐カバレッジ 97.67%、残は全て構造的死腕
+
+- **実測**: 2994 tests / 67 suites 全緑、lint 0 errors、branches **97.67%**（94/4038 未カバー、続き124 時点の 93.4% / 266 から +4.3pt）。
+- 最終バッチで pin した腕:
+  - ストレージ/環境: BookmarkStore `writeJSON` の `typeof localStorage` 偽腕（**addHistory は事前ガード済みで到達しない — `clearHistory()` が唯一直呼び経路**）、`getTopSites` の代表差替え `entry.title || entry.url`（同一ホストで高スコア・無タイトルの履歴を seeded localStorage で投入）、`applyTranslations` の `root`/`document` 両デフォルト腕
+  - ネットワーク: ProgressiveLoader `onNetworkChange` の `conn.type || 'unknown'`（**ctor 側と change ハンドラ側で別行・別ブロック — change 側は `conn._handlers.change()` 発火が必要**）
+  - レンダリング/計測: LayersSystem `renderCanvasToLayer` の post-dispose no-op、PerformanceMonitor `endFrame` の `now - lastFpsUpdate >= 1000` **真腕**（既存テストは performance.now をモックして常に偽側 — `lastFpsUpdate = now - 2000` で確定的に真側を踏む）と偽腕（二連続呼び）、TextureManager `cacheHitRate` の hits>0 腕
+  - ブラウザ/UI: TabManager `closeTab` の `index > activeIndex`（activeIndex 不変）、WebPanel iframe 未生成 dispose、ComfortSystem 非移動時の FOV 補間腕、ImmersiveVideo `_reportError` の `_playPauseBtn` 不在腕、HapticFeedback の `duration`/`pause` 両無しステップ、urlDisplay `maxChars` 省略、readerLayout `reserveBottom`+`scale` 省略腕
+  - 文字幅/国際化: textWrap の残 CJK レンジ（Hangul 音節・Yi・互換表意文字・縦書き・全角・Ext A/B/G）、VoiceCommands `検索` の colon 無し transcript → 内側 match null 腕（`commands.get('search').action('検索')` 直接呼び出しで到達）
+  - IME/キーボード: `VRJapaneseKeyboard._updateSuggestions` の `ime` 不在腕（`: ''`）と `compositionBuffer || ''` 空バッファ腕
+  - CaptionSystem `'colorSpace' in texture` 偽腕 — **`import * as THREE` は babel がモジュールロード時に wildcard コピーするため、テスト内での `THREE.CanvasTexture` 差替えは `jest.isolateModules` 内で CaptionSystem を再 require しないと反映されない**
+- **ソクラテス的残存の確定（構造的死腕、pin 不可能 — 今後の調査対象外として記録）**:
+  - `src/monitoring.js` 全62腕: `import.meta.env.PROD` ゲート — babel-jest では `import.meta.env` 自体が undefined で DEV 経路のみ実行可能（N-2、オーナー判断事項）
+  - VRApp.js 15腕: setupRenderer 内の GPU リスナー本体（520/529/552/559 — WebGL コンテキスト必須）、`leftover.some` 真腕 1700、`move.lengthSq() > 0` ゼロ移動腕 2095、`import.meta.env.DEV` 2736
+  - VRControllerInput 202/227/228/266: `??` フォールバック — upstream が常に値供給
+  - JapaneseIME 244: 末尾 `if (buffer === 'n')` — ループ内 'n' ハンドラが末尾 'n' を先に消費するため到達不能。810/818 `k.glyph || k.label`: computeKeyLayout が常に glyph を供給
+  - app.js 99/177: `if (perfIntervalId)` — initializeApp はモジュールローカルで一度しか呼ばれず、Escape ハンドラ登録時点で interval は必ず設定済み
+  - i18n 348 `|| CATALOG.en`: detectLanguage ∈ {en,ja} で常に存在。main.js 49: `import.meta.env.PROD`。readerLayout 116: `measureEmForStyle` のデフォルト引数 — 全呼出側が scale 供給。curvedGeometry 90: `computeVertexNormals` は BufferGeometry に常時存在。LayersSystem 164: try 前に `if (!gl) return` でガード済みの finally。CaptionSystem 118 は差替え可能だったが、他の `in texture` 系ガードは mock が常に prop を持つため偽腕不在
+- **Musk の算法適用後の結論**: 残りの未カバーは全て「保険的防御」または「環境ゲート」であり、削除ではなく文書化が正解 — カバレッジの残量は実機 E2E（WebGL/XR）か PROD ビルド実行でのみ埋まる。
+
+#### 続き124（同セッション）: 補腕スイープの総仕上げ — 分岐カバレッジ 93.4%
+
+- **方法論の確定**: 残存未カバーの大部分は「条件の補腕」ではなく **デフォルト引数の未供給側**（`scale = 1`、`dtMs = 16`、`maxChars = 61`、`highContrast = false`）と **`||`/`??` のフォールバック腕**だった — 同じ形を横断的に潰すバッチに切り替えた。
+- 固定した腕（代表）:
+  - デフォルト引数: `captionMeasureEm()`/`captionFontSizeFor(n)`/`measureEmFor()`/`layoutSettingsPanel(sections)`/`hitTest(px,py)`/`bookmarkPanelColors()`/`imeColors()`/`webChromeColors()` 群、`elideUrlForDisplay(url)` の room<=1 → 裸 '…' 腕、`tabCloseZonePx('x')` → `Number()` NaN→0、`decimalsFor(1e-7)` → `String` で '.' 無し→0、readerHitTest の scrollable 矢印ゾーン
+  - ガード補腕: WindowManager `!target` / `followMode` / `_grab` 優先、BookmarkPanel `typeof onDeleteBookmark==='function'`・delete ゾーン発火、WebPanel iframe parentNode 無し、LayersSystem removeLayer の `if(session)`・blit の `if(gl)`、CaptionSystem dispose の `camera.remove`/`material.map` 両腕、ImmersiveVideo `_reportError` の `_playPauseBtn` 存在腕
+  - 計測系: FFRSystem setDynamicFFR の medium/low 帯（EMA 収束まで反復）、PerformanceMonitor の `display:none` 腕・fps 警告帯、SpatialAudio の `context.sampleRate || 48000`・panner HRTF/equalpower、HapticFeedback の切断 else-if・`step.pause`・不明 texture/urgency/proximity 範囲外の全補腕、VRControllerInput の `handedness ?? 'unknown'`（null 供給で正に 'unknown'）
+  - IME/キーボード: `convertRomajiToHiragana('n')` 末尾 'ん'、processInput/deleteLast の非変換モード else 腕、show() の group 既存スキップ、`_updateSuggestions` の query<2 → clear、dispose の display-mesh/scene.remove 腕
+  - DevTools: `visible:false` → 'none'、showTab の content 無し/未登録 id 許容、ネットワーク記録の `method || 'GET'`/`headers.get → 'unknown'`
+  - VoiceCommands: continuous 再起動の内側 `isEnabled` 再検査（onend 後 100ms 内に disable→start 無し）、ブラウザ未接続 search → window.open フォールバック、go-to 空クエリ → `query:null`
+  - ストレージ/環境: localStorage `'null'` → `{}`、localStorage 全面不在での setLanguage/applyTranslations/writeJSON 各腕、`navigator.connection` フィールド null → 'unknown'/'4g'
+- **テスト自体の潜伏不具合も修正**: `start()` の secondary フェーズが requestIdleCallback で後発する既存テストで、`afterEach` の restoreAllMocks が `loadPhase` モック実装を先に剥がし → タイマー発火時に `undefined.catch` が unhandled 化していた。タイマーをテスト内でドレインして解消（本番では `loadPhase` は常に async → Promise 返却で非到達、純粋なテスト衛生問題）。
+- **実測**: 2862 tests / 67 suites 全緑、lint 0 errors、branches **93.4%**（266/4038 未カバー）。残存は VRApp 129腕（setupRenderer/setupVR の GL・XR 直結が大半）、monitoring.js 62腕（PROD ゲート、N-2 判断待ち）、main.js:49 の `import.meta.env.PROD` 腕 — ヘッドレスで pin 可能な面はほぼ消尽。
+
+#### 続き123（同セッション）: VRApp の「構造的に到達不能」面を再検証 — 分岐カバレッジ 91.28%
+
+- **前提の破壊**: 「VRApp は GPU 直結で到達不能」は ctor までには成立しない — `new VRApp()` は `initialize()` を `_initPromise` に保持するだけで ctor 自体はヘッドレス完走する（document.body フォールバック・persisted captionScale シード腕まで pin）。
+- bound-prototype で pin した腕:
+  - hostnameCaption: `about:blank` の空 hostname → `|| url` 腕、非 URL 文字列 → catch → slice(30) 腕
+  - updateHover: `isWorldVisible` の見えない祖先 skip 腕（レイキャスト命中でも invisible 親なら dispatch しない）
+  - ストレージ境界: `typeof localStorage === 'undefined'` / `!raw` / 非オブジェクト JSON の3腕（loadPersistedSettings / _saveTabSession / _restoreTabSession）
+  - `_buildBrowsingSystems` cfg の補腕: onTabActivate(null)→new-tab ラベル、BookmarkPanel onSelect の active 不在スキップ・onDeleteBookmark の通知ハプティクス・onTabChange('history')・空 URL 確認の Loading スキップ、captionSystem 不在時の全コールバック完走
+  - 設定パネル: `_toggleSettingsSection` 再選択 no-op / 別タブ persist+rebuild、`_rebuildSettingsPanel` の panel 不在早期 return、`_disposeSettingsPanel` の parent 無し traverse、makeCompactToggleButton の `apply` 腕、makeStepperButton の worldToLocal 領域 dispatch、makeActionButton の onSelect 不在腕、highContrast apply の `bookmarkPanel.visible` → `_draw`、smoothMove+reduced-motion の警告 toast、windowManager 不在の follow-view no-op
+  - showVRToast: 60 コードポイント超の切り詰め（サロゲートペア安全）、カメラ null の自動消去タイマー腕
+  - `_onWebPanelToggleChanged()` 引数無し → persisted 設定読取り腕
+- 外周クラスの残腕も一掃: VRControllerInput の未知 family→generic fallback・handedness 不在・value 無しボタン、HapticFeedback の切断検出・単一 gamepad での alert 両手 dedup・不明 texture/proximity 範囲外 return・test()、DevTools の POST+content-length 記録・showTab 切替・Object/unnamed フォールバック、JapaneseIME の katakana mode・語尾非 n 腕、VRJapaneseKeyboard の hover caption・show・null-ime・dispose メンバガード。
+- **実測**: 2738 tests / 66 suites 全緑、lint 0 errors、branches **91.28%**（3686/4038、開始時 83.18%）。残存は VRApp setupRenderer/setupVR の GL・XR 直結部（~143腕）と monitoring.js の PROD ゲート（62腕、N-2）が大半 — 実機 E2E か PROD ビルドでのみ到達可能。
+
+#### 続き122（同セッション）: 条件の「欠けている側」をBRDA三つ組で個別潰し — 分岐カバレッジ 90.47%
+
+- lcov の BRDA (line, block, branch) で腕ごと残存を列挙し、まだ見えていない側だけをテスト:
+  - main.js: loadingScreen 不在の DOMContentLoaded タイマー、XR 非対応時の enterVR クリック、error.message falsy → 不明エラー文言
+  - app.js: perfDisplay 要素不在時の P キー no-op、vrApp null の二度目 Escape、readyState='loading' → DOMContentLoaded 登録腕
+  - BookmarkPanel: URL 無しエントリの行クリック（onSelect 不発）、deleteRow の removeBookmark スキップ、裸 mesh の dispose
+  - HandTracking: `.hand` 無し入力ソース、orientation 無しポーズ、material 無し jointMesh
+  - ImmersiveVideo: onSelect 無しボタン、非 Promise play()、parent 無し controlPanel の stop
+  - VoiceCommands: 再起動タイマー内の isEnabled 再検査（100ms 中に無効化 → start 不発）、onVolumeChange 非数値で読み上げ無し、onSearch 不在時の tabManager.navigate フォールバック
+  - DeviceCompatibility: navigator.xr 不在、VR/AR 両不可の false base、空 UA の tier 検出
+  - VRJapaneseKeyboard: keyMeshes/_displayMesh の member-present dispose 腕、短いクエリの `_clearSuggestions` 先行 return
+- **実測**: 2686 tests / 66 suites 全緑、lint 0 errors、branches **90.47%**（3653/4038）。残りの大半は VRApp.js（170腕: setupRenderer/GPU・XR セッション直結）と monitoring.js（62腕: import.meta.env.PROD ゲート、N-2 判断待ち）で構造的に headless 到達不能。
+
+#### 続き121（同セッション）: 補腕（`&&`/`||` の反対側・メンバ存在側）を一掃 — 分岐カバレッジ 89.92%
+
+- 残存ブランチはほぼ「既に pin 済み条件の対側」のみ — BRDA の (line, block, branch) 三つ組で腕を個別特定し、約18ファイル・約60テストを追加。pin 対象:
+  - main.js: loadingScreen 存在時の 500ms 退場タイマー、enterVR 対応真腕（supported→import dispatch）、エラーオーバーレイ構築
+  - app.js: perfDisplay フォールバック（perfMonitorUI 不在時の DOM 切替）、Escape の clearInterval 内腕、visibilitychange hidden+vrApp 腕
+  - i18n: en フォールバック命中、setLanguage の localStorage 書込、saved-lang 検出、root 指定の applyTranslations
+  - BookmarkPanel/ImmersiveVideo/GazeInteraction/HandTracking: truthy コールバック発火、row/delete ヒット、dwell 発火＋リング opacity 復帰、updateHand ディスパッチ、dispose の member-present 腕（geometry/material/map/parent/reticle）
+  - VoiceCommands: alias ループの非一致通過→一致、continuous 再起動の isEnabled 再検査、音量数値読み上げ、window.open 検索フォールバック、enMatch go-to、空クエリの query:null 返却
+  - DevTools/TabManager/VRControllerInput/HapticFeedback: container 可視化、数値時刻セル、タブ index シフト、ファミリ別ボタン/軸マップ、pause ステップ、オブジェクトパターン両手ディスパッチ
+  - 純関数群（readerLayout/captionLayout/textWrap/videoProjection/chromeColors/keyboardLayout）: scale≤0 正規化、タイトルフォント、矢印ヒットゾーン、CJK 幅、NaN/null 入力、stereo-tb 右目 UV、highContrast パレット、width/glyph エントリ
+- **実測**: 2662 tests / 66 suites 全緑、lint 0 errors、branches **89.92%**（3631/4038、前回 89.45% → +0.5pt）。欠陥ゼロ — 全て既存の正しいガードを pin。
+- 残りは VRApp.js（170腕、GPU/XR セッション直結で構造的に到達不能）と monitoring.js（62腕、PROD ゲート、N-2 判断待ち）が大半 — headless 可能な散在腕はほぼ枯渇。
+
+#### 続き120（同セッション）: VoiceCommands/HapticFeedback/DevTools/app.js/ImmersiveVideo/TabManager/BookmarkPanel/IME/i18n/VRControllerInput/GazeInteraction/HandTracking の残ブランチ腕を一掃
+- ✅ VoiceCommands: wake-word ゲート（isAwake 遷移+挨拶）、RegExp パターン一致・非文字列スキップ、エイリアス部分一致、web-search のコロンペイロード抽出（match 無し→query null）、registerCommand の `patterns || []`/`confirmationText || null` 既定、connectBrowser 空引数、音量 onVolumeChange 非数値読み上げスキップ、onSearch 不在→アクティブタブ navigate フォールバック、英語 go-to プレフィックス、continuous リスタートの 100ms 後 isEnabled 再検査。
+- ✅ HapticFeedback: update() のゲームパッド切断除去、playCustomSequence の pause ステップ腕、simulateTexture 未知タイプ→既定、proximityFeedback 距離外早期 return、alert 未知 urgency→normal、test() パターン巡回。
+- ✅ DevTools: showTab の未知 tabId/content 無し耐性、updateConsoleMessages 未知 type→log 色フォールバック、updateNetworkTable 非数値 time そのまま表示、fetch 傍受の method 既定 GET、シーンツリー行の Object/unnamed フォールバック。
+- ✅ app.js: perf interval の任意統計フィールド真値腕（ffrIntensity/textureMemory/pooledObjects/gcPrevented）、visibilitychange の可視化腕。
+- ✅ ImmersiveVideo: video.play() が非 Promise 返却の腕、_reportError 中のラベル復帰、HUD onSelect ラッパーのコールバック不在腕、togglePause paused=false→pause、dispose の removeEventListener/_onVideo* 不在腕。
+- ✅ TabManager: onTabClose/onTabActivate コールバック不在腕、serialize 空タブ active=0、dispose traverse の material.map 不在子。
+- ✅ BookmarkPanel: document 不在時の canvas/tex null、row/deleteRow の url 無しエントリ no-op、tex 不在 _draw、dispose の mesh 不在腕。
+- ✅ JapaneseIME/VRJapaneseKeyboard: deleteLast の katakana 再変換、processInput 末尾孤立 'n'→ん、コンストラクタ既定 opts、短クエリ時の suggestionProvider 不発+_clearSuggestions。
+- ✅ i18n: applyTranslations のスコープ不在/不正 attr ペアスキップ、detectLanguage のカタログ外保存値無視。
+- ✅ VRControllerInput: detectFamily 未知→Controller ラベル、generic マップフォールバック、buttons/axes 欠落→既定値、handedness 不在→'unknown'。
+- ✅ GazeInteraction: setHighContrast/_reset/_tickConfirm の ring/fill 不在腕、dwell 発火の handlers 不在ターゲット、dispose の camera/reticle 不在腕。
+- ✅ HandTracking: update() の handGroup 不在腕、updateHand の hand.get() 空応答、detectGesture の thumbs-up 到達（open/point/fist/peace 敗退後）。
+- 実測: 66 suites / 2560 tests 全緑、lint 0 errors。実装欠陥ゼロ — 全腕が正しいガード・フォールバックとして動作することを実測確認。
+
+#### 続き119（同セッション）: BookmarkPanel/TabManager/PerformanceMonitor/ImmersiveVideo/JapaneseIME のブランチ腕 + removeAttribute 未ガード修正
+- ✅ BookmarkPanel: コンストラクタの非関数コールバック強制、toggle 両方向、hover の mesh/caption 不在腕、row/deleteRow の url 不在 no-op、tex 不在 _draw、dispose の scene/unregister 不在腕。
+- ✅ TabManager: `_onStripSelect` の null evt 早期 return、closeTab の空/先頭シフト腕、setActive 範囲外 no-op、serialize の URL 不在スキップ+active クランプ、setCurved/setSearchEngine/setReaderProxyUrl のメソッド不在パネル腕、dispose traverse の member 不在子。
+- ✅ PerformanceMonitor: `renderer && renderer.info` 不成立腕、best/worst 更新、performance.memory 不在、checkThresholds の warning/critical バンド（fps 80/60・memory 1500/1800）、updateUI metricsDiv 不在腕、addAlert count++ の ×2、show/hide container null、getReport totalFrames 0 フォールバック、exportCSV history[i] 欠落→空セル。
+- ✅ ImmersiveVideo: `_playPauseBtn` 不在の playing/stop/togglePause、HUD ハンドラの onSelect/onHoverCaption 不在、dispose の mesh member 不在・video スタブ腕。
+- 🔧 **修正**: `stop()` の `video.removeAttribute('src')` が直上の `if (this.video.load)` ガードと不整合で無ガードだった → `removeAttribute?.()` に統一。
+- ✅ JapaneseIME/VRJapaneseKeyboard: 語尾 'n'→ん、deleteLast katakana 再変換、コンストラクタ scale/callback 強制、setOnConfirm 非関数→null、show() 遅延 createKeyboard、space で convertToKanji falsy→候補非表示、ime null の _updateSuggestions、部分状態 dispose、_displayTex null。
+- ✅ 2483 tests / 66 suites 全緑、lint 0 errors。実測ブランチカバレッジ 83.18% → 87.69%。
+
+#### 続き118（同セッション）: WebPanel/BookmarkStore/SpatialAudio/readerLayout/app.js のブランチ腕
+- ✅ WebPanel: `readerScale>0`/`readerProxyUrl` 型ガード、contentTex 不在描画、title||host タイル、NaN delta→0、setReaderProxyUrl 非文字列、ブックマーク星の url 不在/title フォールバック、url-input null キャンセル、chrome/moveBar material 不在 hover、stop() controller 不在、enableLayerMode 非関数 onDetach、dispose 不在 geometry、show() デフォルト座標、addToScene parent 不在、iframe 不在/空タイトル、AbortController 不在の reader load、move-bar ctx null。
+- ✅ BookmarkStore: frecencyScore の visits≤0/visitedAt 欠落、localStorage 未定義環境、(entry.visits||1) レガシー再訪、title 無再訪で上書きしない、getTopSites の www-fold exclude・title||url・host 単位 dedupe 置換、search の malformed スキップ・bookmark-only 仮想 visit・limit。
+- ✅ SpatialAudio: synthesizeToneSamples の sr/endFreq/duration フォールバック、webkitAudioContext 接頭辞、registerProceduralBuffer キャッシュヒット・getChannelData 不在、cone パラメータ全デフォルト/上書き、simulateDoppler velocity 不在、setMasterVolume gain 不在+クランプ、getStats context null、dispose context null。
+- ✅ readerLayout: scale≤0→1 の全フォールバック、非数 total→0、非有限 offset→0、非配列 lines→[]、visible 0→1、非 scrollable 時の矢印 dead band、pageJumpLines 既定値。
+- ✅ app.js: perf interval の display 非表示/stats null/optional フィールド falsy 腕、P キー overlay フォールバック往復、F/C/Escape のサブシステム・vrApp 不在腕、beforeunload/visibilitychange の null 腕、readyState complete の即時初期化。
+- ✅ 2447 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き117（同セッション）: JapaneseIME/VRJapaneseKeyboard のブランチ腕一掃 — フォールバック経路とコールバック不在腕
 - ✅ IME 純粋層: `getOfflineKanjiCandidates` の `[hiragana]` フォールバック、`suggestionLabel` の空 hostname→raw URL・unparseable→catch 腕、processInput/deleteLast の katakana 経路。
 - ✅ VRJapaneseKeyboard: オプションコールバック全不在でも createKeyboard/show/esc/enter が完走、registerInteractable 不在でもキー・候補・提案メッシュ構築、hide() 前の group 不在ガード、`_refreshKeyStates`/`_refreshDisplay` の ime/keyMeshes 不在腕、バッジの `'ひ'` フォールバックと未知モード `'?'`、`text || placeholder` 腕、`_setKeyHover` の旧テクスチャ不在腕、複数文字非switchキー no-op、候補グループ遅延再利用、selectCandidate 不在時の `kanji` フォールバック、suggestionProvider の null/throw/短 query 腕、suggestion onHover/onSelect のコールバック・ime 不在腕。

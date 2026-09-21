@@ -480,3 +480,152 @@ describe('CaptionSystem — _draw canvas guards', () => {
     expect(ctx.fillRect).not.toHaveBeenCalledWith(8, 8, expect.any(Number), expect.any(Number));
   });
 });
+
+describe('CaptionSystem — remaining branch arms', () => {
+  test('setEnabled/hide with mesh null never touches .visible', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    expect(() => { cs.setEnabled(true); cs.setEnabled(false); cs.clear(); }).not.toThrow();
+    expect(cs.enabled).toBe(false);
+  });
+
+  test('setScale coerces NaN/non-numeric to 1 and clamps', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    expect(cs.setScale('abc')).toBe(1);
+    expect(cs.setScale(0)).toBe(1);     // falsy 0 → || 1
+    expect(cs.setScale(99)).toBe(3);    // clamp max
+  });
+
+  test('setVerticalOffset with mesh null still returns clamped value', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    const v = cs.setVerticalOffset(0.5);
+    expect(typeof v).toBe('number');
+  });
+
+  test('_truncate (via add with overlong line) appends ellipsis', () => {
+    const cs = new CaptionSystem(makeCamera(), { maxLines: 3 });
+    cs.show('x'.repeat(500));
+    // the single line is truncated with '…' — no crash, lines length 1
+    expect(cs.lineCount).toBe(1);
+  });
+
+  test('dispose arms: camera without remove; mesh without geometry/material.map', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = { geometry: null, material: { map: null, dispose: jest.fn() } };
+    cs.camera = {}; // no remove()
+    expect(() => cs.dispose()).not.toThrow();
+    expect(cs.mesh).toBeNull();
+  });
+});
+
+describe('captionLayout — complementary arms', () => {
+  test('non-positive scale normalizes in captionMeasureEm/captionFontSizeFor', () => {
+    const { captionMeasureEm, captionFontSizeFor } = require('../src/vr/accessibility/captionLayout.js');
+    expect(captionMeasureEm(0)).toBe(captionMeasureEm(1));
+    expect(captionFontSizeFor(3, -1)).toBe(captionFontSizeFor(3, 1));
+  });
+});
+
+describe('CaptionSystem — complementary arms', () => {
+  test('overlong lines get truncated with an ellipsis', () => {
+    const cam = makeCamera();
+    const cs = new CaptionSystem(cam, { maxLines: 3, lineDuration: 1000 });
+    const long = 'x'.repeat(200);
+    const t = cs._truncate(long, 60);
+    expect(t.endsWith('…')).toBe(true);
+    cs.dispose?.();
+  });
+
+  test('dispose with mesh.material.map disposes the map and detaches', () => {
+    const cam = makeCamera();
+    cam.remove = jest.fn();
+    const cs = new CaptionSystem(cam, {});
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    cs.mesh = { geometry: geo, material: mat, traverse: (cb) => cb(cs.mesh) };
+    cs.dispose();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+    expect(cam.remove).toHaveBeenCalled();
+  });
+});
+
+describe('CaptionSystem — dispose/truncate sliver arms', () => {
+  test('_truncate returns short text unchanged, clips long text', () => {
+    const cs = new CaptionSystem(makeCamera());
+    expect(cs._truncate('short', 10)).toBe('short');
+    expect(cs._truncate('a very long caption line', 8)).toBe('a very …');
+    cs.dispose();
+  });
+
+  test('dispose tolerates missing camera.remove and material.map', () => {
+    const cs = new CaptionSystem({ add: jest.fn() });  // camera lacking .remove
+    cs.mesh = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } };
+    expect(() => cs.dispose()).not.toThrow();
+  });
+
+  test('dispose frees material.map when present', () => {
+    const cs = new CaptionSystem(makeCamera());
+    const map = { dispose: jest.fn() };
+    const mat = { map, dispose: jest.fn() };
+    cs.mesh = { geometry: { dispose: jest.fn() }, material: mat };
+    cs.dispose();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});
+
+test('dispose with camera.remove + material.map covers both free-arms', () => {
+  const cam = { add: jest.fn(), remove: jest.fn() };
+  const cs = new CaptionSystem(cam, {});
+  const mesh = { material: { map: { dispose: jest.fn() }, dispose: jest.fn() }, geometry: { dispose: jest.fn() }, parent: cam };
+  cs.mesh = mesh;
+  cs.dispose();
+  expect(cam.remove).toHaveBeenCalledWith(mesh);
+});
+
+describe('CaptionSystem — mesh-absent guard arms', () => {
+  test('update() still ages out lines when the mesh is already gone', () => {
+    const cs = new CaptionSystem(makeCamera(), { maxLines: 3, lineDuration: 1 });
+    cs.show('fading');
+    cs.enabled = true;
+    cs.mesh = null;
+    cs.update(60000); // expiry -> changed -> `if (this.mesh)` false arm
+    expect(cs._lines.length).toBe(0);
+  });
+
+  test('dispose() with no mesh is a no-op', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+
+  test('dispose() skips material teardown when mesh.material is absent', () => {
+    const cam = makeCamera();
+    const cs = new CaptionSystem(cam, {});
+    const mesh = { geometry: { dispose: jest.fn() }, material: null };
+    cs.mesh = mesh;
+    cs.dispose();
+    expect(mesh.geometry.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CaptionSystem — texture without colorSpace', () => {
+  test('_buildPanel skips the colorSpace assignment on older three mocks', () => {
+    const THREE = require('three');
+    const Original = THREE.CanvasTexture;
+    THREE.CanvasTexture = class { constructor() { this.needsUpdate = false; } };
+    let Mod;
+    try {
+      jest.isolateModules(() => { Mod = require('../src/vr/accessibility/CaptionSystem.js'); });
+      const c = new Mod.CaptionSystem({ add() {}, remove() {} }, {});
+      expect(c.texture).toBeTruthy();
+      expect('colorSpace' in c.texture).toBe(false);
+    } finally {
+      THREE.CanvasTexture = Original;
+    }
+  });
+});

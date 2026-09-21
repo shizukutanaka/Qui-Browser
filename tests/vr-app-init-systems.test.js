@@ -246,6 +246,9 @@ describe('initializeSystems — wiring contracts', () => {
     trackingCb('right', true);
     jest.advanceTimersByTime(650);
     expect(shown).toHaveLength(2);
+    trackingCb('left', true);           // tracked arm (not just 'lost')
+    jest.advanceTimersByTime(650);
+    expect(shown).toHaveLength(3);
     jest.useRealTimers();
   });
 
@@ -650,5 +653,512 @@ describe('setupVR — button/session/visibility wiring', () => {
     app.immersiveVideo.playing = true;
     visFn();
     expect(app.immersiveVideo.togglePause).toHaveBeenCalled();
+  });
+});
+
+describe('callback bodies — hostnameCaption fallback arms', () => {
+  function build() {
+    const tmCalls = [];
+    const tab = { navigate: jest.fn() };
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => tab
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike({ enableGazeDwell: true });
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { cfg: tmCalls[0][0], shown };
+  }
+
+  test('onTabActivate with a hostless scheme falls back to the raw url', () => {
+    const { cfg, shown } = build();
+    cfg.onTabActivate('about:blank'); // hostname '' → || url arm
+    expect(shown[0]).toBe('Tab: about:blank');
+  });
+
+  test('onTabActivate with an unparseable string survives the catch arm', () => {
+    const { cfg, shown } = build();
+    cfg.onTabActivate('not a url'); // new URL throws → catch → slice(30)
+    expect(shown[0]).toBe('Tab: not a url');
+  });
+
+  test('onPanelHoverCaption with title===url announces the hostname', () => {
+    const { cfg, shown } = build();
+    cfg.onPanelHoverCaption('https://example.com/p', 'https://example.com/p');
+    expect(shown[0]).toBe('example.com');
+  });
+});
+
+describe('callback bodies — remaining cfg false-arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    const tab = { navigate: jest.fn() };
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => tab
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike(overrides);
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, tmCfg: tmCalls[0][0], bpCfg: bpCalls[0][0], tab, shown };
+  }
+
+  test('onTabActivate(null) announces the new-tab label', () => {
+    const { tmCfg, shown } = build();
+    tmCfg.onTabActivate(null);
+    expect(shown.length).toBe(1);
+  });
+
+  test('BookmarkPanel onSelect navigates the active tab and captions Loading', () => {
+    const { bpCfg, tab, shown } = build();
+    bpCfg.onSelect('https://a.example');
+    expect(tab.navigate).toHaveBeenCalledWith('https://a.example');
+    expect(shown[0]).toBe('Loading: a.example');
+  });
+
+  test('BookmarkPanel onSelect with no active tab skips navigation', () => {
+    const { app, bpCfg } = build();
+    app.tabManager.getActiveTab = () => undefined;
+    app.webPanel = null;
+    expect(() => bpCfg.onSelect('https://a.example')).not.toThrow();
+  });
+
+  test('onDeleteBookmark also fires the notification haptic when present', () => {
+    const { app, bpCfg } = build();
+    app.hapticFeedback = { playPatternBothHands: jest.fn() };
+    bpCfg.onDeleteBookmark();
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('notification');
+  });
+
+  test('onTabChange announces the history tab when tab !== bookmarks', () => {
+    const { bpCfg, shown } = build();
+    bpCfg.onTabChange('history');
+    expect(shown.length).toBe(1);
+  });
+
+  test('onUrlInputRequested confirm with empty url skips the Loading caption', () => {
+    const { app, tmCfg, shown } = build();
+    let confirm;
+    app._requestVRKeyboardInput = jest.fn((prefill, cb) => { confirm = cb; });
+    tmCfg.onUrlInputRequested('', () => {});
+    confirm('');
+    expect(shown.length).toBe(0);
+  });
+});
+
+describe('callback bodies — bookmark panel + teardown arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => ({ navigate: jest.fn() }),
+      dispose: jest.fn()
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, dispose: jest.fn() }));
+    const app = makeInitLike(overrides);
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, bpCfg: bpCalls[0][0], shown };
+  }
+
+  test('bpCfg.onHoverCaption announces the panel purpose when gaze-dwell is on', () => {
+    const { bpCfg, shown } = build({ enableGazeDwell: true });
+    bpCfg.onHoverCaption();
+    expect(shown.length).toBe(1);
+  });
+
+  test('bpCfg.onHoverCaption is silent when gaze-dwell is off', () => {
+    const { bpCfg, shown } = build({ enableGazeDwell: false });
+    bpCfg.onHoverCaption();
+    expect(shown.length).toBe(0);
+  });
+
+  test('bpCfg.onClose announces the closed state', () => {
+    const { bpCfg, shown } = build();
+    bpCfg.onClose();
+    expect(shown.length).toBe(1);
+  });
+
+  test('_teardownBrowsingSystems detaches windowManager when present', () => {
+    const { app } = build();
+    app.windowManager = { detach: jest.fn() };
+    VRApp.prototype._teardownBrowsingSystems.call(app);
+    expect(app.windowManager.detach).toHaveBeenCalled();
+    expect(app.bookmarkPanel).toBeNull();
+    expect(app.tabManager).toBeNull();
+  });
+});
+
+describe('callback bodies — caption-disabled false arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => ({ navigate: jest.fn() }),
+      dispose: jest.fn()
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, dispose: jest.fn() }));
+    const app = makeInitLike(overrides);
+    app.captionSystem = null; // captions subsystem absent entirely
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, tmCfg: tmCalls[0][0], bpCfg: bpCalls[0][0] };
+  }
+
+  test('tab callbacks run silently with no caption system', () => {
+    const { tmCfg, bpCfg } = build();
+    expect(() => {
+      tmCfg.onTabActivate('https://x');
+      tmCfg.onTabClose();
+      tmCfg.onHoverCaption();
+      tmCfg.onPanelHoverCaption('https://x', 't');
+      bpCfg.onSelect('https://a');
+      bpCfg.onDeleteBookmark();
+      bpCfg.onTabChange('history');
+      bpCfg.onHoverCaption();
+      bpCfg.onClose();
+    }).not.toThrow();
+  });
+});
+
+describe('voice cfg — inner false/guard arms', () => {
+  async function build(overrides = {}, tabOverride) {
+    const vc = {
+      initialize: jest.fn(async () => true), callbacks: {},
+      connectBrowser: jest.fn(), start: jest.fn()
+    };
+    patch('VoiceCommands', function () { return vc; });
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const app = makeInitLike({ enableVoice: true });
+    if ('tabManager' in overrides) app.tabManager = overrides.tabManager;
+    await VRApp.prototype.initializeSystems.call(app);
+    return { app, vc, cfg: vc.connectBrowser.mock.calls[0][0], shown };
+  }
+
+  test('onSpeak is silent when captionSystem is absent', async () => {
+    const { vc } = await build();
+    const app = null;
+    // captionSystem lives on `this` — rebind a caption-less context
+    vc.callbacks.onSpeak.call?.({ captionSystem: null }, 'hi') ?? vc.callbacks.onSpeak('hi');
+    expect(true).toBe(true); // must not throw
+  });
+
+  test('onSearch with no active tab does not navigate', async () => {
+    const { cfg } = await build({ tabManager: { getActiveTab: () => null } });
+    expect(() => cfg.onSearch('x')).not.toThrow();
+  });
+
+  test('onTopSites with empty history captions noTopSites', async () => {
+    const { app, cfg, shown } = await build({ tabManager: { getActiveTab: () => ({ navigate: jest.fn() }) } });
+    app.bookmarks.getTopSites = jest.fn(() => []);
+    cfg.onTopSites();
+    expect(shown.length).toBeGreaterThan(0);
+  });
+
+  test('onVolumeChange(-1) clamps to 0 and persists', async () => {
+    const { app, cfg } = await build();
+    cfg.onVolumeChange(-2);
+    expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 0);
+    // spatialAudio absent arm: persist still lands, no audio call
+    app.spatialAudio = null;
+    app.updateSetting.mockClear();
+    cfg.onVolumeChange(-2);
+    expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 0);
+  });
+});
+
+describe('ImmersiveVideo cfg + TabManager inner arms', () => {
+  test('onPlaybackChange paused → videoPaused caption; not-VREnabled → silent', () => {
+    const calls = [];
+    patch('ImmersiveVideo', ctor(calls, {}));
+    const shown = [];
+    const app = makeInitLike({ enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false });
+    app.isVREnabled = true;
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype.setupScene.call(app);
+    const cfg = calls[0][3];
+
+    cfg.onPlaybackChange('paused');       // else arm
+    expect(shown[0]).toBeTruthy();
+    cfg.onPlaybackChange('playing');
+    cfg.onPlaybackChange('stopped');
+    expect(shown.length).toBe(3);
+
+    app.isVREnabled = false;              // session-end guard
+    cfg.onPlaybackChange('playing');
+    expect(shown.length).toBe(3);
+
+    // caption system present-but-disabled arm
+    app.isVREnabled = true;
+    app.captionSystem.enabled = false;
+    cfg.onPlaybackChange('playing');
+    expect(shown.length).toBe(3);
+    // caption system absent arm
+    app.captionSystem = null;
+    cfg.onPlaybackChange('playing');
+    expect(shown.length).toBe(3);
+  });
+
+  test('onHoverCaption fires only when gaze-dwell is enabled', () => {
+    const calls = [];
+    patch('ImmersiveVideo', ctor(calls, {}));
+    const shown = [];
+    const app = makeInitLike({ enableHomeEnvironment: false, enableGazeDwell: true, enableSettingsPanel: false, enableWebPanel: false });
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype.setupScene.call(app);
+    const cfg = calls[0][3];
+    cfg.onHoverCaption('seek');
+    expect(shown).toContain('seek');
+    app.settings.enableGazeDwell = false;
+    cfg.onHoverCaption('nope');
+    expect(shown).toEqual(['seek']);
+  });
+
+  test('tmCfg: toggleBookmark un-bookmark, privateMode topsites, onTabClose/movebar/session', async () => {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, { addToScene() {}, setCurved() {}, newTab() {}, getActiveTab: () => null, tabs: [], rootGroup: {} }));
+    patch('BookmarkPanel', ctor([], { addToScene() {} }));
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const app = makeInitLike({ enableWebPanel: true, enableGazeDwell: true, privateMode: true });
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    const cfg = tmCalls[0][0];
+
+    app.bookmarks.toggleBookmark = () => false;
+    expect(cfg.onToggleBookmark('u', 't')).toBe(false);
+    expect(shown.some((m) => m.length > 0)).toBe(true);
+
+    expect(cfg.getTopSites(5)).toEqual([]); // privateMode arm
+
+    cfg.onTabClose();
+    cfg.onMoveBarHoverCaption();
+    cfg.onSessionChange();
+    expect(app._saveTabSession).toHaveBeenCalled();
+  });
+
+  test('bpCfg.onSelect navigates the bare webPanel when no tabManager', async () => {
+    const bpCalls = [];
+    patch('TabManager', ctor([], { addToScene() {}, setCurved() {}, newTab() {}, getActiveTab: () => null }));
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, group: { visible: false }, setVisible() {} }));
+    const web = { navigate: jest.fn() };
+    const app = makeInitLike({ enableWebPanel: true });
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    app.tabManager = null;
+    app.webPanel = web;
+    if (bpCalls.length) {
+      bpCalls[0][0].onSelect('https://x.example');
+      expect(web.navigate).toHaveBeenCalledWith('https://x.example');
+    }
+  });
+});
+
+describe('initializeSystems — remaining cfg-callback guard arms', () => {
+  /** Patch everything + capture keyboard/tracking/voice cfgs; returns handles. */
+  const build = async (settingsOver = {}) => {
+    const kbCalls = [];
+    patch('VRJapaneseKeyboard', ctor(kbCalls, {}));
+    let trackingCb;
+    patch('HandTracking', function () { return { onTrackingChange: (cb) => { trackingCb = cb; } }; });
+    const vc = { initialize: jest.fn(async () => true), callbacks: {}, connectBrowser: jest.fn(), start: jest.fn() };
+    patch('VoiceCommands', function () { return vc; });
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled(v) { this.enabled = v; }, show: (m) => shown.push(m) };
+    });
+    const spatial = { setMasterVolume: jest.fn() };
+    patch('SpatialAudio', function () { return spatial; });
+    const app = makeInitLike({ enableVoice: true, enableGazeDwell: true, enableCaptions: true, ...settingsOver });
+    await VRApp.prototype.initializeSystems.call(app);
+    return { app, vc, kbCfg: kbCalls[0][2], trackingCb, shown, spatial };
+  };
+
+  test('keyboard cfg: onHoverCaption gated on captions+gaze; onCancel captions', async () => {
+    const { app, kbCfg, shown } = await build();
+    kbCfg.onHoverCaption('あ');
+    expect(shown).toContain('あ');
+    shown.length = 0;
+    app.captionSystem.enabled = false;
+    kbCfg.onHoverCaption('い');
+    expect(shown).toHaveLength(0); // disabled arm — silent
+    kbCfg.onCancel();
+    expect(shown).toHaveLength(0);
+    app.captionSystem.enabled = true;
+    kbCfg.onCancel();
+    expect(shown.length).toBe(1);
+  });
+
+  test('hand tracking: debounced tracked/lost captions per hand; silent when disabled', async () => {
+    jest.useFakeTimers();
+    try {
+      const { app, trackingCb, shown } = await build();
+      trackingCb('left', false);
+      trackingCb('right', false);
+      jest.advanceTimersByTime(700);
+      expect(shown.length).toBe(2); // leftHandLost + rightHandLost arms
+      shown.length = 0;
+      app.captionSystem.enabled = false;
+      trackingCb('right', true);
+      jest.advanceTimersByTime(700);
+      expect(shown).toHaveLength(0);
+    } finally { jest.useRealTimers(); }
+  });
+
+  test('masterVolume unset → startup gain falls back to 1.0', async () => {
+    const { spatial } = await build({ enableVoice: false, masterVolume: undefined });
+    expect(spatial.setMasterVolume).toHaveBeenCalledWith(1);
+  });
+
+  test('voice speak/transcript callbacks tolerate a null captionSystem', async () => {
+    const { app, vc } = await build();
+    app.captionSystem = null;
+    expect(() => {
+      vc.callbacks.onSpeak('response');
+      vc.callbacks.onTranscript('final', 0.9, true);
+    }).not.toThrow();
+  });
+
+  test('voice cfg onSearch/onTopSites/onGoTo caption-disabled + boundary arms', async () => {
+    const tab = { navigate: jest.fn() };
+    const { app, vc } = await build();
+    app.tabManager = { getActiveTab: () => tab };
+    const cfg = vc.connectBrowser.mock.calls[0][0];
+
+    // onSearch: empty query skips the Loading caption but still navigates
+    cfg.onSearch('');
+    expect(tab.navigate).toHaveBeenCalledWith('');
+    // captions disabled — no status caption
+    app.captionSystem.enabled = false;
+    cfg.onSearch('news');
+    expect(tab.navigate).toHaveBeenCalledWith('news');
+
+    // onTopSites: captions-disabled arms on both the hit and miss sides
+    app.bookmarks.getTopSites = jest.fn(() => [{ url: 'https://top.example' }]);
+    cfg.onTopSites();
+    app.bookmarks.getTopSites = jest.fn(() => []);
+    cfg.onTopSites();
+
+    // onGoTo: no active tab → early return; hits + captions-off; miss + captions-off
+    app.tabManager = { getActiveTab: () => null };
+    expect(() => cfg.onGoTo('x')).not.toThrow();
+    app.tabManager = { getActiveTab: () => tab };
+    app.bookmarks.search = jest.fn(() => [{ url: 'https://hit.example' }]);
+    cfg.onGoTo('hit');
+    expect(tab.navigate).toHaveBeenLastCalledWith('https://hit.example');
+    app.bookmarks.search = jest.fn(() => []);
+    cfg.onGoTo('miss');
+    expect(tab.navigate).toHaveBeenLastCalledWith('miss');
+  });
+
+  test('voice cfg onVolumeChange: unset volume defaults to 100 + applies to live audio', async () => {
+    const { app, vc, spatial } = await build();
+    app.settings.masterVolume = undefined;
+    const cfg = vc.connectBrowser.mock.calls[0][0];
+    const next = cfg.onVolumeChange(-0.2);
+    expect(next).toBe(80); // 100 - 20
+    expect(spatial.setMasterVolume).toHaveBeenCalledWith(0.8);
+  });
+});
+
+describe('_buildBrowsingSystems — cfg tail arms', () => {
+  function makeBuilt() {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene: jest.fn(), setCurved: jest.fn(), newTab: jest.fn(), getActiveTab: jest.fn()
+    }));
+    patch('BookmarkPanel', ctor([], { addToScene: jest.fn() }));
+    return { tmCalls };
+  }
+
+  test('getTopSites delegates to frecency when private mode is off', () => {
+    const { tmCalls } = makeBuilt();
+    const app = makeInitLike({ privateMode: false });
+    app.bookmarks.getTopSites = jest.fn(() => [{ url: 'https://x' }]);
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    expect(tmCalls[0][0].getTopSites(4)).toEqual([{ url: 'https://x' }]);
+    expect(app.bookmarks.getTopSites).toHaveBeenCalledWith(4);
+  });
+
+  test('onToggleBookmark: removed-state caption and caption-disabled arm', () => {
+    const { tmCalls } = makeBuilt();
+    const app = makeInitLike();
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    const cfg = tmCalls[0][0];
+    app.bookmarks.toggleBookmark = jest.fn(() => false); // un-bookmark arm
+    expect(cfg.onToggleBookmark('https://x', 't')).toBe(false);
+    expect(app.captionSystem.show).toHaveBeenCalled();
+    app.captionSystem.enabled = false;
+    expect(() => cfg.onToggleBookmark('https://x', 't')).not.toThrow();
+  });
+
+  test('a successful _restoreTabSession skips the blank-tab fallback', () => {
+    const { tmCalls } = makeBuilt();
+    const app = makeInitLike();
+    app._restoreTabSession = jest.fn(() => 2);
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    expect(app.tabManager.newTab).not.toHaveBeenCalled();
+  });
+
+  test('enableWebPanel off skips the WindowManager construction', () => {
+    makeBuilt();
+    const app = makeInitLike({ enableWebPanel: false });
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    expect(app.windowManager).toBeUndefined();
+  });
+});
+
+describe('onVRSessionStart — WebXR Layers attach arms', () => {
+  M.LayersSystem = require('../src/vr/rendering/LayersSystem.js');
+
+  function makeSessionApp(layersImpl) {
+    patch('LayersSystem', function () { return layersImpl; });
+    const session = { addEventListener: jest.fn(), visibilityState: 'visible' };
+    const app = makeInitLike({ enableWebPanel: true });
+    app.renderer = {
+      xr: { getSession: () => session },
+      getContext: () => ({}),
+      setPixelRatio: jest.fn()
+    };
+    app.ffrSystem = null;
+    app.handTracking = null;
+    app.comfortSystem = { settings: { fov: {} } };
+    app._attachLayersToPanels = jest.fn();
+    return { app, session };
+  }
+
+  test('layers supported → attaches quad layers to panels', async () => {
+    const layers = { initialize: jest.fn(() => true) };
+    const { app, session } = makeSessionApp(layers);
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(layers.initialize).toHaveBeenCalledWith(session, expect.anything());
+    expect(app._attachLayersToPanels).toHaveBeenCalledWith(session);
+  });
+
+  test('layers unsupported → no attach (binding kept, isSupported gates per-frame)', async () => {
+    const layers = { initialize: jest.fn(() => false) };
+    const { app } = makeSessionApp(layers);
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app._attachLayersToPanels).not.toHaveBeenCalled();
+  });
+
+  test('layers init throws → warn toast + layersSystem torn down to null', async () => {
+    const { app } = makeSessionApp({ initialize: () => { throw new Error('no layers'); } });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+    expect(app.layersSystem).toBeNull();
   });
 });

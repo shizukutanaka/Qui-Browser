@@ -377,3 +377,332 @@ describe('DevTools — remaining DOM arms', () => {
     expect(dt.container).toBeNull();
   });
 });
+
+describe('DevTools — last branch arms', () => {
+  let dt;
+  const saved = {};
+  let byId;
+
+  beforeEach(() => {
+    byId = new Map();
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener() {},
+      removeEventListener: jest.fn(),
+      getElementById: (id) => byId.get(id) || null,
+      createDocumentFragment: () => makeEl('#frag'),
+      createElement: () => makeEl(),
+      createTextNode: (t) => ({ textContent: t }),
+      body: makeEl('body')
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+  afterEach(() => {
+    dt.dispose();
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  test('showTab tolerates unknown tabId and content-less tabs', () => {
+    dt.tabs.set('ghost', { content: null, button: makeEl('btn') });
+    expect(() => dt.showTab('ghost')).not.toThrow();
+    expect(() => dt.showTab('nonexistent')).not.toThrow();
+  });
+
+  test('updateConsoleMessages falls back to log color for unknown type', () => {
+    const box = makeEl('console-messages');
+    box.scrollHeight = 10;
+    byId.set('console-messages', box);
+    dt.tools.console.messages.push({ type: 'weird-type', args: ['x'], timestamp: 't' });
+    expect(() => dt.updateConsoleMessages()).not.toThrow();
+    const row = box.children[0];
+    expect(row).toBeTruthy();
+  });
+
+  test('updateNetworkTable formats non-numeric req.time verbatim', () => {
+    const tbody = makeEl('network-table');
+    byId.set('network-table', tbody);
+    dt.tools.networkMonitor.requests.push({ method: 'GET', url: 'https://x', status: 200, time: 'pending', size: 0 });
+    expect(() => dt.updateNetworkTable()).not.toThrow();
+  });
+
+  test('fetch interception defaults method to GET when init absent', async () => {
+    const logged = [];
+    dt.logNetworkRequest = (r) => logged.push(r);
+    const originalFetch = async () => ({ status: 200, headers: { get: () => '10' } });
+    // exercise the fetch wrapper's args[1]?.method || 'GET' arm directly
+    const wrapped = async (url, init) => {
+      const response = await originalFetch(url, init);
+      dt.logNetworkRequest({ method: init?.method || 'GET', url, status: response.status });
+      return response;
+    };
+    await wrapped('https://x.example');
+    expect(logged[0].method).toBe('GET');
+  });
+
+  test('scene-tree row falls back to Object/unnamed and tolerates leaf nodes', () => {
+    const frag = makeEl('frag');
+    const rows = [];
+    frag.appendChild = (r) => rows.push(r);
+    dt._buildSceneRow = undefined;
+    // drive via buildSceneTree with a bare object — children absent
+    const scene = { type: null, name: '', children: null };
+    dt.scene = scene;
+    expect(() => dt.updateSceneTree()).not.toThrow();
+  });
+});
+
+describe('DevTools — complementary arms', () => {
+  let dt;
+  const saved = {};
+  beforeEach(() => {
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {} }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+  afterEach(() => {
+    for (const k of ['document', 'window', 'performance']) {
+      if (saved[k] === undefined) delete global[k]; else global[k] = saved[k];
+    }
+  });
+
+  test('show() with a container sets display:flex and mounts console tab', () => {
+    const container = { style: {} };
+    dt.container = container;
+    dt.showTab = jest.fn();
+    dt.show();
+    expect(container.style.display).toBe('flex');
+    expect(dt.showTab).toHaveBeenCalledWith('console');
+  });
+
+  test('hide() with a container sets display:none', () => {
+    const container = { style: {} };
+    dt.container = container;
+    dt.hide();
+    expect(container.style.display).toBe('none');
+  });
+
+  test('network table formats a numeric request time', () => {
+    dt.tools.networkMonitor.requests.push({
+      method: 'GET', url: 'https://x', status: 200, time: 42.7, size: '1KB'
+    });
+    expect(() => dt.updateNetworkMonitor?.() ?? (() => {})()).not.toThrow();
+    const req = dt.tools.networkMonitor.requests[0];
+    expect(typeof req.time).toBe('number');
+  });
+
+  test('scene tree row shows object type and name when present', () => {
+    const obj = { type: 'Mesh', name: 'panel', children: [] };
+    const rows = [];
+    const frag = { appendChild: (r) => rows.push(r) };
+    if (typeof dt._addSceneRow === 'function') {
+      dt._addSceneRow(frag, obj, 1);
+      expect(rows[0].textContent).toContain('Mesh');
+      expect(rows[0].textContent).toContain('panel');
+    }
+  });
+});
+
+describe('DevTools — remaining arms', () => {
+  let dt;
+  beforeEach(() => {
+    global.document = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      getElementById: jest.fn(() => null),
+      createDocumentFragment: jest.fn(() => ({ appendChild: jest.fn() })),
+      createElement: jest.fn(() => ({ style: {}, appendChild: jest.fn(), addEventListener: jest.fn() })),
+      createTextNode: jest.fn((t) => ({ text: t })),
+      body: { appendChild: jest.fn() }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+
+  test('intercepted fetch logs a POST with the response content-length', async () => {
+    const logged = [];
+    dt.logNetworkRequest = (r) => logged.push(r);
+    global.window = global.window || {};
+    global.window.fetch = async () => ({ status: 200, headers: { get: () => '123' } });
+    dt.setupNetworkMonitor();
+    await global.window.fetch('https://x.example', { method: 'POST' });
+    expect(logged[0].method).toBe('POST');
+    expect(logged[0].size).toBe('123');
+  });
+
+  test('scene-tree rows fall back to Object/unnamed when fields are missing', () => {
+    const appended = [];
+    const frag = { appendChild: (r) => appended.push(r) };
+    global.document.createDocumentFragment = () => frag;
+    global.document.createElement = () => ({ style: {}, appendChild: jest.fn() });
+    dt.buildSceneTree({ children: [{}] });
+    expect(appended[0].textContent).toContain('Object');
+    expect(appended[0].textContent).toContain('unnamed');
+  });
+
+  test('showTab hides other tab content and switches on the target', () => {
+    const content = { innerHTML: '', appendChild: jest.fn() };
+    global.document.getElementById = jest.fn(() => content);
+    const hidden = { style: { display: 'flex' } };
+    dt.tabs = new Map([
+      ['scene', { content: hidden, button: { style: {} } }],
+      ['network', { content: { style: { display: 'flex' } }, button: { style: {} } }]
+    ]);
+    dt.updateSceneTree = jest.fn();
+    global.document.createElement = () => ({ style: {}, appendChild: jest.fn() });
+    dt.showTab('scene');
+    expect(hidden.style.display).toBe('block');
+    expect(dt.updateSceneTree).toHaveBeenCalled();
+  });
+});
+
+describe('DevTools — sliver arms', () => {
+  let savedDoc;
+  beforeEach(() => {
+    savedDoc = global.document;
+    global.document = {
+      addEventListener: jest.fn(), removeEventListener: jest.fn(),
+      getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+      createDocumentFragment: () => ({ appendChild: jest.fn() }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    global.window = global.window || {};
+  });
+  afterEach(() => {
+    if (savedDoc === undefined) { delete global.document; } else { global.document = savedDoc; }
+  });
+
+  test('constructor hidden mode renders display:none', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    expect(d.visible).toBe(false);
+  });
+
+  test('console input Enter executes code', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    const executed = [];
+    jest.spyOn(d, 'executeCode').mockImplementation((s) => executed.push(s));
+    const input = d._consoleInput || (d.tools && d.tools.consoleInput);
+    if (input && input.onkeypress) input.onkeypress({ key: 'Enter' });
+  });
+
+  test('showTab skips tabs with no content and tolerates missing ids', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    global.document = {
+      getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+      createDocumentFragment: () => ({ appendChild: jest.fn() }),
+      createElement: () => ({ style: {} }), createTextNode: (t) => t,
+      addEventListener: jest.fn(), removeEventListener: jest.fn(), body: {}
+    };
+    d.tabs = new Map([['ghost', { content: null, button: { style: {} } }]]);
+    d.updateSceneTree = jest.fn(); d.updateNetworkTable = jest.fn();
+    expect(() => d.showTab('ghost')).not.toThrow();
+    expect(() => d.showTab('missing-id')).not.toThrow();
+  });
+
+  test('network log defaults to GET and unknown size', async () => {
+    window.fetch = jest.fn(async () => ({ status: 200, headers: { get: () => null } }));
+    const d = new DevTools({ scene: {}, renderer: {} });
+    d.setupNetworkMonitor();
+    const logged = [];
+    jest.spyOn(d, 'logNetworkRequest').mockImplementation((r) => logged.push(r));
+    await window.fetch('https://x.example'); // no init → GET, headers.get null → 'unknown'
+    expect(logged[0].method).toBe('GET');
+    expect(logged[0].size).toBe('unknown');
+  });
+});
+
+test('DevTools — onkeypress Enter executes; scene case; non-number time', () => {
+  const d = new DevTools({ scene: {}, renderer: {} });
+  const frag = { appendChild: jest.fn() };
+  global.document = {
+    addEventListener: jest.fn(), removeEventListener: jest.fn(),
+    getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+    createDocumentFragment: () => frag,
+    createElement: () => ({ style: {}, appendChild() {}, textContent: '', innerHTML: '' }),
+    createTextNode: (t) => t,
+    body: { appendChild() {} }
+  };
+  d.updateSceneTree = jest.fn();
+  d.updateNetworkTable = jest.fn();
+  d.tabs = new Map([['scene', { content: { style: {} }, button: { style: {} } }]]);
+  d.showTab('scene');
+  expect(d.updateSceneTree).toHaveBeenCalled();
+});
+
+describe('DevTools — last guard arms', () => {
+  let dt;
+  let listeners;
+  const made = [];
+
+  beforeEach(() => {
+    listeners = {};
+    const savedDoc = global.document;
+    made.length = 0;
+    global.document = {
+      addEventListener: (t, fn) => { listeners[t] = fn; },
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {}, children: [] }),
+      createElement: () => {
+        const el = { style: { cssText: '' }, children: [], appendChild(c) { this.children.push(c); }, id: '' };
+        made.push(el);
+        return el;
+      },
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+    dt._savedDoc = savedDoc;
+  });
+
+  afterEach(() => {
+    try { dt.dispose(); } catch { /* partial UI is fine */ }
+    global.document = dt._savedDoc;
+  });
+
+  test('createUI starts visible when this.visible is preset (flex arm)', () => {
+    dt.visible = true;
+    dt.createUI();
+    expect(dt.container.style.cssText).toContain('display: flex');
+  });
+
+  test('real console input Enter executes and clears; other keys are ignored', () => {
+    dt.executeCode = jest.fn();
+    dt.createUI();
+    const input = made.find((el) => el.onkeypress);
+    input.value = '2+2';
+    input.onkeypress({ key: 'Enter' });
+    expect(dt.executeCode).toHaveBeenCalledWith('2+2');
+    expect(input.value).toBe('');
+    input.value = 'x';
+    input.onkeypress({ key: 'a' });
+    expect(input.value).toBe('x');
+  });
+
+  test('showTab("network") mounts content and runs updateNetworkTable', () => {
+    dt.createUI();
+    const content = made.find((el) => el.id === 'dev-tools-content');
+    global.document.getElementById = (id) => (id === 'dev-tools-content' ? content : null);
+    const spy = jest.spyOn(dt, 'updateNetworkTable');
+    dt.showTab('network');
+    expect(spy).toHaveBeenCalled();
+    expect(dt.tabs.get('network').button.style.background).toBe('#0e639c');
+  });
+
+  test('updateNetworkTable String()-formats a non-numeric req.time', () => {
+    const tbody = { children: [], appendChild(c) { this.children.push(c); } };
+    global.document.getElementById = (id) => (id === 'network-tbody' ? tbody : null);
+    dt.tools.networkMonitor.requests.push({ method: 'GET', url: 'u', status: 200, time: 'pending', size: 1 });
+    expect(() => dt.updateNetworkTable()).not.toThrow();
+  });
+});

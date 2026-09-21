@@ -465,3 +465,206 @@ describe('ImmersiveVideo — togglePause no-video arm', () => {
     expect(() => v.togglePause()).not.toThrow();
   });
 });
+
+describe('ImmersiveVideo — remaining branch arms', () => {
+  test('playing event with _playPauseBtn null still flips playing + callback', () => {
+    const { iv } = makeHarness();
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.play('https://v.example/x.mp4');
+    iv._playPauseBtn = null; // pretend HUD build skipped the button
+    iv.playing = false;      // reset before the event fires
+    iv.video._emit('playing');
+    expect(iv.playing).toBe(true);
+    expect(changes).toContain('playing');
+  });
+
+  test('stop() with _playPauseBtn null still sets playing false + stopped', () => {
+    const { iv } = makeHarness();
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.play('https://v.example/x.mp4'); // meshes exist → active → 'stopped' fires
+    iv.playing = true;
+    iv._playPauseBtn = null;
+    iv.stop();
+    expect(iv.playing).toBe(false);
+    expect(changes).toContain('stopped');
+  });
+
+  test('togglePause with _playPauseBtn null skips setLabel arm', () => {
+    const { iv } = makeHarness();
+    iv.play('https://v.example/x.mp4');
+    iv._playPauseBtn = null;
+    iv.video.paused = false;
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.togglePause();
+    expect(iv.playing).toBe(false);
+    expect(changes).toContain('paused');
+  });
+
+  test('HUD button onSelect/onHover fire with callbacks absent', () => {
+    const { iv, register } = makeHarness(); // no onHoverCaption
+    iv.play('https://v.example/x.mp4');
+    // every registered button handler must be safe with onSelect/onHoverCaption absent
+    for (const call of register.mock.calls) {
+      const h = call[1];
+      expect(() => { h.onHover?.(); h.onHoverEnd?.(); }).not.toThrow();
+    }
+  });
+
+  test('dispose: meshes lacking geometry/material + video absent arms', () => {
+    const { iv } = makeHarness();
+    iv.play('https://v.example/x.mp4');
+    iv.meshes.push({}, { geometry: null, material: null });
+    // video stub lacking removeAttribute/load → both guards skip cleanly
+    iv.video = { pause() {}, removeEventListener() {} };
+    expect(() => iv.dispose()).not.toThrow();
+  });
+});
+
+describe('ImmersiveVideo — last branch arms', () => {
+  test('play() tolerates video.play returning a non-promise', () => {
+    const { iv } = makeHarness();
+    const origCreate = global.document.createElement;
+    global.document.createElement = (tag) => {
+      const el = origCreate(tag);
+      if (tag === 'video') el.play = () => undefined;
+      return el;
+    };
+    try {
+      expect(() => iv.play('https://cdn.example.com/clip.mp4')).not.toThrow();
+      expect(iv.active).toBe(true);
+    } finally {
+      global.document.createElement = origCreate;
+    }
+  });
+
+  test('_reportError while playing flips the button label back to Play', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    const btn = { userData: { setLabel: jest.fn() } };
+    iv._playPauseBtn = btn;
+    iv.playing = true;
+    iv._reportError('stream dropped');
+    expect(btn.userData.setLabel).toHaveBeenCalled();
+    expect(iv.playing).toBe(false);
+  });
+
+  test('HUD interactable onSelect no-ops when callback absent', () => {
+    const { iv, register } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    // Each registered cfg wraps onSelect — invoking the wrapper hits the
+    // `if (onSelect)` guard even though every wired button passes one.
+    register.mock.calls.forEach(([, cfg]) => cfg.onSelect && cfg.onSelect());
+    expect(register).toHaveBeenCalledTimes(2);
+  });
+
+  test('togglePause with video.paused=false pauses and clears playing', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.video.paused = false;
+    iv.playing = true;
+    iv.togglePause();
+    expect(iv.video.paused).toBe(true);
+    expect(iv.playing).toBe(false);
+  });
+
+  test('dispose tolerates video without removeEventListener and no _onVideo* refs', () => {
+    const { iv } = makeHarness();
+    iv.play('https://cdn.example.com/clip.mp4');
+    iv.video.removeEventListener = undefined;
+    iv._onVideoError = null;
+    iv._onVideoPlaying = null;
+    expect(() => iv.dispose()).not.toThrow();
+  });
+});
+
+describe('ImmersiveVideo — complementary present arms', () => {
+  test('_makeButton fires the onSelect it registered', () => {
+    const { iv, register } = makeHarness();
+    const cb = jest.fn();
+    iv._makeButton('Test', cb, 0, 0);
+    const handlers = [...register.mock.calls].at(-1)[1];
+    handlers.onSelect();
+    expect(cb).toHaveBeenCalled();
+  });
+
+  test('togglePause with paused=false pauses the video', () => {
+    const { iv } = makeHarness();
+    const v = { paused: false, pause: jest.fn(function () { v.paused = true; }), play: jest.fn() };
+    iv.video = v;
+    iv.playing = true;
+    iv.togglePause();
+    expect(v.pause).toHaveBeenCalled();
+  });
+
+  test('dispose with geometry/material/parent all present disposes and detaches', () => {
+    const { iv } = makeHarness();
+    const geo = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn() };
+    const parent = { remove: jest.fn() };
+    const btn = { geometry: geo, material: mat };
+    const cp = { children: [btn], parent };
+    iv.controlPanel = cp;
+    iv.meshes = [{ geometry: geo, material: mat }];
+    iv.scene = { remove: jest.fn() };
+    expect(() => iv.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+    expect(parent.remove).toHaveBeenCalledWith(cp);
+  });
+});
+
+describe('ImmersiveVideo — false-side arms', () => {
+  test('_makeButton tolerates a missing onSelect', () => {
+    const { iv, register } = makeHarness();
+    iv._makeButton('Test', undefined, 0, 0);
+    const handlers = [...register.mock.calls].at(-1)[1];
+    expect(() => handlers.onSelect()).not.toThrow();
+  });
+
+  test('togglePause with play() returning a non-promise does not throw', () => {
+    const { iv } = makeHarness();
+    const v = { paused: true, pause: jest.fn(), play: jest.fn(() => undefined) };
+    iv.video = v;
+    iv.playing = false;
+    expect(() => iv.togglePause()).not.toThrow();
+  });
+
+  test('stop() with bare controlPanel children and no parent completes', () => {
+    const { iv } = makeHarness();
+    iv.controlPanel = { children: [{ /* no geometry/material */ }], parent: null };
+    iv.scene = { remove: jest.fn() };
+    expect(() => iv.stop()).not.toThrow();
+    expect(iv.controlPanel).toBeNull();
+  });
+});
+
+test('_reportError while playing with a play/pause button relabels to play', () => {
+  const { iv } = makeHarness();
+  iv.playing = true;
+  const setLabel = jest.fn();
+  iv._playPauseBtn = { userData: { setLabel } };
+  const seen = [];
+  iv.onPlaybackChange = (s) => seen.push(s);
+  iv._reportError('codec');
+  expect(iv.playing).toBe(false);
+  expect(setLabel).toHaveBeenCalled();
+  expect(seen).toEqual(['stopped']);
+});
+
+describe('ImmersiveVideo — _reportError without a HUD button', () => {
+  test('playing + no _playPauseBtn still stops and reports', () => {
+    const { iv } = makeHarness();
+    iv.playing = true;
+    iv._playPauseBtn = null;
+    const errs = []; const stops = [];
+    iv.onError = (m) => errs.push(m);
+    iv.onPlaybackChange = (s) => stops.push(s);
+    iv._reportError('decode failed');
+    expect(iv.playing).toBe(false);
+    expect(stops).toEqual(['stopped']);
+    expect(errs).toEqual(['decode failed']);
+  });
+});
