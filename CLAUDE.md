@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き227 — リーダーの `<pre>` コードブロック喪失を解消
+- 🔍 **実測**: `extractReadableText` の抽出 alternation が `h1-3/p/li/blockquote` のみ — Qiita/Zenn 系記事の `<pre>` コードブロックが**記事から静かに消えていた**。仮に抽出しても `wrapTextToWidth` が `.trim()`＋`\s+` 分割でインデントを潰し、canvas の `\t` 描画も不定。
+- 🔧 **修正**: ①抽出に `pre` を追加し `preTextOf` で `<br>`→`\n`・タグ剥がし・`\r\n` 正規化・`\t`→2スペース展開・行末空白除去・先端/末端空行除去 ②`layoutReaderLines` に `pre`→'c' 経路 — 物理行を1行ずつ描き、先頭インデントを wrap 前に分離して全継続行へ再付与（ハンギングインデント）。超過行は wrap で消えない ③`fontPxFor('c')=17`・WebPanel で monospace＋`readerCode` 色（通常 #9cdcfe ≒10:1、HC は #ffffff）。
+- 🧪 pin 7件: pre 抽出（`\n {4}` インデント生存・`<br>` 改行・空 pre ドロップ・`\t` 展開）＋レイアウト3件（物理行→c 行・長行 wrap・17px）。
+- ✅ 2998 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き226 — DevTools REPL 全廃止（CSP 下で到達不能）＋ i18n パリティ pin ＋ noopener
 - 🔍 **実測**: DevTools コンソールの `executeCode` は `new Function` ベースの REPL だが、index.html の CSP meta が `script-src 'self'` で `unsafe-eval` を含まない — **meta CSP は dev server でも適用されるため全環境で CSP 違反で死ぬ到達不能機能**だった（呼出元は Enter キー input のみ）。CSP を緩める方向は逆。
 - 🗑 **削除**: `executeCode` + コンソール input を除去 → コンソールタブは読み取り専用ログビューアーに正直化。pin 3件削除＋「input が存在しない」回帰 pin 追加、DEAD map に登録。

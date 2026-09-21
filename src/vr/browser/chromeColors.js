@@ -108,6 +108,7 @@ export function webContentColors(highContrast = false) {
       stateDetail:     '#dddddd',
       readerHeading:   '#ffffff',
       readerBody:      '#ffffff',
+      readerCode:      '#ffffff',
       progress:        '#ffffff',
       arrowActiveBg:   '#004adf',
       arrowActiveText: '#ffffff',
@@ -124,6 +125,7 @@ export function webContentColors(highContrast = false) {
     stateDetail:     '#8891ad',
     readerHeading:   '#ffffff',
     readerBody:      '#d6dcf0',
+    readerCode:      '#9cdcfe', // VS Code-ish light blue: ~10:1 on bg
     progress:        '#7788aa',
     arrowActiveBg:   'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',

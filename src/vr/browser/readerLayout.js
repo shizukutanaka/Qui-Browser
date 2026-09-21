@@ -5,7 +5,7 @@
  * headlessly), leaving `WebPanel._drawContent()` as a thin draw call.
  */
 
-import { wrapTextToWidth, safeMeasureEm } from '../ui/textWrap.js';
+import { wrapTextToWidth, safeMeasureEm, textWidthEm } from '../ui/textWrap.js';
 
 // Content-area canvas is 1024 × 942 (PANEL_W × PANEL_H*(1-CHROME_H) at 1024px).
 export const CONTENT_PX_W = 1024;
@@ -109,7 +109,7 @@ export function measureEmFor(scale = 1) {
  * font, which overflowed the column (a long Japanese page title ran ~105px
  * past it). Each style is therefore also clamped by what its own font can fit.
  *
- * @param {'title'|'h'|'p'} style
+ * @param {'title'|'h'|'p'|'c'} style
  * @param {number} scale
  * @returns {number} em
  */
@@ -135,9 +135,9 @@ export function maxMeasureEmForFont(fontPx) {
  * `wrapTextToLines`, so spaceless Japanese hard-splits without severing
  * surrogate pairs.
  *
- * @param {Array<{type:'h'|'p', text:string}>} blocks
+ * @param {Array<{type:'h'|'p'|'pre', text:string}>} blocks
  * @param {{scale?: number, title?: string}} [opts]
- * @returns {Array<{text: string, style: 'title'|'h'|'p'|'blank'}>}
+ * @returns {Array<{text: string, style: 'title'|'h'|'p'|'c'|'blank'}>}
  */
 export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
@@ -161,6 +161,28 @@ export function layoutReaderLines(blocks, opts = {}) {
       continue;
     }
     blank();
+    if (b.type === 'pre') {
+      // Code: each physical source line is its own visual row (wrapped only
+      // when it exceeds the measure) so line structure survives. Leading
+      // indentation is split off before wrapping — wrapTextToWidth trims
+      // leading whitespace — and re-attached to every emitted row (hanging
+      // indent), so a wrapped statement keeps its nesting level legible.
+      const em = measureEmForStyle('c', scale);
+      for (const raw of b.text.split('\n')) {
+        const m = raw.match(/^(\s*)([\s\S]*)$/);
+        const indent = m[1];
+        const body = m[2];
+        if (body === '') {
+          push(raw === '' ? '' : indent, 'c');
+          continue;
+        }
+        const innerEm = Math.max(1, em - textWidthEm(indent));
+        for (const row of wrapTextToWidth(body, innerEm)) {
+          push(indent + row, 'c');
+        }
+      }
+      continue;
+    }
     const style = b.type === 'h' ? 'h' : 'p';
     for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
       push(row, style);
@@ -256,6 +278,11 @@ export function fontPxFor(style, scale = 1) {
   }
   if (style === 'h') {
     return Math.round(25 * s);
+  }
+  if (style === 'c') {
+    // Code renders a touch smaller — density matters more than emphasis,
+    // and monospace advance (~0.6em) packs more per line anyway.
+    return Math.round(17 * s);
   }
   return Math.round(20 * s);
 }
