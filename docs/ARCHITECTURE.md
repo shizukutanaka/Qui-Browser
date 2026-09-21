@@ -34,7 +34,7 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/media/` | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping) |
 | `dev/` | `DevTools` — floating console/scene/network inspector |
 | `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |
-| `utils/` | `TextureManager`, `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
+| `utils/` | `TextureManager`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
 | `i18n/` | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()` |
 | `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry |
 
@@ -68,7 +68,7 @@ most subsystems are unit-testable in Node with no GPU context.
 
 Vite (`vite.config.js`) produces manual chunks for cache granularity:
 `vendor-three`, `app`, `tier1` (FFR, comfort, textures), and `tier2-*`
-(`tier2-input`, `tier2-interaction`, `tier2-audio`, `tier2-loading`). All chunks
+(`tier2-input`, `tier2-interaction`, `tier2-audio`). All chunks
 are eagerly imported at boot — the tier2 split affects cache lifetime, not
 load laziness; the only real lazy boundary is `import('./app.js')` in main.js.
 See [BUILD_OPTIMIZATION_GUIDE.md](BUILD_OPTIMIZATION_GUIDE.md).

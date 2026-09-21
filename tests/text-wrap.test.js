@@ -76,6 +76,42 @@ describe('wrapTextToWidth', () => {
     expect(wrapTextToWidth('', 10)).toEqual(['']);
     expect(wrapTextToWidth('   ', 10)).toEqual(['']);
   });
+
+  it('kinsoku: closing punctuation never opens a row (ぶら下げ)', () => {
+    // limit 4 em: 'あいうえ' fills row 1 — '、' would land at row 2's head
+    // without kinsoku; it must overhang row 1 instead.
+    const rows = wrapTextToWidth('あいうえ、おかき', 4);
+    expect(rows[0]).toBe('あいうえ、');
+    expect(rows[1]).toBe('おかき');
+  });
+
+  it('kinsoku: small kana and prolonged marks also never open a row', () => {
+    // 'ちいさな' + 'っ' at the boundary — sokuon must not start a line.
+    const rows = wrapTextToWidth('きょうはっぴょう', 5);
+    expect(rows[0].endsWith('っ')).toBe(true);
+  });
+
+  it('kinsoku: an open bracket never ends a row (追い出し)', () => {
+    // 'あいう「' fills row 1 exactly; 'か' would break after '「' — instead the
+    // bracket is carried down to open the next row.
+    const rows = wrapTextToWidth('あいう「かきく', 4);
+    expect(rows).toEqual(['あいう', '「かきく']);
+  });
+
+  it('kinsoku: a lone bracket chunk cannot split into an empty row', () => {
+    // At a 1-em budget the bracket is alone on its row — the only options are
+    // a line-end violation or an empty row; the violation is the lesser evil.
+    const rows = wrapTextToWidth('「あい', 1);
+    expect(rows.every((r) => r.length > 0)).toBe(true);
+    expect(rows.join('')).toBe('「あい');
+  });
+
+  it('kinsoku: a space-split word starting with closing punct overhangs too', () => {
+    // 'aa' fits row 1 (1.2 em); '、bb' would open row 2 with '、'.
+    const rows = wrapTextToWidth('aa 、bb', 3);
+    expect(rows[0].startsWith('、')).toBe(false);
+    expect(rows.length).toBe(1);
+  });
 });
 
 describe('safeMeasureEm / truncateToWidth', () => {
@@ -104,6 +140,55 @@ describe('wrapTextToLines', () => {
 
   it('returns one empty row for empty input', () => {
     expect(wrapTextToLines('', 5)).toEqual(['']);
+  });
+
+  it('kinsoku: closing punctuation never opens a row (ぶら下げ)', () => {
+    const rows = wrapTextToLines('あいうえ、おかき', 4);
+    expect(rows[0]).toBe('あいうえ、');
+    expect(rows[1]).toBe('おかき');
+  });
+
+  it('kinsoku: an open bracket never ends a row (追い出し)', () => {
+    const rows = wrapTextToLines('あいう「かきく', 4);
+    expect(rows).toEqual(['あいう', '「かきく']);
+  });
+});
+
+describe('grapheme-cluster integrity (UAX #29)', () => {
+  it('never severs a combining mark from its base (NFD input)', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    const nfd = 'か\u3099'.repeat(6); // が decomposed × 6
+    const rows = wrapTextToWidth(nfd, 3);
+    for (const row of rows) {
+      // Every row must contain whole clusters — no orphaned combining dakuten.
+      expect(row).toMatch(/^(か\u3099)+$/);
+    }
+    expect(rows.join('')).toBe(nfd);
+  });
+
+  it('never severs a flag or ZWJ emoji sequence', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    const flag = '🇯🇵'.repeat(4); // regional-indicator pairs
+    for (const row of wrapTextToWidth(flag, 3)) {
+      expect(row).toMatch(/^(🇯🇵)+$/);
+    }
+    const family = '👨‍👩‍👧'.repeat(4); // ZWJ sequence
+    for (const row of wrapTextToWidth(family, 3)) {
+      expect(row).toMatch(/^(👨‍👩‍👧)+$/);
+    }
+  });
+
+  it('truncateToWidth keeps clusters whole before the ellipsis', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    const out = truncateToWidth('か\u3099'.repeat(10), 3);
+    expect(out).toMatch(/^(か\u3099)+…$/);
+  });
+
+  it('wrapTextToLines splits on cluster boundaries too', () => {
+    const rows = wrapTextToLines('か\u3099'.repeat(6), 4); // 2 cps per cluster
+    for (const row of rows) {
+      expect(row).toMatch(/^(か\u3099)+$/);
+    }
   });
 });
 

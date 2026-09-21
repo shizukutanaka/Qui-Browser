@@ -1,7 +1,7 @@
 /**
  * Tests for WebPanel visual-state logic:
  *   - back/forward disabled state (driven by historyIdx / history.length)
- *   - load-error flag set by iframe onerror, cleared on subsequent navigate
+ *   - load-error flag set by a failed reader fetch, cleared on next navigate
  *
  * Canvas, THREE, and DOM are stubbed to keep the test headless.
  */
@@ -61,12 +61,6 @@ global.document = {
   createElement(tag) {
     if (tag === 'canvas') {
       return { width: 0, height: 0, getContext: () => ctx2d };
-    }
-    if (tag === 'iframe') {
-      return {
-        src: '', style: { cssText: '' }, onload: null, onerror: null,
-        setAttribute() {}
-      };
     }
     return {};
   },
@@ -162,8 +156,6 @@ describe('WebPanel history navigation state', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 0;
-    // point iframe at the forward URL to avoid triggering real load issues
-    p.iframe.src = '';
     p.forward();
     expect(p.historyIdx).toBe(1);
   });
@@ -252,33 +244,27 @@ describe('WebPanel load-error state', () => {
     expect(p._loadError).toBe(false);
   });
 
-  test('_loadError is set to true when iframe fires onerror', () => {
+  test('_loadError is set to true when the reader fetch fails', async () => {
     const p = makePanel();
-    p.currentUrl = 'https://bad.example';
-    // Trigger _loadUrl which attaches the iframe handlers.
-    p._loadUrl('https://bad.example');
-    expect(p._loadError).toBe(false); // not yet
-    // Simulate iframe error
-    p.iframe.onerror();
+    await p._loadReaderText('https://bad.example'); // file-wide stub: 503
     expect(p._loadError).toBe(true);
   });
 
-  test('_loadError is cleared when a new _loadUrl call is made', () => {
+  test('_loadError is cleared when a new _loadUrl call is made', async () => {
     const p = makePanel();
-    p.iframe.onerror && p.iframe.onerror(); // prime an error
+    await p._loadReaderText('https://bad.example'); // prime an error
+    expect(p._loadError).toBe(true);
     p._loadUrl('https://good.example');
     expect(p._loadError).toBe(false);   // cleared at the start of the new load
   });
 
-  test('_loadError is cleared when iframe fires onload', () => {
+  test('_loadError stays false when the fetch succeeds', async () => {
     const p = makePanel();
-    p._loadUrl('https://site.example');
-    p.iframe.onerror();                 // set the error
-    expect(p._loadError).toBe(true);
-
-    // Navigate to the same URL again — onerror fired, then onload fires.
-    p._loadUrl('https://site.example');
-    p.iframe.onload();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<p>body text long enough to wrap into reader lines</p>')
+    });
+    await p._loadReaderText('https://site.example');
     expect(p._loadError).toBe(false);
   });
 });
@@ -323,47 +309,48 @@ describe('WebPanel navigate() blocked-navigation feedback', () => {
   });
 });
 
-// ── dispose() teardown — stale iframe handler leak ──────────────────────────
-describe('WebPanel dispose() detaches iframe onload/onerror', () => {
-  test('dispose() nulls onload and onerror before removing the iframe', () => {
+// ── dispose() teardown — stale fetch resolution leak ────────────────────────
+describe('WebPanel dispose() aborts the in-flight reader fetch', () => {
+  test('dispose() aborts the pending reader controller', () => {
     const p = makePanel();
-    p._loadUrl('https://example.com'); // attaches onload/onerror
-    expect(typeof p.iframe.onload).toBe('function');
-    expect(typeof p.iframe.onerror).toBe('function');
+    const controller = { abort: jest.fn() };
+    p._readerController = controller;
 
     p.dispose();
 
-    expect(p.iframe.onload).toBeNull();
-    expect(p.iframe.onerror).toBeNull();
+    expect(controller.abort).toHaveBeenCalled();
+    expect(p._readerController).toBeNull();
   });
 
-  test('a load completing after dispose() does not reach onNavigate', () => {
-    // The DOM re-checks the onload IDL attribute at fire time rather than
-    // holding a captured reference, so simulate that: read p.iframe.onload
-    // *after* dispose() (not a pre-dispose capture) and invoke it if set —
-    // mirroring how a stale in-flight navigation's load event is dispatched.
+  test('a load completing after dispose() does not reach onNavigate', async () => {
     const onNavigate = jest.fn();
     const p = makePanel({ onNavigate });
-    p._loadUrl('https://example.com'); // navigation in flight
+    let resolveFetch;
+    global.fetch = () => new Promise(res => {
+      resolveFetch = res;
+    });
+    const pr = p._loadReaderText('https://example.com'); // in flight
 
-    p.dispose(); // tab/panel closed mid-load
+    p.dispose(); // tab/panel closed mid-load — seq invalidated
 
-    if (p.iframe.onload) {
-      p.iframe.onload();
-    }
+    resolveFetch({ ok: true, status: 200, text: () => Promise.resolve('<p>x</p>') });
+    await pr;
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  test('a load erroring after dispose() does not reach onLoadError', () => {
+  test('a load erroring after dispose() does not reach onLoadError', async () => {
     const onLoadError = jest.fn();
     const p = makePanel({ onLoadError });
-    p._loadUrl('https://example.com');
+    let rejectFetch;
+    global.fetch = () => new Promise((_, rej) => {
+      rejectFetch = rej;
+    });
+    const pr = p._loadReaderText('https://example.com');
 
     p.dispose();
 
-    if (p.iframe.onerror) {
-      p.iframe.onerror();
-    }
+    rejectFetch(new TypeError('Failed to fetch'));
+    await pr;
     expect(onLoadError).not.toHaveBeenCalled();
   });
 });
@@ -385,18 +372,21 @@ describe('WebPanel content-area state', () => {
     expect(p._contentState).toBe('loading');
   });
 
-  test('a completed load reports content unavailable, not empty', () => {
+  test('a completed-but-unreadable load reports unavailable, not empty', async () => {
     const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onload();
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><div id="root"></div></body></html>')
+    });
+    await p._loadUrl('https://example.com');
     expect(p._contentState).toBe('unavailable');
   });
 
-  test('an errored load reports error', () => {
+  test('a failed load reports unavailable with the error flag set', async () => {
     const p = makePanel();
-    p._loadUrl('https://example.com');
-    p.iframe.onerror();
-    expect(p._contentState).toBe('error');
+    await p._loadUrl('https://example.com');
+    expect(p._contentState).toBe('unavailable');
+    expect(p._loadError).toBe(true);
   });
 
   test('the content canvas is retained so it can be repainted (was a _build local)', () => {
@@ -814,26 +804,26 @@ describe('WebPanel new-tab top sites (C-3)', () => {
 });
 
 // ── stop() — cancelling an in-flight load ───────────────────────────────────
-// The only exits from `loading` were iframe.onload/onerror: a load that never
-// resolves pins the panel in 'loading' forever (chrome tint stays, no way to
-// bail). stop() is the user escape; while loading, the reload zone acts as it.
+// A reader fetch that never resolves pins the panel in 'loading' forever
+// (chrome tint stays, no way to bail). stop() is the user escape; while
+// loading, the reload zone acts as it.
 describe('WebPanel stop()', () => {
-  test('stop() while loading clears loading and detaches iframe handlers', () => {
+  test('stop() while loading clears loading and aborts the fetch', () => {
     const p = makePanel();
+    const controller = { abort: jest.fn() };
     p._loadUrl('https://slow.example');
+    p._readerController = controller; // stand-in for the in-flight fetch
     expect(p.loading).toBe(true);
-    expect(typeof p.iframe.onload).toBe('function');
     p.stop();
     expect(p.loading).toBe(false);
-    expect(p.iframe.onload).toBeNull();
-    expect(p.iframe.onerror).toBeNull();
+    expect(controller.abort).toHaveBeenCalled();
+    expect(p._readerController).toBeNull();
   });
 
   test('stop() is a no-op when nothing is loading', () => {
     const p = makePanel();
     p.stop();
     expect(p.loading).toBe(false);
-    expect(p.iframe.onload).toBeNull();
   });
 
   test('stop() aborts the in-flight reader fetch and invalidates its result', async () => {

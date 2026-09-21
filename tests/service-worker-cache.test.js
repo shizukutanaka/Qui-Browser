@@ -184,10 +184,17 @@ describe('fetch handler — cross-origin bypass', () => {
     delete global.fetch;
   });
 
-  function fire(url, method = 'GET') {
+  function fire(url, method = 'GET', headers = {}) {
     let responded = false;
     swHandlers.fetch({
-      request: { url, method },
+      request: {
+        url,
+        method,
+        headers: { get: (name) => headers[name.toLowerCase()] || null },
+        clone() {
+          return { ...this, headers: this.headers };
+        }
+      },
       // Swallow the strategy promise so an async rejection can't fail the run.
       respondWith: (p) => {
         responded = true; Promise.resolve(p).catch(() => {});
@@ -214,6 +221,83 @@ describe('fetch handler — cross-origin bypass', () => {
 
   test('chrome-extension: is still skipped', () => {
     expect(fire('chrome-extension://abc/x.js')).toBe(false);
+  });
+
+  test('Range requests bypass the handler — 206 responses cannot be cached', () => {
+    // cache.put rejects a 206 Partial Content; intercepting a byte-range
+    // fetch would turn media seeking into a strategy failure.
+    expect(fire('https://app.example/media/clip.mp4', 'GET', { range: 'bytes=0-1023' })).toBe(false);
+    expect(fire('https://app.example/js/app.js', 'GET', { range: '' })).toBe(true);
+  });
+});
+
+describe('fetch handler — floated writes stay inside waitUntil', () => {
+  // A floated cache.put after respondWith resolves races with the browser
+  // killing the worker — the revalidation can be silently lost. The event's
+  // waitUntil must wrap every background write.
+  const { staleWhileRevalidate, cacheFirst } = require('../public/service-worker.js');
+
+  function makeEvent() {
+    const pending = [];
+    return {
+      waitUntil: (p) => pending.push(p),
+      pending
+    };
+  }
+  const request = {
+    url: 'https://app.example/js/app.js',
+    method: 'GET',
+    headers: { get: () => null },
+    clone() {
+      return { ...this, headers: this.headers };
+    }
+  };
+
+  beforeEach(() => {
+    global.caches = { open: async () => makeMockCache(), match: async () => undefined };
+  });
+  afterEach(() => {
+    delete global.caches; delete global.fetch;
+  });
+
+  test('staleWhileRevalidate puts the revalidation under waitUntil on a cached hit', async () => {
+    const cache = makeMockCache();
+    cache.entries.push([request, { ok: true, body: 'stale', clone() {
+      return this;
+    } }]);
+    global.caches = { open: async () => cache };
+    let putDone = false;
+    cache.put = async () => {
+      putDone = true;
+    };
+    global.fetch = async () => ({ ok: true, clone() {
+      return this;
+    }, body: 'fresh' });
+
+    const event = makeEvent();
+    const res = await staleWhileRevalidate(request, event);
+    expect(res.body).toBe('stale'); // cached copy served immediately
+    expect(event.pending.length).toBe(1); // background write is tracked
+    await Promise.allSettled(event.pending);
+    expect(putDone).toBe(true);
+  });
+
+  test('cacheFirst puts the miss-write under waitUntil', async () => {
+    const cache = makeMockCache();
+    global.caches = { open: async () => cache };
+    let putDone = false;
+    cache.put = async () => {
+      putDone = true;
+    };
+    global.fetch = async () => ({ ok: true, clone() {
+      return this;
+    } });
+
+    const event = makeEvent();
+    await cacheFirst(request, event);
+    expect(event.pending.length).toBe(1);
+    await Promise.allSettled(event.pending);
+    expect(putDone).toBe(true);
   });
 });
 
@@ -273,7 +357,14 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
   function fireAndWait(url) {
     return new Promise((resolve) => {
       swHandlers.fetch({
-        request: { url, method: 'GET' },
+        request: {
+          url,
+          method: 'GET',
+          headers: { get: () => null },
+          clone() {
+            return { ...this, headers: this.headers };
+          }
+        },
         respondWith: (p) => resolve(Promise.resolve(p))
       });
     });
@@ -328,7 +419,15 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
     // request.mode 'navigate' → getOfflineFallback serves the cached shell
     let p;
     swHandlers.fetch({
-      request: { url: 'https://app.example/some/page', method: 'GET', mode: 'navigate' },
+      request: {
+        url: 'https://app.example/some/page',
+        method: 'GET',
+        mode: 'navigate',
+        headers: { get: () => null },
+        clone() {
+          return { ...this, headers: this.headers };
+        }
+      },
       respondWith: (r) => {
         p = r;
       }

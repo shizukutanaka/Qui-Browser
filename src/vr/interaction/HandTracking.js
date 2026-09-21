@@ -510,18 +510,6 @@ export class HandTracking {
   }
 
   /**
-   * Get tracking statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      leftGesture: this.gestures.left,
-      rightGesture: this.gestures.right,
-      trackingActive: this.enabled
-    };
-  }
-
-  /**
    * Dispose hand tracking
    */
   dispose() {

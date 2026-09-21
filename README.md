@@ -166,7 +166,7 @@ Qui Browser VR/
 │   ├── dev/DevTools.js       # In-session console/scene/network inspector
 │   └── monitoring.js         # Production monitoring
 ├── docs/                     # Complete documentation (24 guides + archive)
-├── tests/                    # Test suites (72 suites, 3087 tests)
+├── tests/                    # Test suites (72 suites, 3006 tests)
 ├── tools/                    # Verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
@@ -237,7 +237,7 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 72 test suites, 3,087 tests
+- **Unit Tests:** 72 test suites, 3,006 tests
 - **Integration Tests:** `vr-app-wiring` + `app-smoke` (`npm run test:integration`)
 - **Coverage Floor:** Ratcheted jest thresholds (95% branches / 96% funcs / 97% lines / 96% statements) — regressions fail `ci:test`
 - **Runtime Harnesses:** `verify:app` + `verify:vr-boot` boot the real bundle in headless Chromium (`ci:verify`)

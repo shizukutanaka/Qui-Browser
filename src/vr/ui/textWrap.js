@@ -44,6 +44,70 @@ export const EMOJI_EM = 1.3;
 /** Appended by truncateToWidth; a full em in sans-serif (measured 1.000). */
 const ELLIPSIS = '…';
 
+/**
+ * Grapheme-cluster segmentation (UAX #29). Code-point splitting still severs
+ * real glyphs — a decomposed が (base + combining dakuten, common from macOS
+ * paste which favours NFD), a flag's regional-indicator pair, or a ZWJ emoji
+ * sequence. Intl.Segmenter keeps each rendered glyph whole. Supported on every
+ * engine this ships to (Chromium ≥87, Safari ≥14.1, Node ≥16); the code-point
+ * iterator is the fallback.
+ */
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+function* graphemes(s) {
+  if (graphemeSegmenter) {
+    for (const { segment } of graphemeSegmenter.segment(s)) {
+      yield segment;
+    }
+  } else {
+    yield* s; // string iteration is already code-point-wise
+  }
+}
+
+function firstChar(s) {
+  return s[Symbol.iterator]().next().value;
+}
+
+/** Width of one rendered glyph: the widest member of its cluster. */
+function graphemeWidthEm(cluster) {
+  let w = 0;
+  for (const ch of cluster) {
+    w = Math.max(w, charWidthEm(ch.codePointAt(0)));
+  }
+  return w;
+}
+
+/**
+ * Kinsoku (UAX #14 line-break prohibitions) for the hard-split path.
+ *
+ * Japanese has no spaces, so a paragraph of it always takes the
+ * char-by-char split below — without these sets, a break could put a closing
+ * punctuation mark at the head of a row or an open bracket at its tail.
+ *
+ * KIN_START (行頭禁則): chars that must not open a row — closing punctuation
+ * and brackets, small kana, prolonged-sound and iteration marks, etc.
+ * KIN_END (行末禁則): chars that must not end a row — opening brackets/quotes.
+ *
+ * The set is the common Japanese subset (JIS X 4051 style); it is deliberately
+ * not the whole UAX #14 table — canvas layout here uses an approximate em
+ * model anyway, so the 95% WIDTH_SAFETY budget absorbs the occasional
+ * one-char overhang this strategy produces (ぶら下げ).
+ */
+export const KIN_START = new Set(Array.from(
+  '、。，．！？：；…‥・ー〜～ゝゞ々〻' +            // closes/punct/prolonged/iteration
+  'ぁぃぅぇぉゃゅょゎっゕゖ' +                  // small hiragana
+  'ァィゥェォャュョヮッヵヶ' +                  // small katakana
+  '）］｝〉》」』】〕〗〙〛' +                  // closing brackets
+  '”),.!?;:%'                                 // ASCII closes + inline punct
+));
+const KIN_END = new Set(Array.from(
+  '（［｛〈《「『【〔〖〘〚' +                  // opening brackets
+  '“('                                        // ASCII opens
+));
+
 export function charWidthEm(cp) {
   if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf)) {
     return EMOJI_EM;
@@ -116,13 +180,31 @@ export function wrapTextToWidth(text, maxEm) {
   for (const w of words) {
     const wW = textWidthEm(w);
     if (wW > limit) {
-      // Word wider than a whole row: hard-split it by accumulated em width.
+      // Word wider than a whole row: hard-split it by accumulated em width,
+      // honouring kinsoku — a KIN_START char overhangs the current row
+      // (ぶら下げ) rather than opening the next, and a KIN_END char is
+      // carried down to open the next row (追い出し).
       pushCur();
       let chunk = '';
       let chunkW = 0;
-      for (const ch of w) {
-        const cw = charWidthEm(ch.codePointAt(0));
+      for (const ch of graphemes(w)) {
+        const cw = graphemeWidthEm(ch);
         if (chunkW + cw > limit && chunk) {
+          if (KIN_START.has(firstChar(ch))) {
+            chunk += ch;
+            chunkW += cw;
+            continue;
+          }
+          const gs = Array.from(graphemes(chunk));
+          const last = gs.pop();
+          // Move the open bracket down only if a real char stays behind —
+          // a chunk that is only the bracket can't split without an empty row.
+          if (gs.length > 0 && KIN_END.has(firstChar(last))) {
+            rows.push(gs.join(''));
+            chunk = last + ch;
+            chunkW = graphemeWidthEm(last) + cw;
+            continue;
+          }
           rows.push(chunk);
           chunk = '';
           chunkW = 0;
@@ -136,6 +218,11 @@ export function wrapTextToWidth(text, maxEm) {
       cur = w;
       curW = wW;
     } else if (curW + 0.5 + wW <= limit) { // 0.5 em for the joining space
+      cur += ' ' + w;
+      curW += 0.5 + wW;
+    } else if (cur && KIN_START.has(firstChar(w))) {
+      // A space-split word beginning with closing punctuation must not open a
+      // row either — let it overhang the current one (ぶら下げ).
       cur += ' ' + w;
       curW += 0.5 + wW;
     } else {
@@ -196,8 +283,8 @@ export function truncateToWidth(text, maxEm) {
   const budget = limit - charWidthEm(ELLIPSIS.codePointAt(0));
   let out = '';
   let w = 0;
-  for (const ch of s) {
-    const cw = charWidthEm(ch.codePointAt(0));
+  for (const ch of graphemes(s)) {
+    const cw = graphemeWidthEm(ch);
     if (w + cw > budget) {
       break;
     }
@@ -209,7 +296,8 @@ export function truncateToWidth(text, maxEm) {
 
 /**
  * Greedy word-wrap into rows no longer than `maxChars` code points.
- * Words longer than a row are hard-split at code-point boundaries.
+ * Words longer than a row are hard-split at grapheme-cluster boundaries
+ * (a cluster still counts its code points toward the budget).
  *
  * NOTE: this counts code points, so it under-estimates the rendered width of
  * full-width (CJK) text. `wrapTextToWidth` is the script-correct version;
@@ -232,15 +320,41 @@ export function wrapTextToLines(text, maxChars) {
         rows.push(cur);
         cur = '';
       }
-      let start = 0;
-      while (wChars.length - start > limit) {
-        rows.push(wChars.slice(start, start + limit).join(''));
-        start += limit;
+      // Same kinsoku rules as wrapTextToWidth's hard split: KIN_START chars
+      // overhang (ぶら下げ), KIN_END chars carry down (追い出し). Grapheme
+      // iteration keeps combining marks and ZWJ sequences whole; each
+      // cluster still contributes its code-point count to the budget.
+      let chunk = [];
+      let chunkCps = 0;
+      for (const ch of graphemes(w)) {
+        const chCps = Array.from(ch).length;
+        if (chunkCps + chCps > limit && chunk.length) {
+          if (KIN_START.has(firstChar(ch))) {
+            chunk.push(ch);
+            chunkCps += chCps;
+            continue;
+          }
+          const last = chunk[chunk.length - 1];
+          const lastCps = Array.from(last).length;
+          if (chunk.length > 1 && KIN_END.has(firstChar(last))) {
+            rows.push(chunk.slice(0, -1).join(''));
+            chunk = [last, ch];
+            chunkCps = lastCps + chCps;
+            continue;
+          }
+          rows.push(chunk.join(''));
+          chunk = [];
+          chunkCps = 0;
+        }
+        chunk.push(ch);
+        chunkCps += chCps;
       }
-      cur = wChars.slice(start).join('');
+      cur = chunk.join('');
     } else if (!cur) {
       cur = w;
     } else if (cpLen(cur + ' ' + w) <= limit) {
+      cur += ' ' + w;
+    } else if (cur && KIN_START.has(firstChar(w))) {
       cur += ' ' + w;
     } else {
       rows.push(cur);

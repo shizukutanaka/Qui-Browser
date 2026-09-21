@@ -161,12 +161,6 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
     expect(audio.stats.equalPowerSources).toBe(1);
   });
 
-  test('getStats includes hrtfSources, equalPowerSources, and hrtfThreshold', () => {
-    const stats = audio.getStats();
-    expect(stats).toHaveProperty('hrtfSources');
-    expect(stats).toHaveProperty('equalPowerSources');
-    expect(stats).toHaveProperty('hrtfThreshold', 15);
-  });
 });
 
 // setMasterVolume drives the "Sound Volume" settings-panel stepper — the first
@@ -489,15 +483,6 @@ describe('SpatialAudio — source/listener plumbing (uncovered layer)', () => {
     expect(src.panner.panningModel).toBe('HRTF');
   });
 
-  test('simulateDoppler raises playbackRate with radial velocity', async () => {
-    const { a } = await initAudio();
-    const node = { playbackRate: { value: 1 } };
-    const src = { velocity: { x: 34.33, y: 0, z: 0 }, playbackRate: 1.0, node };
-    a.simulateDoppler(src);
-    // 34.33 m/s = mach 0.1 -> factor 1.1
-    expect(node.playbackRate.value).toBeCloseTo(1.1);
-  });
-
   test('setMasterVolume clamps to [0,1] and rescales every source gain', async () => {
     const { a } = await initAudio();
     const s1 = a.createSource('a', { volume: 0.8 });
@@ -508,18 +493,7 @@ describe('SpatialAudio — source/listener plumbing (uncovered layer)', () => {
     expect(s1.gain.gain.value).toBeCloseTo(0.4);
   });
 
-  test('fadeVolume schedules a ramp on the gain AudioParam', async () => {
-    const { a } = await initAudio();
-    const src = a.createSource('f');
-    src.gain.gain.cancelScheduledValues = jest.fn();
-    src.gain.gain.setValueAtTime = jest.fn();
-    src.gain.gain.linearRampToValueAtTime = jest.fn();
-    a.fadeVolume('f', 0.2, 2);
-    expect(src.gain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
-      0.2 * a.settings.masterVolume, a.context.currentTime + 2
-    );
-    expect(src.volume).toBe(0.2);
-  });
+
 });
 
 describe('SpatialAudio — loadAudio + play/stop guards', () => {
@@ -681,12 +655,6 @@ describe('SpatialAudio — guard + fallback slivers', () => {
     expect(src.panner.setPosition).toHaveBeenCalledWith(1, 2, 3);
   });
 
-  test('simulateDoppler returns early when source has no velocity', async () => {
-    const { a } = await initAudio();
-    const src = a.createSource('still');
-    expect(() => a.simulateDoppler(src)).not.toThrow();
-  });
-
   test('listener guards return before init provides a listener', () => {
     const a = new SpatialAudio();
     a.listener = null;
@@ -709,16 +677,12 @@ describe('SpatialAudio — guard + fallback slivers', () => {
     expect(() => a.updateListenerFromCamera(null)).not.toThrow();
   });
 
-  test('updateSourceLOD and fadeVolume bail on missing source parts', async () => {
+  test('updateSourceLOD bails on missing source parts', async () => {
     const { a } = await initAudio();
     expect(() => a.updateSourceLOD('ghost')).not.toThrow();
-    expect(() => a.fadeVolume('ghost', 0.5, 1)).not.toThrow();
     const src = a.createSource('nopanner');
     src.panner = null;
     expect(() => a.updateSourceLOD('nopanner')).not.toThrow();
-    const src2 = a.createSource('nogain');
-    src2.gain = null;
-    expect(() => a.fadeVolume('nogain', 0.5, 1)).not.toThrow();
   });
 });
 
@@ -814,16 +778,6 @@ describe('SpatialAudio — remaining branch arms', () => {
     expect(nd.panner.coneInnerAngle).toBeUndefined();
   });
 
-  test('simulateDoppler returns early when source has no velocity', async () => {
-    const context = makeAudioContext();
-    global.window.AudioContext = jest.fn(() => context);
-    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
-    const a = new SpatialAudio();
-    const src = a.createSource('s', {});
-    delete src.velocity;
-    expect(() => a.simulateDoppler(src)).not.toThrow();
-  });
-
   test('setMasterVolume skips sources without a gain node', async () => {
     const context = makeAudioContext();
     global.window.AudioContext = jest.fn(() => context);
@@ -835,17 +789,6 @@ describe('SpatialAudio — remaining branch arms', () => {
     expect(a.settings.masterVolume).toBe(0.5);
     a.setMasterVolume(2); // clamped to 1
     expect(a.settings.masterVolume).toBe(1);
-  });
-
-  test('getStats reflects an uninitialized context', () => {
-    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
-    const a = new SpatialAudio();
-    a.context = null; // construction without initialize
-    const s = a.getStats();
-    expect(s.contextState).toBe('uninitialized');
-    expect(s.currentTime).toBe(0);
-    expect(s.sampleRate).toBe(0);
-    expect(s.latency).toBe(0); // `context ? ... : 0` arm
   });
 
   test('dispose with no context is a no-op', () => {

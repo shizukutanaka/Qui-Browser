@@ -52,7 +52,7 @@ describe('kunrei-shiki (JIS-style) romanization — Japanese users type si/ti/tu
   });
 });
 
-describe('JapaneseIME — deleteLast katakana arm + getStats', () => {
+describe('JapaneseIME — deleteLast katakana arm', () => {
   test('deleteLast converts through katakana when inputMode is katakana', () => {
     const ime = new JapaneseIME();
     ime.inputMode = 'katakana';

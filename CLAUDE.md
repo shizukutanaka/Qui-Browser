@@ -245,6 +245,80 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き225 — DeviceCompatibility の書き込み専用 report 縮小
+- 🔍 **実測**: `deviceCompat.check()` が毎 VR 起動で `isSessionSupported('immersive-vr')` + `('immersive-ar')` の両 probe と `_hasWebGL2()` canvas コンテキスト確保を行い、`vrSupported`/`arSupported`/`webgpu`/`webgl2`/`timestamp` + optionalFeatures 6キー（handTracking/hitTest/anchors/planeDetection/eyeTracking/foveatedRendering）の計11フィールドを生成していた — しかし src 全体の読者は `deviceTier`（targetFPS と telemetry）**のみ**。write-only state と同クラス（#83 基準）。セッション可否の判定自体は entry 層（main.js/app.js）が独自に isSessionSupported しているので、この probe は完全な重複。
+- 🗑 **削除**: report を `{ deviceTier }` に縮小（−146→74行）。`_probeOptionalFeatures`・`_hasWebGL2`・両 isSessionSupported probe を除去。テストは probe 契約 pin を削り tier 検出＋navigator 欠落系のみに整理（−15件）。
+- ✅ 2993 tests / 72 suites 全緑、lint 0 errors（352 warnings）、build 緑。
+
+### Session 75: 続き224 — WebPanel の非表示 iframe 全廃止（F-1 検証事実の解決）
+- 🔍 **実測**: WebPanel が `navigate()` 毎に**非表示 iframe を二重フェッチ**していた — reader パイプライン（`_loadReaderText`＝proxy/直接 fetch→extractReadableText）とは別に、対象サイトを `allow-scripts` sandbox で**オフスクリーン実行**（広告/トラッカーの JS も走る）。描画経路は構造的に不通: `dom-overlay` は optionalFeatures に含まれず要求されたことがなく、仮に要求しても spec 上 dom-overlay はフラット HUD であってワールド空間 quad への合成は不能（OUTSTANDING_ISSUES F-1 が記録した前提誤りそのもの）。
+- 🔧 **修正**: iframe 機構を全削除 — title/onNavigate/onLoadError/`loading`/`_loadError`/content 状態を `_loadReaderText` の**同一応答**で駆動（`extractReadableText` が既に `{title, blocks}` を返していたので新たな取得は不要）。フェッチ失敗は actionable な `'unavailable'`（CORS/proxy 案内）＋ `_loadError` ＋ `onLoadError` トースト発火（旧コードでは XFO 拒否が onload に化けて無言だった）。`'error'` 状態は到達不能になったので contentStateLines から除去＋i18n `vr.content.failed`（en/ja）も削除。`_frameNavigated`（VR で成立不可能な概念）と chrome の ↪ マーカー描画も除去。`stop()` は reader controller の abort のみに。
+- 🔧 **連鎖 CSP 強化**: iframe が存在しなくなったため `frame-src https:` を `frame-src 'none'` に5箇所全てで締めた（index.html meta・netlify・vercel・nginx×3）— デッド許可の撤去。
+- 🗑 **テスト整理（−10+7）**: iframe 駆動の pin（in-frame 同一/クロスオリジン nav、onload/onerror dispose 漏れ、↪ グレー化）を削除し、reader fetch 駆動の新 pin へ（タイトル無し→URL フォールバック、成功時 title/state/onNavigate、失敗時 unavailable+onLoadError、dispose 後の解決はコールバックに届かない、stop() は controller abort）。
+- ✅ 3006 tests / 72 suites 全緑、lint 0 errors、build＋verify:all（実 Chromium vr-boot）全緑。
+
+### Session 75: 続き223 — ProgressiveLoader 全廃止＋死メソッド掃引第2弾
+- 🗑 **削除（ゼロ呼出実測・最大の断捨離）**: `src/utils/ProgressiveLoader.js` 全体（~700行＋専用スイート）— VRApp は構築→不発の onProgress 代入→textureManager 注入→dispose だけで、`start()`/`addResource` が一度も呼ばれずキューパイプライン（loadPhase→loadResource→performLoad→全 load* ローダ）が完全到達不能。テクスチャは `textureManager.loadTexture`（loadAsync 経路）が直接担っている。vite.config の `tier2-loading` チャンクとともに除去。
+- 🗑 **個別死メソッド（同一掃引）**: `FFRSystem.setDynamicFFR`/`getStatus`（+孤児化した `gpuLoadThresholds` フィールド）、`TextureManager.loadTextures`（バッチ wrapper）、`PerformanceMonitor.getReport`/`exportCSV`、`SpatialAudio.simulateDoppler`/`fadeVolume`、`getStats` 4件（SpatialAudio/HandTracking/VoiceCommands/VRJapaneseKeyboard — 全てテスト pin のみ、生産呼出ゼロ）。
+- 🧪 **テスト整理**: progressive-loader スイート削除、dispose 対称 pin を 17 サブシステムに更新、`no-dead-public-api` の DEAD マップに新規削除 21名を追加（回帰 pin）。統計カウンタの pin は `vc.stats` 直読に書換えて存続（生きているコード経路の計測を守る）。バッチ重複 URL の pin は `loadTexture` 並行2呼に書換え（pendingLoads デデュープ不変条件は存続）。
+- 📝 **ドキュメント同期**: ARCHITECTURE/BUILD_OPTIMIZATION_GUIDE の tier2-loading 記述除去、同 guide の誤ラベル「Lazy Loaded」→「eagerly imported（キャッシュ分離のみ）」に訂正、ARCHITECTURE の utils 一覧・README/TESTING の計測値（72 suites / 3010 tests / ~352 warnings）を実測へ。
+- ✅ 3010 tests / 72 suites 全緑、lint 0 errors（警告 361→352）、build 緑（tier2-loading チャンク消滅）。
+
+### Session 75: 続き222 — HapticFeedback の死 public API 8メソッド削除
+- 🗑 **削除（呼出元ゼロ実測）**: `simulateTexture`/`simulateImpact`/`proximityFeedback`/`alert`/`playCustomSequence`/`createCustomPattern`/`test`/`getStats` — src 全体で生産呼出 0（#74 と同基準）。`playCustomSequence` は `playPattern` の配列パターン腕と完全重複、`alert`/`test`/`getStats` は誰にも辿り着けない棚晒し API。合計 ~160 行削減。`pulse`/`playPattern`/`playPatternBothHands`/`update`/`setEnabled`/`getGamepadForHand`/`wait` は生きているため残置。
+- 🧪 **テスト整理**: 死メソッドを pin していた ~14 テスト＋vacuous 複合テストを除去。配列パターン経路（pause ステップ・duration/pause なしステップのスキップ）の正当な pin は `hf.patterns` 直接注入に書換えて存続 — `createCustomPattern` という死 setter に依存しない形へ。
+- 🔍 **同軸照合（クリーン）**: 全 fetch が AbortSignal 付き（IME 5s タイムアウト・ProgressiveLoader・WebPanel）・iframe postMessage 不使用・localStorage は BookmarkStore/i18n/VRApp で全 try/catch+shape 検証・`Math.random` ID 生成なし・beforeunload+pagehide 両経路で teardown 済み。
+- ✅ 3083 tests / 73 suites 全緑、lint 0 errors（警告 366→361: 削除メソッド内の debug 文ごと消滅）、build 緑。
+
+### Session 75: 続き221 — reference space の local-floor → local フォールバック
+- 🐛 **fix（ポータビリティ）**: WebXR 仕様上 `local` は immersive-vr の必須空間だが `local-floor` は optional — three が既定 `local-floor` で `requestReferenceSpace` を投げ、非対応ランタイム（一部 PCVR/エミュレータ）では NotSupportedError で setSession 全体が失敗していた（ユーザへは汎用エラーのみ）。setSession を try/catch し NotSupportedError のみ `setReferenceSpaceType('local')` でリトライ — 原点が床→頭位基準に劣化するがセッションは存続。
+- 🔍 **同軸照合（クリーン）**: `<html lang="ja">`＋setLanguage の documentElement.lang 動的更新（WCAG 3.1.1）・index.html 無アニメーションで landing の reduced-motion 不要・Dockerfile に nginx brotli モジュール実装済み（gzip+brotli 双方実配信）・src/utils 全6モジュール参照済み。
+- 🧪 **pin**: `setSession` 一回目 NotSupportedError → setReferenceSpaceType('local') 呼出＋setSession 2回目成功＋'EXIT VR'＋トースト非発火。
+- ✅ 3119 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き220 — SW バックグラウンド書込みが waitUntil 外だった（再検証が永久に失われうる）
+- 🐛 **fix（SW 寿命管理）**: `staleWhileRevalidate` の背景 `cache.put`（再検証）と `cacheFirst` の miss-write + `enforceCacheLimit` が respondWith プロミスの外で float していた — respondWith 解決後にブラウザが worker を kill すると書込みが着弾せず、**キャッシュが永久に古いまま残る**既知パターン。`executeStrategy` に `event` を通して `event?.waitUntil?.(write)` でイベント寿命に包んだ（cold 経路でも応答はブロックされず、書込みは別トラック）。`networkFirst` は従来通りプロミス内 await で安全。
+- 🧪 **pin**: モック event の `waitUntil` 記録で「cached hit でも背景書込みが waitUntil 管理下」「cacheFirst miss-write 同様」を固定＋strategy 関数を module.exports に追加（実行経路自体も実検査 — 続き219 の `headers.get` で3箇所のモック request 不足を炙り出し修正済み）。
+- ✅ 3118 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き219 — SW が Range リクエストをインターセプトしていた（206 は cache.put で拒否される）
+- 🐛 **fix（潜在欠陥）**: service-worker の fetch ハンドラが byte-range リクエストを捕捉していた — `cache.put` は 206 Partial Content を InvalidStateError で拒否するため、同一 origin のメディアが将来追加された時点でシーク操作が戦略失敗 → offline フォールバック化する罠だった。`request.headers.get('range')` 非空で早期 return（ネットワーク直行）。現状同一 origin メディアは不在だが、インターセプト自体が仕様上誤り。
+- 🔍 **同軸照合（クリーン）**: VideoTexture は three が requestVideoFrameCallback で新フレーム時のみ needsUpdate（90Hz での無駄な再アップロードなし）・SW activate の旧キャッシュ削除＋skipWaiting/claim・ランタイムキャッシュ eviction・modulepreload 正規付与・favicon は vite が hashed /assets/images/ へ書換え＋BASE_PATH 接頭辞で全デプロイ先正解（一見の404疑いは誤判定・実測で否定）。
+- 🧪 **pin**: Range バイパス（bytes=0-1023 → 非捕捉、range 空 → 捕捉）＋ fire/fireAndWait モック request に headers/clone を追加（実 Request と同形）。
+- ✅ 3116 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き218 — Cache-Control 平仄の実害3件（immutable が mutable ファイルに当たる/当たらない）
+- 🐛 **fix（キャッシュ）**: 3デプロイ先の `Cache-Control` 平仄を実測照合 — **vercel `/(.*).js` と nginx `~* \.(js|css)$` が非ハッシュ `offline.js` を1年 immutable 化**（更新が永遠に伝播しない、SW と同問題クラス）。**netlify の immutable は `/assets/*` のみで vite の hashed bundle 出力先 `js/` を未カバー** — vendor-three 553KB が再訪毎に再フェッチされていた。修正: vercel を `/js/(.*)` スコープ化＋`/offline.js` に 3600、netlify に `/js/*` immutable 追加、nginx に `location = /offline.js` exact-match 追加（regex より優先）。
+- 🔧 **X-XSS-Protection → `0`**: レガシー auditor は Chrome で2019年削除済み、残る挙動は誤検知による害のみ（MDN/OWASP 推奨に準拠）— vercel/netlify/nginx 計5箇所を統一。
+- 🧪 **新規 suite `tests/deploy-headers.test.js`（10件）**: 「非ハッシュのルート直下ファイルに immutable が当たらない」「hashed js/・assets/ は全デプロイ先で immutable」「X-XSS が 0」の不変条件を、vercel のルール最終一致・netlify の for= パターン・nginx の exact-match 優先を各々の実セマンティクスで模擬して固定。
+- ✅ 3115 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き217 — 禁則処理（UAX #14）をハード分割に実装 + patch 0009 の真の修復
+- 🐛 **fix（日本語組版）**: `wrapTextToWidth` のハード分割に**禁則処理が皆無**だった — 日本語は空白を持たないため全文がこの経路を通り、`、。）」っ` 等の行頭禁則文字が行頭に・`「（` 等の行末禁則文字が行末に来うる組版違反状態だった。KIN_START（行頭禁則: 閉じ punctuation/括弧・小書き仮名・長音・踊り字・ASCII closes）/KIN_END（行末禁則: 開き括弧）の Set を実装 — **ぶら下げ**（行頭禁則文字は前行に overhang）と**追い出し**（行末禁則文字は次行頭へ carry）の2方式で対処。空白分割経路にも行頭禁則語の overhang を適用。キャプション・リーダー・トーストが共通 helper を共有するため1箇所の修正で全経路に適用。
+- 🔧 **横展開**: `wrapTextToLines`（コードポイント数版・CaptionSystem 経路）のハード分割も同じ欠陥を持っていたため同一ルールを展開 — KIN_START overhang・KIN_END carry-down・空白区切り語の行頭禁則を適用（CaptionSystem キャプション行も組版違反を起こし得た）。
+- 🔧 **書記素クラスタ化（UAX #29）**: 分割単位がコードポイントだったため grapheme cluster（NFD 分解 `か`+`゙`・国旗 regional-indicator 対・ZWJ 合成 emoji）を行途中で切断し得た。`Intl.Segmenter`（全出荷先エンジンで利用可・フォールバックはコードポイント走査）を wrapTextToWidth/wrapTextToLines/truncateToWidth の3分割経路に導入 — クラスタ幅は構成コードポイントの最大値（結合文字は行の実幅に寄与しない）。macOS 由来の NFD ペースト・emoji タイトルで孤立した結合濁点や半旗が出なくなった。
+- 🧪 **pin**: text-wrap.test.js に11件（禁則7・書記素4） — ぶら下げ（`あいうえ、おかき` → `あいうえ、`/`おかき`）・促音、小書き仮名・追い出し（`あいう「かきく` → `あいう`/`「かきく`）・孤立 bracket が空行を生まないこと・空白区切り語の行頭禁則 overhang・`wrapTextToLines` 側のぶら下げ/追い出し2件。readable-text の「全行 ≤ measure」pin は**意図的に緩和** — 行頭禁則文字の trailing run を除いて幅契約を検証する形に（ぶら下げは1字分の正当なはみ出し）。
+- 🔧 **patch 0009 の真の修復**: 当初 `git apply --check` で「context 行ドリフト」と診断して現行ファイルに対して再生成したが、ci-patches.test.js の**直列適用**で失敗し続け — 真因は「patch が 0001–0008 適用後の状態を期待するのに、0002 が test.yml に挿入するコメント行を context に含んでいなかった」こと。**元の patch は authored 時点から in-series で不適合**だった潜在欠陥。0001–0008 適用後の temp ツリーに対して再生成し、直列適用テスト3件全緑で実証。
+- ✅ 3105 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き216 — patch 0009 の陳腐化調査（訂正: 続き217で真因特定）
+- 🔍 **実測（ledger 適用可能性監査）**: `git apply --check` を docs/patches/ 全9件に実行 — 8件 OK、0009 のみ不一致を検出。**この調査の `git apply --check` は単独適用を試すため誤った結論を出した** — patch は系列適用が前提で、真の不整合は続き217で特定・修復（下記参照）。このセッションで一度コミットした再生成版は直列適用で壊れる誤った修復だったため revert して正しい形に置き換えた。
+- 🔍 **同 stretch の照合（全クリーン）**: WebPanel iframe sandbox（cross-origin 外部サイトのみ、proxy 経路は reader 用で iframe.src 非経由 — allow-same-origin の自 origin 脱出問題は非該当）・cross-origin contentWindow 読取の try/catch + X-Frame-Options → 'unavailable' 表示・videoProjection/ImmersiveVideo の per-eye stereo（layers 1/2 + eyeUVTransform、tb 上=左目は慣例通り）・tools/ 9本全参照済み（chrome-path は内部 import、measure-text-metrics は手動診断として正当）・resource-hints なしは正しい（CDN 参照ゼロ＋module graph が並列化済み）・storage キー名前空間（qui-browser:* / qui.*）＋quota guard。
+- ✅ 変更は patch のみ（コード不変）— 3093 tests / 72 suites・lint 0 errors 継続。
+
+### Session 75: 続き215 — three 0.181 deprecated-API 掃討: 死んだ encoding 互換分岐の削除
+- 🔍 **外部知見照合（three r152+ 廃止 API 掃引）**: `outputEncoding`/`physicallyCorrectLights`/`useLegacyLights`/`sRGBEncoding`/`LinearEncoding`/`toneMapping`/`outputColorSpace` を src/ 全体で grep — 唯一の残滓は `TextureManager.applyTextureSettings` の `else if (options.encoding)` 互換分岐のみ。他経路（canvasTexture.js・ImmersiveVideo.js の `THREE.SRGBColorSpace` 直指定）は現行 API で正しい。
+- 🗑 **削除**: `options.encoding === 3001` の旧 sRGBEncoding マッピング — 全 call site（`VRApp.loadTexture`・`ProgressiveLoader.loadTexture`・icon/texture 経路）を追跡し `encoding` を渡す caller が**ゼロ**を確認してから削除。死んだ compat 層が「encoding を渡せば動く」という誤った契約を約束し続けるのを解消。
+- 🧪 **pin**: 旧コントラクトを pin していた2テストを新コントラクトへ更新 — `encoding: 3001` を渡しても `colorSpace` は設定されないことを負の断言で固定（deletion の回帰防止）。併せて未使用になった `THREE_CONSTANTS` 定数をテストから除去（no-unused-vars warning 解消）。
+- ✅ 3093 tests / 72 suites 全緑（ピン交換で -1）、lint 0 errors。
+
+### Session 75: 続き214 — N-2 実装: telemetry 計装を VRApp に配線（no-op 既定）
+- 🔧 **実測 → 配線**: monitoring.js の `trackFPS`/`trackMemory`/`trackInteraction`/`trackVRSession`/`trackVRError`/`trackPageView` が src 全体で**呼出元ゼロ** — `reportPerformanceSummary` が毎分・unload 時に全ゼロのサマリを送り続ける dead-on-arrival のテレメトリ（N-2 の「(a) 配線」を実装）。配線点: `updatePerformanceMonitor` で ~1 Hz スロットル（リングバッファ100件に合わせ per-frame ではなく）、`onVRSessionStart/End` で deviceTier 付き vr_start/vr_end、`onControllerSelect` + gaze activation で modality 付き select、`navigate()` で trackPageView（**origin+pathname のみ** — クエリの検索語/トークン漏洩を遮断）、requestSession catch で trackVRError。
+- 🔍 **安全性**: 全呼出は `MONITORING_CONFIG.enabled`(PROD)＋`window.gtag` 存在ゲート — キー未設定では完全 no-op、本番方針の決定権は owner に残る（N-2 テキスト更新済み）。
+- 🔍 **クリーン確認**: monitoring.js 自体の実装（web-vitals v5 API・pagehide/beforeunload デデュープ・idempotent init/dispose・sendBeacon 経由の unload 送出）は全て正。`captureMessage` のみ未使用（Sentry 初期化済みならグローバルハンドラが捕捉するため敢えて配線せず）。
+- 🧪 **pin**: `tests/vr-app-wiring.test.js` に monitoring mock 3件 — ①updatePerformanceMonitor が 1 Hz で trackFPS 供給（2回目の呼出は push しない）②`performance.memory` 存在時に trackMemory が MB で供給 ③navigate() がクエリ除去済み URL で trackPageView を呼ぶ。
+- ✅ 3094 tests / 72 suites 全緑、lint 0 errors（VRApp の warnings 36 は既存 no-console ベースライン）。
+
 ### Session 75: 続き213 — XR セッション寿命・イベント面の全照合（仕様準拠確認）
 - 🔍 **外部知見照合（WebXR spec/Gamepads Module）**: XR イベント名（XRSession `'end'` / WebXRManager `'sessionend'`）正、`inputsourceschange` が HandTracking で attach/dispose 対称・`added`/`removed` 両方向処理（removed で非表示、`updateHand` で再表示）、three の既定 `referenceSpaceType='local-floor'` でスタンディング体験は正しい。
 - 🔍 **コントローラ寿命**: `disconnected` でトースト＋`controllerInput.forget()`＋テレポートキャンセル＋`inputSource=null`、`connected` で再接続トースト — WeakMap ベースで切断ソースの状態も自動回収。`squeeze`/`select` 配線は W3C 標準ボタン配置と一致。

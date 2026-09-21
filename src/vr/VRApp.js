@@ -33,7 +33,6 @@ import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
@@ -46,7 +45,10 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
 import { BookmarkStore } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
-import { disposeMonitoring } from '../monitoring.js';
+import {
+  disposeMonitoring, trackFPS, trackInteraction, trackMemory,
+  trackPageView, trackVRError, trackVRSession
+} from '../monitoring.js';
 import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
@@ -222,7 +224,6 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
     this.voiceCommands = null;
@@ -1606,7 +1607,7 @@ export class VRApp {
       // These four were dead settings — read at boot but unreachable from any
       // UI. Wired live: home env swaps the scene subtree, perf overlay is a
       // DOM element (created lazily on first enable), texture cache toggles
-      // the TextureManager the ProgressiveLoader consults per load.
+      // the TextureManager used by loadTexture().
       [t('vr.settings.homeEnv'), 'enableHomeEnvironment', (v) => {
         if (!this.scene) {
           return;
@@ -1634,15 +1635,9 @@ export class VRApp {
       [t('vr.settings.textureCache'), 'enableTextureManager', (v) => {
         if (v && !this.textureManager) {
           this.textureManager = new TextureManager(this.renderer);
-          if (this.progressiveLoader) {
-            this.progressiveLoader.textureManager = this.textureManager;
-          }
         } else if (!v && this.textureManager) {
           this.textureManager.dispose();
           this.textureManager = null;
-          if (this.progressiveLoader) {
-            this.progressiveLoader.textureManager = null;
-          }
         }
       }]
     ];
@@ -2440,6 +2435,12 @@ export class VRApp {
     const handlers = hit.object.userData.interactable;
     if (handlers && handlers.onSelect) {
       handlers.onSelect({ intersection: hit, controller });
+      trackInteraction('select', {
+        // inputSource.hand is only set for hand-tracking sources — a pinch
+        // surfaces here through the runtime's 'selectstart' translation.
+        modality: controller.userData?.inputSource?.hand ? 'hand' : 'controller',
+        target: hit.object.name || 'unnamed'
+      });
     }
     // Haptic click on the selecting hand confirms that the trigger registered
     // on an interactable, giving tactile parity with face-button presses.
@@ -2572,12 +2573,6 @@ export class VRApp {
     }
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
-    // Use progressive loader for efficient initialization
-    this.progressiveLoader = new ProgressiveLoader();
-    this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
-    };
-
     // === TIER 1 SYSTEMS ===
 
     // 1. Fixed Foveated Rendering
@@ -2601,7 +2596,6 @@ export class VRApp {
     // 4. Texture Manager (LRU cache + memory cap)
     if (this.settings.enableTextureManager) {
       this.textureManager = new TextureManager(this.renderer);
-      this.progressiveLoader.textureManager = this.textureManager;
       console.debug('VRApp: Texture manager ready');
     }
 
@@ -3036,10 +3030,27 @@ export class VRApp {
           session.addEventListener('end', () => {
             vrButton.textContent = 'ENTER VR';
           });
-          await this.renderer.xr.setSession(session);
+          try {
+            await this.renderer.xr.setSession(session);
+          } catch (err) {
+            // 'local-floor' is optional in WebXR — runtimes that only grant
+            // the required 'local' space fail setSession at
+            // requestReferenceSpace. Degrade the origin instead of losing
+            // the whole session.
+            if (err && err.name === 'NotSupportedError') {
+              this.renderer.xr.setReferenceSpaceType('local');
+              await this.renderer.xr.setSession(session);
+            } else {
+              throw err;
+            }
+          }
           vrButton.textContent = 'EXIT VR';
         }).catch((err) => {
           console.warn('VRApp: session request rejected:', err?.message ?? err);
+          trackVRError(
+            err instanceof Error ? err : new Error(String(err)),
+            { action: 'requestSession' }
+          );
           this.showVRToast(t('app.error.enterVRFailed'), { type: 'error' });
         }).finally(() => {
           pendingRequest = null;
@@ -3086,6 +3097,10 @@ export class VRApp {
   async onVRSessionStart() {
     console.debug('VRApp: VR session started');
     this.isVREnabled = true;
+
+    trackVRSession('start', {
+      device: this.deviceCompat?.report?.deviceTier || 'unknown'
+    });
 
     // Get XR session
     const session = this.renderer.xr.getSession();
@@ -3239,6 +3254,10 @@ export class VRApp {
   onVRSessionEnd() {
     console.debug('VRApp: VR session ended');
     this.isVREnabled = false;
+
+    trackVRSession('end', {
+      device: this.deviceCompat?.report?.deviceTier || 'unknown'
+    });
 
     // Disable FFR
     if (this.ffrSystem) {
@@ -3524,6 +3543,7 @@ export class VRApp {
     if (this.gazeInteraction && this.gazeInteraction.enabled) {
       const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
       if (activated) {
+        trackInteraction('select', { modality: 'gaze' });
         // Parity with controller/pinch selection: confirm a hands-free gaze
         // activation on the non-visual channels too — a haptic click on any held
         // controller and a spatial click — so it isn't signalled by sight alone.
@@ -3578,6 +3598,17 @@ export class VRApp {
     const info = this.renderer.info;
     this.performanceMonitor.drawCalls = info.render.calls;
     this.performanceMonitor.triangles = info.render.triangles;
+
+    // Feed the analytics ring buffers at ~1 Hz — they retain only the last
+    // 100 samples each, so a per-frame push would churn them uselessly.
+    const now = performance.now();
+    if (typeof this._telemetryFeedAt !== 'number' || now - this._telemetryFeedAt >= 1000) {
+      this._telemetryFeedAt = now;
+      trackFPS(this.performanceMonitor.fps);
+      if (performance.memory) {
+        trackMemory(this.performanceMonitor.memoryUsed);
+      }
+    }
   }
 
   /**
@@ -3709,6 +3740,14 @@ export class VRApp {
     if (this.captionSystem && this.captionSystem.enabled) {
       const label = (title !== url) ? title : hostnameCaption(url);
       this.captionSystem.show(label);
+    }
+    // Analytics pageview uses origin+pathname only — a full URL's query
+    // string can carry search terms or tokens that must not leave the device.
+    try {
+      const u = new URL(url);
+      trackPageView(u.origin + u.pathname, title);
+    } catch {
+      trackPageView(url, title);
     }
   }
 
@@ -3874,9 +3913,6 @@ export class VRApp {
     }
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
-    }
-    if (this.progressiveLoader) {
-      this.progressiveLoader.dispose();
     }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();

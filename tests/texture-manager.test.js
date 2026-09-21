@@ -3,16 +3,6 @@
  * THREE and three/examples are fully mocked so no GPU or network is needed.
  */
 
-// ── THREE mock ────────────────────────────────────────────────────────────────
-const THREE_CONSTANTS = {
-  RepeatWrapping: 1000,
-  LinearFilter: 1006,
-  LinearMipMapLinearFilter: 1008,
-  NearestFilter: 1003,
-  LinearSRGBColorSpace: 'srgb-linear',
-  SRGBColorSpace: 'srgb'
-};
-
 const makeMockTexture = () => ({
   wrapS: null, wrapT: null,
   magFilter: null, minFilter: null,
@@ -100,16 +90,12 @@ describe('TextureManager', () => {
     expect(tex.colorSpace).toBe('srgb');
   });
 
-  test('applyTextureSettings: legacy encoding 3001 maps to srgb', () => {
+  test('applyTextureSettings: the removed legacy encoding option is ignored', () => {
     const tex = makeMockTexture();
+    // Pre-r152 callers once passed THREE.*Encoding numerics; that compat branch
+    // was deleted (no caller passed it) — encoding must not set colorSpace.
     tm.applyTextureSettings(tex, { encoding: 3001 });
-    expect(tex.colorSpace).toBe('srgb');
-  });
-
-  test('applyTextureSettings: legacy encoding other maps to srgb-linear', () => {
-    const tex = makeMockTexture();
-    tm.applyTextureSettings(tex, { encoding: 3000 });
-    expect(tex.colorSpace).toBe('srgb-linear');
+    expect(tex.colorSpace).toBeNull();
   });
 
   test('applyTextureSettings: anisotropy uses renderer max by default', () => {
@@ -180,12 +166,11 @@ describe('TextureManager — duplicate-URL accounting', () => {
     tm.dispose();
   });
 
-  // loadTextures() maps every URL to loadTexture() synchronously; a duplicate
-  // URL misses the cache (first load hasn't finished) → both loads run →
-  // cacheTexture() was called twice for one entry → estimatedBytes/textureCount
-  // permanently inflated even after unloadTexture.
-  test('batch with a duplicate URL counts memory once and drains fully', async () => {
-    await tm.loadTextures(['dup.png', 'dup.png']);
+  // A duplicate URL issued while the first load is in flight misses the cache
+  // → both loads would run → cacheTexture() called twice for one entry →
+  // estimatedBytes/textureCount permanently inflated even after unloadTexture.
+  test('concurrent duplicate loads share the promise and count memory once', async () => {
+    await Promise.all([tm.loadTexture('dup.png'), tm.loadTexture('dup.png')]);
     expect(tm.textureCache.size).toBe(1);
     expect(tm.memoryUsage.textureCount).toBe(1);
     tm.unloadTexture('dup.png');

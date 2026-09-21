@@ -28,7 +28,6 @@ const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
 
 // Module objects whose named exports we patch per-test.
 const M = {
-  ProgressiveLoader: require('../src/utils/ProgressiveLoader.js'),
   FFRSystem: require('../src/vr/rendering/FFRSystem.js'),
   ComfortSystem: require('../src/vr/comfort/ComfortSystem.js'),
   TextureManager: require('../src/utils/TextureManager.js'),
@@ -116,7 +115,6 @@ function makeInitLike(settingsOverrides = {}) {
  * initializeSystems() run never touches a real GPU/DOM/audio API. Individual
  * tests re-patch the ctor they target afterwards. */
 const GENERIC = {
-  ProgressiveLoader: () => ({ callbacks: {} }),
   FFRSystem: () => ({}),
   ComfortSystem: () => ({ setPreset() {} }),
   TextureManager: () => ({}),
@@ -772,6 +770,45 @@ describe('setupVR — button/session/visibility wiring', () => {
       await flush();
       await flush();
       expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'error' });
+    } finally {
+      global.navigator = origNavigator;
+    }
+  });
+
+  test('setSession NotSupportedError falls back to the required local space', async () => {
+    const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
+    const button = {
+      click() {
+        this.onclick?.();
+      },
+      onclick() {}, textContent: ''
+    };
+    VRButton.createButton = jest.fn(() => button);
+    const app = makeInitLike();
+    const session = { addEventListener: jest.fn(), end: jest.fn(async () => {}) };
+    const denied = new DOMException('not supported', 'NotSupportedError');
+    const setSession = jest.fn()
+      .mockRejectedValueOnce(denied)
+      .mockResolvedValueOnce(undefined);
+    app.renderer = {
+      xr: { addEventListener: jest.fn(), isPresenting: false, getSession: () => null,
+        setSession, setReferenceSpaceType: jest.fn() },
+      setAnimationLoop: jest.fn()
+    };
+    app.setupControllers = jest.fn();
+    app.showVRToast = jest.fn();
+    const origNavigator = global.navigator;
+    global.navigator = { xr: { requestSession: jest.fn(async () => session) } };
+    const flush = () => new Promise(setImmediate);
+    try {
+      VRApp.prototype.setupVR.call(app);
+      button.click();
+      await flush();
+      await flush();
+      expect(app.renderer.xr.setReferenceSpaceType).toHaveBeenCalledWith('local');
+      expect(setSession).toHaveBeenCalledTimes(2);
+      expect(button.textContent).toBe('EXIT VR');
+      expect(app.showVRToast).not.toHaveBeenCalled();
     } finally {
       global.navigator = origNavigator;
     }
@@ -1454,8 +1491,6 @@ describe('cfg passthrough arrows — interactable registration + session callbac
     app.renderer = { xr: { getSession: () => ({ end }) } };
     vcCfg.onExitVR();
     expect(end).toHaveBeenCalled();
-
-    app.progressiveLoader.callbacks.onProgress({ item: { name: 'x' }, progress: 0.5 });
   });
 
   test('layer attach passes a detach callback that routes to _detachPanelLayer', () => {

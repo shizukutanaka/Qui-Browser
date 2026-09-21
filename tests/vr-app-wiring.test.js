@@ -29,6 +29,21 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
   }
 }));
 
+// Telemetry verbs stay mocked so the feed tests can observe them; every one is
+// a no-op in this environment anyway (MONITORING_CONFIG.enabled is falsy).
+jest.mock('../src/monitoring.js', () => ({
+  disposeMonitoring: jest.fn(),
+  trackFPS: jest.fn(),
+  trackInteraction: jest.fn(),
+  trackMemory: jest.fn(),
+  trackPageView: jest.fn(),
+  trackVRError: jest.fn(),
+  trackVRSession: jest.fn()
+}));
+const {
+  trackFPS, trackInteraction, trackMemory, trackPageView, trackVRError, trackVRSession
+} = require('../src/monitoring.js');
+
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
 const ctx2d = {
   fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
@@ -1311,6 +1326,17 @@ describe('VRApp.navigate — private mode records no history', () => {
     expect(app.captionSystem.show).toHaveBeenCalledWith('Example');
   });
 
+  test('reports a pageview with the query string stripped', () => {
+    jest.clearAllMocks();
+    const app = makeNavApp(false);
+    VRApp.prototype.navigate.call(
+      app, 'https://example.com/search?q=secret+terms&token=abc', 'Results'
+    );
+    // Full URLs can carry search terms or session tokens — only the
+    // origin+pathname leaves the device.
+    expect(trackPageView).toHaveBeenCalledWith('https://example.com/search', 'Results');
+  });
+
   test('the toggle ships in the browsing settings section', () => {
     const src = require('fs').readFileSync(
       require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8'
@@ -2090,6 +2116,50 @@ describe('VRApp updateSystems middle arms + updatePerformanceMonitor (bound prot
     expect(app.performanceMonitor.fps).toBeCloseTo(1000 / 19, 4);
     expect(app.performanceMonitor.drawCalls).toBe(42);
     expect(app.performanceMonitor.triangles).toBe(12345);
+  });
+
+  // Telemetry feed: the track* verbs had zero call sites (analytics reported
+  // all-zeros). Pin that the perf monitor feeds them, throttled to ~1 Hz so
+  // the 100-sample ring buffers aren't churned every frame.
+  test('updatePerformanceMonitor feeds trackFPS/trackMemory at ~1 Hz', () => {
+    jest.clearAllMocks();
+    const app = {
+      performanceMonitor: { frameTime: 20 },
+      renderer: { info: { render: { calls: 0, triangles: 0 } } }
+    };
+    VRApp.prototype.updatePerformanceMonitor.call(app, 10);
+    expect(trackFPS).toHaveBeenCalledTimes(1);
+    expect(trackFPS).toHaveBeenCalledWith(expect.any(Number));
+    // jsdom/node has no performance.memory — trackMemory stays unfed here.
+    expect(trackMemory).not.toHaveBeenCalled();
+    // Second call inside the 1 s window must not push again.
+    VRApp.prototype.updatePerformanceMonitor.call(app, 10);
+    expect(trackFPS).toHaveBeenCalledTimes(1);
+  });
+
+  test('updatePerformanceMonitor feeds trackMemory when performance.memory exists', () => {
+    jest.clearAllMocks();
+    const realMemory = performance.memory;
+    Object.defineProperty(performance, 'memory', {
+      configurable: true,
+      value: { usedJSHeapSize: 64 * 1024 * 1024 }
+    });
+    try {
+      const app = {
+        performanceMonitor: { frameTime: 20 },
+        renderer: { info: { render: { calls: 0, triangles: 0 } } }
+      };
+      VRApp.prototype.updatePerformanceMonitor.call(app, 10);
+      expect(trackMemory).toHaveBeenCalledWith(64);
+    } finally {
+      if (realMemory === undefined) {
+        delete performance.memory;
+      } else {
+        Object.defineProperty(performance, 'memory', {
+          configurable: true, value: realMemory
+        });
+      }
+    }
   });
 });
 
@@ -3201,7 +3271,7 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
       textureManager: sub('tex'), vrKeyboard: sub('kbd'),
       handTracking: sub('hands'), gazeInteraction: sub('gaze'),
       captionSystem: sub('captions'), semanticDOM: sub('semantic'),
-      spatialAudio: sub('audio'), progressiveLoader: sub('loader'),
+      spatialAudio: sub('audio'),
       voiceCommands: sub('voice'), windowManager: sub('wm'),
       layersSystem: sub('layers'), bookmarkPanel: sub('bookmarks'),
       immersiveVideo: sub('video'), tabManager: sub('tabs'),
@@ -3230,10 +3300,10 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
     expect(app.onDocumentVisibilityChange).toBeNull();
     expect(app._toastTimers.size).toBe(0);
     // every subsystem disposed exactly once, teardown reached the end
-    for (const name of ['comfort','ffr','tex','kbd','hands','gaze','captions','semantic','audio','loader','voice','wm','layers','bookmarks','video','tabs','devtools','perfui']) {
+    for (const name of ['comfort','ffr','tex','kbd','hands','gaze','captions','semantic','audio','voice','wm','layers','bookmarks','video','tabs','devtools','perfui']) {
       expect(disposeCalls).toContain(name);
     }
-    expect(disposeCalls).toHaveLength(18);
+    expect(disposeCalls).toHaveLength(17);
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
     expect(geoDispose).toHaveBeenCalled();
     expect(matDispose).toHaveBeenCalled();

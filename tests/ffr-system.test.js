@@ -62,20 +62,7 @@ describe('FFRSystem — initialize/enable/disable', () => {
   });
 });
 
-describe('FFRSystem — dynamic foveation tiers', () => {
-  test('GPU load tiers steer intensity toward their targets', async () => {
-    const { ffr } = await boot();
-    ffr.enable(0);
-    for (let i = 0; i < 60; i++) {
-      ffr.setDynamicFFR(0.95);
-    } // > high
-    expect(ffr.intensity).toBeCloseTo(0.8, 1);
-    for (let i = 0; i < 60; i++) {
-      ffr.setDynamicFFR(0.3);
-    }  // below low
-    expect(ffr.intensity).toBeCloseTo(0.1, 1);
-  });
-
+describe('FFRSystem — intensity control', () => {
   test('adjustIntensity nudges and clamps', async () => {
     const { ffr, layer } = await boot();
     ffr.enable(0.5);
@@ -128,12 +115,12 @@ describe('FFRSystem — head-velocity predicted gaze foveation (FR-4.2)', () => 
     expect(layer.fixedFoveation).toBeCloseTo(0.2, 1); // scanning → gentle
   });
 
-  test('getStatus reflects enabled/intensity/supported; dispose clears all', async () => {
+  test('dispose clears enabled and unwinds foveation', async () => {
     const { ffr, layer } = await boot();
     ffr.enable(0.4);
-    expect(ffr.getStatus()).toEqual({ enabled: true, intensity: expect.closeTo(0.4), supported: true });
+    expect(ffr.enabled).toBe(true);
     ffr.dispose();
-    expect(ffr.getStatus().supported).toBe(false);
+    expect(ffr._baseFoveation).toBe(false);
     expect(layer.fixedFoveation).toBe(0);
     expect(ffr.enabled).toBe(false);
   });
@@ -171,7 +158,7 @@ describe('FFRSystem — remaining init/guard arms', () => {
     expect(await ffr.initialize(session, { gl: 1 }, xrManager)).toBe(true);
     expect(ffr.enabled).toBe(true);
     expect(ffr.projectionLayer).toBeNull();
-    expect(ffr.getStatus().supported).toBe(true);
+    expect(ffr._baseFoveation).toBe(true);
 
     ffr.enable(0.7);
     expect(setFoveation).toHaveBeenCalledWith(0.7);
@@ -197,11 +184,6 @@ describe('FFRSystem — remaining init/guard arms', () => {
     delete global.XRWebGLBinding;
   });
 
-  test('setDynamicFFR is a no-op before initialize (guard arm)', async () => {
-    const ffr = new FFRSystem();
-    expect(() => ffr.setDynamicFFR(0.9)).not.toThrow();
-  });
-
   test('adjustIntensity is a no-op before initialize and clamps to [0,1] after', async () => {
     const ffr = new FFRSystem();
     ffr.adjustIntensity(0.5); // guard arm — no throw, no state change
@@ -221,17 +203,3 @@ describe('FFRSystem — remaining init/guard arms', () => {
   });
 });
 
-test('setDynamicFFR hits medium and low tiers', () => {
-  const ffr = new FFRSystem();
-  ffr.enabled = true;
-  ffr.projectionLayer = { fixedFoveation: 0 };
-  const th = ffr.gpuLoadThresholds;
-  for (let i = 0; i < 60; i++) {
-    ffr.setDynamicFFR((th.medium + th.high) / 2);
-  }
-  expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.5, 2);
-  for (let i = 0; i < 60; i++) {
-    ffr.setDynamicFFR((th.low + th.medium) / 2);
-  }
-  expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.2, 2);
-});

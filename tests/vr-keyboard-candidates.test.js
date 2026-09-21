@@ -455,11 +455,6 @@ describe('onKeyPress special keys', () => {
     expect(kb.onCancel).toHaveBeenCalled();
   });
 
-  test('getStats proxies the IME stats object', () => {
-    const { kb } = makeKeyboard();
-    kb.ime.getState = () => ({ stats: { keystrokes: 7 } });
-    expect(kb.getStats()).toEqual({ keystrokes: 7 });
-  });
 });
 
 describe('candidate select/hover + suggestions arms', () => {

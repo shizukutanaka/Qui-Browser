@@ -252,7 +252,7 @@ describe('contentStateLines is internationalised', () => {
   const { setLanguage, t } = require('../src/i18n/i18n.js');
   afterEach(() => setLanguage('en'));
 
-  test.each(['loading', 'error', 'unavailable', 'empty'])(
+  test.each(['loading', 'unavailable', 'empty'])(
     'the %s state differs between en and ja', (state) => {
       setLanguage('en');
       const en = contentStateLines(state, 'https://example.com/a');
@@ -283,7 +283,7 @@ describe('contentStateLines is internationalised', () => {
 
   test('every content key exists in both catalogues', () => {
     const keys = [
-      'vr.content.loading', 'vr.content.failed', 'vr.content.empty',
+      'vr.content.loading', 'vr.content.empty',
       'vr.content.noCorsTitle', 'vr.content.noCorsDetail', 'vr.content.noCorsDetailBare',
       'vr.content.proxyFailedTitle', 'vr.content.proxyFailedDetail', 'vr.content.proxyFailedBare',
       'vr.bookmarks.tabBookmarks', 'vr.bookmarks.tabHistory',
@@ -304,7 +304,7 @@ describe('contentStateLines is internationalised', () => {
     const { textWidthEm } = require('../src/vr/ui/textWrap.js');
     const AVAIL = 1024 - 2 * 48;
     setLanguage('ja');
-    for (const state of ['loading', 'error', 'empty', 'unavailable']) {
+    for (const state of ['loading', 'empty', 'unavailable']) {
       for (const hasProxy of [false, true]) {
         const l = contentStateLines(state, 'https://en.wikipedia.org/wiki/Something', hasProxy);
         expect(textWidthEm(l.title) * 28).toBeLessThanOrEqual(AVAIL);

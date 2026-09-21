@@ -1,7 +1,7 @@
 /**
  * Unit tests for TabManager (FR-1.3).
  * THREE and WebPanel are mocked so the pure tab-lifecycle logic can be
- * exercised without a WebGL context or real iframes.
+ * exercised without a WebGL context or real panels.
  */
 
 // ── THREE stub ────────────────────────────────────────────────────────────────

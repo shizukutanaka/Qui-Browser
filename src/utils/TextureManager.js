@@ -45,8 +45,8 @@ export class TextureManager {
     }
 
     // A concurrent load of the same URL must share the in-flight promise:
-    // loadTextures() maps URLs synchronously, so a duplicate URL misses the
-    // cache above and would otherwise fetch twice — and cacheTexture() would
+    // a duplicate URL issued before the first finishes misses the cache
+    // above and would otherwise fetch twice — and cacheTexture() would
     // then double-count estimatedBytes/textureCount for a single entry.
     if (this.pendingLoads.has(url)) {
       return this.pendingLoads.get(url);
@@ -137,12 +137,6 @@ export class TextureManager {
     // Color space (replaces the deprecated .encoding API in THREE r152+)
     if (options.colorSpace) {
       texture.colorSpace = options.colorSpace;
-    } else if (options.encoding) {
-      // Legacy callers: map old LinearEncoding/sRGBEncoding constants to the
-      // new colorSpace strings so existing call-sites keep working.
-      texture.colorSpace = options.encoding === 3001  // THREE.sRGBEncoding
-        ? 'srgb'
-        : 'srgb-linear';
     }
 
     // Generate mipmaps for better quality
@@ -265,14 +259,6 @@ export class TextureManager {
   }
 
   /**
-   * Batch load textures
-   */
-  async loadTextures(urls, options = {}) {
-    const promises = urls.map(url => this.loadTexture(url, options));
-    return Promise.all(promises);
-  }
-
-  /**
    * Get memory usage statistics
    */
   getMemoryStats() {
@@ -320,13 +306,6 @@ export class TextureManager {
  * const normalMap = await textureManager.loadTexture('assets/textures/wood_normal.png', {
  *   colorSpace: THREE.LinearSRGBColorSpace
  * });
- *
- * // Batch load
- * const textures = await textureManager.loadTextures([
- *   'assets/textures/diffuse.png',
- *   'assets/textures/normal.png',
- *   'assets/textures/roughness.png'
- * ]);
  *
  * // Check memory usage
  * const memStats = textureManager.getMemoryStats();
