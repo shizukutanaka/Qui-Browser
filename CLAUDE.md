@@ -551,6 +551,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き73（同セッション）: ビルド設定の死骸一掃 — 実バグ29件目（脆弱な transitive terser）+ 死んだ設定5ブロック
+- 🐛 **実バグ29**: `vite.config.js` の `minify: 'terser'` — terser は package.json に**未宣言**で transitive 依存（5.48.0）に頼っていた。依存解決が変わればビルドが突然死ぬ構造。vite 既定の `esbuild` に切替（esbuild.drop は既設定で console/debugger 除去は維持）、terserOptions ブロック削除、ビルドは 2.04s→679ms に高速化。
+- 🐛 **実バグ30**: `@vitejs/plugin-legacy` が devDeps に居るが plugins はコメントアウト済み → 完全な死んだ依存として npm uninstall。
+- 🗑️ **死んだ設定削除**: vite.config.js から `define`（`__APP_VERSION__`/`__BUILD_TIME__`/`__PRODUCTION__` — src 内に読み手ゼロ、monitoring.js は `import.meta.env.VITE_*` を使う）、`resolve.alias`（`@/`・`@vr/`・`@utils/`・`@assets/` — 使用ゼロ）、`css.preprocessorOptions.scss`（.scss ファイルゼロ）、`worker.rollupOptions`（Worker ゼロ）、extensions の `.jsx`/`.wasm` を削除。jest.config.js から `globals`（NODE_ENV/VR_BROWSER_VERSION、読み手ゼロ）と `moduleNameMapper '^@/'`（同）を削除。
+- 🔍 **実測で正しかったもの**: manualChunks の7ファイル全実在、`optimizeDeps.include: three` は dev 用で妥当、COEP/COOP ヘッダーは SharedArrayBuffer 用に維持。
+- 📝 2118 tests / lint 0 errors / build green（679ms）。
+
 #### 続き72（同セッション）: SW precache・manifest・設定ファイルの残り面 — 小欠陥2件
 - 🔍 **実測**: public/service-worker.js の CRITICAL_ASSETS（BASE/index/manifest/offline）は全て dist 実在、manifest.json の 7 icon srcs は public/icons 全揃い、favicon refs は vite がビルド時にハッシュ解決（dist/assets/images/*-hash.png に存在）= 全て正しいことを実測確認。`.babelrc`+`babel.config.js` の二枚構成も検証 — babel.config.js は node_modules 越えの three 変換用、.babelrc は tests/ の import-meta plugin 用で**両方生きている**。
 - 🐛 **実バグ27**: index.html に死んだ `preconnect https://cdnjs.cloudflare.com`（CDN を参照するコードは無く CSP `script-src 'self'` でそもそもブロックされる）。実行時に実使用されるのは jsdelivr（TextureManager の BASIS transcoder）のみ → cdnjs 側を削除。

@@ -6,7 +6,6 @@
  */
 
 import { defineConfig } from 'vite';
-import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   root: '.',
@@ -22,7 +21,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false, // Disable in production for smaller size
-    minify: 'terser',
+    minify: 'esbuild',
     emptyOutDir: true,
 
     // Rollup options
@@ -80,22 +79,6 @@ export default defineConfig({
       }
     },
 
-    // Terser minification options (built-in with Vite)
-    terserOptions: {
-      compress: {
-        drop_console: true,      // Remove console.log in production
-        drop_debugger: true,
-        passes: 2,
-        pure_funcs: ['console.log', 'console.info']
-      },
-      mangle: {
-        properties: false  // Don't mangle property names (breaks Three.js)
-      },
-      format: {
-        comments: false
-      }
-    },
-
     // Target modern browsers that support WebXR
     target: ['chrome90', 'firefox88', 'safari14'],
 
@@ -133,59 +116,9 @@ export default defineConfig({
     cors: true
   },
 
-  // Plugins
-  plugins: [
-    // Support older browsers if needed
-    // Disabled for now to simplify build
-    // legacy({
-    //   targets: ['defaults', 'not IE 11'],
-    //   additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-    // })
-  ],
-
   // Optimize dependencies
   optimizeDeps: {
     include: ['three']
-  },
-
-  // Define global constants
-  define: {
-    __APP_VERSION__: JSON.stringify('2.0.0'),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __PRODUCTION__: true
-  },
-
-  // Module resolution
-  resolve: {
-    alias: {
-      '@': '/src',
-      '@vr': '/src/vr',
-      '@utils': '/src/utils',
-      '@assets': '/assets'
-    },
-    extensions: ['.js', '.jsx', '.json', '.wasm']
-  },
-
-  // CSS handling
-  css: {
-    postcss: {
-      plugins: []
-    },
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@import "@/styles/variables.scss";`
-      }
-    }
-  },
-
-  // Worker configuration
-  worker: {
-    format: 'es',
-    rollupOptions: {
-      output: {
-        entryFileNames: 'workers/[name]-[hash].js'
-      }
-    }
   },
 
   // Build optimizations
