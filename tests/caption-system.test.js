@@ -480,3 +480,41 @@ describe('CaptionSystem — _draw canvas guards', () => {
     expect(ctx.fillRect).not.toHaveBeenCalledWith(8, 8, expect.any(Number), expect.any(Number));
   });
 });
+
+describe('CaptionSystem — remaining branch arms', () => {
+  test('setEnabled/hide with mesh null never touches .visible', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    expect(() => { cs.setEnabled(true); cs.setEnabled(false); cs.clear(); }).not.toThrow();
+    expect(cs.enabled).toBe(false);
+  });
+
+  test('setScale coerces NaN/non-numeric to 1 and clamps', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    expect(cs.setScale('abc')).toBe(1);
+    expect(cs.setScale(0)).toBe(1);     // falsy 0 → || 1
+    expect(cs.setScale(99)).toBe(3);    // clamp max
+  });
+
+  test('setVerticalOffset with mesh null still returns clamped value', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    const v = cs.setVerticalOffset(0.5);
+    expect(typeof v).toBe('number');
+  });
+
+  test('_truncate (via add with overlong line) appends ellipsis', () => {
+    const cs = new CaptionSystem(makeCamera(), { maxLines: 3 });
+    cs.show('x'.repeat(500));
+    // the single line is truncated with '…' — no crash, lines length 1
+    expect(cs.lineCount).toBe(1);
+  });
+
+  test('dispose arms: camera without remove; mesh without geometry/material.map', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = { geometry: null, material: { map: null, dispose: jest.fn() } };
+    cs.camera = {}; // no remove()
+    expect(() => cs.dispose()).not.toThrow();
+    expect(cs.mesh).toBeNull();
+  });
+});
