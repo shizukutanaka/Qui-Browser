@@ -544,6 +544,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き109（同セッション）: 散在 sliver の一巡 — BookmarkStore / TextureManager / DeviceCompatibility / FFRSystem
+- ✅ BookmarkStore: hostOf の不正URLフォールバック、MAX_HISTORY=200 トリム、corrupt JSON→[]、search() のブックマーク補完ガード（history 優先・malformed skip・addedAt 欠損→now）。
+- ✅ TextureManager: loadTexture 失敗→getErrorTexture（checkerboard 代替、reject しない）、loadStandardTexture/loadKTX2 の onError→reject、KTX2 進捗コールバック、未キャッシュ URL の unload no-op。
+- ✅ DeviceCompatibility: `_hasWebGL2` の全3腕（document 不在・getContext throw・取得成功）。
+- ✅ FFRSystem: projectionLayer null→false、XRWebGLBinding ctor throw→false、setDynamicFFR/adjustIntensity/updatePredictedGazeFoveation の初期化前ガード + adjustIntensity の [0,1] クランプ。
+- ✅ 2282 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ — 全て実装正しさを実測確認。
+
 #### 続き108（同セッション）: VoiceCommands のデフォルトコマンド action 本体を実発火で pin
 - ✅ 「進む」→window.history.forward、「戻る」→back、「更新」→location.reload、「検索：X」→window.open(google?q=encodeURI)、「停止」→this.stop()、requireWakeWord の5秒再武装タイマー（`handleRecognitionResult` の isFinal 経路 — processCommand ではなく）。
 - 🔍 仕様確認: 文字列パターンは **完全一致**（substring ではない）—「進んでください」は無マッチが正しい挙動。エイリアスのみ substring。

@@ -164,3 +164,38 @@ describe('DeviceCompatibility — probe edge cases', () => {
     expect(dc.targetFPS()).toBe(72);
   });
 });
+
+describe('DeviceCompatibility — _hasWebGL2 arms', () => {
+  test('returns false when document is undefined (SSR guard)', () => {
+    const dc = new (require('../src/utils/DeviceCompatibility.js').DeviceCompatibility || Object)();
+    const prevDoc = global.document;
+    delete global.document;
+    try {
+      expect(dc._hasWebGL2()).toBe(false);
+    } finally {
+      global.document = prevDoc;
+    }
+  });
+
+  test('returns false when getContext throws (driver-blacklisted GPU)', () => {
+    const dc = new (require('../src/utils/DeviceCompatibility.js').DeviceCompatibility || Object)();
+    const prevDoc = global.document;
+    global.document = { createElement: () => ({ getContext: () => { throw new Error('blacklisted'); } }) };
+    try {
+      expect(dc._hasWebGL2()).toBe(false);
+    } finally {
+      global.document = prevDoc;
+    }
+  });
+
+  test('returns true when webgl2 context exists', () => {
+    const dc = new (require('../src/utils/DeviceCompatibility.js').DeviceCompatibility || Object)();
+    const prevDoc = global.document;
+    global.document = { createElement: () => ({ getContext: () => ({}) }) };
+    try {
+      expect(dc._hasWebGL2()).toBe(true);
+    } finally {
+      global.document = prevDoc;
+    }
+  });
+});

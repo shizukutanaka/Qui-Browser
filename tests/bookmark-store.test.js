@@ -585,3 +585,55 @@ describe('BookmarkStore.search — Unicode normalization (NFC/NFD)', () => {
     expect(store.search(SEARCH_GA_NFD, 5, now)).toEqual(store.search(SEARCH_GA_NFC, 5, now));
   });
 });
+
+describe('BookmarkStore — remaining uncovered arms', () => {
+  let store;
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  test('getTopSites groups unparseable URLs under their raw-string host (hostOf catch arm)', () => {
+    store.addHistory('not a url at all', 'Weird Page');
+    const top = store.getTopSites(8, Date.now());
+    expect(top[0].host).toBe('not a url at all');
+  });
+
+  test('addHistory trims the log to MAX_HISTORY (200)', () => {
+    for (let i = 0; i < 205; i++) {
+      store.addHistory(`https://site${i}.example.com/`, `Site ${i}`);
+    }
+    expect(store.getHistory(500).length).toBe(200);
+    // newest-first: the oldest five were shed
+    expect(store.getHistory(500).at(-1).url).toBe('https://site5.example.com/');
+  });
+
+  test('corrupt history JSON falls back to [] instead of throwing', () => {
+    localStorage.setItem('qui_browser_history', '{broken json');
+    expect(store.getHistory()).toEqual([]);
+  });
+
+  test('search(): bookmark-only URLs surface with one virtual visit (addedAt)', () => {
+    const now = Date.now();
+    store.addBookmark('https://bm-only.example.com/', 'BM'); // addedAt stamped internally
+    const hits = store.search('bm-only', 5, now);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].score).toBeGreaterThan(0);
+  });
+
+  test('search(): a real history entry wins over the same-URL bookmark', () => {
+    const now = Date.now();
+    store.addHistory('https://both.example.com/', 'Visited');
+    store.addBookmark('https://both.example.com/', 'Bookmarked');
+    const hits = store.search('both', 5, now);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].title).toBe('Visited');
+  });
+
+  test('search(): malformed bookmark entries and non-matching bookmarks are skipped', () => {
+    localStorage.setItem('qui_browser_bookmarks',
+      JSON.stringify([null, { title: 'no url' }, { url: 'https://other.example.com/', title: 'Other', addedAt: Date.now() }]));
+    const hits = store.search('query-that-matches-nothing', 5, Date.now());
+    expect(hits).toEqual([]);
+  });
+});
