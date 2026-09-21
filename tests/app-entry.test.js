@@ -811,3 +811,51 @@ describe('src/main.js — false-side arms', () => {
     expect(true).toBe(true);
   });
 });
+
+describe('src/app.js — false-side arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    const h = installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return { QuiBrowser: global.window.QuiBrowser, ...h };
+  };
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    jest.dontMock('../src/app.js');
+  });
+
+  test('P key with no perf display element and no perfMonitorUI is a no-op', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.perfMonitorUI = null;
+    // remove the perf element so getElementById returns null
+    const perf = document.getElementById('performance-monitor');
+    if (perf && perf.remove) perf.remove();
+    const doc = document;
+    doc.getElementById = ((orig) => (id) => id === 'performance-monitor' ? null : orig.call(doc, id))(doc.getElementById.bind(doc));
+    expect(() => documentListeners.keydown[0]({ key: 'p' })).not.toThrow();
+  });
+
+  test('Escape with vrApp null does not throw', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.dispose = jest.fn(function () { /* app.js sets module vrApp=null after */ });
+    documentListeners.keydown[0]({ key: 'Escape' });
+    // second Escape: vrApp now null in module state → falsy arm
+    expect(() => documentListeners.keydown[0]({ key: 'Escape' })).not.toThrow();
+  });
+
+  test('module registers DOMContentLoaded when readyState is loading', async () => {
+    const h = installDom({ ids: { 'app-container': makeEl('app-container') } });
+    global.document.readyState = 'loading';
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    expect((h.documentListeners.DOMContentLoaded || []).length).toBeGreaterThan(0);
+  });
+});
