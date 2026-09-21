@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き98（同セッション）: SW ライフサイクル残面を pin — オフライン・ナビゲーションの実バグ1件
+- 🔍 **実測**: 全クラスのメソッド定義 vs `.name` メンバーアクセスを全 src+tests で照合 → デッドメソッドゼロ（残リストは全て誤検出）。次に `service-worker.js` の未検証アーム（install precache・activate 旧キャッシュ掃除・cacheFirst・staleWhileRevalidate・getOfflineFallback）を記録済みハンドラ経由で実走 → **実バグ発見**: オフラインで未キャッシュページへナビゲートすると `staleWhileRevalidate` が `cached`(undefined) を返して respondWith がネットワークエラー化 — offline.html が出ずブラウザのエラーページになる。フォールバックは cacheFirst/networkFirst 経路にしか到達しなかった。
+- 🔧 **修正**: SWR の fetch 失敗時 `return cached || getOfflineFallback(request)` — ナビゲーションはキャッシュ済み offline.html シェルに到達。修正前テスト赤確認済み。
+- ✅ 5テスト追加（install の precache+skipWaiting、activate の旧バージョン削除+clients.claim、cache-first のヒット即返・SWR の stale 即返+バックグラウンド再検証、オフライン・ナビゲーション）。2190 tests / 63 suites、lint 0 errors、verify:docs PASS。
+
 #### 続き97（同セッション）: dispose() の teardown 対称性を全網羅 pin + 4軸の横展開スイープ（全て欠陥ゼロ）
 - 🔍 **実測**: リスナー/タイマー対称性監査 — `dispose()` は renderer の WebGL context lost/restored、window resize（debounce cancel 付き）、matchMedia 3本、toast/hand-tracking タイマー、enter-vr、document visibilitychange、20サブシステムの dispose、`_panelTextures`/`_sharedGeometries`/scene.traverse の GPU 解放を全て解除。呼出先20クラス全てに `dispose()` が実在することも照合（一つ欠けると teardown 途中で throw → 後続全て不実行になる）。
 - ✅ dispose() を bound-prototype で直接 pin — 20サブシステムの dispose 呼出順・全リスナー解除・タイマー clear・scene traverse の geometry/material 破棄・hapticFeedback の enabled=false→null まで1テストで全不変条件を検証。

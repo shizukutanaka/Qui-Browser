@@ -298,7 +298,10 @@ async function staleWhileRevalidate(request) {
     })
     .catch(error => {
       console.warn('[ServiceWorker] Background fetch failed:', error);
-      return cached; // Return cached version on error
+      // No cached copy: navigations must still reach the offline shell
+      // rather than resolving to undefined (which is a network error to the
+      // browser and never shows offline.html).
+      return cached || getOfflineFallback(request);
     });
 
   // Return cached immediately if available, otherwise wait for network
