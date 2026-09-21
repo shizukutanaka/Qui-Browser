@@ -579,3 +579,39 @@ describe('ImmersiveVideo — last branch arms', () => {
     expect(() => iv.dispose()).not.toThrow();
   });
 });
+
+describe('ImmersiveVideo — complementary present arms', () => {
+  test('_makeButton fires the onSelect it registered', () => {
+    const { iv, register } = makeHarness();
+    const cb = jest.fn();
+    iv._makeButton('Test', cb, 0, 0);
+    const handlers = [...register.mock.calls].at(-1)[1];
+    handlers.onSelect();
+    expect(cb).toHaveBeenCalled();
+  });
+
+  test('togglePause with paused=false pauses the video', () => {
+    const { iv } = makeHarness();
+    const v = { paused: false, pause: jest.fn(function () { v.paused = true; }), play: jest.fn() };
+    iv.video = v;
+    iv.playing = true;
+    iv.togglePause();
+    expect(v.pause).toHaveBeenCalled();
+  });
+
+  test('dispose with geometry/material/parent all present disposes and detaches', () => {
+    const { iv } = makeHarness();
+    const geo = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn() };
+    const parent = { remove: jest.fn() };
+    const btn = { geometry: geo, material: mat };
+    const cp = { children: [btn], parent };
+    iv.controlPanel = cp;
+    iv.meshes = [{ geometry: geo, material: mat }];
+    iv.scene = { remove: jest.fn() };
+    expect(() => iv.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+    expect(parent.remove).toHaveBeenCalledWith(cp);
+  });
+});
