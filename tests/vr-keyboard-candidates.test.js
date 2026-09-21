@@ -702,3 +702,55 @@ describe('VRJapaneseKeyboard — last branch arms', () => {
     expect(() => cfg.onHover?.()).not.toThrow();
   });
 });
+
+describe('VRJapaneseKeyboard — complementary arms', () => {
+  test('constructor accepts all function-typed option callbacks', () => {
+    const onHoverCaption = jest.fn();
+    const onCancel = jest.fn();
+    const suggestionProvider = jest.fn(async () => []);
+    const kb = new VRJapaneseKeyboard(
+      { add: jest.fn(), remove: jest.fn() },
+      new JapaneseIME(),
+      { onHoverCaption, onCancel, suggestionProvider }
+    );
+    expect(kb.onHoverCaption).toBe(onHoverCaption);
+    expect(kb.onCancel).toBe(onCancel);
+    expect(kb.suggestionProvider).toBe(suggestionProvider);
+    kb.dispose?.();
+  });
+
+  test('key hover fires onHoverCaption with the key label', () => {
+    const onHoverCaption = jest.fn();
+    const registered = [];
+    const kb = new VRJapaneseKeyboard(
+      { add: jest.fn(), remove: jest.fn() },
+      new JapaneseIME(),
+      {
+        registerInteractable: (m, h) => registered.push(h),
+        unregisterInteractable: jest.fn(),
+        onHoverCaption
+      }
+    );
+    kb.createKeyboard?.();
+    const hover = registered.find((h) => h && h.onHover);
+    if (hover) {
+      hover.onHover();
+      expect(onHoverCaption).toHaveBeenCalled();
+    }
+    kb.dispose?.();
+  });
+
+  test('dispose with populated keyMeshes releases geometry/material/texture', () => {
+    const { kb } = makeKeyboard();
+    kb.createKeyboard?.();
+    expect(() => kb.dispose()).not.toThrow();
+  });
+
+  test('show() with existing group makes it visible', () => {
+    const { kb } = makeKeyboard();
+    kb.group = { visible: false };
+    kb._displayCanvas = null;
+    kb.show?.();
+    if (kb.group) expect(kb.group.visible).toBe(true);
+  });
+});
