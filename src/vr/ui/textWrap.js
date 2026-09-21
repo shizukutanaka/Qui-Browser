@@ -283,15 +283,32 @@ export function wrapTextToLines(text, maxChars) {
         rows.push(cur);
         cur = '';
       }
-      let start = 0;
-      while (wChars.length - start > limit) {
-        rows.push(wChars.slice(start, start + limit).join(''));
-        start += limit;
+      // Same kinsoku rules as wrapTextToWidth's hard split: KIN_START chars
+      // overhang (ぶら下げ), KIN_END chars carry down (追い出し).
+      let chunk = [];
+      for (const ch of wChars) {
+        if (chunk.length >= limit && chunk.length) {
+          if (KIN_START.has(ch)) {
+            chunk.push(ch);
+            continue;
+          }
+          const last = chunk[chunk.length - 1];
+          if (chunk.length > 1 && KIN_END.has(last)) {
+            rows.push(chunk.slice(0, -1).join(''));
+            chunk = [last, ch];
+            continue;
+          }
+          rows.push(chunk.join(''));
+          chunk = [];
+        }
+        chunk.push(ch);
       }
-      cur = wChars.slice(start).join('');
+      cur = chunk.join('');
     } else if (!cur) {
       cur = w;
     } else if (cpLen(cur + ' ' + w) <= limit) {
+      cur += ' ' + w;
+    } else if (cur && KIN_START.has(w[0])) {
       cur += ' ' + w;
     } else {
       rows.push(cur);

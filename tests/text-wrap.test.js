@@ -141,6 +141,17 @@ describe('wrapTextToLines', () => {
   it('returns one empty row for empty input', () => {
     expect(wrapTextToLines('', 5)).toEqual(['']);
   });
+
+  it('kinsoku: closing punctuation never opens a row (ぶら下げ)', () => {
+    const rows = wrapTextToLines('あいうえ、おかき', 4);
+    expect(rows[0]).toBe('あいうえ、');
+    expect(rows[1]).toBe('おかき');
+  });
+
+  it('kinsoku: an open bracket never ends a row (追い出し)', () => {
+    const rows = wrapTextToLines('あいう「かきく', 4);
+    expect(rows).toEqual(['あいう', '「かきく']);
+  });
 });
 
 describe('wrapTextToLines — long-word split flushes the pending row first', () => {
