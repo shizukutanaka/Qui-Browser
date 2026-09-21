@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き156
+- 🔍 **実測（verify:all の名実不一致）**: `npm run verify:all` が docs+prerelease のみで、最も強い3つの実 Chromium harness（layout/app/vr-boot）を**含んでいなかった**。`ci:verify` に正しい全連鎖が存在したのに verify:all は未接続 — ローカルで「全部回した」と思っても実機ゲートは走っていない状態。
+- 🔧 **修正**: `verify:all` を `verify:docs && verify:prerelease && ci:verify`（= build + layout + app + vr-boot）に再構成。実走で全チェーン green を確認。
+- 📝 **TESTING.md 同期**: コマンド一覧に verify:all を追加し、腐っていた baseline 記述（62 suites/2133 tests/119 warnings）を実測値（72/3053/~380）に更新。
+- 🔍 **他照合**: バージョン表記（2.0.0）index.html/package.json/SW/docker 全一致、git 追跡ファイルに混入ゴミなし、テストスイートに vacuous 断言（expect(true)/skip/todo）ゼロ。
+
 ### Session 75: 続き155
 - 🔍 **実測（ランディング残 WCAG 面）**: util-toggle ~32px は WCAG 2.5.8 AA（≥24px）適合、focus は UA デフォルトで有効、toast に `role="alert"` 済み、外部リンク `rel="noopener noreferrer"` 済み、iframe は dom-overlay ブラウジング経路で `frame-src https:` が必須（`'none'` に締められないと判明）。
 - 🔧 **軽微な不整合**: `og:url`/`twitter:url` が `qui-browser`（小文字）で canonical デプロイパス `/Qui-Browser/` と不一致 → 大文字に統一（ソーシャル共有 URL）。

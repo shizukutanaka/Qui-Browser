@@ -32,7 +32,7 @@
     "verify:app": "node tools/verify-app-boot.mjs",
     "verify:vr-boot": "node tools/verify-vr-boot.mjs",
     "verify:prerelease": "node tools/pre-release-validation.js",
-    "verify:all": "npm run verify:docs && npm run verify:prerelease",
+    "verify:all": "npm run verify:docs && npm run verify:prerelease && npm run ci:verify",
     "ci:lint": "npm run lint && npm run format:check",
     "ci:test": "npm run test:coverage",
     "ci:all": "npm run ci:lint && npm run ci:test",
