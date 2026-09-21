@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き168 — SpatialAudio.loadAudio の無信号 fetch（永遠ペンディング）
+- 🔍 **実害（タイムアウト無し）**: `loadAudio()` が `fetch(url)` を signal なしで発行 — スタールしたサーバーではプロミスが永遠に pending のまま、バッファ・エラー状態・リトライのいずれも得られない（SW respondWith hang と同クラス）。`src/` の全 fetch サイトを走査した残りの唯一の未防御経路（JapaneseIME 5s・WebPanel reader 5s・ProgressiveLoader strategy.timeout は既に防御済み）。
+- 🔧 **修正**: 既存イディオム（AbortController + clearTimeout、JapaneseIME 由来）に揃えて 15 秒 watchdog を追加。AbortController 不在環境では従来挙動を維持。pin テスト追加: stall した fetch が signal で abort され `null` で解決することを fake timers で実証。
+- ✅ 3077 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
 ### Session 75: 続き167 — プロキシの charset 無視で日本語サイトが文字化けしていた
 - 🔍 **実害（charset 無視）**: プロキシがボディを常に `toString('utf8')` — `charset=shift_jis`/`euc-jp` 等の非 UTF-8 ページはリーダーに文字化けしたゴミを返していた。日本語ファーストのブラウザとして直撃の欠陥。
 - 🔧 **修正**: Content-Type の `charset` をパースし `TextDecoder`（WHATWG ラベル全対応: shift_jis/euc-jp/iso-2022-jp 等）でデコード — 未知ラベルは utf-8 フォールバック。ボディは Buffer のまま運び最終段でデコード。テスト3本追加（shift_jis 実バイト→'テスト'、bogus charset→utf-8、charset なし→utf-8）。PROXY.md の制限節に charset 挙動を追記。
