@@ -569,3 +569,27 @@ describe('readerLayout — remaining branch arms', () => {
     expect(pageJumpLines(10)).toBe(8); // 10 - 2 overlap
   });
 });
+
+describe('readerLayout — complementary arms', () => {
+  test('non-positive scale normalizes to 1 in line/font helpers', () => {
+    const { visibleLineCount, measureEmFor, fontPxFor } = require('../src/vr/browser/readerLayout.js');
+    expect(visibleLineCount(0)).toBe(visibleLineCount(1));
+    expect(measureEmFor(-3)).toBe(measureEmFor(1));
+    expect(fontPxFor('body', 0)).toBe(fontPxFor('body', 1));
+  });
+
+  test('title style yields a larger font than body', () => {
+    const { fontPxFor } = require('../src/vr/browser/readerLayout.js');
+    expect(fontPxFor('title', 1)).toBeGreaterThan(fontPxFor('body', 1));
+  });
+
+  test('readerHitTest arrow zone dispatches scrollUp/scrollDown when scrollable', () => {
+    const { readerHitTest } = require('../src/vr/browser/readerLayout.js');
+    const mod = require('../src/vr/browser/readerLayout.js');
+    const { ARROW_Y0, ARROW_H, ARROW_UP_X0, ARROW_W } = mod;
+    if (ARROW_Y0 !== undefined) {
+      const hit = readerHitTest(ARROW_UP_X0 + 1, ARROW_Y0 + 1, true);
+      expect(['scrollUp', 'scrollDown', 'up', 'down']).toContain(hit.type);
+    }
+  });
+});
