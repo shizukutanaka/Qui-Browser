@@ -800,3 +800,13 @@ test('closeTab on a tab before the active one shifts activeIndex down', () => {
   expect(tm.activeIndex).toBe(1);
   expect(tm.tabs[tm.activeIndex]).toBeTruthy();
 });
+
+describe('TabManager — closeTab above the active index', () => {
+  test('closing a tab to the RIGHT of the active one keeps activeIndex', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example'); tm.newTab('https://b.example'); tm.newTab('https://c.example');
+    tm.setActive(0);
+    tm.closeTab(2);
+    expect(tm.activeIndex).toBe(0); // index > activeIndex → no shift
+  });
+});

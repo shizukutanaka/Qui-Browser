@@ -869,3 +869,11 @@ test('dispose with iframe but no parentNode skips removeChild', () => {
   expect(() => p.dispose()).not.toThrow();
   expect(p.iframe.onload).toBeNull();
 });
+
+describe('WebPanel — dispose before any navigation (no iframe)', () => {
+  test('dispose() without an iframe skips the detach block cleanly', () => {
+    const p = makePanel();
+    p.iframe = null; // dispose before navigation ever created one
+    expect(() => p.dispose()).not.toThrow();
+  });
+});

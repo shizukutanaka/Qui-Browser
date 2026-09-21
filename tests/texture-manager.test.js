@@ -415,3 +415,13 @@ describe('TextureManager — last branch arms', () => {
     expect(() => tm.dispose()).not.toThrow();
   });
 });
+
+describe('TextureManager — populated cacheHitRate arm', () => {
+  test('getPerformanceStats reports a nonzero hit rate after a real hit', async () => {
+    const tm = new TextureManager(makeRenderer());
+    await tm.loadTexture('a.png');
+    await tm.loadTexture('a.png'); // cache hit
+    const stats = tm.getPerformanceStats();
+    expect(stats.cacheHitRate).toBeGreaterThan(0);
+  });
+});

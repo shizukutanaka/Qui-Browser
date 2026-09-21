@@ -641,3 +641,59 @@ test('update ignores an untracked missing slot; simulateTexture early-returns on
   await hf.playCustomSequence('left', [{}]);
   expect(pulse).not.toHaveBeenCalled();
 });
+
+describe('HapticFeedback — default-parameter arms', () => {
+  const mkGp = () => ({
+    id: 'g',
+    hand: 'right',
+    hapticActuators: [{ pulse: jest.fn(() => Promise.resolve()), playEffect: jest.fn(() => Promise.resolve()) }]
+  });
+
+  test('alert() with no argument uses the normal urgency pattern', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    await hf.alert();
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('simulateTexture(hand, type) without duration uses the 1000ms default', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    const times = [0, 50, 2000];
+    const spy = jest.spyOn(Date, 'now').mockImplementation(() => (times.length > 1 ? times.shift() : 2000));
+    await hf.simulateTexture('right', 'rough');
+    spy.mockRestore();
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('proximityFeedback(hand, distance) without maxDistance uses 1.0', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    await hf.proximityFeedback('right', 0.5);
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalled();
+  });
+
+  test('a registered array pattern runs pause steps through playPattern', async () => {
+    const hf = new HapticFeedback();
+    hf.enabled = true;
+    hf.gamepads.set(0, mkGp());
+    hf.createCustomPattern('with-pause', [
+      { duration: 5, intensity: 0.4 },
+      { pause: 5 },
+      { duration: 5 }
+    ]);
+    await hf.playPattern('right', 'with-pause');
+    expect(hf.gamepads.get(0).hapticActuators[0].pulse).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('HapticFeedback — step with neither duration nor pause', () => {
+  test('a step carrying neither field is skipped without aborting the pattern', async () => {
+    const hf = new HapticFeedback();
+    hf.createCustomPattern('x', [{ noop: 1 }, { pause: 5 }]);
+    await expect(hf.playPattern('left', 'x')).resolves.toBeUndefined();
+  });
+});

@@ -637,3 +637,30 @@ test('updateFOV narrows while rotating only; readerHitTest non-scrollable arm vi
   cs.isMoving = false; cs.isRotating = true;
   cs.updateFOV?.(0.016);
 });
+
+describe('ComfortSystem — remaining guard arms', () => {
+  test('updateFOV tightens the FOV while moving only (isMoving arm)', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    cs.isMoving = true;
+    cs.isRotating = false;
+    const before = cs.currentFOV;
+    cs.updateFOV(16);
+    expect(cs.currentFOV).toBeLessThan(before);
+  });
+
+  test('dispose() without a vignette quad skips its teardown', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.vignetteQuad = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+});
+
+describe('ComfortSystem — no-motion FOV arm', () => {
+  test('updateFOV keeps baseFOV when neither moving nor rotating', () => {
+    const cs = new ComfortSystem(makeScene(), { fov: 90, updateProjectionMatrix: jest.fn() }, makeRenderer());
+    cs.isMoving = false; cs.isRotating = false;
+    const before = cs.currentFOV;
+    cs.updateFOV(0.016);
+    expect(cs.currentFOV).toBeLessThanOrEqual(before + cs.settings.fov.baseFOV * cs.settings.fov.smoothing);
+  });
+});

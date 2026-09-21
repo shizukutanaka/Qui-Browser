@@ -266,3 +266,11 @@ test('renderCanvasToLayer tolerates a layer with no GL binding context', () => {
   ls._layers.set('q', layer);
   expect(() => ls.renderCanvasToLayer('q', null, {})).not.toThrow();
 });
+
+describe('LayersSystem — renderCanvasToLayer with a cleared GL context', () => {
+  test('dispose() then render is a no-op — the if(gl) finally arm stays quiet', () => {
+    const ls = new LayersSystem({ xr: {} });
+    ls.dispose();
+    expect(() => ls.renderCanvasToLayer({}, {}, {}, [])).not.toThrow();
+  });
+});

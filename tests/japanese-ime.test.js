@@ -2,7 +2,7 @@
  * JapaneseIME conversion arms — katakana mode, trailing-n, buffer flush.
  * (Keyboard-level behaviors live in vr-keyboard-candidates/suggestions.)
  */
-const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
 
 describe('JapaneseIME raw conversion arms', () => {
   test('convertRomajiToHiragana maps syllables and handles trailing lone n', () => {
@@ -146,7 +146,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
 
 describe('JapaneseIME — remaining conversion arms', () => {
   test('deleteLast converts to katakana in katakana mode', async () => {
-    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     ime.inputMode = 'katakana';
     ime.compositionBuffer = 'kan';
@@ -155,7 +155,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
   });
 
   test('processInput converts to katakana in katakana mode', async () => {
-    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     ime.inputMode = 'katakana';
     const out = await ime.processInput('ka');
@@ -163,7 +163,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
   });
 
   test('convertRomajiToHiragana without a trailing n skips the ん arm', () => {
-    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     expect(ime.convertRomajiToHiragana('ka')).toBe('か');
   });
@@ -189,5 +189,34 @@ describe('JapaneseIME — mode-tail + trailing-n arms', () => {
     ime.compositionBuffer = 'ka';
     const out = ime.deleteLast();
     expect(out.converted).toBe('k');
+  });
+});
+
+describe('IME remaining branch arms', () => {
+  test('a lone trailing n converts to ん', () => {
+    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const ime = new JapaneseIME();
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん');
+    expect(ime.convertRomajiToHiragana('kon')).toBe('こん');
+  });
+});
+
+describe('VRJapaneseKeyboard — suggestion query without an IME', () => {
+  test('_updateSuggestions with ime=null reads an empty query and clears', () => {
+    const provider = jest.fn(() => [{ url: 'https://x.example', title: 'x' }]);
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} }, null, { suggestionProvider: provider });
+    kb._clearSuggestions = jest.fn();
+    kb._updateSuggestions();
+    expect(provider).not.toHaveBeenCalled(); // '' < 2 chars
+    expect(kb._clearSuggestions).toHaveBeenCalled();
+  });
+
+  test('_updateSuggestions with an empty compositionBuffer uses the empty fallback', () => {
+    const provider = jest.fn(() => []);
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} }, new JapaneseIME(), { suggestionProvider: provider });
+    kb._clearSuggestions = jest.fn();
+    kb._updateSuggestions();
+    expect(provider).not.toHaveBeenCalled(); // buffer '' < 2 chars
+    expect(kb._clearSuggestions).toHaveBeenCalled();
   });
 });

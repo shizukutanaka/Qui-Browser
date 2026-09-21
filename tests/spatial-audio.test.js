@@ -881,3 +881,36 @@ test('source panner reports HRTF vs equalpower; camPos scratch alloc arm', async
   sa.sources = new Map([['a', { panner: { panningModel: 'HRTF' }, gain: {}, source: null }]]);
   expect(sa.sources.get('a').panner.panningModel).toBe('HRTF');
 });
+
+describe('SpatialAudio — remaining guard arms', () => {
+  test('registerProceduralBuffer falls back to 48000 when context.sampleRate is falsy', () => {
+    const a = new SpatialAudio();
+    const rates = [];
+    a.context = {
+      sampleRate: 0,
+      createBuffer: (c, len, rate) => { rates.push(rate); return { getChannelData: () => new Float32Array(len) }; }
+    };
+    a.registerProceduralBuffer('tone', { frequency: 440 });
+    expect(rates[0]).toBe(48000);
+  });
+
+  test('updateListenerFromCamera allocates scratch vectors on first call', () => {
+    const a = new SpatialAudio();
+    a.listener = {
+      positionX: { value: 0 }, positionY: { value: 0 }, positionZ: { value: 0 },
+      forwardX: { value: 0 }, forwardY: { value: 0 }, forwardZ: { value: 0 },
+      upX: { value: 0 }, upY: { value: 0 }, upZ: { value: 0 }
+    };
+    const cam = { getWorldPosition: (v) => v.set(1, 2, 3), getWorldQuaternion: (q) => q };
+    expect(a._camPos).toBeFalsy();
+    a.updateListenerFromCamera(cam);
+    expect(a._camPos).toBeTruthy();
+    a.updateListenerFromCamera(cam); // second call reuses the scratch objects
+  });
+
+  test('updateAllLOD skips panner-less sources without throwing', () => {
+    const a = new SpatialAudio();
+    a.sources.set('bare', {});
+    expect(() => a.updateAllLOD()).not.toThrow();
+  });
+});

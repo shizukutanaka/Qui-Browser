@@ -269,3 +269,17 @@ test('textWrap CJK ranges + NaN limits; BookmarkStore writeJSON without localSto
   expect(() => store.addHistory('https://x.example', 'X')).not.toThrow();
   global.localStorage = savedLS;
 });
+
+describe('readerLayout — default-parameter arms', () => {
+  const { visibleLineCount, readerHitTest } = require('../src/vr/browser/readerLayout.js');
+  test('visibleLineCount(scale) without reserveBottom uses the false default', () => {
+    const withReserve = visibleLineCount(1, true);
+    const plain = visibleLineCount(1);
+    expect(plain).toBeGreaterThan(withReserve);
+  });
+  test('readerHitTest(px, py) without scrollable treats arrows as dead', () => {
+    const { ARROW_Y0, ARROW_DN_X0 } = require('../src/vr/browser/readerLayout.js');
+    // Dead zone: hit inside the arrow area without scrollable reports 'none'
+    expect(readerHitTest(ARROW_DN_X0 + 5, ARROW_Y0 + 5)).toEqual({ type: 'none' });
+  });
+});

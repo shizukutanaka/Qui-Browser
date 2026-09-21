@@ -877,3 +877,80 @@ describe('VRJapaneseKeyboard — show/suggest/dispose sliver arms', () => {
     expect(kb.keyMeshes.length).toBeGreaterThan(0);
   });
 });
+
+describe('VRJapaneseKeyboard — remaining guard arms', () => {
+  test('key onHover fires onHoverCaption when wired, and is safe without it', () => {
+    const { kb, registered } = makeKeyboard();
+    kb.onHoverCaption = jest.fn();
+    const keyHandlers = registered[0].handlers;
+    keyHandlers.onHover();
+    expect(kb.onHoverCaption).toHaveBeenCalledWith(expect.any(String));
+    kb.onHoverCaption = null;
+    expect(() => keyHandlers.onHover()).not.toThrow();
+  });
+
+  test('_clearCandidates/_clearSuggestions skip meshes with null geometry/material', () => {
+    const { kb } = makeKeyboard();
+    kb._candidatesGroup = { remove: jest.fn(), visible: true };
+    kb._candidateMeshes = [{ mesh: { geometry: null, material: null } }];
+    expect(() => kb._clearCandidates()).not.toThrow();
+    expect(kb._candidateMeshes).toHaveLength(0);
+
+    kb._suggestionsGroup = { remove: jest.fn(), visible: true };
+    kb._suggestionMeshes = [{ mesh: { geometry: null, material: null } }];
+    expect(() => kb._clearSuggestions()).not.toThrow();
+    expect(kb._suggestionMeshes).toHaveLength(0);
+  });
+
+  test('show() when createKeyboard still leaves group null hits the false arm', () => {
+    const { kb } = makeKeyboard();
+    kb.group = null;
+    kb.createKeyboard = () => {};
+    kb._displayCanvas = null;
+    expect(() => kb.show()).not.toThrow();
+  });
+
+  test('_updateSuggestions with no IME treats the query as empty', () => {
+    const { kb } = makeKeyboard();
+    kb.ime = null;
+    kb.suggestionProvider = jest.fn(() => ['https://x']);
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb.suggestionProvider).not.toHaveBeenCalled();
+  });
+
+  test('dispose tolerates meshes/mesh/scene that are null or partially populated', () => {
+    const { kb } = makeKeyboard();
+    kb.keyMeshes = [{ mesh: { geometry: null, material: null, userData: {} } }];
+    kb._displayMesh = { geometry: null, material: null };
+    kb.scene = null;
+    expect(() => kb.dispose()).not.toThrow();
+  });
+});
+
+describe('VRJapaneseKeyboard — dispose/suggestion tail arms', () => {
+  test('_clearCandidates/_clearSuggestions tolerate materials without maps', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      unregisterInteractable: jest.fn()
+    });
+    const meshA = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } }; // no .map
+    const meshB = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } };
+    kb._candidateMeshes = [{ mesh: meshA }];
+    kb._suggestionMeshes = [{ mesh: meshB }];
+    kb._candidatesGroup = { remove: jest.fn(), visible: true };
+    kb._suggestionsGroup = { remove: jest.fn(), visible: true };
+    expect(() => { kb._clearCandidates(); kb._clearSuggestions(); }).not.toThrow();
+    expect(meshA.material.dispose).toHaveBeenCalled();
+  });
+
+  test('_updateSuggestions with no IME instance clears instead of querying', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      unregisterInteractable: jest.fn()
+    });
+    kb.ime = null;
+    kb.suggestionProvider = jest.fn(() => ['https://x']);
+    kb._suggestionMeshes = [];
+    kb._suggestionsGroup = { remove: jest.fn(), visible: true };
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb.suggestionProvider).not.toHaveBeenCalled(); // query '' < 2
+  });
+});

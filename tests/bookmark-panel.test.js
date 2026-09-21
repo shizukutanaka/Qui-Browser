@@ -901,3 +901,28 @@ test('delete zone click fires onDeleteBookmark (ctor-provided callback)', () => 
   p._onSelect({ clone() { return MockMesh._nextLocal; } });
   expect(onDelete).toHaveBeenCalledWith('https://del.me');
 });
+
+describe('BookmarkPanel — ctor + delete-zone guard arms', () => {
+  test('a function onTabChange is kept verbatim', () => {
+    const onTabChange = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onTabChange
+    });
+    expect(p.onTabChange).toBe(onTabChange);
+  });
+
+  test('delete-zone click without an onDeleteBookmark callback just redraws', () => {
+    const p = makePanel({
+      getBookmarks: () => [{ url: 'https://a.example/', title: 'a' }],
+      removeBookmark: jest.fn()
+    });
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 10, HEADER_H + 10); // delete zone over row 0
+    expect(() => p._onSelect({ clone() { return MockMesh._nextLocal; } })).not.toThrow();
+  });
+});

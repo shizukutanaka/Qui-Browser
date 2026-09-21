@@ -155,3 +155,19 @@ describe('textWrap — width/lines sliver arms', () => {
     expect(rows.every((r) => Array.from(r).length <= 4)).toBe(true);
   });
 });
+
+describe('textWrap — remaining wide-char ranges', () => {
+  test('Hangul syllables, Yi, compat ideographs, vertical and fullwidth forms are wide', () => {
+    expect(charWidthEm(0xac00)).toBe(1); // 한 Hangul syllable
+    expect(charWidthEm(0xa000)).toBe(1); // Yi syllable
+    expect(charWidthEm(0xf900)).toBe(1); // CJK compat ideograph
+    expect(charWidthEm(0xfe10)).toBe(1); // vertical form
+    expect(charWidthEm(0xfe30)).toBe(1); // CJK compat form
+    expect(charWidthEm(0xff21)).toBe(1); // Ａ fullwidth A
+    expect(charWidthEm(0xffe5)).toBe(1); // ￥ fullwidth sign
+    expect(charWidthEm(0x2e80)).toBe(1); // CJK radical
+    expect(charWidthEm(0x3400)).toBe(1); // CJK Ext A
+    expect(charWidthEm(0x20000)).toBe(1); // 𠀀 CJK Ext B
+    expect(charWidthEm(0x30000)).toBe(1); // 𰀀 CJK Ext G
+  });
+});

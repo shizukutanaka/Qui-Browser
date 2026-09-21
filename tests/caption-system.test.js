@@ -586,3 +586,46 @@ test('dispose with camera.remove + material.map covers both free-arms', () => {
   cs.dispose();
   expect(cam.remove).toHaveBeenCalledWith(mesh);
 });
+
+describe('CaptionSystem — mesh-absent guard arms', () => {
+  test('update() still ages out lines when the mesh is already gone', () => {
+    const cs = new CaptionSystem(makeCamera(), { maxLines: 3, lineDuration: 1 });
+    cs.show('fading');
+    cs.enabled = true;
+    cs.mesh = null;
+    cs.update(60000); // expiry -> changed -> `if (this.mesh)` false arm
+    expect(cs._lines.length).toBe(0);
+  });
+
+  test('dispose() with no mesh is a no-op', () => {
+    const cs = new CaptionSystem(makeCamera(), {});
+    cs.mesh = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+
+  test('dispose() skips material teardown when mesh.material is absent', () => {
+    const cam = makeCamera();
+    const cs = new CaptionSystem(cam, {});
+    const mesh = { geometry: { dispose: jest.fn() }, material: null };
+    cs.mesh = mesh;
+    cs.dispose();
+    expect(mesh.geometry.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CaptionSystem — texture without colorSpace', () => {
+  test('_buildPanel skips the colorSpace assignment on older three mocks', () => {
+    const THREE = require('three');
+    const Original = THREE.CanvasTexture;
+    THREE.CanvasTexture = class { constructor() { this.needsUpdate = false; } };
+    let Mod;
+    try {
+      jest.isolateModules(() => { Mod = require('../src/vr/accessibility/CaptionSystem.js'); });
+      const c = new Mod.CaptionSystem({ add() {}, remove() {} }, {});
+      expect(c.texture).toBeTruthy();
+      expect('colorSpace' in c.texture).toBe(false);
+    } finally {
+      THREE.CanvasTexture = Original;
+    }
+  });
+});

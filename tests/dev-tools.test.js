@@ -638,3 +638,71 @@ test('DevTools — onkeypress Enter executes; scene case; non-number time', () =
   d.showTab('scene');
   expect(d.updateSceneTree).toHaveBeenCalled();
 });
+
+describe('DevTools — last guard arms', () => {
+  let dt;
+  let listeners;
+  const made = [];
+
+  beforeEach(() => {
+    listeners = {};
+    const savedDoc = global.document;
+    made.length = 0;
+    global.document = {
+      addEventListener: (t, fn) => { listeners[t] = fn; },
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {}, children: [] }),
+      createElement: () => {
+        const el = { style: { cssText: '' }, children: [], appendChild(c) { this.children.push(c); }, id: '' };
+        made.push(el);
+        return el;
+      },
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+    dt._savedDoc = savedDoc;
+  });
+
+  afterEach(() => {
+    try { dt.dispose(); } catch { /* partial UI is fine */ }
+    global.document = dt._savedDoc;
+  });
+
+  test('createUI starts visible when this.visible is preset (flex arm)', () => {
+    dt.visible = true;
+    dt.createUI();
+    expect(dt.container.style.cssText).toContain('display: flex');
+  });
+
+  test('real console input Enter executes and clears; other keys are ignored', () => {
+    dt.executeCode = jest.fn();
+    dt.createUI();
+    const input = made.find((el) => el.onkeypress);
+    input.value = '2+2';
+    input.onkeypress({ key: 'Enter' });
+    expect(dt.executeCode).toHaveBeenCalledWith('2+2');
+    expect(input.value).toBe('');
+    input.value = 'x';
+    input.onkeypress({ key: 'a' });
+    expect(input.value).toBe('x');
+  });
+
+  test('showTab("network") mounts content and runs updateNetworkTable', () => {
+    dt.createUI();
+    const content = made.find((el) => el.id === 'dev-tools-content');
+    global.document.getElementById = (id) => (id === 'dev-tools-content' ? content : null);
+    const spy = jest.spyOn(dt, 'updateNetworkTable');
+    dt.showTab('network');
+    expect(spy).toHaveBeenCalled();
+    expect(dt.tabs.get('network').button.style.background).toBe('#0e639c');
+  });
+
+  test('updateNetworkTable String()-formats a non-numeric req.time', () => {
+    const tbody = { children: [], appendChild(c) { this.children.push(c); } };
+    global.document.getElementById = (id) => (id === 'network-tbody' ? tbody : null);
+    dt.tools.networkMonitor.requests.push({ method: 'GET', url: 'u', status: 200, time: 'pending', size: 1 });
+    expect(() => dt.updateNetworkTable()).not.toThrow();
+  });
+});
