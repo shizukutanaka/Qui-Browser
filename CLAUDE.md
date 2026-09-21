@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き210 — PROJECT_STATUS/README の計測値を実測へ再同期
+- 🔍 **発見**: PROJECT_STATUS が「63 suites/2,148 tests/~18,200行・floor 65/70/75」を掲載 — 実測は 72 suites/3,087 tests/~32,000行・floor 95/96/97/96（jest.config.js）と大幅乖離。README も同数値が3箇所＋「docs 26 files」（実 24+archive）＋PROJECT_STATUS で削除済みの **unverifiable before/after マーケ表（Bundle 2.4→1.08MB・Lighthouse 72→96 等）が残留**。
+- 🔧 **修正**: 両ファイルを実測値へ同期（50 files/~20,000 src・72/3,087/~32,000 tests・floor 95/96/97/96・docs 24+archive×110+patch×9）。README の before/after 表は実測 chunk 表（vendor-three 553.64kB/app 206.02kB）へ置換 — 存在しない測定値を書かない方針に統一。npm scripts 記載19件全て実在を確認。
+- 🗑 **同時に確定**: C-5（enableWebPanel 既定値）は続き11 で `true` 反転済み＝プロダクト判断解決済み → PROJECT_STATUS の残件リストから除去。
+- 🔍 **deploy.yml の raw-source 公開は既存 ledger 記録済み**（patch 0003 が修復案・ワークフロー push 不可のため owner 適用待ち）。favicon/apple-touch-icon の `/assets/icons/*` 参照は vite が root の assets/ を解決して hashed dist へ書換済み（dist で実在確認）— ピットフォールではない。
+- ✅ 3087 tests / 72 suites 全緑（ドキュメントのみ変更）。
+
 ### Session 75: 続き209 — 残る per-frame 確保の掃引完了（Set/values 配列）＋死んだ mixedReality フィクスチャ除去
 - 🔧 **修正**: ①`HapticFeedback.update()` が毎フレーム `new Set()` を確保（inputSources 差分検出用）→ 永続 `_seen` Set を `clear()` 再利用 ②`updateButtonInput` が `Object.values(btn).some()` でコントローラ×フレーム毎に配列確保 → for-in + break に置換。これで `updateSystems` の熱パス（locomotion/button/teleport/hover/gaze/haptic/audio/hand）が完全に確保ゼロ。
 - 🗑 **削除**: `vr-app-wiring.test.js` の `mixedReality: null` フィクスチャフィールド — MixedReality モジュール自体は既に削除済みで `this.mixedReality` の読み手ゼロ。

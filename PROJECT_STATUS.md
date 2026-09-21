@@ -13,11 +13,11 @@ browsing, reader view, and Japanese input, built on Three.js + WebXR.
 
 | Metric | Value (measured) |
 |--------|------------------|
-| Source | 51 files, ~19,800 lines (`src/`) |
-| Tests | 63 suites / 2,148 tests (~18,200 lines) |
-| Coverage | ~80% lines; jest floor ratcheted to 65/70/75 so regressions fail `ci:test` |
+| Source | 50 files, ~20,000 lines (`src/`) |
+| Tests | 72 suites / 3,087 tests (~32,000 lines) |
+| Coverage | Jest floor ratcheted to 95/96/97/96 (branches/functions/lines/statements) — regressions fail `ci:test` |
 | Build | Vite 5 + esbuild → `dist/` ≈ 1.0 MB |
-| Docs | 24 files under `docs/` (+ `docs/archive/`, `docs/patches/`) |
+| Docs | 24 files under `docs/` (+ `docs/archive/` ×110, `docs/patches/` ×9 pending) |
 
 ## 🎯 Development Goals Achievement
 
@@ -86,6 +86,6 @@ Service Worker + `proxy/` companion (Node http). Runtime deps: `three`, `web-vit
 - `docs/QUICK_START.md`, `docs/USAGE_GUIDE.md`, `docs/API.md`, `docs/FAQ.md`
 - `docs/DEPLOYMENT_GUIDE.md`, `docs/PROXY.md`, `docs/BUILD_OPTIMIZATION_GUIDE.md`
 - `docs/OUTSTANDING_ISSUES.md` — gap ledger with owner-decision items
-  (M-1 format:check · K-1 workflows · N-2 monitoring verbs · N-3 IME semantics ·
-  C-5 enableWebPanel default · O-1 stale onboarding doc)
+  (M-1 format:check · K-1 workflow patches 0001–0009 · N-2 monitoring verbs ·
+  N-3 IME semantics · O-1 stale onboarding doc · CODECOV_TOKEN)
 - `CHANGELOG.md` — release history
