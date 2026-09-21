@@ -455,3 +455,12 @@ describe('chromeColors — complementary arms', () => {
     }
   });
 });
+
+describe('chromeColors — high-contrast arms', () => {
+  test('webChromeColors / webContentColors / tabStripColors honor highContrast', () => {
+    const { webChromeColors, webContentColors, tabStripColors } = require('../src/vr/browser/chromeColors.js');
+    expect(webChromeColors(true)).not.toEqual(webChromeColors(false));
+    expect(webContentColors(true)).not.toEqual(webContentColors(false));
+    expect(tabStripColors(true)).not.toEqual(tabStripColors(false));
+  });
+});

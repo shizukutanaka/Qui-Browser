@@ -121,3 +121,21 @@ describe('keyboardLayout — complementary arms', () => {
     expect(imeColors(true)).not.toEqual(imeColors(false));
   });
 });
+
+describe('keyboardLayout — entry-shape arms', () => {
+  test('computeKeyLayout handles object entries with/without width and glyph', () => {
+    const { computeKeyLayout } = require('../src/vr/input/keyboardLayout.js');
+    const keys = computeKeyLayout([
+      ['a', { label: 'b', width: 2, glyph: 'B!' }, { label: 'c' }]
+    ]);
+    expect(keys).toHaveLength(3);
+    expect(keys[1].glyph).toBe('B!');
+    expect(keys[1].w).toBeGreaterThan(keys[2].w);
+    expect(keys[2].glyph).toBe('c'); // falls back to label
+  });
+
+  test('imeColors high-contrast palette differs', () => {
+    const { imeColors } = require('../src/vr/input/keyboardLayout.js');
+    expect(imeColors(true)).not.toEqual(imeColors(false));
+  });
+});

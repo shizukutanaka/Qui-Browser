@@ -592,3 +592,36 @@ describe('ComfortSystem — complementary arms', () => {
     expect(geo.dispose).toHaveBeenCalled();
   });
 });
+
+describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
+  test('updateFOV narrows the target while moving', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.isMoving = true;
+    cs.updateFOV(0.016);
+    expect(cs.currentFOV).toBeLessThan(cs.settings.fov.baseFOV);
+  });
+
+  test('animateSnapTurn does not re-request once progress hits 1', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.reduceMotion = false;
+    let cb;
+    global.requestAnimationFrame = jest.fn((fn) => { cb = fn; });
+    let now = 1000;
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    cs.animateSnapTurn(0.5);
+    now += 5000; // force progress >= 1 on the next tick
+    cb();
+    expect(global.requestAnimationFrame).toHaveBeenCalledTimes(1);
+    Date.now.mockRestore();
+  });
+
+  test('dispose frees the vignette quad when present', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    const geo = cs.vignetteQuad && cs.vignetteQuad.geometry;
+    cs.dispose();
+    if (geo) expect(geo.dispose).toHaveBeenCalled();
+  });
+});

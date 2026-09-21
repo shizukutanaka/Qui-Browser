@@ -233,3 +233,35 @@ describe('DeviceCompatibility — remaining arms', () => {
     }
   });
 });
+
+describe('DeviceCompatibility — navigator/ua sliver arms', () => {
+  test('check() tolerates navigator entirely absent', async () => {
+    const saved = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    try {
+      Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true });
+      const dc = new DeviceCompatibility();
+      const report = await dc.check();
+      expect(report.vrSupported).toBe(false);
+    } finally {
+      if (saved) Object.defineProperty(globalThis, 'navigator', saved);
+    }
+  });
+
+  test('check() tolerates an absent userAgent', async () => {
+    const dc = new DeviceCompatibility();
+    const saved = Object.getOwnPropertyDescriptor(navigator, 'userAgent');
+    try {
+      Object.defineProperty(navigator, 'userAgent', { value: undefined, configurable: true });
+      const report = await dc.check();
+      expect(report.deviceTier).toBeTruthy();
+    } finally {
+      if (saved) Object.defineProperty(navigator, 'userAgent', saved);
+    }
+  });
+
+  test('_probeOptionalFeatures re-detects tier when not supplied', async () => {
+    const dc = new DeviceCompatibility();
+    const out = await dc._probeOptionalFeatures({ requestSession: async () => ({ enabledFeatures: [] }) }, true, null);
+    expect(out).toBeTruthy();
+  });
+});

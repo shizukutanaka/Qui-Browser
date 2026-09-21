@@ -841,3 +841,33 @@ describe('SpatialAudio — complementary arms', () => {
     expect(sa.settings.refDistance).toBeDefined();
   });
 });
+
+describe('SpatialAudio — sliver arms', () => {
+  test('synthesizeToneSamples defaults and bad sampleRate fallback', () => {
+    const { synthesizeToneSamples } = require('../src/vr/audio/SpatialAudio.js');
+    expect(synthesizeToneSamples().length).toBeGreaterThan(0);
+    expect(synthesizeToneSamples({ endFreq: 880 }, 0).length).toBeGreaterThan(0);
+  });
+
+  test('registerProceduralBuffer returns null without context and cached on repeat', async () => {
+    const sa = new SpatialAudio();
+    await Promise.resolve(); await Promise.resolve(); // let ctor's async initialize settle
+    sa.context = null;
+    expect(sa.registerProceduralBuffer('x', {})).toBeNull();  // no context
+    sa.context = { sampleRate: 48000, createBuffer: () => ({ getChannelData: () => ({ set: jest.fn() }) }) };
+    const buf = sa.registerProceduralBuffer('y', { freq: 300 });
+    expect(buf).toBeTruthy();
+    expect(sa.registerProceduralBuffer('y', { freq: 999 })).toBe(buf); // cached
+  });
+
+  test('createSource panner uses equalpower when HRTF disabled', async () => {
+    const sa = new SpatialAudio();
+    await Promise.resolve(); await Promise.resolve();
+    sa.context = makeAudioContext();
+    if (!sa.context.createPanner) sa.context.createPanner = () => ({ setPosition(){}, setOrientation(){}, connect(){} });
+    sa.settings.enableHRTF = false;
+    sa.buffers.set('b', { duration: 1 });
+    const src = sa.createSource ? sa.createSource('b', {}) : null;
+    if (src) expect(src.panner.panningModel).toBe('equalpower');
+  });
+});

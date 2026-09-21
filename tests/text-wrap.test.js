@@ -138,3 +138,20 @@ describe('textWrap — complementary arms', () => {
     expect(truncateToWidth(null, 10)).toBe('');
   });
 });
+
+describe('textWrap — width/lines sliver arms', () => {
+  test('truncateToWidth clips CJK glyphs by em budget', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    const out = truncateToWidth('あいうえおかきくけこ', 3);
+    expect(out.endsWith('…')).toBe(true);
+    expect(truncateToWidth('hi', 10)).toBe('hi');
+    expect(truncateToWidth(null, 5)).toBe('');
+  });
+
+  test('wrapTextToLines splits long words at code-point boundaries', () => {
+    const { wrapTextToLines } = require('../src/vr/ui/textWrap.js');
+    expect(wrapTextToLines('', 5)).toEqual(['']);
+    const rows = wrapTextToLines('abcdefghij', 4);
+    expect(rows.every((r) => Array.from(r).length <= 4)).toBe(true);
+  });
+});

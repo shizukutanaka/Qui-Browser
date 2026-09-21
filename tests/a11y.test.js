@@ -163,3 +163,19 @@ describe('storage-failure arms — private browsing / quota exhaustion', () => {
     expect(typeof fresh.getPrefs().highContrast).toBe('boolean');
   });
 });
+
+describe('a11y storage — guard arms', () => {
+  test('load() returns {} when localStorage is absent or empty', () => {
+    const orig = global.localStorage;
+    delete global.localStorage;
+    jest.resetModules();
+    const mod = require('../src/a11y/accessibility.js');
+    expect(mod.getPrefs()).toBeTruthy();
+    global.localStorage = { getItem: () => null, setItem: jest.fn(), removeItem: jest.fn() };
+    jest.resetModules();
+    const mod2 = require('../src/a11y/accessibility.js');
+    expect(mod2.getPrefs().highContrast).toBe(false);
+    global.localStorage = orig;
+    jest.resetModules();
+  });
+});

@@ -135,3 +135,26 @@ describe('videoProjection — complementary arms', () => {
     expect(THREE.SphereGeometry).toHaveBeenCalled();
   });
 });
+
+describe('videoProjection — default-arg arms', () => {
+  test('eyeUVTransform handles stereo-tb and defaults', () => {
+    const { eyeUVTransform } = require('../src/vr/media/videoProjection.js');
+    expect(eyeUVTransform('stereo-tb', 'left')).toBeTruthy();
+    expect(eyeUVTransform('stereo-tb', 'right')).toBeTruthy();
+    expect(eyeUVTransform()).toBeTruthy();
+    expect(eyeUVTransform('mono')).toBeTruthy();
+  });
+
+  test('detectVideoFormat with no url and unknown url', () => {
+    const { detectVideoFormat } = require('../src/vr/media/videoProjection.js');
+    expect(detectVideoFormat()).toBeTruthy();
+    expect(detectVideoFormat('blob:xyz')).toBeTruthy();
+  });
+
+  test('buildVideoSphereGeometry with defaults', () => {
+    const THREE = require('three');
+    const { buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
+    expect(buildVideoSphereGeometry(THREE)).toBeTruthy();
+    expect(buildVideoSphereGeometry(THREE, { projection: '180' })).toBeTruthy();
+  });
+});
