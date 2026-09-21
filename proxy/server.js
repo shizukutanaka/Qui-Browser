@@ -194,6 +194,10 @@ export async function fetchThroughGuard(target, headers = {},
           return { ok: false, reason: `content-encoding-unsupported:${encoding}` };
         }
         source = r.pipe(make());
+        // pipe() never forwards 'error': an upstream failure mid-body would
+        // leave the decoder waiting forever and the body promise hanging past
+        // the deadline. Forward it so source 'error' resolves the wait.
+        r.once('error', (e) => source.destroy(e));
       }
 
       const body = await new Promise((resolve) => {

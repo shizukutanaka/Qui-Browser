@@ -248,8 +248,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ### Session 75: 続き164
 - 🔍 **実害（プロキシ Content-Encoding 不処理）**: Node の http client は `content-encoding` をデコードしない — upstream が gzip/br を返すと圧縮バイトを `utf8` 文字列化して reader に文字化けしたゴミを転送していた。
 - 🔧 **修正**: `content-encoding` に応じて zlib デコーダを pipe（`gzip`/`x-gzip`/`deflate` は `createUnzip` がヘッダ判別、`br` は brotli）。**サイズ上限はデコード後ストリームに適用** — 圧縮爆弾が MAX_RESPONSE_BYTES を超過増幅できない。未知エンコーディングは `content-encoding-unsupported:*` で明示拒否（mojibake を返さない）。
-- 📌 **pin**: proxy-server.test.js に3テスト（実 zlib.gzipSync ボディの decode・zstd 拒否・identity パススルー）— `Readable.from` で実ストリームを返すよう pipe() が必要なため。
-- ✅ 3064 tests / 72 suites 全緑、lint 0 errors。
+- ⚠️ **自作退行を捕捉**: `pipe()` は `error` を転送しない（Node 既知仕様）— upstream が mid-body で失敗/abort すると decoder が永遠に待ち、body promise が deadline を越えてハング。`r.once('error', e => source.destroy(e))` で転送（pin テストが修正なしでは 10 秒タイムアウトすることを確認）。
+- 📌 **pin**: proxy-server.test.js に5テスト（実 zlib.gzipSync ボディの decode・zstd 拒否・identity パススルー・upstream mid-body エラーで decoder 破棄→即解決・腐敗 gzip は失敗として表面化）— `Readable.from` で実ストリームを返すよう pipe() が必要なため。
+- ✅ 3066 tests / 72 suites 全緑、lint 0 errors。
 
 ### Session 75: 続き163
 - 🔍 **実機発見（テストエージェントのオフライン回帰検証）**: offline.html リロードループ修正を実ブラウザで検証（サーバー実 kill → 52 秒間ループなし・正直な文言を確認）する過程で新たなギャップを炙り出し — **SW 更新直後のオフラインで `/` が無スタイル**。毎ビルド CACHE_VERSION が回転 → activate が旧ランタイムキャッシュを削除 → precache が CRITICAL_ASSETS（シェルのみ）のため hashed JS/CSS 未到達。

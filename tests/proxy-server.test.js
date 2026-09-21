@@ -433,3 +433,55 @@ describe('fetchThroughGuard — content-encoding', () => {
     expect(out.body).toBe('<html>plain</html>');
   });
 });
+
+describe('fetchThroughGuard — decoder error propagation', () => {
+  const { Readable } = require('node:stream');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  function fakeReq() {
+    return { on() {}, end() {}, destroy() {} };
+  }
+
+  test('an upstream error mid-body destroys the decoder — body wait resolves', async () => {
+    // pipe() never forwards 'error' — without the explicit forward, a failing
+    // upstream leaves the decoder waiting and the body promise hangs forever.
+    // The stream fails itself on first pull so the error fires only after the
+    // pipe and error-forward listeners are attached.
+    http.request.mockImplementation((url, opts, cb) => {
+      const upstream = new Readable({
+        read() {
+          this.destroy(new Error('socket reset'));
+        }
+      });
+      upstream.statusCode = 200;
+      upstream.headers = {
+        'content-type': 'text/html',
+        'content-encoding': 'gzip'
+      };
+      setImmediate(() => cb(upstream));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('response-too-large-or-truncated');
+  });
+
+  test('corrupt gzip data surfaces as failure, not mojibake', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      const r = Readable.from([Buffer.from('not-actually-gzip-bytes')]);
+      r.statusCode = 200;
+      r.headers = {
+        'content-type': 'text/html',
+        'content-encoding': 'gzip'
+      };
+      setImmediate(() => cb(r));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(false);
+  });
+});
