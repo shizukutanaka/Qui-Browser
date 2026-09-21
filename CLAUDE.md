@@ -245,6 +245,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き199 — 過負荷ラダーに「解像度優先」を追加（requestViewportScale → その後 frame rate）
+- 🔍 **発見（Meta 指針 + WebXR spec）**: 持続予算超過時に**リフレッシュレートを先に下げていた** — Meta の推奨順序は逆で、「同じ Hz で描画ピクセルを減らす動的解像度（`XRView.requestViewportScale`）を先に試し、それでも駄目ならレートを下げる」。レートを落とすとジャダーするので解像度が先。
+- 🔧 **修正**: `_viewScaleLadder = [0.85, 0.7]` — 240フレーム連続超過ごとに `getViewerPose` → `view.requestViewportScale(scale)`（capability check + try/catch）。ラダー枯渇後に従来の frame-rate ステップダウンへ。
+- 🧪 pin 3段: viewport 縮小 → さらに縮小 → ラダー枯渇で rate 降下、を1テストで実測。
+
+### Session 75: 続き198 — 手ジョイントを InstancedMesh 化（追跡ペアあたり 50 draw calls → 2）
+- 🔍 **発見（three.js 最適化知見）**: HandTracking が25ジョイント×2手を**個別 Mesh**（50 geometry 確保 + 50 material clone + 50 draw calls）で描いていた。Quest の描画コール予算では同形状の大量メッシュは InstancedMesh が定石。
+- 🔧 **修正**: 手ごとに `InstancedMesh`（共有 SphereGeometry、DynamicDrawUsage、frustumCulled=false — インスタンスは独自に動くため culling 境界を追跡不能）。`joints` Map は Mesh ではなく `{position}` レコード化（ジェスチャー検出は `.position` のみ読むため互換）。関節の quaternion 更新は削除（球には不可視）。追跡品質の透過は手ごと集約に。
+- 🧪 pin 更新: インスタンス行列の書込み・未索引ジョイント・radius falsy arm、dispose の instanceMatrix 解放を実測。3086→3087 tests。
+
 ### Session 75: 続き197 — UI canvas テクスチャの sRGB 統一（WebPanel/タブストリップが二重ガンマで不正確な色）
 - 🔍 **発見（three r152+ 色管理）**: `configureUITexture` が mipmap 無効化のみ担当で `colorSpace` を未設定 — 呼出側12箇所が手動で `tex.colorSpace = SRGBColorSpace` を付ける設計だったが、**WebPanel の3枚（chromeTex/contentTex/moveBarTex）と TabManager の stripTex が漏れ** → sRGB エンコード済み canvas が linear として解釈→出力時に再 sRGB 化で二重ガンマ、パネルとタブストリップの色が系統的に不正確に描画されていた。
 - 🔧 **修正**: `configureUITexture` に `tex.colorSpace = THREE.SRGBColorSpace` を追加（`THREE.SRGBColorSpace !== undefined` ガード付き、LinearFilter と同パターン）して単一の正本に — 呼出側の散在した代入（VRApp×7・JapaneseIME×4・ImmersiveVideo・BookmarkPanel・CaptionSystem）を全削除（ImmersiveVideo の VideoTexture 行は helper 非経由のため残置）。
