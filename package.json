@@ -23,7 +23,7 @@
     "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.js'",
     "test:integration": "jest tests/vr-app-wiring.test.js tests/app-smoke.test.js",
     "icons": "node tools/generate-icons.mjs",
-    "lint": "eslint src proxy tests tools",
+    "lint": "eslint .",
     "lint:fix": "eslint src proxy --fix",
     "format": "prettier --write \"**/*.{js,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml}\"",

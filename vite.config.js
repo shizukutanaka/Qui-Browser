@@ -60,18 +60,18 @@ export default defineConfig({
           const ext = info[info.length - 1];
 
           if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-            return `assets/images/[name]-[hash][extname]`;
+            return 'assets/images/[name]-[hash][extname]';
           }
 
           if (/woff2?|ttf|otf|eot/i.test(ext)) {
-            return `assets/fonts/[name]-[hash][extname]`;
+            return 'assets/fonts/[name]-[hash][extname]';
           }
 
           if (/ktx2|basis/i.test(ext)) {
-            return `assets/textures/[name]-[hash][extname]`;
+            return 'assets/textures/[name]-[hash][extname]';
           }
 
-          return `assets/[name]-[hash][extname]`;
+          return 'assets/[name]-[hash][extname]';
         },
 
         chunkFileNames: 'js/[name]-[hash].js',
@@ -118,7 +118,10 @@ export default defineConfig({
 
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three']
+    include: ['three'],
+    // Sentry is loaded only via @vite-ignore'd dynamic import when both PROD
+    // and VITE_SENTRY_DSN are set — the packages are deliberately uninstalled.
+    exclude: ['@sentry/browser', '@sentry/tracing', '@sentry/replay']
   },
 
   // Build optimizations

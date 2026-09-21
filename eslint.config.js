@@ -78,6 +78,16 @@ module.exports = [
     }
   },
   {
-    ignores: ['node_modules/', 'dist/', 'coverage/', 'build/']
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'coverage/',
+      'build/',
+      // Archived legacy code is history, not live source (same exclusion
+      // class doc-references.test.js already applies).
+      'docs/archive/',
+      // Vendored third-party binaries (three.js basis transcoder).
+      'public/libs/'
+    ]
   }
 ];
