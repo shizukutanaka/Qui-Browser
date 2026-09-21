@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き152 — プロキシのリダイレクト Location がプロセスを殺し得た（リモート DoS）
+`fetchThroughGuard` の `new URL(r.headers.location, url)` は upstream が返す任意の文字列をパース — `http://[::bad` 等で `ERR_INVALID_URL` が投げ、async リクエストハンドラ内の throw は **unhandled rejection → Node プロセス終了**（Node≥15 のデフォルト）。つまり任意の upstream が1レスポンスでプロキシを落とせた。同じ穴として配列 Location（繰り返しヘッダ）は `String()` でカンマ結合され「一見有効な変な URL」化して追従され得た。修正: 非文字列 location を明示拒否＋URL 解決を try/catch → `bad-redirect-location`。さらにハンドラ側に多層防御 — `fetchThroughGuard` 全体を try/catch して将来のどんな throw も 502 `upstream-failure` 化（プロセスは生きる）。テスト2本で pin。77 proxy tests 全緑。
+
 ### Session 75: 続き151 — manifest.json の shortcuts が死んでいた（存在しないルート×サブパス 404）
 start_url/scope/icons は相対で正しかったが、shortcuts の3本は `/?action=new-tab`・`/bookmarks`・`/history` — **いずれの URL もハンドラが存在しない**（SPA、ルーターなし、ブックマーク/履歴は VR 内パネル）＋ root-absolute のため `/Qui-Browser/` 配下ではさらに 404（offline.html と同型）。shortcuts を削除し、public-assets.test.js に2ピン追加（manifest の全 URL は相対必須／shortcuts は `./` 始まりのみ許可）。dist 実測で shortcuts 消滅確認。3037 tests 全緑。
 

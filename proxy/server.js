@@ -128,7 +128,19 @@ export async function fetchThroughGuard(target, headers = {}) {
 
     if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
       r.resume(); // drain
-      current = new URL(r.headers.location, url).toString();
+      // A malformed Location must not escape: this runs inside an async
+      // request handler, so a throw becomes an unhandled rejection and
+      // takes the whole proxy process down with it. A repeated Location
+      // header arrives as an array — String() would comma-join it into a
+      // misleading URL, so only a single string value may redirect.
+      try {
+        if (typeof r.headers.location !== 'string') {
+          throw new TypeError('non-string location');
+        }
+        current = new URL(r.headers.location, url).toString();
+      } catch {
+        return { ok: false, reason: 'bad-redirect-location' };
+      }
       continue;
     }
 
@@ -200,7 +212,16 @@ export function createProxyServer() {
         .end(JSON.stringify({ error: 'missing-url' }));
       return;
     }
-    const out = await fetchThroughGuard(target, req.headers);
+    let out;
+    try {
+      out = await fetchThroughGuard(target, req.headers);
+    } catch {
+      // A throw here would surface as an unhandled rejection and exit the
+      // process — every upstream surprise must degrade to a 4xx instead.
+      res.writeHead(502, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ error: 'upstream-failure' }));
+      return;
+    }
     if (!out.ok) {
       // The reason is returned so the reader can say something honest, but it
       // never includes anything resolved about the internal network.
