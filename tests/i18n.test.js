@@ -464,3 +464,44 @@ describe('t() — fallback arms', () => {
     setLanguage('en');
   });
 });
+
+describe('i18n — last branch arms', () => {
+  const { applyTranslations } = require('../src/i18n/i18n.js');
+
+  test('applyTranslations(null) with no document returns silently', () => {
+    const saved = global.document;
+    delete global.document;
+    try {
+      expect(() => applyTranslations()).not.toThrow();
+      expect(() => applyTranslations({})).not.toThrow(); // no querySelectorAll
+    } finally {
+      global.document = saved;
+    }
+  });
+
+  test('applyTranslations skips malformed data-i18n-attr pairs', () => {
+    const el = {
+      attrs: {},
+      getAttribute: () => 'aria-label:vr.app.title;;:empty-key',
+      setAttribute(k, v) { this.attrs[k] = v; }
+    };
+    const scope = { querySelectorAll: (sel) => (sel === '[data-i18n-attr]' ? [el] : { forEach() {} }) };
+    scope.querySelectorAll = (sel) => ({ forEach: (fn) => (sel === '[data-i18n-attr]' ? [el] : []).forEach(fn) });
+    expect(() => applyTranslations(scope)).not.toThrow();
+    expect(el.attrs['aria-label']).toBeTruthy();
+  });
+
+  test('detectLanguage ignores saved value absent from the catalog', () => {
+    // localStorage holds a language the catalog doesn't define → falls through
+    // to navigator/default rather than resurrecting a removed language.
+    const saved = global.localStorage;
+    global.localStorage = { getItem: () => 'xx', setItem() {}, removeItem() {} };
+    try {
+      jest.resetModules();
+      const mod = require('../src/i18n/i18n.js');
+      expect(['en', 'ja']).toContain(mod.getLanguage());
+    } finally {
+      global.localStorage = saved;
+    }
+  });
+});
