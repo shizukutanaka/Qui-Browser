@@ -33,9 +33,9 @@ module.exports = {
     'json'
   ],
 
-  // カバレッジ閾値 — ratchet per docs/TESTING.md: set just under the measured
-  // baseline (95.9% stmts / 83.2% branch / 92.7% funcs / 96.1% lines) so a
-  // coverage regression fails the gate instead of silently landing.
+  // カバレッジ閾値 — ratchet per docs/TESTING.md: keep the floor just under
+  // the measured suite coverage so a regression fails the gate instead of
+  // silently landing. When coverage improves, raise these values to match.
   coverageThreshold: {
     global: {
       branches: 95,
