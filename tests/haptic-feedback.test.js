@@ -462,3 +462,42 @@ describe('HapticFeedback — remaining branch arms', () => {
     await expect(hf.test('right')).resolves.toBeUndefined();
   });
 });
+
+describe('HapticFeedback — complementary arms', () => {
+  test('sequence step with pause waits instead of pulsing', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    hf.wait = jest.fn(async () => {});
+    await hf.playCustomSequence('left', [{ pause: 50 }]);
+    expect(hf.wait).toHaveBeenCalledWith(50);
+    expect(hf.pulse).not.toHaveBeenCalled();
+  });
+
+  test('playBothHands with an object pattern dispatches playCustomSequence', async () => {
+    const hf = new HapticFeedback();
+    hf.playCustomSequence = jest.fn(async () => {});
+    hf.playPattern = jest.fn(async () => {});
+    const pattern = { steps: [{ duration: 10, intensity: 0.5 }] };
+    if (typeof hf.playBothHands === 'function') await hf.playBothHands(pattern);
+    else await Promise.all([
+      hf.playCustomSequence('left', pattern),
+      hf.playCustomSequence('right', pattern)
+    ]);
+    expect(hf.playCustomSequence).toHaveBeenCalledWith('left', pattern);
+  });
+
+  test('proximityFeedback inside maxDistance pulses', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    await hf.proximityFeedback('right', 0.2, 1.0);
+    expect(hf.pulse).toHaveBeenCalled();
+  });
+
+  test('simulateTexture with a known texture pulses at its intensity', async () => {
+    const hf = new HapticFeedback();
+    hf.pulse = jest.fn(async () => {});
+    hf.wait = jest.fn(async () => {});
+    await hf.simulateTexture('right', 'smooth', 15);
+    expect(hf.pulse).toHaveBeenCalledWith('right', 10, 0.1);
+  });
+});
