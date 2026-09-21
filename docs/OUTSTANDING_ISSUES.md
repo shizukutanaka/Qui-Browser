@@ -534,6 +534,22 @@ git push
 
 **続き26 追記**: `benchmark.yml` はさらに `tools/benchmark.js` をトリガー条件に持ち、本体を `node tools/benchmark.js` で起動する — 同ツールは削除済み `assets/js/vr-*.js`（21モジュール全て 404）を計測対象にしていた完全な死んだツールであり、本セッションで `tools/benchmark.js`・`tools/check-performance-regression.js` と npm scripts (`benchmark*`・`ci:benchmark`) を削除した。`benchmark.yml` 自体も削除対象に追加すること（K-1 パッチに含めるか別 commit）。
 
+**続き75 追記（main マージ時に確実に失敗するジョブを実測）**:
+- `ci.yml` `test-integration` — `npm test -- tests/tier-system-integration.test.js` は**削除済みファイル**を指す（jest は no-tests で exit 1）。
+- `ci.yml` `test-performance` — `npm run benchmark:all` は削除済みスクリプト、`tools/check-performance-regression.js` も削除済み。**ジョブ丸ごと死んでいる**。
+- `benchmark.yml` — 週次 cron (`0 0 * * 0`) が `node tools/benchmark.js`（削除済み）を起動 → **毎週失敗通知が出続ける**。`v5.8.0-planning.yml` は週次で削除済み `assets/js/` を grep する echo だけの死骸。`wasm-build.yml` は削除済み `wasm/` パスフィルタで dormant。
+
+**パッチ同梱**: `docs/patches/0002-ci-fix-dead-jobs.patch`（`origin/main` にクリーン適用を検証済み）— test-integration を `npm run test:integration` に付け替え、test-performance ジョブとその `needs:`/サマリ参照を削除。
+
+```bash
+git checkout main && git pull
+git am docs/patches/0001-ci-drop-assets-js-steps.patch   # 既存（assets/js 参照除去）
+git am docs/patches/0002-ci-fix-dead-jobs.patch          # 本追記（死んだジョブの修復）
+git rm .github/workflows/benchmark.yml .github/workflows/v5.8.0-planning.yml .github/workflows/wasm-build.yml
+git commit -m "ci: delete dead scheduled/path-filtered workflows"
+git push
+```
+
 代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
 このリポジトリが実際に検証している内容がすべて走る。
 
