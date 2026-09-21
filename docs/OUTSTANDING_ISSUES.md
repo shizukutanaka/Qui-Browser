@@ -559,6 +559,8 @@ git push
 （jest が絶対に生成しない）を `on-missing-report: fail` で要求するため。
 カバレッジは直上の Codecov アップロードが受け皿で済 → `docs/patches/0006-ci-delete-jacoco-badge-step.patch` にステップ削除を同梱（クリーン適用検証済み）。
 
+**併せて2件の codecov 不備を修正済み（本ブランチ側）**: ①jest の `coverageReporters` に `'json'` を追加 — 以前は `files: ./coverage/coverage-final.json` が指すファイルが一度も生成されていなかった。②アップロードは `CODECOV_TOKEN` シークレットが必要（CI ログで "Token required - not valid tokenless upload"）— owner がリポジトリ Settings に追加するまでアップロードは fail_ci_if_error:false でスキップされる。また README の静的 fake badge（常時 "passing" 表示）を実際の Actions バッジに置換。
+
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）

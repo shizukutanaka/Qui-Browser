@@ -27,7 +27,10 @@ module.exports = {
     'text',
     'text-summary',
     'html',
-    'lcov'
+    'lcov',
+    // ci.yml's Codecov step uploads ./coverage/coverage-final.json — without
+    // the 'json' reporter the file is never emitted and the upload no-ops.
+    'json'
   ],
 
   // カバレッジ閾値 — ratchet per docs/TESTING.md: set just under the measured
