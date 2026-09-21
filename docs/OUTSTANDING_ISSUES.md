@@ -549,12 +549,18 @@ git push
 `path: '.'` で生ソースを公開していた**（vercel.json の #130 と同じ破損クラス）→
 `npm run build`（`BASE_PATH=/Qui-Browser/`）+ `path: './dist'` に修正。
 
+**続き135 追記**: Build Verification の Node マトリクス `[16, 18, 20]` は
+**16 が永赤**（vite@5 は Node ^18||>=20 を要求し node@16 で `resolveConfig` が投げる ——
+`vite build` を node@16/18/20 で実測確認: 16=exit1、18/20=green）。
+`docs/patches/0005-ci-drop-node16-build-leg.patch` に修正を同梱（`[18, 20]` に縮退、クリーン適用検証済み）。
+
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
 git am docs/patches/0002-ci-fix-dead-jobs.patch               # 既存（ci.yml 死んだジョブ修復）
 git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復
 git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
+git am docs/patches/0005-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
 git push
 ```
 

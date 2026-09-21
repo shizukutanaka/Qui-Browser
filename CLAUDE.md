@@ -250,6 +250,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 **(b) Node 20 乖離**（CI は Node 20、本機は 24）: `jest.spyOn(performance, 'now')` が Node 20 の `Performance.now`（read-only）で投げ、generator の `.filter`（Iterator helpers、Node 22+）が未存在 → 7テスト/3スイート赤。`defineProperty` で own-property スタブに置換（全バージョン安全）、generator は `[...walk()].filter` に修正。**`npx node@20` で全スイート実走グリーン確認** —— ローカル Node と CI Node の乖離は今後 `npx -y node@20` で検証可能。
 
+- 🔍 **同クラス横展開**: Build Verification のマトリクス `[16, 18, 20]` は **Node 16 leg が永赤**（vite@5 が Node ^18||>=20 要求、`vite build` を node@16/18/20 で実測: 16=exit1/18・20=green）→ `docs/patches/0005-ci-drop-node16-build-leg.patch` に修正を同梱（K-1 パッチ列に追加、クリーン適用検証済み）。tests/tools に Node 21+ API（groupBy/Set.union/Iterator helpers 他）の残置はゼロ。
 - 📦 **gate**: 3023 tests / 68 suites 全緑（Node 20 + 24 両方）、lint 0 errors。CI の残る赤は全て K-1 パッチ対象の死んだジョブ + M-1 の format:check（既知 owner 判断）。
 
 ### 続き133: KTX2 トランスコーダが CDN の three@0.160.0 に固定 — 同梱は 0.181.2 で 21 リリースの skew
