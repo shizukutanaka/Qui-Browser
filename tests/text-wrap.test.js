@@ -113,3 +113,28 @@ describe('wrapTextToLines — long-word split flushes the pending row first', ()
     expect(wrapTextToLines('ab cdefg', 3)).toEqual(['ab', 'cde', 'fg']);
   });
 });
+
+describe('textWrap — complementary arms', () => {
+  test('CJK characters measure wider than ASCII', () => {
+    const { charWidthEm } = require('../src/vr/ui/textWrap.js');
+    expect(charWidthEm('あ'.codePointAt(0))).toBeGreaterThan(charWidthEm('a'.codePointAt(0)));
+    expect(charWidthEm('中'.codePointAt(0))).toBeGreaterThan(charWidthEm('a'.codePointAt(0)));
+  });
+
+  test('wrapTextToWidth with NaN/zero maxEm falls back to 1', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(Array.isArray(wrapTextToWidth('a b c', NaN))).toBe(true);
+    expect(Array.isArray(wrapTextToWidth('a b c', 0))).toBe(true);
+  });
+
+  test('wrapTextToWidth on null/undefined text returns empty rows', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(wrapTextToWidth(null, 10).join('')).toBe('');
+    expect(wrapTextToWidth(undefined, 10).join('')).toBe('');
+  });
+
+  test('truncateToWidth with null text returns empty string', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    expect(truncateToWidth(null, 10)).toBe('');
+  });
+});
