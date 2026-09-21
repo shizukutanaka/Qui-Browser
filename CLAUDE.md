@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き187 — raycast の結果配列も毎コール確保されていた
+- 🔍 **実測（確保掃引の残り）**: `updateHover` がコントローラ毎フレーム × `intersectObjects` で**結果配列を毎コール新規確保**（180回/秒 × hover + select）。three の `intersectObjects(objects, recursive, target)` は第3引数に再利用バッファを取れるのに未指定だった。`_sharedRaycaster` 自体は共有済みだったが結果側が漏れ。
+- 🔧 **修正**: `intersectInteractables(controller)` ヘルパー追加（`_hitScratch` 共有バッファ + `length=0` リセット + 先頭 visible hit 返却）— `updateHover`・`onControllerSelect` の2呼出を集約。`intersection` は全コンシューマーが `evt.intersection.point` を同期的に読むだけで保持なしを確認済み。
+- ✅ 3086 tests / 72 suites 全緑（fixture に `intersectInteractables` キャリー追加 — bound-prototype パターン継続）、lint 0 errors。
+
 ### Session 75: 続き186 — 熱パスの per-frame 確保を実測で潰す
 - 🔍 **実測（「allocation near zero」主張の検証）**: ARCHITECTURE.md が「allocation near zero to hold 72–90 fps」を謳うのに対し、全サブシステムの update() を掃引。2件の per-frame 確保を発見: ①`CaptionSystem.update` が毎フレーム `_lines.filter()` で新配列（90fps×長時間セッションで小確保が GC 圧力に累積）②`HandTracking.update` が毎フレーム `new Set()` + `prevVisible` オブジェクトリテラルを確保。
 - 🔧 **修正**: ①in-place 掃引（write-index + length 切詰）— changed 検出は維持 ②`seenLeft/seenRight` ブール＋`prevLeft/prevRight` スカラー化（'none' handedness の誤右判定を防ぐため `else if === 'right'` で厳密化）。挙動同一・確保ゼロ。

@@ -1995,12 +1995,30 @@ export class VRApp {
     if (!this._sharedRaycaster) {
       this._sharedRaycaster = new THREE.Raycaster();
       this._tmpRayMatrix = new THREE.Matrix4();
+      // Reusable result array for intersectObjects' optional target arg —
+      // the default allocates a fresh array per call (per controller per
+      // frame in updateHover).
+      this._hitScratch = [];
     }
     const m = this._tmpRayMatrix.extractRotation(controller.matrixWorld);
     const raycaster = this._sharedRaycaster;
     raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
     raycaster.ray.direction.set(0, 0, -1).applyMatrix4(m);
     return raycaster;
+  }
+
+  /**
+   * Raycast `controller` against the interactables registry and return the
+   * first world-visible hit, or null. Results go through a shared scratch
+   * array — callers must consume the hit synchronously, not retain it.
+   */
+  intersectInteractables(controller) {
+    const scratch = this._hitScratch || (this._hitScratch = []);
+    scratch.length = 0;
+    const hit = this.raycasterFromController(controller)
+      .intersectObjects(this.interactables, false, scratch)
+      .find(h => isWorldVisible(h.object));
+    return hit || null;
   }
 
   onTeleportStart(controller) {
@@ -2315,9 +2333,7 @@ export class VRApp {
     if (this.interactables.length === 0) {
       return;
     }
-    const hit = this.raycasterFromController(controller)
-      .intersectObjects(this.interactables, false)
-      .find(h => isWorldVisible(h.object));
+    const hit = this.intersectInteractables(controller);
     if (!hit) {
       return;
     }
@@ -2412,9 +2428,7 @@ export class VRApp {
       return;
     }
     for (const controller of this.controllers) {
-      const hit = this.raycasterFromController(controller)
-        .intersectObjects(this.interactables, false)
-        .find(h => isWorldVisible(h.object));
+      const hit = this.intersectInteractables(controller);
       const obj = hit ? hit.object : null;
       const prev = controller.userData.hovered || null;
       if (prev === obj) {
