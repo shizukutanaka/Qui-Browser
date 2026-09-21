@@ -393,3 +393,43 @@ describe('GazeInteraction — _updateFill guard', () => {
     expect(() => g._updateFill(0.5)).not.toThrow();
   });
 });
+
+describe('GazeInteraction — last branch arms', () => {
+  test('setHighContrast with no ring built does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._ring = null;
+    expect(() => g.setHighContrast(true)).not.toThrow();
+    expect(g._ringOpacity).toBe(1.0);
+  });
+
+  test('_reset with fill/ring absent does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._fill = null; g._ring = null;
+    expect(() => g._reset()).not.toThrow();
+  });
+
+  test('_tickConfirm with ring absent does not throw (both reduceMotion arms)', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._ring = null; g._confirmMs = 50;
+    g.reduceMotion = true;
+    expect(() => g._tickConfirm(16)).not.toThrow();
+    g._confirmMs = 50;
+    g.reduceMotion = false;
+    expect(() => g._tickConfirm(16)).not.toThrow();
+  });
+
+  test('dwell completion with target lacking interactable handlers returns without dispatch', () => {
+    const g = new GazeInteraction(makeCamera(), { dwellTime: 10, graceTime: 0 });
+    g._ring = null;
+    g._target = { userData: null };
+    g._dwellMs = 999;
+    expect(() => g.update(16, [])).not.toThrow();
+  });
+
+  test('dispose without camera or reticle does not throw', () => {
+    const g = new GazeInteraction(makeCamera());
+    g.camera = null;
+    g.reticle = null;
+    expect(() => g.dispose()).not.toThrow();
+  });
+});
