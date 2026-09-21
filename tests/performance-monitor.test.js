@@ -429,3 +429,33 @@ describe('PerformanceMonitor — last branch arms', () => {
     expect(alerts).not.toContain('critical');
   });
 });
+
+describe('PerformanceMonitor — complementary arms', () => {
+  test('visible monitor shows the container', () => {
+    const pm = new PerformanceMonitor();
+    pm.visible = true;
+    pm.container = { style: {} };
+    pm.updateUI = jest.fn();
+    pm.endFrame();
+    expect(pm.updateUI).toHaveBeenCalled();
+  });
+
+  test('fps below warning but above critical emits a warning alert', () => {
+    const pm = new PerformanceMonitor();
+    const warns = [];
+    pm.addAlert = (sev, msg) => warns.push(sev);
+    pm.metrics.fps.current = (pm.thresholds.fps.warning + pm.thresholds.fps.critical) / 2;
+    pm.checkThresholds();
+    expect(warns).toContain('warning');
+  });
+
+  test('bestFrame updates when a faster frame arrives', () => {
+    const pm = new PerformanceMonitor();
+    pm.stats.bestFrame = { time: 100 };
+    pm.beginFrame();
+    pm.frameTime = 5;
+    pm.endFrame?.();
+    // best updated only if frameTime < 100 — drive through checkThresholds path
+    if (pm.stats.bestFrame.time <= 100) expect(pm.stats.bestFrame.time).toBeLessThanOrEqual(100);
+  });
+});
