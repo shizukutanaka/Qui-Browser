@@ -551,6 +551,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き69（同セッション）: 死んだ資産の全削除 — ルートの stale 重複 + assets/ の無参照ファイル25件
+- 🔍 **実測**: 続き68のアセット走査を全件照合した結果、root の `manifest.json`/`service-worker.js`/`offline.html` は public/ に**内容の異なる古い複製**（旧 manifest には「100+言語・WebGPU 1000%」の時代遅れの宣伝文）— vite/vercel いずれでも public/ が優先される完全な死骸。assets/ 配下も `css/vr-styles.css`・`styles/*.css` 7枚・`test-precompressed.*`・`og-image/twitter-card`（og:image meta すら無し）・`icon-72..512+152`（manifest は public/icons を指す重複、152 は誰も参照しない）・`sounds/` が無参照。
+- 🔧 25ファイル削除。`assets/` は `icon.svg`（generate-icons のソース）と favicon/touch 3件のみに。`generate-icons.mjs` を実出力に同期 — PWA アイコンは直接 `public/icons/` に生成（manifest の実サイズ7件に合わせ152を削減）、favicon/touch は `assets/icons/`、SOCIAL（無参照画像）は経路ごと削除。
+- ✅ pin: asset-paths.test.js に「root に manifest.json/service-worker.js/offline.html の重複を作らない」を追加（陳腐複製の再混入を防止）。
+- 📝 DEVELOPER_ONBOARDING のファイルツリーを実構造に更新（manifest.json を public/ 配下へ）。2118 tests / 61 suites、lint 0 errors、build green、dist 資産揃い確認。
+
 #### 続き68（同セッション）: 幻影アセット fetch の削除 + Vercel が生ソースを配信していた（実バグ17-18件目）
 - 🐛 **実バグ17**: `loadAudioAssets` が未同梱の `assets/sounds/*.mp3` 4件を毎 VR セッション fetch → 全て 404（`public/assets/` 非存在、リポジトリは `.gitkeep` のみ）。procedural synth は全4名をカバー済みなので fetch は純粋な無駄。loader キュー + start + get/loadAudio を削除し synth に一本化（プログレッシブローダー自体は温存）。
 - 🐛 **実バグ18**: `vercel.json` が `buildCommand: "echo 'No build required'"` + `outputDirectory: "."` で**生のリポジトリルートを配信** — `/src/main.js` が直読みされ、`from 'three'` のベア指定子がブラウザで解決不能 → Vercel 訪問者全員が読込失敗オーバーレイを見る状態。Vite 導入以前の設定の死骸。`npm ci` + `npm run build` + `outputDirectory: dist` に修正、`devCommand` は `npm run dev` に。ついでに dist の実構造に合わない死んだヘッダールート2件修正（`/assets/icons/` → 実在は `/icons/`、`/assets/css/` → `assets/*.css`）。
