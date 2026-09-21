@@ -282,3 +282,124 @@ describe('PerformanceMonitor — remaining guard arms', () => {
     global.document = savedDoc;
   });
 });
+
+describe('PerformanceMonitor — remaining branch arms', () => {
+  function installDom2() {
+    const byId = {};
+    const mk = (t) => {
+      const el = {
+        tagName: t, style: {}, innerHTML: '', children: [],
+        setAttribute() {}, addEventListener() {},
+        appendChild(c) { el.children.push(c); return c; },
+        removeChild(c) { el.children = el.children.filter(x => x !== c); },
+        getContext() { return { calls: [], fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {}, fillText() {} }; }
+      };
+      Object.defineProperty(el, 'id', {
+        get() { return this._id; },
+        set(v) { this._id = v; byId[v] = el; }
+      });
+      return el;
+    };
+    global.document = {
+      body: mk('body'),
+      createElement: mk,
+      getElementById: (id) => byId[id] || mk('div')
+    };
+    return byId;
+  }
+
+  beforeEach(() => { installDom2(); });
+  afterEach(() => { delete global.document; jest.restoreAllMocks(); });
+
+  test('endFrame(renderer): frameCount gate + best/worst + renderer.info absent arms', () => {
+    const mon = new PerformanceMonitor();
+    mon.stats.bestFrame.time = 999;
+    mon.stats.worstFrame.time = -1;
+    // renderer without info → the `renderer && renderer.info` false arm
+    mon.beginFrame();
+    mon.endFrame({});
+    expect(mon.frameCount).toBe(1);
+    expect(mon.stats.bestFrame.time).not.toBe(999);
+    expect(mon.stats.worstFrame.time).not.toBe(-1);
+    mon.beginFrame(); mon.endFrame();
+    const best = mon.stats.bestFrame.time;
+    mon.beginFrame(); mon.endFrame();
+    expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
+  });
+
+  test('updateMemoryMetrics tolerates absent performance.memory', () => {
+    const mon = new PerformanceMonitor();
+    const prev = mon.metrics.memory.current;
+    const orig = global.performance.memory;
+    delete global.performance.memory;
+    mon.updateMemoryMetrics();
+    expect(mon.metrics.memory.current).toBe(prev);
+    if (orig !== undefined) global.performance.memory = orig;
+  });
+
+  test('checkThresholds fires warning band and memory thresholds', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.current = 70; // below warning (80), above critical (60)
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'warning' && a.message.includes('FPS'))).toBe(true);
+    mon.metrics.fps.current = 10;
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'critical')).toBe(true);
+    mon.metrics.memory.current = mon.thresholds.memory.critical + 1;
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'critical' && a.message.includes('Memory'))).toBe(true);
+    mon.metrics.memory.current = mon.thresholds.memory.warning + 1;
+    mon.metrics.memory.critical = Infinity; // keep only warning
+    mon.checkThresholds();
+    expect(mon.alerts.some((a) => a.level === 'warning' && a.message.includes('Memory'))).toBe(true);
+  });
+
+  test('updateUI metricsDiv-absent arm: skips markup, still draws graph', () => {
+    const mon = new PerformanceMonitor();
+    // getElementById null → the `if (metricsDiv)` false arm; graph still runs.
+    global.document.getElementById = () => null;
+    mon.graphCtx = {
+      fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
+      stroke() {}, setLineDash() {}, fillText() {}
+    };
+    mon.graphCanvas = { width: 100, height: 50 };
+    expect(() => mon.updateUI()).not.toThrow();
+  });
+
+  test('updateAlerts alert color/count arms', () => {
+    const mon = new PerformanceMonitor();
+    const alertsDiv = global.document.createElement('div');
+    global.document.getElementById = (id) => id === 'perf-alerts' ? alertsDiv : null;
+    mon.addAlert('warning', 'warn-msg');
+    mon.addAlert('critical', 'crit-msg');
+    mon.addAlert('critical', 'crit-msg'); // same message → count++ → (×2)
+    mon.updateAlerts();
+    const html = alertsDiv.innerHTML;
+    expect(html).toContain('warn-msg');
+    expect(html).toContain('crit-msg');
+    expect(html).toContain('×2');
+  });
+
+  test('show/hide with container null do not throw', () => {
+    const mon = new PerformanceMonitor();
+    expect(() => { mon.show(); mon.hide(); }).not.toThrow();
+  });
+
+  test('getReport totalFrames 0 → averageFrameTime 0', () => {
+    const mon = new PerformanceMonitor();
+    const s = mon.getReport();
+    expect(s.summary.averageFrameTime).toBe(0);
+    mon.stats.totalFrames = 2;
+    mon.stats.totalTime = 40;
+    expect(mon.getReport().summary.averageFrameTime).toBe(20);
+  });
+
+  test('exportCSV emits empty cell for missing history index', () => {
+    const mon = new PerformanceMonitor();
+    mon.metrics.fps.history = [12];
+    const csv = mon.exportCSV();
+    expect(csv).toContain('fps');
+    // second metric rows: history[i] undefined → ''
+    expect(typeof csv).toBe('string');
+  });
+});
