@@ -791,3 +791,50 @@ describe('VRJapaneseKeyboard — dispose member-present arms', () => {
     expect(kb._clearSuggestions).toHaveBeenCalled();
   });
 });
+
+describe('VRJapaneseKeyboard — remaining member-guard arms', () => {
+  test('key hover fires onHoverCaption when the callback is wired', () => {
+    const scene = { add: jest.fn(), remove: jest.fn() };
+    const cap = jest.fn();
+    const kb = new VRJapaneseKeyboard(scene, new JapaneseIME(), {
+      registerInteractable: (m, h) => { kb._h = h; },
+      unregisterInteractable: jest.fn(),
+      onHoverCaption: cap
+    });
+    kb.createKeyboard();
+    kb._h.onHover();
+    expect(cap).toHaveBeenCalled();
+  });
+
+  test('show() with an existing group sets it visible', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {});
+    kb.createKeyboard();
+    kb.group.visible = false;
+    kb._refreshDisplay = jest.fn();
+    kb.show();
+    expect(kb.group.visible).toBe(true);
+  });
+
+  test('_updateSuggestions tolerates a null ime', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, null, {
+      suggestionProvider: () => ['x']
+    });
+    kb._clearSuggestions = jest.fn();
+    expect(() => kb._updateSuggestions()).not.toThrow();
+  });
+
+  test('dispose releases key meshes, candidates, group from scene', () => {
+    const scene = { add: jest.fn(), remove: jest.fn() };
+    const kb = new VRJapaneseKeyboard(scene, new JapaneseIME(), {
+      unregisterInteractable: jest.fn()
+    });
+    kb.createKeyboard();
+    const geo = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map: { dispose: jest.fn() } };
+    kb.keyMeshes.push({ mesh: { geometry: geo, material: mat, userData: {} }, label: 'x' });
+    const grp = kb.group;
+    kb.dispose();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(scene.remove).toHaveBeenCalledWith(grp);
+  });
+});
