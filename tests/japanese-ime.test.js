@@ -111,3 +111,20 @@ describe('JapaneseIME — conversion tail arms', () => {
     expect(r.mode).toBe('katakana');
   });
 });
+
+describe('JapaneseIME — last branch arms', () => {
+  test('deleteLast in katakana mode re-converts via katakana path', async () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('katakana');
+    await ime.processInput('ka');
+    const out = ime.deleteLast();
+    expect(out.mode).toBe('katakana');
+    expect(out.raw).toBe('k');
+  });
+
+  test('processInput trailing lone n becomes ん (buffer==n arm)', async () => {
+    const ime = new JapaneseIME();
+    const out = await ime.processInput('n');
+    expect(out.converted).toBe('ん');
+  });
+});

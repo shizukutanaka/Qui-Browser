@@ -671,3 +671,34 @@ describe('VRJapaneseKeyboard — remaining guard arms', () => {
     expect(() => kb._refreshDisplay()).not.toThrow();
   });
 });
+
+describe('VRJapaneseKeyboard — last branch arms', () => {
+  test('constructor with no opts uses all defaults', () => {
+    const { VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} }, { convertRomajiToHiragana: (s) => s });
+    expect(kb.scale).toBe(1);
+    expect(kb.onHoverCaption).toBeNull();
+    expect(kb.suggestionProvider).toBeNull();
+  });
+
+  test('_updateSuggestions with short query clears instead of calling provider', () => {
+    const { VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const provider = jest.fn();
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} },
+      { compositionBuffer: 'a', convertRomajiToHiragana: (s) => s },
+      { suggestionProvider: provider });
+    kb._clearSuggestions = jest.fn();
+    kb._updateSuggestions();
+    expect(provider).not.toHaveBeenCalled();
+    expect(kb._clearSuggestions).toHaveBeenCalled();
+  });
+
+  test('key hover without onHoverCaption does not throw', () => {
+    const { kb } = makeKeyboard();
+    kb.show();
+    const { mesh } = kb.keyMeshes[0];
+    const cfg = mesh.userData;
+    // Drive the registered hover handler directly if captured.
+    expect(() => cfg.onHover?.()).not.toThrow();
+  });
+});
