@@ -2221,3 +2221,94 @@ describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure constructi
     delete global.window;
   });
 });
+
+describe('VRApp setupControllers + loadAudioAssets (bound prototypes)', () => {
+  const makeControllerApp = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: { controllerDeadZone: 0.15, southpaw: false },
+      playerRig: new THREE.Group(),
+      scene: new THREE.Scene(),
+      controllers: [],
+      controllerGrips: [],
+      teleport: {},
+      showVRToast: jest.fn(),
+      onControllerSelect: jest.fn(),
+      onTeleportStart: jest.fn(),
+      onTeleportEnd: jest.fn(),
+      _cancelTeleportIfAimedBy: jest.fn(),
+      ...over
+    });
+    return app;
+  };
+
+  test('two controllers each get a ray, select/squeeze wiring, and join the playerRig', () => {
+    const app = makeControllerApp();
+    // Controllers are real THREE Groups — EventDispatcher works natively.
+    const ctl = [new THREE.Group(), new THREE.Group()];
+    ctl.forEach((c) => { c.userData = {}; });
+    const grips = [new THREE.Group(), new THREE.Group()];
+    app.renderer = {
+      xr: {
+        getController: jest.fn((i) => ctl[i]),
+        getControllerGrip: jest.fn((i) => grips[i])
+      }
+    };
+    VRApp.prototype.setupControllers.call(app);
+    expect(app.controllers).toHaveLength(2);
+    expect(app.controllerGrips).toHaveLength(2);
+    // Ray line parented under each controller, pointing -Z, scaled to 5m.
+    const ray = ctl[0].children.find((c) => c.name === 'pointerRay');
+    expect(ray.isLine).toBe(true);
+    expect(ray.scale.z).toBe(5);
+    // select/squeeze events dispatch to the app handlers.
+    ctl[0].dispatchEvent({ type: 'selectstart' });
+    expect(app.onControllerSelect).toHaveBeenCalledWith(ctl[0], true);
+    ctl[0].dispatchEvent({ type: 'squeezeend' });
+    expect(app.onTeleportEnd).toHaveBeenCalled();
+    // Teleport marker exists, hidden until aiming.
+    expect(app.teleport.marker).toBeTruthy();
+    expect(app.teleport.marker.visible).toBe(false);
+    // Both controllers under the rig so they inherit head-relative space.
+    expect(app.playerRig.children).toEqual(expect.arrayContaining(ctl));
+  });
+
+  test('controller reconnect mid-session toasts; disconnect forgets the source', () => {
+    const app = makeControllerApp();
+    const ctl = new THREE.Group(); ctl.userData = {};
+    app.renderer = {
+      xr: { getController: jest.fn(() => ctl), getControllerGrip: jest.fn(() => new THREE.Group()) }
+    };
+    VRApp.prototype.setupControllers.call(app);
+    const src = { handedness: 'right' };
+    // First connect (inputSource undefined→set): no toast.
+    ctl.dispatchEvent({ type: 'connected', data: src });
+    expect(app.showVRToast).not.toHaveBeenCalled();
+    // Disconnect: warn toast + source forgotten + teleport cancelled.
+    ctl.dispatchEvent({ type: 'disconnected' });
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+    expect(ctl.userData.inputSource).toBeNull();
+    expect(app._cancelTeleportIfAimedBy).toHaveBeenCalledWith(ctl);
+    // Reconnect after disconnect (inputSource was null): info toast.
+    ctl.dispatchEvent({ type: 'connected', data: src });
+    expect(app.showVRToast).toHaveBeenLastCalledWith(expect.any(String), { type: 'info' });
+  });
+
+  test('loadAudioAssets registers procedural buffers + sources for all four feedback sounds', async () => {
+    const app = makeControllerApp();
+    const sources = new Map();
+    app.spatialAudio = {
+      registerProceduralBuffer: jest.fn(),
+      createSource: jest.fn((name) => sources.set(name, true)),
+      sources
+    };
+    await VRApp.prototype.loadAudioAssets.call(app);
+    expect(app.spatialAudio.registerProceduralBuffer).toHaveBeenCalledTimes(4);
+    for (const n of ['click', 'hover', 'success', 'error']) {
+      expect(sources.has(n)).toBe(true);
+    }
+    // A second call creates nothing — existing sources are reused.
+    app.spatialAudio.createSource.mockClear();
+    await VRApp.prototype.loadAudioAssets.call(app);
+    expect(app.spatialAudio.createSource).not.toHaveBeenCalled();
+  });
+});
