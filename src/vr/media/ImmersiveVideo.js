@@ -361,7 +361,7 @@ export class ImmersiveVideo {
         this.video.removeEventListener('playing', this._onVideoPlaying);
         this._onVideoPlaying = null;
       }
-      this.video.removeAttribute('src');
+      this.video.removeAttribute?.('src');
       if (this.video.load) {
         this.video.load();
       }
