@@ -615,3 +615,59 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     expect(() => { sug.handlers.onHover(); sug.handlers.onHoverEnd(); sug.handlers.onSelect(); }).not.toThrow();
   });
 });
+
+describe('VRJapaneseKeyboard — remaining guard arms', () => {
+  test('constructor coerces non-function callbacks + non-positive scale', () => {
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} }, new JapaneseIME(), {
+      registerInteractable() {}, unregisterInteractable() {},
+      scale: 0, onHoverCaption: 'x', onCancel: 9, suggestionProvider: []
+    });
+    expect(kb.scale).toBe(1);
+    expect(kb.onHoverCaption).toBeNull();
+    expect(kb.onCancel).toBeNull();
+    expect(kb.suggestionProvider).toBeNull();
+  });
+
+  test('setOnConfirm with non-function clears the callback', () => {
+    const { kb } = makeKeyboard();
+    kb.setOnConfirm(42);
+    expect(kb._onConfirmCallback).toBeNull();
+  });
+
+  test('show() before createKeyboard: lazy-builds, group guard passes', () => {
+    const kb = new VRJapaneseKeyboard({ add() {}, remove() {} }, new JapaneseIME(), {
+      registerInteractable() {}, unregisterInteractable() {}
+    });
+    expect(() => kb.show()).not.toThrow();
+    expect(kb.group).toBeTruthy();
+  });
+
+  test('space with convertToKanji returning falsy shows no candidates', async () => {
+    const { kb } = makeKeyboard();
+    kb.ime.convertToKanji = async () => null; // falsy-result arm
+    await kb.onKeyPress('space');
+    expect(kb._candidatesGroup?.visible ?? false).toBe(false);
+  });
+
+  test('_updateSuggestions with ime null treats query as empty', () => {
+    const { kb } = makeKeyboard();
+    kb.suggestionProvider = jest.fn(() => ['x']);
+    kb.ime = null;
+    expect(() => kb._updateSuggestions()).not.toThrow();
+    expect(kb.suggestionProvider).not.toHaveBeenCalled(); // <2 chars → clear only
+  });
+
+  test('dispose with partial state: no keyMeshes/display/scene/ime guards', () => {
+    const kb = new VRJapaneseKeyboard(null, null, {
+      registerInteractable() {}, unregisterInteractable() {}
+    });
+    expect(() => kb.dispose()).not.toThrow();
+    expect(kb.group).toBeNull();
+  });
+
+  test('_refreshDisplay with _displayTex null skips needsUpdate', () => {
+    const { kb } = makeKeyboard();
+    kb._displayTex = null;
+    expect(() => kb._refreshDisplay()).not.toThrow();
+  });
+});

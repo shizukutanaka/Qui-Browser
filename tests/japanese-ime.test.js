@@ -90,3 +90,24 @@ describe('JapaneseIME — remaining branch arms (fallbacks)', () => {
     expect(r2.converted).toContain('ん');
   });
 });
+
+describe('JapaneseIME — conversion tail arms', () => {
+  test('trailing lone n → ん; other tails stay raw', async () => {
+    const ime = new JapaneseIME();
+    const r = await ime.processInput('kan');
+    // 'kan' parses as ka+n → かん (trailing n arm)
+    expect(r.converted).toBe('かん');
+    const ime2 = new JapaneseIME();
+    const r2 = await ime2.processInput('ka');
+    expect(r2.converted).toBe('か'); // buffer fully consumed, no lone n
+  });
+
+  test('deleteLast in katakana mode re-converts through katakana', () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('katakana');
+    ime.processInput('ka');
+    const r = ime.deleteLast();
+    expect(typeof r.converted).toBe('string');
+    expect(r.mode).toBe('katakana');
+  });
+});
