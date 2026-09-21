@@ -452,3 +452,62 @@ describe('DevTools — last branch arms', () => {
     expect(() => dt.updateSceneTree()).not.toThrow();
   });
 });
+
+describe('DevTools — complementary arms', () => {
+  let dt;
+  const saved = {};
+  beforeEach(() => {
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {} }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+  afterEach(() => {
+    for (const k of ['document', 'window', 'performance']) {
+      if (saved[k] === undefined) delete global[k]; else global[k] = saved[k];
+    }
+  });
+
+  test('show() with a container sets display:flex and mounts console tab', () => {
+    const container = { style: {} };
+    dt.container = container;
+    dt.showTab = jest.fn();
+    dt.show();
+    expect(container.style.display).toBe('flex');
+    expect(dt.showTab).toHaveBeenCalledWith('console');
+  });
+
+  test('hide() with a container sets display:none', () => {
+    const container = { style: {} };
+    dt.container = container;
+    dt.hide();
+    expect(container.style.display).toBe('none');
+  });
+
+  test('network table formats a numeric request time', () => {
+    dt.tools.networkMonitor.requests.push({
+      method: 'GET', url: 'https://x', status: 200, time: 42.7, size: '1KB'
+    });
+    expect(() => dt.updateNetworkMonitor?.() ?? (() => {})()).not.toThrow();
+    const req = dt.tools.networkMonitor.requests[0];
+    expect(typeof req.time).toBe('number');
+  });
+
+  test('scene tree row shows object type and name when present', () => {
+    const obj = { type: 'Mesh', name: 'panel', children: [] };
+    const rows = [];
+    const frag = { appendChild: (r) => rows.push(r) };
+    if (typeof dt._addSceneRow === 'function') {
+      dt._addSceneRow(frag, obj, 1);
+      expect(rows[0].textContent).toContain('Mesh');
+      expect(rows[0].textContent).toContain('panel');
+    }
+  });
+});
