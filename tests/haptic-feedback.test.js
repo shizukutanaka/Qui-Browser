@@ -501,3 +501,60 @@ describe('HapticFeedback — complementary arms', () => {
     expect(hf.pulse).toHaveBeenCalledWith('right', 10, 0.1);
   });
 });
+
+describe('HapticFeedback — remaining arms', () => {
+  test('update() logs and deletes a controller that loses its actuators', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [
+      { hapticActuators: [{}], id: 'g0' }
+    ]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(1);
+    // same index, now without actuators -> disconnect arm
+    global.navigator.getGamepads = jest.fn(() => [{ id: 'g0' }]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(0);
+  });
+
+  test('alert(high) on a single shared gamepad uses playCustomSequence once', async () => {
+    const hf = new HapticFeedback();
+    const gp = { hapticActuators: [{ pulse: jest.fn(() => Promise.resolve()) }], hand: 'left' };
+    hf.gamepads.set(0, gp);
+    const seq = jest.spyOn(hf, 'playCustomSequence').mockResolvedValue();
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.alert('high');
+    expect(seq).toHaveBeenCalledTimes(1);
+    expect(seq.mock.calls[0][0]).toBe('left');
+    expect(pat).not.toHaveBeenCalled();
+  });
+
+  test('alert(low) on a single gamepad uses the string playPattern arm', async () => {
+    const hf = new HapticFeedback();
+    hf.gamepads.set(0, { hapticActuators: [{ pulse: jest.fn() }], hand: 'left' });
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.alert('low');
+    expect(pat).toHaveBeenCalledWith('left', 'notification');
+  });
+
+  test('simulateTexture with an unknown texture returns immediately', async () => {
+    const hf = new HapticFeedback();
+    const pulse = jest.spyOn(hf, 'pulse').mockResolvedValue();
+    await hf.simulateTexture('right', 'nonexistent', 50);
+    expect(pulse).not.toHaveBeenCalled();
+  });
+
+  test('proximityFeedback beyond maxDistance fires no pulse', async () => {
+    const hf = new HapticFeedback();
+    const pulse = jest.spyOn(hf, 'pulse').mockResolvedValue();
+    await hf.proximityFeedback('right', 5, 1.0);
+    expect(pulse).not.toHaveBeenCalled();
+  });
+
+  test('test() plays the four canned patterns on the requested hand', async () => {
+    const hf = new HapticFeedback();
+    const pat = jest.spyOn(hf, 'playPattern').mockResolvedValue();
+    await hf.test('left');
+    expect(pat).toHaveBeenCalledTimes(4);
+    expect(pat.mock.calls[0][0]).toBe('left');
+  });
+});
