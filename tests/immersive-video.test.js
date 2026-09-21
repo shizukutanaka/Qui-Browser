@@ -428,3 +428,33 @@ describe('ImmersiveVideo update() + HUD button wiring', () => {
     expect(scene.children).toHaveLength(0);
   });
 });
+
+describe('ImmersiveVideo — guard + stereo-layer arms', () => {
+  test('play() with a falsy URL returns early and allocates nothing', () => {
+    const { iv, scene } = makeHarness();
+    iv.play('');
+    expect(scene.children).toHaveLength(0);
+    expect(iv.video).toBeFalsy();
+  });
+
+  test('togglePause() before play() is a safe no-op', () => {
+    const { iv } = makeHarness();
+    expect(() => iv.togglePause()).not.toThrow();
+  });
+
+  test('play() enables layers 1 and 2 on each XR eye camera when present', () => {
+    const eye1 = { layers: { enable: jest.fn() } };
+    const eye2 = { layers: { enable: jest.fn() } };
+    const renderer = { xr: { getCamera: () => ({ cameras: [eye1, eye2] }) } };
+    const scene = { children: [], add(o) { scene.children.push(o); }, remove(o) {} };
+    const iv = new ImmersiveVideo(scene, makeCamera(), renderer, {
+      registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
+    });
+    iv.play('https://x.example.com/v_sbs.mp4'); // '_sbs' → stereo-sbs layout
+    // each eye camera enables ONLY its own layer: left→1, right→2
+    expect(eye1.layers.enable).toHaveBeenCalledWith(1);
+    expect(eye1.layers.enable).not.toHaveBeenCalledWith(2);
+    expect(eye2.layers.enable).toHaveBeenCalledWith(2);
+    expect(eye2.layers.enable).not.toHaveBeenCalledWith(1);
+  });
+});

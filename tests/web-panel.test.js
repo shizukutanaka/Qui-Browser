@@ -487,3 +487,31 @@ describe('WebPanel curvature + visibility', () => {
     expect(panel.scene.add).not.toHaveBeenCalledWith(panel.group);
   });
 });
+
+describe('WebPanel — updateLayer quad-layer blit', () => {
+  test('no-op until a quad layer exists AND the chrome is dirty', () => {
+    const panel = makePanel();
+    const layersSystem = { renderCanvasToLayer: jest.fn() };
+    panel.layersSystem = layersSystem;
+    panel.updateLayer({}, []);              // no quadLayer → no call
+    panel.quadLayer = { id: 'ql' };
+    panel._layerDirty = false;              // ctor draw marks it dirty
+    panel.updateLayer({}, []);              // not dirty → no call
+    expect(layersSystem.renderCanvasToLayer).not.toHaveBeenCalled();
+  });
+
+  test('dirty + quadLayer → blits the chrome canvas and clears the flag', () => {
+    const panel = makePanel();
+    const layersSystem = { renderCanvasToLayer: jest.fn() };
+    panel.layersSystem = layersSystem;
+    panel.quadLayer = { id: 'ql' };
+    panel._layerDirty = true;
+    const frame = { f: 1 }, views = [{ v: 1 }];
+    panel.updateLayer(frame, views);
+    expect(layersSystem.renderCanvasToLayer)
+      .toHaveBeenCalledWith(panel.quadLayer, panel.chromeCanvas, frame, views);
+    expect(panel._layerDirty).toBe(false);
+    panel.updateLayer(frame, views); // flag cleared → second call skipped
+    expect(layersSystem.renderCanvasToLayer).toHaveBeenCalledTimes(1);
+  });
+});

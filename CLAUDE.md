@@ -544,6 +544,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き110（同セッション）: TabManager ストリップ hover/HC 描画 + ImmersiveVideo ガード + WebPanel updateLayer
+- ✅ TabManager: ストリップ onHover→hoverTint+onHoverCaption / onHoverEnd→baseTint、高コントラスト時の idle-tab/close/new-tab ボーダー stroke、`_shortTitle` の不正URLフォールバック（slice 18）。
+- ✅ ImmersiveVideo: `play('')` 早期 return（何も確保しない）、`togglePause()` no-video ガード、`_enableStereoLayers` の XR eye camera 各目レイヤー（左→1 のみ、右→2 のみ — 相互除外であることを検証）。
+- ✅ WebPanel: `updateLayer` の3ガード（quadLayer/layersSystem/_layerDirty）と dirty クリア後の再 blit 抑止。
+- ✅ 2290 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き109（同セッション）: 散在 sliver の一巡 — BookmarkStore / TextureManager / DeviceCompatibility / FFRSystem
 - ✅ BookmarkStore: hostOf の不正URLフォールバック、MAX_HISTORY=200 トリム、corrupt JSON→[]、search() のブックマーク補完ガード（history 優先・malformed skip・addedAt 欠損→now）。
 - ✅ TextureManager: loadTexture 失敗→getErrorTexture（checkerboard 代替、reject しない）、loadStandardTexture/loadKTX2 の onError→reject、KTX2 進捗コールバック、未キャッシュ URL の unload no-op。
