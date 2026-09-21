@@ -563,6 +563,8 @@ git push
 
 **併せて verify 配線の欠落を patch 化**: `npm run ci:verify`（build + verify:layout/app/vr-boot on real Chromium）は package.json に存在するがどの workflow も呼んでいなかった → `docs/patches/0007-ci-wire-runtime-verification.patch` に `verify-runtime` ジョブを同梱（ubuntu-latest の `/usr/bin/google-chrome`、tools の CHROME_CANDIDATES・`--no-sandbox` 済みで互換確認）。
 
+**さらに cd.yml に同型の BASE_PATH 破損**: Pages ジョブが `base: '/'` でビルドされた共有 `production-build` artifact をそのまま Pages に push していた → `…/Qui-Browser/` 配下では全 asset が 404（deploy.yml の patch 0003 と同じ欠陥クラス）。ただし同一 artifact は Netlify/Vercel（ドメインルート配信、`/` が正しい）にも使われるため、Pages ジョブに `BASE_PATH=/Qui-Browser/` の専用ビルドを持たせる形で `docs/patches/0008-ci-pages-base-path.patch` に同梱（クリーン適用検証済み）。
+
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
@@ -572,6 +574,7 @@ git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削�
 git am docs/patches/0005-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
 git am docs/patches/0006-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
 git am docs/patches/0007-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
+git am docs/patches/0008-ci-pages-base-path.patch             # cd.yml の Pages が base '/' で 404
 git push
 ```
 
