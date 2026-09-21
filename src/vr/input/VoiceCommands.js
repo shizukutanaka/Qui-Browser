@@ -334,7 +334,7 @@ export class VoiceCommands {
         if (match && match[1]) {
           const query = match[1].trim();
           const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-          const opened = window.open(url, '_blank');
+          const opened = window.open(url, '_blank', 'noopener');
           if (!opened && window.location) {
             window.location.href = url;
           }

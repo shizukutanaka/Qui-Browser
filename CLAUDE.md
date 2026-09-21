@@ -245,6 +245,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き227 — リーダーの `<pre>` コードブロック喪失を解消
+- 🔍 **実測**: `extractReadableText` の抽出 alternation が `h1-3/p/li/blockquote` のみ — Qiita/Zenn 系記事の `<pre>` コードブロックが**記事から静かに消えていた**。仮に抽出しても `wrapTextToWidth` が `.trim()`＋`\s+` 分割でインデントを潰し、canvas の `\t` 描画も不定。
+- 🔧 **修正**: ①抽出に `pre` を追加し `preTextOf` で `<br>`→`\n`・タグ剥がし・`\r\n` 正規化・`\t`→2スペース展開・行末空白除去・先端/末端空行除去 ②`layoutReaderLines` に `pre`→'c' 経路 — 物理行を1行ずつ描き、先頭インデントを wrap 前に分離して全継続行へ再付与（ハンギングインデント）。超過行は wrap で消えない ③`fontPxFor('c')=17`・WebPanel で monospace＋`readerCode` 色（通常 #9cdcfe ≒10:1、HC は #ffffff）。
+- 🧪 pin 7件: pre 抽出（`\n {4}` インデント生存・`<br>` 改行・空 pre ドロップ・`\t` 展開）＋レイアウト3件（物理行→c 行・長行 wrap・17px）。
+- ✅ 2998 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き226 — DevTools REPL 全廃止（CSP 下で到達不能）＋ i18n パリティ pin ＋ noopener
+- 🔍 **実測**: DevTools コンソールの `executeCode` は `new Function` ベースの REPL だが、index.html の CSP meta が `script-src 'self'` で `unsafe-eval` を含まない — **meta CSP は dev server でも適用されるため全環境で CSP 違反で死ぬ到達不能機能**だった（呼出元は Enter キー input のみ）。CSP を緩める方向は逆。
+- 🗑 **削除**: `executeCode` + コンソール input を除去 → コンソールタブは読み取り専用ログビューアーに正直化。pin 3件削除＋「input が存在しない」回帰 pin 追加、DEAD map に登録。
+- 🔧 **修正**: ①VoiceCommands 検索の `window.open(url, '_blank')` に `'noopener'` フィーチャ追加（暗黙 noopener 非依存の OWASP 形）②i18n CATALOG の en/ja キー集合パリティ pin を新設（片方だけ追加すると日本語ユーザーに英語が漏れる経路を強制）＋既存 fallback テストの `if (enOnly)` 空走ガードを決定的なキー注入＋finally 掃除へ（vacuous 化の解消）。
+- ✅ 2992 tests / 72 suites 全緑、lint 0 errors（352 warnings）、build 緑。
+
 ### Session 75: 続き225 — DeviceCompatibility の書き込み専用 report 縮小
 - 🔍 **実測**: `deviceCompat.check()` が毎 VR 起動で `isSessionSupported('immersive-vr')` + `('immersive-ar')` の両 probe と `_hasWebGL2()` canvas コンテキスト確保を行い、`vrSupported`/`arSupported`/`webgpu`/`webgl2`/`timestamp` + optionalFeatures 6キー（handTracking/hitTest/anchors/planeDetection/eyeTracking/foveatedRendering）の計11フィールドを生成していた — しかし src 全体の読者は `deviceTier`（targetFPS と telemetry）**のみ**。write-only state と同クラス（#83 基準）。セッション可否の判定自体は entry 層（main.js/app.js）が独自に isSessionSupported しているので、この probe は完全な重複。
 - 🗑 **削除**: report を `{ deviceTier }` に縮小（−146→74行）。`_probeOptionalFeatures`・`_hasWebGL2`・両 isSessionSupported probe を除去。テストは probe 契約 pin を削り tier 検出＋navigator 欠落系のみに整理（−15件）。

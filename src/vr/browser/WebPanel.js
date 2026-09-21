@@ -447,8 +447,12 @@ export class WebPanel {
     let y = CONTENT_PAD + lh;
     for (const line of window) {
       if (line.style !== 'blank' && line.text) {
-        ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
-        ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
+        ctx.font = line.style === 'c'
+          ? `${fontPxFor(line.style, this._readerScale)}px monospace`
+          : `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
+        ctx.fillStyle = line.style === 'p'
+          ? col.readerBody
+          : (line.style === 'c' ? col.readerCode : col.readerHeading);
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
       y += lh;

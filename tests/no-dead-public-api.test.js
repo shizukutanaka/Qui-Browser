@@ -26,6 +26,7 @@ const DEAD = {
   'src/vr/comfort/ComfortSystem.js': ['getStatus', 'resize', 'render', 'handleSnapTurn', 'animateSnapTurn', 'updateFOV', 'setReducedMotion'],
   'src/vr/input/JapaneseIME.js': ['deactivate'],
   'src/vr/input/VoiceCommands.js': ['unregisterCommand', 'setLanguage'],
+  'src/dev/DevTools.js': ['executeCode'],
   'src/vr/interaction/HapticFeedback.js': ['simulateForce', 'directionalPulse', 'playRhythm', 'getPatterns', 'resetStats', 'createCustomPattern', 'simulateTexture', 'simulateImpact', 'proximityFeedback', 'alert', 'playCustomSequence', 'test', 'getStats'],
   'src/vr/rendering/FFRSystem.js': ['setThresholds', 'setDynamicFFR', 'getStatus'],
   'src/vr/rendering/LayersSystem.js': ['getLayer']

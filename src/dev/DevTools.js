@@ -140,27 +140,8 @@ export class DevTools {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'console-tab';
     consoleDiv.style.display = 'none';
-
-    // Input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Execute JavaScript...';
-    input.style.cssText = `
-      width: 100%;
-      background: #3c3c3c;
-      border: 1px solid #3e3e42;
-      color: #d4d4d4;
-      padding: 5px;
-      font-family: 'Courier New', monospace;
-      margin-bottom: 10px;
-    `;
-    input.onkeypress = (e) => {
-      if (e.key === 'Enter') {
-        this.executeCode(input.value);
-        input.value = '';
-      }
-    };
-    consoleDiv.appendChild(input);
+    // Read-only log viewer: the app's CSP forbids eval everywhere (no
+    // unsafe-eval in script-src), so a REPL input could never execute.
 
     // Messages
     const messages = document.createElement('div');
@@ -363,28 +344,6 @@ export class DevTools {
     messagesDiv.textContent = '';
     messagesDiv.appendChild(frag);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
-
-  /**
-   * Execute JavaScript code
-   */
-  executeCode(code) {
-    try {
-      let result;
-      try {
-        // Try as expression so the return value is captured. This is a
-        // developer-only console REPL, so dynamic evaluation is intentional.
-        // eslint-disable-next-line no-new-func
-        result = new Function('"use strict"; return (' + code + ')')();
-      } catch {
-        // Fall back to statement mode (void return).
-        // eslint-disable-next-line no-new-func
-        result = new Function('"use strict"; ' + code)();
-      }
-      this.logMessage('log', [`> ${code}`, result]);
-    } catch (error) {
-      this.logMessage('error', [`Error: ${error.message}`]);
-    }
   }
 
   /**

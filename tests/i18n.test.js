@@ -464,16 +464,29 @@ describe('applyTranslations — DOM application', () => {
   });
 });
 
+describe('t() — catalog parity', () => {
+  // A key added to only one catalog silently renders English for ja users —
+  // the WCAG 3.1.1 class this project explicitly fixes. Pin key-set parity.
+  test('en and ja catalogs contain identical key sets', () => {
+    const { CATALOG } = require('../src/i18n/i18n.js');
+    const enKeys = Object.keys(CATALOG.en).sort();
+    const jaKeys = Object.keys(CATALOG.ja).sort();
+    expect(jaKeys).toEqual(enKeys);
+  });
+});
+
 describe('t() — fallback arms', () => {
   test('falls back to the English catalog when the current lang lacks the key', () => {
-    // A key present only in en — e.g. freshly added — resolves via en.
-    const { CATALOG } = require('../src/i18n/i18n.js');
-    const enOnly = Object.keys(CATALOG.en).find(k => !(k in CATALOG.ja));
-    if (enOnly) {
-      setLanguage('ja');
-      expect(t(enOnly)).toBe(CATALOG.en[enOnly]);
+    const { t: tt, setLanguage: sl, CATALOG } = require('../src/i18n/i18n.js');
+    const K = 'test.en-only-fallback';
+    CATALOG.en[K] = 'EN-ONLY';
+    try {
+      sl('ja');
+      expect(tt(K)).toBe('EN-ONLY');
+    } finally {
+      delete CATALOG.en[K];
+      sl('en');
     }
-    setLanguage('en');
   });
 });
 
@@ -528,14 +541,14 @@ describe('i18n — complementary arms', () => {
 
   test('t() falls back to the en catalog for a key missing in ja', () => {
     const { t, setLanguage, CATALOG } = require('../src/i18n/i18n.js');
-    // find a key present in en but absent in ja; if none exists, fabricate one
-    const enOnly = Object.keys(CATALOG.en).find((k) => !(k in CATALOG.ja));
-    if (!enOnly) {
-      CATALOG.en['vr.__enOnlyTest'] = 'EN-ONLY';
+    CATALOG.en['vr.__enOnlyTest'] = 'EN-ONLY';
+    try {
+      setLanguage('ja');
+      expect(t('vr.__enOnlyTest')).toBe('EN-ONLY');
+    } finally {
+      delete CATALOG.en['vr.__enOnlyTest'];
+      setLanguage('en');
     }
-    setLanguage('ja');
-    expect(t(enOnly || 'vr.__enOnlyTest')).toBe(enOnly ? CATALOG.en[enOnly] : 'EN-ONLY');
-    setLanguage('en');
   });
 
   test('setLanguage writes localStorage and applies to a provided root', () => {

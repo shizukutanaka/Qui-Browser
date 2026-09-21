@@ -127,6 +127,37 @@ describe('extractReadableText', () => {
     expect(extractReadableText('').blocks).toHaveLength(0);
     expect(extractReadableText(null).blocks).toHaveLength(0);
   });
+
+  test('<pre> code survives with newlines and indentation intact', () => {
+    const html = `<body>
+      <p>Before the snippet.</p>
+      <pre><code>const x = 1;\n  if (x) {\n    run();\n  }</code></pre>
+      <p>After it.</p>
+    </body>`;
+    const { blocks } = extractReadableText(html);
+    expect(blocks.map(b => b.type)).toEqual(['p', 'pre', 'p']);
+    const code = blocks[1].text;
+    expect(code).toContain('const x = 1;');
+    expect(code).toContain('\n  if (x) {');
+    expect(code).toContain('\n    run();');
+    // Indentation is not collapsed into a single space run.
+    expect(code).toMatch(/\n {4}run/);
+  });
+
+  test('<pre> containing <br> keeps line breaks; empty pre is dropped', () => {
+    const html = '<body><pre>a<br>b</pre><pre>   </pre><p>x</p></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks[0].type).toBe('pre');
+    expect(blocks[0].text).toBe('a\nb');
+    expect(blocks.map(b => b.type)).toEqual(['pre', 'p']);
+  });
+
+  test('tabs in <pre> expand to spaces (canvas draws \\t unreliably)', () => {
+    const html = '<body><pre><code>if (x) {\n\ty();\n}</code></pre></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks[0].text).toBe('if (x) {\n  y();\n}');
+    expect(blocks[0].text).not.toContain('\t');
+  });
 });
 
 describe('layoutReaderLines', () => {
@@ -175,6 +206,30 @@ describe('layoutReaderLines', () => {
   test('empty / non-array input yields no lines', () => {
     expect(layoutReaderLines([])).toEqual([]);
     expect(layoutReaderLines(null)).toEqual([]);
+  });
+
+  test('pre blocks emit one c-style line per physical source line', () => {
+    const lines = layoutReaderLines([
+      { type: 'p', text: 'Prose.' },
+      { type: 'pre', text: 'line1\n  line2\nline3' }
+    ]);
+    const styles = lines.map(l => l.style);
+    expect(styles).toEqual(['p', 'blank', 'c', 'c', 'c']);
+    expect(lines.filter(l => l.style === 'c').map(l => l.text))
+      .toEqual(['line1', '  line2', 'line3']);
+  });
+
+  test('a code line longer than the measure wraps rather than vanishing', () => {
+    const long = 'x'.repeat(200);
+    const lines = layoutReaderLines([{ type: 'pre', text: long }]);
+    const code = lines.filter(l => l.style === 'c');
+    expect(code.length).toBeGreaterThan(1);
+    expect(code.map(l => l.text).join('')).toBe(long);
+  });
+
+  test('fontPxFor sizes code smaller than body', () => {
+    expect(fontPxFor('c', 1)).toBe(17);
+    expect(fontPxFor('c', 1)).toBeLessThan(fontPxFor('p', 1));
   });
 });
 
@@ -602,7 +657,7 @@ describe('readerLayout — complementary arms', () => {
   test('readerHitTest arrow zone dispatches scrollUp/scrollDown when scrollable', () => {
     const { readerHitTest } = require('../src/vr/browser/readerLayout.js');
     const mod = require('../src/vr/browser/readerLayout.js');
-    const { ARROW_Y0, ARROW_H, ARROW_UP_X0, ARROW_W } = mod;
+    const { ARROW_Y0, ARROW_UP_X0 } = mod;
     if (ARROW_Y0 !== undefined) {
       const hit = readerHitTest(ARROW_UP_X0 + 1, ARROW_Y0 + 1, true);
       expect(['scrollUp', 'scrollDown', 'up', 'down']).toContain(hit.type);

@@ -77,6 +77,30 @@ function textOf(html) {
     .trim();
 }
 
+/**
+ * Extract <pre> text keeping its line structure: <br> and literal newlines
+ * become line breaks, leading indentation survives, and interior whitespace
+ * is not collapsed — code without line breaks is not code. Trailing
+ * whitespace per line and leading/trailing blank lines are trimmed.
+ */
+function preTextOf(html) {
+  const text = decodeEntities(
+    String(html)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(TAG_RE, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/\t/g, '  ') // canvas renders \t inconsistently — expand
+  );
+  const lines = text.split('\n').map(l => l.replace(/\s+$/, ''));
+  while (lines.length && !lines[0].trim()) {
+    lines.shift();
+  }
+  while (lines.length && !lines[lines.length - 1].trim()) {
+    lines.pop();
+  }
+  return lines.join('\n');
+}
+
 /** Strip elements whose contents are never prose (with their contents). */
 function stripNonContent(html) {
   let out = String(html).replace(/<!--[\s\S]*?-->/g, ' ');
@@ -126,7 +150,7 @@ export function extractTitle(html) {
  * Extract readable blocks from an HTML document.
  *
  * @param {string} html
- * @returns {{title: string, blocks: Array<{type: 'h'|'p', text: string}>}}
+ * @returns {{title: string, blocks: Array<{type: 'h'|'p'|'pre', text: string}>}}
  */
 export function extractReadableText(html) {
   const src = String(html === null || html === undefined ? '' : html);
@@ -134,12 +158,14 @@ export function extractReadableText(html) {
   const body = mainRegion(stripNonContent(src));
 
   const blocks = [];
-  // Headings and prose, in document order.
-  const re = /<(h[1-3]|p|li|blockquote)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
+  // Headings, prose and preformatted code, in document order. Without `pre`
+  // in the alternation a tech article's code samples silently vanished —
+  // fatal for exactly the Qiita/Zenn posts this reader exists for.
+  const re = /<(h[1-3]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
   let m;
   while ((m = re.exec(body)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = textOf(m[2]);
+    const text = tag === 'pre' ? preTextOf(m[2]) : textOf(m[2]);
     if (!text) {
       continue;
     }
@@ -147,7 +173,7 @@ export function extractReadableText(html) {
     if (tag === 'li' && text.length < 3) {
       continue;
     }
-    blocks.push({ type: tag.startsWith('h') ? 'h' : 'p', text });
+    blocks.push({ type: tag === 'pre' ? 'pre' : (tag.startsWith('h') ? 'h' : 'p'), text });
   }
 
   return { title, blocks };
