@@ -551,6 +551,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き70（同セッション）: docker 自己ホスト経路が全層で壊れていた — 実バグ19-23件目
+- 🔍 **実測**: docker 経路を照合したら、Vercel 欠陥（続き68）と同型の「生ソースを配信」が Dockerfile / compose / nginx の3層に重なっていた。
+- 🐛 **実バグ19**: Dockerfile のビルドステージは `npm ci --only=production`（vite を入れない）だけ走り **`npm run build` を一度も呼ばず**、プロダクションステージは `/app` 全体を html root にコピー → nginx が生の `src/main.js` を配信、`from 'three'` がブラウザで解決不能 = イメージは起動してもアプリは読込失敗。
+- 🐛 **実バグ20**: `.dockerignore` が `package-lock.json` を除外 → イメージ内で `npm ci` が必ず失敗（lockfile 必須）。
+- 🐛 **実バグ21**: docker-compose が `./:/usr/share/nginx/html:ro` を bind mount — イメージに正しく焼けても生ソースで上書きする構造的な無効化。さらに `nginx-cache` サービスは何にもプロキシされない孤立コンテナ（キャッシュしないキャッシュ）。
+- 🐛 **実バグ22**: nginx.conf の SW 用 no-cache ルートが `sw.js` を指す（PR #72 で削除済み）— 実ファイル `service-worker.js` は汎用 `.js` ルートの **`immutable` 1年キャッシュ**に捕まり、SW 更新が伝播しない。
+- 🐛 **実バグ23**: `location /` の Permissions-Policy（xr-spatial-tracking 等の正しい許可）は `try_files /index.html` の内部リダイレクトが `~* \.html$` に再マッチするため HTML 応答に届かない（サーバレベルの制約側 PP は add_header 継承ルールでどの location にも出ない = 実質全く出ていない）。html location に明示適用。
+- 🔧 修正: Dockerfile は `npm ci` + `npm run build` → `dist/` のみコピー（rm -rf 清掃ブロック不要化）。compose は bind mount・`version:`・dead `nginx-cache` サービス/depends_on/volume を削除。nginx.conf は SW ルートを `service-worker.js` に、死んだ `/examples/`（#82 で削除済み）`/docs/`（dist 非収録）location を削除。
+- ⚠️ 検証限界: この VM に docker 無し — イメージビルド未実施。compose yaml パース確認 + 2118 tests / lint 0 errors / build green。
+
 #### 続き69（同セッション）: 死んだ資産の全削除 — ルートの stale 重複 + assets/ の無参照ファイル25件
 - 🔍 **実測**: 続き68のアセット走査を全件照合した結果、root の `manifest.json`/`service-worker.js`/`offline.html` は public/ に**内容の異なる古い複製**（旧 manifest には「100+言語・WebGPU 1000%」の時代遅れの宣伝文）— vite/vercel いずれでも public/ が優先される完全な死骸。assets/ 配下も `css/vr-styles.css`・`styles/*.css` 7枚・`test-precompressed.*`・`og-image/twitter-card`（og:image meta すら無し）・`icon-72..512+152`（manifest は public/icons を指す重複、152 は誰も参照しない）・`sounds/` が無参照。
 - 🔧 25ファイル削除。`assets/` は `icon.svg`（generate-icons のソース）と favicon/touch 3件のみに。`generate-icons.mjs` を実出力に同期 — PWA アイコンは直接 `public/icons/` に生成（manifest の実サイズ7件に合わせ152を削減）、favicon/touch は `assets/icons/`、SOCIAL（無参照画像）は経路ごと削除。
