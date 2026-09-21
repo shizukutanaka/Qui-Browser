@@ -722,18 +722,14 @@ optional プラットフォームエントリ **68 件**をスクラッチロッ
 
 ## N-2. monitoring.js の外部計装点が全て未配線（Session 75 で観測・判断事項）
 
-`src/monitoring.js` の本番呼び出しは `initializeMonitoring()`（main.js）と
-`disposeMonitoring()`（VRApp.js）のみ。公開する `trackPageView` / `trackFPS` /
-`trackMemory` / `trackInteraction` / `trackVRSession` / `trackVRError` は
-**アプリ側から1回も呼ばれない**（tests が唯一の実行元）。内部では
-init が visibilitychange/beforeunload/web-vitals リスナーを配線して
-`trackEvent`/`captureError` を叩くためモジュール自体は機能するが、
-「VRセッション開始時に trackVRSession('start')」のような計装呼び出しは存在しない。
-
-**判断事項**: (a) VRApp に計装呼び出しを配線する（telemetry 価値あり）か、
-(b) getCommands と同じ基準で未使用 verb を削除するか。削除すると
-monitoring.js は init/dispose + 内部計装のみの構成になる。Sentry/GA の
-利用方針（本番で流すか）も絡むためオーナー判断。
+**続き214 で (a) を実装**: VRApp に計装呼び出しを配線済み — `trackVRSession`
+（セッション開始/終了・デバイスティア付き）、`trackFPS`/`trackMemory`（1 Hz
+スロットルで updatePerformanceMonitor から）、`trackInteraction`（controller /
+hand / gaze の select 発火点）、`trackPageView`（navigate() — origin+pathname
+のみでクエリ漏洩を遮断）、`trackVRError`（requestSession 失敗）。全経路は
+`MONITORING_CONFIG.enabled`（PROD）＋ `window.gtag` 存在でゲートされるため、
+Sentry/GA キー未設定では完全な no-op — **本番 telemetry を流すかの方針決定は
+引き続きオーナー判断**（キーを設定するか、削除方針なら verbs を除去するか）。
 
 ## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項）
 

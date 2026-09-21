@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き214 — N-2 実装: telemetry 計装を VRApp に配線（no-op 既定）
+- 🔧 **実測 → 配線**: monitoring.js の `trackFPS`/`trackMemory`/`trackInteraction`/`trackVRSession`/`trackVRError`/`trackPageView` が src 全体で**呼出元ゼロ** — `reportPerformanceSummary` が毎分・unload 時に全ゼロのサマリを送り続ける dead-on-arrival のテレメトリ（N-2 の「(a) 配線」を実装）。配線点: `updatePerformanceMonitor` で ~1 Hz スロットル（リングバッファ100件に合わせ per-frame ではなく）、`onVRSessionStart/End` で deviceTier 付き vr_start/vr_end、`onControllerSelect` + gaze activation で modality 付き select、`navigate()` で trackPageView（**origin+pathname のみ** — クエリの検索語/トークン漏洩を遮断）、requestSession catch で trackVRError。
+- 🔍 **安全性**: 全呼出は `MONITORING_CONFIG.enabled`(PROD)＋`window.gtag` 存在ゲート — キー未設定では完全 no-op、本番方針の決定権は owner に残る（N-2 テキスト更新済み）。
+- 🔍 **クリーン確認**: monitoring.js 自体の実装（web-vitals v5 API・pagehide/beforeunload デデュープ・idempotent init/dispose・sendBeacon 経由の unload 送出）は全て正。`captureMessage` のみ未使用（Sentry 初期化済みならグローバルハンドラが捕捉するため敢えて配線せず）。
+- ✅ 3091 tests / 72 suites 全緑、lint 0 errors（VRApp の warnings 36 は既存 no-console ベースライン）。
+
 ### Session 75: 続き213 — XR セッション寿命・イベント面の全照合（仕様準拠確認）
 - 🔍 **外部知見照合（WebXR spec/Gamepads Module）**: XR イベント名（XRSession `'end'` / WebXRManager `'sessionend'`）正、`inputsourceschange` が HandTracking で attach/dispose 対称・`added`/`removed` 両方向処理（removed で非表示、`updateHand` で再表示）、three の既定 `referenceSpaceType='local-floor'` でスタンディング体験は正しい。
 - 🔍 **コントローラ寿命**: `disconnected` でトースト＋`controllerInput.forget()`＋テレポートキャンセル＋`inputSource=null`、`connected` で再接続トースト — WeakMap ベースで切断ソースの状態も自動回収。`squeeze`/`select` 配線は W3C 標準ボタン配置と一致。
