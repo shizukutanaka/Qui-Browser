@@ -801,7 +801,6 @@ export class VRJapaneseKeyboard {
     this._displayCanvas.width = 1024;
     this._displayCanvas.height = 96;
     this._displayTex = configureUITexture(new THREE.CanvasTexture(this._displayCanvas));
-    this._displayTex.colorSpace = THREE.SRGBColorSpace;
     const display = new THREE.Mesh(
       new THREE.PlaneGeometry(width, DISPLAY_H),
       new THREE.MeshBasicMaterial({ map: this._displayTex, transparent: true })
@@ -883,7 +882,6 @@ export class VRJapaneseKeyboard {
     ctx.textBaseline = 'middle';
     ctx.fillText(glyph, 64, 70);
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
 
@@ -1198,7 +1196,6 @@ export class VRJapaneseKeyboard {
       };
       draw(false);
       const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-      tex.colorSpace = THREE.SRGBColorSpace;
 
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(BTN_W, BTN_H),
@@ -1308,7 +1305,6 @@ export class VRJapaneseKeyboard {
       };
       draw(false);
       const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-      tex.colorSpace = THREE.SRGBColorSpace;
 
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(BTN_W, BTN_H),

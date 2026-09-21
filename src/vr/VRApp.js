@@ -709,7 +709,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -811,7 +810,6 @@ export class VRApp {
     ctx.fillText(shown, W / 2, H / 2);
 
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
 
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.55, 0.085),
@@ -1077,7 +1075,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
     const label = t(sectionId);
 
@@ -1185,7 +1182,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1248,7 +1244,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1342,7 +1337,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1928,7 +1922,6 @@ export class VRApp {
     ctx.fillText(t('vr.welcome'), canvas.width / 2, 190);
 
     const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
-    panelTex.colorSpace = THREE.SRGBColorSpace;
     this._homePanelTexture = panelTex; // kept for explicit disposal
     const panel = new THREE.Mesh(
       new THREE.PlaneGeometry(2.4, 0.6),

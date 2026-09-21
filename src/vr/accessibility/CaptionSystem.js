@@ -115,9 +115,6 @@ export class CaptionSystem {
     this.canvas.width  = CANVAS_W;
     this.canvas.height = CANVAS_H;
     this.texture = configureUITexture(new THREE.CanvasTexture(this.canvas));
-    if ('colorSpace' in this.texture) {
-      this.texture.colorSpace = THREE.SRGBColorSpace;
-    }
 
     const geo = new THREE.PlaneGeometry(PANEL_W, PANEL_H);
     const mat = new THREE.MeshBasicMaterial({

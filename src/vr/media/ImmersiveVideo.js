@@ -226,7 +226,6 @@ export class ImmersiveVideo {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
