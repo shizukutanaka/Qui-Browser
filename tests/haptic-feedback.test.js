@@ -412,3 +412,53 @@ describe('HapticFeedback — both-hands delay + texture loop', () => {
     expect(hf.pulse).not.toHaveBeenCalled();
   });
 });
+
+describe('HapticFeedback — remaining branch arms', () => {
+  test('update() removes a disconnected gamepad', () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    expect(hf.gamepads.size).toBe(1);
+    global.navigator.getGamepads = jest.fn(() => [null]); // slot emptied
+    hf.update();
+    expect(hf.gamepads.size).toBe(0);
+  });
+
+  test('playCustomSequence pause-step arm (step.pause without duration)', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    const seq = [{ duration: 30, intensity: 0.5 }, { pause: 20 }, { duration: 10, intensity: 0.2 }];
+    await hf.playCustomSequence('left', seq);
+    // completed without throwing → pause arm ran through wait()
+    expect(hf.gamepads.size).toBe(1);
+  });
+
+  test('simulateTexture unknown type → smooth default', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    await expect(hf.simulateTexture('left', 'nonexistent', 30)).resolves.toBeUndefined();
+  });
+
+  test('proximityFeedback beyond maxDistance returns early', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left')]);
+    hf.update();
+    await expect(hf.proximityFeedback('left', 5.0, 1.0)).resolves.toBeUndefined();
+  });
+
+  test('alert() unknown urgency → normal pattern', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('left'), makeGamepad('right')]);
+    hf.update();
+    await expect(hf.alert('bogus')).resolves.toBeUndefined();
+  });
+
+  test('test() iterates test patterns', async () => {
+    const hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [makeGamepad('right')]);
+    hf.update();
+    await expect(hf.test('right')).resolves.toBeUndefined();
+  });
+});
