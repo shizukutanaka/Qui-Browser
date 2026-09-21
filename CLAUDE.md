@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き180 — フレームレート未要求で予算が永遠に「超過」になるループ
+- 🔍 **実測（連鎖した実害）**: `DeviceCompatibility.targetFPS()` は quest3 で **120** を返し `settings.targetFPS` に設定（L2423）。しかし `updateTargetFrameRate`/`supportedFrameRates`/`refreshRate` は src/ 全体でゼロ — フレームレートを**一度も要求していない**。Quest Browser の既定リフレッシュは 90Hz → 正常動作時の frameTime ≈11.1ms は予算 8.33ms を常時超過 → `updateSystems` が**毎フレーム** `ffrSystem.adjustIntensity(+0.01)` を呼び続け FFR が健全なセッションでも最大強度に張り付く（`adjustQuality` も常に「poor」判定）。「90〜120FPS 目標」の公称値が内部計測を腐らせていた構造。
+- 🔧 **修正**: `onVRSessionStart` で `session.supportedFrameRates` があれば最大レートを `updateTargetFrameRate` 要求（機能許可不要のモジュール）。settle 後に `settings.targetFPS = Math.round(session.refreshRate)` で**実レートに予算を同期**（モジュール非搭載なら refreshRate のみ同期、両方無ければ tier 値温存）。`_fpsOverridden` ガードは initializeSystems と同じ契約を継承。
+- 🧪 **pin 3件**: ①最大レート要求＋実レート同期 ②モジュール無しで refreshRate のみ同期 ③両方無しで tier 値維持。
+- ✅ scoped 284/284 緑、全体ゲート実行中。
+
 ### Session 75: 続き179 — コンストラクタ限定パラメータへの死んだ事後代入
 - 🔍 **実測（three.js コンストラクタ契約の照合）**: `setupRenderer()` が `new THREE.WebGLRenderer({...})` 構築**後**に `this.renderer.logarithmicDepthBuffer = true` を代入 — three は `parameters.logarithmicDepthBuffer` をコンストラクタでのみ読み（bundle L2358）、`capabilities.logarithmicDepthBuffer` に焼き付ける。renderer への事後代入は誰も読まない own property で **「Optimization: logarithmic depth buffer」コメントは虚偽**（一切有効化されていなかった）。同クラス走査で残りの `renderer.* =` 代入は `shadowMap.enabled`/`xr.enabled`/メソッド呼出のみで全て実行時可変・正当。
 - 🗑 **削除**: 死んだ代入とコメントを除去（有効化ではなく削除 — このシーンは近距離 UI で巨大スケール差がなく、実機で一度も無検証のまま動いていた挙動を変更しないのが正直）。

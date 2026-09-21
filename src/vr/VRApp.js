@@ -2878,6 +2878,27 @@ export class VRApp {
       session.addEventListener('visibilitychange', this.onXRVisibilityChange);
     }
 
+    // Frame-rate module (supportedFrameRates/updateTargetFrameRate) needs no
+    // session feature grant. Without a request the runtime stays at its
+    // default (Quest: 90Hz); a tier-derived 120fps budget would then mark
+    // every healthy frame over-budget and ratchet FFR to max forever.
+    // Request the best rate the runtime offers and measure the budget
+    // against the rate the session actually runs at.
+    if (session && !this.settings._fpsOverridden) {
+      const syncBudget = () => {
+        if (session.refreshRate) {
+          this.settings.targetFPS = Math.round(session.refreshRate);
+        }
+      };
+      if (session.supportedFrameRates && session.supportedFrameRates.length
+          && typeof session.updateTargetFrameRate === 'function') {
+        const best = Math.max(...session.supportedFrameRates);
+        session.updateTargetFrameRate(best).then(syncBudget, syncBudget);
+      } else {
+        syncBudget();
+      }
+    }
+
     // Initialize FFR for this session
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
