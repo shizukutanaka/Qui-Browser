@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き104（同セッション）: createSettingsPanel の全 apply コールバック本体を実発火で pin — 最後の大きな未実行塊
+- 🔍 lcov の未カバー行を全列挙したところ、最大クラスターは `createSettingsPanel` 内の ~30個の apply クロージャだった — ボタン構築は pin 済みだが「押下時に本当にサブシステムへ届くか」は未検証だった。
+- ✅ セクション別に5件のパネルを構築し interactables の onSelect を実発火: a11y（captions setEnabled+enabled caption、gaze setEnabled、HC → setPref+reticle+caption backing live-update、haptics setEnabled）、a11y ステッパー5本（ms/scale/offset/dwell/grace の単位変換契約）、locomotion（southpaw caption、comfort preset サイクル、**reduced-motion 下で smoothMove 有効化→前庭警告トースト**）、display（FFR enable/disable、curved → tabManager 優先 / webPanel フォールバック、follow、distance）、browsing（webPanel toggle 委譲、searchEngine サイクル、clearHistory/readerProxy/bookmarks の3アクション+caption）、audio（masterVolume %→0..1 ゲイン変換、video360 launch）。
+- ✅ 2226 tests / 65 suites 全緑、lint 0 errors。欠陥ゼロ — 全コールバックが仕様通り配線されていることを実測確認。
+
 #### 続き103（同セッション）: モジュール到達性の全走査 — src/ に残った唯一のテスト専用モジュールを tests/ へ移設
 - 🔍 **import 到達性グラフを全構築**（main.js/app.js を起点に静的 import/dynamic import/require を全探索）: 50ファイル中到達不能は `src/vr/ui/contrast.js` 1件のみ — 227行の WCAG/APCA 計量ユーティリティで、本番コードからの参照ゼロ、import するのは3つのテストのみ。
 - 🔧 **tests/helpers/contrast.js に移設**: 以前の走査では「テスト専用だが正当」と判断していたが、src/ に残ると collectCoverageFrom が出荷されない227行をプロダクションカバレッジとして計測する（数字の誠実さを毀損）。移設後「src/ の全ファイルが import 到達可能」の不変条件が文字通り成立。3テストの require パスと OUTSTANDING_ISSUES の記述を更新。
