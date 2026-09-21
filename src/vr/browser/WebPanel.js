@@ -2,15 +2,15 @@
  * FR-1.1 / FR-1.2: In-VR web panel with URL bar, back/forward, and reload.
  *
  * Architecture:
- *   Three.js plane mesh (the "panel chrome") + a hidden <iframe> composited
- *   on top via WebXR dom-overlay or positioned absolutely over the canvas.
+ *   Three.js plane mesh (the "panel chrome") + a readable-text viewport
+ *   populated by the proxy/direct reader fetch pipeline.
  *   The URL bar and navigation controls are drawn on a CanvasTexture and
  *   registered as interactables so controller rays can interact with them.
  *
  * Limitations (documented honestly):
- *   - Cross-origin iframes are sandboxed: no cookies/autofill, no JS access.
- *   - On platforms without dom-overlay the iframe is not visible in VR;
- *     the panel shows a "Cannot render external content" placeholder.
+ *   - WebXR offers no way to pixel-composite arbitrary web pages into the
+ *     scene (dom-overlay renders a flat overlay, not a world-space quad), so
+ *     external content is presented as extracted readable text instead.
  *   - This class provides the shell; FR-1.5 quad/cylinder Layers are a
  *     separate enhancement for text clarity.
  */
@@ -124,10 +124,7 @@ export class WebPanel {
     this.history     = [];
     this.historyIdx  = -1;
     this.loading     = false;
-    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
-    // True after the framed page navigated itself cross-origin — the bar then
-    // renders the stale URL greyed because the real destination is unreadable.
-    this._frameNavigated = false;
+    this._loadError  = false; // set true on fetch failure, cleared on next navigate
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -161,7 +158,6 @@ export class WebPanel {
     // 2D resources
     this.chromeCanvas  = null;
     this.chromeTex     = null;
-    this.iframe        = null;
 
     this._build();
   }
@@ -207,16 +203,6 @@ export class WebPanel {
     this.group.add(this.contentMesh);
 
     this._drawChrome();
-
-    // ── iframe for actual content (when dom-overlay is available) ───────────
-    this.iframe = document.createElement('iframe');
-    this.iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
-    this.iframe.style.cssText = `
-      position: fixed; display: none; border: none;
-      width: 960px; height: 540px;
-      pointer-events: auto; z-index: 999;
-    `;
-    document.body.appendChild(this.iframe);
 
     // ── Register chrome bar as interactable for controller ray ──────────────
     this.registerInteractable(this.chromeMesh, {
@@ -380,7 +366,11 @@ export class WebPanel {
   async _loadReaderText(url) {
     const seq = ++this._readerSeq;
     if (typeof fetch !== 'function') {
+      this.loading = false;
+      this.currentTitle = url;
       this._setContentState('unavailable');
+      this._drawChrome();
+      this.onNavigate(url, url);
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -401,19 +391,32 @@ export class WebPanel {
       }
       const { title, blocks } = extractReadableText(html);
       const lines = layoutReaderLines(blocks, { title, scale: this._readerScale });
+      this.loading = false;
       if (!lines.length) {
         // Fetched, but no prose recoverable (SPA shell, or markup we can't
         // read). Say so rather than showing a blank page.
+        this.currentTitle = url;
         this._setContentState('unavailable');
+        this._drawChrome();
+        this.onNavigate(url, url);
         return;
       }
       this._readerLines = lines;
       this._readerScroll = 0;
       this._contentState = 'reader';
       this._drawContent();
+      this.currentTitle = title || url;
+      this._drawChrome();
+      this.onNavigate(url, this.currentTitle);
     } catch {
       if (seq === this._readerSeq) {
+        // 'unavailable' rather than 'error': it renders the actionable
+        // CORS/proxy guidance, and onLoadError still announces the failure.
+        this.loading = false;
+        this._loadError = true;
         this._setContentState('unavailable');
+        this._drawChrome();
+        this.onLoadError(url);
       }
     } finally {
       if (timer) {
@@ -648,22 +651,15 @@ export class WebPanel {
         ctx.fillText(ind.glyph, x, h / 2 + 6);
         x += 26;
       }
-      // The framed page navigated cross-origin on its own: the shown URL is
-      // the last one WE requested, not where the frame actually is. Render it
-      // in placeholder grey with a ↪ marker rather than implying certainty.
-      ctx.fillStyle = (this.currentUrl && !this._frameNavigated)
-        ? col.urlText : col.urlPlaceholder;
+      ctx.fillStyle = this.currentUrl ? col.urlText : col.urlPlaceholder;
       ctx.font = '18px monospace';
       // The glyph consumed ~26px of the bar; shrink the character budget to match.
       const urlChars = this.currentUrl
         ? urlBarMaxChars(barW - (x - 220), 18)
         : maxChars;
-      let urlText = this.currentUrl
+      const urlText = this.currentUrl
         ? elideUrlForDisplay(this.currentUrl, urlChars)
         : 'https://';
-      if (this._frameNavigated && this.currentUrl) {
-        urlText = `↪ ${urlText}`;
-      }
       ctx.fillText(urlText, x, h / 2 + 6);
     }
 
@@ -768,8 +764,8 @@ export class WebPanel {
   // ── Navigation API ────────────────────────────────────────────────────────
 
   /**
-   * Navigate to a URL.  Records history and loads the iframe if dom-overlay
-   * is available; otherwise just updates the chrome bar.
+   * Navigate to a URL.  Records history and runs the reader fetch — the
+   * chrome bar, title and content area all resolve from that single load.
    */
   navigate(url) {
     // Resolve the raw input into a navigable URL. Text that looks like a host
@@ -796,63 +792,14 @@ export class WebPanel {
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
-    // Cleared again by the first load; set when a SECOND load fires — the
-    // framed page navigated itself (link click / form post / redirect after
-    // load). Same-origin destinations are readable via location.href and
-    // tracked properly; cross-origin ones are unknowable, so the chrome bar
-    // greys the stale URL instead of claiming we are still on it.
-    this._frameNavigated = false;
     this._drawChrome();
 
     this._setContentState('loading');
-    // Reader pipeline: fetch the markup and render the readable text ourselves.
-    // This is the only way a WebXR web app can show page content at all.
-    this._loadReaderText(url);
-
-    // Load in iframe (visible only when dom-overlay is active).
-    this.iframe.src = url;
-    let loadCount = 0;
-    this.iframe.onload = () => {
-      loadCount++;
-      this.loading = false;
-      this._loadError = false;
-      let title = url;
-      let realUrl = url;
-      let readable = false;
-      try {
-        realUrl = this.iframe.contentWindow.location.href;
-        title = this.iframe.contentDocument.title || url;
-        readable = true;
-      } catch { /* cross-origin frame: location unreadable, keep the URL as title */ }
-      if (loadCount > 1 && readable && realUrl && realUrl !== url) {
-        // Same-origin in-frame navigation: the real destination is readable,
-        // so record it and show its reader text like a normal navigation.
-        this.history = this.history.slice(0, this.historyIdx + 1);
-        this.history.push(realUrl);
-        this.historyIdx = this.history.length - 1;
-        this._loadReaderText(realUrl);
-        this._setContentState('loading');
-      } else if (!(loadCount > 1 && readable)) {
-        // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
-        // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-        // page rendered. Combined with the fact that page pixels can never reach
-        // the 3D texture anyway, the viewport must say so rather than keep a
-        // stale "Enter a URL" placeholder that implies nothing happened.
-        this._setContentState('unavailable');
-      }
-      this.currentUrl = realUrl;
-      this._frameNavigated = loadCount > 1 && !readable;
-      this.currentTitle = title;
-      this._drawChrome();
-      this.onNavigate(realUrl, title);
-    };
-    this.iframe.onerror = () => {
-      this.loading = false;
-      this._loadError = true;
-      this._setContentState('error');
-      this._drawChrome();
-      this.onLoadError(this.currentUrl);
-    };
+    // The reader fetch is the single load source — it resolves the title,
+    // content state, loading flag and navigation callbacks. There is no
+    // iframe shadow load: a second fetch would only burn bandwidth and run
+    // the target's scripts off-screen for nothing.
+    return this._loadReaderText(url);
   }
 
   back() {
@@ -876,14 +823,10 @@ export class WebPanel {
   }
 
   /**
-   * Cancel an in-flight load. The only exits from `loading` used to be the
-   * iframe's onload/onerror — a load that never resolves pins the panel in
-   * 'loading' forever. Aborts the reader fetch (its result then fails the
-   * _readerSeq staleness check and cannot overwrite state), detaches the
-   * iframe handlers before blanking src so the about:blank load can't fire
-   * navigation callbacks, and returns the content area to whatever is
-   * actually displayable: the previous page's reader lines if still buffered,
-   * else the empty state.
+   * Cancel an in-flight load. Aborts the reader fetch (its result then
+   * fails the _readerSeq staleness check and cannot overwrite state) and
+   * returns the content area to whatever is actually displayable: the
+   * previous page's reader lines if still buffered, else the empty state.
    */
   stop() {
     if (!this.loading) {
@@ -894,16 +837,10 @@ export class WebPanel {
       this._readerController.abort();
       this._readerController = null;
     }
-    this.iframe.onload = null;
-    this.iframe.onerror = null;
-    this.iframe.src = 'about:blank';
-    this._frameNavigated = false;
     this.loading = false;
     this._setContentState(this._readerLines.length ? 'reader' : 'empty');
     this._drawChrome();
   }
-
-  // ── DOM-overlay integration ───────────────────────────────────────────────
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
 
@@ -1027,7 +964,6 @@ export class WebPanel {
 
   hide() {
     this.group.visible = false;
-    this.iframe.style.display = 'none';
   }
 
   /**
@@ -1042,11 +978,7 @@ export class WebPanel {
    * @param {boolean} visible
    */
   setVisible(visible) {
-    const v = !!visible;
-    this.group.visible = v;
-    if (this.iframe) {
-      this.iframe.style.display = v ? '' : 'none';
-    }
+    this.group.visible = !!visible;
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -1081,19 +1013,14 @@ export class WebPanel {
 
     this.scene.remove(this.group);
 
-    if (this.iframe) {
-      // Detach the load/error handlers before removing the element. A
-      // navigation started just before dispose() (tab/panel closed mid-load)
-      // can still fire onload/onerror afterward; without this, the stale
-      // handler redraws chromeCanvas onto an already-disposed chromeTex and
-      // calls onNavigate()/onLoadError() against a torn-down VRApp — the same
-      // teardown-leak class fixed for toast timers, hand-tracking timers, and
-      // queued TTS utterances.
-      this.iframe.onload = null;
-      this.iframe.onerror = null;
-      if (this.iframe.parentNode) {
-        this.iframe.parentNode.removeChild(this.iframe);
-      }
+    if (this._readerController) {
+      // A navigation in flight at dispose time would otherwise resolve after
+      // teardown and call onNavigate()/onLoadError() against a torn-down
+      // VRApp — the same teardown-leak class fixed for toast timers,
+      // hand-tracking timers, and queued TTS utterances.
+      this._readerController.abort();
+      this._readerController = null;
+      this._readerSeq++;
     }
   }
 }

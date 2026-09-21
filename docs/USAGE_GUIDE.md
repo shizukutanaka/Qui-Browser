@@ -93,9 +93,11 @@ with it enabled you get:
 - **Grab-to-move** — a move bar below each panel lets you reposition it; grab
   and release are confirmed cross-modally.
 
-> Note: cross-origin pages render only where the platform supports WebXR
-> dom-overlay; elsewhere the panel shows a placeholder. This is a platform
-> limitation of in-VR web content, documented honestly rather than hidden.
+> Note: WebXR gives a web app no way to composite a full external page into
+> the scene (dom-overlay renders a flat overlay, not a world-space panel).
+> The panel therefore fetches the markup — through the optional companion
+> proxy — and presents the page as extracted readable text. Pages with no
+> recoverable prose (SPA shells, blocked markup) say so explicitly.
 
 ## Recentering
 

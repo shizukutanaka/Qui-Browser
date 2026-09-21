@@ -189,6 +189,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 検証事実:
 - `WebPanel.onDomOverlayStart()`（iframe を可視化する唯一の関数）は**呼び出し元ゼロ**
 - `dom-overlay` は VR セッションで**一度も要求されていない**。`setupVR()` の sessionInit は `VRButton.createButton(renderer, {optionalFeatures:['hand-tracking']})` で three 既定（`local-floor`/`bounded-floor`/`layers`）+ `hand-tracking`（続き178 で追加 — それまでは要求すらされず `inputSource.hand` が実機で常に null だった）。`dom-overlay` を要求するコードはリポジトリ内に存在しない（旧 `MixedReality.js` AR パスは削除済み）
+- **続き224で解決**: 非表示 iframe（title 抽出・in-frame nav 検知のみで描画経路は永遠に不通）を完全削除 — 毎ナビゲーションの二重フェッチと対象サイトのオフスクリーン JS 実行を封鎖。title/onNavigate/onLoadError/error 状態は `_loadReaderText` の同一応答で駆動（`extractReadableText` が既に title を返していた）。`_frameNavigated`（VR では成立不可能な概念）と iframe の CSP `frame-src https:` 許可も除去（→ `'none'`）。
 - コンテンツ canvas は `_build()` のローカル変数で再描画不可能だった（Session 60 で `this.contentCanvas` + `_drawContent()` に修正）
 - `contentMesh` は `registerInteractable` 未登録 → VR レイが本文内リンクに当たることは原理的にない
 

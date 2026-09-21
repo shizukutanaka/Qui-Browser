@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き224 — WebPanel の非表示 iframe 全廃止（F-1 検証事実の解決）
+- 🔍 **実測**: WebPanel が `navigate()` 毎に**非表示 iframe を二重フェッチ**していた — reader パイプライン（`_loadReaderText`＝proxy/直接 fetch→extractReadableText）とは別に、対象サイトを `allow-scripts` sandbox で**オフスクリーン実行**（広告/トラッカーの JS も走る）。描画経路は構造的に不通: `dom-overlay` は optionalFeatures に含まれず要求されたことがなく、仮に要求しても spec 上 dom-overlay はフラット HUD であってワールド空間 quad への合成は不能（OUTSTANDING_ISSUES F-1 が記録した前提誤りそのもの）。
+- 🔧 **修正**: iframe 機構を全削除 — title/onNavigate/onLoadError/`loading`/`_loadError`/content 状態を `_loadReaderText` の**同一応答**で駆動（`extractReadableText` が既に `{title, blocks}` を返していたので新たな取得は不要）。フェッチ失敗は actionable な `'unavailable'`（CORS/proxy 案内）＋ `_loadError` ＋ `onLoadError` トースト発火（旧コードでは XFO 拒否が onload に化けて無言だった）。`'error'` 状態は到達不能になったので contentStateLines から除去＋i18n `vr.content.failed`（en/ja）も削除。`_frameNavigated`（VR で成立不可能な概念）と chrome の ↪ マーカー描画も除去。`stop()` は reader controller の abort のみに。
+- 🔧 **連鎖 CSP 強化**: iframe が存在しなくなったため `frame-src https:` を `frame-src 'none'` に5箇所全てで締めた（index.html meta・netlify・vercel・nginx×3）— デッド許可の撤去。
+- 🗑 **テスト整理（−10+7）**: iframe 駆動の pin（in-frame 同一/クロスオリジン nav、onload/onerror dispose 漏れ、↪ グレー化）を削除し、reader fetch 駆動の新 pin へ（タイトル無し→URL フォールバック、成功時 title/state/onNavigate、失敗時 unavailable+onLoadError、dispose 後の解決はコールバックに届かない、stop() は controller abort）。
+- ✅ 3006 tests / 72 suites 全緑、lint 0 errors、build＋verify:all（実 Chromium vr-boot）全緑。
+
 ### Session 75: 続き223 — ProgressiveLoader 全廃止＋死メソッド掃引第2弾
 - 🗑 **削除（ゼロ呼出実測・最大の断捨離）**: `src/utils/ProgressiveLoader.js` 全体（~700行＋専用スイート）— VRApp は構築→不発の onProgress 代入→textureManager 注入→dispose だけで、`start()`/`addResource` が一度も呼ばれずキューパイプライン（loadPhase→loadResource→performLoad→全 load* ローダ）が完全到達不能。テクスチャは `textureManager.loadTexture`（loadAsync 経路）が直接担っている。vite.config の `tier2-loading` チャンクとともに除去。
 - 🗑 **個別死メソッド（同一掃引）**: `FFRSystem.setDynamicFFR`/`getStatus`（+孤児化した `gpuLoadThresholds` フィールド）、`TextureManager.loadTextures`（バッチ wrapper）、`PerformanceMonitor.getReport`/`exportCSV`、`SpatialAudio.simulateDoppler`/`fadeVolume`、`getStats` 4件（SpatialAudio/HandTracking/VoiceCommands/VRJapaneseKeyboard — 全てテスト pin のみ、生産呼出ゼロ）。

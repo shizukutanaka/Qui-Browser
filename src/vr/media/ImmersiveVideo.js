@@ -3,7 +3,7 @@
  *
  * Renders an equirectangular video onto the inside of a large sphere centred on
  * the viewer, so a general VR user can watch 360° content from within the
- * scene. Unlike the dom-overlay browsing panel, a `THREE.VideoTexture` draws to
+ * scene. Unlike the reader-text browsing panel, a `THREE.VideoTexture` draws to
  * the WebGL surface and therefore works *inside* the immersive session across
  * headsets (Quest/Pico/…), which is what makes the feature usable in a build
  * meant for distribution.

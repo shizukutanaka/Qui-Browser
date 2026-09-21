@@ -14,7 +14,7 @@ browsing, reader view, and Japanese input, built on Three.js + WebXR.
 | Metric | Value (measured) |
 |--------|------------------|
 | Source | 50 files, ~20,000 lines (`src/`) |
-| Tests | 72 suites / 3,087 tests (~32,000 lines) |
+| Tests | 72 suites / 3,006 tests (~32,000 lines) |
 | Coverage | Jest floor ratcheted to 95/96/97/96 (branches/functions/lines/statements) — regressions fail `ci:test` |
 | Build | Vite 5 + esbuild → `dist/` ≈ 1.0 MB |
 | Docs | 24 files under `docs/` (+ `docs/archive/` ×110, `docs/patches/` ×9 pending) |
@@ -69,7 +69,7 @@ Service Worker + `proxy/` companion (Node http). Runtime deps: `three`, `web-vit
 
 ## 🧪 Testing Infrastructure
 
-- 72 suites / 3,087 tests headless in Node (72 test files under `tests/`)
+- 72 suites / 3,006 tests headless in Node (72 test files under `tests/`)
 - `test:integration` = `vr-app-wiring` + `app-smoke`; `test:coverage` enforces
   the ratcheted floor; `ci:verify` runs the three real-browser harnesses
   (`CHROME_PATH` needed off Linux)

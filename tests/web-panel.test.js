@@ -1,7 +1,7 @@
 /**
  * Unit tests for WebPanel (FR-1.1 / FR-1.2).
  * THREE and DOM dependencies are mocked so the chrome-bar logic can be
- * exercised without a WebGL context or real iframes.
+ * exercised without a WebGL context or real network.
  */
 
 // ── THREE stub ────────────────────────────────────────────────────────────────
@@ -96,7 +96,6 @@ global.document = {
         })
       };
     }
-    // iframe
     return {
       setAttribute: jest.fn(),
       style: { cssText: '' },
@@ -498,11 +497,10 @@ describe('WebPanel curvature + visibility', () => {
     expect(panel.group.position.set).toHaveBeenCalledWith(1, 2, 3);
   });
 
-  test('hide() hides the group and the iframe', () => {
+  test('hide() hides the group', () => {
     const panel = makePanel();
     panel.hide();
     expect(panel.group.visible).toBe(false);
-    expect(panel.iframe.style.display).toBe('none');
   });
 
   test('setVisible toggles without touching the transform', () => {
@@ -510,11 +508,9 @@ describe('WebPanel curvature + visibility', () => {
     panel.group.position.set.mockClear();
     panel.setVisible(false);
     expect(panel.group.visible).toBe(false);
-    expect(panel.iframe.style.display).toBe('none');
     expect(panel.group.position.set).not.toHaveBeenCalled();
     panel.setVisible(true);
     expect(panel.group.visible).toBe(true);
-    expect(panel.iframe.style.display).toBe('');
   });
 
   test('addToScene(parent) parents the group to the container, not the scene', () => {
@@ -589,14 +585,13 @@ describe('WebPanel — remaining guard slivers', () => {
     expect(p.quadLayer).toBeFalsy();
   });
 
-  test('dispose releases material maps and detaches the iframe', () => {
+  test('dispose aborts an in-flight reader fetch', () => {
     const p = makePanel();
-    const parent = { removeChild: jest.fn() };
-    p.iframe = { onload: jest.fn(), onerror: jest.fn(), parentNode: parent };
+    const controller = { abort: jest.fn() };
+    p._readerController = controller;
     p.dispose();
-    expect(parent.removeChild).toHaveBeenCalledWith(p.iframe);
-    expect(p.iframe.onload).toBeNull();
-    expect(p.iframe.onerror).toBeNull();
+    expect(controller.abort).toHaveBeenCalled();
+    expect(p._readerController).toBeNull();
   });
 });
 
@@ -777,49 +772,38 @@ describe('WebPanel — remaining branch arms', () => {
     expect(p2.scene.add).toHaveBeenCalledWith(p2.group);
   });
 
-  test('setVisible/dispose tolerate a missing iframe', () => {
+  test('a page without an extractable title keeps the URL as the title', async () => {
     const p = makePanel();
-    p.iframe = null;
-    expect(() => {
-      p.setVisible(false); p.setVisible(true);
-    }).not.toThrow();
-  });
-
-  test('iframe onload falls back to the URL when the frame title is empty', () => {
-    const p = makePanel();
-    p.navigate('https://example.com');
-    p.iframe.contentDocument = { title: '' };
-    p.iframe.onload();
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      text: async () => '<p>body text long enough to wrap into reader lines here</p>'
+    }));
+    await p._loadReaderText('https://example.com');
     expect(p.currentTitle).toBe('https://example.com');
+    expect(p.onNavigate).toHaveBeenCalledWith('https://example.com', 'https://example.com');
   });
 
-  test('same-origin in-frame navigation records the real URL and refetches the reader', () => {
+  test('a successful reader fetch drives title, state and onNavigate', async () => {
     const p = makePanel();
-    p.navigate('https://example.com');
-    // First load of the page we asked for.
-    p.iframe.contentWindow = { location: { href: 'https://example.com' } };
-    p.iframe.contentDocument = { title: 'Example' };
-    p.iframe.onload();
-    // The framed page navigated itself to a readable same-origin page.
-    p.iframe.contentWindow.location.href = 'https://example.com/next';
-    p.iframe.contentDocument.title = 'Next';
-    const readerSpy = jest.spyOn(p, '_loadReaderText').mockImplementation(() => {});
-    p.iframe.onload();
-    expect(p.currentUrl).toBe('https://example.com/next');
-    expect(p.currentTitle).toBe('Next');
-    expect(p.history[p.history.length - 1]).toBe('https://example.com/next');
-    expect(readerSpy).toHaveBeenCalledWith('https://example.com/next');
-    expect(p._frameNavigated).toBe(false);
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      text: async () => '<title>Page Title</title><p>body text long enough to wrap into reader lines here</p>'
+    }));
+    await p._loadReaderText('https://example.com');
+    expect(p.currentTitle).toBe('Page Title');
+    expect(p._contentState).toBe('reader');
+    expect(p.onNavigate).toHaveBeenCalledWith('https://example.com', 'Page Title');
+    expect(p._loadError).toBe(false);
   });
 
-  test('cross-origin in-frame navigation greys the address bar instead of lying', () => {
-    const p = makePanel();
-    p.navigate('https://example.com');
-    p.iframe.onload(); // first load
-    // Frame navigated somewhere cross-origin: location.href is unreadable.
-    p.iframe.onload();
-    expect(p.currentUrl).toBe('https://example.com'); // last known URL, not a lie
-    expect(p._frameNavigated).toBe(true);
+  test('a failed reader fetch reports unavailable state and onLoadError', async () => {
+    const p = makePanel({ onLoadError: jest.fn() });
+    global.fetch = jest.fn(async () => ({ ok: false, status: 500, text: async () => '' }));
+    await p._loadReaderText('https://example.com');
+    expect(p._contentState).toBe('unavailable');
+    expect(p._loadError).toBe(true);
+    expect(p.loading).toBe(false);
+    expect(p.onLoadError).toHaveBeenCalledWith('https://example.com');
   });
 
   test('_loadReaderText works when AbortController is unavailable', async () => {
@@ -884,15 +868,8 @@ describe('WebPanel — complementary arms', () => {
     }
   });
 
-  test('dispose detaches iframe handlers before removal', () => {
+  test('dispose without an in-flight reader fetch skips the abort cleanly', () => {
     const wp = makePanel();
-    const iframe = {
-      removeEventListener: jest.fn(),
-      src: 'about:blank',
-      remove: jest.fn(),
-      parentNode: { removeChild: jest.fn() }
-    };
-    wp.iframe = iframe;
     expect(() => wp.dispose?.() ?? (() => {})()).not.toThrow();
   });
 });
@@ -934,30 +911,20 @@ describe('WebPanel — prompt/reload/layer/dispose slivers', () => {
     expect(() => p.disableLayerMode()).not.toThrow();
   });
 
-  test('dispose detaches iframe handlers and removes the element', () => {
+});
+
+describe('WebPanel — dispose', () => {
+  test('a fetch resolving after dispose cannot fire navigation callbacks', async () => {
     const p = makePanel();
-    const parent = { removeChild: jest.fn() };
-    const iframe = { onload: () => {}, onerror: () => {}, parentNode: parent };
-    p.iframe = iframe;
+    let resolveFetch;
+    global.fetch = jest.fn(() => new Promise(res => {
+      resolveFetch = res;
+    }));
+    const pr = p._loadReaderText('https://example.com');
     p.dispose();
-    expect(iframe.onload).toBeNull();
-    expect(iframe.onerror).toBeNull();
-    expect(parent.removeChild).toHaveBeenCalledWith(iframe);
-  });
-});
-
-test('dispose with iframe but no parentNode skips removeChild', () => {
-  const p = makePanel();
-  p.iframe = { onload: jest.fn(), onerror: jest.fn(), parentNode: null };
-  expect(() => p.dispose()).not.toThrow();
-  expect(p.iframe.onload).toBeNull();
-});
-
-describe('WebPanel — dispose before any navigation (no iframe)', () => {
-  test('dispose() without an iframe skips the detach block cleanly', () => {
-    const p = makePanel();
-    p.iframe = null; // dispose before navigation ever created one
-    expect(() => p.dispose()).not.toThrow();
+    resolveFetch({ ok: true, text: async () => '<p>text</p>' });
+    await pr;
+    expect(p.onNavigate).not.toHaveBeenCalled();
   });
 });
 

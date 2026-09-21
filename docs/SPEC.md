@@ -143,7 +143,7 @@
 - FR-7.2 AvatarSystem（幾何学的アバター・pose 更新・Canvas ラベル）（`9e0bbb2`）
 - FR-8.1 AIRecommendation → BookmarkStore 連携（起動時履歴シード + `navigate()` リアルタイム更新）（`5409fab`）
 - NFR-4 AvatarSystem テスト追加（62 tests total）（`5409fab`）
-- FR-1.1/1.2 WebPanel（iframe + dom-overlay、URL chrome、back/forward/reload）（`3897963`）
+- FR-1.1/1.2 WebPanel（reader パイプラインによる readable text 表示、URL chrome、back/forward/reload）（`3897963`）
 - FR-1.3 TabManager（複数 WebPanel・タブストリップ・最大8タブ）（`31668fd`）
 - FR-1.5 WebXR Layers（`LayersSystem`・`WebPanel.enableLayerMode`・VRApp 配線）（`ea87393`）
 - FR-13.1 VR gaze-dwell ハンズフリー選択（`GazeInteraction`・レティクル・設定トグル）（`db1e306`）
