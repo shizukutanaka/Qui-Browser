@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き147 — パッチ系列の post-state を YAML として検証（適用可能でも壊れた YAML は GitHub で爆発）
+`ci-patches.test.js` の最終状態検査はテキスト grep のみで、**構文的に壊れた YAML を産むパッチがクリーン適用＋全チェック通過し得た**。シリーズ適用後の全ワークフローを js-yaml で実パースし、`jobs` とトリガーブロックの存在を断言するテストを追加。js-yaml は transitive に 3.15.2 が居ただけなので devDep に ^4.3.2 を宣言（#135 と同じ undeclared-transitive 依存パターンを排除）。5 workflows 全て valid。3035 tests / 71 suites 全緑。
+
 ### Session 75: 続き146 — 実機検証の横展開：offline.html サブパス破損 + 出荷物ピンを verify:app に追加
 続き145 の実機発見を横展開。① `public/offline.html` の `href="/manifest.json"`・`/icons/icon-72.png` — vite は public/ を verbatim コピーするため BASE_PATH=/Qui-Browser/ 配下で 404（index.html と違い書き換わらない）→ 相対化＋ public-assets.test.js で「public/*.html は root-absolute 参照不可」を pin。② サブパスデプロイを実際に serve して検証（`BASE_PATH=/Qui-Browser/` build → vite preview で /Qui-Browser/* が全て 200、root-absolute 漏洩ゼロ — patch 0007 が直す経路を先回り実証）。③ `verify:app` に出荷物ピン追加 — dist の service-worker.js を実 fetch して settleWithin/FETCH_HARD_TIMEOUT_MS・await cache.match・new Response(null) の存在を検査（修正がソースにあってもビルドで落ちれば今まで全テスト green のまま出荷される）。3034 tests / 71 suites 全緑、verify:app 9 checks 全緑、lint 0 errors。→ PR #166。
 
