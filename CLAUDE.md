@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き145 — 初の実ブラウザ E2E：ゴールデンパス全緑＋SW idle-kill 後の fetch 永久ハングを実機検出
+全69+セッションで jsdom/モックだけだった 2D ランタイムを、実 headed Chrome 153 + CDP で初めて駆動（`vite preview` of dist）。結果: コンソールエラー0、◐/A+ トグル・ja⇄en・VR未対応時のローカライズ `role=alert` トースト・SW 登録（build スタンプ済みキャッシュ）・manifest/icons 全て実機グリーン。**しかし実機だけが見る欠陥を検出**: SW が idle-kill（約30秒）された後に発火した `fetch()` が約50%の確率で**永遠に settle しない**（respondWith のプロミスが wedged、Chrome は respondWith をタイムアウトしない）。5回再現（manifest.json・/・icons）。**対策**: `settleWithin()` で全戦略を10秒ハードキャップ→素の `fetch(request.clone())`（SW 内 fetch は自 worker を迂回）→ offline fallback、で全リクエストが必ず resolve。さらにこのテストが `getOfflineFallback` の潜伏バグ2件を露出: ①`cache.match() || new Response(503)` が await 無し＝Promise は常に truthy で 503 は死コード、ミスは undefined 解決 ②`new Response('', {status:204})` が spec 違反で throw（null-body status に body 不可）→ 画像フォールバックが常に reject。併せて `mobile-web-app-capable` meta 追加（deprecation 警告の解消）。実機でしか観測不能なクラスだったため `.agents/skills/qui-browser-2d-runtime/` に再現レシピを永続化。3033 tests / 71 suites 全緑、lint 0 errors。→ PR #166。
+
+### Session 75: 続き144 — プロキシの lookup 契約を実ソケットで pin
+続き143 の修正は「テストが transport を mock する限り永遠に不可視」なクラスだったので、`proxy-lookup-contract.test.js` を新設 — 実ローカル HTTP サーバーに実 `http.request` で配列形 lookup を通す（モック無し・Node の契約が将来変われば赤）。3029 tests / 71 suites 全緑。
+
 ### Session 75: 続き143 — 実バグ22件目：リーダープロキシが丸ごと死んでいた（Node≥20 の lookup 契約違反）
 `npm run proxy` を実起動して `/fetch?url=https://example.com` を実測したら **`400 upstream-error`**（直接 egress は 200）— 原因は SSRF 対策（DNS rebinding pin）で渡す `lookup: cb(null, addr, family)` が**スカラー形式**だったこと。Node≥20 の http は lookup を `{all: true}` で呼び**配列 `[{address, family}]` を要求**するため `ERR_INVALID_IP_ADDRESS` で全リクエストが死ぬ — #138 の強化修正が本番経路を丸ごと壊していた（テストは transport を stub していて実ソケットで一度も検証されていなかった）。resolveSafely が既に全アドレスを検査済みなので、pin を「検証済み全アドレスの配列」返却に変更（v4/v6 間の happy-eyeballs も復活）。**実エンドポイントで 200 + 実HTML を確認**、配列形式を pin するテスト追加。3028 tests / 70 suites 全緑、lint 0 errors。
 
