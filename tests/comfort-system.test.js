@@ -572,3 +572,23 @@ describe('ComfortSystem — last branch arms', () => {
     expect(() => cs.dispose()).not.toThrow();
   });
 });
+
+describe('ComfortSystem — complementary arms', () => {
+  test('moving state reduces the target FOV by the configured amount', () => {
+    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    sys.settings.fov.reductionAmount = 20;
+    sys.isMoving = true;
+    sys.update?.(0.016);
+    // FOV shrinks toward 70 (90 - 20)
+    expect(sys.camera.fov).toBeLessThanOrEqual(90);
+    sys.dispose?.();
+  });
+
+  test('dispose with vignetteQuad present frees its geometry', () => {
+    const sys = new ComfortSystem(makeScene(), makeCamera(90), makeRenderer());
+    const geo = { dispose: jest.fn() };
+    sys.vignetteQuad = { geometry: geo };
+    expect(() => sys.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+  });
+});
