@@ -1221,3 +1221,46 @@ describe('VoiceCommands — colon/go-to/restart slivers', () => {
     jest.useRealTimers();
   });
 });
+
+describe('VoiceCommands — sliver arms', () => {
+  test('continuous restart: still-enabled fires start; disabled between onend and timer does not', () => {
+    jest.useFakeTimers();
+    const vc = new VoiceCommands();
+    vc.settings.continuous = true;
+    const rec = { onend: null, start: jest.fn(), stop: jest.fn() };
+    vc.recognition = rec;
+    vc.setupRecognitionHandlers();
+    vc.isEnabled = true; vc.isListening = true;
+    rec.onend();
+    jest.advanceTimersByTime(150);
+    expect(rec.start).toHaveBeenCalledTimes(1);
+
+    rec.start.mockClear();
+    vc.isEnabled = true; vc.isListening = true;
+    vc.recognition.onend();
+    vc.isEnabled = false;              // turned off inside the 100ms window
+    jest.advanceTimersByTime(150);
+    expect(rec.start).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  test('browser-less search opens a Google tab', () => {
+    const vc = new VoiceCommands();
+        const cmd = vc.commands.get('search');
+    global.window = global.window || {};
+    window.open = jest.fn();
+    const out = cmd.action('検索：てんき');
+    expect(out.query).toBe('てんき');
+    expect(window.open).toHaveBeenCalledWith(expect.stringContaining('google.com/search'), '_blank');
+  });
+
+  test('go-to command returns null query when nothing captured', () => {
+    const vc = new VoiceCommands();
+    const spy = jest.fn();
+    vc.connectBrowser({ onGoTo: spy });
+    const cmd = vc.commands.get('go-to');
+    const out = cmd.action('を開く');   // matches jp pattern shape but captures empty
+    expect(out).toEqual({ action: 'go-to', query: null });
+    expect(spy).not.toHaveBeenCalled();
+  });
+});

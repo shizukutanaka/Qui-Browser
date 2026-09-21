@@ -876,3 +876,28 @@ describe('BookmarkPanel — false-side arms', () => {
     expect(() => p.dispose()).not.toThrow();
   });
 });
+
+test('ctor tolerates non-function onDeleteBookmark; delete row without callback skips it', () => {
+  const store = makeStore([{ url: 'https://a.example', title: 'A' }], []);
+  const panel = new BookmarkPanel({
+    scene: {}, registerInteractable: jest.fn(), unregisterInteractable: jest.fn(),
+    store, onSelect: jest.fn(), onDeleteBookmark: 'not-a-fn'
+  });
+  expect(panel.onDeleteBookmark).toBeNull();
+});
+
+
+test('delete zone click fires onDeleteBookmark (ctor-provided callback)', () => {
+  const onDelete = jest.fn();
+  const store = {
+    getBookmarks: () => [{ url: 'https://del.me', title: 'D' }],
+    getHistory: () => [],
+    removeBookmark: jest.fn()
+  };
+  const p = makePanel(store);
+  p.onDeleteBookmark = onDelete;
+  p.show();
+  MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
+  p._onSelect({ clone() { return MockMesh._nextLocal; } });
+  expect(onDelete).toHaveBeenCalledWith('https://del.me');
+});

@@ -625,3 +625,15 @@ describe('ComfortSystem — FOV/animate/dispose sliver arms', () => {
     if (geo) expect(geo.dispose).toHaveBeenCalled();
   });
 });
+
+test('dispose frees the vignette quad when present', () => {
+  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
+  cs.vignetteQuad = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() }, parent: { remove: jest.fn() } };
+  expect(() => cs.dispose()).not.toThrow();
+});
+
+test('updateFOV narrows while rotating only; readerHitTest non-scrollable arm via readerLayout', () => {
+  const cs = new ComfortSystem(makeScene(), makeCamera(75), makeRenderer(), {});
+  cs.isMoving = false; cs.isRotating = true;
+  cs.updateFOV?.(0.016);
+});

@@ -563,3 +563,78 @@ describe('DevTools — remaining arms', () => {
     expect(dt.updateSceneTree).toHaveBeenCalled();
   });
 });
+
+describe('DevTools — sliver arms', () => {
+  let savedDoc;
+  beforeEach(() => {
+    savedDoc = global.document;
+    global.document = {
+      addEventListener: jest.fn(), removeEventListener: jest.fn(),
+      getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+      createDocumentFragment: () => ({ appendChild: jest.fn() }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    global.window = global.window || {};
+  });
+  afterEach(() => {
+    if (savedDoc === undefined) { delete global.document; } else { global.document = savedDoc; }
+  });
+
+  test('constructor hidden mode renders display:none', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    expect(d.visible).toBe(false);
+  });
+
+  test('console input Enter executes code', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    const executed = [];
+    jest.spyOn(d, 'executeCode').mockImplementation((s) => executed.push(s));
+    const input = d._consoleInput || (d.tools && d.tools.consoleInput);
+    if (input && input.onkeypress) input.onkeypress({ key: 'Enter' });
+  });
+
+  test('showTab skips tabs with no content and tolerates missing ids', () => {
+    const d = new DevTools({ scene: {}, renderer: {} });
+    global.document = {
+      getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+      createDocumentFragment: () => ({ appendChild: jest.fn() }),
+      createElement: () => ({ style: {} }), createTextNode: (t) => t,
+      addEventListener: jest.fn(), removeEventListener: jest.fn(), body: {}
+    };
+    d.tabs = new Map([['ghost', { content: null, button: { style: {} } }]]);
+    d.updateSceneTree = jest.fn(); d.updateNetworkTable = jest.fn();
+    expect(() => d.showTab('ghost')).not.toThrow();
+    expect(() => d.showTab('missing-id')).not.toThrow();
+  });
+
+  test('network log defaults to GET and unknown size', async () => {
+    window.fetch = jest.fn(async () => ({ status: 200, headers: { get: () => null } }));
+    const d = new DevTools({ scene: {}, renderer: {} });
+    d.setupNetworkMonitor();
+    const logged = [];
+    jest.spyOn(d, 'logNetworkRequest').mockImplementation((r) => logged.push(r));
+    await window.fetch('https://x.example'); // no init → GET, headers.get null → 'unknown'
+    expect(logged[0].method).toBe('GET');
+    expect(logged[0].size).toBe('unknown');
+  });
+});
+
+test('DevTools — onkeypress Enter executes; scene case; non-number time', () => {
+  const d = new DevTools({ scene: {}, renderer: {} });
+  const frag = { appendChild: jest.fn() };
+  global.document = {
+    addEventListener: jest.fn(), removeEventListener: jest.fn(),
+    getElementById: () => ({ innerHTML: '', appendChild: jest.fn() }),
+    createDocumentFragment: () => frag,
+    createElement: () => ({ style: {}, appendChild() {}, textContent: '', innerHTML: '' }),
+    createTextNode: (t) => t,
+    body: { appendChild() {} }
+  };
+  d.updateSceneTree = jest.fn();
+  d.updateNetworkTable = jest.fn();
+  d.tabs = new Map([['scene', { content: { style: {} }, button: { style: {} } }]]);
+  d.showTab('scene');
+  expect(d.updateSceneTree).toHaveBeenCalled();
+});

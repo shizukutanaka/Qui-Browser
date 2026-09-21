@@ -789,3 +789,14 @@ describe('TabManager — sliver arms', () => {
     expect(tm.tabs[1].setSearchEngine).toHaveBeenCalledWith('duckduckgo');
   });
 });
+
+test('closeTab on a tab before the active one shifts activeIndex down', () => {
+  const tm = makeManager();
+  tm.newTab('https://a.example');
+  tm.newTab('https://b.example');
+  tm.newTab('https://c.example');
+  tm.setActive(2);                    // activeIndex = 2
+  tm.closeTab(0);                     // index 0 < activeIndex → decrement to 1
+  expect(tm.activeIndex).toBe(1);
+  expect(tm.tabs[tm.activeIndex]).toBeTruthy();
+});

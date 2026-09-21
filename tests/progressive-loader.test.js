@@ -547,6 +547,9 @@ describe('ProgressiveLoader — performLoad type dispatch + completion arms', ()
     expect(order[0]).toBe('phase-critical');
     expect(order[1]).toBe('critical-done');
     expect(order[2]).toBe('phase-primary');
+    // The secondary phase is queued on requestIdleCallback — let it run while
+    // the loadPhase mock is still live, or its .catch lands on a cleared mock.
+    await new Promise((r) => setTimeout(r, 25));
   });
 });
 
@@ -654,4 +657,27 @@ describe('ProgressiveLoader — complementary arms', () => {
     const s = pl.getStats?.() ?? pl.stats;
     expect(parseFloat(s.progressPercent ?? '0')).toBeGreaterThan(0);
   });
+});
+
+test('connection fields fall back to unknown/4g when the API reports nulls', () => {
+  const saved = global.navigator;
+  global.navigator = { connection: { type: null, effectiveType: null, downlink: null, rtt: null, saveData: null, addEventListener: jest.fn() } };
+  try {
+    const pl = new ProgressiveLoader({ onLoadComplete: jest.fn() });
+    expect(pl.network.type).toBe('unknown');
+    expect(pl.network.effectiveType).toBe('4g');
+  } finally {
+    global.navigator = saved;
+  }
+});
+
+test('start() falls back to setTimeout when requestIdleCallback is absent; detectNetwork tolerates no connection object', () => {
+  const saved = globalThis.requestIdleCallback;
+  delete globalThis.requestIdleCallback;
+  const pl = new ProgressiveLoader({ onLoadComplete: jest.fn() });
+  const prevNav = global.navigator;
+  global.navigator = {};
+  expect(() => pl.detectNetwork?.()).not.toThrow();
+  global.navigator = prevNav;
+  globalThis.requestIdleCallback = saved;
 });

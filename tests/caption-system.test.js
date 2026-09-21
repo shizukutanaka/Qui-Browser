@@ -577,3 +577,12 @@ describe('CaptionSystem — dispose/truncate sliver arms', () => {
     expect(mat.dispose).toHaveBeenCalled();
   });
 });
+
+test('dispose with camera.remove + material.map covers both free-arms', () => {
+  const cam = { add: jest.fn(), remove: jest.fn() };
+  const cs = new CaptionSystem(cam, {});
+  const mesh = { material: { map: { dispose: jest.fn() }, dispose: jest.fn() }, geometry: { dispose: jest.fn() }, parent: cam };
+  cs.mesh = mesh;
+  cs.dispose();
+  expect(cam.remove).toHaveBeenCalledWith(mesh);
+});

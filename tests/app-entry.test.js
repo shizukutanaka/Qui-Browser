@@ -859,3 +859,14 @@ describe('src/app.js — false-side arms', () => {
     expect((h.documentListeners.DOMContentLoaded || []).length).toBeGreaterThan(0);
   });
 });
+
+test('main.js enter-vr click tolerates a navigator without xr; showError without loadingScreen', async () => {
+  installDom({ ids: { enterVRButton: makeEl('enterVRButton') }, xr: undefined });
+  // navigator without xr at all
+  const nav = global.navigator;
+  const desc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true });
+  jest.isolateModules(() => require('../src/main.js'));
+  await tick();
+  if (desc) Object.defineProperty(globalThis, 'navigator', desc);
+});

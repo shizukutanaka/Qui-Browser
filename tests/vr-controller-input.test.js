@@ -506,3 +506,25 @@ describe('VRControllerInput — generic-fallback arms', () => {
     expect(Math.max(...vals)).toBe(1);
   });
 });
+
+describe('VRControllerInput — label/map sliver arms', () => {
+  test('getDeviceName labels an inputSource with no handedness and unknown family', () => {
+    const ci = new VRControllerInput();
+    expect(ci.getDeviceName(null)).toContain('unknown');
+    expect(ci.getDeviceName(makeSource(['totally-custom-profile']))).toContain('Controller');
+  });
+
+  test('read() uses generic maps and zero-fills missing axes', () => {
+    const ci = new VRControllerInput();
+    const src = makeSource(['unknown-pad'], 'right', [true], []); // sparse axes
+    const out = ci.read(src);
+    expect(out.axes.stickX).toBe(0);
+    expect(out.buttons).toBeTruthy();
+  });
+});
+
+test('getDeviceName with undefined handedness; read on a family with no explicit map', () => {
+  const ci = new VRControllerInput();
+  const src = { profiles: ['totally-custom-profile'], handedness: null, gamepad: { buttons: [], axes: [] } };
+  expect(ci.getDeviceName(src)).toContain('unknown');
+});

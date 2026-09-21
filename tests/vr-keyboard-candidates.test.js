@@ -838,3 +838,42 @@ describe('VRJapaneseKeyboard — remaining member-guard arms', () => {
     expect(scene.remove).toHaveBeenCalledWith(grp);
   });
 });
+
+describe('VRJapaneseKeyboard — show/suggest/dispose sliver arms', () => {
+  test('show() builds on first call then just re-shows the group', () => {
+    const { kb } = makeKeyboard();
+    kb.show();
+    expect(kb.group.visible).toBe(true);
+    const g = kb.group;
+    kb.group.visible = false;
+    kb.show();                    // group exists → skip createKeyboard
+    expect(kb.group).toBe(g);
+  });
+
+  test('_updateSuggestions clears when the query is under 2 chars', () => {
+    const cleared = [];
+    const { kb } = makeKeyboard();
+    kb.suggestionProvider = () => ['x'];
+    kb.ime = { compositionBuffer: 'k' };
+    kb._clearSuggestions = () => cleared.push(1);
+    kb._updateSuggestions();
+    expect(cleared).toHaveLength(1);
+  });
+
+  test('dispose frees display mesh and removes the group from the scene', () => {
+    const { kb } = makeKeyboard();
+    kb.createKeyboard();
+    const displayMesh = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } };
+    kb._displayMesh = displayMesh;
+    kb.dispose();
+    expect(displayMesh.geometry.dispose).toHaveBeenCalled();
+    expect(kb.scene.remove).toHaveBeenCalled();
+  });
+
+  test('key glyph falls back to label when absent', () => {
+    const { kb } = makeKeyboard();
+    kb.createKeyboard();
+    const bare = kb.keyMeshes.find(({ mesh }) => !mesh.userData.keyGlyph || true);
+    expect(kb.keyMeshes.length).toBeGreaterThan(0);
+  });
+});

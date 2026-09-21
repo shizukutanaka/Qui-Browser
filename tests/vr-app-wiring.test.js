@@ -3393,3 +3393,26 @@ describe('VRApp — render/updateSystems/navigate/stats/dispose arms', () => {
     expect(cancel).toHaveBeenCalled();
   });
 });
+
+describe('WindowManager — sliver arm', () => {
+test('WindowManager update early-returns without a target', async () => {
+  const { WindowManager } = await import('../src/vr/browser/WindowManager.js');
+  const wm = new WindowManager({ camera: {} });
+  expect(() => wm.update(16)).not.toThrow();
+});
+});
+
+describe('WindowManager — follow arms', () => {
+  test('update with a target and followMode repositions toward camera', async () => {
+    const { WindowManager } = await import('../src/vr/browser/WindowManager.js');
+    const THREE = require('three');
+    const wm = new WindowManager(new THREE.PerspectiveCamera());
+    wm.target = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), scale: new THREE.Vector3() };
+    wm.followMode = true;
+    expect(() => wm.update(16)).not.toThrow();
+    wm._grab = { id: 'g' };
+    wm._updateGrab = jest.fn(); wm._applyAngularScale = jest.fn(); wm._faceUser = jest.fn();
+    wm.update(16);                                        // grab arm wins over follow
+    expect(wm._updateGrab).toHaveBeenCalled();
+  });
+});

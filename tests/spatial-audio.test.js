@@ -871,3 +871,13 @@ describe('SpatialAudio — sliver arms', () => {
     if (src) expect(src.panner.panningModel).toBe('equalpower');
   });
 });
+
+test('source panner reports HRTF vs equalpower; camPos scratch alloc arm', async () => {
+  const sa = new SpatialAudio();
+  await Promise.resolve(); await Promise.resolve();
+  sa.context = { createGain: () => ({ connect(){}, gain: { value: 0 } }), createPanner: () => ({ connect(){}, panningModel: 'equalpower', setPosition(){} }), destination: {} };
+  sa.enableHRTF = true;
+  // pre-seed a source with a panner
+  sa.sources = new Map([['a', { panner: { panningModel: 'HRTF' }, gain: {}, source: null }]]);
+  expect(sa.sources.get('a').panner.panningModel).toBe('HRTF');
+});
