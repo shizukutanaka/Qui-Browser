@@ -711,6 +711,71 @@ describe('setupVR — button/session/visibility wiring', () => {
     visFn();
     expect(app.immersiveVideo.togglePause).toHaveBeenCalled();
   });
+
+  test('vrButton onclick is guarded: in-flight request deduped, rejection surfaces a toast', async () => {
+    const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
+    const button = { click() {
+      this.onclick?.();
+    }, onclick() {}, textContent: '' };
+    VRButton.createButton = jest.fn(() => button);
+    const app = makeInitLike();
+    app.renderer = {
+      xr: { addEventListener: jest.fn(), isPresenting: false, getSession: () => null,
+        setSession: jest.fn(async () => {}) },
+      setAnimationLoop: jest.fn()
+    };
+    app.setupControllers = jest.fn();
+    app.showVRToast = jest.fn();
+    const deferred = () => {
+      let resolve; let reject;
+      const promise = new Promise((res, rej) => {
+        resolve = res; reject = rej;
+      });
+      return { promise, resolve, reject };
+    };
+    const reqs = [deferred(), deferred()];
+    const requestSession = jest.fn()
+      .mockReturnValueOnce(reqs[0].promise)
+      .mockReturnValueOnce(reqs[1].promise);
+    const origNavigator = global.navigator;
+    global.navigator = { xr: { requestSession } };
+    const flush = () => new Promise(setImmediate);
+    try {
+      VRApp.prototype.setupVR.call(app);
+      expect(typeof button.onclick).toBe('function');
+      button.click(); // first request in flight
+      button.click(); // duplicate while pending — deduped
+      expect(requestSession).toHaveBeenCalledTimes(1);
+      expect(requestSession).toHaveBeenCalledWith('immersive-vr', expect.objectContaining({
+        optionalFeatures: expect.arrayContaining(['local-floor', 'hand-tracking'])
+      }));
+
+      // request resolves → setSession + 'EXIT VR'
+      const session = { addEventListener: jest.fn(), end: jest.fn() };
+      reqs[0].resolve(session);
+      await flush();
+      await flush();
+      expect(app.renderer.xr.setSession).toHaveBeenCalledWith(session);
+      expect(button.textContent).toBe('EXIT VR');
+
+      // presenting → click ends the live session instead of requesting again
+      app.renderer.xr.getSession = () => session;
+      button.click();
+      expect(session.end).toHaveBeenCalled();
+      expect(requestSession).toHaveBeenCalledTimes(1);
+      app.renderer.xr.getSession = () => null;
+
+      // rejection → error toast, and a later click can retry
+      button.click();
+      expect(requestSession).toHaveBeenCalledTimes(2);
+      reqs[1].reject(new Error('denied'));
+      await flush();
+      await flush();
+      expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'error' });
+    } finally {
+      global.navigator = origNavigator;
+    }
+  });
 });
 
 describe('callback bodies — hostnameCaption fallback arms', () => {

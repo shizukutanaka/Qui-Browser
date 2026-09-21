@@ -2999,6 +2999,44 @@ export class VRApp {
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;
 
+    // three's button.onclick fires requestSession().then(...) with no .catch
+    // and no in-flight guard: a denied request is an invisible unhandled
+    // rejection, and a second click while the first is pending issues a
+    // duplicate request. Replace it with a guarded handler that mirrors the
+    // same session flow (three builds the sessionOptions inside its closure —
+    // replicate them here: base features + our sessionInit).
+    if (typeof vrButton.onclick === 'function') {
+      const sessionOptions = {
+        optionalFeatures: [...new Set([
+          'local-floor', 'bounded-floor', 'layers', 'hand-tracking'
+        ])]
+      };
+      let pendingRequest = null;
+      vrButton.onclick = () => {
+        const liveSession = this.renderer.xr.getSession();
+        if (liveSession) {
+          liveSession.end();
+          return;
+        }
+        if (pendingRequest) {
+          return;
+        }
+        pendingRequest = navigator.xr.requestSession('immersive-vr', sessionOptions);
+        pendingRequest.then(async (session) => {
+          session.addEventListener('end', () => {
+            vrButton.textContent = 'ENTER VR';
+          });
+          await this.renderer.xr.setSession(session);
+          vrButton.textContent = 'EXIT VR';
+        }).catch((err) => {
+          console.warn('VRApp: session request rejected:', err?.message ?? err);
+          this.showVRToast(t('app.error.enterVRFailed'), { type: 'error' });
+        }).finally(() => {
+          pendingRequest = null;
+        });
+      };
+    }
+
     // Wire the landing-page "Enter VR" buttons (which dispatch a global
     // 'enter-vr' event) to the WebXR session request. Without this the
     // landing-page buttons dispatch an event that nothing handles.
