@@ -163,10 +163,12 @@ Qui Browser VR/
 │   ├── i18n/                 # en/ja catalogs
 │   ├── utils/                # BookmarkStore, loaders
 │   ├── app.js                # Application entry point
-│   ├── VRApp.js              # Main VR controller
+│   ├── main.js               # Bootstrap: feature detect → mount app
+│   ├── vr/VRApp.js           # Main VR controller
+│   ├── dev/DevTools.js       # In-session console/scene/network inspector
 │   └── monitoring.js         # Production monitoring
-├── docs/                     # Complete documentation (24 files)
-├── tests/                    # Test suites (56 suites, 1843 tests)
+├── docs/                     # Complete documentation (26 files)
+├── tests/                    # Test suites (63 suites, 2148 tests)
 ├── tools/                    # Verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
@@ -239,10 +241,10 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 48 test suites, 1510 tests
-- **Integration Tests:** Tier system integration
-- **Performance Tests:** Benchmarking and regression detection
-- **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)
+- **Unit Tests:** 63 test suites, 2148 tests
+- **Integration Tests:** `vr-app-wiring` + `app-smoke` (`npm run test:integration`)
+- **Coverage Floor:** Ratcheted jest thresholds (65% branches / 70% funcs / 75% lines) — regressions fail `ci:test`
+- **Runtime Harnesses:** `verify:app` + `verify:vr-boot` boot the real bundle in headless Chromium (`ci:verify`)
 - **CI/CD:** Automated testing on every push/PR
 
 **📖 Testing Guide:** [docs/TESTING.md](docs/TESTING.md)
@@ -263,10 +265,10 @@ npm run release:major         # Major version (X.0.0)
 
 ## 📈 Monitoring & Analytics
 
-- **Error Tracking:** Sentry (10% sampling, 100% on errors)
+- **Error Tracking:** Sentry (initialized in production builds; 10% sampling, 100% on errors)
 - **Analytics:** Google Analytics 4 (GDPR compliant)
 - **Performance:** Web Vitals (CLS, FID, FCP, LCP, TTFB)
-- **Custom Metrics:** VR-specific FPS, memory, session tracking
+- **Custom Metrics:** VR-specific verbs exist but are unwired — see OUTSTANDING_ISSUES.md N-2
 
 **📖 Monitoring Guide:** [docs/CI_CD_MONITORING_GUIDE.md](docs/CI_CD_MONITORING_GUIDE.md)
 
