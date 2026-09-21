@@ -2973,3 +2973,46 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
     expect(app.settings.enableHaptics).toBe(false);
   });
 });
+
+describe('VRApp — storage-unavailable and empty-storage arms', () => {
+  const P = VRApp.prototype;
+
+  test('loadPersistedSettings returns {} when localStorage is unavailable', () => {
+    delete global.localStorage;
+    const app = makeVRAppLike({ settings: { a11y: true } });
+    expect(P.loadPersistedSettings.call(app)).toEqual({});
+  });
+
+  test('_saveTabSession is a no-op when localStorage is unavailable', () => {
+    delete global.localStorage;
+    const app = makeVRAppLike({
+      settings: {},
+      tabManager: { serialize: jest.fn() }
+    });
+    expect(() => P._saveTabSession.call(app)).not.toThrow();
+    expect(app.tabManager.serialize).not.toHaveBeenCalled();
+  });
+
+  test('_restoreTabSession reports 0 when localStorage is unavailable', () => {
+    delete global.localStorage;
+    const app = makeVRAppLike({
+      settings: {},
+      tabManager: { restoreSession: jest.fn() }
+    });
+    expect(P._restoreTabSession.call(app)).toBe(0);
+  });
+});
+
+describe('VRApp.updateHover — invisible-ancestor arm', () => {
+  test('a hit whose parent is invisible is skipped by isWorldVisible', () => {
+    const onHover = jest.fn();
+    const target = { userData: { interactable: { onHover } } };
+    const invisibleParent = { visible: false };
+    target.parent = invisibleParent;
+    const controller = { userData: {} };
+    const app = makeVRAppLike({ interactables: [target], controllers: [controller] });
+    app.raycasterFromController = jest.fn(() => ({ intersectObjects: jest.fn(() => [{ object: target }]) }));
+    VRApp.prototype.updateHover.call(app);
+    expect(onHover).not.toHaveBeenCalled();
+  });
+});
