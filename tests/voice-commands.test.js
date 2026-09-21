@@ -1188,3 +1188,36 @@ describe('VoiceCommands — remaining false-side arms', () => {
     expect(navigate).toHaveBeenCalledWith('てんき');
   });
 });
+
+describe('VoiceCommands — colon/go-to/restart slivers', () => {
+  test('search action with a colon-less transcript returns undefined', () => {
+    const vc = new VoiceCommands();
+    vc.connectBrowser({ onSearch: jest.fn() });
+    const cmd = vc.commands.get('search');
+    expect(cmd.action('検索')).toBeUndefined(); // matched pattern-less path: no colon
+  });
+
+  test('go-to action with an empty query reports query:null', () => {
+    const vc = new VoiceCommands();
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    const cmd = vc.commands.get('go-to');
+    const out = cmd.action('を開く');
+    expect(out).toEqual({ action: 'go-to', query: null });
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+
+  test('onend does not restart when disabled before the 100ms tick', () => {
+    jest.useFakeTimers();
+    const vc = new VoiceCommands();
+    vc.settings.continuous = true;
+    vc.isEnabled = true;
+    const rec = { start: jest.fn(), stop: jest.fn() };
+    vc.recognition = rec;
+    const startSpy = jest.spyOn(vc, 'start').mockImplementation(() => {});
+    vc.isEnabled = false;
+    jest.advanceTimersByTime(200);
+    expect(startSpy).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+});
