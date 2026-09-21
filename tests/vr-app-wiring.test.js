@@ -2260,12 +2260,59 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
       renderer: { xr: { getReferenceSpace: jest.fn(), getSession: () => session }, info: { render: {} } },
       _rateLadder: [120, 90, 72],
       _rateIdx: 0
+      // no _viewScaleLadder → runtime lacks requestViewportScale → rate drop
     });
     for (let i = 0; i < 241; i++) {
       VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
     }
     expect(session.updateTargetFrameRate).toHaveBeenCalledWith(90);
     expect(app._rateIdx).toBe(1);
+  });
+
+  test('sustained misses shrink the viewport before dropping the frame rate', () => {
+    const requestViewportScale = jest.fn();
+    const session = {
+      refreshRate: 120,
+      updateTargetFrameRate: jest.fn().mockResolvedValue(undefined)
+    };
+    const app = makeSystemsApp({
+      isVREnabled: true,
+      settings: { targetFPS: 120 },
+      performanceMonitor: { frameTime: 50 },
+      ffrSystem: {
+        trackHeadPose: jest.fn(), updatePredictedGazeFoveation: jest.fn(),
+        adjustIntensity: jest.fn()
+      },
+      renderer: {
+        xr: { getReferenceSpace: () => 'ref', getSession: () => session },
+        info: { render: {} }
+      },
+      _rateLadder: [120, 90, 72],
+      _rateIdx: 0,
+      _viewScaleLadder: [0.85, 0.7],
+      _viewScaleIdx: 0
+    });
+    const frame = { getViewerPose: () => ({ views: [{ requestViewportScale }] }) };
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    // Resolution first: the viewport shrank and the rate was untouched.
+    expect(requestViewportScale).toHaveBeenCalledWith(0.85);
+    expect(session.updateTargetFrameRate).not.toHaveBeenCalled();
+    expect(app._viewScaleIdx).toBe(1);
+
+    // Still overloaded after the next 240-frame window → second, deeper shrink.
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    expect(requestViewportScale).toHaveBeenLastCalledWith(0.7);
+    expect(session.updateTargetFrameRate).not.toHaveBeenCalled();
+
+    // Ladder exhausted → finally the session drops a frame rate.
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    expect(session.updateTargetFrameRate).toHaveBeenCalledWith(90);
   });
 
   test('no frame-rate module: refreshRate alone still re-bases the budget', async () => {

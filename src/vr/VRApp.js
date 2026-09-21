@@ -3059,6 +3059,12 @@ export class VRApp {
     // Request the best rate the runtime offers and measure the budget
     // against the rate the session actually runs at.
     if (session && !this.settings._fpsOverridden) {
+      // Dynamic viewport scaling (XRView.requestViewportScale): cheaper than
+      // dropping refresh rate — same Hz, fewer pixels, no judder. Tried first
+      // in the sustained-overload ladder. Capability-checked per call; some
+      // runtimes expose the method but not the feature.
+      this._viewScaleLadder = [0.85, 0.7];
+      this._viewScaleIdx = 0;
       const syncBudget = () => {
         if (session.refreshRate) {
           this.settings.targetFPS = Math.round(session.refreshRate);
@@ -3219,6 +3225,8 @@ export class VRApp {
     this._rateLadder = null;
     this._rateIdx = 0;
     this._overBudgetFrames = 0;
+    this._viewScaleLadder = null;
+    this._viewScaleIdx = 0;
 
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -3356,21 +3364,47 @@ export class VRApp {
         this._overBudgetFrames = 0;
       }
       // Sustained overload (~240 consecutive misses ≈ 2.7 s at 90 Hz): FFR
-      // alone can't buy back a frame that doesn't fit — ask the runtime for
-      // the next-lower supported rate and re-sync the budget. Skipped when
-      // the user pinned a rate via settings (_fpsOverridden).
-      if (this._overBudgetFrames > 240
-          && !this.settings._fpsOverridden
-          && this._rateLadder && this._rateIdx + 1 < this._rateLadder.length) {
+      // alone can't buy back a frame that doesn't fit. Meta's ordering is
+      // resolution first, refresh rate second — XRView.requestViewportScale
+      // renders the same scene into fewer pixels without judder; only when
+      // the scale ladder is exhausted do we drop the session rate.
+      // Skipped when the user pinned a rate via settings (_fpsOverridden).
+      if (this._overBudgetFrames > 240 && !this.settings._fpsOverridden) {
         const session = this.renderer.xr.getSession();
         if (session) {
-          const next = this._rateLadder[++this._rateIdx];
           this._overBudgetFrames = 0;
-          session.updateTargetFrameRate(next).then(() => {
-            if (session.refreshRate) {
-              this.settings.targetFPS = Math.round(session.refreshRate);
+
+          // 1) Shrink the viewport if the ladder has room and a view can take it.
+          let scaled = false;
+          if (this._viewScaleLadder && this._viewScaleIdx < this._viewScaleLadder.length) {
+            try {
+              const refSpace = this.renderer.xr.getReferenceSpace();
+              const view = refSpace && xrFrame
+                ? xrFrame.getViewerPose(refSpace)?.views?.[0]
+                : null;
+              if (view && typeof view.requestViewportScale === 'function') {
+                view.requestViewportScale(this._viewScaleLadder[this._viewScaleIdx]);
+                this._viewScaleIdx++;
+                scaled = true;
+              }
+            } catch (e) {
+              console.debug('VRApp: viewport scale request skipped', e);
             }
-          }, () => {});
+          }
+          if (!scaled && this._viewScaleLadder) {
+            this._viewScaleIdx = this._viewScaleLadder.length; // don't retry per window
+          }
+
+          // 2) Then the frame-rate step-down.
+          if (!scaled
+              && this._rateLadder && this._rateIdx + 1 < this._rateLadder.length) {
+            const next = this._rateLadder[++this._rateIdx];
+            session.updateTargetFrameRate(next).then(() => {
+              if (session.refreshRate) {
+                this.settings.targetFPS = Math.round(session.refreshRate);
+              }
+            }, () => {});
+          }
         }
       }
     }
