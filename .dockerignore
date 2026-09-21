@@ -13,7 +13,8 @@ yarn.lock
 Dockerfile
 docker-compose.yml
 .dockerignore
-docker
+# NOTE: docker/ itself must stay in the build context — the Dockerfile's
+# nginx stage COPYs docker/nginx.conf and docker/healthcheck.sh.
 
 # IDE
 .vscode

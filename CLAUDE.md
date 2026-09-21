@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き142 — Dockerfile が参照する docker/ を .dockerignore が除外していた（docker build 必敗）
+静的照合で発見：`.dockerignore` の `docker` 行が `docker/nginx.conf` と `docker/healthcheck.sh` をビルドコンテキストから除外していたが、Dockerfile nginx stage がまさにその2ファイルを COPY する — **docker 経路は一度も実 build に通っていなかった**（#132 で dist 配信を直しても build 自体が文脈エラーで失敗する状態のままだった）。除外行を削除＋ `tests/docker-context.test.js` を新設して「非 --from COPY の全ソースが実在し非除外」を pin。3027 tests / 70 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き141 — `npm run dev` の解決エラーと lint スコープの第3層
 `vite` 開発サーバー起動で「@sentry/browser が解決不能」— monitoring.js の `@vite-ignore` 動的 import（N-2 の PROD ゲート面、未インストール意図的）が optimizeDeps スキャナに裸指定子として見えていた。`optimizeDeps.exclude` で静黙化（実行経路は不変、dev ブート実測クリーン）。さらに lint を `.` に再拡大 — 「src proxy tests tools」に広げたはずが**ルート設定（vite.config.js・jest.config.js・eslint.config.js）と public/ は依然スキャン外**で、拡大で public/service-worker.js の33エラー・vite.config.js の5エラー・docs/archive の死骸数千エラーが露出。出荷コードは autofix し、archive/vendored（basis_transcoder）は ignores に追加（doc-references の「履歴」除外と同クラス）。`eslint .`: **0 errors** / 379 warnings、3026 tests 全緑、build 緑、dev ブート実測クリーン。
 
