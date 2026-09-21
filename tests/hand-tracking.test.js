@@ -458,3 +458,67 @@ describe('HandTracking — remaining guard arms', () => {
     expect(() => ht.updateHand({}, { handedness: null }, {})).not.toThrow();
   });
 });
+
+describe('HandTracking — remaining branch arms', () => {
+  test('update() skips inputSources without .hand (controller sources)', () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    ht.leftHand = { visible: false };
+    ht.rightHand = { visible: false };
+    const frame = {
+      session: { inputSources: [{ handedness: 'left' }] }, // no .hand
+      getJointPose: () => null
+    };
+    expect(() => ht.update(frame, null)).not.toThrow();
+    expect(ht.leftHand.visible).toBe(false); // never tracked → hidden
+  });
+
+  test('update() with no hand groups tolerates absent leftHand/rightHand', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.leftHand = null;
+    ht.rightHand = null;
+    const frame = { session: { inputSources: [] }, getJointPose: () => null };
+    expect(() => ht.update(frame, null)).not.toThrow();
+  });
+
+  test('updateHand: jointMesh absent + jointPose.radius falsy arms', () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const jointMesh = { position: { set: jest.fn() }, quaternion: { set: jest.fn() }, scale: { setScalar: jest.fn() }, material: { color: { setHex: jest.fn() } } };
+    const hand = { get: (name) => name === 'wrist' ? {} : null };
+    const frame = {
+      session: { inputSources: [] },
+      getJointPose: (src, space) => ({ transform: { position: { x: 0, y: 0, z: 0 }, orientation: {} }, radius: 0 })
+    };
+    ht.joints.left = new Map([['wrist', jointMesh]]);
+    ht.leftHand = { visible: false }; // updateHand marks it visible
+    expect(() => ht.updateHand(frame, { handedness: 'left', hand }, null)).not.toThrow();
+    expect(jointMesh.scale.setScalar).toHaveBeenCalledWith(1); // radius 0 → ||0.008 → 1
+  });
+
+  test('detectGesture with no matching gesture returns null', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const joints = new Map(); // empty → all checks fail
+    expect(ht.detectGesture(joints)).toBe('none');
+  });
+
+  test('dispose with session/hands absent: guards all skip', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.session = null; ht._onInputSourcesChange = null;
+    ht.leftHand = null; ht.rightHand = null;
+    expect(() => ht.dispose()).not.toThrow();
+  });
+
+  test('dispose detaches inputsourceschange when session + listener exist', () => {
+    const session = makeSession();
+    const ht = new HandTracking({}, new MockObj());
+    ht.session = session;
+    const listener = () => {};
+    ht._onInputSourcesChange = listener;
+    session.addEventListener('inputsourceschange', listener);
+    ht.leftHand = null; ht.rightHand = null;
+    ht.dispose();
+    expect(session.removeEventListener).toHaveBeenCalledWith('inputsourceschange', listener);
+    expect(ht.session).toBeNull();
+  });
+});
