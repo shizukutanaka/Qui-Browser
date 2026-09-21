@@ -141,18 +141,25 @@ export const AXES_MAPS = {
  * @param {number} x         raw axis value, [-1, 1]
  * @param {number} y         raw axis value, [-1, 1]
  * @param {number} deadZone  fraction of travel ignored near centre, [0, 1)
+ * @param {{x: number, y: number}} [out]  optional target object written in
+ *   place (render-loop callers reuse one scratch instead of allocating)
  * @returns {{x: number, y: number}} the dead-zoned, re-normalised vector
  */
-export function applyRadialDeadZone(x, y, deadZone) {
+export function applyRadialDeadZone(x, y, deadZone, out) {
+  const target = out ?? { x: 0, y: 0 };
   const mag = Math.hypot(x, y);
   if (mag <= deadZone) {
-    return { x: 0, y: 0 };
+    target.x = 0;
+    target.y = 0;
+    return target;
   }
   // Re-normalise magnitude so it starts at 0 just past the dead zone and
   // reaches 1 at full deflection; preserve direction via the unit vector.
   const scaled = Math.min((mag - deadZone) / (1 - deadZone), 1);
   const k = scaled / mag;
-  return { x: x * k, y: y * k };
+  target.x = x * k;
+  target.y = y * k;
+  return target;
 }
 
 /** Human-readable display names per family. */
@@ -216,6 +223,11 @@ export class VRControllerInput {
    * }
    *
    * justPressed / justReleased are edge-triggered: true for exactly one frame.
+   *
+   * The returned snapshot is reused per input source — callers must read the
+   * fields synchronously and not retain the object across frames. This keeps
+   * the render loop allocation-free (two controllers × ~12 objects × 90 fps
+   * was ~2,000 small allocations per second on the headset).
    */
   read(inputSource) {
     if (!inputSource?.gamepad) {
@@ -230,46 +242,60 @@ export class VRControllerInput {
     // Per-source previous-button state (initialised on first call).
     let state = this._state.get(inputSource);
     if (!state) {
-      state = { prev: {} };
+      state = { prev: {}, snapshot: null, family: null, dz: { x: 0, y: 0 } };
       this._state.set(inputSource, state);
     }
 
+    // (Re)build the snapshot shape when the source family changes or on first
+    // read; afterwards fields are written in place.
+    let snap = state.snapshot;
+    if (!snap || state.family !== family) {
+      snap = { family, hand: 'unknown', axes: {}, buttons: {} };
+      for (const name in buttonMap) {
+        snap.buttons[name] = { pressed: false, justPressed: false, justReleased: false, value: 0 };
+      }
+      for (const prefix of ['stick', 'trackpad']) {
+        const xk = `${prefix}X`;
+        const yk = `${prefix}Y`;
+        if (xk in axesMap || yk in axesMap) {
+          snap.axes[xk] = 0;
+          snap.axes[yk] = 0;
+        }
+      }
+      state.snapshot = snap;
+      state.family = family;
+      state.prev = {}; // renamed maps invalidate prior edge state
+    }
+    snap.hand = inputSource.handedness ?? 'unknown';
+
     // --- Buttons ---
-    const buttons = {};
-    for (const [name, idx] of Object.entries(buttonMap)) {
-      const btn      = gp.buttons[idx];
+    const buttons = snap.buttons;
+    for (const name in buttonMap) {
+      const btn      = gp.buttons[buttonMap[name]];
       const pressed  = btn ? btn.pressed : false;
       const wasPrev  = state.prev[name] ?? false;
-      buttons[name] = {
-        pressed,
-        justPressed:   pressed && !wasPrev,
-        justReleased: !pressed &&  wasPrev,
-        value:  btn ? (btn.value ?? (pressed ? 1 : 0)) : 0
-      };
+      const entry    = buttons[name];
+      entry.pressed      = pressed;
+      entry.justPressed  = pressed && !wasPrev;
+      entry.justReleased = !pressed && wasPrev;
+      entry.value        = btn ? (btn.value ?? (pressed ? 1 : 0)) : 0;
       state.prev[name] = pressed;
     }
 
     // --- Axes (scaled radial dead-zone applied per X/Y pair) ---
     const raw = gp.axes;
-    const rawAxes = {};
-    for (const [name, idx] of Object.entries(axesMap)) {
-      rawAxes[name] = raw[idx] ?? 0;
-    }
-    // Dead-zone each stick / trackpad as a 2D vector (circular region + smooth
-    // onset) rather than clamping each axis independently. Only emit the pairs
-    // that this family actually exposes, preserving the snapshot's key set.
-    const axes = {};
+    const axes = snap.axes;
     for (const prefix of ['stick', 'trackpad']) {
       const xk = `${prefix}X`;
       const yk = `${prefix}Y`;
-      if (xk in rawAxes || yk in rawAxes) {
-        const d = applyRadialDeadZone(rawAxes[xk] ?? 0, rawAxes[yk] ?? 0, this.deadZone);
-        axes[xk] = d.x;
-        axes[yk] = d.y;
+      if (xk in axesMap || yk in axesMap) {
+        applyRadialDeadZone(raw[axesMap[xk]] ?? 0, raw[axesMap[yk]] ?? 0, this.deadZone, state.dz);
+        axes[xk] = state.dz.x;
+        axes[yk] = state.dz.y;
       }
     }
 
-    return { family, hand: inputSource.handedness ?? 'unknown', axes, buttons };
+    return snap;
   }
 
   /**
@@ -285,11 +311,30 @@ export class VRControllerInput {
 
   /** @private Empty snapshot when a source has no gamepad. */
   _empty(inputSource) {
-    return {
-      family:  this.detectFamily(inputSource),
-      hand:    inputSource?.handedness ?? 'unknown',
-      axes:    { stickX: 0, stickY: 0 },
-      buttons: {}
-    };
+    if (!inputSource) {
+      return EMPTY_SNAPSHOT;
+    }
+    let state = this._state.get(inputSource);
+    if (!state) {
+      state = { prev: {}, snapshot: null, family: null, dz: { x: 0, y: 0 }, empty: null };
+      this._state.set(inputSource, state);
+    }
+    if (!state.empty) {
+      state.empty = {
+        family:  this.detectFamily(inputSource),
+        hand:    'unknown',
+        axes:    { stickX: 0, stickY: 0 },
+        buttons: {}
+      };
+    }
+    state.empty.hand = inputSource.handedness ?? 'unknown';
+    return state.empty;
   }
 }
+
+const EMPTY_SNAPSHOT = Object.freeze({
+  family:  'generic',
+  hand:    'unknown',
+  axes:    Object.freeze({ stickX: 0, stickY: 0 }),
+  buttons: Object.freeze({})
+});

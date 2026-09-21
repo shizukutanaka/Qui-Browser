@@ -290,6 +290,45 @@ describe('VRControllerInput.read — family and hand', () => {
 });
 
 // ---------------------------------------------------------------------------
+// snapshot reuse
+// ---------------------------------------------------------------------------
+
+describe('VRControllerInput snapshot reuse', () => {
+  let ci;
+  beforeEach(() => {
+    ci = new VRControllerInput();
+  });
+
+  test('read() returns the same object per source across frames', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, []), [0, 0, 0, 0]);
+    const a = ci.read(src);
+    const b = ci.read(src);
+    expect(a).toBe(b);
+    // edge state still updates in place
+    src.gamepad.buttons = makeButtons(7, [4]);
+    const c = ci.read(src);
+    expect(c).toBe(a);
+    expect(c.buttons.faceA.justPressed).toBe(true);
+  });
+
+  test('a family change rebuilds the snapshot shape', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, []), [0, 0, 0, 0]);
+    const quest = ci.read(src);
+    src.profiles = ['pico-4'];
+    const pico = ci.read(src);
+    expect(pico.family).toBe('pico');
+    expect(pico).not.toBe(quest);
+  });
+
+  test('sources without gamepads share no stale button state', () => {
+    const src = { profiles: ['oculus-touch-v3'], handedness: 'left' }; // no .gamepad
+    const a = ci.read(src);
+    expect(Object.keys(a.buttons)).toHaveLength(0);
+    expect(ci.read(src)).toBe(a);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // forget
 // ---------------------------------------------------------------------------
 

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き202 — `VRControllerInput.read()` の毎フレーム確保をゼロ化（Qiita three.js 指針の横展開）
+- 🔍 **発見**: `read()` が毎コール `{family,hand,axes,buttons}` + ボタン名ごとの `{pressed,justPressed,…}` を新規確保 — 2コントローラ × ~12オブジェクト × 90fps ≈ **秒間2,000個の短命オブジェクト**で Quest の JS GC 圧力。CaptionSystem/raycast で既に潰した「render loop で new」の同クラス最後の残存。
+- 🔧 **修正**: スナップショットを入力ソースごとに再利用（`_state` WeakMap に `snapshot` を保持）。形状は family 変更時のみ再構築（`prev` も同時リセット — キー名が変わるため）。`applyRadialDeadZone` に `out` 引数追加で `{x,y}` 確保も解消。no-gamepad 経路も per-source キャッシュ化、falsy ソースは共有 freeze 定数。docstring に「呼出側は同フレーム内同期読みのみ、跨フレーム保持禁止」を明記（実コンシューマー2箇所は既に同期読みのみ）。
+- 🧪 pin 3本: 跨フレーム同一オブジェクト＋justPressed が in-place で正しく立つ、family 変更で形状再構築、no-gamepad ソースの空スナップショット再利用。
+- ✅ 3078 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き201 — ComfortSystem を実測したら**全出力経路が没入中は死んでいた** → vignette を実働化し残りを削除
 - 🔍 **発見（three ソース実読 + WebXR spec）**: ComfortSystem の3つの効果が全て XR では無効だった:
   - **vignette**: `setupVignette` が renderTarget+shader+quad を構築し `updateVignette` が毎フレーム uniform を更新するが、`comfortSystem.render()` を呼ぶ者がゼロ（VRApp は直接 `renderer.render`）— 描かれたことは一度もない。
