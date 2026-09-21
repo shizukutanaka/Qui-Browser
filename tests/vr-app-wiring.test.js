@@ -2122,6 +2122,44 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.ffrSystem).toBeNull(); // torn down so updateSystems never touches it
   });
 
+  test('frame-rate module: requests best rate + syncs budget to actual refreshRate', async () => {
+    const session = makeSession({
+      supportedFrameRates: [60, 90, 120],
+      updateTargetFrameRate: jest.fn().mockResolvedValue(undefined),
+      refreshRate: 120
+    });
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      settings: { enableWebPanel: false, targetFPS: 72 }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(session.updateTargetFrameRate).toHaveBeenCalledWith(120);
+    // syncBudget runs off the resolved promise — flush the microtask queue.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(app.settings.targetFPS).toBe(120);
+  });
+
+  test('no frame-rate module: refreshRate alone still re-bases the budget', async () => {
+    const session = makeSession({ refreshRate: 90 });
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      settings: { enableWebPanel: false, targetFPS: 120 }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app.settings.targetFPS).toBe(90);
+  });
+
+  test('no refreshRate at all: targetFPS keeps the tier-derived value', async () => {
+    const session = makeSession();
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      settings: { enableWebPanel: false, targetFPS: 120 }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app.settings.targetFPS).toBe(120);
+  });
+
   test('XR visibilitychange pauses a playing video (headset removed = hidden)', async () => {
     const session = makeSession();
     const video = { playing: true, togglePause: jest.fn() };
@@ -2897,6 +2935,32 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
 });
 
 describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
+  test('ends a live XR session before tearing down the renderer', () => {
+    const end = jest.fn(() => Promise.resolve());
+    const session = { end };
+    const app = {
+      renderer: {
+        setAnimationLoop: jest.fn(), dispose: jest.fn(),
+        domElement: { removeEventListener: jest.fn() },
+        xr: { getSession: () => session }
+      },
+      scene: new THREE.Scene()
+    };
+    VRApp.prototype.dispose.call(app);
+    expect(end).toHaveBeenCalled();
+  });
+
+  test('dispose stays total when no session is live (xr.getSession → null)', () => {
+    const renderer = {
+      setAnimationLoop: jest.fn(), dispose: jest.fn(),
+      domElement: { removeEventListener: jest.fn() },
+      xr: { getSession: () => null }
+    };
+    const app = { renderer, scene: new THREE.Scene() };
+    expect(() => VRApp.prototype.dispose.call(app)).not.toThrow();
+    expect(renderer.dispose).toHaveBeenCalled();
+  });
+
   test('unwires every listener/timer/subsystem it registered — a mid-teardown throw would strand the rest', () => {
     const added = [];
     const removed = [];

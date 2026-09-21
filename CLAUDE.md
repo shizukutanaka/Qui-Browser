@@ -245,6 +245,31 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き181 — dispose() が生きた XR セッションを終了しなかった
+- 🔍 **実測（セッション寿命の照合）**: `dispose()` は `Escape` 緊急クリーンアップと `beforeunload` で呼ばれるのに **`session.end()` を一度も呼んでいなかった**。没入セッション中に dispose が走ると、renderer/subsystem は全破棄されるのにセッションは提示し続ける — ユーザーは死んだシーンを見続けるか手動脱出するしかない。
+- 🔧 **修正**: dispose 冒頭で `renderer.xr.getSession()` が生きていれば `session.end()` を発行（失敗は握り潰し — 既終了は正常）。'sessionend' が `onVRSessionEnd` の正規クリーンアップ（video 停止・layer detach・hand mesh 除去）を走らせるので重複実装不要。
+- 🧪 **pin 2件**: 生セッションで end() 呼出、セッション無しでも dispose が完走すること。
+- ✅ 3080 tests / 72 suites 全緑、lint 0 errors、build + verify:app 緑。
+
+### Session 75: 続き180 — フレームレート未要求で予算が永遠に「超過」になるループ
+- 🔍 **実測（連鎖した実害）**: `DeviceCompatibility.targetFPS()` は quest3 で **120** を返し `settings.targetFPS` に設定（L2423）。しかし `updateTargetFrameRate`/`supportedFrameRates`/`refreshRate` は src/ 全体でゼロ — フレームレートを**一度も要求していない**。Quest Browser の既定リフレッシュは 90Hz → 正常動作時の frameTime ≈11.1ms は予算 8.33ms を常時超過 → `updateSystems` が**毎フレーム** `ffrSystem.adjustIntensity(+0.01)` を呼び続け FFR が健全なセッションでも最大強度に張り付く（`adjustQuality` も常に「poor」判定）。「90〜120FPS 目標」の公称値が内部計測を腐らせていた構造。
+- 🔧 **修正**: `onVRSessionStart` で `session.supportedFrameRates` があれば最大レートを `updateTargetFrameRate` 要求（機能許可不要のモジュール）。settle 後に `settings.targetFPS = Math.round(session.refreshRate)` で**実レートに予算を同期**（モジュール非搭載なら refreshRate のみ同期、両方無ければ tier 値温存）。`_fpsOverridden` ガードは initializeSystems と同じ契約を継承。
+- 🧪 **pin 3件**: ①最大レート要求＋実レート同期 ②モジュール無しで refreshRate のみ同期 ③両方無しで tier 値維持。
+- ✅ scoped 284/284 緑、全体ゲート実行中。
+
+### Session 75: 続き179 — コンストラクタ限定パラメータへの死んだ事後代入
+- 🔍 **実測（three.js コンストラクタ契約の照合）**: `setupRenderer()` が `new THREE.WebGLRenderer({...})` 構築**後**に `this.renderer.logarithmicDepthBuffer = true` を代入 — three は `parameters.logarithmicDepthBuffer` をコンストラクタでのみ読み（bundle L2358）、`capabilities.logarithmicDepthBuffer` に焼き付ける。renderer への事後代入は誰も読まない own property で **「Optimization: logarithmic depth buffer」コメントは虚偽**（一切有効化されていなかった）。同クラス走査で残りの `renderer.* =` 代入は `shadowMap.enabled`/`xr.enabled`/メソッド呼出のみで全て実行時可変・正当。
+- 🗑 **削除**: 死んだ代入とコメントを除去（有効化ではなく削除 — このシーンは近距離 UI で巨大スケール差がなく、実機で一度も無検証のまま動いていた挙動を変更しないのが正直）。
+- 🔍 **隣接面クリーン**: LayersSystem は XRWebGLBinding 存在確認＋try/catch＋mesh フォールバックで適切防御、SpatialAudio は click/touchstart/keydown の `{once:true}` で autoplay resume を正しく武装、onVRSessionEnd は quad layer 全破棄・video 停止・hand mesh 除去済み。
+- ✅ 3075 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き178 — hand-tracking がセッションに一度も要求されていなかった
+- 🔍 **実測（WebXR 機能付与の照合）**: `navigator.xr.requestSession` を src/ 全体で grep → ヒットゼロ。実際のセッション要求は three.js `VRButton.createButton(renderer)` 経由で、その既定 optionalFeatures は `['local-floor','bounded-floor','layers']` — **`'hand-tracking'` を含まない**。WebXR 仕様上 `inputSource.hand` はセッションに機能許可された場合のみ生えるため、**Quest 実機で HandTracking は「初期化成功」しながら `inputSource.hand` が永遠に null → 手が一度も検出されない**（pinch/grab/point ジェスチャ経路が全て死んでいた）。KTX2/GA4 と同じ「宣言しても死んでいる機能」クラス。
+- 📌 **docs との矛盾も発見**: OUTSTANDING_ISSUES.md F-1 が `sessionInit は ['local-floor','bounded-floor','hand-tracking','layers'] 固定`と記述していた — コードと嘘が食い違っていた（修正後は実態と一致）。
+- 🔧 **修正**: `setupVR()` で `VRButton.createButton(this.renderer, { optionalFeatures: ['hand-tracking'] })`。optional なので非対応端末では無害に無視される。setupVR テストに「createButton が hand-tracking を含む sessionInit で呼ばれる」pin を追加。OUTSTANDING_ISSUES の sessionInit 記述を実態に同期。
+- 🔍 **横展開（他の WebXR 機能）**: light-estimation/hit-test source/anchors/planeDetection/depth/secondaryView/camera-access — VR パスに使用ゼロ（要求不要を確認）。`local-floor`/`bounded-floor`/`layers` は three 既定で要求済み。
+- ✅ scoped jest 63/63 緑、全体ゲート実行中。
+
 ### Session 75: 続き177 — CSP media-src blob: 締め + manifest リンクのサブパス破壊修正
 - 🔍 **実測**: `createObjectURL` を生産するコードが src/ 全体にゼロ → CSP `media-src blob:` は消費者不在の死んだ許可。`img-src data:` はユーザー供給 data URI の可能性があり温存、`connect-src` ループバックは docs 化されたローカルプロキシ経路なので温存。
 - 🔧 **修正①**: `media-src 'self' https: blob:` → `'self' https:`（6箇所全て）。csp-consistency が blob: 不在を pin。

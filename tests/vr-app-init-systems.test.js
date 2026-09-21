@@ -662,7 +662,8 @@ describe('setupVR — button/session/visibility wiring', () => {
     const xrListeners = {};
     const clicked = jest.fn();
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    VRButton.createButton = () => ({ click: clicked });
+    const createButton = jest.fn(() => ({ click: clicked }));
+    VRButton.createButton = createButton;
     const app = makeInitLike();
     app.renderer = { xr: { addEventListener: (t, fn) => {
       xrListeners[t] = fn;
@@ -675,6 +676,12 @@ describe('setupVR — button/session/visibility wiring', () => {
     VRApp.prototype.setupVR.call(app);
 
     expect(global.document.body.appendChild).toHaveBeenCalledWith(app.vrButton);
+    // Without 'hand-tracking' granted at requestSession, XRInputSource.hand
+    // stays null and HandTracking sees zero hands on real hardware.
+    expect(createButton).toHaveBeenCalledWith(
+      app.renderer,
+      expect.objectContaining({ optionalFeatures: expect.arrayContaining(['hand-tracking']) })
+    );
     expect(app.setupControllers).toHaveBeenCalled();
     expect(global.window.addEventListener).toHaveBeenCalledWith('enter-vr', app.onEnterVRRequest);
     app.onEnterVRRequest();

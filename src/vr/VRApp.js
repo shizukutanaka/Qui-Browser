@@ -498,9 +498,6 @@ export class VRApp {
     this.renderer.shadowMap.enabled = false; // Expensive, disable by default
     this.renderer.xr.enabled = true;
 
-    // Optimization: Use logarithmic depth buffer for better precision
-    this.renderer.logarithmicDepthBuffer = true;
-
     this.container.appendChild(this.renderer.domElement);
 
     // WebGL context loss handling.
@@ -2817,8 +2814,13 @@ export class VRApp {
    * Setup WebXR
    */
   setupVR() {
-    // Add VR button to page
-    const vrButton = VRButton.createButton(this.renderer);
+    // Add VR button to page. 'hand-tracking' must be requested up front:
+    // WebXR populates XRInputSource.hand only for sessions granted that
+    // feature — without it HandTracking initialises 'successfully' but sees
+    // zero hands forever.
+    const vrButton = VRButton.createButton(this.renderer, {
+      optionalFeatures: ['hand-tracking']
+    });
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;
 
@@ -2874,6 +2876,27 @@ export class VRApp {
         }
       };
       session.addEventListener('visibilitychange', this.onXRVisibilityChange);
+    }
+
+    // Frame-rate module (supportedFrameRates/updateTargetFrameRate) needs no
+    // session feature grant. Without a request the runtime stays at its
+    // default (Quest: 90Hz); a tier-derived 120fps budget would then mark
+    // every healthy frame over-budget and ratchet FFR to max forever.
+    // Request the best rate the runtime offers and measure the budget
+    // against the rate the session actually runs at.
+    if (session && !this.settings._fpsOverridden) {
+      const syncBudget = () => {
+        if (session.refreshRate) {
+          this.settings.targetFPS = Math.round(session.refreshRate);
+        }
+      };
+      if (session.supportedFrameRates && session.supportedFrameRates.length
+          && typeof session.updateTargetFrameRate === 'function') {
+        const best = Math.max(...session.supportedFrameRates);
+        session.updateTargetFrameRate(best).then(syncBudget, syncBudget);
+      } else {
+        syncBudget();
+      }
     }
 
     // Initialize FFR for this session
@@ -3404,6 +3427,18 @@ export class VRApp {
    */
   dispose() {
     console.debug('VRApp: Disposing...');
+
+    // End a live immersive session first: its 'sessionend' runs
+    // onVRSessionEnd's normal teardown (video stop, layer detach, hand-mesh
+    // removal) — without it the headset keeps presenting a dead renderer
+    // until the user exits manually (dispose can fire mid-session via the
+    // Escape shortcut).
+    const xrSession = this.renderer && this.renderer.xr && this.renderer.xr.getSession
+      ? this.renderer.xr.getSession()
+      : null;
+    if (xrSession && typeof xrSession.end === 'function') {
+      xrSession.end().catch(() => { /* session may already be ending */ });
+    }
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
