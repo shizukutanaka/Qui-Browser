@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き179 — コンストラクタ限定パラメータへの死んだ事後代入
+- 🔍 **実測（three.js コンストラクタ契約の照合）**: `setupRenderer()` が `new THREE.WebGLRenderer({...})` 構築**後**に `this.renderer.logarithmicDepthBuffer = true` を代入 — three は `parameters.logarithmicDepthBuffer` をコンストラクタでのみ読み（bundle L2358）、`capabilities.logarithmicDepthBuffer` に焼き付ける。renderer への事後代入は誰も読まない own property で **「Optimization: logarithmic depth buffer」コメントは虚偽**（一切有効化されていなかった）。同クラス走査で残りの `renderer.* =` 代入は `shadowMap.enabled`/`xr.enabled`/メソッド呼出のみで全て実行時可変・正当。
+- 🗑 **削除**: 死んだ代入とコメントを除去（有効化ではなく削除 — このシーンは近距離 UI で巨大スケール差がなく、実機で一度も無検証のまま動いていた挙動を変更しないのが正直）。
+- 🔍 **隣接面クリーン**: LayersSystem は XRWebGLBinding 存在確認＋try/catch＋mesh フォールバックで適切防御、SpatialAudio は click/touchstart/keydown の `{once:true}` で autoplay resume を正しく武装、onVRSessionEnd は quad layer 全破棄・video 停止・hand mesh 除去済み。
+- ✅ 3075 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き178 — hand-tracking がセッションに一度も要求されていなかった
 - 🔍 **実測（WebXR 機能付与の照合）**: `navigator.xr.requestSession` を src/ 全体で grep → ヒットゼロ。実際のセッション要求は three.js `VRButton.createButton(renderer)` 経由で、その既定 optionalFeatures は `['local-floor','bounded-floor','layers']` — **`'hand-tracking'` を含まない**。WebXR 仕様上 `inputSource.hand` はセッションに機能許可された場合のみ生えるため、**Quest 実機で HandTracking は「初期化成功」しながら `inputSource.hand` が永遠に null → 手が一度も検出されない**（pinch/grab/point ジェスチャ経路が全て死んでいた）。KTX2/GA4 と同じ「宣言しても死んでいる機能」クラス。
 - 📌 **docs との矛盾も発見**: OUTSTANDING_ISSUES.md F-1 が `sessionInit は ['local-floor','bounded-floor','hand-tracking','layers'] 固定`と記述していた — コードと嘘が食い違っていた（修正後は実態と一致）。

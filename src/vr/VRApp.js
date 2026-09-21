@@ -498,9 +498,6 @@ export class VRApp {
     this.renderer.shadowMap.enabled = false; // Expensive, disable by default
     this.renderer.xr.enabled = true;
 
-    // Optimization: Use logarithmic depth buffer for better precision
-    this.renderer.logarithmicDepthBuffer = true;
-
     this.container.appendChild(this.renderer.domElement);
 
     // WebGL context loss handling.
