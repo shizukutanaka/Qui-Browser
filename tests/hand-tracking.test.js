@@ -522,3 +522,38 @@ describe('HandTracking — remaining branch arms', () => {
     expect(ht.session).toBeNull();
   });
 });
+
+describe('HandTracking — last branch arms', () => {
+  function makeFrame(inputSources) {
+    return { session: { inputSources }, getJointPose: () => null };
+  }
+
+  test('update() with handGroup absent skips visibility write', () => {
+    const ht = new HandTracking();
+    ht.leftHand = null;
+    ht.rightHand = null;
+    expect(() => ht.update(makeFrame([]), null)).not.toThrow();
+  });
+
+  test('updateHand skips joints whose hand.get() returns nothing', () => {
+    const ht = new HandTracking();
+    ht.joints.left = new Map([['wrist', { position: { set() {} }, quaternion: { set() {} }, material: null }]]);
+    ht.leftHand = { visible: false };
+    const src = { hand: { get: () => null }, handedness: 'left' };
+    const frame = { getJointPose: () => ({ transform: { position: { x: 0, y: 0, z: 0 }, orientation: null }, radius: 0 }) };
+    expect(() => ht.updateHand(frame, src, null)).not.toThrow();
+  });
+
+  test('isThumbUp true arm returns thumbsup after earlier gestures fail', () => {
+    const ht = new HandTracking();
+    // Joints needed past the early 'none' exit; pinch distance kept large so
+    // the pinch check fails before the finger-pose predicates run.
+    const far = () => ({ position: { distanceTo: () => 99 } });
+    const joints = new Map([['thumb-tip', far()], ['index-finger-tip', far()], ['wrist', far()]]);
+    // Pose that defeats point/open/fist/peace so dispatch reaches thumbs-up:
+    // middle extended only (index, ring, pinky curled).
+    ht.isFingerExtended = (j, f) => f === 'middle-finger';
+    ht.isThumbUp = () => true;
+    expect(ht.detectGesture(joints)).toBe('thumbsup');
+  });
+});
