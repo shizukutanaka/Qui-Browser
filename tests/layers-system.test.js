@@ -248,3 +248,21 @@ describe('LayersSystem renderCanvasToLayer + error paths', () => {
     warn.mockRestore();
   });
 });
+
+test('removeLayer with a live session re-applies render state', () => {
+  const ls = new LayersSystem();
+  const spy = jest.spyOn(ls, 'updateRenderState').mockImplementation(() => {});
+  const session = { updateRenderState: jest.fn() };
+  ls.removeLayer('l1', session, 'base');
+  expect(spy).toHaveBeenCalledWith(session, 'base');
+  spy.mockClear();
+  ls.removeLayer('l2');               // no session → guard arm
+  expect(spy).not.toHaveBeenCalled();
+});
+
+test('renderCanvasToLayer tolerates a layer with no GL binding context', () => {
+  const ls = new LayersSystem();
+  const layer = { id: 'q', canvas: { width: 4, height: 4, getContext: () => null } };
+  ls._layers.set('q', layer);
+  expect(() => ls.renderCanvasToLayer('q', null, {})).not.toThrow();
+});

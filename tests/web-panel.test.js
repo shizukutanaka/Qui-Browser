@@ -862,3 +862,10 @@ describe('WebPanel — prompt/reload/layer/dispose slivers', () => {
     expect(parent.removeChild).toHaveBeenCalledWith(iframe);
   });
 });
+
+test('dispose with iframe but no parentNode skips removeChild', () => {
+  const p = makePanel();
+  p.iframe = { onload: jest.fn(), onerror: jest.fn(), parentNode: null };
+  expect(() => p.dispose()).not.toThrow();
+  expect(p.iframe.onload).toBeNull();
+});

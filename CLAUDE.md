@@ -544,6 +544,20 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き124（同セッション）: 補腕スイープの総仕上げ — 分岐カバレッジ 93.4%
+
+- **方法論の確定**: 残存未カバーの大部分は「条件の補腕」ではなく **デフォルト引数の未供給側**（`scale = 1`、`dtMs = 16`、`maxChars = 61`、`highContrast = false`）と **`||`/`??` のフォールバック腕**だった — 同じ形を横断的に潰すバッチに切り替えた。
+- 固定した腕（代表）:
+  - デフォルト引数: `captionMeasureEm()`/`captionFontSizeFor(n)`/`measureEmFor()`/`layoutSettingsPanel(sections)`/`hitTest(px,py)`/`bookmarkPanelColors()`/`imeColors()`/`webChromeColors()` 群、`elideUrlForDisplay(url)` の room<=1 → 裸 '…' 腕、`tabCloseZonePx('x')` → `Number()` NaN→0、`decimalsFor(1e-7)` → `String` で '.' 無し→0、readerHitTest の scrollable 矢印ゾーン
+  - ガード補腕: WindowManager `!target` / `followMode` / `_grab` 優先、BookmarkPanel `typeof onDeleteBookmark==='function'`・delete ゾーン発火、WebPanel iframe parentNode 無し、LayersSystem removeLayer の `if(session)`・blit の `if(gl)`、CaptionSystem dispose の `camera.remove`/`material.map` 両腕、ImmersiveVideo `_reportError` の `_playPauseBtn` 存在腕
+  - 計測系: FFRSystem setDynamicFFR の medium/low 帯（EMA 収束まで反復）、PerformanceMonitor の `display:none` 腕・fps 警告帯、SpatialAudio の `context.sampleRate || 48000`・panner HRTF/equalpower、HapticFeedback の切断 else-if・`step.pause`・不明 texture/urgency/proximity 範囲外の全補腕、VRControllerInput の `handedness ?? 'unknown'`（null 供給で正に 'unknown'）
+  - IME/キーボード: `convertRomajiToHiragana('n')` 末尾 'ん'、processInput/deleteLast の非変換モード else 腕、show() の group 既存スキップ、`_updateSuggestions` の query<2 → clear、dispose の display-mesh/scene.remove 腕
+  - DevTools: `visible:false` → 'none'、showTab の content 無し/未登録 id 許容、ネットワーク記録の `method || 'GET'`/`headers.get → 'unknown'`
+  - VoiceCommands: continuous 再起動の内側 `isEnabled` 再検査（onend 後 100ms 内に disable→start 無し）、ブラウザ未接続 search → window.open フォールバック、go-to 空クエリ → `query:null`
+  - ストレージ/環境: localStorage `'null'` → `{}`、localStorage 全面不在での setLanguage/applyTranslations/writeJSON 各腕、`navigator.connection` フィールド null → 'unknown'/'4g'
+- **テスト自体の潜伏不具合も修正**: `start()` の secondary フェーズが requestIdleCallback で後発する既存テストで、`afterEach` の restoreAllMocks が `loadPhase` モック実装を先に剥がし → タイマー発火時に `undefined.catch` が unhandled 化していた。タイマーをテスト内でドレインして解消（本番では `loadPhase` は常に async → Promise 返却で非到達、純粋なテスト衛生問題）。
+- **実測**: 2862 tests / 67 suites 全緑、lint 0 errors、branches **93.4%**（266/4038 未カバー）。残存は VRApp 129腕（setupRenderer/setupVR の GL・XR 直結が大半）、monitoring.js 62腕（PROD ゲート、N-2 判断待ち）、main.js:49 の `import.meta.env.PROD` 腕 — ヘッドレスで pin 可能な面はほぼ消尽。
+
 #### 続き123（同セッション）: VRApp の「構造的に到達不能」面を再検証 — 分岐カバレッジ 91.28%
 
 - **前提の破壊**: 「VRApp は GPU 直結で到達不能」は ctor までには成立しない — `new VRApp()` は `initialize()` を `_initPromise` に保持するだけで ctor 自体はヘッドレス完走する（document.body フォールバック・persisted captionScale シード腕まで pin）。

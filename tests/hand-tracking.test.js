@@ -641,3 +641,17 @@ describe('HandTracking — false-side arms', () => {
     expect(g).toBeDefined();
   });
 });
+
+test('thumbsup wins when no other gesture matches; none when isThumbUp false', () => {
+  const ht = new HandTracking({}, {});
+  const joints = new Map([
+    ['thumb-tip', { position: { distanceTo: () => 99 } }],
+    ['index-finger-tip', { position: { distanceTo: () => 99 } }],
+    ['wrist', { position: { distanceTo: () => 99 } }]
+  ]);
+  ht.isFingerExtended = (_j, f) => f === 'pinky-finger';
+  ht.isThumbUp = () => true;
+  expect(ht.detectGesture(joints)).toBe('thumbsup');
+  ht.isThumbUp = () => false;
+  expect(ht.detectGesture(joints)).toBe('none');
+});

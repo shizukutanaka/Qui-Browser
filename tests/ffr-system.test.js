@@ -169,3 +169,14 @@ describe('FFRSystem — remaining init/guard arms', () => {
     expect(() => ffr.updatePredictedGazeFoveation()).not.toThrow();
   });
 });
+
+test('setDynamicFFR hits medium and low tiers', () => {
+  const ffr = new FFRSystem();
+  ffr.enabled = true;
+  ffr.projectionLayer = { fixedFoveation: 0 };
+  const th = ffr.gpuLoadThresholds;
+  for (let i = 0; i < 60; i++) ffr.setDynamicFFR((th.medium + th.high) / 2);
+  expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.5, 2);
+  for (let i = 0; i < 60; i++) ffr.setDynamicFFR((th.low + th.medium) / 2);
+  expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.2, 2);
+});

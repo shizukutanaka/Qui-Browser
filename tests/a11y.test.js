@@ -179,3 +179,93 @@ describe('a11y storage — guard arms', () => {
     jest.resetModules();
   });
 });
+
+test('captionLayout scale clamp arms', async () => {
+  const { captionMeasureEm, captionFontSizeFor } = await import('../src/vr/accessibility/captionLayout.js');
+  expect(captionMeasureEm(0)).toBe(captionMeasureEm(1));
+  expect(captionFontSizeFor(3, -5)).toBe(captionFontSizeFor(3, 1));
+});
+
+test('urlDisplay room<=1 yields bare ellipsis; layoutSettingsPanel tolerates non-array', async () => {
+  const { elideUrlForDisplay } = await import('../src/vr/browser/urlDisplay.js');
+  const out = elideUrlForDisplay('https://a.co/averylongpath', 5); // room = 5-4 = 1
+  expect(out.endsWith('…')).toBe(true);
+  const { layoutSettingsPanel } = await import('../src/vr/ui/settingsLayout.js');
+  expect(layoutSettingsPanel(null)).toEqual(expect.anything());
+});
+
+test('layout helpers cover omitted-default arms', async () => {
+  const { captionMeasureEm, captionFontSizeFor } = await import('../src/vr/accessibility/captionLayout.js');
+  expect(captionMeasureEm()).toBe(captionMeasureEm(1));
+  expect(captionFontSizeFor(3)).toBe(captionFontSizeFor(3, 1));
+  const { hitTest, bookmarkPanelColors } = await import('../src/vr/browser/bookmarkLayout.js');
+  expect(hitTest(1, 1)).toBeTruthy();
+  expect(bookmarkPanelColors()).toBeTruthy();
+  const { toggleIndicatorColors, buttonAccentColor } = await import('../src/vr/ui/buttonStyle.js');
+  expect(toggleIndicatorColors(true)).toBeTruthy();
+  expect(buttonAccentColor('#123456')).toBeTruthy();
+  const { imeColors } = await import('../src/vr/input/keyboardLayout.js');
+  expect(imeColors()).toBeTruthy();
+  const { layoutSettingsPanel } = await import('../src/vr/ui/settingsLayout.js');
+  expect(layoutSettingsPanel([{ id: 'a' }])).toBeTruthy();   // openIds default
+});
+
+test('stored prefs that parse to falsy degrade to defaults', () => {
+  global.localStorage = { getItem: () => 'null', setItem() {}, removeItem() {} };
+  jest.resetModules();
+  let mod;
+  expect(() => { mod = require('../src/a11y/accessibility.js'); }).not.toThrow();
+  expect(mod).toBeTruthy();
+  delete global.localStorage;
+  jest.resetModules();
+});
+
+test('stepper/layout/url sliver arms', async () => {
+  const { decimalsFor } = await import('../src/vr/settingsStepper.js');
+  expect(decimalsFor(0.1)).toBe(1);
+  expect(decimalsFor(1e-7)).toBe(0);            // String → '1e-7' → no dot
+  const { tabCloseZonePx } = await import('../src/vr/browser/panelGeometry.js');
+  expect(tabCloseZonePx('nope').w).toBe(0);     // Number() NaN → 0
+  const { topSiteTiles } = await import('../src/vr/browser/newTabPage.js');
+  const tiles = topSiteTiles([{ url: 'https://x.example', title: 42 }], 800, 600);
+  expect(tiles[0].title).toBe('');
+  const { isSearchQuery } = await import('../src/vr/browser/urlResolver.js');
+  expect(isSearchQuery('https://custom.example/?q=abc', { searchEngine: 'https://custom.example/?q=' })).toBe(true);
+  const { extractReadableText } = await import('../src/vr/browser/readableText.js');
+  const out = extractReadableText('<html><body><p></p><p>Real content here with enough text to count.</p></body></html>');
+  expect(out).toBeTruthy();
+});
+
+test('readerLayout + textWrap + panelGeometry remaining default/guard arms', async () => {
+  const rl = await import('../src/vr/browser/readerLayout.js');
+  expect(rl.measureEmFor()).toBe(rl.measureEmFor(1));
+  expect(rl.visibleLineCount(1, true)).toBeLessThanOrEqual(rl.visibleLineCount(1));
+  expect(rl.fontPxFor('body')).toBeTruthy();
+  const hit = rl.readerHitTest(50, rl.ARROW_Y0 + 2, true);
+  expect(hit).toBeTruthy();
+  const tw = await import('../src/vr/ui/textWrap.js');
+  expect(tw.truncateToWidth('한국어한국어', 3)).toBeTruthy();    // Hangul width arm
+  expect(tw.truncateToWidth(null, NaN)).toBe('');               // NaN→0.5 + null text
+  expect(tw.wrapTextToLines && typeof tw.wrapTextToLines === 'function').toBe(true);
+});
+
+test('chromeColors + performance monitor sliver arms', async () => {
+  const cc = await import('../src/vr/browser/chromeColors.js');
+  expect(cc.webChromeColors()).toBeTruthy();
+  expect(cc.webContentColors()).toBeTruthy();
+  expect(cc.tabStripColors()).toBeTruthy();
+  const { DeviceCompatibility } = await import('../src/utils/DeviceCompatibility.js');
+  expect(DeviceCompatibility).toBeTruthy();
+});
+
+test('textWrap CJK ranges + NaN limits; BookmarkStore writeJSON without localStorage', async () => {
+  const tw = await import('../src/vr/ui/textWrap.js');
+  expect(tw.wrapTextToLines('⺀ radical test', NaN)).toBeTruthy();   // floor(NaN)→1 + CJK cp arm
+  expect(tw.wrapTextToLines(null, 10)).toEqual(['']);
+  const { BookmarkStore } = await import('../src/utils/BookmarkStore.js');
+  const savedLS = global.localStorage;
+  delete global.localStorage;
+  const store = new BookmarkStore();
+  expect(() => store.addHistory('https://x.example', 'X')).not.toThrow();
+  global.localStorage = savedLS;
+});

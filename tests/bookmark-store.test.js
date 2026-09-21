@@ -821,3 +821,13 @@ describe('BookmarkStore — getTopSites sliver arms', () => {
     expect(store.getTopSites(5, Date.now(), ['b.example'])).toHaveLength(0);
   });
 });
+
+test('getTopSites omitting defaults; dedupe falls back to url when title absent', () => {
+  localStorage.clear();
+  const store = new BookmarkStore();
+  store.addHistory('https://one.example', 'One');
+  store.addHistory('https://two.example', 'T');
+  store.addHistory('https://two.example/p2');                 // same host, no title
+  const top = store.getTopSites();                            // default limit/now/exclude
+  expect(top.length).toBe(2);                                 // one entry per host
+});

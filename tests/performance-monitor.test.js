@@ -493,3 +493,19 @@ describe('PerformanceMonitor — fps/best/threshold slivers', () => {
     expect(mon.addAlert).toHaveBeenCalledWith('warning', expect.any(String));
   });
 });
+
+test('hidden overlay renders display:none; fps in warning band alerts warning', () => {
+  global.document = global.document || {};
+  const el = () => ({ style: { cssText: '' }, appendChild() {}, getContext: () => null, addEventListener() {} });
+  global.document.createElement = el;
+  global.document.getElementById = el;
+  global.document.body = { appendChild() {} };
+  const mon = new PerformanceMonitor();
+  mon.createUI();
+  expect(mon.container.style.cssText).toContain('display: none');
+  const warn = [];
+  mon.addAlert = (level, msg) => warn.push(level);
+  mon.metrics.fps.current = mon.thresholds.fps.warning - 1;
+  mon.checkThresholds();
+  expect(warn).toContain('warning');
+});

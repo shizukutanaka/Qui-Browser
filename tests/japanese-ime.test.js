@@ -168,3 +168,26 @@ describe('JapaneseIME — remaining conversion arms', () => {
     expect(ime.convertRomajiToHiragana('ka')).toBe('か');
   });
 });
+
+describe('JapaneseIME — mode-tail + trailing-n arms', () => {
+  test('convertRomajiToHiragana ends a lone n as ん', () => {
+    const ime = new JapaneseIME();
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん');
+    expect(ime.convertRomajiToHiragana('kan')).toBe('かん');
+  });
+
+  test('processInput in a non-conversion mode returns the raw buffer', async () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'romaji';
+    const out = await ime.processInput('ka');
+    expect(out.converted).toBe('ka');
+  });
+
+  test('deleteLast in romaji mode stays raw', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'romaji';
+    ime.compositionBuffer = 'ka';
+    const out = ime.deleteLast();
+    expect(out.converted).toBe('k');
+  });
+});

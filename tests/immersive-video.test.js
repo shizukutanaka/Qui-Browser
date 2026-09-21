@@ -640,3 +640,16 @@ describe('ImmersiveVideo — false-side arms', () => {
     expect(iv.controlPanel).toBeNull();
   });
 });
+
+test('_reportError while playing with a play/pause button relabels to play', () => {
+  const { iv } = makeHarness();
+  iv.playing = true;
+  const setLabel = jest.fn();
+  iv._playPauseBtn = { userData: { setLabel } };
+  const seen = [];
+  iv.onPlaybackChange = (s) => seen.push(s);
+  iv._reportError('codec');
+  expect(iv.playing).toBe(false);
+  expect(setLabel).toHaveBeenCalled();
+  expect(seen).toEqual(['stopped']);
+});

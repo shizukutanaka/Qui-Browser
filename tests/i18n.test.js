@@ -570,3 +570,24 @@ describe('i18n — storage/fallback sliver arms', () => {
     jest.resetModules();
   });
 });
+
+describe('i18n — module-init fallback arms', () => {
+  test('localStorage seeded with an unknown language falls back to en catalog', () => {
+    global.localStorage = { getItem: () => 'xx', setItem() {}, removeItem() {} };
+    jest.resetModules();
+    const mod = require('../src/i18n/i18n.js');
+    expect(mod.t('app.loading')).toBeTruthy();   // resolves via CATALOG.en
+    jest.resetModules();
+    delete global.localStorage;
+  });
+
+  test('setLanguage tolerates absent localStorage; applyTranslations returns on null scope', () => {
+    jest.resetModules();
+    delete global.localStorage;
+    delete global.document;
+    const mod = require('../src/i18n/i18n.js');
+    expect(() => mod.setLanguage('ja')).not.toThrow();
+    expect(() => mod.applyTranslations(null)).not.toThrow();
+    jest.resetModules();
+  });
+});
