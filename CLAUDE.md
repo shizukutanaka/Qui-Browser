@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き67（同セッション）: エントリ層の残り配線を pin — PWA 自動入室・読込失敗オーバーレイ・SW 登録・ライフサイクル（欠陥ゼロ）
+- 🔍 **実測**: main.js — スタンドアロン PWA 起動時の 200ms 遅延 `enter-vr` 自動 dispatch（matchMedia standalone + navigator.standalone 両パス）、`import('./app.js')` 失敗時の再読込可能エラーオーバーレイ（doMock で chunk 欠落を再現 → heading/detail/reload ボタン → location.reload）、service worker が `load` 時にベースパスで register。app.js — `beforeunload` → dispose、perf interval が表示中のみ innerHTML に stats 描画（偽タイマー: 実タイマーで登録済み interval は後から fake 化しても効かないためモジュール読込前に `doNotFake:['setTimeout']` — 分離記録）。
+- ⚠️ ハーネス知見: `jest.doMock` は isolateModules を跨いで mock registry に残る → 後続テストが汚染されるのを `dontMock` で解除して検出。
+- ✅ 5テスト追加、全緑（欠陥ゼロ）。2114 tests / 60 suites、lint 0 errors、build green。
+
 #### 続き66（同セッション）: XR support プローブの reject が unhandled rejection に化ける（実バグ16件目）
 - 🐛 **実バグ**: `app.js:36` の `await isSessionSupported('immersive-vr')` が `initializeApp` の try ブロック**外**にあり、probe が reject すると関数 promise がそのまま reject → `unhandledrejection` で console.error に落ちるだけで VR 無効の説明なし。`main.js:75` の `.then()` も `.catch` なし（同じく unhandled）。実バグ15と同じ「catch 境界の外側で await」クラス — 全 async 関数の unawaited/reject 経路を走査して発見（他の未 await 呼び出しは内部 try/catch 済みと実測）。
 - 🔧 **修正**: 両方とも `DeviceCompatibility.js:28` の既存規約 `.catch(() => false)`（probe 失敗 = 対応不明 → 未対応として扱う）に統一。ランディングは従来通り機能し、Enter VR ボタンのハンドラは自身の try/catch で正直なエラートーストを出す。

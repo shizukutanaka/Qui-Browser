@@ -38,7 +38,7 @@ function makeEl(id = '') {
  * Install global.document/window/navigator with the ids `els` resolved.
  * Returns handles to captured listeners and created elements.
  */
-function installDom({ ids = {}, xr = null } = {}) {
+function installDom({ ids = {}, xr = null, serviceWorker = null, standalone = false } = {}) {
   const documentListeners = {};
   const windowListeners = {};
   const created = [];
@@ -60,13 +60,14 @@ function installDom({ ids = {}, xr = null } = {}) {
     dispatchEvent: jest.fn(),
     _listeners: documentListeners
   };
-  global.navigator = xr ? { xr } : {};
+  global.navigator = { standalone, ...(xr ? { xr } : {}), ...(serviceWorker ? { serviceWorker } : {}) };
   global.window = {
     navigator: global.navigator, // window.navigator === navigator in browsers
     addEventListener: (type, fn) => { (windowListeners[type] ||= []).push(fn); },
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
-    matchMedia: () => ({ matches: false }),
+    matchMedia: (q) => ({ matches: standalone && q.includes('standalone') }),
+    standalone,
     QuiBrowser: undefined
   };
   global.CustomEvent = class { constructor(type, init) { this.type = type; Object.assign(this, init); } };
@@ -156,6 +157,54 @@ describe('src/main.js (landing page entry)', () => {
     } finally {
       process.removeListener('unhandledRejection', onUnhandled);
     }
+  });
+
+  test('PWA standalone launch auto-dispatches enter-vr after the delay', async () => {
+    installDom({
+      xr: { isSessionSupported: async () => true },
+      standalone: true
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    await tick();
+    // 200ms delay lets VRApp register its enter-vr listener first.
+    await new Promise((r) => setTimeout(r, 250));
+    const dispatched = global.window.dispatchEvent.mock.calls.map(([e]) => e.type);
+    expect(dispatched).toContain('enter-vr');
+  });
+
+  test('app.js import failure builds the reloadable error overlay', async () => {
+    const loading = makeEl('loadingScreen');
+    installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => {
+      jest.doMock('../src/app.js', () => { throw new Error('chunk missing'); });
+      require('../src/main.js');
+    });
+    await tick();
+    await tick();
+    await tick();
+    // doMock persists in the mock registry across isolateModules — release it
+    // once the import promise has settled or later tests still see the throw.
+    jest.dontMock('../src/app.js');
+    expect(loading.replaceChildren).toHaveBeenCalled();
+    const box = loading.replaceChildren.mock.calls[0][0];
+    const [heading, detail, reload] = box.children;
+    expect(heading.textContent.length).toBeGreaterThan(0);
+    expect(detail.textContent).toBe('chunk missing');
+    reload.dispatch('click');
+    expect(global.location.reload).toHaveBeenCalledTimes(1);
+  });
+
+  test('service worker registers against the app base path on load', async () => {
+    const registration = { update: jest.fn() };
+    const register = jest.fn().mockResolvedValue(registration);
+    const { windowListeners } = installDom({ serviceWorker: { register } });
+    jest.isolateModules(() => require('../src/main.js'));
+    (windowListeners.load || []).forEach((f) => f());
+    await tick();
+    await tick();
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register.mock.calls[0][0]).toContain('service-worker.js');
   });
 
   test('supported Enter VR click dispatches the enter-vr event', async () => {
@@ -276,5 +325,46 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
     (global.document._listeners.keydown || []).forEach((f) => f({ key: 'Escape' }));
     expect(vrApp.dispose).toHaveBeenCalledTimes(1);
     expect(global.window.QuiBrowser.getApp()).toBeNull();
+  });
+
+  test('beforeunload disposes the app; visibilitychange is a safe no-op', async () => {
+    const container = makeEl('app-container');
+    const { windowListeners } = installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    const vrApp = global.window.QuiBrowser.getApp();
+    vrApp.dispose = jest.fn();
+    (global.document._listeners.visibilitychange || []).forEach((f) => f());
+    (windowListeners.beforeunload || []).forEach((f) => f());
+    expect(vrApp.dispose).toHaveBeenCalledTimes(1);
+    expect(global.window.QuiBrowser.getApp()).toBeNull();
+  });
+
+  test('perf interval paints stats into the visible overlay', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    // Fake setInterval before the module registers the perf interval —
+    // timers scheduled under the real clock keep running on it.
+    jest.useFakeTimers({ doNotFake: ['setTimeout'] });
+    try {
+      jest.isolateModules(() => require('../src/app.js'));
+      await tick();
+      const vrApp = global.window.QuiBrowser.getApp();
+      vrApp.getPerformanceStats = () => ({
+        fps: 72, frameTime: '13.9', memory: '12 MB', drawCalls: 40, triangles: 12345
+      });
+      const perfDiv = global.document.getElementById('performance-monitor');
+      perfDiv.style.display = 'block';
+      jest.advanceTimersByTime(1000);
+      expect(perfDiv.innerHTML).toContain('FPS: 72');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
