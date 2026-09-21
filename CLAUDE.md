@@ -551,6 +551,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き68（同セッション）: 幻影アセット fetch の削除 + Vercel が生ソースを配信していた（実バグ17-18件目）
+- 🐛 **実バグ17**: `loadAudioAssets` が未同梱の `assets/sounds/*.mp3` 4件を毎 VR セッション fetch → 全て 404（`public/assets/` 非存在、リポジトリは `.gitkeep` のみ）。procedural synth は全4名をカバー済みなので fetch は純粋な無駄。loader キュー + start + get/loadAudio を削除し synth に一本化（プログレッシブローダー自体は温存）。
+- 🐛 **実バグ18**: `vercel.json` が `buildCommand: "echo 'No build required'"` + `outputDirectory: "."` で**生のリポジトリルートを配信** — `/src/main.js` が直読みされ、`from 'three'` のベア指定子がブラウザで解決不能 → Vercel 訪問者全員が読込失敗オーバーレイを見る状態。Vite 導入以前の設定の死骸。`npm ci` + `npm run build` + `outputDirectory: dist` に修正、`devCommand` は `npm run dev` に。ついでに dist の実構造に合わない死んだヘッダールート2件修正（`/assets/icons/` → 実在は `/icons/`、`/assets/css/` → `assets/*.css`）。
+- ✅ **pin**: `tests/asset-paths.test.js` 新設 — src/ の `/assets/|/icons/` 系リテラル URL は `public/` 直下の実在が必須（修正前に4件赤確認）。index.html refs は public/ または repo-root assets/、public html は public/ 配下に限定。
+- 📝 2117 tests / 61 suites、lint 0 errors、build green。OUTSTANDING_ISSUES の「効果音アセット欠落」項目を解消済みに更新。
+
 #### 続き67（同セッション）: エントリ層の残り配線を pin — PWA 自動入室・読込失敗オーバーレイ・SW 登録・ライフサイクル（欠陥ゼロ）
 - 🔍 **実測**: main.js — スタンドアロン PWA 起動時の 200ms 遅延 `enter-vr` 自動 dispatch（matchMedia standalone + navigator.standalone 両パス）、`import('./app.js')` 失敗時の再読込可能エラーオーバーレイ（doMock で chunk 欠落を再現 → heading/detail/reload ボタン → location.reload）、service worker が `load` 時にベースパスで register。app.js — `beforeunload` → dispose、perf interval が表示中のみ innerHTML に stats 描画（偽タイマー: 実タイマーで登録済み interval は後から fake 化しても効かないためモジュール読込前に `doNotFake:['setTimeout']` — 分離記録）。
 - ⚠️ ハーネス知見: `jest.doMock` は isolateModules を跨いで mock registry に残る → 後続テストが汚染されるのを `dontMock` で解除して検出。

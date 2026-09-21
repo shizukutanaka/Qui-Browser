@@ -33,7 +33,7 @@
       ]
     },
     {
-      "source": "/assets/css/(.*).css",
+      "source": "/assets/(.*).css",
       "headers": [
         {
           "key": "Content-Type",
@@ -92,7 +92,7 @@
       ]
     },
     {
-      "source": "/assets/icons/(.*)",
+      "source": "/icons/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -135,10 +135,10 @@
   },
   "regions": ["iad1"],
   "framework": null,
-  "installCommand": "npm install",
-  "buildCommand": "echo 'No build required for static site'",
-  "devCommand": "python -m http.server 8000",
-  "outputDirectory": ".",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "outputDirectory": "dist",
   "github": {
     "enabled": true,
     "autoAlias": true,

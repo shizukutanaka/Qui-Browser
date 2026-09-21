@@ -162,7 +162,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~**設定パネルの飽和**~~ — **Session 74 で解消**（アコーディオン化、J-0/J-1）。
 - **VRApp モノリス（~3300行）**: 分割は AccessibilityCoordinator パターンで継続可能だが未完。
 - ~~**E2E テスト不在**~~ — **Session 74 で `npm run verify:app` を追加**（実 Chromium で起動、依存ゼロ、J-4）。canvas の目視検証自体は依然不可だが、`verify:layout`/`contrast`/`target-size` が測定で代替。
-- **効果音アセット欠落**: `assets/sounds/*.mp3` はリポジトリに存在せず graceful 404（音声は無効に degrade）。
+- ~~**効果音アセット欠落**~~ — **解消**: 効果音は procedural synthesis に一本化（`registerProceduralBuffer`）。404 を出し続けていた `assets/sounds/*.mp3` の fetch キューを削除（続き68）。実 mp3 を同梱したい場合は fetch 経路の復活が必要。
 - **docs/archive の肥大**: 117ファイル。陳腐化した主張を含むが A-1 凍結の一部として改変禁止。
 - ~~**凍結事項 A-1/A-2**~~ — **Session 74 で削除完了**。workflow の破損は依然 403 で修正不能（K-1、オーナー作業）。
 
