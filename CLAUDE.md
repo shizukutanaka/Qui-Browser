@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き218 — Cache-Control 平仄の実害3件（immutable が mutable ファイルに当たる/当たらない）
+- 🐛 **fix（キャッシュ）**: 3デプロイ先の `Cache-Control` 平仄を実測照合 — **vercel `/(.*).js` と nginx `~* \.(js|css)$` が非ハッシュ `offline.js` を1年 immutable 化**（更新が永遠に伝播しない、SW と同問題クラス）。**netlify の immutable は `/assets/*` のみで vite の hashed bundle 出力先 `js/` を未カバー** — vendor-three 553KB が再訪毎に再フェッチされていた。修正: vercel を `/js/(.*)` スコープ化＋`/offline.js` に 3600、netlify に `/js/*` immutable 追加、nginx に `location = /offline.js` exact-match 追加（regex より優先）。
+- 🔧 **X-XSS-Protection → `0`**: レガシー auditor は Chrome で2019年削除済み、残る挙動は誤検知による害のみ（MDN/OWASP 推奨に準拠）— vercel/netlify/nginx 計5箇所を統一。
+- 🧪 **新規 suite `tests/deploy-headers.test.js`（10件）**: 「非ハッシュのルート直下ファイルに immutable が当たらない」「hashed js/・assets/ は全デプロイ先で immutable」「X-XSS が 0」の不変条件を、vercel のルール最終一致・netlify の for= パターン・nginx の exact-match 優先を各々の実セマンティクスで模擬して固定。
+- ✅ 3115 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き217 — 禁則処理（UAX #14）をハード分割に実装 + patch 0009 の真の修復
 - 🐛 **fix（日本語組版）**: `wrapTextToWidth` のハード分割に**禁則処理が皆無**だった — 日本語は空白を持たないため全文がこの経路を通り、`、。）」っ` 等の行頭禁則文字が行頭に・`「（` 等の行末禁則文字が行末に来うる組版違反状態だった。KIN_START（行頭禁則: 閉じ punctuation/括弧・小書き仮名・長音・踊り字・ASCII closes）/KIN_END（行末禁則: 開き括弧）の Set を実装 — **ぶら下げ**（行頭禁則文字は前行に overhang）と**追い出し**（行末禁則文字は次行頭へ carry）の2方式で対処。空白分割経路にも行頭禁則語の overhang を適用。キャプション・リーダー・トーストが共通 helper を共有するため1箇所の修正で全経路に適用。
 - 🔧 **横展開**: `wrapTextToLines`（コードポイント数版・CaptionSystem 経路）のハード分割も同じ欠陥を持っていたため同一ルールを展開 — KIN_START overhang・KIN_END carry-down・空白区切り語の行頭禁則を適用（CaptionSystem キャプション行も組版違反を起こし得た）。
