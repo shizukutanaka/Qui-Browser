@@ -1999,6 +1999,7 @@ export class VRApp {
       // the default allocates a fresh array per call (per controller per
       // frame in updateHover).
       this._hitScratch = [];
+      this._teleportTarget = new THREE.Vector3();
     }
     const m = this._tmpRayMatrix.extractRotation(controller.matrixWorld);
     const raycaster = this._sharedRaycaster;
@@ -2296,10 +2297,14 @@ export class VRApp {
     if (!t.active || !t.controller || !this.floorMesh) {
       return;
     }
-    const hit = this.raycasterFromController(t.controller).intersectObject(this.floorMesh, false)[0];
+    const scratch = this._hitScratch || (this._hitScratch = []);
+    scratch.length = 0;
+    const hit = this.raycasterFromController(t.controller)
+      .intersectObject(this.floorMesh, false, scratch)[0];
     if (hit) {
       t.valid = true;
-      t.target = hit.point.clone();
+      const target = this._teleportTarget || (this._teleportTarget = new THREE.Vector3());
+      t.target = target.copy(hit.point);
       if (t.marker) {
         t.marker.position.set(hit.point.x, hit.point.y + 0.01, hit.point.z);
         t.marker.visible = true;

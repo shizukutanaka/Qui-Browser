@@ -278,6 +278,7 @@ export class GazeInteraction {
       this._tmpOrigin = new THREE.Vector3();
       this._tmpDir = new THREE.Vector3();
       this._tmpQuat = new THREE.Quaternion();
+      this._hitScratch = [];
     }
     const origin = this._tmpOrigin;
     const dir = this._tmpDir.set(0, 0, -1);
@@ -288,7 +289,9 @@ export class GazeInteraction {
     // Skip objects whose parent chain contains an invisible group — Three.js
     // raycasting does not walk parent visibility, so a closed keyboard/panel
     // would otherwise still intercept gaze while visually absent.
-    const hits = this._raycaster.intersectObjects(interactables, false);
+    const scratch = this._hitScratch;
+    scratch.length = 0;
+    const hits = this._raycaster.intersectObjects(interactables, false, scratch);
     return hits.find(h => _isWorldVisible(h.object)) || null;
   }
 
