@@ -67,4 +67,14 @@ describe('static asset paths resolve to shipped files', () => {
     }
     expect(violations).toEqual([]);
   });
+
+  test('no shadowed root-level duplicates of public/ entry points', () => {
+    // manifest.json / service-worker.js / offline.html live in public/ and are
+    // copied to dist verbatim. Stale duplicates at the repo root served
+    // different content under the raw-root Vercel deploy and confuse anyone
+    // editing the wrong copy.
+    for (const name of ['manifest.json', 'service-worker.js', 'offline.html']) {
+      expect(fs.existsSync(path.join(ROOT, name))).toBe(false);
+    }
+  });
 });

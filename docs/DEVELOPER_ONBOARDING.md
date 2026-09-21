@@ -77,6 +77,10 @@ qui-browser-vr/
 │   ├── i18n/                     # 翻訳カタログ (en/ja)
 │   └── utils/                    # BookmarkStore・URL解決等
 ├── public/                       # dist/ にそのままコピーされる静的資産
+│   ├── manifest.json             # PWA マニフェスト
+│   ├── service-worker.js         # オフライン・キャッシュ戦略
+│   ├── offline.html              # オフライン fallback
+│   └── icons/                    # PWA アイコン群
 ├── proxy/                        # 任意の SSRF ガード付きリーダープロキシ
 ├── docker/                       # nginx.conf + healthcheck (セルフホスト用)
 ├── docs/                         # ドキュメント
@@ -84,7 +88,6 @@ qui-browser-vr/
 ├── tools/                        # verify-* 系の実走検証ハーネス
 ├── .github/workflows/            # CI/CD
 ├── index.html                    # ランディングシェル
-├── manifest.json                 # PWA マニフェスト
 ├── vite.config.js                # ビルド設定 (Vite)
 └── jest.config.js                # テスト設定
 ```
