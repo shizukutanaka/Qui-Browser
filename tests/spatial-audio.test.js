@@ -724,3 +724,105 @@ describe('SpatialAudio — last two slivers', () => {
     expect(s2.node.stop).toHaveBeenCalled();
   });
 });
+
+describe('SpatialAudio — remaining branch arms', () => {
+  test('synthesizeToneSamples: zero sampleRate → 48000; missing endFreq → freq; single-sample', () => {
+    const { synthesizeToneSamples } = require('../src/vr/audio/SpatialAudio.js');
+    const a = synthesizeToneSamples({ freq: 440 }, 0); // sampleRate ≤ 0 → 48000
+    expect(a.length).toBe(Math.floor(48000 * 0.08));
+    const b = synthesizeToneSamples({ freq: 440, endFreq: undefined }, 48000);
+    expect(b.length).toBeGreaterThan(0);
+    const one = synthesizeToneSamples({ duration: 0 }); // duration 0 → n clamps to 1
+    expect(one.length).toBe(1);
+    // duration negative → also clamps
+    expect(synthesizeToneSamples({ duration: -1 }).length).toBe(1);
+  });
+
+  test('initialize falls back to webkitAudioContext', async () => {
+    const context = makeAudioContext();
+    const saved = global.window.AudioContext;
+    global.window.AudioContext = undefined;
+    global.window.webkitAudioContext = jest.fn(() => context);
+    try {
+      const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+      const a = new SpatialAudio();
+      expect(global.window.webkitAudioContext).toHaveBeenCalled();
+      expect(a.context).toBe(context);
+    } finally {
+      global.window.AudioContext = saved;
+      global.window.webkitAudioContext = undefined;
+    }
+  });
+
+  test('registerProceduralBuffer: cache-hit returns cached, buffer without getChannelData tolerated', async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    const first = a.registerProceduralBuffer('click', { freq: 880 });
+    const second = a.registerProceduralBuffer('click', { freq: 880 }); // cache hit → `|| null` taken arm
+    expect(second).toBe(first);
+    expect(a.stats.buffersLoaded).toBe(1);
+    // context without getChannelData — the `typeof === 'function'` false arm
+    context.createBuffer.mockImplementationOnce(() => ({}));
+    expect(() => a.registerProceduralBuffer('noparam', {})).not.toThrow();
+    expect(a.buffers.get('noparam')).toBeTruthy();
+  });
+
+  test('createSource: directional cone defaults and overrides', async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    const d = a.createSource('d', { directional: true }); // all `||` defaults
+    expect(d.panner.coneInnerAngle).toBe(60);
+    expect(d.panner.coneOuterAngle).toBe(120);
+    expect(d.panner.coneOuterGain).toBeCloseTo(0.3);
+    const d2 = a.createSource('d2', { directional: true, coneInnerAngle: 30, coneOuterAngle: 90, coneOuterGain: 0.5 });
+    expect(d2.panner.coneInnerAngle).toBe(30);
+    // non-directional → no cone params touched
+    const nd = a.createSource('nd', {});
+    expect(nd.panner.coneInnerAngle).toBeUndefined();
+  });
+
+  test('simulateDoppler returns early when source has no velocity', async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    const src = a.createSource('s', {});
+    delete src.velocity;
+    expect(() => a.simulateDoppler(src)).not.toThrow();
+  });
+
+  test('setMasterVolume skips sources without a gain node', async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    const src = a.createSource('s', {});
+    src.gain = null; // torn-down source still in the map
+    expect(() => a.setMasterVolume(0.5)).not.toThrow();
+    expect(a.settings.masterVolume).toBe(0.5);
+    a.setMasterVolume(2); // clamped to 1
+    expect(a.settings.masterVolume).toBe(1);
+  });
+
+  test('getStats reflects an uninitialized context', () => {
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    a.context = null; // construction without initialize
+    const s = a.getStats();
+    expect(s.contextState).toBe('uninitialized');
+    expect(s.currentTime).toBe(0);
+    expect(s.sampleRate).toBe(0);
+    expect(s.latency).toBe(0); // `context ? ... : 0` arm
+  });
+
+  test('dispose with no context is a no-op', () => {
+    const { SpatialAudio } = require('../src/vr/audio/SpatialAudio.js');
+    const a = new SpatialAudio();
+    a.context = null;
+    expect(() => a.dispose()).not.toThrow();
+  });
+});
