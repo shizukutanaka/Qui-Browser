@@ -793,3 +793,35 @@ describe('callback bodies — bookmark panel + teardown arms', () => {
     expect(app.tabManager).toBeNull();
   });
 });
+
+describe('callback bodies — caption-disabled false arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => ({ navigate: jest.fn() }),
+      dispose: jest.fn()
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {}, dispose: jest.fn() }));
+    const app = makeInitLike(overrides);
+    app.captionSystem = null; // captions subsystem absent entirely
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, tmCfg: tmCalls[0][0], bpCfg: bpCalls[0][0] };
+  }
+
+  test('tab callbacks run silently with no caption system', () => {
+    const { tmCfg, bpCfg } = build();
+    expect(() => {
+      tmCfg.onTabActivate('https://x');
+      tmCfg.onTabClose();
+      tmCfg.onHoverCaption();
+      tmCfg.onPanelHoverCaption('https://x', 't');
+      bpCfg.onSelect('https://a');
+      bpCfg.onDeleteBookmark();
+      bpCfg.onTabChange('history');
+      bpCfg.onHoverCaption();
+      bpCfg.onClose();
+    }).not.toThrow();
+  });
+});
