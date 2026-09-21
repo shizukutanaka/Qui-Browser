@@ -3139,3 +3139,52 @@ describe('VRApp — settings section + action/stepper apply arms', () => {
     expect(apply).toHaveBeenCalledWith(1250);
   });
 });
+
+describe('VRApp constructor + storage boundary arms', () => {
+  test('ctor with no container falls back to document.body and seeds captionScale', () => {
+    const { setPref, getPrefs } = require('../src/a11y/accessibility.js');
+    const prev = getPrefs().largeText;
+    setPref('largeText', true);
+    global.document.body = { style: {}, classList: { toggle: jest.fn(), add: jest.fn(), remove: jest.fn() } };
+    const prevLS = global.localStorage;
+    delete global.localStorage;
+    try {
+      const app = new VRApp(undefined); // container falsy -> document.body arm
+      app._initPromise?.catch(() => {}); // GPU setup will reject — expected headless
+      expect(app.container).toBe(global.document.body);
+      // largeText OS pref seeds the accessibility captionScale when nothing persisted
+      expect(app.settings.captionScale).toBe(1.4);
+    } finally {
+      setPref('largeText', prev);
+      if (prevLS) global.localStorage = prevLS;
+    }
+  });
+
+  test('loadPersistedSettings returns {} for a non-object JSON payload', () => {
+    global.localStorage = { getItem: () => '42', setItem() {}, removeItem() {} };
+    const app = makeVRAppLike({ settings: { a11y: true } });
+    expect(VRApp.prototype.loadPersistedSettings.call(app)).toEqual({});
+    delete global.localStorage;
+  });
+
+  test('_restoreTabSession reports 0 when no session was saved', () => {
+    global.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+    const app = makeVRAppLike({ settings: {}, tabManager: { restoreSession: jest.fn() } });
+    expect(VRApp.prototype._restoreTabSession.call(app)).toBe(0);
+    delete global.localStorage;
+  });
+
+  test('_onWebPanelToggleChanged() with no arg reads the persisted setting', () => {
+    const app = makeVRAppLike({
+      settings: { enableWebPanel: false },
+      _buildBrowsingSystems: jest.fn(),
+      _teardownBrowsingSystems: jest.fn(),
+      _attachManagedWindow: jest.fn(),
+      showVRToast: jest.fn()
+    });
+    VRApp.prototype._onWebPanelToggleChanged.call(app);
+    expect(app._teardownBrowsingSystems).toHaveBeenCalled();
+    VRApp.prototype._onWebPanelToggleChanged.call(app, true);
+    expect(app._buildBrowsingSystems).toHaveBeenCalled();
+  });
+});
