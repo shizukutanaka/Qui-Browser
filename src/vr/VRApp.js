@@ -478,8 +478,41 @@ export class VRApp {
     // context-restored handler can re-arm it with the same function reference.
     this._renderBound = this.render.bind(this);
     this.renderer.setAnimationLoop(this._renderBound);
+    this._loopArmed = true;
+
+    // The landing page embeds the canvas below the fold — a free-running RAF
+    // renders the whole scene into a surface nobody sees, burning GPU/battery
+    // on every boot and after every VR exit. Pause the loop while the canvas
+    // is off-screen; presenting XR sessions bypass this (the XR runtime drives
+    // its own frames and must never see the loop cleared).
+    this._canvasOffscreen = false;
+    if (typeof IntersectionObserver === 'function'
+        && this.renderer.domElement) {
+      this._canvasObserver = new IntersectionObserver((entries) => {
+        this._canvasOffscreen = !entries.some((e) => e.isIntersecting);
+        this._syncAnimationLoop();
+      });
+      this._canvasObserver.observe(this.renderer.domElement);
+    }
 
     console.debug('VRApp: Initialization complete');
+  }
+
+  /**
+   * Arm or pause the render loop based on whether anyone can see its output.
+   * Runs while presenting (XR frames come from the runtime, not window RAF) or
+   * while the canvas intersects the viewport.
+   */
+  _syncAnimationLoop() {
+    const xr = this.renderer && this.renderer.xr;
+    const run = (xr && xr.isPresenting) || !this._canvasOffscreen;
+    if (run && !this._loopArmed) {
+      this.renderer.setAnimationLoop(this._renderBound);
+      this._loopArmed = true;
+    } else if (!run && this._loopArmed) {
+      this.renderer.setAnimationLoop(null);
+      this._loopArmed = false;
+    }
   }
 
   /**
@@ -516,6 +549,7 @@ export class VRApp {
       console.warn('VRApp: WebGL context lost; pausing render loop until restored');
       if (this.renderer) {
         this.renderer.setAnimationLoop(null);
+        this._loopArmed = false;
       }
       // notifyCrossModal handles missing subsystems gracefully (early in init
       // the captions/haptic may not yet exist).
@@ -524,7 +558,7 @@ export class VRApp {
     this._onWebGLContextRestored = () => {
       console.debug('VRApp: WebGL context restored; resuming render loop');
       if (this.renderer && this._renderBound) {
-        this.renderer.setAnimationLoop(this._renderBound);
+        this._syncAnimationLoop();
       }
       notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextRestoredMessage(), 'info');
     };
@@ -2845,11 +2879,15 @@ export class VRApp {
 
     // Listen for VR session events
     this.renderer.xr.addEventListener('sessionstart', () => {
+      // Presenting bypasses the off-screen pause — re-arm before the first
+      // XR frame so a loop paused on the landing page is running again.
+      this._syncAnimationLoop();
       this.onVRSessionStart();
     });
 
     this.renderer.xr.addEventListener('sessionend', () => {
       this.onVRSessionEnd();
+      this._syncAnimationLoop();
     });
   }
 
@@ -3450,6 +3488,12 @@ export class VRApp {
 
     // Stop render loop
     this.renderer.setAnimationLoop(null);
+    this._loopArmed = false;
+
+    if (this._canvasObserver) {
+      this._canvasObserver.disconnect();
+      this._canvasObserver = null;
+    }
 
     // Remove WebGL context-loss listeners so a late event after teardown
     // doesn't fire a notification or try to restart the loop on a freed
