@@ -465,3 +465,60 @@ describe('ImmersiveVideo — togglePause no-video arm', () => {
     expect(() => v.togglePause()).not.toThrow();
   });
 });
+
+describe('ImmersiveVideo — remaining branch arms', () => {
+  test('playing event with _playPauseBtn null still flips playing + callback', () => {
+    const { iv } = makeHarness();
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.play('https://v.example/x.mp4');
+    iv._playPauseBtn = null; // pretend HUD build skipped the button
+    iv.playing = false;      // reset before the event fires
+    iv.video._emit('playing');
+    expect(iv.playing).toBe(true);
+    expect(changes).toContain('playing');
+  });
+
+  test('stop() with _playPauseBtn null still sets playing false + stopped', () => {
+    const { iv } = makeHarness();
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.play('https://v.example/x.mp4'); // meshes exist → active → 'stopped' fires
+    iv.playing = true;
+    iv._playPauseBtn = null;
+    iv.stop();
+    expect(iv.playing).toBe(false);
+    expect(changes).toContain('stopped');
+  });
+
+  test('togglePause with _playPauseBtn null skips setLabel arm', () => {
+    const { iv } = makeHarness();
+    iv.play('https://v.example/x.mp4');
+    iv._playPauseBtn = null;
+    iv.video.paused = false;
+    const changes = [];
+    iv.onPlaybackChange = (s) => changes.push(s);
+    iv.togglePause();
+    expect(iv.playing).toBe(false);
+    expect(changes).toContain('paused');
+  });
+
+  test('HUD button onSelect/onHover fire with callbacks absent', () => {
+    const { iv, register } = makeHarness(); // no onHoverCaption
+    iv.play('https://v.example/x.mp4');
+    // every registered button handler must be safe with onSelect/onHoverCaption absent
+    for (const call of register.mock.calls) {
+      const h = call[1];
+      expect(() => { h.onHover?.(); h.onHoverEnd?.(); }).not.toThrow();
+    }
+  });
+
+  test('dispose: meshes lacking geometry/material + video absent arms', () => {
+    const { iv } = makeHarness();
+    iv.play('https://v.example/x.mp4');
+    iv.meshes.push({}, { geometry: null, material: null });
+    // video stub lacking removeAttribute/load → both guards skip cleanly
+    iv.video = { pause() {}, removeEventListener() {} };
+    expect(() => iv.dispose()).not.toThrow();
+  });
+});
