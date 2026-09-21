@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き203 — **ハプティクス全滅を修正**（XR gamepad は navigator.getGamepads() に出ない — 仕様で禁止）
+- 🔍 **発見（W3C WebXR Gamepads Module 仕様確認）**: `HapticFeedback.update()` が `navigator.getGamepads()` を走査していたが、仕様上 XRInputSource の Gamepad は同配列に**含めてはならない** — 実機セッションでは常に空を返し `gamepads` が空のまま、全ての `pulse()` が無言で no-op。**触覚フィードバック全チャネル（通知・クリック・境界警告・近接）が実機で一度も発火していなかった**（WCAG 意味的にはクロスモーダル経路の一本が完全に欠損）。さらに `getGamepadForHand` が `gamepad.hand`（Gamepad に存在しないプロパティ — handedness は XRInputSource 側）を読んでおり、仮に列挙されても左右ルーティングが全て first-available フォールバックに落ちていた。
+- 🔧 **修正**: `update(inputSources)` — セッションの inputSources（`xrFrame.session.inputSources`）を権威として走査、キーを XRInputSource オブジェクトに、`_hands` マップで handedness を正しくルーティング。inputSources 未指定（非没入/デスクトップ）時のみ従来の navigator 経路（index キー、`gamepad.hand`/`handedness` があれば尊重）。出ていったソースは毎フレーム prune。呼出元は `xrFrame?.session?.inputSources` を渡す。
+- 🧪 pin 3本: navigator が空でも XR ソース経由で actuator に到達・退場ソースの prune・左右ハンドルーティングが逆 pad に漏れない。旧直接注入テスト2件を実経路 update() 経由に置換。
+- ✅ 3081 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き202 — `VRControllerInput.read()` の毎フレーム確保をゼロ化（Qiita three.js 指針の横展開）
 - 🔍 **発見**: `read()` が毎コール `{family,hand,axes,buttons}` + ボタン名ごとの `{pressed,justPressed,…}` を新規確保 — 2コントローラ × ~12オブジェクト × 90fps ≈ **秒間2,000個の短命オブジェクト**で Quest の JS GC 圧力。CaptionSystem/raycast で既に潰した「render loop で new」の同クラス最後の残存。
 - 🔧 **修正**: スナップショットを入力ソースごとに再利用（`_state` WeakMap に `snapshot` を保持）。形状は family 変更時のみ再構築（`prev` も同時リセット — キー名が変わるため）。`applyRadialDeadZone` に `out` 引数追加で `{x,y}` 確保も解消。no-gamepad 経路も per-source キャッシュ化、falsy ソースは共有 freeze 定数。docstring に「呼出側は同フレーム内同期読みのみ、跨フレーム保持禁止」を明記（実コンシューマー2箇所は既に同期読みのみ）。
