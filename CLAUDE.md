@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き196 — pinch ジェスチャが「選択せずにクリック音だけ鳴らす」嘘を修正 + compileAsync 化
+- 🔍 **発見（続き120 偽アナウンス同クラス・大物）**: `handTracking.onGesture('pinch')` コールバックはクリック音+ハプティクスを鳴らすのに**実際の select を一切発行していなかった** — `getPointingRay()`（選択用に設計された API）が src/ 全体で呼出ゼロ。続き178 で hand-tracking grant を要求して手が動くようになったのに、pinch は「押した気にさせて何もしない」状態だった。
+- 🔧 **修正**: ①`intersectInteractablesRay(ray)` ヘルパー追加（コントローラ経路と同一の shared raycaster+scratch、isWorldVisible フィルタ）②pinch → ポインティングレイを raycast → ヒット時のみ `onSelect({intersection, hand})` + `qui-select` 発行 ③**クリック音はヒット時のみ** — 空ピンチに音を鳴らすのは未発生アクションの偽告知のため ④`renderer.compile` → `compileAsync`（KHR_parallel_shader_compile でプログラム真の準備完了まで待機、初フレーム stall 防止が本物に）。
+- 🧪 pin 3件追加（pinch ヒットで onSelect+qui-select+click、空 pinch で音なし、旧テスト3件を新挙動へ更新）。3092 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き195 — `pagehide` を beforeunload に並列配線（モバイルの teardown 不発火）
 - 🔍 **発見（web.dev 周知の挙動）**: `beforeunload` はモバイルブラウザ（Quest Browser 含む Chromium 系）でバックグラウンド遷移・bfcache・kill 時に不発火 — ページ解体の信頼できるシグナルは `pagehide`。Quest でのヘッドセット脱着/タスクキル時に `vrApp.dispose()` と `session_ended` イベントが一切走らない経路が残っていた。
 - 🔧 **修正**: app.js は teardown ハンドラを抽出して `beforeunload`+`pagehide` 両武装（dispose は冪等）。monitoring.js の onUnload も同二発火対策として `_unloaded` ガード追加＋disposeMonitoring でリセット＋pagehide 除去対称。
