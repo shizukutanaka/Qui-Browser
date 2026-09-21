@@ -829,7 +829,7 @@ describe('VoiceCommands — default command action bodies actually execute', () 
     global.window = { open };
     vc.processCommand('検索：ラーメン 近く', 0.9);
     expect(open).toHaveBeenCalledWith(
-      expect.stringContaining('google.com/search?q='), '_blank');
+      expect.stringContaining('google.com/search?q='), '_blank', 'noopener');
     expect(decodeURIComponent(open.mock.calls[0][0])).toContain('ラーメン 近く');
   });
 
@@ -1302,7 +1302,7 @@ describe('VoiceCommands — sliver arms', () => {
     window.open = jest.fn();
     const out = cmd.action('検索：てんき');
     expect(out.query).toBe('てんき');
-    expect(window.open).toHaveBeenCalledWith(expect.stringContaining('google.com/search'), '_blank');
+    expect(window.open).toHaveBeenCalledWith(expect.stringContaining('google.com/search'), '_blank', 'noopener');
   });
 
   test('go-to command returns null query when nothing captured', () => {

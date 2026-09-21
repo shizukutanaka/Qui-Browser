@@ -84,17 +84,6 @@ describe('DevTools plumbing', () => {
     expect(dt.formatValue(7)).toBe('7');
   });
 
-  test('executeCode evaluates expressions, falls back to statements, logs errors', () => {
-    dt.executeCode('1 + 2');
-    dt.executeCode('let x = 5;');
-    dt.executeCode('throw new Error("kaboom")');
-    const msgs = dt.tools.console.messages;
-    expect(msgs[0].args).toEqual(['> 1 + 2', '3']); // formatValue stringifies
-    expect(msgs[1].args[0]).toBe('> let x = 5;');
-    expect(msgs[2].type).toBe('error');
-    expect(msgs[2].args[0]).toContain('kaboom');
-  });
-
   test('fetch interception records successful and failed requests', async () => {
     const origFetch = jest.fn(async () => ({
       status: 200,
@@ -361,24 +350,6 @@ describe('DevTools — remaining DOM arms', () => {
         global[k] = saved[k];
       }
     }
-  });
-
-  test('console Enter keypress executes and clears the input', () => {
-    const input = {};
-    dt.executeCode = jest.fn();
-    // Grab the handler createUI assigns via the same shape production uses.
-    input.onkeypress = (e) => {
-      if (e.key === 'Enter') {
-        dt.executeCode(input.value); input.value = '';
-      }
-    };
-    input.value = '1+1';
-    input.onkeypress({ key: 'Enter' });
-    expect(dt.executeCode).toHaveBeenCalledWith('1+1');
-    expect(input.value).toBe('');
-    input.value = 'x';
-    input.onkeypress({ key: 'a' });
-    expect(input.value).toBe('x'); // non-Enter untouched
   });
 
   test('interceptConsole wires warn + error through logMessage and restores on dispose', () => {
@@ -648,16 +619,6 @@ describe('DevTools — sliver arms', () => {
     expect(d.visible).toBe(false);
   });
 
-  test('console input Enter executes code', () => {
-    const d = new DevTools({ scene: {}, renderer: {} });
-    const executed = [];
-    jest.spyOn(d, 'executeCode').mockImplementation((s) => executed.push(s));
-    const input = d._consoleInput || (d.tools && d.tools.consoleInput);
-    if (input && input.onkeypress) {
-      input.onkeypress({ key: 'Enter' });
-    }
-  });
-
   test('showTab skips tabs with no content and tolerates missing ids', () => {
     const d = new DevTools({ scene: {}, renderer: {} });
     global.document = {
@@ -745,17 +706,12 @@ describe('DevTools — last guard arms', () => {
     expect(dt.container.style.cssText).toContain('display: flex');
   });
 
-  test('real console input Enter executes and clears; other keys are ignored', () => {
-    dt.executeCode = jest.fn();
+  test('console tab is read-only — no eval REPL input exists', () => {
     dt.createUI();
-    const input = made.find((el) => el.onkeypress);
-    input.value = '2+2';
-    input.onkeypress({ key: 'Enter' });
-    expect(dt.executeCode).toHaveBeenCalledWith('2+2');
-    expect(input.value).toBe('');
-    input.value = 'x';
-    input.onkeypress({ key: 'a' });
-    expect(input.value).toBe('x');
+    // The CSP forbids unsafe-eval everywhere, so an execute input could
+    // never run; the console tab is a log viewer only.
+    expect(dt.executeCode).toBeUndefined();
+    expect(made.find((el) => el.onkeypress)).toBeUndefined();
   });
 
   test('showTab("network") mounts content and runs updateNetworkTable', () => {
