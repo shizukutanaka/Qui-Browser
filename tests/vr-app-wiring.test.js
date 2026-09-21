@@ -2733,6 +2733,18 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.captionSystem.show).toHaveBeenCalled(); // open/closed announcement
   });
 
+  test('a11y: highContrast apply repaints an open bookmark panel', () => {
+    const drawSpy = jest.fn();
+    const app = P('settings.section.a11y', { bookmarkPanel: { visible: true, _draw: drawSpy, toggle: jest.fn() } });
+    app.interactables.slice(5)[2].onSelect(); // highContrast on
+    expect(drawSpy).toHaveBeenCalled();
+  });
+
+  test('display: follow-view apply is a no-op without a windowManager', () => {
+    const app = P('settings.section.display', { windowManager: null });
+    expect(() => app.interactables.slice(5)[2].onSelect()).not.toThrow();
+  });
+
   test('audio: masterVolume scales % -> 0..1 gain; video360 launches', () => {
     const app = P('settings.section.audio');
     const C = app.interactables.slice(5);
