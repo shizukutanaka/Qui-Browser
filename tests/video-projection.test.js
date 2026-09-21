@@ -119,3 +119,19 @@ describe('buildVideoSphereGeometry', () => {
     expect(geo.parameters.phiLength).toBeCloseTo(Math.PI, 6);
   });
 });
+
+describe('videoProjection — complementary arms', () => {
+  test('stereo-tb right eye gets the bottom-half UV', () => {
+    const { eyeUVTransform } = require('../src/vr/media/videoProjection.js');
+    const left = eyeUVTransform('stereo-tb', 'left');
+    const right = eyeUVTransform('stereo-tb', 'right');
+    expect(right).not.toEqual(left);
+  });
+
+  test('buildVideoSphereGeometry honours custom opts', () => {
+    const { buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
+    const THREE = { SphereGeometry: jest.fn(function (...a) { Object.assign(this, { args: a }); }) };
+    buildVideoSphereGeometry(THREE, { radius: 50, projection: '180', widthSegments: 16, heightSegments: 8 });
+    expect(THREE.SphereGeometry).toHaveBeenCalled();
+  });
+});
