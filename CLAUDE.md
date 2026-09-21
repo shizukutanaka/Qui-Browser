@@ -544,6 +544,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き121（同セッション）: 補腕（`&&`/`||` の反対側・メンバ存在側）を一掃 — 分岐カバレッジ 89.92%
+
+- 残存ブランチはほぼ「既に pin 済み条件の対側」のみ — BRDA の (line, block, branch) 三つ組で腕を個別特定し、約18ファイル・約60テストを追加。pin 対象:
+  - main.js: loadingScreen 存在時の 500ms 退場タイマー、enterVR 対応真腕（supported→import dispatch）、エラーオーバーレイ構築
+  - app.js: perfDisplay フォールバック（perfMonitorUI 不在時の DOM 切替）、Escape の clearInterval 内腕、visibilitychange hidden+vrApp 腕
+  - i18n: en フォールバック命中、setLanguage の localStorage 書込、saved-lang 検出、root 指定の applyTranslations
+  - BookmarkPanel/ImmersiveVideo/GazeInteraction/HandTracking: truthy コールバック発火、row/delete ヒット、dwell 発火＋リング opacity 復帰、updateHand ディスパッチ、dispose の member-present 腕（geometry/material/map/parent/reticle）
+  - VoiceCommands: alias ループの非一致通過→一致、continuous 再起動の isEnabled 再検査、音量数値読み上げ、window.open 検索フォールバック、enMatch go-to、空クエリの query:null 返却
+  - DevTools/TabManager/VRControllerInput/HapticFeedback: container 可視化、数値時刻セル、タブ index シフト、ファミリ別ボタン/軸マップ、pause ステップ、オブジェクトパターン両手ディスパッチ
+  - 純関数群（readerLayout/captionLayout/textWrap/videoProjection/chromeColors/keyboardLayout）: scale≤0 正規化、タイトルフォント、矢印ヒットゾーン、CJK 幅、NaN/null 入力、stereo-tb 右目 UV、highContrast パレット、width/glyph エントリ
+- **実測**: 2662 tests / 66 suites 全緑、lint 0 errors、branches **89.92%**（3631/4038、前回 89.45% → +0.5pt）。欠陥ゼロ — 全て既存の正しいガードを pin。
+- 残りは VRApp.js（170腕、GPU/XR セッション直結で構造的に到達不能）と monitoring.js（62腕、PROD ゲート、N-2 判断待ち）が大半 — headless 可能な散在腕はほぼ枯渇。
+
 #### 続き120（同セッション）: VoiceCommands/HapticFeedback/DevTools/app.js/ImmersiveVideo/TabManager/BookmarkPanel/IME/i18n/VRControllerInput/GazeInteraction/HandTracking の残ブランチ腕を一掃
 - ✅ VoiceCommands: wake-word ゲート（isAwake 遷移+挨拶）、RegExp パターン一致・非文字列スキップ、エイリアス部分一致、web-search のコロンペイロード抽出（match 無し→query null）、registerCommand の `patterns || []`/`confirmationText || null` 既定、connectBrowser 空引数、音量 onVolumeChange 非数値読み上げスキップ、onSearch 不在→アクティブタブ navigate フォールバック、英語 go-to プレフィックス、continuous リスタートの 100ms 後 isEnabled 再検査。
 - ✅ HapticFeedback: update() のゲームパッド切断除去、playCustomSequence の pause ステップ腕、simulateTexture 未知タイプ→既定、proximityFeedback 距離外早期 return、alert 未知 urgency→normal、test() パターン巡回。
