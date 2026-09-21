@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き184 — 見えない canvas に毎フレーム全シーンを描く常駐 RAF
+- 🔍 **実測（ループ寿命の照合）**: `initialize()` が `setAnimationLoop` を起動直後に武装し、VR 対応機では**VR に一度も入らなくても** RAF が常駐。canvas は `app-container` 末尾（折りたたみ下）に挿入されるので、ランディングを読むだけ/VR 退出後に読むだけの間も全シーンの updateSystems+render が毎フレーム走る — バッテリー端末での純粋な無駄。
+- 🔧 **修正**: IntersectionObserver で canvas の可視性を監視し、非交差時は `setAnimationLoop(null)`。`_syncAnimationLoop()` が唯一の武装/停止点として `xr.isPresenting` をバイパス条件に持つ（XR フレームはランタイム駆動なので presenting 中は絶対に止めない）。sessionstart で再武装→退出後にオフスクリーンなら再停止、webglcontextrestored も同経路に集約、dispose で observer 切断。
+- 🧪 **pin 4件**: オフスクリーンで停止・復帰で再武装・presenting 中は不停止・冪等性。フィクスチャ2件を新 `this` 読みに追従。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き183 — セッション境界の非対称: targetFPS が end で戻らない
 - 🔍 **実測（start/end 対称性）**: `onVRSessionStart` は `settings.targetFPS` を `session.refreshRate` で上書きするが `onVRSessionEnd` は戻さない。`render()` → `adjustQuality()` は無ゲートで60フレーム毎に走り、**デスクトップミラーループでも** `targetFPS` を読む — 120Hz セッション退出後、デスクトップ 60fps（16.7ms）は残留予算 8.33ms を毎回超過 → `reduceQuality()` が無限 ratchet。Quest3 で VR 入退室するだけで2D 側の画質が底まで落ちる。同時に既存テスト2件が `settings`/`deviceCompat` 無しの bare `this` で `onVRSessionEnd` を呼んでいた（新コードが TypeError を起こし `not.toThrow` で落ちる）→ フィクスチャを実オブジェクトに近づけて修正。
 - 🔧 **修正**: `onVRSessionEnd` で `_fpsOverridden` 無しなら `deviceCompat.targetFPS()` へ復帰（ユーザー指定値は保護）。pin 2件: 復帰すること・`_fpsOverridden` を潰さないこと。

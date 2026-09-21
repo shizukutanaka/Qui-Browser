@@ -667,10 +667,12 @@ describe('setupVR — button/session/visibility wiring', () => {
     const app = makeInitLike();
     app.renderer = { xr: { addEventListener: (t, fn) => {
       xrListeners[t] = fn;
-    } } };
+    }, isPresenting: false }, setAnimationLoop: jest.fn() };
     app.setupControllers = jest.fn();
     app.onVRSessionStart = jest.fn();
     app.onVRSessionEnd = jest.fn();
+    // sessionstart/end now resync the off-screen RAF pause before dispatching.
+    app._syncAnimationLoop = VRApp.prototype._syncAnimationLoop;
     app.immersiveVideo = { playing: true, togglePause: jest.fn() };
 
     VRApp.prototype.setupVR.call(app);

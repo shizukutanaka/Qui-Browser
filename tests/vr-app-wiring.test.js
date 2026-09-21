@@ -760,6 +760,52 @@ describe('VRApp.onVRSessionEnd — session-scoped subsystem teardown', () => {
   });
 });
 
+describe('VRApp._syncAnimationLoop — off-screen canvas pause', () => {
+  /** Minimal `this` for _syncAnimationLoop(). */
+  function makeLoopApp(overrides = {}) {
+    return {
+      _renderBound: jest.fn(),
+      _loopArmed: true,
+      _canvasOffscreen: false,
+      renderer: {
+        xr: { isPresenting: false },
+        setAnimationLoop: jest.fn()
+      },
+      ...overrides
+    };
+  }
+
+  test('pauses the loop when the canvas scrolls off-screen', () => {
+    const app = makeLoopApp({ _canvasOffscreen: true });
+    VRApp.prototype._syncAnimationLoop.call(app);
+    expect(app.renderer.setAnimationLoop).toHaveBeenCalledWith(null);
+    expect(app._loopArmed).toBe(false);
+  });
+
+  test('re-arms the loop when the canvas scrolls back into view', () => {
+    const app = makeLoopApp({ _canvasOffscreen: false, _loopArmed: false });
+    VRApp.prototype._syncAnimationLoop.call(app);
+    expect(app.renderer.setAnimationLoop).toHaveBeenCalledWith(app._renderBound);
+    expect(app._loopArmed).toBe(true);
+  });
+
+  test('never pauses while an XR session is presenting', () => {
+    const app = makeLoopApp({
+      _canvasOffscreen: true,
+      renderer: { xr: { isPresenting: true }, setAnimationLoop: jest.fn() }
+    });
+    VRApp.prototype._syncAnimationLoop.call(app);
+    expect(app.renderer.setAnimationLoop).not.toHaveBeenCalled();
+    expect(app._loopArmed).toBe(true);
+  });
+
+  test('is idempotent — no repeated setAnimationLoop calls in a steady state', () => {
+    const app = makeLoopApp({ _canvasOffscreen: false, _loopArmed: true });
+    VRApp.prototype._syncAnimationLoop.call(app);
+    expect(app.renderer.setAnimationLoop).not.toHaveBeenCalled();
+  });
+});
+
 // ── OS accessibility signal live-propagation (WCAG 2.3.3 / 1.4.11) ──────────
 // osReducedMotion()/prefersHighContrast() were previously only read once, at
 // each subsystem's construction time — an OS-level preference toggled after
@@ -4595,7 +4641,12 @@ describe('VRApp setupRenderer — context-loss/resize handler bodies (patched ct
         T.WebGLRenderer = FakeRenderer;
         VRM = require('../src/vr/VRApp.js');
       });
-      const app = makeVRAppLike({ container: { appendChild: jest.fn() } });
+      const app = makeVRAppLike({
+        container: { appendChild: jest.fn() },
+        // The restored handler delegates to _syncAnimationLoop so the loop only
+        // re-arms when someone can see the output — carry it onto the fixture.
+        _syncAnimationLoop: VRM.VRApp.prototype._syncAnimationLoop
+      });
       VRM.VRApp.prototype.setupRenderer.call(app);
       expect(setSize).toHaveBeenCalledTimes(1); // initial size
       const lost = { preventDefault: jest.fn() };
