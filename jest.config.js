@@ -35,10 +35,10 @@ module.exports = {
   // coverage regression fails the gate instead of silently landing.
   coverageThreshold: {
     global: {
-      branches: 81,
-      functions: 90,
-      lines: 94,
-      statements: 93
+      branches: 95,
+      functions: 96,
+      lines: 97,
+      statements: 96
     }
   },
 
