@@ -2437,3 +2437,89 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
     expect(panel.children.length).toBeGreaterThan(5);
   });
 });
+
+describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
+  test('unwires every listener/timer/subsystem it registered — a mid-teardown throw would strand the rest', () => {
+    const added = [];
+    const removed = [];
+    global.window = {
+      devicePixelRatio: 1,
+      addEventListener: (t, fn) => added.push(['window', t, fn]),
+      removeEventListener: (t, fn) => removed.push(['window', t, fn])
+    };
+    const docRemoved = [];
+    const docAdded = [];
+    global.document.addEventListener = (t, fn) => docAdded.push([t, fn]);
+    global.document.removeEventListener = (t, fn) => docRemoved.push(t);
+
+    const disposeCalls = [];
+    const sub = (name) => ({ dispose: jest.fn(() => disposeCalls.push(name)) });
+    const mq = () => ({ removeEventListener: jest.fn() });
+    const renderer = {
+      setAnimationLoop: jest.fn(), dispose: jest.fn(),
+      domElement: { removeEventListener: jest.fn() },
+      xr: {}
+    };
+    const scene = new THREE.Scene();
+    const childMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial());
+    scene.add(childMesh);
+    const geoDispose = jest.spyOn(childMesh.geometry, 'dispose');
+    const matDispose = jest.spyOn(childMesh.material, 'dispose');
+
+    const app = {
+      renderer, scene,
+      _onWebGLContextLost: jest.fn(), _onWebGLContextRestored: jest.fn(),
+      _onWindowResize: Object.assign(jest.fn(), { cancel: jest.fn() }),
+      _osMotionMQ: mq(), _osContrastMQ: mq(), _osForcedColorsMQ: mq(),
+      _onOSReducedMotionChange: jest.fn(), _onOSContrastChange: jest.fn(),
+      _toastTimers: new Set([1, 2]), _handTrackingTimers: { a: 3 },
+      onEnterVRRequest: jest.fn(), onDocumentVisibilityChange: jest.fn(),
+      vrButton: { parentNode: { removeChild: jest.fn() } },
+      comfortSystem: sub('comfort'), ffrSystem: sub('ffr'),
+      textureManager: sub('tex'), vrKeyboard: sub('kbd'),
+      handTracking: sub('hands'), gazeInteraction: sub('gaze'),
+      captionSystem: sub('captions'), semanticDOM: sub('semantic'),
+      spatialAudio: sub('audio'), progressiveLoader: sub('loader'),
+      voiceCommands: sub('voice'), windowManager: sub('wm'),
+      layersSystem: sub('layers'), bookmarkPanel: sub('bookmarks'),
+      immersiveVideo: sub('video'), tabManager: sub('tabs'),
+      devTools: sub('devtools'), perfMonitorUI: sub('perfui'),
+      hapticFeedback: { enabled: true },
+      _hapticRef: null,
+      _homePanelTexture: { dispose: jest.fn() },
+      _panelTextures: [{ dispose: jest.fn() }],
+      _sharedGeometries: new Map([['k', { dispose: jest.fn() }]]),
+      webPanel: null, japaneseIME: null
+    };
+
+    const hapticRef = app.hapticFeedback;
+    VRApp.prototype.dispose.call(app);
+
+    expect(renderer.setAnimationLoop).toHaveBeenCalledWith(null);
+    expect(renderer.domElement.removeEventListener).toHaveBeenCalledTimes(2);
+    const removedTypes = removed.map(([, t]) => t);
+    expect(removedTypes).toEqual(expect.arrayContaining(['resize', 'enter-vr']));
+    expect(docRemoved).toContain('visibilitychange');
+    expect(app._onWindowResize).toBeNull();
+    expect(app._osMotionMQ).toBeNull();
+    expect(app._osContrastMQ).toBeNull();
+    expect(app._osForcedColorsMQ).toBeNull();
+    expect(app.onEnterVRRequest).toBeNull();
+    expect(app.onDocumentVisibilityChange).toBeNull();
+    expect(app._toastTimers.size).toBe(0);
+    // every subsystem disposed exactly once, teardown reached the end
+    for (const name of ['comfort','ffr','tex','kbd','hands','gaze','captions','semantic','audio','loader','voice','wm','layers','bookmarks','video','tabs','devtools','perfui']) {
+      expect(disposeCalls).toContain(name);
+    }
+    expect(disposeCalls).toHaveLength(18);
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(geoDispose).toHaveBeenCalled();
+    expect(matDispose).toHaveBeenCalled();
+    expect(hapticRef.enabled).toBe(false);
+    expect(app.hapticFeedback).toBeNull();
+
+    delete global.window;
+    delete global.document.addEventListener;
+    delete global.document.removeEventListener;
+  });
+});

@@ -175,3 +175,98 @@ describe('fetch handler — cross-origin bypass', () => {
     expect(fire('chrome-extension://abc/x.js')).toBe(false);
   });
 });
+
+// ── Install/activate/fetch lifecycle ─────────────────────────────────────────
+// The remaining arms were previously exercised only in a real browser. The
+// handlers recorded in swHandlers drive them headlessly.
+describe('install — precaches the app shell and activates immediately', () => {
+  test('waitUntil resolves after all CRITICAL_ASSETS are added and skipWaiting runs', async () => {
+    const added = [];
+    const cache = { add: async (u) => { added.push(u); } };
+    global.caches = { open: async (name) => (name === 'qui-browser-v2.0.0' ? cache : makeMockCache()) };
+    self.skipWaiting = jest.fn(async () => {});
+    let done;
+    swHandlers.install({ waitUntil: (p) => { done = p; } });
+    await done;
+    expect(added).toEqual(['/', '/index.html', '/manifest.json', '/offline.html']);
+    expect(self.skipWaiting).toHaveBeenCalled();
+    delete global.caches;
+    delete self.skipWaiting;
+  });
+});
+
+describe('activate — evicts every cache that is not the current pair', () => {
+  test('deletes stale versions but keeps CACHE_VERSION + RUNTIME_CACHE, then claims clients', async () => {
+    const deleted = [];
+    global.caches = {
+      keys: async () => ['qui-browser-v1.0.0', 'qui-browser-v2.0.0', 'qui-browser-runtime', 'junk'],
+      delete: async (name) => { deleted.push(name); return true; }
+    };
+    self.clients = { claim: jest.fn(async () => {}) };
+    let done;
+    swHandlers.activate({ waitUntil: (p) => { done = p; } });
+    await done;
+    expect(deleted.sort()).toEqual(['junk', 'qui-browser-v1.0.0']);
+    expect(self.clients.claim).toHaveBeenCalled();
+    delete global.caches;
+    delete self.clients;
+  });
+});
+
+describe('fetch strategies — cache-first and stale-while-revalidate', () => {
+  beforeEach(() => {
+    global.caches = { open: async () => makeMockCache(), match: async () => undefined };
+  });
+  afterEach(() => { delete global.caches; delete global.fetch; });
+
+  function fireAndWait(url) {
+    return new Promise((resolve) => {
+      swHandlers.fetch({
+        request: { url, method: 'GET' },
+        respondWith: (p) => resolve(Promise.resolve(p))
+      });
+    });
+  }
+
+  test('.ktx2 goes cache-first: cached hit returns without any network call', async () => {
+    const cached = { ok: true, body: 'old' };
+    const cache = makeMockCache();
+    cache.entries.push([{ url: 'https://app.example/tex.ktx2' }, cached]);
+    global.caches = { open: async () => cache };
+    global.fetch = jest.fn();
+    const res = await fireAndWait('https://app.example/tex.ktx2');
+    expect(res.body).toBe('old');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test('.js goes stale-while-revalidate: cached body returned, fresh fetch updates cache', async () => {
+    const cached = { ok: true, body: 'stale', clone: () => ({ body: 'stale' }) };
+    const cache = makeMockCache();
+    cache.entries.push([{ url: 'https://app.example/app.js' }, cached]);
+    global.caches = { open: async () => cache };
+    global.fetch = jest.fn(async () => ({ ok: true, clone: () => ({ body: 'fresh' }) }));
+    const res = await fireAndWait('https://app.example/app.js');
+    expect(res.body).toBe('stale');           // immediate cached response
+    await Promise.resolve();                  // let the background revalidate land
+    expect(global.fetch).toHaveBeenCalled();  // but the network update ran
+  });
+
+  test('navigating while offline falls back to the cached offline.html shell', async () => {
+    const resRef = {};
+    const shell = { body: 'offline-page' };
+    const cache = makeMockCache();
+    cache.entries.push([{ url: '/offline.html' }, shell]);
+    // makeMockCache.match compares req.url; the SW passes the literal path.
+    cache.match = async (key) => (key === '/offline.html' ? shell : undefined);
+    global.caches = { open: async () => cache, match: async () => undefined };
+    global.fetch = async () => { throw new Error('offline'); };
+    // request.mode 'navigate' → getOfflineFallback serves the cached shell
+    let p;
+    swHandlers.fetch({
+      request: { url: 'https://app.example/some/page', method: 'GET', mode: 'navigate' },
+      respondWith: (r) => { p = r; }
+    });
+    const res = await p;
+    expect(res.body).toBe('offline-page');
+  });
+});
