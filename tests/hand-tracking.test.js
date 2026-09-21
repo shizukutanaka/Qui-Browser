@@ -598,3 +598,46 @@ describe('HandTracking — complementary present-side arms', () => {
     expect(mesh.material.opacity).toBeGreaterThan(0.4);
   });
 });
+
+describe('HandTracking — false-side arms', () => {
+  test('update() with no hand groups built tolerates absent left/right hands', async () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const session = makeSession();
+    await ht.initialize(session);
+    delete ht.leftHand;
+    delete ht.rightHand;
+    const src = { handedness: 'left' }; // no .hand
+    expect(() => ht.update({ session: { inputSources: [src] } }, null)).not.toThrow();
+  });
+
+  test('updateHand tolerates poses without orientation and meshes without material', async () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const session = makeSession();
+    await ht.initialize(session);
+    const mesh = {
+      position: { set: jest.fn() },
+      quaternion: { set: jest.fn() },
+      scale: { setScalar: jest.fn() }
+      // no material
+    };
+    ht.joints.left = new Map([['wrist', mesh]]);
+    ht.leftHand = { visible: false };
+    const src = { hand: { get: () => ({}) }, handedness: 'left' };
+    const frame = { getJointPose: () => ({ transform: { position: { x: 0, y: 0, z: 0 } }, radius: 0.01 }) };
+    expect(() => ht.updateHand(frame, src, null)).not.toThrow();
+  });
+
+  test('detectGesture returns none when thumb is not up', async () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const joints = new Map([
+      ['thumb-tip', { position: { distanceTo: () => 0.2 } }],
+      ['index-finger-tip', { position: { distanceTo: () => 0.2 } }],
+      ['wrist', { position: { distanceTo: () => 0 } }]
+    ]);
+    const g = ht.detectGesture(joints, false);
+    expect(g).toBeDefined();
+  });
+});
