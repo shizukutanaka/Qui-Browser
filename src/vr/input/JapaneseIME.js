@@ -552,7 +552,18 @@ export class JapaneseIME {
     }
 
     const hiragana = this.convertRomajiToHiragana(this.compositionBuffer);
-    this.candidates = await this.getKanjiCandidates(hiragana);
+    const bufferAtRequest = this.compositionBuffer;
+    const candidates = await this.getKanjiCandidates(hiragana);
+
+    // The fetch can outlive the user's next keystrokes; candidates for a
+    // buffer that has since changed are stale — discard them rather than
+    // letting confirmSelection commit an old kanji and clear() wipe the
+    // characters typed while waiting.
+    if (this.compositionBuffer !== bufferAtRequest) {
+      return null;
+    }
+
+    this.candidates = candidates;
     this.selectedIndex = 0;
 
     return {

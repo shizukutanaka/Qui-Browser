@@ -544,6 +544,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き128（同セッション）: IME 変換の staleness — fetch 中の追加入力で候補混入＋バッファ喪失（実バグ18件目）
+
+`convertToKanji` は `await getKanjiCandidates(hiragana)`（ネットワーク、最大5秒）の後に**無条件で** `this.candidates = …` を代入し、`confirmSelection` は `candidates[selectedIndex]` を返して `clear()` で `compositionBuffer` 全消去する。つまり「きょう→変換→（fetch 中に 'd' 追加入力）→候補到着→Enter」で**古いクエリの候補が確定し、追加分 'd' が clear で消失**していた。WebPanel の `seq !== this._readerSeq` と同じ staleness クラス — IME 側にガードがなかった。
+
+修正: リクエスト時のバッファをスナップショットし、await 後に `compositionBuffer` が変化していれば候補を破棄して `null` を返す（追加入力は残り、再変換可能）。pre-fix 赤確認 → green。同パターンの横展開（ProgressiveLoader retry・SpatialAudio loadAudio・BookmarkStore）は監査済みで欠陥なし —— 前者は result を loaded map に置くだけで再利用しない、後者は name キーの last-write-wins で意図通り。
+
+その他実測（欠陥ゼロ）: JSON.parse 4箇所全て try/catch で破損耐性あり。innerHTML 使用箇所（PerformanceMonitor/DevTools/app.js perfDisplay）は全て自己生成テンプレートのみでユーザー制御データは textContent 経由 — XSS 面なし。`npm run verify:prerelease` 28 pass。
+
 #### 続き127（同セッション）: leaked-handle 警告の実害を根絶 + 実ブラウザ検証ハーネス全緑（E-2 完走）
 
 `jest --detectOpenHandles` が毎回吐いていた警告を放置しないで実測 — **実害17件目**が見つかった。
