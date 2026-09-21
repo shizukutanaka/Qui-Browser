@@ -208,184 +208,23 @@ controller.addEventListener('thumbstick', (direction) => {
 
 ### 3. Object Pooling
 
-**Time**: 3-4 hours
-**GC Pause Reduction**: 40%
-**Difficulty**: ⭐⭐ Easy-Medium
-
-**File**: ~~`src/utils/ObjectPool.js`~~ *(removed — Session 60 cleanup)*
-
-```javascript
-export class ObjectPool {
-  constructor(ObjectClass, initialSize = 50) {
-    this.ObjectClass = ObjectClass;
-    this.available = [];
-    this.inUse = new Set();
-
-    // Pre-allocate
-    for (let i = 0; i < initialSize; i++) {
-      this.available.push(new ObjectClass());
-    }
-  }
-
-  acquire() {
-    if (this.available.length > 0) {
-      const obj = this.available.pop();
-      this.inUse.add(obj);
-      obj.reset?.();
-      return obj;
-    }
-
-    console.warn('Pool exhausted, creating new instance');
-    const obj = new this.ObjectClass();
-    this.inUse.add(obj);
-    return obj;
-  }
-
-  release(obj) {
-    if (!this.inUse.has(obj)) return;
-
-    obj.reset?.();
-    this.inUse.delete(obj);
-    this.available.push(obj);
-  }
-
-  getStats() {
-    return {
-      available: this.available.length,
-      inUse: this.inUse.size,
-      total: this.available.length + this.inUse.size,
-      utilizationPercent: (this.inUse.size / (this.available.length + this.inUse.size)) * 100
-    };
-  }
-}
-```
-
-**Example UI Button Pool**:
-```javascript
-class VRButton {
-  constructor() {
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.1, 0.02),
-      new THREE.MeshStandardMaterial({ color: 0x0077ff })
-    );
-    this.isActive = false;
-  }
-
-  reset() {
-    this.isActive = false;
-    this.mesh.position.set(0, 0, 0);
-  }
-
-  activate(position, callback) {
-    this.isActive = true;
-    this.mesh.position.copy(position);
-    this.callback = callback;
-  }
-}
-
-// Usage
-const buttonPool = new ObjectPool(VRButton, 50);
-
-function createButton(position, callback) {
-  const button = buttonPool.acquire();
-  button.activate(position, callback);
-  scene.add(button.mesh);
-
-  setTimeout(() => {
-    scene.remove(button.mesh);
-    buttonPool.release(button);
-  }, 5000);
-}
-```
-
-**Validation**:
-- [ ] No GC pauses visible
-- [ ] Frame time variance <1ms
-- [ ] Pool stats reasonable (not too many allocated)
+**Removed** — `src/utils/ObjectPool.js` was deleted in the Session 60 cleanup: it had zero `src/` consumers, so the pattern was dead weight. The live memory-management mechanism is `src/utils/TextureManager.js` (LRU cache + byte budget + eviction); texture/button pooling can be reintroduced if GC pressure measurements justify it.
 
 ---
 
 ### 4. Service Worker Caching
 
-**Time**: 2-3 hours
-**Load Time Improvement**: 70%
-**Difficulty**: ⭐ Very Easy
+**File**: `public/service-worker.js` (shipped verbatim via `public/`)
 
-**File**: `public/service-worker.js`
+The implementation is already in place — do not copy the pseudo-code pattern:
 
-```javascript
-const CACHE_NAME = 'qui-browser-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/styles/main.css',
-  '/js/app.js',
-  '/js/vr-core.js',
-  '/models/default.glb',
-  '/environments/default.hdr'
-];
+- `CACHE_VERSION` is stamped per build by `tools/stamp-sw-version.mjs` (`npm run build` rewrites it), so every deploy invalidates old caches on `activate` (`skipWaiting` + `clients.claim` + per-60s `registration.update()` polling).
+- `CRITICAL_ASSETS` precaches the shell (`index.html`, `manifest.json`, `offline.html`, `offline.js`) **plus the hashed build bundles** (`BUILD_ASSETS` marker filled at build time — required because `activate` deletes the old runtime cache and stale hashed URLs then 404 offline).
+- Runtime strategies per pattern (`CACHE_PATTERNS`): cache-first for images/fonts/models, network-first for HTML navigations with an offline fallback chain.
+- `respondWith` carries a 10s settle cap: a wedged fetch would otherwise hang the page load forever (browsers impose no timeout on SW `respondWith`).
+- All paths resolve against `BASE` derived from the worker's own URL — the worker works under a subpath deploy (`/Qui-Browser/`) without edits.
 
-// Install
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
-  );
-});
-
-// Activate
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((names) => Promise.all(
-        names.map((name) => name !== CACHE_NAME && caches.delete(name))
-      ))
-      .then(() => self.clients.claim())
-  );
-});
-
-// Fetch
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // API: Network first
-  if (url.pathname.startsWith('/api/')) {
-    return event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.status === 200) {
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-  }
-
-  // Assets: Cache first
-  event.respondWith(
-    caches.match(event.request)
-      .then((cached) => cached || fetch(event.request))
-  );
-});
-```
-
-**Registration**:
-```javascript
-// In main app
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
-    .then((registration) => console.log('SW registered'))
-    .catch((error) => console.error('SW registration failed', error));
-}
-```
-
-**Validation**:
-- [ ] First load: ~5 seconds
-- [ ] Second load: <1 second
-- [ ] Offline: App loads (cached)
+**Registration** lives in `src/main.js` (base-path aware `navigator.serviceWorker.register`), not inline in the page.
 
 ---
 
