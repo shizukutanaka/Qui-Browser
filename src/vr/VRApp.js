@@ -33,7 +33,6 @@ import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
-import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
@@ -225,7 +224,6 @@ export class VRApp {
     // unchanged.
     this.a11y = new AccessibilityCoordinator();
     this.spatialAudio = null;
-    this.progressiveLoader = null;
 
     // Tier 3 systems (opt-in)
     this.voiceCommands = null;
@@ -1609,7 +1607,7 @@ export class VRApp {
       // These four were dead settings — read at boot but unreachable from any
       // UI. Wired live: home env swaps the scene subtree, perf overlay is a
       // DOM element (created lazily on first enable), texture cache toggles
-      // the TextureManager the ProgressiveLoader consults per load.
+      // the TextureManager used by loadTexture().
       [t('vr.settings.homeEnv'), 'enableHomeEnvironment', (v) => {
         if (!this.scene) {
           return;
@@ -1637,15 +1635,9 @@ export class VRApp {
       [t('vr.settings.textureCache'), 'enableTextureManager', (v) => {
         if (v && !this.textureManager) {
           this.textureManager = new TextureManager(this.renderer);
-          if (this.progressiveLoader) {
-            this.progressiveLoader.textureManager = this.textureManager;
-          }
         } else if (!v && this.textureManager) {
           this.textureManager.dispose();
           this.textureManager = null;
-          if (this.progressiveLoader) {
-            this.progressiveLoader.textureManager = null;
-          }
         }
       }]
     ];
@@ -2581,12 +2573,6 @@ export class VRApp {
     }
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
-    // Use progressive loader for efficient initialization
-    this.progressiveLoader = new ProgressiveLoader();
-    this.progressiveLoader.callbacks.onProgress = (data) => {
-      console.debug(`VRApp: Loading ${data.item.name} (${data.progress * 100}%)`);
-    };
-
     // === TIER 1 SYSTEMS ===
 
     // 1. Fixed Foveated Rendering
@@ -2610,7 +2596,6 @@ export class VRApp {
     // 4. Texture Manager (LRU cache + memory cap)
     if (this.settings.enableTextureManager) {
       this.textureManager = new TextureManager(this.renderer);
-      this.progressiveLoader.textureManager = this.textureManager;
       console.debug('VRApp: Texture manager ready');
     }
 
@@ -3928,9 +3913,6 @@ export class VRApp {
     }
     if (this.spatialAudio) {
       this.spatialAudio.dispose();
-    }
-    if (this.progressiveLoader) {
-      this.progressiveLoader.dispose();
     }
     if (this.voiceCommands) {
       this.voiceCommands.dispose();

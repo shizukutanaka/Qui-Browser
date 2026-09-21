@@ -360,29 +360,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Simulate doppler effect
-   */
-  simulateDoppler(source) {
-    if (!source.velocity) {
-      return;
-    }
-
-    // Calculate relative velocity
-    const speedOfSound = 343.3; // m/s at 20°C
-    const velocity = Math.sqrt(
-      source.velocity.x ** 2 +
-      source.velocity.y ** 2 +
-      source.velocity.z ** 2
-    );
-
-    // Apply pitch shift based on velocity
-    const dopplerFactor = 1 + (velocity / speedOfSound);
-    if (source.node) {
-      source.node.playbackRate.value = source.playbackRate * dopplerFactor;
-    }
-  }
-
-  /**
    * Set listener (user) position
    */
   setListenerPosition(x, y, z) {
@@ -529,42 +506,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Fade volume over time
-   */
-  fadeVolume(sourceName, targetVolume, duration) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.gain) {
-      return;
-    }
-
-    const startTime = this.context.currentTime;
-    const endTime = startTime + duration;
-
-    source.gain.gain.cancelScheduledValues(startTime);
-    source.gain.gain.setValueAtTime(source.gain.gain.value, startTime);
-    source.gain.gain.linearRampToValueAtTime(
-      targetVolume * this.settings.masterVolume,
-      endTime
-    );
-
-    source.volume = targetVolume;
-  }
-
-  /**
-   * Get audio statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      contextState: this.context ? this.context.state : 'uninitialized',
-      currentTime: this.context ? this.context.currentTime : 0,
-      sampleRate: this.context ? this.context.sampleRate : 0,
-      latency: this.context ? this.context.baseLatency || this.context.outputLatency || 0 : 0,
-      hrtfThreshold: this.settings.hrtfThreshold
-    };
-  }
-
-  /**
    * Dispose audio system
    */
   dispose() {
@@ -616,7 +557,4 @@ export class SpatialAudio {
  * function render() {
  *   audio.updateListenerFromCamera(camera);
  * }
- *
- * // Fade out
- * audio.fadeVolume('environment', 0, 2); // Fade out over 2 seconds
  */

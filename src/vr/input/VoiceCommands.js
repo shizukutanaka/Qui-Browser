@@ -766,21 +766,6 @@ export class VoiceCommands {
 
     this.synthesis.speak(utterance);
   }
-
-
-  /**
-   * Get statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      isListening: this.isListening,
-      isEnabled: this.isEnabled,
-      commandCount: this.commands.size,
-      lastCommand: this.lastCommand,
-      successRate: this.stats.commandsRecognized > 0 ? this.stats.commandsExecuted / this.stats.commandsRecognized : 0
-    };
-  }
 }
 
 /**

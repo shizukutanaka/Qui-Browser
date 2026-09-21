@@ -9,24 +9,25 @@
  * was never set true by any caller). Public surface = a promise; an
  * unkept promise is worse than no promise.
  *
- * Measured 2026-09-20: 27 methods / ~400 lines across 13 files.
+ * Measured 2026-09-20: 44 methods / ~1,400 lines across 12 files,
+ * plus the whole ProgressiveLoader subsystem (~700 lines + suite).
  */
 const fs = require('fs');
 const path = require('path');
 
 const DEAD = {
   'src/utils/BookmarkStore.js': ['removeHistory'],
-  'src/utils/PerformanceMonitor.js': ['reset'],
-  'src/utils/ProgressiveLoader.js': ['loadOnDemand', 'preload'],
+  'src/utils/PerformanceMonitor.js': ['reset', 'getReport', 'exportCSV'],
+  'src/utils/TextureManager.js': ['loadTextures'],
   'src/vr/VRApp.js': ['makeToggleButton'],
-  'src/vr/audio/SpatialAudio.js': ['setSourceOrientation', 'setSourceVelocity', 'setSourceVolume', 'createReverb'],
+  'src/vr/audio/SpatialAudio.js': ['setSourceOrientation', 'setSourceVelocity', 'setSourceVolume', 'createReverb', 'simulateDoppler', 'fadeVolume'],
   'src/vr/browser/WebPanel.js': ['goBack', 'goForward', 'onDomOverlayStart', 'onDomOverlayEnd'],
   'src/vr/browser/WindowManager.js': ['setBillboard', 'nudgeDistance'],
   'src/vr/comfort/ComfortSystem.js': ['getStatus', 'resize', 'render', 'handleSnapTurn', 'animateSnapTurn', 'updateFOV', 'setReducedMotion'],
   'src/vr/input/JapaneseIME.js': ['deactivate'],
   'src/vr/input/VoiceCommands.js': ['unregisterCommand', 'setLanguage'],
-  'src/vr/interaction/HapticFeedback.js': ['simulateForce', 'directionalPulse', 'playRhythm', 'getPatterns', 'resetStats'],
-  'src/vr/rendering/FFRSystem.js': ['setThresholds'],
+  'src/vr/interaction/HapticFeedback.js': ['simulateForce', 'directionalPulse', 'playRhythm', 'getPatterns', 'resetStats', 'createCustomPattern', 'simulateTexture', 'simulateImpact', 'proximityFeedback', 'alert', 'playCustomSequence', 'test', 'getStats'],
+  'src/vr/rendering/FFRSystem.js': ['setThresholds', 'setDynamicFFR', 'getStatus'],
   'src/vr/rendering/LayersSystem.js': ['getLayer']
 };
 

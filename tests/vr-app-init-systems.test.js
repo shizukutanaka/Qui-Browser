@@ -28,7 +28,6 @@ const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
 
 // Module objects whose named exports we patch per-test.
 const M = {
-  ProgressiveLoader: require('../src/utils/ProgressiveLoader.js'),
   FFRSystem: require('../src/vr/rendering/FFRSystem.js'),
   ComfortSystem: require('../src/vr/comfort/ComfortSystem.js'),
   TextureManager: require('../src/utils/TextureManager.js'),
@@ -116,7 +115,6 @@ function makeInitLike(settingsOverrides = {}) {
  * initializeSystems() run never touches a real GPU/DOM/audio API. Individual
  * tests re-patch the ctor they target afterwards. */
 const GENERIC = {
-  ProgressiveLoader: () => ({ callbacks: {} }),
   FFRSystem: () => ({}),
   ComfortSystem: () => ({ setPreset() {} }),
   TextureManager: () => ({}),
@@ -1493,8 +1491,6 @@ describe('cfg passthrough arrows — interactable registration + session callbac
     app.renderer = { xr: { getSession: () => ({ end }) } };
     vcCfg.onExitVR();
     expect(end).toHaveBeenCalled();
-
-    app.progressiveLoader.callbacks.onProgress({ item: { name: 'x' }, progress: 0.5 });
   });
 
   test('layer attach passes a detach callback that routes to _detachPanelLayer', () => {

@@ -11,12 +11,6 @@ export class FFRSystem {
     this.intensity = 0.5; // 0-1 range
     this.projectionLayer = null;
     this.glBinding = null;
-    this.gpuLoadThresholds = {
-      high: 0.85,    // >85% GPU = aggressive foveation
-      medium: 0.75,  // >75% GPU = medium foveation
-      low: 0.5       // <50% GPU = light foveation
-    };
-
     // FR-4.2: predicted gaze foveation via head-motion stability.
     // True eye tracking (XREyeTracking) is Quest-Pro-only; as a practical
     // approximation we observe head angular velocity — a still head implies
@@ -127,47 +121,6 @@ export class FFRSystem {
   }
 
   /**
-   * Dynamically adjust FFR based on GPU load
-   * @param {number} gpuLoad - Current GPU load (0-1)
-   */
-  setDynamicFFR(gpuLoad) {
-    if (!this.enabled) {
-      return;
-    }
-
-    let targetIntensity;
-
-    if (gpuLoad > this.gpuLoadThresholds.high) {
-      // High GPU load: aggressive foveation
-      targetIntensity = 0.8;
-    } else if (gpuLoad > this.gpuLoadThresholds.medium) {
-      // Medium GPU load: moderate foveation
-      targetIntensity = 0.5;
-    } else if (gpuLoad > this.gpuLoadThresholds.low) {
-      // Low-medium GPU load: light foveation
-      targetIntensity = 0.2;
-    } else {
-      // Very low GPU load: minimal foveation
-      targetIntensity = 0.1;
-    }
-
-    // Smooth transition to avoid jarring changes
-    this.intensity += (targetIntensity - this.intensity) * 0.1;
-    this._writeFoveation(this.intensity);
-  }
-
-  /**
-   * Get current FFR status
-   */
-  getStatus() {
-    return {
-      enabled: this.enabled,
-      intensity: this.intensity,
-      supported: this.projectionLayer !== null || this._baseFoveation === true
-    };
-  }
-
-  /**
    * Nudge intensity up or down by delta and clamp to [0, 1].
    * Intended for coarse load-driven adjustments made in the render loop.
    * Works on top of whatever intensity was set by enable() or
@@ -259,9 +212,8 @@ export class FFRSystem {
  * await ffrSystem.initialize(xrSession, gl);
  * ffrSystem.enable(0.5); // Medium foveation
  *
- * // In render loop
- * const gpuLoad = performanceMonitor.getGPULoad();
- * ffrSystem.setDynamicFFR(gpuLoad);
+ * // In render loop — nudge on sustained load pressure
+ * ffrSystem.adjustIntensity(delta);
  *
  * // Cleanup
  * ffrSystem.dispose();

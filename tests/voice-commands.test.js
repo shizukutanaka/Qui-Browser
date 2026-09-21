@@ -784,17 +784,15 @@ describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, 
     }
   });
 
-  test('getStats() reports successRate as executed/recognized (0 before any command)', () => {
-    expect(vc.getStats().successRate).toBe(0);
+  test('stats counters report executed/recognized (0 before any command)', () => {
+    expect(vc.stats.commandsRecognized).toBe(0);
     vc.registerCommand('ok', { patterns: ['ok'], action: () => ({ ok: 1 }) });
     vc.processCommand('ok', 0.9);        // executed
     vc.processCommand('zzz', 0.9);       // failed
-    const stats = vc.getStats();
-    expect(stats.commandsRecognized).toBe(2);
-    expect(stats.commandsExecuted).toBe(1);
-    expect(stats.commandsFailed).toBe(1);
-    expect(stats.successRate).toBe(0.5);
-    expect(stats.averageConfidence).toBeCloseTo(0.9);
+    expect(vc.stats.commandsRecognized).toBe(2);
+    expect(vc.stats.commandsExecuted).toBe(1);
+    expect(vc.stats.commandsFailed).toBe(1);
+    expect(vc.stats.averageConfidence).toBeCloseTo(0.9);
   });
 });
 

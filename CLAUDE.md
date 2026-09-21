@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き223 — ProgressiveLoader 全廃止＋死メソッド掃引第2弾
+- 🗑 **削除（ゼロ呼出実測・最大の断捨離）**: `src/utils/ProgressiveLoader.js` 全体（~700行＋専用スイート）— VRApp は構築→不発の onProgress 代入→textureManager 注入→dispose だけで、`start()`/`addResource` が一度も呼ばれずキューパイプライン（loadPhase→loadResource→performLoad→全 load* ローダ）が完全到達不能。テクスチャは `textureManager.loadTexture`（loadAsync 経路）が直接担っている。vite.config の `tier2-loading` チャンクとともに除去。
+- 🗑 **個別死メソッド（同一掃引）**: `FFRSystem.setDynamicFFR`/`getStatus`（+孤児化した `gpuLoadThresholds` フィールド）、`TextureManager.loadTextures`（バッチ wrapper）、`PerformanceMonitor.getReport`/`exportCSV`、`SpatialAudio.simulateDoppler`/`fadeVolume`、`getStats` 4件（SpatialAudio/HandTracking/VoiceCommands/VRJapaneseKeyboard — 全てテスト pin のみ、生産呼出ゼロ）。
+- 🧪 **テスト整理**: progressive-loader スイート削除、dispose 対称 pin を 17 サブシステムに更新、`no-dead-public-api` の DEAD マップに新規削除 21名を追加（回帰 pin）。統計カウンタの pin は `vc.stats` 直読に書換えて存続（生きているコード経路の計測を守る）。バッチ重複 URL の pin は `loadTexture` 並行2呼に書換え（pendingLoads デデュープ不変条件は存続）。
+- 📝 **ドキュメント同期**: ARCHITECTURE/BUILD_OPTIMIZATION_GUIDE の tier2-loading 記述除去、同 guide の誤ラベル「Lazy Loaded」→「eagerly imported（キャッシュ分離のみ）」に訂正、ARCHITECTURE の utils 一覧・README/TESTING の計測値（72 suites / 3010 tests / ~352 warnings）を実測へ。
+- ✅ 3010 tests / 72 suites 全緑、lint 0 errors（警告 361→352）、build 緑（tier2-loading チャンク消滅）。
+
 ### Session 75: 続き222 — HapticFeedback の死 public API 8メソッド削除
 - 🗑 **削除（呼出元ゼロ実測）**: `simulateTexture`/`simulateImpact`/`proximityFeedback`/`alert`/`playCustomSequence`/`createCustomPattern`/`test`/`getStats` — src 全体で生産呼出 0（#74 と同基準）。`playCustomSequence` は `playPattern` の配列パターン腕と完全重複、`alert`/`test`/`getStats` は誰にも辿り着けない棚晒し API。合計 ~160 行削減。`pulse`/`playPattern`/`playPatternBothHands`/`update`/`setEnabled`/`getGamepadForHand`/`wait` は生きているため残置。
 - 🧪 **テスト整理**: 死メソッドを pin していた ~14 テスト＋vacuous 複合テストを除去。配列パターン経路（pause ステップ・duration/pause なしステップのスキップ）の正当な pin は `hf.patterns` 直接注入に書換えて存続 — `createCustomPattern` という死 setter に依存しない形へ。

@@ -51,8 +51,7 @@ export default defineConfig({
           // imported (VRApp imports them statically; not lazy).
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
           'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
-          'tier2-audio': ['/src/vr/audio/SpatialAudio.js'],
-          'tier2-loading': ['/src/utils/ProgressiveLoader.js']
+          'tier2-audio': ['/src/vr/audio/SpatialAudio.js']
         },
 
         // Asset file naming

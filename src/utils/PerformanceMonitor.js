@@ -591,62 +591,6 @@ export class PerformanceMonitor {
     }
   }
 
-  /**
-   * Get performance report
-   */
-  getReport() {
-    return {
-      summary: {
-        totalFrames: this.stats.totalFrames,
-        averageFrameTime: this.stats.totalFrames > 0
-          ? this.stats.totalTime / this.stats.totalFrames
-          : 0,
-        bestFrame: this.stats.bestFrame,
-        worstFrame: this.stats.worstFrame,
-        alertsGenerated: this.stats.alertsGenerated
-      },
-      current: {
-        fps: this.metrics.fps.current,
-        frameTime: this.metrics.frameTime.current,
-        memory: this.metrics.memory.current,
-        drawCalls: this.metrics.drawCalls.current,
-        triangles: this.metrics.triangles.current
-      },
-      metrics: Object.fromEntries(
-        Object.entries(this.metrics).map(([name, metric]) => [
-          name,
-          {
-            current: metric.current,
-            min: metric.min,
-            max: metric.max,
-            avg: metric.avg
-          }
-        ])
-      )
-    };
-  }
-
-  /**
-   * Export metrics to CSV
-   */
-  exportCSV() {
-    const headers = Object.keys(this.metrics);
-    const rows = [headers.join(',')];
-
-    // Get max history length
-    const maxLength = Math.max(...Object.values(this.metrics).map(m => m.history.length));
-
-    // Build rows
-    for (let i = 0; i < maxLength; i++) {
-      const row = headers.map(name => {
-        const history = this.metrics[name].history;
-        return history[i] !== undefined ? history[i].toFixed(2) : '';
-      });
-      rows.push(row.join(','));
-    }
-
-    return rows.join('\n');
-  }
 }
 
 /**
@@ -667,10 +611,4 @@ export class PerformanceMonitor {
  * // Toggle display
  * perfMon.toggle();
  *
- * // Get report
- * const report = perfMon.getReport();
- * console.debug(report);
- *
- * // Export data
- * const csv = perfMon.exportCSV();
  */

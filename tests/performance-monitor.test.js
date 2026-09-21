@@ -104,20 +104,6 @@ describe('PerformanceMonitor metric bookkeeping', () => {
     expect(mon.alerts.length).toBeLessThanOrEqual(5);
   });
 
-  test('getReport summarises frames and exportCSV emits header + rows', () => {
-    const mon = new PerformanceMonitor();
-    mon.stats.totalFrames = 4;
-    mon.stats.totalTime = 40;
-    const report = mon.getReport();
-    expect(report.summary.averageFrameTime).toBe(10);
-    expect(report.metrics.fps).toHaveProperty('min');
-    mon.updateMetric('frameTime', 8);
-    mon.sampleMetrics();
-    const csv = mon.exportCSV();
-    expect(csv.split('\n')[0]).toContain('fps');
-    expect(csv.split('\n').length).toBeGreaterThan(1);
-  });
-
   test('colour helpers classify green/amber/red bands', () => {
     const mon = new PerformanceMonitor();
     expect(mon.getColorForFPS(90)).toBe('#00ff00');
@@ -434,23 +420,6 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     }).not.toThrow();
   });
 
-  test('getReport totalFrames 0 → averageFrameTime 0', () => {
-    const mon = new PerformanceMonitor();
-    const s = mon.getReport();
-    expect(s.summary.averageFrameTime).toBe(0);
-    mon.stats.totalFrames = 2;
-    mon.stats.totalTime = 40;
-    expect(mon.getReport().summary.averageFrameTime).toBe(20);
-  });
-
-  test('exportCSV emits empty cell for missing history index', () => {
-    const mon = new PerformanceMonitor();
-    mon.metrics.fps.history = [12];
-    const csv = mon.exportCSV();
-    expect(csv).toContain('fps');
-    // second metric rows: history[i] undefined → ''
-    expect(typeof csv).toBe('string');
-  });
 });
 
 describe('PerformanceMonitor — last branch arms', () => {

@@ -52,7 +52,7 @@
 
 ### A8. 【P1・M】テストカバレッジが極小
 - **コード根拠**: `src/` は20モジュール中、能動テストが触れるのは3つ（`ObjectPool`, `AIRecommendation`, `VoiceCommands` — `tests/app-smoke.test.js`）。`jest` の `coverageThreshold` は暫定 0。
-- **推奨**: 主要サブシステム（FFR/Comfort/TextureManager/ProgressiveLoader/HandTracking）にユニットテストを追加し、`src/` 限定の現実的な閾値を再設定。
+- **推奨**: 主要サブシステム（FFR/Comfort/TextureManager/HandTracking）にユニットテストを追加し、`src/` 限定の現実的な閾値を再設定。
 
 ### A9. 【P2・M】FFR が静的（視線追従が無い）
 - **コード根拠**: `src/vr/rendering/FFRSystem.js` は `projectionLayer.fixedFoveation = intensity` のみ（GPU負荷駆動）。`eye-tracking`/`gaze` 不使用。
@@ -110,7 +110,7 @@
 | C2 | 運動学駆動で **FFR＋FOV を同時制御**して酔い軽減 | 2502.03419 | 頭部の速度/加速度/**jerk**で酔いを予測しFOV＋フォービエーションを協調調整 | `ComfortSystem` × `FFRSystem` の連結 | P0 | M |
 | C3 | **オンデバイス**酔い予測モデル（vision-only） | 2501.01212 | 消費者級信号からリアルタイム推論（GNN蒸留） | `ComfortSystem`（ONNX Runtime Web/TF.js, 1秒間隔） | P0 | L |
 | C4 | **フォービエイテッド 3DGS**（中心窩=neural点/周辺=粗Gaussian） | VR-Splatting 2410.17932 | 90Hz級・周辺LOD低減 | （3DGS導入時）gaze と LOD 連結 | P1 | L |
-| C5 | 大規模3DGSの **LOD＋空間チャンク・ストリーミング** | LODGE 2505.23158 | 距離別Gaussian選択＋チャンク逐次読込 | ObjectPool/ProgressiveLoader 再利用 | P1 | L |
+| C5 | 大規模3DGSの **LOD＋空間チャンク・ストリーミング** | LODGE 2505.23158 | 距離別Gaussian選択＋チャンク逐次読込 | 新規チャンクローダ（専用設計） | P1 | L |
 | C6 | **WebGPU 3DGS**（GPUソート/compute前処理） | WebSplatter 2602.03207* | CPUソート除去で大幅高速化 | 実験的 `WebGPURenderer` の活用先（B14と相乗） | P1 | L |
 | C7 | 軽量**バイナラル合成NN** | LINN 2509.14069 | 少パラメータでHRTF級品質 | `SpatialAudio`（AudioWorklet+WASM/ONNX、近接話者のみ） | P1 | M |
 | C8 | **親指マイクロジェスチャ**（低疲労入力） | STMG (CHI'24) | 7種を95%級で認識（スクロール/タブ切替に） | `HandTracking` にイベント追加（スクロール/タブ） | P1 | S |

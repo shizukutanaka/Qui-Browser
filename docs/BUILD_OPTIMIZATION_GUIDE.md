@@ -62,8 +62,7 @@ The project uses **Vite** for fast builds and excellent ES module support.
           ],
           'tier2-input': ['/src/vr/input/JapaneseIME.js'],
           'tier2-interaction': ['/src/vr/interaction/HandTracking.js'],
-          'tier2-audio': ['/src/vr/audio/SpatialAudio.js'],
-          'tier2-loading': ['/src/utils/ProgressiveLoader.js']
+          'tier2-audio': ['/src/vr/audio/SpatialAudio.js']
         }
       }
     }
@@ -79,12 +78,12 @@ The project uses **Vite** for fast builds and excellent ES module support.
 3. `vendor-three.js` - Three.js library (541 KB / 139 KB gzipped)
 4. `tier1.js` - FFR + Comfort + TextureManager (83 KB / 32 KB gzipped)
 
-**Lazy Loaded (on demand):**
+**Separate cacheable chunks (still eagerly imported — VRApp imports them
+statically; the split affects cache lifetime, not load laziness):**
 5. `tier2-input.js` - JapaneseIME (24 KB / 9 KB gzipped)
 6. `tier2-interaction.js` - HandTracking (5 KB / 1 KB gzipped)
 7. `tier2-audio.js` - SpatialAudio (6 KB / 2 KB gzipped)
-8. `tier2-loading.js` - ProgressiveLoader (6 KB / 2 KB gzipped)
-9. `web-vitals.js` - Web Vitals reporting (5 KB / 2 KB gzipped)
+8. `web-vitals.js` - Web Vitals reporting (5 KB / 2 KB gzipped)
 
 **Total Initial:** ~230 KB (gzipped)
 **Total Application:** ~250 KB (gzipped)

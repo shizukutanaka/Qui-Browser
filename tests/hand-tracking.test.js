@@ -275,8 +275,7 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
   });
 });
 
-// Gesture callback dispatch + stats — previously uncovered
-// (onGesture fan-out / getStats).
+// Gesture callback dispatch — previously uncovered (onGesture fan-out).
 // Joint positions need real vector math (production calls position.distanceTo),
 // so use a local real-math vector, not the mocked Vector3.
 class V {
@@ -324,14 +323,6 @@ describe('HandTracking — spatial queries + gesture dispatch', () => {
     expect(calls).toEqual([['left', 'point']]);
     ht.recognizeGestures(); // same pose again — no re-fire
     expect(calls).toHaveLength(1);
-  });
-
-  test('getStats reflects per-hand gesture + tracking flag', () => {
-    ht.gestures.left = 'fist';
-    ht.gestures.right = 'none';
-    const s = ht.getStats();
-    expect(s.leftGesture).toBe('fist');
-    expect(s.rightGesture).toBe('none');
   });
 });
 

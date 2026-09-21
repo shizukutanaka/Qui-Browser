@@ -166,12 +166,11 @@ describe('TextureManager — duplicate-URL accounting', () => {
     tm.dispose();
   });
 
-  // loadTextures() maps every URL to loadTexture() synchronously; a duplicate
-  // URL misses the cache (first load hasn't finished) → both loads run →
-  // cacheTexture() was called twice for one entry → estimatedBytes/textureCount
-  // permanently inflated even after unloadTexture.
-  test('batch with a duplicate URL counts memory once and drains fully', async () => {
-    await tm.loadTextures(['dup.png', 'dup.png']);
+  // A duplicate URL issued while the first load is in flight misses the cache
+  // → both loads would run → cacheTexture() called twice for one entry →
+  // estimatedBytes/textureCount permanently inflated even after unloadTexture.
+  test('concurrent duplicate loads share the promise and count memory once', async () => {
+    await Promise.all([tm.loadTexture('dup.png'), tm.loadTexture('dup.png')]);
     expect(tm.textureCache.size).toBe(1);
     expect(tm.memoryUsage.textureCount).toBe(1);
     tm.unloadTexture('dup.png');

@@ -3271,7 +3271,7 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
       textureManager: sub('tex'), vrKeyboard: sub('kbd'),
       handTracking: sub('hands'), gazeInteraction: sub('gaze'),
       captionSystem: sub('captions'), semanticDOM: sub('semantic'),
-      spatialAudio: sub('audio'), progressiveLoader: sub('loader'),
+      spatialAudio: sub('audio'),
       voiceCommands: sub('voice'), windowManager: sub('wm'),
       layersSystem: sub('layers'), bookmarkPanel: sub('bookmarks'),
       immersiveVideo: sub('video'), tabManager: sub('tabs'),
@@ -3300,10 +3300,10 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
     expect(app.onDocumentVisibilityChange).toBeNull();
     expect(app._toastTimers.size).toBe(0);
     // every subsystem disposed exactly once, teardown reached the end
-    for (const name of ['comfort','ffr','tex','kbd','hands','gaze','captions','semantic','audio','loader','voice','wm','layers','bookmarks','video','tabs','devtools','perfui']) {
+    for (const name of ['comfort','ffr','tex','kbd','hands','gaze','captions','semantic','audio','voice','wm','layers','bookmarks','video','tabs','devtools','perfui']) {
       expect(disposeCalls).toContain(name);
     }
-    expect(disposeCalls).toHaveLength(18);
+    expect(disposeCalls).toHaveLength(17);
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
     expect(geoDispose).toHaveBeenCalled();
     expect(matDispose).toHaveBeenCalled();
