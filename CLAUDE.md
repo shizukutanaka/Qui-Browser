@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き107（同セッション）: 実バグ39件目 — 訓令式ローマ字（si/ti/tu/hu/zi + sya/tya/zyo/cya）が全く変換されなかった
+- 🔴 `convertRomajiToHiragana` がヘボン式のみで、日本語入力者の多くが打つ訓令式 `sigoto`→「siごと」のようにローマ字のまま残る。VR 日本語ブラウザの IME が標準的なタイピングで壊れる実害。
+- 🔧 buildRomajiMap に訓令式エイリアスを追加: si/ti/tu/hu/zi、sya/syu/syo、tya/tyu/tyo、zya/zyu/zyo、cya/cyu/cyo。`_romajiPrefixes` はマップキーから自動導出されるため長打遅延も連動。赤確認→緑の19バリアント。
+- ✅ 2257 tests / 66 suites 全緑、lint 0 errors。
+
 #### 続き106（同セッション）: VRJapaneseKeyboard のキーテクスチャ層を pin — hover repaint・旧テクスチャ dispose・shift の katakana ラッチ再描画
 - ✅ キー hover で onHoverCaption 発火＋`_setKeyHover` が新テクスチャを割当て**旧テクスチャを dispose**（GPU リーク防止）、`_refreshKeyStates` が katakana モード変化時のみ shift キーを active 色へ再描画（romaji で repaint しない消極腕も pin）。
 - ✅ 2234 tests / 65 suites 全緑、lint 0 errors。欠陥ゼロ。
