@@ -14,11 +14,7 @@ export class DevTools {
     // Tools state
     this.tools = {
       console: { enabled: true, messages: [] },
-      sceneInspector: { enabled: false, selected: null },
-      networkMonitor: { enabled: false, requests: [] },
-      profiler: { enabled: false, samples: [] },
-      logger: { enabled: true, logs: [] },
-      debugger: { enabled: false, breakpoints: [] }
+      networkMonitor: { enabled: false, requests: [] }
     };
 
     // UI elements
@@ -28,9 +24,7 @@ export class DevTools {
     // Keyboard shortcuts
     this.shortcuts = {
       'F12': () => this.toggle(),
-      'Ctrl+Shift+I': () => this.toggle(),
-      'Ctrl+Shift+C': () => this.selectElement(),
-      'Ctrl+Shift+P': () => this.showProfiler()
+      'Ctrl+Shift+I': () => this.toggle()
     };
 
     // Initialize
@@ -84,9 +78,7 @@ export class DevTools {
     const tabs = [
       { id: 'console', label: '📝 Console', icon: '▶️' },
       { id: 'scene', label: '🎬 Scene', icon: '🔍' },
-      { id: 'network', label: '🌐 Network', icon: '📡' },
-      { id: 'profiler', label: '📊 Profiler', icon: '⚡' },
-      { id: 'settings', label: '⚙️ Settings', icon: '🔧' }
+      { id: 'network', label: '🌐 Network', icon: '📡' }
     ];
 
     tabs.forEach(tab => {
@@ -139,8 +131,6 @@ export class DevTools {
     this.createConsoleTab();
     this.createSceneTab();
     this.createNetworkTab();
-    this.createProfilerTab();
-    this.createSettingsTab();
   }
 
   /**
@@ -235,78 +225,6 @@ export class DevTools {
     `;
 
     this.tabs.get('network').content = networkDiv;
-  }
-
-  /**
-   * Create profiler tab
-   */
-  createProfilerTab() {
-    const profilerDiv = document.createElement('div');
-    profilerDiv.id = 'profiler-tab';
-    profilerDiv.style.display = 'none';
-
-    profilerDiv.innerHTML = `
-      <div>
-        <h3>Performance Profiler</h3>
-        <button id="profile-start" style="
-          background: #0e639c;
-          border: none;
-          color: white;
-          padding: 8px 15px;
-          cursor: pointer;
-          border-radius: 3px;
-          margin: 10px 5px;
-        ">Start Recording</button>
-        <button id="profile-stop" style="
-          background: #c5c5c5;
-          border: none;
-          color: #1e1e1e;
-          padding: 8px 15px;
-          cursor: pointer;
-          border-radius: 3px;
-        ">Stop Recording</button>
-        <div id="profile-results" style="margin-top: 10px;"></div>
-      </div>
-    `;
-
-    this.tabs.get('profiler').content = profilerDiv;
-
-    // Event listeners (will be set when shown)
-  }
-
-  /**
-   * Create settings tab
-   */
-  createSettingsTab() {
-    const settingsDiv = document.createElement('div');
-    settingsDiv.id = 'settings-tab';
-    settingsDiv.style.display = 'none';
-
-    settingsDiv.innerHTML = `
-      <div>
-        <h3>Developer Settings</h3>
-        <div style="display: grid; gap: 15px; margin-top: 15px;">
-          <label style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="show-fps">
-            Show FPS Counter
-          </label>
-          <label style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="show-bounds">
-            Show Bounding Boxes
-          </label>
-          <label style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="show-grid">
-            Show Grid
-          </label>
-          <label style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="verbose-logging">
-            Verbose Logging
-          </label>
-        </div>
-      </div>
-    `;
-
-    this.tabs.get('settings').content = settingsDiv;
   }
 
   /**
