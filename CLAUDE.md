@@ -544,6 +544,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き117（同セッション）: JapaneseIME/VRJapaneseKeyboard のブランチ腕一掃 — フォールバック経路とコールバック不在腕
+- ✅ IME 純粋層: `getOfflineKanjiCandidates` の `[hiragana]` フォールバック、`suggestionLabel` の空 hostname→raw URL・unparseable→catch 腕、processInput/deleteLast の katakana 経路。
+- ✅ VRJapaneseKeyboard: オプションコールバック全不在でも createKeyboard/show/esc/enter が完走、registerInteractable 不在でもキー・候補・提案メッシュ構築、hide() 前の group 不在ガード、`_refreshKeyStates`/`_refreshDisplay` の ime/keyMeshes 不在腕、バッジの `'ひ'` フォールバックと未知モード `'?'`、`text || placeholder` 腕、`_setKeyHover` の旧テクスチャ不在腕、複数文字非switchキー no-op、候補グループ遅延再利用、selectCandidate 不在時の `kanji` フォールバック、suggestionProvider の null/throw/短 query 腕、suggestion onHover/onSelect のコールバック・ime 不在腕。
+- 🔍 発見: candidate 行と suggestion 行は同一ストリップで相互排他（showCandidates が _clearSuggestions を呼ぶ）— 実装意図通りの排他を pin。
+- ✅ 2402 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き116（同セッション）: VRApp ブランチ腕 — updateButtonInput false側 + dispose() else腕 + absent-subsystem apply
 - ✅ updateButtonInput: menu ボタンの settings トグル（faceB || menu 腕）、mesh 不在 settingsPanel のトグル、vrKeyboard visible→hide+closed キャプション、tab 不在時の faceA/faceB 無操作、captionSystem disabled 腕、何も押されない時の haptic 未発火。
 - ✅ dispose() else 腕: vrKeyboard 不在→japaneseIME.dispose、tabManager 不在→webPanel.dispose、全サブシステム不在でも完走。
