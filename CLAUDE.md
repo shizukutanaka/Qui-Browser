@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き96（同セッション）: settings 永続化の実バグ2件 — セクション選択が保存されない + 型違反値の注入
+- 🔍 **実測（ソクラテス）**: 「35 の `this.settings.*` 読み取りキー全てにデフォルトがあるか」を照合 → 欠落は `openSettingsSections` のみ。そこで `loadPersistedSettings` の whitelist は `Object.keys(this.settings)`（=コンストラクタのデフォルト）でフィルタするため、**`_toggleSettingsSection` が `updateSetting` で書いた開閉状態は毎回起動時に捨てられていた**（永続化するが読み戻せない、Session 83 型の write-only 状態）。併せて値の型チェック欠如を発見 — `key in parsed` は通るが `snapTurnAngle:"abc"` のような壊れた値がデフォルトを上書きし、stepper が NaN を永久表示する。
+- 🔧 **修正**: ①デフォルトリテラルを export した `defaultSettings()` に引き上げ（キー集合の不変条件を直接テスト可能に）+ `openSettingsSections: ['settings.section.a11y']` をデフォルトに追加 ②`loadPersistedSettings` で `typeof`/`Array.isArray` の型一致を要求。「malformed entries cannot inject」はキーだけでなく値にも適用されるように。
+- ✅ 3テスト追加（全て修正前に赤確認: 旧コードでは export 不在+型不問で失敗）。2184 tests / 63 suites、lint 0 errors、build green。
+
 #### 続き95（同セッション）: createSettingsPanel — 最後の orchestrator 自体を pin、VRApp は完全走査完了
 - 🔍 **実測**: 300行の orchestrator も bound-prototype で到達可能（builder 群は実メソッドを this に束縛、`layoutSettingsPanel` は純粋関数）。4テスト: ①返却 Group が (-1.4, 1.5, -2.0)/rotation.y=π/8 に配置、tab行+開いているセクションのコントロールが全て interactable 登録、`_settingsPanelDrawers` に全ボタンの `_redraw` が収集（ハイコントラスト一括再描画用）②`openSettingsSections` 欠落時は a11y がデフォルトオープン（この製品の目的はアクセシビリティなので）③audio のみ開くと interactable は 12 未満 — 開いているセクションだけが描画される ④全コントロールが配置済み → 'other' セクションの第6タブは現れない（見落としキーの leftover ガード作動確認）。
 - 📝 実装は全て正しい（欠陥ゼロ）。VRApp の67メソッド全てがテスト言及済み — 残る真の未到達は `setupRenderer` の WebGLRenderer 内部のみ（verify:vr-boot の実 Chromium 構築がカバー）。
