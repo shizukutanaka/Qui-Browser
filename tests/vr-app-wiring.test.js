@@ -3016,3 +3016,42 @@ describe('VRApp.updateHover — invisible-ancestor arm', () => {
     expect(onHover).not.toHaveBeenCalled();
   });
 });
+
+describe('VRApp — remaining toggle/toast arms', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test('makeCompactToggleButton invokes a provided apply callback with the new value', () => {
+    const apply = jest.fn();
+    const THREE = require('three');
+    const app = makeVRAppLike({
+      settings: { flag: false },
+      _panelTextures: [],
+      _sharedPlaneGeometry: () => new THREE.PlaneGeometry(0.43, 0.17),
+      registerInteractable: jest.fn(),
+      _announceSettingsButton: jest.fn(),
+      updateSetting: jest.fn()
+    });
+    const mesh = VRApp.prototype.makeCompactToggleButton.call(app, 'L', 'flag', apply);
+    const handlers = app.registerInteractable.mock.calls[0][1];
+    handlers.onSelect();
+    expect(app.updateSetting).toHaveBeenCalledWith('flag', true);
+    expect(apply).toHaveBeenCalledWith(true);
+  });
+
+  test('showVRToast truncates labels over 60 code points', () => {
+    const app = makeVRAppLike({ isVREnabled: true, camera: { add: jest.fn(), remove: jest.fn() } });
+    const long = 'x'.repeat(120);
+    VRApp.prototype.showVRToast.call(app, long, {});
+    // canvas fillText receives the truncated '…'-terminated string
+    expect(ctx2d.fillText.mock.calls.at(-1)[0].length).toBe(58);
+    expect(ctx2d.fillText.mock.calls.at(-1)[0].endsWith('…')).toBe(true);
+  });
+
+  test('toast auto-dismiss tolerates a null camera (torn-down VRApp)', () => {
+    const app = makeVRAppLike({ isVREnabled: true, camera: { add: jest.fn() } });
+    VRApp.prototype.showVRToast.call(app, 'msg', {});
+    app.camera = null; // torn down before the dismiss timer fires
+    expect(() => jest.runAllTimers()).not.toThrow();
+  });
+});
