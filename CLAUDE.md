@@ -544,6 +544,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き118（同セッション）: WebPanel/BookmarkStore/SpatialAudio/readerLayout/app.js のブランチ腕
+- ✅ WebPanel: `readerScale>0`/`readerProxyUrl` 型ガード、contentTex 不在描画、title||host タイル、NaN delta→0、setReaderProxyUrl 非文字列、ブックマーク星の url 不在/title フォールバック、url-input null キャンセル、chrome/moveBar material 不在 hover、stop() controller 不在、enableLayerMode 非関数 onDetach、dispose 不在 geometry、show() デフォルト座標、addToScene parent 不在、iframe 不在/空タイトル、AbortController 不在の reader load、move-bar ctx null。
+- ✅ BookmarkStore: frecencyScore の visits≤0/visitedAt 欠落、localStorage 未定義環境、(entry.visits||1) レガシー再訪、title 無再訪で上書きしない、getTopSites の www-fold exclude・title||url・host 単位 dedupe 置換、search の malformed スキップ・bookmark-only 仮想 visit・limit。
+- ✅ SpatialAudio: synthesizeToneSamples の sr/endFreq/duration フォールバック、webkitAudioContext 接頭辞、registerProceduralBuffer キャッシュヒット・getChannelData 不在、cone パラメータ全デフォルト/上書き、simulateDoppler velocity 不在、setMasterVolume gain 不在+クランプ、getStats context null、dispose context null。
+- ✅ readerLayout: scale≤0→1 の全フォールバック、非数 total→0、非有限 offset→0、非配列 lines→[]、visible 0→1、非 scrollable 時の矢印 dead band、pageJumpLines 既定値。
+- ✅ app.js: perf interval の display 非表示/stats null/optional フィールド falsy 腕、P キー overlay フォールバック往復、F/C/Escape のサブシステム・vrApp 不在腕、beforeunload/visibilitychange の null 腕、readyState complete の即時初期化。
+- ✅ 2447 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き117（同セッション）: JapaneseIME/VRJapaneseKeyboard のブランチ腕一掃 — フォールバック経路とコールバック不在腕
 - ✅ IME 純粋層: `getOfflineKanjiCandidates` の `[hiragana]` フォールバック、`suggestionLabel` の空 hostname→raw URL・unparseable→catch 腕、processInput/deleteLast の katakana 経路。
 - ✅ VRJapaneseKeyboard: オプションコールバック全不在でも createKeyboard/show/esc/enter が完走、registerInteractable 不在でもキー・候補・提案メッシュ構築、hide() 前の group 不在ガード、`_refreshKeyStates`/`_refreshDisplay` の ime/keyMeshes 不在腕、バッジの `'ひ'` フォールバックと未知モード `'?'`、`text || placeholder` 腕、`_setKeyHover` の旧テクスチャ不在腕、複数文字非switchキー no-op、候補グループ遅延再利用、selectCandidate 不在時の `kanji` フォールバック、suggestionProvider の null/throw/短 query 腕、suggestion onHover/onSelect のコールバック・ime 不在腕。
