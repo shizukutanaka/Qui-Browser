@@ -2999,6 +2999,44 @@ export class VRApp {
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;
 
+    // three's button.onclick fires requestSession().then(...) with no .catch
+    // and no in-flight guard: a denied request is an invisible unhandled
+    // rejection, and a second click while the first is pending issues a
+    // duplicate request. Replace it with a guarded handler that mirrors the
+    // same session flow (three builds the sessionOptions inside its closure —
+    // replicate them here: base features + our sessionInit).
+    if (typeof vrButton.onclick === 'function') {
+      const sessionOptions = {
+        optionalFeatures: [...new Set([
+          'local-floor', 'bounded-floor', 'layers', 'hand-tracking'
+        ])]
+      };
+      let pendingRequest = null;
+      vrButton.onclick = () => {
+        const liveSession = this.renderer.xr.getSession();
+        if (liveSession) {
+          liveSession.end();
+          return;
+        }
+        if (pendingRequest) {
+          return;
+        }
+        pendingRequest = navigator.xr.requestSession('immersive-vr', sessionOptions);
+        pendingRequest.then(async (session) => {
+          session.addEventListener('end', () => {
+            vrButton.textContent = 'ENTER VR';
+          });
+          await this.renderer.xr.setSession(session);
+          vrButton.textContent = 'EXIT VR';
+        }).catch((err) => {
+          console.warn('VRApp: session request rejected:', err?.message ?? err);
+          this.showVRToast(t('app.error.enterVRFailed'), { type: 'error' });
+        }).finally(() => {
+          pendingRequest = null;
+        });
+      };
+    }
+
     // Wire the landing-page "Enter VR" buttons (which dispatch a global
     // 'enter-vr' event) to the WebXR session request. Without this the
     // landing-page buttons dispatch an event that nothing handles.
@@ -3055,6 +3093,18 @@ export class VRApp {
         }
       };
       session.addEventListener('visibilitychange', this.onXRVisibilityChange);
+    }
+
+    // The runtime re-fires 'reset' on the XRReferenceSpace when it redefines
+    // the origin — OS-level recenter (Quest: holding the Meta button) or a
+    // tracking recovery. The reference origin and forward direction may jump
+    // while the rig keeps its locomotion offset, leaving the world-space
+    // panels behind the viewer. Mirror the thumbstick recenter so the rig
+    // returns to the new origin facing its forward direction.
+    const refSpace = this.renderer.xr.getReferenceSpace?.();
+    if (refSpace && typeof refSpace.addEventListener === 'function') {
+      this.onRefSpaceReset = () => this.recenter();
+      refSpace.addEventListener('reset', this.onRefSpaceReset);
     }
 
     // Frame-rate module (supportedFrameRates/updateTargetFrameRate) needs no
@@ -3207,6 +3257,8 @@ export class VRApp {
     // The XRSession is discarded on end (its visibilitychange listener dies with
     // it); just drop our reference so a stale closure can't be reused.
     this.onXRVisibilityChange = null;
+    // Same for the reference space — the runtime discards it with the session.
+    this.onRefSpaceReset = null;
 
     // onVRSessionStart re-based targetFPS on the session's real refresh rate.
     // Restore the device-tier value: the animation loop (and its adjustQuality

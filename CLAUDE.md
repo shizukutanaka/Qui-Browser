@@ -245,6 +245,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き206 — three VRButton の requestSession に in-flight ガードも catch もなかった
+- 🔍 **発見（three ソース実読）**: `VRButton.createButton` の `button.onclick` は `requestSession().then(onSessionStarted)` — **`.catch` なし・in-flight ガードなし**（`currentSession` は解決まで null のまま）。拒否は unhandled rejection で UI に一切出ず、pending 中の2回目クリックは重複 `requestSession` を発射。
+- 🔧 **修正**: `setupVR` で返却ボタンの `onclick` を置換 — `renderer.xr.getSession()` があれば `session.end()`、pending 中は無視、解決で `setSession`＋'EXIT VR'、拒否で `showVRToast(enterVRFailed, error)`。sessionOptions は three 内部と同じ `'local-floor'/'bounded-floor'/'layers'` + `hand-tracking` を Set 重複排除で再構成（three クロージャ内生成のため）。ボタンが onclick を持つ場合のみ適用（非対応ブラウザでは createButton が非クリック要素を返す）。
+- 🧪 pin: 疑似ボタンで pending 中の2連 click が requestSession 1回止まり・解決で setSession+ラベル遷移・提示中 click が session.end()・拒否で error toast＋再試行可。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き205 — OS リセンター（XRReferenceSpace 'reset'）に無反応だった実害を修正
+- 🔍 **発見（WebXR spec）**: `XRReferenceSpace` はランタイムが原点を再定義した際に `reset` を発火する（Quest で Meta ボタン長押し＝OS リセンター、トラッキング復帰等）。イベントが来ると head が新原点・新 forward に置き直されるのに、アプリの playerRig は旧 locomotion オフセットを保持 — **ワールド空間のパネルが背後/横に取り残される**。リスナーが一度も存在しなかった（thumbstick クリックの `recenter()` は存在するが OS 経路では発火しない）。
+- 🔧 **修正**: `onVRSessionStart` で `renderer.xr.getReferenceSpace()` に 'reset' リスナーを付け `recenter()` を呼ぶ（three の `sessionstart` は `requestReferenceSpace` 解決後に発火するため同期取得可能）。`onVRSessionEnd` で参照を null 化（空間オブジェクトはセッションと共に破棄）。
+- 🧪 pin 2本: reset 発火で rig が (0,0,0)+identity に戻る、sessionend でハンドラ参照が落ちる。
+- 🔍 **同クラス掃引（全クリーン）**: `setReferenceSpaceType` 未設定だが three 既定 `local-floor` が正しい、inputsourceschange/visibilitychange/sessionend/select/squeeze 全て配線済み、setFoveation は FFRSystem が防御付きで使用済み、dispose 経路の traverse は全て teardown（熱パスに走査なし）。
+- ✅ 3085 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き204 — 手ジョイントポーズを `fillPoses`/`fillJointRadii` にバッチ化（毎フレーム ~50 個の XRPose 確保を解消）
 - 🔍 **発見（WebXR hand-input spec）**: `updateHand` が `frame.getJointPose()` を25ジョイント×2手で呼出 — 各コールが新 `XRPose` を確保し **90fps で秒間 ~4,500 オブジェクト**。spec の `fillPoses(spaces, baseSpace, transforms)`/`fillJointRadii(spaces, radii)` は共有 Float32Array へ直接書くバッチ API。
 - 🔧 **修正**: 手ごとに `{hand, spaces, names, poses: Float32Array(n*16), radii}` を `inputSource.hand` 変更時のみ再構築。fillPoses が false（一部ジョイント未追跡）や API 不在のランタイムでは従来の per-joint 経路へフォールバック。dispose で `_batch` をクリア（joint spaces が session を pin するため）。列-major 行列の平行移動は [12..14]。
