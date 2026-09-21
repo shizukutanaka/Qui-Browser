@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き231 — ランディング loading screen の a11y 残存2点
+- 🔍 **実測**: ①`.loading-screen.hidden` が `opacity:0 + pointer-events:none` のみ — **a11y tree に残留し、SR が「Loading…」を読み続ける**（opacity は可視のみ）。②loading テキストに live region 無し（ロード中表示が SR に届かない）＋spinner が `aria-hidden` なし。フォーカス outline は UA 既定が生存（リセット未触）、reduced-motion は main.css が網羅済み、landmark 役割も済み — 残存はこの2点のみだった。
+- 🔧 **修正**: `.hidden` に `visibility:hidden`（`transition: opacity .5s, visibility 0s .5s` でフェード完了後に除去）＋ loading-text へ `role="status"`・spinner へ `aria-hidden`。
+- 🧪 pin 2件（app-entry.test.js に source-scan ブロック追加）。
+- ✅ 3013 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き230 — offline.html の a11y/虚偽表記を解消
 - 🔍 **実測（前庭障害ユーザー向けプロダクトの唯一のオフライン面）**: ①無限 `pulse` アニメに `prefers-reduced-motion` ガード無し（WCAG 2.3.3）②`role="status"`/`aria-live` 無しで再接続テキストが SR に届かない（4.1.3）③機能一覧が**存在しない機能を列挙**（拡張・メール作成・ローカルファイル — O-1 と同じ虚偽クラス）④`<html lang="en">` 固定で日本語ユーザーに英語ページ（3.1.1 — lang 動的更新の見落とし面）⑤disclosure ボタンに `aria-expanded`/`aria-controls` 無し（4.1.2）。
 - 🔧 **修正**: ①reduced-motion メディアクエリで pulse/hover transition 停止 ②`role="status" aria-live="polite"`＋dot を `aria-hidden` ③機能一覧を正直化（訪問済みページのキャッシュ・端末保存データ・オンライン時自動再読込）＋「データが sync する」虚偽説明文も修正 ④offline.js が `qui-browser:lang` を読んで ja 文字列へ全置換＋`documentElement.lang` 更新（CSP 下で inline script 不可のため外部 JS 経路 — アプリの i18n モジュールはオフライン時に読めないので文字列は内蔵）⑤`aria-expanded`/`aria-controls` 配線。
