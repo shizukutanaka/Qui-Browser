@@ -505,3 +505,44 @@ describe('i18n — last branch arms', () => {
     }
   });
 });
+
+describe('i18n — complementary arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('t() falls back to the en catalog for a key missing in ja', () => {
+    const { t, setLanguage, CATALOG } = require('../src/i18n/i18n.js');
+    // find a key present in en but absent in ja; if none exists, fabricate one
+    const enOnly = Object.keys(CATALOG.en).find((k) => !(k in CATALOG.ja));
+    if (!enOnly) {
+      CATALOG.en['vr.__enOnlyTest'] = 'EN-ONLY';
+    }
+    setLanguage('ja');
+    expect(t(enOnly || 'vr.__enOnlyTest')).toBe(enOnly ? CATALOG.en[enOnly] : 'EN-ONLY');
+    setLanguage('en');
+  });
+
+  test('setLanguage writes localStorage and applies to a provided root', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    const el = {
+      getAttribute: (a) => (a === 'data-i18n' ? 'app.title' : null),
+      textContent: ''
+    };
+    const root = { querySelectorAll: (sel) => (sel === '[data-i18n]' ? [el] : []) };
+    setLanguage('ja', root);
+    expect(localStorage.getItem('qui-browser:lang')).toBe('ja');
+    expect(el.textContent).toBeTruthy();
+    setLanguage('en');
+  });
+
+  test('detectLanguage honours a valid saved language', () => {
+    localStorage.setItem('qui-browser:lang', 'ja');
+    const { getLanguage } = require('../src/i18n/i18n.js');
+    expect(getLanguage()).toBe('ja');
+    localStorage.removeItem('qui-browser:lang');
+    jest.resetModules();
+    require('../src/i18n/i18n.js').setLanguage('en');
+  });
+});
