@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き146 — 実機検証の横展開：offline.html サブパス破損 + 出荷物ピンを verify:app に追加
+続き145 の実機発見を横展開。① `public/offline.html` の `href="/manifest.json"`・`/icons/icon-72.png` — vite は public/ を verbatim コピーするため BASE_PATH=/Qui-Browser/ 配下で 404（index.html と違い書き換わらない）→ 相対化＋ public-assets.test.js で「public/*.html は root-absolute 参照不可」を pin。② サブパスデプロイを実際に serve して検証（`BASE_PATH=/Qui-Browser/` build → vite preview で /Qui-Browser/* が全て 200、root-absolute 漏洩ゼロ — patch 0007 が直す経路を先回り実証）。③ `verify:app` に出荷物ピン追加 — dist の service-worker.js を実 fetch して settleWithin/FETCH_HARD_TIMEOUT_MS・await cache.match・new Response(null) の存在を検査（修正がソースにあってもビルドで落ちれば今まで全テスト green のまま出荷される）。3034 tests / 71 suites 全緑、verify:app 9 checks 全緑、lint 0 errors。→ PR #166。
+
 ### Session 75: 続き145 — 初の実ブラウザ E2E：ゴールデンパス全緑＋SW idle-kill 後の fetch 永久ハングを実機検出
 全69+セッションで jsdom/モックだけだった 2D ランタイムを、実 headed Chrome 153 + CDP で初めて駆動（`vite preview` of dist）。結果: コンソールエラー0、◐/A+ トグル・ja⇄en・VR未対応時のローカライズ `role=alert` トースト・SW 登録（build スタンプ済みキャッシュ）・manifest/icons 全て実機グリーン。**しかし実機だけが見る欠陥を検出**: SW が idle-kill（約30秒）された後に発火した `fetch()` が約50%の確率で**永遠に settle しない**（respondWith のプロミスが wedged、Chrome は respondWith をタイムアウトしない）。5回再現（manifest.json・/・icons）。**対策**: `settleWithin()` で全戦略を10秒ハードキャップ→素の `fetch(request.clone())`（SW 内 fetch は自 worker を迂回）→ offline fallback、で全リクエストが必ず resolve。さらにこのテストが `getOfflineFallback` の潜伏バグ2件を露出: ①`cache.match() || new Response(503)` が await 無し＝Promise は常に truthy で 503 は死コード、ミスは undefined 解決 ②`new Response('', {status:204})` が spec 違反で throw（null-body status に body 不可）→ 画像フォールバックが常に reject。併せて `mobile-web-app-capable` meta 追加（deprecation 警告の解消）。実機でしか観測不能なクラスだったため `.agents/skills/qui-browser-2d-runtime/` に再現レシピを永続化。3033 tests / 71 suites 全緑、lint 0 errors。→ PR #166。
 
