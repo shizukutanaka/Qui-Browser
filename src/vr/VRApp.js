@@ -1584,6 +1584,48 @@ export class VRApp {
         } else if (this.webPanel && this.webPanel.setCurved) {
           this.webPanel.setCurved(v);
         }
+      }],
+      // These four were dead settings — read at boot but unreachable from any
+      // UI. Wired live: home env swaps the scene subtree, perf overlay is a
+      // DOM element (created lazily on first enable), texture cache toggles
+      // the TextureManager the ProgressiveLoader consults per load.
+      [t('vr.settings.homeEnv'), 'enableHomeEnvironment', (v) => {
+        if (!this.scene) {
+          return;
+        }
+        if (v && !this.homeEnvironment) {
+          this.homeEnvironment = this.createHomeEnvironment();
+        }
+        if (this.homeEnvironment) {
+          if (v && !this.homeEnvironment.parent) {
+            this.scene.add(this.homeEnvironment);
+          } else if (!v && this.homeEnvironment.parent) {
+            this.scene.remove(this.homeEnvironment);
+          }
+        }
+      }],
+      [t('vr.settings.perfMonitor'), 'enablePerfMonitorUI', (v) => {
+        if (v && !this.perfMonitorUI) {
+          this.perfMonitorUI = new PerformanceMonitor();
+          this.perfMonitorUI.initialize();
+        }
+        if (this.perfMonitorUI) {
+          v ? this.perfMonitorUI.show() : this.perfMonitorUI.hide();
+        }
+      }],
+      [t('vr.settings.textureCache'), 'enableTextureManager', (v) => {
+        if (v && !this.textureManager) {
+          this.textureManager = new TextureManager(this.renderer);
+          if (this.progressiveLoader) {
+            this.progressiveLoader.textureManager = this.textureManager;
+          }
+        } else if (!v && this.textureManager) {
+          this.textureManager.dispose();
+          this.textureManager = null;
+          if (this.progressiveLoader) {
+            this.progressiveLoader.textureManager = null;
+          }
+        }
       }]
     ];
 
@@ -1615,6 +1657,16 @@ export class VRApp {
         apply: (v) => {
           if (this.windowManager) {
             this.windowManager.setDistance(v);
+          }
+        }
+      }],
+      // Stick drift compensation — VRControllerInput reads deadZone on every
+      // read() call, so writing it live takes effect the next frame.
+      [t('vr.settings.deadZone'), 'controllerDeadZone', {
+        min: 0, max: 0.4, step: 0.05, unit: '',
+        apply: (v) => {
+          if (this.controllerInput) {
+            this.controllerInput.deadZone = v;
           }
         }
       }],
@@ -1719,10 +1771,10 @@ export class VRApp {
         [], []],
       ['settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
+        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
         cycles.filter((c) => c[1] === 'motionSensitivity'), []],
       ['settings.section.display',
-        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
+        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment', 'enablePerfMonitorUI', 'enableTextureManager']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
         byKey(items, ['enableWebPanel', 'privateMode', 'enableVoice']), [],

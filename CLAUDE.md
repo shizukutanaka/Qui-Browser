@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き190 — 残る死設定4件を live 配線（書込み経路ゼロ一掃）
+- 🔍 **実測（適用経路の確認）**: 続き189 の残件4件を全て検証 — `enableHomeEnvironment`（scene.add/remove で live 可能・遅延生成対応）、`enablePerfMonitorUI`（DOM オーバーレイ・show/hide/dispose 完備 → lazy 構築可）、`controllerDeadZone`（VRControllerInput.deadZone は read() 毎フレーム参照 → 書き換え即時反映）、`enableTextureManager`（ProgressiveLoader.textureManager の差し替えで live 切替可・dispose でVRAM解放）。
+- 🔧 **修正**: 4件全てを設定パネルに実装 — display セクションに homeEnv/perfMonitor/textureCache の3トグル（全て遅延構築・冪等）、locomotion に deadZone ステッパー（0–0.4, step 0.05, apply で controllerInput.deadZone を即時書換）。i18n ja/en に4キー追加。
+- 🗑 **残置の正当性**: `enableSettingsPanel` のみ自壊型（パネル無効化で再有効化 UI が消える）のため boot-time config として意図的に残置 — これで読書対称差分は「自壊防止の1件のみ」に収束。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors。display テスト索引更新＋homeEnv/perfMonitor/textureCache の live 遷移を pin（fixture に createHomeEnvironment/recenter キャリー、document スタブに body.classList/getElementById 追加）。
+
 ### Session 75: 続き189 — 書込み経路ゼロの死設定: enableVoice が unreachable だった
 - 🔍 **実測（settings 読書対称）**: パネルが書くキーと `loadPersistedSettings` が読むキーの差分を掃引 — **6件が書込み経路ゼロ**: `enableVoice`・`enablePerfMonitorUI`・`enableHomeEnvironment`・`enableSettingsPanel`・`enableTextureManager`・`controllerDeadZone`。最重は `enableVoice`: VoiceCommands は4スイート分の配線済み（transcript caption・haptic・connectBrowser 全て）なのに**誰にも到達不能** — 続き11 `enableWebPanel` と完全に同クラス。
 - 🔧 **修正**: voice init ブロックを `_initVoiceCommands()` に抽出（initializeSystems から呼出＋settings トグルから lazy init）＋ `_teardownVoiceCommands()` を新設（dispose→null）。browsing セクションに `enableVoice` トグル追加（ON→非同期 init→`vr.msg.voiceOn`/`vr.error.voiceUnavailable` トースト、OFF→dispose→`voiceOff`）。i18n ja/en に `vr.settings.voice` + `vr.msg.voiceOn/voiceOff` を追加。

@@ -118,6 +118,10 @@ export const CATALOG = {
     'vr.settings.privateMode': 'Private Mode',
     'vr.settings.bookmarks': 'Bookmarks',
     'vr.settings.voice': 'Voice Commands',
+    'vr.settings.perfMonitor': 'Perf Monitor',
+    'vr.settings.homeEnv': 'Home Environment',
+    'vr.settings.deadZone': 'Stick Dead Zone',
+    'vr.settings.textureCache': 'Texture Cache',
     // VR Settings Panel Values
     'vr.value.left': 'Left',
     'vr.value.right': 'Right',
@@ -272,6 +276,10 @@ export const CATALOG = {
     'vr.settings.privateMode': 'プライベートモード',
     'vr.settings.bookmarks': 'ブックマーク',
     'vr.settings.voice': '音声コマンド',
+    'vr.settings.perfMonitor': '性能モニター',
+    'vr.settings.homeEnv': 'ホーム環境',
+    'vr.settings.deadZone': 'スティック不感帯',
+    'vr.settings.textureCache': 'テクスチャキャッシュ',
     // VR Settings Panel Values
     'vr.value.left': '左',
     'vr.value.right': '右',

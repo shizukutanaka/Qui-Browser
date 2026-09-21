@@ -37,10 +37,15 @@ const ctx2d = {
 global.document = {
   createElement: (tag) => {
     if (tag === 'canvas') {
-      return { width: 0, height: 0, getContext: () => ctx2d };
+      return { width: 0, height: 0, style: {}, getContext: () => ctx2d };
     }
-    return { style: {}, appendChild: jest.fn() };
-  }
+    return { style: {}, appendChild: jest.fn(), parentNode: null };
+  },
+  body: {
+    appendChild: jest.fn(),
+    classList: { toggle: jest.fn(), add: jest.fn(), remove: jest.fn(), contains: jest.fn(() => false) }
+  },
+  getElementById: () => ({ addEventListener: jest.fn() })
 };
 
 const THREE = require('three');
@@ -2699,6 +2704,8 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
       _onWebPanelToggleChanged: jest.fn(),
       _initVoiceCommands: jest.fn(async () => {}),
       _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     return app;
@@ -2801,6 +2808,8 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       _onWebPanelToggleChanged: jest.fn(),
       _initVoiceCommands: jest.fn(async () => {}),
       _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);
@@ -2882,7 +2891,19 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.tabManager.setCurved).toHaveBeenCalledWith(true);
     C[2].onSelect(); // follow off
     expect(app.windowManager.setFollow).toHaveBeenCalledWith(false);
-    const dist = C[3];
+    // homeEnv on -> add to scene; off -> remove
+    C[3].onSelect();
+    expect(app.homeEnvironment.parent).toBe(app.scene);
+    C[3].onSelect();
+    expect(app.homeEnvironment.parent).toBeNull();
+    C[4].onSelect(); // perfMonitor on -> lazily created + shown
+    expect(app.perfMonitorUI).toBeTruthy();
+    // textureCache toggles the TextureManager lifecycle live
+    C[5].onSelect();
+    const hadManager = !!app.textureManager;
+    C[5].onSelect();
+    expect(!!app.textureManager).toBe(!hadManager);
+    const dist = C[6];
     dist.onSelect({ intersection: { point: plusPoint(dist.mesh) } });
     expect(app.windowManager.setDistance).toHaveBeenCalledWith(app.settings.windowDistance);
   });
@@ -3257,6 +3278,8 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
       _onWebPanelToggleChanged: jest.fn(),
       _initVoiceCommands: jest.fn(async () => {}),
       _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);
