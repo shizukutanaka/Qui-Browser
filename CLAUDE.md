@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き77（同セッション）: DevTools の DOM 出力層を pin — 実装の正しさを実測確認（欠陥ゼロ）
+- ✅ **pin（DevTools.js の残り未到達行を網羅）**: `updateConsoleMessages` の severity 色分け（warn=#ce9178/error=#f48771）＋末尾100件制限＋scrollTop 自動追随、`updateNetworkTable` の status 色分け（2xx/3xx 緑・'failed' 赤）と `NNms` 整形、`buildSceneTree` の深さ 16px インデント再帰と `unnamed` ラベル、`showTab` の lazy append＋scene/network アーム dispatch。新しい stub DOM は fragment の append 展開と `innerHTML=''` による子消去を実 DOM 通りに再現。
+- 🔍 **テスト作成中に stub の誤りを2点発見・修正**（fragment が展開されない・innerHTML が効かない）— stub が実 DOM と違うと「見かけの実バグ」を量産するので注意。
+- 📝 2133 tests / 62 suites、lint 0 errors、build green。DevTools はこれで実配線面を全て pin 済み。
+
 #### 続き76（同セッション）: プロキシの SSRF ガードに2つの実穴 — 実バグ33-34件目
 - 🐛 **実バグ33（TOCTOU / DNS rebinding）**: `resolveSafely()` が DNS 解決結果を検査したあと、`httpRequest(url)` が接続時に**ホスト名を再解決**していた — TTL=0 や問い合わせ毎に異なる応答を返す攻撃者 DNS で、2回目の解決が内部アドレスを返せばガードを素通り。`lookup` オプションで検査済みアドレスにピン留め（Socket が実際に接続する先 = 検査した先）。
 - 🐛 **実バグ34（IPv6 埋め込み v4 バイパス）**: `::ffff:` の検査が dotted 形 `::ffff:127.0.0.1` のみで、WHATWG URL パーサーが実際に生成する hex 形 `::ffff:7f00:1`、および NAT64 `64:ff9b::/96`・6to4 `2002::/16`・Teredo `2001:0::/32`・ISATAP `5efe` IID が全て素通し → どれも loopback/private v4 へ接続できた。v6 を8 hextet に展開して機構別に埋め込み v4 を復号し、既存の V4_BLOCKED 表で再検査（Teredo は XOR 復号）。公開埋め込み（::ffff:8.8.8.8 等）は従来通り許可。

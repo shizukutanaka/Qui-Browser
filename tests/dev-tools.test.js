@@ -162,3 +162,137 @@ describe('DevTools dead-surface sweep', () => {
     expect([...dt.tabs.keys()].sort()).toEqual(['console', 'network', 'scene']);
   });
 });
+
+/**
+ * The DOM output layer: rows/tables/trees DevTools renders into the panel.
+ * Richer element stub than the plumbing suite — records children, style
+ * assignments and text so the rendered output is assertable.
+ */
+function makeEl(id) {
+  const el = {
+    id,
+    children: [],
+    style: {},
+    text: '',
+    // fragments flatten into their parent on append, like real DOM
+    appendChild(c) {
+      if (c && c.id === '#frag') { el.children.push(...c.children); }
+      else { el.children.push(c); }
+      return c;
+    },
+    set innerHTML(_v) { el.children.length = 0; el.text = ''; },
+    get textContent() {
+      return el.text + el.children.map((c) => c.textContent ?? '').join('');
+    },
+    set textContent(v) { el.children.length = 0; el.text = v; },
+    scrollTop: 0,
+    scrollHeight: 0
+  };
+  return el;
+}
+
+describe('DevTools DOM output layer', () => {
+  let dt;
+  let byId;
+  const saved = {};
+
+  beforeEach(() => {
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    byId = new Map();
+    global.document = {
+      addEventListener() {},
+      removeEventListener: jest.fn(),
+      getElementById: (id) => byId.get(id) || null,
+      createDocumentFragment: () => makeEl('#frag'),
+      createElement: () => makeEl(),
+      createTextNode: (t) => ({ textContent: t }),
+      body: makeEl('body')
+    };
+    global.window = global.window || {};
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+
+  afterEach(() => {
+    dt.dispose();
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  test('updateConsoleMessages renders severity-coloured rows and pins scroll', () => {
+    const box = makeEl('console-messages');
+    box.scrollHeight = 999;
+    byId.set('console-messages', box);
+    dt.tools.console.messages.push(
+      { type: 'warn', args: ['careful'], timestamp: '12:00:00' },
+      { type: 'error', args: ['boom', 42], timestamp: '12:00:01' }
+    );
+    dt.updateConsoleMessages();
+    expect(box.children).toHaveLength(2);
+    expect(box.children[0].style.cssText).toContain('#ce9178');
+    expect(box.children[1].style.cssText).toContain('#f48771');
+    expect(box.children[1].textContent).toContain('boom 42');
+    expect(box.scrollTop).toBe(999);
+  });
+
+  test('updateConsoleMessages caps the render at the last 100 messages', () => {
+    const box = makeEl('console-messages');
+    byId.set('console-messages', box);
+    for (let i = 0; i < 150; i++) {
+      dt.tools.console.messages.push({ type: 'log', args: ['m' + i], timestamp: 't' });
+    }
+    dt.updateConsoleMessages();
+    expect(box.children).toHaveLength(100);
+    expect(box.children[0].textContent).toContain('m50');
+  });
+
+  test('updateNetworkTable colours 2xx/3xx green and failures red', () => {
+    const tbody = makeEl('network-tbody');
+    byId.set('network-tbody', tbody);
+    dt.tools.networkMonitor.requests.push(
+      { method: 'GET', url: 'https://ok.example/', status: 200, time: 12.6, size: '100' },
+      { method: 'GET', url: 'https://bad.example/', status: 'failed', time: 3, size: 0 }
+    );
+    dt.updateNetworkTable();
+    expect(tbody.children).toHaveLength(2);
+    const okRow = tbody.children[0];
+    expect(okRow.children[2].style.color).toBe('#4ec9b0');
+    expect(okRow.children[3].textContent).toBe('13ms');
+    const badRow = tbody.children[1];
+    expect(badRow.children[2].style.color).toBe('#f48771');
+  });
+
+  test('buildSceneTree indents children by depth and labels unnamed nodes', () => {
+    const scene = {
+      type: 'Scene', name: 'root',
+      children: [{ type: 'Mesh', name: '', children: [{ type: 'Object3D', name: 'leaf' }] }]
+    };
+    const frag = dt.buildSceneTree(scene, 0);
+    // DocumentFragment.appendChild(fragment) flattens — rows arrive in
+    // depth-first order, each carrying its own indentation.
+    expect(frag.children.map((r) => [r.textContent, r.style.paddingLeft])).toEqual([
+      ['Scene "root"', '0px'],
+      ['Mesh "unnamed"', '16px'],
+      ['Object3D "leaf"', '32px']
+    ]);
+  });
+
+  test('showTab lazily mounts tab content and updates the scene/network arms', () => {
+    const content = makeEl('dev-tools-content');
+    const tree = makeEl('scene-tree');
+    byId.set('dev-tools-content', content);
+    byId.set('scene-tree', tree);
+    dt.initialize();
+    dt.app.scene = { type: 'Scene', name: 's', children: [] };
+
+    dt.showTab('scene');
+    expect(content.children[0]).toBe(dt.tabs.get('scene').content);
+    expect(dt.tabs.get('scene').content.style.display).toBe('block');
+    expect(tree.children.length).toBeGreaterThan(0); // updateSceneTree ran
+
+    dt.showTab('console');
+    expect(dt.tabs.get('scene').content.style.display).toBe('none');
+    expect(dt.tabs.get('console').button.style.background).toBe('#0e639c');
+    expect(content.children[0]).toBe(dt.tabs.get('console').content);
+  });
+});
