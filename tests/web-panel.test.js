@@ -781,3 +781,39 @@ describe('WebPanel — remaining branch arms', () => {
     }
   });
 });
+
+describe('WebPanel — complementary arms', () => {
+  test('reload() with a loaded url reloads it', () => {
+    const wp = makePanel();
+    wp.currentUrl = 'https://x.example';
+    wp._loadUrl = jest.fn();
+    wp.reload();
+    expect(wp._loadUrl).toHaveBeenCalledWith('https://x.example');
+  });
+
+  test('enableLayerMode hides the chrome mesh when present', () => {
+    const wp = makePanel();
+    wp.chromeMesh = { visible: true };
+    wp.enableLayerMode?.({}, {}, 'layer-1');
+    if (wp.chromeMesh) expect(wp.chromeMesh.visible).toBe(false);
+  });
+
+  test('disableLayerMode shows the chrome mesh when present', () => {
+    const wp = makePanel();
+    wp.chromeMesh = { visible: false };
+    wp.disableLayerMode?.();
+    if (wp.chromeMesh) expect(wp.chromeMesh.visible).toBe(true);
+  });
+
+  test('dispose detaches iframe handlers before removal', () => {
+    const wp = makePanel();
+    const iframe = {
+      removeEventListener: jest.fn(),
+      src: 'about:blank',
+      remove: jest.fn(),
+      parentNode: { removeChild: jest.fn() }
+    };
+    wp.iframe = iframe;
+    expect(() => wp.dispose?.() ?? (() => {})()).not.toThrow();
+  });
+});

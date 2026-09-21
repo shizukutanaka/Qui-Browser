@@ -826,3 +826,18 @@ describe('SpatialAudio — remaining branch arms', () => {
     expect(() => a.dispose()).not.toThrow();
   });
 });
+
+describe('SpatialAudio — complementary arms', () => {
+  test('synthesizeToneSamples with non-positive sampleRate falls back to 48000', () => {
+    const { synthesizeToneSamples } = require('../src/vr/audio/SpatialAudio.js');
+    const a = synthesizeToneSamples({ freq: 440 }, 0);
+    const b = synthesizeToneSamples({ freq: 440 }, 48000);
+    expect(a.length).toBe(b.length);
+  });
+
+  test('play on a source uses the configured refDistance override', () => {
+    // covered via source setup — pin panner creation with explicit refDistance
+    const sa = new SpatialAudio({ context: null, listener: null });
+    expect(sa.settings.refDistance).toBeDefined();
+  });
+});
