@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### 続き132: SW の CACHE_VERSION は静的リテラル — activate クリーンアップが no-op で precache が永続 stale
+`public/service-worker.js` の `CACHE_VERSION = 'qui-browser-v2.0.0'` は手動リテラルで、ビルドもリリースも一切更新しない。**ブラウザは SW ファイルのバイト比較で更新検知するため内容が変わらなければ install/activate が走らず、activate ハンドラのキャッシュ掃除も同名キャッシュを残すだけ —— デプロイしても前リリースの precache が配信され続ける**典型 PWA staleness。ソクラテス的に言えば「versioned cache」を名乗りながら version が一度も versioned されていなかった。
+
+- 🔧 **修正**: `tools/stamp-sw-version.mjs` を新設し `"build"` に接続 — `dist/service-worker.js` の CACHE_VERSION を `qui-browser-<pkg.version>-<base36 timestamp>` にビルド毎スタンプ。SW バイト列が変わる → update 検知 → activate が旧キャッシュ名を実際に削除。
+- ✅ **pin**: `tests/sw-version-stamp.test.js` — 実 CLI を spawn して書換・連続スタンプの非同一性・リテラル欠落時の明示失敗・public/ 実物の適合を assert（.mjs は babel-jest の transform 外なので CLI 経路で駆動 = build が呼ぶのと同じ経路）。
+- 📦 **gate**: build で dist SW に `qui-browser-2.0.0-muazr082` が刻まれることを実測、verify:app green。3021 tests / 68 suites 全緑、lint 0 errors。
+
 ### 続き131: lint ゲートは `src proxy` しか走査していなかった — tests/ に 1150 errors、tools/ に 19 errors が潜伏
 「`npm run lint` = 0 errors」は gate として機能していたが、スコープが `eslint src proxy` のみ — flat config の `tests/**/*.test.js` override は一度も発火していなかった（適用対象が lint に含まれないため）。tests/ を走査すると **1150 errors** が露出: 1141件は eslint --fix で機械的に修復（trailing spaces / blank lines / curly / brace-style）、残り9件のうち6件は正当なテスト fixture（`javascript:` URL を scheme ブロッカーに食わせる検査・非ASCII検出の制御文字正規表現）で tests override に `no-script-url`/`no-control-regex` off を追加、3件は実際のテスト不良（self-assign のデッド行・empty destructure・empty constructor）。
 
