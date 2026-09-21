@@ -34,14 +34,8 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { findChrome } from './chrome-path.mjs';
 
-const CHROME_CANDIDATES = [
-  process.env.CHROME_PATH,
-  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome'
-].filter(Boolean);
 
 // Font/size pairs taken from the real draw calls, so the numbers correspond to
 // surfaces that actually exist rather than to abstract samples.
@@ -75,15 +69,6 @@ rows.push('single glyph (em): 本=' + g('本') + ' あ=' + g('あ') + ' Ａ=' + 
 document.getElementById('out').textContent = rows.join('\\n');
 </script></body>`;
 
-function findChrome() {
-  for (const p of CHROME_CANDIDATES) {
-    try {
-      execFileSync(p, ['--version'], { stdio: 'ignore' });
-      return p;
-    } catch { /* try the next candidate */ }
-  }
-  return null;
-}
 
 const chrome = findChrome();
 if (!chrome) {

@@ -292,3 +292,50 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
     expect(res.body).toBe('offline-page');
   });
 });
+
+describe('settleWithin — a wedged strategy still settles the request', () => {
+  // Real-browser run found fetch() hanging forever after the worker was
+  // idle-terminated and cold-started — the respondWith promise wedged with
+  // no error and Chrome never times it out. Every request must resolve.
+  const { settleWithin, FETCH_HARD_TIMEOUT_MS } = sw;
+  const wedged = () => new Promise(() => {}); // never settles
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+    delete global.fetch;
+    delete global.caches;
+  });
+
+  test('passes through a strategy that resolves in time', async () => {
+    await expect(settleWithin(Promise.resolve('fast'), { clone: () => ({}) }))
+      .resolves.toBe('fast');
+  });
+
+  test('times out a wedged strategy and falls back to a bare network fetch', async () => {
+    const request = { clone: jest.fn(() => 'cloned-req') };
+    global.fetch = jest.fn(async () => 'network-response');
+    const p = settleWithin(wedged(), request);
+    jest.advanceTimersByTime(FETCH_HARD_TIMEOUT_MS);
+    await expect(p).resolves.toBe('network-response');
+    expect(global.fetch).toHaveBeenCalledWith('cloned-req');
+  });
+
+  test('on timeout AND network failure, still resolves (offline fallback)', async () => {
+    const request = { clone: () => ({}), url: 'https://app.example/x.png', mode: 'navigate' };
+    global.fetch = jest.fn(async () => {
+      throw new Error('down');
+    });
+    global.caches = { open: async () => makeMockCache() };
+    const p = settleWithin(wedged(), request);
+    jest.advanceTimersByTime(FETCH_HARD_TIMEOUT_MS);
+    await expect(p).resolves.toBeTruthy();
+  });
+
+  test('a rejecting strategy resolves to the offline fallback, not a rejection', async () => {
+    const request = { clone: () => ({}), url: 'https://app.example/x.png', mode: 'basic' };
+    global.caches = { open: async () => makeMockCache() };
+    await expect(settleWithin(Promise.reject(new Error('boom')), request))
+      .resolves.toBeTruthy();
+  });
+});

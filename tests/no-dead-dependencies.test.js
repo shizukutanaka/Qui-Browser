@@ -19,7 +19,6 @@ const SCAN_FILES = [
   'index.html',
   'vite.config.js',
   'jest.config.js',
-  '.babelrc',
   'babel.config.js',
   'eslint.config.js'
 ];

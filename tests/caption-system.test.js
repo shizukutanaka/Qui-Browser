@@ -52,7 +52,7 @@ global.document = {
 const {
   CaptionSystem, clampCaptionOffset,
   CAPTION_OFFSET_DEFAULT, CAPTION_OFFSET_MIN, CAPTION_OFFSET_MAX,
-  readingTimeMs, CPS_FULLWIDTH, CPS_HALFWIDTH
+  readingTimeMs
 } = require('../src/vr/accessibility/CaptionSystem.js');
 const { textWidthEm, WIDTH_SAFETY } = require('../src/vr/ui/textWrap.js');
 

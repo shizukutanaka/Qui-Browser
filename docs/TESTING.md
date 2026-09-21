@@ -10,11 +10,12 @@ npm run test:integration # **/tests/*integration*.test.js
 npm run lint             # ESLint flat config (eslint.config.js)
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
+npm run verify:all       # every verify:* — docs, prerelease, build + Chromium boot/layout/VR harnesses
 npm run ci:all           # lint + format + coverage
 ```
 
-Current baseline on a clean checkout: **62 suites / 2133 tests passing**, ESLint
-0 errors (119 warnings accepted in tooling/dev paths). The repo's own runtime
+Current baseline on a clean checkout: **72 suites / 3053 tests passing**, ESLint
+0 errors (~380 warnings accepted in tooling/dev paths). The repo's own runtime
 harnesses (`verify:app`, `verify:layout`, `verify:vr-boot` — needs `CHROME_PATH`
 on non-Linux hosts) all pass on the built bundle in real Chromium: the landing
 shell boots clean, no text surface overflows, and the full VRApp — including the

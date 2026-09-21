@@ -32,7 +32,7 @@
     "verify:app": "node tools/verify-app-boot.mjs",
     "verify:vr-boot": "node tools/verify-vr-boot.mjs",
     "verify:prerelease": "node tools/pre-release-validation.js",
-    "verify:all": "npm run verify:docs && npm run verify:prerelease",
+    "verify:all": "npm run verify:docs && npm run verify:prerelease && npm run ci:verify",
     "ci:lint": "npm run lint && npm run format:check",
     "ci:test": "npm run test:coverage",
     "ci:all": "npm run ci:lint && npm run ci:test",
@@ -76,6 +76,7 @@
     "eslint": "^9.39.0",
     "globals": "^14.0.0",
     "jest": "^29.7.0",
+    "js-yaml": "^4.3.2",
     "prettier": "^3.1.0",
     "sharp": "^0.34.5",
     "vite": "^5.4.21"

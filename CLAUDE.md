@@ -245,6 +245,54 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き157
+- 🔍 **実測（テストスイート自身の真空）**: `expect(true).toBe(true)` 5箇所を発見 — `if (click)` ガードで「リスナーが見つからない＝空走合格」になっていた enterVR 2件、「unknown-error を使う」と名乗りながら描画内容を一切見ていなかった overlay テスト、IME の `convert?.()`（存在しないメソッド）を呼んで `out` を捨てるテスト。
+- 🔧 **修正**: ①enterVR 2件 — `DOMContentLoaded` 未発火が原因で click が undefined → dispatch を追加し enter-vr 発火/非発火＋エラートーストを実断言（テスト名と一致）②overlay テスト — `detail.textContent === 'Unknown error'` を実検査 ③IME — 実メソッド `convertToKanji()` の null 返却を断言 ④onSpeak — `.not.toThrow()` に正直化。
+- 🗑 **削除**: テスト内の死んだ分割代入5ファイル（DELETE_ZONE_W/CPS_*/applyTranslations/VRJapaneseKeyboard×4/KEY_W・GAP）。CPS_FULLWIDTH/CPS_HALFWIDTH/GAP は外部参照ゼロのため export 解除（reachability suite が捕捉 — 3テスト減は正）。lint 警告 380→369。
+- ✅ 3050 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き156
+- 🔍 **実測（verify:all の名実不一致）**: `npm run verify:all` が docs+prerelease のみで、最も強い3つの実 Chromium harness（layout/app/vr-boot）を**含んでいなかった**。`ci:verify` に正しい全連鎖が存在したのに verify:all は未接続 — ローカルで「全部回した」と思っても実機ゲートは走っていない状態。
+- 🔧 **修正**: `verify:all` を `verify:docs && verify:prerelease && ci:verify`（= build + layout + app + vr-boot）に再構成。実走で全チェーン green を確認。
+- 📝 **TESTING.md 同期**: コマンド一覧に verify:all を追加し、腐っていた baseline 記述（62 suites/2133 tests/119 warnings）を実測値（72/3053/~380）に更新。
+- 🔍 **他照合**: バージョン表記（2.0.0）index.html/package.json/SW/docker 全一致、git 追跡ファイルに混入ゴミなし、テストスイートに vacuous 断言（expect(true)/skip/todo）ゼロ。
+
+### Session 75: 続き155
+- 🔍 **実測（ランディング残 WCAG 面）**: util-toggle ~32px は WCAG 2.5.8 AA（≥24px）適合、focus は UA デフォルトで有効、toast に `role="alert"` 済み、外部リンク `rel="noopener noreferrer"` 済み、iframe は dom-overlay ブラウジング経路で `frame-src https:` が必須（`'none'` に締められないと判明）。
+- 🔧 **軽微な不整合**: `og:url`/`twitter:url` が `qui-browser`（小文字）で canonical デプロイパス `/Qui-Browser/` と不一致 → 大文字に統一（ソーシャル共有 URL）。
+- ✅ **検証**: 実 Chrome で HC モード CTA/バッジ = 黒 on 黄 19.6:1 を computed style で実測（修正前 1.07:1 不可視を確認）。録画・スクショを PR #166 に添付。
+- 📝 **skill 更新**: リビルド中の旧 SW が削除済み hashed CSS を参照する一時的スタイル崩れを `.agents/skills/qui-browser-2d-runtime/SKILL.md` に記録（precache 運用上の既知トレードオフ）。
+
+### Session 75: 続き154 — a11y-first を謳う自前ランディングが WCAG 1.4.3 違反だった
+実コントラスト計算で検出: ① `.cta-button`・`.version-badge` の 白 on `--color-vr` #5e72e4 = **4.20:1**（AA 4.5:1 未達。バッジは 14px、CTA は 18px/600 でラージテキスト閾値未満）② **ハイコントラストモードで最悪化**: 塗りが #ffff00 に差し替わるのに文字は白のまま = **1.07:1（ほぼ不可視）** — 低視力ユーザー向け機能が自ら最大の可読性バグを産んでいた。修正: `--color-vr-strong: #5468d9`（4.82:1）を塗り背景用に導入＋HC では塗り要素の文字を黒に反転（黄上 19.6:1 = AAA）。`tests/contrast.test.js` 新設 — :root/HC 両テーマの実使用ペア10組を CSS 変数から実計算して pin。3053 tests 全緑。
+
+### Session 75: 続き153 — GA4 は設定しても meta CSP に殺される「設定しても死んでいる機能」だった
+`.env.example` が `VITE_GA_MEASUREMENT_ID` を案内し initAnalytics() が gtag.js を動的注入するが、index.html の **meta CSP `script-src 'self'`** がそれをブロック — meta CSP は GitHub Pages（ヘッダなし）を含む全配信先で効き、かつヘッダ CSP とは積で効くため vercel の gtm 許可も無意味だった。docs が手順を案内する機能が全ターゲットで dead-on-arrival。script-src に googletagmanager を追加（connect-src は `https:` で GA 収集・sentry ingest 双方を包含）。`tests/csp-consistency.test.js` 新設 — meta CSP が「コードが正当にロードし得る物を全て許す」ことを pin。3043 tests 全緑。
+
+### Session 75: 続き152 — プロキシのリダイレクト Location がプロセスを殺し得た（リモート DoS）
+`fetchThroughGuard` の `new URL(r.headers.location, url)` は upstream が返す任意の文字列をパース — `http://[::bad` 等で `ERR_INVALID_URL` が投げ、async リクエストハンドラ内の throw は **unhandled rejection → Node プロセス終了**（Node≥15 のデフォルト）。つまり任意の upstream が1レスポンスでプロキシを落とせた。同じ穴として配列 Location（繰り返しヘッダ）は `String()` でカンマ結合され「一見有効な変な URL」化して追従され得た。修正: 非文字列 location を明示拒否＋URL 解決を try/catch → `bad-redirect-location`。さらにハンドラ側に多層防御 — `fetchThroughGuard` 全体を try/catch して将来のどんな throw も 502 `upstream-failure` 化（プロセスは生きる）。テスト2本で pin。77 proxy tests 全緑。
+
+### Session 75: 続き151 — manifest.json の shortcuts が死んでいた（存在しないルート×サブパス 404）
+start_url/scope/icons は相対で正しかったが、shortcuts の3本は `/?action=new-tab`・`/bookmarks`・`/history` — **いずれの URL もハンドラが存在しない**（SPA、ルーターなし、ブックマーク/履歴は VR 内パネル）＋ root-absolute のため `/Qui-Browser/` 配下ではさらに 404（offline.html と同型）。shortcuts を削除し、public-assets.test.js に2ピン追加（manifest の全 URL は相対必須／shortcuts は `./` 始まりのみ許可）。dist 実測で shortcuts 消滅確認。3037 tests 全緑。
+
+### Session 75: 続き150 — Chrome 検出の4重複を1モジュールへ（1つは既に腐っていた）
+`findChrome()`/`CHROME_CANDIDATES` が verify-app-boot・verify-vr-boot・verify-text-layout・measure-text-metrics に**逐語同一で4重複**。続き127 で macOS Playwright キャッシュを3つに追加した時点で4つ目は更新漏れ — `node tools/measure-text-metrics.mjs` がこのマシンで「No Chromium found」出口を打っていた。`tools/chrome-path.mjs` に抽出して全4箇所が import する形に。統合後 measure-text-metrics は実走し、em 幅モデルを実 Chrome フォントで再検証（全角 1.00em・欧文 ~0.5em・等幅 0.60em — 全てモデル予算内）。verify:app・verify:vr-boot・verify:layout 全て PASS。
+
+### Session 75: 続き149 — babel 設定2層を1枚に統合（.babelrc 削除）
+`.babelrc` と `babel.config.js` が併存して preset-env が2層から適用されていた。.babelrc の実質中身は env.test の import-meta プラグイン（`./tests/babel-plugin-import-meta.cjs` — src/ の `import.meta.env` を jest の CJS でパース可能にする）だけなので babel.config.js の env.test に移し .babelrc を削除。参照2箇所も追随（pre-release-validation の configFiles、no-dead-dependencies の SCAN_FILES）。挙動同一、3035 tests 全緑、verify:prerelease の config チェックは babel.config.js を ✅。
+
+### Session 75: 続き147 — パッチ系列の post-state を YAML として検証（適用可能でも壊れた YAML は GitHub で爆発）
+`ci-patches.test.js` の最終状態検査はテキスト grep のみで、**構文的に壊れた YAML を産むパッチがクリーン適用＋全チェック通過し得た**。シリーズ適用後の全ワークフローを js-yaml で実パースし、`jobs` とトリガーブロックの存在を断言するテストを追加。js-yaml は transitive に 3.15.2 が居ただけなので devDep に ^4.3.2 を宣言（#135 と同じ undeclared-transitive 依存パターンを排除）。5 workflows 全て valid。3035 tests / 71 suites 全緑。
+
+### Session 75: 続き146 — 実機検証の横展開：offline.html サブパス破損 + 出荷物ピンを verify:app に追加
+続き145 の実機発見を横展開。① `public/offline.html` の `href="/manifest.json"`・`/icons/icon-72.png` — vite は public/ を verbatim コピーするため BASE_PATH=/Qui-Browser/ 配下で 404（index.html と違い書き換わらない）→ 相対化＋ public-assets.test.js で「public/*.html は root-absolute 参照不可」を pin。② サブパスデプロイを実際に serve して検証（`BASE_PATH=/Qui-Browser/` build → vite preview で /Qui-Browser/* が全て 200、root-absolute 漏洩ゼロ — patch 0007 が直す経路を先回り実証）。③ `verify:app` に出荷物ピン追加 — dist の service-worker.js を実 fetch して settleWithin/FETCH_HARD_TIMEOUT_MS・await cache.match・new Response(null) の存在を検査（修正がソースにあってもビルドで落ちれば今まで全テスト green のまま出荷される）。3034 tests / 71 suites 全緑、verify:app 9 checks 全緑、lint 0 errors。→ PR #166。
+
+### Session 75: 続き145 — 初の実ブラウザ E2E：ゴールデンパス全緑＋SW idle-kill 後の fetch 永久ハングを実機検出
+全69+セッションで jsdom/モックだけだった 2D ランタイムを、実 headed Chrome 153 + CDP で初めて駆動（`vite preview` of dist）。結果: コンソールエラー0、◐/A+ トグル・ja⇄en・VR未対応時のローカライズ `role=alert` トースト・SW 登録（build スタンプ済みキャッシュ）・manifest/icons 全て実機グリーン。**しかし実機だけが見る欠陥を検出**: SW が idle-kill（約30秒）された後に発火した `fetch()` が約50%の確率で**永遠に settle しない**（respondWith のプロミスが wedged、Chrome は respondWith をタイムアウトしない）。5回再現（manifest.json・/・icons）。**対策**: `settleWithin()` で全戦略を10秒ハードキャップ→素の `fetch(request.clone())`（SW 内 fetch は自 worker を迂回）→ offline fallback、で全リクエストが必ず resolve。さらにこのテストが `getOfflineFallback` の潜伏バグ2件を露出: ①`cache.match() || new Response(503)` が await 無し＝Promise は常に truthy で 503 は死コード、ミスは undefined 解決 ②`new Response('', {status:204})` が spec 違反で throw（null-body status に body 不可）→ 画像フォールバックが常に reject。併せて `mobile-web-app-capable` meta 追加（deprecation 警告の解消）。実機でしか観測不能なクラスだったため `.agents/skills/qui-browser-2d-runtime/` に再現レシピを永続化。3033 tests / 71 suites 全緑、lint 0 errors。→ PR #166。
+
+### Session 75: 続き144 — プロキシの lookup 契約を実ソケットで pin
+続き143 の修正は「テストが transport を mock する限り永遠に不可視」なクラスだったので、`proxy-lookup-contract.test.js` を新設 — 実ローカル HTTP サーバーに実 `http.request` で配列形 lookup を通す（モック無し・Node の契約が将来変われば赤）。3029 tests / 71 suites 全緑。
+
 ### Session 75: 続き143 — 実バグ22件目：リーダープロキシが丸ごと死んでいた（Node≥20 の lookup 契約違反）
 `npm run proxy` を実起動して `/fetch?url=https://example.com` を実測したら **`400 upstream-error`**（直接 egress は 200）— 原因は SSRF 対策（DNS rebinding pin）で渡す `lookup: cb(null, addr, family)` が**スカラー形式**だったこと。Node≥20 の http は lookup を `{all: true}` で呼び**配列 `[{address, family}]` を要求**するため `ERR_INVALID_IP_ADDRESS` で全リクエストが死ぬ — #138 の強化修正が本番経路を丸ごと壊していた（テストは transport を stub していて実ソケットで一度も検証されていなかった）。resolveSafely が既に全アドレスを検査済みなので、pin を「検証済み全アドレスの配列」返却に変更（v4/v6 間の happy-eyeballs も復活）。**実エンドポイントで 200 + 実HTML を確認**、配列形式を pin するテスト追加。3028 tests / 70 suites 全緑、lint 0 errors。
 

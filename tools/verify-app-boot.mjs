@@ -32,24 +32,15 @@
  * Usage: npm run build && npm run verify:app
  */
 
-import { createServer } from 'node:http';
-import { spawn, execFileSync } from 'node:child_process';
+import { createServer, get } from 'node:http';
+import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
+import { findChrome } from './chrome-path.mjs';
 
 const REPO_ROOT = resolve(new URL('..', import.meta.url).pathname);
 const DIST = join(REPO_ROOT, 'dist');
 
-const CHROME_CANDIDATES = [
-  process.env.CHROME_PATH,
-  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome',
-  // macOS: Playwright's browser cache (verify tools run on dev machines too)
-  `${process.env.HOME}/Library/Caches/ms-playwright/chromium-1194/chrome-mac/Chromium.app/Contents/MacOS/Chromium`,
-  `${process.env.HOME}/Library/Caches/ms-playwright/chromium_headless_shell-1194/chrome-mac/headless_shell`
-].filter(Boolean);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -63,15 +54,6 @@ const MIME = {
   '.webmanifest': 'application/manifest+json'
 };
 
-function findChrome() {
-  for (const p of CHROME_CANDIDATES) {
-    try {
-      execFileSync(p, ['--version'], { stdio: 'ignore' });
-      return p;
-    } catch { /* try the next candidate */ }
-  }
-  return null;
-}
 
 /** Serve `dist/` read-only, confined to the directory. */
 function serveDist() {
@@ -140,9 +122,38 @@ async function main() {
     p.on('close', () => res({ out, err }));
   });
 
+  // The shipped service worker must contain the settled-fetch guarantee: a
+  // real-browser run found page fetch() hanging forever after SW idle-kill —
+  // the fix lives in public/service-worker.js but this checks what actually
+  // ships in dist/ (a build that drops it would otherwise pass every test).
+  const swBody = await new Promise((res) => {
+    const req = get(`${url}service-worker.js`, (r) => {
+      let b = '';
+      r.on('data', (d) => {
+        b += d;
+      });
+      r.on('end', () => res(b));
+    });
+    req.on('error', () => res(''));
+    req.setTimeout(5000, () => {
+      req.destroy(); res('');
+    });
+  });
+
   await new Promise((r) => server.close(r));
 
   const failures = [];
+  const swChecks = [
+    ['service worker served', swBody.length > 0],
+    ['respondWith hard timeout present', swBody.includes('settleWithin') && swBody.includes('FETCH_HARD_TIMEOUT_MS')],
+    ['offline fallback awaited', swBody.includes('await cache.match')],
+    ['204 fallback is null-body', swBody.includes('new Response(null')]
+  ];
+  for (const [name, ok] of swChecks) {
+    if (!ok) {
+      failures.push(`service-worker.js: ${name}`);
+    }
+  }
 
   // Structural checks, read straight out of the rendered DOM.
   const present = (id) => new RegExp(`id="${id}"`).test(dom.out);
@@ -178,6 +189,9 @@ async function main() {
 
   const width = 52;
   console.log('verify:app — booting the built app in Chromium\n');
+  for (const [name, ok] of swChecks) {
+    console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(width)}`);
+  }
   for (const [name, ok] of structural) {
     console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(width)}`);
   }

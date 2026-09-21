@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { load } from 'js-yaml';
 
 const ROOT = path.join(__dirname, '..');
 const PATCH_DIR = path.join(ROOT, 'docs/patches');
@@ -44,6 +45,22 @@ function applyAll() {
 describe('docs/patches series', () => {
   test('every patch applies cleanly in order', () => {
     const dir = applyAll();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('every post-series workflow is valid YAML with real jobs', () => {
+    // git apply only checks text — a patch that produces malformed YAML
+    // applies cleanly here but fails on GitHub. Parse every output file.
+    const dir = applyAll();
+    const wf = path.join(dir, '.github/workflows');
+    for (const f of readdirSync(wf).filter((n) => n.endsWith('.yml'))) {
+      const doc = load(readFileSync(path.join(wf, f), 'utf8'), { filename: f });
+      expect(typeof doc).toBe('object');
+      expect(doc).toHaveProperty('jobs');
+      // YAML 1.1 parses `on:` as boolean true — assert the trigger block
+      // exists under either key form.
+      expect(doc.on ?? doc['on'] ?? doc[true]).toBeTruthy();
+    }
     rmSync(dir, { recursive: true, force: true });
   });
 

@@ -185,6 +185,35 @@ describe('fetchThroughGuard — redirect hops', () => {
     expect(http.request).toHaveBeenCalledTimes(1); // hop 2 never issued
   });
 
+  test('a malformed redirect Location is refused, not thrown (a throw would kill the process)', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      const req = fakeReq();
+      const res = fakeRes(302, { location: 'http://[::bad' });
+      setImmediate(() => {
+        cb(res);
+      });
+      return req;
+    });
+    const out = await fetchThroughGuard('http://example.com/start');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('bad-redirect-location');
+  });
+
+  test('a repeated Location header (array) degrades instead of throwing', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      const req = fakeReq();
+      const res = fakeRes(302, { location: ['http://a.example/', 'http://b.example/'] });
+      setImmediate(() => {
+        cb(res);
+      });
+      return req;
+    });
+    const out = await fetchThroughGuard('http://example.com/start');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('bad-redirect-location');
+    expect(http.request).toHaveBeenCalledTimes(1);
+  });
+
   test('non-readable content-type is refused and the body is not consumed', async () => {
     http.request.mockImplementation((url, opts, cb) => {
       const req = fakeReq();

@@ -44,25 +44,16 @@
  */
 
 import { createServer } from 'node:http';
-import { spawn, execFileSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findChrome } from './chrome-path.mjs';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const JSON_OUT = process.argv.includes('--json');
 const CONDENSE_TOLERANCE_PCT = 5;
 
-const CHROME_CANDIDATES = [
-  process.env.CHROME_PATH,
-  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome',
-  // macOS: Playwright's browser cache (verify tools run on dev machines too)
-  `${process.env.HOME}/Library/Caches/ms-playwright/chromium-1194/chrome-mac/Chromium.app/Contents/MacOS/Chromium`,
-  `${process.env.HOME}/Library/Caches/ms-playwright/chromium_headless_shell-1194/chrome-mac/headless_shell`
-].filter(Boolean);
 
 const MIME = {
   '.js': 'text/javascript; charset=utf-8',
@@ -181,15 +172,6 @@ try {
 </script></body>`;
 }
 
-function findChrome() {
-  for (const p of CHROME_CANDIDATES) {
-    try {
-      execFileSync(p, ['--version'], { stdio: 'ignore' });
-      return p;
-    } catch { /* try the next candidate */ }
-  }
-  return null;
-}
 
 /**
  * Static server, GET-only, confined to the repo root.

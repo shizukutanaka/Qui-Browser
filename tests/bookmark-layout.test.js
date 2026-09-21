@@ -2,7 +2,7 @@
  * Unit tests for the pure bookmark-panel layout / hit-testing helpers.
  */
 const {
-  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS, DELETE_ZONE_W,
+  PANEL_PX_W, PANEL_PX_H, HEADER_H, ROW_H, VISIBLE_ROWS,
   SCROLL_UP_X0, SCROLL_UP_X1, SCROLL_DN_X0, SCROLL_DN_X1,
   hitTest, uvToPixels, truncate
 } = require('../src/vr/browser/bookmarkLayout.js');

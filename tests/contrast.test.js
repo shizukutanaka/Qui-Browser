@@ -464,3 +464,50 @@ describe('chromeColors — high-contrast arms', () => {
     expect(tabStripColors(true)).not.toEqual(tabStripColors(false));
   });
 });
+
+// ── landing page (src/styles/main.css custom properties) ────────────────────
+// The 2D shell has its own palette, painted as real CSS (not canvas). The same
+// WCAG rule applies; the high-contrast theme swaps fills to #ffff00, so its
+// text must be black or the feature's own buttons become invisible.
+describe('landing palette — main.css custom properties', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src/styles/main.css'), 'utf8');
+
+  const cssVars = (blockRe) => {
+    const out = {};
+    const block = css.match(blockRe)[0];
+    for (const m of block.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{3,6})/g)) {
+      let h = m[2];
+      if (h.length === 4) {
+        h = `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`;
+      }
+      out[m[1]] = h;
+    }
+    return out;
+  };
+  const normal = cssVars(/:root\s*\{[^}]+\}/);
+  const hc = cssVars(/body\.a11y-high-contrast\s*\{[^}]+\}/);
+
+  // [label, fg, bg, theme] — every text-on-fill pair the landing paints.
+  const PAIRS = [
+    ['body text on background', '#ffffff', 'color-background', normal],
+    ['subtle text on background', 'color-text-subtle', 'color-background', normal],
+    ['subtle text on surface card', 'color-text-subtle', 'color-surface', normal],
+    ['vr accent text on background', 'color-vr', 'color-background', normal],
+    ['cta text on vr fill', '#ffffff', 'color-vr-strong', normal],
+    ['cta text on hover fill', '#ffffff', 'color-primary-hover', normal],
+    ['hc body text on black', 'color-text', 'color-background', hc],
+    ['hc accent text on black', 'color-vr', 'color-background', hc],
+    ['hc cta text on yellow fill', '#000000', 'color-vr-strong', hc],
+    ['hc cta text on hover fill', '#000000', 'color-primary-hover', hc]
+  ];
+
+  for (const [label, fgSpec, bgSpec, theme] of PAIRS) {
+    test(`${label} clears AA 4.5:1`, () => {
+      const fg = theme[fgSpec] ?? fgSpec;
+      const bg = theme[bgSpec] ?? bgSpec;
+      expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});

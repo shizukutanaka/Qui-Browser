@@ -731,21 +731,24 @@ describe('src/main.js — last branch arms', () => {
     expect(loading.classList.add).toHaveBeenCalledWith('hidden');
   });
 
-  test('enterVR click with xr support true dispatches into the app import', async () => {
+  test('enterVR click with xr support true dispatches enter-vr', async () => {
     const enterBtn = makeEl('enterVRButton');
-    installDom({
+    const { documentListeners } = installDom({
       ids: { enterVRButton: enterBtn },
       xr: { isSessionSupported: async () => true }
     });
     jest.isolateModules(() => require('../src/main.js'));
     await tick();
+    // VR button listeners register on DOMContentLoaded — fire it first.
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
     const click = (enterBtn.addEventListener?.mock?.calls || [])
       .find(([t]) => t === 'click')?.[1]
-      || enterBtn._listeners?.click?.[0];
-    if (click) {
-      await expect(click()).resolves.toBeUndefined();
-    }
-    expect(true).toBe(true);
+      || enterBtn.listeners.click?.[0];
+    expect(click).toBeDefined();
+    await expect(click()).resolves.toBeUndefined();
+    expect(global.window.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'enter-vr' })
+    );
   });
 
   test('module-load failure with loadingScreen present builds the error UI', async () => {
@@ -830,21 +833,25 @@ describe('src/main.js — false-side arms', () => {
     expect(document.getElementById('loadingScreen')).toBeFalsy();
   });
 
-  test('enterVR click with xr support false leaves the app alone', async () => {
+  test('enterVR click with xr support false shows the error toast', async () => {
     const enterBtn = makeEl('enterVRButton');
-    installDom({
+    const { documentListeners } = installDom({
       ids: { enterVRButton: enterBtn },
       xr: { isSessionSupported: async () => false }
     });
     jest.isolateModules(() => require('../src/main.js'));
     await tick();
+    (documentListeners.DOMContentLoaded || []).forEach((f) => f());
     const click = (enterBtn.addEventListener?.mock?.calls || [])
       .find(([t]) => t === 'click')?.[1]
-      || enterBtn._listeners?.click?.[0];
-    if (click) {
-      await click();
-    }
-    expect(true).toBe(true); // no throw, no navigation
+      || enterBtn.listeners.click?.[0];
+    expect(click).toBeDefined();
+    await expect(click()).resolves.toBeUndefined();
+    // Unsupported XR → error toast, never an enter-vr dispatch.
+    expect(global.window.dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'enter-vr' })
+    );
+    expect(global.document.body.children.some((c) => c.id === 'vr-error-toast')).toBe(true);
   });
 
   test('error overlay uses the unknown-error string when error.message is falsy', async () => {
@@ -860,7 +867,9 @@ describe('src/main.js — false-side arms', () => {
     });
     await tick(); await tick();
     jest.dontMock('../src/app.js');
-    expect(true).toBe(true);
+    // box > [heading, detail, reload] — detail carries the fallback string
+    expect(loading.children).toHaveLength(1);
+    expect(loading.children[0].children[1].textContent).toBe('Unknown error');
   });
 });
 

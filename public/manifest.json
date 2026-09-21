@@ -59,26 +59,6 @@
       "purpose": "any maskable"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "New Tab",
-      "short_name": "New Tab",
-      "description": "Open a new browser tab",
-      "url": "/?action=new-tab"
-    },
-    {
-      "name": "Bookmarks",
-      "short_name": "Bookmarks",
-      "description": "View your bookmarks",
-      "url": "/bookmarks"
-    },
-    {
-      "name": "History",
-      "short_name": "History",
-      "description": "View browsing history",
-      "url": "/history"
-    }
-  ],
   "related_applications": [],
   "prefer_related_applications": false,
   "edge_side_panel": {

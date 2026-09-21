@@ -162,9 +162,41 @@ self.addEventListener('fetch', (event) => {
   const strategy = getCacheStrategy(url.pathname);
 
   event.respondWith(
-    executeStrategy(strategy, request)
+    settleWithin(executeStrategy(strategy, request), request)
   );
 });
+
+/**
+ * A respondWith promise that never settles hangs the page's fetch forever —
+ * observed on real Chrome when a fetch is dispatched to a worker realm that
+ * was idle-terminated and cold-started (the strategy promise wedged with no
+ * error). Cap it: on timeout, fall back to a bare network fetch (SW-initiated
+ * fetches bypass this worker's own handler), then to the offline fallback, so
+ * every request resolves to SOMETHING.
+ */
+const FETCH_HARD_TIMEOUT_MS = 10000;
+const TIMED_OUT = Symbol('timed-out');
+
+async function settleWithin(promise, request) {
+  let timer;
+  try {
+    const result = await Promise.race([
+      promise,
+      new Promise(resolve => {
+        timer = setTimeout(() => resolve(TIMED_OUT), FETCH_HARD_TIMEOUT_MS);
+      })
+    ]);
+    if (result !== TIMED_OUT) {
+      return result;
+    }
+    return await fetch(request.clone());
+  } catch (error) {
+    console.error('[ServiceWorker] Strategy failed or timed out:', error);
+    return getOfflineFallback(request);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Determine caching strategy based on URL pattern
@@ -335,16 +367,17 @@ async function getOfflineFallback(request) {
   // Return offline page for navigation requests
   if (request.mode === 'navigate') {
     const cache = await caches.open(CACHE_VERSION);
-    return cache.match(`${BASE}offline.html`) ||
+    return (await cache.match(`${BASE}offline.html`)) ||
            new Response('Offline - Please check your connection', {
              status: 503,
              statusText: 'Service Unavailable'
            });
   }
 
-  // Return placeholder for images
+  // Return placeholder for images. 204 is a null-body status — the Response
+  // constructor throws unless the body is literally null.
   if (/\.(jpg|jpeg|png|gif|webp)$/i.test(url.pathname)) {
-    return new Response('', {
+    return new Response(null, {
       status: 204,
       statusText: 'No Content'
     });
@@ -485,6 +518,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     enforceCacheLimit,
     networkFirst,
+    settleWithin,
+    FETCH_HARD_TIMEOUT_MS,
     CACHE_LIMITS,
     RUNTIME_CACHE,
     BASE,
