@@ -637,3 +637,111 @@ describe('BookmarkStore — remaining uncovered arms', () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe('BookmarkStore — remaining branch arms', () => {
+  let store;
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  test('frecencyScore clamps visits ≤0 to 1 and missing visitedAt to now', () => {
+    const now = Date.now();
+    const a = frecencyScore({ url: 'x', visits: 0, visitedAt: now - DAY }, now);
+    const b = frecencyScore({ url: 'x', visits: 1, visitedAt: now - DAY }, now);
+    expect(a).toBe(b); // visits:0 → treated as 1
+    // missing visitedAt → `visitedAt || 0` → epoch → ancient → ~0 score
+    expect(frecencyScore({ url: 'x', visits: 2, visitedAt: undefined }, now)).toBeLessThan(0.01);
+    expect(frecencyScore(null)).toBe(0);
+  });
+
+  test('readJSON/writeJSON tolerate localStorage being undefined', () => {
+    // jsdom always has localStorage — temporarily remove it.
+    const saved = global.localStorage;
+    // eslint-disable-next-line no-global-assign
+    Object.defineProperty(globalThis, 'localStorage', { value: undefined, configurable: true, writable: true });
+    try {
+      const s2 = new BookmarkStore();
+      expect(s2.getBookmarks()).toEqual([]); // raw=null → fallback
+      expect(() => s2.addHistory('https://a.com')).not.toThrow();
+      expect(s2.isBookmarked('https://a.com')).toBe(false);
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', { value: saved, configurable: true, writable: true });
+    }
+  });
+
+  test('addHistory revisit: (entry.visits || 1) arm for a visits-less legacy entry', () => {
+    store.addHistory('https://a.com', 'A');
+    // Corrupt the stored entry to a legacy shape (no visits field).
+    const hist = JSON.parse(localStorage.getItem('quiBrowser_history') || '[]');
+    delete hist[0].visits;
+    delete hist[0].title;
+    localStorage.setItem('quiBrowser_history', JSON.stringify(hist));
+    const out = store.addHistory('https://a.com'); // no title → can't clobber
+    expect(out.visits).toBe(2); // (undefined || 1) + 1
+    expect(out.title).toBeUndefined(); // no real title supplied → stored title untouched
+  });
+
+  test('addHistory revisit with a real title refreshes the stored title', () => {
+    store.addHistory('https://a.com');
+    const out = store.addHistory('https://a.com', 'Real Title');
+    expect(out.title).toBe('Real Title');
+    expect(out.visits).toBe(2);
+  });
+
+  test('getTopSites: exclude list folded through stripWww; entry title/url fallback', () => {
+    store.addHistory('https://www.alpha.com/x', 'Alpha');
+    store.addHistory('https://beta.com/y'); // no title → host title fallback
+    store.addHistory('https://www.gamma.com/z', 'Gamma');
+    const sites = store.getTopSites(8, Date.now(), ['ALPHA.com']); // excluded via www-fold
+    const hosts = sites.map((s) => s.host);
+    expect(hosts).not.toContain('alpha.com');
+    expect(hosts).toContain('beta.com');
+    const beta = sites.find((s) => s.host === 'beta.com');
+    expect(beta.title).toBe('https://beta.com/y'); // title || url
+  });
+
+  test('getTopSites: visits ≤0 treated as 1; later entry replaces earlier per host', () => {
+    // two entries on the same host — the higher-scored one wins and gets
+    // replaced in place (existing.url/title arms).
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      { url: 'https://h.com/old', title: '', visitedAt: Date.now() - 40 * DAY, visits: 0 },
+      { url: 'https://h.com/new', title: 'New', visitedAt: Date.now(), visits: 5 }
+    ]));
+    const sites = store.getTopSites(8);
+    expect(sites.filter((s) => s.host === 'h.com')).toHaveLength(1);
+    expect(sites[0].url).toBe('https://h.com/new');
+  });
+
+  test('search: malformed entries skipped; title fallback; bookmark-only URLs surface', () => {
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      null,
+      { url: '' },                    // !entry.url → skip
+      { url: 'https://match.com' },   // no title → title || url
+      { url: 'https://other.com', title: 'Nope' }
+    ]));
+    localStorage.setItem('quiBrowser_bookmarks', JSON.stringify([
+      null,
+      { url: null },                  // !bm.url → skip
+      { url: 'https://match.com', title: 'Dup' }, // already in history → skip
+      { url: 'https://onlybm.com' },  // bookmark-only → virtual visit
+      { url: 'https://nomatch.net', title: 'zzz' }
+    ]));
+    const res = store.search('match');
+    const urls = res.map((r) => r.url);
+    expect(urls).toContain('https://match.com');
+    expect(urls).not.toContain('https://onlybm.com'); // doesn't match query
+    const bmOnly = store.search('onlybm');
+    expect(bmOnly.map((r) => r.url)).toContain('https://onlybm.com');
+    const m = res.find((r) => r.url === 'https://match.com');
+    expect(m.title).toBe('https://match.com'); // title || url fallback
+  });
+
+  test('search respects limit and empty query matches everything', () => {
+    for (let i = 0; i < 10; i++) {
+      store.addHistory(`https://s${i}.com`, `S${i}`);
+    }
+    expect(store.search('', 3).length).toBe(3);
+    expect(store.search('').length).toBeGreaterThan(0); // empty query → all
+  });
+});
