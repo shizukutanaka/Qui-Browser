@@ -434,6 +434,71 @@ describe('fetchThroughGuard — content-encoding', () => {
   });
 });
 
+describe('fetchThroughGuard — charset decoding', () => {
+  const { Readable } = require('node:stream');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+  });
+
+  function fakeReq() {
+    return { on() {}, end() {}, destroy() {} };
+  }
+
+  function streamingRes(statusCode, headers, bodyBuf) {
+    const r = Readable.from([bodyBuf]);
+    r.statusCode = statusCode;
+    r.headers = headers;
+    return r;
+  }
+
+  test('a shift_jis body decodes via the declared charset, not utf8', async () => {
+    // 'テスト' in Shift_JIS. Under the old toString('utf8') path this arrived
+    // at the reader as mojibake — real for a Japanese-first browser.
+    const sjis = Buffer.from([0x83, 0x65, 0x83, 0x58, 0x83, 0x67]);
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html; charset=shift_jis' },
+        sjis
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('テスト');
+  });
+
+  test('a bogus charset label falls back to utf-8', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html; charset=not-a-real-charset' },
+        Buffer.from('<html>ok</html>', 'utf8')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('<html>ok</html>');
+  });
+
+  test('absent charset defaults to utf-8', async () => {
+    http.request.mockImplementation((url, opts, cb) => {
+      setImmediate(() => cb(streamingRes(
+        200,
+        { 'content-type': 'text/html' },
+        Buffer.from('<html>日本語</html>', 'utf8')
+      )));
+      return fakeReq();
+    });
+    const out = await fetchThroughGuard('http://example.com/page');
+    expect(out.ok).toBe(true);
+    expect(out.body).toBe('<html>日本語</html>');
+  });
+});
+
 describe('fetchThroughGuard — decoder error propagation', () => {
   const { Readable } = require('node:stream');
 

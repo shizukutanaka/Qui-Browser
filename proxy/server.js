@@ -213,17 +213,29 @@ export async function fetchThroughGuard(target, headers = {},
           }
           chunks.push(c);
         });
-        source.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        source.on('end', () => resolve(Buffer.concat(chunks)));
         source.on('error', () => resolve(null));
       });
       if (body === null) {
         return { ok: false, reason: abortReason() ?? 'response-too-large-or-truncated' };
       }
+      // The declared charset decides the decode — toString('utf8') would
+      // mangle non-UTF-8 pages (Shift_JIS/EUC-JP remain common on Japanese
+      // sites, this browser's primary audience). TextDecoder covers the
+      // WHATWG label set; unknown labels fall back to UTF-8.
+      const contentType = r.headers['content-type'] || '';
+      let text;
+      try {
+        const charset = /charset="?([\w.-]+)"?/i.exec(contentType)?.[1] ?? 'utf-8';
+        text = new TextDecoder(charset).decode(body);
+      } catch {
+        text = new TextDecoder('utf-8').decode(body);
+      }
       return {
         ok: true,
         status: r.statusCode,
-        contentType: r.headers['content-type'] || '',
-        body,
+        contentType,
+        body: text,
         finalUrl: url.toString()
       };
     } finally {
