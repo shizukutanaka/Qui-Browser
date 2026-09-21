@@ -540,3 +540,35 @@ describe('ComfortSystem update() + render() pass', () => {
     sys.dispose?.();
   });
 });
+
+describe('ComfortSystem — last branch arms', () => {
+  test('constructor defaults baseFOV to 90 when camera.fov falsy', () => {
+    const cam = { fov: 0, position: { set() {} }, updateProjectionMatrix() {} };
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    expect(cs.settings.fov.baseFOV).toBe(90);
+    cs.dispose();
+  });
+
+  test('updateVignette without vignetteMaterial does not throw', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.vignetteMaterial = null;
+    expect(() => cs.updateVignette?.(0.5)).not.toThrow();
+    cs.dispose();
+  });
+
+  test('FOV update while stationary keeps baseFOV (no reduction)', () => {
+    const cam = makeCamera();
+    const cs = new ComfortSystem(makeScene(), cam, makeRenderer());
+    cs.isMoving = false;
+    cs.isRotating = false;
+    cs._updateFOV?.(0.016);
+    cs.dispose();
+  });
+
+  test('dispose without renderTarget/vignetteMaterial does not throw', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(), makeRenderer());
+    cs.renderTarget = null;
+    cs.vignetteMaterial = null;
+    expect(() => cs.dispose()).not.toThrow();
+  });
+});
