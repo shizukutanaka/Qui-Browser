@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き150 — Chrome 検出の4重複を1モジュールへ（1つは既に腐っていた）
+`findChrome()`/`CHROME_CANDIDATES` が verify-app-boot・verify-vr-boot・verify-text-layout・measure-text-metrics に**逐語同一で4重複**。続き127 で macOS Playwright キャッシュを3つに追加した時点で4つ目は更新漏れ — `node tools/measure-text-metrics.mjs` がこのマシンで「No Chromium found」出口を打っていた。`tools/chrome-path.mjs` に抽出して全4箇所が import する形に。統合後 measure-text-metrics は実走し、em 幅モデルを実 Chrome フォントで再検証（全角 1.00em・欧文 ~0.5em・等幅 0.60em — 全てモデル予算内）。verify:app・verify:vr-boot・verify:layout 全て PASS。
+
+### Session 75: 続き149 — babel 設定2層を1枚に統合（.babelrc 削除）
+`.babelrc` と `babel.config.js` が併存して preset-env が2層から適用されていた。.babelrc の実質中身は env.test の import-meta プラグイン（`./tests/babel-plugin-import-meta.cjs` — src/ の `import.meta.env` を jest の CJS でパース可能にする）だけなので babel.config.js の env.test に移し .babelrc を削除。参照2箇所も追随（pre-release-validation の configFiles、no-dead-dependencies の SCAN_FILES）。挙動同一、3035 tests 全緑、verify:prerelease の config チェックは babel.config.js を ✅。
+
 ### Session 75: 続き147 — パッチ系列の post-state を YAML として検証（適用可能でも壊れた YAML は GitHub で爆発）
 `ci-patches.test.js` の最終状態検査はテキスト grep のみで、**構文的に壊れた YAML を産むパッチがクリーン適用＋全チェック通過し得た**。シリーズ適用後の全ワークフローを js-yaml で実パースし、`jobs` とトリガーブロックの存在を断言するテストを追加。js-yaml は transitive に 3.15.2 が居ただけなので devDep に ^4.3.2 を宣言（#135 と同じ undeclared-transitive 依存パターンを排除）。5 workflows 全て valid。3035 tests / 71 suites 全緑。
 
