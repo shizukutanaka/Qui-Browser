@@ -551,6 +551,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き82（同セッション）: デプロイ CSP の死んだ緩和を除去 — 未使用 CDN と eval を許可していた
+- 🔍 **実測**: `script-src` が全3デプロイ設定（netlify.toml / vercel.json / docker/nginx.conf ×2箇所）で `'unsafe-eval'` と `https://cdnjs.cloudflare.com` を許可していたが、repo 全体に cdnjs 参照ゼロ（#134 の preconnect 除去の残滓）、dist バンドルにも `eval(`/`new Function` ゼロ（vendor-three の一致は `evaluate()` メソッド名の偽陽性）。
+- 🔧 **締め付け**: cdnjs と unsafe-eval を全 CSP から削除。`unsafe-inline` は保持 — `public/offline.html` が inline `<script>` を持つ実依存。vercel の googletagmanager は保持 — monitoring.js が PROD で gtag.js を注入する実配線。netlify/nginx は従来から GA 非対応（script-src に googletagmanager なし）で gtag はブロック済み — 今回の変更ではなく既存の非整合として PR に注記。
+- 🔍 同時棚卸し（欠陥ゼロ）: main.css の全クラスが index.html で実使用、Dockerfile/.dockerignore/docker-compose/healthcheck.sh/nginx の route・Permissions-Policy（try_files 再マッチで HTML に xr-spatial-tracking=* が届く設計）は全て整合、CHANGELOG Unreleased は現行機能と一致（歴史記録として正しい）。
+- 📝 2148 tests / 63 suites、lint 0 errors、build green。
+
 #### 続き81（同セッション）: eslint globals の死骸を除去 — 10 個全てが未使用
 - 🔍 **実測**: eslint.config.js のカスタム globals（`THREE` + `XRSession`/`XRReferenceSpace`/`XRFrame`/`XRInputSource` + GPU* 5件）は全て死骸 — `THREE` は全ファイルが `import` 経由（canvasTexture.js の `THREE.LinearFilter` はモジュール束縛）、XR* 4件は JSDoc 型注記のみ、GPU* 5件は削除済み WebGPU 層の残滓。globals を外しても lint は変わらず 0 errors / 119 warnings — 何も守っていなかったことが実測で確認。
 - 🔍 同時棚卸し（欠陥ゼロ）: tools/ 全7ファイルに実参照あり（generate-icons/measure-text-metrics/verify-*/pre-release-validation）、QUICKSTART.md は canonical QUICK_START.md への意図的ポインタ、`.babelrc`+`babel.config.js` は node_modules の three ESM transform に両方必要（コメントに根拠記録済み）。
