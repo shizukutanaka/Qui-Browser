@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き93（同セッション）: 「GPU 必須」の最終前提も打破 — setupScene/setupCamera/createHomeEnvironment を pin
+- 🔍 **実測**: setup 系も GPU 不要と判明 — `setupRenderer`（WebGLRenderer）だけが真の GPU 境界で、scene/camera/env 構築は純 THREE オブジェクト操作。3テスト追加: ①setupScene が scene+Ambient/Directional light+ImmersiveVideo を構築、全 enable フラグ off で homeEnvironment/settingsPanel 非構築を確認 ②createHomeEnvironment: floor が `floorMesh`（テレポート対象）に登録・水平配置、welcome panel が recenter を呼ぶ実 interactable、sky dome が BackSide+depthWrite=false、rest-frame グリッドが floor 上方（z-fighting 回避）③setupCamera: fov 90・実 aspect・眼高1.6m・playerRig に入れ子で scene 追加・enableWebPanel off で WindowManager 非構築。
+- 📝 実装は全て正しい（欠陥ゼロ）。これで VRApp の未検証は `setupRenderer`/`setupControllers` の XR ファクトリ経路のみ — verify:vr-boot の実 Chromium 構築が既にカバー。
+- ✅ 2173 tests / 63 suites、lint 0 errors。
+
 #### 続き92（同セッション）: 設定パネルの全ボタン配線 + レイヤーアタッチを pin — 最後の大きな未検証 UI 面
 - 🔍 **実測**: VRApp prototype メソッド67個のうちテスト未言及が17件 — 内訳は設定パネル構築系（makeCompactToggleButton/makeStepperButton/makeActionButton/makeSectionTab/_toggleSettingsSection/_rebuild*/_dispose*/_redraw*SettingsPanel/_announceSettingsButton/createSettingsPanel/_sharedPlaneGeometry）と `_attachLayersToPanels`/`saveSettings`/`setup*`/`createHomeEnvironment`/`loadAudioAssets`。GPU直結を除き全て bound-prototype 到達可能と判明し7テスト追加: ①コンパクトトグル select → 値反転+永続化+apply+force 読み上げ ②ステッパー: worldToLocal で実座標→u 変換、右=+/左=−/中央=無変化、min でクランプ（saveSettings 非発火まで確認）③セクションタブ exactly-one-open、再選択 no-op（空パネルに畳まない設計意図）④dispose が全メッシュの interactable 登録解除＋parent detach ⑤action ボタン select→コールバック+force アナウンス ⑥`_attachLayersToPanels`: タブ毎に 1.6m×0.08m ネイティブ解像度 quad layer＋detach コールバック配線、renderState は一回コミット ⑦refSpace 不在で完全 no-op。
 - 📝 実装は全て正しいことを実測確認（欠陥ゼロ）。未 pin は真に GPU 必要な setup*/createHomeEnvironment のみ（verify:vr-boot の実 Chromium 構築で既カバー）。localStorage 全5書込み経路も try/catch 済みを確認（quota/プライベートモード耐性あり）。

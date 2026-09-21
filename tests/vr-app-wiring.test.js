@@ -2147,3 +2147,77 @@ describe('VRApp settings-panel button builders + layer attach (bound prototypes)
     expect(layers.createQuadLayer).not.toHaveBeenCalled();
   });
 });
+
+describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure construction (bound prototypes)', () => {
+  const makeSetupApp = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: {
+        enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false,
+        enableGazeDwell: false
+      },
+      _panelTextures: [],
+      _sharedGeometries: new Map(),
+      scene: null, camera: null,
+      renderer: {},
+      interactables: [],
+      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
+      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      saveSettings: jest.fn(),
+      showVRToast: jest.fn(),
+      _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
+      _announceSettingsButton: VRApp.prototype._announceSettingsButton,
+      ...over
+    });
+    return app;
+  };
+
+  test('setupScene builds scene+lights+ImmersiveVideo without a GPU', () => {
+    const app = makeSetupApp();
+    VRApp.prototype.setupScene.call(app);
+    expect(app.scene).toBeInstanceOf(THREE.Scene);
+    const lights = app.scene.children.filter((c) => c.isLight);
+    expect(lights.map((l) => l.type).sort()).toEqual(['AmbientLight', 'DirectionalLight']);
+    expect(app.immersiveVideo).toBeTruthy();
+    expect(app.homeEnvironment).toBeUndefined(); // flag off
+    expect(app.settingsPanel).toBeUndefined();   // flag off
+  });
+
+  test('createHomeEnvironment: floor registered as teleport surface; welcome panel is a working recenter button', () => {
+    const app = makeSetupApp({ recenter: jest.fn() });
+    const env = VRApp.prototype.createHomeEnvironment.call(app);
+    expect(env.name).toBe('homeEnvironment');
+    // Floor: horizontal circle, becomes the teleport raycast target.
+    const floor = env.children.find((c) => c.name === 'floor');
+    expect(floor).toBeTruthy();
+    expect(app.floorMesh).toBe(floor);
+    expect(floor.rotation.x).toBeCloseTo(-Math.PI / 2);
+    // Welcome panel is registered and selecting it recenters the user.
+    const panel = app.interactables[0];
+    expect(panel).toBeTruthy();
+    panel.onSelect();
+    expect(app.recenter).toHaveBeenCalled();
+    // Sky dome is inside-out and never depth-writes (drawn behind everything).
+    const sky = env.children.find((c) => c.material && c.material.isShaderMaterial);
+    expect(sky.material.side).toBe(THREE.BackSide);
+    expect(sky.material.depthWrite).toBe(false);
+    // Rest-frame grid exists (vection comfort) above the floor to avoid z-fighting.
+    const grid = env.children.find((c) => c.isGridHelper || c.type === 'GridHelper');
+    expect(grid).toBeTruthy();
+    expect(grid.position.y).toBeGreaterThan(0);
+  });
+
+  test('setupCamera: 90° FOV camera at 1.6m eye height, nested in playerRig added to the scene', () => {
+    global.window = { innerWidth: 1280, innerHeight: 720 };
+    const app = makeSetupApp();
+    app.scene = new THREE.Scene();
+    VRApp.prototype.setupCamera.call(app);
+    expect(app.camera.fov).toBe(90);
+    expect(app.camera.aspect).toBeCloseTo(1280 / 720);
+    expect(app.camera.position.y).toBe(1.6);
+    expect(app.playerRig.name).toBe('playerRig');
+    expect(app.playerRig.children).toContain(app.camera);
+    expect(app.scene.children).toContain(app.playerRig);
+    expect(app.windowManager).toBeNull(); // enableWebPanel off — no WindowManager built
+    delete global.window;
+  });
+});
