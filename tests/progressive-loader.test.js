@@ -549,3 +549,41 @@ describe('ProgressiveLoader — performLoad type dispatch + completion arms', ()
     expect(order[2]).toBe('phase-primary');
   });
 });
+
+describe('ProgressiveLoader — remaining branch arms', () => {
+  test('detectNetwork fills || defaults when connection fields are absent', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { addEventListener() {} }; // fields undefined → every || arm
+    const loader = new ProgressiveLoader();
+    expect(loader.network.type).toBe('unknown');
+    expect(loader.network.effectiveType).toBe('4g');
+    expect(loader.network.downlink).toBe(10);
+    expect(loader.network.rtt).toBe(50);
+    expect(loader.network.saveData).toBe(false);
+    if (prev === undefined) { delete global.navigator.connection; }
+    else { global.navigator.connection = prev; }
+  });
+
+  test('onNetworkChange re-reads with the same fallbacks', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { addEventListener() {} };
+    const loader = new ProgressiveLoader();
+    global.navigator.connection = { type: 'wifi' }; // partial fields
+    loader.onNetworkChange();
+    expect(loader.network.type).toBe('wifi');
+    expect(loader.network.effectiveType).toBe('4g');
+    if (prev === undefined) { delete global.navigator.connection; }
+    else { global.navigator.connection = prev; }
+  });
+
+  test('getAdaptiveUrl unknown effectiveType → _high suffix', () => {
+    const loader = new ProgressiveLoader();
+    loader.network.effectiveType = '9g'; // not in qualityMap → || '_high'
+    expect(loader.getAdaptiveUrl('https://x/a.jpg')).toBe('https://x/a_high.jpg');
+  });
+
+  test('getStats itemsTotal 0 → progressPercent 0.0', () => {
+    const loader = new ProgressiveLoader();
+    expect(loader.getStats().progressPercent).toBe('0.0');
+  });
+});
