@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き197 — UI canvas テクスチャの sRGB 統一（WebPanel/タブストリップが二重ガンマで不正確な色）
+- 🔍 **発見（three r152+ 色管理）**: `configureUITexture` が mipmap 無効化のみ担当で `colorSpace` を未設定 — 呼出側12箇所が手動で `tex.colorSpace = SRGBColorSpace` を付ける設計だったが、**WebPanel の3枚（chromeTex/contentTex/moveBarTex）と TabManager の stripTex が漏れ** → sRGB エンコード済み canvas が linear として解釈→出力時に再 sRGB 化で二重ガンマ、パネルとタブストリップの色が系統的に不正確に描画されていた。
+- 🔧 **修正**: `configureUITexture` に `tex.colorSpace = THREE.SRGBColorSpace` を追加（`THREE.SRGBColorSpace !== undefined` ガード付き、LinearFilter と同パターン）して単一の正本に — 呼出側の散在した代入（VRApp×7・JapaneseIME×4・ImmersiveVideo・BookmarkPanel・CaptionSystem）を全削除（ImmersiveVideo の VideoTexture 行は helper 非経由のため残置）。
+- 🧪 pin 更新: canvas-texture.test.js に sRGB 断言＋非 export ガードを追加、caption-system.test.js を「helper 経由で sRGB になる」実態 pin に。3086 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き196 — pinch の偽クリック音修正 + compileAsync 化（途中で二重選択を自損→検証で撤回）
 - 🔍 **当初の発見（続き120 同クラス）**: `handTracking.onGesture('pinch')` が無条件にクリック音を鳴らしていた — 空 pinch でも「選択した」ような告知。
 - 🔧 **一度間違えて修正→検証で撤回**: pinch コールバックに `getPointingRay` raycast → onSelect 発行を配線したが、three の WebXRManager ソースを検証したところ **hand inputSource の pinch はランタイムが `selectstart` を発火**（WebXR 仕様: hand の primary action = pinch）し、three がそれをコントローラに dispatch → `onControllerSelect` で**選択は元から動いていた**。私の新経路は二重選択（トグルが1 pinch で on→off）を起こす回帰だったため削除。真のバグは「空 pinch の偽クリック音」のみだった → 音を除去（成功選択の haptic は onControllerSelect 側が持つ）。
