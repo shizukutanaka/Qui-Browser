@@ -520,7 +520,11 @@ export class VRApp {
    */
   setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      antialias: false,  // Disabled for performance (use FXAA/TAA instead)
+      // true: three.js WebXR gives the XR framebuffer 4x MSAA only when this
+      // flag is set (WebXRManager: samples = antialias ? 4 : 0). With it false
+      // the headset renders unantialiased — jagged panel/text edges — and the
+      // FXAA/TAA fallback the old comment referenced does not exist.
+      antialias: true,
       powerPreference: 'high-performance',
       preserveDrawingBuffer: false,
       stencil: false  // Disabled if not needed
@@ -602,7 +606,10 @@ export class VRApp {
    */
   setupScene() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111); // Dark for battery savings
+    // Pure black: Meta's WebXR perf guidance notes Adreno GPUs have a
+    // hardware fast-clear path only for black or white clears; on OLED,
+    // off-pixels also save more power than a gray that still emits light.
+    this.scene.background = new THREE.Color(0x000000);
 
     // Simple ambient light (cheap)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -2899,6 +2906,17 @@ export class VRApp {
       console.debug('VRApp: Performance monitor UI ready');
     }
 
+    // Pre-compile scene shaders while the 2D page is still idle — otherwise
+    // the first rendered frame (often at VR-session entry, the worst possible
+    // moment) pays the full compile hitch.
+    if (this.renderer && this.scene && this.camera) {
+      try {
+        this.renderer.compile(this.scene, this.camera);
+      } catch (e) {
+        console.debug('VRApp: shader precompile skipped', e);
+      }
+    }
+
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
   }
@@ -3051,7 +3069,13 @@ export class VRApp {
       };
       if (session.supportedFrameRates && session.supportedFrameRates.length
           && typeof session.updateTargetFrameRate === 'function') {
-        const best = Math.max(...session.supportedFrameRates);
+        // Keep the ladder so sustained budget misses can step DOWN a rate —
+        // Meta's guidance: an app that can't hit its target should lower the
+        // rate so the compositor synthesizes fewer missing frames.
+        this._rateLadder = [...session.supportedFrameRates].sort((a, b) => b - a);
+        this._rateIdx = 0;
+        this._overBudgetFrames = 0;
+        const best = this._rateLadder[0];
         session.updateTargetFrameRate(best).then(syncBudget, syncBudget);
       } else {
         syncBudget();
@@ -3193,6 +3217,11 @@ export class VRApp {
     if (!this.settings._fpsOverridden && this.deviceCompat) {
       this.settings.targetFPS = this.deviceCompat.targetFPS();
     }
+    // The rate ladder is a per-session object — a stale one from a previous
+    // session could point at rates the new session doesn't support.
+    this._rateLadder = null;
+    this._rateIdx = 0;
+    this._overBudgetFrames = 0;
 
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -3324,8 +3353,28 @@ export class VRApp {
       const targetFrameTime = 1000 / this.settings.targetFPS;
       if (this.performanceMonitor.frameTime > targetFrameTime) {
         this.ffrSystem.adjustIntensity(0.01);
+        this._overBudgetFrames = (this._overBudgetFrames || 0) + 1;
       } else {
         this.ffrSystem.adjustIntensity(-0.01);
+        this._overBudgetFrames = 0;
+      }
+      // Sustained overload (~240 consecutive misses ≈ 2.7 s at 90 Hz): FFR
+      // alone can't buy back a frame that doesn't fit — ask the runtime for
+      // the next-lower supported rate and re-sync the budget. Skipped when
+      // the user pinned a rate via settings (_fpsOverridden).
+      if (this._overBudgetFrames > 240
+          && !this.settings._fpsOverridden
+          && this._rateLadder && this._rateIdx + 1 < this._rateLadder.length) {
+        const session = this.renderer.xr.getSession();
+        if (session) {
+          const next = this._rateLadder[++this._rateIdx];
+          this._overBudgetFrames = 0;
+          session.updateTargetFrameRate(next).then(() => {
+            if (session.refreshRate) {
+              this.settings.targetFPS = Math.round(session.refreshRate);
+            }
+          }, () => {});
+        }
       }
     }
 

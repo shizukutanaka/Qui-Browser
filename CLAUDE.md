@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き192 — Meta 公式 WebXR 性能指針をコードに実測適用（4件）
+- 🔍 **外部調査（developers.meta.com webxr-perf-bp + webxr-frames）**: Meta の公式ベストプラクティスを逐条監査。適用済み = 前面→背面ソート（three 既定）、透明・影の制限（実装済み）、UI テクスチャの mipmap 無効化（canvasTexture.js 済み）。**未適用だった3件を発見**: ①clear color が 0x111111 — Adreno のハードウェア fast-clear は黒/白のみ ②`antialias: false` — three の WebXRManager は `samples: antialias ? 4 : 0` で XR framebuffer の 4× MSAA を切っており、旧コメントが代替に挙げた FXAA/TAA/composer は src/ に存在しない（**MSAA ゼロ＋代替ゼロで XR は常時ジャギー**）③`updateTargetFrameRate` は最大レート要求のみで、持続的フレーム超過時の降格が無かった。
+- 🔧 **修正**: ①scene.background → `0x000000`（fast-clear + OLED 消灯効果も）②`antialias: true`（XR framebuffer に 4× MSAA が実際に付与される）③過負荷ステップダウン — `supportedFrameRates` を降順ラダー `_rateLadder` として保持し、予算超過が 240 フレーム連続したら次の低レートへ `updateTargetFrameRate`、実 refreshRate で targetFPS 再同期。`_fpsOverridden`（ユーザー固定）なら降格しない。onVRSessionEnd でラダー破棄。④`renderer.compile(scene, camera)` をシステム初期化末尾に追加 — 初フレーム（≒VR セッション突入直後）に集中していたシェーダーコンパイルヒッチを 2D アイドル時に前倒し。
+- 🧪 pin 追加: 「予算超過 241 フレーム連続 → updateTargetFrameRate(90) が呼ばれ _rateIdx が 1 へ進む」。
+- ✅ 3088 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き191 — 音声コマンドの日本語限定を正直に告知（en UI での死機能）
 - 🔍 **実測（対称軸の飽和確認→新発見）**: 書込み-only 設定・localStorage キー・DOM id 参照・カスタムイベント・Observer/リスナー/タイマーの clear 対称・循環 import・重複メソッド・毎フレーム確保 — 全てクリーンまで掃引。残ったのは続き190 で自分が公開した矛盾: **音声コマンドの文法は全て日本語固定**（patterns・confirmationText・recognition.lang='ja-JP'）のに、en UI のユーザーにも「Voice Commands」トグルが出て、絶対にマッチしない認識器がマイク許可を取る。
 - 🔧 **修正**: トグル ON 成功時、UI ロケールが ja 以外なら `vr.msg.voiceJaOnly`（「日本語のみ対応」）を告知。en/ja 両ロケールにキー追加、`getLanguage` を VRApp に import。pin テスト追加（en ロケールで init 成功 → voiceJaOnly トースト）。

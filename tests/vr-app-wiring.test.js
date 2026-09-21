@@ -2218,6 +2218,30 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.settings.targetFPS).toBe(120);
   });
 
+  test('sustained budget misses step the session down a supported frame rate', () => {
+    const session = {
+      refreshRate: 120,
+      updateTargetFrameRate: jest.fn().mockResolvedValue(undefined)
+    };
+    const app = makeSystemsApp({
+      isVREnabled: true,
+      settings: { targetFPS: 120 },
+      performanceMonitor: { frameTime: 50 }, // > 1000/120 ≈ 8.3ms budget
+      ffrSystem: {
+        trackHeadPose: jest.fn(), updatePredictedGazeFoveation: jest.fn(),
+        adjustIntensity: jest.fn()
+      },
+      renderer: { xr: { getReferenceSpace: jest.fn(), getSession: () => session }, info: { render: {} } },
+      _rateLadder: [120, 90, 72],
+      _rateIdx: 0
+    });
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    }
+    expect(session.updateTargetFrameRate).toHaveBeenCalledWith(90);
+    expect(app._rateIdx).toBe(1);
+  });
+
   test('no frame-rate module: refreshRate alone still re-bases the budget', async () => {
     const session = makeSession({ refreshRate: 90 });
     const app = makeSessionApp({
