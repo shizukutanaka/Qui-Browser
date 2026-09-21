@@ -504,3 +504,10 @@ describe('extractReadableText — crumb drop + block typing', () => {
     expect(blocks[2]).toEqual({ type: 'p', text: 'a quote here' });
   });
 });
+
+describe('layoutReaderLines — malformed block skip', () => {
+  test('null and textless blocks are skipped', () => {
+    const lines = layoutReaderLines([null, { type: 'p' }, { type: 'p', text: 'ok' }]);
+    expect(lines.filter(l => l.style === 'p')).toEqual([{ text: 'ok', style: 'p' }]);
+  });
+});

@@ -49,3 +49,15 @@ describe('kunrei-shiki (JIS-style) romanization — Japanese users type si/ti/tu
     expect(ime.convertRomajiToHiragana(romaji)).toBe(expected);
   });
 });
+
+describe('JapaneseIME — deleteLast katakana arm + getStats', () => {
+  test('deleteLast converts through katakana when inputMode is katakana', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'katakana';
+    ime.compositionBuffer = 'kana';
+    const r = ime.deleteLast();
+    expect(r.mode).toBe('katakana');
+    expect(r.raw).toBe('kan');
+    expect(r.converted).toBe('カン');
+  });
+});

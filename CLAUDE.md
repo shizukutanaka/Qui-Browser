@@ -544,6 +544,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き113（同セッション）: 残 sliver 一巡 — SpatialAudio/DevTools/PerformanceMonitor/BookmarkPanel/WindowManager/CaptionSystem/IME/app.js
+- ✅ SpatialAudio: resume() 拒否 catch、directional cone パラメータ、stop/setSourcePosition/updateSourceLOD/fadeVolume/updateListenerFromCamera の未知ソース・欠損ノードガード、panner.setPosition/setOrientation 旧APIフォールバック、listener null ガード。
+- ✅ DevTools: console Enter ハンドラ、warn/error 傍受+dispose 復元、scene-tree/network-tbody 欠損ガード、リクエストリングバッファ（100 超で shift）、hide()/dispose コンテナ除去。
+- ✅ PerformanceMonitor: performance.memory 有無で interval 起動/dispose クリア、updateMemoryMetrics 書込み、endFrame の renderer.info サンプル、FPS warning 帯アラート、updateAlerts の perf-alerts 不在ガード。
+- ✅ BookmarkPanel: onHover ティント+キャプション/onHoverEnd 復帰、setMode 未知値ガード+スクロールリセット、_onSelect null evt ガード、_draw canvas/ctx 不在ガード。
+- ✅ WindowManager: beginGrab 非対象/null コントローラガード、_applyAngularScale の距離0ガード。CaptionSystem: _draw canvas null/roundRect 不在→fillRect フォールバック/空行早期 return。
+- ✅ HandTracking: inputSources 欠落→false、update 無効/無 frame ガード、handedness 'none'/null skip。GazeInteraction: _fill 不在ガード。textWrap: 超過語分割前の cur フラッシュ。i18n: t() の en フォールバック。settingsLayout: worstCaseHeight 非配列→PAD。readerLayout: null/textless ブロック skip。
+- ✅ JapaneseIME/VRKeyboard: deleteLast のカタカナ変換経路、createKeyboard 冪等、キー onSelect→onKeyPress/onHover→キャプション、変換/かな/shift/esc 特殊キー本体、showCandidates 空ガード、getStats プロキシ。app.js: visibilitychange 両腕、perf interval の null stats 早期 return。
+- ✅ 2367 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き112（同セッション）: VoiceCommands/ProgressiveLoader/readableText/HapticFeedback/main.js の残腕
 - ✅ VoiceCommands: onstart/onend/onerror/onresult のユーザー callback 転送、SpeechRecognition ctor throw→false、非 string/RegExp パターン skip。
 - ✅ ProgressiveLoader: performLoad の script/style/audio/video ディスパッチ、loadModel/loadGeneric の HTTP !ok throw、onResourceLoaded の bytes+onProgress、start() の onCriticalComplete フェーズ間配置。

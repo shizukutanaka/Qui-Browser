@@ -225,3 +225,60 @@ describe('PerformanceMonitor overlay DOM + graph layer', () => {
     expect(xs[0]).toBe(Math.min(...xs));
   });
 });
+
+describe('PerformanceMonitor — remaining guard arms', () => {
+  test('memory interval armed only when performance.memory exists; dispose clears it', () => {
+    const saved = performance.memory;
+    performance.memory = { usedJSHeapSize: 1024 * 1024 };
+    const mon = new PerformanceMonitor();
+    mon.startMonitoring();
+    expect(mon.memoryInterval).toBeTruthy();
+    mon.dispose();
+    expect(mon.memoryInterval).toBeNull();
+    performance.memory = saved;
+    jest.restoreAllMocks();
+  });
+
+  test('updateMemoryMetrics writes the memory metric when perf.memory is present', () => {
+    const saved = performance.memory;
+    performance.memory = { usedJSHeapSize: 64 * 1024 * 1024 };
+    const mon = new PerformanceMonitor();
+    mon.updateMemoryMetrics();
+    expect(mon.metrics.memory.current).toBeCloseTo(64, 3);
+    performance.memory = saved;
+  });
+
+  test('endFrame samples renderer.info when provided', () => {
+    const mon = new PerformanceMonitor();
+    const renderer = { info: { render: { calls: 3, triangles: 42 }, memory: { textures: 9 }, programs: [1] } };
+    jest.spyOn(performance, 'now').mockReturnValue(0);
+    mon.beginFrame();
+    performance.now.mockReturnValue(5);
+    mon.endFrame(renderer);
+    performance.now.mockRestore();
+    expect(mon.metrics.drawCalls.current).toBe(3);
+    expect(mon.metrics.triangles.current).toBe(42);
+    expect(mon.metrics.textures.current).toBe(9);
+    expect(mon.metrics.shaders.current).toBe(1);
+  });
+
+  test('FPS warning band fires when fps below warning threshold but above critical', () => {
+    const mon = new PerformanceMonitor();
+    const spy = jest.spyOn(mon, 'addAlert');
+    mon.metrics.fps.current = mon.thresholds.fps.warning - 1;
+    if (mon.metrics.fps.current >= mon.thresholds.fps.critical) {
+      // between critical and warning → warning arm
+    }
+    mon.checkThresholds();
+    expect(spy).toHaveBeenCalledWith('warning', expect.stringContaining('FPS below'));
+    spy.mockRestore();
+  });
+
+  test('updateAlerts returns early without the perf-alerts node', () => {
+    const mon = new PerformanceMonitor();
+    const savedDoc = global.document;
+    global.document = { getElementById: () => null };
+    expect(() => mon.updateAlerts()).not.toThrow();
+    global.document = savedDoc;
+  });
+});

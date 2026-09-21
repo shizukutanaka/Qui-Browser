@@ -360,3 +360,80 @@ describe('key texture/hover layer — repaint + dispose + shift latch', () => {
     expect(shift.mesh.userData.keyActive).toBe(false);
   });
 });
+
+describe('keyboard remaining arms', () => {
+  test('createKeyboard is idempotent once the group exists', () => {
+    const { kb } = makeKeyboard();
+    const first = kb.group;
+    const kbKeys = kb.keyboard;
+    const again = kb.createKeyboard();
+    expect(kb.group).toBe(first);
+    expect(again).toBe(kbKeys);
+  });
+
+  test('key onSelect routes to onKeyPress; onHover fires caption hook', async () => {
+    const { kb, registered } = makeKeyboard();
+    const keyEntry = registered.find((e) => e.mesh.userData.keyLabel === 'a');
+    const spy = jest.spyOn(kb, 'onKeyPress');
+    kb.onHoverCaption = jest.fn();
+    keyEntry.handlers.onSelect();
+    expect(spy).toHaveBeenCalledWith('a');
+    keyEntry.handlers.onHover();
+    expect(kb.onHoverCaption).toHaveBeenCalledWith('a');
+  });
+
+  test('_refreshKeyStates and _refreshDisplay no-op before keyboard exists', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {});
+    expect(() => kb._refreshKeyStates()).not.toThrow();
+    expect(() => kb._refreshDisplay()).not.toThrow();
+  });
+
+  test('show() lazily builds the keyboard; showCandidates ignores empty lists', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
+    });
+    kb.show();
+    expect(kb.group).toBeTruthy();
+    expect(() => kb.showCandidates([])).not.toThrow();
+    expect(() => kb.showCandidates(null)).not.toThrow();
+  });
+});
+
+describe('onKeyPress special keys', () => {
+  test('変換 triggers kanji conversion; かな forces hiragana', async () => {
+    const { kb } = makeKeyboard();
+    const spy = jest.spyOn(kb.ime, 'convertToKanji').mockResolvedValue([]);
+    await kb.onKeyPress('変換');
+    expect(spy).toHaveBeenCalled();
+    kb.ime.inputMode = 'katakana';
+    await kb.onKeyPress('かな');
+    expect(kb.ime.inputMode).toBe('hiragana');
+  });
+
+  test('shift toggles katakana latch and repaints key states', async () => {
+    const { kb } = makeKeyboard();
+    expect(kb.ime.inputMode).toBe('hiragana');
+    await kb.onKeyPress('shift');
+    expect(kb.ime.inputMode).toBe('katakana');
+    await kb.onKeyPress('shift');
+    expect(kb.ime.inputMode).toBe('hiragana');
+  });
+
+  test('esc clears state, hides, and fires onCancel', async () => {
+    const { kb } = makeKeyboard();
+    kb.ime.compositionBuffer = 'ka';
+    kb.ime.isActive = true;
+    kb.onCancel = jest.fn();
+    kb.show();
+    await kb.onKeyPress('esc');
+    expect(kb.ime.compositionBuffer).toBe('');
+    expect(kb.ime.isActive).toBe(false);
+    expect(kb.onCancel).toHaveBeenCalled();
+  });
+
+  test('getStats proxies the IME stats object', () => {
+    const { kb } = makeKeyboard();
+    kb.ime.getState = () => ({ stats: { keystrokes: 7 } });
+    expect(kb.getStats()).toEqual({ keystrokes: 7 });
+  });
+});

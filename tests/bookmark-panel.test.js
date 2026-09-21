@@ -558,3 +558,42 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     expect(store.removeBookmark).not.toHaveBeenCalled();
   });
 });
+
+describe('BookmarkPanel — hover callbacks + remaining guards', () => {
+  test('onHover tints the mesh and fires the caption hook; onHoverEnd restores white', () => {
+    const p = makePanel(makeStore());
+    const cfg = p.registerInteractable.mock.calls[0][1];
+    p.mesh.material = { color: { set: jest.fn() }, dispose: jest.fn() };
+    p.onHoverCaption = jest.fn();
+    cfg.onHover();
+    expect(p.mesh.material.color.set).toHaveBeenCalledWith(0xbbccff);
+    expect(p.onHoverCaption).toHaveBeenCalled();
+    cfg.onHoverEnd();
+    expect(p.mesh.material.color.set).toHaveBeenCalledWith(0xffffff);
+  });
+
+  test('setMode ignores unknown modes; valid modes reset scroll and redraw', () => {
+    const p = makePanel(makeStore());
+    p.scrollOffset = 3;
+    p.setMode('bogus');
+    expect(p.mode).not.toBe('bogus');
+    p.setMode('history');
+    expect(p.mode).toBe('history');
+    expect(p.scrollOffset).toBe(0);
+  });
+
+  test('_onSelect bails when the event lacks an intersection point', () => {
+    const p = makePanel(makeStore());
+    expect(() => p._onSelect(null)).not.toThrow();     // null evt → !rawPoint
+  });
+
+  test('_draw returns early without a canvas or ctx', () => {
+    const p = makePanel(makeStore());
+    const keep = p.canvas;
+    p.canvas = null;
+    expect(() => p._draw()).not.toThrow();
+    p.canvas = { getContext: () => null };
+    expect(() => p._draw()).not.toThrow();
+    p.canvas = keep;
+  });
+});

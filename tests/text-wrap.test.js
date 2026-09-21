@@ -106,3 +106,10 @@ describe('wrapTextToLines', () => {
     expect(wrapTextToLines('', 5)).toEqual(['']);
   });
 });
+
+describe('wrapTextToLines — long-word split flushes the pending row first', () => {
+  test('an over-long word pushes the accumulated row before splitting', () => {
+    // 'ab' sits in cur when 'cdefg' (5 > 3) needs splitting → 232-233 arm
+    expect(wrapTextToLines('ab cdefg', 3)).toEqual(['ab', 'cde', 'fg']);
+  });
+});

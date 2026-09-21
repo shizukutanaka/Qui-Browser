@@ -435,3 +435,26 @@ describe('HandTracking.onInputSourcesChange', () => {
     expect(ht.leftHand.visible).toBe(true);
   });
 });
+
+describe('HandTracking — remaining guard arms', () => {
+  test('initialize returns false when session lacks inputSources', async () => {
+    const ht = new HandTracking({}, new MockObj());
+    expect(await ht.initialize({})).toBe(false); // no inputSources member
+  });
+
+  test('update() returns early when disabled or frame is missing', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.enabled = false;
+    expect(() => ht.update({ session: {} }, {})).not.toThrow();
+    ht.enabled = true;
+    expect(() => ht.update(null, {})).not.toThrow();
+    expect(() => ht.update({}, {})).not.toThrow(); // frame without session
+  });
+
+  test('updateHand skips inputSources without a valid handedness', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.enabled = true;
+    expect(() => ht.updateHand({}, { handedness: 'none' }, {})).not.toThrow();
+    expect(() => ht.updateHand({}, { handedness: null }, {})).not.toThrow();
+  });
+});

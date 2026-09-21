@@ -385,3 +385,11 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('GazeInteraction — _updateFill guard', () => {
+  test('_updateFill is a no-op when the fill mesh was never created', () => {
+    const g = new GazeInteraction(makeCamera());
+    g._fill = null;
+    expect(() => g._updateFill(0.5)).not.toThrow();
+  });
+});

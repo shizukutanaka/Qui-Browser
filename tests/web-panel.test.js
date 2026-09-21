@@ -515,3 +515,49 @@ describe('WebPanel — updateLayer quad-layer blit', () => {
     expect(layersSystem.renderCanvasToLayer).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('WebPanel — remaining guard slivers', () => {
+  test('_drawContent returns early without a canvas or 2d context', () => {
+    const p = makePanel();
+    const keep = p.contentCanvas;
+    p.contentCanvas = null;
+    expect(() => p._drawContent()).not.toThrow();
+    p.contentCanvas = { getContext: () => null, width: 8 };
+    expect(() => p._drawContent()).not.toThrow();
+    p.contentCanvas = keep;
+  });
+
+  test('_onContentSelect bails without a canvas or a raw point', () => {
+    const p = makePanel();
+    const keep = p.contentCanvas;
+    p.contentCanvas = null;
+    expect(() => p._onContentSelect({ x: 0, y: 0 })).not.toThrow();
+    p.contentCanvas = keep;
+    expect(() => p._onContentSelect(null)).not.toThrow();
+  });
+
+  test('reload() re-loads the current URL', () => {
+    const p = makePanel();
+    p.currentUrl = 'https://a.example';
+    const spy = jest.spyOn(p, '_loadUrl').mockImplementation(() => {});
+    p.reload();
+    expect(spy).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('enableLayerMode returns early without quadLayer/layersSystem', () => {
+    const p = makePanel();
+    expect(() => p.enableLayerMode(null, {})).not.toThrow();
+    expect(() => p.enableLayerMode({}, null)).not.toThrow();
+    expect(p.quadLayer).toBeFalsy();
+  });
+
+  test('dispose releases material maps and detaches the iframe', () => {
+    const p = makePanel();
+    const parent = { removeChild: jest.fn() };
+    p.iframe = { onload: jest.fn(), onerror: jest.fn(), parentNode: parent };
+    p.dispose();
+    expect(parent.removeChild).toHaveBeenCalledWith(p.iframe);
+    expect(p.iframe.onload).toBeNull();
+    expect(p.iframe.onerror).toBeNull();
+  });
+});

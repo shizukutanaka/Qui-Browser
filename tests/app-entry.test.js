@@ -485,3 +485,38 @@ describe('src/main.js — remaining entry arms', () => {
     errSpy.mockRestore();
   });
 });
+
+describe('src/app.js — remaining arms', () => {
+  test('visibilitychange handler runs hidden/visible arms without throwing', async () => {
+    installDom({ xr: { isSessionSupported: async () => false } });
+    let documentListeners;
+    jest.isolateModules(() => {
+      require('../src/app.js');
+      documentListeners = global.document._listeners;
+    });
+    await tick();
+    const handlers = documentListeners.visibilitychange || [];
+    expect(handlers.length).toBeGreaterThan(0);
+    global.document.hidden = true;
+    expect(() => handlers.forEach((f) => f())).not.toThrow();
+    global.document.hidden = false;
+    expect(() => handlers.forEach((f) => f())).not.toThrow();
+  });
+
+  test('perf interval leaves the overlay untouched when getPerformanceStats is null', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    const vrApp = global.window.QuiBrowser.getApp();
+    const perfDiv = global.document.getElementById('performance-monitor');
+    perfDiv.style.display = 'block';
+    vrApp.getPerformanceStats = () => null;
+    // Null stats → the early-return arm: overlay's innerHTML not rewritten
+    // with a stats table (empty / placeholder content only).
+    expect(String(perfDiv.innerHTML || '')).not.toContain('FPS:');
+  });
+});
