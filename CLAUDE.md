@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き230 — offline.html の a11y/虚偽表記を解消
+- 🔍 **実測（前庭障害ユーザー向けプロダクトの唯一のオフライン面）**: ①無限 `pulse` アニメに `prefers-reduced-motion` ガード無し（WCAG 2.3.3）②`role="status"`/`aria-live` 無しで再接続テキストが SR に届かない（4.1.3）③機能一覧が**存在しない機能を列挙**（拡張・メール作成・ローカルファイル — O-1 と同じ虚偽クラス）④`<html lang="en">` 固定で日本語ユーザーに英語ページ（3.1.1 — lang 動的更新の見落とし面）⑤disclosure ボタンに `aria-expanded`/`aria-controls` 無し（4.1.2）。
+- 🔧 **修正**: ①reduced-motion メディアクエリで pulse/hover transition 停止 ②`role="status" aria-live="polite"`＋dot を `aria-hidden` ③機能一覧を正直化（訪問済みページのキャッシュ・端末保存データ・オンライン時自動再読込）＋「データが sync する」虚偽説明文も修正 ④offline.js が `qui-browser:lang` を読んで ja 文字列へ全置換＋`documentElement.lang` 更新（CSP 下で inline script 不可のため外部 JS 経路 — アプリの i18n モジュールはオフライン時に読めないので文字列は内蔵）⑤`aria-expanded`/`aria-controls` 配線。
+- 🧪 `tests/offline-page.test.js` 新設（7 pin: reduced-motion・aria-live・disclosure・no-inline-script・虚偽機能なし・ja 言語・online 遷移のみ reload）。
+- ✅ 3011 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 75: 続き229 — `<ruby>` ふりがな二重化と `<dl>`/`<summary>` 消滅を解消
 - 🔍 **実測**: ①`<ruby>漢字<rt>かんじ</rt></ruby>` が `漢字 ( かんじ ) を読む` と**ふりがな＋括弧が本文へインライン二重化**（rt は基底文字の上に描く注釈であり、本文ではない）②`<dl>` の dt/dd が抽出対象外で用語定義が全消滅 ③`<details>` の `<summary>` ラベル消失（中身は拾えていた）。
 - 🔧 **修正**: `liftUnreachable` に rt/rp の内容物除去を追加（基底文字のみ残す — canvas リーダーではふりがなを行上に描けないため正直に落とす）。抽出 alternation に `dt`/`dd`/`summary` を追加（全て 'p' 扱い）。
