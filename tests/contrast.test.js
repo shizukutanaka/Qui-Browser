@@ -23,7 +23,7 @@
 const {
   parseCssColor, compositeOver, relativeLuminance,
   contrastRatio, wcagMinimum, apcaLc
-} = require('../src/vr/ui/contrast.js');
+} = require('./helpers/contrast.js');
 const { bookmarkPanelColors } = require('../src/vr/browser/bookmarkLayout.js');
 const { webChromeColors, webContentColors } = require('../src/vr/browser/chromeColors.js');
 const { imeBadgeColors, imeColors } = require('../src/vr/input/keyboardLayout.js');

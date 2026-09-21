@@ -419,7 +419,7 @@ describe('bookmarkPanelColors — high-contrast palette (WCAG 1.4.11)', () => {
   // the difference, so the guard now asserts the property that actually
   // matters and tests/contrast.test.js sweeps the rest of the palette.
   test('the inactive scroll glyph is perceivable, and dimmer than the active one', () => {
-    const { contrastRatio, compositeOver } = require('../src/vr/ui/contrast.js');
+    const { contrastRatio, compositeOver } = require('./helpers/contrast.js');
     const c = bookmarkPanelColors(false);
     const panel = compositeOver(c.bg, '#000000');
     const idle = contrastRatio(c.scrollInactive.text, c.scrollInactive.bg, panel);

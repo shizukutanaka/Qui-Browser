@@ -38,7 +38,8 @@ const M = {
   VoiceCommands: require('../src/vr/input/VoiceCommands.js'),
   PerformanceMonitor: require('../src/utils/PerformanceMonitor.js'),
   TabManager: require('../src/vr/browser/TabManager.js'),
-  BookmarkPanel: require('../src/vr/browser/BookmarkPanel.js')
+  BookmarkPanel: require('../src/vr/browser/BookmarkPanel.js'),
+  ImmersiveVideo: require('../src/vr/media/ImmersiveVideo.js')
 };
 
 const ORIGINALS = {};
@@ -120,7 +121,8 @@ const GENERIC = {
   VoiceCommands: () => ({ initialize: async () => false, callbacks: {}, connectBrowser() {}, start() {} }),
   PerformanceMonitor: () => ({ initialize() {} }),
   TabManager: () => ({}),
-  BookmarkPanel: () => ({})
+  BookmarkPanel: () => ({}),
+  ImmersiveVideo: () => ({})
 };
 function patchAll() {
   for (const [name, make] of Object.entries(GENERIC)) {
@@ -542,5 +544,56 @@ describe('callback bodies — the wiring runs when invoked', () => {
     expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(2);
     vc.callbacks.onError('not-allowed');
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ type: expect.any(String) }));
+  });
+});
+
+describe('setupScene — ImmersiveVideo cfg callback bodies', () => {
+  test('onPlaybackChange captions by state, gated on isVREnabled + caption enabled', () => {
+    const ivCalls = [];
+    patch('ImmersiveVideo', ctor(ivCalls, {}));
+    const app = makeInitLike({ enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false });
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype.setupScene.call(app);
+    const cfg = ivCalls[0][3];
+
+    // Session-end stop() calls with isVREnabled=false must NOT caption.
+    app.isVREnabled = false;
+    cfg.onPlaybackChange('stopped');
+    expect(shown).toHaveLength(0);
+    app.isVREnabled = true;
+    cfg.onPlaybackChange('playing');
+    cfg.onPlaybackChange('paused');
+    cfg.onPlaybackChange('stopped');
+    expect(shown).toHaveLength(3);
+    // three distinct localized labels
+    expect(new Set(shown).size).toBe(3);
+
+    cfg.onError('boom');
+    expect(app.showVRToast).toHaveBeenCalledWith('boom', { type: 'error' });
+
+    // hover caption gated on gaze-dwell
+    app.settings.enableGazeDwell = false;
+    const n = shown.length;
+    cfg.onHoverCaption('x');
+    expect(shown.length).toBe(n);
+    app.settings.enableGazeDwell = true;
+    cfg.onHoverCaption('video hint');
+    expect(shown).toContain('video hint');
+  });
+
+  test('enableHomeEnvironment + enableSettingsPanel + enableWebPanel gates', () => {
+    patch('ImmersiveVideo', function () { return {}; });
+    const app = makeInitLike({
+      enableHomeEnvironment: true, enableSettingsPanel: true, enableWebPanel: true
+    });
+    app.createHomeEnvironment = jest.fn(() => new THREE.Group());
+    app.createSettingsPanel = jest.fn(() => new THREE.Group());
+    app._buildBrowsingSystems = jest.fn();
+    VRApp.prototype.setupScene.call(app);
+    expect(app.createHomeEnvironment).toHaveBeenCalled();
+    expect(app.scene.children).toContain(app.homeEnvironment);
+    expect(app.createSettingsPanel).toHaveBeenCalled();
+    expect(app._buildBrowsingSystems).toHaveBeenCalled();
   });
 });

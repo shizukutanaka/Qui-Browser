@@ -102,10 +102,10 @@ describe('buttonStyle — high-contrast WCAG contrast ratios', () => {
   // The WCAG maths used to be reimplemented inline here. That copy handled
   // 6-digit hex only, so it could not evaluate a single `rgba()` value — and
   // the button/toast/row backings this palette sits on are all `rgba()`. It now
-  // uses the shared implementation (src/vr/ui/contrast.js), which composites
+  // uses the shared implementation (tests/helpers/contrast.js), which composites
   // alpha before measuring; the sanity check below still pins the endpoints so
   // a broken shared helper cannot quietly certify this palette.
-  const { contrastRatio } = require('../src/vr/ui/contrast.js');
+  const { contrastRatio } = require('./helpers/contrast.js');
 
   test('contrastRatio sanity: black/white is 21:1, identical is 1:1', () => {
     expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);

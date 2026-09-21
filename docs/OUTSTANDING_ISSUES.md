@@ -239,7 +239,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 
 ## G. 色コントラスト監査（Sessions 69, 72）— 実測済み・WCAG 2 は全通過、APCA は未達
 
-`src/vr/ui/contrast.js`（WCAG 2 比 + APCA Lc、`rgba()` のアルファ合成込み）と
+`tests/helpers/contrast.js`（WCAG 2 比 + APCA Lc、`rgba()` のアルファ合成込み）と
 `tests/contrast.test.js`（**実パレット 50 ペア × 通常/高コントラストの両モード**を掃引）を追加した。
 以後、canvas UI の色は「目視できないから検証不能」ではなく**テストで固定**される。
 
