@@ -518,3 +518,11 @@ describe('CaptionSystem — remaining branch arms', () => {
     expect(cs.mesh).toBeNull();
   });
 });
+
+describe('captionLayout — complementary arms', () => {
+  test('non-positive scale normalizes in captionMeasureEm/captionFontSizeFor', () => {
+    const { captionMeasureEm, captionFontSizeFor } = require('../src/vr/accessibility/captionLayout.js');
+    expect(captionMeasureEm(0)).toBe(captionMeasureEm(1));
+    expect(captionFontSizeFor(3, -1)).toBe(captionFontSizeFor(3, 1));
+  });
+});
