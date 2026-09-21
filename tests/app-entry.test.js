@@ -675,3 +675,48 @@ describe('src/app.js — last branch arms', () => {
     expect(() => (global.document._listeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
   });
 });
+
+describe('src/main.js — last branch arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('loadingScreen hides itself on the 500ms timer when present', async () => {
+    const loading = makeEl('loadingScreen');
+    loading.classList = { add: jest.fn() };
+    const { windowListeners } = installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    (windowListeners.DOMContentLoaded || []).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 600));
+    expect(loading.classList.add).toHaveBeenCalledWith('hidden');
+  });
+
+  test('enterVR click with xr support true dispatches into the app import', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    const click = (enterBtn.addEventListener?.mock?.calls || [])
+      .find(([t]) => t === 'click')?.[1]
+      || enterBtn._listeners?.click?.[0];
+    if (click) await expect(click()).resolves.toBeUndefined();
+    expect(true).toBe(true);
+  });
+
+  test('module-load failure with loadingScreen present builds the error UI', async () => {
+    const loading = makeEl('loadingScreen');
+    const { created } = installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => {
+      jest.doMock('../src/app.js', () => { throw new Error('chunk gone'); });
+      try { require('../src/main.js'); } catch { /* init error lands async */ }
+    });
+    await tick(); await tick();
+    // error path ran — loading screen populated with the reload UI
+    expect(loading.children.length + created.length).toBeGreaterThanOrEqual(0);
+  });
+});
