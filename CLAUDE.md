@@ -544,6 +544,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き116（同セッション）: VRApp ブランチ腕 — updateButtonInput false側 + dispose() else腕 + absent-subsystem apply
+- ✅ updateButtonInput: menu ボタンの settings トグル（faceB || menu 腕）、mesh 不在 settingsPanel のトグル、vrKeyboard visible→hide+closed キャプション、tab 不在時の faceA/faceB 無操作、captionSystem disabled 腕、何も押されない時の haptic 未発火。
+- ✅ dispose() else 腕: vrKeyboard 不在→japaneseIME.dispose、tabManager 不在→webPanel.dispose、全サブシステム不在でも完走。
+- ✅ settings apply コールバック: サブシステム null 時（captionSystem/gazeInteraction/hapticFeedback 全不在）でも toggle が例外なく設定を反転することを pin。
+- ✅ 2388 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き115（同セッション）: カバレッジフロアのラチェット — 実測 96% に対し閾値が 75 系のままだった
 - 🔍 **ソクラテス的検証**: TESTING.md は「フロアはラチェット、実測を下げるな」と謳うが、実測値（95.9% stmts / 83.2% branch / 92.7% funcs / 96.1% lines）に対し `jest.config.js` の閾値は statements 75 / branches 65 / functions 70 / lines 75 のまま — **20ポイントの退化がゲートを素通り**する状態だった。TESTING.md の数値記述も旧フロア（25系）のまま陳腐化。
 - 🔧 **修正**: 閾値を実測直下に引き上げ（branches 81 / functions 90 / lines 94 / statements 93）、TESTING.md の Coverage policy 記述を新フロアに同期。新閾値で `jest --coverage` 全緑を実測確認。
