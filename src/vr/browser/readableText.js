@@ -147,6 +147,57 @@ export function extractTitle(html) {
 }
 
 /**
+ * Lift content the flat block scan cannot reach into reachable text:
+ * - `<img alt>` — the tag (and attribute) is stripped whole, so a
+ *   descriptive alt is inlined as ` [img: …] ` inside its paragraph.
+ * - `<ol>` items — each `<li>` gets its ordinal baked in, or a numbered
+ *   procedure silently renders as an unordered list.
+ * - `<table>` — no cell lands inside a p/li, so tables vanished entirely.
+ *   Each row becomes a paragraph of `cell | cell` (already-decoded text).
+ *
+ * Text lifted into markup is decoded already; a literal `<`/`&` inside it
+ * would restart tag scanning, so it is re-encoded (the block scan decodes
+ * it back via textOf).
+ */
+const reEncode = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function liftUnreachable(html) {
+  return String(html)
+    .replace(/<img\b[^>]*>/gi, (tag) => {
+      const m = tag.match(/\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/);
+      const alt = m ? decodeEntities(m[1] || m[2] || m[3] || '').trim() : '';
+      return alt ? ` [img: ${reEncode(alt)}] ` : ' ';
+    })
+    .replace(/<ol\b[^>]*>([\s\S]*?)<\/ol\s*>/gi, (whole, inner) => {
+      let n = 0;
+      return inner.replace(/<li\b([^>]*)>([\s\S]*?)<\/li\s*>/gi, (mm, attrs, content) => {
+        n += 1;
+        return `<li${attrs}>${n}. ${content}</li>`;
+      });
+    })
+    .replace(/<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi, (whole, inner) => {
+      const rows = [];
+      const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi;
+      let r;
+      while ((r = trRe.exec(inner)) !== null) {
+        const cells = [];
+        const cellRe = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]\s*>/gi;
+        let c;
+        while ((c = cellRe.exec(r[1])) !== null) {
+          const t = textOf(c[1]);
+          if (t) {
+            cells.push(t);
+          }
+        }
+        if (cells.length) {
+          rows.push(`<p>${reEncode(cells.join(' | '))}</p>`);
+        }
+      }
+      return rows.join('');
+    });
+}
+
+/**
  * Extract readable blocks from an HTML document.
  *
  * @param {string} html
@@ -155,13 +206,13 @@ export function extractTitle(html) {
 export function extractReadableText(html) {
   const src = String(html === null || html === undefined ? '' : html);
   const title = extractTitle(src);
-  const body = mainRegion(stripNonContent(src));
+  const body = liftUnreachable(mainRegion(stripNonContent(src)));
 
   const blocks = [];
   // Headings, prose and preformatted code, in document order. Without `pre`
   // in the alternation a tech article's code samples silently vanished —
   // fatal for exactly the Qiita/Zenn posts this reader exists for.
-  const re = /<(h[1-3]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
+  const re = /<(h[1-6]|p|li|blockquote|pre|figcaption)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi;
   let m;
   while ((m = re.exec(body)) !== null) {
     const tag = m[1].toLowerCase();

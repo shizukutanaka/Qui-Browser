@@ -158,6 +158,39 @@ describe('extractReadableText', () => {
     expect(blocks[0].text).toBe('if (x) {\n  y();\n}');
     expect(blocks[0].text).not.toContain('\t');
   });
+
+  test('<table> rows surface as pipe-joined paragraphs instead of vanishing', () => {
+    const html = '<body><p>intro</p><table><tr><th>Name</th><th>VRAM</th></tr>' +
+      '<tr><td>Quest 3</td><td>8GB</td></tr></table><p>tail</p></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toContain('Name | VRAM');
+    expect(texts).toContain('Quest 3 | 8GB');
+    expect(texts).toContain('tail');
+  });
+
+  test('<ol> items keep their ordinal; <ul> stays unnumbered', () => {
+    const html = '<body><ol><li>first</li><li>second</li></ol>' +
+      '<ul><li>loose</li></ul></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toEqual(expect.arrayContaining(['1. first', '2. second', 'loose']));
+    expect(texts).not.toContain('1. loose');
+  });
+
+  test('<img alt> inlines as [img: …]; empty alt stays silent', () => {
+    const html = '<body><p>see <img src="a.png" alt="arch diagram"> below</p>' +
+      '<p>deco <img src="dot.gif" alt=""></p></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks[0].text).toBe('see [img: arch diagram] below');
+    expect(blocks[1].text).toBe('deco');
+  });
+
+  test('h4–h6 headings are headings too', () => {
+    const html = '<body><h4>Deep</h4><p>x</p></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks[0]).toEqual({ type: 'h', text: 'Deep' });
+  });
 });
 
 describe('layoutReaderLines', () => {

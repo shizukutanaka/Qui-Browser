@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き228 — リーダーの `<table>`/`<ol>`/`<img alt>`/`h4-6` 喪失を解消
+- 🔍 **実測（続き227 の同クラス横展開）**: 平坦なブロック走査が拾えない要素が更に4種残っていた — ①`<table>`（全セルが p/li 外のため表ごと消滅 — スペック比較表が消える）②`<ol>`（li だけ拾って序数が落ち、手順系記事で「1. 2. 3.」の順序が喪失）③`<img alt>`（タグごと剥がされ意味ある alt が蒸発）④`h4-6`（alternation が h1-3 のみ）。
+- 🔧 **修正**: `liftUnreachable` 前処理パスを新設 — 走査前に本文へ昇格: img は ` [img: alt] ` を段落内へインライン（構造を壊さない）、ol の li へ序数を焼付け、table 行は `cell | cell` の `<p>` へ。昇格テキストはデコード済みのため `<`/`&` を再エンコード（TAG_RE 誤発火で後続テキストを食わない）。`figcaption` も抽出対象に追加。
+- 🧪 pin 4件: 表行が `|` 結合で生存・ol 番号/ul は無番号・img alt インライン＋空 alt は黙・h4 が 'h'。
+- ✅ 3002 tests / 72 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 75: 続き227 — リーダーの `<pre>` コードブロック喪失を解消
 - 🔍 **実測**: `extractReadableText` の抽出 alternation が `h1-3/p/li/blockquote` のみ — Qiita/Zenn 系記事の `<pre>` コードブロックが**記事から静かに消えていた**。仮に抽出しても `wrapTextToWidth` が `.trim()`＋`\s+` 分割でインデントを潰し、canvas の `\t` 描画も不定。
 - 🔧 **修正**: ①抽出に `pre` を追加し `preTextOf` で `<br>`→`\n`・タグ剥がし・`\r\n` 正規化・`\t`→2スペース展開・行末空白除去・先端/末端空行除去 ②`layoutReaderLines` に `pre`→'c' 経路 — 物理行を1行ずつ描き、先頭インデントを wrap 前に分離して全継続行へ再付与（ハンギングインデント）。超過行は wrap で消えない ③`fontPxFor('c')=17`・WebPanel で monospace＋`readerCode` 色（通常 #9cdcfe ≒10:1、HC は #ffffff）。
