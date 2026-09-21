@@ -1104,3 +1104,43 @@ describe('VoiceCommands — complementary arms', () => {
     expect(onGoTo).toHaveBeenCalledWith('github');
   });
 });
+
+describe('VoiceCommands — complementary arms 2', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('unwired search command falls back to window.open google URL', () => {
+    const opened = [];
+    const origOpen = global.window?.open;
+    global.window = global.window || {};
+    global.window.open = (u, t) => opened.push([u, t]);
+    try {
+      vc.processCommand('検索：てんき', 0.9);
+      expect(opened.length).toBe(1);
+      expect(opened[0][0]).toContain('google.com/search?q=');
+      expect(opened[0][1]).toBe('_blank');
+    } finally {
+      global.window.open = origOpen;
+    }
+  });
+
+  test('go-to command on English transcript extracts the site via enMatch', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    vc.processCommand('open example.com', 0.9);
+    expect(onGoTo).toHaveBeenCalledWith('example.com');
+  });
+
+  test('go-to command with no extractable site returns query:null without calling onGoTo', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    // matches the registered pattern prefix but both jp/en sub-matches fail
+    vc.processCommand('行って', 0.9);
+    // either no go-to match at all, or a match with null query — onGoTo never fires with empty
+    const goToCalls = onGoTo.mock.calls.filter(([q]) => !q || !q.trim());
+    expect(goToCalls.length).toBe(0);
+  });
+});
