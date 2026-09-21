@@ -98,9 +98,11 @@ describe('monitoring.js', () => {
 
   test('initializeMonitoring starts the performance-report interval', async () => {
     await initializeMonitoring();
-    // Advance by one report interval (60 000ms)
-    jest.advanceTimersByTime(60000);
-    // reportPerformanceSummary fires — no crash
+    // The test name claims a timer exists — assert it, and that it fires.
+    expect(jest.getTimerCount()).toBeGreaterThanOrEqual(1);
+    jest.advanceTimersByTime(60000); // reportPerformanceSummary fires — no crash
+    disposeMonitoring();
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   // ── trackEvent ────────────────────────────────────────────────────────────────

@@ -544,6 +544,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き90（同セッション）: テストスイート自己監査 — ゼロアサーション1件を実アサーション化
+- 🔍 **実測**: 全63 suite の `test()` 本体を走査 — `expect` を含まないテストは monitoring.test.js の「starts the performance-report interval」1件のみ（タイマーが発火してもクラッシュしないことしか検証していなかった=テスト名の主張と内容が不一致）。`expect(jest.getTimerCount())` で interval の存在＋dispose 後の解放を実アサーション化。`it.skip`/`xdescribe`/`.only`/`test.todo` はゼロ。
+- 🔍 **他の dead-surface 走査も全てゼロを実測**: import 到達不能モジュールは `src/vr/ui/contrast.js` 1件のみ（WCAG/APCA 計量用のテスト専用ユーティリティ — 正当）、テストのみが使う export ゼロ、書き込み専用 localStorage キーゼロ、参照先不存在の DOM id ゼロ（`vr-container` は JSDoc 例文のみ）、未使用 CSS クラスゼロ、被験対象を自分で mock する自己 mocks ゼロ。
+- 🔧 **自己修正**: docs/patches の `git apply --check` 検証で「FAIL」が出たが、原因はチェックアウトでパッチファイル自体が消えたハーネスバグ — `/tmp` に退避して再検証すると **4件全て origin/main にクリーン適用**（K-1 パッチは依然として有効）。
+- ✅ 2157 tests / 63 suites、lint 0 errors。
+
 #### 続き89（同セッション）: proxy fetchThroughGuard のリダイレクトホップ不変条件を pin — 最後の <50% ネットワーク面
 - 🔍 **実測**: `proxy/server.js` が 44.6% — SSRF 修復（#138）の実際の配管（リダイレクト再ガード・content-type 拒否・サイズ中断・timeout/error）は無検証だった。mock http/dns で駆動して6テスト追加: ①302→新ターゲットで lookup 再検査してから再発行（2回）②302 ループが MAX_REDIRECTS(3)+初回=4発行で停止 ③**169.254.169.254 へのリダイレクトを2ホップ目で拒否（ソケット未発行）**④application/octet-stream は本体未消費で拒否 ⑤>5MB 本体は中途で destroy→'response-too-large-or-truncated' ⑥ECONNREFUSED は throw ではなく 'upstream-error'。
 - 📝 **コード監査結果欠陥ゼロ**: safeUpstreamHeaders はホワイトリスト（UA/accept/accept-language のみ — Cookie/Authorization は上流へ流さない）、各ホップで URL/DNS を再検証、`resolve` は冪等。`monitoring.js` の PROD ゲート層も目検済み（bounded 配列・全経路ガード付き）。
