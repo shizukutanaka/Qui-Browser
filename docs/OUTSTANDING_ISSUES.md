@@ -541,12 +541,20 @@ git push
 
 **パッチ同梱**: `docs/patches/0002-ci-fix-dead-jobs.patch`（`origin/main` にクリーン適用を検証済み）— test-integration を `npm run test:integration` に付け替え、test-performance ジョブとその `needs:`/サマリ参照を削除。
 
+**続き83 追記（残件を全てパッチ化）**: test.yml/deploy.yml の死んだステップ群と、
+削除対象3ワークフロー（benchmark.yml・wasm-build.yml・v5.8.0-planning.yml）を
+`git am` パッチに固めた — `0003-ci-fix-test-deploy-workflows.patch` と
+`0004-ci-delete-dead-workflows.patch`（両方 `origin/main` にクリーン適用を検証済み）。
+0003 には新たな実害も含む: **deploy.yml の Pages ジョブはビルドを一度も実行せず
+`path: '.'` で生ソースを公開していた**（vercel.json の #130 と同じ破損クラス）→
+`npm run build`（`BASE_PATH=/Qui-Browser/`）+ `path: './dist'` に修正。
+
 ```bash
 git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch   # 既存（assets/js 参照除去）
-git am docs/patches/0002-ci-fix-dead-jobs.patch          # 本追記（死んだジョブの修復）
-git rm .github/workflows/benchmark.yml .github/workflows/v5.8.0-planning.yml .github/workflows/wasm-build.yml
-git commit -m "ci: delete dead scheduled/path-filtered workflows"
+git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
+git am docs/patches/0002-ci-fix-dead-jobs.patch               # 既存（ci.yml 死んだジョブ修復）
+git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復
+git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
 git push
 ```
 

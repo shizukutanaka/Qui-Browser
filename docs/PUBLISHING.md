@@ -23,15 +23,21 @@
 > | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
 > | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
 >
-> **A ready-to-apply patch is committed at
-> `docs/patches/0001-ci-drop-assets-js-steps.patch`** — verified to apply
-> cleanly to `main` and to leave zero `assets/js` references behind:
+> **Ready-to-apply patches are committed under `docs/patches/`** —
+> all verified to apply cleanly to `main`:
 >
 > ```bash
 > git checkout main && git pull
-> git am docs/patches/0001-ci-drop-assets-js-steps.patch
+> git am docs/patches/0001-ci-drop-assets-js-steps.patch        # ci.yml: assets/js refs
+> git am docs/patches/0002-ci-fix-dead-jobs.patch               # ci.yml: dead jobs
+> git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml + deploy.yml
+> git am docs/patches/0004-ci-delete-dead-workflows.patch       # benchmark / wasm-build / v5.8.0-planning
 > git push
 > ```
+>
+> Patch 0003 also fixes a live deploy break: deploy.yml never ran a build and
+> uploaded `path: '.'` (raw source) to Pages — it now builds with
+> `BASE_PATH=/Qui-Browser/` and uploads `./dist`.
 >
 > (`git apply` instead of `git am` if you'd rather write your own commit message.)
 >
