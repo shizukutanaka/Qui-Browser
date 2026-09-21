@@ -3,16 +3,6 @@
  * THREE and three/examples are fully mocked so no GPU or network is needed.
  */
 
-// ── THREE mock ────────────────────────────────────────────────────────────────
-const THREE_CONSTANTS = {
-  RepeatWrapping: 1000,
-  LinearFilter: 1006,
-  LinearMipMapLinearFilter: 1008,
-  NearestFilter: 1003,
-  LinearSRGBColorSpace: 'srgb-linear',
-  SRGBColorSpace: 'srgb'
-};
-
 const makeMockTexture = () => ({
   wrapS: null, wrapT: null,
   magFilter: null, minFilter: null,
@@ -100,16 +90,12 @@ describe('TextureManager', () => {
     expect(tex.colorSpace).toBe('srgb');
   });
 
-  test('applyTextureSettings: legacy encoding 3001 maps to srgb', () => {
+  test('applyTextureSettings: the removed legacy encoding option is ignored', () => {
     const tex = makeMockTexture();
+    // Pre-r152 callers once passed THREE.*Encoding numerics; that compat branch
+    // was deleted (no caller passed it) — encoding must not set colorSpace.
     tm.applyTextureSettings(tex, { encoding: 3001 });
-    expect(tex.colorSpace).toBe('srgb');
-  });
-
-  test('applyTextureSettings: legacy encoding other maps to srgb-linear', () => {
-    const tex = makeMockTexture();
-    tm.applyTextureSettings(tex, { encoding: 3000 });
-    expect(tex.colorSpace).toBe('srgb-linear');
+    expect(tex.colorSpace).toBeNull();
   });
 
   test('applyTextureSettings: anisotropy uses renderer max by default', () => {

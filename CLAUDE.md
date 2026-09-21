@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き215 — three 0.181 deprecated-API 掃討: 死んだ encoding 互換分岐の削除
+- 🔍 **外部知見照合（three r152+ 廃止 API 掃引）**: `outputEncoding`/`physicallyCorrectLights`/`useLegacyLights`/`sRGBEncoding`/`LinearEncoding`/`toneMapping`/`outputColorSpace` を src/ 全体で grep — 唯一の残滓は `TextureManager.applyTextureSettings` の `else if (options.encoding)` 互換分岐のみ。他経路（canvasTexture.js・ImmersiveVideo.js の `THREE.SRGBColorSpace` 直指定）は現行 API で正しい。
+- 🗑 **削除**: `options.encoding === 3001` の旧 sRGBEncoding マッピング — 全 call site（`VRApp.loadTexture`・`ProgressiveLoader.loadTexture`・icon/texture 経路）を追跡し `encoding` を渡す caller が**ゼロ**を確認してから削除。死んだ compat 層が「encoding を渡せば動く」という誤った契約を約束し続けるのを解消。
+- 🧪 **pin**: 旧コントラクトを pin していた2テストを新コントラクトへ更新 — `encoding: 3001` を渡しても `colorSpace` は設定されないことを負の断言で固定（deletion の回帰防止）。併せて未使用になった `THREE_CONSTANTS` 定数をテストから除去（no-unused-vars warning 解消）。
+- ✅ 3093 tests / 72 suites 全緑（ピン交換で -1）、lint 0 errors。
+
 ### Session 75: 続き214 — N-2 実装: telemetry 計装を VRApp に配線（no-op 既定）
 - 🔧 **実測 → 配線**: monitoring.js の `trackFPS`/`trackMemory`/`trackInteraction`/`trackVRSession`/`trackVRError`/`trackPageView` が src 全体で**呼出元ゼロ** — `reportPerformanceSummary` が毎分・unload 時に全ゼロのサマリを送り続ける dead-on-arrival のテレメトリ（N-2 の「(a) 配線」を実装）。配線点: `updatePerformanceMonitor` で ~1 Hz スロットル（リングバッファ100件に合わせ per-frame ではなく）、`onVRSessionStart/End` で deviceTier 付き vr_start/vr_end、`onControllerSelect` + gaze activation で modality 付き select、`navigate()` で trackPageView（**origin+pathname のみ** — クエリの検索語/トークン漏洩を遮断）、requestSession catch で trackVRError。
 - 🔍 **安全性**: 全呼出は `MONITORING_CONFIG.enabled`(PROD)＋`window.gtag` 存在ゲート — キー未設定では完全 no-op、本番方針の決定権は owner に残る（N-2 テキスト更新済み）。

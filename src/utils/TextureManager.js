@@ -137,12 +137,6 @@ export class TextureManager {
     // Color space (replaces the deprecated .encoding API in THREE r152+)
     if (options.colorSpace) {
       texture.colorSpace = options.colorSpace;
-    } else if (options.encoding) {
-      // Legacy callers: map old LinearEncoding/sRGBEncoding constants to the
-      // new colorSpace strings so existing call-sites keep working.
-      texture.colorSpace = options.encoding === 3001  // THREE.sRGBEncoding
-        ? 'srgb'
-        : 'srgb-linear';
     }
 
     // Generate mipmaps for better quality
