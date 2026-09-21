@@ -551,6 +551,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き79（同セッション）: カバレッジ下限のラチェットが一度も回されていなかった — 実測 80% に対し floor 25% のまま
+- 🔍 **実測**: TESTING.md は「閾値はラチェット：実カバレッジが上がったら上げる」と規約を謳うが、jest.config.js の `coverageThreshold` は `branches 20 / functions 25 / lines 25 / statements 25` でコメントも「baseline ~28%」のまま — 現在の実測は **stmts 80.2 / branch 71.1 / funcs 75.3 / lines 80.7**（63 suites / 2148 tests）。40+ セッション分のカバレッジ増加分が全く閾値に反映されておらず、退行は一切捕捉されない状態だった。
+- 🔧 **ラチェット適用**: floor を実測の直下に引き上げ（branches 65 / functions 70 / lines 75 / statements 75）— `ci:test` = `test:coverage` なので、以後カバレッジを下げる PR は main マージ時に落ちる。per-file 下限は掛けずグローバルのみ（VRApp 34% は XR セッション直結層の headless 限界、monitoring.js 47% は PROD ゲートで N-2 判断待ち — 両者は個別 floor では潰せない既知の空白）。
+- 📝 2148 tests / 63 suites、coverage PASS、lint 0 errors、build green。
+
 #### 続き78（同セッション）: ドキュメント漂移の実測同期 + textWrap 専用テストの欠落を補完
 - 🔍 **ランタイムハーネス実走（全PASS）**: repo 自前の `ci:verify`（build + verify:layout + verify:app + verify:vr-boot）を実 Chromium で走行 — 出荷バンドルが WebXR stub 下で VRApp 全構築（tabManager/設定パネル/キャプション含む）・55 surface の overflow ゼロ・uncaught ゼロ。macOS では `CHROME_PATH` 環境変数が必要（候補パスは Linux 固定）。
 - 🔍 **ドキュメント漂移の特定**: 大規模削除後も docs/ が旧構造を語り続けていた — ARCHITECTURE.md に存在しない `vr/multiplayer|ar|ai`・`ObjectPool`・`WebGPURenderer`・「Server side」節（削除済み Express+Stripe）・嘘の manualChunks リスト（`tier2-ar`/`WebGPURenderer` は存在しない chunk）。TESTING.md に「ESLint over src/ and server/」・消えた `ci:all` benchmarks・baseline 48 suites/1156 tests・存在しない `server.test.js`/`multiplayer-system`・`text-wrap` テストの虚偽主張。全て実測同期に修正。
