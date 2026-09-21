@@ -208,7 +208,7 @@ controller.addEventListener('thumbstick', (direction) => {
 
 ### 3. Object Pooling
 
-**Removed** — `src/utils/ObjectPool.js` was deleted in the Session 60 cleanup: it had zero `src/` consumers, so the pattern was dead weight. The live memory-management mechanism is `src/utils/TextureManager.js` (LRU cache + byte budget + eviction); texture/button pooling can be reintroduced if GC pressure measurements justify it.
+**Removed** — ~~`src/utils/ObjectPool.js`~~ was deleted in the Session 60 cleanup: it had zero `src/` consumers, so the pattern was dead weight. The live memory-management mechanism is `src/utils/TextureManager.js` (LRU cache + byte budget + eviction); texture/button pooling can be reintroduced if GC pressure measurements justify it.
 
 ---
 
