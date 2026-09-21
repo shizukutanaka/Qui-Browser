@@ -826,3 +826,53 @@ describe('BookmarkPanel — complementary arms', () => {
     expect(mat.dispose).toHaveBeenCalled();
   });
 });
+
+describe('BookmarkPanel — false-side arms', () => {
+  test('row click on an entry without url does not call onSelect', () => {
+    const store = {
+      getBookmarks: () => [{ title: 'noUrl' }],
+      getHistory: () => []
+    };
+    const onSelect = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  test('deleteRow on a url-less entry skips removal and callback', () => {
+    const removed = [];
+    const store = {
+      getBookmarks: () => [{ title: 'noUrl' }],
+      getHistory: () => [],
+      removeBookmark: (u) => removed.push(u)
+    };
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect: jest.fn(), onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(removed).toEqual([]);
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  test('dispose with bare mesh (no geometry/material) and no texture completes', () => {
+    const p = makePanel(makeStore([], []));
+    p.mesh = {};
+    p.tex = null;
+    expect(() => p.dispose()).not.toThrow();
+  });
+});
