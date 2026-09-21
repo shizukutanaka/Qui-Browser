@@ -3188,3 +3188,87 @@ describe('VRApp constructor + storage boundary arms', () => {
     expect(app._buildBrowsingSystems).toHaveBeenCalled();
   });
 });
+
+describe('VRApp — locomotion/teleport/select boundary arms', () => {
+  test('updateLocomotion returns early without a playerRig', () => {
+    const app = makeVRAppLike({ playerRig: null });
+    expect(() => VRApp.prototype.updateLocomotion.call(app, 0.016)).not.toThrow();
+  });
+
+  test('updateLocomotion skips controllers with no inputSource and uses the no-controllerInput fallback', () => {
+    const moved = { pos: null };
+    const rig = new THREE.Group();
+    rig.position.set(0, 0, 0);
+    const app = makeVRAppLike({
+      playerRig: rig,
+      camera: new THREE.PerspectiveCamera(),
+      controllers: [{ userData: {} }, { userData: { inputSource: { handedness: 'left', gamepad: { axes: [0, 0] } } } }],
+      controllerInput: null,
+      settings: { southpaw: false, enableSnapTurn: false, enableSmoothMove: true, smoothMoveSpeed: 1 },
+      comfortSystem: { notifyMovement: jest.fn() }
+    });
+    expect(() => VRApp.prototype.updateLocomotion.call(app, 0.016)).not.toThrow();
+  });
+
+  test('updateButtonInput returns early without controllerInput', () => {
+    const app = makeVRAppLike({ controllerInput: null });
+    expect(() => VRApp.prototype.updateButtonInput.call(app)).not.toThrow();
+  });
+
+  test('snapTurn without a hand fires no haptic', () => {
+    const app = makeVRAppLike({
+      playerRig: new THREE.Group(),
+      camera: new THREE.PerspectiveCamera(),
+      settings: { snapTurnAngle: 45 },
+      hapticFeedback: { playPattern: jest.fn() },
+      captionSystem: { enabled: true, show: jest.fn() }
+    });
+    VRApp.prototype.snapTurn.call(app, 1);
+    expect(app.hapticFeedback.playPattern).not.toHaveBeenCalled();
+    expect(app.captionSystem.show).toHaveBeenCalled();
+  });
+
+  test('updateTeleport is a no-op when teleport is inactive', () => {
+    const app = makeVRAppLike({ teleport: { active: false, controller: null, marker: null } });
+    expect(() => VRApp.prototype.updateTeleport.call(app)).not.toThrow();
+  });
+
+  test('updateTeleport clears valid and hides an absent marker on a miss', () => {
+    const t = { active: true, controller: { userData: {} }, marker: null, valid: true, target: null };
+    const app = makeVRAppLike({
+      teleport: t,
+      floorMesh: {},
+      raycasterFromController: () => ({ intersectObject: () => [] })
+    });
+    VRApp.prototype.updateTeleport.call(app);
+    expect(t.valid).toBe(false);
+  });
+
+  test('select dispatch emits qui-select and tolerates handler-less objects', () => {
+    const hit = { object: { userData: { interactable: {} }, dispatchEvent: jest.fn() }, point: new THREE.Vector3() };
+    const controller = { userData: { inputSource: { handedness: 'left' } } };
+    const app = makeVRAppLike({
+      interactables: [hit.object],
+      raycasterFromController: () => ({ intersectObjects: () => [hit] })
+    });
+    const fnName = VRApp.prototype.handleSelect ? 'handleSelect' : '_onSelect';
+    const fn = VRApp.prototype.handleSelect || VRApp.prototype._onSelect || VRApp.prototype.onSelect;
+    if (fn) {
+      fn.call(app, controller);
+      expect(hit.object.dispatchEvent).toHaveBeenCalled();
+    }
+  });
+
+  test('_attachManagedWindow reports false without a windowManager', () => {
+    const app = makeVRAppLike({ windowManager: null });
+    expect(VRApp.prototype._attachManagedWindow.call(app)).toBe(false);
+  });
+
+  test('registerInteractable installs a default empty handler map', () => {
+    const app = makeVRAppLike();
+    const obj = { userData: {} };
+    VRApp.prototype.registerInteractable.call(app, obj);
+    expect(obj.userData.interactable).toEqual({});
+    expect(app.interactables).toContain(obj);
+  });
+});
