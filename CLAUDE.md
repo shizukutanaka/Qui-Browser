@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き103（同セッション）: モジュール到達性の全走査 — src/ に残った唯一のテスト専用モジュールを tests/ へ移設
+- 🔍 **import 到達性グラフを全構築**（main.js/app.js を起点に静的 import/dynamic import/require を全探索）: 50ファイル中到達不能は `src/vr/ui/contrast.js` 1件のみ — 227行の WCAG/APCA 計量ユーティリティで、本番コードからの参照ゼロ、import するのは3つのテストのみ。
+- 🔧 **tests/helpers/contrast.js に移設**: 以前の走査では「テスト専用だが正当」と判断していたが、src/ に残ると collectCoverageFrom が出荷されない227行をプロダクションカバレッジとして計測する（数字の誠実さを毀損）。移設後「src/ の全ファイルが import 到達可能」の不変条件が文字通り成立。3テストの require パスと OUTSTANDING_ISSUES の記述を更新。
+- ✅ 2218 tests / 65 suites 全緑（件数 -6 は src ファイル列挙系テストが1ファイル分減った正当な変化）、lint 0 errors。
+
 #### 続き102（同セッション）: 散在の未カバー腕を消化 — storage 例外耐性 + ImmersiveVideo cfg + setupScene ゲート
 - ✅ `a11y/accessibility.js` のストレージ失敗腕3件 pin（localStorage.getItem/setItem throw → クラッシュせず defaults/メモリ適用、破損 JSON → defaults）。private browsing / quota 超過時の実害パス。
 - ✅ `setupScene` の ImmersiveVideo cfg コールバック本体を起動: onPlaybackChange は isVREnabled=false では caption を出さない（セッション終了 cleanup が偽状態を通知しない設計）、playing/paused/stopped の3キー分岐、onError→error toast、onHoverCaption の gaze-dwell ゲート。enableHomeEnvironment/enableSettingsPanel/enableWebPanel の3ゲートも pin。
