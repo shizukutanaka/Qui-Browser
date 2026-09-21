@@ -173,8 +173,7 @@ export class TextureManager {
   _withTimeout(promise, url) {
     let timer;
     const watchdog = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`timeout loading texture: ${url}`)),
-        this.constructor.LOAD_TIMEOUT_MS ?? 30000);
+      timer = setTimeout(() => reject(new Error(`timeout loading texture: ${url}`)), 30000);
     });
     return Promise.race([promise, watchdog]).finally(() => clearTimeout(timer));
   }
