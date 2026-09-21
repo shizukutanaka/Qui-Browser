@@ -214,7 +214,7 @@ function showError(message) {
 /**
  * Handle page unload
  */
-window.addEventListener('beforeunload', () => {
+const onPageTeardown = () => {
   if (vrApp) {
     vrApp.dispose();
     vrApp = null;
@@ -222,7 +222,12 @@ window.addEventListener('beforeunload', () => {
   if (perfIntervalId) {
     clearInterval(perfIntervalId); perfIntervalId = null;
   }
-});
+};
+// beforeunload is unreliable on mobile browsers (Quest Browser included):
+// 'pagehide' is the dependable termination signal there. Arming both is
+// harmless — dispose() is idempotent.
+window.addEventListener('beforeunload', onPageTeardown);
+window.addEventListener('pagehide', onPageTeardown);
 
 /**
  * Start application when DOM is ready
