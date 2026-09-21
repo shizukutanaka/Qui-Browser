@@ -630,3 +630,48 @@ describe('src/app.js — remaining branch arms', () => {
     expect(documentListeners.DOMContentLoaded || []).toHaveLength(0);
   });
 });
+
+describe('src/app.js — last branch arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return global.window.QuiBrowser;
+  };
+
+  test('perf interval renders all optional stat fields when truthy', async () => {
+    jest.useFakeTimers({ doNotFake: ['setTimeout'] });
+    try {
+      const QuiBrowser = makeApp();
+      await jest.advanceTimersByTimeAsync(0);
+      const vrApp = QuiBrowser.getApp();
+      const perfDisplay = global.document.getElementById('performance-monitor');
+      expect(perfDisplay).toBeTruthy();
+      vrApp.getPerformanceStats = () => ({
+        fps: 90, frameTime: 11, drawCalls: 5, triangles: 100,
+        programs: 2, geometries: 3, textures: 4,
+        ffrIntensity: 0.5, textureMemory: '10MB', pooledObjects: 3, gcPrevented: 1
+      });
+      perfDisplay.style.display = 'block';
+      jest.advanceTimersByTime(1000);
+      const html = String(perfDisplay.innerHTML);
+      expect(html).toContain('FFR: 0.5');
+      expect(html).toContain('Textures: 10MB');
+      expect(html).toContain('Pooled Objects: 3');
+      expect(html).toContain('GC Prevented: 1');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('visibilitychange visible arm with vrApp present runs without throwing', async () => {
+    const QuiBrowser = makeApp();
+    await tick();
+    expect(QuiBrowser.getApp()).toBeTruthy();
+    global.document.hidden = false;
+    expect(() => (global.document._listeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
+  });
+});
