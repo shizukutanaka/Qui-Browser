@@ -694,3 +694,33 @@ describe('SpatialAudio — guard + fallback slivers', () => {
     expect(() => a.fadeVolume('nogain', 0.5, 1)).not.toThrow();
   });
 });
+
+describe('SpatialAudio — last two slivers', () => {
+  const initAudio = async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const a = new SpatialAudio();
+    return { a, context };
+  };
+
+  test('stop() warn-logs when node.stop() throws', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('s');
+    src.node = { stop: jest.fn(() => { throw new Error('not started'); }) };
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    a.stop('s');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Error stopping source 's'"), expect.any(Error));
+    warn.mockRestore();
+  });
+
+  test('dispose() stops every registered source', async () => {
+    const { a } = await initAudio();
+    const s1 = a.createSource('one');
+    const s2 = a.createSource('two');
+    s1.node = { stop: jest.fn() };
+    s2.node = { stop: jest.fn() };
+    a.dispose();
+    expect(s1.node.stop).toHaveBeenCalled();
+    expect(s2.node.stop).toHaveBeenCalled();
+  });
+});

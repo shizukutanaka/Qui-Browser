@@ -597,3 +597,27 @@ describe('BookmarkPanel — hover callbacks + remaining guards', () => {
     p.canvas = keep;
   });
 });
+
+describe('BookmarkPanel — final guards', () => {
+  test('onHover skips the tint when mesh is gone; _rows returns [] without store', () => {
+    const p = makePanel(makeStore());
+    const cfg = p.registerInteractable.mock.calls[0][1];
+    p.onHoverCaption = jest.fn();
+    const mesh = p.mesh;
+    p.mesh = null;
+    cfg.onHover();   // !mesh arm — caption still fires
+    expect(p.onHoverCaption).toHaveBeenCalled();
+    p.mesh = mesh;
+    p.store = null;
+    expect(p._rows()).toEqual([]);
+  });
+
+  test('_onSelect hit-testing the dead zone does nothing (default arm)', () => {
+    const p = makePanel(makeStore());
+    // Land the click far inside the panel body but on no row: centre-bottom.
+    MockMesh._nextLocal = { x: 0, y: -0.4 };
+    const before = p.mode;
+    expect(() => p._onSelect({ x: 0, y: -0.4, clone() { return this; } })).not.toThrow();
+    expect(p.mode).toBe(before);
+  });
+});

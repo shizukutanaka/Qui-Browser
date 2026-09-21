@@ -437,3 +437,48 @@ describe('onKeyPress special keys', () => {
     expect(kb.getStats()).toEqual({ keystrokes: 7 });
   });
 });
+
+describe('candidate select/hover + suggestions arms', () => {
+  test('candidate onSelect uses ime.selectCandidate when present, else the kanji', () => {
+    const { kb, registered } = makeKeyboard();
+    kb.onTextConfirmed = jest.fn();
+    kb.showCandidates(['技', '着', '付']);
+    // Without selectCandidate → falls back to the kanji literal.
+    delete kb.ime.selectCandidate;
+    candidateAt(registered, 1).handlers.onSelect();
+    expect(kb.onTextConfirmed).toHaveBeenCalledWith('着');
+  });
+
+  test('candidate onHover repaints and announces via onHoverCaption', () => {
+    const { kb, registered } = makeKeyboard();
+    kb.onHoverCaption = jest.fn();
+    kb.showCandidates(['技', '着', '付']);
+    const cand = candidateAt(registered, 0);
+    cand.handlers.onHover();
+    expect(kb.onHoverCaption).toHaveBeenCalledWith('技');
+    cand.handlers.onHoverEnd(); // repaint-back arm
+  });
+
+  test('showSuggestions returns early when every entry lacks a url', () => {
+    const { kb, registered } = makeKeyboard();
+    const before = registered.length;
+    kb.showSuggestions([{ title: 'no url' }, null, {}]);
+    // Early return before any button is built — no new interactables.
+    expect(registered.length).toBe(before);
+  });
+
+  test('suggestion onHover announces the full URL and onHoverEnd repaints', () => {
+    const registered = [];
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: (mesh, handlers) => registered.push({ mesh, handlers }),
+      unregisterInteractable: jest.fn()
+    });
+    kb.createKeyboard();
+    kb.onHoverCaption = jest.fn();
+    kb.showSuggestions([{ url: 'https://example.com/very/long/path', title: 'Ex' }]);
+    const sug = registered[registered.length - 1];
+    sug.handlers.onHover();
+    expect(kb.onHoverCaption).toHaveBeenCalledWith('https://example.com/very/long/path');
+    sug.handlers.onHoverEnd();
+  });
+});

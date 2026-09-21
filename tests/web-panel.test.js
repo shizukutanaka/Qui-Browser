@@ -561,3 +561,32 @@ describe('WebPanel — remaining guard slivers', () => {
     expect(p.iframe.onerror).toBeNull();
   });
 });
+
+describe('WebPanel — last slivers', () => {
+  test('contentMesh onSelect registration routes to _onContentSelect', () => {
+    const p = makePanel();
+    const contentReg = p.registerInteractable.mock.calls.find(c => c[0] === p.contentMesh);
+    expect(contentReg).toBeTruthy();
+    const spy = jest.spyOn(p, '_onContentSelect').mockImplementation(() => {});
+    contentReg[1].onSelect({ x: 0, y: 0 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  test('setSearchEngine updates the panel engine', () => {
+    const p = makePanel();
+    p.setSearchEngine('bing');
+    expect(p.searchEngine).toBe('bing');
+  });
+
+  test('dispose releases material.map on every traversed mesh', () => {
+    const p = makePanel();
+    const disposes = [];
+    const mapDisposes = [];
+    p.group.traverse = (fn) => {
+      fn({ material: { map: { dispose: () => mapDisposes.push(1) }, dispose: () => disposes.push(1) } });
+    };
+    p.dispose();
+    expect(mapDisposes.length).toBe(1);
+    expect(disposes.length).toBe(1);
+  });
+});

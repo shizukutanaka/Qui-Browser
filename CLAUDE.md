@@ -544,6 +544,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き114（同セッション）: 最終 sliver — IME 候補/候補提案 + SpatialAudio stop/dispose + BookmarkPanel/WebPanel/ImmersiveVideo 残腕
+- ✅ VRKeyboard 候補行: onSelect の `selectCandidate` 有無両経路（不在時は kanji リテラル確定）、onHover→onHoverCaption(kanji)・onHoverEnd 再描画。
+- ✅ showSuggestions: 全 entry が url 欠落時の早期 return（interactable 未生成で検証）、suggestion onHover が**フル URL** を読み上げる（WCAG 1.3.3 意図通り）、onHoverEnd 再描画。
+- ✅ SpatialAudio: stop() の node.stop() throw→warn catch、dispose() の全ソース停止ループ。
+- ✅ BookmarkPanel: onHover の !mesh ガード（caption は依然発火）、_rows() の store 不在→[]、_onSelect のデッドゾーン default 腕。
+- ✅ WebPanel: contentMesh の onSelect 登録→_onContentSelect ルーティング、setSearchEngine、dispose の traverse 中 material.map dispose。
+- ✅ ImmersiveVideo: togglePause の video 不在早期 return。
+- ✅ 2379 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。対象ファイル群は statements 98%+、残は VRApp setupRenderer（GPU 直結）と monitoring.js（PROD ゲート、N-2 判断待ち）のみ。
+
 #### 続き113（同セッション）: 残 sliver 一巡 — SpatialAudio/DevTools/PerformanceMonitor/BookmarkPanel/WindowManager/CaptionSystem/IME/app.js
 - ✅ SpatialAudio: resume() 拒否 catch、directional cone パラメータ、stop/setSourcePosition/updateSourceLOD/fadeVolume/updateListenerFromCamera の未知ソース・欠損ノードガード、panner.setPosition/setOrientation 旧APIフォールバック、listener null ガード。
 - ✅ DevTools: console Enter ハンドラ、warn/error 傍受+dispose 復元、scene-tree/network-tbody 欠損ガード、リクエストリングバッファ（100 超で shift）、hide()/dispose コンテナ除去。
