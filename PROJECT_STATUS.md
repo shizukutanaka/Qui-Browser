@@ -69,7 +69,7 @@ Service Worker + `proxy/` companion (Node http). Runtime deps: `three`, `web-vit
 
 ## 🧪 Testing Infrastructure
 
-- 63 suites / 2,148 tests headless in Node (63 test files under `tests/`)
+- 72 suites / 3,087 tests headless in Node (72 test files under `tests/`)
 - `test:integration` = `vr-app-wiring` + `app-smoke`; `test:coverage` enforces
   the ratcheted floor; `ci:verify` runs the three real-browser harnesses
   (`CHROME_PATH` needed off Linux)

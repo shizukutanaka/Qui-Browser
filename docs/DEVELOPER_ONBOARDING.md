@@ -872,24 +872,12 @@ global.navigator = {
 
 ### 📊 カバレッジ目標
 
-```javascript
-// jest.config.js
-module.exports = {
-  coverageThreshold: {
-    global: {
-      branches: 60,
-      functions: 60,
-      lines: 60,
-      statements: 60
-    }
-  }
-};
-```
+The live thresholds live in `jest.config.js` — a ratcheted global floor
+(branches 95 / functions 96 / lines 97 / statements 96). `npm run test:coverage`
+fails the suite if coverage regresses below it.
 
-**現在のカバレッジ:**
-- ✅ unified-systems.test.js: 100% (64/64 tests)
-- ✅ vr-modules.test.js: 100% (21/21 tests)
-- 📊 Overall: 82.5% (85/103 tests)
+**現在のスイート規模:** 72 suites / 3,087 tests（実測 — 実ファイルの行を
+信頼すること。ここに載せる数値は必ず `npm test` の末尾出力で更新する）
 
 ---
 
