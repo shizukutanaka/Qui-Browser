@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] ci: wire the real-Chromium verify harnesses into CI
+
+`npm run ci:verify` (build + verify:layout + verify:app + verify:vr-boot
+on real Chromium) existed in package.json but no workflow invoked it —
+the runtime-boot gate only ran manually. Adds a `verify-runtime` job
+gated on test-unit; ubuntu-latest ships Chrome at /usr/bin/google-chrome
+which the tools' CHROME_CANDIDATES already list.
+
+---
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7e514a4..219747d 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -100,6 +100,33 @@ jobs:
+           path: coverage/
+           retention-days: 30
+ 
++  # ============================================================================
++  # JOB 2b: Real-Chromium runtime verification (verify:* harnesses)
++  # ============================================================================
++  verify-runtime:
++    name: Runtime Verification (Chromium)
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    needs: [test-unit]
++
++    steps:
++      - name: Checkout code
++        uses: actions/checkout@v4
++
++      - name: Setup Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: ${{ env.NODE_VERSION }}
++          cache: 'npm'
++
++      - name: Install dependencies
++        run: npm ci
++
++      - name: Build + verify on real Chromium
++        run: npm run ci:verify
++        env:
++          CHROME_PATH: /usr/bin/google-chrome
++
+   # ============================================================================
+   # JOB 3: Integration Tests
+   # ============================================================================

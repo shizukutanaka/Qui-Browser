@@ -561,6 +561,8 @@ git push
 
 **併せて2件の codecov 不備を修正済み（本ブランチ側）**: ①jest の `coverageReporters` に `'json'` を追加 — 以前は `files: ./coverage/coverage-final.json` が指すファイルが一度も生成されていなかった。②アップロードは `CODECOV_TOKEN` シークレットが必要（CI ログで "Token required - not valid tokenless upload"）— owner がリポジトリ Settings に追加するまでアップロードは fail_ci_if_error:false でスキップされる。また README の静的 fake badge（常時 "passing" 表示）を実際の Actions バッジに置換。
 
+**併せて verify 配線の欠落を patch 化**: `npm run ci:verify`（build + verify:layout/app/vr-boot on real Chromium）は package.json に存在するがどの workflow も呼んでいなかった → `docs/patches/0007-ci-wire-runtime-verification.patch` に `verify-runtime` ジョブを同梱（ubuntu-latest の `/usr/bin/google-chrome`、tools の CHROME_CANDIDATES・`--no-sandbox` 済みで互換確認）。
+
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
@@ -569,6 +571,7 @@ git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.
 git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
 git am docs/patches/0005-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
 git am docs/patches/0006-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
+git am docs/patches/0007-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
 git push
 ```
 
