@@ -469,3 +469,31 @@ describe('GazeInteraction — complementary arms', () => {
     expect(cam.remove).toHaveBeenCalledWith(reticle);
   });
 });
+
+describe('GazeInteraction — ring/onSelect/dispose sliver arms', () => {
+  test('dwell-fire works when the confirm ring is absent', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+    gi._ring = null; // ring not built (e.g. reduced-motion minimal path)
+    const fired = gi.update([obj], 1200);
+    expect(fired).toBe(obj);
+    expect(onSelect).toHaveBeenCalled();
+  });
+
+  test('dwell-fire on a handler-less target returns it without calling select', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const obj = makeInteractable({}); // interactable registered, no onSelect
+    nextHit = { object: obj };
+    const fired = gi.update([obj], 1200);
+    expect(fired).toBe(obj);
+  });
+
+  test('dispose tolerates a camera without remove()', () => {
+    const gi = new GazeInteraction({ add: jest.fn() }); // builds reticle, no .remove
+    expect(() => gi.dispose()).not.toThrow();
+  });
+});

@@ -817,3 +817,48 @@ describe('WebPanel — complementary arms', () => {
     expect(() => wp.dispose?.() ?? (() => {})()).not.toThrow();
   });
 });
+
+describe('WebPanel — prompt/reload/layer/dispose slivers', () => {
+  test('URL-bar tap falls back to window.prompt when no onUrlInputRequested', () => {
+    const p = makePanel({ onUrlInputRequested: undefined });
+    p._setLocal(0); // middle of chrome = URL bar
+    const nav = jest.spyOn(p, 'navigate').mockImplementation(() => {});
+    global.window = { prompt: jest.fn(() => 'https://typed.example') };
+    p._onChromeSelect({ clone() { return { x: 0, y: 0, z: 0 }; } });
+    expect(window.prompt).toHaveBeenCalled();
+    expect(nav).toHaveBeenCalledWith('https://typed.example');
+
+    window.prompt.mockReturnValue(null);
+    nav.mockClear();
+    p._onChromeSelect({ clone() { return { x: 0, y: 0, z: 0 }; } });
+    expect(nav).not.toHaveBeenCalled();
+  });
+
+  test('reload() reloads only when a url is loaded', () => {
+    const p = makePanel();
+    const load = jest.spyOn(p, '_loadUrl').mockImplementation(() => {});
+    p.reload();
+    expect(load).not.toHaveBeenCalled();
+    p.currentUrl = 'https://a.example';
+    p.reload();
+    expect(load).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('layer-mode toggles tolerate a missing chromeMesh', () => {
+    const p = makePanel();
+    p.chromeMesh = null;
+    expect(() => p.enableLayerMode({}, {}, 'l1')).not.toThrow();
+    expect(() => p.disableLayerMode()).not.toThrow();
+  });
+
+  test('dispose detaches iframe handlers and removes the element', () => {
+    const p = makePanel();
+    const parent = { removeChild: jest.fn() };
+    const iframe = { onload: () => {}, onerror: () => {}, parentNode: parent };
+    p.iframe = iframe;
+    p.dispose();
+    expect(iframe.onload).toBeNull();
+    expect(iframe.onerror).toBeNull();
+    expect(parent.removeChild).toHaveBeenCalledWith(iframe);
+  });
+});

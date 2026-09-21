@@ -552,3 +552,28 @@ describe('CaptionSystem — complementary arms', () => {
     expect(cam.remove).toHaveBeenCalled();
   });
 });
+
+describe('CaptionSystem — dispose/truncate sliver arms', () => {
+  test('_truncate returns short text unchanged, clips long text', () => {
+    const cs = new CaptionSystem(makeCamera());
+    expect(cs._truncate('short', 10)).toBe('short');
+    expect(cs._truncate('a very long caption line', 8)).toBe('a very …');
+    cs.dispose();
+  });
+
+  test('dispose tolerates missing camera.remove and material.map', () => {
+    const cs = new CaptionSystem({ add: jest.fn() });  // camera lacking .remove
+    cs.mesh = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } };
+    expect(() => cs.dispose()).not.toThrow();
+  });
+
+  test('dispose frees material.map when present', () => {
+    const cs = new CaptionSystem(makeCamera());
+    const map = { dispose: jest.fn() };
+    const mat = { map, dispose: jest.fn() };
+    cs.mesh = { geometry: { dispose: jest.fn() }, material: mat };
+    cs.dispose();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});

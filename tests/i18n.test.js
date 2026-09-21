@@ -546,3 +546,27 @@ describe('i18n — complementary arms', () => {
     require('../src/i18n/i18n.js').setLanguage('en');
   });
 });
+
+describe('i18n — storage/fallback sliver arms', () => {
+  test('t() falls back to the en catalog for keys missing in current lang', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('xx'); // unknown language -> en catalog
+    expect(t('nonexistent.key')).toBeTruthy();
+    setLanguage('en');
+  });
+
+  test('applyTranslations tolerates a scope without querySelectorAll', () => {
+    const { applyTranslations } = require('../src/i18n/i18n.js');
+    expect(() => applyTranslations({})).not.toThrow();
+    expect(() => applyTranslations(null)).not.toThrow();
+  });
+
+  test('storage guards survive localStorage absence', () => {
+    const orig = global.localStorage;
+    delete global.localStorage;
+    jest.resetModules();
+    expect(() => require('../src/i18n/i18n.js')).not.toThrow();
+    global.localStorage = orig;
+    jest.resetModules();
+  });
+});
