@@ -62,6 +62,40 @@ describe('HapticFeedback', () => {
     expect(hf.gamepads.size).toBe(0);
   });
 
+  // ── XR input-source path ──────────────────────────────────────────────────
+  test('update(inputSources) populates from XR sources — navigator list is empty per spec', async () => {
+    global.navigator.getGamepads = jest.fn(() => []); // XR pads MUST NOT appear here
+    const h = new HapticFeedback();
+    const actuator = makeActuator();
+    const src = { handedness: 'right', gamepad: { hapticActuators: [actuator] } };
+    h.update([src]);
+    expect(h.gamepads.size).toBe(1);
+    await h.pulse('right', 40, 0.7);
+    expect(actuator.pulse).toHaveBeenCalledWith(0.7, 40);
+  });
+
+  test('update(inputSources) prunes a source that leaves the session', () => {
+    const h = new HapticFeedback();
+    const src = { handedness: 'left', gamepad: { hapticActuators: [makeActuator()] } };
+    h.update([src]);
+    expect(h.gamepads.size).toBe(1);
+    h.update([]);
+    expect(h.gamepads.size).toBe(0);
+  });
+
+  test('hand routing honours handedness — left pulse does not hit the right pad', async () => {
+    const h = new HapticFeedback();
+    const leftAct = makeActuator();
+    const rightAct = makeActuator();
+    h.update([
+      { handedness: 'left',  gamepad: { hapticActuators: [leftAct] } },
+      { handedness: 'right', gamepad: { hapticActuators: [rightAct] } }
+    ]);
+    await h.pulse('left', 30, 0.5);
+    expect(leftAct.pulse).toHaveBeenCalled();
+    expect(rightAct.pulse).not.toHaveBeenCalled();
+  });
+
   // ── pulse ─────────────────────────────────────────────────────────────────────
   test('pulse() calls actuator.pulse with clamped values', async () => {
     await hf.pulse('left', 50, 0.5);
@@ -614,8 +648,10 @@ describe('HapticFeedback — sequence/pattern sliver arms', () => {
 
   test('alert on two distinct gamepads plays per-hand', async () => {
     const hf = new HapticFeedback();
-    hf.gamepads.set(0, { hand: 'left', hapticActuators: [{}] });
-    hf.gamepads.set(1, { hand: 'right', hapticActuators: [{}] });
+    hf.update([
+      { handedness: 'left',  gamepad: { hapticActuators: [{}] } },
+      { handedness: 'right', gamepad: { hapticActuators: [{}] } }
+    ]);
     jest.spyOn(hf, 'playPattern').mockResolvedValue();
     await hf.alert('low');
     expect(hf.playPattern).toHaveBeenCalledWith('left', 'notification');
@@ -624,8 +660,10 @@ describe('HapticFeedback — sequence/pattern sliver arms', () => {
 
   test('alert high with two gamepads runs custom sequences on both', async () => {
     const hf = new HapticFeedback();
-    hf.gamepads.set(0, { hand: 'left', hapticActuators: [{}] });
-    hf.gamepads.set(1, { hand: 'right', hapticActuators: [{}] });
+    hf.update([
+      { handedness: 'left',  gamepad: { hapticActuators: [{}] } },
+      { handedness: 'right', gamepad: { hapticActuators: [{}] } }
+    ]);
     jest.spyOn(hf, 'playCustomSequence').mockResolvedValue();
     await hf.alert('high');
     expect(hf.playCustomSequence).toHaveBeenCalledTimes(2);

@@ -3410,9 +3410,10 @@ export class VRApp {
       this.handTracking.update(xrFrame, referenceSpace);
     }
 
-    // Refresh gamepad list for haptic routing (safe no-op when no gamepads).
+    // Refresh gamepad list for haptic routing. XR controller gamepads live on
+    // the input sources — navigator.getGamepads() never lists them.
     if (this.hapticFeedback) {
-      this.hapticFeedback.update();
+      this.hapticFeedback.update(xrFrame?.session?.inputSources);
     }
 
     // Update spatial audio listener position

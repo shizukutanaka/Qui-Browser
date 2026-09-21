@@ -7,7 +7,8 @@
 
 export class HapticFeedback {
   constructor() {
-    this.gamepads = new Map();
+    this.gamepads = new Map(); // key → Gamepad; keys are XRInputSource objects (XR path) or numeric indices (Gamepad API path)
+    this._hands = new Map();   // key → XRInputSource.handedness ('unknown' for plain gamepads)
     this.enabled = true;
 
     // Predefined haptic patterns
@@ -82,23 +83,57 @@ export class HapticFeedback {
   }
 
   /**
-   * Update gamepad list
+   * Update gamepad list.
+   *
+   * @param {XRInputSource[]|undefined} inputSources  the live list from the
+   *   active XRSession (e.g. `xrFrame.session.inputSources`). When provided —
+   *   even empty — it is authoritative: per the WebXR Gamepads Module,
+   *   gamepads belonging to XR input sources MUST NOT appear in
+   *   `navigator.getGamepads()`, so scanning that array inside an immersive
+   *   session finds nothing and every pulse would silently no-op. When omitted
+   *   (no XR session / desktop mirror), the Gamepad API list is used instead.
    */
-  update() {
-    const gamepads = navigator.getGamepads();
+  update(inputSources) {
+    const seen = new Set();
 
-    for (let i = 0; i < gamepads.length; i++) {
-      const gamepad = gamepads[i];
-
-      if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
-        if (!this.gamepads.has(i)) {
-          console.debug(`HapticFeedback: Controller ${i} connected (${gamepad.id})`);
+    if (inputSources) {
+      for (const src of inputSources) {
+        const gamepad = src?.gamepad;
+        if (!gamepad?.hapticActuators?.length) {
+          continue;
+        }
+        seen.add(src);
+        if (!this.gamepads.has(src)) {
+          console.debug(`HapticFeedback: Controller connected (${src.handedness ?? 'unknown'} hand)`);
           this.stats.controllersDetected++;
         }
-        this.gamepads.set(i, gamepad);
-      } else if (this.gamepads.has(i)) {
-        console.debug(`HapticFeedback: Controller ${i} disconnected`);
-        this.gamepads.delete(i);
+        this.gamepads.set(src, gamepad);
+        this._hands.set(src, src.handedness ?? 'unknown');
+      }
+    } else if (typeof navigator.getGamepads === 'function') {
+      const gamepads = navigator.getGamepads() ?? [];
+      for (let i = 0; i < gamepads.length; i++) {
+        const gamepad = gamepads[i];
+        if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+          const key = gamepad.index >= 0 ? gamepad.index : i;
+          seen.add(key);
+          if (!this.gamepads.has(key)) {
+            console.debug(`HapticFeedback: Controller ${i} connected (${gamepad.id})`);
+            this.stats.controllersDetected++;
+          }
+          this.gamepads.set(key, gamepad);
+          // The standard Gamepad has no hand property, but a UA that exposes
+          // one (or a stubbed harness pad) is honoured; otherwise hand
+          // matching falls through to the first-available fallback.
+          this._hands.set(key, gamepad.hand ?? gamepad.handedness ?? 'unknown');
+        }
+      }
+    }
+
+    for (const key of this.gamepads.keys()) {
+      if (!seen.has(key)) {
+        this.gamepads.delete(key);
+        this._hands.delete(key);
       }
     }
   }
@@ -321,8 +356,8 @@ export class HapticFeedback {
    * Get gamepad for specified hand
    */
   getGamepadForHand(hand) {
-    for (const gamepad of this.gamepads.values()) {
-      if (gamepad.hand === hand) {
+    for (const [key, gamepad] of this.gamepads) {
+      if (this._hands.get(key) === hand) {
         return gamepad;
       }
     }
