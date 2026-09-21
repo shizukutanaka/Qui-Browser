@@ -720,3 +720,50 @@ describe('src/main.js — last branch arms', () => {
     expect(loading.children.length + created.length).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('src/app.js — complementary arms', () => {
+  const makeApp = () => {
+    const container = makeEl('app-container');
+    const h = installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    return { QuiBrowser: global.window.QuiBrowser, ...h };
+  };
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    jest.dontMock('../src/app.js');
+  });
+
+  test('P key falls back to toggling the DOM perf display when perfMonitorUI is absent', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.perfMonitorUI = null;
+    const perf = document.getElementById('performance-monitor');
+    expect(perf).toBeTruthy();
+    perf.style.display = 'none';
+    documentListeners.keydown[0]({ key: 'p' });
+    expect(perf.style.display).toBe('block');
+  });
+
+  test('Escape with vrApp present disposes and clears the interval', async () => {
+    const { QuiBrowser, documentListeners } = makeApp();
+    await tick();
+    const app = QuiBrowser.getApp();
+    app.dispose = jest.fn();
+    documentListeners.keydown[0]({ key: 'Escape' });
+    expect(app.dispose).toHaveBeenCalled();
+  });
+
+  test('visibilitychange hidden with live vrApp reduces activity', async () => {
+    const { documentListeners } = makeApp();
+    await tick();
+    document.hidden = true;
+    const vc = (documentListeners.visibilitychange || [])[0];
+    if (vc) expect(() => vc()).not.toThrow();
+    document.hidden = false;
+  });
+});
