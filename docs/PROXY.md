@@ -85,7 +85,11 @@ Defences, in order:
    `http://169.254.169.254/`, and a client that follows redirects automatically
    would take it. Max 3 hops.
 7. **Response limits** — `text/html`, `application/xhtml+xml` or `text/plain`
-   only (so it is not a general file relay), 5 MB cap, 10 s timeout, `GET` only.
+   only (so it is not a general file relay), 5 MB cap on the *decoded* body,
+   `GET` only. `gzip`/`deflate`/`br` bodies are decompressed; unknown
+   encodings are refused. Each hop gets a 10 s socket-inactivity timeout and
+   the whole fetch — redirects included — a 30 s total deadline, plus
+   immediate cancellation when the client disconnects.
 8. **No credential forwarding** — cookies, `authorization` and
    `x-forwarded-*` are dropped; only a self-identifying UA, `accept`, and a
    length-bounded `accept-language` go upstream.
