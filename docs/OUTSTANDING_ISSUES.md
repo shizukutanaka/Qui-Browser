@@ -554,6 +554,11 @@ git push
 `vite build` を node@16/18/20 で実測確認: 16=exit1、18/20=green）。
 `docs/patches/0005-ci-drop-node16-build-leg.patch` に修正を同梱（`[18, 20]` に縮退、クリーン適用検証済み）。
 
+**続き136 追記**: `test-unit` はテスト全緑でも**常に赤** — 後続ステップの
+`cicirello/jacoco-badge-generator` が Java 専用の `target/site/jacoco/jacoco.csv`
+（jest が絶対に生成しない）を `on-missing-report: fail` で要求するため。
+カバレッジは直上の Codecov アップロードが受け皿で済 → `docs/patches/0006-ci-delete-jacoco-badge-step.patch` にステップ削除を同梱（クリーン適用検証済み）。
+
 ```bash
 git checkout main && git pull
 git am docs/patches/0001-ci-drop-assets-js-steps.patch        # 既存（ci.yml assets/js 除去）
@@ -561,6 +566,7 @@ git am docs/patches/0002-ci-fix-dead-jobs.patch               # 既存（ci.yml 
 git am docs/patches/0003-ci-fix-test-deploy-workflows.patch   # test.yml+deploy.yml 修復
 git am docs/patches/0004-ci-delete-dead-workflows.patch       # 3 workflow 削除
 git am docs/patches/0005-ci-drop-node16-build-leg.patch       # Node16 leg 永赤（vite>=18）
+git am docs/patches/0006-ci-delete-jacoco-badge-step.patch    # jacoco（Java）ステップ常敗
 git push
 ```
 
