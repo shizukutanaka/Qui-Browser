@@ -442,3 +442,35 @@ describe('VRControllerInput — last branch arms', () => {
     expect(out.axes).toEqual({ stickX: 0, stickY: 0 });
   });
 });
+
+describe('VRControllerInput — complementary arms', () => {
+  let ci;
+  beforeEach(() => { ci = new VRControllerInput(); });
+
+  test('getDeviceName uses the family label when present', () => {
+    const name = ci.getDeviceName(makeSource(['oculus-touch-v3'], 'right'));
+    expect(name).toContain('(right)');
+    expect(name).toMatch(/Quest|Touch|Meta/);
+  });
+
+  test('read() on a known family uses the named button/axes maps', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, [0]), [0.1, 0.2, 0.3, 0.4]);
+    const out = ci.read(src);
+    expect(out.family).toBe('meta-quest');
+    expect(out.buttons.trigger).toBeTruthy();
+    expect(out.buttons.trigger.pressed).toBe(true);
+  });
+
+  test('read() reports an analog (non-binary) button value', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', [{ pressed: false, value: 0.7 }], []);
+    const out = ci.read(src);
+    expect(out.buttons.trigger.value).toBeCloseTo(0.7);
+  });
+
+  test('read() passes both axes through the radial dead zone', () => {
+    const src = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, []), [0, 0, 0.9, -0.9]);
+    const out = ci.read(src);
+    expect(out.axes.stickX).toBeGreaterThan(0.5);
+    expect(out.axes.stickY).toBeLessThan(-0.5);
+  });
+});
