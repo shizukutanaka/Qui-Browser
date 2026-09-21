@@ -652,3 +652,39 @@ describe('setupVR — button/session/visibility wiring', () => {
     expect(app.immersiveVideo.togglePause).toHaveBeenCalled();
   });
 });
+
+describe('callback bodies — hostnameCaption fallback arms', () => {
+  function build() {
+    const tmCalls = [];
+    const tab = { navigate: jest.fn() };
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => tab
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike({ enableGazeDwell: true });
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { cfg: tmCalls[0][0], shown };
+  }
+
+  test('onTabActivate with a hostless scheme falls back to the raw url', () => {
+    const { cfg, shown } = build();
+    cfg.onTabActivate('about:blank'); // hostname '' → || url arm
+    expect(shown[0]).toBe('Tab: about:blank');
+  });
+
+  test('onTabActivate with an unparseable string survives the catch arm', () => {
+    const { cfg, shown } = build();
+    cfg.onTabActivate('not a url'); // new URL throws → catch → slice(30)
+    expect(shown[0]).toBe('Tab: not a url');
+  });
+
+  test('onPanelHoverCaption with title===url announces the hostname', () => {
+    const { cfg, shown } = build();
+    cfg.onPanelHoverCaption('https://example.com/p', 'https://example.com/p');
+    expect(shown[0]).toBe('example.com');
+  });
+});
