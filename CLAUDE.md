@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き165
+- 🔍 **実測（npm audit）**: `sharp ≤0.35.4-rc.0` に libvips/libheif の高脆弱性4件 — devDep（generate-icons.mjs のみ使用、出荷物非含有）だが修正は廉価 → `0.35.4` へ bump、`npm run icons` 実走で再生成確認（libvips 版差の AA 微差のみ、バイナリは保持せず revert）。
+- 🔍 **残存2件は vite/esbuild dev-server 限定**（map traversal・Windows UNC NTLM・`server.fs.deny` Windows bypass — 全て dev サーバー経路で出荷静的ファイルに無影響、修正は vite@8 breaking が必要）→ 意図的に据え置き、PROXY.md には deadline/decode/切断キャンセルを同期追記。
+- 🔍 **他照合クリーン**: SW 削除面にクライアント側 postMessage 参照ゼロ、`skipWaiting`+`clients.claim`+60秒 update poll でライフサイクル完備、リダイレクトは `r.resume()` drain 済み、readerFetchUrl は encodeURIComponent + normalizeProxyUrl で検証済み、verify:docs 100%、LICENSE=MIT 整合、git 追跡に混入ゴミなし。
+- ✅ 3066 tests / 72 suites 全緑、lint 0 errors、npm audit の出荷物経路 vuln = 0。
+
 ### Session 75: 続き164
 - 🔍 **実害（プロキシ Content-Encoding 不処理）**: Node の http client は `content-encoding` をデコードしない — upstream が gzip/br を返すと圧縮バイトを `utf8` 文字列化して reader に文字化けしたゴミを転送していた。
 - 🔧 **修正**: `content-encoding` に応じて zlib デコーダを pipe（`gzip`/`x-gzip`/`deflate` は `createUnzip` がヘッダ判別、`br` は brotli）。**サイズ上限はデコード後ストリームに適用** — 圧縮爆弾が MAX_RESPONSE_BYTES を超過増幅できない。未知エンコーディングは `content-encoding-unsupported:*` で明示拒否（mojibake を返さない）。
