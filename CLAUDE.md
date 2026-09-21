@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き175 — noscript 不在 + DevTools ゲート確認
+- 🔍 **照合**: DevTools は `import.meta.env.DEV` + dynamic import で本番バンドルから正しく除外、dispose() で console/fetch を復元 — クリーン。ランディングは静的 HTML なので no-JS でも本文は読めるが、Enter VR ボタンは無言で死ぬ。
+- 🔧 **修正**: `<noscript>` に「Enter VR requires JavaScript」を追加（JS 必須経路の正直な案内）。
+- ✅ dist に noscript 実在確認、verify:app 10/10 緑、3083 tests 全緑。
+
 ### Session 75: 続き174 — BookmarkStore の型ポイズン（#154 と同クラス）
 - 🔍 **実害**: `readJSON` は構文エラーのみ fallback に落としていた — `42` や `{"a":1}` のような**構文正しいが型が違う** poisoned JSON がそのまま返り、`getBookmarks().filter` が TypeError で全コンシューマーを潰す（ユーザーが手動で localStorage を編集した時、#154 の設定値ポイズンと同じクラス）。
 - 🔧 **修正**: fallback が配列の場合、parse 結果が配列でなければ fallback を返す検査を追加（全 call site が `[]` fallback のため一箇所で完結）。
