@@ -30,7 +30,7 @@ function* walk(dir) {
 }
 
 const mdFiles = [
-  ...walk(ROOT).filter((p) => {
+  ...[...walk(ROOT)].filter((p) => {
     const rel = path.relative(ROOT, p);
     return !rel.includes('node_modules') && !rel.startsWith('docs/archive') && !rel.startsWith('dist/');
   })

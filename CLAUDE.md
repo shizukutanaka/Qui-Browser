@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### 続き134/135: チェーンが main に未着地 + CI は Node 20 で2つのバージョン乖離を踏んだ
+**(a) 構造的発見**: この arc の積層チェーンは底の PR #61（唯一 main 宛）が未マージ close で、以後全 PR が前の devin ブランチにマージ — **main は PR #56 時点のまま、233 commits が宙に浮いていた**。tip → main のロールアップ PR #164 を発行。
+
+**(b) Node 20 乖離**（CI は Node 20、本機は 24）: `jest.spyOn(performance, 'now')` が Node 20 の `Performance.now`（read-only）で投げ、generator の `.filter`（Iterator helpers、Node 22+）が未存在 → 7テスト/3スイート赤。`defineProperty` で own-property スタブに置換（全バージョン安全）、generator は `[...walk()].filter` に修正。**`npx node@20` で全スイート実走グリーン確認** —— ローカル Node と CI Node の乖離は今後 `npx -y node@20` で検証可能。
+
+- 📦 **gate**: 3023 tests / 68 suites 全緑（Node 20 + 24 両方）、lint 0 errors。CI の残る赤は全て K-1 パッチ対象の死んだジョブ + M-1 の format:check（既知 owner 判断）。
+
 ### 続き133: KTX2 トランスコーダが CDN の three@0.160.0 に固定 — 同梱は 0.181.2 で 21 リリースの skew
 `TextureManager.initializeKTX2` が `cdn.jsdelivr.net/npm/three@0.160.0/.../basis/` を指していた。**同梱 three は 0.181.2** — トランスコーダの .js/.wasm はローダーの API 面とバージョン結合するため skew は不整合リスク。加えてランタイム CDN 依存はオフライン経路を破壊し、jsdelivr の preconnect もこの1本のためだけに生きていた。
 

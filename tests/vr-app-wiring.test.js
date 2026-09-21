@@ -2050,10 +2050,13 @@ describe('VRApp render() frame cadence (bound prototype, stubbed renderer)', () 
     const app = makeRenderApp();
     VRApp.prototype.render.call(app, 0, null);
     app._lastRenderTime = 1; // non-zero epoch (0 is falsy → dt falls back to default)
-    const nowSpy = jest.spyOn(performance, 'now').mockReturnValue(5000); // ~5 s gap
+    // performance.now is read-only on Node ≤20 — shadow with own property.
+    Object.defineProperty(performance, 'now', {
+      value: () => 5000, configurable: true, writable: true
+    });
     VRApp.prototype.render.call(app, 16, null);
     expect(app.updateSystems).toHaveBeenLastCalledWith(16, null, 0.05); // capped, not 5.0
-    nowSpy.mockRestore();
+    delete performance.now;
   });
 
   test('first render uses the 16 ms default when no prior frame exists', () => {

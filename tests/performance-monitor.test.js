@@ -8,6 +8,16 @@
 
 const { PerformanceMonitor } = require('../src/utils/PerformanceMonitor.js');
 
+
+// performance.now is read-only (not configurable via spyOn's assignment path)
+// on Node ≤20 — shadow it with an own-property stub that works everywhere.
+function stubPerformanceNow(fn) {
+  Object.defineProperty(performance, 'now', {
+    value: fn, configurable: true, writable: true
+  });
+  return { restore: () => delete performance.now };
+}
+
 describe('PerformanceMonitor metric bookkeeping', () => {
   beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -38,11 +48,12 @@ describe('PerformanceMonitor metric bookkeeping', () => {
   test('endFrame records best/worst and renderer info', () => {
     const mon = new PerformanceMonitor();
     const renderer = { info: { render: { calls: 7, triangles: 9000 }, memory: { textures: 4 }, programs: [1, 2] } };
-    jest.spyOn(performance, 'now').mockReturnValueOnce(0); // beginFrame
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(100); // every endFrame read → frameTime 100ms
+    t = 100; // every endFrame read → frameTime 100ms
     mon.endFrame(renderer);
-    performance.now.mockRestore();
+    spy.restore();
     expect(mon.stats.totalFrames).toBe(1);
     expect(mon.stats.worstFrame.time).toBe(100);
     expect(mon.metrics.drawCalls.current).toBe(7);
@@ -55,11 +66,12 @@ describe('PerformanceMonitor metric bookkeeping', () => {
     const mon = new PerformanceMonitor();
     // First frame: fps.current is still 0 — "FPS dropped to 0.0" is a
     // false critical: no measurement exists yet.
-    jest.spyOn(performance, 'now').mockReturnValueOnce(0); // beginFrame
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(50);
+    t = 50;
     mon.endFrame(null);
-    performance.now.mockRestore();
+    spy.restore();
     const fpsAlerts = mon.alerts.filter(a => /FPS/i.test(a.message));
     expect(fpsAlerts).toEqual([]);
   });
@@ -261,11 +273,12 @@ describe('PerformanceMonitor — remaining guard arms', () => {
   test('endFrame samples renderer.info when provided', () => {
     const mon = new PerformanceMonitor();
     const renderer = { info: { render: { calls: 3, triangles: 42 }, memory: { textures: 9 }, programs: [1] } };
-    jest.spyOn(performance, 'now').mockReturnValue(0);
+    let t = 0;
+    const spy = stubPerformanceNow(() => t);
     mon.beginFrame();
-    performance.now.mockReturnValue(5);
+    t = 5;
     mon.endFrame(renderer);
-    performance.now.mockRestore();
+    spy.restore();
     expect(mon.metrics.drawCalls.current).toBe(3);
     expect(mon.metrics.triangles.current).toBe(42);
     expect(mon.metrics.textures.current).toBe(9);
@@ -342,7 +355,7 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     // Deterministic frame durations — real performance.now() can return the
     // same value for consecutive calls (ms granularity) making min==max.
     let t = 0;
-    const spy = jest.spyOn(performance, 'now').mockImplementation(() => (t += 10));
+    const spy = stubPerformanceNow(() => (t += 10));
     try {
       // renderer without info → the `renderer && renderer.info` false arm
       mon.beginFrame();
@@ -355,7 +368,7 @@ describe('PerformanceMonitor — remaining branch arms', () => {
       mon.beginFrame(); mon.endFrame();
       expect(mon.stats.worstFrame.time).toBeGreaterThanOrEqual(best);
     } finally {
-      spy.mockRestore();
+      spy.restore();
     }
   });
 
@@ -502,25 +515,25 @@ describe('PerformanceMonitor — fps/best/threshold slivers', () => {
   test('endFrame records new best and worst frames', () => {
     const mon = new PerformanceMonitor();
     let t = 1000;
-    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    const spy = stubPerformanceNow(() => t);
     mon.frameStartTime = 0;
     t = 5;    mon.endFrame(); // new best
     t = 500;  mon.endFrame(); // new worst
     expect(mon.stats.bestFrame.time).toBe(5);
     expect(mon.stats.worstFrame.time).toBe(500);
-    performance.now.mockRestore();
+    spy.restore();
   });
 
   test('fps metric only refreshes after the update interval', () => {
     const mon = new PerformanceMonitor();
     const t = performance.now();
-    jest.spyOn(performance, 'now').mockImplementation(() => t);
+    const spy = stubPerformanceNow(() => t);
     mon.lastFpsUpdate = t;
     mon.frameCount = 0;
     mon.frameStartTime = t;
     mon.endFrame();
     expect(mon.frameCount).toBe(1); // interval not elapsed → kept counting
-    performance.now.mockRestore();
+    spy.restore();
   });
 
   test('fps between warning and critical raises a warning alert', () => {
