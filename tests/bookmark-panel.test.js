@@ -764,3 +764,65 @@ describe('BookmarkPanel — last branch arms', () => {
     expect(() => p.dispose()).not.toThrow();
   });
 });
+
+describe('BookmarkPanel — complementary arms', () => {
+  test('constructor wires truthy hover/close callbacks', () => {
+    const onHover = jest.fn();
+    const onClose = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onHoverCaption: onHover,
+      onClose
+    });
+    expect(p.onHoverCaption).toBe(onHover);
+    expect(p.onClose).toBe(onClose);
+  });
+
+  test('row click with url-bearing entry selects and hides', () => {
+    const store = makeStore([{ title: 'A', url: 'https://a.example' }], []);
+    const onSelect = jest.fn();
+    const p = makePanel(store, onSelect);
+    p.show();
+    MockMesh._nextLocal = localFor(100, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(onSelect).toHaveBeenCalledWith('https://a.example');
+    expect(p.visible).toBe(false);
+  });
+
+  test('deleteRow click removes the bookmark and fires the callback', () => {
+    const removed = [];
+    const store = {
+      getBookmarks: () => [{ title: 'A', url: 'https://a.example' }],
+      getHistory: () => [],
+      removeBookmark: (u) => removed.push(u)
+    };
+    const onDelete = jest.fn();
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store, onSelect: jest.fn(), onDeleteBookmark: onDelete
+    });
+    p.addToScene();
+    p.show();
+    MockMesh._nextLocal = localFor(PANEL_PX_W - 30, HEADER_H + 10);
+    p._onSelect({ clone() { return MockMesh._nextLocal; } });
+    expect(removed).toEqual(['https://a.example']);
+    expect(onDelete).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('dispose with mesh+scene+material disposes everything', () => {
+    const p = makePanel(makeStore([], []));
+    const geo = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn() };
+    p.mesh = { geometry: geo, material: mat };
+    p.scene = { remove: jest.fn() };
+    expect(() => p.dispose()).not.toThrow();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+});
