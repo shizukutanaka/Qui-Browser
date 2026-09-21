@@ -56,6 +56,24 @@ test('manifest.json URLs stay relative (verbatim copy → root-absolute 404s und
   expect(urls.filter((u) => u.startsWith('/'))).toEqual([]);
 });
 
+test('offline.html never auto-reloads on polled navigator.onLine', () => {
+  // navigator.onLine reflects OS connectivity, not server reachability — while
+  // the site is down it stays true, so auto-reloading on it loops forever
+  // (reload → SW serves offline.html again → reload…). Only a real `online`
+  // event transition may trigger reload().
+  const html = fs.readFileSync(path.join(PUB, 'offline.html'), 'utf8');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  // Inside the script, reload() is allowed exactly once: the 'online'
+  // listener. (The Try Again button's reload lives in its onclick attribute.)
+  const reloadCalls = [...script.matchAll(/location\.reload\(\)/g)];
+  expect(reloadCalls.length).toBe(1);
+  const onlineListener = script.match(/addEventListener\('online',[\s\S]*?\}\)/);
+  expect(onlineListener[0]).toContain('reload');
+  // The polled check must not reload.
+  const check = script.match(/function checkOnlineStatus\(\) \{([\s\S]*?)\n {8}\}/)[1];
+  expect(check).not.toContain('reload(');
+});
+
 test('manifest shortcuts point at real routes (no router exists — only ./ works)', () => {
   // The app is a single-page shell with no client-side router: /bookmarks or
   // /?action=new-tab have no handler and only ever 404.

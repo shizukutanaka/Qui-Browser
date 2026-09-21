@@ -218,13 +218,12 @@
 
             if (navigator.onLine) {
                 statusIndicator.style.background = '#10b981';
-                statusText.textContent = 'Connection restored! Reloading...';
+                // navigator.onLine only reports OS-level connectivity — it is
+                // still true when the site itself is unreachable, so it must
+                // never trigger an auto-reload (that would loop forever: reload
+                // lands back on this page, onLine is still true, reload…).
+                statusText.textContent = 'Network available — tap Try Again to reload.';
                 statusIndicator.style.animation = 'none';
-
-                // Reload after a short delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
             } else {
                 statusIndicator.style.background = '#ef4444';
                 statusText.textContent = 'Still offline. Some features may be limited.';
@@ -243,8 +242,11 @@
             features.style.display = features.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Listen for online/offline events
-        window.addEventListener('online', checkOnlineStatus);
+        // Only a genuine offline→online transition may auto-reload: it is the
+        // one signal that connectivity actually changed.
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
         window.addEventListener('offline', checkOnlineStatus);
 
     </script>

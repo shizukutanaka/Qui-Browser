@@ -103,6 +103,13 @@ describe('extractReadableText', () => {
     expect(blocks[3].text).toBe('Body two.');
   });
 
+  test('a > inside a quoted attribute value does not leak tag fragments', () => {
+    // The tag-stripper must not stop at a > that lives inside quotes — the
+    // remnant ('y">') would otherwise surface as literal text in the reader.
+    const html = '<p><a title="x>y">link</a> tail</p>';
+    expect(extractReadableText(html).blocks[0].text).toBe('link tail');
+  });
+
   test('decodes entities and collapses whitespace inside blocks', () => {
     const html = '<p>Tom  &amp;\n   Jerry   &mdash; friends</p>';
     expect(extractReadableText(html).blocks[0].text).toBe('Tom & Jerry — friends');

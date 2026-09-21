@@ -245,6 +245,34 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き162
+- 🔍 **実測（offline.html の無限リロードループ — 実バグ32件目）**: `navigator.onLine` は OS の接続性のみ反映し、**サイトが落ちていても true のまま**。サーバー停止時に offline.html が配られると `checkOnlineStatus()` が「Connection restored! Reloading…」と偽表示 → 1.5秒後 `reload()` → SW が再び offline.html を返す → 永遠に1.5〜6.5秒毎リロード（E2E エージェントが実観測した「Connection restored」バナー表示から発覚）。
+- 🔧 **修正**: ポーリング/初期チェックから自動リロードを除去 — `navigator.onLine === true` は正直な文言（'Network available — tap Try Again to reload.'）に留め、自動リロードは**真の `online` イベント遷移のみ**に限定（接続が実際に変化した唯一の信頼できるシグナル）。`public-assets.test.js` に pin 追加（ポーリング経路に reload がないこと）。
+- ✅ 3058 tests / 72 suites 全緑、build 全緑、lint 0 errors。
+
+### Session 75: 続き161
+- 🔍 **実測（オフライン経路を実機で初検証）**: `getOfflineFallback` を2度修正済みだが実ブラウザで一度も発火していなかった。headed Chrome + vite preview で検証: SW install+precache 正常、未キャッシュルート×サーバー停止で **offline.html 描画**（Chrome dino なし）、オフライン中の root リロードはプリキャッシュシェル完全描画、復帰後正常、全フローでコンソール 0 エラー。
+- ⚠️ **計測方法の発見**: `Network.emulateNetworkConditions offline:true` は **SW 制御下のページでは no-op**（SW 自身の fetch に届かない — 実測でエミュ中も 200 を返す）。真のオフラインはサーバーを kill するしかない — skill に記録。
+- 🔧 **小修正**: `networkFirst` のコメント「JSON data (except manifest)」は嘘（manifest は実際 networkFirst ルートに載る）→ 実態に修正＋freshness 的に正しい挙動を明記。`CACHE_PATTERNS.staleWhileRevalidate` は `getCacheStrategy` が一度も読まない死んだ設定配列 → 削除。
+- ✅ 3057 tests / 72 suites、build、verify:app 全緑。E2E 録画・スクショを PR #166 に投稿済み。
+
+### Session 75: 続き160
+- 🔍 **実測（SW の quota/死面）**: `cache.put` が3箇所で floated（未await・未catch）— QuotaExceededError で unhandled rejection。さらに `networkFirst` の `await cache.put` は catch に飛んで**取得成功した fresh response を捨てて stale キャッシュを返す**セマンティックバグ。そして SW の `message`/`sync` ハンドラ群（SKIP_WAITING/GET_STATS/CLEAR_CACHE/PRELOAD_ASSETS + sync-offline-actions）は src/index.html 全体で呼び手ゼロ — `cacheStats` カウンタ含めて write-only の死面。
+- 🗑 **削除**: message/sync リスナー・getCacheInfo/clearCache/preloadAssets/syncOfflineActions・cacheStats 全 increment・`_getCacheStats` export（約90行）。呼び手ゼロを grep で全検証。
+- 🔧 **修正**: floated `cache.put`/`enforceCacheLimit` に `.catch(() => {})`（best-effort 化）、networkFirst は quota 失敗時も fresh response を返すよう修正＋回帰テスト（put 拒否 → `marker:'fresh'` が返ることを pin）。
+- ✅ 3057 tests / 72 suites 全緑、build・verify:app（9 checks）全緑、lint 0 errors。
+
+### Session 75: 続き159
+- 🔍 **実測（プロキシの上流フェッチ耐性 — 残る2穴）**: `UPSTREAM_TIMEOUT_MS`（10s）は**ソケット無活動タイムアウト**に過ぎず、9.9秒毎に1バイトを垂れ流す slow-drip upstream は永遠にリクエストスロットを占有し得た。さらにクライアントがソケットを切断しても upstream fetch は走り続け（`res.on('close')` 未配線）、誰も読まないレスポンスのためにスロットを燃やし続けていた。
+- 🔧 **修正**: `UPSTREAM_DEADLINE_MS=30s` の総デッドライン（接続+リダイレクト+ボディ全行程）を追加し、hop 毎の `AbortController` を `http.request` の `signal` に接続。deadline 超過と client abort の2経路で hopAbort が発火し、`abortReason()` で `deadline-exceeded`/`client-gone` を `upstream-error`/`response-too-large` と区別。ハンドラは `res.on('close')` + `!writableFinished` で clientGone.abort() を配線 — 切断クライアントの upstream 作業が即座にキャンセルされる。
+- ✅ **検証**: 新テスト5本（事前 abort / 飛行中 abort / slow-drip deadline / 消耗済み deadline / server 側 close→abort 配線）。実 egress で 200+実HTML の回帰なし確認。3056 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き158
+- 🔍 **実測（reader のタグストリップ）**: `textOf` の `/<[^>]*>/g` は `<a title="x>y">` のような**クォート内 `>` で止まる**ため、属性の末尾 `y">` がリーダーテキストにゴミとして漏れていた。DOMParser を使えない node 環境の手書きパーサーだからこそのクラス。
+- 🔧 **修正**: `TAG_RE = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g` — クォート済み属性値を丸ごと飛ばす。テスト先行で赤確認→緑化。
+- 🔍 **他照合**: WebGL contextlost/restored は `preventDefault()`・ループ停止・クロスモーダル通知・dispose 対称まで完全実装済み（実害ではなかった）。i18n ja/en 140キー完全一致。three 削除済み API なし。arc に孤立ファイルなし。
+- ✅ 3051 tests / 72 suites 全緑。
+
 ### Session 75: 続き157
 - 🔍 **実測（テストスイート自身の真空）**: `expect(true).toBe(true)` 5箇所を発見 — `if (click)` ガードで「リスナーが見つからない＝空走合格」になっていた enterVR 2件、「unknown-error を使う」と名乗りながら描画内容を一切見ていなかった overlay テスト、IME の `convert?.()`（存在しないメソッド）を呼んで `out` を捨てるテスト。
 - 🔧 **修正**: ①enterVR 2件 — `DOMContentLoaded` 未発火が原因で click が undefined → dispatch を追加し enter-vr 発火/非発火＋エラートーストを実断言（テスト名と一致）②overlay テスト — `detail.textContent === 'Unknown error'` を実検査 ③IME — 実メソッド `convertToKanji()` の null 返却を断言 ④onSpeak — `.not.toThrow()` に正直化。

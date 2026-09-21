@@ -89,6 +89,16 @@ attribute, no applied classes) — re-eval after readyState settles before judgi
 - `Runtime.evaluate` on a `service_worker` CDP target cannot see top-level
   `const`/`let` bindings (ReferenceError even though the script ran) — eval
   `self.*`-reachable state or treat const-globals as unreadable.
+- `Network.emulateNetworkConditions {offline:true}` on the page target does NOT
+  take the app offline: SW-controlled requests never touch the page's network
+  stack, and the SW's own fetch() runs in its own context (emulating the
+  service_worker target doesn't reliably stick either). For a TRUE offline test
+  kill the preview server (`kill $(lsof -ti:8080)`) — that exercises the same
+  fetch-fail → getOfflineFallback path. Expected: never-cached navigation →
+  offline.html (purple card, "You're currently offline"); precached routes →
+  app shell. offline.html auto-reloads on `navigator.onLine` — when only the
+  server is down it shows a "Connection restored! Reloading..." banner that
+  can race your next navigation.
 - Rebuilding `dist/` while the OLD service worker still controls the page
   produces a transient UNSTYLED render: its precached `index.html` references
   the previous build's hashed CSS/JS (e.g. `index-DPVD57s7.css`), which vite

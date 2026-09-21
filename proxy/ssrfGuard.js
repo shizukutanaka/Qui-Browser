@@ -38,8 +38,11 @@ export const ALLOWED_PORTS = [80, 443, 8080, 8443];
 /** Maximum bytes the proxy will read from an upstream response. */
 export const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 
-/** Upstream timeout (ms). */
+/** Upstream socket inactivity timeout (ms). */
 export const UPSTREAM_TIMEOUT_MS = 10_000;
+
+/** Total upstream budget per fetch (ms): connect, redirects, and body. */
+export const UPSTREAM_DEADLINE_MS = 30_000;
 
 /** Redirects followed before giving up. */
 export const MAX_REDIRECTS = 3;

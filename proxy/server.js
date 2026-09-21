@@ -30,7 +30,7 @@ import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
 import {
   assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
-  MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, MAX_REDIRECTS
+  MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, UPSTREAM_DEADLINE_MS, MAX_REDIRECTS
 } from './ssrfGuard.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -84,9 +84,21 @@ export async function resolveSafely(hostname) {
  * @param {object} [headers]
  * @returns {Promise<{ok: true, status: number, contentType: string, body: string, finalUrl: string} | {ok: false, reason: string}>}
  */
-export async function fetchThroughGuard(target, headers = {}) {
+export async function fetchThroughGuard(target, headers = {},
+  { signal: clientSignal, deadlineMs = UPSTREAM_DEADLINE_MS } = {}) {
+  // A hard clock cap alongside the socket's inactivity timeout: an upstream
+  // feeding one byte at a time never trips the idle timeout, and a client
+  // that closed its socket should not keep burning a fetch slot.
+  const deadline = Date.now() + deadlineMs;
   let current = target;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (clientSignal?.aborted) {
+      return { ok: false, reason: 'client-gone' };
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      return { ok: false, reason: 'deadline-exceeded' };
+    }
     const check = assertRequestAllowed(current);
     if (!check.ok) {
       return { ok: false, reason: check.reason };
@@ -97,83 +109,100 @@ export async function fetchThroughGuard(target, headers = {}) {
       return { ok: false, reason: dns.reason };
     }
 
-    const res = await new Promise((resolve) => {
-      const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
-      const req = send(url, {
-        method: 'GET',
-        headers: { ...safeUpstreamHeaders(headers), host: url.host },
-        timeout: UPSTREAM_TIMEOUT_MS,
-        // Pin the connection to the address the guard already checked —
-        // letting httpRequest re-resolve the hostname opens a DNS-rebinding
-        // window where the second answer points inward.
-        // Node >= 20 calls lookup with { all: true } and requires an array
-        // of {address, family} — the scalar form throws ERR_INVALID_IP_ADDRESS.
-        // resolveSafely already vetted every address, so hand back the whole
-        // list: Node then races/falls back across them like normal DNS.
-        lookup: (_host, opts, cb) =>
-          cb(null, opts && opts.all ? dns.addresses : dns.address, dns.family)
-      }, (r) => resolve({ kind: 'response', r }));
-      req.on('timeout', () => {
-        req.destroy();
-        resolve({ kind: 'error', reason: 'upstream-timeout' });
-      });
-      req.on('error', () => resolve({ kind: 'error', reason: 'upstream-error' }));
-      req.end();
-    });
-
-    if (res.kind === 'error') {
-      return { ok: false, reason: res.reason };
+    const hopAbort = new AbortController();
+    const onClientAbort = () => hopAbort.abort();
+    if (clientSignal?.aborted) {
+      onClientAbort();
     }
-    const r = res.r;
+    clientSignal?.addEventListener('abort', onClientAbort, { once: true });
+    const deadlineTimer = setTimeout(() => hopAbort.abort(), remaining);
+    deadlineTimer.unref?.();
+    const abortReason = () => clientSignal?.aborted
+      ? 'client-gone'
+      : hopAbort.signal.aborted ? 'deadline-exceeded' : null;
+    try {
+      const res = await new Promise((resolve) => {
+        const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+        const req = send(url, {
+          method: 'GET',
+          headers: { ...safeUpstreamHeaders(headers), host: url.host },
+          timeout: UPSTREAM_TIMEOUT_MS,
+          signal: hopAbort.signal,
+          // Pin the connection to the address the guard already checked —
+          // letting httpRequest re-resolve the hostname opens a DNS-rebinding
+          // window where the second answer points inward.
+          // Node >= 20 calls lookup with { all: true } and requires an array
+          // of {address, family} — the scalar form throws ERR_INVALID_IP_ADDRESS.
+          // resolveSafely already vetted every address, so hand back the whole
+          // list: Node then races/falls back across them like normal DNS.
+          lookup: (_host, opts, cb) =>
+            cb(null, opts && opts.all ? dns.addresses : dns.address, dns.family)
+        }, (r) => resolve({ kind: 'response', r }));
+        req.on('timeout', () => {
+          req.destroy();
+          resolve({ kind: 'error', reason: 'upstream-timeout' });
+        });
+        req.on('error', () => resolve({ kind: 'error', reason: abortReason() ?? 'upstream-error' }));
+        req.end();
+      });
 
-    if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
-      r.resume(); // drain
-      // A malformed Location must not escape: this runs inside an async
-      // request handler, so a throw becomes an unhandled rejection and
-      // takes the whole proxy process down with it. A repeated Location
-      // header arrives as an array — String() would comma-join it into a
-      // misleading URL, so only a single string value may redirect.
-      try {
-        if (typeof r.headers.location !== 'string') {
-          throw new TypeError('non-string location');
-        }
-        current = new URL(r.headers.location, url).toString();
-      } catch {
-        return { ok: false, reason: 'bad-redirect-location' };
+      if (res.kind === 'error') {
+        return { ok: false, reason: res.reason };
       }
-      continue;
-    }
+      const r = res.r;
 
-    if (!isReadableContentType(r.headers['content-type'])) {
-      r.resume();
-      return { ok: false, reason: `content-type-not-readable:${r.headers['content-type'] || 'none'}` };
-    }
-
-    const body = await new Promise((resolve) => {
-      let size = 0;
-      const chunks = [];
-      r.on('data', (c) => {
-        size += c.length;
-        if (size > MAX_RESPONSE_BYTES) {
-          r.destroy();
-          resolve(null);
-          return;
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+        r.resume(); // drain
+        // A malformed Location must not escape: this runs inside an async
+        // request handler, so a throw becomes an unhandled rejection and
+        // takes the whole proxy process down with it. A repeated Location
+        // header arrives as an array — String() would comma-join it into a
+        // misleading URL, so only a single string value may redirect.
+        try {
+          if (typeof r.headers.location !== 'string') {
+            throw new TypeError('non-string location');
+          }
+          current = new URL(r.headers.location, url).toString();
+        } catch {
+          return { ok: false, reason: 'bad-redirect-location' };
         }
-        chunks.push(c);
+        continue;
+      }
+
+      if (!isReadableContentType(r.headers['content-type'])) {
+        r.resume();
+        return { ok: false, reason: `content-type-not-readable:${r.headers['content-type'] || 'none'}` };
+      }
+
+      const body = await new Promise((resolve) => {
+        let size = 0;
+        const chunks = [];
+        r.on('data', (c) => {
+          size += c.length;
+          if (size > MAX_RESPONSE_BYTES) {
+            r.destroy();
+            resolve(null);
+            return;
+          }
+          chunks.push(c);
+        });
+        r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        r.on('error', () => resolve(null));
       });
-      r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-      r.on('error', () => resolve(null));
-    });
-    if (body === null) {
-      return { ok: false, reason: 'response-too-large-or-truncated' };
+      if (body === null) {
+        return { ok: false, reason: abortReason() ?? 'response-too-large-or-truncated' };
+      }
+      return {
+        ok: true,
+        status: r.statusCode,
+        contentType: r.headers['content-type'] || '',
+        body,
+        finalUrl: url.toString()
+      };
+    } finally {
+      clearTimeout(deadlineTimer);
+      clientSignal?.removeEventListener('abort', onClientAbort);
     }
-    return {
-      ok: true,
-      status: r.statusCode,
-      contentType: r.headers['content-type'] || '',
-      body,
-      finalUrl: url.toString()
-    };
   }
   return { ok: false, reason: 'too-many-redirects' };
 }
@@ -212,9 +241,17 @@ export function createProxyServer() {
         .end(JSON.stringify({ error: 'missing-url' }));
       return;
     }
+    // The client closing its socket mid-fetch must cancel the upstream work —
+    // otherwise a disconnected request still burns a slot until it ends.
+    const clientGone = new AbortController();
+    res.on('close', () => {
+      if (!res.writableFinished) {
+        clientGone.abort();
+      }
+    });
     let out;
     try {
-      out = await fetchThroughGuard(target, req.headers);
+      out = await fetchThroughGuard(target, req.headers, { signal: clientGone.signal });
     } catch {
       // A throw here would surface as an unhandled rejection and exit the
       // process — every upstream surprise must degrade to a 4xx instead.
