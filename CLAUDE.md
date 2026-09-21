@@ -544,6 +544,20 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き123（同セッション）: VRApp の「構造的に到達不能」面を再検証 — 分岐カバレッジ 91.28%
+
+- **前提の破壊**: 「VRApp は GPU 直結で到達不能」は ctor までには成立しない — `new VRApp()` は `initialize()` を `_initPromise` に保持するだけで ctor 自体はヘッドレス完走する（document.body フォールバック・persisted captionScale シード腕まで pin）。
+- bound-prototype で pin した腕:
+  - hostnameCaption: `about:blank` の空 hostname → `|| url` 腕、非 URL 文字列 → catch → slice(30) 腕
+  - updateHover: `isWorldVisible` の見えない祖先 skip 腕（レイキャスト命中でも invisible 親なら dispatch しない）
+  - ストレージ境界: `typeof localStorage === 'undefined'` / `!raw` / 非オブジェクト JSON の3腕（loadPersistedSettings / _saveTabSession / _restoreTabSession）
+  - `_buildBrowsingSystems` cfg の補腕: onTabActivate(null)→new-tab ラベル、BookmarkPanel onSelect の active 不在スキップ・onDeleteBookmark の通知ハプティクス・onTabChange('history')・空 URL 確認の Loading スキップ、captionSystem 不在時の全コールバック完走
+  - 設定パネル: `_toggleSettingsSection` 再選択 no-op / 別タブ persist+rebuild、`_rebuildSettingsPanel` の panel 不在早期 return、`_disposeSettingsPanel` の parent 無し traverse、makeCompactToggleButton の `apply` 腕、makeStepperButton の worldToLocal 領域 dispatch、makeActionButton の onSelect 不在腕、highContrast apply の `bookmarkPanel.visible` → `_draw`、smoothMove+reduced-motion の警告 toast、windowManager 不在の follow-view no-op
+  - showVRToast: 60 コードポイント超の切り詰め（サロゲートペア安全）、カメラ null の自動消去タイマー腕
+  - `_onWebPanelToggleChanged()` 引数無し → persisted 設定読取り腕
+- 外周クラスの残腕も一掃: VRControllerInput の未知 family→generic fallback・handedness 不在・value 無しボタン、HapticFeedback の切断検出・単一 gamepad での alert 両手 dedup・不明 texture/proximity 範囲外 return・test()、DevTools の POST+content-length 記録・showTab 切替・Object/unnamed フォールバック、JapaneseIME の katakana mode・語尾非 n 腕、VRJapaneseKeyboard の hover caption・show・null-ime・dispose メンバガード。
+- **実測**: 2738 tests / 66 suites 全緑、lint 0 errors、branches **91.28%**（3686/4038、開始時 83.18%）。残存は VRApp setupRenderer/setupVR の GL・XR 直結部（~143腕）と monitoring.js の PROD ゲート（62腕、N-2）が大半 — 実機 E2E か PROD ビルドでのみ到達可能。
+
 #### 続き122（同セッション）: 条件の「欠けている側」をBRDA三つ組で個別潰し — 分岐カバレッジ 90.47%
 
 - lcov の BRDA (line, block, branch) で腕ごと残存を列挙し、まだ見えていない側だけをテスト:
