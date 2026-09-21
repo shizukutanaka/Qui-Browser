@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き194 — iframe フレーム内遷移でアドレスバーが嘘をついていた
+- 🔍 **発見**: `iframe.onload` はフレーム内トップ遷移（リンククリック・フォーム送信・ロード後リダイレクト）でも再発火するが、旧実装は `currentUrl` を要求時URLのまま残していた — **dom-overlay でユーザーが見ている実ページとアドレスバー表示が乖離**（フィッシング級の stale URL 表示）。セキュリティ表示器（origin 保持・elide 不可）は続きで整えたのに遷移追従がなかった。
+- 🔧 **修正**: ①same-origin フレーム内遷移 → `contentWindow.location.href` で真の URL を読み `currentUrl`/履歴に反映＋リーダー再取得 ②cross-origin のフレーム内遷移（宛先は原理的に読めない）→ `_frameNavigated` で URL バーを「↪」マーク＋ placeholder 灰色化し「依然そのサイトにいる」と見せない ③`stop()`/`_loadUrl` でフラグリセット。pin 2件追加（same-origin 遷移の履歴記録、cross-origin 遷移の灰色化）。
+- ✅ 3090 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き193 — `'layers'` をセッション要求に追加（FFR+ネイティブ quad layer が全滅していた）
 - 🔍 **発見（続き178 hand-tracking と同クラス）**: `XRWebGLBinding` はセッションの `'layers'` 付与なしでは `new XRWebGLBinding()`/`createQuadLayer()` が失敗するのに `sessionInit` は `optionalFeatures: ['hand-tracking']` のみ。LayersSystem の自前コメントすら「layers 要求必須」と明記していたのに要求側が未追随 — **Quest 実機で FFRSystem（fixedFoveation）と LayersSystem（ネイティブ quad layer＝最鮮明なパネル文字経路）の両方が静かに mesh フォールバックに落ちていた**。
 - 🔧 **修正**: `optionalFeatures` に `'layers'` 追加（optional のため非対応環境で requestSession は壊れない）。pin テストを `arrayContaining(['hand-tracking','layers'])` に拡張。
