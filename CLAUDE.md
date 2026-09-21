@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き115（同セッション）: カバレッジフロアのラチェット — 実測 96% に対し閾値が 75 系のままだった
+- 🔍 **ソクラテス的検証**: TESTING.md は「フロアはラチェット、実測を下げるな」と謳うが、実測値（95.9% stmts / 83.2% branch / 92.7% funcs / 96.1% lines）に対し `jest.config.js` の閾値は statements 75 / branches 65 / functions 70 / lines 75 のまま — **20ポイントの退化がゲートを素通り**する状態だった。TESTING.md の数値記述も旧フロア（25系）のまま陳腐化。
+- 🔧 **修正**: 閾値を実測直下に引き上げ（branches 81 / functions 90 / lines 94 / statements 93）、TESTING.md の Coverage policy 記述を新フロアに同期。新閾値で `jest --coverage` 全緑を実測確認。
+- ✅ 2379 tests / 66 suites 全緑、lint 0 errors。
+
 #### 続き114（同セッション）: 最終 sliver — IME 候補/候補提案 + SpatialAudio stop/dispose + BookmarkPanel/WebPanel/ImmersiveVideo 残腕
 - ✅ VRKeyboard 候補行: onSelect の `selectCandidate` 有無両経路（不在時は kanji リテラル確定）、onHover→onHoverCaption(kanji)・onHoverEnd 再描画。
 - ✅ showSuggestions: 全 entry が url 欠落時の早期 return（interactable 未生成で検証）、suggestion onHover が**フル URL** を読み上げる（WCAG 1.3.3 意図通り）、onHoverEnd 再描画。
