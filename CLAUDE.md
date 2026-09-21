@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き177 — CSP media-src blob: 締め + manifest リンクのサブパス破壊修正
+- 🔍 **実測**: `createObjectURL` を生産するコードが src/ 全体にゼロ → CSP `media-src blob:` は消費者不在の死んだ許可。`img-src data:` はユーザー供給 data URI の可能性があり温存、`connect-src` ループバックは docs 化されたローカルプロキシ経路なので温存。
+- 🔧 **修正①**: `media-src 'self' https: blob:` → `'self' https:`（6箇所全て）。csp-consistency が blob: 不在を pin。
+- 🔧 **修正②（実害）**: `<link rel="manifest" href="/manifest.json">` が root-absolute — vite は public/ への href を書き換えないため verbatim で出荷され、Pages サブパス `/Qui-Browser/` 配下で **/manifest.json = 404 → PWA インストール不可**。`manifest.json` 相対化（BASE_PATH ビルドで実測確認）。asset-paths.test.js に「index.html が public/ 資産を root-absolute で参照しない」pin を新設。
+- ✅ 3075 tests / 72 suites 全緑、lint 0 errors、verify:app 10/10 緑。
+
 ### Session 75: 続き176 — KTX2 全体削除（実 Chrome で CSP が wasm を拒否することを実証）
 - 🔍 **実測（実 Chrome CSP 検証）**: 出荷 CSP `script-src 'self'`（`wasm-unsafe-eval`/`unsafe-eval` 無し）の meta を持つページで `WebAssembly.compile` を実測 → **CompileError: Refused** を確認。three の KTX2Loader は blob ワーカー内で wasm を instantiate するが、ワーカーは文書 CSP を継承するため本番では transcoder init が必ず失敗する。**KTX2 テクスチャ経路は全デプロイ先で dead-on-arrival** だった。
 - 🔍 **三重の死**: .ktx2 資産ゼロ、`preferKTX2`/.ktx2 URL の呼出ゼロ（JSDoc 例のみ）、本番 CSP で読み込み不能 — それでも `public/libs/basis/`（57KB js + 527KB wasm = **584KB**）を全デプロイに出荷し、起動毎に `initializeKTX2()` が走っていた。
