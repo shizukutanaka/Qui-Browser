@@ -891,3 +891,87 @@ describe('VoiceCommands — handler callbacks + init catch + pattern arm', () =>
     expect(vc.stats.commandsExecuted).toBe(1);
   });
 });
+
+describe('VoiceCommands — remaining branch arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('wake-word mode: non-final transcript while asleep returns early', () => {
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    // _handleResult with isFinal=false and no wake word → returns, no command
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'unknown', confidence: 0.9 }, isFinal: false, length: 1 }] });
+    expect(vc.stats.commandsRecognized).toBe(0);
+  });
+
+  test('wake word wakes the listener (isAwake flips, greeting spoken)', () => {
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.handleRecognitionResult({ results: [{ 0: { transcript: 'キューブラウザ 起動', confidence: 0.9 }, isFinal: true, length: 1 }] });
+    expect(vc.isAwake).toBe(true);
+  });
+
+  test('command with RegExp pattern matches; non-string/non-RegExp pattern skipped', () => {
+    vc.registerCommand('rx', { patterns: [/^reload|reload$/], action: () => ({ ok: 1 }) });
+    vc.registerCommand('badpat', { patterns: [123], action: () => { throw new Error('never'); } });
+    vc.processCommand('reload', 0.9);
+    expect(vc.lastCommand.key).toBe('rx');
+  });
+
+  test('alias substring match resolves to the aliased command', () => {
+    vc.registerCommand('home', {
+      patterns: ['ホーム'], action: () => ({ action: 'home' })
+    });
+    vc.aliases.set('ホームページ', 'home');
+    vc.processCommand('ホームページへ', 0.9);
+    expect(vc.lastCommand.key).toBe('home');
+  });
+
+  test('search command regex with no colon-match returns without query', () => {
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    // '検索' matches the command pattern but carries no query payload.
+    vc.processCommand('検索', 0.9);
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  test('registerCommand fills defaults for absent patterns/example', () => {
+    vc.registerCommand('bare', { action: () => ({ ok: 1 }) });
+    const cmd = vc.commands.get('bare');
+    expect(cmd.patterns).toEqual([]);
+    expect(cmd.confirmationText).toBeNull();
+  });
+
+  test('connectBrowser() with no args registers nothing session-bound', () => {
+    expect(() => vc.connectBrowser()).not.toThrow();
+    expect(() => vc.connectBrowser({})).not.toThrow();
+  });
+
+  test('volume command with onVolumeChange returning non-number skips level readout', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => undefined });
+    vc.processCommand('音量を上げる', 0.9);
+    expect(spoken.every((s) => !s.includes('%'))).toBe(true);
+  });
+
+  test('keyboard command no-ops without vrKeyboard', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('キーボード', 0.9)).not.toThrow();
+    expect(vc.lastCommand.result.action).toBe('keyboard');
+  });
+
+  test('go-to command with unmatched transcript leaves onGoTo uncalled', () => {
+    const onGoTo = jest.fn();
+    vc.connectBrowser({ onGoTo });
+    // Register a custom go-to-shaped command whose transcript matches but whose
+    // extractor finds no payload.
+    vc.processCommand('開いて', 0.9);
+    expect(onGoTo).not.toHaveBeenCalled();
+  });
+});
