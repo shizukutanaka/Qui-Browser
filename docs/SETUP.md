@@ -96,7 +96,7 @@ npm run build
 npm test
 
 # Run specific test
-npm test unified-systems.test.js
+npm test tests/vr-app-wiring.test.js
 
 # Coverage report
 npm run test:coverage

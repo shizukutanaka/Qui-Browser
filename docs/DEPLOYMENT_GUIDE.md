@@ -10,6 +10,8 @@
 
 This guide provides complete deployment instructions for Qui Browser VR across multiple platforms. All methods have been tested and verified for production use.
 
+> **Note (2026-09):** The repo now ships working configs for every platform below — `netlify.toml`, `vercel.json`, `Dockerfile`, `docker/nginx.conf`, and `.github/workflows/deploy.yml`. Treat the embedded config samples in this guide as reference recipes; the shipped files are authoritative (they add CSP/Permissions-Policy headers and SSRF-hardened routing the samples omit).
+
 ### Deployment Options
 
 | Platform | Difficulty | Cost | Best For |
@@ -80,7 +82,7 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 
 #### Step 2: Create Workflow
 
-Create `.github/workflows/deploy.yml`:
+The repo already ships `.github/workflows/deploy.yml` — but it still contains stale `assets/js/**` validation steps for the deleted legacy bundle (see `docs/PUBLISHING.md` / `docs/patches/` for the fix). Replace its job body with this clean version:
 
 ```yaml
 name: Deploy to GitHub Pages
@@ -145,13 +147,10 @@ jobs:
 
 #### Step 3: Configure base URL
 
-Update `vite.config.js`:
+`vite.config.js` already supports a per-build base override — no file edit needed:
 
-```javascript
-export default defineConfig({
-  base: '/qui-browser-vr/', // Replace with your repo name
-  // ... rest of config
-});
+```bash
+BASE_PATH=/qui-browser-vr/ npm run build  # replace with your repo name
 ```
 
 #### Step 4: Push to GitHub
@@ -202,9 +201,9 @@ gh repo deploy
    - **Publish directory:** `dist`
    - **Node version:** 18
 
-#### Step 2: Configure netlify.toml
+#### Step 2: netlify.toml
 
-Create `netlify.toml` in project root:
+The repo ships a complete `netlify.toml` (build command, `dist` publish dir, SPA redirect, CSP + WebXR Permissions-Policy headers). Minimal shape for reference:
 
 ```toml
 [build]
