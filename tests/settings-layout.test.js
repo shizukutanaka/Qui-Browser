@@ -206,3 +206,11 @@ describe('the panel stays inside the comfortable field of view', () => {
     expect(PANEL_W).toBeGreaterThanOrEqual(1.0);       // section-header width
   });
 });
+
+describe('worstCaseHeight — edge arms', () => {
+  test('non-array input returns PAD', () => {
+    const { PAD } = require('../src/vr/ui/settingsLayout.js');
+    expect(worstCaseHeight(null)).toBe(PAD);
+    expect(worstCaseHeight('x')).toBe(PAD);
+  });
+});

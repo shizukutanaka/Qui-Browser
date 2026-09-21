@@ -544,6 +544,50 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き116（同セッション）: VRApp ブランチ腕 — updateButtonInput false側 + dispose() else腕 + absent-subsystem apply
+- ✅ updateButtonInput: menu ボタンの settings トグル（faceB || menu 腕）、mesh 不在 settingsPanel のトグル、vrKeyboard visible→hide+closed キャプション、tab 不在時の faceA/faceB 無操作、captionSystem disabled 腕、何も押されない時の haptic 未発火。
+- ✅ dispose() else 腕: vrKeyboard 不在→japaneseIME.dispose、tabManager 不在→webPanel.dispose、全サブシステム不在でも完走。
+- ✅ settings apply コールバック: サブシステム null 時（captionSystem/gazeInteraction/hapticFeedback 全不在）でも toggle が例外なく設定を反転することを pin。
+- ✅ 2388 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
+#### 続き115（同セッション）: カバレッジフロアのラチェット — 実測 96% に対し閾値が 75 系のままだった
+- 🔍 **ソクラテス的検証**: TESTING.md は「フロアはラチェット、実測を下げるな」と謳うが、実測値（95.9% stmts / 83.2% branch / 92.7% funcs / 96.1% lines）に対し `jest.config.js` の閾値は statements 75 / branches 65 / functions 70 / lines 75 のまま — **20ポイントの退化がゲートを素通り**する状態だった。TESTING.md の数値記述も旧フロア（25系）のまま陳腐化。
+- 🔧 **修正**: 閾値を実測直下に引き上げ（branches 81 / functions 90 / lines 94 / statements 93）、TESTING.md の Coverage policy 記述を新フロアに同期。新閾値で `jest --coverage` 全緑を実測確認。
+- ✅ 2379 tests / 66 suites 全緑、lint 0 errors。
+
+#### 続き114（同セッション）: 最終 sliver — IME 候補/候補提案 + SpatialAudio stop/dispose + BookmarkPanel/WebPanel/ImmersiveVideo 残腕
+- ✅ VRKeyboard 候補行: onSelect の `selectCandidate` 有無両経路（不在時は kanji リテラル確定）、onHover→onHoverCaption(kanji)・onHoverEnd 再描画。
+- ✅ showSuggestions: 全 entry が url 欠落時の早期 return（interactable 未生成で検証）、suggestion onHover が**フル URL** を読み上げる（WCAG 1.3.3 意図通り）、onHoverEnd 再描画。
+- ✅ SpatialAudio: stop() の node.stop() throw→warn catch、dispose() の全ソース停止ループ。
+- ✅ BookmarkPanel: onHover の !mesh ガード（caption は依然発火）、_rows() の store 不在→[]、_onSelect のデッドゾーン default 腕。
+- ✅ WebPanel: contentMesh の onSelect 登録→_onContentSelect ルーティング、setSearchEngine、dispose の traverse 中 material.map dispose。
+- ✅ ImmersiveVideo: togglePause の video 不在早期 return。
+- ✅ 2379 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。対象ファイル群は statements 98%+、残は VRApp setupRenderer（GPU 直結）と monitoring.js（PROD ゲート、N-2 判断待ち）のみ。
+
+#### 続き113（同セッション）: 残 sliver 一巡 — SpatialAudio/DevTools/PerformanceMonitor/BookmarkPanel/WindowManager/CaptionSystem/IME/app.js
+- ✅ SpatialAudio: resume() 拒否 catch、directional cone パラメータ、stop/setSourcePosition/updateSourceLOD/fadeVolume/updateListenerFromCamera の未知ソース・欠損ノードガード、panner.setPosition/setOrientation 旧APIフォールバック、listener null ガード。
+- ✅ DevTools: console Enter ハンドラ、warn/error 傍受+dispose 復元、scene-tree/network-tbody 欠損ガード、リクエストリングバッファ（100 超で shift）、hide()/dispose コンテナ除去。
+- ✅ PerformanceMonitor: performance.memory 有無で interval 起動/dispose クリア、updateMemoryMetrics 書込み、endFrame の renderer.info サンプル、FPS warning 帯アラート、updateAlerts の perf-alerts 不在ガード。
+- ✅ BookmarkPanel: onHover ティント+キャプション/onHoverEnd 復帰、setMode 未知値ガード+スクロールリセット、_onSelect null evt ガード、_draw canvas/ctx 不在ガード。
+- ✅ WindowManager: beginGrab 非対象/null コントローラガード、_applyAngularScale の距離0ガード。CaptionSystem: _draw canvas null/roundRect 不在→fillRect フォールバック/空行早期 return。
+- ✅ HandTracking: inputSources 欠落→false、update 無効/無 frame ガード、handedness 'none'/null skip。GazeInteraction: _fill 不在ガード。textWrap: 超過語分割前の cur フラッシュ。i18n: t() の en フォールバック。settingsLayout: worstCaseHeight 非配列→PAD。readerLayout: null/textless ブロック skip。
+- ✅ JapaneseIME/VRKeyboard: deleteLast のカタカナ変換経路、createKeyboard 冪等、キー onSelect→onKeyPress/onHover→キャプション、変換/かな/shift/esc 特殊キー本体、showCandidates 空ガード、getStats プロキシ。app.js: visibilitychange 両腕、perf interval の null stats 早期 return。
+- ✅ 2367 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
+#### 続き112（同セッション）: VoiceCommands/ProgressiveLoader/readableText/HapticFeedback/main.js の残腕
+- ✅ VoiceCommands: onstart/onend/onerror/onresult のユーザー callback 転送、SpeechRecognition ctor throw→false、非 string/RegExp パターン skip。
+- ✅ ProgressiveLoader: performLoad の script/style/audio/video ディスパッチ、loadModel/loadGeneric の HTTP !ok throw、onResourceLoaded の bytes+onProgress、start() の onCriticalComplete フェーズ間配置。
+- ✅ readableText: safeFromCodePoint 範囲外→''（`&#-1;` は `\d+` 非マッチでリテラル温存=正）、extractReadableText の `<li>` 1語クラム drop + h/p 型付け。
+- ✅ HapticFeedback: playPatternBothHands の delay>0→wait 腕・delay=0→連続再生、simulateTexture の pulse+wait ループ、未知テクスチャ即 return。
+- ✅ main.js: vrFloatingButton click→enter-vr dispatch、二連続エラーで旧 toast remove、enterVR catch→toast、unhandledrejection ログ、SW 登録失敗 catch。
+- ✅ 2314 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
+#### 続き111（同セッション）: VRApp 残 sliver — toast タイマー発火・recenter ボタン・updateButtonInput 腕
+- ✅ showVRToast の自動消去タイマー発火本体: camera.remove + geometry/material/texture 3リソース dispose + `_toastTimers` クリーンアップ。
+- ✅ createHomeEnvironment の recenter パネル: onHover→0x88bbff ティント+（gaze 有効時）recenter キャプション、onHoverEnd→白復帰、onSelect→recenter()。
+- ✅ updateButtonInput: inputSource 不在コントローラの skip 腕。
+- ✅ 2293 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
 #### 続き110（同セッション）: TabManager ストリップ hover/HC 描画 + ImmersiveVideo ガード + WebPanel updateLayer
 - ✅ TabManager: ストリップ onHover→hoverTint+onHoverCaption / onHoverEnd→baseTint、高コントラスト時の idle-tab/close/new-tab ボーダー stroke、`_shortTitle` の不正URLフォールバック（slice 18）。
 - ✅ ImmersiveVideo: `play('')` 早期 return（何も確保しない）、`togglePause()` no-video ガード、`_enableStereoLayers` の XR eye camera 各目レイヤー（左→1 のみ、右→2 のみ — 相互除外であることを検証）。

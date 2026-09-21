@@ -603,3 +603,124 @@ describe('SpatialAudio — loadAudio + play/stop guards', () => {
     expect(audio.stats.sourcesActive).toBe(0);
   });
 });
+
+describe('SpatialAudio — guard + fallback slivers', () => {
+  const initAudio = async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const a = new SpatialAudio();
+    return { a, context };
+  };
+
+  test('resume() rejection is caught and warned (autoplay policy)', async () => {
+    const context = makeAudioContext();
+    context.state = 'suspended';
+    context.resume = jest.fn(() => Promise.reject(new Error('denied')));
+    global.window.AudioContext = jest.fn(() => context);
+    const a = new SpatialAudio();
+    await new Promise(r => setTimeout(r, 0));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    global.document = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    a._resumeOnGesture();
+    await new Promise(r => setTimeout(r, 0));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('resume failed'), expect.any(Error));
+    warn.mockRestore();
+  });
+
+  test('createSource applies directional cone params', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('beam', { directional: true, coneInnerAngle: 30, coneOuterAngle: 90, coneOuterGain: 0.1 });
+    expect(src.panner.coneInnerAngle).toBe(30);
+    expect(src.panner.coneOuterAngle).toBe(90);
+    expect(src.panner.coneOuterGain).toBe(0.1);
+  });
+
+  test('stop() on an unknown source is a no-op', async () => {
+    const { a } = await initAudio();
+    expect(() => a.stop('nope')).not.toThrow();
+  });
+
+  test('setSourcePosition on an unknown source returns silently', async () => {
+    const { a } = await initAudio();
+    expect(() => a.setSourcePosition('nope', 0, 0, 0)).not.toThrow();
+  });
+
+  test('setSourcePosition falls back to setPosition when AudioParams are absent', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('legacy');
+    delete src.panner.positionX;
+    delete src.panner.positionY;
+    delete src.panner.positionZ;
+    src.panner.setPosition = jest.fn();
+    a.setSourcePosition('legacy', 1, 2, 3);
+    expect(src.panner.setPosition).toHaveBeenCalledWith(1, 2, 3);
+  });
+
+  test('simulateDoppler returns early when source has no velocity', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('still');
+    expect(() => a.simulateDoppler(src)).not.toThrow();
+  });
+
+  test('listener guards return before init provides a listener', () => {
+    const a = new SpatialAudio();
+    a.listener = null;
+    expect(() => a.setListenerPosition(0, 0, 0)).not.toThrow();
+    expect(() => a.setListenerOrientation(0, 0, -1, 0, 1, 0)).not.toThrow();
+  });
+
+  test('setListenerOrientation falls back to setOrientation without AudioParams', async () => {
+    const { a, context } = await initAudio();
+    for (const k of ['forwardX','forwardY','forwardZ','upX','upY','upZ']) delete context.listener[k];
+    context.listener.setOrientation = jest.fn();
+    a.setListenerOrientation(0, 0, -1, 0, 1, 0);
+    expect(context.listener.setOrientation).toHaveBeenCalledWith(0, 0, -1, 0, 1, 0);
+  });
+
+  test('updateListenerFromCamera(null) is a no-op', async () => {
+    const { a } = await initAudio();
+    expect(() => a.updateListenerFromCamera(null)).not.toThrow();
+  });
+
+  test('updateSourceLOD and fadeVolume bail on missing source parts', async () => {
+    const { a } = await initAudio();
+    expect(() => a.updateSourceLOD('ghost')).not.toThrow();
+    expect(() => a.fadeVolume('ghost', 0.5, 1)).not.toThrow();
+    const src = a.createSource('nopanner');
+    src.panner = null;
+    expect(() => a.updateSourceLOD('nopanner')).not.toThrow();
+    const src2 = a.createSource('nogain');
+    src2.gain = null;
+    expect(() => a.fadeVolume('nogain', 0.5, 1)).not.toThrow();
+  });
+});
+
+describe('SpatialAudio — last two slivers', () => {
+  const initAudio = async () => {
+    const context = makeAudioContext();
+    global.window.AudioContext = jest.fn(() => context);
+    const a = new SpatialAudio();
+    return { a, context };
+  };
+
+  test('stop() warn-logs when node.stop() throws', async () => {
+    const { a } = await initAudio();
+    const src = a.createSource('s');
+    src.node = { stop: jest.fn(() => { throw new Error('not started'); }) };
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    a.stop('s');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Error stopping source 's'"), expect.any(Error));
+    warn.mockRestore();
+  });
+
+  test('dispose() stops every registered source', async () => {
+    const { a } = await initAudio();
+    const s1 = a.createSource('one');
+    const s2 = a.createSource('two');
+    s1.node = { stop: jest.fn() };
+    s2.node = { stop: jest.fn() };
+    a.dispose();
+    expect(s1.node.stop).toHaveBeenCalled();
+    expect(s2.node.stop).toHaveBeenCalled();
+  });
+});

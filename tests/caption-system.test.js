@@ -452,3 +452,31 @@ describe('CaptionSystem (FR-13.1)', () => {
     });
   });
 });
+
+describe('CaptionSystem — _draw canvas guards', () => {
+  test('_draw is a no-op when canvas is null', () => {
+    const cs = new CaptionSystem(makeCamera());
+    cs.canvas = null;
+    expect(() => cs._draw()).not.toThrow();
+  });
+
+  test('_draw falls back to fillRect when roundRect is unavailable', () => {
+    const cs = new CaptionSystem(makeCamera());
+    // Older canvas impls lack roundRect — the else arm must paint the backing.
+    cs.canvas.getContext = () => ({
+      clearRect: () => {}, fillRect: jest.fn(), fillText: () => {},
+      beginPath: undefined, roundRect: undefined, fill: undefined,
+      fillStyle: '', font: '', textAlign: '', textBaseline: '', globalAlpha: 1
+    });
+    cs.show('hello');
+    expect(() => cs._draw()).not.toThrow();
+    expect(cs.texture.needsUpdate).toBe(true);
+  });
+
+  test('_draw with empty lines flips needsUpdate and exits before painting', () => {
+    const cs = new CaptionSystem(makeCamera());
+    const ctx = cs.canvas.getContext('2d');
+    cs._draw();
+    expect(ctx.fillRect).not.toHaveBeenCalledWith(8, 8, expect.any(Number), expect.any(Number));
+  });
+});

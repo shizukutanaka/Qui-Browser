@@ -451,3 +451,16 @@ describe('applyTranslations — DOM application', () => {
     }
   });
 });
+
+describe('t() — fallback arms', () => {
+  test('falls back to the English catalog when the current lang lacks the key', () => {
+    // A key present only in en — e.g. freshly added — resolves via en.
+    const { CATALOG } = require('../src/i18n/i18n.js');
+    const enOnly = Object.keys(CATALOG.en).find(k => !(k in CATALOG.ja));
+    if (enOnly) {
+      setLanguage('ja');
+      expect(t(enOnly)).toBe(CATALOG.en[enOnly]);
+    }
+    setLanguage('en');
+  });
+});

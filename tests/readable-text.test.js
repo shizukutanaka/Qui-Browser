@@ -465,3 +465,49 @@ describe('reader reserves the bottom strip for the arrows and progress label', (
     }
   });
 });
+
+describe('decodeEntities — safeFromCodePoint arms', () => {
+  const { decodeEntities } = require('../src/vr/browser/readableText.js');
+
+  test('in-range numeric entities decode to the character', () => {
+    expect(decodeEntities('&#65;&#x42;')).toBe('AB');
+  });
+
+  test('out-of-range code points decode to empty (not a throw)', () => {
+    expect(decodeEntities('&#x110000;x')).toBe('x');        // > U+10FFFF
+    // negatives can't reach safeFromCodePoint — \d+ never matches the '-'
+    expect(decodeEntities('&#-1;y')).toBe('&#-1;y');
+  });
+
+  test('invalid entities stay literal', () => {
+    expect(decodeEntities('&#xZZ;')).toBe('&#xZZ;');
+  });
+});
+
+describe('extractReadableText — crumb drop + block typing', () => {
+  const { extractReadableText } = require('../src/vr/browser/readableText.js');
+
+  test('one-word <li> crumbs are dropped; real list items become p blocks', () => {
+    const { blocks } = extractReadableText(
+      '<main><ul><li>go</li><li>a real list item</li></ul><p>body</p></main>');
+    const texts = blocks.map(b => b.text);
+    expect(texts).not.toContain('go');
+    expect(texts).toContain('a real list item');
+    expect(texts).toContain('body');
+  });
+
+  test('h1-3 map to type "h"; p/li/blockquote map to "p"', () => {
+    const { blocks } = extractReadableText(
+      '<main><h2>Head</h2><p>para text</p><blockquote>a quote here</blockquote></main>');
+    expect(blocks[0]).toEqual({ type: 'h', text: 'Head' });
+    expect(blocks[1]).toEqual({ type: 'p', text: 'para text' });
+    expect(blocks[2]).toEqual({ type: 'p', text: 'a quote here' });
+  });
+});
+
+describe('layoutReaderLines — malformed block skip', () => {
+  test('null and textless blocks are skipped', () => {
+    const lines = layoutReaderLines([null, { type: 'p' }, { type: 'p', text: 'ok' }]);
+    expect(lines.filter(l => l.style === 'p')).toEqual([{ text: 'ok', style: 'p' }]);
+  });
+});

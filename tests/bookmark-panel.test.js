@@ -558,3 +558,66 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     expect(store.removeBookmark).not.toHaveBeenCalled();
   });
 });
+
+describe('BookmarkPanel — hover callbacks + remaining guards', () => {
+  test('onHover tints the mesh and fires the caption hook; onHoverEnd restores white', () => {
+    const p = makePanel(makeStore());
+    const cfg = p.registerInteractable.mock.calls[0][1];
+    p.mesh.material = { color: { set: jest.fn() }, dispose: jest.fn() };
+    p.onHoverCaption = jest.fn();
+    cfg.onHover();
+    expect(p.mesh.material.color.set).toHaveBeenCalledWith(0xbbccff);
+    expect(p.onHoverCaption).toHaveBeenCalled();
+    cfg.onHoverEnd();
+    expect(p.mesh.material.color.set).toHaveBeenCalledWith(0xffffff);
+  });
+
+  test('setMode ignores unknown modes; valid modes reset scroll and redraw', () => {
+    const p = makePanel(makeStore());
+    p.scrollOffset = 3;
+    p.setMode('bogus');
+    expect(p.mode).not.toBe('bogus');
+    p.setMode('history');
+    expect(p.mode).toBe('history');
+    expect(p.scrollOffset).toBe(0);
+  });
+
+  test('_onSelect bails when the event lacks an intersection point', () => {
+    const p = makePanel(makeStore());
+    expect(() => p._onSelect(null)).not.toThrow();     // null evt → !rawPoint
+  });
+
+  test('_draw returns early without a canvas or ctx', () => {
+    const p = makePanel(makeStore());
+    const keep = p.canvas;
+    p.canvas = null;
+    expect(() => p._draw()).not.toThrow();
+    p.canvas = { getContext: () => null };
+    expect(() => p._draw()).not.toThrow();
+    p.canvas = keep;
+  });
+});
+
+describe('BookmarkPanel — final guards', () => {
+  test('onHover skips the tint when mesh is gone; _rows returns [] without store', () => {
+    const p = makePanel(makeStore());
+    const cfg = p.registerInteractable.mock.calls[0][1];
+    p.onHoverCaption = jest.fn();
+    const mesh = p.mesh;
+    p.mesh = null;
+    cfg.onHover();   // !mesh arm — caption still fires
+    expect(p.onHoverCaption).toHaveBeenCalled();
+    p.mesh = mesh;
+    p.store = null;
+    expect(p._rows()).toEqual([]);
+  });
+
+  test('_onSelect hit-testing the dead zone does nothing (default arm)', () => {
+    const p = makePanel(makeStore());
+    // Land the click far inside the panel body but on no row: centre-bottom.
+    MockMesh._nextLocal = { x: 0, y: -0.4 };
+    const before = p.mode;
+    expect(() => p._onSelect({ x: 0, y: -0.4, clone() { return this; } })).not.toThrow();
+    expect(p.mode).toBe(before);
+  });
+});

@@ -1619,6 +1619,65 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
     expect(sp.bookmarkPanel.toggle).not.toHaveBeenCalled();
     expect(spTab.goForward).toHaveBeenCalledTimes(1);
   });
+  test('menu button also toggles the settings panel (faceB || menu arm)', () => {
+    const app = makeLocoApp();
+    app.settingsPanel = { visible: false, mesh: { visible: false } };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    withInput(app, makePad('left', {}, { menu: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.settingsPanel.visible).toBe(true);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Settings: open');
+  });
+
+  test('settings panel without a mesh still toggles and announces', () => {
+    const app = makeLocoApp();
+    app.settingsPanel = { visible: true }; // no mesh — guard must skip gracefully
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    withInput(app, makePad('left', {}, { faceB: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.settingsPanel.visible).toBe(false);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Settings: closed');
+  });
+
+  test('vrKeyboard already visible → hide arm + closed caption', () => {
+    const app = makeLocoApp();
+    app.vrKeyboard = {
+      visible: true,
+      show: jest.fn(function () { this.visible = true; }),
+      hide: jest.fn(function () { this.visible = false; })
+    };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    withInput(app, makePad('left', {}, { thumbstickClick: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.vrKeyboard.hide).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalledWith('Keyboard: closed');
+  });
+
+  test('no active tab → faceA/faceB do nothing (null tab arm)', () => {
+    const app = makeLocoApp();
+    app.tabManager = { getActiveTab: () => null };
+    app.captionSystem = { enabled: true, show: jest.fn() };
+    withInput(app, makePad('right', {}, { faceA: { justPressed: true } }));
+    expect(() => VRApp.prototype.updateButtonInput.call(app)).not.toThrow();
+    expect(app.captionSystem.show).not.toHaveBeenCalled();
+  });
+
+  test('captions skipped when captionSystem disabled (enabled-false arms)', () => {
+    const app = makeLocoApp();
+    app.tabManager = { getActiveTab: () => ({ goForward: jest.fn(() => true) }) };
+    app.captionSystem = { enabled: false, show: jest.fn() };
+    withInput(app, makePad('right', {}, { faceA: { justPressed: true } }));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.captionSystem.show).not.toHaveBeenCalled();
+  });
+
+  test('no haptic click when nothing was pressed (anyJustPressed false arm)', () => {
+    const app = makeLocoApp();
+    app.hapticFeedback = { playPattern: jest.fn() };
+    withInput(app, makePad('right', {}, {}));
+    VRApp.prototype.updateButtonInput.call(app);
+    expect(app.hapticFeedback.playPattern).not.toHaveBeenCalled();
+  });
 });
 
 describe('VRApp adjustQuality / keyboard input / loadTexture (bound prototypes)', () => {
@@ -2767,5 +2826,150 @@ describe('VRApp dispose() — teardown symmetry (bound prototype)', () => {
     delete global.window;
     delete global.document.addEventListener;
     delete global.document.removeEventListener;
+  });
+});
+
+describe('VRApp — toast auto-dismiss + recenter button + button recenter arm', () => {
+  test('toast auto-dismiss removes the mesh and disposes all three GPU resources', () => {
+    jest.useFakeTimers();
+    try {
+      const camera = { add: jest.fn(), remove: jest.fn() };
+      const app = makeVRAppLike({ isVREnabled: true, camera });
+      VRApp.prototype.showVRToast.call(app, 'msg');
+      const mesh = camera.add.mock.calls[0][0];
+      // real THREE objects — spy on the three disposables before firing the timer
+      const gSpy = jest.spyOn(mesh.geometry, 'dispose');
+      const mSpy = jest.spyOn(mesh.material, 'dispose');
+      const tSpy = jest.spyOn(mesh.material.map, 'dispose');
+      jest.runAllTimers();
+      expect(camera.remove).toHaveBeenCalledWith(mesh);
+      expect(app._toastTimers.size).toBe(0);
+      expect(gSpy).toHaveBeenCalled();
+      expect(mSpy).toHaveBeenCalled();
+      expect(tSpy).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('home-environment recenter panel: hover tints + captions, select recenters', () => {
+    const registered = [];
+    const app = makeVRAppLike({
+      settings: { enableGazeDwell: true },
+      registerInteractable: (mesh, cfg) => registered.push(cfg),
+      unregisterInteractable: jest.fn(),
+      captionSystem: { enabled: true, show: jest.fn() },
+      recenter: jest.fn()
+    });
+    VRApp.prototype.createHomeEnvironment.call(app);
+    const cfg = registered.find(c => c.onHoverEnd); // the welcome/recenter panel
+    expect(cfg).toBeTruthy();
+    const panelMesh = app.interactables?.[0];
+    // Fire the real callbacks
+    cfg.onHover();
+    cfg.onHoverEnd();
+    cfg.onSelect();
+    expect(app.recenter).toHaveBeenCalledTimes(1);
+  });
+
+  test('updateButtonInput: controllers without an inputSource are skipped', () => {
+    const app = makeVRAppLike({
+      controllers: [{ userData: {} }], // no inputSource
+      controllerInput: { read: jest.fn() },
+      settings: { southpaw: false },
+      hapticFeedback: { playPattern: jest.fn() }
+    });
+    expect(() => VRApp.prototype.updateButtonInput.call(app)).not.toThrow();
+    expect(app.controllerInput.read).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('VRApp dispose() — else-arm teardown', () => {
+  test('no vrKeyboard → japaneseIME disposed instead; no tabManager → webPanel disposed', () => {
+    global.window = {
+      devicePixelRatio: 1,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn()
+    };
+    const scene = new THREE.Scene();
+    const ime = { dispose: jest.fn() };
+    const webPanel = { dispose: jest.fn() };
+    const app = {
+      renderer: { setAnimationLoop: jest.fn(), dispose: jest.fn(), domElement: { removeEventListener: jest.fn() }, xr: {} },
+      scene,
+      _onWebGLContextLost: jest.fn(), _onWebGLContextRestored: jest.fn(),
+      _onWindowResize: Object.assign(jest.fn(), { cancel: jest.fn() }),
+      vrKeyboard: null, japaneseIME: ime,
+      tabManager: null, webPanel
+    };
+    VRApp.prototype.dispose.call(app);
+    expect(ime.dispose).toHaveBeenCalledTimes(1);
+    expect(webPanel.dispose).toHaveBeenCalledTimes(1);
+    delete global.window;
+  });
+
+  test('dispose with everything absent runs to completion', () => {
+    global.window = { devicePixelRatio: 1, addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    const app = {
+      renderer: { setAnimationLoop: jest.fn(), dispose: jest.fn(), domElement: { removeEventListener: jest.fn() }, xr: {} },
+      scene: new THREE.Scene()
+    };
+    expect(() => VRApp.prototype.dispose.call(app)).not.toThrow();
+    delete global.window;
+  });
+});
+
+describe('VRApp settings apply — absent-subsystem arms', () => {
+  const SETTINGS2 = {
+    enableGazeDwell: false, highContrast: false, enableTeleport: true, enableSnapTurn: true,
+    enableSmoothMove: false, southpaw: false, enableComfort: true, enableFFR: true,
+    enableHaptics: true, enableCaptions: true, enableWebPanel: true, privateMode: false,
+    enableWindowFollow: true, enableCurvedPanel: false,
+    snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
+    windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
+    openSettingsSections: ['settings.section.a11y']
+  };
+  const build = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: { ...SETTINGS2 },
+      _panelTextures: [], _sharedGeometries: new Map(), _settingsPanelDrawers: [],
+      interactables: [], scene: new THREE.Scene(),
+      captionSystem: null, gazeInteraction: null, hapticFeedback: null, ffrSystem: null,
+      saveSettings: jest.fn(), showVRToast: jest.fn(),
+      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
+      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
+      _announceSettingsButton: VRApp.prototype._announceSettingsButton,
+      _redrawSettingsPanel: VRApp.prototype._redrawSettingsPanel,
+      makeSectionTab: VRApp.prototype.makeSectionTab,
+      makeCompactToggleButton: VRApp.prototype.makeCompactToggleButton,
+      makeStepperButton: VRApp.prototype.makeStepperButton,
+      makeCycleButton: VRApp.prototype.makeCycleButton,
+      makeActionButton: VRApp.prototype.makeActionButton,
+      _toggleSettingsSection: jest.fn(),
+      _launchImmersiveVideo: jest.fn(),
+      _clearBrowsingHistory: jest.fn(),
+      _requestReaderProxyInput: jest.fn(),
+      _onWebPanelToggleChanged: jest.fn(),
+      ...over
+    });
+    VRApp.prototype.createSettingsPanel.call(app);
+    return app;
+  };
+
+  test('toggles do not throw when their subsystems are absent', () => {
+    const app = build();
+    const C = app.interactables.slice(5); // a11y controls
+    expect(() => C[0].onSelect()).not.toThrow(); // enableCaptions, captionSystem null
+    expect(() => C[1].onSelect()).not.toThrow(); // enableGazeDwell, gazeInteraction null
+    expect(() => C[2].onSelect()).not.toThrow(); // highContrast — caption/gaze null arms
+    expect(() => C[3].onSelect()).not.toThrow(); // enableHaptics, hapticFeedback null
+    expect(app.settings.enableCaptions).toBe(false);
+    expect(app.settings.enableGazeDwell).toBe(true);
+    expect(app.settings.highContrast).toBe(true);
+    expect(app.settings.enableHaptics).toBe(false);
   });
 });

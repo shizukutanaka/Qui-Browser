@@ -364,3 +364,51 @@ describe('HapticFeedback sequence patterns + utilities', () => {
     dbg.mockRestore();
   });
 });
+
+describe('HapticFeedback — both-hands delay + texture loop', () => {
+  let hf;
+  beforeEach(() => {
+    hf = new HapticFeedback();
+    global.navigator.getGamepads = jest.fn(() => [
+      makeGamepad('left'), makeGamepad('right')
+    ]);
+    hf.update();
+  });
+  afterEach(() => { global.navigator.getGamepads = jest.fn(() => []); });
+
+  test('playPatternBothHands with delay>0 waits between hands', async () => {
+    const delays = [];
+    hf.wait = (ms) => { delays.push(ms); return Promise.resolve(); };
+    await hf.playPatternBothHands('click', 50);
+    expect(delays).toEqual([50]);
+  });
+
+  test('playPatternBothHands with delay=0 plays back-to-back (no wait)', async () => {
+    const delays = [];
+    hf.wait = (ms) => { delays.push(ms); return Promise.resolve(); };
+    await hf.playPatternBothHands('click');
+    expect(delays).toEqual([]);
+  });
+
+  test('simulateTexture loops pulse+wait until the duration elapses', async () => {
+    const pulses = [];
+    hf.pulse = async (h, d, i) => { pulses.push([h, d, i]); };
+    hf.wait = async () => {};
+    let t = 0;
+    const realNow = Date.now;
+    Date.now = () => (t += 8); // advance 8ms per call → ~2 iterations in 30ms
+    try {
+      await hf.simulateTexture('right', 'rough', 30); // rough: 20ms interval, 0.5
+      expect(pulses.length).toBeGreaterThanOrEqual(1);
+      expect(pulses[0]).toEqual(['right', 10, 0.5]);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  test('simulateTexture with an unknown texture type returns immediately', async () => {
+    hf.pulse = jest.fn();
+    await hf.simulateTexture('left', 'glass', 100);
+    expect(hf.pulse).not.toHaveBeenCalled();
+  });
+});

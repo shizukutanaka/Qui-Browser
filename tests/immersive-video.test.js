@@ -458,3 +458,10 @@ describe('ImmersiveVideo — guard + stereo-layer arms', () => {
     expect(eye2.layers.enable).not.toHaveBeenCalledWith(1);
   });
 });
+
+describe('ImmersiveVideo — togglePause no-video arm', () => {
+  test('togglePause returns silently before any video exists', () => {
+    const v = new ImmersiveVideo({}, {}, {});
+    expect(() => v.togglePause()).not.toThrow();
+  });
+});

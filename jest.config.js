@@ -31,14 +31,14 @@ module.exports = {
   ],
 
   // カバレッジ閾値 — ratchet per docs/TESTING.md: set just under the measured
-  // baseline (80.2% stmts / 71.1% branch / 75.3% funcs / 80.7% lines) so a
+  // baseline (95.9% stmts / 83.2% branch / 92.7% funcs / 96.1% lines) so a
   // coverage regression fails the gate instead of silently landing.
   coverageThreshold: {
     global: {
-      branches: 65,
-      functions: 70,
-      lines: 75,
-      statements: 75
+      branches: 81,
+      functions: 90,
+      lines: 94,
+      statements: 93
     }
   },
 

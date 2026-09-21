@@ -372,3 +372,24 @@ describe('WindowManager — constant apparent size across the distance range', (
 
   
 });
+
+describe('WindowManager — remaining guard arms', () => {
+  test('beginGrab is a no-op without a target or controller', () => {
+    const wm = new WindowManager(makeNode());
+    wm.beginGrab(makeNode());            // no attach → no target
+    expect(wm.isGrabbing).toBe(false);
+    wm.attach(makeNode());
+    wm.beginGrab(null);                  // null controller
+    expect(wm.isGrabbing).toBe(false);
+  });
+
+  test('_applyAngularScale returns early on a non-finite/zero camera distance', () => {
+    const wm = new WindowManager(makeNode(), { angularConstant: true });
+    const panel = makeNode([0, 0, 0]);   // co-located with camera → d = 0
+    wm.attach(panel);
+    const spy = jest.spyOn(panel.scale, 'setScalar');
+    wm._applyAngularScale();
+    // distanceTo(co-located) === 0 → guard arm, no scale write
+    expect(spy).not.toHaveBeenCalled();
+  });
+});

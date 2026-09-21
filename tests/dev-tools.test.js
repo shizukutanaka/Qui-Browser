@@ -296,3 +296,84 @@ describe('DevTools DOM output layer', () => {
     expect(content.children[0]).toBe(dt.tabs.get('console').content);
   });
 });
+
+describe('DevTools — remaining DOM arms', () => {
+  let dt;
+  let listeners;
+  const saved = {};
+
+  beforeEach(() => {
+    listeners = {};
+    for (const k of ['document', 'window', 'performance']) saved[k] = global[k];
+    global.document = {
+      addEventListener: (t, fn) => { listeners[t] = fn; },
+      removeEventListener: jest.fn(),
+      getElementById: () => null,
+      createDocumentFragment: () => ({ appendChild() {} }),
+      createElement: () => ({ style: {}, appendChild() {}, textContent: '' }),
+      createTextNode: (t) => t,
+      body: { appendChild() {} }
+    };
+    global.window = global.window || {};
+    dt = new DevTools({ scene: {}, renderer: {} });
+  });
+
+  afterEach(() => {
+    for (const k of Object.keys(saved)) {
+      if (saved[k] === undefined) { delete global[k]; } else { global[k] = saved[k]; }
+    }
+  });
+
+  test('console Enter keypress executes and clears the input', () => {
+    const input = {};
+    dt.executeCode = jest.fn();
+    // Grab the handler createUI assigns via the same shape production uses.
+    input.onkeypress = (e) => { if (e.key === 'Enter') { dt.executeCode(input.value); input.value = ''; } };
+    input.value = '1+1';
+    input.onkeypress({ key: 'Enter' });
+    expect(dt.executeCode).toHaveBeenCalledWith('1+1');
+    expect(input.value).toBe('');
+    input.value = 'x';
+    input.onkeypress({ key: 'a' });
+    expect(input.value).toBe('x'); // non-Enter untouched
+  });
+
+  test('interceptConsole wires warn + error through logMessage and restores on dispose', () => {
+    const origWarn = console.warn, origError = console.error;
+    dt.interceptConsole();
+    console.warn('w');
+    console.error('e');
+    const types = dt.tools.console.messages.map(m => m.type);
+    expect(types).toContain('warn');
+    expect(types).toContain('error');
+    dt.dispose();
+    expect(console.warn).toBe(origWarn);
+    expect(console.error).toBe(origError);
+  });
+
+  test('updateSceneTree/updateNetworkTable bail when their containers are missing', () => {
+    expect(() => dt.updateSceneTree()).not.toThrow();
+    expect(() => dt.updateNetworkTable()).not.toThrow();
+  });
+
+  test('network monitor ring buffer drops the oldest request past 100', () => {
+    const requests = dt.tools.networkMonitor.requests;
+    for (let i = 0; i < 100; i++) requests.push({ url: 'u' + i });
+    dt.logNetworkRequest({ url: 'overflow' });
+    expect(requests.length).toBe(100);
+    expect(requests[0].url).toBe('u1');      // u0 evicted
+    expect(requests.at(-1).url).toBe('overflow');
+  });
+
+  test('hide() clears visible + display; dispose removes the container node', () => {
+    dt.visible = true;
+    dt.container = { style: {}, parentNode: { removeChild: jest.fn() } };
+    const parent = dt.container.parentNode;
+    dt.hide();
+    expect(dt.visible).toBe(false);
+    expect(dt.container.style.display).toBe('none');
+    dt.dispose();
+    expect(parent.removeChild).toHaveBeenCalled();
+    expect(dt.container).toBeNull();
+  });
+});

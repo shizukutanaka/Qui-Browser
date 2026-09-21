@@ -60,9 +60,9 @@ Three tiers of test:
 
 ## Coverage policy
 
-`jest.config.js` enforces a global floor (branches 20 / functions 25 / lines 25 /
-statements 25). The floor is a ratchet: raise it when a subsystem gains real coverage,
-never lower it to make a run pass.
+`jest.config.js` enforces a global floor (branches 81 / functions 90 / lines 94 /
+statements 93 — measured baseline is ~96% lines). The floor is a ratchet: raise it when
+a subsystem gains real coverage, never lower it to make a run pass.
 
 ## Line endings
 
