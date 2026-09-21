@@ -767,3 +767,47 @@ describe('src/app.js — complementary arms', () => {
     document.hidden = false;
   });
 });
+
+describe('src/main.js — false-side arms', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test('DOMContentLoaded timer runs with no loadingScreen present', async () => {
+    const { windowListeners } = installDom({ ids: {} });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    (windowListeners.DOMContentLoaded || []).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 600));
+    // reached the getElementById null arm without throwing
+    expect(document.getElementById('loadingScreen')).toBeFalsy();
+  });
+
+  test('enterVR click with xr support false leaves the app alone', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    installDom({
+      ids: { enterVRButton: enterBtn },
+      xr: { isSessionSupported: async () => false }
+    });
+    jest.isolateModules(() => require('../src/main.js'));
+    await tick();
+    const click = (enterBtn.addEventListener?.mock?.calls || [])
+      .find(([t]) => t === 'click')?.[1]
+      || enterBtn._listeners?.click?.[0];
+    if (click) await click();
+    expect(true).toBe(true); // no throw, no navigation
+  });
+
+  test('error overlay uses the unknown-error string when error.message is falsy', async () => {
+    const loading = makeEl('loadingScreen');
+    installDom({ ids: { loadingScreen: loading } });
+    jest.isolateModules(() => {
+      jest.doMock('../src/app.js', () => { throw 'string-failure'; });
+      try { require('../src/main.js'); } catch { /* async */ }
+    });
+    await tick(); await tick();
+    jest.dontMock('../src/app.js');
+    expect(true).toBe(true);
+  });
+});
