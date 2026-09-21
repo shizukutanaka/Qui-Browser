@@ -870,3 +870,37 @@ test('main.js enter-vr click tolerates a navigator without xr; showError without
   await tick();
   if (desc) Object.defineProperty(globalThis, 'navigator', desc);
 });
+
+describe('main.js — final arms', () => {
+  test('module-load failure without a loadingScreen element just logs', async () => {
+    jest.resetModules();
+    installDom({}); // no loadingScreen element
+    jest.doMock('../src/app.js', () => { throw new Error('gone'); });
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    let thrown = null;
+    try {
+      jest.isolateModules(() => { require('../src/main.js'); });
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) { thrown = e; }
+    jest.dontMock('../src/app.js');
+    errSpy.mockRestore();
+    expect(thrown).toBeNull();
+  });
+
+  test('no navigator.xr fires the noWebXR arm; floating button always dispatches enter-vr', async () => {
+    const enterBtn = makeEl('enterVRButton');
+    const floatBtn = makeEl('vrFloatingButton');
+    const { documentListeners } = installDom({ ids: { enterVRButton: enterBtn, vrFloatingButton: floatBtn } });
+    jest.isolateModules(() => { require('../src/main.js'); });
+    (documentListeners.DOMContentLoaded || []).forEach((fn) => fn());
+
+    await enterBtn.click();
+    await tick(); await tick();
+    const dispatched = global.window.dispatchEvent.mock.calls.map(([e]) => e.type);
+    expect(dispatched).not.toContain('enter-vr');
+    expect(global.document.body.children.some((c) => c.id === 'vr-error-toast')).toBe(true);
+
+    floatBtn.click();
+    expect(global.window.dispatchEvent.mock.calls.map(([e]) => e.type)).toContain('enter-vr');
+  });
+});

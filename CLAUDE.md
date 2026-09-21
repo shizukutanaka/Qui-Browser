@@ -544,6 +544,26 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き125（同セッション）: 補腕スイープ完走 — 分岐カバレッジ 97.67%、残は全て構造的死腕
+
+- **実測**: 2994 tests / 67 suites 全緑、lint 0 errors、branches **97.67%**（94/4038 未カバー、続き124 時点の 93.4% / 266 から +4.3pt）。
+- 最終バッチで pin した腕:
+  - ストレージ/環境: BookmarkStore `writeJSON` の `typeof localStorage` 偽腕（**addHistory は事前ガード済みで到達しない — `clearHistory()` が唯一直呼び経路**）、`getTopSites` の代表差替え `entry.title || entry.url`（同一ホストで高スコア・無タイトルの履歴を seeded localStorage で投入）、`applyTranslations` の `root`/`document` 両デフォルト腕
+  - ネットワーク: ProgressiveLoader `onNetworkChange` の `conn.type || 'unknown'`（**ctor 側と change ハンドラ側で別行・別ブロック — change 側は `conn._handlers.change()` 発火が必要**）
+  - レンダリング/計測: LayersSystem `renderCanvasToLayer` の post-dispose no-op、PerformanceMonitor `endFrame` の `now - lastFpsUpdate >= 1000` **真腕**（既存テストは performance.now をモックして常に偽側 — `lastFpsUpdate = now - 2000` で確定的に真側を踏む）と偽腕（二連続呼び）、TextureManager `cacheHitRate` の hits>0 腕
+  - ブラウザ/UI: TabManager `closeTab` の `index > activeIndex`（activeIndex 不変）、WebPanel iframe 未生成 dispose、ComfortSystem 非移動時の FOV 補間腕、ImmersiveVideo `_reportError` の `_playPauseBtn` 不在腕、HapticFeedback の `duration`/`pause` 両無しステップ、urlDisplay `maxChars` 省略、readerLayout `reserveBottom`+`scale` 省略腕
+  - 文字幅/国際化: textWrap の残 CJK レンジ（Hangul 音節・Yi・互換表意文字・縦書き・全角・Ext A/B/G）、VoiceCommands `検索` の colon 無し transcript → 内側 match null 腕（`commands.get('search').action('検索')` 直接呼び出しで到達）
+  - IME/キーボード: `VRJapaneseKeyboard._updateSuggestions` の `ime` 不在腕（`: ''`）と `compositionBuffer || ''` 空バッファ腕
+  - CaptionSystem `'colorSpace' in texture` 偽腕 — **`import * as THREE` は babel がモジュールロード時に wildcard コピーするため、テスト内での `THREE.CanvasTexture` 差替えは `jest.isolateModules` 内で CaptionSystem を再 require しないと反映されない**
+- **ソクラテス的残存の確定（構造的死腕、pin 不可能 — 今後の調査対象外として記録）**:
+  - `src/monitoring.js` 全62腕: `import.meta.env.PROD` ゲート — babel-jest では `import.meta.env` 自体が undefined で DEV 経路のみ実行可能（N-2、オーナー判断事項）
+  - VRApp.js 15腕: setupRenderer 内の GPU リスナー本体（520/529/552/559 — WebGL コンテキスト必須）、`leftover.some` 真腕 1700、`move.lengthSq() > 0` ゼロ移動腕 2095、`import.meta.env.DEV` 2736
+  - VRControllerInput 202/227/228/266: `??` フォールバック — upstream が常に値供給
+  - JapaneseIME 244: 末尾 `if (buffer === 'n')` — ループ内 'n' ハンドラが末尾 'n' を先に消費するため到達不能。810/818 `k.glyph || k.label`: computeKeyLayout が常に glyph を供給
+  - app.js 99/177: `if (perfIntervalId)` — initializeApp はモジュールローカルで一度しか呼ばれず、Escape ハンドラ登録時点で interval は必ず設定済み
+  - i18n 348 `|| CATALOG.en`: detectLanguage ∈ {en,ja} で常に存在。main.js 49: `import.meta.env.PROD`。readerLayout 116: `measureEmForStyle` のデフォルト引数 — 全呼出側が scale 供給。curvedGeometry 90: `computeVertexNormals` は BufferGeometry に常時存在。LayersSystem 164: try 前に `if (!gl) return` でガード済みの finally。CaptionSystem 118 は差替え可能だったが、他の `in texture` 系ガードは mock が常に prop を持つため偽腕不在
+- **Musk の算法適用後の結論**: 残りの未カバーは全て「保険的防御」または「環境ゲート」であり、削除ではなく文書化が正解 — カバレッジの残量は実機 E2E（WebGL/XR）か PROD ビルド実行でのみ埋まる。
+
 #### 続き124（同セッション）: 補腕スイープの総仕上げ — 分岐カバレッジ 93.4%
 
 - **方法論の確定**: 残存未カバーの大部分は「条件の補腕」ではなく **デフォルト引数の未供給側**（`scale = 1`、`dtMs = 16`、`maxChars = 61`、`highContrast = false`）と **`||`/`??` のフォールバック腕**だった — 同じ形を横断的に潰すバッチに切り替えた。

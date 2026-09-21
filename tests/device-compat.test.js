@@ -265,3 +265,18 @@ describe('DeviceCompatibility — navigator/ua sliver arms', () => {
     expect(out).toBeTruthy();
   });
 });
+
+describe('DeviceCompatibility — navigator-absent arm', () => {
+  test('_probeOptionalFeatures detects the tier with an empty UA when navigator is gone', async () => {
+    const had = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true, writable: true });
+    try {
+      const dc = new DeviceCompatibility();
+      const feats = await dc._probeOptionalFeatures({ isSessionSupported: async () => true }, true, null);
+      expect(feats.handTracking).toBe(true);
+      expect(feats.hitTest).toBe(false);
+    } finally {
+      if (had) Object.defineProperty(globalThis, 'navigator', had);
+    }
+  });
+});

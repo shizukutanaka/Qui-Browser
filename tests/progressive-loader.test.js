@@ -681,3 +681,70 @@ test('start() falls back to setTimeout when requestIdleCallback is absent; detec
   global.navigator = prevNav;
   globalThis.requestIdleCallback = saved;
 });
+
+describe('ProgressiveLoader — last complementary arms', () => {
+  test('detectNetwork uses conn.type when present', () => {
+    const prev = global.navigator.connection;
+    global.navigator.connection = { type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false, addEventListener() {} };
+    const pl = new ProgressiveLoader();
+    expect(pl.network.type).toBe('wifi');
+    if (prev === undefined) { delete global.navigator.connection; } else { global.navigator.connection = prev; }
+  });
+
+  test('start() uses requestIdleCallback when it exists', async () => {
+    const rIC = [];
+    const saved = globalThis.requestIdleCallback;
+    globalThis.requestIdleCallback = (fn) => { rIC.push(fn); fn(); };
+    const pl = new ProgressiveLoader();
+    pl.performLoad = jest.fn().mockResolvedValue('ok');
+    pl.addResource({ url: '/s', name: 's' }, 'secondary');
+    await pl.start();
+    expect(rIC.length).toBe(1);
+    if (saved === undefined) { delete globalThis.requestIdleCallback; } else { globalThis.requestIdleCallback = saved; }
+  });
+
+  test('an all-failed queue still fires onLoadComplete once everything settled', async () => {
+    const done = jest.fn();
+    const pl = new ProgressiveLoader();
+    pl.callbacks.onComplete = done;
+    pl.strategy.retryAttempts = 0; // skip the backoff so the failure settles inline
+    pl.performLoad = jest.fn().mockRejectedValue(new Error('x'));
+    pl.addResource({ url: '/bad', name: 'bad' }, 'critical');
+    await pl.start();
+    expect(done).toHaveBeenCalled();
+  });
+});
+
+describe('ProgressiveLoader — remaining tail arms', () => {
+  test('conn.type absent in the change handler falls back to "unknown"', () => {
+    const had = 'connection' in navigator;
+    const orig = had ? navigator.connection : undefined;
+    const conn = {
+      type: 'wifi', effectiveType: '4g', downlink: 10, rtt: 50, saveData: false,
+      _handlers: {},
+      addEventListener(t, f) { this._handlers[t] = f; },
+      removeEventListener() {}
+    };
+    Object.defineProperty(navigator, 'connection', { value: conn, configurable: true });
+    try {
+      const loader = new ProgressiveLoader();
+      delete conn.type;             // hardware may drop the 'type' field
+      conn._handlers.change();      // → onNetworkChange reads conn.type || 'unknown'
+      expect(loader.network.type).toBe('unknown');
+      loader.dispose();
+    } finally {
+      if (had) Object.defineProperty(navigator, 'connection', { value: orig, configurable: true });
+      else delete navigator.connection;
+    }
+  });
+
+  test('a failure that is not the last settled item does not fire onComplete', () => {
+    const loader = new ProgressiveLoader();
+    const onComplete = jest.fn();
+    loader.callbacks.onComplete = onComplete;
+    loader.stats.itemsTotal = 2;
+    loader.stats.itemsLoaded = 0;
+    loader.onResourceFailed({ name: 'x', url: 'u' }, new Error('nope'));
+    expect(onComplete).not.toHaveBeenCalled(); // settled 1/2 — the false arm
+  });
+});

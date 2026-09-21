@@ -16,3 +16,12 @@ describe('readerLayout — scale/scroll arms', () => {
     expect(!r || r.kind !== 'scroll-up').toBe(true);
   });
 });
+
+describe('readerLayout — reserveBottom arm', () => {
+  test('visibleLineCount shrinks when reserveBottom is set', () => {
+    const open = visibleLineCount(1, false);
+    const reserved = visibleLineCount(1, true);
+    expect(visibleLineCount()).toBe(open); // scale defaults to 1
+    expect(reserved).toBeLessThan(open);
+  });
+});

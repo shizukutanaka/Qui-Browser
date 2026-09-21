@@ -509,3 +509,47 @@ test('hidden overlay renders display:none; fps in warning band alerts warning', 
   mon.checkThresholds();
   expect(warn).toContain('warning');
 });
+
+describe('PerformanceMonitor — last complementary arms', () => {
+  test('createUI renders the container when visible is preset', () => {
+    const mon = new PerformanceMonitor();
+    mon.visible = true;
+    const el = () => ({ style: { cssText: '' }, appendChild() {}, getContext: () => null, addEventListener() {} });
+    global.document = global.document || {};
+    global.document.createElement = el;
+    global.document.getElementById = el;
+    global.document.body = { appendChild() {} };
+    mon.createUI();
+    expect(mon.container.style.cssText).toContain('block');
+    delete global.document;
+  });
+
+  test('checkThresholds: fps in the warning band and above-warning arms', () => {
+    const mon = new PerformanceMonitor();
+    const alerts = [];
+    mon.addAlert = (level, msg) => alerts.push(level);
+    mon.thresholds = { fps: { warning: 55, critical: 20 }, frameTime: { warning: 20, critical: 33 }, memory: { warning: 0.8, critical: 0.95 } };
+    mon.metrics.fps.current = 40; // below warning, above critical
+    mon.checkThresholds();
+    mon.metrics.fps.current = 90; // above warning — no alert arm
+    mon.checkThresholds();
+    expect(alerts).toContain('warning');
+  });
+});
+
+describe('PerformanceMonitor — fps update interval arm', () => {
+  test('update() inside the interval skips the fps recomputation', () => {
+    const pm = new PerformanceMonitor();
+    pm.frameStartTime = performance.now();
+    const r = { info: { render: {}, memory: {} } };
+    pm.endFrame(r);
+    pm.endFrame(r); // still within fpsUpdateInterval — false arm
+    expect(pm.frameCount).toBeGreaterThan(0);
+
+    // And the recompute side: an elapsed interval updates stats.fps.
+    pm.lastFpsUpdate = performance.now() - 2000;
+    pm.frameStartTime = performance.now();
+    pm.endFrame(r);
+    expect(pm.metrics.fps.current).toBeGreaterThan(0);
+  });
+});

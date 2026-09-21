@@ -1264,3 +1264,12 @@ describe('VoiceCommands — sliver arms', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+describe('VoiceCommands — search action inner-match arm', () => {
+  test('the search action returns undefined for a transcript with no colon query', () => {
+    const vc = new VoiceCommands();
+    vc.connectBrowser({}); // registers 'search'
+    const cmd = vc.commands.get('search');
+    expect(cmd.action('検索')).toBeUndefined();
+  });
+});

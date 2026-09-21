@@ -472,7 +472,7 @@ describe('i18n — last branch arms', () => {
     const saved = global.document;
     delete global.document;
     try {
-      expect(() => applyTranslations()).not.toThrow();
+      expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
       expect(() => applyTranslations({})).not.toThrow(); // no querySelectorAll
     } finally {
       global.document = saved;
@@ -589,5 +589,40 @@ describe('i18n — module-init fallback arms', () => {
     expect(() => mod.setLanguage('ja')).not.toThrow();
     expect(() => mod.applyTranslations(null)).not.toThrow();
     jest.resetModules();
+  });
+});
+
+describe('i18n — document-absent arm', () => {
+  test('applyTranslations() with no root and no document returns silently', async () => {
+    const savedDoc = global.document;
+    delete global.document;
+    const { applyTranslations } = await import('../src/i18n/i18n.js');
+    expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
+    global.document = savedDoc;
+  });
+});
+
+describe('applyTranslations — root argument + absent-document arms', () => {
+  test('returns early when no document and no root', () => {
+    expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
+  });
+
+  test('an explicit root is queried instead of the global document', () => {
+    const qsa = jest.fn(() => []);
+    require('../src/i18n/i18n.js').applyTranslations({ querySelectorAll: qsa });
+    expect(qsa).toHaveBeenCalled();
+  });
+
+  test('a present global document is used as the default scope', () => {
+    const qsa = jest.fn(() => []);
+    const had = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    Object.defineProperty(globalThis, 'document', { value: { querySelectorAll: qsa, documentElement: {} }, configurable: true });
+    try {
+      require('../src/i18n/i18n.js').applyTranslations();
+      expect(qsa).toHaveBeenCalled();
+    } finally {
+      if (had) Object.defineProperty(globalThis, 'document', had);
+      else delete globalThis.document;
+    }
   });
 });

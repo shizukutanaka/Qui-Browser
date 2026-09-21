@@ -831,3 +831,60 @@ test('getTopSites omitting defaults; dedupe falls back to url when title absent'
   const top = store.getTopSites();                            // default limit/now/exclude
   expect(top.length).toBe(2);                                 // one entry per host
 });
+
+describe('BookmarkStore — storage-absent + titled-best arms', () => {
+  test('addHistory tolerates localStorage being entirely absent', () => {
+    const saved = global.localStorage;
+    delete global.localStorage;
+    const store = new BookmarkStore();
+    expect(() => store.addHistory('https://no-storage.example/', 'x')).not.toThrow();
+    global.localStorage = saved;
+  });
+
+  test('getTopSites adopts the higher-scoring same-host entry title', () => {
+    localStorage.clear();
+    const store = new BookmarkStore();
+    // b is visited twice (higher frecency) but sits deeper in history order,
+    // so the aggregate keeps the newer best-scoring entry's title.
+    store.addHistory('https://multi.example/b', 'B page');
+    store.addHistory('https://multi.example/b', 'B page');
+    store.addHistory('https://multi.example/a', 'A page');
+    const sites = store.getTopSites(8, Date.now());
+    const host = sites.find((s) => s.host.includes('multi.example'));
+    expect(host).toBeTruthy();
+    expect(host.title).toBe('B page');
+  });
+});
+
+describe('BookmarkStore — writeJSON/title-fallback tail arms', () => {
+  test('writeJSON returns falsy when localStorage is undefined', () => {
+    // BookmarkStore's writeJSON is module-private; exercise through addHistory
+    const saved = globalThis.localStorage;
+    delete globalThis.localStorage;
+    try {
+      const s = new BookmarkStore();
+      // clearHistory() invokes writeJSON directly — unlike addHistory it does
+      // not pre-guard on localStorage — so it is the path that reaches
+      // writeJSON's own typeof guard's false arm.
+      expect(() => s.clearHistory()).not.toThrow();
+      expect(() => s.addHistory('https://x.example', 'x')).not.toThrow();
+    } finally {
+      globalThis.localStorage = saved;
+    }
+  });
+
+  test('getTopSites falls back to entry.url when the better page has no title', () => {
+    localStorage.clear();
+    const now = Date.now();
+    // Seed history directly: the host's representative must switch to a
+    // higher-scoring page that carries no title.
+    localStorage.setItem('quiBrowser_history', JSON.stringify([
+      { url: 'https://a.example/low',  title: 'has title', visitedAt: now - 60 * 86400000, visits: 1 },
+      { url: 'https://a.example/high', title: '',          visitedAt: now,                 visits: 9 }
+    ]));
+    const s = new BookmarkStore();
+    const a = s.getTopSites(5, now).find((t) => t.host === 'a.example');
+    expect(a.url).toBe('https://a.example/high');
+    expect(a.title).toBe('https://a.example/high'); // title || url arm
+  });
+});

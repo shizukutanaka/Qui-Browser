@@ -653,3 +653,18 @@ test('_reportError while playing with a play/pause button relabels to play', () 
   expect(setLabel).toHaveBeenCalled();
   expect(seen).toEqual(['stopped']);
 });
+
+describe('ImmersiveVideo — _reportError without a HUD button', () => {
+  test('playing + no _playPauseBtn still stops and reports', () => {
+    const { iv } = makeHarness();
+    iv.playing = true;
+    iv._playPauseBtn = null;
+    const errs = []; const stops = [];
+    iv.onError = (m) => errs.push(m);
+    iv.onPlaybackChange = (s) => stops.push(s);
+    iv._reportError('decode failed');
+    expect(iv.playing).toBe(false);
+    expect(stops).toEqual(['stopped']);
+    expect(errs).toEqual(['decode failed']);
+  });
+});
