@@ -551,6 +551,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き78（同セッション）: ドキュメント漂移の実測同期 + textWrap 専用テストの欠落を補完
+- 🔍 **ランタイムハーネス実走（全PASS）**: repo 自前の `ci:verify`（build + verify:layout + verify:app + verify:vr-boot）を実 Chromium で走行 — 出荷バンドルが WebXR stub 下で VRApp 全構築（tabManager/設定パネル/キャプション含む）・55 surface の overflow ゼロ・uncaught ゼロ。macOS では `CHROME_PATH` 環境変数が必要（候補パスは Linux 固定）。
+- 🔍 **ドキュメント漂移の特定**: 大規模削除後も docs/ が旧構造を語り続けていた — ARCHITECTURE.md に存在しない `vr/multiplayer|ar|ai`・`ObjectPool`・`WebGPURenderer`・「Server side」節（削除済み Express+Stripe）・嘘の manualChunks リスト（`tier2-ar`/`WebGPURenderer` は存在しない chunk）。TESTING.md に「ESLint over src/ and server/」・消えた `ci:all` benchmarks・baseline 48 suites/1156 tests・存在しない `server.test.js`/`multiplayer-system`・`text-wrap` テストの虚偽主張。全て実測同期に修正。
+- ✅ **textWrap テスト新設**: TESTING.md が「tier-1 にある」と主張していた `tests/text-wrap.test.js` は実在しなかった — ドキュメントの主張を削除せず、7+ モジュールが依存する em 幅モデル（charWidthEm の UAX#11 域・wrapTextToWidth の surrogate-pair 安全・truncateToWidth の ellipsis 計上・safeMeasureEm の 5% 安全域）を15テストで pin。実装は正しかった（欠陥ゼロ）。
+- 📝 OUTSTANDING_ISSUES.md に O 章を新設: O-1「DEVELOPER_ONBOARDING.md（1182行）が VRMediaSystem/VRSystemMonitor/ObjectPool/initWebGPU 等の**存在しないクラス群**を現行設計として図解つきで教えている」をオーナー判断事項に（全面改訂/アーカイブ明記/削除の3択）。
+- 📝 2148 tests / 63 suites、lint 0 errors、build green。
+
 #### 続き77（同セッション）: DevTools の DOM 出力層を pin — 実装の正しさを実測確認（欠陥ゼロ）
 - ✅ **pin（DevTools.js の残り未到達行を網羅）**: `updateConsoleMessages` の severity 色分け（warn=#ce9178/error=#f48771）＋末尾100件制限＋scrollTop 自動追随、`updateNetworkTable` の status 色分け（2xx/3xx 緑・'failed' 赤）と `NNms` 整形、`buildSceneTree` の深さ 16px インデント再帰と `unnamed` ラベル、`showTab` の lazy append＋scene/network アーム dispatch。新しい stub DOM は fragment の append 展開と `innerHTML=''` による子消去を実 DOM 通りに再現。
 - 🔍 **テスト作成中に stub の誤りを2点発見・修正**（fragment が展開されない・innerHTML が効かない）— stub が実 DOM と違うと「見かけの実バグ」を量産するので注意。
