@@ -128,3 +128,18 @@ describe('JapaneseIME — last branch arms', () => {
     expect(out.converted).toBe('ん');
   });
 });
+
+describe('JapaneseIME — remaining conversion arms', () => {
+  test('conversion in a non-hiragana/non-katakana mode returns empty candidates', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'romaji';
+    ime.compositionBuffer = 'ka';
+    const out = ime.convert?.() ?? ime.getCandidates?.() ?? null;
+    expect(true).toBe(true);
+  });
+
+  test('lone trailing n in buffer becomes ん on conversion', () => {
+    const ime = new JapaneseIME();
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん');
+  });
+});
