@@ -3272,3 +3272,124 @@ describe('VRApp — locomotion/teleport/select boundary arms', () => {
     expect(app.interactables).toContain(obj);
   });
 });
+
+describe('VRApp — render/updateSystems/navigate/stats/dispose arms', () => {
+  test('render() drives perfMonitorUI begin/end and adjustQuality every 60 frames', () => {
+    const pm = { beginFrame: jest.fn(), endFrame: jest.fn() };
+    const app = makeVRAppLike({
+      frameCount: 59,
+      perfMonitorUI: pm,
+      renderer: { render: jest.fn() },
+      scene: {},
+      camera: {},
+      updateSystems: jest.fn(),
+      updatePerformanceMonitor: jest.fn(),
+      adjustQuality: jest.fn()
+    });
+    VRApp.prototype.render.call(app, 16, null);
+    expect(pm.beginFrame).toHaveBeenCalled();
+    expect(pm.endFrame).toHaveBeenCalledWith(app.renderer);
+    expect(app.adjustQuality).toHaveBeenCalled(); // frameCount 60 -> %60===0
+  });
+
+  test('updateSystems: layer blit falls back to [webPanel] without tabManager', () => {
+    const panel = { updateLayer: jest.fn() };
+    const views = [{}];
+    const xrFrame = { getViewerPose: () => ({ views }) };
+    const app = makeVRAppLike({
+      renderer: { xr: { getReferenceSpace: () => 'rs' } },
+      layersSystem: { isSupported: true },
+      tabManager: null,
+      webPanel: panel,
+      updateLocomotion: jest.fn(), updateButtonInput: jest.fn(), updateTeleport: jest.fn(), updateHover: jest.fn()
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(panel.updateLayer).toHaveBeenCalledWith(xrFrame, views);
+  });
+
+  test('updateSystems: null refSpace produces empty pose and no blit', () => {
+    const xrFrame = { getViewerPose: jest.fn() };
+    const app = makeVRAppLike({
+      renderer: { xr: { getReferenceSpace: () => null } },
+      layersSystem: { isSupported: true },
+      tabManager: null, webPanel: null,
+      updateLocomotion: jest.fn(), updateButtonInput: jest.fn(), updateTeleport: jest.fn(), updateHover: jest.fn()
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(xrFrame.getViewerPose).not.toHaveBeenCalled();
+  });
+
+  test('updateSystems: gaze-dwell activation fires haptic + spatial click', () => {
+    const hit = { getWorldPosition: () => new THREE.Vector3() };
+    const app = makeVRAppLike({
+      gazeInteraction: { enabled: true, update: jest.fn(() => hit) },
+      hapticFeedback: { playPatternBothHands: jest.fn(), update: jest.fn() },
+      spatialAudio: { play: jest.fn(), updateListenerFromCamera: jest.fn() },
+      captionSystem: { enabled: true, update: jest.fn(), show: jest.fn() },
+      updateLocomotion: jest.fn(), updateButtonInput: jest.fn(), updateTeleport: jest.fn(), updateHover: jest.fn()
+    });
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('click');
+    expect(app.spatialAudio.play).toHaveBeenCalled();
+  });
+
+  test('updateSystems: windowManager follow/isGrabbing drives update + attach', () => {
+    const app = makeVRAppLike({
+      windowManager: { followMode: true, isGrabbing: false, update: jest.fn() },
+      _attachManagedWindow: jest.fn(),
+      updateLocomotion: jest.fn(), updateButtonInput: jest.fn(), updateTeleport: jest.fn(), updateHover: jest.fn()
+    });
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    expect(app._attachManagedWindow).toHaveBeenCalled();
+    expect(app.windowManager.update).toHaveBeenCalled();
+  });
+
+  test('navigate captions the title when it differs from the url', () => {
+    const shown = [];
+    const app = makeVRAppLike({
+      settings: { privateMode: false },
+      bookmarks: { addHistory: jest.fn() },
+      captionSystem: { enabled: true, show: (m) => shown.push(m) }
+    });
+    VRApp.prototype.navigate.call(app, 'https://x.example/p', 'Example Page');
+    expect(shown[0]).toBe('Example Page');
+    VRApp.prototype.navigate.call(app, 'https://x.example/p');
+    expect(shown[1]).toBe('x.example');
+  });
+
+  test('getPerformanceStats reports 0 programs when info.programs is absent', () => {
+    const app = makeVRAppLike({
+      renderer: { info: { memory: { geometries: 1, textures: 2 } } },
+      performanceMonitor: { fps: 60.4, frameTime: 16.6, memoryUsed: 12.3, drawCalls: 5, triangles: 100 }
+    });
+    const stats = VRApp.prototype.getPerformanceStats.call(app);
+    expect(stats.programs).toBe(0);
+    expect(stats.fps).toBe(60);
+  });
+
+  test('dispose removes GL listeners, cancels debounce, frees material arrays', () => {
+    const removed = [];
+    const cancel = jest.fn();
+    const app = makeVRAppLike({
+      renderer: {
+        domElement: { removeEventListener: (t) => removed.push(t) },
+        dispose: jest.fn(), forceContextLoss: jest.fn(), setAnimationLoop: jest.fn(), render: jest.fn(),
+        xr: { enabled: false, getSession: () => null }
+      },
+      _onWebGLContextLost: jest.fn(),
+      _onWebGLContextRestored: jest.fn(),
+      _onWindowResize: Object.assign(jest.fn(), { cancel }),
+      scene: { traverse: (cb) => cb({ material: [{ dispose: jest.fn() }, { dispose: jest.fn() }] }) },
+      camera: null,
+      vrKeyboard: null, japaneseIME: null, handTracking: null, hapticFeedback: null,
+      gazeInteraction: null, captionSystem: null, semanticDOM: null, spatialAudio: null,
+      progressiveLoader: null, voiceCommands: null, windowManager: null, layersSystem: null,
+      bookmarkPanel: null, tabManager: null, webPanel: null, immersiveVideo: null,
+      comfortSystem: null, ffrSystem: null, perfMonitorUI: null
+    });
+    global.window = { removeEventListener: jest.fn(), addEventListener: jest.fn() };
+    expect(() => VRApp.prototype.dispose.call(app)).not.toThrow();
+    expect(removed).toContain('webglcontextlost');
+    expect(cancel).toHaveBeenCalled();
+  });
+});
