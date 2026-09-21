@@ -615,3 +615,28 @@ describe('ImmersiveVideo — complementary present arms', () => {
     expect(parent.remove).toHaveBeenCalledWith(cp);
   });
 });
+
+describe('ImmersiveVideo — false-side arms', () => {
+  test('_makeButton tolerates a missing onSelect', () => {
+    const { iv, register } = makeHarness();
+    iv._makeButton('Test', undefined, 0, 0);
+    const handlers = [...register.mock.calls].at(-1)[1];
+    expect(() => handlers.onSelect()).not.toThrow();
+  });
+
+  test('togglePause with play() returning a non-promise does not throw', () => {
+    const { iv } = makeHarness();
+    const v = { paused: true, pause: jest.fn(), play: jest.fn(() => undefined) };
+    iv.video = v;
+    iv.playing = false;
+    expect(() => iv.togglePause()).not.toThrow();
+  });
+
+  test('stop() with bare controlPanel children and no parent completes', () => {
+    const { iv } = makeHarness();
+    iv.controlPanel = { children: [{ /* no geometry/material */ }], parent: null };
+    iv.scene = { remove: jest.fn() };
+    expect(() => iv.stop()).not.toThrow();
+    expect(iv.controlPanel).toBeNull();
+  });
+});
