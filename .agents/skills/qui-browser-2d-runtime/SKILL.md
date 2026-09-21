@@ -89,6 +89,13 @@ attribute, no applied classes) — re-eval after readyState settles before judgi
 - `Runtime.evaluate` on a `service_worker` CDP target cannot see top-level
   `const`/`let` bindings (ReferenceError even though the script ran) — eval
   `self.*`-reachable state or treat const-globals as unreadable.
+- Rebuilding `dist/` while the OLD service worker still controls the page
+  produces a transient UNSTYLED render: its precached `index.html` references
+  the previous build's hashed CSS/JS (e.g. `index-DPVD57s7.css`), which vite
+  deleted → 404s → plain-HTML page. It self-heals once the new SW activates —
+  just reload again. Compounds if the preview server is down (CSS fallback
+  gives SW-synthetic 503, not a style). Check `curl localhost:8080` first when
+  a page comes back unstyled.
 - macOS notification banners cover the top-right utility toolbar — drag them off
   screen before clicking toggles.
 - `browser_console` reports "Chrome is not in the foreground" for self-launched
