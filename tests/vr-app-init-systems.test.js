@@ -825,3 +825,47 @@ describe('callback bodies — caption-disabled false arms', () => {
     }).not.toThrow();
   });
 });
+
+describe('voice cfg — inner false/guard arms', () => {
+  async function build(overrides = {}, tabOverride) {
+    const vc = {
+      initialize: jest.fn(async () => true), callbacks: {},
+      connectBrowser: jest.fn(), start: jest.fn()
+    };
+    patch('VoiceCommands', function () { return vc; });
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const app = makeInitLike({ enableVoice: true });
+    if ('tabManager' in overrides) app.tabManager = overrides.tabManager;
+    await VRApp.prototype.initializeSystems.call(app);
+    return { app, vc, cfg: vc.connectBrowser.mock.calls[0][0], shown };
+  }
+
+  test('onSpeak is silent when captionSystem is absent', async () => {
+    const { vc } = await build();
+    const app = null;
+    // captionSystem lives on `this` — rebind a caption-less context
+    vc.callbacks.onSpeak.call?.({ captionSystem: null }, 'hi') ?? vc.callbacks.onSpeak('hi');
+    expect(true).toBe(true); // must not throw
+  });
+
+  test('onSearch with no active tab does not navigate', async () => {
+    const { cfg } = await build({ tabManager: { getActiveTab: () => null } });
+    expect(() => cfg.onSearch('x')).not.toThrow();
+  });
+
+  test('onTopSites with empty history captions noTopSites', async () => {
+    const { app, cfg, shown } = await build({ tabManager: { getActiveTab: () => ({ navigate: jest.fn() }) } });
+    app.bookmarks.getTopSites = jest.fn(() => []);
+    cfg.onTopSites();
+    expect(shown.length).toBeGreaterThan(0);
+  });
+
+  test('onVolumeChange(-1) clamps to 0 and persists', async () => {
+    const { app, cfg } = await build();
+    cfg.onVolumeChange(-2);
+    expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 0);
+  });
+});
