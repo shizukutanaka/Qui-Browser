@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き163
+- 🔍 **実機発見（テストエージェントのオフライン回帰検証）**: offline.html リロードループ修正を実ブラウザで検証（サーバー実 kill → 52 秒間ループなし・正直な文言を確認）する過程で新たなギャップを炙り出し — **SW 更新直後のオフラインで `/` が無スタイル**。毎ビルド CACHE_VERSION が回転 → activate が旧ランタイムキャッシュを削除 → precache が CRITICAL_ASSETS（シェルのみ）のため hashed JS/CSS 未到達。
+- 🔧 **修正**: `stamp-sw-version.mjs` が dist 内の `js/*.js` + `assets/*.css`（計 ~900K）を `BUILD_ASSETS` マーカーへ注入 → precache が全バンドルを含有し、デプロイ直後の初回オフラインでも完全に動作するシェルが提供される。
+- 📌 **pin**: sw-version-stamp.test.js に3テスト（マーカー注入・マーカー無しは無変更・実 SW にマーカー存在）、verify:app に「built bundles precached」チェック追加（出荷物で注入脱落を遮断）。
+- 🔍 **他照合クリーン**: MutationObserver/ResizeObserver 不使用、setInterval/setTimeout の clear 対称完備（_handTrackingTimers/_toastTimers は dispose でクリア）、i18n は補間なし静カタログ、WebPanel dispose は geometry/material.map/material 全解放、ストレージ上限（MAX_HISTORY/MAX_TABS/MAX_TILES）全強制、wrapTextToWidth は超幅語を hard-split（無限ループ不可）。
+- ✅ 3061 tests / 72 suites 全緑、lint 0 errors、verify:app 10 checks 全緑。
+
 ### Session 75: 続き162
 - 🔍 **実測（offline.html の無限リロードループ — 実バグ32件目）**: `navigator.onLine` は OS の接続性のみ反映し、**サイトが落ちていても true のまま**。サーバー停止時に offline.html が配られると `checkOnlineStatus()` が「Connection restored! Reloading…」と偽表示 → 1.5秒後 `reload()` → SW が再び offline.html を返す → 永遠に1.5〜6.5秒毎リロード（E2E エージェントが実観測した「Connection restored」バナー表示から発覚）。
 - 🔧 **修正**: ポーリング/初期チェックから自動リロードを除去 — `navigator.onLine === true` は正直な文言（'Network available — tap Try Again to reload.'）に留め、自動リロードは**真の `online` イベント遷移のみ**に限定（接続が実際に変化した唯一の信頼できるシグナル）。`public-assets.test.js` に pin 追加（ポーリング経路に reload がないこと）。

@@ -96,9 +96,17 @@ attribute, no applied classes) — re-eval after readyState settles before judgi
   kill the preview server (`kill $(lsof -ti:8080)`) — that exercises the same
   fetch-fail → getOfflineFallback path. Expected: never-cached navigation →
   offline.html (purple card, "You're currently offline"); precached routes →
-  app shell. offline.html auto-reloads on `navigator.onLine` — when only the
-  server is down it shows a "Connection restored! Reloading..." banner that
-  can race your next navigation.
+  app shell. offline.html polls `navigator.onLine` — with only the server down
+  the OS stays "online" so it shows 'Network available — tap Try Again to
+  reload.' (it must NOT auto-reload there; that polled-reload loop was fixed —
+  only a genuine `online` event reloads, which localhost kills never fire).
+- To detect reload loops from a page, `Page.addScriptToEvaluateOnNewDocument`
+  bindings die when the CDP session that registered them disconnects — a
+  fire-and-forget helper script won't persist. Simpler: eval a marker
+  (`window.__m = performance.timeOrigin`), wait, re-eval — reloads wipe
+  globals, so `__m === performance.timeOrigin` still true = same document;
+  `performance.now()` far above the suspect interval + nav entryType
+  'navigate' also prove no loop.
 - Rebuilding `dist/` while the OLD service worker still controls the page
   produces a transient UNSTYLED render: its precached `index.html` references
   the previous build's hashed CSS/JS (e.g. `index-DPVD57s7.css`), which vite

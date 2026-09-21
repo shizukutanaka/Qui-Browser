@@ -147,7 +147,11 @@ async function main() {
     ['service worker served', swBody.length > 0],
     ['respondWith hard timeout present', swBody.includes('settleWithin') && swBody.includes('FETCH_HARD_TIMEOUT_MS')],
     ['offline fallback awaited', swBody.includes('await cache.match')],
-    ['204 fallback is null-body', swBody.includes('new Response(null')]
+    ['204 fallback is null-body', swBody.includes('new Response(null')],
+    // Every build rotates the precache name, wiping the runtime cache — the
+    // stamp must have injected the hashed bundles or a post-update offline
+    // visit serves an unstyled shell.
+    ['built bundles precached', swBody.includes('${BASE}js/') && !swBody.includes('__BUILD_ASSETS__')]
   ];
   for (const [name, ok] of swChecks) {
     if (!ok) {
