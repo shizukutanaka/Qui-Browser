@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き94（同セッション）: setupControllers + loadAudioAssets を pin — VRApp の未検証は実質 setupRenderer のみに
+- 🔍 **実測**: setupControllers も到達可能と判明 — `renderer.xr.getController()` が stub を返せば、実 THREE.Group（EventDispatcher 内蔵）で実イベントを発火して全配線を検証。3テスト追加: ①2コントローラーへ pointerRay（-Z, scale.z=5m）付与・select/squeeze イベントが実 dispatch でアプリハンドラに届く・teleport マーカー hidden 生成・全て playerRig 配下 ②**reconnect 意味論**: 初回 connected はトーストなし、disconnected で warn toast+inputSource 忘却+teleport キャンセル、再接続で info toast ③loadAudioAssets: 手続き synth 4バッファ（click/hover/success/error）登録+source 作成、2回目は既存 source 再利用で0作成。
+- 📝 実装は全て正しい（欠陥ゼロ）。残る未言及メソッドは createSettingsPanel（300行の orchestrator — 個々の builder は続き92で pin 済み）と _redrawSettingsPanel（forEach 委譲）と makeSectionTab（_toggleSettingsSection 呼出しのみ）の微小残り。
+- ✅ 2176 tests / 63 suites、lint 0 errors。
+
 #### 続き93（同セッション）: 「GPU 必須」の最終前提も打破 — setupScene/setupCamera/createHomeEnvironment を pin
 - 🔍 **実測**: setup 系も GPU 不要と判明 — `setupRenderer`（WebGLRenderer）だけが真の GPU 境界で、scene/camera/env 構築は純 THREE オブジェクト操作。3テスト追加: ①setupScene が scene+Ambient/Directional light+ImmersiveVideo を構築、全 enable フラグ off で homeEnvironment/settingsPanel 非構築を確認 ②createHomeEnvironment: floor が `floorMesh`（テレポート対象）に登録・水平配置、welcome panel が recenter を呼ぶ実 interactable、sky dome が BackSide+depthWrite=false、rest-frame グリッドが floor 上方（z-fighting 回避）③setupCamera: fov 90・実 aspect・眼高1.6m・playerRig に入れ子で scene 追加・enableWebPanel off で WindowManager 非構築。
 - 📝 実装は全て正しい（欠陥ゼロ）。これで VRApp の未検証は `setupRenderer`/`setupControllers` の XR ファクトリ経路のみ — verify:vr-boot の実 Chromium 構築が既にカバー。
