@@ -69,7 +69,8 @@ global.document = {
     width: 0, height: 0,
     getContext: () => ({
       clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      strokeRect: jest.fn(), measureText: jest.fn(() => ({ width: 10 })),
+      fillStyle: '', strokeStyle: '', font: '', textAlign: '', textBaseline: ''
     })
   })
 };
@@ -539,5 +540,64 @@ describe('TabManager.setSearchEngine', () => {
     expect(b.searchEngine).toBe('google');
     tm.newTab();
     expect(panelInstances[2].opts.searchEngine).toBe('google');
+  });
+});
+
+describe('TabManager — strip hover + high-contrast draw arms', () => {
+  const { setPref } = require('../src/a11y/accessibility.js');
+
+  test('strip onHover tints the mesh and fires the caption; onHoverEnd restores base tint', () => {
+    const onHoverCaption = jest.fn();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn(),
+      onHoverCaption
+    });
+    const cfg = tm.opts.registerInteractable.mock.calls
+      .map(c => c[1]).find(c => c.onHoverEnd);
+    expect(cfg).toBeTruthy();
+    // MockMesh doesn't retain constructor args — give the mesh the material
+    // shape real THREE provides
+    tm.stripMesh.material = { color: { set: jest.fn() } };
+    const colorSpy = tm.stripMesh.material.color.set;
+    cfg.onHover();
+    expect(colorSpy).toHaveBeenCalledWith(expect.any(Number)); // hoverTint
+    expect(onHoverCaption).toHaveBeenCalled();
+    cfg.onHoverEnd();
+    expect(colorSpy).toHaveBeenLastCalledWith(0xffffff); // baseTint
+  });
+
+  test('high-contrast mode strokes the idle-tab / close / new-tab borders', () => {
+    const strokeSpy = jest.fn();
+    const prevDoc = global.document;
+    global.document = { createElement: () => ({
+      width: 0, height: 0,
+      getContext: () => ({
+        clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
+        strokeRect: strokeSpy, fillStyle: '', strokeStyle: '',
+        font: '', textAlign: '', textBaseline: ''
+      })
+    }) };
+    setPref('highContrast', true);
+    try {
+      const tm = new TabManager({
+        scene: { add: jest.fn(), remove: jest.fn() },
+        registerInteractable: jest.fn(), unregisterInteractable: jest.fn(),
+        onNavigate: jest.fn()
+      });
+      tm.newTab(); tm.newTab(); // one active + one idle tab → idle border arm
+      tm._drawStrip();
+      expect(strokeSpy).toHaveBeenCalled();
+    } finally {
+      setPref('highContrast', false);
+      global.document = prevDoc;
+    }
+  });
+
+  test('_shortTitle falls back to the raw string prefix for unparseable URLs', () => {
+    const tm = makeManager();
+    expect(tm._shortTitle('not a url at all — this is long')).toBe('not a url at all —');
   });
 });
