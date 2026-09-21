@@ -55,7 +55,7 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 
 **Impact**: Critical — violates WCAG 3.1.1 and 3.1.2 for Japanese users. Breaks the entire value prop of a browser with Japanese IME.
 
-**Status**: Not started. `i18n.js` has robust infrastructure (CATALOG, t(), setLanguage()) but is **never called by VRApp**. Only used by 2D landing page.
+**Status**: Resolved. `t()` is wired throughout VRApp (88 call sites) — settings labels Session 2, status/toast messages Session 27, chrome/keyboard/video HUD captions Sessions 73/80/81 (PRs #73, #80, #81, #123).
 
 ---
 
@@ -64,11 +64,10 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 - If LayersSystem.createQuadLayer() throws → swallowed, no caption/warning
 - If HapticFeedback init fails (gamepad API unavailable) → silent, user expects haptic but gets none
 - If SpatialAudio fails → silent
-- If AIRecommendation init fails → silent
 
 **Impact**: High — violates WCAG 4.1.3 Status Messages. Users are left guessing whether features are working.
 
-**Status**: Partially wired. showVRToast() works for some errors (voice, controller). But optional subsystems have no error boundary.
+**Status**: Resolved. Subsystem init failures route to showVRToast (Session 2); messages translated Session 27.
 
 ---
 
@@ -90,7 +89,7 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 
 ---
 
-#### 4. **VRApp is 2700+ Line Monolith**
+#### 4. **VRApp is ~3,600-Line Monolith**
 - All accessibility init wired inline: captionSystem, hapticFeedback, gazeInteraction, handTracking, etc.
 - Settings panel creation (makeStepperButton, makeCycleButton, etc.) is 300+ lines of methods
 - No separation of concerns; hard to test settings logic without mocking the entire VRApp
@@ -126,16 +125,10 @@ Qui-Browser is a **WebXR VR browser** targeting Meta Quest 2/3 and Pico 4, with 
 ### Phase 1: Critical WCAG Fixes (Today)
 **Goal**: Close WCAG violations preventing Japanese users and error-reporting accessibility.
 
-1. **I18n for VR UI** (4–5 hours)
-   - Extract 50+ hard-coded strings from VRApp
-   - Add Japanese translations to `i18n.CATALOG`
-   - Wire `t()` calls into VRApp settings panel, toast messages, system labels
-   - **Files**: `src/i18n/i18n.js`, `src/vr/VRApp.js`, `src/vr/accessibility/crossModal.js`
-
-2. **Error Boundaries for Subsystems** (1.5 hours)
-   - Wrap FFRSystem, LayersSystem, HapticFeedback, SpatialAudio, AIRecommendation init in try-catch
-   - Emit `showVRToast('X unavailable', {type: 'warn'})` on failure
-   - **Files**: `src/vr/VRApp.js` (subsystem init section)
+1. ~~**I18n for VR UI**~~ — **Done** (Sessions 2, 27; stragglers #73, #80, #81, #123)
+   - VRApp calls `t()` at 88 sites; landing page uses `data-i18n`
+2. ~~**Error Boundaries for Subsystems**~~ — **Done** (Session 2; translated Session 27)
+   - Subsystem init failures → `showVRToast('X unavailable', {type: 'warn'})`
 
 ### Phase 2: High-Priority Coverage (Next session)
 **Goal**: Test accessibility workflows; add semantic DOM fallback.
@@ -226,11 +219,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 |-------|--------|--------|
 | VR UI strings hard-coded English | WCAG 3.1.1 violation (Japanese users) | Settings labels fixed Session 2; status-message/toast call sites fixed Session 27 |
 | Optional subsystem init failures silent | WCAG 4.1.3 (no status message) | Fixed Session 2 (toasts wired); translated Session 27 |
-| WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | **To fix Phase 1** |
+| WebPanel load errors only if onLoadError wired | Low (errors silently skipped) | Fixed — wired to `showVRToast` (VRApp.js) |
 | No VRApp integration tests | Regression risk | Fixed Sessions 41 + 43 (interactables/haptic/grab-to-move/hover/recenter/gaze-dwell) |
 | No semantic DOM for screen readers | 2D screen reader support missing | Fixed Session 30 (captions/toasts/settings-panel state mirrored via SemanticDOM) |
 | Settings panel no grouping/help | UX discoverability | **To fix Phase 3** |
-| VRApp monolith 2700+ lines | Maintainability debt | **To fix Phase 3** |
+| VRApp monolith ~3,600 lines | Maintainability debt | **To fix Phase 3** |
 | `enableWebPanel` defaulted false with no way to enable it — WebPanel/TabManager/BookmarkPanel/WindowManager (FR-1.1–1.7) unreachable by any real user | Critical (entire browsing feature area, ~25 sessions of work, never reached) | Resolved Session 74: toggle applies live (#47), failure screen actionable (#50), proxy settable in VR (#54), **default flipped to `true`**（続き11） |
 
 ---
@@ -550,6 +543,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: constructor で `this._initPromise = this.initialize()` に保持し、app.js が `.catch → showError(t('app.error.initFailed'))` を接続。修正前に赤確認。
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
+
+#### 続き86（同セッション）: CLAUDE.md 自身の監査節が自己矛盾 — 「Not started」と表末尾の「Fixed」が同居
+- 🔍 **実測**: 本ファイル上部の監査セクションが①i18n を「**Not started** … t() は VRApp で一度も呼ばれていない」と主張（実際は VRApp.js に 88 箇所の t() 呼出 — Sessions 2/27 + #73/#80/#81/#123 で配線済み）②サブシステム失敗を「error boundary なし」と主張しながら Known Issues 表は「Fixed Session 2」を記載 ③削除済みの **AIRecommendation** を init 失敗リスクとして列挙 ④「2700+ 行モノリス」（実測 3577）⑤「WebPanel load errors — To fix」（実際は VRApp.js:814 で showVRToast に配線済み）。
+- 🔧 **修正**: Gap 1/2 の Status を Resolved に、AIRecommendation 項削除、モノリス行数を実測値に、Phase 1 の 2項目を Phase 2 と同様に ~~打消し~~ で Done 化、Known Issues 表の WebPanel 行を Fixed に。
+- 🔍 **同時監査（欠陥ゼロ）**: BASE_PATH 配下の dist/index.html を実測 — vite が `/manifest.json`・`/assets/icons/favicon-*`・`/src/main.js` を全て `/Qui-Browser/` 付きに書換、SW は location 由来 BASE、manifest の start_url/scope は `./` 相対、precache・navigate fallback も整合。**assets/ は参照中の 4 ファイルのみ生存**（icon.svg = generate-icons の入力、favicon×3 = index.html 参照）。
+- 📝 2148 tests / 63 suites、lint 0 errors、build green（文書のみ）。
 
 #### 続き85（同セッション）: .github の死体発見 — DISCUSSION_TEMPLATES.md は GitHub が読まない架空機構
 - 🔍 **実測**: `.github/DISCUSSION_TEMPLATES.md`（12.5KB / ~500行）を監査 — 3重の死骸。①**GitHub の機構として存在しない**: Discussion テンプレートは `.github/DISCUSSION_TEMPLATE/`（単数形）ディレクトリの YAML ファイル群として置く仕様であり、複数形 `.md` は何もトリガーしない純粋な markdown 文書。②バージョン虚偽: 「Active for v5.7.0+」「v5.7.1 Released」を謳うが package.json は 2.0.0。③誰も参照しない: リンク元は archive/ の frozen 文書のみ（「Example Projects」と同じ社区インフラ commit 由来 — その相方は #82 で削除済み）。
