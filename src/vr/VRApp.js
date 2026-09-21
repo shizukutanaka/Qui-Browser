@@ -2103,6 +2103,26 @@ export class VRApp {
     return hit || null;
   }
 
+  /**
+   * Raycast an arbitrary THREE.Ray (e.g. HandTracking's pointing ray) against
+   * the interactables registry — the hand-input counterpart of
+   * intersectInteractables(). Shares the same scratch buffer; consume the hit
+   * synchronously.
+   */
+  intersectInteractablesRay(ray) {
+    if (!this._sharedRaycaster) {
+      this._sharedRaycaster = new THREE.Raycaster();
+      this._hitScratch = [];
+    }
+    const scratch = this._hitScratch;
+    scratch.length = 0;
+    this._sharedRaycaster.ray.copy(ray);
+    const hit = this._sharedRaycaster
+      .intersectObjects(this.interactables, false, scratch)
+      .find(h => isWorldVisible(h.object));
+    return hit || null;
+  }
+
   onTeleportStart(controller) {
     if (!this.settings.enableTeleport || !this.floorMesh) {
       return;
@@ -3126,17 +3146,33 @@ export class VRApp {
     if (this.handTracking && session) {
       await this.handTracking.initialize(session);
 
-      // Register gesture callbacks
+      // Register gesture callbacks. Pinch is the hands-free select: raycast
+      // the pointing ray (index proximal→tip) at the interactables registry,
+      // the same path the controller trigger uses. The click cue only plays
+      // on a real hit — announcing a click for thin air would lie about an
+      // action that never happened.
       this.handTracking.onGesture('pinch', (hand, _gesture) => {
-        console.debug(`${hand} hand pinch detected`);
-        // Play spatial sound at pinch position
-        if (this.spatialAudio) {
-          const pos = this.handTracking.getPinchPosition(hand);
-          if (pos) {
-            this.spatialAudio.play('click', 'click', pos);
+        const ray = this.handTracking.getPointingRay(hand);
+        const hit = (ray && this.interactables.length > 0)
+          ? this.intersectInteractablesRay(ray)
+          : null;
+        if (hit) {
+          const handlers = hit.object.userData.interactable;
+          if (handlers && handlers.onSelect) {
+            handlers.onSelect({ intersection: hit, hand });
+          }
+          if (hit.object.dispatchEvent) {
+            hit.object.dispatchEvent({ type: 'qui-select', intersection: hit, hand });
+          }
+          if (this.spatialAudio) {
+            const pos = this.handTracking.getPinchPosition(hand);
+            if (pos) {
+              this.spatialAudio.play('click', 'click', pos);
+            }
           }
         }
-        // Haptic confirmation on pinch (lightweight click feel).
+        // Haptic confirmation on pinch (lightweight click feel). No-op for
+        // bare hands — gamepad actuators only exist under controller input.
         if (this.hapticFeedback) {
           this.hapticFeedback.playPattern(hand, 'click');
         }
