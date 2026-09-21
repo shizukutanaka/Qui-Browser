@@ -544,6 +544,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き122（同セッション）: 条件の「欠けている側」をBRDA三つ組で個別潰し — 分岐カバレッジ 90.47%
+
+- lcov の BRDA (line, block, branch) で腕ごと残存を列挙し、まだ見えていない側だけをテスト:
+  - main.js: loadingScreen 不在の DOMContentLoaded タイマー、XR 非対応時の enterVR クリック、error.message falsy → 不明エラー文言
+  - app.js: perfDisplay 要素不在時の P キー no-op、vrApp null の二度目 Escape、readyState='loading' → DOMContentLoaded 登録腕
+  - BookmarkPanel: URL 無しエントリの行クリック（onSelect 不発）、deleteRow の removeBookmark スキップ、裸 mesh の dispose
+  - HandTracking: `.hand` 無し入力ソース、orientation 無しポーズ、material 無し jointMesh
+  - ImmersiveVideo: onSelect 無しボタン、非 Promise play()、parent 無し controlPanel の stop
+  - VoiceCommands: 再起動タイマー内の isEnabled 再検査（100ms 中に無効化 → start 不発）、onVolumeChange 非数値で読み上げ無し、onSearch 不在時の tabManager.navigate フォールバック
+  - DeviceCompatibility: navigator.xr 不在、VR/AR 両不可の false base、空 UA の tier 検出
+  - VRJapaneseKeyboard: keyMeshes/_displayMesh の member-present dispose 腕、短いクエリの `_clearSuggestions` 先行 return
+- **実測**: 2686 tests / 66 suites 全緑、lint 0 errors、branches **90.47%**（3653/4038）。残りの大半は VRApp.js（170腕: setupRenderer/GPU・XR セッション直結）と monitoring.js（62腕: import.meta.env.PROD ゲート、N-2 判断待ち）で構造的に headless 到達不能。
+
 #### 続き121（同セッション）: 補腕（`&&`/`||` の反対側・メンバ存在側）を一掃 — 分岐カバレッジ 89.92%
 
 - 残存ブランチはほぼ「既に pin 済み条件の対側」のみ — BRDA の (line, block, branch) 三つ組で腕を個別特定し、約18ファイル・約60テストを追加。pin 対象:
