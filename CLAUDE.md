@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き207 — キー hover の度に CanvasTexture を new→dispose していた GPU churn を解消
+- 🔍 **発見**: `_setKeyHover` が hover enter/exit の度に `_makeKeyTexture`（128×128 canvas + CanvasTexture + GPU upload）を呼び旧テクスチャを dispose — キーボード上の pointer sweep で秒間数十のテクスチャ生成/破棄。候補・サジェスト行は既に repaint-in-place（同じ `draw()` で再描画＋`tex.needsUpdate`）なのにキーだけが allocate 経路だった。
+- 🔧 **修正**: 描画を `_drawKey(canvas, glyph, hover, active)` に抽出し、`_setKeyHover` は `keyTex.image`（既存 canvas）へ再描画して `needsUpdate` のみ。`keyTex` 未保持のメッシュには allocate フォールバックを残す。dispose 対称は変わらず（キーごと1テクスチャが teardown で1回 dispose — むしろ純粋化）。
+- 🧪 pin 更新: 旧契約（新テクスチャ＋旧 dispose）を pin していた2テストを新契約（同一オブジェクト＋needsUpdate）へ。MockCanvasTexture に `image` 保持を追加。
+- 🔍 **同クラス掃引**: `getImageData`/`willReadFrequently` の該当箇所ゼロ（全 canvas は write-only→texture upload）、`measureText` は captionLayout のモジュールロード時のみ — 本 sweep 軸はこれで飽和。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き206 — three VRButton の requestSession に in-flight ガードも catch もなかった
 - 🔍 **発見（three ソース実読）**: `VRButton.createButton` の `button.onclick` は `requestSession().then(onSessionStarted)` — **`.catch` なし・in-flight ガードなし**（`currentSession` は解決まで null のまま）。拒否は unhandled rejection で UI に一切出ず、pending 中の2回目クリックは重複 `requestSession` を発射。
 - 🔧 **修正**: `setupVR` で返却ボタンの `onclick` を置換 — `renderer.xr.getSession()` があれば `session.end()`、pending 中は無視、解決で `setSession`＋'EXIT VR'、拒否で `showVRToast(enterVRFailed, error)`。sessionOptions は three 内部と同じ `'local-floor'/'bounded-floor'/'layers'` + `hand-tracking` を Set 重複排除で再構成（three クロージャ内生成のため）。ボタンが onclick を持つ場合のみ適用（非対応ブラウザでは createButton が非クリック要素を返す）。
