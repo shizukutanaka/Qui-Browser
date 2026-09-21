@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き166 — CSP のデプロイ先間乖離が機能ごと殺していた
+- 🔍 **実害（CSP intersection）**: meta CSP（index.html）は**全デプロイ先で効く**ため、ヘッダ CSP と AND で効く — 片側だけ厳しいとその機能はそのターゲットでのみ死ぬ。計測した乖離: ①`media-src` 不在 → `default-src 'self'` にフォールバックし ImmersiveVideo の任意 https URL が全ターゲットで死滅 ②`worker-src 'self'` のみ → KTX2Loader が Blob URL から生成する basis ワーカーが全ターゲットで死滅 ③`connect-src` が loopback http を拒否 → adb reverse プロキシ経路が死滅 ④docker `location ~* \.html$` は独自 add_header を持つため server の CSP を継承せず — `/index.html` 直撃に CSP が**一切無かった** ⑤docker/vercel/netlify の `frame-src 'self'` が meta の `frame-src https:` と衝突 → iframe ブラウジングが 3 ターゲットで死滅。
+- 🔧 **正準 CSP 一元化**: 全5箇所（meta・nginx×3・vercel・netlify）を同一文字列に揃え、`csp-consistency.test.js` で全ヘッダ CSP ≡ meta CSP を構造比較 pin。`media-src https: blob:`・`worker-src blob:`・`connect-src` に loopback 3 エントリ（localhost/127.0.0.1/[::1]）を追加、`object-src 'none'`・`base-uri`・`form-action` も統一。meta の `script-src` からは 'unsafe-inline' が元々ないので維持（external script のみ — offline.html のインライン script+onclick が障害となり `public/offline.js` に抽出、ボタンに id 化して addEventListener 化）。
+- 🔗 **連鎖修正**: offline.js を SW precache（CRITICAL_ASSETS）に追加 — 未キャッシュではオフライン時に 404 でボタン・ステータス確認が全て死ぬところだった。public-assets テストは offline.js を読み、インライン script/handler 不在を pin。PROXY.md は loopback が mixed-content+CSP を両方通る唯一の経路と明記。
+- ✅ 3072 tests / 72 suites 全緑、lint 0 errors / 368 warnings、`npm run build` + `verify:app` 10 checks 全緑（dist に offline.js・bundle precache を実測）。
+
 ### Session 75: 続き165
 - 🔍 **実測（npm audit）**: `sharp ≤0.35.4-rc.0` に libvips/libheif の高脆弱性4件 — devDep（generate-icons.mjs のみ使用、出荷物非含有）だが修正は廉価 → `0.35.4` へ bump、`npm run icons` 実走で再生成確認（libvips 版差の AA 微差のみ、バイナリは保持せず revert）。
 - 🔍 **残存2件は vite/esbuild dev-server 限定**（map traversal・Windows UNC NTLM・`server.fs.deny` Windows bypass — 全て dev サーバー経路で出荷静的ファイルに無影響、修正は vite@8 breaking が必要）→ 意図的に据え置き、PROXY.md には deadline/decode/切断キャンセルを同期追記。

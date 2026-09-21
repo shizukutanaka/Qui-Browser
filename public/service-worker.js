@@ -32,6 +32,9 @@ const CRITICAL_ASSETS = [
   `${BASE}index.html`,
   `${BASE}manifest.json`,
   `${BASE}offline.html`,
+  // offline.html's logic lives here (CSP forbids inline scripts) — uncached,
+  // the offline page renders but its buttons and status checks do nothing.
+  `${BASE}offline.js`,
   ...BUILD_ASSETS
 ];
 

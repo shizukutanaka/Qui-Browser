@@ -53,10 +53,12 @@ single place that decides; with no proxy set it returns the target unchanged, so
 the no-proxy path is byte-identical to the previous behaviour.
 
 Note for Quest: the headset and the proxy machine must be on the same network,
-and the page is HTTPS while a LAN proxy is usually HTTP — browsers may block
-that as mixed content unless the proxy is served over HTTPS or via localhost
-ADB forwarding (`adb reverse tcp:8080 tcp:8080`, then `http://127.0.0.1:8080`
-works from the headset itself).
+and the page is HTTPS while a LAN proxy is usually HTTP — browsers block that
+as mixed content (the site `connect-src` CSP also refuses non-loopback `http:`),
+so the supported path is localhost ADB forwarding:
+`adb reverse tcp:8080 tcp:8080`, then `http://127.0.0.1:8080` works from the
+headset itself. Loopback is a potentially-trustworthy origin, so it passes
+both mixed-content rules and the CSP's `http://localhost:*`/loopback entries.
 
 ## Security
 

@@ -154,7 +154,7 @@ describe('BASE-relative precache (subpath deploy support)', () => {
 
   test('critical assets are the app shell, resolved against BASE', () => {
     expect(CRITICAL_ASSETS).toEqual([
-      '/', '/index.html', '/manifest.json', '/offline.html'
+      '/', '/index.html', '/manifest.json', '/offline.html', '/offline.js'
     ]);
   });
 
@@ -233,7 +233,7 @@ describe('install — precaches the app shell and activates immediately', () => 
       done = p;
     } });
     await done;
-    expect(added).toEqual(['/', '/index.html', '/manifest.json', '/offline.html']);
+    expect(added).toEqual(['/', '/index.html', '/manifest.json', '/offline.html', '/offline.js']);
     expect(self.skipWaiting).toHaveBeenCalled();
     delete global.caches;
     delete self.skipWaiting;

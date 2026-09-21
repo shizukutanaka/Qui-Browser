@@ -79,7 +79,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+          "value": "default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' https: blob:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';"
         },
         {
           "key": "Permissions-Policy",
