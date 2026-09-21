@@ -68,10 +68,6 @@ export default defineConfig({
             return 'assets/fonts/[name]-[hash][extname]';
           }
 
-          if (/ktx2|basis/i.test(ext)) {
-            return 'assets/textures/[name]-[hash][extname]';
-          }
-
           return 'assets/[name]-[hash][extname]';
         },
 
