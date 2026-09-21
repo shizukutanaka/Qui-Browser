@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き189 — 書込み経路ゼロの死設定: enableVoice が unreachable だった
+- 🔍 **実測（settings 読書対称）**: パネルが書くキーと `loadPersistedSettings` が読むキーの差分を掃引 — **6件が書込み経路ゼロ**: `enableVoice`・`enablePerfMonitorUI`・`enableHomeEnvironment`・`enableSettingsPanel`・`enableTextureManager`・`controllerDeadZone`。最重は `enableVoice`: VoiceCommands は4スイート分の配線済み（transcript caption・haptic・connectBrowser 全て）なのに**誰にも到達不能** — 続き11 `enableWebPanel` と完全に同クラス。
+- 🔧 **修正**: voice init ブロックを `_initVoiceCommands()` に抽出（initializeSystems から呼出＋settings トグルから lazy init）＋ `_teardownVoiceCommands()` を新設（dispose→null）。browsing セクションに `enableVoice` トグル追加（ON→非同期 init→`vr.msg.voiceOn`/`vr.error.voiceUnavailable` トースト、OFF→dispose→`voiceOff`）。i18n ja/en に `vr.settings.voice` + `vr.msg.voiceOn/voiceOff` を追加。
+- 📌 **残死設定**: `enableSettingsPanel`（自壊型: パネル自身を off にすると再有効化 UI が消える — boot-time config として残置）、`enablePerfMonitorUI`/`enableHomeEnvironment`/`enableTextureManager`/`controllerDeadZone`（ユーザー到達不能のデフォルト固定）— 次回配線候補。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors（fixture に `_initVoiceCommands`/`_teardownVoiceCommands`/`_initializeSystemsTail` キャリー）。
+
 ### Session 75: 続き188 — 確保掃引の横展開: gaze raycast + teleport 照準
 - 🔍 **実測（同一クラスの残存確認）**: 続き187 の intersectObjects バッファ化を全呼出に展開 — `GazeInteraction._raycastGaze`（毎フレーム）と `updateTeleport`（照準中毎フレーム + `hit.point.clone()`）が同一パターンで確保。これで src/ の raycast 呼出4箇所全てが再利用バッファ経由に。
 - 🔧 **修正**: GazeInteraction に `_hitScratch` 追加、updateTeleport は共有スクラッチ + `_teleportTarget`（`clone()` → `copy()`）。`t.target` の消費は onTeleportEnd の同期読みのみで安全。

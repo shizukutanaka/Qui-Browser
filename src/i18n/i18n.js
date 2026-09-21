@@ -117,6 +117,7 @@ export const CATALOG = {
     'vr.settings.clearHistory': 'Clear History',
     'vr.settings.privateMode': 'Private Mode',
     'vr.settings.bookmarks': 'Bookmarks',
+    'vr.settings.voice': 'Voice Commands',
     // VR Settings Panel Values
     'vr.value.left': 'Left',
     'vr.value.right': 'Right',
@@ -154,6 +155,8 @@ export const CATALOG = {
     'vr.msg.panelMoved': 'Panel moved',
     'vr.msg.webPanelOn': 'Browsing panel enabled',
     'vr.msg.webPanelOff': 'Browsing panel closed',
+    'vr.msg.voiceOn': 'Voice commands enabled',
+    'vr.msg.voiceOff': 'Voice commands disabled',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -268,6 +271,7 @@ export const CATALOG = {
     'vr.settings.clearHistory': '履歴を消去',
     'vr.settings.privateMode': 'プライベートモード',
     'vr.settings.bookmarks': 'ブックマーク',
+    'vr.settings.voice': '音声コマンド',
     // VR Settings Panel Values
     'vr.value.left': '左',
     'vr.value.right': '右',
@@ -305,6 +309,8 @@ export const CATALOG = {
     'vr.msg.panelMoved': 'パネル移動完了',
     'vr.msg.webPanelOn': 'ブラウジングパネルを有効にしました',
     'vr.msg.webPanelOff': 'ブラウジングパネルを閉じました',
+    'vr.msg.voiceOn': '音声コマンドを有効にしました',
+    'vr.msg.voiceOff': '音声コマンドを無効にしました',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',

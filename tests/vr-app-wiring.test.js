@@ -2697,6 +2697,8 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
       ...over
     });
     return app;
@@ -2797,6 +2799,8 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);
@@ -2890,15 +2894,17 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.webPanel.setCurved).toHaveBeenCalledWith(true);
   });
 
-  test('browsing: webPanel toggle delegates; search engine cycles; all 3 actions wired', () => {
+  test('browsing: webPanel toggle delegates; voice toggles lazily; search engine cycles; all 3 actions wired', () => {
     const app = P('settings.section.browsing');
     const C = app.interactables.slice(5);
     C[0].onSelect(); // enableWebPanel -> _onWebPanelToggleChanged(false)
     expect(app._onWebPanelToggleChanged).toHaveBeenCalledWith(false);
-    const cyc = C[2]; // toggles (2) + cycle searchEngine
+    C[2].onSelect(); // enableVoice false->true -> lazy _initVoiceCommands()
+    expect(app._initVoiceCommands).toHaveBeenCalled();
+    const cyc = C[3]; // toggles (3) + cycle searchEngine
     cyc.onSelect();
     expect(app.tabManager.setSearchEngine).toHaveBeenCalledWith('google');
-    const acts = C.slice(3); // clearHistory, readerProxy, bookmarks
+    const acts = C.slice(4); // clearHistory, readerProxy, bookmarks
     acts[0].onSelect();
     expect(app._clearBrowsingHistory).toHaveBeenCalled();
     acts[1].onSelect();
@@ -3249,6 +3255,8 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);

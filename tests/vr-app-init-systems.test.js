@@ -105,6 +105,8 @@ function makeInitLike(settingsOverrides = {}) {
     _clearBrowsingHistory: jest.fn(),
     _attachManagedWindow: jest.fn(),
     _setupOSAccessibilityListeners: VRApp.prototype._setupOSAccessibilityListeners,
+    _initVoiceCommands: VRApp.prototype._initVoiceCommands,
+    _initializeSystemsTail: VRApp.prototype._initializeSystemsTail,
     loadAudioAssets: jest.fn(async () => {}),
     a11y: {}
   };

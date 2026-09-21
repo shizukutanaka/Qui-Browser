@@ -1555,6 +1555,24 @@ export class VRApp {
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
       // Read live in navigate() — no subsystem to wire.
       [t('vr.settings.privateMode'), 'privateMode', null],
+      // Voice commands are fully wired but were unreachable: enableVoice had
+      // no write path. The toggle lazily initializes the recognizer on first
+      // enable (mic permission is requested then) and disposes it on disable.
+      [t('vr.settings.voice'), 'enableVoice', (v) => {
+        if (v) {
+          this._initVoiceCommands().then(() => {
+            this.showVRToast(
+              t(this.voiceCommands ? 'vr.msg.voiceOn' : 'vr.error.voiceUnavailable'),
+              { type: this.voiceCommands ? 'info' : 'warn' }
+            );
+          }).catch(() => {
+            this.showVRToast(t('vr.error.voiceUnavailable'), { type: 'warn' });
+          });
+        } else {
+          this._teardownVoiceCommands();
+          this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+        }
+      }],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
           this.windowManager.setFollow(v);
@@ -1707,7 +1725,7 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel', 'privateMode']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'enableVoice']), [],
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -2651,136 +2669,164 @@ export class VRApp {
 
     // 10. Voice Commands
     if (this.settings.enableVoice) {
-      this.voiceCommands = new VoiceCommands();
-      const voiceReady = await this.voiceCommands.initialize();
-      if (voiceReady) {
-        // FR-13.1: caption recognized speech so it is visible in VR.
-        this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-          if (isFinal && this.captionSystem) {
-            this.captionSystem.show(transcript);
-          }
-        };
-        // Mirror spoken responses (confirmations / errors) to captions too, so a
-        // user who can speak but not hear sees whether a command was understood.
-        this.voiceCommands.callbacks.onSpeak = (text) => {
-          if (this.captionSystem) {
-            this.captionSystem.show(text);
-          }
-        };
-        // Haptic confirmation on every successful voice command — parity with
-        // controller presses, gaze-dwell activation, teleport, and snap turn.
-        // Voice is a hands-free modality, so both hands receive the click pulse.
-        this.voiceCommands.callbacks.onCommand = (_key, _result) => {
-          voiceCommandFeedback(this.hapticFeedback);
-        };
-        // Distinct double-bump on failure (no match or action exception) so a
-        // user not looking at captions knows to try again without audio.
-        this.voiceCommands.callbacks.onCommandFailed = (_info) => {
-          voiceCommandFailedFeedback(this.hapticFeedback);
-        };
-        // Surface speech-recognition errors as VR toasts with cross-modal
-        // feedback. Without this the recognizer goes silent and the user has
-        // no way of knowing voice commands stopped working.
-        this.voiceCommands.callbacks.onError = (errorCode) => {
-          const { message, type } = voiceErrorNotification(errorCode);
-          this.showVRToast(message, { type });
-        };
-        // Replace window.* default commands with VR-aware implementations that
-        // route navigation and search through the live TabManager.
-        this.voiceCommands.connectBrowser({
-          tabManager:    this.tabManager,
-          bookmarkPanel: this.bookmarkPanel,
-          vrKeyboard:    this.vrKeyboard,
-          onSearch: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (active) {
-              // Mirror the immediate "Loading:" caption that the URL-bar and
-              // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-              // caption-reliant users know their voice command was accepted
-              // before the page finishes loading.
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Top Sites: jump to the most-used destination (frecency-ranked from
-          // history). Fewest-dwell navigation for hands-free users; announced
-          // cross-modally so it's perceivable without sight.
-          onTopSites: () => {
-            // Exclude search-engine result pages so the user's actual
-            // destinations win the slot, not their search engine.
-            const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
-            const active = this.tabManager?.getActiveTab?.();
-            if (top && active) {
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
-              }
-              active.navigate(top.url);
-            } else if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(t('vr.msg.noTopSites'));
-            }
-          },
-          // Go-to: look up the extracted site name in frecency-ranked
-          // history/bookmarks. A history hit navigates directly (fewest dwells
-          // for a familiar destination); no hit falls back to web search so the
-          // command always produces a result. This closes the loop on the
-          // autocomplete data layer (BookmarkStore.search) for voice input.
-          onGoTo: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (!active) {
-              return;
-            }
-            const hits = this.bookmarks.search(query, 1, Date.now());
-            if (hits.length > 0) {
-              const hit = hits[0];
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
-              }
-              active.navigate(hit.url);
-            } else {
-              // No frecency match — treat as URL or web search
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Hands-free equivalent of the "Clear History" settings action.
-          onClearHistory: () => this._clearBrowsingHistory(),
-          // Scroll the active panel's reader viewport (the fetched article
-          // text), which is what "下にスクロール" can actually move in VR.
-          onScrollContent: (delta) => {
-            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-          },
-          // Hands-free session control — the same paths as the landing
-          // Enter-VR button and the headset's own session end.
-          onEnterVR: () => this.vrButton?.click?.(),
-          onExitVR: () => {
-            this.renderer?.xr?.getSession?.()?.end?.();
-          },
-          // "音量上げる/下げる" — adjusts the same masterVolume setting the
-          // settings-panel stepper drives, persists it, and returns the new
-          // level so VoiceCommands can speak it back.
-          onVolumeChange: (delta) => {
-            const next = Math.max(0, Math.min(100,
-              (this.settings.masterVolume ?? 100) + delta * 100));
-            this.updateSetting('masterVolume', next);
-            if (this.spatialAudio) {
-              this.spatialAudio.setMasterVolume(next / 100);
-            }
-            return next;
-          }
-        });
-        // Begin listening immediately (user granted mic permission during initialize).
-        this.voiceCommands.start();
-        console.debug('VRApp: Voice commands ready and listening');
-      } else {
-        console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
-        this.voiceCommands = null;
-      }
+      await this._initVoiceCommands();
     }
 
+    await this._initializeSystemsTail(startTime);
+  }
+
+  /**
+   * Construct + initialize VoiceCommands and wire every cross-modal callback
+   * (transcript captions, spoken-response captions, haptic confirm/fail,
+   * error toasts, browser actions). Runs at boot when enableVoice is set and
+   * lazily from the settings toggle — mic permission is requested by
+   * initialize() at whichever point the feature is first turned on.
+   */
+  async _initVoiceCommands() {
+    this.voiceCommands = new VoiceCommands();
+    const voiceReady = await this.voiceCommands.initialize();
+    if (voiceReady) {
+      // FR-13.1: caption recognized speech so it is visible in VR.
+      this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
+        if (isFinal && this.captionSystem) {
+          this.captionSystem.show(transcript);
+        }
+      };
+      // Mirror spoken responses (confirmations / errors) to captions too, so a
+      // user who can speak but not hear sees whether a command was understood.
+      this.voiceCommands.callbacks.onSpeak = (text) => {
+        if (this.captionSystem) {
+          this.captionSystem.show(text);
+        }
+      };
+      // Haptic confirmation on every successful voice command — parity with
+      // controller presses, gaze-dwell activation, teleport, and snap turn.
+      // Voice is a hands-free modality, so both hands receive the click pulse.
+      this.voiceCommands.callbacks.onCommand = (_key, _result) => {
+        voiceCommandFeedback(this.hapticFeedback);
+      };
+      // Distinct double-bump on failure (no match or action exception) so a
+      // user not looking at captions knows to try again without audio.
+      this.voiceCommands.callbacks.onCommandFailed = (_info) => {
+        voiceCommandFailedFeedback(this.hapticFeedback);
+      };
+      // Surface speech-recognition errors as VR toasts with cross-modal
+      // feedback. Without this the recognizer goes silent and the user has
+      // no way of knowing voice commands stopped working.
+      this.voiceCommands.callbacks.onError = (errorCode) => {
+        const { message, type } = voiceErrorNotification(errorCode);
+        this.showVRToast(message, { type });
+      };
+      // Replace window.* default commands with VR-aware implementations that
+      // route navigation and search through the live TabManager.
+      this.voiceCommands.connectBrowser({
+        tabManager:    this.tabManager,
+        bookmarkPanel: this.bookmarkPanel,
+        vrKeyboard:    this.vrKeyboard,
+        onSearch: (query) => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (active) {
+            // Mirror the immediate "Loading:" caption that the URL-bar and
+            // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+            // caption-reliant users know their voice command was accepted
+            // before the page finishes loading.
+            if (query && this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+            }
+            active.navigate(query);
+          }
+        },
+        // Top Sites: jump to the most-used destination (frecency-ranked from
+        // history). Fewest-dwell navigation for hands-free users; announced
+        // cross-modally so it's perceivable without sight.
+        onTopSites: () => {
+          // Exclude search-engine result pages so the user's actual
+          // destinations win the slot, not their search engine.
+          const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
+          const active = this.tabManager?.getActiveTab?.();
+          if (top && active) {
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+            }
+            active.navigate(top.url);
+          } else if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(t('vr.msg.noTopSites'));
+          }
+        },
+        // Go-to: look up the extracted site name in frecency-ranked
+        // history/bookmarks. A history hit navigates directly (fewest dwells
+        // for a familiar destination); no hit falls back to web search so the
+        // command always produces a result. This closes the loop on the
+        // autocomplete data layer (BookmarkStore.search) for voice input.
+        onGoTo: (query) => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (!active) {
+            return;
+          }
+          const hits = this.bookmarks.search(query, 1, Date.now());
+          if (hits.length > 0) {
+            const hit = hits[0];
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+            }
+            active.navigate(hit.url);
+          } else {
+            // No frecency match — treat as URL or web search
+            if (query && this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+            }
+            active.navigate(query);
+          }
+        },
+        // Hands-free equivalent of the "Clear History" settings action.
+        onClearHistory: () => this._clearBrowsingHistory(),
+        // Scroll the active panel's reader viewport (the fetched article
+        // text), which is what "下にスクロール" can actually move in VR.
+        onScrollContent: (delta) => {
+          this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+        },
+        // Hands-free session control — the same paths as the landing
+        // Enter-VR button and the headset's own session end.
+        onEnterVR: () => this.vrButton?.click?.(),
+        onExitVR: () => {
+          this.renderer?.xr?.getSession?.()?.end?.();
+        },
+        // "音量上げる/下げる" — adjusts the same masterVolume setting the
+        // settings-panel stepper drives, persists it, and returns the new
+        // level so VoiceCommands can speak it back.
+        onVolumeChange: (delta) => {
+          const next = Math.max(0, Math.min(100,
+            (this.settings.masterVolume ?? 100) + delta * 100));
+          this.updateSetting('masterVolume', next);
+          if (this.spatialAudio) {
+            this.spatialAudio.setMasterVolume(next / 100);
+          }
+          return next;
+        }
+      });
+      // Begin listening immediately (user granted mic permission during initialize).
+      this.voiceCommands.start();
+      console.debug('VRApp: Voice commands ready and listening');
+    } else {
+      console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
+      this.voiceCommands = null;
+    }
+  }
+
+  /** Settings-toggle off: stop listening and release mic/tts resources. */
+  _teardownVoiceCommands() {
+    if (this.voiceCommands) {
+      this.voiceCommands.dispose();
+      this.voiceCommands = null;
+    }
+  }
+
+  /**
+   * Continue initializeSystems(): DevTools, perf monitor, and the tail of the
+   * system bring-up. Split out so the voice-init block can live in its own
+   * method (the settings toggle reuses it).
+   */
+  async _initializeSystemsTail(startTime) {
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
     if (import.meta.env && import.meta.env.DEV) {
