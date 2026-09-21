@@ -1870,3 +1870,144 @@ describe('VRApp render() frame cadence (bound prototype, stubbed renderer)', () 
     expect(app.updateSystems).toHaveBeenCalledWith(0, null, 0.016);
   });
 });
+
+describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound prototypes)', () => {
+  const makeSession = (over = {}) => ({
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    visibilityState: 'visible',
+    ...over
+  });
+
+  const makeSessionApp = (over = {}) => makeVRAppLike({
+    renderer: {
+      xr: { getSession: jest.fn() },
+      getContext: () => ({}),
+      setPixelRatio: jest.fn()
+    },
+    settings: { enableWebPanel: false },
+    ffrSystem: null,
+    handTracking: null,
+    spatialAudio: null,
+    comfortSystem: { settings: { fov: { baseFOV: 70 } } },
+    immersiveVideo: null,
+    layersSystem: null,
+    showVRToast: jest.fn(),
+    camera: { fov: 75 },
+    ...over
+  });
+
+  test('session start flips isVREnabled, pins pixel ratio, resets comfort FOV, announces VR-ready', async () => {
+    const session = makeSession();
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      ffrSystem: { initialize: jest.fn().mockResolvedValue(true), enable: jest.fn(), disable: jest.fn() },
+      handTracking: { initialize: jest.fn().mockResolvedValue(true), onGesture: jest.fn(), dispose: jest.fn() }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app.isVREnabled).toBe(true);
+    // Headset-removed pause is wired on the XR session, not document.
+    expect(session.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(app.ffrSystem.initialize).toHaveBeenCalled();
+    expect(app.ffrSystem.enable).toHaveBeenCalledWith(0.5);
+    expect(app.handTracking.onGesture).toHaveBeenCalledWith('pinch', expect.any(Function));
+    expect(app.renderer.setPixelRatio).toHaveBeenCalledWith(1);
+    expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
+    expect(app.captionSystem.show).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  test('FFR init failure warns the user via toast instead of failing silently', async () => {
+    const session = makeSession();
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      ffrSystem: { initialize: jest.fn().mockRejectedValue(new Error('no binding')), enable: jest.fn(), disable: jest.fn() }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+    expect(app.ffrSystem).toBeNull(); // torn down so updateSystems never touches it
+  });
+
+  test('XR visibilitychange pauses a playing video (headset removed = hidden)', async () => {
+    const session = makeSession();
+    const video = { playing: true, togglePause: jest.fn() };
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      immersiveVideo: video
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    const handler = session.addEventListener.mock.calls.find((c) => c[0] === 'visibilitychange')[1];
+    session.visibilityState = 'visible-blurred';
+    handler();
+    expect(video.togglePause).toHaveBeenCalledTimes(1);
+    // A still-visible transition does not pause.
+    video.playing = true; video.togglePause.mockClear();
+    session.visibilityState = 'visible';
+    handler();
+    expect(video.togglePause).not.toHaveBeenCalled();
+  });
+
+  test('pinch gesture callback fans out to spatial click + haptic', async () => {
+    const session = makeSession();
+    const hand = {
+      initialize: jest.fn().mockResolvedValue(true),
+      onGesture: jest.fn(),
+      getPinchPosition: jest.fn(() => new THREE.Vector3(1, 2, 3)),
+      dispose: jest.fn()
+    };
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      handTracking: hand,
+      spatialAudio: { play: jest.fn() }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
+    pinchCb('right', {});
+    expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.any(THREE.Vector3));
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
+  });
+
+  test('session end unwires in reverse: ffr off, panels out of layer mode, video stopped, hands disposed', async () => {
+    global.window = { devicePixelRatio: 1 };
+    const layers = { dispose: jest.fn() };
+    const panel = { disableLayerMode: jest.fn() };
+    const video = { stop: jest.fn() };
+    const hand = { dispose: jest.fn() };
+    const app = makeSessionApp({
+      ffrSystem: { disable: jest.fn() },
+      layersSystem: layers,
+      tabManager: { tabs: [panel] },
+      immersiveVideo: video,
+      handTracking: hand
+    });
+    app.isVREnabled = true;
+    VRApp.prototype.onVRSessionEnd.call(app);
+    expect(app.isVREnabled).toBe(false);
+    expect(app.ffrSystem.disable).toHaveBeenCalled();
+    // Panels leave layer mode without per-panel renderState commits (ending
+    // session throws on updateRenderState) — dispose clears the stack once.
+    expect(panel.disableLayerMode).toHaveBeenCalledWith(false);
+    expect(layers.dispose).toHaveBeenCalled();
+    expect(app.layersSystem).toBeNull();
+    expect(video.stop).toHaveBeenCalled();
+    // Ghost-hands fix: every re-entry would otherwise leak 50 joint meshes.
+    expect(hand.dispose).toHaveBeenCalled();
+    expect(app.onXRVisibilityChange).toBeNull();
+    expect(app.comfortSystem.settings.fov.baseFOV).toBe(75); // camera.fov restored
+    expect(app.renderer.setPixelRatio).toHaveBeenLastCalledWith(1); // min(dpr=1, 2)
+    delete global.window;
+  });
+
+  test('layers path constructs LayersSystem; unsupported binding degrades to mesh fallback', async () => {
+    const session = makeSession();
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}) , setPixelRatio: jest.fn() },
+      settings: { enableWebPanel: true }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    // XRWebGLBinding is undefined in jsdom → initialize() returns false,
+    // and the system stays constructed-but-inert (disposed on session end).
+    expect(app.layersSystem).not.toBeNull();
+    expect(app.layersSystem.supported).toBe(false);
+    expect(app.showVRToast).not.toHaveBeenCalled(); // mesh fallback is silent-by-design
+  });
+});
