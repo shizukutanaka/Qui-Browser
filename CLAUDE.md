@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き169 — ProgressiveLoader の DOM ローダー全5種に timeout 無し＋誤イベント
+- 🔍 **実害（DOM ロードは永遠ハング）**: `loadImage`/`loadScript`/`loadStyle`/`loadAudio`/`loadVideo` が onload/onerror のみで timeout 無し — DOM 要素ロードにはネイティブのタイムアウトがなく、スタールしたサーバーではプロミスが永遠 pending → ロードキューが詰まる。fetch 経路（JSON/model/generic）は strategy.timeout 済みだったが DOM 経路だけ欠落。
+- 🔍 **実害（誤イベント）**: audio/video が `oncanplaythrough` を待機 — バッファ予測ヒューリスティックで、長尺/ストリーミングメディアでは健全な回線でも正当に永遠不発火し得る → `onloadeddata`（データ到達＝利用可能）に修正。
+- 🔧 **修正**: 5ローダー全てに `strategy.timeout`(30s) watchdog + ハンドラ無効化を追加（遅延解決は inert に）。pin テスト5本（test.each で全メソッドが timeout 後 reject することを fake timers で実証）+ oncanplaythrough 依存の既存テスト2本を onloadeddata に更新。
+- ✅ 3082 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
 ### Session 75: 続き168 — SpatialAudio.loadAudio の無信号 fetch（永遠ペンディング）
 - 🔍 **実害（タイムアウト無し）**: `loadAudio()` が `fetch(url)` を signal なしで発行 — スタールしたサーバーではプロミスが永遠に pending のまま、バッファ・エラー状態・リトライのいずれも得られない（SW respondWith hang と同クラス）。`src/` の全 fetch サイトを走査した残りの唯一の未防御経路（JapaneseIME 5s・WebPanel reader 5s・ProgressiveLoader strategy.timeout は既に防御済み）。
 - 🔧 **修正**: 既存イディオム（AbortController + clearTimeout、JapaneseIME 由来）に揃えて 15 秒 watchdog を追加。AbortController 不在環境では従来挙動を維持。pin テスト追加: stall した fetch が signal で abort され `null` で解決することを fake timers で実証。
