@@ -11,18 +11,7 @@ module.exports = [
         ...globals.browser,
         ...globals.es2021,
         ...globals.node,
-        ...globals.jest,
-        THREE: 'readonly',
-        XRSession: 'readonly',
-        XRReferenceSpace: 'readonly',
-        XRFrame: 'readonly',
-        XRInputSource: 'readonly',
-        GPUShaderStage: 'readonly',
-        GPUTextureUsage: 'readonly',
-        GPUBufferUsage: 'readonly',
-        GPUMapMode: 'readonly',
-        GPUValidationError: 'readonly',
-        GPUOutOfMemoryError: 'readonly'
+        ...globals.jest
       }
     },
     rules: {
