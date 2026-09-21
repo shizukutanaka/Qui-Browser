@@ -688,3 +688,63 @@ describe('callback bodies — hostnameCaption fallback arms', () => {
     expect(shown[0]).toBe('example.com');
   });
 });
+
+describe('callback bodies — remaining cfg false-arms', () => {
+  function build(overrides = {}) {
+    const tmCalls = [];
+    const tab = { navigate: jest.fn() };
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => tab
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike(overrides);
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, tmCfg: tmCalls[0][0], bpCfg: bpCalls[0][0], tab, shown };
+  }
+
+  test('onTabActivate(null) announces the new-tab label', () => {
+    const { tmCfg, shown } = build();
+    tmCfg.onTabActivate(null);
+    expect(shown.length).toBe(1);
+  });
+
+  test('BookmarkPanel onSelect navigates the active tab and captions Loading', () => {
+    const { bpCfg, tab, shown } = build();
+    bpCfg.onSelect('https://a.example');
+    expect(tab.navigate).toHaveBeenCalledWith('https://a.example');
+    expect(shown[0]).toBe('Loading: a.example');
+  });
+
+  test('BookmarkPanel onSelect with no active tab skips navigation', () => {
+    const { app, bpCfg } = build();
+    app.tabManager.getActiveTab = () => undefined;
+    app.webPanel = null;
+    expect(() => bpCfg.onSelect('https://a.example')).not.toThrow();
+  });
+
+  test('onDeleteBookmark also fires the notification haptic when present', () => {
+    const { app, bpCfg } = build();
+    app.hapticFeedback = { playPatternBothHands: jest.fn() };
+    bpCfg.onDeleteBookmark();
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('notification');
+  });
+
+  test('onTabChange announces the history tab when tab !== bookmarks', () => {
+    const { bpCfg, shown } = build();
+    bpCfg.onTabChange('history');
+    expect(shown.length).toBe(1);
+  });
+
+  test('onUrlInputRequested confirm with empty url skips the Loading caption', () => {
+    const { app, tmCfg, shown } = build();
+    let confirm;
+    app._requestVRKeyboardInput = jest.fn((prefill, cb) => { confirm = cb; });
+    tmCfg.onUrlInputRequested('', () => {});
+    confirm('');
+    expect(shown.length).toBe(0);
+  });
+});
