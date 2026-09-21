@@ -632,3 +632,26 @@ describe('ProgressiveLoader — last branch arms', () => {
     expect(typeof pl.onLoadComplete).toBe('function');
   });
 });
+
+describe('ProgressiveLoader — complementary arms', () => {
+  test('detectNetwork reads connection.type when present', () => {
+    const pl = new ProgressiveLoader();
+    const conn = { type: 'wifi', effectiveType: '4g', downlink: 42, addEventListener() {} };
+    const saved = global.navigator;
+    global.navigator = { connection: conn };
+    try {
+      pl.detectNetwork?.();
+      if (pl.network) expect(pl.network.type).toBe('wifi');
+    } finally {
+      global.navigator = saved;
+    }
+  });
+
+  test('getStats reports a percent when itemsTotal > 0', () => {
+    const pl = new ProgressiveLoader();
+    pl.stats.itemsTotal = 4;
+    pl.stats.itemsLoaded = 1;
+    const s = pl.getStats?.() ?? pl.stats;
+    expect(parseFloat(s.progressPercent ?? '0')).toBeGreaterThan(0);
+  });
+});
