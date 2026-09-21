@@ -19,5 +19,13 @@ module.exports = {
         }
       }
     ]
-  ]
+  ],
+  env: {
+    // src/ uses import.meta.env, which jest's CJS transform can't parse —
+    // the plugin rewrites it. Lives here (not .babelrc) so there's exactly
+    // one babel config: root-wide, also covering whitelisted three ESM.
+    test: {
+      plugins: ['./tests/babel-plugin-import-meta.cjs']
+    }
+  }
 };
