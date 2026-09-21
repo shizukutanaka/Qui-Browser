@@ -13,9 +13,9 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
     reviewers:
-      - "yourusername"
+      - "shizukutanaka"
     assignees:
-      - "yourusername"
+      - "shizukutanaka"
     labels:
       - "dependencies"
       - "npm"
@@ -35,8 +35,6 @@ updates:
     directory: "/"
     allow:
       - dependency-type: "direct"
-    automerge:
-      - dependency-type: "direct"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -44,7 +42,7 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
     reviewers:
-      - "yourusername"
+      - "shizukutanaka"
     labels:
       - "dependencies"
       - "github-actions"
@@ -61,7 +59,7 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
     reviewers:
-      - "yourusername"
+      - "shizukutanaka"
     labels:
       - "dependencies"
       - "docker"

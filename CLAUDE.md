@@ -551,6 +551,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き71（同セッション）: 第3のデプロイ経路（Netlify）も同型に壊れていた + ルートの死んだクラスタ115件削除 — 実バグ24-26件目
+- 🐛 **実バグ24**: `netlify.toml` が `publish="."` + `command="echo 'No build required'"` — vercel.json（続き68）と完全同型で生リポジトリ配信。`/sw.js`・`/public/sw.js`・`/assets/js/*`・`/assets/icons/*` の死んだヘッダールート、そして `/*.html` の `Permissions-Policy: camera=(), microphone=()` が `/*` の WebXR 許可を**より詳細側ルールで上書き**して音声入力を殺す矛盾も修正。`publish="dist"` + `npm run build` に、`service-worker.js` no-cache、`/assets/*` immutable に整理。
+- 🐛 **実バグ25**: `.env.example` が全項目死んでいた — ブラウザアプリなのに `VR_*`・`ENABLE_*` を宣伝（読み手ゼロ、process.env は src に無い）、`server/index.js`・`npm run start:server`・`STRIPE_*` を記載するが server/ は削除済み。実在の env 面（`VITE_SENTRY_DSN`/`VITE_GA_MEASUREMENT_ID`/`VITE_APP_VERSION`/`VITE_BUILD_TIME` = monitoring.js、`PORT`/`ALLOW_ORIGIN` = proxy、`CHROME_PATH` = tools）に書き換え。
+- 🐛 **実バグ26**: `.github/` の placeholders/無効キー — dependabot.yml の `reviewers/assignees: "yourusername"`（PR の reviewer request が常に失敗）と無効な `automerge:` キー、CODEOWNERS の `@yourusername` + 削除済みパス（`/assets/js/vr-*.js`、root `manifest.json`、`/examples/`）。
+- 🗑️ **削除115件+**: `mvp/`（無参照の別実装6ファイル）、`wasm/`（Rust cdylib + build.sh — 出力先 `assets/js/wasm/` は削除済みでゼロ参照、PUBLISHING.md 自身が「WASM はビルドに無い」と記載）、`locales/`（105件1.1MBのi18n JSON — i18n.js は内蔵 CATALOG を使いゼロ参照）、`.env.stripe`（superseded と自称するプレースホルダー）、`.github/FUNDING.yml`（全項目空のテンプレート）。
+- 📝 2118 tests / lint 0 errors / build green。archive/・patches/ の言及は凍結領域として温存。proxy/ は実測で生きている任意コンポーネントと確認して温存。
+
 #### 続き70（同セッション）: docker 自己ホスト経路が全層で壊れていた — 実バグ19-23件目
 - 🔍 **実測**: docker 経路を照合したら、Vercel 欠陥（続き68）と同型の「生ソースを配信」が Dockerfile / compose / nginx の3層に重なっていた。
 - 🐛 **実バグ19**: Dockerfile のビルドステージは `npm ci --only=production`（vite を入れない）だけ走り **`npm run build` を一度も呼ばず**、プロダクションステージは `/app` 全体を html root にコピー → nginx が生の `src/main.js` を配信、`from 'three'` がブラウザで解決不能 = イメージは起動してもアプリは読込失敗。
