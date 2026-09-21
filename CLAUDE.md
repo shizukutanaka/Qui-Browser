@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き195 — `pagehide` を beforeunload に並列配線（モバイルの teardown 不発火）
+- 🔍 **発見（web.dev 周知の挙動）**: `beforeunload` はモバイルブラウザ（Quest Browser 含む Chromium 系）でバックグラウンド遷移・bfcache・kill 時に不発火 — ページ解体の信頼できるシグナルは `pagehide`。Quest でのヘッドセット脱着/タスクキル時に `vrApp.dispose()` と `session_ended` イベントが一切走らない経路が残っていた。
+- 🔧 **修正**: app.js は teardown ハンドラを抽出して `beforeunload`+`pagehide` 両武装（dispose は冪等）。monitoring.js の onUnload も同二発火対策として `_unloaded` ガード追加＋disposeMonitoring でリセット＋pagehide 除去対称。
+- ✅ 該当 suite 64件全緑、lint 0 errors。
+
 ### Session 75: 続き194 — iframe フレーム内遷移でアドレスバーが嘘をついていた
 - 🔍 **発見**: `iframe.onload` はフレーム内トップ遷移（リンククリック・フォーム送信・ロード後リダイレクト）でも再発火するが、旧実装は `currentUrl` を要求時URLのまま残していた — **dom-overlay でユーザーが見ている実ページとアドレスバー表示が乖離**（フィッシング級の stale URL 表示）。セキュリティ表示器（origin 保持・elide 不可）は続きで整えたのに遷移追従がなかった。
 - 🔧 **修正**: ①same-origin フレーム内遷移 → `contentWindow.location.href` で真の URL を読み `currentUrl`/履歴に反映＋リーダー再取得 ②cross-origin のフレーム内遷移（宛先は原理的に読めない）→ `_frameNavigated` で URL バーを「↪」マーク＋ placeholder 灰色化し「依然そのサイトにいる」と見せない ③`stop()`/`_loadUrl` でフラグリセット。pin 2件追加（same-origin 遷移の履歴記録、cross-origin 遷移の灰色化）。
