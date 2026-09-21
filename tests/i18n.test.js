@@ -610,7 +610,6 @@ describe('i18n — document-absent arm', () => {
   test('applyTranslations() with no root and no document returns silently', async () => {
     const savedDoc = global.document;
     delete global.document;
-    const { applyTranslations } = await import('../src/i18n/i18n.js');
     expect(() => require('../src/i18n/i18n.js').applyTranslations()).not.toThrow();
     global.document = savedDoc;
   });

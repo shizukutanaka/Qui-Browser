@@ -2,7 +2,7 @@
  * Unit tests for the pure VR keyboard layout maths.
  */
 const {
-  KEY_W, KEY_H, GAP, ROWS, computeKeyLayout, keyboardBounds
+  KEY_H, ROWS, computeKeyLayout, keyboardBounds
 } = require('../src/vr/input/keyboardLayout.js');
 
 describe('computeKeyLayout', () => {

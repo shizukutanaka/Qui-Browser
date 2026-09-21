@@ -9,7 +9,7 @@ import { safeMeasureEm } from '../ui/textWrap.js';
 
 export const KEY_W = 0.062;   // default key width (m)
 export const KEY_H = 0.062;   // key height (m)
-export const GAP = 0.008;     // gap between keys (m)
+const GAP = 0.008;      // gap between keys (m)
 
 // The VR keyboard layout. A row entry is either a label string (1 unit wide)
 // or { label, width } for wide keys. `label` is what onKeyPress receives.

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き157
+- 🔍 **実測（テストスイート自身の真空）**: `expect(true).toBe(true)` 5箇所を発見 — `if (click)` ガードで「リスナーが見つからない＝空走合格」になっていた enterVR 2件、「unknown-error を使う」と名乗りながら描画内容を一切見ていなかった overlay テスト、IME の `convert?.()`（存在しないメソッド）を呼んで `out` を捨てるテスト。
+- 🔧 **修正**: ①enterVR 2件 — `DOMContentLoaded` 未発火が原因で click が undefined → dispatch を追加し enter-vr 発火/非発火＋エラートーストを実断言（テスト名と一致）②overlay テスト — `detail.textContent === 'Unknown error'` を実検査 ③IME — 実メソッド `convertToKanji()` の null 返却を断言 ④onSpeak — `.not.toThrow()` に正直化。
+- 🗑 **削除**: テスト内の死んだ分割代入5ファイル（DELETE_ZONE_W/CPS_*/applyTranslations/VRJapaneseKeyboard×4/KEY_W・GAP）。CPS_FULLWIDTH/CPS_HALFWIDTH/GAP は外部参照ゼロのため export 解除（reachability suite が捕捉 — 3テスト減は正）。lint 警告 380→369。
+- ✅ 3050 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き156
 - 🔍 **実測（verify:all の名実不一致）**: `npm run verify:all` が docs+prerelease のみで、最も強い3つの実 Chromium harness（layout/app/vr-boot）を**含んでいなかった**。`ci:verify` に正しい全連鎖が存在したのに verify:all は未接続 — ローカルで「全部回した」と思っても実機ゲートは走っていない状態。
 - 🔧 **修正**: `verify:all` を `verify:docs && verify:prerelease && ci:verify`（= build + layout + app + vr-boot）に再構成。実走で全チェーン green を確認。

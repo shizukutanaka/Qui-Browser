@@ -900,8 +900,7 @@ describe('voice cfg — inner false/guard arms', () => {
     const { vc } = await build();
     const app = null;
     // captionSystem lives on `this` — rebind a caption-less context
-    vc.callbacks.onSpeak.call?.({ captionSystem: null }, 'hi') ?? vc.callbacks.onSpeak('hi');
-    expect(true).toBe(true); // must not throw
+    expect(() => vc.callbacks.onSpeak.call({ captionSystem: null }, 'hi')).not.toThrow();
   });
 
   test('onSearch with no active tab does not navigate', async () => {

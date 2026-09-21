@@ -45,8 +45,8 @@ const H_PAD = CAPTION_H_PAD;
  * figure. A single fixed hold time therefore cannot serve both scripts — which
  * is exactly what this system used to do (a flat 5 s for every caption).
  */
-export const CPS_FULLWIDTH = 4;   // Japanese / Chinese / Korean — 1 em glyphs
-export const CPS_HALFWIDTH = 17;  // Latin-script — ~0.5 em glyphs
+const CPS_FULLWIDTH = 4;   // Japanese / Chinese / Korean — 1 em glyphs
+const CPS_HALFWIDTH = 17;  // Latin-script — ~0.5 em glyphs
 
 /**
  * Time (ms) a reader needs for `text`, summed per character by width class.

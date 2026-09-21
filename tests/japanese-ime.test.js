@@ -132,12 +132,11 @@ describe('JapaneseIME — last branch arms', () => {
 });
 
 describe('JapaneseIME — remaining conversion arms', () => {
-  test('conversion in a non-hiragana/non-katakana mode returns empty candidates', () => {
+  test('conversion in a non-hiragana/non-katakana mode returns empty candidates', async () => {
     const ime = new JapaneseIME();
     ime.inputMode = 'romaji';
     ime.compositionBuffer = 'ka';
-    const out = ime.convert?.() ?? ime.getCandidates?.() ?? null;
-    expect(true).toBe(true);
+    expect(await ime.convertToKanji()).toBeNull();
   });
 
   test('lone trailing n in buffer becomes ん on conversion', () => {
@@ -148,7 +147,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
 
 describe('JapaneseIME — remaining conversion arms', () => {
   test('deleteLast converts to katakana in katakana mode', async () => {
-    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     ime.inputMode = 'katakana';
     ime.compositionBuffer = 'kan';
@@ -157,7 +156,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
   });
 
   test('processInput converts to katakana in katakana mode', async () => {
-    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     ime.inputMode = 'katakana';
     const out = await ime.processInput('ka');
@@ -165,7 +164,7 @@ describe('JapaneseIME — remaining conversion arms', () => {
   });
 
   test('convertRomajiToHiragana without a trailing n skips the ん arm', () => {
-    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     expect(ime.convertRomajiToHiragana('ka')).toBe('か');
   });
@@ -196,7 +195,7 @@ describe('JapaneseIME — mode-tail + trailing-n arms', () => {
 
 describe('IME remaining branch arms', () => {
   test('a lone trailing n converts to ん', () => {
-    const { JapaneseIME, VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
     const ime = new JapaneseIME();
     expect(ime.convertRomajiToHiragana('n')).toBe('ん');
     expect(ime.convertRomajiToHiragana('kon')).toBe('こん');
