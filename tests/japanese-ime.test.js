@@ -143,3 +143,28 @@ describe('JapaneseIME — remaining conversion arms', () => {
     expect(ime.convertRomajiToHiragana('n')).toBe('ん');
   });
 });
+
+describe('JapaneseIME — remaining conversion arms', () => {
+  test('deleteLast converts to katakana in katakana mode', async () => {
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const ime = new JapaneseIME();
+    ime.inputMode = 'katakana';
+    ime.compositionBuffer = 'kan';
+    const out = ime.deleteLast(); // 'ka' -> カ
+    expect(out.converted).toBe('カ');
+  });
+
+  test('processInput converts to katakana in katakana mode', async () => {
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const ime = new JapaneseIME();
+    ime.inputMode = 'katakana';
+    const out = await ime.processInput('ka');
+    expect(out.converted).toBe('カ');
+  });
+
+  test('convertRomajiToHiragana without a trailing n skips the ん arm', () => {
+    const { JapaneseIME } = require('../src/vr/input/JapaneseIME.js');
+    const ime = new JapaneseIME();
+    expect(ime.convertRomajiToHiragana('ka')).toBe('か');
+  });
+});
