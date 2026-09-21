@@ -164,7 +164,7 @@ self.addEventListener('fetch', (event) => {
   const strategy = getCacheStrategy(url.pathname);
 
   event.respondWith(
-    settleWithin(executeStrategy(strategy, request), request)
+    settleWithin(executeStrategy(strategy, request, event), request)
   );
 });
 
@@ -225,16 +225,16 @@ function getCacheStrategy(pathname) {
 /**
  * Execute the appropriate caching strategy
  */
-async function executeStrategy(strategy, request) {
+async function executeStrategy(strategy, request, event) {
   switch (strategy) {
   case 'cache-first':
-    return cacheFirst(request);
+    return cacheFirst(request, event);
 
   case 'network-first':
     return networkFirst(request);
 
   case 'stale-while-revalidate':
-    return staleWhileRevalidate(request);
+    return staleWhileRevalidate(request, event);
 
   default:
     return fetch(request);
@@ -244,7 +244,7 @@ async function executeStrategy(strategy, request) {
 /**
  * Cache-first strategy - ideal for static assets
  */
-async function cacheFirst(request) {
+async function cacheFirst(request, event) {
   const cache = await caches.open(CACHE_VERSION);
 
   // Try cache first
@@ -261,10 +261,13 @@ async function cacheFirst(request) {
     // pressure — that must degrade quietly, never as an unhandled rejection.
     if (response.ok) {
       // Clone response before caching (response can only be used once)
-      cache.put(request, response.clone()).catch(() => {});
-
-      // Enforce cache limits
-      enforceCacheLimit(cache, 'static').catch(() => {});
+      const write = Promise.allSettled([
+        cache.put(request, response.clone()),
+        enforceCacheLimit(cache, 'static')
+      ]);
+      // The write outlives this handler's resolution — keep the worker alive
+      // for it or the browser may kill it mid-put.
+      event?.waitUntil?.(write);
     }
 
     return response;
@@ -312,18 +315,25 @@ async function networkFirst(request) {
 /**
  * Stale-while-revalidate strategy - balance speed and freshness
  */
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidate(request, event) {
   const cache = await caches.open(CACHE_VERSION);
 
   // Return cached version immediately if available
   const cached = await cache.match(request);
 
-  // Fetch fresh version in background
+  // Fetch fresh version in background. With a cached hit this promise is no
+  // longer part of the response — without waitUntil the worker can be killed
+  // between respondWith resolving and cache.put landing, permanently losing
+  // the revalidation.
   const fetchPromise = fetch(request)
     .then(response => {
-      // Update cache with fresh version
+      // Update cache with fresh version. The write is tracked separately so
+      // the response path is not delayed by cache I/O — but it must still be
+      // inside waitUntil or the worker may die before it lands (the response
+      // promise resolving does not keep the event alive for floated work).
       if (response.ok) {
-        cache.put(request, response.clone()).catch(() => {});
+        const write = cache.put(request, response.clone()).catch(() => {});
+        event?.waitUntil?.(write);
       }
       return response;
     })
@@ -409,6 +419,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     enforceCacheLimit,
     networkFirst,
+    cacheFirst,
+    staleWhileRevalidate,
     settleWithin,
     FETCH_HARD_TIMEOUT_MS,
     CACHE_LIMITS,

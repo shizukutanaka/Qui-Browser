@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き220 — SW バックグラウンド書込みが waitUntil 外だった（再検証が永久に失われうる）
+- 🐛 **fix（SW 寿命管理）**: `staleWhileRevalidate` の背景 `cache.put`（再検証）と `cacheFirst` の miss-write + `enforceCacheLimit` が respondWith プロミスの外で float していた — respondWith 解決後にブラウザが worker を kill すると書込みが着弾せず、**キャッシュが永久に古いまま残る**既知パターン。`executeStrategy` に `event` を通して `event?.waitUntil?.(write)` でイベント寿命に包んだ（cold 経路でも応答はブロックされず、書込みは別トラック）。`networkFirst` は従来通りプロミス内 await で安全。
+- 🧪 **pin**: モック event の `waitUntil` 記録で「cached hit でも背景書込みが waitUntil 管理下」「cacheFirst miss-write 同様」を固定＋strategy 関数を module.exports に追加（実行経路自体も実検査 — 続き219 の `headers.get` で3箇所のモック request 不足を炙り出し修正済み）。
+- ✅ 3118 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き219 — SW が Range リクエストをインターセプトしていた（206 は cache.put で拒否される）
 - 🐛 **fix（潜在欠陥）**: service-worker の fetch ハンドラが byte-range リクエストを捕捉していた — `cache.put` は 206 Partial Content を InvalidStateError で拒否するため、同一 origin のメディアが将来追加された時点でシーク操作が戦略失敗 → offline フォールバック化する罠だった。`request.headers.get('range')` 非空で早期 return（ネットワーク直行）。現状同一 origin メディアは不在だが、インターセプト自体が仕様上誤り。
 - 🔍 **同軸照合（クリーン）**: VideoTexture は three が requestVideoFrameCallback で新フレーム時のみ needsUpdate（90Hz での無駄な再アップロードなし）・SW activate の旧キャッシュ削除＋skipWaiting/claim・ランタイムキャッシュ eviction・modulepreload 正規付与・favicon は vite が hashed /assets/images/ へ書換え＋BASE_PATH 接頭辞で全デプロイ先正解（一見の404疑いは誤判定・実測で否定）。

@@ -231,6 +231,76 @@ describe('fetch handler — cross-origin bypass', () => {
   });
 });
 
+describe('fetch handler — floated writes stay inside waitUntil', () => {
+  // A floated cache.put after respondWith resolves races with the browser
+  // killing the worker — the revalidation can be silently lost. The event's
+  // waitUntil must wrap every background write.
+  const { staleWhileRevalidate, cacheFirst } = require('../public/service-worker.js');
+
+  function makeEvent() {
+    const pending = [];
+    return {
+      waitUntil: (p) => pending.push(p),
+      pending
+    };
+  }
+  const request = {
+    url: 'https://app.example/js/app.js',
+    method: 'GET',
+    headers: { get: () => null },
+    clone() {
+      return { ...this, headers: this.headers };
+    }
+  };
+
+  beforeEach(() => {
+    global.caches = { open: async () => makeMockCache(), match: async () => undefined };
+  });
+  afterEach(() => {
+    delete global.caches; delete global.fetch;
+  });
+
+  test('staleWhileRevalidate puts the revalidation under waitUntil on a cached hit', async () => {
+    const cache = makeMockCache();
+    cache.entries.push([request, { ok: true, body: 'stale', clone() {
+      return this;
+    } }]);
+    global.caches = { open: async () => cache };
+    let putDone = false;
+    cache.put = async () => {
+      putDone = true;
+    };
+    global.fetch = async () => ({ ok: true, clone() {
+      return this;
+    }, body: 'fresh' });
+
+    const event = makeEvent();
+    const res = await staleWhileRevalidate(request, event);
+    expect(res.body).toBe('stale'); // cached copy served immediately
+    expect(event.pending.length).toBe(1); // background write is tracked
+    await Promise.allSettled(event.pending);
+    expect(putDone).toBe(true);
+  });
+
+  test('cacheFirst puts the miss-write under waitUntil', async () => {
+    const cache = makeMockCache();
+    global.caches = { open: async () => cache };
+    let putDone = false;
+    cache.put = async () => {
+      putDone = true;
+    };
+    global.fetch = async () => ({ ok: true, clone() {
+      return this;
+    } });
+
+    const event = makeEvent();
+    await cacheFirst(request, event);
+    expect(event.pending.length).toBe(1);
+    await Promise.allSettled(event.pending);
+    expect(putDone).toBe(true);
+  });
+});
+
 // ── Install/activate/fetch lifecycle ─────────────────────────────────────────
 // The remaining arms were previously exercised only in a real browser. The
 // handlers recorded in swHandlers drive them headlessly.
