@@ -87,7 +87,15 @@ function readJSON(key, fallback) {
     const raw = typeof localStorage !== 'undefined'
       ? localStorage.getItem(key)
       : null;
-    return raw ? JSON.parse(raw) : fallback;
+    const parsed = raw ? JSON.parse(raw) : fallback;
+    // localStorage is user-editable: a syntactically valid but wrong-shaped
+    // value (e.g. `42` under a key that callers iterate) parses fine yet
+    // crashes every consumer. When the fallback is an array, only an array
+    // is a valid read.
+    if (Array.isArray(fallback) && !Array.isArray(parsed)) {
+      return fallback;
+    }
+    return parsed;
   } catch {
     return fallback;
   }

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き174 — BookmarkStore の型ポイズン（#154 と同クラス）
+- 🔍 **実害**: `readJSON` は構文エラーのみ fallback に落としていた — `42` や `{"a":1}` のような**構文正しいが型が違う** poisoned JSON がそのまま返り、`getBookmarks().filter` が TypeError で全コンシューマーを潰す（ユーザーが手動で localStorage を編集した時、#154 の設定値ポイズンと同じクラス）。
+- 🔧 **修正**: fallback が配列の場合、parse 結果が配列でなければ fallback を返す検査を追加（全 call site が `[]` fallback のため一箇所で完結）。
+- 🧪 **pin**: `'42'`/`'"text"'/`'{"a":1}'`/`'null'`/`'true'` の5種ポイズン + history のポイズン + 構文不正 JSON が全て `[]` に落ちることを実証。
+- ✅ 3083 tests / 72 suites 全緑、lint 0 errors。
+
 ### Session 75: 続き173 — app.js の死んだ visibilitychange ハンドラ削除
 - 🔍 **死んだ計装**: `document.visibilitychange` ハンドラが「Pause or reduce activity」とコメントしながら console.debug のみ — 実際の一時停止は XRSession.visibilityState リスナー（ImmersiveVideo pause）が担い、2D ページでは「reduce activity」は意味を持たない空振り。
 - 🗑 **削除**: ハンドラ削除（9行）。それを pin していたテスト4件も削除/整理 — 削除後は `(listeners||[])` で空配列を走るだけの真空テストになっていた（続き157 と同クラスの suite 自身の嘘）。

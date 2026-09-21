@@ -19,6 +19,23 @@ describe('BookmarkStore — bookmarks', () => {
     expect(store.getBookmarks()).toEqual([]);
   });
 
+  test('wrong-shaped (type-poisoned) stored values fall back to []', () => {
+    // localStorage is user-editable — valid JSON of the wrong shape parsed
+    // fine yet crashed every consumer (`42.filter`, `{…}.map`). readJSON
+    // now requires the parsed value to match the array fallback's shape.
+    for (const poison of ['42', '"text"', '{"a":1}', 'null', 'true']) {
+      localStorage.setItem('quiBrowser_bookmarks', poison);
+      expect(store.getBookmarks()).toEqual([]);
+    }
+    localStorage.setItem('quiBrowser_history', '42');
+    expect(store.getHistory()).toEqual([]);
+  });
+
+  test('syntactically invalid stored JSON still falls back to []', () => {
+    localStorage.setItem('quiBrowser_bookmarks', '{not json');
+    expect(store.getBookmarks()).toEqual([]);
+  });
+
   test('addBookmark() stores and retrieves an entry', () => {
     store.addBookmark('https://example.com', 'Example');
     const list = store.getBookmarks();
