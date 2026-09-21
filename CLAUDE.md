@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き87（同セッション）: CSS カスタムプロパティの死骸5件 — 定義のみで `var()` 参照ゼロ
+- 🔍 **実測**: main.css の全 `--*` 定義と全 `var(--*)` 使用を照合 — `--color-danger`/`--color-success`/`--color-warning`/`--color-surface-elevated`（:root と high-contrast ブロックの2箇所定義）/`--font-mono` がどこからも参照されていない残留パレット。逆方向（未定義の var()）はゼロ、class セレクタも全て参照済み。
+- 🔧 **削除**: 5件（うち surface-elevated は2定義）を削除。dead eslint globals（続き81）・dead exports（続き75）と同クラスの「定義済み・消費者ゼロ」清掃。
+- 📝 2148 tests / 63 suites、lint 0 errors、verify:docs PASS、build green。
+
 #### 続き86（同セッション）: CLAUDE.md 自身の監査節が自己矛盾 — 「Not started」と表末尾の「Fixed」が同居
 - 🔍 **実測**: 本ファイル上部の監査セクションが①i18n を「**Not started** … t() は VRApp で一度も呼ばれていない」と主張（実際は VRApp.js に 88 箇所の t() 呼出 — Sessions 2/27 + #73/#80/#81/#123 で配線済み）②サブシステム失敗を「error boundary なし」と主張しながら Known Issues 表は「Fixed Session 2」を記載 ③削除済みの **AIRecommendation** を init 失敗リスクとして列挙 ④「2700+ 行モノリス」（実測 3577）⑤「WebPanel load errors — To fix」（実際は VRApp.js:814 で showVRToast に配線済み）。
 - 🔧 **修正**: Gap 1/2 の Status を Resolved に、AIRecommendation 項削除、モノリス行数を実測値に、Phase 1 の 2項目を Phase 2 と同様に ~~打消し~~ で Done 化、Known Issues 表の WebPanel 行を Fixed に。
