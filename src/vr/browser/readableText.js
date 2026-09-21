@@ -66,9 +66,13 @@ function safeFromCodePoint(cp) {
   }
 }
 
+// `>` inside a quoted attribute value must not end the tag — the naive
+// /<[^>]*>/ leaves the tail of such attributes behind as literal text.
+const TAG_RE = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g;
+
 /** Remove tags and collapse whitespace to a single-line string. */
 function textOf(html) {
-  return decodeEntities(String(html).replace(/<[^>]*>/g, ' '))
+  return decodeEntities(String(html).replace(TAG_RE, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 }

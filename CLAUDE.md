@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き158
+- 🔍 **実測（reader のタグストリップ）**: `textOf` の `/<[^>]*>/g` は `<a title="x>y">` のような**クォート内 `>` で止まる**ため、属性の末尾 `y">` がリーダーテキストにゴミとして漏れていた。DOMParser を使えない node 環境の手書きパーサーだからこそのクラス。
+- 🔧 **修正**: `TAG_RE = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g` — クォート済み属性値を丸ごと飛ばす。テスト先行で赤確認→緑化。
+- 🔍 **他照合**: WebGL contextlost/restored は `preventDefault()`・ループ停止・クロスモーダル通知・dispose 対称まで完全実装済み（実害ではなかった）。i18n ja/en 140キー完全一致。three 削除済み API なし。arc に孤立ファイルなし。
+- ✅ 3051 tests / 72 suites 全緑。
+
 ### Session 75: 続き157
 - 🔍 **実測（テストスイート自身の真空）**: `expect(true).toBe(true)` 5箇所を発見 — `if (click)` ガードで「リスナーが見つからない＝空走合格」になっていた enterVR 2件、「unknown-error を使う」と名乗りながら描画内容を一切見ていなかった overlay テスト、IME の `convert?.()`（存在しないメソッド）を呼んで `out` を捨てるテスト。
 - 🔧 **修正**: ①enterVR 2件 — `DOMContentLoaded` 未発火が原因で click が undefined → dispatch を追加し enter-vr 発火/非発火＋エラートーストを実断言（テスト名と一致）②overlay テスト — `detail.textContent === 'Unknown error'` を実検査 ③IME — 実メソッド `convertToKanji()` の null 返却を断言 ④onSpeak — `.not.toThrow()` に正直化。
