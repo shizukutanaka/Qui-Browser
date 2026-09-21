@@ -433,3 +433,39 @@ describe('GazeInteraction — last branch arms', () => {
     expect(() => g.dispose()).not.toThrow();
   });
 });
+
+describe('GazeInteraction — complementary arms', () => {
+  test('dwell fire calls onSelect with the hit when handlers exist', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const onSelect = jest.fn();
+    const obj = makeInteractable({ onSelect });
+    nextHit = { object: obj };
+    gi.update([obj], 600);
+    gi.update([obj], 600);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0][0].gaze).toBe(true);
+  });
+
+  test('dwell fire restores ring opacity when the ring exists', () => {
+    const cam = makeCamera();
+    const gi = new GazeInteraction(cam, { dwellTime: 1000 });
+    gi.setEnabled(true);
+    gi._ring = { material: { opacity: 0.3 } };
+    const obj = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: obj };
+    gi.update([obj], 600);
+    gi.update([obj], 600);
+    expect(gi._ring.material.opacity).toBe(1);
+  });
+
+  test('dispose detaches the reticle via camera.remove when available', () => {
+    const cam = makeCamera();
+    cam.remove = jest.fn();
+    const gi = new GazeInteraction(cam, {});
+    const reticle = { traverse() {} };
+    gi.reticle = reticle;
+    gi.dispose?.();
+    expect(cam.remove).toHaveBeenCalledWith(reticle);
+  });
+});
