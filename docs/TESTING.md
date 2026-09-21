@@ -7,14 +7,23 @@ npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
 npm run test:integration # **/tests/*integration*.test.js
-npm run lint             # ESLint over src/ and server/
+npm run lint             # ESLint flat config (eslint.config.js)
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
-npm run ci:all           # lint + coverage + benchmarks
+npm run ci:all           # lint + format + coverage
 ```
 
-Current baseline on a clean checkout: **48 suites / 1156 tests passing**, ESLint
-0 errors (180 `no-console` style warnings are accepted in tooling/dev paths).
+Current baseline on a clean checkout: **62 suites / 2133 tests passing**, ESLint
+0 errors (119 warnings accepted in tooling/dev paths). The repo's own runtime
+harnesses (`verify:app`, `verify:layout`, `verify:vr-boot` — needs `CHROME_PATH`
+on non-Linux hosts) all pass on the built bundle in real Chromium: the landing
+shell boots clean, no text surface overflows, and the full VRApp — including the
+default-ON browsing systems — constructs without exceptions under a stubbed
+WebXR runtime (`npm run ci:verify`).
+
+`server/` (the Express + Stripe scaffolding) was deleted; `proxy/` (the optional
+reader proxy with SSRF guard) is exercised by `proxy-server.test.js` and
+`ssrf-guard.test.js` instead.
 
 ## Layout
 
@@ -29,15 +38,13 @@ Three tiers of test:
    No mocks, fastest, highest value per line.
 2. **Subsystem tests with hand-built doubles** — `gaze-interaction`, `caption-system`,
    `haptic-feedback`, `spatial-audio`, `tab-manager`, `bookmark-panel`,
-   `multiplayer-system`, `hand-tracking`, `immersive-video`. A minimal fake Three.js
+   `hand-tracking`, `immersive-video`, `dev-tools`. A minimal fake Three.js
    object graph (`{ visible, parent, material: { color: { set() } } }`) is enough;
    do not pull in a real WebGL context.
 3. **Wiring / integration tests** — `vr-app-wiring.test.js` binds `VRApp`'s real
    prototype methods to a hand-constructed `this`. Constructing a full `new VRApp()` is
    not possible in Node because `setupRenderer()` needs a GPU context, so the prototype
-   binding pattern is deliberate. `server.test.js` exercises the Express app with
-   supertest-style requests, including the Stripe-unconfigured `503` paths and the raw
-   webhook body.
+   binding pattern is deliberate.
 
 ## Conventions
 

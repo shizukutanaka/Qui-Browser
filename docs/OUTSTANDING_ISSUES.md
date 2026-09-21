@@ -713,6 +713,37 @@ IME の仕様意図が絡むためオーナー判断。esc 経路の stale candi
 
 ---
 
+## O. ドキュメント漂移（続き78 で実測・一部修正）
+
+大規模削除（server/・vr/multiplayer/・vr/ar/・vr/ai/・ObjectPool・WebGPURenderer）後に
+docs/ が旧構造を語り続けていた箇所の棚卸し。
+
+### 修正済み（続き78）
+
+- `docs/ARCHITECTURE.md`: module map の存在しない行（multiplayer/ar/ai/ObjectPool/
+  WebGPURenderer）と「Server side」節（削除済み Express+Stripe を現行説明）、
+  manualChunks の実リストずれ（`tier2-ar`/`WebGPURenderer` という chunk は存在しない）
+  を実構造に同期。`avatars` 参照も削除。
+- `docs/TESTING.md`: 「ESLint over src/ and server/」・「ci:all = lint + coverage +
+  benchmarks」（benchmark は #87 で削除）・baseline 48 suites/1156 tests → 62/2133・
+  `server.test.js`/`multiplayer-system` への言及を除去し `dev-tools`/`proxy-server`/
+  `ssrf-guard` に更新。
+- `tests/text-wrap.test.js`（新規）: TESTING.md が「tier-1 にある」と主張していたが
+  実在しなかった `textWrap.js` のテストを実装 — 7+ モジュールが依存する em 幅モデル
+  （charWidthEm/wrapTextToWidth/truncateToWidth/safeMeasureEm）を15テストで pin。
+
+### O-1. 未修正（判断事項）: `docs/DEVELOPER_ONBOARDING.md` が別コードベースを説明
+
+1182 行のオンボーディング文書が `VRMediaSystem`/`VRSystemMonitor`/`VRUISystem`/
+`VRInputSystem`/`VRNavigationSystem`/`UnifiedSecuritySystem`/`ObjectPool`/
+`initWebGPU` 等を現在のアーキテクチャとして図解・サンプルコード付きで教えているが、
+**これらのクラスは一つも存在しない**（src/ 全体に grep でヒットなし）。部分修正では
+なく文書の中枢が異なる旧設計を語っているため、新規開発者は実コードと齟齬を起こす。
+
+**判断事項**: (a) 現構造に合わせ全面改訂、(b) 文書冒頭に「旧設計のアーカイブ」と
+明記してリンク先を ARCHITECTURE.md に差し替え、(c) 削除（ARCHITECTURE.md +
+TESTING.md が既に現行説明を担う）。文書の分量と位置づけが絡むためオーナー判断。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
