@@ -474,3 +474,35 @@ describe('VRControllerInput — complementary arms', () => {
     expect(out.axes.stickY).toBeLessThan(-0.5);
   });
 });
+
+describe('VRControllerInput — generic-fallback arms', () => {
+  test('getDeviceName falls back to "Controller (unknown)" for unrecognised sources', () => {
+    const ci = new VRControllerInput();
+    const src = { profiles: ['totally-unknown-pad'], handedness: undefined };
+    expect(ci.getDeviceName(src)).toBe('Controller (unknown)');
+  });
+
+  test('read() uses generic maps + nullish fallbacks for sparse gamepads', () => {
+    const ci = new VRControllerInput();
+    const src = {
+      profiles: ['totally-unknown-pad'],
+      handedness: undefined,
+      gamepad: {
+        buttons: [{ pressed: true }], // no .value field
+        axes: []                     // no axes at all
+      }
+    };
+    const snap = ci.read(src);
+    expect(snap.hand).toBe('unknown');
+    expect(snap.buttons).toBeDefined();
+  });
+
+  test('button without .value resolves to pressed?1:0', () => {
+    const ci = new VRControllerInput();
+    const src = makeSource(['oculus-touch-v3'], 'right');
+    src.gamepad.buttons = [{ pressed: true }, { pressed: false }];
+    const snap = ci.read(src);
+    const vals = Object.values(snap.buttons).map(b => b.value);
+    expect(Math.max(...vals)).toBe(1);
+  });
+});
