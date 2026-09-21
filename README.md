@@ -166,7 +166,7 @@ Qui Browser VR/
 │   ├── dev/DevTools.js       # In-session console/scene/network inspector
 │   └── monitoring.js         # Production monitoring
 ├── docs/                     # Complete documentation (24 guides + archive)
-├── tests/                    # Test suites (72 suites, 3087 tests)
+├── tests/                    # Test suites (73 suites, 3119 tests)
 ├── tools/                    # Verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
