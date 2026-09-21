@@ -403,3 +403,29 @@ describe('PerformanceMonitor — remaining branch arms', () => {
     expect(typeof csv).toBe('string');
   });
 });
+
+describe('PerformanceMonitor — last branch arms', () => {
+  test('endFrame updates best/worst records on new extremes', () => {
+    const pm = new PerformanceMonitor();
+    pm.beginFrame();
+    pm.endFrame({ info: { render: { triangles: 1, calls: 1 }, memory: { geometries: 1, textures: 1 }, programs: [] } });
+    const before = { best: pm.stats.bestFrame.time, worst: pm.stats.worstFrame.time };
+    expect(before.worst).toBeGreaterThanOrEqual(before.best);
+  });
+
+  test('endFrame tolerates renderer.info.programs absent', () => {
+    const pm = new PerformanceMonitor();
+    pm.beginFrame();
+    expect(() => pm.endFrame({ info: { render: { triangles: 1, calls: 1 }, memory: { geometries: 1, textures: 1 } } })).not.toThrow();
+  });
+
+  test('checkThresholds warning band without critical', () => {
+    const pm = new PerformanceMonitor();
+    pm.metrics.fps.current = 70; // below warning 80, above critical 60
+    const alerts = [];
+    pm.addAlert = (lvl, msg) => alerts.push(lvl);
+    pm.checkThresholds();
+    expect(alerts).toContain('warning');
+    expect(alerts).not.toContain('critical');
+  });
+});
