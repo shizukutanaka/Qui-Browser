@@ -754,3 +754,40 @@ describe('VRJapaneseKeyboard — complementary arms', () => {
     if (kb.group) expect(kb.group.visible).toBe(true);
   });
 });
+
+describe('VRJapaneseKeyboard — dispose member-present arms', () => {
+  test('dispose frees geometry, material and map on every registered key mesh', () => {
+    const { kb } = makeKeyboard();
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    kb.keyMeshes.push({ mesh: { geometry: geo, material: mat, userData: { keyTex: map } } });
+    kb.dispose();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(map.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+  });
+
+  test('dispose frees display mesh geometry/material/texture when present', () => {
+    const { kb } = makeKeyboard();
+    const map = { dispose: jest.fn() };
+    const mat = { dispose: jest.fn(), map };
+    const geo = { dispose: jest.fn() };
+    const tex = { dispose: jest.fn() };
+    kb._displayMesh = { geometry: geo, material: mat };
+    kb._displayTex = tex;
+    kb.dispose();
+    expect(geo.dispose).toHaveBeenCalled();
+    expect(mat.dispose).toHaveBeenCalled();
+    expect(tex.dispose).toHaveBeenCalled();
+  });
+
+  test('suggestions clear when the composition query is shorter than 2 chars', () => {
+    const { kb } = makeKeyboard();
+    kb.suggestionProvider = () => [];
+    kb.ime = { compositionBuffer: 'a' };
+    kb._clearSuggestions = jest.fn();
+    kb._updateSuggestions();
+    expect(kb._clearSuggestions).toHaveBeenCalled();
+  });
+});

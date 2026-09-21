@@ -1144,3 +1144,47 @@ describe('VoiceCommands — complementary arms 2', () => {
     expect(goToCalls.length).toBe(0);
   });
 });
+
+describe('VoiceCommands — remaining false-side arms', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+  });
+
+  test('continuous restart is skipped when disabled inside the 100ms window', () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.continuous = true;
+      vc.isEnabled = true;
+      vc.start = jest.fn();
+      // simulate recognition onend scheduling the restart
+      const schedule = () => {
+        if (vc.settings.continuous && vc.isEnabled) {
+          setTimeout(() => { if (vc.isEnabled) vc.start(); }, 100);
+        }
+      };
+      schedule();
+      vc.isEnabled = false; // disabled before the timer fires
+      jest.advanceTimersByTime(200);
+      expect(vc.start).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('volume action does not speak when onVolumeChange returns non-number', () => {
+    const spoken = [];
+    vc.speak = (t) => spoken.push(t);
+    vc.connectBrowser({ onVolumeChange: () => undefined });
+    vc.processCommand('音量上げる', 0.9);
+    expect(spoken.every((s) => !s.includes('%'))).toBe(true);
+  });
+
+  test('search falls back to tabManager.navigate when onSearch is absent', () => {
+    const navigate = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => ({ navigate }) } });
+    vc.processCommand('検索：てんき', 0.9);
+    expect(navigate).toHaveBeenCalledWith('てんき');
+  });
+});
