@@ -43,20 +43,14 @@ const CACHE_PATTERNS = {
   // Network first - dynamic content
   networkFirst: [
     /api\//,       // API calls
-    /\.json$/,     // JSON data (except manifest)
+    /\.json$/,     // JSON data — manifest.json included: network wins on
+    // update, and the precached copy still covers offline misses
     /socket/       // WebSocket connections
-  ],
-
-  // Stale while revalidate - balance freshness and speed
-  staleWhileRevalidate: [
-    /\.js$/,       // JavaScript files
-    /\.css$/,      // Stylesheets
-    /\.html$/,     // HTML pages
-    /\.jpg$/,      // Images
-    /\.png$/,      // Images
-    /\.svg$/       // SVG graphics
   ]
 };
+
+// Everything unmatched falls through to stale-while-revalidate — there is no
+// pattern list for it because the default already covers every file type.
 
 // Maximum cache sizes (in entries)
 const CACHE_LIMITS = {
@@ -286,7 +280,7 @@ async function networkFirst(request) {
     }
 
     return response;
-  } catch (error) {
+  } catch {
     // Network failed - try cache
     const cached = await caches.match(request);
     if (cached) {
