@@ -207,6 +207,39 @@ describe('src/main.js (landing page entry)', () => {
     expect(register.mock.calls[0][0]).toContain('service-worker.js');
   });
 
+  test('language toggle flips en↔ja and mirrors the target language as its label', () => {
+    const langBtn = makeEl('langToggle');
+    installDom({ ids: { langToggle: langBtn } });
+    jest.isolateModules(() => require('../src/main.js'));
+    try {
+      // Default lang is en → button offers 日本語.
+      expect(langBtn.textContent).toBe('日本語');
+      langBtn.click(); // -> ja
+      expect(langBtn.textContent).toBe('EN');
+      langBtn.click(); // -> en
+      expect(langBtn.textContent).toBe('日本語');
+    } finally {
+      localStorage.clear();
+    }
+  });
+
+  test('DOMContentLoaded hides the loading screen after the delay', () => {
+    const loading = makeEl('loadingScreen');
+    const { windowListeners } = installDom({ ids: { loadingScreen: loading } });
+    // Fake only setTimeout: main.js's loading-hide uses it, while app.js's
+    // perf setInterval must stay on the real clock so advancing timers can't
+    // fire it against the headless (renderer-less) VRApp.
+    jest.useFakeTimers({ doNotFake: ['setInterval'] });
+    try {
+      jest.isolateModules(() => require('../src/main.js'));
+      (windowListeners.DOMContentLoaded || []).forEach((f) => f());
+      jest.advanceTimersByTime(600);
+      expect(loading.classList.add).toHaveBeenCalledWith('hidden');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('supported Enter VR click dispatches the enter-vr event', async () => {
     const enterBtn = makeEl('enterVRButton');
     const { documentListeners } = installDom({
@@ -341,6 +374,19 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
     (windowListeners.beforeunload || []).forEach((f) => f());
     expect(vrApp.dispose).toHaveBeenCalledTimes(1);
     expect(global.window.QuiBrowser.getApp()).toBeNull();
+  });
+
+  test('getStats() returns null instead of crashing when init failed before the renderer existed', async () => {
+    const container = makeEl('app-container');
+    installDom({
+      ids: { 'app-container': container },
+      xr: { isSessionSupported: async () => true }
+    });
+    jest.isolateModules(() => require('../src/app.js'));
+    await tick();
+    // VRApp constructed but initialize() failed headless → renderer null.
+    // The debug handle + perf interval both call getPerformanceStats() on it.
+    expect(global.window.QuiBrowser.getStats()).toBeNull();
   });
 
   test('perf interval paints stats into the visible overlay', async () => {
