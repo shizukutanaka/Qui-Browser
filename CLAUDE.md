@@ -544,6 +544,38 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き109（同セッション）: 散在 sliver の一巡 — BookmarkStore / TextureManager / DeviceCompatibility / FFRSystem
+- ✅ BookmarkStore: hostOf の不正URLフォールバック、MAX_HISTORY=200 トリム、corrupt JSON→[]、search() のブックマーク補完ガード（history 優先・malformed skip・addedAt 欠損→now）。
+- ✅ TextureManager: loadTexture 失敗→getErrorTexture（checkerboard 代替、reject しない）、loadStandardTexture/loadKTX2 の onError→reject、KTX2 進捗コールバック、未キャッシュ URL の unload no-op。
+- ✅ DeviceCompatibility: `_hasWebGL2` の全3腕（document 不在・getContext throw・取得成功）。
+- ✅ FFRSystem: projectionLayer null→false、XRWebGLBinding ctor throw→false、setDynamicFFR/adjustIntensity/updatePredictedGazeFoveation の初期化前ガード + adjustIntensity の [0,1] クランプ。
+- ✅ 2282 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ — 全て実装正しさを実測確認。
+
+#### 続き108（同セッション）: VoiceCommands のデフォルトコマンド action 本体を実発火で pin
+- ✅ 「進む」→window.history.forward、「戻る」→back、「更新」→location.reload、「検索：X」→window.open(google?q=encodeURI)、「停止」→this.stop()、requireWakeWord の5秒再武装タイマー（`handleRecognitionResult` の isFinal 経路 — processCommand ではなく）。
+- 🔍 仕様確認: 文字列パターンは **完全一致**（substring ではない）—「進んでください」は無マッチが正しい挙動。エイリアスのみ substring。
+- ✅ 2263 tests / 66 suites 全緑、lint 0 errors。欠陥ゼロ。
+
+#### 続き107（同セッション）: 実バグ39件目 — 訓令式ローマ字（si/ti/tu/hu/zi + sya/tya/zyo/cya）が全く変換されなかった
+- 🔴 `convertRomajiToHiragana` がヘボン式のみで、日本語入力者の多くが打つ訓令式 `sigoto`→「siごと」のようにローマ字のまま残る。VR 日本語ブラウザの IME が標準的なタイピングで壊れる実害。
+- 🔧 buildRomajiMap に訓令式エイリアスを追加: si/ti/tu/hu/zi、sya/syu/syo、tya/tyu/tyo、zya/zyu/zyo、cya/cyu/cyo。`_romajiPrefixes` はマップキーから自動導出されるため長打遅延も連動。赤確認→緑の19バリアント。
+- ✅ 2257 tests / 66 suites 全緑、lint 0 errors。
+
+#### 続き106（同セッション）: VRJapaneseKeyboard のキーテクスチャ層を pin — hover repaint・旧テクスチャ dispose・shift の katakana ラッチ再描画
+- ✅ キー hover で onHoverCaption 発火＋`_setKeyHover` が新テクスチャを割当て**旧テクスチャを dispose**（GPU リーク防止）、`_refreshKeyStates` が katakana モード変化時のみ shift キーを active 色へ再描画（romaji で repaint しない消極腕も pin）。
+- ✅ 2234 tests / 65 suites 全緑、lint 0 errors。欠陥ゼロ。
+
+#### 続き105（同セッション）: setupVR の配線 + updateSystems の毎フレーム残腕 + grab/point ジェスチャ本体を pin
+- ✅ `setupVR()` を stub document/window/xr で pin: VRButton を body へ append、landing の 'enter-vr' イベント → vrButton.click()、sessionstart/end → onVRSessionStart/End 配線、document visibilitychange で hidden+playing のみ immersiveVideo.togglePause（visible や非再生では呼ばない両腕）、setupControllers 呼出。
+- ✅ `updateSystems()` の残腕: xrFrame 有りで handTracking.update(xrFrame, refSpace)、hapticFeedback.update() 毎フレーム、spatialAudio.updateListenerFromCamera、**layers blit ループ**（isSupported+xrFrame → getViewerPose → tabManager.tabs 各 panel.updateLayer、tabManager 不在時は webPanel 単体フォールバック、pose null で skip）。
+- ✅ `onVRSessionStart` の grab（playPattern(hand,'impact')）/ point（no-op log）ジェスチャ本体を起動。
+- ✅ 2232 tests / 65 suites 全緑、lint 0 errors。残り未カバーは setupRenderer の生 WebGL と monitoring.js PROD 腕のみ。
+
+#### 続き104（同セッション）: createSettingsPanel の全 apply コールバック本体を実発火で pin — 最後の大きな未実行塊
+- 🔍 lcov の未カバー行を全列挙したところ、最大クラスターは `createSettingsPanel` 内の ~30個の apply クロージャだった — ボタン構築は pin 済みだが「押下時に本当にサブシステムへ届くか」は未検証だった。
+- ✅ セクション別に5件のパネルを構築し interactables の onSelect を実発火: a11y（captions setEnabled+enabled caption、gaze setEnabled、HC → setPref+reticle+caption backing live-update、haptics setEnabled）、a11y ステッパー5本（ms/scale/offset/dwell/grace の単位変換契約）、locomotion（southpaw caption、comfort preset サイクル、**reduced-motion 下で smoothMove 有効化→前庭警告トースト**）、display（FFR enable/disable、curved → tabManager 優先 / webPanel フォールバック、follow、distance）、browsing（webPanel toggle 委譲、searchEngine サイクル、clearHistory/readerProxy/bookmarks の3アクション+caption）、audio（masterVolume %→0..1 ゲイン変換、video360 launch）。
+- ✅ 2226 tests / 65 suites 全緑、lint 0 errors。欠陥ゼロ — 全コールバックが仕様通り配線されていることを実測確認。
+
 #### 続き103（同セッション）: モジュール到達性の全走査 — src/ に残った唯一のテスト専用モジュールを tests/ へ移設
 - 🔍 **import 到達性グラフを全構築**（main.js/app.js を起点に静的 import/dynamic import/require を全探索）: 50ファイル中到達不能は `src/vr/ui/contrast.js` 1件のみ — 227行の WCAG/APCA 計量ユーティリティで、本番コードからの参照ゼロ、import するのは3つのテストのみ。
 - 🔧 **tests/helpers/contrast.js に移設**: 以前の走査では「テスト専用だが正当」と判断していたが、src/ に残ると collectCoverageFrom が出荷されない227行をプロダクションカバレッジとして計測する（数字の誠実さを毀損）。移設後「src/ の全ファイルが import 到達可能」の不変条件が文字通り成立。3テストの require パスと OUTSTANDING_ISSUES の記述を更新。

@@ -775,3 +775,64 @@ describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, 
     expect(stats.averageConfidence).toBeCloseTo(0.9);
   });
 });
+
+describe('VoiceCommands — default command action bodies actually execute', () => {
+  let vc;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {}; // suppress speech mirror
+  });
+
+  test('"進む" calls window.history.forward() and returns the direction', () => {
+    const forward = jest.fn();
+    global.window = { history: { forward } };
+    vc.processCommand('進む', 0.9); // string patterns are exact-match
+    expect(forward).toHaveBeenCalled();
+  });
+
+  test('"戻る" calls window.history.back()', () => {
+    const back = jest.fn();
+    global.window = { history: { back } };
+    vc.processCommand('前に戻る', 0.9);
+    expect(back).toHaveBeenCalled();
+  });
+
+  test('"更新" calls window.location.reload()', () => {
+    const reload = jest.fn();
+    global.window = { location: { reload } };
+    vc.processCommand('更新', 0.9);
+    expect(reload).toHaveBeenCalled();
+  });
+
+  test('"検索：xxx" opens a google search tab with the encoded query', () => {
+    const open = jest.fn();
+    global.window = { open };
+    vc.processCommand('検索：ラーメン 近く', 0.9);
+    expect(open).toHaveBeenCalledWith(
+      expect.stringContaining('google.com/search?q='), '_blank');
+    expect(decodeURIComponent(open.mock.calls[0][0])).toContain('ラーメン 近く');
+  });
+
+  test('"停止" stops the engine itself', () => {
+    const spy = jest.spyOn(vc, 'stop');
+    vc.processCommand('停止', 0.9);
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  test('requireWakeWord: a matched command re-arms the 5s reset timer', () => {
+    jest.useFakeTimers();
+    try {
+      vc.settings.requireWakeWord = true;
+      vc.isAwake = true;
+      vc.registerCommand('t1', { patterns: ['fire'], action: () => ({ ok: 1 }) });
+      // the re-arm timer lives in the isFinal recognition-result path
+      vc.handleRecognitionResult({ results: [{ 0: { transcript: 'fire', confidence: 0.9 }, isFinal: true }] });
+      expect(vc.isAwake).toBe(true);
+      jest.advanceTimersByTime(5000);
+      expect(vc.isAwake).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

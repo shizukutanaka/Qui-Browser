@@ -513,6 +513,68 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
   });
 });
 
+describe('VRApp.updateSystems — per-frame arms (hand tracking, haptic refresh, layers blit)', () => {
+  test('xrFrame present: handTracking.update gets the reference space; haptics and listener refresh every frame', () => {
+    const refSpace = { kind: 'local' };
+    const xrFrame = { id: 1 };
+    const handTracking = { update: jest.fn() };
+    const hapticFeedback = { update: jest.fn(), playPatternBothHands: jest.fn() };
+    const spatialAudio = { updateListenerFromCamera: jest.fn(), play: jest.fn() };
+    const app = makeSystemsApp({
+      handTracking, hapticFeedback, spatialAudio,
+      renderer: { xr: { getReferenceSpace: () => refSpace } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(handTracking.update).toHaveBeenCalledWith(xrFrame, refSpace);
+    expect(hapticFeedback.update).toHaveBeenCalled();
+    expect(spatialAudio.updateListenerFromCamera).toHaveBeenCalledWith(app.camera);
+  });
+
+  test('no xrFrame → handTracking.update skipped (desktop frames)', () => {
+    const handTracking = { update: jest.fn() };
+    const app = makeSystemsApp({ handTracking });
+    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    expect(handTracking.update).not.toHaveBeenCalled();
+  });
+
+  test('supported layers blit: every tab panel gets updateLayer(xrFrame, views)', () => {
+    const views = [{ eye: 'left' }, { eye: 'right' }];
+    const xrFrame = { getViewerPose: jest.fn(() => ({ views })) };
+    const refSpace = {};
+    const panels = [{ updateLayer: jest.fn() }, { updateLayer: jest.fn() }];
+    const app = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: { tabs: panels },
+      renderer: { xr: { getReferenceSpace: () => refSpace } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(xrFrame.getViewerPose).toHaveBeenCalledWith(refSpace);
+    for (const p of panels) expect(p.updateLayer).toHaveBeenCalledWith(xrFrame, views);
+  });
+
+  test('layers fall back to the single webPanel when no tabManager; skip when pose unavailable', () => {
+    const xrFrame = { getViewerPose: jest.fn(() => ({ views: [{}] })) };
+    const panel = { updateLayer: jest.fn() };
+    const app = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: null, webPanel: panel,
+      renderer: { xr: { getReferenceSpace: () => ({}) } }
+    });
+    VRApp.prototype.updateSystems.call(app, 0, xrFrame, 0.016);
+    expect(panel.updateLayer).toHaveBeenCalled();
+
+    const xrFrameNoPose = { getViewerPose: jest.fn(() => null) };
+    const panel2 = { updateLayer: jest.fn() };
+    const app2 = makeSystemsApp({
+      layersSystem: { isSupported: true },
+      tabManager: { tabs: [panel2] },
+      renderer: { xr: { getReferenceSpace: () => ({}) } }
+    });
+    VRApp.prototype.updateSystems.call(app2, 0, xrFrameNoPose, 0.016);
+    expect(panel2.updateLayer).not.toHaveBeenCalled();
+  });
+});
+
 describe('VRApp.updateSystems — caption aging', () => {
   test('ages captions (converting dt to milliseconds) when captions are enabled', () => {
     const captionSystem = { enabled: true, update: jest.fn(), show: jest.fn() };
@@ -2004,6 +2066,26 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
   });
 
+  test('grab gesture fires an impact haptic on the grabbing hand; point is a no-op log', async () => {
+    const session = makeSession();
+    const hand = {
+      initialize: jest.fn().mockResolvedValue(true),
+      onGesture: jest.fn(),
+      getPinchPosition: jest.fn(),
+      dispose: jest.fn()
+    };
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      handTracking: hand
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
+    grabCb('left');
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('left', 'impact');
+    const pointCb = hand.onGesture.mock.calls.find((c) => c[0] === 'point')[1];
+    expect(() => pointCb('left', {})).not.toThrow();
+  });
+
   test('session end unwires in reverse: ffr off, panels out of layer mode, video stopped, hands disposed', async () => {
     global.window = { devicePixelRatio: 1 };
     const layers = { dispose: jest.fn() };
@@ -2435,6 +2517,170 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
     // With all keys placed, sections = 5, so 5 tabs; a 6th tab means leftover.
     expect(tabCount).toBe(5);
     expect(panel.children.length).toBeGreaterThan(5);
+  });
+});
+
+describe('VRApp createSettingsPanel — every apply callback fires (bound prototypes)', () => {
+  // Section-ordered fixtures: interactables[0..4] are the section tabs,
+  // then the open section's controls in `controls` order.
+  const SETTINGS = {
+    enableGazeDwell: false, highContrast: false, enableTeleport: true, enableSnapTurn: true,
+    enableSmoothMove: false, southpaw: false, enableComfort: true, enableFFR: true,
+    enableHaptics: true, enableCaptions: true, enableWebPanel: true, privateMode: false,
+    enableWindowFollow: true, enableCurvedPanel: false,
+    snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
+    windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo'
+  };
+  const P = (sectionId, over = {}) => {
+    const app = makeVRAppLike({
+      settings: { ...SETTINGS, openSettingsSections: [sectionId] },
+      _panelTextures: [], _sharedGeometries: new Map(), _settingsPanelDrawers: [],
+      interactables: [], scene: new THREE.Scene(),
+      tabManager: { setSearchEngine: jest.fn(), setCurved: jest.fn() },
+      webPanel: { setCurved: jest.fn() },
+      bookmarkPanel: { visible: false, toggle: jest.fn(function () { this.visible = !this.visible; }) },
+      windowManager: { setFollow: jest.fn(), setDistance: jest.fn() },
+      gazeInteraction: { setEnabled: jest.fn(), setHighContrast: jest.fn() },
+      ffrSystem: { enable: jest.fn(), disable: jest.fn() },
+      spatialAudio: { setMasterVolume: jest.fn() },
+      comfortSystem: { setPreset: jest.fn() },
+      hapticFeedback: { setEnabled: jest.fn() },
+      captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(),
+        setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
+      saveSettings: jest.fn(),
+      showVRToast: jest.fn(),
+      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
+      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
+      _announceSettingsButton: VRApp.prototype._announceSettingsButton,
+      _redrawSettingsPanel: VRApp.prototype._redrawSettingsPanel,
+      makeSectionTab: VRApp.prototype.makeSectionTab,
+      makeCompactToggleButton: VRApp.prototype.makeCompactToggleButton,
+      makeStepperButton: VRApp.prototype.makeStepperButton,
+      makeCycleButton: VRApp.prototype.makeCycleButton,
+      makeActionButton: VRApp.prototype.makeActionButton,
+      _toggleSettingsSection: jest.fn(),
+      _launchImmersiveVideo: jest.fn(),
+      _clearBrowsingHistory: jest.fn(),
+      _requestReaderProxyInput: jest.fn(),
+      _onWebPanelToggleChanged: jest.fn(),
+      ...over
+    });
+    VRApp.prototype.createSettingsPanel.call(app);
+    return app;
+  };
+  // world point on the + zone of a stepper mesh
+  const plusPoint = (mesh) => mesh.localToWorld(new THREE.Vector3(0.4, 0, 0));
+
+  test('a11y toggles: captions/haptics/gaze/HC all reach their subsystems', () => {
+    const app = P('settings.section.a11y');
+    const C = app.interactables.slice(5); // a11y controls
+    // order: enableCaptions, enableGazeDwell, highContrast, enableHaptics + 5 steppers
+    C[0].onSelect(); // enableCaptions true->false
+    expect(app.captionSystem.setEnabled).toHaveBeenCalledWith(false);
+    C[0].onSelect(); // false->true announces
+    expect(app.captionSystem.setEnabled).toHaveBeenLastCalledWith(true);
+    expect(app.captionSystem.show).toHaveBeenCalledWith(expect.stringContaining(''));
+    C[1].onSelect(); // gaze dwell on
+    expect(app.gazeInteraction.setEnabled).toHaveBeenCalledWith(true);
+    C[2].onSelect(); // highContrast on: reticle + caption backing live-update
+    expect(app.captionSystem.setHighContrast).toHaveBeenCalledWith(true);
+    expect(app.gazeInteraction.setHighContrast).toHaveBeenCalled();
+    C[3].onSelect(); // haptics off
+    expect(app.hapticFeedback.setEnabled).toHaveBeenCalledWith(false);
+  });
+
+  test('a11y steppers push units correctly (ms, x, m-offset, dwell, grace)', () => {
+    const app = P('settings.section.a11y');
+    const C = app.interactables.slice(5);
+    const [steppers] = [C.slice(4)]; // captionDuration, captionScale, captionHeight, gazeDwellTime, gazeGraceTime
+    steppers[0].onSelect({ intersection: { point: plusPoint(steppers[0].mesh) } });
+    // stepValue snaps to the step grid; assert the %/unit conversion contract
+    expect(app.captionSystem.setLineDuration).toHaveBeenCalledWith(app.settings.captionDuration * 1000);
+    expect(app.settings.captionDuration).toBeGreaterThan(5);
+    steppers[1].onSelect({ intersection: { point: plusPoint(steppers[1].mesh) } });
+    expect(app.captionSystem.setScale).toHaveBeenCalledWith(app.settings.captionScale);
+    steppers[2].onSelect({ intersection: { point: plusPoint(steppers[2].mesh) } });
+    expect(app.captionSystem.setVerticalOffset).toHaveBeenCalledWith(app.settings.captionHeight);
+    steppers[3].onSelect({ intersection: { point: plusPoint(steppers[3].mesh) } });
+    expect(app.gazeInteraction.dwellTime).toBe(app.settings.gazeDwellTime);
+    steppers[4].onSelect({ intersection: { point: plusPoint(steppers[4].mesh) } });
+    expect(app.gazeInteraction.graceTime).toBe(app.settings.gazeGraceTime);
+  });
+
+  test('locomotion: southpaw captions the new primary hand; comfort preset cycles', () => {
+    const app = P('settings.section.locomotion');
+    const C = app.interactables.slice(5);
+    // toggles: enableTeleport, enableSnapTurn, enableSmoothMove, southpaw, enableComfort
+    C[3].onSelect();
+    expect(app.captionSystem.show).toHaveBeenCalled();
+    // cycle: motionSensitivity moderate -> tolerant -> comfortSystem.setPreset
+    const cyc = C[C.length - 1];
+    cyc.onSelect();
+    expect(app.comfortSystem.setPreset).toHaveBeenCalledWith('tolerant');
+  });
+
+  test('smoothMove enable under prefers-reduced-motion surfaces the vestibular warning', () => {
+    const origMM = global.matchMedia;
+    global.matchMedia = (q) => ({ matches: /reduced-motion/.test(q), addEventListener() {}, removeEventListener() {} });
+    try {
+      const app = P('settings.section.locomotion');
+      const C = app.interactables.slice(5);
+      C[2].onSelect(); // enableSmoothMove false->true with OS reduced-motion
+      expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+    } finally { global.matchMedia = origMM; }
+  });
+
+  test('display: FFR enable/disable, curved panel (tabManager), follow, distance', () => {
+    const app = P('settings.section.display');
+    const C = app.interactables.slice(5);
+    C[0].onSelect(); // enableFFR true->false -> disable()
+    expect(app.ffrSystem.disable).toHaveBeenCalled();
+    C[0].onSelect(); // false->true -> enable(0.5)
+    expect(app.ffrSystem.enable).toHaveBeenCalledWith(0.5);
+    C[1].onSelect(); // curved on -> tabManager.setCurved(true)
+    expect(app.tabManager.setCurved).toHaveBeenCalledWith(true);
+    C[2].onSelect(); // follow off
+    expect(app.windowManager.setFollow).toHaveBeenCalledWith(false);
+    const dist = C[3];
+    dist.onSelect({ intersection: { point: plusPoint(dist.mesh) } });
+    expect(app.windowManager.setDistance).toHaveBeenCalledWith(app.settings.windowDistance);
+  });
+
+  test('display: curved falls back to webPanel when tabManager absent', () => {
+    const app = P('settings.section.display', { tabManager: null });
+    const C = app.interactables.slice(5);
+    C[1].onSelect();
+    expect(app.webPanel.setCurved).toHaveBeenCalledWith(true);
+  });
+
+  test('browsing: webPanel toggle delegates; search engine cycles; all 3 actions wired', () => {
+    const app = P('settings.section.browsing');
+    const C = app.interactables.slice(5);
+    C[0].onSelect(); // enableWebPanel -> _onWebPanelToggleChanged(false)
+    expect(app._onWebPanelToggleChanged).toHaveBeenCalledWith(false);
+    const cyc = C[2]; // toggles (2) + cycle searchEngine
+    cyc.onSelect();
+    expect(app.tabManager.setSearchEngine).toHaveBeenCalledWith('google');
+    const acts = C.slice(3); // clearHistory, readerProxy, bookmarks
+    acts[0].onSelect();
+    expect(app._clearBrowsingHistory).toHaveBeenCalled();
+    acts[1].onSelect();
+    expect(app._requestReaderProxyInput).toHaveBeenCalled();
+    acts[2].onSelect();
+    expect(app.bookmarkPanel.toggle).toHaveBeenCalled();
+    expect(app.captionSystem.show).toHaveBeenCalled(); // open/closed announcement
+  });
+
+  test('audio: masterVolume scales % -> 0..1 gain; video360 launches', () => {
+    const app = P('settings.section.audio');
+    const C = app.interactables.slice(5);
+    C[0].onSelect({ intersection: { point: plusPoint(C[0].mesh) } });
+    expect(app.spatialAudio.setMasterVolume).toHaveBeenCalledWith(app.settings.masterVolume / 100);
+    C[1].onSelect();
+    expect(app._launchImmersiveVideo).toHaveBeenCalled();
   });
 });
 

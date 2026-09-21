@@ -130,3 +130,42 @@ describe('FFRSystem — head-velocity predicted gaze foveation (FR-4.2)', () => 
     expect(ffr.enabled).toBe(false);
   });
 });
+
+describe('FFRSystem — remaining init/guard arms', () => {
+  test('initialize returns false when getProjectionLayer() yields null', async () => {
+    global.XRWebGLBinding = jest.fn(() => ({ getProjectionLayer: () => null }));
+    const ffr = new FFRSystem();
+    expect(await ffr.initialize({ s: 1 }, { gl: 1 })).toBe(false);
+    delete global.XRWebGLBinding;
+  });
+
+  test('initialize returns false when XRWebGLBinding ctor throws', async () => {
+    global.XRWebGLBinding = jest.fn(() => { throw new Error('no binding'); });
+    const ffr = new FFRSystem();
+    expect(await ffr.initialize({ s: 1 }, { gl: 1 })).toBe(false);
+    delete global.XRWebGLBinding;
+  });
+
+  test('setDynamicFFR is a no-op before initialize (guard arm)', async () => {
+    const ffr = new FFRSystem();
+    expect(() => ffr.setDynamicFFR(0.9)).not.toThrow();
+  });
+
+  test('adjustIntensity is a no-op before initialize and clamps to [0,1] after', async () => {
+    const ffr = new FFRSystem();
+    ffr.adjustIntensity(0.5); // guard arm — no throw, no state change
+    expect(ffr.intensity).toBe(0.5); // still the constructor default
+
+    const { ffr: on } = await boot(true);
+    on.enable(0.9);
+    on.adjustIntensity(0.5);
+    expect(on.intensity).toBe(1); // clamped at the top
+    on.adjustIntensity(-2);
+    expect(on.intensity).toBe(0); // clamped at the bottom
+  });
+
+  test('updatePredictedGazeFoveation is a no-op when predicted gaze is off', () => {
+    const ffr = new FFRSystem();
+    expect(() => ffr.updatePredictedGazeFoveation()).not.toThrow();
+  });
+});

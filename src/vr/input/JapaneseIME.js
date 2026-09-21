@@ -72,14 +72,23 @@ export class JapaneseIME {
       // S series
       'sa': 'さ', 'shi': 'し', 'su': 'す', 'se': 'せ', 'so': 'そ',
       'sha': 'しゃ', 'shu': 'しゅ', 'sho': 'しょ',
+      // Kunrei-shiki / JIS-style aliases — the standard Japanese-input
+      // spellings (si/ti/tu/hu/zi, sya/tya/zyo, cya…) are what many real
+      // typists actually produce; without them 'sigoto' silently leaves
+      // romaji fragments in the buffer.
+      'si': 'し', 'sya': 'しゃ', 'syu': 'しゅ', 'syo': 'しょ',
 
       // Z series
       'za': 'ざ', 'ji': 'じ', 'zu': 'ず', 'ze': 'ぜ', 'zo': 'ぞ',
       'ja': 'じゃ', 'ju': 'じゅ', 'jo': 'じょ',
+      'zi': 'じ', 'zya': 'じゃ', 'zyu': 'じゅ', 'zyo': 'じょ',
 
       // T series
       'ta': 'た', 'chi': 'ち', 'tsu': 'つ', 'te': 'て', 'to': 'と',
       'cha': 'ちゃ', 'chu': 'ちゅ', 'cho': 'ちょ',
+      'ti': 'ち', 'tu': 'つ',
+      'tya': 'ちゃ', 'tyu': 'ちゅ', 'tyo': 'ちょ',
+      'cya': 'ちゃ', 'cyu': 'ちゅ', 'cyo': 'ちょ',
 
       // D series
       'da': 'だ', 'di': 'ぢ', 'du': 'づ', 'de': 'で', 'do': 'ど',
@@ -90,6 +99,7 @@ export class JapaneseIME {
 
       // H series
       'ha': 'は', 'hi': 'ひ', 'fu': 'ふ', 'he': 'へ', 'ho': 'ほ',
+      'hu': 'ふ',
       'hya': 'ひゃ', 'hyu': 'ひゅ', 'hyo': 'ひょ',
 
       // B series
