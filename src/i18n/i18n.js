@@ -161,6 +161,7 @@ export const CATALOG = {
     'vr.msg.webPanelOff': 'Browsing panel closed',
     'vr.msg.voiceOn': 'Voice commands enabled',
     'vr.msg.voiceOff': 'Voice commands disabled',
+    'vr.msg.voiceJaOnly': 'Voice commands enabled (Japanese only)',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -319,6 +320,7 @@ export const CATALOG = {
     'vr.msg.webPanelOff': 'ブラウジングパネルを閉じました',
     'vr.msg.voiceOn': '音声コマンドを有効にしました',
     'vr.msg.voiceOff': '音声コマンドを無効にしました',
+    'vr.msg.voiceJaOnly': '音声コマンドを有効にしました（日本語のみ対応）',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',

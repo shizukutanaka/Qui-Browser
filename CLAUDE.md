@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き191 — 音声コマンドの日本語限定を正直に告知（en UI での死機能）
+- 🔍 **実測（対称軸の飽和確認→新発見）**: 書込み-only 設定・localStorage キー・DOM id 参照・カスタムイベント・Observer/リスナー/タイマーの clear 対称・循環 import・重複メソッド・毎フレーム確保 — 全てクリーンまで掃引。残ったのは続き190 で自分が公開した矛盾: **音声コマンドの文法は全て日本語固定**（patterns・confirmationText・recognition.lang='ja-JP'）のに、en UI のユーザーにも「Voice Commands」トグルが出て、絶対にマッチしない認識器がマイク許可を取る。
+- 🔧 **修正**: トグル ON 成功時、UI ロケールが ja 以外なら `vr.msg.voiceJaOnly`（「日本語のみ対応」）を告知。en/ja 両ロケールにキー追加、`getLanguage` を VRApp に import。pin テスト追加（en ロケールで init 成功 → voiceJaOnly トースト）。
+- 📌 **判断**: コマンド文法を en 対応させるのは features 領域（20+コマンドの翻訳＋確認文）でオーナー判断へ。現状は「動くが en では無力」を黙らせない最小正直化。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き190 — 残る死設定4件を live 配線（書込み経路ゼロ一掃）
 - 🔍 **実測（適用経路の確認）**: 続き189 の残件4件を全て検証 — `enableHomeEnvironment`（scene.add/remove で live 可能・遅延生成対応）、`enablePerfMonitorUI`（DOM オーバーレイ・show/hide/dispose 完備 → lazy 構築可）、`controllerDeadZone`（VRControllerInput.deadZone は read() 毎フレーム参照 → 書き換え即時反映）、`enableTextureManager`（ProgressiveLoader.textureManager の差し替えで live 切替可・dispose でVRAM解放）。
 - 🔧 **修正**: 4件全てを設定パネルに実装 — display セクションに homeEnv/perfMonitor/textureCache の3トグル（全て遅延構築・冪等）、locomotion に deadZone ステッパー（0–0.4, step 0.05, apply で controllerInput.deadZone を即時書換）。i18n ja/en に4キー追加。

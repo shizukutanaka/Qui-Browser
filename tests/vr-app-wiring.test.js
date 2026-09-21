@@ -50,6 +50,7 @@ global.document = {
 
 const THREE = require('three');
 const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
+const { t } = require('../src/i18n/i18n.js');
 
 function makeGroup() {
   return { position: { set: jest.fn() }, quaternion: { identity: jest.fn() } };
@@ -2933,6 +2934,17 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     acts[2].onSelect();
     expect(app.bookmarkPanel.toggle).toHaveBeenCalled();
     expect(app.captionSystem.show).toHaveBeenCalled(); // open/closed announcement
+  });
+
+  test('browsing: voice enable under a non-Japanese UI announces the ja-only constraint', async () => {
+    const app = P('settings.section.browsing');
+    // Successful init: install a stub recognizer so the toggle reads as enabled.
+    app._initVoiceCommands = jest.fn(async () => {
+      app.voiceCommands = { isEnabled: true };
+    });
+    app.interactables.slice(5)[2].onSelect(); // enableVoice -> init -> toast
+    await Promise.resolve(); await Promise.resolve(); // flush .then() chain
+    expect(app.showVRToast).toHaveBeenCalledWith(t('vr.msg.voiceJaOnly'), { type: 'info' });
   });
 
   test('a11y: highContrast apply repaints an open bookmark panel', () => {

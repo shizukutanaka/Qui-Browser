@@ -27,7 +27,7 @@ import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinat
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
-import { t } from '../i18n/i18n.js';
+import { t, getLanguage } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
@@ -1561,10 +1561,14 @@ export class VRApp {
       [t('vr.settings.voice'), 'enableVoice', (v) => {
         if (v) {
           this._initVoiceCommands().then(() => {
-            this.showVRToast(
-              t(this.voiceCommands ? 'vr.msg.voiceOn' : 'vr.error.voiceUnavailable'),
-              { type: this.voiceCommands ? 'info' : 'warn' }
-            );
+            // The command grammar is Japanese-only — recognition.lang and every
+            // confirmation string are fixed Japanese. An English-locale user who
+            // enables this gets a recognizer that can never match; say so
+            // instead of announcing a feature that silently can't work.
+            const key = !this.voiceCommands
+              ? 'vr.error.voiceUnavailable'
+              : (getLanguage() === 'ja' ? 'vr.msg.voiceOn' : 'vr.msg.voiceJaOnly');
+            this.showVRToast(t(key), { type: this.voiceCommands ? 'info' : 'warn' });
           }).catch(() => {
             this.showVRToast(t('vr.error.voiceUnavailable'), { type: 'warn' });
           });
