@@ -70,7 +70,23 @@ jest.mock('three', () => ({
       this.origin = o; this.direction = d;
     }
   },
-  Quaternion: class {}
+  Quaternion: class {},
+  Matrix4: class {
+    compose() {
+      return this;
+    }
+  },
+  InstancedMesh: class extends MockMesh {
+    constructor(geometry, material, count) {
+      super(geometry, material);
+      this.count = count;
+      this.instanceMatrix = { setUsage: jest.fn(), needsUpdate: false };
+      this.setMatrixAt = jest.fn();
+      this.frustumCulled = true;
+    }
+    dispose() {}
+  },
+  DynamicDrawUsage: 'dynamic'
 }));
 
 const { HandTracking } = require('../src/vr/interaction/HandTracking.js');
@@ -329,49 +345,48 @@ describe('HandTracking.updateHand — joint pose application', () => {
   function poseFrame(pose) {
     return { getJointPose: jest.fn(() => pose) };
   }
-  function jointMeshStub() {
-    return {
-      position: { set: jest.fn() },
-      quaternion: { set: jest.fn() },
-      scale: { setScalar: jest.fn() },
-      material: { opacity: 0 }
-    };
-  }
-
-  test('applies joint pose position/quaternion/scale and confidence opacity', () => {
+  test('applies joint pose position + radius scale to the InstancedMesh, aggregating quality', () => {
     const ht = new HandTracking({}, new MockObj());
     ht.leftHand = new MockObj(); // updateHand sets handGroup.visible
-    const mesh = jointMeshStub();
-    ht.joints.left.set('index-finger-tip', mesh);
+    const record = { position: { set: jest.fn() } };
+    ht.joints.left.set('index-finger-tip', record);
+    const instanced = {
+      setMatrixAt: jest.fn(),
+      instanceMatrix: { setUsage: jest.fn(), needsUpdate: false },
+      material: { opacity: 0 }
+    };
+    ht._jointMesh.left = instanced;
+    ht._jointIndex.left = new Map([['index-finger-tip', 9]]);
+    ht._jointM = { compose: jest.fn(() => 'M') };
+    ht._jointQ = {};
+    ht._jointS = { set: jest.fn() };
     const hand = new Map([['index-finger-tip', {}]]); // joint object exists
     const frame = poseFrame({
-      transform: {
-        position: { x: 1, y: 2, z: 3 },
-        orientation: { x: 0, y: 0, z: 0, w: 1 }
-      },
+      transform: { position: { x: 1, y: 2, z: 3 } },
       radius: 0.016 // double the nominal 0.008
     });
     ht.updateHand(frame, makeHand(hand), {});
 
-    expect(mesh.position.set).toHaveBeenCalledWith(1, 2, 3);
-    expect(mesh.quaternion.set).toHaveBeenCalledWith(0, 0, 0, 1);
-    expect(mesh.scale.setScalar).toHaveBeenCalledWith(2);
-    expect(mesh.material.opacity).toBeCloseTo(0.8); // 0.4 + 1.0*0.4
+    expect(record.position.set).toHaveBeenCalledWith(1, 2, 3);
+    expect(ht._jointS.set).toHaveBeenCalledWith(2, 2, 2);
+    expect(instanced.setMatrixAt).toHaveBeenCalledWith(9, ht._jointM);
+    expect(instanced.instanceMatrix.needsUpdate).toBe(true);
+    expect(instanced.material.opacity).toBeCloseTo(0.8); // 0.4 + 1.0*0.4
   });
 
   test('skips joints the hand does not report and joints without a pose', () => {
     const ht = new HandTracking({}, new MockObj());
     ht.leftHand = new MockObj();
-    const mesh = jointMeshStub();
-    ht.joints.left.set('wrist', mesh);
+    const record = { position: { set: jest.fn() } };
+    ht.joints.left.set('wrist', record);
     // hand returns undefined for every joint -> all skipped
     ht.updateHand(poseFrame(null), makeHand(new Map()), {});
-    expect(mesh.position.set).not.toHaveBeenCalled();
+    expect(record.position.set).not.toHaveBeenCalled();
 
     // Joint exists but getJointPose returns null -> skipped too
     const hand = new Map([['wrist', {}]]);
     ht.updateHand(poseFrame(null), makeHand(hand), {});
-    expect(mesh.position.set).not.toHaveBeenCalled();
+    expect(record.position.set).not.toHaveBeenCalled();
   });
 });
 
@@ -499,19 +514,35 @@ describe('HandTracking — remaining branch arms', () => {
     expect(() => ht.update(frame, null)).not.toThrow();
   });
 
-  test('updateHand: jointMesh absent + jointPose.radius falsy arms', () => {
+  test('updateHand: unindexed joint + jointPose.radius falsy arms', () => {
     const scene = new MockObj();
     const ht = new HandTracking({}, scene);
-    const jointMesh = { position: { set: jest.fn() }, quaternion: { set: jest.fn() }, scale: { setScalar: jest.fn() }, material: { color: { setHex: jest.fn() } } };
-    const hand = { get: (name) => name === 'wrist' ? {} : null };
+    const wristRec = { position: { set: jest.fn() } };
+    const pinkyRec = { position: { set: jest.fn() } };
+    const instanced = {
+      setMatrixAt: jest.fn(),
+      instanceMatrix: { setUsage: jest.fn(), needsUpdate: false },
+      material: { opacity: 0 }
+    };
+    ht._jointMesh.left = instanced;
+    ht._jointIndex.left = new Map([['wrist', 3]]); // pinky-finger-tip unindexed
+    ht._jointM = { compose: jest.fn(() => 'M') };
+    ht._jointS = { set: jest.fn() };
+    const hand = { get: (name) => (name === 'wrist' || name === 'pinky-finger-tip') ? {} : null };
     const frame = {
       session: { inputSources: [] },
-      getJointPose: (src, space) => ({ transform: { position: { x: 0, y: 0, z: 0 }, orientation: {} }, radius: 0 })
+      getJointPose: () => ({ transform: { position: { x: 0, y: 0, z: 0 } }, radius: 0 })
     };
-    ht.joints.left = new Map([['wrist', jointMesh]]);
+    ht.joints.left = new Map([['wrist', wristRec], ['pinky-finger-tip', pinkyRec]]);
     ht.leftHand = { visible: false }; // updateHand marks it visible
     expect(() => ht.updateHand(frame, { handedness: 'left', hand }, null)).not.toThrow();
-    expect(jointMesh.scale.setScalar).toHaveBeenCalledWith(1); // radius 0 → ||0.008 → 1
+    expect(wristRec.position.set).toHaveBeenCalledWith(0, 0, 0);
+    expect(pinkyRec.position.set).toHaveBeenCalledWith(0, 0, 0);
+    expect(ht._jointS.set).toHaveBeenCalledTimes(1);
+    expect(ht._jointS.set).toHaveBeenCalledWith(1, 1, 1); // radius 0 → ||0.008 → 1
+    expect(instanced.setMatrixAt).toHaveBeenCalledTimes(1);
+    expect(instanced.setMatrixAt).toHaveBeenCalledWith(3, ht._jointM); // indexed wrist only
+    expect(instanced.material.opacity).toBeCloseTo(0.6); // 0.4 + 0.5*0.4
   });
 
   test('detectGesture with no matching gesture returns null', () => {
@@ -592,18 +623,13 @@ describe('HandTracking — complementary present-side arms', () => {
     expect(ht.updateHand).toHaveBeenCalled();
   });
 
-  test('updateHand writes position, orientation and opacity when all present', async () => {
+  test('updateHand writes position and instance matrix when all present', async () => {
     const scene = new MockObj();
     const ht = new HandTracking({}, scene);
     const session = makeSession();
     await ht.initialize(session);
-    const mesh = {
-      position: { set: jest.fn() },
-      quaternion: { set: jest.fn() },
-      scale: { setScalar: jest.fn() },
-      material: { opacity: 0, color: { setHex() {} } }
-    };
-    ht.joints.left = new Map([['wrist', mesh]]);
+    const record = { position: { set: jest.fn() } };
+    ht.joints.left = new Map([['wrist', record]]);
     ht.leftHand = { visible: false };
     const src = { hand: { get: () => ({}) }, handedness: 'left' };
     const frame = {
@@ -613,9 +639,10 @@ describe('HandTracking — complementary present-side arms', () => {
       })
     };
     ht.updateHand(frame, src, null);
-    expect(mesh.position.set).toHaveBeenCalledWith(1, 2, 3);
-    expect(mesh.quaternion.set).toHaveBeenCalled();
-    expect(mesh.material.opacity).toBeGreaterThan(0.4);
+    expect(record.position.set).toHaveBeenCalledWith(1, 2, 3);
+    // Real InstancedMesh from initialize() got a matrix write at wrist's index.
+    expect(ht._jointMesh.left.setMatrixAt).toHaveBeenCalled();
+    expect(ht._jointMesh.left.material.opacity).toBeGreaterThan(0.4);
   });
 });
 

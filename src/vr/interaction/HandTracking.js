@@ -17,11 +17,23 @@ export class HandTracking {
     this.leftHand = null;
     this.rightHand = null;
 
-    // Joint tracking
+    // Joint tracking: Map<jointName, {position: Vector3}> per hand — plain
+    // records, not Meshes, so gesture math reads .position without dragging
+    // a renderable per joint.
     this.joints = {
       left: new Map(),
       right: new Map()
     };
+
+    // One InstancedMesh per hand renders all 25 joints — 2 draw calls total
+    // instead of 50. Scratch objects for matrix composition (no per-frame
+    // allocation in updateHand).
+    this._jointMesh = { left: null, right: null };
+    this._jointIndex = { left: null, right: null };
+    this._jointGeometry = null;
+    this._jointM = null;
+    this._jointQ = null;
+    this._jointS = null;
 
     // Gesture recognition
     this.gestures = {
@@ -101,13 +113,11 @@ export class HandTracking {
    * Create visual hand models
    */
   createHandModels() {
-    // Material for hand joints
-    const jointMaterial = new THREE.MeshPhongMaterial({
-      color: 0x00ff00,
-      emissive: 0x004400,
-      transparent: true,
-      opacity: 0.8
-    });
+    // Shared geometry across both hands — joints are identical spheres.
+    this._jointGeometry = new THREE.SphereGeometry(0.008, 8, 8);
+    this._jointM = new THREE.Matrix4();
+    this._jointQ = new THREE.Quaternion(); // identity — spheres need no rotation
+    this._jointS = new THREE.Vector3();
 
     // Create hand groups
     this.leftHand = new THREE.Group();
@@ -116,19 +126,33 @@ export class HandTracking {
     this.rightHand = new THREE.Group();
     this.rightHand.name = 'rightHand';
 
-    // Create joint spheres for each hand
+    // One InstancedMesh per hand: 2 draw calls total instead of 50, and one
+    // material per hand instead of 25 clones.
     ['left', 'right'].forEach(handedness => {
       const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
 
-      this.jointNames.forEach(jointName => {
-        // Joint sphere
-        const jointGeometry = new THREE.SphereGeometry(0.008, 8, 8);
-        const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial.clone());
-        jointMesh.name = jointName;
-
-        handGroup.add(jointMesh);
-        this.joints[handedness].set(jointName, jointMesh);
+      const jointMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ff00,
+        emissive: 0x004400,
+        transparent: true,
+        opacity: 0.8
       });
+      const jointMesh = new THREE.InstancedMesh(
+        this._jointGeometry, jointMaterial, this.jointNames.length
+      );
+      // Instances move every frame; frustum culling can't track their bounds.
+      jointMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      jointMesh.frustumCulled = false;
+      jointMesh.name = `${handedness}Joints`;
+      handGroup.add(jointMesh);
+      this._jointMesh[handedness] = jointMesh;
+
+      const index = new Map();
+      this.jointNames.forEach((jointName, i) => {
+        index.set(jointName, i);
+        this.joints[handedness].set(jointName, { position: new THREE.Vector3() });
+      });
+      this._jointIndex[handedness] = index;
 
       // Add to scene
       this.scene.add(handGroup);
@@ -206,8 +230,12 @@ export class HandTracking {
 
     const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
     const joints = this.joints[handedness];
+    const instanced = this._jointMesh[handedness];
+    const index = this._jointIndex[handedness];
 
     // Update each joint
+    let seen = 0;
+    let qualitySum = 0;
     for (const jointName of this.jointNames) {
       const joint = inputSource.hand.get(jointName);
       if (!joint) {
@@ -219,31 +247,36 @@ export class HandTracking {
         continue;
       }
 
-      // Update joint position
-      const jointMesh = joints.get(jointName);
-      if (jointMesh) {
-        const { position, orientation } = jointPose.transform;
-        jointMesh.position.set(position.x, position.y, position.z);
-
-        if (orientation) {
-          jointMesh.quaternion.set(
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w
-          );
-        }
-
-        // Update joint radius based on tracking confidence
-        const radius = jointPose.radius || 0.008;
-        jointMesh.scale.setScalar(radius / 0.008);
-
-        // Color code by tracking quality
-        if (jointMesh.material) {
-          const quality = jointPose.radius ? 1.0 : 0.5;
-          jointMesh.material.opacity = 0.4 + quality * 0.4;
-        }
+      const record = joints.get(jointName);
+      if (!record) {
+        continue;
       }
+
+      const { position } = jointPose.transform;
+      record.position.set(position.x, position.y, position.z);
+
+      // Joint radius scales the sphere; orientation is invisible on a sphere.
+      const radius = jointPose.radius || 0.008;
+      const scale = radius / 0.008;
+      const instanceIndex = index ? index.get(jointName) : undefined;
+      if (instanced && instanceIndex !== undefined) {
+        this._jointM.compose(
+          record.position,
+          this._jointQ,
+          this._jointS.set(scale, scale, scale)
+        );
+        instanced.setMatrixAt(instanceIndex, this._jointM);
+      }
+
+      seen++;
+      qualitySum += jointPose.radius ? 1.0 : 0.5;
+    }
+
+    if (instanced) {
+      instanced.instanceMatrix.needsUpdate = true;
+      // Tracking-quality tint, aggregated per hand (per-joint opacity needed
+      // per-instance material state that instancing can't express).
+      instanced.material.opacity = seen > 0 ? 0.4 + (qualitySum / seen) * 0.4 : 0.4;
     }
 
     // Make hand visible
@@ -445,10 +478,14 @@ export class HandTracking {
       this.session = null;
     }
 
-    // Remove hand models from scene
+    // Remove hand models from scene — also release the InstancedMesh
+    // instance-matrix buffer via its own dispose().
     if (this.leftHand) {
       this.scene.remove(this.leftHand);
       this.leftHand.traverse(child => {
+        if (typeof child.dispose === 'function') {
+          child.dispose();
+        }
         if (child.geometry) {
           child.geometry.dispose();
         }
@@ -461,6 +498,9 @@ export class HandTracking {
     if (this.rightHand) {
       this.scene.remove(this.rightHand);
       this.rightHand.traverse(child => {
+        if (typeof child.dispose === 'function') {
+          child.dispose();
+        }
         if (child.geometry) {
           child.geometry.dispose();
         }
