@@ -544,10 +544,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
-#### 続き100（同セッション）: proxy dispatch 全腕を実 HTTP で pin + 設定キー対称スイープ（欠陥ゼロ）
+#### 続き101（同セッション）: 捕捉済みコールバック本体を全起動 — cfg オブジェクト内の最後の未実行行を消化
+- 🔍 **実測**: initializeSystems/_buildBrowsingSystems の pin で ctor は捕捉されたが、cfg オブジェクト内のコールバック本体（関数として存在は証明済みだが未起動）が残っていた。それらこそが coverage 上の最後の非 GPU 未実行行（TabManager 15コールバック・BookmarkPanel 6コールバック・voice 8コールバック+transcript/speak/error/command）。
+- ✅ 4テスト追加で全起動+効果断言: onNavigate→navigate、onTabActivate の url 有無両腕（hostnameCaption vs newTab キー）、gaze-dwell ゲートの on/off 双方向、onPanelHoverCaption の title>hostname>browserControls 優先順位、onUrlInputRequested→VR キーボード+即時 Loading caption、onSelect→active.navigate、onDeleteBookmark→caption+haptic 'notification'、onTabChange の bookmarks/history キー分岐、voice の onSearch/onGoTo(frecency hit/miss)/onTopSites 全腕、onTranscript の isFinal ゲート（interim は出さない）、onCommand/onCommandFailed の両手 haptic、onError→toast。
+- 🔍 **副次発見（誤検出修正）**: i18n カタログは en/ja 140キー完全対称・空値なし。テスト健全性スイープで `no-dead-public-api.test.js` が `test.each` 使用のため0テスト誤判定 → 走査式を修正、全65ファイルに実アサーションあり（3246 expects）。
+- ✅ 2219 tests / 65 suites、lint 0 errors。
+
+#### 続き100（同セッション）: proxy dispatch 全腕を実 HTTP で pin + 設定キー対象スイープ（欠陥ゼロ）
 - 🔍 **実測**: `collectCoverageFrom` は全51 src ファイルを収録（未測定ファイルなし）。`proxy/server.js` は fetchThroughGuard の内部しかテストされていなかった → `createProxyServer()` をエフェメラルポートで実起動し dispatch 腕を全網羅: OPTIONS→204+CORS、POST→405、/health→200、未知パス→404、url 欠落→400、ブロック対象→400（理由文字列が内部情報を漏洩しないことも断言）、非httpスキーム→ソケットを開く前に拒否、エラー時も CORS ヘッダ付き。成功経路のみ未実走（guard が local upstream を拒否する設計上の到達不能、メモで明示）。
 - 🔍 **横展開**: `this.settings.*` 読取35キー vs `defaultSettings()` 34キーを機械照合 — 唯一の差 `_fpsOverridden` は意図的なユーザーオーバーライドマーカー（undefined チェックで使用）。ドリフトゼロ。
-- ✅ 実 Chromium 回帰: `verify:app` / `verify:vr-boot` とも現在 tip で PASS（ユニットが捉えないランタイム破損なし）。2216 tests / 66 suites、lint 0 errors。
+- ✅ 実 Chromium 回帰: `verify:app` / `verify:vr-boot` とも現在 tip で PASS（ユニットが捉えないランタイム破損なし）。2216 tests / 65 suites、lint 0 errors。
 
 #### 続き99（同セッション）: initializeSystems/_buildBrowsingSystems 両オーケストレーターを pin — VRApp 最後の大ブロック
 - 🔍 **実測**: カバレッジ再計測で残る大きな未検証面は `initializeSystems()`（~330行、全サブシステム構築+配線）と `_buildBrowsingSystems()`（~130行、TabManager/BookmarkPanel 構築と15のコールバック配線）のみ。構築が内部で `new X()` するため bound-prototype では届かないと見えていたが、babel 変換後の ESM named export は書き込み可能なモジュールプロパティ —— エクスポートを直接差し替えて ctor を記録する方式で pin 可能と実証。

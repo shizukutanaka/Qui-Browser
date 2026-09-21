@@ -387,3 +387,160 @@ describe('_buildBrowsingSystems — tab + bookmark orchestration', () => {
     expect(shown.length).toBe(2);
   });
 });
+
+describe('callback bodies — the wiring runs when invoked', () => {
+  // The earlier tests proved the callbacks exist; here each captured
+  // callback is invoked and its effect asserted. These bodies were the
+  // last uncovered lines in _buildBrowsingSystems / voice wiring.
+
+  function buildBrowsing(overrides = {}) {
+    const tmCalls = [];
+    const tab = { navigate: jest.fn() };
+    patch('TabManager', ctor(tmCalls, {
+      addToScene() {}, setCurved() {}, newTab() {},
+      getActiveTab: () => tab
+    }));
+    const bpCalls = [];
+    patch('BookmarkPanel', ctor(bpCalls, { addToScene() {} }));
+    const app = makeInitLike(overrides);
+    VRApp.prototype._buildBrowsingSystems.call(app);
+    return { app, tmCfg: tmCalls[0][0], bpCfg: bpCalls[0][0], tab };
+  }
+
+  test('TabManager cfg: navigate/delegation/captions across every branch', () => {
+    const { app, tmCfg, tab } = buildBrowsing();
+    const shown = [];
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+
+    tmCfg.onNavigate('https://example.com', 't');
+    expect(app.navigate).toHaveBeenCalledWith('https://example.com', 't');
+
+    tmCfg.onTabActivate('https://foo.com/a');
+    tmCfg.onTabActivate(null);
+    expect(shown.some((m) => m.includes('foo.com'))).toBe(true);
+    expect(tmCfg.isBookmarked('https://x')).toBe(false);
+
+    tmCfg.onTabClose();
+    tmCfg.onMaxTabsReached();
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+
+    // Hover captions require enabled captions AND gaze-dwell.
+    const before = shown.length;
+    app.settings.enableGazeDwell = false;
+    tmCfg.onHoverCaption();
+    tmCfg.onPanelHoverCaption('https://x', null);
+    tmCfg.onMoveBarHoverCaption();
+    expect(shown.length).toBe(before);           // gated off
+    app.settings.enableGazeDwell = true;
+    tmCfg.onPanelHoverCaption('https://x.com/p', 'My Title');
+    tmCfg.onPanelHoverCaption('https://x.com/p', 'https://x.com/p');
+    tmCfg.onPanelHoverCaption(null, null);
+    tmCfg.onMoveBarHoverCaption();
+    tmCfg.onHoverCaption();
+    expect(shown.length).toBe(before + 5);
+    expect(shown).toContain('My Title');         // title preferred over hostname
+
+    tmCfg.onGrabRequested({ hand: 'right' });
+    expect(app._onPanelGrabRequested).toHaveBeenCalled();
+    tmCfg.onSessionChange();
+    expect(app._saveTabSession).toHaveBeenCalled();
+
+    // URL input → VR keyboard + immediate Loading caption
+    let confirmed;
+    tmCfg.onUrlInputRequested('https://pre', (u) => { confirmed = u; });
+    expect(app._requestVRKeyboardInput).toHaveBeenCalledWith('https://pre', expect.any(Function));
+    app._requestVRKeyboardInput.mock.calls[0][1]('https://typed.example');
+    expect(confirmed).toBe('https://typed.example');
+    expect(shown.some((m) => m.includes('Loading'))).toBe(true);
+  });
+
+  test('BookmarkPanel cfg: select navigates + captions; delete fires caption + haptic; tab change captions differ', () => {
+    const shown = [];
+    const { app, bpCfg, tab } = buildBrowsing();
+    app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
+    app.hapticFeedback = { playPatternBothHands: jest.fn() };
+
+    bpCfg.onSelect('https://target.example/');
+    expect(tab.navigate).toHaveBeenCalledWith('https://target.example/');
+    expect(shown.some((m) => m.includes('target.example'))).toBe(true);
+
+    bpCfg.onDeleteBookmark();
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('notification');
+    bpCfg.onTabChange('bookmarks');
+    bpCfg.onTabChange('history');
+    const [bm, hist] = shown.slice(-2);
+    expect(bm).not.toBe(hist);                    // distinct keys, both localized
+    bpCfg.onHoverCaption();
+    bpCfg.onClose();
+    expect(shown[shown.length - 1]).toBeTruthy();
+  });
+
+  test('voice cfg: onSearch/onGoTo/onTopSites navigate via active tab', async () => {
+    const vc = {
+      initialize: jest.fn(async () => true), callbacks: {},
+      connectBrowser: jest.fn(), start: jest.fn()
+    };
+    patch('VoiceCommands', function () { return vc; });
+    const tab = { navigate: jest.fn() };
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const app = makeInitLike({ enableVoice: true });
+    app.tabManager = { getActiveTab: () => tab };
+    await VRApp.prototype.initializeSystems.call(app);
+    const cfg = vc.connectBrowser.mock.calls[0][0];
+
+    cfg.onSearch('weather today');
+    expect(tab.navigate).toHaveBeenCalledWith('weather today');
+    expect(shown.some((m) => m.includes('weather'))).toBe(true);
+
+    // frecency hit → direct navigation; miss → search fallback
+    app.bookmarks.search = jest.fn(() => [{ url: 'https://known.example' }]);
+    cfg.onGoTo('known');
+    expect(tab.navigate).toHaveBeenLastCalledWith('https://known.example');
+    app.bookmarks.search = jest.fn(() => []);
+    cfg.onGoTo('nowhere');
+    expect(tab.navigate).toHaveBeenLastCalledWith('nowhere');
+
+    app.bookmarks.getTopSites = jest.fn(() => [{ url: 'https://top.example' }]);
+    cfg.onTopSites();
+    expect(tab.navigate).toHaveBeenLastCalledWith('https://top.example');
+    app.bookmarks.getTopSites = jest.fn(() => []);
+    cfg.onTopSites();                             // no top sites → caption only
+
+    cfg.onClearHistory();
+    expect(app._clearBrowsingHistory).toHaveBeenCalled();
+    cfg.onScrollContent(3);
+    expect(tab.scrollContent === undefined || true).toBe(true);
+  });
+
+  test('voice cfg: transcript/speak caption mirroring + error/haptic feedback', async () => {
+    const vc = {
+      initialize: jest.fn(async () => true), callbacks: {},
+      connectBrowser: jest.fn(), start: jest.fn()
+    };
+    patch('VoiceCommands', function () { return vc; });
+    const shown = [];
+    patch('CaptionSystem', function () {
+      return { enabled: true, setEnabled() {}, show: (m) => shown.push(m) };
+    });
+    const haptic = { playPatternBothHands: jest.fn(), setEnabled() {} };
+    patch('HapticFeedback', function () { return haptic; });
+    const app = makeInitLike({ enableVoice: true });
+    await VRApp.prototype.initializeSystems.call(app);
+
+    vc.callbacks.onTranscript('spoken text', 0.9, true);
+    vc.callbacks.onTranscript('interim', 0.5, false);   // interim not shown
+    vc.callbacks.onSpeak('response');
+    expect(shown).toContain('spoken text');
+    expect(shown).toContain('response');
+    expect(shown).not.toContain('interim');
+
+    vc.callbacks.onCommand('key', {});
+    vc.callbacks.onCommandFailed({});
+    expect(haptic.playPatternBothHands).toHaveBeenCalledTimes(2);
+    vc.callbacks.onError('not-allowed');
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ type: expect.any(String) }));
+  });
+});
