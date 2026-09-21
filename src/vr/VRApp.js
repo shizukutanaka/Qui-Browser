@@ -3346,6 +3346,11 @@ export class VRApp {
   }
 
   getPerformanceStats() {
+    // initialize() may have failed before setupRenderer ran — report
+    // nothing rather than dereferencing a null renderer.
+    if (!this.renderer) {
+      return null;
+    }
     const info = this.renderer.info;
     const stats = {
       fps: Math.round(this.performanceMonitor.fps),

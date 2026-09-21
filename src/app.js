@@ -102,6 +102,11 @@ function setupPerformanceMonitor() {
   perfIntervalId = setInterval(() => {
     if (vrApp && perfDisplay.style.display === 'block') {
       const stats = vrApp.getPerformanceStats();
+      // null when init failed before the renderer existed — leave the
+      // overlay's last frame rather than crashing the interval.
+      if (!stats) {
+        return;
+      }
       perfDisplay.innerHTML = `
         <div>FPS: ${stats.fps}</div>
         <div>Frame Time: ${stats.frameTime}</div>

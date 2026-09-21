@@ -544,6 +544,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き88（同セッション）: 実バグ35件目 — 初期化失敗した VRApp の getPerformanceStats が renderer を dereference してクラッシュ
+- 🔍 **発見経緯**: main.js 残存未カバー行の pin 中にテストファイルがプロセスクラッシュ — 原因は**漏れた実タイマー**: isolateModules で生成された app.js の perf `setInterval` がテストファイル越境で1秒後に発火し、`display==='block'` かつ renderer-null（初期化失敗）の半初期化 VRApp 上で `getPerformanceStats()` が `this.renderer.info` に到達。本番でも「init 失敗後に `QuiBrowser.getStats()`」は同じクラッシュを起こす — 実害として潜在。
+- 🔧 **修正**: `getPerformanceStats()` は `!this.renderer` で null を返す（app.js の `getStats` debug handle も同契約に整合）、perf 間隔コールバックは stats=null をスキップして最終フレームを維持。
+- 🔧 **pin**: langToggle の en↔ja フリップ+ラベル更新、DOMContentLoaded→loadingScreen hidden（window 側ハンドラ — document に送ると別物）、失敗後 init の `getStats()===null`（赤確認済み）。
+- 📝 2151 tests / 63 suites、lint 0 errors、build green、verify:docs PASS。
+
 #### 続き87（同セッション）: CSS カスタムプロパティの死骸5件 — 定義のみで `var()` 参照ゼロ
 - 🔍 **実測**: main.css の全 `--*` 定義と全 `var(--*)` 使用を照合 — `--color-danger`/`--color-success`/`--color-warning`/`--color-surface-elevated`（:root と high-contrast ブロックの2箇所定義）/`--font-mono` がどこからも参照されていない残留パレット。逆方向（未定義の var()）はゼロ、class セレクタも全て参照済み。
 - 🔧 **削除**: 5件（うち surface-elevated は2定義）を削除。dead eslint globals（続き81）・dead exports（続き75）と同クラスの「定義済み・消費者ゼロ」清掃。
