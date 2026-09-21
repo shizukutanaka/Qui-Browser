@@ -544,6 +544,21 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き120（同セッション）: VoiceCommands/HapticFeedback/DevTools/app.js/ImmersiveVideo/TabManager/BookmarkPanel/IME/i18n/VRControllerInput/GazeInteraction/HandTracking の残ブランチ腕を一掃
+- ✅ VoiceCommands: wake-word ゲート（isAwake 遷移+挨拶）、RegExp パターン一致・非文字列スキップ、エイリアス部分一致、web-search のコロンペイロード抽出（match 無し→query null）、registerCommand の `patterns || []`/`confirmationText || null` 既定、connectBrowser 空引数、音量 onVolumeChange 非数値読み上げスキップ、onSearch 不在→アクティブタブ navigate フォールバック、英語 go-to プレフィックス、continuous リスタートの 100ms 後 isEnabled 再検査。
+- ✅ HapticFeedback: update() のゲームパッド切断除去、playCustomSequence の pause ステップ腕、simulateTexture 未知タイプ→既定、proximityFeedback 距離外早期 return、alert 未知 urgency→normal、test() パターン巡回。
+- ✅ DevTools: showTab の未知 tabId/content 無し耐性、updateConsoleMessages 未知 type→log 色フォールバック、updateNetworkTable 非数値 time そのまま表示、fetch 傍受の method 既定 GET、シーンツリー行の Object/unnamed フォールバック。
+- ✅ app.js: perf interval の任意統計フィールド真値腕（ffrIntensity/textureMemory/pooledObjects/gcPrevented）、visibilitychange の可視化腕。
+- ✅ ImmersiveVideo: video.play() が非 Promise 返却の腕、_reportError 中のラベル復帰、HUD onSelect ラッパーのコールバック不在腕、togglePause paused=false→pause、dispose の removeEventListener/_onVideo* 不在腕。
+- ✅ TabManager: onTabClose/onTabActivate コールバック不在腕、serialize 空タブ active=0、dispose traverse の material.map 不在子。
+- ✅ BookmarkPanel: document 不在時の canvas/tex null、row/deleteRow の url 無しエントリ no-op、tex 不在 _draw、dispose の mesh 不在腕。
+- ✅ JapaneseIME/VRJapaneseKeyboard: deleteLast の katakana 再変換、processInput 末尾孤立 'n'→ん、コンストラクタ既定 opts、短クエリ時の suggestionProvider 不発+_clearSuggestions。
+- ✅ i18n: applyTranslations のスコープ不在/不正 attr ペアスキップ、detectLanguage のカタログ外保存値無視。
+- ✅ VRControllerInput: detectFamily 未知→Controller ラベル、generic マップフォールバック、buttons/axes 欠落→既定値、handedness 不在→'unknown'。
+- ✅ GazeInteraction: setHighContrast/_reset/_tickConfirm の ring/fill 不在腕、dwell 発火の handlers 不在ターゲット、dispose の camera/reticle 不在腕。
+- ✅ HandTracking: update() の handGroup 不在腕、updateHand の hand.get() 空応答、detectGesture の thumbs-up 到達（open/point/fist/peace 敗退後）。
+- 実測: 66 suites / 2560 tests 全緑、lint 0 errors。実装欠陥ゼロ — 全腕が正しいガード・フォールバックとして動作することを実測確認。
+
 #### 続き119（同セッション）: BookmarkPanel/TabManager/PerformanceMonitor/ImmersiveVideo/JapaneseIME のブランチ腕 + removeAttribute 未ガード修正
 - ✅ BookmarkPanel: コンストラクタの非関数コールバック強制、toggle 両方向、hover の mesh/caption 不在腕、row/deleteRow の url 不在 no-op、tex 不在 _draw、dispose の scene/unregister 不在腕。
 - ✅ TabManager: `_onStripSelect` の null evt 早期 return、closeTab の空/先頭シフト腕、setActive 範囲外 no-op、serialize の URL 不在スキップ+active クランプ、setCurved/setSearchEngine/setReaderProxyUrl のメソッド不在パネル腕、dispose traverse の member 不在子。
