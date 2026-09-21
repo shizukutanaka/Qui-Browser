@@ -248,9 +248,10 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ### Session 75: 続き217 — 禁則処理（UAX #14）をハード分割に実装 + patch 0009 の真の修復
 - 🐛 **fix（日本語組版）**: `wrapTextToWidth` のハード分割に**禁則処理が皆無**だった — 日本語は空白を持たないため全文がこの経路を通り、`、。）」っ` 等の行頭禁則文字が行頭に・`「（` 等の行末禁則文字が行末に来うる組版違反状態だった。KIN_START（行頭禁則: 閉じ punctuation/括弧・小書き仮名・長音・踊り字・ASCII closes）/KIN_END（行末禁則: 開き括弧）の Set を実装 — **ぶら下げ**（行頭禁則文字は前行に overhang）と**追い出し**（行末禁則文字は次行頭へ carry）の2方式で対処。空白分割経路にも行頭禁則語の overhang を適用。キャプション・リーダー・トーストが共通 helper を共有するため1箇所の修正で全経路に適用。
 - 🔧 **横展開**: `wrapTextToLines`（コードポイント数版・CaptionSystem 経路）のハード分割も同じ欠陥を持っていたため同一ルールを展開 — KIN_START overhang・KIN_END carry-down・空白区切り語の行頭禁則を適用（CaptionSystem キャプション行も組版違反を起こし得た）。
-- 🧪 **pin**: text-wrap.test.js に7件 — ぶら下げ（`あいうえ、おかき` → `あいうえ、`/`おかき`）・促音、小書き仮名・追い出し（`あいう「かきく` → `あいう`/`「かきく`）・孤立 bracket が空行を生まないこと・空白区切り語の行頭禁則 overhang・`wrapTextToLines` 側のぶら下げ/追い出し2件。readable-text の「全行 ≤ measure」pin は**意図的に緩和** — 行頭禁則文字の trailing run を除いて幅契約を検証する形に（ぶら下げは1字分の正当なはみ出し）。
+- 🔧 **書記素クラスタ化（UAX #29）**: 分割単位がコードポイントだったため grapheme cluster（NFD 分解 `か`+`゙`・国旗 regional-indicator 対・ZWJ 合成 emoji）を行途中で切断し得た。`Intl.Segmenter`（全出荷先エンジンで利用可・フォールバックはコードポイント走査）を wrapTextToWidth/wrapTextToLines/truncateToWidth の3分割経路に導入 — クラスタ幅は構成コードポイントの最大値（結合文字は行の実幅に寄与しない）。macOS 由来の NFD ペースト・emoji タイトルで孤立した結合濁点や半旗が出なくなった。
+- 🧪 **pin**: text-wrap.test.js に11件（禁則7・書記素4） — ぶら下げ（`あいうえ、おかき` → `あいうえ、`/`おかき`）・促音、小書き仮名・追い出し（`あいう「かきく` → `あいう`/`「かきく`）・孤立 bracket が空行を生まないこと・空白区切り語の行頭禁則 overhang・`wrapTextToLines` 側のぶら下げ/追い出し2件。readable-text の「全行 ≤ measure」pin は**意図的に緩和** — 行頭禁則文字の trailing run を除いて幅契約を検証する形に（ぶら下げは1字分の正当なはみ出し）。
 - 🔧 **patch 0009 の真の修復**: 当初 `git apply --check` で「context 行ドリフト」と診断して現行ファイルに対して再生成したが、ci-patches.test.js の**直列適用**で失敗し続け — 真因は「patch が 0001–0008 適用後の状態を期待するのに、0002 が test.yml に挿入するコメント行を context に含んでいなかった」こと。**元の patch は authored 時点から in-series で不適合**だった潜在欠陥。0001–0008 適用後の temp ツリーに対して再生成し、直列適用テスト3件全緑で実証。
-- ✅ 3101 tests / 72 suites 全緑、lint 0 errors、build 緑。
+- ✅ 3105 tests / 72 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 75: 続き216 — patch 0009 の陳腐化調査（訂正: 続き217で真因特定）
 - 🔍 **実測（ledger 適用可能性監査）**: `git apply --check` を docs/patches/ 全9件に実行 — 8件 OK、0009 のみ不一致を検出。**この調査の `git apply --check` は単独適用を試すため誤った結論を出した** — patch は系列適用が前提で、真の不整合は続き217で特定・修復（下記参照）。このセッションで一度コミットした再生成版は直列適用で壊れる誤った修復だったため revert して正しい形に置き換えた。

@@ -154,6 +154,44 @@ describe('wrapTextToLines', () => {
   });
 });
 
+describe('grapheme-cluster integrity (UAX #29)', () => {
+  it('never severs a combining mark from its base (NFD input)', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    const nfd = 'か\u3099'.repeat(6); // が decomposed × 6
+    const rows = wrapTextToWidth(nfd, 3);
+    for (const row of rows) {
+      // Every row must contain whole clusters — no orphaned combining dakuten.
+      expect(row).toMatch(/^(か\u3099)+$/);
+    }
+    expect(rows.join('')).toBe(nfd);
+  });
+
+  it('never severs a flag or ZWJ emoji sequence', () => {
+    const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
+    const flag = '🇯🇵'.repeat(4); // regional-indicator pairs
+    for (const row of wrapTextToWidth(flag, 3)) {
+      expect(row).toMatch(/^(🇯🇵)+$/);
+    }
+    const family = '👨‍👩‍👧'.repeat(4); // ZWJ sequence
+    for (const row of wrapTextToWidth(family, 3)) {
+      expect(row).toMatch(/^(👨‍👩‍👧)+$/);
+    }
+  });
+
+  it('truncateToWidth keeps clusters whole before the ellipsis', () => {
+    const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
+    const out = truncateToWidth('か\u3099'.repeat(10), 3);
+    expect(out).toMatch(/^(か\u3099)+…$/);
+  });
+
+  it('wrapTextToLines splits on cluster boundaries too', () => {
+    const rows = wrapTextToLines('か\u3099'.repeat(6), 4); // 2 cps per cluster
+    for (const row of rows) {
+      expect(row).toMatch(/^(か\u3099)+$/);
+    }
+  });
+});
+
 describe('wrapTextToLines — long-word split flushes the pending row first', () => {
   test('an over-long word pushes the accumulated row before splitting', () => {
     // 'ab' sits in cur when 'cdefg' (5 > 3) needs splitting → 232-233 arm
