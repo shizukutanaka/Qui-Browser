@@ -3045,7 +3045,20 @@ export class VRApp {
           session.addEventListener('end', () => {
             vrButton.textContent = 'ENTER VR';
           });
-          await this.renderer.xr.setSession(session);
+          try {
+            await this.renderer.xr.setSession(session);
+          } catch (err) {
+            // 'local-floor' is optional in WebXR — runtimes that only grant
+            // the required 'local' space fail setSession at
+            // requestReferenceSpace. Degrade the origin instead of losing
+            // the whole session.
+            if (err && err.name === 'NotSupportedError') {
+              this.renderer.xr.setReferenceSpaceType('local');
+              await this.renderer.xr.setSession(session);
+            } else {
+              throw err;
+            }
+          }
           vrButton.textContent = 'EXIT VR';
         }).catch((err) => {
           console.warn('VRApp: session request rejected:', err?.message ?? err);

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き221 — reference space の local-floor → local フォールバック
+- 🐛 **fix（ポータビリティ）**: WebXR 仕様上 `local` は immersive-vr の必須空間だが `local-floor` は optional — three が既定 `local-floor` で `requestReferenceSpace` を投げ、非対応ランタイム（一部 PCVR/エミュレータ）では NotSupportedError で setSession 全体が失敗していた（ユーザへは汎用エラーのみ）。setSession を try/catch し NotSupportedError のみ `setReferenceSpaceType('local')` でリトライ — 原点が床→頭位基準に劣化するがセッションは存続。
+- 🔍 **同軸照合（クリーン）**: `<html lang="ja">`＋setLanguage の documentElement.lang 動的更新（WCAG 3.1.1）・index.html 無アニメーションで landing の reduced-motion 不要・Dockerfile に nginx brotli モジュール実装済み（gzip+brotli 双方実配信）・src/utils 全6モジュール参照済み。
+- 🧪 **pin**: `setSession` 一回目 NotSupportedError → setReferenceSpaceType('local') 呼出＋setSession 2回目成功＋'EXIT VR'＋トースト非発火。
+- ✅ 3119 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き220 — SW バックグラウンド書込みが waitUntil 外だった（再検証が永久に失われうる）
 - 🐛 **fix（SW 寿命管理）**: `staleWhileRevalidate` の背景 `cache.put`（再検証）と `cacheFirst` の miss-write + `enforceCacheLimit` が respondWith プロミスの外で float していた — respondWith 解決後にブラウザが worker を kill すると書込みが着弾せず、**キャッシュが永久に古いまま残る**既知パターン。`executeStrategy` に `event` を通して `event?.waitUntil?.(write)` でイベント寿命に包んだ（cold 経路でも応答はブロックされず、書込みは別トラック）。`networkFirst` は従来通りプロミス内 await で安全。
 - 🧪 **pin**: モック event の `waitUntil` 記録で「cached hit でも背景書込みが waitUntil 管理下」「cacheFirst miss-write 同様」を固定＋strategy 関数を module.exports に追加（実行経路自体も実検査 — 続き219 の `headers.get` で3箇所のモック request 不足を炙り出し修正済み）。
