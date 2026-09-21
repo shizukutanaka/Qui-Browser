@@ -544,6 +544,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き127（同セッション）: leaked-handle 警告の実害を根絶 + 実ブラウザ検証ハーネス全緑（E-2 完走）
+
+`jest --detectOpenHandles` が毎回吐いていた警告を放置しないで実測 — **実害17件目**が見つかった。
+
+- **ProgressiveLoader.getAbortSignal**: `setTimeout(abort, 30000)` が fetch settle 後も**解除されない**。loadJSON/loadModel/loadGeneric 1回ごとに30秒タイマーが残留（`_fetchWithTimeout` で finally clearTimeout — getAbortSignal は API 互換で残置）。
+- **webpanel 系テストが実 fetch を実行**: `_loadUrl` が `_loadReaderText` を呼び、stub 無しの describe では実 TLSWRAP ソケットを開いていた（example.com への実リクエスト）。両ファイルに file-wide の settled-503 stub を追加。
+- **app-entry 'noWebXR'**: 実 6s toast タイマーを fake timers 化。
+- 結果: `--detectOpenHandles` で **open handles ゼロ**（従来 14+）。「テストが緑でも teardown が汚いとリークを埋め込む」は実測で確認 — 今後の退行はこのフラグで即座に見える。
+
+**E-2 残件（実ブラウザ smoke）を完走**: `verify:app`（dist ブート・console error 0・Enter VR/i18n/a11y 全要素）+ `verify:vr-boot`（stub WebXR で VRApp 全構築・tabManager/settings/captions 含む）+ `verify:layout`（55 組み合わせ全 fits）を全て実 Chromium で全緑実測。macOS で Chromium が見つからなかったので両ハーネスの CHROME_CANDIDATES に Playwright キャッシュパスを追加（env 変数不要化）。
+
+**monitoring.js（PROD ゲート=最後の出荷済み未検証塊）を精読監査**: `initializeMonitoring`/`disposeMonitoring` は冪等・対称（interval+listeners を dispose で解除）、`initSentry`/`initGA`/`initWebVitals` は全経路 try/catch、beforeSend で cookies/headers 除去・anonymize_ip — **欠陥ゼロ**。track*/capture*/reportPerformanceSummary の公開 API は無呼出死体だが、これは N-2（PROD ゲートと合わせた owner 判断）として記録済みのため触らない。JSON.parse 4箇所も全て try/catch 済みで破損耐性あり。
+
 #### 続き126（同セッション）: 関数カバレッジ枯渇 — 98.11%、残は全て PROD ゲートまたは istanbul の虚レコード
 
 続き125 の「残は全て構造的死腕」をソクラテス式に再検証 — **その内訳に誤りがあった**。「setupRenderer 内の GPU リスナー本体（520/529/552/559）は WebGL コンテキスト必須」と記したが、実測で覆った: `require('three').WebGLRenderer` は writable なデータプロパティであり、失敗していた本当の原因は babel の wildcard interop が **require 時点で export をコピー**するためロード済み SUT にパッチが届かないことだった。`jest.isolateModules` 内で先に `require('three')` をパッチしてから SUT を re-require すれば FakeRenderer が載る — context lost/restored/resize の3リスナー本体を pin 済み。**「GPU 必須だから未検証」という断言自体が未検証だった。**
