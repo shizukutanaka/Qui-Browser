@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き167 — プロキシの charset 無視で日本語サイトが文字化けしていた
+- 🔍 **実害（charset 無視）**: プロキシがボディを常に `toString('utf8')` — `charset=shift_jis`/`euc-jp` 等の非 UTF-8 ページはリーダーに文字化けしたゴミを返していた。日本語ファーストのブラウザとして直撃の欠陥。
+- 🔧 **修正**: Content-Type の `charset` をパースし `TextDecoder`（WHATWG ラベル全対応: shift_jis/euc-jp/iso-2022-jp 等）でデコード — 未知ラベルは utf-8 フォールバック。ボディは Buffer のまま運び最終段でデコード。テスト3本追加（shift_jis 実バイト→'テスト'、bogus charset→utf-8、charset なし→utf-8）。PROXY.md の制限節に charset 挙動を追記。
+- 🔍 **他照合**: Permissions-Policy は全 HTML 経路で一致（pin 済み）、`isReadableContentType` は `startsWith` で charset 付きも通過、Dockerfile `EXPOSE 443` は listener 皆無で削除済み（前 commit）。
+- ✅ 3076 tests / 72 suites 全緑、lint 0 errors / 367 warnings。
+
 ### Session 75: 続き166 — CSP のデプロイ先間乖離が機能ごと殺していた
 - 🔍 **実害（CSP intersection）**: meta CSP（index.html）は**全デプロイ先で効く**ため、ヘッダ CSP と AND で効く — 片側だけ厳しいとその機能はそのターゲットでのみ死ぬ。計測した乖離: ①`media-src` 不在 → `default-src 'self'` にフォールバックし ImmersiveVideo の任意 https URL が全ターゲットで死滅 ②`worker-src 'self'` のみ → KTX2Loader が Blob URL から生成する basis ワーカーが全ターゲットで死滅 ③`connect-src` が loopback http を拒否 → adb reverse プロキシ経路が死滅 ④docker `location ~* \.html$` は独自 add_header を持つため server の CSP を継承せず — `/index.html` 直撃に CSP が**一切無かった** ⑤docker/vercel/netlify の `frame-src 'self'` が meta の `frame-src https:` と衝突 → iframe ブラウジングが 3 ターゲットで死滅。
 - 🔧 **正準 CSP 一元化**: 全5箇所（meta・nginx×3・vercel・netlify）を同一文字列に揃え、`csp-consistency.test.js` で全ヘッダ CSP ≡ meta CSP を構造比較 pin。`media-src https: blob:`・`worker-src blob:`・`connect-src` に loopback 3 エントリ（localhost/127.0.0.1/[::1]）を追加、`object-src 'none'`・`base-uri`・`form-action` も統一。meta の `script-src` からは 'unsafe-inline' が元々ないので維持（external script のみ — offline.html のインライン script+onclick が障害となり `public/offline.js` に抽出、ボタンに id 化して addEventListener 化）。

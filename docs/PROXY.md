@@ -89,9 +89,11 @@ Defences, in order:
 7. **Response limits** — `text/html`, `application/xhtml+xml` or `text/plain`
    only (so it is not a general file relay), 5 MB cap on the *decoded* body,
    `GET` only. `gzip`/`deflate`/`br` bodies are decompressed; unknown
-   encodings are refused. Each hop gets a 10 s socket-inactivity timeout and
-   the whole fetch — redirects included — a 30 s total deadline, plus
-   immediate cancellation when the client disconnects.
+   encodings are refused. Text is decoded by the declared `charset`
+   (Shift_JIS/EUC-JP and other WHATWG labels via `TextDecoder`; unknown
+   labels fall back to UTF-8). Each hop gets a 10 s socket-inactivity
+   timeout and the whole fetch — redirects included — a 30 s total
+   deadline, plus immediate cancellation when the client disconnects.
 8. **No credential forwarding** — cookies, `authorization` and
    `x-forwarded-*` are dropped; only a self-identifying UA, `accept`, and a
    length-bounded `accept-language` go upstream.
