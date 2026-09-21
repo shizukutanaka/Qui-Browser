@@ -601,3 +601,76 @@ describe('TabManager — strip hover + high-contrast draw arms', () => {
     expect(tm._shortTitle('not a url at all — this is long')).toBe('not a url at all —');
   });
 });
+
+describe('TabManager — remaining branch arms', () => {
+  test('_onStripSelect with null evt returns early (no crash)', () => {
+    const tm = makeManager();
+    expect(() => tm._onStripSelect(null)).not.toThrow();
+    expect(() => tm._onStripSelect(undefined)).not.toThrow();
+  });
+
+  test('closeTab: missing index is a no-op; closing the last tab resets activeIndex', () => {
+    const tm = makeManager();
+    expect(() => tm.closeTab(0)).not.toThrow(); // empty → early return
+    tm.newTab('https://a.example');
+    tm.closeTab(0);
+    expect(tm.activeIndex).toBe(-1); // tabs.length === 0 arm
+    expect(tm.tabs).toHaveLength(0);
+  });
+
+  test('closeTab non-active earlier tab shifts activeIndex and re-activates', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example');
+    tm.newTab('https://c.example');
+    tm.setActive(2);
+    tm.closeTab(0); // index <= activeIndex → decrement + re-activate
+    expect(tm.activeIndex).toBe(1);
+    expect(tm.getActiveTab()).toBe(tm.tabs[1]);
+  });
+
+  test('setActive out-of-bounds is a no-op', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    const before = tm.activeIndex;
+    tm.setActive(-1);
+    tm.setActive(99);
+    expect(tm.activeIndex).toBe(before);
+  });
+
+  test('serialize skips url-less panels and clamps active past the end', () => {
+    const tm = makeManager();
+    tm.newTab('');               // no currentUrl → skipped in tabs[]
+    tm.newTab('https://b.example');
+    tm.setActive(1);             // active panel index 1, but only 1 serialized tab
+    const s = tm.serialize();
+    expect(s.tabs).toEqual([{ url: 'https://b.example' }]);
+    expect(s.active).toBe(0);    // clamped min(active, len-1)
+  });
+
+  test('setCurved / setSearchEngine / setReaderProxyUrl tolerate panels without the method', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    // Strip the methods the real WebPanel provides — guards must skip them.
+    const p = tm.tabs[0];
+    delete p.setCurved; delete p.setSearchEngine; delete p.setReaderProxyUrl;
+    expect(() => {
+      tm.setCurved(true);
+      tm.setSearchEngine('bing');
+      tm.setReaderProxyUrl('https://proxy');
+    }).not.toThrow();
+    expect(tm.opts.searchEngine).toBe('bing');
+    // non-string url → ''
+    tm.setReaderProxyUrl(null);
+    expect(tm.opts.readerProxyUrl).toBe('');
+  });
+
+  test('dispose traverse skips children lacking geometry/material', () => {
+    const tm = makeManager();
+    tm.newTab('https://a.example');
+    // Bare object in the strip group exercises both missing-member arms.
+    tm.stripGroup.add({});
+    expect(() => tm.dispose()).not.toThrow();
+    expect(tm.stripMesh).toBeNull();
+  });
+});
