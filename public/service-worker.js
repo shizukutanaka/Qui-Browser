@@ -42,7 +42,6 @@ const CRITICAL_ASSETS = [
 const CACHE_PATTERNS = {
   // Cache first - static assets that rarely change
   cacheFirst: [
-    /\.ktx2$/,     // KTX2 compressed textures
     /\.wasm$/,     // WebAssembly modules
     /\.glb$/,      // 3D models
     /\.gltf$/,     // 3D models
@@ -64,8 +63,7 @@ const CACHE_PATTERNS = {
 
 // Maximum cache sizes (in entries)
 const CACHE_LIMITS = {
-  textures: 100,   // ~100MB with KTX2 compression
-  models: 50,      // ~50MB of 3D models
+  static: 100,     // cacheFirst assets: wasm/glb/gltf/fonts/woff
   runtime: 200     // General runtime cache
 };
 
@@ -257,7 +255,7 @@ async function cacheFirst(request) {
       cache.put(request, response.clone()).catch(() => {});
 
       // Enforce cache limits
-      enforceCacheLimit(cache, 'textures').catch(() => {});
+      enforceCacheLimit(cache, 'static').catch(() => {});
     }
 
     return response;

@@ -165,8 +165,8 @@ Qui Browser VR/
 │   ├── vr/VRApp.js           # Main VR controller
 │   ├── dev/DevTools.js       # In-session console/scene/network inspector
 │   └── monitoring.js         # Production monitoring
-├── docs/                     # Complete documentation (26 files)
-├── tests/                    # Test suites (63 suites, 2148 tests)
+├── docs/                     # Complete documentation (24 guides + archive)
+├── tests/                    # Test suites (72 suites, 3087 tests)
 ├── tools/                    # Verification harnesses
 ├── .github/workflows/        # CI/CD pipelines (9 CI + 9 CD jobs)
 ├── docker/                   # Docker configuration
@@ -177,15 +177,13 @@ Qui Browser VR/
 
 ## 📊 Performance Metrics
 
-### Build Optimization
+### Build Output
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Bundle Size** | 2.4 MB | 1.08 MB | -55% |
-| **Initial Load** | 5.2s | 2.4s | -54% |
-| **Time to Interactive** | 7.1s | 2.8s | -61% |
-| **First Paint** | 2.4s | 0.8s | -67% |
-| **Lighthouse Score** | 72 | 96 | +33% |
+| Metric | Value (measured) |
+|--------|------------------|
+| **Bundle size** | `dist/` ≈ 1.0 MB total (`npm run build`) |
+| **Largest chunk** | `vendor-three` ≈ 554 kB (gzip 142 kB) |
+| **App chunk** | ≈ 206 kB (gzip 60 kB) |
 
 ### VR Performance Targets
 
@@ -239,9 +237,9 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 63 test suites, 2148 tests
+- **Unit Tests:** 72 test suites, 3,087 tests
 - **Integration Tests:** `vr-app-wiring` + `app-smoke` (`npm run test:integration`)
-- **Coverage Floor:** Ratcheted jest thresholds (65% branches / 70% funcs / 75% lines) — regressions fail `ci:test`
+- **Coverage Floor:** Ratcheted jest thresholds (95% branches / 96% funcs / 97% lines / 96% statements) — regressions fail `ci:test`
 - **Runtime Harnesses:** `verify:app` + `verify:vr-boot` boot the real bundle in headless Chromium (`ci:verify`)
 - **CI/CD:** Automated testing on every push/PR
 

@@ -852,16 +852,8 @@ export class VRJapaneseKeyboard {
     return this.keyboard;
   }
 
-  /** Draw a single key's label onto a CanvasTexture. */
-  /**
-   * @param {string}  glyph
-   * @param {boolean} hover   pointer is over this key
-   * @param {boolean} active  key is in a latched-on state (e.g. shift/katakana)
-   */
-  _makeKeyTexture(glyph, hover, active = false) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
+  /** Paint a key face (fill, border, glyph) onto an existing canvas. */
+  _drawKey(canvas, glyph, hover, active = false) {
     const ctx = canvas.getContext('2d');
     const col = imeColors(prefersHighContrast());
     // Active (latched) keys get a warm amber tint; hover overrides to blue.
@@ -872,30 +864,46 @@ export class VRJapaneseKeyboard {
     } else {
       ctx.fillStyle = col.keyBg;
     }
-    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = active ? col.keyBorderActive : col.keyBorder;
     ctx.lineWidth = 5;
-    ctx.strokeRect(3, 3, 122, 122);
+    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
     ctx.fillStyle = active ? col.keyLabelActive : col.keyLabel;
     ctx.font = (glyph && glyph.length > 1) ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(glyph, 64, 70);
-    const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    return tex;
+    ctx.fillText(glyph, canvas.width / 2, canvas.height / 2 + 6);
   }
 
-  /** Repaint a key to show/clear the hover highlight. */
+  /** Draw a single key's label onto a CanvasTexture. */
+  _makeKeyTexture(glyph, hover, active = false) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    this._drawKey(canvas, glyph, hover, active);
+    return configureUITexture(new THREE.CanvasTexture(canvas));
+  }
+
+  /**
+   * Repaint a key to show/clear the hover highlight. Redraws into the key's
+   * existing texture canvas — a hover flick used to allocate a fresh
+   * canvas+CanvasTexture and dispose the old one per key per transition,
+   * churning GPU uploads. The candidate/suggestion rows already repaint in
+   * place; keys now do the same.
+   */
   _setKeyHover(mesh, hover) {
-    const old = mesh.userData.keyTex;
+    const tex = mesh.userData.keyTex;
     const active = mesh.userData.keyActive || false;
-    const tex = this._makeKeyTexture(mesh.userData.keyGlyph, hover, active);
-    mesh.material.map = tex;
-    mesh.material.needsUpdate = true;
-    mesh.userData.keyTex = tex;
-    if (old) {
-      old.dispose();
+    if (tex && tex.image) {
+      this._drawKey(tex.image, mesh.userData.keyGlyph, hover, active);
+      tex.needsUpdate = true;
+      return;
     }
+    // Fallback for a mesh whose texture was never stored: allocate once.
+    const fresh = this._makeKeyTexture(mesh.userData.keyGlyph, hover, active);
+    mesh.material.map = fresh;
+    mesh.material.needsUpdate = true;
+    mesh.userData.keyTex = fresh;
   }
 
   /**

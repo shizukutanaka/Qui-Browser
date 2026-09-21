@@ -60,7 +60,8 @@ class MockGroup {
   }
 }
 class MockCanvasTexture {
-  constructor() {
+  constructor(image) {
+    this.image = image;
     this.needsUpdate = false; this.colorSpace = '';
   }
   dispose() {
@@ -354,11 +355,12 @@ describe('key texture/hover layer — repaint + dispose + shift latch', () => {
     kb.createKeyboard();
     const key = registeredKeys[0];
     const before = key.mesh.userData.keyTex;
-    const disposeSpy = jest.spyOn(before, 'dispose');
+    before.needsUpdate = false;
     key.handlers.onHover();
     expect(captions).toHaveLength(1);
-    expect(key.mesh.userData.keyTex).not.toBe(before);
-    expect(disposeSpy).toHaveBeenCalled(); // old texture freed
+    // Repaint in place: same texture object re-uploaded, no alloc/dispose churn.
+    expect(key.mesh.userData.keyTex).toBe(before);
+    expect(before.needsUpdate).toBe(true);
     key.handlers.onHoverEnd();
   });
 
@@ -367,14 +369,16 @@ describe('key texture/hover layer — repaint + dispose + shift latch', () => {
     const shift = kb.keyMeshes.find(k => k.label === 'shift');
     expect(shift).toBeDefined();
     const texBefore = shift.mesh.userData.keyTex;
+    texBefore.needsUpdate = false;
     kb._refreshKeyStates(); // mode still romaji — no repaint
     expect(shift.mesh.userData.keyTex).toBe(texBefore);
+    expect(texBefore.needsUpdate).toBe(false);
     kb.ime.inputMode = 'katakana';
-    const disposeSpy = jest.spyOn(texBefore, 'dispose');
     kb._refreshKeyStates();
     expect(shift.mesh.userData.keyActive).toBe(true);
-    expect(shift.mesh.userData.keyTex).not.toBe(texBefore);
-    expect(disposeSpy).toHaveBeenCalled();
+    // Repaint in place — texture identity retained, contents re-uploaded.
+    expect(shift.mesh.userData.keyTex).toBe(texBefore);
+    expect(texBefore.needsUpdate).toBe(true);
     kb.ime.inputMode = 'romaji';
     kb._refreshKeyStates();
     expect(shift.mesh.userData.keyActive).toBe(false);

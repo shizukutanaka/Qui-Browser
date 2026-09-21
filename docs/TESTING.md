@@ -14,7 +14,7 @@ npm run verify:all       # every verify:* — docs, prerelease, build + Chromium
 npm run ci:all           # lint + format + coverage
 ```
 
-Current baseline on a clean checkout: **72 suites / 3058 tests passing**, ESLint
+Current baseline on a clean checkout: **72 suites / 3087 tests passing**, ESLint
 0 errors (~367 warnings accepted in tooling/dev paths). The repo's own runtime
 harnesses (`verify:app`, `verify:layout`, `verify:vr-boot` — needs `CHROME_PATH`
 on non-Linux hosts) all pass on the built bundle in real Chromium: the landing

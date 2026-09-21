@@ -279,15 +279,27 @@ describe('fetch strategies — cache-first and stale-while-revalidate', () => {
     });
   }
 
-  test('.ktx2 goes cache-first: cached hit returns without any network call', async () => {
+  test('.wasm goes cache-first: cached hit returns without any network call', async () => {
     const cached = { ok: true, body: 'old' };
     const cache = makeMockCache();
-    cache.entries.push([{ url: 'https://app.example/tex.ktx2' }, cached]);
+    cache.entries.push([{ url: 'https://app.example/mod.wasm' }, cached]);
     global.caches = { open: async () => cache };
     global.fetch = jest.fn();
-    const res = await fireAndWait('https://app.example/tex.ktx2');
+    const res = await fireAndWait('https://app.example/mod.wasm');
     expect(res.body).toBe('old');
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test('.ktx2 is no longer cache-first — the KTX2 pipeline was removed (stale-while-revalidate)', async () => {
+    const cache = makeMockCache();
+    global.caches = { open: async () => cache };
+    global.fetch = jest.fn(async () => ({ ok: true, body: 'fresh', clone() {
+      return this;
+    } }));
+    const res = await fireAndWait('https://app.example/tex.ktx2');
+    // Falls to the default SWR path: network fetch happens, result returned.
+    expect(global.fetch).toHaveBeenCalled();
+    expect(res.body).toBe('fresh');
   });
 
   test('.js goes stale-while-revalidate: cached body returned, fresh fetch updates cache', async () => {

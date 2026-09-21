@@ -2286,8 +2286,16 @@ export class VRApp {
       const hand = snap.hand;
       const btn  = snap.buttons;
 
-      // Play a brief haptic click for any face/thumb button press.
-      const anyJustPressed = Object.values(btn).some(b => b.justPressed);
+      // Play a brief haptic click for any face/thumb button press. for-in over
+      // the snapshot's own keys — Object.values() would allocate an array per
+      // controller per frame.
+      let anyJustPressed = false;
+      for (const k in btn) {
+        if (btn[k].justPressed) {
+          anyJustPressed = true;
+          break;
+        }
+      }
       if (anyJustPressed && this.hapticFeedback) {
         this.hapticFeedback.playPattern(hand, 'click');
       }
@@ -3015,7 +3023,9 @@ export class VRApp {
       vrButton.onclick = () => {
         const liveSession = this.renderer.xr.getSession();
         if (liveSession) {
-          liveSession.end();
+          // end() rejects with InvalidStateError if the session is already
+          // ending — a fast second click would surface an unhandled rejection.
+          liveSession.end().catch(() => { /* already ending */ });
           return;
         }
         if (pendingRequest) {
@@ -3138,6 +3148,17 @@ export class VRApp {
       } else {
         syncBudget();
       }
+      // The runtime can also change the rate on its own — thermal throttling
+      // or power-save negotiation fires 'frameratechange' without asking.
+      // Re-sync the budget (and clear the miss window) so an externally
+      // lowered rate doesn't mark every healthy frame over-budget, which
+      // would ratchet FFR and trigger our own step-down ladder for a drop
+      // the OS already made.
+      this.onFrameRateChange = () => {
+        syncBudget();
+        this._overBudgetFrames = 0;
+      };
+      session.addEventListener?.('frameratechange', this.onFrameRateChange);
     }
 
     // Initialize FFR for this session
@@ -3259,6 +3280,7 @@ export class VRApp {
     this.onXRVisibilityChange = null;
     // Same for the reference space — the runtime discards it with the session.
     this.onRefSpaceReset = null;
+    this.onFrameRateChange = null;
 
     // onVRSessionStart re-based targetFPS on the session's real refresh rate.
     // Restore the device-tier value: the animation loop (and its adjustQuality
@@ -3358,12 +3380,16 @@ export class VRApp {
     }
 
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
-    // resuming from background doesn't produce an enormous delta).
+    // resuming from background doesn't produce an enormous delta). The rAF
+    // timestamp is used over performance.now(): in an XR session it is the
+    // frame's predictedDisplayTime — the display cadence the spec intends
+    // animation deltas to track — and both live on the same timeline.
     const frameStart = performance.now();
-    const dt = this._lastRenderTime
-      ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05)
+    const now = typeof timestamp === 'number' ? timestamp : frameStart;
+    const dt = typeof this._lastRenderTime === 'number'
+      ? Math.min((now - this._lastRenderTime) / 1000, 0.05)
       : 0.016;
-    this._lastRenderTime = frameStart;
+    this._lastRenderTime = now;
 
     // Update systems
     this.updateSystems(timestamp, xrFrame, dt);

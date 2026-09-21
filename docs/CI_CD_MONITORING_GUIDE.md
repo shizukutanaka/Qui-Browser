@@ -87,7 +87,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Run Jest with coverage
 - Upload to Codecov
 - Generate coverage badge
-- Minimum coverage: 70%
+- Coverage floor: the ratcheted `coverageThreshold` in jest.config.js (currently 95/96/97/96) — `test:coverage` fails below it
 ```
 
 **Artifacts:**

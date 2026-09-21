@@ -467,7 +467,6 @@ function makeSystemsApp(overrides = {}) {
     comfortSystem: null,
     ffrSystem: null,
     handTracking: null,
-    mixedReality: null,
     layersSystem: null,
     gazeInteraction: null,
     windowManager: null,
@@ -2130,15 +2129,23 @@ describe('VRApp render() frame cadence (bound prototype, stubbed renderer)', () 
 
   test('render caps dt at 50 ms so a backgrounded tab does not jump the world', () => {
     const app = makeRenderApp();
-    VRApp.prototype.render.call(app, 0, null);
-    app._lastRenderTime = 1; // non-zero epoch (0 is falsy → dt falls back to default)
-    // performance.now is read-only on Node ≤20 — shadow with own property.
-    Object.defineProperty(performance, 'now', {
-      value: () => 5000, configurable: true, writable: true
-    });
-    VRApp.prototype.render.call(app, 16, null);
-    expect(app.updateSystems).toHaveBeenLastCalledWith(16, null, 0.05); // capped, not 5.0
-    delete performance.now;
+    VRApp.prototype.render.call(app, 0, null); // seeds _lastRenderTime = 0
+    // A huge rAF-timestamp gap (tab resumed) must not produce a giant dt.
+    VRApp.prototype.render.call(app, 6000, null);
+    expect(app.updateSystems).toHaveBeenLastCalledWith(6000, null, 0.05); // capped, not 6.0
+  });
+
+  test('render derives dt from the rAF timestamp (XR predictedDisplayTime), not performance.now', () => {
+    const app = makeRenderApp();
+    VRApp.prototype.render.call(app, 1000, null);
+    VRApp.prototype.render.call(app, 1016, null);
+    expect(app.updateSystems).toHaveBeenLastCalledWith(1016, null, 0.016);
+  });
+
+  test('render falls back to performance.now() when no timestamp is passed', () => {
+    const app = makeRenderApp();
+    VRApp.prototype.render.call(app, undefined, null);
+    expect(app.updateSystems).toHaveBeenLastCalledWith(undefined, null, 0.016);
   });
 
   test('first render uses the 16 ms default when no prior frame exists', () => {

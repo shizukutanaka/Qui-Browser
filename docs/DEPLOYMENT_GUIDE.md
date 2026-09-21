@@ -242,10 +242,6 @@ The repo ships a complete `netlify.toml` (build command, `dist` publish dir, SPA
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[headers]]
-  for = "/*.ktx2"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
 
 [dev]
   command = "npm run dev"
@@ -366,7 +362,7 @@ Create `vercel.json`:
       ]
     },
     {
-      "source": "/(.*\\.(?:js|css|woff2|ktx2))",
+      "source": "/(.*\\.(?:js|css|woff2))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -519,7 +515,7 @@ http {
         }
 
         # Static assets (long-term caching)
-        location ~* \.(js|css|woff2|ktx2)$ {
+        location ~* \.(js|css|woff2)$ {
             add_header Cache-Control "public, max-age=31536000, immutable";
             expires 1y;
         }
@@ -727,7 +723,7 @@ server {
     }
 
     # Static assets
-    location ~* \.(js|css|woff2|ktx2)$ {
+    location ~* \.(js|css|woff2)$ {
         add_header Cache-Control "public, max-age=31536000, immutable";
         expires 1y;
     }

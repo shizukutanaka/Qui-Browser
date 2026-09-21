@@ -245,6 +245,56 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き213 — XR セッション寿命・イベント面の全照合（仕様準拠確認）
+- 🔍 **外部知見照合（WebXR spec/Gamepads Module）**: XR イベント名（XRSession `'end'` / WebXRManager `'sessionend'`）正、`inputsourceschange` が HandTracking で attach/dispose 対称・`added`/`removed` 両方向処理（removed で非表示、`updateHand` で再表示）、three の既定 `referenceSpaceType='local-floor'` でスタンディング体験は正しい。
+- 🔍 **コントローラ寿命**: `disconnected` でトースト＋`controllerInput.forget()`＋テレポートキャンセル＋`inputSource=null`、`connected` で再接続トースト — WeakMap ベースで切断ソースの状態も自動回収。`squeeze`/`select` 配線は W3C 標準ボタン配置と一致。
+- 🔍 **updateRenderState ガード**: セッション終了中の `session.updateRenderState()` 呼出を WebPanel/LayersSystem/VRApp の3箇所全てで防御済み（「ending session throws」のコメント付き）。`updateLayer` は `_layerDirty` ゲートで変更時のみ blit。
+- 🔍 **PROFILE_MAP**: oculus-touch v2/v3・meta-quest-touch(-pro)・pico・valve-index・htc-vive・wmr・generic 全て WebXR Gamepads Module 標準レイアウトと一致（trigger=0/squeeze=1）。
+- ✅ 変更なしの純検証 stretch — 3091 tests / 72 suites・lint 0 errors・build 緑は継続。
+
+### Session 75: 続き212 — SW の KTX2 残骸パターン削除＋キャッシュバケット名の正直化
+- 🗑 **削除（削除済み機能の残滓）**: `CACHE_PATTERNS.cacheFirst` に `/\.ktx2$/` が残留 — KTX2 ローダー/transcoder は続き176 で全除去済み（CSP 不可・資産ゼロ・呼出ゼロ）。パターンを削除し、`.ktx2` は default SWR へ落ちることを pin。
+- 🔧 **修正（名実不一致）**: `cacheFirst` は wasm/glb/gltf/fonts/woff を全て `'textures'` バケットで計量し、`CACHE_LIMITS.models` は呼出ゼロの死設定 → バケット名を `'static'` に正名し models キー削除。`.ktx2` pin テストは `.wasm` へ差替＋「ktx2 は cache-first ではない」否定 pin を追加。
+- 🗑 **KTX2 残滓の掃討**: vite.config の `ktx2|basis` assetFileNames 分岐、SPEC.md FR-4.3 の虚偽 ✅ 表記（→「削除」に訂正）、DEPLOYMENT_GUIDE の4箇所の ktx2 cache ルール雛形 — 全て除去。repo 全体の ktx2/basis grep が archive/履歴を除きゼロヒット。
+- 🔍 **クリーン確認**: vite dev COEP/COOP（SharedArrayBuffer 不使用だが dev 専用で害なし）、three 0.181 の WebGL renderer に multiview なし（WebGPU 専用 — アプリ側で打つ手なし、既知制約）、tools/ 全スクリプトが npm scripts または手動診断として文書化済み、コンフリクトマーカー混入ゼロ。
+- 📝 **jest.config コメント**: 古い baseline 数値（83.2% branch 等）が残り floor 値と矛盾 → 「実測値に追従させよ」のルール文へ置換。
+- ✅ 3091 tests / 72 suites 全緑、lint 0 errors、build 緑（SW version stamp 正常）。
+
+### Session 75: 続き211 — dt を rAF タイムスタンプ（XR predictedDisplayTime）駆動へ
+- 🔍 **発見（WebXR 仕様軸）**: `render(timestamp, xrFrame)` の dt が `performance.now()` の差分で計算されていた。WebXR では rAF の timestamp 引数 = `XRFrame.predictedDisplayTime`（表示ケイデンス）— spec/MDN がアニメーション delta に推奨する時計。callback 発火タイミングではなく表示タイミングを追うべき。
+- 🔧 **修正**: dt を timestamp 差分へ（`typeof timestamp === 'number'` でなければ performance.now にフォールバック、timestamp 未定義の直接呼出でも NaN 不感染）。CPU 計測の frameTime は performance.now のまま維持 — 仕事量計測には wall 時計が正しい。
+- 🧪 **pin**: 「dt は rAF timestamp 差分」「50ms キャップは巨大 timestamp gap で発火」「timestamp 未定義は 16ms デフォルト」の3件。旧テストが `performance.now` をスタブして旧契約を pin していた → 新契約へ pin し直し。
+- 🔍 **同軸掃引**: HandTracking は `fillPoses`/`fillJointRadii` バッチ経路済み（per-joint XRPose 確保なし）、`XRSession.visibilityState` 対応済み（document.visibilitychange は没入中に発火しない旨コメント済み）、`powerPreference:'high-performance'` 済み、monitoring の unload 配送は gtag/Sentry 側の sendBeacon 経由で健全。
+- 🔧 **同じ仕様軸で1件捕捉**: EXIT VR の `liveSession.end()` が未 catch — セッション終了中の2回目クリックで `end()` が InvalidStateError 拒否 → **unhandled rejection**。dispose 側（3759）と同じ `.catch(() => {})` で封じ、exit ダブルクリックの unhandledRejection 非発火を pin。
+- ✅ 3090 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き210 — PROJECT_STATUS/README の計測値を実測へ再同期
+- 🔍 **発見**: PROJECT_STATUS が「63 suites/2,148 tests/~18,200行・floor 65/70/75」を掲載 — 実測は 72 suites/3,087 tests/~32,000行・floor 95/96/97/96（jest.config.js）と大幅乖離。README も同数値が3箇所＋「docs 26 files」（実 24+archive）＋PROJECT_STATUS で削除済みの **unverifiable before/after マーケ表（Bundle 2.4→1.08MB・Lighthouse 72→96 等）が残留**。
+- 🔧 **修正**: 両ファイルを実測値へ同期（50 files/~20,000 src・72/3,087/~32,000 tests・floor 95/96/97/96・docs 24+archive×110+patch×9）。README の before/after 表は実測 chunk 表（vendor-three 553.64kB/app 206.02kB）へ置換 — 存在しない測定値を書かない方針に統一。npm scripts 記載19件全て実在を確認。
+- 🗑 **同時に確定**: C-5（enableWebPanel 既定値）は続き11 で `true` 反転済み＝プロダクト判断解決済み → PROJECT_STATUS の残件リストから除去。
+- 🔍 **deploy.yml の raw-source 公開は既存 ledger 記録済み**（patch 0003 が修復案・ワークフロー push 不可のため owner 適用待ち）。favicon/apple-touch-icon の `/assets/icons/*` 参照は vite が root の assets/ を解決して hashed dist へ書換済み（dist で実在確認）— ピットフォールではない。
+- ✅ 3087 tests / 72 suites 全緑（ドキュメントのみ変更）。
+
+### Session 75: 続き209 — 残る per-frame 確保の掃引完了（Set/values 配列）＋死んだ mixedReality フィクスチャ除去
+- 🔧 **修正**: ①`HapticFeedback.update()` が毎フレーム `new Set()` を確保（inputSources 差分検出用）→ 永続 `_seen` Set を `clear()` 再利用 ②`updateButtonInput` が `Object.values(btn).some()` でコントローラ×フレーム毎に配列確保 → for-in + break に置換。これで `updateSystems` の熱パス（locomotion/button/teleport/hover/gaze/haptic/audio/hand）が完全に確保ゼロ。
+- 🗑 **削除**: `vr-app-wiring.test.js` の `mixedReality: null` フィクスチャフィールド — MixedReality モジュール自体は既に削除済みで `this.mixedReality` の読み手ゼロ。
+- 🔍 **同クラス掃引**: manifest start_url/scope/icon src 全て相対（Pages サブパス整合）、`frustumCulled=false` 済み（InstancedMesh の既知ピットフォール対応済み）、WebPanel/TabManager/BookmarkPanel の texture update は全てイベント/ダーティ駆動、interactables レジストリは register/unregister 対称＋hovered 自動治癒。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き208 — ランタイム自身のフレームレート変更（frameratechange）を未聴取 — OS サーマル低下で予算が腐る
+- 🔍 **発見（WebXR spec）**: `XRSession` の `frameratechange` は runtime が**自分の判断で** refreshRate を変えた際にも発火する（Quest のサーマルスロットル・省電力ネゴシエーション）。続き180で「起動時に実レートを予算へ同期」は入れたが、外部変化への再同期はゼロ — OS が 90→72Hz に落とすと `targetFPS` が旧値のまま残り、健全フレームが全て「予算超過」扱い → FFR ラチェット＋既に OS が落としたレートを自分で `updateTargetFrameRate` し直す二重劣化。
+- 🔧 **修正**: `onVRSessionStart` の fps ブロック内で `session.addEventListener('frameratechange', …)` を付与し、発火時に `syncBudget()`（実 `refreshRate` で `targetFPS` 更新）＋ `_overBudgetFrames = 0`（OS 起因の低下はアプリのミスではないのでミス窓をリセット）。`sessionend` で参照を null 化。`_fpsOverridden`（ユーザー固定）は既存ブロック外に出さず尊重を維持。
+- 🧪 pin: リスナー登録＋発火で targetFPS が 120→72 へ同期、ミス窓リセット。
+- 🔍 **同クラス掃引（全クリーン）**: 死設定4件（perfMonitorUI/homeEnvironment/textureManager/deadZone）は既に live 配線済み、`renderer` パラメータ（antialias/powerPreference/stencil/preserveDrawingBuffer）全て有効、SpatialAudio は HRTF→equalpower の距離 LOD＋スクラッチ再利用済み、quad-layer ブラッツは `_layerDirty` ゲート済み、CaptionSystem の redraw は変化駆動のみ。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き207 — キー hover の度に CanvasTexture を new→dispose していた GPU churn を解消
+- 🔍 **発見**: `_setKeyHover` が hover enter/exit の度に `_makeKeyTexture`（128×128 canvas + CanvasTexture + GPU upload）を呼び旧テクスチャを dispose — キーボード上の pointer sweep で秒間数十のテクスチャ生成/破棄。候補・サジェスト行は既に repaint-in-place（同じ `draw()` で再描画＋`tex.needsUpdate`）なのにキーだけが allocate 経路だった。
+- 🔧 **修正**: 描画を `_drawKey(canvas, glyph, hover, active)` に抽出し、`_setKeyHover` は `keyTex.image`（既存 canvas）へ再描画して `needsUpdate` のみ。`keyTex` 未保持のメッシュには allocate フォールバックを残す。dispose 対称は変わらず（キーごと1テクスチャが teardown で1回 dispose — むしろ純粋化）。
+- 🧪 pin 更新: 旧契約（新テクスチャ＋旧 dispose）を pin していた2テストを新契約（同一オブジェクト＋needsUpdate）へ。MockCanvasTexture に `image` 保持を追加。
+- 🔍 **同クラス掃引**: `getImageData`/`willReadFrequently` の該当箇所ゼロ（全 canvas は write-only→texture upload）、`measureText` は captionLayout のモジュールロード時のみ — 本 sweep 軸はこれで飽和。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 75: 続き206 — three VRButton の requestSession に in-flight ガードも catch もなかった
 - 🔍 **発見（three ソース実読）**: `VRButton.createButton` の `button.onclick` は `requestSession().then(onSessionStarted)` — **`.catch` なし・in-flight ガードなし**（`currentSession` は解決まで null のまま）。拒否は unhandled rejection で UI に一切出ず、pending 中の2回目クリックは重複 `requestSession` を発射。
 - 🔧 **修正**: `setupVR` で返却ボタンの `onclick` を置換 — `renderer.xr.getSession()` があれば `session.end()`、pending 中は無視、解決で `setSession`＋'EXIT VR'、拒否で `showVRToast(enterVRFailed, error)`。sessionOptions は three 内部と同じ `'local-floor'/'bounded-floor'/'layers'` + `hand-tracking` を Set 重複排除で再構成（three クロージャ内生成のため）。ボタンが onclick を持つ場合のみ適用（非対応ブラウザでは createButton が非クリック要素を返す）。
