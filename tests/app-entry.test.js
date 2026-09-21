@@ -390,7 +390,7 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
     expect(global.window.QuiBrowser.getApp()).toBeNull();
   });
 
-  test('beforeunload disposes the app; visibilitychange is a safe no-op', async () => {
+  test('beforeunload disposes the app', async () => {
     const container = makeEl('app-container');
     const { windowListeners } = installDom({
       ids: { 'app-container': container },
@@ -400,7 +400,6 @@ describe('src/app.js (VR entry — loaded by main.js)', () => {
     await tick();
     const vrApp = global.window.QuiBrowser.getApp();
     vrApp.dispose = jest.fn();
-    (global.document._listeners.visibilitychange || []).forEach((f) => f());
     (windowListeners.beforeunload || []).forEach((f) => f());
     expect(vrApp.dispose).toHaveBeenCalledTimes(1);
     expect(global.window.QuiBrowser.getApp()).toBeNull();
@@ -521,22 +520,6 @@ describe('src/main.js — remaining entry arms', () => {
 });
 
 describe('src/app.js — remaining arms', () => {
-  test('visibilitychange handler runs hidden/visible arms without throwing', async () => {
-    installDom({ xr: { isSessionSupported: async () => false } });
-    let documentListeners;
-    jest.isolateModules(() => {
-      require('../src/app.js');
-      documentListeners = global.document._listeners;
-    });
-    await tick();
-    const handlers = documentListeners.visibilitychange || [];
-    expect(handlers.length).toBeGreaterThan(0);
-    global.document.hidden = true;
-    expect(() => handlers.forEach((f) => f())).not.toThrow();
-    global.document.hidden = false;
-    expect(() => handlers.forEach((f) => f())).not.toThrow();
-  });
-
   test('perf interval leaves the overlay untouched when getPerformanceStats is null', async () => {
     const container = makeEl('app-container');
     installDom({
@@ -643,18 +626,6 @@ describe('src/app.js — remaining branch arms', () => {
     expect(() => (windowListeners.beforeunload || []).forEach((f) => f())).not.toThrow();
   });
 
-  test('visibilitychange with document.hidden but vrApp null is a no-op', async () => {
-    const { documentListeners } = installDom({
-      ids: { 'app-container': makeEl('app-container') },
-      xr: { isSessionSupported: async () => false }
-    });
-    jest.isolateModules(() => require('../src/app.js'));
-    await new Promise((r) => setTimeout(r, 0));
-    global.document.hidden = true;
-    expect(() =>
-      (documentListeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
-  });
-
   test('readyState complete → initializeApp runs immediately (no DOMContentLoaded wait)', async () => {
     const { documentListeners } = installDom({
       ids: { 'app-container': makeEl('app-container') },
@@ -705,13 +676,6 @@ describe('src/app.js — last branch arms', () => {
     }
   });
 
-  test('visibilitychange visible arm with vrApp present runs without throwing', async () => {
-    const QuiBrowser = makeApp();
-    await tick();
-    expect(QuiBrowser.getApp()).toBeTruthy();
-    global.document.hidden = false;
-    expect(() => (global.document._listeners.visibilitychange || []).forEach((f) => f())).not.toThrow();
-  });
 });
 
 describe('src/main.js — last branch arms', () => {
@@ -805,16 +769,6 @@ describe('src/app.js — complementary arms', () => {
     expect(app.dispose).toHaveBeenCalled();
   });
 
-  test('visibilitychange hidden with live vrApp reduces activity', async () => {
-    const { documentListeners } = makeApp();
-    await tick();
-    document.hidden = true;
-    const vc = (documentListeners.visibilitychange || [])[0];
-    if (vc) {
-      expect(() => vc()).not.toThrow();
-    }
-    document.hidden = false;
-  });
 });
 
 describe('src/main.js — false-side arms', () => {

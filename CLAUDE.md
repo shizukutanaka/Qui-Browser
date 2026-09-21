@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き173 — app.js の死んだ visibilitychange ハンドラ削除
+- 🔍 **死んだ計装**: `document.visibilitychange` ハンドラが「Pause or reduce activity」とコメントしながら console.debug のみ — 実際の一時停止は XRSession.visibilityState リスナー（ImmersiveVideo pause）が担い、2D ページでは「reduce activity」は意味を持たない空振り。
+- 🗑 **削除**: ハンドラ削除（9行）。それを pin していたテスト4件も削除/整理 — 削除後は `(listeners||[])` で空配列を走るだけの真空テストになっていた（続き157 と同クラスの suite 自身の嘘）。
+- ✅ 3081 tests / 72 suites 全緑（-3テストは真空削除で正）、lint 0 errors。
+
 ### Session 75: 続き172 — 音声検索フォールバックがポップアップブロックで無言死
 - 🔍 **実害（偽アクション告知）**: スタンドアロン（connectBrowser 未接続）時の 'search' コマンドが `window.open('_blank')` に依存 — 音声認識結果イベントには transient user activation が無く、popup blocker が null を返すのが通常経路。「検索します」と告げて何も起きない（120/121 と同じ fake-action クラス）。
 - 🔧 **修正**: `window.open` が null（ブロック）なら `location.href` で現タブ遷移にフォールバック（実ブラウザでは location 常存、テスト用スタブ窓では `window.location` ガード）。クエリに trim 追加（接続済み版と parity）。
