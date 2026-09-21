@@ -2908,13 +2908,13 @@ export class VRApp {
 
     // Pre-compile scene shaders while the 2D page is still idle — otherwise
     // the first rendered frame (often at VR-session entry, the worst possible
-    // moment) pays the full compile hitch.
-    if (this.renderer && this.scene && this.camera) {
-      try {
-        this.renderer.compile(this.scene, this.camera);
-      } catch (e) {
-        console.debug('VRApp: shader precompile skipped', e);
-      }
+    // moment) pays the full compile hitch. compileAsync resolves only once
+    // KHR_parallel_shader_compile reports every program ready, so the first
+    // frame can't stall on a mid-compile program.
+    if (this.renderer && this.scene && this.camera
+        && typeof this.renderer.compileAsync === 'function') {
+      this.renderer.compileAsync(this.scene, this.camera)
+        .catch((e) => console.debug('VRApp: shader precompile skipped', e));
     }
 
     const loadTime = performance.now() - startTime;
