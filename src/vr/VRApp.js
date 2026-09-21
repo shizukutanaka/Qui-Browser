@@ -3023,7 +3023,9 @@ export class VRApp {
       vrButton.onclick = () => {
         const liveSession = this.renderer.xr.getSession();
         if (liveSession) {
-          liveSession.end();
+          // end() rejects with InvalidStateError if the session is already
+          // ending — a fast second click would surface an unhandled rejection.
+          liveSession.end().catch(() => { /* already ending */ });
           return;
         }
         if (pendingRequest) {

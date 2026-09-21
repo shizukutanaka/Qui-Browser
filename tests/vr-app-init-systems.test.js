@@ -751,7 +751,7 @@ describe('setupVR — button/session/visibility wiring', () => {
       }));
 
       // request resolves → setSession + 'EXIT VR'
-      const session = { addEventListener: jest.fn(), end: jest.fn() };
+      const session = { addEventListener: jest.fn(), end: jest.fn(async () => {}) };
       reqs[0].resolve(session);
       await flush();
       await flush();
@@ -774,6 +774,43 @@ describe('setupVR — button/session/visibility wiring', () => {
       expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'error' });
     } finally {
       global.navigator = origNavigator;
+    }
+  });
+
+  test('vrButton exit click swallows a session.end() rejection (already ending)', async () => {
+    const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
+    const button = {
+      click() {
+        this.onclick?.();
+      },
+      onclick() {}, textContent: ''
+    };
+    VRButton.createButton = jest.fn(() => button);
+    const app = makeInitLike();
+    const endingSession = {
+      end: jest.fn(() => Promise.reject(new DOMException('already ending', 'InvalidStateError')))
+    };
+    app.renderer = {
+      xr: { addEventListener: jest.fn(), isPresenting: true, getSession: () => endingSession,
+        setSession: jest.fn() },
+      setAnimationLoop: jest.fn()
+    };
+    app.setupControllers = jest.fn();
+    app.showVRToast = jest.fn();
+
+    const unhandled = [];
+    const onUnhandled = (e) => unhandled.push(e.reason ?? e);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      VRApp.prototype.setupVR.call(app);
+      button.click(); // first end() call — rejects, must be caught
+      await new Promise(setImmediate);
+      button.click(); // second click while still ending — same swallow
+      await new Promise(setImmediate);
+      expect(endingSession.end).toHaveBeenCalledTimes(2);
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
     }
   });
 });

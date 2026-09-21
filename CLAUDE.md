@@ -249,8 +249,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **発見（WebXR 仕様軸）**: `render(timestamp, xrFrame)` の dt が `performance.now()` の差分で計算されていた。WebXR では rAF の timestamp 引数 = `XRFrame.predictedDisplayTime`（表示ケイデンス）— spec/MDN がアニメーション delta に推奨する時計。callback 発火タイミングではなく表示タイミングを追うべき。
 - 🔧 **修正**: dt を timestamp 差分へ（`typeof timestamp === 'number'` でなければ performance.now にフォールバック、timestamp 未定義の直接呼出でも NaN 不感染）。CPU 計測の frameTime は performance.now のまま維持 — 仕事量計測には wall 時計が正しい。
 - 🧪 **pin**: 「dt は rAF timestamp 差分」「50ms キャップは巨大 timestamp gap で発火」「timestamp 未定義は 16ms デフォルト」の3件。旧テストが `performance.now` をスタブして旧契約を pin していた → 新契約へ pin し直し。
-- 🔍 **同軸掃引（全クリーン）**: HandTracking は `fillPoses`/`fillJointRadii` バッチ経路済み（per-joint XRPose 確保なし）、`XRSession.visibilityState` 対応済み（document.visibilitychange は没入中に発火しない旨コメント済み）、`powerPreference:'high-performance'` 済み、monitoring の unload 配送は gtag/Sentry 側の sendBeacon 経由で健全。
-- ✅ 3089 tests / 72 suites 全緑、lint 0 errors、build 緑。
+- 🔍 **同軸掃引**: HandTracking は `fillPoses`/`fillJointRadii` バッチ経路済み（per-joint XRPose 確保なし）、`XRSession.visibilityState` 対応済み（document.visibilitychange は没入中に発火しない旨コメント済み）、`powerPreference:'high-performance'` 済み、monitoring の unload 配送は gtag/Sentry 側の sendBeacon 経由で健全。
+- 🔧 **同じ仕様軸で1件捕捉**: EXIT VR の `liveSession.end()` が未 catch — セッション終了中の2回目クリックで `end()` が InvalidStateError 拒否 → **unhandled rejection**。dispose 側（3759）と同じ `.catch(() => {})` で封じ、exit ダブルクリックの unhandledRejection 非発火を pin。
+- ✅ 3090 tests / 72 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 75: 続き210 — PROJECT_STATUS/README の計測値を実測へ再同期
 - 🔍 **発見**: PROJECT_STATUS が「63 suites/2,148 tests/~18,200行・floor 65/70/75」を掲載 — 実測は 72 suites/3,087 tests/~32,000行・floor 95/96/97/96（jest.config.js）と大幅乖離。README も同数値が3箇所＋「docs 26 files」（実 24+archive）＋PROJECT_STATUS で削除済みの **unverifiable before/after マーケ表（Bundle 2.4→1.08MB・Lighthouse 72→96 等）が残留**。
