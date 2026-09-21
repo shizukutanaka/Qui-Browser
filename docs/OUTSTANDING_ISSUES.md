@@ -577,6 +577,7 @@ git am docs/patches/0005-ci-delete-jacoco-badge-step.patch    # jacoco（Java）
 git am docs/patches/0006-ci-wire-runtime-verification.patch   # verify:* 実Chromium ゲートを CI に配線
 git am docs/patches/0007-ci-pages-base-path.patch             # cd.yml の Pages が base '/' で 404
 git am docs/patches/0008-ci-drop-release-benchmark.patch      # release.yml の死んだ benchmark ステップ
+git am docs/patches/0009-ci-gate-all-prs.patch                # pull_request を全ブランチ向けに（チェーン PR が無ゲートだった）
 git push
 ```
 

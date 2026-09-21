@@ -81,6 +81,12 @@ describe('docs/patches series', () => {
     expect(test).toContain('Security Scan');
     expect(test).not.toContain('Validate VR Modules');
 
+    // PR triggers carry no branches filter — main/develop-scoped filters
+    // left every feature-branch-stacked PR running zero checks.
+    for (const body of [ci, test]) {
+      expect(body).not.toMatch(/pull_request:\s*\n\s*branches:/);
+    }
+
     rmSync(dir, { recursive: true, force: true });
   });
 });

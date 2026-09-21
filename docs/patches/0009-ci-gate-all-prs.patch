@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Devin <devin@cognition.ai>
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] ci: gate every pull request, not just main/develop-bound ones
+
+ci.yml and test.yml restricted pull_request to branches: [main, develop],
+so PRs stacked onto feature branches ran zero checks — the repo's whole
+stacked-PR flow was ungated. Drop the branches filter under pull_request;
+push triggers stay scoped to main/develop to avoid burning CI on every
+feature-branch push.
+
+---
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 315a202..f1817fc 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -4,7 +4,6 @@ on:
+   push:
+     branches: [ main, develop ]
+   pull_request:
+-    branches: [ main, develop ]
+   workflow_dispatch:
+ 
+ env:
+diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
+index 05d6b5c..65bd056 100644
+--- a/.github/workflows/test.yml
++++ b/.github/workflows/test.yml
+@@ -6,9 +6,6 @@ on:
+       - main
+       - develop
+   pull_request:
+-    branches:
+-      - main
+-      - develop
+ 
+ jobs:
+   # The previous `validate` and `compatibility` jobs globbed assets/js/vr-*.js

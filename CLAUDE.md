@@ -245,6 +245,9 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き140 — 発見したゲートの抜け道は自分のワークフロー自体だった：チェーン PR が一度も CI を受けていなかった
+PR #165 に CI が一切付かないことから気づいた：ci.yml・test.yml の `pull_request` は `branches: [main, develop]` に限定されており、**devin チェーン宛の PR は全て無ゲートでマージされてきた**（押し目の「CI green」は main 宛の時のみ存在した）。docs/patches/0009-ci-gate-all-prs.patch として同梱。さらに **patch 0009 の初版は系列内で適用不能**（0002 の挿入コメントと hunk context が衝突）— 直前に修正した系列破損クラスを自作パッチで再発させた。恒久対策として `tests/ci-patches.test.js` が系列の逐次適用を pin しているので同クラスは再発しない（この新パッチもそのテストが即座に捕捉した）。3026 tests / 69 suites 全緑、lint 0 errors。PR #165 を発行（チェーンの最終 merge 点からの 22-commit 差分、#163 包含）。
+
 ### Session 75: 続き139 — パッチ列自体が壊れていた：逐次 `git am` は3本目で必ず失敗（検証済み）
 K-1 の9本パッチは各々「pristine ワークフローへの単独適用」だけを検証していて、**系列としての適用を一度も試していなかった**。実走したところ旧0003 が deploy.yml/test.yml で旧0001 と hunk 衝突して適用不能、旧0004 は旧0001 が既に削除したファイルを再削除して必敗 — オーナーが `git am` を回すと**3本目で途中停止する壊れた手順を出荷していた**。さらに精査すると旧0001 の効果は旧0003（同一領域の削除＋本物の置換）と旧0004（同一ファイル削除）に完全に包含されることが判明し、旧0001 を削除・残り8本を採番し直した。`tests/ci-patches.test.js` を新設して系列の逐次適用と最終状態（死んだワークフロー消滅・BASE_PATH・benchmark:all なし等）を恒久 pin。3026 tests / 69 suites 全緑、lint 0 errors。
 
