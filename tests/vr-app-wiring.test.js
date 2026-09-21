@@ -28,7 +28,7 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
 // ── canvas/document stub (showVRToast draws a 2D toast texture) ──────────────
 const ctx2d = {
   fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
-  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn()
+  fillRect: jest.fn(), strokeRect: jest.fn(), fillText: jest.fn(), clearRect: jest.fn()
 };
 global.document = {
   createElement: (tag) => {
@@ -2009,5 +2009,141 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.layersSystem).not.toBeNull();
     expect(app.layersSystem.supported).toBe(false);
     expect(app.showVRToast).not.toHaveBeenCalled(); // mesh fallback is silent-by-design
+  });
+});
+
+describe('VRApp settings-panel button builders + layer attach (bound prototypes)', () => {
+  const makePanelApp = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: { enableGazeDwell: false },
+      _panelTextures: [],
+      _sharedGeometries: new Map(),
+      _settingsPanelDrawers: [],
+      scene: new THREE.Scene(),
+      settingsPanel: null,
+      saveSettings: jest.fn(),
+      showVRToast: jest.fn(),
+      registerInteractable(mesh, handlers) { app.interactables.push({ mesh, ...handlers }); },
+      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      _announceSettingsButton: VRApp.prototype._announceSettingsButton,
+      _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
+      ...over
+    });
+    return app;
+  };
+  const handlersOf = (app, mesh) => app.interactables.find((i) => i.mesh === mesh);
+
+  test('compact toggle flips the setting, persists it, applies live, and force-announces', () => {
+    const app = makePanelApp({ settings: { enableGazeDwell: false, enableHaptics: false } });
+    const apply = jest.fn();
+    const mesh = VRApp.prototype.makeCompactToggleButton.call(app, 'Haptics', 'enableHaptics', apply);
+    const h = handlersOf(app, mesh);
+    h.onSelect();
+    expect(app.settings.enableHaptics).toBe(true);
+    expect(app.saveSettings).toHaveBeenCalled();
+    expect(apply).toHaveBeenCalledWith(true);
+    // Select announces unconditionally — a gaze user's confirmation.
+    expect(app.captionSystem.show).toHaveBeenCalled();
+    h.onSelect();
+    expect(app.settings.enableHaptics).toBe(false);
+  });
+
+  test('stepper: right region increments, left decrements, centre is inert; clamped to min/max', () => {
+    const app = makePanelApp({ settings: { enableGazeDwell: false, captionDuration: 4 } });
+    const apply = jest.fn();
+    const mesh = VRApp.prototype.makeStepperButton.call(app, 'Caption time', 'captionDuration',
+      { min: 2, max: 60, step: 0.5, unit: 's', apply });
+    mesh.updateMatrixWorld(true);
+    const h = handlersOf(app, mesh);
+    h.onSelect({ intersection: { point: new THREE.Vector3(0.4, 0, 0) } }); // right edge → u≈0.94
+    expect(app.settings.captionDuration).toBe(4.5);
+    expect(apply).toHaveBeenCalledWith(4.5);
+    expect(app.saveSettings).toHaveBeenCalled();
+    h.onSelect({ intersection: { point: new THREE.Vector3(-0.4, 0, 0) } }); // left edge
+    expect(app.settings.captionDuration).toBe(4);
+    // Centre region does not change the value.
+    h.onSelect({ intersection: { point: new THREE.Vector3(0, 0, 0) } });
+    expect(app.settings.captionDuration).toBe(4);
+    // Clamp at min: repeated − stops at 2 without further persists.
+    app.saveSettings.mockClear();
+    app.settings.captionDuration = 2;
+    h.onSelect({ intersection: { point: new THREE.Vector3(-0.4, 0, 0) } });
+    expect(app.settings.captionDuration).toBe(2);
+    expect(app.saveSettings).not.toHaveBeenCalled();
+  });
+
+  test('section tabs are exactly-one-open; re-selecting the active tab is a no-op', () => {
+    const rebuild = jest.fn();
+    const app = makePanelApp({
+      settings: { enableGazeDwell: false, openSettingsSections: ['settings.section.a11y'] },
+      _rebuildSettingsPanel: rebuild
+    });
+    VRApp.prototype._toggleSettingsSection.call(app, 'settings.section.a11y');
+    expect(rebuild).not.toHaveBeenCalled(); // no collapse-to-empty surprise
+    VRApp.prototype._toggleSettingsSection.call(app, 'settings.section.audio');
+    expect(app.settings.openSettingsSections).toEqual(['settings.section.audio']);
+    expect(rebuild).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalled(); // section-open announce
+  });
+
+  test('dispose unregisters every panel mesh and detaches the panel', () => {
+    const app = makePanelApp();
+    const panel = new THREE.Group();
+    const b1 = VRApp.prototype.makeCompactToggleButton.call(app, 'A', 'x1');
+    const b2 = VRApp.prototype.makeActionButton.call(app, 'Go', jest.fn());
+    panel.add(b1, b2);
+    app.scene.add(panel);
+    app.settingsPanel = panel;
+    expect(app.interactables).toHaveLength(2);
+    VRApp.prototype._disposeSettingsPanel.call(app);
+    expect(app.interactables).toHaveLength(0);
+    expect(panel.parent).toBeNull();
+  });
+
+  test('action button fires its callback and force-announces on select', () => {
+    const app = makePanelApp();
+    const act = jest.fn();
+    const mesh = VRApp.prototype.makeActionButton.call(app, 'Clear history', act);
+    handlersOf(app, mesh).onSelect();
+    expect(act).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show).toHaveBeenCalled();
+  });
+
+  test('layer attach: one quad layer per open panel, committed once', () => {
+    const refSpace = {};
+    const session = {};
+    const panel1 = { enableLayerMode: jest.fn() };
+    const panel2 = { enableLayerMode: jest.fn() };
+    const layers = {
+      createQuadLayer: jest.fn(() => ({ quad: true })),
+      updateRenderState: jest.fn(),
+      count: 2
+    };
+    const app = makePanelApp({
+      renderer: { xr: { getReferenceSpace: () => refSpace, getBaseLayer: () => null } },
+      layersSystem: layers,
+      tabManager: { tabs: [panel1, panel2] }
+    });
+    VRApp.prototype._attachLayersToPanels.call(app, session);
+    expect(layers.createQuadLayer).toHaveBeenCalledTimes(2);
+    // Chrome-bar dims: 1.6m × 0.08m at native resolution.
+    expect(layers.createQuadLayer).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'panel_chrome_0', width: 1.6, height: 0.08
+    }));
+    expect(panel1.enableLayerMode).toHaveBeenCalledWith(
+      { quad: true }, layers, 'panel_chrome_0', expect.any(Function));
+    expect(layers.updateRenderState).toHaveBeenCalledWith(session, null);
+  });
+
+  test('layer attach no-ops without a reference space', () => {
+    const layers = { createQuadLayer: jest.fn(), updateRenderState: jest.fn() };
+    const app = makePanelApp({
+      renderer: { xr: { getReferenceSpace: () => null } },
+      layersSystem: layers,
+      tabManager: { tabs: [{ enableLayerMode: jest.fn() }] }
+    });
+    VRApp.prototype._attachLayersToPanels.call(app, {});
+    expect(layers.createQuadLayer).not.toHaveBeenCalled();
   });
 });
