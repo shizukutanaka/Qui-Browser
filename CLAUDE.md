@@ -551,6 +551,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き85（同セッション）: .github の死体発見 — DISCUSSION_TEMPLATES.md は GitHub が読まない架空機構
+- 🔍 **実測**: `.github/DISCUSSION_TEMPLATES.md`（12.5KB / ~500行）を監査 — 3重の死骸。①**GitHub の機構として存在しない**: Discussion テンプレートは `.github/DISCUSSION_TEMPLATE/`（単数形）ディレクトリの YAML ファイル群として置く仕様であり、複数形 `.md` は何もトリガーしない純粋な markdown 文書。②バージョン虚偽: 「Active for v5.7.0+」「v5.7.1 Released」を謳うが package.json は 2.0.0。③誰も参照しない: リンク元は archive/ の frozen 文書のみ（「Example Projects」と同じ社区インフラ commit 由来 — その相方は #82 で削除済み）。
+- 🔧 **削除**: 当該ファイルを git rm。同 commit の姉妹成果物（examples/）を消した sweep と同クラスの整理。
+- 🔍 **他の残件監査**: tools/pre-release-validation.js を実走 → 28 PASS/1 WARN（ブランチ名のみ、想定内）。PROXY.md の /health・/fetch 記述は server.js と一致、jest.config.js（three の transformIgnorePatterns は ESM 変換に必要、__tests__ glob は無害）、tests/setup.js、FAQ/USAGE_GUIDE/QUICK_START の主張（voice commands・captions・teleport・bookmarks）は全て実装と一致 — 欠陥ゼロ。
+- 📝 2148 tests / 63 suites、lint 0 errors、build green（削除のみ）。
+
+#### 続き84（同セッション）: 残 docs 棚卸し第2弾 + K-1 ワークフロー残件を全パッチ化
+- 🔧 **DEPLOYMENT_GUIDE.md**: from-scratch レシピ集だが全プラットフォームの実設定が同梱済み — 冒頭に「同梱ファイルが正規、埋込サンプルは参考」と注記。実ドリフト2件修正（「deploy.yml を作成」→実在し assets/js 死骸を抱える旨に、base URL 手順→BASE_PATH 環変）。**SETUP.md**: `npm test unified-systems.test.js`（不存在）→ vr-app-wiring に。
+- 🔍 **実害発見（K-1 系）**: `deploy.yml` の Pages ジョブは**ビルドを一度も実行せず `path: '.'` で生ソースを公開**（#130 の vercel と同クラス）、`test.yml` の `validate`/`compatibility` ジョブは削除済み assets/js/examples を glob して毎 push 失敗、`benchmark.yml`（週次 cron）/`v5.8.0-planning.yml`（週次）/`wasm-build.yml`（dormant）は削除対象のみ。
+- 🔧 **パッチ化（403 回避の確立手法）**: `docs/patches/0003`（test.yml+deploy.yml 修復 — security スキャンの grep を src/+proxy/ に再指向、eval チェックは DevTools.js の実 REPL を除外、deploy は build+BASE_PATH+dist アップに）・`0004`（3 workflow 削除）。両方 `origin/main` にクリーン適用を検証。K-1・PUBLISHING.md の手順を4パッチ手順に更新。
+- 📝 2148 tests / 63 suites、lint 0 errors、verify:docs PASS、build green。
+
 #### 続き83（同セッション）: 残 docs の主張系ドリフトを一括修正 — BUILD_OPTIMIZATION_GUIDE / COMPATIBILITY / O-1 拡張
 - 🔍 **実測走査**: docs/ 11件が削除済みモジュールを参照。仕分け: SPEC.md は削除済みと正確に記述・PROXY.md は IP レンジの legit 記述・IMPLEMENTATION.md は削除注記付きで概ね正・PUBLISHING.md は K-1 と同じワークフロー問題の正確な作業指示。実ドリフトは BUILD_OPTIMIZATION_GUIDE・COMPATIBILITY・API.md。
 - 🔧 **BUILD_OPTIMIZATION_GUIDE.md**: manualChunks 例・chunk 一覧・サイズ（実測: index 7KB/app 195KB/vendor-three 541KB/tier1 83KB/tier2 各 5-24KB、gzip 計 ~250KB）を実構成に同期。`minify: 'terser'`→esbuild、terser 設定例・vr-toggle 架空 id・sideEffects:false 推奨（main.js は副作用モジュールで unsafe）・ObjectPool 例・`assets/images/` imagemin パス（削除済み）を全て実値化。チェックリストの虚偽 [x]（imagemin 済・font subset・KTX2・svgo・音声圧縮 — 同梱物は icons のみ）を実測に修正。
