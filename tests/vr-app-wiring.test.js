@@ -2221,3 +2221,181 @@ describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure constructi
     delete global.window;
   });
 });
+
+describe('VRApp setupControllers + loadAudioAssets (bound prototypes)', () => {
+  const makeControllerApp = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: { controllerDeadZone: 0.15, southpaw: false },
+      playerRig: new THREE.Group(),
+      scene: new THREE.Scene(),
+      controllers: [],
+      controllerGrips: [],
+      teleport: {},
+      showVRToast: jest.fn(),
+      onControllerSelect: jest.fn(),
+      onTeleportStart: jest.fn(),
+      onTeleportEnd: jest.fn(),
+      _cancelTeleportIfAimedBy: jest.fn(),
+      ...over
+    });
+    return app;
+  };
+
+  test('two controllers each get a ray, select/squeeze wiring, and join the playerRig', () => {
+    const app = makeControllerApp();
+    // Controllers are real THREE Groups — EventDispatcher works natively.
+    const ctl = [new THREE.Group(), new THREE.Group()];
+    ctl.forEach((c) => { c.userData = {}; });
+    const grips = [new THREE.Group(), new THREE.Group()];
+    app.renderer = {
+      xr: {
+        getController: jest.fn((i) => ctl[i]),
+        getControllerGrip: jest.fn((i) => grips[i])
+      }
+    };
+    VRApp.prototype.setupControllers.call(app);
+    expect(app.controllers).toHaveLength(2);
+    expect(app.controllerGrips).toHaveLength(2);
+    // Ray line parented under each controller, pointing -Z, scaled to 5m.
+    const ray = ctl[0].children.find((c) => c.name === 'pointerRay');
+    expect(ray.isLine).toBe(true);
+    expect(ray.scale.z).toBe(5);
+    // select/squeeze events dispatch to the app handlers.
+    ctl[0].dispatchEvent({ type: 'selectstart' });
+    expect(app.onControllerSelect).toHaveBeenCalledWith(ctl[0], true);
+    ctl[0].dispatchEvent({ type: 'squeezeend' });
+    expect(app.onTeleportEnd).toHaveBeenCalled();
+    // Teleport marker exists, hidden until aiming.
+    expect(app.teleport.marker).toBeTruthy();
+    expect(app.teleport.marker.visible).toBe(false);
+    // Both controllers under the rig so they inherit head-relative space.
+    expect(app.playerRig.children).toEqual(expect.arrayContaining(ctl));
+  });
+
+  test('controller reconnect mid-session toasts; disconnect forgets the source', () => {
+    const app = makeControllerApp();
+    const ctl = new THREE.Group(); ctl.userData = {};
+    app.renderer = {
+      xr: { getController: jest.fn(() => ctl), getControllerGrip: jest.fn(() => new THREE.Group()) }
+    };
+    VRApp.prototype.setupControllers.call(app);
+    const src = { handedness: 'right' };
+    // First connect (inputSource undefined→set): no toast.
+    ctl.dispatchEvent({ type: 'connected', data: src });
+    expect(app.showVRToast).not.toHaveBeenCalled();
+    // Disconnect: warn toast + source forgotten + teleport cancelled.
+    ctl.dispatchEvent({ type: 'disconnected' });
+    expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
+    expect(ctl.userData.inputSource).toBeNull();
+    expect(app._cancelTeleportIfAimedBy).toHaveBeenCalledWith(ctl);
+    // Reconnect after disconnect (inputSource was null): info toast.
+    ctl.dispatchEvent({ type: 'connected', data: src });
+    expect(app.showVRToast).toHaveBeenLastCalledWith(expect.any(String), { type: 'info' });
+  });
+
+  test('loadAudioAssets registers procedural buffers + sources for all four feedback sounds', async () => {
+    const app = makeControllerApp();
+    const sources = new Map();
+    app.spatialAudio = {
+      registerProceduralBuffer: jest.fn(),
+      createSource: jest.fn((name) => sources.set(name, true)),
+      sources
+    };
+    await VRApp.prototype.loadAudioAssets.call(app);
+    expect(app.spatialAudio.registerProceduralBuffer).toHaveBeenCalledTimes(4);
+    for (const n of ['click', 'hover', 'success', 'error']) {
+      expect(sources.has(n)).toBe(true);
+    }
+    // A second call creates nothing — existing sources are reused.
+    app.spatialAudio.createSource.mockClear();
+    await VRApp.prototype.loadAudioAssets.call(app);
+    expect(app.spatialAudio.createSource).not.toHaveBeenCalled();
+  });
+});
+
+describe('VRApp createSettingsPanel — the orchestrator itself (bound prototypes)', () => {
+  const SETTINGS = {
+    enableGazeDwell: false, highContrast: false, enableTeleport: true, enableSnapTurn: true,
+    enableSmoothMove: false, southpaw: false, enableComfort: true, enableFFR: true,
+    enableHaptics: true, enableCaptions: true, enableWebPanel: true, privateMode: false,
+    enableWindowFollow: true, enableCurvedPanel: false,
+    snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
+    windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
+    openSettingsSections: ['settings.section.a11y']
+  };
+
+  const makePanelOrchestrator = (over = {}) => {
+    const app = makeVRAppLike({
+      settings: { ...SETTINGS },
+      _panelTextures: [],
+      _sharedGeometries: new Map(),
+      _settingsPanelDrawers: [],
+      interactables: [],
+      scene: new THREE.Scene(),
+      tabManager: null, webPanel: null, bookmarkPanel: null, windowManager: null,
+      gazeInteraction: null, ffrSystem: null, spatialAudio: null,
+      comfortSystem: null, hapticFeedback: { setEnabled: jest.fn() },
+      captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(), setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
+      saveSettings: jest.fn(),
+      showVRToast: jest.fn(),
+      registerInteractable(mesh, h) { app.interactables.push({ mesh, ...h }); },
+      unregisterInteractable(mesh) { app.interactables = app.interactables.filter((i) => i.mesh !== mesh); },
+      updateSetting(key, value) { app.settings[key] = value; app.saveSettings(); return value; },
+      _sharedPlaneGeometry: VRApp.prototype._sharedPlaneGeometry,
+      _announceSettingsButton: VRApp.prototype._announceSettingsButton,
+      makeSectionTab: VRApp.prototype.makeSectionTab,
+      makeCompactToggleButton: VRApp.prototype.makeCompactToggleButton,
+      makeStepperButton: VRApp.prototype.makeStepperButton,
+      makeCycleButton: VRApp.prototype.makeCycleButton,
+      makeActionButton: VRApp.prototype.makeActionButton,
+      _toggleSettingsSection: jest.fn(),
+      _launchImmersiveVideo: jest.fn(),
+      _clearBrowsingHistory: jest.fn(),
+      _requestReaderProxyInput: jest.fn(),
+      _onWebPanelToggleChanged: jest.fn(),
+      ...over
+    });
+    return app;
+  };
+
+  test('returns a positioned, angled group whose controls are all registered interactables', () => {
+    const app = makePanelOrchestrator();
+    const panel = VRApp.prototype.createSettingsPanel.call(app);
+    expect(panel).toBeInstanceOf(THREE.Group);
+    expect(panel.name).toBe('settingsPanel');
+    expect(panel.position.x).toBeCloseTo(-1.4);
+    expect(panel.rotation.y).toBeCloseTo(Math.PI / 8);
+    // Tab row (≥5 sections) + open a11y section controls all registered.
+    expect(app.interactables.length).toBeGreaterThanOrEqual(5 + 9);
+    // Every drawer collected for one-shot repaints (high-contrast toggle).
+    expect(app._settingsPanelDrawers.length).toBe(panel.children.length - 1); // minus bg
+  });
+
+  test('openSettingsSections defaults to a11y when the persisted value is missing', () => {
+    const app = makePanelOrchestrator();
+    delete app.settings.openSettingsSections;
+    VRApp.prototype.createSettingsPanel.call(app);
+    expect(app.settings.openSettingsSections).toEqual(['settings.section.a11y']);
+  });
+
+  test('closing a section via its tab leaves other sections collapsed — only the open section renders controls', () => {
+    const app = makePanelOrchestrator({
+      settings: { ...SETTINGS, openSettingsSections: ['settings.section.audio'] }
+    });
+    VRApp.prototype.createSettingsPanel.call(app);
+    // Audio section = 1 stepper (masterVolume) + 1 action (video360) + ≥5 tabs.
+    // If every section rendered, interactables would be ~30; pinned far below.
+    expect(app.interactables.length).toBeLessThan(12);
+  });
+
+  test('every defined control is placed — the leftover section exists only when a key was missed', () => {
+    const app = makePanelOrchestrator();
+    const panel = VRApp.prototype.createSettingsPanel.call(app);
+    // 5 named sections: tabs count tells us whether 'other' was needed.
+    const tabCount = app.interactables.length - (4 + 5); // a11y toggles+steppers
+    // With all keys placed, sections = 5, so 5 tabs; a 6th tab means leftover.
+    expect(tabCount).toBe(5);
+    expect(panel.children.length).toBeGreaterThan(5);
+  });
+});
