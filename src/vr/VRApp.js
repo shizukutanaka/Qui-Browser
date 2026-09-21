@@ -27,7 +27,7 @@ import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinat
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
-import { t } from '../i18n/i18n.js';
+import { t, getLanguage } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
@@ -76,7 +76,8 @@ export function defaultSettings() {
     snapTurnAngle: 30, // degrees per snap
     // Smooth (continuous) locomotion on the left thumbstick. OFF by default —
     // it is the main sickness trigger; the comfort vignette engages while it
-    // is active. Teleport remains the comfortable default.
+    // is active (opacity scales with stick deflection). Teleport remains the
+    // comfortable default.
     enableSmoothMove: false,
     smoothMoveSpeed: 1.8, // metres/second
     // Controller input options.
@@ -520,7 +521,11 @@ export class VRApp {
    */
   setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      antialias: false,  // Disabled for performance (use FXAA/TAA instead)
+      // true: three.js WebXR gives the XR framebuffer 4x MSAA only when this
+      // flag is set (WebXRManager: samples = antialias ? 4 : 0). With it false
+      // the headset renders unantialiased — jagged panel/text edges — and the
+      // FXAA/TAA fallback the old comment referenced does not exist.
+      antialias: true,
       powerPreference: 'high-performance',
       preserveDrawingBuffer: false,
       stencil: false  // Disabled if not needed
@@ -602,7 +607,10 @@ export class VRApp {
    */
   setupScene() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111); // Dark for battery savings
+    // Pure black: Meta's WebXR perf guidance notes Adreno GPUs have a
+    // hardware fast-clear path only for black or white clears; on OLED,
+    // off-pixels also save more power than a gray that still emits light.
+    this.scene.background = new THREE.Color(0x000000);
 
     // Simple ambient light (cheap)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -702,7 +710,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -804,7 +811,6 @@ export class VRApp {
     ctx.fillText(shown, W / 2, H / 2);
 
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
 
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.55, 0.085),
@@ -1070,7 +1076,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
     const label = t(sectionId);
 
@@ -1178,7 +1183,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1241,7 +1245,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1335,7 +1338,6 @@ export class VRApp {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
-    tex.colorSpace = THREE.SRGBColorSpace;
     this._panelTextures.push(tex);
 
     const draw = (hover) => {
@@ -1521,7 +1523,19 @@ export class VRApp {
           this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
         }
       }],
-      [t('vr.settings.comfort'), 'enableComfort', null],
+      [t('vr.settings.comfort'), 'enableComfort', (v) => {
+        // Turning comfort off mid-glide would otherwise leave the vignette
+        // frozen at its current opacity — clear it on disable.
+        if (!v && this.comfortSystem) {
+          this.comfortSystem.currentVignette = 0;
+          if (this.comfortSystem.vignetteMaterial) {
+            this.comfortSystem.vignetteMaterial.opacity = 0;
+          }
+          if (this.comfortSystem.vignetteMesh) {
+            this.comfortSystem.vignetteMesh.visible = false;
+          }
+        }
+      }],
       [t('vr.settings.foveation'), 'enableFFR', (v) => {
         if (this.ffrSystem) {
           v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
@@ -1555,6 +1569,28 @@ export class VRApp {
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
       // Read live in navigate() — no subsystem to wire.
       [t('vr.settings.privateMode'), 'privateMode', null],
+      // Voice commands are fully wired but were unreachable: enableVoice had
+      // no write path. The toggle lazily initializes the recognizer on first
+      // enable (mic permission is requested then) and disposes it on disable.
+      [t('vr.settings.voice'), 'enableVoice', (v) => {
+        if (v) {
+          this._initVoiceCommands().then(() => {
+            // The command grammar is Japanese-only — recognition.lang and every
+            // confirmation string are fixed Japanese. An English-locale user who
+            // enables this gets a recognizer that can never match; say so
+            // instead of announcing a feature that silently can't work.
+            const key = !this.voiceCommands
+              ? 'vr.error.voiceUnavailable'
+              : (getLanguage() === 'ja' ? 'vr.msg.voiceOn' : 'vr.msg.voiceJaOnly');
+            this.showVRToast(t(key), { type: this.voiceCommands ? 'info' : 'warn' });
+          }).catch(() => {
+            this.showVRToast(t('vr.error.voiceUnavailable'), { type: 'warn' });
+          });
+        } else {
+          this._teardownVoiceCommands();
+          this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+        }
+      }],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
         if (this.windowManager) {
           this.windowManager.setFollow(v);
@@ -1565,6 +1601,48 @@ export class VRApp {
           this.tabManager.setCurved(v);
         } else if (this.webPanel && this.webPanel.setCurved) {
           this.webPanel.setCurved(v);
+        }
+      }],
+      // These four were dead settings — read at boot but unreachable from any
+      // UI. Wired live: home env swaps the scene subtree, perf overlay is a
+      // DOM element (created lazily on first enable), texture cache toggles
+      // the TextureManager the ProgressiveLoader consults per load.
+      [t('vr.settings.homeEnv'), 'enableHomeEnvironment', (v) => {
+        if (!this.scene) {
+          return;
+        }
+        if (v && !this.homeEnvironment) {
+          this.homeEnvironment = this.createHomeEnvironment();
+        }
+        if (this.homeEnvironment) {
+          if (v && !this.homeEnvironment.parent) {
+            this.scene.add(this.homeEnvironment);
+          } else if (!v && this.homeEnvironment.parent) {
+            this.scene.remove(this.homeEnvironment);
+          }
+        }
+      }],
+      [t('vr.settings.perfMonitor'), 'enablePerfMonitorUI', (v) => {
+        if (v && !this.perfMonitorUI) {
+          this.perfMonitorUI = new PerformanceMonitor();
+          this.perfMonitorUI.initialize();
+        }
+        if (this.perfMonitorUI) {
+          v ? this.perfMonitorUI.show() : this.perfMonitorUI.hide();
+        }
+      }],
+      [t('vr.settings.textureCache'), 'enableTextureManager', (v) => {
+        if (v && !this.textureManager) {
+          this.textureManager = new TextureManager(this.renderer);
+          if (this.progressiveLoader) {
+            this.progressiveLoader.textureManager = this.textureManager;
+          }
+        } else if (!v && this.textureManager) {
+          this.textureManager.dispose();
+          this.textureManager = null;
+          if (this.progressiveLoader) {
+            this.progressiveLoader.textureManager = null;
+          }
         }
       }]
     ];
@@ -1597,6 +1675,16 @@ export class VRApp {
         apply: (v) => {
           if (this.windowManager) {
             this.windowManager.setDistance(v);
+          }
+        }
+      }],
+      // Stick drift compensation — VRControllerInput reads deadZone on every
+      // read() call, so writing it live takes effect the next frame.
+      [t('vr.settings.deadZone'), 'controllerDeadZone', {
+        min: 0, max: 0.4, step: 0.05, unit: '',
+        apply: (v) => {
+          if (this.controllerInput) {
+            this.controllerInput.deadZone = v;
           }
         }
       }],
@@ -1701,13 +1789,13 @@ export class VRApp {
         [], []],
       ['settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
+        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
         cycles.filter((c) => c[1] === 'motionSensitivity'), []],
       ['settings.section.display',
-        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
+        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment', 'enablePerfMonitorUI', 'enableTextureManager']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel', 'privateMode']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'enableVoice']), [],
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -1847,7 +1935,6 @@ export class VRApp {
     ctx.fillText(t('vr.welcome'), canvas.width / 2, 190);
 
     const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
-    panelTex.colorSpace = THREE.SRGBColorSpace;
     this._homePanelTexture = panelTex; // kept for explicit disposal
     const panel = new THREE.Mesh(
       new THREE.PlaneGeometry(2.4, 0.6),
@@ -2080,10 +2167,10 @@ export class VRApp {
   }
 
   /**
-   * Per-frame locomotion input: snap turn on the right thumbstick. Rotates the
-   * whole player rig about the head so the user spins in place. (Smooth-move on
-   * the left stick is intentionally deferred until comfort-vignette coupling is
-   * wired, since continuous motion is the main sickness trigger.)
+   * Per-frame locomotion input: snap turn on the right thumbstick (rotates the
+   * whole player rig about the head so the user spins in place), smooth move on
+   * the left thumbstick. Smooth-move deflection feeds ComfortSystem.externalMotion
+   * so the comfort vignette tracks actual glide speed.
    */
   updateLocomotion(dt = 0.016) {
     if (!this.playerRig) {
@@ -2148,7 +2235,7 @@ export class VRApp {
           smoothMoving = true;
           // Track how far the stick is pushed (dead-zone output is already
           // normalized to (0,1]) so the comfort vignette can scale with actual
-          // glide speed rather than snapping to full strength (adaptive FOV
+          // glide speed rather than snapping to full strength (adaptive
           // restriction). Take the strongest deflection across both hands.
           smoothMoveLevel = Math.max(smoothMoveLevel, Math.min(1, Math.hypot(x, y)));
         }
@@ -2498,12 +2585,7 @@ export class VRApp {
 
     // 2. Comfort System
     if (this.settings.enableComfort) {
-      this.comfortSystem = new ComfortSystem(
-        this.scene,
-        this.camera,
-        this.renderer,
-        { reduceMotion: osReducedMotion() }
-      );
+      this.comfortSystem = new ComfortSystem(this.camera);
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
     }
@@ -2651,136 +2733,164 @@ export class VRApp {
 
     // 10. Voice Commands
     if (this.settings.enableVoice) {
-      this.voiceCommands = new VoiceCommands();
-      const voiceReady = await this.voiceCommands.initialize();
-      if (voiceReady) {
-        // FR-13.1: caption recognized speech so it is visible in VR.
-        this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
-          if (isFinal && this.captionSystem) {
-            this.captionSystem.show(transcript);
-          }
-        };
-        // Mirror spoken responses (confirmations / errors) to captions too, so a
-        // user who can speak but not hear sees whether a command was understood.
-        this.voiceCommands.callbacks.onSpeak = (text) => {
-          if (this.captionSystem) {
-            this.captionSystem.show(text);
-          }
-        };
-        // Haptic confirmation on every successful voice command — parity with
-        // controller presses, gaze-dwell activation, teleport, and snap turn.
-        // Voice is a hands-free modality, so both hands receive the click pulse.
-        this.voiceCommands.callbacks.onCommand = (_key, _result) => {
-          voiceCommandFeedback(this.hapticFeedback);
-        };
-        // Distinct double-bump on failure (no match or action exception) so a
-        // user not looking at captions knows to try again without audio.
-        this.voiceCommands.callbacks.onCommandFailed = (_info) => {
-          voiceCommandFailedFeedback(this.hapticFeedback);
-        };
-        // Surface speech-recognition errors as VR toasts with cross-modal
-        // feedback. Without this the recognizer goes silent and the user has
-        // no way of knowing voice commands stopped working.
-        this.voiceCommands.callbacks.onError = (errorCode) => {
-          const { message, type } = voiceErrorNotification(errorCode);
-          this.showVRToast(message, { type });
-        };
-        // Replace window.* default commands with VR-aware implementations that
-        // route navigation and search through the live TabManager.
-        this.voiceCommands.connectBrowser({
-          tabManager:    this.tabManager,
-          bookmarkPanel: this.bookmarkPanel,
-          vrKeyboard:    this.vrKeyboard,
-          onSearch: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (active) {
-              // Mirror the immediate "Loading:" caption that the URL-bar and
-              // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-              // caption-reliant users know their voice command was accepted
-              // before the page finishes loading.
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Top Sites: jump to the most-used destination (frecency-ranked from
-          // history). Fewest-dwell navigation for hands-free users; announced
-          // cross-modally so it's perceivable without sight.
-          onTopSites: () => {
-            // Exclude search-engine result pages so the user's actual
-            // destinations win the slot, not their search engine.
-            const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
-            const active = this.tabManager?.getActiveTab?.();
-            if (top && active) {
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
-              }
-              active.navigate(top.url);
-            } else if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(t('vr.msg.noTopSites'));
-            }
-          },
-          // Go-to: look up the extracted site name in frecency-ranked
-          // history/bookmarks. A history hit navigates directly (fewest dwells
-          // for a familiar destination); no hit falls back to web search so the
-          // command always produces a result. This closes the loop on the
-          // autocomplete data layer (BookmarkStore.search) for voice input.
-          onGoTo: (query) => {
-            const active = this.tabManager?.getActiveTab?.();
-            if (!active) {
-              return;
-            }
-            const hits = this.bookmarks.search(query, 1, Date.now());
-            if (hits.length > 0) {
-              const hit = hits[0];
-              if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
-              }
-              active.navigate(hit.url);
-            } else {
-              // No frecency match — treat as URL or web search
-              if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
-              }
-              active.navigate(query);
-            }
-          },
-          // Hands-free equivalent of the "Clear History" settings action.
-          onClearHistory: () => this._clearBrowsingHistory(),
-          // Scroll the active panel's reader viewport (the fetched article
-          // text), which is what "下にスクロール" can actually move in VR.
-          onScrollContent: (delta) => {
-            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-          },
-          // Hands-free session control — the same paths as the landing
-          // Enter-VR button and the headset's own session end.
-          onEnterVR: () => this.vrButton?.click?.(),
-          onExitVR: () => {
-            this.renderer?.xr?.getSession?.()?.end?.();
-          },
-          // "音量上げる/下げる" — adjusts the same masterVolume setting the
-          // settings-panel stepper drives, persists it, and returns the new
-          // level so VoiceCommands can speak it back.
-          onVolumeChange: (delta) => {
-            const next = Math.max(0, Math.min(100,
-              (this.settings.masterVolume ?? 100) + delta * 100));
-            this.updateSetting('masterVolume', next);
-            if (this.spatialAudio) {
-              this.spatialAudio.setMasterVolume(next / 100);
-            }
-            return next;
-          }
-        });
-        // Begin listening immediately (user granted mic permission during initialize).
-        this.voiceCommands.start();
-        console.debug('VRApp: Voice commands ready and listening');
-      } else {
-        console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
-        this.voiceCommands = null;
-      }
+      await this._initVoiceCommands();
     }
 
+    await this._initializeSystemsTail(startTime);
+  }
+
+  /**
+   * Construct + initialize VoiceCommands and wire every cross-modal callback
+   * (transcript captions, spoken-response captions, haptic confirm/fail,
+   * error toasts, browser actions). Runs at boot when enableVoice is set and
+   * lazily from the settings toggle — mic permission is requested by
+   * initialize() at whichever point the feature is first turned on.
+   */
+  async _initVoiceCommands() {
+    this.voiceCommands = new VoiceCommands();
+    const voiceReady = await this.voiceCommands.initialize();
+    if (voiceReady) {
+      // FR-13.1: caption recognized speech so it is visible in VR.
+      this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
+        if (isFinal && this.captionSystem) {
+          this.captionSystem.show(transcript);
+        }
+      };
+      // Mirror spoken responses (confirmations / errors) to captions too, so a
+      // user who can speak but not hear sees whether a command was understood.
+      this.voiceCommands.callbacks.onSpeak = (text) => {
+        if (this.captionSystem) {
+          this.captionSystem.show(text);
+        }
+      };
+      // Haptic confirmation on every successful voice command — parity with
+      // controller presses, gaze-dwell activation, teleport, and snap turn.
+      // Voice is a hands-free modality, so both hands receive the click pulse.
+      this.voiceCommands.callbacks.onCommand = (_key, _result) => {
+        voiceCommandFeedback(this.hapticFeedback);
+      };
+      // Distinct double-bump on failure (no match or action exception) so a
+      // user not looking at captions knows to try again without audio.
+      this.voiceCommands.callbacks.onCommandFailed = (_info) => {
+        voiceCommandFailedFeedback(this.hapticFeedback);
+      };
+      // Surface speech-recognition errors as VR toasts with cross-modal
+      // feedback. Without this the recognizer goes silent and the user has
+      // no way of knowing voice commands stopped working.
+      this.voiceCommands.callbacks.onError = (errorCode) => {
+        const { message, type } = voiceErrorNotification(errorCode);
+        this.showVRToast(message, { type });
+      };
+      // Replace window.* default commands with VR-aware implementations that
+      // route navigation and search through the live TabManager.
+      this.voiceCommands.connectBrowser({
+        tabManager:    this.tabManager,
+        bookmarkPanel: this.bookmarkPanel,
+        vrKeyboard:    this.vrKeyboard,
+        onSearch: (query) => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (active) {
+            // Mirror the immediate "Loading:" caption that the URL-bar and
+            // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+            // caption-reliant users know their voice command was accepted
+            // before the page finishes loading.
+            if (query && this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+            }
+            active.navigate(query);
+          }
+        },
+        // Top Sites: jump to the most-used destination (frecency-ranked from
+        // history). Fewest-dwell navigation for hands-free users; announced
+        // cross-modally so it's perceivable without sight.
+        onTopSites: () => {
+          // Exclude search-engine result pages so the user's actual
+          // destinations win the slot, not their search engine.
+          const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
+          const active = this.tabManager?.getActiveTab?.();
+          if (top && active) {
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+            }
+            active.navigate(top.url);
+          } else if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(t('vr.msg.noTopSites'));
+          }
+        },
+        // Go-to: look up the extracted site name in frecency-ranked
+        // history/bookmarks. A history hit navigates directly (fewest dwells
+        // for a familiar destination); no hit falls back to web search so the
+        // command always produces a result. This closes the loop on the
+        // autocomplete data layer (BookmarkStore.search) for voice input.
+        onGoTo: (query) => {
+          const active = this.tabManager?.getActiveTab?.();
+          if (!active) {
+            return;
+          }
+          const hits = this.bookmarks.search(query, 1, Date.now());
+          if (hits.length > 0) {
+            const hit = hits[0];
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+            }
+            active.navigate(hit.url);
+          } else {
+            // No frecency match — treat as URL or web search
+            if (query && this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+            }
+            active.navigate(query);
+          }
+        },
+        // Hands-free equivalent of the "Clear History" settings action.
+        onClearHistory: () => this._clearBrowsingHistory(),
+        // Scroll the active panel's reader viewport (the fetched article
+        // text), which is what "下にスクロール" can actually move in VR.
+        onScrollContent: (delta) => {
+          this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+        },
+        // Hands-free session control — the same paths as the landing
+        // Enter-VR button and the headset's own session end.
+        onEnterVR: () => this.vrButton?.click?.(),
+        onExitVR: () => {
+          this.renderer?.xr?.getSession?.()?.end?.();
+        },
+        // "音量上げる/下げる" — adjusts the same masterVolume setting the
+        // settings-panel stepper drives, persists it, and returns the new
+        // level so VoiceCommands can speak it back.
+        onVolumeChange: (delta) => {
+          const next = Math.max(0, Math.min(100,
+            (this.settings.masterVolume ?? 100) + delta * 100));
+          this.updateSetting('masterVolume', next);
+          if (this.spatialAudio) {
+            this.spatialAudio.setMasterVolume(next / 100);
+          }
+          return next;
+        }
+      });
+      // Begin listening immediately (user granted mic permission during initialize).
+      this.voiceCommands.start();
+      console.debug('VRApp: Voice commands ready and listening');
+    } else {
+      console.warn('VRApp: Voice commands unavailable (browser support or permission denied)');
+      this.voiceCommands = null;
+    }
+  }
+
+  /** Settings-toggle off: stop listening and release mic/tts resources. */
+  _teardownVoiceCommands() {
+    if (this.voiceCommands) {
+      this.voiceCommands.dispose();
+      this.voiceCommands = null;
+    }
+  }
+
+  /**
+   * Continue initializeSystems(): DevTools, perf monitor, and the tail of the
+   * system bring-up. Split out so the voice-init block can live in its own
+   * method (the settings toggle reuses it).
+   */
+  async _initializeSystemsTail(startTime) {
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
     if (import.meta.env && import.meta.env.DEV) {
@@ -2795,6 +2905,17 @@ export class VRApp {
       this.perfMonitorUI = new PerformanceMonitor();
       this.perfMonitorUI.initialize();
       console.debug('VRApp: Performance monitor UI ready');
+    }
+
+    // Pre-compile scene shaders while the 2D page is still idle — otherwise
+    // the first rendered frame (often at VR-session entry, the worst possible
+    // moment) pays the full compile hitch. compileAsync resolves only once
+    // KHR_parallel_shader_compile reports every program ready, so the first
+    // frame can't stall on a mid-compile program.
+    if (this.renderer && this.scene && this.camera
+        && typeof this.renderer.compileAsync === 'function') {
+      this.renderer.compileAsync(this.scene, this.camera)
+        .catch((e) => console.debug('VRApp: shader precompile skipped', e));
     }
 
     const loadTime = performance.now() - startTime;
@@ -2813,9 +2934,6 @@ export class VRApp {
 
     this._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
     this._onOSReducedMotionChange = (e) => {
-      if (this.comfortSystem) {
-        this.comfortSystem.setReducedMotion(e.matches);
-      }
       if (this.gazeInteraction) {
         this.gazeInteraction.setReducedMotion(e.matches);
       }
@@ -2867,12 +2985,16 @@ export class VRApp {
    * Setup WebXR
    */
   setupVR() {
-    // Add VR button to page. 'hand-tracking' must be requested up front:
-    // WebXR populates XRInputSource.hand only for sessions granted that
-    // feature — without it HandTracking initialises 'successfully' but sees
-    // zero hands forever.
+    // Add VR button to page. Both features must be requested up front —
+    // WebXR only exposes gated APIs on granted sessions:
+    //   • 'hand-tracking': without it XRInputSource.hand stays null and
+    //     HandTracking initialises 'successfully' but sees zero hands forever.
+    //   • 'layers': without it `new XRWebGLBinding()` throws, so both
+    //     FFRSystem (fixedFoveation on the projection layer) and LayersSystem
+    //     (native quad layers — the sharpest text path on Quest) fall back
+    //     silently even on hardware that supports them.
     const vrButton = VRButton.createButton(this.renderer, {
-      optionalFeatures: ['hand-tracking']
+      optionalFeatures: ['hand-tracking', 'layers']
     });
     document.body.appendChild(vrButton);
     this.vrButton = vrButton;
@@ -2942,6 +3064,12 @@ export class VRApp {
     // Request the best rate the runtime offers and measure the budget
     // against the rate the session actually runs at.
     if (session && !this.settings._fpsOverridden) {
+      // Dynamic viewport scaling (XRView.requestViewportScale): cheaper than
+      // dropping refresh rate — same Hz, fewer pixels, no judder. Tried first
+      // in the sustained-overload ladder. Capability-checked per call; some
+      // runtimes expose the method but not the feature.
+      this._viewScaleLadder = [0.85, 0.7];
+      this._viewScaleIdx = 0;
       const syncBudget = () => {
         if (session.refreshRate) {
           this.settings.targetFPS = Math.round(session.refreshRate);
@@ -2949,7 +3077,13 @@ export class VRApp {
       };
       if (session.supportedFrameRates && session.supportedFrameRates.length
           && typeof session.updateTargetFrameRate === 'function') {
-        const best = Math.max(...session.supportedFrameRates);
+        // Keep the ladder so sustained budget misses can step DOWN a rate —
+        // Meta's guidance: an app that can't hit its target should lower the
+        // rate so the compositor synthesizes fewer missing frames.
+        this._rateLadder = [...session.supportedFrameRates].sort((a, b) => b - a);
+        this._rateIdx = 0;
+        this._overBudgetFrames = 0;
+        const best = this._rateLadder[0];
         session.updateTargetFrameRate(best).then(syncBudget, syncBudget);
       } else {
         syncBudget();
@@ -2960,7 +3094,7 @@ export class VRApp {
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
       try {
-        await this.ffrSystem.initialize(session, gl);
+        await this.ffrSystem.initialize(session, gl, this.renderer.xr);
         this.ffrSystem.enable(0.5);
         console.debug('VRApp: FFR enabled for session');
       } catch (e) {
@@ -2987,26 +3121,21 @@ export class VRApp {
       }
     }
 
-    // Update comfort system FOV baseline for VR (reset to device-appropriate value).
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = 90;
-    }
-
     // Initialize hand tracking
     if (this.handTracking && session) {
       await this.handTracking.initialize(session);
 
-      // Register gesture callbacks
+      // Pinch selection itself already flows through the XRSession
+      // 'selectstart' path: the runtime raises it on the hand's inputSource,
+      // three dispatches it to that source's controller, and
+      // onControllerSelect() raycasts the hand's target ray — dispatching a
+      // second select here would double-fire every interactable.
+      // This callback only adds the proprioceptive haptic tick (a no-op for
+      // bare hands — they have no gamepad actuator). It intentionally plays
+      // no sound: a click cue on every pinch claimed an action that mid-air
+      // pinches never performed.
       this.handTracking.onGesture('pinch', (hand, _gesture) => {
         console.debug(`${hand} hand pinch detected`);
-        // Play spatial sound at pinch position
-        if (this.spatialAudio) {
-          const pos = this.handTracking.getPinchPosition(hand);
-          if (pos) {
-            this.spatialAudio.play('click', 'click', pos);
-          }
-        }
-        // Haptic confirmation on pinch (lightweight click feel).
         if (this.hapticFeedback) {
           this.hapticFeedback.playPattern(hand, 'click');
         }
@@ -3043,11 +3172,6 @@ export class VRApp {
     // Disable FFR
     if (this.ffrSystem) {
       this.ffrSystem.disable();
-    }
-
-    // Restore desktop FOV baseline when leaving VR.
-    if (this.comfortSystem) {
-      this.comfortSystem.settings.fov.baseFOV = this.camera.fov || 90;
     }
 
     // FR-1.5: detach layers from panels and dispose binding.
@@ -3091,6 +3215,13 @@ export class VRApp {
     if (!this.settings._fpsOverridden && this.deviceCompat) {
       this.settings.targetFPS = this.deviceCompat.targetFPS();
     }
+    // The rate ladder is a per-session object — a stale one from a previous
+    // session could point at rates the new session doesn't support.
+    this._rateLadder = null;
+    this._rateIdx = 0;
+    this._overBudgetFrames = 0;
+    this._viewScaleLadder = null;
+    this._viewScaleIdx = 0;
 
     // Restore render settings
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -3222,8 +3353,54 @@ export class VRApp {
       const targetFrameTime = 1000 / this.settings.targetFPS;
       if (this.performanceMonitor.frameTime > targetFrameTime) {
         this.ffrSystem.adjustIntensity(0.01);
+        this._overBudgetFrames = (this._overBudgetFrames || 0) + 1;
       } else {
         this.ffrSystem.adjustIntensity(-0.01);
+        this._overBudgetFrames = 0;
+      }
+      // Sustained overload (~240 consecutive misses ≈ 2.7 s at 90 Hz): FFR
+      // alone can't buy back a frame that doesn't fit. Meta's ordering is
+      // resolution first, refresh rate second — XRView.requestViewportScale
+      // renders the same scene into fewer pixels without judder; only when
+      // the scale ladder is exhausted do we drop the session rate.
+      // Skipped when the user pinned a rate via settings (_fpsOverridden).
+      if (this._overBudgetFrames > 240 && !this.settings._fpsOverridden) {
+        const session = this.renderer.xr.getSession();
+        if (session) {
+          this._overBudgetFrames = 0;
+
+          // 1) Shrink the viewport if the ladder has room and a view can take it.
+          let scaled = false;
+          if (this._viewScaleLadder && this._viewScaleIdx < this._viewScaleLadder.length) {
+            try {
+              const refSpace = this.renderer.xr.getReferenceSpace();
+              const view = refSpace && xrFrame
+                ? xrFrame.getViewerPose(refSpace)?.views?.[0]
+                : null;
+              if (view && typeof view.requestViewportScale === 'function') {
+                view.requestViewportScale(this._viewScaleLadder[this._viewScaleIdx]);
+                this._viewScaleIdx++;
+                scaled = true;
+              }
+            } catch (e) {
+              console.debug('VRApp: viewport scale request skipped', e);
+            }
+          }
+          if (!scaled && this._viewScaleLadder) {
+            this._viewScaleIdx = this._viewScaleLadder.length; // don't retry per window
+          }
+
+          // 2) Then the frame-rate step-down.
+          if (!scaled
+              && this._rateLadder && this._rateIdx + 1 < this._rateLadder.length) {
+            const next = this._rateLadder[++this._rateIdx];
+            session.updateTargetFrameRate(next).then(() => {
+              if (session.refreshRate) {
+                this.settings.targetFPS = Math.round(session.refreshRate);
+              }
+            }, () => {});
+          }
+        }
       }
     }
 

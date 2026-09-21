@@ -22,7 +22,7 @@ const DEAD = {
   'src/vr/audio/SpatialAudio.js': ['setSourceOrientation', 'setSourceVelocity', 'setSourceVolume', 'createReverb'],
   'src/vr/browser/WebPanel.js': ['goBack', 'goForward', 'onDomOverlayStart', 'onDomOverlayEnd'],
   'src/vr/browser/WindowManager.js': ['setBillboard', 'nudgeDistance'],
-  'src/vr/comfort/ComfortSystem.js': ['getStatus', 'resize'],
+  'src/vr/comfort/ComfortSystem.js': ['getStatus', 'resize', 'render', 'handleSnapTurn', 'animateSnapTurn', 'updateFOV', 'setReducedMotion'],
   'src/vr/input/JapaneseIME.js': ['deactivate'],
   'src/vr/input/VoiceCommands.js': ['unregisterCommand', 'setLanguage'],
   'src/vr/interaction/HapticFeedback.js': ['simulateForce', 'directionalPulse', 'playRhythm', 'getPatterns', 'resetStats'],

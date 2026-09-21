@@ -79,9 +79,6 @@ export class BookmarkPanel {
       this.canvas.height = PANEL_PX_H;
     }
     this.tex = this.canvas ? configureUITexture(new THREE.CanvasTexture(this.canvas)) : null;
-    if (this.tex) {
-      this.tex.colorSpace = THREE.SRGBColorSpace;
-    }
 
     this.mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(this.panelW, this.panelH),

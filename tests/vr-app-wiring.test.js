@@ -37,14 +37,20 @@ const ctx2d = {
 global.document = {
   createElement: (tag) => {
     if (tag === 'canvas') {
-      return { width: 0, height: 0, getContext: () => ctx2d };
+      return { width: 0, height: 0, style: {}, getContext: () => ctx2d };
     }
-    return { style: {}, appendChild: jest.fn() };
-  }
+    return { style: {}, appendChild: jest.fn(), parentNode: null };
+  },
+  body: {
+    appendChild: jest.fn(),
+    classList: { toggle: jest.fn(), add: jest.fn(), remove: jest.fn(), contains: jest.fn(() => false) }
+  },
+  getElementById: () => ({ addEventListener: jest.fn() })
 };
 
 const THREE = require('three');
 const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
+const { t } = require('../src/i18n/i18n.js');
 
 function makeGroup() {
   return { position: { set: jest.fn() }, quaternion: { identity: jest.fn() } };
@@ -848,16 +854,14 @@ describe('VRApp._setupOSAccessibilityListeners', () => {
       .toHaveBeenCalledWith('change', expect.any(Function));
   });
 
-  test('a reduced-motion OS change propagates live to comfortSystem and gazeInteraction', () => {
-    const comfortSystem = { setReducedMotion: jest.fn() };
+  test('a reduced-motion OS change propagates live to gazeInteraction', () => {
     const gazeInteraction = { setReducedMotion: jest.fn(), setHighContrast: jest.fn() };
-    const app = makeVRAppLike({ comfortSystem, gazeInteraction, captionSystem: null });
+    const app = makeVRAppLike({ comfortSystem: null, gazeInteraction, captionSystem: null });
     VRApp.prototype._setupOSAccessibilityListeners.call(app);
 
     const handler = mqs['(prefers-reduced-motion: reduce)'].addEventListener.mock.calls[0][1];
     handler({ matches: true });
 
-    expect(comfortSystem.setReducedMotion).toHaveBeenCalledWith(true);
     expect(gazeInteraction.setReducedMotion).toHaveBeenCalledWith(true);
   });
 
@@ -2156,7 +2160,7 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     ffrSystem: null,
     handTracking: null,
     spatialAudio: null,
-    comfortSystem: { settings: { fov: { baseFOV: 70 } } },
+    comfortSystem: { externalMotion: false, externalMotionLevel: 1 },
     immersiveVideo: null,
     layersSystem: null,
     showVRToast: jest.fn(),
@@ -2179,8 +2183,37 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(app.ffrSystem.enable).toHaveBeenCalledWith(0.5);
     expect(app.handTracking.onGesture).toHaveBeenCalledWith('pinch', expect.any(Function));
     expect(app.renderer.setPixelRatio).toHaveBeenCalledWith(1);
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
     expect(app.captionSystem.show).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  test('pinch gesture fires a haptic tick but never a select or click sound — selection arrives via the runtime\'s selectstart on the hand inputSource', async () => {
+    const session = makeSession();
+    let pinchCb;
+    const app = makeSessionApp({
+      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
+      handTracking: {
+        initialize: jest.fn().mockResolvedValue(true),
+        onGesture: jest.fn((name, cb) => {
+          if (name === 'pinch') {
+            pinchCb = cb;
+          }
+        }),
+        dispose: jest.fn()
+      },
+      interactables: [{}],
+      intersectInteractables: jest.fn(),
+      spatialAudio: { play: jest.fn() },
+      hapticFeedback: { playPattern: jest.fn() }
+    });
+    await VRApp.prototype.onVRSessionStart.call(app);
+    pinchCb('right', {});
+    // No second raycast/dispatch — the XR runtime raises selectstart on the
+    // hand inputSource, which onControllerSelect already handles. A double
+    // select would toggle every interactable twice per pinch.
+    expect(app.intersectInteractables).not.toHaveBeenCalled();
+    // No click cue on a bare pinch: mid-air pinches perform no action.
+    expect(app.spatialAudio.play).not.toHaveBeenCalled();
+    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
   });
 
   test('FFR init failure warns the user via toast instead of failing silently', async () => {
@@ -2210,6 +2243,77 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     await Promise.resolve();
     await Promise.resolve();
     expect(app.settings.targetFPS).toBe(120);
+  });
+
+  test('sustained budget misses step the session down a supported frame rate', () => {
+    const session = {
+      refreshRate: 120,
+      updateTargetFrameRate: jest.fn().mockResolvedValue(undefined)
+    };
+    const app = makeSystemsApp({
+      isVREnabled: true,
+      settings: { targetFPS: 120 },
+      performanceMonitor: { frameTime: 50 }, // > 1000/120 ≈ 8.3ms budget
+      ffrSystem: {
+        trackHeadPose: jest.fn(), updatePredictedGazeFoveation: jest.fn(),
+        adjustIntensity: jest.fn()
+      },
+      renderer: { xr: { getReferenceSpace: jest.fn(), getSession: () => session }, info: { render: {} } },
+      _rateLadder: [120, 90, 72],
+      _rateIdx: 0
+      // no _viewScaleLadder → runtime lacks requestViewportScale → rate drop
+    });
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    }
+    expect(session.updateTargetFrameRate).toHaveBeenCalledWith(90);
+    expect(app._rateIdx).toBe(1);
+  });
+
+  test('sustained misses shrink the viewport before dropping the frame rate', () => {
+    const requestViewportScale = jest.fn();
+    const session = {
+      refreshRate: 120,
+      updateTargetFrameRate: jest.fn().mockResolvedValue(undefined)
+    };
+    const app = makeSystemsApp({
+      isVREnabled: true,
+      settings: { targetFPS: 120 },
+      performanceMonitor: { frameTime: 50 },
+      ffrSystem: {
+        trackHeadPose: jest.fn(), updatePredictedGazeFoveation: jest.fn(),
+        adjustIntensity: jest.fn()
+      },
+      renderer: {
+        xr: { getReferenceSpace: () => 'ref', getSession: () => session },
+        info: { render: {} }
+      },
+      _rateLadder: [120, 90, 72],
+      _rateIdx: 0,
+      _viewScaleLadder: [0.85, 0.7],
+      _viewScaleIdx: 0
+    });
+    const frame = { getViewerPose: () => ({ views: [{ requestViewportScale }] }) };
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    // Resolution first: the viewport shrank and the rate was untouched.
+    expect(requestViewportScale).toHaveBeenCalledWith(0.85);
+    expect(session.updateTargetFrameRate).not.toHaveBeenCalled();
+    expect(app._viewScaleIdx).toBe(1);
+
+    // Still overloaded after the next 240-frame window → second, deeper shrink.
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    expect(requestViewportScale).toHaveBeenLastCalledWith(0.7);
+    expect(session.updateTargetFrameRate).not.toHaveBeenCalled();
+
+    // Ladder exhausted → finally the session drops a frame rate.
+    for (let i = 0; i < 241; i++) {
+      VRApp.prototype.updateSystems.call(app, 0, frame, 0.016);
+    }
+    expect(session.updateTargetFrameRate).toHaveBeenCalledWith(90);
   });
 
   test('no frame-rate module: refreshRate alone still re-bases the budget', async () => {
@@ -2251,32 +2355,11 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     expect(video.togglePause).not.toHaveBeenCalled();
   });
 
-  test('pinch gesture callback fans out to spatial click + haptic', async () => {
-    const session = makeSession();
-    const hand = {
-      initialize: jest.fn().mockResolvedValue(true),
-      onGesture: jest.fn(),
-      getPinchPosition: jest.fn(() => new THREE.Vector3(1, 2, 3)),
-      dispose: jest.fn()
-    };
-    const app = makeSessionApp({
-      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
-      handTracking: hand,
-      spatialAudio: { play: jest.fn() }
-    });
-    await VRApp.prototype.onVRSessionStart.call(app);
-    const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    pinchCb('right', {});
-    expect(app.spatialAudio.play).toHaveBeenCalledWith('click', 'click', expect.any(THREE.Vector3));
-    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
-  });
-
   test('grab gesture fires an impact haptic on the grabbing hand; point is a no-op log', async () => {
     const session = makeSession();
     const hand = {
       initialize: jest.fn().mockResolvedValue(true),
       onGesture: jest.fn(),
-      getPinchPosition: jest.fn(),
       dispose: jest.fn()
     };
     const app = makeSessionApp({
@@ -2317,7 +2400,6 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
     // Ghost-hands fix: every re-entry would otherwise leak 50 joint meshes.
     expect(hand.dispose).toHaveBeenCalled();
     expect(app.onXRVisibilityChange).toBeNull();
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(75); // camera.fov restored
     expect(app.renderer.setPixelRatio).toHaveBeenLastCalledWith(1); // min(dpr=1, 2)
     delete global.window;
   });
@@ -2697,6 +2779,10 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     return app;
@@ -2797,6 +2883,10 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);
@@ -2878,7 +2968,19 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.tabManager.setCurved).toHaveBeenCalledWith(true);
     C[2].onSelect(); // follow off
     expect(app.windowManager.setFollow).toHaveBeenCalledWith(false);
-    const dist = C[3];
+    // homeEnv on -> add to scene; off -> remove
+    C[3].onSelect();
+    expect(app.homeEnvironment.parent).toBe(app.scene);
+    C[3].onSelect();
+    expect(app.homeEnvironment.parent).toBeNull();
+    C[4].onSelect(); // perfMonitor on -> lazily created + shown
+    expect(app.perfMonitorUI).toBeTruthy();
+    // textureCache toggles the TextureManager lifecycle live
+    C[5].onSelect();
+    const hadManager = !!app.textureManager;
+    C[5].onSelect();
+    expect(!!app.textureManager).toBe(!hadManager);
+    const dist = C[6];
     dist.onSelect({ intersection: { point: plusPoint(dist.mesh) } });
     expect(app.windowManager.setDistance).toHaveBeenCalledWith(app.settings.windowDistance);
   });
@@ -2890,15 +2992,17 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.webPanel.setCurved).toHaveBeenCalledWith(true);
   });
 
-  test('browsing: webPanel toggle delegates; search engine cycles; all 3 actions wired', () => {
+  test('browsing: webPanel toggle delegates; voice toggles lazily; search engine cycles; all 3 actions wired', () => {
     const app = P('settings.section.browsing');
     const C = app.interactables.slice(5);
     C[0].onSelect(); // enableWebPanel -> _onWebPanelToggleChanged(false)
     expect(app._onWebPanelToggleChanged).toHaveBeenCalledWith(false);
-    const cyc = C[2]; // toggles (2) + cycle searchEngine
+    C[2].onSelect(); // enableVoice false->true -> lazy _initVoiceCommands()
+    expect(app._initVoiceCommands).toHaveBeenCalled();
+    const cyc = C[3]; // toggles (3) + cycle searchEngine
     cyc.onSelect();
     expect(app.tabManager.setSearchEngine).toHaveBeenCalledWith('google');
-    const acts = C.slice(3); // clearHistory, readerProxy, bookmarks
+    const acts = C.slice(4); // clearHistory, readerProxy, bookmarks
     acts[0].onSelect();
     expect(app._clearBrowsingHistory).toHaveBeenCalled();
     acts[1].onSelect();
@@ -2906,6 +3010,17 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     acts[2].onSelect();
     expect(app.bookmarkPanel.toggle).toHaveBeenCalled();
     expect(app.captionSystem.show).toHaveBeenCalled(); // open/closed announcement
+  });
+
+  test('browsing: voice enable under a non-Japanese UI announces the ja-only constraint', async () => {
+    const app = P('settings.section.browsing');
+    // Successful init: install a stub recognizer so the toggle reads as enabled.
+    app._initVoiceCommands = jest.fn(async () => {
+      app.voiceCommands = { isEnabled: true };
+    });
+    app.interactables.slice(5)[2].onSelect(); // enableVoice -> init -> toast
+    await Promise.resolve(); await Promise.resolve(); // flush .then() chain
+    expect(app.showVRToast).toHaveBeenCalledWith(t('vr.msg.voiceJaOnly'), { type: 'info' });
   });
 
   test('a11y: highContrast apply repaints an open bookmark panel', () => {
@@ -3249,6 +3364,10 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
       _clearBrowsingHistory: jest.fn(),
       _requestReaderProxyInput: jest.fn(),
       _onWebPanelToggleChanged: jest.fn(),
+      _initVoiceCommands: jest.fn(async () => {}),
+      _teardownVoiceCommands: jest.fn(),
+      createHomeEnvironment: VRApp.prototype.createHomeEnvironment,
+      recenter: jest.fn(),
       ...over
     });
     VRApp.prototype.createSettingsPanel.call(app);
@@ -4045,14 +4164,14 @@ describe('VRApp updateLocomotion — axes defaults + reuse + zero-move arms', ()
 });
 
 describe('VRApp onVRSessionEnd — restore arms', () => {
-  test('camera.fov falsy restores 90; webPanel-only arm detaches its layer', () => {
+  test('webPanel-only arm detaches its layer', () => {
     const layers = { removeLayer: jest.fn(), dispose: jest.fn(), updateRenderState: jest.fn() };
     const webPanel = { disableLayerMode: jest.fn() };
     const app = {
       isVREnabled: true,
       ffrSystem: { disable: jest.fn() },
-      comfortSystem: { settings: { fov: { baseFOV: 0 } } },
-      camera: { fov: 0 }, // falsy → || 90
+      comfortSystem: null,
+      camera: { fov: 75 },
       layersSystem: layers,
       tabManager: null,
       webPanel,
@@ -4063,7 +4182,7 @@ describe('VRApp onVRSessionEnd — restore arms', () => {
       settings: { targetFPS: 90 }
     };
     expect(() => VRApp.prototype.onVRSessionEnd.call(app)).not.toThrow();
-    expect(app.comfortSystem.settings.fov.baseFOV).toBe(90);
+    expect(webPanel.disableLayerMode).toHaveBeenCalledWith(false);
   });
 });
 
@@ -4522,7 +4641,6 @@ describe('VRApp — complementary arms round 4', () => {
     const hand = {
       initialize: jest.fn().mockResolvedValue(true),
       onGesture: jest.fn(),
-      getPinchPosition: jest.fn(() => null), // pos-null arm
       dispose: jest.fn()
     };
     const app = makeVRAppLike({
@@ -4534,7 +4652,7 @@ describe('VRApp — complementary arms round 4', () => {
     });
     await VRApp.prototype.onVRSessionStart.call(app);
     const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    expect(() => pinchCb('right', {})).not.toThrow(); // spatialAudio/haptic guards both absent
+    expect(() => pinchCb('right', {})).not.toThrow(); // haptic absent guard
     const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
     expect(() => grabCb('left')).not.toThrow();
   });
@@ -4582,27 +4700,6 @@ describe('VRApp — complementary arms round 5', () => {
     delete global.localStorage;
   });
 
-  test('pinch with spatialAudio present but pinch position null skips play', async () => {
-    const session = { addEventListener: jest.fn(), visibilityState: 'visible' };
-    const hand = {
-      initialize: jest.fn().mockResolvedValue(true),
-      onGesture: jest.fn(),
-      getPinchPosition: jest.fn(() => null),
-      dispose: jest.fn()
-    };
-    const app = makeVRAppLike({
-      renderer: { xr: { getSession: () => session }, getContext: () => ({}), setPixelRatio: jest.fn() },
-      settings: { enableWebPanel: false },
-      handTracking: hand,
-      spatialAudio: { play: jest.fn() },
-      hapticFeedback: { playPattern: jest.fn() }
-    });
-    await VRApp.prototype.onVRSessionStart.call(app);
-    const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
-    pinchCb('right', {});
-    expect(app.spatialAudio.play).not.toHaveBeenCalled();   // pos null arm
-    expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('right', 'click');
-  });
 });
 
 

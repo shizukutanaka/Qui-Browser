@@ -245,6 +245,87 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き202 — `VRControllerInput.read()` の毎フレーム確保をゼロ化（Qiita three.js 指針の横展開）
+- 🔍 **発見**: `read()` が毎コール `{family,hand,axes,buttons}` + ボタン名ごとの `{pressed,justPressed,…}` を新規確保 — 2コントローラ × ~12オブジェクト × 90fps ≈ **秒間2,000個の短命オブジェクト**で Quest の JS GC 圧力。CaptionSystem/raycast で既に潰した「render loop で new」の同クラス最後の残存。
+- 🔧 **修正**: スナップショットを入力ソースごとに再利用（`_state` WeakMap に `snapshot` を保持）。形状は family 変更時のみ再構築（`prev` も同時リセット — キー名が変わるため）。`applyRadialDeadZone` に `out` 引数追加で `{x,y}` 確保も解消。no-gamepad 経路も per-source キャッシュ化、falsy ソースは共有 freeze 定数。docstring に「呼出側は同フレーム内同期読みのみ、跨フレーム保持禁止」を明記（実コンシューマー2箇所は既に同期読みのみ）。
+- 🧪 pin 3本: 跨フレーム同一オブジェクト＋justPressed が in-place で正しく立つ、family 変更で形状再構築、no-gamepad ソースの空スナップショット再利用。
+- ✅ 3078 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き201 — ComfortSystem を実測したら**全出力経路が没入中は死んでいた** → vignette を実働化し残りを削除
+- 🔍 **発見（three ソース実読 + WebXR spec）**: ComfortSystem の3つの効果が全て XR では無効だった:
+  - **vignette**: `setupVignette` が renderTarget+shader+quad を構築し `updateVignette` が毎フレーム uniform を更新するが、`comfortSystem.render()` を呼ぶ者がゼロ（VRApp は直接 `renderer.render`）— 描かれたことは一度もない。
+  - **FOV トンネリング**: `camera.fov` 書換は XR では無効 — ランタイムが投影を所有し、WebXRManager（819行目）が「camera.fov は XR では使われない」と明記、毎フレーム上書き。
+  - **snap-turn アニメーション**: `handleSnapTurn`/`animateSnapTurn` に呼出元ゼロ — VRApp は自前で即時回転。
+- 🔧 **修正（削除ではなく実働化）**: vignette は**カメラ子のグラデーション quad**（canvas radial-gradient `CanvasTexture`、depthTest/Write off、0.6 m 前方、opacity=currentVignette、<0.01 で非描画）に置換 — `WebXRManager.updateUserCamera` が XR pose をユーザー camera に書き戻すため子メッシュは頭に追従し XR で実際に効く。FOV・snap アニメ・post-process・`setReducedMotion`・`powerFactor` を削除、ctor を `(camera)` に縮小（scene/renderer も不要に）、`enableComfort` OFF 時に vignette を即座クリアする callback を追加。`externalMotion`/`externalMotionLevel` は残存（今や本物の vignette を滑走速度比例で駆動）。`smoothMoveWarning` の英語リテラルは `vr.msg.smoothMoveWarning`（en/ja）へ（WCAG 3.1.2 漏れ）。
+- 🧪 テスト全面書替（node 環境へ canvas stub、`camera.add`/`remove` pin、opacity/visible 断言、dispose の mesh teardown）。vr-app-wiring の死んだ baseFOV pin 3件を除去、brace-style の既存 error 1件も修正。IMPLEMENTATION.md の架空 API 例（scene 引数・fov/snapTurn 設定・handleSnapTurn）を実装記述へ同期。
+- ✅ 3075 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き200 — FFR に base-layer フォールバック（layers 非対応ランタイムで FFR が全滅していた）
+- 🔍 **発見**: `FFRSystem.initialize` が `XRWebGLBinding`/`getProjectionLayer()` 一本依存 — この経路は `'layers'` grant が必要で、非対応/拒否ランタイムでは**FFR 全体が初期化失敗**。だが WebXR の base `XRWebGLLayer` 自身が `fixedFoveation` を持ち grant 不要（three は `renderer.xr.setFoveation()` で書く）。
+- 🔧 **修正**: `initialize(session, gl, xrManager)` — XRWebGLBinding が投げた/フォービューション不可の時、`session.renderState.baseLayer.fixedFoveation` の存在を確認して `xrManager.setFoveation` 経路にフォールバック。両経路がある時は**デュアル書込み**（quad layer 使用時、base layer 側もフォービューションする）。全書込サイトを `_writeFoveation()` に集約、enabled ガードを projectionLayer 依存から解放。
+- 🧪 pin: binding 不可時の base-layer 経路初期化・書込み・dual-write、の3本追加。3089 tests 全緑。
+
+### Session 75: 続き199 — 過負荷ラダーに「解像度優先」を追加（requestViewportScale → その後 frame rate）
+- 🔍 **発見（Meta 指針 + WebXR spec）**: 持続予算超過時に**リフレッシュレートを先に下げていた** — Meta の推奨順序は逆で、「同じ Hz で描画ピクセルを減らす動的解像度（`XRView.requestViewportScale`）を先に試し、それでも駄目ならレートを下げる」。レートを落とすとジャダーするので解像度が先。
+- 🔧 **修正**: `_viewScaleLadder = [0.85, 0.7]` — 240フレーム連続超過ごとに `getViewerPose` → `view.requestViewportScale(scale)`（capability check + try/catch）。ラダー枯渇後に従来の frame-rate ステップダウンへ。
+- 🧪 pin 3段: viewport 縮小 → さらに縮小 → ラダー枯渇で rate 降下、を1テストで実測。
+
+### Session 75: 続き198 — 手ジョイントを InstancedMesh 化（追跡ペアあたり 50 draw calls → 2）
+- 🔍 **発見（three.js 最適化知見）**: HandTracking が25ジョイント×2手を**個別 Mesh**（50 geometry 確保 + 50 material clone + 50 draw calls）で描いていた。Quest の描画コール予算では同形状の大量メッシュは InstancedMesh が定石。
+- 🔧 **修正**: 手ごとに `InstancedMesh`（共有 SphereGeometry、DynamicDrawUsage、frustumCulled=false — インスタンスは独自に動くため culling 境界を追跡不能）。`joints` Map は Mesh ではなく `{position}` レコード化（ジェスチャー検出は `.position` のみ読むため互換）。関節の quaternion 更新は削除（球には不可視）。追跡品質の透過は手ごと集約に。
+- 🧪 pin 更新: インスタンス行列の書込み・未索引ジョイント・radius falsy arm、dispose の instanceMatrix 解放を実測。3086→3087 tests。
+
+### Session 75: 続き197 — UI canvas テクスチャの sRGB 統一（WebPanel/タブストリップが二重ガンマで不正確な色）
+- 🔍 **発見（three r152+ 色管理）**: `configureUITexture` が mipmap 無効化のみ担当で `colorSpace` を未設定 — 呼出側12箇所が手動で `tex.colorSpace = SRGBColorSpace` を付ける設計だったが、**WebPanel の3枚（chromeTex/contentTex/moveBarTex）と TabManager の stripTex が漏れ** → sRGB エンコード済み canvas が linear として解釈→出力時に再 sRGB 化で二重ガンマ、パネルとタブストリップの色が系統的に不正確に描画されていた。
+- 🔧 **修正**: `configureUITexture` に `tex.colorSpace = THREE.SRGBColorSpace` を追加（`THREE.SRGBColorSpace !== undefined` ガード付き、LinearFilter と同パターン）して単一の正本に — 呼出側の散在した代入（VRApp×7・JapaneseIME×4・ImmersiveVideo・BookmarkPanel・CaptionSystem）を全削除（ImmersiveVideo の VideoTexture 行は helper 非経由のため残置）。
+- 🧪 pin 更新: canvas-texture.test.js に sRGB 断言＋非 export ガードを追加、caption-system.test.js を「helper 経由で sRGB になる」実態 pin に。3086 tests / 72 suites 全緑、lint 0 errors。
+
+### Session 75: 続き196 — pinch の偽クリック音修正 + compileAsync 化（途中で二重選択を自損→検証で撤回）
+- 🔍 **当初の発見（続き120 同クラス）**: `handTracking.onGesture('pinch')` が無条件にクリック音を鳴らしていた — 空 pinch でも「選択した」ような告知。
+- 🔧 **一度間違えて修正→検証で撤回**: pinch コールバックに `getPointingRay` raycast → onSelect 発行を配線したが、three の WebXRManager ソースを検証したところ **hand inputSource の pinch はランタイムが `selectstart` を発火**（WebXR 仕様: hand の primary action = pinch）し、three がそれをコントローラに dispatch → `onControllerSelect` で**選択は元から動いていた**。私の新経路は二重選択（トグルが1 pinch で on→off）を起こす回帰だったため削除。真のバグは「空 pinch の偽クリック音」のみだった → 音を除去（成功選択の haptic は onControllerSelect 側が持つ）。
+- 🗑 **削除**: `getPinchPosition`/`getPointingRay`（本番呼出ゼロの死んだ API、各 ~20行＋呼出毎確保）とその pin テスト4件、重複 pinch テスト2件。
+- 🔧 **存続した修正**: `renderer.compile` → `compileAsync`（KHR_parallel_shader_compile で真の準備完了まで待機）。
+- 📝 **教訓**: 「呼出ゼロの API」は「機能が死んでいる」を意味しない — ランタイム経由のイベント経路（selectstart→controller dispatch）を確認してから配線しないと、存在する経路を重複させる。3085 tests / 72 suites 全緑。
+
+### Session 75: 続き195 — `pagehide` を beforeunload に並列配線（モバイルの teardown 不発火）
+- 🔍 **発見（web.dev 周知の挙動）**: `beforeunload` はモバイルブラウザ（Quest Browser 含む Chromium 系）でバックグラウンド遷移・bfcache・kill 時に不発火 — ページ解体の信頼できるシグナルは `pagehide`。Quest でのヘッドセット脱着/タスクキル時に `vrApp.dispose()` と `session_ended` イベントが一切走らない経路が残っていた。
+- 🔧 **修正**: app.js は teardown ハンドラを抽出して `beforeunload`+`pagehide` 両武装（dispose は冪等）。monitoring.js の onUnload も同二発火対策として `_unloaded` ガード追加＋disposeMonitoring でリセット＋pagehide 除去対称。
+- ✅ 該当 suite 64件全緑、lint 0 errors。
+
+### Session 75: 続き194 — iframe フレーム内遷移でアドレスバーが嘘をついていた
+- 🔍 **発見**: `iframe.onload` はフレーム内トップ遷移（リンククリック・フォーム送信・ロード後リダイレクト）でも再発火するが、旧実装は `currentUrl` を要求時URLのまま残していた — **dom-overlay でユーザーが見ている実ページとアドレスバー表示が乖離**（フィッシング級の stale URL 表示）。セキュリティ表示器（origin 保持・elide 不可）は続きで整えたのに遷移追従がなかった。
+- 🔧 **修正**: ①same-origin フレーム内遷移 → `contentWindow.location.href` で真の URL を読み `currentUrl`/履歴に反映＋リーダー再取得 ②cross-origin のフレーム内遷移（宛先は原理的に読めない）→ `_frameNavigated` で URL バーを「↪」マーク＋ placeholder 灰色化し「依然そのサイトにいる」と見せない ③`stop()`/`_loadUrl` でフラグリセット。pin 2件追加（same-origin 遷移の履歴記録、cross-origin 遷移の灰色化）。
+- ✅ 3090 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き193 — `'layers'` をセッション要求に追加（FFR+ネイティブ quad layer が全滅していた）
+- 🔍 **発見（続き178 hand-tracking と同クラス）**: `XRWebGLBinding` はセッションの `'layers'` 付与なしでは `new XRWebGLBinding()`/`createQuadLayer()` が失敗するのに `sessionInit` は `optionalFeatures: ['hand-tracking']` のみ。LayersSystem の自前コメントすら「layers 要求必須」と明記していたのに要求側が未追随 — **Quest 実機で FFRSystem（fixedFoveation）と LayersSystem（ネイティブ quad layer＝最鮮明なパネル文字経路）の両方が静かに mesh フォールバックに落ちていた**。
+- 🔧 **修正**: `optionalFeatures` に `'layers'` 追加（optional のため非対応環境で requestSession は壊れない）。pin テストを `arrayContaining(['hand-tracking','layers'])` に拡張。
+- ✅ 3088 tests / 72 suites 全緑（該当 suite 63件を含む）。
+
+### Session 75: 続き192 — Meta 公式 WebXR 性能指針をコードに実測適用（4件）
+- 🔍 **外部調査（developers.meta.com webxr-perf-bp + webxr-frames）**: Meta の公式ベストプラクティスを逐条監査。適用済み = 前面→背面ソート（three 既定）、透明・影の制限（実装済み）、UI テクスチャの mipmap 無効化（canvasTexture.js 済み）。**未適用だった3件を発見**: ①clear color が 0x111111 — Adreno のハードウェア fast-clear は黒/白のみ ②`antialias: false` — three の WebXRManager は `samples: antialias ? 4 : 0` で XR framebuffer の 4× MSAA を切っており、旧コメントが代替に挙げた FXAA/TAA/composer は src/ に存在しない（**MSAA ゼロ＋代替ゼロで XR は常時ジャギー**）③`updateTargetFrameRate` は最大レート要求のみで、持続的フレーム超過時の降格が無かった。
+- 🔧 **修正**: ①scene.background → `0x000000`（fast-clear + OLED 消灯効果も）②`antialias: true`（XR framebuffer に 4× MSAA が実際に付与される）③過負荷ステップダウン — `supportedFrameRates` を降順ラダー `_rateLadder` として保持し、予算超過が 240 フレーム連続したら次の低レートへ `updateTargetFrameRate`、実 refreshRate で targetFPS 再同期。`_fpsOverridden`（ユーザー固定）なら降格しない。onVRSessionEnd でラダー破棄。④`renderer.compile(scene, camera)` をシステム初期化末尾に追加 — 初フレーム（≒VR セッション突入直後）に集中していたシェーダーコンパイルヒッチを 2D アイドル時に前倒し。
+- 🧪 pin 追加: 「予算超過 241 フレーム連続 → updateTargetFrameRate(90) が呼ばれ _rateIdx が 1 へ進む」。
+- ✅ 3088 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き191 — 音声コマンドの日本語限定を正直に告知（en UI での死機能）
+- 🔍 **実測（対称軸の飽和確認→新発見）**: 書込み-only 設定・localStorage キー・DOM id 参照・カスタムイベント・Observer/リスナー/タイマーの clear 対称・循環 import・重複メソッド・毎フレーム確保 — 全てクリーンまで掃引。残ったのは続き190 で自分が公開した矛盾: **音声コマンドの文法は全て日本語固定**（patterns・confirmationText・recognition.lang='ja-JP'）のに、en UI のユーザーにも「Voice Commands」トグルが出て、絶対にマッチしない認識器がマイク許可を取る。
+- 🔧 **修正**: トグル ON 成功時、UI ロケールが ja 以外なら `vr.msg.voiceJaOnly`（「日本語のみ対応」）を告知。en/ja 両ロケールにキー追加、`getLanguage` を VRApp に import。pin テスト追加（en ロケールで init 成功 → voiceJaOnly トースト）。
+- 📌 **判断**: コマンド文法を en 対応させるのは features 領域（20+コマンドの翻訳＋確認文）でオーナー判断へ。現状は「動くが en では無力」を黙らせない最小正直化。
+- ✅ 3087 tests / 72 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き190 — 残る死設定4件を live 配線（書込み経路ゼロ一掃）
+- 🔍 **実測（適用経路の確認）**: 続き189 の残件4件を全て検証 — `enableHomeEnvironment`（scene.add/remove で live 可能・遅延生成対応）、`enablePerfMonitorUI`（DOM オーバーレイ・show/hide/dispose 完備 → lazy 構築可）、`controllerDeadZone`（VRControllerInput.deadZone は read() 毎フレーム参照 → 書き換え即時反映）、`enableTextureManager`（ProgressiveLoader.textureManager の差し替えで live 切替可・dispose でVRAM解放）。
+- 🔧 **修正**: 4件全てを設定パネルに実装 — display セクションに homeEnv/perfMonitor/textureCache の3トグル（全て遅延構築・冪等）、locomotion に deadZone ステッパー（0–0.4, step 0.05, apply で controllerInput.deadZone を即時書換）。i18n ja/en に4キー追加。
+- 🗑 **残置の正当性**: `enableSettingsPanel` のみ自壊型（パネル無効化で再有効化 UI が消える）のため boot-time config として意図的に残置 — これで読書対称差分は「自壊防止の1件のみ」に収束。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors。display テスト索引更新＋homeEnv/perfMonitor/textureCache の live 遷移を pin（fixture に createHomeEnvironment/recenter キャリー、document スタブに body.classList/getElementById 追加）。
+
+### Session 75: 続き189 — 書込み経路ゼロの死設定: enableVoice が unreachable だった
+- 🔍 **実測（settings 読書対称）**: パネルが書くキーと `loadPersistedSettings` が読むキーの差分を掃引 — **6件が書込み経路ゼロ**: `enableVoice`・`enablePerfMonitorUI`・`enableHomeEnvironment`・`enableSettingsPanel`・`enableTextureManager`・`controllerDeadZone`。最重は `enableVoice`: VoiceCommands は4スイート分の配線済み（transcript caption・haptic・connectBrowser 全て）なのに**誰にも到達不能** — 続き11 `enableWebPanel` と完全に同クラス。
+- 🔧 **修正**: voice init ブロックを `_initVoiceCommands()` に抽出（initializeSystems から呼出＋settings トグルから lazy init）＋ `_teardownVoiceCommands()` を新設（dispose→null）。browsing セクションに `enableVoice` トグル追加（ON→非同期 init→`vr.msg.voiceOn`/`vr.error.voiceUnavailable` トースト、OFF→dispose→`voiceOff`）。i18n ja/en に `vr.settings.voice` + `vr.msg.voiceOn/voiceOff` を追加。
+- 📌 **残死設定**: `enableSettingsPanel`（自壊型: パネル自身を off にすると再有効化 UI が消える — boot-time config として残置）、`enablePerfMonitorUI`/`enableHomeEnvironment`/`enableTextureManager`/`controllerDeadZone`（ユーザー到達不能のデフォルト固定）— 次回配線候補。
+- ✅ 3086 tests / 72 suites 全緑、lint 0 errors（fixture に `_initVoiceCommands`/`_teardownVoiceCommands`/`_initializeSystemsTail` キャリー）。
+
 ### Session 75: 続き188 — 確保掃引の横展開: gaze raycast + teleport 照準
 - 🔍 **実測（同一クラスの残存確認）**: 続き187 の intersectObjects バッファ化を全呼出に展開 — `GazeInteraction._raycastGaze`（毎フレーム）と `updateTeleport`（照準中毎フレーム + `hit.point.clone()`）が同一パターンで確保。これで src/ の raycast 呼出4箇所全てが再利用バッファ経由に。
 - 🔧 **修正**: GazeInteraction に `_hitScratch` 追加、updateTeleport は共有スクラッチ + `_teleportTarget`（`clone()` → `copy()`）。`t.target` の消費は onTeleportEnd の同期読みのみで安全。

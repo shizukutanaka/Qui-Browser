@@ -624,7 +624,7 @@ describe('CaptionSystem — mesh-absent guard arms', () => {
 });
 
 describe('CaptionSystem — texture without colorSpace', () => {
-  test('_buildPanel skips the colorSpace assignment on older three mocks', () => {
+  test('_buildPanel marks the caption texture sRGB via configureUITexture', () => {
     const THREE = require('three');
     const Original = THREE.CanvasTexture;
     THREE.CanvasTexture = class {
@@ -639,7 +639,10 @@ describe('CaptionSystem — texture without colorSpace', () => {
       });
       const c = new Mod.CaptionSystem({ add() {}, remove() {} }, {});
       expect(c.texture).toBeTruthy();
-      expect('colorSpace' in c.texture).toBe(false);
+      // configureUITexture owns the colorSpace mark now — a bare mock texture
+      // still gets it because the guard keys on the THREE export, not the
+      // texture object.
+      expect(c.texture.colorSpace).toBe('srgb');
     } finally {
       THREE.CanvasTexture = Original;
     }

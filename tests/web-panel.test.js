@@ -793,6 +793,35 @@ describe('WebPanel — remaining branch arms', () => {
     expect(p.currentTitle).toBe('https://example.com');
   });
 
+  test('same-origin in-frame navigation records the real URL and refetches the reader', () => {
+    const p = makePanel();
+    p.navigate('https://example.com');
+    // First load of the page we asked for.
+    p.iframe.contentWindow = { location: { href: 'https://example.com' } };
+    p.iframe.contentDocument = { title: 'Example' };
+    p.iframe.onload();
+    // The framed page navigated itself to a readable same-origin page.
+    p.iframe.contentWindow.location.href = 'https://example.com/next';
+    p.iframe.contentDocument.title = 'Next';
+    const readerSpy = jest.spyOn(p, '_loadReaderText').mockImplementation(() => {});
+    p.iframe.onload();
+    expect(p.currentUrl).toBe('https://example.com/next');
+    expect(p.currentTitle).toBe('Next');
+    expect(p.history[p.history.length - 1]).toBe('https://example.com/next');
+    expect(readerSpy).toHaveBeenCalledWith('https://example.com/next');
+    expect(p._frameNavigated).toBe(false);
+  });
+
+  test('cross-origin in-frame navigation greys the address bar instead of lying', () => {
+    const p = makePanel();
+    p.navigate('https://example.com');
+    p.iframe.onload(); // first load
+    // Frame navigated somewhere cross-origin: location.href is unreadable.
+    p.iframe.onload();
+    expect(p.currentUrl).toBe('https://example.com'); // last known URL, not a lie
+    expect(p._frameNavigated).toBe(true);
+  });
+
   test('_loadReaderText works when AbortController is unavailable', async () => {
     const p = makePanel();
     const saved = global.AbortController;

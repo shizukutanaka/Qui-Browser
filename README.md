@@ -68,7 +68,7 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 | Feature | Status | Description | Impact |
 |---------|--------|-------------|--------|
 | **Fixed Foveated Rendering (FFR)** | ✅ Stable | Reduces peripheral rendering quality | +15-20 FPS |
-| **Comfort System** | ✅ Stable | Motion sickness prevention (vignette, FOV) | Reduced discomfort |
+| **Comfort System** | ✅ Stable | Motion sickness prevention (motion-activated vignette) | Reduced discomfort |
 | **Object Pooling** | ✅ Stable | Reusable object management | Fewer GC pauses |
 | **Service Worker** | ✅ Stable | Offline support and caching | Offline capability |
 
@@ -153,7 +153,7 @@ Qui Browser VR/
 │   │   ├── audio/            # Tier 2: Spatial audio
 │   │   ├── browser/          # WebPanel, TabManager, reader view
 │   │   ├── accessibility/    # Captions, gaze-dwell, semantic DOM
-│   │   ├── comfort/          # Vignette, snap turn
+│   │   ├── comfort/          # Motion-activated vignette
 │   │   ├── interaction/      # Gaze/controller interaction
 │   │   ├── media/            # Immersive video
 │   │   └── ui/               # Canvas texture, settings layout

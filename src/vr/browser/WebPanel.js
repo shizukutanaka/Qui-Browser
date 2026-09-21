@@ -125,6 +125,9 @@ export class WebPanel {
     this.historyIdx  = -1;
     this.loading     = false;
     this._loadError  = false; // set true on iframe onerror, cleared on next navigate
+    // True after the framed page navigated itself cross-origin — the bar then
+    // renders the stale URL greyed because the real destination is unreadable.
+    this._frameNavigated = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -645,15 +648,22 @@ export class WebPanel {
         ctx.fillText(ind.glyph, x, h / 2 + 6);
         x += 26;
       }
-      ctx.fillStyle = this.currentUrl ? col.urlText : col.urlPlaceholder;
+      // The framed page navigated cross-origin on its own: the shown URL is
+      // the last one WE requested, not where the frame actually is. Render it
+      // in placeholder grey with a ↪ marker rather than implying certainty.
+      ctx.fillStyle = (this.currentUrl && !this._frameNavigated)
+        ? col.urlText : col.urlPlaceholder;
       ctx.font = '18px monospace';
       // The glyph consumed ~26px of the bar; shrink the character budget to match.
       const urlChars = this.currentUrl
         ? urlBarMaxChars(barW - (x - 220), 18)
         : maxChars;
-      const urlText = this.currentUrl
+      let urlText = this.currentUrl
         ? elideUrlForDisplay(this.currentUrl, urlChars)
         : 'https://';
+      if (this._frameNavigated && this.currentUrl) {
+        urlText = `↪ ${urlText}`;
+      }
       ctx.fillText(urlText, x, h / 2 + 6);
     }
 
@@ -786,6 +796,12 @@ export class WebPanel {
     this.currentUrl = url;
     this.loading = true;
     this._loadError = false;
+    // Cleared again by the first load; set when a SECOND load fires — the
+    // framed page navigated itself (link click / form post / redirect after
+    // load). Same-origin destinations are readable via location.href and
+    // tracked properly; cross-origin ones are unknowable, so the chrome bar
+    // greys the stale URL instead of claiming we are still on it.
+    this._frameNavigated = false;
     this._drawChrome();
 
     this._setContentState('loading');
@@ -795,22 +811,40 @@ export class WebPanel {
 
     // Load in iframe (visible only when dom-overlay is active).
     this.iframe.src = url;
+    let loadCount = 0;
     this.iframe.onload = () => {
+      loadCount++;
       this.loading = false;
       this._loadError = false;
       let title = url;
+      let realUrl = url;
+      let readable = false;
       try {
+        realUrl = this.iframe.contentWindow.location.href;
         title = this.iframe.contentDocument.title || url;
-      } catch { /* cross-origin frame: keep the URL as the title */ }
+        readable = true;
+      } catch { /* cross-origin frame: location unreadable, keep the URL as title */ }
+      if (loadCount > 1 && readable && realUrl && realUrl !== url) {
+        // Same-origin in-frame navigation: the real destination is readable,
+        // so record it and show its reader text like a normal navigation.
+        this.history = this.history.slice(0, this.historyIdx + 1);
+        this.history.push(realUrl);
+        this.historyIdx = this.history.length - 1;
+        this._loadReaderText(realUrl);
+        this._setContentState('loading');
+      } else if (!(loadCount > 1 && readable)) {
+        // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
+        // `load`, not `error`, in Chromium — so reaching here does NOT mean the
+        // page rendered. Combined with the fact that page pixels can never reach
+        // the 3D texture anyway, the viewport must say so rather than keep a
+        // stale "Enter a URL" placeholder that implies nothing happened.
+        this._setContentState('unavailable');
+      }
+      this.currentUrl = realUrl;
+      this._frameNavigated = loadCount > 1 && !readable;
       this.currentTitle = title;
-      // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
-      // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-      // page rendered. Combined with the fact that page pixels can never reach
-      // the 3D texture anyway, the viewport must say so rather than keep a
-      // stale "Enter a URL" placeholder that implies nothing happened.
-      this._setContentState('unavailable');
       this._drawChrome();
-      this.onNavigate(url, title);
+      this.onNavigate(realUrl, title);
     };
     this.iframe.onerror = () => {
       this.loading = false;
@@ -863,6 +897,7 @@ export class WebPanel {
     this.iframe.onload = null;
     this.iframe.onerror = null;
     this.iframe.src = 'about:blank';
+    this._frameNavigated = false;
     this.loading = false;
     this._setContentState(this._readerLines.length ? 'reader' : 'empty');
     this._drawChrome();

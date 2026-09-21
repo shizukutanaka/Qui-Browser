@@ -33,5 +33,13 @@ export function configureUITexture(tex) {
   if (THREE.LinearFilter !== undefined) {
     tex.minFilter = THREE.LinearFilter;
   }
+  // Canvas 2D paints in sRGB. Since three r152 a texture without an explicit
+  // SRGBColorSpace is treated as linear data and re-encoded on output —
+  // double-gamma: UI colors render washed out and wrong. Marking every UI
+  // canvas texture here keeps that rule un-forgettable (WebPanel's three
+  // textures and the tab strip had silently skipped it before).
+  if (THREE.SRGBColorSpace !== undefined) {
+    tex.colorSpace = THREE.SRGBColorSpace;
+  }
   return tex;
 }

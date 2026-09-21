@@ -156,6 +156,47 @@ describe('FFRSystem — remaining init/guard arms', () => {
     delete global.XRWebGLBinding;
   });
 
+  test('base-layer fallback: foveation still works when XRWebGLBinding is unavailable', async () => {
+    // Runtime without the 'layers' grant: XRWebGLBinding ctor throws, but the
+    // base XRWebGLLayer still carries fixedFoveation via xr.setFoveation.
+    global.XRWebGLBinding = jest.fn(() => {
+      throw new Error('no binding');
+    });
+    const setFoveation = jest.fn();
+    const xrManager = { setFoveation };
+    const session = {
+      renderState: { baseLayer: { fixedFoveation: 0 } }
+    };
+    const ffr = new FFRSystem();
+    expect(await ffr.initialize(session, { gl: 1 }, xrManager)).toBe(true);
+    expect(ffr.enabled).toBe(true);
+    expect(ffr.projectionLayer).toBeNull();
+    expect(ffr.getStatus().supported).toBe(true);
+
+    ffr.enable(0.7);
+    expect(setFoveation).toHaveBeenCalledWith(0.7);
+    ffr.adjustIntensity(-0.2);
+    expect(setFoveation.mock.calls.at(-1)[0]).toBeCloseTo(0.5);
+    ffr.disable();
+    expect(setFoveation).toHaveBeenLastCalledWith(0);
+    delete global.XRWebGLBinding;
+  });
+
+  test('dual-write: projection layer AND base layer both receive foveation', async () => {
+    const { layer, binding } = makeBinding(true);
+    global.XRWebGLBinding = binding;
+    const setFoveation = jest.fn();
+    const xrManager = { setFoveation };
+    const session = { s: 1, renderState: { baseLayer: { fixedFoveation: 0 } } };
+    const ffr = new FFRSystem();
+    expect(await ffr.initialize(session, { gl: 1 }, xrManager)).toBe(true);
+
+    ffr.enable(0.6);
+    expect(layer.fixedFoveation).toBe(0.6);
+    expect(setFoveation).toHaveBeenCalledWith(0.6);
+    delete global.XRWebGLBinding;
+  });
+
   test('setDynamicFFR is a no-op before initialize (guard arm)', async () => {
     const ffr = new FFRSystem();
     expect(() => ffr.setDynamicFFR(0.9)).not.toThrow();

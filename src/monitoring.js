@@ -468,6 +468,7 @@ export function trackVRError(error, context = {}) {
 // disposeMonitoring() can clean up everything.
 let _perfIntervalId = null;
 let _listeners = null;
+let _unloaded = false;
 
 /**
  * Initialize all monitoring systems
@@ -503,12 +504,21 @@ export async function initializeMonitoring() {
   };
 
   const onUnload = () => {
+    // beforeunload + pagehide can both fire for one teardown; the end-of-
+    // session summary and event must only be emitted once.
+    if (_unloaded) {
+      return;
+    }
+    _unloaded = true;
     reportPerformanceSummary();
     trackEvent('session_ended');
   };
 
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('beforeunload', onUnload);
+  // beforeunload is unreliable on mobile browsers (Quest Browser included);
+  // pagehide is the dependable termination signal there.
+  window.addEventListener('pagehide', onUnload);
   _listeners = { onVisibility, onUnload };
 
   console.debug('Monitoring: Initialized successfully');
@@ -518,6 +528,7 @@ export async function initializeMonitoring() {
  * Tear down all monitoring side-effects (interval + event listeners).
  */
 export function disposeMonitoring() {
+  _unloaded = false;
   if (_perfIntervalId !== null) {
     clearInterval(_perfIntervalId);
     _perfIntervalId = null;
@@ -525,6 +536,7 @@ export function disposeMonitoring() {
   if (_listeners) {
     document.removeEventListener('visibilitychange', _listeners.onVisibility);
     window.removeEventListener('beforeunload', _listeners.onUnload);
+    window.removeEventListener('pagehide', _listeners.onUnload);
     _listeners = null;
   }
 }

@@ -4,8 +4,10 @@
  */
 
 jest.mock('three', () => ({
-  // Real THREE.LinearFilter is 1006; mirror that so the guard branch is taken.
-  LinearFilter: 1006
+  // Real THREE.LinearFilter is 1006 / SRGBColorSpace 'srgb'; mirror both so
+  // the guard branches are taken.
+  LinearFilter: 1006,
+  SRGBColorSpace: 'srgb'
 }));
 
 const { configureUITexture } = require('../src/vr/ui/canvasTexture.js');
@@ -23,6 +25,12 @@ describe('configureUITexture', () => {
     expect(tex.minFilter).toBe(1006);
   });
 
+  test('marks the texture sRGB — canvas colors are sRGB-encoded, not linear', () => {
+    const tex = {};
+    configureUITexture(tex);
+    expect(tex.colorSpace).toBe('srgb');
+  });
+
   test('returns the same texture instance for chaining', () => {
     const tex = {};
     expect(configureUITexture(tex)).toBe(tex);
@@ -38,11 +46,12 @@ describe('configureUITexture — without LinearFilter in the THREE build', () =>
   beforeEach(() => jest.resetModules());
 
   test('still disables mipmaps and does not assign an undefined minFilter', () => {
-    jest.doMock('three', () => ({})); // no LinearFilter exported
+    jest.doMock('three', () => ({})); // no LinearFilter / SRGBColorSpace exported
     const { configureUITexture: cfg } = require('../src/vr/ui/canvasTexture.js');
     const tex = { generateMipmaps: true };
     cfg(tex);
     expect(tex.generateMipmaps).toBe(false);
     expect('minFilter' in tex).toBe(false); // guard skipped the assignment
+    expect('colorSpace' in tex).toBe(false); // same guard class for SRGBColorSpace
   });
 });
