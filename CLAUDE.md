@@ -551,6 +551,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き72（同セッション）: SW precache・manifest・設定ファイルの残り面 — 小欠陥2件
+- 🔍 **実測**: public/service-worker.js の CRITICAL_ASSETS（BASE/index/manifest/offline）は全て dist 実在、manifest.json の 7 icon srcs は public/icons 全揃い、favicon refs は vite がビルド時にハッシュ解決（dist/assets/images/*-hash.png に存在）= 全て正しいことを実測確認。`.babelrc`+`babel.config.js` の二枚構成も検証 — babel.config.js は node_modules 越えの three 変換用、.babelrc は tests/ の import-meta plugin 用で**両方生きている**。
+- 🐛 **実バグ27**: index.html に死んだ `preconnect https://cdnjs.cloudflare.com`（CDN を参照するコードは無く CSP `script-src 'self'` でそもそもブロックされる）。実行時に実使用されるのは jsdelivr（TextureManager の BASIS transcoder）のみ → cdnjs 側を削除。
+- 🐛 **実バグ28**: `.claude/settings.local.json` がコミット済み — ローカル Claude Code の権限履歴が溜まり続ける個人ツールファイル（Claude Code 規約では .local.json は ignore 対象）。`git rm --cached`（ローカルファイルは温存）+ .gitignore 化。
+- 📝 2118 tests / lint 0 errors / build green。
+
 #### 続き71（同セッション）: 第3のデプロイ経路（Netlify）も同型に壊れていた + ルートの死んだクラスタ115件削除 — 実バグ24-26件目
 - 🐛 **実バグ24**: `netlify.toml` が `publish="."` + `command="echo 'No build required'"` — vercel.json（続き68）と完全同型で生リポジトリ配信。`/sw.js`・`/public/sw.js`・`/assets/js/*`・`/assets/icons/*` の死んだヘッダールート、そして `/*.html` の `Permissions-Policy: camera=(), microphone=()` が `/*` の WebXR 許可を**より詳細側ルールで上書き**して音声入力を殺す矛盾も修正。`publish="dist"` + `npm run build` に、`service-worker.js` no-cache、`/assets/*` immutable に整理。
 - 🐛 **実バグ25**: `.env.example` が全項目死んでいた — ブラウザアプリなのに `VR_*`・`ENABLE_*` を宣伝（読み手ゼロ、process.env は src に無い）、`server/index.js`・`npm run start:server`・`STRIPE_*` を記載するが server/ は削除済み。実在の env 面（`VITE_SENTRY_DSN`/`VITE_GA_MEASUREMENT_ID`/`VITE_APP_VERSION`/`VITE_BUILD_TIME` = monitoring.js、`PORT`/`ALLOW_ORIGIN` = proxy、`CHROME_PATH` = tools）に書き換え。

@@ -66,3 +66,6 @@ coverage/
 # Misc
 .DS_Store
 *.sw?
+
+# Local tool settings (per-developer, not project config)
+.claude/settings.local.json
