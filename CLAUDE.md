@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: 続き162
+- 🔍 **実測（offline.html の無限リロードループ — 実バグ32件目）**: `navigator.onLine` は OS の接続性のみ反映し、**サイトが落ちていても true のまま**。サーバー停止時に offline.html が配られると `checkOnlineStatus()` が「Connection restored! Reloading…」と偽表示 → 1.5秒後 `reload()` → SW が再び offline.html を返す → 永遠に1.5〜6.5秒毎リロード（E2E エージェントが実観測した「Connection restored」バナー表示から発覚）。
+- 🔧 **修正**: ポーリング/初期チェックから自動リロードを除去 — `navigator.onLine === true` は正直な文言（'Network available — tap Try Again to reload.'）に留め、自動リロードは**真の `online` イベント遷移のみ**に限定（接続が実際に変化した唯一の信頼できるシグナル）。`public-assets.test.js` に pin 追加（ポーリング経路に reload がないこと）。
+- ✅ 3058 tests / 72 suites 全緑、build 全緑、lint 0 errors。
+
 ### Session 75: 続き161
 - 🔍 **実測（オフライン経路を実機で初検証）**: `getOfflineFallback` を2度修正済みだが実ブラウザで一度も発火していなかった。headed Chrome + vite preview で検証: SW install+precache 正常、未キャッシュルート×サーバー停止で **offline.html 描画**（Chrome dino なし）、オフライン中の root リロードはプリキャッシュシェル完全描画、復帰後正常、全フローでコンソール 0 エラー。
 - ⚠️ **計測方法の発見**: `Network.emulateNetworkConditions offline:true` は **SW 制御下のページでは no-op**（SW 自身の fetch に届かない — 実測でエミュ中も 200 を返す）。真のオフラインはサーバーを kill するしかない — skill に記録。
