@@ -544,6 +544,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔍 **実測**: main.js の landing 配線を DOM stub ハーネスで pin — a11y トグル（aria-pressed 反映+click で pref 反転）、vrFloatingButton は `isSessionSupported('immersive-vr')` 真の時だけ display:flex（xr 不在では出ない）、Enter VR click → `enter-vr` dispatch（非対応時は role=alert トーストを body に出す、xr 不在→noWebXR、例外→enterVRFailed）、app.js は QuiBrowser デバッグ export（getApp/getStats/version）。`window.navigator` は実ブラウザでは必ず存在するため stub 側の欠落だったと分離記録。
 - ✅ 7テスト追加。2105 tests / 60 suites、lint 0 errors、build green。
 
+#### 続き91（同セッション）: 「XR セッション依存で headless 限界」の前提を打破 — onVRSessionStart/End の配線を bound-prototype で pin
+- 🔍 **実測**: セッション境界（`onVRSessionStart`/`onVRSessionEnd`、150行）は繰り返し「実機かブラウザE2Eのみ到達可能」と宣言されていたが、`this.renderer.xr.getSession()` が stub session を返すだけの構造 — bound-prototype 方式で**完全にヘッドレス検証可能だった**。6テスト追加: ①isVREnabled・pixelRatio→1・comfort baseFOV→90・VR-ready caption 発火・`visibilitychange` が XR session に配線（document では届かない）②FFR init 失敗 → warn toast + ffrSystem 破棄（静黙ではない）③XR `visible-blurred` で再生中動画を pause、`visible` では pause しない ④pinch ジェスチャ → spatial click + haptic click の送出 ⑤**session end の逆順 unwire**: panels を per-commit なしで layer mode 解除→dispose、video stop、handTracking.dispose（ゴーストハンド修正経路）、baseFOV を camera.fov に復元 ⑥enableWebPanel + XRWebGLBinding 未定義 → supported=false で mesh フォールバック（静黙は設計通り）。
+- 📝 **発見**: layersSystem が `initialize()` false でも破棄されず残る点 — dispose が session end で処理するので実害なし。実装は全て正しいことを実測確認（欠陥ゼロ）。
+- ✅ 2163 tests / 63 suites、lint 0 errors。
+
 #### 続き90（同セッション）: テストスイート自己監査 — ゼロアサーション1件を実アサーション化
 - 🔍 **実測**: 全63 suite の `test()` 本体を走査 — `expect` を含まないテストは monitoring.test.js の「starts the performance-report interval」1件のみ（タイマーが発火してもクラッシュしないことしか検証していなかった=テスト名の主張と内容が不一致）。`expect(jest.getTimerCount())` で interval の存在＋dispose 後の解放を実アサーション化。`it.skip`/`xdescribe`/`.only`/`test.todo` はゼロ。
 - 🔍 **他の dead-surface 走査も全てゼロを実測**: import 到達不能モジュールは `src/vr/ui/contrast.js` 1件のみ（WCAG/APCA 計量用のテスト専用ユーティリティ — 正当）、テストのみが使う export ゼロ、書き込み専用 localStorage キーゼロ、参照先不存在の DOM id ゼロ（`vr-container` は JSDoc 例文のみ）、未使用 CSS クラスゼロ、被験対象を自分で mock する自己 mocks ゼロ。
