@@ -245,6 +245,322 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 180: 続き338 — gamepad 残ボタン（pointer faceB→back/faceA→forward 成功腕、utility faceA→bookmarks、menu→settings）を e2e pin（#259 batch 31、231→235 checks）
+- 🔍 **実測**: `updateButtonInput` の残ボタン — pointer faceB→`tab.back()`+'Going back'、faceA→forward（成功腕は 'No next page' のみ pin 済み）、utility faceA→`bookmarkPanel.toggle()`+状態 caption、utility `menu`(buttons[6])→settings トグル（faceB の || alias 腕）— が未駆動だった。実 fake gamepad の press→release フレーム駆動で端到端 pin。
+- 🔧 **pin 設計（4 check）**: buttons[6] press→settings 反転+'Settings:' caption→復帰；buttons[4]（左）→ bookmarkPanel.visible 反転+'Bookmarks:' caption→復帰；buttons[5]/[4]（右）→ `historyIdx` -1/+1 + 'Going back'/'Going forward' caption（chrome leg の history を利用）。
+- 🧪 赤検証: `tab.back()` 切断 → ptrFaceBBack+ptrFaceAFwd 両 FAIL（forward は back 先行 history に依存 — 想定 co-FAIL）；utility faceA 切断 → utilFaceAToggles FAIL。menu は pinned faceB と同 `||` 分岐の alias。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 235 checks PASS、verify:app PASS。
+
+### Session 179: 続き337 — hover caption（strip/move bar/chrome label + tint、gaze ゲート）を e2e pin（#259 batch 30、227→231 checks）
+- 🔍 **実測**: 管理面の hover announce（WCAG 1.3.3、`enableGazeDwell` ゲート下）— strip → 'Tab strip'、move bar → 'Move bar'、chrome → ページ title/host + 0xaaaaff ティント — は一度も駆動されていなかった。`mesh.userData.interactable` の登録済み handler（ray hover が発火する同一経路）を直接呼び出して端到端 pin。
+- 🔧 **pin 設計（4 check）**: `stripMesh.onHover` → 'Tab strip' caption；`moveBarMesh.onHover` → 'Move bar'；`chromeMesh.onHover` → caption が `currentTitle` と完全一致 + material 0xaaaaff、`onHoverEnd` で 0xffffff 復元；`enableGazeDwell=false` で全 hover が無音。
+- 🧪 **ハーネス教訓**: ①handler は `userData.interactable.{onHover,onHoverEnd}` に登録 — ray が届かない背面メッシュでも同一契約を駆動できる ②1 文字 title の substring assert は false-positive — caption は `===` 完全一致で pin。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 231 checks PASS、verify:app PASS。
+
+### Session 178: 続き336 — head-lock follow（setFollow→per-frame lerp→収束→off 保持）を e2e pin（#259 batch 29、224→227 checks）
+- 🔍 **実測**: 'Follow' トグル → `windowManager.setFollow` の apply は pin 済みだが、**follow 有効時の挙動**（`updateSystems`→`wm.update` が managed root を `camPos+forward*distance` へ指数 lerp 収束 + `_faceUser`）は未駆動だった。camera pose をスクリプト化して収束を端到端 pin。
+- 🔧 **pin 設計（3 check）**: `updateSetting('enableWindowFollow',true)` → `wm.followMode` + `wm.target` 存在 → camera (0,1.6,0) quaternion identity で 40×`updateSystems(dtMs=100)` → `target.position` が `getWorldPosition+getWorldQuaternion` の world forward 点 ±0.35m へ収束 → follow OFF で位置フリーズ。
+- 🧪 **ハーネス教訓**: ①camera は head rig 配下 — `cam.position` はローカル、follow が狙うのは `getWorldPosition/Quaternion` の **world** pose（rig offset を見落とすと期待点がズレる）②`updateSetting` は persist のみ — stepper/toggle の `apply` はメッシュ onSelect 内で呼ばれるため、apply 経路の pin は UI select か `wm.distance` 直読のどちらかを選ぶ（windowDistance は既 pin のため割愛）。赤検証: `setFollow` apply 切断 → followEnabled+既存 toggle pin co-FAIL、followMode lerp 腕切断 → followConverges FAIL。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 227 checks PASS、verify:app PASS。
+
+### Session 177: 続き335 — top-sites タイル（empty state→tileAt→navigate）+ reload-during-load→stop() を e2e pin（#259 batch 28、220→224 checks）
+- 🔍 **実測**: 新規タブの 'empty' state で `getTopSites` がシードするタイルグリッド（`topSiteTiles`→`tileAt`→`navigate`）、dead space no-op、ロード中の reload ゾーン→`stop()` 腕は未駆動だった。`tm.newTab()` で実 empty タブを作り端到端 pin。
+- 🔧 **pin 設計（4 check）**: `wp2._contentState==='empty'` + `_topTiles.length>0`（ctor 内 `_drawContent` で実 getTopSites→tile 構築）→ py<HEADER_PX=110 の dead zone select は no-op → `tile.x+5,tile.y+5` select で `currentUrl===tile.url` + 'reader' state → `wp2.navigate` で load 中に px170 reload ゾーン → `stop()` で `loading===false`。
+- 🧪 赤検証: `topSiteTiles` 結果切断 → tilesProbe FAIL、`navigate(tile.url)` 切断 → tileNavigates FAIL、`stop()` 腕切断 → stopArmClears FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 224 checks PASS、verify:app PASS。
+
+### Session 176: 続き334 — WebPanel chrome ヒットゾーン（戻る/進む/reload/star/URLバー/close）を e2e pin（#259 batch 27、214→220 checks）
+- 🔍 **実測**: `chromeMesh._onChromeSelect` の px ゾーン分岐（<68 back、<136 forward、<204 reload/stop、>w-60 hide、w-128..72 star→`onToggleBookmark`、else URLバー→`onUrlInputRequested`）は未駆動 — chrome 経由のナビゲーションが一度も e2e されていなかった。
+- 🔧 **pin 設計（6 check）**: fetch stub で 2 ナビゲーション履歴構築 → px30 back で `historyIdx` 後退+`currentUrl` 復帰、px100 forward で復帰、px170 reload で fetch 再発行、px920 star で `isBookmarked` 反転+'Bookmarked' caption、px500 URL バーで keyboard open + `compositionBuffer===currentUrl`（prefill 配管）、px1000 close で `group.visible=false`。
+- 🧪 **ハーネス教訓**: URL バーの else 腕は primary path が死ぬと `window.prompt` にフォールバック — headless で prompt は**ハーネス全体をハング**させる。leg 内で `window.prompt=()=>null` を恒久 stub（defensive hardening）し、source cut の red 検証も安全化。`historyIdx` は累積履歴のため絶対値ではなく差分で pin。赤検証: back 腕・`onToggleBookmark`・`onUrlInputRequested` 各切断 → 対象 check のみ FAIL。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 220 checks PASS、verify:app PASS。
+
+### Session 175: 続き333 — reader パイプライン（navigate→fetch→抽出→'reader' state→スクロール矢印）を e2e pin（#259 batch 26、210→214 checks）
+- 🔍 **実測**: WebPanel の reader 経路（`navigate`→`_loadReaderText`→`extractReadableText`→`layoutReaderLines`→`_contentState='reader'`、content mesh の ▲▼ スクロールゾーン→`scrollContent` クランプ）は実 fetch が headless で必ず失敗するため**成功腕が一度も駆動されていなかった**。fetch stub で初の成功経路 e2e。
+- 🔧 **pin 設計（4 check）**: `globalThis.fetch` stub → 80段落 HTML → `wp.navigate` → `_contentState==='reader'` + 243 lines + `currentTitle==='Harness Article'` → content select(px 960,py 890) ▼ゾーンで `_readerScroll>0` → ▲ゾーン(px 850,py 890)で 0 にクランプ。`_onContentSelect(worldVec3)` 直接駆動（strip/BookmarkPanel と同型）。
+- 🧪 **ハーネス教訓（2件）**: ①eval ソースは template literal 内 — 内部で `` ` `` を使うと構文破壊（string concat に統一済み）②`navigate()` は `_loadUrl` の promise を**返さない** — `await` しても 'loading' のまま読み取る偽陰性。`wp.loading` クリアをポーリングで待機するのが正解。赤検証: `this._contentState='reader'` 切断 → readerLoads+readerScrollsDown FAIL、scrollUp 腕切断 → readerScrollsUp も co-FAIL（両矢印が shared hitTest のため、想定内）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 214 checks PASS、verify:app PASS。
+
+### Session 174: 続き332 — 'shift' キー→カタカナモード（ラッチ・かな変換・復帰）を e2e pin（#259 batch 25、206→210 checks）
+- 🔍 **実測**: キーボードの 'shift' → `ime.switchMode` hiragana↔katakana + `_refreshKeyStates` で shift キーの `userData.keyActive` ラッチは未駆動のままだった。keyboard を show して実キー select でモード遷移を端到端 pin。
+- 🔧 **pin 設計（4 check）**: shift keyMesh 存在 + keyboard visible → 'shift' select で `inputMode==='katakana'` + `keyActive===true` → 'k','a' 入力で `updateDisplay` に届く converted が 'カ'（spy ではなく実表示経路の出力を capture）→ 再 'shift' で hiragana 復帰 + `keyActive===false`。cleanup は `ime.clear()`+`switchMode` 復元+`updateDisplay` 復帰。
+- 🧪 赤検証: `switchMode` 呼出切断 → shiftToggles/shiftBack FAIL、`processInput` katakana 腕切断 → shiftTypesKatakana FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 210 checks PASS、verify:app PASS。
+
+### Session 173: 続き331 — タブストリップ UV アクション（新規タブ/切替/閉じる/上限 warn）を e2e pin（#259 batch 24、201→206 checks）
+- 🔍 **実測**: `TabManager.stripMesh` は canvas 単一 interactable で `_onStripSelect` が UV→px→アクション変換を担う（BookmarkPanel と同型）— VR タブ操作の実ハンドラ経路は未駆動だった。strip 面を world point で直接駆動し 4 ゾーンを端到端 pin。
+- 🔧 **pin 設計（5 check）**: stripMesh の visible + `interactables` 登録 → '+' ゾーン（px>934）select で `newTab()` + 'Tab: New Tab' caption → タブ body で `setActive(0)` + 'Tab: <host>' → タブ右端 36px close ゾーンで `closeTab` + 'Tab closed' → MAX_TABS(8) 飽和時の '+' で 'Maximum tabs reached' warn。`stripPx(px)` = `local.x=(px/1024−0.5)*1.6` を `localToWorld` で変換。
+- 🧪 **ハーネス教訓**: 管理 window の root は strip の正面を camera と逆方向へ向けるレイアウトのため controller ray は背面ヒット（FrontSide 棄却）で届かない — UV→アクション契約は `_onStripSelect(worldPoint)` 直接駆動で pin（interactable 配線は probe で担保）。赤検証: newTab/setActive/closeTab 各腕切断 → 対応 check のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 206 checks PASS、verify:app PASS。
+
+### Session 172: 続き330 — ImmersiveVideo HUD ボタン経路（exit→stop→unregister→dispose 全 teardown）を e2e pin（#259 batch 23、198→201 checks）
+- 🔍 **実測**: `play()` は sphere meshes + camera-parented HUD（`_makeButton` canvas ボタン ×2、interactable 登録）を構築 — exit ボタン（x=+0.3）の `onSelect` → `stop()` が全 teardown を実行: `unregisterInteractable` + geometry/material dispose + sphere scene.remove + `_eyeTextures` クリア。2 cycle 目も clean。
+- 🔧 **pin 設計（3 check）**: `iv.play(url,{projection,layout:'mono'})` で実 HUD 構築 → buttons が `app.interactables` 登録済み → exit を `selectCenter6` → `active===false` + `controlPanel===null` + unregister + meshes parent なし → 2 cycle 目 restart/stop も `_eyeTextures===0` で leak-free。
+- 🧠 **観察**: play は headless でも meshes/HUD を同期的に構築（video 'error' は fake URL で発火するが teardown 契約には無関係）— HUD ボタンは camera-parented だが `updateMatrixWorld` 後に ray で届く。
+- 🧪 **赤検証（2 cut 一括）**: exit `() => this.stop()`（→`()=>{}`）・`unregisterInteractable(btn)` 各切断 → `vidExitStops` FAIL。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 201 checks PASS、verify:app PASS。
+
+### Session 171: 続き329 — BookmarkPanel UV-mapped interactable 全アクション（tab/row navigate/delete/scroll/close）を e2e pin（#259 batch 22、191→198 checks）
+- 🔍 **実測**: BookmarkPanel は **canvas 1枚の interactable** — `_onSelect` が ray∩plane point を `worldToLocal` → UV → `bookmarkLayout.hitTest` で close/tab/scroll/row/deleteRow に分解。row select は **pick-and-close**（`onSelect(url)` → `active.navigate` + 'Loading' caption 後 `hide()`）— 最初の設計で navigate 後の select が全滅した原因（invisible mesh は raycast miss）。
+- 🔧 **pin 設計（7 check）**: `selectPx(px,py)` — canvas pixel を `(px/1024-0.5)*panelW`/`(0.5-py/768)*panelH` で mesh-local → `localToWorld` → `aimAt6`。**eval scope に THREE は無い**（`new THREE.Vector3` で ReferenceError、selectPx 内 throw が session-leg catch に潰れ downstream leg ごと FAIL — `mesh.position.clone().set()` で既存 Vector3 を借用）。row select を最後に回し pick-and-close 自体（navigate+hide）を pin。
+- 🧠 **ハーネス教訓（次回以降必須）**: ①eval で `THREE` は未定義 — Vector3 等は既存 instance の `clone()` で作る ②canvas-UV panel は「row select で閉じる」含めアクション順序が依存関係を持つ — pick-and-close は最後に ③session leg の throw は `session leg threw:` で潰される — downstream FAIL 群発時は直近 leg の例外を疑え。
+- 🧪 **赤検証（5 cut 一括）**: `setMode`/`onSelect(url)`/`store[deleteMethod]`/`scrollOffset++`/close `hide()` 各切断 → `bmTabSwitch`/`bmRowNavigates`/`bmRowDelete`/`bmScrolls`/`bmClose` FAIL。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 198 checks PASS、verify:app PASS。
+
+### Session 170: 続き328 — browsing トグル全経路（Private live-read・Web Panel teardown/rebuild・Voice lazy-init warn）を e2e pin（#259 batch 21、184→191 checks）
+- 🔍 **実測**: 最後の未駆動 browsing コントロール — 'Private Mode'（apply null → `VRApp.navigate` が `!settings.privateMode` を live-read して履歴非記録）、'Web Browser Panel'（`_onWebPanelToggleChanged` → off で tabManager/webPanel 完全 teardown + 'Browsing panel closed'、on で `_buildBrowsingSystems`+`_attachManagedWindow` rebuild）、'Voice Commands'（lazy `_initVoiceCommands` → SR 非搭載時 `voiceCommands=null` → 'Voice commands temporarily unavailable' warn、off で `_teardownVoiceCommands` + 'disabled'）。
+- 🔧 **pin 設計（7 check）**: ①Private select → navigate → `bookmarks.search` empty、再 select → navigate → 記録あり（removeHistory で掃除）②Web Panel off → `tabManager===null && webPanel===null` + toast、on → 再構築 + toast ③`window.SpeechRecognition`/`webkitSpeechRecognition` を undefined 化して unavailable 分岐を deterministic 強制 → select → warn toast + `voiceCommands===null`、再 select → 'disabled' + teardown。
+- 🧠 **ハーネス教訓（次回以降必須）**: **leg 間の settings 残留** — 早期 voice leg（batch 4）が `app.settings.enableVoice=true` を restore せず残すため、私の初回 select は ON→OFF に倒れ check が FAIL。`updateSetting` spy + `usCalls` 観測で即特定、**先に `app.settings.enableVoice=false` で normalize** してから toggle する設計に修正。settings 書込みは leg 境界をまたぐ前提で初期状態を正規化せよ。
+- 🧪 **赤検証（3 cut 一括）**: `!privateMode` ゲート（→`true||`）・`_teardownBrowsingSystems` 呼出・warn 分岐 `!this.voiceCommands`（→`false&&`）各切断 → `privateBlocks`/`webPanelTearsDown`/`voiceWarn` FAIL（2D 兄弟 pin 'private mode wrote no history' も共有 navigate ゲートで co-FAIL — 想定 co-signal）。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 191 checks PASS、verify:app PASS。
+
+### Session 169: 続き327 — URL サジェスト行（frecency → 候補表示 → hover full-URL → select commit）を e2e pin（#259 batch 20、179→184 checks）
+- 🔍 **実測**: キーストローク毎の `_updateSuggestions` → `bookmarks.search(query,4)` frecency → `showSuggestions` で実 interactable `_suggestionMeshes` 構築 → hover は **フル URL** をアナウンス（WCAG 1.3.3 — 切詰ラベルではなく行先）、ray select → buffer クリア + `onTextConfirmed(entry.url)`。gaze-dwell タイピング ~8-10WPM の最大時短経路が未駆動だった。
+- 🔧 **pin 設計（5 check）**: `bookmarks.addHistory` で 'https://suggest-seed.example/clip' をシード（finally で `removeHistory` 掃除）→ '360° Video' で開放 → ①'s' 1文字は <2-char ゲートで行不生成 ②'s','u' で `_suggestionMeshes`+`_suggestionsGroup.visible` ③hover → `onHoverCaption(entry.url)` が locoCaps にフル URL 到達（`enableGazeDwell` 立てる）④select → `onTextConfirmed(SUG_URL)` → play spy + `compositionBuffer===''` + hide。
+- 🧠 **観察**: `sugMinChars` は「1文字で行が出ない」方向のみ pin — 厳しすぎるゲート方向は `sugRowBuilds` が補完（赤検証で確認済みの設計分業）。
+- 🧪 **赤検証（4 cut 一括）**: `<2` ゲート（→`<99`）・`showSuggestions` 呼出・`onHoverCaption(entry.url)`・`onTextConfirmed(entry.url)` 各切断 → `sugRowBuilds`/`sugHoverUrl`/`sugSelectConfirms` FAIL（`<99` 化で行不生成 → row/hover/select 3連鎖が全部死ぬ構造を確認）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 184 checks PASS、verify:app PASS。
+
+### Session 168: 続き326 — IME ひらがな変換連鎖（かなキー→ローマ字→変換→候補行→候補 select→confirm）を e2e pin（#259 batch 19、174→179 checks）
+- 🔍 **実測**: フラグシップの日本語入力経路の最深部が未駆動 — 'かな' キー → `switchMode('hiragana')`、ローマ字キー列 → `convertRomajiToHiragana`（表示は仮名・buffer は生ローマ字）、'変換' キー → `convertToKanji` → `showCandidates` で実 interactable 候補行生成、候補 ray select → `selectCandidate` → `onTextConfirmed` で即 commit。`getKanjiCandidates` は Google Transliteration API fetch のため **offline dict（`getOfflineKanjiCandidates`）に指向して deterministic 化** — ルックアップに渡される変換済みひらがな引数を spy で pin。
+- 🔧 **pin 設計（5 check）**: 'かな' → `inputMode==='hiragana'`；'konnitiha' 9 キー select → `compositionBuffer==='konnitiha'`（生 buffer）+ mode 保持；'変換' → `getKanjiCandidates` 引数 `'こんにちは'`（**ローマ字→仮名変換が実経路で動いたことの e2e 証明**）；候補行 `_candidateMeshes.length===candidates.length` + `_candidatesGroup.visible`；候補 0 番 ray select → `onTextConfirmed('今日は')` → play spy + hide + 候補クリア。
+- 🧠 **ハーネス教訓**: 候補 select は buffer へのコミットではなく **その場で `onTextConfirmed` を発火**（`_clearCandidates` → confirm → hide）— 'enter' 不要の直接 commit 経路。
+- 🧪 **赤検証（4 cut 一括）**: 'かな' `switchMode`・'変換' `convertToKanji`・`compositionBuffer +=`・候補 `onTextConfirmed` 各切断 → **ime 5 check + kb 4 check（buffer 共有腕で co-FAIL）= 9 FAIL**。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 179 checks PASS、verify:app PASS。
+
+### Session 167: 続き325 — VR キーボード実キー select→IME 連鎖→confirm/dismiss を e2e pin（#259 batch 18、167→174 checks）
+- 🔍 **実測**: キーボードの開放・confirm 往路（プログラマティック `onTextConfirmed` 発火）は R46/R83 で pin 済みだったが、**実キー mesh へのコントローラ ray select → `onKeyPress(label)` → `ime.processInput`/`deleteLast`/`confirmSelection` の実タイピング連鎖**は未駆動 — VR ユーザーが URL 入力に実際に使う全経路。`keyMeshes` は `registerInteractable` で実レジストリ登録済み（`onSelect: () => this.onKeyPress(k.label)`）のため、ray select で真の入力パイプラインが動く。
+- 🔧 **pin 設計（7 check）**: '360° Video' action でキーボードを本番 callback 付きで開放 → `keyMeshes.find(k=>k.label===...)` でキー mesh を直接特定し `selectCenter6` で照準 select → 'u','r','l' で `compositionBuffer==='url'`、'back' で 'ur'、'enter' で `confirmSelection→onTextConfirmed→_onConfirmCallback('ur')` → `immersiveVideo.play` spy + one-shot 消費 + hide、再度開放して 'esc' で dismiss + 'Keyboard cancelled' caption（WCAG 4.1.3）+ callback 未到達を pin。
+- 🧠 **ハーネス教訓**: ①audio セクションは display leg から開放済みで残存 — タブ再 select は**逆に閉じる**ため `openSettingsSections.includes('settings.section.audio')` でガード ②`onKeyPress` は async — キー select 毎に `await setTimeout(30)` で IME 処理完了を待つ（eval 本体は async IIFE で `await` 可）③`enter` は `hide()` 先行のため `visible===false` は confirm 後に評価。
+- 🧪 **赤検証（4 cut 一括）**: default 腕の `processInput`・'back' の `deleteLast`・'enter' の `onTextConfirmed`・'esc' の `onCancel` 各切断 → **対象 4 check のみ FAIL**。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 174 checks PASS、verify:app PASS。
+
+### Session 166: 続き324 — display+audio セクション全コントロールの live-apply 連鎖を e2e pin（#258 batch 17、149→163 checks）
+- 🔍 **実測**: settings パネル最後の未駆動面 — **display セクション**（Foveation/Curved/Follow View/Home Environment/Perf Monitor/Texture Cache 6 トグル + Panel Dist ステッパー）と **audio セクション**（Sound Volume ステッパー + 360° Video アクション）の apply hook が実サブシステムへ到達するか未駆動だった。'Display'/'Audio & Media' タブを hover announce 識別 → select → rebuild（`scene.updateMatrixWorld(true)` 必須 — R78 確立）→ 両セクションを端到端 pin。
+- 🔧 **pin 設計（14 check）**: ①FFR は support-gated（`enabled=false` headless で enable/disable が early-return）のため **instance spy で CALL 契約を pin**（2 select → enable+disable 各ちょうど1回）②Curved→`tabManager._curved`、Follow→`windowManager.followMode`、Panel Dist→`windowManager.distance` ③Home Env は **両方向を select 2 回で pin** — 初版は 1 select のみで default-ON のため remove 側しか検証せず、`scene.add` cut に不感な弱い pin だったため強化 ④Perf Monitor→`perfMonitorUI.visible`、Texture Cache→disable 後 `textureManager===null` ⑤Sound Volume→`spatialAudio.settings.masterVolume`（stepper は % 保持、apply が `/100`）⑥360° Video→`_requestVRKeyboardInput` 全往路 — `vrKeyboard.visible` + `vrKeyboard.onTextConfirmed('https://v.example/clip.mp4')` → `immersiveVideo.play(url, detectVideoFormat(url))` を spy で pin。
+- 🧠 **ハーネス教訓（次回以降必須）**: `VRJapaneseKeyboard`（JapaneseIME.js 内の別クラス）が独自の `_onConfirmCallback`/`setOnConfirm`/`onTextConfirmed` を持つ — `vrKeyboard.setOnConfirm` は **IME 側でなく keyboard 自身**に格納される。また `onTextConfirmed` は `hide()` を先に呼ぶため `visible` 検証は confirm **発火前**に capture する。復元は `updateSetting` ループ（apply hook 経由でサブシステム側も戻る）。
+- 🧪 **赤検証（9 cut 一括適用）**: `ffrSystem.enable/disable`・`tabManager.setCurved`・`windowManager.setFollow`・`scene.add(homeEnv)`・`perfMonitorUI.show/hide`・`textureManager=null`・`windowManager.setDistance`・`spatialAudio.setMasterVolume`・`_requestVRKeyboardInput` 各切断 → **9 対象 check 全て FAIL**（+`_requestVRKeyboardInput` を共有する兄弟 video pin 2件が想定 co-FAIL）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 163 checks PASS、verify:app PASS。
+
+### Session 165: 続き323 — Accessibility セクション全コントロールの live-apply 連鎖を e2e pin（#258 batch 16、140→149 checks）
+- 🔍 **実測**: a11y セクション（default open）は 'Captions' トグルのみ pin 済みで、残りの 9 コントロール — stepper 4（Gaze Time/Grace Time/Caption Size/Caption Height）+ toggle 3（High Contrast/Haptics/Gaze Select）の **apply hook → 実サブシステム到達**が未駆動だった。全て端到端 pin。
+- 🔧 **順序罠**: 'Gaze Select' OFF は hover announce 自体を殺す（`shouldAnnounceSettingsButton` の gazeDwell ゲート）ため同セクション最後に実行し、直後 `updateSetting` で復元。復元は `updateSetting(key, v)` ループ — apply hook 経由でサブシステム側も戻る（手書きフィールド代入より契約通り）。
+- 🧪 赤検証: `gazeInteraction.dwellTime` apply 切断 → gazeTimeApplied、`hapticFeedback.setEnabled` 切断 → hapticsApplied、`gazeInteraction.setHighContrast` 切断 → hcApplied — 各対象のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 149 checks PASS、verify:app PASS。
+
+### Session 164: 続き322 — live-gate トグル（snap/teleport）+ Comfort preset サイクル live apply を e2e pin（#258 batch 15、132→140 checks）
+- 🔍 **実測**: settings トグルは設定値の反転のみ pin 済みで、**ゲートが実動作を止める live 経路**（enableSnapTurn OFF → 実スティック snap 抑止・復帰、enableTeleport OFF → squeeze aim 不発、Comfort サイクル → `setPreset` live apply）は未駆動だった。locomotion セクションを hover アナウンス識別で開き 3 系統を端到端 pin。
+- 🔧 **ハーネス教訓（次回以降必須）**: rig yaw を `rotation.y` で読むと **yaw が ±90° を超えた瞬間に Euler が (π, θ, π) 分岐へ反転**し値が凍結する — 累積 snap で −105° 到達時に `rotation.y` が −75° のまま停滞し「snapTurn が回転しない」偽陰性をデバッグに 3 往復。**yaw は quaternion から `atan2(2(wy+xz), 1−2(y²+x²))` で抽出する**（VRApp 側は正しく、spy で quaternion −0.609/0.793 → −0.793/0.609 の実回転を確認済み）。
+- 🧪 赤検証: `enableSnapTurn` ゲート切断 → snapGate FAIL、`!enableTeleport` ガード切断 → teleportGate FAIL、`this.settings.preset = preset` 切断 → comfortCycles FAIL。全 pin 有機全緑（経路は base で正しい — 純粋カバレッジ拡張）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 140 checks PASS、verify:app PASS。
+
+### Session 163: 続き321 — settings cycle + action ボタン（browsing セクション全表面）を e2e pin（#258 batch 14、124→132 checks）
+- 🔍 **実測（settings パネル最後の未駆動面）**: toggle（R77）・stepper + セクションタブ（R78）で残ったのは **cycle と action** — 全 SECTIONS で cycle は 'Search'（searchEngine→tabManager.setSearchEngine）のみ、action は 'Clear History'/'Reader Proxy'/'Bookmarks'/'360° Video' のみ。browsing セクションに cycle+3 action が集約しているため同一セクション内で完結する e2e leg を追加。
+- 🔧 **pin 設計（8 check）**: 'Browsing' タブを announce 識別→select→`_rebuildSettingsPanel`（`scene.updateMatrixWorld(true)` で新 mesh を raycast 可能化 — R78 確立の教訓）→ ①'Search: duckduckgo' hover announce で cycle を識別（`settingsButtonCaption('cycle',...)`='label: value' 形式）→ center select で `settings.searchEngine` 前進 + **`tabManager.opts.searchEngine` へ live apply** + 'Search: google' caption ②履歴を `bookmarks.addHistory` で実 localStorage('quiBrowser_history') にシード→'Clear History' action で wipe + 'History cleared' toast/caption ③'Bookmarks' action で `bookmarkPanel.toggle()` + 開閉状態 caption（'Bookmarks: open'、WCAG 4.1.3）。
+- 🧪 **赤検証**: `tabManager.setSearchEngine(v)` 切断 → `cycleApplied` FAIL；`bookmarks.clearHistory()` 切断 → `actionApplied` + 同一路を pin 済みの 2D 側 'clear-history wiped'/'voice clear-history' も co-FAIL（共有 `_clearBrowsingHistory` 経路の想定 co-signal）。全 pin は base で有機全緑（経路は既に正しい — 純粋カバレッジ拡張）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 132 checks PASS、verify:app PASS。
+
+### Session 162: 続き320 — gaze grace-slip 欠陥（slip-onto-object 即 retarget）を e2e 検出 + #249 から fix 同梱（#258 batch 13、121→124 checks）
+- 🔍 **実測（新 pin が実欠陥を捕捉）**: graceTime 寛容は slip-onto-空振りのみ許容していた — `update()` の `else if (obj)` 分岐が「別 interactable への 1 フレーム接触」を**即 retarget + charge リセット**として扱い、ボタン隣接部での tremor/nystagmus jitter は dwell を永久に完走できなかった（WCAG 2.2.1 Timing Adjustable — #220 fix は未マージ #249 内で stranded）。R70 と同じ bundling パターンで有機赤を確認してから `aca456f` の fix + unit pin を同梱。
+- 🔧 **pin 設計（3 check）**: 2 つの合成 interactable（A=on-ray 1.5m、B=off-ray +4m）を配置し位置 swap で実 gaze ray の当たり先を制御 — ①A に 1.0s 充電後 0.1s で B へ slip → `_target===A && _elapsed` 保持（**organic red**: base では `else if(obj)` が即 B へ retarget）、②B 継続 0.25s（累計 >graceTime）→ `_target===gB`（persistent retarget は grace 超過でのみ発生 — fix 有無に関わらず成立のため coverage）、③reset→A 再充電→B へ短 slip→A 復帰+0.6s → A で完走（**organic red**: base では復帰後 elapsed が 0 から再開し 0.6<1.5 で不発）。`dwellTime`/`graceTime` を leg 内で 1500/300 に明示して finally で復元。
+- 🔧 **fix 同梱**: `git checkout aca456f -- src/vr/interaction/GazeInteraction.js tests/gaze-interaction.test.js` — `else if (obj)` 即 retarget 分岐を除去し、slip は landing point 不問で grace 窓内 hold、grace 超過で `_target=obj` adopt の形に（#249 先マージ時は no-op diff、jest 3299→3301 も同時取込）。
+- 🧪 **発見した harness 教訓**: slip 対象を `visible=false` にすると ray miss=空振り扱い（base でも既に寛容済み）— 「別オブジェクトへの slip」を再現するには対象を ray 上に実配置して swap する必要がある。位置変更後は `updateMatrixWorld(true)` 必須（render 経由しないため）。
+- ✅ 3301 tests / 74 suites 全緑（fix pin 有機赤→同梱後緑）、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 124 checks PASS、verify:app PASS。
+
+### Session 161: 続き319 — settings stepper 実ボタン select→live apply の最深連鎖 + セクションタブ→rebuild を e2e pin（#258 batch 12、114→121 checks）
+- 🔍 **実測（最後の未駆動制御種別）**: R77 で compact-toggle の select 経路を pin したが、**stepper（±region ヒットポイント→`worldToLocal`→`stepperRegion`→`applyStep`→`updateSetting`+`apply`）とセクションタブ（`makeSectionTab`→`_toggleSettingsSection`→`_rebuildSettingsPanel` で旧 interactable unregister + 新 mesh 群生成）**は一度も駆動されていなかった。特に stepper の「ヒット位置で増減が決まる」契約と「rebuild 後の新 mesh が本当に raycast に届くか」は pin 不可能な構造的部分。
+- 🔧 **実装（loco leg 内、接続済み rightSrc を再利用）**: ①a11y セクション（default open）の実 'Caption Hold' stepper を hover announce で自己ラベル識別 → +region（local x=+0.34 → u≈0.88）へ照準した実 ray で selectstart → `settings.captionDuration` 変化 + `captionSystem.lineDuration` が `value*1000` へ live apply を pin。②'Movement' セクションタブを同様に識別 → center select → `openSettingsSections` が locomotion へ遷移 + `_rebuildSettingsPanel` で新 Group 生成（**rebuild 直後の新 mesh は matrixWorld 未更新のため `scene.updateMatrixWorld(true)` が必須 — render を通さない harness 固有の落とし穴**）。③再構築後の panel interactables を再 probe → 'Snap Angle' stepper の +region select で `settings.snapTurnAngle` が 30→45 → **直後の実 stick 入力（axes[2]=0.8 + updateSystems）で rig yaw が −π/4（新角度）回転 + 'Right 45' caption** — 設定 UI→永続化→locomotion 実動作の最深 e2e 連鎖を pin。
+- 🧪 **発見した harness 教訓**: (a) loco leg の `captionSystem.show` は swallow-stub（呼出ログのみ・実 write しない）のため probe は `capWrites`（semanticDOM write tap）ではなく **`locoCaps`（呼出ログ）を読む必要** — 同じ announce でも leg 内配置で見える tap が変わる; (b) hover announce は `shouldAnnounceSettingsButton`（captionsEnabled AND (force OR gazeDwell)）下でしか出ないため `enableCaptions`/`enableGazeDwell` を leg 冒頭で実設定し finally で復元。(c) eval 文字列内コメントの backtick は template literal を閉じて構文エラーになる（前回再確認）。
+- 🧪 赤検証: `applyStep` の `updateSetting` 切断 → `stepperApplied` FAIL（probe は健在 — hover announce は値を読むだけ）、`_rebuildSettingsPanel` 切断 → `snapProbe` + 下流 `snapBumped`/`snapApplies` cascade FAIL（`tabSelect` は設定フラグのみ assert のため緑のまま）、`snapTurnAngle` read 切断 → `snapApplies` FAIL。pin は有機全緑（全経路が base で既に正しい — 純粋カバレッジ拡張、ソース同梱なし）。
+- ✅ 3299 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 121 checks PASS、verify:app PASS。
+
+### Session 160: 続き318 — settings パネル実ボタン select→live apply + hand-tracked アナウンスを e2e pin（#258 batch 11、110→114 checks）
+- 🔍 **実測（残りの未駆動ブリッジ 2 件）**: ①settings パネルの compact-toggle は interactable 登録済み・onHover で自己ラベルアナウンス（`_announceSettingsButton` → `settingsButtonCaption`）するが、**実ボタンへのコントローラ ray 照準→hover識別→select→`updateSetting`+apply の全連鎖**は一度も駆動されていなかった。②`inputsourceschange` の removal→hand-lost は R70 で pin 済みだが、**追加側（inputSource.hand 出現→seen 検出→`handGroup.visible`→600ms debounce の 'X hand tracked'）**は未駆動だった。
+- 🔧 **実装**: ①`app.interactables` を settingsPanel 祖先連鎖で絞込み、各候補へ `matrixWorld.lookAt`+`setPosition` で照準 → `updateSystems`→`updateHover`→onHover の **アナウンス内容で 'Captions' トグルを特定**（hoverアナウンスは `shouldAnnounceSettingsButton`: captionsEnabled AND (force OR gazeDwell) のため `enableGazeDwell=true` 下で実施・finally 復元）→ selectstart で `enableCaptions`/`captionSystem.enabled` が反転、再 select で復元を pin（復元側 select は captions-OFF に着地するため announce は仕様上無音 — 状態復元のみ assert）。②`fakeSession.inputSources` に `{handedness:'right', hand:new Map()}` を push → `update()` の seen-detector が per-joint fallback 経路（空 Map は全 joint miss→continue で安全）を通り `rightHand.visible=true` + debounce アナウンス到達を pin。
+- 🧪 **発見した harness 教訓**: eval 文字列内のコメントに backtick を書くと外側 template literal を閉じてしまい構文エラー（`'hand'` 表記に修正）。赤検証: onHover の `_announceSettingsButton` 切断 → settingsProbe→Off/OnLive の cascade で 3 FAIL、`update()` の tracked-side `_onTrackingChange` 切断 → handTracked FAIL。対象配線を正確に捕捉。pin は有機全緑（両経路とも base で既に正しい — 純粋カバレッジ拡張、ソース同梱なし）。
+- ✅ 3299 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 114 checks PASS、verify:app PASS。
+
+### Session 159: 続き317 — gamepad 入力の残腕（smooth move / thumbstickClick / southpaw）を e2e pin（#258 batch 10、105→110 checks）
+- **Round 76 of the continuous-improvement directive.** Tenth batch on #258 —
+  pure coverage; every arm was already correct on the fixed base.
+- **Pins (+5 → 110 checks, extending the gamepad leg):** with both fake
+  quest-pro sources still connected — `enableSmoothMove` on → left stick
+  deflect glides the rig in the head-facing plane AND engages
+  `comfortSystem.externalMotion`/`Level` (vignette tracks actual glide
+  speed); stick release disengages both. Pointer `thumbstickClick` →
+  `recenter()` resets rig position + quaternion + 'Recentered' caption.
+  Utility `thumbstickClick` → `vrKeyboard` visible toggle + 'Keyboard:
+  open' caption. `southpaw=true` → the LEFT stick becomes the snap-turn
+  hand (yaw −30°). FaceA/FaceB buttons released for leg cleanliness.
+- **Harness lesson:** held buttons stay latched across frames (edge-state
+  persists per-source in `controllerInput._state`) — a held right-stick
+  deflection through the whole leg is safe because `snapLatched` suppresses
+  repeat snaps; verify latch flags live per-controller
+  (`controller.userData.snapLatched`), so the southpaw arm fires on the
+  untouched left controller.
+- **Red-verified (three cuts, exact targets):** `turnHand` southpaw ternary
+  → `southpawSwaps` FAIL; `externalMotion`/`Level` writes cut →
+  `smoothMoves`+`smoothStops` FAIL; `thumbstickClick` arms cut →
+  `stickRecenters`+`stickKeyboard` FAIL.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (110 checks).
+
+### Session 158: 続き316 — snap-turn caption 逆方向 + face-button justPressed 全滅の2欠陥を修正、gamepad 入力経路を e2e pin（#258 batch 9、101→105 checks）
+- **Round 75 of the continuous-improvement directive.** Ninth batch on #258 —
+  this time with real fixes found by the new pins.
+- **Defect 1 — inverted snap-turn caption (WCAG 1.3.3/4.1.3):** pushing the
+  stick right rotates the player rig −30° about +Y (facing swings −Z → +X,
+  i.e. RIGHT), but `snapTurnLabel` announced '↺ Left 30°' — both branches
+  were inverted vs the rotation math (direction>0 = +angle = CCW = left
+  turn). Caption-reliant users were told the opposite of every snap.
+  Branches + docstring corrected; the five jest assertions that had
+  cemented the wrong mapping repointed (comfort-system.test.js).
+- **Defect 2 — every face button dead in production:** `updateSystems` calls
+  `updateLocomotion` before `updateButtonInput`, and BOTH call
+  `controllerInput.read(src)` — an edge-consuming API (`justPressed` is
+  true for exactly one read). Locomotion ate the edge every frame, so
+  `updateButtonInput` saw `justPressed=false` forever: A/B navigation,
+  thumbstick recenter, bookmark/settings/keyboard toggles never fired
+  through the real path (only callable via direct prototype binding in
+  tests, which is why mocks never caught it). Fix: one read per frame —
+  locomotion stamps `controller.userData._inputSnap/_snapFrame` under a
+  `_inputFrame` epoch; button input reuses the stamped snapshot when the
+  epochs match and fresh-reads otherwise (bound-prototype callers with no
+  epoch get correct edges via the `_inputSnap` truthiness guard).
+- **Pins (+4 → 105 checks, session leg):** fake `meta-quest-touch-pro`
+  gamepads connected through the real `connected` dispatch — right stick
+  deflect → rig yaw −30° + '↻ Right 30°' caption + `right:click` haptic;
+  held-stick edge latch (no re-snap until release band, re-push snaps);
+  pointer faceA with no forward history → honest 'No next page' caption;
+  utility faceB toggles settings panel + 'Settings: open' caption.
+- **Red-verified:** label flip → `snapTurns` FAIL; `_inputSnap` reuse cut →
+  `faceAAnnounces`+`faceBToggles` FAIL (snapLatch stays green — the latch is
+  locomotion-internal). Caught mid-round: bound-prototype mocks lack
+  `_inputFrame`, so the epoch check alone made `undefined===undefined` —
+  14 jest failures; fixed by requiring `_inputSnap` in the guard.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (105 checks).
+
+### Session 157: 続き315 — grab-to-move 全連鎖を e2e pin（#258 に batch 8 として積層、98→101 checks）
+- **Round 74 of the continuous-improvement directive.** Eighth commit batch on PR #258.
+- **Pins (verify-vr-boot, +3 → 101 checks):** inside the fake-session leg —
+  the controller ray is aimed at the real `moveBarMesh` (world position +
+  lookAt via direct `matrixWorld` writes): `selectstart` dispatch runs
+  `onGrabRequested` → `beginGrab` → `isGrabbing` + 'Panel grabbed' caption +
+  haptic `'click'`; a lateral `matrixWorld` move + one `updateSystems` drags
+  the managed window root (world position tracks the ray);
+  `selectend` → `endGrab` + 'Panel moved' caption + haptic `'impact'`.
+  This closes the last undriven controller bridge (release/grab-arm).
+- **Harness lesson:** controller rays are aimed at a real mesh by
+  `matrixWorld.lookAt(ctrlPos, targetPos, up)` + `setPosition` — no local
+  position/rotation writes (runtime-driven objects).
+- **Red-verified:** cutting `beginGrab`/`endGrab` fails exactly all three
+  grab checks; restored → all green. Pins passed organically (grab chain
+  already correct on base — pure coverage).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (101 checks).
+
+### Session 156: 続き314 — gaze-dwell 有効化経路（FR-13.1 中核）を e2e pin（#258 に batch 7 として積層、94→98 checks）
+- **Round 73 of the continuous-improvement directive.** Seventh commit batch on PR #258.
+- **Pins (verify-vr-boot, +4 → 98 checks):** inside the fake-session leg —
+  a synthetic interactable placed 1.5 m dead ahead of the camera's real gaze
+  ray (computed from `getWorldPosition`/`getWorldDirection`) completes a
+  dwell with one `updateSystems(0, fakeXrFrame, 1.7)` call: `onSelect` fires
+  once with `{gaze:true}`, the updateSystems `activated` branch fans out to
+  haptic `click` (both-hands) + `spatialAudio.play`; a second dwell frame
+  does not re-fire (`_fired` guard); `gazeInteraction.enabled=false` leaves
+  the target untouched (the updateSystems enabled-gate contract).
+- **Red-verified:** cutting GazeInteraction's `handlers.onSelect` + the
+  `if (activated)` fan-out fails exactly all four gaze checks; restored →
+  all green. Pins passed organically (gaze path already correct on base —
+  pure coverage of the headline a11y feature).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (98 checks).
+
+### Session 155: 続き313 — updateSystems の per-frame fan-out を e2e pin（#258 に batch 6 として積層、89→94 checks）
+- **Round 72 of the continuous-improvement directive.** Sixth commit batch on PR #258.
+- **Pins (verify-vr-boot, +5 → 94 checks):** inside the fake-session leg —
+  instance-level spies wrap each live subsystem hook, one real
+  `updateSystems(0, fakeXrFrame, 0.016)` runs, and every bucket must read
+  exactly 1: comfort.update / ffr.trackHeadPose / handTracking.update /
+  haptic.update / spatialAudio.updateListenerFromCamera /
+  immersiveVideo.update (fanCore); updateLocomotion + updateButtonInput
+  (fanUI); gaze.update + captionSystem.update (fanA11y);
+  windowManager.update under followMode (fanWin). A second pass with a null
+  xrFrame must skip hand tracking but still hit the rest (fanNullFrame) —
+  the `&& xrFrame` guard contract. A dropped fan-out line kills a feature
+  silently (captions never age, video never recenters) — this is the
+  render-loop wiring contract.
+- **Red-verified:** cutting `immersiveVideo.update(dt)` + `captionSystem.update`
+  fails exactly fanCore + fanA11y + fanNullFrame; restored → all green.
+  Pins passed organically (fan-out is already wired correctly on base —
+  pure coverage).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (94 checks).
+
+### Session 154: 続き312 — controller ray select/hover/teleport 経路を e2e pin（#258 に batch 5 として積層、83→89 checks）
+- **Round 71 of the continuous-improvement directive.** Fifth commit batch on PR #258.
+- **Pins (verify-vr-boot, +6 → 89 checks):** inside the fake-session leg —
+  a cloned floor mesh registered as a synthetic interactable takes the real
+  controller ray: hover enter fires `onHover` once + sets
+  `userData.hovered`; `selectstart` dispatch runs the full chain
+  (`onSelect` + haptic `'click'` + `qui-select` DOM event); aiming behind
+  fires `onHoverEnd` + clears hovered; a miss fires nothing. Teleport arm:
+  `squeezestart` → per-frame `updateTeleport` raycasts the floor (marker +
+  valid + target), `squeezeend` lands the rig and captions `Teleported`.
+- **Harness lesson:** XR controller objects are runtime-driven —
+  `matrixAutoUpdate: false`, so `position`/`rotation` writes never reach the
+  raycast. `matrixWorld` is written directly (identity/setPosition/
+  makeRotationX/Y) and restored from a clone in `finally`.
+- **Red-verified:** cutting `handlers.onSelect(...)` fails exactly
+  `selectHit` + `selectMissQuiet` (miss-check couples to the hit arm);
+  cutting `t.valid = true` fails exactly `aimLands` + `teleportLands`.
+  Restored → all green.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (89 checks).
+
+### Session 153: 続き311 — inputsourceschange→hand-lost announce e2e pin + relanded fix (PR #258 batch 4)
+- **Round 70 of the continuous-improvement directive.** Fourth commit batch on PR #258.
+- **Pins (verify-vr-boot, +4 → 83 checks):** inside the fake-XRSession leg —
+  `fire()` extended to carry event payloads; `inputsourceschange`
+  `{removed: [{handedness:'left'}]}` driven end-to-end: hand groups born
+  hidden (no phantom lost), removal hides the hand, removal announces
+  `Left hand lost` through the 600 ms debounce → real caption region write,
+  repeat removal while already hidden does not re-announce.
+- **Organic red → bundle:** 3 pins failed on base (born visible; no announce;
+  double-fire semantics) — the announce-on-removal + born-hidden fixes live in
+  unmerged PR #249's reland commit `aca456f`. Bundled
+  `src/vr/interaction/HandTracking.js` + `tests/hand-tracking.test.js`
+  (carries the #218/#226/#229 hand fixes — identical diffs collapse when
+  #249 merges first).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (83 checks).
+
+### Session 152: 続き310 — session/controller event bridge を e2e pin（xr sessionstart/end 実 listener、controller disconnect/reconnect、squeeze cancel、DOM visibility pause、#258 に batch 3 として積層、74→79 checks）
+- 🔍 **実測**: R67-68 の session leg は `onVRSessionStart`/`onVRSessionEnd` を直接呼んでいたため、**実 wiring である `renderer.xr` の 'sessionstart'/'sessionend' listener 自体**と、controller の 'connected'/'disconnected'/'squeezestart' 経路（mid-session disconnect toast + inputSource forget、reconnect announce、squeeze mid-aim 中の disconnect → teleport 中止）、2D 側 `onDocumentVisibilityChange` → video pause が未駆動だった。
+- 🔧 **実装**: start/end を `app.renderer.xr.dispatchEvent({type:'sessionstart'/'sessionend'})` 経由に変更（listener 切断でも start/end チェックが FAIL するよう bridge 自体を pin）。controller block 追加: `controllers[0]` へ 'connected'（初回は announce 無し=wasDisconnected false）→ 'disconnected'（'Right controller disconnected' caption 到達 + inputSource null 化は squeezeCancelled 内で検証）→ mid-squeeze 'disconnected'（`teleport.active=false`+`controller=null` で `_cancelTeleportIfAimedBy` 経路を pin）→ 'connected' 2 回目（'Right controller reconnected' 到達=WCAG 4.1.3 loop-closer）。DOM arm: `document.hidden` を instance getter で shadow → 'visibilitychange' dispatch → `iv.playing` pause（XR arm と対になる 2D 経路）。5 新規チェック。
+- 🧪 学び・対処: (a) `capWrites.includes('X')` は要素一致（'⚠ X' ≠ 'X'）で substring 判定にならない — `.some(t=>t.includes('X'))` が正しい（severity glyph prefix 分）。toast は `notifyCrossModal` 経由で caption 経路にも乗るため capWrites スパイで toast 到達を検証可能。(b) 赤検証: `renderer.xr` の 'sessionend' listener を 'sessionendXXX' へ改ざん → `sessEnd` のみ FAIL（79 中 78 緑）— 実 bridge 経由であることを実証、復元後全緑。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 79 checks PASS、verify:app PASS。
+
+### Session 151: 続き309 — 持続オーバーロードの budget-miss ラダーを e2e pin（viewport scale 優先→rate step-down、#258 に batch 2 として積層、70→74 checks）
+- 🔍 **実測**: R67 の fake session leg が post-enter 配線を開いたため、同じドライバで `updateSystems` の残りの未駆動腕を精査 — `_overBudgetFrames > 240`（~2.7s の連続予算超過）で `XRView.requestViewportScale` → scale ラダー枯渇後に `updateTargetFrameRate` でレート段階降下、という Meta の推奨順序（同一 Hz でピクセル減→judder 回避を先に試す）と `_fpsOverridden` の全面抑制は実 app で一度も駆動されていなかった。
+- 🔧 **実装**: fakeXrFrame（`getViewerPose`→`views[0].requestViewportScale` スパイ）を渡して `app.updateSystems` を直接駆動。4 新規チェック: ①初回オーバーロードで `requestViewportScale(0.85)` のみ・rate 呼出 0 ②2 回目で 0.7 まで深く scale・依然 rate 0 ③ラダー枯渇後に `updateTargetFrameRate(90)` + `targetFPS` が syncBudget 経由で追従 ④`_fpsOverridden=true` で両腕とも進まない。併せて end チェックに `_rateLadder`/`_viewScaleLadder` の null 復元を追加。
+- 🧪 学び・対処: 健全フレーム（`frameTime <= target`）は `_overBudgetFrames` を毎回 0 にリセットするため、カウンタ preset だけでは ladder に届かない — `performanceMonitor.frameTime=999` で実際の予算超過を擬制してから駆動（pin は「miss が実際に積算された経路」を正しく通す）。赤検証: `requestViewportScale` 呼出腕を切断 → scaleFirst/scaleSecond/overrideSkips が FAIL、rateDrop は枯渇即時降下で緑維持（順序セマンティクスを正確に反映）— 復元後 74 checks 全緑。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 74 checks PASS、verify:app PASS。
+
+### Session 150: 続き308 — post-enter VR session を e2e pin（onVRSessionStart/End 全配線、fake XR session 駆動、61→70 checks）
+- 🔍 **実測（最後の未駆動面）**: requestSession が stub では常に reject するため、*許可後* の経路 — `onVRSessionStart` の session リスナ配線（visibilitychange→video pause / refspace reset→recenter / frameratechange→re-budget）、実 refreshRate への budget 再ベース、handTracking 再初期化、'VR Ready' caption（WCAG 4.1.3）と `onVRSessionEnd` の返却側（ghost-hands dispose / layers dispose / fps 復元 / video stop）— は実 app で一度も駆動されていなかった。`XRWebGLBinding` 不在の headless では FFR・LayersSystem が degradation 腕を通るため、その健全性も同時に検証できる。
+- 🔧 **実装**: eval 末尾に post-enter leg 追加 — listener を記録する fake XRSession（`inputSources:[]`, `refreshRate:90`, `supportedFrameRates`, `fire()` ヘルパ）と fake refspace を `xr.getSession`/`getReferenceSpace` に差し、`app.onVRSessionStart()`/`onVRSessionEnd()` を実呼出。9 新規チェック: ①isVREnabled+ 'VR Ready' caption 到達 ②targetFPS が実レートへ再ベース（90）③handTracking.enabled ④FFR が binding 無しで enabled=false 降格 ⑤'visible-blurred' で再生中 video pause ⑥visible 復帰で二重 pause 無し ⑦refspace 'reset' → recenter 発火 ⑧frameratechange で budget 維持（90 継続）⑨end が video stop + hands dispose + layers dispose + fps 復元を全部返す。
+- 🧪 学び・対処: (a) `showVRToast` は `notifyCrossModal` 経由で toast 本文も caption region に流す — 先の duckduckgo 失敗 toast が start 中に再発火し statusEl を上書きしたため、last-write pin ではなく caption 書込列に 'VR Ready' が含まれることを pin。(b) syncBudget は `updateTargetFrameRate().then` の microtask — fps 読取は 30ms sleep 後。(c) leg 内 throw が eval 全体を潰さないよう house pattern（try/catch→sessError + finally で spy 復元）に揃えた。(d) 前ラウンドと同じ非 origin リソース Log flake を再確認 → 同 filter を適用。赤検証: `session.addEventListener('visibilitychange')` 切断で `sessVisPaused`/`sessVisNoDouble` のみ FAIL（他 68 緑）を確認して復元。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 70 checks PASS、verify:app PASS。
+
 ### Session 145: 続き303 — ImmersiveVideo の stereo 再生が残していった camera layers を stop() で復元
 - 🔍 **実測（共有 mutable state 未復元クラス）**: `.then()` catch 欠落・JSON.parse 無ガード・setInterval 未クリアの3クラスを sweep → 全網羅済みと確認した上で、audit 済みで未着手だった `ImmersiveVideo._enableStereoLayers` を精査 — stereo 再生が `camera.layers.enable(1/2)` + XR 両眼 camera へ `layers.enable(1/2)` を書き込むが **`stop()` が一度も disable しなかった**（`layers.set(1/2)` は mesh 側・破棄済みだが camera 側は残存）。現行コードで layers 1/2 を使うのは stereo 眼球テクスチャのみのため潜在欠陥だが、VR camera を共有する player が mutable state を返さない契約違反 — 将来 layers 1/2 に乗る任意オブジェクトが video 終了後も不意に描画され続ける。
 - 🔧 **修正**: `_stereoLayersOn` フラグを ctor で初期化・`_enableStereoLayers` 末で立て、新規 `_disableStereoLayers()` を `stop()` から呼出（flag 未立 = mono/未再生なら no-op — mono stop が camera layers を触らないことを厳密化）。main camera + `getCamera()` の全 eye camera に `disable(1)/disable(2)`（片眼のみ enable でも両方 disable は idempotent）。`play()` が先に `stop()` を呼ぶ設計のため stereo→mono 再生切替でも正しく復元される。

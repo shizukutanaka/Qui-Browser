@@ -255,14 +255,14 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
  * VRApp.snapTurn); this caption is the second, non-visual channel that tells
  * the user which way the world snapped. Pure so it is unit-testable.
  *
- * @param {number} direction   +1 = clockwise (right), -1 = counter-clockwise (left)
+ * @param {number} direction   +1 = counter-clockwise (left), -1 = clockwise (right)
  * @param {number} angleDeg    magnitude of the snap in degrees
  * @returns {string}           e.g. "↺ Left 30°" or "↻ Right 30°"
  */
 export function snapTurnLabel(direction, angleDeg) {
   return direction > 0
-    ? `↻ ${t('vr.value.right')} ${angleDeg}°`
-    : `↺ ${t('vr.value.left')} ${angleDeg}°`;
+    ? `↺ ${t('vr.value.left')} ${angleDeg}°`
+    : `↻ ${t('vr.value.right')} ${angleDeg}°`;
 }
 
 /**

@@ -58,9 +58,7 @@ export class HandTracking {
     // Statistics
     this.stats = {
       framesTracked: 0,
-      gesturesRecognized: 0,
-      pinchAccuracy: 0,
-      trackingQuality: 1.0
+      gesturesRecognized: 0
     };
 
     // Joint names as per WebXR spec
@@ -126,12 +124,19 @@ export class HandTracking {
     this._jointQ = new THREE.Quaternion(); // identity — spheres need no rotation
     this._jointS = new THREE.Vector3();
 
-    // Create hand groups
+    // Create hand groups. They start HIDDEN — THREE.Group defaults
+    // visible=true, which would both render an untracked joint blob at the
+    // origin for the first frame and, worse, register as "was tracked" in
+    // update()'s transition detector and announce a phantom "hand lost" for
+    // each hand before the user ever raised it (WCAG 4.1.3: a status that
+    // never happened). update() owns visibility from the first pose.
     this.leftHand = new THREE.Group();
     this.leftHand.name = 'leftHand';
+    this.leftHand.visible = false;
 
     this.rightHand = new THREE.Group();
     this.rightHand.name = 'rightHand';
+    this.rightHand.visible = false;
 
     // One InstancedMesh per hand: 2 draw calls total instead of 50, and one
     // material per hand instead of 25 clones.
@@ -351,9 +356,14 @@ export class HandTracking {
 
       const gesture = this.detectGesture(joints, this.gestures[handedness] === 'pinch');
 
-      // Check if gesture changed
+      // Check if gesture changed. Count gesture ONSETS here — the counter
+      // used to live inside detectGesture(), which runs every frame, so a
+      // 3-second held pinch recorded ~270 "recognitions" instead of one.
       if (gesture !== this.gestures[handedness]) {
         this.onGestureChange(handedness, this.gestures[handedness], gesture);
+        if (gesture !== 'none') {
+          this.stats.gesturesRecognized++;
+        }
         this.gestures[handedness] = gesture;
       }
     });
@@ -378,7 +388,6 @@ export class HandTracking {
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
     const pinchThreshold = wasPinching ? this.thresholds.pinchRelease : this.thresholds.pinch;
     if (pinchDistance < pinchThreshold) {
-      this.stats.gesturesRecognized++;
       return 'pinch';
     }
 
@@ -387,7 +396,6 @@ export class HandTracking {
         !this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'point';
     }
 
@@ -396,7 +404,6 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         this.isFingerExtended(joints, 'ring-finger') &&
         this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'open';
     }
 
@@ -406,7 +413,6 @@ export class HandTracking {
     // plain fist keeps its thumb vector pointing sideways (< 0.7), so the
     // reorder doesn't misclassify real fists.
     if (this.isThumbUp(joints)) {
-      this.stats.gesturesRecognized++;
       return 'thumbsup';
     }
 
@@ -415,7 +421,6 @@ export class HandTracking {
         !this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'fist';
     }
 
@@ -424,7 +429,6 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'peace';
     }
 
@@ -503,13 +507,21 @@ export class HandTracking {
       removed: event.removed.length
     });
 
-    // Hide hands that are no longer tracked
+    // Hide hands that are no longer tracked. Announce the loss FIRST:
+    // update()'s transition detector compares the frame-start visibility
+    // against the seen flag, so clearing `visible` here directly would make
+    // a removed input source invisible to it — the one path that never
+    // produced a "hand lost" status (WCAG 4.1.3).
     for (const source of event.removed) {
-      if (source.handedness === 'left') {
-        this.leftHand.visible = false;
-      } else if (source.handedness === 'right') {
-        this.rightHand.visible = false;
+      const handGroup = source.handedness === 'left' ? this.leftHand
+        : source.handedness === 'right' ? this.rightHand : null;
+      if (!handGroup) {
+        continue;
       }
+      if (handGroup.visible && this._onTrackingChange) {
+        this._onTrackingChange(source.handedness, false);
+      }
+      handGroup.visible = false;
     }
   }
 
@@ -592,6 +604,5 @@ export class HandTracking {
  * }
  *
  * // Get statistics
- * const stats = handTracking.getStats();
- * console.debug(`Gestures recognized: ${stats.gesturesRecognized}`);
+ * console.debug(`Gestures recognized: ${handTracking.stats.gesturesRecognized}`);
  */

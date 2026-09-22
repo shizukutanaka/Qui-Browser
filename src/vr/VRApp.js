@@ -249,6 +249,7 @@ export class VRApp {
     this.controllers = [];
     this.controllerGrips = [];
     this.controllerInput = null; // VRControllerInput instance (created in setupControllers)
+    this._inputFrame = 0; // per-frame gamepad-read epoch (updateLocomotion advances it)
     this.floorMesh = null;
     this.teleport = { active: false, controller: null, marker: null, target: null, valid: false };
     this._grabController = null; // controller currently dragging a panel's move bar
@@ -2190,6 +2191,11 @@ export class VRApp {
    * so the comfort vignette tracks actual glide speed.
    */
   updateLocomotion(dt = 0.016) {
+    // One gamepad read per controller per frame: read() is edge-consuming
+    // (justPressed lives exactly one read), so the snapshot is stamped and
+    // shared with updateButtonInput via controller.userData. The frame
+    // counter advances even on early return so stale snaps never leak.
+    this._inputFrame += 1;
     if (!this.playerRig) {
       return;
     }
@@ -2213,6 +2219,8 @@ export class VRApp {
       const snap = this.controllerInput
         ? this.controllerInput.read(src)
         : { axes: { stickX: 0, stickY: 0 }, buttons: {}, hand: src.handedness };
+      controller.userData._inputSnap = snap;
+      controller.userData._snapFrame = this._inputFrame;
 
       const { stickX: x = 0, stickY: y = 0 } = snap.axes;
 
@@ -2299,7 +2307,14 @@ export class VRApp {
         continue;
       }
 
-      const snap = this.controllerInput.read(src);
+      // Reuse the snapshot updateLocomotion already consumed this frame —
+      // a second read() would see justPressed=false forever (the edge is
+      // eaten by whichever consumer runs first). Fresh-read fallback covers
+      // callers outside the updateSystems tick.
+      const snap = controller.userData._inputSnap
+        && controller.userData._snapFrame === this._inputFrame
+        ? controller.userData._inputSnap
+        : this.controllerInput.read(src);
       const hand = snap.hand;
       const btn  = snap.buttons;
 
