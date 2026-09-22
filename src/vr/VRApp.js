@@ -1998,8 +1998,7 @@ export class VRApp {
 
     // Profile-aware, dead-zone-filtered controller input.
     this.controllerInput = new VRControllerInput({
-      deadZone: this.settings.controllerDeadZone,
-      southpaw: this.settings.southpaw
+      deadZone: this.settings.controllerDeadZone
     });
 
     // Shared ray line geometry (pointing down -Z from the controller).

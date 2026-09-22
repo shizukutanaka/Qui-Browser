@@ -176,11 +176,15 @@ export class VRControllerInput {
   /**
    * @param {object} [opts]
    * @param {number}  [opts.deadZone=0.15]  Fraction of axis travel ignored near centre.
-   * @param {boolean} [opts.southpaw=false] When true, swap left/right stick roles.
+   *
+   * Handedness role-swapping (southpaw) is deliberately NOT a knob here:
+   * read() is per-input-source, so the input layer cannot exchange two
+   * hands' inputs — the swap lives in VRApp, which picks which hand's
+   * snapshot drives turn/move/pointer. A flag here could only ever sit
+   * inert while suggesting the feature was configurable at this level.
    */
-  constructor({ deadZone = 0.15, southpaw = false } = {}) {
+  constructor({ deadZone = 0.15 } = {}) {
     this.deadZone = deadZone;
-    this.southpaw = southpaw;
 
     // WeakMap so GC can reclaim entries for disconnected XRInputSources automatically.
     this._state = new WeakMap();
@@ -320,10 +324,24 @@ export class VRControllerInput {
       this._state.set(inputSource, state);
     }
     if (!state.empty) {
+      const family = this.detectFamily(inputSource);
+      const axesMap = AXES_MAPS[family] ?? AXES_MAPS.generic;
+      // Same axes shape read() produces for this family — a gamepad-less
+      // valve-index source still reports trackpad keys (zeroed), so
+      // consumers never read an undefined field mid-stream.
+      const axes = {};
+      for (const prefix of ['stick', 'trackpad']) {
+        const xk = `${prefix}X`;
+        const yk = `${prefix}Y`;
+        if (xk in axesMap || yk in axesMap) {
+          axes[xk] = 0;
+          axes[yk] = 0;
+        }
+      }
       state.empty = {
-        family:  this.detectFamily(inputSource),
+        family,
         hand:    'unknown',
-        axes:    { stickX: 0, stickY: 0 },
+        axes,
         buttons: {}
       };
     }

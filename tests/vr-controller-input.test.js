@@ -1,7 +1,7 @@
 /**
  * Unit tests for VRControllerInput — pure logic, no DOM or Three.js.
  * Covers: profile detection, device naming, axis dead-zone, button state
- * diffing (justPressed / justReleased), southpaw no-op, and forget().
+ * diffing (justPressed / justReleased), family-consistent empty snapshots, and forget().
  */
 
 const { VRControllerInput, PROFILE_MAP, BUTTON_MAPS, AXES_MAPS, applyRadialDeadZone } = require('../src/vr/input/VRControllerInput.js');
@@ -352,18 +352,45 @@ describe('VRControllerInput.forget', () => {
 });
 
 // ---------------------------------------------------------------------------
-// southpaw (constructor option forwarded from VRControllerInput)
+// _empty snapshot — gamepad-less sources still report the family's axes shape
 // ---------------------------------------------------------------------------
 
-describe('VRControllerInput southpaw option', () => {
-  test('southpaw flag is stored', () => {
-    const ci = new VRControllerInput({ southpaw: true });
-    expect(ci.southpaw).toBe(true);
+describe('VRControllerInput _empty snapshot shape', () => {
+  test('valve-index source without a gamepad still exposes trackpad axes (zeroed)', () => {
+    const ci = new VRControllerInput();
+    const snap = ci.read({ profiles: ['valve-index'], handedness: 'right' });
+    expect(snap.family).toBe('valve-index');
+    expect(snap.axes).toHaveProperty('trackpadX');
+    expect(snap.axes.trackpadX).toBe(0);
+    expect(snap.axes.trackpadY).toBe(0);
+    expect(snap.axes.stickX).toBe(0);
   });
 
-  test('southpaw false by default', () => {
+  test('meta-quest source without a gamepad exposes stick axes only', () => {
     const ci = new VRControllerInput();
-    expect(ci.southpaw).toBe(false);
+    const snap = ci.read({ profiles: ['oculus-touch-v3'], handedness: 'left' });
+    expect(snap.family).toBe('meta-quest');
+    expect(snap.axes).toHaveProperty('stickX');
+    expect(snap.axes).not.toHaveProperty('trackpadX');
+  });
+
+  test('handedness still flows through the empty snapshot', () => {
+    const ci = new VRControllerInput();
+    const snap = ci.read({ profiles: ['pico-4'], handedness: 'left' });
+    expect(snap.hand).toBe('left');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// southpaw — NOT a knob on this layer; role-swap lives in VRApp's hand
+// selection (turnHand/moveHand/pointerHand), which is the only place two
+// hands' inputs can actually be exchanged.
+// ---------------------------------------------------------------------------
+
+describe('VRControllerInput southpaw boundary', () => {
+  test('the constructor does not offer a southpaw option', () => {
+    const ci = new VRControllerInput({ southpaw: true });
+    expect(ci.southpaw).toBeUndefined();
   });
 });
 
