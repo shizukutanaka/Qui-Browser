@@ -1354,3 +1354,78 @@ describe('VoiceCommands — search action inner-match arm', () => {
     expect(cmd.action('検索')).toBeUndefined();
   });
 });
+
+
+describe('VoiceCommands — transcript normalization (kana fold, NFKC, punctuation)', () => {
+  let vc, back;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    vc.callbacks.onSpeak = () => {};
+    back = jest.fn();
+    vc.connectBrowser({ tabManager: { getActiveTab: () => ({ goBack: back }) } });
+  });
+
+  test('katakana transcript for a hiragana pattern fires', () => {
+    // ja-JP engines emit the same utterance in either script — 'モドル'
+    // must reach the 'もどる' literal the same as '戻る' does.
+    vc.processCommand('モドル', 0.9);
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('back');
+  });
+
+  test('terminal punctuation the engine appends does not hide the command', () => {
+    vc.processCommand('戻る。', 0.9);
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('back');
+  });
+
+  test('full-width transcript still matches (NFKC)', () => {
+    const onEnterVR = jest.fn();
+    vc.connectBrowser({ onEnterVR });
+    vc.processCommand('ＶＲモード', 0.9);
+    expect(onEnterVR).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('vr-enter');
+  });
+
+  test('half-width katakana folds to the command phrase', () => {
+    const onTopSites = jest.fn();
+    vc.connectBrowser({ onTopSites });
+    vc.processCommand('ﾄｯﾌﾟｻｲﾄ', 0.9);
+    expect(onTopSites).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('top-sites');
+  });
+
+  test('regex patterns still match unfolded transcripts', () => {
+    // A regexp spelled in katakana cannot match folded hiragana text —
+    // regexes are tested on both normalized forms for that reason.
+    const onTopSites = jest.fn();
+    vc.connectBrowser({ onTopSites });
+    vc.processCommand('トップサイト', 0.9);
+    expect(onTopSites).toHaveBeenCalledTimes(1);
+    expect(vc.lastCommand.key).toBe('top-sites');
+  });
+
+  test('a politeness-suffixed transcript does not match (no substring widening)', () => {
+    // '戻ります' is not '戻る' — literal matching stays exact after
+    // normalization; no includes-style widening was added.
+    vc.processCommand('戻ります', 0.9);
+    expect(back).not.toHaveBeenCalled();
+    expect(vc.lastCommand).not.toEqual(expect.objectContaining({ key: 'back' }));
+  });
+
+  test('wake word normalizes the same way', () => {
+    vc.settings.requireWakeWord = true;
+    vc.isAwake = false;
+    expect(vc.containsWakeWord('キュー ブラウザ。')).toBe(true);
+  });
+
+  test('search keeps the raw transcript for query extraction', () => {
+    // Normalization must not leak into the captured argument — the user's
+    // words go to the search engine verbatim.
+    const onSearch = jest.fn();
+    vc.connectBrowser({ onSearch });
+    vc.processCommand('検索：テスト', 0.9);
+    expect(onSearch).toHaveBeenCalledWith('テスト');
+    expect(vc.lastCommand.key).toBe('search');
+  });
+});

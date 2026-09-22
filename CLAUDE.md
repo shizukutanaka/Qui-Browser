@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 96: 続き254 — 音声コマンドの転写正規化（かな折り畳み + NFKC + 句読点）
+- 🔍 **調査**: `processCommand` のリテラル照合は生 transcript の `toLowerCase().trim()` 厳密一致のみ — ja-JP エンジンが出す **カタカナ表記揺れ（'モドル'）・語尾句読点（'戻る。'）・全角文字（'ＶＲモード'）・半角カナ（'ﾄｯﾌﾟｻｲﾄ'）** は全て「コマンドが認識できませんでした」に沈黙していた。エイリアス側の `includes` も生テキストで同一の揺れを持つ。Qiita/Zenn の Web Speech API 実践記事で繰り返し指摘される既知の落とし穴。
+- 🔧 **修正**: 3つの正規化ヘルパを追加。`foldKatakana`（ァ-ヶ→ひらがな −0x60）、`basicNormalizeSpeech`（NFKC+小文字+空白畳み・かな不変換）、`normalizeSpeechText`（同+かな折り畳み・句読点保持）、`normalizeCommandText`（同+句読点/空白/記号除去）。照合は **リテラル=compact 厳密一致**（'戻る。'→'戻る'、'モドル'→'もどる'）、**regex=折り畳み有無の両形で test**（カタカナで書かれた regex `/トップ?サイト/` は unfold 側で、ひらがな regex は fold 側で発火 — 既存パターン全保持）、**alias/wake word=compact の includes**（従来どおり substring）。**検索語抽出は生 transcript のまま** — 正規化が引数に漏れないことを pin。**「して」「ます」等の suffix 付き発話は意図的に拾わない**（includes 拡大は 'あした'→'した' の誤発火を生むため厳密一致維持 — 判断記録）。
+- 🧪 pin 8件: モドル/戻る。/ＶＲモード/半角カナの発火4件 + unfold regex 保持・検索語 verbatim・'戻ります' 非発火・wake word 正規化の guard4件。3件が stash 検証で pre-fix 赤・post-fix 緑。
+- ✅ 3222 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

@@ -5,6 +5,54 @@
  * John Carmack principle: Voice is the ultimate VR input
  */
 
+/**
+ * Katakana → hiragana fold. ja-JP recognizers emit the same utterance in
+ * kanji, katakana or a mix ('戻る' vs 'モドル'), so command patterns would
+ * need every script variant listed without folding. U+30F6 (ヶ) folds to
+ * U+3096 (ゖ) — contiguous katakana maps cleanly by −0x60.
+ */
+function foldKatakana(s) {
+  return s.replace(/[ァ-ヶ]/g, (c) => String.fromCodePoint(c.codePointAt(0) - 0x60));
+}
+
+/**
+ * NFKC + lowercase + whitespace collapse — NO kana fold. Regexp patterns
+ * are tested on BOTH this and the folded form: a pattern spelled in
+ * katakana (/トップ?サイト/) cannot match folded hiragana text, and one
+ * spelled in hiragana cannot match katakana transcripts — covering both
+ * keeps every existing pattern working whichever script the engine emits.
+ */
+function basicNormalizeSpeech(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Normalized form for regex patterns: NFKC (full-width 'ＶＲ'→'VR',
+ * '：'→':'), lowercase, kana-folded, whitespace collapsed. Punctuation is
+ * KEPT — argument-capturing patterns like /検索[:：]\s*(.+)/ need the colon.
+ */
+function normalizeSpeechText(s) {
+  return foldKatakana(String(s === null || s === undefined ? '' : s)
+    .normalize('NFKC')
+    .toLowerCase())
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Compact form for literal patterns, aliases and the wake word: everything
+ * `normalizeSpeechText` produces minus whitespace, punctuation and symbols.
+ * An engine that appends a terminal '。' ('戻る。') or inserts no space
+ * still lands on the command phrase exactly.
+ */
+function normalizeCommandText(s) {
+  return normalizeSpeechText(s).replace(/[\s\p{P}\p{S}]/gu, '');
+}
+
 export class VoiceCommands {
   constructor() {
     this.recognition = null;
@@ -206,9 +254,10 @@ export class VoiceCommands {
    * Check if transcript contains wake word
    */
   containsWakeWord(transcript) {
-    const normalized = transcript.toLowerCase().replace(/\s+/g, '');
-    const wakeWord = this.settings.wakeWord.toLowerCase().replace(/\s+/g, '');
-    return normalized.includes(wakeWord);
+    // Same compact normalization as command matching — 'キューブラウザ。'
+    // or a katakana/whitespace variant still wakes.
+    return normalizeCommandText(transcript)
+      .includes(normalizeCommandText(this.settings.wakeWord));
   }
 
   /**
@@ -218,8 +267,12 @@ export class VoiceCommands {
     this.stats.commandsRecognized++;
     this.stats.averageConfidence = (this.stats.averageConfidence * (this.stats.commandsRecognized - 1) + confidence) / this.stats.commandsRecognized;
 
-    // Normalize transcript
-    const normalized = transcript.toLowerCase().trim();
+    // Normalize transcript — two forms: `normalized`/`unfolded` keep
+    // punctuation for argument-capturing regexes, `compact` drops it for
+    // literal/alias comparison (see the helpers above for why both exist).
+    const normalized = normalizeSpeechText(transcript);
+    const unfolded = basicNormalizeSpeech(transcript);
+    const compact = normalizeCommandText(transcript);
 
     // Find matching command
     let matchedCommand = null;
@@ -229,9 +282,9 @@ export class VoiceCommands {
     for (const [key, command] of this.commands) {
       if (command.patterns.some(pattern => {
         if (typeof pattern === 'string') {
-          return normalized === pattern.toLowerCase();
+          return compact === normalizeCommandText(pattern);
         } else if (pattern instanceof RegExp) {
-          return pattern.test(normalized);
+          return pattern.test(normalized) || pattern.test(unfolded);
         }
         return false;
       })) {
@@ -244,7 +297,7 @@ export class VoiceCommands {
     // Check aliases
     if (!matchedCommand) {
       for (const [alias, commandKey] of this.aliases) {
-        if (normalized.includes(alias.toLowerCase())) {
+        if (compact.includes(normalizeCommandText(alias))) {
           matchedCommand = this.commands.get(commandKey);
           matchedKey = commandKey;
           break;
