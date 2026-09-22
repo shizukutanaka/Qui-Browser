@@ -76,6 +76,58 @@ describe('enforceCacheLimit — FIFO bound on a cache', () => {
     await enforceCacheLimit(cache, 'no-such-type');
     expect(cache.entries).toHaveLength(CACHE_LIMITS.runtime);
   });
+
+  // Precached shell assets are the OLDEST entries in the versioned cache
+  // (inserted at install). FIFO eviction starting at keys[0] would delete
+  // index.html/offline.html first — killing the offline guarantee the
+  // precache exists for — whenever cacheFirst writes push past the limit.
+  describe('protected precache entries (regression: FIFO evicted the app shell)', () => {
+    const { CRITICAL_ASSETS } = sw;
+    const protectedEntries = () => CRITICAL_ASSETS.map((p) => [
+      { url: `https://app.example${p === '/' ? '/' : p}` },
+      { shell: p }
+    ]);
+
+    test('eviction skips CRITICAL_ASSETS and trims the next-oldest instead', async () => {
+      const cache = makeMockCache();
+      cache.entries.push(...protectedEntries()); // oldest — like a real install
+      seed(cache, CACHE_LIMITS.static + 5);        // cacheFirst writes over limit
+      await enforceCacheLimit(cache, 'static');
+      const urls = cache.entries.map((e) => e[0].url);
+      for (const p of CRITICAL_ASSETS) {
+        expect(urls).toContain(`https://app.example${p === '/' ? '/' : p}`);
+      }
+      expect(cache.entries).toHaveLength(CACHE_LIMITS.static);
+      // The oldest NON-protected entries are what actually got evicted —
+      // 10 deletions needed, all from the x/ entries (x/0..x/9 gone).
+      expect(urls).not.toContain('https://x/9');
+      expect(urls).toContain('https://x/10');
+    });
+
+    test('cacheFirst miss-write never evicts the shell it wrote beside', async () => {
+      // End-to-end: the strategy that caused the bug — a .wasm miss writes to
+      // CACHE_VERSION and bounds it. With the shell already inside, the trim
+      // must remove old .wasm entries, not the precache.
+      const { cacheFirst } = require('../public/service-worker.js');
+      const cache = makeMockCache();
+      cache.entries.push(...protectedEntries());
+      seed(cache, CACHE_LIMITS.static + 1);
+      const ev = { waitUntil: (p) => ev.pending.push(p), pending: [] };
+      global.caches = { open: async () => cache };
+      global.fetch = async () => ({ ok: true, clone() {
+        return this;
+      } });
+      await cacheFirst({ url: 'https://app.example/mod.wasm', method: 'GET' }, ev);
+      await Promise.allSettled(ev.pending);
+      const urls = cache.entries.map((e) => e[0].url);
+      expect(urls).toContain('https://app.example/index.html');
+      expect(urls).toContain('https://app.example/offline.html');
+      expect(urls).toContain('https://app.example/mod.wasm');
+      expect(cache.entries).toHaveLength(CACHE_LIMITS.static);
+      delete global.caches;
+      delete global.fetch;
+    });
+  });
 });
 
 describe('networkFirst — bounds RUNTIME_CACHE after caching a response', () => {

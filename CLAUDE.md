@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 123: 続き281 — Service Worker のキャッシュ eviction が precache を消す（オフライン保証の崩壊）
+- 🔍 **実測**: `enforceCacheLimit(cache, 'static')`（`cacheFirst` パス）は versioned `CACHE_VERSION` キャッシュに対して純粋 FIFO — `cache.keys()` は挿入順を返し、**最古のエントリは install 時の precache（index.html/offline.html/manifest.json/offline.js）**。cacheFirst パターン（.wasm/.glb/.gltf/fonts//.woff）の資産が 100 件を超えると keys[0] から削除されるため precache が最初に消え、オフライン時の `getOfflineFallback` が offline.html を見つけられず 503 プレーンテキストしか返せなくなる — precache が存在する唯一の理由であるオフライン保証が静かに破壊される。現行 dist には該当資産が無いため潜在化しているが、同一出所の静的資産を1つでも追加すれば即点火する shipped code の欠陥。
+- 🔧 **修正**: `PROTECTED_PATHS = new Set(CRITICAL_ASSETS)` を追加し、`enforceCacheLimit` は削除対象を巡る際に protected pathname（`new URL(key.url).pathname`）をスキップして次に古い非保護エントリを削除。保護エントリしか残らない場合は limit を下回らずに終了（消せないものは消さない）。RUNTIME_CACHE 側の挙動は不変（precache が入らないため protected チェックは no-op）。
+- 🧪 pin 2件（service-worker-cache.test.js: precache を最古として seed し static limit 超過 → 全 CRITICAL_ASSETS 生存・非保護の最古だけ削除・limit 維持 / cacheFirst の .wasm miss 書込 e2e → shell 不削除 + 新エントリ生存）。両件 stash なし新規 pin — 実装前に実行し 2件とも赤を確認（index.html/offline.html が evict された）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。
