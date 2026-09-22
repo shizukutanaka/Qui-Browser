@@ -2522,6 +2522,77 @@ async function main() {
                   }
                 }
               }
+              // Top-sites leg — a fresh tab lands on 'empty' state where
+              // getTopSites seeds the tile grid; a tile-rect select routes
+              // tileAt → navigate, dead space is a no-op, and the reload
+              // zone while a fetch is in flight becomes stop() (aborts the
+              // load, returns content state without corrupting the panel).
+              if (ctrl && app.tabManager && app.scene) {
+                const tm2 = app.tabManager;
+                const origFetch3 = globalThis.fetch;
+                const activeWas2 = tm2.activeIndex;
+                const tabsWas2 = tm2.tabs.length;
+                try {
+                  globalThis.fetch = () => Promise.resolve({
+                    ok: true,
+                    text: () => Promise.resolve(
+                      '<html><head><title>Tile Page</title></head><body>'
+                      + '<article><p>tile paragraph one two three four five'
+                      + ' six seven eight nine ten</p></article></body>')
+                  });
+                  tm2.newTab();
+                  const wp2 = tm2.tabs[tm2.activeIndex];
+                  app.scene.updateMatrixWorld(true);
+                  out.tilesProbe = !!wp2
+                    && wp2._contentState === 'empty'
+                    && (wp2._topTiles || []).length > 0;
+                  const selContent2 = (px, py) => {
+                    const local = wp2.contentMesh.position.clone().set(
+                      (px / 1024 - 0.5) * 1.6,
+                      (0.5 - py / 942) * 0.92, 0);
+                    wp2._onContentSelect(wp2.contentMesh.localToWorld(local));
+                  };
+                  const selChrome2 = (px) => {
+                    const local = wp2.chromeMesh.position.clone().set(
+                      (px / 1024 - 0.5) * 1.6, 0, 0);
+                    wp2._onChromeSelect(wp2.chromeMesh.localToWorld(local));
+                  };
+                  const settle2 = async () => {
+                    for (let i = 0; i < 60 && wp2.loading; i++) {
+                      await new Promise((r) => setTimeout(r, 50));
+                    }
+                  };
+                  // Header dead space (py < HEADER_PX=110): no tile hit.
+                  selContent2(500, 30);
+                  out.tileMissNoop = wp2._contentState === 'empty'
+                    && !wp2.currentUrl;
+                  // Tile rect → navigate → reader state on the tiled URL.
+                  const tile = wp2._topTiles[0];
+                  if (tile) {
+                    selContent2(tile.x + 5, tile.y + 5);
+                    await settle2();
+                  }
+                  out.tileNavigates = !!tile
+                    && wp2.currentUrl === tile.url
+                    && wp2._contentState === 'reader';
+                  // Reload zone during an in-flight load → stop() clears it.
+                  wp2.navigate('https://tile-stop.example/');
+                  const wasLoading = wp2.loading === true;
+                  selChrome2(170);
+                  out.stopArmClears = wasLoading
+                    && wp2.loading === false;
+                } finally {
+                  globalThis.fetch = origFetch3;
+                  while (tm2.tabs.length > tabsWas2) {
+                    tm2.closeTab(tm2.tabs.length - 1);
+                  }
+                  if (tm2.tabs.length) {
+                    tm2.setActive(
+                      Math.min(activeWas2, tm2.tabs.length - 1));
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2971,6 +3042,10 @@ async function main() {
       chromeStar: iout.chromeStar === true,
       chromeUrlBar: iout.chromeUrlBar === true,
       chromeClose: iout.chromeClose === true,
+      tilesProbe: iout.tilesProbe === true,
+      tileMissNoop: iout.tileMissNoop === true,
+      tileNavigates: iout.tileNavigates === true,
+      stopArmClears: iout.stopArmClears === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3231,6 +3306,10 @@ async function main() {
       ['bookmark star zone toggles + announces', !!inter.chromeStar],
       ['URL bar zone opens the keyboard', !!inter.chromeUrlBar],
       ['close zone hides the panel', !!inter.chromeClose],
+      ['fresh tab shows the top-sites grid', !!inter.tilesProbe],
+      ['dead space between tiles is a no-op', !!inter.tileMissNoop],
+      ['tile select navigates the tab', !!inter.tileNavigates],
+      ['reload zone during load stops the fetch', !!inter.stopArmClears],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

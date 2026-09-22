@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 177: 続き335 — top-sites タイル（empty state→tileAt→navigate）+ reload-during-load→stop() を e2e pin（#259 batch 28、220→224 checks）
+- 🔍 **実測**: 新規タブの 'empty' state で `getTopSites` がシードするタイルグリッド（`topSiteTiles`→`tileAt`→`navigate`）、dead space no-op、ロード中の reload ゾーン→`stop()` 腕は未駆動だった。`tm.newTab()` で実 empty タブを作り端到端 pin。
+- 🔧 **pin 設計（4 check）**: `wp2._contentState==='empty'` + `_topTiles.length>0`（ctor 内 `_drawContent` で実 getTopSites→tile 構築）→ py<HEADER_PX=110 の dead zone select は no-op → `tile.x+5,tile.y+5` select で `currentUrl===tile.url` + 'reader' state → `wp2.navigate` で load 中に px170 reload ゾーン → `stop()` で `loading===false`。
+- 🧪 赤検証: `topSiteTiles` 結果切断 → tilesProbe FAIL、`navigate(tile.url)` 切断 → tileNavigates FAIL、`stop()` 腕切断 → stopArmClears FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 224 checks PASS、verify:app PASS。
+
 ### Session 176: 続き334 — WebPanel chrome ヒットゾーン（戻る/進む/reload/star/URLバー/close）を e2e pin（#259 batch 27、214→220 checks）
 - 🔍 **実測**: `chromeMesh._onChromeSelect` の px ゾーン分岐（<68 back、<136 forward、<204 reload/stop、>w-60 hide、w-128..72 star→`onToggleBookmark`、else URLバー→`onUrlInputRequested`）は未駆動 — chrome 経由のナビゲーションが一度も e2e されていなかった。
 - 🔧 **pin 設計（6 check）**: fetch stub で 2 ナビゲーション履歴構築 → px30 back で `historyIdx` 後退+`currentUrl` 復帰、px100 forward で復帰、px170 reload で fetch 再発行、px920 star で `isBookmarked` 反転+'Bookmarked' caption、px500 URL バーで keyboard open + `compositionBuffer===currentUrl`（prefill 配管）、px1000 close で `group.visible=false`。
