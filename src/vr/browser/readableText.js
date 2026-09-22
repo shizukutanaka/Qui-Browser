@@ -26,6 +26,8 @@
  * carries it, and return nothing rather than garbage when it does not.
  */
 
+import { NAMED_ENTITIES } from './namedEntities.js';
+
 /** Elements whose contents are never reader text. */
 const STRIP_ELEMENTS = [
   'script', 'style', 'noscript', 'template', 'svg', 'canvas',
@@ -36,65 +38,18 @@ const STRIP_ELEMENTS = [
  * Named character references. Names are **case-sensitive** per the HTML
  * entity table (`&Dagger;` ‡ is not `&dagger;` †, `&Eacute;` É is not
  * `&eacute;` é) — a case-insensitive lookup silently decodes the wrong
- * letter. The set is the complete HTML4/XHTML1.0 repertoire (~250 names),
- * which HTML5 keeps verbatim: anything a real page can emit decodes here,
- * while invented names like `&fake;` are still left untouched.
+ * letter. The set is the **complete HTML5 named-reference repertoire**
+ * (2125 names, machine-generated into ./namedEntities.js from the WHATWG
+ * entities.json) so anything a real page can emit decodes here, while
+ * invented names like `&fake;` are still left untouched.
  */
 const ENTITIES = {
-  // Quoting and core markup
-  quot: '"', amp: '&', lt: '<', gt: '>', apos: "'",
-  AMP: '&', GT: '>', LT: '<', QUOT: '"', COPY: '©', REG: '®', TRADE: '™',
-  // Whitespace and invisibles — soft hyphen/joiners are zero-width in canvas
+  ...NAMED_ENTITIES,
+  // Canvas-normalization overrides the hand table already applied: soft
+  // hyphen/joiners/directional marks have no glyph in canvas, and the
+  // Unicode space flavors render as ASCII space.
   nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ', shy: '', zwnj: '', zwj: '',
-  lrm: '', rlm: '', NewLine: ' ', Tab: ' ',
-  // Punctuation and typography
-  ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', sbquo: '‚', ldquo: '“',
-  rdquo: '”', bdquo: '„', lsaquo: '‹', rsaquo: '›', laquo: '«', raquo: '»',
-  oline: '‾', frasl: '⁄', euro: '€', permil: '‰', prime: '′', Prime: '″',
-  dagger: '†', Dagger: '‡', bull: '•', hellip: '…', trade: '™',
-  // Latin-1 supplement
-  iexcl: '¡', cent: '¢', pound: '£', curren: '¤', yen: '¥', brvbar: '¦',
-  sect: '§', uml: '¨', copy: '©', ordf: 'ª', not: '¬', reg: '®', macr: '¯',
-  deg: '°', plusmn: '±', sup2: '²', sup3: '³', acute: '´', micro: 'µ',
-  para: '¶', middot: '·', cedil: '¸', sup1: '¹', ordm: 'º', frac14: '¼',
-  frac12: '½', frac34: '¾', iquest: '¿', times: '×', divide: '÷',
-  Agrave: 'À', Aacute: 'Á', Acirc: 'Â', Atilde: 'Ã', Auml: 'Ä', Aring: 'Å',
-  AElig: 'Æ', Ccedil: 'Ç', Egrave: 'È', Eacute: 'É', Ecirc: 'Ê', Euml: 'Ë',
-  Igrave: 'Ì', Iacute: 'Í', Icirc: 'Î', Iuml: 'Ï', ETH: 'Ð', Ntilde: 'Ñ',
-  Ograve: 'Ò', Oacute: 'Ó', Ocirc: 'Ô', Otilde: 'Õ', Ouml: 'Ö', Oslash: 'Ø',
-  Ugrave: 'Ù', Uacute: 'Ú', Ucirc: 'Û', Uuml: 'Ü', Yacute: 'Ý', THORN: 'Þ',
-  szlig: 'ß', agrave: 'à', aacute: 'á', acirc: 'â', atilde: 'ã', auml: 'ä',
-  aring: 'å', aelig: 'æ', ccedil: 'ç', egrave: 'è', eacute: 'é', ecirc: 'ê',
-  euml: 'ë', igrave: 'ì', iacute: 'í', icirc: 'î', iuml: 'ï', eth: 'ð',
-  ntilde: 'ñ', ograve: 'ò', oacute: 'ó', ocirc: 'ô', otilde: 'õ', ouml: 'ö',
-  oslash: 'ø', ugrave: 'ù', uacute: 'ú', ucirc: 'û', uuml: 'ü', yacute: 'ý',
-  thorn: 'þ', yuml: 'ÿ',
-  // Latin extended that appears in real prose (Œuvre, Škoda, Ÿ, ƒ, modifiers)
-  OElig: 'Œ', oelig: 'œ', Scaron: 'Š', scaron: 'š', Yuml: 'Ÿ', fnof: 'ƒ',
-  circ: 'ˆ', tilde: '˜',
-  // Greek — common in technical writing (μs, π, Σ, Δ, Ω)
-  Alpha: 'Α', Beta: 'Β', Gamma: 'Γ', Delta: 'Δ', Epsilon: 'Ε', Zeta: 'Ζ',
-  Eta: 'Η', Theta: 'Θ', Iota: 'Ι', Kappa: 'Κ', Lambda: 'Λ', Mu: 'Μ', Nu: 'Ν',
-  Xi: 'Ξ', Omicron: 'Ο', Pi: 'Π', Rho: 'Ρ', Sigma: 'Σ', Tau: 'Τ',
-  Upsilon: 'Υ', Phi: 'Φ', Chi: 'Χ', Psi: 'Ψ', Omega: 'Ω',
-  alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', zeta: 'ζ',
-  eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν',
-  xi: 'ξ', omicron: 'ο', pi: 'π', rho: 'ρ', sigmaf: 'ς', sigma: 'σ',
-  tau: 'τ', upsilon: 'υ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω',
-  thetasym: 'ϑ', upsih: 'ϒ', piv: 'ϖ',
-  // Math and technical symbols — the set technical prose actually emits
-  forall: '∀', part: '∂', exist: '∃', empty: '∅', nabla: '∇', isin: '∈',
-  notin: '∉', ni: '∋', prod: '∏', sum: '∑', minus: '−', lowast: '∗',
-  radic: '√', prop: '∝', infin: '∞', ang: '∠', and: '∧', or: '∨', cap: '∩',
-  cup: '∪', int: '∫', there4: '∴', sim: '∼', cong: '≅', asymp: '≈', ne: '≠',
-  equiv: '≡', le: '≤', ge: '≥', sub: '⊂', sup: '⊃', nsub: '⊄', sube: '⊆',
-  supe: '⊇', oplus: '⊕', otimes: '⊗', perp: '⊥', sdot: '⋅',
-  // Arrows, shapes, and specials
-  lceil: '⌈', rceil: '⌉', lfloor: '⌊', rfloor: '⌋', lang: '〈', rang: '〉',
-  loz: '◊', spades: '♠', clubs: '♣', hearts: '♥', diams: '♦',
-  larr: '←', uarr: '↑', rarr: '→', darr: '↓', harr: '↔', crarr: '↵',
-  lArr: '⇐', uArr: '⇑', rArr: '⇒', dArr: '⇓', hArr: '⇔',
-  weierp: '℘', image: 'ℑ', real: 'ℜ', alefsym: 'ℵ'
+  lrm: '', rlm: '', NewLine: ' ', Tab: ' '
 };
 
 /**

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 95: 続き253 — HTML5 実体全集を機械生成で同梱（台帳 P-1 解消）
+- 🔍 **調査**: Session 77 の実ページ実測が「有名実体の大半が生残り」を既に確認 — P-1 の解消条件「実ページで未 decode 実体が観測されたら」は成立済み。日本語/英語技術記事で飽和するという見送り根拠は実測と矛盾しなかったものの、数学記事・装飾記号を含むページでは `&ThickSpace;` `&LeftArrow;` 等 ~2,000 名がそのまま canvas に描かれていた。
+- 🔧 **修正**: `src/vr/browser/namedEntities.js` を新設 — WHATWG entities.json（`;` 終端の全エントリ）から **2125 名を機械生成**（GENERATED FILE ヘッダ + 再生成手順をコメント記載、複合コードポイント名 `&NotEqualTilde;`→U+2242 U+0338 も収録）。`readableText.js` の `ENTITIES` は `...NAMED_ENTITIES` + 旧手書き表の canvas 正規化分（nbsp→' ', ensp/emsp/thinsp→' ', shy/zwnj/zwj/lrm/rlm→'', Tab/NewLine→' '）をオーバーライドとして維持 — canvas 上の描画挙動は不変、照合名の範囲のみ拡大。
+- 🧪 pin 2件: HTML5-only 名の decode（LeftArrow/DoubleLeftRightArrow/InvisibleTimes/ApplyFunction/NoBreak/NotEqualTilde 複合/fjlig/dollar/ThickSpace）+ 正規化オーバーライドの継続（nbsp 空白・invisible 消去・Tab/NewLine）。pre-fix 赤を stash 検証（`&LeftArrow;` が生残りで赤）。
+- ✅ 3217 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

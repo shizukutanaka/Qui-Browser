@@ -801,13 +801,15 @@ TESTING.md が既に現行説明を担う）。文書の分量と位置づけが
 `<br>` 分割・`<title>` サイト名分離 — CLAUDE.md 続き233）。
 以下は意識的に scope 外とした残りで、再測定すれば着手判断できる。
 
-### P-1. 未修正（判断事項）: HTML5 以降の実体名は未 decode
+### ~~P-1. HTML5 以降の実体名は未 decode~~（続き253/Session 95 で解消）
 ENTITIES は HTML4/XHTML1.0 全集（~250 名）をカバーするが、HTML5 で追加された
 ~2,000 名（`&ThickSpace;` `&rightarrowtail;` `&subsetneqq;` 等の数学・装飾系）
-は生残りする。対策は WHATWG 実体表を機械生成して同梱するだけだが、
-+~30KB の bundle 増と「一般記事での出現頻度が実測的に低い」ことを天秤に
-据えて見送った。日本語/英語技術記事の実測では HTML4 集合でほぼ飽和する。
-**判断事項**: 実ページで未 decode 実体が観測されたら同梱表を機械生成する。
+は生残りしていた。**解消**: `src/vr/browser/namedEntities.js` に WHATWG
+entities.json の全 2125 名を機械生成（GENERATED FILE ヘッダ付き、再生成手順を
+コメント記載）して `ENTITIES` がそれを展開 — 「実ページで未 decode 実体が
+観測されたら」の条件は Session 77 の実測が既に満たしていた。旧手書き表の
+canvas 正規化エントリ（nbsp→' ', shy→'', zwnj/zwj/lrm/rlm→'', Tab/NewLine→' '）
+はオーバーライドとして残し、canvas 上の挙動は同一。
 
 ### P-2. 未修正（意図的）: `<br>` 以外のインライン境界は保持しない
 `<p>a<b>b</b>c</p>` は "abc" に潰す（bold/italic/span の境界情報は捨てる設計、

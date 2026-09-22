@@ -92,6 +92,26 @@ describe('decodeEntities', () => {
     expect(decodeEntities('a&NewLine;b')).toBe('a b');
     expect(decodeEntities('x&ensp;y&emsp;z&thinsp;w')).toBe('x y z w');
   });
+
+  test('HTML5-only names beyond the HTML4 repertoire decode (P-1)', () => {
+    // The hand table stopped at the ~250 HTML4/XHTML names; real pages emit
+    // HTML5 names — math operators in Wikipedia alt text, camelCase arrows
+    // in technical writing, multi-codepoint combining forms.
+    expect(decodeEntities('&LeftArrow; &DoubleLeftRightArrow;')).toBe('\u2190 \u21d4');
+    expect(decodeEntities('&InvisibleTimes; &ApplyFunction; &NoBreak;'))
+      .toBe('\u2062 \u2061 \u2060');
+    expect(decodeEntities('&NotEqualTilde;')).toBe('\u2242\u0338'); // multi-codepoint
+    expect(decodeEntities('&fjlig; &dollar;')).toBe('fj $');
+    expect(decodeEntities('&ThickSpace;')).toBe('\u205f\u200a');
+  });
+
+  test('canvas-normalization overrides survive the generated table', () => {
+    // The generated file ships raw Unicode; readableText still flattens the
+    // invisible/space entries exactly as the hand table did.
+    expect(decodeEntities('a&nbsp;b')).toBe('a b');
+    expect(decodeEntities('a&shy;b&zwnj;c&zwj;d&lrm;e&rlm;f')).toBe('abcdef');
+    expect(decodeEntities('a&Tab;b&NewLine;c')).toBe('a b c');
+  });
 });
 
 describe('extractTitle', () => {
