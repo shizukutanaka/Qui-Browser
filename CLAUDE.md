@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 142: 続き300 — stranded fix 再陸 第2弾（browser/rendering クラスタ: #216, #221, #224, #230, #233）
+- 🔍 **Session 141 の stranded 在庫から browser/rendering 系5件を cherry-pick 再陸**（interaction/a11y 系4件は #249 で提案中）。
+- 🔧 **#216** urlResolver: bracketed IPv6 リテラル・末尾ドット FQDN が検索行き → `isIPv6Literal` + LOOKS_LIKE_HOST 末尾ドット許容 ／ **#221** TabManager: `newTab(url)` が navigate 前に activate → "New tab" と実 URL の二重アナウンス → navigate 先行 + 非アクティブ close の再宣言抑止（WCAG 4.1.3） ／ **#224** LayersSystem: `XRLayer.destroy()` 不呼出で quad-layer GPU テクスチャリーク → removeLayer/dispose で destroy ／ **#230** VR180 sphereParams phiStart π/2 → π（−z 中心修正） ／ **#233** SW `enforceCacheLimit` FIFO が precache shell を削除 → PROTECTED_PATHS スキップ。
+- 🧪 各 commit が元の pin を同梱。urlResolver/tab-manager/layers/service-worker/video-projection の 181 tests 緑。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 61 checks PASS、verify:app PASS。
+- 📋 **残 stranded 在庫（続き）**: comfort/perf 系 #210 FFR write-on-change/#212 southpaw/#213 alert dedup/#214 vignette dt/#215 lerp dt/#219 audio stats/#227 devtools console/#232 monitoring dedup — 次ラウンド候補。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。
@@ -358,6 +365,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 2件（csp-consistency: meta CSP に header-only directive 非含有 — frame-ancestors/sandbox/report-uri/report-to、header CSP ≡ meta + 恰好 `frame-ancestors 'self'` 1件の差分 — 「全 policy 完全一致」より精密で、他の差分は依然失敗）。stash 検証で pre-fix 赤・post-fix 緑。**実機再確認**: 修正後ビルドで新 SW precache → clean meta + console error 0件を CDP 実測（旧 SW が旧 precache を配信中は error 継続する標準ライフサイクルも観測）。
 - ✅ 3233 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 123: 続き281 — Service Worker のキャッシュ eviction が precache を消す（オフライン保証の崩壊）
+- 🔍 **実測**: `enforceCacheLimit(cache, 'static')`（`cacheFirst` パス）は versioned `CACHE_VERSION` キャッシュに対して純粋 FIFO — `cache.keys()` は挿入順を返し、**最古のエントリは install 時の precache（index.html/offline.html/manifest.json/offline.js）**。cacheFirst パターン（.wasm/.glb/.gltf/fonts//.woff）の資産が 100 件を超えると keys[0] から削除されるため precache が最初に消え、オフライン時の `getOfflineFallback` が offline.html を見つけられず 503 プレーンテキストしか返せなくなる — precache が存在する唯一の理由であるオフライン保証が静かに破壊される。現行 dist には該当資産が無いため潜在化しているが、同一出所の静的資産を1つでも追加すれば即点火する shipped code の欠陥。
+- 🔧 **修正**: `PROTECTED_PATHS = new Set(CRITICAL_ASSETS)` を追加し、`enforceCacheLimit` は削除対象を巡る際に protected pathname（`new URL(key.url).pathname`）をスキップして次に古い非保護エントリを削除。保護エントリしか残らない場合は limit を下回らずに終了（消せないものは消さない）。RUNTIME_CACHE 側の挙動は不変（precache が入らないため protected チェックは no-op）。
+- 🧪 pin 2件（service-worker-cache.test.js: precache を最古として seed し static limit 超過 → 全 CRITICAL_ASSETS 生存・非保護の最古だけ削除・limit 維持 / cacheFirst の .wasm miss 書込 e2e → shell 不削除 + 新エントリ生存）。両件 stash なし新規 pin — 実装前に実行し 2件とも赤を確認（index.html/offline.html が evict された）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
+### Session 120: 続き278 — VR180 動画が左後方に描画されていた（sphereParams phiStart ずれ）
+- 🔍 **実測**: `videoProjection.sphereParams('180')` が `phiStart=π/2, phiLength=π` を返すが、THREE.SphereGeometry の頂点式 `(−r·cosφ·sinθ, r·cosθ, r·sinφ·sinθ)` で検算するとスパン [π/2, 3π/2] の中心 φ=π は **+x**（`ImmersiveVideo._makeSphere` の `geo.scale(-1,1,1)` ミラー適用後は **−x**）— コメントの「centred on −z」ではなく **視線の左90°** へ半球が向き、VR180 コンテンツは視聴者が見るべき正面ではなく左後方の領域に展開される（正面にはコンテンツの「縁」が来る）。発生条件: `detectVideoFormat` が `180` を含むファイル名から projection='180' を検出した場合全件。テストも `phiStart π/2` を「centred forward」と pin して誤値を固定していた。
+- 🔧 **修正**: `phiStart = Math.PI`（スパン [π, 2π]、中心 φ=3π/2 → −z。−z は x=0 のためミラーで不変）。コメントに THREE 頂点式と「π/2 は +x 中心だった」の由来を記録。
+- 🧪 pin 2件: `phiStart === π`＋**方向 pin**（スパン中心方位角が THREE 式で (0,−1)＝−z へ解像されること — 数値だけでなく配置意図を pin）。両件 src 巻き戻し検証で pre-fix 赤・post-fix 緑。
+- ✅ 3223 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 118: 続き276 — 消したメソッドを `?.` で呼ぶ死んだ呼出4件（進む/戻る が全部嘘を言う）
 - 🔍 **実測**: WebPanel の `goBack()`/`goForward()` は no-dead-public-api 台帳の確定済み dead API（`back()`/`forward()` が live 相当）— だが台帳は**定義の削除**だけを pin し、**呼出側**は検査していなかった。結果 `tab.goForward?.()`/`tab.goBack?.()` が optional chaining 経由で4箇所に残存し全部静黙 no-op: ①VRApp pointer hand faceA（進む）②faceB（戻る）③VoiceCommands「進む/次へ」④「戻る/前へ」。しかも no-op に留まらず**虚偽フィードバック**: `moved` は常に undefined → A/B ボタンは履歴があっても毎回「次のページはありません」「前のページはありません」キャプション（WCAG 4.1.3）、音声「進む」は「進みます」と発話しながら何も遷移しない。さらに `back()`/`forward()` は戻り値を持たず、呼出名を直しても caption 分岐が動かない — boolean 契約そのものが goBack/goForward と共に消えていた。テスト側も被害: voice/wiring 双方の mock が `{ goForward: jest.fn(), goBack: jest.fn() }` と死んだ名前を供給し、緑のまま偽契約を固定していた。
 - 🔧 **修正**: `back()`/`forward()` が移動可否を `return true/false`（boolean 契約を live メソッドへ復元）→ 4 call sites を実名 `forward()`/`back()` へ。テスト mock を全て実名へ付け替え（voice 1・wiring 4）。`no-dead-public-api.test.js` に **dead-CALLER スキャン**を追加 — src/ 全ファイルを再帰走査し `\bgoBack\b|\bgoForward\b` トークンを禁止（同じ逃げ道を塞ぐ）。docstring 内の死んだ参照（VRControllerInput usage例 `goBack()`）も実名に修正 — ガードは src/ 全体の裸トークンを検査するため。
@@ -365,11 +384,23 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ 3271 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
 
 
+### Session 114: 続き272 — XRLayer.destroy() が呼ばれず quad-layer GPU テクスチャがリーク
+- 🔍 **実測**: 続き271 で layer の姿勢同期を入れた際にライフサイクルを点検 — `LayersSystem.removeLayer` は `_layers.delete(id)` + render state 再コミットのみ、`dispose()` も `clear()` のみで、**`XRLayer.destroy()` を呼ぶ経路がリポジトリ内にゼロ**（grep 実測）。XRQuadLayer はネイティブの GPU backing（2048×1280 の layer テクスチャ）を持ち、ランタイムが許可する layer 数は有限（Quest 系は十数枚）— タブ close→open・enableWebPanel トグル・サブシステム teardown のたびに layer が漏れ、最終的に `createQuadLayer` が失敗してネイティブ chrome bar が出なくなる。
+- 🔧 **修正**: ①`removeLayer` — 削除した layer に `destroy()` を呼ぶ（try/catch + typeof ガード: セッション終了済み・モック layer でも安全）②`dispose()` — 登録中の全 layer を destroy してから clear。③末尾の orphan docstring（実在しない `getLayer` アクセサの残骸 — 呼び出し元も実装も無い dead comment）を除去。共用 helper `_destroyLayer` に集約。
+- 🧪 pin 3件（layers-system: removeLayer が destroy 呼出 / destroy 無し・throw でも安全 / dispose が全 layer を destroy）。defect 側 2件は stash 検証で pre-fix 赤・post-fix 緑（「tolerates」系はガードの pin で両方緑）。
+- ✅ 3225 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。
 - 🧪 pin 8件（webpanel-states: world 姿勢→transform/scale 書込・XRRigidTransform 使用・不変姿勢で再利用・移動で再発行・非表示で blit/transform 両方 skip・setVisible(false) で解放・hide() で解放、vr-app-wiring: 非表示パネル skip・表示パネル attach）。defect 側 6件は stash 検証で pre-fix 赤・post-fix 緑（「不変姿勢で再利用」は最適化ガードのため pre-fix でも緑 — transform が null のまま一致するため）。
 - ✅ 3230 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 111: 続き269 — TabManager のアナウンス乱発 2点（非アクティブ close の再宣言 + newTab(url) の空白アナウンス）
+- 🔍 **実測（コード追跡）**: WCAG 4.1.3 の「変化があった時だけ status message」を逸脱する2点 — ①`closeTab` が `index <= activeIndex` で無条件 `setActive` を走らせ、**アクティブより前の非アクティブタブ**を閉じても（アクティブは同一タブのまま index がずれるだけ）`onTabActivate` が "Tab: X" を再発火 — 変化していないのに偽の状態変化アナウンス ②`newTab(url)` が `setActive`（`onTabActivate('')`→"Tab: New tab" キャプション発火）を先に走らせてから `navigate` — 空白タブをアナウンスして直後に実 URL のナビゲートキャプションで二重発火。
+- 🔧 **修正**: ①closeTab で `activeTabClosed = (index === activeIndex)` の場合のみ `setActive` — より前のタブを閉じたときは index デクリメントのみ（visibility/drawStrip は変更不要・呼出済み）②`newTab` で `navigate(url)` を `setActive` の前へ — アナウンスが一度だけ実 URL で発火。
+- 🧪 pin 3件：非アクティブ close で onTabActivate 不発・アクティブ index/visibility 維持（pre-fix 発火）、アクティブ close で隣の URL をアナウンス（guard）、`newTab(url)` が URL で一度だけアナウンス（pre-fix は '' で発火）。2件 stash 検証で pre-fix 赤。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
@@ -389,6 +420,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: `t = 1 - (1 - s)^(dtMs / 16.667)` の指数形へ — dtMs=16.67 で `t = s`（従来挙動一致・`followLerp=1` のスナップ不変）、任意の合計 dt で完全一致、オーバーシュートなし、非正 dt で不動。`s` は [0,1] クランプ。
 - 🧪 pin 3件：16.67ms×6 = 100ms×1 と完全一致（pre-fix 差）、120ms ヒッチでスナップせず ~99% へ滑らか収束（pre-fix は即 -2.0）、dt≤0 で不動（pre-fix は後退）。3件 stash 検証で pre-fix 赤。定数視サイズテストの `follow()` helper は clamp-snap 欠陥に依存していたため `followLerp:1` の正規スナップへ修正。
 - ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 106: 続き264 — urlResolver のホスト判定抜け（IPv6 リテラル・末尾ドット FQDN が検索行き）
+- 🔍 **実測（コード追跡）**: `resolveInput` のホスト判定は `LOOKS_LIKE_HOST`（ラベル文字のみ・各ドット後にラベル必須）+ localhost + IPv4 の3経路 — ①**ブラケット IPv6 リテラル**（`[::1]`、`[2001:db8::1]:8080`）は `[`、`:` がラベル文字に含まれず全経路失敗 → **ローカル開発アドレスが検索エンジンへ誤ルーティング** ②**末尾ドット FQDN**（`example.com.` — ルートラベル明示の正規ドメイン、ブラウザはナビゲートする）は末尾ドットがパターン不適合 → 検索行き。
+- 🔧 **修正**: ①`isIPv6Literal` = `^\[[0-9a-f:]+\](:\d+)?$`i をホスト経路へ追加（生の `::1` はデスクトップ omnibox 同様検索のまま — ブラケット付きのみ）②`LOOKS_LIKE_HOST` に `\.?` を末尾挿入し単一末尾ドットを許容（`example.com.` ✓、`example..` はラベル必須で依然不適合 → 検索維持）。
+- 🧪 pin 6件：`[::1]`・`[2001:db8::1]:8080/x` ナビゲート、`::1` 生は検索維持、`example.com.`・`sub.example.co.jp./docs` ナビゲート、`example..` は検索維持。4件 stash 検証で pre-fix 赤（検索維持系2件は両方緑＝意図のドキュメント）。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 107: 続き265 — 履歴の per-entry 削除（removeHistory 再上陸 + パネル削除ゾーンの履歴対応）
 - 🔍 **実測（コード追跡）**: `BookmarkStore.js` に「Remove a single history entry by URL」の孤立 JSDoc だけが残っていた — 過去セッションで removeHistory は**本番呼出なしで削除済み**（no-dead-public-api 台帳に pin あり）。しかし BookmarkPanel の削除ゾーンは `mode === 'bookmarks'` 限定で「history is read-only」— 「あの1ページだけ消す」標準プライバシー操作が存在しない欠陥（全履歴消去のみ）。

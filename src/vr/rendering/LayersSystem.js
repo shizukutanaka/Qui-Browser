@@ -56,6 +56,9 @@ export class LayersSystem {
   }
 
   dispose() {
+    for (const layer of this._layers.values()) {
+      this._destroyLayer(layer);
+    }
     this._layers.clear();
     this.glBinding   = null;
     this._gl         = null;
@@ -113,10 +116,25 @@ export class LayersSystem {
    * @param {XRLayer}   [baseLayer]
    */
   removeLayer(id, session, baseLayer) {
+    const layer = this._layers.get(id);
     this._layers.delete(id);
+    // XRLayer.destroy() releases the layer's GPU backing.  Without it every
+    // tab close→open leaks a quad-layer texture; runtimes grant a finite
+    // number of layers, so leaked layers eventually break createQuadLayer.
+    if (layer) {
+      this._destroyLayer(layer);
+    }
     if (session) {
       this.updateRenderState(session, baseLayer);
     }
+  }
+
+  _destroyLayer(layer) {
+    try {
+      if (layer && typeof layer.destroy === 'function') {
+        layer.destroy();
+      }
+    } catch { /* teardown must not throw — the session may already be gone */ }
   }
 
   // ── Per-frame rendering ────────────────────────────────────────────────────
@@ -205,6 +223,4 @@ export class LayersSystem {
   get count() {
     return this._layers.size;
   }
-
-  /** Retrieve a layer by id (for position updates etc.). */
 }

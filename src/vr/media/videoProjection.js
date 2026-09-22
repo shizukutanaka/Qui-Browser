@@ -18,6 +18,11 @@
  * - '180' (front hemisphere): a half sphere centred on −z (the default forward
  *   view direction in three.js), so a 180° capture sits in front of the viewer.
  *
+ * In THREE's SphereGeometry the vertex at azimuth φ lands at
+ * (−r·cosφ·sinθ, r·cosθ, r·sinφ·sinθ), so −z is φ = 3π/2 — a π-long span
+ * centred on −z is therefore φ ∈ [π, 2π], i.e. phiStart = π (NOT π/2, which
+ * centred the hemisphere on +x and left the viewer facing its edge).
+ *
  * @param {string} projection  '360' | '180'
  * @returns {{phiStart:number, phiLength:number, thetaStart:number, thetaLength:number}}
  */
@@ -26,7 +31,7 @@ export function sphereParams(projection = '360') {
   const thetaLength = Math.PI; // full vertical sweep (pole to pole) either way
   if (projection === '180') {
     // Half sweep around y, centred on −z so it faces the viewer.
-    return { phiStart: Math.PI / 2, phiLength: Math.PI, thetaStart, thetaLength };
+    return { phiStart: Math.PI, phiLength: Math.PI, thetaStart, thetaLength };
   }
   // Default: full 360° equirectangular.
   return { phiStart: 0, phiLength: Math.PI * 2, thetaStart, thetaLength };

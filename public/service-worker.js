@@ -398,17 +398,41 @@ async function getOfflineFallback(request) {
 
 /**
  * Enforce cache size limits
+ *
+ * FIFO eviction, but never of precached shell assets. `cacheFirst` writes
+ * into the versioned CACHE_VERSION cache, whose OLDEST keys are the install-
+ * time precache (index.html/offline.html/manifest). Unbounded FIFO deletes
+ * those first, silently killing the offline guarantee the precache exists
+ * for — so protected paths are skipped and the next-eldest is evicted instead.
  */
+const PROTECTED_PATHS = new Set(CRITICAL_ASSETS);
+
+function isProtectedKey(request) {
+  try {
+    return PROTECTED_PATHS.has(new URL(request.url).pathname);
+  } catch {
+    return false;
+  }
+}
+
 async function enforceCacheLimit(cache, type) {
   const limit = CACHE_LIMITS[type] || CACHE_LIMITS.runtime;
   const keys = await cache.keys();
 
-  if (keys.length > limit) {
-    // Remove oldest entries (FIFO)
-    const toDelete = keys.length - limit;
-    for (let i = 0; i < toDelete; i++) {
-      await cache.delete(keys[i]);
+  if (keys.length <= limit) {
+    return;
+  }
+
+  let toDelete = keys.length - limit;
+  for (const key of keys) {
+    if (toDelete <= 0) {
+      break;
     }
+    if (isProtectedKey(key)) {
+      continue;
+    }
+    await cache.delete(key);
+    toDelete -= 1;
   }
 }
 

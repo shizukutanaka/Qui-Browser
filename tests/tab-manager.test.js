@@ -180,6 +180,46 @@ describe('TabManager (FR-1.3)', () => {
     expect(a.visible).toBe(true);
   });
 
+  // ── onTabActivate announce discipline (WCAG 4.1.3) ──────────────────────────
+  function makeManagerWithAnnounce() {
+    const onTabActivate = jest.fn();
+    const tm = new TabManager({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      onNavigate: jest.fn(),
+      onTabActivate
+    });
+    return { tm, onTabActivate };
+  }
+
+  test('closing an earlier INACTIVE tab does not re-announce the (unchanged) active tab', () => {
+    const { tm, onTabActivate } = makeManagerWithAnnounce();
+    tm.newTab();
+    const b = tm.newTab(); // active
+    onTabActivate.mockClear();
+    tm.closeTab(0);        // close a — b stays active, only its index shifts
+    expect(tm.getActiveTab()).toBe(b);
+    expect(b.visible).toBe(true);
+    expect(onTabActivate).not.toHaveBeenCalled(); // no spurious "Tab: X" caption
+  });
+
+  test('closing the ACTIVE tab announces the neighbour focus moved to', () => {
+    const { tm, onTabActivate } = makeManagerWithAnnounce();
+    tm.newTab('https://a.example');
+    tm.newTab('https://b.example'); // active
+    onTabActivate.mockClear();
+    tm.closeTab(1);        // focus moves to a
+    expect(onTabActivate).toHaveBeenCalledWith('https://a.example');
+  });
+
+  test('newTab(url) announces the URL — no blank "New tab" pre-announce', () => {
+    const { tm, onTabActivate } = makeManagerWithAnnounce();
+    tm.newTab('https://example.com');
+    expect(onTabActivate).toHaveBeenCalledTimes(1);
+    expect(onTabActivate).toHaveBeenCalledWith('https://example.com');
+  });
+
   test('does not exceed MAX_TABS (8)', () => {
     const tm = makeManager();
     for (let i = 0; i < 10; i++) {

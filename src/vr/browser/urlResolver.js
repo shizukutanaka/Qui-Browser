@@ -43,7 +43,10 @@ export function searchEngineHosts() {
 // browser. The browser/iframe layer converts the Unicode host to punycode on
 // navigation. ASCII behaviour is identical; the "≥2 dot-separated labels, no
 // spaces" shape is unchanged, so plain text like 東京タワー (no dot) stays a search.
-const LOOKS_LIKE_HOST = /^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)+(:\d+)?(\/.*)?$/u;
+// A single optional trailing dot is allowed: "example.com." is a fully-
+// qualified domain name (root-label dot) that browsers navigate, not search.
+// Two trailing dots still fail — each dot in the label run needs a label.
+const LOOKS_LIKE_HOST = /^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)+\.?(:\d+)?(\/.*)?$/u;
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 // Schemes we refuse to navigate to (XSS / local-file / data-exfil vectors).
 const BLOCKED_SCHEME = /^(javascript|data|file|blob|vbscript):/i;
@@ -83,10 +86,15 @@ export function resolveInput(input, opts = {}) {
   const firstToken = text.split('/')[0];
   const isLocalhost = /^localhost(:\d+)?$/i.test(firstToken);
   const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(firstToken);
+  // Bracketed IPv6 literal — [::1], [2001:db8::1]:8080. LOOKS_LIKE_HOST
+  // can't match it (brackets/colons aren't label chars), and a raw
+  // unbracketed "::1" stays a search just as in desktop omniboxes.
+  const isIPv6Literal = /^\[[0-9a-f:]+\](:\d+)?$/i.test(firstToken);
 
   // A single token with a dot and no spaces looks like a host.
   const looksLikeUrl =
-    isLocalhost || isIPv4 || (!/\s/.test(text) && LOOKS_LIKE_HOST.test(text));
+    isLocalhost || isIPv4 || isIPv6Literal ||
+    (!/\s/.test(text) && LOOKS_LIKE_HOST.test(text));
 
   if (looksLikeUrl) {
     return 'https://' + text;
