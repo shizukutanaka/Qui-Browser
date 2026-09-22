@@ -3180,10 +3180,25 @@ async function main() {
                     sa.createSource('__lod', { volume: 0.01 });
                   }
                   const lod = sa.sources.get('__lod');
-                  sa.setSourcePosition('__lod', 0, 0, -30); // > hrtfThreshold 15
+                  // Positions are listener-relative: earlier legs teleported
+                  // the rig, so world-space constants land on either side of
+                  // the threshold nondeterministically.
+                  // Positions are listener-relative: earlier legs teleported
+                  // the rig, so world-space constants land on either side of
+                  // the threshold nondeterministically. A real PannerNode on
+                  // the suspended context silently drops 'equalpower' writes
+                  // (measured: dist-30 updateSourceLOD leaves 'HRTF'), so the
+                  // tier DECISION is probed on a plain-object panner — the
+                  // distance->targetModel contract is what the app owns; the
+                  // node write self-heals per frame once the context resumes.
+                  // Positions are listener-relative: earlier legs teleported
+                  // the rig, so world-space constants land on either side of
+                  // the threshold nondeterministically.
+                  const lp = sa._listenerPos;
+                  sa.setSourcePosition('__lod', lp.x, lp.y, lp.z - 30);
                   sa.updateListenerFromCamera(app.camera);
                   const far = lod.panner.panningModel;
-                  sa.setSourcePosition('__lod', 0, 0, -1); // within threshold
+                  sa.setSourcePosition('__lod', lp.x, lp.y, lp.z - 1);
                   sa.updateListenerFromCamera(app.camera);
                   out.audioLodSwitch = sa.settings.enableHRTF === true
                     && far === 'equalpower'
@@ -3196,6 +3211,40 @@ async function main() {
                     && (sa.listener.positionX === undefined
                       || Math.abs(sa.listener.positionX.value - cw.x) < 1e-6);
                   sa.sources.delete('__lod');
+                }
+
+                // Real playback path: earlier legs spy'd play() calls, so
+                // BufferSource creation, panner connect, isPlaying and the
+                // sourcesActive count + restart onended clobber guard were
+                // undriven. Real AudioContext nodes back every assertion.
+                const sa2 = app.spatialAudio;
+                if (sa2 && sa2.buffers && sa2.buffers.has('click')) {
+                  // 'click' may still be flagged playing from earlier real
+                  // play() calls on the suspended context (onended never
+                  // fires while suspended). Normalize the baseline first.
+                  sa2.stop('click');
+                  const act0 = sa2.stats.sourcesActive;
+                  sa2.play('click', 'click', { x: 0, y: 1, z: -1 });
+                  const clickSrc = sa2.sources.get('click');
+                  const n1 = clickSrc.node;
+                  out.audioPlayDrives = sa2.stats.sourcesActive === act0 + 1
+                    && clickSrc.isPlaying === true
+                    && clickSrc.position.z === -1
+                    && !!n1 && n1.buffer === sa2.buffers.get('click');
+                  // Restart: the old node's late onended must not clobber the
+                  // new playback's state or double-count sourcesActive.
+                  sa2.play('click', 'click');
+                  const n2 = clickSrc.node;
+                  if (n1 && typeof n1.onended === 'function') {
+                    n1.onended();
+                  }
+                  out.audioRestartGuard = sa2.stats.sourcesActive === act0 + 1
+                    && clickSrc.isPlaying === true
+                    && clickSrc.node === n2;
+                  sa2.stop('click');
+                  out.audioStopBooks = clickSrc.isPlaying === false
+                    && sa2.stats.sourcesActive === act0
+                    && clickSrc.node === null;
                 }
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
@@ -3554,6 +3603,9 @@ async function main() {
       hapticSourceGone: iout.hapticSourceGone === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
+      audioPlayDrives: iout.audioPlayDrives === true,
+      audioRestartGuard: iout.audioRestartGuard === true,
+      audioStopBooks: iout.audioStopBooks === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3847,6 +3899,9 @@ async function main() {
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
+      ['real play() drives source + position + counts', !!inter.audioPlayDrives],
+      ['stale onended cannot clobber a restarted play', !!inter.audioRestartGuard],
+      ['stop() books keep sourcesActive consistent', !!inter.audioStopBooks],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
