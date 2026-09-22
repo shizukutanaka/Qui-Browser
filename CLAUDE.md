@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 118: 続き276 — 消したメソッドを `?.` で呼ぶ死んだ呼出4件（進む/戻る が全部嘘を言う）
+- 🔍 **実測**: WebPanel の `goBack()`/`goForward()` は no-dead-public-api 台帳の確定済み dead API（`back()`/`forward()` が live 相当）— だが台帳は**定義の削除**だけを pin し、**呼出側**は検査していなかった。結果 `tab.goForward?.()`/`tab.goBack?.()` が optional chaining 経由で4箇所に残存し全部静黙 no-op: ①VRApp pointer hand faceA（進む）②faceB（戻る）③VoiceCommands「進む/次へ」④「戻る/前へ」。しかも no-op に留まらず**虚偽フィードバック**: `moved` は常に undefined → A/B ボタンは履歴があっても毎回「次のページはありません」「前のページはありません」キャプション（WCAG 4.1.3）、音声「進む」は「進みます」と発話しながら何も遷移しない。さらに `back()`/`forward()` は戻り値を持たず、呼出名を直しても caption 分岐が動かない — boolean 契約そのものが goBack/goForward と共に消えていた。テスト側も被害: voice/wiring 双方の mock が `{ goForward: jest.fn(), goBack: jest.fn() }` と死んだ名前を供給し、緑のまま偽契約を固定していた。
+- 🔧 **修正**: `back()`/`forward()` が移動可否を `return true/false`（boolean 契約を live メソッドへ復元）→ 4 call sites を実名 `forward()`/`back()` へ。テスト mock を全て実名へ付け替え（voice 1・wiring 4）。`no-dead-public-api.test.js` に **dead-CALLER スキャン**を追加 — src/ 全ファイルを再帰走査し `\bgoBack\b|\bgoForward\b` トークンを禁止（同じ逃げ道を塞ぐ）。docstring 内の死んだ参照（VRControllerInput usage例 `goBack()`）も実名に修正 — ガードは src/ 全体の裸トークンを検査するため。
+- 🧪 pin: dead-caller スキャン（src 全 .js ファイル×test.each — pre-fix で VRApp.js と VoiceCommands.js の2ファイルのみ赤）＋ back/forward 戻り値 6 assertion（境界 false・移動 true）＋ mock 付け替え済み voice/wiring テスト（pre-fix で forward/back 非呼出赤）。計10件 pre-fix 赤・全件 post-fix 緑。
+- ✅ 3271 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。

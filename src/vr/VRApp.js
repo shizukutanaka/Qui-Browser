@@ -2313,13 +2313,13 @@ export class VRApp {
         const tab = this.tabManager?.getActiveTab();
         if (tab) {
           if (btn.faceA?.justPressed) {
-            const moved = tab.goForward?.();
+            const moved = tab.forward();
             if (this.captionSystem?.enabled) {
               this.captionSystem.show(moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
             }
           }
           if (btn.faceB?.justPressed) {
-            const moved = tab.goBack?.();
+            const moved = tab.back();
             if (this.captionSystem?.enabled) {
               this.captionSystem.show(moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
             }

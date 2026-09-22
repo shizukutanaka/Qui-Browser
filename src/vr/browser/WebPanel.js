@@ -810,17 +810,21 @@ export class WebPanel {
   }
 
   back() {
-    if (this.historyIdx > 0) {
-      this.historyIdx--;
-      this._loadUrl(this.history[this.historyIdx]);
+    if (this.historyIdx <= 0) {
+      return false;
     }
+    this.historyIdx--;
+    this._loadUrl(this.history[this.historyIdx]);
+    return true;
   }
 
   forward() {
-    if (this.historyIdx < this.history.length - 1) {
-      this.historyIdx++;
-      this._loadUrl(this.history[this.historyIdx]);
+    if (this.historyIdx >= this.history.length - 1) {
+      return false;
     }
+    this.historyIdx++;
+    this._loadUrl(this.history[this.historyIdx]);
+    return true;
   }
 
   reload() {

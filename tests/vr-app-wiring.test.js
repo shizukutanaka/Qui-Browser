@@ -1691,17 +1691,17 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
 
   test('updateButtonInput: pointer faceA/faceB navigate the active tab with honest captions', () => {
     const app = makeLocoApp();
-    const tab = { goForward: jest.fn(() => true), goBack: jest.fn(() => false) };
+    const tab = { forward: jest.fn(() => true), back: jest.fn(() => false) };
     app.tabManager = { getActiveTab: () => tab };
     app.captionSystem = { enabled: true, show: jest.fn() };
     app.hapticFeedback = { playPattern: jest.fn() };
     withInput(app, makePad('right', {}, { faceA: { justPressed: true } }));
     VRApp.prototype.updateButtonInput.call(app);
-    expect(tab.goForward).toHaveBeenCalledTimes(1);
+    expect(tab.forward).toHaveBeenCalledTimes(1);
     expect(app.captionSystem.show).toHaveBeenCalledWith('Going forward'); // default lang = en
     withInput(app, makePad('right', {}, { faceB: { justPressed: true } }));
     VRApp.prototype.updateButtonInput.call(app);
-    expect(tab.goBack).toHaveBeenCalledTimes(1);
+    expect(tab.back).toHaveBeenCalledTimes(1);
     expect(app.captionSystem.show).toHaveBeenLastCalledWith('No previous page');
   });
 
@@ -1749,13 +1749,13 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
       snapTurnAngle: 30, smoothMoveSpeed: 2
     } });
     sp.bookmarkPanel = { toggle: jest.fn(), visible: false };
-    const spTab = { goForward: jest.fn(() => true) };
+    const spTab = { forward: jest.fn(() => true) };
     sp.tabManager = { getActiveTab: () => spTab };
     sp.captionSystem = { enabled: true, show: jest.fn() };
     withInput(sp, makePad('left', {}, { faceA: { justPressed: true } }));
     VRApp.prototype.updateButtonInput.call(sp);
     expect(sp.bookmarkPanel.toggle).not.toHaveBeenCalled();
-    expect(spTab.goForward).toHaveBeenCalledTimes(1);
+    expect(spTab.forward).toHaveBeenCalledTimes(1);
   });
   test('menu button also toggles the settings panel (faceB || menu arm)', () => {
     const app = makeLocoApp();
@@ -1806,7 +1806,7 @@ describe('VRApp snapTurn / updateLocomotion / updateButtonInput (bound prototype
 
   test('captions skipped when captionSystem disabled (enabled-false arms)', () => {
     const app = makeLocoApp();
-    app.tabManager = { getActiveTab: () => ({ goForward: jest.fn(() => true) }) };
+    app.tabManager = { getActiveTab: () => ({ forward: jest.fn(() => true) }) };
     app.captionSystem = { enabled: false, show: jest.fn() };
     withInput(app, makePad('right', {}, { faceA: { justPressed: true } }));
     VRApp.prototype.updateButtonInput.call(app);
@@ -4180,7 +4180,7 @@ describe('VRApp updateButtonInput — utility-hand + moved-false arms', () => {
 
   test('pointer faceA with no forward history captions honestly; faceB success captions', () => {
     const app = btnApp();
-    const tab = { goForward: jest.fn(() => false), goBack: jest.fn(() => true) };
+    const tab = { forward: jest.fn(() => false), back: jest.fn(() => true) };
     app.tabManager = { getActiveTab: () => tab };
     const { ctl, read } = pad('right', { faceA: { justPressed: true }, faceB: { justPressed: true } });
     app.controllers = [ctl];

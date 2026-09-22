@@ -178,12 +178,14 @@ describe('WebPanel history navigation state', () => {
 });
 
 // ── back / forward — history index guards ────────────────────────────────────
-// The chrome-bar ◀/▶ buttons call the live back()/forward(); the boolean-
-// returning goBack()/goForward() duplicates were deleted (test-only surface).
+// The chrome-bar ◀/▶ buttons call the live back()/forward(); the goBack()/
+// goForward() duplicates were deleted (test-only surface). The methods return
+// whether they moved — callers (controller face buttons, voice commands)
+// turn it into an honest "going back" vs "no previous page" announcement.
 describe('WebPanel back / forward', () => {
   test('back() is a no-op with no history', () => {
     const p = makePanel();
-    p.back();
+    expect(p.back()).toBe(false);
     expect(p.historyIdx).toBe(-1);
   });
 
@@ -191,7 +193,7 @@ describe('WebPanel back / forward', () => {
     const p = makePanel();
     p.history = ['https://a.com'];
     p.historyIdx = 0;
-    p.back();
+    expect(p.back()).toBe(false);
     expect(p.historyIdx).toBe(0);
   });
 
@@ -199,7 +201,7 @@ describe('WebPanel back / forward', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 1;
-    p.back();
+    expect(p.back()).toBe(true);
     expect(p.historyIdx).toBe(0);
   });
 
@@ -207,13 +209,13 @@ describe('WebPanel back / forward', () => {
     const p = makePanel();
     p.history = ['https://a.com'];
     p.historyIdx = 0;
-    p.forward();
+    expect(p.forward()).toBe(false);
     expect(p.historyIdx).toBe(0);
   });
 
   test('forward() is a no-op with empty history', () => {
     const p = makePanel();
-    p.forward();
+    expect(p.forward()).toBe(false);
     expect(p.historyIdx).toBe(-1);
   });
 
@@ -221,7 +223,7 @@ describe('WebPanel back / forward', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 0;
-    p.forward();
+    expect(p.forward()).toBe(true);
     expect(p.historyIdx).toBe(1);
   });
 

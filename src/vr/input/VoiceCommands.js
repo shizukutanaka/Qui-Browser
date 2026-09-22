@@ -528,7 +528,7 @@ export class VoiceCommands {
       this.registerCommand('navigate', {
         patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
         action: () => {
-          tabManager.getActiveTab?.()?.goForward?.();
+          tabManager.getActiveTab?.()?.forward?.();
           return { action: 'navigate', direction: 'forward' };
         },
         confirmationText: '進みます'
@@ -537,7 +537,7 @@ export class VoiceCommands {
       this.registerCommand('back', {
         patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
         action: () => {
-          tabManager.getActiveTab?.()?.goBack?.();
+          tabManager.getActiveTab?.()?.back?.();
           return { action: 'navigate', direction: 'back' };
         },
         confirmationText: '戻ります'
