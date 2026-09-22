@@ -132,6 +132,26 @@ describe('LayersSystem (FR-1.5)', () => {
     expect(session.updateRenderState).toHaveBeenCalled();
   });
 
+  test('removeLayer() destroys the layer — tab churn must not leak GPU layers', () => {
+    ls.initialize(session, gl);
+    const layer = ls.createQuadLayer({ id: 'a', space: {}, width: 1, height: 1 });
+    layer.destroy = jest.fn();
+    ls.removeLayer('a', session, null);
+    expect(layer.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  test('removeLayer() tolerates a layer without destroy() and a destroy() that throws', () => {
+    ls.initialize(session, gl);
+    ls.createQuadLayer({ id: 'a', space: {}, width: 1, height: 1 }); // no destroy fn
+    const layer = ls.createQuadLayer({ id: 'b', space: {}, width: 1, height: 1 });
+    layer.destroy = () => {
+      throw new Error('session already ended');
+    };
+    expect(() => ls.removeLayer('a', session, null)).not.toThrow();
+    expect(() => ls.removeLayer('b', session, null)).not.toThrow();
+    expect(ls.count).toBe(0);
+  });
+
   // ── updateRenderState ───────────────────────────────────────────────────────
 
   test('updateRenderState() passes baseLayer first in layers array', () => {
@@ -175,6 +195,18 @@ describe('LayersSystem (FR-1.5)', () => {
     expect(ls.count).toBe(0);
     expect(ls.isSupported).toBe(false);
     expect(ls.glBinding).toBeNull();
+  });
+
+  test('dispose() destroys every registered layer — subsystem teardown frees GPU backing', () => {
+    ls.initialize(session, gl);
+    const a = ls.createQuadLayer({ id: 'a', space: {}, width: 1, height: 1 });
+    const b = ls.createQuadLayer({ id: 'b', space: {}, width: 1, height: 1 });
+    a.destroy = jest.fn();
+    b.destroy = jest.fn();
+    ls.dispose();
+    expect(a.destroy).toHaveBeenCalledTimes(1);
+    expect(b.destroy).toHaveBeenCalledTimes(1);
+    expect(ls.count).toBe(0);
   });
 });
 
