@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 180: 続き338 — gamepad 残ボタン（pointer faceB→back/faceA→forward 成功腕、utility faceA→bookmarks、menu→settings）を e2e pin（#259 batch 31、231→235 checks）
+- 🔍 **実測**: `updateButtonInput` の残ボタン — pointer faceB→`tab.back()`+'Going back'、faceA→forward（成功腕は 'No next page' のみ pin 済み）、utility faceA→`bookmarkPanel.toggle()`+状態 caption、utility `menu`(buttons[6])→settings トグル（faceB の || alias 腕）— が未駆動だった。実 fake gamepad の press→release フレーム駆動で端到端 pin。
+- 🔧 **pin 設計（4 check）**: buttons[6] press→settings 反転+'Settings:' caption→復帰；buttons[4]（左）→ bookmarkPanel.visible 反転+'Bookmarks:' caption→復帰；buttons[5]/[4]（右）→ `historyIdx` -1/+1 + 'Going back'/'Going forward' caption（chrome leg の history を利用）。
+- 🧪 赤検証: `tab.back()` 切断 → ptrFaceBBack+ptrFaceAFwd 両 FAIL（forward は back 先行 history に依存 — 想定 co-FAIL）；utility faceA 切断 → utilFaceAToggles FAIL。menu は pinned faceB と同 `||` 分岐の alias。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 235 checks PASS、verify:app PASS。
+
 ### Session 179: 続き337 — hover caption（strip/move bar/chrome label + tint、gaze ゲート）を e2e pin（#259 batch 30、227→231 checks）
 - 🔍 **実測**: 管理面の hover announce（WCAG 1.3.3、`enableGazeDwell` ゲート下）— strip → 'Tab strip'、move bar → 'Move bar'、chrome → ページ title/host + 0xaaaaff ティント — は一度も駆動されていなかった。`mesh.userData.interactable` の登録済み handler（ray hover が発火する同一経路）を直接呼び出して端到端 pin。
 - 🔧 **pin 設計（4 check）**: `stripMesh.onHover` → 'Tab strip' caption；`moveBarMesh.onHover` → 'Move bar'；`chromeMesh.onHover` → caption が `currentTitle` と完全一致 + material 0xaaaaff、`onHoverEnd` で 0xffffff 復元；`enableGazeDwell=false` で全 hover が無音。

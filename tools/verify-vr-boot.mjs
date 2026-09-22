@@ -1135,6 +1135,59 @@ async function main() {
                   && locoCaps.some((t) => t.includes(visAfter ? 'Settings: open' : 'Settings: closed'));
                 leftSrc.gamepad.buttons[5].pressed = false;
                 rightSrc.gamepad.buttons[4].pressed = false;
+                // Utility-hand menu button — the second settings-panel route
+                // (faceB || menu). Toggles + announces exactly like faceB.
+                const visM0 = !!(app.settingsPanel && app.settingsPanel.visible);
+                leftSrc.gamepad.buttons[6].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                leftSrc.gamepad.buttons[6].pressed = false;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const visM1 = !!(app.settingsPanel && app.settingsPanel.visible);
+                out.menuToggles = visM1 === !visM0
+                  && locoCaps.some((t) => t.includes(visM1 ? 'Settings: open' : 'Settings: closed'));
+                if (visM1) { // restore: second press closes it again
+                  leftSrc.gamepad.buttons[6].pressed = true;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  leftSrc.gamepad.buttons[6].pressed = false;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                }
+                // Utility-hand faceA toggles the bookmark/history panel +
+                // announces the new state (WCAG 4.1.3).
+                const bmWas = !!(app.bookmarkPanel && app.bookmarkPanel.visible);
+                leftSrc.gamepad.buttons[4].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                leftSrc.gamepad.buttons[4].pressed = false;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const bmNow = !!(app.bookmarkPanel && app.bookmarkPanel.visible);
+                out.utilFaceAToggles = bmNow === !bmWas
+                  && locoCaps.some((t) => t.includes(bmNow ? 'Bookmarks: open' : 'Bookmarks: closed'));
+                if (bmNow && !bmWas) { // leave it as we found it
+                  leftSrc.gamepad.buttons[4].pressed = true;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  leftSrc.gamepad.buttons[4].pressed = false;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                }
+                // Pointer-hand faceB/faceA navigate the active tab's history:
+                // with entries below, back() moves + 'Going back', then
+                // forward() returns + 'Going forward' — the success arms the
+                // earlier 'No next page' pin never reached.
+                const tabB = app.tabManager
+                  && (app.tabManager.getActiveTab
+                    ? app.tabManager.getActiveTab()
+                    : app.tabManager.tabs[app.tabManager.activeIndex]);
+                const idxB = tabB ? tabB.historyIdx : -1;
+                rightSrc.gamepad.buttons[5].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                rightSrc.gamepad.buttons[5].pressed = false;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.ptrFaceBBack = !!tabB && tabB.historyIdx === idxB - 1
+                  && locoCaps.some((t) => t.includes('Going back'));
+                rightSrc.gamepad.buttons[4].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                rightSrc.gamepad.buttons[4].pressed = false;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.ptrFaceAFwd = !!tabB && tabB.historyIdx === idxB
+                  && locoCaps.some((t) => t.includes('Going forward'));
                 // Smooth locomotion (opt-in): move-hand stick drives the rig
                 // along the head-facing plane and feeds the comfort vignette
                 // (externalMotion + level), then disengages on release.
@@ -3031,6 +3084,10 @@ async function main() {
       snapLatch: iout.snapLatch === true,
       faceAAnnounces: iout.faceAAnnounces === true,
       faceBToggles: iout.faceBToggles === true,
+      menuToggles: iout.menuToggles === true,
+      utilFaceAToggles: iout.utilFaceAToggles === true,
+      ptrFaceBBack: iout.ptrFaceBBack === true,
+      ptrFaceAFwd: iout.ptrFaceAFwd === true,
       smoothMoves: iout.smoothMoves === true,
       smoothStops: iout.smoothStops === true,
       stickRecenters: iout.stickRecenters === true,
@@ -3303,6 +3360,10 @@ async function main() {
       ['held stick latches; re-push snaps again', !!inter.snapLatch],
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
       ['utility faceB toggles settings + announces', !!inter.faceBToggles],
+      ['utility menu button toggles settings too', !!inter.menuToggles],
+      ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
+      ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
+      ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
       ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
       ['stick release disengages external motion', !!inter.smoothStops],
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
