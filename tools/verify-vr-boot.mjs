@@ -64,6 +64,20 @@ Object.defineProperty(navigator, 'xr', { configurable: true, value: {
   requestSession: () => Promise.reject(new DOMException('no runtime in CI', 'NotSupportedError')),
   addEventListener() {}, removeEventListener() {}
 }});
+// SpeechRecognition stub — VoiceCommands.initialize() gates on
+// window.SpeechRecognition, so without this enableVoice constructs nothing
+// and the whole voice-command surface stays undrivable end-to-end.
+function __StubSpeechRecognition() {}
+__StubSpeechRecognition.prototype.start = function () {
+  if (this.onstart) this.onstart();
+};
+__StubSpeechRecognition.prototype.stop = function () {
+  if (this.onend) this.onend();
+};
+__StubSpeechRecognition.prototype.abort = function () {};
+if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+  window.SpeechRecognition = __StubSpeechRecognition;
+}
 </script>`;
 
 
@@ -209,7 +223,7 @@ async function main() {
     // it here end-to-end: the ARIA mirrors are unconditional surfaces, so the
     // check holds regardless of caption/settings state.
     const ir = await cdp.send('Runtime.evaluate', {
-      expression: `(() => {
+      expression: `(async () => {
         const app = QuiBrowser.getApp();
         const dom = document.querySelector('[data-qui-semantic-dom]');
         const alertEl = dom && dom.querySelector('[role="alert"]');
@@ -427,9 +441,64 @@ async function main() {
           } catch (e) {
             out.b3Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
+          // Batch 4 — voice-command round-trips. enableVoice is opt-in: flip
+          // it and lazy-init here (the SpeechRecognition stub above lets
+          // initialize() succeed), then feed synthetic FINAL results through
+          // handleRecognitionResult — the real confidence gate, transcript
+          // caption, and processCommand pattern→action→speak→caption chain
+          // through the connectBrowser wiring VRApp bound.
+          try {
+          app.settings.enableVoice = true;
+          if (!app.voiceCommands && typeof app._initVoiceCommands === 'function') {
+            await app._initVoiceCommands();
+          }
+          const vc = app.voiceCommands;
+          if (vc) {
+            const say = (text) => vc.handleRecognitionResult({
+              results: [{ 0: { transcript: text, confidence: 0.9 }, isFinal: true, length: 1 }]
+            });
+            say('検索：voice-search.example');
+            // urlResolver stores bare-host input without a trailing slash —
+            // the contract tab.currentUrl records.
+            out.voiceSearchNav = tab2 && tab2.currentUrl === 'https://voice-search.example';
+            out.voiceSearchCap = statusEl ? statusEl.textContent : '';
+            say('トップサイト');
+            out.voiceTopNav = tab2 && tab2.currentUrl === 'https://harness-top.example/';
+            out.voiceTopCap = statusEl ? statusEl.textContent : '';
+            say('履歴を消去');
+            out.voiceCleared = app.bookmarks.search('harness-top.example', 5).length === 0;
+            out.voiceClearCap = statusEl ? statusEl.textContent : '';
+            const volBefore = (app.settings.masterVolume ?? 100);
+            say('音量上げる');
+            let sv = null;
+            try { sv = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.voiceVolUp = !!(sv && sv.masterVolume === Math.min(100, volBefore + 10));
+            out.voiceVolCap = statusEl ? statusEl.textContent : '';
+            // Voice nav — the live back()/forward() names (dead goBack/
+            // goForward callers were repointed): 戻る must actually move and
+            // 進む must return — each spoken confirmation lands on the status
+            // region via the onSpeak→caption mirror.
+            say('戻る');
+            out.voiceBackUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceBackCap = statusEl ? statusEl.textContent : '';
+            say('進む');
+            out.voiceFwdUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceFwdCap = statusEl ? statusEl.textContent : '';
+            say('ブックマーク');
+            out.voiceBmCap = statusEl ? statusEl.textContent : '';
+            say('日本語入力');
+            out.voiceImeShown = app.vrKeyboard && app.vrKeyboard.visible === true;
+            say('zzz認識不能');
+            out.voiceNoMatch = vc.stats.commandsFailed > 0
+              && !!(statusEl && statusEl.textContent.includes('認識'));
+          }
+          } catch (e) {
+            out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
+          }
         }
         return out;
       })()`,
+      awaitPromise: true,
       returnByValue: true
     }, sessionId);
     const iout = ir.result?.result?.value || {};
@@ -438,6 +507,9 @@ async function main() {
     }
     if (iout.b3Error) {
       console.warn('batch3 threw:', iout.b3Error);
+    }
+    if (iout.b4Error) {
+      console.warn('batch4 threw:', iout.b4Error);
     }
     if (process.env.VR_BOOT_DEBUG) {
       console.info('interact:', JSON.stringify(iout));
@@ -489,7 +561,23 @@ async function main() {
       bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
       videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
       videoActive: iout.videoActive === true,
-      videoStopped: iout.videoStopped === true
+      videoStopped: iout.videoStopped === true,
+      voiceSearch: iout.voiceSearchNav === true
+        && (iout.voiceSearchCap || '').includes('検索'),
+      voiceTop: iout.voiceTopNav === true
+        && (iout.voiceTopCap || '').includes('よく使うサイト'),
+      voiceClear: iout.voiceCleared === true
+        && (iout.voiceClearCap || '').includes('履歴を消去'),
+      voiceVol: iout.voiceVolUp === true
+        && (iout.voiceVolCap || '').includes('音量'),
+      voiceBack: iout.voiceBackUrl === 'https://voice-search.example'
+        && (iout.voiceBackCap || '').includes('戻り'),
+      voiceFwd: iout.voiceFwdUrl === 'https://harness-top.example/'
+        && iout.voiceFwdUrl !== iout.voiceBackUrl
+        && (iout.voiceFwdCap || '').includes('進み'),
+      voiceBm: (iout.voiceBmCap || '').includes('ブックマークパネル'),
+      voiceIme: iout.voiceImeShown === true,
+      voiceNoMatch: iout.voiceNoMatch === true
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -556,6 +644,15 @@ async function main() {
       ['video prompt announced via caption', !!inter.videoPrompt],
       ['immersive video built spheres + HUD', !!inter.videoActive],
       ['immersive video stop tore down scene', !!inter.videoStopped],
+      ['voice search navigated + announced', !!inter.voiceSearch],
+      ['voice top-sites announced via caption', !!inter.voiceTop],
+      ['voice clear-history wiped + announced', !!inter.voiceClear],
+      ['voice volume-up persisted + announced', !!inter.voiceVol],
+      ['voice back moved + announced', !!inter.voiceBack],
+      ['voice forward moved + announced', !!inter.voiceFwd],
+      ['voice bookmarks toggle announced', !!inter.voiceBm],
+      ['voice ime-toggle showed keyboard', !!inter.voiceIme],
+      ['voice no-match announced + counted', !!inter.voiceNoMatch],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
