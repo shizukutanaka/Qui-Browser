@@ -608,7 +608,7 @@ describe('WebPanel URL bar does not overflow', () => {
 describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   const {
     ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0,
-    visibleLinesFor, pageJumpLines, CONTENT_PX_W, CONTENT_PX_H
+    readerPageJump, CONTENT_PX_W, CONTENT_PX_H
   } = require('../src/vr/browser/readerLayout.js');
 
   const LONG = `<html><head><title>T</title></head><body><article>
@@ -646,10 +646,10 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     p._onContentSelect({ x: 0, y: 0, clone() {
       return this;
     } });
-    // visibleLinesFor, not visibleLineCount: a scrollable article reserves the
-    // bottom strip the arrows and progress label occupy, so fewer lines show.
+    // The jump is the fitted window minus the reading-position overlap; the
+    // window reserves the strip the arrows and progress label occupy.
     expect(p._readerScroll)
-      .toBe(before + pageJumpLines(visibleLinesFor(p._readerLines.length, 1)));
+      .toBe(before + readerPageJump(p._readerLines, before, 1));
   });
 
   test('selecting the up arrow goes back, clamped at the top', async () => {

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 90: 続き248 — リーダーのスタイル別行送り（台帳 I-2 解消）
+- 🔍 **調査**: 未マージブランチ総ざらいは完了 — closed-PR の検証済み修正はすべて tip または陳腐化（5個の死んだ CSS 変数は main.css 書き直しで既に消滅済み）を確認したうえで、台帳 I-2（見出し行送り <1.5）を分離して実装。WCAG 1.4.12 が根拠にする 1.5 比はディスレクシア・低視力向けの実測値 — title 30px/h 25px が一律 34px pitch では 1.13/1.36 で、折返すと2行タイトルの行間は実質1px。
+- ✨ **実装（ピクセル積算化）**: `linePitchFor(style, scale)` — `max(LINE_H·s, ceil(1.5·fontPxFor))` で title 45/h 38/p・blank・c 34（ratio 1.5/1.52/1.7/2.0）。`visibleLineCount`/`visibleLinesFor`/`pageJumpLines` を廃し、ピクセル予算版へ全面移行 — `readerAvailPx(reserve)`・`contentHeightPx`・`readerOverflows`・`readerFitCount`・`lastReaderStart`（末尾から積算で可変ピッチ対応の最後尾開始 index）・`readerWindow`・`readerProgressLabel`・`readerPageJump`・`clampReaderScroll` は (lines, offset, scale) シグネチャへ。描画は `y += linePitchFor(line.style)` で行ごとのピッチを積算。
+- 🧪 pin 8件新規＋~30箇所の既存ピンを新 API へ移行（ink-clearance の実測不変条件 — 最終行インクが矢印帯・進捗ラベルを避ける — はそのまま検証継続）。stash 検証で4スイート全件 pre-fix 赤・post-fix 緑。
+- ✅ 3181 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 89: 続き247 — 未マージ修復6件の再上陸（第二陣）+ three.js 0.181→0.186
 - 🔍 **調査**: スタック tip に未反映の closed-unmerged PR がさらに6件残存（textwrap-grapheme-width・ime-romaji-coverage・gaze-hoverend・voice-stop-volume・ua-tier-coverage・crossmodal-i18n — 続き234/235 系の検証済み修正）。並行して `three ^0.181.0` が 0.x caret で <0.182 に cap され上流修正を取り込めていないことを確認 — Migration Guide r181→r186 の破壊的変更を全件 repo 使用面と照合し、**該当ゼロ**を確認（PCFSoftShadowMap/Clock/FileLoader/ImageBitmapLoader/Matrix3/Source/Sky addon/toTrianglesDrawMode/RoomEnvironment/inverseTransformDirection 不使用・Object3D 非継承・updateWorldMatrix は matrixAutoUpdate 既定経路・例の ShaderMaterial は勾配のみ）。0.186 は公開済み安定版で supply-chain 7日基準も適合。
 - 🔧 **再上陸（6件、`git apply -3`）**: ①textWrap — `charWidthEm` にゼロ幅レンジ（結合マーク・VS・ZWJ/ZWNJ・bidi 制御・tag 文字）と regional indicator を追加し `textWidthEm` を grapheme クラスタ計上へ（NFD かな・国旗・ZWJ 絵文字の過大計上を解消）②JapaneseIME — `_maxRomajiLen` を宣言キー最大長へ（'xtsu'/'ltsu' 4文字が未到達だった）＋ l- 別名・拡張行（fa/va/wha/qa/tsa/tha/she 等 ~90エントリ）追加 ③GazeInteraction._reset が `_onTargetChange(target,null)` で hover を解放（setEnabled(false)/registry 空/dispose でハイライト残留を解消）④VoiceCommands.stop が post-dispose の null recognition を guard、pitch/volume `||`→`??`（0 は有効端点）⑤DeviceCompatibility — Quest Pro・Pico Neo 3 ティア追加＋ Pico を大小文字非依存化（'PICO 4 Ultra' が未検出だった）⑥crossModal — コントローラ切断/再接続・WebGL コンテキスト喪失/復元の8文字列を `t()` 化（en/ja 両カタログ）。

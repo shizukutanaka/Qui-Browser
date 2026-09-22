@@ -251,7 +251,7 @@ test('stepper/layout/url sliver arms', async () => {
 test('readerLayout + textWrap + panelGeometry remaining default/guard arms', async () => {
   const rl = await import('../src/vr/browser/readerLayout.js');
   expect(rl.measureEmFor()).toBe(rl.measureEmFor(1));
-  expect(rl.visibleLineCount(1, true)).toBeLessThanOrEqual(rl.visibleLineCount(1));
+  expect(rl.readerAvailPx(true)).toBeLessThanOrEqual(rl.readerAvailPx());
   expect(rl.fontPxFor('body')).toBeTruthy();
   const hit = rl.readerHitTest(50, rl.ARROW_Y0 + 2, true);
   expect(hit).toBeTruthy();
@@ -283,10 +283,10 @@ test('textWrap CJK ranges + NaN limits; BookmarkStore writeJSON without localSto
 });
 
 describe('readerLayout — default-parameter arms', () => {
-  const { visibleLineCount, readerHitTest } = require('../src/vr/browser/readerLayout.js');
-  test('visibleLineCount(scale) without reserveBottom uses the false default', () => {
-    const withReserve = visibleLineCount(1, true);
-    const plain = visibleLineCount(1);
+  const { readerAvailPx, readerHitTest } = require('../src/vr/browser/readerLayout.js');
+  test('readerAvailPx() without reserveBottom uses the false default', () => {
+    const withReserve = readerAvailPx(true);
+    const plain = readerAvailPx();
     expect(plain).toBeGreaterThan(withReserve);
   });
   test('readerHitTest(px, py) without scrollable treats arrows as dead', () => {
