@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 82: 続き240 — HandTracking: thumbsup が canonical 形で到達不能（検査順の欠陥）
+- 🔍 **実測（実 Vector3 関節で detectGesture 実行）**: `detectGesture` は fist（4指全て curl）を thumbsup より先に検査していた。canonical な thumbs-up は4指を握る手形なので fist ブランチに先に捕捉され、実ポーズで `'fist'` を返す（open 手形では `'open'` に捕捉）— `'thumbsup'` は「親指上向き + 指が変則的に伸びた中間形」でしか発火せず、自然な手形では到達不能。既存テスト 472 がこのバグ挙動を「fist wins over thumbsup」として pin していた。
+- 🔧 **修正**: isThumbUp 検査を fist/peace の前に移動。普通の fist は親指ベクトルが横向き（y<0.7）で isThumbUp=false のため誤分類なし。pin 済みテストを正しい優先順位へ書き換え + isThumbUp スタブ統一。
+- 🧪 pin 3件（実関節ポーズの canonical thumbs-up → thumbsup、thumb up + curled → thumbsup、thumb 非上向き → fist 維持）。2件 stash 検証で pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: pinch ヒステリシス（start 0.02/release 0.035）/ fillPoses+fillJointRadii バッチ（ゼロ確保・space 変更時再構築）/ InstancedMesh（2 draw calls・shared geometry）/ visible 追跡と _onTrackingChange 遷移 / dispose（listener 除去・_batch 解放）/ ジェスチャ順の他分岐（point/open/peace は互いに素）— 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
