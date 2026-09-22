@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 83: 続き241 — SpatialAudio: createSource の volume/coneOuterGain falsy 罠
+- 🔍 **実測（コード経路追跡）**: `createSource` が `options.volume || 1.0` と `options.coneOuterGain || 0.3` — VoiceCommands（続き237）と同型の falsy 罠。①`{volume:0}` の生成時ミュート指定が 1.0 に置換され意図せずフルボリュームで鳴る ②`{coneOuterGain:0}`（コーン範囲外を完全減衰する正当な指定）が 0.3 の部分漏れに置換。どちらも Web Audio の仕様上 0 が有効端点値。
+- 🔧 **修正**: `volume`・`coneOuterGain`（+同ブロックの `coneInnerAngle`/`coneOuterAngle`）を `??` に変更。`refDistance`/`maxDistance`/`rolloffFactor`/`playbackRate` は 0 が不正値なので `||` 維持。
+- 🧪 pin 2件（`volume:0` → source.volume=0 & gain=0、`coneOuterGain:0` → panner.coneOuterGain=0）。両方 stash 検証で pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: synthesizeToneSamples（位相累積・指数減衰・glide）/ autoplay resume 3系統リスナー（click/touchstart/keydown・once・dispose 除去）/ loadAudio 15s AbortController / onended の node 同一性ガード（restart 競合）/ LOD 二段（hrtfThreshold 15m・updateAllLOD 集計）/ setMasterVolume クランプ / dispose（stop 全 sources・listener 除去・context.close）— 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。

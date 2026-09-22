@@ -634,6 +634,22 @@ describe('SpatialAudio — guard + fallback slivers', () => {
     expect(src.panner.coneOuterGain).toBe(0.1);
   });
 
+  test('createSource honours volume:0 — a deliberately silent source', async () => {
+    // volume 0 is a legal endpoint (muted at creation); `||` would replace
+    // it with 1.0 and play a muted source at full volume.
+    const { a } = await initAudio();
+    const src = a.createSource('mute', { volume: 0 });
+    expect(src.volume).toBe(0);
+    expect(src.gain.gain.value).toBe(0);
+  });
+
+  test('createSource honours coneOuterGain:0 — fully mute outside the cone', async () => {
+    // 0 is a legal outer gain; `||` would substitute 0.3 partial bleed.
+    const { a } = await initAudio();
+    const src = a.createSource('beam', { directional: true, coneOuterGain: 0 });
+    expect(src.panner.coneOuterGain).toBe(0);
+  });
+
   test('stop() on an unknown source is a no-op', async () => {
     const { a } = await initAudio();
     expect(() => a.stop('nope')).not.toThrow();
