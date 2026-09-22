@@ -2642,6 +2642,56 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Hover-caption leg — every managed surface announces itself on
+              // hover (WCAG 1.3.3), gaze-gated: strip → 'Tab strip', move bar
+              // → 'Move bar', chrome → the page title/host, and entering tints
+              // the material. Invoking the registered userData handlers
+              // drives the same code the ray hover path fires.
+              if (ctrl && app.tabManager && app.tabManager.stripMesh
+                && app.tabManager.tabs && app.tabManager.tabs.length
+                && app.scene) {
+                const tm3 = app.tabManager;
+                const wp3 = tm3.tabs[tm3.activeIndex];
+                const gazeWas = app.settings.enableGazeDwell;
+                try {
+                  app.updateSetting('enableGazeDwell', true);
+                  const stripH = tm3.stripMesh.userData
+                    && tm3.stripMesh.userData.interactable;
+                  const capsBefore15 = locoCaps.length;
+                  if (stripH && stripH.onHover) { stripH.onHover(); }
+                  out.stripHoverCaption = locoCaps.slice(capsBefore15)
+                    .some((t3) => t3.includes('Tab strip'));
+                  const mb = wp3 && wp3.moveBarMesh;
+                  const chrome = wp3 && wp3.chromeMesh;
+                  const mbH = mb && mb.userData && mb.userData.interactable;
+                  const chH = chrome && chrome.userData
+                    && chrome.userData.interactable;
+                  const capsBefore16 = locoCaps.length;
+                  if (mbH && mbH.onHover) { mbH.onHover(); }
+                  out.moveBarHoverCaption = locoCaps.slice(capsBefore16)
+                    .some((t3) => t3.includes('Move bar'));
+                  // Chrome hover announces the loaded page's title, and
+                  // entering tints the bar 0xaaaaff (restored on hoverEnd).
+                  const titleWas = wp3.currentTitle;
+                  const capsBefore17 = locoCaps.length;
+                  if (chH && chH.onHover) { chH.onHover(); }
+                  const chromeLabel = !!titleWas
+                    && locoCaps.slice(capsBefore17)
+                      .some((t3) => t3 === titleWas);
+                  const tinted = chrome.material.color.getHex() === 0xaaaaff;
+                  if (chH && chH.onHoverEnd) { chH.onHoverEnd(); }
+                  out.chromeHoverCaption = chromeLabel && tinted
+                    && chrome.material.color.getHex() === 0xffffff;
+                  // Gaze gate: with gaze dwell off, hover announces nothing.
+                  app.updateSetting('enableGazeDwell', false);
+                  const capsBefore18 = locoCaps.length;
+                  if (stripH && stripH.onHover) { stripH.onHover(); }
+                  out.hoverGatedByGaze = locoCaps.slice(capsBefore18)
+                    .every((t3) => !t3.includes('Tab strip'));
+                } finally {
+                  app.updateSetting('enableGazeDwell', gazeWas);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -3098,6 +3148,10 @@ async function main() {
       followEnabled: iout.followEnabled === true,
       followConverges: iout.followConverges === true,
       followOffHolds: iout.followOffHolds === true,
+      stripHoverCaption: iout.stripHoverCaption === true,
+      moveBarHoverCaption: iout.moveBarHoverCaption === true,
+      chromeHoverCaption: iout.chromeHoverCaption === true,
+      hoverGatedByGaze: iout.hoverGatedByGaze === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3365,6 +3419,10 @@ async function main() {
       ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
       ['head-lock follow converges the panel', !!inter.followConverges],
       ['follow off leaves the panel in place', !!inter.followOffHolds],
+      ['tab strip hover announces its label', !!inter.stripHoverCaption],
+      ['move bar hover announces its label', !!inter.moveBarHoverCaption],
+      ['chrome hover announces page title + tints', !!inter.chromeHoverCaption],
+      ['hover captions gate on gaze dwell', !!inter.hoverGatedByGaze],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 179: 続き337 — hover caption（strip/move bar/chrome label + tint、gaze ゲート）を e2e pin（#259 batch 30、227→231 checks）
+- 🔍 **実測**: 管理面の hover announce（WCAG 1.3.3、`enableGazeDwell` ゲート下）— strip → 'Tab strip'、move bar → 'Move bar'、chrome → ページ title/host + 0xaaaaff ティント — は一度も駆動されていなかった。`mesh.userData.interactable` の登録済み handler（ray hover が発火する同一経路）を直接呼び出して端到端 pin。
+- 🔧 **pin 設計（4 check）**: `stripMesh.onHover` → 'Tab strip' caption；`moveBarMesh.onHover` → 'Move bar'；`chromeMesh.onHover` → caption が `currentTitle` と完全一致 + material 0xaaaaff、`onHoverEnd` で 0xffffff 復元；`enableGazeDwell=false` で全 hover が無音。
+- 🧪 **ハーネス教訓**: ①handler は `userData.interactable.{onHover,onHoverEnd}` に登録 — ray が届かない背面メッシュでも同一契約を駆動できる ②1 文字 title の substring assert は false-positive — caption は `===` 完全一致で pin。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 231 checks PASS、verify:app PASS。
+
 ### Session 178: 続き336 — head-lock follow（setFollow→per-frame lerp→収束→off 保持）を e2e pin（#259 batch 29、224→227 checks）
 - 🔍 **実測**: 'Follow' トグル → `windowManager.setFollow` の apply は pin 済みだが、**follow 有効時の挙動**（`updateSystems`→`wm.update` が managed root を `camPos+forward*distance` へ指数 lerp 収束 + `_faceUser`）は未駆動だった。camera pose をスクリプト化して収束を端到端 pin。
 - 🔧 **pin 設計（3 check）**: `updateSetting('enableWindowFollow',true)` → `wm.followMode` + `wm.target` 存在 → camera (0,1.6,0) quaternion identity で 40×`updateSystems(dtMs=100)` → `target.position` が `getWorldPosition+getWorldQuaternion` の world forward 点 ±0.35m へ収束 → follow OFF で位置フリーズ。
