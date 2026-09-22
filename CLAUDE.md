@@ -247,6 +247,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 188: 続き346 — SpatialAudio play/stop 実再生 + listener/LOD 実経路を e2e pin（#264、253→256 checks）
+- 🔍 **実測（未駆動 2 面）**: ①全 audio pin は `play()` 呼出 spy 止まりで BufferSource 生成・panner connect・`isPlaying`/`sourcesActive` bookkeeping・restart 時旧 onended 無効化ガードは未駆動。②`updateListenerFromCamera` の listener `positionX` 実書込と `hrtfThreshold`(15m) 跨ぎの `panningModel` 遷移（#219 fix）も未駆動。
+- 🔧 **ハーネス教訓（重要・再発防止）**: red-verify でソース切断→`npm run build`→検証→`git checkout` の後 **dist を再ビルドしないと打ち切り版が残存** — 本作業では panningModel 書込切断版 dist が残り「real PannerNode が 'equalpower' 書込を拒否する」という幻の Chrome quirk を長時間追跡した。切り分けは `dist/js/*.js` の minified body と実 method `toString()` の照合で一撃 — harness は dist を使うので**ソース復元後は必ず `npm run build`**。②source 位置は listener 相対必須（rig teleport で world 定数が閾値内外を不定に泳ぐ）。③'click' は先行 select leg で実 play 済み（suspended ctx で onended 不発→isPlaying 残留）→ `stop()` で基線正規化してから計測。
+- 🧪 赤検証: panningModel 書込切断 → `audioLodSwitch` FAIL、`setListenerPosition` 切断 → `audioListenerPose` FAIL、isPlaying/sourcesActive bookkeeping 切断 → `audioPlayDrives`+`audioRestartGuard` FAIL、onended guard 切断 → `audioRestartGuard` のみ FAIL、stop() decrement 切断 → `audioStopBooks`+guard co-FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 256 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
