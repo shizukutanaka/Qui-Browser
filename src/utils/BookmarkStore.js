@@ -212,7 +212,22 @@ export class BookmarkStore {
     return all[0];
   }
 
-  /** Remove a single history entry by URL. */
+  /**
+   * Remove a single history entry by URL — per-entry privacy ("delete that
+   * one page") without wiping the whole log. addHistory's dedupe means at
+   * most one entry per URL exists, but filter rather than splice-one so a
+   * corrupted store can't leave a duplicate behind.
+   * @returns {boolean} true when an entry was removed.
+   */
+  removeHistory(url) {
+    const all = readJSON(HISTORY_KEY, []);
+    const kept = all.filter(e => !e || e.url !== url);
+    if (kept.length === all.length) {
+      return false;
+    }
+    writeJSON(HISTORY_KEY, kept);
+    return true;
+  }
 
   /** Wipe all history. */
   clearHistory() {

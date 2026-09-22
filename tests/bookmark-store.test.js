@@ -160,6 +160,29 @@ describe('BookmarkStore — history', () => {
     expect(store.getHistory()).toHaveLength(0);
   });
 
+  // ── removeHistory — per-entry privacy delete ────────────────────────────────
+  test('removeHistory() deletes only the matching entry', () => {
+    store.addHistory('https://keep.com', 'Keep');
+    store.addHistory('https://drop.com', 'Drop');
+    expect(store.removeHistory('https://drop.com')).toBe(true);
+    const rest = store.getHistory();
+    expect(rest).toHaveLength(1);
+    expect(rest[0].url).toBe('https://keep.com');
+  });
+
+  test('removeHistory() on an unknown URL is a no-op returning false', () => {
+    store.addHistory('https://keep.com', 'Keep');
+    expect(store.removeHistory('https://absent.example')).toBe(false);
+    expect(store.getHistory()).toHaveLength(1);
+  });
+
+  test('removeHistory() persists — a fresh read sees the deletion', () => {
+    store.addHistory('https://drop.com', 'Drop');
+    store.removeHistory('https://drop.com');
+    const fresh = new BookmarkStore();
+    expect(fresh.getHistory().some(e => e.url === 'https://drop.com')).toBe(false);
+  });
+
 });
 
 describe('isQuotaExceededError — cross-browser detection', () => {

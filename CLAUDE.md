@@ -264,6 +264,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 3件：16.67ms×6 = 100ms×1 と完全一致（pre-fix 差）、120ms ヒッチでスナップせず ~99% へ滑らか収束（pre-fix は即 -2.0）、dt≤0 で不動（pre-fix は後退）。3件 stash 検証で pre-fix 赤。定数視サイズテストの `follow()` helper は clamp-snap 欠陥に依存していたため `followLerp:1` の正規スナップへ修正。
 - ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 107: 続き265 — 履歴の per-entry 削除（removeHistory 再上陸 + パネル削除ゾーンの履歴対応）
+- 🔍 **実測（コード追跡）**: `BookmarkStore.js` に「Remove a single history entry by URL」の孤立 JSDoc だけが残っていた — 過去セッションで removeHistory は**本番呼出なしで削除済み**（no-dead-public-api 台帳に pin あり）。しかし BookmarkPanel の削除ゾーンは `mode === 'bookmarks'` 限定で「history is read-only」— 「あの1ページだけ消す」標準プライバシー操作が存在しない欠陥（全履歴消去のみ）。
+- 🔧 **修正**: ①`BookmarkStore.removeHistory(url)` 再上陸 — dedupe 済みでも filter 全除去で破損データ安全、boolean 返却 ②BookmarkPanel の削除ゾーンをモード対応メソッド（removeBookmark/removeHistory）存在でゲート — store が未対応なら従来どおり read-only を維持、deleteRow はモード別 `onDeleteBookmark`/`onDeleteHistory` 発火（誤キャプション防止）③VRApp に `onDeleteHistory` 配線（caption `vr.msg.historyEntryDeleted` en/ja + notification haptic）④dead-API 台帳から removeHistory を除去（本番 call site ありに）。
+- 🧪 pin 6件：store 3件（対象のみ削除・未知 URL false・永続化）、panel 3件（history ゾーンが removeHistory+onDeleteHistory 発火・removeBookmark/onDeleteBookmark 不発・非関数 opt は null）。4件 stash 検証で pre-fix 赤。
+- ✅ 3222 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
