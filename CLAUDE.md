@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 78: 続き236 — GazeInteraction: bulk-reset 経路の onHoverEnd リーク
+- 🔍 **実測（コード経路追跡）**: `src/vr/interaction/GazeInteraction.js` の `_reset()` が `_target` を onHoverEnd 無しで破棄 — slip 経路（grace 超過/別ターゲット遷移）は `_onTargetChange` で hover end するのに、bulk-reset 経路（`setEnabled(false)`、interactables 空化、dispose）では**ボタンのホバーハイライトが点いたまま残る**。ユーザーが gaze を切った/パネルが閉じた後も、到達不能な要素がホバー状態表示のままになる実害。
+- 🔧 **修正**: `_reset()` 冒頭で `this._onTargetChange(this._target, null)` を呼び hover end を発火（target 無し時は `_onTargetChange(null, null)` の両ガードで no-op、二重発火も自然に防止）。
+- 🧪 pin 4件（gaze-interaction.test.js: setEnabled(false)/空レジストリ/dispose の各経路で onHoverEnd 発火 + 無対象時の偽発火無し + 二度目 disable で再発火無し）。3件が stash 検証で pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: BookmarkStore（frecency・NFC 検索・quota 退避再試行・ホスト集約）/ CaptionSystem（in-place sweep・_durationFor 読了速度モデル・NFC 正規化）/ captionLayout（em 測定・フォント円環性解消）— 全て正しく変更なし。
+- ✅ 3017 tests / 73 suites 全緑、lint 0 errors（350 warnings = ベースライン）、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。

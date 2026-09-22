@@ -408,6 +408,58 @@ describe('GazeInteraction (FR-13.1)', () => {
   });
 });
 
+describe('GazeInteraction — bulk-reset paths release the held hover', () => {
+  // The slip path fires onHoverEnd via _onTargetChange, but _reset() dropped
+  // the target without it — so disabling gaze mid-dwell, emptying the
+  // interactable registry, or disposing left the button's hover highlight
+  // stuck on an element the user can no longer reach.
+  test('setEnabled(false) fires onHoverEnd on the gazed target', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const end = jest.fn();
+    const obj = makeInteractable({ onHover: jest.fn(), onHoverEnd: end });
+    nextHit = { object: obj };
+    gi.update([obj], 500);          // dwell in progress, hover entered
+    gi.setEnabled(false);
+    expect(end).toHaveBeenCalledTimes(1);
+    // A second disable must not re-fire — the target was already released.
+    gi.setEnabled(false);
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  test('an emptied interactable registry fires onHoverEnd', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const end = jest.fn();
+    const obj = makeInteractable({ onHover: jest.fn(), onHoverEnd: end });
+    nextHit = { object: obj };
+    gi.update([obj], 500);
+    gi.update([], 16);              // panel closed → registry emptied
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispose() fires onHoverEnd on the gazed target', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    gi.setEnabled(true);
+    const end = jest.fn();
+    const obj = makeInteractable({ onHover: jest.fn(), onHoverEnd: end });
+    nextHit = { object: obj };
+    gi.update([obj], 500);
+    gi.dispose();
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  test('reset with no held target emits no spurious onHoverEnd', () => {
+    const gi = new GazeInteraction(makeCamera());
+    const end = jest.fn();
+    const stray = makeInteractable({ onHoverEnd: end });
+    gi.setEnabled(true);
+    gi.setEnabled(false);           // nothing was ever gazed
+    expect(end).not.toHaveBeenCalled();
+    expect(stray.userData.interactable.onHoverEnd).not.toHaveBeenCalled();
+  });
+});
+
 describe('GazeInteraction — _updateFill guard', () => {
   test('_updateFill is a no-op when the fill mesh was never created', () => {
     const g = new GazeInteraction(makeCamera());
