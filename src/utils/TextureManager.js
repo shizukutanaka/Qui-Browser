@@ -27,6 +27,8 @@ export class TextureManager {
       cacheMisses: 0,
       totalLoadTime: 0
     };
+
+    this._errorTexture = null; // lazily-created shared failure placeholder
   }
 
   /**
@@ -236,9 +238,20 @@ export class TextureManager {
   }
 
   /**
-   * Get error texture (checkerboard pattern)
+   * Error texture (checkerboard pattern).
+   *
+   * One shared instance: every failed load used to mint a fresh texture that
+   * lived outside textureCache — uncounted, unprunable, and never disposed —
+   * so a URL that kept failing leaked one GPU texture per attempt. The shared
+   * placeholder is manager-owned (callers must not dispose it) and is kept
+   * out of the LRU cache so pruneCache can't evict-and-dispose a texture a
+   * live material may still reference.
    */
   getErrorTexture() {
+    if (this._errorTexture) {
+      return this._errorTexture;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
@@ -255,7 +268,8 @@ export class TextureManager {
       }
     }
 
-    return new THREE.CanvasTexture(canvas);
+    this._errorTexture = new THREE.CanvasTexture(canvas);
+    return this._errorTexture;
   }
 
   /**
@@ -291,6 +305,10 @@ export class TextureManager {
   dispose() {
     this.unloadAll();
     this.pendingLoads.clear();
+    if (this._errorTexture) {
+      this._errorTexture.dispose();
+      this._errorTexture = null;
+    }
   }
 }
 

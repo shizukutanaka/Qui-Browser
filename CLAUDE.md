@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 115: 続き273 — TextureManager の error テクスチャが失敗ごとに新規生成（GPU リーク）
+- 🔍 **実測**: `_loadTexture` の catch 経路は `getErrorTexture()` を呼ぶが、同関数は呼出のたびに 256×256 canvas + `CanvasTexture` を**新規生成**。生成物は `textureCache` に入らない（`estimatedBytes`/`textureCount` で未計測、`pruneCache` の対象外）ためメモリ管理から完全に見えず、`dispose()` も `unloadAll()`＝cache のみ解放なので**どこにも dispose されない**。壊れた URL をアプリがリトライし続けると 1失敗＝1テクスチャ漏洩（pendingLoads デデュープは同一 tick の共有のみで逐次失敗は毎回 fetch→失敗→新規 texture）。`enableTextureManager` トグルで構築/破棄されるため、破棄側でも漏れ続けていた。
+- 🔧 **修正**: `getErrorTexture` を遅延生成の共有 singleton `_errorTexture` に変更（`_loadTexture` の fetch 失敗は URL 単位でキャッシュされない設計は維持 — リトライを妨げないため）。`dispose()` で `_errorTexture.dispose()` + null クリア、dispose 後の再利用要求は再 lazy 生成。placeholder は LRU cache に**入れない**（`pruneCache` は eviction 時に dispose するため、cache 内 singleton が生きた material から参照中に破壊されるのを防ぐ — docstring に明記）。
+- 🧪 pin 4件（texture-manager: 連続失敗が同一インスタンスを返す / dispose が placeholder を dispose / dispose 後は lazy 再生成 / error texture が cache・メモリ計測に入らない）。defect 側 2件は stash 検証で pre-fix 赤・post-fix 緑（「lazy 再生成」「cache 不入」はガードの pin で両方緑）。
+- ✅ 3226 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。
