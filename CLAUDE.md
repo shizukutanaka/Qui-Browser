@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **O-1 一部**: DEVELOPER_ONBOARDING.md / API.md / IMPROVEMENT_ANALYSIS.md / CATEGORY_RESEARCH.md の冒頭へ「旧設計のアーカイブ」注記 + 現行参照先（ARCHITECTURE.md/TESTING.md）を挿入 — 選択肢 (b)。本文全面改訂 (a) ・削除 (c) は引き続きオーナー判断。
 - ✅ 3199 tests / 73 suites 緑、lint 0 errors、build 緑。スタック状態: オーナーが #200 を #199 ブランチへ merge 済み、#201 は auto-retarget で #199 ブランチが base — #201 ブランチへ #199 tip を merge 取り込み済み（76ce28d — #201 の diff が ascii 分のみに縮小）。
 
+### Session 103: 続き261 — PerformanceMonitor のアラート dedup 不発（値埋め込み文字列）
+- 🔍 **実測（コード追跡）**: `addAlert` の重複抑止は `a.message === message` の完全一致 + 5秒窓 — しかしアラート文には測定値が埋め込まれている（`Frame time: 16.52ms`、`FPS dropped to 45.3`）ため**実際にはほぼ衝突しない**。`checkThresholds` は frameTime 超過を毎フレーム評価するので、閾値超過が持続すると **90Hz で alert 追加 + console.warn** — perf が最悪な瞬間に 50 エントリのリングを回転させログを洪水させていた。
+- 🔧 **修正**: dedup キーを `${level}:${message.replace(/\d+(\.\d+)?/g,'#')}` の値除去形へ — 同一状態の繰返しは1エントリの count を増やし、message/timestamp は最新値へ更新（先発値ではなく最新測定が HUD に出る）。dedup 窓はスライド式（持続中は発火しないが、最後の発生から 5 秒で再カウント）。
+- 🧪 pin 4件：値だけ違うアラート3連続が1エントリ+count3+最新 message、60フレームの持続状態で console.warn 1回のみ（従来は60回+リング回転）、severity 違いは別エントリ、5秒窓切れで新規エントリ。3件 stash 検証で pre-fix 赤。
+- ✅ 3215 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
