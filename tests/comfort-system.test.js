@@ -368,17 +368,17 @@ describe('resolveComfortPreset — OS reduced-motion pre-selects protective pres
 });
 
 describe('snapTurnLabel — directional caption for reduced-motion orientation cue', () => {
-  test('positive direction = clockwise = Right with arrow', () => {
-    expect(snapTurnLabel(1, 30)).toBe('↻ Right 30°');
+  test('positive direction = counter-clockwise = Left with arrow', () => {
+    expect(snapTurnLabel(1, 30)).toBe('↺ Left 30°');
   });
 
-  test('negative direction = counter-clockwise = Left with arrow', () => {
-    expect(snapTurnLabel(-1, 30)).toBe('↺ Left 30°');
+  test('negative direction = clockwise = Right with arrow', () => {
+    expect(snapTurnLabel(-1, 30)).toBe('↻ Right 30°');
   });
 
   test('angle is included verbatim so users know the step size', () => {
-    expect(snapTurnLabel(1, 45)).toBe('↻ Right 45°');
-    expect(snapTurnLabel(-1, 15)).toBe('↺ Left 15°');
+    expect(snapTurnLabel(1, 45)).toBe('↺ Left 45°');
+    expect(snapTurnLabel(-1, 15)).toBe('↻ Right 15°');
   });
 
   test('arrows are semantically distinct (not the same glyph)', () => {
@@ -388,8 +388,8 @@ describe('snapTurnLabel — directional caption for reduced-motion orientation c
   test('direction words are localised (vr.value.left/right)', () => {
     const { setLanguage } = require('../src/i18n/i18n.js');
     setLanguage('ja');
-    expect(snapTurnLabel(1, 30)).toBe('↻ 右 30°');
-    expect(snapTurnLabel(-1, 30)).toBe('↺ 左 30°');
+    expect(snapTurnLabel(1, 30)).toBe('↺ 左 30°');
+    expect(snapTurnLabel(-1, 30)).toBe('↻ 右 30°');
     setLanguage('en');
   });
 });

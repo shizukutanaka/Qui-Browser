@@ -245,6 +245,43 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 158: 続き316 — snap-turn caption 逆方向 + face-button justPressed 全滅の2欠陥を修正、gamepad 入力経路を e2e pin（#258 batch 9、101→105 checks）
+- **Round 75 of the continuous-improvement directive.** Ninth batch on #258 —
+  this time with real fixes found by the new pins.
+- **Defect 1 — inverted snap-turn caption (WCAG 1.3.3/4.1.3):** pushing the
+  stick right rotates the player rig −30° about +Y (facing swings −Z → +X,
+  i.e. RIGHT), but `snapTurnLabel` announced '↺ Left 30°' — both branches
+  were inverted vs the rotation math (direction>0 = +angle = CCW = left
+  turn). Caption-reliant users were told the opposite of every snap.
+  Branches + docstring corrected; the five jest assertions that had
+  cemented the wrong mapping repointed (comfort-system.test.js).
+- **Defect 2 — every face button dead in production:** `updateSystems` calls
+  `updateLocomotion` before `updateButtonInput`, and BOTH call
+  `controllerInput.read(src)` — an edge-consuming API (`justPressed` is
+  true for exactly one read). Locomotion ate the edge every frame, so
+  `updateButtonInput` saw `justPressed=false` forever: A/B navigation,
+  thumbstick recenter, bookmark/settings/keyboard toggles never fired
+  through the real path (only callable via direct prototype binding in
+  tests, which is why mocks never caught it). Fix: one read per frame —
+  locomotion stamps `controller.userData._inputSnap/_snapFrame` under a
+  `_inputFrame` epoch; button input reuses the stamped snapshot when the
+  epochs match and fresh-reads otherwise (bound-prototype callers with no
+  epoch get correct edges via the `_inputSnap` truthiness guard).
+- **Pins (+4 → 105 checks, session leg):** fake `meta-quest-touch-pro`
+  gamepads connected through the real `connected` dispatch — right stick
+  deflect → rig yaw −30° + '↻ Right 30°' caption + `right:click` haptic;
+  held-stick edge latch (no re-snap until release band, re-push snaps);
+  pointer faceA with no forward history → honest 'No next page' caption;
+  utility faceB toggles settings panel + 'Settings: open' caption.
+- **Red-verified:** label flip → `snapTurns` FAIL; `_inputSnap` reuse cut →
+  `faceAAnnounces`+`faceBToggles` FAIL (snapLatch stays green — the latch is
+  locomotion-internal). Caught mid-round: bound-prototype mocks lack
+  `_inputFrame`, so the epoch check alone made `undefined===undefined` —
+  14 jest failures; fixed by requiring `_inputSnap` in the guard.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (105 checks).
+
 ### Session 157: 続き315 — grab-to-move 全連鎖を e2e pin（#258 に batch 8 として積層、98→101 checks）
 - **Round 74 of the continuous-improvement directive.** Eighth commit batch on PR #258.
 - **Pins (verify-vr-boot, +3 → 101 checks):** inside the fake-session leg —

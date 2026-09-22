@@ -988,6 +988,84 @@ async function main() {
                 ctrl.matrixWorld.copy(origMW2);
               }
             }
+            // Locomotion + face-button input path: gamepad state on a
+            // connected XRInputSource drives snap turn (right thumbstick,
+            // latch release) and face-button actions through the REAL
+            // updateLocomotion/updateButtonInput — the input-to-effect
+            // wiring (dead zone, family maps, edge-triggered buttons)
+            // that only exists end-to-end here.
+            const ctrlL = app.controllers && app.controllers[1];
+            if (ctrl && ctrlL && app.controllerInput && app.playerRig) {
+              const mkSrc = (handedness) => ({
+                handedness,
+                profiles: ['meta-quest-touch-pro'],
+                gamepad: {
+                  axes: [0, 0, 0, 0],
+                  buttons: [0, 0, 0, 0, 0, 0, 0].map(() => ({ pressed: false, value: 0 }))
+                }
+              });
+              const rightSrc = mkSrc('right');
+              const leftSrc = mkSrc('left');
+              const locoCaps = [];
+              const origLShow = app.captionSystem && app.captionSystem.show;
+              if (origLShow) {
+                app.captionSystem.show = (m) => { locoCaps.push(String(m)); };
+              }
+              const locoHaptic = [];
+              const origLPlay = app.hapticFeedback && app.hapticFeedback.playPattern;
+              if (origLPlay) {
+                app.hapticFeedback.playPattern = (h, p) => { locoHaptic.push(h + ':' + p); };
+              }
+              const origYaw = app.playerRig.rotation.y;
+              try {
+                ctrl.dispatchEvent({ type: 'connected', data: rightSrc });
+                ctrlL.dispatchEvent({ type: 'connected', data: leftSrc });
+                // Stick right → clockwise snap (-30° about +Y) + caption +
+                // haptic on the right hand. Snap direction convention:
+                // x > 0 calls snapTurn(-1) → angle -30° → facing swings
+                // from -Z toward +X = turn RIGHT; the caption must agree.
+                rightSrc.gamepad.axes[2] = 0.8;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const yawAfter = app.playerRig.rotation.y;
+                out.snapTurns = Math.abs(yawAfter - origYaw - (-Math.PI / 6)) < 0.01
+                  && locoCaps.some((t) => t.includes('Right 30'))
+                  && locoHaptic.includes('right:click');
+                // Held stick is edge-latched: a second frame does not snap
+                // again until the stick re-centres past the release band.
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const yawHeld = app.playerRig.rotation.y;
+                rightSrc.gamepad.axes[2] = 0;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                rightSrc.gamepad.axes[2] = 0.8;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.snapLatch = Math.abs(yawHeld - yawAfter) < 0.001
+                  && Math.abs(app.playerRig.rotation.y - yawAfter - (-Math.PI / 6)) < 0.01;
+                // Pointer-hand faceA with no forward history → the honest
+                // 'No next page' caption (not silence, not a fake success).
+                rightSrc.gamepad.buttons[4].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.faceAAnnounces = locoCaps.some((t) => t.includes('No next page'));
+                // Utility-hand faceB toggles the settings panel + announces.
+                const visBefore = !!(app.settingsPanel && app.settingsPanel.visible);
+                leftSrc.gamepad.buttons[5].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const visAfter = !!(app.settingsPanel && app.settingsPanel.visible);
+                out.faceBToggles = visAfter === !visBefore
+                  && locoCaps.some((t) => t.includes(visAfter ? 'Settings: open' : 'Settings: closed'));
+                leftSrc.gamepad.buttons[5].pressed = false;
+              } finally {
+                rightSrc.gamepad.axes[2] = 0;
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                ctrlL.dispatchEvent({ type: 'disconnected' });
+                if (origLShow) {
+                  app.captionSystem.show = origLShow;
+                }
+                if (origLPlay) {
+                  app.hapticFeedback.playPattern = origLPlay;
+                }
+                app.playerRig.rotation.y = origYaw;
+              }
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -1168,6 +1246,10 @@ async function main() {
       grabStarts: iout.grabStarts === true,
       grabDrags: iout.grabDrags === true,
       grabEnds: iout.grabEnds === true,
+      snapTurns: iout.snapTurns === true,
+      snapLatch: iout.snapLatch === true,
+      faceAAnnounces: iout.faceAAnnounces === true,
+      faceBToggles: iout.faceBToggles === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1308,6 +1390,10 @@ async function main() {
       ['select on move bar begins grab + announces', !!inter.grabStarts],
       ['grab drag tracks the controller ray', !!inter.grabDrags],
       ['selectend ends grab + announces moved', !!inter.grabEnds],
+      ['right stick snaps -30° + Right caption + click', !!inter.snapTurns],
+      ['held stick latches; re-push snaps again', !!inter.snapLatch],
+      ['faceA with no forward history says so', !!inter.faceAAnnounces],
+      ['utility faceB toggles settings + announces', !!inter.faceBToggles],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
