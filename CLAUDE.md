@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 132: 続き290 — harness interaction に announce 3経路（blocked-scheme / tab-close / max-tabs）を e2e pin
+- 🔍 **実測**: WCAG 4.1.3 の status announce 契約のうち、危険スキームブロック（`javascript:` → `onBlockedNavigation` → warn toast）、タブ close（`onTabClose` → caption）、9枚目タブ上限（`onMaxTabsReached` → warn toast）の3経路が e2e 未検証 — 全て「処理が成功した」と思わせない正直なアナウンスで、未配線ならサイレント失敗の構造。
+- 🔧 **修正**: interaction eval に 3 経路追加。①`tab.navigate('javascript:alert(1)')` → resolveInput が null → alert region に `⚠ Cannot open that address`（severity グリフ付き warn）②タブを 8 枚まで開き 9 枚目 `newTab()` → alert region に `⚠ Maximum tabs reached`③`setEnabled(true)` 後 `closeTab(0)` → status region に `Tab closed`。破壊的アクション後は 1 タブへ復元して評価汚染を防止。
+- 🧪 3件とも一発緑 — blocked ハンドラ未配線なら `blockedAnnounced` FAIL、onTabClose 未配線なら `closeAnnounced` FAIL、上限コールバック欠損なら `maxTabsAnnounced` FAIL と構造的検出（severity グリフ `⚠` の存在まで検証）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 21 checks PASS。#241（improve-44）の上に積層。
+
 ### Session 131: 続き289 — harness interaction に tab-session 永続化 roundtrip を e2e pin
 - 🔍 **実測**: `_saveTabSession`（`tabManager.serialize()` → `localStorage['qui.tabSession.v1']`）が、リロード時の `_restoreTabSession` の読込元であるにもかかわらず e2e 未検証 — **「開いているタブが再起動後も残る」ブラウザの基本契約**が何の pin も無しに置かれていた。`privateMode` の保存・復元双方のゲートも同様。
 - 🔧 **修正**: interaction eval に 1 経路追加。アクティブタブの `tab.navigate('https://harness-tab.example/')`（実 panel パス — `currentUrl` 書込 + `onNavigate` → 履歴記録まで連鎖）→ `_saveTabSession()` → localStorage の JSON を parse し `tabs[]` に当該 URL を含むことを検証。privateMode ゲートは save（キー非出現）と restore（0 件返却）双方で検証 → `tabPrivateClean`。

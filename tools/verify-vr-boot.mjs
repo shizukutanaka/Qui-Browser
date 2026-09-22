@@ -280,6 +280,26 @@ async function main() {
             out.tabPrivateRestore = app._restoreTabSession();
             app.updateSetting('privateMode', false);
           }
+          // Announce paths — every user-visible status must reach an ARIA
+          // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
+          // tab close (caption), and the 9th-tab limit (warn toast).
+          if (tab) {
+            tab.navigate('javascript:alert(1)'); // resolves to null → blocked
+            out.alertBlocked = alertEl ? alertEl.textContent : '';
+          }
+          while (app.tabManager.count < 8) {
+            app.tabManager.newTab();
+          }
+          app.tabManager.newTab(); // 9th → MAX_TABS → onMaxTabsReached
+          out.alertMaxTabs = alertEl ? alertEl.textContent : '';
+          if (app.captionSystem) {
+            app.captionSystem.setEnabled(true);
+          }
+          app.tabManager.closeTab(0);
+          out.closeCaption = statusEl ? statusEl.textContent : '';
+          while (app.tabManager.count > 1) {
+            app.tabManager.closeTab(0); // restore a single open tab
+          }
         }
         return out;
       })()`,
@@ -306,7 +326,10 @@ async function main() {
       clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
       bmSuggest: !!iout.bmSuggest,
       tabPersisted: !!iout.tabPersisted,
-      tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0
+      tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
+      blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
+      maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
+      closeAnnounced: (iout.closeCaption || '').includes('Tab closed')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -344,6 +367,9 @@ async function main() {
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
       ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
+      ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
+      ['tab close announced via caption status', !!inter.closeAnnounced],
+      ['max tabs announced via warn toast', !!inter.maxTabsAnnounced],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
