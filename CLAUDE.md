@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 185: 続き343 — XRHand→joints→gesture→haptic の全パイプラインを e2e pin（#261 batch 5、245→247 checks）
+- 🔍 **実測（最後の未駆動 hand-tracking 面）**: R99–R101 は `ht.joints` を直接 seed して `recognizeGestures()` から pin していた — 上流の `update()→updateHand()→fillPoses バッチ→joints` 経路（XRHand pose 取得、4x4 column-major 行列、radii、seen-detector）は一度も駆動されていなかった。fake XRHand（`spaceFor[n]={j:n}` の `hand.get(name)`）+ `fakeXrFrame.fillPoses`（`poseFor[s.j]` を `i*16+12..14` へ書込む stub）で真のバッチ経路を端到端 pin。
+- 🔧 **ハーネス教訓（重要）**: **stale dist が真犯人だった** — `ht.update()` が `updateHand` を一度も呼ばない謎（`seen=[] batch=null`、直接呼出しは正常）を own-prop stub 疑惑で長時間デバッグしたが、原因は `npm run build` 未実行で dist が `updateHand`-in-loop 以前のコードを出していただけ。「harness が src の振る舞いと違う」と見えたら先に rebuild を疑う。
+- 🔧 **pin 設計の罠（共有点回避）**: coincident joints（全 joints が同一座標）は thumb-index dist=0 で常に 'pinch' を自己充足するため **joints 再seed は非 pinch 形状（0.5s+index 0.6→'fist'）が必須** — fillPoses 書込みが load-bearing になる。
+- 🧪 **赤検証**: `this.updateHand(frame, inputSource, referenceSpace)` 切断 → `handPoseDrives` のみ FAIL（`handLostViaUpdate` は seen-detector が残るため通過 — 狙い通りの責任分離）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 247 checks PASS、verify:app PASS。
+
 ### Session 184: 続き342 — 残りの detectGesture 腕（point/open/thumbsup/peace）を e2e pin（#261 batch 4、241→245 checks）
 - 🔍 **実測**: pinch/fist の haptic 配線は pin 済みだが、ジェスチャ形状判定の残り 4 腕（point=index のみ extended、open=全 extended、thumbsup=thumb ベクトル +Y>0.7 で fist に先勝ち、peace=index+middle extended）は e2e 未駆動 — thumbsup-before-fist の順序は過去の実修正なので回帰 pin の価値が高い。
 - 🧪 **ハーネス教訓**: ①pinch 判定は detectGesture 先頭で走る — point/open/peace 形状を作るとき **thumb を index-tip から 2cm 以上離さないと 'pinch' が先勝ちする**（index 0.15 vs thumb 0.14 = gap 0.01 で FAIL した実測）②pinch 状態から形状遷移する場合は thumb を release バンド 3.5cm 超まで退く必要あり（batch 3 教訓の一般化）。
