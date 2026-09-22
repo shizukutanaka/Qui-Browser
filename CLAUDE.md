@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 100: 続き258 — FFR 適応フォビエーションの3欠陥（書き込み頻度・対称EMA・dt非依存）
+- 🔍 **実測（コード追跡）**: `FFRSystem` の適応フォビエーションに連鎖する3つの欠陥。①`_writeFoveation` が毎フレーム `fixedFoveation` を合成器へ書込 — 追跡対象のEMAは漸近収束し同一 float を二度と出さないため、レベルが定数に落ち着いても XR compositor に90Hzで同値状態を再設定し続ける。②`trackHeadPose` の平滑化は対称 EMA（`hV*0.8+v*0.2`）なのに自コメントは「fast rise, slow decay」を主張 — 実装がコメントと矛盾し、且つ dt 無視で 72Hz→120Hz で応答が変わる。③`updatePredictedGazeFoveation` の強度追従 `*0.1` もフレームレート依存。
+- 🔧 **修正**: `_writeFoveation` を write-on-change 化（2% デッドバンド — VRS タイル粒度以下の変動は合成器へ投げない）、`trackHeadPose` を非対称エンベロープ化（attack τ=0.07s / release τ=0.3s — saccade 即時反応・減衰は緩慢で周辺解像度のフリッカー抑止、audio compressor 相当）、`updatePredictedGazeFoveation(dt)` が実フレーム dt を取り呼出側 VRApp も `dt` を渡す。
+- 🧪 pin 4件：attack エンベロープへの既存ピン移行（0.1s で ~76% 透過）、attack>release の非対称性、収束後の書込停止（write カウンタ）、サブデッドバンド nudge で書込なし。全件 stash 検証で pre-fix 赤・post-fix 緑。
+- ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

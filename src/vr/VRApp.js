@@ -3505,7 +3505,7 @@ export class VRApp {
     if (this.ffrSystem && this.isVREnabled) {
       // Use the shared frame dt — no per-system timer needed.
       this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
-      this.ffrSystem.updatePredictedGazeFoveation();
+      this.ffrSystem.updatePredictedGazeFoveation(dt);
 
       // Also coarse-adjust based on frame-budget pressure.
       const targetFrameTime = 1000 / this.settings.targetFPS;
