@@ -560,7 +560,8 @@ async function main() {
               sesListeners.set(type, a);
             },
             removeEventListener: () => {},
-            fire: (type) => (sesListeners.get(type) || []).forEach((fn) => fn({ type })),
+            fire: (type, extra) => (sesListeners.get(type) || [])
+              .forEach((fn) => fn({ type, ...(extra || {}) })),
             end: async () => {}
           };
           const rsListeners = new Map();
@@ -633,6 +634,33 @@ async function main() {
             out.sessFps = app.settings.targetFPS;
             out.sessHand = !!(app.handTracking && app.handTracking.enabled === true);
             out.sessFfrOff = !!(app.ffrSystem && app.ffrSystem.enabled === false);
+            // Hand groups must start hidden — born-visible groups read as a
+            // phantom tracked→lost transition on the first frame. Then an
+            // input-source removal mid-session must announce the loss
+            // (debounced 600 ms), and a repeat removal while already hidden
+            // must not re-announce.
+            out.handBornHidden = !!(app.handTracking && app.handTracking.leftHand
+              && app.handTracking.rightHand
+              && !app.handTracking.leftHand.visible
+              && !app.handTracking.rightHand.visible);
+            if (app.handTracking && app.handTracking.leftHand) {
+              app.handTracking.leftHand.visible = true; // simulate "was tracked"
+              fakeSession.fire('inputsourceschange', {
+                added: [],
+                removed: [{ handedness: 'left' }]
+              });
+              out.handHiddenOnRemove = app.handTracking.leftHand.visible === false;
+              await new Promise((r) => setTimeout(r, 700)); // 600 ms debounce
+              const lostCount = () => capWrites
+                .filter((t) => t.includes('Left hand lost')).length;
+              out.handLostCap = lostCount() >= 1;
+              fakeSession.fire('inputsourceschange', {
+                added: [],
+                removed: [{ handedness: 'left' }]
+              });
+              await new Promise((r) => setTimeout(r, 700));
+              out.handLostOnce = lostCount() === 1;
+            }
             // Headset blur while video plays must pause it (DOM
             // visibilitychange does not fire during immersive presentation).
             if (iv) {
@@ -864,6 +892,10 @@ async function main() {
       sessFps: iout.sessFps === 90,
       sessHand: iout.sessHand === true,
       sessFfrOff: iout.sessFfrOff === true,
+      handBornHidden: iout.handBornHidden === true,
+      handHiddenOnRemove: iout.handHiddenOnRemove === true,
+      handLostCap: iout.handLostCap === true,
+      handLostOnce: iout.handLostOnce === true,
       sessVisPaused: iout.sessVisPaused === true,
       sessVisNoDouble: iout.sessVisNoDouble === true,
       sessReset: iout.sessReset === true,
@@ -982,6 +1014,10 @@ async function main() {
       ['session start re-based fps budget on real rate', !!inter.sessFps],
       ['session start re-initialized hand tracking', !!inter.sessHand],
       ['FFR degraded gracefully without XRWebGLBinding', !!inter.sessFfrOff],
+      ['hand groups start hidden (no phantom lost)', !!inter.handBornHidden],
+      ['input-source removal hides the hand', !!inter.handHiddenOnRemove],
+      ['input-source removal announces hand lost', !!inter.handLostCap],
+      ['repeat removal does not re-announce', !!inter.handLostOnce],
       ['headset blur paused the playing video', !!inter.sessVisPaused],
       ['restore to visible did not double-pause', !!inter.sessVisNoDouble],
       ['reference-space reset re-centered the rig', !!inter.sessReset],

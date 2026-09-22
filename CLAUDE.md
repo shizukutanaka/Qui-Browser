@@ -245,6 +245,24 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 153: 続き311 — inputsourceschange→hand-lost announce e2e pin + relanded fix (PR #258 batch 4)
+- **Round 70 of the continuous-improvement directive.** Fourth commit batch on PR #258.
+- **Pins (verify-vr-boot, +4 → 83 checks):** inside the fake-XRSession leg —
+  `fire()` extended to carry event payloads; `inputsourceschange`
+  `{removed: [{handedness:'left'}]}` driven end-to-end: hand groups born
+  hidden (no phantom lost), removal hides the hand, removal announces
+  `Left hand lost` through the 600 ms debounce → real caption region write,
+  repeat removal while already hidden does not re-announce.
+- **Organic red → bundle:** 3 pins failed on base (born visible; no announce;
+  double-fire semantics) — the announce-on-removal + born-hidden fixes live in
+  unmerged PR #249's reland commit `aca456f`. Bundled
+  `src/vr/interaction/HandTracking.js` + `tests/hand-tracking.test.js`
+  (carries the #218/#226/#229 hand fixes — identical diffs collapse when
+  #249 merges first).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (83 checks).
+
 ### Session 152: 続き310 — session/controller event bridge を e2e pin（xr sessionstart/end 実 listener、controller disconnect/reconnect、squeeze cancel、DOM visibility pause、#258 に batch 3 として積層、74→79 checks）
 - 🔍 **実測**: R67-68 の session leg は `onVRSessionStart`/`onVRSessionEnd` を直接呼んでいたため、**実 wiring である `renderer.xr` の 'sessionstart'/'sessionend' listener 自体**と、controller の 'connected'/'disconnected'/'squeezestart' 経路（mid-session disconnect toast + inputSource forget、reconnect announce、squeeze mid-aim 中の disconnect → teleport 中止）、2D 側 `onDocumentVisibilityChange` → video pause が未駆動だった。
 - 🔧 **実装**: start/end を `app.renderer.xr.dispatchEvent({type:'sessionstart'/'sessionend'})` 経由に変更（listener 切断でも start/end チェックが FAIL するよう bridge 自体を pin）。controller block 追加: `controllers[0]` へ 'connected'（初回は announce 無し=wasDisconnected false）→ 'disconnected'（'Right controller disconnected' caption 到達 + inputSource null 化は squeezeCancelled 内で検証）→ mid-squeeze 'disconnected'（`teleport.active=false`+`controller=null` で `_cancelTeleportIfAimedBy` 経路を pin）→ 'connected' 2 回目（'Right controller reconnected' 到達=WCAG 4.1.3 loop-closer）。DOM arm: `document.hidden` を instance getter で shadow → 'visibilitychange' dispatch → `iv.playing` pause（XR arm と対になる 2D 経路）。5 新規チェック。

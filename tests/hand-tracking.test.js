@@ -151,12 +151,14 @@ describe('HandTracking.detectGesture', () => {
     expect(ht.detectGesture(new Map())).toBe('none');
   });
 
-  test("'open' hand is detected AND counted in stats (regression)", () => {
+  test("'open' hand is detected by the classifier — which is pure (no stat side-effects)", () => {
     const ht = new HandTracking({}, new MockObj());
     ht.isFingerExtended = () => true; // all fingers extended → open hand
-    const before = ht.stats.gesturesRecognized;
     expect(ht.detectGesture(makeJoints())).toBe('open');
-    expect(ht.stats.gesturesRecognized).toBe(before + 1);
+    // The counter moved to recognizeGestures()'s onset branch: a classifier
+    // that bumped stats per call counted ~90 "recognitions"/sec for one
+    // held gesture.
+    expect(ht.stats.gesturesRecognized).toBe(0);
   });
 
   test("'point' is detected when only the index is extended", () => {
@@ -211,11 +213,25 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     const ht = new HandTracking({}, scene);
     const session = makeSession();
     await ht.initialize(session);
-    // After initialize, both hand groups exist and start visible=false (group default).
-    ht.leftHand.visible  = false;
-    ht.rightHand.visible = false;
     return ht;
   }
+
+  test('hand groups start hidden — nothing is tracked until the first pose', async () => {
+    const ht = await makeReady();
+    expect(ht.leftHand.visible).toBe(false);
+    expect(ht.rightHand.visible).toBe(false);
+  });
+
+  test('no phantom "hand lost" announce on the first frame (was visible=true default)', async () => {
+    const ht = await makeReady();
+    const onChange = jest.fn();
+    ht.onTrackingChange(onChange);
+    // First update before either hand has ever been seen must not fire a
+    // lost transition — THREE.Group defaults visible=true, which used to
+    // read as "was tracked last frame" and announce a loss that never was.
+    ht.update(makeFrame([]), null);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 
   test('hand becomes visible when its input source appears', async () => {
     const ht = await makeReady();
@@ -323,6 +339,40 @@ describe('HandTracking — spatial queries + gesture dispatch', () => {
     expect(calls).toEqual([['left', 'point']]);
     ht.recognizeGestures(); // same pose again — no re-fire
     expect(calls).toHaveLength(1);
+  });
+
+  const pointPose = () => jointsAt([
+    ['thumb-tip', [0, 0.05, -0.1]],
+    ['index-finger-tip', [0, 0.09, -0.15]],
+    ['wrist', [0, 0, 0]],
+    ['index-finger-metacarpal', [0, 0.03, -0.05]],
+    ['middle-finger-metacarpal', [0.01, 0.03, -0.05]],
+    ['middle-finger-tip', [0.01, 0.02, -0.04]],
+    ['ring-finger-metacarpal', [0.02, 0.03, -0.05]],
+    ['ring-finger-tip', [0.02, 0.02, -0.04]],
+    ['pinky-finger-metacarpal', [0.03, 0.03, -0.05]],
+    ['pinky-finger-tip', [0.03, 0.02, -0.04]]
+  ]);
+
+  test('gesturesRecognized counts gesture onsets, not frames in the gesture', () => {
+    ht.joints.left = pointPose();
+    ht.recognizeGestures();
+    ht.recognizeGestures();
+    ht.recognizeGestures(); // held for three frames — still one onset
+    expect(ht.stats.gesturesRecognized).toBe(1);
+  });
+
+  test('re-forming the gesture after a release counts a second onset', () => {
+    ht.joints.left = pointPose();
+    ht.recognizeGestures();
+    ht.gestures.left = 'none'; // simulate the gesture being lost between frames
+    ht.recognizeGestures();
+    expect(ht.stats.gesturesRecognized).toBe(2);
+  });
+
+  test('dead stat fields are gone — no pinchAccuracy/trackingQuality placeholders', () => {
+    expect(ht.stats).not.toHaveProperty('pinchAccuracy');
+    expect(ht.stats).not.toHaveProperty('trackingQuality');
   });
 });
 
@@ -554,6 +604,51 @@ describe('HandTracking.onInputSourcesChange', () => {
     ht.leftHand = new MockObj();
     ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'none' }] });
     expect(ht.leftHand.visible).toBe(true);
+  });
+
+  test('announces the loss for a removed source that was visible', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.leftHand = new MockObj(); // MockObj defaults visible=true
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([['left', false]]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('does not announce a removal for an already-hidden hand', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.leftHand = new MockObj();
+    ht.leftHand.visible = false;
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('update() after a removal does not re-announce (single-fire)', () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.enabled = true;
+    ht.leftHand = { visible: true };
+    ht.rightHand = { visible: false };
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([['left', false]]);
+    // Next frame: no input sources — the transition already fired, so the
+    // detector must not emit a second 'lost' announce.
+    ht.update({ session: { inputSources: [] }, getJointPose: () => null }, null);
+    expect(calls).toEqual([['left', false]]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('tolerates a missing change callback and null hand groups', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht._onTrackingChange = null;
+    ht.leftHand = null;
+    expect(() => ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] })).not.toThrow();
   });
 });
 
