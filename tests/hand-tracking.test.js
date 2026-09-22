@@ -211,11 +211,25 @@ describe('HandTracking.update() — visibility and onTrackingChange', () => {
     const ht = new HandTracking({}, scene);
     const session = makeSession();
     await ht.initialize(session);
-    // After initialize, both hand groups exist and start visible=false (group default).
-    ht.leftHand.visible  = false;
-    ht.rightHand.visible = false;
     return ht;
   }
+
+  test('hand groups start hidden — nothing is tracked until the first pose', async () => {
+    const ht = await makeReady();
+    expect(ht.leftHand.visible).toBe(false);
+    expect(ht.rightHand.visible).toBe(false);
+  });
+
+  test('no phantom "hand lost" announce on the first frame (was visible=true default)', async () => {
+    const ht = await makeReady();
+    const onChange = jest.fn();
+    ht.onTrackingChange(onChange);
+    // First update before either hand has ever been seen must not fire a
+    // lost transition — THREE.Group defaults visible=true, which used to
+    // read as "was tracked last frame" and announce a loss that never was.
+    ht.update(makeFrame([]), null);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 
   test('hand becomes visible when its input source appears', async () => {
     const ht = await makeReady();

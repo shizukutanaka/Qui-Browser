@@ -126,12 +126,19 @@ export class HandTracking {
     this._jointQ = new THREE.Quaternion(); // identity — spheres need no rotation
     this._jointS = new THREE.Vector3();
 
-    // Create hand groups
+    // Create hand groups. They start HIDDEN — THREE.Group defaults
+    // visible=true, which would both render an untracked joint blob at the
+    // origin for the first frame and, worse, register as "was tracked" in
+    // update()'s transition detector and announce a phantom "hand lost" for
+    // each hand before the user ever raised it (WCAG 4.1.3: a status that
+    // never happened). update() owns visibility from the first pose.
     this.leftHand = new THREE.Group();
     this.leftHand.name = 'leftHand';
+    this.leftHand.visible = false;
 
     this.rightHand = new THREE.Group();
     this.rightHand.name = 'rightHand';
+    this.rightHand.visible = false;
 
     // One InstancedMesh per hand: 2 draw calls total instead of 50, and one
     // material per hand instead of 25 clones.

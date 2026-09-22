@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 119: 続き277 — セッション開始直後の phantom "hand lost"（Group 既定 visible=true）
+- 🔍 **実測**: `HandTracking.createHandModels()` が `new THREE.Group()` のまま `visible` を書かず — THREE 既定 `visible=true` で両手グループが誕生する。`update()` の遷移検出（`prevVisible !== nowTracked` で `_onTrackingChange` 発火、続き274 の announce-before-hide と同じ機構）は初フレームを「前フレーム追跡中 → 今フレーム未追跡」と判定 → **セッション開始直後・ユーザーがまだ手を上げていない時点で "Left hand lost"＋"Right hand lost" が両手分発火**（600ms debounce は flicker しか防がず初期偽遷移は通す）。二重の害: ①存在しない「喪失」のステータス通知 = WCAG 4.1.3 偽情報、②`visible=true` の未追跡骨格は全インスタンス恒等行列のまま **原点に 25 球×2 手のジョイント blob として1フレーム可視**。発生条件は毎セッション開始（initialize→最初の update まで inputSources に hand が無い通常ケース）。テスト側も `makeReady()` が「start visible=false (group default)」という**事実誤認コメント**付きで手動 `visible=false` をセットし、本番状態を覆い隠していた。
+- 🔧 **修正**: `createHandModels` で両グループ `visible=false` から開始 — 未追跡であることが真の初期状態としてオブジェクトに刻まれる（"untracked until first pose"）。`update()` が引き続き visibility の唯一の所有者。`makeReady()` の手動セットは不要化して削除し、誤認コメントも除去。
+- 🧪 pin 2件: initialize 直後 `leftHand/rightHand.visible === false`（untracked-initial pin）・最初の `update(empty inputSources)` で `onTrackingChange` 非発火（phantom lost 不発）。両件 pre-fix 赤・post-fix 緑。既存 47 件は全て不変更で緑のまま。
+- ✅ 3224 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。
