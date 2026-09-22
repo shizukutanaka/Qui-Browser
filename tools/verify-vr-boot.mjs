@@ -618,10 +618,13 @@ async function main() {
           }
           try {
             try {
-              await app.onVRSessionStart();
-            // syncBudget runs in updateTargetFrameRate().then — give the
-            // microtask a beat before reading the re-based budget.
-            await new Promise((r) => setTimeout(r, 30));
+            // Drive the REAL event bridge (renderer.xr 'sessionstart' →
+            // onVRSessionStart), not the method — a cut listener fails the
+            // start checks the same way a cut method would.
+            app.renderer.xr.dispatchEvent({ type: 'sessionstart' });
+            // onVRSessionStart is async; syncBudget also runs inside
+            // updateTargetFrameRate().then — give microtasks a beat.
+            await new Promise((r) => setTimeout(r, 60));
             out.sessStart = app.isVREnabled === true;
             // Toasts also flow through captionSystem.show (notifyCrossModal),
             // so a toast re-firing during start can overwrite the status
@@ -691,7 +694,45 @@ async function main() {
               && scaleCalls.length === 2;
             app.settings._fpsOverridden = false;
             app.performanceMonitor.frameTime = 0;
-            app.onVRSessionEnd();
+            // Controller event bridges — the real THREE controllers accept
+            // dispatched events, so the app-level wiring runs headless:
+            // mid-session disconnect toasts + forgets the input source, a
+            // reconnect announces (the WCAG 4.1.3 loop-closer), and a
+            // disconnect mid-squeeze cancels the aim instead of completing
+            // a teleport to a stale target.
+            const ctrl = app.controllers && app.controllers[0];
+            if (ctrl) {
+              const capsBefore = capWrites.length;
+              ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
+              // Initial connect is normal — no announce. (wasDisconnected
+              // only fires after inputSource was nulled by a disconnect.)
+              out.ctrlFirstQuiet = !capWrites.slice(capsBefore)
+                .some((t) => t.includes('reconnected'));
+              ctrl.dispatchEvent({ type: 'squeezestart' });
+              const aimStarted = app.teleport && app.teleport.active === true;
+              ctrl.dispatchEvent({ type: 'disconnected' });
+              out.ctrlDiscCap = capWrites.some((t) => t.includes('Right controller disconnected'));
+              out.squeezeCancelled = aimStarted
+                && app.teleport.active === false
+                && app.teleport.controller === null;
+              ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
+              out.ctrlReconnCap = capWrites.some((t) => t.includes('Right controller reconnected'));
+            }
+            // The 2D-arm pause: DOM visibilitychange only fires when NOT
+            // presenting — drive the document-level listener directly with
+            // document.hidden shadowed true (getter-only on the prototype).
+            if (iv) {
+              iv.playing = true;
+              const pcBeforeDoc = pauseCalls;
+              Object.defineProperty(document, 'hidden',
+                { get: () => true, configurable: true });
+              document.dispatchEvent(new Event('visibilitychange'));
+              delete document.hidden;
+              out.docPaused = pauseCalls === pcBeforeDoc + 1
+                && iv.playing === false;
+            }
+            // End through the real 'sessionend' listener too.
+            app.renderer.xr.dispatchEvent({ type: 'sessionend' });
             out.sessEnded = app.isVREnabled === false;
             out.sessIvStopped = stopCalls >= 1;
             out.sessHandOff = !(app.handTracking && app.handTracking.enabled === true);
@@ -831,6 +872,11 @@ async function main() {
       sessScaleSecond: iout.sessScaleSecond === true,
       sessRateDrop: iout.sessRateDrop === true,
       sessOverrideSkips: iout.sessOverrideSkips === true,
+      ctrlFirstQuiet: iout.ctrlFirstQuiet === true,
+      ctrlDisc: iout.ctrlDiscCap === true,
+      ctrlReconn: iout.ctrlReconnCap === true,
+      squeezeCancelled: iout.squeezeCancelled === true,
+      docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -944,6 +990,11 @@ async function main() {
       ['second overload step scaled deeper, still no rate', !!inter.sessScaleSecond],
       ['ladder exhausted dropped session rate to next rung', !!inter.sessRateDrop],
       ['user-pinned fps suppresses the whole ladder', !!inter.sessOverrideSkips],
+      ['initial controller connect stays quiet', !!inter.ctrlFirstQuiet],
+      ['mid-session disconnect toasts + forgets source', !!inter.ctrlDisc],
+      ['controller reconnect announces', !!inter.ctrlReconn],
+      ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
+      ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
