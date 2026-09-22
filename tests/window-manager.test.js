@@ -320,11 +320,12 @@ describe('WindowManager — constant apparent size across the distance range', (
     require('../src/vr/browser/panelGeometry.js');
 
   const follow = (distance) => {
-    const wm = new WindowManager(makeNode(), { distance });
+    // followLerp: 1 snaps the panel to its follow target in a single update.
+    const wm = new WindowManager(makeNode(), { distance, followLerp: 1 });
     const panel = makeNode();
     wm.attach(panel);
     wm.setFollow(true);
-    wm.update(1000); // large dt → lerp completes, panel lands at `distance`
+    wm.update(16.6667);
     return { wm, panel };
   };
 
@@ -411,5 +412,39 @@ describe('WindowManager — remaining guard arms', () => {
     wm._applyAngularScale();
     // distanceTo(co-located) === 0 → guard arm, no scale write
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('WindowManager — frame-rate independent follow lerp', () => {
+  const followSetup = (followLerp = 0.5) => {
+    const wm = new WindowManager(makeNode([0, 0, 0]), { distance: 2, followLerp });
+    const panel = makeNode();
+    wm.attach(panel);
+    wm.setFollow(true);
+    return { wm, panel };
+  };
+
+  test('six 16.67 ms frames move the panel exactly as far as one 100 ms frame', () => {
+    const a = followSetup(0.5);
+    for (let i = 0; i < 6; i++) {
+      a.wm.update(16.6667);
+    }
+    const b = followSetup(0.5);
+    b.wm.update(16.6667 * 6);
+    expect(b.panel.position.z).toBeCloseTo(a.panel.position.z, 10);
+  });
+
+  test('a hitched frame eases toward the target instead of snapping to it', () => {
+    const { wm, panel } = followSetup(0.5);
+    wm.update(120); // 120 ms hitch — old linear form clamped t to 1 (instant snap)
+    expect(panel.position.z).toBeGreaterThan(-2);
+    expect(panel.position.z).toBeLessThan(-1.9); // still most of the way there
+  });
+
+  test('a non-positive dt does not move the panel away from the target', () => {
+    const { wm, panel } = followSetup(0.5);
+    wm.update(-1); // degenerate dt — old linear form pushed the panel backward
+    expect(panel.position.z).toBe(0);
   });
 });
