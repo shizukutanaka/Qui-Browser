@@ -411,3 +411,58 @@ describe('JapaneseIME — ascii mode (N-3: URL entry context)', () => {
     expect(out.converted).toBe('か');
   });
 });
+
+describe('JapaneseIME — displayBuffer + kana commit (live conversion)', () => {
+  test('displayBuffer converts per mode: hiragana/kanji → kana, katakana → katakana, ascii → raw', () => {
+    const ime = new JapaneseIME();
+    ime.compositionBuffer = 'kyou';
+    ime.inputMode = 'hiragana';
+    expect(ime.displayBuffer()).toBe('きょう');
+    ime.inputMode = 'kanji';
+    expect(ime.displayBuffer()).toBe('きょう');
+    ime.inputMode = 'katakana';
+    expect(ime.displayBuffer()).toBe('キョウ');
+    ime.inputMode = 'ascii';
+    expect(ime.displayBuffer()).toBe('kyou');
+  });
+
+  test('displayBuffer is empty-safe and leaves partial romaji readable', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'hiragana';
+    expect(ime.displayBuffer()).toBe('');
+    ime.compositionBuffer = 'ky';
+    expect(ime.displayBuffer()).toBe('ky'); // unresolved prefix stays literal
+    ime.compositionBuffer = 'kon';
+    expect(ime.displayBuffer()).toBe('こん'); // syllabic n resolves at buffer end
+    ime.compositionBuffer = 'honya';
+    expect(ime.displayBuffer()).toBe('ほにゃ'); // deferred multi-char onset
+  });
+
+  test('confirmSelection commits the displayed kana — not the romaji source', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'hiragana';
+    ime.compositionBuffer = 'kyou';
+    expect(ime.confirmSelection()).toBe('きょう');
+
+    ime.inputMode = 'katakana';
+    ime.compositionBuffer = 'kyou';
+    expect(ime.confirmSelection()).toBe('キョウ');
+  });
+
+  test('ascii mode still commits the raw buffer', () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('ascii');
+    ime.compositionBuffer = 'kyou';
+    expect(ime.displayBuffer()).toBe('kyou');
+    expect(ime.confirmSelection()).toBe('kyou');
+  });
+
+  test('a picked candidate still wins over the kana commit', () => {
+    const ime = new JapaneseIME();
+    ime.inputMode = 'hiragana';
+    ime.compositionBuffer = 'kyou';
+    ime.candidates = ['今日', '強'];
+    ime.selectedIndex = 0;
+    expect(ime.confirmSelection()).toBe('今日');
+  });
+});

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 93: 続き251 — ライブかな表示 + かなコミット（IME の表示・出力不整合をかな側で解消）
+- 🔍 **実測**: `_refreshDisplay` が描くのは生 `compositionBuffer`（ローマ字）、`confirmSelection()` も raw を返す — ひらがなモードで 'kyou'→Enter が **Latin 文字列 'kyou' をコミット**していた。かなモードが日本語を出力する経路は候補行経由のみ。Apple IME・Google IME・Quest システムキーボードはいずれも「タイプ時点でかな表示・素 Enter でかなコミット」が標準意味論。esc-再開テストのコメントが記録していた「converted-vs-raw confirm の open question」をここで結論: **表示も出力もかなに揃える**（parity は維持、向きを反転）。
+- 🔧 **修正**: `JapaneseIME.displayBuffer()` を新設 — ひらがな/漢字→`convertRomajiToHiragana`、カタカナ→そのカタカナ化、ascii→raw。`_refreshDisplay` が `displayBuffer()` を描画（'kyou'→'きょう' をライブ表示）、`confirmSelection()` が `displayBuffer()` をコミット（候補選択時は従来どおり候補が優先）。未解決 prefix（'ky'）はそのままリテラル表示、`convertRomajiToHiragana` の既存 prefix-deferral が担う。
+- 🧪 pin 7件（displayBuffer モード別・部分入力・ひらがな/カタカナコミット・ascii raw・候補優先・描画が 'きょう'/'キョウ' を含み 'kyou' を含まない）＋esc-再開テストを 'ka'→'か' へ移行。stash 検証で pre-fix 赤（displayBuffer undefined）・post-fix 緑。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。PR base: `devin/1790059485-re-land-three-bump`。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

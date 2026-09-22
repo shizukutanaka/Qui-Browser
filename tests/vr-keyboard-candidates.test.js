@@ -293,14 +293,13 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     expect(kb.ime.isActive).toBe(false);
 
     // Session 2: reopen, type, press Enter — must NOT emit the stale '今日は'.
-    // (confirmSelection returns the raw composition 'ka' — converted-vs-raw
-    // confirm semantics are a separate open question, recorded in
-    // docs/OUTSTANDING_ISSUES.md.)
+    // (confirmSelection returns the displayed text — the kana conversion 'か'
+    // for the typed 'ka', per standard IME semantics.)
     kb.show();
     await kb.onKeyPress('k');
     await kb.onKeyPress('a');
     await kb.onKeyPress('enter');
-    expect(confirmed).toEqual(['ka']);
+    expect(confirmed).toEqual(['か']);
     expect(confirmed[0]).not.toBe('今日は');
 
     delete global.fetch;
@@ -597,6 +596,21 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     rec.paints.length = 0;
     kb._refreshDisplay();
     expect(rec.paints.map((p) => p.text)).toContain('A'); // ascii badge
+  });
+
+  test('_refreshDisplay paints the kana conversion, not the romaji source', () => {
+    const { kb } = makeKeyboard();
+    const rec = canvases[0];
+    kb.ime.compositionBuffer = 'kyou';
+    kb.ime.inputMode = 'hiragana';
+    rec.paints.length = 0;
+    kb._refreshDisplay();
+    expect(rec.paints.map((p) => p.text)).toContain('きょう');
+    expect(rec.paints.map((p) => p.text)).not.toContain('kyou');
+    kb.ime.inputMode = 'katakana';
+    rec.paints.length = 0;
+    kb._refreshDisplay();
+    expect(rec.paints.map((p) => p.text)).toContain('キョウ');
   });
 
   test('_setKeyHover tolerates a mesh whose prior texture was never stored', () => {

@@ -626,10 +626,32 @@ export class JapaneseIME {
   }
 
   /**
+   * The composition as the user sees it: live romaji→kana conversion for the
+   * kana modes, raw text for ascii. Standard IME semantics (Apple IME, Google
+   * IME, Quest system keyboard) all show kana as you type and commit kana on a
+   * bare Enter — committing the romaji source would make hiragana mode emit
+   * Latin letters.
+   */
+  displayBuffer() {
+    if (!this.compositionBuffer) {
+      return '';
+    }
+    if (this.inputMode === 'hiragana' || this.inputMode === 'kanji') {
+      return this.convertRomajiToHiragana(this.compositionBuffer);
+    }
+    if (this.inputMode === 'katakana') {
+      return this.convertHiraganaToKatakana(
+        this.convertRomajiToHiragana(this.compositionBuffer)
+      );
+    }
+    return this.compositionBuffer;
+  }
+
+  /**
    * Confirm selection
    */
   confirmSelection() {
-    const selected = this.candidates[this.selectedIndex] || this.compositionBuffer;
+    const selected = this.candidates[this.selectedIndex] || this.displayBuffer();
     this.clear();
     return selected;
   }
@@ -1053,8 +1075,10 @@ export class VRJapaneseKeyboard {
     ctx.textBaseline = 'middle';
     ctx.fillText(badge, w - badgeW / 2 - 4, h / 2);
 
-    // Composition text
-    const text = this.ime ? (this.ime.compositionBuffer || '') : '';
+    // Composition text — kana conversion, so 'kyou' paints きょう while typing
+    const text = this.ime && typeof this.ime.displayBuffer === 'function'
+      ? this.ime.displayBuffer()
+      : (this.ime ? (this.ime.compositionBuffer || '') : '');
     ctx.fillStyle = text ? col.displayText : col.displayPlaceholder;
     ctx.font = '40px monospace';
     ctx.textAlign = 'left';

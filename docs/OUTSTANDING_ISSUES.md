@@ -747,9 +747,13 @@ buffer 入力に関しては表示＝出力で既に一致していた。残っ�
 3. `VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` —
    URL 入力がデフォルトで ascii に（かな/shift キーでの日本語検索切替は維持）。
 
-**converted-vs-raw confirm の判断**: 表示が生 buffer の時点で parity は既に成立。
-候補選択時に `confirmSelection()` が漢字を返すのは汎用 IME のコミット意味論どおり
-（候補行自体が明示された選択肢）なので現行維持と判断。
+**converted-vs-raw confirm の判断**: ~~表示が生 buffer の時点で parity は既に成立。~~
+**続き251/Session 93 でかな側に揃えて解消**: parity を維持しつつ、表示とコミットを
+ともに変換後のかなへ移行（`displayBuffer()` — ひらがな/漢字→かな・カタカナ→カナ・
+ascii→raw）。旧実装は表示もコミットもローマ字 raw で、ひらがなモードの Enter が
+Latin 文字列を吐出していた。`paints きょう` + `confirmSelection→きょう` の pin 追加、
+esc-再開テストは 'ka'→'か' へ移行。候補選択時に `confirmSelection()` が漢字を返す
+のは従来どおり（候補行自体が明示された選択肢）。
 
 ---
 
