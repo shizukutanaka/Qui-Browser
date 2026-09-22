@@ -491,6 +491,47 @@ async function main() {
             say('zzz認識不能');
             out.voiceNoMatch = vc.stats.commandsFailed > 0
               && !!(statusEl && statusEl.textContent.includes('認識'));
+            // Batch 5 — the remaining registered commands.
+            say('音量下げる');
+            try { sv = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.voiceVolDown = !!(sv && sv.masterVolume === 90)
+              && (statusEl ? statusEl.textContent : '').includes('音量 90%');
+            say('更新');
+            out.voiceRefresh = tab2 && tab2.currentUrl === 'https://harness-top.example/'
+              && (statusEl ? statusEl.textContent : '').includes('更新します');
+            // go-to has two arms: a frecency hit (seeded bookmark) navigates
+            // to the hit URL; a miss falls through to navigate(query), which
+            // the resolver routes to the configured search engine. History was
+            // wiped by '履歴を消去' above, so the bookmark seed makes the hit
+            // arm deterministic.
+            app.bookmarks.addBookmark('https://voicegoto.example', 'Goto Target');
+            say('voicegotoを開く');
+            out.voiceGoToUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceGoToCap = statusEl ? statusEl.textContent : '';
+            say('nohitwordを開く');
+            out.voiceGoToFbUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceGoToFbCap = statusEl ? statusEl.textContent : '';
+            say('ヘルプ');
+            out.voiceHelpCap = statusEl ? statusEl.textContent : '';
+            say('キーボードを閉じる');
+            out.voiceKbHidden = app.vrKeyboard && app.vrKeyboard.visible === false;
+            out.voiceKbCap = statusEl ? statusEl.textContent : '';
+            // Reader scroll — scrollContent only moves while the panel is in
+            // 'reader' state; seed a long article so ±8 lines actually travel.
+            if (tab2) {
+              tab2._contentState = 'reader';
+              tab2._readerLines = Array.from({ length: 200 }, () => ({ text: 'l', style: 'body' }));
+              tab2._readerScroll = 0;
+              tab2._readerScale = 1;
+              tab2._drawContent = () => {};
+            }
+            say('下にスクロール');
+            out.voiceScrollDn = tab2 ? tab2._readerScroll : null;
+            say('上にスクロール');
+            out.voiceScrollUp = tab2 ? tab2._readerScroll : null;
+            say('停止');
+            out.voiceStopped = vc.isListening === false;
+            out.voiceStopCap = statusEl ? statusEl.textContent : '';
           }
           } catch (e) {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
@@ -577,7 +618,19 @@ async function main() {
         && (iout.voiceFwdCap || '').includes('進み'),
       voiceBm: (iout.voiceBmCap || '').includes('ブックマークパネル'),
       voiceIme: iout.voiceImeShown === true,
-      voiceNoMatch: iout.voiceNoMatch === true
+      voiceNoMatch: iout.voiceNoMatch === true,
+      voiceVolDown: iout.voiceVolDown === true,
+      voiceRefresh: iout.voiceRefresh === true,
+      voiceGoTo: iout.voiceGoToUrl === 'https://voicegoto.example'
+        && (iout.voiceGoToCap || '').includes('開き'),
+      voiceGoToFb: (iout.voiceGoToFbUrl || '').includes('duckduckgo.com')
+        && (iout.voiceGoToFbCap || '').includes('開き'),
+      voiceHelp: (iout.voiceHelpCap || '').includes('コマンド'),
+      voiceKb: iout.voiceKbHidden === true
+        && (iout.voiceKbCap || '').includes('キーボード'),
+      voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
+      voiceStop: iout.voiceStopped === true
+        && (iout.voiceStopCap || '').includes('停止')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -653,6 +706,14 @@ async function main() {
       ['voice bookmarks toggle announced', !!inter.voiceBm],
       ['voice ime-toggle showed keyboard', !!inter.voiceIme],
       ['voice no-match announced + counted', !!inter.voiceNoMatch],
+      ['voice volume-down persisted + announced', !!inter.voiceVolDown],
+      ['voice refresh reloaded + announced', !!inter.voiceRefresh],
+      ['voice go-to hit navigated + announced', !!inter.voiceGoTo],
+      ['voice go-to miss fell back to search', !!inter.voiceGoToFb],
+      ['voice help listed commands via caption', !!inter.voiceHelp],
+      ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
+      ['voice scroll moved reader viewport', !!inter.voiceScroll],
+      ['voice stop ended listening + announced', !!inter.voiceStop],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
