@@ -2254,6 +2254,72 @@ async function main() {
                   if (iv.active) { iv.stop(); }
                 }
               }
+              // Tab-strip leg — stripMesh is a single canvas interactable
+              // (same UV→pixel pattern as BookmarkPanel): _onStripSelect
+              // resolves the right-90px "+" zone → newTab, a tab body →
+              // setActive (→ 'Tab: <host>' caption), and each tab's right
+              // 36px → closeTab (→ 'Tab closed'). A saturated strip routes
+              // '+' → the 'Maximum tabs reached' warn.
+              if (ctrl && app.tabManager && app.tabManager.stripMesh
+                && app.scene) {
+                const tm = app.tabManager;
+                const selectStrip = async (px) => {
+                  // Drive _onStripSelect with the world-space point for the
+                  // canvas pixel — the strip's front face points away from
+                  // the controller ray in this layout, so the ray leg is
+                  // exercised via stripProbe's registration instead; the
+                  // UV→action path here is the contract under test.
+                  const local = tm.stripMesh.position.clone().set(
+                    (px / 1024 - 0.5) * 1.6, 0, 0);
+                  const pt = tm.stripMesh.localToWorld(local);
+                  tm._onStripSelect(pt);
+                  await new Promise((r) => setTimeout(r, 20));
+                };
+                const tabW = () => Math.min(220, (1024 - 90) / tm.tabs.length);
+                const tabsWas = tm.tabs.length;
+                const activeWas = tm.activeIndex;
+                try {
+                  app.scene.updateMatrixWorld(true);
+                  out.stripProbe = tm.stripMesh.visible === true
+                    && app.interactables.includes(tm.stripMesh);
+                  // '+' zone → a new tab + 'Tab: New Tab' caption.
+                  const capsBefore10 = locoCaps.length;
+                  const nWas = tm.tabs.length;
+                  await selectStrip(980);
+                  out.stripNewTab = tm.tabs.length === nWas + 1
+                    && locoCaps.slice(capsBefore10)
+                      .some((t3) => t3.includes('Tab:'));
+                  // Tab body → activate + 'Tab: <host-or-NewTab>' caption.
+                  const capsBefore11 = locoCaps.length;
+                  await selectStrip(20);
+                  out.stripActivate = tm.activeIndex === 0
+                    && locoCaps.slice(capsBefore11)
+                      .some((t3) => t3.includes('Tab:'));
+                  // Close zone (right 36px of tab 0) → close + caption.
+                  const capsBefore12 = locoCaps.length;
+                  const nBefore = tm.tabs.length;
+                  await selectStrip(tabW() - 8);
+                  out.stripClose = tm.tabs.length === nBefore - 1
+                    && locoCaps.slice(capsBefore12)
+                      .some((t3) => t3.includes('Tab closed'));
+                  // Saturate to MAX_TABS (8), then '+' warns instead.
+                  while (tm.tabs.length < 8 && tm.newTab()) { /* fill */ }
+                  const capsBefore13 = locoCaps.length;
+                  await selectStrip(980);
+                  out.stripMaxWarn = tm.tabs.length === 8
+                    && locoCaps.slice(capsBefore13)
+                      .some((t3) => t3.includes('Maximum tabs reached'));
+                } finally {
+                  while (tm.tabs.length > tabsWas) {
+                    tm.closeTab(tm.tabs.length - 1);
+                  }
+                  if (tm.tabs.length) {
+                    tm.setActive(
+                      Math.min(activeWas, tm.tabs.length - 1));
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2684,6 +2750,11 @@ async function main() {
       vidHudProbe: iout.vidHudProbe === true,
       vidExitStops: iout.vidExitStops === true,
       vidCycleClean: iout.vidCycleClean === true,
+      stripProbe: iout.stripProbe === true,
+      stripNewTab: iout.stripNewTab === true,
+      stripActivate: iout.stripActivate === true,
+      stripClose: iout.stripClose === true,
+      stripMaxWarn: iout.stripMaxWarn === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2926,6 +2997,11 @@ async function main() {
       ['video HUD buttons register as interactables', !!inter.vidHudProbe],
       ['exit button stops and unregisters the HUD', !!inter.vidExitStops],
       ['second play/stop cycle stays clean', !!inter.vidCycleClean],
+      ['tab strip registers as an interactable', !!inter.stripProbe],
+      ['+ zone opens a new tab and announces', !!inter.stripNewTab],
+      ['tab body activates and announces', !!inter.stripActivate],
+      ['close zone closes the tab and announces', !!inter.stripClose],
+      ['saturated strip warns on + select', !!inter.stripMaxWarn],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

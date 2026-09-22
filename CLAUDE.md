@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 173: 続き331 — タブストリップ UV アクション（新規タブ/切替/閉じる/上限 warn）を e2e pin（#259 batch 24、201→206 checks）
+- 🔍 **実測**: `TabManager.stripMesh` は canvas 単一 interactable で `_onStripSelect` が UV→px→アクション変換を担う（BookmarkPanel と同型）— VR タブ操作の実ハンドラ経路は未駆動だった。strip 面を world point で直接駆動し 4 ゾーンを端到端 pin。
+- 🔧 **pin 設計（5 check）**: stripMesh の visible + `interactables` 登録 → '+' ゾーン（px>934）select で `newTab()` + 'Tab: New Tab' caption → タブ body で `setActive(0)` + 'Tab: <host>' → タブ右端 36px close ゾーンで `closeTab` + 'Tab closed' → MAX_TABS(8) 飽和時の '+' で 'Maximum tabs reached' warn。`stripPx(px)` = `local.x=(px/1024−0.5)*1.6` を `localToWorld` で変換。
+- 🧪 **ハーネス教訓**: 管理 window の root は strip の正面を camera と逆方向へ向けるレイアウトのため controller ray は背面ヒット（FrontSide 棄却）で届かない — UV→アクション契約は `_onStripSelect(worldPoint)` 直接駆動で pin（interactable 配線は probe で担保）。赤検証: newTab/setActive/closeTab 各腕切断 → 対応 check のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 206 checks PASS、verify:app PASS。
+
 ### Session 172: 続き330 — ImmersiveVideo HUD ボタン経路（exit→stop→unregister→dispose 全 teardown）を e2e pin（#259 batch 23、198→201 checks）
 - 🔍 **実測**: `play()` は sphere meshes + camera-parented HUD（`_makeButton` canvas ボタン ×2、interactable 登録）を構築 — exit ボタン（x=+0.3）の `onSelect` → `stop()` が全 teardown を実行: `unregisterInteractable` + geometry/material dispose + sphere scene.remove + `_eyeTextures` クリア。2 cycle 目も clean。
 - 🔧 **pin 設計（3 check）**: `iv.play(url,{projection,layout:'mono'})` で実 HUD 構築 → buttons が `app.interactables` 登録済み → exit を `selectCenter6` → `active===false` + `controlPanel===null` + unregister + meshes parent なし → 2 cycle 目 restart/stop も `_eyeTextures===0` で leak-free。
