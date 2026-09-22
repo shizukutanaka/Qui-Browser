@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **O-1 一部**: DEVELOPER_ONBOARDING.md / API.md / IMPROVEMENT_ANALYSIS.md / CATEGORY_RESEARCH.md の冒頭へ「旧設計のアーカイブ」注記 + 現行参照先（ARCHITECTURE.md/TESTING.md）を挿入 — 選択肢 (b)。本文全面改訂 (a) ・削除 (c) は引き続きオーナー判断。
 - ✅ 3199 tests / 73 suites 緑、lint 0 errors、build 緑。スタック状態: オーナーが #200 を #199 ブランチへ merge 済み、#201 は auto-retarget で #199 ブランチが base — #201 ブランチへ #199 tip を merge 取り込み済み（76ce28d — #201 の diff が ascii 分のみに縮小）。
 
+### Session 104: 続き262 — ComfortSystem ビネット追尾のフレームレート依存（72–120Hz で最大 ~1.7×）
+- 🔍 **実測（コード追跡）**: `updateVignette` は `currentVignette += (target - current) * smoothing` の**フレーム比例**追尾で `_deltaTime` を未使用 — `update()` には実 dt が届いているのに捨てていた。結果、ビネットの淡入・淡出時定数がリフレッシュレートに依存：120Hz では 72Hz の ~1.7× 速く収束し、長フレーム（ヒッチ）では実時間分だけ追従不足 — **前庭保護要素のタイミングが表示レートで変わる**欠陥（R13/FFR の `*0.1` 追尾と同クラス）。
+- 🔧 **修正**: 追従係数を `a = 1 - (1 - s)^(dt / 16.667ms)` の指数形へ — `smoothing` は「16.67ms あたりのギャップ閉鎖率」の意味を維持しつつ、任意の表示レート・任意の dt で実時間収束率が一致。`s` は [0,1] にクランプ（>1 で負底の小数冪 → NaN / オーバーシュート防止）。dt=16.67ms では `a = s` で既存挙動と一致（snap テスト `smoothing=1` 不変）。
+- 🧪 pin 3件：120Hz/72Hz で 0.2s 淡出後の残量が一致（pre-fix では ~3× 差）、500ms ヒッチ 1 フレーム = 16.7ms×30 フレームと同値（pre-fix では 0.36 vs 0.017）、smoothing>1 でもオーバーシュート・NaN なし。3件全て stash 検証で pre-fix 赤。
+- ✅ 3214 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
