@@ -259,6 +259,27 @@ async function main() {
           app.bookmarks.toggleBookmark('https://harness-bm.example/', 'BM Page');
           out.bmSuggest = app.bookmarks.search('harness-bm.example', 5, Date.now())
             .some((s) => s.url === 'https://harness-bm.example/');
+          // Tab-session persistence: panel navigate sets currentUrl →
+          // serialize() → localStorage[TAB_SESSION_KEY]; private mode
+          // neither writes nor restores — an incognito session stays
+          // ephemeral like history recording.
+          const tab = app.tabManager && app.tabManager.getActiveTab();
+          if (tab && typeof tab.navigate === 'function') {
+            tab.navigate('https://harness-tab.example/');
+            app._saveTabSession();
+            let sdata = null;
+            try { sdata = JSON.parse(localStorage.getItem('qui.tabSession.v1')); } catch {
+              sdata = null;
+            }
+            out.tabPersisted = !!(sdata && Array.isArray(sdata.tabs)
+              && sdata.tabs.some((t) => t && t.url === 'https://harness-tab.example/'));
+            app.updateSetting('privateMode', true);
+            localStorage.removeItem('qui.tabSession.v1');
+            app._saveTabSession();
+            out.tabPrivateSaved = localStorage.getItem('qui.tabSession.v1') !== null;
+            out.tabPrivateRestore = app._restoreTabSession();
+            app.updateSetting('privateMode', false);
+          }
         }
         return out;
       })()`,
@@ -283,7 +304,9 @@ async function main() {
       settingsPersisted: !!iout.settingsPersisted,
       historyCleared: !!iout.historyCleared,
       clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
-      bmSuggest: !!iout.bmSuggest
+      bmSuggest: !!iout.bmSuggest,
+      tabPersisted: !!iout.tabPersisted,
+      tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -319,6 +342,8 @@ async function main() {
       ['clear-history wiped recorded entries', !!inter.historyCleared],
       ['history-clear announced via alert region', !!inter.clearAnnounced],
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
+      ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 

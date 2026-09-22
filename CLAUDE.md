@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 131: 続き289 — harness interaction に tab-session 永続化 roundtrip を e2e pin
+- 🔍 **実測**: `_saveTabSession`（`tabManager.serialize()` → `localStorage['qui.tabSession.v1']`）が、リロード時の `_restoreTabSession` の読込元であるにもかかわらず e2e 未検証 — **「開いているタブが再起動後も残る」ブラウザの基本契約**が何の pin も無しに置かれていた。`privateMode` の保存・復元双方のゲートも同様。
+- 🔧 **修正**: interaction eval に 1 経路追加。アクティブタブの `tab.navigate('https://harness-tab.example/')`（実 panel パス — `currentUrl` 書込 + `onNavigate` → 履歴記録まで連鎖）→ `_saveTabSession()` → localStorage の JSON を parse し `tabs[]` に当該 URL を含むことを検証。privateMode ゲートは save（キー非出現）と restore（0 件返却）双方で検証 → `tabPrivateClean`。
+- 🧪 両件一発緑 — serialize の URL 欠落なら `tabPersisted` FAIL、private ゲート破損なら `tabPrivateSaved`/`tabPrivateRestore` で構造的 FAIL。セッションリーク無し（private トグル・キー除去・restore 呼出は全て元に戻す）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 18 checks PASS。#240（improve-43）の上に積層。
+
 ### Session 130: 続き288 — harness interaction に clear-history ワイプ + bookmark-only suggestion を e2e pin
 - 🔍 **実測**: `_clearBrowsingHistory`（破壊的アクション → ワイプ + `historyCleared` toast）と、履歴ゼロの bookmark が virtual-visit score で suggestion に浮上する経路が e2e 未検証。volume apply 連鎖も試みたが `updateSetting` は設計上 persist-only（apply は各 control 固有の責務）で、voice 経路は stubbed 環境で `voiceCommands` が正しく null — **存在しないパスを assert する pin は設計不成立として撤去**、到達可能な契約のみ pin する方針を貫徹。
 - 🔧 **修正**: interaction eval に 3 経路追加。①`app._clearBrowsingHistory()` → `bookmarks.search('harness-nav.example')` が空になる（記録済みエントリの完全ワイプ）②同時に alert live region が `ℹ History cleared` を含む（破壊操作の WCAG 4.1.3 status feedback が実 DOM へ到達）③ワイプ直後でも `toggleBookmark` した URL が virtual-visit score で suggestion に残る（bookmark-only 経路 — 履歴を持たないブックマークが autocompletion に出る設計）。
