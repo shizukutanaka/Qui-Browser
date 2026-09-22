@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 134: 続き292 — reader proxy がログと裏腹に全 NIC で LISTEN していた open-relay 欠陥
+- 🔍 **実測（未定義プロパティ参照スイープ clean 後の残面）**: `.visible`/`.enabled` の未定義参照クラスを全 src/ でスイープ（vrKeyboard.visible は唯一の実欠陥で #243 に同梱済み、他は全て初期化済み）→ 未監査のネットワーク面 `proxy/server.js` を精読。起動ログは `http://127.0.0.1:PORT` を謳うが `server.listen(PORT)` は引数なしのため **ワイルドカード (::/0.0.0.0) にバインド** — 同一 LAN の任意の端末がこのマシンを任意 URL 取得の open relay として利用可能。SSRF guard で内部アドレスは塞がるものの、外部任意 fetch の踏み台（帯域・発信元偽装）は丸ごと開放だった。
+- 🔧 **修正**: `export const LISTEN_HOST = process.env.HOST || '127.0.0.1'` を追加し `server.listen(PORT, LISTEN_HOST)` で明示バインド + ログも `${LISTEN_HOST}` を表示（実 bind と表記の一致）。LAN 共有は `HOST=0.0.0.0` の明示 opt-in に変更し docstring の run 例にも追記。
+- 🧪 pin 3件（tests/proxy-listen-host.test.js: 既定 loopback / HOST env 尊重 / `server.listen(PORT, LISTEN_HOST` の bare-wildcard 不可 source pin）。3件全て pre-fix 赤（LISTEN_HOST 未 export + bare listen で FAIL）・post-fix 緑。実機検証: `lsof` で既定が `localhost:PORT` のみ LISTEN・`HOST=0.0.0.0` が `*:PORT` LISTEN を確認。
+- ✅ 3235 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot 両 PASS。#243（reland-harness）とは無関係のファイルのみで衝突なし。
+
 ### Session 127: 続き285 — harness interaction に tab-flow announce を追加（captions ゲートの実契約を確認）
 - 🔍 **実測（listener/localStorage/settings-drift/i18n-key/frecency 全スイープ clean 後）**: interaction フェーズの残空白として `TabManager.newTab → setActive → onTabActivate → captionSystem.show → onShow → status mirror` の announce 経路を e2e 未駆動と特定。初回実行で announce が届かない現象を観測し一時的に欠陥を疑ったが、原因は VRApp の caller-side `captionSystem.enabled` ゲート（39箇所 + crossModal 1箇所）— テスト群が「captions off → caption channel 全面 silent」を意図的に pin しており設計契約と確認（critical channel は無条件の announceAlert 経路で別途担保）。この自然な FAIL が、当該チェックが announce channel を空振りせず実検出することの証明になった。
 - 🔧 **修正**: interaction eval に tab-flow を追加。`setEnabled(true)` で実契約通り caption channel を有効化してから `newTab('')` を発火し、2 新規チェック: ①`newTab()` がタブ数を +1 ②status live region が `Tab: New Tab` を含む（onTabActivate の i18n caption が実 DOM まで届くことの pin）。

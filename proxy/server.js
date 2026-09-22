@@ -18,8 +18,9 @@
  * Do not run it, and the reader is limited to CORS-enabled origins — which is
  * exactly the behaviour that ships today.
  *
- *   node proxy/server.js            # listens on 8080 by default
+ *   node proxy/server.js            # listens on 127.0.0.1:8080 by default
  *   PORT=9000 ALLOW_ORIGIN=https://example.com node proxy/server.js
+ *   HOST=0.0.0.0 node proxy/server.js   # opt in to sharing on the LAN
  *
  * Zero dependencies: Node's own http/https. Every access decision lives in
  * ssrfGuard.js and is unit-tested there.
@@ -37,6 +38,14 @@ import {
 const PORT = Number(process.env.PORT || 8080);
 /** Which page origins may call this proxy. `*` is fine for a personal instance. */
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
+/**
+ * Which interface the proxy binds. The default is loopback only: a bare
+ * listen(PORT) binds the wildcard address, and then every device on the LAN
+ * can use this machine as an open relay for arbitrary URLs — the startup log
+ * says 127.0.0.1 but the socket answers everywhere. Sharing with other LAN
+ * devices is an explicit opt-in via HOST=0.0.0.0.
+ */
+export const LISTEN_HOST = process.env.HOST || '127.0.0.1';
 
 /**
  * Resolve a hostname and refuse if ANY returned address is internal.
@@ -320,8 +329,8 @@ if (process.argv[1] && process.argv[1].endsWith('server.js')) {
       : `Proxy failed to start: ${err.message}`);
     process.exit(1);
   });
-  server.listen(PORT, () => {
-    console.log(`Qui-Browser reader proxy on http://127.0.0.1:${PORT}`);
+  server.listen(PORT, LISTEN_HOST, () => {
+    console.log(`Qui-Browser reader proxy on http://${LISTEN_HOST}:${PORT}`);
     console.log(`  GET /fetch?url=https://example.com/article   (allowed origin: ${ALLOW_ORIGIN})`);
   });
 }
