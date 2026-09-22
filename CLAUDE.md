@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 184: 続き342 — 残りの detectGesture 腕（point/open/thumbsup/peace）を e2e pin（#261 batch 4、241→245 checks）
+- 🔍 **実測**: pinch/fist の haptic 配線は pin 済みだが、ジェスチャ形状判定の残り 4 腕（point=index のみ extended、open=全 extended、thumbsup=thumb ベクトル +Y>0.7 で fist に先勝ち、peace=index+middle extended）は e2e 未駆動 — thumbsup-before-fist の順序は過去の実修正なので回帰 pin の価値が高い。
+- 🧪 **ハーネス教訓**: ①pinch 判定は detectGesture 先頭で走る — point/open/peace 形状を作るとき **thumb を index-tip から 2cm 以上離さないと 'pinch' が先勝ちする**（index 0.15 vs thumb 0.14 = gap 0.01 で FAIL した実測）②pinch 状態から形状遷移する場合は thumb を release バンド 3.5cm 超まで退く必要あり（batch 3 教訓の一般化）。
+- ✅ 赤検証: `return 'thumbsup'` 切断 → shapeThumbsUp FAIL（fist が呑む = 順序バグそのもの）。3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 245 checks PASS、verify:app PASS。
+
 ### Session 183: 続き341 — 実欠陥 fix：'grab' ジェスチャは検出不可能で haptic impact が死んでいた（#261 batch 3、240→241 checks）
 - 🐛 **実欠陥**: `onVRSessionStart` が `onGesture('grab' → haptic 'impact')` を登録するが、`detectGesture` は 'grab' を**一切返さない** — XRHand joint pose からは grab strength が算出不可能（`thresholds.grabStrength: 0.7` も誰も読まない死に値）。握り拳を作っても impact haptic は永久に発火しない。検出可能な同義形状 'fist'（全指カール+thumb 非上向き）へリターゲット + 死に threshold を削除。jest の mock lookup 2箇所も repoint。
 - 🧪 **赤検証（有機・fix 前状態で FAIL 確認）**: 登録を旧 'grab' に戻す → `fistHaptic` FAIL（旧経路が dead であること自体の証明）。ハーネス教訓： pinch 状態から fist へは release バンド 3.5cm 超まで thumb を退けないとヒステリシスが 'pinch' を保持する。

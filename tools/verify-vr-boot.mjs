@@ -2986,6 +2986,37 @@ async function main() {
                 ht.recognizeGestures();
                 out.fistHaptic = ht.gestures.right === 'fist'
                   && hCalls[2] === 'right:impact';
+                // Remaining detectGesture arms. Shape grammar: curled =
+                // tip dist < 1.6x metacarpal dist; extended = far tip.
+                const curled = (f) => joints.get(f + '-tip').position.set(0.089, 0, 0);
+                const out0 = (f) => joints.get(f + '-tip').position.set(0.15, 0, 0);
+                // point: only index extended, thumb down and clear of the
+                // index tip (the pinch check runs first).
+                thumbTip.set(0.10, -0.06, 0);
+                out0('index-finger');
+                ['middle-finger', 'ring-finger', 'pinky-finger'].forEach(curled);
+                ht.recognizeGestures();
+                out.shapePoint = ht.gestures.right === 'point';
+                // open: all four extended.
+                ['index-finger', 'middle-finger', 'ring-finger', 'pinky-finger']
+                  .forEach(out0);
+                ht.recognizeGestures();
+                out.shapeOpen = ht.gestures.right === 'open';
+                // thumbsup: four curled, thumb vector +Y — must beat 'fist'
+                // (checked first on purpose: a curled fist shape with the
+                // thumb up is the canonical thumbs-up).
+                ['index-finger', 'middle-finger', 'ring-finger', 'pinky-finger']
+                  .forEach(curled);
+                joints.get('thumb-phalanx-proximal').position.set(0.05, 0, 0);
+                thumbTip.set(0.05, 0.09, 0);
+                ht.recognizeGestures();
+                out.shapeThumbsUp = ht.gestures.right === 'thumbsup';
+                // peace: index + middle extended.
+                thumbTip.set(0.10, -0.06, 0);
+                out0('index-finger');
+                out0('middle-finger');
+                ht.recognizeGestures();
+                out.shapePeace = ht.gestures.right === 'peace';
               } finally {
                 app.hapticFeedback.playPattern = origPlay;
                 joints.clear();
@@ -3329,6 +3360,10 @@ async function main() {
       pinchHysteresis: iout.pinchHysteresis === true,
       pinchRefires: iout.pinchRefires === true,
       fistHaptic: iout.fistHaptic === true,
+      shapePoint: iout.shapePoint === true,
+      shapeOpen: iout.shapeOpen === true,
+      shapeThumbsUp: iout.shapeThumbsUp === true,
+      shapePeace: iout.shapePeace === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3610,6 +3645,10 @@ async function main() {
       ['pinch hysteresis holds through the gap band', !!inter.pinchHysteresis],
       ['release + re-pinch refires and counts onsets', !!inter.pinchRefires],
       ['fist gesture routes to haptic impact', !!inter.fistHaptic],
+      ['point shape detected (index only extended)', !!inter.shapePoint],
+      ['open shape detected (all extended)', !!inter.shapeOpen],
+      ['thumbsup beats fist with thumb vector up', !!inter.shapeThumbsUp],
+      ['peace shape detected (index+middle)', !!inter.shapePeace],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
