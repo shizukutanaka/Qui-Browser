@@ -90,12 +90,27 @@ test('main.js substitutes for the undeliverable frame-ancestors directive', () =
   expect(main).toContain('window.top !== window.self');
 });
 
+test('meta CSP contains no header-only directives (observed: per-load console error)', () => {
+  // Directives like frame-ancestors are spec'd for HTTP-header delivery
+  // only — in a <meta> policy the browser drops them and logs
+  // "'frame-ancestors' is ignored when delivered via a <meta> element" on
+  // EVERY page load. An inert directive that produces console noise while
+  // claiming coverage is worse than an absent one: the framing guard lives
+  // in the header policies + X-Frame-Options + the main.js JS fallback.
+  const HEADER_ONLY = ['frame-ancestors', 'sandbox', 'report-uri', 'report-to'];
+  for (const name of HEADER_ONLY) {
+    expect(directives.has(name)).toBe(false);
+  }
+});
+
 test('script-src contains no unsafe-inline (offline.js is external)', () => {
   expect(directives.get('script-src')).not.toContain("'unsafe-inline'");
 });
 
 // Header CSPs AND with the meta one — a directive that diverges silently kills
-// the feature on that deploy target only. Keep every policy literally identical.
+// the feature on that deploy target only. Every header policy must equal the
+// meta policy plus exactly ONE extra directive: frame-ancestors, which is
+// enforceable ONLY as a header (kept there, dropped from the inert meta copy).
 const toMap = (s) => new Map(
   s.split(';').map((d) => d.trim()).filter(Boolean).map((d) => {
     const p = d.split(/\s+/);
@@ -127,12 +142,14 @@ function headerCsps() {
   return csps;
 }
 
-test('every header CSP across deploy targets is identical to the meta CSP', () => {
+test('every header CSP equals the meta CSP plus exactly frame-ancestors', () => {
   const csps = headerCsps();
   // nginx (server + location / + location ~*.html$), vercel, netlify.
   expect(csps.length).toBeGreaterThanOrEqual(5);
+  const expected = toMap(metaCsp[1]);
+  expected.set('frame-ancestors', "'self'");
   for (const [_source, csp] of csps) {
-    expect(toMap(csp)).toEqual(toMap(metaCsp[1]));
+    expect(toMap(csp)).toEqual(expected);
   }
 });
 
