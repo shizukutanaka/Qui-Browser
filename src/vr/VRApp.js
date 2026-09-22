@@ -883,7 +883,7 @@ export class VRApp {
           // Immediate "Loading" caption so caption-reliant users know what URL
           // was submitted before the page loads (WCAG 4.1.3).
           if (url && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(url)}`);
           }
         }),
       searchEngine: this.settings.searchEngine,
@@ -899,7 +899,7 @@ export class VRApp {
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
-          this.captionSystem.show(`Tab: ${label}`);
+          this.captionSystem.show(`${t('vr.msg.tabPrefix')}: ${label}`);
         }
       },
       onTabClose: () => {
@@ -969,7 +969,7 @@ export class VRApp {
           active.navigate(url);
         }
         if (this.captionSystem && this.captionSystem.enabled && url) {
-          this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+          this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(url)}`);
         }
       },
       onDeleteBookmark: () => {
@@ -2802,7 +2802,7 @@ export class VRApp {
             // caption-reliant users know their voice command was accepted
             // before the page finishes loading.
             if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(query)}`);
             }
             active.navigate(query);
           }
@@ -2817,7 +2817,7 @@ export class VRApp {
           const active = this.tabManager?.getActiveTab?.();
           if (top && active) {
             if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+              this.captionSystem.show(`${t('vr.msg.topSitePrefix')}: ${hostnameCaption(top.url)}`);
             }
             active.navigate(top.url);
           } else if (this.captionSystem && this.captionSystem.enabled) {
@@ -2838,13 +2838,13 @@ export class VRApp {
           if (hits.length > 0) {
             const hit = hits[0];
             if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+              this.captionSystem.show(`${t('vr.msg.openingPrefix')}: ${hostnameCaption(hit.url)}`);
             }
             active.navigate(hit.url);
           } else {
             // No frecency match — treat as URL or web search
             if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(query)}`);
             }
             active.navigate(query);
           }
@@ -3742,7 +3742,7 @@ export class VRApp {
    * @param {string}   prefill   — initial text in the input buffer
    * @param {Function} onConfirm — called with the confirmed string
    */
-  _requestVRKeyboardInput(prefill, onConfirm, prompt = 'Enter URL') {
+  _requestVRKeyboardInput(prefill, onConfirm, prompt = t('vr.prompt.enterUrl')) {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
       this.japaneseIME.activate();
@@ -3770,7 +3770,7 @@ export class VRApp {
       // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
       // desktop/2D, where window.prompt is the correct input).
       // eslint-disable-next-line no-alert
-      const url = window.prompt('Enter URL', prefill);
+      const url = window.prompt(t('vr.prompt.enterUrl'), prefill);
       if (url) {
         onConfirm(url);
       }
@@ -3788,7 +3788,7 @@ export class VRApp {
         return;
       }
       this.immersiveVideo.play(url, detectVideoFormat(url));
-    }, 'Enter video URL');
+    }, t('vr.prompt.enterVideoUrl'));
   }
 
   /**

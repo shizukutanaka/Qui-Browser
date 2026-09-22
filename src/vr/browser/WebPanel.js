@@ -1018,7 +1018,15 @@ export class WebPanel {
       }
     });
 
-    this.scene.remove(this.group);
+    // `group` may be parented to a container (TabManager's rootGroup), not the
+    // scene — scene.remove() is then a no-op and the closed tab's meshes keep
+    // rendering every frame as an unclickable ghost (disposed GPU resources
+    // are re-uploaded on the next render).
+    if (this.group.parent && typeof this.group.parent.remove === 'function') {
+      this.group.parent.remove(this.group);
+    } else {
+      this.scene.remove(this.group);
+    }
 
     if (this._readerController) {
       // A navigation in flight at dispose time would otherwise resolve after

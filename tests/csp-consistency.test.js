@@ -65,6 +65,31 @@ test('connect-src permits a loopback reader proxy', () => {
   expect(cs).toContain('http://localhost:*');
 });
 
+test('no CSP source is bracketed IPv6 (invalid — silently dropped by parsers)', () => {
+  // Observed live in Chrome: "The source list for the Content Security
+  // Policy directive 'connect-src' contains an invalid source:
+  // 'http://[::1]:*'. It will be ignored." The entry claimed to allow IPv6
+  // loopback while actually being dead in BOTH meta and header delivery —
+  // and it had been copy-pasted into all six policy sites.
+  for (const sources of directives.values()) {
+    for (const src of sources) {
+      expect(src).not.toContain('[');
+    }
+  }
+  // Header copies carry the same string — the identical-CSP test above
+  // guarantees the fix stayed symmetric across nginx/vercel/netlify.
+});
+
+test('main.js substitutes for the undeliverable frame-ancestors directive', () => {
+  // frame-ancestors is honored only as an HTTP header — browsers ignore it
+  // in a <meta> policy, so headerless hosts (e.g. GitHub Pages) get no
+  // clickjacking protection from the CSP. main.js blanks the document when
+  // framed cross-origin; inline JS can't carry this (script-src 'self').
+  const main = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  expect(main).toContain('window.top !== window.self');
+});
+
 test('script-src contains no unsafe-inline (offline.js is external)', () => {
   expect(directives.get('script-src')).not.toContain("'unsafe-inline'");
 });
