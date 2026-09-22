@@ -940,6 +940,87 @@ async function main() {
                 }
               }
             }
+            // Grace-slip pin (R220): a brief slip onto a DIFFERENT
+            // interactable must hold the charge — tremor jitter grazing a
+            // neighbour button must not reset the dwell. A persistent new
+            // target wins only by outlasting graceTime; a return to the
+            // held target resumes the charge.
+            if (app.gazeInteraction && app.floorMesh && app.camera) {
+              const gz = app.gazeInteraction;
+              const gA = app.floorMesh.clone();
+              const gB = app.floorMesh.clone();
+              gA.userData = {};
+              gB.userData = {};
+              let aFires = 0;
+              let bFires = 0;
+              gA.userData.interactable = { onSelect: () => { aFires += 1; } };
+              gB.userData.interactable = { onSelect: () => { bFires += 1; } };
+              gA.rotation.set(0, 0, 0);
+              gA.scale.set(0.05, 0.05, 0.05);
+              gB.rotation.set(0, 0, 0);
+              gB.scale.set(0.05, 0.05, 0.05);
+              app.camera.updateWorldMatrix(true, false);
+              const rayPos = app.camera.getWorldPosition(gA.position.clone())
+                .add(app.camera.getWorldDirection(gA.position.clone()).multiplyScalar(1.5));
+              const offPos = rayPos.clone();
+              offPos.x += 4;
+              const placeA = () => {
+                gA.position.copy(rayPos);
+                gB.position.copy(offPos);
+                gA.updateMatrixWorld(true);
+                gB.updateMatrixWorld(true);
+              };
+              const placeB = () => {
+                gA.position.copy(offPos);
+                gB.position.copy(rayPos);
+                gA.updateMatrixWorld(true);
+                gB.updateMatrixWorld(true);
+              };
+              placeA();
+              app.interactables.push(gA, gB);
+              const gzEnWas = gz.enabled;
+              const gzDtWas = gz.dwellTime;
+              const gzGraceWas = gz.graceTime;
+              gz.enabled = true;
+              gz.dwellTime = 1500;
+              gz.graceTime = 300;
+              try {
+                // 1.0 s on A — charging but not yet fired.
+                app.updateSystems(0, fakeXrFrame, 1.0);
+                const elAfterCharge = gz._elapsed;
+                // 0.1 s slip onto B — inside grace. Defect: instant retarget.
+                placeB();
+                app.updateSystems(0, fakeXrFrame, 0.1);
+                out.slipHolds = gz._target === gA
+                  && gz._elapsed === elAfterCharge
+                  && bFires === 0;
+                // Stay on B past graceTime — the persistent new target wins
+                // only after outlasting the grace window.
+                app.updateSystems(0, fakeXrFrame, 0.25);
+                out.slipRetargets = gz._target === gB;
+                // Resume path: reset, charge A again, brief slip to B, return
+                // — the held charge must resume and complete on A.
+                gz._reset();
+                placeA();
+                app.updateSystems(0, fakeXrFrame, 1.0);
+                placeB();
+                app.updateSystems(0, fakeXrFrame, 0.1);
+                placeA();
+                app.updateSystems(0, fakeXrFrame, 0.6);
+                out.slipResumes = aFires === 1;
+              } finally {
+                gz._reset();
+                gz.enabled = gzEnWas;
+                gz.dwellTime = gzDtWas;
+                gz.graceTime = gzGraceWas;
+                for (const o of [gA, gB]) {
+                  const ix = app.interactables.indexOf(o);
+                  if (ix >= 0) {
+                    app.interactables.splice(ix, 1);
+                  }
+                }
+              }
+            }
             // Grab-to-move: selectstart on the real move bar runs
             // onGrabRequested -> beginGrab; updateSystems then tracks the
             // controller; selectend runs endGrab + release feedback.
@@ -1503,6 +1584,9 @@ async function main() {
       stickRecenters: iout.stickRecenters === true,
       stickKeyboard: iout.stickKeyboard === true,
       southpawSwaps: iout.southpawSwaps === true,
+      slipHolds: iout.slipHolds === true,
+      slipRetargets: iout.slipRetargets === true,
+      slipResumes: iout.slipResumes === true,
       settingsProbe: iout.settingsProbe === true,
       settingsOffLive: iout.settingsOffLive === true,
       settingsOnLive: iout.settingsOnLive === true,
@@ -1663,6 +1747,9 @@ async function main() {
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],
+      ['brief slip onto a different object holds the dwell', !!inter.slipHolds],
+      ['persistent new object wins only after graceTime', !!inter.slipRetargets],
+      ['return to held target resumes and completes', !!inter.slipResumes],
       ['hover announce identifies the Captions toggle', !!inter.settingsProbe],
       ['ray select flips enableCaptions live', !!inter.settingsOffLive],
       ['re-select restores the captions toggle state', !!inter.settingsOnLive],

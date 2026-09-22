@@ -157,7 +157,10 @@ describe('GazeInteraction (FR-13.1)', () => {
   });
 
   test('fires hover enter/leave as the gaze target changes', () => {
-    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000 });
+    // Hover moves only once the slip out-lasts grace: during a forgiven slip
+    // the held target keeps its highlight (same rule as slips onto empty
+    // space), so jitter across a button edge can't flicker hover state.
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 200 });
     gi.setEnabled(true);
     const aHover = jest.fn(), aEnd = jest.fn(), bHover = jest.fn();
     const a = makeInteractable({ onHover: aHover, onHoverEnd: aEnd });
@@ -165,9 +168,12 @@ describe('GazeInteraction (FR-13.1)', () => {
 
     nextHit = { object: a };
     gi.update([a, b], 100);   // enter a
-    nextHit = { object: b };
-    gi.update([a, b], 100);   // leave a, enter b
     expect(aHover).toHaveBeenCalledTimes(1);
+    nextHit = { object: b };
+    gi.update([a, b], 100);   // slip onto b < grace — hover stays on a
+    expect(aEnd).not.toHaveBeenCalled();
+    expect(bHover).not.toHaveBeenCalled();
+    gi.update([a, b], 200);   // slip total 0.3s > grace(200) → adopt b, hover moves
     expect(aEnd).toHaveBeenCalledTimes(1);
     expect(bHover).toHaveBeenCalledTimes(1);
   });
@@ -219,7 +225,7 @@ describe('GazeInteraction (FR-13.1)', () => {
     expect(gi._fill.scale._s).toBeCloseTo(0.3, 2);
   });
 
-  test('moving to a different interactable restarts immediately (no grace carry-over)', () => {
+  test('a persistent move to a different interactable outlasts grace, then restarts on it', () => {
     const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
     gi.setEnabled(true);
     const aSel = jest.fn(), bSel = jest.fn();
@@ -229,11 +235,42 @@ describe('GazeInteraction (FR-13.1)', () => {
     nextHit = { object: a };
     gi.update([a, b], 900);  // a nearly charged
     nextHit = { object: b };
-    gi.update([a, b], 300);  // switch to b → b starts at zero, not 0.9 + 0.3
+    gi.update([a, b], 200);  // slip onto b for 0.2s (< grace) — a's charge held
+    expect(gi._target).toBe(a);
+    expect(gi._fill.scale._s).toBeCloseTo(0.9, 2);
+    gi.update([a, b], 200);  // slip total 0.4s > grace → b adopted, dwell restarts at 0
+    expect(gi._target).toBe(b);
+    expect(gi._fill.scale._s).toBeCloseTo(0.2, 2); // one frame of charge on b
     expect(aSel).not.toHaveBeenCalled();
     expect(bSel).not.toHaveBeenCalled();
-    expect(gi._target).toBe(b);
-    expect(gi._fill.scale._s).toBeCloseTo(0.3, 2);
+  });
+
+  test('tremor jitter across a neighbouring button is forgiven — dwell resumes on return', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
+    gi.setEnabled(true);
+    const aSel = jest.fn(), bSel = jest.fn();
+    const a = makeInteractable({ onSelect: aSel });
+    const b = makeInteractable({ onSelect: bSel });
+
+    nextHit = { object: a };
+    gi.update([a, b], 900);  // a charged 0.9s
+    nextHit = { object: b };
+    gi.update([a, b], 200);  // jitter onto b for 0.2s (< grace) — held, NOT retargeted
+    expect(gi._target).toBe(a);
+    nextHit = { object: a };
+    const fired = gi.update([a, b], 200); // back on a: 0.9 + 0.2 ≥ 1.0 → fires on a
+    expect(fired).toBe(a);
+    expect(aSel).toHaveBeenCalledTimes(1);
+    expect(bSel).not.toHaveBeenCalled();
+  });
+
+  test('a first acquire (no held target) still lands instantly — no grace delay', () => {
+    const gi = new GazeInteraction(makeCamera(), { dwellTime: 1000, graceTime: 300 });
+    gi.setEnabled(true);
+    const a = makeInteractable({ onSelect: jest.fn() });
+    nextHit = { object: a };
+    gi.update([a], 100);     // nothing held before: a becomes the target now
+    expect(gi._target).toBe(a);
   });
 
   test('flashes the reticle ring on activation, then decays back', () => {
