@@ -2593,6 +2593,55 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Follow-mode leg — the 'Follow' toggle applies
+              // windowManager.setFollow, after which updateSystems' per-frame
+              // windowManager.update lerps the managed root toward
+              // camera.position + cameraForward*distance (head-lock) and
+              // _faceUser re-orients it; the distance stepper applies
+              // wm.setDistance. Camera pose is scripted then restored.
+              if (ctrl && app.windowManager && app.camera && app.scene) {
+                const wm = app.windowManager;
+                const cam = app.camera;
+                const posWas = cam.position.clone();
+                const quatWas = cam.quaternion.clone();
+                const followWas = app.settings.enableWindowFollow;
+                const distWas = app.settings.windowDistance;
+                try {
+                  app.updateSetting('enableWindowFollow', true);
+                  out.followEnabled = wm.followMode === true
+                    && !!wm.target;
+                  cam.position.set(0, 1.6, 0);
+                  cam.quaternion.set(0, 0, 0, 1); // forward = -z
+                  cam.updateMatrixWorld(true);
+                  for (let k = 0; k < 40; k++) {
+                    app.updateSystems(0, fakeXrFrame, 100);
+                  }
+                  // World pose: the camera lives under the head rig, so its
+                  // local position isn't the world point follow targets.
+                  const camPos = cam.position.clone();
+                  cam.getWorldPosition(camPos);
+                  const camQuat = cam.quaternion.clone();
+                  cam.getWorldQuaternion(camQuat);
+                  const fwd = camPos.clone().set(0, 0, -1)
+                    .applyQuaternion(camQuat);
+                  const want = camPos.clone()
+                    .addScaledVector(fwd, wm.distance);
+                  out.followConverges = wm.target.position
+                    .distanceTo(want) < 0.35;
+                  app.updateSetting('enableWindowFollow', false);
+                  const held = wm.target.position.clone();
+                  app.updateSystems(0, fakeXrFrame, 100);
+                  out.followOffHolds = wm.target.position
+                    .distanceTo(held) < 0.001;
+                } finally {
+                  cam.position.copy(posWas);
+                  cam.quaternion.copy(quatWas);
+                  cam.updateMatrixWorld(true);
+                  app.updateSetting('windowDistance', distWas);
+                  app.updateSetting('enableWindowFollow', followWas);
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -3046,6 +3095,9 @@ async function main() {
       tileMissNoop: iout.tileMissNoop === true,
       tileNavigates: iout.tileNavigates === true,
       stopArmClears: iout.stopArmClears === true,
+      followEnabled: iout.followEnabled === true,
+      followConverges: iout.followConverges === true,
+      followOffHolds: iout.followOffHolds === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3310,6 +3362,9 @@ async function main() {
       ['dead space between tiles is a no-op', !!inter.tileMissNoop],
       ['tile select navigates the tab', !!inter.tileNavigates],
       ['reload zone during load stops the fetch', !!inter.stopArmClears],
+      ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
+      ['head-lock follow converges the panel', !!inter.followConverges],
+      ['follow off leaves the panel in place', !!inter.followOffHolds],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

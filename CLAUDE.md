@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 178: 続き336 — head-lock follow（setFollow→per-frame lerp→収束→off 保持）を e2e pin（#259 batch 29、224→227 checks）
+- 🔍 **実測**: 'Follow' トグル → `windowManager.setFollow` の apply は pin 済みだが、**follow 有効時の挙動**（`updateSystems`→`wm.update` が managed root を `camPos+forward*distance` へ指数 lerp 収束 + `_faceUser`）は未駆動だった。camera pose をスクリプト化して収束を端到端 pin。
+- 🔧 **pin 設計（3 check）**: `updateSetting('enableWindowFollow',true)` → `wm.followMode` + `wm.target` 存在 → camera (0,1.6,0) quaternion identity で 40×`updateSystems(dtMs=100)` → `target.position` が `getWorldPosition+getWorldQuaternion` の world forward 点 ±0.35m へ収束 → follow OFF で位置フリーズ。
+- 🧪 **ハーネス教訓**: ①camera は head rig 配下 — `cam.position` はローカル、follow が狙うのは `getWorldPosition/Quaternion` の **world** pose（rig offset を見落とすと期待点がズレる）②`updateSetting` は persist のみ — stepper/toggle の `apply` はメッシュ onSelect 内で呼ばれるため、apply 経路の pin は UI select か `wm.distance` 直読のどちらかを選ぶ（windowDistance は既 pin のため割愛）。赤検証: `setFollow` apply 切断 → followEnabled+既存 toggle pin co-FAIL、followMode lerp 腕切断 → followConverges FAIL。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 227 checks PASS、verify:app PASS。
+
 ### Session 177: 続き335 — top-sites タイル（empty state→tileAt→navigate）+ reload-during-load→stop() を e2e pin（#259 batch 28、220→224 checks）
 - 🔍 **実測**: 新規タブの 'empty' state で `getTopSites` がシードするタイルグリッド（`topSiteTiles`→`tileAt`→`navigate`）、dead space no-op、ロード中の reload ゾーン→`stop()` 腕は未駆動だった。`tm.newTab()` で実 empty タブを作り端到端 pin。
 - 🔧 **pin 設計（4 check）**: `wp2._contentState==='empty'` + `_topTiles.length>0`（ctor 内 `_drawContent` で実 getTopSites→tile 構築）→ py<HEADER_PX=110 の dead zone select は no-op → `tile.x+5,tile.y+5` select で `currentUrl===tile.url` + 'reader' state → `wp2.navigate` で load 中に px170 reload ゾーン → `stop()` で `loading===false`。
