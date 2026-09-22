@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 126: 続き284 — 検証ハーネスの cross-modal 未駆動を解消（interaction フェーズ追加）
+- 🔍 **実測（静的スイープ全網羅後の残空白）**: deps/dead-code/i18n/timer/JSON.parse/dispose/重複の全静的スイープが clean を返したため、検証面の未駆動経路へ着目 — `verify:vr-boot` は VRApp の**構築**までしか検証せず、`showVRToast → SemanticDOM.announceAlert` と `captionSystem.show → onShow → announceCaption` の cross-modal 配線は一度も実ブラウザで駆動されていなかった。このパスこそ直近の複数 fix（アナウンス抑止・重複 announce・enabled ゲート）が集中していた箇所で、jest モックと実 DOM の継ぎ目は未検証のままだった。
+- 🔧 **修正**: 構築チェック後に interaction フェーズを追加。page 内で `app.showVRToast` と `captionSystem.show` を発火し、`[data-qui-semantic-dom]` 配下の `[role="alert"]`/`[role="status"]` live region へ到達したかを実 DOM で検証。4 新規チェック: ①semantic DOM mirror mounted ②toast → alert region 到達 ③**同一トースト 2 連発で U+200B マーカーが末尾に残る**（重複 announce が SR に届くことの e2e pin — Session 121 の semantic 側と対）④caption → status region 到達。ARIA ミラーは字幕設定に無関係の無条件サーフェスのため環境差異で flaky にならない。
+- 🧪 赤検証: `announceAlert` と `onShow` 配線を意図的に切断し rebuild → 3 ゲート（alert/dupe/caption）のみ FAIL、構築チェックは全緑を維持 — 対象欠陥クラスを正確に捕捉することを確認。復元後全緑。
+- ✅ 3232 tests / 73 suites 全緑（新 base tip 1d38223 = #231 マージ済み）、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot（10 checks）PASS。
+
 ### Session 121: 続き279 — 字幕 OFF 中の show() がキューを蓄積し、ON 復帰で古い字幕が復活
 - 🔍 **実測（コード追跡）**: `CaptionSystem.show()` は `enabled` を見ずに常時 `_lines` へ push する。VRApp/crossModal の全 ~40 呼出側は `captionSystem.enabled` でゲート済みだが、**VoiceCommands の `onTranscript`/`onSpeak` コールバック（VRApp 2769-2779）だけ未ゲート** — 字幕 OFF + 音声 ON の状態で final 転写・応答発話が最大 maxLines=3 まで無言で蓄積する。`update()` は disabled で早期 return するため行は老化せず、**後から字幕を ON にした瞬間、数分前の文脈のない転写が満時間の remaining で復活表示**される可視欠陥（「off は off」の期待と、再表示される字幕が直前の出来事を示すという利用者の推論の両方を裏切る — WCAG 4.1.3 の文脈不整合）。
 - 🔧 **修正**: `show()` を `NFC 正規化 → onShow 発火 → enabled ゲート → queue` の順へ再編。`onShow`（SemanticDOM ARIA ミラー）は別サーフェスであり、視覚字幕トグルの有無にかかわらず従来通り全 show() 呼出で発火を維持 — 字幕 OFF を選ぶスクリーンリーダー利用者のアナウンス経路を失わない。`enabled=false` の間は視覚キューに積まないため、未ゲートの将来の呼出側でも同じ罠は再発しない。`if (this.enabled && this.mesh)` の二重条件は `enabled` 到達後は不要になるため `this.mesh` のみに簡約。

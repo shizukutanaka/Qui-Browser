@@ -193,6 +193,48 @@ async function main() {
       }
     }
 
+    // Interaction phase — construction alone never exercised the cross-modal
+    // wiring (showVRToast → SemanticDOM alert mirror, captionSystem.show →
+    // onShow → caption live region). That exact path produced several recent
+    // fixes (announce suppression, duplicate-announce, enabled-gate), so drive
+    // it here end-to-end: the ARIA mirrors are unconditional surfaces, so the
+    // check holds regardless of caption/settings state.
+    const ir = await cdp.send('Runtime.evaluate', {
+      expression: `(() => {
+        const app = QuiBrowser.getApp();
+        const dom = document.querySelector('[data-qui-semantic-dom]');
+        const alertEl = dom && dom.querySelector('[role="alert"]');
+        const statusEl = dom && dom.querySelector('[role="status"]');
+        const out = { dom: !!dom, afterToast: '', afterDupe: '', statusText: statusEl ? statusEl.textContent : '' };
+        if (!app) return out;
+        app.showVRToast('harness-toast-check', { type: 'info' });
+        out.afterToast = alertEl ? alertEl.textContent : '';
+        if (app.captionSystem) app.captionSystem.show('harness-caption-check');
+        out.statusText = statusEl ? statusEl.textContent : '';
+        // Duplicate-announce: a repeated identical alert must still mutate the
+        // region (zero-width marker) — SRs only announce live-region mutations.
+        app.showVRToast('harness-dupe-check', { type: 'info' });
+        app.showVRToast('harness-dupe-check', { type: 'info' });
+        out.afterDupe = alertEl ? alertEl.textContent : '';
+        return out;
+      })()`,
+      returnByValue: true
+    }, sessionId);
+    const iout = ir.result?.result?.value || {};
+    if (process.env.VR_BOOT_DEBUG) {
+      console.info('interact:', JSON.stringify(iout));
+    }
+    const inter = {
+      dom: !!iout.dom,
+      alertHas: (iout.afterToast || '').includes('harness-toast-check'),
+      // The second identical toast must leave the marker appended — the
+      // text ends with U+200B only when _announce() fired its
+      // duplicate-mutation branch; a verbatim rewrite means the repeat
+      // would never be announced by screen readers.
+      dupMarked: (iout.afterDupe || '').endsWith('\u200B'),
+      statusHas: (iout.statusText || '').includes('harness-caption-check')
+    };
+
     // Uncaught exceptions and console.error events collected during boot.
     const errors = [];
     for (const ev of cdp.events) {
@@ -215,6 +257,10 @@ async function main() {
       ['browsing systems constructed (tabManager — default ON)', !!state.tabManager],
       ['settings panel constructed', !!state.settingsPanel],
       ['caption system constructed', !!state.captionSystem],
+      ['semantic DOM mirror mounted', !!inter.dom],
+      ['toast reached alert live region (cross-modal wiring)', !!inter.alertHas],
+      ['identical repeat toast re-announced (ZWSP marker)', !!inter.dupMarked],
+      ['caption reached status live region (cross-modal wiring)', !!inter.statusHas],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
