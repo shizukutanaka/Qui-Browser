@@ -293,3 +293,21 @@ describe('VRJapaneseKeyboard suggestion row', () => {
     expect(kb._suggestionMeshes).toHaveLength(1);
   });
 });
+
+describe('VRJapaneseKeyboard visibility', () => {
+  // vrKeyboard.visible is read by the thumbstick toggle (VRApp) and the
+  // voice ime-toggle command — an absent flag made both paths always show()
+  // and announce 'open' even when already open (hide() unreachable).
+  test('visible getter reflects real group state so toggle paths can hide', () => {
+    const { kb } = makeKeyboard();
+    kb.hide();
+    expect(kb.visible).toBe(false);
+    kb.show();
+    expect(kb.visible).toBe(true);
+    // The exact contract VRApp:2358 and VoiceCommands 'ime-toggle' rely on:
+    (kb.visible ? kb.hide() : kb.show());
+    expect(kb.visible).toBe(false);
+    (kb.visible ? kb.hide() : kb.show());
+    expect(kb.visible).toBe(true);
+  });
+});
