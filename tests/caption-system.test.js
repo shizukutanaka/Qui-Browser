@@ -179,50 +179,6 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cs.lineCount).toBe(0);
   });
 
-  test('long captions wrap across rows instead of being cut at one line', () => {
-    cs.setEnabled(true);
-    const sentence = 'the quick brown fox jumps over the lazy dog and keeps on running';
-    expect(() => cs.show(sentence)).not.toThrow();
-    const rows = cs._wrap(sentence, 34);
-    expect(rows.length).toBeGreaterThan(1);
-    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
-    // No information lost: the words rejoin to the original.
-    expect(rows.join(' ')).toBe(sentence);
-  });
-
-  test('_wrap hard-splits a word longer than a row', () => {
-    const rows = cs._wrap('x'.repeat(80), 34);
-    expect(rows.length).toBe(3); // 34 + 34 + 12
-    rows.forEach(r => expect(r.length).toBeLessThanOrEqual(34));
-    expect(rows.join('')).toBe('x'.repeat(80));
-  });
-
-  test('_wrap hard-splits spaceless Japanese without losing or corrupting characters', () => {
-    // No spaces → one long "word" that hits the hard-split path on every row.
-    const jp = 'これはとても長い日本語のキャプションでテキストの折り返しを確認します';
-    const rows = cs._wrap(jp, 10);
-    expect(rows.length).toBeGreaterThan(1);
-    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(10));
-    // Lossless: rejoining the rows reproduces the original exactly.
-    expect(rows.join('')).toBe(jp);
-  });
-
-  test('_wrap never splits a surrogate pair at a row boundary (no mojibake)', () => {
-    // 12 emoji, wrapped at 5 code points per row: boundaries fall where a
-    // UTF-16 slice would have severed a surrogate pair.
-    const rows = cs._wrap('😀'.repeat(12), 5);
-    expect(rows.join('')).not.toContain('�'); // no replacement char
-    rows.forEach(r => expect(Array.from(r).length).toBeLessThanOrEqual(5));
-    expect(rows.join('')).toBe('😀'.repeat(12));
-  });
-
-  test('_truncate is code-point-aware (does not split astral chars)', () => {
-    const out = cs._truncate('𠮷'.repeat(10), 4);
-    expect(out).not.toContain('�');
-    expect(Array.from(out)).toHaveLength(4); // 3 kanji + ellipsis
-    expect(out.endsWith('…')).toBe(true);
-  });
-
   test('_layoutRows caps a caption at two rows with an ellipsis', () => {
     cs.setEnabled(true);
     cs.show(Array(20).fill('word').join(' ')); // far more than 2 rows worth
@@ -513,10 +469,9 @@ describe('CaptionSystem — remaining branch arms', () => {
     expect(typeof v).toBe('number');
   });
 
-  test('_truncate (via add with overlong line) appends ellipsis', () => {
+  test('an overlong line stays one queued line without crashing', () => {
     const cs = new CaptionSystem(makeCamera(), { maxLines: 3 });
     cs.show('x'.repeat(500));
-    // the single line is truncated with '…' — no crash, lines length 1
     expect(cs.lineCount).toBe(1);
   });
 
@@ -538,15 +493,6 @@ describe('captionLayout — complementary arms', () => {
 });
 
 describe('CaptionSystem — complementary arms', () => {
-  test('overlong lines get truncated with an ellipsis', () => {
-    const cam = makeCamera();
-    const cs = new CaptionSystem(cam, { maxLines: 3, lineDuration: 1000 });
-    const long = 'x'.repeat(200);
-    const t = cs._truncate(long, 60);
-    expect(t.endsWith('…')).toBe(true);
-    cs.dispose?.();
-  });
-
   test('dispose with mesh.material.map disposes the map and detaches', () => {
     const cam = makeCamera();
     cam.remove = jest.fn();
@@ -563,14 +509,7 @@ describe('CaptionSystem — complementary arms', () => {
   });
 });
 
-describe('CaptionSystem — dispose/truncate sliver arms', () => {
-  test('_truncate returns short text unchanged, clips long text', () => {
-    const cs = new CaptionSystem(makeCamera());
-    expect(cs._truncate('short', 10)).toBe('short');
-    expect(cs._truncate('a very long caption line', 8)).toBe('a very …');
-    cs.dispose();
-  });
-
+describe('CaptionSystem — dispose sliver arms', () => {
   test('dispose tolerates missing camera.remove and material.map', () => {
     const cs = new CaptionSystem({ add: jest.fn() });  // camera lacking .remove
     cs.mesh = { geometry: { dispose: jest.fn() }, material: { dispose: jest.fn() } };

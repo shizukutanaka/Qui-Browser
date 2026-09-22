@@ -4,7 +4,6 @@ import {
   wrapTextToWidth,
   safeMeasureEm,
   truncateToWidth,
-  wrapTextToLines,
   HALFWIDTH_EM,
   EMOJI_EM,
   WIDTH_SAFETY
@@ -131,29 +130,6 @@ describe('safeMeasureEm / truncateToWidth', () => {
   });
 });
 
-describe('wrapTextToLines', () => {
-  it('wraps by code points and hard-splits long words', () => {
-    expect(wrapTextToLines('ab cd', 3)).toEqual(['ab', 'cd']);
-    const rows = wrapTextToLines('𠮷𠮷𠮷𠮷𠮷', 2);
-    expect(rows).toEqual(['𠮷𠮷', '𠮷𠮷', '𠮷']);
-  });
-
-  it('returns one empty row for empty input', () => {
-    expect(wrapTextToLines('', 5)).toEqual(['']);
-  });
-
-  it('kinsoku: closing punctuation never opens a row (ぶら下げ)', () => {
-    const rows = wrapTextToLines('あいうえ、おかき', 4);
-    expect(rows[0]).toBe('あいうえ、');
-    expect(rows[1]).toBe('おかき');
-  });
-
-  it('kinsoku: an open bracket never ends a row (追い出し)', () => {
-    const rows = wrapTextToLines('あいう「かきく', 4);
-    expect(rows).toEqual(['あいう', '「かきく']);
-  });
-});
-
 describe('grapheme-cluster integrity (UAX #29)', () => {
   it('never severs a combining mark from its base (NFD input)', () => {
     const { wrapTextToWidth } = require('../src/vr/ui/textWrap.js');
@@ -182,20 +158,6 @@ describe('grapheme-cluster integrity (UAX #29)', () => {
     const { truncateToWidth } = require('../src/vr/ui/textWrap.js');
     const out = truncateToWidth('か\u3099'.repeat(10), 3);
     expect(out).toMatch(/^(か\u3099)+…$/);
-  });
-
-  it('wrapTextToLines splits on cluster boundaries too', () => {
-    const rows = wrapTextToLines('か\u3099'.repeat(6), 4); // 2 cps per cluster
-    for (const row of rows) {
-      expect(row).toMatch(/^(か\u3099)+$/);
-    }
-  });
-});
-
-describe('wrapTextToLines — long-word split flushes the pending row first', () => {
-  test('an over-long word pushes the accumulated row before splitting', () => {
-    // 'ab' sits in cur when 'cdefg' (5 > 3) needs splitting → 232-233 arm
-    expect(wrapTextToLines('ab cdefg', 3)).toEqual(['ab', 'cde', 'fg']);
   });
 });
 
@@ -231,13 +193,6 @@ describe('textWrap — width/lines sliver arms', () => {
     expect(out.endsWith('…')).toBe(true);
     expect(truncateToWidth('hi', 10)).toBe('hi');
     expect(truncateToWidth(null, 5)).toBe('');
-  });
-
-  test('wrapTextToLines splits long words at code-point boundaries', () => {
-    const { wrapTextToLines } = require('../src/vr/ui/textWrap.js');
-    expect(wrapTextToLines('', 5)).toEqual(['']);
-    const rows = wrapTextToLines('abcdefghij', 4);
-    expect(rows.every((r) => Array.from(r).length <= 4)).toBe(true);
   });
 });
 

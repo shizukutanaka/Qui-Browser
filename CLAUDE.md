@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 98: 続き256 — caption 文字数予算パスの撤去（台帳 Q-1 解消）
+- 🔍 **調査**: 台帳 Q-1 は「`wrapTextToLines` がコードポイント計上で描画幅と不整合 — em 幅へ揃えるか文字数契約を残すか判断事項」と記録していたが、呼出経路を grep 検証すると `_layoutRows`（唯一の描画折り返し経路）は既に `wrapTextToWidth`（em 幅）を使用中。char 予算側の `CaptionSystem._wrap`/`_truncate` とその委譲先 `wrapTextToLines` は**テストのみが呼ぶ dead code** — `this._wrap`/`this._truncate` の本番呼出サイトは 0 件。判明したのは「契約選択」の懸案ではなく「撤去」すべき残骸。
+- 🧹 **削除**: `CaptionSystem._wrap`/`_truncate` + JSDoc、textWrap.js の `wrapTextToLines` エクスポート（72行 — kinsoku/グラフェーム処理は `wrapTextToWidth` と共有なので残存実装は不変）、import 整理。テスト側は pin 17件を削除（caption-system 7件・text-wrap 7件・readable-text 3件）+ a11y.test.js の NaN/null アームを `wrapTextToWidth` へ付け替え。`readerLayout.js` の docstring 参照も `wrapTextToWidth` 表記へ修正。残る唯一の折り返し実装は em 幅の `wrapTextToWidth` のみ — Q-1 を strike。
+- ✅ 3196 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

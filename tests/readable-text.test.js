@@ -14,7 +14,7 @@ const {
   MEASURE_EM, CONTENT_PX_W, CONTENT_PAD
 } = require('../src/vr/browser/readerLayout.js');
 const {
-  wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm,
+  wrapTextToWidth, textWidthEm, charWidthEm,
   HALFWIDTH_EM, EMOJI_EM, WIDTH_SAFETY, KIN_START
 } = require('../src/vr/ui/textWrap.js');
 
@@ -602,24 +602,6 @@ describe('em-based measure — Japanese must not overflow the panel', () => {
     for (const l of lines) {
       expect(textWidthEm(l.text)).toBeLessThanOrEqual(measureEmFor(1));
     }
-  });
-});
-
-describe('wrapTextToLines (shared with CaptionSystem)', () => {
-  test('is the same hardened implementation captions rely on', () => {
-    expect(wrapTextToLines('', 10)).toEqual(['']);
-    expect(wrapTextToLines('a b c', 10)).toEqual(['a b c']);
-  });
-
-  test('hard-splits a long spaceless run by code point', () => {
-    const rows = wrapTextToLines('あ'.repeat(25), 10);
-    expect(rows).toHaveLength(3);
-    expect(rows.join('')).toBe('あ'.repeat(25));
-  });
-
-  test('a degenerate maxChars does not hang or throw', () => {
-    expect(() => wrapTextToLines('abc', 0)).not.toThrow();
-    expect(wrapTextToLines('abc', 0).join('')).toBe('abc');
   });
 });
 

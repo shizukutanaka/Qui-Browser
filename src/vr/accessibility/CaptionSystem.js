@@ -17,7 +17,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import {
-  wrapTextToLines, wrapTextToWidth, truncateToWidth, charWidthEm
+  wrapTextToWidth, truncateToWidth, charWidthEm
 } from '../ui/textWrap.js';
 import {
   CAPTION_PANEL_W, CAPTION_PANEL_H, CAPTION_CANVAS_W, CAPTION_CANVAS_H,
@@ -401,32 +401,6 @@ export class CaptionSystem {
     return captionFontSizeFor(nRows, this.scale);
   }
 
-  /**
-   * Greedy word-wrap into rows no longer than `maxChars`. Words longer than a
-   * row are hard-split. Pure and unit-testable.
-   *
-   * Counts and splits by Unicode code point (Array.from), not UTF-16 code unit.
-   * This matters most for Japanese captions: with no spaces the whole line is
-   * one "word" that always hits the hard-split path, and a slice on UTF-16
-   * units would sever a surrogate pair (emoji, CJK Extension kanji such as 𠮷)
-   * at the row boundary, leaving a broken �. Captions are the channel deaf /
-   * HoH users rely on, so a corrupted glyph is real information loss.
-   *
-   * @param {string} text
-   * @param {number} maxChars
-   * @returns {string[]}
-   */
-  _wrap(text, maxChars) {
-    // Shared with the reader viewport (src/vr/ui/textWrap.js) so the
-    // code-point / surrogate-pair hardening lives in exactly one place.
-    return wrapTextToLines(text, maxChars);
-  }
-
-  _truncate(text, max) {
-    // Code-point-aware so the cut never splits a surrogate pair (see _wrap).
-    const chars = Array.from(text);
-    return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : text;
-  }
 
   // ── Accessors ────────────────────────────────────────────────────────────────
 

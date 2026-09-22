@@ -258,7 +258,7 @@ test('readerLayout + textWrap + panelGeometry remaining default/guard arms', asy
   const tw = await import('../src/vr/ui/textWrap.js');
   expect(tw.truncateToWidth('한국어한국어', 3)).toBeTruthy();    // Hangul width arm
   expect(tw.truncateToWidth(null, NaN)).toBe('');               // NaN→0.5 + null text
-  expect(tw.wrapTextToLines && typeof tw.wrapTextToLines === 'function').toBe(true);
+  expect(tw.wrapTextToWidth && typeof tw.wrapTextToWidth === 'function').toBe(true);
 });
 
 test('chromeColors + performance monitor sliver arms', async () => {
@@ -272,8 +272,8 @@ test('chromeColors + performance monitor sliver arms', async () => {
 
 test('textWrap CJK ranges + NaN limits; BookmarkStore writeJSON without localStorage', async () => {
   const tw = await import('../src/vr/ui/textWrap.js');
-  expect(tw.wrapTextToLines('⺀ radical test', NaN)).toBeTruthy();   // floor(NaN)→1 + CJK cp arm
-  expect(tw.wrapTextToLines(null, 10)).toEqual(['']);
+  expect(tw.wrapTextToWidth('⺀ radical test', NaN)).toBeTruthy();   // NaN→fallback + CJK cp arm
+  expect(tw.wrapTextToWidth(null, 10)).toEqual(['']);
   const { BookmarkStore } = await import('../src/utils/BookmarkStore.js');
   const savedLS = global.localStorage;
   delete global.localStorage;

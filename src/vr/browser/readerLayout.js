@@ -184,9 +184,9 @@ export function maxMeasureEmForFont(fontPx) {
  *
  * Headings get a blank line before them (never a leading blank at the very
  * top) so structure survives in a plain-text surface; paragraphs are separated
- * by a blank line. Wrapping is code-point-aware via the shared
- * `wrapTextToLines`, so spaceless Japanese hard-splits without severing
- * surrogate pairs.
+ * by a blank line. Wrapping is em-width-aware via the shared
+ * `wrapTextToWidth`, so spaceless Japanese hard-splits without severing
+ * surrogate pairs or grapheme clusters.
  *
  * @param {Array<{type:'h'|'p'|'pre', text:string}>} blocks
  * @param {{scale?: number, title?: string}} [opts]

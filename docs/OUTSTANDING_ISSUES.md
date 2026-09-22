@@ -821,11 +821,17 @@ ENTITIES は HTML4/XHTML1.0 全集（~250 名）をカバーするが、HTML5 �
 
 ## Q. テキスト幅 / IME の残存スコープ（続き247 で再録）
 
-### Q-1. 未修正（判断事項）: `wrapTextToLines` は契約上コードポイント計上
+### ~~Q-1. `wrapTextToLines` は契約上コードポイント計上~~ — **完了（Session 98/続き256）**
 続き247 で `textWidthEm`/`charWidthEm` の幅モデルは grapheme クラスタ + ゼロ幅
-レンジに修正済みだが、`wrapTextToLines`（CaptionSystem の文字数予算パスが使用）
-は**仕様として**コードポイントを数えるため NFD/結合文字で実描画より早く折り返す。
-em 幅へ揃えるか、文字数契約のまま残すかは CaptionSystem の行長設計次第 —— 判断事項。
+レンジに修正済み。`wrapTextToLines`（CaptionSystem の文字数予算パスが使用）は
+**仕様として**コードポイントを数えるため NFD/結合文字で実描画より早く折り返す
+——という懸案だったが、**実際には描画パスが `_layoutRows` → `wrapTextToWidth`
+（em 幅）へ既に移行済み**で、char 数予算の `_wrap`/`_truncate`/`wrapTextToLines`
+はテストのみが呼ぶ dead code だった。grep 検証で `this._wrap`/`this._truncate` の
+呼出サイト 0 件を確認し、CaptionSystem の両メソッド・textWrap.js の
+`wrapTextToLines` エクスポート・17 件の純粋 pin を削除（a11y.test.js の
+NaN/null アームは `wrapTextToWidth` へ付け替え）。残存する唯一の折り返し実装は
+em 幅の `wrapTextToWidth` のみ —— 判断事項は「契約選択」ではなく「削除」で解決。
 
 ### Q-2. 記録（意図的）: IME の `l-` 系は x- 別名（小かな）解釈
 続き247 で再上陸した l- 系は `la`→`ぁ`（Mozc 流儀の小かな接頭辞）。ヘボン式に
