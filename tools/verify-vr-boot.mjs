@@ -247,6 +247,18 @@ async function main() {
             out.settingsPersisted = false;
           }
           app.updateSetting('snapTurnAngle', prev);
+          // Clear-history contract: recorded entries wipe AND the alert
+          // mirror announces the destructive action (WCAG 4.1.3 feedback).
+          if (typeof app._clearBrowsingHistory === 'function') {
+            app._clearBrowsingHistory();
+            out.historyCleared = app.bookmarks.search('harness-nav.example', 5).length === 0;
+            out.alertAfterClear = alertEl ? alertEl.textContent : '';
+          }
+          // Bookmark-only suggestion: a bookmark with NO history entry still
+          // surfaces via its virtual-visit score — and must survive the wipe.
+          app.bookmarks.toggleBookmark('https://harness-bm.example/', 'BM Page');
+          out.bmSuggest = app.bookmarks.search('harness-bm.example', 5, Date.now())
+            .some((s) => s.url === 'https://harness-bm.example/');
         }
         return out;
       })()`,
@@ -268,7 +280,10 @@ async function main() {
       historyHit: !!iout.historyHit,
       privateClean: iout.privateLeak === false,
       imeSuggest: !!iout.imeSuggest,
-      settingsPersisted: !!iout.settingsPersisted
+      settingsPersisted: !!iout.settingsPersisted,
+      historyCleared: !!iout.historyCleared,
+      clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
+      bmSuggest: !!iout.bmSuggest
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -301,6 +316,9 @@ async function main() {
       ['private mode wrote no history', !!inter.privateClean],
       ['history feeds IME suggestions (frecency → keyboard chain)', !!inter.imeSuggest],
       ['updateSetting persisted to real localStorage', !!inter.settingsPersisted],
+      ['clear-history wiped recorded entries', !!inter.historyCleared],
+      ['history-clear announced via alert region', !!inter.clearAnnounced],
+      ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 

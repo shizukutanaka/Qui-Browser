@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 130: 続き288 — harness interaction に clear-history ワイプ + bookmark-only suggestion を e2e pin
+- 🔍 **実測**: `_clearBrowsingHistory`（破壊的アクション → ワイプ + `historyCleared` toast）と、履歴ゼロの bookmark が virtual-visit score で suggestion に浮上する経路が e2e 未検証。volume apply 連鎖も試みたが `updateSetting` は設計上 persist-only（apply は各 control 固有の責務）で、voice 経路は stubbed 環境で `voiceCommands` が正しく null — **存在しないパスを assert する pin は設計不成立として撤去**、到達可能な契約のみ pin する方針を貫徹。
+- 🔧 **修正**: interaction eval に 3 経路追加。①`app._clearBrowsingHistory()` → `bookmarks.search('harness-nav.example')` が空になる（記録済みエントリの完全ワイプ）②同時に alert live region が `ℹ History cleared` を含む（破壊操作の WCAG 4.1.3 status feedback が実 DOM へ到達）③ワイプ直後でも `toggleBookmark` した URL が virtual-visit score で suggestion に残る（bookmark-only 経路 — 履歴を持たないブックマークが autocompletion に出る設計）。
+- 🧪 3件とも一発緑 — clearHistory のワイプ漏れなら `historyCleared` false→FAIL、toast 未配線なら `clearAnnounced` FAIL、bookmark スコア計算破損なら `bmSuggest` FAIL と構造的検出。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 16 checks PASS。#239（improve-42）の上に積層。
+
 ### Session 129: 続き287 — harness interaction に IME suggestion 連鎖 + settings 永続化を e2e pin
 - 🔍 **実測**: Session 128 の履歴書込が通った次の空白として、**その履歴が `vrKeyboard.suggestionProvider`（= `bookmarks.search` の frecency ランク）を経て実際にキーボード候補へ届く連鎖**と、`updateSetting → saveSettings → localStorage[qui-browser:settings]` の settings 永続化 roundtrip がともに e2e 未検証と特定。前者は「URL autocomplete」のユーザーフロー全体、後者は起動時 `_loadSettings` が読み戻す契約。
 - 🔧 **修正**: interaction eval に 2 経路追加。①R41 で書込んだ `harness-nav.example` を `app.vrKeyboard.suggestionProvider('harness-nav')` が返すこと（navigate→addHistory→frecency→suggestion の full chain）②`updateSetting('snapTurnAngle', 45)` → `localStorage['qui-browser:settings']` の JSON parse が 45 を含むこと（side-effect なしのキーを選択・後で復元）。戻り `imeSuggest`/`settingsPersisted` を checks に追加。#238（improve-41）の上に積層。
