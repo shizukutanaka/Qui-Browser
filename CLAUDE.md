@@ -307,7 +307,6 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 2件＋既存維持: ①disabled で show() → lineCount 0・mesh 非表示・onShow は発火（ARIA ミラー存続を同時 pin）②enable→show→disable→show('stale')→enable で stale が復活しない。両件 src stash 検証で pre-fix 赤・post-fix 緑。旧挙動に依存していた 1件（enabled 未設定で show する overlong テスト）は sibling と同じ `setEnabled(true)` を明示して回収。
 - ✅ 3232 tests / 73 suites 全緑（#223 マージ込み）、lint 0 errors（354 warnings ベースライン）、build 緑。
 
-||||||| parent of b4df5fb (test(tools): close the Log-domain blind spot — gate browser-emitted errors (続き283))
 
 ### Session 125: 続き283 — 検証ハーネスの Log-domain 盲点（ブラウザ発行 error を全 gate が見逃し）
 - 🔍 **実測**: Session 124 の CSP error は `Log.entryAdded`（CDP Log domain）でしか現れない — ブラウザ自身が発行する error（無視された CSP directive・deprecation・blocked resource）は page の `console.*` ではないため `Runtime.consoleAPICalled` に乗らず、uncaught でもないため `Runtime.exceptionThrown` にも乗らない。検証: `verify:app` の `--dump-dom --enable-logging=stderr --v=0` 出力には同 error が**一行も出ない**ことを該当 meta 入りテストページで実測（stderr grep は構造的に捕捉不能）。`verify:vr-boot` も CDP 接続済みなのに `Log.enable` を一度も呼んでいなかった — 「uncaught exception or console.error を gate」と謳いつつ browser-emitted error は両ハーネスを素通りしていた。
@@ -326,6 +325,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。
 - 🧪 pin 8件（webpanel-states: world 姿勢→transform/scale 書込・XRRigidTransform 使用・不変姿勢で再利用・移動で再発行・非表示で blit/transform 両方 skip・setVisible(false) で解放・hide() で解放、vr-app-wiring: 非表示パネル skip・表示パネル attach）。defect 側 6件は stash 検証で pre-fix 赤・post-fix 緑（「不変姿勢で再利用」は最適化ガードのため pre-fix でも緑 — transform が null のまま一致するため）。
 - ✅ 3230 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 112: 続き270 — ImmersiveVideo の英語リテラル残り（エラートースト + Exit ボタン）
+- 🔍 **実測**: PR #209（続き257）が「ImmersiveVideo の英語リテラル残り2件」を閉じたと記録していたが、さらに2件残っていた — ①`_onVideoError` が `'Could not load video (check URL / CORS)'` を `_reportError` → `onError` → `showVRToast` へそのまま流す：日本語セッションのエラートーストが英語（WCAG 3.1.2、トーストは caption 経路でも読まれる）②`_buildControlPanel` が `_makeButton('Exit', …)` — HUD の唯一の閉じる操作が英語のまま、ホバー時の `onHoverCaption` 告知も "Exit"。
+- 🔧 **修正**: 新規キー `vr.video.exit`（en Exit / ja 終了）+ `vr.video.loadFailed`（en 'Could not load video (check URL / CORS)' / ja '動画を読み込めませんでした（URL・CORS を確認）'）を en/ja に追加し両箇所を `t()` へ。
+- 🧪 pin 2件：ja 言語で error イベント → `onError` が日本語文言で呼ばれる（pre-fix は英語リテラルで赤）、Exit ボタン hover → `onHoverCaption('終了')`（pre-fix 'Exit' で赤）。両件 stash 検証で pre-fix 赤。テストの DOM stub に `document.documentElement` を追加（`setLanguage` が `documentElement.lang` を書くため未stubでは TypeError を投げて `currentLang` が ja で残存し後続テストを汚染する — 実際に観測）。
+- ✅ 3222 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
@@ -351,7 +356,6 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: ①`BookmarkStore.removeHistory(url)` 再上陸 — dedupe 済みでも filter 全除去で破損データ安全、boolean 返却 ②BookmarkPanel の削除ゾーンをモード対応メソッド（removeBookmark/removeHistory）存在でゲート — store が未対応なら従来どおり read-only を維持、deleteRow はモード別 `onDeleteBookmark`/`onDeleteHistory` 発火（誤キャプション防止）③VRApp に `onDeleteHistory` 配線（caption `vr.msg.historyEntryDeleted` en/ja + notification haptic）④dead-API 台帳から removeHistory を除去（本番 call site ありに）。
 - 🧪 pin 6件：store 3件（対象のみ削除・未知 URL false・永続化）、panel 3件（history ゾーンが removeHistory+onDeleteHistory 発火・removeBookmark/onDeleteBookmark 不発・非関数 opt は null）。4件 stash 検証で pre-fix 赤。
 - ✅ 3222 tests / 73 suites 全緑、lint 0 errors、build 緑。
-
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
