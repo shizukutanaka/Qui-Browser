@@ -80,8 +80,7 @@ export class HandTracking {
       pinch: 0.02,        // 2cm between thumb and index tips to START a pinch
       pinchRelease: 0.035,// 3.5cm to RELEASE — hysteresis against tremor chatter
       fist: 0.1,          // Average finger curl threshold
-      pointSpeed: 0.5,    // m/s for pointing gesture
-      grabStrength: 0.7   // Strength threshold for grab
+      pointSpeed: 0.5     // m/s for pointing gesture
     };
   }
 

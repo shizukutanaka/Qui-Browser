@@ -3264,7 +3264,7 @@ export class VRApp {
         }
       });
 
-      this.handTracking.onGesture('grab', (hand) => {
+      this.handTracking.onGesture('fist', (hand) => {
         if (this.hapticFeedback) {
           this.hapticFeedback.playPattern(hand, 'impact');
         }

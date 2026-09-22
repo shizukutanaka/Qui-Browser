@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 183: 続き341 — 実欠陥 fix：'grab' ジェスチャは検出不可能で haptic impact が死んでいた（#261 batch 3、240→241 checks）
+- 🐛 **実欠陥**: `onVRSessionStart` が `onGesture('grab' → haptic 'impact')` を登録するが、`detectGesture` は 'grab' を**一切返さない** — XRHand joint pose からは grab strength が算出不可能（`thresholds.grabStrength: 0.7` も誰も読まない死に値）。握り拳を作っても impact haptic は永久に発火しない。検出可能な同義形状 'fist'（全指カール+thumb 非上向き）へリターゲット + 死に threshold を削除。jest の mock lookup 2箇所も repoint。
+- 🧪 **赤検証（有機・fix 前状態で FAIL 確認）**: 登録を旧 'grab' に戻す → `fistHaptic` FAIL（旧経路が dead であること自体の証明）。ハーネス教訓： pinch 状態から fist へは release バンド 3.5cm 超まで thumb を退けないとヒステリシスが 'pinch' を保持する。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 241 checks PASS、verify:app PASS。
+
 ### Session 182: 続き340 — pinch オフセット→gestureCallbacks→haptic + ヒステリシスを e2e pin（#260 batch 2、236→240 checks）
 - 🔍 **実測**: `onVRSessionStart` が登録する `onGesture('pinch'→haptic click)`/`('grab'→impact)` は一度も駆動されていなかった。`updateHand` の XRHand pose 経路は fake が重いため、`updateHand` が書くのと同じ joint record（`{position: Vector3}`）を `ht.joints.right` にシードして `recognizeGestures()` を直接駆動 — 実パイプラインと同じシームで onset→callback→haptic を端到端 pin（onset 1回発火・保持非再発火・pinch↔release ヒステリシス・release+再 pinch で再発火+`gesturesRecognized` が onset のみ計数）。
 - 🧪 **ハーネス教訓**: ①指が無い joint record は `isFingerExtended` false → 全指カールと誤判定され release が 'none' でなく 'fist' になる — release ステップでは中指を extended にして 'none' を作る ②`gestures.right` は leg 間で持続 — pin 開始時に 'none' へ正規化しないと初回 recognize が onset にならない（`pinch:0:undefined` で可視化）。

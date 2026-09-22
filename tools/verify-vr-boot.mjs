@@ -2978,6 +2978,14 @@ async function main() {
                 out.pinchRefires = released
                   && hCalls.length === 2
                   && ht.stats.gesturesRecognized === gBefore + 2;
+                // Fist (all curled, thumb not up) -> 'fist' -> impact haptic.
+                // From a pinch state the release band is 3.5cm, so park the
+                // thumb farther than that before curling to fist.
+                thumbTip.set(0.14, 0, 0);
+                joints.get('middle-finger-tip').position.set(0.089, 0, 0);
+                ht.recognizeGestures();
+                out.fistHaptic = ht.gestures.right === 'fist'
+                  && hCalls[2] === 'right:impact';
               } finally {
                 app.hapticFeedback.playPattern = origPlay;
                 joints.clear();
@@ -3320,6 +3328,7 @@ async function main() {
       pinchHeldOnce: iout.pinchHeldOnce === true,
       pinchHysteresis: iout.pinchHysteresis === true,
       pinchRefires: iout.pinchRefires === true,
+      fistHaptic: iout.fistHaptic === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3600,6 +3609,7 @@ async function main() {
       ['held pinch fires once, not per frame', !!inter.pinchHeldOnce],
       ['pinch hysteresis holds through the gap band', !!inter.pinchHysteresis],
       ['release + re-pinch refires and counts onsets', !!inter.pinchRefires],
+      ['fist gesture routes to haptic impact', !!inter.fistHaptic],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
