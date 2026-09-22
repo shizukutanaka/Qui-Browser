@@ -600,12 +600,13 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     expect(onDelete).toHaveBeenCalledWith('https://del.me');
   });
 
-  test('history mode rows have no delete zone — same click selects instead', () => {
+  test('history mode rows have no delete zone when the store lacks removeHistory — same click selects instead', () => {
     const onSelect = jest.fn();
     const store = {
       getBookmarks: () => [],
       getHistory: () => [{ url: 'https://hist.example' }],
       removeBookmark: jest.fn()
+      // no removeHistory — the zone stays disarmed for this mode
     };
     const p = makePanel(store, onSelect);
     p.setMode('history');
@@ -616,6 +617,59 @@ describe('BookmarkPanel — scroll arrows, delete zone, callbacks', () => {
     } });
     expect(onSelect).toHaveBeenCalledWith('https://hist.example');
     expect(store.removeBookmark).not.toHaveBeenCalled();
+  });
+
+  // ── history delete zone — per-entry privacy delete ──────────────────────────
+  test('history delete-zone click calls removeHistory and fires onDeleteHistory', () => {
+    const onDelete = jest.fn();
+    const store = {
+      getBookmarks: () => [],
+      getHistory: () => [{ url: 'https://hist.example', title: 'H' }],
+      removeBookmark: jest.fn(),
+      removeHistory: jest.fn()
+    };
+    const p = makePanel(store);
+    p.onDeleteHistory = onDelete;
+    p.setMode('history');
+    p.show();
+    MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10); // right-edge delete zone
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
+    expect(store.removeHistory).toHaveBeenCalledWith('https://hist.example');
+    expect(store.removeBookmark).not.toHaveBeenCalled();
+    expect(onDelete).toHaveBeenCalledWith('https://hist.example');
+  });
+
+  test('a history delete does NOT fire the bookmark-deletion callback', () => {
+    const onDeleteBookmark = jest.fn();
+    const store = {
+      getBookmarks: () => [],
+      getHistory: () => [{ url: 'https://hist.example' }],
+      removeBookmark: jest.fn(),
+      removeHistory: jest.fn()
+    };
+    const p = makePanel(store);
+    p.onDeleteBookmark = onDeleteBookmark;
+    p.setMode('history');
+    p.show();
+    MockMesh._nextLocal = localFor(1024 - 10, HEADER_H + 10);
+    p._onSelect({ clone() {
+      return MockMesh._nextLocal;
+    } });
+    expect(onDeleteBookmark).not.toHaveBeenCalled();
+  });
+
+  test('onDeleteHistory with a non-function option is stored as null', () => {
+    const p = new BookmarkPanel({
+      scene: { add: jest.fn(), remove: jest.fn() },
+      registerInteractable: jest.fn(),
+      unregisterInteractable: jest.fn(),
+      store: makeStore(),
+      onSelect: jest.fn(),
+      onDeleteHistory: 42
+    });
+    expect(p.onDeleteHistory).toBeNull();
   });
 });
 

@@ -40,6 +40,8 @@ export class BookmarkPanel {
    * @param {Function} [opts.onDeleteBookmark] — called with (url) after a bookmark
    *   is deleted; used by VRApp to announce the deletion via caption/haptic
    *   (WCAG 4.1.3 Status Messages — destructive actions need non-visual confirmation).
+   * @param {Function} [opts.onDeleteHistory] — called with (url) after a
+   *   history entry is deleted (same WCAG 4.1.3 rationale).
    * @param {Function} [opts.onTabChange]  — called with ('bookmarks'|'history')
    *   when the user switches between the two tabs (WCAG 4.1.3).
    * @param {number}  [opts.scale=1]  — physical-size multiplier for low-vision
@@ -48,13 +50,14 @@ export class BookmarkPanel {
    *   enlarging every glyph in angular terms. Mirrors the VR keyboard's scale.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, store, onSelect,
-    onDeleteBookmark, onTabChange, onHoverCaption, onClose, scale = 1 }) {
+    onDeleteBookmark, onDeleteHistory, onTabChange, onHoverCaption, onClose, scale = 1 }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
     this.store = store;
     this.onSelect = typeof onSelect === 'function' ? onSelect : () => {};
     this.onDeleteBookmark = typeof onDeleteBookmark === 'function' ? onDeleteBookmark : null;
+    this.onDeleteHistory = typeof onDeleteHistory === 'function' ? onDeleteHistory : null;
     this.onTabChange = typeof onTabChange === 'function' ? onTabChange : null;
     // Optional: called on hover so the host can show a gaze-dwell preview caption
     // (WCAG 1.3.3 – panel purpose conveyed without relying on sight alone).
@@ -187,8 +190,12 @@ export class BookmarkPanel {
     const { px, py } = uvToPixels(u, v);
 
     const rows = this._rows();
-    // Enable the per-row delete zone only in bookmarks mode (history is read-only).
-    const deleteZone = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
+    // Enable the per-row delete zone whenever the store can remove the shown
+    // entries — removeBookmark in bookmarks mode, removeHistory in history
+    // mode (per-entry privacy: "delete that one page" without wiping the log).
+    // A store lacking the matching method keeps the mode read-only.
+    const deleteMethod = this.mode === 'bookmarks' ? 'removeBookmark' : 'removeHistory';
+    const deleteZone = typeof this.store?.[deleteMethod] === 'function';
     // Re-clamp against the live row count before slicing: bookmarks may have
     // been removed externally (chrome-bar ★) since the last draw, leaving a
     // stale offset that would slice an empty window and dead-click every row.
@@ -233,12 +240,13 @@ export class BookmarkPanel {
     case 'deleteRow': {
       const entry = rows[this.scrollOffset + action.index];
       if (entry && entry.url) {
-        this.store.removeBookmark(entry.url);
+        this.store[deleteMethod](entry.url);
         // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
         this._clampScroll(this._rows().length);
         this._draw();
-        if (this.onDeleteBookmark) {
-          this.onDeleteBookmark(entry.url);
+        const onDelete = this.mode === 'bookmarks' ? this.onDeleteBookmark : this.onDeleteHistory;
+        if (onDelete) {
+          onDelete(entry.url);
         }
       }
       break;
@@ -323,7 +331,9 @@ export class BookmarkPanel {
         32, HEADER_H + 56
       );
     } else {
-      const showDelete = this.mode === 'bookmarks' && typeof this.store.removeBookmark === 'function';
+      const showDelete = this.mode === 'bookmarks'
+        ? typeof this.store.removeBookmark === 'function'
+        : typeof this.store.removeHistory === 'function';
       for (let i = 0; i < rows.length; i++) {
         const entry = rows[i];
         const top = HEADER_H + i * ROW_H;
@@ -345,7 +355,7 @@ export class BookmarkPanel {
         ctx.fillStyle = c.rowUrl;
         ctx.font = '20px monospace';
         ctx.fillText(truncateToWidth(entry.url, ROW_URL_EM), ROW_TEXT_X, top + 58, ROW_TEXT_W);
-        // Delete ✕ button (bookmarks mode only)
+        // Delete ✕ button (any mode whose store can remove the entry)
         if (showDelete) {
           ctx.fillStyle = c.deleteZoneBg;
           ctx.fillRect(w - DELETE_ZONE_W + 4, top + 10, DELETE_ZONE_W - 8, ROW_H - 20);

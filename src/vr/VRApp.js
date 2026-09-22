@@ -980,6 +980,14 @@ export class VRApp {
           this.hapticFeedback.playPatternBothHands('notification');
         }
       },
+      onDeleteHistory: () => {
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(t('vr.msg.historyEntryDeleted'));
+        }
+        if (this.hapticFeedback) {
+          this.hapticFeedback.playPatternBothHands('notification');
+        }
+      },
       onTabChange: (tab) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(t(tab === 'bookmarks' ? 'vr.bookmarks.tabBookmarks' : 'vr.bookmarks.tabHistory'));
