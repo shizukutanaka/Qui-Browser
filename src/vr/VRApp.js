@@ -3369,10 +3369,15 @@ export class VRApp {
    * native display resolution, an inconsistency visible as softer text on
    * newer tabs. Layer ids come from a monotonic counter rather than the tab
    * index, which collides after a mid-session close + open.
+   * A panel hidden by tab-switching must NOT get a layer: quad layers
+   * composite through the XR runtime regardless of mesh visibility, so an
+   * invisible tab would keep showing its chrome bar with no panel behind it.
+   * Its Three.js chromeMesh renders it anyway once shown again.
    * @returns {boolean} true when a layer was attached
    */
   _attachPanelLayer(panel, refSpace) {
-    if (!panel || panel.quadLayer || !this.layersSystem) {
+    if (!panel || panel.quadLayer || !this.layersSystem ||
+        (panel.group && panel.group.visible === false)) {
       return false;
     }
     const layerId = `panel_chrome_${this._layerSeq || 0}`;

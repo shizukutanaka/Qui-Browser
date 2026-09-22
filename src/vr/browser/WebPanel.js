@@ -145,6 +145,8 @@ export class WebPanel {
     this._layerId     = null;  // LayersSystem key for this panel's quad layer
     this._onLayerDetach = null; // callback to release the native layer on close
     this._layerDirty  = false; // set true whenever chromeCanvas changes
+    this._layerPose   = null;  // lazily-created scratch {pos,quat,scale} targets
+    this._appliedLayerPose = null; // last pose written to quadLayer.transform
 
     // Curved-screen state (Quest-style). Off = flat plane content area.
     this.curved       = false;
@@ -872,6 +874,9 @@ export class WebPanel {
     this.layersSystem = layersSystem;
     this._layerId     = layerId;
     this._onLayerDetach = typeof onDetach === 'function' ? onDetach : null;
+    // A fresh layer has never been posed — force the first updateLayer() to
+    // write its transform instead of trusting the identity compare.
+    this._appliedLayerPose = null;
     // Hide the Three.js chrome mesh — the runtime composites the layer instead.
     if (this.chromeMesh) {
       this.chromeMesh.visible = false;
@@ -902,6 +907,7 @@ export class WebPanel {
     this.layersSystem = null;
     this._layerId     = null;
     this._onLayerDetach = null;
+    this._appliedLayerPose = null;
   }
 
   /**
@@ -912,13 +918,84 @@ export class WebPanel {
    * @param {XRView[]} views
    */
   updateLayer(frame, views) {
-    if (!this.quadLayer || !this.layersSystem || !this._layerDirty) {
+    if (!this.quadLayer || !this.layersSystem ||
+        (this.group && this.group.visible === false)) {
+      return;
+    }
+    // The native bar lives in the XR layer stack, not the scene graph — it
+    // must be re-posed every frame, even when the canvas pixels are clean.
+    this._syncLayerTransform();
+    if (!this._layerDirty) {
       return;
     }
     this.layersSystem.renderCanvasToLayer(
       this.quadLayer, this.chromeCanvas, frame, views
     );
     this._layerDirty = false;
+  }
+
+  /**
+   * Keep the native chrome bar coincident with the Three.js chrome mesh.
+   *
+   * An XRQuadLayer composites through the XR runtime at its own `transform`
+   * — it is NOT a child of the panel group — so a layer created with no
+   * transform draws at the reference-space origin forever, detached from the
+   * panel it mirrors (and frozen there through grab-to-move, follow mode and
+   * tab switches). Sync the chrome mesh's world pose into the layer each
+   * frame; the identity compare skips the XRRigidTransform allocation while
+   * the panel sits still.
+   *
+   * width/height follow the world scale too: angular-constant panels scale
+   * the whole group with distance, and a fixed-size layer would drift out of
+   * register with the mesh it replaces.
+   */
+  _syncLayerTransform() {
+    const mesh = this.chromeMesh;
+    const layer = this.quadLayer;
+    if (!mesh || !layer || typeof mesh.updateWorldMatrix !== 'function' ||
+        typeof mesh.getWorldPosition !== 'function' ||
+        typeof mesh.getWorldQuaternion !== 'function') {
+      return;
+    }
+    if (!this._layerPose) {
+      // Plain-object targets under the jest three-mock (no Vector3 export);
+      // real Object3D getters only need settable x/y/z/w fields on them.
+      const V3 = typeof THREE.Vector3 === 'function';
+      const Q = typeof THREE.Quaternion === 'function';
+      this._layerPose = {
+        pos:   V3 ? new THREE.Vector3()    : { x: 0, y: 0, z: 0 },
+        quat:  Q  ? new THREE.Quaternion() : { x: 0, y: 0, z: 0, w: 1 },
+        scale: V3 ? new THREE.Vector3()    : { x: 1, y: 1, z: 1 }
+      };
+    }
+    const pose = this._layerPose;
+    // matrixWorld refreshes inside renderer.render — this runs before it, so
+    // pull the chain current or the pose lags a frame behind a moving panel.
+    mesh.updateWorldMatrix(true, false);
+    const p = mesh.getWorldPosition(pose.pos);
+    const q = mesh.getWorldQuaternion(pose.quat);
+    const s = typeof mesh.getWorldScale === 'function'
+      ? Math.max(0.0001, mesh.getWorldScale(pose.scale).x)
+      : 1;
+    const last = this._appliedLayerPose;
+    if (last &&
+        last.px === p.x && last.py === p.y && last.pz === p.z &&
+        last.qx === q.x && last.qy === q.y && last.qz === q.z && last.qw === q.w &&
+        last.s === s) {
+      return;
+    }
+    const position = { x: p.x, y: p.y, z: p.z };
+    const orientation = { x: q.x, y: q.y, z: q.z, w: q.w };
+    layer.transform = typeof XRRigidTransform === 'function'
+      ? new XRRigidTransform(position, orientation)
+      : { position, orientation };
+    layer.width  = PANEL_W * s;
+    layer.height = PANEL_H * CHROME_H * s;
+    this._appliedLayerPose = {
+      px: p.x, py: p.y, pz: p.z,
+      qx: q.x, qy: q.y, qz: q.z, qw: q.w,
+      s
+    };
   }
 
   // ── Curved screen (Quest-style flat ↔ curved) ─────────────────────────────
@@ -970,7 +1047,7 @@ export class WebPanel {
   }
 
   hide() {
-    this.group.visible = false;
+    this.setVisible(false);
   }
 
   /**
@@ -986,6 +1063,13 @@ export class WebPanel {
    */
   setVisible(visible) {
     this.group.visible = !!visible;
+    // A quad layer composites through the XR runtime independently of mesh
+    // visibility — a hidden tab would keep showing its chrome bar at the
+    // panel position. Release it on hide; the host's _syncPanelLayers
+    // re-attaches one on the next show (mesh path renders until then).
+    if (!visible && this.quadLayer) {
+      this.disableLayerMode();
+    }
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
