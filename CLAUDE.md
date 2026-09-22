@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 125: 続き283 — 検証ハーネスの Log-domain 盲点（ブラウザ発行 error を全 gate が見逃し）
+- 🔍 **実測**: Session 124 の CSP error は `Log.entryAdded`（CDP Log domain）でしか現れない — ブラウザ自身が発行する error（無視された CSP directive・deprecation・blocked resource）は page の `console.*` ではないため `Runtime.consoleAPICalled` に乗らず、uncaught でもないため `Runtime.exceptionThrown` にも乗らない。検証: `verify:app` の `--dump-dom --enable-logging=stderr --v=0` 出力には同 error が**一行も出ない**ことを該当 meta 入りテストページで実測（stderr grep は構造的に捕捉不能）。`verify:vr-boot` も CDP 接続済みなのに `Log.enable` を一度も呼んでいなかった — 「uncaught exception or console.error を gate」と謳いつつ browser-emitted error は両ハーネスを素通りしていた。
+- 🔧 **修正**: verify-vr-boot に `Log.enable` + `Log.entryAdded` (level==='error') の収集を追加 — 'no uncaught exceptions / console errors / browser log errors' が真の error ゲートに。verify-app-boot には盲点の計測済み注記（stderr では見えない、Log gate は vr-boot 側）を追記。
+- 🧪 検証: 修正済み dist で PASS → dist/index.html に `frame-ancestors` を再注入すると **FAIL: `log error: The Content Security Policy directive 'frame-ancestors' is ignored…`** — 以前全 gate を素通りした error が確実に FAIL する赤確認済み。post-fix で再度 PASS。
+- ✅ 3231 tests / 73 suites 全緑、lint 0 errors、build 緑、verify:app / verify:vr-boot PASS。（※ R37 の CSP 修正の上に積層 — #234 マージ後は diff が harness 変更のみに縮む）
+
 ### Session 124: 続き282 — meta CSP の `frame-ancestors` が全ロードで console error（header-only directive）
 - 🔍 **実測（2D 面の headed-Chrome 検証 — 最後の未実測面）**: qui-browser-2d-runtime 手順で `vite preview` + CDP 駆動。a11y トグル・lang 切替・SW 登録・manifest icons・VR 非対応トースト（role=alert, ~6s auto-dismiss）は全て仕様通りだったが、**Log domain が毎ページロードで error を捕捉: "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element."** `frame-ancestors` は仕様上 HTTP header 配信専用 — `<meta>` ではブラウザが無条件に捨てるため、index.html の meta CSP に残ったままでは永遠に console error を吐き、かつ headerless host（GitHub Pages）では「防護がある」と誤認させる。
 - 🔧 **修正**: meta CSP から `frame-ancestors 'self'` を除去（inert な directive は残さない — 実効防御は nginx×3 / vercel.json / netlify.toml の header CSP `frame-ancestors 'self'` + X-Frame-Options SAMEORIGIN + main.js の clickjacking guard で三重に担保済み）。header 側は enforceable なため保持し、meta 側のみ削除。

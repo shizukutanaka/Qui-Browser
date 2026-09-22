@@ -168,6 +168,15 @@ async function main() {
     const { result: { sessionId } } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
     await cdp.send('Runtime.enable', {}, sessionId);
     await cdp.send('Page.enable', {}, sessionId);
+    // Browser-emitted errors (ignored CSP directives, deprecations, blocked
+    // resource loads) arrive ONLY on the Log domain — Runtime.consoleAPICalled
+    // covers page-initiated console.* calls, Runtime.exceptionThrown covers
+    // uncaught exceptions, and neither sees Log entries. Measured blind spot:
+    // a `frame-ancestors` directive in the <meta> CSP logged an error on every
+    // page load for months while both harnesses passed (verify:app's stderr
+    // grep cannot see Log entries either — the message never reaches stderr
+    // under --enable-logging=stderr --v=0).
+    await cdp.send('Log.enable', {}, sessionId);
     await cdp.send('Page.navigate', { url }, sessionId);
 
     // Poll for full construction. Object/DOM state only — never console text
@@ -207,6 +216,10 @@ async function main() {
           errors.push('console.error: ' + text.slice(0, 200));
         }
       }
+      if (ev.method === 'Log.entryAdded' && ev.params.entry.level === 'error') {
+        const text = ev.params.entry.text || '';
+        errors.push('log error: ' + text.slice(0, 200));
+      }
     }
 
     const checks = [
@@ -215,7 +228,7 @@ async function main() {
       ['browsing systems constructed (tabManager — default ON)', !!state.tabManager],
       ['settings panel constructed', !!state.settingsPanel],
       ['caption system constructed', !!state.captionSystem],
-      ['no uncaught exceptions / console errors', errors.length === 0]
+      ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
     console.log('verify:vr-boot — full VRApp construction in Chromium (WebXR stubbed)\n');

@@ -180,6 +180,10 @@ async function main() {
   }
 
   // Real page errors surface on Chromium's stderr for a --dump-dom run.
+  // Blind spot, measured: browser-emitted console errors (e.g. an ignored CSP
+  // directive in the <meta> policy) go only to the CDP Log domain and never
+  // reach stderr even under --enable-logging=stderr. The Log-domain gate lives
+  // in verify:vr-boot — this harness cannot catch that class.
   const noisy = dom.err
     .split('\n')
     .filter((l) => /\b(ERROR|Uncaught|SyntaxError|TypeError|ReferenceError|Failed to load)\b/.test(l))
