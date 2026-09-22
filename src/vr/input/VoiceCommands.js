@@ -712,7 +712,10 @@ export class VoiceCommands {
    * Stop listening
    */
   stop() {
-    if (this.isListening) {
+    // recognition may be null after dispose() while isListening is still true
+    // (its onend can no longer fire to clear the flag) — guard the deref so a
+    // late stop() doesn't crash on a torn-down engine.
+    if (this.isListening && this.recognition) {
       this.recognition.stop();
     }
   }
@@ -751,10 +754,14 @@ export class VoiceCommands {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
+    // volume and pitch both accept 0 as a real endpoint (mute / lowest pitch)
+    // — `||` would silently substitute the default, so use nullish defaults.
+    // rate keeps `||`: 0 is out of its 0.1–10 spec range, so falling back to
+    // 1.0 on a bogus value is the right behaviour there.
     utterance.lang = options.lang || this.language;
     utterance.rate = options.rate || 1.0;
-    utterance.pitch = options.pitch || 1.0;
-    utterance.volume = options.volume || 1.0;
+    utterance.pitch = options.pitch ?? 1.0;
+    utterance.volume = options.volume ?? 1.0;
     // Android/Quest Chrome can fire onerror with "network" or "not-allowed"
     // (audio focus stolen by another app, or no TTS engine installed for
     // ja-JP). The onSpeak callback already fired so captions reached the user;

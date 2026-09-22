@@ -784,6 +784,36 @@ describe('VoiceCommands — tail seams: aliases, start/stop/dispose, TTS speak, 
     }
   });
 
+  test('stop() tolerates a torn-down engine (stale isListening post-dispose)', () => {
+    // After dispose() the recognition object is gone but isListening can still
+    // be true — its onend can no longer fire to clear the flag. A late stop()
+    // (e.g. a settings toggle racing teardown) must not dereference null.
+    vc.recognition = null;
+    vc.isListening = true;
+    expect(() => vc.stop()).not.toThrow();
+  });
+
+  test('speak() honours volume:0 and pitch:0 — legal endpoints, not defaults', () => {
+    // SpeechSynthesisUtterance spec: volume 0–1 and pitch 0–2 both include 0.
+    // `||` defaults would silently speak a muted utterance at full volume.
+    const synthesis = { speak: jest.fn(), cancel: jest.fn() };
+    const utterances = [];
+    const prevUtterance = global.SpeechSynthesisUtterance;
+    global.SpeechSynthesisUtterance = class {
+      constructor(text) {
+        this.text = text; utterances.push(this);
+      }
+    };
+    try {
+      vc.synthesis = synthesis;
+      vc.speak('ミュート', { volume: 0, pitch: 0 });
+      expect(utterances[0].volume).toBe(0);
+      expect(utterances[0].pitch).toBe(0);
+    } finally {
+      global.SpeechSynthesisUtterance = prevUtterance;
+    }
+  });
+
   test('stats counters report executed/recognized (0 before any command)', () => {
     expect(vc.stats.commandsRecognized).toBe(0);
     vc.registerCommand('ok', { patterns: ['ok'], action: () => ({ ok: 1 }) });

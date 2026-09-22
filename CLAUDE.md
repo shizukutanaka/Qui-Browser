@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 79: 続き237 — VoiceCommands: stop() の null-deref + volume/pitch falsy 罠
+- 🔍 **実測（コード経路追跡）**: `src/vr/input/VoiceCommands.js` に2件。①`stop()` — `dispose()` が `recognition=null` にした後 `isListening` は onend が発火しないため真のまま残り、後続の `stop()`（設定トグルやセッション終了と破棄の競合）で `null.stop()` の TypeError。②`speak()` — `options.volume || 1.0`/`options.pitch || 1.0` が**仕様上正当な 0 を飲む**（volume 0–1、pitch 0–2 は共に 0 を含む）。`{volume:0}` でミュート指定してもフルボリュームで発話する契約バグ。`rate` は下限 0.1 なので `||` で正しい。
+- 🔧 **修正**: ①`stop()` に `this.recognition` ガード追加 ②volume/pitch を `??` に変更（rate は `||` のまま）。
+- 🧪 pin 2件（post-dispose 状態での `stop()` 非throw + `volume:0`/`pitch:0` が utterance に届く）。両方 stash 検証で pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: keyboardLayout（幾何計算・行幅・bounds）/ SemanticDOM（sr-only パターン・live region・aria-label）/ コマンド登録順序（go-to 最終登録・clear-history 優先）/ confidence==0 フォールバック / onend 再起動ループの isEnabled ガード — 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
