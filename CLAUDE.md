@@ -258,6 +258,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 3件：同一テキスト 2・3 回連続で textContent が毎回変異（剥がせば元の文字列）、新テキスト到達でマーカーリセット、alert 側も同挙動。全件 stash 検証で pre-fix 赤・post-fix 緑。
 - ✅ 3214 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 106: 続き264 — urlResolver のホスト判定抜け（IPv6 リテラル・末尾ドット FQDN が検索行き）
+- 🔍 **実測（コード追跡）**: `resolveInput` のホスト判定は `LOOKS_LIKE_HOST`（ラベル文字のみ・各ドット後にラベル必須）+ localhost + IPv4 の3経路 — ①**ブラケット IPv6 リテラル**（`[::1]`、`[2001:db8::1]:8080`）は `[`、`:` がラベル文字に含まれず全経路失敗 → **ローカル開発アドレスが検索エンジンへ誤ルーティング** ②**末尾ドット FQDN**（`example.com.` — ルートラベル明示の正規ドメイン、ブラウザはナビゲートする）は末尾ドットがパターン不適合 → 検索行き。
+- 🔧 **修正**: ①`isIPv6Literal` = `^\[[0-9a-f:]+\](:\d+)?$`i をホスト経路へ追加（生の `::1` はデスクトップ omnibox 同様検索のまま — ブラケット付きのみ）②`LOOKS_LIKE_HOST` に `\.?` を末尾挿入し単一末尾ドットを許容（`example.com.` ✓、`example..` はラベル必須で依然不適合 → 検索維持）。
+- 🧪 pin 6件：`[::1]`・`[2001:db8::1]:8080/x` ナビゲート、`::1` 生は検索維持、`example.com.`・`sub.example.co.jp./docs` ナビゲート、`example..` は検索維持。4件 stash 検証で pre-fix 赤（検索維持系2件は両方緑＝意図のドキュメント）。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

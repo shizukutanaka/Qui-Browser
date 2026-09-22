@@ -64,6 +64,30 @@ describe('resolveInput', () => {
     expect(resolveInput('192.168.1.1')).toBe('https://192.168.1.1');
   });
 
+  // ── bracketed IPv6 literals — previously misrouted to search ──────────────
+  test('navigates a bracketed IPv6 loopback', () => {
+    expect(resolveInput('[::1]')).toBe('https://[::1]');
+  });
+  test('navigates a bracketed IPv6 with port and path', () => {
+    expect(resolveInput('[2001:db8::1]:8080/x')).toBe('https://[2001:db8::1]:8080/x');
+  });
+  test('an unbracketed IPv6-looking token stays a search (omnibox parity)', () => {
+    expect(resolveInput('::1')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('::1'));
+  });
+
+  // ── trailing-dot FQDN — previously misrouted to search ────────────────────
+  test('navigates a fully-qualified domain with a trailing root dot', () => {
+    expect(resolveInput('example.com.')).toBe('https://example.com.');
+  });
+  test('navigates a trailing-dot FQDN with a path', () => {
+    expect(resolveInput('sub.example.co.jp./docs')).toBe('https://sub.example.co.jp./docs');
+  });
+  test('a double trailing dot is not a host — stays a search', () => {
+    expect(resolveInput('example.com..')).toBe(
+      SEARCH_ENGINES.duckduckgo + encodeURIComponent('example.com..')
+    );
+  });
+
   // ── internationalized domain names (IDN) — Japanese browser ────────────────
   test('navigates a Japanese IDN with an ASCII TLD (日本語.jp)', () => {
     // Previously this fell through to the search engine because the host regex
