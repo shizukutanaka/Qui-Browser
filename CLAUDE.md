@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 176: 続き334 — WebPanel chrome ヒットゾーン（戻る/進む/reload/star/URLバー/close）を e2e pin（#259 batch 27、214→220 checks）
+- 🔍 **実測**: `chromeMesh._onChromeSelect` の px ゾーン分岐（<68 back、<136 forward、<204 reload/stop、>w-60 hide、w-128..72 star→`onToggleBookmark`、else URLバー→`onUrlInputRequested`）は未駆動 — chrome 経由のナビゲーションが一度も e2e されていなかった。
+- 🔧 **pin 設計（6 check）**: fetch stub で 2 ナビゲーション履歴構築 → px30 back で `historyIdx` 後退+`currentUrl` 復帰、px100 forward で復帰、px170 reload で fetch 再発行、px920 star で `isBookmarked` 反転+'Bookmarked' caption、px500 URL バーで keyboard open + `compositionBuffer===currentUrl`（prefill 配管）、px1000 close で `group.visible=false`。
+- 🧪 **ハーネス教訓**: URL バーの else 腕は primary path が死ぬと `window.prompt` にフォールバック — headless で prompt は**ハーネス全体をハング**させる。leg 内で `window.prompt=()=>null` を恒久 stub（defensive hardening）し、source cut の red 検証も安全化。`historyIdx` は累積履歴のため絶対値ではなく差分で pin。赤検証: back 腕・`onToggleBookmark`・`onUrlInputRequested` 各切断 → 対象 check のみ FAIL。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 220 checks PASS、verify:app PASS。
+
 ### Session 175: 続き333 — reader パイプライン（navigate→fetch→抽出→'reader' state→スクロール矢印）を e2e pin（#259 batch 26、210→214 checks）
 - 🔍 **実測**: WebPanel の reader 経路（`navigate`→`_loadReaderText`→`extractReadableText`→`layoutReaderLines`→`_contentState='reader'`、content mesh の ▲▼ スクロールゾーン→`scrollContent` クランプ）は実 fetch が headless で必ず失敗するため**成功腕が一度も駆動されていなかった**。fetch stub で初の成功経路 e2e。
 - 🔧 **pin 設計（4 check）**: `globalThis.fetch` stub → 80段落 HTML → `wp.navigate` → `_contentState==='reader'` + 243 lines + `currentTitle==='Harness Article'` → content select(px 960,py 890) ▼ゾーンで `_readerScroll>0` → ▲ゾーン(px 850,py 890)で 0 にクランプ。`_onContentSelect(worldVec3)` 直接駆動（strip/BookmarkPanel と同型）。

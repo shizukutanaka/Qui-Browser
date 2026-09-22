@@ -2427,6 +2427,101 @@ async function main() {
                   globalThis.fetch = origFetch;
                 }
               }
+              // Chrome-bar leg — chromeMesh's pixel zones drive real panel
+              // actions: <68 back, <136 forward, <204 reload/stop, >w-60
+              // hide, w-128..w-72 bookmark star (→ onToggleBookmark), else
+              // URL bar (→ onUrlInputRequested opens the keyboard). Same
+              // UV→pixel contract as the reader content zones.
+              if (ctrl && app.tabManager && app.tabManager.tabs
+                && app.tabManager.tabs.length && app.scene && app.vrKeyboard
+                && app.bookmarks) {
+                const wp = app.tabManager.tabs[app.tabManager.activeIndex];
+                const origFetch2 = globalThis.fetch;
+                // Defensive: if the primary onUrlInputRequested path ever
+                // broke, WebPanel falls back to a synchronous window.prompt,
+                // which would hang headless. Stub it so the leg reports a
+                // clean FAIL instead of stalling the whole harness.
+                const origPrompt = window.prompt;
+                window.prompt = () => null;
+                let fetchCalls = 0;
+                try {
+                  globalThis.fetch = () => {
+                    fetchCalls++;
+                    return Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head><title>P</title></head><body><article>'
+                        + '<p>chrome leg paragraph one two three four five'
+                        + ' six seven eight nine ten eleven twelve thirteen'
+                        + ' fourteen fifteen sixteen seventeen eighteen'
+                        + '</p></article></body></html>')
+                    });
+                  };
+                  app.scene.updateMatrixWorld(true);
+                  out.chromeProbe = !!wp
+                    && app.interactables.includes(wp.chromeMesh);
+                  const selChrome = (px) => {
+                    const local = wp.chromeMesh.position.clone().set(
+                      (px / 1024 - 0.5) * 1.6, 0, 0);
+                    wp._onChromeSelect(wp.chromeMesh.localToWorld(local));
+                  };
+                  const settle = async () => {
+                    for (let i = 0; i < 60 && wp.loading; i++) {
+                      await new Promise((r) => setTimeout(r, 50));
+                    }
+                  };
+                  // Two loads → back()/forward() move through real history.
+                  wp.navigate('https://chrome-a.example/');
+                  await settle();
+                  wp.navigate('https://chrome-b.example/');
+                  await settle();
+                  const idxTop = wp.historyIdx; // N-1 — earlier legs leave entries
+                  selChrome(30);               // back zone
+                  await settle();
+                  const backOk = wp.historyIdx === idxTop - 1
+                    && wp.currentUrl === 'https://chrome-a.example/';
+                  selChrome(100);              // forward zone
+                  await settle();
+                  out.chromeBackForward = backOk
+                    && wp.historyIdx === idxTop
+                    && wp.currentUrl === 'https://chrome-b.example/';
+                  // Reload zone re-issues the reader fetch.
+                  const fBefore = fetchCalls;
+                  selChrome(170);
+                  await settle();
+                  out.chromeReload = fetchCalls === fBefore + 1;
+                  // Star zone → onToggleBookmark round-trips the store.
+                  const urlB = wp.currentUrl;
+                  const capsBefore14 = locoCaps.length;
+                  selChrome(920);
+                  out.chromeStar = !!app.bookmarks.isBookmarked(urlB)
+                    && locoCaps.slice(capsBefore14)
+                      .some((t3) => t3.includes('Bookmark'));
+                  if (app.bookmarks.isBookmarked(urlB)) {
+                    selChrome(920);            // untoggle → restore
+                  }
+                  // URL bar → onUrlInputRequested opens the keyboard.
+                  selChrome(500);
+                  await new Promise((r) => setTimeout(r, 30));
+                  out.chromeUrlBar = app.vrKeyboard.visible === true
+                    && app.japaneseIME.compositionBuffer === urlB;
+                  app.vrKeyboard.hide();
+                  app.vrKeyboard._onConfirmCallback = null;
+                  // Close zone hides the panel group.
+                  selChrome(1000);
+                  out.chromeClose = wp.group.visible === false;
+                } finally {
+                  globalThis.fetch = origFetch2;
+                  window.prompt = origPrompt;
+                  if (wp) {
+                    wp.setVisible(true);
+                  }
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard.hide();
+                    app.vrKeyboard._onConfirmCallback = null;
+                  }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2870,6 +2965,12 @@ async function main() {
       readerLoads: iout.readerLoads === true,
       readerScrollsDown: iout.readerScrollsDown === true,
       readerScrollsUp: iout.readerScrollsUp === true,
+      chromeProbe: iout.chromeProbe === true,
+      chromeBackForward: iout.chromeBackForward === true,
+      chromeReload: iout.chromeReload === true,
+      chromeStar: iout.chromeStar === true,
+      chromeUrlBar: iout.chromeUrlBar === true,
+      chromeClose: iout.chromeClose === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3124,6 +3225,12 @@ async function main() {
       ['reader pipeline lands on reader state', !!inter.readerLoads],
       ['reader down-arrow scrolls the article', !!inter.readerScrollsDown],
       ['reader up-arrow clamps back to top', !!inter.readerScrollsUp],
+      ['chrome bar registers as an interactable', !!inter.chromeProbe],
+      ['back/forward zones move through tab history', !!inter.chromeBackForward],
+      ['reload zone re-issues the reader fetch', !!inter.chromeReload],
+      ['bookmark star zone toggles + announces', !!inter.chromeStar],
+      ['URL bar zone opens the keyboard', !!inter.chromeUrlBar],
+      ['close zone hides the panel', !!inter.chromeClose],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
