@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 170: 続き328 — browsing トグル全経路（Private live-read・Web Panel teardown/rebuild・Voice lazy-init warn）を e2e pin（#259 batch 21、184→191 checks）
+- 🔍 **実測**: 最後の未駆動 browsing コントロール — 'Private Mode'（apply null → `VRApp.navigate` が `!settings.privateMode` を live-read して履歴非記録）、'Web Browser Panel'（`_onWebPanelToggleChanged` → off で tabManager/webPanel 完全 teardown + 'Browsing panel closed'、on で `_buildBrowsingSystems`+`_attachManagedWindow` rebuild）、'Voice Commands'（lazy `_initVoiceCommands` → SR 非搭載時 `voiceCommands=null` → 'Voice commands temporarily unavailable' warn、off で `_teardownVoiceCommands` + 'disabled'）。
+- 🔧 **pin 設計（7 check）**: ①Private select → navigate → `bookmarks.search` empty、再 select → navigate → 記録あり（removeHistory で掃除）②Web Panel off → `tabManager===null && webPanel===null` + toast、on → 再構築 + toast ③`window.SpeechRecognition`/`webkitSpeechRecognition` を undefined 化して unavailable 分岐を deterministic 強制 → select → warn toast + `voiceCommands===null`、再 select → 'disabled' + teardown。
+- 🧠 **ハーネス教訓（次回以降必須）**: **leg 間の settings 残留** — 早期 voice leg（batch 4）が `app.settings.enableVoice=true` を restore せず残すため、私の初回 select は ON→OFF に倒れ check が FAIL。`updateSetting` spy + `usCalls` 観測で即特定、**先に `app.settings.enableVoice=false` で normalize** してから toggle する設計に修正。settings 書込みは leg 境界をまたぐ前提で初期状態を正規化せよ。
+- 🧪 **赤検証（3 cut 一括）**: `!privateMode` ゲート（→`true||`）・`_teardownBrowsingSystems` 呼出・warn 分岐 `!this.voiceCommands`（→`false&&`）各切断 → `privateBlocks`/`webPanelTearsDown`/`voiceWarn` FAIL（2D 兄弟 pin 'private mode wrote no history' も共有 navigate ゲートで co-FAIL — 想定 co-signal）。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 191 checks PASS、verify:app PASS。
+
 ### Session 169: 続き327 — URL サジェスト行（frecency → 候補表示 → hover full-URL → select commit）を e2e pin（#259 batch 20、179→184 checks）
 - 🔍 **実測**: キーストローク毎の `_updateSuggestions` → `bookmarks.search(query,4)` frecency → `showSuggestions` で実 interactable `_suggestionMeshes` 構築 → hover は **フル URL** をアナウンス（WCAG 1.3.3 — 切詰ラベルではなく行先）、ray select → buffer クリア + `onTextConfirmed(entry.url)`。gaze-dwell タイピング ~8-10WPM の最大時短経路が未駆動だった。
 - 🔧 **pin 設計（5 check）**: `bookmarks.addHistory` で 'https://suggest-seed.example/clip' をシード（finally で `removeHistory` 掃除）→ '360° Video' で開放 → ①'s' 1文字は <2-char ゲートで行不生成 ②'s','u' で `_suggestionMeshes`+`_suggestionsGroup.visible` ③hover → `onHoverCaption(entry.url)` が locoCaps にフル URL 到達（`enableGazeDwell` 立てる）④select → `onTextConfirmed(SUG_URL)` → play spy + `compositionBuffer===''` + hide。

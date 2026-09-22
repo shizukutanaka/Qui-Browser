@@ -2006,6 +2006,116 @@ async function main() {
                   }
                 }
               }
+              // Browsing toggles leg — the remaining browsing-section
+              // controls: 'Private Mode' flips settings.privateMode which
+              // VRApp.navigate() reads live (a private session writes no
+              // history); 'Web Browser Panel' runs _onWebPanelToggleChanged
+              // → _teardownBrowsingSystems (tabManager/webPanel disposed)
+              // → _buildBrowsingSystems on re-enable; 'Voice Commands'
+              // lazily _initVoiceCommands — the SpeechRecognition-absent
+              // branch is forced deterministically by blanking the globals.
+              if (ctrl && app.settingsPanel && app.bookmarks) {
+                const privWas = app.settings.privateMode;
+                const webWas = app.settings.enableWebPanel;
+                const voiceWas = app.settings.enableVoice;
+                const voiceCmdWas = app.voiceCommands;
+                const srWas = window.SpeechRecognition;
+                const wsrWas = window.webkitSpeechRecognition;
+                const capsBefore4 = locoCaps.length;
+                try {
+                  if (!(app.settings.openSettingsSections || [])
+                    .includes('settings.section.browsing')) {
+                    const brTab = probeLabel6('Browsing');
+                    if (brTab) {
+                      selectCenter6(brTab);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  const privBtn = probeLabel6('Private Mode');
+                  const webBtn = probeLabel6('Web Browser Panel');
+                  const voiceBtn = probeLabel6('Voice Commands');
+                  out.brwProbe = !!(privBtn && webBtn && voiceBtn);
+                  // Private mode — navigate() records nothing while on.
+                  if (privBtn) {
+                    selectCenter6(privBtn);
+                    app.navigate('https://priv-leg.example/', 'priv');
+                    const leaked = app.bookmarks
+                      .search('priv-leg.example', 5, Date.now());
+                    out.privateBlocks = app.settings.privateMode === true
+                      && leaked.length === 0;
+                    selectCenter6(privBtn);
+                    app.navigate('https://priv-leg.example/', 'priv');
+                    const recorded = app.bookmarks
+                      .search('priv-leg.example', 5, Date.now());
+                    out.privateRestores = app.settings.privateMode === false
+                      && recorded.length > 0;
+                    app.bookmarks.removeHistory('https://priv-leg.example/');
+                  }
+                  // Web panel — off tears down, on rebuilds browsing systems.
+                  if (webBtn) {
+                    selectCenter6(webBtn);
+                    const offToast = locoCaps.slice(capsBefore4)
+                      .some((t3) => t3.includes('Browsing panel closed'));
+                    out.webPanelTearsDown = app.settings.enableWebPanel === false
+                      && app.tabManager === null
+                      && app.webPanel === null
+                      && offToast;
+                    selectCenter6(webBtn);
+                    out.webPanelRebuilds = app.settings.enableWebPanel === true
+                      && !!app.tabManager && !!app.webPanel
+                      && locoCaps.slice(capsBefore4)
+                        .some((t3) => t3.includes('Browsing panel enabled'));
+                    app.scene.updateMatrixWorld(true);
+                  }
+                  // Voice — blank the globals to force the warn branch.
+                  // Normalize the flag first: an earlier leg leaves
+                  // enableVoice=true (+ a live recognizer), so the first
+                  // select would toggle OFF instead of ON.
+                  app.settings.enableVoice = false;
+                  window.SpeechRecognition = undefined;
+                  window.webkitSpeechRecognition = undefined;
+                  if (voiceBtn) {
+                    const capsBefore5 = locoCaps.length;
+                    selectCenter6(voiceBtn);
+                    await new Promise((r) => setTimeout(r, 150));
+                    out.voiceWarn = app.settings.enableVoice === true
+                      && app.voiceCommands === null
+                      && locoCaps.slice(capsBefore5)
+                        .some((t3) => t3
+                          .includes('Voice commands temporarily unavailable'));
+                    selectCenter6(voiceBtn);
+                    await new Promise((r) => setTimeout(r, 30));
+                    out.voiceTogglesOff = app.settings.enableVoice === false
+                      && app.voiceCommands === null
+                      && locoCaps.slice(capsBefore5)
+                        .some((t3) => t3.includes('Voice commands disabled'));
+                  }
+                } finally {
+                  window.SpeechRecognition = srWas;
+                  window.webkitSpeechRecognition = wsrWas;
+                  if (app.settings.privateMode !== privWas) {
+                    app.settings.privateMode = privWas;
+                  }
+                  if (app.settings.enableVoice !== voiceWas) {
+                    app.settings.enableVoice = voiceWas;
+                  }
+                  if (voiceWas && voiceCmdWas && !app.voiceCommands
+                    && typeof app._initVoiceCommands === 'function') {
+                    try { await app._initVoiceCommands(); } catch (e) { /* restore */ }
+                  }
+                  if (app.settings.enableWebPanel !== webWas) {
+                    if (webWas) {
+                      app._onWebPanelToggleChanged(true);
+                    } else {
+                      app._teardownBrowsingSystems();
+                    }
+                    app.settings.enableWebPanel = webWas;
+                  } else if (webWas && !app.tabManager) {
+                    app._onWebPanelToggleChanged(true);
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2419,6 +2529,13 @@ async function main() {
       sugRowBuilds: iout.sugRowBuilds === true,
       sugHoverUrl: iout.sugHoverUrl === true,
       sugSelectConfirms: iout.sugSelectConfirms === true,
+      brwProbe: iout.brwProbe === true,
+      privateBlocks: iout.privateBlocks === true,
+      privateRestores: iout.privateRestores === true,
+      webPanelTearsDown: iout.webPanelTearsDown === true,
+      webPanelRebuilds: iout.webPanelRebuilds === true,
+      voiceWarn: iout.voiceWarn === true,
+      voiceTogglesOff: iout.voiceTogglesOff === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2644,6 +2761,13 @@ async function main() {
       ['two-keystroke query builds the suggestion row', !!inter.sugRowBuilds],
       ['suggestion hover announces the full URL', !!inter.sugHoverUrl],
       ['suggestion ray select commits the seeded URL', !!inter.sugSelectConfirms],
+      ['browsing toggles section probes present', !!inter.brwProbe],
+      ['private mode writes no history while on', !!inter.privateBlocks],
+      ['private mode off restores history recording', !!inter.privateRestores],
+      ['web panel off tears down browsing systems', !!inter.webPanelTearsDown],
+      ['web panel on rebuilds browsing systems', !!inter.webPanelRebuilds],
+      ['voice enable warns when recognition absent', !!inter.voiceWarn],
+      ['voice off tears down and announces', !!inter.voiceTogglesOff],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
