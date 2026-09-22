@@ -245,6 +245,28 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 154: 続き312 — controller ray select/hover/teleport 経路を e2e pin（#258 に batch 5 として積層、83→89 checks）
+- **Round 71 of the continuous-improvement directive.** Fifth commit batch on PR #258.
+- **Pins (verify-vr-boot, +6 → 89 checks):** inside the fake-session leg —
+  a cloned floor mesh registered as a synthetic interactable takes the real
+  controller ray: hover enter fires `onHover` once + sets
+  `userData.hovered`; `selectstart` dispatch runs the full chain
+  (`onSelect` + haptic `'click'` + `qui-select` DOM event); aiming behind
+  fires `onHoverEnd` + clears hovered; a miss fires nothing. Teleport arm:
+  `squeezestart` → per-frame `updateTeleport` raycasts the floor (marker +
+  valid + target), `squeezeend` lands the rig and captions `Teleported`.
+- **Harness lesson:** XR controller objects are runtime-driven —
+  `matrixAutoUpdate: false`, so `position`/`rotation` writes never reach the
+  raycast. `matrixWorld` is written directly (identity/setPosition/
+  makeRotationX/Y) and restored from a clone in `finally`.
+- **Red-verified:** cutting `handlers.onSelect(...)` fails exactly
+  `selectHit` + `selectMissQuiet` (miss-check couples to the hit arm);
+  cutting `t.valid = true` fails exactly `aimLands` + `teleportLands`.
+  Restored → all green.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (89 checks).
+
 ### Session 153: 続き311 — inputsourceschange→hand-lost announce e2e pin + relanded fix (PR #258 batch 4)
 - **Round 70 of the continuous-improvement directive.** Fourth commit batch on PR #258.
 - **Pins (verify-vr-boot, +4 → 83 checks):** inside the fake-XRSession leg —

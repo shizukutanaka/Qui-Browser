@@ -746,6 +746,80 @@ async function main() {
               ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
               out.ctrlReconnCap = capWrites.some((t) => t.includes('Right controller reconnected'));
             }
+            // Select/hover/teleport arms: a controller ray hitting a
+            // registered interactable runs onSelect + haptic click + the
+            // qui-select DOM event; a ray missing fires none. Squeeze aimed
+            // at the floor marks the teleport target per-frame and release
+            // lands the rig there with the 'Teleported' caption.
+            if (ctrl && app.floorMesh && app.interactables && app.hapticFeedback) {
+              const selObj = app.floorMesh.clone();
+              selObj.userData = {};
+              let selFires = 0;
+              let quiFires = 0;
+              let hoverEnters = 0;
+              let hoverExits = 0;
+              selObj.userData.interactable = {
+                onSelect: () => { selFires += 1; },
+                onHover: () => { hoverEnters += 1; },
+                onHoverEnd: () => { hoverExits += 1; }
+              };
+              selObj.addEventListener('qui-select', () => { quiFires += 1; });
+              app.interactables.push(selObj);
+              // Stand the cloned plane up facing the controller, ~0.4 m away.
+              selObj.rotation.set(0, 0, 0);
+              selObj.scale.set(0.05, 0.05, 0.05);
+              selObj.position.set(0, 1.4, -0.4);
+              selObj.updateMatrixWorld(true);
+              const hapticPats = [];
+              const origPlay = app.hapticFeedback.playPattern;
+              app.hapticFeedback.playPattern = (h, p) => { hapticPats.push(p); };
+              // XR controller objects are runtime-driven: matrixAutoUpdate is
+              // false, so position/rotation writes never reach the ray —
+              // matrixWorld is written directly instead.
+              const origMW = ctrl.matrixWorld.clone();
+              try {
+                ctrl.matrixWorld.identity();
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                app.updateSystems(0, fakeXrFrame, 0.016); // hover pass
+                out.hoverEnter = hoverEnters === 1
+                  && ctrl.userData.hovered === selObj;
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.selectHit = selFires === 1 && quiFires === 1
+                  && hapticPats.includes('click');
+                // Aim behind the user — hover ends, select hits nothing.
+                ctrl.matrixWorld.makeRotationY(Math.PI);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.hoverExit = hoverExits === 1 && !ctrl.userData.hovered;
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.selectMissQuiet = selFires === 1 && quiFires === 1;
+                // Teleport: squeeze aims the ray at the floor (the per-frame
+                // updateTeleport raycast marks target + marker), release
+                // moves the rig and captions the landing.
+                ctrl.matrixWorld.makeRotationX(-Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                const rigX0 = app.playerRig.position.x;
+                const rigZ0 = app.playerRig.position.z;
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.aimLands = app.teleport.active === true
+                  && app.teleport.valid === true
+                  && !!app.teleport.target
+                  && !!(app.teleport.marker && app.teleport.marker.visible === true);
+                ctrl.dispatchEvent({ type: 'squeezeend' });
+                out.teleportLands = out.aimLands === true
+                  && Math.abs(app.playerRig.position.x - rigX0)
+                    + Math.abs(app.playerRig.position.z - rigZ0) > 0.01
+                  && capWrites.some((t) => t.includes('Teleported'));
+              } finally {
+                const ix = app.interactables.indexOf(selObj);
+                if (ix >= 0) {
+                  app.interactables.splice(ix, 1);
+                }
+                app.hapticFeedback.playPattern = origPlay;
+                ctrl.matrixWorld.copy(origMW);
+              }
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -908,6 +982,12 @@ async function main() {
       ctrlDisc: iout.ctrlDiscCap === true,
       ctrlReconn: iout.ctrlReconnCap === true,
       squeezeCancelled: iout.squeezeCancelled === true,
+      hoverEnter: iout.hoverEnter === true,
+      selectHit: iout.selectHit === true,
+      hoverExit: iout.hoverExit === true,
+      selectMissQuiet: iout.selectMissQuiet === true,
+      aimLands: iout.aimLands === true,
+      teleportLands: iout.teleportLands === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1030,6 +1110,12 @@ async function main() {
       ['mid-session disconnect toasts + forgets source', !!inter.ctrlDisc],
       ['controller reconnect announces', !!inter.ctrlReconn],
       ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
+      ['controller ray hover fires onHover once', !!inter.hoverEnter],
+      ['selectstart on a hit runs select+haptic+qui-select', !!inter.selectHit],
+      ['aiming away fires onHoverEnd', !!inter.hoverExit],
+      ['selectstart on a miss fires nothing', !!inter.selectMissQuiet],
+      ['squeeze aim raycasts the floor target', !!inter.aimLands],
+      ['squeezeend lands the rig with Teleported', !!inter.teleportLands],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
