@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 117: 続き275 — DevTools console が hidden/別タブでも毎ログ 100 行再構築＋戻り時 stale
+- 🔍 **実測**: `DevTools.logMessage` が `updateConsoleMessages()` を**無条件**呼出 — パネルは `display:none` でも DOM に残存するため getElementById は要素を発見し、hidden 中・別タブ表示中の console 呼出しごとに最大 100 行の DOM 再構築（scroll pin 含む）を実行していた。パッシブであるべき dev ツールが常時コストを食う設計。さらに `showTab` の refresh switch は `'scene'`/`'network'` のみで **`'console'` が欠落** — consoleDiv はタブ切替で content container から detach されるため、別タブ表示中に届いたログは要素が detached で getElementById→null になり描画を逃し、`showTab('console')` で再マウントしても古い子要素のまま stale 表示（次の console 呼出しまで更新されない）。
+- 🔧 **修正**: `this._activeTab` でマウント中タブを追跡（`showTab` でセット）。`logMessage` は `this.visible && this._activeTab === 'console'` の時だけ repaint — hidden・別タブ中は完全 passive。`showTab` の switch に `case 'console': this.updateConsoleMessages()` を追加し、離席中のログを再マウント時に repaint（scene/network と同じ refresh 規約へ統一）。
+- 🧪 pin 2件（dev-tools.test.js の DOM output layer describe）: hidden 中の logMessage が DOM 非構築＋別タブ中も非構築＋visible console 中は即時 render（1テスト3局面）・`showTab('console')` で離席中ログが repaint されること。両件 pre-fix 赤・post-fix 緑を実測。
+- ✅ 3228 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。

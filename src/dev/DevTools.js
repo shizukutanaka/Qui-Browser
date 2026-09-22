@@ -20,6 +20,7 @@ export class DevTools {
     // UI elements
     this.container = null;
     this.tabs = new Map();
+    this._activeTab = null; // which tab's content is currently mounted
 
     // Keyboard shortcuts
     this.shortcuts = {
@@ -232,9 +233,16 @@ export class DevTools {
       content.appendChild(tab.content);
       tab.content.style.display = 'block';
       tab.button.style.background = '#0e639c';
+      this._activeTab = tabId;
 
       // Update tab content
       switch (tabId) {
+      case 'console':
+        // Lines logged while the console tab was detached (another tab
+        // mounted in the content container) never rendered — repaint now
+        // or they stay invisible until the next console call.
+        this.updateConsoleMessages();
+        break;
       case 'scene':
         this.updateSceneTree();
         break;
@@ -292,8 +300,13 @@ export class DevTools {
       this.tools.console.messages.shift();
     }
 
-    // Update UI if visible
-    this.updateConsoleMessages();
+    // Update the view only while the console tab is actually showing. The
+    // container stays in the DOM while hidden (display:none), so rebuilding
+    // up to 100 rows per console call is pure cost; lines logged on another
+    // tab or while hidden are repainted by showTab('console').
+    if (this.visible && this._activeTab === 'console') {
+      this.updateConsoleMessages();
+    }
   }
 
   /**
