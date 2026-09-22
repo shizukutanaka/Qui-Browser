@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 122: 続き280 — monitoring 閾値アラートが 1 Hz フィードのたびに同一 GA イベントを連発
+- 🔍 **実測（コード追跡）**: `updatePerformanceMonitor`（VRApp 3676-3685）は `trackFPS`/`trackMemory` を ~1 Hz で呼ぶが、両者は閾値超過の間 **呼出ごとに GA イベントを発火** — Quest で fps が 60 未満に張り付いたセッションは `performance_fps_drop` が秒間 1 件のストームとなり（`memoryMB > 500` の `performance_high_memory` も同型）、GA4 のイベントクォータを持続状態への単一シグナルで食い潰す。PerformanceMonitor.addAlert の value-stripped dedup（続き261/PR #213）と同じ欠陥クラスが解析イベント側にも存在した。
+- 🔧 **修正**: 発火を severity バケット**遷移時のみ**に限定 — 純粋関数 `fpsSeverityBucket`/`memorySeverityBucket`（既存の閾値式をそのまま移植: fps 60/45/30、memory 500/750/1000 MB）と `alertSeverityTransition`（バケット不変なら emit=false、復帰時は発火せずにバケットだけリセットして次の悪化を再捕捉）を追加し、`trackFPS`/`trackMemory` のイベント経路をこの状態機械に載せ替え。`disposeMonitoring` が `_fpsSeverity`/`_memorySeverity` をリセット — 再 init した新セッションの最初のアラートが「不変」として抑止されない。悪化（medium→critical）・緩和だが未復帰（critical→high）は新 severity 付きで発火、同一バケット持続・復帰は沈黙。
+- 🧪 pin 3件（tests/monitoring.test.js: fps バケット境界 60/45/30 + NaN/文字列耐性、memory バケット境界 500/750/1000 + NaN 耐性、遷移機械の emit/bucket 全遷移）— 新規 export のため pre-fix は `undefined is not a function` で赤、実装後緑。trackEvent 自体はテスト環境で不活性（enabled=false）のため、発火経路ではなく状態機械を pin 対象に据えた。
+- ✅ 3235 tests / 73 suites 全緑（base 3232 + 3 pins）、lint 0 errors（354 warnings ベースライン）、build 緑。
+
+
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。

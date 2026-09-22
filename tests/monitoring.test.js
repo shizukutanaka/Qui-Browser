@@ -41,7 +41,10 @@ const {
   trackInteraction,
   trackVRSession,
   trackVRError,
-  reportPerformanceSummary
+  reportPerformanceSummary,
+  fpsSeverityBucket,
+  memorySeverityBucket,
+  alertSeverityTransition
 } = require('../src/monitoring.js');
 const { onINP } = require('web-vitals');
 
@@ -156,6 +159,60 @@ describe('monitoring.js', () => {
   // does not throw and behaves consistently with the disabled guard.
   test('reportPerformanceSummary does not throw when disabled', () => {
     expect(() => reportPerformanceSummary()).not.toThrow();
+  });
+
+  // ── threshold-alert dedup ─────────────────────────────────────────────────────
+  // trackFPS/trackMemory are fed at ~1 Hz by updatePerformanceMonitor; firing the
+  // GA event on every call while the metric stays over threshold turns a sustained
+  // degraded state into a per-second event stream (same class as the
+  // PerformanceMonitor alert storm). Alerts must fire on severity-BUCKET
+  // transitions only — the state machine and the bucket boundaries are pinned
+  // here because trackEvent itself is inert under test (enabled=false).
+  describe('severity bucket dedup (regression: per-tick alert stream)', () => {
+    test('fpsSeverityBucket buckets at the 60/45/30 boundaries and tolerates junk', () => {
+      expect(fpsSeverityBucket(90)).toBeNull();
+      expect(fpsSeverityBucket(60)).toBeNull();   // 60 is not < 60
+      expect(fpsSeverityBucket(59.9)).toBe('medium');
+      expect(fpsSeverityBucket(45)).toBe('medium'); // 45 is not < 45
+      expect(fpsSeverityBucket(44.9)).toBe('high');
+      expect(fpsSeverityBucket(30)).toBe('high');   // 30 is not < 30
+      expect(fpsSeverityBucket(29.9)).toBe('critical');
+      expect(fpsSeverityBucket(NaN)).toBeNull();
+      expect(fpsSeverityBucket('x')).toBeNull();
+      expect(fpsSeverityBucket(undefined)).toBeNull();
+    });
+
+    test('memorySeverityBucket buckets at the 500/750/1000 boundaries and tolerates junk', () => {
+      expect(memorySeverityBucket(400)).toBeNull();
+      expect(memorySeverityBucket(500)).toBeNull();  // 500 is not > 500
+      expect(memorySeverityBucket(501)).toBe('medium');
+      expect(memorySeverityBucket(750)).toBe('medium'); // 750 is not > 750
+      expect(memorySeverityBucket(751)).toBe('high');
+      expect(memorySeverityBucket(1000)).toBe('high');  // 1000 is not > 1000
+      expect(memorySeverityBucket(1001)).toBe('critical');
+      expect(memorySeverityBucket(NaN)).toBeNull();
+      expect(memorySeverityBucket('x')).toBeNull();
+    });
+
+    test('alertSeverityTransition emits on bucket change only', () => {
+      // First entry into a degraded state fires once.
+      expect(alertSeverityTransition(null, 'medium'))
+        .toEqual({ emit: true, bucket: 'medium' });
+      // Sustained same bucket — the 1 Hz stream case — stays silent.
+      expect(alertSeverityTransition('medium', 'medium'))
+        .toEqual({ emit: false, bucket: 'medium' });
+      // Worsening fires a new event carrying the new severity.
+      expect(alertSeverityTransition('medium', 'critical'))
+        .toEqual({ emit: true, bucket: 'critical' });
+      // Easing while still degraded is still a state change.
+      expect(alertSeverityTransition('critical', 'high'))
+        .toEqual({ emit: true, bucket: 'high' });
+      // Recovery fires nothing but resets the bucket so a later drop re-fires.
+      expect(alertSeverityTransition('high', null))
+        .toEqual({ emit: false, bucket: null });
+      expect(alertSeverityTransition(null, null))
+        .toEqual({ emit: false, bucket: null });
+    });
   });
 
   // ── Web Vitals INP threshold ──────────────────────────────────────────────────
