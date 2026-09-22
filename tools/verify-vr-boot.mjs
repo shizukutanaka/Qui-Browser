@@ -3189,6 +3189,34 @@ async function main() {
                 await hf.playPatternBothHands('click');
                 hf.playPattern = spyPlay;
                 out.hapticBothHandsDedup = actPulses.length === 1;
+                // playEffect fallback arm: an actuator exposing ONLY the
+                // WebXR Gamepads Module API (playEffect, no pulse) takes the
+                // 'dual-rumble' branch with strongMagnitude=intensity and
+                // weakMagnitude=intensity*0.5 — never driven before.
+                const fxCalls = [];
+                const fxSrc = {
+                  handedness: 'left',
+                  gamepad: {
+                    hapticActuators: [{
+                      playEffect: (type, opts) => {
+                        fxCalls.push(type + '/' + opts.duration + '/' +
+                          opts.strongMagnitude + '/' + opts.weakMagnitude);
+                        return Promise.resolve();
+                      }
+                    }]
+                  }
+                };
+                hf.update([fxSrc]);
+                await hf.pulse('left', 20, 0.5);
+                out.hapticPlayEffect = fxCalls.length === 1
+                  && fxCalls[0] === 'dual-rumble/20/0.5/0.25';
+                // pulse() clamps duration to 1-5000ms and intensity to 0-1
+                // before the actuator sees them.
+                fxCalls.length = 0;
+                await hf.pulse('left', 99999, 2.5);
+                out.hapticClamps = fxCalls.length === 1
+                  && fxCalls[0] === 'dual-rumble/5000/1/0.5';
+                hf.update([]);
 
                 // Listener pose + LOD tier path: updateListenerFromCamera
                 // runs per frame off updateSystems, but no leg ever placed
@@ -3623,6 +3651,8 @@ async function main() {
       hapticSourceGone: iout.hapticSourceGone === true,
       hapticSequence: iout.hapticSequence === true,
       hapticBothHandsDedup: iout.hapticBothHandsDedup === true,
+      hapticPlayEffect: iout.hapticPlayEffect === true,
+      hapticClamps: iout.hapticClamps === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -3921,6 +3951,8 @@ async function main() {
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],
       ['single-gamepad both-hands pattern dedups', !!inter.hapticBothHandsDedup],
+      ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
+      ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],
