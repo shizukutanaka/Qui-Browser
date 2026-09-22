@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 77: 続き235 — IME ローマ字変換：到達不能キー + 拡張行欠落
+- 🔍 **実測（node 直接実行）**: `src/vr/input/JapaneseIME.js`。①`buildRomajiMap` が `'xtsu': 'っ'` を宣言しているのに matcher が `Math.min(buffer.length, 3)` で長さ3打ち切り — **宣言済みキーが到達不能**。'xtsu' 入力 → 先頭 'x' が生文字漏出 + 'tsu' は未変換残留（実測 'xtsu' → 'xtsu'）。②**主流 IME 行が欠落** — f-/wh-/q-/kw-/gw-/tsa-/th-/dh-/tw-/dw-/v-/l-/ye-variants が無く、'she' → 'sへも'（'sh' がキーでないため 's' 残留 + 'へも' 化け）、'file'/'fire'/'tsa' 等も生ローマ字混入を実測。
+- 🔧 **修正**: ①matcher の上限をハードコード 3 → `this._maxRomajiLen`（= 実キー最長 4）へ変更。エスケープ閾値 `buffer.length > 3` も同値に同期 — 将来キーが伸びても再発しない ②JIS X 4063/Mozc 系拡張行を追加: fa-fi-fe-fo/fya/fwa-fwo、va-vo/vya、wha-whu/wyi-wye、qa-qo/qwa-qwo、kwa-kwo、gwa-gwo、tsa-tso、tha-tho、dha-dho、twa-two、dwa-dwo、yi/ye、she-je-che、?e 異形（kye-sye-nye-hye-mye-rye-bye-pye-jye-dye-fye）、?i 異形、jya-jyu-jyo、ca-ci-cu-ce-co、l- 系（x- 別名: la-lu-lya-ltu-ltsu-lka-lke-lwa）、xka-xke-xwa-xwi-xwe。
+- 🧪 pin 118件（japanese-ime.test.js: 到達不能キー11 + 拡張行~100 + 複合語6）。全件 stash 検証で pre-fix 赤・post-fix 緑。
+- ✅ 3134 tests / 73 suites 全緑、lint 0 errors（350 warnings = ベースライン）、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
