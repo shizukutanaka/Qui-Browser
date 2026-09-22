@@ -87,13 +87,28 @@ describe('FFRSystem — head-velocity predicted gaze foveation (FR-4.2)', () => 
     expect(ffr.predictedGazeEnabled).toBe(false);
   });
 
-  test('a 90° turn in 0.1s yields large angular velocity via EMA', async () => {
+  test('a 90° turn in 0.1s yields large angular velocity via the attack envelope', async () => {
     const { ffr } = await boot();
     ffr.trackHeadPose(IDENT, 0.016);
     ffr.trackHeadPose(TILT, 0.1);
-    // angleDelta = 2·acos(√2/2) ≈ 1.5708 rad → ~15.7 rad/s; EMA keeps 20%
-    expect(ffr._headVelocity).toBeCloseTo(3.14, 1);
+    // angleDelta = 2·acos(√2/2) ≈ 1.5708 rad → ~15.7 rad/s. The attack
+    // envelope (τ=0.07s) lets ~76% through in one 0.1s step — the old fixed
+    // 20%-per-call EMA under-reported the same gesture at a long dt.
+    expect(ffr._headVelocity).toBeCloseTo(11.9, 1);
     expect(ffr.predictedGazeEnabled).toBe(true);
+  });
+
+  test('head-velocity envelope attacks fast and releases slowly', async () => {
+    const { ffr } = await boot();
+    ffr.trackHeadPose(IDENT, 0.016);
+    ffr.trackHeadPose(TILT, 0.1);        // one 0.1s attack step → ~76% through
+    const peak = ffr._headVelocity;
+    expect(peak).toBeGreaterThan(10);
+    ffr.trackHeadPose(IDENT, 0.1);       // one 0.1s release step at τ=0.3s
+    const decayFrac = 1 - ffr._headVelocity / peak;
+    // Release keeps ~72% — visibly slower than the ~76% attack step, so a
+    // brief flick can't pull the periphery's resolution back up twice.
+    expect(decayFrac).toBeLessThan(0.4);
   });
 
   test('still head drives foveation up; fast head drives it down', async () => {
@@ -203,3 +218,68 @@ describe('FFRSystem — remaining init/guard arms', () => {
   });
 });
 
+describe('FFRSystem — compositor write dedup (fixedFoveation is state, not a per-frame push)', () => {
+  const IDENT = { x: 0, y: 0, z: 0, w: 1 };
+  test('writes stop once the adaptive level has converged', async () => {
+    const { layer, binding } = makeBinding(true);
+    global.XRWebGLBinding = binding;
+    const ffr = new FFRSystem();
+    await ffr.initialize({ s: 1 }, { gl: 1 });
+    delete global.XRWebGLBinding;
+
+    let writes = 0;
+    let val = layer.fixedFoveation;
+    Object.defineProperty(layer, 'fixedFoveation', {
+      get: () => val,
+      set: (v) => {
+        writes += 1;
+        val = v;
+      }
+    });
+
+    ffr.enable(0.5);
+    expect(writes).toBe(1); // the enable write always lands
+
+    ffr.trackHeadPose(IDENT, 0.016);
+    ffr.trackHeadPose(IDENT, 0.016);
+    for (let i = 0; i < 300; i++) {
+      ffr.trackHeadPose(IDENT, 0.016);
+      ffr.updatePredictedGazeFoveation(0.016);
+    }
+    const afterConverge = writes;
+    expect(afterConverge).toBeGreaterThan(1); // it did write while chasing the target
+
+    for (let i = 0; i < 50; i++) {
+      ffr.trackHeadPose(IDENT, 0.016);
+      ffr.updatePredictedGazeFoveation(0.016);
+    }
+    expect(writes).toBe(afterConverge); // converged: deadband stops the churn
+  });
+
+  test('a settled session is not reconfigured by sub-deadband nudges', async () => {
+    const { layer, binding } = makeBinding(true);
+    global.XRWebGLBinding = binding;
+    const ffr = new FFRSystem();
+    await ffr.initialize({ s: 1 }, { gl: 1 });
+    delete global.XRWebGLBinding;
+
+    let writes = 0;
+    let val = layer.fixedFoveation;
+    Object.defineProperty(layer, 'fixedFoveation', {
+      get: () => val,
+      set: (v) => {
+        writes += 1;
+        val = v;
+      }
+    });
+
+    ffr.enable(0.5);
+    const w0 = writes;
+    ffr.adjustIntensity(0.005); // < 2% deadband — sub-perceptual, must not write
+    expect(writes).toBe(w0);
+    expect(layer.fixedFoveation).toBeCloseTo(0.5);
+    ffr.adjustIntensity(0.05);  // past the deadband — a real level change lands
+    expect(writes).toBe(w0 + 1);
+    expect(layer.fixedFoveation).toBeCloseTo(0.555);
+  });
+});

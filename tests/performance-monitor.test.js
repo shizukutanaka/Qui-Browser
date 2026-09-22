@@ -639,3 +639,56 @@ describe('PerformanceMonitor perf-close + memory interval bodies', () => {
     jest.useRealTimers();
   });
 });
+
+
+describe('PerformanceMonitor — alert dedup on a value-stripped key', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  test('alerts differing only in the embedded value collapse to one entry', () => {
+    const mon = new PerformanceMonitor();
+    mon.addAlert('critical', 'Frame time: 16.52ms');
+    mon.addAlert('critical', 'Frame time: 18.01ms');
+    mon.addAlert('critical', 'Frame time: 19.40ms');
+    // Same condition, drifting measurement — one alert, not three.
+    expect(mon.alerts).toHaveLength(1);
+    expect(mon.alerts[0].count).toBe(3);
+    // The HUD shows the latest measured value, not the first sighting.
+    expect(mon.alerts[0].message).toBe('Frame time: 19.40ms');
+  });
+
+  test('console.warn fires once per deduped condition, not per frame', () => {
+    const mon = new PerformanceMonitor();
+    // 60 "frames" of a sustained over-threshold frame-time — before the fix
+    // this produced 60 alerts + 60 warns (and churned the 50-entry ring).
+    for (let i = 0; i < 60; i++) {
+      mon.addAlert('critical', `Frame time: ${16 + i / 10}ms`);
+    }
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(mon.alerts[0].count).toBe(60);
+  });
+
+  test('the same text at different severity stays separate', () => {
+    const mon = new PerformanceMonitor();
+    mon.addAlert('warning', 'Frame time: 13.0ms');
+    mon.addAlert('critical', 'Frame time: 17.0ms');
+    expect(mon.alerts).toHaveLength(2);
+  });
+
+  test('dedup window expires — the same condition 5s later logs fresh', () => {
+    const mon = new PerformanceMonitor();
+    let t = 1000;
+    const spy = stubPerformanceNow(() => t);
+    mon.addAlert('critical', 'FPS dropped to 45.0');
+    t = 3000;
+    mon.addAlert('critical', 'FPS dropped to 44.0'); // within window → dedup
+    expect(mon.alerts).toHaveLength(1);
+    t = 9000; // 6s since the last bump — window expired
+    mon.addAlert('critical', 'FPS dropped to 42.0');
+    spy.restore();
+    expect(mon.alerts).toHaveLength(2);
+    expect(mon.alerts[0].count).toBe(1);
+  });
+});

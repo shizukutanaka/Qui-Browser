@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 143: 続き301 — stranded fix 再陸 最終弾（comfort/perf クラスタ7件: #210, #212, #213, #214, #219, #227, #232）→ stranded 在庫ほぼ精算
+- 🔍 **Session 141 の在庫から最後の7件を cherry-pick 再陸**。#215（follow lerp exp）は ancestry 検査で**既着地**と判明（誤検出を訂正 — コード上の欠陥痕跡と実際の祖先関係が乖離していた件、code-content 検証の限界）。interaction 4件=#249、browser/rendering 5件=#250 と合わせ stranded 再陸はこれで完了。
+- 🔧 **#210** FFR: 収束後も毎フレーム compositor 書込 + 対称 EMA + dt 無視の chase → write-on-change + 非対称 envelope(attack τ=0.07s/release τ=0.3s) + dt chase ／ **#212** southpaw dead knob 撤去 + `_empty` の family-blind 軸形状修正 ／ **#213** PerformanceMonitor: 値埋め込み文字列で dedup 不発 → level+数字畳み込み key + 5s 窓 ／ **#214** vignette chase の per-frame 乗算 → `1-(1-s)^(dt/16.67ms)` ／ **#219** SpatialAudio: onended の totalPlayTime 未加算 + listener 移動時 LOD 未再評価 + dead cpuLoad 撤去 ／ **#227** DevTools console: hidden/別タブでも毎ログ ≤100 行 DOM 再構築 → visible+console-active のみ + showTab 復帰時 repaint ／ **#232** monitoring: trackFPS/trackMemory が閾値超過中 1Hz 毎に GA イベント連発 → severity-bucket 遷移のみ発火。
+- 🧪 各 commit が元の pin を同梱（計 ~30 tests、元ブランチで赤検証済み）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 61 checks PASS、verify:app PASS。
+- 📋 stranded fix の在庫精算完了（#215 は既着地）。以後は通常の新規欠陥・カバレッジ探索へ。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。
@@ -358,12 +365,25 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 2件（csp-consistency: meta CSP に header-only directive 非含有 — frame-ancestors/sandbox/report-uri/report-to、header CSP ≡ meta + 恰好 `frame-ancestors 'self'` 1件の差分 — 「全 policy 完全一致」より精密で、他の差分は依然失敗）。stash 検証で pre-fix 赤・post-fix 緑。**実機再確認**: 修正後ビルドで新 SW precache → clean meta + console error 0件を CDP 実測（旧 SW が旧 precache を配信中は error 継続する標準ライフサイクルも観測）。
 - ✅ 3233 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 122: 続き280 — monitoring 閾値アラートが 1 Hz フィードのたびに同一 GA イベントを連発
+- 🔍 **実測（コード追跡）**: `updatePerformanceMonitor`（VRApp 3676-3685）は `trackFPS`/`trackMemory` を ~1 Hz で呼ぶが、両者は閾値超過の間 **呼出ごとに GA イベントを発火** — Quest で fps が 60 未満に張り付いたセッションは `performance_fps_drop` が秒間 1 件のストームとなり（`memoryMB > 500` の `performance_high_memory` も同型）、GA4 のイベントクォータを持続状態への単一シグナルで食い潰す。PerformanceMonitor.addAlert の value-stripped dedup（続き261/PR #213）と同じ欠陥クラスが解析イベント側にも存在した。
+- 🔧 **修正**: 発火を severity バケット**遷移時のみ**に限定 — 純粋関数 `fpsSeverityBucket`/`memorySeverityBucket`（既存の閾値式をそのまま移植: fps 60/45/30、memory 500/750/1000 MB）と `alertSeverityTransition`（バケット不変なら emit=false、復帰時は発火せずにバケットだけリセットして次の悪化を再捕捉）を追加し、`trackFPS`/`trackMemory` のイベント経路をこの状態機械に載せ替え。`disposeMonitoring` が `_fpsSeverity`/`_memorySeverity` をリセット — 再 init した新セッションの最初のアラートが「不変」として抑止されない。悪化（medium→critical）・緩和だが未復帰（critical→high）は新 severity 付きで発火、同一バケット持続・復帰は沈黙。
+- 🧪 pin 3件（tests/monitoring.test.js: fps バケット境界 60/45/30 + NaN/文字列耐性、memory バケット境界 500/750/1000 + NaN 耐性、遷移機械の emit/bucket 全遷移）— 新規 export のため pre-fix は `undefined is not a function` で赤、実装後緑。trackEvent 自体はテスト環境で不活性（enabled=false）のため、発火経路ではなく状態機械を pin 対象に据えた。
+- ✅ 3235 tests / 73 suites 全緑（base 3232 + 3 pins）、lint 0 errors（354 warnings ベースライン）、build 緑。
+
+
 ### Session 118: 続き276 — 消したメソッドを `?.` で呼ぶ死んだ呼出4件（進む/戻る が全部嘘を言う）
 - 🔍 **実測**: WebPanel の `goBack()`/`goForward()` は no-dead-public-api 台帳の確定済み dead API（`back()`/`forward()` が live 相当）— だが台帳は**定義の削除**だけを pin し、**呼出側**は検査していなかった。結果 `tab.goForward?.()`/`tab.goBack?.()` が optional chaining 経由で4箇所に残存し全部静黙 no-op: ①VRApp pointer hand faceA（進む）②faceB（戻る）③VoiceCommands「進む/次へ」④「戻る/前へ」。しかも no-op に留まらず**虚偽フィードバック**: `moved` は常に undefined → A/B ボタンは履歴があっても毎回「次のページはありません」「前のページはありません」キャプション（WCAG 4.1.3）、音声「進む」は「進みます」と発話しながら何も遷移しない。さらに `back()`/`forward()` は戻り値を持たず、呼出名を直しても caption 分岐が動かない — boolean 契約そのものが goBack/goForward と共に消えていた。テスト側も被害: voice/wiring 双方の mock が `{ goForward: jest.fn(), goBack: jest.fn() }` と死んだ名前を供給し、緑のまま偽契約を固定していた。
 - 🔧 **修正**: `back()`/`forward()` が移動可否を `return true/false`（boolean 契約を live メソッドへ復元）→ 4 call sites を実名 `forward()`/`back()` へ。テスト mock を全て実名へ付け替え（voice 1・wiring 4）。`no-dead-public-api.test.js` に **dead-CALLER スキャン**を追加 — src/ 全ファイルを再帰走査し `\bgoBack\b|\bgoForward\b` トークンを禁止（同じ逃げ道を塞ぐ）。docstring 内の死んだ参照（VRControllerInput usage例 `goBack()`）も実名に修正 — ガードは src/ 全体の裸トークンを検査するため。
 - 🧪 pin: dead-caller スキャン（src 全 .js ファイル×test.each — pre-fix で VRApp.js と VoiceCommands.js の2ファイルのみ赤）＋ back/forward 戻り値 6 assertion（境界 false・移動 true）＋ mock 付け替え済み voice/wiring テスト（pre-fix で forward/back 非呼出赤）。計10件 pre-fix 赤・全件 post-fix 緑。
 - ✅ 3271 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
 
+
+### Session 117: 続き275 — DevTools console が hidden/別タブでも毎ログ 100 行再構築＋戻り時 stale
+- 🔍 **実測**: `DevTools.logMessage` が `updateConsoleMessages()` を**無条件**呼出 — パネルは `display:none` でも DOM に残存するため getElementById は要素を発見し、hidden 中・別タブ表示中の console 呼出しごとに最大 100 行の DOM 再構築（scroll pin 含む）を実行していた。パッシブであるべき dev ツールが常時コストを食う設計。さらに `showTab` の refresh switch は `'scene'`/`'network'` のみで **`'console'` が欠落** — consoleDiv はタブ切替で content container から detach されるため、別タブ表示中に届いたログは要素が detached で getElementById→null になり描画を逃し、`showTab('console')` で再マウントしても古い子要素のまま stale 表示（次の console 呼出しまで更新されない）。
+- 🔧 **修正**: `this._activeTab` でマウント中タブを追跡（`showTab` でセット）。`logMessage` は `this.visible && this._activeTab === 'console'` の時だけ repaint — hidden・別タブ中は完全 passive。`showTab` の switch に `case 'console': this.updateConsoleMessages()` を追加し、離席中のログを再マウント時に repaint（scene/network と同じ refresh 規約へ統一）。
+- 🧪 pin 2件（dev-tools.test.js の DOM output layer describe）: hidden 中の logMessage が DOM 非構築＋別タブ中も非構築＋visible console 中は即時 render（1テスト3局面）・`showTab('console')` で離席中ログが repaint されること。両件 pre-fix 赤・post-fix 緑を実測。
+- ✅ 3228 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
 
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
@@ -378,11 +398,35 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **O-1 一部**: DEVELOPER_ONBOARDING.md / API.md / IMPROVEMENT_ANALYSIS.md / CATEGORY_RESEARCH.md の冒頭へ「旧設計のアーカイブ」注記 + 現行参照先（ARCHITECTURE.md/TESTING.md）を挿入 — 選択肢 (b)。本文全面改訂 (a) ・削除 (c) は引き続きオーナー判断。
 - ✅ 3199 tests / 73 suites 緑、lint 0 errors、build 緑。スタック状態: オーナーが #200 を #199 ブランチへ merge 済み、#201 は auto-retarget で #199 ブランチが base — #201 ブランチへ #199 tip を merge 取り込み済み（76ce28d — #201 の diff が ascii 分のみに縮小）。
 
+### Session 100: 続き258 — FFR 適応フォビエーションの3欠陥（書き込み頻度・対称EMA・dt非依存）
+- 🔍 **実測（コード追跡）**: `FFRSystem` の適応フォビエーションに連鎖する3つの欠陥。①`_writeFoveation` が毎フレーム `fixedFoveation` を合成器へ書込 — 追跡対象のEMAは漸近収束し同一 float を二度と出さないため、レベルが定数に落ち着いても XR compositor に90Hzで同値状態を再設定し続ける。②`trackHeadPose` の平滑化は対称 EMA（`hV*0.8+v*0.2`）なのに自コメントは「fast rise, slow decay」を主張 — 実装がコメントと矛盾し、且つ dt 無視で 72Hz→120Hz で応答が変わる。③`updatePredictedGazeFoveation` の強度追従 `*0.1` もフレームレート依存。
+- 🔧 **修正**: `_writeFoveation` を write-on-change 化（2% デッドバンド — VRS タイル粒度以下の変動は合成器へ投げない）、`trackHeadPose` を非対称エンベロープ化（attack τ=0.07s / release τ=0.3s — saccade 即時反応・減衰は緩慢で周辺解像度のフリッカー抑止、audio compressor 相当）、`updatePredictedGazeFoveation(dt)` が実フレーム dt を取り呼出側 VRApp も `dt` を渡す。
+- 🧪 pin 4件：attack エンベロープへの既存ピン移行（0.1s で ~76% 透過）、attack>release の非対称性、収束後の書込停止（write カウンタ）、サブデッドバンド nudge で書込なし。全件 stash 検証で pre-fix 赤・post-fix 緑。
+- ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 101: 続き259 — SemanticDOM ライブリージョンの重複アナウンス沈黙
 - 🔍 **実測（コード追跡）**: `SemanticDOM.announceCaption/announceAlert` は `textContent` に同じ文字列を二度書いても DOM が変化しないため、**スクリーンリーダーはライブリージョンの変異検知で発話する設計上「同一メッセージの連続発話」が一切アナウンスされない**。VR 側は `CaptionSystem.show` が同一行を重複 push する（表示は重複するのに音声は1回だけ）＋ toast も同一路線 — 視覚と音声アクセシビリティの出力が不一致だった（WCAG 4.1.3 Status Messages の実質不達）。LiveAnnouncer 系（Angular CDK / react-aria）の周知の回避策を参照。
 - 🔧 **修正**: `_announce(region, state, text)` — 直前と同一テキストのとき末尾に交互にゼロ幅スペース（`\u200B`）を付与し、毎回 DOM 変異を保証。不可視・無発音だが accessibility tree は変更として扱う。新テキスト到達でマーカーをリセット。announceCaption/announceAlert はこの経路へ委譲、dispose が両リージョンの state をリセット。
 - 🧪 pin 3件：同一テキスト 2・3 回連続で textContent が毎回変異（剥がせば元の文字列）、新テキスト到達でマーカーリセット、alert 側も同挙動。全件 stash 検証で pre-fix 赤・post-fix 緑。
 - ✅ 3214 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 104: 続き262 — ComfortSystem ビネット追尾のフレームレート依存（72–120Hz で最大 ~1.7×）
+- 🔍 **実測（コード追跡）**: `updateVignette` は `currentVignette += (target - current) * smoothing` の**フレーム比例**追尾で `_deltaTime` を未使用 — `update()` には実 dt が届いているのに捨てていた。結果、ビネットの淡入・淡出時定数がリフレッシュレートに依存：120Hz では 72Hz の ~1.7× 速く収束し、長フレーム（ヒッチ）では実時間分だけ追従不足 — **前庭保護要素のタイミングが表示レートで変わる**欠陥（R13/FFR の `*0.1` 追尾と同クラス）。
+- 🔧 **修正**: 追従係数を `a = 1 - (1 - s)^(dt / 16.667ms)` の指数形へ — `smoothing` は「16.67ms あたりのギャップ閉鎖率」の意味を維持しつつ、任意の表示レート・任意の dt で実時間収束率が一致。`s` は [0,1] にクランプ（>1 で負底の小数冪 → NaN / オーバーシュート防止）。dt=16.67ms では `a = s` で既存挙動と一致（snap テスト `smoothing=1` 不変）。
+- 🧪 pin 3件：120Hz/72Hz で 0.2s 淡出後の残量が一致（pre-fix では ~3× 差）、500ms ヒッチ 1 フレーム = 16.7ms×30 フレームと同値（pre-fix では 0.36 vs 0.017）、smoothing>1 でもオーバーシュート・NaN なし。3件全て stash 検証で pre-fix 赤。
+- ✅ 3214 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 103: 続き261 — PerformanceMonitor のアラート dedup 不発（値埋め込み文字列）
+- 🔍 **実測（コード追跡）**: `addAlert` の重複抑止は `a.message === message` の完全一致 + 5秒窓 — しかしアラート文には測定値が埋め込まれている（`Frame time: 16.52ms`、`FPS dropped to 45.3`）ため**実際にはほぼ衝突しない**。`checkThresholds` は frameTime 超過を毎フレーム評価するので、閾値超過が持続すると **90Hz で alert 追加 + console.warn** — perf が最悪な瞬間に 50 エントリのリングを回転させログを洪水させていた。
+- 🔧 **修正**: dedup キーを `${level}:${message.replace(/\d+(\.\d+)?/g,'#')}` の値除去形へ — 同一状態の繰返しは1エントリの count を増やし、message/timestamp は最新値へ更新（先発値ではなく最新測定が HUD に出る）。dedup 窓はスライド式（持続中は発火しないが、最後の発生から 5 秒で再カウント）。
+- 🧪 pin 4件：値だけ違うアラート3連続が1エントリ+count3+最新 message、60フレームの持続状態で console.warn 1回のみ（従来は60回+リング回転）、severity 違いは別エントリ、5秒窓切れで新規エントリ。3件 stash 検証で pre-fix 赤。
+- ✅ 3215 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 102: 続き260 — VRControllerInput の dead knob 撤去 + _empty スナップ形状不整合
+- 🔍 **実測（コード追跡）**: `VRControllerInput` に2つの欠陥。①**southpaw は dead option** — ctor が `southpaw` を受け `this.southpaw` に格納するが `read()` で一切使われず、テストも「flag is stored」＝ no-op を pin していた。実の左右入替は VRApp の `turnHand/moveHand/pointerHand` 選択（2181/2275行）で実装済み — read() は per-source なので入力層では両手の入替えは**原理的に不可能**であり、この層のオプションは「設定可能」に見せかけるだけ。加えて VRApp は `southpaw: this.settings.southpaw` を dead コンストラクタ引数として送っていた（将来「修正」すれば二重入替になる罠）。②`_empty`（gamepad なし source）は axes を `{stickX, stickY}` 固定で返し、`read()` の family 別 shape と不整合 — gamepad 接続前の valve-index source で `snap.axes.trackpadX` が undefined。
+- 🔧 **修正**: southpaw param/JSDoc/フィールドを撤去し「この層に置けない理由」を ctor ドキュメントへ記録（Q-1/F-2 到達不能方針と同型）。VRApp 側は settings 直読みの実装を残し dead 引数のみ除去。`_empty` は `read()` と同じ family→axesMap ビルドへ統一。
+- 🧪 pin 4件：valve-index の gamepad 無しでも trackpad 軸 0 で露出、meta-quest は stick のみ、handedness 透過、southpaw 非受理の境界 pin（再追加防止）。trackpad pin は stash 検証で pre-fix 赤。
+- ✅ 3213 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 105: 続き263 — WindowManager follow lerp の「フレームレート独立」が実は線形（ヒッチで瞬間スナップ）
 - 🔍 **実測（コード追跡）**: `update()` のフォロー追従は `t = min(1, followLerp * (dtMs/16.667))` の**線形スケール**で「Frame-rate-independent」とコメントがあったが一次近似に過ぎない — 100ms ヒッチで実測 ~90% 収束（正確な 6フレーム相当は ~62%）、**dtMs>~111ms で t=1 にクランプされパネルが瞬間スナップ**（ヒッチ1発で追従が「ワープ」する可視欠陥）。dtMs≤0 では t<0 でターゲットから**遠ざかる**方向へ動く。R17/ComfortSystem・R13/FFR と同クラス。
@@ -395,6 +439,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: ①`BookmarkStore.removeHistory(url)` 再上陸 — dedupe 済みでも filter 全除去で破損データ安全、boolean 返却 ②BookmarkPanel の削除ゾーンをモード対応メソッド（removeBookmark/removeHistory）存在でゲート — store が未対応なら従来どおり read-only を維持、deleteRow はモード別 `onDeleteBookmark`/`onDeleteHistory` 発火（誤キャプション防止）③VRApp に `onDeleteHistory` 配線（caption `vr.msg.historyEntryDeleted` en/ja + notification haptic）④dead-API 台帳から removeHistory を除去（本番 call site ありに）。
 - 🧪 pin 6件：store 3件（対象のみ削除・未知 URL false・永続化）、panel 3件（history ゾーンが removeHistory+onDeleteHistory 発火・removeBookmark/onDeleteBookmark 不発・非関数 opt は null）。4件 stash 検証で pre-fix 赤。
 - ✅ 3222 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 109: 続き267 — SpatialAudio 3点修正（自然終了の再生時間・リスナー移動時 LOD・dead cpuLoad）
+- 🔍 **実測（コード追跡）**: 3つの実害を確認 — ①`node.onended` は `isPlaying=false`+`sourcesActive--` だけで **`totalPlayTime` に経過時間を積算しない**：自然終了する UI トーン（click/hover — 全て非ループ短音）は統計に一切現れず、`totalPlayTime` は明示 stop() されたソースだけを計測していた ②`setListenerPosition` は LOD 再評価をしない — `updateListenerFromCamera` 経由でのみ `updateAllLOD` が走るため、直接呼び（スクリプト化テレポート等）で全ソースの HRTF/equalpower 階層が**陳腐化** ③`stats.cpuLoad` は初期化後に書込ゼロの dead フィールド（R21 pinchAccuracy と同クラス）。
+- 🔧 **修正**: ①onended で `startTime` からの経過を積算し `startTime=0` で後続 stop() の二重計上を防止 ②setListenerPosition 末尾で `updateAllLOD()`（updateListenerFromCamera 側は既に呼ぶため冪等）③cpuLoad フィールド削除。
+- 🧪 pin 3件：自然終了で +40s 積算・後続 stop で不変（pre-fix 0→stop で40＝ダブルカウント痕跡）、setListenerPosition でリスナー 50m 移動 → equalpower へ反転（pre-fix HRTF のまま）、cpuLoad 不存。全件 stash 検証で pre-fix 赤。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。

@@ -315,6 +315,52 @@ describe('DevTools DOM output layer', () => {
     expect(dt.tabs.get('console').button.style.background).toBe('#0e639c');
     expect(content.children[0]).toBe(dt.tabs.get('console').content);
   });
+
+  test('logMessage rebuilds the console view only while it is the visible tab', () => {
+    const box = makeEl('console-messages');
+    byId.set('console-messages', box);
+    dt.initialize();
+
+    // Hidden: the panel is display:none yet still in the DOM — previously
+    // every console call still rebuilt up to 100 rows.
+    dt._activeTab = 'console';
+    dt.logMessage('log', ['hidden-msg']);
+    expect(box.children).toHaveLength(0);
+    expect(dt.tools.console.messages.at(-1).args).toEqual(['hidden-msg']);
+
+    // Visible but on another tab: still passive — the repaint lands on
+    // showTab('console'), not per message.
+    dt.visible = true;
+    dt._activeTab = 'scene';
+    dt.logMessage('log', ['other-tab-msg']);
+    expect(box.children).toHaveLength(0);
+
+    // Visible + console active: immediate render of all backlog + the new row.
+    dt._activeTab = 'console';
+    dt.logMessage('log', ['live-msg']);
+    expect(box.children.length).toBeGreaterThan(0);
+    expect(box.children.at(-1).textContent).toContain('live-msg');
+  });
+
+  test('showTab("console") re-renders messages logged while the tab was away', () => {
+    const box = makeEl('console-messages');
+    const content = makeEl('dev-tools-content');
+    byId.set('console-messages', box);
+    byId.set('dev-tools-content', content);
+    dt.initialize();
+
+    // Log while the console tab is not the mounted one.
+    dt.visible = true;
+    dt._activeTab = 'scene';
+    dt.logMessage('log', ['while-away']);
+    expect(box.children).toHaveLength(0);
+
+    // Returning to the console tab must repaint — previously the new lines
+    // stayed invisible until the NEXT console call after switching back.
+    dt.showTab('console');
+    expect(box.children.length).toBeGreaterThan(0);
+    expect(box.children.at(-1).textContent).toContain('while-away');
+  });
 });
 
 describe('DevTools — remaining DOM arms', () => {

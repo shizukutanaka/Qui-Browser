@@ -326,6 +326,59 @@ const performanceMetrics = {
   interactions: []
 };
 
+// ── Threshold-alert dedup ────────────────────────────────────────────────────
+// VRApp feeds trackFPS/trackMemory at ~1 Hz. Firing the analytics event on
+// every sample while the metric stays over threshold turns one sustained
+// degraded state into a per-second event stream — the same alert-storm shape
+// PerformanceMonitor.addAlert had. An event is therefore emitted only when the
+// severity bucket CHANGES; silence while a bucket persists. Buckets preserve
+// the original threshold expressions exactly.
+
+/**
+ * Severity bucket for a FPS sample, or null at/above 60.
+ * @param {number} fps
+ * @returns {'critical'|'high'|'medium'|null}
+ */
+export function fpsSeverityBucket(fps) {
+  const f = Number(fps);
+  if (!Number.isFinite(f) || f >= 60) {
+    return null;
+  }
+  return f < 30 ? 'critical' : f < 45 ? 'high' : 'medium';
+}
+
+/**
+ * Severity bucket for a memory sample in MB, or null at/below 500.
+ * @param {number} memoryMB
+ * @returns {'critical'|'high'|'medium'|null}
+ */
+export function memorySeverityBucket(memoryMB) {
+  const m = Number(memoryMB);
+  if (!Number.isFinite(m) || m <= 500) {
+    return null;
+  }
+  return m > 1000 ? 'critical' : m > 750 ? 'high' : 'medium';
+}
+
+/**
+ * Dedup decision shared by the FPS and memory alerts: emit only when the
+ * severity bucket changes. Recovery (bucket → null) emits nothing but resets
+ * the remembered bucket so a later drop re-fires.
+ *
+ * @param {string|null} prev    last emitted bucket (null = nominal or none yet)
+ * @param {string|null} bucket  current bucket
+ * @returns {{emit: boolean, bucket: string|null}}
+ */
+export function alertSeverityTransition(prev, bucket) {
+  if (bucket === prev) {
+    return { emit: false, bucket: prev };
+  }
+  return { emit: bucket !== null, bucket };
+}
+
+let _fpsSeverity = null;
+let _memorySeverity = null;
+
 /**
  * Track FPS
  */
@@ -340,11 +393,14 @@ export function trackFPS(fps) {
     performanceMetrics.fps.shift();
   }
 
-  // Report if FPS drops below threshold
-  if (fps < 60) {
+  // Report on severity transitions only — a sustained low-FPS state is one
+  // event, not a per-tick stream.
+  const t = alertSeverityTransition(_fpsSeverity, fpsSeverityBucket(fps));
+  _fpsSeverity = t.bucket;
+  if (t.emit) {
     trackEvent('performance_fps_drop', {
       fps: Math.round(fps),
-      severity: fps < 30 ? 'critical' : fps < 45 ? 'high' : 'medium'
+      severity: _fpsSeverity
     });
   }
 }
@@ -363,11 +419,12 @@ export function trackMemory(memoryMB) {
     performanceMetrics.memory.shift();
   }
 
-  // Report if memory exceeds threshold (500MB)
-  if (memoryMB > 500) {
+  const t = alertSeverityTransition(_memorySeverity, memorySeverityBucket(memoryMB));
+  _memorySeverity = t.bucket;
+  if (t.emit) {
     trackEvent('performance_high_memory', {
       memory_mb: Math.round(memoryMB),
-      severity: memoryMB > 1000 ? 'critical' : memoryMB > 750 ? 'high' : 'medium'
+      severity: _memorySeverity
     });
   }
 }
@@ -529,6 +586,10 @@ export async function initializeMonitoring() {
  */
 export function disposeMonitoring() {
   _unloaded = false;
+  // Severity dedup state restarts clean so a re-init doesn't suppress the
+  // first alert of a new session as "unchanged".
+  _fpsSeverity = null;
+  _memorySeverity = null;
   if (_perfIntervalId !== null) {
     clearInterval(_perfIntervalId);
     _perfIntervalId = null;

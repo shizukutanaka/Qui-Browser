@@ -336,25 +336,38 @@ export class PerformanceMonitor {
    * Add performance alert
    */
   addAlert(level, message) {
-    const alert = {
-      level,
-      message,
-      timestamp: new Date().toLocaleTimeString(),
-      count: 1
-    };
+    // Dedup on a value-stripped key: alert text embeds the measured number
+    // ("Frame time: 16.52ms", "FPS dropped to 45.3"), so an exact-string
+    // match almost never collides — a sustained over-threshold state would
+    // otherwise emit a fresh alert plus a console.warn every frame, right
+    // at the moment performance is already degraded. Collapsing digit
+    // sequences lets repeats of the same condition increment one entry's
+    // counter; the message/timestamp are refreshed so the latest measured
+    // value shows, not the first.
+    const key = `${level}:${message.replace(/\d+(?:\.\d+)?/g, '#')}`;
+    const now = performance.now();
 
-    // Check if same alert exists recently
     const recent = this.alerts.find(a =>
-      a.message === message &&
-      performance.now() - a.time < 5000
+      a.key === key &&
+      now - a.time < 5000
     );
 
     if (recent) {
       recent.count++;
+      recent.message = message;
+      recent.timestamp = new Date().toLocaleTimeString();
+      recent.time = now;
       return;
     }
 
-    alert.time = performance.now();
+    const alert = {
+      level,
+      message,
+      key,
+      timestamp: new Date().toLocaleTimeString(),
+      count: 1,
+      time: now
+    };
     this.alerts.unshift(alert);
 
     // Keep alerts limited

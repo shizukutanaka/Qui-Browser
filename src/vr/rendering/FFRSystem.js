@@ -19,6 +19,12 @@ export class FFRSystem {
     this._prevHeadQuat = null;   // {x,y,z,w} from the previous frame
     this._headVelocity = 0;      // smoothed angular velocity (rad/s)
     this.predictedGazeEnabled = false;
+    // Last foveation value actually handed to the runtime. fixedFoveation is
+    // compositor state — a write can reconfigure the swapchain's VRS tiles —
+    // so the adaptive paths below only write when the level really changes;
+    // without a deadband the per-frame EMA would produce a new float and
+    // trigger a compositor update every single frame forever.
+    this._lastWritten = null;
   }
 
   /**
@@ -33,6 +39,7 @@ export class FFRSystem {
     }
 
     this._xrManager = xrManager;
+    this._lastWritten = null; // fresh session — the first write must land
 
     // The session's base layer carries its own fixedFoveation and needs no
     // 'layers' grant — three's WebXRManager.setFoveation writes it. It is both
@@ -77,14 +84,25 @@ export class FFRSystem {
   /**
    * Write a foveation value to every available target (projection layer +
    * base layer). Base-layer writes are a no-op on runtimes without support.
+   *
+   * Write-on-change: the value must differ from the last write by more than
+   * the deadband before touching the compositor. 2% is far below the
+   * granularity real runtimes expose (Meta's fixedFoveation maps onto a
+   * handful of VRS tile granularities), so skipped writes are inaudible —
+   * but they stop a per-frame adaptive loop from churning compositor state.
    */
   _writeFoveation(value) {
+    const v = Math.max(0, Math.min(1, value));
+    if (this._lastWritten !== null && Math.abs(v - this._lastWritten) < 0.02) {
+      return;
+    }
+    this._lastWritten = v;
     if (this.projectionLayer) {
-      this.projectionLayer.fixedFoveation = value;
+      this.projectionLayer.fixedFoveation = v;
     }
     if (this._baseFoveation) {
       try {
-        this._xrManager.setFoveation(value);
+        this._xrManager.setFoveation(v);
       } catch (e) {
         console.debug('FFRSystem: base-layer foveation write skipped', e);
       }
@@ -152,8 +170,15 @@ export class FFRSystem {
       );
       const angleDelta = 2 * Math.acos(Math.min(1, dot));
       const angularVelocity = angleDelta / dtSeconds;
-      // Smooth with an EMA (fast rise, slow decay) to avoid flickering.
-      this._headVelocity = this._headVelocity * 0.8 + angularVelocity * 0.2;
+      // Smooth with an attack/release envelope so a brief saccade raises the
+      // estimate immediately while the estimate decays slowly — jitter would
+      // otherwise flicker the periphery's resolution (the compressor-envelope
+      // analogue adaptive-foveation designs use). Time-constant form keeps
+      // the same feel at 72 / 90 / 120 Hz where a fixed per-frame coefficient
+      // drifts.
+      const tau = angularVelocity > this._headVelocity ? 0.07 : 0.30;
+      this._headVelocity += (angularVelocity - this._headVelocity) *
+        (1 - Math.exp(-dtSeconds / tau));
       this.predictedGazeEnabled = true;
     }
     // Mutate the stored quaternion in place to avoid a per-frame allocation.
@@ -172,8 +197,12 @@ export class FFRSystem {
    * resolution).  Moving head → low intensity (user may be scanning the edge).
    *
    * Intended to be called after trackHeadPose() in the same frame.
+   *
+   * @param {number} [dtSeconds=1/90] — frame dt so the chase toward the
+   *   target intensity is frame-rate independent (same time constant at
+   *   72 / 90 / 120 Hz).
    */
-  updatePredictedGazeFoveation() {
+  updatePredictedGazeFoveation(dtSeconds = 1 / 90) {
     if (!this.predictedGazeEnabled || !this.enabled) {
       return;
     }
@@ -186,8 +215,9 @@ export class FFRSystem {
 
     // Still head (t=0) → intensity 0.8; fast head (t=1) → intensity 0.2.
     const target = 0.8 - 0.6 * t;
-    this.intensity += (target - this.intensity) * 0.1;
-    this._writeFoveation(Math.max(0, Math.min(1, this.intensity)));
+    const a = 1 - Math.exp(-dtSeconds / 0.1);
+    this.intensity += (target - this.intensity) * a;
+    this._writeFoveation(this.intensity);
   }
 
   /**

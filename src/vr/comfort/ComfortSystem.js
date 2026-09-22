@@ -145,7 +145,7 @@ export class ComfortSystem {
    * smooth locomotion contributes proportionally to externalMotionLevel
    * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
-  updateVignette(_deltaTime) {
+  updateVignette(deltaTime = 0.016) {
     const externalLevel = this.externalMotion
       ? Math.max(0, Math.min(1, this.externalMotionLevel))
       : 0;
@@ -155,9 +155,17 @@ export class ComfortSystem {
     );
     const targetVignette = this.settings.vignette.intensity * motionLevel;
 
-    // Smooth transition
-    this.currentVignette += (targetVignette - this.currentVignette) *
-                             this.settings.vignette.smoothing;
+    // Frame-rate independent exponential chase: `smoothing` is the fraction
+    // of the remaining gap closed per 16.67 ms, so the vignette's attack and
+    // release rates hold at any display rate (72–120 Hz). A per-frame `*s`
+    // chase would converge ~1.7× faster at 120 Hz than at 72 Hz — the
+    // timing of a vestibular protection must not depend on the refresh
+    // rate. Also exact over any dt: a long frame can't under-chase and
+    // never overshoots (a stays in [0,1]).
+    const dt = Math.max(0, deltaTime);
+    const s = Math.min(1, Math.max(0, this.settings.vignette.smoothing));
+    const a = 1 - Math.pow(1 - s, dt / 0.016667);
+    this.currentVignette += (targetVignette - this.currentVignette) * a;
 
     // Apply to the quad; skip its draw call entirely once it has faded out.
     if (this.vignetteMaterial) {

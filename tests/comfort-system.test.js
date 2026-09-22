@@ -473,3 +473,50 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
     expect(smoothMoveWarning(false, false)).toBeNull();
   });
 });
+
+
+describe('ComfortSystem — frame-rate independent vignette chase', () => {
+  const stillSystem = () => {
+    const cs = new ComfortSystem(makeCamera());
+    cs.currentVignette = 0.4;
+    cs.isMoving = false;
+    cs.isRotating = false;
+    cs._headMoving = false;
+    cs.externalMotion = false;
+    return cs;
+  };
+
+  test('fade-out converges at the same wall-clock rate at 120 Hz and 72 Hz', () => {
+    const run = (dt, frames) => {
+      const cs = stillSystem();
+      for (let i = 0; i < frames; i++) {
+        cs.updateVignette(dt);
+      }
+      return cs.currentVignette;
+    };
+    // ~0.2 s of fade-out at each display rate.
+    const at120 = run(1 / 120, 24);
+    const at72 = run(1 / 72, 14);
+    // Per-frame *s chase would leave ~3x the residue on the slower display;
+    // the exponential form lands within 5%.
+    expect(at120).toBeCloseTo(at72, 1);
+  });
+
+  test('a single long frame chases as far as the equivalent small frames', () => {
+    const hitched = stillSystem();
+    hitched.updateVignette(0.5); // one 500 ms hitch
+    const stepped = stillSystem();
+    for (let i = 0; i < 30; i++) {
+      stepped.updateVignette(1 / 60);
+    }
+    expect(hitched.currentVignette).toBeCloseTo(stepped.currentVignette, 5);
+  });
+
+  test('smoothing above 1 is clamped — cannot overshoot past the target', () => {
+    const cs = stillSystem();
+    cs.settings.vignette.smoothing = 1.5;
+    cs.updateVignette(0.016);
+    expect(cs.currentVignette).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(cs.currentVignette)).toBe(true);
+  });
+});
