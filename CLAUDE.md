@@ -264,6 +264,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 3件：16.67ms×6 = 100ms×1 と完全一致（pre-fix 差）、120ms ヒッチでスナップせず ~99% へ滑らか収束（pre-fix は即 -2.0）、dt≤0 で不動（pre-fix は後退）。3件 stash 検証で pre-fix 赤。定数視サイズテストの `follow()` helper は clamp-snap 欠陥に依存していたため `followLerp:1` の正規スナップへ修正。
 - ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 109: 続き267 — SpatialAudio 3点修正（自然終了の再生時間・リスナー移動時 LOD・dead cpuLoad）
+- 🔍 **実測（コード追跡）**: 3つの実害を確認 — ①`node.onended` は `isPlaying=false`+`sourcesActive--` だけで **`totalPlayTime` に経過時間を積算しない**：自然終了する UI トーン（click/hover — 全て非ループ短音）は統計に一切現れず、`totalPlayTime` は明示 stop() されたソースだけを計測していた ②`setListenerPosition` は LOD 再評価をしない — `updateListenerFromCamera` 経由でのみ `updateAllLOD` が走るため、直接呼び（スクリプト化テレポート等）で全ソースの HRTF/equalpower 階層が**陳腐化** ③`stats.cpuLoad` は初期化後に書込ゼロの dead フィールド（R21 pinchAccuracy と同クラス）。
+- 🔧 **修正**: ①onended で `startTime` からの経過を積算し `startTime=0` で後続 stop() の二重計上を防止 ②setListenerPosition 末尾で `updateAllLOD()`（updateListenerFromCamera 側は既に呼ぶため冪等）③cpuLoad フィールド削除。
+- 🧪 pin 3件：自然終了で +40s 積算・後続 stop で不変（pre-fix 0→stop で40＝ダブルカウント痕跡）、setListenerPosition でリスナー 50m 移動 → equalpower へ反転（pre-fix HRTF のまま）、cpuLoad 不存。全件 stash 検証で pre-fix 赤。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

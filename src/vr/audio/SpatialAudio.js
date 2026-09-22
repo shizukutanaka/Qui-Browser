@@ -71,7 +71,6 @@ export class SpatialAudio {
       sourcesActive: 0,
       buffersLoaded: 0,
       totalPlayTime: 0,
-      cpuLoad: 0,
       hrtfSources: 0,
       equalPowerSources: 0
     };
@@ -295,6 +294,15 @@ export class SpatialAudio {
       if (source.node === node) {
         source.isPlaying = false;
         this.stats.sourcesActive--;
+        // A natural end contributes its elapsed time just like an explicit
+        // stop() does — previously totalPlayTime only ever counted stopped
+        // sources, so a UI tone that played out to the end was invisible to
+        // the play-time stat. Zeroing startTime stops a later stop() from
+        // double-counting the same span.
+        if (source.startTime) {
+          this.stats.totalPlayTime += this.context.currentTime - source.startTime;
+          source.startTime = 0;
+        }
       }
     };
 
@@ -380,6 +388,12 @@ export class SpatialAudio {
     } else {
       this.listener.setPosition(x, y, z);
     }
+
+    // Every source's LOD tier depends on the listener distance — leaving
+    // the re-eval to updateListenerFromCamera alone meant direct callers
+    // (e.g. a scripted teleport) could park the listener metres away with
+    // all tiers stale.
+    this.updateAllLOD();
   }
 
   /**

@@ -908,3 +908,59 @@ describe('SpatialAudio — remaining guard arms', () => {
     expect(() => a.updateAllLOD()).not.toThrow();
   });
 });
+
+
+describe('SpatialAudio — play-time + listener-LOD accounting', () => {
+  const makeBufferSource = () => ({
+    buffer: null,
+    loop: false,
+    playbackRate: { value: 1 },
+    connect: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    disconnect: jest.fn(),
+    onended: null
+  });
+  let audio, ctx;
+  const wire = (name) => audio.sources.set(name, {
+    name, node: null, panner: makePanner(), gain: makeGain(),
+    position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
+    loop: false, volume: 1, playbackRate: 1, startTime: 0, isPlaying: false
+  });
+  beforeEach(() => {
+    ctx = makeAudioContext();
+    ctx.createBufferSource = jest.fn(() => makeBufferSource());
+    global.window.AudioContext = jest.fn(() => ctx);
+    audio = new SpatialAudio();
+    audio.context = ctx;
+    audio.listener = ctx.listener;
+  });
+
+  test('a natural end accumulates totalPlayTime just like an explicit stop()', () => {
+    wire('s');
+    audio.buffers.set('b', {});
+    audio.context.currentTime = 100;
+    audio.play('s', 'b');
+    audio.context.currentTime = 140; // 40 s of playback
+    audio.sources.get('s').node.onended();
+    expect(audio.stats.totalPlayTime).toBe(40);
+    // A later stop() must not double-count the same span.
+    audio.stop('s');
+    expect(audio.stats.totalPlayTime).toBe(40);
+  });
+
+  test('setListenerPosition re-evaluates LOD — a far listener flips HRTF to equalpower', () => {
+    wire('s');
+    const src = audio.sources.get('s');
+    audio.setListenerPosition(0, 0, 0);
+    expect(src.panner.panningModel).toBe('HRTF'); // 0 m — within the 15 m tier
+    // Direct listener move (e.g. a scripted teleport) — previously LOD was
+    // only re-evaluated through updateListenerFromCamera, leaving tiers stale.
+    audio.setListenerPosition(0, 0, 50);
+    expect(src.panner.panningModel).toBe('equalpower');
+  });
+
+  test('dead cpuLoad stat field is gone', () => {
+    expect(audio.stats).not.toHaveProperty('cpuLoad');
+  });
+});
