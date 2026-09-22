@@ -245,6 +245,32 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 159: 続き317 — gamepad 入力の残腕（smooth move / thumbstickClick / southpaw）を e2e pin（#258 batch 10、105→110 checks）
+- **Round 76 of the continuous-improvement directive.** Tenth batch on #258 —
+  pure coverage; every arm was already correct on the fixed base.
+- **Pins (+5 → 110 checks, extending the gamepad leg):** with both fake
+  quest-pro sources still connected — `enableSmoothMove` on → left stick
+  deflect glides the rig in the head-facing plane AND engages
+  `comfortSystem.externalMotion`/`Level` (vignette tracks actual glide
+  speed); stick release disengages both. Pointer `thumbstickClick` →
+  `recenter()` resets rig position + quaternion + 'Recentered' caption.
+  Utility `thumbstickClick` → `vrKeyboard` visible toggle + 'Keyboard:
+  open' caption. `southpaw=true` → the LEFT stick becomes the snap-turn
+  hand (yaw −30°). FaceA/FaceB buttons released for leg cleanliness.
+- **Harness lesson:** held buttons stay latched across frames (edge-state
+  persists per-source in `controllerInput._state`) — a held right-stick
+  deflection through the whole leg is safe because `snapLatched` suppresses
+  repeat snaps; verify latch flags live per-controller
+  (`controller.userData.snapLatched`), so the southpaw arm fires on the
+  untouched left controller.
+- **Red-verified (three cuts, exact targets):** `turnHand` southpaw ternary
+  → `southpawSwaps` FAIL; `externalMotion`/`Level` writes cut →
+  `smoothMoves`+`smoothStops` FAIL; `thumbstickClick` arms cut →
+  `stickRecenters`+`stickKeyboard` FAIL.
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (110 checks).
+
 ### Session 158: 続き316 — snap-turn caption 逆方向 + face-button justPressed 全滅の2欠陥を修正、gamepad 入力経路を e2e pin（#258 batch 9、101→105 checks）
 - **Round 75 of the continuous-improvement directive.** Ninth batch on #258 —
   this time with real fixes found by the new pins.

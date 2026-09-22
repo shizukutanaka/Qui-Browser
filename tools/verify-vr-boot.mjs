@@ -1053,6 +1053,48 @@ async function main() {
                 out.faceBToggles = visAfter === !visBefore
                   && locoCaps.some((t) => t.includes(visAfter ? 'Settings: open' : 'Settings: closed'));
                 leftSrc.gamepad.buttons[5].pressed = false;
+                rightSrc.gamepad.buttons[4].pressed = false;
+                // Smooth locomotion (opt-in): move-hand stick drives the rig
+                // along the head-facing plane and feeds the comfort vignette
+                // (externalMotion + level), then disengages on release.
+                const origSmooth = app.settings.enableSmoothMove;
+                app.settings.enableSmoothMove = true;
+                const p0 = app.playerRig.position.clone();
+                leftSrc.gamepad.axes[3] = -0.8; // stick up = forward
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const cs = app.comfortSystem;
+                out.smoothMoves = app.playerRig.position.distanceTo(p0) > 0.001
+                  && cs && cs.externalMotion === true
+                  && cs.externalMotionLevel > 0;
+                leftSrc.gamepad.axes[3] = 0;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.smoothStops = cs && cs.externalMotion === false
+                  && cs.externalMotionLevel === 0;
+                app.settings.enableSmoothMove = origSmooth;
+                // Pointer thumbstickClick → recenter: rig pose reset + caption.
+                app.playerRig.position.set(0.5, 0, 0.25);
+                rightSrc.gamepad.buttons[3].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.stickRecenters = app.playerRig.position.lengthSq() < 0.001
+                  && locoCaps.some((t) => t.includes('Recentered'));
+                rightSrc.gamepad.buttons[3].pressed = false;
+                // Utility thumbstickClick → VR keyboard toggle + caption.
+                const kbBefore = !!(app.vrKeyboard && app.vrKeyboard.visible);
+                leftSrc.gamepad.buttons[3].pressed = true;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const kbAfter = !!(app.vrKeyboard && app.vrKeyboard.visible);
+                out.stickKeyboard = kbAfter === !kbBefore
+                  && locoCaps.some((t) => t.includes(kbAfter ? 'Keyboard: open' : 'Keyboard: closed'));
+                leftSrc.gamepad.buttons[3].pressed = false;
+                // Southpaw swaps roles: the left stick becomes the snap-turn hand.
+                const yawBeforeSp = app.playerRig.rotation.y;
+                app.settings.southpaw = true;
+                leftSrc.gamepad.axes[2] = 0.8;
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.southpawSwaps = Math.abs(
+                  app.playerRig.rotation.y - yawBeforeSp - (-Math.PI / 6)) < 0.01;
+                leftSrc.gamepad.axes[2] = 0;
+                app.settings.southpaw = false;
               } finally {
                 rightSrc.gamepad.axes[2] = 0;
                 ctrl.dispatchEvent({ type: 'disconnected' });
@@ -1063,6 +1105,8 @@ async function main() {
                 if (origLPlay) {
                   app.hapticFeedback.playPattern = origLPlay;
                 }
+                app.settings.enableSmoothMove = false;
+                app.settings.southpaw = false;
                 app.playerRig.rotation.y = origYaw;
               }
             }
@@ -1250,6 +1294,11 @@ async function main() {
       snapLatch: iout.snapLatch === true,
       faceAAnnounces: iout.faceAAnnounces === true,
       faceBToggles: iout.faceBToggles === true,
+      smoothMoves: iout.smoothMoves === true,
+      smoothStops: iout.smoothStops === true,
+      stickRecenters: iout.stickRecenters === true,
+      stickKeyboard: iout.stickKeyboard === true,
+      southpawSwaps: iout.southpawSwaps === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1394,6 +1443,11 @@ async function main() {
       ['held stick latches; re-push snaps again', !!inter.snapLatch],
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
       ['utility faceB toggles settings + announces', !!inter.faceBToggles],
+      ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
+      ['stick release disengages external motion', !!inter.smoothStops],
+      ['thumbstick click recenters the rig', !!inter.stickRecenters],
+      ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
+      ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
