@@ -2320,6 +2320,61 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Shift-mode leg — 'shift' toggles hiragana↔katakana via
+              // ime.switchMode, latches userData.keyActive on the shift
+              // keyMesh, and subsequent romaji input converts through the
+              // katakana arm of processInput ('k','a' → カ). The pin reads
+              // the converted string the app hands updateDisplay.
+              if (ctrl && app.vrKeyboard && app.japaneseIME) {
+                const kb = app.vrKeyboard;
+                const ime4 = app.japaneseIME;
+                const kbVisWas3 = kb.visible;
+                const modeWas = ime4.inputMode;
+                const origUD = kb.updateDisplay;
+                const convs = [];
+                try {
+                  kb.show();
+                  app.scene.updateMatrixWorld(true);
+                  kb.updateDisplay = (r) => {
+                    convs.push(r && r.converted);
+                    return origUD.call(kb, r);
+                  };
+                  ime4.switchMode('hiragana');
+                  ime4.clear();
+                  const shiftKey = (kb.keyMeshes || [])
+                    .find((k) => k.label === 'shift');
+                  const pressKey7 = async (label) => {
+                    const km = (kb.keyMeshes || [])
+                      .find((k) => k.label === label);
+                    if (!km) { return false; }
+                    selectCenter6(km.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                    return true;
+                  };
+                  out.shiftProbe = !!shiftKey && kb.visible === true;
+                  const shiftOk = await pressKey7('shift');
+                  out.shiftToggles = shiftOk
+                    && ime4.inputMode === 'katakana'
+                    && shiftKey.mesh.userData.keyActive === true;
+                  const kOk = await pressKey7('k');
+                  const aOk = await pressKey7('a');
+                  out.shiftTypesKatakana = kOk && aOk
+                    && convs.includes('カ');
+                  const shiftOk2 = await pressKey7('shift');
+                  out.shiftBack = shiftOk2
+                    && ime4.inputMode === 'hiragana'
+                    && shiftKey.mesh.userData.keyActive === false;
+                } finally {
+                  kb.updateDisplay = origUD;
+                  ime4.clear();
+                  ime4.switchMode(modeWas);
+                  if (kbVisWas3) {
+                    kb.show();
+                  } else {
+                    kb.hide();
+                  }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2755,6 +2810,10 @@ async function main() {
       stripActivate: iout.stripActivate === true,
       stripClose: iout.stripClose === true,
       stripMaxWarn: iout.stripMaxWarn === true,
+      shiftProbe: iout.shiftProbe === true,
+      shiftToggles: iout.shiftToggles === true,
+      shiftTypesKatakana: iout.shiftTypesKatakana === true,
+      shiftBack: iout.shiftBack === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3002,6 +3061,10 @@ async function main() {
       ['tab body activates and announces', !!inter.stripActivate],
       ['close zone closes the tab and announces', !!inter.stripClose],
       ['saturated strip warns on + select', !!inter.stripMaxWarn],
+      ['shift key mesh is present and visible', !!inter.shiftProbe],
+      ['shift key toggles katakana mode', !!inter.shiftToggles],
+      ['katakana mode converts romaji input', !!inter.shiftTypesKatakana],
+      ['shift toggles back to hiragana', !!inter.shiftBack],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

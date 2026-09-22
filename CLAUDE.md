@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 174: 続き332 — 'shift' キー→カタカナモード（ラッチ・かな変換・復帰）を e2e pin（#259 batch 25、206→210 checks）
+- 🔍 **実測**: キーボードの 'shift' → `ime.switchMode` hiragana↔katakana + `_refreshKeyStates` で shift キーの `userData.keyActive` ラッチは未駆動のままだった。keyboard を show して実キー select でモード遷移を端到端 pin。
+- 🔧 **pin 設計（4 check）**: shift keyMesh 存在 + keyboard visible → 'shift' select で `inputMode==='katakana'` + `keyActive===true` → 'k','a' 入力で `updateDisplay` に届く converted が 'カ'（spy ではなく実表示経路の出力を capture）→ 再 'shift' で hiragana 復帰 + `keyActive===false`。cleanup は `ime.clear()`+`switchMode` 復元+`updateDisplay` 復帰。
+- 🧪 赤検証: `switchMode` 呼出切断 → shiftToggles/shiftBack FAIL、`processInput` katakana 腕切断 → shiftTypesKatakana FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 210 checks PASS、verify:app PASS。
+
 ### Session 173: 続き331 — タブストリップ UV アクション（新規タブ/切替/閉じる/上限 warn）を e2e pin（#259 batch 24、201→206 checks）
 - 🔍 **実測**: `TabManager.stripMesh` は canvas 単一 interactable で `_onStripSelect` が UV→px→アクション変換を担う（BookmarkPanel と同型）— VR タブ操作の実ハンドラ経路は未駆動だった。strip 面を world point で直接駆動し 4 ゾーンを端到端 pin。
 - 🔧 **pin 設計（5 check）**: stripMesh の visible + `interactables` 登録 → '+' ゾーン（px>934）select で `newTab()` + 'Tab: New Tab' caption → タブ body で `setActive(0)` + 'Tab: <host>' → タブ右端 36px close ゾーンで `closeTab` + 'Tab closed' → MAX_TABS(8) 飽和時の '+' で 'Maximum tabs reached' warn。`stripPx(px)` = `local.x=(px/1024−0.5)*1.6` を `localToWorld` で変換。
