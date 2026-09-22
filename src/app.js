@@ -7,7 +7,7 @@
  */
 
 import { VRApp } from './vr/VRApp.js';
-import { t } from './i18n/i18n.js';
+import { t, setLanguage } from './i18n/i18n.js';
 
 // Global app instance
 let vrApp = null;
@@ -242,5 +242,8 @@ if (document.readyState === 'loading') {
 window.QuiBrowser = {
   getApp: () => vrApp,
   getStats: () => vrApp ? vrApp.getPerformanceStats() : null,
+  // The only language surface is the 2D toggle; expose the switch so
+  // sessions/tests can re-localize t() output live.
+  setLanguage: (lang) => setLanguage(lang, document),
   version: '2.0.0'
 };
