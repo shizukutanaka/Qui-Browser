@@ -1,5 +1,13 @@
 # API Documentation
 
+> **⚠ ARCHIVED DESIGN — classes documented below do not exist in `src/`**
+> This document describes the pre-2026 architecture (`UnifiedPerformanceSystem`,
+> `UnifiedSecuritySystem`, `VRMediaSystem`, `VRInputSystem`, `ObjectPool`, …).
+> The current system is documented in `docs/ARCHITECTURE.md` (structure) and
+> `docs/TESTING.md` (how to build/test). Kept for historical reference — do not
+> code against these APIs.
+
+
 ## Unified Performance System
 
 ### Initialize

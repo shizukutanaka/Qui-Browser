@@ -772,7 +772,12 @@ docs/ が旧構造を語り続けていた箇所の棚卸し。
   実在しなかった `textWrap.js` のテストを実装 — 7+ モジュールが依存する em 幅モデル
   （charWidthEm/wrapTextToWidth/truncateToWidth/safeMeasureEm）を15テストで pin。
 
-### O-1. 未修正（判断事項）: `docs/DEVELOPER_ONBOARDING.md` と `docs/API.md` が別コードベースを説明
+### O-1. 一部解消（続き250/Session 92）: `docs/DEVELOPER_ONBOARDING.md` と `docs/API.md` が別コードベースを説明
+
+4文書（DEVELOPER_ONBOARDING.md / API.md / IMPROVEMENT_ANALYSIS.md /
+CATEGORY_RESEARCH.md）の冒頭に「旧設計のアーカイブ」注記と現行参照先
+（ARCHITECTURE.md / TESTING.md）を挿入した — 選択肢 (b)。文書本体の全面改訂
+(a) ・削除 (c) は依然オーナー判断。**残判断事項**: 本文の改訂 or 削除。
 
 1182 行のオンボーディング文書が `VRMediaSystem`/`VRSystemMonitor`/`VRUISystem`/
 `VRInputSystem`/`VRNavigationSystem`/`UnifiedSecuritySystem`/`ObjectPool`/
@@ -821,11 +826,22 @@ ENTITIES は HTML4/XHTML1.0 全集（~250 名）をカバーするが、HTML5 �
 
 ## Q. テキスト幅 / IME の残存スコープ（続き247 で再録）
 
-### Q-1. 未修正（判断事項）: `wrapTextToLines` は契約上コードポイント計上
-続き247 で `textWidthEm`/`charWidthEm` の幅モデルは grapheme クラスタ + ゼロ幅
-レンジに修正済みだが、`wrapTextToLines`（CaptionSystem の文字数予算パスが使用）
-は**仕様として**コードポイントを数えるため NFD/結合文字で実描画より早く折り返す。
-em 幅へ揃えるか、文字数契約のまま残すかは CaptionSystem の行長設計次第 —— 判断事項。
+### ~~Q-1. `wrapTextToLines` は契約上コードポイント計上~~ — **解消済み（続き250/Session 92）**
+
+実測の結果、項目の前提が一部 stale だった: CaptionSystem の描画パス
+（`_layoutRows`）は当初から `wrapTextToWidth`（em 幅・grapheme 完全）で
+折り返し、`wrapTextToLines` のコードポイント予算を使う `_wrap()` は
+**テストからしか呼ばれない dead helper** だった（`_truncate()` も同様）。
+混在は製品経路には存在しない。
+- **対応**: `_wrap` / `_truncate` を削除（F-2「到達不能コードは残さない」
+  方針どおり）。`_wrap` の pin 4件は `wrapTextToLines` 直接呼びへ回収し、
+  `_truncate` 固有の pin 3件は helper 削除に伴い除去（draw 時の省略描画は
+  `truncateToWidth` が既に pin 済み）。`wrapTextToLines` はコードポイント
+  予算 + grapheme 完全分割の純粋 util として残置 — 将来の文字数予算呼出
+  し側が使える。
+- **結論**: 「em 幅へ揃えるか文字数契約か」の分岐は実害が無い軸だった。
+  文字数契約のまま残し、デッド参照のみ除去。
+
 
 ### Q-2. 記録（意図的）: IME の `l-` 系は x- 別名（小かな）解釈
 続き247 で再上陸した l- 系は `la`→`ぁ`（Mozc 流儀の小かな接頭辞）。ヘボン式に
