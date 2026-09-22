@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 166: 続き324 — display+audio セクション全コントロールの live-apply 連鎖を e2e pin（#258 batch 17、149→163 checks）
+- 🔍 **実測**: settings パネル最後の未駆動面 — **display セクション**（Foveation/Curved/Follow View/Home Environment/Perf Monitor/Texture Cache 6 トグル + Panel Dist ステッパー）と **audio セクション**（Sound Volume ステッパー + 360° Video アクション）の apply hook が実サブシステムへ到達するか未駆動だった。'Display'/'Audio & Media' タブを hover announce 識別 → select → rebuild（`scene.updateMatrixWorld(true)` 必須 — R78 確立）→ 両セクションを端到端 pin。
+- 🔧 **pin 設計（14 check）**: ①FFR は support-gated（`enabled=false` headless で enable/disable が early-return）のため **instance spy で CALL 契約を pin**（2 select → enable+disable 各ちょうど1回）②Curved→`tabManager._curved`、Follow→`windowManager.followMode`、Panel Dist→`windowManager.distance` ③Home Env は **両方向を select 2 回で pin** — 初版は 1 select のみで default-ON のため remove 側しか検証せず、`scene.add` cut に不感な弱い pin だったため強化 ④Perf Monitor→`perfMonitorUI.visible`、Texture Cache→disable 後 `textureManager===null` ⑤Sound Volume→`spatialAudio.settings.masterVolume`（stepper は % 保持、apply が `/100`）⑥360° Video→`_requestVRKeyboardInput` 全往路 — `vrKeyboard.visible` + `vrKeyboard.onTextConfirmed('https://v.example/clip.mp4')` → `immersiveVideo.play(url, detectVideoFormat(url))` を spy で pin。
+- 🧠 **ハーネス教訓（次回以降必須）**: `VRJapaneseKeyboard`（JapaneseIME.js 内の別クラス）が独自の `_onConfirmCallback`/`setOnConfirm`/`onTextConfirmed` を持つ — `vrKeyboard.setOnConfirm` は **IME 側でなく keyboard 自身**に格納される。また `onTextConfirmed` は `hide()` を先に呼ぶため `visible` 検証は confirm **発火前**に capture する。復元は `updateSetting` ループ（apply hook 経由でサブシステム側も戻る）。
+- 🧪 **赤検証（9 cut 一括適用）**: `ffrSystem.enable/disable`・`tabManager.setCurved`・`windowManager.setFollow`・`scene.add(homeEnv)`・`perfMonitorUI.show/hide`・`textureManager=null`・`windowManager.setDistance`・`spatialAudio.setMasterVolume`・`_requestVRKeyboardInput` 各切断 → **9 対象 check 全て FAIL**（+`_requestVRKeyboardInput` を共有する兄弟 video pin 2件が想定 co-FAIL）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 163 checks PASS、verify:app PASS。
+
 ### Session 165: 続き323 — Accessibility セクション全コントロールの live-apply 連鎖を e2e pin（#258 batch 16、140→149 checks）
 - 🔍 **実測**: a11y セクション（default open）は 'Captions' トグルのみ pin 済みで、残りの 9 コントロール — stepper 4（Gaze Time/Grace Time/Caption Size/Caption Height）+ toggle 3（High Contrast/Haptics/Gaze Select）の **apply hook → 実サブシステム到達**が未駆動だった。全て端到端 pin。
 - 🔧 **順序罠**: 'Gaze Select' OFF は hover announce 自体を殺す（`shouldAnnounceSettingsButton` の gazeDwell ゲート）ため同セクション最後に実行し、直後 `updateSetting` で復元。復元は `updateSetting(key, v)` ループ — apply hook 経由でサブシステム側も戻る（手書きフィールド代入より契約通り）。

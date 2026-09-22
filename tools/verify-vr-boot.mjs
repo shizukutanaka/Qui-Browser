@@ -1605,6 +1605,151 @@ async function main() {
                     app.updateSetting(k, v);
                   }
                 }
+                // Display + Audio & Media sections: the remaining live-apply
+                // reaches — toggles must hit their engines (ffrSystem/tabManager/
+                // windowManager/perfMonitorUI/textureManager), the Panel Dist
+                // stepper windowManager.distance, Sound Volume spatialAudio's
+                // master gain, and '360° Video' must open the keyboard and
+                // route its one-shot confirm into immersiveVideo.play.
+                const dispWas = {
+                  enableFFR: app.settings.enableFFR,
+                  enableCurvedPanel: app.settings.enableCurvedPanel,
+                  enableWindowFollow: app.settings.enableWindowFollow,
+                  enableHomeEnvironment: app.settings.enableHomeEnvironment,
+                  enablePerfMonitorUI: app.settings.enablePerfMonitorUI,
+                  enableTextureManager: app.settings.enableTextureManager,
+                  windowDistance: app.settings.windowDistance,
+                  masterVolume: app.settings.masterVolume,
+                };
+                const hadTexMgr = !!app.textureManager;
+                const origVideoPlay = app.immersiveVideo && app.immersiveVideo.play;
+                const videoCalls = [];
+                try {
+                  const dispTab = probeLabel6('Display');
+                  out.displayTabProbe = !!dispTab;
+                  if (dispTab) {
+                    selectCenter6(dispTab);
+                    app.scene.updateMatrixWorld(true);
+                    out.displayTabOpen = !!probeLabel6('Panel Dist:');
+                  }
+                  const ffrBtn = probeLabel6('Foveation:');
+                  let ffrCalls = 0;
+                  if (ffrBtn && app.ffrSystem) {
+                    const en0 = app.ffrSystem.enable;
+                    const dis0 = app.ffrSystem.disable;
+                    app.ffrSystem.enable = (...a) => { ffrCalls++; return en0.call(app.ffrSystem, ...a); };
+                    app.ffrSystem.disable = (...a) => { ffrCalls++; return dis0.call(app.ffrSystem, ...a); };
+                    selectCenter6(ffrBtn);
+                    selectCenter6(ffrBtn);
+                    app.ffrSystem.enable = en0;
+                    app.ffrSystem.disable = dis0;
+                  }
+                  out.ffrApplied = !!ffrBtn && ffrCalls === 2
+                    && app.settings.enableFFR === dispWas.enableFFR;
+                  const curBtn = probeLabel6('Curved:');
+                  if (curBtn) {
+                    selectCenter6(curBtn);
+                  }
+                  out.curvedApplied = !!curBtn && app.tabManager
+                    && app.tabManager._curved === app.settings.enableCurvedPanel;
+                  const folBtn = probeLabel6('Follow View:');
+                  if (folBtn) {
+                    selectCenter6(folBtn);
+                  }
+                  out.followApplied = !!folBtn && app.windowManager
+                    && app.windowManager.followMode === app.settings.enableWindowFollow;
+                  const envBtn = probeLabel6('Home Environment:');
+                  const env0 = app.settings.enableHomeEnvironment;
+                  let envDir1 = false;
+                  let envDir2 = false;
+                  if (envBtn) {
+                    selectCenter6(envBtn);
+                    envDir1 = app.settings.enableHomeEnvironment
+                      ? (app.homeEnvironment && app.homeEnvironment.parent === app.scene)
+                      : (!app.homeEnvironment || app.homeEnvironment.parent !== app.scene);
+                    selectCenter6(envBtn);
+                    envDir2 = app.settings.enableHomeEnvironment
+                      ? (app.homeEnvironment && app.homeEnvironment.parent === app.scene)
+                      : (!app.homeEnvironment || app.homeEnvironment.parent !== app.scene);
+                  }
+                  out.homeEnvApplied = !!envBtn
+                    && app.settings.enableHomeEnvironment === env0
+                    && envDir1 && envDir2;
+                  const perfBtn = probeLabel6('Perf Monitor:');
+                  if (perfBtn) {
+                    selectCenter6(perfBtn);
+                  }
+                  out.perfUIApplied = !!perfBtn
+                    && app.settings.enablePerfMonitorUI === true
+                    && !!app.perfMonitorUI && app.perfMonitorUI.visible === true;
+                  const texBtn = probeLabel6('Texture Cache:');
+                  if (texBtn) {
+                    selectCenter6(texBtn);
+                  }
+                  out.texMgrApplied = !!texBtn
+                    && app.settings.enableTextureManager === false
+                    && app.textureManager === null;
+                  if (app.windowManager) {
+                    const pdBtn = probeLabel6('Panel Dist:');
+                    const pd0 = app.settings.windowDistance;
+                    if (pdBtn) {
+                      selectPlus6(pdBtn);
+                    }
+                    out.panelDistApplied = !!pdBtn
+                      && app.settings.windowDistance !== pd0
+                      && app.windowManager.distance === app.settings.windowDistance;
+                  }
+                  const audTab = probeLabel6('Audio & Media');
+                  out.audioTabProbe = !!audTab;
+                  if (audTab) {
+                    selectCenter6(audTab);
+                    app.scene.updateMatrixWorld(true);
+                    out.audioTabOpen = !!probeLabel6('Sound Volume:');
+                  }
+                  if (app.spatialAudio) {
+                    const volBtn = probeLabel6('Sound Volume:');
+                    const v0 = app.settings.masterVolume;
+                    if (volBtn) {
+                      selectPlus6(volBtn);
+                    }
+                    out.volumeApplied = !!volBtn
+                      && app.settings.masterVolume !== v0
+                      && Math.abs(app.spatialAudio.settings.masterVolume - app.settings.masterVolume / 100) < 1e-9;
+                  }
+                  const vidBtn = probeLabel6('360° Video');
+                  out.video360Probe = !!vidBtn;
+                  if (vidBtn && app.vrKeyboard && app.immersiveVideo) {
+                    app.immersiveVideo.play = (u, f) => { videoCalls.push(u + '|' + f); };
+                    selectCenter6(vidBtn);
+                    const kbShown = app.vrKeyboard.visible === true
+                      && !!app.vrKeyboard._onConfirmCallback;
+                    if (app.vrKeyboard._onConfirmCallback) {
+                      app.vrKeyboard.onTextConfirmed('https://v.example/clip.mp4');
+                    }
+                    out.video360Applied = kbShown;
+                  }
+                  out.video360Applied = !!vidBtn
+                    && out.video360Applied === true
+                    && videoCalls.length === 1
+                    && videoCalls[0].startsWith('https://v.example/clip.mp4|');
+                } finally {
+                  for (const [k, v] of Object.entries(dispWas)) {
+                    app.updateSetting(k, v);
+                  }
+                  if (!hadTexMgr && app.textureManager) {
+                    app.textureManager.dispose();
+                    app.textureManager = null;
+                  }
+                  if (app.immersiveVideo && origVideoPlay) {
+                    app.immersiveVideo.play = origVideoPlay;
+                  }
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard.hide();
+                  }
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard._onConfirmCallback = null;
+                  }
+                }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -1958,6 +2103,20 @@ async function main() {
       hcApplied: iout.hcApplied === true,
       hapticsApplied: iout.hapticsApplied === true,
       gazeToggleApplied: iout.gazeToggleApplied === true,
+      displayTabProbe: iout.displayTabProbe === true,
+      displayTabOpen: iout.displayTabOpen === true,
+      ffrApplied: iout.ffrApplied === true,
+      curvedApplied: iout.curvedApplied === true,
+      followApplied: iout.followApplied === true,
+      homeEnvApplied: iout.homeEnvApplied === true,
+      perfUIApplied: iout.perfUIApplied === true,
+      texMgrApplied: iout.texMgrApplied === true,
+      panelDistApplied: iout.panelDistApplied === true,
+      audioTabProbe: iout.audioTabProbe === true,
+      audioTabOpen: iout.audioTabOpen === true,
+      volumeApplied: iout.volumeApplied === true,
+      video360Probe: iout.video360Probe === true,
+      video360Applied: iout.video360Applied === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2146,6 +2305,20 @@ async function main() {
       ['High Contrast toggle live-applies captions + reticle', !!inter.hcApplied],
       ['Haptics toggle live-applies to the haptic engine', !!inter.hapticsApplied],
       ['Gaze Select toggle live-applies to the gaze engine', !!inter.gazeToggleApplied],
+      ['hover announce identifies the Display tab', !!inter.displayTabProbe],
+      ['tab select opens the Display section', !!inter.displayTabOpen],
+      ['Foveation toggle routes enable/disable to FFRSystem', !!inter.ffrApplied],
+      ['Curved toggle live-applies to the tab manager', !!inter.curvedApplied],
+      ['Follow View toggle live-applies to window manager', !!inter.followApplied],
+      ['Home Environment toggle adds/removes the scene subtree', !!inter.homeEnvApplied],
+      ['Perf Monitor toggle builds + shows the overlay', !!inter.perfUIApplied],
+      ['Texture Cache toggle disposes the manager live', !!inter.texMgrApplied],
+      ['Panel Dist stepper live-applies to window distance', !!inter.panelDistApplied],
+      ['hover announce identifies the Audio & Media tab', !!inter.audioTabProbe],
+      ['tab select opens the Audio & Media section', !!inter.audioTabOpen],
+      ['Sound Volume stepper live-applies master gain', !!inter.volumeApplied],
+      ['hover announce identifies the 360° Video action', !!inter.video360Probe],
+      ['360° Video opens keyboard + confirm routes to play', !!inter.video360Applied],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
