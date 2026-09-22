@@ -1834,6 +1834,93 @@ async function main() {
                   }
                 }
               }
+              // IME hiragana leg — the flagship Japanese input chain, never
+              // driven e2e: 'かな' key → hiragana mode, romaji keystrokes
+              // convert for display, '変換' converts + builds the candidate
+              // row (real registered interactables), and a candidate ray
+              // select commits straight to onTextConfirmed. The candidate
+              // fetch is pointed at the offline dictionary so the leg is
+              // deterministic headless; the converted-hiragana ARGUMENT the
+              // app hands the lookup is what gets asserted.
+              if (ctrl && app.settingsPanel && app.vrKeyboard
+                && app.japaneseIME && app.immersiveVideo) {
+                const origPlay4 = app.immersiveVideo.play;
+                const videoCalls4 = [];
+                const kbVisWas2 = app.vrKeyboard.visible;
+                const origGetK = app.japaneseIME.getKanjiCandidates;
+                const convArgs = [];
+                try {
+                  if (!(app.settings.openSettingsSections || [])
+                    .includes('settings.section.audio')) {
+                    const audTab3 = probeLabel6('Audio & Media');
+                    if (audTab3) {
+                      selectCenter6(audTab3);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  const vidBtn4 = probeLabel6('360° Video');
+                  app.immersiveVideo.play = (u, f) => {
+                    videoCalls4.push(u + '|' + f);
+                  };
+                  if (vidBtn4) {
+                    selectCenter6(vidBtn4);
+                  }
+                  app.scene.updateMatrixWorld(true);
+                  const pressKey7 = async (label) => {
+                    const km = (app.vrKeyboard.keyMeshes || [])
+                      .find((k) => k.label === label);
+                    if (!km) { return false; }
+                    selectCenter6(km.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                    return true;
+                  };
+                  const ime3 = app.japaneseIME;
+                  const kanaOk = await pressKey7('かな');
+                  out.imeHiraganaMode = kanaOk
+                    && ime3.inputMode === 'hiragana';
+                  let typeOk = true;
+                  for (const ch of ['k', 'o', 'n', 'n', 'i', 't', 'i', 'h', 'a']) {
+                    typeOk = await pressKey7(ch) && typeOk;
+                  }
+                  out.imeRomajiTypes = typeOk
+                    && ime3.compositionBuffer === 'konnitiha'
+                    && ime3.inputMode === 'hiragana';
+                  ime3.getKanjiCandidates = async (h) => {
+                    convArgs.push(h);
+                    return ime3.getOfflineKanjiCandidates(h);
+                  };
+                  const henkanOk = await pressKey7('変換');
+                  out.imeHenkanArgs = henkanOk
+                    && convArgs.length === 1
+                    && convArgs[0] === 'こんにちは';
+                  out.imeCandidateRow = henkanOk
+                    && (ime3.candidates || []).length > 0
+                    && (app.vrKeyboard._candidateMeshes || []).length
+                      === ime3.candidates.length
+                    && app.vrKeyboard._candidatesGroup
+                    && app.vrKeyboard._candidatesGroup.visible === true;
+                  const cm = (app.vrKeyboard._candidateMeshes || [])[0];
+                  if (cm) {
+                    selectCenter6(cm.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                  }
+                  out.imeCandidateConfirm = !!cm
+                    && videoCalls4.length === 1
+                    && videoCalls4[0].startsWith('今日は|')
+                    && app.vrKeyboard.visible === false
+                    && (app.vrKeyboard._candidateMeshes || []).length === 0;
+                } finally {
+                  app.japaneseIME.getKanjiCandidates = origGetK;
+                  app.immersiveVideo.play = origPlay4;
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard.hide();
+                    app.vrKeyboard._onConfirmCallback = null;
+                  }
+                  if (kbVisWas2) {
+                    app.vrKeyboard.show();
+                  }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2237,6 +2324,11 @@ async function main() {
       kbBackspaces: iout.kbBackspaces === true,
       kbConfirms: iout.kbConfirms === true,
       kbEscDismisses: iout.kbEscDismisses === true,
+      imeHiraganaMode: iout.imeHiraganaMode === true,
+      imeRomajiTypes: iout.imeRomajiTypes === true,
+      imeHenkanArgs: iout.imeHenkanArgs === true,
+      imeCandidateRow: iout.imeCandidateRow === true,
+      imeCandidateConfirm: iout.imeCandidateConfirm === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2452,6 +2544,11 @@ async function main() {
       ['back key-mesh select deletes the last char', !!inter.kbBackspaces],
       ['enter key-mesh select confirms to the armed callback', !!inter.kbConfirms],
       ['esc key-mesh select dismisses with cancel caption', !!inter.kbEscDismisses],
+      ['kana key-mesh select switches IME to hiragana', !!inter.imeHiraganaMode],
+      ['romaji key selects accumulate the raw buffer', !!inter.imeRomajiTypes],
+      ['henkan converts the buffer to hiragana for lookup', !!inter.imeHenkanArgs],
+      ['henkan builds the candidate button row', !!inter.imeCandidateRow],
+      ['candidate ray select commits through onTextConfirmed', !!inter.imeCandidateConfirm],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

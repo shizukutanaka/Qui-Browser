@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 168: 続き326 — IME ひらがな変換連鎖（かなキー→ローマ字→変換→候補行→候補 select→confirm）を e2e pin（#259 batch 19、174→179 checks）
+- 🔍 **実測**: フラグシップの日本語入力経路の最深部が未駆動 — 'かな' キー → `switchMode('hiragana')`、ローマ字キー列 → `convertRomajiToHiragana`（表示は仮名・buffer は生ローマ字）、'変換' キー → `convertToKanji` → `showCandidates` で実 interactable 候補行生成、候補 ray select → `selectCandidate` → `onTextConfirmed` で即 commit。`getKanjiCandidates` は Google Transliteration API fetch のため **offline dict（`getOfflineKanjiCandidates`）に指向して deterministic 化** — ルックアップに渡される変換済みひらがな引数を spy で pin。
+- 🔧 **pin 設計（5 check）**: 'かな' → `inputMode==='hiragana'`；'konnitiha' 9 キー select → `compositionBuffer==='konnitiha'`（生 buffer）+ mode 保持；'変換' → `getKanjiCandidates` 引数 `'こんにちは'`（**ローマ字→仮名変換が実経路で動いたことの e2e 証明**）；候補行 `_candidateMeshes.length===candidates.length` + `_candidatesGroup.visible`；候補 0 番 ray select → `onTextConfirmed('今日は')` → play spy + hide + 候補クリア。
+- 🧠 **ハーネス教訓**: 候補 select は buffer へのコミットではなく **その場で `onTextConfirmed` を発火**（`_clearCandidates` → confirm → hide）— 'enter' 不要の直接 commit 経路。
+- 🧪 **赤検証（4 cut 一括）**: 'かな' `switchMode`・'変換' `convertToKanji`・`compositionBuffer +=`・候補 `onTextConfirmed` 各切断 → **ime 5 check + kb 4 check（buffer 共有腕で co-FAIL）= 9 FAIL**。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 179 checks PASS、verify:app PASS。
+
 ### Session 167: 続き325 — VR キーボード実キー select→IME 連鎖→confirm/dismiss を e2e pin（#259 batch 18、167→174 checks）
 - 🔍 **実測**: キーボードの開放・confirm 往路（プログラマティック `onTextConfirmed` 発火）は R46/R83 で pin 済みだったが、**実キー mesh へのコントローラ ray select → `onKeyPress(label)` → `ime.processInput`/`deleteLast`/`confirmSelection` の実タイピング連鎖**は未駆動 — VR ユーザーが URL 入力に実際に使う全経路。`keyMeshes` は `registerInteractable` で実レジストリ登録済み（`onSelect: () => this.onKeyPress(k.label)`）のため、ray select で真の入力パイプラインが動く。
 - 🔧 **pin 設計（7 check）**: '360° Video' action でキーボードを本番 callback 付きで開放 → `keyMeshes.find(k=>k.label===...)` でキー mesh を直接特定し `selectCenter6` で照準 select → 'u','r','l' で `compositionBuffer==='url'`、'back' で 'ur'、'enter' で `confirmSelection→onTextConfirmed→_onConfirmCallback('ur')` → `immersiveVideo.play` spy + one-shot 消費 + hide、再度開放して 'esc' で dismiss + 'Keyboard cancelled' caption（WCAG 4.1.3）+ callback 未到達を pin。
