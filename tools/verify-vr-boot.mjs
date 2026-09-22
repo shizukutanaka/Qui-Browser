@@ -1657,6 +1657,12 @@ async function main() {
                   for (const [k, v] of Object.entries(a11yWas)) {
                     app.updateSetting(k, v);
                   }
+                  // updateSetting is persist-only — the engine flag the
+                  // toggle flipped via its mesh onSelect needs restoring
+                  // too or every later real-path pulse silently no-ops.
+                  if (app.hapticFeedback) {
+                    app.hapticFeedback.setEnabled(a11yWas.enableHaptics);
+                  }
                 }
                 // Display + Audio & Media sections: the remaining live-apply
                 // reaches — toggles must hit their engines (ffrSystem/tabManager/
@@ -3135,6 +3141,34 @@ async function main() {
                   && ht.gestures.right === 'fist'
                   && hpCalls.length - npCalls0 === 1
                   && hpCalls[npCalls0] === 'right:impact';
+
+                // Haptic actuator path: update(inputSources) registers
+                // haptic-bearing gamepads so playPattern pulses reach
+                // actuator.pulse — every earlier fake gamepad lacked
+                // hapticActuators, so pulses silently no-oped until now.
+                const hf = app.hapticFeedback;
+                const actPulses = [];
+                const hapSrc = {
+                  handedness: 'right',
+                  gamepad: {
+                    hapticActuators: [{
+                      pulse: (i2, d2) => {
+                        actPulses.push(i2 + '/' + d2);
+                        return Promise.resolve();
+                      }
+                    }]
+                  }
+                };
+                hf.update([hapSrc]);
+                await origPlay2.call(hf, 'right', 'click');
+                out.hapticActuator = actPulses.length === 1
+                  && actPulses[0] === '0.3/10';
+                // Source leaving the stream drops its gamepad — the next
+                // pulse is a no-op (the stale-registry leak the seen-prune
+                // exists to prevent).
+                hf.update([]);
+                await origPlay2.call(hf, 'right', 'click');
+                out.hapticSourceGone = actPulses.length === 1;
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
                 fakeXrFrame.fillPoses = origFill;
@@ -3488,6 +3522,8 @@ async function main() {
       handLostViaUpdate: iout.handLostViaUpdate === true,
       handFallbackDrives: iout.handFallbackDrives === true,
       handNullPose: iout.handNullPose === true,
+      hapticActuator: iout.hapticActuator === true,
+      hapticSourceGone: iout.hapticSourceGone === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3777,6 +3813,8 @@ async function main() {
       ['hand source leaving the stream hides the group', !!inter.handLostViaUpdate],
       ['getJointPose fallback drives joints -> pinch', !!inter.handFallbackDrives],
       ['null joint poses leave records + recognize runs', !!inter.handNullPose],
+      ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
+      ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
