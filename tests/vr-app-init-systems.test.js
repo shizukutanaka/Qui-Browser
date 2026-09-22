@@ -106,6 +106,8 @@ function makeInitLike(settingsOverrides = {}) {
     _setupOSAccessibilityListeners: VRApp.prototype._setupOSAccessibilityListeners,
     _initVoiceCommands: VRApp.prototype._initVoiceCommands,
     _initializeSystemsTail: VRApp.prototype._initializeSystemsTail,
+    _attachPanelLayer: VRApp.prototype._attachPanelLayer,
+    _syncPanelLayers: VRApp.prototype._syncPanelLayers,
     loadAudioAssets: jest.fn(async () => {}),
     a11y: {}
   };

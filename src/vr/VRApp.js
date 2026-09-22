@@ -934,7 +934,12 @@ export class VRApp {
           this.captionSystem.show(t('vr.msg.moveBarLabel'));
         }
       },
-      onSessionChange: () => this._saveTabSession(),
+      onSessionChange: () => {
+        this._saveTabSession();
+        // A tab added mid-session still needs its native quad layer —
+        // reconcile panel↔layer state after every tab-set mutation.
+        this._syncPanelLayers();
+      },
       // C-3: the new-tab page lists frecency top sites. Private mode returns
       // no tiles — a private session neither writes nor surfaces history.
       getTopSites: (n) => (this.settings.privateMode ? [] : this.bookmarks.getTopSites(n))
@@ -3329,30 +3334,14 @@ export class VRApp {
     if (!refSpace) {
       return;
     }
+    this._layerSeq = 0;
 
     const panels = this.tabManager
       ? this.tabManager.tabs
       : (this.webPanel ? [this.webPanel] : []);
 
-    for (let i = 0; i < panels.length; i++) {
-      const panel = panels[i];
-      const layerId = `panel_chrome_${i}`;
-      const quadLayer = this.layersSystem.createQuadLayer({
-        id    : layerId,
-        space : refSpace,
-        // Chrome bar: same physical dimensions as the Three.js chromeMesh
-        // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
-        width  : 1.6,
-        height : 0.08,
-        pixelWidth  : 2048,
-        pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
-      });
-      if (quadLayer) {
-        // Pass the id + a detach callback so closing this tab mid-session
-        // releases exactly its layer (see _detachPanelLayer).
-        panel.enableLayerMode(quadLayer, this.layersSystem, layerId,
-          (id) => this._detachPanelLayer(id));
-      }
+    for (const panel of panels) {
+      this._attachPanelLayer(panel, refSpace);
     }
 
     // Commit the layer stack: Three.js base layer + our panel quad layers.
@@ -3361,6 +3350,78 @@ export class VRApp {
       : null;
     this.layersSystem.updateRenderState(session, baseLayer);
     console.debug(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
+  }
+
+  /**
+   * Give one open panel its XRQuadLayer unless it already has one. Shared by
+   * the session-start batch (_attachLayersToPanels) and the mid-session
+   * reconciler (_syncPanelLayers) — this used to run ONLY at session start,
+   * so a tab opened during the session never got a layer: its chrome bar
+   * composited at standard mesh resolution while sibling tabs rendered at
+   * native display resolution, an inconsistency visible as softer text on
+   * newer tabs. Layer ids come from a monotonic counter rather than the tab
+   * index, which collides after a mid-session close + open.
+   * @returns {boolean} true when a layer was attached
+   */
+  _attachPanelLayer(panel, refSpace) {
+    if (!panel || panel.quadLayer || !this.layersSystem) {
+      return false;
+    }
+    const layerId = `panel_chrome_${this._layerSeq || 0}`;
+    this._layerSeq = (this._layerSeq || 0) + 1;
+    const quadLayer = this.layersSystem.createQuadLayer({
+      id    : layerId,
+      space : refSpace,
+      // Chrome bar: same physical dimensions as the Three.js chromeMesh
+      // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
+      width  : 1.6,
+      height : 0.08,
+      pixelWidth  : 2048,
+      pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
+    });
+    if (!quadLayer) {
+      return false;
+    }
+    // Pass the id + a detach callback so closing this tab mid-session
+    // releases exactly its layer (see _detachPanelLayer).
+    panel.enableLayerMode(quadLayer, this.layersSystem, layerId,
+      (id) => this._detachPanelLayer(id));
+    return true;
+  }
+
+  /**
+   * Reconcile open panels ↔ quad layers. Called after every tab-set mutation
+   * (newTab/close/restore all fire TabManager.onSessionChange): any panel
+   * missing a layer gets one and the render state is re-committed once.
+   * No-ops cheaply outside a live session or when every tab already has a
+   * layer — navigation saves don't pay for a full re-commit.
+   */
+  _syncPanelLayers() {
+    if (!this.layersSystem || !this.renderer || !this.renderer.xr) {
+      return;
+    }
+    const session = this.renderer.xr.getSession
+      ? this.renderer.xr.getSession()
+      : null;
+    const refSpace = this.renderer.xr.getReferenceSpace
+      ? this.renderer.xr.getReferenceSpace()
+      : null;
+    if (!session || !refSpace) {
+      return;
+    }
+    const panels = this.tabManager
+      ? this.tabManager.tabs
+      : (this.webPanel ? [this.webPanel] : []);
+    let attached = false;
+    for (const panel of panels) {
+      attached = this._attachPanelLayer(panel, refSpace) || attached;
+    }
+    if (attached) {
+      const baseLayer = this.renderer.xr.getBaseLayer
+        ? this.renderer.xr.getBaseLayer()
+        : null;
+      this.layersSystem.updateRenderState(session, baseLayer);
+    }
   }
 
   /**
