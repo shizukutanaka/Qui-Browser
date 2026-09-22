@@ -287,7 +287,7 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     for (const ch of 'konnichiha') {
       await kb.onKeyPress(ch);
     }
-    await kb.onKeyPress('space'); // candidates: ['今日は', 'こんにちは']
+    await kb.onKeyPress('変換'); // candidates: ['今日は', 'こんにちは']
     await kb.onKeyPress('esc');
     expect(kb.ime.candidates.length).toBe(0);
     expect(kb.ime.isActive).toBe(false);
@@ -304,6 +304,63 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     expect(confirmed[0]).not.toBe('今日は');
 
     delete global.fetch;
+  });
+});
+
+describe('space key — literal space, conversion lives on 変換', () => {
+  // The layout ships a dedicated 変換 (henkan) key, so the space bar must act
+  // like a physical space bar. Previously `space` routed to convertToKanji():
+  // it converted in hiragana mode and was silently swallowed on an empty
+  // buffer and in katakana mode — spaces were untypeable outside one narrow
+  // path, so a query like "vr browser" could never be entered. 変換 called
+  // convertToKanji but never showed the row, leaving conversion invisible.
+
+  test('space at empty buffer types a space (previously swallowed)', async () => {
+    const { kb } = makeKeyboard();
+    await kb.onKeyPress('space');
+    expect(kb.ime.compositionBuffer).toBe(' ');
+    expect(kb.ime.candidates).toEqual([]);
+  });
+
+  test('space mid-query separates words in hiragana mode', async () => {
+    const { kb } = makeKeyboard();
+    for (const ch of 'vr') {
+      await kb.onKeyPress(ch);
+    }
+    await kb.onKeyPress('space');
+    for (const ch of 'browser') {
+      await kb.onKeyPress(ch);
+    }
+    expect(kb.ime.compositionBuffer).toBe('vr browser');
+    expect(kb.ime.candidates).toEqual([]); // space did not trigger conversion
+  });
+
+  test('space in katakana mode types a space (previously gated to hiragana)', async () => {
+    const { kb } = makeKeyboard();
+    kb.ime.switchMode('katakana');
+    await kb.onKeyPress('n');
+    await kb.onKeyPress('space');
+    expect(kb.ime.compositionBuffer).toBe('n ');
+  });
+
+  test('変換 converts and shows the candidate row (previously silent)', async () => {
+    const { kb } = makeKeyboard();
+    for (const ch of 'konnichiha') {
+      await kb.onKeyPress(ch);
+    }
+    await kb.onKeyPress('変換');
+    expect(kb.ime.candidates.length).toBeGreaterThan(0);
+    expect(kb._candidateMeshes.length).toBe(kb.ime.candidates.length);
+  });
+
+  test('space never produces a candidate row', async () => {
+    const { kb } = makeKeyboard();
+    for (const ch of 'konnichiha') {
+      await kb.onKeyPress(ch);
+    }
+    await kb.onKeyPress('space');
+    expect(kb.ime.candidates).toEqual([]);
+    expect(kb._candidateMeshes).toEqual([]);
   });
 });
 

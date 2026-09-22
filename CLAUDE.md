@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 88: 続き246 — IME スペースキー飲み込み・変換キーの沈黙（N-3 実測訂正つき解決）
+- 🔍 **実測（OUTSTANDING_ISSUES N-3 の棚卸し）**: Session 75 の「表示は か・確定は ka という表示/出力矛盾」は**観測誤り**だったことを確認 — `_refreshDisplay()` は `compositionBuffer`（生バッファ）を描画しており表示=確定で一貫、converted は console.debug のみ。一方でコード精読で**真の欠陥2件**を発見: ①`space` キーが `convertToKanji()` 固定配線 — ひらがな+非空バッファの1経路以外（空バッファ・カタカナモード）でキー押下が無消費。**URL/検索バーに空白を打つ方法が存在せず "vr browser" のような複数語クエリは不可能**だった。②`変換` キーは `convertToKanji()` を呼ぶが `showCandidates()` を呼ばず、候補は生成されるのに行が非表示 — レイアウト上の変換専用キーが実質 dead key。
+- 🔧 **修正**: `space` = リテラル空白（物理キーボード準拠 — 専用 変換キーが既に存在するため space は全モード・空バッファ含め空白入力）、`変換` = 変換+候補行表示。既存の `space` 経由変換を pin していた1テストは意図保持で `変換` 呼出しに書き換え。
+- 🧪 pin 5件（全件 stash 検証で pre-fix 赤・post-fix 緑）: 空バッファ space→空白、hiragana 中間 space→'vr browser' 分離+候補非発火、katakana space→空白、変換→候補行表示（candidates と _candidateMeshes 一致）、space→候補行ゼロ。
+- 📋 tests/ スイープ: 形骸 assertion・skip ゼロ（`expect(true)`/it.skip/describe.skip なし）。docs/: verify-documentation 17/17 ファイル・27/27 セクション・51/51 リンク全緑、pre-release-validation 0 failures。N-3 記録を実測値に訂正して更新。
+- ✅ 3038 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 77: 続き233 — リーダー抽出器の実測欠陥（実ページで測定）
 - 🔍 **実測（実ページ + 制御入力）**: `src/vr/browser/readableText.js` を Wikipedia(ja)/Qiita/MDN の実ページに通し、5つの再現可能な欠陥を確認。①有名実体の大半が生残り — `&copy; &trade; &euro; &deg; &sect; &laquo; &frac12; &times; &eacute;` 全てリテラル出力（旧 ENTITIES は ~20 名のみ）。②**大文字始まりの実体が別文字に化ける**（潜在バグ）— 大文字小文字を区別しない lookup で `&Eacute;`→é（É ではない）、`&Dagger;`→†（‡ ではない）。③`<ol start|reversed|value>`・入れ子の序数 — フラット正規表現は start/reversed/value を完全無視し、入れ子の子 li が親のカウンタを食うため `2. outer2` が消えた（実測: `<ol><li>outer<ol><li>in1</li><li>in2</li></ol></li><li>outer2</li></ol>` → outer2 の番号消失）。④`<br>` が段落内で捨てられる — innerText 相当の `\n` を持たず "line one line two" に潰れた。⑤`<title>` のサイト名サフィックス — "WebXR - Wikipedia" がサイト名込みでリーダー題名になる（Mozilla Readability は h1 照合で分離済み）。
 - 🔧 **修正（外部仕様準拠: WHATWG HTML 実体表/§4.4.7-8 ol/li、Readability.js curTitle）**: ①ENTITIES を HTML4/XHTML1.0 全集（~250 名: マークアップ+AMP/GT/LT/QUOT/COPY/REG/TRADE 等の caps 別名、shy/zwnj/zwj/lrm/rlm/NewLine/Tab 等の不可視、欧文・ギリシャ・数学・矢印）へ拡張し lookup を**大小文字厳密化**②`liftOrderedLists` — 深度スタックスキャナで ol/ul/li を構造把握し `start`/`reversed`/`value`（intAttr）を WHATWG 計数で焼き付け。親子で独立計数、ul は序数を消費しない ③ブロック走査で `m[2]` を `<br>` で分割し各片を独立ブロック化（li の <3文字 crumb 規則は片ごと適用）④`extractTitle` — `<title>` を ` - | » · – — /` 等の区切りで分割し h1 を含む片を採用（`p===h1 || p.includes(h1) || h1.includes(p)`）、仲裁不能時は生 title を保持（保守的）。

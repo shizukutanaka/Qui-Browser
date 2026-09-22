@@ -732,19 +732,29 @@ hand / gaze の select 発火点）、`trackPageView`（navigate() — origin+pa
 Sentry/GA キー未設定では完全な no-op — **本番 telemetry を流すかの方針決定は
 引き続きオーナー判断**（キーを設定するか、削除方針なら verbs を除去するか）。
 
-## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項）
+## N-3. confirmSelection() とスペースキー（Session 75 で観測 → 続き246 で実測訂正・修正）
 
-`JapaneseIME` は `compositionBuffer` に生のローマ字を保持し、`processInput` の
-戻り値 `converted` だけが表示用のかなを運ぶ。結果としてキーボード上の表示は
-「か」なのに Enter → `confirmSelection()` は **'ka'** を返す（候補選択済みなら漢字）。
-URL入力では偶然正しく動く（ASCII が欲しい）が、日本語テキストの意図では表示と
-出力が矛盾する。かつ `inputMode` に 'romaji'/'ascii' が存在しないため、
-URL入力でも画面には「ごおぎぇ.こm」のような変換表示が出る。
+**観測の訂正（続き246）**: Session 75 の記述は「表示は か・確定は ka」だったが、
+実コードは `_refreshDisplay()` が `compositionBuffer`（生バッファ）を描画しており
+**表示=確定=生ローマ字で一貫**していた — converted は console.debug への記録にのみ
+使われ、「ごおぎぇ.こm」の表示は再現しない。表示と出力の矛盾は観測誤りだった。
 
-**判断事項**: (a) confirm は表示と一致させる（converted を返す）+ URL用に
-ascii モードを追加するか、(b) 現状維持（表示は翻訳プレビュー、確定は生値）か。
-IME の仕様意図が絡むためオーナー判断。esc 経路の stale candidate 注入のみ
-修正済み（続き37）。
+**実際に存在した欠陥（続き246 で修正）**:
+- **space キーの飲み込み**: `space` が `convertToKanji()` に固定配線され、
+  ひらがなモード+非空バッファの1経路以外（空バッファ・カタカナモード）は
+  キー押下が無消費 — URL/検索入力にスペースを打つ方法が存在しなかった
+  （"vr browser" のような複数語クエリが不可能）。
+- **変換キーの沈黙変換**: `変換` キーは `convertToKanji()` を呼ぶが
+  `showCandidates()` を呼ばず、候補が生成されるのに行が表示されない —
+  レイアウト上の変換専用キーが実質 dead key だった。
+- 修正: space = リテラル空白（物理キーボード準拠・全モード/空バッファで動作）、
+  変換 = 変換+候補行表示。pin 5件（全件 stash 検証で pre-fix 赤・post-fix 緑）。
+
+**残る判断事項**: `inputMode` に 'ascii'/'japanese' の出力区別が無く、将来
+日本語テキスト入力（非 URL 文脈）を受ける呼び出しが増えた場合は
+converted を返すモードが別途必要 — 現行の全呼び出し元（URL バー/リーダー proxy/
+動画 URL）は生値が正しいため、表示=出力の一貫性は既に成立している。
+esc 経路の stale candidate 注入のみ修正済み（続き37）。
 
 ---
 
