@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 165: 続き323 — Accessibility セクション全コントロールの live-apply 連鎖を e2e pin（#258 batch 16、140→149 checks）
+- 🔍 **実測**: a11y セクション（default open）は 'Captions' トグルのみ pin 済みで、残りの 9 コントロール — stepper 4（Gaze Time/Grace Time/Caption Size/Caption Height）+ toggle 3（High Contrast/Haptics/Gaze Select）の **apply hook → 実サブシステム到達**が未駆動だった。全て端到端 pin。
+- 🔧 **順序罠**: 'Gaze Select' OFF は hover announce 自体を殺す（`shouldAnnounceSettingsButton` の gazeDwell ゲート）ため同セクション最後に実行し、直後 `updateSetting` で復元。復元は `updateSetting(key, v)` ループ — apply hook 経由でサブシステム側も戻る（手書きフィールド代入より契約通り）。
+- 🧪 赤検証: `gazeInteraction.dwellTime` apply 切断 → gazeTimeApplied、`hapticFeedback.setEnabled` 切断 → hapticsApplied、`gazeInteraction.setHighContrast` 切断 → hcApplied — 各対象のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 149 checks PASS、verify:app PASS。
+
 ### Session 164: 続き322 — live-gate トグル（snap/teleport）+ Comfort preset サイクル live apply を e2e pin（#258 batch 15、132→140 checks）
 - 🔍 **実測**: settings トグルは設定値の反転のみ pin 済みで、**ゲートが実動作を止める live 経路**（enableSnapTurn OFF → 実スティック snap 抑止・復帰、enableTeleport OFF → squeeze aim 不発、Comfort サイクル → `setPreset` live apply）は未駆動だった。locomotion セクションを hover アナウンス識別で開き 3 系統を端到端 pin。
 - 🔧 **ハーネス教訓（次回以降必須）**: rig yaw を `rotation.y` で読むと **yaw が ±90° を超えた瞬間に Euler が (π, θ, π) 分岐へ反転**し値が凍結する — 累積 snap で −105° 到達時に `rotation.y` が −75° のまま停滞し「snapTurn が回転しない」偽陰性をデバッグに 3 往復。**yaw は quaternion から `atan2(2(wy+xz), 1−2(y²+x²))` で抽出する**（VRApp 側は正しく、spy で quaternion −0.609/0.793 → −0.793/0.609 の実回転を確認済み）。

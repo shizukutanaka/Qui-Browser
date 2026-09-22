@@ -1514,6 +1514,97 @@ async function main() {
                       && locoCaps.some((s) => s.includes('Comfort: ' + app.comfortSystem.settings.preset));
                   }
                 }
+                // Accessibility section: the WCAG live-apply chain — stepper
+                // +region selects must reach gazeInteraction/captionSystem
+                // fields and toggles must reach their engines, not just flip
+                // the persisted setting. 'Gaze Select' runs last: its OFF
+                // state silences hover announces for every later probe.
+                const selectPlus6 = (btn) => {
+                  aimAt6(btn.localToWorld(btn.position.clone().set(0.34, 0, 0)));
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  ctrl.dispatchEvent({ type: 'selectstart' });
+                  ctrl.dispatchEvent({ type: 'selectend' });
+                };
+                const a11yWas = {
+                  gazeDwellTime: app.settings.gazeDwellTime,
+                  gazeGraceTime: app.settings.gazeGraceTime,
+                  captionScale: app.settings.captionScale,
+                  captionHeight: app.settings.captionHeight,
+                  highContrast: app.settings.highContrast,
+                  enableHaptics: app.settings.enableHaptics,
+                  enableGazeDwell: app.settings.enableGazeDwell,
+                };
+                try {
+                  const a11yTab = probeLabel6('Accessibility');
+                  out.a11yTabProbe = !!a11yTab;
+                  if (a11yTab) {
+                    selectCenter6(a11yTab);
+                    app.scene.updateMatrixWorld(true);
+                    out.a11yTabOpen = !!probeLabel6('Gaze Time:');
+                  }
+                  if (app.gazeInteraction) {
+                    const gtBtn = probeLabel6('Gaze Time:');
+                    const dw0 = app.settings.gazeDwellTime;
+                    if (gtBtn) {
+                      selectPlus6(gtBtn);
+                    }
+                    out.gazeTimeApplied = !!gtBtn
+                      && app.settings.gazeDwellTime !== dw0
+                      && app.gazeInteraction.dwellTime === app.settings.gazeDwellTime;
+                    const grBtn = probeLabel6('Grace Time:');
+                    const gr0 = app.settings.gazeGraceTime;
+                    if (grBtn) {
+                      selectPlus6(grBtn);
+                    }
+                    out.graceTimeApplied = !!grBtn
+                      && app.settings.gazeGraceTime !== gr0
+                      && app.gazeInteraction.graceTime === app.settings.gazeGraceTime;
+                  }
+                  if (app.captionSystem) {
+                    const csBtn = probeLabel6('Caption Size:');
+                    const cs0 = app.settings.captionScale;
+                    if (csBtn) {
+                      selectPlus6(csBtn);
+                    }
+                    out.captionSizeApplied = !!csBtn
+                      && app.settings.captionScale !== cs0
+                      && app.captionSystem.scale === app.settings.captionScale;
+                    const chBtn = probeLabel6('Caption Height:');
+                    const ch0 = app.settings.captionHeight;
+                    if (chBtn) {
+                      selectPlus6(chBtn);
+                    }
+                    out.captionHeightApplied = !!chBtn
+                      && app.settings.captionHeight !== ch0
+                      && app.captionSystem.verticalOffset === app.settings.captionHeight;
+                  }
+                  const hcBtn = probeLabel6('High Contrast:');
+                  if (hcBtn) {
+                    selectCenter6(hcBtn);
+                  }
+                  out.hcApplied = !!hcBtn
+                    && app.settings.highContrast === true
+                    && (!app.captionSystem || app.captionSystem.highContrast === true)
+                    && (!app.gazeInteraction || app.gazeInteraction._ringOpacity === 1.0);
+                  const hpBtn = probeLabel6('Haptics:');
+                  if (hpBtn) {
+                    selectCenter6(hpBtn);
+                  }
+                  out.hapticsApplied = !!hpBtn
+                    && app.settings.enableHaptics === false
+                    && (!app.hapticFeedback || app.hapticFeedback.enabled === false);
+                  const gzBtn = probeLabel6('Gaze Select:');
+                  if (gzBtn) {
+                    selectCenter6(gzBtn);
+                  }
+                  out.gazeToggleApplied = !!gzBtn
+                    && app.settings.enableGazeDwell === false
+                    && (!app.gazeInteraction || app.gazeInteraction.enabled === false);
+                } finally {
+                  for (const [k, v] of Object.entries(a11yWas)) {
+                    app.updateSetting(k, v);
+                  }
+                }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -1858,6 +1949,15 @@ async function main() {
       teleportGate: iout.teleportGate === true,
       comfortProbe: iout.comfortProbe === true,
       comfortCycles: iout.comfortCycles === true,
+      a11yTabProbe: iout.a11yTabProbe === true,
+      a11yTabOpen: iout.a11yTabOpen === true,
+      gazeTimeApplied: iout.gazeTimeApplied === true,
+      graceTimeApplied: iout.graceTimeApplied === true,
+      captionSizeApplied: iout.captionSizeApplied === true,
+      captionHeightApplied: iout.captionHeightApplied === true,
+      hcApplied: iout.hcApplied === true,
+      hapticsApplied: iout.hapticsApplied === true,
+      gazeToggleApplied: iout.gazeToggleApplied === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2037,6 +2137,15 @@ async function main() {
       ['Teleport toggle gates + re-arms squeeze aim', !!inter.teleportGate],
       ['hover announce identifies the Comfort cycle', !!inter.comfortProbe],
       ['Comfort cycle advances + live-applies the preset', !!inter.comfortCycles],
+      ['hover announce identifies the Accessibility tab', !!inter.a11yTabProbe],
+      ['tab select opens the Accessibility section', !!inter.a11yTabOpen],
+      ['Gaze Time stepper live-applies to gaze dwell', !!inter.gazeTimeApplied],
+      ['Grace Time stepper live-applies to gaze grace', !!inter.graceTimeApplied],
+      ['Caption Size stepper live-applies to caption scale', !!inter.captionSizeApplied],
+      ['Caption Height stepper live-applies to caption offset', !!inter.captionHeightApplied],
+      ['High Contrast toggle live-applies captions + reticle', !!inter.hcApplied],
+      ['Haptics toggle live-applies to the haptic engine', !!inter.hapticsApplied],
+      ['Gaze Select toggle live-applies to the gaze engine', !!inter.gazeToggleApplied],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
