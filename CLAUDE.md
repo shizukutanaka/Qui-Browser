@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 80: 続き238 — DeviceCompatibility: UA ティア欠落（Quest Pro/PICO 4 Ultra/Pico Neo 3）
+- 🔍 **実測（実機 UA で `_detectTier` 実行）**: 3機種が `unknown` → 72fps フォールバックに沈んでいた。①`Quest Pro`（OculusBrowser UA）— 'Quest [数字]' ルールに非合致 ②`PICO 4 Ultra`（PicoBrowser は全大文字 'PICO 4' を報告）— case-sensitive な `/Pico 4/` が外す ③`Pico Neo 3` — 'Neo 4' 系のみ登録済み。全機種 90Hz 対応なのに 72fps ターゲットで動く実害。
+- 🔧 **修正**: `_detectTier` に `quest-pro`・`pico-neo3` ティア追加＋ Pico マッチを case-insensitive 化。`targetFPS` に両者 90 を追加。'Quest 3S' は従来通り quest3（同 SoC・同 120Hz 上限 — コメントで明記）。
+- 🧪 pin 2件（実機 UA 文字列のティア判定 + 新ティアの targetFPS）。両方 stash 検証で pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: debounce（trailing-edge + cancel 対称）/ TextureManager（LRU・pendingLoads dedupe・byte 会計・dispose 前サイズ推定・timeout watchdog — 全てエッジ対応済み）/ PerformanceMonitor（fps>0 ガード・alert dedupe・interval 解放）/ HapticFeedback（XR/Gamepad 両経路・単一コントローラ dedupe・hand fallback）/ ComfortSystem（適応 vignette・preset merge・dispose）— 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
