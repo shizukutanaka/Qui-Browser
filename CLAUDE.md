@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 141: 続き299 — improve-N 期の stranded commit 総点検: ~14 件の fix が closed-unmerged で取り残し → HandTracking/Gaze の4件を再陸（#218, #220, #226, #229）
+- 🔍 **発見**: vr-boot に vr-enter pin を追加する調査中、`GazeInteraction.update()` が #220 修正前の「別オブジェクト滑り→即リセット」分岐を示したため ancestry 検査 → `3297b85` は `merge-base --is-ancestor` false（improve-23 に孤立）。**全 devin/* ブランチを `git log base..branch` で走査し、improve-12..38 期の全 fix commit が SHA 非祖先**（= closed-unmerged または patch-id 非一致の reland 競合で紛失）。コード内容で検証した結果、少なくとも #210/#212/#213/#214/#215/#216/#218/#219/#220/#221/#224/#226/#229/#230/#232/#233 の修正が tip に不在（#217 removeHistory・#234+#235 は別 commit で着地済み、#228 は前ラウンドで再陸済み）。
+- 🔧 **本ラウンドの再陸（interaction/a11y クラスタ、4件 cherry-pick）**: ①**#218** `gesturesRecognized++` が detectGesture 内にあり毎フレーム加算（3s ピンチ ≈270 カウント）→ onset 遷移分岐へ移動 + dead stats 削除 ②**#220** gaze grace が「空間への滑り」のみ許容 → 隣接ボタン間 jitter で選択不能 → 滑り先不問で hold、grace 超過で現在地採用 ③**#226** inputsourceschange が visible=false 直書きで遷移検出を欺き hand-lost 不発 → 発火→hide + null guard（TypeError も解消）④**#229** createHandModels が visible=true で誕生 → 初フレームに phantom "hand lost" ×2 + 原点 joint blob 1フレーム → hidden 開始。
+- 🧪 各 commit が元の pin を同梱（stash 検証済みの赤証拠は元 PR 参照）、適用後 hand-tracking + gaze-interaction 100 tests 緑。CLAUDE.md は各 commit の Session 108/110/116/119 を number-ordered 位置へ splice。
+- ✅ 3297 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 61 checks PASS、verify:app PASS。
+- 📋 **残 stranded 在庫（後続ラウンドで再陸予定）**: browser/rendering 系 #216 IPv6/#221 tab announce 順序/#224 XRLayer destroy/#230 phiStart π/#233 precache protect、comfort/perf 系 #210 FFR write-on-change/#212 southpaw/#213 alert dedup/#214 vignette dt/#215 lerp dt/#219 audio stats/#227 devtools console/#232 monitoring dedup。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。
@@ -358,6 +365,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 2件（csp-consistency: meta CSP に header-only directive 非含有 — frame-ancestors/sandbox/report-uri/report-to、header CSP ≡ meta + 恰好 `frame-ancestors 'self'` 1件の差分 — 「全 policy 完全一致」より精密で、他の差分は依然失敗）。stash 検証で pre-fix 赤・post-fix 緑。**実機再確認**: 修正後ビルドで新 SW precache → clean meta + console error 0件を CDP 実測（旧 SW が旧 precache を配信中は error 継続する標準ライフサイクルも観測）。
 - ✅ 3233 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 119: 続き277 — セッション開始直後の phantom "hand lost"（Group 既定 visible=true）
+- 🔍 **実測**: `HandTracking.createHandModels()` が `new THREE.Group()` のまま `visible` を書かず — THREE 既定 `visible=true` で両手グループが誕生する。`update()` の遷移検出（`prevVisible !== nowTracked` で `_onTrackingChange` 発火、続き274 の announce-before-hide と同じ機構）は初フレームを「前フレーム追跡中 → 今フレーム未追跡」と判定 → **セッション開始直後・ユーザーがまだ手を上げていない時点で "Left hand lost"＋"Right hand lost" が両手分発火**（600ms debounce は flicker しか防がず初期偽遷移は通す）。二重の害: ①存在しない「喪失」のステータス通知 = WCAG 4.1.3 偽情報、②`visible=true` の未追跡骨格は全インスタンス恒等行列のまま **原点に 25 球×2 手のジョイント blob として1フレーム可視**。発生条件は毎セッション開始（initialize→最初の update まで inputSources に hand が無い通常ケース）。テスト側も `makeReady()` が「start visible=false (group default)」という**事実誤認コメント**付きで手動 `visible=false` をセットし、本番状態を覆い隠していた。
+- 🔧 **修正**: `createHandModels` で両グループ `visible=false` から開始 — 未追跡であることが真の初期状態としてオブジェクトに刻まれる（"untracked until first pose"）。`update()` が引き続き visibility の唯一の所有者。`makeReady()` の手動セットは不要化して削除し、誤認コメントも除去。
+- 🧪 pin 2件: initialize 直後 `leftHand/rightHand.visible === false`（untracked-initial pin）・最初の `update(empty inputSources)` で `onTrackingChange` 非発火（phantom lost 不発）。両件 pre-fix 赤・post-fix 緑。既存 47 件は全て不変更で緑のまま。
+- ✅ 3224 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 118: 続き276 — 消したメソッドを `?.` で呼ぶ死んだ呼出4件（進む/戻る が全部嘘を言う）
 - 🔍 **実測**: WebPanel の `goBack()`/`goForward()` は no-dead-public-api 台帳の確定済み dead API（`back()`/`forward()` が live 相当）— だが台帳は**定義の削除**だけを pin し、**呼出側**は検査していなかった。結果 `tab.goForward?.()`/`tab.goBack?.()` が optional chaining 経由で4箇所に残存し全部静黙 no-op: ①VRApp pointer hand faceA（進む）②faceB（戻る）③VoiceCommands「進む/次へ」④「戻る/前へ」。しかも no-op に留まらず**虚偽フィードバック**: `moved` は常に undefined → A/B ボタンは履歴があっても毎回「次のページはありません」「前のページはありません」キャプション（WCAG 4.1.3）、音声「進む」は「進みます」と発話しながら何も遷移しない。さらに `back()`/`forward()` は戻り値を持たず、呼出名を直しても caption 分岐が動かない — boolean 契約そのものが goBack/goForward と共に消えていた。テスト側も被害: voice/wiring 双方の mock が `{ goForward: jest.fn(), goBack: jest.fn() }` と死んだ名前を供給し、緑のまま偽契約を固定していた。
 - 🔧 **修正**: `back()`/`forward()` が移動可否を `return true/false`（boolean 契約を live メソッドへ復元）→ 4 call sites を実名 `forward()`/`back()` へ。テスト mock を全て実名へ付け替え（voice 1・wiring 4）。`no-dead-public-api.test.js` に **dead-CALLER スキャン**を追加 — src/ 全ファイルを再帰走査し `\bgoBack\b|\bgoForward\b` トークンを禁止（同じ逃げ道を塞ぐ）。docstring 内の死んだ参照（VRControllerInput usage例 `goBack()`）も実名に修正 — ガードは src/ 全体の裸トークンを検査するため。
@@ -365,11 +378,29 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✅ 3271 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
 
 
+### Session 116: 続き274 — inputsourceschange 除去時だけ hand-lost アナウンスが欠落（WCAG 4.1.3）
+- 🔍 **実測**: `HandTracking.onInputSourcesChange` が `handGroup.visible = false` を**直接**書き換えていた。遷移検出は `update()` のフレーム先頭スナップショット `prevVisible` と `seen` フラグの比較で行うため、先に `visible` が消されると `prevVisible === nowTracked`（false===false）となり `_onTrackingChange` が**永遠に発火しない** — 一時的な視野外消失（seen=false → 'lost' 発火）は正しく機能するのに、最も確定的な消失イベント（ランタイムが入力ソースを除去: ハンドトラッキング→コントローラ切替・ソース永続ドロップ）だけが沈黙していた。発火先は VRApp で 600ms デバウンス経由の "Left/Right hand lost" キャプション。
+- 🔧 **修正**: 除去ループで `handGroup.visible` が true の間だけ `_onTrackingChange(handedness, false)` を先に発火し、その後 `visible=false`（即時 hide の UX は保持）。非表示済みの手は二重発火しない。加えて `handedness` が 'left'/'right' 以外・hand group 未構築の経路で `this.leftHand.visible` へのアクセスが TypeError になり得た分岐もガードで解消（`null` handGroup は `continue`）。
+- 🧪 pin 4件（hand-tracking.test.js の onInputSourcesChange describe）: 可視手の除去 → ('left',false) 発火+hide・非表示手の除去 → 不発・除去後の update() が再発火しない単発性・callback null + handGroup null で非 throw。3件が pre-fix 赤・post-fix 緑（実装前実行で確認 — うち1件は既存の TypeError クラッシュを実測検出）、残1件は非表示手 guard。
+- ✅ 3230 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。
 - 🧪 pin 8件（webpanel-states: world 姿勢→transform/scale 書込・XRRigidTransform 使用・不変姿勢で再利用・移動で再発行・非表示で blit/transform 両方 skip・setVisible(false) で解放・hide() で解放、vr-app-wiring: 非表示パネル skip・表示パネル attach）。defect 側 6件は stash 検証で pre-fix 赤・post-fix 緑（「不変姿勢で再利用」は最適化ガードのため pre-fix でも緑 — transform が null のまま一致するため）。
 - ✅ 3230 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 110: 続き268 — Gaze-dwell grace が「別オブジェクトへの滑り」を許容しない欠陥（隣接ボタン間ジッターで選択不可能）
+- 🔍 **実測（コード追跡）**: grace 許容は「何もない空間への滑り」に限定されていた — `obj` が非nullの別 interactable に1フレームでも触れると**即時リターゲット + dwell リセット**。tremor/nystagmus の典型的な失敗形「隣接ボタンの縁でジッター」は、滑り先が空でないため grace が一切働かず、往復するたびに充電が 0 に戻る → 選択完了不能。grace 機構が存在する目的（不随意 eye jitter への耐性）と矛盾。
+- 🔧 **修正**: slip 条件を「滑り先が何か」に依らず許容へ — `this._target && !this._fired && graceMs + dt < graceTime` の間は充電を hold（旧ターゲットの hover を維持・充電せず）。grace 超過で現在地のオブジェクト（別 interactable なら新規充電で採用、null なら dwell 破棄）。意図的リターゲットは最大 graceTime 遅延で依然成立、post-fire・初獲得は従来どおり即時。空白 slip の挙動は不変。
+- 🧪 pin 3件新規 + 2件移行：別ボタン滑り <grace 後に帰還で dwell 再開（pre-fix は即リセット→不発）、滑りが grace 超過で継続した場合のみリターゲット（採用後は 0 から充電）、初獲得は grace 遅延なし（guard）、hover 移動も滑りの grace 超過時のみ（ジッターで flicker しない — 移行）。旧「即時リスタート」pin は新意味論へ書換。3件 stash 検証で pre-fix 赤。
+- ✅ 3219 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 108: 続き266 — HandTracking の stats.gesturesRecognized がフレーム数を数えていた（3秒ピンチで ~270）
+- 🔍 **実測（コード追跡）**: `stats.gesturesRecognized++` が `detectGesture` 内の各ジェスチャ分岐に配置 — 同関数は**毎フレーム**走るため、ジェスチャ「イベント」ではなく「ジェスチャ中フレーム数」をカウントしていた（90Hz で1回のホールド ≈ 270 カウント）。さらに `pinchAccuracy`/`trackingQuality` フィールドは**初期化後に一切書込まれない dead stat**、Usage JSDoc は存在しない `getStats()` を参照。
+- 🔧 **修正**: ①カウンタを `recognizeGestures` の遷移分岐へ移動 — `detectGesture` は純粋分類器へ（onset 単位で +1、`'none'` 遷移は不計）②dead フィールド `pinchAccuracy`/`trackingQuality` を削除（R15 southpaw と同 dead-knob クラス）③Usage コメントを `handTracking.stats.gesturesRecognized` へ修正。
+- 🧪 pin 4件：3フレーム同一ポーズで +1 のみ（pre-fix 3）、release→再構成で +2、分類器は stats に触れない（pre-fix +1）、dead フィールド不存。3件 stash 検証で pre-fix 赤（re-form pin は pre-fix でも通る guard 系）。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
