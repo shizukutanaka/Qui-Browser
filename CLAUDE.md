@@ -245,6 +245,44 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 133: 続き291 — vrKeyboard.visible 未定義欠陥（toggle が hide 不可 + 嘘アナウンス）を修正 + URL 入力経路を e2e pin
+- 🔍 **実測**: `VRApp:2358` の thumbstick toggle と `VoiceCommands` の `ime-toggle` がともに `vrKeyboard.visible ? hide() : show()` を評価するが、**`VRJapaneseKeyboard` に `visible` プロパティは存在しなかった**（`group.visible` のみ）— 結果として両 toggle 経路は常に `show()` を呼び、(a) キーボードを hide できない (b) 既に開いていても `keyboardOpen` caption で嘘アナウンス。テストは `visible=true` を手書きセットしていたため mock-drift で素通りしていた。
+- 🔧 **修正**: `VRJapaneseKeyboard` に `get visible()` 追加 — `group.visible` の実値を返す derived state（フラグではなく真実の状態を読むため、将来の設計変更でも drift しない）。併せて `_requestVRKeyboardInput`（setOnConfirm → IME activate + ascii mode → composition prefill → show → prompt caption）を harness eval で実ドライブ — `kbShown`/`kbAscii`/`kbPrompted` の3 pin。
+- 🧪 jest pin は stash 検証で pre-fix 赤・post-fix 緑。**harness `kbShown` も pre-fix bundle で FAIL → リビルド後 PASS** — shipped bundle に欠陥が実在することを e2e で証明（修正前の dist では `visible` が undefined）。
+- ✅ 3233 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot（24 checks）PASS。
+
+**（Session 128–133 は #238–#242 が未マージ閉鎖のため本 PR で集約再陸 — ベース tip 85ff475（#237 マージ）直上にスプライス。）**
+
+### Session 132: 続き290 — harness interaction に announce 3経路（blocked-scheme / tab-close / max-tabs）を e2e pin
+- 🔍 **実測**: WCAG 4.1.3 の status announce 契約のうち、危険スキームブロック（`javascript:` → `onBlockedNavigation` → warn toast）、タブ close（`onTabClose` → caption）、9枚目タブ上限（`onMaxTabsReached` → warn toast）の3経路が e2e 未検証 — 全て「処理が成功した」と思わせない正直なアナウンスで、未配線ならサイレント失敗の構造。
+- 🔧 **修正**: interaction eval に 3 経路追加。①`tab.navigate('javascript:alert(1)')` → resolveInput が null → alert region に `⚠ Cannot open that address`（severity グリフ付き warn）②タブを 8 枚まで開き 9 枚目 `newTab()` → alert region に `⚠ Maximum tabs reached`③`setEnabled(true)` 後 `closeTab(0)` → status region に `Tab closed`。破壊的アクション後は 1 タブへ復元して評価汚染を防止。
+- 🧪 3件とも一発緑 — blocked ハンドラ未配線なら `blockedAnnounced` FAIL、onTabClose 未配線なら `closeAnnounced` FAIL、上限コールバック欠損なら `maxTabsAnnounced` FAIL と構造的検出（severity グリフ `⚠` の存在まで検証）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 21 checks PASS。#241（improve-44）の上に積層。
+
+### Session 131: 続き289 — harness interaction に tab-session 永続化 roundtrip を e2e pin
+- 🔍 **実測**: `_saveTabSession`（`tabManager.serialize()` → `localStorage['qui.tabSession.v1']`）が、リロード時の `_restoreTabSession` の読込元であるにもかかわらず e2e 未検証 — **「開いているタブが再起動後も残る」ブラウザの基本契約**が何の pin も無しに置かれていた。`privateMode` の保存・復元双方のゲートも同様。
+- 🔧 **修正**: interaction eval に 1 経路追加。アクティブタブの `tab.navigate('https://harness-tab.example/')`（実 panel パス — `currentUrl` 書込 + `onNavigate` → 履歴記録まで連鎖）→ `_saveTabSession()` → localStorage の JSON を parse し `tabs[]` に当該 URL を含むことを検証。privateMode ゲートは save（キー非出現）と restore（0 件返却）双方で検証 → `tabPrivateClean`。
+- 🧪 両件一発緑 — serialize の URL 欠落なら `tabPersisted` FAIL、private ゲート破損なら `tabPrivateSaved`/`tabPrivateRestore` で構造的 FAIL。セッションリーク無し（private トグル・キー除去・restore 呼出は全て元に戻す）。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 18 checks PASS。#240（improve-43）の上に積層。
+
+### Session 130: 続き288 — harness interaction に clear-history ワイプ + bookmark-only suggestion を e2e pin
+- 🔍 **実測**: `_clearBrowsingHistory`（破壊的アクション → ワイプ + `historyCleared` toast）と、履歴ゼロの bookmark が virtual-visit score で suggestion に浮上する経路が e2e 未検証。volume apply 連鎖も試みたが `updateSetting` は設計上 persist-only（apply は各 control 固有の責務）で、voice 経路は stubbed 環境で `voiceCommands` が正しく null — **存在しないパスを assert する pin は設計不成立として撤去**、到達可能な契約のみ pin する方針を貫徹。
+- 🔧 **修正**: interaction eval に 3 経路追加。①`app._clearBrowsingHistory()` → `bookmarks.search('harness-nav.example')` が空になる（記録済みエントリの完全ワイプ）②同時に alert live region が `ℹ History cleared` を含む（破壊操作の WCAG 4.1.3 status feedback が実 DOM へ到達）③ワイプ直後でも `toggleBookmark` した URL が virtual-visit score で suggestion に残る（bookmark-only 経路 — 履歴を持たないブックマークが autocompletion に出る設計）。
+- 🧪 3件とも一発緑 — clearHistory のワイプ漏れなら `historyCleared` false→FAIL、toast 未配線なら `clearAnnounced` FAIL、bookmark スコア計算破損なら `bmSuggest` FAIL と構造的検出。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 16 checks PASS。#239（improve-42）の上に積層。
+
+### Session 129: 続き287 — harness interaction に IME suggestion 連鎖 + settings 永続化を e2e pin
+- 🔍 **実測**: Session 128 の履歴書込が通った次の空白として、**その履歴が `vrKeyboard.suggestionProvider`（= `bookmarks.search` の frecency ランク）を経て実際にキーボード候補へ届く連鎖**と、`updateSetting → saveSettings → localStorage[qui-browser:settings]` の settings 永続化 roundtrip がともに e2e 未検証と特定。前者は「URL autocomplete」のユーザーフロー全体、後者は起動時 `_loadSettings` が読み戻す契約。
+- 🔧 **修正**: interaction eval に 2 経路追加。①R41 で書込んだ `harness-nav.example` を `app.vrKeyboard.suggestionProvider('harness-nav')` が返すこと（navigate→addHistory→frecency→suggestion の full chain）②`updateSetting('snapTurnAngle', 45)` → `localStorage['qui-browser:settings']` の JSON parse が 45 を含むこと（side-effect なしのキーを選択・後で復元）。戻り `imeSuggest`/`settingsPersisted` を checks に追加。#238（improve-41）の上に積層。
+- 🧪 両件とも一発緑 — suggestionProvider 未配線なら `imeSuggest` undefined→FAIL、saveSettings 書込漏れなら `settingsPersisted` false→FAIL と構造的に検出する pin。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot（14 checks）PASS。
+
+### Session 128: 続き286 — harness interaction に history 永続化 + privateMode 非記録を e2e pin
+- 🔍 **実測**: BookmarkStore の addHistory/frecency/getTopSites は jest で `localStorage` をモックするため、**実ブラウザの localStorage への書込み経路は未検証**だった。また `VRApp.navigate` の privateMode ゲート（`if (!this.settings.privateMode) bookmarks.addHistory`）はプライバシー契約そのものだが e2e では一度も駆動されていなかった。
+- 🔧 **修正**: interaction eval に 2 経路追加。①`app.navigate('https://harness-nav.example/')` → `bookmarks.search` が当該 URL を frecency ランクで返すこと（実 localStorage 書込→読出の roundtrip）②`updateSetting('privateMode', true)` 後の navigate が `search` に一切残さないこと（private 契約）。戻りで `historyHit`/`privateClean` を算出し checks に追加。base tip が `1fc5f40`（#236 マージ）へ前進したため本ブランチは新 tip から切出。
+- 🧪 赤検証: `navigate` の privateMode ゲートを意図的に `if (true)` へ切替え rebuild → `privateClean` のみ FAIL（private URL が履歴に漏洩）、`historyHit` は緑維持 — プライバシー契約を正確に捕捉。復元後全緑。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 12 checks PASS。
+
 ### Session 127: 続き285 — harness interaction に tab-flow announce を追加（captions ゲートの実契約を確認）
 - 🔍 **実測（listener/localStorage/settings-drift/i18n-key/frecency 全スイープ clean 後）**: interaction フェーズの残空白として `TabManager.newTab → setActive → onTabActivate → captionSystem.show → onShow → status mirror` の announce 経路を e2e 未駆動と特定。初回実行で announce が届かない現象を観測し一時的に欠陥を疑ったが、原因は VRApp の caller-side `captionSystem.enabled` ゲート（39箇所 + crossModal 1箇所）— テスト群が「captions off → caption channel 全面 silent」を意図的に pin しており設計契約と確認（critical channel は無条件の announceAlert 経路で別途担保）。この自然な FAIL が、当該チェックが announce channel を空振りせず実検出することの証明になった。
 - 🔧 **修正**: interaction eval に tab-flow を追加。`setEnabled(true)` で実契約通り caption channel を有効化してから `newTab('')` を発火し、2 新規チェック: ①`newTab()` がタブ数を +1 ②status live region が `Tab: New Tab` を含む（onTabActivate の i18n caption が実 DOM まで届くことの pin）。

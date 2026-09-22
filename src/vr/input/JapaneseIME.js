@@ -1074,6 +1074,13 @@ export class VRJapaneseKeyboard {
     this._refreshKeyStates();
   }
 
+  /** Whether the keyboard is currently shown — derived from the group's
+   *  real visibility so callers (toggle buttons, voice commands) can never
+   *  read a stale flag. */
+  get visible() {
+    return !!(this.group && this.group.visible);
+  }
+
   /** Show the keyboard (builds it on first use). */
   show() {
     if (!this.group) {

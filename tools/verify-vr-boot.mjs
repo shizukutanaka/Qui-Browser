@@ -216,17 +216,103 @@ async function main() {
         app.showVRToast('harness-dupe-check', { type: 'info' });
         app.showVRToast('harness-dupe-check', { type: 'info' });
         out.afterDupe = alertEl ? alertEl.textContent : '';
-        // Tab flow: newTab() activates the new tab → onTabActivate announces
-        // "Tab: New Tab" via captionSystem.show → onShow → status mirror.
-        // The announce channel is deliberately gated on captions being enabled
-        // (pinned by tests), so enable them first to exercise the real path.
-        out.tabBefore = app.tabManager ? app.tabManager.tabs.length : -1;
-        if (app.tabManager && app.captionSystem) {
-          app.captionSystem.setEnabled(true);
-          app.tabManager.newTab('');
-          out.tabAfter = app.tabManager.tabs.length;
+        // History recording: app.navigate() writes BookmarkStore history into
+        // REAL localStorage (jest mocks it — this is the first e2e write-path
+        // coverage). Frecency search must then surface the entry.
+        if (app.bookmarks && typeof app.navigate === 'function') {
+          app.navigate('https://harness-nav.example/', 'Harness Nav Page');
+          out.historyHit = app.bookmarks.search('harness-nav.example', 5, Date.now())
+            .some((s) => s.url === 'https://harness-nav.example/');
+          // Private mode: the same call must write nothing — the privacy
+          // contract (VRApp.navigate gates addHistory on settings.privateMode).
+          app.updateSetting('privateMode', true);
+          app.navigate('https://harness-private.example/', 'Private Page');
+          out.privateLeak = app.bookmarks.search('harness-private.example', 5, Date.now()).length > 0;
+          app.updateSetting('privateMode', false);
+          // IME autocomplete chain: the navigate() write above must surface
+          // through the same suggestionProvider the VR keyboard consults
+          // (BookmarkStore.search → frecency → suggestion buttons).
+          if (app.vrKeyboard && app.vrKeyboard.suggestionProvider) {
+            const sugg = app.vrKeyboard.suggestionProvider('harness-nav') || [];
+            out.imeSuggest = sugg.some((s) => s.url === 'https://harness-nav.example/');
+          }
+          // Settings persistence: updateSetting must write SETTINGS_KEY into
+          // real localStorage — the contract _loadSettings reads back on boot.
+          const prev = app.settings.snapTurnAngle;
+          app.updateSetting('snapTurnAngle', 45);
+          try {
+            const stored = JSON.parse(localStorage.getItem('qui-browser:settings'));
+            out.settingsPersisted = stored && stored.snapTurnAngle === 45;
+          } catch {
+            out.settingsPersisted = false;
+          }
+          app.updateSetting('snapTurnAngle', prev);
+          // Clear-history contract: recorded entries wipe AND the alert
+          // mirror announces the destructive action (WCAG 4.1.3 feedback).
+          if (typeof app._clearBrowsingHistory === 'function') {
+            app._clearBrowsingHistory();
+            out.historyCleared = app.bookmarks.search('harness-nav.example', 5).length === 0;
+            out.alertAfterClear = alertEl ? alertEl.textContent : '';
+          }
+          // Bookmark-only suggestion: a bookmark with NO history entry still
+          // surfaces via its virtual-visit score — and must survive the wipe.
+          app.bookmarks.toggleBookmark('https://harness-bm.example/', 'BM Page');
+          out.bmSuggest = app.bookmarks.search('harness-bm.example', 5, Date.now())
+            .some((s) => s.url === 'https://harness-bm.example/');
+          // Tab-session persistence: panel navigate sets currentUrl →
+          // serialize() → localStorage[TAB_SESSION_KEY]; private mode
+          // neither writes nor restores — an incognito session stays
+          // ephemeral like history recording.
+          const tab = app.tabManager && app.tabManager.getActiveTab();
+          if (tab && typeof tab.navigate === 'function') {
+            tab.navigate('https://harness-tab.example/');
+            app._saveTabSession();
+            let sdata = null;
+            try { sdata = JSON.parse(localStorage.getItem('qui.tabSession.v1')); } catch {
+              sdata = null;
+            }
+            out.tabPersisted = !!(sdata && Array.isArray(sdata.tabs)
+              && sdata.tabs.some((t) => t && t.url === 'https://harness-tab.example/'));
+            app.updateSetting('privateMode', true);
+            localStorage.removeItem('qui.tabSession.v1');
+            app._saveTabSession();
+            out.tabPrivateSaved = localStorage.getItem('qui.tabSession.v1') !== null;
+            out.tabPrivateRestore = app._restoreTabSession();
+            app.updateSetting('privateMode', false);
+          }
+          // Announce paths — every user-visible status must reach an ARIA
+          // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
+          // tab close (caption), and the 9th-tab limit (warn toast).
+          if (tab) {
+            tab.navigate('javascript:alert(1)'); // resolves to null → blocked
+            out.alertBlocked = alertEl ? alertEl.textContent : '';
+          }
+          while (app.tabManager.count < 8) {
+            app.tabManager.newTab();
+          }
+          app.tabManager.newTab(); // 9th → MAX_TABS → onMaxTabsReached
+          out.alertMaxTabs = alertEl ? alertEl.textContent : '';
+          if (app.captionSystem) {
+            app.captionSystem.setEnabled(true);
+          }
+          app.tabManager.closeTab(0);
+          out.closeCaption = statusEl ? statusEl.textContent : '';
+          while (app.tabManager.count > 1) {
+            app.tabManager.closeTab(0); // restore a single open tab
+          }
+          // URL-input request drives the whole keyboard wiring: setOnConfirm,
+          // IME activate + ascii mode, composition prefill, show(), and the
+          // prompt caption. vrKeyboard.visible is a real getter (reads the
+          // group) — the undefined-flag defect made toggles always show().
+          if (typeof app._requestVRKeyboardInput === 'function' && app.vrKeyboard) {
+            app._requestVRKeyboardInput('https://harness-input.example/', () => {});
+            out.kbShown = app.vrKeyboard.visible === true;
+            out.kbAscii = !!(app.japaneseIME && app.japaneseIME.inputMode === 'ascii'
+              && app.japaneseIME.compositionBuffer === 'https://harness-input.example/');
+            out.kbPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.hide();
+          }
         }
-        out.statusAfterTab = statusEl ? statusEl.textContent : '';
         return out;
       })()`,
       returnByValue: true
@@ -244,8 +330,21 @@ async function main() {
       // would never be announced by screen readers.
       dupMarked: (iout.afterDupe || '').endsWith('\u200B'),
       statusHas: (iout.statusText || '').includes('harness-caption-check'),
-      tabGrew: typeof iout.tabAfter === 'number' && iout.tabAfter === iout.tabBefore + 1,
-      tabAnnounced: (iout.statusAfterTab || '').includes('Tab: New Tab')
+      historyHit: !!iout.historyHit,
+      privateClean: iout.privateLeak === false,
+      imeSuggest: !!iout.imeSuggest,
+      settingsPersisted: !!iout.settingsPersisted,
+      historyCleared: !!iout.historyCleared,
+      clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
+      bmSuggest: !!iout.bmSuggest,
+      tabPersisted: !!iout.tabPersisted,
+      tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
+      blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
+      maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
+      closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
+      kbShown: !!iout.kbShown,
+      kbAscii: !!iout.kbAscii,
+      kbPrompted: (iout.kbPrompt || '').includes('Enter URL')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -274,8 +373,21 @@ async function main() {
       ['toast reached alert live region (cross-modal wiring)', !!inter.alertHas],
       ['identical repeat toast re-announced (ZWSP marker)', !!inter.dupMarked],
       ['caption reached status live region (cross-modal wiring)', !!inter.statusHas],
-      ['newTab() added a tab', !!inter.tabGrew],
-      ['tab activation announced via live region', !!inter.tabAnnounced],
+      ['navigate() recorded history into real localStorage', !!inter.historyHit],
+      ['private mode wrote no history', !!inter.privateClean],
+      ['history feeds IME suggestions (frecency → keyboard chain)', !!inter.imeSuggest],
+      ['updateSetting persisted to real localStorage', !!inter.settingsPersisted],
+      ['clear-history wiped recorded entries', !!inter.historyCleared],
+      ['history-clear announced via alert region', !!inter.clearAnnounced],
+      ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
+      ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
+      ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
+      ['tab close announced via caption status', !!inter.closeAnnounced],
+      ['max tabs announced via warn toast', !!inter.maxTabsAnnounced],
+      ['URL-input request opened the VR keyboard', !!inter.kbShown],
+      ['keyboard opened in ascii mode with URL prefill', !!inter.kbAscii],
+      ['keyboard prompt announced via caption', !!inter.kbPrompted],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
