@@ -211,11 +211,10 @@ describe('ComfortSystem', () => {
     expect(system.currentVignette).toBe(0);
   });
 
-  test('head rotation always applies full vignette regardless of externalMotionLevel', () => {
+  test('fast head motion applies full vignette regardless of externalMotionLevel', () => {
     system.settings.vignette.smoothing = 1;
     system.settings.vignette.intensity = 0.4;
-    system._headMoving = false;
-    system.isRotating = true; // head turning → full-strength motion
+    system._headLevel = 1; // measured fast head turn (see kinematic tests below)
     system.externalMotion = true;
     system.externalMotionLevel = 0; // even with zero glide speed
     system.currentVignette = 0;
@@ -471,5 +470,84 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
 
   test('disabling without reduceMotion → no warning', () => {
     expect(smoothMoveWarning(false, false)).toBeNull();
+  });
+});
+
+
+describe('ComfortSystem — kinematic head scaling (arXiv:2502.03419)', () => {
+  let system, camera;
+  beforeEach(() => {
+    camera = makeCamera();
+    system = new ComfortSystem(camera);
+    system.settings.vignette.smoothing = 1; // snap to target for assertions
+    system.settings.vignette.intensity = 0.4;
+    system.callbacks = {};
+  });
+  afterEach(() => {
+    system.dispose?.();
+  });
+
+  test('a fast head turn measures full level and drives full vignette', () => {
+    system.detectMotion(1 / 60);            // baseline
+    camera.rotation.y = 0.15;               // ~8.6° in one 60 Hz frame ≈ 515°/s
+    system.detectMotion(1 / 60);
+    expect(system._headLevel).toBe(1);
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4, 5);
+  });
+
+  test('a slow gaze shift contributes nothing — the old 1 mm flag over-fired', () => {
+    system.detectMotion(1 / 60);
+    camera.rotation.y = 0.002;              // ~6.9°/s — reading-scan speed
+    system.detectMotion(1 / 60);
+    expect(system.isRotating).toBe(true);   // flag still reports any motion
+    expect(system._headLevel).toBe(0);      // but it must not restrict the view
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBe(0);
+  });
+
+  test('mid-range head motion scales the vignette proportionally', () => {
+    system.detectMotion(1 / 60);
+    camera.rotation.y = 0.026;              // ~90°/s — inside the 45–240°/s ramp
+    system.detectMotion(1 / 60);
+    const level = system._headLevel;
+    expect(level).toBeGreaterThan(0);
+    expect(level).toBeLessThan(1);
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4 * level, 5);
+  });
+
+  test('a slow lean stays under the translation ramp', () => {
+    system.detectMotion(1 / 60);
+    camera.position.x = 0.002;              // ~0.12 m/s — below the 0.15 m/s floor
+    system.detectMotion(1 / 60);
+    expect(system.isMoving).toBe(true);     // flag still sees the delta
+    expect(system._headLevel).toBe(0);
+  });
+
+  test('a deliberate step contributes at the translation ramp', () => {
+    system.detectMotion(1 / 60);
+    camera.position.x = 0.014;              // ~0.84 m/s — past the 0.8 m/s ceiling
+    system.detectMotion(1 / 60);
+    expect(system._headLevel).toBe(1);
+  });
+
+  test('frame dt is honored — the same delta at half the rate halves the speed', () => {
+    system.detectMotion(1 / 60);
+    camera.rotation.y = 0.026;
+    system.detectMotion(1 / 30);            // same Δ over twice the time
+    expect(system._headLevel).toBe(0);      // ~45°/s — at the ramp floor
+  });
+
+  test('external locomotion still wins when it exceeds the head level', () => {
+    system._headLevel = 0.4;
+    system.externalMotion = true;
+    system.externalMotionLevel = 0.75;
+    system.currentVignette = 0;
+    system.updateVignette(0.016);
+    expect(system.currentVignette).toBeCloseTo(0.4 * 0.75, 5);
   });
 });

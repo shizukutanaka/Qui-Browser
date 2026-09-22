@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 97: 続き255 — ビネットを頭部運動量でスケーリング（arXiv:2502.03419 の実装化）
+- 🔍 **調査**: `updateVignette` のコメント自身が「頭部運動は実速度が測れないので全強度」と前提していたが、実際にはフレーム毎のワールド delta / dt で**測れる**。旧ロジックは位置 1mm・回転 0.001rad 超で一律フル強度 — **読書スキャン程度のゆっくりした首振りでも常時ビネット全開**で、コメントが自認する「過剰な周辺視野制限はそれ自体が快適性コスト」を文字どおり犯していた。Part C の C2（運動学予測: 速度/加速度/jerk が酔いを予測）は既に文内引用済みだったが実装はバイナリのまま。
+- 🔧 **修正**: `detectMotion(dt)` が並進速度（m/s）・角速度（°/s）を計測し `_headLevel`（0..1）へ写像 — 並進ランプ 0.15–0.8 m/s（ゆっくりした傾き <0.15、意図的な一歩 >0.8）、回転ランプ 45–240°/s（快適スキャン ~30–60°/s、速い首振りは数百）。`updateVignette` の head 項をバイナリ `(moving||rotating)?1:0` から計測値 `_headLevel` へ置換 — externalMotion 側（スティック変位比例）は不変、両者の max を取る。`isMoving`/`isRotating` フラグの意味は維持（API 互換）。素の `detectMotion()` 呼出は 60Hz 1フレームを仮定。
+- 🧪 pin 7件（高速首振り→full・低速スキャン→0・中速→比例・低速傾き→0・明示的一歩→1・dt 尊重・external 優位 guard）+ 既存 'head rotation full vignette' テストを `_headLevel=1` セマンティクスへ移行。6件が stash 検証で pre-fix 赤・post-fix 緑。
+- ✅ 3221 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

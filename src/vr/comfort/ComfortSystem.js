@@ -47,6 +47,12 @@ export class ComfortSystem {
     this.isRotating = false;
     this.currentVignette = 0;
 
+    // Continuous head-motion level (0..1) — see detectMotion(). Head speed
+    // IS measurable per frame, so the vignette scales with it instead of
+    // snapping to full intensity for any gaze shift at all.
+    this._headLevel = 0;
+    this._headMoving = false;
+
     // Initialize the vignette quad
     this.setupVignette();
   }
@@ -101,7 +107,7 @@ export class ComfortSystem {
     }
 
     // Detect movement
-    this.detectMotion();
+    this.detectMotion(deltaTime);
 
     // Update vignette effect
     if (this.settings.vignette.enabled) {
@@ -110,9 +116,27 @@ export class ComfortSystem {
   }
 
   /**
-   * Detect user motion
+   * Detect user motion.
+   *
+   * Also measures head *speed* into `_headLevel` (0..1): the head's world
+   * delta per second is knowable per frame, so a binary 'moving or not'
+   * flag over-restricts — every slow gaze shift or lean crossed the old
+   * 1 mm threshold and pinned the vignette at full intensity while the
+   * user simply looked around. Kinematic magnitude is what predicts
+   * sickness from rotational optical flow, so the restriction scales
+   * with it (adaptive FOV restriction, VRST '22; kinematic predictors —
+   * speed/acceleration/jerk — arXiv:2502.03419).
+   *
+   * Ramps: translation 0–1 over 0.15–0.8 m/s (a slow lean stays under
+   * ~0.15, a deliberate step is past it); rotation 0–1 over 45–240°/s
+   * (comfortable scanning is ~30–60°/s, a fast head snap reaches several
+   * hundred). A rotation speed below the ramp floor adds nothing — the
+   * vignette should not blink on for reading-scan head turns.
+   *
+   * @param {number} [deltaTime] seconds since the previous call
+   *   (update() passes its frame dt; a bare call assumes one 60 Hz frame)
    */
-  detectMotion() {
+  detectMotion(deltaTime) {
     const currentPosition = this.camera.position;
     const currentRotation = this.camera.rotation.y;
 
@@ -120,9 +144,17 @@ export class ComfortSystem {
     const moveDistance = currentPosition.distanceTo(this.lastPosition);
     const rotDistance = Math.abs(currentRotation - this.lastRotation);
 
+    const dt = Math.max(Number(deltaTime) || (1 / 60), 1e-4);
+    const posSpeed = moveDistance / dt;                     // m/s
+    const rotSpeed = (rotDistance * 180 / Math.PI) / dt;    // °/s
+    const ramp = (v, lo, hi) => Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
+    this._headLevel = Math.max(
+      ramp(posSpeed, 0.15, 0.8),
+      ramp(rotSpeed, 45, 240)
+    );
+
     // Head-delta motion kept separate from the external locomotion signal so
-    // updateVignette() can scale the external contribution by its level while
-    // head/camera motion always counts as full-strength motion.
+    // updateVignette() can scale the external contribution by its level.
     this._headMoving = moveDistance > 0.001; // ~1mm threshold
     // Update motion flags (OR in any external locomotion signal)
     this.isMoving = this._headMoving || this.externalMotion;
@@ -140,8 +172,8 @@ export class ComfortSystem {
    * exposed to, rather than snapping to full strength for any motion at all:
    * over-restricting the periphery during slow drift is itself a
    * comfort/usability cost (adaptive FOV restriction — VRST '22; adaptive
-   * FFR+FoV, arXiv:2502.03419). Head-tracked movement and rotation still count
-   * as full-strength motion (their real-world speed isn't measurable here);
+   * FFR+FoV, arXiv:2502.03419). Head-tracked motion contributes the measured
+   * `_headLevel` (see detectMotion — speed-proportional, not binary), and
    * smooth locomotion contributes proportionally to externalMotionLevel
    * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
@@ -150,7 +182,7 @@ export class ComfortSystem {
       ? Math.max(0, Math.min(1, this.externalMotionLevel))
       : 0;
     const motionLevel = Math.max(
-      (this._headMoving || this.isRotating) ? 1 : 0,
+      Math.min(1, Math.max(0, this._headLevel || 0)),
       externalLevel
     );
     const targetVignette = this.settings.vignette.intensity * motionLevel;
