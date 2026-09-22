@@ -28,7 +28,13 @@ describe('isBlockedAddress — literal IPv4 ranges', () => {
     ['192.168.1.1', 'private-192'],
     ['198.18.0.1', 'benchmark'],
     ['240.0.0.1', 'reserved-240'],
-    ['255.255.255.255', 'reserved-240']
+    ['255.255.255.255', 'reserved-240'],
+    ['192.88.99.1', '6to4-relay'],      // 6to4 anycast relay — never a web host
+    ['192.0.2.1', 'doc-test-net'],      // RFC 5737 documentation ranges
+    ['198.51.100.1', 'doc-test-net'],
+    ['203.0.113.1', 'doc-test-net'],
+    ['224.0.0.1', 'multicast'],         // 224.0.0.0/4 — no unicast web host
+    ['239.255.255.250', 'multicast']    // UPnP/SSDP — routed to LAN services
   ])('%s is blocked (%s)', (ip, reason) => {
     expect(isBlockedAddress(ip)).toEqual({ blocked: true, reason });
   });
@@ -71,6 +77,12 @@ describe('isBlockedAddress — IPv6', () => {
   test('public IPv6 is allowed', () => {
     expect(isBlockedAddress('2606:4700:4700::1111').blocked).toBe(false);
   });
+
+  test.each(['ff02::1', 'ff00::', 'ff02::fb'])(
+    'ff00::/8 multicast %s is blocked — HTTP fetches only reach unicast', (ip) => {
+      expect(isBlockedAddress(ip)).toEqual({ blocked: true, reason: 'ipv6-multicast' });
+    }
+  );
 });
 
 describe('isBlockedAddress — hostnames', () => {
@@ -82,6 +94,17 @@ describe('isBlockedAddress — hostnames', () => {
 
   test('a bare label is a LAN name, not a public site', () => {
     expect(isBlockedAddress('intranet')).toEqual({ blocked: true, reason: 'bare-hostname' });
+  });
+
+  test('the DNS-root trailing dot does not evade the literal checks', () => {
+    // 'localhost.' is the FQDN form of 'localhost' — same block, literal layer.
+    expect(isBlockedAddress('localhost.')).toEqual({ blocked: true, reason: 'localhost' });
+    expect(isBlockedAddress('printer.local.')).toEqual({ blocked: true, reason: 'internal-tld' });
+    // A literal IP written with a trailing dot still takes the v4 path.
+    expect(isBlockedAddress('10.0.0.1.')).toEqual({ blocked: true, reason: 'private-10' });
+    // Public names keep working with or without the root dot.
+    expect(isBlockedAddress('example.com.').blocked).toBe(false);
+    expect(isBlockedAddress('8.8.8.8.').blocked).toBe(false);
   });
 
   test('ordinary public hostnames pass', () => {

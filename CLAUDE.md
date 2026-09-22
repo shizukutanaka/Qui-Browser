@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 85: 続き243 — ssrfGuard: マルチキャスト・予約レンジ・trailing-dot 抜け
+- 🔍 **実測（isBlockedAddress 直接 probe）**: ①`224.0.0.1`・`239.255.255.250`（UPnP/SSDP — LAN 内サービスへ実際にルーティングされる）が allow — IPv4 マルチキャスト 224/4 欠落 ②`ff02::1`・`ff00::`（IPv6 マルチキャスト ff00::/8）が allow — `/^f[cd]/`（ULA）と `/^fe[89ab]/`（link-local）の間を `ff` が抜ける ③`192.88.99.1`（6to4 リレー anycast — 実際に到達可能だが Web ホストではあり得ない）未ブロック ④`localhost.`・`foo.local.`・`10.0.0.1.`（DNS ルートの FQDN 記法）が literal 層を素通り（localhost. は 'localhost' にも '.local' にも合致せず、10.0.0.1. は parseV4 失敗で hostname パスへ — いずれも post-DNS 層では捕捉されるが第1防衛線が抜ける）。
+- 🔧 **修正**: V4_BLOCKED に `multicast`（224–239）・`6to4-relay`（192.88.99/24）・`doc-test-net`（192.0.2/198.51.100/203.0.113 — RFC 5737 文書用、実ホスト不在）追加。IPv6 側に `ff00::/8` → 'ipv6-multicast'。`host` 正規化で末尾ドット1つを剥がし、FQDN 記法が同じルールを通るように。
+- 🧪 pin 3件（multicast 一覧・ff00::/8・trailing-dot 一式）。stash 検証で 10 件 pre-fix 赤・post-fix 緑。
+- 🔍 **同軸監査（クリーン）**: TabManager（closeTab 活性管理・restoreSession・serialize）/ BookmarkPanel（draw/hitTest のスクロールクランプ一致・dispose）/ bookmarkLayout・panelGeometry・chromeColors・curvedGeometry・videoProjection / accessibility.js・AccessibilityCoordinator / app.js・main.js / monitoring.js（dispose 対称・idempotent init）/ DevTools.js（console/fetch 復元）/ public/service-worker.js（cache 戦略・waitUntil 継続・10s ハードタイムアウト）/ proxy/server.js（DNS ピン留め・per-hop 再検証・gzip 爆弾は復号後サイズ上限・deadline+idle・client-abort 伝播）— 全て正しい。
+- ✅ 3023 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
