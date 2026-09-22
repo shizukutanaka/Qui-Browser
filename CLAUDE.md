@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 169: 続き327 — URL サジェスト行（frecency → 候補表示 → hover full-URL → select commit）を e2e pin（#259 batch 20、179→184 checks）
+- 🔍 **実測**: キーストローク毎の `_updateSuggestions` → `bookmarks.search(query,4)` frecency → `showSuggestions` で実 interactable `_suggestionMeshes` 構築 → hover は **フル URL** をアナウンス（WCAG 1.3.3 — 切詰ラベルではなく行先）、ray select → buffer クリア + `onTextConfirmed(entry.url)`。gaze-dwell タイピング ~8-10WPM の最大時短経路が未駆動だった。
+- 🔧 **pin 設計（5 check）**: `bookmarks.addHistory` で 'https://suggest-seed.example/clip' をシード（finally で `removeHistory` 掃除）→ '360° Video' で開放 → ①'s' 1文字は <2-char ゲートで行不生成 ②'s','u' で `_suggestionMeshes`+`_suggestionsGroup.visible` ③hover → `onHoverCaption(entry.url)` が locoCaps にフル URL 到達（`enableGazeDwell` 立てる）④select → `onTextConfirmed(SUG_URL)` → play spy + `compositionBuffer===''` + hide。
+- 🧠 **観察**: `sugMinChars` は「1文字で行が出ない」方向のみ pin — 厳しすぎるゲート方向は `sugRowBuilds` が補完（赤検証で確認済みの設計分業）。
+- 🧪 **赤検証（4 cut 一括）**: `<2` ゲート（→`<99`）・`showSuggestions` 呼出・`onHoverCaption(entry.url)`・`onTextConfirmed(entry.url)` 各切断 → `sugRowBuilds`/`sugHoverUrl`/`sugSelectConfirms` FAIL（`<99` 化で行不生成 → row/hover/select 3連鎖が全部死ぬ構造を確認）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 184 checks PASS、verify:app PASS。
+
 ### Session 168: 続き326 — IME ひらがな変換連鎖（かなキー→ローマ字→変換→候補行→候補 select→confirm）を e2e pin（#259 batch 19、174→179 checks）
 - 🔍 **実測**: フラグシップの日本語入力経路の最深部が未駆動 — 'かな' キー → `switchMode('hiragana')`、ローマ字キー列 → `convertRomajiToHiragana`（表示は仮名・buffer は生ローマ字）、'変換' キー → `convertToKanji` → `showCandidates` で実 interactable 候補行生成、候補 ray select → `selectCandidate` → `onTextConfirmed` で即 commit。`getKanjiCandidates` は Google Transliteration API fetch のため **offline dict（`getOfflineKanjiCandidates`）に指向して deterministic 化** — ルックアップに渡される変換済みひらがな引数を spy で pin。
 - 🔧 **pin 設計（5 check）**: 'かな' → `inputMode==='hiragana'`；'konnitiha' 9 キー select → `compositionBuffer==='konnitiha'`（生 buffer）+ mode 保持；'変換' → `getKanjiCandidates` 引数 `'こんにちは'`（**ローマ字→仮名変換が実経路で動いたことの e2e 証明**）；候補行 `_candidateMeshes.length===candidates.length` + `_candidatesGroup.visible`；候補 0 番 ray select → `onTextConfirmed('今日は')` → play spy + hide + 候補クリア。

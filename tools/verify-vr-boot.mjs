@@ -1921,6 +1921,91 @@ async function main() {
                   }
                 }
               }
+              // URL suggestion leg — every keystroke runs _updateSuggestions
+              // → bookmarks.search (frecency) → showSuggestions builds real
+              // interactable _suggestionMeshes; hover announces the FULL
+              // destination URL (WCAG 1.3.3); a ray select clears the buffer
+              // and routes onTextConfirmed(entry.url). Deterministic via a
+              // seeded BookmarkStore history entry.
+              if (ctrl && app.settingsPanel && app.vrKeyboard
+                && app.japaneseIME && app.immersiveVideo && app.bookmarks) {
+                const origPlay5 = app.immersiveVideo.play;
+                const videoCalls5 = [];
+                const kbVisWas3 = app.vrKeyboard.visible;
+                const gazeWas5 = app.settings.enableGazeDwell;
+                const SUG_URL = 'https://suggest-seed.example/clip';
+                try {
+                  app.settings.enableGazeDwell = true;
+                  app.bookmarks.addHistory(SUG_URL, 'suggest seed');
+                  if (!(app.settings.openSettingsSections || [])
+                    .includes('settings.section.audio')) {
+                    const audTab4 = probeLabel6('Audio & Media');
+                    if (audTab4) {
+                      selectCenter6(audTab4);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  const vidBtn5 = probeLabel6('360° Video');
+                  out.sugActionProbe = !!vidBtn5;
+                  app.immersiveVideo.play = (u, f) => {
+                    videoCalls5.push(u + '|' + f);
+                  };
+                  if (vidBtn5) {
+                    selectCenter6(vidBtn5);
+                  }
+                  app.scene.updateMatrixWorld(true);
+                  const pressKey8 = async (label) => {
+                    const km = (app.vrKeyboard.keyMeshes || [])
+                      .find((k) => k.label === label);
+                    if (!km) { return false; }
+                    selectCenter6(km.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                    return true;
+                  };
+                  // Under-2-char gate: a single keystroke builds no row.
+                  const s1 = await pressKey8('s');
+                  out.sugMinChars = s1
+                    && (app.vrKeyboard._suggestionMeshes || []).length === 0;
+                  const s2 = await pressKey8('u');
+                  out.sugRowBuilds = s2
+                    && (app.vrKeyboard._suggestionMeshes || []).length > 0
+                    && app.vrKeyboard._suggestionsGroup
+                    && app.vrKeyboard._suggestionsGroup.visible === true;
+                  // Hover announces the full destination URL (WCAG 1.3.3).
+                  const capsBefore3 = locoCaps.length;
+                  const sm = (app.vrKeyboard._suggestionMeshes || [])[0];
+                  if (sm) {
+                    aimAt6(sm.mesh.getWorldPosition(sm.mesh.position.clone()));
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                  }
+                  out.sugHoverUrl = !!sm
+                    && locoCaps.slice(capsBefore3)
+                      .some((t3) => t3.includes('suggest-seed.example'));
+                  // Ray select clears the composition and routes the URL.
+                  if (sm) {
+                    selectCenter6(sm.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                  }
+                  out.sugSelectConfirms = !!sm
+                    && videoCalls5.length === 1
+                    && videoCalls5[0].startsWith(SUG_URL + '|')
+                    && app.vrKeyboard.visible === false
+                    && app.japaneseIME.compositionBuffer === '';
+                } finally {
+                  if (app.bookmarks && app.bookmarks.removeHistory) {
+                    try { app.bookmarks.removeHistory(SUG_URL); } catch (e) { /* cleanup */ }
+                  }
+                  app.settings.enableGazeDwell = gazeWas5;
+                  app.immersiveVideo.play = origPlay5;
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard.hide();
+                    app.vrKeyboard._onConfirmCallback = null;
+                  }
+                  if (kbVisWas3) {
+                    app.vrKeyboard.show();
+                  }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2329,6 +2414,11 @@ async function main() {
       imeHenkanArgs: iout.imeHenkanArgs === true,
       imeCandidateRow: iout.imeCandidateRow === true,
       imeCandidateConfirm: iout.imeCandidateConfirm === true,
+      sugActionProbe: iout.sugActionProbe === true,
+      sugMinChars: iout.sugMinChars === true,
+      sugRowBuilds: iout.sugRowBuilds === true,
+      sugHoverUrl: iout.sugHoverUrl === true,
+      sugSelectConfirms: iout.sugSelectConfirms === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2549,6 +2639,11 @@ async function main() {
       ['henkan converts the buffer to hiragana for lookup', !!inter.imeHenkanArgs],
       ['henkan builds the candidate button row', !!inter.imeCandidateRow],
       ['candidate ray select commits through onTextConfirmed', !!inter.imeCandidateConfirm],
+      ['360° Video opens keyboard for suggestions', !!inter.sugActionProbe],
+      ['single keystroke builds no suggestion row', !!inter.sugMinChars],
+      ['two-keystroke query builds the suggestion row', !!inter.sugRowBuilds],
+      ['suggestion hover announces the full URL', !!inter.sugHoverUrl],
+      ['suggestion ray select commits the seeded URL', !!inter.sugSelectConfirms],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
