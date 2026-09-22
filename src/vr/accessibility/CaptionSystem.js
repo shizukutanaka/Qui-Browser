@@ -240,15 +240,27 @@ export class CaptionSystem {
       return;
     }
     const normalized = String(text).normalize('NFC').trim();
+    // The ARIA mirror is a separate surface: it announces every show() call
+    // regardless of the visual caption toggle, which a screen-reader user may
+    // deliberately leave off while still wanting status announcements.
+    if (this.onShow) {
+      this.onShow(normalized);
+    }
+    // The enable flag governs the visual queue. Queueing while disabled only
+    // accumulates invisible lines (update() does not age them), so a caller
+    // that misses the enabled gate — VoiceCommands' transcript/speech
+    // callbacks are the live example; the ~40 other producers all gate —
+    // would resurface minutes-old text with a fresh full hold the moment
+    // captions are switched back on.
+    if (!this.enabled) {
+      return;
+    }
     this._lines.push({ text: normalized, remaining: this._durationFor(normalized) });
     while (this._lines.length > this.maxLines) {
       this._lines.shift();
     }
-    if (this.enabled && this.mesh) {
+    if (this.mesh) {
       this.mesh.visible = true;
-    }
-    if (this.onShow) {
-      this.onShow(normalized);
     }
     this._draw();
   }

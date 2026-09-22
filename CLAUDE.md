@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 121: 続き279 — 字幕 OFF 中の show() がキューを蓄積し、ON 復帰で古い字幕が復活
+- 🔍 **実測（コード追跡）**: `CaptionSystem.show()` は `enabled` を見ずに常時 `_lines` へ push する。VRApp/crossModal の全 ~40 呼出側は `captionSystem.enabled` でゲート済みだが、**VoiceCommands の `onTranscript`/`onSpeak` コールバック（VRApp 2769-2779）だけ未ゲート** — 字幕 OFF + 音声 ON の状態で final 転写・応答発話が最大 maxLines=3 まで無言で蓄積する。`update()` は disabled で早期 return するため行は老化せず、**後から字幕を ON にした瞬間、数分前の文脈のない転写が満時間の remaining で復活表示**される可視欠陥（「off は off」の期待と、再表示される字幕が直前の出来事を示すという利用者の推論の両方を裏切る — WCAG 4.1.3 の文脈不整合）。
+- 🔧 **修正**: `show()` を `NFC 正規化 → onShow 発火 → enabled ゲート → queue` の順へ再編。`onShow`（SemanticDOM ARIA ミラー）は別サーフェスであり、視覚字幕トグルの有無にかかわらず従来通り全 show() 呼出で発火を維持 — 字幕 OFF を選ぶスクリーンリーダー利用者のアナウンス経路を失わない。`enabled=false` の間は視覚キューに積まないため、未ゲートの将来の呼出側でも同じ罠は再発しない。`if (this.enabled && this.mesh)` の二重条件は `enabled` 到達後は不要になるため `this.mesh` のみに簡約。
+- 🧪 pin 2件＋既存維持: ①disabled で show() → lineCount 0・mesh 非表示・onShow は発火（ARIA ミラー存続を同時 pin）②enable→show→disable→show('stale')→enable で stale が復活しない。両件 src stash 検証で pre-fix 赤・post-fix 緑。旧挙動に依存していた 1件（enabled 未設定で show する overlong テスト）は sibling と同じ `setEnabled(true)` を明示して回収。
+- ✅ 3225 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。
