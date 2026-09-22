@@ -3087,6 +3087,54 @@ async function main() {
                 fakeSession.inputSources.length = 0;
                 ht.update(fakeXrFrame, fakeRefSpace);
                 out.handLostViaUpdate = ht.rightHand.visible === false;
+
+                // Per-joint fallback arm: fillPoses=false routes updateHand
+                // to frame.getJointPose per joint (the low-level path real
+                // runtimes take when batch pose fill is undeterminable).
+                fakeXrFrame.fillPoses = () => false;
+                fakeXrFrame.getJointPose = (space) => {
+                  const p2 = space && poseFor[space.j];
+                  return p2 ? { transform: { position: { x: p2[0], y: p2[1], z: p2[2] } }, radius: 0.012 } : null;
+                };
+                ht.jointNames.forEach((n) => {
+                  ht.joints.right.set(n, { position: V3h(0.5, 0.5, 0.5) });
+                });
+                ht.joints.right.get('index-finger-tip')
+                  .position.set(0.6, 0.5, 0.5);
+                ht.gestures.right = 'none';
+                fakeSession.inputSources.push(handSrc);
+                const fbCalls0 = hpCalls.length;
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.handFallbackDrives = ht.gestures.right === 'pinch'
+                  && ht.rightHand.visible === true
+                  && hpCalls.length - fbCalls0 === 1
+                  && hpCalls[fbCalls0] === 'right:click';
+                // null joint poses leave records untouched — the recognize
+                // still runs (gesture + haptic route through) on the seeds.
+                // Seed the fist grammar: metacarpals +0.06 / tips +0.089 off
+                // the wrist (curled: tipDist < metaDist*1.6), thumb parked at
+                // +0.14 so thumb-index gap clears the 3.5cm release band.
+                fakeXrFrame.getJointPose = () => null;
+                ht.jointNames.forEach((n) => {
+                  ht.joints.right.set(n, { position: V3h(0.5, 0.5, 0.5) });
+                });
+                ht.joints.right.get('wrist').position.set(0, 0, 0);
+                for (const f2 of ['index-finger', 'middle-finger',
+                  'ring-finger', 'pinky-finger']) {
+                  ht.joints.right.get(f2 + '-metacarpal').position.set(0.06, 0, 0);
+                  ht.joints.right.get(f2 + '-tip').position.set(0.089, 0, 0);
+                }
+                ht.joints.right.get('thumb-phalanx-proximal')
+                  .position.set(0.05, 0, 0);
+                ht.joints.right.get('thumb-tip').position.set(0.14, 0, 0);
+                ht.gestures.right = 'none';
+                const npCalls0 = hpCalls.length;
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.handNullPose = Math.abs(
+                  ht.joints.right.get('thumb-tip').position.x - 0.14) < 1e-9
+                  && ht.gestures.right === 'fist'
+                  && hpCalls.length - npCalls0 === 1
+                  && hpCalls[npCalls0] === 'right:impact';
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
                 fakeXrFrame.fillPoses = origFill;
@@ -3438,6 +3486,8 @@ async function main() {
       shapePeace: iout.shapePeace === true,
       handPoseDrives: iout.handPoseDrives === true,
       handLostViaUpdate: iout.handLostViaUpdate === true,
+      handFallbackDrives: iout.handFallbackDrives === true,
+      handNullPose: iout.handNullPose === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3725,6 +3775,8 @@ async function main() {
       ['peace shape detected (index+middle)', !!inter.shapePeace],
       ['fake XRHand poses drive joints -> pinch haptic', !!inter.handPoseDrives],
       ['hand source leaving the stream hides the group', !!inter.handLostViaUpdate],
+      ['getJointPose fallback drives joints -> pinch', !!inter.handFallbackDrives],
+      ['null joint poses leave records + recognize runs', !!inter.handNullPose],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],

@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 186: 続き344 — updateHand の per-joint フォールバック腕を e2e pin（#262 batch 2、247→249 checks）
+- 🔍 **実測**: R102 が pin したのは `fillPoses`/`fillJointRadii` バッチ経路のみ — バッチ不可時の per-joint `frame.getJointPose` フォールバック（本番ランタイムが pose 未確定フレームで取る low-level 経路）は一度も駆動されていなかった。`fakeXrFrame.fillPoses = () => false` + `getJointPose` stub（`poseFor[space.j]` → transform.position）で同じ pinch 連鎖（joints→gesture→haptic+visible）をフォールバック経由で端到端 pin。null pose は records 不触 + recognize 走破（'fist'→'impact' haptic）も pin。
+- 🧹 **重複 pin の撤去**: BookmarkPanel UV ゾーン（tab/scroll/deleteRow/navigate/close）を新規実装したところ lint no-dupe-keys で `:2200` 台の既存 e2e レッグ（ray-driven selectPx 版）と検出 — 全部撤去して候補を差替え。grep 漏れの教訓: `bm.` 等のローカル変数名でしか出ないレッグは名前検索に引っかからない。
+- 🔧 **ハーネス教訓（seed 文法）**: 全 joints を同一座標に置く再seedは thumb-index dist=0 で 'pinch' 自己充足する（R102 教訓）だけでなく、**index tip を wrist から動かした瞬間 'point' になる**（meta=wrist → tip.dist>0 で extended）。非 pinch デフォルトには curled 文法（meta +0.06/tip +0.089、thumb は release band 3.5cm 超に退避）が必須 — `'fist'` を狙ったつもりが 'point' を実測して FAIL した。
+- 🧪 **赤検証**: `frame.getJointPose(joint, referenceSpace)` 切断 → `handFallbackDrives` のみ FAIL（`handNullPose` は null 経路なので通過 — 責任分離どおり）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 249 checks PASS、verify:app PASS。
+
 ### Session 185: 続き343 — XRHand→joints→gesture→haptic の全パイプラインを e2e pin（#261 batch 5、245→247 checks）
 - 🔍 **実測（最後の未駆動 hand-tracking 面）**: R99–R101 は `ht.joints` を直接 seed して `recognizeGestures()` から pin していた — 上流の `update()→updateHand()→fillPoses バッチ→joints` 経路（XRHand pose 取得、4x4 column-major 行列、radii、seen-detector）は一度も駆動されていなかった。fake XRHand（`spaceFor[n]={j:n}` の `hand.get(name)`）+ `fakeXrFrame.fillPoses`（`poseFor[s.j]` を `i*16+12..14` へ書込む stub）で真のバッチ経路を端到端 pin。
 - 🔧 **ハーネス教訓（重要）**: **stale dist が真犯人だった** — `ht.update()` が `updateHand` を一度も呼ばない謎（`seen=[] batch=null`、直接呼出しは正常）を own-prop stub 疑惑で長時間デバッグしたが、原因は `npm run build` 未実行で dist が `updateHand`-in-loop 以前のコードを出していただけ。「harness が src の振る舞いと違う」と見えたら先に rebuild を疑う。
