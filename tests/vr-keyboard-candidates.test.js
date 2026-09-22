@@ -424,6 +424,36 @@ describe('keyboard remaining arms', () => {
 });
 
 describe('onKeyPress special keys', () => {
+  test('space types a literal space — conversion lives on 変換 (regression pin)', async () => {
+    const { kb } = makeKeyboard();
+    const spy = jest.spyOn(kb.ime, 'convertToKanji');
+    // hiragana mode
+    for (const ch of 'multi') {
+      await kb.onKeyPress(ch);
+    }
+    await kb.onKeyPress('space');
+    expect(kb.ime.compositionBuffer).toBe('multi ');
+    expect(spy).not.toHaveBeenCalled(); // no conversion — and no transliterate fetch
+    // ascii mode gets the same literal space (URL/search entry)
+    kb.ime.switchMode('ascii');
+    await kb.onKeyPress('space');
+    expect(kb.ime.compositionBuffer).toBe('multi  ');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test('変換 shows the candidate row (space no longer does)', async () => {
+    const { kb } = makeKeyboard();
+    global.fetch = jest.fn(async () => ({
+      ok: true, status: 200, json: async () => [['きょう', ['今日', '強']]]
+    }));
+    for (const ch of 'kyou') {
+      await kb.onKeyPress(ch);
+    }
+    await kb.onKeyPress('変換');
+    expect(kb.ime.candidates).toEqual(['今日', '強']);
+    delete global.fetch;
+  });
+
   test('変換 triggers kanji conversion; かな forces hiragana', async () => {
     const { kb } = makeKeyboard();
     const spy = jest.spyOn(kb.ime, 'convertToKanji').mockResolvedValue([]);
@@ -563,6 +593,10 @@ describe('VRJapaneseKeyboard — callback-absent and guard arms', () => {
     rec.paints.length = 0;
     kb._refreshDisplay();
     expect(rec.paints.map((p) => p.text)).toContain('?'); // BADGE[mode] || '?'
+    kb.ime = { inputMode: 'ascii', compositionBuffer: '' };
+    rec.paints.length = 0;
+    kb._refreshDisplay();
+    expect(rec.paints.map((p) => p.text)).toContain('A'); // ascii badge
   });
 
   test('_setKeyHover tolerates a mesh whose prior texture was never stored', () => {

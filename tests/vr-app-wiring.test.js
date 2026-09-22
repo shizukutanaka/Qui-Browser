@@ -1864,13 +1864,16 @@ describe('VRApp adjustQuality / keyboard input / loadTexture (bound prototypes)'
   test('_requestVRKeyboardInput wires confirm, prefill, activation and the prompt caption', () => {
     const app = {
       vrKeyboard: { setOnConfirm: jest.fn(), show: jest.fn() },
-      japaneseIME: { activate: jest.fn(), compositionBuffer: '' },
+      japaneseIME: { activate: jest.fn(), switchMode: jest.fn(), compositionBuffer: '' },
       captionSystem: { enabled: true, show: jest.fn() }
     };
     const onConfirm = jest.fn();
     VRApp.prototype._requestVRKeyboardInput.call(app, 'https://example.com', onConfirm, 'Enter URL');
     expect(app.vrKeyboard.setOnConfirm).toHaveBeenCalledWith(onConfirm);
     expect(app.japaneseIME.activate).toHaveBeenCalledTimes(1);
+    // URL entry opens in ascii mode — raw passthrough, and space/変換 can
+    // never fire a transliterate request with the typed text.
+    expect(app.japaneseIME.switchMode).toHaveBeenCalledWith('ascii');
     expect(app.japaneseIME.compositionBuffer).toBe('https://example.com');
     expect(app.vrKeyboard.show).toHaveBeenCalledTimes(1);
     expect(app.captionSystem.show).toHaveBeenCalledWith('Enter URL');
@@ -1879,7 +1882,7 @@ describe('VRApp adjustQuality / keyboard input / loadTexture (bound prototypes)'
   test('_requestVRKeyboardInput clears the buffer for the bare https:// prefill', () => {
     const app = {
       vrKeyboard: { setOnConfirm: jest.fn(), show: jest.fn() },
-      japaneseIME: { activate: jest.fn(), compositionBuffer: 'stale' },
+      japaneseIME: { activate: jest.fn(), switchMode: jest.fn(), compositionBuffer: 'stale' },
       captionSystem: { enabled: true, show: jest.fn() }
     };
     VRApp.prototype._requestVRKeyboardInput.call(app, 'https://', jest.fn());
@@ -4054,7 +4057,7 @@ describe('VRApp — sliver arms (persist, teardown, guards)', () => {
     const kb = { setOnConfirm: jest.fn(), show: jest.fn() };
     const app = makeVRAppLike({
       vrKeyboard: kb,
-      japaneseIME: { activate: jest.fn(), compositionBuffer: '' },
+      japaneseIME: { activate: jest.fn(), switchMode: jest.fn(), compositionBuffer: '' },
       captionSystem: { enabled: true, show: jest.fn() }
     });
     VRApp.prototype._requestVRKeyboardInput.call(app, 'https://x', jest.fn(), 'Enter proxy URL');
@@ -4770,7 +4773,7 @@ describe('VRApp — complementary arms round 4', () => {
     const kb = { setOnConfirm: jest.fn(), show: jest.fn() };
     const app = makeVRAppLike({
       vrKeyboard: kb,
-      japaneseIME: { activate: jest.fn(), compositionBuffer: '' },
+      japaneseIME: { activate: jest.fn(), switchMode: jest.fn(), compositionBuffer: '' },
       captionSystem: { enabled: false, show: jest.fn() }
     });
     VRApp.prototype._requestVRKeyboardInput.call(app, '', jest.fn(), 'Enter URL');

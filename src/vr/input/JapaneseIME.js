@@ -647,7 +647,7 @@ export class JapaneseIME {
    * Switch input mode
    */
   switchMode(mode) {
-    if (['hiragana', 'katakana', 'kanji'].includes(mode)) {
+    if (['hiragana', 'katakana', 'kanji', 'ascii'].includes(mode)) {
       this.inputMode = mode;
       return true;
     }
@@ -1039,7 +1039,7 @@ export class VRJapaneseKeyboard {
     // Mode badge — top-right corner shows the current input mode so the user
     // always knows whether they're typing hiragana, katakana, or kanji.
     const mode = this.ime ? this.ime.inputMode : 'hiragana';
-    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢' };
+    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢', ascii: 'A' };
     const badge = BADGE[mode] || '?';
     const badgeCol = imeBadgeColors(mode);
     const badgeW = COMPOSITION_BADGE_W;

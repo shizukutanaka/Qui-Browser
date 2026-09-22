@@ -3746,6 +3746,11 @@ export class VRApp {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
       this.japaneseIME.activate();
+      // URL entry is an ASCII context: raw passthrough, no conversion preview,
+      // and space/変換 can never reach the transliterate endpoint with what
+      // the user typed. The かな/shift keys still switch back for Japanese
+      // search terms.
+      this.japaneseIME.switchMode('ascii');
       // Pre-fill the composition buffer with the current URL so the user
       // can edit it rather than typing from scratch.
       if (prefill && prefill !== 'https://') {

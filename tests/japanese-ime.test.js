@@ -359,3 +359,55 @@ describe('JapaneseIME — convertToKanji staleness', () => {
   });
 });
 
+
+describe('JapaneseIME — ascii mode (N-3: URL entry context)', () => {
+  test('switchMode(ascii) is a first-class mode', () => {
+    const ime = new JapaneseIME();
+    expect(ime.switchMode('ascii')).toBe(true);
+    expect(ime.inputMode).toBe('ascii');
+    expect(ime.getState().mode).toBe('ascii');
+  });
+
+  test('processInput/deleteLast are raw passthrough — display and output agree', async () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('ascii');
+    const out = await ime.processInput('g');
+    expect(out.converted).toBe('g');
+    ime.compositionBuffer = 'google.com';
+    expect(ime.deleteLast().converted).toBe('google.co');
+  });
+
+  test('confirmSelection returns the displayed (raw) text', () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('ascii');
+    ime.compositionBuffer = 'google.com';
+    expect(ime.confirmSelection()).toBe('google.com');
+  });
+
+  test('convertToKanji never fires in ascii — no transliterate request with typed text', async () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('ascii');
+    ime.compositionBuffer = 'internal.corp.example';
+    const prevFetch = global.fetch;
+    global.fetch = jest.fn();
+    try {
+      expect(await ime.convertToKanji()).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(ime.candidates).toEqual([]);
+    } finally {
+      if (prevFetch === undefined) {
+        delete global.fetch;
+      } else {
+        global.fetch = prevFetch;
+      }
+    }
+  });
+
+  test('the かな key path back to hiragana still converts', async () => {
+    const ime = new JapaneseIME();
+    ime.switchMode('ascii');
+    expect(ime.switchMode('hiragana')).toBe(true);
+    const out = await ime.processInput('ka');
+    expect(out.converted).toBe('か');
+  });
+});
