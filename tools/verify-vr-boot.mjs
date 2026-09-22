@@ -216,6 +216,17 @@ async function main() {
         app.showVRToast('harness-dupe-check', { type: 'info' });
         app.showVRToast('harness-dupe-check', { type: 'info' });
         out.afterDupe = alertEl ? alertEl.textContent : '';
+        // Tab flow: newTab() activates the new tab → onTabActivate announces
+        // "Tab: New Tab" via captionSystem.show → onShow → status mirror.
+        // The announce channel is deliberately gated on captions being enabled
+        // (pinned by tests), so enable them first to exercise the real path.
+        out.tabBefore = app.tabManager ? app.tabManager.tabs.length : -1;
+        if (app.tabManager && app.captionSystem) {
+          app.captionSystem.setEnabled(true);
+          app.tabManager.newTab('');
+          out.tabAfter = app.tabManager.tabs.length;
+        }
+        out.statusAfterTab = statusEl ? statusEl.textContent : '';
         return out;
       })()`,
       returnByValue: true
@@ -232,7 +243,9 @@ async function main() {
       // duplicate-mutation branch; a verbatim rewrite means the repeat
       // would never be announced by screen readers.
       dupMarked: (iout.afterDupe || '').endsWith('\u200B'),
-      statusHas: (iout.statusText || '').includes('harness-caption-check')
+      statusHas: (iout.statusText || '').includes('harness-caption-check'),
+      tabGrew: typeof iout.tabAfter === 'number' && iout.tabAfter === iout.tabBefore + 1,
+      tabAnnounced: (iout.statusAfterTab || '').includes('Tab: New Tab')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -261,6 +274,8 @@ async function main() {
       ['toast reached alert live region (cross-modal wiring)', !!inter.alertHas],
       ['identical repeat toast re-announced (ZWSP marker)', !!inter.dupMarked],
       ['caption reached status live region (cross-modal wiring)', !!inter.statusHas],
+      ['newTab() added a tab', !!inter.tabGrew],
+      ['tab activation announced via live region', !!inter.tabAnnounced],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
