@@ -264,6 +264,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 3件：16.67ms×6 = 100ms×1 と完全一致（pre-fix 差）、120ms ヒッチでスナップせず ~99% へ滑らか収束（pre-fix は即 -2.0）、dt≤0 で不動（pre-fix は後退）。3件 stash 検証で pre-fix 赤。定数視サイズテストの `follow()` helper は clamp-snap 欠陥に依存していたため `followLerp:1` の正規スナップへ修正。
 - ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 112: 続き270 — ImmersiveVideo の英語リテラル残り（エラートースト + Exit ボタン）
+- 🔍 **実測**: PR #209（続き257）が「ImmersiveVideo の英語リテラル残り2件」を閉じたと記録していたが、さらに2件残っていた — ①`_onVideoError` が `'Could not load video (check URL / CORS)'` を `_reportError` → `onError` → `showVRToast` へそのまま流す：日本語セッションのエラートーストが英語（WCAG 3.1.2、トーストは caption 経路でも読まれる）②`_buildControlPanel` が `_makeButton('Exit', …)` — HUD の唯一の閉じる操作が英語のまま、ホバー時の `onHoverCaption` 告知も "Exit"。
+- 🔧 **修正**: 新規キー `vr.video.exit`（en Exit / ja 終了）+ `vr.video.loadFailed`（en 'Could not load video (check URL / CORS)' / ja '動画を読み込めませんでした（URL・CORS を確認）'）を en/ja に追加し両箇所を `t()` へ。
+- 🧪 pin 2件：ja 言語で error イベント → `onError` が日本語文言で呼ばれる（pre-fix は英語リテラルで赤）、Exit ボタン hover → `onHoverCaption('終了')`（pre-fix 'Exit' で赤）。両件 stash 検証で pre-fix 赤。テストの DOM stub に `document.documentElement` を追加（`setLanguage` が `documentElement.lang` を書くため未stubでは TypeError を投げて `currentLang` が ja で残存し後続テストを汚染する — 実際に観測）。
+- ✅ 3222 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

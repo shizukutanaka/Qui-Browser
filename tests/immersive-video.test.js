@@ -164,6 +164,8 @@ function makeVideoEl() {
 global.document = global.document || {};
 global.document.createElement = (tag) =>
   tag === 'video' ? makeVideoEl() : { width: 0, height: 0, getContext: () => ctxStub };
+// i18n.setLanguage() writes documentElement.lang — stub it so tests can switch.
+global.document.documentElement = { lang: 'en' };
 
 const THREE = require('three');
 const { ImmersiveVideo } = require('../src/vr/media/ImmersiveVideo.js');
@@ -280,6 +282,39 @@ describe('ImmersiveVideo lifecycle', () => {
 
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0][0]).toMatch(/load video/i);
+  });
+
+  // The load-error toast and the Exit button were hard-coded English — in a
+  // Japanese session the error toast and the HUD button both rendered English
+  // (WCAG 3.1.2). Both now go through t() so they follow the UI language.
+  test('the video load-error message is translated, not a hard-coded English literal', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('ja');
+    try {
+      const { iv, onError } = makeHarness();
+      iv.play('https://cdn.example.com/broken.mp4');
+      iv.video._emit('error');
+      expect(onError).toHaveBeenCalledWith('動画を読み込めませんでした（URL・CORS を確認）');
+    } finally {
+      setLanguage('en');
+    }
+  });
+
+  test('the Exit button label is translated — hover announces it in the UI language', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('ja');
+    try {
+      const onHoverCaption = jest.fn();
+      const { iv, register } = makeHarness();
+      iv.onHoverCaption = onHoverCaption;
+      iv.play('https://cdn.example.com/v.mp4');
+      // Second registered interactable is the Exit button.
+      const exitHandlers = register.mock.calls[1][1];
+      exitHandlers.onHover();
+      expect(onHoverCaption).toHaveBeenCalledWith('終了');
+    } finally {
+      setLanguage('en');
+    }
   });
 
   // A mid-stream error (network drop, decode failure) fires *after* 'playing'

@@ -100,7 +100,7 @@ export class ImmersiveVideo {
     // instead of leaving the viewer staring at a black sphere. The 'error'
     // event fires once for these; gesture-gated autoplay rejection (handled by
     // the play() promise catch below) is normal and deliberately not reported.
-    this._onVideoError = () => this._reportError('Could not load video (check URL / CORS)');
+    this._onVideoError = () => this._reportError(t('vr.video.loadFailed'));
     video.addEventListener('error', this._onVideoError);
 
     // Only mark as playing once the browser actually starts playback. If the
@@ -206,7 +206,7 @@ export class ImmersiveVideo {
 
     this._playPauseBtn = this._makeButton(t('vr.video.play'), () => this.togglePause());
     this._playPauseBtn.position.set(-0.3, 0, 0);
-    const exitBtn = this._makeButton('Exit', () => this.stop());
+    const exitBtn = this._makeButton(t('vr.video.exit'), () => this.stop());
     exitBtn.position.set(0.3, 0, 0);
     group.add(this._playPauseBtn, exitBtn);
 
