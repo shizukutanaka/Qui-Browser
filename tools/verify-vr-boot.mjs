@@ -2298,7 +2298,49 @@ async function main() {
                   // set up — a second play/stop cycle stays clean.
                   iv.play('https://vid-seed.example/clip2.mp4',
                     { projection: '180', layout: 'mono' });
+                  app.scene.updateMatrixWorld(true);
                   const restarted = iv.active === true;
+                  // Pause arm — the real Pause HUD button (x=-0.3) routes
+                  // onSelect → togglePause → video.pause() + playing=false +
+                  // onPlaybackChange('paused'). this.video is a plain field:
+                  // swap in a stub element so the else arm is deterministic
+                  // (headless media state is unreliable — the real element's
+                  // paused flag does not reflect the DOM path here).
+                  const pauseBtn = iv.controlPanel
+                    ? iv.controlPanel.children.find(
+                      (b) => b.position && b.position.x < 0) : null;
+                  let pbcState = null;
+                  const origPbc = iv.onPlaybackChange;
+                  const vidWas = iv.video;
+                  let pauseCalls = 0;
+                  let tpWas = null;
+                  try {
+                    iv.video = {
+                      paused: false,
+                      pause: () => { pauseCalls++; },
+                      play: () => Promise.resolve()
+                    };
+                    iv.playing = true;
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    // This leg runs inside the session-leg's togglePause/stop
+                    // stub window — point at the real method for the pin and
+                    // put the stub back in finally so later checks in the
+                    // window still see their counter.
+                    tpWas = iv.togglePause;
+                    iv.togglePause = Object.getPrototypeOf(iv).togglePause;
+                    if (pauseBtn) {
+                      selectCenter6(pauseBtn);
+                      await new Promise((r) => setTimeout(r, 20));
+                    }
+                  } finally {
+                    iv.togglePause = tpWas;
+                    iv.video = vidWas;
+                    iv.onPlaybackChange = origPbc;
+                  }
+                  out.vidPauseToggles = !!pauseBtn
+                    && pauseCalls === 1
+                    && iv.playing === false
+                    && pbcState === 'paused';
                   iv.stop();
                   out.vidCycleClean = restarted
                     && iv.active === false
@@ -2904,9 +2946,13 @@ async function main() {
             if (origRecenter) {
               app.recenter = origRecenter;
             }
-            if (iv && origToggle && origStop) {
-              iv.togglePause = origToggle;
-              iv.stop = origStop;
+            if (iv) {
+              // Own-prop delete restores the prototype method — assigning a
+              // captured bound function leaves a stale own-prop behind when
+              // the capture was skipped (which is exactly what made
+              // iv.togglePause an old stub in a later leg).
+              delete iv.togglePause;
+              delete iv.stop;
             }
             if (origGetSession) {
               xr.getSession = origGetSession;
@@ -3178,6 +3224,7 @@ async function main() {
       bmClose: iout.bmClose === true,
       vidHudProbe: iout.vidHudProbe === true,
       vidExitStops: iout.vidExitStops === true,
+      vidPauseToggles: iout.vidPauseToggles === true,
       vidCycleClean: iout.vidCycleClean === true,
       stripProbe: iout.stripProbe === true,
       stripNewTab: iout.stripNewTab === true,
@@ -3454,6 +3501,7 @@ async function main() {
       ['close button hides the panel', !!inter.bmClose],
       ['video HUD buttons register as interactables', !!inter.vidHudProbe],
       ['exit button stops and unregisters the HUD', !!inter.vidExitStops],
+      ['pause button toggles playback + notifies', !!inter.vidPauseToggles],
       ['second play/stop cycle stays clean', !!inter.vidCycleClean],
       ['tab strip registers as an interactable', !!inter.stripProbe],
       ['+ zone opens a new tab and announces', !!inter.stripNewTab],

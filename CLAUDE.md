@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 181: 続き339 — ImmersiveVideo HUD Pause ボタン（select→togglePause→video.pause+notify）を e2e pin（#259 batch 32、235→236 checks）
+- 🔍 **実測**: video HUD の残ボタン — Pause（`onSelect→togglePause→video.pause()+playing=false+onPlaybackChange('paused')`）は未駆動だった（Exit は pin 済み）。実 `_playPauseBtn` ray select で端到端 pin。
+- 🧪 **ハーネス教訓（重大・デバッグ 6 往復）**: ①本 leg は **session-leg の `iv.togglePause`/`iv.stop` stub 窓内**に位置する — select が解決する `this.togglePause` は stub を呼び実メソッドに届かない（selRan=1 なのに video.pause 不発・playing は stub がトグル —「呼ばれたが別物」型の典型的 shadow 罠）。pin 中は `iv.togglePause = Object.getPrototypeOf(iv).togglePause` で実メソッドを指し、finally で stub を戻す ②outer restore は `iv.togglePause = origToggle`（bound fn 代入）から **`delete iv.togglePause`（own-prop 除去で prototype 復帰）** に強化 — capture skip 時の stale own-prop 残存を構造的に排除 ③headless の `video.paused` は DOM メディア状態に依存し信用できない — `this.video` は plain field のため **stub オブジェクト差替**で else 腕を決定論化（`{paused:false,pause(){count++}}`）。
+- ✅ 赤検証: `video.pause()` 切断 → vidPauseToggles FAIL。3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 236 checks PASS、verify:app PASS。
+
 ### Session 180: 続き338 — gamepad 残ボタン（pointer faceB→back/faceA→forward 成功腕、utility faceA→bookmarks、menu→settings）を e2e pin（#259 batch 31、231→235 checks）
 - 🔍 **実測**: `updateButtonInput` の残ボタン — pointer faceB→`tab.back()`+'Going back'、faceA→forward（成功腕は 'No next page' のみ pin 済み）、utility faceA→`bookmarkPanel.toggle()`+状態 caption、utility `menu`(buttons[6])→settings トグル（faceB の || alias 腕）— が未駆動だった。実 fake gamepad の press→release フレーム駆動で端到端 pin。
 - 🔧 **pin 設計（4 check）**: buttons[6] press→settings 反転+'Settings:' caption→復帰；buttons[4]（左）→ bookmarkPanel.visible 反転+'Bookmarks:' caption→復帰；buttons[5]/[4]（右）→ `historyIdx` -1/+1 + 'Going back'/'Going forward' caption（chrome leg の history を利用）。
