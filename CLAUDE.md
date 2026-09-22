@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 145: 続き303 — ImmersiveVideo の stereo 再生が残していった camera layers を stop() で復元
+- 🔍 **実測（共有 mutable state 未復元クラス）**: `.then()` catch 欠落・JSON.parse 無ガード・setInterval 未クリアの3クラスを sweep → 全網羅済みと確認した上で、audit 済みで未着手だった `ImmersiveVideo._enableStereoLayers` を精査 — stereo 再生が `camera.layers.enable(1/2)` + XR 両眼 camera へ `layers.enable(1/2)` を書き込むが **`stop()` が一度も disable しなかった**（`layers.set(1/2)` は mesh 側・破棄済みだが camera 側は残存）。現行コードで layers 1/2 を使うのは stereo 眼球テクスチャのみのため潜在欠陥だが、VR camera を共有する player が mutable state を返さない契約違反 — 将来 layers 1/2 に乗る任意オブジェクトが video 終了後も不意に描画され続ける。
+- 🔧 **修正**: `_stereoLayersOn` フラグを ctor で初期化・`_enableStereoLayers` 末で立て、新規 `_disableStereoLayers()` を `stop()` から呼出（flag 未立 = mono/未再生なら no-op — mono stop が camera layers を触らないことを厳密化）。main camera + `getCamera()` の全 eye camera に `disable(1)/disable(2)`（片眼のみ enable でも両方 disable は idempotent）。`play()` が先に `stop()` を呼ぶ設計のため stereo→mono 再生切替でも正しく復元される。
+- 🧪 赤検証: `stop() restores the camera layers a stereo play() enabled` が修正前で FAIL（main + eye camera に disable 未呼出）、`stop() after a mono play() never touches camera layers` は flag ゲートの負 pin として両側で緑維持。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 61 checks PASS（63-check 版は #252 上）、verify:app PASS。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。
