@@ -2926,6 +2926,64 @@ async function main() {
               out.docPaused = pauseCalls === pcBeforeDoc + 1
                 && iv.playing === false;
             }
+            // Pinch onset -> gestureCallbacks -> haptic tick. The callback
+            // registration happens in onVRSessionStart; driving real joints
+            // through updateHand needs XRHand pose faking, so seed the joint
+            // records updateHand writes and drive recognizeGestures() — the
+            // same seam the real pipeline feeds.
+            const ht = app.handTracking;
+            if (ht && app.hapticFeedback) {
+              const hCalls = [];
+              const origPlay = app.hapticFeedback.playPattern;
+              app.hapticFeedback.playPattern = (h, p) => { hCalls.push(h + ':' + p); };
+              const joints = ht.joints.right;
+              const V3 = (x, y, z) => app.camera.position.clone().set(x, y, z);
+              joints.set('wrist', { position: V3(0, 0, 0) });
+              // Four fingers curled (tip < 1.6×metacarpal distance) so the
+              // release state resolves 'none', not 'fist'; the middle finger
+              // is extended only during the release step.
+              for (const f of ['index-finger', 'middle-finger',
+                'ring-finger', 'pinky-finger']) {
+                joints.set(f + '-metacarpal', { position: V3(0.06, 0, 0) });
+                joints.set(f + '-tip', { position: V3(0.089, 0, 0) });
+              }
+              joints.set('thumb-phalanx-proximal', { position: V3(0.05, 0, 0) });
+              joints.set('thumb-tip', { position: V3(0.080, 0, 0) });
+              const thumbTip = joints.get('thumb-tip').position;
+              // Gesture state persists across legs — start from 'none' so
+              // the first seeded pinch is a real onset.
+              ht.gestures.right = 'none';
+              const gBefore = ht.stats.gesturesRecognized;
+              try {
+                ht.recognizeGestures();
+                out.pinchHapticOnset = hCalls.length === 1
+                  && hCalls[0] === 'right:click'
+                  && ht.gestures.right === 'pinch';
+                // Held pinch is one onset, not one-per-frame.
+                ht.recognizeGestures();
+                out.pinchHeldOnce = hCalls.length === 1;
+                // Hysteresis: gap between pinch (2cm) and release (3.5cm)
+                // while wasPinching keeps the gesture.
+                thumbTip.set(0.059, 0, 0);
+                ht.recognizeGestures();
+                out.pinchHysteresis = ht.gestures.right === 'pinch'
+                  && hCalls.length === 1;
+                // Release: gap > 3.5cm + a finger extended -> 'none'.
+                thumbTip.set(0.04, 0, 0);
+                joints.get('middle-finger-tip').position.set(0.15, 0, 0);
+                ht.recognizeGestures();
+                const released = ht.gestures.right === 'none';
+                thumbTip.set(0.080, 0, 0);
+                ht.recognizeGestures();
+                out.pinchRefires = released
+                  && hCalls.length === 2
+                  && ht.stats.gesturesRecognized === gBefore + 2;
+              } finally {
+                app.hapticFeedback.playPattern = origPlay;
+                joints.clear();
+                ht.gestures.right = 'none';
+              }
+            }
             // End through the real 'sessionend' listener too.
             app.renderer.xr.dispatchEvent({ type: 'sessionend' });
             out.sessEnded = app.isVREnabled === false;
@@ -3258,6 +3316,10 @@ async function main() {
       hoverGatedByGaze: iout.hoverGatedByGaze === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
+      pinchHapticOnset: iout.pinchHapticOnset === true,
+      pinchHeldOnce: iout.pinchHeldOnce === true,
+      pinchHysteresis: iout.pinchHysteresis === true,
+      pinchRefires: iout.pinchRefires === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3534,6 +3596,10 @@ async function main() {
       ['hover captions gate on gaze dwell', !!inter.hoverGatedByGaze],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
+      ['pinch onset routes to haptic click', !!inter.pinchHapticOnset],
+      ['held pinch fires once, not per frame', !!inter.pinchHeldOnce],
+      ['pinch hysteresis holds through the gap band', !!inter.pinchHysteresis],
+      ['release + re-pinch refires and counts onsets', !!inter.pinchRefires],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],

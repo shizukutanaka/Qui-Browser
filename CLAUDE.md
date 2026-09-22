@@ -245,6 +245,11 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 182: 続き340 — pinch オフセット→gestureCallbacks→haptic + ヒステリシスを e2e pin（#260 batch 2、236→240 checks）
+- 🔍 **実測**: `onVRSessionStart` が登録する `onGesture('pinch'→haptic click)`/`('grab'→impact)` は一度も駆動されていなかった。`updateHand` の XRHand pose 経路は fake が重いため、`updateHand` が書くのと同じ joint record（`{position: Vector3}`）を `ht.joints.right` にシードして `recognizeGestures()` を直接駆動 — 実パイプラインと同じシームで onset→callback→haptic を端到端 pin（onset 1回発火・保持非再発火・pinch↔release ヒステリシス・release+再 pinch で再発火+`gesturesRecognized` が onset のみ計数）。
+- 🧪 **ハーネス教訓**: ①指が無い joint record は `isFingerExtended` false → 全指カールと誤判定され release が 'none' でなく 'fist' になる — release ステップでは中指を extended にして 'none' を作る ②`gestures.right` は leg 間で持続 — pin 開始時に 'none' へ正規化しないと初回 recognize が onset にならない（`pinch:0:undefined` で可視化）。
+- ✅ 赤検証: pinch 検出腕切断 → 4 check FAIL。3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 240 checks PASS、verify:app PASS。
+
 ### Session 181: 続き339 — ImmersiveVideo HUD Pause ボタン（select→togglePause→video.pause+notify）を e2e pin（#259 batch 32、235→236 checks）
 - 🔍 **実測**: video HUD の残ボタン — Pause（`onSelect→togglePause→video.pause()+playing=false+onPlaybackChange('paused')`）は未駆動だった（Exit は pin 済み）。実 `_playPauseBtn` ray select で端到端 pin。
 - 🧪 **ハーネス教訓（重大・デバッグ 6 往復）**: ①本 leg は **session-leg の `iv.togglePause`/`iv.stop` stub 窓内**に位置する — select が解決する `this.togglePause` は stub を呼び実メソッドに届かない（selRan=1 なのに video.pause 不発・playing は stub がトグル —「呼ばれたが別物」型の典型的 shadow 罠）。pin 中は `iv.togglePause = Object.getPrototypeOf(iv).togglePause` で実メソッドを指し、finally で stub を戻す ②outer restore は `iv.togglePause = origToggle`（bound fn 代入）から **`delete iv.togglePause`（own-prop 除去で prototype 復帰）** に強化 — capture skip 時の stale own-prop 残存を構造的に排除 ③headless の `video.paused` は DOM メディア状態に依存し信用できない — `this.video` は plain field のため **stub オブジェクト差替**で else 腕を決定論化（`{paused:false,pause(){count++}}`）。
