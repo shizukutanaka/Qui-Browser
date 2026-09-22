@@ -2648,6 +2648,29 @@ describe('VRApp settings-panel button builders + layer attach (bound prototypes)
     VRApp.prototype._attachLayersToPanels.call(app, {});
     expect(layers.createQuadLayer).not.toHaveBeenCalled();
   });
+
+  test('_attachPanelLayer skips a hidden panel — a quad layer would composite anyway', () => {
+    // Layers ignore mesh visibility: attaching one to a tab hidden by
+    // setVisible(false) leaves its chrome bar composited with no panel.
+    const hidden  = { group: { visible: false }, enableLayerMode: jest.fn() };
+    const shown   = { group: { visible: true },  enableLayerMode: jest.fn() };
+    const bare    = { enableLayerMode: jest.fn() }; // no group → attach
+    const layers = {
+      createQuadLayer: jest.fn(() => ({ quad: true })),
+      updateRenderState: jest.fn(),
+      count: 2
+    };
+    const app = makePanelApp({
+      renderer: { xr: { getReferenceSpace: () => ({}), getBaseLayer: () => null } },
+      layersSystem: layers,
+      tabManager: { tabs: [hidden, shown, bare] }
+    });
+    VRApp.prototype._attachLayersToPanels.call(app, {});
+    expect(hidden.enableLayerMode).not.toHaveBeenCalled();
+    expect(shown.enableLayerMode).toHaveBeenCalled();
+    expect(bare.enableLayerMode).toHaveBeenCalled();
+    expect(layers.createQuadLayer).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure construction (bound prototypes)', () => {
