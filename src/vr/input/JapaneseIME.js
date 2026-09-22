@@ -1106,18 +1106,24 @@ export class VRJapaneseKeyboard {
 
     switch (key) {
     case 'space': {
-      // Convert to kanji
+      // Literal space. Conversion lives on the dedicated 変換 key, so the
+      // space bar behaves like a physical space bar: empty buffers, mid-text
+      // and non-hiragana modes all get a space (previously it converted in
+      // hiragana and was silently swallowed everywhere else, so multi-word
+      // queries could never contain a space).
+      const processed = await this.ime.processInput(' ');
+      this.updateDisplay(processed);
+      break;
+    }
+
+    case '変換': {
+      // Henkan key - convert to kanji and show the candidate row.
       const result = await this.ime.convertToKanji();
       if (result) {
         this.showCandidates(result.candidates);
       }
       break;
     }
-
-    case '変換':
-      // Henkan key - convert to kanji
-      await this.ime.convertToKanji();
-      break;
 
     case 'かな':
       // Kana key - switch to hiragana

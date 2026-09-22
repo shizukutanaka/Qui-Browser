@@ -287,7 +287,7 @@ describe('esc dismissal resets IME state (regression: stale candidates injected)
     for (const ch of 'konnichiha') {
       await kb.onKeyPress(ch);
     }
-    await kb.onKeyPress('space'); // candidates: ['今日は', 'こんにちは']
+    await kb.onKeyPress('変換'); // candidates: ['今日は', 'こんにちは']
     await kb.onKeyPress('esc');
     expect(kb.ime.candidates.length).toBe(0);
     expect(kb.ime.isActive).toBe(false);
@@ -669,10 +669,10 @@ describe('VRJapaneseKeyboard — remaining guard arms', () => {
     expect(kb.group).toBeTruthy();
   });
 
-  test('space with convertToKanji returning falsy shows no candidates', async () => {
+  test('変換 with convertToKanji returning falsy shows no candidates', async () => {
     const { kb } = makeKeyboard();
     kb.ime.convertToKanji = async () => null; // falsy-result arm
-    await kb.onKeyPress('space');
+    await kb.onKeyPress('変換');
     expect(kb._candidatesGroup?.visible ?? false).toBe(false);
   });
 

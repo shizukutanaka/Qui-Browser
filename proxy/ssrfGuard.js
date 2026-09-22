@@ -61,6 +61,17 @@ const V4_BLOCKED = [
   { name: 'ietf-protocol', test: (o) => o[0] === 192 && o[1] === 0 && o[2] === 0 },
   { name: 'private-192', test: (o) => o[0] === 192 && o[1] === 168 },
   { name: 'benchmark', test: (o) => o[0] === 198 && (o[1] === 18 || o[1] === 19) },
+  // 6to4 relay anycast (RFC 3068, deprecated by RFC 7526) — a real routable
+  // anycast on some networks, but never a legitimate web host.
+  { name: '6to4-relay', test: (o) => o[0] === 192 && o[1] === 88 && o[2] === 99 },
+  // Documentation TEST-NETs (RFC 5737) — assigned for examples only.
+  { name: 'doc-test-net', test: (o) =>
+    (o[0] === 192 && o[1] === 0 && o[2] === 2) ||
+    (o[0] === 198 && o[1] === 51 && o[2] === 100) ||
+    (o[0] === 203 && o[1] === 0 && o[2] === 113) },
+  // 224.0.0.0/4 multicast (includes 239.255.255.250 — UPnP/SSDP discovery,
+  // which a LAN does route to internal services).
+  { name: 'multicast', test: (o) => o[0] >= 224 && o[0] <= 239 },
   { name: 'reserved-240', test: (o) => o[0] >= 240 }
 ];
 
@@ -88,8 +99,11 @@ export function isBlockedAddress(address) {
   if (!raw) {
     return { blocked: true, reason: 'empty-host' };
   }
-  // Strip an IPv6 bracket form and any zone index.
-  const host = raw.replace(/^\[|\]$/g, '').split('%')[0];
+  // Strip an IPv6 bracket form, any zone index, and one trailing dot — the
+  // DNS-root form 'localhost.' / '10.0.0.1.' must match the same rules as the
+  // canonical name rather than sliding past the literal checks (post-DNS
+  // resolution still caught them, but the first line should not miss).
+  const host = raw.replace(/^\[|\]$/g, '').split('%')[0].replace(/\.$/, '');
 
   const v4 = parseV4(host);
   if (v4) {
@@ -116,6 +130,11 @@ export function isBlockedAddress(address) {
     }
     if (/^fe[89ab]/.test(head)) {
       return { blocked: true, reason: 'ipv6-link-local' };
+    }
+    if (/^ff/.test(head)) {
+      // ff00::/8 multicast (ff02::1 all-nodes, ff02::fb mDNS) — an HTTP
+      // fetch can only ever target unicast addresses.
+      return { blocked: true, reason: 'ipv6-multicast' };
     }
     const embedded = embeddedV4(host);
     if (embedded) {

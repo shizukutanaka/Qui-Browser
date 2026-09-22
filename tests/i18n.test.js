@@ -169,7 +169,11 @@ describe('captions, voice errors and screen-reader labels are translated', () =>
     'vr.msg.rightHandTracked', 'vr.msg.rightHandLost',
     'app.error.loadFailed', 'app.error.unknown', 'app.error.reload',
     'app.error.initFailed', 'app.error.noVRSupport', 'app.error.noWebXR',
-    'app.error.enterVRFailed'
+    'app.error.enterVRFailed',
+    // Colon-style caption prefixes and the VR-keyboard prompts — VRApp used
+    // to embed these as English literals next to t()-routed siblings.
+    'vr.msg.loadingPrefix', 'vr.msg.tabPrefix', 'vr.msg.topSitePrefix',
+    'vr.msg.openingPrefix', 'vr.prompt.enterUrl', 'vr.prompt.enterVideoUrl'
   ];
 
   test.each(KEYS)('%s exists in both catalogues and differs between them', (key) => {
@@ -348,6 +352,26 @@ describe('immersive video HUD labels are localised', () => {
     const src = require('fs').readFileSync(
       require('path').join(__dirname, '../src/vr/media/ImmersiveVideo.js'), 'utf8');
     const offenders = [...src.matchAll(/(?:setLabel|_makeButton)\(\s*['"](Play|Pause)['"]/g)];
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('navigation status captions carry no English literal prefix', () => {
+  // VRApp captioned navigations as `Loading: <host>` / `Tab: <label>` /
+  // `Top site: <host>` / `Opening: <host>` literals — English inside a
+  // Japanese session, next to t()-routed siblings (same hole class as the
+  // crossModal literals). Prefixes now come from vr.msg.*Prefix keys.
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+
+  test('no hardcoded status prefix reaches captionSystem.show()', () => {
+    const offenders = [...src.matchAll(
+      /captionSystem\.show\(`(Loading|Tab|Top site|Opening|Tab activated|New tab):/g)];
+    expect(offenders).toEqual([]);
+  });
+
+  test('the VR keyboard prompts are translated keys, not literals', () => {
+    const offenders = [...src.matchAll(/'Enter (URL|video URL)'/g)];
     expect(offenders).toEqual([]);
   });
 });
