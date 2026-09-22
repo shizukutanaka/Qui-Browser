@@ -245,6 +245,26 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 157: 続き315 — grab-to-move 全連鎖を e2e pin（#258 に batch 8 として積層、98→101 checks）
+- **Round 74 of the continuous-improvement directive.** Eighth commit batch on PR #258.
+- **Pins (verify-vr-boot, +3 → 101 checks):** inside the fake-session leg —
+  the controller ray is aimed at the real `moveBarMesh` (world position +
+  lookAt via direct `matrixWorld` writes): `selectstart` dispatch runs
+  `onGrabRequested` → `beginGrab` → `isGrabbing` + 'Panel grabbed' caption +
+  haptic `'click'`; a lateral `matrixWorld` move + one `updateSystems` drags
+  the managed window root (world position tracks the ray);
+  `selectend` → `endGrab` + 'Panel moved' caption + haptic `'impact'`.
+  This closes the last undriven controller bridge (release/grab-arm).
+- **Harness lesson:** controller rays are aimed at a real mesh by
+  `matrixWorld.lookAt(ctrlPos, targetPos, up)` + `setPosition` — no local
+  position/rotation writes (runtime-driven objects).
+- **Red-verified:** cutting `beginGrab`/`endGrab` fails exactly all three
+  grab checks; restored → all green. Pins passed organically (grab chain
+  already correct on base — pure coverage).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (101 checks).
+
 ### Session 156: 続き314 — gaze-dwell 有効化経路（FR-13.1 中核）を e2e pin（#258 に batch 7 として積層、94→98 checks）
 - **Round 73 of the continuous-improvement directive.** Seventh commit batch on PR #258.
 - **Pins (verify-vr-boot, +4 → 98 checks):** inside the fake-session leg —

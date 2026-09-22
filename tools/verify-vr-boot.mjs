@@ -940,6 +940,54 @@ async function main() {
                 }
               }
             }
+            // Grab-to-move: selectstart on the real move bar runs
+            // onGrabRequested -> beginGrab; updateSystems then tracks the
+            // controller; selectend runs endGrab + release feedback.
+            const barObj = app.tabManager && app.tabManager.tabs
+              && app.tabManager.tabs[0] && app.tabManager.tabs[0].moveBarMesh;
+            if (ctrl && barObj && app.windowManager && app.camera) {
+              const wm = app.windowManager;
+              const grabHaptic = [];
+              const origGPlay = app.hapticFeedback && app.hapticFeedback.playPattern;
+              if (origGPlay) {
+                app.hapticFeedback.playPattern = (h, p) => { grabHaptic.push(p); };
+              }
+              const origMW2 = ctrl.matrixWorld.clone();
+              try {
+                // Aim the controller ray at the bar's real world position.
+                const barPos = barObj.getWorldPosition(barObj.position.clone());
+                const camPos = app.camera.getWorldPosition(barPos.clone());
+                const toCam = camPos.sub(barPos).normalize();
+                const cp = barPos.clone().add(toCam.clone().multiplyScalar(0.35));
+                const up = ctrl.up.clone();
+                ctrl.matrixWorld.lookAt(cp, barPos, up);
+                ctrl.matrixWorld.setPosition(cp);
+                app.updateSystems(0, fakeXrFrame, 0.016); // let hover see it
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.grabStarts = wm.isGrabbing === true
+                  && capWrites.some((t) => t.includes('Panel grabbed'))
+                  && grabHaptic.includes('click');
+                // Drag: move the controller laterally — the managed window
+                // root must follow (updateSystems -> windowManager.update).
+                const target = wm.target;
+                const t0 = target ? target.getWorldPosition(target.position.clone()) : null;
+                ctrl.matrixWorld.setPosition(cp.clone().add(new camPos.constructor(0.3, 0.1, 0)));
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const t1 = target ? target.getWorldPosition(target.position.clone()) : null;
+                out.grabDrags = !!(t0 && t1
+                  && Math.abs(t1.x - t0.x) + Math.abs(t1.z - t0.z) > 0.001);
+                ctrl.dispatchEvent({ type: 'selectend' });
+                out.grabEnds = wm.isGrabbing === false
+                  && capWrites.some((t) => t.includes('Panel moved'))
+                  && grabHaptic.includes('impact');
+              } finally {
+                app.windowManager && wm.isGrabbing && wm.endGrab();
+                if (origGPlay) {
+                  app.hapticFeedback.playPattern = origGPlay;
+                }
+                ctrl.matrixWorld.copy(origMW2);
+              }
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -1117,6 +1165,9 @@ async function main() {
       gazeCross: iout.gazeCross === true,
       gazeOnce: iout.gazeOnce === true,
       gazeDisabledQuiet: iout.gazeDisabledQuiet === true,
+      grabStarts: iout.grabStarts === true,
+      grabDrags: iout.grabDrags === true,
+      grabEnds: iout.grabEnds === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1254,6 +1305,9 @@ async function main() {
       ['gaze activation fans out to haptic + audio', !!inter.gazeCross],
       ['a second dwell frame does not re-fire', !!inter.gazeOnce],
       ['disabled gaze leaves the target untouched', !!inter.gazeDisabledQuiet],
+      ['select on move bar begins grab + announces', !!inter.grabStarts],
+      ['grab drag tracks the controller ray', !!inter.grabDrags],
+      ['selectend ends grab + announces moved', !!inter.grabEnds],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
