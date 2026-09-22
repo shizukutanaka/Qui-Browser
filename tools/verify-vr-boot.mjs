@@ -1392,6 +1392,148 @@ async function main() {
                 app.settingsPanel.visible = visWas3;
               }
             }
+            // Live-gate toggles (locomotion section): enableSnapTurn and
+            // enableTeleport have NO apply callback — their whole effect is
+            // being read each frame by the locomotion/teleport paths. Pin
+            // the gate both directions through the already-pinned motions:
+            // select → setting flips → the next stick push / squeeze either
+            // runs or is suppressed. Plus the 'Comfort' preset cycle →
+            // comfortSystem.setPreset live apply.
+            if (app.settingsPanel && app.captionSystem) {
+              const visWas4 = !!app.settingsPanel.visible;
+              if (app.settingsPanel.visible !== true) {
+                app.settingsPanel.visible = true;
+              }
+              const gazeWas4 = app.settings.enableGazeDwell;
+              app.settings.enableGazeDwell = true;
+              app.updateSetting('enableCaptions', true);
+              app.captionSystem.enabled = true;
+              const secsWas4 = (app.settings.openSettingsSections || []).slice();
+              const snapWas4 = app.settings.enableSnapTurn;
+              const telWas = app.settings.enableTeleport;
+              const msWas = app.settings.motionSensitivity;
+              const comfWas = app.settings.enableComfort;
+              const origMW6 = ctrl.matrixWorld.clone();
+              const aimAt6 = (pt) => {
+                const camP = app.camera.getWorldPosition(pt.clone());
+                const toC = camP.sub(pt).normalize();
+                const cp = pt.clone().add(toC.multiplyScalar(0.35));
+                ctrl.matrixWorld.lookAt(cp, pt, ctrl.up.clone());
+                ctrl.matrixWorld.setPosition(cp);
+              };
+              const probeLabel6 = (text) => {
+                const objs = app.interactables.filter((o) => {
+                  for (let p = o; p; p = p.parent) {
+                    if (p === app.settingsPanel) { return true; }
+                  }
+                  return false;
+                });
+                for (const obj of objs) {
+                  const before = locoCaps.length;
+                  aimAt6(obj.getWorldPosition(obj.position.clone()));
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  if (locoCaps.slice(before).join(' ').includes(text)) {
+                    return obj;
+                  }
+                }
+                return null;
+              };
+              const selectCenter6 = (btn) => {
+                aimAt6(btn.getWorldPosition(btn.position.clone()));
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                ctrl.dispatchEvent({ type: 'selectend' });
+              };
+              try {
+                const locoTab = probeLabel6('Movement');
+                out.locoTabProbe = !!locoTab;
+                if (locoTab) {
+                  selectCenter6(locoTab);
+                  out.locoTabOpen = (app.settings.openSettingsSections || [])
+                    .includes('settings.section.locomotion');
+                  // Rebuilt meshes need fresh world matrices before raycast.
+                  app.scene.updateMatrixWorld(true);
+                }
+                if (out.locoTabOpen) {
+                  const snapBtn = probeLabel6('Snap Turn');
+                  out.snapToggleProbe = !!snapBtn;
+                  if (snapBtn) {
+                    selectCenter6(snapBtn);
+                    const offOk = app.settings.enableSnapTurn === false;
+                    // rotation.y flips to the (π, θ, π) Euler branch once the
+                    // rig yaw crosses ±90° — read yaw from the quaternion.
+                    const yawOf = () => {
+                      const q = app.playerRig.quaternion;
+                      return Math.atan2(2 * (q.w * q.y + q.x * q.z),
+                        1 - 2 * (q.y * q.y + q.x * q.x));
+                    };
+                    rightSrc.gamepad.axes[2] = 0.8;
+                    const yawOff = yawOf();
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                    rightSrc.gamepad.axes[2] = 0;
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                    const gated = Math.abs(yawOf() - yawOff) < 0.001;
+                    selectCenter6(snapBtn);
+                    const yawBase2 = yawOf();
+                    rightSrc.gamepad.axes[2] = 0.8;
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                    const latched = ctrl.userData.snapLatched === true;
+                    rightSrc.gamepad.axes[2] = 0;
+                    const restored = app.settings.enableSnapTurn === true && latched
+                      && Math.abs(yawOf() - yawBase2 - (-Math.PI / 6)) < 0.01;
+                    out.snapGate = offOk && gated && restored;
+                  }
+                  const telBtn = probeLabel6('Teleport');
+                  out.teleportProbe = !!telBtn;
+                  if (telBtn) {
+                    selectCenter6(telBtn);
+                    ctrl.dispatchEvent({ type: 'squeezestart' });
+                    const gatedOff = app.settings.enableTeleport === false
+                      && app.teleport.active === false;
+                    ctrl.dispatchEvent({ type: 'squeezeend' });
+                    selectCenter6(telBtn);
+                    ctrl.dispatchEvent({ type: 'squeezestart' });
+                    const armedOn = app.settings.enableTeleport === true
+                      && app.teleport.active === true;
+                    ctrl.dispatchEvent({ type: 'squeezeend' });
+                    out.teleportGate = gatedOff && armedOn;
+                  }
+                  // 'Comfort:' (with the colon) disambiguates the cycle's
+                  // 'Comfort: <preset>' caption from the 'Movement & Comfort'
+                  // section tab announce, which has no colon.
+                  // The enableComfort toggle announces 'Comfort: ON/OFF' —
+                  // a plain 'Comfort:' probe matches it before the cycle
+                  // (toggles render first). The current preset VALUE only
+                  // ever appears in the cycle's 'Comfort: <preset>' caption.
+                  const comfBtn = probeLabel6('Comfort: ' + app.settings.motionSensitivity);
+                  out.comfortProbe = !!comfBtn;
+                  if (comfBtn && app.comfortSystem) {
+                    selectCenter6(comfBtn);
+                    out.comfortCycles = app.settings.motionSensitivity !== msWas
+                      && app.comfortSystem.settings.preset === app.settings.motionSensitivity
+                      && locoCaps.some((s) => s.includes('Comfort: ' + app.comfortSystem.settings.preset));
+                  }
+                }
+              } finally {
+                ctrl.matrixWorld.copy(origMW6);
+                rightSrc.gamepad.axes[2] = 0;
+                app.updateSetting('enableSnapTurn', snapWas4);
+                app.updateSetting('enableTeleport', telWas);
+                app.updateSetting('motionSensitivity', msWas);
+                app.updateSetting('enableComfort', comfWas);
+                if (app.comfortSystem && msWas) {
+                  app.comfortSystem.setPreset(msWas);
+                }
+                app.updateSetting('openSettingsSections', secsWas4);
+                app.settings.enableGazeDwell = gazeWas4;
+                if (app.teleport) {
+                  app.teleport.active = false;
+                  app.teleport.valid = false;
+                }
+                app._rebuildSettingsPanel();
+                app.settingsPanel.visible = visWas4;
+              }
+            }
               } finally {
                 rightSrc.gamepad.axes[2] = 0;
                 ctrl.dispatchEvent({ type: 'disconnected' });
@@ -1708,6 +1850,14 @@ async function main() {
       actionApplied: iout.actionApplied === true,
       bookmarkProbe: iout.bookmarkProbe === true,
       bookmarkToggled: iout.bookmarkToggled === true,
+      locoTabProbe: iout.locoTabProbe === true,
+      locoTabOpen: iout.locoTabOpen === true,
+      snapToggleProbe: iout.snapToggleProbe === true,
+      snapGate: iout.snapGate === true,
+      teleportProbe: iout.teleportProbe === true,
+      teleportGate: iout.teleportGate === true,
+      comfortProbe: iout.comfortProbe === true,
+      comfortCycles: iout.comfortCycles === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -1879,6 +2029,14 @@ async function main() {
       ['Clear History wipes the store + announces', !!inter.actionApplied],
       ['hover announce identifies the Bookmarks action', !!inter.bookmarkProbe],
       ['Bookmarks action toggles the panel + announces state', !!inter.bookmarkToggled],
+      ['hover announce identifies the locomotion tab', !!inter.locoTabProbe],
+      ['tab select opens the locomotion section', !!inter.locoTabOpen],
+      ['hover announce identifies the Snap Turn toggle', !!inter.snapToggleProbe],
+      ['Snap Turn toggle gates + restores real stick snaps', !!inter.snapGate],
+      ['hover announce identifies the Teleport toggle', !!inter.teleportProbe],
+      ['Teleport toggle gates + re-arms squeeze aim', !!inter.teleportGate],
+      ['hover announce identifies the Comfort cycle', !!inter.comfortProbe],
+      ['Comfort cycle advances + live-applies the preset', !!inter.comfortCycles],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

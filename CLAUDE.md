@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 164: 続き322 — live-gate トグル（snap/teleport）+ Comfort preset サイクル live apply を e2e pin（#258 batch 15、132→140 checks）
+- 🔍 **実測**: settings トグルは設定値の反転のみ pin 済みで、**ゲートが実動作を止める live 経路**（enableSnapTurn OFF → 実スティック snap 抑止・復帰、enableTeleport OFF → squeeze aim 不発、Comfort サイクル → `setPreset` live apply）は未駆動だった。locomotion セクションを hover アナウンス識別で開き 3 系統を端到端 pin。
+- 🔧 **ハーネス教訓（次回以降必須）**: rig yaw を `rotation.y` で読むと **yaw が ±90° を超えた瞬間に Euler が (π, θ, π) 分岐へ反転**し値が凍結する — 累積 snap で −105° 到達時に `rotation.y` が −75° のまま停滞し「snapTurn が回転しない」偽陰性をデバッグに 3 往復。**yaw は quaternion から `atan2(2(wy+xz), 1−2(y²+x²))` で抽出する**（VRApp 側は正しく、spy で quaternion −0.609/0.793 → −0.793/0.609 の実回転を確認済み）。
+- 🧪 赤検証: `enableSnapTurn` ゲート切断 → snapGate FAIL、`!enableTeleport` ガード切断 → teleportGate FAIL、`this.settings.preset = preset` 切断 → comfortCycles FAIL。全 pin 有機全緑（経路は base で正しい — 純粋カバレッジ拡張）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 140 checks PASS、verify:app PASS。
+
 ### Session 163: 続き321 — settings cycle + action ボタン（browsing セクション全表面）を e2e pin（#258 batch 14、124→132 checks）
 - 🔍 **実測（settings パネル最後の未駆動面）**: toggle（R77）・stepper + セクションタブ（R78）で残ったのは **cycle と action** — 全 SECTIONS で cycle は 'Search'（searchEngine→tabManager.setSearchEngine）のみ、action は 'Clear History'/'Reader Proxy'/'Bookmarks'/'360° Video' のみ。browsing セクションに cycle+3 action が集約しているため同一セクション内で完結する e2e leg を追加。
 - 🔧 **pin 設計（8 check）**: 'Browsing' タブを announce 識別→select→`_rebuildSettingsPanel`（`scene.updateMatrixWorld(true)` で新 mesh を raycast 可能化 — R78 確立の教訓）→ ①'Search: duckduckgo' hover announce で cycle を識別（`settingsButtonCaption('cycle',...)`='label: value' 形式）→ center select で `settings.searchEngine` 前進 + **`tabManager.opts.searchEngine` へ live apply** + 'Search: google' caption ②履歴を `bookmarks.addHistory` で実 localStorage('quiBrowser_history') にシード→'Clear History' action で wipe + 'History cleared' toast/caption ③'Bookmarks' action で `bookmarkPanel.toggle()` + 開閉状態 caption（'Bookmarks: open'、WCAG 4.1.3）。
