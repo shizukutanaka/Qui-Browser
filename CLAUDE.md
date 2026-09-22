@@ -251,6 +251,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `getTopSites: () => []` 切断 → `topSitesHit` のみ FAIL（他緑）、`isBookmarked: () => false` 切断 → 同チェックのみ FAIL。両方とも対象配線を正確に捕捉。復元後 30 checks 全緑。（付随発見: improve-48 時代の stale dist が frame-ancestors log error + kbShown FAIL を起こした — Log ゲートと kbShown pin が dist 陳腐化を実検出した実例）
 - ✅ 3234 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 30 checks PASS、verify:app PASS。
 
+### Session 134: 続き292 — reader proxy がログと裏腹に全 NIC で LISTEN していた open-relay 欠陥
+- 🔍 **実測（未定義プロパティ参照スイープ clean 後の残面）**: `.visible`/`.enabled` の未定義参照クラスを全 src/ でスイープ（vrKeyboard.visible は唯一の実欠陥で #243 に同梱済み、他は全て初期化済み）→ 未監査のネットワーク面 `proxy/server.js` を精読。起動ログは `http://127.0.0.1:PORT` を謳うが `server.listen(PORT)` は引数なしのため **ワイルドカード (::/0.0.0.0) にバインド** — 同一 LAN の任意の端末がこのマシンを任意 URL 取得の open relay として利用可能。SSRF guard で内部アドレスは塞がるものの、外部任意 fetch の踏み台（帯域・発信元偽装）は丸ごと開放だった。
+- 🔧 **修正**: `export const LISTEN_HOST = process.env.HOST || '127.0.0.1'` を追加し `server.listen(PORT, LISTEN_HOST)` で明示バインド + ログも `${LISTEN_HOST}` を表示（実 bind と表記の一致）。LAN 共有は `HOST=0.0.0.0` の明示 opt-in に変更し docstring の run 例にも追記。
+- 🧪 pin 3件（tests/proxy-listen-host.test.js: 既定 loopback / HOST env 尊重 / `server.listen(PORT, LISTEN_HOST` の bare-wildcard 不可 source pin）。3件全て pre-fix 赤（LISTEN_HOST 未 export + bare listen で FAIL）・post-fix 緑。実機検証: `lsof` で既定が `localhost:PORT` のみ LISTEN・`HOST=0.0.0.0` が `*:PORT` LISTEN を確認。
+- ✅ 3235 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot 両 PASS。#243（reland-harness）とは無関係のファイルのみで衝突なし。
+
+
 ### Session 133: 続き291 — vrKeyboard.visible 未定義欠陥（toggle が hide 不可 + 嘘アナウンス）を修正 + URL 入力経路を e2e pin
 - 🔍 **実測**: `VRApp:2358` の thumbstick toggle と `VoiceCommands` の `ime-toggle` がともに `vrKeyboard.visible ? hide() : show()` を評価するが、**`VRJapaneseKeyboard` に `visible` プロパティは存在しなかった**（`group.visible` のみ）— 結果として両 toggle 経路は常に `show()` を呼び、(a) キーボードを hide できない (b) 既に開いていても `keyboardOpen` caption で嘘アナウンス。テストは `visible=true` を手書きセットしていたため mock-drift で素通りしていた。
 - 🔧 **修正**: `VRJapaneseKeyboard` に `get visible()` 追加 — `group.visible` の実値を返す derived state（フラグではなく真実の状態を読むため、将来の設計変更でも drift しない）。併せて `_requestVRKeyboardInput`（setOnConfirm → IME activate + ascii mode → composition prefill → show → prompt caption）を harness eval で実ドライブ — `kbShown`/`kbAscii`/`kbPrompted` の3 pin。
@@ -289,6 +296,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `navigate` の privateMode ゲートを意図的に `if (true)` へ切替え rebuild → `privateClean` のみ FAIL（private URL が履歴に漏洩）、`historyHit` は緑維持 — プライバシー契約を正確に捕捉。復元後全緑。
 - ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 12 checks PASS。
 
+||||||| parent of 3533bc3 (fix(proxy): bind reader proxy to loopback by default — stop LAN open-relay)
 ### Session 127: 続き285 — harness interaction に tab-flow announce を追加（captions ゲートの実契約を確認）
 - 🔍 **実測（listener/localStorage/settings-drift/i18n-key/frecency 全スイープ clean 後）**: interaction フェーズの残空白として `TabManager.newTab → setActive → onTabActivate → captionSystem.show → onShow → status mirror` の announce 経路を e2e 未駆動と特定。初回実行で announce が届かない現象を観測し一時的に欠陥を疑ったが、原因は VRApp の caller-side `captionSystem.enabled` ゲート（39箇所 + crossModal 1箇所）— テスト群が「captions off → caption channel 全面 silent」を意図的に pin しており設計契約と確認（critical channel は無条件の announceAlert 経路で別途担保）。この自然な FAIL が、当該チェックが announce channel を空振りせず実検出することの証明になった。
 - 🔧 **修正**: interaction eval に tab-flow を追加。`setEnabled(true)` で実契約通り caption channel を有効化してから `newTab('')` を発火し、2 新規チェック: ①`newTab()` がタブ数を +1 ②status live region が `Tab: New Tab` を含む（onTabActivate の i18n caption が実 DOM まで届くことの pin）。
