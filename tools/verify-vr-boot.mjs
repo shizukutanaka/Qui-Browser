@@ -1750,6 +1750,90 @@ async function main() {
                     app.vrKeyboard._onConfirmCallback = null;
                   }
                 }
+              // VR keyboard real-key leg — the 3D keyboard's key meshes are
+              // real registered interactables: a controller-ray select routes
+              // to onKeyPress(label) → ime.processInput / deleteLast /
+              // confirmSelection → onTextConfirmed → _onConfirmCallback.
+              // The whole URL-entry path a headset user actually takes; only
+              // the programmatic onTextConfirmed arm had been pinned.
+              if (ctrl && app.settingsPanel && app.vrKeyboard
+                && app.japaneseIME && app.immersiveVideo) {
+                const origPlay3 = app.immersiveVideo.play;
+                const videoCalls3 = [];
+                const kbVisWas = app.vrKeyboard.visible;
+                try {
+                  // The audio section is still open from the display leg —
+                  // re-selecting its tab would close it. Only select when
+                  // closed.
+                  if (!(app.settings.openSettingsSections || [])
+                    .includes('settings.section.audio')) {
+                    const audTab2 = probeLabel6('Audio & Media');
+                    if (audTab2) {
+                      selectCenter6(audTab2);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  out.kbTabProbe = (app.settings.openSettingsSections || [])
+                    .includes('settings.section.audio');
+                  const vidBtn3 = probeLabel6('360° Video');
+                  out.kbActionProbe = !!vidBtn3;
+                  app.immersiveVideo.play = (u, f) => {
+                    videoCalls3.push(u + '|' + f);
+                  };
+                  if (vidBtn3) {
+                    selectCenter6(vidBtn3);
+                  }
+                  out.kbOpens = app.vrKeyboard.visible === true
+                    && typeof app.vrKeyboard._onConfirmCallback === 'function';
+                  app.scene.updateMatrixWorld(true);
+                  const pressKey6 = async (label) => {
+                    const km = (app.vrKeyboard.keyMeshes || [])
+                      .find((k) => k.label === label);
+                    if (!km) { return false; }
+                    selectCenter6(km.mesh);
+                    await new Promise((r) => setTimeout(r, 30));
+                    return true;
+                  };
+                  const ime2 = app.japaneseIME;
+                  const uOk = await pressKey6('u');
+                  const rOk = await pressKey6('r');
+                  const lOk = await pressKey6('l');
+                  out.kbTypes = uOk && rOk && lOk
+                    && ime2.compositionBuffer === 'url';
+                  const backOk = await pressKey6('back');
+                  out.kbBackspaces = backOk
+                    && ime2.compositionBuffer === 'ur';
+                  const enterOk = await pressKey6('enter');
+                  out.kbConfirms = enterOk
+                    && app.vrKeyboard.visible === false
+                    && app.vrKeyboard._onConfirmCallback === null
+                    && videoCalls3.length === 1
+                    && videoCalls3[0].startsWith('ur|');
+                  // Second open → 'esc' dismiss: hides, cancels with a
+                  // caption (WCAG 4.1.3), and never reaches the callback.
+                  if (vidBtn3) {
+                    selectCenter6(vidBtn3);
+                    app.scene.updateMatrixWorld(true);
+                  }
+                  const capsBefore = locoCaps.length;
+                  const escOk = app.vrKeyboard.visible === true
+                    && await pressKey6('esc');
+                  out.kbEscDismisses = escOk
+                    && app.vrKeyboard.visible === false
+                    && videoCalls3.length === 1
+                    && locoCaps.slice(capsBefore)
+                      .some((t2) => t2.includes('Keyboard cancelled'));
+                } finally {
+                  app.immersiveVideo.play = origPlay3;
+                  if (app.vrKeyboard) {
+                    app.vrKeyboard.hide();
+                    app.vrKeyboard._onConfirmCallback = null;
+                  }
+                  if (kbVisWas) {
+                    app.vrKeyboard.show();
+                  }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2146,6 +2230,13 @@ async function main() {
       volumeApplied: iout.volumeApplied === true,
       video360Probe: iout.video360Probe === true,
       video360Applied: iout.video360Applied === true,
+      kbTabProbe: iout.kbTabProbe === true,
+      kbActionProbe: iout.kbActionProbe === true,
+      kbOpens: iout.kbOpens === true,
+      kbTypes: iout.kbTypes === true,
+      kbBackspaces: iout.kbBackspaces === true,
+      kbConfirms: iout.kbConfirms === true,
+      kbEscDismisses: iout.kbEscDismisses === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2354,6 +2445,13 @@ async function main() {
       ['Sound Volume stepper live-applies master gain', !!inter.volumeApplied],
       ['hover announce identifies the 360° Video action', !!inter.video360Probe],
       ['360° Video opens keyboard + confirm routes to play', !!inter.video360Applied],
+      ['audio section still open for keyboard entry', !!inter.kbTabProbe],
+      ['hover announce identifies the 360° Video action again', !!inter.kbActionProbe],
+      ['360° Video opens keyboard with confirm armed', !!inter.kbOpens],
+      ['real key-mesh selects type into the IME buffer', !!inter.kbTypes],
+      ['back key-mesh select deletes the last char', !!inter.kbBackspaces],
+      ['enter key-mesh select confirms to the armed callback', !!inter.kbConfirms],
+      ['esc key-mesh select dismisses with cancel caption', !!inter.kbEscDismisses],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
