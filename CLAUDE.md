@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 147: 続き305 — stereo video 経路を e2e pin（61→63 checks）+ 層復元 fix を同梱（harness が base 上で実欠陥を検出）
+- 🔍 **実測**: 全 fetch に timeout・SW は skipWaiting 設計・i18n 残存 sweep 完了と確認した後、未駆動だった残り面は **stereo video 経路** — mono の `_launchImmersiveVideo → confirm → play → stop` roundtrip は既 pin だったが `_sbs` → per-eye sphere + camera layers 経路は一度も実 app で駆動されていなかった（ImmersiveVideo は jest 単体のみ — Session 138 の camera=null 実クラッシュと同じ配線クラスが jest 到達不能な領域）。
+- 🔧 **harness 拡張**: stereo leg を追加 — 再度 `_launchImmersiveVideo()`（IME confirm は one-shot のため再起動が必要）→ `onTextConfirmed('…v180_sbs.mp4')` → `meshes.length===2 && camera.layers.isEnabled(1/2)`、その後 `iv.stop()` → `meshes===0 && !isEnabled(1/2)` を pin。`layers.test()` は Layers インスタンス比較のため `isEnabled(layer)` で assert。
+- 🚨 **pin が即座に実欠陥を検出**: 初回実行で `videoStereo` PASS なのに `videoLayersRestored` FAIL — 本ブランチの base には #253（improve-58, unmerged）の `_stereoLayersOn` restore が無く、pin が設計通り「stereo 再生が camera layers を残しっぱなしにする」実挙動を捕捉。赤証拠はこの初回実行そのもの（pin 自体を broken base で走らせて正しく FAIL することを確認済み）。
+- 🔧 **同梱判断**: pin が gate する実挙動は #253 の fix でしか成立しないため、commit `7e0c0c5` から `src/vr/media/ImmersiveVideo.js` + `tests/immersive-video.test.js`（jest pin 2件含む）を本ブランチへ取り込み自己完結化 — #253 先マージ時は fix 差分が no-op になるのみ。_stereoLayersOn フラグ + `_disableStereoLayers()`（mono stop は layers 不触）で main + 全 eye camera の layers 1/2 を stop() 時に復元。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 63 checks PASS、verify:app PASS。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。

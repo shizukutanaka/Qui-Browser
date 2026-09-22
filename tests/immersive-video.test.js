@@ -566,6 +566,51 @@ describe('ImmersiveVideo — guard + stereo-layer arms', () => {
     expect(eye2.layers.enable).toHaveBeenCalledWith(2);
     expect(eye2.layers.enable).not.toHaveBeenCalledWith(1);
   });
+
+  test('stop() restores the camera layers a stereo play() enabled', () => {
+    const mkLayers = () => ({ enable: jest.fn(), disable: jest.fn(), set() {} });
+    const camera = makeCamera();
+    camera.layers = mkLayers();
+    const eye1 = { layers: mkLayers() };
+    const eye2 = { layers: mkLayers() };
+    const renderer = { xr: { getCamera: () => ({ cameras: [eye1, eye2] }) } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove() {} };
+    const iv = new ImmersiveVideo(scene, camera, renderer, {
+      registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
+    });
+    iv.play('https://x.example.com/v_sbs.mp4');
+    iv.stop();
+    // shared camera state handed back — nothing keeps rendering layers 1/2
+    expect(camera.layers.disable).toHaveBeenCalledWith(1);
+    expect(camera.layers.disable).toHaveBeenCalledWith(2);
+    expect(eye1.layers.disable).toHaveBeenCalledWith(1);
+    expect(eye1.layers.disable).toHaveBeenCalledWith(2);
+    expect(eye2.layers.disable).toHaveBeenCalledWith(1);
+    expect(eye2.layers.disable).toHaveBeenCalledWith(2);
+  });
+
+  test('stop() after a mono play() never touches camera layers', () => {
+    const camera = makeCamera();
+    camera.layers = { enable: jest.fn(), disable: jest.fn(), set() {} };
+    const renderer = { xr: { getCamera: () => ({ cameras: [
+      { layers: { enable: jest.fn(), disable: jest.fn() } },
+      { layers: { enable: jest.fn(), disable: jest.fn() } }
+    ] }) } };
+    const scene = { children: [], add(o) {
+      scene.children.push(o);
+    }, remove() {} };
+    const iv = new ImmersiveVideo(scene, camera, renderer, {
+      registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
+    });
+    iv.play('https://x.example.com/plain.mp4'); // no stereo marker → mono
+    iv.stop();
+    expect(camera.layers.disable).not.toHaveBeenCalled();
+    for (const eye of renderer.xr.getCamera().cameras) {
+      expect(eye.layers.disable).not.toHaveBeenCalled();
+    }
+  });
 });
 
 describe('ImmersiveVideo — togglePause no-video arm', () => {

@@ -437,6 +437,18 @@ async function main() {
             out.videoActive = iv.active === true && iv.meshes.length >= 1 && !!iv.controlPanel;
             iv.stop();
             out.videoStopped = iv.active === false && iv.meshes.length === 0 && !iv.controlPanel;
+            // Stereo leg: a '_sbs' URL builds per-eye spheres and enables
+            // camera layers 1/2 for the eye assignment; stop() must hand the
+            // shared camera state back (the _stereoLayersOn restore).
+            app._launchImmersiveVideo();
+            app.vrKeyboard.onTextConfirmed('https://harness-video.example/v180_sbs.mp4');
+            out.videoStereo = iv.meshes.length === 2
+              && app.camera.layers.isEnabled(1)
+              && app.camera.layers.isEnabled(2);
+            iv.stop();
+            out.videoLayersRestored = iv.meshes.length === 0
+              && !app.camera.layers.isEnabled(1)
+              && !app.camera.layers.isEnabled(2);
           }
           } catch (e) {
             out.b3Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
@@ -603,6 +615,8 @@ async function main() {
       videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
       videoActive: iout.videoActive === true,
       videoStopped: iout.videoStopped === true,
+      videoStereo: iout.videoStereo === true,
+      videoLayersRestored: iout.videoLayersRestored === true,
       voiceSearch: iout.voiceSearchNav === true
         && (iout.voiceSearchCap || '').includes('検索'),
       voiceTop: iout.voiceTopNav === true
@@ -697,6 +711,8 @@ async function main() {
       ['video prompt announced via caption', !!inter.videoPrompt],
       ['immersive video built spheres + HUD', !!inter.videoActive],
       ['immersive video stop tore down scene', !!inter.videoStopped],
+      ['stereo video per-eye spheres + camera layers on', !!inter.videoStereo],
+      ['stereo layers handed back to the camera on stop', !!inter.videoLayersRestored],
       ['voice search navigated + announced', !!inter.voiceSearch],
       ['voice top-sites announced via caption', !!inter.voiceTop],
       ['voice clear-history wiped + announced', !!inter.voiceClear],
