@@ -254,7 +254,7 @@ export class VRApp {
     this._grabController = null; // controller currently dragging a panel's move bar
     this.interactables = []; // meshes registered with select/hover handlers
     this.settingsPanel = null;
-    this.immersiveVideo = null; // 360°/180° video player (created in initializeSystems)
+    this.immersiveVideo = null; // 360°/180° video player (created in setupImmersiveVideo)
     this._panelTextures = []; // CanvasTextures to dispose on teardown
     // Shared PlaneGeometry instances for settings-panel buttons, keyed by
     // "wxh". Reusing one geometry per size avoids allocating a fresh GPU
@@ -464,6 +464,7 @@ export class VRApp {
     this.setupRenderer();
     this.setupScene();
     this.setupCamera();
+    this.setupImmersiveVideo();
 
     // Setup VR before the (potentially long) async system init so the
     // landing-page "Enter VR" buttons are wired immediately — otherwise an
@@ -628,38 +629,6 @@ export class VRApp {
       this.homeEnvironment = this.createHomeEnvironment();
       this.scene.add(this.homeEnvironment);
     }
-
-    // Immersive 360°/180° video player. Lightweight until play() is called
-    // (no video element or sphere is created up front), so it is always
-    // available and launched on demand from the settings panel.
-    this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
-      registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onError: (msg) => this.showVRToast(msg, { type: 'error' }),
-      onPlaybackChange: (state) => {
-        // Guard: session-end cleanup calls stop() with isVREnabled=false; those
-        // are not user-initiated actions and should not produce status messages.
-        if (!this.isVREnabled) {
-          return;
-        }
-        if (this.captionSystem && this.captionSystem.enabled) {
-          let label;
-          if (state === 'playing') {
-            label = t('vr.msg.videoPlaying');
-          } else if (state === 'stopped') {
-            label = t('vr.msg.videoStopped');
-          } else {
-            label = t('vr.msg.videoPaused');
-          }
-          this.captionSystem.show(label);
-        }
-      },
-      onHoverCaption: (label) => {
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(label);
-        }
-      }
-    });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
     if (this.settings.enableSettingsPanel) {
@@ -1998,6 +1967,45 @@ export class VRApp {
   }
 
   /**
+   * Set up the immersive 360°/180° video player. Runs after setupCamera() —
+   * ImmersiveVideo parents its HUD control panel and toast to the camera, so
+   * constructing it earlier would leave this.camera null and every play()
+   * would crash in _buildControlPanel. Lightweight until play() is called
+   * (no video element or sphere is created up front), so it is always
+   * available and launched on demand from the settings panel.
+   */
+  setupImmersiveVideo() {
+    this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
+      registerInteractable: (m, h) => this.registerInteractable(m, h),
+      unregisterInteractable: (m) => this.unregisterInteractable(m),
+      onError: (msg) => this.showVRToast(msg, { type: 'error' }),
+      onPlaybackChange: (state) => {
+        // Guard: session-end cleanup calls stop() with isVREnabled=false; those
+        // are not user-initiated actions and should not produce status messages.
+        if (!this.isVREnabled) {
+          return;
+        }
+        if (this.captionSystem && this.captionSystem.enabled) {
+          let label;
+          if (state === 'playing') {
+            label = t('vr.msg.videoPlaying');
+          } else if (state === 'stopped') {
+            label = t('vr.msg.videoStopped');
+          } else {
+            label = t('vr.msg.videoPaused');
+          }
+          this.captionSystem.show(label);
+        }
+      },
+      onHoverCaption: (label) => {
+        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+          this.captionSystem.show(label);
+        }
+      }
+    });
+  }
+
+  /**
    * Set up WebXR controllers: ray pointer + rendered controller models, parented
    * to the player rig. Dispatches 'select' on hit so interactables can respond.
    */
@@ -2313,13 +2321,13 @@ export class VRApp {
         const tab = this.tabManager?.getActiveTab();
         if (tab) {
           if (btn.faceA?.justPressed) {
-            const moved = tab.goForward?.();
+            const moved = tab.forward();
             if (this.captionSystem?.enabled) {
               this.captionSystem.show(moved ? t('vr.msg.goingForward') : t('vr.msg.noNextPage'));
             }
           }
           if (btn.faceB?.justPressed) {
-            const moved = tab.goBack?.();
+            const moved = tab.back();
             if (this.captionSystem?.enabled) {
               this.captionSystem.show(moved ? t('vr.msg.goingBack') : t('vr.msg.noPreviousPage'));
             }

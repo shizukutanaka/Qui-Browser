@@ -590,14 +590,14 @@ describe('callback bodies — the wiring runs when invoked', () => {
   });
 });
 
-describe('setupScene — ImmersiveVideo cfg callback bodies', () => {
+describe('setupImmersiveVideo — ImmersiveVideo cfg callback bodies', () => {
   test('onPlaybackChange captions by state, gated on isVREnabled + caption enabled', () => {
     const ivCalls = [];
     patch('ImmersiveVideo', ctor(ivCalls, {}));
     const app = makeInitLike({ enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false });
     const shown = [];
     app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
-    VRApp.prototype.setupScene.call(app);
+    VRApp.prototype.setupImmersiveVideo.call(app);
     const cfg = ivCalls[0][3];
 
     // Session-end stop() calls with isVREnabled=false must NOT caption.
@@ -1089,7 +1089,7 @@ describe('ImmersiveVideo cfg + TabManager inner arms', () => {
     const app = makeInitLike({ enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false });
     app.isVREnabled = true;
     app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
-    VRApp.prototype.setupScene.call(app);
+    VRApp.prototype.setupImmersiveVideo.call(app);
     const cfg = calls[0][3];
 
     cfg.onPlaybackChange('paused');       // else arm
@@ -1119,7 +1119,7 @@ describe('ImmersiveVideo cfg + TabManager inner arms', () => {
     const shown = [];
     const app = makeInitLike({ enableHomeEnvironment: false, enableGazeDwell: true, enableSettingsPanel: false, enableWebPanel: false });
     app.captionSystem = { enabled: true, show: (m) => shown.push(m) };
-    VRApp.prototype.setupScene.call(app);
+    VRApp.prototype.setupImmersiveVideo.call(app);
     const cfg = calls[0][3];
     cfg.onHoverCaption('seek');
     expect(shown).toContain('seek');
@@ -1427,7 +1427,7 @@ describe('cfg passthrough arrows — interactable registration + session callbac
     const app = makeInitLike({
       enableHomeEnvironment: false, enableSettingsPanel: false, enableWebPanel: false
     });
-    VRApp.prototype.setupScene.call(app);
+    VRApp.prototype.setupImmersiveVideo.call(app);
     const cfg = ivCalls[0][3];
     const handlers = { onSelect() {} };
     cfg.registerInteractable('mesh', handlers);

@@ -64,6 +64,20 @@ Object.defineProperty(navigator, 'xr', { configurable: true, value: {
   requestSession: () => Promise.reject(new DOMException('no runtime in CI', 'NotSupportedError')),
   addEventListener() {}, removeEventListener() {}
 }});
+// SpeechRecognition stub — VoiceCommands.initialize() gates on
+// window.SpeechRecognition, so without this enableVoice constructs nothing
+// and the whole voice-command surface stays undrivable end-to-end.
+function __StubSpeechRecognition() {}
+__StubSpeechRecognition.prototype.start = function () {
+  if (this.onstart) this.onstart();
+};
+__StubSpeechRecognition.prototype.stop = function () {
+  if (this.onend) this.onend();
+};
+__StubSpeechRecognition.prototype.abort = function () {};
+if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+  window.SpeechRecognition = __StubSpeechRecognition;
+}
 </script>`;
 
 
@@ -209,7 +223,7 @@ async function main() {
     // it here end-to-end: the ARIA mirrors are unconditional surfaces, so the
     // check holds regardless of caption/settings state.
     const ir = await cdp.send('Runtime.evaluate', {
-      expression: `(() => {
+      expression: `(async () => {
         const app = QuiBrowser.getApp();
         const dom = document.querySelector('[data-qui-semantic-dom]');
         const alertEl = dom && dom.querySelector('[role="alert"]');
@@ -343,13 +357,201 @@ async function main() {
               && app.japaneseIME.compositionBuffer === 'https://harness-input.example/');
             out.kbPrompt = statusEl ? statusEl.textContent : '';
             app.vrKeyboard.hide();
+            // The confirm half of the URL-input flow: the panel's
+            // onUrlInputRequested stores a one-shot callback the IME's Enter
+            // key commits to — firing it must reach tab.navigate (currentUrl
+            // set synchronously) + the 'Loading: host' caption, and leave
+            // the keyboard hidden with the callback consumed.
+            if (tab2 && typeof tab2.onUrlInputRequested === 'function') {
+              tab2.onUrlInputRequested('https://harness-input.example/', (url) => {
+                if (url) tab2.navigate(url);
+              });
+              const hasCb = typeof app.vrKeyboard._onConfirmCallback === 'function';
+              app.japaneseIME.compositionBuffer = 'https://harness-confirm.example/';
+              app.vrKeyboard.onTextConfirmed('https://harness-confirm.example/');
+              out.confirmCbStored = hasCb;
+              out.confirmNav = tab2.currentUrl === 'https://harness-confirm.example/';
+              out.confirmCleared = app.vrKeyboard._onConfirmCallback === null;
+              out.confirmHidden = app.vrKeyboard.visible === false;
+              out.confirmCaption = statusEl ? statusEl.textContent : '';
+            }
+          }
+          // Stored-callback batch 2 — paths the panel side can only reach via
+          // VRApp wiring (jest can't build TabManager, so these were never
+          // driven end-to-end):
+          //  * tab2.onLoadError → 'Failed to load: url' on the alert region
+          //  * bookmarkPanel.onDeleteHistory / onTabChange → caption mirrors
+          //  * _requestReaderProxyInput → proxy prompt + confirm persists
+          //    readerProxyUrl + 'Reader proxy set' toast
+          if (tab2 && typeof tab2.onLoadError === 'function') {
+            tab2.onLoadError('https://harness-fail.example/');
+            out.loadErrToast = alertEl ? alertEl.textContent : '';
+          }
+          if (app.bookmarkPanel) {
+            if (typeof app.bookmarkPanel.onDeleteHistory === 'function') {
+              app.bookmarkPanel.onDeleteHistory();
+              out.bpDelHistCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onTabChange === 'function') {
+              app.bookmarkPanel.onTabChange('history');
+              out.bpTabCap = statusEl ? statusEl.textContent : '';
+            }
+          }
+          if (typeof app._requestReaderProxyInput === 'function' && app.vrKeyboard) {
+            app._requestReaderProxyInput();
+            out.proxyPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.onTextConfirmed('http://localhost:8787');
+            let srec = null;
+            try { srec = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyPersisted = !!(srec && srec.readerProxyUrl === 'http://localhost:8787');
+            out.proxyToast = alertEl ? alertEl.textContent : '';
+          }
+          // Batch 3 — the remaining never-driven paths:
+          //  * bookmarkPanel.onDeleteBookmark / onClose / onHoverCaption
+          //    (the last is gated on settings.enableGazeDwell — toggled here)
+          //  * _launchImmersiveVideo: video-URL prompt → keyboard confirm →
+          //    detectVideoFormat → sphere(s) + HUD in the scene; stop() must
+          //    tear every bit of it back down.
+          try {
+          if (app.bookmarkPanel) {
+            if (typeof app.bookmarkPanel.onDeleteBookmark === 'function') {
+              app.bookmarkPanel.onDeleteBookmark();
+              out.bpDelBmCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onClose === 'function') {
+              app.bookmarkPanel.onClose();
+              out.bpCloseCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onHoverCaption === 'function') {
+              app.settings.enableGazeDwell = true;
+              app.bookmarkPanel.onHoverCaption();
+              out.bpHoverCap = statusEl ? statusEl.textContent : '';
+              app.settings.enableGazeDwell = false;
+            }
+          }
+          if (typeof app._launchImmersiveVideo === 'function' && app.immersiveVideo && app.vrKeyboard) {
+            app._launchImmersiveVideo();
+            out.videoPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.onTextConfirmed('https://harness-video.example/v360.mp4');
+            const iv = app.immersiveVideo;
+            out.videoActive = iv.active === true && iv.meshes.length >= 1 && !!iv.controlPanel;
+            iv.stop();
+            out.videoStopped = iv.active === false && iv.meshes.length === 0 && !iv.controlPanel;
+          }
+          } catch (e) {
+            out.b3Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
+          }
+          // Batch 4 — voice-command round-trips. enableVoice is opt-in: flip
+          // it and lazy-init here (the SpeechRecognition stub above lets
+          // initialize() succeed), then feed synthetic FINAL results through
+          // handleRecognitionResult — the real confidence gate, transcript
+          // caption, and processCommand pattern→action→speak→caption chain
+          // through the connectBrowser wiring VRApp bound.
+          try {
+          app.settings.enableVoice = true;
+          if (!app.voiceCommands && typeof app._initVoiceCommands === 'function') {
+            await app._initVoiceCommands();
+          }
+          const vc = app.voiceCommands;
+          if (vc) {
+            const say = (text) => vc.handleRecognitionResult({
+              results: [{ 0: { transcript: text, confidence: 0.9 }, isFinal: true, length: 1 }]
+            });
+            say('検索：voice-search.example');
+            // urlResolver stores bare-host input without a trailing slash —
+            // the contract tab.currentUrl records.
+            out.voiceSearchNav = tab2 && tab2.currentUrl === 'https://voice-search.example';
+            out.voiceSearchCap = statusEl ? statusEl.textContent : '';
+            say('トップサイト');
+            out.voiceTopNav = tab2 && tab2.currentUrl === 'https://harness-top.example/';
+            out.voiceTopCap = statusEl ? statusEl.textContent : '';
+            say('履歴を消去');
+            out.voiceCleared = app.bookmarks.search('harness-top.example', 5).length === 0;
+            out.voiceClearCap = statusEl ? statusEl.textContent : '';
+            const volBefore = (app.settings.masterVolume ?? 100);
+            say('音量上げる');
+            let sv = null;
+            try { sv = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.voiceVolUp = !!(sv && sv.masterVolume === Math.min(100, volBefore + 10));
+            out.voiceVolCap = statusEl ? statusEl.textContent : '';
+            // Voice nav — the live back()/forward() names (dead goBack/
+            // goForward callers were repointed): 戻る must actually move and
+            // 進む must return — each spoken confirmation lands on the status
+            // region via the onSpeak→caption mirror.
+            say('戻る');
+            out.voiceBackUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceBackCap = statusEl ? statusEl.textContent : '';
+            say('進む');
+            out.voiceFwdUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceFwdCap = statusEl ? statusEl.textContent : '';
+            say('ブックマーク');
+            out.voiceBmCap = statusEl ? statusEl.textContent : '';
+            say('日本語入力');
+            out.voiceImeShown = app.vrKeyboard && app.vrKeyboard.visible === true;
+            say('zzz認識不能');
+            out.voiceNoMatch = vc.stats.commandsFailed > 0
+              && !!(statusEl && statusEl.textContent.includes('認識'));
+            // Batch 5 — the remaining registered commands.
+            say('音量下げる');
+            try { sv = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.voiceVolDown = !!(sv && sv.masterVolume === 90)
+              && (statusEl ? statusEl.textContent : '').includes('音量 90%');
+            say('更新');
+            out.voiceRefresh = tab2 && tab2.currentUrl === 'https://harness-top.example/'
+              && (statusEl ? statusEl.textContent : '').includes('更新します');
+            // go-to has two arms: a frecency hit (seeded bookmark) navigates
+            // to the hit URL; a miss falls through to navigate(query), which
+            // the resolver routes to the configured search engine. History was
+            // wiped by '履歴を消去' above, so the bookmark seed makes the hit
+            // arm deterministic.
+            app.bookmarks.addBookmark('https://voicegoto.example', 'Goto Target');
+            say('voicegotoを開く');
+            out.voiceGoToUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceGoToCap = statusEl ? statusEl.textContent : '';
+            say('nohitwordを開く');
+            out.voiceGoToFbUrl = tab2 ? tab2.currentUrl : null;
+            out.voiceGoToFbCap = statusEl ? statusEl.textContent : '';
+            say('ヘルプ');
+            out.voiceHelpCap = statusEl ? statusEl.textContent : '';
+            say('キーボードを閉じる');
+            out.voiceKbHidden = app.vrKeyboard && app.vrKeyboard.visible === false;
+            out.voiceKbCap = statusEl ? statusEl.textContent : '';
+            // Reader scroll — scrollContent only moves while the panel is in
+            // 'reader' state; seed a long article so ±8 lines actually travel.
+            if (tab2) {
+              tab2._contentState = 'reader';
+              tab2._readerLines = Array.from({ length: 200 }, () => ({ text: 'l', style: 'body' }));
+              tab2._readerScroll = 0;
+              tab2._readerScale = 1;
+              tab2._drawContent = () => {};
+            }
+            say('下にスクロール');
+            out.voiceScrollDn = tab2 ? tab2._readerScroll : null;
+            say('上にスクロール');
+            out.voiceScrollUp = tab2 ? tab2._readerScroll : null;
+            say('停止');
+            out.voiceStopped = vc.isListening === false;
+            out.voiceStopCap = statusEl ? statusEl.textContent : '';
+          }
+          } catch (e) {
+            out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
         }
         return out;
       })()`,
+      awaitPromise: true,
       returnByValue: true
     }, sessionId);
     const iout = ir.result?.result?.value || {};
+    if (!iout.dom) {
+      console.warn('eval problem:', JSON.stringify(ir.result?.exceptionDetails || ir.error || ir).slice(0, 600));
+    }
+    if (iout.b3Error) {
+      console.warn('batch3 threw:', iout.b3Error);
+    }
+    if (iout.b4Error) {
+      console.warn('batch4 threw:', iout.b4Error);
+    }
     if (process.env.VR_BOOT_DEBUG) {
       console.info('interact:', JSON.stringify(iout));
     }
@@ -383,7 +585,52 @@ async function main() {
         && (iout.toggleOffCaption || '').includes('Bookmark removed'),
       kbShown: !!iout.kbShown,
       kbAscii: !!iout.kbAscii,
-      kbPrompted: (iout.kbPrompt || '').includes('Enter URL')
+      kbPrompted: (iout.kbPrompt || '').includes('Enter URL'),
+      confirmNav: iout.confirmCbStored === true
+        && iout.confirmNav === true,
+      confirmCleared: iout.confirmCleared === true
+        && iout.confirmHidden === true,
+      confirmAnnounced: (iout.confirmCaption || '').includes('Loading: harness-confirm.example'),
+      loadErrToast: (iout.loadErrToast || '').includes('Failed to load: https://harness-fail.example/'),
+      bpDelHistCap: (iout.bpDelHistCap || '').includes('History entry deleted'),
+      bpTabCap: (iout.bpTabCap || '').includes('History'),
+      proxyPrompt: (iout.proxyPrompt || '').includes('Reader proxy URL'),
+      proxyApplied: iout.proxyPersisted === true
+        && (iout.proxyToast || '').includes('Reader proxy set'),
+      bpDelBmCap: (iout.bpDelBmCap || '').includes('Bookmark deleted'),
+      bpCloseCap: (iout.bpCloseCap || '').includes('Bookmarks: closed'),
+      bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
+      videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
+      videoActive: iout.videoActive === true,
+      videoStopped: iout.videoStopped === true,
+      voiceSearch: iout.voiceSearchNav === true
+        && (iout.voiceSearchCap || '').includes('検索'),
+      voiceTop: iout.voiceTopNav === true
+        && (iout.voiceTopCap || '').includes('よく使うサイト'),
+      voiceClear: iout.voiceCleared === true
+        && (iout.voiceClearCap || '').includes('履歴を消去'),
+      voiceVol: iout.voiceVolUp === true
+        && (iout.voiceVolCap || '').includes('音量'),
+      voiceBack: iout.voiceBackUrl === 'https://voice-search.example'
+        && (iout.voiceBackCap || '').includes('戻り'),
+      voiceFwd: iout.voiceFwdUrl === 'https://harness-top.example/'
+        && iout.voiceFwdUrl !== iout.voiceBackUrl
+        && (iout.voiceFwdCap || '').includes('進み'),
+      voiceBm: (iout.voiceBmCap || '').includes('ブックマークパネル'),
+      voiceIme: iout.voiceImeShown === true,
+      voiceNoMatch: iout.voiceNoMatch === true,
+      voiceVolDown: iout.voiceVolDown === true,
+      voiceRefresh: iout.voiceRefresh === true,
+      voiceGoTo: iout.voiceGoToUrl === 'https://voicegoto.example'
+        && (iout.voiceGoToCap || '').includes('開き'),
+      voiceGoToFb: (iout.voiceGoToFbUrl || '').includes('duckduckgo.com')
+        && (iout.voiceGoToFbCap || '').includes('開き'),
+      voiceHelp: (iout.voiceHelpCap || '').includes('コマンド'),
+      voiceKb: iout.voiceKbHidden === true
+        && (iout.voiceKbCap || '').includes('キーボード'),
+      voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
+      voiceStop: iout.voiceStopped === true
+        && (iout.voiceStopCap || '').includes('停止')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -436,6 +683,37 @@ async function main() {
       ['URL-input request opened the VR keyboard', !!inter.kbShown],
       ['keyboard opened in ascii mode with URL prefill', !!inter.kbAscii],
       ['keyboard prompt announced via caption', !!inter.kbPrompted],
+      ['IME confirm navigated the panel', !!inter.confirmNav],
+      ['confirm consumed callback + hid keyboard', !!inter.confirmCleared],
+      ['Loading caption announced on confirm', !!inter.confirmAnnounced],
+      ['load error reached alert region', !!inter.loadErrToast],
+      ['history-delete announced via caption', !!inter.bpDelHistCap],
+      ['panel tab-change announced via caption', !!inter.bpTabCap],
+      ['proxy prompt announced via caption', !!inter.proxyPrompt],
+      ['proxy confirm persisted + toasted', !!inter.proxyApplied],
+      ['bookmark-delete announced via caption', !!inter.bpDelBmCap],
+      ['panel close announced via caption', !!inter.bpCloseCap],
+      ['panel hover announced via caption (gaze gate)', !!inter.bpHoverCap],
+      ['video prompt announced via caption', !!inter.videoPrompt],
+      ['immersive video built spheres + HUD', !!inter.videoActive],
+      ['immersive video stop tore down scene', !!inter.videoStopped],
+      ['voice search navigated + announced', !!inter.voiceSearch],
+      ['voice top-sites announced via caption', !!inter.voiceTop],
+      ['voice clear-history wiped + announced', !!inter.voiceClear],
+      ['voice volume-up persisted + announced', !!inter.voiceVol],
+      ['voice back moved + announced', !!inter.voiceBack],
+      ['voice forward moved + announced', !!inter.voiceFwd],
+      ['voice bookmarks toggle announced', !!inter.voiceBm],
+      ['voice ime-toggle showed keyboard', !!inter.voiceIme],
+      ['voice no-match announced + counted', !!inter.voiceNoMatch],
+      ['voice volume-down persisted + announced', !!inter.voiceVolDown],
+      ['voice refresh reloaded + announced', !!inter.voiceRefresh],
+      ['voice go-to hit navigated + announced', !!inter.voiceGoTo],
+      ['voice go-to miss fell back to search', !!inter.voiceGoToFb],
+      ['voice help listed commands via caption', !!inter.voiceHelp],
+      ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
+      ['voice scroll moved reader viewport', !!inter.voiceScroll],
+      ['voice stop ended listening + announced', !!inter.voiceStop],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 

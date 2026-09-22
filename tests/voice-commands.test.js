@@ -541,7 +541,7 @@ describe('VoiceCommands.connectBrowser — VR command actions', () => {
     vc.callbacks.onSpeak = () => {}; // suppress speak() side-effects
     calls = { search: [], goto: [], scroll: [], topSites: 0, clear: 0 };
     tab = {
-      navigate: jest.fn(), goForward: jest.fn(), goBack: jest.fn(), reload: jest.fn()
+      navigate: jest.fn(), forward: jest.fn(), back: jest.fn(), reload: jest.fn()
     };
     tabManager = { getActiveTab: () => tab };
     const bookmarkPanel = { toggle: jest.fn() };
@@ -593,8 +593,8 @@ describe('VoiceCommands.connectBrowser — VR command actions', () => {
     vc.processCommand('進む', 0.9);
     vc.processCommand('戻る', 0.9);
     vc.processCommand('更新', 0.9);
-    expect(tab.goForward).toHaveBeenCalled();
-    expect(tab.goBack).toHaveBeenCalled();
+    expect(tab.forward).toHaveBeenCalled();
+    expect(tab.back).toHaveBeenCalled();
     expect(tab.reload).toHaveBeenCalled();
   });
 
