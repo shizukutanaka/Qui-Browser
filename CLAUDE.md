@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 146: 続き304 — 「Failed to load:」が toast・VR パネル両方で英語リテラルのまま残存（WCAG 3.1.2）
+- 🔍 **実測（i18n 残存リテラル sweep）**: 全 showVRToast/announceCaption/setLabel/fillText 呼出を精査 — `t()` 非経由の英語は 2 箇所のみ残存: `VRApp:844` の `onLoadError` toast テンプレート（`` `Failed to load: ${url}` `` — harness 実測でも JA 環境で英語 toast が出ていた）と `WebPanel.js:647` の VR パネル自身のロード失敗描画（`` `⚠ Failed to load: ${currentUrl}` `` — canvas 内の第2の英語面）。パネル canvas の他の全 fillText は glyph（✕★◀▶▼▲+）または動的コンテンツで clean。
+- 🔧 **修正**: 新規キー `vr.msg.loadFailedPrefix`（EN 'Failed to load' / JA '読み込みに失敗しました'）を既存の colon-prefix 群（loadingPrefix/tabPrefix/topSitePrefix/openingPrefix）に追加し、両 call site を `${t('vr.msg.loadFailedPrefix')}: ${url}` 合成へ。EN 出力は従来文字列と完全一致するため既存 pin（jest `'Failed to load: https://x'` + harness `loadErrToast` check）は不変で緑維持。`urlBarMaxChars` の第2引数は font size（17px error vs 18px URL）で char 予約ではないため prefix 長差も問題なし。
+- 🧪 赤検証: 3 ソースファイルを stash → JA call-site assertion（`'読み込みに失敗しました: https://x'`）+ KEYS catalog pin が両方 FAIL。復元後全緑。jest は setLanguage('ja') 経由で合成出力の JA 側を実 assert — catalog 存在 pin だけでなく call-site の合成契約を pin。
+- ✅ 3289 tests / 74 suites 全緑（+1 catalog pin + JA 合成 assertion）、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 61 checks PASS、verify:app PASS。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。

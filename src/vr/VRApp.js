@@ -841,7 +841,8 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onNavigate: (url, title) => this.navigate(url, title),
       readerProxyUrl: this.settings.readerProxyUrl,
-      onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
+      onLoadError: (url) =>
+        this.showVRToast(`${t('vr.msg.loadFailedPrefix')}: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
       // Replace window.prompt() with the VR keyboard.  vrKeyboard is
