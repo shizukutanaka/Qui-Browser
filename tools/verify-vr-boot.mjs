@@ -648,11 +648,56 @@ async function main() {
             fakeSession.fire('frameratechange');
             await new Promise((r) => setTimeout(r, 30));
             out.sessFpsKept = app.settings.targetFPS === 90;
+            // Sustained overload: the budget-miss ladder must try viewport
+            // scaling FIRST (same Hz, fewer pixels — Meta's ordering) and only
+            // step the session rate once the scale ladder is exhausted. A user
+            // rate pin (_fpsOverridden) suppresses the whole ladder.
+            const scaleCalls = [];
+            const rateCalls = [];
+            const fakeView = {
+              requestViewportScale: (s) => {
+                scaleCalls.push(s);
+              }
+            };
+            const fakeXrFrame = {
+              session: fakeSession,
+              getViewerPose: () => ({ views: [fakeView] })
+            };
+            fakeSession.updateTargetFrameRate = (r) => {
+              rateCalls.push(r);
+              fakeSession.refreshRate = r;
+              return Promise.resolve();
+            };
+            // A healthy frame resets the miss counter, so the ladder only
+            // sees misses when frameTime actually exceeds the budget.
+            app.performanceMonitor.frameTime = 999;
+            app._overBudgetFrames = 241;
+            app.updateSystems(0, fakeXrFrame, 0.016);
+            out.sessScaleFirst = scaleCalls.length === 1
+              && scaleCalls[0] === 0.85 && rateCalls.length === 0;
+            app._overBudgetFrames = 241;
+            app.updateSystems(0, fakeXrFrame, 0.016);
+            out.sessScaleSecond = scaleCalls.length === 2
+              && scaleCalls[1] === 0.7 && rateCalls.length === 0;
+            app._overBudgetFrames = 241;
+            app.updateSystems(0, fakeXrFrame, 0.016);
+            await new Promise((r) => setTimeout(r, 30));
+            out.sessRateDrop = rateCalls.length === 1 && rateCalls[0] === 90
+              && app.settings.targetFPS === 90;
+            app.settings._fpsOverridden = true;
+            app._overBudgetFrames = 300;
+            app.updateSystems(0, fakeXrFrame, 0.016);
+            out.sessOverrideSkips = rateCalls.length === 1
+              && scaleCalls.length === 2;
+            app.settings._fpsOverridden = false;
+            app.performanceMonitor.frameTime = 0;
             app.onVRSessionEnd();
             out.sessEnded = app.isVREnabled === false;
             out.sessIvStopped = stopCalls >= 1;
             out.sessHandOff = !(app.handTracking && app.handTracking.enabled === true);
             out.sessLayersGone = app.layersSystem === null;
+            out.sessLaddersNull = app._rateLadder === null
+              && app._viewScaleLadder === null;
             out.sessFpsBack = app.settings.targetFPS === tfpsBefore;
             out.capWrites = capWrites;
             } catch (e) {
@@ -782,10 +827,15 @@ async function main() {
       sessVisNoDouble: iout.sessVisNoDouble === true,
       sessReset: iout.sessReset === true,
       sessFpsKept: iout.sessFpsKept === true,
+      sessScaleFirst: iout.sessScaleFirst === true,
+      sessScaleSecond: iout.sessScaleSecond === true,
+      sessRateDrop: iout.sessRateDrop === true,
+      sessOverrideSkips: iout.sessOverrideSkips === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
         && iout.sessLayersGone === true
+        && iout.sessLaddersNull === true
         && iout.sessFpsBack === true
     };
 
@@ -890,6 +940,10 @@ async function main() {
       ['restore to visible did not double-pause', !!inter.sessVisNoDouble],
       ['reference-space reset re-centered the rig', !!inter.sessReset],
       ['runtime framerate change kept the budget in sync', !!inter.sessFpsKept],
+      ['overload tried viewport scale before rate drop', !!inter.sessScaleFirst],
+      ['second overload step scaled deeper, still no rate', !!inter.sessScaleSecond],
+      ['ladder exhausted dropped session rate to next rung', !!inter.sessRateDrop],
+      ['user-pinned fps suppresses the whole ladder', !!inter.sessOverrideSkips],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 151: 続き309 — 持続オーバーロードの budget-miss ラダーを e2e pin（viewport scale 優先→rate step-down、#258 に batch 2 として積層、70→74 checks）
+- 🔍 **実測**: R67 の fake session leg が post-enter 配線を開いたため、同じドライバで `updateSystems` の残りの未駆動腕を精査 — `_overBudgetFrames > 240`（~2.7s の連続予算超過）で `XRView.requestViewportScale` → scale ラダー枯渇後に `updateTargetFrameRate` でレート段階降下、という Meta の推奨順序（同一 Hz でピクセル減→judder 回避を先に試す）と `_fpsOverridden` の全面抑制は実 app で一度も駆動されていなかった。
+- 🔧 **実装**: fakeXrFrame（`getViewerPose`→`views[0].requestViewportScale` スパイ）を渡して `app.updateSystems` を直接駆動。4 新規チェック: ①初回オーバーロードで `requestViewportScale(0.85)` のみ・rate 呼出 0 ②2 回目で 0.7 まで深く scale・依然 rate 0 ③ラダー枯渇後に `updateTargetFrameRate(90)` + `targetFPS` が syncBudget 経由で追従 ④`_fpsOverridden=true` で両腕とも進まない。併せて end チェックに `_rateLadder`/`_viewScaleLadder` の null 復元を追加。
+- 🧪 学び・対処: 健全フレーム（`frameTime <= target`）は `_overBudgetFrames` を毎回 0 にリセットするため、カウンタ preset だけでは ladder に届かない — `performanceMonitor.frameTime=999` で実際の予算超過を擬制してから駆動（pin は「miss が実際に積算された経路」を正しく通す）。赤検証: `requestViewportScale` 呼出腕を切断 → scaleFirst/scaleSecond/overrideSkips が FAIL、rateDrop は枯渇即時降下で緑維持（順序セマンティクスを正確に反映）— 復元後 74 checks 全緑。
+- ✅ 3290 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 74 checks PASS、verify:app PASS。
+
 ### Session 150: 続き308 — post-enter VR session を e2e pin（onVRSessionStart/End 全配線、fake XR session 駆動、61→70 checks）
 - 🔍 **実測（最後の未駆動面）**: requestSession が stub では常に reject するため、*許可後* の経路 — `onVRSessionStart` の session リスナ配線（visibilitychange→video pause / refspace reset→recenter / frameratechange→re-budget）、実 refreshRate への budget 再ベース、handTracking 再初期化、'VR Ready' caption（WCAG 4.1.3）と `onVRSessionEnd` の返却側（ghost-hands dispose / layers dispose / fps 復元 / video stop）— は実 app で一度も駆動されていなかった。`XRWebGLBinding` 不在の headless では FFR・LayersSystem が degradation 腕を通るため、その健全性も同時に検証できる。
 - 🔧 **実装**: eval 末尾に post-enter leg 追加 — listener を記録する fake XRSession（`inputSources:[]`, `refreshRate:90`, `supportedFrameRates`, `fire()` ヘルパ）と fake refspace を `xr.getSession`/`getReferenceSpace` に差し、`app.onVRSessionStart()`/`onVRSessionEnd()` を実呼出。9 新規チェック: ①isVREnabled+ 'VR Ready' caption 到達 ②targetFPS が実レートへ再ベース（90）③handTracking.enabled ④FFR が binding 無しで enabled=false 降格 ⑤'visible-blurred' で再生中 video pause ⑥visible 復帰で二重 pause 無し ⑦refspace 'reset' → recenter 発火 ⑧frameratechange で budget 維持（90 継続）⑨end が video stop + hands dispose + layers dispose + fps 復元を全部返す。
