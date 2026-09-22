@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 136: 続き294 — harness interaction に IME confirm 往路（onUrlInputRequested → setOnConfirm → onTextConfirmed → navigate + Loading caption）を e2e pin
+- 🔍 **残空白**: R44–R49 で URL バー選択→キーボード起動・panel コールバック群を pin したが、**confirm 往路は未駆動**だった — `WebPanel._onChromeHit` の URL バー arm が `onUrlInputRequested(prefill, confirm)` を呼び、VRApp のラッパーが `_requestVRKeyboardInput` → `vrKeyboard.setOnConfirm(wrapped)` に格納し、IME の Enter（`onTextConfirmed(text)`）が one-shot 発火して `confirm(url)` → `tab.navigate` + 'Loading: host' caption を書く経路。jest では TabManager 構築不可のため source-regex どまり。
+- 🔧 **修正**: interaction eval の keyboard ブロックに confirm 往路を追加し 3 新規チェック（30→33）: ①`tab2.onUrlInputRequested` 経由で格納された callback を `app.vrKeyboard.onTextConfirmed('https://harness-confirm.example/')` で発火 → `tab2.currentUrl` が navigate 先に同期セット（`confirmCbStored && confirmNav`）②発火後 `_onConfirmCallback === null`（one-shot 消費）+ `visible === false`（hide が先に走る順序契約）③status region に 'Loading: harness-confirm.example' 到達（`vr.msg.loadingPrefix` + hostnameCaption — WCAG 4.1.3）。
+- 🧪 赤検証: `_requestVRKeyboardInput` の `setOnConfirm(onConfirm)` 行を切断 → `confirmNav` + `confirmAnnounced` が FAIL（`confirmCleared` は cb 未格納で構造的に不変 — 想定内）。復元後 33 checks 全緑。
+- ✅ 3234 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 33 checks PASS、verify:app PASS。
+
 ### Session 135: 続き293 — harness interaction に panel コールバック 3 系統（getTopSites private ゲート / isBookmarked / star toggle caption）を e2e pin
 - 🔍 **実測（全静的スイープ + tools/ 検証スクリプト群 clean 後の残空白）**: `.visible`/`.enabled` 未定義参照スイープ、proxy/server.js・pre-release-validation・verify-documentation・offline.js・textWrap・UI helpers の精読が全て clean を返したため、最後の未駆動面は **WebPanel に格納される VRApp コールバックの実経路** — store レベルの pin は既存だが `tab.isBookmarked`/`tab.onToggleBookmark`/`tab.getTopSites` のパネル到達は一度も駆動されていなかった（jest では canvas/GPU 依存で TabManager 構築不可のため source-regex pin のみ）。本 PR 自体のブランチに積層（新スタック化による衝突クローズを回避）。
 - 🔧 **修正**: interaction eval に panel-callback ブロックを追加し 5 新規チェック: ①`navigate()` 直後の `getTopSites(8)` が訪問 URL を返す（frecency → タイル源の実経路）②privateMode ON で同呼出が `[]` を返す（VRApp 側 `privateMode ? [] :` ゲート — store レベルとは別契約）③`isBookmarked` が bookmarked=true / never=false を読む ④`onToggleBookmark` が store を反転させ status region に 'Bookmarked' を届ける ⑤再トグルで解除 + 'Bookmark removed' 到達。captions enabled 化後に配置し caption 契約も実測。

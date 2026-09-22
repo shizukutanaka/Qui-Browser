@@ -343,6 +343,24 @@ async function main() {
               && app.japaneseIME.compositionBuffer === 'https://harness-input.example/');
             out.kbPrompt = statusEl ? statusEl.textContent : '';
             app.vrKeyboard.hide();
+            // The confirm half of the URL-input flow: the panel's
+            // onUrlInputRequested stores a one-shot callback the IME's Enter
+            // key commits to — firing it must reach tab.navigate (currentUrl
+            // set synchronously) + the 'Loading: host' caption, and leave
+            // the keyboard hidden with the callback consumed.
+            if (tab2 && typeof tab2.onUrlInputRequested === 'function') {
+              tab2.onUrlInputRequested('https://harness-input.example/', (url) => {
+                if (url) tab2.navigate(url);
+              });
+              const hasCb = typeof app.vrKeyboard._onConfirmCallback === 'function';
+              app.japaneseIME.compositionBuffer = 'https://harness-confirm.example/';
+              app.vrKeyboard.onTextConfirmed('https://harness-confirm.example/');
+              out.confirmCbStored = hasCb;
+              out.confirmNav = tab2.currentUrl === 'https://harness-confirm.example/';
+              out.confirmCleared = app.vrKeyboard._onConfirmCallback === null;
+              out.confirmHidden = app.vrKeyboard.visible === false;
+              out.confirmCaption = statusEl ? statusEl.textContent : '';
+            }
           }
         }
         return out;
@@ -383,7 +401,12 @@ async function main() {
         && (iout.toggleOffCaption || '').includes('Bookmark removed'),
       kbShown: !!iout.kbShown,
       kbAscii: !!iout.kbAscii,
-      kbPrompted: (iout.kbPrompt || '').includes('Enter URL')
+      kbPrompted: (iout.kbPrompt || '').includes('Enter URL'),
+      confirmNav: iout.confirmCbStored === true
+        && iout.confirmNav === true,
+      confirmCleared: iout.confirmCleared === true
+        && iout.confirmHidden === true,
+      confirmAnnounced: (iout.confirmCaption || '').includes('Loading: harness-confirm.example')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -436,6 +459,9 @@ async function main() {
       ['URL-input request opened the VR keyboard', !!inter.kbShown],
       ['keyboard opened in ascii mode with URL prefill', !!inter.kbAscii],
       ['keyboard prompt announced via caption', !!inter.kbPrompted],
+      ['IME confirm navigated the panel', !!inter.confirmNav],
+      ['confirm consumed callback + hid keyboard', !!inter.confirmCleared],
+      ['Loading caption announced on confirm', !!inter.confirmAnnounced],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
