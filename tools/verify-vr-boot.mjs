@@ -537,6 +537,41 @@ async function main() {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
         }
+        // VR enter failure arm — the stub's requestSession rejects, which is
+        // exactly what a non-XR browser hits for real. Drives the guarded
+        // onclick: requestSession → .catch → console.warn + trackVRError +
+        // showVRToast(enterVRFailed) → role=alert region. jest can't reach
+        // this (needs the real VRButton + renderer.xr). Also pins that the
+        // in-flight guard releases so a retry issues a fresh request and no
+        // half-session leaks.
+        if (app.vrButton && navigator.xr) {
+          const origReq = navigator.xr.requestSession;
+          let reqCalls = 0;
+          navigator.xr.requestSession = () => { reqCalls++; return origReq(); };
+          const toasts = [];
+          const origToast = app.showVRToast.bind(app);
+          app.showVRToast = (m, o) => {
+            const r = origToast(m, o);
+            toasts.push({ msg: m, alert: alertEl ? alertEl.textContent : '' });
+            return r;
+          };
+          out.unhandled = [];
+          window.addEventListener('unhandledrejection', (e) => {
+            out.unhandled.push(String(e.reason && e.reason.stack ? e.reason.stack : e.reason).slice(0, 300));
+          });
+          app.vrButton.click();
+          await new Promise((r) => setTimeout(r, 60));
+          out.vrEnterAlert = alertEl ? alertEl.textContent : '';
+          out.vrEnterToasts = toasts;
+          out.vrEnterLabel = app.vrButton.textContent;
+          out.vrEnterSession = !!(app.renderer && app.renderer.xr
+            && app.renderer.xr.getSession && app.renderer.xr.getSession());
+          app.vrButton.click();
+          await new Promise((r) => setTimeout(r, 60));
+          out.vrEnterReqCalls = reqCalls;
+          app.showVRToast = origToast;
+          navigator.xr.requestSession = origReq;
+        }
         return out;
       })()`,
       awaitPromise: true,
@@ -630,7 +665,14 @@ async function main() {
         && (iout.voiceKbCap || '').includes('キーボード'),
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
       voiceStop: iout.voiceStopped === true
-        && (iout.voiceStopCap || '').includes('停止')
+        && (iout.voiceStopCap || '').includes('停止'),
+      vrEnterFail: Array.isArray(iout.vrEnterToasts)
+        && iout.vrEnterToasts.some((tt) => /Failed to enter VR|VR モードに入れませんでした/
+          .test(tt.msg || '') && (tt.alert || '').includes(tt.msg))
+        && iout.vrEnterLabel === 'ENTER VR'
+        && iout.vrEnterSession === false
+        && Array.isArray(iout.unhandled) && iout.unhandled.length === 0,
+      vrEnterRetry: iout.vrEnterReqCalls === 2
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -649,7 +691,19 @@ async function main() {
       }
       if (ev.method === 'Log.entryAdded' && ev.params.entry.level === 'error') {
         const text = ev.params.entry.text || '';
-        errors.push('log error: ' + text.slice(0, 200));
+        const src = ev.params.entry.url || '';
+        // 'Failed to load resource' entries whose target URL is outside our
+        // served origin are the harness's own test traffic (navigations to
+        // nonexistent .example hosts, or pages routed through the dead
+        // reader-proxy the proxy test sets). They are expected load failures,
+        // not page errors — and Log delivery timing is racy, so gating on
+        // them flakes. Errors on our own origin (missing assets, CSP
+        // violations like the frame-ancestors case) keep gating.
+        const externalResourceMiss = text.startsWith('Failed to load resource')
+          && src && !src.startsWith(url);
+        if (!externalResourceMiss) {
+          errors.push('log error: ' + text.slice(0, 200) + (src ? ' [' + src + ']' : ''));
+        }
       }
     }
 
@@ -714,6 +768,8 @@ async function main() {
       ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
       ['voice scroll moved reader viewport', !!inter.voiceScroll],
       ['voice stop ended listening + announced', !!inter.voiceStop],
+      ['failed enter-VR announced + button state honest', !!inter.vrEnterFail],
+      ['enter-VR retry re-issues requestSession (guard released)', !!inter.vrEnterRetry],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
