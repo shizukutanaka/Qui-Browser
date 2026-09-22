@@ -3169,6 +3169,34 @@ async function main() {
                 hf.update([]);
                 await origPlay2.call(hf, 'right', 'click');
                 out.hapticSourceGone = actPulses.length === 1;
+
+                // Listener pose + LOD tier path: updateListenerFromCamera
+                // runs per frame off updateSystems, but no leg ever placed
+                // a source across hrtfThreshold — the panner's positionX
+                // writes and the HRTF<->equalpower switch were undriven.
+                const sa = app.spatialAudio;
+                if (sa && sa.context && sa.context.createPanner) {
+                  if (!sa.sources.has('__lod')) {
+                    sa.createSource('__lod', { volume: 0.01 });
+                  }
+                  const lod = sa.sources.get('__lod');
+                  sa.setSourcePosition('__lod', 0, 0, -30); // > hrtfThreshold 15
+                  sa.updateListenerFromCamera(app.camera);
+                  const far = lod.panner.panningModel;
+                  sa.setSourcePosition('__lod', 0, 0, -1); // within threshold
+                  sa.updateListenerFromCamera(app.camera);
+                  out.audioLodSwitch = sa.settings.enableHRTF === true
+                    && far === 'equalpower'
+                    && lod.panner.panningModel === 'HRTF';
+                  const cw = V3h(0, 0, 0);
+                  app.camera.getWorldPosition(cw);
+                  out.audioListenerPose = Math.abs(sa._listenerPos.x - cw.x) < 1e-9
+                    && Math.abs(sa._listenerPos.y - cw.y) < 1e-9
+                    && Math.abs(sa._listenerPos.z - cw.z) < 1e-9
+                    && (sa.listener.positionX === undefined
+                      || Math.abs(sa.listener.positionX.value - cw.x) < 1e-6);
+                  sa.sources.delete('__lod');
+                }
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
                 fakeXrFrame.fillPoses = origFill;
@@ -3524,6 +3552,8 @@ async function main() {
       handNullPose: iout.handNullPose === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
+      audioLodSwitch: iout.audioLodSwitch === true,
+      audioListenerPose: iout.audioListenerPose === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
         && iout.sessHandOff === true
@@ -3815,6 +3845,8 @@ async function main() {
       ['null joint poses leave records + recognize runs', !!inter.handNullPose],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
+      ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
+      ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['live language switch set html lang=ja', !!inter.jaLang],
       ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
