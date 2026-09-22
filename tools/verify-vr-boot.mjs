@@ -2210,6 +2210,50 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // ImmersiveVideo HUD leg — play() builds sphere meshes plus a
+              // camera-parented HUD whose two canvas buttons are registered
+              // interactables; the exit button's onSelect routes stop() which
+              // unregisters + disposes every HUD mesh, removes the spheres,
+              // and clears _eyeTextures — the full teardown contract.
+              if (ctrl && app.immersiveVideo && app.scene && app.interactables) {
+                const iv = app.immersiveVideo;
+                try {
+                  iv.play('https://vid-seed.example/clip.mp4',
+                    { projection: '360', layout: 'mono' });
+                  app.scene.updateMatrixWorld(true);
+                  const btns = iv.controlPanel
+                    ? iv.controlPanel.children.slice() : [];
+                  out.vidHudProbe = iv.active === true
+                    && btns.length === 2
+                    && btns.every((b) => app.interactables.includes(b));
+                  // Aim at the exit button (x=+0.3 in the HUD group).
+                  const exitBtn = btns.find(
+                    (b) => b.position && b.position.x > 0);
+                  const meshCount = iv.meshes.length;
+                  if (exitBtn) {
+                    selectCenter6(exitBtn);
+                    await new Promise((r) => setTimeout(r, 20));
+                  }
+                  out.vidExitStops = !!exitBtn
+                    && iv.active === false
+                    && iv.meshes.length === 0
+                    && iv.controlPanel === null
+                    && btns.every((b) => !app.interactables.includes(b))
+                    && meshCount > 0
+                    && iv.meshes.every((m) => !m.parent);
+                  // stop() must also detach the video element listeners it
+                  // set up — a second play/stop cycle stays clean.
+                  iv.play('https://vid-seed.example/clip2.mp4',
+                    { projection: '180', layout: 'mono' });
+                  const restarted = iv.active === true;
+                  iv.stop();
+                  out.vidCycleClean = restarted
+                    && iv.active === false
+                    && iv._eyeTextures.length === 0;
+                } finally {
+                  if (iv.active) { iv.stop(); }
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2637,6 +2681,9 @@ async function main() {
       bmScrolls: iout.bmScrolls === true,
       bmTabBack: iout.bmTabBack === true,
       bmClose: iout.bmClose === true,
+      vidHudProbe: iout.vidHudProbe === true,
+      vidExitStops: iout.vidExitStops === true,
+      vidCycleClean: iout.vidCycleClean === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2876,6 +2923,9 @@ async function main() {
       ['header scroll zone advances the offset', !!inter.bmScrolls],
       ['bookmarks tab returns the panel mode', !!inter.bmTabBack],
       ['close button hides the panel', !!inter.bmClose],
+      ['video HUD buttons register as interactables', !!inter.vidHudProbe],
+      ['exit button stops and unregisters the HUD', !!inter.vidExitStops],
+      ['second play/stop cycle stays clean', !!inter.vidCycleClean],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

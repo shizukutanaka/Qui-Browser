@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 172: 続き330 — ImmersiveVideo HUD ボタン経路（exit→stop→unregister→dispose 全 teardown）を e2e pin（#259 batch 23、198→201 checks）
+- 🔍 **実測**: `play()` は sphere meshes + camera-parented HUD（`_makeButton` canvas ボタン ×2、interactable 登録）を構築 — exit ボタン（x=+0.3）の `onSelect` → `stop()` が全 teardown を実行: `unregisterInteractable` + geometry/material dispose + sphere scene.remove + `_eyeTextures` クリア。2 cycle 目も clean。
+- 🔧 **pin 設計（3 check）**: `iv.play(url,{projection,layout:'mono'})` で実 HUD 構築 → buttons が `app.interactables` 登録済み → exit を `selectCenter6` → `active===false` + `controlPanel===null` + unregister + meshes parent なし → 2 cycle 目 restart/stop も `_eyeTextures===0` で leak-free。
+- 🧠 **観察**: play は headless でも meshes/HUD を同期的に構築（video 'error' は fake URL で発火するが teardown 契約には無関係）— HUD ボタンは camera-parented だが `updateMatrixWorld` 後に ray で届く。
+- 🧪 **赤検証（2 cut 一括）**: exit `() => this.stop()`（→`()=>{}`）・`unregisterInteractable(btn)` 各切断 → `vidExitStops` FAIL。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 201 checks PASS、verify:app PASS。
+
 ### Session 171: 続き329 — BookmarkPanel UV-mapped interactable 全アクション（tab/row navigate/delete/scroll/close）を e2e pin（#259 batch 22、191→198 checks）
 - 🔍 **実測**: BookmarkPanel は **canvas 1枚の interactable** — `_onSelect` が ray∩plane point を `worldToLocal` → UV → `bookmarkLayout.hitTest` で close/tab/scroll/row/deleteRow に分解。row select は **pick-and-close**（`onSelect(url)` → `active.navigate` + 'Loading' caption 後 `hide()`）— 最初の設計で navigate 後の select が全滅した原因（invisible mesh は raycast miss）。
 - 🔧 **pin 設計（7 check）**: `selectPx(px,py)` — canvas pixel を `(px/1024-0.5)*panelW`/`(0.5-py/768)*panelH` で mesh-local → `localToWorld` → `aimAt6`。**eval scope に THREE は無い**（`new THREE.Vector3` で ReferenceError、selectPx 内 throw が session-leg catch に潰れ downstream leg ごと FAIL — `mesh.position.clone().set()` で既存 Vector3 を借用）。row select を最後に回し pick-and-close 自体（navigate+hide）を pin。
