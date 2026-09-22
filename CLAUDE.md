@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 129: 続き287 — harness interaction に IME suggestion 連鎖 + settings 永続化を e2e pin
+- 🔍 **実測**: Session 128 の履歴書込が通った次の空白として、**その履歴が `vrKeyboard.suggestionProvider`（= `bookmarks.search` の frecency ランク）を経て実際にキーボード候補へ届く連鎖**と、`updateSetting → saveSettings → localStorage[qui-browser:settings]` の settings 永続化 roundtrip がともに e2e 未検証と特定。前者は「URL autocomplete」のユーザーフロー全体、後者は起動時 `_loadSettings` が読み戻す契約。
+- 🔧 **修正**: interaction eval に 2 経路追加。①R41 で書込んだ `harness-nav.example` を `app.vrKeyboard.suggestionProvider('harness-nav')` が返すこと（navigate→addHistory→frecency→suggestion の full chain）②`updateSetting('snapTurnAngle', 45)` → `localStorage['qui-browser:settings']` の JSON parse が 45 を含むこと（side-effect なしのキーを選択・後で復元）。戻り `imeSuggest`/`settingsPersisted` を checks に追加。#238（improve-41）の上に積層。
+- 🧪 両件とも一発緑 — suggestionProvider 未配線なら `imeSuggest` undefined→FAIL、saveSettings 書込漏れなら `settingsPersisted` false→FAIL と構造的に検出する pin。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot（14 checks）PASS。
+
 ### Session 128: 続き286 — harness interaction に history 永続化 + privateMode 非記録を e2e pin
 - 🔍 **実測**: BookmarkStore の addHistory/frecency/getTopSites は jest で `localStorage` をモックするため、**実ブラウザの localStorage への書込み経路は未検証**だった。また `VRApp.navigate` の privateMode ゲート（`if (!this.settings.privateMode) bookmarks.addHistory`）はプライバシー契約そのものだが e2e では一度も駆動されていなかった。
 - 🔧 **修正**: interaction eval に 2 経路追加。①`app.navigate('https://harness-nav.example/')` → `bookmarks.search` が当該 URL を frecency ランクで返すこと（実 localStorage 書込→読出の roundtrip）②`updateSetting('privateMode', true)` 後の navigate が `search` に一切残さないこと（private 契約）。戻りで `historyHit`/`privateClean` を算出し checks に追加。base tip が `1fc5f40`（#236 マージ）へ前進したため本ブランチは新 tip から切出。

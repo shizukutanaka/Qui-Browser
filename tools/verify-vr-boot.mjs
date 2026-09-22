@@ -229,6 +229,24 @@ async function main() {
           app.navigate('https://harness-private.example/', 'Private Page');
           out.privateLeak = app.bookmarks.search('harness-private.example', 5, Date.now()).length > 0;
           app.updateSetting('privateMode', false);
+          // IME autocomplete chain: the navigate() write above must surface
+          // through the same suggestionProvider the VR keyboard consults
+          // (BookmarkStore.search → frecency → suggestion buttons).
+          if (app.vrKeyboard && app.vrKeyboard.suggestionProvider) {
+            const sugg = app.vrKeyboard.suggestionProvider('harness-nav') || [];
+            out.imeSuggest = sugg.some((s) => s.url === 'https://harness-nav.example/');
+          }
+          // Settings persistence: updateSetting must write SETTINGS_KEY into
+          // real localStorage — the contract _loadSettings reads back on boot.
+          const prev = app.settings.snapTurnAngle;
+          app.updateSetting('snapTurnAngle', 45);
+          try {
+            const stored = JSON.parse(localStorage.getItem('qui-browser:settings'));
+            out.settingsPersisted = stored && stored.snapTurnAngle === 45;
+          } catch {
+            out.settingsPersisted = false;
+          }
+          app.updateSetting('snapTurnAngle', prev);
         }
         return out;
       })()`,
@@ -248,7 +266,9 @@ async function main() {
       dupMarked: (iout.afterDupe || '').endsWith('\u200B'),
       statusHas: (iout.statusText || '').includes('harness-caption-check'),
       historyHit: !!iout.historyHit,
-      privateClean: iout.privateLeak === false
+      privateClean: iout.privateLeak === false,
+      imeSuggest: !!iout.imeSuggest,
+      settingsPersisted: !!iout.settingsPersisted
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -279,6 +299,8 @@ async function main() {
       ['caption reached status live region (cross-modal wiring)', !!inter.statusHas],
       ['navigate() recorded history into real localStorage', !!inter.historyHit],
       ['private mode wrote no history', !!inter.privateClean],
+      ['history feeds IME suggestions (frecency → keyboard chain)', !!inter.imeSuggest],
+      ['updateSetting persisted to real localStorage', !!inter.settingsPersisted],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
