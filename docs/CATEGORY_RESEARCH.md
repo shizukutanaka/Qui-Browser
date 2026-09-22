@@ -1,5 +1,12 @@
 # Qui Browser VR — カテゴリー別 関連調査と改善点 (arxiv / GitHub)
 
+> **⚠ 旧設計のアーカイブ — 以下に記載のクラスは現在の `src/` に存在しません**
+> 本書は 2026 年以前の設計（`UnifiedPerformanceSystem` / `UnifiedSecuritySystem` /
+> `VRMediaSystem` / `VRInputSystem` / `ObjectPool` ほか）を説明しています。
+> 現行の構造は `docs/ARCHITECTURE.md`、ビルド・テストは `docs/TESTING.md` を参照。
+> 歴史的記録として残します — この API に対してコーディングしないでください。
+
+
 > 目的(/loop): 本プロダクトのカテゴリーを10挙げ、各カテゴリーごとに arxiv.org / GitHub から
 > 約10件の関連情報を集め、改善点を洗い出す。
 > 補完元: `docs/IMPROVEMENT_ANALYSIS.md`（同種ソフト比較＋arxiv の総括）。本書はより網羅的・採用可能リポジトリ重視。

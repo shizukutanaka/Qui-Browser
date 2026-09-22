@@ -1,5 +1,12 @@
 # Qui Browser VR — 改善点分析 (Improvement Analysis)
 
+> **⚠ 旧設計のアーカイブ — 以下に記載のクラスは現在の `src/` に存在しません**
+> 本書は 2026 年以前の設計（`UnifiedPerformanceSystem` / `UnifiedSecuritySystem` /
+> `VRMediaSystem` / `VRInputSystem` / `ObjectPool` ほか）を説明しています。
+> 現行の構造は `docs/ARCHITECTURE.md`、ビルド・テストは `docs/TESTING.md` を参照。
+> 歴史的記録として残します — この API に対してコーディングしないでください。
+
+
 > 目的: 同種ソフト（WebXRブラウザ）と arxiv.org の研究を参照し、改善点を洗い出す。
 > 対象バージョン: v2.0.0 / スタック: Three.js + WebXR、想定端末: Meta Quest 2/3, Pico 4。
 >

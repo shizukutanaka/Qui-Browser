@@ -1,5 +1,12 @@
 # Developer Onboarding Guide - Qui Browser VR
 
+> **⚠ 旧設計のアーカイブ — 以下に記載のクラスは現在の `src/` に存在しません**
+> 本書は 2026 年以前の設計（`UnifiedPerformanceSystem` / `UnifiedSecuritySystem` /
+> `VRMediaSystem` / `VRInputSystem` / `ObjectPool` ほか）を説明しています。
+> 現行の構造は `docs/ARCHITECTURE.md`、ビルド・テストは `docs/TESTING.md` を参照。
+> 歴史的記録として残します — この API に対してコーディングしないでください。
+
+
 ## 開発者オンボーディングガイド
 
 **Version:** 3.3.0
