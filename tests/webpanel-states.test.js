@@ -560,6 +560,130 @@ describe('WebPanel quad-layer release on close (FR-1.5)', () => {
   });
 });
 
+// ── FR-1.5 quad-layer pose sync + hide release ───────────────────────────────
+// Regression: an XRQuadLayer composites through the XR runtime at its own
+// transform — it is not a child of the panel group. updateLayer() only ever
+// blitted pixels and never wrote layer.transform, so the native chrome bar
+// drew at the reference-space origin forever: detached from its panel and
+// frozen there through grab-to-move, follow mode and tab switches. And a tab
+// hidden via setVisible(false) kept its layer in the render state, showing a
+// chrome bar with no panel behind it.
+describe('WebPanel quad-layer pose sync (FR-1.5)', () => {
+  const poseMesh = (pos, quat = { x: 0, y: 0, z: 0, w: 1 }, scale = 1) => ({
+    visible: false, // enableLayerMode hid the mesh; only its pose is read
+    updateWorldMatrix: () => {},
+    getWorldPosition: (t) => {
+      t.x = pos.x; t.y = pos.y; t.z = pos.z;
+      return t;
+    },
+    getWorldQuaternion: (t) => {
+      t.x = quat.x; t.y = quat.y; t.z = quat.z; t.w = quat.w;
+      return t;
+    },
+    getWorldScale: (t) => {
+      t.x = scale; t.y = scale; t.z = scale;
+      return t;
+    }
+  });
+
+  test('updateLayer() writes layer.transform from the chrome mesh world pose', () => {
+    const p = makePanel();
+    const layer = { transform: null };
+    p.enableLayerMode(layer, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_0', null);
+    p.chromeMesh = poseMesh({ x: 0.5, y: 1.6, z: -2 }, { x: 0, y: 0.7071, z: 0, w: 0.7071 }, 1.5);
+    p._layerDirty = false; // pose sync must run even with a clean canvas
+
+    p.updateLayer({}, []);
+
+    expect(layer.transform.position).toEqual({ x: 0.5, y: 1.6, z: -2 });
+    expect(layer.transform.orientation.w).toBeCloseTo(0.7071, 3);
+    // Angular-constant scaling: the layer's physical size follows world scale.
+    expect(layer.width).toBeCloseTo(1.6 * 1.5, 5);
+    expect(layer.height).toBeCloseTo(0.08 * 1.5, 5);
+  });
+
+  test('layer.transform is an XRRigidTransform when the runtime provides it', () => {
+    const saved = global.XRRigidTransform;
+    global.XRRigidTransform = class XRRigidTransform {
+      constructor(p, o) {
+        this.position = p; this.orientation = o;
+      }
+    };
+    try {
+      const p = makePanel();
+      const layer = { transform: null };
+      p.enableLayerMode(layer, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_1', null);
+      p.chromeMesh = poseMesh({ x: 0, y: 1.5, z: -2 });
+      p.updateLayer({}, []);
+      expect(layer.transform).toBeInstanceOf(global.XRRigidTransform);
+    } finally {
+      global.XRRigidTransform = saved;
+    }
+  });
+
+  test('an unchanged pose reuses the written transform — no per-frame alloc', () => {
+    const p = makePanel();
+    const layer = { transform: null };
+    p.enableLayerMode(layer, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_2', null);
+    p.chromeMesh = poseMesh({ x: 0, y: 1.5, z: -2 });
+    p.updateLayer({}, []);
+    const first = layer.transform;
+    p.updateLayer({}, []);
+    expect(layer.transform).toBe(first);
+  });
+
+  test('a moved panel gets a fresh transform', () => {
+    const p = makePanel();
+    const layer = { transform: null };
+    p.enableLayerMode(layer, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_3', null);
+    let x = 0;
+    p.chromeMesh = poseMesh({ x: 0, y: 1.5, z: -2 });
+    p.chromeMesh.getWorldPosition = (t) => {
+      t.x = x; t.y = 1.5; t.z = -2;
+      return t;
+    };
+    p.updateLayer({}, []);
+    const first = layer.transform;
+    x = 0.3; // grab-to-move dragged the panel
+    p.updateLayer({}, []);
+    expect(layer.transform).not.toBe(first);
+    expect(layer.transform.position.x).toBe(0.3);
+  });
+
+  test('a hidden panel never blits nor re-poses its layer', () => {
+    const p = makePanel();
+    const layersSystem = { renderCanvasToLayer: jest.fn() };
+    const layer = { transform: null };
+    p.enableLayerMode(layer, layersSystem, 'panel_chrome_4', null);
+    p.chromeMesh = poseMesh({ x: 0, y: 1.5, z: -2 });
+    p.group.visible = false;
+    p._layerDirty = true;
+    p.updateLayer({}, []);
+    expect(layersSystem.renderCanvasToLayer).not.toHaveBeenCalled();
+    expect(layer.transform).toBeNull();
+  });
+
+  test('setVisible(false) releases the layer so a hidden tab composites nothing', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode({ transform: null }, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_5', onDetach);
+    p.setVisible(false);
+    expect(onDetach).toHaveBeenCalledWith('panel_chrome_5');
+    expect(p.quadLayer).toBeNull();
+    // Mesh fallback restored for when the tab is shown again.
+    expect(p.chromeMesh.visible).toBe(true);
+  });
+
+  test('hide() releases the layer through the same path', () => {
+    const p = makePanel();
+    const onDetach = jest.fn();
+    p.enableLayerMode({ transform: null }, { renderCanvasToLayer: jest.fn() }, 'panel_chrome_6', onDetach);
+    p.hide();
+    expect(onDetach).toHaveBeenCalledWith('panel_chrome_6');
+    expect(p.group.visible).toBe(false);
+  });
+});
+
 // ── URL bar truncation ──────────────────────────────────────────────────────
 describe('urlBarMaxChars — URL bar character budget', () => {
   test('returns a positive integer glyph count', () => {
