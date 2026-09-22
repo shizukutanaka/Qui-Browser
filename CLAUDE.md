@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 127: 続き285 — harness interaction に tab-flow announce を追加（captions ゲートの実契約を確認）
+- 🔍 **実測（listener/localStorage/settings-drift/i18n-key/frecency 全スイープ clean 後）**: interaction フェーズの残空白として `TabManager.newTab → setActive → onTabActivate → captionSystem.show → onShow → status mirror` の announce 経路を e2e 未駆動と特定。初回実行で announce が届かない現象を観測し一時的に欠陥を疑ったが、原因は VRApp の caller-side `captionSystem.enabled` ゲート（39箇所 + crossModal 1箇所）— テスト群が「captions off → caption channel 全面 silent」を意図的に pin しており設計契約と確認（critical channel は無条件の announceAlert 経路で別途担保）。この自然な FAIL が、当該チェックが announce channel を空振りせず実検出することの証明になった。
+- 🔧 **修正**: interaction eval に tab-flow を追加。`setEnabled(true)` で実契約通り caption channel を有効化してから `newTab('')` を発火し、2 新規チェック: ①`newTab()` がタブ数を +1 ②status live region が `Tab: New Tab` を含む（onTabActivate の i18n caption が実 DOM まで届くことの pin）。
+- 🧪 赤証拠: captions 未設定（デフォルト off）では tabAnnounced が FAIL し gate が実在を検出することを実測 — 設計契約に合わせて enabled 化後に全緑。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 12 checks PASS。#236（improve-39）の上に積層 — ベースマージ後は本差分のみに縮む。
+
 ### Session 126: 続き284 — 検証ハーネスの cross-modal 未駆動を解消（interaction フェーズ追加）
 - 🔍 **実測（静的スイープ全網羅後の残空白）**: deps/dead-code/i18n/timer/JSON.parse/dispose/重複の全静的スイープが clean を返したため、検証面の未駆動経路へ着目 — `verify:vr-boot` は VRApp の**構築**までしか検証せず、`showVRToast → SemanticDOM.announceAlert` と `captionSystem.show → onShow → announceCaption` の cross-modal 配線は一度も実ブラウザで駆動されていなかった。このパスこそ直近の複数 fix（アナウンス抑止・重複 announce・enabled ゲート）が集中していた箇所で、jest モックと実 DOM の継ぎ目は未検証のままだった。
 - 🔧 **修正**: 構築チェック後に interaction フェーズを追加。page 内で `app.showVRToast` と `captionSystem.show` を発火し、`[data-qui-semantic-dom]` 配下の `[role="alert"]`/`[role="status"]` live region へ到達したかを実 DOM で検証。4 新規チェック: ①semantic DOM mirror mounted ②toast → alert region 到達 ③**同一トースト 2 連発で U+200B マーカーが末尾に残る**（重複 announce が SR に届くことの e2e pin — Session 121 の semantic 側と対）④caption → status region 到達。ARIA ミラーは字幕設定に無関係の無条件サーフェスのため環境差異で flaky にならない。
