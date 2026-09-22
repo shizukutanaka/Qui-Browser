@@ -39,6 +39,11 @@ export class SemanticDOM {
     this.captionRegion = null;
     this.alertRegion = null;
     this.settingsRegion = null;
+    // Per-region duplicate-announce state { last, marked } — see _announce().
+    this._announceState = {
+      caption: { last: null, marked: false },
+      alert: { last: null, marked: false }
+    };
     this._build();
   }
 
@@ -74,15 +79,35 @@ export class SemanticDOM {
 
   /** Mirror a caption line into the polite live region. No-op if unbuilt. */
   announceCaption(text) {
-    if (this.captionRegion && text) {
-      this.captionRegion.textContent = text;
-    }
+    this._announce(this.captionRegion, this._announceState.caption, text);
   }
 
   /** Mirror a toast message into the assertive alert region. No-op if unbuilt. */
   announceAlert(text) {
-    if (this.alertRegion && text) {
-      this.alertRegion.textContent = text;
+    this._announce(this.alertRegion, this._announceState.alert, text);
+  }
+
+  /**
+   * Write text into a live region so assistive tech announces every call.
+   * Screen readers only announce a live region when its content *mutates*:
+   * writing the identical string twice produces no DOM change, so a repeated
+   * caption (a caption line visibly re-queued in VR) or a repeated toast
+   * would be spoken once at most. On a duplicate, alternate a trailing
+   * zero-width space — invisible and not vocalised, but enough for the
+   * accessibility tree to see the node as changed (the same trick
+   * LiveAnnouncer-style ARIA announce helpers use).
+   */
+  _announce(region, state, text) {
+    if (!region || !text) {
+      return;
+    }
+    if (state.last === text) {
+      state.marked = !state.marked;
+      region.textContent = state.marked ? text + '\u200B' : text;
+    } else {
+      state.last = text;
+      state.marked = false;
+      region.textContent = text;
     }
   }
 
@@ -102,5 +127,7 @@ export class SemanticDOM {
     this.captionRegion = null;
     this.alertRegion = null;
     this.settingsRegion = null;
+    this._announceState.caption.last = null;
+    this._announceState.alert.last = null;
   }
 }

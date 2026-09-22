@@ -101,6 +101,42 @@ describe('SemanticDOM', () => {
     expect(dom.alertRegion.textContent).toBe('✕ Foveation unavailable');
   });
 
+  test('announceCaption() mutates the region on identical repeats so SRs re-announce', () => {
+    const dom = new SemanticDOM();
+    dom.announceCaption('Loading');
+    const first = dom.captionRegion.textContent;
+    dom.announceCaption('Loading');
+    const second = dom.captionRegion.textContent;
+    // Identical textContent twice → no DOM mutation → silent for assistive
+    // tech even though the caption visibly re-queued in VR. The duplicate
+    // must differ (zero-width-space marker), while still reading identically.
+    expect(second).not.toBe(first);
+    expect(second.replace(/\u200B/g, '')).toBe('Loading');
+    dom.announceCaption('Loading');
+    expect(dom.captionRegion.textContent).not.toBe(second); // alternates back
+    expect(dom.captionRegion.textContent.replace(/\u200B/g, '')).toBe('Loading');
+  });
+
+  test('announceCaption() resets the duplicate marker when new text arrives', () => {
+    const dom = new SemanticDOM();
+    dom.announceCaption('a');
+    dom.announceCaption('a'); // → 'a\u200B'
+    dom.announceCaption('b'); // fresh text → plain 'b', marker reset
+    expect(dom.captionRegion.textContent).toBe('b');
+    dom.announceCaption('b'); // duplicate → marked again, must still mutate
+    expect(dom.captionRegion.textContent).not.toBe('b');
+    expect(dom.captionRegion.textContent.replace(/\u200B/g, '')).toBe('b');
+  });
+
+  test('announceAlert() mutates the region on identical repeats', () => {
+    const dom = new SemanticDOM();
+    dom.announceAlert('✕ Mic denied');
+    const first = dom.alertRegion.textContent;
+    dom.announceAlert('✕ Mic denied');
+    expect(dom.alertRegion.textContent).not.toBe(first);
+    expect(dom.alertRegion.textContent.replace(/\u200B/g, '')).toBe('✕ Mic denied');
+  });
+
   test('setSettingsExpanded(true/false) toggles aria-expanded', () => {
     const dom = new SemanticDOM();
     dom.setSettingsExpanded(true);
