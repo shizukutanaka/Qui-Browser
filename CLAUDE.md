@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
+- 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
+- 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
+- 🧪 pin 7件新規＋3件移行（space/変換・switchMode・wiring fixture）。ascii: switchMode/raw passthrough/confirm parity/convertToKanji が fetch を呼ばない/かな復帰。キーボード: space リテラル（ひらがな+ascii 両モード・convertToKanji 不発）・変換の候補行・ascii バッジ 'A'・wiring が 'ascii' を要求。全件 stash 検証で pre-fix 赤・post-fix 緑（7件赤）。
+- ✅ 3188 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 90: 続き248 — リーダーのスタイル別行送り（台帳 I-2 解消）
 - 🔍 **調査**: 未マージブランチ総ざらいは完了 — closed-PR の検証済み修正はすべて tip または陳腐化（5個の死んだ CSS 変数は main.css 書き直しで既に消滅済み）を確認したうえで、台帳 I-2（見出し行送り <1.5）を分離して実装。WCAG 1.4.12 が根拠にする 1.5 比はディスレクシア・低視力向けの実測値 — title 30px/h 25px が一律 34px pitch では 1.13/1.36 で、折返すと2行タイトルの行間は実質1px。
 - ✨ **実装（ピクセル積算化）**: `linePitchFor(style, scale)` — `max(LINE_H·s, ceil(1.5·fontPxFor))` で title 45/h 38/p・blank・c 34（ratio 1.5/1.52/1.7/2.0）。`visibleLineCount`/`visibleLinesFor`/`pageJumpLines` を廃し、ピクセル予算版へ全面移行 — `readerAvailPx(reserve)`・`contentHeightPx`・`readerOverflows`・`readerFitCount`・`lastReaderStart`（末尾から積算で可変ピッチ対応の最後尾開始 index）・`readerWindow`・`readerProgressLabel`・`readerPageJump`・`clampReaderScroll` は (lines, offset, scale) シグネチャへ。描画は `y += linePitchFor(line.style)` で行ごとのピッチを積算。

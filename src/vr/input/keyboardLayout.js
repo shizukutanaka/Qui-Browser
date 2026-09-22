@@ -129,11 +129,11 @@ export const COMPOSITION_MEASURE_EM = safeMeasureEm(COMPOSITION_TEXT_W, COMPOSIT
  * The glyph itself already carries the meaning (ひ / カ / 漢), so colour is
  * reinforcement only — WCAG 1.4.1 is unaffected either way.
  *
- * @param {'hiragana'|'katakana'|'kanji'} mode
+ * @param {'hiragana'|'katakana'|'kanji'|'ascii'} mode
  * @returns {{bg: string, text: string}}
  */
 export function imeBadgeColors(mode) {
-  const BG = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88' };
+  const BG = { hiragana: '#4488ff', katakana: '#ff8844', kanji: '#44cc88', ascii: '#bb88ff' };
   return { bg: BG[mode] || '#8899cc', text: '#0b0f1a' };
 }
 

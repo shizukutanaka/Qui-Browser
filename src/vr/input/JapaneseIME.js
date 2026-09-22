@@ -647,7 +647,7 @@ export class JapaneseIME {
    * Switch input mode
    */
   switchMode(mode) {
-    if (['hiragana', 'katakana', 'kanji'].includes(mode)) {
+    if (['hiragana', 'katakana', 'kanji', 'ascii'].includes(mode)) {
       this.inputMode = mode;
       return true;
     }
@@ -1039,7 +1039,7 @@ export class VRJapaneseKeyboard {
     // Mode badge — top-right corner shows the current input mode so the user
     // always knows whether they're typing hiragana, katakana, or kanji.
     const mode = this.ime ? this.ime.inputMode : 'hiragana';
-    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢' };
+    const BADGE = { hiragana: 'ひ', katakana: 'カ', kanji: '漢', ascii: 'A' };
     const badge = BADGE[mode] || '?';
     const badgeCol = imeBadgeColors(mode);
     const badgeW = COMPOSITION_BADGE_W;
@@ -1106,18 +1106,24 @@ export class VRJapaneseKeyboard {
 
     switch (key) {
     case 'space': {
-      // Convert to kanji
+      // Literal space. Conversion lives on the dedicated 変換 key, so the
+      // space bar behaves like a physical space bar: empty buffers, mid-text
+      // and non-hiragana modes all get a space (previously it converted in
+      // hiragana and was silently swallowed everywhere else, so multi-word
+      // queries could never contain a space).
+      const processed = await this.ime.processInput(' ');
+      this.updateDisplay(processed);
+      break;
+    }
+
+    case '変換': {
+      // Henkan key - convert to kanji and show the candidate row.
       const result = await this.ime.convertToKanji();
       if (result) {
         this.showCandidates(result.candidates);
       }
       break;
     }
-
-    case '変換':
-      // Henkan key - convert to kanji
-      await this.ime.convertToKanji();
-      break;
 
     case 'かな':
       // Kana key - switch to hiragana

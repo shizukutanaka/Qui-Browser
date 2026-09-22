@@ -731,19 +731,25 @@ hand / gaze の select 発火点）、`trackPageView`（navigate() — origin+pa
 Sentry/GA キー未設定では完全な no-op — **本番 telemetry を流すかの方針決定は
 引き続きオーナー判断**（キーを設定するか、削除方針なら verbs を除去するか）。
 
-## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項）
+## N-3. ✅ 解消済み（続き249/Session 91）: confirmSelection() 周辺の表示・出力不整合
 
-`JapaneseIME` は `compositionBuffer` に生のローマ字を保持し、`processInput` の
-戻り値 `converted` だけが表示用のかなを運ぶ。結果としてキーボード上の表示は
-「か」なのに Enter → `confirmSelection()` は **'ka'** を返す（候補選択済みなら漢字）。
-URL入力では偶然正しく動く（ASCII が欲しい）が、日本語テキストの意図では表示と
-出力が矛盾する。かつ `inputMode` に 'romaji'/'ascii' が存在しないため、
-URL入力でも画面には「ごおぎぇ.こm」のような変換表示が出る。
+**Session 75 の観測を訂正**: composition strip が実際に描画するのは
+`converted` ではなく **生 `compositionBuffer`**（`_refreshDisplay`）なので、
+buffer 入力に関しては表示＝出力で既に一致していた。残っていた実害は:
 
-**判断事項**: (a) confirm は表示と一致させる（converted を返す）+ URL用に
-ascii モードを追加するか、(b) 現状維持（表示は翻訳プレビュー、確定は生値）か。
-IME の仕様意図が絡むためオーナー判断。esc 経路の stale candidate 注入のみ
-修正済み（続き37）。
+1. **space がモード外では呑まれる**（ひらがなでは変換発火・他モードでは何も起きない）—
+   続き246で修正されたが PR #199 の `git apply -3` が旧実装を取り込み**再回帰**。
+   本セッションで復元（space→`processInput(' ')`、変換→`convertToKanji`+候補行表示）。
+2. **'romaji'/'ascii' inputMode が存在しない** — URL コンテキストで space/変換を押すと
+   タイプ中の文字列が `google.co.jp/transliterate` へ送信され得た（キー入力の外部漏洩）。
+   `'ascii'` を第一級モードとして追加（`switchMode`・バッジ 'A'・バッジ色 #bb88ff）。
+   ascii では raw passthrough・`convertToKanji` が fetch 以前に null で即座に抜ける。
+3. `VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` —
+   URL 入力がデフォルトで ascii に（かな/shift キーでの日本語検索切替は維持）。
+
+**converted-vs-raw confirm の判断**: 表示が生 buffer の時点で parity は既に成立。
+候補選択時に `confirmSelection()` が漢字を返すのは汎用 IME のコミット意味論どおり
+（候補行自体が明示された選択肢）なので現行維持と判断。
 
 ---
 

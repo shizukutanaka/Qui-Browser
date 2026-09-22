@@ -263,11 +263,13 @@ describe('JapaneseIME — kanji candidate pipeline', () => {
     expect(ime.selectCandidate(-1)).toBeNull();
   });
 
-  test('switchMode accepts only the three real modes', () => {
+  test('switchMode accepts only the real modes (kana + ascii)', () => {
     expect(ime.switchMode('katakana')).toBe(true);
     expect(ime.inputMode).toBe('katakana');
+    expect(ime.switchMode('ascii')).toBe(true);
+    expect(ime.inputMode).toBe('ascii');
     expect(ime.switchMode('latin')).toBe(false);
-    expect(ime.inputMode).toBe('katakana');
+    expect(ime.inputMode).toBe('ascii');
   });
 
   test('getState exposes buffer/candidates/mode coherently', () => {
