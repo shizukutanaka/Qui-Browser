@@ -3169,6 +3169,26 @@ async function main() {
                 hf.update([]);
                 await origPlay2.call(hf, 'right', 'click');
                 out.hapticSourceGone = actPulses.length === 1;
+                // Complex-pattern sequence: 'notification' is
+                // pulse(30,0.5) → pause(30) → pulse(30,0.5) — drives the
+                // array-pattern for-loop and the pause-step wait() arm that
+                // no pin ever reached (all earlier plays used the scalar
+                // 'click'/'impact' arm).
+                actPulses.length = 0;
+                hf.update([hapSrc]);
+                await origPlay2.call(hf, 'right', 'notification');
+                out.hapticSequence = actPulses.length === 2
+                  && actPulses.every(p => p === '0.5/30');
+                // playPatternBothHands dedup: with a single registered
+                // gamepad both hands resolve to the SAME gamepad via the
+                // first-available fallback, so the pattern must fire once —
+                // not twice — on that actuator.
+                actPulses.length = 0;
+                const spyPlay = hf.playPattern;
+                hf.playPattern = origPlay2;
+                await hf.playPatternBothHands('click');
+                hf.playPattern = spyPlay;
+                out.hapticBothHandsDedup = actPulses.length === 1;
 
                 // Listener pose + LOD tier path: updateListenerFromCamera
                 // runs per frame off updateSystems, but no leg ever placed
@@ -3601,6 +3621,8 @@ async function main() {
       handNullPose: iout.handNullPose === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
+      hapticSequence: iout.hapticSequence === true,
+      hapticBothHandsDedup: iout.hapticBothHandsDedup === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -3897,6 +3919,8 @@ async function main() {
       ['null joint poses leave records + recognize runs', !!inter.handNullPose],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
+      ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],
+      ['single-gamepad both-hands pattern dedups', !!inter.hapticBothHandsDedup],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],
