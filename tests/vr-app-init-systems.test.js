@@ -25,6 +25,7 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
 
 const THREE = require('three');
 const { VRApp, defaultSettings } = require('../src/vr/VRApp.js');
+const { setLanguage } = require('../src/i18n/i18n.js');
 
 // Module objects whose named exports we patch per-test.
 const M = {
@@ -407,6 +408,15 @@ describe('_buildBrowsingSystems — tab + bookmark orchestration', () => {
     expect(app.showVRToast).toHaveBeenCalledWith(expect.any(String), { type: 'warn' });
     cfg.onLoadError('https://x');
     expect(app.showVRToast).toHaveBeenCalledWith('Failed to load: https://x', { type: 'error' });
+    // Same toast under a JA locale — the literal used to stay English.
+    setLanguage('ja');
+    try {
+      cfg.onLoadError('https://x');
+      expect(app.showVRToast).toHaveBeenCalledWith(
+        '読み込みに失敗しました: https://x', { type: 'error' });
+    } finally {
+      setLanguage('en');
+    }
   });
 
   test('bookmark toggle announces through captions when enabled', () => {

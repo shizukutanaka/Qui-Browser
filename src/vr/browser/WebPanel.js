@@ -644,7 +644,10 @@ export class WebPanel {
     if (this._loadError) {
       ctx.fillStyle = col.errorText;
       ctx.font = '17px sans-serif';
-      ctx.fillText(truncate(`⚠ Failed to load: ${this.currentUrl}`, maxChars), 220, h / 2 + 6);
+      ctx.fillText(
+        truncate(`⚠ ${t('vr.msg.loadFailedPrefix')}: ${this.currentUrl}`, maxChars),
+        220, h / 2 + 6
+      );
     } else {
       // Security indicator + origin-preserving URL. The address bar is the
       // user's only signal of which site they are on, so the origin is drawn
