@@ -40,3 +40,32 @@ for (const [file, names] of Object.entries(DEAD)) {
     expect(src).not.toMatch(defRe);
   });
 }
+
+/**
+ * Dead-CALLER pin: deleting the definition isn't enough — callers that
+ * invoked the deleted names through optional chaining (x.goBack?.())
+ * degrade to silent no-ops and fool the DEAD registry, which only checks
+ * that definitions stay gone. Exactly that escape happened with WebPanel's
+ * browser-nav duplicates: four production call sites (VRApp face buttons,
+ * VoiceCommands 進む/戻る) still said goBack/goForward, so every press
+ * announced "no previous/next page" while doing nothing. Scan all of src/
+ * for these tokens — a legit use of either name does not exist.
+ */
+function* walk(dir) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      yield* walk(p);
+    } else if (ent.name.endsWith('.js')) {
+      yield p;
+    }
+  }
+}
+
+const SRC_DIR = path.join(__dirname, '..', 'src');
+const srcFiles = [...walk(SRC_DIR)].map(f => path.relative(SRC_DIR, f));
+
+test.each(srcFiles)('no src file references deleted nav names goBack/goForward — %s', (file) => {
+  const src = fs.readFileSync(path.join(SRC_DIR, file), 'utf8');
+  expect(src).not.toMatch(/\bgoBack\b|\bgoForward\b/);
+});

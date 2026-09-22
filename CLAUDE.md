@@ -325,7 +325,6 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 2件＋既存維持: ①disabled で show() → lineCount 0・mesh 非表示・onShow は発火（ARIA ミラー存続を同時 pin）②enable→show→disable→show('stale')→enable で stale が復活しない。両件 src stash 検証で pre-fix 赤・post-fix 緑。旧挙動に依存していた 1件（enabled 未設定で show する overlong テスト）は sibling と同じ `setEnabled(true)` を明示して回収。
 - ✅ 3232 tests / 73 suites 全緑（#223 マージ込み）、lint 0 errors（354 warnings ベースライン）、build 緑。
 
-||||||| parent of b4df5fb (test(tools): close the Log-domain blind spot — gate browser-emitted errors (続き283))
 
 ### Session 125: 続き283 — 検証ハーネスの Log-domain 盲点（ブラウザ発行 error を全 gate が見逃し）
 - 🔍 **実測**: Session 124 の CSP error は `Log.entryAdded`（CDP Log domain）でしか現れない — ブラウザ自身が発行する error（無視された CSP directive・deprecation・blocked resource）は page の `console.*` ではないため `Runtime.consoleAPICalled` に乗らず、uncaught でもないため `Runtime.exceptionThrown` にも乗らない。検証: `verify:app` の `--dump-dom --enable-logging=stderr --v=0` 出力には同 error が**一行も出ない**ことを該当 meta 入りテストページで実測（stderr grep は構造的に捕捉不能）。`verify:vr-boot` も CDP 接続済みなのに `Log.enable` を一度も呼んでいなかった — 「uncaught exception or console.error を gate」と謳いつつ browser-emitted error は両ハーネスを素通りしていた。
@@ -338,6 +337,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🔧 **修正**: meta CSP から `frame-ancestors 'self'` を除去（inert な directive は残さない — 実効防御は nginx×3 / vercel.json / netlify.toml の header CSP `frame-ancestors 'self'` + X-Frame-Options SAMEORIGIN + main.js の clickjacking guard で三重に担保済み）。header 側は enforceable なため保持し、meta 側のみ削除。
 - 🧪 pin 2件（csp-consistency: meta CSP に header-only directive 非含有 — frame-ancestors/sandbox/report-uri/report-to、header CSP ≡ meta + 恰好 `frame-ancestors 'self'` 1件の差分 — 「全 policy 完全一致」より精密で、他の差分は依然失敗）。stash 検証で pre-fix 赤・post-fix 緑。**実機再確認**: 修正後ビルドで新 SW precache → clean meta + console error 0件を CDP 実測（旧 SW が旧 precache を配信中は error 継続する標準ライフサイクルも観測）。
 - ✅ 3233 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 118: 続き276 — 消したメソッドを `?.` で呼ぶ死んだ呼出4件（進む/戻る が全部嘘を言う）
+- 🔍 **実測**: WebPanel の `goBack()`/`goForward()` は no-dead-public-api 台帳の確定済み dead API（`back()`/`forward()` が live 相当）— だが台帳は**定義の削除**だけを pin し、**呼出側**は検査していなかった。結果 `tab.goForward?.()`/`tab.goBack?.()` が optional chaining 経由で4箇所に残存し全部静黙 no-op: ①VRApp pointer hand faceA（進む）②faceB（戻る）③VoiceCommands「進む/次へ」④「戻る/前へ」。しかも no-op に留まらず**虚偽フィードバック**: `moved` は常に undefined → A/B ボタンは履歴があっても毎回「次のページはありません」「前のページはありません」キャプション（WCAG 4.1.3）、音声「進む」は「進みます」と発話しながら何も遷移しない。さらに `back()`/`forward()` は戻り値を持たず、呼出名を直しても caption 分岐が動かない — boolean 契約そのものが goBack/goForward と共に消えていた。テスト側も被害: voice/wiring 双方の mock が `{ goForward: jest.fn(), goBack: jest.fn() }` と死んだ名前を供給し、緑のまま偽契約を固定していた。
+- 🔧 **修正**: `back()`/`forward()` が移動可否を `return true/false`（boolean 契約を live メソッドへ復元）→ 4 call sites を実名 `forward()`/`back()` へ。テスト mock を全て実名へ付け替え（voice 1・wiring 4）。`no-dead-public-api.test.js` に **dead-CALLER スキャン**を追加 — src/ 全ファイルを再帰走査し `\bgoBack\b|\bgoForward\b` トークンを禁止（同じ逃げ道を塞ぐ）。docstring 内の死んだ参照（VRControllerInput usage例 `goBack()`）も実名に修正 — ガードは src/ 全体の裸トークンを検査するため。
+- 🧪 pin: dead-caller スキャン（src 全 .js ファイル×test.each — pre-fix で VRApp.js と VoiceCommands.js の2ファイルのみ赤）＋ back/forward 戻り値 6 assertion（境界 false・移動 true）＋ mock 付け替え済み voice/wiring テスト（pre-fix で forward/back 非呼出赤）。計10件 pre-fix 赤・全件 post-fix 緑。
+- ✅ 3271 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。

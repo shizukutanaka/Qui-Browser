@@ -17,7 +17,7 @@
  *   const ci = new VRControllerInput({ deadZone: 0.15 });
  *   // each frame, for each XRInputSource:
  *   const snap = ci.read(inputSource);
- *   if (snap.buttons.faceB?.justPressed) goBack();
+ *   if (snap.buttons.faceB?.justPressed) tab.back();
  */
 
 /** Profile-string → family mapping (first match wins). */
