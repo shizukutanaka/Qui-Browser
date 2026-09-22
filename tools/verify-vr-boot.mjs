@@ -537,6 +537,57 @@ async function main() {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
         }
+        // 2D→VR chain — the real user-gesture path never driven end-to-end:
+        // enterVRButton click → isSessionSupported (stub: true) → 'enter-vr'
+        // dispatch → onEnterVRRequest → vrButton.click() → requestSession
+        // (the stub rejects, exactly what a non-XR browser hits) → guarded
+        // .catch → localized alert toast. Plus the 2D error arm: unsupported
+        // must show #vr-error-toast and NOT dispatch 'enter-vr'.
+        if (app.vrButton && navigator.xr && document.getElementById('enterVRButton')) {
+          const origReq = navigator.xr.requestSession;
+          const origSupported = navigator.xr.isSessionSupported;
+          let reqCalls = 0;
+          navigator.xr.requestSession = () => {
+            reqCalls++;
+            return origReq();
+          };
+          const toasts = [];
+          const origToast = app.showVRToast.bind(app);
+          app.showVRToast = (m, o) => {
+            const r = origToast(m, o);
+            toasts.push({ msg: m, alert: alertEl ? alertEl.textContent : '' });
+            return r;
+          };
+          out.enterVrEvent = false;
+          out.unhandled = [];
+          window.addEventListener('enter-vr', () => {
+            out.enterVrEvent = true;
+          });
+          window.addEventListener('unhandledrejection', (e) => {
+            out.unhandled.push(String(e.reason && e.reason.stack ? e.reason.stack : e.reason).slice(0, 300));
+          });
+          document.getElementById('enterVRButton').click();
+          await new Promise((r) => setTimeout(r, 80));
+          out.vrEnterToasts = toasts;
+          out.vrEnterReqCalls = reqCalls;
+          out.vrEnterEventFired = out.enterVrEvent === true;
+          // Unsupported arm — the 2D page reports locally instead of
+          // dispatching into VRApp.
+          out.enterVrEvent = false;
+          navigator.xr.isSessionSupported = async () => false;
+          const prevErr = document.getElementById('vr-error-toast');
+          if (prevErr) {
+            prevErr.remove();
+          }
+          document.getElementById('enterVRButton').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const errToast = document.getElementById('vr-error-toast');
+          out.vrErrorToastText = errToast ? errToast.textContent : '';
+          out.vrNoEventOnUnsupported = out.enterVrEvent === false;
+          navigator.xr.isSessionSupported = origSupported;
+          navigator.xr.requestSession = origReq;
+          app.showVRToast = origToast;
+        }
         return out;
       })()`,
       awaitPromise: true,
@@ -630,7 +681,15 @@ async function main() {
         && (iout.voiceKbCap || '').includes('キーボード'),
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
       voiceStop: iout.voiceStopped === true
-        && (iout.voiceStopCap || '').includes('停止')
+        && (iout.voiceStopCap || '').includes('停止'),
+      enterVrChain: iout.vrEnterEventFired === true && (iout.vrEnterReqCalls || 0) >= 1,
+      enterVrToast: (iout.vrEnterToasts || []).some((tt) => {
+        return /Failed to enter VR|VR モードに入れませんでした/.test(tt.msg)
+          && (tt.alert || '').includes(tt.msg);
+      }),
+      enterVrClean: Array.isArray(iout.unhandled) && iout.unhandled.length === 0,
+      enterVrUnsupported: (iout.vrErrorToastText || '').includes('WebXR VR is not supported')
+        && iout.vrNoEventOnUnsupported === true
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -649,7 +708,19 @@ async function main() {
       }
       if (ev.method === 'Log.entryAdded' && ev.params.entry.level === 'error') {
         const text = ev.params.entry.text || '';
-        errors.push('log error: ' + text.slice(0, 200));
+        const src = ev.params.entry.url || '';
+        // 'Failed to load resource' entries whose target URL is outside our
+        // served origin are the harness's own test traffic (navigations to
+        // nonexistent .example hosts, or pages routed through the dead
+        // reader-proxy the proxy test sets). They are expected load failures,
+        // not page errors — and Log delivery timing is racy, so gating on
+        // them flakes. Errors on our own origin (missing assets, CSP
+        // violations like the frame-ancestors case) keep gating.
+        const externalResourceMiss = text.startsWith('Failed to load resource')
+          && src && !src.startsWith(url);
+        if (!externalResourceMiss) {
+          errors.push('log error: ' + text.slice(0, 200) + (src ? ' [' + src + ']' : ''));
+        }
       }
     }
 
@@ -714,6 +785,10 @@ async function main() {
       ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
       ['voice scroll moved reader viewport', !!inter.voiceScroll],
       ['voice stop ended listening + announced', !!inter.voiceStop],
+      ['2D enter-VR button drove the full request chain', !!inter.enterVrChain],
+      ['denied VR request announced via alert toast', !!inter.enterVrToast],
+      ['denied VR request left no unhandled rejection', !!inter.enterVrClean],
+      ['unsupported click showed localized 2D error only', !!inter.enterVrUnsupported],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 

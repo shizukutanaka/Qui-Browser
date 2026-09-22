@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 148: 続き306 — 2D→VR 全連鎖を e2e pin（61→65 checks）+ 検出欠陥（enter-VR 無ガード handler）を同梱
+- 🔍 **実測**: 全 subsystem・stereo 経路 pin 済みの後に残った最後の未駆動連鎖は **2D ランディング → VR 遷移** — `enterVRButton` click → `isSessionSupported` → `enter-vr` dispatch → `onEnterVRRequest` → `vrButton.click()` → `requestSession` の 4 リンクが一度も端到端で駆動されていなかった（jest は DOM ボタン非所有、vr-boot は vrButton 直叩き止まり）。
+- 🔧 **harness 拡張**: eval 内で `navigator.xr.requestSession` を count wrap + `enter-vr`/unhandledrejection リスナ + showVRToast per-call capture → 実 DOM の `enterVRButton.click()` を発行。さらに `isSessionSupported→false` stub で 2D 側エラー腕（`#vr-error-toast` + `enter-vr` 非発火）を pin。
+- 🚨 **pin が即座に実欠陥を検出**: `enterVrChain`（requestSession 到達・緑）に対し `enterVrToast`/`enterVrClean` FAIL + `Uncaught (in promise) NotSupportedError` が errors ゲートをトリップ — 本 base には #252（improve-57, unmerged）の addEventListener+stopImmediatePropagation ガードが無く、THREE の catch 無し onclick が拒否を握り潰していた。赤証拠 = この初回実行そのもの。
+- 🔧 **同梱判断**: commit `9f731c4` から `src/vr/VRApp.js` + `tests/vr-app-init-systems.test.js`（vrButtonStub + 4 mock サイト）を取込み自己完結化 — #252 先マージ時は fix 差分が no-op。併せて #252 の **Log-domain 非 origin filter** を採用（自ハーネスの .example/死 proxy 通信が racy に errors ゲートへ混入する flake を解消 — 本 leg の待機が露出させた）。pin 側 bug（`out.enterVrEvent` を unsupported 腕で再使用して最終値を false に上書き）は `vrEnterEventFired` 別フィールドに snapshot して修正。
+- ✅ 3288 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 65 checks PASS、verify:app PASS。
+
 ### Session 140: 続き298 — voice batch 5 で全コマンド網羅（音量下げる/更新/go-to 両腕/ヘルプ/キーボード/reader スクロール/停止 → 53→61 checks）
 - 🔍 **残空白**: batch 4（続き297）で 9 コマンドを網羅したが `connectBrowser` 登録コマンドの残り 8 系統が未駆動 — volume-down・refresh・go-to（frecency hit 腕 + navigate(query) fallback 腕）・help・keyboard toggle・scroll-down/up・stop。
 - 🔧 **修正**: 53→61 checks: ①音量下げる → masterVolume 100→90 永続化 + '音量 90%' ②更新 → `tab.reload()` で currentUrl 維持 + '更新します' ③go-to hit — `bookmarks.addBookmark` で種付けした 'voicegoto.example' に navigate（history は '履歴を消去' で wipe 済みのため bookmark 種で hit 腕を決定的に）+ '開きます' ④go-to miss — 'nohitwordを開く' → `navigate(query)` fallback → resolver が設定済み search engine URL へ ⑤ヘルプ → `_spokenExample` のコマンド一覧が caption 到達 ⑥キーボードを閉じる → ime-toggle が残した `vrKeyboard.visible` を hide + 'キーボードを切り替えます' ⑦下/上にスクロール — `_contentState='reader'` + 200 行 seed で `scrollContent(±8)` が `_readerScroll` を 0→8→0 に実移動（reader 状態でなければ早期 return false の実契約）⑧停止 → `isListening===false` + '音声認識を停止します'。transcript normalization（#206 punct-strip）で '-' が消えるため query を punctuation-free に。

@@ -3025,17 +3025,23 @@ export class VRApp {
     // three's button.onclick fires requestSession().then(...) with no .catch
     // and no in-flight guard: a denied request is an invisible unhandled
     // rejection, and a second click while the first is pending issues a
-    // duplicate request. Replace it with a guarded handler that mirrors the
-    // same session flow (three builds the sessionOptions inside its closure —
-    // replicate them here: base features + our sessionInit).
-    if (typeof vrButton.onclick === 'function') {
+    // duplicate request. three only assigns onclick inside its
+    // isSessionSupported().then() — it is null here and assigning ours now
+    // would race (three's later assignment would win), so a click listener
+    // registered this early always fires BEFORE any onclick three sets and
+    // stopImmediatePropagation preempts the unguarded handler on every
+    // timing. The handler mirrors three's session flow (sessionOptions are
+    // built inside its closure — replicate them here: base features + our
+    // sessionInit).
+    {
       const sessionOptions = {
         optionalFeatures: [...new Set([
           'local-floor', 'bounded-floor', 'layers', 'hand-tracking'
         ])]
       };
       let pendingRequest = null;
-      vrButton.onclick = () => {
+      vrButton.addEventListener('click', (ev) => {
+        ev.stopImmediatePropagation();
         const liveSession = this.renderer.xr.getSession();
         if (liveSession) {
           // end() rejects with InvalidStateError if the session is already
@@ -3076,7 +3082,7 @@ export class VRApp {
         }).finally(() => {
           pendingRequest = null;
         });
-      };
+      });
     }
 
     // Wire the landing-page "Enter VR" buttons (which dispatch a global

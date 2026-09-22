@@ -113,6 +113,23 @@ function makeInitLike(settingsOverrides = {}) {
   };
 }
 
+// THREE's real button is a DOM element whose onclick arrives asynchronously
+// (isSessionSupported().then()); setupVR installs its guarded handler via
+// addEventListener so a bare-property stub never receives it.
+function vrButtonStub() {
+  const listeners = {};
+  return {
+    listeners,
+    addEventListener: (type, fn) => {
+      listeners[type] = fn;
+    },
+    click() {
+      listeners.click?.({ stopImmediatePropagation: jest.fn() });
+    },
+    textContent: ''
+  };
+}
+
 /** Patch every subsystem ctor with a generic fixture so a full
  * initializeSystems() run never touches a real GPU/DOM/audio API. Individual
  * tests re-patch the ctor they target afterwards. */
@@ -664,7 +681,9 @@ describe('setupVR — button/session/visibility wiring', () => {
     const xrListeners = {};
     const clicked = jest.fn();
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    const createButton = jest.fn(() => ({ click: clicked }));
+    const createButton = jest.fn(() => ({
+      click: clicked, addEventListener: jest.fn()
+    }));
     VRButton.createButton = createButton;
     const app = makeInitLike();
     app.renderer = { xr: { addEventListener: (t, fn) => {
@@ -714,9 +733,7 @@ describe('setupVR — button/session/visibility wiring', () => {
 
   test('vrButton onclick is guarded: in-flight request deduped, rejection surfaces a toast', async () => {
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    const button = { click() {
-      this.onclick?.();
-    }, onclick() {}, textContent: '' };
+    const button = vrButtonStub();
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
     app.renderer = {
@@ -742,7 +759,7 @@ describe('setupVR — button/session/visibility wiring', () => {
     const flush = () => new Promise(setImmediate);
     try {
       VRApp.prototype.setupVR.call(app);
-      expect(typeof button.onclick).toBe('function');
+      expect(typeof button.listeners.click).toBe('function');
       button.click(); // first request in flight
       button.click(); // duplicate while pending — deduped
       expect(requestSession).toHaveBeenCalledTimes(1);
@@ -779,12 +796,7 @@ describe('setupVR — button/session/visibility wiring', () => {
 
   test('setSession NotSupportedError falls back to the required local space', async () => {
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    const button = {
-      click() {
-        this.onclick?.();
-      },
-      onclick() {}, textContent: ''
-    };
+    const button = vrButtonStub();
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
     const session = { addEventListener: jest.fn(), end: jest.fn(async () => {}) };
@@ -818,12 +830,7 @@ describe('setupVR — button/session/visibility wiring', () => {
 
   test('vrButton exit click swallows a session.end() rejection (already ending)', async () => {
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    const button = {
-      click() {
-        this.onclick?.();
-      },
-      onclick() {}, textContent: ''
-    };
+    const button = vrButtonStub();
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
     const endingSession = {
