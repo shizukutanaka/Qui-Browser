@@ -9,8 +9,9 @@ const {
 } = require('../src/vr/browser/readableText.js');
 const {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLineCount, measureEmFor, maxMeasureEmForFont, fontPxFor, MEASURE_EM,
-  CONTENT_PX_W, CONTENT_PAD
+  readerAvailPx, readerOverflows, readerFitCount, lastReaderStart, readerPageJump,
+  linePitchFor, contentHeightPx, measureEmFor, maxMeasureEmForFont, fontPxFor,
+  MEASURE_EM, CONTENT_PX_W, CONTENT_PAD
 } = require('../src/vr/browser/readerLayout.js');
 const {
   wrapTextToLines, wrapTextToWidth, textWidthEm, charWidthEm,
@@ -448,40 +449,56 @@ describe('layoutReaderLines', () => {
 
 describe('clampReaderScroll / readerWindow / readerProgressLabel', () => {
   const lines = Array.from({ length: 100 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
+  const lastStart = lastReaderStart(lines, readerAvailPx(true), 1);
 
   test('clamps below zero and past the end', () => {
-    expect(clampReaderScroll(-5, 100, 10)).toBe(0);
-    expect(clampReaderScroll(999, 100, 10)).toBe(90);
+    expect(clampReaderScroll(lines, -5)).toBe(0);
+    expect(clampReaderScroll(lines, 999)).toBe(lastStart);
+    expect(lastStart).toBeGreaterThan(0);
+    expect(lastStart).toBeLessThan(100);
   });
 
   test('a list that fits cannot scroll', () => {
-    expect(clampReaderScroll(5, 8, 10)).toBe(0);
+    const short = Array.from({ length: 8 }, (_, i) => ({ text: `S${i}`, style: 'p' }));
+    expect(clampReaderScroll(short, 5)).toBe(0);
   });
 
   test('window never returns an empty slice for a non-empty list', () => {
-    expect(readerWindow(lines, 999, 10)).toHaveLength(10);
-    expect(readerWindow(lines, -3, 10)[0].text).toBe('L0');
+    expect(readerWindow(lines, 999).length).toBeGreaterThan(0);
+    expect(readerWindow(lines, -3)[0].text).toBe('L0');
+  });
+
+  test('the window at max scroll reaches the last line', () => {
+    const w = readerWindow(lines, 999);
+    expect(w[w.length - 1].text).toBe('L99');
   });
 
   test('progress label matches the bookmark-panel convention', () => {
-    expect(readerProgressLabel(0, 100, 10)).toBe('1–10/100');
-    expect(readerProgressLabel(90, 100, 10)).toBe('91–100/100');
+    const first = readerProgressLabel(lines, 0);
+    expect(first.startsWith('1–')).toBe(true);
+    expect(first.endsWith('/100')).toBe(true);
+    const last = readerProgressLabel(lines, 999);
+    expect(last.endsWith('–100/100')).toBe(true);
   });
 
   test('no progress label when everything fits', () => {
-    expect(readerProgressLabel(0, 8, 10)).toBe('');
+    const short = Array.from({ length: 8 }, (_, i) => ({ text: `S${i}`, style: 'p' }));
+    expect(readerProgressLabel(short, 0)).toBe('');
   });
 
   test('non-finite offsets degrade to 0', () => {
-    expect(clampReaderScroll(NaN, 100, 10)).toBe(0);
-    expect(clampReaderScroll(undefined, 100, 10)).toBe(0);
+    expect(clampReaderScroll(lines, NaN)).toBe(0);
+    expect(clampReaderScroll(lines, undefined)).toBe(0);
   });
 });
 
 describe('viewport metrics', () => {
-  test('visible line count shrinks as text grows', () => {
-    expect(visibleLineCount(2)).toBeLessThan(visibleLineCount(1));
-    expect(visibleLineCount(1)).toBeGreaterThan(5);
+  test('fewer lines fit as text grows', () => {
+    const lines = Array.from({ length: 100 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
+    const at2 = readerFitCount(lines, 0, readerAvailPx(true), 2);
+    const at1 = readerFitCount(lines, 0, readerAvailPx(true), 1);
+    expect(at2).toBeLessThan(at1);
+    expect(at1).toBeGreaterThan(5);
   });
 
   test('font size ranks title > heading > paragraph and scales', () => {
@@ -612,21 +629,24 @@ describe('wrapTextToLines (shared with CaptionSystem)', () => {
 // of a known size is the safer design.
 describe('reader scroll affordance', () => {
   const {
-    readerHitTest, pageJumpLines, PAGE_OVERLAP_LINES,
+    readerHitTest, readerPageJump, readerFitCount, readerAvailPx,
+    PAGE_OVERLAP_LINES,
     ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0
   } = require('../src/vr/browser/readerLayout.js');
 
   const mid = (x0) => x0 + ARROW_W / 2;
   const midY = ARROW_Y0 + ARROW_H / 2;
+  const long = Array.from({ length: 100 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
 
   test('a page jump keeps overlap so reading position survives', () => {
-    expect(pageJumpLines(24)).toBe(24 - PAGE_OVERLAP_LINES);
+    const fitted = readerFitCount(long, 0, readerAvailPx(true), 1);
+    expect(readerPageJump(long, 0, 1)).toBe(fitted - PAGE_OVERLAP_LINES);
     expect(PAGE_OVERLAP_LINES).toBeGreaterThan(0);
   });
 
   test('a jump never advances by zero or negative lines', () => {
-    expect(pageJumpLines(1)).toBeGreaterThanOrEqual(1);
-    expect(pageJumpLines(0)).toBeGreaterThanOrEqual(1);
+    expect(readerPageJump([{ text: 'a', style: 'p' }], 0)).toBeGreaterThanOrEqual(1);
+    expect(readerPageJump([], 0)).toBeGreaterThanOrEqual(1);
   });
 
   test('the up and down arrow zones resolve distinctly', () => {
@@ -690,21 +710,25 @@ describe('WIDTH_SAFETY — budgets survive real font metrics', () => {
 // arrows start at x=804, so a long final line rendered under the buttons.
 describe('reader reserves the bottom strip for the arrows and progress label', () => {
   const {
-    visibleLinesFor, visibleLineCount, CONTENT_BOTTOM_RESERVED,
+    readerAvailPx, readerOverflows, readerFitCount, readerWindow,
+    linePitchFor, CONTENT_BOTTOM_RESERVED,
     ARROW_Y0, ARROW_H, ARROW_UP_X0, CONTENT_PX_W, CONTENT_PX_H, CONTENT_PAD, LINE_H
   } = require('../src/vr/browser/readerLayout.js');
 
   const INK_ASCENT = 0.95;   // measured upper bound (em)
   const INK_DESCENT = 0.22;  // measured lower bound (em)
+  const long = Array.from({ length: 500 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
+  // Ink bottom of the last drawn line: the draw path accumulates each line's
+  // own pitch, so the visible count times the (uniform, here) body pitch.
   const lastInkBottom = (scale, visible) => {
-    const lh = LINE_H * scale;
+    const lh = linePitchFor('p', scale);
     return CONTENT_PAD + lh * visible + fontPxFor('p', scale) * INK_DESCENT;
   };
 
   test.each([1, 1.3, 1.5, 2])(
     'at scale %s the last line clears the arrow band',
     (scale) => {
-      const visible = visibleLinesFor(500, scale);
+      const visible = readerFitCount(long, 0, readerAvailPx(true), scale);
       expect(lastInkBottom(scale, visible)).toBeLessThan(ARROW_Y0);
     }
   );
@@ -712,14 +736,14 @@ describe('reader reserves the bottom strip for the arrows and progress label', (
   test.each([1, 1.3, 1.5, 2])(
     'at scale %s the UNRESERVED count would have collided (the defect)',
     (scale) => {
-      const naive = visibleLineCount(scale, false);
+      const naive = readerFitCount(long, 0, readerAvailPx(false), scale);
       expect(lastInkBottom(scale, naive)).toBeGreaterThan(ARROW_Y0);
     }
   );
 
   test('the last line also clears the progress label', () => {
     for (const scale of [1, 1.3, 1.5, 2]) {
-      const visible = visibleLinesFor(500, scale);
+      const visible = readerFitCount(long, 0, readerAvailPx(true), scale);
       const labelInkTop = (CONTENT_PX_H - 30) - 16 * INK_ASCENT;
       expect(lastInkBottom(scale, visible)).toBeLessThan(labelInkTop);
     }
@@ -736,16 +760,23 @@ describe('reader reserves the bottom strip for the arrows and progress label', (
   test('an article that fits on one screen keeps the full height (no arrows drawn)', () => {
     // The reserve is conditional: with nothing to page through there is no
     // affordance to avoid, so short articles must not lose lines to it.
-    const unreserved = visibleLineCount(1, false);
-    expect(visibleLinesFor(unreserved, 1)).toBe(unreserved);
-    expect(visibleLinesFor(1, 1)).toBe(unreserved);
-    expect(visibleLinesFor(unreserved + 1, 1)).toBeLessThan(unreserved);
+    const short = Array.from({ length: 5 }, (_, i) => ({ text: `S${i}`, style: 'p' }));
+    expect(readerOverflows(short, 1)).toBe(false);
+    expect(readerWindow(short, 0, 1)).toHaveLength(5);
+    // …and a just-fitting article still uses the unreserved budget.
+    const fits = Math.floor(readerAvailPx(false) / LINE_H);
+    const edge = Array.from({ length: fits }, (_, i) => ({ text: `E${i}`, style: 'p' }));
+    expect(readerOverflows(edge, 1)).toBe(false);
+    expect(readerWindow(edge, 0, 1)).toHaveLength(fits);
+    expect(readerOverflows([...edge, { text: 'one more', style: 'p' }], 1)).toBe(true);
   });
 
-  test('reserving only ever shrinks the count, so the two-step is stable', () => {
+  test('reserving only ever shrinks the window, so the two-step is stable', () => {
     for (const scale of [1, 1.3, 1.5, 2, 3]) {
-      expect(visibleLineCount(scale, true)).toBeLessThanOrEqual(visibleLineCount(scale, false));
-      expect(visibleLineCount(scale, true)).toBeGreaterThanOrEqual(1);
+      const reserved = readerFitCount(long, 0, readerAvailPx(true), scale);
+      const open = readerFitCount(long, 0, readerAvailPx(false), scale);
+      expect(reserved).toBeLessThanOrEqual(open);
+      expect(reserved).toBeGreaterThanOrEqual(1);
     }
   });
 });
@@ -797,45 +828,45 @@ describe('layoutReaderLines — malformed block skip', () => {
 });
 
 describe('readerLayout — remaining branch arms', () => {
-  const { visibleLineCount, visibleLinesFor, measureEmFor, clampReaderScroll,
-    readerWindow, readerProgressLabel, readerHitTest, fontPxFor, pageJumpLines } =
+  const { linePitchFor, measureEmFor, clampReaderScroll, readerOverflows,
+    readerWindow, readerProgressLabel, readerHitTest, fontPxFor, readerPageJump } =
     require('../src/vr/browser/readerLayout.js');
 
-  test('scale ≤0 falls back to 1 in visibleLineCount / measureEmFor / fontPxFor', () => {
-    expect(visibleLineCount(0)).toBe(visibleLineCount(1));
-    expect(visibleLineCount(-3)).toBe(visibleLineCount(1));
+  test('scale ≤0 falls back to 1 in linePitchFor / measureEmFor / fontPxFor', () => {
+    expect(linePitchFor('p', 0)).toBe(linePitchFor('p', 1));
+    expect(linePitchFor('title', -3)).toBe(linePitchFor('title', 1));
     expect(measureEmFor(0)).toBe(measureEmFor(1));
     expect(fontPxFor('title', 0)).toBe(fontPxFor('title', 1));
     expect(fontPxFor('h', -1)).toBe(fontPxFor('h', 1));
     expect(fontPxFor('p', 0)).toBe(fontPxFor('p', 1));
   });
 
-  test('visibleLinesFor: non-numeric total → 0 → unreserved count', () => {
-    expect(visibleLinesFor(undefined)).toBe(visibleLineCount(1, false));
-    expect(visibleLinesFor('x')).toBe(visibleLineCount(1, false));
-    // overflowing → reserved (arrows drawn) count
-    expect(visibleLinesFor(10_000)).toBe(visibleLineCount(1, true));
+  test('readerOverflows: non-array lines never scroll', () => {
+    expect(readerOverflows(undefined)).toBe(false);
+    expect(readerOverflows(null)).toBe(false);
+    expect(readerOverflows([])).toBe(false);
   });
 
-  test('clampReaderScroll: non-finite offset → 0; missing total/visible → 0', () => {
-    expect(clampReaderScroll(NaN, 10, 5)).toBe(0);
-    expect(clampReaderScroll(Infinity, 10, 5)).toBe(0);
-    expect(clampReaderScroll(5, undefined, undefined)).toBe(0);
-    expect(clampReaderScroll(3.9, 20, 5)).toBe(3); // floor
+  test('clampReaderScroll: non-finite offset → 0; missing lines → 0', () => {
+    const lines = Array.from({ length: 100 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
+    expect(clampReaderScroll(lines, NaN)).toBe(0);
+    expect(clampReaderScroll(lines, Infinity)).toBe(0);
+    expect(clampReaderScroll(undefined, 5)).toBe(0);
+    expect(clampReaderScroll(lines, 3.9)).toBe(3); // floor
   });
 
-  test('readerWindow: non-array lines → []; missing visible → 1 line', () => {
-    expect(readerWindow(null, 0, 10)).toEqual([]);
-    expect(readerWindow(undefined, 0, 10)).toEqual([]);
-    const lines = [{ text: 'a' }, { text: 'b' }, { text: 'c' }];
-    expect(readerWindow(lines, 0, undefined)).toEqual([{ text: 'a' }]);
-    expect(readerWindow(lines, 1, 0)).toEqual([{ text: 'b' }]); // visible 0 → 1
+  test('readerWindow: non-array lines → []; fitting article shows in full', () => {
+    expect(readerWindow(null, 0)).toEqual([]);
+    expect(readerWindow(undefined, 0)).toEqual([]);
+    const lines = [{ text: 'a', style: 'p' }, { text: 'b', style: 'p' }, { text: 'c', style: 'p' }];
+    expect(readerWindow(lines, 0)).toEqual(lines);            // fits unreserved
+    expect(readerWindow(lines, 1)).toEqual(lines);            // fits → offset clamps to 0
   });
 
-  test('readerProgressLabel: missing/zero total and visible → empty label', () => {
-    expect(readerProgressLabel(0, undefined, 10)).toBe('');
-    expect(readerProgressLabel(0, 0, 10)).toBe('');
-    expect(readerProgressLabel(0, 5, 0)).toBe('1–1/5'); // visible 0 → v=1, n=5 overflows
+  test('readerProgressLabel: missing/fitting content → empty label', () => {
+    expect(readerProgressLabel(undefined, 0)).toBe('');
+    expect(readerProgressLabel([], 0)).toBe('');
+    expect(readerProgressLabel([{ text: 'a', style: 'p' }], 0)).toBe('');
   });
 
   test('readerHitTest: not-scrollable ignores the arrow band; off-arrow x is none', () => {
@@ -848,16 +879,17 @@ describe('readerLayout — remaining branch arms', () => {
     expect(readerHitTest(0, 10, true).type).toBe('none');
   });
 
-  test('pageJumpLines: missing visible → 1', () => {
-    expect(pageJumpLines(undefined)).toBe(1);
-    expect(pageJumpLines(10)).toBe(8); // 10 - 2 overlap
+  test('readerPageJump: degenerate input still advances ≥1', () => {
+    expect(readerPageJump(undefined, 0)).toBe(1);
+    const lines = Array.from({ length: 100 }, (_, i) => ({ text: `L${i}`, style: 'p' }));
+    expect(readerPageJump(lines, 0)).toBeGreaterThanOrEqual(1);
   });
 });
 
 describe('readerLayout — complementary arms', () => {
   test('non-positive scale normalizes to 1 in line/font helpers', () => {
-    const { visibleLineCount, measureEmFor, fontPxFor } = require('../src/vr/browser/readerLayout.js');
-    expect(visibleLineCount(0)).toBe(visibleLineCount(1));
+    const { linePitchFor, measureEmFor, fontPxFor } = require('../src/vr/browser/readerLayout.js');
+    expect(linePitchFor('p', 0)).toBe(linePitchFor('p', 1));
     expect(measureEmFor(-3)).toBe(measureEmFor(1));
     expect(fontPxFor('body', 0)).toBe(fontPxFor('body', 1));
   });

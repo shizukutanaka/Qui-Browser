@@ -57,39 +57,92 @@ export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
 const CONTENT_BOTTOM_GAP = 8;
 export const CONTENT_BOTTOM_RESERVED = (CONTENT_PX_H - ARROW_Y0) + CONTENT_BOTTOM_GAP;
 
-/** Lines that fit the viewport at a given scale. */
-export function visibleLineCount(scale = 1, reserveBottom = false) {
-  const lh = LINE_H * (scale > 0 ? scale : 1);
-  const avail = CONTENT_PX_H - 2 * CONTENT_PAD
+/**
+ * Baseline-to-baseline pitch (px) a line of `style` occupies at `scale`.
+ *
+ * WCAG 1.4.12's 1.5 line-height guidance exists for dyslexic and low-vision
+ * readers — glyphs need air between rows. A single 34px pitch gave title and
+ * heading lines ratios of 1.13 and 1.36 (a two-line Japanese title rendered
+ * with ~1px of gap between rows). Pitch is now the greater of the shared
+ * 34px floor and 1.5× the style's own font size: title 45px (ratio 1.5),
+ * heading 38px (1.52), body and blank stay 34px (1.7), code stays 34px (2.0).
+ *
+ * @param {'title'|'h'|'p'|'c'|'blank'} style
+ * @param {number} [scale=1]
+ * @returns {number} px
+ */
+export function linePitchFor(style, scale = 1) {
+  const s = scale > 0 ? scale : 1;
+  return Math.max(LINE_H * s, Math.ceil(1.5 * fontPxFor(style, s)));
+}
+
+/** Pixel budget available for reader lines in the content area. */
+export function readerAvailPx(reserveBottom = false) {
+  return CONTENT_PX_H - 2 * CONTENT_PAD
     - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
-  return Math.max(1, Math.floor(avail / lh));
+}
+
+/** Rendered height (px) of the whole line list — pitches summed per style. */
+export function contentHeightPx(lines, scale = 1) {
+  let px = 0;
+  for (const l of Array.isArray(lines) ? lines : []) {
+    px += linePitchFor(l && l.style, scale);
+  }
+  return px;
 }
 
 /**
- * Lines actually shown for an article of `total` lines.
+ * Whether the article is scrollable — taller than the open viewport.
  *
- * The reserve is conditional on the arrows being drawn, and the arrows are only
- * drawn when the article overflows — a circular dependency, resolved the same
- * way the caption font/measure circularity was: take the unreserved count
- * first; if the article fits inside it there is no affordance to avoid, so that
- * count stands. Otherwise the article is scrollable either way (reserving only
- * ever shrinks the count), so the reserved count is the stable answer.
- *
- * Every caller must use THIS, not `visibleLineCount` directly — the draw path
- * and the hit-test path disagreeing about how many lines are on screen is the
- * failure mode that produced a blank, un-clickable bookmark page in Session 52.
- *
- * @param {number} total  lines in the article
- * @param {number} [scale=1]
- * @returns {number}
+ * The scroll affordance (arrows + progress label) is drawn iff this holds,
+ * and the bottom strip is reserved whenever it does. Same stable rule the
+ * count-based version used: reserving only shrinks the window, so an article
+ * that overflows unreserved still overflows reserved.
  */
-export function visibleLinesFor(total, scale = 1) {
-  const unreserved = visibleLineCount(scale, false);
-  const n = Number(total) || 0;
-  if (n <= unreserved) {
-    return unreserved;
+export function readerOverflows(lines, scale = 1) {
+  return contentHeightPx(lines, scale) > readerAvailPx(false);
+}
+
+/**
+ * Whole lines that fit inside `availPx` starting at `start`. Always ≥1 — a
+ * start line is drawn even when its own pitch already overflows the window,
+ * so no offset can render an empty viewport.
+ */
+export function readerFitCount(lines, start, availPx, scale = 1) {
+  const all = Array.isArray(lines) ? lines : [];
+  const s = Math.min(Math.max(0, Math.floor(Number(start) || 0)), all.length);
+  if (s >= all.length) {
+    return 0;
   }
-  return visibleLineCount(scale, true);
+  let used = 0;
+  let n = 0;
+  for (let i = s; i < all.length; i++) {
+    const pitch = linePitchFor(all[i] && all[i].style, scale);
+    if (n > 0 && used + pitch > availPx) {
+      break;
+    }
+    used += pitch;
+    n++;
+  }
+  return Math.max(1, n);
+}
+
+/**
+ * Furthest scroll offset (line index) whose window still reaches the end of
+ * the article — the first index where the remaining lines fit inside
+ * `availPx`. For a uniform pitch this is exactly `total - floor(avail/pitch)`;
+ * with per-style pitches the tail is summed instead of counted.
+ */
+export function lastReaderStart(lines, availPx, scale = 1) {
+  const all = Array.isArray(lines) ? lines : [];
+  let used = 0;
+  for (let i = all.length - 1; i >= 0; i--) {
+    used += linePitchFor(all[i] && all[i].style, scale);
+    if (used > availPx) {
+      return i + 1;
+    }
+  }
+  return 0;
 }
 
 /**
@@ -193,43 +246,49 @@ export function layoutReaderLines(blocks, opts = {}) {
 }
 
 /**
- * Clamp a scroll offset into range. Mirrors `BookmarkPanel._clampScroll`: the
- * draw path and any input path must both route through this so they can never
- * disagree and render an empty window.
+ * Clamp a scroll offset (line index) into range. Mirrors
+ * `BookmarkPanel._clampScroll`: the draw path and any input path must both
+ * route through this so they can never disagree and render an empty window.
+ * The bottom reserve is applied whenever the article overflows — the same
+ * rule the arrows use, so hit-test and draw stay consistent.
  *
+ * @param {Array<{text: string, style: string}>} lines
  * @param {number} offset
- * @param {number} total   total line count
- * @param {number} visible lines that fit
- * @returns {number}
+ * @param {number} [scale=1]
+ * @returns {number} clamped line index
  */
-export function clampReaderScroll(offset, total, visible) {
-  const max = Math.max(0, (total || 0) - Math.max(1, visible || 1));
+export function clampReaderScroll(lines, offset, scale = 1) {
+  const max = lastReaderStart(lines, readerAvailPx(readerOverflows(lines, scale)), scale);
   const n = Number.isFinite(offset) ? Math.floor(offset) : 0;
   return Math.min(Math.max(0, n), max);
 }
 
 /**
- * The slice of lines to draw for a clamped offset.
+ * The slice of lines to draw for a clamped offset — as many whole lines as
+ * fit inside the effective pixel budget (bottom strip reserved while the
+ * article is scrollable).
  * @returns {Array<{text: string, style: string}>}
  */
-export function readerWindow(lines, offset, visible) {
+export function readerWindow(lines, offset, scale = 1) {
   const all = Array.isArray(lines) ? lines : [];
-  const start = clampReaderScroll(offset, all.length, visible);
-  return all.slice(start, start + Math.max(1, visible || 1));
+  const start = clampReaderScroll(all, offset, scale);
+  const count = readerFitCount(all, start, readerAvailPx(readerOverflows(all, scale)), scale);
+  return all.slice(start, start + count);
 }
 
 /**
  * "12–40/318" style progress label, matching the bookmark panel's convention.
  * Empty string when everything fits (nothing to indicate).
  */
-export function readerProgressLabel(offset, total, visible) {
-  const n = total || 0;
-  const v = Math.max(1, visible || 1);
-  if (n <= v) {
+export function readerProgressLabel(lines, offset, scale = 1) {
+  const all = Array.isArray(lines) ? lines : [];
+  const n = all.length;
+  if (!readerOverflows(all, scale)) {
     return '';
   }
-  const start = clampReaderScroll(offset, n, v);
-  return `${start + 1}–${Math.min(start + v, n)}/${n}`;
+  const start = clampReaderScroll(all, offset, scale);
+  const count = readerFitCount(all, start, readerAvailPx(true), scale);
+  return `${start + 1}–${Math.min(start + count, n)}/${n}`;
 }
 
 
@@ -246,8 +305,16 @@ export function readerProgressLabel(offset, total, visible) {
  */
 export const PAGE_OVERLAP_LINES = 2;
 
-export function pageJumpLines(visible) {
-  return Math.max(1, (visible || 1) - PAGE_OVERLAP_LINES);
+/**
+ * Offset delta for one page jump — the window fitted at `offset` minus two
+ * lines of overlap. The jump size is still a known line count (the discrete
+ * paging rationale above is unchanged); it is just measured from the styled
+ * window now that line heights vary per style.
+ */
+export function readerPageJump(lines, offset, scale = 1) {
+  const start = clampReaderScroll(lines, offset, scale);
+  const count = readerFitCount(lines, start, readerAvailPx(readerOverflows(lines, scale)), scale);
+  return Math.max(1, count - PAGE_OVERLAP_LINES);
 }
 
 /**

@@ -26,8 +26,9 @@ import {
 import { extractReadableText } from './readableText.js';
 import {
   layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
-  readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
+  readerOverflows, readerAvailPx, lastReaderStart, readerPageJump,
+  linePitchFor, fontPxFor, CONTENT_PAD,
+  readerHitTest, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { t } from '../../i18n/i18n.js';
@@ -435,30 +436,32 @@ export class WebPanel {
    * + progress indicator) so scrolling behaves the same way across panels.
    */
   _drawReader(ctx, w, h, col) {
-    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
-    const total = this._readerLines.length;
+    const scale = this._readerScale;
     // Clamp on the draw path too — the same discipline as BookmarkPanel, so
     // draw and input can never disagree and render an empty window.
-    this._readerScroll = clampReaderScroll(this._readerScroll, total, visible);
-    const window = readerWindow(this._readerLines, this._readerScroll, visible);
+    this._readerScroll = clampReaderScroll(this._readerLines, this._readerScroll, scale);
+    const window = readerWindow(this._readerLines, this._readerScroll, scale);
+    const scrollable = readerOverflows(this._readerLines, scale);
 
     ctx.textAlign = 'left';
-    const lh = LINE_H * this._readerScale;
-    let y = CONTENT_PAD + lh;
+    let y = CONTENT_PAD;
     for (const line of window) {
+      // Baseline sits at the bottom of the line's own pitch — title/heading
+      // rows get their larger 1.5x gap above the glyphs, same convention as
+      // the uniform pitch gave them.
+      y += linePitchFor(line.style, scale);
       if (line.style !== 'blank' && line.text) {
         ctx.font = line.style === 'c'
-          ? `${fontPxFor(line.style, this._readerScale)}px monospace`
-          : `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
+          ? `${fontPxFor(line.style, scale)}px monospace`
+          : `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, scale)}px sans-serif`;
         ctx.fillStyle = line.style === 'p'
           ? col.readerBody
           : (line.style === 'c' ? col.readerCode : col.readerHeading);
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
       }
-      y += lh;
     }
 
-    const label = readerProgressLabel(this._readerScroll, total, visible);
+    const label = readerProgressLabel(this._readerLines, this._readerScroll, scale);
     if (label) {
       ctx.textAlign = 'left';
       ctx.font = '16px sans-serif';
@@ -470,9 +473,10 @@ export class WebPanel {
     // more to read and that the panel is selectable. Drawn whenever the
     // article overflows one screen; dimmed at the ends so the state is legible
     // without relying on colour alone (the glyph is always present).
-    if (total > visible) {
+    if (scrollable) {
       const canUp = this._readerScroll > 0;
-      const canDown = this._readerScroll < total - visible;
+      const canDown = this._readerScroll
+        < lastReaderStart(this._readerLines, readerAvailPx(true), scale);
       const drawArrow = (x, glyph, active) => {
         ctx.fillStyle = active ? col.arrowActiveBg : col.arrowIdleBg;
         ctx.fillRect(x, ARROW_Y0, ARROW_W, ARROW_H);
@@ -519,13 +523,13 @@ export class WebPanel {
       return;
     }
 
-    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
-    const scrollable = this._readerLines.length > visible;
+    const scale = this._readerScale;
+    const scrollable = readerOverflows(this._readerLines, scale);
     const action = readerHitTest(px, py, scrollable);
     if (action.type === 'scrollUp') {
-      this.scrollContent(-pageJumpLines(visible));
+      this.scrollContent(-readerPageJump(this._readerLines, this._readerScroll, scale));
     } else if (action.type === 'scrollDown') {
-      this.scrollContent(pageJumpLines(visible));
+      this.scrollContent(readerPageJump(this._readerLines, this._readerScroll, scale));
     }
   }
 
@@ -540,11 +544,10 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return false;
     }
-    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const next = clampReaderScroll(
+      this._readerLines,
       this._readerScroll + (Number.isFinite(delta) ? delta : 0),
-      this._readerLines.length,
-      visible
+      this._readerScale
     );
     if (next === this._readerScroll) {
       return false;
