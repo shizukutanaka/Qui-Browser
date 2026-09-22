@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 84: 続き242 — WebPanel: 親が scene ではない場合 dispose が幽霊タブを残す
+- 🔍 **実測（コード経路追跡）**: `TabManager` は `panel.addToScene(this.rootGroup)` で各タブの group を rootGroup 配下に置くが、`WebPanel.dispose()` は `this.scene.remove(this.group)` を無条件で呼ぶ — THREE の `remove` は直接の子のみ外すため、親が rootGroup の場合は no-op。結果として **閉じたタブの chrome/content/moveBar メッシュが scene graph に残り続け、interactable 解除済み・操作不能のまま毎フレーム描画される幽霊タブ** に（dispose 済み GPU リソースは次の描画で再アップロードされ、アクティブタブと同一座標で z-fight しうる）。
+- 🔧 **修正**: `dispose()` で `this.group.parent?.remove(this.group)` — 実際の親から detach（scene 直下の場合も同じ経路で正しい）。`parent` 未設定の非 THREE モック向けに `scene.remove` をフォールバックとして残置。
+- 🧪 pin 2件（rootGroup 配下で dispose → コンテナから detach＋parent=null ※stash 検証で pre-fix 赤；scene 直下フォールバック経路は変わらず）。テストの MockGroup に `add/remove` の `parent` 追跡を追加（THREE セマンティクスのミラー）。
+- 🔍 **同軸監査（クリーン）**: settingsStepper（stepValue スナップ・decimalsFor・地域マップ・caption ゲート）/ FFRSystem（initialize フォールバック・enable/disable/adjust クランプ・head-velocity EMA・dispose）/ LayersSystem（createQuadLayer・renderCanvasToLayer・updateRenderState・dispose）/ WindowManager（grab 優先・follow lerp・angularConstant スケール・resolveWindowDistance 優先度）/ WebPanel 残り全体（navigate ブロック経路・reader seq ガード・stop・setCurved・layer mode）— 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
