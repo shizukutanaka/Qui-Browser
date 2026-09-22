@@ -1921,6 +1921,35 @@ async function main() {
             }
           }
         }
+        // JA locale leg — every announce path above ran under the EN catalog.
+        // t() reads currentLang live, so flipping the language must flip
+        // producer output on the ARIA mirrors too: the WCAG 3.1.2 contract
+        // the whole i18n work exists for, and the only way 'English literal
+        // under JA' defects (the loadFailedPrefix class) are visible.
+        // Restores EN before returning.
+        if (window.QuiBrowser && typeof window.QuiBrowser.setLanguage === 'function') {
+          const jaTab = app.tabManager && app.tabManager.getActiveTab();
+          window.QuiBrowser.setLanguage('ja');
+          out.jaHtmlLang = document.documentElement.lang === 'ja';
+          if (jaTab && typeof jaTab.onToggleBookmark === 'function') {
+            // A real producer under JA: star-toggle → 'vr.msg.bookmarked'
+            // through the caption status mirror.
+            jaTab.onToggleBookmark('https://ja-leg.example/', 'JA leg');
+            out.jaToggleCap = statusEl ? statusEl.textContent : '';
+            jaTab.onToggleBookmark('https://ja-leg.example/', 'JA leg');
+          }
+          if (jaTab && typeof jaTab.onLoadError === 'function') {
+            // The loadFailedPrefix composition under JA — the exact site the
+            // last English-literal fix landed on.
+            jaTab.onLoadError('https://ja-err.example/');
+            out.jaErrToast = alertEl ? alertEl.textContent : '';
+          }
+          window.QuiBrowser.setLanguage('en');
+          if (jaTab && typeof jaTab.onLoadError === 'function') {
+            jaTab.onLoadError('https://en-err.example/');
+            out.enErrToast = alertEl ? alertEl.textContent : '';
+          }
+        }
         return out;
       })()`,
       awaitPromise: true,
@@ -2125,6 +2154,12 @@ async function main() {
         && iout.sessLayersGone === true
         && iout.sessLaddersNull === true
         && iout.sessFpsBack === true
+        && (iout.voiceStopCap || '').includes('停止')
+        && (iout.voiceStopCap || '').includes('停止'),
+      jaLang: iout.jaHtmlLang === true,
+      jaBookmark: (iout.jaToggleCap || '').includes('ブックマーク追加'),
+      jaError: (iout.jaErrToast || '').includes('読み込みに失敗しました'),
+      enRestored: (iout.enErrToast || '').includes('Failed to load')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -2322,6 +2357,10 @@ async function main() {
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
+      ['live language switch set html lang=ja', !!inter.jaLang],
+      ['JA bookmark-toggle announced in Japanese', !!inter.jaBookmark],
+      ['JA load-error toast composed in Japanese', !!inter.jaError],
+      ['EN catalog restored after JA leg', !!inter.enRestored],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
