@@ -392,12 +392,53 @@ async function main() {
             out.proxyPersisted = !!(srec && srec.readerProxyUrl === 'http://localhost:8787');
             out.proxyToast = alertEl ? alertEl.textContent : '';
           }
+          // Batch 3 — the remaining never-driven paths:
+          //  * bookmarkPanel.onDeleteBookmark / onClose / onHoverCaption
+          //    (the last is gated on settings.enableGazeDwell — toggled here)
+          //  * _launchImmersiveVideo: video-URL prompt → keyboard confirm →
+          //    detectVideoFormat → sphere(s) + HUD in the scene; stop() must
+          //    tear every bit of it back down.
+          try {
+          if (app.bookmarkPanel) {
+            if (typeof app.bookmarkPanel.onDeleteBookmark === 'function') {
+              app.bookmarkPanel.onDeleteBookmark();
+              out.bpDelBmCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onClose === 'function') {
+              app.bookmarkPanel.onClose();
+              out.bpCloseCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onHoverCaption === 'function') {
+              app.settings.enableGazeDwell = true;
+              app.bookmarkPanel.onHoverCaption();
+              out.bpHoverCap = statusEl ? statusEl.textContent : '';
+              app.settings.enableGazeDwell = false;
+            }
+          }
+          if (typeof app._launchImmersiveVideo === 'function' && app.immersiveVideo && app.vrKeyboard) {
+            app._launchImmersiveVideo();
+            out.videoPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.onTextConfirmed('https://harness-video.example/v360.mp4');
+            const iv = app.immersiveVideo;
+            out.videoActive = iv.active === true && iv.meshes.length >= 1 && !!iv.controlPanel;
+            iv.stop();
+            out.videoStopped = iv.active === false && iv.meshes.length === 0 && !iv.controlPanel;
+          }
+          } catch (e) {
+            out.b3Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
+          }
         }
         return out;
       })()`,
       returnByValue: true
     }, sessionId);
     const iout = ir.result?.result?.value || {};
+    if (!iout.dom) {
+      console.warn('eval problem:', JSON.stringify(ir.result?.exceptionDetails || ir.error || ir).slice(0, 600));
+    }
+    if (iout.b3Error) {
+      console.warn('batch3 threw:', iout.b3Error);
+    }
     if (process.env.VR_BOOT_DEBUG) {
       console.info('interact:', JSON.stringify(iout));
     }
@@ -442,7 +483,13 @@ async function main() {
       bpTabCap: (iout.bpTabCap || '').includes('History'),
       proxyPrompt: (iout.proxyPrompt || '').includes('Reader proxy URL'),
       proxyApplied: iout.proxyPersisted === true
-        && (iout.proxyToast || '').includes('Reader proxy set')
+        && (iout.proxyToast || '').includes('Reader proxy set'),
+      bpDelBmCap: (iout.bpDelBmCap || '').includes('Bookmark deleted'),
+      bpCloseCap: (iout.bpCloseCap || '').includes('Bookmarks: closed'),
+      bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
+      videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
+      videoActive: iout.videoActive === true,
+      videoStopped: iout.videoStopped === true
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -503,6 +550,12 @@ async function main() {
       ['panel tab-change announced via caption', !!inter.bpTabCap],
       ['proxy prompt announced via caption', !!inter.proxyPrompt],
       ['proxy confirm persisted + toasted', !!inter.proxyApplied],
+      ['bookmark-delete announced via caption', !!inter.bpDelBmCap],
+      ['panel close announced via caption', !!inter.bpCloseCap],
+      ['panel hover announced via caption (gaze gate)', !!inter.bpHoverCap],
+      ['video prompt announced via caption', !!inter.videoPrompt],
+      ['immersive video built spheres + HUD', !!inter.videoActive],
+      ['immersive video stop tore down scene', !!inter.videoStopped],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 

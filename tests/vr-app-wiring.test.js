@@ -2706,6 +2706,9 @@ describe('VRApp setupScene/setupCamera/createHomeEnvironment — pure constructi
     expect(app.scene).toBeInstanceOf(THREE.Scene);
     const lights = app.scene.children.filter((c) => c.isLight);
     expect(lights.map((l) => l.type).sort()).toEqual(['AmbientLight', 'DirectionalLight']);
+    // ImmersiveVideo is constructed in setupImmersiveVideo() (after the camera
+    // exists — its HUD panel and toast parent to the camera).
+    VRApp.prototype.setupImmersiveVideo.call(app);
     expect(app.immersiveVideo).toBeTruthy();
     expect(app.homeEnvironment).toBeUndefined(); // flag off
     expect(app.settingsPanel).toBeUndefined();   // flag off
