@@ -173,7 +173,10 @@ describe('captions, voice errors and screen-reader labels are translated', () =>
     // Colon-style caption prefixes and the VR-keyboard prompts — VRApp used
     // to embed these as English literals next to t()-routed siblings.
     'vr.msg.loadingPrefix', 'vr.msg.tabPrefix', 'vr.msg.topSitePrefix',
-    'vr.msg.openingPrefix', 'vr.prompt.enterUrl', 'vr.prompt.enterVideoUrl'
+    'vr.msg.openingPrefix', 'vr.prompt.enterUrl', 'vr.prompt.enterVideoUrl',
+    // Caption follow-mode cycle + its two option labels.
+    'vr.settings.captionFollow', 'vr.settings.captionFollow.locked',
+    'vr.settings.captionFollow.lag'
   ];
 
   test.each(KEYS)('%s exists in both catalogues and differs between them', (key) => {

@@ -2826,6 +2826,7 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
     enableWindowFollow: true, enableCurvedPanel: false,
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    captionFollow: 'locked',
     masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
     openSettingsSections: ['settings.section.a11y']
   };
@@ -2841,7 +2842,7 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
       tabManager: null, webPanel: null, bookmarkPanel: null, windowManager: null,
       gazeInteraction: null, ffrSystem: null, spatialAudio: null,
       comfortSystem: null, hapticFeedback: { setEnabled: jest.fn() },
-      captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(), setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
+      captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(), setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn(), setFollowMode: jest.fn() },
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
       registerInteractable(mesh, h) {
@@ -2908,7 +2909,7 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
     const app = makePanelOrchestrator();
     const panel = VRApp.prototype.createSettingsPanel.call(app);
     // 5 named sections: tabs count tells us whether 'other' was needed.
-    const tabCount = app.interactables.length - (4 + 5); // a11y toggles+steppers
+    const tabCount = app.interactables.length - (4 + 5 + 1); // a11y toggles+steppers+cycle
     // With all keys placed, sections = 5, so 5 tabs; a 6th tab means leftover.
     expect(tabCount).toBe(5);
     expect(panel.children.length).toBeGreaterThan(5);
@@ -2925,6 +2926,7 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     enableWindowFollow: true, enableCurvedPanel: false,
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    captionFollow: 'locked',
     masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo'
   };
   const P = (sectionId, over = {}) => {
@@ -2944,7 +2946,7 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       comfortSystem: { setPreset: jest.fn() },
       hapticFeedback: { setEnabled: jest.fn() },
       captionSystem: { enabled: true, show: jest.fn(), setEnabled: jest.fn(),
-        setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn() },
+        setHighContrast: jest.fn(), setLineDuration: jest.fn(), setScale: jest.fn(), setVerticalOffset: jest.fn(), setFollowMode: jest.fn() },
       saveSettings: jest.fn(),
       showVRToast: jest.fn(),
       registerInteractable(mesh, h) {
@@ -3016,6 +3018,18 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app.gazeInteraction.dwellTime).toBe(app.settings.gazeDwellTime);
     steppers[4].onSelect({ intersection: { point: plusPoint(steppers[4].mesh) } });
     expect(app.gazeInteraction.graceTime).toBe(app.settings.gazeGraceTime);
+  });
+
+  test('a11y cycle: captionFollow locked -> lag -> locked reaches setFollowMode', () => {
+    const app = P('settings.section.a11y');
+    // The cycle button is the section's last control (toggles, steppers, cycles).
+    const cyc = app.interactables[app.interactables.length - 1];
+    cyc.onSelect();
+    expect(app.settings.captionFollow).toBe('lag');
+    expect(app.captionSystem.setFollowMode).toHaveBeenCalledWith('lag');
+    cyc.onSelect();
+    expect(app.settings.captionFollow).toBe('locked');
+    expect(app.captionSystem.setFollowMode).toHaveBeenLastCalledWith('locked');
   });
 
   test('locomotion: southpaw captions the new primary hand; comfort preset cycles', () => {
@@ -3160,7 +3174,7 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
       const app = P(sectionId, {
         captionSystem: { enabled: false, show: jest.fn(), setEnabled: jest.fn(),
           setHighContrast: jest.fn(), setLineDuration: jest.fn(),
-          setScale: jest.fn(), setVerticalOffset: jest.fn() }
+          setScale: jest.fn(), setVerticalOffset: jest.fn(), setFollowMode: jest.fn() }
       });
       for (const i of app.interactables) {
         i.onHover?.();
@@ -3418,6 +3432,7 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
     enableWindowFollow: true, enableCurvedPanel: false,
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
+    captionFollow: 'locked',
     masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
     openSettingsSections: ['settings.section.a11y']
   };

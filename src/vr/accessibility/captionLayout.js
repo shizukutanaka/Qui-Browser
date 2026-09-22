@@ -79,3 +79,45 @@ export function captionFontSizeFor(nRows, scale = 1) {
   const rowH = (CAPTION_CANVAS_H - 2 * CAPTION_PAD) / Math.max(nRows, 1);
   return Math.max(CAPTION_MIN_FONT, Math.min(CAPTION_MAX_FONT * s, Math.floor(rowH * 0.62)));
 }
+
+// ── Follow mode ───────────────────────────────────────────────────────────────
+//
+// 'locked' — the panel is a child of the camera and tracks the head 1:1.
+// 'lag'    — the panel lives in world space and eases toward the head-anchored
+//            pose, so it hangs steady while the user scans around and drifts
+//            back into place (the "lag" behaviour below).
+//
+// Live Captions in Virtual Reality (arXiv:2210.15072) compared head-locked,
+// lag and appear-locked caption behaviours with DHH participants: head-locked
+// was the broad favourite (≈82.5 %) — which is why it stays the default — but
+// preference was genuinely split and the study's own recommendation is to
+// offer the choice. 'lag' serves the minority who find a panel glued to the
+// head fatiguing; 'appear' is deliberately not offered — it was the least
+// comfortable behaviour in the study and drops captions mid-utterance.
+export const CAPTION_FOLLOW_MODES = ['locked', 'lag'];
+
+// Exponential smoothing time constant for 'lag' (ms). 300 ms settles the
+// panel within ~1 s of a head move ending without visibly swimming during it.
+export const CAPTION_FOLLOW_TAU_MS = 300;
+
+// Pose-error thresholds above which 'lag' snaps instead of easing. A snap turn
+// (30–90°) or a teleport would otherwise drag the panel visibly through the
+// scene — lag is a settling aid, not a way to sweep text across the view.
+export const CAPTION_FOLLOW_SNAP_RAD = 0.6; // ≈34° of angular error
+export const CAPTION_FOLLOW_SNAP_M = 0.5;   // metres of positional error
+
+/**
+ * Per-frame blend weight for 'lag' mode, frame-rate independent exponential
+ * smoothing: a = 1 − e^(−dt/τ). Pure so the follow maths is testable without
+ * THREE.
+ *
+ * @param {number} dtMs frame delta in milliseconds
+ * @returns {number} blend weight in [0, 1)
+ */
+export function captionFollowAlpha(dtMs) {
+  const dt = Number(dtMs);
+  if (!Number.isFinite(dt) || dt <= 0) {
+    return 0;
+  }
+  return 1 - Math.exp(-dt / CAPTION_FOLLOW_TAU_MS);
+}

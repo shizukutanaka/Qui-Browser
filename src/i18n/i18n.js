@@ -102,6 +102,11 @@ export const CATALOG = {
     'vr.settings.captionHold': 'Caption Hold',
     'vr.settings.captionSize': 'Caption Size',
     'vr.settings.captionHeight': 'Caption Height',
+    // Caption tracking option (a11y section cycle). Values shown by the
+    // button come from the captionFollow.* labels below, not the raw enum.
+    'vr.settings.captionFollow': 'Caption Follow',
+    'vr.settings.captionFollow.locked': 'Head-locked',
+    'vr.settings.captionFollow.lag': 'Lag (world-steady)',
     'vr.settings.soundVolume': 'Sound Volume',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'Teleport',
@@ -267,6 +272,11 @@ export const CATALOG = {
     'vr.settings.captionHold': 'キャプション保持時間',
     'vr.settings.captionSize': 'キャプションサイズ',
     'vr.settings.captionHeight': '字幕の高さ',
+    // 字幕の追従方式（アクセシビリティ節の切替）— 値の表示名は下の
+    // captionFollow.* キーが使われる（生の enum 値は出さない）。
+    'vr.settings.captionFollow': '字幕の追従',
+    'vr.settings.captionFollow.locked': '頭に固定',
+    'vr.settings.captionFollow.lag': '追従（その場に残る）',
     'vr.settings.soundVolume': '音量',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'テレポート',

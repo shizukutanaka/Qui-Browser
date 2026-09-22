@@ -128,8 +128,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 
 最新論文・プラットフォーム動向を調査（W3C XAUR、VR酔い軽減研究 2025、WebXR 2026 動向、VRテキスト入力、VRキャプション研究）。**実装済み機能の多くは研究と整合**しており（例: `FFRSystem` の head-motion ベース適応FFRは arXiv:2502.03419 と同方向、ヘッドロック字幕は arXiv:2210.15072 の82.5%支持と一致）、大きな欠陥は無かった。Session 46 で 2件を実装済み（適応型ビネット、字幕高さ調整）。以下は調査で挙がったが**今回実装しない**候補と根拠。
 
-### D-1. キャプションの lag（遅延追従）オプション（優先度: 低）
-- Live Captions in VR (arXiv:2210.15072) は head-locked / lag / appear の3挙動を比較。ただし82.5%が単純なヘッドロック支持であり、現行のヘッドロック実装で研究上の最適解を満たしている。lag はごく一部のユーザー向けの微調整に留まるため優先度低。
+### ~~D-1. キャプションの lag（遅延追従）オプション~~ — **実装済み（Session 88）**
+- Live Captions in VR (arXiv:2210.15072) は head-locked / lag / appear の3挙動を比較。82.5%が単純なヘッドロック支持でデフォルトは locked のまま（研究上の最適解）だが、同研究の推奨は「ユーザーに選ばせる」こと — 好みが実際に分かれたため。`captionFollow` 設定（`'locked'|'lag'`）を追加: lag はパネルをワールド空間へ再親付けし、頭固定アンカー `(0, verticalOffset, -2)` のワールド姿勢へ指数平滑（τ=300ms、フレームレート非依存 `1−e^(−dt/τ)`）で追従。姿勢誤差 >0.5m / >0.6rad（スナップターン・テレポート・初回表示）はイージングせずスナップ — テキストが視界を泳ぎ回るのを防ぐため。`appear` は研究で最も不評だったため意図的に非提供。UI はアクセシビリティ節のサイクルボタン（英 'Head-locked'/'Lag (world-steady)'、日 '頭に固定'/'追従（その場に残る）'）。`makeCycleButton` にオプション表示ラベルの第5引数を追加（'lag' のような専門語を訳出するため）。14 新規テスト + 1 配線テスト、全て stash 検証で pre-fix 赤確認済み。
 
 ### ~~D-2. WebXR-WebGPU Binding 対応~~ — **対象コード削除済み（記録訂正、Session 75）**
 - スタブ `src/vr/rendering/WebGPURenderer.js` は Session 60 の大削除（F-2）で消滅済み。WebGPU 対応自体を将来やる場合は一からの導入になる（Editor's Draft の仕様安定待ちが合理的）。
@@ -732,17 +732,24 @@ hand / gaze の select 発火点）、`trackPageView`（navigate() — origin+pa
 Sentry/GA キー未設定では完全な no-op — **本番 telemetry を流すかの方針決定は
 引き続きオーナー判断**（キーを設定するか、削除方針なら verbs を除去するか）。
 
-## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項）
+## N-3. confirmSelection() が表示と矛盾する生ローマ字を返す（Session 75 で観測・判断事項、Session 88 で観測訂正）
 
 `JapaneseIME` は `compositionBuffer` に生のローマ字を保持し、`processInput` の
-戻り値 `converted` だけが表示用のかなを運ぶ。結果としてキーボード上の表示は
-「か」なのに Enter → `confirmSelection()` は **'ka'** を返す（候補選択済みなら漢字）。
-URL入力では偶然正しく動く（ASCII が欲しい）が、日本語テキストの意図では表示と
-出力が矛盾する。かつ `inputMode` に 'romaji'/'ascii' が存在しないため、
-URL入力でも画面には「ごおぎぇ.こm」のような変換表示が出る。
+戻り値 `converted` だけが表示用のかなを運ぶ。
 
-**判断事項**: (a) confirm は表示と一致させる（converted を返す）+ URL用に
-ascii モードを追加するか、(b) 現状維持（表示は翻訳プレビュー、確定は生値）か。
+**観測訂正（Session 88）**: Session 75 は「表示は『か』だが confirm は 'ka'」と
+記録したが、実測ではキーボード表示も `updateDisplay(compositionBuffer)` で
+**生ローマ字を表示していた**（表示と出力は一致しており矛盾はなかった）。
+実在の欠陥は別の2件で、Session 88 で修正済み:
+
+1. **space キーが文字を飲み込む** — `case 'space'` は `convertToKanji()` へ
+   誤配線され、バッファ末尾の送り仮名しか変換せず空白を入力できなかった。
+   → `processInput(' ')` + `updateDisplay` に修正。
+2. **「変換」キーが無言で何もしない** — `case '変換'` が未定義で default
+   経路に落ちていた。→ `convertToKanji()` + `showCandidates()` に修正。
+
+**残る判断事項**: (a) confirm が返す値を変換表示と一致させる（`converted` を
+返す）+ URL用に ascii モードを追加するか、(b) 現状維持（確定は生ローマ字）か。
 IME の仕様意図が絡むためオーナー判断。esc 経路の stale candidate 注入のみ
 修正済み（続き37）。
 
