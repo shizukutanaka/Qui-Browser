@@ -264,6 +264,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 pin 3件：16.67ms×6 = 100ms×1 と完全一致（pre-fix 差）、120ms ヒッチでスナップせず ~99% へ滑らか収束（pre-fix は即 -2.0）、dt≤0 で不動（pre-fix は後退）。3件 stash 検証で pre-fix 赤。定数視サイズテストの `follow()` helper は clamp-snap 欠陥に依存していたため `followLerp:1` の正規スナップへ修正。
 - ✅ 3217 tests / 73 suites 全緑、lint 0 errors、build 緑。
 
+### Session 111: 続き269 — TabManager のアナウンス乱発 2点（非アクティブ close の再宣言 + newTab(url) の空白アナウンス）
+- 🔍 **実測（コード追跡）**: WCAG 4.1.3 の「変化があった時だけ status message」を逸脱する2点 — ①`closeTab` が `index <= activeIndex` で無条件 `setActive` を走らせ、**アクティブより前の非アクティブタブ**を閉じても（アクティブは同一タブのまま index がずれるだけ）`onTabActivate` が "Tab: X" を再発火 — 変化していないのに偽の状態変化アナウンス ②`newTab(url)` が `setActive`（`onTabActivate('')`→"Tab: New tab" キャプション発火）を先に走らせてから `navigate` — 空白タブをアナウンスして直後に実 URL のナビゲートキャプションで二重発火。
+- 🔧 **修正**: ①closeTab で `activeTabClosed = (index === activeIndex)` の場合のみ `setActive` — より前のタブを閉じたときは index デクリメントのみ（visibility/drawStrip は変更不要・呼出済み）②`newTab` で `navigate(url)` を `setActive` の前へ — アナウンスが一度だけ実 URL で発火。
+- 🧪 pin 3件：非アクティブ close で onTabActivate 不発・アクティブ index/visibility 維持（pre-fix 発火）、アクティブ close で隣の URL をアナウンス（guard）、`newTab(url)` が URL で一度だけアナウンス（pre-fix は '' で発火）。2件 stash 検証で pre-fix 赤。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。
