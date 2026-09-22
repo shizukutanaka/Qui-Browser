@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 137: 続き295 — stored-callback batch 2（onLoadError / onDeleteHistory / onTabChange / _requestReaderProxyInput 全経路）を e2e pin
+- 🔍 **残空白**: Session 136 で confirm 往路を pin した後、パネル側から VRApp 配線経由でしか到達できない格納コールバックが残っていた — `tab.onLoadError`（fetch 失敗時の 'Failed to load' toast）、`bookmarkPanel.onDeleteHistory`/`onTabChange`（caption ミラー）、`_requestReaderProxyInput`（proxy URL キーボード往路 → normalizeProxyUrl → updateSetting 永続化 + proxySet toast）。jest では TabManager 構築不可のため全て未駆動。
+- 🔧 **修正**: interaction eval に batch-2 ブロックを追加し 5 新規チェック（33→38）: ①`tab2.onLoadError(url)` → alert region に 'Failed to load: url' ②`bookmarkPanel.onDeleteHistory()` → status region に 'History entry deleted' ③`onTabChange('history')` → 'History' caption ④`_requestReaderProxyInput()` → status region に 'Reader proxy URL' prompt ⑤`onTextConfirmed('http://localhost:8787')` → `qui-browser:settings` に readerProxyUrl 永続化 + alert region に 'Reader proxy set' toast。
+- 🧪 赤検証: `onLoadError` を no-op 化 + `onDeleteHistory` の caption 呼出を `if(false)` で切断 → 'load error reached alert region' + 'history-delete announced via caption' のみ FAIL（onTabChange は別 callback のため不変 — 選択性確認）。proxy 往路は Session 136 の setOnConfirm 切断で同機構が赤確認済み。復元後 38 checks 全緑。
+- ✅ 3234 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 38 checks PASS、verify:app PASS。
+
 ### Session 136: 続き294 — harness interaction に IME confirm 往路（onUrlInputRequested → setOnConfirm → onTextConfirmed → navigate + Loading caption）を e2e pin
 - 🔍 **残空白**: R44–R49 で URL バー選択→キーボード起動・panel コールバック群を pin したが、**confirm 往路は未駆動**だった — `WebPanel._onChromeHit` の URL バー arm が `onUrlInputRequested(prefill, confirm)` を呼び、VRApp のラッパーが `_requestVRKeyboardInput` → `vrKeyboard.setOnConfirm(wrapped)` に格納し、IME の Enter（`onTextConfirmed(text)`）が one-shot 発火して `confirm(url)` → `tab.navigate` + 'Loading: host' caption を書く経路。jest では TabManager 構築不可のため source-regex どまり。
 - 🔧 **修正**: interaction eval の keyboard ブロックに confirm 往路を追加し 3 新規チェック（30→33）: ①`tab2.onUrlInputRequested` 経由で格納された callback を `app.vrKeyboard.onTextConfirmed('https://harness-confirm.example/')` で発火 → `tab2.currentUrl` が navigate 先に同期セット（`confirmCbStored && confirmNav`）②発火後 `_onConfirmCallback === null`（one-shot 消費）+ `visible === false`（hide が先に走る順序契約）③status region に 'Loading: harness-confirm.example' 到達（`vr.msg.loadingPrefix` + hostnameCaption — WCAG 4.1.3）。

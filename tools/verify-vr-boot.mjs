@@ -362,6 +362,36 @@ async function main() {
               out.confirmCaption = statusEl ? statusEl.textContent : '';
             }
           }
+          // Stored-callback batch 2 — paths the panel side can only reach via
+          // VRApp wiring (jest can't build TabManager, so these were never
+          // driven end-to-end):
+          //  * tab2.onLoadError → 'Failed to load: url' on the alert region
+          //  * bookmarkPanel.onDeleteHistory / onTabChange → caption mirrors
+          //  * _requestReaderProxyInput → proxy prompt + confirm persists
+          //    readerProxyUrl + 'Reader proxy set' toast
+          if (tab2 && typeof tab2.onLoadError === 'function') {
+            tab2.onLoadError('https://harness-fail.example/');
+            out.loadErrToast = alertEl ? alertEl.textContent : '';
+          }
+          if (app.bookmarkPanel) {
+            if (typeof app.bookmarkPanel.onDeleteHistory === 'function') {
+              app.bookmarkPanel.onDeleteHistory();
+              out.bpDelHistCap = statusEl ? statusEl.textContent : '';
+            }
+            if (typeof app.bookmarkPanel.onTabChange === 'function') {
+              app.bookmarkPanel.onTabChange('history');
+              out.bpTabCap = statusEl ? statusEl.textContent : '';
+            }
+          }
+          if (typeof app._requestReaderProxyInput === 'function' && app.vrKeyboard) {
+            app._requestReaderProxyInput();
+            out.proxyPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.onTextConfirmed('http://localhost:8787');
+            let srec = null;
+            try { srec = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyPersisted = !!(srec && srec.readerProxyUrl === 'http://localhost:8787');
+            out.proxyToast = alertEl ? alertEl.textContent : '';
+          }
         }
         return out;
       })()`,
@@ -406,7 +436,13 @@ async function main() {
         && iout.confirmNav === true,
       confirmCleared: iout.confirmCleared === true
         && iout.confirmHidden === true,
-      confirmAnnounced: (iout.confirmCaption || '').includes('Loading: harness-confirm.example')
+      confirmAnnounced: (iout.confirmCaption || '').includes('Loading: harness-confirm.example'),
+      loadErrToast: (iout.loadErrToast || '').includes('Failed to load: https://harness-fail.example/'),
+      bpDelHistCap: (iout.bpDelHistCap || '').includes('History entry deleted'),
+      bpTabCap: (iout.bpTabCap || '').includes('History'),
+      proxyPrompt: (iout.proxyPrompt || '').includes('Reader proxy URL'),
+      proxyApplied: iout.proxyPersisted === true
+        && (iout.proxyToast || '').includes('Reader proxy set')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -462,6 +498,11 @@ async function main() {
       ['IME confirm navigated the panel', !!inter.confirmNav],
       ['confirm consumed callback + hid keyboard', !!inter.confirmCleared],
       ['Loading caption announced on confirm', !!inter.confirmAnnounced],
+      ['load error reached alert region', !!inter.loadErrToast],
+      ['history-delete announced via caption', !!inter.bpDelHistCap],
+      ['panel tab-change announced via caption', !!inter.bpTabCap],
+      ['proxy prompt announced via caption', !!inter.proxyPrompt],
+      ['proxy confirm persisted + toasted', !!inter.proxyApplied],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
