@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 171: 続き329 — BookmarkPanel UV-mapped interactable 全アクション（tab/row navigate/delete/scroll/close）を e2e pin（#259 batch 22、191→198 checks）
+- 🔍 **実測**: BookmarkPanel は **canvas 1枚の interactable** — `_onSelect` が ray∩plane point を `worldToLocal` → UV → `bookmarkLayout.hitTest` で close/tab/scroll/row/deleteRow に分解。row select は **pick-and-close**（`onSelect(url)` → `active.navigate` + 'Loading' caption 後 `hide()`）— 最初の設計で navigate 後の select が全滅した原因（invisible mesh は raycast miss）。
+- 🔧 **pin 設計（7 check）**: `selectPx(px,py)` — canvas pixel を `(px/1024-0.5)*panelW`/`(0.5-py/768)*panelH` で mesh-local → `localToWorld` → `aimAt6`。**eval scope に THREE は無い**（`new THREE.Vector3` で ReferenceError、selectPx 内 throw が session-leg catch に潰れ downstream leg ごと FAIL — `mesh.position.clone().set()` で既存 Vector3 を借用）。row select を最後に回し pick-and-close 自体（navigate+hide）を pin。
+- 🧠 **ハーネス教訓（次回以降必須）**: ①eval で `THREE` は未定義 — Vector3 等は既存 instance の `clone()` で作る ②canvas-UV panel は「row select で閉じる」含めアクション順序が依存関係を持つ — pick-and-close は最後に ③session leg の throw は `session leg threw:` で潰される — downstream FAIL 群発時は直近 leg の例外を疑え。
+- 🧪 **赤検証（5 cut 一括）**: `setMode`/`onSelect(url)`/`store[deleteMethod]`/`scrollOffset++`/close `hide()` 各切断 → `bmTabSwitch`/`bmRowNavigates`/`bmRowDelete`/`bmScrolls`/`bmClose` FAIL。全 pin 有機全緑（実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 198 checks PASS、verify:app PASS。
+
 ### Session 170: 続き328 — browsing トグル全経路（Private live-read・Web Panel teardown/rebuild・Voice lazy-init warn）を e2e pin（#259 batch 21、184→191 checks）
 - 🔍 **実測**: 最後の未駆動 browsing コントロール — 'Private Mode'（apply null → `VRApp.navigate` が `!settings.privateMode` を live-read して履歴非記録）、'Web Browser Panel'（`_onWebPanelToggleChanged` → off で tabManager/webPanel 完全 teardown + 'Browsing panel closed'、on で `_buildBrowsingSystems`+`_attachManagedWindow` rebuild）、'Voice Commands'（lazy `_initVoiceCommands` → SR 非搭載時 `voiceCommands=null` → 'Voice commands temporarily unavailable' warn、off で `_teardownVoiceCommands` + 'disabled'）。
 - 🔧 **pin 設計（7 check）**: ①Private select → navigate → `bookmarks.search` empty、再 select → navigate → 記録あり（removeHistory で掃除）②Web Panel off → `tabManager===null && webPanel===null` + toast、on → 再構築 + toast ③`window.SpeechRecognition`/`webkitSpeechRecognition` を undefined 化して unavailable 分岐を deterministic 強制 → select → warn toast + `voiceCommands===null`、再 select → 'disabled' + teardown。

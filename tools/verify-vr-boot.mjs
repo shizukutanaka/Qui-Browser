@@ -2116,6 +2116,100 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // BookmarkPanel leg — the panel is ONE canvas interactable:
+              // _onSelect maps the ray∩plane point through UV→pixel geometry
+              // (bookmarkLayout hitTest) into close / tab / scroll / row /
+              // deleteRow actions. selectPx aims the controller ray through
+              // the world-space point for a target canvas pixel.
+              if (ctrl && app.bookmarkPanel && app.bookmarks && app.scene) {
+                const bm = app.bookmarkPanel;
+                const bmModeWas = bm.mode;
+                const bmVisWas = bm.visible;
+                const BM_URL = 'https://bm-seed.example/page';
+                const selectPx = async (px, py) => {
+                  // No THREE in eval scope — clone an existing Vector3.
+                  const local = bm.mesh.position.clone().set(
+                    (px / 1024 - 0.5) * bm.panelW,
+                    (0.5 - py / 768) * bm.panelH, 0);
+                  const pt = bm.mesh.localToWorld(local);
+                  aimAt6(pt);
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  ctrl.dispatchEvent({ type: 'selectstart' });
+                  ctrl.dispatchEvent({ type: 'selectend' });
+                  await new Promise((r) => setTimeout(r, 20));
+                };
+                try {
+                  app.bookmarks.addBookmark(BM_URL, 'bm seed');
+                  for (let i = 0; i < 12; i++) {
+                    app.bookmarks.addHistory(
+                      'https://bmh-seed.example/h' + i, 'h' + i);
+                  }
+                  bm.show();
+                  app.scene.updateMatrixWorld(true);
+                  out.bmPanelProbe = bm.visible === true
+                    && bm.mesh.visible === true;
+                  // History tab (header px 220..440) — mode + tab caption.
+                  const capsBefore6 = locoCaps.length;
+                  await selectPx(330, 48);
+                  out.bmTabSwitch = bm.mode === 'history'
+                    && locoCaps.slice(capsBefore6)
+                      .some((t3) => t3.includes('History'));
+                  // Delete zone (px > 1024-64) on row 0 → removeHistory +
+                  // 'History entry deleted' + haptic.
+                  const delTarget = bm._rows()[0];
+                  const capsBefore7 = locoCaps.length;
+                  await selectPx(990, 96 + 36);
+                  out.bmRowDelete = !!delTarget
+                    && app.bookmarks.search(delTarget.url, 5).length === 0
+                    && locoCaps.slice(capsBefore7)
+                      .some((t3) => t3.includes('History entry deleted'));
+                  // Scroll zone (header px 660..820) — 11+ rows remain.
+                  await selectPx(740, 48);
+                  out.bmScrolls = bm.scrollOffset === 1;
+                  // Back to bookmarks tab — mode + caption.
+                  await selectPx(110, 48);
+                  out.bmTabBack = bm.mode === 'bookmarks'
+                    && locoCaps.some((t3) => t3.includes('Bookmarks'));
+                  // Row select is pick-and-close: it routes the URL through
+                  // onSelect → active.navigate + 'Loading' caption, then the
+                  // panel hides — so it runs LAST of the row interactions.
+                  const row0 = bm._rows()[0];
+                  const active0 = app.tabManager
+                    ? app.tabManager.getActiveTab() : null;
+                  const capsBefore8 = locoCaps.length;
+                  await selectPx(300, 96 + 36);
+                  out.bmRowNavigates = !!row0 && !!active0
+                    && active0.currentUrl === row0.url
+                    && bm.visible === false
+                    && locoCaps.slice(capsBefore8)
+                      .some((t3) => t3.includes('Loading'));
+                  // Close button (header right 96px) — hide + caption.
+                  bm.show();
+                  app.scene.updateMatrixWorld(true);
+                  const capsBefore9 = locoCaps.length;
+                  await selectPx(990, 48);
+                  out.bmClose = bm.visible === false
+                    && locoCaps.slice(capsBefore9)
+                      .some((t3) => t3.includes('Bookmarks: closed'));
+                } finally {
+                  if (app.bookmarks.removeBookmark) {
+                    try { app.bookmarks.removeBookmark(BM_URL); } catch (e) { /* cleanup */ }
+                  }
+                  if (app.bookmarks.removeHistory) {
+                    for (let i = 0; i < 12; i++) {
+                      try {
+                        app.bookmarks.removeHistory(
+                          'https://bmh-seed.example/h' + i);
+                      } catch (e) { /* cleanup */ }
+                    }
+                  }
+                  if (bm) {
+                    if (bmModeWas && bm.setMode) { bm.setMode(bmModeWas); }
+                    if (!bmVisWas && bm.visible) { bm.hide(); }
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2536,6 +2630,13 @@ async function main() {
       webPanelRebuilds: iout.webPanelRebuilds === true,
       voiceWarn: iout.voiceWarn === true,
       voiceTogglesOff: iout.voiceTogglesOff === true,
+      bmPanelProbe: iout.bmPanelProbe === true,
+      bmTabSwitch: iout.bmTabSwitch === true,
+      bmRowNavigates: iout.bmRowNavigates === true,
+      bmRowDelete: iout.bmRowDelete === true,
+      bmScrolls: iout.bmScrolls === true,
+      bmTabBack: iout.bmTabBack === true,
+      bmClose: iout.bmClose === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -2768,6 +2869,13 @@ async function main() {
       ['web panel on rebuilds browsing systems', !!inter.webPanelRebuilds],
       ['voice enable warns when recognition absent', !!inter.voiceWarn],
       ['voice off tears down and announces', !!inter.voiceTogglesOff],
+      ['bookmark panel opens raycastable', !!inter.bmPanelProbe],
+      ['history tab switches the panel mode', !!inter.bmTabSwitch],
+      ['history row select navigates the tab', !!inter.bmRowNavigates],
+      ['delete zone removes the history entry', !!inter.bmRowDelete],
+      ['header scroll zone advances the offset', !!inter.bmScrolls],
+      ['bookmarks tab returns the panel mode', !!inter.bmTabBack],
+      ['close button hides the panel', !!inter.bmClose],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
