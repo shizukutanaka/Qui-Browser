@@ -820,6 +820,61 @@ async function main() {
                 ctrl.matrixWorld.copy(origMW);
               }
             }
+            // Render-loop fan-out: updateSystems must invoke every live
+            // subsystem's per-frame hook exactly once — a dropped line here
+            // kills the feature silently (captions never age, video never
+            // recenters, listener never follows the head).
+            {
+              const fan = {
+                comfort: 0, ffrHead: 0, hand: 0, haptic: 0, audio: 0,
+                video: 0, loco: 0, buttons: 0, gaze: 0, captions: 0, win: 0
+              };
+              const fanSpies = [];
+              const fanSpy = (obj, key, bucket) => {
+                if (!obj || typeof obj[key] !== 'function') {
+                  return;
+                }
+                const orig = obj[key];
+                obj[key] = (...a) => { fan[bucket] += 1; return orig.apply(obj, a); };
+                fanSpies.push([obj, key, orig]);
+              };
+              try {
+                fanSpy(app.comfortSystem, 'update', 'comfort');
+                fanSpy(app.ffrSystem, 'trackHeadPose', 'ffrHead');
+                fanSpy(app.handTracking, 'update', 'hand');
+                fanSpy(app.hapticFeedback, 'update', 'haptic');
+                fanSpy(app.spatialAudio, 'updateListenerFromCamera', 'audio');
+                fanSpy(app.immersiveVideo, 'update', 'video');
+                fanSpy(app, 'updateLocomotion', 'loco');
+                fanSpy(app, 'updateButtonInput', 'buttons');
+                fanSpy(app.gazeInteraction, 'update', 'gaze');
+                fanSpy(app.captionSystem, 'update', 'captions');
+                fanSpy(app.windowManager, 'update', 'win');
+                const winHadFollow = !!(app.windowManager
+                  && app.windowManager.followMode);
+                if (app.windowManager) {
+                  app.windowManager.followMode = true;
+                }
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.fanCore = fan.comfort === 1 && fan.ffrHead === 1
+                  && fan.hand === 1 && fan.haptic === 1
+                  && fan.audio === 1 && fan.video === 1;
+                out.fanUI = fan.loco === 1 && fan.buttons === 1;
+                out.fanA11y = (app.gazeInteraction && app.gazeInteraction.enabled
+                  ? fan.gaze === 1 : true) && fan.captions === 1;
+                out.fanWin = fan.win === 1;
+                // A null xrFrame must skip hand tracking but keep the rest.
+                app.updateSystems(0, null, 0.016);
+                out.fanNullFrame = fan.hand === 1 && fan.video === 2;
+                if (app.windowManager) {
+                  app.windowManager.followMode = winHadFollow;
+                }
+              } finally {
+                for (const [o, k, fn] of fanSpies) {
+                  o[k] = fn;
+                }
+              }
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -988,6 +1043,11 @@ async function main() {
       selectMissQuiet: iout.selectMissQuiet === true,
       aimLands: iout.aimLands === true,
       teleportLands: iout.teleportLands === true,
+      fanCore: iout.fanCore === true,
+      fanUI: iout.fanUI === true,
+      fanA11y: iout.fanA11y === true,
+      fanWin: iout.fanWin === true,
+      fanNullFrame: iout.fanNullFrame === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1116,6 +1176,11 @@ async function main() {
       ['selectstart on a miss fires nothing', !!inter.selectMissQuiet],
       ['squeeze aim raycasts the floor target', !!inter.aimLands],
       ['squeezeend lands the rig with Teleported', !!inter.teleportLands],
+      ['frame fan-out hits every live subsystem once', !!inter.fanCore],
+      ['frame fan-out hits locomotion + buttons once', !!inter.fanUI],
+      ['frame fan-out hits gaze + captions once', !!inter.fanA11y],
+      ['windowManager.update runs when following', !!inter.fanWin],
+      ['null xrFrame skips hands but keeps the rest', !!inter.fanNullFrame],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]

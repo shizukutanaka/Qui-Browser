@@ -245,6 +245,28 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 155: 続き313 — updateSystems の per-frame fan-out を e2e pin（#258 に batch 6 として積層、89→94 checks）
+- **Round 72 of the continuous-improvement directive.** Sixth commit batch on PR #258.
+- **Pins (verify-vr-boot, +5 → 94 checks):** inside the fake-session leg —
+  instance-level spies wrap each live subsystem hook, one real
+  `updateSystems(0, fakeXrFrame, 0.016)` runs, and every bucket must read
+  exactly 1: comfort.update / ffr.trackHeadPose / handTracking.update /
+  haptic.update / spatialAudio.updateListenerFromCamera /
+  immersiveVideo.update (fanCore); updateLocomotion + updateButtonInput
+  (fanUI); gaze.update + captionSystem.update (fanA11y);
+  windowManager.update under followMode (fanWin). A second pass with a null
+  xrFrame must skip hand tracking but still hit the rest (fanNullFrame) —
+  the `&& xrFrame` guard contract. A dropped fan-out line kills a feature
+  silently (captions never age, video never recenters) — this is the
+  render-loop wiring contract.
+- **Red-verified:** cutting `immersiveVideo.update(dt)` + `captionSystem.update`
+  fails exactly fanCore + fanA11y + fanNullFrame; restored → all green.
+  Pins passed organically (fan-out is already wired correctly on base —
+  pure coverage).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (94 checks).
+
 ### Session 154: 続き312 — controller ray select/hover/teleport 経路を e2e pin（#258 に batch 5 として積層、83→89 checks）
 - **Round 71 of the continuous-improvement directive.** Fifth commit batch on PR #258.
 - **Pins (verify-vr-boot, +6 → 89 checks):** inside the fake-session leg —
