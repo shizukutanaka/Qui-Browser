@@ -42,6 +42,13 @@ export class JapaneseIME {
       }
     }
 
+    // Longest romaji key — the match loop must be able to reach the longest
+    // declared key ('xtsu'/'ltsu' are 4 chars; it used to hard-cap at 3, so a
+    // declared key was unreachable and the input escaped as raw romaji).
+    this._maxRomajiLen = Math.max(
+      ...Object.keys(this.romajiToHiragana).map(k => k.length)
+    );
+
     // Google Transliteration API endpoint
     this.apiEndpoint = 'https://www.google.co.jp/transliterate';
 
@@ -127,6 +134,41 @@ export class JapaneseIME {
       // Small characters
       'xa': 'ぁ', 'xi': 'ぃ', 'xu': 'ぅ', 'xe': 'ぇ', 'xo': 'ぉ',
       'xya': 'ゃ', 'xyu': 'ゅ', 'xyo': 'ょ', 'xtu': 'っ', 'xtsu': 'っ',
+      'xka': 'ゕ', 'xke': 'ゖ', 'xwa': 'ゎ', 'xwi': 'ゐ', 'xwe': 'ゑ',
+      // l- = x- small-kana aliases (mainstream IME behaviour)
+      'la': 'ぁ', 'li': 'ぃ', 'lu': 'ぅ', 'le': 'ぇ', 'lo': 'ぉ',
+      'lya': 'ゃ', 'lyu': 'ゅ', 'lyo': 'ょ', 'ltu': 'っ', 'ltsu': 'っ',
+      'lka': 'ゕ', 'lke': 'ゖ', 'lwa': 'ゎ',
+
+      // Extended rows every mainstream IME accepts (JIS X 4063 / Mozc-style).
+      // Without them 'file', 'she', 'fire', 'tsa' left raw romaji mangled
+      // into the kana output (measured: 'she' → 'sへも').
+      'fa': 'ふぁ', 'fi': 'ふぃ', 'fe': 'ふぇ', 'fo': 'ふぉ',
+      'fya': 'ふゃ', 'fyu': 'ふゅ', 'fyo': 'ふょ',
+      'fwa': 'ふぁ', 'fwi': 'ふぃ', 'fwu': 'ふぅ', 'fwe': 'ふぇ', 'fwo': 'ふぉ',
+      'va': 'ゔぁ', 'vi': 'ゔぃ', 'vu': 'ゔ', 've': 'ゔぇ', 'vo': 'ゔぉ',
+      'vya': 'ゔゃ', 'vyu': 'ゔゅ', 'vyo': 'ゔょ',
+      'wha': 'うぁ', 'whi': 'うぃ', 'whu': 'う', 'whe': 'うぇ', 'who': 'うぉ',
+      'wyi': 'ゐ', 'wye': 'ゑ',
+      'qa': 'くぁ', 'qi': 'くぃ', 'qu': 'く', 'qe': 'くぇ', 'qo': 'くぉ',
+      'qwa': 'くぁ', 'qwi': 'くぃ', 'qwu': 'くぅ', 'qwe': 'くぇ', 'qwo': 'くぉ',
+      'kwa': 'くぁ', 'kwi': 'くぃ', 'kwu': 'くぅ', 'kwe': 'くぇ', 'kwo': 'くぉ',
+      'gwa': 'ぐぁ', 'gwi': 'ぐぃ', 'gwu': 'ぐぅ', 'gwe': 'ぐぇ', 'gwo': 'ぐぉ',
+      'tsa': 'つぁ', 'tsi': 'つぃ', 'tse': 'つぇ', 'tso': 'つぉ',
+      'tha': 'てゃ', 'thi': 'てぃ', 'thu': 'てゅ', 'the': 'てぇ', 'tho': 'てょ',
+      'dha': 'でゃ', 'dhi': 'でぃ', 'dhu': 'でゅ', 'dhe': 'でぇ', 'dho': 'でょ',
+      'twa': 'とぁ', 'twi': 'とぃ', 'twu': 'とぅ', 'twe': 'とぇ', 'two': 'とぉ',
+      'dwa': 'どぁ', 'dwi': 'どぃ', 'dwu': 'どぅ', 'dwe': 'どぇ', 'dwo': 'どぉ',
+      'yi': 'い', 'ye': 'いぇ',
+      'she': 'しぇ', 'je': 'じぇ', 'che': 'ちぇ',
+      'kye': 'きぇ', 'gye': 'ぎぇ', 'sye': 'しぇ', 'zye': 'じぇ',
+      'nye': 'にぇ', 'hye': 'ひぇ', 'mye': 'みぇ', 'rye': 'りぇ',
+      'bye': 'びぇ', 'pye': 'ぴぇ', 'jye': 'じぇ', 'dye': 'でぇ', 'fye': 'ふぇ',
+      'kyi': 'きぃ', 'gyi': 'ぎぃ', 'syi': 'しぃ', 'nyi': 'にぃ',
+      'hyi': 'ひぃ', 'myi': 'みぃ', 'ryi': 'りぃ', 'byi': 'びぃ', 'pyi': 'ぴぃ',
+      'tyi': 'てぃ', 'dyi': 'でぃ', 'fyi': 'ふぃ', 'vyi': 'ゔぃ',
+      'jya': 'じゃ', 'jyu': 'じゅ', 'jyo': 'じょ',
+      'ca': 'か', 'ci': 'し', 'cu': 'く', 'ce': 'せ', 'co': 'こ',
 
       // Special combinations
       'nn': 'ん',
@@ -223,7 +265,7 @@ export class JapaneseIME {
 
       // Try to match the longest possible combination
       let matched = false;
-      for (let len = Math.min(buffer.length, 3); len > 0; len--) {
+      for (let len = Math.min(buffer.length, this._maxRomajiLen); len > 0; len--) {
         const substr = buffer.slice(0, len);
         if (this.romajiToHiragana[substr]) {
           result += this.romajiToHiragana[substr];
@@ -233,8 +275,8 @@ export class JapaneseIME {
         }
       }
 
-      // If no match and buffer is getting long, output first char as-is
-      if (!matched && buffer.length > 3) {
+      // If no match and buffer outgrew every known key, output first char as-is
+      if (!matched && buffer.length > this._maxRomajiLen) {
         result += buffer[0];
         buffer = buffer.slice(1);
       }

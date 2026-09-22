@@ -183,12 +183,12 @@ export function voiceErrorNotification(errorCode) {
  */
 export function controllerDisconnectMessage(handedness) {
   if (handedness === 'left') {
-    return 'Left controller disconnected';
+    return t('vr.msg.leftControllerDisconnected');
   }
   if (handedness === 'right') {
-    return 'Right controller disconnected';
+    return t('vr.msg.rightControllerDisconnected');
   }
-  return 'Controller disconnected';
+  return t('vr.msg.controllerDisconnected');
 }
 
 /**
@@ -210,12 +210,12 @@ export function controllerDisconnectMessage(handedness) {
  */
 export function controllerReconnectMessage(handedness) {
   if (handedness === 'left') {
-    return 'Left controller reconnected';
+    return t('vr.msg.leftControllerReconnected');
   }
   if (handedness === 'right') {
-    return 'Right controller reconnected';
+    return t('vr.msg.rightControllerReconnected');
   }
-  return 'Controller reconnected';
+  return t('vr.msg.controllerReconnected');
 }
 
 /**
@@ -235,7 +235,7 @@ export function controllerReconnectMessage(handedness) {
  * @returns {string}
  */
 export function webglContextLostMessage() {
-  return 'Graphics paused — restoring';
+  return t('vr.msg.graphicsPaused');
 }
 
 /**
@@ -250,5 +250,5 @@ export function webglContextLostMessage() {
  * @returns {string}
  */
 export function webglContextRestoredMessage() {
-  return 'Graphics restored';
+  return t('vr.msg.graphicsRestored');
 }

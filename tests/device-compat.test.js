@@ -39,6 +39,18 @@ describe('DeviceCompatibility', () => {
     expect(dc._detectTier('... Pico Neo 4 ...')).toBe('pico4');
   });
 
+  test('_detectTier covers Quest Pro / PICO 4 Ultra / Pico Neo 3', () => {
+    // Real-device UA spellings: Quest Pro is a distinct 'Quest Pro' token,
+    // Pico 4 Ultra reports all-caps 'PICO 4 Ultra' in PicoBrowser, and Pico
+    // Neo 3 is 'Pico Neo 3'. All previously fell to 'unknown' → 72fps even
+    // though each device supports 90Hz.
+    expect(dc._detectTier('Mozilla/5.0 (X11; Linux x86_64; Quest Pro) OculusBrowser/34.0')).toBe('quest-pro');
+    expect(dc._detectTier('Mozilla/5.0 (X11; Linux x86_64; PICO 4 Ultra) PicoBrowser/6.0')).toBe('pico4');
+    expect(dc._detectTier('Mozilla/5.0 (X11; Linux x86_64; Pico Neo 3) PicoBrowser/4.0')).toBe('pico-neo3');
+    // Quest 3S still resolves through the Quest 3 rule.
+    expect(dc._detectTier('Mozilla/5.0 (X11; Linux x86_64; Quest 3S) OculusBrowser/37.5')).toBe('quest3');
+  });
+
   test('_detectTier identifies Android XR devices', () => {
     expect(dc._detectTier('Mozilla/5.0 (Linux; Android 14; XR) Chrome/120')).toBe('android-xr');
   });
@@ -66,6 +78,15 @@ describe('DeviceCompatibility', () => {
     expect(dc.targetFPS()).toBe(90);
     dc.report = { deviceTier: 'unknown' };
     expect(dc.targetFPS()).toBe(72);
+  });
+
+  test('targetFPS: quest-pro and pico-neo3 are 90Hz tiers', () => {
+    // Both devices support 90Hz; previously they detected as 'unknown' and
+    // fell back to the 72fps floor.
+    dc.report = { deviceTier: 'quest-pro' };
+    expect(dc.targetFPS()).toBe(90);
+    dc.report = { deviceTier: 'pico-neo3' };
+    expect(dc.targetFPS()).toBe(90);
   });
 });
 

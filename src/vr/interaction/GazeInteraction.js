@@ -140,6 +140,11 @@ export class GazeInteraction {
   }
 
   _reset() {
+    // Release the held target's hover before dropping it. The slip path does
+    // this via _onTargetChange, but the bulk-reset paths (setEnabled(false),
+    // an emptied interactable registry, dispose) would otherwise leave its
+    // hover highlight stuck on a button the user can no longer reach.
+    this._onTargetChange(this._target, null);
     this._target  = null;
     this._elapsed = 0;
     this._fired   = false;

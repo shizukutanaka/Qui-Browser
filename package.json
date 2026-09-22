@@ -65,7 +65,7 @@
     "hand-tracking"
   ],
   "dependencies": {
-    "three": "^0.181.0",
+    "three": "^0.186.0",
     "web-vitals": "^5.3.0"
   },
   "devDependencies": {

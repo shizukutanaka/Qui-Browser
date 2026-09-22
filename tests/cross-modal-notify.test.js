@@ -269,3 +269,34 @@ describe('webglContextLost / Restored messages — WCAG 4.1.3 graphics-state sta
     expect(webglContextRestoredMessage().toLowerCase()).toMatch(/restor/);
   });
 });
+
+describe('controller/webgl status messages — i18n parity (WCAG 3.1.1)', () => {
+  // Every other user-visible message in this module resolves through t();
+  // these four returned literal English, so a Japanese session announced
+  // controller and graphics state changes in English.
+  const { setLanguage } = require('../src/i18n/i18n.js');
+
+  test('controller messages resolve through the Japanese catalog', () => {
+    setLanguage('ja');
+    try {
+      expect(controllerDisconnectMessage('left')).toBe('左コントローラが切断されました');
+      expect(controllerDisconnectMessage('right')).toBe('右コントローラが切断されました');
+      expect(controllerDisconnectMessage('none')).toBe('コントローラが切断されました');
+      expect(controllerReconnectMessage('left')).toBe('左コントローラが再接続しました');
+      expect(controllerReconnectMessage('right')).toBe('右コントローラが再接続しました');
+      expect(controllerReconnectMessage('none')).toBe('コントローラが再接続しました');
+    } finally {
+      setLanguage('en');
+    }
+  });
+
+  test('graphics-state messages resolve through the Japanese catalog', () => {
+    setLanguage('ja');
+    try {
+      expect(webglContextLostMessage()).toBe('グラフィックスが一時停止 — 復元中');
+      expect(webglContextRestoredMessage()).toBe('グラフィックスを復元しました');
+    } finally {
+      setLanguage('en');
+    }
+  });
+});

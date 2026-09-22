@@ -52,6 +52,65 @@ describe('kunrei-shiki (JIS-style) romanization — Japanese users type si/ti/tu
   });
 });
 
+describe('romaji matcher reaches every declared key (xtsu/ltsu unreachable bug)', () => {
+  const ime = new JapaneseIME();
+  // 'xtsu'/'ltsu' are 4-char keys; the matcher hard-capped at 3, so a DECLARED
+  // key could never match — 'xtsu' escaped as raw 'x' + unconverted 'tsu'.
+  test.each([
+    ['xtsu', 'っ'], ['ltsu', 'っ'], ['ltu', 'っ'], ['xwa', 'ゎ'], ['lwa', 'ゎ'],
+    ['xka', 'ゕ'], ['xke', 'ゖ'], ['lka', 'ゕ'], ['lke', 'ゖ'], ['xwi', 'ゐ'], ['xwe', 'ゑ']
+  ])('%s => %s', (romaji, expected) => {
+    expect(ime.convertRomajiToHiragana(romaji)).toBe(expected);
+  });
+});
+
+describe('extended romaji rows (JIS X 4063 / mainstream-IME spellings)', () => {
+  const ime = new JapaneseIME();
+  // Measured gap: 'she' produced 'sへも', 'file'/'fire' left raw romaji
+  // mangled into the kana — the table had no f-/wh-/q-/ts-/th-/dh-/tw-/dw-/
+  // l- rows. These are the spellings Mozc/MS-IME users actually produce.
+  test.each([
+    ['fa', 'ふぁ'], ['fi', 'ふぃ'], ['fe', 'ふぇ'], ['fo', 'ふぉ'],
+    ['fya', 'ふゃ'], ['fyu', 'ふゅ'], ['fyo', 'ふょ'],
+    ['fwa', 'ふぁ'], ['fwu', 'ふぅ'], ['fwe', 'ふぇ'], ['fwo', 'ふぉ'],
+    ['va', 'ゔぁ'], ['vi', 'ゔぃ'], ['vu', 'ゔ'], ['ve', 'ゔぇ'], ['vo', 'ゔぉ'],
+    ['wha', 'うぁ'], ['whi', 'うぃ'], ['whu', 'う'], ['whe', 'うぇ'], ['who', 'うぉ'],
+    ['wyi', 'ゐ'], ['wye', 'ゑ'],
+    ['qa', 'くぁ'], ['qi', 'くぃ'], ['qu', 'く'], ['qe', 'くぇ'], ['qo', 'くぉ'],
+    ['qwa', 'くぁ'], ['qwi', 'くぃ'], ['qwe', 'くぇ'], ['qwo', 'くぉ'],
+    ['kwa', 'くぁ'], ['kwi', 'くぃ'], ['kwu', 'くぅ'], ['kwe', 'くぇ'], ['kwo', 'くぉ'],
+    ['gwa', 'ぐぁ'], ['gwi', 'ぐぃ'], ['gwu', 'ぐぅ'], ['gwe', 'ぐぇ'], ['gwo', 'ぐぉ'],
+    ['tsa', 'つぁ'], ['tsi', 'つぃ'], ['tse', 'つぇ'], ['tso', 'つぉ'],
+    ['tha', 'てゃ'], ['thi', 'てぃ'], ['thu', 'てゅ'], ['the', 'てぇ'], ['tho', 'てょ'],
+    ['dha', 'でゃ'], ['dhi', 'でぃ'], ['dhu', 'でゅ'], ['dhe', 'でぇ'], ['dho', 'でょ'],
+    ['twa', 'とぁ'], ['twi', 'とぃ'], ['twu', 'とぅ'], ['twe', 'とぇ'], ['two', 'とぉ'],
+    ['dwa', 'どぁ'], ['dwi', 'どぃ'], ['dwu', 'どぅ'], ['dwe', 'どぇ'], ['dwo', 'どぉ'],
+    ['yi', 'い'], ['ye', 'いぇ'],
+    ['she', 'しぇ'], ['je', 'じぇ'], ['che', 'ちぇ'],
+    ['kye', 'きぇ'], ['gye', 'ぎぇ'], ['sye', 'しぇ'], ['zye', 'じぇ'],
+    ['nye', 'にぇ'], ['hye', 'ひぇ'], ['mye', 'みぇ'], ['rye', 'りぇ'],
+    ['bye', 'びぇ'], ['pye', 'ぴぇ'], ['jye', 'じぇ'], ['dye', 'でぇ'],
+    ['kyi', 'きぃ'], ['nyi', 'にぃ'], ['myi', 'みぃ'], ['tyi', 'てぃ'], ['dyi', 'でぃ'],
+    ['jya', 'じゃ'], ['jyu', 'じゅ'], ['jyo', 'じょ'],
+    ['ca', 'か'], ['ci', 'し'], ['cu', 'く'], ['ce', 'せ'], ['co', 'こ'],
+    ['la', 'ぁ'], ['li', 'ぃ'], ['lu', 'ぅ'], ['le', 'ぇ'], ['lo', 'ぉ'],
+    ['lya', 'ゃ'], ['lyu', 'ゅ'], ['lyo', 'ょ']
+  ])('%s => %s', (romaji, expected) => {
+    expect(ime.convertRomajiToHiragana(romaji)).toBe(expected);
+  });
+
+  test.each([
+    ['fire', 'ふぃれ'],
+    ['file', 'ふぃぇ'],   // fi + le (l- = x- small-kana alias, per Mozc)
+    ['fairu', 'ふぁいる'],
+    ['tottemo', 'とっても'],   // sokuon inside a real word
+    ['tsunami', 'つなみ'],
+    ['kyoukasho', 'きょうかしょ']
+  ])('%s => %s', (romaji, expected) => {
+    expect(ime.convertRomajiToHiragana(romaji)).toBe(expected);
+  });
+});
+
 describe('JapaneseIME — deleteLast katakana arm', () => {
   test('deleteLast converts through katakana when inputMode is katakana', () => {
     const ime = new JapaneseIME();

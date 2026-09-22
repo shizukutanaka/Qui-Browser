@@ -39,14 +39,24 @@ export class DeviceCompatibility {
    * Meta Browser and Pico Browser respectively.
    */
   _detectTier(ua) {
+    // 'Quest 3' intentionally matches 'Quest 3S' too — same SoC and the same
+    // published 120Hz ceiling, so the tier carries the same target.
     if (/Quest 3/.test(ua) || /Quest\/3/.test(ua)) {
       return 'quest3';
     }
     if (/Quest 2/.test(ua) || /Quest\/2/.test(ua)) {
       return 'quest2';
     }
-    if (/Pico Neo 4/.test(ua) || /PicoNeo4/.test(ua) || /Pico 4/.test(ua)) {
+    if (/Quest Pro/.test(ua)) {
+      return 'quest-pro';
+    }
+    // Pico UAs are not consistently cased: Pico 4 Ultra reports 'PICO 4
+    // Ultra' in PicoBrowser, which a case-sensitive /Pico 4/ misses entirely.
+    if (/Pico Neo 4/i.test(ua) || /PicoNeo4/i.test(ua) || /Pico 4/i.test(ua)) {
       return 'pico4';
+    }
+    if (/Pico Neo 3/i.test(ua) || /PicoNeo3/i.test(ua) || /Pico 3/i.test(ua)) {
+      return 'pico-neo3';
     }
     if (/Android/.test(ua) && /XR/.test(ua)) {
       return 'android-xr';
@@ -65,10 +75,12 @@ export class DeviceCompatibility {
       return 72;
     }
     switch (this.report.deviceTier) {
-    case 'quest3':   return 120;
-    case 'quest2':   return 90;
-    case 'pico4':    return 90;
-    default:         return 72;
+    case 'quest3':     return 120;
+    case 'quest2':     return 90;
+    case 'quest-pro':  return 90;
+    case 'pico4':      return 90;
+    case 'pico-neo3':  return 90;
+    default:           return 72;
     }
   }
 }

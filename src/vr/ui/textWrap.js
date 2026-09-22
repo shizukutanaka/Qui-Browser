@@ -109,7 +109,32 @@ const KIN_END = new Set(Array.from(
 ));
 
 export function charWidthEm(cp) {
-  if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf)) {
+  // Zero rendered width, checked before the width ranges below — some of
+  // these code points sit inside a wide range (0x3099 combining dakuten is
+  // inside the kana block) and would otherwise count a full em for ink they
+  // never draw. Combining marks, variation selectors, joiners, bidi/format
+  // controls and tag characters all consume no advance of their own.
+  if (
+    (cp >= 0x0300 && cp <= 0x036f) ||   // combining diacritical marks
+    cp === 0x3099 || cp === 0x309a ||   // combining dakuten/handakuten (inside kana range)
+    cp === 0x00ad || cp === 0x061c ||   // soft hyphen, Arabic letter mark
+    cp === 0x180e || cp === 0xfeff ||   // Mongolian vowel sep, BOM/ZWNBSP
+    (cp >= 0x1ab0 && cp <= 0x1aff) ||   // combining marks extended
+    (cp >= 0x1dc0 && cp <= 0x1dff) ||   // combining marks supplement
+    (cp >= 0x20d0 && cp <= 0x20ff) ||   // combining marks for symbols (keycap 20E3)
+    (cp >= 0xfe20 && cp <= 0xfe2f) ||   // combining half marks
+    (cp >= 0xfe00 && cp <= 0xfe0f) ||   // variation selectors 1-16
+    (cp >= 0x200b && cp <= 0x200f) ||   // ZWSP, ZWNJ, ZWJ, LRM, RLM
+    (cp >= 0x202a && cp <= 0x202e) ||   // bidi embeddings/overrides
+    (cp >= 0x2060 && cp <= 0x2064) ||   // word joiner, invisible operators
+    (cp >= 0x2066 && cp <= 0x2069) ||   // bidi isolates
+    (cp >= 0xe0020 && cp <= 0xe007f) || // tag characters (subdivision flags)
+    (cp >= 0xe0100 && cp <= 0xe01ef)    // variation selectors supplement
+  ) {
+    return 0;
+  }
+  if ((cp >= 0x1f300 && cp <= 0x1faff) || (cp >= 0x2600 && cp <= 0x27bf) ||
+      (cp >= 0x1f1e6 && cp <= 0x1f1ff)) { // regional indicators — below 1F300, Wide per UAX #11
     return EMOJI_EM;
   }
   // U+2026 is not East Asian but renders a full em in sans-serif. Every
@@ -138,11 +163,22 @@ export function charWidthEm(cp) {
   return HALFWIDTH_EM;
 }
 
-/** Total advance width of a string in em units. */
+/**
+ * Total advance width of a string in em units.
+ *
+ * Summed per grapheme cluster, not per code point — a code-point sum measures
+ * ink that does not exist: NFD kana (base + combining dakuten, which macOS
+ * paste favours) measured 2 em for 1 em of rendered glyph, a ZWJ family emoji
+ * measured 5.1 for ~1.3, a conjoined Hangul jamo block measured 2.2 for 1,
+ * and a bare ZWSP/format mark added 0.6 for nothing. The over-count was not
+ * theoretical: `truncateToWidth`'s fit check and `wrapTextToWidth`'s join
+ * budget both run on this, so NFD/emoji text truncated and wrapped at half
+ * its real capacity.
+ */
 export function textWidthEm(text) {
   let w = 0;
-  for (const ch of String(text === null || text === undefined ? '' : text)) {
-    w += charWidthEm(ch.codePointAt(0));
+  for (const g of graphemes(String(text === null || text === undefined ? '' : text))) {
+    w += graphemeWidthEm(g);
   }
   return w;
 }
