@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 121: 続き279 — 字幕 OFF 中の show() がキューを蓄積し、ON 復帰で古い字幕が復活
+- 🔍 **実測（コード追跡）**: `CaptionSystem.show()` は `enabled` を見ずに常時 `_lines` へ push する。VRApp/crossModal の全 ~40 呼出側は `captionSystem.enabled` でゲート済みだが、**VoiceCommands の `onTranscript`/`onSpeak` コールバック（VRApp 2769-2779）だけ未ゲート** — 字幕 OFF + 音声 ON の状態で final 転写・応答発話が最大 maxLines=3 まで無言で蓄積する。`update()` は disabled で早期 return するため行は老化せず、**後から字幕を ON にした瞬間、数分前の文脈のない転写が満時間の remaining で復活表示**される可視欠陥（「off は off」の期待と、再表示される字幕が直前の出来事を示すという利用者の推論の両方を裏切る — WCAG 4.1.3 の文脈不整合）。
+- 🔧 **修正**: `show()` を `NFC 正規化 → onShow 発火 → enabled ゲート → queue` の順へ再編。`onShow`（SemanticDOM ARIA ミラー）は別サーフェスであり、視覚字幕トグルの有無にかかわらず従来通り全 show() 呼出で発火を維持 — 字幕 OFF を選ぶスクリーンリーダー利用者のアナウンス経路を失わない。`enabled=false` の間は視覚キューに積まないため、未ゲートの将来の呼出側でも同じ罠は再発しない。`if (this.enabled && this.mesh)` の二重条件は `enabled` 到達後は不要になるため `this.mesh` のみに簡約。
+- 🧪 pin 2件＋既存維持: ①disabled で show() → lineCount 0・mesh 非表示・onShow は発火（ARIA ミラー存続を同時 pin）②enable→show→disable→show('stale')→enable で stale が復活しない。両件 src stash 検証で pre-fix 赤・post-fix 緑。旧挙動に依存していた 1件（enabled 未設定で show する overlong テスト）は sibling と同じ `setEnabled(true)` を明示して回収。
+- ✅ 3232 tests / 73 suites 全緑（#223 マージ込み）、lint 0 errors（354 warnings ベースライン）、build 緑。
+
 ### Session 113: 続き271 — XRQuadLayer が reference-space 原点に合成される（transform 未設定 + 非表示タブの残滓）
 - 🔍 **実測**: `_attachPanelLayer` は `createQuadLayer` に `transform` を一度も渡さず、`updateLayer` は `_layerDirty` の時に画素を blit するだけで `layer.transform` に一切触れない。XRQuadLayer はパネル group の子ではなく XR ランタイムが自身の transform で合成するため、**ネイティブ chrome bar は reference-space 原点に固定描画**され、grab-to-move・follow mode・タブ切替でパネルが動いても取り残される。さらに `setVisible(false)` で非表示にしたタブの layer は render state に残ったまま — パネル無しの chrome bar が宙に浮く。
 - 🔧 **修正**: ①`WebPanel.updateLayer` を再構成 — `group.visible === false` で早期 return、毎フレーム `_syncLayerTransform()` を走らせてから dirty の時だけ blit。`_syncLayerTransform` は `chromeMesh` の world 姿勢（`updateWorldMatrix` → `getWorldPosition`/`getWorldQuaternion`/`getWorldScale`）を `layer.transform`（XRRigidTransform、無ければ plain object）に書き込み、angular-constant の world scale を `width`/`height` にも反映。姿勢不変時は同一オブジェクトを再利用して per-frame alloc を回避。②`setVisible(false)`/`hide()` で `disableLayerMode()` を呼び detach コールバック経由で layer を解放（`_syncPanelLayers` が再表示時に再 attach、それまでは mesh 経路で描画）。③`VRApp._attachPanelLayer` は `group.visible === false` のパネルを skip — 非表示タブには layer を張らない。

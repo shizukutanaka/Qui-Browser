@@ -179,6 +179,30 @@ describe('CaptionSystem (FR-13.1)', () => {
     expect(cs.lineCount).toBe(0);
   });
 
+  // The VoiceCommands transcript/spoken-response callbacks call show() without
+  // checking enabled (every other producer gates on it) — queueing while
+  // disabled accumulated invisible lines that resurfaced stale on re-enable.
+  test('show() while disabled does not queue, but still fires onShow', () => {
+    const onShow = jest.fn();
+    const off = new CaptionSystem(cam, { onShow });
+    // enabled === false by construction (never setEnabled(true))
+    off.show('transcript while captions off');
+    expect(off.lineCount).toBe(0);
+    expect(off.mesh.visible).toBe(false);
+    // The ARIA mirror is a separate surface — it must keep announcing.
+    expect(onShow).toHaveBeenCalledWith('transcript while captions off');
+  });
+
+  test('lines pushed while disabled do not resurface on re-enable', () => {
+    cs.setEnabled(true);
+    cs.show('fresh');
+    cs.setEnabled(false);
+    cs.show('stale transcript');
+    cs.setEnabled(true);
+    expect(cs.lineCount).toBe(0);
+    expect(cs.mesh.visible).toBe(false);
+  });
+
   test('long captions wrap across rows instead of being cut at one line', () => {
     cs.setEnabled(true);
     const sentence = 'the quick brown fox jumps over the lazy dog and keeps on running';
@@ -508,6 +532,7 @@ describe('CaptionSystem — remaining branch arms', () => {
 
   test('an overlong caption stays a single line entry — wrapping happens at draw', () => {
     const cs = new CaptionSystem(makeCamera(), { maxLines: 3 });
+    cs.setEnabled(true); // queueing requires captions on — the others do this too
     cs.show('x'.repeat(500));
     // the single line is truncated with '…' — no crash, lines length 1
     expect(cs.lineCount).toBe(1);
