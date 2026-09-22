@@ -2456,7 +2456,7 @@ describe('VRApp onVRSessionStart/onVRSessionEnd — the session boundary (bound 
       handTracking: hand
     });
     await VRApp.prototype.onVRSessionStart.call(app);
-    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
+    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'fist')[1];
     grabCb('left');
     expect(app.hapticFeedback.playPattern).toHaveBeenCalledWith('left', 'impact');
     const pointCb = hand.onGesture.mock.calls.find((c) => c[0] === 'point')[1];
@@ -4770,7 +4770,7 @@ describe('VRApp — complementary arms round 4', () => {
     await VRApp.prototype.onVRSessionStart.call(app);
     const pinchCb = hand.onGesture.mock.calls.find((c) => c[0] === 'pinch')[1];
     expect(() => pinchCb('right', {})).not.toThrow(); // haptic absent guard
-    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'grab')[1];
+    const grabCb = hand.onGesture.mock.calls.find((c) => c[0] === 'fist')[1];
     expect(() => grabCb('left')).not.toThrow();
   });
 
