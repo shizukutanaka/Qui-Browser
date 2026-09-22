@@ -59,6 +59,7 @@ export class ImmersiveVideo {
     this._layout = 'mono';
     this._eyeTextures = []; // VideoTextures (disposed on stop)
     this._panelTextures = []; // CanvasTextures for the HUD buttons
+    this._stereoLayersOn = false; // camera layers we enabled (restored on stop)
     this._playPauseBtn = null;
     this._tmpVec = new THREE.Vector3();
   }
@@ -197,6 +198,26 @@ export class ImmersiveVideo {
       xrCam.cameras[0].layers.enable(1);
       xrCam.cameras[1].layers.enable(2);
     }
+    this._stereoLayersOn = true;
+  }
+
+  /** Restore the camera layers _enableStereoLayers mutated: leaving them on
+   *  after the video ends means the main + per-eye cameras keep rendering
+   *  anything tagged to layers 1/2 — shared state the player must hand back. */
+  _disableStereoLayers() {
+    if (!this._stereoLayersOn) {
+      return;
+    }
+    this._stereoLayersOn = false;
+    this.camera?.layers?.disable(1);
+    this.camera?.layers?.disable(2);
+    const xrCam = this.renderer?.xr?.getCamera ? this.renderer.xr.getCamera() : null;
+    if (xrCam && Array.isArray(xrCam.cameras)) {
+      for (const eye of xrCam.cameras) {
+        eye.layers?.disable(1);
+        eye.layers?.disable(2);
+      }
+    }
   }
 
   /** Small HUD (Pause/Exit) parented to the camera so it stays in view. */
@@ -321,6 +342,8 @@ export class ImmersiveVideo {
       }
     }
     this.meshes = [];
+
+    this._disableStereoLayers();
 
     for (const t of this._eyeTextures) {
       t.dispose();
