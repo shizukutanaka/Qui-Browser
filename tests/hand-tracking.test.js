@@ -555,6 +555,51 @@ describe('HandTracking.onInputSourcesChange', () => {
     ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'none' }] });
     expect(ht.leftHand.visible).toBe(true);
   });
+
+  test('announces the loss for a removed source that was visible', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.leftHand = new MockObj(); // MockObj defaults visible=true
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([['left', false]]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('does not announce a removal for an already-hidden hand', () => {
+    const ht = new HandTracking({}, new MockObj());
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.leftHand = new MockObj();
+    ht.leftHand.visible = false;
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('update() after a removal does not re-announce (single-fire)', () => {
+    const scene = new MockObj();
+    const ht = new HandTracking({}, scene);
+    const calls = [];
+    ht._onTrackingChange = (h, tracked) => calls.push([h, tracked]);
+    ht.enabled = true;
+    ht.leftHand = { visible: true };
+    ht.rightHand = { visible: false };
+    ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] });
+    expect(calls).toEqual([['left', false]]);
+    // Next frame: no input sources — the transition already fired, so the
+    // detector must not emit a second 'lost' announce.
+    ht.update({ session: { inputSources: [] }, getJointPose: () => null }, null);
+    expect(calls).toEqual([['left', false]]);
+    expect(ht.leftHand.visible).toBe(false);
+  });
+
+  test('tolerates a missing change callback and null hand groups', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht._onTrackingChange = null;
+    ht.leftHand = null;
+    expect(() => ht.onInputSourcesChange({ added: [], removed: [{ handedness: 'left' }] })).not.toThrow();
+  });
 });
 
 describe('HandTracking — remaining guard arms', () => {

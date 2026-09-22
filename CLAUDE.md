@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 116: 続き274 — inputsourceschange 除去時だけ hand-lost アナウンスが欠落（WCAG 4.1.3）
+- 🔍 **実測**: `HandTracking.onInputSourcesChange` が `handGroup.visible = false` を**直接**書き換えていた。遷移検出は `update()` のフレーム先頭スナップショット `prevVisible` と `seen` フラグの比較で行うため、先に `visible` が消されると `prevVisible === nowTracked`（false===false）となり `_onTrackingChange` が**永遠に発火しない** — 一時的な視野外消失（seen=false → 'lost' 発火）は正しく機能するのに、最も確定的な消失イベント（ランタイムが入力ソースを除去: ハンドトラッキング→コントローラ切替・ソース永続ドロップ）だけが沈黙していた。発火先は VRApp で 600ms デバウンス経由の "Left/Right hand lost" キャプション。
+- 🔧 **修正**: 除去ループで `handGroup.visible` が true の間だけ `_onTrackingChange(handedness, false)` を先に発火し、その後 `visible=false`（即時 hide の UX は保持）。非表示済みの手は二重発火しない。加えて `handedness` が 'left'/'right' 以外・hand group 未構築の経路で `this.leftHand.visible` へのアクセスが TypeError になり得た分岐もガードで解消（`null` handGroup は `continue`）。
+- 🧪 pin 4件（hand-tracking.test.js の onInputSourcesChange describe）: 可視手の除去 → ('left',false) 発火+hide・非表示手の除去 → 不発・除去後の update() が再発火しない単発性・callback null + handGroup null で非 throw。3件が pre-fix 赤・post-fix 緑（実装前実行で確認 — うち1件は既存の TypeError クラッシュを実測検出）、残1件は非表示手 guard。
+- ✅ 3230 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。

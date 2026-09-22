@@ -503,13 +503,21 @@ export class HandTracking {
       removed: event.removed.length
     });
 
-    // Hide hands that are no longer tracked
+    // Hide hands that are no longer tracked. Announce the loss FIRST:
+    // update()'s transition detector compares the frame-start visibility
+    // against the seen flag, so clearing `visible` here directly would make
+    // a removed input source invisible to it — the one path that never
+    // produced a "hand lost" status (WCAG 4.1.3).
     for (const source of event.removed) {
-      if (source.handedness === 'left') {
-        this.leftHand.visible = false;
-      } else if (source.handedness === 'right') {
-        this.rightHand.visible = false;
+      const handGroup = source.handedness === 'left' ? this.leftHand
+        : source.handedness === 'right' ? this.rightHand : null;
+      if (!handGroup) {
+        continue;
       }
+      if (handGroup.visible && this._onTrackingChange) {
+        this._onTrackingChange(source.handedness, false);
+      }
+      handGroup.visible = false;
     }
   }
 
