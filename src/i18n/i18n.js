@@ -87,6 +87,14 @@ export const CATALOG = {
     'vr.msg.proxyCleared': 'Reader proxy cleared — direct fetch only',
     'vr.error.proxyInvalid': 'Invalid proxy URL — use http(s), no credentials',
     'vr.prompt.proxyUrl': 'Reader proxy URL (empty to clear)',
+    'vr.prompt.enterUrl': 'Enter URL',
+    'vr.prompt.enterVideoUrl': 'Enter video URL',
+    // Colon-style caption prefixes — composed at the call site as
+    // `${t(prefix)}: ${hostname}` for status captions carrying a dynamic host.
+    'vr.msg.loadingPrefix': 'Loading',
+    'vr.msg.tabPrefix': 'Tab',
+    'vr.msg.topSitePrefix': 'Top site',
+    'vr.msg.openingPrefix': 'Opening',
     'vr.settings.highContrast': 'High Contrast',
     'vr.settings.captions': 'Captions',
     'vr.settings.gazeSelect': 'Gaze Select',
@@ -94,6 +102,11 @@ export const CATALOG = {
     'vr.settings.captionHold': 'Caption Hold',
     'vr.settings.captionSize': 'Caption Size',
     'vr.settings.captionHeight': 'Caption Height',
+    // Caption tracking option (a11y section cycle). Values shown by the
+    // button come from the captionFollow.* labels below, not the raw enum.
+    'vr.settings.captionFollow': 'Caption Follow',
+    'vr.settings.captionFollow.locked': 'Head-locked',
+    'vr.settings.captionFollow.lag': 'Lag (world-steady)',
     'vr.settings.soundVolume': 'Sound Volume',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'Teleport',
@@ -246,6 +259,12 @@ export const CATALOG = {
     'vr.msg.proxyCleared': 'リーダープロキシを解除しました — 直接取得のみ',
     'vr.error.proxyInvalid': 'プロキシ URL が不正です — http(s)・認証情報なしで指定してください',
     'vr.prompt.proxyUrl': 'リーダープロキシの URL（空で解除）',
+    'vr.prompt.enterUrl': 'URL を入力',
+    'vr.prompt.enterVideoUrl': '動画の URL を入力',
+    'vr.msg.loadingPrefix': '読み込み中',
+    'vr.msg.tabPrefix': 'タブ',
+    'vr.msg.topSitePrefix': 'よく使うサイト',
+    'vr.msg.openingPrefix': '開く',
     'vr.settings.highContrast': 'ハイコントラスト',
     'vr.settings.captions': 'キャプション',
     'vr.settings.gazeSelect': 'ゲーズ選択',
@@ -253,6 +272,11 @@ export const CATALOG = {
     'vr.settings.captionHold': 'キャプション保持時間',
     'vr.settings.captionSize': 'キャプションサイズ',
     'vr.settings.captionHeight': '字幕の高さ',
+    // 字幕の追従方式（アクセシビリティ節の切替）— 値の表示名は下の
+    // captionFollow.* キーが使われる（生の enum 値は出さない）。
+    'vr.settings.captionFollow': '字幕の追従',
+    'vr.settings.captionFollow.locked': '頭に固定',
+    'vr.settings.captionFollow.lag': '追従（その場に残る）',
     'vr.settings.soundVolume': '音量',
     // VR Settings Panel Labels (Locomotion)
     'vr.settings.teleport': 'テレポート',

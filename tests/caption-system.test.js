@@ -12,6 +12,51 @@ class MockMaterial {
     Object.assign(this, o);
   } dispose() {}
 }
+class MockVector3 {
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x; this.y = y; this.z = z;
+    this.set = jest.fn((nx = 0, ny = 0, nz = 0) => {
+      this.x = nx; this.y = ny; this.z = nz;
+      return this; // THREE setters chain
+    });
+  }
+  copy(v) {
+    this.x = v.x; this.y = v.y; this.z = v.z;
+    return this;
+  }
+  lerp(v, a) {
+    this.x += (v.x - this.x) * a;
+    this.y += (v.y - this.y) * a;
+    this.z += (v.z - this.z) * a;
+    return this;
+  }
+  distanceTo(v) {
+    return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z);
+  }
+}
+class MockQuaternion {
+  constructor() {
+    this.x = 0; this.y = 0; this.z = 0; this.w = 1;
+  }
+  identity() {
+    this.x = 0; this.y = 0; this.z = 0; this.w = 1;
+    return this;
+  }
+  copy(q) {
+    this.x = q.x; this.y = q.y; this.z = q.z; this.w = q.w;
+    return this;
+  }
+  angleTo(q) {
+    // L1 component distance — the tests only need "same or far apart".
+    return Math.abs(this.x - q.x) + Math.abs(this.y - q.y)
+      + Math.abs(this.z - q.z) + Math.abs(this.w - q.w);
+  }
+  slerp(q, a) {
+    this.x += (q.x - this.x) * a; this.y += (q.y - this.y) * a;
+    this.z += (q.z - this.z) * a; this.w += (q.w - this.w) * a;
+    return this;
+  }
+}
 class MockMesh {
   constructor(geometry, material) {
     this.geometry = geometry;
@@ -19,7 +64,8 @@ class MockMesh {
     this.name = '';
     this.visible = true;
     this.renderOrder = 0;
-    this.position = { set: jest.fn() };
+    this.position = new MockVector3();
+    this.quaternion = new MockQuaternion();
   }
 }
 class MockCanvasTexture {
@@ -34,6 +80,8 @@ jest.mock('three', () => ({
   MeshBasicMaterial: MockMaterial,
   Mesh: MockMesh,
   CanvasTexture: MockCanvasTexture,
+  Vector3: MockVector3,
+  Quaternion: MockQuaternion,
   SRGBColorSpace: 'srgb'
 }));
 
@@ -55,9 +103,52 @@ const {
   readingTimeMs
 } = require('../src/vr/accessibility/CaptionSystem.js');
 const { textWidthEm, WIDTH_SAFETY } = require('../src/vr/ui/textWrap.js');
+const {
+  captionFollowAlpha, CAPTION_FOLLOW_TAU_MS,
+  CAPTION_FOLLOW_MODES
+} = require('../src/vr/accessibility/captionLayout.js');
 
 function makeCamera() {
   return { add: jest.fn(), remove: jest.fn() };
+}
+
+// A camera whose transform calls exist, as a real THREE.Camera does. Its
+// world transform is the identity, so localToWorld passes the anchor
+// (0, verticalOffset, -2) through unchanged — easy to assert against.
+function makeRigCamera() {
+  const cam = {};
+  cam.add = jest.fn((m) => {
+    m.parent = cam;
+  });
+  cam.remove = jest.fn((m) => {
+    if (m.parent === cam) {
+      m.parent = null;
+    }
+  });
+  cam.localToWorld = jest.fn((v) => v);
+  cam.getWorldQuaternion = jest.fn((q) => {
+    q.identity();
+    return q;
+  });
+  cam.updateWorldMatrix = jest.fn();
+  return cam;
+}
+
+// A scene/rig container that tracks parentage the way THREE.Object3D does.
+function makeParent() {
+  const host = {};
+  host.children = new Set();
+  host.add = jest.fn((m) => {
+    host.children.add(m);
+    m.parent = host;
+  });
+  host.remove = jest.fn((m) => {
+    host.children.delete(m);
+    if (m.parent === host) {
+      m.parent = null;
+    }
+  });
+  return host;
 }
 
 describe('CaptionSystem (FR-13.1)', () => {
@@ -646,5 +737,170 @@ describe('CaptionSystem — texture without colorSpace', () => {
     } finally {
       THREE.CanvasTexture = Original;
     }
+  });
+});
+
+describe('captionFollowAlpha (lag easing maths)', () => {
+  test('is frame-rate independent exponential smoothing', () => {
+    expect(captionFollowAlpha(0)).toBe(0);
+    expect(captionFollowAlpha(-5)).toBe(0);
+    expect(captionFollowAlpha(NaN)).toBe(0);
+    expect(captionFollowAlpha('nope')).toBe(0);
+    // a(dt) = 1 − e^(−dt/τ): one time constant blends ~63 %.
+    expect(captionFollowAlpha(CAPTION_FOLLOW_TAU_MS))
+      .toBeCloseTo(1 - Math.exp(-1), 6);
+    expect(captionFollowAlpha(100))
+      .toBeCloseTo(1 - Math.exp(-100 / CAPTION_FOLLOW_TAU_MS), 6);
+    // monotonic, bounded below 1
+    expect(captionFollowAlpha(5000)).toBeLessThan(1);
+    expect(captionFollowAlpha(5000)).toBeGreaterThan(captionFollowAlpha(100));
+  });
+
+  test('declares exactly the two study-backed modes (no "appear")', () => {
+    // arXiv:2210.15072 compared head-locked, lag and appear-locked; appear
+    // was the least comfortable and is deliberately not offered.
+    expect(CAPTION_FOLLOW_MODES).toEqual(['locked', 'lag']);
+  });
+});
+
+describe('CaptionSystem — follow mode (locked vs lag, arXiv:2210.15072)', () => {
+  function lagSetup(opts = {}) {
+    const scene = makeParent();
+    const cam = makeRigCamera();
+    const cs = new CaptionSystem(cam, {
+      lineDuration: 10000, followMode: 'lag', worldParent: scene, ...opts
+    });
+    return { scene, cam, cs };
+  }
+
+  test('defaults to locked — the mesh stays a camera child', () => {
+    const cam = makeRigCamera();
+    const cs = new CaptionSystem(cam, {});
+    expect(cs.followMode).toBe('locked');
+    expect(cs.mesh.parent).toBe(cam);
+  });
+
+  test('unknown mode falls back to locked', () => {
+    const cam = makeRigCamera();
+    const cs = new CaptionSystem(cam, { followMode: 'sideways' });
+    expect(cs.followMode).toBe('locked');
+    expect(cs.mesh.parent).toBe(cam);
+    expect(cs.setFollowMode('sideways')).toBe('locked');
+  });
+
+  test('lag reparents the panel into world space', () => {
+    const { scene, cam, cs } = lagSetup();
+    expect(cs.followMode).toBe('lag');
+    expect(cs.mesh.parent).toBe(scene);
+    expect(scene.add).toHaveBeenCalledWith(cs.mesh);
+    expect(cam.add).toHaveBeenCalledTimes(1); // only the build-time add
+    expect(scene.children.has(cs.mesh)).toBe(true);
+  });
+
+  test('lag falls back to the camera\'s own parent without worldParent', () => {
+    const rig = makeParent();
+    const cam = makeRigCamera();
+    rig.add(cam); // camera lives under a rig, as in VRApp
+    const cs = new CaptionSystem(cam, { followMode: 'lag' });
+    expect(cs.mesh.parent).toBe(rig);
+  });
+
+  test('the first lagged frame snaps to the head anchor, not drifts in', () => {
+    const { cam, cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.show('anchor');
+    cs.mesh.position.set(5, 5, 5); // parked arbitrarily far away
+    cs.update(16);
+    expect(cam.localToWorld).toHaveBeenCalled();
+    expect(cs.mesh.position.x).toBeCloseTo(0, 5);
+    expect(cs.mesh.position.y).toBeCloseTo(cs.verticalOffset, 5);
+    expect(cs.mesh.position.z).toBeCloseTo(-2.0, 5);
+  });
+
+  test('a small pose error eases toward the anchor instead of snapping', () => {
+    const { cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.show('drift');
+    cs.update(16); // snap frame — settles on the anchor
+    cs.mesh.position.x = 0.3; // inside the snap threshold
+    const a = captionFollowAlpha(16);
+    cs.update(16);
+    expect(cs.mesh.position.x).toBeCloseTo(0.3 * (1 - a), 5);
+  });
+
+  test('a large pose error snaps — snap-turns must not sweep text', () => {
+    const { cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.show('snap');
+    cs.update(16);
+    cs.mesh.position.x = 2.0; // past CAPTION_FOLLOW_SNAP_M
+    const lerpSpy = jest.spyOn(cs.mesh.position, 'lerp');
+    cs.update(16);
+    expect(lerpSpy).not.toHaveBeenCalled();
+    expect(cs.mesh.position.x).toBeCloseTo(0, 5);
+  });
+
+  test('re-showing a hidden lagged panel snaps it to the head', () => {
+    const { cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.show('first');
+    cs.update(16);
+    cs.clear(); // hides the mesh
+    cs.mesh.position.x = 0.2; // inside the snap threshold — ease would leave >0
+    cs.show('again');
+    cs.update(16);
+    expect(cs.mesh.position.x).toBe(0);
+  });
+
+  test('a hidden or empty lagged panel never runs the follow step', () => {
+    const { cam, cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.update(16); // no lines queued — early return
+    expect(cam.localToWorld).not.toHaveBeenCalled();
+  });
+
+  test('setVerticalOffset moves the follow target, not the world mesh directly', () => {
+    const { cs } = lagSetup();
+    cs.setEnabled(true);
+    cs.show('height');
+    cs.update(16); // snapped at y = -0.55
+    cs.setVerticalOffset(-0.3);
+    expect(cs.verticalOffset).toBeCloseTo(-0.3, 5);
+    // The world-space panel must not teleport on a settings change — it eases
+    // toward the new anchor on the next frames instead.
+    expect(cs.mesh.position.y).toBeCloseTo(-0.55, 5);
+    cs.update(16);
+    expect(cs.mesh.position.y).toBeGreaterThan(-0.55);
+    expect(cs.mesh.position.y).toBeLessThan(-0.3);
+  });
+
+  test('switching back to locked restores the camera-local anchor', () => {
+    const { scene, cam, cs } = lagSetup();
+    cs.mesh.position.set(4, 4, 4);
+    cs.setFollowMode('locked');
+    expect(cs.followMode).toBe('locked');
+    expect(scene.remove).toHaveBeenCalledWith(cs.mesh);
+    expect(cs.mesh.parent).toBe(cam);
+    expect(cs.mesh.position.set)
+      .toHaveBeenLastCalledWith(0, cs.verticalOffset, -2.0);
+    expect(cs.mesh.quaternion.w).toBe(1); // identity restored
+  });
+
+  test('a locked panel never runs the follow step', () => {
+    const cam = makeRigCamera();
+    const cs = new CaptionSystem(cam, { lineDuration: 10000 });
+    cs.setEnabled(true);
+    cs.show('locked');
+    cs.update(16);
+    expect(cam.localToWorld).not.toHaveBeenCalled();
+  });
+
+  test('dispose removes the panel from its actual parent (world, not camera)', () => {
+    const { scene, cam, cs } = lagSetup();
+    const mesh = cs.mesh;
+    cs.dispose();
+    expect(scene.remove).toHaveBeenCalledWith(mesh);
+    // camera.remove fired once during the lag reparent — not again at dispose
+    expect(cam.remove).toHaveBeenCalledTimes(1);
   });
 });

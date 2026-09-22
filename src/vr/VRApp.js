@@ -23,6 +23,7 @@ import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
+import { CAPTION_FOLLOW_MODES } from './accessibility/captionLayout.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
 import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
@@ -116,6 +117,12 @@ export function defaultSettings() {
     // eye-tracking subtitle studies show the comfortable height varies
     // widely per user. Live stepper in the settings panel.
     captionHeight: -0.55,
+    // Caption tracking: 'locked' glues the panel to the head; 'lag' leaves it
+    // world-steady and eases it back into place. Head-locked was the broad
+    // favourite in the DHH caption-behaviour study this option implements
+    // (arXiv:2210.15072 — ~82.5 %), but preference was genuinely split and
+    // the study recommends offering the choice.
+    captionFollow: 'locked',
     // Master spatial-audio volume as a percentage (0 = muted, 100 = full).
     // Wired to SpatialAudio.setMasterVolume via a settings-panel stepper so
     // users can lower or mute audio (audio-sensitivity / preference).
@@ -883,7 +890,7 @@ export class VRApp {
           // Immediate "Loading" caption so caption-reliant users know what URL
           // was submitted before the page loads (WCAG 4.1.3).
           if (url && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(url)}`);
           }
         }),
       searchEngine: this.settings.searchEngine,
@@ -899,7 +906,7 @@ export class VRApp {
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
-          this.captionSystem.show(`Tab: ${label}`);
+          this.captionSystem.show(`${t('vr.msg.tabPrefix')}: ${label}`);
         }
       },
       onTabClose: () => {
@@ -969,7 +976,7 @@ export class VRApp {
           active.navigate(url);
         }
         if (this.captionSystem && this.captionSystem.enabled && url) {
-          this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+          this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(url)}`);
         }
       },
       onDeleteBookmark: () => {
@@ -1335,8 +1342,11 @@ export class VRApp {
    * @param {string}   key     setting key in this.settings
    * @param {string[]} options ordered list of allowed values
    * @param {Function} [apply] called with newValue after each cycle step
+   * @param {Object<string,string>} [labels] per-option display text; without
+   *   it the raw option value is shown (fine for names like 'duckduckgo', but
+   *   jargon like 'lag' should get a translated label).
    */
-  makeCycleButton(label, key, options, apply) {
+  makeCycleButton(label, key, options, apply, labels) {
     const w = 512;
     const h = 96;
     const canvas = document.createElement('canvas');
@@ -1361,7 +1371,8 @@ export class VRApp {
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
       ctx.fillStyle = buttonAccentColor('#ffcc88', hc);
-      ctx.fillText(`${current} ▸`, w - 24, 62);
+      const display = (labels && labels[current]) || current;
+      ctx.fillText(`${display} ▸`, w - 24, 62);
       tex.needsUpdate = true;
     };
     draw(false);
@@ -1379,11 +1390,13 @@ export class VRApp {
           apply(next);
         }
         draw(true);
-        this._announceSettingsButton('cycle', label, next, {}, true);
+        this._announceSettingsButton('cycle', label,
+          (labels && labels[next]) || next, {}, true);
       },
       onHover: () => {
         draw(true);
-        this._announceSettingsButton('cycle', label, this.settings[key]);
+        this._announceSettingsButton('cycle', label,
+          (labels && labels[this.settings[key]]) || this.settings[key]);
       },
       onHoverEnd: () => draw(false)
     });
@@ -1741,6 +1754,17 @@ export class VRApp {
         if (this.tabManager) {
           this.tabManager.setSearchEngine(v);
         }
+      }],
+      // Caption tracking behaviour — 'locked' tracks the head 1:1 (the broad
+      // preference in the DHH caption study behind this feature),
+      // 'lag' hangs world-steady and drifts back into place.
+      [t('vr.settings.captionFollow'), 'captionFollow', CAPTION_FOLLOW_MODES, (v) => {
+        if (this.captionSystem) {
+          this.captionSystem.setFollowMode(v);
+        }
+      }, {
+        locked: t('vr.settings.captionFollow.locked'),
+        lag: t('vr.settings.captionFollow.lag')
       }]
     ];
 
@@ -1786,7 +1810,7 @@ export class VRApp {
       ['settings.section.a11y',
         byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
-        [], []],
+        cycles.filter((c) => c[1] === 'captionFollow'), []],
       ['settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
         byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
@@ -1826,7 +1850,7 @@ export class VRApp {
       controls: [
         ...tg.map((e) => ({ wide: false, make: () => this.makeCompactToggleButton(e[0], e[1], e[2]) })),
         ...st.map((e) => ({ wide: true, make: () => this.makeStepperButton(e[0], e[1], e[2]) })),
-        ...cy.map((e) => ({ wide: true, make: () => this.makeCycleButton(e[0], e[1], e[2], e[3]) })),
+        ...cy.map((e) => ({ wide: true, make: () => this.makeCycleButton(e[0], e[1], e[2], e[3], e[4]) })),
         ...ac.map((a) => ({ wide: true, make: () => this.makeActionButton(a[0], a[1]) }))
       ]
     }));
@@ -2709,6 +2733,8 @@ export class VRApp {
       highContrast: prefersHighContrast(),
       lineDuration: this.settings.captionDuration * 1000,
       verticalOffset: this.settings.captionHeight,
+      followMode: this.settings.captionFollow,
+      worldParent: this.scene,
       onShow: (text) => this.semanticDOM?.announceCaption(text)
     });
     this.captionSystem.setEnabled(this.settings.enableCaptions);
@@ -2802,7 +2828,7 @@ export class VRApp {
             // caption-reliant users know their voice command was accepted
             // before the page finishes loading.
             if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(query)}`);
             }
             active.navigate(query);
           }
@@ -2817,7 +2843,7 @@ export class VRApp {
           const active = this.tabManager?.getActiveTab?.();
           if (top && active) {
             if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+              this.captionSystem.show(`${t('vr.msg.topSitePrefix')}: ${hostnameCaption(top.url)}`);
             }
             active.navigate(top.url);
           } else if (this.captionSystem && this.captionSystem.enabled) {
@@ -2838,13 +2864,13 @@ export class VRApp {
           if (hits.length > 0) {
             const hit = hits[0];
             if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+              this.captionSystem.show(`${t('vr.msg.openingPrefix')}: ${hostnameCaption(hit.url)}`);
             }
             active.navigate(hit.url);
           } else {
             // No frecency match — treat as URL or web search
             if (query && this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+              this.captionSystem.show(`${t('vr.msg.loadingPrefix')}: ${hostnameCaption(query)}`);
             }
             active.navigate(query);
           }
@@ -3742,7 +3768,7 @@ export class VRApp {
    * @param {string}   prefill   — initial text in the input buffer
    * @param {Function} onConfirm — called with the confirmed string
    */
-  _requestVRKeyboardInput(prefill, onConfirm, prompt = 'Enter URL') {
+  _requestVRKeyboardInput(prefill, onConfirm, prompt = t('vr.prompt.enterUrl')) {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
       this.japaneseIME.activate();
@@ -3765,7 +3791,7 @@ export class VRApp {
       // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
       // desktop/2D, where window.prompt is the correct input).
       // eslint-disable-next-line no-alert
-      const url = window.prompt('Enter URL', prefill);
+      const url = window.prompt(t('vr.prompt.enterUrl'), prefill);
       if (url) {
         onConfirm(url);
       }
@@ -3783,7 +3809,7 @@ export class VRApp {
         return;
       }
       this.immersiveVideo.play(url, detectVideoFormat(url));
-    }, 'Enter video URL');
+    }, t('vr.prompt.enterVideoUrl'));
   }
 
   /**

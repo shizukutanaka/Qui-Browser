@@ -30,12 +30,19 @@ class MockMesh {
 class MockGroup {
   constructor() {
     this.position = { set: jest.fn() }; this._objects = [];
+    this.parent = null;
   }
   add(o) {
     this._objects.push(o);
+    if (o && typeof o === 'object') {
+      o.parent = this; // mirror THREE.Object3D.add reparenting
+    }
   }
   remove(o) {
     this._objects = this._objects.filter(x => x !== o);
+    if (o && typeof o === 'object' && o.parent === this) {
+      o.parent = null;
+    }
   }
   traverse(fn) {
     this._objects.forEach(fn); fn(this);
@@ -519,6 +526,26 @@ describe('WebPanel curvature + visibility', () => {
     panel.addToScene(container);
     expect(container.add).toHaveBeenCalledWith(panel.group);
     expect(panel.scene.add).not.toHaveBeenCalledWith(panel.group);
+  });
+
+  test('dispose() detaches the group from a non-scene parent (TabManager rootGroup)', () => {
+    // Close-tab path: the panel was added to TabManager.rootGroup, so
+    // scene.remove(group) is a no-op and the tab's meshes keep rendering.
+    const panel = makePanel();
+    const container = new MockGroup();
+    panel.addToScene(container);
+    expect(container._objects).toContain(panel.group);
+    panel.dispose();
+    expect(container._objects).not.toContain(panel.group);
+    expect(panel.group.parent).toBeNull();
+  });
+
+  test('dispose() still removes via scene when the group was never parented', () => {
+    // Fallback for a plain scene object whose add() does not set .parent.
+    const panel = makePanel();
+    panel.addToScene();
+    panel.dispose();
+    expect(panel.scene.remove).toHaveBeenCalledWith(panel.group);
   });
 });
 

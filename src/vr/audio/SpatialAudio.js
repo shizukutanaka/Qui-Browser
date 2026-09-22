@@ -214,7 +214,9 @@ export class SpatialAudio {
       position: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       loop: options.loop || false,
-      volume: options.volume || 1.0,
+      // volume 0 is a legal endpoint (a deliberately silent source) — `||`
+      // would turn an explicit mute into full volume.
+      volume: options.volume ?? 1.0,
       playbackRate: options.playbackRate || 1.0,
       startTime: 0,
       isPlaying: false
@@ -230,9 +232,11 @@ export class SpatialAudio {
 
     // Set cone parameters (directional sound)
     if (options.directional) {
-      source.panner.coneInnerAngle = options.coneInnerAngle || 60;
-      source.panner.coneOuterAngle = options.coneOuterAngle || 120;
-      source.panner.coneOuterGain = options.coneOuterGain || 0.3;
+      source.panner.coneInnerAngle = options.coneInnerAngle ?? 60;
+      source.panner.coneOuterAngle = options.coneOuterAngle ?? 120;
+      // coneOuterGain 0 is a legal endpoint — "fully mute outside the cone"
+      // — so `|| 0.3` would silently replace it with partial bleed.
+      source.panner.coneOuterGain = options.coneOuterGain ?? 0.3;
     }
 
     // Create gain node for volume control

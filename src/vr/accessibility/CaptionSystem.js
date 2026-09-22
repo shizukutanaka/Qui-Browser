@@ -22,7 +22,9 @@ import {
 import {
   CAPTION_PANEL_W, CAPTION_PANEL_H, CAPTION_CANVAS_W, CAPTION_CANVAS_H,
   CAPTION_PAD, CAPTION_H_PAD, MAX_ROWS_PER_LINE,
-  captionMeasureEm, captionFontSizeFor
+  captionMeasureEm, captionFontSizeFor,
+  CAPTION_FOLLOW_MODES, CAPTION_FOLLOW_SNAP_RAD, CAPTION_FOLLOW_SNAP_M,
+  captionFollowAlpha
 } from './captionLayout.js';
 
 // Geometry and budgets live in the pure captionLayout module so the real
@@ -90,9 +92,19 @@ export class CaptionSystem {
    *   forward every caption to a second surface (e.g. a hidden ARIA live
    *   region for 2D/assistive-tech users) from one choke point instead of
    *   duplicating it at every call site.
+   * @param {'locked'|'lag'} [opts.followMode='locked'] — how the panel tracks
+   *   the head. 'locked' parents it to the camera (tracks 1:1; the broad
+   *   preference in arXiv:2210.15072). 'lag' detaches it into world space and
+   *   eases it toward the head-anchored pose each frame, so it hangs steady
+   *   while the user scans around — for the minority who find a head-glued
+   *   panel fatiguing.
+   * @param {THREE.Object3D} [opts.worldParent] — container the panel is
+   *   reparented to in 'lag' mode (typically the scene root). Falls back to
+   *   the camera's own parent when omitted.
    */
   constructor(camera, { maxLines = 3, lineDuration = 5000, scale = 1, highContrast = false,
-    verticalOffset = CAPTION_OFFSET_DEFAULT, onShow = null } = {}) {
+    verticalOffset = CAPTION_OFFSET_DEFAULT, onShow = null,
+    followMode = 'locked', worldParent = null } = {}) {
     this.camera = camera;
     this.maxLines = maxLines;
     this.lineDuration = lineDuration;
@@ -101,11 +113,25 @@ export class CaptionSystem {
     this.verticalOffset = clampCaptionOffset(verticalOffset);
     this.onShow = typeof onShow === 'function' ? onShow : null;
     this.enabled = false;
+    this.followMode = 'locked';
+    this.worldParent = worldParent && typeof worldParent.add === 'function'
+      ? worldParent : null;
 
     /** @type {{text:string, remaining:number}[]} */
     this._lines = [];
 
+    // Scratch objects for the lag-follow step — allocated lazily on first
+    // use so head-locked mode (the default) never pays for them, and never
+    // inside the per-frame path itself (no per-frame allocation on a 90 fps
+    // headset).
+    this._lagV = null;
+    this._lagQ = null;
+    // When true the next follow step jumps to the anchor instead of easing
+    // (first show, mode switch) — the panel must appear in place, not fly in.
+    this._needsSnap = false;
+
     this._buildPanel();
+    this.setFollowMode(followMode);
   }
 
   // ── Panel construction ──────────────────────────────────────────────────────
@@ -142,6 +168,58 @@ export class CaptionSystem {
       this.clear();
     }
     return this.enabled;
+  }
+
+  /**
+   * Switch how the caption panel tracks the head.
+   *
+   * 'locked' reattaches the mesh to the camera and restores its local anchor
+   * pose. 'lag' reparents it to `worldParent` (or the camera's own parent as
+   * a fallback) where `_updateLagFollow` eases it toward the anchor each
+   * frame. Switching snaps rather than eases — a mid-switch blend would
+   * sweep the panel through the scene.
+   *
+   * @param {string} mode 'locked' | 'lag'
+   * @returns {string} the applied mode
+   */
+  setFollowMode(mode) {
+    const next = CAPTION_FOLLOW_MODES.includes(mode) ? mode : 'locked';
+    if (next === this.followMode) {
+      return this.followMode;
+    }
+    this.followMode = next;
+    const mesh = this.mesh;
+    if (!mesh) {
+      return this.followMode;
+    }
+    if (next === 'lag') {
+      const host = this.worldParent
+        || (this.camera && this.camera.parent) || null;
+      if (host && typeof host.add === 'function' && mesh.parent !== host) {
+        if (mesh.parent && typeof mesh.parent.remove === 'function') {
+          mesh.parent.remove(mesh);
+        }
+        host.add(mesh);
+      }
+      this._needsSnap = true;
+    } else {
+      if (this.camera && typeof this.camera.add === 'function'
+          && mesh.parent !== this.camera) {
+        if (mesh.parent && typeof mesh.parent.remove === 'function') {
+          mesh.parent.remove(mesh);
+        }
+        this.camera.add(mesh);
+      }
+      // Restore the camera-local anchor; world-space pose values do not
+      // translate back meaningfully.
+      mesh.position.set(0, this.verticalOffset, -2.0);
+      if (mesh.quaternion && typeof mesh.quaternion.identity === 'function') {
+        mesh.quaternion.identity();
+      } else if (mesh.rotation && typeof mesh.rotation.set === 'function') {
+        mesh.rotation.set(0, 0, 0);
+      }
+    }
+    return this.followMode;
   }
 
   /**
@@ -216,7 +294,11 @@ export class CaptionSystem {
    */
   setVerticalOffset(y) {
     this.verticalOffset = clampCaptionOffset(y);
-    if (this.mesh) {
+    // In 'locked' mode the mesh is a camera child, so the anchor is its local
+    // position. In 'lag' mode the next follow step re-derives the world pose
+    // target from this offset — writing position.y there would jolt a
+    // world-space mesh and be overwritten one frame later anyway.
+    if (this.mesh && this.followMode === 'locked') {
       this.mesh.position.y = this.verticalOffset;
     }
     return this.verticalOffset;
@@ -245,6 +327,11 @@ export class CaptionSystem {
       this._lines.shift();
     }
     if (this.enabled && this.mesh) {
+      // A newly-visible lagged panel must appear at the anchor, not fly in
+      // from wherever it last rested.
+      if (!this.mesh.visible && this.followMode === 'lag') {
+        this._needsSnap = true;
+      }
       this.mesh.visible = true;
     }
     if (this.onShow) {
@@ -295,6 +382,53 @@ export class CaptionSystem {
       }
       this._draw();
     }
+
+    if (this.followMode === 'lag' && this.mesh && this.mesh.visible) {
+      this._updateLagFollow(dtMs);
+    }
+  }
+
+  /**
+   * 'lag' follow step: ease the world-space panel toward the pose it would
+   * have as a camera child — anchor (0, verticalOffset, −2) transformed by
+   * the head's current world transform.
+   *
+   * The panel snaps instead of easing when the pose error is large (snap
+   * turn, teleport, or first show): dragging text across the view is exactly
+   * the discomfort 'lag' exists to avoid.
+   *
+   * No-ops on a camera that cannot report a world transform (plain mock
+   * cameras in tests), so the mode is safe to set anywhere.
+   */
+  _updateLagFollow(dtMs) {
+    if (!this.camera || typeof this.camera.localToWorld !== 'function') {
+      return;
+    }
+    if (!this._lagV) {
+      this._lagV = new THREE.Vector3();
+      this._lagQ = new THREE.Quaternion();
+    }
+    if (typeof this.camera.updateWorldMatrix === 'function') {
+      this.camera.updateWorldMatrix(true, false);
+    }
+    const targetPos = this.camera.localToWorld(
+      this._lagV.set(0, this.verticalOffset, -2.0));
+    this.camera.getWorldQuaternion(this._lagQ);
+
+    const distErr = this.mesh.position && typeof this.mesh.position.distanceTo === 'function'
+      ? this.mesh.position.distanceTo(targetPos) : 0;
+    const angErr = this.mesh.quaternion && typeof this.mesh.quaternion.angleTo === 'function'
+      ? this.mesh.quaternion.angleTo(this._lagQ) : 0;
+    if (this._needsSnap || distErr > CAPTION_FOLLOW_SNAP_M
+        || angErr > CAPTION_FOLLOW_SNAP_RAD) {
+      this.mesh.position.copy(targetPos);
+      this.mesh.quaternion.copy(this._lagQ);
+      this._needsSnap = false;
+      return;
+    }
+    const a = captionFollowAlpha(dtMs);
+    this.mesh.position.lerp(targetPos, a);
+    this.mesh.quaternion.slerp(this._lagQ, a);
   }
 
   // ── Rendering ────────────────────────────────────────────────────────────────
@@ -439,8 +573,12 @@ export class CaptionSystem {
 
   dispose() {
     if (this.mesh) {
-      if (this.camera && this.camera.remove) {
-        this.camera.remove(this.mesh);
+      // The mesh may live under worldParent ('lag' mode) — remove it from
+      // its actual parent, not blindly from the camera.
+      const holder = (this.mesh.parent && typeof this.mesh.parent.remove === 'function')
+        ? this.mesh.parent : this.camera;
+      if (holder && typeof holder.remove === 'function') {
+        holder.remove(this.mesh);
       }
       if (this.mesh.geometry) {
         this.mesh.geometry.dispose();
