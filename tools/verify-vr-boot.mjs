@@ -1095,6 +1095,119 @@ async function main() {
                   app.playerRig.rotation.y - yawBeforeSp - (-Math.PI / 6)) < 0.01;
                 leftSrc.gamepad.axes[2] = 0;
                 app.settings.southpaw = false;
+                // Settings stepper select → live apply chain (deepest wiring):
+            // hover identify by announced label → +region select →
+            // updateSetting + apply → the new value drives the very next real
+            // snap turn. Also pins the section-tab select → panel rebuild
+            // path (old interactables unregistered, new meshes raycastable).
+            if (app.settingsPanel && app.captionSystem) {
+              const visWas2 = !!app.settingsPanel.visible;
+              if (app.settingsPanel.visible !== true) {
+                app.settingsPanel.visible = true;
+              }
+              const gazeWas2 = app.settings.enableGazeDwell;
+              app.settings.enableGazeDwell = true;
+              // The loco leg's show() is a swallow-stub call log (locoCaps),
+              // so the probe identifies buttons by the announce CALL, not by
+              // the semantic-DOM write.
+              app.updateSetting('enableCaptions', true);
+              app.captionSystem.enabled = true;
+              const secsWas = (app.settings.openSettingsSections || []).slice();
+              const durWas = app.settings.captionDuration;
+              const snapWas = app.settings.snapTurnAngle;
+              const origMW4 = ctrl.matrixWorld.clone();
+              const aimAt = (pt) => {
+                const camP = app.camera.getWorldPosition(pt.clone());
+                const toC = camP.sub(pt).normalize();
+                const cp = pt.clone().add(toC.multiplyScalar(0.35));
+                ctrl.matrixWorld.lookAt(cp, pt, ctrl.up.clone());
+                ctrl.matrixWorld.setPosition(cp);
+              };
+              const probeLabel = (text) => {
+                const objs = app.interactables.filter((o) => {
+                  for (let p = o; p; p = p.parent) {
+                    if (p === app.settingsPanel) { return true; }
+                  }
+                  return false;
+                });
+                for (const obj of objs) {
+                  const before = locoCaps.length;
+                  aimAt(obj.getWorldPosition(obj.position.clone()));
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  if (locoCaps.slice(before).join(' ').includes(text)) {
+                    return obj;
+                  }
+                }
+                return null;
+              };
+              const selectPlus = (btn) => {
+                // +region hit: local x≈+0.34 on the 0.9 m stepper → u≈0.88.
+                aimAt(btn.localToWorld(btn.position.clone().set(0.34, 0, 0)));
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                ctrl.dispatchEvent({ type: 'selectend' });
+              };
+              const selectCenter = (btn) => {
+                aimAt(btn.getWorldPosition(btn.position.clone()));
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                ctrl.dispatchEvent({ type: 'selectend' });
+              };
+              try {
+                const durBtn = probeLabel('Caption Hold');
+                out.stepperProbe = !!durBtn;
+                if (durBtn) {
+                  selectPlus(durBtn);
+                  out.stepperApplied = app.settings.captionDuration !== durWas
+                    && app.captionSystem.lineDuration === app.settings.captionDuration * 1000;
+                }
+                const tabBtn = probeLabel('Movement');
+                out.tabProbe = !!tabBtn;
+                if (tabBtn) {
+                  selectCenter(tabBtn);
+                  out.tabSelect = (app.settings.openSettingsSections || [])
+                    .includes('settings.section.locomotion');
+                  // Rebuilt meshes need fresh world matrices before raycast.
+                  app.scene.updateMatrixWorld(true);
+                }
+                if (out.tabSelect) {
+                  const snapBtn = probeLabel('Snap Angle');
+                  out.snapProbe = !!snapBtn;
+                  if (snapBtn) {
+                    const yawBase = app.playerRig.rotation.y;
+                    rightSrc.gamepad.axes[2] = 0;
+                    leftSrc.gamepad.axes[2] = 0;
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                    selectPlus(snapBtn);
+                    const newAngle = app.settings.snapTurnAngle;
+                    out.snapBumped = newAngle !== snapWas;
+                    rightSrc.gamepad.axes[2] = 0.8;
+                    app.updateSystems(0, fakeXrFrame, 0.016);
+                    rightSrc.gamepad.axes[2] = 0;
+                    out.snapApplies = Math.abs(
+                      app.playerRig.rotation.y - yawBase - (-newAngle * Math.PI / 180)) < 0.01
+                      && locoCaps.some((t) => t.includes('Right ' + newAngle));
+                  }
+                }
+              } finally {
+                ctrl.matrixWorld.copy(origMW4);
+                rightSrc.gamepad.axes[2] = 0;
+                leftSrc.gamepad.axes[2] = 0;
+                app.updateSetting('captionDuration', durWas);
+                app.captionSystem.setLineDuration(durWas * 1000);
+                app.updateSetting('snapTurnAngle', snapWas);
+                app.updateSetting('openSettingsSections', secsWas);
+                app.settings.enableGazeDwell = gazeWas2;
+                if (app.settings.enableCaptions !== true) {
+                  app.updateSetting('enableCaptions', true);
+                }
+                if (app.captionSystem.enabled !== true) {
+                  app.captionSystem.enabled = true;
+                }
+                app._rebuildSettingsPanel();
+                app.settingsPanel.visible = visWas2;
+              }
+            }
               } finally {
                 rightSrc.gamepad.axes[2] = 0;
                 ctrl.dispatchEvent({ type: 'disconnected' });
@@ -1393,6 +1506,13 @@ async function main() {
       settingsProbe: iout.settingsProbe === true,
       settingsOffLive: iout.settingsOffLive === true,
       settingsOnLive: iout.settingsOnLive === true,
+      stepperProbe: iout.stepperProbe === true,
+      stepperApplied: iout.stepperApplied === true,
+      tabProbe: iout.tabProbe === true,
+      tabSelect: iout.tabSelect === true,
+      snapProbe: iout.snapProbe === true,
+      snapBumped: iout.snapBumped === true,
+      snapApplies: iout.snapApplies === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -1546,6 +1666,13 @@ async function main() {
       ['hover announce identifies the Captions toggle', !!inter.settingsProbe],
       ['ray select flips enableCaptions live', !!inter.settingsOffLive],
       ['re-select restores the captions toggle state', !!inter.settingsOnLive],
+      ['hover announce identifies the Caption Hold stepper', !!inter.stepperProbe],
+      ['+region select steps the value + live apply', !!inter.stepperApplied],
+      ['hover announce identifies the Movement tab', !!inter.tabProbe],
+      ['tab select opens the locomotion section', !!inter.tabSelect],
+      ['hover announce identifies the Snap Angle stepper', !!inter.snapProbe],
+      ['+region select bumps snapTurnAngle live', !!inter.snapBumped],
+      ['next real snap turn uses the new angle', !!inter.snapApplies],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
