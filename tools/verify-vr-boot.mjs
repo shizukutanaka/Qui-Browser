@@ -537,6 +537,146 @@ async function main() {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
         }
+        // Post-enter leg — everything after a *granted* requestSession has
+        // never run on the real app (the stub always rejects). onVRSessionStart
+        // wires the session's visibility/framerate/refspace-reset listeners,
+        // re-bases the frame budget on the real refresh rate, re-initializes
+        // hand tracking, and announces 'VR Ready'; onVRSessionEnd must hand
+        // every piece back — ghost-hands dispose, fps restore, layers dispose.
+        // A fake session object drives the wiring; the runtime feature gaps
+        // (no XRWebGLBinding) exercise the graceful-degradation arms.
+        if (app.renderer && app.renderer.xr) {
+          const sesListeners = new Map();
+          const fakeSession = {
+            inputSources: [],
+            visibilityState: 'visible',
+            renderState: {},
+            refreshRate: 90,
+            supportedFrameRates: [90, 120],
+            updateTargetFrameRate: async () => {},
+            addEventListener: (type, fn) => {
+              const a = sesListeners.get(type) || [];
+              a.push(fn);
+              sesListeners.set(type, a);
+            },
+            removeEventListener: () => {},
+            fire: (type) => (sesListeners.get(type) || []).forEach((fn) => fn({ type })),
+            end: async () => {}
+          };
+          const rsListeners = new Map();
+          const fakeRefSpace = {
+            addEventListener: (type, fn) => {
+              const a = rsListeners.get(type) || [];
+              a.push(fn);
+              rsListeners.set(type, a);
+            },
+            fire: (type) => (rsListeners.get(type) || []).forEach((fn) => fn({ type }))
+          };
+          const xr = app.renderer.xr;
+          const origGetSession = typeof xr.getSession === 'function'
+            ? xr.getSession.bind(xr) : null;
+          const origGetRef = typeof xr.getReferenceSpace === 'function'
+            ? xr.getReferenceSpace.bind(xr) : null;
+          xr.getSession = () => fakeSession;
+          xr.getReferenceSpace = () => fakeRefSpace;
+          const tfpsBefore = app.settings.targetFPS;
+          const capWrites = [];
+          const sd = app.semanticDOM;
+          const origAnnounceCap = sd && typeof sd.announceCaption === 'function'
+            ? sd.announceCaption.bind(sd) : null;
+          if (origAnnounceCap) {
+            sd.announceCaption = (text) => {
+              capWrites.push(text);
+              return origAnnounceCap(text);
+            };
+          }
+          let recenterCalls = 0;
+          const origRecenter = typeof app.recenter === 'function'
+            ? app.recenter.bind(app) : null;
+          if (origRecenter) {
+            app.recenter = () => {
+              recenterCalls++;
+              return origRecenter();
+            };
+          }
+          const iv = app.immersiveVideo;
+          let pauseCalls = 0;
+          let stopCalls = 0;
+          const origToggle = iv && typeof iv.togglePause === 'function'
+            ? iv.togglePause.bind(iv) : null;
+          const origStop = iv && typeof iv.stop === 'function'
+            ? iv.stop.bind(iv) : null;
+          if (iv && origToggle && origStop) {
+            iv.togglePause = () => {
+              pauseCalls++;
+              iv.playing = !iv.playing;
+            };
+            iv.stop = () => {
+              stopCalls++;
+              return origStop();
+            };
+          }
+          try {
+            try {
+              await app.onVRSessionStart();
+            // syncBudget runs in updateTargetFrameRate().then — give the
+            // microtask a beat before reading the re-based budget.
+            await new Promise((r) => setTimeout(r, 30));
+            out.sessStart = app.isVREnabled === true;
+            // Toasts also flow through captionSystem.show (notifyCrossModal),
+            // so a toast re-firing during start can overwrite the status
+            // region — pin the write *sequence*, not the final text.
+            out.sessReadyCap = capWrites.includes('VR Ready');
+            out.sessFps = app.settings.targetFPS;
+            out.sessHand = !!(app.handTracking && app.handTracking.enabled === true);
+            out.sessFfrOff = !!(app.ffrSystem && app.ffrSystem.enabled === false);
+            // Headset blur while video plays must pause it (DOM
+            // visibilitychange does not fire during immersive presentation).
+            if (iv) {
+              iv.playing = true;
+            }
+            fakeSession.visibilityState = 'visible-blurred';
+            fakeSession.fire('visibilitychange');
+            out.sessVisPaused = iv ? (pauseCalls >= 1 && iv.playing === false) : null;
+            fakeSession.visibilityState = 'visible';
+            fakeSession.fire('visibilitychange');
+            out.sessVisNoDouble = pauseCalls === 1;
+            // OS-level recenter arrives as 'reset' on the reference space.
+            fakeRefSpace.fire('reset');
+            out.sessReset = recenterCalls >= 1;
+            // A runtime-driven rate change re-syncs the budget, not resets it.
+            fakeSession.fire('frameratechange');
+            await new Promise((r) => setTimeout(r, 30));
+            out.sessFpsKept = app.settings.targetFPS === 90;
+            app.onVRSessionEnd();
+            out.sessEnded = app.isVREnabled === false;
+            out.sessIvStopped = stopCalls >= 1;
+            out.sessHandOff = !(app.handTracking && app.handTracking.enabled === true);
+            out.sessLayersGone = app.layersSystem === null;
+            out.sessFpsBack = app.settings.targetFPS === tfpsBefore;
+            out.capWrites = capWrites;
+            } catch (e) {
+              out.sessError = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
+            }
+          } finally {
+            if (origAnnounceCap) {
+              sd.announceCaption = origAnnounceCap;
+            }
+            if (origRecenter) {
+              app.recenter = origRecenter;
+            }
+            if (iv && origToggle && origStop) {
+              iv.togglePause = origToggle;
+              iv.stop = origStop;
+            }
+            if (origGetSession) {
+              xr.getSession = origGetSession;
+            }
+            if (origGetRef) {
+              xr.getReferenceSpace = origGetRef;
+            }
+          }
+        }
         return out;
       })()`,
       awaitPromise: true,
@@ -551,6 +691,9 @@ async function main() {
     }
     if (iout.b4Error) {
       console.warn('batch4 threw:', iout.b4Error);
+    }
+    if (iout.sessError) {
+      console.warn('session leg threw:', iout.sessError);
     }
     if (process.env.VR_BOOT_DEBUG) {
       console.info('interact:', JSON.stringify(iout));
@@ -630,7 +773,20 @@ async function main() {
         && (iout.voiceKbCap || '').includes('キーボード'),
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
       voiceStop: iout.voiceStopped === true
-        && (iout.voiceStopCap || '').includes('停止')
+        && (iout.voiceStopCap || '').includes('停止'),
+      sessStart: iout.sessStart === true && iout.sessReadyCap === true,
+      sessFps: iout.sessFps === 90,
+      sessHand: iout.sessHand === true,
+      sessFfrOff: iout.sessFfrOff === true,
+      sessVisPaused: iout.sessVisPaused === true,
+      sessVisNoDouble: iout.sessVisNoDouble === true,
+      sessReset: iout.sessReset === true,
+      sessFpsKept: iout.sessFpsKept === true,
+      sessEnd: iout.sessEnded === true
+        && iout.sessIvStopped === true
+        && iout.sessHandOff === true
+        && iout.sessLayersGone === true
+        && iout.sessFpsBack === true
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -649,7 +805,19 @@ async function main() {
       }
       if (ev.method === 'Log.entryAdded' && ev.params.entry.level === 'error') {
         const text = ev.params.entry.text || '';
-        errors.push('log error: ' + text.slice(0, 200));
+        const src = ev.params.entry.url || '';
+        // 'Failed to load resource' entries whose target URL is outside our
+        // served origin are the harness's own test traffic (navigations to
+        // nonexistent .example hosts, or pages routed through the dead
+        // reader-proxy the proxy test sets). They are expected load failures,
+        // not page errors — and Log delivery timing is racy, so gating on
+        // them flakes. Errors on our own origin (missing assets, CSP
+        // violations like the frame-ancestors case) keep gating.
+        const externalResourceMiss = text.startsWith('Failed to load resource')
+          && src && !src.startsWith(url);
+        if (!externalResourceMiss) {
+          errors.push('log error: ' + text.slice(0, 200) + (src ? ' [' + src + ']' : ''));
+        }
       }
     }
 
@@ -714,6 +882,15 @@ async function main() {
       ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
       ['voice scroll moved reader viewport', !!inter.voiceScroll],
       ['voice stop ended listening + announced', !!inter.voiceStop],
+      ['session start enabled VR + announced VR Ready', !!inter.sessStart],
+      ['session start re-based fps budget on real rate', !!inter.sessFps],
+      ['session start re-initialized hand tracking', !!inter.sessHand],
+      ['FFR degraded gracefully without XRWebGLBinding', !!inter.sessFfrOff],
+      ['headset blur paused the playing video', !!inter.sessVisPaused],
+      ['restore to visible did not double-pause', !!inter.sessVisNoDouble],
+      ['reference-space reset re-centered the rig', !!inter.sessReset],
+      ['runtime framerate change kept the budget in sync', !!inter.sessFpsKept],
+      ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
     ];
 
