@@ -427,20 +427,19 @@ Sessions 62〜68 は**横幅**を、70〜71 は**ターゲットの角サイズ*
 フォント/measure 循環と同じ解き方）。**3箇所の呼び出し元（描画・ヒットテスト・scrollContent）を
 すべてこの1関数に通した** —— 描画とヒットテストの不一致は Session 52 で空白ページを生んだ失敗モード。
 
-### I-2. 未修正（記録のみ）: 見出しの行送りが 1.5 未満
+### I-2. ✅ 解消済み（続き248/Session 90）: 見出しの行送りが 1.5 未満
 
 `LINE_H = 34` は固定で、フォントは title 30 / h 25 / p 20。行送り比は **1.13 / 1.36 / 1.70**。
 WCAG 1.4.12 Text Spacing が基準に使う **1.5** を本文は満たすが、**title と heading は下回る**。
 
-- **形式上の違反ではない**: 1.4.12 は「ユーザーが行送りを 1.5 に上書きしても壊れないこと」を求めるもので、
-  canvas には上書き機構が無い。実測でも fontBox 33px < pitch 34px なので**文字同士は重ならない**。
-- ただし 1.5 という値はディスレクシア・低視力の読者に効くという根拠で選ばれたもので、
-  **日本語タイトルは折り返して複数行になる**（`measureEmForStyle` で clamp 済み）ため、
-  2行タイトルの行間が 1px しかないのは実用上窮屈。
-- **本セッションで直さない理由**: スタイルごとの行送りにすると行が可変高になり、
-  `visibleLineCount`/`readerWindow`/`clampReaderScroll`/`pageJumpLines` が
-  「行数」ベースから「積算ピクセル」ベースへ変わる。I-1 と混ぜると検証が濁るので分離。
-  LINE_H を一律 45px（title×1.5）に上げる案は本文が 2.25 になり表示行数が 24→19 に落ちるので不採用。
+**解消内容**: スタイル別ピッチ `linePitchFor(style, scale) = max(LINE_H·s, ceil(1.5·fontPxFor))`
+を導入し title 45 / h 38 / p・blank・c 34（比 1.5 / 1.52 / 1.7 / 2.0）へ。
+レイアウト API は「行数」ベースから「積算ピクセル」ベースへ全面移行
+（`visibleLineCount`/`visibleLinesFor`/`pageJumpLines` 廃止 →
+`readerAvailPx`/`readerOverflows`/`readerFitCount`/`lastReaderStart`/
+`readerWindow`/`readerProgressLabel`/`readerPageJump`/`clampReaderScroll`）。
+描画は行ごとのピッチを積算。ink-clearance の実測不変条件（最終行インクが
+矢印帯・進捗ラベルを避ける）は pin で継続検証。
 
 ### I-3. 検証済み・問題なし: 字幕の行送り
 
