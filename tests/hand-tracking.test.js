@@ -151,12 +151,14 @@ describe('HandTracking.detectGesture', () => {
     expect(ht.detectGesture(new Map())).toBe('none');
   });
 
-  test("'open' hand is detected AND counted in stats (regression)", () => {
+  test("'open' hand is detected by the classifier — which is pure (no stat side-effects)", () => {
     const ht = new HandTracking({}, new MockObj());
     ht.isFingerExtended = () => true; // all fingers extended → open hand
-    const before = ht.stats.gesturesRecognized;
     expect(ht.detectGesture(makeJoints())).toBe('open');
-    expect(ht.stats.gesturesRecognized).toBe(before + 1);
+    // The counter moved to recognizeGestures()'s onset branch: a classifier
+    // that bumped stats per call counted ~90 "recognitions"/sec for one
+    // held gesture.
+    expect(ht.stats.gesturesRecognized).toBe(0);
   });
 
   test("'point' is detected when only the index is extended", () => {
@@ -323,6 +325,40 @@ describe('HandTracking — spatial queries + gesture dispatch', () => {
     expect(calls).toEqual([['left', 'point']]);
     ht.recognizeGestures(); // same pose again — no re-fire
     expect(calls).toHaveLength(1);
+  });
+
+  const pointPose = () => jointsAt([
+    ['thumb-tip', [0, 0.05, -0.1]],
+    ['index-finger-tip', [0, 0.09, -0.15]],
+    ['wrist', [0, 0, 0]],
+    ['index-finger-metacarpal', [0, 0.03, -0.05]],
+    ['middle-finger-metacarpal', [0.01, 0.03, -0.05]],
+    ['middle-finger-tip', [0.01, 0.02, -0.04]],
+    ['ring-finger-metacarpal', [0.02, 0.03, -0.05]],
+    ['ring-finger-tip', [0.02, 0.02, -0.04]],
+    ['pinky-finger-metacarpal', [0.03, 0.03, -0.05]],
+    ['pinky-finger-tip', [0.03, 0.02, -0.04]]
+  ]);
+
+  test('gesturesRecognized counts gesture onsets, not frames in the gesture', () => {
+    ht.joints.left = pointPose();
+    ht.recognizeGestures();
+    ht.recognizeGestures();
+    ht.recognizeGestures(); // held for three frames — still one onset
+    expect(ht.stats.gesturesRecognized).toBe(1);
+  });
+
+  test('re-forming the gesture after a release counts a second onset', () => {
+    ht.joints.left = pointPose();
+    ht.recognizeGestures();
+    ht.gestures.left = 'none'; // simulate the gesture being lost between frames
+    ht.recognizeGestures();
+    expect(ht.stats.gesturesRecognized).toBe(2);
+  });
+
+  test('dead stat fields are gone — no pinchAccuracy/trackingQuality placeholders', () => {
+    expect(ht.stats).not.toHaveProperty('pinchAccuracy');
+    expect(ht.stats).not.toHaveProperty('trackingQuality');
   });
 });
 

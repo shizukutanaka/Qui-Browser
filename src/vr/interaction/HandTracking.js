@@ -58,9 +58,7 @@ export class HandTracking {
     // Statistics
     this.stats = {
       framesTracked: 0,
-      gesturesRecognized: 0,
-      pinchAccuracy: 0,
-      trackingQuality: 1.0
+      gesturesRecognized: 0
     };
 
     // Joint names as per WebXR spec
@@ -351,9 +349,14 @@ export class HandTracking {
 
       const gesture = this.detectGesture(joints, this.gestures[handedness] === 'pinch');
 
-      // Check if gesture changed
+      // Check if gesture changed. Count gesture ONSETS here — the counter
+      // used to live inside detectGesture(), which runs every frame, so a
+      // 3-second held pinch recorded ~270 "recognitions" instead of one.
       if (gesture !== this.gestures[handedness]) {
         this.onGestureChange(handedness, this.gestures[handedness], gesture);
+        if (gesture !== 'none') {
+          this.stats.gesturesRecognized++;
+        }
         this.gestures[handedness] = gesture;
       }
     });
@@ -378,7 +381,6 @@ export class HandTracking {
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
     const pinchThreshold = wasPinching ? this.thresholds.pinchRelease : this.thresholds.pinch;
     if (pinchDistance < pinchThreshold) {
-      this.stats.gesturesRecognized++;
       return 'pinch';
     }
 
@@ -387,7 +389,6 @@ export class HandTracking {
         !this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'point';
     }
 
@@ -396,7 +397,6 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         this.isFingerExtended(joints, 'ring-finger') &&
         this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'open';
     }
 
@@ -406,7 +406,6 @@ export class HandTracking {
     // plain fist keeps its thumb vector pointing sideways (< 0.7), so the
     // reorder doesn't misclassify real fists.
     if (this.isThumbUp(joints)) {
-      this.stats.gesturesRecognized++;
       return 'thumbsup';
     }
 
@@ -415,7 +414,6 @@ export class HandTracking {
         !this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'fist';
     }
 
@@ -424,7 +422,6 @@ export class HandTracking {
         this.isFingerExtended(joints, 'middle-finger') &&
         !this.isFingerExtended(joints, 'ring-finger') &&
         !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
       return 'peace';
     }
 
@@ -592,6 +589,5 @@ export class HandTracking {
  * }
  *
  * // Get statistics
- * const stats = handTracking.getStats();
- * console.debug(`Gestures recognized: ${stats.gesturesRecognized}`);
+ * console.debug(`Gestures recognized: ${handTracking.stats.gesturesRecognized}`);
  */
