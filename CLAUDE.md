@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 135: 続き293 — harness interaction に panel コールバック 3 系統（getTopSites private ゲート / isBookmarked / star toggle caption）を e2e pin
+- 🔍 **実測（全静的スイープ + tools/ 検証スクリプト群 clean 後の残空白）**: `.visible`/`.enabled` 未定義参照スイープ、proxy/server.js・pre-release-validation・verify-documentation・offline.js・textWrap・UI helpers の精読が全て clean を返したため、最後の未駆動面は **WebPanel に格納される VRApp コールバックの実経路** — store レベルの pin は既存だが `tab.isBookmarked`/`tab.onToggleBookmark`/`tab.getTopSites` のパネル到達は一度も駆動されていなかった（jest では canvas/GPU 依存で TabManager 構築不可のため source-regex pin のみ）。本 PR 自体のブランチに積層（新スタック化による衝突クローズを回避）。
+- 🔧 **修正**: interaction eval に panel-callback ブロックを追加し 5 新規チェック: ①`navigate()` 直後の `getTopSites(8)` が訪問 URL を返す（frecency → タイル源の実経路）②privateMode ON で同呼出が `[]` を返す（VRApp 側 `privateMode ? [] :` ゲート — store レベルとは別契約）③`isBookmarked` が bookmarked=true / never=false を読む ④`onToggleBookmark` が store を反転させ status region に 'Bookmarked' を届ける ⑤再トグルで解除 + 'Bookmark removed' 到達。captions enabled 化後に配置し caption 契約も実測。
+- 🧪 赤検証: `getTopSites: () => []` 切断 → `topSitesHit` のみ FAIL（他緑）、`isBookmarked: () => false` 切断 → 同チェックのみ FAIL。両方とも対象配線を正確に捕捉。復元後 30 checks 全緑。（付随発見: improve-48 時代の stale dist が frame-ancestors log error + kbShown FAIL を起こした — Log ゲートと kbShown pin が dist 陳腐化を実検出した実例）
+- ✅ 3234 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 30 checks PASS、verify:app PASS。
+
 ### Session 133: 続き291 — vrKeyboard.visible 未定義欠陥（toggle が hide 不可 + 嘘アナウンス）を修正 + URL 入力経路を e2e pin
 - 🔍 **実測**: `VRApp:2358` の thumbstick toggle と `VoiceCommands` の `ime-toggle` がともに `vrKeyboard.visible ? hide() : show()` を評価するが、**`VRJapaneseKeyboard` に `visible` プロパティは存在しなかった**（`group.visible` のみ）— 結果として両 toggle 経路は常に `show()` を呼び、(a) キーボードを hide できない (b) 既に開いていても `keyboardOpen` caption で嘘アナウンス。テストは `visible=true` を手書きセットしていたため mock-drift で素通りしていた。
 - 🔧 **修正**: `VRJapaneseKeyboard` に `get visible()` 追加 — `group.visible` の実値を返す derived state（フラグではなく真実の状態を読むため、将来の設計変更でも drift しない）。併せて `_requestVRKeyboardInput`（setOnConfirm → IME activate + ascii mode → composition prefill → show → prompt caption）を harness eval で実ドライブ — `kbShown`/`kbAscii`/`kbPrompted` の3 pin。
