@@ -245,6 +245,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 81: 続き239 — crossModal: controller/webgl 状態メッセージの i18n 欠落
+- 🔍 **実測（カタログ grep）**: crossModal.js は `t` を import していながら `controllerDisconnectMessage`・`controllerReconnectMessage`・`webglContextLostMessage`・`webglContextRestoredMessage` の4関数だけリテラル英語を返していた — 日本語セッションでコントローラ切断/再接続・WebGL コンテキスト喪失/復元だけ英語で報告される（Session 2/27 で根絶したはずの WCAG 3.1.1 パリティ穴、後追い追加関数が漏れた形）。
+- 🔧 **修正**: i18n に 8 キー追加（en/ja 両カタログ: leftControllerDisconnected 等）＋4関数を `t()` 経由に。VRApp 呼出側は無変更。
+- 🧪 pin 2件（ja カタログ解決: controller 6ケース + graphics 2ケース）。両方 stash 検証で pre-fix 赤・post-fix 緑。既存 /left/i・/restor/i 系テストは en 既定で互換。
+- 🔍 **同軸監査（クリーン）**: angularSize（exact atan・逆関数・閾値）/ canvasTexture（mipmap 無効化・sRGB）/ buttonStyle（hover 対比・HC バリアント）/ settingsLayout（tab 折畳・worst-case 高さ）/ VRControllerInput（radial deadzone・edge トリガ・WeakMap state）/ ImmersiveVideo（playing 同期・HUD dispose・per-eye layer）— 全て正しい。
+- ✅ 3015 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
