@@ -32,15 +32,73 @@ const STRIP_ELEMENTS = [
   'nav', 'header', 'footer', 'aside', 'form', 'iframe'
 ];
 
-/** Minimal HTML entity set — the ones that actually show up in prose. */
+/**
+ * Named character references. Names are **case-sensitive** per the HTML
+ * entity table (`&Dagger;` ‡ is not `&dagger;` †, `&Eacute;` É is not
+ * `&eacute;` é) — a case-insensitive lookup silently decodes the wrong
+ * letter. The set is the complete HTML4/XHTML1.0 repertoire (~250 names),
+ * which HTML5 keeps verbatim: anything a real page can emit decodes here,
+ * while invented names like `&fake;` are still left untouched.
+ */
 const ENTITIES = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’',
-  ldquo: '“', rdquo: '”', middot: '·', bull: '•'
+  // Quoting and core markup
+  quot: '"', amp: '&', lt: '<', gt: '>', apos: "'",
+  AMP: '&', GT: '>', LT: '<', QUOT: '"', COPY: '©', REG: '®', TRADE: '™',
+  // Whitespace and invisibles — soft hyphen/joiners are zero-width in canvas
+  nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ', shy: '', zwnj: '', zwj: '',
+  lrm: '', rlm: '', NewLine: ' ', Tab: ' ',
+  // Punctuation and typography
+  ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', sbquo: '‚', ldquo: '“',
+  rdquo: '”', bdquo: '„', lsaquo: '‹', rsaquo: '›', laquo: '«', raquo: '»',
+  oline: '‾', frasl: '⁄', euro: '€', permil: '‰', prime: '′', Prime: '″',
+  dagger: '†', Dagger: '‡', bull: '•', hellip: '…', trade: '™',
+  // Latin-1 supplement
+  iexcl: '¡', cent: '¢', pound: '£', curren: '¤', yen: '¥', brvbar: '¦',
+  sect: '§', uml: '¨', copy: '©', ordf: 'ª', not: '¬', reg: '®', macr: '¯',
+  deg: '°', plusmn: '±', sup2: '²', sup3: '³', acute: '´', micro: 'µ',
+  para: '¶', middot: '·', cedil: '¸', sup1: '¹', ordm: 'º', frac14: '¼',
+  frac12: '½', frac34: '¾', iquest: '¿', times: '×', divide: '÷',
+  Agrave: 'À', Aacute: 'Á', Acirc: 'Â', Atilde: 'Ã', Auml: 'Ä', Aring: 'Å',
+  AElig: 'Æ', Ccedil: 'Ç', Egrave: 'È', Eacute: 'É', Ecirc: 'Ê', Euml: 'Ë',
+  Igrave: 'Ì', Iacute: 'Í', Icirc: 'Î', Iuml: 'Ï', ETH: 'Ð', Ntilde: 'Ñ',
+  Ograve: 'Ò', Oacute: 'Ó', Ocirc: 'Ô', Otilde: 'Õ', Ouml: 'Ö', Oslash: 'Ø',
+  Ugrave: 'Ù', Uacute: 'Ú', Ucirc: 'Û', Uuml: 'Ü', Yacute: 'Ý', THORN: 'Þ',
+  szlig: 'ß', agrave: 'à', aacute: 'á', acirc: 'â', atilde: 'ã', auml: 'ä',
+  aring: 'å', aelig: 'æ', ccedil: 'ç', egrave: 'è', eacute: 'é', ecirc: 'ê',
+  euml: 'ë', igrave: 'ì', iacute: 'í', icirc: 'î', iuml: 'ï', eth: 'ð',
+  ntilde: 'ñ', ograve: 'ò', oacute: 'ó', ocirc: 'ô', otilde: 'õ', ouml: 'ö',
+  oslash: 'ø', ugrave: 'ù', uacute: 'ú', ucirc: 'û', uuml: 'ü', yacute: 'ý',
+  thorn: 'þ', yuml: 'ÿ',
+  // Latin extended that appears in real prose (Œuvre, Škoda, Ÿ, ƒ, modifiers)
+  OElig: 'Œ', oelig: 'œ', Scaron: 'Š', scaron: 'š', Yuml: 'Ÿ', fnof: 'ƒ',
+  circ: 'ˆ', tilde: '˜',
+  // Greek — common in technical writing (μs, π, Σ, Δ, Ω)
+  Alpha: 'Α', Beta: 'Β', Gamma: 'Γ', Delta: 'Δ', Epsilon: 'Ε', Zeta: 'Ζ',
+  Eta: 'Η', Theta: 'Θ', Iota: 'Ι', Kappa: 'Κ', Lambda: 'Λ', Mu: 'Μ', Nu: 'Ν',
+  Xi: 'Ξ', Omicron: 'Ο', Pi: 'Π', Rho: 'Ρ', Sigma: 'Σ', Tau: 'Τ',
+  Upsilon: 'Υ', Phi: 'Φ', Chi: 'Χ', Psi: 'Ψ', Omega: 'Ω',
+  alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', zeta: 'ζ',
+  eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν',
+  xi: 'ξ', omicron: 'ο', pi: 'π', rho: 'ρ', sigmaf: 'ς', sigma: 'σ',
+  tau: 'τ', upsilon: 'υ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω',
+  thetasym: 'ϑ', upsih: 'ϒ', piv: 'ϖ',
+  // Math and technical symbols — the set technical prose actually emits
+  forall: '∀', part: '∂', exist: '∃', empty: '∅', nabla: '∇', isin: '∈',
+  notin: '∉', ni: '∋', prod: '∏', sum: '∑', minus: '−', lowast: '∗',
+  radic: '√', prop: '∝', infin: '∞', ang: '∠', and: '∧', or: '∨', cap: '∩',
+  cup: '∪', int: '∫', there4: '∴', sim: '∼', cong: '≅', asymp: '≈', ne: '≠',
+  equiv: '≡', le: '≤', ge: '≥', sub: '⊂', sup: '⊃', nsub: '⊄', sube: '⊆',
+  supe: '⊇', oplus: '⊕', otimes: '⊗', perp: '⊥', sdot: '⋅',
+  // Arrows, shapes, and specials
+  lceil: '⌈', rceil: '⌉', lfloor: '⌊', rfloor: '⌋', lang: '〈', rang: '〉',
+  loz: '◊', spades: '♠', clubs: '♣', hearts: '♥', diams: '♦',
+  larr: '←', uarr: '↑', rarr: '→', darr: '↓', harr: '↔', crarr: '↵',
+  lArr: '⇐', uArr: '⇑', rArr: '⇒', dArr: '⇓', hArr: '⇔',
+  weierp: '℘', image: 'ℑ', real: 'ℜ', alefsym: 'ℵ'
 };
 
 /**
- * Decode the common named entities plus numeric ones. Unknown entities are
+ * Decode the standard named entities plus numeric ones. Unknown entities are
  * left as-is rather than mangled.
  * @param {string} s
  * @returns {string}
@@ -49,8 +107,8 @@ export function decodeEntities(s) {
   return String(s === null || s === undefined ? '' : s)
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => safeFromCodePoint(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, dec) => safeFromCodePoint(parseInt(dec, 10)))
-    .replace(/&([a-z]+);/gi, (m, name) => {
-      const v = ENTITIES[name.toLowerCase()];
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, name) => {
+      const v = ENTITIES[name];
       return v === undefined ? m : v;
     });
 }
@@ -134,16 +192,39 @@ function mainRegion(html) {
 
 /**
  * Extract the document title, preferring `<title>` then the first `<h1>`.
+ *
+ * `<title>` carries the site name on nearly every real page — measured:
+ * `WebXR - Wikipedia`, `<article> #Rhodonite - Qiita`, `WebXR 機器 API -
+ * Web API | MDN`. Mozilla Readability's `getArticleTitle` resolves this by
+ * splitting on the conventional "article | site" separators and keeping the
+ * piece that covers the `<h1>`; this does the same, conservatively — when no
+ * `<h1>` can arbitrate, the raw `<title>` is returned unmodified rather than
+ * guessing which segment is the site name.
  * @param {string} html
  * @returns {string}
  */
 export function extractTitle(html) {
-  const t = String(html).match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i);
-  if (t && textOf(t[1])) {
-    return textOf(t[1]);
+  const src = String(html);
+  const raw = src.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i);
+  const h1m = src.match(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i);
+  const h1 = h1m ? textOf(h1m[1]) : '';
+  const rawTitle = raw ? textOf(raw[1]) : '';
+  if (!rawTitle) {
+    return h1;
   }
-  const h1 = String(html).match(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i);
-  return h1 ? textOf(h1[1]) : '';
+  // Separators must be space-padded: hyphens/slashes inside a word are not
+  // site-name joins ("well-being", "and/or").
+  const parts = rawTitle
+    .split(/\s+[|»·>«›‹–—/\\]\s+|\s+[-_]\s+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1 && h1) {
+    const hit = parts.find((p) => p === h1 || p.includes(h1) || h1.includes(p));
+    if (hit) {
+      return hit;
+    }
+  }
+  return rawTitle;
 }
 
 /**
@@ -163,41 +244,117 @@ export function extractTitle(html) {
  */
 const reEncode = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-function liftUnreachable(html) {
-  return String(html)
-    .replace(/<(rt|rp)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
-    .replace(/<img\b[^>]*>/gi, (tag) => {
-      const m = tag.match(/\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/);
-      const alt = m ? decodeEntities(m[1] || m[2] || m[3] || '').trim() : '';
-      return alt ? ` [img: ${reEncode(alt)}] ` : ' ';
-    })
-    .replace(/<ol\b[^>]*>([\s\S]*?)<\/ol\s*>/gi, (whole, inner) => {
-      let n = 0;
-      return inner.replace(/<li\b([^>]*)>([\s\S]*?)<\/li\s*>/gi, (mm, attrs, content) => {
-        n += 1;
-        return `<li${attrs}>${n}. ${content}</li>`;
-      });
-    })
-    .replace(/<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi, (whole, inner) => {
-      const rows = [];
-      const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi;
-      let r;
-      while ((r = trRe.exec(inner)) !== null) {
-        const cells = [];
-        const cellRe = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]\s*>/gi;
-        let c;
-        while ((c = cellRe.exec(r[1])) !== null) {
-          const t = textOf(c[1]);
-          if (t) {
-            cells.push(t);
-          }
-        }
-        if (cells.length) {
-          rows.push(`<p>${reEncode(cells.join(' | '))}</p>`);
+/** Integer attribute of a tag (`start`, `value`) — absent/invalid → null. */
+function intAttr(tag, name) {
+  const m = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'));
+  if (!m) {
+    return null;
+  }
+  const v = parseInt(m[1] || m[2] || m[3], 10);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Bake ordered-list ordinals into every `<li>` that is a direct child of an
+ * `<ol>`, honouring `start`, `value` and `reversed` (WHATWG HTML §4.4.7–8).
+ *
+ * A flat regex cannot do this: `<ol><li>a<ol><li>x</li></ol></li><li>b</li></ol>`
+ * has the nested list's items interleaved with the parent's `<li>` stream, so
+ * the previous per-`<ol>` counter numbered inner items as if they were the
+ * parent's own and then **dropped the parent's following item's number
+ * entirely** (measured: `1. outer inner1 / 2. inner2 / outer2`). Scanning the
+ * list tags with a depth stack attributes each `<li>` to its own list: every
+ * level keeps correct numbering and the parent's counter is not consumed by
+ * its children. `start="5"` begins at 5, `<li value="7">` restarts the run,
+ * `reversed` counts down to `start` (first item = start + count − 1).
+ */
+function liftOrderedLists(html) {
+  const TAG = /<\/?(?:ol|ul|li)\b[^>]*>/gi;
+  const stack = []; // { type:'ol'|'ul', tag, items:[{pos, value}] }
+  const ols = [];
+  let m;
+  while ((m = TAG.exec(html)) !== null) {
+    const t = m[0];
+    if (t[1] === '/') {
+      // Pop through the matching open list (interleaved closes in malformed
+      // markup simply never match and are ignored).
+      const name = t.slice(2, -1).toLowerCase();
+      for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].type === name) {
+          stack.length = i;
+          break;
         }
       }
-      return rows.join('');
-    });
+      continue;
+    }
+    if (/^<li\b/i.test(t)) {
+      const top = stack[stack.length - 1];
+      if (top && top.type === 'ol') {
+        top.items.push({ pos: m.index + t.length, value: intAttr(t, 'value') });
+      }
+      continue;
+    }
+    const entry = { type: /^<ol\b/i.test(t) ? 'ol' : 'ul', tag: t, items: [] };
+    stack.push(entry);
+    if (entry.type === 'ol') {
+      ols.push(entry);
+    }
+  }
+
+  const insertions = [];
+  for (const ol of ols) {
+    const start = intAttr(ol.tag, 'start');
+    const reversed = /\breversed\b/i.test(ol.tag);
+    let next = start === null ? 1 : start;
+    if (reversed) {
+      next = next + ol.items.length - 1;
+    }
+    for (const it of ol.items) {
+      if (it.value !== null) {
+        next = it.value;
+      }
+      insertions.push({ pos: it.pos, text: `${next}. ` });
+      next = reversed ? next - 1 : next + 1;
+    }
+  }
+  // Right-to-left so earlier positions stay valid while splicing.
+  insertions.sort((a, b) => b.pos - a.pos);
+  let out = String(html);
+  for (const ins of insertions) {
+    out = out.slice(0, ins.pos) + ins.text + out.slice(ins.pos);
+  }
+  return out;
+}
+
+function liftUnreachable(html) {
+  return liftOrderedLists(
+    String(html)
+      .replace(/<(rt|rp)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+      .replace(/<img\b[^>]*>/gi, (tag) => {
+        const m = tag.match(/\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/);
+        const alt = m ? decodeEntities(m[1] || m[2] || m[3] || '').trim() : '';
+        return alt ? ` [img: ${reEncode(alt)}] ` : ' ';
+      })
+  ).replace(/<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi, (whole, inner) => {
+    const rows = [];
+    const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi;
+    let r;
+    while ((r = trRe.exec(inner)) !== null) {
+      const cells = [];
+      const cellRe = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]\s*>/gi;
+      let c;
+      while ((c = cellRe.exec(r[1])) !== null) {
+        const t = textOf(c[1]);
+        if (t) {
+          cells.push(t);
+        }
+      }
+      if (cells.length) {
+        rows.push(`<p>${reEncode(cells.join(' | '))}</p>`);
+      }
+    }
+    return rows.join('');
+  });
 }
 
 /**
@@ -219,15 +376,28 @@ export function extractReadableText(html) {
   let m;
   while ((m = re.exec(body)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = tag === 'pre' ? preTextOf(m[2]) : textOf(m[2]);
-    if (!text) {
+    if (tag === 'pre') {
+      const text = preTextOf(m[2]);
+      if (text) {
+        blocks.push({ type: 'pre', text });
+      }
       continue;
     }
-    // Drop one-word nav crumbs that survived stripping.
-    if (tag === 'li' && text.length < 3) {
-      continue;
+    // `<br>` is a hard line break — browsers' innerText yields '\n' for it.
+    // Merging `line one<br>line two` into one run-on paragraph loses the
+    // break entirely (measured), so each br-separated piece becomes its own
+    // block, keeping source order and the existing one-block-per-piece model.
+    for (const piece of m[2].split(/<br\s*\/?>/gi)) {
+      const text = textOf(piece);
+      if (!text) {
+        continue;
+      }
+      // Drop one-word nav crumbs that survived stripping.
+      if (tag === 'li' && text.length < 3) {
+        continue;
+      }
+      blocks.push({ type: tag.startsWith('h') ? 'h' : 'p', text });
     }
-    blocks.push({ type: tag === 'pre' ? 'pre' : (tag.startsWith('h') ? 'h' : 'p'), text });
   }
 
   return { title, blocks };

@@ -36,6 +36,61 @@ describe('decodeEntities', () => {
     expect(decodeEntities(null)).toBe('');
     expect(decodeEntities(undefined)).toBe('');
   });
+
+  test('decodes the standard named repertoire, not a hand-picked few', () => {
+    // Measured leaking raw before: &copy; &trade; &euro; &deg; &sect;
+    // &laquo; &frac12; &times; &eacute; — every one emitted literally.
+    expect(decodeEntities('&copy; &reg; &trade; &euro; &cent; &pound; &yen;'))
+      .toBe('© ® ™ € ¢ £ ¥');
+    expect(decodeEntities('&sect; &para; &deg; &plusmn; &micro; &middot; &cedil;'))
+      .toBe('§ ¶ ° ± µ · ¸');
+    expect(decodeEntities('&laquo;q&raquo; &lsaquo;x&rsaquo; &frac14; &frac12; &frac34; &sup2;'))
+      .toBe('«q» ‹x› ¼ ½ ¾ ²');
+    expect(decodeEntities('&times; &divide; &minus; &ne; &le; &ge; &infin; &asymp; &int; &sum;'))
+      .toBe('× ÷ − ≠ ≤ ≥ ∞ ≈ ∫ ∑');
+    expect(decodeEntities('&alpha; &pi; &mu; &Sigma; &Delta; &Omega; &sigmaf;'))
+      .toBe('α π μ Σ Δ Ω ς');
+    expect(decodeEntities('&dagger; &Dagger; &permil; &prime; &Prime; &bull; &oline;'))
+      .toBe('† ‡ ‰ ′ ″ • ‾');
+    expect(decodeEntities('&eacute; &agrave; &ntilde; &ccedil; &szlig; &aelig; &oelig; &oslash; &thorn;'))
+      .toBe('é à ñ ç ß æ œ ø þ');
+    expect(decodeEntities('&larr; &rarr; &harr; &rArr; &spades; &hearts; &loz;'))
+      .toBe('← → ↔ ⇒ ♠ ♥ ◊');
+  });
+
+  test('entity names are case-sensitive per the HTML table', () => {
+    // &Eacute; is É, not é; &Dagger; is ‡, not †. A case-insensitive lookup
+    // decodes the wrong letter — silently, in published text.
+    expect(decodeEntities('&Eacute; &Iacute; &Oacute; &Uacute; &Aacute;'))
+      .toBe('É Í Ó Ú Á');
+    expect(decodeEntities('&eacute; &iacute; &oacute; &uacute; &aacute;'))
+      .toBe('é í ó ú á');
+    expect(decodeEntities('&Dagger;')).toBe('‡');
+    expect(decodeEntities('&dagger;')).toBe('†');
+    expect(decodeEntities('&OElig;')).toBe('Œ');
+    expect(decodeEntities('&oelig;')).toBe('œ');
+    expect(decodeEntities('&THORN;')).toBe('Þ');
+    expect(decodeEntities('&thorn;')).toBe('þ');
+    expect(decodeEntities('&Sigma;')).toBe('Σ');
+    expect(decodeEntities('&sigma;')).toBe('σ');
+  });
+
+  test('HTML5 all-caps aliases decode; invented names still untouched', () => {
+    expect(decodeEntities('&AMP; &LT; &GT; &QUOT; &COPY; &REG; &TRADE;'))
+      .toBe('& < > " © ® ™');
+    expect(decodeEntities('&fake; &nbspx; &copyright; &NotAnEntity;'))
+      .toBe('&fake; &nbspx; &copyright; &NotAnEntity;');
+  });
+
+  test('names with digits decode (&frac12;, &sup1;) — digits are legal in names', () => {
+    expect(decodeEntities('&frac12; &sup1; &sup3;')).toBe('½ ¹ ³');
+  });
+
+  test('soft/invisible references decode to whitespace or vanish', () => {
+    expect(decodeEntities('a&shy;b')).toBe('ab');
+    expect(decodeEntities('a&NewLine;b')).toBe('a b');
+    expect(decodeEntities('x&ensp;y&emsp;z&thinsp;w')).toBe('x y z w');
+  });
 });
 
 describe('extractTitle', () => {
@@ -49,6 +104,49 @@ describe('extractTitle', () => {
 
   test('returns empty when there is neither', () => {
     expect(extractTitle('<p>nothing</p>')).toBe('');
+  });
+
+  test('strips the "- Site" suffix when the h1 covers a segment (measured Wikipedia shape)', () => {
+    const html = '<html><head><title>WebXR - Wikipedia</title></head>' +
+      '<body><h1>WebXR</h1></body></html>';
+    expect(extractTitle(html)).toBe('WebXR');
+  });
+
+  test('strips the "| Site" suffix when the h1 covers a segment (measured MDN shape)', () => {
+    const html = '<html><head><title>WebXR Device API - Web APIs | MDN</title></head>' +
+      '<body><h1>WebXR Device API</h1></body></html>';
+    expect(extractTitle(html)).toBe('WebXR Device API');
+  });
+
+  test('h1 inside a suffix-carrying segment still resolves', () => {
+    // Measured Qiita shape: "<article> #Tag - Qiita" — the h1 lives inside
+    // the first segment, so that segment (minus the site name) is the title.
+    const html = '<html><head><title>Deep dive #WebXR - Qiita</title></head>' +
+      '<body><h1>Deep dive</h1></body></html>';
+    expect(extractTitle(html)).toBe('Deep dive #WebXR');
+  });
+
+  test('keeps the raw <title> when no h1 can arbitrate the split', () => {
+    expect(extractTitle('<html><title>Article Name | Site Name</title><p>x</p></html>'))
+      .toBe('Article Name | Site Name');
+  });
+
+  test('keeps the raw <title> when the h1 matches no segment', () => {
+    const html = '<html><head><title>Alpha - Beta - Gamma</title></head>' +
+      '<body><h1>Completely different</h1></body></html>';
+    expect(extractTitle(html)).toBe('Alpha - Beta - Gamma');
+  });
+
+  test('hyphens inside words are not site-name separators', () => {
+    const html = '<html><head><title>well-being tips - Site</title></head>' +
+      '<body><h1>well-being tips</h1></body></html>';
+    expect(extractTitle(html)).toBe('well-being tips');
+  });
+
+  test('a separator-free title is returned verbatim', () => {
+    const html = '<html><head><title>just words</title></head>' +
+      '<body><h1>other</h1></body></html>';
+    expect(extractTitle(html)).toBe('just words');
   });
 });
 
@@ -205,6 +303,73 @@ describe('extractReadableText', () => {
     const { blocks } = extractReadableText(html);
     const texts = blocks.map(b => b.text);
     expect(texts).toEqual(expect.arrayContaining(['Term', 'Definition here', 'Open', 'hidden']));
+  });
+
+  test('<ol start> begins numbering at start (WHATWG HTML §4.4.7)', () => {
+    const html = '<body><p>intro</p><ol start="5"><li>five</li><li>six</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toEqual(expect.arrayContaining(['5. five', '6. six']));
+    expect(texts).not.toContain('1. five');
+  });
+
+  test('<li value> restarts the ordinal run (WHATWG HTML §4.4.8)', () => {
+    const html = '<body><ol><li>a</li><li value="7">b</li><li>c</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks.map(b => b.text))
+      .toEqual(expect.arrayContaining(['1. a', '7. b', '8. c']));
+  });
+
+  test('<ol reversed> counts down to start', () => {
+    const html = '<body><ol reversed><li>a</li><li>b</li><li>c</li></ol>' +
+      '<ol reversed start="10"><li>x</li><li>y</li><li>z</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks.map(b => b.text)).toEqual(expect.arrayContaining(
+      ['3. a', '2. b', '1. c', '12. x', '11. y', '10. z']));
+  });
+
+  test('a nested <ol> keeps its own numbering instead of stealing the parent\'s', () => {
+    // Pre-fix measured: `1. outer inner1` (merged), `2. inner2` (misattributed
+    // to the parent run) and `outer2` — the parent's next item lost its
+    // number entirely because the flat counter was consumed by the children.
+    const html = '<body><ol><li>outer<ol><li>in1</li><li>in2</li></ol></li>' +
+      '<li>outer2</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toContain('2. outer2'); // parent's run unbroken
+    expect(texts).toContain('2. in2');    // inner list numbers itself
+  });
+
+  test('a <ul> nested in an <ol> does not consume ordinals', () => {
+    const html = '<body><ol><li>a<ul><li>bullet</li></ul></li><li>b</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toContain('2. b');
+    expect(texts.some(t => /^\d+\. bullet/.test(t))).toBe(false);
+  });
+
+  test('<br> inside a paragraph splits into separate blocks in order', () => {
+    // innerText yields '\n' for <br>; merging into one run-on paragraph
+    // dropped the break entirely (measured: "line one line two line three").
+    const html = '<body><p>line one<br>line two<br/>line three</p></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts).toEqual(['line one', 'line two', 'line three']);
+    expect(texts).not.toContain('line one line two line three');
+  });
+
+  test('<br> inside a list item splits after the baked ordinal', () => {
+    const html = '<body><ol><li>step one<br>step two</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    expect(blocks.map(b => b.text)).toEqual(['1. step one', 'step two']);
+  });
+
+  test('an <ol> item containing a <pre> keeps the code inside the item text', () => {
+    const html = '<body><ol><li>setup<pre>npm i</pre></li><li>run</li></ol></body>';
+    const { blocks } = extractReadableText(html);
+    const texts = blocks.map(b => b.text);
+    expect(texts.some(t => t.includes('npm i'))).toBe(true);
+    expect(texts).toContain('2. run');
   });
 });
 
