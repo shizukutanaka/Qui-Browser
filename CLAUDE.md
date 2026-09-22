@@ -245,6 +245,24 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 156: 続き314 — gaze-dwell 有効化経路（FR-13.1 中核）を e2e pin（#258 に batch 7 として積層、94→98 checks）
+- **Round 73 of the continuous-improvement directive.** Seventh commit batch on PR #258.
+- **Pins (verify-vr-boot, +4 → 98 checks):** inside the fake-session leg —
+  a synthetic interactable placed 1.5 m dead ahead of the camera's real gaze
+  ray (computed from `getWorldPosition`/`getWorldDirection`) completes a
+  dwell with one `updateSystems(0, fakeXrFrame, 1.7)` call: `onSelect` fires
+  once with `{gaze:true}`, the updateSystems `activated` branch fans out to
+  haptic `click` (both-hands) + `spatialAudio.play`; a second dwell frame
+  does not re-fire (`_fired` guard); `gazeInteraction.enabled=false` leaves
+  the target untouched (the updateSystems enabled-gate contract).
+- **Red-verified:** cutting GazeInteraction's `handlers.onSelect` + the
+  `if (activated)` fan-out fails exactly all four gaze checks; restored →
+  all green. Pins passed organically (gaze path already correct on base —
+  pure coverage of the headline a11y feature).
+- **Gates:** `npx jest tests/` 3299 tests / 74 suites; `npm run lint` 0 errors
+  (354 warnings, baseline); `npm run build` + `verify:app` + `verify:vr-boot`
+  PASS (98 checks).
+
 ### Session 155: 続き313 — updateSystems の per-frame fan-out を e2e pin（#258 に batch 6 として積層、89→94 checks）
 - **Round 72 of the continuous-improvement directive.** Sixth commit batch on PR #258.
 - **Pins (verify-vr-boot, +5 → 94 checks):** inside the fake-session leg —

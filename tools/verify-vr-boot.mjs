@@ -875,6 +875,71 @@ async function main() {
                 }
               }
             }
+            // Gaze-dwell (FR-13.1): a dwell completing on an interactable
+            // must fire its onSelect once ({gaze:true}) and fan out to
+            // haptic + spatial click through the updateSystems branch.
+            if (app.gazeInteraction && app.floorMesh && app.camera) {
+              const gzObj = app.floorMesh.clone();
+              gzObj.userData = {};
+              let gazeFires = 0;
+              let gazeFlag = false;
+              gzObj.userData.interactable = {
+                onSelect: (a) => { gazeFires += 1; gazeFlag = !!(a && a.gaze); }
+              };
+              gzObj.rotation.set(0, 0, 0);
+              gzObj.scale.set(0.05, 0.05, 0.05);
+              // One metre dead ahead of the camera's actual gaze ray.
+              app.camera.updateWorldMatrix(true, false);
+              const camPos = app.camera.getWorldPosition(gzObj.position.clone());
+              const camDir = app.camera.getWorldDirection(camPos.clone());
+              gzObj.position.copy(camPos).add(camDir.multiplyScalar(1.5));
+              gzObj.updateMatrixWorld(true);
+              app.interactables.push(gzObj);
+              const gzHaptic = [];
+              const gzAudio = [];
+              const origHP = app.hapticFeedback && app.hapticFeedback.playPattern;
+              const origHB = app.hapticFeedback && app.hapticFeedback.playPatternBothHands;
+              const origSP = app.spatialAudio && app.spatialAudio.play;
+              if (origHP) {
+                app.hapticFeedback.playPattern = (h, p) => { gzHaptic.push(p); };
+              }
+              if (origHB) {
+                app.hapticFeedback.playPatternBothHands = (p) => { gzHaptic.push('both:' + p); };
+              }
+              if (origSP) {
+                app.spatialAudio.play = (a, b, c) => { gzAudio.push(a); };
+              }
+              const gazeWasEnabled = app.gazeInteraction.enabled;
+              app.gazeInteraction.enabled = true;
+              try {
+                // One frame at dwellTime × ~1.1 completes the dwell.
+                app.updateSystems(0, fakeXrFrame, 1.7);
+                out.gazeSelect = gazeFires === 1 && gazeFlag === true;
+                out.gazeCross = gzHaptic.length >= 1 && gzAudio.length >= 1;
+                // The _fired guard: a second dwell frame must not re-fire.
+                app.updateSystems(0, fakeXrFrame, 1.7);
+                out.gazeOnce = gazeFires === 1;
+                // Disabled gaze must leave the interactable untouched.
+                app.gazeInteraction.enabled = false;
+                app.updateSystems(0, fakeXrFrame, 1.7);
+                out.gazeDisabledQuiet = gazeFires === 1;
+              } finally {
+                app.gazeInteraction.enabled = gazeWasEnabled;
+                const ix = app.interactables.indexOf(gzObj);
+                if (ix >= 0) {
+                  app.interactables.splice(ix, 1);
+                }
+                if (origHP) {
+                  app.hapticFeedback.playPattern = origHP;
+                }
+                if (origHB) {
+                  app.hapticFeedback.playPatternBothHands = origHB;
+                }
+                if (origSP) {
+                  app.spatialAudio.play = origSP;
+                }
+              }
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -1048,6 +1113,10 @@ async function main() {
       fanA11y: iout.fanA11y === true,
       fanWin: iout.fanWin === true,
       fanNullFrame: iout.fanNullFrame === true,
+      gazeSelect: iout.gazeSelect === true,
+      gazeCross: iout.gazeCross === true,
+      gazeOnce: iout.gazeOnce === true,
+      gazeDisabledQuiet: iout.gazeDisabledQuiet === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1181,6 +1250,10 @@ async function main() {
       ['frame fan-out hits gaze + captions once', !!inter.fanA11y],
       ['windowManager.update runs when following', !!inter.fanWin],
       ['null xrFrame skips hands but keeps the rest', !!inter.fanNullFrame],
+      ['completed gaze-dwell fires onSelect(gaze) once', !!inter.gazeSelect],
+      ['gaze activation fans out to haptic + audio', !!inter.gazeCross],
+      ['a second dwell frame does not re-fire', !!inter.gazeOnce],
+      ['disabled gaze leaves the target untouched', !!inter.gazeDisabledQuiet],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]
