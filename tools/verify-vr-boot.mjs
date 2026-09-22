@@ -2375,6 +2375,58 @@ async function main() {
                   }
                 }
               }
+              // Reader leg — navigate → fetch → extractReadableText →
+              // layoutReaderLines → 'reader' content state, then the content
+              // mesh's scroll arrows route through _onContentSelect's
+              // UV→pixel hit zones (down ▲ scrolls the article, up ▼ clamps
+              // back to the top). Every prior navigation leg landed on the
+              // 'unavailable' arm because headless fetches fail; stubbing
+              // fetch here is the first time the success path runs e2e.
+              if (ctrl && app.tabManager && app.tabManager.tabs
+                && app.tabManager.tabs.length && app.scene) {
+                const wp = app.tabManager.tabs[app.tabManager.activeIndex];
+                const origFetch = globalThis.fetch;
+                const paras = Array.from({ length: 80 },
+                  (_v, i) => '<p>Reader paragraph ' + i
+                    + ' — enough prose to overflow the reader viewport.</p>')
+                  .join('');
+                const html = '<html><head><title>Harness Article</title></head>'
+                  + '<body><article><h1>Heading</h1>' + paras
+                  + '</article></body></html>';
+                try {
+                  globalThis.fetch = () => Promise.resolve({
+                    ok: true,
+                    text: () => Promise.resolve(html)
+                  });
+                  app.scene.updateMatrixWorld(true);
+                  out.readerProbe = !!wp
+                    && app.interactables.includes(wp.contentMesh);
+                  // navigate() kicks the load but drops its promise — wait
+                  // for the reader fetch to settle before asserting.
+                  wp.navigate('https://reader-harness.example/');
+                  for (let i = 0; i < 60 && wp.loading; i++) {
+                    await new Promise((r) => setTimeout(r, 50));
+                  }
+                  out.readerLoads = wp._contentState === 'reader'
+                    && wp._readerLines.length > 0
+                    && wp.currentTitle === 'Harness Article'
+                    && wp._readerScroll === 0;
+                  const selContent = (px, py) => {
+                    const local = wp.contentMesh.position.clone().set(
+                      (px / 1024 - 0.5) * 1.6,
+                      (0.5 - py / 942) * 0.92, 0);
+                    wp._onContentSelect(wp.contentMesh.localToWorld(local));
+                  };
+                  // ▼ zone: px 912–1008, py 854–926.
+                  selContent(960, 890);
+                  out.readerScrollsDown = wp._readerScroll > 0;
+                  // ▲ zone: px 804–900 — clamps back to the top.
+                  selContent(850, 890);
+                  out.readerScrollsUp = wp._readerScroll === 0;
+                } finally {
+                  globalThis.fetch = origFetch;
+                }
+              }
               } finally {
                 ctrl.matrixWorld.copy(origMW6);
                 rightSrc.gamepad.axes[2] = 0;
@@ -2814,6 +2866,10 @@ async function main() {
       shiftToggles: iout.shiftToggles === true,
       shiftTypesKatakana: iout.shiftTypesKatakana === true,
       shiftBack: iout.shiftBack === true,
+      readerProbe: iout.readerProbe === true,
+      readerLoads: iout.readerLoads === true,
+      readerScrollsDown: iout.readerScrollsDown === true,
+      readerScrollsUp: iout.readerScrollsUp === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -3065,6 +3121,9 @@ async function main() {
       ['shift key toggles katakana mode', !!inter.shiftToggles],
       ['katakana mode converts romaji input', !!inter.shiftTypesKatakana],
       ['shift toggles back to hiragana', !!inter.shiftBack],
+      ['reader pipeline lands on reader state', !!inter.readerLoads],
+      ['reader down-arrow scrolls the article', !!inter.readerScrollsDown],
+      ['reader up-arrow clamps back to top', !!inter.readerScrollsUp],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

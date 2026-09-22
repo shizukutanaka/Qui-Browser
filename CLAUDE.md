@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 175: 続き333 — reader パイプライン（navigate→fetch→抽出→'reader' state→スクロール矢印）を e2e pin（#259 batch 26、210→214 checks）
+- 🔍 **実測**: WebPanel の reader 経路（`navigate`→`_loadReaderText`→`extractReadableText`→`layoutReaderLines`→`_contentState='reader'`、content mesh の ▲▼ スクロールゾーン→`scrollContent` クランプ）は実 fetch が headless で必ず失敗するため**成功腕が一度も駆動されていなかった**。fetch stub で初の成功経路 e2e。
+- 🔧 **pin 設計（4 check）**: `globalThis.fetch` stub → 80段落 HTML → `wp.navigate` → `_contentState==='reader'` + 243 lines + `currentTitle==='Harness Article'` → content select(px 960,py 890) ▼ゾーンで `_readerScroll>0` → ▲ゾーン(px 850,py 890)で 0 にクランプ。`_onContentSelect(worldVec3)` 直接駆動（strip/BookmarkPanel と同型）。
+- 🧪 **ハーネス教訓（2件）**: ①eval ソースは template literal 内 — 内部で `` ` `` を使うと構文破壊（string concat に統一済み）②`navigate()` は `_loadUrl` の promise を**返さない** — `await` しても 'loading' のまま読み取る偽陰性。`wp.loading` クリアをポーリングで待機するのが正解。赤検証: `this._contentState='reader'` 切断 → readerLoads+readerScrollsDown FAIL、scrollUp 腕切断 → readerScrollsUp も co-FAIL（両矢印が shared hitTest のため、想定内）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 214 checks PASS、verify:app PASS。
+
 ### Session 174: 続き332 — 'shift' キー→カタカナモード（ラッチ・かな変換・復帰）を e2e pin（#259 batch 25、206→210 checks）
 - 🔍 **実測**: キーボードの 'shift' → `ime.switchMode` hiragana↔katakana + `_refreshKeyStates` で shift キーの `userData.keyActive` ラッチは未駆動のままだった。keyboard を show して実キー select でモード遷移を端到端 pin。
 - 🔧 **pin 設計（4 check）**: shift keyMesh 存在 + keyboard visible → 'shift' select で `inputMode==='katakana'` + `keyActive===true` → 'k','a' 入力で `updateDisplay` に届く converted が 'カ'（spy ではなく実表示経路の出力を capture）→ 再 'shift' で hiragana 復帰 + `keyActive===false`。cleanup は `ime.clear()`+`switchMode` 復元+`updateDisplay` 復帰。
