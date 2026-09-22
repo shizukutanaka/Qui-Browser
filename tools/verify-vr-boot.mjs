@@ -1289,6 +1289,109 @@ async function main() {
                 app.settingsPanel.visible = visWas2;
               }
             }
+            // Settings cycle + action buttons (browsing section): the last
+            // undriven settings surface — a cycle's select advances the
+            // option and live-applies (tabManager.setSearchEngine), and the
+            // action buttons run their destructive/utility paths. Same
+            // announce-probe identification via the stubbed show() → locoCaps.
+            if (app.settingsPanel && app.captionSystem && app.tabManager && app.bookmarks) {
+              const visWas3 = !!app.settingsPanel.visible;
+              if (app.settingsPanel.visible !== true) {
+                app.settingsPanel.visible = true;
+              }
+              const gazeWas3 = app.settings.enableGazeDwell;
+              app.settings.enableGazeDwell = true;
+              app.updateSetting('enableCaptions', true);
+              app.captionSystem.enabled = true;
+              const secsWas3 = (app.settings.openSettingsSections || []).slice();
+              const engWas = app.settings.searchEngine;
+              const bmWas = !!(app.bookmarkPanel && app.bookmarkPanel.visible);
+              const origMW5 = ctrl.matrixWorld.clone();
+              const aimAt5 = (pt) => {
+                const camP = app.camera.getWorldPosition(pt.clone());
+                const toC = camP.sub(pt).normalize();
+                const cp = pt.clone().add(toC.multiplyScalar(0.35));
+                ctrl.matrixWorld.lookAt(cp, pt, ctrl.up.clone());
+                ctrl.matrixWorld.setPosition(cp);
+              };
+              const probeLabel5 = (text) => {
+                const objs = app.interactables.filter((o) => {
+                  for (let p = o; p; p = p.parent) {
+                    if (p === app.settingsPanel) { return true; }
+                  }
+                  return false;
+                });
+                for (const obj of objs) {
+                  const before = locoCaps.length;
+                  aimAt5(obj.getWorldPosition(obj.position.clone()));
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  if (locoCaps.slice(before).join(' ').includes(text)) {
+                    return obj;
+                  }
+                }
+                return null;
+              };
+              const selectCenter5 = (btn) => {
+                aimAt5(btn.getWorldPosition(btn.position.clone()));
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                ctrl.dispatchEvent({ type: 'selectend' });
+              };
+              try {
+                const browseTab = probeLabel5('Browsing');
+                out.browseProbe = !!browseTab;
+                if (browseTab) {
+                  selectCenter5(browseTab);
+                  out.browseSelect = (app.settings.openSettingsSections || [])
+                    .includes('settings.section.browsing');
+                  // Rebuilt meshes need fresh world matrices before raycast.
+                  app.scene.updateMatrixWorld(true);
+                }
+                if (out.browseSelect) {
+                  const engBtn = probeLabel5('Search');
+                  out.cycleProbe = !!engBtn;
+                  if (engBtn) {
+                    selectCenter5(engBtn);
+                    out.cycleApplied = app.settings.searchEngine !== engWas
+                      && app.tabManager.opts.searchEngine === app.settings.searchEngine
+                      && locoCaps.some((s) => s.includes('Search: ' + app.settings.searchEngine));
+                  }
+                  // Destructive action: seed a real history entry, then the
+                  // button must wipe the store AND announce via the toast
+                  // path (cross-modal: the caption lands in the stub log).
+                  app.bookmarks.addHistory('https://harness-seed.example/', 'seed');
+                  const seeded = JSON.parse(localStorage.getItem('quiBrowser_history') || '[]').length;
+                  const clrBtn = probeLabel5('Clear History');
+                  out.actionProbe = !!clrBtn && seeded > 0;
+                  if (clrBtn) {
+                    selectCenter5(clrBtn);
+                    const left = JSON.parse(localStorage.getItem('quiBrowser_history') || '[]');
+                    out.actionApplied = left.length === 0
+                      && locoCaps.some((s) => s.includes('History cleared'));
+                  }
+                  const bmBtn = probeLabel5('Bookmarks');
+                  out.bookmarkProbe = !!bmBtn;
+                  if (bmBtn && app.bookmarkPanel) {
+                    selectCenter5(bmBtn);
+                    out.bookmarkToggled = !!app.bookmarkPanel.visible === !bmWas
+                      && locoCaps.some((s) => s.includes(!bmWas ? 'Bookmarks: open' : 'Bookmarks: closed'));
+                  }
+                }
+              } finally {
+                ctrl.matrixWorld.copy(origMW5);
+                app.updateSetting('searchEngine', engWas);
+                if (engWas) {
+                  app.tabManager.setSearchEngine(engWas);
+                }
+                app.updateSetting('openSettingsSections', secsWas3);
+                app.settings.enableGazeDwell = gazeWas3;
+                if (app.bookmarkPanel && !!app.bookmarkPanel.visible !== bmWas) {
+                  app.bookmarkPanel.toggle();
+                }
+                app._rebuildSettingsPanel();
+                app.settingsPanel.visible = visWas3;
+              }
+            }
               } finally {
                 rightSrc.gamepad.axes[2] = 0;
                 ctrl.dispatchEvent({ type: 'disconnected' });
@@ -1597,6 +1700,14 @@ async function main() {
       snapProbe: iout.snapProbe === true,
       snapBumped: iout.snapBumped === true,
       snapApplies: iout.snapApplies === true,
+      browseProbe: iout.browseProbe === true,
+      browseSelect: iout.browseSelect === true,
+      cycleProbe: iout.cycleProbe === true,
+      cycleApplied: iout.cycleApplied === true,
+      actionProbe: iout.actionProbe === true,
+      actionApplied: iout.actionApplied === true,
+      bookmarkProbe: iout.bookmarkProbe === true,
+      bookmarkToggled: iout.bookmarkToggled === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
@@ -1760,6 +1871,14 @@ async function main() {
       ['hover announce identifies the Snap Angle stepper', !!inter.snapProbe],
       ['+region select bumps snapTurnAngle live', !!inter.snapBumped],
       ['next real snap turn uses the new angle', !!inter.snapApplies],
+      ['hover announce identifies the Browsing section tab', !!inter.browseProbe],
+      ['section tab select rebuilds the browsing section', !!inter.browseSelect],
+      ['hover announce identifies the Search cycle', !!inter.cycleProbe],
+      ['cycle select advances + live-applies the search engine', !!inter.cycleApplied],
+      ['hover announce identifies the Clear History action', !!inter.actionProbe],
+      ['Clear History wipes the store + announces', !!inter.actionApplied],
+      ['hover announce identifies the Bookmarks action', !!inter.bookmarkProbe],
+      ['Bookmarks action toggles the panel + announces state', !!inter.bookmarkToggled],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],

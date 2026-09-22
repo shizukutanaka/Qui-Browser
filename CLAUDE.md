@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 163: 続き321 — settings cycle + action ボタン（browsing セクション全表面）を e2e pin（#258 batch 14、124→132 checks）
+- 🔍 **実測（settings パネル最後の未駆動面）**: toggle（R77）・stepper + セクションタブ（R78）で残ったのは **cycle と action** — 全 SECTIONS で cycle は 'Search'（searchEngine→tabManager.setSearchEngine）のみ、action は 'Clear History'/'Reader Proxy'/'Bookmarks'/'360° Video' のみ。browsing セクションに cycle+3 action が集約しているため同一セクション内で完結する e2e leg を追加。
+- 🔧 **pin 設計（8 check）**: 'Browsing' タブを announce 識別→select→`_rebuildSettingsPanel`（`scene.updateMatrixWorld(true)` で新 mesh を raycast 可能化 — R78 確立の教訓）→ ①'Search: duckduckgo' hover announce で cycle を識別（`settingsButtonCaption('cycle',...)`='label: value' 形式）→ center select で `settings.searchEngine` 前進 + **`tabManager.opts.searchEngine` へ live apply** + 'Search: google' caption ②履歴を `bookmarks.addHistory` で実 localStorage('quiBrowser_history') にシード→'Clear History' action で wipe + 'History cleared' toast/caption ③'Bookmarks' action で `bookmarkPanel.toggle()` + 開閉状態 caption（'Bookmarks: open'、WCAG 4.1.3）。
+- 🧪 **赤検証**: `tabManager.setSearchEngine(v)` 切断 → `cycleApplied` FAIL；`bookmarks.clearHistory()` 切断 → `actionApplied` + 同一路を pin 済みの 2D 側 'clear-history wiped'/'voice clear-history' も co-FAIL（共有 `_clearBrowsingHistory` 経路の想定 co-signal）。全 pin は base で有機全緑（経路は既に正しい — 純粋カバレッジ拡張）。
+- ✅ 3301 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 132 checks PASS、verify:app PASS。
+
 ### Session 162: 続き320 — gaze grace-slip 欠陥（slip-onto-object 即 retarget）を e2e 検出 + #249 から fix 同梱（#258 batch 13、121→124 checks）
 - 🔍 **実測（新 pin が実欠陥を捕捉）**: graceTime 寛容は slip-onto-空振りのみ許容していた — `update()` の `else if (obj)` 分岐が「別 interactable への 1 フレーム接触」を**即 retarget + charge リセット**として扱い、ボタン隣接部での tremor/nystagmus jitter は dwell を永久に完走できなかった（WCAG 2.2.1 Timing Adjustable — #220 fix は未マージ #249 内で stranded）。R70 と同じ bundling パターンで有機赤を確認してから `aca456f` の fix + unit pin を同梱。
 - 🔧 **pin 設計（3 check）**: 2 つの合成 interactable（A=on-ray 1.5m、B=off-ray +4m）を配置し位置 swap で実 gaze ray の当たり先を制御 — ①A に 1.0s 充電後 0.1s で B へ slip → `_target===A && _elapsed` 保持（**organic red**: base では `else if(obj)` が即 B へ retarget）、②B 継続 0.25s（累計 >graceTime）→ `_target===gB`（persistent retarget は grace 超過でのみ発生 — fix 有無に関わらず成立のため coverage）、③reset→A 再充電→B へ短 slip→A 復帰+0.6s → A で完走（**organic red**: base では復帰後 elapsed が 0 から再開し 0.6<1.5 で不発）。`dwellTime`/`graceTime` を leg 内で 1500/300 に明示して finally で復元。
