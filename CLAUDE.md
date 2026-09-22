@@ -245,6 +245,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+## Session Log
+
+### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
+- 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
+- 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
+- 🧪 赤検証: `gamepads.set` 切断 → actuator+sourceGone 両 FAIL、prune 切断 → `hapticSourceGone` のみ FAIL、`setListenerPosition` 切断 → `audioListenerPose` FAIL、panningModel 書込切断 → `audioLodSwitch` FAIL。ハーネス教訓: `setSourcePosition` 自体が `updateSourceLOD` を呼ぶため `updateAllLOD` 切断は不発 — red 対象は tier 書込点。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 253 checks PASS、verify:app PASS。
+
+
 ### Session 186: 続き344 — updateHand の per-joint フォールバック腕を e2e pin（#262 batch 2、247→249 checks）
 - 🔍 **実測**: R102 が pin したのは `fillPoses`/`fillJointRadii` バッチ経路のみ — バッチ不可時の per-joint `frame.getJointPose` フォールバック（本番ランタイムが pose 未確定フレームで取る low-level 経路）は一度も駆動されていなかった。`fakeXrFrame.fillPoses = () => false` + `getJointPose` stub（`poseFor[space.j]` → transform.position）で同じ pinch 連鎖（joints→gesture→haptic+visible）をフォールバック経由で端到端 pin。null pose は records 不触 + recognize 走破（'fist'→'impact' haptic）も pin。
 - 🧹 **重複 pin の撤去**: BookmarkPanel UV ゾーン（tab/scroll/deleteRow/navigate/close）を新規実装したところ lint no-dupe-keys で `:2200` 台の既存 e2e レッグ（ray-driven selectPx 版）と検出 — 全部撤去して候補を差替え。grep 漏れの教訓: `bm.` 等のローカル変数名でしか出ないレッグは名前検索に引っかからない。
