@@ -990,3 +990,69 @@ describe('WebPanel — ctor default arrows + reader abort', () => {
   });
 });
 
+
+describe('WebPanel.setReaderScale — live reader text resize (WCAG 1.4.4)', () => {
+  const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
+  const BLOCKS = [
+    { type: 'p', text: 'The quick brown fox jumps over the lazy dog. '.repeat(20) },
+    { type: 'h', text: '見出しのテキスト' },
+    { type: 'p', text: 'あいうえおかきくけこさしすせそたちつてと'.repeat(20) }
+  ];
+  const seedReader = (p) => {
+    p._contentState = 'reader';
+    p._readerBlocks = BLOCKS;
+    p._readerTitle = 'Title';
+    p._readerLines = layoutReaderLines(BLOCKS, { title: 'Title', scale: 1 });
+    p._readerScroll = 0;
+  };
+
+  test('re-lays out buffered blocks at the new scale — wrapping and pitch follow', () => {
+    const p = makePanel();
+    seedReader(p);
+    p.setReaderScale(2);
+    expect(p._readerLines).toEqual(layoutReaderLines(BLOCKS, { title: 'Title', scale: 2 }));
+    expect(p._readerLines.length).toBeGreaterThan(0);
+  });
+
+  test('re-clamps the scroll offset against the relaid-out lines', () => {
+    const p = makePanel();
+    seedReader(p);
+    p._readerScroll = p._readerLines.length - 1;
+    p.setReaderScale(0.75);
+    expect(p._readerScroll).toBeLessThanOrEqual(p._readerLines.length - 1);
+  });
+
+  test('same value is a no-op — no redraw', () => {
+    const p = makePanel();
+    seedReader(p);
+    const spy = jest.spyOn(p, '_drawContent');
+    p.setReaderScale(1);
+    expect(spy).not.toHaveBeenCalled();
+    expect(p._readerLines).toEqual(layoutReaderLines(BLOCKS, { title: 'Title', scale: 1 }));
+  });
+
+  test('invalid values fall back to 1', () => {
+    const p = makePanel();
+    seedReader(p);
+    p.setReaderScale(2);
+    p.setReaderScale(0);      // invalid → 1
+    expect(p._readerScale).toBe(1);
+    p.setReaderScale(2);
+    p.setReaderScale('abc');  // non-finite → 1
+    expect(p._readerScale).toBe(1);
+    p.setReaderScale(-3);
+    expect(p._readerScale).toBe(1);
+  });
+
+  test('stores the scale outside reader state without laying out', () => {
+    const p = makePanel();
+    p._contentState = 'empty';
+    expect(() => p.setReaderScale(1.5)).not.toThrow();
+    expect(p._readerScale).toBe(1.5);
+  });
+
+  test('constructor opt still seeds the initial scale', () => {
+    const p = makePanel({ readerScale: 1.75 });
+    expect(p._readerScale).toBe(1.75);
+  });
+});

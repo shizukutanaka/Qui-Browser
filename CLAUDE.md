@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 94: 続き252 — リーダー文字サイズのライブステッパー（死んでいた readerScale を配線）
+- 🔍 **実測**: `WebPanel` はコンストラクタ opt `readerScale` を受け `_readerScale` に保持するが、**どこからも値が渡されず常に 1 固定の dead knob** だった（grep で `readerScale:` 注入箇所ゼロ）。レイアウトは `_readerScale` を wrap/ピッチ/改ページ全てに適用する実装済みだったので、残部は配線のみ。
+- 🔧 **修正**: ①`settings.readerTextScale`（既定 1）+ Browsing セクションにステッパー（0.75–2.0、0.25 刻み、'x'）— **WCAG 1.4.4 Resize Text**（200% までコンテンツ喪失なし）②`WebPanel.setReaderScale(v)` — バッファ済み `_readerBlocks`/`_readerTitle`（`_readerLines` と同一生存期間: stop() の前ページ復元でも新スケールで再レイアウト）を `layoutReaderLines` で再レイアウト＋スクロール再クランプ＋再描画。非 reader 状態は値だけ保持③`TabManager` が `opts.readerScale` を新タブへ継承、VRApp が `settings.readerTextScale` を注入＋`apply` が全パネルへ fan-out（readerProxyUrl と同じ live 規律）。i18n `vr.settings.readerText` en/ja。
+- 🧪 pin 7件（setReaderScale: 再レイアウト一致・スクロール再クランプ・同値 no-op・不正値→1・非 reader 保持・ctor opt 維持＋browsing セクション配線テストで fan-out 検証・インデックス更新）。stash 検証で pre-fix 赤（setReaderScale undefined / C[3] が cycle）・post-fix 緑。
+- ✅ 3220 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。PR base: `devin/1790059485-re-land-three-bump`。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

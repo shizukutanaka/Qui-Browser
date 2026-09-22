@@ -133,6 +133,12 @@ export class WebPanel {
     // rendering the extracted text ourselves (see readableText.js).
     this._contentState = 'empty';
     this._readerLines = [];
+    // The extracted blocks/title behind _readerLines, kept so a text-scale
+    // change can re-layout without a refetch (same lifecycle: they survive
+    // navigation until the next fetch replaces them, so stop() restores the
+    // previous page at the new scale too).
+    this._readerBlocks = [];
+    this._readerTitle = '';
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
@@ -402,6 +408,8 @@ export class WebPanel {
         this.onNavigate(url, url);
         return;
       }
+      this._readerBlocks = blocks;
+      this._readerTitle = title;
       this._readerLines = lines;
       this._readerScroll = 0;
       this._contentState = 'reader';
@@ -576,6 +584,32 @@ export class WebPanel {
     if (this._contentState === 'unavailable') {
       this._drawContent();
     }
+  }
+
+  /**
+   * Resize the reader's text live (WCAG 1.4.4 Resize Text — 200 % without
+   * loss of content). Re-lays out the buffered blocks so wrapping, pitches
+   * and pagination all follow the new size; the scroll offset is re-clamped
+   * so the view can't land past the end. No-op when unchanged or invalid,
+   * and a repaint in every content state is harmless — the canvas already
+   * redraws on any state change.
+   *
+   * @param {number} scale text-size multiplier, > 0
+   */
+  setReaderScale(scale) {
+    const next = (Number.isFinite(scale) && scale > 0) ? scale : 1;
+    if (next === this._readerScale) {
+      return;
+    }
+    this._readerScale = next;
+    if (this._contentState === 'reader' && this._readerBlocks.length) {
+      this._readerLines = layoutReaderLines(this._readerBlocks, {
+        title: this._readerTitle,
+        scale: next
+      });
+      this._readerScroll = clampReaderScroll(this._readerLines, this._readerScroll, next);
+    }
+    this._drawContent();
   }
 
   /** Set the content-area state and repaint if it changed. */

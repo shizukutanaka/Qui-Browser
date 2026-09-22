@@ -134,6 +134,11 @@ export function defaultSettings() {
     // which reaches CORS-enabled origins only — measured: no general site
     // sends Access-Control-Allow-Origin on its HTML. See docs/PROXY.md.
     readerProxyUrl: '',
+    // Reader text-size multiplier. WCAG 1.4.4 Resize Text: content must stay
+    // usable at 200 %. The reader canvas re-lays out live — wrapping, pitch
+    // and pagination all follow — so a low-vision user can enlarge mid-page
+    // without refetching. Stepper in the settings panel.
+    readerTextScale: 1,
     // Browse without recording: history/top-sites learning are suppressed
     // while ON. Session-local back/forward still works (per-tab history is
     // not persisted); bookmarks stay explicit saves. For shared headsets.
@@ -872,6 +877,7 @@ export class VRApp {
       unregisterInteractable: (m) => this.unregisterInteractable(m),
       onNavigate: (url, title) => this.navigate(url, title),
       readerProxyUrl: this.settings.readerProxyUrl,
+      readerScale: this.settings.readerTextScale,
       onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
@@ -1725,6 +1731,19 @@ export class VRApp {
             this.spatialAudio.setMasterVolume(v / 100);
           }
         }
+      }],
+      // WCAG 1.4.4 Resize Text: re-layouts the reader live (no refetch) and
+      // fans out to every open panel; new tabs inherit via TabManager opts.
+      // Placed in the Browsing section with the other reader controls.
+      [t('vr.settings.readerText'), 'readerTextScale', {
+        min: 0.75, max: 2, step: 0.25, unit: 'x',
+        apply: (v) => {
+          if (this.tabManager) {
+            for (const panel of this.tabManager.tabs) {
+              panel.setReaderScale(v);
+            }
+          }
+        }
       }]
     ];
 
@@ -1795,7 +1814,8 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment', 'enablePerfMonitorUI', 'enableTextureManager']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel', 'privateMode', 'enableVoice']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'enableVoice']),
+        byKey(steppers, ['readerTextScale']),
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))

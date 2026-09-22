@@ -266,7 +266,10 @@ export class TabManager {
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
       onBlockedNavigation: this.opts.onBlockedNavigation || null,
       getTopSites: this.opts.getTopSites || null,
-      readerProxyUrl: this.opts.readerProxyUrl || ''
+      readerProxyUrl: this.opts.readerProxyUrl || '',
+      // New tabs inherit the live reader text scale — a scale set after tabs
+      // exist is fanned out by setReaderScale on every open panel.
+      readerScale: this.opts.readerScale || 1
     });
     panel.addToScene(this.rootGroup);
     panel.group.position.set(0, 0, 0); // local to rootGroup

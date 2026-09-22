@@ -2830,6 +2830,7 @@ describe('VRApp createSettingsPanel — the orchestrator itself (bound prototype
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
     masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
+    readerTextScale: 1,
     openSettingsSections: ['settings.section.a11y']
   };
 
@@ -2928,14 +2929,16 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     enableWindowFollow: true, enableCurvedPanel: false,
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
-    masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo'
+    masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
+    readerTextScale: 1
   };
   const P = (sectionId, over = {}) => {
     const app = makeVRAppLike({
       settings: { ...SETTINGS, openSettingsSections: [sectionId] },
       _panelTextures: [], _sharedGeometries: new Map(), _settingsPanelDrawers: [],
       interactables: [], scene: new THREE.Scene(),
-      tabManager: { setSearchEngine: jest.fn(), setCurved: jest.fn() },
+      tabManager: { setSearchEngine: jest.fn(), setCurved: jest.fn(),
+        tabs: [{ setReaderScale: jest.fn() }, { setReaderScale: jest.fn() }] },
       webPanel: { setCurved: jest.fn() },
       bookmarkPanel: { visible: false, toggle: jest.fn(function () {
         this.visible = !this.visible;
@@ -3088,10 +3091,18 @@ describe('VRApp createSettingsPanel — every apply callback fires (bound protot
     expect(app._onWebPanelToggleChanged).toHaveBeenCalledWith(false);
     C[2].onSelect(); // enableVoice false->true -> lazy _initVoiceCommands()
     expect(app._initVoiceCommands).toHaveBeenCalled();
-    const cyc = C[3]; // toggles (3) + cycle searchEngine
+    // Reader text-size stepper (WCAG 1.4.4): fans the new scale out to every
+    // open panel's setReaderScale.
+    const stepper = C[3];
+    stepper.onSelect({ intersection: { point: plusPoint(stepper.mesh) } });
+    for (const panel of app.tabManager.tabs) {
+      expect(panel.setReaderScale).toHaveBeenCalledWith(app.settings.readerTextScale);
+    }
+    expect(app.settings.readerTextScale).toBeGreaterThan(1);
+    const cyc = C[4]; // toggles (3) + stepper + cycle searchEngine
     cyc.onSelect();
     expect(app.tabManager.setSearchEngine).toHaveBeenCalledWith('google');
-    const acts = C.slice(4); // clearHistory, readerProxy, bookmarks
+    const acts = C.slice(5); // clearHistory, readerProxy, bookmarks
     acts[0].onSelect();
     expect(app._clearBrowsingHistory).toHaveBeenCalled();
     acts[1].onSelect();
@@ -3422,6 +3433,7 @@ describe('VRApp settings apply — absent-subsystem arms', () => {
     snapTurnAngle: 45, smoothMoveSpeed: 1.5, gazeDwellTime: 1200, gazeGraceTime: 300,
     windowDistance: 2.4, captionDuration: 5, captionScale: 1.0, captionHeight: -0.55,
     masterVolume: 80, motionSensitivity: 'moderate', searchEngine: 'duckduckgo',
+    readerTextScale: 1,
     openSettingsSections: ['settings.section.a11y']
   };
   const build = (over = {}) => {
