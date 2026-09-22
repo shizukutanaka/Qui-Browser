@@ -459,6 +459,7 @@ describe('HandTracking gesture tail — fist / peace / thumbsup', () => {
   test('all fingers curled -> fist', () => {
     const ht = new HandTracking({}, new MockObj());
     ht.isFingerExtended = () => false;
+    ht.isThumbUp = () => false;
     expect(ht.detectGesture(jointsMap())).toBe('fist');
   });
 
@@ -469,11 +470,19 @@ describe('HandTracking gesture tail — fist / peace / thumbsup', () => {
     expect(ht.detectGesture(jointsMap())).toBe('peace');
   });
 
-  test('gesture precedence: fist wins over thumbsup when all fingers are curled', () => {
+  test('gesture precedence: thumbsup wins over fist — curled fingers ARE the thumbs-up shape', () => {
     const ht = new HandTracking({}, new MockObj());
     ht.isFingerExtended = () => false;
     ht.isThumbUp = () => true;
-    // Fist is checked before thumbsup — pin the precedence order.
+    // A canonical thumbs-up curls the four fingers — checking fist first
+    // made 'thumbsup' unreachable in its natural hand shape.
+    expect(ht.detectGesture(jointsMap())).toBe('thumbsup');
+  });
+
+  test('fist still wins when the thumb vector is not raised', () => {
+    const ht = new HandTracking({}, new MockObj());
+    ht.isFingerExtended = () => false;
+    ht.isThumbUp = () => false; // thumb sideways, as in a plain fist
     expect(ht.detectGesture(jointsMap())).toBe('fist');
   });
 
@@ -482,6 +491,29 @@ describe('HandTracking gesture tail — fist / peace / thumbsup', () => {
     ht.isFingerExtended = (_j, f) => f === 'pinky-finger'; // breaks fist+peace+point+open
     ht.isThumbUp = () => true;
     expect(ht.detectGesture(jointsMap())).toBe('thumbsup');
+  });
+
+  test('canonical curled-fingers thumbs-up resolves to thumbsup (real joint math)', () => {
+    // The natural thumbs-up shape: thumb raised, four fingers curled into a
+    // fist. Before the reorder, this exact pose returned 'fist' — the
+    // thumbsup branch was unreachable in its canonical form.
+    const ht = new HandTracking({}, new MockObj());
+    const V = require('three').Vector3;
+    const joints = new Map([
+      ['wrist', { position: new V(0, 0, 0) }],
+      ['thumb-tip', { position: new V(0.02, 0.12, 0.01) }],
+      ['thumb-phalanx-proximal', { position: new V(0.01, 0.05, 0.01) }],
+      // curled fingers — tips closer to the wrist than the extension threshold
+      ['index-finger-metacarpal', { position: new V(0, 0.06, 0) }],
+      ['index-finger-tip', { position: new V(0.01, 0.04, 0.02) }],
+      ['middle-finger-metacarpal', { position: new V(0, 0.06, 0) }],
+      ['middle-finger-tip', { position: new V(0.01, 0.04, 0.02) }],
+      ['ring-finger-metacarpal', { position: new V(0, 0.06, 0) }],
+      ['ring-finger-tip', { position: new V(0.01, 0.04, 0.02) }],
+      ['pinky-finger-metacarpal', { position: new V(0, 0.06, 0) }],
+      ['pinky-finger-tip', { position: new V(0.01, 0.04, 0.02) }]
+    ]);
+    expect(ht.detectGesture(joints, false)).toBe('thumbsup');
   });
 
   test('isThumbUp uses the real thumb vector math (y > 0.7)', () => {

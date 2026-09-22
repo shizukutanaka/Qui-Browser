@@ -7,6 +7,20 @@ import { initializeMonitoring } from './monitoring.js';
 import { applyTranslations, setLanguage, getLanguage, t } from './i18n/i18n.js';
 import { applyAccessibility, togglePref, getPrefs } from './a11y/accessibility.js';
 
+// Clickjacking guard for headerless deploy targets. CSP frame-ancestors is
+// honored only as a real HTTP header — a <meta> policy cannot express it and
+// browsers ignore the directive there (observed as a live console warning).
+// nginx/vercel/netlify do ship the header; hosts like GitHub Pages do not, so
+// this substitutes: reading top.location throws across origins, so a
+// cross-origin frame blank-out here leaves same-origin framing legal.
+if (window.top !== window.self) {
+  try {
+    void window.top.location.href;
+  } catch {
+    document.documentElement.replaceChildren();
+  }
+}
+
 // Apply accessibility preferences (high-contrast / large-text / reduced-motion)
 // as early as possible, then wire the toggle buttons.
 applyAccessibility();

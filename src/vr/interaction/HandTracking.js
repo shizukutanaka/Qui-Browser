@@ -400,6 +400,16 @@ export class HandTracking {
       return 'open';
     }
 
+    // Thumbs up — checked BEFORE fist/peace: the canonical thumbs-up curls
+    // the four fingers into a fist, so the fist branch would capture it
+    // first and 'thumbsup' was unreachable in its natural hand shape. A
+    // plain fist keeps its thumb vector pointing sideways (< 0.7), so the
+    // reorder doesn't misclassify real fists.
+    if (this.isThumbUp(joints)) {
+      this.stats.gesturesRecognized++;
+      return 'thumbsup';
+    }
+
     // Fist (all fingers curled)
     if (!this.isFingerExtended(joints, 'index-finger') &&
         !this.isFingerExtended(joints, 'middle-finger') &&
@@ -416,12 +426,6 @@ export class HandTracking {
         !this.isFingerExtended(joints, 'pinky-finger')) {
       this.stats.gesturesRecognized++;
       return 'peace';
-    }
-
-    // Thumbs up
-    if (this.isThumbUp(joints)) {
-      this.stats.gesturesRecognized++;
-      return 'thumbsup';
     }
 
     return 'none';
