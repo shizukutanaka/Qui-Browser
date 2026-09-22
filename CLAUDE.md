@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 120: 続き278 — VR180 動画が左後方に描画されていた（sphereParams phiStart ずれ）
+- 🔍 **実測**: `videoProjection.sphereParams('180')` が `phiStart=π/2, phiLength=π` を返すが、THREE.SphereGeometry の頂点式 `(−r·cosφ·sinθ, r·cosθ, r·sinφ·sinθ)` で検算するとスパン [π/2, 3π/2] の中心 φ=π は **+x**（`ImmersiveVideo._makeSphere` の `geo.scale(-1,1,1)` ミラー適用後は **−x**）— コメントの「centred on −z」ではなく **視線の左90°** へ半球が向き、VR180 コンテンツは視聴者が見るべき正面ではなく左後方の領域に展開される（正面にはコンテンツの「縁」が来る）。発生条件: `detectVideoFormat` が `180` を含むファイル名から projection='180' を検出した場合全件。テストも `phiStart π/2` を「centred forward」と pin して誤値を固定していた。
+- 🔧 **修正**: `phiStart = Math.PI`（スパン [π, 2π]、中心 φ=3π/2 → −z。−z は x=0 のためミラーで不変）。コメントに THREE 頂点式と「π/2 は +x 中心だった」の由来を記録。
+- 🧪 pin 2件: `phiStart === π`＋**方向 pin**（スパン中心方位角が THREE 式で (0,−1)＝−z へ解像されること — 数値だけでなく配置意図を pin）。両件 src 巻き戻し検証で pre-fix 赤・post-fix 緑。
+- ✅ 3223 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
 ### Session 92: 続き250 — #199 apply -3 巻き戻し6件の復元 + dead helper 撤去（台帳 Q-1 解消・O-1 注記）
 - 🔍 **調査**: 続き249で IME space 巻き戻しを直したが、他の #198 修正も巻き戻されていないか総点検 — `git diff 0008674 cf67c41` で #198 が触った全ファイルを照合した結果、**6件が静かに戻っていた**: ①SpatialAudio `??`→`||`（volume/coneOuterGain/cone 角度）②HandTracking thumbsup が fist より後（標準形で到達不能）③WebPanel.dispose の親切断 ④main.js clickjack guard ⑤CSP `http://[::1]:*` が全6サイトに復活 ⑥caption prefix/keyboard prompt の t() 化が消失。**対応 pin も巻き戻されていたため jest は緑のまま** — 回帰検出は「diff 照合」でのみ可能だった。原因は #199 の re-land 元ブランチが #198 より古いベースで切られており、`git apply -3` が旧コンテンツを重ねたため（SSRFGuard の 6to4/TEST-NET/multicast/trailing-dot も戻っていた — 併せて復元）。
 - 🔧 **修正（#199 ブランチへ直接 push・26ec8b5）**: 上記7修正を #198 形そのまま復元 + pin 13件を回収（csp-consistency/hand-tracking/spatial-audio/i18n/ssrf-guard/web-panel）。IME space は #201 と**バイト同一**で復元し、vr-keyboard-candidates の space→変換 migration も #201 と同一に — 後続 merge が自動解決するように合わせた。オーナーが #200 を #199 ブランチへ merge 済み（77532b3）だったため、修復は merge 後の同ブランチ tip に乗せた（52d790a）。3199 tests 緑。

@@ -23,8 +23,21 @@ describe('sphereParams', () => {
   test('180 spans a front hemisphere centred on −z', () => {
     const p = sphereParams('180');
     expect(p.phiLength).toBeCloseTo(Math.PI, 6); // half the horizontal sweep
-    expect(p.phiStart).toBeCloseTo(Math.PI / 2, 6); // centred forward
+    expect(p.phiStart).toBeCloseTo(Math.PI, 6);   // span [π, 2π]
     expect(p.thetaLength).toBeCloseTo(Math.PI, 6); // still pole-to-pole
+  });
+
+  test('180 hemisphere centre azimuth resolves to −z (the THREE forward axis)', () => {
+    // Directional pin, not just a number: THREE.SphereGeometry places the
+    // vertex at azimuth φ on (−r·cosφ·sinθ, ·, r·sinφ·sinθ), so the span's
+    // centre must be φ = 3π/2 for the content's middle to face the viewer.
+    const p = sphereParams('180');
+    const phiMid = p.phiStart + p.phiLength / 2;
+    const theta = Math.PI / 2; // equator
+    const x = -Math.cos(phiMid) * Math.sin(theta);
+    const z = Math.sin(phiMid) * Math.sin(theta);
+    expect(x).toBeCloseTo(0, 6);
+    expect(z).toBeCloseTo(-1, 6); // −z, not +x or +z
   });
 
   test('defaults to 360 for unknown projection', () => {
