@@ -132,8 +132,15 @@ export class WindowManager {
 
     if (this.followMode) {
       this._targetPos.copy(this._camPos).addScaledVector(this._forward, this.distance);
-      // Frame-rate-independent smoothing.
-      const t = Math.min(1, this.followLerp * (dtMs / 16.6667));
+      // Frame-rate-independent smoothing: `followLerp` is the fraction of
+      // the remaining gap closed per 16.67 ms. The previous linear form
+      // (followLerp * dt/16.67) is only first-order correct — a 100 ms
+      // hitch closed ~90% of the gap instead of the ~62% six 16.7 ms steps
+      // would, and past ~111 ms it clamped to 1, snapping the panel
+      // instantly. The exponential form is exact at every dt and never
+      // overshoots.
+      const s = Math.min(1, Math.max(0, this.followLerp));
+      const t = 1 - Math.pow(1 - s, Math.max(0, dtMs) / 16.6667);
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
       this._applyAngularScale();
