@@ -99,6 +99,9 @@ function makeVRAppLike(overrides = {}) {
     // (binding VRApp.prototype instead would activate VRApp's own accessors,
     // which delegate to an `a11y` coordinator this fixture does not build).
     _attachManagedWindow: VRApp.prototype._attachManagedWindow,
+    // Layer attach goes through _attachPanelLayer so the mid-session
+    // reconciler (_syncPanelLayers) and the session-start batch share it.
+    _attachPanelLayer: VRApp.prototype._attachPanelLayer,
     // Hit-tests go through intersectInteractables, which consults the
     // per-fixture raycasterFromController mock.
     intersectInteractables: VRApp.prototype.intersectInteractables,
@@ -4277,7 +4280,8 @@ describe('VRApp — layer attach/detach + session-start tail arms', () => {
     const layers = { createQuadLayer: jest.fn(() => null), updateRenderState: jest.fn(), count: 0 };
     const app = {
       renderer: { xr: { getReferenceSpace: () => null } },
-      layersSystem: layers, tabManager: { tabs: [panel] }, webPanel: null
+      layersSystem: layers, tabManager: { tabs: [panel] }, webPanel: null,
+      _attachPanelLayer: VRApp.prototype._attachPanelLayer
     };
     VRApp.prototype._attachLayersToPanels.call(app, session);
     expect(layers.createQuadLayer).not.toHaveBeenCalled(); // !refSpace arm
@@ -4294,7 +4298,8 @@ describe('VRApp — layer attach/detach + session-start tail arms', () => {
     const layers = { createQuadLayer: jest.fn(() => ({ ql: 1 })), updateRenderState: jest.fn(), count: 1 };
     const app = {
       renderer: { xr: { getReferenceSpace: () => ({}), getBaseLayer: () => ({}) } },
-      layersSystem: layers, tabManager: null, webPanel: wp
+      layersSystem: layers, tabManager: null, webPanel: wp,
+      _attachPanelLayer: VRApp.prototype._attachPanelLayer
     };
     VRApp.prototype._attachLayersToPanels.call(app, session);
     expect(wp.enableLayerMode).toHaveBeenCalled();
@@ -4898,3 +4903,72 @@ describe('VRApp misc tail — updateSetting + selectend/squeezestart wrappers', 
   });
 });
 
+
+describe('VRApp._syncPanelLayers — mid-session tabs get native quad layers', () => {
+  // _attachLayersToPanels ran once at session start, so a tab opened during
+  // the session never got an XRQuadLayer: its chrome bar rendered at standard
+  // mesh resolution while sibling tabs composited at native resolution.
+  // TabManager.onSessionChange (fired by newTab/close/restore) now reconciles
+  // panel↔layer state through this method.
+  const makeLayersSystem = () => ({
+    createQuadLayer: jest.fn((o) => ({ id: o.id })),
+    updateRenderState: jest.fn(),
+    count: 0
+  });
+  const makeLayerApp = (panels) => ({
+    layersSystem: makeLayersSystem(),
+    renderer: { xr: {
+      getSession: jest.fn(() => ({})),
+      getReferenceSpace: jest.fn(() => ({})),
+      getBaseLayer: jest.fn(() => null)
+    } },
+    tabManager: { tabs: panels },
+    webPanel: null,
+    _layerSeq: 0,
+    _attachPanelLayer: VRApp.prototype._attachPanelLayer,
+    _detachPanelLayer: jest.fn()
+  });
+
+  test('a panel without a layer is attached once, existing layers untouched', () => {
+    const panels = [
+      { quadLayer: { id: 'old' }, enableLayerMode: jest.fn() },
+      { quadLayer: null, enableLayerMode: jest.fn() }
+    ];
+    const app = makeLayerApp(panels);
+    VRApp.prototype._syncPanelLayers.call(app);
+    expect(panels[0].enableLayerMode).not.toHaveBeenCalled();
+    expect(panels[1].enableLayerMode).toHaveBeenCalledTimes(1);
+    // One re-commit for the batch, not one per panel.
+    expect(app.layersSystem.updateRenderState).toHaveBeenCalledTimes(1);
+    // The panel receives the detach wiring (release on close).
+    const args = panels[1].enableLayerMode.mock.calls[0];
+    expect(typeof args[3]).toBe('function');
+  });
+
+  test('no-op when every tab already has a layer or no session is live', () => {
+    const settled = makeLayerApp([{ quadLayer: { id: 'x' }, enableLayerMode: jest.fn() }]);
+    VRApp.prototype._syncPanelLayers.call(settled);
+    expect(settled.layersSystem.updateRenderState).not.toHaveBeenCalled();
+
+    const noSession = makeLayerApp([{ quadLayer: null, enableLayerMode: jest.fn() }]);
+    noSession.renderer.xr.getSession.mockReturnValue(null);
+    VRApp.prototype._syncPanelLayers.call(noSession);
+    expect(noSession.layersSystem.createQuadLayer).not.toHaveBeenCalled();
+
+    const noLayers = makeLayerApp([{ quadLayer: null, enableLayerMode: jest.fn() }]);
+    noLayers.layersSystem = null;
+    VRApp.prototype._syncPanelLayers.call(noLayers);
+    expect(noLayers.renderer.xr.getSession).not.toHaveBeenCalled();
+  });
+
+  test('layer ids stay unique across successive attaches (close + reopen)', () => {
+    const panels = [{ quadLayer: null, enableLayerMode: jest.fn() }];
+    const app = makeLayerApp(panels);
+    VRApp.prototype._syncPanelLayers.call(app);
+    const second = { quadLayer: null, enableLayerMode: jest.fn() };
+    app.tabManager.tabs.push(second);
+    VRApp.prototype._syncPanelLayers.call(app);
+    const ids = app.layersSystem.createQuadLayer.mock.calls.map((c) => c[0].id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});

@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 87: 続き245 — セッション中タブの quad layer 欠落（解像度不整合）
+- 🔍 **実測**: `_attachLayersToPanels` は VR セッション開始時に一度だけ走り、その時点のタブだけに `XRQuadLayer` を張る — **`TabManager.newTab` / セッション中のタブ復元は `enableLayerMode` を呼ぶ経路を持たず**（grep で attach 呼出は 1 経路のみ）。結果として開始前タブは chrome bar がネイティブ解像度合成、セッション中に開いたタブは標準 mesh 解像度のまま — 新しいタブほど文字が滲む可視不整合。detach 側（close）は既に対称だったのに attach 側だけ session-start 時点に凍結していた。
+- 🔧 **修正**: ①attach ロジックを `_attachPanelLayer(panel, refSpace)` へ抽出（layer id はタブ index ではなく単調カウンタ `_layerSeq` — close→open で index 再利用による id 衝突を防止）②`_syncPanelLayers()` — 開いている全 panel を走査し layer 未所持のものだけ attach、1枚でも付いたら `updateRenderState` を1回だけ再コミット。`onSessionChange`（newTab/close/restore 全経路が発火）に配線し、セッション外・全タブ所持済みでは早期 no-op。`_attachLayersToPanels` は同プリミティブへ委譲。
+- 🧪 pin 3件（vr-app-wiring.test.js: 未所持のみ attach・既所持不触・re-commit 1回 / 全所持・セッション外・layersSystem 無しで no-op / close+open で id 一意）。全件 stash 検証で pre-fix 赤・post-fix 緑。fixture 類に `_attachPanelLayer`/`_syncPanelLayers` を prototype 委譲で搭載（wiring/init-systems の 3 件の既存テストも同様に追随）。
+- ✅ 3036 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 77: 続き233 — リーダー抽出器の実測欠陥（実ページで測定）
 - 🔍 **実測（実ページ + 制御入力）**: `src/vr/browser/readableText.js` を Wikipedia(ja)/Qiita/MDN の実ページに通し、5つの再現可能な欠陥を確認。①有名実体の大半が生残り — `&copy; &trade; &euro; &deg; &sect; &laquo; &frac12; &times; &eacute;` 全てリテラル出力（旧 ENTITIES は ~20 名のみ）。②**大文字始まりの実体が別文字に化ける**（潜在バグ）— 大文字小文字を区別しない lookup で `&Eacute;`→é（É ではない）、`&Dagger;`→†（‡ ではない）。③`<ol start|reversed|value>`・入れ子の序数 — フラット正規表現は start/reversed/value を完全無視し、入れ子の子 li が親のカウンタを食うため `2. outer2` が消えた（実測: `<ol><li>outer<ol><li>in1</li><li>in2</li></ol></li><li>outer2</li></ol>` → outer2 の番号消失）。④`<br>` が段落内で捨てられる — innerText 相当の `\n` を持たず "line one line two" に潰れた。⑤`<title>` のサイト名サフィックス — "WebXR - Wikipedia" がサイト名込みでリーダー題名になる（Mozilla Readability は h1 照合で分離済み）。
 - 🔧 **修正（外部仕様準拠: WHATWG HTML 実体表/§4.4.7-8 ol/li、Readability.js curTitle）**: ①ENTITIES を HTML4/XHTML1.0 全集（~250 名: マークアップ+AMP/GT/LT/QUOT/COPY/REG/TRADE 等の caps 別名、shy/zwnj/zwj/lrm/rlm/NewLine/Tab 等の不可視、欧文・ギリシャ・数学・矢印）へ拡張し lookup を**大小文字厳密化**②`liftOrderedLists` — 深度スタックスキャナで ol/ul/li を構造把握し `start`/`reversed`/`value`（intAttr）を WHATWG 計数で焼き付け。親子で独立計数、ul は序数を消費しない ③ブロック走査で `m[2]` を `<br>` で分割し各片を独立ブロック化（li の <3文字 crumb 規則は片ごと適用）④`extractTitle` — `<title>` を ` - | » · – — /` 等の区切りで分割し h1 を含む片を採用（`p===h1 || p.includes(h1) || h1.includes(p)`）、仲裁不能時は生 title を保持（保守的）。
