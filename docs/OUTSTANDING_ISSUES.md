@@ -789,6 +789,15 @@ docs/ が旧構造を語り続けていた箇所の棚卸し。
 明記してリンク先を ARCHITECTURE.md に差し替え、(c) 削除（ARCHITECTURE.md +
 TESTING.md が既に現行説明を担う）。文書の分量と位置づけが絡むためオーナー判断。
 
+## P. リーダー/テキスト幅の残存スコープ
+
+### P-4. 未修正（判断事項）: `wrapTextToLines` は契約上コードポイント計上
+続き234 で `textWidthEm`/`charWidthEm`/`wrapTextToWidth`/`truncateToWidth` の
+幅モデルは grapheme クラスタ + ゼロ幅レンジに修正済みだが、`wrapTextToLines`
+（CaptionSystem の文字数予算パスが使用）は**仕様として**コードポイントを数える
+ため NFD/結合文字で実描画より早く折り返す。em 幅へ揃えるか、文字数契約のまま
+残すかは CaptionSystem の行長設計次第 —— 判断事項。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

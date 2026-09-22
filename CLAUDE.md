@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 77: 続き234 — textWrap の文字幅モデル（NFD/絵文字の過大計上）
+- 🔍 **実測（node 直接計測）**: `src/vr/ui/textWrap.js` の `textWidthEm` が**コードポイント合算**だったため、描画されないインクまで幅として計上: NFD `か\u3099` = **2**（描画 1 em — macOS ペーストは NFD を好むと同ファイル自身が注記）、`👨‍👩‍👧` = **5.1**（描画 ~1.3）、`a\u200Bb` = 1.8（ZWSP 0.6 計上）、連結ハングル `한` = **2.2**（1 em ブロック）。逆方向の欠陥も: 地域指示子 RI（U+1F1E6–FF）が emoji 範囲 0x1F300 未満で**漏れ** — `🇯🇵` = 1.2（実測 ~2 em）。かつ `charWidthEm(0x3099)` = 1 — 結合濁点が仮名ブロック内に在り全角扱い。被害はユーザー可視: `truncateToWidth` の早期判定と `wrapTextToWidth` の join 予算がこの値を使うため、NFD/絵文字テキストが**実容量の半分で切り詰め・折返し**されていた（実測: `が`NFD×10 が limit 15 で truncation 発火 — 実際は 10 em で収まる）。
+- 🔧 **修正（UAX #11/#29 準拠）**: ①`charWidthEm` に**ゼロ幅レンジ**を幅レンジ判定の前段に追加（結合記号 0300-036F/1AB0-1AFF/1DC0-1DFF/20D0-20FF/FE20-FE2F、濁半濁点 3099-309A、VS FE00-FE0F/E0100-E01EF、ZWSP/ZWNJ/ZWJ/LRM/RLM、bidi 制御、タグ文字、shy/ALM/MVS/BOM）②RI 0x1F1E6-1F1FF を EMOJI_EM に追加（UAX #11 Wide）③`textWidthEm` を**grapheme クラスタごとの graphemeWidthEm 合算**へ — RI/ZWJ/NFD/連結 jamo が全て正しく落ちる。副次効果: `CaptionSystem` の滞在時間計算（charWidthEm===1 の full 判定）も NFD で実描画数に一致。
+- 🧪 pin 6件（text-wrap.test.js: ゼロ幅・grapheme 幅・NFD wrap 等価・NFD join・truncate 通過・ZWJ 分割）。4件が stash 検証で pre-fix 赤・post-fix 緑。残2件は新旧同値の guard。
+- ✅ 3039 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。

@@ -256,3 +256,70 @@ describe('textWrap — remaining wide-char ranges', () => {
     expect(charWidthEm(0x30000)).toBe(1); // 𰀀 CJK Ext G
   });
 });
+
+describe('textWidthEm — cluster-aware widths (measured NFD/emoji overcount)', () => {
+  test('combining marks, variation selectors and format chars cost no width', () => {
+    // Code-point sums measured ink that never renders: ゙ (U+3099) sits inside
+    // the kana range and scored a whole em; a ZWSP added 0.6 for nothing.
+    expect(charWidthEm(0x3099)).toBe(0);   // combining dakuten — inside kana block
+    expect(charWidthEm(0x309a)).toBe(0);   // combining handakuten
+    expect(charWidthEm(0x0301)).toBe(0);   // combining acute accent
+    expect(charWidthEm(0x20e3)).toBe(0);   // combining enclosing keycap
+    expect(charWidthEm(0xfe0f)).toBe(0);   // VS16
+    expect(charWidthEm(0xe0100)).toBe(0);  // VS supplement
+    expect(charWidthEm(0x200d)).toBe(0);   // ZWJ
+    expect(charWidthEm(0x200c)).toBe(0);   // ZWNJ
+    expect(charWidthEm(0x200b)).toBe(0);   // ZWSP
+    expect(charWidthEm(0x00ad)).toBe(0);   // soft hyphen
+    expect(charWidthEm(0xfeff)).toBe(0);   // BOM / ZWNBSP
+    expect(charWidthEm(0xe0020)).toBe(0);  // tag char (subdivision flags)
+    expect(charWidthEm(0x202e)).toBe(0);   // bidi override
+    expect(textWidthEm('a​b')).toBeCloseTo(2 * HALFWIDTH_EM); // a ZWSP b
+    expect(textWidthEm('x️y')).toBeCloseTo(2 * HALFWIDTH_EM); // VS16 invisible on non-emoji
+  });
+
+  test('measures per grapheme: NFD kana, flags, ZWJ sequences, conjoined jamo', () => {
+    // Pre-fix measured values (code-point sums): NFD が 2 for 1 em of ink,
+    // 👨‍👩‍👧 5.1 for ~1.3, 🇯🇵 1.2 (RI sits below the emoji range), 한 2.2
+    // for a single 1-em syllable block.
+    expect(textWidthEm('が')).toBe(1);
+    expect(textWidthEm('👨‍👩‍👧')).toBe(EMOJI_EM);
+    expect(textWidthEm('🇯🇵')).toBe(EMOJI_EM);
+    expect(charWidthEm(0x1f1ef)).toBe(EMOJI_EM); // regional indicator J — Wide per UAX #11
+    expect(charWidthEm(0x1f1f5)).toBe(EMOJI_EM); // regional indicator P
+    expect(textWidthEm('한')).toBe(1);
+  });
+
+  test('NFD Japanese wraps at the same grapheme count as NFC', () => {
+    // macOS paste favours NFD; the 2× inflated word width wrapped it at half
+    // the glyphs a reader actually sees.
+    const nfd = 'が'.normalize('NFD').repeat(40);
+    const rows = wrapTextToWidth(nfd, 34);
+    expect(rows).toEqual([
+      'が'.normalize('NFD').repeat(34),
+      'が'.normalize('NFD').repeat(6)
+    ]);
+  });
+
+  test('NFD text joins prior words on the same row instead of overflowing early', () => {
+    // 'ab'(1.2)+space(0.5)+'が'×10: pre-fix measured the word at 20 em and
+    // refused the join (1.2+0.5+20 > 15 → two rows); post-fix measures the
+    // rendered 10 em and joins into one.
+    const nfd = 'が'.normalize('NFD').repeat(10);
+    expect(wrapTextToWidth(`ab ${nfd}`, 15)).toEqual([`ab ${nfd}`]);
+  });
+
+  test('truncateToWidth passes NFD text that fits instead of halving it', () => {
+    // The fit check scored 'が'×10 as 20 em and truncated at a 15 budget —
+    // the string renders 10 em and already fits.
+    const nfd = 'が'.repeat(10);
+    expect(truncateToWidth(nfd, 15)).toBe(nfd);
+  });
+
+  test('a ZWJ-emoji word still splits on cluster boundaries when too wide', () => {
+    const rows = wrapTextToWidth('👨‍👩‍👧'.repeat(4), 3);
+    for (const row of rows) {
+      expect(row).toMatch(/^(👨‍👩‍👧)+$/);
+    }
+  });
+});
