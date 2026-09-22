@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 77: 続き233 — リーダー抽出器の実測欠陥（実ページで測定）
+- 🔍 **実測（実ページ + 制御入力）**: `src/vr/browser/readableText.js` を Wikipedia(ja)/Qiita/MDN の実ページに通し、5つの再現可能な欠陥を確認。①有名実体の大半が生残り — `&copy; &trade; &euro; &deg; &sect; &laquo; &frac12; &times; &eacute;` 全てリテラル出力（旧 ENTITIES は ~20 名のみ）。②**大文字始まりの実体が別文字に化ける**（潜在バグ）— 大文字小文字を区別しない lookup で `&Eacute;`→é（É ではない）、`&Dagger;`→†（‡ ではない）。③`<ol start|reversed|value>`・入れ子の序数 — フラット正規表現は start/reversed/value を完全無視し、入れ子の子 li が親のカウンタを食うため `2. outer2` が消えた（実測: `<ol><li>outer<ol><li>in1</li><li>in2</li></ol></li><li>outer2</li></ol>` → outer2 の番号消失）。④`<br>` が段落内で捨てられる — innerText 相当の `\n` を持たず "line one line two" に潰れた。⑤`<title>` のサイト名サフィックス — "WebXR - Wikipedia" がサイト名込みでリーダー題名になる（Mozilla Readability は h1 照合で分離済み）。
+- 🔧 **修正（外部仕様準拠: WHATWG HTML 実体表/§4.4.7-8 ol/li、Readability.js curTitle）**: ①ENTITIES を HTML4/XHTML1.0 全集（~250 名: マークアップ+AMP/GT/LT/QUOT/COPY/REG/TRADE 等の caps 別名、shy/zwnj/zwj/lrm/rlm/NewLine/Tab 等の不可視、欧文・ギリシャ・数学・矢印）へ拡張し lookup を**大小文字厳密化**②`liftOrderedLists` — 深度スタックスキャナで ol/ul/li を構造把握し `start`/`reversed`/`value`（intAttr）を WHATWG 計数で焼き付け。親子で独立計数、ul は序数を消費しない ③ブロック走査で `m[2]` を `<br>` で分割し各片を独立ブロック化（li の <3文字 crumb 規則は片ごと適用）④`extractTitle` — `<title>` を ` - | » · – — /` 等の区切りで分割し h1 を含む片を採用（`p===h1 || p.includes(h1) || h1.includes(p)`）、仲裁不能時は生 title を保持（保守的）。
+- 🧪 pin 20件（readable-text.test.js: 実体5・タイトル7・ol/li 5・br 2・pre-in-li 1）。15件が stash 検証で pre-fix 赤・post-fix 緑。残5件は新旧で同値の保守挙動を guard として残置（no-h1 → 生 title 保持、h1 不一致 → 生 title、ul-in-ol 不計数等）。
+- ✅ 3033 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
 - 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
 - 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
