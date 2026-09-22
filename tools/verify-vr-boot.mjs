@@ -1110,6 +1110,97 @@ async function main() {
                 app.playerRig.rotation.y = origYaw;
               }
             }
+            // Settings panel real-button select: a toggle's onHover announces
+            // its own label (force=true through _announceSettingsButton), so
+            // the controller ray can FIND the 'Captions' toggle by caption —
+            // then selectstart flips enableCaptions live (settings +
+            // captionSystem.enabled) and a second select restores it. The
+            // restore-select lands on captions-OFF, so its announce is
+            // correctly silent (there is nothing to render it with) — only
+            // state restoration is asserted there.
+            if (ctrl && app.settingsPanel && app.captionSystem && app.settings) {
+              const visWas = !!app.settingsPanel.visible;
+              if (app.settingsPanel.visible !== true) {
+                app.settingsPanel.visible = true;
+                app.settingsPanel.mesh && (app.settingsPanel.mesh.visible = true);
+              }
+              // Hover announces are gaze-gated (shouldAnnounceSettingsButton:
+              // captionsEnabled AND (force OR gazeDwell)) — enable the real
+              // setting for the probe, restored in finally.
+              const gazeWas = app.settings.enableGazeDwell;
+              app.settings.enableGazeDwell = true;
+              const panelObjs = app.interactables.filter((o) => {
+                for (let p = o; p; p = p.parent) {
+                  if (p === app.settingsPanel) { return true; }
+                }
+                return false;
+              });
+              const origMW3 = ctrl.matrixWorld.clone();
+              const aimAt = (obj) => {
+                const bp = obj.getWorldPosition(obj.position.clone());
+                const camP = app.camera.getWorldPosition(bp.clone());
+                const toC = camP.sub(bp).normalize();
+                const cp = bp.clone().add(toC.multiplyScalar(0.35));
+                ctrl.matrixWorld.lookAt(cp, bp, ctrl.up.clone());
+                ctrl.matrixWorld.setPosition(cp);
+              };
+              try {
+                const en0 = app.settings.enableCaptions;
+                let capBtn = null;
+                for (const obj of panelObjs) {
+                  const before = capWrites.length;
+                  aimAt(obj);
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  if (capWrites.slice(before).join(' ').includes('Captions')) {
+                    capBtn = obj;
+                    break;
+                  }
+                }
+                out.settingsProbe = !!capBtn;
+                if (capBtn) {
+                  ctrl.dispatchEvent({ type: 'selectstart' });
+                  ctrl.dispatchEvent({ type: 'selectend' });
+                  out.settingsOffLive = app.settings.enableCaptions === !en0
+                    && app.captionSystem.enabled === !en0;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  const b2 = capWrites.length;
+                  ctrl.dispatchEvent({ type: 'selectstart' });
+                  ctrl.dispatchEvent({ type: 'selectend' });
+                  out.settingsOnLive = app.settings.enableCaptions === en0
+                    && app.captionSystem.enabled === en0;
+                }
+              } finally {
+                ctrl.matrixWorld.copy(origMW3);
+                if (app.settings.enableCaptions !== true) {
+                  app.updateSetting('enableCaptions', true);
+                }
+                if (app.captionSystem.enabled !== true) {
+                  app.captionSystem.enabled = true;
+                }
+                app.settingsPanel.visible = visWas;
+                app.settingsPanel.mesh && (app.settingsPanel.mesh.visible = visWas);
+                app.settings.enableGazeDwell = gazeWas;
+              }
+            }
+            // Hand-input tracked arm: an inputSource with a truthy 'hand'
+            // flips the hand group visible through update()'s seen-detector
+            // and fires the debounced 'Right hand tracked' announce — the
+            // counterpart of the inputsourceschange removal pin.
+            if (app.handTracking && fakeSession.inputSources) {
+              const handSrc = { handedness: 'right', hand: new Map(), profiles: [] };
+              fakeSession.inputSources.push(handSrc);
+              app.updateSystems(0, fakeXrFrame, 0.016);
+              await new Promise((r) => setTimeout(r, 700));
+              const rh = app.handTracking.rightHand;
+              out.handTracked = rh && rh.visible === true
+                && capWrites.some((t) => t.includes('Right hand tracked'));
+              const li = fakeSession.inputSources.indexOf(handSrc);
+              if (li >= 0) {
+                fakeSession.inputSources.splice(li, 1);
+              }
+              app.updateSystems(0, fakeXrFrame, 0.016);
+              await new Promise((r) => setTimeout(r, 700));
+            }
             // The 2D-arm pause: DOM visibilitychange only fires when NOT
             // presenting — drive the document-level listener directly with
             // document.hidden shadowed true (getter-only on the prototype).
@@ -1299,6 +1390,10 @@ async function main() {
       stickRecenters: iout.stickRecenters === true,
       stickKeyboard: iout.stickKeyboard === true,
       southpawSwaps: iout.southpawSwaps === true,
+      settingsProbe: iout.settingsProbe === true,
+      settingsOffLive: iout.settingsOffLive === true,
+      settingsOnLive: iout.settingsOnLive === true,
+      handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
       sessEnd: iout.sessEnded === true
         && iout.sessIvStopped === true
@@ -1448,6 +1543,10 @@ async function main() {
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],
+      ['hover announce identifies the Captions toggle', !!inter.settingsProbe],
+      ['ray select flips enableCaptions live', !!inter.settingsOffLive],
+      ['re-select restores the captions toggle state', !!inter.settingsOnLive],
+      ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
       ['session end handed back video/hands/layers/fps', !!inter.sessEnd],
       ['no uncaught exceptions / console errors / browser log errors', errors.length === 0]

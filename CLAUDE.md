@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 160: 続き318 — settings パネル実ボタン select→live apply + hand-tracked アナウンスを e2e pin（#258 batch 11、110→114 checks）
+- 🔍 **実測（残りの未駆動ブリッジ 2 件）**: ①settings パネルの compact-toggle は interactable 登録済み・onHover で自己ラベルアナウンス（`_announceSettingsButton` → `settingsButtonCaption`）するが、**実ボタンへのコントローラ ray 照準→hover識別→select→`updateSetting`+apply の全連鎖**は一度も駆動されていなかった。②`inputsourceschange` の removal→hand-lost は R70 で pin 済みだが、**追加側（inputSource.hand 出現→seen 検出→`handGroup.visible`→600ms debounce の 'X hand tracked'）**は未駆動だった。
+- 🔧 **実装**: ①`app.interactables` を settingsPanel 祖先連鎖で絞込み、各候補へ `matrixWorld.lookAt`+`setPosition` で照準 → `updateSystems`→`updateHover`→onHover の **アナウンス内容で 'Captions' トグルを特定**（hoverアナウンスは `shouldAnnounceSettingsButton`: captionsEnabled AND (force OR gazeDwell) のため `enableGazeDwell=true` 下で実施・finally 復元）→ selectstart で `enableCaptions`/`captionSystem.enabled` が反転、再 select で復元を pin（復元側 select は captions-OFF に着地するため announce は仕様上無音 — 状態復元のみ assert）。②`fakeSession.inputSources` に `{handedness:'right', hand:new Map()}` を push → `update()` の seen-detector が per-joint fallback 経路（空 Map は全 joint miss→continue で安全）を通り `rightHand.visible=true` + debounce アナウンス到達を pin。
+- 🧪 **発見した harness 教訓**: eval 文字列内のコメントに backtick を書くと外側 template literal を閉じてしまい構文エラー（`'hand'` 表記に修正）。赤検証: onHover の `_announceSettingsButton` 切断 → settingsProbe→Off/OnLive の cascade で 3 FAIL、`update()` の tracked-side `_onTrackingChange` 切断 → handTracked FAIL。対象配線を正確に捕捉。pin は有機全緑（両経路とも base で既に正しい — 純粋カバレッジ拡張、ソース同梱なし）。
+- ✅ 3299 tests / 74 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 114 checks PASS、verify:app PASS。
+
 ### Session 159: 続き317 — gamepad 入力の残腕（smooth move / thumbstickClick / southpaw）を e2e pin（#258 batch 10、105→110 checks）
 - **Round 76 of the continuous-improvement directive.** Tenth batch on #258 —
   pure coverage; every arm was already correct on the fixed base.
