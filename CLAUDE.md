@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 99: 続き257 — ImmersiveVideo HUD の残存英語リテラル（WCAG 3.1.2）
+- 🔍 **調査**: i18n 監査で「t() 88 箇所・VR 面の英語残置は概ね解消」との状態だが、`src/vr/` 全体を grep すると `ImmersiveVideo` に 2 件のリテラルが残っていた: HUD の `_makeButton('Exit', …)`（再生/一時停止と同じボタン面なのに Exit だけ英語）と `_reportError('Could not load video (check URL / CORS)')`（onError → toast/caption に出るメッセージが英語のみ）。日本語ユーザーは動画 HUD とエラー通知を英語で受け取る — WCAG 3.1.2 Language of Parts。
+- 🔧 **修正**: `vr.video.exit`（'Exit'/'終了'）・`vr.video.loadError`（'Could not load video (check URL / CORS)'/'動画を読み込めませんでした（URL / CORS を確認してください）'）を en/ja 両カタログへ追加し、両箇所を `t()` 経由へ。hover caption（onHoverCaption）は既に `label` をそのまま渡すので翻訳済みラベルがそのまま乗る。
+- 🧪 pin 2件（immersive-video: ja で play → ctx.fillText に '再生'/'終了' / ja で error → onError が和訳を受け取る）+ KEYS 一覧へ 2 キー追加。2件とも stash 検証で pre-fix 赤（ja のまま英語が返る）・post-fix 緑。
+- ✅ 3218 tests / 73 suites 全緑、lint 0 errors（354 warnings）、build 緑。
+
 ### Session 91: 続き249 — IME space 回帰の復元 + ascii inputMode（台帳 N-3 解消）
 - 🔍 **調査**: PR #199 の `git apply -3` が ime-romaji-coverage ブランチの旧 `onKeyPress` を取り込み、続き246（PR #198）の space 修正を**巻き戻していた**ことを検出（space→convertToKanji のみ・変換キーは候補行を出さず沈黙）。あわせて台帳 N-3 を再検証 — Session 75 の「表示はかな・出力は生ローマ字」観測は**陳腐化**（composition strip が描くのは生 `compositionBuffer` で表示＝出力は既に一致）。残存する実害は URL コンテキストで space/変換が `google.co.jp/transliterate` へタイプ文字列を送信し得る点と、'ascii' モード不在。
 - 🔧 **修正**: ①space→`processInput(' ')` + updateDisplay を復元、変換→`convertToKanji`+`showCandidates` 復元（#198 の形そのまま）②`'ascii'` を第一級 inputMode へ（`switchMode` 受理・バッジ 'A'・`imeBadgeColors` へ #bb88ff）— ascii は raw passthrough、`convertToKanji` が fetch 以前に null で抜けるため**タイプ文字列は外部へ出ない**③`VRApp._requestVRKeyboardInput` が activate 直後 `switchMode('ascii')` — URL/動画URL 入力がデフォルト ascii（かな/shift での日本語検索切替は維持）。converted-vs-raw confirm は表示が生 buffer なので parity 成立済み、候補コミットは汎用 IME 意味論どおり現行維持 — 台帳に判断記録。

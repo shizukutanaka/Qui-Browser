@@ -162,6 +162,7 @@ function makeVideoEl() {
   };
 }
 global.document = global.document || {};
+global.document.documentElement = global.document.documentElement || { lang: '' };
 global.document.createElement = (tag) =>
   tag === 'video' ? makeVideoEl() : { width: 0, height: 0, getContext: () => ctxStub };
 
@@ -761,3 +762,38 @@ describe('ImmersiveVideo — ctor default arrows', () => {
   });
 });
 
+describe('ImmersiveVideo — HUD strings route through t() (WCAG 3.1.2)', () => {
+  test('the Exit button label comes from the catalogue, not a literal', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    const calls = [];
+    const origFill = ctxStub.fillText;
+    ctxStub.fillText = (s) => calls.push(s);
+    try {
+      setLanguage('ja');
+      const { iv } = makeHarness();
+      iv.play('https://cdn.example.com/clip.mp4');
+      expect(calls).toContain('再生');
+      expect(calls).toContain('終了');
+      iv.stop();
+    } finally {
+      ctxStub.fillText = origFill;
+      setLanguage('en');
+    }
+  });
+
+  test('a video load error reports the translated vr.video.loadError key', () => {
+    const { setLanguage } = require('../src/i18n/i18n.js');
+    setLanguage('ja');
+    try {
+      const { iv, onError } = makeHarness();
+      iv.play('https://cdn.example.com/broken.mp4');
+      iv.video._emit('error');
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0][0])
+        .toBe('動画を読み込めませんでした（URL / CORS を確認してください）');
+      iv.stop();
+    } finally {
+      setLanguage('en');
+    }
+  });
+});
