@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 128: 続き286 — harness interaction に history 永続化 + privateMode 非記録を e2e pin
+- 🔍 **実測**: BookmarkStore の addHistory/frecency/getTopSites は jest で `localStorage` をモックするため、**実ブラウザの localStorage への書込み経路は未検証**だった。また `VRApp.navigate` の privateMode ゲート（`if (!this.settings.privateMode) bookmarks.addHistory`）はプライバシー契約そのものだが e2e では一度も駆動されていなかった。
+- 🔧 **修正**: interaction eval に 2 経路追加。①`app.navigate('https://harness-nav.example/')` → `bookmarks.search` が当該 URL を frecency ランクで返すこと（実 localStorage 書込→読出の roundtrip）②`updateSetting('privateMode', true)` 後の navigate が `search` に一切残さないこと（private 契約）。戻りで `historyHit`/`privateClean` を算出し checks に追加。base tip が `1fc5f40`（#236 マージ）へ前進したため本ブランチは新 tip から切出。
+- 🧪 赤検証: `navigate` の privateMode ゲートを意図的に `if (true)` へ切替え rebuild → `privateClean` のみ FAIL（private URL が履歴に漏洩）、`historyHit` は緑維持 — プライバシー契約を正確に捕捉。復元後全緑。
+- ✅ 3232 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:vr-boot 12 checks PASS。
+
 ### Session 126: 続き284 — 検証ハーネスの cross-modal 未駆動を解消（interaction フェーズ追加）
 - 🔍 **実測（静的スイープ全網羅後の残空白）**: deps/dead-code/i18n/timer/JSON.parse/dispose/重複の全静的スイープが clean を返したため、検証面の未駆動経路へ着目 — `verify:vr-boot` は VRApp の**構築**までしか検証せず、`showVRToast → SemanticDOM.announceAlert` と `captionSystem.show → onShow → announceCaption` の cross-modal 配線は一度も実ブラウザで駆動されていなかった。このパスこそ直近の複数 fix（アナウンス抑止・重複 announce・enabled ゲート）が集中していた箇所で、jest モックと実 DOM の継ぎ目は未検証のままだった。
 - 🔧 **修正**: 構築チェック後に interaction フェーズを追加。page 内で `app.showVRToast` と `captionSystem.show` を発火し、`[data-qui-semantic-dom]` 配下の `[role="alert"]`/`[role="status"]` live region へ到達したかを実 DOM で検証。4 新規チェック: ①semantic DOM mirror mounted ②toast → alert region 到達 ③**同一トースト 2 連発で U+200B マーカーが末尾に残る**（重複 announce が SR に届くことの e2e pin — Session 121 の semantic 側と対）④caption → status region 到達。ARIA ミラーは字幕設定に無関係の無条件サーフェスのため環境差異で flaky にならない。

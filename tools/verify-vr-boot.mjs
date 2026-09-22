@@ -216,6 +216,20 @@ async function main() {
         app.showVRToast('harness-dupe-check', { type: 'info' });
         app.showVRToast('harness-dupe-check', { type: 'info' });
         out.afterDupe = alertEl ? alertEl.textContent : '';
+        // History recording: app.navigate() writes BookmarkStore history into
+        // REAL localStorage (jest mocks it — this is the first e2e write-path
+        // coverage). Frecency search must then surface the entry.
+        if (app.bookmarks && typeof app.navigate === 'function') {
+          app.navigate('https://harness-nav.example/', 'Harness Nav Page');
+          out.historyHit = app.bookmarks.search('harness-nav.example', 5, Date.now())
+            .some((s) => s.url === 'https://harness-nav.example/');
+          // Private mode: the same call must write nothing — the privacy
+          // contract (VRApp.navigate gates addHistory on settings.privateMode).
+          app.updateSetting('privateMode', true);
+          app.navigate('https://harness-private.example/', 'Private Page');
+          out.privateLeak = app.bookmarks.search('harness-private.example', 5, Date.now()).length > 0;
+          app.updateSetting('privateMode', false);
+        }
         return out;
       })()`,
       returnByValue: true
@@ -232,7 +246,9 @@ async function main() {
       // duplicate-mutation branch; a verbatim rewrite means the repeat
       // would never be announced by screen readers.
       dupMarked: (iout.afterDupe || '').endsWith('\u200B'),
-      statusHas: (iout.statusText || '').includes('harness-caption-check')
+      statusHas: (iout.statusText || '').includes('harness-caption-check'),
+      historyHit: !!iout.historyHit,
+      privateClean: iout.privateLeak === false
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -261,6 +277,8 @@ async function main() {
       ['toast reached alert live region (cross-modal wiring)', !!inter.alertHas],
       ['identical repeat toast re-announced (ZWSP marker)', !!inter.dupMarked],
       ['caption reached status live region (cross-modal wiring)', !!inter.statusHas],
+      ['navigate() recorded history into real localStorage', !!inter.historyHit],
+      ['private mode wrote no history', !!inter.privateClean],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
