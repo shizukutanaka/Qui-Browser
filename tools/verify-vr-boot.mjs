@@ -309,6 +309,29 @@ async function main() {
           while (app.tabManager.count > 1) {
             app.tabManager.closeTab(0); // restore a single open tab
           }
+          // Panel-level callbacks — the fns WebPanel stores must reach the
+          // real store, not just exist: isBookmarked reads live state, the
+          // star toggle flips it AND announces both directions, and
+          // getTopSites honours the VRApp-side private gate (a private
+          // session must surface no history-derived tiles on a new tab —
+          // distinct from the store-level gate, this is the panel callback).
+          const tab2 = app.tabManager && app.tabManager.getActiveTab();
+          if (tab2) {
+            app.navigate('https://harness-top.example/', 'Top Page');
+            out.topSitesHit = (tab2.getTopSites(8) || [])
+              .some((s) => s.url === 'https://harness-top.example/');
+            app.updateSetting('privateMode', true);
+            out.topSitesPrivate = (tab2.getTopSites(8) || []).length;
+            app.updateSetting('privateMode', false);
+            out.isBookmarked = tab2.isBookmarked('https://harness-bm.example/') === true
+              && tab2.isBookmarked('https://harness-never.example/') === false;
+            tab2.onToggleBookmark('https://harness-toggle.example/', 'Toggle Page');
+            out.toggleOn = app.bookmarks.isBookmarked('https://harness-toggle.example/');
+            out.toggleCaption = statusEl ? statusEl.textContent : '';
+            tab2.onToggleBookmark('https://harness-toggle.example/', 'Toggle Page');
+            out.toggleOff = app.bookmarks.isBookmarked('https://harness-toggle.example/');
+            out.toggleOffCaption = statusEl ? statusEl.textContent : '';
+          }
           // URL-input request drives the whole keyboard wiring: setOnConfirm,
           // IME activate + ascii mode, composition prefill, show(), and the
           // prompt caption. vrKeyboard.visible is a real getter (reads the
@@ -351,6 +374,13 @@ async function main() {
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
       closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
+      topSitesHit: !!iout.topSitesHit,
+      topSitesPrivateEmpty: iout.topSitesPrivate === 0,
+      isBookmarked: !!iout.isBookmarked,
+      toggleOn: iout.toggleOn === true
+        && (iout.toggleCaption || '').includes('Bookmarked'),
+      toggleOff: iout.toggleOff === false
+        && (iout.toggleOffCaption || '').includes('Bookmark removed'),
       kbShown: !!iout.kbShown,
       kbAscii: !!iout.kbAscii,
       kbPrompted: (iout.kbPrompt || '').includes('Enter URL')
@@ -398,6 +428,11 @@ async function main() {
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
       ['max tabs announced via warn toast', !!inter.maxTabsAnnounced],
+      ['panel getTopSites surfaces a visited URL', !!inter.topSitesHit],
+      ['panel getTopSites empties under private mode', !!inter.topSitesPrivateEmpty],
+      ['panel isBookmarked reads live store state', !!inter.isBookmarked],
+      ['star toggle bookmarks + announces Bookmarked', !!inter.toggleOn],
+      ['star re-toggle removes + announces Bookmark removed', !!inter.toggleOff],
       ['URL-input request opened the VR keyboard', !!inter.kbShown],
       ['keyboard opened in ascii mode with URL prefill', !!inter.kbAscii],
       ['keyboard prompt announced via caption', !!inter.kbPrompted],
