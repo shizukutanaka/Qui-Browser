@@ -245,6 +245,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 133: 続き291 — vrKeyboard.visible 未定義欠陥（toggle が hide 不可 + 嘘アナウンス）を修正 + URL 入力経路を e2e pin
+- 🔍 **実測**: `VRApp:2358` の thumbstick toggle と `VoiceCommands` の `ime-toggle` がともに `vrKeyboard.visible ? hide() : show()` を評価するが、**`VRJapaneseKeyboard` に `visible` プロパティは存在しなかった**（`group.visible` のみ）— 結果として両 toggle 経路は常に `show()` を呼び、(a) キーボードを hide できない (b) 既に開いていても `keyboardOpen` caption で嘘アナウンス。テストは `visible=true` を手書きセットしていたため mock-drift で素通りしていた。
+- 🔧 **修正**: `VRJapaneseKeyboard` に `get visible()` 追加 — `group.visible` の実値を返す derived state（フラグではなく真実の状態を読むため、将来の設計変更でも drift しない）。併せて `_requestVRKeyboardInput`（setOnConfirm → IME activate + ascii mode → composition prefill → show → prompt caption）を harness eval で実ドライブ — `kbShown`/`kbAscii`/`kbPrompted` の3 pin。
+- 🧪 jest pin は stash 検証で pre-fix 赤・post-fix 緑。**harness `kbShown` も pre-fix bundle で FAIL → リビルド後 PASS** — shipped bundle に欠陥が実在することを e2e で証明（修正前の dist では `visible` が undefined）。
+- ✅ 3233 tests / 73 suites 全緑、lint 0 errors（354 warnings ベースライン）、build 緑、verify:app / verify:vr-boot（24 checks）PASS。#242（improve-45）の上に積層。
+
 ### Session 132: 続き290 — harness interaction に announce 3経路（blocked-scheme / tab-close / max-tabs）を e2e pin
 - 🔍 **実測**: WCAG 4.1.3 の status announce 契約のうち、危険スキームブロック（`javascript:` → `onBlockedNavigation` → warn toast）、タブ close（`onTabClose` → caption）、9枚目タブ上限（`onMaxTabsReached` → warn toast）の3経路が e2e 未検証 — 全て「処理が成功した」と思わせない正直なアナウンスで、未配線ならサイレント失敗の構造。
 - 🔧 **修正**: interaction eval に 3 経路追加。①`tab.navigate('javascript:alert(1)')` → resolveInput が null → alert region に `⚠ Cannot open that address`（severity グリフ付き warn）②タブを 8 枚まで開き 9 枚目 `newTab()` → alert region に `⚠ Maximum tabs reached`③`setEnabled(true)` 後 `closeTab(0)` → status region に `Tab closed`。破壊的アクション後は 1 タブへ復元して評価汚染を防止。

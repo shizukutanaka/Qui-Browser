@@ -300,6 +300,18 @@ async function main() {
           while (app.tabManager.count > 1) {
             app.tabManager.closeTab(0); // restore a single open tab
           }
+          // URL-input request drives the whole keyboard wiring: setOnConfirm,
+          // IME activate + ascii mode, composition prefill, show(), and the
+          // prompt caption. vrKeyboard.visible is a real getter (reads the
+          // group) — the undefined-flag defect made toggles always show().
+          if (typeof app._requestVRKeyboardInput === 'function' && app.vrKeyboard) {
+            app._requestVRKeyboardInput('https://harness-input.example/', () => {});
+            out.kbShown = app.vrKeyboard.visible === true;
+            out.kbAscii = !!(app.japaneseIME && app.japaneseIME.inputMode === 'ascii'
+              && app.japaneseIME.compositionBuffer === 'https://harness-input.example/');
+            out.kbPrompt = statusEl ? statusEl.textContent : '';
+            app.vrKeyboard.hide();
+          }
         }
         return out;
       })()`,
@@ -329,7 +341,10 @@ async function main() {
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
-      closeAnnounced: (iout.closeCaption || '').includes('Tab closed')
+      closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
+      kbShown: !!iout.kbShown,
+      kbAscii: !!iout.kbAscii,
+      kbPrompted: (iout.kbPrompt || '').includes('Enter URL')
     };
 
     // Uncaught exceptions and console.error events collected during boot.
@@ -370,6 +385,9 @@ async function main() {
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
       ['max tabs announced via warn toast', !!inter.maxTabsAnnounced],
+      ['URL-input request opened the VR keyboard', !!inter.kbShown],
+      ['keyboard opened in ascii mode with URL prefill', !!inter.kbAscii],
+      ['keyboard prompt announced via caption', !!inter.kbPrompted],
       ['no uncaught exceptions / console errors', errors.length === 0]
     ];
 
