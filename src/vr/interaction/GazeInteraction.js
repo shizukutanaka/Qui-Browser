@@ -208,25 +208,25 @@ export class GazeInteraction {
     if (obj === this._target) {
       // Still resting on the same target (or both null): no slip in progress.
       this._graceMs = 0;
-    } else if (obj) {
-      // Gaze landed on a DIFFERENT interactable — an intentional move. Restart.
-      this._onTargetChange(this._target, obj);
-      this._target  = obj;
-      this._elapsed = 0;
-      this._fired   = false;
-      this._graceMs = 0;
     } else if (this._target && !this._fired && this._graceMs + dtMs < this.graceTime) {
-      // Gaze slipped off onto nothing while charging. Forgive brief slips
-      // (tremor / nystagmus): hold the accumulated dwell — without charging —
-      // for graceTime ms so a return to the same target resumes rather than
-      // restarts. The hover highlight is kept (no onHoverEnd) during the slip.
+      // Gaze slipped off the held target — onto empty space OR a different
+      // interactable. Forgive brief slips (tremor / nystagmus): hold the
+      // accumulated dwell — without charging — for graceTime ms so a return
+      // to the same target resumes rather than restarts. The hover
+      // highlight is kept (no onHoverEnd) during the slip. The old code
+      // only forgave slips onto nothing: any object grazed for a single
+      // frame took the dwell target and reset the charge, so tremor jitter
+      // between neighbouring buttons could never complete a selection.
       this._graceMs += dtMs;
       this._updateFill(Math.min(this._elapsed / this.dwellTime, 1));
       return null;
     } else {
-      // Grace exhausted (or no target to hold) — release.
-      this._onTargetChange(this._target, null);
-      this._target  = null;
+      // Grace exhausted (or nothing to hold) — release the old target and
+      // adopt whatever is under the gaze now: a persistent new object takes
+      // over with a fresh charge (an intentional retarget delayed by at
+      // most graceTime); null means the dwell is discarded outright.
+      this._onTargetChange(this._target, obj);
+      this._target  = obj;
       this._elapsed = 0;
       this._fired   = false;
       this._graceMs = 0;
