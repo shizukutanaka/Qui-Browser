@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 18+ (`package.json` engines; vite@5 refuses Node 16 and below)
+- Node.js 18+ (`package.json` engines; vite@6 requires Node 18/20/22+)
 - npm or yarn
 - Modern browser with WebXR support
 - VR headset (Meta Quest or Pico recommended)

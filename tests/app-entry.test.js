@@ -974,3 +974,23 @@ describe('src/main.js — toast/SW tail coverage', () => {
   });
 });
 
+
+describe('landing-page static a11y pins', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/styles/main.css'), 'utf8');
+
+  test('loading text is a live region; spinner is decorative', () => {
+    expect(html).toMatch(/class="loading-text"[^>]*role="status"/);
+    expect(html).toMatch(/class="loading-spinner"[^>]*aria-hidden="true"/);
+  });
+
+  test('hidden loading screen leaves the a11y tree (visibility, not opacity only)', () => {
+    // opacity:0 + pointer-events alone still exposes the overlay to screen
+    // readers; visibility:hidden removes it once the fade completes.
+    expect(css).toMatch(/\.loading-screen\.hidden\s*\{[^}]*visibility:\s*hidden/);
+    expect(css).toMatch(/transition:[^;]*visibility\s+0s\s+0\.5s/);
+  });
+});

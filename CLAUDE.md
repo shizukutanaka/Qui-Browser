@@ -245,6 +245,36 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 76: 続き232 — 依存脆弱性ゼロ化（vite 5→6.4.3）
+- 🔍 **実測（npm audit）**: プロダクト deps（three・web-vitals）は 0 件だが、dev 側に `esbuild ≤0.24.2`（GHSA-67mh-4wv8-2f99 — `vite dev` 実行中に悪意サイトが dev server へ任意リクエストを送り応答を読める、dev-server のみ・出荷物には非到達）と `vite ≤6.4.2`（同 advisory 経由）の 2 件が残存。5.x 系にパッチは出ていないため最小メジャー `vite@^6.4.3`（パッチ同梱の最初の安定系列、公開から 10 日で supply-chain の 7 日基準も適合）へ bump。
+- 🔍 **同軸掃引（全クリーン）**: ①フレーム内確保 — gaze 発火時の `new Vector3`・`worldToLocal(rawPoint.clone())` はいずれもタップ/発火イベント単位でフレームループ外（且つ clone は共有 scratch を破壊しない防御で必須）②リスナー対称性 — VRApp 22 add / 8 remove の差は controller/session/xr/refSpace 上でオブジェクトと共に死ぬ系、window/document/MQ/domElement は全て dispose で除去済み ③タイマー — 全 clearTimeout/Interval 対応済み（VoiceCommands の遅延2件は dead-object 上の無害 write）④console-only error — 全経路が callback → showVRToast 配線済み ⑤テスト形骸 — `expect(true)` ゼロ ⑥デッド i18n キー/未参照モジュール ゼロ ⑦TODO/FIXME マーカー ゼロ。
+- 🔧 **修正**: `vite ^5.4.21 → ^6.4.3`（vite.config は plugin 無し単純構成で manualChunks/assetFileNames/minify 全互換）。`npm audit` 0 件、dev server ブート実測（95ms・200）。SETUP.md の vite@5 言及を訂正。
+- ✅ 3013 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑（chunk shape 不変）、verify:all（実 Chromium: layout/app/vr-boot）全緑。
+
+### Session 75: 続き231 — ランディング loading screen の a11y 残存2点
+- 🔍 **実測**: ①`.loading-screen.hidden` が `opacity:0 + pointer-events:none` のみ — **a11y tree に残留し、SR が「Loading…」を読み続ける**（opacity は可視のみ）。②loading テキストに live region 無し（ロード中表示が SR に届かない）＋spinner が `aria-hidden` なし。フォーカス outline は UA 既定が生存（リセット未触）、reduced-motion は main.css が網羅済み、landmark 役割も済み — 残存はこの2点のみだった。
+- 🔧 **修正**: `.hidden` に `visibility:hidden`（`transition: opacity .5s, visibility 0s .5s` でフェード完了後に除去）＋ loading-text へ `role="status"`・spinner へ `aria-hidden`。
+- 🧪 pin 2件（app-entry.test.js に source-scan ブロック追加）。
+- ✅ 3013 tests / 73 suites 全緑、lint 0 errors、build 緑。
+
+### Session 75: 続き230 — offline.html の a11y/虚偽表記を解消
+- 🔍 **実測（前庭障害ユーザー向けプロダクトの唯一のオフライン面）**: ①無限 `pulse` アニメに `prefers-reduced-motion` ガード無し（WCAG 2.3.3）②`role="status"`/`aria-live` 無しで再接続テキストが SR に届かない（4.1.3）③機能一覧が**存在しない機能を列挙**（拡張・メール作成・ローカルファイル — O-1 と同じ虚偽クラス）④`<html lang="en">` 固定で日本語ユーザーに英語ページ（3.1.1 — lang 動的更新の見落とし面）⑤disclosure ボタンに `aria-expanded`/`aria-controls` 無し（4.1.2）。
+- 🔧 **修正**: ①reduced-motion メディアクエリで pulse/hover transition 停止 ②`role="status" aria-live="polite"`＋dot を `aria-hidden` ③機能一覧を正直化（訪問済みページのキャッシュ・端末保存データ・オンライン時自動再読込）＋「データが sync する」虚偽説明文も修正 ④offline.js が `qui-browser:lang` を読んで ja 文字列へ全置換＋`documentElement.lang` 更新（CSP 下で inline script 不可のため外部 JS 経路 — アプリの i18n モジュールはオフライン時に読めないので文字列は内蔵）⑤`aria-expanded`/`aria-controls` 配線。
+- 🧪 `tests/offline-page.test.js` 新設（7 pin: reduced-motion・aria-live・disclosure・no-inline-script・虚偽機能なし・ja 言語・online 遷移のみ reload）。
+- ✅ 3011 tests / 73 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
+### Session 75: 続き229 — `<ruby>` ふりがな二重化と `<dl>`/`<summary>` 消滅を解消
+- 🔍 **実測**: ①`<ruby>漢字<rt>かんじ</rt></ruby>` が `漢字 ( かんじ ) を読む` と**ふりがな＋括弧が本文へインライン二重化**（rt は基底文字の上に描く注釈であり、本文ではない）②`<dl>` の dt/dd が抽出対象外で用語定義が全消滅 ③`<details>` の `<summary>` ラベル消失（中身は拾えていた）。
+- 🔧 **修正**: `liftUnreachable` に rt/rp の内容物除去を追加（基底文字のみ残す — canvas リーダーではふりがなを行上に描けないため正直に落とす）。抽出 alternation に `dt`/`dd`/`summary` を追加（全て 'p' 扱い）。
+- 🧪 pin 2件: ruby が基底文字のみ・dl/details 全要素が抽出。
+- ✅ 3004 tests / 72 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
+### Session 75: 続き228 — リーダーの `<table>`/`<ol>`/`<img alt>`/`h4-6` 喪失を解消
+- 🔍 **実測（続き227 の同クラス横展開）**: 平坦なブロック走査が拾えない要素が更に4種残っていた — ①`<table>`（全セルが p/li 外のため表ごと消滅 — スペック比較表が消える）②`<ol>`（li だけ拾って序数が落ち、手順系記事で「1. 2. 3.」の順序が喪失）③`<img alt>`（タグごと剥がされ意味ある alt が蒸発）④`h4-6`（alternation が h1-3 のみ）。
+- 🔧 **修正**: `liftUnreachable` 前処理パスを新設 — 走査前に本文へ昇格: img は ` [img: alt] ` を段落内へインライン（構造を壊さない）、ol の li へ序数を焼付け、table 行は `cell | cell` の `<p>` へ。昇格テキストはデコード済みのため `<`/`&` を再エンコード（TAG_RE 誤発火で後続テキストを食わない）。`figcaption` も抽出対象に追加。
+- 🧪 pin 4件: 表行が `|` 結合で生存・ol 番号/ul は無番号・img alt インライン＋空 alt は黙・h4 が 'h'。
+- ✅ 3002 tests / 72 suites 全緑、lint 0 errors（350 warnings）、build 緑。
+
 ### Session 75: 続き227 — リーダーの `<pre>` コードブロック喪失を解消
 - 🔍 **実測**: `extractReadableText` の抽出 alternation が `h1-3/p/li/blockquote` のみ — Qiita/Zenn 系記事の `<pre>` コードブロックが**記事から静かに消えていた**。仮に抽出しても `wrapTextToWidth` が `.trim()`＋`\s+` 分割でインデントを潰し、canvas の `\t` 描画も不定。
 - 🔧 **修正**: ①抽出に `pre` を追加し `preTextOf` で `<br>`→`\n`・タグ剥がし・`\r\n` 正規化・`\t`→2スペース展開・行末空白除去・先端/末端空行除去 ②`layoutReaderLines` に `pre`→'c' 経路 — 物理行を1行ずつ描き、先頭インデントを wrap 前に分離して全継続行へ再付与（ハンギングインデント）。超過行は wrap で消えない ③`fontPxFor('c')=17`・WebPanel で monospace＋`readerCode` 色（通常 #9cdcfe ≒10:1、HC は #ffffff）。

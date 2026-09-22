@@ -155,6 +155,21 @@
             50% { opacity: 0.5; }
         }
 
+        /* WCAG 2.3.3 — vestibular-sensitive users are this browser's primary
+           audience; an infinite pulse must not run when the OS asks for
+           reduced motion. */
+        @media (prefers-reduced-motion: reduce) {
+            .status-indicator {
+                animation: none;
+            }
+            .btn {
+                transition: none;
+            }
+            .btn-primary:hover {
+                transform: none;
+            }
+        }
+
         @media (max-width: 480px) {
             .offline-container {
                 padding: 20px;
@@ -179,33 +194,30 @@
     <div class="offline-container">
         <div class="offline-icon">📡</div>
         <h1 class="offline-title">Qui Browser</h1>
-        <p class="offline-description">
-            You're currently offline. Don't worry - you can still access some features and your data will sync automatically when you're back online.
+        <p class="offline-description" id="offline-description">
+            You're currently offline. Pages you've visited may still load from cache, and your data stays on this device.
         </p>
 
-        <div class="connection-status">
-            <span class="status-indicator"></span>
-            <span class="status-text">Attempting to reconnect...</span>
+        <div class="connection-status" role="status" aria-live="polite">
+            <span class="status-indicator" aria-hidden="true"></span>
+            <span class="status-text" id="status-text">Attempting to reconnect...</span>
         </div>
 
         <div class="offline-actions">
             <button class="btn btn-primary" id="btn-retry">
                 Try Again
             </button>
-            <button class="btn btn-secondary" id="btn-features">
+            <button class="btn btn-secondary" id="btn-features" aria-expanded="false" aria-controls="offline-features">
                 View Offline Features
             </button>
         </div>
 
         <div class="offline-features" id="offline-features" style="display: none;">
             <h3 class="features-title">Available Offline</h3>
-            <ul class="features-list">
-                <li>View saved bookmarks</li>
-                <li>Access browsing history</li>
-                <li>Read saved articles</li>
-                <li>Use installed extensions</li>
-                <li>Compose emails (if supported)</li>
-                <li>Access local files</li>
+            <ul class="features-list" id="features-list">
+                <li>Pages you visited before may still load from cache</li>
+                <li>Your bookmarks, history and settings stay on this device</li>
+                <li>This page reloads itself the moment you're back online</li>
             </ul>
         </div>
     </div>
