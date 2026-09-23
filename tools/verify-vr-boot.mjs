@@ -690,6 +690,94 @@ async function main() {
                 app.renderer.xr.getSession = gsWas;
               }
             }
+            // Voice internals — the gating arms under the patterns: the
+            // confidence gate (0 < c < sensitivity drops, BUT a literal 0
+            // means "no score" and must pass — the Quest/Android arm the
+            // code comments warn about), interim results are ignored, the
+            // wake-word gate holds commands until awake, speak() forwards
+            // volume/pitch with ?? (0 honored, || would drop it), and the
+            // stats/callback surface (commandsExecuted, averageConfidence,
+            // onCommand/onCommandFailed) is observable.
+            const say2 = (text, conf, interim) => vc.handleRecognitionResult({
+              results: [{
+                0: { transcript: text, confidence: conf },
+                isFinal: !interim, length: 1
+              }]
+            });
+            // 'ヘルプ' is the counting pin's probe: a matched command that
+            // mutates no browsing state (unlike 戻る/進む, which moved the
+            // tab history under an earlier draft and killed the sibling
+            // 'no forward history' pin).
+            const recWas = vc.stats.commandsRecognized;
+            say2('ヘルプ', 0.05, false);
+            out.voiceConfGate = vc.stats.commandsRecognized === recWas;
+            say2('ヘルプ', 0, false);
+            out.voiceConfZero = vc.stats.commandsRecognized === recWas + 1;
+            say2('ヘルプ', 0.9, true);
+            out.voiceInterim = vc.stats.commandsRecognized === recWas + 1;
+            // Wake-word gate: while armed every transcript is consumed by
+            // the gate until the wake word lands (→ isAwake + a spoken
+            // acknowledgment mirrored to the status region).
+            const wakeWas = vc.settings.requireWakeWord;
+            const wakeWordWas = vc.settings.wakeWord;
+            try {
+              vc.settings.requireWakeWord = true;
+              vc.settings.wakeWord = 'コンピュータ';
+              vc.isAwake = false;
+              const recW0 = vc.stats.commandsRecognized;
+              say2('ヘルプ', 0.9, false);
+              const dropped = vc.stats.commandsRecognized === recW0;
+              say2('コンピュータ', 0.9, false);
+              say2('ヘルプ', 0.9, false);
+              out.voiceWakeGate = dropped === true
+                && vc.isAwake === true
+                && vc.stats.commandsRecognized === recW0 + 1;
+            } finally {
+              vc.settings.requireWakeWord = wakeWas;
+              vc.settings.wakeWord = wakeWordWas;
+              vc.isAwake = true;
+            }
+            // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
+            // || still swaps a bogus rate for 1.0.
+            const utts = [];
+            const synthWas = vc.synthesis;
+            try {
+              vc.synthesis = { speak: (u) => { utts.push(u); } };
+              vc.speak('テスト', { volume: 0, pitch: 0, rate: 2 });
+              out.voiceSpeakParams = utts.length === 1
+                && utts[0].volume === 0
+                && utts[0].pitch === 0
+                && utts[0].rate === 2
+                && typeof utts[0].lang === 'string';
+            } finally {
+              vc.synthesis = synthWas;
+            }
+            // Stats + callback surface: a matched command bumps
+            // commandsExecuted and folds confidence into the average, and
+            // records lastCommand; a miss routes onCommandFailed(no_match).
+            const execWas = vc.stats.commandsExecuted;
+            const recWas3 = vc.stats.commandsRecognized;
+            const avgWas = vc.stats.averageConfidence;
+            const cmdWas = vc.callbacks.onCommand;
+            const failWas = vc.callbacks.onCommandFailed;
+            const cmdSeen = [];
+            const failSeen = [];
+            try {
+              vc.callbacks.onCommand = (k, r) => { cmdSeen.push(k); };
+              vc.callbacks.onCommandFailed = (e) => { failSeen.push(e.reason); };
+              say('ヘルプ');
+              const avgExpected =
+                (avgWas * recWas3 + 0.9) / (recWas3 + 1);
+              out.voiceExecStats = vc.stats.commandsExecuted === execWas + 1
+                && Math.abs(vc.stats.averageConfidence - avgExpected) < 1e-9
+                && vc.lastCommand && vc.lastCommand.key === 'help'
+                && cmdSeen.includes('help');
+              say('zzz未登録2');
+              out.voiceFailedCb = failSeen.includes('no_match');
+            } finally {
+              vc.callbacks.onCommand = cmdWas;
+              vc.callbacks.onCommandFailed = failWas;
+            }
             say('停止');
             out.voiceStopped = vc.isListening === false;
             out.voiceStopCap = statusEl ? statusEl.textContent : '';
@@ -4392,6 +4480,13 @@ async function main() {
       wpDisposeAborts: iout.wpDisposeAborts === true,
       bpDisposeTeardown: iout.bpDisposeTeardown === true,
       audioDispose: iout.audioDispose === true,
+      voiceConfGate: iout.voiceConfGate === true,
+      voiceConfZero: iout.voiceConfZero === true,
+      voiceInterim: iout.voiceInterim === true,
+      voiceWakeGate: iout.voiceWakeGate === true,
+      voiceSpeakParams: iout.voiceSpeakParams === true,
+      voiceExecStats: iout.voiceExecStats === true,
+      voiceFailedCb: iout.voiceFailedCb === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
       sessStart: iout.sessStart === true && iout.sessReadyCap === true,
@@ -4742,6 +4837,13 @@ async function main() {
       ['tab close aborted in-flight reader fetch', !!inter.wpDisposeAborts],
       ['bookmarks panel disposed meshes + canvas', !!inter.bpDisposeTeardown],
       ['spatial audio disposed sources + context', !!inter.audioDispose],
+      ['voice drops low-confidence transcripts', !!inter.voiceConfGate],
+      ['voice accepts zero-confidence (Android)', !!inter.voiceConfZero],
+      ['voice ignores interim results', !!inter.voiceInterim],
+      ['voice wake-word gate holds commands', !!inter.voiceWakeGate],
+      ['voice speak params honor zero volume/pitch', !!inter.voiceSpeakParams],
+      ['voice stats + onCommand surface live', !!inter.voiceExecStats],
+      ['voice no-match routes onCommandFailed', !!inter.voiceFailedCb],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],
