@@ -539,6 +539,315 @@ async function main() {
               wm61.setDistance(dWas61);
             }
           }
+          // batch 63 — telemetry 1Hz gate, audio resume-listener teardown,
+          // real curve data, tab-strip title fallback:
+          // (a) updatePerformanceMonitor feeds the analytics ring buffers at
+          //     ~1 Hz (the buffers cap at 100 samples — a per-frame push would
+          //     churn them). A low fps lands trackFPS → trackEvent → gtag's
+          //     'performance_fps_drop'; a second call inside the same second
+          //     must be gated. The render loop is not running during this
+          //     eval, so _telemetryFeedAt only moves via these calls.
+          if (app.performanceMonitor) {
+            const gtagWas63 = window.gtag;
+            const gtagEvents63 = [];
+            window.gtag = (...a) => { gtagEvents63.push(a); };
+            const ftWas63 = app.performanceMonitor.frameTime;
+            const tfeedWas63 = app._telemetryFeedAt;
+            try {
+              app.performanceMonitor.frameTime = 1000; // fps ≈ 1 < 60
+              app._telemetryFeedAt = -Infinity;        // force the gate open
+              app.updatePerformanceMonitor(100);
+              const drops63 = gtagEvents63.filter(
+                (e) => e[1] === 'performance_fps_drop').length;
+              app.updatePerformanceMonitor(100); // same second — gated
+              out.telemetryFeedGate = drops63 === 1
+                && gtagEvents63.filter(
+                  (e) => e[1] === 'performance_fps_drop').length === 1;
+            } finally {
+              app.performanceMonitor.frameTime = ftWas63;
+              app._telemetryFeedAt = tfeedWas63;
+              if (gtagWas63 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas63;
+              }
+            }
+          }
+          // batch 65 (a) — monitoring's DOM visibilitychange listener feeds
+          //   session_resumed/session_backgrounded analytics; a real
+          //   dispatch must reach gtag (document.hidden is false in this
+          //   context → the 'resumed' arm is the observable one).
+          {
+            const gtagWas65 = window.gtag;
+            const gtagEvents65 = [];
+            window.gtag = (...a) => { gtagEvents65.push(a); };
+            try {
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.monVisibilityTrack = gtagEvents65.some(
+                (e) => e[1] === 'session_resumed');
+            } finally {
+              if (gtagWas65 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas65;
+              }
+            }
+          }
+          // batch 70 (e) — the backgrounded arm of the same visibility
+          //   listener: faking document.hidden flips the emitted event to
+          //   'session_backgrounded' (tab switch / headset sleep). The own
+          //   property is deleted after, restoring the platform getter.
+          {
+            const gtagWas70b = window.gtag;
+            const gtagEvents70b = [];
+            window.gtag = (...a) => { gtagEvents70b.push(a); };
+            const hiddenWas70 =
+              Object.getOwnPropertyDescriptor(document, 'hidden');
+            try {
+              Object.defineProperty(document, 'hidden',
+                { value: true, configurable: true });
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.monBgTrack = gtagEvents70b.some(
+                (e) => e[1] === 'session_backgrounded')
+                && !gtagEvents70b.some((e) => e[1] === 'session_resumed');
+            } finally {
+              delete document.hidden;
+              if (hiddenWas70) {
+                Object.defineProperty(document, 'hidden', hiddenWas70);
+              }
+              if (gtagWas70b === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas70b;
+              }
+            }
+          }
+          // batch 66 (a) — DeviceCompatibility._detectTier maps the UA to
+          //   a perf tier that seeds targetFPS + locomotion caps. The
+          //   PICO-case and Android-XR arms are the easy ones to regress.
+          if (app.deviceCompat) {
+            const dc66 = app.deviceCompat;
+            const generic66 = dc66._detectTier('Acme Widget 9000');
+            out.deviceTierDetect = dc66._detectTier('UA Quest 3') === 'quest3'
+              && dc66._detectTier('UA Quest 2') === 'quest2'
+              && dc66._detectTier('Quest Pro Browser') === 'quest-pro'
+              && dc66._detectTier('PICO 4 Ultra') === 'pico4'
+              && dc66._detectTier('Pico Neo 3') === 'pico-neo3'
+              && dc66._detectTier('Device Android XR') === 'android-xr'
+              && (generic66 === 'desktop-xr' || generic66 === 'unknown')
+              && typeof dc66.report.deviceTier === 'string'
+              && dc66.report.deviceTier.length > 0;
+          }
+          // batch 67 (a) — navigate() reports the pageview through GA's
+          //   'config' hit with the query stripped (origin+pathname only —
+          //   query params can carry search terms/tokens that must not
+          //   leave the device). The catch arm reports the raw URL.
+          {
+            const gtagWas67 = window.gtag;
+            const gtagEvents67 = [];
+            window.gtag = (...a) => { gtagEvents67.push(a); };
+            try {
+              app.navigate('https://pg.example/path/seg?secret=1#f', 'PgT');
+              app.navigate('not a url at all', 'RawT');
+              const pv67 = gtagEvents67.filter((e) => e[0] === 'config');
+              out.navPageView = pv67.length === 2
+                && pv67[0][2].page_path === 'https://pg.example/path/seg'
+                && pv67[0][2].page_title === 'PgT'
+                && pv67[1][2].page_path === 'not a url at all';
+            } finally {
+              if (gtagWas67 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas67;
+              }
+            }
+          }
+          // batch 67 (b) — trackMemory reports 'performance_high_memory'
+          //   past the 500MB threshold with severity tiers (medium <750,
+          //   high <1000, critical above). performance.memory is faked to
+          //   push heap sizes the eval can't allocate.
+          {
+            const memWas67 = Object.getOwnPropertyDescriptor(
+              performance, 'memory');
+            const feedWas67 = app._telemetryFeedAt;
+            const usedWas67 = app.performanceMonitor.memoryUsed;
+            const gtagWas67b = window.gtag;
+            const gtagEvents67b = [];
+            window.gtag = (...a) => { gtagEvents67b.push(a); };
+            try {
+              for (const mb of [600, 800, 1100]) {
+                Object.defineProperty(performance, 'memory', {
+                  configurable: true,
+                  value: { usedJSHeapSize: mb * 1024 * 1024 }
+                });
+                app._telemetryFeedAt = -Infinity;
+                app.updatePerformanceMonitor(16);
+              }
+              const hm67 = gtagEvents67b
+                .filter((e) => e[1] === 'performance_high_memory')
+                .map((e) => e[2]);
+              out.memHighGtag = hm67.length === 3
+                && hm67[0].memory_mb === 600 && hm67[0].severity === 'medium'
+                && hm67[1].memory_mb === 800 && hm67[1].severity === 'high'
+                && hm67[2].memory_mb === 1100
+                && hm67[2].severity === 'critical';
+            } finally {
+              if (memWas67) {
+                Object.defineProperty(performance, 'memory', memWas67);
+              } else {
+                delete performance.memory;
+              }
+              app._telemetryFeedAt = feedWas67;
+              app.performanceMonitor.memoryUsed = usedWas67;
+              if (gtagWas67b === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas67b;
+              }
+            }
+          }
+          // batch 68 (a) — trackFPS reports 'performance_fps_drop' under
+          //   60fps with severity tiers (critical <30, high <45, medium
+          //   else). Feeding frameTime at its own value leaves the EMA
+          //   untouched, so the derived fps lands exactly on each tier.
+          {
+            const gtagWas68d = window.gtag;
+            const gtagEvents68d = [];
+            window.gtag = (...a) => { gtagEvents68d.push(a); };
+            const ftWas68d = app.performanceMonitor.frameTime;
+            const feedWas68d = app._telemetryFeedAt;
+            try {
+              for (const ft of [40, 25, 20]) {
+                app.performanceMonitor.frameTime = ft;
+                app._telemetryFeedAt = -Infinity;
+                app.updatePerformanceMonitor(ft);
+              }
+              const fd68 = gtagEvents68d
+                .filter((e) => e[1] === 'performance_fps_drop')
+                .map((e) => e[2]);
+              out.fpsSeverityTiers = fd68.length === 3
+                && fd68[0].fps === 25 && fd68[0].severity === 'critical'
+                && fd68[1].fps === 40 && fd68[1].severity === 'high'
+                && fd68[2].fps === 50 && fd68[2].severity === 'medium';
+            } finally {
+              app.performanceMonitor.frameTime = ftWas68d;
+              app._telemetryFeedAt = feedWas68d;
+              if (gtagWas68d === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas68d;
+              }
+            }
+          }
+          // (b) SpatialAudio arms click/touchstart/keydown {once:true}
+          //     listeners while the context is suspended; the first gesture
+          //     must tear ALL three down — else a later gesture re-fires
+          //     resume (and re-runs the whole handler). A second dispatch
+          //     proves nothing is still armed.
+          if (app.spatialAudio && app.spatialAudio.context
+            && app.spatialAudio._resumeOnGesture) {
+            const sa63 = app.spatialAudio;
+            const resumeCalls63 = [];
+            const origResume63 = sa63.context.resume.bind(sa63.context);
+            sa63.context.resume = () => {
+              resumeCalls63.push(1);
+              return Promise.resolve();
+            };
+            try {
+              document.dispatchEvent(new KeyboardEvent('keydown'));
+              const armedAfter63 = sa63._resumeOnGesture === null
+                && sa63._resumeEvents === null;
+              document.dispatchEvent(new MouseEvent('click'));
+              document.dispatchEvent(new Event('touchstart'));
+              out.audioResumeDetach = resumeCalls63.length === 1
+                && armedAfter63;
+            } finally {
+              sa63.context.resume = origResume63;
+            }
+          }
+          // batch 65 (b) — registerProceduralBuffer synthesizes a named
+          //   AudioBuffer into the cache (buffersLoaded++); a same-name
+          //   re-register must dedup — return the existing buffer without
+          //   re-synthesizing or double-counting the stat.
+          if (app.spatialAudio && app.spatialAudio.context) {
+            const sa65 = app.spatialAudio;
+            const loadedWas65 = sa65.stats.buffersLoaded;
+            try {
+              const buf65 = sa65.registerProceduralBuffer(
+                'e2e-proc-65', { freq: 330, duration: 0.02 });
+              const buf65b = sa65.registerProceduralBuffer(
+                'e2e-proc-65', { freq: 999, duration: 0.02 });
+              out.procBufRegister = !!buf65
+                && sa65.buffers.get('e2e-proc-65') === buf65
+                && buf65b === buf65
+                && sa65.stats.buffersLoaded === loadedWas65 + 1;
+            } finally {
+              sa65.buffers.delete('e2e-proc-65');
+            }
+          }
+          // batch 66 (b) — _sourceDistance feeds the HRTF tier decision
+          //   (sources inside hrtfThreshold get full convolution). A 3-4-5
+          //   triangle against the listener position pins the real math.
+          if (app.spatialAudio && app.spatialAudio.context) {
+            const sa66 = app.spatialAudio;
+            const lpWas66 = sa66._listenerPos;
+            try {
+              sa66.setListenerPosition(0, 0, 0);
+              const d66 = sa66._sourceDistance({ position: { x: 3, y: 4, z: 0 } });
+              const d66b = sa66._sourceDistance({ position: { x: 0, y: 0, z: 0 } });
+              out.audioSourceDist = d66 === 5 && d66b === 0;
+            } finally {
+              sa66._listenerPos = lpWas66;
+            }
+          }
+          // (c) setCurved(true) doesn't just swap the geometry object (pinned
+          //     in batch 61) — curvedPlaneData emits real arc positions:
+          //     centre verts stay z=0 while edge verts wrap toward the
+          //     viewer (z>0); setCurved(false) flattens every vertex.
+          {
+            const wp63 = app.tabManager
+              && app.tabManager.tabs[app.tabManager.activeIndex];
+            if (wp63 && wp63.contentMesh) {
+              const curvedWas63 = wp63.curved;
+              try {
+                wp63.setCurved(true);
+                const pos63 = wp63.contentMesh.geometry.attributes
+                  .position.array;
+                let zMax63 = 0;
+                for (let i = 2; i < pos63.length; i += 3) {
+                  if (pos63[i] > zMax63) {
+                    zMax63 = pos63[i];
+                  }
+                }
+                wp63.setCurved(false);
+                const flat63 = wp63.contentMesh.geometry.attributes
+                  .position.array;
+                let anyZ63 = false;
+                for (let i = 2; i < flat63.length; i += 3) {
+                  if (flat63[i] !== 0) {
+                    anyZ63 = true;
+                    break;
+                  }
+                }
+                out.geoCurvedData = zMax63 > 0 && !anyZ63;
+              } finally {
+                if (wp63.curved !== curvedWas63) {
+                  wp63.setCurved(curvedWas63);
+                }
+              }
+            }
+          }
+          // (d) TabManager._shortTitle feeds the tab-strip labels: hostnames
+          //     lose the www. prefix; unparseable input degrades to a raw
+          //     18-char slice rather than throwing into the strip draw.
+          if (app.tabManager && typeof app.tabManager._shortTitle === 'function') {
+            const tm63 = app.tabManager;
+            const bad63 = '!!totally not a url at all!!';
+            out.tmShortTitle = tm63._shortTitle(
+              'https://www.example.com/deep/path') === 'example.com'
+              && tm63._shortTitle('https://plain.host/x') === 'plain.host'
+              && tm63._shortTitle(bad63) === bad63.slice(0, 18);
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -1012,6 +1321,42 @@ async function main() {
             say('履歴を消去');
             out.voiceCleared = app.bookmarks.search('harness-top.example', 5).length === 0;
             out.voiceClearCap = statusEl ? statusEl.textContent : '';
+            // batch 71 (a) — onTopSites excludes the search engine itself:
+            //   a duckduckgo result page outranking every real destination
+            //   must still lose the slot — VRApp passes searchEngineHosts()
+            //   as the getTopSites exclude list.
+            {
+              const hk71 = 'quiBrowser_history';
+              const histWas71 = localStorage.getItem(hk71);
+              const urlWas71 = tab2 && tab2.currentUrl;
+              const tabHistWas71 = tab2 && tab2.history;
+              const tabHidxWas71 = tab2 && tab2.historyIdx;
+              try {
+                localStorage.setItem(hk71, JSON.stringify([
+                  { url: 'https://duckduckgo.com/?q=seed', title: 'd',
+                    visits: 9, visitedAt: Date.now() },
+                  { url: 'https://top-real-71.example/', title: 'r',
+                    visits: 3, visitedAt: Date.now() }
+                ]));
+                say('トップサイト');
+                out.topSitesExclude = !!tab2
+                  && tab2.currentUrl === 'https://top-real-71.example/';
+              } finally {
+                if (histWas71 === null) {
+                  localStorage.removeItem(hk71);
+                } else {
+                  localStorage.setItem(hk71, histWas71);
+                }
+                // Field-restore the tab's own history too — a navigate()
+                // here would push a fresh entry and corrupt the sibling
+                // 戻る/進む legs' expected back-target.
+                if (tab2 && urlWas71) {
+                  tab2.history = tabHistWas71;
+                  tab2.historyIdx = tabHidxWas71;
+                  tab2.currentUrl = urlWas71;
+                }
+              }
+            }
             const volBefore = (app.settings.masterVolume ?? 100);
             say('音量上げる');
             let sv = null;
@@ -1156,6 +1501,122 @@ async function main() {
               vc.settings.requireWakeWord = wakeWas;
               vc.settings.wakeWord = wakeWordWas;
               vc.isAwake = true;
+            }
+            // batch 65 (c) — registerCommand is the public extension point:
+            //   a registered pattern must match a transcript and fire the
+            //   supplied action through the normal command pipeline.
+            {
+              let cmdRan65 = false;
+              const recWas65 = vc.stats.commandsRecognized;
+              vc.registerCommand('e2e-custom-65', {
+                patterns: ['テスト六十五'],
+                action: () => { cmdRan65 = true; return { ok: true }; },
+                confirmationText: 'ok'
+              });
+              vc.handleRecognitionResult({
+                results: [{ 0: { transcript: 'テスト六十五', confidence: 0.9 }, isFinal: true, length: 1 }]
+              });
+              out.registerCustomCmd = cmdRan65 === true
+                && vc.stats.commandsRecognized === recWas65 + 1;
+            }
+            // batch 69 (a) — registered aliases resolve through the alias
+            //   map to the canonical command: the transcript hits no
+            //   pattern, the alias lookup finds commandKey → action.
+            {
+              let aliasRan69 = false;
+              vc.registerCommand('e2e-alias-69', {
+                patterns: ['zz never said'],
+                aliases: ['エイリアス六九'],
+                action: () => { aliasRan69 = true; return { ok: true }; }
+              });
+              vc.handleRecognitionResult({
+                results: [{ 0: { transcript: 'エイリアス六九', confidence: 0.9 }, isFinal: true, length: 1 }]
+              });
+              out.voiceAliasChain = aliasRan69 === true
+                && vc.lastCommand
+                && vc.lastCommand.key === 'e2e-alias-69';
+              vc.commands.delete('e2e-alias-69');
+              vc.aliases.delete('エイリアス六九');
+            }
+            // batch 69 (b) — 'help' speaks the command count AND the
+            //   joined phrase list — a voice-reliant user's only way to
+            //   discover what to say.
+            {
+              const synthWas69 = vc.synthesis;
+              const utts69 = [];
+              try {
+                vc.synthesis = { speak: (u) => { utts69.push(u); } };
+                vc.handleRecognitionResult({
+                  results: [{ 0: { transcript: 'ヘルプ', confidence: 0.9 }, isFinal: true, length: 1 }]
+                });
+                const help69 = utts69[utts69.length - 1];
+                out.voiceHelpList = !!help69
+                  && /使用可能なコマンドは、\\d+個です。/.test(help69.text)
+                  && help69.text.includes('、');
+              } finally {
+                vc.synthesis = synthWas69;
+              }
+            }
+            // batch 69 (c) — initialize() writes the app's language onto
+            //   the SpeechRecognition engine — a ja-JP browser with an
+            //   en-US engine hears the wrong phoneme space.
+            out.voiceRecogLang = !!vc.recognition
+              && vc.recognition.lang === vc.language
+              && typeof vc.language === 'string'
+              && vc.language.length > 0;
+            // batch 70 (b) — initialize() also copies the other three
+            //   recognition parameters out of settings; a silent mismatch
+            //   here changes what onresult delivers (interim events,
+            //   restart behaviour, candidate list size).
+            out.voiceRecogOpts = !!vc.recognition
+              && vc.recognition.continuous === vc.settings.continuous
+              && vc.recognition.interimResults === vc.settings.interimResults
+              && vc.recognition.maxAlternatives === vc.settings.maxAlternatives;
+            // batch 70 (c) — a command's confirmationText is spoken after
+            //   its action runs: the action result is the truth, the
+            //   utterance is the receipt a voice-only user relies on.
+            {
+              const synthWas70 = vc.synthesis;
+              const utts70 = [];
+              let confRan70 = false;
+              try {
+                vc.synthesis = { speak: (u) => { utts70.push(u); } };
+                vc.registerCommand('e2e-confirm-70', {
+                  patterns: ['カクニン七十'],
+                  action: () => { confRan70 = true; return { ok: true }; },
+                  confirmationText: '確認七十'
+                });
+                vc.handleRecognitionResult({
+                  results: [{ 0: { transcript: 'カクニン七十', confidence: 0.9 }, isFinal: true, length: 1 }]
+                });
+                const c70 = utts70[0];
+                out.voiceConfirmSpeak = confRan70 === true
+                  && !!c70 && c70.text === '確認七十';
+              } finally {
+                vc.synthesis = synthWas70;
+                vc.commands.delete('e2e-confirm-70');
+              }
+            }
+            // batch 66 (c) — the IME conversion pipeline's pure helpers:
+            //   romaji→hiragana (incl. the 'tch' sokuon arm), hiragana→
+            //   katakana, and the offline kanji dictionary hit + miss arms.
+            if (app.japaneseIME) {
+              const ime66 = app.japaneseIME;
+              const cands66 = ime66.getOfflineKanjiCandidates('こんにちは');
+              out.imeConvertFns = ime66.convertRomajiToHiragana('kanji') === 'かんじ'
+                && ime66.convertRomajiToHiragana('matcha') === 'まっちゃ'
+                && ime66.convertRomajiToHiragana('kitte') === 'きって'
+                && ime66.convertHiraganaToKatakana('かな') === 'カナ'
+                && Array.isArray(cands66) && cands66.includes('今日は')
+                && ime66.getOfflineKanjiCandidates('zzzz')[0] === 'zzzz';
+              // batch 71 (c) — the romaji table's digraph and particle
+              //   arms: si/tu diacritics, syllabic 'n', and the を
+              //   particle keystroke a user actually types.
+              out.imeConvertMore = ime66.convertRomajiToHiragana('shi') === 'し'
+                && ime66.convertRomajiToHiragana('tsu') === 'つ'
+                && ime66.convertRomajiToHiragana('nn') === 'ん'
+                && ime66.convertRomajiToHiragana('wo') === 'を'
+                && ime66.convertRomajiToHiragana('kyou') === 'きょう';
             }
             // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
             // || still swaps a bogus rate for 1.0.
@@ -1330,6 +1791,35 @@ async function main() {
               && !!h3 && h3.visits === 5
               && h3.url === 'https://www.bm-h.example/p1'
               && ts2.every((s) => s.host !== 'duckduckgo.com');
+            // batch 71 (b) — search() returns frecency-ranked rows:
+            //   more visits beat fewer at equal age, fresher beats
+            //   stale at equal visits — through the sorted surface.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://bm-r1.example/', title: 'r1', visits: 1, visitedAt: 1000 },
+              { url: 'https://bm-r2.example/', title: 'r2', visits: 5, visitedAt: 1000 },
+              { url: 'https://bm-r3.example/', title: 'r3', visits: 1, visitedAt: 1000000 }
+            ]));
+            const ranked71 = bm.search('bm-r', 10, 1000000);
+            const sOf71 = (u) =>
+              (ranked71.find((r) => r.url === u) || {}).score || 0;
+            out.bmFrecencyRank = ranked71.length === 3
+              && ranked71[0].url === 'https://bm-r2.example/'
+              && sOf71('https://bm-r2.example/')
+                === 5 * sOf71('https://bm-r1.example/')
+              && sOf71('https://bm-r3.example/')
+                > sOf71('https://bm-r1.example/');
+            // batch 71 (d) — re-bookmarking a URL dedupes to one entry
+            //   moved to the front with the latest title, not a duplicate.
+            bm.addBookmark('https://bm-rf1.example/', 'F1');
+            bm.addBookmark('https://bm-rf2.example/', 'F2');
+            bm.addBookmark('https://bm-rf1.example/', 'F1b');
+            const bmList71 = bm.getBookmarks();
+            out.bmReAddFront = bmList71[0].url === 'https://bm-rf1.example/'
+              && bmList71[0].title === 'F1b'
+              && bmList71.filter(
+                (b) => b.url === 'https://bm-rf1.example/').length === 1;
+            bm.removeBookmark('https://bm-rf1.example/');
+            bm.removeBookmark('https://bm-rf2.example/');
             // The 200-entry bound trims on write — seed past the cap and
             // one addHistory must shed the overflow.
             const over = [];
@@ -1438,10 +1928,24 @@ async function main() {
             // Drive the REAL event bridge (renderer.xr 'sessionstart' →
             // onVRSessionStart), not the method — a cut listener fails the
             // start checks the same way a cut method would.
+            // batch 70 (a) — the 'sessionstart' bridge must also emit the
+            //   vr_start analytics event carrying the detected device tier.
+            const gtagWas70s = window.gtag;
+            const gtagEvents70s = [];
+            window.gtag = (...a) => { gtagEvents70s.push(a); };
             app.renderer.xr.dispatchEvent({ type: 'sessionstart' });
             // onVRSessionStart is async; syncBudget also runs inside
             // updateTargetFrameRate().then — give microtasks a beat.
             await new Promise((r) => setTimeout(r, 60));
+            out.sessGtagStart = gtagEvents70s.some(
+              (e) => e[0] === 'event' && e[1] === 'vr_start'
+                && typeof (e[2] || {}).device === 'string'
+                && e[2].device.length > 0);
+            if (gtagWas70s === undefined) {
+              delete window.gtag;
+            } else {
+              window.gtag = gtagWas70s;
+            }
             out.sessStart = app.isVREnabled === true;
             // Toasts also flow through captionSystem.show (notifyCrossModal),
             // so a toast re-firing during start can overwrite the status
@@ -1893,6 +2397,70 @@ async function main() {
                   app.spatialAudio.play = origSP;
                 }
               }
+            }
+            // batch 64 — select analytics + shared raycaster:
+            // (a) a real gaze activation must reach trackInteraction →
+            //     gtag 'user_interaction' with interaction_type 'select' and
+            //     modality 'gaze' — the analytics contract, not just the
+            //     local onSelect/haptic fan-out the earlier leg pinned.
+            if (app.gazeInteraction && app.floorMesh && app.camera) {
+              const gtagWas64 = window.gtag;
+              const gtagEvents64 = [];
+              window.gtag = (...a) => { gtagEvents64.push(a); };
+              const gzObj64 = app.floorMesh.clone();
+              gzObj64.userData = {};
+              gzObj64.userData.interactable = { onSelect: () => {} };
+              gzObj64.rotation.set(0, 0, 0);
+              gzObj64.scale.set(0.05, 0.05, 0.05);
+              app.camera.updateWorldMatrix(true, false);
+              const camPos64 = app.camera.getWorldPosition(
+                gzObj64.position.clone());
+              const camDir64 = app.camera.getWorldDirection(camPos64.clone());
+              gzObj64.position.copy(camPos64)
+                .add(camDir64.multiplyScalar(0.8));
+              gzObj64.updateMatrixWorld(true);
+              app.interactables.push(gzObj64);
+              const gazeWas64 = app.gazeInteraction.enabled;
+              app.gazeInteraction.enabled = true;
+              try {
+                app.updateSystems(0, fakeXrFrame, 1.7);
+                out.selectAnalytics = gtagEvents64.some(
+                  (e) => e[1] === 'user_interaction'
+                    && e[2] && e[2].interaction_type === 'select'
+                    && e[2].modality === 'gaze');
+              } finally {
+                app.gazeInteraction.enabled = gazeWas64;
+                const ix64 = app.interactables.indexOf(gzObj64);
+                if (ix64 >= 0) {
+                  app.interactables.splice(ix64, 1);
+                }
+                if (gtagWas64 === undefined) {
+                  delete window.gtag;
+                } else {
+                  window.gtag = gtagWas64;
+                }
+              }
+            }
+            // (b) raycasterFromController lazily memoizes ONE shared
+            //     Raycaster (per-frame allocation would GC-churn every
+            //     hover tick) and derives ray.origin/ray.direction from the
+            //     controller's matrixWorld — here the camera's own matrix,
+            //     so origin === camera world position and direction ===
+            //     camera facing (−z rotated into world space).
+            if (app.camera) {
+              const ray64 = app.raycasterFromController(
+                { matrixWorld: app.camera.matrixWorld });
+              const oA64 = ray64.ray.origin.clone();
+              const dA64 = ray64.ray.direction.clone();
+              const same64 = app.raycasterFromController(
+                { matrixWorld: app.camera.matrixWorld }) === ray64;
+              const camPosB64 = app.camera.getWorldPosition(
+                ray64.ray.origin.clone());
+              const camDirB64 = app.camera.getWorldDirection(
+                ray64.ray.direction.clone());
+              out.sharedRaycaster = same64 === true
+                && oA64.distanceTo(camPosB64) < 0.0001
+                && dA64.distanceTo(camDirB64) < 0.001;
             }
             // Grace-slip pin (R220): a brief slip onto a DIFFERENT
             // interactable must hold the charge — tremor jitter grazing a
@@ -3617,6 +4185,32 @@ async function main() {
                       && tmD.textureCache.size === 0
                       && tmD.memoryUsage.textureCount === 0
                       && tmD.memoryUsage.estimatedBytes === 0;
+                    // batch 66 (d) — applyTextureSettings writes the actual
+                    //   wrap/filter/anisotropy/mipmap fields onto the texture
+                    //   (options win; anisotropy falls back to the renderer
+                    //   max), and getMemoryStats reports the tracked counts
+                    //   in the documented shape.
+                    const tmS = new TMC(fakeR);
+                    const st66 = mkTex(10, 10);
+                    tmS.applyTextureSettings(st66, {
+                      anisotropy: 4, wrapS: 1001, magFilter: 1006,
+                      minFilter: 1008
+                    });
+                    const st66b = mkTex(10, 10);
+                    tmS.applyTextureSettings(st66b, { minFilter: 1003 });
+                    tmS.cacheTexture('s', st66);
+                    const ms66 = tmS.getMemoryStats();
+                    out.texSettingsStats = st66.anisotropy === 4
+                      && st66.wrapS === 1001
+                      && st66.magFilter === 1006
+                      && st66.generateMipmaps === true
+                      && st66b.anisotropy === 8
+                      && st66b.generateMipmaps !== true
+                      && ms66.textureCount === 1
+                      && ms66.usedMB === '0.00'
+                      && ms66.maxMB === '512.00'
+                      && ms66.utilizationPercent === '0.0';
+                    tmS.dispose();
                   } finally {
                     // Restore the stale pre-leg state: persisted setting
                     // value with no live manager instance.
@@ -4979,6 +5573,370 @@ async function main() {
                         app.bookmarks.removeHistory(
                           'https://nav-fanout.example/path');
                       }
+                    }
+                  }
+                  // batch 62 — reader edge arms + shared-geometry memo:
+                  // (a) a 200-OK page with no recoverable prose (SPA shell)
+                  //     must NOT render 'reader' — it lands 'unavailable'
+                  //     with the raw URL as title and onNavigate(url, url),
+                  //     so the chrome bar shows actionable guidance.
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head></head><body>'
+                        + '<div id="app"><nav><a href="#">l</a>'
+                        + '<a href="#">o</a></nav><div id="root"></div>'
+                        + '</div></body></html>')
+                    });
+                    const navArgs62 = [];
+                    const origNav62 = wp2.onNavigate;
+                    wp2.onNavigate = (u, t2) => {
+                      navArgs62.push([u, t2]);
+                      return origNav62(u, t2);
+                    };
+                    try {
+                      wp2.navigate('https://spa-shell-62.example/app');
+                      await settle2();
+                      out.spaShellUnavailable =
+                        wp2._contentState === 'unavailable'
+                        && wp2.currentTitle
+                          === 'https://spa-shell-62.example/app'
+                        && navArgs62.length === 1
+                        && navArgs62[0][1]
+                          === 'https://spa-shell-62.example/app';
+                    } finally {
+                      wp2.onNavigate = origNav62;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://spa-shell-62.example/app');
+                      }
+                    }
+                    // (b) extractTitle decodes entities into currentTitle; a
+                    //     missing <title> falls back to the raw URL.
+                    const htmlEntity =
+                      '<html><head><title>A &amp; B &#8212; C</title></head>'
+                      + '<body><article><p>entity decode paragraph one two'
+                      + ' three four five six seven eight nine ten</p>'
+                      + '</article></body></html>';
+                    const htmlNoTitle =
+                      '<html><head></head><body><article>'
+                      + '<p>untitled paragraph one two three four five six'
+                      + ' seven eight nine ten eleven twelve</p>'
+                      + '</article></body></html>';
+                    const origNav62b = wp2.onNavigate;
+                    const navArgs62b = [];
+                    wp2.onNavigate = (u, t2) => {
+                      navArgs62b.push([u, t2]);
+                      return origNav62b(u, t2);
+                    };
+                    try {
+                      globalThis.fetch = () => Promise.resolve({
+                        ok: true, text: () => Promise.resolve(htmlEntity)
+                      });
+                      wp2.navigate('https://entity-62.example/');
+                      await settle2();
+                      const entOk = wp2.currentTitle === 'A & B — C';
+                      globalThis.fetch = () => Promise.resolve({
+                        ok: true, text: () => Promise.resolve(htmlNoTitle)
+                      });
+                      wp2.navigate('https://notitle-62.example/');
+                      await settle2();
+                      out.titleEntityDecode = entOk
+                        && wp2._contentState === 'reader'
+                        && wp2.currentTitle === 'https://notitle-62.example/'
+                        && navArgs62b.length === 2
+                        && navArgs62b[0][1] === 'A & B — C'
+                        && navArgs62b[1][1]
+                          === 'https://notitle-62.example/';
+                    } finally {
+                      wp2.onNavigate = origNav62b;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory('https://entity-62.example/');
+                        app.bookmarks.removeHistory('https://notitle-62.example/');
+                      }
+                    }
+                  }
+                  // batch 71 (e) — reader extraction strips non-prose
+                  //   payloads: <script>, <style> and <noscript> content
+                  //   must never reach the reader lines (injected markup
+                  //   would otherwise render as page text).
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head><title>SN71</title></head><body><article>'
+                        + '<p>Clean reader prose seventy one '
+                        + '<script>var hack = "alert-strip-71";</script>'
+                        + 'with enough length to survive extraction.</p>'
+                        + '<p>Second prose line '
+                        + '<style>body{--x71:1}</style>'
+                        + 'continues the article text payload here.</p>'
+                        + '<p>Third line of reader prose '
+                        + '<noscript>needjs-strip-71</noscript>'
+                        + 'closes out the article body.</p>'
+                        + '</article></body></html>')
+                    });
+                    try {
+                      wp2.navigate('https://strip-71.example/p');
+                      await settle2();
+                      const joined71 = (wp2._readerLines || [])
+                        .map((l) => l.text || '').join('|');
+                      out.readerStripNoise = wp2._contentState === 'reader'
+                        && !joined71.includes('alert-strip-71')
+                        && !joined71.includes('needjs-strip-71')
+                        && !joined71.includes('--x71:1');
+                    } finally {
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://strip-71.example/p');
+                      }
+                    }
+                  }
+                  // (c) _sharedPlaneGeometry memoizes per "WxH" key — settings
+                  //     buttons share one PlaneGeometry, so a miss would
+                  //     multiply GPU allocations per button.
+                  if (typeof app._sharedPlaneGeometry === 'function'
+                    && app._sharedGeometries) {
+                    const sizeWas62 = app._sharedGeometries.size;
+                    const gA62 = app._sharedPlaneGeometry(7.7, 3.3);
+                    const gB62 = app._sharedPlaneGeometry(7.7, 3.3);
+                    const gC62 = app._sharedPlaneGeometry(1.1, 0.2);
+                    out.sharedPlaneGeo = gA62 === gB62
+                      && gA62 !== gC62
+                      && app._sharedGeometries.size === sizeWas62 + 2;
+                  }
+                  // batch 64 (c) — liftUnreachable's reach-arms: content a
+                  //     flat block scan cannot reach is lifted into markup
+                  //     before extraction — <table> rows become 'cell | cell'
+                  //     paragraphs, <ol> items get real ordinals baked in,
+                  //     <img alt> inlines ' [img: alt] ', and ruby <rt>/<rp>
+                  //     furigana is stripped (it would duplicate the base
+                  //     text). Missing any of these silently loses the
+                  //     content for reader users.
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head><title>Lifted</title></head><body><article>'
+                        + '<table><tr><td>alpha</td><td>beta</td></tr></table>'
+                        + '<ol><li>first step</li><li>second step</li></ol>'
+                        + '<p>fig <img src="x.png" alt="my diagram"> cap</p>'
+                        + '<p>base <ruby>漢字<rt>かんじ</rt></ruby> end</p>'
+                        + '<p>amp &amp; entity</p>'
+                        + '</article></body></html>')
+                    });
+                    try {
+                      wp2.navigate('https://lifts-64.example/');
+                      await settle2();
+                      const texts64 = (wp2._readerLines || [])
+                        .map((l) => l.text);
+                      const has64 = (s) => texts64.some((t) => t.includes(s));
+                      out.readerLifts = wp2._contentState === 'reader'
+                        && has64('alpha | beta')
+                        && has64('1. first step')
+                        && has64('2. second step')
+                        && has64('[img: my diagram]')
+                        && has64('漢字')
+                        && !texts64.some((t) => t.includes('かんじ'))
+                        && has64('amp & entity');
+                    } finally {
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory('https://lifts-64.example/');
+                      }
+                    }
+                  }
+                  // batch 65 (d) — back()/forward() guard the history
+                  //   ends: idx 0 refuses back, last idx refuses forward,
+                  //   and every accepted step reloads through _loadUrl.
+                  //   A _loadUrl spy keeps the walk off the network.
+                  {
+                    const loads65 = [];
+                    const histWas65 = wp2.history.slice();
+                    const hidxWas65 = wp2.historyIdx;
+                    const loadWas65 = wp2._loadUrl;
+                    wp2._loadUrl = (u) => { loads65.push(u); };
+                    try {
+                      wp2.history = ['h65a', 'h65b', 'h65c'];
+                      wp2.historyIdx = 1;
+                      const b65a = wp2.back();
+                      const b65b = wp2.back();
+                      const f65a = wp2.forward();
+                      const f65b = wp2.forward();
+                      const f65c = wp2.forward();
+                      out.historyNavEdges = b65a === true
+                        && loads65[0] === 'h65a'
+                        && b65b === false
+                        && f65a === true && loads65[1] === 'h65b'
+                        && f65b === true && loads65[2] === 'h65c'
+                        && f65c === false
+                        && loads65.length === 3;
+                    } finally {
+                      wp2._loadUrl = loadWas65;
+                      wp2.history = histWas65;
+                      wp2.historyIdx = hidxWas65;
+                    }
+                  }
+                  // batch 65 (e) — every completed _drawContent marks the
+                  //   CanvasTexture needsUpdate so the frame reaches the
+                  //   GPU; texture.version only bumps on that write, so a
+                  //   skipped flag shows up as a frozen version counter.
+                  {
+                    const vWas65 = wp2.contentTex
+                      ? wp2.contentTex.version : -1;
+                    wp2._drawContent();
+                    out.contentTexVersion = vWas65 >= 0
+                      && wp2.contentTex.version === vWas65 + 1;
+                  }
+                  // batch 68 (b) — navigate() resolves the raw input BEFORE
+                  //   pushing history: a bare host becomes https://…, a
+                  //   spaced phrase becomes a search-engine query URL, and
+                  //   a dangerous scheme resolves to null — no push, and
+                  //   onBlockedNavigation gets the raw input.
+                  {
+                    const histWas68 = wp2.history;
+                    const hidxWas68 = wp2.historyIdx;
+                    const loadWas68 = wp2._loadUrl;
+                    const blockedWas68 = wp2.onBlockedNavigation;
+                    const loads68 = [];
+                    const blocked68 = [];
+                    wp2._loadUrl = (u) => { loads68.push(u); };
+                    wp2.onBlockedNavigation = (u) => { blocked68.push(u); };
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('h68a.example/seg');
+                      wp2.navigate('hello world');
+                      wp2.navigate('javascript:alert(1)');
+                      out.navResolveArms = wp2.history.length === 2
+                        && wp2.history[0] === 'https://h68a.example/seg'
+                        && wp2.history[1] ===
+                          'https://duckduckgo.com/?q=hello%20world'
+                        && loads68.length === 2
+                        && blocked68.length === 1
+                        && blocked68[0] === 'javascript:alert(1)';
+                    } finally {
+                      wp2._loadUrl = loadWas68;
+                      wp2.onBlockedNavigation = blockedWas68;
+                      wp2.history = histWas68;
+                      wp2.historyIdx = hidxWas68;
+                    }
+                  }
+                  // batch 68 (c) — navigate() mid-history TRUNCATES the
+                  //   forward entries before pushing (a tab walking back
+                  //   then navigating discards the abandoned future).
+                  {
+                    const histWas68b = wp2.history;
+                    const hidxWas68b = wp2.historyIdx;
+                    const loadWas68b = wp2._loadUrl;
+                    wp2._loadUrl = () => {};
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('https://h68t/a');
+                      wp2.navigate('https://h68t/b');
+                      wp2.navigate('https://h68t/c');
+                      wp2.back();
+                      wp2.navigate('https://h68t/d');
+                      const trunc68 = wp2.history.length === 3
+                        && wp2.history[2] === 'https://h68t/d'
+                        && !wp2.history.includes('https://h68t/c')
+                        && wp2.historyIdx === 2
+                        && wp2.forward() === false;
+                      wp2.navigate('https://h68t/e');
+                      out.histForwardTruncate = trunc68
+                        && wp2.history.length === 4
+                        && wp2.history[3] === 'https://h68t/e'
+                        && wp2.historyIdx === 3;
+                    } finally {
+                      wp2._loadUrl = loadWas68b;
+                      wp2.history = histWas68b;
+                      wp2.historyIdx = hidxWas68b;
+                    }
+                  }
+                  // batch 69 (d) — setSearchEngine swaps the template the
+                  //   NEXT query resolves through: a named engine picks
+                  //   its table entry, a raw template (contains '=') is
+                  //   used verbatim.
+                  {
+                    const engWas69 = wp2.searchEngine;
+                    const histWas69 = wp2.history;
+                    const hidxWas69 = wp2.historyIdx;
+                    const loadWas69 = wp2._loadUrl;
+                    wp2._loadUrl = () => {};
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.setSearchEngine('bing');
+                      wp2.navigate('two words');
+                      wp2.setSearchEngine('https://se.example/f?q=');
+                      wp2.navigate('three words');
+                      out.navSearchEngine = wp2.history.length === 2
+                        && wp2.history[0] ===
+                          'https://www.bing.com/search?q=two%20words'
+                        && wp2.history[1] ===
+                          'https://se.example/f?q=three%20words';
+                    } finally {
+                      wp2.setSearchEngine(engWas69);
+                      wp2._loadUrl = loadWas69;
+                      wp2.history = histWas69;
+                      wp2.historyIdx = hidxWas69;
+                    }
+                  }
+                  // batch 70 (d) — resolveInput's address heuristics:
+                  //   localhost and dotted IPv4 (optionally :port) go
+                  //   straight to https, an uppercase scheme survives
+                  //   verbatim, a non-http scheme resolves null + routes
+                  //   to onBlockedNavigation, and an NFD query is folded
+                  //   to NFC before percent-encoding.
+                  {
+                    const histWas70 = wp2.history;
+                    const hidxWas70 = wp2.historyIdx;
+                    const loadWas70 = wp2._loadUrl;
+                    const blockedWas70 = wp2.onBlockedNavigation;
+                    const loads70 = [];
+                    const blocked70 = [];
+                    wp2._loadUrl = (u) => { loads70.push(u); };
+                    wp2.onBlockedNavigation = (u) => { blocked70.push(u); };
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('localhost:3000');
+                      wp2.navigate('192.168.1.1:8080');
+                      wp2.navigate('HTTPS://EXAMPLE.COM/x');
+                      wp2.navigate('ftp://files.example/a');
+                      wp2.navigate('\u3053\u3099'); // NFD こ + dakuten → ご
+                      out.navResolveMore = wp2.history.length === 4
+                        && wp2.history[0] === 'https://localhost:3000'
+                        && wp2.history[1] === 'https://192.168.1.1:8080'
+                        && wp2.history[2] === 'HTTPS://EXAMPLE.COM/x'
+                        && wp2.history[3] ===
+                          'https://duckduckgo.com/?q=%E3%81%94'
+                        && blocked70.length === 1
+                        && blocked70[0] === 'ftp://files.example/a';
+                    } finally {
+                      wp2._loadUrl = loadWas70;
+                      wp2.onBlockedNavigation = blockedWas70;
+                      wp2.history = histWas70;
+                      wp2.historyIdx = hidxWas70;
+                    }
+                  }
+                  // batch 69 (e) — setActive rejects out-of-range indices:
+                  //   no visibility flip, no activate announce, no
+                  //   session-change fan-out.
+                  {
+                    const tmOptsWas69 = tm2.opts.onTabActivate;
+                    const tmSessWas69 = tm2.opts.onSessionChange;
+                    const actArgs69 = [];
+                    let sessCalls69 = 0;
+                    tm2.opts.onTabActivate = (u) => { actArgs69.push(u); };
+                    tm2.opts.onSessionChange = () => { sessCalls69++; };
+                    try {
+                      const idxWas69 = tm2.activeIndex;
+                      tm2.setActive(-1);
+                      tm2.setActive(tm2.tabs.length + 9);
+                      out.tmSetActiveClamp = tm2.activeIndex === idxWas69
+                        && actArgs69.length === 0
+                        && sessCalls69 === 0;
+                    } finally {
+                      tm2.opts.onTabActivate = tmOptsWas69;
+                      tm2.opts.onSessionChange = tmSessWas69;
                     }
                   }
                 } finally {
@@ -6569,6 +7527,39 @@ async function main() {
               await new Promise((r) => setTimeout(r, 20));
               out.vrBtnRetryOnlyNS = attempts5 === 1 && refTypes4.length === 1
                 && toasts4.length === errToastsBefore + 1;
+              // batch 67 — the rejection also reports trackVRError through
+              //   gtag 'vr_error' with the action context; the toast arm
+              //   was already pinned, the analytics leg was unobserved.
+              const gtagWas67c = window.gtag;
+              const gtagEvents67c = [];
+              window.gtag = (...a) => { gtagEvents67c.push(a); };
+              try {
+                Object.defineProperty(navigator, 'xr', {
+                  configurable: true, value: {
+                    requestSession: () =>
+                      Promise.reject(new Error('denied67'))
+                  }
+                });
+                btn4.onclick();
+                await new Promise((r) => setTimeout(r, 20));
+                const vrErr67 = gtagEvents67c.find(
+                  (e) => e[1] === 'vr_error');
+                out.sessErrGtag = !!vrErr67
+                  && vrErr67[2].action === 'requestSession'
+                  && vrErr67[2].error_type === 'Error'
+                  && vrErr67[2].error_message === 'denied67';
+              } finally {
+                Object.defineProperty(navigator, 'xr', {
+                  configurable: true, value: {
+                    requestSession: () => Promise.resolve(fakeSess4)
+                  }
+                });
+                if (gtagWas67c === undefined) {
+                  delete window.gtag;
+                } else {
+                  window.gtag = gtagWas67c;
+                }
+              }
               xr4.setSession = () => { sessSetCalls4++; return Promise.resolve(); };
               if (srsWas4) {
                 xr4.setReferenceSpaceType = srsWas4;
@@ -7026,6 +8017,41 @@ async function main() {
       curvedInherit: iout.curvedInherit === true,
       setVisibleReleases: iout.setVisibleReleases === true,
       distanceClamp: iout.distanceClamp === true,
+      spaShellUnavailable: iout.spaShellUnavailable === true,
+      titleEntityDecode: iout.titleEntityDecode === true,
+      readerStripNoise: iout.readerStripNoise === true,
+      sharedPlaneGeo: iout.sharedPlaneGeo === true,
+      telemetryFeedGate: iout.telemetryFeedGate === true,
+      audioResumeDetach: iout.audioResumeDetach === true,
+      geoCurvedData: iout.geoCurvedData === true,
+      tmShortTitle: iout.tmShortTitle === true,
+      selectAnalytics: iout.selectAnalytics === true,
+      sharedRaycaster: iout.sharedRaycaster === true,
+      readerLifts: iout.readerLifts === true,
+      monVisibilityTrack: iout.monVisibilityTrack === true,
+      monBgTrack: iout.monBgTrack === true,
+      procBufRegister: iout.procBufRegister === true,
+      registerCustomCmd: iout.registerCustomCmd === true,
+      voiceAliasChain: iout.voiceAliasChain === true,
+      voiceHelpList: iout.voiceHelpList === true,
+      voiceRecogLang: iout.voiceRecogLang === true,
+      voiceRecogOpts: iout.voiceRecogOpts === true,
+      voiceConfirmSpeak: iout.voiceConfirmSpeak === true,
+      historyNavEdges: iout.historyNavEdges === true,
+      contentTexVersion: iout.contentTexVersion === true,
+      navResolveArms: iout.navResolveArms === true,
+      histForwardTruncate: iout.histForwardTruncate === true,
+      navSearchEngine: iout.navSearchEngine === true,
+      navResolveMore: iout.navResolveMore === true,
+      tmSetActiveClamp: iout.tmSetActiveClamp === true,
+      deviceTierDetect: iout.deviceTierDetect === true,
+      navPageView: iout.navPageView === true,
+      memHighGtag: iout.memHighGtag === true,
+      fpsSeverityTiers: iout.fpsSeverityTiers === true,
+      audioSourceDist: iout.audioSourceDist === true,
+      imeConvertFns: iout.imeConvertFns === true,
+      imeConvertMore: iout.imeConvertMore === true,
+      texSettingsStats: iout.texSettingsStats === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7077,6 +8103,7 @@ async function main() {
         && (iout.voiceSearchCap || '').includes('検索'),
       voiceTop: iout.voiceTopNav === true
         && (iout.voiceTopCap || '').includes('よく使うサイト'),
+      topSitesExclude: iout.topSitesExclude === true,
       voiceClear: iout.voiceCleared === true
         && (iout.voiceClearCap || '').includes('履歴を消去'),
       voiceVol: iout.voiceVolUp === true
@@ -7121,6 +8148,8 @@ async function main() {
       bmTitleGuard: iout.bmTitleGuard === true,
       bmRemoveFilter: iout.bmRemoveFilter === true,
       bmTopSites: iout.bmTopSites === true,
+      bmFrecencyRank: iout.bmFrecencyRank === true,
+      bmReAddFront: iout.bmReAddFront === true,
       bmTrim: iout.bmTrim === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
@@ -7234,6 +8263,7 @@ async function main() {
       kbPrefillBlank: iout.kbPrefillBlank === true,
       vrBtnRetryLocal: iout.vrBtnRetryLocal === true,
       vrBtnRetryOnlyNS: iout.vrBtnRetryOnlyNS === true,
+      sessErrGtag: iout.sessErrGtag === true,
       enterVRClick: iout.enterVRClick === true,
       toastLifecycle: iout.toastLifecycle === true,
       sessPanelDetach: iout.sessPanelDetach === true,
@@ -7245,6 +8275,7 @@ async function main() {
       sessScalarsCleared: iout.sessScalarsCleared === true,
       sessFfrDisabled: iout.sessFfrDisabled === true,
       sessTrackEvent: iout.sessTrackEvent === true,
+      sessGtagStart: iout.sessGtagStart === true,
       perfMonitorWrites: iout.perfMonitorWrites === true,
       navAnalytics: iout.navAnalytics === true,
       navAnalyticsRaw: iout.navAnalyticsRaw === true,
@@ -7550,6 +8581,41 @@ async function main() {
       ['new tab inherits curved mode', !!inter.curvedInherit],
       ['hidden panel releases its quad layer', !!inter.setVisibleReleases],
       ['window distance clamps to min/max', !!inter.distanceClamp],
+      ['prose-less page lands unavailable not reader', !!inter.spaShellUnavailable],
+      ['page title decodes entities, falls back to URL', !!inter.titleEntityDecode],
+      ['reader strips script style noscript payloads', !!inter.readerStripNoise],
+      ['plane geometries memoize per size', !!inter.sharedPlaneGeo],
+      ['perf telemetry feeds gtag at 1 Hz only', !!inter.telemetryFeedGate],
+      ['audio resume gesture detaches all listeners', !!inter.audioResumeDetach],
+      ['curved panel geometry emits real arc positions', !!inter.geoCurvedData],
+      ['tab strip title strips www + slices junk', !!inter.tmShortTitle],
+      ['gaze select reaches user_interaction analytics', !!inter.selectAnalytics],
+      ['controller rays share one memoized raycaster', !!inter.sharedRaycaster],
+      ['reader lifts table list img ruby content', !!inter.readerLifts],
+      ['visibilitychange reaches session_resumed analytics', !!inter.monVisibilityTrack],
+      ['hidden document emits session_backgrounded', !!inter.monBgTrack],
+      ['procedural buffer registers + dedups by name', !!inter.procBufRegister],
+      ['custom voice command registers + fires', !!inter.registerCustomCmd],
+      ['voice alias resolves to canonical command', !!inter.voiceAliasChain],
+      ['help speaks the command list', !!inter.voiceHelpList],
+      ['recognition engine gets the app language', !!inter.voiceRecogLang],
+      ['recognition engine gets recognition settings', !!inter.voiceRecogOpts],
+      ['command confirmationText speaks after action', !!inter.voiceConfirmSpeak],
+      ['back/forward stop at history edges', !!inter.historyNavEdges],
+      ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
+      ['navigate resolves host/query/scheme before push', !!inter.navResolveArms],
+      ['mid-history navigate truncates the future', !!inter.histForwardTruncate],
+      ['search engine setting swaps resolve template', !!inter.navSearchEngine],
+      ['resolveInput handles localhost/IPv4/scheme/NFD', !!inter.navResolveMore],
+      ['setActive clamps out-of-range indices', !!inter.tmSetActiveClamp],
+      ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
+      ['navigate reports query-stripped pageview', !!inter.navPageView],
+      ['memory threshold reports severity-tiered event', !!inter.memHighGtag],
+      ['fps drop reports severity-tiered event', !!inter.fpsSeverityTiers],
+      ['source distance drives the HRTF tier', !!inter.audioSourceDist],
+      ['ime romaji/katakana/offline converts resolve', !!inter.imeConvertFns],
+      ['ime digraph n-particle romaji arms convert', !!inter.imeConvertMore],
+      ['texture settings write + memory stats shape', !!inter.texSettingsStats],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
@@ -7594,6 +8660,7 @@ async function main() {
       ['immersive video stop tore down scene', !!inter.videoStopped],
       ['voice search navigated + announced', !!inter.voiceSearch],
       ['voice top-sites announced via caption', !!inter.voiceTop],
+      ['search engine itself excluded from top sites', !!inter.topSitesExclude],
       ['voice clear-history wiped + announced', !!inter.voiceClear],
       ['voice volume-up persisted + announced', !!inter.voiceVol],
       ['voice back moved + announced', !!inter.voiceBack],
@@ -7627,6 +8694,8 @@ async function main() {
       ['bare revisit keeps the recorded title', !!inter.bmTitleGuard],
       ['removeHistory filters corrupted dupes', !!inter.bmRemoveFilter],
       ['top-sites aggregates hosts + excludes', !!inter.bmTopSites],
+      ['search ranks by frecency visits + recency', !!inter.bmFrecencyRank],
+      ['re-bookmark dedupes and moves to front', !!inter.bmReAddFront],
       ['history bound trims at 200 entries', !!inter.bmTrim],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['voice start lifecycle + already-listening', !!inter.voiceLifecycle],
@@ -7742,6 +8811,7 @@ async function main() {
       ['URL input activates IME + stores confirm', !!inter.kbPrefillBlank],
       ['local-floor failure degrades space and retries', !!inter.vrBtnRetryLocal],
       ['non-NotSupportedError skips the space retry', !!inter.vrBtnRetryOnlyNS],
+      ['session reject reports vr_error analytics', !!inter.sessErrGtag],
       ['enter-vr event reaches the guarded VR button', !!inter.enterVRClick],
       ['toast adds mesh + timer and both expire', !!inter.toastLifecycle],
       ['session end detaches panel layers without recommit', !!inter.sessPanelDetach],
@@ -7753,6 +8823,7 @@ async function main() {
       ['session end clears callbacks + perf cursors', !!inter.sessScalarsCleared],
       ['session end disables FFR', !!inter.sessFfrDisabled],
       ['session end emits vr_end analytics event', !!inter.sessTrackEvent],
+      ['session start emits vr_start with device', !!inter.sessGtagStart],
       ['perf monitor EMA + fps + GPU metrics written', !!inter.perfMonitorWrites],
       ['navigate analytics strips query + hash', !!inter.navAnalytics],
       ['invalid URL analytics falls back to raw string', !!inter.navAnalyticsRaw],
