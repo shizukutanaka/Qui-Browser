@@ -454,6 +454,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: 3 切断（`haptic.playPattern`/`t.valid` ゲート/`smoothMoveWarning`→null）→ 新 3 check のみ FAIL、co-signal ゼロ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 356 checks PASS、verify:app PASS。
 
+### Session 221: 続き379 — disconnect teleport-cancel 双腕 + wrong-hand grab release を e2e pin（#276 batch 38、356→359 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`_cancelTeleportIfAimedBy` の deeper state（既存 `squeezeCancelled` は active/controller クリアのみ — `valid=false`+marker 非表示+rig 不動は未観測）。②sibling controller disconnect は aim を cancel しない非 cancel 腕（`_grabController` 型 identity guard 系初の負 pin）。③`onControllerSelect` release 腕の `controller === _grabController` guard — 非 grabbing 手の selectend が drag 中 window を落とせない契約。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) 2 腕が 1 関数の guard 両面を共有する場合、**guard 反転**（`=== → !==`）1 切断で両 pin を同時に falsify 可 — aiming ctrl disconnect は cancel せず（cancelDisc FAIL）+ sibling は cancel する（survivesDisc FAIL）。(b) 2 回目 selectstart は drag で matrix が動いた後 — 再 aim 必須（cp/barPos は同一 try scope で再利用可）。(c) controllers[i] の disconnect は `inputSource=null`+`forget` を副作用するため leg 末尾で `connected` 再 dispatch 復元。
+- 🧪 赤検証: guard 反転 + grab guard 除去 → 新 3 check FAIL + `squeezeCancelled` は同一腕の想定 co-signal。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 359 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
