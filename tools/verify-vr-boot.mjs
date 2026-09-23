@@ -3127,6 +3127,49 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Constant-visual-angle scaling: _applyAngularScale grows the
+              // managed root proportional to its distance from the eye, so
+              // every gaze target keeps its subtended size at any
+              // windowDistance (see angularSize.js / target-size tests —
+              // unscaled, controls fall below the 1.5deg gaze minimum at 6m).
+              // Pin the real update() -> scale contract incl. the clamps.
+              if (app.windowManager && app.windowManager.target && app.camera) {
+                const wm5 = app.windowManager;
+                const tgt = wm5.target;
+                const followWas5 = wm5.followMode;
+                const tPosWas = tgt.position.clone();
+                const tSclWas = tgt.scale.x;
+                try {
+                  wm5.setFollow(false);
+                  const cPos5 = app.camera.position.clone();
+                  app.camera.getWorldPosition(cPos5);
+                  const cQuat5 = app.camera.quaternion.clone();
+                  app.camera.getWorldQuaternion(cQuat5);
+                  const cFwd5 = cPos5.clone().set(0, 0, -1)
+                    .applyQuaternion(cQuat5);
+                  const ref = wm5.referenceDistance;
+                  const lo = wm5.minDistance / ref;
+                  const hi = wm5.maxDistance / ref;
+                  const place5 = (dist) => {
+                    tgt.position.copy(cPos5).addScaledVector(cFwd5, dist);
+                    tgt.updateMatrixWorld(true);
+                    wm5.update(16);
+                    return tgt.scale.x;
+                  };
+                  const sFar = place5(4);
+                  const sNear = place5(0.4);
+                  const sMax = place5(7);
+                  out.wmAngularScale = Math.abs(sFar - 4 / ref) < 0.01
+                    && Math.abs(sNear - lo) < 0.001
+                    && Math.abs(sMax - hi) < 0.001
+                    && sFar > sNear;
+                } finally {
+                  wm5.setFollow(followWas5);
+                  tgt.position.copy(tPosWas);
+                  tgt.scale.setScalar(tSclWas);
+                  tgt.updateMatrixWorld(true);
+                }
+              }
               // Hover-caption leg — every managed surface announces itself on
               // hover (WCAG 1.3.3), gaze-gated: strip → 'Tab strip', move bar
               // → 'Move bar', chrome → the page title/host, and entering tints
@@ -4128,6 +4171,7 @@ async function main() {
       followEnabled: iout.followEnabled === true,
       followConverges: iout.followConverges === true,
       followOffHolds: iout.followOffHolds === true,
+      wmAngularScale: iout.wmAngularScale === true,
       stripHoverCaption: iout.stripHoverCaption === true,
       moveBarHoverCaption: iout.moveBarHoverCaption === true,
       chromeHoverCaption: iout.chromeHoverCaption === true,
@@ -4453,6 +4497,7 @@ async function main() {
       ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
       ['head-lock follow converges the panel', !!inter.followConverges],
       ['follow off leaves the panel in place', !!inter.followOffHolds],
+      ['angular scale keeps constant visual size', !!inter.wmAngularScale],
       ['tab strip hover announces its label', !!inter.stripHoverCaption],
       ['move bar hover announces its label', !!inter.moveBarHoverCaption],
       ['chrome hover announces page title + tints', !!inter.chromeHoverCaption],

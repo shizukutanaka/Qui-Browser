@@ -143,8 +143,14 @@ export class WindowManager {
       const t = 1 - Math.pow(1 - s, Math.max(0, dtMs) / 16.6667);
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
-      this._applyAngularScale();
     }
+
+    // Constant angular size is meant to hold at EVERY distance, not only
+    // while grabbing or following: a panel parked far away — a persisted
+    // 6 m windowDistance at boot, or where the user left it after a grab —
+    // otherwise renders its controls below the 1.5deg gaze-target minimum
+    // this scaling exists to protect.
+    this._applyAngularScale();
   }
 
   /**

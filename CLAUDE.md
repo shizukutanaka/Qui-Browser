@@ -331,6 +331,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `setScalar` 切断 → `gazeFillProgress` のみ FAIL、ring decay 行切断 → `gazeConfirmFlash` のみ FAIL（同時切断で両方 — 分離確認済み）。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 285 checks PASS、verify:app PASS。
 
+### Session 202: 続き360 — _applyAngularScale を全モード適用（静的パネルの視角退化 fix + e2e pin、#269 batch 19、285→286 checks）
+- 🔍 **実測（有機赤で実欠陥捕捉）**: 新 pin `wmAngularScale`（実 `wm.update(16)` で managed root を camera 前方 4m/0.4m/7m に配置し `target.scale` の比例・min/max clamp を観測）が base で FAIL — `_applyAngularScale` が `_grab`/`followMode` 分岐内部のみ呼出で、**静的パネルには一切適用されない**ことを発見。永続化 `windowDistance=6m` で起動した非-follow ユーザーのパネルは scale=1 のまま — 6m で全コントロールが 0.33–1.43°（gaze 最小 1.5° 未満、angularSize.js 実測値）に退化し、この機能が防ぐはずの退化そのものが残存。grab 経由の移動のみがスケールしていた。
+- 🔧 **修正**: `update()` の `followMode` 分岐から呼出を外し、grab 分岐（early return 内に残置）の後に無条件 tail call として配置 — 全モードで frame 毎に `scale = clamp(d/referenceDistance, min/ref, max/ref)` が適用される契約に。
+- 🧪 赤検証: pin は fix 前の base で有機 FAIL → fix 適用後 PASS。加えて tail call 切断の独立 cut でも `wmAngularScale` のみ FAIL を再確認（git checkout で fix ごと巻き戻す事故 — cut 検証は source fix を stash/commit 後に行う教訓）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 286 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
