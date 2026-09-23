@@ -429,6 +429,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: `if(panel.currentUrl)`→`if(true)` + `i===activeIndex`→`if(false)` 同時切断で新 3 check 全 FAIL。第 2 run（currentUrl のみ復元、activeIndex 切断継続）で reindex pin のみ FAIL — activeIndex 腕の独立担保を確認。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、345-check harness 全 PASS。
 
+### Session 217: 続き375 — VoiceCommands ライフサイクル 3 腕を e2e pin（#273 batch 34、345→348 checks）
+
+- 🔍 実測: ①`start()` の already-listening early return（再 `start()` は onstart 二重発火しない）②`onend` の continuous restart 腕（`settings.continuous && isEnabled` → 100ms setTimeout → 再 `start()` — ハンズフリー keep-alive ループ）と `isEnabled=false` 先立ちによる遮断（fatal-error/dispose の順序依存そのもの）③`dispose()` の isEnabled→stop→synthesis.cancel→engine null teardown が全て未駆動（既存 voice pin は `handleRecognitionResult` 直接駆動のみで `start()`/`onend` 経路未踏）。
+- 🔧 ハーネス教訓: **headless の `webkitSpeechRecognition` は本物で stub は両 global 不在時のみ install** — `initialize()` 取得の engine は `start()` が onstart を発火せず生命維持系 pin は初回 FAIL。`recognition` を `{start(){onstart()},stop(){onend()}}` の inline engine で手動 seed + `setupRecognitionHandlers()` で handler 再 bind → 完全決定論（initialize() 経路を迂回）。post-dispose `start()` は `console.error('Not initialized')` を踏むため 'no console errors' check 衝突で省略（loadAudio `!response.ok` 腕と同型・記録済み）。
+- 🧪 赤検証 3 切断一括: already-listening early return → `if(false)`、continuous restart gate → `if(false)`、`this.recognition = null` → void → 新 3 check のみ FAIL、co-signal ゼロ。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、348-check harness 全 PASS。
+
+### Session 218: 続き376 — HandTracking getJointPose fallback の radii/skip 腕 + dispose を e2e pin（#274 batch 35、348→351 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`updateHand` の fillPoses 無し fallback は `handFallbackDrives`/`handNullPose` が position+gesture+whole-null skip を pin 済みだが、`jointPose.radius`→instance scale 書込と quality→opacity tint は未観測。②`radius:0` の `|| 0.008` デフォルト scale + `radius ? 1.0 : 0.5` half-quality 腕も未駆動。③`dispose()` 全契約（listener detach・scene 切離・map/batch clear・enabled=false）未駆動。
+- 🔧 **ハーネス教訓**: sentinel は leg ごとに明示リセット必須 — 前 leg が書いた 0.11 を sentinel 0.9 前提で assert して初回有機 FAIL（`im[16]`（instance 1 の scale 要素）も radius:0 → scale 1.0 で有効）。dispose pin は `ht.constructor` で fresh instance + fake session の add/remove キャプチャで登録 callback の identity 一致まで検証。
+- 🧪 赤検証: `record.position.set`/`radius || 0.008`/`qualitySum` ternary/`removeEventListener` 4 切断 → 新 3 check FAIL + `handFallbackDrives` co-FAIL（共有 position 腕、想定内）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 351 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
