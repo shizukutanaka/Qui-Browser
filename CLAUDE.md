@@ -628,6 +628,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 4 切断: Quest3 UA arm 切断 → `deviceTierDetect` FAIL のみ。`Math.sqrt`→0 切断 → `audioSourceDist` + LOD 系 2 件 co-signal（`_sourceDistance` 消費者・想定）。sokuon 両 arm 切断 → `imeConvertFns` FAIL のみ。`anisotropy` 書込切断 → `texSettingsStats` FAIL のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 482 checks PASS、verify:app PASS。
 
+### Session 250: 続き408 — pageview/memory/vr_error の analytics 到達を e2e pin（#286 batch 67、482→485 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`navigate()`→`trackPageView` の GA 'config' hit が `u.origin+u.pathname` で query を剥がす（query は検索語/token を含みうる privacy 契約）+ invalid-URL catch arm の raw 報告 — toast/history 側は pin 済みだったが analytics leg は未観測。②`trackMemory` の 500MB 閾値 → 'performance_high_memory' + severity 3 段階（medium <750、high <1000、critical 以上）— `trackFPS`/'fps_drop' は pin 済みだったが memory 側は未観測。③requestSession reject → `trackVRError` → gtag 'vr_error' {action:'requestSession', error_type, error_message} — toast 腕のみ pin だった。
+- 🔧 **ハーネス教訓**: `performance.memory` は `Object.defineProperty(performance,'memory',{value:{usedJSHeapSize}})` で fake — eval では 500MB 確保不能。`trackMemory` は `_telemetryFeedAt` 1Hz ゲートを共有するので deterministic に `-Infinity` seed（batch 63 の教訓再利用）。`adjustQuality`/`pruneCache` LRU/`texEstimate`/`getPerformanceStats` は grep で既 pin 判明 — 候補は必ず動作ベースで grep して重複 pin を回避（今回 4 件スキップ）。
+- 🧪 赤検証 3 切断: `u.origin+u.pathname`→`url` 切断 → 本 pin + 既存 'strips query + hash' pin の想定 co-signal（同一行消費）。`>500` ゲート切断 → `memHighGtag` のみ。`trackVRError(` 呼出切断 → `sessErrGtag` のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 485 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
