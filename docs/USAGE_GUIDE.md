@@ -56,9 +56,17 @@ You can drive every UI element with any of these — pick whichever suits you:
   with proper syllabic-ん handling and candidate selection.
 - **Voice commands** — turn on **Voice** in the settings panel's Accessibility
   section (it asks for microphone permission, which is why it is opt-in rather
-  than on by default; the toggle takes effect immediately, no reload). Then say
-  a command — navigate, back, search, top sites, "go to <site>", "clear
-  history", or "help" to hear the phrase list. Recognized speech is captioned;
+  than on by default; the toggle takes effect immediately, no reload). Voice
+  listens and answers in the UI language (English or Japanese), and every
+  command accepts both English and Japanese phrases. Say "help" / 「ヘルプ」 to
+  hear the phrase list. Commands include: back / forward, refresh, "stop
+  loading", "search: <words>", "go to <site>", "open link 3", "find on page
+  <words>", top sites, bookmarks, keyboard (opens or closes it), "clear
+  history", "volume up" / "volume down" (10% steps, announces the new level),
+  「日本語入力」 / "toggle ime" (switches hiragana ⇄ katakana, opening the
+  keyboard if needed), and "exit VR". Voice cannot *enter* VR — browsers only
+  start an immersive session from a real button press — so it tells you to
+  press the Enter VR button instead. Recognized speech is captioned;
   confirmations are spoken and captioned.
 
 ## The settings panel
