@@ -247,6 +247,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 190: 続き348 — haptic playEffect 代替 API 腕 + pulse クランプを e2e pin（#266、258→260 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`pulse()` の `actuator.playEffect('dual-rumble', {strongMagnitude: i, weakMagnitude: i*0.5})` 分岐（WebXR Gamepads Module API — playEffect のみ持つ actuator）は全 leg が `pulse` のみ持つ偽 actuator で未駆動。②duration 1–5000ms / intensity 0–1 のクランプも actuator 受取値を見る pin が無かった。
+- 🔧 **割愛と理由**: gesture 起動 `context.resume()`（click/touchstart/keydown any-one → 3 listener 全撤去）は harness 内の先行 click で listener が既消費のため e2e 不可（armed 状態を eval から検知不能）。
+- 🧪 赤検証: pulse() 標準腕切断 → pulse 経路 4 check FAIL（fxSrc は playEffect のみで無傷・想定内）、クランプ切断 → `hapticClamps` FAIL、weakMagnitude を `i*0.5`→`i` 変異 → `hapticPlayEffect`+`hapticClamps` co-FAIL（両 pin が weakMagnitude を検証）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 260 checks PASS、verify:app PASS。
+
+### Session 189: 続き347 — haptic complex-pattern シーケンス + 両手 dedup を e2e pin（#264 batch 6、256→258 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`playPattern` の array-pattern 経路（'notification'=pulse30/0.5→pause30→pulse30/0.5 — for-loop + `wait(pause)` step）は全 pin が scalar 'click'/'impact' のみで未駆動。②`playPatternBothHands` の単一 gamepad dedup（`leftGp===rightGp` → 1 回のみ発火 — double-fire 抑止）も未駆動。
+- 🔧 **ハーネス教訓**: leg 内で `hf.playPattern` は記録のみの spy（call-through 無し）— `playPatternBothHands` は `this.playPattern` 経由のため spy のままでは actuator に届かず、dedup 腕の駆動前に `hf.playPattern=origPlay2` へ一時復元が必須。
+- 🧪 赤検証: array-pattern for-loop 無効化 → `hapticSequence` FAIL、dedup 逆方向（両手発火）→ `hapticBothHandsDedup` FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 258 checks PASS、verify:app PASS。
+
 ### Session 188: 続き346 — SpatialAudio play/stop 実再生 + listener/LOD 実経路を e2e pin（#264、253→256 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 audio pin は `play()` 呼出 spy 止まりで BufferSource 生成・panner connect・`isPlaying`/`sourcesActive` bookkeeping・restart 時旧 onended 無効化ガードは未駆動。②`updateListenerFromCamera` の listener `positionX` 実書込と `hrtfThreshold`(15m) 跨ぎの `panningModel` 遷移（#219 fix）も未駆動。
 - 🔧 **ハーネス教訓（重要・再発防止）**: red-verify でソース切断→`npm run build`→検証→`git checkout` の後 **dist を再ビルドしないと打ち切り版が残存** — 本作業では panningModel 書込切断版 dist が残り「real PannerNode が 'equalpower' 書込を拒否する」という幻の Chrome quirk を長時間追跡した。切り分けは `dist/js/*.js` の minified body と実 method `toString()` の照合で一撃 — harness は dist を使うので**ソース復元後は必ず `npm run build`**。②source 位置は listener 相対必須（rig teleport で world 定数が閾値内外を不定に泳ぐ）。③'click' は先行 select leg で実 play 済み（suspended ctx で onended 不発→isPlaying 残留）→ `stop()` で基線正規化してから計測。

@@ -3169,6 +3169,54 @@ async function main() {
                 hf.update([]);
                 await origPlay2.call(hf, 'right', 'click');
                 out.hapticSourceGone = actPulses.length === 1;
+                // Complex-pattern sequence: 'notification' is
+                // pulse(30,0.5) → pause(30) → pulse(30,0.5) — drives the
+                // array-pattern for-loop and the pause-step wait() arm that
+                // no pin ever reached (all earlier plays used the scalar
+                // 'click'/'impact' arm).
+                actPulses.length = 0;
+                hf.update([hapSrc]);
+                await origPlay2.call(hf, 'right', 'notification');
+                out.hapticSequence = actPulses.length === 2
+                  && actPulses.every(p => p === '0.5/30');
+                // playPatternBothHands dedup: with a single registered
+                // gamepad both hands resolve to the SAME gamepad via the
+                // first-available fallback, so the pattern must fire once —
+                // not twice — on that actuator.
+                actPulses.length = 0;
+                const spyPlay = hf.playPattern;
+                hf.playPattern = origPlay2;
+                await hf.playPatternBothHands('click');
+                hf.playPattern = spyPlay;
+                out.hapticBothHandsDedup = actPulses.length === 1;
+                // playEffect fallback arm: an actuator exposing ONLY the
+                // WebXR Gamepads Module API (playEffect, no pulse) takes the
+                // 'dual-rumble' branch with strongMagnitude=intensity and
+                // weakMagnitude=intensity*0.5 — never driven before.
+                const fxCalls = [];
+                const fxSrc = {
+                  handedness: 'left',
+                  gamepad: {
+                    hapticActuators: [{
+                      playEffect: (type, opts) => {
+                        fxCalls.push(type + '/' + opts.duration + '/' +
+                          opts.strongMagnitude + '/' + opts.weakMagnitude);
+                        return Promise.resolve();
+                      }
+                    }]
+                  }
+                };
+                hf.update([fxSrc]);
+                await hf.pulse('left', 20, 0.5);
+                out.hapticPlayEffect = fxCalls.length === 1
+                  && fxCalls[0] === 'dual-rumble/20/0.5/0.25';
+                // pulse() clamps duration to 1-5000ms and intensity to 0-1
+                // before the actuator sees them.
+                fxCalls.length = 0;
+                await hf.pulse('left', 99999, 2.5);
+                out.hapticClamps = fxCalls.length === 1
+                  && fxCalls[0] === 'dual-rumble/5000/1/0.5';
+                hf.update([]);
 
                 // Listener pose + LOD tier path: updateListenerFromCamera
                 // runs per frame off updateSystems, but no leg ever placed
@@ -3601,6 +3649,10 @@ async function main() {
       handNullPose: iout.handNullPose === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
+      hapticSequence: iout.hapticSequence === true,
+      hapticBothHandsDedup: iout.hapticBothHandsDedup === true,
+      hapticPlayEffect: iout.hapticPlayEffect === true,
+      hapticClamps: iout.hapticClamps === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -3897,6 +3949,10 @@ async function main() {
       ['null joint poses leave records + recognize runs', !!inter.handNullPose],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
+      ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],
+      ['single-gamepad both-hands pattern dedups', !!inter.hapticBothHandsDedup],
+      ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
+      ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],
