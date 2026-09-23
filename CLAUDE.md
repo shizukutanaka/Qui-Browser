@@ -289,6 +289,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: panningModel 書込切断 → `audioLodSwitch` FAIL、`setListenerPosition` 切断 → `audioListenerPose` FAIL、isPlaying/sourcesActive bookkeeping 切断 → `audioPlayDrives`+`audioRestartGuard` FAIL、onended guard 切断 → `audioRestartGuard` のみ FAIL、stop() decrement 切断 → `audioStopBooks`+guard co-FAIL。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 256 checks PASS、verify:app PASS。
 
+### Session 195: 続き353 — updateAllLOD stats 集計 + setListenerOrientation forward/up 書込を e2e pin（#267 batch 12、268→270 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`updateAllLOD` が per-tier ソース数を `stats.hrtfSources`/`equalPowerSources` に集計する帳簿腕は、panner model 遷移のみ pin され集計結果自体は未観測。②`setListenerOrientation` の `listener.forwardX/upX` AudioParam 書込も未駆動（audioListenerPose は positionX のみ）。
+- 🔧 **ハーネス教訓**: 姿勢 pin は **検証前に camera を新姿勢へ回転必須** — 同一姿勢の連続 update では切断した param 書込が「前回書き込んだ同値の stale」として一致し pin が検出不能（初回 red で緑のまま気付いた）。
+- 🧪 赤検証: `stats.hrtfSources = hrtf` 切断 → `audioLodStats` FAIL、`listener.forwardX.value` 切断 → `audioListenerOrient` FAIL（回転版で有効化）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 270 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
