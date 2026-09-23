@@ -315,6 +315,230 @@ async function main() {
             out.tabPrivateRestore = app._restoreTabSession();
             app.updateSetting('privateMode', false);
           }
+          // AccessibilityCoordinator delegation (C-1 extraction): the three
+          // a11y subsystems are homed on app.a11y and exposed through
+          // get/set on the app itself — both directions must delegate so
+          // every legacy call site keeps reading/writing the real home.
+          if (app.a11y) {
+            const csWas = app.captionSystem;
+            const hfWas = app.hapticFeedback;
+            const giWas = app.gazeInteraction;
+            const sentinel = { probe: true };
+            try {
+              app.captionSystem = sentinel;
+              app.hapticFeedback = sentinel;
+              app.gazeInteraction = sentinel;
+              out.a11yDelegates = app.a11y.captionSystem === sentinel
+                && app.a11y.hapticFeedback === sentinel
+                && app.a11y.gazeInteraction === sentinel
+                && app.captionSystem === sentinel
+                && app.hapticFeedback === sentinel
+                && app.gazeInteraction === sentinel;
+            } finally {
+              app.captionSystem = csWas;
+              app.hapticFeedback = hfWas;
+              app.gazeInteraction = giWas;
+            }
+          }
+          // Tab-set mutations must fan out onSessionChange → BOTH
+          // _saveTabSession (persist) and _syncPanelLayers (mid-session quad
+          // layer reconcile). newTab fires it twice — once inside setActive,
+          // once at the tail — so each method is invoked exactly twice.
+          if (app.tabManager && typeof app._saveTabSession === 'function') {
+            let saveCalls = 0;
+            let syncCalls = 0;
+            const origSave = app._saveTabSession.bind(app);
+            const origSync = app._syncPanelLayers.bind(app);
+            app._saveTabSession = () => { saveCalls += 1; return origSave(); };
+            app._syncPanelLayers = () => { syncCalls += 1; return origSync(); };
+            try {
+              app.tabManager.newTab();
+              out.sessMutSaveSync = saveCalls === 2 && syncCalls === 2;
+              app.tabManager.closeTab(app.tabManager.tabs.length - 1);
+            } finally {
+              app._saveTabSession = origSave;
+              app._syncPanelLayers = origSync;
+            }
+          }
+          // batch 60 — three cold-path contracts:
+          // (1) _attachManagedWindow keeps windowManager.target pinned to the
+          //     tabManager rootGroup: a stale/missing target re-attaches, an
+          //     already-correct target is a no-op (grabs must not re-attach
+          //     onto the same object every frame).
+          if (app.windowManager && app.tabManager && app.tabManager.rootGroup
+            && typeof app._attachManagedWindow === 'function') {
+            const wm60 = app.windowManager;
+            const root60 = app.tabManager.rootGroup;
+            const origAttach60 = wm60.attach && wm60.attach.bind(wm60);
+            if (origAttach60) {
+              const attachArgs60 = [];
+              wm60.attach = (t60) => {
+                attachArgs60.push(t60);
+                return origAttach60(t60);
+              };
+              const targetWas60 = wm60.target;
+              try {
+                app._attachManagedWindow();
+                const noReattach = attachArgs60.length === 0
+                  && wm60.target === root60;
+                wm60.target = null;
+                const ok60 = app._attachManagedWindow();
+                out.attachManagedWindow = noReattach && ok60 === true
+                  && attachArgs60.length === 1
+                  && attachArgs60[0] === root60
+                  && wm60.target === root60;
+              } finally {
+                wm60.attach = origAttach60;
+                if (wm60.target !== targetWas60) {
+                  wm60.target = targetWas60;
+                }
+              }
+            }
+          }
+          // (2) _setupOSAccessibilityListeners wired three live matchMedia
+          //     'change' listeners: a reduced-motion flip reaches
+          //     gazeInteraction.setReducedMotion; a contrast flip reaches
+          //     setHighContrast on BOTH gaze and captions.
+          if (app._osMotionMQ && app._osContrastMQ && app._osForcedColorsMQ
+            && app.gazeInteraction && app.captionSystem) {
+            const gi60 = app.gazeInteraction;
+            const cs60 = app.captionSystem;
+            const rmWas60 = gi60.reduceMotion;
+            const ringWas60 = gi60._ringOpacity;
+            const hcWas60 = cs60.highContrast;
+            const origSRM60 = gi60.setReducedMotion.bind(gi60);
+            const origSHC60 = gi60.setHighContrast.bind(gi60);
+            const origSHCC60 = cs60.setHighContrast.bind(cs60);
+            const rmArgs60 = [];
+            let hcGaze60 = 0;
+            let hcCap60 = 0;
+            gi60.setReducedMotion =
+              (v) => { rmArgs60.push(v); return origSRM60(v); };
+            gi60.setHighContrast =
+              (v) => { hcGaze60 += 1; return origSHC60(v); };
+            cs60.setHighContrast =
+              (v) => { hcCap60 += 1; return origSHCC60(v); };
+            try {
+              app._osMotionMQ.dispatchEvent(new Event('change'));
+              const rmViaMQ = rmArgs60.length === 1;
+              app._osContrastMQ.dispatchEvent(new Event('change'));
+              app._osForcedColorsMQ.dispatchEvent(new Event('change'));
+              out.osA11yListeners = rmViaMQ
+                && hcGaze60 === 2 && hcCap60 === 2;
+            } finally {
+              gi60.setReducedMotion = origSRM60;
+              gi60.setHighContrast = origSHC60;
+              cs60.setHighContrast = origSHCC60;
+              gi60.setReducedMotion(rmWas60);
+              gi60.setHighContrast(ringWas60 === 1.0);
+              cs60.setHighContrast(hcWas60);
+            }
+          }
+          // (3) createHomeEnvironment builds the sky dome + floor + grid +
+          //     welcome panel as one named group; the floor is the teleport
+          //     target surface, so it must be named 'floor', rotated flat,
+          //     and adopted as app.floorMesh.
+          if (typeof app.createHomeEnvironment === 'function') {
+            const floorWas60 = app.floorMesh;
+            try {
+              const env60 = app.createHomeEnvironment();
+              const floor60 = env60.children
+                .find((c) => c.name === 'floor');
+              const sky60 = env60.children
+                .find((c) => c.material && c.material.uniforms
+                  && c.material.uniforms.topColor);
+              out.homeEnvBuild = env60.name === 'homeEnvironment'
+                && env60.children.length >= 4
+                && !!floor60
+                && Math.abs(floor60.rotation.x + Math.PI / 2) < 1e-6
+                && app.floorMesh === floor60
+                && !!sky60
+                && sky60.material.uniforms.topColor.value
+                  .getHex() === 0x1b2a4a
+                && sky60.material.uniforms.bottomColor.value
+                  .getHex() === 0x0a0d14;
+            } finally {
+              app.floorMesh = floorWas60;
+            }
+          }
+          // batch 61 — curved-panel fan-out + inherit + visibility/layer
+          // release + distance clamp:
+          // (1) TabManager.setCurved flips every open panel's curved flag and
+          //     swaps its content geometry (a toggle that stopped at the
+          //     manager would leave flat panels under a curved label).
+          if (app.tabManager && app.tabManager.tabs.length
+            && typeof app.tabManager.setCurved === 'function') {
+            const tm61 = app.tabManager;
+            const curvedWas61 = tm61._curved;
+            try {
+              const geos61 = tm61.tabs.map((p) => p.contentMesh
+                && p.contentMesh.geometry);
+              tm61.setCurved(true);
+              out.curvedFanOut = tm61.tabs.every((p) => p.curved === true)
+                && tm61.tabs.every((p, i) => p.contentMesh
+                  && p.contentMesh.geometry !== geos61[i]);
+              // (2) tabs opened while curved inherit the flag through the
+              //     WebPanel ctor — a new tab must not render flat while its
+              //     siblings are bent.
+              tm61.newTab();
+              const newborn61 = tm61.tabs[tm61.tabs.length - 1];
+              out.curvedInherit = !!newborn61
+                && newborn61.curved === true;
+              if (newborn61) {
+                tm61.closeTab(tm61.tabs.length - 1);
+              }
+            } finally {
+              tm61.setCurved(curvedWas61);
+            }
+          }
+          // (3) WebPanel.setVisible(false) releases the quad layer — a hidden
+          //     tab must not keep compositing a detached chrome bar through
+          //     the XR runtime.
+          const wp61 = app.tabManager
+            && app.tabManager.tabs[app.tabManager.activeIndex];
+          if (wp61 && typeof wp61.setVisible === 'function'
+            && typeof wp61.disableLayerMode === 'function') {
+            const visWas61 = wp61.group.visible;
+            const qWas61 = wp61.quadLayer;
+            const origDL61 = wp61.disableLayerMode;
+            let dlCalls61 = 0;
+            wp61.disableLayerMode = () => {
+              dlCalls61 += 1;
+              wp61.quadLayer = null;
+            };
+            wp61.quadLayer = { fake: true };
+            try {
+              wp61.setVisible(false);
+              const relOk = dlCalls61 === 1
+                && wp61.group.visible === false;
+              wp61.setVisible(true);
+              out.setVisibleReleases = relOk
+                && dlCalls61 === 1
+                && wp61.group.visible === true;
+            } finally {
+              wp61.disableLayerMode = origDL61;
+              wp61.quadLayer = qWas61;
+              wp61.setVisible(visWas61);
+            }
+          }
+          // (4) WindowManager.setDistance clamps to [minDistance, maxDistance]
+          //     — the persisted windowDistance setting routes through here.
+          if (app.windowManager && typeof app.windowManager.setDistance === 'function'
+            && Number.isFinite(app.windowManager.minDistance)
+            && Number.isFinite(app.windowManager.maxDistance)) {
+            const wm61 = app.windowManager;
+            const dWas61 = wm61.distance;
+            try {
+              const hiOk = wm61.setDistance(wm61.maxDistance + 5)
+                === wm61.maxDistance;
+              const loOk = wm61.setDistance(wm61.minDistance - 5)
+                === wm61.minDistance;
+              const midOk = wm61.setDistance(2.5) === 2.5;
+              out.distanceClamp = hiOk && loOk && midOk;
+            } finally {
+              wm61.setDistance(dWas61);
+            }
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -616,6 +840,115 @@ async function main() {
             try { srec = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
             out.proxyPersisted = !!(srec && srec.readerProxyUrl === 'http://localhost:8787');
             out.proxyToast = alertEl ? alertEl.textContent : '';
+          }
+          // Batch 54 — the reader-proxy vertical, end to end. The earlier
+          // proxy leg only observed prompt/persist/toast; the real consumers
+          // were never driven: TabManager.setReaderProxyUrl fan-out to every
+          // OPEN tab, the same opts flowing into FUTURE tabs (ctor arg),
+          // normalizeProxyUrl's invalid-input warn arm (nothing written),
+          // the whitespace-clears arm ('cleared' message, settings + tabs
+          // back to ''), readerFetchUrl composing the actual fetch URL the
+          // panel requests, and WebPanel.setReaderProxyUrl's same-value
+          // early return + unavailable-only repaint gate.
+          if (app.tabManager && app.vrKeyboard) {
+            const tm9 = app.tabManager;
+            out.proxyPropagates = tm9.opts.readerProxyUrl === 'http://localhost:8787'
+              && tm9.tabs.length > 0
+              && tm9.tabs.every((p) => p.readerProxyUrl === 'http://localhost:8787');
+            const tabsWas9 = tm9.tabs.length;
+            const np9 = tabsWas9 < 8 ? tm9.newTab() : null;
+            out.proxyNewTabInherits = !!np9
+              && np9.readerProxyUrl === 'http://localhost:8787';
+            if (np9) {
+              const idx9 = tm9.tabs.indexOf(np9);
+              if (idx9 >= 0) { tm9.closeTab(idx9); }
+            }
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('ftp://proxy-54.example/x');
+            let srec9 = null;
+            try { srec9 = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyInvalidWarn = !!srec9
+              && srec9.readerProxyUrl === 'http://localhost:8787'
+              && tm9.opts.readerProxyUrl === 'http://localhost:8787'
+              && !!(alertEl && alertEl.textContent.indexOf('Invalid proxy URL') >= 0);
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('   ');
+            try { srec9 = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyClearedMsg = !!srec9
+              && srec9.readerProxyUrl === ''
+              && tm9.opts.readerProxyUrl === ''
+              && tm9.tabs.every((p) => p.readerProxyUrl === '')
+              && !!(alertEl && alertEl.textContent.indexOf('Reader proxy cleared') >= 0);
+            // Downstream legs (voice go-to/search fallback) fetch through the
+            // configured proxy — restore it through the real input path.
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('http://localhost:8787');
+            const wp9 = tm9.tabs[tm9.activeIndex];
+            if (wp9 && wp9.navigate) {
+              const fetchArgs9 = [];
+              const origFetch9 = globalThis.fetch;
+              const rpuWas9 = wp9.readerProxyUrl;
+              const csWas9 = wp9._contentState;
+              const origDc9 = wp9._drawContent;
+              const histWas9 = wp9.history.slice();
+              const histIdxWas9 = wp9.historyIdx;
+              const curWas9 = wp9.currentUrl;
+              const titleWas9 = wp9.currentTitle;
+              const origOnNav9 = wp9.onNavigate;
+              let dcCalls9 = 0;
+              try {
+                wp9.onNavigate = () => {};
+                globalThis.fetch = (u) => {
+                  fetchArgs9.push(String(u));
+                  return Promise.resolve({
+                    ok: true,
+                    text: () => Promise.resolve('<html><body><p>x</p></body></html>')
+                  });
+                };
+                wp9.setReaderProxyUrl('http://px-54.test:9000');
+                wp9.navigate('https://tgt-54.example/deep?secret=1#frag');
+                const resolved9 = wp9.currentUrl;
+                for (let i = 0; i < 60 && wp9.loading; i++) {
+                  await new Promise((r) => setTimeout(r, 50));
+                }
+                out.readerProxyFetch = fetchArgs9.length >= 1
+                  && fetchArgs9[fetchArgs9.length - 1]
+                    === 'http://px-54.test:9000/fetch?url='
+                      + encodeURIComponent(resolved9);
+                wp9.setReaderProxyUrl('');
+                fetchArgs9.length = 0;
+                wp9.navigate('https://tgt-54b.example/');
+                const resolved9b = wp9.currentUrl;
+                for (let i = 0; i < 60 && wp9.loading; i++) {
+                  await new Promise((r) => setTimeout(r, 50));
+                }
+                out.readerDirectFetch = fetchArgs9.length >= 1
+                  && fetchArgs9[fetchArgs9.length - 1] === resolved9b;
+                wp9._drawContent = (...a) => { dcCalls9++; return origDc9.apply(wp9, a); };
+                // Same-value set while 'unavailable' proves the early return:
+                // without it the repaint gate would fire _drawContent here.
+                wp9._contentState = 'unavailable';
+                wp9.setReaderProxyUrl(wp9.readerProxyUrl);
+                const same9 = dcCalls9 === 0;
+                wp9.setReaderProxyUrl('http://px-54c.test');
+                const unav9 = dcCalls9 === 1 && wp9.readerProxyUrl === 'http://px-54c.test';
+                wp9._contentState = 'reader';
+                wp9.setReaderProxyUrl('http://px-54d.test');
+                const reader9 = dcCalls9 === 1 && wp9.readerProxyUrl === 'http://px-54d.test';
+                out.webPanelProxyRedraw = same9 && unav9 && reader9;
+              } finally {
+                globalThis.fetch = origFetch9;
+                wp9._drawContent = origDc9;
+                wp9._contentState = csWas9;
+                wp9.setReaderProxyUrl(rpuWas9);
+                wp9.history = histWas9;
+                wp9.historyIdx = histIdxWas9;
+                wp9.currentUrl = curWas9;
+                wp9.currentTitle = titleWas9;
+                wp9.onNavigate = origOnNav9;
+                wp9._drawContent();
+              }
+            }
           }
           // Batch 3 — the remaining never-driven paths:
           //  * bookmarkPanel.onDeleteBookmark / onClose / onHoverCaption
@@ -1228,6 +1561,37 @@ async function main() {
                 && app.teleport.controller === null;
               ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
               out.ctrlReconnCap = capWrites.some((t) => t.includes('Right controller reconnected'));
+              // Source lifecycle under the same bridge: 'connected' must
+              // store userData.inputSource and name the device through
+              // controllerInput.getDeviceName; 'disconnected' must null the
+              // source AND call forget() so the next read rebuilds a fresh
+              // snapshot (edge state must not leak across reconnects); the
+              // forget call itself is guarded on a stored source so a
+              // disconnect with nothing connected stays a caption-only no-op.
+              const srcBridge = { handedness: 'right' };
+              let nameCalls = 0;
+              let forgetCalls = 0;
+              const origGetName = app.controllerInput.getDeviceName.bind(app.controllerInput);
+              const origForget = app.controllerInput.forget.bind(app.controllerInput);
+              app.controllerInput.getDeviceName = (s) => { nameCalls += 1; return origGetName(s); };
+              app.controllerInput.forget = (s) => { forgetCalls += 1; return origForget(s); };
+              try {
+                ctrl.dispatchEvent({ type: 'connected', data: srcBridge });
+                out.ctrlConnStores = ctrl.userData.inputSource === srcBridge
+                  && nameCalls === 1;
+                const snapBefore = app.controllerInput.read(srcBridge);
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                const snapAfter = app.controllerInput.read(srcBridge);
+                out.ctrlDiscForget = ctrl.userData.inputSource === null
+                  && forgetCalls === 1 && snapAfter !== snapBefore;
+                const forgetCallsBefore = forgetCalls;
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                out.ctrlDiscGuarded = forgetCalls === forgetCallsBefore;
+              } finally {
+                app.controllerInput.getDeviceName = origGetName;
+                app.controllerInput.forget = origForget;
+                ctrl.userData.inputSource = null;
+              }
             }
             // Select/hover/teleport arms: a controller ray hitting a
             // registered interactable runs onSelect + haptic click + the
@@ -3041,6 +3405,76 @@ async function main() {
                     app.vrKeyboard._onConfirmCallback = null;
                   }
                 }
+              // Batch 55 — the perf-monitor-UI vertical: the toggle's ON arm
+              // was pinned (perfUIApplied) but every consumer arm is undriven:
+              // render()'s beginFrame/endFrame wiring into the real metrics
+              // table, updateMetric's running min/max/avg, checkThresholds →
+              // addAlert with the 5s same-message dedup, sampleMetrics history
+              // push + 300-entry cap, and dispose()'s interval/DOM teardown.
+              if (app.perfMonitorUI && app.renderer) {
+                const pm9 = app.perfMonitorUI;
+                const tfWas9 = pm9.stats.totalFrames;
+                app.render(performance.now(), null);
+                out.perfUiRenderFrames = pm9.stats.totalFrames === tfWas9 + 1
+                  && pm9.lastFrameTime > 0
+                  && pm9.metrics.frameTime.current === pm9.lastFrameTime
+                  && pm9.metrics.drawCalls.current === app.renderer.info.render.calls
+                  && pm9.metrics.triangles.current === app.renderer.info.render.triangles;
+                const fm9 = pm9.metrics.frameTime;
+                fm9.current = 0; fm9.min = 999; fm9.max = 0; fm9.avg = 0; fm9.history = [];
+                pm9.updateMetric('frameTime', 10);
+                pm9.sampleMetrics();
+                pm9.updateMetric('frameTime', 30);
+                pm9.sampleMetrics();
+                const math9 = fm9.current === 30 && fm9.min === 10
+                  && fm9.max === 30 && fm9.avg === 20
+                  && fm9.history.length === 2 && fm9.history[0] === 10;
+                fm9.history = Array.from({ length: 300 }, () => 5);
+                pm9.sampleMetrics();
+                out.perfUiMetricMath = math9 && fm9.history.length === 300;
+                const agWas9 = pm9.stats.alertsGenerated;
+                const alertsWas9 = pm9.alerts.length;
+                // Isolate the thresholds being driven: the render frame above
+                // wrote a real fps/memory current that fires its own alerts.
+                pm9.metrics.fps.current = 0;
+                pm9.metrics.memory.current = 0;
+                try {
+                  pm9.updateMetric('frameTime', 50);
+                  pm9.checkThresholds();
+                  const crit9 = pm9.alerts.length === alertsWas9 + 1
+                    && pm9.alerts[0].level === 'critical'
+                    && pm9.alerts[0].message.indexOf('Frame time') >= 0
+                    && pm9.stats.alertsGenerated === agWas9 + 1;
+                  pm9.checkThresholds(); // same message in-window → count++
+                  const dedup9 = pm9.alerts.length === alertsWas9 + 1
+                    && pm9.alerts[0].count === 2
+                    && pm9.stats.alertsGenerated === agWas9 + 1;
+                  pm9.updateMetric('memory', 1900);
+                  pm9.checkThresholds();
+                  const mem9 = pm9.alerts.length === alertsWas9 + 2
+                    && pm9.alerts[0].level === 'critical';
+                  pm9.updateMetric('fps', 50);
+                  pm9.checkThresholds();
+                  const fps9 = pm9.alerts[0].message.indexOf('FPS dropped') >= 0;
+                  out.perfUiAlerts = crit9 && dedup9 && mem9 && fps9;
+                } finally {
+                  pm9.alerts = pm9.alerts.slice(0, alertsWas9);
+                  pm9.stats.alertsGenerated = agWas9;
+                }
+                const pm9b = new pm9.constructor();
+                pm9b.initialize();
+                const uiOk9 = !!pm9b.container
+                  && pm9b.container.parentNode === document.body;
+                pm9b.show();
+                const show9 = pm9b.visible === true
+                  && pm9b.container.style.display === 'block';
+                pm9b.hide();
+                const hide9 = pm9b.visible === false
+                  && pm9b.container.style.display === 'none';
+                pm9b.dispose();
+                out.perfUiDispose = uiOk9 && show9 && hide9
+                  && pm9b.container === null;
+              }
               // TextureManager internals leg — the display leg left
               // app.textureManager null, so re-enable the real toggle to
               // mint fresh instances off its class: cache-hit LRU recency,
@@ -4508,6 +4942,45 @@ async function main() {
                   selChrome2(170);
                   out.stopArmClears = wasLoading
                     && wp2.loading === false;
+                  // A completed navigate fans out through the TabManager
+                  // wrapper: _drawStrip refreshes the tab title,
+                  // opts.onNavigate reaches app.navigate (history + caption
+                  // + analytics), and onSessionChange drives _saveTabSession
+                  // + _syncPanelLayers. Wrap each sink and count.
+                  const origStrip2 = tm2._drawStrip && tm2._drawStrip.bind(tm2);
+                  const origNavCb2 = tm2.opts && tm2.opts.onNavigate;
+                  const origSave2 = app._saveTabSession
+                    && app._saveTabSession.bind(app);
+                  if (origStrip2 && origNavCb2 && origSave2) {
+                    let stripCalls2 = 0;
+                    const navArgs2 = [];
+                    let saveCalls2 = 0;
+                    tm2._drawStrip =
+                      () => { stripCalls2 += 1; return origStrip2(); };
+                    tm2.opts.onNavigate = (u, t2) => {
+                      navArgs2.push([u, t2]);
+                      return origNavCb2(u, t2);
+                    };
+                    app._saveTabSession =
+                      () => { saveCalls2 += 1; return origSave2(); };
+                    try {
+                      wp2.navigate('https://nav-fanout.example/path');
+                      await settle2();
+                      out.navFanOut = navArgs2.length === 1
+                        && navArgs2[0][0] === 'https://nav-fanout.example/path'
+                        && typeof navArgs2[0][1] === 'string'
+                        && navArgs2[0][1].length > 0
+                        && stripCalls2 === 1 && saveCalls2 === 1;
+                    } finally {
+                      tm2._drawStrip = origStrip2;
+                      tm2.opts.onNavigate = origNavCb2;
+                      app._saveTabSession = origSave2;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://nav-fanout.example/path');
+                      }
+                    }
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -5015,6 +5488,12 @@ async function main() {
                   if (mbH && mbH.onHover) { mbH.onHover(); }
                   out.moveBarHoverCaption = locoCaps.slice(capsBefore16)
                     .some((t3) => t3.includes('Move bar'));
+                  // The move bar also tints its material on enter
+                  // (0xaaaaff) and restores the darker 0x55556f on exit.
+                  const mbTintIn = mb.material.color.getHex() === 0xaaaaff;
+                  if (mbH && mbH.onHoverEnd) { mbH.onHoverEnd(); }
+                  out.moveBarTint = mbTintIn
+                    && mb.material.color.getHex() === 0x55556f;
                   // Chrome hover announces the loaded page's title, and
                   // entering tints the bar 0xaaaaff (restored on hoverEnd).
                   const titleWas = wp3.currentTitle;
@@ -5027,6 +5506,29 @@ async function main() {
                   if (chH && chH.onHoverEnd) { chH.onHoverEnd(); }
                   out.chromeHoverCaption = chromeLabel && tinted
                     && chrome.material.color.getHex() === 0xffffff;
+                  // Chrome hover fallback arms: a page with no title
+                  // announces the URL's hostname; no URL at all announces
+                  // the generic 'Browser controls' label.
+                  const urlWasH = wp3.currentUrl;
+                  const titleWasH = wp3.currentTitle;
+                  try {
+                    wp3.currentTitle = '';
+                    wp3.currentUrl = 'https://host-fallback-59.example/x';
+                    const capsBeforeH1 = locoCaps.length;
+                    if (chH && chH.onHover) { chH.onHover(); }
+                    const hostLabel = locoCaps.slice(capsBeforeH1)
+                      .some((t3) => t3 === 'host-fallback-59.example');
+                    wp3.currentUrl = '';
+                    const capsBeforeH2 = locoCaps.length;
+                    if (chH && chH.onHover) { chH.onHover(); }
+                    const ctrlLabel = locoCaps.slice(capsBeforeH2)
+                      .some((t3) => t3.includes('Browser controls'));
+                    out.chromeHoverFallback = hostLabel && ctrlLabel;
+                  } finally {
+                    if (chH && chH.onHoverEnd) { chH.onHoverEnd(); }
+                    wp3.currentUrl = urlWasH;
+                    wp3.currentTitle = titleWasH;
+                  }
                   // Gaze gate: with gaze dwell off, hover announces nothing.
                   app.updateSetting('enableGazeDwell', false);
                   const capsBefore18 = locoCaps.length;
@@ -6515,6 +7017,15 @@ async function main() {
       clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
       bmSuggest: !!iout.bmSuggest,
       tabPersisted: !!iout.tabPersisted,
+      a11yDelegates: iout.a11yDelegates === true,
+      sessMutSaveSync: iout.sessMutSaveSync === true,
+      attachManagedWindow: iout.attachManagedWindow === true,
+      osA11yListeners: iout.osA11yListeners === true,
+      homeEnvBuild: iout.homeEnvBuild === true,
+      curvedFanOut: iout.curvedFanOut === true,
+      curvedInherit: iout.curvedInherit === true,
+      setVisibleReleases: iout.setVisibleReleases === true,
+      distanceClamp: iout.distanceClamp === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -6632,6 +7143,9 @@ async function main() {
       ctrlFirstQuiet: iout.ctrlFirstQuiet === true,
       ctrlDisc: iout.ctrlDiscCap === true,
       ctrlReconn: iout.ctrlReconnCap === true,
+      ctrlConnStores: iout.ctrlConnStores === true,
+      ctrlDiscForget: iout.ctrlDiscForget === true,
+      ctrlDiscGuarded: iout.ctrlDiscGuarded === true,
       squeezeCancelled: iout.squeezeCancelled === true,
       hoverEnter: iout.hoverEnter === true,
       selectHit: iout.selectHit === true,
@@ -6738,6 +7252,17 @@ async function main() {
       wpSelectRecenters: iout.wpSelectRecenters === true,
       wpHoverRestores: iout.wpHoverRestores === true,
       wmFacesUser: iout.wmFacesUser === true,
+      proxyPropagates: iout.proxyPropagates === true,
+      proxyNewTabInherits: iout.proxyNewTabInherits === true,
+      proxyInvalidWarn: iout.proxyInvalidWarn === true,
+      proxyClearedMsg: iout.proxyClearedMsg === true,
+      readerProxyFetch: iout.readerProxyFetch === true,
+      readerDirectFetch: iout.readerDirectFetch === true,
+      webPanelProxyRedraw: iout.webPanelProxyRedraw === true,
+      perfUiRenderFrames: iout.perfUiRenderFrames === true,
+      perfUiMetricMath: iout.perfUiMetricMath === true,
+      perfUiAlerts: iout.perfUiAlerts === true,
+      perfUiDispose: iout.perfUiDispose === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6889,13 +7414,16 @@ async function main() {
       tileMissNoop: iout.tileMissNoop === true,
       tileNavigates: iout.tileNavigates === true,
       stopArmClears: iout.stopArmClears === true,
+      navFanOut: iout.navFanOut === true,
       followEnabled: iout.followEnabled === true,
       followConverges: iout.followConverges === true,
       followOffHolds: iout.followOffHolds === true,
       wmAngularScale: iout.wmAngularScale === true,
       stripHoverCaption: iout.stripHoverCaption === true,
       moveBarHoverCaption: iout.moveBarHoverCaption === true,
+      moveBarTint: iout.moveBarTint === true,
       chromeHoverCaption: iout.chromeHoverCaption === true,
+      chromeHoverFallback: iout.chromeHoverFallback === true,
       hoverGatedByGaze: iout.hoverGatedByGaze === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
@@ -7013,6 +7541,15 @@ async function main() {
       ['history-clear announced via alert region', !!inter.clearAnnounced],
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['a11y get/set delegates to the coordinator', !!inter.a11yDelegates],
+      ['tab mutation fans out to save + layer sync', !!inter.sessMutSaveSync],
+      ['managed window re-attaches only when stale', !!inter.attachManagedWindow],
+      ['OS motion/contrast flips reach gaze + captions', !!inter.osA11yListeners],
+      ['home environment builds floor + sky + grid', !!inter.homeEnvBuild],
+      ['curved toggle fans out to every panel', !!inter.curvedFanOut],
+      ['new tab inherits curved mode', !!inter.curvedInherit],
+      ['hidden panel releases its quad layer', !!inter.setVisibleReleases],
+      ['window distance clamps to min/max', !!inter.distanceClamp],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
@@ -7114,6 +7651,9 @@ async function main() {
       ['initial controller connect stays quiet', !!inter.ctrlFirstQuiet],
       ['mid-session disconnect toasts + forgets source', !!inter.ctrlDisc],
       ['controller reconnect announces', !!inter.ctrlReconn],
+      ['connect stores the input source + names device', !!inter.ctrlConnStores],
+      ['disconnect forgets source state (fresh snapshot)', !!inter.ctrlDiscForget],
+      ['disconnect with no source skips forget', !!inter.ctrlDiscGuarded],
       ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
       ['controller ray hover fires onHover once', !!inter.hoverEnter],
       ['selectstart on a hit runs select+haptic+qui-select', !!inter.selectHit],
@@ -7220,6 +7760,17 @@ async function main() {
       ['welcome panel select recenters the rig', !!inter.wpSelectRecenters],
       ['welcome hover tints and restores', !!inter.wpHoverRestores],
       ['window manager faces the user on grab move', !!inter.wmFacesUser],
+      ['proxy url propagates to every open tab', !!inter.proxyPropagates],
+      ['new tab inherits configured reader proxy', !!inter.proxyNewTabInherits],
+      ['invalid proxy url warns and writes nothing', !!inter.proxyInvalidWarn],
+      ['empty proxy input clears settings + tabs', !!inter.proxyClearedMsg],
+      ['reader fetch routes through proxy base url', !!inter.readerProxyFetch],
+      ['cleared proxy falls back to direct fetch', !!inter.readerDirectFetch],
+      ['proxy setter dedupes + repaints only when unavailable', !!inter.webPanelProxyRedraw],
+      ['render loop writes real perf monitor metrics', !!inter.perfUiRenderFrames],
+      ['perf metric tracks running min max avg + cap', !!inter.perfUiMetricMath],
+      ['perf thresholds alert with 5s dedup', !!inter.perfUiAlerts],
+      ['perf monitor dispose detaches DOM + interval', !!inter.perfUiDispose],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
@@ -7370,13 +7921,16 @@ async function main() {
       ['dead space between tiles is a no-op', !!inter.tileMissNoop],
       ['tile select navigates the tab', !!inter.tileNavigates],
       ['reload zone during load stops the fetch', !!inter.stopArmClears],
+      ['panel navigate fans out to strip + navigate + session save', !!inter.navFanOut],
       ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
       ['head-lock follow converges the panel', !!inter.followConverges],
       ['follow off leaves the panel in place', !!inter.followOffHolds],
       ['angular scale keeps constant visual size', !!inter.wmAngularScale],
       ['tab strip hover announces its label', !!inter.stripHoverCaption],
       ['move bar hover announces its label', !!inter.moveBarHoverCaption],
+      ['move bar hover tints the bar material', !!inter.moveBarTint],
       ['chrome hover announces page title + tints', !!inter.chromeHoverCaption],
+      ['chrome hover falls back to hostname then controls label', !!inter.chromeHoverFallback],
       ['hover captions gate on gaze dwell', !!inter.hoverGatedByGaze],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],
