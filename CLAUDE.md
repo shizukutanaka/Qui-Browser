@@ -247,6 +247,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 194: 続き352 — SpatialAudio loadAudio 実 fetch→decode→キャッシュ + loop/playbackRate source 腕を e2e pin（#266 batch 11、266→268 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`loadAudio` の `fetch(url, {signal})` → `arrayBuffer()` → `decodeAudioData` → `buffers.set` + `buffersLoaded++` と `buffers.has` 早期 return キャッシュ腕は procedural buffer 経路のみで実 fetch 未駆動。②`play()` の `node.loop=source.loop` / `node.playbackRate.value` 書込も未駆動（'click' は loop:false/rate:1.0 のみ）。
+- 🔧 **ハーネス設計**: fetch stub（reader leg 確立パターン）+ `decodeAudioData` spy で byteLength 観測、`buffers.get` identity + `stats.buffersLoaded` + 2回目キャッシュ no-fetch を一体で pin。`!response.ok` エラー腕は `console.error` を発生させるため 'no console errors' check と衝突 — エラー経路は意図的に pin 不可の設計として記録。
+- 🧪 赤検証: `buffersLoaded++` 切断 → `audioLoadFetch` FAIL、`node.loop`/`playbackRate.value` 書込切断 → `audioLoopSource` FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 268 checks PASS、verify:app PASS。
+
 ### Session 193: 続き351 — ImmersiveVideo 頭追従 update() + togglePause resume 腕を e2e pin（#266 batch 10、264→266 checks）
 - 🔍 **実測（未駆動 2 腕）**: ①`update()` は `camera.getWorldPosition` → 全 mesh `position.copy` の per-frame 頭追従だが fan pin は呼出回数のみで実 copy 未観測。②`togglePause` の `video.paused`→`video.play()` resume 腕（state は 'playing' リスナへ委譲で一切変更しない設計）も未駆動。
 - 🔧 **ハーネス教訓**: leg 外の helper（`V3h` は audio leg で後から定義）は前の leg で ReferenceError → eval 途中で死亡し後続全 legs が一括 FAIL — 'session leg threw' が stdout に出るのでそれを grep する診断手順。`update()` が `this._tmpVec` に camera 座標を残すので流用可能（新 helper 不要）。
