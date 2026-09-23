@@ -367,6 +367,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: 5 腕同時切断 → 新 5 check FAIL + key-mesh 系 3 件 co-FAIL（kbBackspace/kbEnter/kbEsc が同一 IME メソッド経由の想定 co-signal）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 307 checks PASS、verify:app PASS。
 
+### Session 208: 続き366 — VoiceCommands ゲーティング腕 7 本（confidence gate/zero-pass・interim drop・wake word・speak ?? params・exec stats・failed cb）を e2e pin（#270 batch 25、307→314 checks）
+- 🔍 **実測（未駆動 7 腕）**: 全 voice pin は `say()` が pattern→action の成功腕のみ駆動 — ①confidence gate（`0 < c < sensitivity` で早期 return、但し `confidence === 0` は「スコア無し」として通す — Quest/Android Chrome が正解でも 0 を返す腕、コメント明記の Qiita 知見）。②`isFinal=false` interim は processCommand 非実行。③wake-word gate（requireWakeWord 中は全発話をゲートが消費 → wake word で isAwake + 'はい、聞いています' speak）。④`speak()` utterance の `volume ??`/`pitch ??` が 0 を honor（`||` なら落とす）+ `rate ||` が 1.0 swap。⑤`stats.commandsExecuted++`/`averageConfidence` 逐次平均 + `lastCommand.key` + `onCommand` cb。⑥miss → `onCommandFailed({reason:'no_match'})`。
+- 🔧 **ハーネス教訓 2 件**: (a) **変異する probe コマンドの選定** — 初版は '戻る'/'進む' を counting probe に使い tab history を変異 → 後続 'faceA no forward history' pin が sibling FAIL（実バグでなく測定汚染）— 履歴を変えない 'ヘルプ' に差替。(b) **共有 baseline の連鎖 off-by-one** — `recWas` を共有する pin 群は先行 say の実行有無に依存 — gate cut で 0.05 発話が実行されると confZero/interim の期待値もずれ両方 FAIL（co-signal と判明、独立 FAIL を別 run で確認）。
+- 🧪 赤検証 2 run: run A（gate `if(false)` + 他 5 腕切断）→ 全 7 FAIL；run B（`confidence > 0` 連言のみ除去）→ confZero 独立 FAIL + interim は baseline co-signal。全 pin が最低 1 回の有効 FAIL を実証、全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 314 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
