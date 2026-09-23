@@ -346,6 +346,52 @@ async function main() {
             out.toggleOff = app.bookmarks.isBookmarked('https://harness-toggle.example/');
             out.toggleOffCaption = statusEl ? statusEl.textContent : '';
           }
+          // Tab-session restore edges — corrupt payloads return 0, malformed
+          // entries are skipped, the list clamps at MAX_TABS and a stale
+          // 'active' index clamps to the last restored tab. A fresh manager
+          // parked at y=-100 keeps its panels out of every later leg's ray.
+          if (app.tabManager) {
+            const TM = app.tabManager.constructor;
+            const mkTM = () => new TM({
+              scene: app.scene,
+              registerInteractable: () => {},
+              unregisterInteractable: () => {},
+              position: { x: 0, y: -100, z: 0 }
+            });
+            const tmA = mkTM();
+            out.tmRestoreCorrupt = tmA.restoreSession(null) === 0
+              && tmA.restoreSession({}) === 0
+              && tmA.restoreSession({ tabs: 'nope' }) === 0
+              && tmA.count === 0
+              && tmA.restoreSession({ v: 1, tabs: [
+                { url: 'https://rest-ok.example/' }] }) === 1
+              && tmA.count === 1;
+            const tmB = mkTM();
+            const nB = tmB.restoreSession({ v: 1, active: 0, tabs: [
+              { url: 'https://rest-a.example/' },
+              { nope: true }, 'raw', null, { url: '' },
+              { url: 'https://rest-b.example/' }] });
+            out.tmRestoreSkip = nB === 2 && tmB.count === 2
+              && tmB.tabs[0].currentUrl === 'https://rest-a.example/'
+              && tmB.tabs[1].currentUrl === 'https://rest-b.example/';
+            const tmC = mkTM();
+            const big = { v: 1, active: 0, tabs: [] };
+            for (let bi = 0; bi < 10; bi++) {
+              big.tabs.push({ url: 'https://rest-' + bi + '.example/' });
+            }
+            out.tmRestoreClamp = tmC.restoreSession(big) === 8
+              && tmC.count === 8;
+            const tmD = mkTM();
+            tmD.restoreSession({ v: 1, active: 99, tabs: [
+              { url: 'https://rest-a.example/' },
+              { url: 'https://rest-b.example/' }] });
+            const tmE = mkTM();
+            tmE.restoreSession({ v: 1, active: 0, tabs: [
+              { url: 'https://rest-a.example/' },
+              { url: 'https://rest-b.example/' }] });
+            out.tmRestoreActive = tmD.activeIndex === 1
+              && tmE.activeIndex === 0;
+          }
           // URL-input request drives the whole keyboard wiring: setOnConfirm,
           // IME activate + ascii mode, composition prefill, show(), and the
           // prompt caption. vrKeyboard.visible is a real getter (reads the
@@ -1654,6 +1700,123 @@ async function main() {
                     && Object.isFrozen(noSrc.buttons)
                     && ci.getDeviceName(mkSrc(['pico-4'], [], null, 'left'))
                       === 'Pico Controller (left)';
+                }
+                // LayersSystem — the whole WebXR Layers lifecycle over
+                // injected fakes (headless has no XRWebGLBinding): the
+                // unsupported + throwing-constructor init paths, createQuad-
+                // Layer's real args + registry + transform, the per-view
+                // blit's GL call sequence + finally unbind, render-state
+                // ordering (baseLayer first then quads) and dispose teardown.
+                // Fresh instances only — the app's own stays untouched.
+                {
+                  const LS = app.layersSystem.constructor;
+                  const ls = new LS();
+                  const xrWas = globalThis.XRWebGLBinding;
+                  try {
+                    delete globalThis.XRWebGLBinding;
+                    const made = [];
+                    globalThis.XRWebGLBinding = class FakeBinding {
+                      constructor(session, gl) {
+                        this.session = session; this.gl = gl;
+                        this.quads = [];
+                        made.push(this);
+                      }
+                      createQuadLayer(opts) {
+                        const q = { opts, transform: null };
+                        this.quads.push(q);
+                        return q;
+                      }
+                      getViewSubImage(layer, view) {
+                        return { framebuffer: 'fb-' + view.eye,
+                          viewport: { x: 0, y: 0, width: 10, height: 10 },
+                          colorTexture: 'tex-' + view.eye };
+                      }
+                    };
+                    out.layerInit = ls.initialize({ s: 1 }, { g: 1 }) === true
+                      && ls.supported === true && ls.glBinding === made[0];
+                    class ThrowB { constructor() { throw new Error('no layers'); } }
+                    const xrCls = globalThis.XRWebGLBinding;
+                    globalThis.XRWebGLBinding = ThrowB;
+                    const lsT = new LS();
+                    out.layerInit = out.layerInit
+                      && lsT.initialize({ s: 1 }, { g: 1 }) === false
+                      && lsT.supported === false;
+                    globalThis.XRWebGLBinding = xrCls;
+                    // createQuadLayer: unsupported rejects; supported real
+                    // args + registry + transform; binding failure → null.
+                    const ls2 = new LS();
+                    out.layerCreate = ls2.createQuadLayer({ id: 'n' }) === null
+                      && ls2.count === 0;
+                    const t9 = { fakeTransform: true };
+                    const q = ls.createQuadLayer({ id: 'quad-a', space: 'sp',
+                      transform: t9, width: 1.2, height: 0.7,
+                      pixelWidth: 1024, pixelHeight: 640 });
+                    const qo = q && q.opts;
+                    out.layerCreate = out.layerCreate && !!q
+                      && qo.space === 'sp' && qo.colorFormat === 0x8058
+                      && qo.width === 1.2 && qo.height === 0.7
+                      && qo.viewPixelWidth === 1024
+                      && qo.viewPixelHeight === 640
+                      && qo.layout === 'mono' && qo.isStatic === false
+                      && q.transform === t9 && ls.count === 1;
+                    made[0].createQuadLayer = () => { throw new Error('no'); };
+                    out.layerCreate = out.layerCreate
+                      && ls.createQuadLayer({ id: 'bad', space: 's',
+                        width: 1, height: 1 }) === null
+                      && ls.count === 1;
+                    // renderCanvasToLayer: per-view subimage blit + finally
+                    // unbind; empty views → no GL work; dead sub → skipped.
+                    const calls = [];
+                    ls._gl = {
+                      FRAMEBUFFER: 1, TEXTURE_2D: 2, RGBA: 3, UNSIGNED_BYTE: 4,
+                      bindFramebuffer: (tg, f) => calls.push('bindFb:' + f),
+                      viewport: (x, y, w, h) => calls.push('vp:' + w + 'x' + h),
+                      bindTexture: (tg, tx) => calls.push('bindTex:' + tx),
+                      texSubImage2D: (...a) => calls.push('tex:' + a[6])
+                    };
+                    ls.renderCanvasToLayer(q, 'SRC', {}, []);
+                    const noCalls = calls.length === 0;
+                    ls.renderCanvasToLayer(q, 'SRC', {},
+                      [{ eye: 'left' }, { eye: 'right' }]);
+                    out.layerRender = noCalls === true
+                      && calls.filter((c) => c === 'vp:10x10').length === 2
+                      && calls.filter((c) => c === 'tex:SRC').length === 2
+                      && calls.includes('bindFb:fb-left')
+                      && calls.includes('bindTex:tex-left')
+                      && calls.filter((c) => c === 'bindFb:null').length === 1;
+                    made[0].getViewSubImage = () => null;
+                    calls.length = 0;
+                    ls.renderCanvasToLayer(q, 'SRC', {}, [{ eye: 'left' }]);
+                    out.layerRender = out.layerRender
+                      && calls.length === 1 && calls[0] === 'bindFb:null';
+                    // updateRenderState commits baseLayer + quads in order;
+                    // removeLayer shrinks the stack and recommits.
+                    const stateCalls = [];
+                    const sess2 = { updateRenderState: (s) => stateCalls.push(s.layers) };
+                    ls._layers.set('b2', 'qB');
+                    ls._layers.set('c2', 'qC');
+                    ls.updateRenderState(sess2, 'BASE');
+                    ls.removeLayer('c2', sess2, 'BASE');
+                    out.layerRenderState = stateCalls.length === 2
+                      && stateCalls[0].length === 4
+                      && stateCalls[0][0] === 'BASE'
+                      && stateCalls[0][1] === q
+                      && stateCalls[0][2] === 'qB'
+                      && stateCalls[0][3] === 'qC'
+                      && stateCalls[1].length === 3
+                      && stateCalls[1][0] === 'BASE'
+                      && stateCalls[1][1] === q
+                      && stateCalls[1][2] === 'qB';
+                    ls.dispose();
+                    out.layerDispose = ls.count === 0 && ls.supported === false
+                      && ls.glBinding === null && ls._gl === null;
+                  } finally {
+                    if (xrWas === undefined) {
+                      delete globalThis.XRWebGLBinding;
+                    } else {
+                      globalThis.XRWebGLBinding = xrWas;
+                    }
+                  }
                 }
                 // Utility-hand faceA toggles the bookmark/history panel +
                 // announces the new state (WCAG 4.1.3).
@@ -4609,6 +4772,10 @@ async function main() {
       bmSuggest: !!iout.bmSuggest,
       tabPersisted: !!iout.tabPersisted,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
+      tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
+      tmRestoreSkip: iout.tmRestoreSkip === true,
+      tmRestoreClamp: iout.tmRestoreClamp === true,
+      tmRestoreActive: iout.tmRestoreActive === true,
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
       closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
@@ -4746,6 +4913,11 @@ async function main() {
       ctrlFamRebuild: iout.ctrlFamRebuild === true,
       ctrlDeadZoneRad: iout.ctrlDeadZoneRad === true,
       ctrlEmptySnap: iout.ctrlEmptySnap === true,
+      layerInit: iout.layerInit === true,
+      layerCreate: iout.layerCreate === true,
+      layerRender: iout.layerRender === true,
+      layerRenderState: iout.layerRenderState === true,
+      layerDispose: iout.layerDispose === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -4992,6 +5164,10 @@ async function main() {
       ['history-clear announced via alert region', !!inter.clearAnnounced],
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
+      ['malformed session entries skipped', !!inter.tmRestoreSkip],
+      ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
+      ['stale active index clamps to last tab', !!inter.tmRestoreActive],
       ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
@@ -5114,6 +5290,11 @@ async function main() {
       ['family change rebuilds snapshot + edges', !!inter.ctrlFamRebuild],
       ['radial dead-zone renormalises magnitude', !!inter.ctrlDeadZoneRad],
       ['gamepad-less source yields empty snapshot', !!inter.ctrlEmptySnap],
+      ['XRWebGLBinding init: inject + throw paths', !!inter.layerInit],
+      ['createQuadLayer args + registry + transform', !!inter.layerCreate],
+      ['per-view subimage blit + finally unbind', !!inter.layerRender],
+      ['render-state orders baseLayer then quads', !!inter.layerRenderState],
+      ['layers dispose clears maps + flags', !!inter.layerDispose],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
