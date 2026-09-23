@@ -2936,6 +2936,101 @@ async function main() {
                   if (iv.active) { iv.stop(); }
                 }
               }
+              // Dispose-teardown leg — every dispose() contract was undriven:
+              // closeTab → panel.dispose() unregisters the three interactables,
+              // pulls the group out of its parent, fires a real geometry
+              // 'dispose' event on every mesh, and aborts any in-flight reader
+              // fetch (_readerController → abort + null + _readerSeq++). A
+              // second WebPanel is minted via the manager so the teardown path
+              // driven is the real user one, not a direct call.
+              if (app.tabManager && app.scene && app.interactables) {
+                const tm = app.tabManager;
+                if (tm.tabs.length < 8) {
+                  const wp = tm.newTab('https://wp-dispose.example/');
+                  const idx = tm.tabs.indexOf(wp);
+                  const meshes = wp
+                    ? [wp.chromeMesh, wp.moveBarMesh, wp.contentMesh] : [];
+                  const regWas = meshes.filter(
+                    (m) => app.interactables.includes(m)).length;
+                  let geoDisposed = false;
+                  if (wp && wp.chromeMesh && wp.chromeMesh.geometry) {
+                    wp.chromeMesh.geometry.addEventListener(
+                      'dispose', () => { geoDisposed = true; });
+                  }
+                  // An in-flight reader fetch must be aborted so its
+                  // resolution cannot call back into a torn-down panel.
+                  const seqWas = wp ? wp._readerSeq : 0;
+                  const ac = new AbortController();
+                  if (wp) { wp._readerController = ac; }
+                  const tabsWas = tm.tabs.length;
+                  if (idx >= 0) { tm.closeTab(idx); }
+                  out.wpDisposeTeardown = !!wp && regWas === 3
+                    && meshes.every(
+                      (m) => !app.interactables.includes(m))
+                    && wp.group.parent === null
+                    && geoDisposed === true
+                    && tm.tabs.length === tabsWas - 1;
+                  out.wpDisposeAborts = !!wp
+                    && ac.signal.aborted === true
+                    && wp._readerController === null
+                    && wp._readerSeq === seqWas + 1;
+                }
+              }
+              // BookmarkPanel.dispose — fresh instance so the app's panel
+              // stays live for later legs: unregister the mesh, remove the
+              // group from the scene, dispose geometry + material + the
+              // CanvasTexture, and drop the canvas reference.
+              if (app.bookmarkPanel && app.scene) {
+                const BPCtor = app.bookmarkPanel.constructor;
+                const bp2 = new BPCtor({
+                  scene: app.scene,
+                  registerInteractable: (m, h) =>
+                    app.registerInteractable(m, h),
+                  unregisterInteractable: (m) =>
+                    app.unregisterInteractable(m),
+                  store: app.bookmarks
+                });
+                const geoDis = { mesh: false, tex: false };
+                if (bp2.mesh && bp2.mesh.geometry) {
+                  bp2.mesh.geometry.addEventListener(
+                    'dispose', () => { geoDis.mesh = true; });
+                }
+                if (bp2.tex) {
+                  bp2.tex.addEventListener(
+                    'dispose', () => { geoDis.tex = true; });
+                }
+                // Registration + scene attachment happen in addToScene
+                // (constructor only draws), so drive it before teardown.
+                bp2.addToScene();
+                const wasRegistered = app.interactables.includes(bp2.mesh);
+                bp2.dispose();
+                out.bpDisposeTeardown = wasRegistered === true
+                  && geoDis.mesh === true
+                  && geoDis.tex === true
+                  && !app.interactables.includes(bp2.mesh)
+                  && (!bp2.group || bp2.group.parent === null)
+                  && bp2.canvas === null;
+              }
+              // SpatialAudio.dispose — fresh instance (the app's stays live
+              // for the 3800-line audio legs): stops every source, clears
+              // sources + buffers maps, resets LOD counters, removes the
+              // resume listeners, and closes the AudioContext.
+              if (app.spatialAudio) {
+                const SACtor = app.spatialAudio.constructor;
+                const sa3 = new SACtor();
+                if (sa3.context && sa3.context.createPanner) {
+                  sa3.createSource('__dsp', { volume: 0.01 });
+                  sa3.stats.hrtfSources = 2;
+                  sa3.stats.equalPowerSources = 1;
+                  sa3.buffers.set('__b', { fake: true });
+                  sa3.dispose();
+                  out.audioDispose = sa3.sources.size === 0
+                    && sa3.buffers.size === 0
+                    && sa3.stats.hrtfSources === 0
+                    && sa3.stats.equalPowerSources === 0
+                    && sa3.context === null;
+                }
+              }
               // Tab-strip leg — stripMesh is a single canvas interactable
               // (same UV→pixel pattern as BookmarkPanel): _onStripSelect
               // resolves the right-90px "+" zone → newTab, a tab body →
@@ -4226,6 +4321,10 @@ async function main() {
       voiceVrExit: iout.voiceVrExit === true,
       vidHoverCap: iout.vidHoverCap === true,
       vidStopCaption: iout.vidStopCaption === true,
+      wpDisposeTeardown: iout.wpDisposeTeardown === true,
+      wpDisposeAborts: iout.wpDisposeAborts === true,
+      bpDisposeTeardown: iout.bpDisposeTeardown === true,
+      audioDispose: iout.audioDispose === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
       sessStart: iout.sessStart === true && iout.sessReadyCap === true,
@@ -4567,6 +4666,10 @@ async function main() {
       ['voice VR-exit reached session.end', !!inter.voiceVrExit],
       ['video HUD hover announced via caption', !!inter.vidHoverCap],
       ['video stop detached listeners + captioned', !!inter.vidStopCaption],
+      ['tab close disposed panel meshes + registry', !!inter.wpDisposeTeardown],
+      ['tab close aborted in-flight reader fetch', !!inter.wpDisposeAborts],
+      ['bookmarks panel disposed meshes + canvas', !!inter.bpDisposeTeardown],
+      ['spatial audio disposed sources + context', !!inter.audioDispose],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],
