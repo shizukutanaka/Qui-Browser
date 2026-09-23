@@ -387,6 +387,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `setSettingsExpanded` 呼出切断 → `semExpanded` FAIL、`removeChild` 切断 → `semDispose` FAIL、`_contentState` ガード切断 → `wpScrollNonReader` FAIL。co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、322-check harness 全 PASS。
 
+### Session 211: 続き369 — VRControllerInput family map・edge・empty 腕 e2e pin（#270 batch 28、322→326 checks）
+
+- 🔍 実測: per-family button/axes map（htc-vive は faceA/B 無し・trackpad 有り、generic は trigger+squeeze のみ）・profiles 途中変更の snapshot rebuild + `state.prev` リセット・radial dead-zone の対角再正規化・gamepad-less/null の `_empty`/`EMPTY_SNAPSHOT` 経路。全て未駆動（既存 pin は meta-quest 1 family のみ）。
+- 🔧 ハーネス教訓: **`read()` の snapshot は per-source 再利用 — フィールドは read 間でスカラー取得必須**。mut3 の edge を後読みすると mut4 の書込に潰れて `pressed=true,justPressed=true` の不可解な値に（docstring の警告そのもの）。dead-zone の期待値は `ci.deadZone` から計算（settings.controllerDeadZone 依存にしない）。
+- 🧪 赤検証: `buttonMap` を generic 強制 → `ctrlFamilies` FAIL + gamepad 系 11 件は全て同一腕の想定 co-signal、`state.prev={}` 切断 → `ctrlFamRebuild`、`mag<=deadZone` 切断 → `ctrlDeadZoneRad`、`_empty` family 切断 → `ctrlEmptySnap`。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、326-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

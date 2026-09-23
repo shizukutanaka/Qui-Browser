@@ -1580,6 +1580,81 @@ async function main() {
                   wp3._readerLines = linesWas3;
                   out.wpScrollNonReader = retNR === false && scrNR === scrWas3;
                 }
+                // VRControllerInput family maps + edge arms — drive read()
+                // on fake sources across device families: the button map is
+                // per-family (Vive wands have no faceA/faceB, generic only
+                // trigger+squeeze), profiles[] order wins, and the radial
+                // dead-zone renormalises magnitude past the threshold.
+                {
+                  const ci = app.controllerInput;
+                  const mkSrc = (profiles, buttons, axes, handedness) => ({
+                    handedness: handedness || 'right',
+                    profiles: profiles || [],
+                    gamepad: buttons === null ? null : {
+                      buttons: (buttons || []).map((b) => ({
+                        pressed: !!b, value: b ? 1 : 0
+                      })),
+                      axes: axes || [0, 0, 0, 0]
+                    }
+                  });
+                  const vive = ci.read(mkSrc(['htc-vive'],
+                    [1, 1, 0, 0, 1, 0, 0], [0.5, -0.5, 0, 0]));
+                  const gen = ci.read(mkSrc(['mystery-pad'],
+                    [1, 1, 1, 1, 1, 1, 1]));
+                  out.ctrlFamilies = vive.family === 'htc-vive'
+                    && vive.buttons.menu && vive.buttons.menu.pressed === true
+                    && vive.buttons.faceA === undefined
+                    && vive.buttons.faceB === undefined
+                    && vive.axes.trackpadX !== 0 && vive.axes.trackpadY !== 0
+                    && gen.family === 'generic'
+                    && gen.buttons.trigger.pressed === true
+                    && gen.buttons.squeeze.pressed === true
+                    && gen.buttons.faceA === undefined;
+                  // A mid-sequence family change rebuilds the snapshot shape
+                  // and resets edge state — prior pressed buttons can't leak
+                  // justPressed into the new map.
+                  const mutSrc = mkSrc(['oculus-touch-v2'],
+                    [1, 0, 0, 0, 1, 0, 0]);
+                  ci.read(mutSrc);
+                  mutSrc.profiles = ['generic-trigger'];
+                  const mut2 = ci.read(mutSrc);
+                  // The snapshot object is reused per source — read edges
+                  // into scalars between frames or later reads overwrite them.
+                  const mut2Jp = mut2.buttons.trigger.justPressed;
+                  const mut2NoFaceA = mut2.buttons.faceA === undefined;
+                  mutSrc.gamepad.buttons[0].pressed = false;
+                  const mut3Rel = ci.read(mutSrc).buttons.trigger.justReleased;
+                  mutSrc.gamepad.buttons[0].pressed = true;
+                  const mut4Jp = ci.read(mutSrc).buttons.trigger.justPressed;
+                  out.ctrlFamRebuild = mut2.family === 'generic'
+                    && mut2NoFaceA === true
+                    && mut2Jp === true
+                    && mut3Rel === true
+                    && mut4Jp === true;
+                  // Radial dead-zone: a diagonal (0.10, 0.10) has magnitude
+                  // 0.141 < 0.15 and must read zero (the square-clamp fix);
+                  // 0.2 deflection renormalises to (0.2-dz)/(1-dz).
+                  const dz = ci.deadZone;
+                  const stillSrc = mkSrc(['oculus-touch-v2'], [], [0, 0, 0.10, 0.10]);
+                  const still = ci.read(stillSrc);
+                  const pushSrc = mkSrc(['oculus-touch-v2'], [], [0, 0, 0.2, 0]);
+                  const push = ci.read(pushSrc);
+                  const expect = (0.2 - dz) / (1 - dz);
+                  out.ctrlDeadZoneRad = still.axes.stickX === 0
+                    && still.axes.stickY === 0
+                    && Math.abs(push.axes.stickX - expect) < 1e-9
+                    && push.axes.stickY === 0;
+                  // Gamepad-less / null sources yield the empty snapshot.
+                  const noGp = ci.read(mkSrc(['oculus-touch-v2'], null, null, 'left'));
+                  const noSrc = ci.read(null);
+                  out.ctrlEmptySnap = noGp.family === 'meta-quest'
+                    && noGp.hand === 'left'
+                    && Object.keys(noGp.buttons).length === 0
+                    && noSrc.family === 'generic' && noSrc.hand === 'unknown'
+                    && Object.isFrozen(noSrc.buttons)
+                    && ci.getDeviceName(mkSrc(['pico-4'], [], null, 'left'))
+                      === 'Pico Controller (left)';
+                }
                 // Utility-hand faceA toggles the bookmark/history panel +
                 // announces the new state (WCAG 4.1.3).
                 const bmWas = !!(app.bookmarkPanel && app.bookmarkPanel.visible);
@@ -4667,6 +4742,10 @@ async function main() {
       semExpanded: iout.semExpanded === true,
       semDispose: iout.semDispose === true,
       wpScrollNonReader: iout.wpScrollNonReader === true,
+      ctrlFamilies: iout.ctrlFamilies === true,
+      ctrlFamRebuild: iout.ctrlFamRebuild === true,
+      ctrlDeadZoneRad: iout.ctrlDeadZoneRad === true,
+      ctrlEmptySnap: iout.ctrlEmptySnap === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -5031,6 +5110,10 @@ async function main() {
       ['settings toggle mirrors aria-expanded', !!inter.semExpanded],
       ['semantic DOM dispose detaches + no-ops', !!inter.semDispose],
       ['scrollContent refuses non-reader state', !!inter.wpScrollNonReader],
+      ['vive/generic family maps differ per profile', !!inter.ctrlFamilies],
+      ['family change rebuilds snapshot + edges', !!inter.ctrlFamRebuild],
+      ['radial dead-zone renormalises magnitude', !!inter.ctrlDeadZoneRad],
+      ['gamepad-less source yields empty snapshot', !!inter.ctrlEmptySnap],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
