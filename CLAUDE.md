@@ -325,6 +325,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 ハーネス設計: 両 pin は有機 red で欠陥を実測してから fix 同梱。`tabRestoreAnnounce` は `tm.newTab('https://restore.example/x')` の caption が 'restore.example' を含み 'New Tab' を含まないこと、`tabCloseQuiet` は close-inactive で 'Tab closed' のみで 'Tab:' 再 announce がないこと（`activeIndex` 維持も pin）。leg 自身が開いた panel のみ開閉し先行 leg の panel は温存。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 283 checks PASS、verify:app PASS。
 
+### Session 201: 続き359 — GazeInteraction の fill disc 進捗 + confirm flash 減衰/RM 保持を e2e pin（#269 batch 18、283→285 checks）
+- 🔍 **実測（未駆動 2 面）**: ①`_updateFill` が reticle の進捗 disc を `_elapsed/dwellTime` に比例 scale（0.001→1）— 既存 gaze pin は onSelect/haptic/caption のみで視覚進捗は未観測（gaze ユーザー唯一の charge 可視化、WCAG 1.3.3）。②`_confirmMs`/`_tickConfirm` の発火フラッシュ — 発火時 ring opacity=1 → 250ms で resting へ減衰、reduced-motion では hold→snap（WCAG 2.3.3）。`hcApplied` pin は `_ringOpacity` 変更のみで減衰経路は未駆動。
+- 🔧 **ハーネス設計**: slip leg の合成 gA/gB を流用 — charge 1.0s で `fill.scale.x≈2/3`、完走で scale=1 + opacity=1、`_reset` で 0.001/resting 復元を pin。flash decay は両 target を off-ray にして dwell 解除しつつ `_tickConfirm` のみ継続観測。RM 腕は `setReducedMotion(true)` で hold 検証後 `rmWas` 復元。
+- 🧪 赤検証: `setScalar` 切断 → `gazeFillProgress` のみ FAIL、ring decay 行切断 → `gazeConfirmFlash` のみ FAIL（同時切断で両方 — 分離確認済み）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 285 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

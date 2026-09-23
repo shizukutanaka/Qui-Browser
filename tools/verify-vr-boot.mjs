@@ -1008,6 +1008,50 @@ async function main() {
                 placeA();
                 app.updateSystems(0, fakeXrFrame, 0.6);
                 out.slipResumes = aFires === 1;
+                // Fill disc + confirm flash internals: _updateFill scales
+                // the reticle progress disc with the charge, activation
+                // sets _confirmMs (ring opacity 1), _tickConfirm decays it
+                // — held flat under reduced motion (WCAG 2.3.3).
+                const rmWas = gz.reduceMotion;
+                try {
+                  gz._reset(); placeA(); aFires = 0;
+                  app.updateSystems(0, fakeXrFrame, 1.0);   // 2/3 charge
+                  const fillMid = gz._fill.scale.x;
+                  app.updateSystems(0, fakeXrFrame, 0.6);   // completes
+                  const fillDone = gz._fill.scale.x;
+                  const flashStart = gz._ring.material.opacity;
+                  gz._reset();
+                  out.gazeFillProgress = Math.abs(fillMid - 2 / 3) < 0.02
+                    && fillDone === 1 && aFires === 1
+                    && flashStart === 1
+                    && gz._fill.scale.x === 0.001
+                    && gz._ring.material.opacity === gz._ringOpacity;
+                  // Flash decay: normal mode eases back to resting opacity
+                  // across CONFIRM_MS (250ms); both targets off-ray so the
+                  // dwell clears while _tickConfirm still ticks.
+                  aFires = 0; placeA();
+                  app.updateSystems(0, fakeXrFrame, 1.6);   // fire
+                  const opFired = gz._ring.material.opacity;
+                  gA.position.copy(offPos); gB.position.copy(offPos);
+                  gA.updateMatrixWorld(true); gB.updateMatrixWorld(true);
+                  app.updateSystems(0, fakeXrFrame, 0.1);
+                  const opMidDecay = gz._ring.material.opacity;
+                  app.updateSystems(0, fakeXrFrame, 0.2);   // past 250ms
+                  const opRest = gz._ring.material.opacity;
+                  gz._reset(); aFires = 0; gz.setReducedMotion(true); placeA();
+                  app.updateSystems(0, fakeXrFrame, 1.6);   // fire
+                  app.updateSystems(0, fakeXrFrame, 0.1);   // inside hold
+                  const opRmHold = gz._ring.material.opacity;
+                  app.updateSystems(0, fakeXrFrame, 0.3);   // past CONFIRM_MS
+                  const opRmRest = gz._ring.material.opacity;
+                  out.gazeConfirmFlash = opFired === 1
+                    && opMidDecay < 1 && opMidDecay > gz._ringOpacity
+                    && opRest === gz._ringOpacity
+                    && opRmHold === 1
+                    && opRmRest === gz._ringOpacity;
+                } finally {
+                  gz.setReducedMotion(rmWas);
+                }
               } finally {
                 gz._reset();
                 gz.enabled = gzEnWas;
@@ -3963,6 +4007,8 @@ async function main() {
       slipHolds: iout.slipHolds === true,
       slipRetargets: iout.slipRetargets === true,
       slipResumes: iout.slipResumes === true,
+      gazeFillProgress: iout.gazeFillProgress === true,
+      gazeConfirmFlash: iout.gazeConfirmFlash === true,
       settingsProbe: iout.settingsProbe === true,
       settingsOffLive: iout.settingsOffLive === true,
       settingsOnLive: iout.settingsOnLive === true,
@@ -4294,6 +4340,8 @@ async function main() {
       ['brief slip onto a different object holds the dwell', !!inter.slipHolds],
       ['persistent new object wins only after graceTime', !!inter.slipRetargets],
       ['return to held target resumes and completes', !!inter.slipResumes],
+      ['gaze fill disc scales with dwell charge', !!inter.gazeFillProgress],
+      ['confirm flash decays or holds per RM', !!inter.gazeConfirmFlash],
       ['hover announce identifies the Captions toggle', !!inter.settingsProbe],
       ['ray select flips enableCaptions live', !!inter.settingsOffLive],
       ['re-select restores the captions toggle state', !!inter.settingsOnLive],
