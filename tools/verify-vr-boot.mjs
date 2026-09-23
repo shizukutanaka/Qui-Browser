@@ -391,6 +391,35 @@ async function main() {
               { url: 'https://rest-b.example/' }] });
             out.tmRestoreActive = tmD.activeIndex === 1
               && tmE.activeIndex === 0;
+            // serialize() is the restore source's mirror — only navigated
+            // tabs persist and 'active' is re-indexed into the filtered
+            // list. A blank active tab falls back to index 0; an all-blank
+            // session serializes empty.
+            const tmS = mkTM();
+            tmS.newTab('https://ser-a.example/');
+            tmS.newTab(); // blank — must be dropped
+            tmS.newTab('https://ser-b.example/');
+            tmS.setActive(2);
+            const serS = tmS.serialize();
+            out.tmSerializeReindex = serS.v === 1
+              && serS.tabs.length === 2
+              && serS.tabs[0].url === 'https://ser-a.example/'
+              && serS.tabs[1].url === 'https://ser-b.example/'
+              && serS.active === 1; // active tab re-indexed 2 → 1
+            const tmB2 = mkTM();
+            tmB2.newTab(); // blank tab at index 0
+            tmB2.newTab('https://ser-c.example/');
+            tmB2.setActive(0);
+            const serB = tmB2.serialize();
+            out.tmSerializeBlankActive = serB.active === 0
+              && serB.tabs.length === 1
+              && serB.tabs[0].url === 'https://ser-c.example/';
+            const tmN = mkTM();
+            tmN.newTab();
+            const serN = tmN.serialize();
+            out.tmSerializeEmpty = serN.v === 1
+              && serN.active === 0
+              && serN.tabs.length === 0;
           }
           // URL-input request drives the whole keyboard wiring: setOnConfirm,
           // IME activate + ascii mode, composition prefill, show(), and the
@@ -4917,6 +4946,9 @@ async function main() {
       tmRestoreSkip: iout.tmRestoreSkip === true,
       tmRestoreClamp: iout.tmRestoreClamp === true,
       tmRestoreActive: iout.tmRestoreActive === true,
+      tmSerializeReindex: iout.tmSerializeReindex === true,
+      tmSerializeBlankActive: iout.tmSerializeBlankActive === true,
+      tmSerializeEmpty: iout.tmSerializeEmpty === true,
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
       closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
@@ -5316,6 +5348,9 @@ async function main() {
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
       ['stale active index clamps to last tab', !!inter.tmRestoreActive],
+      ['serialize re-indexes active past blank tabs', !!inter.tmSerializeReindex],
+      ['blank active tab falls back to index 0', !!inter.tmSerializeBlankActive],
+      ['all-blank session serializes empty', !!inter.tmSerializeEmpty],
       ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
