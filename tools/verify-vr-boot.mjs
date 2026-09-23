@@ -573,6 +573,26 @@ async function main() {
               }
             }
           }
+          // batch 65 (a) — monitoring's DOM visibilitychange listener feeds
+          //   session_resumed/session_backgrounded analytics; a real
+          //   dispatch must reach gtag (document.hidden is false in this
+          //   context → the 'resumed' arm is the observable one).
+          {
+            const gtagWas65 = window.gtag;
+            const gtagEvents65 = [];
+            window.gtag = (...a) => { gtagEvents65.push(a); };
+            try {
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.monVisibilityTrack = gtagEvents65.some(
+                (e) => e[1] === 'session_resumed');
+            } finally {
+              if (gtagWas65 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas65;
+              }
+            }
+          }
           // (b) SpatialAudio arms click/touchstart/keydown {once:true}
           //     listeners while the context is suspended; the first gesture
           //     must tear ALL three down — else a later gesture re-fires
@@ -597,6 +617,26 @@ async function main() {
                 && armedAfter63;
             } finally {
               sa63.context.resume = origResume63;
+            }
+          }
+          // batch 65 (b) — registerProceduralBuffer synthesizes a named
+          //   AudioBuffer into the cache (buffersLoaded++); a same-name
+          //   re-register must dedup — return the existing buffer without
+          //   re-synthesizing or double-counting the stat.
+          if (app.spatialAudio && app.spatialAudio.context) {
+            const sa65 = app.spatialAudio;
+            const loadedWas65 = sa65.stats.buffersLoaded;
+            try {
+              const buf65 = sa65.registerProceduralBuffer(
+                'e2e-proc-65', { freq: 330, duration: 0.02 });
+              const buf65b = sa65.registerProceduralBuffer(
+                'e2e-proc-65', { freq: 999, duration: 0.02 });
+              out.procBufRegister = !!buf65
+                && sa65.buffers.get('e2e-proc-65') === buf65
+                && buf65b === buf65
+                && sa65.stats.buffersLoaded === loadedWas65 + 1;
+            } finally {
+              sa65.buffers.delete('e2e-proc-65');
             }
           }
           // (c) setCurved(true) doesn't just swap the geometry object (pinned
@@ -1264,6 +1304,23 @@ async function main() {
               vc.settings.requireWakeWord = wakeWas;
               vc.settings.wakeWord = wakeWordWas;
               vc.isAwake = true;
+            }
+            // batch 65 (c) — registerCommand is the public extension point:
+            //   a registered pattern must match a transcript and fire the
+            //   supplied action through the normal command pipeline.
+            {
+              let cmdRan65 = false;
+              const recWas65 = vc.stats.commandsRecognized;
+              vc.registerCommand('e2e-custom-65', {
+                patterns: ['テスト六十五'],
+                action: () => { cmdRan65 = true; return { ok: true }; },
+                confirmationText: 'ok'
+              });
+              vc.handleRecognitionResult({
+                results: [{ 0: { transcript: 'テスト六十五', confidence: 0.9 }, isFinal: true, length: 1 }]
+              });
+              out.registerCustomCmd = cmdRan65 === true
+                && vc.stats.commandsRecognized === recWas65 + 1;
             }
             // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
             // || still swaps a bogus rate for 1.0.
@@ -5288,6 +5345,48 @@ async function main() {
                       }
                     }
                   }
+                  // batch 65 (d) — back()/forward() guard the history
+                  //   ends: idx 0 refuses back, last idx refuses forward,
+                  //   and every accepted step reloads through _loadUrl.
+                  //   A _loadUrl spy keeps the walk off the network.
+                  {
+                    const loads65 = [];
+                    const histWas65 = wp2.history.slice();
+                    const hidxWas65 = wp2.historyIdx;
+                    const loadWas65 = wp2._loadUrl;
+                    wp2._loadUrl = (u) => { loads65.push(u); };
+                    try {
+                      wp2.history = ['h65a', 'h65b', 'h65c'];
+                      wp2.historyIdx = 1;
+                      const b65a = wp2.back();
+                      const b65b = wp2.back();
+                      const f65a = wp2.forward();
+                      const f65b = wp2.forward();
+                      const f65c = wp2.forward();
+                      out.historyNavEdges = b65a === true
+                        && loads65[0] === 'h65a'
+                        && b65b === false
+                        && f65a === true && loads65[1] === 'h65b'
+                        && f65b === true && loads65[2] === 'h65c'
+                        && f65c === false
+                        && loads65.length === 3;
+                    } finally {
+                      wp2._loadUrl = loadWas65;
+                      wp2.history = histWas65;
+                      wp2.historyIdx = hidxWas65;
+                    }
+                  }
+                  // batch 65 (e) — every completed _drawContent marks the
+                  //   CanvasTexture needsUpdate so the frame reaches the
+                  //   GPU; texture.version only bumps on that write, so a
+                  //   skipped flag shows up as a frozen version counter.
+                  {
+                    const vWas65 = wp2.contentTex
+                      ? wp2.contentTex.version : -1;
+                    wp2._drawContent();
+                    out.contentTexVersion = vWas65 >= 0
+                      && wp2.contentTex.version === vWas65 + 1;
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -7343,6 +7442,11 @@ async function main() {
       selectAnalytics: iout.selectAnalytics === true,
       sharedRaycaster: iout.sharedRaycaster === true,
       readerLifts: iout.readerLifts === true,
+      monVisibilityTrack: iout.monVisibilityTrack === true,
+      procBufRegister: iout.procBufRegister === true,
+      registerCustomCmd: iout.registerCustomCmd === true,
+      historyNavEdges: iout.historyNavEdges === true,
+      contentTexVersion: iout.contentTexVersion === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7877,6 +7981,11 @@ async function main() {
       ['gaze select reaches user_interaction analytics', !!inter.selectAnalytics],
       ['controller rays share one memoized raycaster', !!inter.sharedRaycaster],
       ['reader lifts table list img ruby content', !!inter.readerLifts],
+      ['visibilitychange reaches session_resumed analytics', !!inter.monVisibilityTrack],
+      ['procedural buffer registers + dedups by name', !!inter.procBufRegister],
+      ['custom voice command registers + fires', !!inter.registerCustomCmd],
+      ['back/forward stop at history edges', !!inter.historyNavEdges],
+      ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
