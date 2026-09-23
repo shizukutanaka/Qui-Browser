@@ -5894,6 +5894,118 @@ async function main() {
             out.enErrToast = alertEl ? alertEl.textContent : '';
           }
         }
+        // ==== batch 47: dispose() teardown contract — runs LAST inside the
+        // eval. Every check below observes state/spies captured BEFORE
+        // app.dispose() because the app cannot be used afterwards. ====
+        {
+          const xr3 = app.renderer && app.renderer.xr;
+          let sessionEnded3 = false;
+          const gsWas3 = xr3 && xr3.getSession;
+          if (xr3) {
+            xr3.getSession = () => ({ end: () => { sessionEnded3 = true; return Promise.resolve(); } });
+          }
+          const calls3 = [];
+          const salWas3 = app.renderer && app.renderer.setAnimationLoop;
+          if (app.renderer) {
+            app.renderer.setAnimationLoop = (cb) => { calls3.push(cb); if (salWas3) salWas3.call(app.renderer, cb); };
+          }
+          const dispCounts = {};
+          const spyDisp = (obj, name) => {
+            if (obj && typeof obj.dispose === 'function') {
+              const was = obj.dispose;
+              obj.dispose = () => { dispCounts[name] = (dispCounts[name] || 0) + 1; return was.call(obj); };
+            }
+          };
+          ['comfortSystem', 'ffrSystem', 'textureManager', 'spatialAudio',
+            'gazeInteraction', 'captionSystem', 'semanticDOM', 'handTracking',
+            'windowManager', 'tabManager', 'immersiveVideo', 'voiceCommands',
+            'layersSystem'].forEach((n) => spyDisp(app[n], n));
+          const sizes3 = [];
+          const ssWas3 = app.renderer && app.renderer.setSize;
+          if (app.renderer) {
+            app.renderer.setSize = (w, h) => { sizes3.push([w, h]); if (ssWas3) ssWas3.call(app.renderer, w, h); };
+          }
+          const caps3 = [];
+          const capShowWas3 = app.captionSystem && app.captionSystem.show;
+          if (app.captionSystem) {
+            app.captionSystem.show = (m) => { caps3.push(m); };
+          }
+          const motionMQ3 = app._osMotionMQ;
+          const gazeRM3 = [];
+          if (app.gazeInteraction && typeof app.gazeInteraction.setReducedMotion === 'function') {
+            const srmWas3 = app.gazeInteraction.setReducedMotion;
+            app.gazeInteraction.setReducedMotion = (v) => { gazeRM3.push(v); return srmWas3.call(app.gazeInteraction, v); };
+          }
+          let toastCb3 = false;
+          if (app._toastTimers && typeof app._toastTimers.add === 'function') {
+            app._toastTimers.add(setTimeout(() => { toastCb3 = true; }, 60));
+          }
+          let enterClicked3 = false;
+          const btn3 = app.vrButton;
+          if (btn3) {
+            btn3.click = () => { enterClicked3 = true; };
+          }
+          const hfWas3 = app.hapticFeedback;
+          let rendererDisposed3 = 0;
+          const rdWas3 = app.renderer && app.renderer.dispose;
+          if (app.renderer) {
+            app.renderer.dispose = () => { rendererDisposed3++; if (rdWas3) rdWas3.call(app.renderer); };
+          }
+          let travCalls3 = 0;
+          const stWas3 = app.scene && app.scene.traverse;
+          if (app.scene) {
+            app.scene.traverse = (cb) => { travCalls3++; return stWas3.call(app.scene, cb); };
+          }
+          const domEl3 = app.renderer && app.renderer.domElement;
+          const ceWas3 = console.error;
+          console.error = () => {};
+          const btnConnectedWas3 = !!(btn3 && btn3.isConnected);
+          try {
+            // Arm the debounce before teardown so dispose()'s cancel() is the
+            // only thing standing between this resize and a post-mortem
+            // setSize on a freed renderer.
+            window.dispatchEvent(new Event('resize'));
+            app.dispose();
+            out.disposeEndsSession = sessionEnded3 === true;
+            out.disposeStopsLoop = calls3.length === 1 && calls3[0] === null && app._loopArmed === false;
+            const calls3AtDispose = calls3.length;
+            if (domEl3) domEl3.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+            out.disposeDetachesContext = calls3.length === calls3AtDispose && caps3.length === 0;
+            window.dispatchEvent(new Event('resize'));
+            await new Promise((r) => setTimeout(r, 250));
+            out.disposeDetachesResize = sizes3.length === 0;
+            if (motionMQ3) {
+              motionMQ3.dispatchEvent(Object.assign(new Event('change'), { matches: true }));
+            }
+            out.disposeDetachesMQL = gazeRM3.length === 0;
+            window.dispatchEvent(new Event('enter-vr'));
+            out.disposeDetachesEnterVR = enterClicked3 === false;
+            await new Promise((r) => setTimeout(r, 90));
+            out.disposeClearsToastTimers = app._toastTimers.size === 0 && toastCb3 === false;
+            // textureManager/layersSystem are already null here — earlier legs
+            // disposed them (their own dispose pins cover that path), so the
+            // contract is only asserted on subsystems still live at teardown.
+            out.disposeTearsDownSystems = ['comfortSystem', 'ffrSystem',
+              'spatialAudio', 'gazeInteraction', 'captionSystem', 'semanticDOM',
+              'handTracking', 'windowManager', 'tabManager', 'immersiveVideo',
+              'voiceCommands']
+              .every((n) => dispCounts[n] === 1);
+            out.disposeNullsFields = app.vrKeyboard === null && app.hapticFeedback === null
+              && app.layersSystem === null && app.immersiveVideo === null
+              && app.bookmarkPanel === null && app._renderBound === null
+              && app._osMotionMQ === null && app._onWindowResize === null
+              && app._canvasObserver === null && btnConnectedWas3 === true
+              && !!(app.vrButton) && app.vrButton.isConnected === false
+              && hfWas3 && hfWas3.enabled === false;
+            out.disposeGpuTeardown = rendererDisposed3 === 1 && travCalls3 === 1
+              && !!app._sharedGeometries && app._sharedGeometries.size === 0;
+          } finally {
+            console.error = ceWas3;
+            if (xr3) {
+              if (gsWas3) { xr3.getSession = gsWas3; } else { delete xr3.getSession; }
+            }
+          }
+        }
         return out;
       })()`,
       awaitPromise: true,
@@ -6116,6 +6228,16 @@ async function main() {
       resizeSkipsWhilePresenting: iout.resizeSkipsWhilePresenting === true,
       perfStatsShape: iout.perfStatsShape === true,
       perfStatsNullRenderer: iout.perfStatsNullRenderer === true,
+      disposeEndsSession: iout.disposeEndsSession === true,
+      disposeStopsLoop: iout.disposeStopsLoop === true,
+      disposeDetachesContext: iout.disposeDetachesContext === true,
+      disposeDetachesResize: iout.disposeDetachesResize === true,
+      disposeDetachesMQL: iout.disposeDetachesMQL === true,
+      disposeDetachesEnterVR: iout.disposeDetachesEnterVR === true,
+      disposeClearsToastTimers: iout.disposeClearsToastTimers === true,
+      disposeTearsDownSystems: iout.disposeTearsDownSystems === true,
+      disposeNullsFields: iout.disposeNullsFields === true,
+      disposeGpuTeardown: iout.disposeGpuTeardown === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6556,6 +6678,16 @@ async function main() {
       ['presenting skips the resize relay', !!inter.resizeSkipsWhilePresenting],
       ['performance stats format live fields', !!inter.perfStatsShape],
       ['null renderer reports null stats', !!inter.perfStatsNullRenderer],
+      ['dispose ends live session', !!inter.disposeEndsSession],
+      ['dispose stops the loop', !!inter.disposeStopsLoop],
+      ['dispose detaches context listeners', !!inter.disposeDetachesContext],
+      ['dispose detaches resize relay', !!inter.disposeDetachesResize],
+      ['dispose detaches OS signal listeners', !!inter.disposeDetachesMQL],
+      ['dispose detaches enter-VR wiring', !!inter.disposeDetachesEnterVR],
+      ['dispose clears toast timers', !!inter.disposeClearsToastTimers],
+      ['dispose runs subsystem teardown', !!inter.disposeTearsDownSystems],
+      ['dispose nulls teardown fields', !!inter.disposeNullsFields],
+      ['dispose disposes GPU resources', !!inter.disposeGpuTeardown],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
