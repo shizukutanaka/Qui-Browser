@@ -1911,6 +1911,60 @@ async function main() {
                       && Math.abs(cs.currentVignette
                         - (vBefore + (expected - vBefore)
                           * cs.settings.vignette.smoothing)) < 1e-9;
+                    // Rotation alone is full-strength motion: the
+                    // (headMoving || isRotating) disjunct must chase the
+                    // vignette to full intensity on a pure yaw turn, while
+                    // isMoving stays false (rotation is not locomotion).
+                    cs.externalMotion = false;
+                    cs.externalMotionLevel = 1;
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // re-detect at rest
+                    const vRotBefore = cs.currentVignette;
+                    app.camera.rotation.y = camRotWas + 0.01;
+                    cs.update(0.016);
+                    const rotExpected = cs.settings.vignette.intensity;
+                    out.comfortRotation = cs.isRotating === true
+                      && cs.isMoving === false
+                      && Math.abs(cs.currentVignette
+                        - (vRotBefore + (rotExpected - vRotBefore)
+                          * cs.settings.vignette.smoothing)) < 1e-9;
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // settle rest
+                    // The 'disabled' preset drops the vignette gate — motion
+                    // still detects but the effect never engages; switching
+                    // back out MUST re-enable (the Object.assign merge arm —
+                    // omitting 'enabled' in a preset would strand a user who
+                    // went disabled -> sensitive with zero mitigation).
+                    cs.setPreset('disabled');
+                    const vDis = cs.currentVignette;
+                    app.camera.position.x = camPosWas.x + 0.05;
+                    cs.update(0.016);
+                    const disHeld = cs.currentVignette === vDis
+                      && cs.vignetteMaterial.opacity === vDis;
+                    app.camera.position.x = camPosWas.x;
+                    cs.update(0.016);
+                    cs.setPreset('sensitive');
+                    out.comfortDisabledGate = disHeld === true
+                      && cs.settings.vignette.enabled === true
+                      && cs.settings.vignette.intensity === 0.8
+                      && cs.settings.preset === 'sensitive';
+                    // dispose() tears the quad out of its camera parent and
+                    // releases the GL texture/material — fresh instance on a
+                    // stub camera so the app's own vignette survives.
+                    const CS2 = app.comfortSystem.constructor;
+                    const camStub = {
+                      children: [],
+                      add(c) { this.children.push(c); c.parent = this; },
+                      remove(c) {
+                        const ci = this.children.indexOf(c);
+                        if (ci >= 0) { this.children.splice(ci, 1); c.parent = null; }
+                      }
+                    };
+                    const cs2 = new CS2(camStub);
+                    const vm2 = cs2.vignetteMesh;
+                    cs2.dispose();
+                    out.comfortDispose = camStub.children.length === 0
+                      && vm2.parent === null;
                   } finally {
                     cs.externalMotion = false;
                     cs.externalMotionLevel = 1;
@@ -5046,6 +5100,9 @@ async function main() {
       comfortCycles: iout.comfortCycles === true,
       comfortHeadMotion: iout.comfortHeadMotion === true,
       comfortExternalLevel: iout.comfortExternalLevel === true,
+      comfortRotation: iout.comfortRotation === true,
+      comfortDisabledGate: iout.comfortDisabledGate === true,
+      comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
       capAgingSweep: iout.capAgingSweep === true,
@@ -5393,6 +5450,9 @@ async function main() {
       ['stick release disengages external motion', !!inter.smoothStops],
       ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
+      ['yaw rotation alone chases full intensity', !!inter.comfortRotation],
+      ['disabled preset gates + re-enable merges', !!inter.comfortDisabledGate],
+      ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
       ['caption update() ages and removes lines', !!inter.capAgingSweep],
