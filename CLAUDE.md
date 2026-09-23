@@ -259,7 +259,7 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - ✨ **fix (ime-toggle)**: キーボードの `onKeyPress('shift')` をそのまま呼ぶ（switchMode・キー着色・バッジ更新が物理キーと同一経路、重複実装なし）。非表示なら先に `show()`、切替後のモードを「カタカナ/ひらがな入力にしました」と告知。`'shift'` 分岐は `await` 前に `switchMode` するので直後に `inputMode` を読める。
 - 🐛 **fix (隣接バグ)**: 音声「キーボード」は `vrKeyboard.visible` を読んでいたが `VRJapaneseKeyboard` にそのプロパティは**無い**（可視性は `group.visible`）。三項演算子が常に偽で、**表示はできても閉じられなかった**のに「キーボードを切り替えます」と言っていた。`group?.visible` に修正（`group` は初回 `show()` まで null）。
 - 🧹 孤児になった `vr.voice.confirm.volumeUp/volumeDown/imeToggle` を削除し、`vr.voice.volumeLevel/volumeMax/volumeMin/imeHiragana/imeKatakana` を en/ja に追加。
-- ✅ **test 15件追加**（VoiceCommands 9 + VRApp wiring 3 ×… clamp/永続化/null audio）。**pre-fix 検証**: 3ソースを HEAD に戻すと **11件 FAIL**（「非表示なら show」の1件は旧コードも show しかしないので正しく両方通過）、復元で全通過。
+- ✅ **test 12件追加**（VoiceCommands 9 + VRApp wiring 3: 即時適用・clamp・null audio でも永続化）、既存1件を `vr-exit` ベースに更新（volume-up の既定は無音 no-op になったため）。**pre-fix 検証**: 3ソースを HEAD に戻すと **11件 FAIL**（「非表示なら show」の1件は旧コードも show しかしないので正しく両方通過）、復元で全通過。
 - ✅ Total 1771 tests (53 suites); 0 lint errors; build green。これで `src/` に `// Would …` スタブは**ゼロ**。
 
 ### Session 75（続き28）: 「VRモードを開始します」と言って何も起きなかった — vr-enter/vr-exit が単なるスタブだった
