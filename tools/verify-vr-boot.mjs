@@ -782,6 +782,79 @@ async function main() {
             out.voiceStopped = vc.isListening === false;
             out.voiceStopCap = statusEl ? statusEl.textContent : '';
           }
+          // BookmarkStore internals — the dedupe/title/aggregate arms the
+          // panel legs never reach: revisits bump visits and move to front,
+          // the title refreshes only on a real title, removeHistory filters
+          // a corrupted duplicate, getTopSites folds www + aggregates hosts
+          // + honours exclude, and the 200-entry bound trims on write. Real
+          // localStorage, snapshotted and restored in finally.
+          const histKey2 = 'quiBrowser_history';
+          const histWas = localStorage.getItem(histKey2);
+          try {
+            const bm = app.bookmarks;
+            localStorage.setItem(histKey2, '[]');
+            bm.addHistory('https://bm-a.example/', 'A');
+            bm.addHistory('https://bm-b.example/', 'B');
+            bm.addHistory('https://bm-a.example/');
+            const h1 = bm.getHistory(10);
+            out.bmDedupeVisits = h1.length === 2
+              && h1[0].url === 'https://bm-a.example/'
+              && h1[0].visits === 2;
+            // A bare-URL revisit (title defaults to url) must not clobber
+            // the recorded title; a real title still updates.
+            localStorage.setItem(histKey2, '[]');
+            bm.addHistory('https://bm-t.example/', 'Real Title');
+            bm.addHistory('https://bm-t.example/');
+            const t1 = bm.getHistory(1)[0];
+            bm.addHistory('https://bm-t.example/', 'Better Title');
+            const t2 = bm.getHistory(1)[0];
+            out.bmTitleGuard = t1.title === 'Real Title'
+              && t1.visits === 2 && t2.title === 'Better Title';
+            // removeHistory filters rather than splices-one: a corrupted
+            // store holding the same URL twice loses both; absent → false.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://bm-d.example/', title: 'd', visits: 1, visitedAt: 1 },
+              { url: 'https://bm-d.example/', title: 'd2', visits: 1, visitedAt: 2 },
+              { url: 'https://bm-k.example/', title: 'k', visits: 1, visitedAt: 3 }
+            ]));
+            const remOk = bm.removeHistory('https://bm-d.example/');
+            const remMiss = bm.removeHistory('https://bm-absent.example/');
+            const h2 = bm.getHistory(10);
+            out.bmRemoveFilter = remOk === true && remMiss === false
+              && h2.length === 1 && h2[0].url === 'https://bm-k.example/';
+            // getTopSites: host-aggregate frecency (visits + scores sum,
+            // best page as representative), www-fold, exclude drops a host.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://www.bm-h.example/p1', title: 'p1', visits: 3, visitedAt: Date.now() },
+              { url: 'https://bm-h.example/p2', title: 'p2', visits: 2, visitedAt: Date.now() },
+              { url: 'https://bm-x.example/', title: 'x', visits: 1, visitedAt: Date.now() },
+              { url: 'https://duckduckgo.com/', title: 'ddg', visits: 9, visitedAt: Date.now() }
+            ]));
+            const ts2 = bm.getTopSites(8, Date.now(), ['duckduckgo.com']);
+            const h3 = ts2.find((s) => s.host === 'bm-h.example');
+            out.bmTopSites = ts2.length === 2
+              && !!h3 && h3.visits === 5
+              && h3.url === 'https://www.bm-h.example/p1'
+              && ts2.every((s) => s.host !== 'duckduckgo.com');
+            // The 200-entry bound trims on write — seed past the cap and
+            // one addHistory must shed the overflow.
+            const over = [];
+            for (let oi = 0; oi < 205; oi++) {
+              over.push({ url: 'https://bm-o.example/' + oi,
+                title: 'o' + oi, visits: 1, visitedAt: oi });
+            }
+            localStorage.setItem(histKey2, JSON.stringify(over));
+            bm.addHistory('https://bm-new.example/', 'new');
+            const h4 = bm.getHistory(500);
+            out.bmTrim = h4.length === 200
+              && h4[0].url === 'https://bm-new.example/';
+          } finally {
+            if (histWas === null) {
+              localStorage.removeItem(histKey2);
+            } else {
+              localStorage.setItem(histKey2, histWas);
+            }
+          }
           } catch (e) {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
           }
@@ -4487,6 +4560,11 @@ async function main() {
       voiceSpeakParams: iout.voiceSpeakParams === true,
       voiceExecStats: iout.voiceExecStats === true,
       voiceFailedCb: iout.voiceFailedCb === true,
+      bmDedupeVisits: iout.bmDedupeVisits === true,
+      bmTitleGuard: iout.bmTitleGuard === true,
+      bmRemoveFilter: iout.bmRemoveFilter === true,
+      bmTopSites: iout.bmTopSites === true,
+      bmTrim: iout.bmTrim === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
       sessStart: iout.sessStart === true && iout.sessReadyCap === true,
@@ -4844,6 +4922,11 @@ async function main() {
       ['voice speak params honor zero volume/pitch', !!inter.voiceSpeakParams],
       ['voice stats + onCommand surface live', !!inter.voiceExecStats],
       ['voice no-match routes onCommandFailed', !!inter.voiceFailedCb],
+      ['revisit bumps visits + moves to front', !!inter.bmDedupeVisits],
+      ['bare revisit keeps the recorded title', !!inter.bmTitleGuard],
+      ['removeHistory filters corrupted dupes', !!inter.bmRemoveFilter],
+      ['top-sites aggregates hosts + excludes', !!inter.bmTopSites],
+      ['history bound trims at 200 entries', !!inter.bmTrim],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],

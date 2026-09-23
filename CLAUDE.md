@@ -373,6 +373,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: run A（gate `if(false)` + 他 5 腕切断）→ 全 7 FAIL；run B（`confidence > 0` 連言のみ除去）→ confZero 独立 FAIL + interim は baseline co-signal。全 pin が最低 1 回の有効 FAIL を実証、全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 314 checks PASS、verify:app PASS。
 
+### Session 209: 続き367 — BookmarkStore 内部腕 e2e pin（#270 batch 26、314→319 checks）
+
+- 🔍 実測: BookmarkStore の store 内部腕（既存 pin は panel/getTopSites 薄皮のみ）— `addHistory` dedupe が A→B→A 再訪で `visits++` + 先頭移動・`title===url` の素再訪が記録 title を潰さない・`removeHistory` が filter で破損重複を両方除去・`getTopSites` が www-fold + visits/score 集約 + best page 代表 + exclude 除外・`MAX_HISTORY=200` trim。全 5 本を実 `localStorage` 駆動で pin（`histWas` snapshot → finally restore）。
+- 🔧 ハーネス設計・教訓: store pin は `localStorage.setItem('quiBrowser_history', JSON.stringify(...))` で破損・超過状態を直接 seed — `addHistory` 経路は健全エントリしか作れない（dup/cap 破損を作るには raw write 必須）。集合 ranking 変更は co-signal が広い — `existing.visits` 切断 → top-sites の代表変化 → `voice top-sites/forward/refresh` の 3 pin が URL 不一致で連鎖 FAIL（実挙動差は想定どおり）。
+- 🧪 赤検証: 5 腕同時切断（dedupe `existingIdx!==-1`→false / title guard→true / `filter`→`all` / `existing.visits+=`→void / `>MAX_HISTORY`→false）→ 新 5 check 全 FAIL + sibling 6 件は全て想定 co-signal（delete-zone 3 件同一腕 + voice 3 件 ranking 変化）。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、319-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
