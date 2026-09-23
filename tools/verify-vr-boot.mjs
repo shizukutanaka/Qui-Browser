@@ -5857,6 +5857,24 @@ async function main() {
             const lsWas6 = app.layersSystem;
             let lsDisposeCalls6 = 0;
             app.layersSystem = { dispose: () => { lsDisposeCalls6 += 1; } };
+            // batch 52: session-scoped callbacks/cursors must all reset on
+            // session end — seed non-zero state so the teardown is observed.
+            app.onXRVisibilityChange = () => {};
+            app.onRefSpaceReset = () => {};
+            app.onFrameRateChange = () => {};
+            app._rateIdx = 2;
+            app._viewScaleIdx = 1;
+            app._overBudgetFrames = 5;
+            const ffr6 = app.ffrSystem;
+            const ffrDisWas6 = ffr6 && ffr6.disable;
+            let ffrDisCalls6 = 0;
+            if (ffr6) { ffr6.disable = () => { ffrDisCalls6 += 1; }; }
+            const sprArgs6 = [];
+            const sprWas6 = app.renderer.setPixelRatio;
+            app.renderer.setPixelRatio = (r) => { sprArgs6.push(r); };
+            const gtagWas6 = window.gtag;
+            const gtagEvents6 = [];
+            window.gtag = (...a) => { gtagEvents6.push(a); };
             // End through the real 'sessionend' listener too.
             app.renderer.xr.dispatchEvent({ type: 'sessionend' });
             out.sessPanelDetach = lsDisposeCalls6 === 1 && detachArgs.length > 0
@@ -5869,6 +5887,25 @@ async function main() {
             out.sessLaddersNull = app._rateLadder === null
               && app._viewScaleLadder === null;
             out.sessFpsBack = app.settings.targetFPS === tfpsBefore;
+            out.sessScalarsCleared = app.onXRVisibilityChange === null
+              && app.onRefSpaceReset === null
+              && app.onFrameRateChange === null
+              && app._rateIdx === 0
+              && app._viewScaleIdx === 0
+              && app._overBudgetFrames === 0
+              && sprArgs6.length >= 1
+              && sprArgs6[sprArgs6.length - 1]
+                === Math.min(window.devicePixelRatio, 2);
+            out.sessFfrDisabled = ffrDisCalls6 === 1;
+            out.sessTrackEvent = gtagEvents6
+              .some((e) => e[0] === 'event' && e[1] === 'vr_end');
+            if (ffr6 && ffrDisWas6) { ffr6.disable = ffrDisWas6; }
+            app.renderer.setPixelRatio = sprWas6;
+            if (gtagWas6 === undefined) {
+              delete window.gtag;
+            } else {
+              window.gtag = gtagWas6;
+            }
             out.capWrites = capWrites;
             } catch (e) {
               out.sessError = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
@@ -6157,6 +6194,175 @@ async function main() {
               && !app.camera.children.includes(newMesh5[0]);
           } finally {
             app.isVREnabled = vrWas5;
+          }
+        }
+        // ==== batch 51: document visibilitychange → video pause (the DOM
+        // signal, distinct from XRSession visibilitychange pinned at
+        // sessVisPaused); _redrawSettingsPanel fires every registered drawer;
+        // settings accordion swaps the whole panel via _rebuildSettingsPanel.
+        {
+          const iv7 = app.immersiveVideo;
+          const pauseCalls7 = [];
+          const tpWas7 = iv7 && iv7.togglePause;
+          const hiddenDesc = Object.getOwnPropertyDescriptor(document, 'hidden');
+          const playingWas7 = iv7 && iv7.playing;
+          try {
+            if (iv7) {
+              iv7.togglePause = () => { pauseCalls7.push(1); };
+              Object.defineProperty(document, 'hidden', {
+                configurable: true, get() { return true; }
+              });
+              iv7.playing = true;
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.hiddenTabPause = pauseCalls7.length === 1;
+              // Gates: paused video stays paused; returning to visible never
+              // auto-resumes (headset-off is an intentional-stop signal).
+              iv7.playing = false;
+              document.dispatchEvent(new Event('visibilitychange'));
+              const noPause7 = pauseCalls7.length === 1;
+              Object.defineProperty(document, 'hidden', {
+                configurable: true, get() { return false; }
+              });
+              iv7.playing = true;
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.hiddenTabGates = noPause7 && pauseCalls7.length === 1;
+            }
+          } finally {
+            if (iv7) {
+              iv7.playing = playingWas7;
+              if (tpWas7) {
+                iv7.togglePause = tpWas7;
+              } else {
+                delete iv7.togglePause;
+              }
+            }
+            if (hiddenDesc) {
+              Object.defineProperty(document, 'hidden', hiddenDesc);
+            } else {
+              delete document.hidden;
+            }
+          }
+          // _redrawSettingsPanel: every per-button repaint callback collected
+          // into _settingsPanelDrawers must run (high-contrast repaint is one
+          // shot for the whole panel).
+          const drawers7 = app._settingsPanelDrawers || [];
+          const drawn7 = drawers7.map(() => 0);
+          app._settingsPanelDrawers = drawers7.map((fn, i) => () => {
+            drawn7[i] += 1;
+            return fn();
+          });
+          app._redrawSettingsPanel();
+          out.hcDrawersFire = drawers7.length > 0 && drawn7.every((c) => c >= 1);
+          // Accordion: opening a different section rebuilds the whole panel —
+          // _disposeSettingsPanel unregisters every old button mesh and
+          // detaches the group; a same-section click early-returns.
+          const sp0 = app.settingsPanel;
+          const sp0Meshes = [];
+          if (sp0) { sp0.traverse((o) => { if (o.isMesh) { sp0Meshes.push(o); } }); }
+          try {
+            app._toggleSettingsSection('settings.section.locomotion');
+            const sp1 = app.settingsPanel;
+            out.sectRebuild = !!sp1 && sp1 !== sp0
+              && (app.settings.openSettingsSections || [])
+                .includes('settings.section.locomotion')
+              && sp0Meshes.length > 0
+              && sp0Meshes.every((m) => !app.interactables.includes(m));
+            app._toggleSettingsSection('settings.section.locomotion');
+            out.sectEarlyReturn = app.settingsPanel === sp1;
+          } finally {
+            // Leave the accordion on the default-open a11y section.
+            app._toggleSettingsSection('settings.section.a11y');
+          }
+          // updatePerformanceMonitor: EMA of frameTime, derived fps, and real
+          // renderer.info GPU metrics must all land on performanceMonitor.
+          const pm7 = app.performanceMonitor;
+          const ftWas7 = pm7.frameTime;
+          try {
+            pm7.frameTime = 0;
+            app.updatePerformanceMonitor(100);
+            const ft1 = pm7.frameTime; // EMA: 0*0.9 + 100*0.1 = 10
+            app.updatePerformanceMonitor(200);
+            const ft2 = pm7.frameTime; // EMA: 10*0.9 + 200*0.1 = 29
+            const info7 = app.renderer.info;
+            out.perfMonitorWrites = Math.abs(ft1 - 10) < 0.001
+              && Math.abs(ft2 - 29) < 0.001
+              && pm7.fps === 1000 / pm7.frameTime
+              && pm7.drawCalls === info7.render.calls
+              && pm7.triangles === info7.render.triangles;
+          } finally {
+            pm7.frameTime = ftWas7;
+          }
+          // ==== batch 53: navigate() analytics strips query+hash (privacy),
+          // the invalid-URL fallback passes the raw string; the home
+          // environment welcome panel is a real recenter interactable with
+          // hover feedback; WindowManager._faceUser keeps the panel's +Z
+          // normal aimed at the camera. ====
+          {
+            const gtagWas8 = window.gtag;
+            const gtagEvents8 = [];
+            window.gtag = (...a) => { gtagEvents8.push(a); };
+            try {
+              app.navigate('https://nav8.example/deep/page?secret=1&tok=x#frag', 'NAV8 TITLE');
+              out.navAnalytics = gtagEvents8.some((e) => e[0] === 'config'
+                && e[2] && e[2].page_path === 'https://nav8.example/deep/page'
+                && e[2].page_title === 'NAV8 TITLE');
+              gtagEvents8.length = 0;
+              app.navigate('not a url at all', 'RAW8');
+              out.navAnalyticsRaw = gtagEvents8.some((e) => e[0] === 'config'
+                && e[2] && e[2].page_path === 'not a url at all'
+                && e[2].page_title === 'RAW8');
+            } finally {
+              if (gtagWas8 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas8;
+              }
+            }
+            // Welcome panel: PlaneGeometry mesh inside homeEnvironment, the
+            // only env child registered as an interactable.
+            const env8 = app.homeEnvironment;
+            const wp8 = env8 && env8.children
+              .find((c) => app.interactables.includes(c));
+            if (wp8) {
+              const rig8 = app.playerRig;
+              rig8.position.set(1.5, 0, -0.75);
+              rig8.quaternion.set(0, 0.4, 0, 1).normalize();
+              const cap8 = app.captionSystem;
+              const capWas8 = cap8 && cap8.enabled;
+              const gazeWas8 = app.settings.enableGazeDwell;
+              const capWrites8 = [];
+              if (cap8) {
+                // onHover's caption arm is gated on BOTH the caption system
+                // and the gaze-dwell preference — earlier legs leave gaze off.
+                cap8.enabled = true;
+                app.settings.enableGazeDwell = true;
+                const showWas8 = cap8.show;
+                cap8.show = (t8) => { capWrites8.push(String(t8)); return showWas8.call(cap8, t8); };
+                wp8.userData.interactable.onHover();
+                out.wpHoverCaption = capWrites8
+                  .some((t8) => t8.toLowerCase().includes('recenter'));
+                cap8.show = showWas8;
+                app.settings.enableGazeDwell = gazeWas8;
+              }
+              const colHover8 = wp8.material.color.getHex();
+              wp8.userData.interactable.onSelect();
+              out.wpSelectRecenters = rig8.position.x === 0 && rig8.position.z === 0
+                && rig8.quaternion.x === 0 && rig8.quaternion.y === 0
+                && rig8.quaternion.z === 0;
+              wp8.userData.interactable.onHoverEnd();
+              out.wpHoverRestores = colHover8 === 0x88bbff
+                && wp8.material.color.getHex() === 0xffffff;
+              if (cap8) { cap8.enabled = capWas8; }
+            }
+            // _faceUser: the managed target's quaternion tracks the camera's
+            // world quaternion so the panel +Z normal faces the viewer.
+            const wm8 = app.windowManager;
+            if (wm8 && wm8.target && wm8._camQuat) {
+              wm8._camQuat.set(0, 0.6, 0, 0.8).normalize();
+              wm8._faceUser();
+              out.wmFacesUser = Math.abs(
+                wm8.target.quaternion.dot(wm8._camQuat)) > 0.9999;
+            }
           }
         }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
@@ -6517,6 +6723,21 @@ async function main() {
       enterVRClick: iout.enterVRClick === true,
       toastLifecycle: iout.toastLifecycle === true,
       sessPanelDetach: iout.sessPanelDetach === true,
+      hiddenTabPause: iout.hiddenTabPause === true,
+      hiddenTabGates: iout.hiddenTabGates === true,
+      hcDrawersFire: iout.hcDrawersFire === true,
+      sectRebuild: iout.sectRebuild === true,
+      sectEarlyReturn: iout.sectEarlyReturn === true,
+      sessScalarsCleared: iout.sessScalarsCleared === true,
+      sessFfrDisabled: iout.sessFfrDisabled === true,
+      sessTrackEvent: iout.sessTrackEvent === true,
+      perfMonitorWrites: iout.perfMonitorWrites === true,
+      navAnalytics: iout.navAnalytics === true,
+      navAnalyticsRaw: iout.navAnalyticsRaw === true,
+      wpHoverCaption: iout.wpHoverCaption === true,
+      wpSelectRecenters: iout.wpSelectRecenters === true,
+      wpHoverRestores: iout.wpHoverRestores === true,
+      wmFacesUser: iout.wmFacesUser === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6984,6 +7205,21 @@ async function main() {
       ['enter-vr event reaches the guarded VR button', !!inter.enterVRClick],
       ['toast adds mesh + timer and both expire', !!inter.toastLifecycle],
       ['session end detaches panel layers without recommit', !!inter.sessPanelDetach],
+      ['hidden tab pauses playing immersive video', !!inter.hiddenTabPause],
+      ['visibilitychange pauses only while playing+hidden', !!inter.hiddenTabGates],
+      ['settings redraw fires every registered drawer', !!inter.hcDrawersFire],
+      ['settings accordion rebuilds panel + unregisters old', !!inter.sectRebuild],
+      ['same-section click early-returns without rebuild', !!inter.sectEarlyReturn],
+      ['session end clears callbacks + perf cursors', !!inter.sessScalarsCleared],
+      ['session end disables FFR', !!inter.sessFfrDisabled],
+      ['session end emits vr_end analytics event', !!inter.sessTrackEvent],
+      ['perf monitor EMA + fps + GPU metrics written', !!inter.perfMonitorWrites],
+      ['navigate analytics strips query + hash', !!inter.navAnalytics],
+      ['invalid URL analytics falls back to raw string', !!inter.navAnalyticsRaw],
+      ['welcome panel hover announces recenter', !!inter.wpHoverCaption],
+      ['welcome panel select recenters the rig', !!inter.wpSelectRecenters],
+      ['welcome hover tints and restores', !!inter.wpHoverRestores],
+      ['window manager faces the user on grab move', !!inter.wmFacesUser],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
