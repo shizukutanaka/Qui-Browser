@@ -3428,6 +3428,48 @@ async function main() {
                   out.audioStopBooks = clickSrc.isPlaying === false
                     && sa2.stats.sourcesActive === act0
                     && clickSrc.node === null;
+                  // loadAudio: fetch → decodeAudioData → buffers.set +
+                  // buffersLoaded bookkeeping, plus the buffers.has early-
+                  // return cache arm (second load must not re-fetch/decode).
+                  const fetchWas9 = globalThis.fetch;
+                  const decCalls = [];
+                  const origDec = sa2.context.decodeAudioData;
+                  const buf0 = sa2.stats.buffersLoaded;
+                  try {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8))
+                    });
+                    sa2.context.decodeAudioData = (ab) => {
+                      decCalls.push(ab.byteLength);
+                      return Promise.resolve({ _fake: true, duration: 1 });
+                    };
+                    const loaded = await sa2.loadAudio(
+                      'https://audio-seed.example/clip.ogg', '__fetchbuf');
+                    const again = await sa2.loadAudio(
+                      'https://audio-seed.example/clip.ogg', '__fetchbuf');
+                    out.audioLoadFetch = !!loaded
+                      && decCalls.length === 1
+                      && decCalls[0] === 8
+                      && sa2.buffers.get('__fetchbuf') === loaded
+                      && sa2.stats.buffersLoaded === buf0 + 1
+                      && again === loaded;
+                  } finally {
+                    globalThis.fetch = fetchWas9;
+                    sa2.context.decodeAudioData = origDec;
+                    sa2.buffers.delete('__fetchbuf');
+                  }
+                  // loop + playbackRate options reach the real BufferSource
+                  // node on play() — only 'click'-style scalar options were
+                  // ever exercised before.
+                  sa2.createSource('__loop', { loop: true, playbackRate: 1.5, volume: 0.01 });
+                  sa2.play('__loop', 'click');
+                  const loopSrc = sa2.sources.get('__loop');
+                  out.audioLoopSource = !!loopSrc && !!loopSrc.node
+                    && loopSrc.node.loop === true
+                    && Math.abs(loopSrc.node.playbackRate.value - 1.5) < 1e-9;
+                  sa2.stop('__loop');
+                  sa2.sources.delete('__loop');
                 }
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
@@ -3794,6 +3836,8 @@ async function main() {
       vidErrorResets: iout.vidErrorResets === true,
       vidErrorQuiet: iout.vidErrorQuiet === true,
       audioMasterGain: iout.audioMasterGain === true,
+      audioLoadFetch: iout.audioLoadFetch === true,
+      audioLoopSource: iout.audioLoopSource === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -4100,6 +4144,8 @@ async function main() {
       ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
       ['pre-playback video error stays quiet', !!inter.vidErrorQuiet],
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
+      ['loadAudio fetches decodes and caches the buffer', !!inter.audioLoadFetch],
+      ['loop and playbackRate reach the buffer source', !!inter.audioLoopSource],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],
