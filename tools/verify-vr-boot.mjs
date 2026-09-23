@@ -1246,6 +1246,7 @@ async function main() {
               selObj.scale.set(0.01, 0.01, 0.01);
               selObj.position.set(0, 1.4, -0.4);
               selObj.updateMatrixWorld(true);
+              let selObj2 = null;
               const hapticPats = [];
               const origPlay = app.hapticFeedback.playPattern;
               app.hapticFeedback.playPattern = (h, p) => { hapticPats.push(p); };
@@ -1269,6 +1270,38 @@ async function main() {
                 out.hoverExit = hoverExits === 1 && !ctrl.userData.hovered;
                 ctrl.dispatchEvent({ type: 'selectstart' });
                 out.selectMissQuiet = selFires === 1 && quiFires === 1;
+                // Hit priority: the nearest VISIBLE interactable on the ray
+                // wins — a second disc parked between the controller and
+                // selObj must claim the select, and hiding it must hand the
+                // hit to the visible one behind (isWorldVisible skips a
+                // shadowed panel's mesh, which THREE's raycast still hits).
+                selObj2 = app.floorMesh.clone();
+                selObj2.userData = {};
+                let sel2Fires = 0;
+                let hov2 = 0;
+                selObj2.userData.interactable = {
+                  onSelect: () => { sel2Fires += 1; },
+                  onHover: () => { hov2 += 1; }
+                };
+                selObj2.rotation.set(0, 0, 0);
+                selObj2.scale.set(0.01, 0.01, 0.01);
+                selObj2.position.set(0, 1.4, -0.2);
+                selObj2.updateMatrixWorld(true);
+                app.interactables.push(selObj2);
+                ctrl.matrixWorld.identity();
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.hitNearest = sel2Fires === 1 && selFires === 1;
+                // Same-hover dedup: re-running the hover pass over an
+                // unchanged nearest object must NOT refire onHover — the
+                // prev === obj guard is what stops per-frame hover spam.
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.hoverStableNoRefire = hov2 === 1;
+                selObj2.visible = false;
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.hitSkipsHidden = selFires === 2 && sel2Fires === 1;
                 // Teleport: squeeze aims the ray at the floor (the per-frame
                 // updateTeleport raycast marks target + marker), release
                 // moves the rig and captions the landing.
@@ -1352,9 +1385,12 @@ async function main() {
                   other.dispatchEvent({ type: 'connected', data: { handedness: 'left' } });
                 }
               } finally {
-                const ix = app.interactables.indexOf(selObj);
-                if (ix >= 0) {
-                  app.interactables.splice(ix, 1);
+                for (const o of [selObj, selObj2]) {
+                  if (!o) continue;
+                  const ix = app.interactables.indexOf(o);
+                  if (ix >= 0) {
+                    app.interactables.splice(ix, 1);
+                  }
                 }
                 app.hapticFeedback.playPattern = origPlay;
                 ctrl.matrixWorld.copy(origMW);
@@ -5355,6 +5391,9 @@ async function main() {
       selectHit: iout.selectHit === true,
       hoverExit: iout.hoverExit === true,
       selectMissQuiet: iout.selectMissQuiet === true,
+      hitNearest: iout.hitNearest === true,
+      hitSkipsHidden: iout.hitSkipsHidden === true,
+      hoverStableNoRefire: iout.hoverStableNoRefire === true,
       aimLands: iout.aimLands === true,
       teleportLands: iout.teleportLands === true,
       teleportHaptic: iout.teleportHaptic === true,
@@ -5754,6 +5793,9 @@ async function main() {
       ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
       ['controller ray hover fires onHover once', !!inter.hoverEnter],
       ['selectstart on a hit runs select+haptic+qui-select', !!inter.selectHit],
+      ['nearest visible interactable wins the ray', !!inter.hitNearest],
+      ['hidden panel shadow does not block select', !!inter.hitSkipsHidden],
+      ['unchanged hover never refires onHover', !!inter.hoverStableNoRefire],
       ['aiming away fires onHoverEnd', !!inter.hoverExit],
       ['selectstart on a miss fires nothing', !!inter.selectMissQuiet],
       ['squeeze aim raycasts the floor target', !!inter.aimLands],
