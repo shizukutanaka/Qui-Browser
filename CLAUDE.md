@@ -484,6 +484,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 **赤検証**: 6 腕一括切断 1 run（cache early-return、pendingLoads gate、cacheTexture evict、LRU 再挿入、estimate 行移動、unloadAll dispose）→ 対象 6 check のみ FAIL、co-signal ゼロ。`texErrorShared` は `_errorTexture` 未共有の有機赤で証明済み。
 - ✅ 3306 tests / 74 suites 全緑（+4 error-texture tests）、lint 0 errors、build 緑、verify:vr-boot 375 checks PASS、verify:app PASS。
 
+### Session 226: 続き384 — OS accessibility リスナのライブ変更経路を e2e pin（#277 batch 43、375→378 checks）
+- 🔍 **実測（未駆動）**: `_setupOSAccessibilityListeners` が 3 つの実 MediaQueryList に登録した 'change' ハンドラ — `(prefers-reduced-motion)` → `gazeInteraction.setReducedMotion`、`(prefers-contrast)`/`(forced-colors)` → `prefersHighContrast()` 再読 → gaze ring opacity + caption backing の両 `setHighContrast` — は起動時値の read のみでライブ変更経路が未駆動（WCAG 2.3.3/1.4.11 の mid-session 適用契約）。
+- 🔧 **ハーネス教訓**: 実 MQL は EventTarget — `Object.assign(new Event('change'), {matches: true})` を dispatch すると**実登録リスナが端到端で走る**（handler 直 call では addEventListener 登録自体が真の契約になる）。contrast 系は handler が `prefersHighContrast()` を再読する設計のため global matchMedia を stub してから dispatch — `(forced-colors)` のみを true にすると OR 決定の第 2 肢も別 pin で証明できる。
+- 🧪 **赤検証**: 3 つの `addEventListener('change', …)` を一括切断 → 3 pin のみ FAIL、co-signal ゼロ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 378 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

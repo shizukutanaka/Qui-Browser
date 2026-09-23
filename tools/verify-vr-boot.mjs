@@ -2704,6 +2704,53 @@ async function main() {
                 } else {
                   out.southpawCaption = false;
                 }
+                // OS accessibility listeners — the boot registered 'change'
+                // handlers on three real MediaQueryLists; a mid-session OS
+                // preference flip must re-apply live (WCAG 2.3.3 motion,
+                // 1.4.11 contrast) instead of staying frozen at the boot
+                // value. A synthetic 'change' carrying .matches dispatched
+                // on the real MQL runs the registered listener end-to-end.
+                if (app._osMotionMQ && app._osContrastMQ
+                  && app._osForcedColorsMQ && app.gazeInteraction
+                  && app.captionSystem) {
+                  const gz = app.gazeInteraction;
+                  const mmWas = window.matchMedia;
+                  const rmWas = gz.reduceMotion;
+                  const hcWas = gz._ringOpacity;
+                  const ccHcWas = app.captionSystem.highContrast;
+                  const mkChg = (m) =>
+                    Object.assign(new Event('change'), { matches: m });
+                  try {
+                    app._osMotionMQ.dispatchEvent(mkChg(true));
+                    const rmOn = gz.reduceMotion === true;
+                    app._osMotionMQ.dispatchEvent(mkChg(false));
+                    out.osMotionLiveSync = rmOn
+                      && gz.reduceMotion === false;
+                    // prefers-contrast flip → handler re-reads
+                    // prefersHighContrast() → both the reticle ring and the
+                    // caption backing take the high-contrast form live.
+                    window.matchMedia = (q) =>
+                      (q === '(prefers-contrast: more)'
+                        ? { matches: true } : mmWas(q));
+                    app._osContrastMQ.dispatchEvent(mkChg(true));
+                    out.osContrastLiveSync = gz._ringOpacity === 1.0
+                      && gz._ring.material.opacity === 1.0
+                      && app.captionSystem.highContrast === true;
+                    // forced-colors shares the same handler — the decision
+                    // is an OR, so a flip on EITHER query applies it.
+                    window.matchMedia = (q) =>
+                      (q === '(forced-colors: active)'
+                        ? { matches: true } : mmWas(q));
+                    app._osForcedColorsMQ.dispatchEvent(mkChg(true));
+                    out.osForcedColorsSync = gz._ringOpacity === 1.0
+                      && app.captionSystem.highContrast === true;
+                  } finally {
+                    window.matchMedia = mmWas;
+                    gz.setReducedMotion(rmWas);
+                    gz.setHighContrast(hcWas === 1.0);
+                    app.captionSystem.setHighContrast(ccHcWas);
+                  }
+                }
                 // Accessibility section: the WCAG live-apply chain — stepper
                 // +region selects must reach gazeInteraction/captionSystem
                 // fields and toggles must reach their engines, not just flip
@@ -5758,6 +5805,9 @@ async function main() {
       comfortDisabledGate: iout.comfortDisabledGate === true,
       comfortOffClears: iout.comfortOffClears === true,
       southpawCaption: iout.southpawCaption === true,
+      osMotionLiveSync: iout.osMotionLiveSync === true,
+      osContrastLiveSync: iout.osContrastLiveSync === true,
+      osForcedColorsSync: iout.osForcedColorsSync === true,
       comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
@@ -6141,6 +6191,9 @@ async function main() {
       ['disabled preset gates + re-enable merges', !!inter.comfortDisabledGate],
       ['comfort OFF clears vignette + gates update', !!inter.comfortOffClears],
       ['southpaw toggle announces the new primary hand', !!inter.southpawCaption],
+      ['OS reduced-motion change re-applies live', !!inter.osMotionLiveSync],
+      ['OS prefers-contrast change re-applies live', !!inter.osContrastLiveSync],
+      ['OS forced-colors flip applies high contrast', !!inter.osForcedColorsSync],
       ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
