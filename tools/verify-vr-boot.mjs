@@ -4981,6 +4981,101 @@ async function main() {
                       }
                     }
                   }
+                  // batch 62 — reader edge arms + shared-geometry memo:
+                  // (a) a 200-OK page with no recoverable prose (SPA shell)
+                  //     must NOT render 'reader' — it lands 'unavailable'
+                  //     with the raw URL as title and onNavigate(url, url),
+                  //     so the chrome bar shows actionable guidance.
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head></head><body>'
+                        + '<div id="app"><nav><a href="#">l</a>'
+                        + '<a href="#">o</a></nav><div id="root"></div>'
+                        + '</div></body></html>')
+                    });
+                    const navArgs62 = [];
+                    const origNav62 = wp2.onNavigate;
+                    wp2.onNavigate = (u, t2) => {
+                      navArgs62.push([u, t2]);
+                      return origNav62(u, t2);
+                    };
+                    try {
+                      wp2.navigate('https://spa-shell-62.example/app');
+                      await settle2();
+                      out.spaShellUnavailable =
+                        wp2._contentState === 'unavailable'
+                        && wp2.currentTitle
+                          === 'https://spa-shell-62.example/app'
+                        && navArgs62.length === 1
+                        && navArgs62[0][1]
+                          === 'https://spa-shell-62.example/app';
+                    } finally {
+                      wp2.onNavigate = origNav62;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://spa-shell-62.example/app');
+                      }
+                    }
+                    // (b) extractTitle decodes entities into currentTitle; a
+                    //     missing <title> falls back to the raw URL.
+                    const htmlEntity =
+                      '<html><head><title>A &amp; B &#8212; C</title></head>'
+                      + '<body><article><p>entity decode paragraph one two'
+                      + ' three four five six seven eight nine ten</p>'
+                      + '</article></body></html>';
+                    const htmlNoTitle =
+                      '<html><head></head><body><article>'
+                      + '<p>untitled paragraph one two three four five six'
+                      + ' seven eight nine ten eleven twelve</p>'
+                      + '</article></body></html>';
+                    const origNav62b = wp2.onNavigate;
+                    const navArgs62b = [];
+                    wp2.onNavigate = (u, t2) => {
+                      navArgs62b.push([u, t2]);
+                      return origNav62b(u, t2);
+                    };
+                    try {
+                      globalThis.fetch = () => Promise.resolve({
+                        ok: true, text: () => Promise.resolve(htmlEntity)
+                      });
+                      wp2.navigate('https://entity-62.example/');
+                      await settle2();
+                      const entOk = wp2.currentTitle === 'A & B — C';
+                      globalThis.fetch = () => Promise.resolve({
+                        ok: true, text: () => Promise.resolve(htmlNoTitle)
+                      });
+                      wp2.navigate('https://notitle-62.example/');
+                      await settle2();
+                      out.titleEntityDecode = entOk
+                        && wp2._contentState === 'reader'
+                        && wp2.currentTitle === 'https://notitle-62.example/'
+                        && navArgs62b.length === 2
+                        && navArgs62b[0][1] === 'A & B — C'
+                        && navArgs62b[1][1]
+                          === 'https://notitle-62.example/';
+                    } finally {
+                      wp2.onNavigate = origNav62b;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory('https://entity-62.example/');
+                        app.bookmarks.removeHistory('https://notitle-62.example/');
+                      }
+                    }
+                  }
+                  // (c) _sharedPlaneGeometry memoizes per "WxH" key — settings
+                  //     buttons share one PlaneGeometry, so a miss would
+                  //     multiply GPU allocations per button.
+                  if (typeof app._sharedPlaneGeometry === 'function'
+                    && app._sharedGeometries) {
+                    const sizeWas62 = app._sharedGeometries.size;
+                    const gA62 = app._sharedPlaneGeometry(7.7, 3.3);
+                    const gB62 = app._sharedPlaneGeometry(7.7, 3.3);
+                    const gC62 = app._sharedPlaneGeometry(1.1, 0.2);
+                    out.sharedPlaneGeo = gA62 === gB62
+                      && gA62 !== gC62
+                      && app._sharedGeometries.size === sizeWas62 + 2;
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -7026,6 +7121,9 @@ async function main() {
       curvedInherit: iout.curvedInherit === true,
       setVisibleReleases: iout.setVisibleReleases === true,
       distanceClamp: iout.distanceClamp === true,
+      spaShellUnavailable: iout.spaShellUnavailable === true,
+      titleEntityDecode: iout.titleEntityDecode === true,
+      sharedPlaneGeo: iout.sharedPlaneGeo === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7550,6 +7648,9 @@ async function main() {
       ['new tab inherits curved mode', !!inter.curvedInherit],
       ['hidden panel releases its quad layer', !!inter.setVisibleReleases],
       ['window distance clamps to min/max', !!inter.distanceClamp],
+      ['prose-less page lands unavailable not reader', !!inter.spaShellUnavailable],
+      ['page title decodes entities, falls back to URL', !!inter.titleEntityDecode],
+      ['plane geometries memoize per size', !!inter.sharedPlaneGeo],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],

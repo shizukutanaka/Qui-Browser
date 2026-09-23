@@ -598,6 +598,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `panel.setCurved(this._curved)`(:408) 切断 → `curvedFanOut` のみ FAIL、ctor 側 `panel.setCurved(true)`(:277) 切断 → `curvedInherit` のみ（setCurved 本体は `_curved` flag を立てるため継承と独立）、`disableLayerMode()`(:1078) 切断 → `setVisibleReleases` のみ、clamp 式切断 → `distanceClamp` のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 463 checks PASS。
 
+### Session 245: 続き403 — reader 端腕 + shared-geometry memo を e2e pin（#285 batch 62、463→466 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①200 OK・prose 0 行の SPA shell が 'unavailable' に落ち `currentTitle=url`/`onNavigate(url,url)` — 'reader'成功と fetch-fail 腕のみ pin で `<title>Shell</title>` だと title 行が 1 行出て 'reader' になる分岐も実測で切り分け。②`extractTitle` の entity decode（`A &amp; B &#8212; C`→'A & B — C'）と missing-`<title>`→`title||url` fallback。③`_sharedPlaneGeometry` の `w×h` Map memo（同 dims→同一 PlaneGeometry、サイズ非共有→GPU alloc 増大）。
+- 🔧 **ハーネス教訓**: `layoutReaderLines` は opts.title があれば block 0 でも title 行を必ず生成 — 'unavailable' 腕には title 無し+prose 無しが必要（`console.log` デバッグは stdout に出ず node 直で `extractReadableText` 回して切り分け）。fetch stub 窓内なら `globalThis.fetch` を pin ごと再代入して連続 navigate 駆動可。
+- 🧪 赤検証: `if(!lines.length)` 切断 → spaShell のみ・co-signal ゼロ。`textOf` の decodeEntities 切断 → titleDecode のみ。`title||url`→`title` 切断 → 同 pin のみ（conjunct 分離）。`_sharedGeometries.get` 切断 → memo pin のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 466 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
