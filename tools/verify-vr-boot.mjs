@@ -1008,6 +1008,50 @@ async function main() {
                 placeA();
                 app.updateSystems(0, fakeXrFrame, 0.6);
                 out.slipResumes = aFires === 1;
+                // Fill disc + confirm flash internals: _updateFill scales
+                // the reticle progress disc with the charge, activation
+                // sets _confirmMs (ring opacity 1), _tickConfirm decays it
+                // — held flat under reduced motion (WCAG 2.3.3).
+                const rmWas = gz.reduceMotion;
+                try {
+                  gz._reset(); placeA(); aFires = 0;
+                  app.updateSystems(0, fakeXrFrame, 1.0);   // 2/3 charge
+                  const fillMid = gz._fill.scale.x;
+                  app.updateSystems(0, fakeXrFrame, 0.6);   // completes
+                  const fillDone = gz._fill.scale.x;
+                  const flashStart = gz._ring.material.opacity;
+                  gz._reset();
+                  out.gazeFillProgress = Math.abs(fillMid - 2 / 3) < 0.02
+                    && fillDone === 1 && aFires === 1
+                    && flashStart === 1
+                    && gz._fill.scale.x === 0.001
+                    && gz._ring.material.opacity === gz._ringOpacity;
+                  // Flash decay: normal mode eases back to resting opacity
+                  // across CONFIRM_MS (250ms); both targets off-ray so the
+                  // dwell clears while _tickConfirm still ticks.
+                  aFires = 0; placeA();
+                  app.updateSystems(0, fakeXrFrame, 1.6);   // fire
+                  const opFired = gz._ring.material.opacity;
+                  gA.position.copy(offPos); gB.position.copy(offPos);
+                  gA.updateMatrixWorld(true); gB.updateMatrixWorld(true);
+                  app.updateSystems(0, fakeXrFrame, 0.1);
+                  const opMidDecay = gz._ring.material.opacity;
+                  app.updateSystems(0, fakeXrFrame, 0.2);   // past 250ms
+                  const opRest = gz._ring.material.opacity;
+                  gz._reset(); aFires = 0; gz.setReducedMotion(true); placeA();
+                  app.updateSystems(0, fakeXrFrame, 1.6);   // fire
+                  app.updateSystems(0, fakeXrFrame, 0.1);   // inside hold
+                  const opRmHold = gz._ring.material.opacity;
+                  app.updateSystems(0, fakeXrFrame, 0.3);   // past CONFIRM_MS
+                  const opRmRest = gz._ring.material.opacity;
+                  out.gazeConfirmFlash = opFired === 1
+                    && opMidDecay < 1 && opMidDecay > gz._ringOpacity
+                    && opRest === gz._ringOpacity
+                    && opRmHold === 1
+                    && opRmRest === gz._ringOpacity;
+                } finally {
+                  gz.setReducedMotion(rmWas);
+                }
               } finally {
                 gz._reset();
                 gz.enabled = gzEnWas;
@@ -1205,6 +1249,116 @@ async function main() {
                 out.smoothStops = cs && cs.externalMotion === false
                   && cs.externalMotionLevel === 0;
                 app.settings.enableSmoothMove = origSmooth;
+                // Comfort vignette internals — the quad, detectMotion and the
+                // externalMotionLevel scaling were never e2e-driven (only the
+                // setPreset live-apply and the externalMotion flags above).
+                if (cs) {
+                  const presetWas = cs.settings.preset;
+                  const camPosWas = app.camera.position.clone();
+                  const camRotWas = app.camera.rotation.y;
+                  try {
+                    cs.setPreset('moderate');
+                    // The glide pin above already ran real update() frames —
+                    // start from a known-zero vignette or the chase
+                    // arithmetic below is off by that residue.
+                    cs.currentVignette = 0;
+                    // Head motion past the 1mm threshold → full-strength
+                    // target: currentVignette chases intensity*1*smoothing.
+                    app.camera.position.x += 0.05;
+                    cs.update(0.016);
+                    out.comfortHeadMotion = cs._headMoving === true
+                      && cs.isMoving === true
+                      && Math.abs(cs.currentVignette
+                        - cs.settings.vignette.intensity
+                          * cs.settings.vignette.smoothing) < 1e-9
+                      && cs.vignetteMaterial.opacity === cs.currentVignette
+                      && cs.vignetteMesh.visible === true;
+                    // Settle at rest, then a 0.5-strength locomotion signal
+                    // must produce HALF the full-strength target — adaptive
+                    // FOV restriction (arXiv:2502.03419).
+                    app.camera.position.copy(camPosWas);
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // re-detect at rest
+                    cs.externalMotion = true;
+                    cs.externalMotionLevel = 0.5;
+                    const vBefore = cs.currentVignette;
+                    cs.update(0.016);
+                    const expected = cs.settings.vignette.intensity * 0.5;
+                    out.comfortExternalLevel = cs.isMoving === true
+                      && Math.abs(cs.currentVignette
+                        - (vBefore + (expected - vBefore)
+                          * cs.settings.vignette.smoothing)) < 1e-9;
+                  } finally {
+                    cs.externalMotion = false;
+                    cs.externalMotionLevel = 1;
+                    app.camera.position.copy(camPosWas);
+                    app.camera.rotation.y = camRotWas;
+                    cs.setPreset(presetWas);
+                    cs.currentVignette = 0;
+                    cs.vignetteMaterial.opacity = 0;
+                    cs.vignetteMesh.visible = false;
+                  }
+                }
+                // FFR internals — initialize() can't run headless (no
+                // XRWebGLBinding), so the settings pin above only spied
+                // enable/disable calls. Stand in a projection-layer sink
+                // and drive the clamp/write path, the head-velocity EMA,
+                // and the predicted-gaze chase for real (FR-4.2).
+                const ffr = app.ffrSystem;
+                if (ffr) {
+                  const ffrProjWas = ffr.projectionLayer;
+                  const ffrBaseWas = ffr._baseFoveation;
+                  const ffrEnabledWas = ffr.enabled;
+                  const ffrPredWas = ffr.predictedGazeEnabled;
+                  try {
+                    ffr.projectionLayer = { fixedFoveation: -1 };
+                    ffr._baseFoveation = false;
+                    ffr.enabled = true;
+                    // enable + adjustIntensity clamp the intensity and the
+                    // value reaches the layer; disable writes 0.
+                    ffr.enable(1.7);
+                    const enOk = ffr.intensity === 1
+                      && ffr.projectionLayer.fixedFoveation === 1;
+                    ffr.adjustIntensity(-2);
+                    const adjOk = ffr.intensity === 0
+                      && ffr.projectionLayer.fixedFoveation === 0;
+                    ffr.enable(0.5);
+                    ffr.disable();
+                    out.ffrWritesClamp = enOk && adjOk
+                      && ffr.projectionLayer.fixedFoveation === 0;
+                    // Head-motion EMA → predicted foveation: a ~90°/frame
+                    // head turn is FAST (scanning → low intensity), then a
+                    // still head decays the EMA below SLOW (fixating →
+                    // chase up toward 0.8).
+                    const s4 = Math.sin(Math.PI / 4);
+                    const c4 = Math.cos(Math.PI / 4);
+                    ffr._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+                    ffr._headVelocity = 0;
+                    ffr.intensity = 0.8;
+                    ffr.trackHeadPose({ x: 0, y: s4, z: 0, w: c4 }, 0.016);
+                    const velFast = ffr._headVelocity;
+                    ffr.updatePredictedGazeFoveation();
+                    const fastFov = ffr.projectionLayer.fixedFoveation;
+                    for (let i = 0; i < 80; i++) {
+                      ffr.trackHeadPose(
+                        { x: 0, y: s4, z: 0, w: c4 }, 0.016);
+                      ffr.updatePredictedGazeFoveation();
+                    }
+                    out.ffrHeadAdaptive = ffr.predictedGazeEnabled === true
+                      && velFast > 0.5
+                      && fastFov < 0.8
+                      && ffr._headVelocity < 0.05
+                      && ffr.projectionLayer.fixedFoveation > 0.6
+                      && ffr.projectionLayer.fixedFoveation > fastFov;
+                  } finally {
+                    ffr.projectionLayer = ffrProjWas;
+                    ffr._baseFoveation = ffrBaseWas;
+                    ffr.enabled = ffrEnabledWas;
+                    ffr.predictedGazeEnabled = ffrPredWas;
+                    ffr._headVelocity = 0;
+                    ffr._prevHeadQuat = null;
+                  }
+                }
                 // Pointer thumbstickClick → recenter: rig pose reset + caption.
                 app.playerRig.position.set(0.5, 0, 0.25);
                 rightSrc.gamepad.buttons[3].pressed = true;
@@ -2269,6 +2423,60 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // CaptionSystem internals — show() queues, update() sweeps
+              // expired lines, _durationFor scales hold by reading time
+              // (WCAG 2.2.1: 4 CPS fullwidth / 17 CPS halfwidth, 3x cap),
+              // and the disabled gate never queues (#231).
+              const capSys = app.captionSystem;
+              if (capSys && capSys.mesh) {
+                const capEnabledWas = capSys.enabled;
+                const capDurWas = capSys.lineDuration;
+                try {
+                  // Earlier legs stub captionSystem.show into a caption-log
+                  // spy (never queues _lines) — bind the prototype method
+                  // directly so the queue/sweep logic runs for real.
+                  const capShow = (t2) =>
+                    Object.getPrototypeOf(capSys).show.call(capSys, t2);
+                  capSys.clear(); capSys.setEnabled(true);
+                  // Aging sweep: line holds, partial dt subtracts, expiry
+                  // removes and flips mesh.visible off when queue empties.
+                  capShow('__cap_aging');
+                  const rem0 = capSys._lines[0].remaining;
+                  capSys.update(10);
+                  const remMid = capSys._lines[0] && capSys._lines[0].remaining;
+                  capSys.update(rem0);
+                  out.capAgingSweep = rem0 > 0 && remMid === rem0 - 10
+                    && capSys._lines.length === 0
+                    && capSys.mesh.visible === false;
+                  // Reading-time floor: 40 fullwidth chars needs ~10 s at
+                  // 4 CPS, far above a 2000ms floor but under the 3x cap.
+                  capSys.setLineDuration(2000);
+                  capShow('これはキャプションキューの読書時間を検証するための長い全角文字列です');
+                  const remJa = capSys._lines[0].remaining;
+                  capShow('ok');
+                  const remLat = capSys._lines[1].remaining;
+                  out.capReadingFloor = remJa > 2000 && remJa <= 6000
+                    && remLat === 2000;
+                  // Queue rules: maxLines shift drops oldest, disabled
+                  // show() queues nothing (#231), NFD normalises to NFC.
+                  capSys.setEnabled(true);
+                  ['q1','q2','q3','q4'].forEach((t2) => capShow(t2));
+                  const shiftOk = capSys._lines.length === capSys.maxLines
+                    && capSys._lines[0].text === 'q2';
+                  capSys.setEnabled(false);
+                  capShow('__hidden');
+                  const noQueue = capSys._lines.every((l) => l.text !== '__hidden');
+                  capSys.setEnabled(true);
+                  capShow('が'.normalize('NFD'));
+                  const nfc = capSys._lines[capSys._lines.length - 1].text
+                    === 'が'.normalize('NFC');
+                  out.capQueueRules = shiftOk && noQueue && nfc;
+                } finally {
+                  capSys.setLineDuration(capDurWas);
+                  capSys.setEnabled(capEnabledWas);
+                  capSys.clear();
+                }
+              }
               // ImmersiveVideo HUD leg — play() builds sphere meshes plus a
               // camera-parented HUD whose two canvas buttons are registered
               // interactables; the exit button's onSelect routes stop() which
@@ -2477,6 +2685,34 @@ async function main() {
                   out.vidCycleClean = restarted
                     && iv.active === false
                     && iv._eyeTextures.length === 0;
+                  // Stereo arm: only mono layouts were ever played. A
+                  // '_180_tb' URL exercises detectVideoFormat's tb arm, the
+                  // per-eye sphere build (layers 1/2), the eyeUVTransform
+                  // texture crops, and _enableStereoLayers' camera.layers
+                  // mutation — plus the _disableStereoLayers restore on
+                  // stop() that hands the borrowed mask back.
+                  const camMaskWas = app.camera.layers.mask;
+                  iv.play('https://vid-seed.example/clip_180_tb.mp4');
+                  app.scene.updateMatrixWorld(true);
+                  const mL = iv.meshes[0];
+                  const mR = iv.meshes[1];
+                  const texL = mL && mL.material && mL.material.map;
+                  const texR = mR && mR.material && mR.material.map;
+                  out.vidStereoEyes = iv._layout === 'stereo-tb'
+                    && iv._projection === '180'
+                    && iv.meshes.length === 2
+                    && !!texL && !!texR
+                    && texL.offset.y === 0.5 && texL.repeat.y === 0.5
+                    && texL.repeat.x === 1
+                    && texR.offset.y === 0 && texR.repeat.y === 0.5
+                    && (mL.layers.mask & 2) !== 0
+                    && (mR.layers.mask & 4) !== 0
+                    && (app.camera.layers.mask & 6) === 6;
+                  iv.stop();
+                  out.vidStereoRestore = out.vidStereoEyes === true
+                    && app.camera.layers.mask === camMaskWas
+                    && iv.meshes.length === 0
+                    && iv._eyeTextures.length === 0;
                 } finally {
                   if (iv.active) { iv.stop(); }
                 }
@@ -2529,6 +2765,28 @@ async function main() {
                   out.stripClose = tm.tabs.length === nBefore - 1
                     && locoCaps.slice(capsBefore12)
                       .some((t3) => t3.includes('Tab closed'));
+                  // #221 — newTab(url) must announce the destination host,
+                  // not 'New Tab': activating before navigate() announces
+                  // the still-empty currentUrl.
+                  const capsBefore14 = locoCaps.length;
+                  tm.newTab('https://restore.example/x');
+                  const restoreIdx = tm.tabs.length - 1;
+                  const restoreCaps = locoCaps.slice(capsBefore14);
+                  out.tabRestoreAnnounce = restoreCaps
+                    .some((t3) => t3.includes('restore.example'))
+                    && !restoreCaps.some((t3) => t3.includes('New Tab'));
+                  // #221 — closing an earlier INACTIVE tab keeps the same
+                  // tab active; re-running setActive() announces 'Tab: X'
+                  // again for a tab that never changed (spurious WCAG 4.1.3
+                  // status message). Only this leg's own panels are
+                  // opened/closed so earlier state survives for later legs.
+                  tm.newTab('');                    // focus moves to the new tab
+                  const capsBefore15 = locoCaps.length;
+                  tm.closeTab(restoreIdx);          // inactive + earlier index
+                  const quietCaps = locoCaps.slice(capsBefore15);
+                  out.tabCloseQuiet = tm.activeIndex === tm.tabs.length - 1
+                    && quietCaps.some((t3) => t3.includes('Tab closed'))
+                    && !quietCaps.some((t3) => t3.includes('Tab:'));
                   // Saturate to MAX_TABS (8), then '+' warns instead.
                   while (tm.tabs.length < 8 && tm.newTab()) { /* fill */ }
                   const capsBefore13 = locoCaps.length;
@@ -2867,6 +3125,49 @@ async function main() {
                   app.updateSetting('windowDistance', distWas);
                   app.updateSetting('enableWindowFollow', followWas);
                   app.scene.updateMatrixWorld(true);
+                }
+              }
+              // Constant-visual-angle scaling: _applyAngularScale grows the
+              // managed root proportional to its distance from the eye, so
+              // every gaze target keeps its subtended size at any
+              // windowDistance (see angularSize.js / target-size tests —
+              // unscaled, controls fall below the 1.5deg gaze minimum at 6m).
+              // Pin the real update() -> scale contract incl. the clamps.
+              if (app.windowManager && app.windowManager.target && app.camera) {
+                const wm5 = app.windowManager;
+                const tgt = wm5.target;
+                const followWas5 = wm5.followMode;
+                const tPosWas = tgt.position.clone();
+                const tSclWas = tgt.scale.x;
+                try {
+                  wm5.setFollow(false);
+                  const cPos5 = app.camera.position.clone();
+                  app.camera.getWorldPosition(cPos5);
+                  const cQuat5 = app.camera.quaternion.clone();
+                  app.camera.getWorldQuaternion(cQuat5);
+                  const cFwd5 = cPos5.clone().set(0, 0, -1)
+                    .applyQuaternion(cQuat5);
+                  const ref = wm5.referenceDistance;
+                  const lo = wm5.minDistance / ref;
+                  const hi = wm5.maxDistance / ref;
+                  const place5 = (dist) => {
+                    tgt.position.copy(cPos5).addScaledVector(cFwd5, dist);
+                    tgt.updateMatrixWorld(true);
+                    wm5.update(16);
+                    return tgt.scale.x;
+                  };
+                  const sFar = place5(4);
+                  const sNear = place5(0.4);
+                  const sMax = place5(7);
+                  out.wmAngularScale = Math.abs(sFar - 4 / ref) < 0.01
+                    && Math.abs(sNear - lo) < 0.001
+                    && Math.abs(sMax - hi) < 0.001
+                    && sFar > sNear;
+                } finally {
+                  wm5.setFollow(followWas5);
+                  tgt.position.copy(tPosWas);
+                  tgt.scale.setScalar(tSclWas);
+                  tgt.updateMatrixWorld(true);
                 }
               }
               // Hover-caption leg — every managed surface announces itself on
@@ -3424,6 +3725,13 @@ async function main() {
                       && Math.abs(sa.listener.upY.value - eu.y) < 1e-6);
                   app.camera.rotation.y = rotYWas;
                   app.camera.updateMatrixWorld(true);
+                  // setSourcePosition also writes the real PannerNode's
+                  // positionX/Y/Z AudioParams — the pins above only saw the
+                  // recorded {x,y,z} field and the LOD side effect.
+                  out.audioSourcePosWrite = lod.panner.positionX === undefined
+                    || (Math.abs(lod.panner.positionX.value - lp.x) < 1e-6
+                      && Math.abs(lod.panner.positionY.value - lp.y) < 1e-6
+                      && Math.abs(lod.panner.positionZ.value - (lp.z - 1)) < 1e-6);
                   sa.sources.delete('__lod');
                 }
 
@@ -3501,6 +3809,22 @@ async function main() {
                     && Math.abs(loopSrc.node.playbackRate.value - 1.5) < 1e-9;
                   sa2.stop('__loop');
                   sa2.sources.delete('__loop');
+                  // createSource option writes onto the real PannerNode:
+                  // distance params always apply; the directional arm
+                  // writes the cone params (coneOuterGain 0 must survive —
+                  // a || fallback would leak 0.3).
+                  sa2.createSource('__dir', {
+                    directional: true, coneInnerAngle: 45, coneOuterGain: 0,
+                    refDistance: 2, rolloffFactor: 2
+                  });
+                  const dirP = sa2.sources.get('__dir').panner;
+                  out.audioSourceParams = !!dirP
+                    && dirP.coneInnerAngle === 45
+                    && dirP.coneOuterAngle === 120
+                    && dirP.coneOuterGain === 0
+                    && dirP.refDistance === 2
+                    && dirP.rolloffFactor === 2;
+                  sa2.sources.delete('__dir');
                 }
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
@@ -3726,6 +4050,8 @@ async function main() {
       slipHolds: iout.slipHolds === true,
       slipRetargets: iout.slipRetargets === true,
       slipResumes: iout.slipResumes === true,
+      gazeFillProgress: iout.gazeFillProgress === true,
+      gazeConfirmFlash: iout.gazeConfirmFlash === true,
       settingsProbe: iout.settingsProbe === true,
       settingsOffLive: iout.settingsOffLive === true,
       settingsOnLive: iout.settingsOnLive === true,
@@ -3752,6 +4078,13 @@ async function main() {
       teleportGate: iout.teleportGate === true,
       comfortProbe: iout.comfortProbe === true,
       comfortCycles: iout.comfortCycles === true,
+      comfortHeadMotion: iout.comfortHeadMotion === true,
+      comfortExternalLevel: iout.comfortExternalLevel === true,
+      ffrWritesClamp: iout.ffrWritesClamp === true,
+      ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
+      capAgingSweep: iout.capAgingSweep === true,
+      capReadingFloor: iout.capReadingFloor === true,
+      capQueueRules: iout.capQueueRules === true,
       a11yTabProbe: iout.a11yTabProbe === true,
       a11yTabOpen: iout.a11yTabOpen === true,
       gazeTimeApplied: iout.gazeTimeApplied === true,
@@ -3814,6 +4147,8 @@ async function main() {
       stripNewTab: iout.stripNewTab === true,
       stripActivate: iout.stripActivate === true,
       stripClose: iout.stripClose === true,
+      tabRestoreAnnounce: iout.tabRestoreAnnounce === true,
+      tabCloseQuiet: iout.tabCloseQuiet === true,
       stripMaxWarn: iout.stripMaxWarn === true,
       shiftProbe: iout.shiftProbe === true,
       shiftToggles: iout.shiftToggles === true,
@@ -3836,6 +4171,7 @@ async function main() {
       followEnabled: iout.followEnabled === true,
       followConverges: iout.followConverges === true,
       followOffHolds: iout.followOffHolds === true,
+      wmAngularScale: iout.wmAngularScale === true,
       stripHoverCaption: iout.stripHoverCaption === true,
       moveBarHoverCaption: iout.moveBarHoverCaption === true,
       chromeHoverCaption: iout.chromeHoverCaption === true,
@@ -3862,6 +4198,8 @@ async function main() {
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
       vidPlayingListener: iout.vidPlayingListener === true,
+      vidStereoEyes: iout.vidStereoEyes === true,
+      vidStereoRestore: iout.vidStereoRestore === true,
       vidHeadFollow: iout.vidHeadFollow === true,
       vidResumePlays: iout.vidResumePlays === true,
       vidErrorResets: iout.vidErrorResets === true,
@@ -3869,6 +4207,8 @@ async function main() {
       audioMasterGain: iout.audioMasterGain === true,
       audioLodStats: iout.audioLodStats === true,
       audioListenerOrient: iout.audioListenerOrient === true,
+      audioSourcePosWrite: iout.audioSourcePosWrite === true,
+      audioSourceParams: iout.audioSourceParams === true,
       audioLoadFetch: iout.audioLoadFetch === true,
       audioLoopSource: iout.audioLoopSource === true,
       audioLodSwitch: iout.audioLodSwitch === true,
@@ -4031,12 +4371,21 @@ async function main() {
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
       ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
       ['stick release disengages external motion', !!inter.smoothStops],
+      ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
+      ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
+      ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
+      ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
+      ['caption update() ages and removes lines', !!inter.capAgingSweep],
+      ['caption hold follows per-script reading time', !!inter.capReadingFloor],
+      ['caption queue trims, skips while off, NFC', !!inter.capQueueRules],
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],
       ['brief slip onto a different object holds the dwell', !!inter.slipHolds],
       ['persistent new object wins only after graceTime', !!inter.slipRetargets],
       ['return to held target resumes and completes', !!inter.slipResumes],
+      ['gaze fill disc scales with dwell charge', !!inter.gazeFillProgress],
+      ['confirm flash decays or holds per RM', !!inter.gazeConfirmFlash],
       ['hover announce identifies the Captions toggle', !!inter.settingsProbe],
       ['ray select flips enableCaptions live', !!inter.settingsOffLive],
       ['re-select restores the captions toggle state', !!inter.settingsOnLive],
@@ -4125,6 +4474,8 @@ async function main() {
       ['+ zone opens a new tab and announces', !!inter.stripNewTab],
       ['tab body activates and announces', !!inter.stripActivate],
       ['close zone closes the tab and announces', !!inter.stripClose],
+      ['newTab(url) announces the destination host', !!inter.tabRestoreAnnounce],
+      ['closing an inactive tab does not re-announce', !!inter.tabCloseQuiet],
       ['saturated strip warns on + select', !!inter.stripMaxWarn],
       ['shift key mesh is present and visible', !!inter.shiftProbe],
       ['shift key toggles katakana mode', !!inter.shiftToggles],
@@ -4146,6 +4497,7 @@ async function main() {
       ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
       ['head-lock follow converges the panel', !!inter.followConverges],
       ['follow off leaves the panel in place', !!inter.followOffHolds],
+      ['angular scale keeps constant visual size', !!inter.wmAngularScale],
       ['tab strip hover announces its label', !!inter.stripHoverCaption],
       ['move bar hover announces its label', !!inter.moveBarHoverCaption],
       ['chrome hover announces page title + tints', !!inter.chromeHoverCaption],
@@ -4172,6 +4524,8 @@ async function main() {
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['stereo video builds per-eye cropped spheres', !!inter.vidStereoEyes],
+      ['stereo stop restores the camera layer mask', !!inter.vidStereoRestore],
       ['video spheres track the head per frame', !!inter.vidHeadFollow],
       ['paused HUD select calls video.play only', !!inter.vidResumePlays],
       ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
@@ -4179,6 +4533,8 @@ async function main() {
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
       ['LOD tier counts aggregate into stats', !!inter.audioLodStats],
       ['listener orientation reaches the AudioListener', !!inter.audioListenerOrient],
+      ['source position writes reach the PannerNode params', !!inter.audioSourcePosWrite],
+      ['directional and distance options reach the PannerNode', !!inter.audioSourceParams],
       ['loadAudio fetches decodes and caches the buffer', !!inter.audioLoadFetch],
       ['loop and playbackRate reach the buffer source', !!inter.audioLoopSource],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],

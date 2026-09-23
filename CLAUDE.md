@@ -295,6 +295,48 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `stats.hrtfSources = hrtf` 切断 → `audioLodStats` FAIL、`listener.forwardX.value` 切断 → `audioListenerOrient` FAIL（回転版で有効化）。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 270 checks PASS、verify:app PASS。
 
+### Session 196: 続き354 — stereo video per-eye 腕 + createSource directional/distance + setSourcePosition AudioParam 書込を e2e pin（#268 batch 13、270→274 checks）
+- 🔍 **実測（未駆動 3 面）**: ①video leg は mono layout のみ — `layout:'stereo-tb'` の 2-eye sphere 構築・`layers.set(1|2)`・`eyeUVTransform` テクスチャクロップ・`_enableStereoLayers` の camera.layers 借用と `_disableStereoLayers` の返却が全く未駆動。②`createSource` の `directional` 腕（coneInner/Outer/OuterGain — `coneOuterGain ?? 0.3` の 0 リーガル終端）と distance params（refDistance/maxDistance/rolloffFactor）は実 PannerNode への書込未観測。③`setSourcePosition` の `panner.positionX/Y/Z.value` AudioParam 書込も未駆動（position フィールドと LOD 副作用のみ pin 済み）。
+- 🔧 **ハーネス設計**: stereo は `_180_tb` URL で `detectVideoFormat` の tb/180 腕も同時 pin（明示 opts 不要 — URL 規約を端到端駆動）。`_listenerPos` は `updateListenerFromCamera` が毎回 **新オブジェクト** に差替えるため `lp` 参照は差替前の値を保持 — setSourcePosition 書込値との比較として正しい（教訓として記録）。eval 内コメントのバッククォートで再び SyntaxError（同教訓 2 度目）。
+- 🧪 赤検証: `_enableStereoLayers()` 切断 → vidStereoEyes+vidStereoRestore FAIL、`positionX.value` 切断 → audioSourcePosWrite FAIL、`refDistance` 書込切断 → audioSourceParams FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 274 checks PASS、verify:app PASS。
+
+### Session 197: 続き355 — ComfortSystem vignette の head-motion 検出 + externalMotionLevel スケーリングを e2e pin（#269 batch 14、274→276 checks）
+- 🔍 **実測（未駆動）**: vignette quad・`detectMotion`・`updateVignette` の chase 計算は一度も e2e 駆動されていなかった — pin されていたのは `externalMotion` フラグと `setPreset` live-apply のみ。head-delta 検出（1mm 閾値 → `isMoving` → vignette fade-in）と locomotion 強度比例ターゲット（adaptive FOV restriction, arXiv:2502.03419）は実測ゼロ。
+- 🔧 **ハーネス教訓**: chase 系 pin は **開始時に `currentVignette = 0` で正規化必須** — 先行の glide pin が実 `update()` フレームを走らせ vignette 残値を残しており、閉形式の期待値がずれて FAIL した（測定バグ）。
+- 🧪 赤検証: `detectMotion()` 切断 → 両 check FAIL（external pin も detect 経由のため想定 co-signal）、`externalMotionLevel` clamp → 1 切断 → `comfortExternalLevel` のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 276 checks PASS、verify:app PASS。
+
+### Session 198: 続き356 — FFRSystem の clamp/write 経路・頭速度 EMA・predicted-gaze chase を e2e pin（#269 batch 15、276→278 checks）
+- 🔍 **実測（未駆動）**: `initialize()` は headless で XRWebGLBinding 非対応のため graceful-degradation pin のみ — `enable`/`adjustIntensity`/`disable` の clamp + `_writeFoveation` の `projectionLayer.fixedFoveation` 書込、`trackHeadPose` の EMA 頭速度推定、`updatePredictedGazeFoveation` の SLOW/FAST 線形ターゲット chase（still → 0.8 / scanning → 0.2、FR-4.2）が全く未駆動。settings toggle pin は `enabled=false` で実メソッドが即 return するため spy 止まりだった。
+- 🔧 **ハーネス設計**: `projectionLayer = {fixedFoveation:-1}` sink を差して `enabled=true` にし、実メソッドを端到端駆動 — 実対象（XRProjectionLayer）が headless で生成不能な seam として固定。高速頭回転は 90°/frame quat（角速度 ~98 rad/s → FAST 域）、静止頭は同一 quat 80 フレームで EMA 減衰 → 0.8 方向の chase を観測。
+- 🧪 赤検証: `fixedFoveation` 書込切断 → 両 check FAIL（write 経路共有の想定 co-signal）、`predictedGazeEnabled = true` 切断 → `ffrHeadAdaptive` のみ FAIL（分離確認）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 278 checks PASS、verify:app PASS。
+
+### Session 199: 続き357 — CaptionSystem 内部（aging sweep・読書時間 floor・キュー規則）を e2e pin（#269 batch 16、278→281 checks）
+- 🔍 **実測（未駆動 3 面）**: ①`update(dtMs)` の in-place sweep（remaining 減算・expiry 除去・空時 mesh.visible 解除）— 既存 caption pin は announce 経路のみで実フレーム経時未駆動。②`_durationFor` の per-script 読書時間 floor（CPS 4 全角 / 17 半角、3× cap — WCAG 2.2.1, Netflix/broadcast 基準）。③`maxLines` shift・disabled `show()` no-queue（#231 fix、再発防止）・NFD→NFC 正規化。
+- 🔧 **ハーネス教訓**: 先の leg が `captionSystem.show` を caption-log spy に差替（実 `_lines` に積まない）— `Object.getPrototypeOf(capSys).show.call(capSys, ...)` で prototype 直 bind。`setEnabled(false)` は `clear()` も呼ぶため no-queue pin の順序は disable→show のみで有効。
+- 🧪 赤検証: `line.remaining -= dtMs` 切断 → capAgingSweep + capQueueRules FAIL（stale 行が残り noQueue 擬似緑になる co-signal 実測 — flat-return 単独切断で capReadingFloor のみ FAIL と分離確認）、`!enabled return` 切断 → capQueueRules のみ FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 281 checks PASS、verify:app PASS。
+
+### Session 200: 続き358 — 新 pin が #221 の実欠陥 2 件を捕捉・fix 同梱（#269 batch 17、281→283 checks）
+- 🔍 **実測（organic red 2 件、WCAG 4.1.3）**: ①`newTab(url)` が `setActive` → `navigate` の順で `onTabActivate` が空 `currentUrl` を読み 'Tab: New Tab' を announce（復元/セッション復帰タブが偽ラベル）。②`closeTab(index < activeIndex)` で同じタブが active のまま index が 1 ずれるだけなのに `setActive` を再実行 → 'Tab: X' が重複 announce（変化なしの偽ステータス）。
+- 🔧 **fix（#221 8c2c3d6 より TabManager.js 分のみ再適用、#221 先マージ時 no-op）**: newTab で `panel.navigate(url)` を `setActive` の前に移動（`currentUrl` が同期でセットされるため announce が宛先 host になる）。closeTab で `index === activeIndex` の場合のみ `setActive` 実行 — `index < activeIndex` は `activeIndex--` のみで同一タブの active が維持されるため announce 不要。
+- 🧪 ハーネス設計: 両 pin は有機 red で欠陥を実測してから fix 同梱。`tabRestoreAnnounce` は `tm.newTab('https://restore.example/x')` の caption が 'restore.example' を含み 'New Tab' を含まないこと、`tabCloseQuiet` は close-inactive で 'Tab closed' のみで 'Tab:' 再 announce がないこと（`activeIndex` 維持も pin）。leg 自身が開いた panel のみ開閉し先行 leg の panel は温存。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 283 checks PASS、verify:app PASS。
+
+### Session 201: 続き359 — GazeInteraction の fill disc 進捗 + confirm flash 減衰/RM 保持を e2e pin（#269 batch 18、283→285 checks）
+- 🔍 **実測（未駆動 2 面）**: ①`_updateFill` が reticle の進捗 disc を `_elapsed/dwellTime` に比例 scale（0.001→1）— 既存 gaze pin は onSelect/haptic/caption のみで視覚進捗は未観測（gaze ユーザー唯一の charge 可視化、WCAG 1.3.3）。②`_confirmMs`/`_tickConfirm` の発火フラッシュ — 発火時 ring opacity=1 → 250ms で resting へ減衰、reduced-motion では hold→snap（WCAG 2.3.3）。`hcApplied` pin は `_ringOpacity` 変更のみで減衰経路は未駆動。
+- 🔧 **ハーネス設計**: slip leg の合成 gA/gB を流用 — charge 1.0s で `fill.scale.x≈2/3`、完走で scale=1 + opacity=1、`_reset` で 0.001/resting 復元を pin。flash decay は両 target を off-ray にして dwell 解除しつつ `_tickConfirm` のみ継続観測。RM 腕は `setReducedMotion(true)` で hold 検証後 `rmWas` 復元。
+- 🧪 赤検証: `setScalar` 切断 → `gazeFillProgress` のみ FAIL、ring decay 行切断 → `gazeConfirmFlash` のみ FAIL（同時切断で両方 — 分離確認済み）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 285 checks PASS、verify:app PASS。
+
+### Session 202: 続き360 — _applyAngularScale を全モード適用（静的パネルの視角退化 fix + e2e pin、#269 batch 19、285→286 checks）
+- 🔍 **実測（有機赤で実欠陥捕捉）**: 新 pin `wmAngularScale`（実 `wm.update(16)` で managed root を camera 前方 4m/0.4m/7m に配置し `target.scale` の比例・min/max clamp を観測）が base で FAIL — `_applyAngularScale` が `_grab`/`followMode` 分岐内部のみ呼出で、**静的パネルには一切適用されない**ことを発見。永続化 `windowDistance=6m` で起動した非-follow ユーザーのパネルは scale=1 のまま — 6m で全コントロールが 0.33–1.43°（gaze 最小 1.5° 未満、angularSize.js 実測値）に退化し、この機能が防ぐはずの退化そのものが残存。grab 経由の移動のみがスケールしていた。
+- 🔧 **修正**: `update()` の `followMode` 分岐から呼出を外し、grab 分岐（early return 内に残置）の後に無条件 tail call として配置 — 全モードで frame 毎に `scale = clamp(d/referenceDistance, min/ref, max/ref)` が適用される契約に。
+- 🧪 赤検証: pin は fix 前の base で有機 FAIL → fix 適用後 PASS。加えて tail call 切断の独立 cut でも `wmAngularScale` のみ FAIL を再確認（git checkout で fix ごと巻き戻す事故 — cut 検証は source fix を stash/commit 後に行う教訓）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 286 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
