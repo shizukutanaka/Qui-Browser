@@ -537,6 +537,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 5 run: `togglePause()`→pause+gates FAIL（共有腕）、`document.hidden &&`→gates のみ、`fn && fn()`→`fn`→drawers のみ、`_rebuildSettingsPanel()`→sectRebuild のみ（earlyReturn は依然 PASS — 分離証明）、early-return guard→sectEarlyReturn のみ。全 5 pin 個別 falsifiable。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 427 checks PASS、verify:app PASS。CI 未設定（0/0）。
 
+### Session 235: 続き393 — sessionend の callback/counter リセット・FFR disable・vr_end analytics + perfMonitor EMA/GPU 書込を e2e pin（#283 batch 52、427→431 checks）
+- 🔍 **実測（未駆動 4 面）**: ①`onVRSessionEnd` の session-scoped 後始末 — `onXRVisibilityChange`/`onRefSpaceReset`/`onFrameRateChange` null 化 + `_rateIdx`/`_viewScaleIdx`/`_overBudgetFrames` 0 + `setPixelRatio(min(dpr,2))` 復元。②`ffrSystem.disable()`。③`trackVRSession('end')` → `window.gtag('event','vr_end',…)`。④`updatePerformanceMonitor` の EMA（0.9/0.1）+ `fps=1000/frameTime` + `renderer.info` GPU metrics 書込。
+- 🔧 **ハーネス設計・教訓 3 件**: ①`performanceMetrics` ring は完全 module-private → telemetry 1Hz ゲートは harness 到達不可と確定（観測面は `window.gtag` 経由のみ）。②sessionend の null 契約は **非 0 seed が必須** — sessionstart leg で callback は非 null 駆動済みだが counter は unknown のため `_rateIdx=2`/`_overBudgetFrames=5` を明示 seed。③`trackEvent` は `window.gtag` 不在で early-return — spy で `('event','vr_end',{device})` 引数契約を観測可能（module binding は外から stub 不能だが window 面は残る）。
+- 🧪 赤検証 5 run: `trackVRSession('end')`→sessTrackEvent、`ffrSystem.disable()`→sessFfrDisabled、3 listener null 代入→sessScalarsCleared、counter+pixelRatio ブロック→sessScalarsCleared（同一 pin の両 conjunct 群を個別 falsify）、`fps=`書込→perfMonitorWrites。全 pin 個別 falsifiable。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 431 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

@@ -5857,6 +5857,24 @@ async function main() {
             const lsWas6 = app.layersSystem;
             let lsDisposeCalls6 = 0;
             app.layersSystem = { dispose: () => { lsDisposeCalls6 += 1; } };
+            // batch 52: session-scoped callbacks/cursors must all reset on
+            // session end — seed non-zero state so the teardown is observed.
+            app.onXRVisibilityChange = () => {};
+            app.onRefSpaceReset = () => {};
+            app.onFrameRateChange = () => {};
+            app._rateIdx = 2;
+            app._viewScaleIdx = 1;
+            app._overBudgetFrames = 5;
+            const ffr6 = app.ffrSystem;
+            const ffrDisWas6 = ffr6 && ffr6.disable;
+            let ffrDisCalls6 = 0;
+            if (ffr6) { ffr6.disable = () => { ffrDisCalls6 += 1; }; }
+            const sprArgs6 = [];
+            const sprWas6 = app.renderer.setPixelRatio;
+            app.renderer.setPixelRatio = (r) => { sprArgs6.push(r); };
+            const gtagWas6 = window.gtag;
+            const gtagEvents6 = [];
+            window.gtag = (...a) => { gtagEvents6.push(a); };
             // End through the real 'sessionend' listener too.
             app.renderer.xr.dispatchEvent({ type: 'sessionend' });
             out.sessPanelDetach = lsDisposeCalls6 === 1 && detachArgs.length > 0
@@ -5869,6 +5887,25 @@ async function main() {
             out.sessLaddersNull = app._rateLadder === null
               && app._viewScaleLadder === null;
             out.sessFpsBack = app.settings.targetFPS === tfpsBefore;
+            out.sessScalarsCleared = app.onXRVisibilityChange === null
+              && app.onRefSpaceReset === null
+              && app.onFrameRateChange === null
+              && app._rateIdx === 0
+              && app._viewScaleIdx === 0
+              && app._overBudgetFrames === 0
+              && sprArgs6.length >= 1
+              && sprArgs6[sprArgs6.length - 1]
+                === Math.min(window.devicePixelRatio, 2);
+            out.sessFfrDisabled = ffrDisCalls6 === 1;
+            out.sessTrackEvent = gtagEvents6
+              .some((e) => e[0] === 'event' && e[1] === 'vr_end');
+            if (ffr6 && ffrDisWas6) { ffr6.disable = ffrDisWas6; }
+            app.renderer.setPixelRatio = sprWas6;
+            if (gtagWas6 === undefined) {
+              delete window.gtag;
+            } else {
+              window.gtag = gtagWas6;
+            }
             out.capWrites = capWrites;
             } catch (e) {
               out.sessError = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
@@ -6236,6 +6273,25 @@ async function main() {
             // Leave the accordion on the default-open a11y section.
             app._toggleSettingsSection('settings.section.a11y');
           }
+          // updatePerformanceMonitor: EMA of frameTime, derived fps, and real
+          // renderer.info GPU metrics must all land on performanceMonitor.
+          const pm7 = app.performanceMonitor;
+          const ftWas7 = pm7.frameTime;
+          try {
+            pm7.frameTime = 0;
+            app.updatePerformanceMonitor(100);
+            const ft1 = pm7.frameTime; // EMA: 0*0.9 + 100*0.1 = 10
+            app.updatePerformanceMonitor(200);
+            const ft2 = pm7.frameTime; // EMA: 10*0.9 + 200*0.1 = 29
+            const info7 = app.renderer.info;
+            out.perfMonitorWrites = Math.abs(ft1 - 10) < 0.001
+              && Math.abs(ft2 - 29) < 0.001
+              && pm7.fps === 1000 / pm7.frameTime
+              && pm7.drawCalls === info7.render.calls
+              && pm7.triangles === info7.render.triangles;
+          } finally {
+            pm7.frameTime = ftWas7;
+          }
         }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
         // eval. Every check below observes state/spies captured BEFORE
@@ -6600,6 +6656,10 @@ async function main() {
       hcDrawersFire: iout.hcDrawersFire === true,
       sectRebuild: iout.sectRebuild === true,
       sectEarlyReturn: iout.sectEarlyReturn === true,
+      sessScalarsCleared: iout.sessScalarsCleared === true,
+      sessFfrDisabled: iout.sessFfrDisabled === true,
+      sessTrackEvent: iout.sessTrackEvent === true,
+      perfMonitorWrites: iout.perfMonitorWrites === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -7072,6 +7132,10 @@ async function main() {
       ['settings redraw fires every registered drawer', !!inter.hcDrawersFire],
       ['settings accordion rebuilds panel + unregisters old', !!inter.sectRebuild],
       ['same-section click early-returns without rebuild', !!inter.sectEarlyReturn],
+      ['session end clears callbacks + perf cursors', !!inter.sessScalarsCleared],
+      ['session end disables FFR', !!inter.sessFfrDisabled],
+      ['session end emits vr_end analytics event', !!inter.sessTrackEvent],
+      ['perf monitor EMA + fps + GPU metrics written', !!inter.perfMonitorWrites],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
