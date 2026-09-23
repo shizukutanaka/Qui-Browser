@@ -4763,6 +4763,45 @@ async function main() {
                   selChrome2(170);
                   out.stopArmClears = wasLoading
                     && wp2.loading === false;
+                  // A completed navigate fans out through the TabManager
+                  // wrapper: _drawStrip refreshes the tab title,
+                  // opts.onNavigate reaches app.navigate (history + caption
+                  // + analytics), and onSessionChange drives _saveTabSession
+                  // + _syncPanelLayers. Wrap each sink and count.
+                  const origStrip2 = tm2._drawStrip && tm2._drawStrip.bind(tm2);
+                  const origNavCb2 = tm2.opts && tm2.opts.onNavigate;
+                  const origSave2 = app._saveTabSession
+                    && app._saveTabSession.bind(app);
+                  if (origStrip2 && origNavCb2 && origSave2) {
+                    let stripCalls2 = 0;
+                    const navArgs2 = [];
+                    let saveCalls2 = 0;
+                    tm2._drawStrip =
+                      () => { stripCalls2 += 1; return origStrip2(); };
+                    tm2.opts.onNavigate = (u, t2) => {
+                      navArgs2.push([u, t2]);
+                      return origNavCb2(u, t2);
+                    };
+                    app._saveTabSession =
+                      () => { saveCalls2 += 1; return origSave2(); };
+                    try {
+                      wp2.navigate('https://nav-fanout.example/path');
+                      await settle2();
+                      out.navFanOut = navArgs2.length === 1
+                        && navArgs2[0][0] === 'https://nav-fanout.example/path'
+                        && typeof navArgs2[0][1] === 'string'
+                        && navArgs2[0][1].length > 0
+                        && stripCalls2 === 1 && saveCalls2 === 1;
+                    } finally {
+                      tm2._drawStrip = origStrip2;
+                      tm2.opts.onNavigate = origNavCb2;
+                      app._saveTabSession = origSave2;
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://nav-fanout.example/path');
+                      }
+                    }
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -5270,6 +5309,12 @@ async function main() {
                   if (mbH && mbH.onHover) { mbH.onHover(); }
                   out.moveBarHoverCaption = locoCaps.slice(capsBefore16)
                     .some((t3) => t3.includes('Move bar'));
+                  // The move bar also tints its material on enter
+                  // (0xaaaaff) and restores the darker 0x55556f on exit.
+                  const mbTintIn = mb.material.color.getHex() === 0xaaaaff;
+                  if (mbH && mbH.onHoverEnd) { mbH.onHoverEnd(); }
+                  out.moveBarTint = mbTintIn
+                    && mb.material.color.getHex() === 0x55556f;
                   // Chrome hover announces the loaded page's title, and
                   // entering tints the bar 0xaaaaff (restored on hoverEnd).
                   const titleWas = wp3.currentTitle;
@@ -5282,6 +5327,29 @@ async function main() {
                   if (chH && chH.onHoverEnd) { chH.onHoverEnd(); }
                   out.chromeHoverCaption = chromeLabel && tinted
                     && chrome.material.color.getHex() === 0xffffff;
+                  // Chrome hover fallback arms: a page with no title
+                  // announces the URL's hostname; no URL at all announces
+                  // the generic 'Browser controls' label.
+                  const urlWasH = wp3.currentUrl;
+                  const titleWasH = wp3.currentTitle;
+                  try {
+                    wp3.currentTitle = '';
+                    wp3.currentUrl = 'https://host-fallback-59.example/x';
+                    const capsBeforeH1 = locoCaps.length;
+                    if (chH && chH.onHover) { chH.onHover(); }
+                    const hostLabel = locoCaps.slice(capsBeforeH1)
+                      .some((t3) => t3 === 'host-fallback-59.example');
+                    wp3.currentUrl = '';
+                    const capsBeforeH2 = locoCaps.length;
+                    if (chH && chH.onHover) { chH.onHover(); }
+                    const ctrlLabel = locoCaps.slice(capsBeforeH2)
+                      .some((t3) => t3.includes('Browser controls'));
+                    out.chromeHoverFallback = hostLabel && ctrlLabel;
+                  } finally {
+                    if (chH && chH.onHoverEnd) { chH.onHoverEnd(); }
+                    wp3.currentUrl = urlWasH;
+                    wp3.currentTitle = titleWasH;
+                  }
                   // Gaze gate: with gaze dwell off, hover announces nothing.
                   app.updateSetting('enableGazeDwell', false);
                   const capsBefore18 = locoCaps.length;
@@ -7160,13 +7228,16 @@ async function main() {
       tileMissNoop: iout.tileMissNoop === true,
       tileNavigates: iout.tileNavigates === true,
       stopArmClears: iout.stopArmClears === true,
+      navFanOut: iout.navFanOut === true,
       followEnabled: iout.followEnabled === true,
       followConverges: iout.followConverges === true,
       followOffHolds: iout.followOffHolds === true,
       wmAngularScale: iout.wmAngularScale === true,
       stripHoverCaption: iout.stripHoverCaption === true,
       moveBarHoverCaption: iout.moveBarHoverCaption === true,
+      moveBarTint: iout.moveBarTint === true,
       chromeHoverCaption: iout.chromeHoverCaption === true,
+      chromeHoverFallback: iout.chromeHoverFallback === true,
       hoverGatedByGaze: iout.hoverGatedByGaze === true,
       handTracked: iout.handTracked === true,
       docPaused: iout.docPaused === true,
@@ -7657,13 +7728,16 @@ async function main() {
       ['dead space between tiles is a no-op', !!inter.tileMissNoop],
       ['tile select navigates the tab', !!inter.tileNavigates],
       ['reload zone during load stops the fetch', !!inter.stopArmClears],
+      ['panel navigate fans out to strip + navigate + session save', !!inter.navFanOut],
       ['follow toggle applies windowManager.setFollow', !!inter.followEnabled],
       ['head-lock follow converges the panel', !!inter.followConverges],
       ['follow off leaves the panel in place', !!inter.followOffHolds],
       ['angular scale keeps constant visual size', !!inter.wmAngularScale],
       ['tab strip hover announces its label', !!inter.stripHoverCaption],
       ['move bar hover announces its label', !!inter.moveBarHoverCaption],
+      ['move bar hover tints the bar material', !!inter.moveBarTint],
       ['chrome hover announces page title + tints', !!inter.chromeHoverCaption],
+      ['chrome hover falls back to hostname then controls label', !!inter.chromeHoverFallback],
       ['hover captions gate on gaze dwell', !!inter.hoverGatedByGaze],
       ['hand input source announces Right hand tracked', !!inter.handTracked],
       ['document-hidden pause arms outside XR too', !!inter.docPaused],

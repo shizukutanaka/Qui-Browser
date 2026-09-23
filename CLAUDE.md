@@ -579,6 +579,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 **赤検証 2 切断**: ①`this.a11y.captionSystem = value` 切断 → `a11yDelegates` FAIL + VRApp ctor が setter 経由で subsystem を install するため coordinator に captionSystem が残らず caption 系全 legs が想定 co-signal FAIL。②`newTab` tail の `onSessionChange?.()` 切断 → `sessMutSaveSync` のみ FAIL（完全分離 — setActive 側が残り 1 呼出で `===2` を逃す）。教訓: 「2 ヶ所から呼ばれる同一 callback」の pin は count ではなく回数一致で切断箇所を特定可能。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 453 checks PASS。全 pin 有機全緑（純粋カバレッジ）。
 
+### Session 242: 続き400 — navigate fan-out + move-bar tint + chrome-hover fallback を e2e pin（#285 batch 59、453→456 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①TabManager の panel `onNavigate` wrapper が `_drawStrip` + `opts.onNavigate`(→`app.navigate`: history/caption/analytics) + `onSessionChange`(→`_saveTabSession`+`_syncPanelLayers`) を fan-out する実配線 — history/caption の各 sink は pin 済みだが wrapper の分岐自体は未観測。②`_onMoveBarHover` の material tint 0xaaaaff/0x55556f は caption pin のみで色変化未観測。③`onPanelHoverCaption` の fallback 2 腕（no-title→hostnameCaption、no-url→'Browser controls'）は title 腕のみ pin 済み。
+- 🔧 **ハーネス設計**: fan-out は tile leg 既存の fetch-stub 窓内で 3 sink を wrap-count（`navArgs===1 && url 一致 && title 非空 && stripCalls===1 && saveCalls===1` — `tile-stop` 中止 navigate は onNavigate 不発を確認済みで後置 wrap で干渉回避）。hover fallback は `wp3.currentTitle=''`/`currentUrl=''` 直接書込で `_onChromeHover` の引数を制御、`chH.onHover` 実呼出で caption 文字列を実測。
+- 🧪 ハーネス教訓: iout 追加だけでは check 未登録 — display row も必須（navFanOut が出力に出ず気付く）。display row = checks 配列の唯一の計上経路。
+- 🧪 赤検証: `this._drawStrip()` 切断 → `navFanOut` のみ FAIL、`moveBarMesh.material.color.set` 切断 → `moveBarTint` のみ、`url ? hostnameCaption(url) :` 切断 → `chromeHoverFallback` のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 456 checks PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
