@@ -4668,6 +4668,93 @@ async function main() {
                 ht.joints.right.clear();
               }
             }
+            // Hand-tracking transitions + internals: a lost hand regained
+            // fires _onTrackingChange (the debounced WCAG 4.1.3 announce
+            // path — update()'s arm, not inputsourceschange's), a swapped
+            // XRHand object rebuilds the fillPoses batch, joint radii scale
+            // the instance matrix, and tracking quality tints the material.
+            if (ht && ht.rightHand) {
+              const trCalls = [];
+              const ocb = ht._onTrackingChange;
+              const oFP2 = fakeXrFrame.fillPoses;
+              const oFR2 = fakeXrFrame.fillJointRadii;
+              ht._onTrackingChange = (h2, t2) => {
+                trCalls.push(h2 + ':' + t2);
+                if (ocb) { ocb(h2, t2); }
+              };
+              try {
+                const spaceFor2 = {};
+                ht.jointNames.forEach((n) => { spaceFor2[n] = { j: n }; });
+                const handA = { get: (n) => spaceFor2[n] };
+                const poseFor2 = {};
+                ht.jointNames.forEach((n) => { poseFor2[n] = [0.5, 0.5, 0.5]; });
+                poseFor2.wrist = [0, 0, 0];
+                poseFor2['thumb-tip'] = [0.14, 0, 0];
+                poseFor2['thumb-phalanx-proximal'] = [0.05, 0, 0];
+                for (const f3 of ['index-finger', 'middle-finger',
+                  'ring-finger', 'pinky-finger']) {
+                  poseFor2[f3 + '-metacarpal'] = [0.06, 0, 0];
+                  poseFor2[f3 + '-tip'] = [0.089, 0, 0];
+                }
+                fakeXrFrame.fillPoses = (spaces, _rs, poses) => {
+                  spaces.forEach((s, i) => {
+                    const p = poseFor2[s.j] || [0, 0, 0];
+                    poses[i * 16 + 12] = p[0];
+                    poses[i * 16 + 13] = p[1];
+                    poses[i * 16 + 14] = p[2];
+                  });
+                  return true;
+                };
+                fakeXrFrame.fillJointRadii = (spaces, radii) => {
+                  spaces.forEach((s, i) => {
+                    radii[i] = s.j === 'wrist' ? 0.016 : 0.008;
+                  });
+                  return true;
+                };
+                // updateHand only writes into records that exist — reseed
+                // them far away so a real batch write is observable.
+                ht.jointNames.forEach((n) => {
+                  ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.9, 0.9, 0.9) });
+                });
+                fakeSession.inputSources.length = 0;
+                ht.rightHand.visible = false;
+                fakeSession.inputSources.push({ handedness: 'right', hand: handA });
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.htRegain = trCalls.includes('right:true')
+                  && ht.rightHand.visible === true;
+                // A NEW XRHand object (reconnect / fresh input source) must
+                // rebuild the fillPoses batch — batch.hand !== .hand reseeds.
+                const handB = { get: (n) => spaceFor2[n] };
+                fakeSession.inputSources[0] = { handedness: 'right', hand: handB };
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.htBatchRebuild = !!ht._batch.right
+                  && ht._batch.right.hand === handB
+                  && Math.abs(ht.joints.right.get('wrist').position.x) < 1e-9;
+                // radii>0 scales the instance matrix (wrist 0.016 -> 2.0x at
+                // index 0, m[0]) and full-quality tracking tints opacity 0.8.
+                const im = ht._jointMesh.right.instanceMatrix.array;
+                out.htJointScale = Math.abs(im[0] - 2) < 1e-6
+                  && Math.abs(ht._jointMesh.right.material.opacity - 0.8) < 1e-6;
+                // radii<=0 falls back to the 8mm default + half-quality tint.
+                fakeXrFrame.fillJointRadii = (spaces, radii) => {
+                  radii.fill(0);
+                  return true;
+                };
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.htJointTint = Math.abs(im[0] - 1) < 1e-6
+                  && Math.abs(ht._jointMesh.right.material.opacity - 0.6) < 1e-6;
+              } finally {
+                ht._onTrackingChange = ocb;
+                ht._batch.right = null;
+                ht.joints.right.clear();
+                ht.gestures.right = 'none';
+                ht.rightHand.visible = false;
+                fakeSession.inputSources.length = 0;
+                fakeXrFrame.fillPoses = oFP2;
+                fakeXrFrame.fillJointRadii = oFR2;
+              }
+            }
             // End through the real 'sessionend' listener too.
             app.renderer.xr.dispatchEvent({ type: 'sessionend' });
             out.sessEnded = app.isVREnabled === false;
@@ -5075,6 +5162,10 @@ async function main() {
       handLostViaUpdate: iout.handLostViaUpdate === true,
       handFallbackDrives: iout.handFallbackDrives === true,
       handNullPose: iout.handNullPose === true,
+      htRegain: iout.htRegain === true,
+      htBatchRebuild: iout.htBatchRebuild === true,
+      htJointScale: iout.htJointScale === true,
+      htJointTint: iout.htJointTint === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
       hapticSequence: iout.hapticSequence === true,
@@ -5451,6 +5542,10 @@ async function main() {
       ['hand source leaving the stream hides the group', !!inter.handLostViaUpdate],
       ['getJointPose fallback drives joints -> pinch', !!inter.handFallbackDrives],
       ['null joint poses leave records + recognize runs', !!inter.handNullPose],
+      ['lost hand regained fires tracking change', !!inter.htRegain],
+      ['new XRHand object rebuilds the batch', !!inter.htBatchRebuild],
+      ['joint radii scale instances + full tint', !!inter.htJointScale],
+      ['dead radii default scale + half tint', !!inter.htJointTint],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],

@@ -408,6 +408,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `Array.isArray` 3 項・`!url continue`・`>=MAX_TABS break`・`Math.min` clamp 各切断 → 新 4 check のみ FAIL、co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、335-check harness 全 PASS。
 
+### Session 214: 続き372 — HandTracking 遷移 + 内部 4 腕を e2e pin（#271 batch 31、335→339 checks）
+
+- 🔍 実測: ①`_onTrackingChange` の lost→regained 発火（update() の seen-detector 腕 — inputsourceschange 腕は既 pin）②`batch.hand !== inputSource.hand` の fillPoses batch rebuild ③`batch.radii[i] > 0` の instance matrix スケール（wrist 0.016→2.0×）+ full-quality tint（opacity 0.8）④radii<=0 の 8mm 既定 + half-quality tint（0.6）が全て未駆動。
+- 🔧 ハーネス設計・教訓: `_onTrackingChange` は chain-spy（app cb を包んで restore — 差替だと実 announce 経路を殺す）。joint records は前 leg の `joints.clear()` で空 — updateHand は既存 record のみ書込なので遠隔地 reseed 必須（先行 leg と同型）。**広い co-signal 実測**: `!batch` 切断で `hand:new Map()` の空 spaces バッチが生存し、fakeHand が `batch.spaces.length===0` → per-joint fallback → 未定義 `getJointPose` で throw → 後続 18 check 一括死亡 — この腕が防ぐ失敗モードそのもの。
+- 🧪 赤検証: `_onTrackingChange`/`batch.hand!==`/`radii>0`/`0.4+quality` 各切断 → 新 4 check FAIL + shared-arm sibling co-signals（上記）。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、339-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
