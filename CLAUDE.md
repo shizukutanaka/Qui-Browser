@@ -466,6 +466,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: 2 切断（反転 filter + dedup 除去）→ 新 3 check FAIL + 12 件は共有 intersect/hover 経路の想定 co-signal。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 362 checks PASS、verify:app PASS。
 
+### Session 223: 続き381 — comfort-OFF vignette clear/gate + southpaw caption を e2e pin（#277、362→364 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`enableComfort` toggle OFF の apply 腕 — live vignette の `currentVignette`/opacity/mesh を即クリア（`disabled` preset とは別契約）。②`updateSystems` の `settings.enableComfort` gate — OFF 中は `comfortSystem.update` が走らず seeded vignette は頭動でも不変。③southpaw toggle の `'Primary hand: left/right'` announce — persist のみの pin では観測不能。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) 複 conjunct pin は切断を conjunct ごとに分離検証 — clear 切断→clearedOff 偽、gate 切断→gated 偽、2 run で両 conjunct の非 vacuous を個別証明。(b) gate pin は「seed 値が update 不実行で動かない」を assert — 0 seed だと vacuous、非 0 seed で update 実行なら chase で値が動く設計。(c) toggle probe は state 含めた caption（'Comfort: ON'）で cycle（'Comfort: sensitive'）と区別。
+- 🧪 赤検証 2 run: clear+ southpaw caption 切断 → 両 pin FAIL co-signal ゼロ；gate 切断 → comfortOffClears のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 364 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
