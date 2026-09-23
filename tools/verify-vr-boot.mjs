@@ -1503,11 +1503,25 @@ async function main() {
                 out.faceAAnnounces = locoCaps.some((t) => t.includes('No next page'));
                 // Utility-hand faceB toggles the settings panel + announces.
                 const visBefore = !!(app.settingsPanel && app.settingsPanel.visible);
+                // Earlier legs force settingsPanel.visible directly, which
+                // legitimately skips the utility-hand mirror — re-sync the
+                // landmark first so the pin isolates this branch's write.
+                if (app.semanticDOM) {
+                  app.semanticDOM.setSettingsExpanded(visBefore);
+                }
+                const ariaBefore = app.semanticDOM && app.semanticDOM.settingsRegion
+                  ? app.semanticDOM.settingsRegion.getAttribute('aria-expanded') : null;
                 leftSrc.gamepad.buttons[5].pressed = true;
                 app.updateSystems(0, fakeXrFrame, 0.016);
                 const visAfter = !!(app.settingsPanel && app.settingsPanel.visible);
                 out.faceBToggles = visAfter === !visBefore
                   && locoCaps.some((t) => t.includes(visAfter ? 'Settings: open' : 'Settings: closed'));
+                // The same branch mirrors to the DOM landmark — the
+                // aria-expanded write must track the panel's new state.
+                const ariaAfter = app.semanticDOM && app.semanticDOM.settingsRegion
+                  ? app.semanticDOM.settingsRegion.getAttribute('aria-expanded') : null;
+                out.semExpanded = ariaAfter === String(visAfter)
+                  && ariaAfter !== ariaBefore;
                 leftSrc.gamepad.buttons[5].pressed = false;
                 rightSrc.gamepad.buttons[4].pressed = false;
                 // Utility-hand menu button — the second settings-panel route
@@ -1525,6 +1539,46 @@ async function main() {
                   app.updateSystems(0, fakeXrFrame, 0.016);
                   leftSrc.gamepad.buttons[6].pressed = false;
                   app.updateSystems(0, fakeXrFrame, 0.016);
+                }
+                // SemanticDOM teardown + unbuilt arms — a fresh instance
+                // (never the app's own) detaches its container, nulls all
+                // three regions, stays safe on a second dispose and on
+                // announce-after-dispose; a rootless instance never builds
+                // and announces no-op.
+                {
+                  const SD = app.semanticDOM.constructor;
+                  const sd2 = new SD({ root: document.body });
+                  const c2 = sd2.container;
+                  sd2.dispose();
+                  let threw2 = false;
+                  try { sd2.announceCaption('x'); sd2.dispose(); } catch (e2) { threw2 = true; }
+                  const sdN = new SD({ root: null });
+                  let threwN = false;
+                  try {
+                    sdN.announceCaption('x'); sdN.announceAlert('y'); sdN.dispose();
+                  } catch (e3) { threwN = true; }
+                  out.semDispose = sd2.container === null && sd2.captionRegion === null
+                    && sd2.alertRegion === null && sd2.settingsRegion === null
+                    && c2.parentNode === null && !threw2
+                    && sdN.container === null && !threwN;
+                }
+                // scrollContent guards on the 'reader' content state — a
+                // non-reader panel must refuse the scroll and keep its
+                // offset even when reader lines exist.
+                {
+                  const wp3 = app.tabManager.getActiveTab();
+                  const stateWas3 = wp3._contentState;
+                  const linesWas3 = wp3._readerLines;
+                  const scrWas3 = wp3._readerScroll;
+                  if (!linesWas3 || !linesWas3.length) {
+                    wp3._readerLines = new Array(60).fill('x');
+                  }
+                  wp3._contentState = 'loaded';
+                  const retNR = wp3.scrollContent(5);
+                  const scrNR = wp3._readerScroll;
+                  wp3._contentState = stateWas3;
+                  wp3._readerLines = linesWas3;
+                  out.wpScrollNonReader = retNR === false && scrNR === scrWas3;
                 }
                 // Utility-hand faceA toggles the bookmark/history panel +
                 // announces the new state (WCAG 4.1.3).
@@ -4610,6 +4664,9 @@ async function main() {
       faceAAnnounces: iout.faceAAnnounces === true,
       faceBToggles: iout.faceBToggles === true,
       menuToggles: iout.menuToggles === true,
+      semExpanded: iout.semExpanded === true,
+      semDispose: iout.semDispose === true,
+      wpScrollNonReader: iout.wpScrollNonReader === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -4971,6 +5028,9 @@ async function main() {
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
       ['utility faceB toggles settings + announces', !!inter.faceBToggles],
       ['utility menu button toggles settings too', !!inter.menuToggles],
+      ['settings toggle mirrors aria-expanded', !!inter.semExpanded],
+      ['semantic DOM dispose detaches + no-ops', !!inter.semDispose],
+      ['scrollContent refuses non-reader state', !!inter.wpScrollNonReader],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],

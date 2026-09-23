@@ -380,6 +380,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: 5 腕同時切断（dedupe `existingIdx!==-1`→false / title guard→true / `filter`→`all` / `existing.visits+=`→void / `>MAX_HISTORY`→false）→ 新 5 check 全 FAIL + sibling 6 件は全て想定 co-signal（delete-zone 3 件同一腕 + voice 3 件 ranking 変化）。純粋カバレッジ — 実欠陥なし。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、319-check harness 全 PASS。
 
+### Session 210: 続き368 — SemanticDOM / scrollContent 残腕 e2e pin（#270 batch 27、319→322 checks）
+
+- 🔍 実測: `setSettingsExpanded` の aria-expanded 書込（utility-hand トグル唯一のミラーサイト）・SemanticDOM `dispose()` の detach/null/idempotent + `root:null` unbuilt no-op・`scrollContent` の非 'reader' ガード（return false + offset 不変）。全て未駆動。
+- 🔧 ハーネス教訓: 先行 legs が `settingsPanel.visible = true` 直接 assign で panel を開くため aria がハーネス側で漂流（本番唯一の open/close 経路は VRApp.js:2370 のみで一貫 — 実欠陥でなく測定バグ）。leg 冒頭で `setSettingsExpanded(visBefore)` を呼び再同期してから toggle の変化を検証する形に — cut 検出は `ariaAfter !== ariaBefore` で担保。dispose pin は例により `app.X.constructor` で fresh instance mint。
+- 🧪 赤検証: `setSettingsExpanded` 呼出切断 → `semExpanded` FAIL、`removeChild` 切断 → `semDispose` FAIL、`_contentState` ガード切断 → `wpScrollNonReader` FAIL。co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、322-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
