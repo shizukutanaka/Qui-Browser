@@ -4668,6 +4668,98 @@ async function main() {
                   ls2.removeLayer = rlWas;
                 }
               }
+              // Loop-arming + grab-request contract — _syncAnimationLoop
+              // arms the RAF loop while the canvas is on-screen OR while
+              // XR is presenting (headset frames come from the runtime,
+              // not window RAF), disarms when neither holds, and does not
+              // re-call setAnimationLoop when the state is unchanged.
+              // _onPanelGrabRequested re-attaches a stale managed target
+              // BEFORE beginGrab so the grab offset measures from the
+              // live rootGroup world position, not a dead parent.
+              if (app.renderer && app.renderer.xr && app._renderBound
+                && app.windowManager && app.tabManager
+                && app.tabManager.rootGroup
+                && app.controllers && app.controllers[0]) {
+                const xr3 = app.renderer.xr;
+                const wm2 = app.windowManager;
+                const salWas = app.renderer.setAnimationLoop;
+                const ipWas = xr3.isPresenting;
+                const offWas = app._canvasOffscreen;
+                const armedWas = app._loopArmed;
+                const tgtWas = wm2.target;
+                const gcWas = app._grabController;
+                const calls = [];
+                try {
+                  app.renderer.setAnimationLoop =
+                    (cb) => calls.push(cb);
+                  // Armed + offscreen + not presenting → disarm once.
+                  app._canvasOffscreen = true;
+                  xr3.isPresenting = false;
+                  app._loopArmed = true;
+                  app._syncAnimationLoop();
+                  out.loopPausesOffscreen = calls.length === 1
+                    && calls[0] === null && app._loopArmed === false;
+                  // Still offscreen, still unarmed → no call at all.
+                  app._syncAnimationLoop();
+                  out.loopStaysPaused = calls.length === 1;
+                  // Presenting overrides offscreen — XR frames come from
+                  // the runtime so an offscreen tab still gets frames.
+                  xr3.isPresenting = true;
+                  app._syncAnimationLoop();
+                  out.loopRunsWhilePresenting = calls.length === 2
+                    && calls[1] === app._renderBound
+                    && app._loopArmed === true;
+                  // Already armed → no re-arm call.
+                  app._syncAnimationLoop();
+                  out.loopArmIdempotent = calls.length === 2;
+                  // Visible canvas, not presenting → arms the RAF loop.
+                  xr3.isPresenting = false;
+                  app._loopArmed = false;
+                  app._canvasOffscreen = false;
+                  app._syncAnimationLoop();
+                  out.loopArmsVisible = calls.length === 3
+                    && calls[2] === app._renderBound
+                    && app._loopArmed === true;
+                  // Stale managed target → re-attach fires before the
+                  // grab so beginGrab measures against the real group.
+                  const ctrl3 = app.controllers[0];
+                  const attachCalls = [];
+                  wm2.attach = (o) => {
+                    attachCalls.push(o);
+                    wm2.target = o;
+                    return wm2;
+                  };
+                  wm2.target = app.tabManager.rootGroup.clone();
+                  app._onPanelGrabRequested(ctrl3);
+                  out.grabReattaches = attachCalls.length === 1
+                    && attachCalls[0] === app.tabManager.rootGroup
+                    && wm2.target === app.tabManager.rootGroup
+                    && !!wm2._grab && wm2._grab.controller === ctrl3
+                    && wm2._grab.distance > 0
+                    && app._grabController === ctrl3;
+                  // Fresh target → attach skipped; grab still lands.
+                  wm2.endGrab();
+                  app._grabController = null;
+                  attachCalls.length = 0;
+                  app._onPanelGrabRequested(ctrl3);
+                  out.grabAttachSkipped = attachCalls.length === 0
+                    && wm2.isGrabbing
+                    && app._grabController === ctrl3;
+                  wm2.endGrab();
+                } finally {
+                  app.renderer.setAnimationLoop = salWas;
+                  xr3.isPresenting = ipWas;
+                  app._canvasOffscreen = offWas;
+                  app._loopArmed = armedWas;
+                  if (app.windowManager === wm2) {
+                    delete wm2.attach;
+                    wm2.target = tgtWas;
+                    wm2._grab = null;
+                  }
+                  app._grabController = gcWas;
+                  app._syncAnimationLoop();
+                }
+              }
               // Follow-mode leg — the 'Follow' toggle applies
               // windowManager.setFollow, after which updateSystems' per-frame
               // windowManager.update lerps the managed root toward
@@ -5887,6 +5979,13 @@ async function main() {
       panelLayerHiddenSkip: iout.panelLayerHiddenSkip === true,
       panelLayerStable: iout.panelLayerStable === true,
       panelLayerDetach: iout.panelLayerDetach === true,
+      loopPausesOffscreen: iout.loopPausesOffscreen === true,
+      loopStaysPaused: iout.loopStaysPaused === true,
+      loopRunsWhilePresenting: iout.loopRunsWhilePresenting === true,
+      loopArmIdempotent: iout.loopArmIdempotent === true,
+      loopArmsVisible: iout.loopArmsVisible === true,
+      grabReattaches: iout.grabReattaches === true,
+      grabAttachSkipped: iout.grabAttachSkipped === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6313,6 +6412,13 @@ async function main() {
       ['hidden panel skips layer until shown', !!inter.panelLayerHiddenSkip],
       ['reconciler no-ops once all panels layered', !!inter.panelLayerStable],
       ['panel layer detach drops exactly its id', !!inter.panelLayerDetach],
+      ['offscreen non-presenting disarms the loop', !!inter.loopPausesOffscreen],
+      ['paused loop stays paused without a call', !!inter.loopStaysPaused],
+      ['presenting keeps frames on offscreen tab', !!inter.loopRunsWhilePresenting],
+      ['armed loop does not re-arm', !!inter.loopArmIdempotent],
+      ['visible canvas arms the RAF loop', !!inter.loopArmsVisible],
+      ['panel grab re-attaches a stale target', !!inter.grabReattaches],
+      ['grab on live target skips re-attach', !!inter.grabAttachSkipped],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],

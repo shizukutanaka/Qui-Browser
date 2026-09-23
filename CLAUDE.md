@@ -502,6 +502,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: ①visible-check + `removeLayer` 切断 → attach/hiddenSkip/stable/detach FAIL（idempotent は正しく残存）。②`!panel.quadLayer` guard + `updateRenderState` 切断 → idempotent + attach/hiddenSkip/stable FAIL（detach は正しく残存）。全 pin falsifiable を確認。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 384 checks PASS、verify:app PASS。CI 未設定（0/0）。
 
+### Session 229: 続き387 — render-loop arming + panel grab re-attach 実経路を e2e pin（#277 batch 46、384→391 checks）
+- 🔍 **実測（未駆動 2 関数）**: ①`_syncAnimationLoop` の `run = isPresenting || !_canvasOffscreen` → arm/disarm/stay の遷移表（offscreen 非 presenting で disarm・armed 以外は無呼出・presenting は offscreen でも arm・armed 済みは再 arm しない）は headless で `isPresenting=false`+`offscreen=false` の 1 状態しか走らず未駆動。②`_onPanelGrabRequested` の stale target 再 attach（`wm.target !== rootGroup` の時のみ `attach` — beginGrab の測定元保証）+ `attach` skip 負腕も未駆動。
+- 🔧 **ハーネス設計・教訓**: `isPresenting`/`_canvasOffscreen`/`_loopArmed` は全て plain field で eval 直接 seed 可・`setAnimationLoop` は cb identity spy で `_renderBound` vs null を観測。stale target は `rootGroup.clone()`（生の `{}` だと `getWorldPosition` 無しで beginGrab が throw → eval 死亡）。`wm.attach` の spy は finally で `delete wm.attach`（own property 消去で prototype 復帰）。
+- 🧪 赤検証 2 run: ①`run = true` 固定 + `_attachManagedWindow()` 呼出切断 → loop 4 pin 全 FAIL + `grabReattaches` FAIL（move-bar grab 系 3 件は同一呼出の想定 co-signal、`grabAttachSkipped` は正しく生存）。②`|| !_canvasOffscreen` 切断 + `!== target` guard 除去 → `loopArmsVisible` + `grabAttachSkipped` のみ FAIL（surgical、他 pin 全生存）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 391 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
