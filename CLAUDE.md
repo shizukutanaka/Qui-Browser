@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き29）: 最後の3つのスタブ（音量・日本語入力）を実体化 + 「キーボード」が閉じられなかった
+続き28 と同じ `// Would …` の grep で残り3つを洗い出した。`volume-up`/`volume-down`（「音量を上げます」と言って何もしない）と `ime-toggle`（「日本語入力モードです」と言って何もしない）。どれも `connectBrowser()` で上書きされておらず恒久的に空だった。方針（4点）はユーザーに確認してから実装。
+- 🔍 **ime-toggle の要件を問い直した**: このアプリに「IME のオン/オフ」という概念は**存在しない**——ローマ字→かなはキーボードが常にやる動作。実在する IME 操作は物理 Shift キーの**ひらがな⇄カタカナ切替**（`onKeyPress('shift')`）だけで、これは音声から**到達不能**だった。偽の成功でも `vr-enter` 型の誠実なリダイレクトでもなく、**実在するのに届かない操作を届ける**のが正解。
+- ✨ **fix (volume)**: `connectBrowser()` に `onVolumeChange(delta)` を追加し、VRApp が**設定パネルの Sound Volume ステッパーと全く同じ処理**（10% 刻み・0〜100 に clamp・`updateSetting` で永続化・`setMasterVolume` で即時適用）を行って `{value, changed}` を返す。音声は**結果の % を読み上げ**、上限/下限では「音量はすでに最大/最小です」——変わっていないのに「上げます」と言う嘘を排除。`spatialAudio` 初期化失敗時も永続化はする（起動時の適用が拾う）。
+- ✨ **fix (ime-toggle)**: キーボードの `onKeyPress('shift')` をそのまま呼ぶ（switchMode・キー着色・バッジ更新が物理キーと同一経路、重複実装なし）。非表示なら先に `show()`、切替後のモードを「カタカナ/ひらがな入力にしました」と告知。`'shift'` 分岐は `await` 前に `switchMode` するので直後に `inputMode` を読める。
+- 🐛 **fix (隣接バグ)**: 音声「キーボード」は `vrKeyboard.visible` を読んでいたが `VRJapaneseKeyboard` にそのプロパティは**無い**（可視性は `group.visible`）。三項演算子が常に偽で、**表示はできても閉じられなかった**のに「キーボードを切り替えます」と言っていた。`group?.visible` に修正（`group` は初回 `show()` まで null）。
+- 🧹 孤児になった `vr.voice.confirm.volumeUp/volumeDown/imeToggle` を削除し、`vr.voice.volumeLevel/volumeMax/volumeMin/imeHiragana/imeKatakana` を en/ja に追加。
+- ✅ **test 15件追加**（VoiceCommands 9 + VRApp wiring 3 ×… clamp/永続化/null audio）。**pre-fix 検証**: 3ソースを HEAD に戻すと **11件 FAIL**（「非表示なら show」の1件は旧コードも show しかしないので正しく両方通過）、復元で全通過。
+- ✅ Total 1771 tests (53 suites); 0 lint errors; build green。これで `src/` に `// Would …` スタブは**ゼロ**。
+
 ### Session 75（続き28）: 「VRモードを開始します」と言って何も起きなかった — vr-enter/vr-exit が単なるスタブだった
 続き25〜27 で音声の出力側（言語・確認文言・発見性）を直したので、次に**中身**を疑った。`registerDefaultCommands()` の `vr-enter`/`vr-exit` を読むと、どちらも `// Would trigger VR mode` / `// Would exit VR mode` というコメントだけで**何もしていなかった**——「進みます」「戻ります」等25個の確認文言のうち、実際に効果があるのはブラウザ操作系だけで、この2つだけは口だけだった。
 - 🔍 **診断**: `VoiceCommands` クラスは `renderer`/XRセッションへの参照を一切持たない（`VRApp` から `connectBrowser()` 経由で渡されるコールバックのみが外界との接点）。`vr-enter`/`vr-exit` はコンストラクタ内の `registerDefaultCommands()` で登録されるが、`connectBrowser()` による上書きの対象にも一度もなっていなかった——`navigate`/`back`/`refresh`/`search` は皆 `connectBrowser()` で実体化されるのに、この2つだけ取り残されていた。

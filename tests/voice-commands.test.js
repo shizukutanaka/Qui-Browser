@@ -795,25 +795,26 @@ describe('VoiceCommands — voice output follows the UI language, not a hardcode
   });
 
   test('a built-in command\'s spoken confirmation changes with the UI language', () => {
-    // 'volume-up' rather than 'navigate'/'back': registerDefaultCommands'
+    // 'vr-exit' rather than 'navigate'/'back': registerDefaultCommands'
     // versions of those call window.history.forward()/back(), which throws
     // in this jsdom-less test env and would speak the failure fallback
-    // instead of the confirmation being tested here.
+    // instead of the confirmation being tested here. (Not 'volume-up' any
+    // more: its default is now a silent no-op until connectBrowser wires it.)
     setLanguage('en');
     const enVc = new VoiceCommands();
     const enSpoken = [];
     enVc.callbacks.onSpeak = (text) => enSpoken.push(text);
-    enVc.processCommand('音量上げる', 0.9);
-    expect(enSpoken).toContain(translate('vr.voice.confirm.volumeUp'));
-    expect(enSpoken).toContain('Increasing volume');
+    enVc.processCommand('VR終了', 0.9);
+    expect(enSpoken).toContain(translate('vr.voice.confirm.vrExit'));
+    expect(enSpoken).toContain('Exiting VR mode');
 
     setLanguage('ja');
     const jaVc = new VoiceCommands();
     const jaSpoken = [];
     jaVc.callbacks.onSpeak = (text) => jaSpoken.push(text);
-    jaVc.processCommand('音量上げる', 0.9);
-    expect(jaSpoken).toContain(translate('vr.voice.confirm.volumeUp'));
-    expect(jaSpoken).toContain('音量を上げます');
+    jaVc.processCommand('VR終了', 0.9);
+    expect(jaSpoken).toContain(translate('vr.voice.confirm.vrExit'));
+    expect(jaSpoken).toContain('VRモードを終了します');
   });
 
   test('the "not recognized" and "execution failed" fallbacks also follow the language', () => {
@@ -906,5 +907,112 @@ describe('VoiceCommands — "vr-enter"/"vr-exit" (WebXR user-activation constrai
   test('"exit vr" before connectBrowser() has run does not throw', () => {
     expect(() => vc.processCommand('exit vr', 0.9)).not.toThrow();
     expect(vc.lastCommand.key).toBe('vr-exit');
+  });
+});
+
+describe('VoiceCommands — volume and IME mode do what they announce', () => {
+  // All three used to be `// Would …` stubs that spoke "Increasing volume" /
+  // "Japanese input mode" and changed nothing. They now act for real once
+  // connectBrowser() wires them, and speak what actually happened.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+  });
+
+  test('"volume up" steps by +10 and announces the resulting level', () => {
+    const onVolumeChange = jest.fn(() => ({ value: 80, changed: true }));
+    vc.connectBrowser({ onVolumeChange });
+    vc.processCommand('volume up', 0.9);
+    expect(onVolumeChange).toHaveBeenCalledWith(10);
+    expect(spoken).toContain(`${translate('vr.voice.volumeLevel')} 80%`);
+  });
+
+  test('"音量下げる" steps by -10', () => {
+    const onVolumeChange = jest.fn(() => ({ value: 60, changed: true }));
+    vc.connectBrowser({ onVolumeChange });
+    vc.processCommand('音量下げる', 0.9);
+    expect(onVolumeChange).toHaveBeenCalledWith(-10);
+    expect(spoken).toContain(`${translate('vr.voice.volumeLevel')} 60%`);
+  });
+
+  test('at the clamp it says "already at max/min", never a level change', () => {
+    vc.connectBrowser({ onVolumeChange: () => ({ value: 100, changed: false }) });
+    vc.processCommand('volume up', 0.9);
+    expect(spoken).toEqual([translate('vr.voice.volumeMax')]);
+
+    spoken.length = 0;
+    vc.connectBrowser({ onVolumeChange: () => ({ value: 0, changed: false }) });
+    vc.processCommand('volume down', 0.9);
+    expect(spoken).toEqual([translate('vr.voice.volumeMin')]);
+  });
+
+  test('volume without onVolumeChange (or before connectBrowser) says nothing', () => {
+    vc.processCommand('volume up', 0.9);
+    vc.connectBrowser({});
+    vc.processCommand('volume down', 0.9);
+    expect(spoken).toEqual([]);
+  });
+
+  function stubKeyboard({ visible = false, mode = 'hiragana' } = {}) {
+    const kb = {
+      group: { visible },
+      ime: { inputMode: mode },
+      show: jest.fn(() => { kb.group.visible = true; }),
+      hide: jest.fn(() => { kb.group.visible = false; }),
+      onKeyPress: jest.fn((key) => {
+        if (key === 'shift') {
+          kb.ime.inputMode = kb.ime.inputMode === 'katakana' ? 'hiragana' : 'katakana';
+        }
+        return Promise.resolve();
+      })
+    };
+    return kb;
+  }
+
+  test('"日本語入力" shows a hidden keyboard, presses shift, announces the new mode', () => {
+    const kb = stubKeyboard({ visible: false, mode: 'hiragana' });
+    vc.connectBrowser({ vrKeyboard: kb });
+    vc.processCommand('日本語入力', 0.9);
+    expect(kb.show).toHaveBeenCalledTimes(1);
+    expect(kb.onKeyPress).toHaveBeenCalledWith('shift');
+    expect(spoken).toEqual([translate('vr.voice.imeKatakana')]);
+  });
+
+  test('a visible keyboard is not re-shown, and katakana switches back to hiragana', () => {
+    const kb = stubKeyboard({ visible: true, mode: 'katakana' });
+    vc.connectBrowser({ vrKeyboard: kb });
+    vc.processCommand('toggle ime', 0.9);
+    expect(kb.show).not.toHaveBeenCalled();
+    expect(spoken).toEqual([translate('vr.voice.imeHiragana')]);
+  });
+
+  test('ime-toggle with no keyboard wired is a silent no-op', () => {
+    vc.connectBrowser({});
+    expect(() => vc.processCommand('日本語入力', 0.9)).not.toThrow();
+    expect(spoken).toEqual([]);
+  });
+
+  test('"keyboard" hides a visible keyboard (it used to only ever show)', () => {
+    const kb = stubKeyboard({ visible: true });
+    vc.connectBrowser({ vrKeyboard: kb });
+    vc.processCommand('keyboard', 0.9);
+    expect(kb.hide).toHaveBeenCalledTimes(1);
+    expect(kb.show).not.toHaveBeenCalled();
+  });
+
+  test('"keyboard" shows a hidden or not-yet-built keyboard', () => {
+    const kb = stubKeyboard({ visible: false });
+    vc.connectBrowser({ vrKeyboard: kb });
+    vc.processCommand('keyboard', 0.9);
+    expect(kb.show).toHaveBeenCalledTimes(1);
+
+    const unbuilt = stubKeyboard();
+    unbuilt.group = null;
+    vc.connectBrowser({ vrKeyboard: unbuilt });
+    vc.processCommand('keyboard', 0.9);
+    expect(unbuilt.show).toHaveBeenCalledTimes(1);
+    expect(unbuilt.hide).not.toHaveBeenCalled();
   });
 });

@@ -2825,6 +2825,20 @@ export class VRApp {
         if (session) {
           session.end().catch(() => {});
         }
+      },
+      // Step master volume exactly as the settings-panel stepper does (0–100 %,
+      // persisted, applied live) so voice and the panel never disagree, and
+      // report whether anything changed so voice never claims "louder" at 100.
+      // Persists even if spatialAudio failed to init — the startup apply in
+      // initializeSystems() picks it up, same as the stepper's null-guarded apply.
+      onVolumeChange: (delta) => {
+        const prev = this.settings.masterVolume ?? 100;
+        const next = Math.max(0, Math.min(100, prev + delta));
+        if (next !== prev) {
+          this.updateSetting('masterVolume', next);
+          this.spatialAudio?.setMasterVolume(next / 100);
+        }
+        return { value: next, changed: next !== prev };
       }
     });
   }

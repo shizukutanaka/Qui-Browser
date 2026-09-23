@@ -424,36 +424,26 @@ export class VoiceCommands {
     // overwritten anyway (registerCommand is a Map.set, so the later
     // connectBrowser registration always won once it ran).
 
-    // Volume control
+    // Volume control and Japanese IME mode. These defaults are silent no-ops:
+    // VoiceCommands holds no audio or keyboard reference of its own, and a
+    // no-op must not announce a change it didn't make. connectBrowser() gives
+    // them real handles (onVolumeChange, vrKeyboard) and speaks the result.
     this.registerCommand('volume-up', {
       patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', 'volume up', 'increase volume'],
-      action: () => {
-        // Would adjust volume
-        return { action: 'volume', change: 0.1 };
-      },
-      confirmationKey: 'vr.voice.confirm.volumeUp',
+      action: () => ({ action: 'volume', change: 0 }),
       description: 'Increase volume'
     });
 
     this.registerCommand('volume-down', {
       patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', 'volume down', 'decrease volume'],
-      action: () => {
-        // Would adjust volume
-        return { action: 'volume', change: -0.1 };
-      },
-      confirmationKey: 'vr.voice.confirm.volumeDown',
+      action: () => ({ action: 'volume', change: 0 }),
       description: 'Decrease volume'
     });
 
-    // Japanese IME
     this.registerCommand('ime-toggle', {
       patterns: ['日本語入力', '日本語モード', '入力切り替え', 'japanese input', 'toggle ime'],
-      action: () => {
-        // Would toggle IME
-        return { action: 'ime', enabled: true };
-      },
-      confirmationKey: 'vr.voice.confirm.imeToggle',
-      description: 'Toggle Japanese IME'
+      action: () => ({ action: 'ime' }),
+      description: 'Switch hiragana / katakana input'
     });
 
     // Help — read back the actual spoken phrases, not just a count. A voice-
@@ -568,9 +558,62 @@ export class VoiceCommands {
    * @param {Function} [opts.onExitVR]       () => void — called to end the live WebXR
    *                                         session (host holds the renderer/session
    *                                         reference; VoiceCommands has none of its own)
+   * @param {Function} [opts.onVolumeChange] (deltaPct: number) => {value, changed} —
+   *                                         step the master volume; host clamps, persists
+   *                                         and applies, and reports what actually happened
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR } = {}) {
+    onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR,
+    onVolumeChange } = {}) {
+    // Volume: step by the settings-panel stepper's own increment (10%) so
+    // voice and the panel never disagree, and speak the RESULT — "already at
+    // maximum" at the clamp, never "increasing" when nothing changed.
+    const VOLUME_STEP = 10;
+    const volumeCommand = (delta) => () => {
+      const r = onVolumeChange ? onVolumeChange(delta) : null;
+      if (!r) {
+        return { action: 'volume', change: 0 };
+      }
+      this.speak(r.changed
+        ? `${t('vr.voice.volumeLevel')} ${r.value}%`
+        : t(delta > 0 ? 'vr.voice.volumeMax' : 'vr.voice.volumeMin'));
+      return { action: 'volume', change: r.changed ? delta : 0, value: r.value };
+    };
+    this.registerCommand('volume-up', {
+      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', 'volume up', 'increase volume'],
+      action: volumeCommand(VOLUME_STEP),
+      description: 'Increase volume'
+    });
+    this.registerCommand('volume-down', {
+      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', 'volume down', 'decrease volume'],
+      action: volumeCommand(-VOLUME_STEP),
+      description: 'Decrease volume'
+    });
+
+    // IME: there is no IME on/off in this app — romaji→kana is simply how the
+    // keyboard always behaves. The one real, voice-unreachable IME action is
+    // the hiragana⇄katakana switch, so this presses the keyboard's own shift
+    // key (same path as the physical key: switchMode + key tint + badge).
+    // A hidden keyboard is shown first so the result is visible. The 'shift'
+    // branch of onKeyPress has no await before switchMode, so inputMode is
+    // already updated when we read it to announce the new mode.
+    this.registerCommand('ime-toggle', {
+      patterns: ['日本語入力', '日本語モード', '入力切り替え', 'japanese input', 'toggle ime'],
+      action: () => {
+        if (!vrKeyboard) {
+          return { action: 'ime' };
+        }
+        if (!vrKeyboard.group?.visible) {
+          vrKeyboard.show();
+        }
+        Promise.resolve(vrKeyboard.onKeyPress('shift')).catch(() => {});
+        const mode = vrKeyboard.ime?.inputMode === 'katakana' ? 'katakana' : 'hiragana';
+        this.speak(t(mode === 'katakana' ? 'vr.voice.imeKatakana' : 'vr.voice.imeHiragana'));
+        return { action: 'ime', mode };
+      },
+      description: 'Switch hiragana / katakana input'
+    });
+
     // Give 'vr-exit' the real session handle. Unlike 'vr-enter' (see
     // registerDefaultCommands — starting a session needs user activation
     // voice can never grant), ending one is unrestricted, so this is a
@@ -838,8 +881,11 @@ export class VoiceCommands {
     this.registerCommand('keyboard', {
       patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる', 'keyboard', 'open keyboard', 'close keyboard'],
       action: () => {
+        // Visibility lives on the Three.js group; VRJapaneseKeyboard has no
+        // `visible` of its own, so reading that made this always show() and
+        // never hide(). group is null until the first show() builds it.
         if (vrKeyboard) {
-          vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
+          vrKeyboard.group?.visible ? vrKeyboard.hide() : vrKeyboard.show();
         }
         return { action: 'keyboard' };
       },

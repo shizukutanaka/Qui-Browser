@@ -1526,4 +1526,38 @@ describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
     app._connectVoiceToBrowsing();
     expect(() => connected[0].onExitVR()).not.toThrow();
   });
+
+  describe('onVolumeChange mirrors the Sound Volume stepper', () => {
+    const volumeApp = (masterVolume, spatialAudio = { setMasterVolume: jest.fn() }) => {
+      const connected = [];
+      const app = makeApp(connected);
+      app.settings = { masterVolume };
+      app.updateSetting = jest.fn((k, v) => { app.settings[k] = v; });
+      app.spatialAudio = spatialAudio;
+      app._connectVoiceToBrowsing();
+      return { app, onVolumeChange: connected[0].onVolumeChange };
+    };
+
+    test('steps, persists and applies live', () => {
+      const { app, onVolumeChange } = volumeApp(70);
+      expect(onVolumeChange(10)).toEqual({ value: 80, changed: true });
+      expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 80);
+      expect(app.spatialAudio.setMasterVolume).toHaveBeenCalledWith(0.8);
+    });
+
+    test('clamps at 100 and 0 and reports no change', () => {
+      const top = volumeApp(100);
+      expect(top.onVolumeChange(10)).toEqual({ value: 100, changed: false });
+      expect(top.app.updateSetting).not.toHaveBeenCalled();
+      const bottom = volumeApp(0);
+      expect(bottom.onVolumeChange(-10)).toEqual({ value: 0, changed: false });
+      expect(bottom.app.spatialAudio.setMasterVolume).not.toHaveBeenCalled();
+    });
+
+    test('still persists when spatial audio failed to initialise', () => {
+      const { app, onVolumeChange } = volumeApp(50, null);
+      expect(() => onVolumeChange(-10)).not.toThrow();
+      expect(app.updateSetting).toHaveBeenCalledWith('masterVolume', 40);
+    });
+  });
 });
