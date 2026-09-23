@@ -6292,6 +6292,78 @@ async function main() {
           } finally {
             pm7.frameTime = ftWas7;
           }
+          // ==== batch 53: navigate() analytics strips query+hash (privacy),
+          // the invalid-URL fallback passes the raw string; the home
+          // environment welcome panel is a real recenter interactable with
+          // hover feedback; WindowManager._faceUser keeps the panel's +Z
+          // normal aimed at the camera. ====
+          {
+            const gtagWas8 = window.gtag;
+            const gtagEvents8 = [];
+            window.gtag = (...a) => { gtagEvents8.push(a); };
+            try {
+              app.navigate('https://nav8.example/deep/page?secret=1&tok=x#frag', 'NAV8 TITLE');
+              out.navAnalytics = gtagEvents8.some((e) => e[0] === 'config'
+                && e[2] && e[2].page_path === 'https://nav8.example/deep/page'
+                && e[2].page_title === 'NAV8 TITLE');
+              gtagEvents8.length = 0;
+              app.navigate('not a url at all', 'RAW8');
+              out.navAnalyticsRaw = gtagEvents8.some((e) => e[0] === 'config'
+                && e[2] && e[2].page_path === 'not a url at all'
+                && e[2].page_title === 'RAW8');
+            } finally {
+              if (gtagWas8 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas8;
+              }
+            }
+            // Welcome panel: PlaneGeometry mesh inside homeEnvironment, the
+            // only env child registered as an interactable.
+            const env8 = app.homeEnvironment;
+            const wp8 = env8 && env8.children
+              .find((c) => app.interactables.includes(c));
+            if (wp8) {
+              const rig8 = app.playerRig;
+              rig8.position.set(1.5, 0, -0.75);
+              rig8.quaternion.set(0, 0.4, 0, 1).normalize();
+              const cap8 = app.captionSystem;
+              const capWas8 = cap8 && cap8.enabled;
+              const gazeWas8 = app.settings.enableGazeDwell;
+              const capWrites8 = [];
+              if (cap8) {
+                // onHover's caption arm is gated on BOTH the caption system
+                // and the gaze-dwell preference — earlier legs leave gaze off.
+                cap8.enabled = true;
+                app.settings.enableGazeDwell = true;
+                const showWas8 = cap8.show;
+                cap8.show = (t8) => { capWrites8.push(String(t8)); return showWas8.call(cap8, t8); };
+                wp8.userData.interactable.onHover();
+                out.wpHoverCaption = capWrites8
+                  .some((t8) => t8.toLowerCase().includes('recenter'));
+                cap8.show = showWas8;
+                app.settings.enableGazeDwell = gazeWas8;
+              }
+              const colHover8 = wp8.material.color.getHex();
+              wp8.userData.interactable.onSelect();
+              out.wpSelectRecenters = rig8.position.x === 0 && rig8.position.z === 0
+                && rig8.quaternion.x === 0 && rig8.quaternion.y === 0
+                && rig8.quaternion.z === 0;
+              wp8.userData.interactable.onHoverEnd();
+              out.wpHoverRestores = colHover8 === 0x88bbff
+                && wp8.material.color.getHex() === 0xffffff;
+              if (cap8) { cap8.enabled = capWas8; }
+            }
+            // _faceUser: the managed target's quaternion tracks the camera's
+            // world quaternion so the panel +Z normal faces the viewer.
+            const wm8 = app.windowManager;
+            if (wm8 && wm8.target && wm8._camQuat) {
+              wm8._camQuat.set(0, 0.6, 0, 0.8).normalize();
+              wm8._faceUser();
+              out.wmFacesUser = Math.abs(
+                wm8.target.quaternion.dot(wm8._camQuat)) > 0.9999;
+            }
+          }
         }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
         // eval. Every check below observes state/spies captured BEFORE
@@ -6660,6 +6732,12 @@ async function main() {
       sessFfrDisabled: iout.sessFfrDisabled === true,
       sessTrackEvent: iout.sessTrackEvent === true,
       perfMonitorWrites: iout.perfMonitorWrites === true,
+      navAnalytics: iout.navAnalytics === true,
+      navAnalyticsRaw: iout.navAnalyticsRaw === true,
+      wpHoverCaption: iout.wpHoverCaption === true,
+      wpSelectRecenters: iout.wpSelectRecenters === true,
+      wpHoverRestores: iout.wpHoverRestores === true,
+      wmFacesUser: iout.wmFacesUser === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -7136,6 +7214,12 @@ async function main() {
       ['session end disables FFR', !!inter.sessFfrDisabled],
       ['session end emits vr_end analytics event', !!inter.sessTrackEvent],
       ['perf monitor EMA + fps + GPU metrics written', !!inter.perfMonitorWrites],
+      ['navigate analytics strips query + hash', !!inter.navAnalytics],
+      ['invalid URL analytics falls back to raw string', !!inter.navAnalyticsRaw],
+      ['welcome panel hover announces recenter', !!inter.wpHoverCaption],
+      ['welcome panel select recenters the rig', !!inter.wpSelectRecenters],
+      ['welcome hover tints and restores', !!inter.wpHoverRestores],
+      ['window manager faces the user on grab move', !!inter.wmFacesUser],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],

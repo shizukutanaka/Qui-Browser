@@ -543,6 +543,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 5 run: `trackVRSession('end')`→sessTrackEvent、`ffrSystem.disable()`→sessFfrDisabled、3 listener null 代入→sessScalarsCleared、counter+pixelRatio ブロック→sessScalarsCleared（同一 pin の両 conjunct 群を個別 falsify）、`fps=`書込→perfMonitorWrites。全 pin 個別 falsifiable。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 431 checks PASS、verify:app PASS。CI 未設定（0/0）。
 
+### Session 236: 続き394 — navigate analytics origin-only/raw fallback・welcome panel Recenter/hover・_faceUser を e2e pin（#283 batch 53、431→437 checks）
+- 🔍 **実測（未駆動 5 面）**: ①`navigate()` の `trackPageView(u.origin+u.pathname)` — query/hash 剥離（search params/token をデバイス外へ出さないプライバシ契約）と `new URL` throw 時の raw フォールバック。②home welcome panel の interactable — `onSelect→recenter`（rig position/quaternion 実リセット）・`onHover`（0x88bbff tint + gated caption）・`onHoverEnd`（0xffffff 復元）。③`WindowManager._faceUser` の `target.quaternion.copy(_camQuat)`。
+- 🔧 **ハーネス設計・教訓 3 件**: ①`trackPageView`/`trackEvent` は `window.gtag` spy で引数契約まで観測可（`e[0]==='config'` + `e[2].page_path`）— module binding は stub 不能でも window 面で十分。②welcome panel の hover caption は `captionSystem.enabled && settings.enableGazeDwell` の**二重ゲート** — 先行 leg が gaze を OFF のまま残すため両方 seed が必須（初回有機 FAIL → gate 発見）。③hover 色検証は**呼出し後ではなく onHover 直後**に color を採取（tint 0x88bbff の観測点）— restore 検証は end 呼出し後の 0xffffff。
+- 🧪 赤検証 6 run: `origin+pathname`→`url` 差替で navAnalytics、raw fallback 切断で navAnalyticsRaw、caption show 切断で wpHoverCaption、`onSelect→recenter` 切断で wpSelectRecenters、onHoverEnd tint 復元切断で wpHoverRestores、`quaternion.copy(_camQuat)` 切断で wmFacesUser — **全 pin 完全分離 falsifiable**。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 437 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
