@@ -4484,7 +4484,8 @@ async function main() {
                 // write never ran — the fillPoses write is load-bearing).
                 const V3h = (x, y, z) => app.camera.position.clone().set(x, y, z);
                 ht.jointNames.forEach((n) => {
-                  ht.joints.right.set(n, { position: V3h(0.5, 0.5, 0.5) });
+                  ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.5, 0.5, 0.5) });
                 });
                 // All-coincident resolves 'pinch' (dist 0) — park the index
                 // tip so the default reads 'fist', not the target gesture.
@@ -4521,7 +4522,8 @@ async function main() {
                   return p2 ? { transform: { position: { x: p2[0], y: p2[1], z: p2[2] } }, radius: 0.012 } : null;
                 };
                 ht.jointNames.forEach((n) => {
-                  ht.joints.right.set(n, { position: V3h(0.5, 0.5, 0.5) });
+                  ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.5, 0.5, 0.5) });
                 });
                 ht.joints.right.get('index-finger-tip')
                   .position.set(0.6, 0.5, 0.5);
@@ -4540,7 +4542,8 @@ async function main() {
                 // +0.14 so thumb-index gap clears the 3.5cm release band.
                 fakeXrFrame.getJointPose = () => null;
                 ht.jointNames.forEach((n) => {
-                  ht.joints.right.set(n, { position: V3h(0.5, 0.5, 0.5) });
+                  ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.5, 0.5, 0.5) });
                 });
                 ht.joints.right.get('wrist').position.set(0, 0, 0);
                 for (const f2 of ['index-finger', 'middle-finger',
@@ -4957,6 +4960,50 @@ async function main() {
                   && ht2.gestureCallbacks.size === 0
                   && ht2._batch.left === null
                   && ht2._batch.right === null;
+                // Gesture heuristics: seed joints.right records and run
+                // recognizeGestures directly — the finger-extension ratio
+                // (tip > metacarpal x1.6), the thumb-up vector, and the arm
+                // ORDERING (thumbsup before fist, extension masks for
+                // point/peace) need no XRFrame plumbing.
+                const seedGesture = (ext, thumbProx, thumbTip) => {
+                  ht.jointNames.forEach((n) => {
+                    ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.5, 0.5, 0.5) });
+                  });
+                  ht.joints.right.get('wrist').position.set(0, 0, 0);
+                  for (const f of ['index-finger', 'middle-finger',
+                    'ring-finger', 'pinky-finger']) {
+                    ht.joints.right.get(f + '-metacarpal')
+                      .position.set(0.06, 0, 0);
+                    ht.joints.right.get(f + '-tip')
+                      .position.set(ext.includes(f) ? 0.15 : 0.089, 0, 0);
+                  }
+                  ht.joints.right.get('thumb-phalanx-proximal')
+                    .position.set(thumbProx[0], thumbProx[1], thumbProx[2]);
+                  ht.joints.right.get('thumb-tip')
+                    .position.set(thumbTip[0], thumbTip[1], thumbTip[2]);
+                  ht.gestures.right = 'none';
+                };
+                // peace: index+middle extended — and the gestureCallbacks
+                // dispatch arm fires the registered callback once with
+                // (handedness, gesture).
+                const peaceCalls = [];
+                ht.gestureCallbacks.set('peace', (hand, g) => {
+                  peaceCalls.push(hand + ':' + g);
+                });
+                seedGesture(['index-finger', 'middle-finger'], [0.05, 0, 0],
+                  [0.14, -0.05, 0]);
+                ht.recognizeGestures();
+                out.htGesturePeace = ht.gestures.right === 'peace'
+                  && peaceCalls.length === 1
+                  && peaceCalls[0] === 'right:peace';
+                ht.gestureCallbacks.delete('peace');
+                // mask: index+ring extended matches no grammar arm — the
+                // point/peace masks demand specific others stay curled.
+                seedGesture(['index-finger', 'ring-finger'], [0.05, 0, 0],
+                  [0.14, -0.05, 0]);
+                ht.recognizeGestures();
+                out.htGestureMask = ht.gestures.right === 'none';
               } finally {
                 ht._onTrackingChange = ocb;
                 ht._batch.right = null;
@@ -5391,6 +5438,8 @@ async function main() {
       htFallbackPose: iout.htFallbackPose === true,
       htFallbackSkips: iout.htFallbackSkips === true,
       htDispose: iout.htDispose === true,
+      htGesturePeace: iout.htGesturePeace === true,
+      htGestureMask: iout.htGestureMask === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
       hapticSequence: iout.hapticSequence === true,
@@ -5783,6 +5832,8 @@ async function main() {
       ['getJointPose fallback poses + scales joints', !!inter.htFallbackPose],
       ['fallback skips null poses, zero radius tints', !!inter.htFallbackSkips],
       ['hand tracking dispose detaches + clears', !!inter.htDispose],
+      ['peace seed classifies + callback fires', !!inter.htGesturePeace],
+      ['index+ring extended matches no gesture', !!inter.htGestureMask],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],
