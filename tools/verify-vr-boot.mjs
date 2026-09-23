@@ -1337,6 +1337,37 @@ async function main() {
                 && app.teleport.controller === null;
               ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
               out.ctrlReconnCap = capWrites.some((t) => t.includes('Right controller reconnected'));
+              // Source lifecycle under the same bridge: 'connected' must
+              // store userData.inputSource and name the device through
+              // controllerInput.getDeviceName; 'disconnected' must null the
+              // source AND call forget() so the next read rebuilds a fresh
+              // snapshot (edge state must not leak across reconnects); the
+              // forget call itself is guarded on a stored source so a
+              // disconnect with nothing connected stays a caption-only no-op.
+              const srcBridge = { handedness: 'right' };
+              let nameCalls = 0;
+              let forgetCalls = 0;
+              const origGetName = app.controllerInput.getDeviceName.bind(app.controllerInput);
+              const origForget = app.controllerInput.forget.bind(app.controllerInput);
+              app.controllerInput.getDeviceName = (s) => { nameCalls += 1; return origGetName(s); };
+              app.controllerInput.forget = (s) => { forgetCalls += 1; return origForget(s); };
+              try {
+                ctrl.dispatchEvent({ type: 'connected', data: srcBridge });
+                out.ctrlConnStores = ctrl.userData.inputSource === srcBridge
+                  && nameCalls === 1;
+                const snapBefore = app.controllerInput.read(srcBridge);
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                const snapAfter = app.controllerInput.read(srcBridge);
+                out.ctrlDiscForget = ctrl.userData.inputSource === null
+                  && forgetCalls === 1 && snapAfter !== snapBefore;
+                const forgetCallsBefore = forgetCalls;
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                out.ctrlDiscGuarded = forgetCalls === forgetCallsBefore;
+              } finally {
+                app.controllerInput.getDeviceName = origGetName;
+                app.controllerInput.forget = origForget;
+                ctrl.userData.inputSource = null;
+              }
             }
             // Select/hover/teleport arms: a controller ray hitting a
             // registered interactable runs onSelect + haptic click + the
@@ -6811,6 +6842,9 @@ async function main() {
       ctrlFirstQuiet: iout.ctrlFirstQuiet === true,
       ctrlDisc: iout.ctrlDiscCap === true,
       ctrlReconn: iout.ctrlReconnCap === true,
+      ctrlConnStores: iout.ctrlConnStores === true,
+      ctrlDiscForget: iout.ctrlDiscForget === true,
+      ctrlDiscGuarded: iout.ctrlDiscGuarded === true,
       squeezeCancelled: iout.squeezeCancelled === true,
       hoverEnter: iout.hoverEnter === true,
       selectHit: iout.selectHit === true,
@@ -7304,6 +7338,9 @@ async function main() {
       ['initial controller connect stays quiet', !!inter.ctrlFirstQuiet],
       ['mid-session disconnect toasts + forgets source', !!inter.ctrlDisc],
       ['controller reconnect announces', !!inter.ctrlReconn],
+      ['connect stores the input source + names device', !!inter.ctrlConnStores],
+      ['disconnect forgets source state (fresh snapshot)', !!inter.ctrlDiscForget],
+      ['disconnect with no source skips forget', !!inter.ctrlDiscGuarded],
       ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
       ['controller ray hover fires onHover once', !!inter.hoverEnter],
       ['selectstart on a hit runs select+haptic+qui-select', !!inter.selectHit],
