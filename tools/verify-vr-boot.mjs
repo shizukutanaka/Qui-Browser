@@ -1321,6 +1321,42 @@ async function main() {
             say('履歴を消去');
             out.voiceCleared = app.bookmarks.search('harness-top.example', 5).length === 0;
             out.voiceClearCap = statusEl ? statusEl.textContent : '';
+            // batch 71 (a) — onTopSites excludes the search engine itself:
+            //   a duckduckgo result page outranking every real destination
+            //   must still lose the slot — VRApp passes searchEngineHosts()
+            //   as the getTopSites exclude list.
+            {
+              const hk71 = 'quiBrowser_history';
+              const histWas71 = localStorage.getItem(hk71);
+              const urlWas71 = tab2 && tab2.currentUrl;
+              const tabHistWas71 = tab2 && tab2.history;
+              const tabHidxWas71 = tab2 && tab2.historyIdx;
+              try {
+                localStorage.setItem(hk71, JSON.stringify([
+                  { url: 'https://duckduckgo.com/?q=seed', title: 'd',
+                    visits: 9, visitedAt: Date.now() },
+                  { url: 'https://top-real-71.example/', title: 'r',
+                    visits: 3, visitedAt: Date.now() }
+                ]));
+                say('トップサイト');
+                out.topSitesExclude = !!tab2
+                  && tab2.currentUrl === 'https://top-real-71.example/';
+              } finally {
+                if (histWas71 === null) {
+                  localStorage.removeItem(hk71);
+                } else {
+                  localStorage.setItem(hk71, histWas71);
+                }
+                // Field-restore the tab's own history too — a navigate()
+                // here would push a fresh entry and corrupt the sibling
+                // 戻る/進む legs' expected back-target.
+                if (tab2 && urlWas71) {
+                  tab2.history = tabHistWas71;
+                  tab2.historyIdx = tabHidxWas71;
+                  tab2.currentUrl = urlWas71;
+                }
+              }
+            }
             const volBefore = (app.settings.masterVolume ?? 100);
             say('音量上げる');
             let sv = null;
@@ -1573,6 +1609,14 @@ async function main() {
                 && ime66.convertHiraganaToKatakana('かな') === 'カナ'
                 && Array.isArray(cands66) && cands66.includes('今日は')
                 && ime66.getOfflineKanjiCandidates('zzzz')[0] === 'zzzz';
+              // batch 71 (c) — the romaji table's digraph and particle
+              //   arms: si/tu diacritics, syllabic 'n', and the を
+              //   particle keystroke a user actually types.
+              out.imeConvertMore = ime66.convertRomajiToHiragana('shi') === 'し'
+                && ime66.convertRomajiToHiragana('tsu') === 'つ'
+                && ime66.convertRomajiToHiragana('nn') === 'ん'
+                && ime66.convertRomajiToHiragana('wo') === 'を'
+                && ime66.convertRomajiToHiragana('kyou') === 'きょう';
             }
             // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
             // || still swaps a bogus rate for 1.0.
@@ -1747,6 +1791,35 @@ async function main() {
               && !!h3 && h3.visits === 5
               && h3.url === 'https://www.bm-h.example/p1'
               && ts2.every((s) => s.host !== 'duckduckgo.com');
+            // batch 71 (b) — search() returns frecency-ranked rows:
+            //   more visits beat fewer at equal age, fresher beats
+            //   stale at equal visits — through the sorted surface.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://bm-r1.example/', title: 'r1', visits: 1, visitedAt: 1000 },
+              { url: 'https://bm-r2.example/', title: 'r2', visits: 5, visitedAt: 1000 },
+              { url: 'https://bm-r3.example/', title: 'r3', visits: 1, visitedAt: 1000000 }
+            ]));
+            const ranked71 = bm.search('bm-r', 10, 1000000);
+            const sOf71 = (u) =>
+              (ranked71.find((r) => r.url === u) || {}).score || 0;
+            out.bmFrecencyRank = ranked71.length === 3
+              && ranked71[0].url === 'https://bm-r2.example/'
+              && sOf71('https://bm-r2.example/')
+                === 5 * sOf71('https://bm-r1.example/')
+              && sOf71('https://bm-r3.example/')
+                > sOf71('https://bm-r1.example/');
+            // batch 71 (d) — re-bookmarking a URL dedupes to one entry
+            //   moved to the front with the latest title, not a duplicate.
+            bm.addBookmark('https://bm-rf1.example/', 'F1');
+            bm.addBookmark('https://bm-rf2.example/', 'F2');
+            bm.addBookmark('https://bm-rf1.example/', 'F1b');
+            const bmList71 = bm.getBookmarks();
+            out.bmReAddFront = bmList71[0].url === 'https://bm-rf1.example/'
+              && bmList71[0].title === 'F1b'
+              && bmList71.filter(
+                (b) => b.url === 'https://bm-rf1.example/').length === 1;
+            bm.removeBookmark('https://bm-rf1.example/');
+            bm.removeBookmark('https://bm-rf2.example/');
             // The 200-entry bound trims on write — seed past the cap and
             // one addHistory must shed the overflow.
             const over = [];
@@ -5584,6 +5657,42 @@ async function main() {
                       }
                     }
                   }
+                  // batch 71 (e) — reader extraction strips non-prose
+                  //   payloads: <script>, <style> and <noscript> content
+                  //   must never reach the reader lines (injected markup
+                  //   would otherwise render as page text).
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head><title>SN71</title></head><body><article>'
+                        + '<p>Clean reader prose seventy one '
+                        + '<script>var hack = "alert-strip-71";</script>'
+                        + 'with enough length to survive extraction.</p>'
+                        + '<p>Second prose line '
+                        + '<style>body{--x71:1}</style>'
+                        + 'continues the article text payload here.</p>'
+                        + '<p>Third line of reader prose '
+                        + '<noscript>needjs-strip-71</noscript>'
+                        + 'closes out the article body.</p>'
+                        + '</article></body></html>')
+                    });
+                    try {
+                      wp2.navigate('https://strip-71.example/p');
+                      await settle2();
+                      const joined71 = (wp2._readerLines || [])
+                        .map((l) => l.text || '').join('|');
+                      out.readerStripNoise = wp2._contentState === 'reader'
+                        && !joined71.includes('alert-strip-71')
+                        && !joined71.includes('needjs-strip-71')
+                        && !joined71.includes('--x71:1');
+                    } finally {
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory(
+                          'https://strip-71.example/p');
+                      }
+                    }
+                  }
                   // (c) _sharedPlaneGeometry memoizes per "WxH" key — settings
                   //     buttons share one PlaneGeometry, so a miss would
                   //     multiply GPU allocations per button.
@@ -7910,6 +8019,7 @@ async function main() {
       distanceClamp: iout.distanceClamp === true,
       spaShellUnavailable: iout.spaShellUnavailable === true,
       titleEntityDecode: iout.titleEntityDecode === true,
+      readerStripNoise: iout.readerStripNoise === true,
       sharedPlaneGeo: iout.sharedPlaneGeo === true,
       telemetryFeedGate: iout.telemetryFeedGate === true,
       audioResumeDetach: iout.audioResumeDetach === true,
@@ -7940,6 +8050,7 @@ async function main() {
       fpsSeverityTiers: iout.fpsSeverityTiers === true,
       audioSourceDist: iout.audioSourceDist === true,
       imeConvertFns: iout.imeConvertFns === true,
+      imeConvertMore: iout.imeConvertMore === true,
       texSettingsStats: iout.texSettingsStats === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
@@ -7992,6 +8103,7 @@ async function main() {
         && (iout.voiceSearchCap || '').includes('検索'),
       voiceTop: iout.voiceTopNav === true
         && (iout.voiceTopCap || '').includes('よく使うサイト'),
+      topSitesExclude: iout.topSitesExclude === true,
       voiceClear: iout.voiceCleared === true
         && (iout.voiceClearCap || '').includes('履歴を消去'),
       voiceVol: iout.voiceVolUp === true
@@ -8036,6 +8148,8 @@ async function main() {
       bmTitleGuard: iout.bmTitleGuard === true,
       bmRemoveFilter: iout.bmRemoveFilter === true,
       bmTopSites: iout.bmTopSites === true,
+      bmFrecencyRank: iout.bmFrecencyRank === true,
+      bmReAddFront: iout.bmReAddFront === true,
       bmTrim: iout.bmTrim === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
@@ -8469,6 +8583,7 @@ async function main() {
       ['window distance clamps to min/max', !!inter.distanceClamp],
       ['prose-less page lands unavailable not reader', !!inter.spaShellUnavailable],
       ['page title decodes entities, falls back to URL', !!inter.titleEntityDecode],
+      ['reader strips script style noscript payloads', !!inter.readerStripNoise],
       ['plane geometries memoize per size', !!inter.sharedPlaneGeo],
       ['perf telemetry feeds gtag at 1 Hz only', !!inter.telemetryFeedGate],
       ['audio resume gesture detaches all listeners', !!inter.audioResumeDetach],
@@ -8499,6 +8614,7 @@ async function main() {
       ['fps drop reports severity-tiered event', !!inter.fpsSeverityTiers],
       ['source distance drives the HRTF tier', !!inter.audioSourceDist],
       ['ime romaji/katakana/offline converts resolve', !!inter.imeConvertFns],
+      ['ime digraph n-particle romaji arms convert', !!inter.imeConvertMore],
       ['texture settings write + memory stats shape', !!inter.texSettingsStats],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
@@ -8544,6 +8660,7 @@ async function main() {
       ['immersive video stop tore down scene', !!inter.videoStopped],
       ['voice search navigated + announced', !!inter.voiceSearch],
       ['voice top-sites announced via caption', !!inter.voiceTop],
+      ['search engine itself excluded from top sites', !!inter.topSitesExclude],
       ['voice clear-history wiped + announced', !!inter.voiceClear],
       ['voice volume-up persisted + announced', !!inter.voiceVol],
       ['voice back moved + announced', !!inter.voiceBack],
@@ -8577,6 +8694,8 @@ async function main() {
       ['bare revisit keeps the recorded title', !!inter.bmTitleGuard],
       ['removeHistory filters corrupted dupes', !!inter.bmRemoveFilter],
       ['top-sites aggregates hosts + excludes', !!inter.bmTopSites],
+      ['search ranks by frecency visits + recency', !!inter.bmFrecencyRank],
+      ['re-bookmark dedupes and moves to front', !!inter.bmReAddFront],
       ['history bound trims at 200 entries', !!inter.bmTrim],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['voice start lifecycle + already-listening', !!inter.voiceLifecycle],
