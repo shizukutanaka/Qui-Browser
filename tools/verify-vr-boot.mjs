@@ -1246,6 +1246,7 @@ async function main() {
               selObj.scale.set(0.01, 0.01, 0.01);
               selObj.position.set(0, 1.4, -0.4);
               selObj.updateMatrixWorld(true);
+              let selObj2 = null;
               const hapticPats = [];
               const origPlay = app.hapticFeedback.playPattern;
               app.hapticFeedback.playPattern = (h, p) => { hapticPats.push(p); };
@@ -1269,6 +1270,38 @@ async function main() {
                 out.hoverExit = hoverExits === 1 && !ctrl.userData.hovered;
                 ctrl.dispatchEvent({ type: 'selectstart' });
                 out.selectMissQuiet = selFires === 1 && quiFires === 1;
+                // Hit priority: the nearest VISIBLE interactable on the ray
+                // wins — a second disc parked between the controller and
+                // selObj must claim the select, and hiding it must hand the
+                // hit to the visible one behind (isWorldVisible skips a
+                // shadowed panel's mesh, which THREE's raycast still hits).
+                selObj2 = app.floorMesh.clone();
+                selObj2.userData = {};
+                let sel2Fires = 0;
+                let hov2 = 0;
+                selObj2.userData.interactable = {
+                  onSelect: () => { sel2Fires += 1; },
+                  onHover: () => { hov2 += 1; }
+                };
+                selObj2.rotation.set(0, 0, 0);
+                selObj2.scale.set(0.01, 0.01, 0.01);
+                selObj2.position.set(0, 1.4, -0.2);
+                selObj2.updateMatrixWorld(true);
+                app.interactables.push(selObj2);
+                ctrl.matrixWorld.identity();
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.hitNearest = sel2Fires === 1 && selFires === 1;
+                // Same-hover dedup: re-running the hover pass over an
+                // unchanged nearest object must NOT refire onHover — the
+                // prev === obj guard is what stops per-frame hover spam.
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                out.hoverStableNoRefire = hov2 === 1;
+                selObj2.visible = false;
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                out.hitSkipsHidden = selFires === 2 && sel2Fires === 1;
                 // Teleport: squeeze aims the ray at the floor (the per-frame
                 // updateTeleport raycast marks target + marker), release
                 // moves the rig and captions the landing.
@@ -1287,10 +1320,77 @@ async function main() {
                   && Math.abs(app.playerRig.position.x - rigX0)
                     + Math.abs(app.playerRig.position.z - rigZ0) > 0.01
                   && capWrites.some((t) => t.includes('Teleported'));
+                // fireTeleportFeedback: the landing also pulses 'impact' on
+                // the landing hand — the haptic arm the caption conjunct
+                // never saw (hapticPats already spies playPattern).
+                out.teleportHaptic = hapticPats.includes('impact');
+                // Invalid aim: a ray that misses the floor leaves
+                // teleport.valid=false + marker hidden, so squeezeend resets
+                // aim WITHOUT moving the rig — no 'Teleported', no 'impact'.
+                const patsTp0 = hapticPats.length;
+                const capsTp0 = capWrites.length;
+                const rigMx0 = app.playerRig.position.x;
+                const rigMz0 = app.playerRig.position.z;
+                ctrl.matrixWorld.makeRotationX(Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const missOk = app.teleport.active === true
+                  && app.teleport.valid === false
+                  && !(app.teleport.marker && app.teleport.marker.visible === true);
+                ctrl.dispatchEvent({ type: 'squeezeend' });
+                out.teleportMiss = missOk
+                  && Math.abs(app.playerRig.position.x - rigMx0) < 1e-9
+                  && Math.abs(app.playerRig.position.z - rigMz0) < 1e-9
+                  && !capWrites.slice(capsTp0).some((t) => t.includes('Teleported'))
+                  && !hapticPats.slice(patsTp0).includes('impact');
+                // A 'disconnected' event mid-aim runs
+                // _cancelTeleportIfAimedBy: the aim is reset WITHOUT a move —
+                // a headset-removal disconnect must never complete a
+                // teleport the user never released intentionally.
+                const rigDx0 = app.playerRig.position.x;
+                const rigDz0 = app.playerRig.position.z;
+                ctrl.matrixWorld.makeRotationX(-Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const aimDisc = app.teleport.active === true
+                  && app.teleport.valid === true;
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                out.teleportCancelDisc = aimDisc
+                  && app.teleport.active === false
+                  && app.teleport.valid === false
+                  && !(app.teleport.marker && app.teleport.marker.visible === true)
+                  && Math.abs(app.playerRig.position.x - rigDx0) < 1e-9
+                  && Math.abs(app.playerRig.position.z - rigDz0) < 1e-9;
+                // Sibling disconnect does NOT cancel: only the controller
+                // currently aiming gets its aim torn down.
+                const other = app.controllers && app.controllers[1];
+                ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
+                ctrl.matrixWorld.makeRotationX(-Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const aimSib = app.teleport.active === true
+                  && app.teleport.valid === true;
+                if (other) {
+                  other.dispatchEvent({ type: 'disconnected' });
+                }
+                out.teleportSurvivesDisc = !!other && aimSib
+                  && app.teleport.active === true
+                  && app.teleport.valid === true
+                  && !!(app.teleport.marker && app.teleport.marker.visible === true);
+                ctrl.dispatchEvent({ type: 'squeezeend' });
+                if (other) {
+                  other.dispatchEvent({ type: 'connected', data: { handedness: 'left' } });
+                }
               } finally {
-                const ix = app.interactables.indexOf(selObj);
-                if (ix >= 0) {
-                  app.interactables.splice(ix, 1);
+                for (const o of [selObj, selObj2]) {
+                  if (!o) continue;
+                  const ix = app.interactables.indexOf(o);
+                  if (ix >= 0) {
+                    app.interactables.splice(ix, 1);
+                  }
                 }
                 app.hapticFeedback.playPattern = origPlay;
                 ctrl.matrixWorld.copy(origMW);
@@ -1585,6 +1685,25 @@ async function main() {
                 out.grabEnds = wm.isGrabbing === false
                   && capWrites.some((t) => t.includes('Panel moved'))
                   && grabHaptic.includes('impact');
+                // selectend on the OTHER controller must not end the grab:
+                // onControllerSelect guards with controller === _grabController,
+                // so a stray release from the non-grabbing hand can't drop the
+                // window mid-drag.
+                const capsGrab0 = capWrites.length;
+                // Re-aim at the bar — the drag moved the controller away.
+                ctrl.matrixWorld.lookAt(cp, barPos, up);
+                ctrl.matrixWorld.setPosition(cp);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                const regrabOk = wm.isGrabbing === true;
+                const otherG = app.controllers && app.controllers[1];
+                if (otherG) {
+                  otherG.dispatchEvent({ type: 'selectend' });
+                }
+                out.grabHeldWrongRelease = !!otherG && regrabOk
+                  && wm.isGrabbing === true
+                  && !capWrites.slice(capsGrab0).some((t) => t.includes('Panel moved'));
+                ctrl.dispatchEvent({ type: 'selectend' });
               } finally {
                 app.windowManager && wm.isGrabbing && wm.endGrab();
                 if (origGPlay) {
@@ -2499,6 +2618,38 @@ async function main() {
                     out.comfortCycles = app.settings.motionSensitivity !== msWas
                       && app.comfortSystem.settings.preset === app.settings.motionSensitivity
                       && locoCaps.some((s) => s.includes('Comfort: ' + app.comfortSystem.settings.preset));
+                  }
+                  // smoothMoveWarning: enabling smooth locomotion while the
+                  // OS prefers-reduced-motion signal is set fires a 'warn'
+                  // toast — the only settings path consulting the OS signal
+                  // at select time. Stub matchMedia so the real onSelect
+                  // sees reduced-motion; the OFF select warns nothing.
+                  app.settings.enableSmoothMove = false;
+                  const smBtn = probeLabel6('Smooth Move');
+                  const origMM = window.matchMedia;
+                  const capsSM0 = locoCaps.length;
+                  window.matchMedia = (q) =>
+                    (q === '(prefers-reduced-motion: reduce)'
+                      ? { matches: true } : origMM(q));
+                  try {
+                    if (smBtn) {
+                      selectCenter6(smBtn); // ON under reduced-motion -> warn
+                    }
+                    const onWarn = locoCaps.slice(capsSM0)
+                      .some((s) => s.includes('motion sickness'));
+                    const capsSM1 = locoCaps.length;
+                    if (smBtn && app.settings.enableSmoothMove === true) {
+                      selectCenter6(smBtn); // OFF -> no warning
+                    }
+                    const offQuiet = !locoCaps.slice(capsSM1)
+                      .some((s) => s.includes('motion sickness'));
+                    out.smoothWarn = !!smBtn && onWarn && offQuiet
+                      && app.settings.enableSmoothMove === false;
+                  } finally {
+                    window.matchMedia = origMM;
+                    if (app.settings.enableSmoothMove !== false) {
+                      app.settings.enableSmoothMove = false;
+                    }
                   }
                 }
                 // Accessibility section: the WCAG live-apply chain — stepper
@@ -5240,8 +5391,15 @@ async function main() {
       selectHit: iout.selectHit === true,
       hoverExit: iout.hoverExit === true,
       selectMissQuiet: iout.selectMissQuiet === true,
+      hitNearest: iout.hitNearest === true,
+      hitSkipsHidden: iout.hitSkipsHidden === true,
+      hoverStableNoRefire: iout.hoverStableNoRefire === true,
       aimLands: iout.aimLands === true,
       teleportLands: iout.teleportLands === true,
+      teleportHaptic: iout.teleportHaptic === true,
+      teleportMiss: iout.teleportMiss === true,
+      teleportCancelDisc: iout.teleportCancelDisc === true,
+      teleportSurvivesDisc: iout.teleportSurvivesDisc === true,
       fanCore: iout.fanCore === true,
       fanUI: iout.fanUI === true,
       fanA11y: iout.fanA11y === true,
@@ -5254,6 +5412,7 @@ async function main() {
       grabStarts: iout.grabStarts === true,
       grabDrags: iout.grabDrags === true,
       grabEnds: iout.grabEnds === true,
+      grabHeldWrongRelease: iout.grabHeldWrongRelease === true,
       snapTurns: iout.snapTurns === true,
       snapLatch: iout.snapLatch === true,
       faceAAnnounces: iout.faceAAnnounces === true,
@@ -5275,6 +5434,7 @@ async function main() {
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
       smoothMoves: iout.smoothMoves === true,
+      smoothWarn: iout.smoothWarn === true,
       smoothStops: iout.smoothStops === true,
       stickRecenters: iout.stickRecenters === true,
       stickKeyboard: iout.stickKeyboard === true,
@@ -5633,10 +5793,17 @@ async function main() {
       ['disconnect mid-squeeze cancels the aim', !!inter.squeezeCancelled],
       ['controller ray hover fires onHover once', !!inter.hoverEnter],
       ['selectstart on a hit runs select+haptic+qui-select', !!inter.selectHit],
+      ['nearest visible interactable wins the ray', !!inter.hitNearest],
+      ['hidden panel shadow does not block select', !!inter.hitSkipsHidden],
+      ['unchanged hover never refires onHover', !!inter.hoverStableNoRefire],
       ['aiming away fires onHoverEnd', !!inter.hoverExit],
       ['selectstart on a miss fires nothing', !!inter.selectMissQuiet],
       ['squeeze aim raycasts the floor target', !!inter.aimLands],
       ['squeezeend lands the rig with Teleported', !!inter.teleportLands],
+      ['teleport landing pulses haptic impact', !!inter.teleportHaptic],
+      ['invalid aim leaves rig unmoved + silent', !!inter.teleportMiss],
+      ['aiming-controller disconnect cancels teleport', !!inter.teleportCancelDisc],
+      ['sibling disconnect leaves teleport aim intact', !!inter.teleportSurvivesDisc],
       ['frame fan-out hits every live subsystem once', !!inter.fanCore],
       ['frame fan-out hits locomotion + buttons once', !!inter.fanUI],
       ['frame fan-out hits gaze + captions once', !!inter.fanA11y],
@@ -5649,6 +5816,7 @@ async function main() {
       ['select on move bar begins grab + announces', !!inter.grabStarts],
       ['grab drag tracks the controller ray', !!inter.grabDrags],
       ['selectend ends grab + announces moved', !!inter.grabEnds],
+      ['non-grabbing hand release cannot drop window', !!inter.grabHeldWrongRelease],
       ['right stick snaps -30° + Right caption + click', !!inter.snapTurns],
       ['held stick latches; re-push snaps again', !!inter.snapLatch],
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
@@ -5670,6 +5838,7 @@ async function main() {
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
       ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
+      ['smooth move under reduced-motion warns', !!inter.smoothWarn],
       ['stick release disengages external motion', !!inter.smoothStops],
       ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],

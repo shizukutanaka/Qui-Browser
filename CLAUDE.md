@@ -448,6 +448,24 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `callback(handedness, newGesture)` 切断 → `htGesturePeace` FAIL + gesture→haptic 系 8 件は dispatch 共有の想定 co-signal；point 腕 `!ring` mask 切断 → `htGestureMask` FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 353 checks PASS、verify:app PASS。
 
+### Session 220: 続き378 — teleport impact pulse + invalid-aim no-op + reduced-motion smooth warn を e2e pin（#276、353→356 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`fireTeleportFeedback` の haptic 'impact' 腕（teleportLands は caption のみ観測）。②`updateTeleport` miss → `valid=false`+marker 非表示 → squeezeend no-op（stale target へ動かない契約）未駆動。③`smoothMoveWarning` の OS reduced-motion 連動 warn（settings 唯一の OS signal select 経路）未駆動。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) else 腕 `t.valid=false` 切断は `_resetTeleportAim` が毎回 valid をゼロに戻すため不発 — 真の契約は `onTeleportEnd` の `t.active && t.valid && t.target` ゲート（stale `t.target` は reset を生き残る）。(b) `fireTeleportFeedback(null,…)` は handedness `|| 'right'` fallback で pulse 発火し続けるため不発 — haptic 腕は helper 内で切断必須。(c) `matchMedia` は `media()` が live 参照するため eval 内 stub で OS signal を差替可、finally で必ず復元。
+- 🧪 赤検証: 3 切断（`haptic.playPattern`/`t.valid` ゲート/`smoothMoveWarning`→null）→ 新 3 check のみ FAIL、co-signal ゼロ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 356 checks PASS、verify:app PASS。
+
+### Session 221: 続き379 — disconnect teleport-cancel 双腕 + wrong-hand grab release を e2e pin（#276 batch 38、356→359 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`_cancelTeleportIfAimedBy` の deeper state（既存 `squeezeCancelled` は active/controller クリアのみ — `valid=false`+marker 非表示+rig 不動は未観測）。②sibling controller disconnect は aim を cancel しない非 cancel 腕（`_grabController` 型 identity guard 系初の負 pin）。③`onControllerSelect` release 腕の `controller === _grabController` guard — 非 grabbing 手の selectend が drag 中 window を落とせない契約。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) 2 腕が 1 関数の guard 両面を共有する場合、**guard 反転**（`=== → !==`）1 切断で両 pin を同時に falsify 可 — aiming ctrl disconnect は cancel せず（cancelDisc FAIL）+ sibling は cancel する（survivesDisc FAIL）。(b) 2 回目 selectstart は drag で matrix が動いた後 — 再 aim 必須（cp/barPos は同一 try scope で再利用可）。(c) controllers[i] の disconnect は `inputSource=null`+`forget` を副作用するため leg 末尾で `connected` 再 dispatch 復元。
+- 🧪 赤検証: guard 反転 + grab guard 除去 → 新 3 check FAIL + `squeezeCancelled` は同一腕の想定 co-signal。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 359 checks PASS、verify:app PASS。
+
+### Session 222: 続き380 — hit priority/hidden-skip + hover dedup を e2e pin（#276 batch 39、359→362 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`intersectInteractables` の近接可視優先 — 2 枚の重なり disc で近い方のみ hit。②`find(isWorldVisible)` の非表示 skip — THREE raycast は visible=false mesh も hit するため、前面の非表示 panel が奥の可視 obj を shadow しない契約（`hitSkipsHidden`）。③`updateHover` の `prev === obj → continue` dedup — 同一 hit で onHover が per-frame refire しない契約（`hoverStableNoRefire`）。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) `filter(!isWorldVisible)[0]` 反転 cut は 2 腕を同時 falsify — visible 時点で hit null（hitNearest FAIL）+ hidden 時にその obj が選ばれる（hitSkipsHidden FAIL）。ただし co-signal は巨大 — 全 select/hover pin が同一関数を通るため 12+ 件 co-FAIL は想定。(b) `prev === obj` dedup cut は hoverEnters/Exits カウンタ全 pin を汚染 — count 型 assert は ± ではなく ===N 型が共倒れしやすい。(c) leg 内 clone obj は try scope の const を finally で参照不可 → `let x = null` を leg scope 前置き必須（今回は事前に捕捉）。
+- 🧪 赤検証: 2 切断（反転 filter + dedup 除去）→ 新 3 check FAIL + 12 件は共有 intersect/hover 経路の想定 co-signal。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 362 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
