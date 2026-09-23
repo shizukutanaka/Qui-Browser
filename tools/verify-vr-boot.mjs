@@ -677,6 +677,39 @@ async function main() {
               }
             }
           }
+          // batch 68 (a) — trackFPS reports 'performance_fps_drop' under
+          //   60fps with severity tiers (critical <30, high <45, medium
+          //   else). Feeding frameTime at its own value leaves the EMA
+          //   untouched, so the derived fps lands exactly on each tier.
+          {
+            const gtagWas68d = window.gtag;
+            const gtagEvents68d = [];
+            window.gtag = (...a) => { gtagEvents68d.push(a); };
+            const ftWas68d = app.performanceMonitor.frameTime;
+            const feedWas68d = app._telemetryFeedAt;
+            try {
+              for (const ft of [40, 25, 20]) {
+                app.performanceMonitor.frameTime = ft;
+                app._telemetryFeedAt = -Infinity;
+                app.updatePerformanceMonitor(ft);
+              }
+              const fd68 = gtagEvents68d
+                .filter((e) => e[1] === 'performance_fps_drop')
+                .map((e) => e[2]);
+              out.fpsSeverityTiers = fd68.length === 3
+                && fd68[0].fps === 25 && fd68[0].severity === 'critical'
+                && fd68[1].fps === 40 && fd68[1].severity === 'high'
+                && fd68[2].fps === 50 && fd68[2].severity === 'medium';
+            } finally {
+              app.performanceMonitor.frameTime = ftWas68d;
+              app._telemetryFeedAt = feedWas68d;
+              if (gtagWas68d === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas68d;
+              }
+            }
+          }
           // (b) SpatialAudio arms click/touchstart/keydown {once:true}
           //     listeners while the context is suspended; the first gesture
           //     must tear ALL three down — else a later gesture re-fires
@@ -5525,6 +5558,70 @@ async function main() {
                     out.contentTexVersion = vWas65 >= 0
                       && wp2.contentTex.version === vWas65 + 1;
                   }
+                  // batch 68 (b) — navigate() resolves the raw input BEFORE
+                  //   pushing history: a bare host becomes https://…, a
+                  //   spaced phrase becomes a search-engine query URL, and
+                  //   a dangerous scheme resolves to null — no push, and
+                  //   onBlockedNavigation gets the raw input.
+                  {
+                    const histWas68 = wp2.history;
+                    const hidxWas68 = wp2.historyIdx;
+                    const loadWas68 = wp2._loadUrl;
+                    const blockedWas68 = wp2.onBlockedNavigation;
+                    const loads68 = [];
+                    const blocked68 = [];
+                    wp2._loadUrl = (u) => { loads68.push(u); };
+                    wp2.onBlockedNavigation = (u) => { blocked68.push(u); };
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('h68a.example/seg');
+                      wp2.navigate('hello world');
+                      wp2.navigate('javascript:alert(1)');
+                      out.navResolveArms = wp2.history.length === 2
+                        && wp2.history[0] === 'https://h68a.example/seg'
+                        && wp2.history[1] ===
+                          'https://duckduckgo.com/?q=hello%20world'
+                        && loads68.length === 2
+                        && blocked68.length === 1
+                        && blocked68[0] === 'javascript:alert(1)';
+                    } finally {
+                      wp2._loadUrl = loadWas68;
+                      wp2.onBlockedNavigation = blockedWas68;
+                      wp2.history = histWas68;
+                      wp2.historyIdx = hidxWas68;
+                    }
+                  }
+                  // batch 68 (c) — navigate() mid-history TRUNCATES the
+                  //   forward entries before pushing (a tab walking back
+                  //   then navigating discards the abandoned future).
+                  {
+                    const histWas68b = wp2.history;
+                    const hidxWas68b = wp2.historyIdx;
+                    const loadWas68b = wp2._loadUrl;
+                    wp2._loadUrl = () => {};
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('https://h68t/a');
+                      wp2.navigate('https://h68t/b');
+                      wp2.navigate('https://h68t/c');
+                      wp2.back();
+                      wp2.navigate('https://h68t/d');
+                      const trunc68 = wp2.history.length === 3
+                        && wp2.history[2] === 'https://h68t/d'
+                        && !wp2.history.includes('https://h68t/c')
+                        && wp2.historyIdx === 2
+                        && wp2.forward() === false;
+                      wp2.navigate('https://h68t/e');
+                      out.histForwardTruncate = trunc68
+                        && wp2.history.length === 4
+                        && wp2.history[3] === 'https://h68t/e'
+                        && wp2.historyIdx === 3;
+                    } finally {
+                      wp2._loadUrl = loadWas68b;
+                      wp2.history = histWas68b;
+                      wp2.historyIdx = hidxWas68b;
+                    }
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -7618,9 +7715,12 @@ async function main() {
       registerCustomCmd: iout.registerCustomCmd === true,
       historyNavEdges: iout.historyNavEdges === true,
       contentTexVersion: iout.contentTexVersion === true,
+      navResolveArms: iout.navResolveArms === true,
+      histForwardTruncate: iout.histForwardTruncate === true,
       deviceTierDetect: iout.deviceTierDetect === true,
       navPageView: iout.navPageView === true,
       memHighGtag: iout.memHighGtag === true,
+      fpsSeverityTiers: iout.fpsSeverityTiers === true,
       audioSourceDist: iout.audioSourceDist === true,
       imeConvertFns: iout.imeConvertFns === true,
       texSettingsStats: iout.texSettingsStats === true,
@@ -8164,9 +8264,12 @@ async function main() {
       ['custom voice command registers + fires', !!inter.registerCustomCmd],
       ['back/forward stop at history edges', !!inter.historyNavEdges],
       ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
+      ['navigate resolves host/query/scheme before push', !!inter.navResolveArms],
+      ['mid-history navigate truncates the future', !!inter.histForwardTruncate],
       ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
       ['navigate reports query-stripped pageview', !!inter.navPageView],
       ['memory threshold reports severity-tiered event', !!inter.memHighGtag],
+      ['fps drop reports severity-tiered event', !!inter.fpsSeverityTiers],
       ['source distance drives the HRTF tier', !!inter.audioSourceDist],
       ['ime romaji/katakana/offline converts resolve', !!inter.imeConvertFns],
       ['texture settings write + memory stats shape', !!inter.texSettingsStats],
