@@ -653,6 +653,43 @@ async function main() {
             out.voiceScrollDn = tab2 ? tab2._readerScroll : null;
             say('上にスクロール');
             out.voiceScrollUp = tab2 ? tab2._readerScroll : null;
+            // Session commands: 'VRモード' routes onEnterVR → vrButton.click
+            // (the same guarded enter path the 2D shell uses — spy on click,
+            // do NOT call through: the real handler would fire the rejecting
+            // requestSession stub). 'VR終了' routes onExitVR →
+            // renderer.xr.getSession().end() — stub getSession to count the
+            // call; the fake session's own end is a no-op so nothing tears
+            // down here.
+            let enterClicks = 0;
+            let endCalls2 = 0;
+            const vrbClickWas = app.vrButton ? app.vrButton.click : null;
+            const gsWas = app.renderer && app.renderer.xr
+              ? app.renderer.xr.getSession : null;
+            try {
+              if (app.vrButton) {
+                app.vrButton.click = () => { enterClicks++; };
+              }
+              say('VRモード');
+              out.voiceVrEnter = enterClicks === 1
+                && (statusEl ? statusEl.textContent : '')
+                  .includes('VRモードを開始します');
+              if (app.renderer && app.renderer.xr) {
+                app.renderer.xr.getSession = () => ({
+                  end: () => { endCalls2++; return Promise.resolve(); }
+                });
+              }
+              say('VR終了');
+              out.voiceVrExit = endCalls2 === 1
+                && (statusEl ? statusEl.textContent : '')
+                  .includes('VRモードを終了します');
+            } finally {
+              if (app.vrButton && vrbClickWas) {
+                app.vrButton.click = vrbClickWas;
+              }
+              if (app.renderer && app.renderer.xr && gsWas) {
+                app.renderer.xr.getSession = gsWas;
+              }
+            }
             say('停止');
             out.voiceStopped = vc.isListening === false;
             out.voiceStopCap = statusEl ? statusEl.textContent : '';
@@ -2846,6 +2883,55 @@ async function main() {
                     && app.camera.layers.mask === camMaskWas
                     && iv.meshes.length === 0
                     && iv._eyeTextures.length === 0;
+                  // Real-wiring arms: the HUD button's registered onHover
+                  // routes draw(true) + onHoverCaption(label) — the gaze
+                  // user's only label announcement (every earlier HUD pin
+                  // drove the select arm only) — and stop() must detach the
+                  // video-element listeners play() bound plus hand 'stopped'
+                  // to the REAL onPlaybackChange → captionSystem.show. This
+                  // leg sits inside the locoCaps stub window, so observe
+                  // show() writes by wrapping it (chain through to whatever
+                  // is installed — stub or real — then restore).
+                  const vidCaps = [];
+                  const vidShowWas = app.captionSystem && app.captionSystem.show;
+                  try {
+                    if (app.captionSystem && vidShowWas) {
+                      app.captionSystem.show = (m) => {
+                        vidCaps.push(String(m));
+                        return vidShowWas(m);
+                      };
+                    }
+                    iv.play('https://vid-seed.example/cap.mp4',
+                      { projection: '360', layout: 'mono' });
+                    const hb = iv.controlPanel
+                      ? iv.controlPanel.children.find(
+                        (b) => b.position && b.position.x > 0) : null;
+                    app.settings.enableGazeDwell = true;
+                    if (hb && hb.userData.interactable) {
+                      hb.userData.interactable.onHover();
+                    }
+                    out.vidHoverCap = vidCaps.some(
+                      (t) => t.indexOf('Exit') >= 0);
+                    app.settings.enableGazeDwell = false;
+                    if (hb && hb.userData.interactable
+                      && hb.userData.interactable.onHoverEnd) {
+                      hb.userData.interactable.onHoverEnd();
+                    }
+                    iv.stop();
+                    out.vidStopCaption = iv.active === false
+                      && iv._onVideoError === null
+                      && iv._onVideoPlaying === null
+                      && iv.video === null
+                      && iv.playing === false
+                      && vidCaps.some(
+                        (t) => t.indexOf('Video: stopped') >= 0);
+                  } finally {
+                    if (app.captionSystem && vidShowWas) {
+                      app.captionSystem.show = vidShowWas;
+                    }
+                    app.settings.enableGazeDwell = false;
+                    if (iv.active) { iv.stop(); }
+                  }
                 } finally {
                   if (iv.active) { iv.stop(); }
                 }
@@ -4136,6 +4222,10 @@ async function main() {
       voiceKb: iout.voiceKbHidden === true
         && (iout.voiceKbCap || '').includes('キーボード'),
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
+      voiceVrEnter: iout.voiceVrEnter === true,
+      voiceVrExit: iout.voiceVrExit === true,
+      vidHoverCap: iout.vidHoverCap === true,
+      vidStopCaption: iout.vidStopCaption === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
       sessStart: iout.sessStart === true && iout.sessReadyCap === true,
@@ -4473,6 +4563,10 @@ async function main() {
       ['voice help listed commands via caption', !!inter.voiceHelp],
       ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
       ['voice scroll moved reader viewport', !!inter.voiceScroll],
+      ['voice VR-enter routed + announced', !!inter.voiceVrEnter],
+      ['voice VR-exit reached session.end', !!inter.voiceVrExit],
+      ['video HUD hover announced via caption', !!inter.vidHoverCap],
+      ['video stop detached listeners + captioned', !!inter.vidStopCaption],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],

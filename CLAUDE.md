@@ -349,6 +349,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: intersection 腕・`_rows` bookmarks 腕・store 呼出・scrollDown インクリメント・post-delete `_clampScroll` の 5 腕同時切断 → 新 5 check 全 FAIL + 同面既存 pin 7 件も co-FAIL（bpPanelZones/bpRowDeletes + session 内 sibling 4 件 — 想定 co-signal）。復元後全緑。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 294 checks PASS、verify:app PASS。
 
+### Session 205: 続き363 — ImmersiveVideo 実 wiring 腕（hover caption・listener detach・stopped caption）+ voice VR-enter/exit を e2e pin（#270 batch 22、294→298 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①HUD ボタンの登録 `onHover` → `draw(true)` + `onHoverCaption(label)` — 全 HUD pin は select 腕のみで hover announce 未駆動（gaze ユーザー唯一のラベル通知）。②`stop()` の `removeEventListener('error'/'playing')` + field null 化 — リーク経路未観測。③`stop()` → 実 `onPlaybackChange` → 'Video: stopped' caption（leg 内では常に pbcState spy に差替）。④voice `vr-enter`/`vr-exit` コマンド — `onEnterVR`→`vrButton.click` / `onExitVR`→`getSession().end` の connectBrowser 登録腕が未駆動。
+- 🔧 **ハーネス教訓 2 件**: (a) locoCaps stub 窓内では `captionSystem.show` が log spy に差替済みで SemanticDOM/statusEl に届かない — 初回 FAIL で実測 → 自分の sub-block で show を wrap して `vidCaps` に傍受（stub 窓 = 1307 設置・3454 復元、可視範囲は grep 必須）。(b) `say('停止')` は `isListening=false` にするため voice pin はその **前** に挿入 — 後だと handleRecognitionResult が死ぬ。vr-enter は `vrButton.click` を spy（実呼出すると rejecting requestSession stub が走る）、vr-exit は `xr.getSession` を `{end:spy}` に差替（fakeSession.end は no-op）。
+- 🧪 赤検証: `onEnterVR`/`onExitVR` body 切断・`onHoverCaption` 呼出切断・`removeEventListener` ブロック切断の 4 腕同時切断 → 新 4 check のみ FAIL（co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 298 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
