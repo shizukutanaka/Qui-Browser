@@ -2347,6 +2347,32 @@ async function main() {
                     && pauseCalls === 1
                     && iv.playing === false
                     && pbcState === 'paused';
+                  // 'playing' listener arm: the real bound listener flips
+                  // playing=true, rewrites the HUD label to 'Pause', and
+                  // notifies onPlaybackChange — the resume path's entire
+                  // state contract (togglePause deliberately does none of
+                  // this eagerly).
+                  const lbCalls = [];
+                  const lbWas = iv._playPauseBtn
+                    ? iv._playPauseBtn.userData.setLabel : null;
+                  try {
+                    if (iv._playPauseBtn) {
+                      iv._playPauseBtn.userData.setLabel =
+                        (l) => { lbCalls.push(l); };
+                    }
+                    pbcState = null;
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    iv.playing = false;
+                    iv._onVideoPlaying();
+                    out.vidPlayingListener = iv.playing === true
+                      && lbCalls.length === 1
+                      && pbcState === 'playing';
+                  } finally {
+                    iv.onPlaybackChange = origPbc;
+                    if (iv._playPauseBtn && lbWas) {
+                      iv._playPauseBtn.userData.setLabel = lbWas;
+                    }
+                  }
                   iv.stop();
                   out.vidCycleClean = restarted
                     && iv.active === false
@@ -3258,6 +3284,15 @@ async function main() {
                     && Math.abs(sa._listenerPos.z - cw.z) < 1e-9
                     && (sa.listener.positionX === undefined
                       || Math.abs(sa.listener.positionX.value - cw.x) < 1e-6);
+                  // setMasterVolume forEach arm: the settings pin only
+                  // watches settings.masterVolume — the write it makes into
+                  // every live source's real GainNode was never observed.
+                  const masterWas = sa.settings.masterVolume;
+                  sa.setMasterVolume(0.4);
+                  const gainSeen = lod.gain ? lod.gain.gain.value : null;
+                  sa.setMasterVolume(masterWas);
+                  out.audioMasterGain = !!lod.gain
+                    && Math.abs(gainSeen - lod.volume * 0.4) < 1e-9;
                   sa.sources.delete('__lod');
                 }
 
@@ -3653,6 +3688,8 @@ async function main() {
       hapticBothHandsDedup: iout.hapticBothHandsDedup === true,
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
+      vidPlayingListener: iout.vidPlayingListener === true,
+      audioMasterGain: iout.audioMasterGain === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -3953,6 +3990,8 @@ async function main() {
       ['single-gamepad both-hands pattern dedups', !!inter.hapticBothHandsDedup],
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
+      ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['master volume writes into live gain nodes', !!inter.audioMasterGain],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],
