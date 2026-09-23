@@ -586,6 +586,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `this._drawStrip()` 切断 → `navFanOut` のみ FAIL、`moveBarMesh.material.color.set` 切断 → `moveBarTint` のみ、`url ? hostnameCaption(url) :` 切断 → `chromeHoverFallback` のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 456 checks PASS。
 
+### Session 243: 続き401 — managed-window attach + OS a11y listener + home-env 構築を e2e pin（#285 batch 60、456→459 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`_attachManagedWindow` の `windowManager.attach(target)`/`target` 契約は harness で一度も観測無し（grep 0 件）— re-attach 腕は grab leg 経由で間接 pin 済みだが idempotent no-op 腕と `target===rootGroup` 同一性は未観測。②`_setupOSAccessibilityListeners` の 3 本実 matchMedia 'change' リスナ — motion は既 pin、contrast 2 MQ×2 sink(gaze+caption) の fan-out は未観測。③`createHomeEnvironment` の構造契約（sky ShaderMaterial uniforms/floor 命名+rotation/floorMesh 採用）は使用側 pin のみで構築内容未観測。
+- 🔧 **ハーネス設計**: 実 `MediaQueryList` は EventTarget — `dispatchEvent(new Event('change'))` で実リスナ wiring を発火させ sink wrap-count で観測（e.matches 不在でも dispatch 自体が addEventListener 配線を証明）。`attach` pin は `wm.target=null` で stale 腕を強制。
+- 🧪 赤検証: `attach(target)` 切断 → `attachManagedWindow` + grab 系 7 件 co-signal（同一行を grab legs が共有）、motion listener 切断 → `osA11yListeners` + 既存 `OS reduced-motion` pin の 2 件、`floor.name` 切断 → `homeEnvBuild` のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 459 checks PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

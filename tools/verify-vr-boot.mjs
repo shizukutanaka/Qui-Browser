@@ -360,6 +360,107 @@ async function main() {
               app._syncPanelLayers = origSync;
             }
           }
+          // batch 60 — three cold-path contracts:
+          // (1) _attachManagedWindow keeps windowManager.target pinned to the
+          //     tabManager rootGroup: a stale/missing target re-attaches, an
+          //     already-correct target is a no-op (grabs must not re-attach
+          //     onto the same object every frame).
+          if (app.windowManager && app.tabManager && app.tabManager.rootGroup
+            && typeof app._attachManagedWindow === 'function') {
+            const wm60 = app.windowManager;
+            const root60 = app.tabManager.rootGroup;
+            const origAttach60 = wm60.attach && wm60.attach.bind(wm60);
+            if (origAttach60) {
+              const attachArgs60 = [];
+              wm60.attach = (t60) => {
+                attachArgs60.push(t60);
+                return origAttach60(t60);
+              };
+              const targetWas60 = wm60.target;
+              try {
+                app._attachManagedWindow();
+                const noReattach = attachArgs60.length === 0
+                  && wm60.target === root60;
+                wm60.target = null;
+                const ok60 = app._attachManagedWindow();
+                out.attachManagedWindow = noReattach && ok60 === true
+                  && attachArgs60.length === 1
+                  && attachArgs60[0] === root60
+                  && wm60.target === root60;
+              } finally {
+                wm60.attach = origAttach60;
+                if (wm60.target !== targetWas60) {
+                  wm60.target = targetWas60;
+                }
+              }
+            }
+          }
+          // (2) _setupOSAccessibilityListeners wired three live matchMedia
+          //     'change' listeners: a reduced-motion flip reaches
+          //     gazeInteraction.setReducedMotion; a contrast flip reaches
+          //     setHighContrast on BOTH gaze and captions.
+          if (app._osMotionMQ && app._osContrastMQ && app._osForcedColorsMQ
+            && app.gazeInteraction && app.captionSystem) {
+            const gi60 = app.gazeInteraction;
+            const cs60 = app.captionSystem;
+            const rmWas60 = gi60.reduceMotion;
+            const ringWas60 = gi60._ringOpacity;
+            const hcWas60 = cs60.highContrast;
+            const origSRM60 = gi60.setReducedMotion.bind(gi60);
+            const origSHC60 = gi60.setHighContrast.bind(gi60);
+            const origSHCC60 = cs60.setHighContrast.bind(cs60);
+            const rmArgs60 = [];
+            let hcGaze60 = 0;
+            let hcCap60 = 0;
+            gi60.setReducedMotion =
+              (v) => { rmArgs60.push(v); return origSRM60(v); };
+            gi60.setHighContrast =
+              (v) => { hcGaze60 += 1; return origSHC60(v); };
+            cs60.setHighContrast =
+              (v) => { hcCap60 += 1; return origSHCC60(v); };
+            try {
+              app._osMotionMQ.dispatchEvent(new Event('change'));
+              const rmViaMQ = rmArgs60.length === 1;
+              app._osContrastMQ.dispatchEvent(new Event('change'));
+              app._osForcedColorsMQ.dispatchEvent(new Event('change'));
+              out.osA11yListeners = rmViaMQ
+                && hcGaze60 === 2 && hcCap60 === 2;
+            } finally {
+              gi60.setReducedMotion = origSRM60;
+              gi60.setHighContrast = origSHC60;
+              cs60.setHighContrast = origSHCC60;
+              gi60.setReducedMotion(rmWas60);
+              gi60.setHighContrast(ringWas60 === 1.0);
+              cs60.setHighContrast(hcWas60);
+            }
+          }
+          // (3) createHomeEnvironment builds the sky dome + floor + grid +
+          //     welcome panel as one named group; the floor is the teleport
+          //     target surface, so it must be named 'floor', rotated flat,
+          //     and adopted as app.floorMesh.
+          if (typeof app.createHomeEnvironment === 'function') {
+            const floorWas60 = app.floorMesh;
+            try {
+              const env60 = app.createHomeEnvironment();
+              const floor60 = env60.children
+                .find((c) => c.name === 'floor');
+              const sky60 = env60.children
+                .find((c) => c.material && c.material.uniforms
+                  && c.material.uniforms.topColor);
+              out.homeEnvBuild = env60.name === 'homeEnvironment'
+                && env60.children.length >= 4
+                && !!floor60
+                && Math.abs(floor60.rotation.x + Math.PI / 2) < 1e-6
+                && app.floorMesh === floor60
+                && !!sky60
+                && sky60.material.uniforms.topColor.value
+                  .getHex() === 0x1b2a4a
+                && sky60.material.uniforms.bottomColor.value
+                  .getHex() === 0x0a0d14;
+            } finally {
+              app.floorMesh = floorWas60;
+            }
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -6840,6 +6941,9 @@ async function main() {
       tabPersisted: !!iout.tabPersisted,
       a11yDelegates: iout.a11yDelegates === true,
       sessMutSaveSync: iout.sessMutSaveSync === true,
+      attachManagedWindow: iout.attachManagedWindow === true,
+      osA11yListeners: iout.osA11yListeners === true,
+      homeEnvBuild: iout.homeEnvBuild === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7357,6 +7461,9 @@ async function main() {
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
       ['a11y get/set delegates to the coordinator', !!inter.a11yDelegates],
       ['tab mutation fans out to save + layer sync', !!inter.sessMutSaveSync],
+      ['managed window re-attaches only when stale', !!inter.attachManagedWindow],
+      ['OS motion/contrast flips reach gaze + captions', !!inter.osA11yListeners],
+      ['home environment builds floor + sky + grid', !!inter.homeEnvBuild],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
