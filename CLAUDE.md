@@ -640,6 +640,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 3 切断: severity ternary 切断 → `fpsSeverityTiers` のみ。`url = resolved` 切断 → `navResolveArms` + voice search/back/go-to 3 件の想定 co-signal（同一 resolveInput 消費）。`slice` 切断 → `histForwardTruncate` のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 488 checks PASS、verify:app PASS。
 
+### Session 252: 続き410 — VoiceCommands alias/help/lang + WebPanel searchEngine + TabManager setActive clamp を e2e pin（#286 batch 69、488→493 checks）
+- 🔍 **実測（未駆動 5 腕）**: ①`processCommand` の alias ループ（`normalized.includes(alias)` → `commands.get(commandKey)` — 全 voice pin が正規パターン経路のみで alias 解決は未駆動）②help コマンドの `speak(使用可能なコマンドは、N個です。…)` — 音声のみのユーザーの唯一の探索面 ③`initialize()` の `recognition.lang = this.language` 書込 ④`setSearchEngine` の `this.searchEngine = engine` — resolveInput の template 差替が未観測 ⑤`TabManager.setActive` の `index<0||index>=len` 早期 return — 範囲外 index が active tab を動かさず callback も発火しない契約。
+- 🔧 **ハーネス教訓**: eval body は巨大 template literal — 文字列中の `\d` は 'd' に落ちるため regex クラスは `\\d` と書く必要あり（`\d` で書いた assert が有機 FAIL → DBG 行で実 utterance を観測して切り分け）。node 直接検証では `SpeechSynthesisUtterance` が不在なので browser-global stub が必須。
+- 🧪 赤検証: alias ループ切断 → voiceAliasChain FAIL、help speak 切断 → voiceHelpList FAIL + 'voice help listed commands via caption' は同一 speak 行の想定 co-signal、`recognition.lang` 切断 → voiceRecogLang FAIL、`searchEngine = engine` 切断 → navSearchEngine FAIL、setActive 範囲ガード切断 → tmSetActiveClamp FAIL + 14 co-signal は `tabs[index].currentUrl` on undefined の eval 死亡による downstream 全滅（shared-state 汚染ではない）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 493 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
