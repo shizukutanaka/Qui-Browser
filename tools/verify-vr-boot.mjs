@@ -593,6 +593,22 @@ async function main() {
               }
             }
           }
+          // batch 66 (a) — DeviceCompatibility._detectTier maps the UA to
+          //   a perf tier that seeds targetFPS + locomotion caps. The
+          //   PICO-case and Android-XR arms are the easy ones to regress.
+          if (app.deviceCompat) {
+            const dc66 = app.deviceCompat;
+            const generic66 = dc66._detectTier('Acme Widget 9000');
+            out.deviceTierDetect = dc66._detectTier('UA Quest 3') === 'quest3'
+              && dc66._detectTier('UA Quest 2') === 'quest2'
+              && dc66._detectTier('Quest Pro Browser') === 'quest-pro'
+              && dc66._detectTier('PICO 4 Ultra') === 'pico4'
+              && dc66._detectTier('Pico Neo 3') === 'pico-neo3'
+              && dc66._detectTier('Device Android XR') === 'android-xr'
+              && (generic66 === 'desktop-xr' || generic66 === 'unknown')
+              && typeof dc66.report.deviceTier === 'string'
+              && dc66.report.deviceTier.length > 0;
+          }
           // (b) SpatialAudio arms click/touchstart/keydown {once:true}
           //     listeners while the context is suspended; the first gesture
           //     must tear ALL three down — else a later gesture re-fires
@@ -637,6 +653,21 @@ async function main() {
                 && sa65.stats.buffersLoaded === loadedWas65 + 1;
             } finally {
               sa65.buffers.delete('e2e-proc-65');
+            }
+          }
+          // batch 66 (b) — _sourceDistance feeds the HRTF tier decision
+          //   (sources inside hrtfThreshold get full convolution). A 3-4-5
+          //   triangle against the listener position pins the real math.
+          if (app.spatialAudio && app.spatialAudio.context) {
+            const sa66 = app.spatialAudio;
+            const lpWas66 = sa66._listenerPos;
+            try {
+              sa66.setListenerPosition(0, 0, 0);
+              const d66 = sa66._sourceDistance({ position: { x: 3, y: 4, z: 0 } });
+              const d66b = sa66._sourceDistance({ position: { x: 0, y: 0, z: 0 } });
+              out.audioSourceDist = d66 === 5 && d66b === 0;
+            } finally {
+              sa66._listenerPos = lpWas66;
             }
           }
           // (c) setCurved(true) doesn't just swap the geometry object (pinned
@@ -1321,6 +1352,19 @@ async function main() {
               });
               out.registerCustomCmd = cmdRan65 === true
                 && vc.stats.commandsRecognized === recWas65 + 1;
+            }
+            // batch 66 (c) — the IME conversion pipeline's pure helpers:
+            //   romaji→hiragana (incl. the 'tch' sokuon arm), hiragana→
+            //   katakana, and the offline kanji dictionary hit + miss arms.
+            if (app.japaneseIME) {
+              const ime66 = app.japaneseIME;
+              const cands66 = ime66.getOfflineKanjiCandidates('こんにちは');
+              out.imeConvertFns = ime66.convertRomajiToHiragana('kanji') === 'かんじ'
+                && ime66.convertRomajiToHiragana('matcha') === 'まっちゃ'
+                && ime66.convertRomajiToHiragana('kitte') === 'きって'
+                && ime66.convertHiraganaToKatakana('かな') === 'カナ'
+                && Array.isArray(cands66) && cands66.includes('今日は')
+                && ime66.getOfflineKanjiCandidates('zzzz')[0] === 'zzzz';
             }
             // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
             // || still swaps a bogus rate for 1.0.
@@ -3846,6 +3890,32 @@ async function main() {
                       && tmD.textureCache.size === 0
                       && tmD.memoryUsage.textureCount === 0
                       && tmD.memoryUsage.estimatedBytes === 0;
+                    // batch 66 (d) — applyTextureSettings writes the actual
+                    //   wrap/filter/anisotropy/mipmap fields onto the texture
+                    //   (options win; anisotropy falls back to the renderer
+                    //   max), and getMemoryStats reports the tracked counts
+                    //   in the documented shape.
+                    const tmS = new TMC(fakeR);
+                    const st66 = mkTex(10, 10);
+                    tmS.applyTextureSettings(st66, {
+                      anisotropy: 4, wrapS: 1001, magFilter: 1006,
+                      minFilter: 1008
+                    });
+                    const st66b = mkTex(10, 10);
+                    tmS.applyTextureSettings(st66b, { minFilter: 1003 });
+                    tmS.cacheTexture('s', st66);
+                    const ms66 = tmS.getMemoryStats();
+                    out.texSettingsStats = st66.anisotropy === 4
+                      && st66.wrapS === 1001
+                      && st66.magFilter === 1006
+                      && st66.generateMipmaps === true
+                      && st66b.anisotropy === 8
+                      && st66b.generateMipmaps !== true
+                      && ms66.textureCount === 1
+                      && ms66.usedMB === '0.00'
+                      && ms66.maxMB === '512.00'
+                      && ms66.utilizationPercent === '0.0';
+                    tmS.dispose();
                   } finally {
                     // Restore the stale pre-leg state: persisted setting
                     // value with no live manager instance.
@@ -7447,6 +7517,10 @@ async function main() {
       registerCustomCmd: iout.registerCustomCmd === true,
       historyNavEdges: iout.historyNavEdges === true,
       contentTexVersion: iout.contentTexVersion === true,
+      deviceTierDetect: iout.deviceTierDetect === true,
+      audioSourceDist: iout.audioSourceDist === true,
+      imeConvertFns: iout.imeConvertFns === true,
+      texSettingsStats: iout.texSettingsStats === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7986,6 +8060,10 @@ async function main() {
       ['custom voice command registers + fires', !!inter.registerCustomCmd],
       ['back/forward stop at history edges', !!inter.historyNavEdges],
       ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
+      ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
+      ['source distance drives the HRTF tier', !!inter.audioSourceDist],
+      ['ime romaji/katakana/offline converts resolve', !!inter.imeConvertFns],
+      ['texture settings write + memory stats shape', !!inter.texSettingsStats],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
