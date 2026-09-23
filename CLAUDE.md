@@ -604,6 +604,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `if(!lines.length)` 切断 → spaShell のみ・co-signal ゼロ。`textOf` の decodeEntities 切断 → titleDecode のみ。`title||url`→`title` 切断 → 同 pin のみ（conjunct 分離）。`_sharedGeometries.get` 切断 → memo pin のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 466 checks PASS、verify:app PASS。
 
+### Session 246: 続き404 — telemetry 1Hz ゲート + audio resume detach + curve data + strip title を e2e pin（#286 batch 63、466→470 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①`updatePerformanceMonitor` の `_telemetryFeedAt` 1Hz ゲート → `trackFPS(fps<60)` → `trackEvent` → `window.gtag` の 'performance_fps_drop' — EMA/fps/GPU 値は batch-55 系で pin 済みだが feed/gate は未観測。②`SpatialAudio` の `{once:true}` gesture リスナ 3 種の `_removeResumeListeners` 全除去 — 初 gesture で teardown されなければ後続 gesture が resume を再発火する。③`buildCurvedPlaneGeometry` の実 arc 位置データ（edge verts が viewer 側 +z・flat 復帰で全 z=0 — geometry 差替自体は batch-61 pin 済みだが形状値は未観測）。④`TabManager._shortTitle` の `www.` strip + unparseable→slice(0,18) fallback。
+- 🔧 **ハーネス教訓**: module-level buffer（`performanceMetrics`）は eval から読めないが、`trackFPS` が `fps<60` で `trackEvent→window.gtag` に出るので gtag spy が観測点になる。`_telemetryFeedAt=-Infinity` で gate を確定的に開放（loop は eval 中非稼働 — `perfMonitorWrites` の deterministic EMA が証左）。
+- 🧪 赤検証: `|| true` 切断 → telemetry pin のみ（2 回目 feed が流れる）。`_removeResumeListeners()` 切断 → audio pin のみ（click が再発火）。`radius*(1-cos)` → 0 切断 → curve pin のみ。`www.` strip / `slice(0,18)` は conjunct 分離で各々切断 → 同 pin のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 470 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

@@ -539,6 +539,114 @@ async function main() {
               wm61.setDistance(dWas61);
             }
           }
+          // batch 63 — telemetry 1Hz gate, audio resume-listener teardown,
+          // real curve data, tab-strip title fallback:
+          // (a) updatePerformanceMonitor feeds the analytics ring buffers at
+          //     ~1 Hz (the buffers cap at 100 samples — a per-frame push would
+          //     churn them). A low fps lands trackFPS → trackEvent → gtag's
+          //     'performance_fps_drop'; a second call inside the same second
+          //     must be gated. The render loop is not running during this
+          //     eval, so _telemetryFeedAt only moves via these calls.
+          if (app.performanceMonitor) {
+            const gtagWas63 = window.gtag;
+            const gtagEvents63 = [];
+            window.gtag = (...a) => { gtagEvents63.push(a); };
+            const ftWas63 = app.performanceMonitor.frameTime;
+            const tfeedWas63 = app._telemetryFeedAt;
+            try {
+              app.performanceMonitor.frameTime = 1000; // fps ≈ 1 < 60
+              app._telemetryFeedAt = -Infinity;        // force the gate open
+              app.updatePerformanceMonitor(100);
+              const drops63 = gtagEvents63.filter(
+                (e) => e[1] === 'performance_fps_drop').length;
+              app.updatePerformanceMonitor(100); // same second — gated
+              out.telemetryFeedGate = drops63 === 1
+                && gtagEvents63.filter(
+                  (e) => e[1] === 'performance_fps_drop').length === 1;
+            } finally {
+              app.performanceMonitor.frameTime = ftWas63;
+              app._telemetryFeedAt = tfeedWas63;
+              if (gtagWas63 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas63;
+              }
+            }
+          }
+          // (b) SpatialAudio arms click/touchstart/keydown {once:true}
+          //     listeners while the context is suspended; the first gesture
+          //     must tear ALL three down — else a later gesture re-fires
+          //     resume (and re-runs the whole handler). A second dispatch
+          //     proves nothing is still armed.
+          if (app.spatialAudio && app.spatialAudio.context
+            && app.spatialAudio._resumeOnGesture) {
+            const sa63 = app.spatialAudio;
+            const resumeCalls63 = [];
+            const origResume63 = sa63.context.resume.bind(sa63.context);
+            sa63.context.resume = () => {
+              resumeCalls63.push(1);
+              return Promise.resolve();
+            };
+            try {
+              document.dispatchEvent(new KeyboardEvent('keydown'));
+              const armedAfter63 = sa63._resumeOnGesture === null
+                && sa63._resumeEvents === null;
+              document.dispatchEvent(new MouseEvent('click'));
+              document.dispatchEvent(new Event('touchstart'));
+              out.audioResumeDetach = resumeCalls63.length === 1
+                && armedAfter63;
+            } finally {
+              sa63.context.resume = origResume63;
+            }
+          }
+          // (c) setCurved(true) doesn't just swap the geometry object (pinned
+          //     in batch 61) — curvedPlaneData emits real arc positions:
+          //     centre verts stay z=0 while edge verts wrap toward the
+          //     viewer (z>0); setCurved(false) flattens every vertex.
+          {
+            const wp63 = app.tabManager
+              && app.tabManager.tabs[app.tabManager.activeIndex];
+            if (wp63 && wp63.contentMesh) {
+              const curvedWas63 = wp63.curved;
+              try {
+                wp63.setCurved(true);
+                const pos63 = wp63.contentMesh.geometry.attributes
+                  .position.array;
+                let zMax63 = 0;
+                for (let i = 2; i < pos63.length; i += 3) {
+                  if (pos63[i] > zMax63) {
+                    zMax63 = pos63[i];
+                  }
+                }
+                wp63.setCurved(false);
+                const flat63 = wp63.contentMesh.geometry.attributes
+                  .position.array;
+                let anyZ63 = false;
+                for (let i = 2; i < flat63.length; i += 3) {
+                  if (flat63[i] !== 0) {
+                    anyZ63 = true;
+                    break;
+                  }
+                }
+                out.geoCurvedData = zMax63 > 0 && !anyZ63;
+              } finally {
+                if (wp63.curved !== curvedWas63) {
+                  wp63.setCurved(curvedWas63);
+                }
+              }
+            }
+          }
+          // (d) TabManager._shortTitle feeds the tab-strip labels: hostnames
+          //     lose the www. prefix; unparseable input degrades to a raw
+          //     18-char slice rather than throwing into the strip draw.
+          if (app.tabManager && typeof app.tabManager._shortTitle === 'function') {
+            const tm63 = app.tabManager;
+            const bad63 = '!!totally not a url at all!!';
+            out.tmShortTitle = tm63._shortTitle(
+              'https://www.example.com/deep/path') === 'example.com'
+              && tm63._shortTitle('https://plain.host/x') === 'plain.host'
+              && tm63._shortTitle(bad63) === bad63.slice(0, 18);
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -7124,6 +7232,10 @@ async function main() {
       spaShellUnavailable: iout.spaShellUnavailable === true,
       titleEntityDecode: iout.titleEntityDecode === true,
       sharedPlaneGeo: iout.sharedPlaneGeo === true,
+      telemetryFeedGate: iout.telemetryFeedGate === true,
+      audioResumeDetach: iout.audioResumeDetach === true,
+      geoCurvedData: iout.geoCurvedData === true,
+      tmShortTitle: iout.tmShortTitle === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7651,6 +7763,10 @@ async function main() {
       ['prose-less page lands unavailable not reader', !!inter.spaShellUnavailable],
       ['page title decodes entities, falls back to URL', !!inter.titleEntityDecode],
       ['plane geometries memoize per size', !!inter.sharedPlaneGeo],
+      ['perf telemetry feeds gtag at 1 Hz only', !!inter.telemetryFeedGate],
+      ['audio resume gesture detaches all listeners', !!inter.audioResumeDetach],
+      ['curved panel geometry emits real arc positions', !!inter.geoCurvedData],
+      ['tab strip title strips www + slices junk', !!inter.tmShortTitle],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
