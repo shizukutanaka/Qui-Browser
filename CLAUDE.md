@@ -478,6 +478,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 3 run: `updateWorldMatrix`+detach 切断 → wpLayerRelease のみ FAIL（matrix call は冗長で無効と実測）；transform 代入+blit+visible 3 切断 → wpLayerBlits/Resyncs/HiddenSkips FAIL；visible 単独切断 → wpLayerHiddenSkips のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 368 checks PASS、verify:app PASS。
 
+### Session 225: 続き383 — TextureManager LRU/dedup/error-texture 内部を e2e pin + #225 error-texture fix を re-land（#277 batch 42、368→375 checks）
+- 🔍 **実測**: TextureManager の内部契約が全て未駆動 — cache hit の LRU 再挿入、`pendingLoads` dedup、`cacheTexture` の再キャッシュ evict、`unloadTexture` の pre-dispose estimate、`unloadAll` dispose。加えて #225（`getErrorTexture` が呼出ごとに 256×256 CanvasTexture を mint — cache 外で uncounted/undisposed の GPU リーク）の fix が closed-PR 上に漂流（HEAD の祖先でない）を確認し re-land。`texErrorShared` pin は修正前 e1!==e2 の有機赤を実測して欠陥捕捉、fix で緑転換。
+- 🔧 **ハーネス教訓**: ①display leg の `updateSetting` 復元は persist-only（apply は mesh onSelect 内）— `enableTextureManager=true` + `textureManager=null` の stale 状態が残り、select 駆動の前提が壊れる。対処: `userData.interactable.onSelect` を直接呼出し、manager ができるまで parity 繰返し（aim+dispatch の matrixWorld 問題も回避）。②async メソッドは返値を常に新 promise wrap するため `p1===p2` の identity は観測不能 — dedup 契約は `pendingLoads.size===1` + loader 呼出回数で観測。③`selectCenter6` は aim と dispatch の間に `updateSystems` を走らせ `ctrl.matrixWorld` を再計算して aim を失い得ることを `ocs/*` スパイで確定（listener 発火 + hit 到達するが direct onSelect のみ確実）。
+- 🧪 **赤検証**: 6 腕一括切断 1 run（cache early-return、pendingLoads gate、cacheTexture evict、LRU 再挿入、estimate 行移動、unloadAll dispose）→ 対象 6 check のみ FAIL、co-signal ゼロ。`texErrorShared` は `_errorTexture` 未共有の有機赤で証明済み。
+- ✅ 3306 tests / 74 suites 全緑（+4 error-texture tests）、lint 0 errors、build 緑、verify:vr-boot 375 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

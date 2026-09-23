@@ -2946,6 +2946,159 @@ async function main() {
                     app.vrKeyboard._onConfirmCallback = null;
                   }
                 }
+              // TextureManager internals leg — the display leg left
+              // app.textureManager null, so re-enable the real toggle to
+              // mint fresh instances off its class: cache-hit LRU recency,
+              // in-flight pendingLoads dedup, re-cache accounting, prune
+              // eviction order, pre-dispose size estimate, the shared
+              // error-texture placeholder, and dispose() teardown.
+              if (ctrl) {
+                const openSecs3 = app.settings.openSettingsSections || [];
+                if (!openSecs3.includes('settings.section.display')) {
+                  const dTab3 = probeLabel6('Display');
+                  if (dTab3) {
+                    selectCenter6(dTab3);
+                    app.scene.updateMatrixWorld(true);
+                  }
+                }
+                const texBtn3 = probeLabel6('Texture Cache:');
+                const texWas = app.settings.enableTextureManager;
+                if (texBtn3 && !app.textureManager) {
+                  // The display leg's updateSetting restore persists
+                  // enableTextureManager=true but never re-applies, so the
+                  // app sits at "setting on + manager null". A select would
+                  // toggle ON→OFF; call the button's onSelect directly and
+                  // repeat until parity restores the manager.
+                  texBtn3.userData.interactable.onSelect({});
+                  if (!app.textureManager) {
+                    texBtn3.userData.interactable.onSelect({});
+                  }
+                }
+                const TMC = app.textureManager && app.textureManager.constructor;
+                if (TMC) {
+                  const fakeR = { capabilities: { getMaxAnisotropy: () => 8 } };
+                  const mkTex = (w, h) => ({
+                    image: { width: w, height: h },
+                    dispose() { this.disposed = (this.disposed || 0) + 1; }
+                  });
+                  try {
+                    // Hit path: identical texture returned, one loader call,
+                    // and the hit re-inserts at the LRU tail.
+                    const tmA = new TMC(fakeR);
+                    const texA = mkTex(10, 10);
+                    let loaderCalls = 0;
+                    tmA.textureLoader.load =
+                      (u, onLoad) => { loaderCalls++; onLoad(texA); };
+                    const l1 = await tmA.loadTexture('u1');
+                    const l2 = await tmA.loadTexture('u1');
+                    out.texCacheHit = l1 === texA && l2 === texA
+                      && tmA.stats.cacheMisses === 1
+                      && tmA.stats.cacheHits === 1
+                      && loaderCalls === 1;
+                    tmA.dispose();
+                    // Concurrent same-URL loads share one in-flight promise —
+                    // a second caller neither refetches nor double-counts.
+                    const tmB = new TMC(fakeR);
+                    let releaseLoad;
+                    let loadCallsB = 0;
+                    tmB.textureLoader.load = (u, onLoad) => {
+                      loadCallsB++;
+                      releaseLoad = () => onLoad(texA);
+                    };
+                    const p1 = tmB.loadTexture('u2');
+                    const p2 = tmB.loadTexture('u2');
+                    // Async fn wrappers re-wrap, so promise identity can't be
+                    // observed — the dedup contract is one pending entry and
+                    // one underlying load for two concurrent callers.
+                    const sharedInflight = tmB.pendingLoads.size === 1
+                      && loadCallsB === 1;
+                    releaseLoad();
+                    const [r1, r2] = await Promise.all([p1, p2]);
+                    out.texPendingDedup = sharedInflight
+                      && r1 === texA && r2 === texA
+                      && tmB.stats.cacheMisses === 1
+                      && tmB.pendingLoads.size === 0;
+                    tmB.dispose();
+                    // Re-caching a live URL evicts the old texture first so
+                    // textureCount/estimatedBytes stay exact.
+                    const tmC = new TMC(fakeR);
+                    const t1 = mkTex(10, 10);
+                    const t2 = mkTex(10, 10);
+                    tmC.cacheTexture('x', t1);
+                    tmC.cacheTexture('x', t2);
+                    out.texRecacheExact = t1.disposed === 1
+                      && tmC.memoryUsage.textureCount === 1
+                      && tmC.memoryUsage.estimatedBytes === 400;
+                    tmC.dispose();
+                    // LRU: a hit moves the entry to the tail — on prune the
+                    // refreshed entry survives while older ones evict first.
+                    const tmL = new TMC(fakeR);
+                    tmL.memoryUsage.maxBytes = 1400;
+                    const a = mkTex(10, 10), b = mkTex(10, 10);
+                    const c = mkTex(10, 10), d = mkTex(10, 10);
+                    tmL.cacheTexture('a', a);
+                    tmL.cacheTexture('b', b);
+                    tmL.cacheTexture('c', c);
+                    tmL.textureLoader.load = (u, onLoad) => onLoad(a);
+                    await tmL.loadTexture('a'); // hit → order [b,c,a]
+                    tmL.cacheTexture('d', d);   // over cap → prune b,c
+                    out.texLruOrder = !a.disposed
+                      && b.disposed === 1 && c.disposed === 1
+                      && tmL.textureCache.size === 2
+                      && tmL.textureCache.has('a')
+                      && tmL.textureCache.has('d');
+                    tmL.dispose();
+                    // unloadTexture must estimate BEFORE dispose() — a
+                    // dispose that clears texture.image would under-count.
+                    const tmU = new TMC(fakeR);
+                    const wipe = { image: { width: 10, height: 10 },
+                      dispose() { this.image = null; } };
+                    tmU.cacheTexture('w', wipe);
+                    tmU.unloadTexture('w');
+                    out.texUnloadPreDispose =
+                      tmU.memoryUsage.estimatedBytes === 0
+                      && tmU.memoryUsage.textureCount === 0;
+                    tmU.dispose();
+                    // Failed loads share ONE placeholder texture — a fresh
+                    // CanvasTexture per failure would leak GPU memory (the
+                    // texture never enters the countable cache).
+                    const tmE = new TMC(fakeR);
+                    const origErr2 = console.error;
+                    console.error = () => {};
+                    let e1, e2;
+                    try {
+                      tmE.textureLoader.load =
+                        (u, ok, p, err) => err(new Error('bad'));
+                      e1 = await tmE.loadTexture('bad1');
+                      e2 = await tmE.loadTexture('bad2');
+                    } finally {
+                      console.error = origErr2;
+                    }
+                    tmE.dispose();
+                    out.texErrorShared = !!e1 && e1 === e2
+                      && tmE._errorTexture === null;
+                    // unloadAll disposes every cached texture and zeroes
+                    // the accounting.
+                    const tmD = new TMC(fakeR);
+                    const d1 = mkTex(10, 10), d2 = mkTex(10, 10);
+                    tmD.cacheTexture('d1', d1);
+                    tmD.cacheTexture('d2', d2);
+                    tmD.unloadAll();
+                    out.texDisposeAll = d1.disposed === 1 && d2.disposed === 1
+                      && tmD.textureCache.size === 0
+                      && tmD.memoryUsage.textureCount === 0
+                      && tmD.memoryUsage.estimatedBytes === 0;
+                  } finally {
+                    // Restore the stale pre-leg state: persisted setting
+                    // value with no live manager instance.
+                    if (app.textureManager) {
+                      app.textureManager.dispose();
+                      app.textureManager = null;
+                    }
+                    app.updateSetting('enableTextureManager', texWas);
+                  }
+                }
+              }
               // VR keyboard real-key leg — the 3D keyboard's key meshes are
               // real registered interactables: a controller-ray select routes
               // to onKeyPress(label) → ime.processInput / deleteLast /
@@ -5552,6 +5705,13 @@ async function main() {
       wpLayerResyncs: iout.wpLayerResyncs === true,
       wpLayerHiddenSkips: iout.wpLayerHiddenSkips === true,
       wpLayerRelease: iout.wpLayerRelease === true,
+      texCacheHit: iout.texCacheHit === true,
+      texPendingDedup: iout.texPendingDedup === true,
+      texRecacheExact: iout.texRecacheExact === true,
+      texLruOrder: iout.texLruOrder === true,
+      texUnloadPreDispose: iout.texUnloadPreDispose === true,
+      texErrorShared: iout.texErrorShared === true,
+      texDisposeAll: iout.texDisposeAll === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -5962,6 +6122,13 @@ async function main() {
       ['clean frame re-poses layer without re-blit', !!inter.wpLayerResyncs],
       ['hidden panel skips layer pose + blit', !!inter.wpLayerHiddenSkips],
       ['layer release restores mesh + detaches', !!inter.wpLayerRelease],
+      ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
+      ['in-flight texture loads share one promise', !!inter.texPendingDedup],
+      ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
+      ['texture LRU evicts oldest past the cap', !!inter.texLruOrder],
+      ['unload estimates bytes before dispose', !!inter.texUnloadPreDispose],
+      ['failed loads share one placeholder texture', !!inter.texErrorShared],
+      ['unloadAll disposes every cached texture', !!inter.texDisposeAll],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
