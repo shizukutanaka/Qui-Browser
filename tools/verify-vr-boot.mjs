@@ -4901,6 +4901,62 @@ async function main() {
                 ht.update(fakeXrFrame, fakeRefSpace);
                 out.htJointTint = Math.abs(im[0] - 1) < 1e-6
                   && Math.abs(ht._jointMesh.right.material.opacity - 0.6) < 1e-6;
+                // Per-joint fallback: a frame without fillPoses takes the
+                // getJointPose loop — XRHand.get per name, jointPose.radius
+                // || 8mm instance scale, and truthy-radius quality (1.0).
+                fakeXrFrame.fillPoses = undefined;
+                fakeXrFrame.fillJointRadii = undefined;
+                fakeXrFrame.getJointPose = (joint, space) => ({
+                  transform: { position: { x: 0.11, y: 0.22, z: 0.33 } },
+                  radius: 0.012
+                });
+                ht.jointNames.forEach((n) => {
+                  ht.joints.right.set(n, {
+                    position: app.camera.position.clone().set(0.9, 0.9, 0.9) });
+                });
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.htFallbackPose =
+                  Math.abs(ht.joints.right.get('wrist').position.x - 0.11) < 1e-9
+                  && Math.abs(ht.joints.right.get('wrist').position.y - 0.22) < 1e-9
+                  && Math.abs(im[0] - 1.5) < 1e-6
+                  && Math.abs(ht._jointMesh.right.material.opacity - 0.8) < 1e-6;
+                // Zero/absent radius -> 8mm scale + half-quality tint; a null
+                // jointPose skips the joint — record and 'seen' untouched.
+                fakeXrFrame.getJointPose = (joint, space) =>
+                  (joint && joint.j === 'wrist' ? null
+                    : { transform: { position: { x: 0.4, y: 0.4, z: 0.4 } },
+                      radius: 0 });
+                ht.joints.right.get('wrist').position.set(0.7, 0.7, 0.7);
+                ht.update(fakeXrFrame, fakeRefSpace);
+                out.htFallbackSkips =
+                  Math.abs(ht.joints.right.get('wrist').position.x - 0.7) < 1e-9
+                  && Math.abs(im[16] - 1) < 1e-6
+                  && Math.abs(ht._jointMesh.right.material.opacity - 0.6) < 1e-6;
+                fakeXrFrame.getJointPose = undefined;
+                // dispose(): detach the inputsourceschange listener from its
+                // session, scene.remove both hand groups, clear joint/gesture
+                // maps and the fillPoses batch cache, enabled=false.
+                const HT2 = ht.constructor;
+                const sessCalls = { l: null, removed: [] };
+                const ht2 = new HT2(app.renderer, app.scene);
+                await ht2.initialize({
+                  inputSources: [],
+                  addEventListener(t, cb) { sessCalls.l = cb; },
+                  removeEventListener(t, cb) { sessCalls.removed.push(cb); }
+                });
+                const lh2 = ht2.leftHand;
+                ht2.dispose();
+                out.htDispose = ht2.enabled === false
+                  && sessCalls.removed.length === 1
+                  && sessCalls.removed[0] === sessCalls.l
+                  && ht2.session === null
+                  && ht2._onInputSourcesChange === null
+                  && lh2 && lh2.parent === null
+                  && ht2.joints.left.size === 0
+                  && ht2.joints.right.size === 0
+                  && ht2.gestureCallbacks.size === 0
+                  && ht2._batch.left === null
+                  && ht2._batch.right === null;
               } finally {
                 ht._onTrackingChange = ocb;
                 ht._batch.right = null;
@@ -5332,6 +5388,9 @@ async function main() {
       htBatchRebuild: iout.htBatchRebuild === true,
       htJointScale: iout.htJointScale === true,
       htJointTint: iout.htJointTint === true,
+      htFallbackPose: iout.htFallbackPose === true,
+      htFallbackSkips: iout.htFallbackSkips === true,
+      htDispose: iout.htDispose === true,
       hapticActuator: iout.hapticActuator === true,
       hapticSourceGone: iout.hapticSourceGone === true,
       hapticSequence: iout.hapticSequence === true,
@@ -5721,6 +5780,9 @@ async function main() {
       ['new XRHand object rebuilds the batch', !!inter.htBatchRebuild],
       ['joint radii scale instances + full tint', !!inter.htJointScale],
       ['dead radii default scale + half tint', !!inter.htJointTint],
+      ['getJointPose fallback poses + scales joints', !!inter.htFallbackPose],
+      ['fallback skips null poses, zero radius tints', !!inter.htFallbackSkips],
+      ['hand tracking dispose detaches + clears', !!inter.htDispose],
       ['haptic playPattern reaches the actuator', !!inter.hapticActuator],
       ['source removal prunes the haptic gamepad', !!inter.hapticSourceGone],
       ['haptic sequence pattern runs pause+multi-pulse', !!inter.hapticSequence],
