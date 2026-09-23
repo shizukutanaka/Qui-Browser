@@ -514,6 +514,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: ①lost 内 preventDefault+disarm+notify + resize の presenting-skip 切断 → pauses/lostNotifies/restoredResumes（想定 co-signal）/skips FAIL。②restored の `_syncAnimationLoop` + `return {}` + `Math.round` 切断 → restoredResumes/nullRenderer/shape のみ FAIL（surgical）。全 pin falsifiable。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 398 checks PASS、verify:app PASS。CI 未設定（0/0）。
 
+### Session 231: 続き389 — VRApp.dispose() 全体破棄契約を e2e pin（#279 batch 48、398→408 checks）
+- 🔍 **実測（未駆動）**: `dispose()` は ~190 行の破棄契約（live session end・loop stop・context/resize/MQL/enter-vr listener detach・toast timer clear・subsystem dispose×13・field null・GPU teardown）だが、subsystem 個別 dispose のみ pin 済みで orchestration 本体は未駆動だった。
+- 🔧 **ハーネス設計・教訓 3 件**: eval は単一 `Runtime.evaluate` で後続 eval が存在しない — **`return out` 直前なら app 本体の dispose leg が安全**（spy は dispose 前 install・assert は dispose 後観測）。resize detach pin は **pre-dispose dispatch で debounce arm** → `removeEventListener` と `.cancel()` 両腕を 1 pin で falsify（post-dispatch → 前者、pending fire → 後者）。`textureManager`/`layersSystem` は先行 leg で既に dispose→null 済み（texDisposeAll/layerDispose pin カバー）— teardown 必須リストは live な subsystem のみに限定（`dispDbg` で欠損 2 件を実測して除外）。`hapticFeedback` は dispose メソッドを持たず `enabled=false`+null なので `hfWas` 捕捉で `enabled===false` を NullsFields 側で pin。
+- 🧪 赤検証 2 run: ①session end/context/resize/MQL/enter-vr/toast clearTimeout の 6 detach 切断 → 対応 6 pin のみ FAIL。②loop stop/spatialAudio dispose/vrKeyboard=null/haptic enabled/renderer.dispose/scene.traverse/sharedGeometries.clear/vrButton removeChild 切断 → stops/tearsDown/nulls/gpu の 4 pin のみ FAIL。全 pin falsifiable。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 408 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
