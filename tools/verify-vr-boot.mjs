@@ -2652,6 +2652,58 @@ async function main() {
                     }
                   }
                 }
+                // enableComfort OFF clears a LIVE vignette (mid-glide disable
+                // can't leave the FOV restricted) and gates the per-frame
+                // update — a seeded vignette must stay untouched while off.
+                const csLoco = app.comfortSystem;
+                const comfortToggle = probeLabel6(
+                  'Comfort: ' + (app.settings.enableComfort ? 'ON' : 'OFF'));
+                if (comfortToggle && csLoco) {
+                  csLoco.currentVignette = 0.5;
+                  csLoco.vignetteMaterial.opacity = 0.5;
+                  csLoco.vignetteMesh.visible = true;
+                  selectCenter6(comfortToggle); // OFF
+                  const clearedOff = app.settings.enableComfort === false
+                    && csLoco.currentVignette === 0
+                    && csLoco.vignetteMaterial.opacity === 0
+                    && csLoco.vignetteMesh.visible === false;
+                  // Gate: with enableComfort false, updateSystems skips
+                  // comfortSystem.update entirely — a re-seeded vignette is
+                  // left exactly as-is, head motion or not.
+                  csLoco.currentVignette = 0.5;
+                  csLoco.vignetteMaterial.opacity = 0.5;
+                  const camXw = app.camera.position.x;
+                  app.camera.position.x = camXw + 0.05;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  app.camera.position.x = camXw;
+                  const gated = csLoco.currentVignette === 0.5;
+                  csLoco.currentVignette = 0;
+                  csLoco.vignetteMaterial.opacity = 0;
+                  csLoco.vignetteMesh.visible = false;
+                  selectCenter6(comfortToggle); // back ON
+                  out.comfortOffClears = clearedOff && gated
+                    && app.settings.enableComfort === true;
+                } else {
+                  out.comfortOffClears = false;
+                }
+                // The southpaw toggle's apply arm announces the new primary
+                // hand — a plain flip persist would leave hand-dominant users
+                // guessing which stick does what (WCAG 4.1.3).
+                const spBtn = probeLabel6('Southpaw');
+                const capsSp0 = locoCaps.length;
+                if (spBtn) {
+                  selectCenter6(spBtn); // ON -> 'Primary hand: left'
+                  const onAnn = locoCaps.slice(capsSp0)
+                    .some((s) => s.includes('Primary hand'));
+                  const capsSp1 = locoCaps.length;
+                  selectCenter6(spBtn); // OFF -> 'Primary hand: right'
+                  const offAnn = locoCaps.slice(capsSp1)
+                    .some((s) => s.includes('Primary hand'));
+                  out.southpawCaption = onAnn && offAnn
+                    && app.settings.southpaw === false;
+                } else {
+                  out.southpawCaption = false;
+                }
                 // Accessibility section: the WCAG live-apply chain — stepper
                 // +region selects must reach gazeInteraction/captionSystem
                 // fields and toggles must reach their engines, not just flip
@@ -5474,6 +5526,8 @@ async function main() {
       comfortExternalLevel: iout.comfortExternalLevel === true,
       comfortRotation: iout.comfortRotation === true,
       comfortDisabledGate: iout.comfortDisabledGate === true,
+      comfortOffClears: iout.comfortOffClears === true,
+      southpawCaption: iout.southpawCaption === true,
       comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
@@ -5844,6 +5898,8 @@ async function main() {
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
       ['yaw rotation alone chases full intensity', !!inter.comfortRotation],
       ['disabled preset gates + re-enable merges', !!inter.comfortDisabledGate],
+      ['comfort OFF clears vignette + gates update', !!inter.comfortOffClears],
+      ['southpaw toggle announces the new primary hand', !!inter.southpawCaption],
       ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
