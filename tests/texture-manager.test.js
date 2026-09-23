@@ -263,6 +263,76 @@ describe('TextureManager pruning + stats (uncovered layer)', () => {
   });
 });
 
+describe('TextureManager — error-texture leak', () => {
+  const stubDoc = () => {
+    const prevDoc = global.document;
+    global.document = { createElement: () => ({
+      width: 0, height: 0,
+      getContext: () => ({ fillStyle: null, fillRect: () => {} })
+    }) };
+    return () => {
+      global.document = prevDoc;
+    };
+  };
+
+  // Every failed load used to mint a fresh checkerboard CanvasTexture — none
+  // ever entered textureCache (uncounted, unprunable) and none was ever
+  // disposed, so a URL that keeps failing leaked one GPU texture per attempt.
+  test('repeated failures share ONE error texture', async () => {
+    const tm = new TextureManager(makeRenderer());
+    tm.textureLoader.load = (url, onLoad, onProgress, onError) => onError(new Error('404'));
+    const restore = stubDoc();
+    try {
+      const t1 = await tm.loadTexture('gone-a.png');
+      const t2 = await tm.loadTexture('gone-b.png');
+      expect(t1).toBe(t2);
+    } finally {
+      restore();
+    }
+  });
+
+  test('dispose() releases the shared error texture', async () => {
+    const tm = new TextureManager(makeRenderer());
+    const restore = stubDoc();
+    try {
+      const errTex = tm.getErrorTexture();
+      tm.dispose();
+      expect(errTex.dispose).toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
+
+  test('an error texture needed again after dispose is recreated lazily', () => {
+    const tm = new TextureManager(makeRenderer());
+    const restore = stubDoc();
+    try {
+      const first = tm.getErrorTexture();
+      tm.dispose();
+      expect(tm.getErrorTexture()).not.toBe(first);
+    } finally {
+      restore();
+    }
+  });
+
+  // Must stay out of textureCache: pruneCache dispose()s evictions, which
+  // would kill a placeholder a live material may still reference.
+  test('the error texture is not registered in the LRU cache', async () => {
+    const tm = new TextureManager(makeRenderer());
+    tm.textureLoader.load = (url, onLoad, onProgress, onError) => onError(new Error('404'));
+    const restore = stubDoc();
+    try {
+      const tex = await tm.loadTexture('gone.png');
+      for (const entry of tm.textureCache.values()) {
+        expect(entry.texture).not.toBe(tex);
+      }
+      expect(tm.memoryUsage.textureCount).toBe(0);
+    } finally {
+      restore();
+    }
+  });
+});
+
 describe('TextureManager — error arms', () => {
   test('loadTexture returns the error texture (not a throw) when the loader fails', async () => {
     const tm = new TextureManager(makeRenderer());

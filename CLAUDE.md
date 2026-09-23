@@ -466,6 +466,42 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: 2 切断（反転 filter + dedup 除去）→ 新 3 check FAIL + 12 件は共有 intersect/hover 経路の想定 co-signal。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 362 checks PASS、verify:app PASS。
 
+### Session 223: 続き381 — comfort-OFF vignette clear/gate + southpaw caption を e2e pin（#277、362→364 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`enableComfort` toggle OFF の apply 腕 — live vignette の `currentVignette`/opacity/mesh を即クリア（`disabled` preset とは別契約）。②`updateSystems` の `settings.enableComfort` gate — OFF 中は `comfortSystem.update` が走らず seeded vignette は頭動でも不変。③southpaw toggle の `'Primary hand: left/right'` announce — persist のみの pin では観測不能。
+- 🔧 **ハーネス設計・赤検証教訓**: (a) 複 conjunct pin は切断を conjunct ごとに分離検証 — clear 切断→clearedOff 偽、gate 切断→gated 偽、2 run で両 conjunct の非 vacuous を個別証明。(b) gate pin は「seed 値が update 不実行で動かない」を assert — 0 seed だと vacuous、非 0 seed で update 実行なら chase で値が動く設計。(c) toggle probe は state 含めた caption（'Comfort: ON'）で cycle（'Comfort: sensitive'）と区別。
+- 🧪 赤検証 2 run: clear+ southpaw caption 切断 → 両 pin FAIL co-signal ゼロ；gate 切断 → comfortOffClears のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 364 checks PASS、verify:app PASS。
+
+### Session 224: 続き382 — WebPanel quad-layer モード実経路を e2e pin（#277 batch 41、364→368 checks）
+- 🔍 **実測（未駆動 4 腕）**: `enableLayerMode`/`updateLayer`/`disableLayerMode` は LayersSystem 側 pin 済みでも WebPanel 側は未駆動 — ①enable 時 chromeMesh 非表示 + `_layerDirty` + 初回 updateLayer が mesh world pose → `layer.transform` 書込 + dirty canvas blit。②clean frame でも `_syncLayerTransform` は毎フレーム走り panel 移動で transform 再書込（identity compare で静止時は allocation skip）・clean canvas は blit せず。③`group.visible===false` は pose+blit 両方を skip（非表示 panel の GPU ゴースト防止）。④release は chromeMesh 復帰 + `_onLayerDetach` 1 回発火（layer 漏れ防止）。
+- 🔧 **ハーネス教訓**: (a) `getWorldPosition` は内部で `updateWorldMatrix(true,false)` を呼ぶ — `_syncLayerTransform` の明示 call 切断は no-op 切断（冗長行）で pin を falsify 不能、transform 代入行の切断が真の契約。(b) pin が `blits.length===1` conjunct を共有すると blit 切断は複数 pin を同時 falsify — co-signal として記録、各 pin は固有 conjunct を持つ切断（transform 代入/visible チェック/detach 呼出）でも別途証明。
+- 🧪 赤検証 3 run: `updateWorldMatrix`+detach 切断 → wpLayerRelease のみ FAIL（matrix call は冗長で無効と実測）；transform 代入+blit+visible 3 切断 → wpLayerBlits/Resyncs/HiddenSkips FAIL；visible 単独切断 → wpLayerHiddenSkips のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 368 checks PASS、verify:app PASS。
+
+### Session 225: 続き383 — TextureManager LRU/dedup/error-texture 内部を e2e pin + #225 error-texture fix を re-land（#277 batch 42、368→375 checks）
+- 🔍 **実測**: TextureManager の内部契約が全て未駆動 — cache hit の LRU 再挿入、`pendingLoads` dedup、`cacheTexture` の再キャッシュ evict、`unloadTexture` の pre-dispose estimate、`unloadAll` dispose。加えて #225（`getErrorTexture` が呼出ごとに 256×256 CanvasTexture を mint — cache 外で uncounted/undisposed の GPU リーク）の fix が closed-PR 上に漂流（HEAD の祖先でない）を確認し re-land。`texErrorShared` pin は修正前 e1!==e2 の有機赤を実測して欠陥捕捉、fix で緑転換。
+- 🔧 **ハーネス教訓**: ①display leg の `updateSetting` 復元は persist-only（apply は mesh onSelect 内）— `enableTextureManager=true` + `textureManager=null` の stale 状態が残り、select 駆動の前提が壊れる。対処: `userData.interactable.onSelect` を直接呼出し、manager ができるまで parity 繰返し（aim+dispatch の matrixWorld 問題も回避）。②async メソッドは返値を常に新 promise wrap するため `p1===p2` の identity は観測不能 — dedup 契約は `pendingLoads.size===1` + loader 呼出回数で観測。③`selectCenter6` は aim と dispatch の間に `updateSystems` を走らせ `ctrl.matrixWorld` を再計算して aim を失い得ることを `ocs/*` スパイで確定（listener 発火 + hit 到達するが direct onSelect のみ確実）。
+- 🧪 **赤検証**: 6 腕一括切断 1 run（cache early-return、pendingLoads gate、cacheTexture evict、LRU 再挿入、estimate 行移動、unloadAll dispose）→ 対象 6 check のみ FAIL、co-signal ゼロ。`texErrorShared` は `_errorTexture` 未共有の有機赤で証明済み。
+- ✅ 3306 tests / 74 suites 全緑（+4 error-texture tests）、lint 0 errors、build 緑、verify:vr-boot 375 checks PASS、verify:app PASS。
+
+### Session 226: 続き384 — OS accessibility リスナのライブ変更経路を e2e pin（#277 batch 43、375→378 checks）
+- 🔍 **実測（未駆動）**: `_setupOSAccessibilityListeners` が 3 つの実 MediaQueryList に登録した 'change' ハンドラ — `(prefers-reduced-motion)` → `gazeInteraction.setReducedMotion`、`(prefers-contrast)`/`(forced-colors)` → `prefersHighContrast()` 再読 → gaze ring opacity + caption backing の両 `setHighContrast` — は起動時値の read のみでライブ変更経路が未駆動（WCAG 2.3.3/1.4.11 の mid-session 適用契約）。
+- 🔧 **ハーネス教訓**: 実 MQL は EventTarget — `Object.assign(new Event('change'), {matches: true})` を dispatch すると**実登録リスナが端到端で走る**（handler 直 call では addEventListener 登録自体が真の契約になる）。contrast 系は handler が `prefersHighContrast()` を再読する設計のため global matchMedia を stub してから dispatch — `(forced-colors)` のみを true にすると OR 決定の第 2 肢も別 pin で証明できる。
+- 🧪 **赤検証**: 3 つの `addEventListener('change', …)` を一括切断 → 3 pin のみ FAIL、co-signal ゼロ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 378 checks PASS、verify:app PASS。
+
+### Session 227: 続き385 — FPS 適応 quality ガバナを e2e pin（#277 batch 44、378→379 checks）
+- 🔍 **実測（未駆動）**: `render()` が 60 フレームごとに呼ぶ `adjustQuality` — EMA 済み `performanceMonitor.frameTime` を `1000/targetFPS` と比較し >1.2× → `reduceQuality`（`ffrSystem.adjustIntensity(+0.1)`）、<0.8× → `increaseQuality`（−0.1）、deadband → 無変更 — の三腕が全く駆動されていなかった（遅い session が自己で foveation を上げる適応経路）。
+- 🔧 **ハーネス教訓**: `performanceMonitor.frameTime` は VRApp 所有の plain object（EMA で render 内更新）— eval から直接 seed 可能。`ffr.enabled` は FFR leg の finally で false に戻るため fake `projectionLayer:{fixedFoveation}` + `enabled=true` + `intensity=0.5` を leg 内で再シードし finally で完全復元 — `intensity`/`fixedFoveation` 両方で nudge を観測。
+- 🧪 **赤検証**: `reduceQuality`/`increaseQuality` 呼出を `void` 化（三肢一括切断）→ `qualityGovernor` のみ FAIL、co-signal ゼロ。有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 379 checks PASS、verify:app PASS。
+
+### Session 228: 続き386 — panel-layer reconciler 実経路を e2e pin（#277 batch 45、379→384 checks）
+- 🔍 **実測（未駆動 3 関数）**: `_syncPanelLayers`/`_attachPanelLayer`/`_detachPanelLayer` — tab 変動ごとの reconcile（mid-session tab にも quad layer 付与・hidden panel skip・layered panel は再 attach しない・全 layered で no-op・detach は `removeLayer(id, session, baseLayer)` 経由）は headless で `getSession()→null` 早期 return のため未駆動だった（R142 は WebPanel 側のみ pin）。
+- 🔧 **ハーネス設計・教訓**: XR 境界のみ stub（`getSession`/`getReferenceSpace`/`getBaseLayer`/`createQuadLayer`/`updateRenderState`/`removeLayer`）+ fake panel を `app.tabManager.tabs` に push で実 reconcile を端到端駆動。**実 tab も unlayered なので全員 attach される** — `made` 総数ではなく「自分の panel への attach」を pin 対象に絞ること。赤検証下で callback 未登録の可能性がある呼出は `typeof === 'function'` でガード（TypeError → eval 死亡で後続全 legs 連鎖死を回避）。
+- 🧪 赤検証 2 run: ①visible-check + `removeLayer` 切断 → attach/hiddenSkip/stable/detach FAIL（idempotent は正しく残存）。②`!panel.quadLayer` guard + `updateRenderState` 切断 → idempotent + attach/hiddenSkip/stable FAIL（detach は正しく残存）。全 pin falsifiable を確認。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 384 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

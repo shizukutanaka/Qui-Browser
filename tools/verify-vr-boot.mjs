@@ -2258,6 +2258,42 @@ async function main() {
                     ffr._prevHeadQuat = null;
                   }
                 }
+                // FPS-adaptive quality governor — render() calls
+                // adjustQuality every 60 frames: the EMA'd frameTime vs
+                // 1000/targetFPS decides reduce (>1.2× → +0.1 intensity) /
+                // increase (<0.8× → −0.1) / deadband (unchanged) so a slow
+                // session self-lowers foveation while a fast one restores it.
+                const ffrQ = app.ffrSystem;
+                if (ffrQ && app.performanceMonitor
+                  && typeof app.settings.targetFPS === 'number'
+                  && app.settings.targetFPS > 0) {
+                  const qProjWas = ffrQ.projectionLayer;
+                  const qEnWas = ffrQ.enabled;
+                  const qIntWas = ffrQ.intensity;
+                  const ftWas = app.performanceMonitor.frameTime;
+                  const tgt = 1000 / app.settings.targetFPS;
+                  try {
+                    ffrQ.projectionLayer = { fixedFoveation: -1 };
+                    ffrQ.enabled = true;
+                    ffrQ.intensity = 0.5;
+                    app.performanceMonitor.frameTime = tgt * 1.5;
+                    app.adjustQuality();          // slow → reduceQuality
+                    const govUp = ffrQ.intensity === 0.6
+                      && ffrQ.projectionLayer.fixedFoveation === 0.6;
+                    app.performanceMonitor.frameTime = tgt * 0.5;
+                    app.adjustQuality();          // fast → increaseQuality
+                    const govDown = ffrQ.intensity === 0.5;
+                    app.performanceMonitor.frameTime = tgt;
+                    app.adjustQuality();          // deadband → no nudge
+                    out.qualityGovernor = govUp && govDown
+                      && ffrQ.intensity === 0.5;
+                  } finally {
+                    ffrQ.projectionLayer = qProjWas;
+                    ffrQ.enabled = qEnWas;
+                    ffrQ.intensity = qIntWas;
+                    app.performanceMonitor.frameTime = ftWas;
+                  }
+                }
                 // Pointer thumbstickClick → recenter: rig pose reset + caption.
                 app.playerRig.position.set(0.5, 0, 0.25);
                 rightSrc.gamepad.buttons[3].pressed = true;
@@ -2652,6 +2688,105 @@ async function main() {
                     }
                   }
                 }
+                // enableComfort OFF clears a LIVE vignette (mid-glide disable
+                // can't leave the FOV restricted) and gates the per-frame
+                // update — a seeded vignette must stay untouched while off.
+                const csLoco = app.comfortSystem;
+                const comfortToggle = probeLabel6(
+                  'Comfort: ' + (app.settings.enableComfort ? 'ON' : 'OFF'));
+                if (comfortToggle && csLoco) {
+                  csLoco.currentVignette = 0.5;
+                  csLoco.vignetteMaterial.opacity = 0.5;
+                  csLoco.vignetteMesh.visible = true;
+                  selectCenter6(comfortToggle); // OFF
+                  const clearedOff = app.settings.enableComfort === false
+                    && csLoco.currentVignette === 0
+                    && csLoco.vignetteMaterial.opacity === 0
+                    && csLoco.vignetteMesh.visible === false;
+                  // Gate: with enableComfort false, updateSystems skips
+                  // comfortSystem.update entirely — a re-seeded vignette is
+                  // left exactly as-is, head motion or not.
+                  csLoco.currentVignette = 0.5;
+                  csLoco.vignetteMaterial.opacity = 0.5;
+                  const camXw = app.camera.position.x;
+                  app.camera.position.x = camXw + 0.05;
+                  app.updateSystems(0, fakeXrFrame, 0.016);
+                  app.camera.position.x = camXw;
+                  const gated = csLoco.currentVignette === 0.5;
+                  csLoco.currentVignette = 0;
+                  csLoco.vignetteMaterial.opacity = 0;
+                  csLoco.vignetteMesh.visible = false;
+                  selectCenter6(comfortToggle); // back ON
+                  out.comfortOffClears = clearedOff && gated
+                    && app.settings.enableComfort === true;
+                } else {
+                  out.comfortOffClears = false;
+                }
+                // The southpaw toggle's apply arm announces the new primary
+                // hand — a plain flip persist would leave hand-dominant users
+                // guessing which stick does what (WCAG 4.1.3).
+                const spBtn = probeLabel6('Southpaw');
+                const capsSp0 = locoCaps.length;
+                if (spBtn) {
+                  selectCenter6(spBtn); // ON -> 'Primary hand: left'
+                  const onAnn = locoCaps.slice(capsSp0)
+                    .some((s) => s.includes('Primary hand'));
+                  const capsSp1 = locoCaps.length;
+                  selectCenter6(spBtn); // OFF -> 'Primary hand: right'
+                  const offAnn = locoCaps.slice(capsSp1)
+                    .some((s) => s.includes('Primary hand'));
+                  out.southpawCaption = onAnn && offAnn
+                    && app.settings.southpaw === false;
+                } else {
+                  out.southpawCaption = false;
+                }
+                // OS accessibility listeners — the boot registered 'change'
+                // handlers on three real MediaQueryLists; a mid-session OS
+                // preference flip must re-apply live (WCAG 2.3.3 motion,
+                // 1.4.11 contrast) instead of staying frozen at the boot
+                // value. A synthetic 'change' carrying .matches dispatched
+                // on the real MQL runs the registered listener end-to-end.
+                if (app._osMotionMQ && app._osContrastMQ
+                  && app._osForcedColorsMQ && app.gazeInteraction
+                  && app.captionSystem) {
+                  const gz = app.gazeInteraction;
+                  const mmWas = window.matchMedia;
+                  const rmWas = gz.reduceMotion;
+                  const hcWas = gz._ringOpacity;
+                  const ccHcWas = app.captionSystem.highContrast;
+                  const mkChg = (m) =>
+                    Object.assign(new Event('change'), { matches: m });
+                  try {
+                    app._osMotionMQ.dispatchEvent(mkChg(true));
+                    const rmOn = gz.reduceMotion === true;
+                    app._osMotionMQ.dispatchEvent(mkChg(false));
+                    out.osMotionLiveSync = rmOn
+                      && gz.reduceMotion === false;
+                    // prefers-contrast flip → handler re-reads
+                    // prefersHighContrast() → both the reticle ring and the
+                    // caption backing take the high-contrast form live.
+                    window.matchMedia = (q) =>
+                      (q === '(prefers-contrast: more)'
+                        ? { matches: true } : mmWas(q));
+                    app._osContrastMQ.dispatchEvent(mkChg(true));
+                    out.osContrastLiveSync = gz._ringOpacity === 1.0
+                      && gz._ring.material.opacity === 1.0
+                      && app.captionSystem.highContrast === true;
+                    // forced-colors shares the same handler — the decision
+                    // is an OR, so a flip on EITHER query applies it.
+                    window.matchMedia = (q) =>
+                      (q === '(forced-colors: active)'
+                        ? { matches: true } : mmWas(q));
+                    app._osForcedColorsMQ.dispatchEvent(mkChg(true));
+                    out.osForcedColorsSync = gz._ringOpacity === 1.0
+                      && app.captionSystem.highContrast === true;
+                  } finally {
+                    window.matchMedia = mmWas;
+                    gz.setReducedMotion(rmWas);
+                    gz.setHighContrast(hcWas === 1.0);
+                    app.captionSystem.setHighContrast(ccHcWas);
+                  }
+                }
                 // Accessibility section: the WCAG live-apply chain — stepper
                 // +region selects must reach gazeInteraction/captionSystem
                 // fields and toggles must reach their engines, not just flip
@@ -2894,6 +3029,159 @@ async function main() {
                     app.vrKeyboard._onConfirmCallback = null;
                   }
                 }
+              // TextureManager internals leg — the display leg left
+              // app.textureManager null, so re-enable the real toggle to
+              // mint fresh instances off its class: cache-hit LRU recency,
+              // in-flight pendingLoads dedup, re-cache accounting, prune
+              // eviction order, pre-dispose size estimate, the shared
+              // error-texture placeholder, and dispose() teardown.
+              if (ctrl) {
+                const openSecs3 = app.settings.openSettingsSections || [];
+                if (!openSecs3.includes('settings.section.display')) {
+                  const dTab3 = probeLabel6('Display');
+                  if (dTab3) {
+                    selectCenter6(dTab3);
+                    app.scene.updateMatrixWorld(true);
+                  }
+                }
+                const texBtn3 = probeLabel6('Texture Cache:');
+                const texWas = app.settings.enableTextureManager;
+                if (texBtn3 && !app.textureManager) {
+                  // The display leg's updateSetting restore persists
+                  // enableTextureManager=true but never re-applies, so the
+                  // app sits at "setting on + manager null". A select would
+                  // toggle ON→OFF; call the button's onSelect directly and
+                  // repeat until parity restores the manager.
+                  texBtn3.userData.interactable.onSelect({});
+                  if (!app.textureManager) {
+                    texBtn3.userData.interactable.onSelect({});
+                  }
+                }
+                const TMC = app.textureManager && app.textureManager.constructor;
+                if (TMC) {
+                  const fakeR = { capabilities: { getMaxAnisotropy: () => 8 } };
+                  const mkTex = (w, h) => ({
+                    image: { width: w, height: h },
+                    dispose() { this.disposed = (this.disposed || 0) + 1; }
+                  });
+                  try {
+                    // Hit path: identical texture returned, one loader call,
+                    // and the hit re-inserts at the LRU tail.
+                    const tmA = new TMC(fakeR);
+                    const texA = mkTex(10, 10);
+                    let loaderCalls = 0;
+                    tmA.textureLoader.load =
+                      (u, onLoad) => { loaderCalls++; onLoad(texA); };
+                    const l1 = await tmA.loadTexture('u1');
+                    const l2 = await tmA.loadTexture('u1');
+                    out.texCacheHit = l1 === texA && l2 === texA
+                      && tmA.stats.cacheMisses === 1
+                      && tmA.stats.cacheHits === 1
+                      && loaderCalls === 1;
+                    tmA.dispose();
+                    // Concurrent same-URL loads share one in-flight promise —
+                    // a second caller neither refetches nor double-counts.
+                    const tmB = new TMC(fakeR);
+                    let releaseLoad;
+                    let loadCallsB = 0;
+                    tmB.textureLoader.load = (u, onLoad) => {
+                      loadCallsB++;
+                      releaseLoad = () => onLoad(texA);
+                    };
+                    const p1 = tmB.loadTexture('u2');
+                    const p2 = tmB.loadTexture('u2');
+                    // Async fn wrappers re-wrap, so promise identity can't be
+                    // observed — the dedup contract is one pending entry and
+                    // one underlying load for two concurrent callers.
+                    const sharedInflight = tmB.pendingLoads.size === 1
+                      && loadCallsB === 1;
+                    releaseLoad();
+                    const [r1, r2] = await Promise.all([p1, p2]);
+                    out.texPendingDedup = sharedInflight
+                      && r1 === texA && r2 === texA
+                      && tmB.stats.cacheMisses === 1
+                      && tmB.pendingLoads.size === 0;
+                    tmB.dispose();
+                    // Re-caching a live URL evicts the old texture first so
+                    // textureCount/estimatedBytes stay exact.
+                    const tmC = new TMC(fakeR);
+                    const t1 = mkTex(10, 10);
+                    const t2 = mkTex(10, 10);
+                    tmC.cacheTexture('x', t1);
+                    tmC.cacheTexture('x', t2);
+                    out.texRecacheExact = t1.disposed === 1
+                      && tmC.memoryUsage.textureCount === 1
+                      && tmC.memoryUsage.estimatedBytes === 400;
+                    tmC.dispose();
+                    // LRU: a hit moves the entry to the tail — on prune the
+                    // refreshed entry survives while older ones evict first.
+                    const tmL = new TMC(fakeR);
+                    tmL.memoryUsage.maxBytes = 1400;
+                    const a = mkTex(10, 10), b = mkTex(10, 10);
+                    const c = mkTex(10, 10), d = mkTex(10, 10);
+                    tmL.cacheTexture('a', a);
+                    tmL.cacheTexture('b', b);
+                    tmL.cacheTexture('c', c);
+                    tmL.textureLoader.load = (u, onLoad) => onLoad(a);
+                    await tmL.loadTexture('a'); // hit → order [b,c,a]
+                    tmL.cacheTexture('d', d);   // over cap → prune b,c
+                    out.texLruOrder = !a.disposed
+                      && b.disposed === 1 && c.disposed === 1
+                      && tmL.textureCache.size === 2
+                      && tmL.textureCache.has('a')
+                      && tmL.textureCache.has('d');
+                    tmL.dispose();
+                    // unloadTexture must estimate BEFORE dispose() — a
+                    // dispose that clears texture.image would under-count.
+                    const tmU = new TMC(fakeR);
+                    const wipe = { image: { width: 10, height: 10 },
+                      dispose() { this.image = null; } };
+                    tmU.cacheTexture('w', wipe);
+                    tmU.unloadTexture('w');
+                    out.texUnloadPreDispose =
+                      tmU.memoryUsage.estimatedBytes === 0
+                      && tmU.memoryUsage.textureCount === 0;
+                    tmU.dispose();
+                    // Failed loads share ONE placeholder texture — a fresh
+                    // CanvasTexture per failure would leak GPU memory (the
+                    // texture never enters the countable cache).
+                    const tmE = new TMC(fakeR);
+                    const origErr2 = console.error;
+                    console.error = () => {};
+                    let e1, e2;
+                    try {
+                      tmE.textureLoader.load =
+                        (u, ok, p, err) => err(new Error('bad'));
+                      e1 = await tmE.loadTexture('bad1');
+                      e2 = await tmE.loadTexture('bad2');
+                    } finally {
+                      console.error = origErr2;
+                    }
+                    tmE.dispose();
+                    out.texErrorShared = !!e1 && e1 === e2
+                      && tmE._errorTexture === null;
+                    // unloadAll disposes every cached texture and zeroes
+                    // the accounting.
+                    const tmD = new TMC(fakeR);
+                    const d1 = mkTex(10, 10), d2 = mkTex(10, 10);
+                    tmD.cacheTexture('d1', d1);
+                    tmD.cacheTexture('d2', d2);
+                    tmD.unloadAll();
+                    out.texDisposeAll = d1.disposed === 1 && d2.disposed === 1
+                      && tmD.textureCache.size === 0
+                      && tmD.memoryUsage.textureCount === 0
+                      && tmD.memoryUsage.estimatedBytes === 0;
+                  } finally {
+                    // Restore the stale pre-leg state: persisted setting
+                    // value with no live manager instance.
+                    if (app.textureManager) {
+                      app.textureManager.dispose();
+                      app.textureManager = null;
+                    }
+                    app.updateSetting('enableTextureManager', texWas);
+                  }
+                }
+              }
               // VR keyboard real-key leg — the 3D keyboard's key meshes are
               // real registered interactables: a controller-ray select routes
               // to onKeyPress(label) → ime.processInput / deleteLast /
@@ -4220,6 +4508,166 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Quad-layer leg — enableLayerMode hands the chrome bar to
+              // the XR compositor: chromeMesh hides, the first updateLayer
+              // poses the layer from the mesh's world transform AND blits
+              // the dirty canvas; a clean frame still re-syncs the pose
+              // (transform rewrite on panel move) but skips the blit;
+              // hiding the panel skips both; disableLayerMode restores
+              // the mesh and fires the detach callback (no GPU ghost).
+              if (ctrl && app.tabManager && app.scene) {
+                const tm3 = app.tabManager;
+                const tabsWas3 = tm3.tabs.length;
+                const activeWas3 = tm3.activeIndex;
+                try {
+                  const wp3 = tm3.newTab();
+                  app.scene.updateMatrixWorld(true);
+                  const blits = [];
+                  const fakeLS3 = { renderCanvasToLayer:
+                    (l, c) => blits.push([l, c]) };
+                  const q3 = { transform: null };
+                  let detach3 = 0;
+                  wp3.enableLayerMode(q3, fakeLS3, 'lyr-h',
+                    () => { detach3++; });
+                  const enOk3 = wp3.quadLayer === q3
+                    && wp3._layerDirty === true
+                    && wp3.chromeMesh.visible === false;
+                  wp3.updateLayer({}, []);
+                  const t1o = q3.transform;
+                  const t1x = t1o && t1o.position ? t1o.position.x : null;
+                  out.wpLayerBlits = enOk3
+                    && blits.length === 1 && blits[0][0] === q3
+                    && wp3._layerDirty === false
+                    && typeof t1x === 'number';
+                  // Clean frame: pose re-sync only — the panel move rewrites
+                  // transform while the clean canvas skips the blit.
+                  wp3.group.position.x += 0.5;
+                  wp3.group.updateMatrixWorld(true);
+                  wp3.updateLayer({}, []);
+                  const t2x = q3.transform && q3.transform.position
+                    ? q3.transform.position.x : null;
+                  out.wpLayerResyncs = blits.length === 1
+                    && q3.transform !== t1o
+                    && typeof t2x === 'number' && t2x !== t1x;
+                  // Hidden panel: early return — no re-pose, no blit.
+                  wp3.group.visible = false;
+                  wp3.group.position.x += 0.5;
+                  wp3.group.updateMatrixWorld(true);
+                  const t2o = q3.transform;
+                  wp3.updateLayer({}, []);
+                  out.wpLayerHiddenSkips = q3.transform === t2o
+                    && blits.length === 1;
+                  wp3.group.visible = true;
+                  // Release: mesh restored + detach callback fires once.
+                  wp3.disableLayerMode(true);
+                  out.wpLayerRelease = detach3 === 1
+                    && wp3.quadLayer === null
+                    && wp3.chromeMesh.visible === true;
+                } finally {
+                  while (tm3.tabs.length > tabsWas3) {
+                    tm3.closeTab(tm3.tabs.length - 1);
+                  }
+                  if (tm3.tabs.length) {
+                    tm3.setActive(
+                      Math.min(activeWas3, tm3.tabs.length - 1));
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
+              // Panel-layer reconciler — _syncPanelLayers runs after every
+              // tab-set mutation so a mid-session tab gets a quad layer too
+              // (attach used to run ONLY at session start). A hidden panel
+              // must be skipped — quad layers composite through the runtime
+              // regardless of mesh visibility (ghost chrome) — and an
+              // already-layered panel must not re-attach. _detachPanelLayer
+              // drops exactly one id back through removeLayer with the live
+              // session + base layer so the render state re-commits clean.
+              if (app.layersSystem && app.renderer && app.renderer.xr
+                && app.tabManager && app.tabManager.tabs) {
+                const xr2 = app.renderer.xr;
+                const ls2 = app.layersSystem;
+                const gsWas = xr2.getSession;
+                const grsWas = xr2.getReferenceSpace;
+                const gblWas = xr2.getBaseLayer;
+                const cqlWas = ls2.createQuadLayer;
+                const ursWas = ls2.updateRenderState;
+                const rlWas = ls2.removeLayer;
+                const mkPanel2 = (vis) => ({
+                  quadLayer: null,
+                  group: { visible: vis },
+                  enableLayerMode(q, l, id, cb) {
+                    this.quadLayer = q;
+                    this._layerId = id;
+                    this._detach = cb;
+                  }
+                });
+                const made2 = [];
+                const states2 = [];
+                const removed2 = [];
+                const fakeSess = {};
+                const pV2 = mkPanel2(true);
+                const pH2 = mkPanel2(false);
+                const pL2 = mkPanel2(true);
+                pL2.quadLayer = { already: true };
+                const tabsWas4 = app.tabManager.tabs.slice();
+                try {
+                  xr2.getSession = () => fakeSess;
+                  xr2.getReferenceSpace = () => 'fakeRef';
+                  xr2.getBaseLayer = () => 'fakeBase';
+                  ls2.createQuadLayer =
+                    (a2) => (made2.push(a2), { id: a2.id });
+                  ls2.updateRenderState = (s, b) => states2.push([s, b]);
+                  ls2.removeLayer = (id, s, b) => removed2.push([id, s, b]);
+                  app.tabManager.tabs.push(pV2, pH2, pL2);
+                  app._syncPanelLayers();
+                  // Real tabs are unlayered headless too — the pass also
+                  // attaches them; pin what pV2 received, not the count.
+                  const madeAtFirst = made2.length;
+                  const hidAtFirst = !pH2.quadLayer;
+                  out.panelLayerAttach = !!pV2.quadLayer
+                    && typeof pV2._layerId === 'string'
+                    && pV2._layerId.startsWith('panel_chrome_')
+                    && made2.some((a2) => a2.id === pV2._layerId)
+                    && made2.some((a2) => a2.space === 'fakeRef')
+                    && typeof pV2._detach === 'function'
+                    && states2.length === 1
+                    && states2[0][0] === fakeSess
+                    && states2[0][1] === 'fakeBase';
+                  out.panelLayerIdempotent = !pL2._layerId;
+                  // Hidden → skipped on the first pass; shown → attaches
+                  // on the next sync (no missed layer for a revealed tab).
+                  pH2.group.visible = true;
+                  app._syncPanelLayers();
+                  out.panelLayerHiddenSkip = hidAtFirst
+                    && !!pH2.quadLayer
+                    && made2.length === madeAtFirst + 1
+                    && states2.length === 2;
+                  // Third run with every panel layered: no attach, no
+                  // re-commit — a plain navigation save stays cheap.
+                  app._syncPanelLayers();
+                  out.panelLayerStable =
+                    made2.length === madeAtFirst + 1
+                    && states2.length === 2;
+                  // Detach callback routes the exact id to removeLayer
+                  // with the live session + base layer. Guarded: under a
+                  // red-verify cut the callback is never installed.
+                  if (typeof pV2._detach === 'function') {
+                    pV2._detach(pV2._layerId);
+                  }
+                  out.panelLayerDetach = removed2.length === 1
+                    && removed2[0][0] === pV2._layerId
+                    && removed2[0][1] === fakeSess
+                    && removed2[0][2] === 'fakeBase';
+                } finally {
+                  app.tabManager.tabs = tabsWas4;
+                  xr2.getSession = gsWas;
+                  xr2.getReferenceSpace = grsWas;
+                  xr2.getBaseLayer = gblWas;
+                  ls2.createQuadLayer = cqlWas;
+                  ls2.updateRenderState = ursWas;
+                  ls2.removeLayer = rlWas;
+                }
+              }
               // Follow-mode leg — the 'Follow' toggle applies
               // windowManager.setFollow, after which updateSystems' per-frame
               // windowManager.update lerps the managed root toward
@@ -5430,6 +5878,22 @@ async function main() {
       layerRender: iout.layerRender === true,
       layerRenderState: iout.layerRenderState === true,
       layerDispose: iout.layerDispose === true,
+      wpLayerBlits: iout.wpLayerBlits === true,
+      wpLayerResyncs: iout.wpLayerResyncs === true,
+      wpLayerHiddenSkips: iout.wpLayerHiddenSkips === true,
+      wpLayerRelease: iout.wpLayerRelease === true,
+      panelLayerAttach: iout.panelLayerAttach === true,
+      panelLayerIdempotent: iout.panelLayerIdempotent === true,
+      panelLayerHiddenSkip: iout.panelLayerHiddenSkip === true,
+      panelLayerStable: iout.panelLayerStable === true,
+      panelLayerDetach: iout.panelLayerDetach === true,
+      texCacheHit: iout.texCacheHit === true,
+      texPendingDedup: iout.texPendingDedup === true,
+      texRecacheExact: iout.texRecacheExact === true,
+      texLruOrder: iout.texLruOrder === true,
+      texUnloadPreDispose: iout.texUnloadPreDispose === true,
+      texErrorShared: iout.texErrorShared === true,
+      texDisposeAll: iout.texDisposeAll === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -5474,9 +5938,15 @@ async function main() {
       comfortExternalLevel: iout.comfortExternalLevel === true,
       comfortRotation: iout.comfortRotation === true,
       comfortDisabledGate: iout.comfortDisabledGate === true,
+      comfortOffClears: iout.comfortOffClears === true,
+      southpawCaption: iout.southpawCaption === true,
+      osMotionLiveSync: iout.osMotionLiveSync === true,
+      osContrastLiveSync: iout.osContrastLiveSync === true,
+      osForcedColorsSync: iout.osForcedColorsSync === true,
       comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
+      qualityGovernor: iout.qualityGovernor === true,
       capAgingSweep: iout.capAgingSweep === true,
       capReadingFloor: iout.capReadingFloor === true,
       capQueueRules: iout.capQueueRules === true,
@@ -5834,6 +6304,22 @@ async function main() {
       ['per-view subimage blit + finally unbind', !!inter.layerRender],
       ['render-state orders baseLayer then quads', !!inter.layerRenderState],
       ['layers dispose clears maps + flags', !!inter.layerDispose],
+      ['layer mode poses quad layer + blits dirty canvas', !!inter.wpLayerBlits],
+      ['clean frame re-poses layer without re-blit', !!inter.wpLayerResyncs],
+      ['hidden panel skips layer pose + blit', !!inter.wpLayerHiddenSkips],
+      ['layer release restores mesh + detaches', !!inter.wpLayerRelease],
+      ['mid-session tab gains a quad layer', !!inter.panelLayerAttach],
+      ['layered panel is not re-attached', !!inter.panelLayerIdempotent],
+      ['hidden panel skips layer until shown', !!inter.panelLayerHiddenSkip],
+      ['reconciler no-ops once all panels layered', !!inter.panelLayerStable],
+      ['panel layer detach drops exactly its id', !!inter.panelLayerDetach],
+      ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
+      ['in-flight texture loads share one promise', !!inter.texPendingDedup],
+      ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
+      ['texture LRU evicts oldest past the cap', !!inter.texLruOrder],
+      ['unload estimates bytes before dispose', !!inter.texUnloadPreDispose],
+      ['failed loads share one placeholder texture', !!inter.texErrorShared],
+      ['unloadAll disposes every cached texture', !!inter.texDisposeAll],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
@@ -5844,9 +6330,15 @@ async function main() {
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
       ['yaw rotation alone chases full intensity', !!inter.comfortRotation],
       ['disabled preset gates + re-enable merges', !!inter.comfortDisabledGate],
+      ['comfort OFF clears vignette + gates update', !!inter.comfortOffClears],
+      ['southpaw toggle announces the new primary hand', !!inter.southpawCaption],
+      ['OS reduced-motion change re-applies live', !!inter.osMotionLiveSync],
+      ['OS prefers-contrast change re-applies live', !!inter.osContrastLiveSync],
+      ['OS forced-colors flip applies high contrast', !!inter.osForcedColorsSync],
       ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
+      ['FPS governor nudges FFR intensity by deadband', !!inter.qualityGovernor],
       ['caption update() ages and removes lines', !!inter.capAgingSweep],
       ['caption hold follows per-script reading time', !!inter.capReadingFloor],
       ['caption queue trims, skips while off, NFC', !!inter.capQueueRules],
