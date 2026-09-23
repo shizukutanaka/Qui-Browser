@@ -610,6 +610,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `|| true` 切断 → telemetry pin のみ（2 回目 feed が流れる）。`_removeResumeListeners()` 切断 → audio pin のみ（click が再発火）。`radius*(1-cos)` → 0 切断 → curve pin のみ。`www.` strip / `slice(0,18)` は conjunct 分離で各々切断 → 同 pin のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 470 checks PASS、verify:app PASS。
 
+### Session 247: 続き405 — select analytics + shared raycaster + reader lift arms を e2e pin（#286 batch 64、470→473 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`updateSystems` の gaze activation → `trackInteraction('select',{modality:'gaze'})` → `trackEvent` → `window.gtag` 'user_interaction' — onSelect/haptic fan-out は pin 済みだが analytics 到達は未観測。②`raycasterFromController` の shared Raycaster memo（`_sharedRaycaster` 再利用 — per-frame 新規 alloc だと GC churn）+ `matrixWorld` 由来 origin/direction（camera matrix で origin=camPos・direction=cam facing を実値検証）。③`liftUnreachable` の reach arms — `<table>`→'cell | cell'、`<ol>`→'N. '序数、`<img alt>`→'[img: …]'、`<rt>/<rp>` 除去、block 内 entity decode — 欠落すると reader ユーザーにコンテンツが消える。
+- 🔧 **ハーネス教訓**: eval 文字列内の `'\n'` は harness のテンプレート展開で実改行化 → eval ソースが string literal 内の改行で SyntaxError（eval problem: lineNumber…）— eval 内では改行 literal を書かない（`.some()` per-line 検査で代替）。fake controller は `{matrixWorld: camera.matrixWorld}` で THREE 不要に origin/direction を実値検証可能。
+- 🧪 赤検証: `trackInteraction('select')` 切断 → analytics pin のみ。`setFromMatrixPosition` 切断 → raycaster pin + controller-ray 共有 8+ legs co-signal（同一行供給・想定内）。`liftUnreachable(` wrapper 切断 → lifts pin のみ（table 消滅/序数欠落/img alt 消滅/rt 残存で全 arm 同時 falsify — entity arm は batch-62 の textOf decodeEntities 切断でも FAIL する co-signal として記録）。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 473 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

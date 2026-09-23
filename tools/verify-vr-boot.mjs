@@ -2002,6 +2002,70 @@ async function main() {
                 }
               }
             }
+            // batch 64 — select analytics + shared raycaster:
+            // (a) a real gaze activation must reach trackInteraction →
+            //     gtag 'user_interaction' with interaction_type 'select' and
+            //     modality 'gaze' — the analytics contract, not just the
+            //     local onSelect/haptic fan-out the earlier leg pinned.
+            if (app.gazeInteraction && app.floorMesh && app.camera) {
+              const gtagWas64 = window.gtag;
+              const gtagEvents64 = [];
+              window.gtag = (...a) => { gtagEvents64.push(a); };
+              const gzObj64 = app.floorMesh.clone();
+              gzObj64.userData = {};
+              gzObj64.userData.interactable = { onSelect: () => {} };
+              gzObj64.rotation.set(0, 0, 0);
+              gzObj64.scale.set(0.05, 0.05, 0.05);
+              app.camera.updateWorldMatrix(true, false);
+              const camPos64 = app.camera.getWorldPosition(
+                gzObj64.position.clone());
+              const camDir64 = app.camera.getWorldDirection(camPos64.clone());
+              gzObj64.position.copy(camPos64)
+                .add(camDir64.multiplyScalar(0.8));
+              gzObj64.updateMatrixWorld(true);
+              app.interactables.push(gzObj64);
+              const gazeWas64 = app.gazeInteraction.enabled;
+              app.gazeInteraction.enabled = true;
+              try {
+                app.updateSystems(0, fakeXrFrame, 1.7);
+                out.selectAnalytics = gtagEvents64.some(
+                  (e) => e[1] === 'user_interaction'
+                    && e[2] && e[2].interaction_type === 'select'
+                    && e[2].modality === 'gaze');
+              } finally {
+                app.gazeInteraction.enabled = gazeWas64;
+                const ix64 = app.interactables.indexOf(gzObj64);
+                if (ix64 >= 0) {
+                  app.interactables.splice(ix64, 1);
+                }
+                if (gtagWas64 === undefined) {
+                  delete window.gtag;
+                } else {
+                  window.gtag = gtagWas64;
+                }
+              }
+            }
+            // (b) raycasterFromController lazily memoizes ONE shared
+            //     Raycaster (per-frame allocation would GC-churn every
+            //     hover tick) and derives ray.origin/ray.direction from the
+            //     controller's matrixWorld — here the camera's own matrix,
+            //     so origin === camera world position and direction ===
+            //     camera facing (−z rotated into world space).
+            if (app.camera) {
+              const ray64 = app.raycasterFromController(
+                { matrixWorld: app.camera.matrixWorld });
+              const oA64 = ray64.ray.origin.clone();
+              const dA64 = ray64.ray.direction.clone();
+              const same64 = app.raycasterFromController(
+                { matrixWorld: app.camera.matrixWorld }) === ray64;
+              const camPosB64 = app.camera.getWorldPosition(
+                ray64.ray.origin.clone());
+              const camDirB64 = app.camera.getWorldDirection(
+                ray64.ray.direction.clone());
+              out.sharedRaycaster = same64 === true
+                && oA64.distanceTo(camPosB64) < 0.0001
+                && dA64.distanceTo(camDirB64) < 0.001;
+            }
             // Grace-slip pin (R220): a brief slip onto a DIFFERENT
             // interactable must hold the charge — tremor jitter grazing a
             // neighbour button must not reset the dwell. A persistent new
@@ -5184,6 +5248,46 @@ async function main() {
                       && gA62 !== gC62
                       && app._sharedGeometries.size === sizeWas62 + 2;
                   }
+                  // batch 64 (c) — liftUnreachable's reach-arms: content a
+                  //     flat block scan cannot reach is lifted into markup
+                  //     before extraction — <table> rows become 'cell | cell'
+                  //     paragraphs, <ol> items get real ordinals baked in,
+                  //     <img alt> inlines ' [img: alt] ', and ruby <rt>/<rp>
+                  //     furigana is stripped (it would duplicate the base
+                  //     text). Missing any of these silently loses the
+                  //     content for reader users.
+                  {
+                    globalThis.fetch = () => Promise.resolve({
+                      ok: true,
+                      text: () => Promise.resolve(
+                        '<html><head><title>Lifted</title></head><body><article>'
+                        + '<table><tr><td>alpha</td><td>beta</td></tr></table>'
+                        + '<ol><li>first step</li><li>second step</li></ol>'
+                        + '<p>fig <img src="x.png" alt="my diagram"> cap</p>'
+                        + '<p>base <ruby>漢字<rt>かんじ</rt></ruby> end</p>'
+                        + '<p>amp &amp; entity</p>'
+                        + '</article></body></html>')
+                    });
+                    try {
+                      wp2.navigate('https://lifts-64.example/');
+                      await settle2();
+                      const texts64 = (wp2._readerLines || [])
+                        .map((l) => l.text);
+                      const has64 = (s) => texts64.some((t) => t.includes(s));
+                      out.readerLifts = wp2._contentState === 'reader'
+                        && has64('alpha | beta')
+                        && has64('1. first step')
+                        && has64('2. second step')
+                        && has64('[img: my diagram]')
+                        && has64('漢字')
+                        && !texts64.some((t) => t.includes('かんじ'))
+                        && has64('amp & entity');
+                    } finally {
+                      if (app.bookmarks && app.bookmarks.removeHistory) {
+                        app.bookmarks.removeHistory('https://lifts-64.example/');
+                      }
+                    }
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -7236,6 +7340,9 @@ async function main() {
       audioResumeDetach: iout.audioResumeDetach === true,
       geoCurvedData: iout.geoCurvedData === true,
       tmShortTitle: iout.tmShortTitle === true,
+      selectAnalytics: iout.selectAnalytics === true,
+      sharedRaycaster: iout.sharedRaycaster === true,
+      readerLifts: iout.readerLifts === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7767,6 +7874,9 @@ async function main() {
       ['audio resume gesture detaches all listeners', !!inter.audioResumeDetach],
       ['curved panel geometry emits real arc positions', !!inter.geoCurvedData],
       ['tab strip title strips www + slices junk', !!inter.tmShortTitle],
+      ['gaze select reaches user_interaction analytics', !!inter.selectAnalytics],
+      ['controller rays share one memoized raycaster', !!inter.sharedRaycaster],
+      ['reader lifts table list img ruby content', !!inter.readerLifts],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
