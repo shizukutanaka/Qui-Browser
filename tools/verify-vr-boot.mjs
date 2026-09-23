@@ -609,6 +609,74 @@ async function main() {
               && typeof dc66.report.deviceTier === 'string'
               && dc66.report.deviceTier.length > 0;
           }
+          // batch 67 (a) — navigate() reports the pageview through GA's
+          //   'config' hit with the query stripped (origin+pathname only —
+          //   query params can carry search terms/tokens that must not
+          //   leave the device). The catch arm reports the raw URL.
+          {
+            const gtagWas67 = window.gtag;
+            const gtagEvents67 = [];
+            window.gtag = (...a) => { gtagEvents67.push(a); };
+            try {
+              app.navigate('https://pg.example/path/seg?secret=1#f', 'PgT');
+              app.navigate('not a url at all', 'RawT');
+              const pv67 = gtagEvents67.filter((e) => e[0] === 'config');
+              out.navPageView = pv67.length === 2
+                && pv67[0][2].page_path === 'https://pg.example/path/seg'
+                && pv67[0][2].page_title === 'PgT'
+                && pv67[1][2].page_path === 'not a url at all';
+            } finally {
+              if (gtagWas67 === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas67;
+              }
+            }
+          }
+          // batch 67 (b) — trackMemory reports 'performance_high_memory'
+          //   past the 500MB threshold with severity tiers (medium <750,
+          //   high <1000, critical above). performance.memory is faked to
+          //   push heap sizes the eval can't allocate.
+          {
+            const memWas67 = Object.getOwnPropertyDescriptor(
+              performance, 'memory');
+            const feedWas67 = app._telemetryFeedAt;
+            const usedWas67 = app.performanceMonitor.memoryUsed;
+            const gtagWas67b = window.gtag;
+            const gtagEvents67b = [];
+            window.gtag = (...a) => { gtagEvents67b.push(a); };
+            try {
+              for (const mb of [600, 800, 1100]) {
+                Object.defineProperty(performance, 'memory', {
+                  configurable: true,
+                  value: { usedJSHeapSize: mb * 1024 * 1024 }
+                });
+                app._telemetryFeedAt = -Infinity;
+                app.updatePerformanceMonitor(16);
+              }
+              const hm67 = gtagEvents67b
+                .filter((e) => e[1] === 'performance_high_memory')
+                .map((e) => e[2]);
+              out.memHighGtag = hm67.length === 3
+                && hm67[0].memory_mb === 600 && hm67[0].severity === 'medium'
+                && hm67[1].memory_mb === 800 && hm67[1].severity === 'high'
+                && hm67[2].memory_mb === 1100
+                && hm67[2].severity === 'critical';
+            } finally {
+              if (memWas67) {
+                Object.defineProperty(performance, 'memory', memWas67);
+              } else {
+                delete performance.memory;
+              }
+              app._telemetryFeedAt = feedWas67;
+              app.performanceMonitor.memoryUsed = usedWas67;
+              if (gtagWas67b === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas67b;
+              }
+            }
+          }
           // (b) SpatialAudio arms click/touchstart/keydown {once:true}
           //     listeners while the context is suspended; the first gesture
           //     must tear ALL three down — else a later gesture re-fires
@@ -7045,6 +7113,39 @@ async function main() {
               await new Promise((r) => setTimeout(r, 20));
               out.vrBtnRetryOnlyNS = attempts5 === 1 && refTypes4.length === 1
                 && toasts4.length === errToastsBefore + 1;
+              // batch 67 — the rejection also reports trackVRError through
+              //   gtag 'vr_error' with the action context; the toast arm
+              //   was already pinned, the analytics leg was unobserved.
+              const gtagWas67c = window.gtag;
+              const gtagEvents67c = [];
+              window.gtag = (...a) => { gtagEvents67c.push(a); };
+              try {
+                Object.defineProperty(navigator, 'xr', {
+                  configurable: true, value: {
+                    requestSession: () =>
+                      Promise.reject(new Error('denied67'))
+                  }
+                });
+                btn4.onclick();
+                await new Promise((r) => setTimeout(r, 20));
+                const vrErr67 = gtagEvents67c.find(
+                  (e) => e[1] === 'vr_error');
+                out.sessErrGtag = !!vrErr67
+                  && vrErr67[2].action === 'requestSession'
+                  && vrErr67[2].error_type === 'Error'
+                  && vrErr67[2].error_message === 'denied67';
+              } finally {
+                Object.defineProperty(navigator, 'xr', {
+                  configurable: true, value: {
+                    requestSession: () => Promise.resolve(fakeSess4)
+                  }
+                });
+                if (gtagWas67c === undefined) {
+                  delete window.gtag;
+                } else {
+                  window.gtag = gtagWas67c;
+                }
+              }
               xr4.setSession = () => { sessSetCalls4++; return Promise.resolve(); };
               if (srsWas4) {
                 xr4.setReferenceSpaceType = srsWas4;
@@ -7518,6 +7619,8 @@ async function main() {
       historyNavEdges: iout.historyNavEdges === true,
       contentTexVersion: iout.contentTexVersion === true,
       deviceTierDetect: iout.deviceTierDetect === true,
+      navPageView: iout.navPageView === true,
+      memHighGtag: iout.memHighGtag === true,
       audioSourceDist: iout.audioSourceDist === true,
       imeConvertFns: iout.imeConvertFns === true,
       texSettingsStats: iout.texSettingsStats === true,
@@ -7729,6 +7832,7 @@ async function main() {
       kbPrefillBlank: iout.kbPrefillBlank === true,
       vrBtnRetryLocal: iout.vrBtnRetryLocal === true,
       vrBtnRetryOnlyNS: iout.vrBtnRetryOnlyNS === true,
+      sessErrGtag: iout.sessErrGtag === true,
       enterVRClick: iout.enterVRClick === true,
       toastLifecycle: iout.toastLifecycle === true,
       sessPanelDetach: iout.sessPanelDetach === true,
@@ -8061,6 +8165,8 @@ async function main() {
       ['back/forward stop at history edges', !!inter.historyNavEdges],
       ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
       ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
+      ['navigate reports query-stripped pageview', !!inter.navPageView],
+      ['memory threshold reports severity-tiered event', !!inter.memHighGtag],
       ['source distance drives the HRTF tier', !!inter.audioSourceDist],
       ['ime romaji/katakana/offline converts resolve', !!inter.imeConvertFns],
       ['texture settings write + memory stats shape', !!inter.texSettingsStats],
@@ -8256,6 +8362,7 @@ async function main() {
       ['URL input activates IME + stores confirm', !!inter.kbPrefillBlank],
       ['local-floor failure degrades space and retries', !!inter.vrBtnRetryLocal],
       ['non-NotSupportedError skips the space retry', !!inter.vrBtnRetryOnlyNS],
+      ['session reject reports vr_error analytics', !!inter.sessErrGtag],
       ['enter-vr event reaches the guarded VR button', !!inter.enterVRClick],
       ['toast adds mesh + timer and both expire', !!inter.toastLifecycle],
       ['session end detaches panel layers without recommit', !!inter.sessPanelDetach],
