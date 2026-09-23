@@ -401,6 +401,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `supported=true`/`_layers.set`/`texSubImage2D`/`[baseLayer,...quads]`/`glBinding=null` 各切断 → 新 5 check のみ FAIL、co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、331-check harness 全 PASS。
 
+### Session 213: 続き371 — TabManager restoreSession エッジ腕を e2e pin（#271 batch 30、331→335 checks）
+
+- 🔍 実測: `restoreSession` のエッジ 4 腕が未駆動 — corrupt payload（`Array.isArray(data.tabs)` 外れ→0）・malformed entry skip（非 string/absent url→`continue`）・`created >= MAX_TABS` break・stale `active` index clamp（`Math.min(floor, count-1)`）。#241 の roundtrip pin は健全パスのみで全エッジ未カバー。
+- 🔧 ハーネス設計: `app.tabManager.constructor` で fresh manager を mint — `position:{y:-100}` で生成パネルを後続 leg の ray から物理的に隔離（opt コールバックは no-op）。corrupt pin は `list=[]` 切断で vacuous FAIL せず — 有効ペイロードで `===1` の陽性 conjunct を追加して検出可能化（wasRegistered 教訓と同型）。eval コメントの backtick が outer template を破壊する既知ハザードを再踏した（クォートに変更）。
+- 🧪 赤検証: `Array.isArray` 3 項・`!url continue`・`>=MAX_TABS break`・`Math.min` clamp 各切断 → 新 4 check のみ FAIL、co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、335-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

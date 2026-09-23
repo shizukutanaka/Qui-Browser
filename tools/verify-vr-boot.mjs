@@ -346,6 +346,52 @@ async function main() {
             out.toggleOff = app.bookmarks.isBookmarked('https://harness-toggle.example/');
             out.toggleOffCaption = statusEl ? statusEl.textContent : '';
           }
+          // Tab-session restore edges — corrupt payloads return 0, malformed
+          // entries are skipped, the list clamps at MAX_TABS and a stale
+          // 'active' index clamps to the last restored tab. A fresh manager
+          // parked at y=-100 keeps its panels out of every later leg's ray.
+          if (app.tabManager) {
+            const TM = app.tabManager.constructor;
+            const mkTM = () => new TM({
+              scene: app.scene,
+              registerInteractable: () => {},
+              unregisterInteractable: () => {},
+              position: { x: 0, y: -100, z: 0 }
+            });
+            const tmA = mkTM();
+            out.tmRestoreCorrupt = tmA.restoreSession(null) === 0
+              && tmA.restoreSession({}) === 0
+              && tmA.restoreSession({ tabs: 'nope' }) === 0
+              && tmA.count === 0
+              && tmA.restoreSession({ v: 1, tabs: [
+                { url: 'https://rest-ok.example/' }] }) === 1
+              && tmA.count === 1;
+            const tmB = mkTM();
+            const nB = tmB.restoreSession({ v: 1, active: 0, tabs: [
+              { url: 'https://rest-a.example/' },
+              { nope: true }, 'raw', null, { url: '' },
+              { url: 'https://rest-b.example/' }] });
+            out.tmRestoreSkip = nB === 2 && tmB.count === 2
+              && tmB.tabs[0].currentUrl === 'https://rest-a.example/'
+              && tmB.tabs[1].currentUrl === 'https://rest-b.example/';
+            const tmC = mkTM();
+            const big = { v: 1, active: 0, tabs: [] };
+            for (let bi = 0; bi < 10; bi++) {
+              big.tabs.push({ url: 'https://rest-' + bi + '.example/' });
+            }
+            out.tmRestoreClamp = tmC.restoreSession(big) === 8
+              && tmC.count === 8;
+            const tmD = mkTM();
+            tmD.restoreSession({ v: 1, active: 99, tabs: [
+              { url: 'https://rest-a.example/' },
+              { url: 'https://rest-b.example/' }] });
+            const tmE = mkTM();
+            tmE.restoreSession({ v: 1, active: 0, tabs: [
+              { url: 'https://rest-a.example/' },
+              { url: 'https://rest-b.example/' }] });
+            out.tmRestoreActive = tmD.activeIndex === 1
+              && tmE.activeIndex === 0;
+          }
           // URL-input request drives the whole keyboard wiring: setOnConfirm,
           // IME activate + ascii mode, composition prefill, show(), and the
           // prompt caption. vrKeyboard.visible is a real getter (reads the
@@ -4726,6 +4772,10 @@ async function main() {
       bmSuggest: !!iout.bmSuggest,
       tabPersisted: !!iout.tabPersisted,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
+      tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
+      tmRestoreSkip: iout.tmRestoreSkip === true,
+      tmRestoreClamp: iout.tmRestoreClamp === true,
+      tmRestoreActive: iout.tmRestoreActive === true,
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
       closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
@@ -5114,6 +5164,10 @@ async function main() {
       ['history-clear announced via alert region', !!inter.clearAnnounced],
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
+      ['malformed session entries skipped', !!inter.tmRestoreSkip],
+      ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
+      ['stale active index clamps to last tab', !!inter.tmRestoreActive],
       ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
