@@ -1454,6 +1454,51 @@ async function main() {
               out.registerCustomCmd = cmdRan65 === true
                 && vc.stats.commandsRecognized === recWas65 + 1;
             }
+            // batch 69 (a) — registered aliases resolve through the alias
+            //   map to the canonical command: the transcript hits no
+            //   pattern, the alias lookup finds commandKey → action.
+            {
+              let aliasRan69 = false;
+              vc.registerCommand('e2e-alias-69', {
+                patterns: ['zz never said'],
+                aliases: ['エイリアス六九'],
+                action: () => { aliasRan69 = true; return { ok: true }; }
+              });
+              vc.handleRecognitionResult({
+                results: [{ 0: { transcript: 'エイリアス六九', confidence: 0.9 }, isFinal: true, length: 1 }]
+              });
+              out.voiceAliasChain = aliasRan69 === true
+                && vc.lastCommand
+                && vc.lastCommand.key === 'e2e-alias-69';
+              vc.commands.delete('e2e-alias-69');
+              vc.aliases.delete('エイリアス六九');
+            }
+            // batch 69 (b) — 'help' speaks the command count AND the
+            //   joined phrase list — a voice-reliant user's only way to
+            //   discover what to say.
+            {
+              const synthWas69 = vc.synthesis;
+              const utts69 = [];
+              try {
+                vc.synthesis = { speak: (u) => { utts69.push(u); } };
+                vc.handleRecognitionResult({
+                  results: [{ 0: { transcript: 'ヘルプ', confidence: 0.9 }, isFinal: true, length: 1 }]
+                });
+                const help69 = utts69[utts69.length - 1];
+                out.voiceHelpList = !!help69
+                  && /使用可能なコマンドは、\\d+個です。/.test(help69.text)
+                  && help69.text.includes('、');
+              } finally {
+                vc.synthesis = synthWas69;
+              }
+            }
+            // batch 69 (c) — initialize() writes the app's language onto
+            //   the SpeechRecognition engine — a ja-JP browser with an
+            //   en-US engine hears the wrong phoneme space.
+            out.voiceRecogLang = !!vc.recognition
+              && vc.recognition.lang === vc.language
+              && typeof vc.language === 'string'
+              && vc.language.length > 0;
             // batch 66 (c) — the IME conversion pipeline's pure helpers:
             //   romaji→hiragana (incl. the 'tch' sokuon arm), hiragana→
             //   katakana, and the offline kanji dictionary hit + miss arms.
@@ -5622,6 +5667,56 @@ async function main() {
                       wp2.historyIdx = hidxWas68b;
                     }
                   }
+                  // batch 69 (d) — setSearchEngine swaps the template the
+                  //   NEXT query resolves through: a named engine picks
+                  //   its table entry, a raw template (contains '=') is
+                  //   used verbatim.
+                  {
+                    const engWas69 = wp2.searchEngine;
+                    const histWas69 = wp2.history;
+                    const hidxWas69 = wp2.historyIdx;
+                    const loadWas69 = wp2._loadUrl;
+                    wp2._loadUrl = () => {};
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.setSearchEngine('bing');
+                      wp2.navigate('two words');
+                      wp2.setSearchEngine('https://se.example/f?q=');
+                      wp2.navigate('three words');
+                      out.navSearchEngine = wp2.history.length === 2
+                        && wp2.history[0] ===
+                          'https://www.bing.com/search?q=two%20words'
+                        && wp2.history[1] ===
+                          'https://se.example/f?q=three%20words';
+                    } finally {
+                      wp2.setSearchEngine(engWas69);
+                      wp2._loadUrl = loadWas69;
+                      wp2.history = histWas69;
+                      wp2.historyIdx = hidxWas69;
+                    }
+                  }
+                  // batch 69 (e) — setActive rejects out-of-range indices:
+                  //   no visibility flip, no activate announce, no
+                  //   session-change fan-out.
+                  {
+                    const tmOptsWas69 = tm2.opts.onTabActivate;
+                    const tmSessWas69 = tm2.opts.onSessionChange;
+                    const actArgs69 = [];
+                    let sessCalls69 = 0;
+                    tm2.opts.onTabActivate = (u) => { actArgs69.push(u); };
+                    tm2.opts.onSessionChange = () => { sessCalls69++; };
+                    try {
+                      const idxWas69 = tm2.activeIndex;
+                      tm2.setActive(-1);
+                      tm2.setActive(tm2.tabs.length + 9);
+                      out.tmSetActiveClamp = tm2.activeIndex === idxWas69
+                        && actArgs69.length === 0
+                        && sessCalls69 === 0;
+                    } finally {
+                      tm2.opts.onTabActivate = tmOptsWas69;
+                      tm2.opts.onSessionChange = tmSessWas69;
+                    }
+                  }
                 } finally {
                   globalThis.fetch = origFetch3;
                   while (tm2.tabs.length > tabsWas2) {
@@ -7713,10 +7808,15 @@ async function main() {
       monVisibilityTrack: iout.monVisibilityTrack === true,
       procBufRegister: iout.procBufRegister === true,
       registerCustomCmd: iout.registerCustomCmd === true,
+      voiceAliasChain: iout.voiceAliasChain === true,
+      voiceHelpList: iout.voiceHelpList === true,
+      voiceRecogLang: iout.voiceRecogLang === true,
       historyNavEdges: iout.historyNavEdges === true,
       contentTexVersion: iout.contentTexVersion === true,
       navResolveArms: iout.navResolveArms === true,
       histForwardTruncate: iout.histForwardTruncate === true,
+      navSearchEngine: iout.navSearchEngine === true,
+      tmSetActiveClamp: iout.tmSetActiveClamp === true,
       deviceTierDetect: iout.deviceTierDetect === true,
       navPageView: iout.navPageView === true,
       memHighGtag: iout.memHighGtag === true,
@@ -8262,10 +8362,15 @@ async function main() {
       ['visibilitychange reaches session_resumed analytics', !!inter.monVisibilityTrack],
       ['procedural buffer registers + dedups by name', !!inter.procBufRegister],
       ['custom voice command registers + fires', !!inter.registerCustomCmd],
+      ['voice alias resolves to canonical command', !!inter.voiceAliasChain],
+      ['help speaks the command list', !!inter.voiceHelpList],
+      ['recognition engine gets the app language', !!inter.voiceRecogLang],
       ['back/forward stop at history edges', !!inter.historyNavEdges],
       ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
       ['navigate resolves host/query/scheme before push', !!inter.navResolveArms],
       ['mid-history navigate truncates the future', !!inter.histForwardTruncate],
+      ['search engine setting swaps resolve template', !!inter.navSearchEngine],
+      ['setActive clamps out-of-range indices', !!inter.tmSetActiveClamp],
       ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
       ['navigate reports query-stripped pageview', !!inter.navPageView],
       ['memory threshold reports severity-tiered event', !!inter.memHighGtag],
