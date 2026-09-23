@@ -634,6 +634,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 3 切断: `u.origin+u.pathname`→`url` 切断 → 本 pin + 既存 'strips query + hash' pin の想定 co-signal（同一行消費）。`>500` ゲート切断 → `memHighGtag` のみ。`trackVRError(` 呼出切断 → `sessErrGtag` のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 485 checks PASS、verify:app PASS。
 
+### Session 251: 続き409 — fps severity tiers + resolve-before-push + forward 切詰めを e2e pin（#286 batch 68、485→488 checks）
+- 🔍 **実測（未駆動 3 腕）**: ①`trackFPS` の <60 ゲート → 'performance_fps_drop' severity 3 段階（critical <30、high <45、medium else）— 既 pin は 1Hz feed ゲートのみで tier 値は未観測。②`navigate()` の `resolveInput` BEFORE push 契約 — bare host → `https://`、空白 query → 検索エンジン URL、`javascript:` → null（push 無し）+ `onBlockedNavigation(rawInput)`。③mid-history navigate の forward 切詰め（`slice(0, idx+1)` → push — back() 後の navigate は捨てられた未来を残せない）+ tail-append arm。
+- 🔧 **ハーネス教訓**: EMA ある経路で deterministic tier 到達は「`pm.frameTime=X` を直接セットして `updatePerformanceMonitor(X)` で feed」— EMA が X を維持し fps=1000/X が tier に厳密着地。`resolveInput` のデフォルト検索エンジンは **DuckDuckGo**（google 仮定で有機 FAIL → node 実測で `https://duckduckgo.com/?q=` 判明 — module 出力は必ず事前 node 検証）。`wp2.navigate` は `_loadUrl` spy 影で fetch を切り history 契約のみ観測可。`t()`/CATALOG は module-private、`window.QuiBrowser` は `setLanguage` のみ公開 → i18n missing-key fallback は e2e pin 不可と確定。`ImmersiveVideo` に seek/volume/duration surface は存在しない。
+- 🧪 赤検証 3 切断: severity ternary 切断 → `fpsSeverityTiers` のみ。`url = resolved` 切断 → `navResolveArms` + voice search/back/go-to 3 件の想定 co-signal（同一 resolveInput 消費）。`slice` 切断 → `histForwardTruncate` のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 488 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
