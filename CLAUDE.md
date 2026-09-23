@@ -295,6 +295,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `stats.hrtfSources = hrtf` 切断 → `audioLodStats` FAIL、`listener.forwardX.value` 切断 → `audioListenerOrient` FAIL（回転版で有効化）。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 270 checks PASS、verify:app PASS。
 
+### Session 196: 続き354 — stereo video per-eye 腕 + createSource directional/distance + setSourcePosition AudioParam 書込を e2e pin（#268 batch 13、270→274 checks）
+- 🔍 **実測（未駆動 3 面）**: ①video leg は mono layout のみ — `layout:'stereo-tb'` の 2-eye sphere 構築・`layers.set(1|2)`・`eyeUVTransform` テクスチャクロップ・`_enableStereoLayers` の camera.layers 借用と `_disableStereoLayers` の返却が全く未駆動。②`createSource` の `directional` 腕（coneInner/Outer/OuterGain — `coneOuterGain ?? 0.3` の 0 リーガル終端）と distance params（refDistance/maxDistance/rolloffFactor）は実 PannerNode への書込未観測。③`setSourcePosition` の `panner.positionX/Y/Z.value` AudioParam 書込も未駆動（position フィールドと LOD 副作用のみ pin 済み）。
+- 🔧 **ハーネス設計**: stereo は `_180_tb` URL で `detectVideoFormat` の tb/180 腕も同時 pin（明示 opts 不要 — URL 規約を端到端駆動）。`_listenerPos` は `updateListenerFromCamera` が毎回 **新オブジェクト** に差替えるため `lp` 参照は差替前の値を保持 — setSourcePosition 書込値との比較として正しい（教訓として記録）。eval 内コメントのバッククォートで再び SyntaxError（同教訓 2 度目）。
+- 🧪 赤検証: `_enableStereoLayers()` 切断 → vidStereoEyes+vidStereoRestore FAIL、`positionX.value` 切断 → audioSourcePosWrite FAIL、`refDistance` 書込切断 → audioSourceParams FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 274 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

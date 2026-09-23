@@ -2477,6 +2477,34 @@ async function main() {
                   out.vidCycleClean = restarted
                     && iv.active === false
                     && iv._eyeTextures.length === 0;
+                  // Stereo arm: only mono layouts were ever played. A
+                  // '_180_tb' URL exercises detectVideoFormat's tb arm, the
+                  // per-eye sphere build (layers 1/2), the eyeUVTransform
+                  // texture crops, and _enableStereoLayers' camera.layers
+                  // mutation — plus the _disableStereoLayers restore on
+                  // stop() that hands the borrowed mask back.
+                  const camMaskWas = app.camera.layers.mask;
+                  iv.play('https://vid-seed.example/clip_180_tb.mp4');
+                  app.scene.updateMatrixWorld(true);
+                  const mL = iv.meshes[0];
+                  const mR = iv.meshes[1];
+                  const texL = mL && mL.material && mL.material.map;
+                  const texR = mR && mR.material && mR.material.map;
+                  out.vidStereoEyes = iv._layout === 'stereo-tb'
+                    && iv._projection === '180'
+                    && iv.meshes.length === 2
+                    && !!texL && !!texR
+                    && texL.offset.y === 0.5 && texL.repeat.y === 0.5
+                    && texL.repeat.x === 1
+                    && texR.offset.y === 0 && texR.repeat.y === 0.5
+                    && (mL.layers.mask & 2) !== 0
+                    && (mR.layers.mask & 4) !== 0
+                    && (app.camera.layers.mask & 6) === 6;
+                  iv.stop();
+                  out.vidStereoRestore = out.vidStereoEyes === true
+                    && app.camera.layers.mask === camMaskWas
+                    && iv.meshes.length === 0
+                    && iv._eyeTextures.length === 0;
                 } finally {
                   if (iv.active) { iv.stop(); }
                 }
@@ -3424,6 +3452,13 @@ async function main() {
                       && Math.abs(sa.listener.upY.value - eu.y) < 1e-6);
                   app.camera.rotation.y = rotYWas;
                   app.camera.updateMatrixWorld(true);
+                  // setSourcePosition also writes the real PannerNode's
+                  // positionX/Y/Z AudioParams — the pins above only saw the
+                  // recorded {x,y,z} field and the LOD side effect.
+                  out.audioSourcePosWrite = lod.panner.positionX === undefined
+                    || (Math.abs(lod.panner.positionX.value - lp.x) < 1e-6
+                      && Math.abs(lod.panner.positionY.value - lp.y) < 1e-6
+                      && Math.abs(lod.panner.positionZ.value - (lp.z - 1)) < 1e-6);
                   sa.sources.delete('__lod');
                 }
 
@@ -3501,6 +3536,22 @@ async function main() {
                     && Math.abs(loopSrc.node.playbackRate.value - 1.5) < 1e-9;
                   sa2.stop('__loop');
                   sa2.sources.delete('__loop');
+                  // createSource option writes onto the real PannerNode:
+                  // distance params always apply; the directional arm
+                  // writes the cone params (coneOuterGain 0 must survive —
+                  // a || fallback would leak 0.3).
+                  sa2.createSource('__dir', {
+                    directional: true, coneInnerAngle: 45, coneOuterGain: 0,
+                    refDistance: 2, rolloffFactor: 2
+                  });
+                  const dirP = sa2.sources.get('__dir').panner;
+                  out.audioSourceParams = !!dirP
+                    && dirP.coneInnerAngle === 45
+                    && dirP.coneOuterAngle === 120
+                    && dirP.coneOuterGain === 0
+                    && dirP.refDistance === 2
+                    && dirP.rolloffFactor === 2;
+                  sa2.sources.delete('__dir');
                 }
               } finally {
                 app.hapticFeedback.playPattern = origPlay2;
@@ -3862,6 +3913,8 @@ async function main() {
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
       vidPlayingListener: iout.vidPlayingListener === true,
+      vidStereoEyes: iout.vidStereoEyes === true,
+      vidStereoRestore: iout.vidStereoRestore === true,
       vidHeadFollow: iout.vidHeadFollow === true,
       vidResumePlays: iout.vidResumePlays === true,
       vidErrorResets: iout.vidErrorResets === true,
@@ -3869,6 +3922,8 @@ async function main() {
       audioMasterGain: iout.audioMasterGain === true,
       audioLodStats: iout.audioLodStats === true,
       audioListenerOrient: iout.audioListenerOrient === true,
+      audioSourcePosWrite: iout.audioSourcePosWrite === true,
+      audioSourceParams: iout.audioSourceParams === true,
       audioLoadFetch: iout.audioLoadFetch === true,
       audioLoopSource: iout.audioLoopSource === true,
       audioLodSwitch: iout.audioLodSwitch === true,
@@ -4172,6 +4227,8 @@ async function main() {
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['stereo video builds per-eye cropped spheres', !!inter.vidStereoEyes],
+      ['stereo stop restores the camera layer mask', !!inter.vidStereoRestore],
       ['video spheres track the head per frame', !!inter.vidHeadFollow],
       ['paused HUD select calls video.play only', !!inter.vidResumePlays],
       ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
@@ -4179,6 +4236,8 @@ async function main() {
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
       ['LOD tier counts aggregate into stats', !!inter.audioLodStats],
       ['listener orientation reaches the AudioListener', !!inter.audioListenerOrient],
+      ['source position writes reach the PannerNode params', !!inter.audioSourcePosWrite],
+      ['directional and distance options reach the PannerNode', !!inter.audioSourceParams],
       ['loadAudio fetches decodes and caches the buffer', !!inter.audioLoadFetch],
       ['loop and playbackRate reach the buffer source', !!inter.audioLoopSource],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
