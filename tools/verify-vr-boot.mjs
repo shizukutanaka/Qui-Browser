@@ -396,6 +396,130 @@ async function main() {
               app.bookmarkPanel.onTabChange('history');
               out.bpTabCap = statusEl ? statusEl.textContent : '';
             }
+            // The UV -> action dispatch every select path funnels through —
+            // controller ray and gaze-dwell both land in _onSelect. Drive it
+            // with world points computed from the zone layout (hitTest +
+            // uvToPixels in bookmarkLayout.js): header tab/scroll zones,
+            // row hit -> onSelect(url) -> the wired tab navigation + panel
+            // hides, delete-zone hit -> store removal + caption mirror, and
+            // the close corner -> hide + onClose caption.
+            const bpPanel = app.bookmarkPanel;
+            if (app.bookmarks && app.scene && bpPanel.mesh) {
+              const rowsSeeded = [];
+              for (let k = 0; k < 12; k++) {
+                const u2 = 'https://bp-row-' + k + '.example/';
+                app.bookmarks.addHistory(u2, 'Row ' + k);
+                rowsSeeded.push(u2);
+              }
+              const modeWas = bpPanel.mode;
+              const scrollWas = bpPanel.scrollOffset;
+              const visWas = bpPanel.visible;
+              try {
+                bpPanel.show();
+                bpPanel.setMode('bookmarks');
+                const hitPx = (px, py) => {
+                  const u = px / 1024;
+                  const v = 1 - py / 768;
+                  const lp = bpPanel.mesh.position.clone().set(
+                    (u - 0.5) * bpPanel.panelW,
+                    (v - 0.5) * bpPanel.panelH, 0);
+                  return bpPanel.mesh.localToWorld(lp);
+                };
+                // Header 'history' tab -> setMode + onTabChange caption.
+                bpPanel._onSelect(hitPx(330, 40));
+                const tabSwap = bpPanel.mode === 'history'
+                  && statusEl && /履歴|history/i.test(statusEl.textContent || '');
+                // Scroll zones live only when rows exceed the 9-row window.
+                const rowsNow = bpPanel._rows().length;
+                bpPanel._onSelect(hitPx(740, 40));
+                const dnOk = bpPanel.scrollOffset === 1;
+                bpPanel._onSelect(hitPx(560, 40));
+                out.bpPanelZones = tabSwap && rowsNow >= 10
+                  && dnOk && bpPanel.scrollOffset === 0;
+                // Row hit -> onSelect(url) -> the real navigate + hide.
+                const activeTab = app.tabManager && app.tabManager.getActiveTab();
+                const urlBefore = activeTab && activeTab.currentUrl;
+                bpPanel._onSelect(hitPx(400, 96 + 36));
+                out.bpRowNavigates = bpPanel.visible === false
+                  && !!activeTab && activeTab.currentUrl !== urlBefore
+                  && (activeTab.currentUrl || '').indexOf('bp-row-') >= 0
+                  && (activeTab.currentUrl || '').indexOf('.example') >= 0;
+                // Delete-zone hit in history mode -> removeHistory + clamp.
+                bpPanel.show();
+                bpPanel.setMode('history');
+                const beforeDel = bpPanel._rows().length;
+                bpPanel._onSelect(hitPx(990, 96 + 36));
+                out.bpRowDeletes = bpPanel._rows().length === beforeDel - 1
+                  && statusEl && statusEl.textContent !== ''
+                  && bpPanel.visible === true;
+                // Close corner -> hide + onClose caption.
+                bpPanel._onSelect(hitPx(970, 40));
+                out.bpCloseZone = bpPanel.visible === false
+                  && !!statusEl && statusEl.textContent !== '';
+                // Bookmarks-mode arms: _rows() switches to getBookmarks(),
+                // the delete zone routes to removeBookmark + onDeleteBookmark
+                // (not history's), scrollOffset never passes the last full
+                // window, and a shrinking list clamps it back so the window
+                // never shows a blank page. XR controllers also deliver the
+                // intersection record ({intersection:{point}}) rather than a
+                // bare Vector3 — the ?? arm accepts either form.
+                const bmSeeded = [];
+                for (let k = 0; k < 11; k++) {
+                  const bu = 'https://bp-bm-' + k + '.example/';
+                  app.bookmarks.addBookmark(bu, 'Bm ' + k);
+                  bmSeeded.push(bu);
+                }
+                const delBmCalls = [];
+                const origDelBmCb = bpPanel.onDeleteBookmark;
+                bpPanel.onDeleteBookmark = (u) => {
+                  delBmCalls.push(u);
+                  if (origDelBmCb) { origDelBmCb(u); }
+                };
+                try {
+                  bpPanel.show();
+                  bpPanel.setMode('bookmarks');
+                  bpPanel._onSelect({ intersection: { point: hitPx(330, 40) } });
+                  out.bpIntersectionArm = bpPanel.mode === 'history';
+                  bpPanel.setMode('bookmarks');
+                  const bmCount = bpPanel._rows()
+                    .filter((r) => (r.url || '').indexOf('bp-bm-') >= 0).length;
+                  const cur3 = app.tabManager.getActiveTab()
+                    && app.tabManager.getActiveTab().currentUrl;
+                  bpPanel._onSelect(hitPx(400, 96 + 36));
+                  const act3 = app.tabManager.getActiveTab();
+                  out.bpBookmarkRows = bmCount === 11
+                    && bpPanel.visible === false
+                    && !!act3 && act3.currentUrl !== cur3
+                    && (act3.currentUrl || '').indexOf('bp-bm-') >= 0;
+                  bpPanel.show();
+                  bpPanel.setMode('bookmarks');
+                  const bmBefore = bpPanel._rows().length;
+                  bpPanel._onSelect(hitPx(990, 96 + 36));
+                  out.bpDeleteBookmarkArm = bpPanel._rows().length === bmBefore - 1
+                    && delBmCalls.length === 1
+                    && (delBmCalls[0] || '').indexOf('bp-bm-') >= 0;
+                  bpPanel.setMode('history');
+                  for (let k = 0; k < 6; k++) { bpPanel._onSelect(hitPx(740, 40)); }
+                  out.bpScrollMaxClamp = bpPanel.scrollOffset
+                    === Math.max(0, bpPanel._rows().length - 9);
+                  for (let k = 0; k < 20
+                    && bpPanel.scrollOffset > 0
+                    && bpPanel._rows().length > 2; k++) {
+                    bpPanel._onSelect(hitPx(990, 96 + 36));
+                  }
+                  out.bpClampOnDelete = bpPanel.scrollOffset === 0
+                    && bpPanel._rows().length <= 9;
+                } finally {
+                  bpPanel.onDeleteBookmark = origDelBmCb;
+                  bmSeeded.forEach((u2) => app.bookmarks.removeBookmark(u2));
+                }
+              } finally {
+                bpPanel.setMode(modeWas);
+                bpPanel.scrollOffset = scrollWas;
+                if (visWas) { bpPanel.show(); } else { bpPanel.hide(); }
+                rowsSeeded.forEach((u2) => app.bookmarks.removeHistory(u2));
+              }
+            }
           }
           if (typeof app._requestReaderProxyInput === 'function' && app.vrKeyboard) {
             app._requestReaderProxyInput();
@@ -529,9 +653,207 @@ async function main() {
             out.voiceScrollDn = tab2 ? tab2._readerScroll : null;
             say('上にスクロール');
             out.voiceScrollUp = tab2 ? tab2._readerScroll : null;
+            // Session commands: 'VRモード' routes onEnterVR → vrButton.click
+            // (the same guarded enter path the 2D shell uses — spy on click,
+            // do NOT call through: the real handler would fire the rejecting
+            // requestSession stub). 'VR終了' routes onExitVR →
+            // renderer.xr.getSession().end() — stub getSession to count the
+            // call; the fake session's own end is a no-op so nothing tears
+            // down here.
+            let enterClicks = 0;
+            let endCalls2 = 0;
+            const vrbClickWas = app.vrButton ? app.vrButton.click : null;
+            const gsWas = app.renderer && app.renderer.xr
+              ? app.renderer.xr.getSession : null;
+            try {
+              if (app.vrButton) {
+                app.vrButton.click = () => { enterClicks++; };
+              }
+              say('VRモード');
+              out.voiceVrEnter = enterClicks === 1
+                && (statusEl ? statusEl.textContent : '')
+                  .includes('VRモードを開始します');
+              if (app.renderer && app.renderer.xr) {
+                app.renderer.xr.getSession = () => ({
+                  end: () => { endCalls2++; return Promise.resolve(); }
+                });
+              }
+              say('VR終了');
+              out.voiceVrExit = endCalls2 === 1
+                && (statusEl ? statusEl.textContent : '')
+                  .includes('VRモードを終了します');
+            } finally {
+              if (app.vrButton && vrbClickWas) {
+                app.vrButton.click = vrbClickWas;
+              }
+              if (app.renderer && app.renderer.xr && gsWas) {
+                app.renderer.xr.getSession = gsWas;
+              }
+            }
+            // Voice internals — the gating arms under the patterns: the
+            // confidence gate (0 < c < sensitivity drops, BUT a literal 0
+            // means "no score" and must pass — the Quest/Android arm the
+            // code comments warn about), interim results are ignored, the
+            // wake-word gate holds commands until awake, speak() forwards
+            // volume/pitch with ?? (0 honored, || would drop it), and the
+            // stats/callback surface (commandsExecuted, averageConfidence,
+            // onCommand/onCommandFailed) is observable.
+            const say2 = (text, conf, interim) => vc.handleRecognitionResult({
+              results: [{
+                0: { transcript: text, confidence: conf },
+                isFinal: !interim, length: 1
+              }]
+            });
+            // 'ヘルプ' is the counting pin's probe: a matched command that
+            // mutates no browsing state (unlike 戻る/進む, which moved the
+            // tab history under an earlier draft and killed the sibling
+            // 'no forward history' pin).
+            const recWas = vc.stats.commandsRecognized;
+            say2('ヘルプ', 0.05, false);
+            out.voiceConfGate = vc.stats.commandsRecognized === recWas;
+            say2('ヘルプ', 0, false);
+            out.voiceConfZero = vc.stats.commandsRecognized === recWas + 1;
+            say2('ヘルプ', 0.9, true);
+            out.voiceInterim = vc.stats.commandsRecognized === recWas + 1;
+            // Wake-word gate: while armed every transcript is consumed by
+            // the gate until the wake word lands (→ isAwake + a spoken
+            // acknowledgment mirrored to the status region).
+            const wakeWas = vc.settings.requireWakeWord;
+            const wakeWordWas = vc.settings.wakeWord;
+            try {
+              vc.settings.requireWakeWord = true;
+              vc.settings.wakeWord = 'コンピュータ';
+              vc.isAwake = false;
+              const recW0 = vc.stats.commandsRecognized;
+              say2('ヘルプ', 0.9, false);
+              const dropped = vc.stats.commandsRecognized === recW0;
+              say2('コンピュータ', 0.9, false);
+              say2('ヘルプ', 0.9, false);
+              out.voiceWakeGate = dropped === true
+                && vc.isAwake === true
+                && vc.stats.commandsRecognized === recW0 + 1;
+            } finally {
+              vc.settings.requireWakeWord = wakeWas;
+              vc.settings.wakeWord = wakeWordWas;
+              vc.isAwake = true;
+            }
+            // speak() — utterance params: ?? honors 0 (mute/lowest pitch),
+            // || still swaps a bogus rate for 1.0.
+            const utts = [];
+            const synthWas = vc.synthesis;
+            try {
+              vc.synthesis = { speak: (u) => { utts.push(u); } };
+              vc.speak('テスト', { volume: 0, pitch: 0, rate: 2 });
+              out.voiceSpeakParams = utts.length === 1
+                && utts[0].volume === 0
+                && utts[0].pitch === 0
+                && utts[0].rate === 2
+                && typeof utts[0].lang === 'string';
+            } finally {
+              vc.synthesis = synthWas;
+            }
+            // Stats + callback surface: a matched command bumps
+            // commandsExecuted and folds confidence into the average, and
+            // records lastCommand; a miss routes onCommandFailed(no_match).
+            const execWas = vc.stats.commandsExecuted;
+            const recWas3 = vc.stats.commandsRecognized;
+            const avgWas = vc.stats.averageConfidence;
+            const cmdWas = vc.callbacks.onCommand;
+            const failWas = vc.callbacks.onCommandFailed;
+            const cmdSeen = [];
+            const failSeen = [];
+            try {
+              vc.callbacks.onCommand = (k, r) => { cmdSeen.push(k); };
+              vc.callbacks.onCommandFailed = (e) => { failSeen.push(e.reason); };
+              say('ヘルプ');
+              const avgExpected =
+                (avgWas * recWas3 + 0.9) / (recWas3 + 1);
+              out.voiceExecStats = vc.stats.commandsExecuted === execWas + 1
+                && Math.abs(vc.stats.averageConfidence - avgExpected) < 1e-9
+                && vc.lastCommand && vc.lastCommand.key === 'help'
+                && cmdSeen.includes('help');
+              say('zzz未登録2');
+              out.voiceFailedCb = failSeen.includes('no_match');
+            } finally {
+              vc.callbacks.onCommand = cmdWas;
+              vc.callbacks.onCommandFailed = failWas;
+            }
             say('停止');
             out.voiceStopped = vc.isListening === false;
             out.voiceStopCap = statusEl ? statusEl.textContent : '';
+          }
+          // BookmarkStore internals — the dedupe/title/aggregate arms the
+          // panel legs never reach: revisits bump visits and move to front,
+          // the title refreshes only on a real title, removeHistory filters
+          // a corrupted duplicate, getTopSites folds www + aggregates hosts
+          // + honours exclude, and the 200-entry bound trims on write. Real
+          // localStorage, snapshotted and restored in finally.
+          const histKey2 = 'quiBrowser_history';
+          const histWas = localStorage.getItem(histKey2);
+          try {
+            const bm = app.bookmarks;
+            localStorage.setItem(histKey2, '[]');
+            bm.addHistory('https://bm-a.example/', 'A');
+            bm.addHistory('https://bm-b.example/', 'B');
+            bm.addHistory('https://bm-a.example/');
+            const h1 = bm.getHistory(10);
+            out.bmDedupeVisits = h1.length === 2
+              && h1[0].url === 'https://bm-a.example/'
+              && h1[0].visits === 2;
+            // A bare-URL revisit (title defaults to url) must not clobber
+            // the recorded title; a real title still updates.
+            localStorage.setItem(histKey2, '[]');
+            bm.addHistory('https://bm-t.example/', 'Real Title');
+            bm.addHistory('https://bm-t.example/');
+            const t1 = bm.getHistory(1)[0];
+            bm.addHistory('https://bm-t.example/', 'Better Title');
+            const t2 = bm.getHistory(1)[0];
+            out.bmTitleGuard = t1.title === 'Real Title'
+              && t1.visits === 2 && t2.title === 'Better Title';
+            // removeHistory filters rather than splices-one: a corrupted
+            // store holding the same URL twice loses both; absent → false.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://bm-d.example/', title: 'd', visits: 1, visitedAt: 1 },
+              { url: 'https://bm-d.example/', title: 'd2', visits: 1, visitedAt: 2 },
+              { url: 'https://bm-k.example/', title: 'k', visits: 1, visitedAt: 3 }
+            ]));
+            const remOk = bm.removeHistory('https://bm-d.example/');
+            const remMiss = bm.removeHistory('https://bm-absent.example/');
+            const h2 = bm.getHistory(10);
+            out.bmRemoveFilter = remOk === true && remMiss === false
+              && h2.length === 1 && h2[0].url === 'https://bm-k.example/';
+            // getTopSites: host-aggregate frecency (visits + scores sum,
+            // best page as representative), www-fold, exclude drops a host.
+            localStorage.setItem(histKey2, JSON.stringify([
+              { url: 'https://www.bm-h.example/p1', title: 'p1', visits: 3, visitedAt: Date.now() },
+              { url: 'https://bm-h.example/p2', title: 'p2', visits: 2, visitedAt: Date.now() },
+              { url: 'https://bm-x.example/', title: 'x', visits: 1, visitedAt: Date.now() },
+              { url: 'https://duckduckgo.com/', title: 'ddg', visits: 9, visitedAt: Date.now() }
+            ]));
+            const ts2 = bm.getTopSites(8, Date.now(), ['duckduckgo.com']);
+            const h3 = ts2.find((s) => s.host === 'bm-h.example');
+            out.bmTopSites = ts2.length === 2
+              && !!h3 && h3.visits === 5
+              && h3.url === 'https://www.bm-h.example/p1'
+              && ts2.every((s) => s.host !== 'duckduckgo.com');
+            // The 200-entry bound trims on write — seed past the cap and
+            // one addHistory must shed the overflow.
+            const over = [];
+            for (let oi = 0; oi < 205; oi++) {
+              over.push({ url: 'https://bm-o.example/' + oi,
+                title: 'o' + oi, visits: 1, visitedAt: oi });
+            }
+            localStorage.setItem(histKey2, JSON.stringify(over));
+            bm.addHistory('https://bm-new.example/', 'new');
+            const h4 = bm.getHistory(500);
+            out.bmTrim = h4.length === 200
+              && h4[0].url === 'https://bm-new.example/';
+          } finally {
+            if (histWas === null) {
+              localStorage.removeItem(histKey2);
+            } else {
+              localStorage.setItem(histKey2, histWas);
+            }
           }
           } catch (e) {
             out.b4Error = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 3).join(' | ');
@@ -766,8 +1088,13 @@ async function main() {
               selObj.addEventListener('qui-select', () => { quiFires += 1; });
               app.interactables.push(selObj);
               // Stand the cloned plane up facing the controller, ~0.4 m away.
+              // floorMesh's CircleGeometry(30) cloned at 0.05 spans a 1.5 m
+              // radius — down to y ≈ -0.1 — so the second (unused) controller
+              // parked at the origin also hits it and fires onHover a second
+              // time. At 0.01 it is a 0.3 m disc centred on the driven ray:
+              // unreachable by the y=0 ray regardless of matrix staleness.
               selObj.rotation.set(0, 0, 0);
-              selObj.scale.set(0.05, 0.05, 0.05);
+              selObj.scale.set(0.01, 0.01, 0.01);
               selObj.position.set(0, 1.4, -0.4);
               selObj.updateMatrixWorld(true);
               const hapticPats = [];
@@ -888,11 +1215,13 @@ async function main() {
               };
               gzObj.rotation.set(0, 0, 0);
               gzObj.scale.set(0.05, 0.05, 0.05);
-              // One metre dead ahead of the camera's actual gaze ray.
+              // Well inside every real UI plane (~1.4 m+) on the gaze ray —
+              // stale vs fresh matrixWorld states move real meshes around, so
+              // the synthetic target must always be the nearest visible hit.
               app.camera.updateWorldMatrix(true, false);
               const camPos = app.camera.getWorldPosition(gzObj.position.clone());
               const camDir = app.camera.getWorldDirection(camPos.clone());
-              gzObj.position.copy(camPos).add(camDir.multiplyScalar(1.5));
+              gzObj.position.copy(camPos).add(camDir.multiplyScalar(0.8));
               gzObj.updateMatrixWorld(true);
               app.interactables.push(gzObj);
               const gzHaptic = [];
@@ -959,9 +1288,11 @@ async function main() {
               gA.scale.set(0.05, 0.05, 0.05);
               gB.rotation.set(0, 0, 0);
               gB.scale.set(0.05, 0.05, 0.05);
+              // See the gaze-dwell leg above: stay inside every real UI
+              // plane so the synthetic target is always the nearest hit.
               app.camera.updateWorldMatrix(true, false);
               const rayPos = app.camera.getWorldPosition(gA.position.clone())
-                .add(app.camera.getWorldDirection(gA.position.clone()).multiplyScalar(1.5));
+                .add(app.camera.getWorldDirection(gA.position.clone()).multiplyScalar(0.8));
               const offPos = rayPos.clone();
               offPos.x += 4;
               const placeA = () => {
@@ -1172,11 +1503,25 @@ async function main() {
                 out.faceAAnnounces = locoCaps.some((t) => t.includes('No next page'));
                 // Utility-hand faceB toggles the settings panel + announces.
                 const visBefore = !!(app.settingsPanel && app.settingsPanel.visible);
+                // Earlier legs force settingsPanel.visible directly, which
+                // legitimately skips the utility-hand mirror — re-sync the
+                // landmark first so the pin isolates this branch's write.
+                if (app.semanticDOM) {
+                  app.semanticDOM.setSettingsExpanded(visBefore);
+                }
+                const ariaBefore = app.semanticDOM && app.semanticDOM.settingsRegion
+                  ? app.semanticDOM.settingsRegion.getAttribute('aria-expanded') : null;
                 leftSrc.gamepad.buttons[5].pressed = true;
                 app.updateSystems(0, fakeXrFrame, 0.016);
                 const visAfter = !!(app.settingsPanel && app.settingsPanel.visible);
                 out.faceBToggles = visAfter === !visBefore
                   && locoCaps.some((t) => t.includes(visAfter ? 'Settings: open' : 'Settings: closed'));
+                // The same branch mirrors to the DOM landmark — the
+                // aria-expanded write must track the panel's new state.
+                const ariaAfter = app.semanticDOM && app.semanticDOM.settingsRegion
+                  ? app.semanticDOM.settingsRegion.getAttribute('aria-expanded') : null;
+                out.semExpanded = ariaAfter === String(visAfter)
+                  && ariaAfter !== ariaBefore;
                 leftSrc.gamepad.buttons[5].pressed = false;
                 rightSrc.gamepad.buttons[4].pressed = false;
                 // Utility-hand menu button — the second settings-panel route
@@ -1194,6 +1539,121 @@ async function main() {
                   app.updateSystems(0, fakeXrFrame, 0.016);
                   leftSrc.gamepad.buttons[6].pressed = false;
                   app.updateSystems(0, fakeXrFrame, 0.016);
+                }
+                // SemanticDOM teardown + unbuilt arms — a fresh instance
+                // (never the app's own) detaches its container, nulls all
+                // three regions, stays safe on a second dispose and on
+                // announce-after-dispose; a rootless instance never builds
+                // and announces no-op.
+                {
+                  const SD = app.semanticDOM.constructor;
+                  const sd2 = new SD({ root: document.body });
+                  const c2 = sd2.container;
+                  sd2.dispose();
+                  let threw2 = false;
+                  try { sd2.announceCaption('x'); sd2.dispose(); } catch (e2) { threw2 = true; }
+                  const sdN = new SD({ root: null });
+                  let threwN = false;
+                  try {
+                    sdN.announceCaption('x'); sdN.announceAlert('y'); sdN.dispose();
+                  } catch (e3) { threwN = true; }
+                  out.semDispose = sd2.container === null && sd2.captionRegion === null
+                    && sd2.alertRegion === null && sd2.settingsRegion === null
+                    && c2.parentNode === null && !threw2
+                    && sdN.container === null && !threwN;
+                }
+                // scrollContent guards on the 'reader' content state — a
+                // non-reader panel must refuse the scroll and keep its
+                // offset even when reader lines exist.
+                {
+                  const wp3 = app.tabManager.getActiveTab();
+                  const stateWas3 = wp3._contentState;
+                  const linesWas3 = wp3._readerLines;
+                  const scrWas3 = wp3._readerScroll;
+                  if (!linesWas3 || !linesWas3.length) {
+                    wp3._readerLines = new Array(60).fill('x');
+                  }
+                  wp3._contentState = 'loaded';
+                  const retNR = wp3.scrollContent(5);
+                  const scrNR = wp3._readerScroll;
+                  wp3._contentState = stateWas3;
+                  wp3._readerLines = linesWas3;
+                  out.wpScrollNonReader = retNR === false && scrNR === scrWas3;
+                }
+                // VRControllerInput family maps + edge arms — drive read()
+                // on fake sources across device families: the button map is
+                // per-family (Vive wands have no faceA/faceB, generic only
+                // trigger+squeeze), profiles[] order wins, and the radial
+                // dead-zone renormalises magnitude past the threshold.
+                {
+                  const ci = app.controllerInput;
+                  const mkSrc = (profiles, buttons, axes, handedness) => ({
+                    handedness: handedness || 'right',
+                    profiles: profiles || [],
+                    gamepad: buttons === null ? null : {
+                      buttons: (buttons || []).map((b) => ({
+                        pressed: !!b, value: b ? 1 : 0
+                      })),
+                      axes: axes || [0, 0, 0, 0]
+                    }
+                  });
+                  const vive = ci.read(mkSrc(['htc-vive'],
+                    [1, 1, 0, 0, 1, 0, 0], [0.5, -0.5, 0, 0]));
+                  const gen = ci.read(mkSrc(['mystery-pad'],
+                    [1, 1, 1, 1, 1, 1, 1]));
+                  out.ctrlFamilies = vive.family === 'htc-vive'
+                    && vive.buttons.menu && vive.buttons.menu.pressed === true
+                    && vive.buttons.faceA === undefined
+                    && vive.buttons.faceB === undefined
+                    && vive.axes.trackpadX !== 0 && vive.axes.trackpadY !== 0
+                    && gen.family === 'generic'
+                    && gen.buttons.trigger.pressed === true
+                    && gen.buttons.squeeze.pressed === true
+                    && gen.buttons.faceA === undefined;
+                  // A mid-sequence family change rebuilds the snapshot shape
+                  // and resets edge state — prior pressed buttons can't leak
+                  // justPressed into the new map.
+                  const mutSrc = mkSrc(['oculus-touch-v2'],
+                    [1, 0, 0, 0, 1, 0, 0]);
+                  ci.read(mutSrc);
+                  mutSrc.profiles = ['generic-trigger'];
+                  const mut2 = ci.read(mutSrc);
+                  // The snapshot object is reused per source — read edges
+                  // into scalars between frames or later reads overwrite them.
+                  const mut2Jp = mut2.buttons.trigger.justPressed;
+                  const mut2NoFaceA = mut2.buttons.faceA === undefined;
+                  mutSrc.gamepad.buttons[0].pressed = false;
+                  const mut3Rel = ci.read(mutSrc).buttons.trigger.justReleased;
+                  mutSrc.gamepad.buttons[0].pressed = true;
+                  const mut4Jp = ci.read(mutSrc).buttons.trigger.justPressed;
+                  out.ctrlFamRebuild = mut2.family === 'generic'
+                    && mut2NoFaceA === true
+                    && mut2Jp === true
+                    && mut3Rel === true
+                    && mut4Jp === true;
+                  // Radial dead-zone: a diagonal (0.10, 0.10) has magnitude
+                  // 0.141 < 0.15 and must read zero (the square-clamp fix);
+                  // 0.2 deflection renormalises to (0.2-dz)/(1-dz).
+                  const dz = ci.deadZone;
+                  const stillSrc = mkSrc(['oculus-touch-v2'], [], [0, 0, 0.10, 0.10]);
+                  const still = ci.read(stillSrc);
+                  const pushSrc = mkSrc(['oculus-touch-v2'], [], [0, 0, 0.2, 0]);
+                  const push = ci.read(pushSrc);
+                  const expect = (0.2 - dz) / (1 - dz);
+                  out.ctrlDeadZoneRad = still.axes.stickX === 0
+                    && still.axes.stickY === 0
+                    && Math.abs(push.axes.stickX - expect) < 1e-9
+                    && push.axes.stickY === 0;
+                  // Gamepad-less / null sources yield the empty snapshot.
+                  const noGp = ci.read(mkSrc(['oculus-touch-v2'], null, null, 'left'));
+                  const noSrc = ci.read(null);
+                  out.ctrlEmptySnap = noGp.family === 'meta-quest'
+                    && noGp.hand === 'left'
+                    && Object.keys(noGp.buttons).length === 0
+                    && noSrc.family === 'generic' && noSrc.hand === 'unknown'
+                    && Object.isFrozen(noSrc.buttons)
+                    && ci.getDeviceName(mkSrc(['pico-4'], [], null, 'left'))
+                      === 'Pico Controller (left)';
                 }
                 // Utility-hand faceA toggles the bookmark/history panel +
                 // announces the new state (WCAG 4.1.3).
@@ -2134,6 +2594,73 @@ async function main() {
                   }
                 }
               }
+              // IME internals leg — the defensive arms never reached by key
+              // presses: switchMode rejects unknown names, selectCandidate
+              // clamps out-of-range indexes, the stale-buffer guard discards
+              // kanji results that outlived further typing, deleteLast is a
+              // no-op on an empty buffer, and confirmSelection falls back to
+              // the raw buffer when no candidates exist.
+              if (app.japaneseIME) {
+                const ime4 = app.japaneseIME;
+                const getK4 = ime4.getKanjiCandidates;
+                ime4.clear();
+                try {
+                  out.imeModeReject = ime4.switchMode('bogus') === false
+                    && ime4.inputMode === 'hiragana'
+                    && ime4.switchMode('ascii') === true
+                    && ime4.inputMode === 'ascii'
+                    && ime4.switchMode('hiragana') === true;
+                  // Controlled candidates for the boundary arm.
+                  ime4.getKanjiCandidates = async () => ['甲', '乙', '丙'];
+                  ime4.compositionBuffer = 'kou';
+                  await ime4.convertToKanji();
+                  const selOk = ime4.selectCandidate(-1) === null
+                    && ime4.selectCandidate(99) === null
+                    && ime4.selectedIndex === 0
+                    && ime4.selectCandidate(2) === '丙'
+                    && ime4.selectedIndex === 2;
+                  out.imeSelectBounds = selOk === true;
+                  // Stale-buffer guard: while the async conversion is in
+                  // flight the user keeps typing — the late result must be
+                  // discarded rather than commit a kanji for a buffer that
+                  // no longer exists.
+                  ime4.clear();
+                  // Set the mode directly — the && chain above short-
+                  // circuits under a red-verify cut, so the mode the chain
+                  // would restore cannot be relied on here.
+                  ime4.inputMode = 'hiragana';
+                  ime4.compositionBuffer = 'ka';
+                  const pending = ime4.convertToKanji();
+                  ime4.compositionBuffer = 'kanji';
+                  const staleRes = await pending;
+                  out.imeStaleKanji = staleRes === null
+                    && (ime4.candidates || []).length === 0
+                    && ime4.compositionBuffer === 'kanji';
+                  // Empty-buffer delete is a no-op; after typing it removes
+                  // one raw char; clear() resets every field.
+                  ime4.clear();
+                  const emptyDel = ime4.deleteLast();
+                  ime4.compositionBuffer = 'ka';
+                  const midDel = ime4.deleteLast();
+                  ime4.clear();
+                  out.imeDeleteClear = emptyDel.raw === ''
+                    && midDel.raw === 'k'
+                    && ime4.compositionBuffer === ''
+                    && (ime4.candidates || []).length === 0
+                    && ime4.selectedIndex === 0;
+                  // No candidates → confirm returns the raw buffer itself.
+                  ime4.clear();
+                  ime4.compositionBuffer = 'xyz';
+                  const fb = ime4.confirmSelection();
+                  out.imeConfirmFallback = fb === 'xyz'
+                    && ime4.compositionBuffer === ''
+                    && ime4.selectedIndex === 0;
+                } finally {
+                  ime4.getKanjiCandidates = getK4;
+                  ime4.clear();
+                  ime4.inputMode = 'hiragana';
+                }
+              }
               // URL suggestion leg — every keystroke runs _updateSuggestions
               // → bookmarks.search (frecency) → showSuggestions builds real
               // interactable _suggestionMeshes; hover announces the FULL
@@ -2713,8 +3240,152 @@ async function main() {
                     && app.camera.layers.mask === camMaskWas
                     && iv.meshes.length === 0
                     && iv._eyeTextures.length === 0;
+                  // Real-wiring arms: the HUD button's registered onHover
+                  // routes draw(true) + onHoverCaption(label) — the gaze
+                  // user's only label announcement (every earlier HUD pin
+                  // drove the select arm only) — and stop() must detach the
+                  // video-element listeners play() bound plus hand 'stopped'
+                  // to the REAL onPlaybackChange → captionSystem.show. This
+                  // leg sits inside the locoCaps stub window, so observe
+                  // show() writes by wrapping it (chain through to whatever
+                  // is installed — stub or real — then restore).
+                  const vidCaps = [];
+                  const vidShowWas = app.captionSystem && app.captionSystem.show;
+                  try {
+                    if (app.captionSystem && vidShowWas) {
+                      app.captionSystem.show = (m) => {
+                        vidCaps.push(String(m));
+                        return vidShowWas(m);
+                      };
+                    }
+                    iv.play('https://vid-seed.example/cap.mp4',
+                      { projection: '360', layout: 'mono' });
+                    const hb = iv.controlPanel
+                      ? iv.controlPanel.children.find(
+                        (b) => b.position && b.position.x > 0) : null;
+                    app.settings.enableGazeDwell = true;
+                    if (hb && hb.userData.interactable) {
+                      hb.userData.interactable.onHover();
+                    }
+                    out.vidHoverCap = vidCaps.some(
+                      (t) => t.indexOf('Exit') >= 0);
+                    app.settings.enableGazeDwell = false;
+                    if (hb && hb.userData.interactable
+                      && hb.userData.interactable.onHoverEnd) {
+                      hb.userData.interactable.onHoverEnd();
+                    }
+                    iv.stop();
+                    out.vidStopCaption = iv.active === false
+                      && iv._onVideoError === null
+                      && iv._onVideoPlaying === null
+                      && iv.video === null
+                      && iv.playing === false
+                      && vidCaps.some(
+                        (t) => t.indexOf('Video: stopped') >= 0);
+                  } finally {
+                    if (app.captionSystem && vidShowWas) {
+                      app.captionSystem.show = vidShowWas;
+                    }
+                    app.settings.enableGazeDwell = false;
+                    if (iv.active) { iv.stop(); }
+                  }
                 } finally {
                   if (iv.active) { iv.stop(); }
+                }
+              }
+              // Dispose-teardown leg — every dispose() contract was undriven:
+              // closeTab → panel.dispose() unregisters the three interactables,
+              // pulls the group out of its parent, fires a real geometry
+              // 'dispose' event on every mesh, and aborts any in-flight reader
+              // fetch (_readerController → abort + null + _readerSeq++). A
+              // second WebPanel is minted via the manager so the teardown path
+              // driven is the real user one, not a direct call.
+              if (app.tabManager && app.scene && app.interactables) {
+                const tm = app.tabManager;
+                if (tm.tabs.length < 8) {
+                  const wp = tm.newTab('https://wp-dispose.example/');
+                  const idx = tm.tabs.indexOf(wp);
+                  const meshes = wp
+                    ? [wp.chromeMesh, wp.moveBarMesh, wp.contentMesh] : [];
+                  const regWas = meshes.filter(
+                    (m) => app.interactables.includes(m)).length;
+                  let geoDisposed = false;
+                  if (wp && wp.chromeMesh && wp.chromeMesh.geometry) {
+                    wp.chromeMesh.geometry.addEventListener(
+                      'dispose', () => { geoDisposed = true; });
+                  }
+                  // An in-flight reader fetch must be aborted so its
+                  // resolution cannot call back into a torn-down panel.
+                  const seqWas = wp ? wp._readerSeq : 0;
+                  const ac = new AbortController();
+                  if (wp) { wp._readerController = ac; }
+                  const tabsWas = tm.tabs.length;
+                  if (idx >= 0) { tm.closeTab(idx); }
+                  out.wpDisposeTeardown = !!wp && regWas === 3
+                    && meshes.every(
+                      (m) => !app.interactables.includes(m))
+                    && wp.group.parent === null
+                    && geoDisposed === true
+                    && tm.tabs.length === tabsWas - 1;
+                  out.wpDisposeAborts = !!wp
+                    && ac.signal.aborted === true
+                    && wp._readerController === null
+                    && wp._readerSeq === seqWas + 1;
+                }
+              }
+              // BookmarkPanel.dispose — fresh instance so the app's panel
+              // stays live for later legs: unregister the mesh, remove the
+              // group from the scene, dispose geometry + material + the
+              // CanvasTexture, and drop the canvas reference.
+              if (app.bookmarkPanel && app.scene) {
+                const BPCtor = app.bookmarkPanel.constructor;
+                const bp2 = new BPCtor({
+                  scene: app.scene,
+                  registerInteractable: (m, h) =>
+                    app.registerInteractable(m, h),
+                  unregisterInteractable: (m) =>
+                    app.unregisterInteractable(m),
+                  store: app.bookmarks
+                });
+                const geoDis = { mesh: false, tex: false };
+                if (bp2.mesh && bp2.mesh.geometry) {
+                  bp2.mesh.geometry.addEventListener(
+                    'dispose', () => { geoDis.mesh = true; });
+                }
+                if (bp2.tex) {
+                  bp2.tex.addEventListener(
+                    'dispose', () => { geoDis.tex = true; });
+                }
+                // Registration + scene attachment happen in addToScene
+                // (constructor only draws), so drive it before teardown.
+                bp2.addToScene();
+                const wasRegistered = app.interactables.includes(bp2.mesh);
+                bp2.dispose();
+                out.bpDisposeTeardown = wasRegistered === true
+                  && geoDis.mesh === true
+                  && geoDis.tex === true
+                  && !app.interactables.includes(bp2.mesh)
+                  && (!bp2.group || bp2.group.parent === null)
+                  && bp2.canvas === null;
+              }
+              // SpatialAudio.dispose — fresh instance (the app's stays live
+              // for the 3800-line audio legs): stops every source, clears
+              // sources + buffers maps, resets LOD counters, removes the
+              // resume listeners, and closes the AudioContext.
+              if (app.spatialAudio) {
+                const SACtor = app.spatialAudio.constructor;
+                const sa3 = new SACtor();
+                if (sa3.context && sa3.context.createPanner) {
+                  sa3.createSource('__dsp', { volume: 0.01 });
+                  sa3.stats.hrtfSources = 2;
+                  sa3.stats.equalPowerSources = 1;
+                  sa3.buffers.set('__b', { fake: true });
+                  sa3.dispose();
+                  out.audioDispose = sa3.sources.size === 0
+                    && sa3.buffers.size === 0
+                    && sa3.stats.hrtfSources === 0
+                    && sa3.stats.equalPowerSources === 0
+                    && sa3.context === null;
                 }
               }
               // Tab-strip leg — stripMesh is a single canvas interactable
@@ -3964,6 +4635,15 @@ async function main() {
         && (iout.proxyToast || '').includes('Reader proxy set'),
       bpDelBmCap: (iout.bpDelBmCap || '').includes('Bookmark deleted'),
       bpCloseCap: (iout.bpCloseCap || '').includes('Bookmarks: closed'),
+      bpPanelZones: iout.bpPanelZones === true,
+      bpRowNavigates: iout.bpRowNavigates === true,
+      bpRowDeletes: iout.bpRowDeletes === true,
+      bpCloseZone: iout.bpCloseZone === true,
+      bpIntersectionArm: iout.bpIntersectionArm === true,
+      bpBookmarkRows: iout.bpBookmarkRows === true,
+      bpDeleteBookmarkArm: iout.bpDeleteBookmarkArm === true,
+      bpScrollMaxClamp: iout.bpScrollMaxClamp === true,
+      bpClampOnDelete: iout.bpClampOnDelete === true,
       bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
       videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
       videoActive: iout.videoActive === true,
@@ -3994,6 +4674,26 @@ async function main() {
       voiceKb: iout.voiceKbHidden === true
         && (iout.voiceKbCap || '').includes('キーボード'),
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
+      voiceVrEnter: iout.voiceVrEnter === true,
+      voiceVrExit: iout.voiceVrExit === true,
+      vidHoverCap: iout.vidHoverCap === true,
+      vidStopCaption: iout.vidStopCaption === true,
+      wpDisposeTeardown: iout.wpDisposeTeardown === true,
+      wpDisposeAborts: iout.wpDisposeAborts === true,
+      bpDisposeTeardown: iout.bpDisposeTeardown === true,
+      audioDispose: iout.audioDispose === true,
+      voiceConfGate: iout.voiceConfGate === true,
+      voiceConfZero: iout.voiceConfZero === true,
+      voiceInterim: iout.voiceInterim === true,
+      voiceWakeGate: iout.voiceWakeGate === true,
+      voiceSpeakParams: iout.voiceSpeakParams === true,
+      voiceExecStats: iout.voiceExecStats === true,
+      voiceFailedCb: iout.voiceFailedCb === true,
+      bmDedupeVisits: iout.bmDedupeVisits === true,
+      bmTitleGuard: iout.bmTitleGuard === true,
+      bmRemoveFilter: iout.bmRemoveFilter === true,
+      bmTopSites: iout.bmTopSites === true,
+      bmTrim: iout.bmTrim === true,
       voiceStop: iout.voiceStopped === true
         && (iout.voiceStopCap || '').includes('停止'),
       sessStart: iout.sessStart === true && iout.sessReadyCap === true,
@@ -4039,6 +4739,13 @@ async function main() {
       faceAAnnounces: iout.faceAAnnounces === true,
       faceBToggles: iout.faceBToggles === true,
       menuToggles: iout.menuToggles === true,
+      semExpanded: iout.semExpanded === true,
+      semDispose: iout.semDispose === true,
+      wpScrollNonReader: iout.wpScrollNonReader === true,
+      ctrlFamilies: iout.ctrlFamilies === true,
+      ctrlFamRebuild: iout.ctrlFamRebuild === true,
+      ctrlDeadZoneRad: iout.ctrlDeadZoneRad === true,
+      ctrlEmptySnap: iout.ctrlEmptySnap === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -4120,6 +4827,11 @@ async function main() {
       imeHenkanArgs: iout.imeHenkanArgs === true,
       imeCandidateRow: iout.imeCandidateRow === true,
       imeCandidateConfirm: iout.imeCandidateConfirm === true,
+      imeModeReject: iout.imeModeReject === true,
+      imeSelectBounds: iout.imeSelectBounds === true,
+      imeStaleKanji: iout.imeStaleKanji === true,
+      imeDeleteClear: iout.imeDeleteClear === true,
+      imeConfirmFallback: iout.imeConfirmFallback === true,
       sugActionProbe: iout.sugActionProbe === true,
       sugMinChars: iout.sugMinChars === true,
       sugRowBuilds: iout.sugRowBuilds === true,
@@ -4302,6 +5014,15 @@ async function main() {
       ['proxy confirm persisted + toasted', !!inter.proxyApplied],
       ['bookmark-delete announced via caption', !!inter.bpDelBmCap],
       ['panel close announced via caption', !!inter.bpCloseCap],
+      ['panel tab+scroll zones dispatch', !!inter.bpPanelZones],
+      ['panel row select navigates + hides', !!inter.bpRowNavigates],
+      ['panel delete zone removes the entry', !!inter.bpRowDeletes],
+      ['panel close zone hides + announces', !!inter.bpCloseZone],
+      ['panel accepts {intersection:{point}} events', !!inter.bpIntersectionArm],
+      ['panel bookmarks-mode rows navigate', !!inter.bpBookmarkRows],
+      ['panel bookmarks delete routes removeBookmark', !!inter.bpDeleteBookmarkArm],
+      ['panel scroll clamps at last full window', !!inter.bpScrollMaxClamp],
+      ['panel delete shrinks list clamps offset', !!inter.bpClampOnDelete],
       ['panel hover announced via caption (gaze gate)', !!inter.bpHoverCap],
       ['video prompt announced via caption', !!inter.videoPrompt],
       ['immersive video built spheres + HUD', !!inter.videoActive],
@@ -4322,6 +5043,26 @@ async function main() {
       ['voice help listed commands via caption', !!inter.voiceHelp],
       ['voice keyboard-toggle hid keyboard', !!inter.voiceKb],
       ['voice scroll moved reader viewport', !!inter.voiceScroll],
+      ['voice VR-enter routed + announced', !!inter.voiceVrEnter],
+      ['voice VR-exit reached session.end', !!inter.voiceVrExit],
+      ['video HUD hover announced via caption', !!inter.vidHoverCap],
+      ['video stop detached listeners + captioned', !!inter.vidStopCaption],
+      ['tab close disposed panel meshes + registry', !!inter.wpDisposeTeardown],
+      ['tab close aborted in-flight reader fetch', !!inter.wpDisposeAborts],
+      ['bookmarks panel disposed meshes + canvas', !!inter.bpDisposeTeardown],
+      ['spatial audio disposed sources + context', !!inter.audioDispose],
+      ['voice drops low-confidence transcripts', !!inter.voiceConfGate],
+      ['voice accepts zero-confidence (Android)', !!inter.voiceConfZero],
+      ['voice ignores interim results', !!inter.voiceInterim],
+      ['voice wake-word gate holds commands', !!inter.voiceWakeGate],
+      ['voice speak params honor zero volume/pitch', !!inter.voiceSpeakParams],
+      ['voice stats + onCommand surface live', !!inter.voiceExecStats],
+      ['voice no-match routes onCommandFailed', !!inter.voiceFailedCb],
+      ['revisit bumps visits + moves to front', !!inter.bmDedupeVisits],
+      ['bare revisit keeps the recorded title', !!inter.bmTitleGuard],
+      ['removeHistory filters corrupted dupes', !!inter.bmRemoveFilter],
+      ['top-sites aggregates hosts + excludes', !!inter.bmTopSites],
+      ['history bound trims at 200 entries', !!inter.bmTrim],
       ['voice stop ended listening + announced', !!inter.voiceStop],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],
@@ -4366,6 +5107,13 @@ async function main() {
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
       ['utility faceB toggles settings + announces', !!inter.faceBToggles],
       ['utility menu button toggles settings too', !!inter.menuToggles],
+      ['settings toggle mirrors aria-expanded', !!inter.semExpanded],
+      ['semantic DOM dispose detaches + no-ops', !!inter.semDispose],
+      ['scrollContent refuses non-reader state', !!inter.wpScrollNonReader],
+      ['vive/generic family maps differ per profile', !!inter.ctrlFamilies],
+      ['family change rebuilds snapshot + edges', !!inter.ctrlFamRebuild],
+      ['radial dead-zone renormalises magnitude', !!inter.ctrlDeadZoneRad],
+      ['gamepad-less source yields empty snapshot', !!inter.ctrlEmptySnap],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
@@ -4447,6 +5195,11 @@ async function main() {
       ['henkan converts the buffer to hiragana for lookup', !!inter.imeHenkanArgs],
       ['henkan builds the candidate button row', !!inter.imeCandidateRow],
       ['candidate ray select commits through onTextConfirmed', !!inter.imeCandidateConfirm],
+      ['ime rejects unknown mode names', !!inter.imeModeReject],
+      ['ime candidate index bounds checked', !!inter.imeSelectBounds],
+      ['ime stale kanji result discarded', !!inter.imeStaleKanji],
+      ['ime delete empty + clear resets all', !!inter.imeDeleteClear],
+      ['ime confirm falls back to raw buffer', !!inter.imeConfirmFallback],
       ['360° Video opens keyboard for suggestions', !!inter.sugActionProbe],
       ['single keystroke builds no suggestion row', !!inter.sugMinChars],
       ['two-keystroke query builds the suggestion row', !!inter.sugRowBuilds],

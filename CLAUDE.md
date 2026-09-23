@@ -337,6 +337,63 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: pin は fix 前の base で有機 FAIL → fix 適用後 PASS。加えて tail call 切断の独立 cut でも `wmAngularScale` のみ FAIL を再確認（git checkout で fix ごと巻き戻す事故 — cut 検証は source fix を stash/commit 後に行う教訓）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 286 checks PASS、verify:app PASS。
 
+### Session 203: 続き361 — BookmarkPanel._onSelect UV ゾーン dispatch を e2e pin + stale-matrixWorld occluder の latent ハザード解消（#269 batch 20、285→289 checks）
+- 🔍 **実測（未駆動）**: `BookmarkPanel._onSelect` の hitTest ゾーン dispatch（tab/scrollUp/scrollDown/row/deleteRow/close）が未 pin — 実 world point で UV→px 逆算して実ハンドラを駆動: 'history' タブ→setMode+caption、scroll ゾーン→scrollOffset 遷移（VISIBLE_ROWS 超のシード 12 件）、行 hit→`onSelect(url)`→実 navigate+hide、delete ゾーン→`removeHistory`+_clampScroll、close コーナー→hide+onClose caption。
+- 🔧 **ハーネス教訓（重大・stale matrixWorld occluder）**: updateSystems は `scene.updateMatrixWorld` を呼ばないため、位置変更した mesh の raycast は **stale matrixWorld を見る**（実アプリは render loop が毎フレーム更新）。この harness は「tab chromeMesh が stale-identity（面が原点を通る）」に偶然依存し、原点の第 2 コントローラ ray がそれで遮られていた。新 leg の `scene.updateMatrixWorld(true)` で真の位置に戻ると 8 pin が cascade FAIL: ①ctrlL が selObj（CircleGeometry(30)×0.05=半径 1.5m、y∈[-0.1,2.9] で原点 ray にも被る）にヒット → hoverEnters=2、②`webPanelContent`(1.41m) が gzObj(1.5m) より近く gaze ray を遮蔽。**恒久修正**: 合成ターゲットを matrix 状態に依らず robust に — selObj を 0.01 縮小（半径 0.3m、ctrlL の y=0 ray は物理的に到達不能）、gz/gA を `camDir*0.8`（実 UI ≥1.4m より常に近い）。bisect は `if(false)` wrapper + per-controller intersect dump で切分。
+- 🧪 赤検証: `_onSelect` 4 腕同時切断 → `bpPanelZones`/`bpRowNavigates`/`bpRowDeletes`/`bpCloseZone` FAIL + 同一腕の既存 sibling pin 4 件も co-FAIL（想定 co-signal）。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 289 checks PASS、verify:app PASS。
+
+### Session 204: 続き362 — BookmarkPanel bookmarks モード残腕 + スクロール clamp 境界を e2e pin（#270 batch 21、289→294 checks）
+- 🔍 **実測（未駆動 5 腕）**: ①`_onSelect` の `evt?.intersection?.point ?? evt` は常に裸 Vector3 で駆動 — XR controller/gaze が実際に渡す `{intersection:{point}}` レコード形は未駆動。②bookmarks モードの `_rows()→getBookmarks()` と行 select→navigate も未駆動（history 側のみ）。③delete ゾーンの `deleteMethod` ルーティングは `removeBookmark`/`onDeleteBookmark` 経路が未駆動（bpDelBmCap は callback を直接呼んでいただけ）。④scrollDown の上端 clamp（`max(0, rows-VISIBLE)` で止まる）と ⑤削除で縮んだリストへの `_clampScroll` 追従（offset 引き戻し — stale offset が空窓を切る設計文書化済みの防御）も未駆動。
+- 🔧 **ハーネス設計**: bp leg try 内に第 2 サブブロックを追加 — bookmarks シード 11 件（`addBookmark` は unshift で最新が index 0 → 行 hit 決定的）、`onDeleteBookmark` を計数 wrapper で包み finally 復元、削除ループは `for (k<20 && offset>0 && rows>2)` の **bounded** 形 — store 呼出切断時 offset/rows が不変で `while` だと無限ループになる（red 検証カットがハングを起こす地雷を事前回避）。6 回 scrollDown で `offset===max(0, rows-9)` を計算値で pin。
+- 🧪 赤検証: intersection 腕・`_rows` bookmarks 腕・store 呼出・scrollDown インクリメント・post-delete `_clampScroll` の 5 腕同時切断 → 新 5 check 全 FAIL + 同面既存 pin 7 件も co-FAIL（bpPanelZones/bpRowDeletes + session 内 sibling 4 件 — 想定 co-signal）。復元後全緑。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 294 checks PASS、verify:app PASS。
+
+### Session 205: 続き363 — ImmersiveVideo 実 wiring 腕（hover caption・listener detach・stopped caption）+ voice VR-enter/exit を e2e pin（#270 batch 22、294→298 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①HUD ボタンの登録 `onHover` → `draw(true)` + `onHoverCaption(label)` — 全 HUD pin は select 腕のみで hover announce 未駆動（gaze ユーザー唯一のラベル通知）。②`stop()` の `removeEventListener('error'/'playing')` + field null 化 — リーク経路未観測。③`stop()` → 実 `onPlaybackChange` → 'Video: stopped' caption（leg 内では常に pbcState spy に差替）。④voice `vr-enter`/`vr-exit` コマンド — `onEnterVR`→`vrButton.click` / `onExitVR`→`getSession().end` の connectBrowser 登録腕が未駆動。
+- 🔧 **ハーネス教訓 2 件**: (a) locoCaps stub 窓内では `captionSystem.show` が log spy に差替済みで SemanticDOM/statusEl に届かない — 初回 FAIL で実測 → 自分の sub-block で show を wrap して `vidCaps` に傍受（stub 窓 = 1307 設置・3454 復元、可視範囲は grep 必須）。(b) `say('停止')` は `isListening=false` にするため voice pin はその **前** に挿入 — 後だと handleRecognitionResult が死ぬ。vr-enter は `vrButton.click` を spy（実呼出すると rejecting requestSession stub が走る）、vr-exit は `xr.getSession` を `{end:spy}` に差替（fakeSession.end は no-op）。
+- 🧪 赤検証: `onEnterVR`/`onExitVR` body 切断・`onHoverCaption` 呼出切断・`removeEventListener` ブロック切断の 4 腕同時切断 → 新 4 check のみ FAIL（co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 298 checks PASS、verify:app PASS。
+
+### Session 206: 続き364 — dispose() 破棄契約（closeTab→unregister/detach/geometry event/reader abort + BookmarkPanel/SpatialAudio teardown）を e2e pin（#270 batch 23、298→302 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①`tm.closeTab` → `panel.dispose()` は chromeMesh/moveBarMesh/contentMesh の 3 interactable 解除 + `group.parent` 切断 + traverse geometry/material 'dispose' event + tabs 縮小 — sessEnded のみが部分的カバーで per-panel teardown 未観測。②`_readerController.abort()+null` + `_readerSeq++`（in-flight reader fetch の resolution が破棄 panel に callback しない契約）。③BookmarkPanel.dispose（mesh unregister + group scene-remove + geo/material/tex dispose + canvas null）。④SpatialAudio.dispose（全 source stop→`sources.clear`/`buffers.clear`/LOD stats reset/`context.close()`）。
+- 🔧 **ハーネス教訓**: **dispose pin は app 本体を殺さないこと** — `app.spatialAudio.dispose()` すると 3800 行台の後続 audio legs が全滅。fresh instance を `app.X.constructor` で mint して破棄する（BookmarkPanel/SpatialAudio 両方に適用）。2 つ目： **vacuous pin 注意** — BookmarkPanel の mesh 登録は constructor ではなく `addToScene()` 内なので、初期版は `!interactables.includes(mesh)` が登録前から真で赤検証をすり抜けた — `wasRegistered === true` を pin 条件に含めて解消（赤検証が初回でこの測定バグを捕捉）。
+- 🧪 赤検証: `panel.dispose()`・`_readerController.abort()`・`unregisterInteractable(mesh)`・`sources.clear()` の 4 腕同時切断 → 新 4 check のみ FAIL（'tab close announced' 等 sibling は健在、co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 302 checks PASS、verify:app PASS。
+
+### Session 207: 続き365 — JapaneseIME 防御腕 5 本（mode reject・candidate bounds・stale-kanji discard・delete/clear・confirm fallback）を e2e pin（#270 batch 24、302→307 checks）
+- 🔍 **実測（未駆動 5 腕）**: ①`switchMode` の未知モード reject（`['hiragana','katakana','kanji','ascii'].includes` ガード）。②`selectCandidate` の index 境界 clamp（-1/超過→null、selectedIndex 不変）。③`convertToKanji` の stale-buffer guard — `bufferAtRequest` スナップショットと await 後の buffer 不一致で null 返却（fetch が次のキー入力を跨いだ時に旧 kanji を commit しない契約）。④`deleteLast` の空 buffer no-op + 1 文字除去 + `clear()` 全リセット。⑤`confirmSelection` の candidates 空時 raw buffer フォールバック。
+- 🔧 **ハーネス教訓（short-circuit ハザード）**: `out.X = arm()===expected && restoreStep()===true` 形の && チェーンは赤検証 cut 下で **短絡して restoreStep が未実行** — 後続 pin が依存する状態（inputMode='hiragana'）が崩れ vacuous PASS になる。初回赤検証で `imeStaleKanji` が FAIL せずこの測定バグを捕捉 — チェーンでの復元に頼らず `ime4.inputMode='hiragana'` を無条件代入で解消。**pin 内の状態復元は && チェーンに入れず独立文で書く**。
+- 🧪 赤検証: 5 腕同時切断 → 新 5 check FAIL + key-mesh 系 3 件 co-FAIL（kbBackspace/kbEnter/kbEsc が同一 IME メソッド経由の想定 co-signal）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 307 checks PASS、verify:app PASS。
+
+### Session 208: 続き366 — VoiceCommands ゲーティング腕 7 本（confidence gate/zero-pass・interim drop・wake word・speak ?? params・exec stats・failed cb）を e2e pin（#270 batch 25、307→314 checks）
+- 🔍 **実測（未駆動 7 腕）**: 全 voice pin は `say()` が pattern→action の成功腕のみ駆動 — ①confidence gate（`0 < c < sensitivity` で早期 return、但し `confidence === 0` は「スコア無し」として通す — Quest/Android Chrome が正解でも 0 を返す腕、コメント明記の Qiita 知見）。②`isFinal=false` interim は processCommand 非実行。③wake-word gate（requireWakeWord 中は全発話をゲートが消費 → wake word で isAwake + 'はい、聞いています' speak）。④`speak()` utterance の `volume ??`/`pitch ??` が 0 を honor（`||` なら落とす）+ `rate ||` が 1.0 swap。⑤`stats.commandsExecuted++`/`averageConfidence` 逐次平均 + `lastCommand.key` + `onCommand` cb。⑥miss → `onCommandFailed({reason:'no_match'})`。
+- 🔧 **ハーネス教訓 2 件**: (a) **変異する probe コマンドの選定** — 初版は '戻る'/'進む' を counting probe に使い tab history を変異 → 後続 'faceA no forward history' pin が sibling FAIL（実バグでなく測定汚染）— 履歴を変えない 'ヘルプ' に差替。(b) **共有 baseline の連鎖 off-by-one** — `recWas` を共有する pin 群は先行 say の実行有無に依存 — gate cut で 0.05 発話が実行されると confZero/interim の期待値もずれ両方 FAIL（co-signal と判明、独立 FAIL を別 run で確認）。
+- 🧪 赤検証 2 run: run A（gate `if(false)` + 他 5 腕切断）→ 全 7 FAIL；run B（`confidence > 0` 連言のみ除去）→ confZero 独立 FAIL + interim は baseline co-signal。全 pin が最低 1 回の有効 FAIL を実証、全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 314 checks PASS、verify:app PASS。
+
+### Session 209: 続き367 — BookmarkStore 内部腕 e2e pin（#270 batch 26、314→319 checks）
+
+- 🔍 実測: BookmarkStore の store 内部腕（既存 pin は panel/getTopSites 薄皮のみ）— `addHistory` dedupe が A→B→A 再訪で `visits++` + 先頭移動・`title===url` の素再訪が記録 title を潰さない・`removeHistory` が filter で破損重複を両方除去・`getTopSites` が www-fold + visits/score 集約 + best page 代表 + exclude 除外・`MAX_HISTORY=200` trim。全 5 本を実 `localStorage` 駆動で pin（`histWas` snapshot → finally restore）。
+- 🔧 ハーネス設計・教訓: store pin は `localStorage.setItem('quiBrowser_history', JSON.stringify(...))` で破損・超過状態を直接 seed — `addHistory` 経路は健全エントリしか作れない（dup/cap 破損を作るには raw write 必須）。集合 ranking 変更は co-signal が広い — `existing.visits` 切断 → top-sites の代表変化 → `voice top-sites/forward/refresh` の 3 pin が URL 不一致で連鎖 FAIL（実挙動差は想定どおり）。
+- 🧪 赤検証: 5 腕同時切断（dedupe `existingIdx!==-1`→false / title guard→true / `filter`→`all` / `existing.visits+=`→void / `>MAX_HISTORY`→false）→ 新 5 check 全 FAIL + sibling 6 件は全て想定 co-signal（delete-zone 3 件同一腕 + voice 3 件 ranking 変化）。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、319-check harness 全 PASS。
+
+### Session 210: 続き368 — SemanticDOM / scrollContent 残腕 e2e pin（#270 batch 27、319→322 checks）
+
+- 🔍 実測: `setSettingsExpanded` の aria-expanded 書込（utility-hand トグル唯一のミラーサイト）・SemanticDOM `dispose()` の detach/null/idempotent + `root:null` unbuilt no-op・`scrollContent` の非 'reader' ガード（return false + offset 不変）。全て未駆動。
+- 🔧 ハーネス教訓: 先行 legs が `settingsPanel.visible = true` 直接 assign で panel を開くため aria がハーネス側で漂流（本番唯一の open/close 経路は VRApp.js:2370 のみで一貫 — 実欠陥でなく測定バグ）。leg 冒頭で `setSettingsExpanded(visBefore)` を呼び再同期してから toggle の変化を検証する形に — cut 検出は `ariaAfter !== ariaBefore` で担保。dispose pin は例により `app.X.constructor` で fresh instance mint。
+- 🧪 赤検証: `setSettingsExpanded` 呼出切断 → `semExpanded` FAIL、`removeChild` 切断 → `semDispose` FAIL、`_contentState` ガード切断 → `wpScrollNonReader` FAIL。co-signal ゼロ。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、322-check harness 全 PASS。
+
+### Session 211: 続き369 — VRControllerInput family map・edge・empty 腕 e2e pin（#270 batch 28、322→326 checks）
+
+- 🔍 実測: per-family button/axes map（htc-vive は faceA/B 無し・trackpad 有り、generic は trigger+squeeze のみ）・profiles 途中変更の snapshot rebuild + `state.prev` リセット・radial dead-zone の対角再正規化・gamepad-less/null の `_empty`/`EMPTY_SNAPSHOT` 経路。全て未駆動（既存 pin は meta-quest 1 family のみ）。
+- 🔧 ハーネス教訓: **`read()` の snapshot は per-source 再利用 — フィールドは read 間でスカラー取得必須**。mut3 の edge を後読みすると mut4 の書込に潰れて `pressed=true,justPressed=true` の不可解な値に（docstring の警告そのもの）。dead-zone の期待値は `ci.deadZone` から計算（settings.controllerDeadZone 依存にしない）。
+- 🧪 赤検証: `buttonMap` を generic 強制 → `ctrlFamilies` FAIL + gamepad 系 11 件は全て同一腕の想定 co-signal、`state.prev={}` 切断 → `ctrlFamRebuild`、`mag<=deadZone` 切断 → `ctrlDeadZoneRad`、`_empty` family 切断 → `ctrlEmptySnap`。純粋カバレッジ — 実欠陥なし。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、326-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
