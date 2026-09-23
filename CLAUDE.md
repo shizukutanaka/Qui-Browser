@@ -472,6 +472,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: clear+ southpaw caption 切断 → 両 pin FAIL co-signal ゼロ；gate 切断 → comfortOffClears のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 364 checks PASS、verify:app PASS。
 
+### Session 224: 続き382 — WebPanel quad-layer モード実経路を e2e pin（#277 batch 41、364→368 checks）
+- 🔍 **実測（未駆動 4 腕）**: `enableLayerMode`/`updateLayer`/`disableLayerMode` は LayersSystem 側 pin 済みでも WebPanel 側は未駆動 — ①enable 時 chromeMesh 非表示 + `_layerDirty` + 初回 updateLayer が mesh world pose → `layer.transform` 書込 + dirty canvas blit。②clean frame でも `_syncLayerTransform` は毎フレーム走り panel 移動で transform 再書込（identity compare で静止時は allocation skip）・clean canvas は blit せず。③`group.visible===false` は pose+blit 両方を skip（非表示 panel の GPU ゴースト防止）。④release は chromeMesh 復帰 + `_onLayerDetach` 1 回発火（layer 漏れ防止）。
+- 🔧 **ハーネス教訓**: (a) `getWorldPosition` は内部で `updateWorldMatrix(true,false)` を呼ぶ — `_syncLayerTransform` の明示 call 切断は no-op 切断（冗長行）で pin を falsify 不能、transform 代入行の切断が真の契約。(b) pin が `blits.length===1` conjunct を共有すると blit 切断は複数 pin を同時 falsify — co-signal として記録、各 pin は固有 conjunct を持つ切断（transform 代入/visible チェック/detach 呼出）でも別途証明。
+- 🧪 赤検証 3 run: `updateWorldMatrix`+detach 切断 → wpLayerRelease のみ FAIL（matrix call は冗長で無効と実測）；transform 代入+blit+visible 3 切断 → wpLayerBlits/Resyncs/HiddenSkips FAIL；visible 単独切断 → wpLayerHiddenSkips のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 368 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
