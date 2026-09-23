@@ -6159,6 +6159,84 @@ async function main() {
             app.isVREnabled = vrWas5;
           }
         }
+        // ==== batch 51: document visibilitychange → video pause (the DOM
+        // signal, distinct from XRSession visibilitychange pinned at
+        // sessVisPaused); _redrawSettingsPanel fires every registered drawer;
+        // settings accordion swaps the whole panel via _rebuildSettingsPanel.
+        {
+          const iv7 = app.immersiveVideo;
+          const pauseCalls7 = [];
+          const tpWas7 = iv7 && iv7.togglePause;
+          const hiddenDesc = Object.getOwnPropertyDescriptor(document, 'hidden');
+          const playingWas7 = iv7 && iv7.playing;
+          try {
+            if (iv7) {
+              iv7.togglePause = () => { pauseCalls7.push(1); };
+              Object.defineProperty(document, 'hidden', {
+                configurable: true, get() { return true; }
+              });
+              iv7.playing = true;
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.hiddenTabPause = pauseCalls7.length === 1;
+              // Gates: paused video stays paused; returning to visible never
+              // auto-resumes (headset-off is an intentional-stop signal).
+              iv7.playing = false;
+              document.dispatchEvent(new Event('visibilitychange'));
+              const noPause7 = pauseCalls7.length === 1;
+              Object.defineProperty(document, 'hidden', {
+                configurable: true, get() { return false; }
+              });
+              iv7.playing = true;
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.hiddenTabGates = noPause7 && pauseCalls7.length === 1;
+            }
+          } finally {
+            if (iv7) {
+              iv7.playing = playingWas7;
+              if (tpWas7) {
+                iv7.togglePause = tpWas7;
+              } else {
+                delete iv7.togglePause;
+              }
+            }
+            if (hiddenDesc) {
+              Object.defineProperty(document, 'hidden', hiddenDesc);
+            } else {
+              delete document.hidden;
+            }
+          }
+          // _redrawSettingsPanel: every per-button repaint callback collected
+          // into _settingsPanelDrawers must run (high-contrast repaint is one
+          // shot for the whole panel).
+          const drawers7 = app._settingsPanelDrawers || [];
+          const drawn7 = drawers7.map(() => 0);
+          app._settingsPanelDrawers = drawers7.map((fn, i) => () => {
+            drawn7[i] += 1;
+            return fn();
+          });
+          app._redrawSettingsPanel();
+          out.hcDrawersFire = drawers7.length > 0 && drawn7.every((c) => c >= 1);
+          // Accordion: opening a different section rebuilds the whole panel —
+          // _disposeSettingsPanel unregisters every old button mesh and
+          // detaches the group; a same-section click early-returns.
+          const sp0 = app.settingsPanel;
+          const sp0Meshes = [];
+          if (sp0) { sp0.traverse((o) => { if (o.isMesh) { sp0Meshes.push(o); } }); }
+          try {
+            app._toggleSettingsSection('settings.section.locomotion');
+            const sp1 = app.settingsPanel;
+            out.sectRebuild = !!sp1 && sp1 !== sp0
+              && (app.settings.openSettingsSections || [])
+                .includes('settings.section.locomotion')
+              && sp0Meshes.length > 0
+              && sp0Meshes.every((m) => !app.interactables.includes(m));
+            app._toggleSettingsSection('settings.section.locomotion');
+            out.sectEarlyReturn = app.settingsPanel === sp1;
+          } finally {
+            // Leave the accordion on the default-open a11y section.
+            app._toggleSettingsSection('settings.section.a11y');
+          }
+        }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
         // eval. Every check below observes state/spies captured BEFORE
         // app.dispose() because the app cannot be used afterwards. ====
@@ -6517,6 +6595,11 @@ async function main() {
       enterVRClick: iout.enterVRClick === true,
       toastLifecycle: iout.toastLifecycle === true,
       sessPanelDetach: iout.sessPanelDetach === true,
+      hiddenTabPause: iout.hiddenTabPause === true,
+      hiddenTabGates: iout.hiddenTabGates === true,
+      hcDrawersFire: iout.hcDrawersFire === true,
+      sectRebuild: iout.sectRebuild === true,
+      sectEarlyReturn: iout.sectEarlyReturn === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6984,6 +7067,11 @@ async function main() {
       ['enter-vr event reaches the guarded VR button', !!inter.enterVRClick],
       ['toast adds mesh + timer and both expire', !!inter.toastLifecycle],
       ['session end detaches panel layers without recommit', !!inter.sessPanelDetach],
+      ['hidden tab pauses playing immersive video', !!inter.hiddenTabPause],
+      ['visibilitychange pauses only while playing+hidden', !!inter.hiddenTabGates],
+      ['settings redraw fires every registered drawer', !!inter.hcDrawersFire],
+      ['settings accordion rebuilds panel + unregisters old', !!inter.sectRebuild],
+      ['same-section click early-returns without rebuild', !!inter.sectEarlyReturn],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
