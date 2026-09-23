@@ -2347,6 +2347,132 @@ async function main() {
                     && pauseCalls === 1
                     && iv.playing === false
                     && pbcState === 'paused';
+                  // 'playing' listener arm: the real bound listener flips
+                  // playing=true, rewrites the HUD label to 'Pause', and
+                  // notifies onPlaybackChange — the resume path's entire
+                  // state contract (togglePause deliberately does none of
+                  // this eagerly).
+                  const lbCalls = [];
+                  const lbWas = iv._playPauseBtn
+                    ? iv._playPauseBtn.userData.setLabel : null;
+                  try {
+                    if (iv._playPauseBtn) {
+                      iv._playPauseBtn.userData.setLabel =
+                        (l) => { lbCalls.push(l); };
+                    }
+                    pbcState = null;
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    iv.playing = false;
+                    iv._onVideoPlaying();
+                    out.vidPlayingListener = iv.playing === true
+                      && lbCalls.length === 1
+                      && pbcState === 'playing';
+                  } finally {
+                    iv.onPlaybackChange = origPbc;
+                    if (iv._playPauseBtn && lbWas) {
+                      iv._playPauseBtn.userData.setLabel = lbWas;
+                    }
+                  }
+                  // update() head-follow arm: the per-frame call (wired in
+                  // updateSystems) copies the camera world position into
+                  // every video mesh — the fan pin only counted the call,
+                  // the actual head-tracking copy was never observed. Move
+                  // the rig, run one real update(), compare world positions.
+                  const rigWas2 = app.camera.parent
+                    ? app.camera.parent.position.clone() : null;
+                  try {
+                    if (app.camera.parent) {
+                      app.camera.parent.position.set(7.25, 1.6, -3.5);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                    iv.update();
+                    // update() leaves the camera world position in _tmpVec.
+                    const camW2 = iv._tmpVec;
+                    out.vidHeadFollow = iv.meshes.length > 0
+                      && iv.meshes.every((m) =>
+                        Math.abs(m.position.x - camW2.x) < 1e-9
+                        && Math.abs(m.position.y - camW2.y) < 1e-9
+                        && Math.abs(m.position.z - camW2.z) < 1e-9);
+                  } finally {
+                    if (app.camera.parent && rigWas2) {
+                      app.camera.parent.position.copy(rigWas2);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  // togglePause resume arm: video.paused → video.play() is
+                  // invoked and (deliberately) nothing else mutates — the
+                  // 'playing' listener owns the state flip.
+                  let playCalls2 = 0;
+                  try {
+                    iv.video = {
+                      paused: true,
+                      pause: () => {},
+                      play: () => { playCalls2++; return Promise.resolve(); }
+                    };
+                    iv.playing = false;
+                    pbcState = null;
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    const tpWas3 = iv.togglePause;
+                    iv.togglePause = Object.getPrototypeOf(iv).togglePause;
+                    try {
+                      if (pauseBtn) {
+                        selectCenter6(pauseBtn);
+                        await new Promise((r) => setTimeout(r, 20));
+                      }
+                    } finally {
+                      iv.togglePause = tpWas3;
+                    }
+                    out.vidResumePlays = !!pauseBtn
+                      && playCalls2 === 1
+                      && pbcState === null
+                      && iv.playing === false;
+                  } finally {
+                    iv.video = vidWas;
+                    iv.onPlaybackChange = origPbc;
+                  }
+                  // _reportError arms: a mid-stream error while playing must
+                  // reset playing=false, rewrite the HUD label to 'Play',
+                  // notify 'stopped', and fire onError (→ error toast) — and
+                  // an error BEFORE playback starts must stay a no-op
+                  // (onError fires, but nothing else moves).
+                  const errMsgs = [];
+                  const errWas = iv.onError;
+                  const lbCalls2 = [];
+                  const lbWas2 = iv._playPauseBtn
+                    ? iv._playPauseBtn.userData.setLabel : null;
+                  try {
+                    iv.onError = (m) => { errMsgs.push(m); };
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    if (iv._playPauseBtn) {
+                      iv._playPauseBtn.userData.setLabel =
+                        (l) => { lbCalls2.push(l); };
+                    }
+                    pbcState = null;
+                    iv.playing = true;
+                    iv._onVideoError();
+                    out.vidErrorResets = iv.playing === false
+                      && lbCalls2.length === 1
+                      && pbcState === 'stopped'
+                      && errMsgs.length === 1;
+                    // Pre-playback error: onError still surfaces, but the
+                    // playing-state contract stays untouched (no label
+                    // write, no 'stopped' notify — that would lie).
+                    lbCalls2.length = 0;
+                    errMsgs.length = 0;
+                    pbcState = null;
+                    iv.playing = false;
+                    iv._onVideoError();
+                    out.vidErrorQuiet = iv.playing === false
+                      && lbCalls2.length === 0
+                      && pbcState === null
+                      && errMsgs.length === 1;
+                  } finally {
+                    iv.onError = errWas;
+                    iv.onPlaybackChange = origPbc;
+                    if (iv._playPauseBtn && lbWas2) {
+                      iv._playPauseBtn.userData.setLabel = lbWas2;
+                    }
+                  }
                   iv.stop();
                   out.vidCycleClean = restarted
                     && iv.active === false
@@ -3258,6 +3384,15 @@ async function main() {
                     && Math.abs(sa._listenerPos.z - cw.z) < 1e-9
                     && (sa.listener.positionX === undefined
                       || Math.abs(sa.listener.positionX.value - cw.x) < 1e-6);
+                  // setMasterVolume forEach arm: the settings pin only
+                  // watches settings.masterVolume — the write it makes into
+                  // every live source's real GainNode was never observed.
+                  const masterWas = sa.settings.masterVolume;
+                  sa.setMasterVolume(0.4);
+                  const gainSeen = lod.gain ? lod.gain.gain.value : null;
+                  sa.setMasterVolume(masterWas);
+                  out.audioMasterGain = !!lod.gain
+                    && Math.abs(gainSeen - lod.volume * 0.4) < 1e-9;
                   sa.sources.delete('__lod');
                 }
 
@@ -3653,6 +3788,12 @@ async function main() {
       hapticBothHandsDedup: iout.hapticBothHandsDedup === true,
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
+      vidPlayingListener: iout.vidPlayingListener === true,
+      vidHeadFollow: iout.vidHeadFollow === true,
+      vidResumePlays: iout.vidResumePlays === true,
+      vidErrorResets: iout.vidErrorResets === true,
+      vidErrorQuiet: iout.vidErrorQuiet === true,
+      audioMasterGain: iout.audioMasterGain === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
       audioPlayDrives: iout.audioPlayDrives === true,
@@ -3953,6 +4094,12 @@ async function main() {
       ['single-gamepad both-hands pattern dedups', !!inter.hapticBothHandsDedup],
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
+      ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['video spheres track the head per frame', !!inter.vidHeadFollow],
+      ['paused HUD select calls video.play only', !!inter.vidResumePlays],
+      ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
+      ['pre-playback video error stays quiet', !!inter.vidErrorQuiet],
+      ['master volume writes into live gain nodes', !!inter.audioMasterGain],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
       ['real play() drives source + position + counts', !!inter.audioPlayDrives],

@@ -247,6 +247,24 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 193: 続き351 — ImmersiveVideo 頭追従 update() + togglePause resume 腕を e2e pin（#266 batch 10、264→266 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`update()` は `camera.getWorldPosition` → 全 mesh `position.copy` の per-frame 頭追従だが fan pin は呼出回数のみで実 copy 未観測。②`togglePause` の `video.paused`→`video.play()` resume 腕（state は 'playing' リスナへ委譲で一切変更しない設計）も未駆動。
+- 🔧 **ハーネス教訓**: leg 外の helper（`V3h` は audio leg で後から定義）は前の leg で ReferenceError → eval 途中で死亡し後続全 legs が一括 FAIL — 'session leg threw' が stdout に出るのでそれを grep する診断手順。`update()` が `this._tmpVec` に camera 座標を残すので流用可能（新 helper 不要）。
+- 🧪 赤検証: `position.copy` 切断 → `vidHeadFollow` FAIL、`video.play()` 切断 → `vidResumePlays` FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 266 checks PASS、verify:app PASS。
+
+### Session 192: 続き350 — video _reportError 双腕（再生中復元/未再生 no-op）を e2e pin（#266 batch 9、262→264 checks）
+- 🔍 **実測（未駆動）**: `_reportError` は `if (this.playing)` で二腕に分岐 — 再生中エラーは `playing=false` + label 'Play' 復元 + 'stopped' notify + `onError`(→error toast)、未再生エラーは `onError` のみで state 不変の設計だがどちらも未駆動（実 video element の非同期 'error' イベントも未観測）。
+- 🔧 **ハーネス教訓**: 実 video element は fake URL で非同期 'error' を発火する — pin とは無関係のタイミングで `_onVideoError` が走るため pbcState を上書きし得る（赤検証で確認: `if(this.playing)`→`if(true)` にすると pause leg の pbcState='paused' が 'stopped' に上書きされ `vidPauseToggles` も co-FAIL — ガードの ordering 意味が実測で出た）。onError/onPlaybackChange 両 spy を try/finally で覆い後処理で復元。
+- 🧪 赤検証: `'stopped'` notify 切断 → `vidErrorResets` FAIL、`if(this.playing)` ガード除去 → `vidErrorQuiet`+`vidPauseToggles` co-FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 264 checks PASS、verify:app PASS。
+
+### Session 191: 続き349 — video 'playing' listener 腕 + setMasterVolume→gain 実書込を e2e pin（#265 batch 8、260→262 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`togglePause` の resume 腕は promise 非同期を待ち `playing` リスナで state/label/notify を反転する設計だが、リスナ本体（`playing=true` + setLabel('Pause') + onPlaybackChange('playing')）は未駆動 — 実バンドルでリスナ発火の観測不能。②`setMasterVolume` の forEach 実書込（全 live source の `gain.gain.value = volume*master`）は settings.masterVolume の値 pin 止まりで実 GainNode への到達未観測。
+- 🔧 **ハーネス教訓3件**: ①check 名は eval グローバルの `out.*` — 既存名（`vidExitStops`）を再利用すると先に立てた真値を後の pin が false で上書きして既存 check を潰す — **新 pin 命名前に `grep out.<name>` で衝突確認必須**。②eval 内 `const` は関数スコープ共有 — `exitBtn` 等の汎用名が兄弟ブロックと衝突して eval 全体が SyntaxError になり check が一括 FAIL（先頭 semantic DOM から総崩れ、eval problem が stdout に出るので 'eval problem' を grep する診断手順を確立）。③leg 専用リソースは delete される — '__lod' source は LOD pin 末尾で `sources.delete` 済みのため後続 pin からは不可視、同 leg 内で完結させる。④onPlaybackChange は pause-pin finally で実コールバックへ復元済み — 後続 pin で pbcState 観測には spy の再設置が必須。
+- 🧪 赤検証: `this.playing=true` 切断 → `vidPlayingListener` FAIL、forEach gain 書込切断 → `audioMasterGain` FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 262 checks PASS、verify:app PASS。
+
 ### Session 190: 続き348 — haptic playEffect 代替 API 腕 + pulse クランプを e2e pin（#266、258→260 checks）
 - 🔍 **実測（未駆動 2 腕）**: ①`pulse()` の `actuator.playEffect('dual-rumble', {strongMagnitude: i, weakMagnitude: i*0.5})` 分岐（WebXR Gamepads Module API — playEffect のみ持つ actuator）は全 leg が `pulse` のみ持つ偽 actuator で未駆動。②duration 1–5000ms / intensity 0–1 のクランプも actuator 受取値を見る pin が無かった。
 - 🔧 **割愛と理由**: gesture 起動 `context.resume()`（click/touchstart/keydown any-one → 3 listener 全撤去）は harness 内の先行 click で listener が既消費のため e2e 不可（armed 状態を eval から検知不能）。
