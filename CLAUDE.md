@@ -508,6 +508,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証 2 run: ①`run = true` 固定 + `_attachManagedWindow()` 呼出切断 → loop 4 pin 全 FAIL + `grabReattaches` FAIL（move-bar grab 系 3 件は同一呼出の想定 co-signal、`grabAttachSkipped` は正しく生存）。②`|| !_canvasOffscreen` 切断 + `!== target` guard 除去 → `loopArmsVisible` + `grabAttachSkipped` のみ FAIL（surgical、他 pin 全生存）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 391 checks PASS、verify:app PASS。CI 未設定（0/0）。
 
+### Session 230: 続き388 — WebGL context lost/restored + debounced resize + perfStats を e2e pin（#278 batch 46、391→398 checks）
+- 🔍 **実測（未駆動 3 面）**: ①`webglcontextlost`/`webglcontextrestored` の domElement 実リスナ（preventDefault + loop disarm/rearm + notifyCrossModal）は synthetic Event dispatch で登録〜実行を端到端検証可能だったが未駆動。②`_onWindowResize` の debounced resize relay（setSize+aspect+updateProjectionMatrix）と presenting 時 skip 腕。③`getPerformanceStats` の整形契約（round/toFixed/conditional keys）+ `!renderer→null` 腕。
+- 🔧 **ハーネス教訓 3 件**: THREE 自身も domElement で lost/restored を購読（lost→`console.error`+`_isContextLost`、restored→`initGLContext`）— **ペアで dispatch + console.error stub が必須**（MQL パターンの DOM Event 版）。`notifyCrossModal` の haptic 経路は `playPatternBothHands`（`playPattern` ではない）。**headless は `_canvasOffscreen===true`** — restored 再 arm 腕は `offscreen=false` seed が前提（IntersectionObserver が非交差を報告するため）。
+- 🧪 赤検証 2 run: ①lost 内 preventDefault+disarm+notify + resize の presenting-skip 切断 → pauses/lostNotifies/restoredResumes（想定 co-signal）/skips FAIL。②restored の `_syncAnimationLoop` + `return {}` + `Math.round` 切断 → restoredResumes/nullRenderer/shape のみ FAIL（surgical）。全 pin falsifiable。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 398 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
