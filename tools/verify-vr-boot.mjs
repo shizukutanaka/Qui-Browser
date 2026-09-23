@@ -4272,6 +4272,72 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Quad-layer leg — enableLayerMode hands the chrome bar to
+              // the XR compositor: chromeMesh hides, the first updateLayer
+              // poses the layer from the mesh's world transform AND blits
+              // the dirty canvas; a clean frame still re-syncs the pose
+              // (transform rewrite on panel move) but skips the blit;
+              // hiding the panel skips both; disableLayerMode restores
+              // the mesh and fires the detach callback (no GPU ghost).
+              if (ctrl && app.tabManager && app.scene) {
+                const tm3 = app.tabManager;
+                const tabsWas3 = tm3.tabs.length;
+                const activeWas3 = tm3.activeIndex;
+                try {
+                  const wp3 = tm3.newTab();
+                  app.scene.updateMatrixWorld(true);
+                  const blits = [];
+                  const fakeLS3 = { renderCanvasToLayer:
+                    (l, c) => blits.push([l, c]) };
+                  const q3 = { transform: null };
+                  let detach3 = 0;
+                  wp3.enableLayerMode(q3, fakeLS3, 'lyr-h',
+                    () => { detach3++; });
+                  const enOk3 = wp3.quadLayer === q3
+                    && wp3._layerDirty === true
+                    && wp3.chromeMesh.visible === false;
+                  wp3.updateLayer({}, []);
+                  const t1o = q3.transform;
+                  const t1x = t1o && t1o.position ? t1o.position.x : null;
+                  out.wpLayerBlits = enOk3
+                    && blits.length === 1 && blits[0][0] === q3
+                    && wp3._layerDirty === false
+                    && typeof t1x === 'number';
+                  // Clean frame: pose re-sync only — the panel move rewrites
+                  // transform while the clean canvas skips the blit.
+                  wp3.group.position.x += 0.5;
+                  wp3.group.updateMatrixWorld(true);
+                  wp3.updateLayer({}, []);
+                  const t2x = q3.transform && q3.transform.position
+                    ? q3.transform.position.x : null;
+                  out.wpLayerResyncs = blits.length === 1
+                    && q3.transform !== t1o
+                    && typeof t2x === 'number' && t2x !== t1x;
+                  // Hidden panel: early return — no re-pose, no blit.
+                  wp3.group.visible = false;
+                  wp3.group.position.x += 0.5;
+                  wp3.group.updateMatrixWorld(true);
+                  const t2o = q3.transform;
+                  wp3.updateLayer({}, []);
+                  out.wpLayerHiddenSkips = q3.transform === t2o
+                    && blits.length === 1;
+                  wp3.group.visible = true;
+                  // Release: mesh restored + detach callback fires once.
+                  wp3.disableLayerMode(true);
+                  out.wpLayerRelease = detach3 === 1
+                    && wp3.quadLayer === null
+                    && wp3.chromeMesh.visible === true;
+                } finally {
+                  while (tm3.tabs.length > tabsWas3) {
+                    tm3.closeTab(tm3.tabs.length - 1);
+                  }
+                  if (tm3.tabs.length) {
+                    tm3.setActive(
+                      Math.min(activeWas3, tm3.tabs.length - 1));
+                  }
+                  app.scene.updateMatrixWorld(true);
+                }
+              }
               // Follow-mode leg — the 'Follow' toggle applies
               // windowManager.setFollow, after which updateSystems' per-frame
               // windowManager.update lerps the managed root toward
@@ -5482,6 +5548,10 @@ async function main() {
       layerRender: iout.layerRender === true,
       layerRenderState: iout.layerRenderState === true,
       layerDispose: iout.layerDispose === true,
+      wpLayerBlits: iout.wpLayerBlits === true,
+      wpLayerResyncs: iout.wpLayerResyncs === true,
+      wpLayerHiddenSkips: iout.wpLayerHiddenSkips === true,
+      wpLayerRelease: iout.wpLayerRelease === true,
       utilFaceAToggles: iout.utilFaceAToggles === true,
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
@@ -5888,6 +5958,10 @@ async function main() {
       ['per-view subimage blit + finally unbind', !!inter.layerRender],
       ['render-state orders baseLayer then quads', !!inter.layerRenderState],
       ['layers dispose clears maps + flags', !!inter.layerDispose],
+      ['layer mode poses quad layer + blits dirty canvas', !!inter.wpLayerBlits],
+      ['clean frame re-poses layer without re-blit', !!inter.wpLayerResyncs],
+      ['hidden panel skips layer pose + blit', !!inter.wpLayerHiddenSkips],
+      ['layer release restores mesh + detaches', !!inter.wpLayerRelease],
       ['utility faceA toggles bookmarks + announces', !!inter.utilFaceAToggles],
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
