@@ -2721,6 +2721,28 @@ async function main() {
                   out.stripClose = tm.tabs.length === nBefore - 1
                     && locoCaps.slice(capsBefore12)
                       .some((t3) => t3.includes('Tab closed'));
+                  // #221 — newTab(url) must announce the destination host,
+                  // not 'New Tab': activating before navigate() announces
+                  // the still-empty currentUrl.
+                  const capsBefore14 = locoCaps.length;
+                  tm.newTab('https://restore.example/x');
+                  const restoreIdx = tm.tabs.length - 1;
+                  const restoreCaps = locoCaps.slice(capsBefore14);
+                  out.tabRestoreAnnounce = restoreCaps
+                    .some((t3) => t3.includes('restore.example'))
+                    && !restoreCaps.some((t3) => t3.includes('New Tab'));
+                  // #221 — closing an earlier INACTIVE tab keeps the same
+                  // tab active; re-running setActive() announces 'Tab: X'
+                  // again for a tab that never changed (spurious WCAG 4.1.3
+                  // status message). Only this leg's own panels are
+                  // opened/closed so earlier state survives for later legs.
+                  tm.newTab('');                    // focus moves to the new tab
+                  const capsBefore15 = locoCaps.length;
+                  tm.closeTab(restoreIdx);          // inactive + earlier index
+                  const quietCaps = locoCaps.slice(capsBefore15);
+                  out.tabCloseQuiet = tm.activeIndex === tm.tabs.length - 1
+                    && quietCaps.some((t3) => t3.includes('Tab closed'))
+                    && !quietCaps.some((t3) => t3.includes('Tab:'));
                   // Saturate to MAX_TABS (8), then '+' warns instead.
                   while (tm.tabs.length < 8 && tm.newTab()) { /* fill */ }
                   const capsBefore13 = locoCaps.length;
@@ -4036,6 +4058,8 @@ async function main() {
       stripNewTab: iout.stripNewTab === true,
       stripActivate: iout.stripActivate === true,
       stripClose: iout.stripClose === true,
+      tabRestoreAnnounce: iout.tabRestoreAnnounce === true,
+      tabCloseQuiet: iout.tabCloseQuiet === true,
       stripMaxWarn: iout.stripMaxWarn === true,
       shiftProbe: iout.shiftProbe === true,
       shiftToggles: iout.shiftToggles === true,
@@ -4358,6 +4382,8 @@ async function main() {
       ['+ zone opens a new tab and announces', !!inter.stripNewTab],
       ['tab body activates and announces', !!inter.stripActivate],
       ['close zone closes the tab and announces', !!inter.stripClose],
+      ['newTab(url) announces the destination host', !!inter.tabRestoreAnnounce],
+      ['closing an inactive tab does not re-announce', !!inter.tabCloseQuiet],
       ['saturated strip warns on + select', !!inter.stripMaxWarn],
       ['shift key mesh is present and visible', !!inter.shiftProbe],
       ['shift key toggles katakana mode', !!inter.shiftToggles],

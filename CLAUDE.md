@@ -319,6 +319,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `line.remaining -= dtMs` 切断 → capAgingSweep + capQueueRules FAIL（stale 行が残り noQueue 擬似緑になる co-signal 実測 — flat-return 単独切断で capReadingFloor のみ FAIL と分離確認）、`!enabled return` 切断 → capQueueRules のみ FAIL。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 281 checks PASS、verify:app PASS。
 
+### Session 200: 続き358 — 新 pin が #221 の実欠陥 2 件を捕捉・fix 同梱（#269 batch 17、281→283 checks）
+- 🔍 **実測（organic red 2 件、WCAG 4.1.3）**: ①`newTab(url)` が `setActive` → `navigate` の順で `onTabActivate` が空 `currentUrl` を読み 'Tab: New Tab' を announce（復元/セッション復帰タブが偽ラベル）。②`closeTab(index < activeIndex)` で同じタブが active のまま index が 1 ずれるだけなのに `setActive` を再実行 → 'Tab: X' が重複 announce（変化なしの偽ステータス）。
+- 🔧 **fix（#221 8c2c3d6 より TabManager.js 分のみ再適用、#221 先マージ時 no-op）**: newTab で `panel.navigate(url)` を `setActive` の前に移動（`currentUrl` が同期でセットされるため announce が宛先 host になる）。closeTab で `index === activeIndex` の場合のみ `setActive` 実行 — `index < activeIndex` は `activeIndex--` のみで同一タブの active が維持されるため announce 不要。
+- 🧪 ハーネス設計: 両 pin は有機 red で欠陥を実測してから fix 同梱。`tabRestoreAnnounce` は `tm.newTab('https://restore.example/x')` の caption が 'restore.example' を含み 'New Tab' を含まないこと、`tabCloseQuiet` は close-inactive で 'Tab closed' のみで 'Tab:' 再 announce がないこと（`activeIndex` 維持も pin）。leg 自身が開いた panel のみ開閉し先行 leg の panel は温存。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 283 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

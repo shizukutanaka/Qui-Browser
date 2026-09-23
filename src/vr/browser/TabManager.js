@@ -276,11 +276,13 @@ export class TabManager {
     if (this._curved && panel.setCurved) {
       panel.setCurved(true);
     }
-    this.setActive(this.tabs.length - 1);
-
+    // Navigate BEFORE activating: activation announces the tab's URL, so
+    // activating first would announce "New tab" and immediately re-announce
+    // the real destination — two captions for one action (WCAG 4.1.3 noise).
     if (url) {
       panel.navigate(url);
     }
+    this.setActive(this.tabs.length - 1);
     this._drawStrip();
     this.opts.onSessionChange?.();
     return panel;
@@ -301,8 +303,16 @@ export class TabManager {
     if (this.tabs.length === 0) {
       this.activeIndex = -1;
     } else if (index <= this.activeIndex) {
+      // Closing an earlier INACTIVE tab keeps the same tab active — only its
+      // index shifts. Re-running setActive() there fires onTabActivate and
+      // announces "Active tab: X" when nothing changed: a spurious status
+      // message (WCAG 4.1.3). Only announce when focus actually moved, i.e.
+      // the closed tab was the active one.
+      const activeTabClosed = index === this.activeIndex;
       this.activeIndex = Math.max(0, this.activeIndex - 1);
-      this.setActive(this.activeIndex);
+      if (activeTabClosed) {
+        this.setActive(this.activeIndex);
+      }
     }
     this._drawStrip();
     if (this.opts.onTabClose) {
