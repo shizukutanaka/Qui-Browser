@@ -593,6 +593,35 @@ async function main() {
               }
             }
           }
+          // batch 70 (e) — the backgrounded arm of the same visibility
+          //   listener: faking document.hidden flips the emitted event to
+          //   'session_backgrounded' (tab switch / headset sleep). The own
+          //   property is deleted after, restoring the platform getter.
+          {
+            const gtagWas70b = window.gtag;
+            const gtagEvents70b = [];
+            window.gtag = (...a) => { gtagEvents70b.push(a); };
+            const hiddenWas70 =
+              Object.getOwnPropertyDescriptor(document, 'hidden');
+            try {
+              Object.defineProperty(document, 'hidden',
+                { value: true, configurable: true });
+              document.dispatchEvent(new Event('visibilitychange'));
+              out.monBgTrack = gtagEvents70b.some(
+                (e) => e[1] === 'session_backgrounded')
+                && !gtagEvents70b.some((e) => e[1] === 'session_resumed');
+            } finally {
+              delete document.hidden;
+              if (hiddenWas70) {
+                Object.defineProperty(document, 'hidden', hiddenWas70);
+              }
+              if (gtagWas70b === undefined) {
+                delete window.gtag;
+              } else {
+                window.gtag = gtagWas70b;
+              }
+            }
+          }
           // batch 66 (a) — DeviceCompatibility._detectTier maps the UA to
           //   a perf tier that seeds targetFPS + locomotion caps. The
           //   PICO-case and Android-XR arms are the easy ones to regress.
@@ -1499,6 +1528,39 @@ async function main() {
               && vc.recognition.lang === vc.language
               && typeof vc.language === 'string'
               && vc.language.length > 0;
+            // batch 70 (b) — initialize() also copies the other three
+            //   recognition parameters out of settings; a silent mismatch
+            //   here changes what onresult delivers (interim events,
+            //   restart behaviour, candidate list size).
+            out.voiceRecogOpts = !!vc.recognition
+              && vc.recognition.continuous === vc.settings.continuous
+              && vc.recognition.interimResults === vc.settings.interimResults
+              && vc.recognition.maxAlternatives === vc.settings.maxAlternatives;
+            // batch 70 (c) — a command's confirmationText is spoken after
+            //   its action runs: the action result is the truth, the
+            //   utterance is the receipt a voice-only user relies on.
+            {
+              const synthWas70 = vc.synthesis;
+              const utts70 = [];
+              let confRan70 = false;
+              try {
+                vc.synthesis = { speak: (u) => { utts70.push(u); } };
+                vc.registerCommand('e2e-confirm-70', {
+                  patterns: ['カクニン七十'],
+                  action: () => { confRan70 = true; return { ok: true }; },
+                  confirmationText: '確認七十'
+                });
+                vc.handleRecognitionResult({
+                  results: [{ 0: { transcript: 'カクニン七十', confidence: 0.9 }, isFinal: true, length: 1 }]
+                });
+                const c70 = utts70[0];
+                out.voiceConfirmSpeak = confRan70 === true
+                  && !!c70 && c70.text === '確認七十';
+              } finally {
+                vc.synthesis = synthWas70;
+                vc.commands.delete('e2e-confirm-70');
+              }
+            }
             // batch 66 (c) — the IME conversion pipeline's pure helpers:
             //   romaji→hiragana (incl. the 'tch' sokuon arm), hiragana→
             //   katakana, and the offline kanji dictionary hit + miss arms.
@@ -1793,10 +1855,24 @@ async function main() {
             // Drive the REAL event bridge (renderer.xr 'sessionstart' →
             // onVRSessionStart), not the method — a cut listener fails the
             // start checks the same way a cut method would.
+            // batch 70 (a) — the 'sessionstart' bridge must also emit the
+            //   vr_start analytics event carrying the detected device tier.
+            const gtagWas70s = window.gtag;
+            const gtagEvents70s = [];
+            window.gtag = (...a) => { gtagEvents70s.push(a); };
             app.renderer.xr.dispatchEvent({ type: 'sessionstart' });
             // onVRSessionStart is async; syncBudget also runs inside
             // updateTargetFrameRate().then — give microtasks a beat.
             await new Promise((r) => setTimeout(r, 60));
+            out.sessGtagStart = gtagEvents70s.some(
+              (e) => e[0] === 'event' && e[1] === 'vr_start'
+                && typeof (e[2] || {}).device === 'string'
+                && e[2].device.length > 0);
+            if (gtagWas70s === undefined) {
+              delete window.gtag;
+            } else {
+              window.gtag = gtagWas70s;
+            }
             out.sessStart = app.isVREnabled === true;
             // Toasts also flow through captionSystem.show (notifyCrossModal),
             // so a toast re-firing during start can overwrite the status
@@ -5695,6 +5771,43 @@ async function main() {
                       wp2.historyIdx = hidxWas69;
                     }
                   }
+                  // batch 70 (d) — resolveInput's address heuristics:
+                  //   localhost and dotted IPv4 (optionally :port) go
+                  //   straight to https, an uppercase scheme survives
+                  //   verbatim, a non-http scheme resolves null + routes
+                  //   to onBlockedNavigation, and an NFD query is folded
+                  //   to NFC before percent-encoding.
+                  {
+                    const histWas70 = wp2.history;
+                    const hidxWas70 = wp2.historyIdx;
+                    const loadWas70 = wp2._loadUrl;
+                    const blockedWas70 = wp2.onBlockedNavigation;
+                    const loads70 = [];
+                    const blocked70 = [];
+                    wp2._loadUrl = (u) => { loads70.push(u); };
+                    wp2.onBlockedNavigation = (u) => { blocked70.push(u); };
+                    try {
+                      wp2.history = []; wp2.historyIdx = -1;
+                      wp2.navigate('localhost:3000');
+                      wp2.navigate('192.168.1.1:8080');
+                      wp2.navigate('HTTPS://EXAMPLE.COM/x');
+                      wp2.navigate('ftp://files.example/a');
+                      wp2.navigate('\u3053\u3099'); // NFD こ + dakuten → ご
+                      out.navResolveMore = wp2.history.length === 4
+                        && wp2.history[0] === 'https://localhost:3000'
+                        && wp2.history[1] === 'https://192.168.1.1:8080'
+                        && wp2.history[2] === 'HTTPS://EXAMPLE.COM/x'
+                        && wp2.history[3] ===
+                          'https://duckduckgo.com/?q=%E3%81%94'
+                        && blocked70.length === 1
+                        && blocked70[0] === 'ftp://files.example/a';
+                    } finally {
+                      wp2._loadUrl = loadWas70;
+                      wp2.onBlockedNavigation = blockedWas70;
+                      wp2.history = histWas70;
+                      wp2.historyIdx = hidxWas70;
+                    }
+                  }
                   // batch 69 (e) — setActive rejects out-of-range indices:
                   //   no visibility flip, no activate announce, no
                   //   session-change fan-out.
@@ -7806,16 +7919,20 @@ async function main() {
       sharedRaycaster: iout.sharedRaycaster === true,
       readerLifts: iout.readerLifts === true,
       monVisibilityTrack: iout.monVisibilityTrack === true,
+      monBgTrack: iout.monBgTrack === true,
       procBufRegister: iout.procBufRegister === true,
       registerCustomCmd: iout.registerCustomCmd === true,
       voiceAliasChain: iout.voiceAliasChain === true,
       voiceHelpList: iout.voiceHelpList === true,
       voiceRecogLang: iout.voiceRecogLang === true,
+      voiceRecogOpts: iout.voiceRecogOpts === true,
+      voiceConfirmSpeak: iout.voiceConfirmSpeak === true,
       historyNavEdges: iout.historyNavEdges === true,
       contentTexVersion: iout.contentTexVersion === true,
       navResolveArms: iout.navResolveArms === true,
       histForwardTruncate: iout.histForwardTruncate === true,
       navSearchEngine: iout.navSearchEngine === true,
+      navResolveMore: iout.navResolveMore === true,
       tmSetActiveClamp: iout.tmSetActiveClamp === true,
       deviceTierDetect: iout.deviceTierDetect === true,
       navPageView: iout.navPageView === true,
@@ -8044,6 +8161,7 @@ async function main() {
       sessScalarsCleared: iout.sessScalarsCleared === true,
       sessFfrDisabled: iout.sessFfrDisabled === true,
       sessTrackEvent: iout.sessTrackEvent === true,
+      sessGtagStart: iout.sessGtagStart === true,
       perfMonitorWrites: iout.perfMonitorWrites === true,
       navAnalytics: iout.navAnalytics === true,
       navAnalyticsRaw: iout.navAnalyticsRaw === true,
@@ -8360,16 +8478,20 @@ async function main() {
       ['controller rays share one memoized raycaster', !!inter.sharedRaycaster],
       ['reader lifts table list img ruby content', !!inter.readerLifts],
       ['visibilitychange reaches session_resumed analytics', !!inter.monVisibilityTrack],
+      ['hidden document emits session_backgrounded', !!inter.monBgTrack],
       ['procedural buffer registers + dedups by name', !!inter.procBufRegister],
       ['custom voice command registers + fires', !!inter.registerCustomCmd],
       ['voice alias resolves to canonical command', !!inter.voiceAliasChain],
       ['help speaks the command list', !!inter.voiceHelpList],
       ['recognition engine gets the app language', !!inter.voiceRecogLang],
+      ['recognition engine gets recognition settings', !!inter.voiceRecogOpts],
+      ['command confirmationText speaks after action', !!inter.voiceConfirmSpeak],
       ['back/forward stop at history edges', !!inter.historyNavEdges],
       ['content draw marks texture for GPU upload', !!inter.contentTexVersion],
       ['navigate resolves host/query/scheme before push', !!inter.navResolveArms],
       ['mid-history navigate truncates the future', !!inter.histForwardTruncate],
       ['search engine setting swaps resolve template', !!inter.navSearchEngine],
+      ['resolveInput handles localhost/IPv4/scheme/NFD', !!inter.navResolveMore],
       ['setActive clamps out-of-range indices', !!inter.tmSetActiveClamp],
       ['user-agent maps to device perf tier', !!inter.deviceTierDetect],
       ['navigate reports query-stripped pageview', !!inter.navPageView],
@@ -8582,6 +8704,7 @@ async function main() {
       ['session end clears callbacks + perf cursors', !!inter.sessScalarsCleared],
       ['session end disables FFR', !!inter.sessFfrDisabled],
       ['session end emits vr_end analytics event', !!inter.sessTrackEvent],
+      ['session start emits vr_start with device', !!inter.sessGtagStart],
       ['perf monitor EMA + fps + GPU metrics written', !!inter.perfMonitorWrites],
       ['navigate analytics strips query + hash', !!inter.navAnalytics],
       ['invalid URL analytics falls back to raw string', !!inter.navAnalyticsRaw],
