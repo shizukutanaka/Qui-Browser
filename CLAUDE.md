@@ -592,6 +592,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `attach(target)` 切断 → `attachManagedWindow` + grab 系 7 件 co-signal（同一行を grab legs が共有）、motion listener 切断 → `osA11yListeners` + 既存 `OS reduced-motion` pin の 2 件、`floor.name` 切断 → `homeEnvBuild` のみ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 459 checks PASS。
 
+### Session 244: 続き402 — curved fan-out/inherit + setVisible layer release + distance clamp を e2e pin（#285 batch 61、459→463 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①`TabManager.setCurved` の全パネル fan-out（flag + contentMesh geometry 実差替）は `curvedApplied` pin が `tm._curved` 設定のみ観測で未駆動。②`newTab` ctor の curved 継承（:276-277）。③`setVisible(false)` の quad-layer release（hidden tab の detached chrome bar 防止 — `_attachPanelLayer` hidden-skip は既 pin でも release 側は未観測）。④`WindowManager.setDistance` の min/max clamp（`windowDistance` 設定の実経路）。
+- 🔧 **ハーネス設計**: fan-out は `tabs.map(p=>p.contentMesh.geometry)` の identity 差分で実差替を観測、inherit は curved 状態で `newTab()` した新生 panel の flag を観測、release は `wp.quadLayer` fake + `disableLayerMode` spy で呼出を観測。全て `setCurved(was)`/`setVisible(was)`/`setDistance(was)` で finally 復元。
+- 🧪 赤検証: `panel.setCurved(this._curved)`(:408) 切断 → `curvedFanOut` のみ FAIL、ctor 側 `panel.setCurved(true)`(:277) 切断 → `curvedInherit` のみ（setCurved 本体は `_curved` flag を立てるため継承と独立）、`disableLayerMode()`(:1078) 切断 → `setVisibleReleases` のみ、clamp 式切断 → `distanceClamp` のみ。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:app PASS、verify:vr-boot 463 checks PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

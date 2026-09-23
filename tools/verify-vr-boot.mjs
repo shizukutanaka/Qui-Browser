@@ -461,6 +461,84 @@ async function main() {
               app.floorMesh = floorWas60;
             }
           }
+          // batch 61 — curved-panel fan-out + inherit + visibility/layer
+          // release + distance clamp:
+          // (1) TabManager.setCurved flips every open panel's curved flag and
+          //     swaps its content geometry (a toggle that stopped at the
+          //     manager would leave flat panels under a curved label).
+          if (app.tabManager && app.tabManager.tabs.length
+            && typeof app.tabManager.setCurved === 'function') {
+            const tm61 = app.tabManager;
+            const curvedWas61 = tm61._curved;
+            try {
+              const geos61 = tm61.tabs.map((p) => p.contentMesh
+                && p.contentMesh.geometry);
+              tm61.setCurved(true);
+              out.curvedFanOut = tm61.tabs.every((p) => p.curved === true)
+                && tm61.tabs.every((p, i) => p.contentMesh
+                  && p.contentMesh.geometry !== geos61[i]);
+              // (2) tabs opened while curved inherit the flag through the
+              //     WebPanel ctor — a new tab must not render flat while its
+              //     siblings are bent.
+              tm61.newTab();
+              const newborn61 = tm61.tabs[tm61.tabs.length - 1];
+              out.curvedInherit = !!newborn61
+                && newborn61.curved === true;
+              if (newborn61) {
+                tm61.closeTab(tm61.tabs.length - 1);
+              }
+            } finally {
+              tm61.setCurved(curvedWas61);
+            }
+          }
+          // (3) WebPanel.setVisible(false) releases the quad layer — a hidden
+          //     tab must not keep compositing a detached chrome bar through
+          //     the XR runtime.
+          const wp61 = app.tabManager
+            && app.tabManager.tabs[app.tabManager.activeIndex];
+          if (wp61 && typeof wp61.setVisible === 'function'
+            && typeof wp61.disableLayerMode === 'function') {
+            const visWas61 = wp61.group.visible;
+            const qWas61 = wp61.quadLayer;
+            const origDL61 = wp61.disableLayerMode;
+            let dlCalls61 = 0;
+            wp61.disableLayerMode = () => {
+              dlCalls61 += 1;
+              wp61.quadLayer = null;
+            };
+            wp61.quadLayer = { fake: true };
+            try {
+              wp61.setVisible(false);
+              const relOk = dlCalls61 === 1
+                && wp61.group.visible === false;
+              wp61.setVisible(true);
+              out.setVisibleReleases = relOk
+                && dlCalls61 === 1
+                && wp61.group.visible === true;
+            } finally {
+              wp61.disableLayerMode = origDL61;
+              wp61.quadLayer = qWas61;
+              wp61.setVisible(visWas61);
+            }
+          }
+          // (4) WindowManager.setDistance clamps to [minDistance, maxDistance]
+          //     — the persisted windowDistance setting routes through here.
+          if (app.windowManager && typeof app.windowManager.setDistance === 'function'
+            && Number.isFinite(app.windowManager.minDistance)
+            && Number.isFinite(app.windowManager.maxDistance)) {
+            const wm61 = app.windowManager;
+            const dWas61 = wm61.distance;
+            try {
+              const hiOk = wm61.setDistance(wm61.maxDistance + 5)
+                === wm61.maxDistance;
+              const loOk = wm61.setDistance(wm61.minDistance - 5)
+                === wm61.minDistance;
+              const midOk = wm61.setDistance(2.5) === 2.5;
+              out.distanceClamp = hiOk && loOk && midOk;
+            } finally {
+              wm61.setDistance(dWas61);
+            }
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -6944,6 +7022,10 @@ async function main() {
       attachManagedWindow: iout.attachManagedWindow === true,
       osA11yListeners: iout.osA11yListeners === true,
       homeEnvBuild: iout.homeEnvBuild === true,
+      curvedFanOut: iout.curvedFanOut === true,
+      curvedInherit: iout.curvedInherit === true,
+      setVisibleReleases: iout.setVisibleReleases === true,
+      distanceClamp: iout.distanceClamp === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7464,6 +7546,10 @@ async function main() {
       ['managed window re-attaches only when stale', !!inter.attachManagedWindow],
       ['OS motion/contrast flips reach gaze + captions', !!inter.osA11yListeners],
       ['home environment builds floor + sky + grid', !!inter.homeEnvBuild],
+      ['curved toggle fans out to every panel', !!inter.curvedFanOut],
+      ['new tab inherits curved mode', !!inter.curvedInherit],
+      ['hidden panel releases its quad layer', !!inter.setVisibleReleases],
+      ['window distance clamps to min/max', !!inter.distanceClamp],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
