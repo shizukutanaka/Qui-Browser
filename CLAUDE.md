@@ -337,6 +337,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: pin は fix 前の base で有機 FAIL → fix 適用後 PASS。加えて tail call 切断の独立 cut でも `wmAngularScale` のみ FAIL を再確認（git checkout で fix ごと巻き戻す事故 — cut 検証は source fix を stash/commit 後に行う教訓）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 286 checks PASS、verify:app PASS。
 
+### Session 203: 続き361 — BookmarkPanel._onSelect UV ゾーン dispatch を e2e pin + stale-matrixWorld occluder の latent ハザード解消（#269 batch 20、285→289 checks）
+- 🔍 **実測（未駆動）**: `BookmarkPanel._onSelect` の hitTest ゾーン dispatch（tab/scrollUp/scrollDown/row/deleteRow/close）が未 pin — 実 world point で UV→px 逆算して実ハンドラを駆動: 'history' タブ→setMode+caption、scroll ゾーン→scrollOffset 遷移（VISIBLE_ROWS 超のシード 12 件）、行 hit→`onSelect(url)`→実 navigate+hide、delete ゾーン→`removeHistory`+_clampScroll、close コーナー→hide+onClose caption。
+- 🔧 **ハーネス教訓（重大・stale matrixWorld occluder）**: updateSystems は `scene.updateMatrixWorld` を呼ばないため、位置変更した mesh の raycast は **stale matrixWorld を見る**（実アプリは render loop が毎フレーム更新）。この harness は「tab chromeMesh が stale-identity（面が原点を通る）」に偶然依存し、原点の第 2 コントローラ ray がそれで遮られていた。新 leg の `scene.updateMatrixWorld(true)` で真の位置に戻ると 8 pin が cascade FAIL: ①ctrlL が selObj（CircleGeometry(30)×0.05=半径 1.5m、y∈[-0.1,2.9] で原点 ray にも被る）にヒット → hoverEnters=2、②`webPanelContent`(1.41m) が gzObj(1.5m) より近く gaze ray を遮蔽。**恒久修正**: 合成ターゲットを matrix 状態に依らず robust に — selObj を 0.01 縮小（半径 0.3m、ctrlL の y=0 ray は物理的に到達不能）、gz/gA を `camDir*0.8`（実 UI ≥1.4m より常に近い）。bisect は `if(false)` wrapper + per-controller intersect dump で切分。
+- 🧪 赤検証: `_onSelect` 4 腕同時切断 → `bpPanelZones`/`bpRowNavigates`/`bpRowDeletes`/`bpCloseZone` FAIL + 同一腕の既存 sibling pin 4 件も co-FAIL（想定 co-signal）。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 289 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

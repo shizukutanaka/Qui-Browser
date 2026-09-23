@@ -396,6 +396,73 @@ async function main() {
               app.bookmarkPanel.onTabChange('history');
               out.bpTabCap = statusEl ? statusEl.textContent : '';
             }
+            // The UV -> action dispatch every select path funnels through —
+            // controller ray and gaze-dwell both land in _onSelect. Drive it
+            // with world points computed from the zone layout (hitTest +
+            // uvToPixels in bookmarkLayout.js): header tab/scroll zones,
+            // row hit -> onSelect(url) -> the wired tab navigation + panel
+            // hides, delete-zone hit -> store removal + caption mirror, and
+            // the close corner -> hide + onClose caption.
+            const bpPanel = app.bookmarkPanel;
+            if (app.bookmarks && app.scene && bpPanel.mesh) {
+              const rowsSeeded = [];
+              for (let k = 0; k < 12; k++) {
+                const u2 = 'https://bp-row-' + k + '.example/';
+                app.bookmarks.addHistory(u2, 'Row ' + k);
+                rowsSeeded.push(u2);
+              }
+              const modeWas = bpPanel.mode;
+              const scrollWas = bpPanel.scrollOffset;
+              const visWas = bpPanel.visible;
+              try {
+                bpPanel.show();
+                bpPanel.setMode('bookmarks');
+                const hitPx = (px, py) => {
+                  const u = px / 1024;
+                  const v = 1 - py / 768;
+                  const lp = bpPanel.mesh.position.clone().set(
+                    (u - 0.5) * bpPanel.panelW,
+                    (v - 0.5) * bpPanel.panelH, 0);
+                  return bpPanel.mesh.localToWorld(lp);
+                };
+                // Header 'history' tab -> setMode + onTabChange caption.
+                bpPanel._onSelect(hitPx(330, 40));
+                const tabSwap = bpPanel.mode === 'history'
+                  && statusEl && /履歴|history/i.test(statusEl.textContent || '');
+                // Scroll zones live only when rows exceed the 9-row window.
+                const rowsNow = bpPanel._rows().length;
+                bpPanel._onSelect(hitPx(740, 40));
+                const dnOk = bpPanel.scrollOffset === 1;
+                bpPanel._onSelect(hitPx(560, 40));
+                out.bpPanelZones = tabSwap && rowsNow >= 10
+                  && dnOk && bpPanel.scrollOffset === 0;
+                // Row hit -> onSelect(url) -> the real navigate + hide.
+                const activeTab = app.tabManager && app.tabManager.getActiveTab();
+                const urlBefore = activeTab && activeTab.currentUrl;
+                bpPanel._onSelect(hitPx(400, 96 + 36));
+                out.bpRowNavigates = bpPanel.visible === false
+                  && !!activeTab && activeTab.currentUrl !== urlBefore
+                  && (activeTab.currentUrl || '').indexOf('bp-row-') >= 0
+                  && (activeTab.currentUrl || '').indexOf('.example') >= 0;
+                // Delete-zone hit in history mode -> removeHistory + clamp.
+                bpPanel.show();
+                bpPanel.setMode('history');
+                const beforeDel = bpPanel._rows().length;
+                bpPanel._onSelect(hitPx(990, 96 + 36));
+                out.bpRowDeletes = bpPanel._rows().length === beforeDel - 1
+                  && statusEl && statusEl.textContent !== ''
+                  && bpPanel.visible === true;
+                // Close corner -> hide + onClose caption.
+                bpPanel._onSelect(hitPx(970, 40));
+                out.bpCloseZone = bpPanel.visible === false
+                  && !!statusEl && statusEl.textContent !== '';
+              } finally {
+                bpPanel.setMode(modeWas);
+                bpPanel.scrollOffset = scrollWas;
+                if (visWas) { bpPanel.show(); } else { bpPanel.hide(); }
+                rowsSeeded.forEach((u2) => app.bookmarks.removeHistory(u2));
+              }
+            }
           }
           if (typeof app._requestReaderProxyInput === 'function' && app.vrKeyboard) {
             app._requestReaderProxyInput();
@@ -766,8 +833,13 @@ async function main() {
               selObj.addEventListener('qui-select', () => { quiFires += 1; });
               app.interactables.push(selObj);
               // Stand the cloned plane up facing the controller, ~0.4 m away.
+              // floorMesh's CircleGeometry(30) cloned at 0.05 spans a 1.5 m
+              // radius — down to y ≈ -0.1 — so the second (unused) controller
+              // parked at the origin also hits it and fires onHover a second
+              // time. At 0.01 it is a 0.3 m disc centred on the driven ray:
+              // unreachable by the y=0 ray regardless of matrix staleness.
               selObj.rotation.set(0, 0, 0);
-              selObj.scale.set(0.05, 0.05, 0.05);
+              selObj.scale.set(0.01, 0.01, 0.01);
               selObj.position.set(0, 1.4, -0.4);
               selObj.updateMatrixWorld(true);
               const hapticPats = [];
@@ -888,11 +960,13 @@ async function main() {
               };
               gzObj.rotation.set(0, 0, 0);
               gzObj.scale.set(0.05, 0.05, 0.05);
-              // One metre dead ahead of the camera's actual gaze ray.
+              // Well inside every real UI plane (~1.4 m+) on the gaze ray —
+              // stale vs fresh matrixWorld states move real meshes around, so
+              // the synthetic target must always be the nearest visible hit.
               app.camera.updateWorldMatrix(true, false);
               const camPos = app.camera.getWorldPosition(gzObj.position.clone());
               const camDir = app.camera.getWorldDirection(camPos.clone());
-              gzObj.position.copy(camPos).add(camDir.multiplyScalar(1.5));
+              gzObj.position.copy(camPos).add(camDir.multiplyScalar(0.8));
               gzObj.updateMatrixWorld(true);
               app.interactables.push(gzObj);
               const gzHaptic = [];
@@ -959,9 +1033,11 @@ async function main() {
               gA.scale.set(0.05, 0.05, 0.05);
               gB.rotation.set(0, 0, 0);
               gB.scale.set(0.05, 0.05, 0.05);
+              // See the gaze-dwell leg above: stay inside every real UI
+              // plane so the synthetic target is always the nearest hit.
               app.camera.updateWorldMatrix(true, false);
               const rayPos = app.camera.getWorldPosition(gA.position.clone())
-                .add(app.camera.getWorldDirection(gA.position.clone()).multiplyScalar(1.5));
+                .add(app.camera.getWorldDirection(gA.position.clone()).multiplyScalar(0.8));
               const offPos = rayPos.clone();
               offPos.x += 4;
               const placeA = () => {
@@ -3964,6 +4040,10 @@ async function main() {
         && (iout.proxyToast || '').includes('Reader proxy set'),
       bpDelBmCap: (iout.bpDelBmCap || '').includes('Bookmark deleted'),
       bpCloseCap: (iout.bpCloseCap || '').includes('Bookmarks: closed'),
+      bpPanelZones: iout.bpPanelZones === true,
+      bpRowNavigates: iout.bpRowNavigates === true,
+      bpRowDeletes: iout.bpRowDeletes === true,
+      bpCloseZone: iout.bpCloseZone === true,
       bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
       videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
       videoActive: iout.videoActive === true,
@@ -4302,6 +4382,10 @@ async function main() {
       ['proxy confirm persisted + toasted', !!inter.proxyApplied],
       ['bookmark-delete announced via caption', !!inter.bpDelBmCap],
       ['panel close announced via caption', !!inter.bpCloseCap],
+      ['panel tab+scroll zones dispatch', !!inter.bpPanelZones],
+      ['panel row select navigates + hides', !!inter.bpRowNavigates],
+      ['panel delete zone removes the entry', !!inter.bpRowDeletes],
+      ['panel close zone hides + announces', !!inter.bpCloseZone],
       ['panel hover announced via caption (gaze gate)', !!inter.bpHoverCap],
       ['video prompt announced via caption', !!inter.videoPrompt],
       ['immersive video built spheres + HUD', !!inter.videoActive],
