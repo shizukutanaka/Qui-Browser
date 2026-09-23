@@ -857,6 +857,80 @@ async function main() {
             out.voiceStopped = vc.isListening === false;
             out.voiceStopCap = statusEl ? statusEl.textContent : '';
           }
+          // VoiceCommands lifecycle — a fresh instance: the app's own one is
+          // still enabled after '停止' (its continuous onend restart refires
+          // isListening ~100ms later), so lifecycle arms must not touch it.
+          if (app.voiceCommands) {
+            const VC = app.voiceCommands.constructor;
+            const vc2 = new VC();
+            // Seed a deterministic engine: headless exposes a real
+            // webkitSpeechRecognition whose start() never fires onstart, and
+            // the page stub only installs when both globals are absent — so
+            // lifecycle arms own their engine instead of initialize()'s.
+            vc2.recognition = {
+              start() { if (this.onstart) this.onstart(); },
+              stop() { if (this.onend) this.onend(); },
+              abort() {}
+            };
+            vc2.setupRecognitionHandlers();
+            vc2.isEnabled = true;
+            const starts2 = [];
+            const ends2 = [];
+            vc2.callbacks.onStart = () => starts2.push(1);
+            vc2.callbacks.onEnd = () => ends2.push(1);
+            // start(): enabled gate passes, recognition.start fires onstart
+            // which flips isListening + onStart; a second start() while
+            // already listening is an early true without a double onstart.
+            const startRet = vc2.start();
+            const alreadyRet = vc2.start();
+            out.voiceLifecycle = startRet === true
+              && alreadyRet === true
+              && vc2.isListening === true
+              && starts2.length === 1;
+            // onend while continuous+enabled schedules a restart (100ms) —
+            // the hands-free keep-alive loop. Disabling first makes the same
+            // onend a dead end (fatal-error / dispose ordering relies on it).
+            vc2.recognition.onend();
+            const restarted = await new Promise((r) => {
+              setTimeout(() => r(vc2.isListening === true
+                && starts2.length === 2), 200);
+            });
+            vc2.isEnabled = false;
+            vc2.recognition.onend();
+            const staysStopped = await new Promise((r) => {
+              setTimeout(() => r(vc2.isListening === false
+                && starts2.length === 2), 200);
+            });
+            out.voiceRestart = restarted === true && staysStopped === true
+              && ends2.length === 2;
+            // dispose(): isEnabled=false lands BEFORE stop() so the pending
+            // onend can never reschedule, synthesis is cancelled, and both
+            // engine refs are nulled. (A post-dispose start() returns false
+            // via the enabled gate but also console.errors — unverifiable
+            // under the 'no console errors' check, same class as the
+            // loadAudio !response.ok arm.)
+            const vc3 = new VC();
+            vc3.recognition = {
+              start() { if (this.onstart) this.onstart(); },
+              stop() { if (this.onend) this.onend(); },
+              abort() {}
+            };
+            vc3.setupRecognitionHandlers();
+            vc3.isEnabled = true;
+            vc3.synthesis = window.speechSynthesis || null;
+            vc3.start();
+            const cancelSeen = [];
+            const synth3 = vc3.synthesis;
+            const cancelWas = synth3 && synth3.cancel;
+            if (synth3) { synth3.cancel = () => { cancelSeen.push(1); }; }
+            vc3.dispose();
+            if (synth3) { synth3.cancel = cancelWas; }
+            out.voiceDispose = vc3.isEnabled === false
+              && vc3.isListening === false
+              && vc3.recognition === null
+              && vc3.synthesis === null
+              && cancelSeen.length === (synth3 ? 1 : 0);
+          }
           // BookmarkStore internals — the dedupe/title/aggregate arms the
           // panel legs never reach: revisits bump visits and move to front,
           // the title refreshes only on a real title, removeHistory filters
@@ -5016,6 +5090,9 @@ async function main() {
       voiceScroll: iout.voiceScrollDn === 8 && iout.voiceScrollUp === 0,
       voiceVrEnter: iout.voiceVrEnter === true,
       voiceVrExit: iout.voiceVrExit === true,
+      voiceLifecycle: iout.voiceLifecycle === true,
+      voiceRestart: iout.voiceRestart === true,
+      voiceDispose: iout.voiceDispose === true,
       vidHoverCap: iout.vidHoverCap === true,
       vidStopCaption: iout.vidStopCaption === true,
       wpDisposeTeardown: iout.wpDisposeTeardown === true,
@@ -5423,6 +5500,9 @@ async function main() {
       ['top-sites aggregates hosts + excludes', !!inter.bmTopSites],
       ['history bound trims at 200 entries', !!inter.bmTrim],
       ['voice stop ended listening + announced', !!inter.voiceStop],
+      ['voice start lifecycle + already-listening', !!inter.voiceLifecycle],
+      ['continuous onend restarts only while enabled', !!inter.voiceRestart],
+      ['voice dispose cancels + nulls engines', !!inter.voiceDispose],
       ['session start enabled VR + announced VR Ready', !!inter.sessStart],
       ['session start re-based fps budget on real rate', !!inter.sessFps],
       ['session start re-initialized hand tracking', !!inter.sessHand],
