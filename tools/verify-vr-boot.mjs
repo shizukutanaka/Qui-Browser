@@ -617,6 +617,115 @@ async function main() {
             out.proxyPersisted = !!(srec && srec.readerProxyUrl === 'http://localhost:8787');
             out.proxyToast = alertEl ? alertEl.textContent : '';
           }
+          // Batch 54 — the reader-proxy vertical, end to end. The earlier
+          // proxy leg only observed prompt/persist/toast; the real consumers
+          // were never driven: TabManager.setReaderProxyUrl fan-out to every
+          // OPEN tab, the same opts flowing into FUTURE tabs (ctor arg),
+          // normalizeProxyUrl's invalid-input warn arm (nothing written),
+          // the whitespace-clears arm ('cleared' message, settings + tabs
+          // back to ''), readerFetchUrl composing the actual fetch URL the
+          // panel requests, and WebPanel.setReaderProxyUrl's same-value
+          // early return + unavailable-only repaint gate.
+          if (app.tabManager && app.vrKeyboard) {
+            const tm9 = app.tabManager;
+            out.proxyPropagates = tm9.opts.readerProxyUrl === 'http://localhost:8787'
+              && tm9.tabs.length > 0
+              && tm9.tabs.every((p) => p.readerProxyUrl === 'http://localhost:8787');
+            const tabsWas9 = tm9.tabs.length;
+            const np9 = tabsWas9 < 8 ? tm9.newTab() : null;
+            out.proxyNewTabInherits = !!np9
+              && np9.readerProxyUrl === 'http://localhost:8787';
+            if (np9) {
+              const idx9 = tm9.tabs.indexOf(np9);
+              if (idx9 >= 0) { tm9.closeTab(idx9); }
+            }
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('ftp://proxy-54.example/x');
+            let srec9 = null;
+            try { srec9 = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyInvalidWarn = !!srec9
+              && srec9.readerProxyUrl === 'http://localhost:8787'
+              && tm9.opts.readerProxyUrl === 'http://localhost:8787'
+              && !!(alertEl && alertEl.textContent.indexOf('Invalid proxy URL') >= 0);
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('   ');
+            try { srec9 = JSON.parse(localStorage.getItem('qui-browser:settings')); } catch { /* noop */ }
+            out.proxyClearedMsg = !!srec9
+              && srec9.readerProxyUrl === ''
+              && tm9.opts.readerProxyUrl === ''
+              && tm9.tabs.every((p) => p.readerProxyUrl === '')
+              && !!(alertEl && alertEl.textContent.indexOf('Reader proxy cleared') >= 0);
+            // Downstream legs (voice go-to/search fallback) fetch through the
+            // configured proxy — restore it through the real input path.
+            app._requestReaderProxyInput();
+            app.vrKeyboard.onTextConfirmed('http://localhost:8787');
+            const wp9 = tm9.tabs[tm9.activeIndex];
+            if (wp9 && wp9.navigate) {
+              const fetchArgs9 = [];
+              const origFetch9 = globalThis.fetch;
+              const rpuWas9 = wp9.readerProxyUrl;
+              const csWas9 = wp9._contentState;
+              const origDc9 = wp9._drawContent;
+              const histWas9 = wp9.history.slice();
+              const histIdxWas9 = wp9.historyIdx;
+              const curWas9 = wp9.currentUrl;
+              const titleWas9 = wp9.currentTitle;
+              const origOnNav9 = wp9.onNavigate;
+              let dcCalls9 = 0;
+              try {
+                wp9.onNavigate = () => {};
+                globalThis.fetch = (u) => {
+                  fetchArgs9.push(String(u));
+                  return Promise.resolve({
+                    ok: true,
+                    text: () => Promise.resolve('<html><body><p>x</p></body></html>')
+                  });
+                };
+                wp9.setReaderProxyUrl('http://px-54.test:9000');
+                wp9.navigate('https://tgt-54.example/deep?secret=1#frag');
+                const resolved9 = wp9.currentUrl;
+                for (let i = 0; i < 60 && wp9.loading; i++) {
+                  await new Promise((r) => setTimeout(r, 50));
+                }
+                out.readerProxyFetch = fetchArgs9.length >= 1
+                  && fetchArgs9[fetchArgs9.length - 1]
+                    === 'http://px-54.test:9000/fetch?url='
+                      + encodeURIComponent(resolved9);
+                wp9.setReaderProxyUrl('');
+                fetchArgs9.length = 0;
+                wp9.navigate('https://tgt-54b.example/');
+                const resolved9b = wp9.currentUrl;
+                for (let i = 0; i < 60 && wp9.loading; i++) {
+                  await new Promise((r) => setTimeout(r, 50));
+                }
+                out.readerDirectFetch = fetchArgs9.length >= 1
+                  && fetchArgs9[fetchArgs9.length - 1] === resolved9b;
+                wp9._drawContent = (...a) => { dcCalls9++; return origDc9.apply(wp9, a); };
+                // Same-value set while 'unavailable' proves the early return:
+                // without it the repaint gate would fire _drawContent here.
+                wp9._contentState = 'unavailable';
+                wp9.setReaderProxyUrl(wp9.readerProxyUrl);
+                const same9 = dcCalls9 === 0;
+                wp9.setReaderProxyUrl('http://px-54c.test');
+                const unav9 = dcCalls9 === 1 && wp9.readerProxyUrl === 'http://px-54c.test';
+                wp9._contentState = 'reader';
+                wp9.setReaderProxyUrl('http://px-54d.test');
+                const reader9 = dcCalls9 === 1 && wp9.readerProxyUrl === 'http://px-54d.test';
+                out.webPanelProxyRedraw = same9 && unav9 && reader9;
+              } finally {
+                globalThis.fetch = origFetch9;
+                wp9._drawContent = origDc9;
+                wp9._contentState = csWas9;
+                wp9.setReaderProxyUrl(rpuWas9);
+                wp9.history = histWas9;
+                wp9.historyIdx = histIdxWas9;
+                wp9.currentUrl = curWas9;
+                wp9.currentTitle = titleWas9;
+                wp9.onNavigate = origOnNav9;
+                wp9._drawContent();
+              }
+            }
+          }
           // Batch 3 — the remaining never-driven paths:
           //  * bookmarkPanel.onDeleteBookmark / onClose / onHoverCaption
           //    (the last is gated on settings.enableGazeDwell — toggled here)
@@ -6738,6 +6847,13 @@ async function main() {
       wpSelectRecenters: iout.wpSelectRecenters === true,
       wpHoverRestores: iout.wpHoverRestores === true,
       wmFacesUser: iout.wmFacesUser === true,
+      proxyPropagates: iout.proxyPropagates === true,
+      proxyNewTabInherits: iout.proxyNewTabInherits === true,
+      proxyInvalidWarn: iout.proxyInvalidWarn === true,
+      proxyClearedMsg: iout.proxyClearedMsg === true,
+      readerProxyFetch: iout.readerProxyFetch === true,
+      readerDirectFetch: iout.readerDirectFetch === true,
+      webPanelProxyRedraw: iout.webPanelProxyRedraw === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -7220,6 +7336,13 @@ async function main() {
       ['welcome panel select recenters the rig', !!inter.wpSelectRecenters],
       ['welcome hover tints and restores', !!inter.wpHoverRestores],
       ['window manager faces the user on grab move', !!inter.wmFacesUser],
+      ['proxy url propagates to every open tab', !!inter.proxyPropagates],
+      ['new tab inherits configured reader proxy', !!inter.proxyNewTabInherits],
+      ['invalid proxy url warns and writes nothing', !!inter.proxyInvalidWarn],
+      ['empty proxy input clears settings + tabs', !!inter.proxyClearedMsg],
+      ['reader fetch routes through proxy base url', !!inter.readerProxyFetch],
+      ['cleared proxy falls back to direct fetch', !!inter.readerDirectFetch],
+      ['proxy setter dedupes + repaints only when unavailable', !!inter.webPanelProxyRedraw],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
