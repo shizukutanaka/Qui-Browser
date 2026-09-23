@@ -1287,6 +1287,30 @@ async function main() {
                   && Math.abs(app.playerRig.position.x - rigX0)
                     + Math.abs(app.playerRig.position.z - rigZ0) > 0.01
                   && capWrites.some((t) => t.includes('Teleported'));
+                // fireTeleportFeedback: the landing also pulses 'impact' on
+                // the landing hand — the haptic arm the caption conjunct
+                // never saw (hapticPats already spies playPattern).
+                out.teleportHaptic = hapticPats.includes('impact');
+                // Invalid aim: a ray that misses the floor leaves
+                // teleport.valid=false + marker hidden, so squeezeend resets
+                // aim WITHOUT moving the rig — no 'Teleported', no 'impact'.
+                const patsTp0 = hapticPats.length;
+                const capsTp0 = capWrites.length;
+                const rigMx0 = app.playerRig.position.x;
+                const rigMz0 = app.playerRig.position.z;
+                ctrl.matrixWorld.makeRotationX(Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const missOk = app.teleport.active === true
+                  && app.teleport.valid === false
+                  && !(app.teleport.marker && app.teleport.marker.visible === true);
+                ctrl.dispatchEvent({ type: 'squeezeend' });
+                out.teleportMiss = missOk
+                  && Math.abs(app.playerRig.position.x - rigMx0) < 1e-9
+                  && Math.abs(app.playerRig.position.z - rigMz0) < 1e-9
+                  && !capWrites.slice(capsTp0).some((t) => t.includes('Teleported'))
+                  && !hapticPats.slice(patsTp0).includes('impact');
               } finally {
                 const ix = app.interactables.indexOf(selObj);
                 if (ix >= 0) {
@@ -2499,6 +2523,38 @@ async function main() {
                     out.comfortCycles = app.settings.motionSensitivity !== msWas
                       && app.comfortSystem.settings.preset === app.settings.motionSensitivity
                       && locoCaps.some((s) => s.includes('Comfort: ' + app.comfortSystem.settings.preset));
+                  }
+                  // smoothMoveWarning: enabling smooth locomotion while the
+                  // OS prefers-reduced-motion signal is set fires a 'warn'
+                  // toast — the only settings path consulting the OS signal
+                  // at select time. Stub matchMedia so the real onSelect
+                  // sees reduced-motion; the OFF select warns nothing.
+                  app.settings.enableSmoothMove = false;
+                  const smBtn = probeLabel6('Smooth Move');
+                  const origMM = window.matchMedia;
+                  const capsSM0 = locoCaps.length;
+                  window.matchMedia = (q) =>
+                    (q === '(prefers-reduced-motion: reduce)'
+                      ? { matches: true } : origMM(q));
+                  try {
+                    if (smBtn) {
+                      selectCenter6(smBtn); // ON under reduced-motion -> warn
+                    }
+                    const onWarn = locoCaps.slice(capsSM0)
+                      .some((s) => s.includes('motion sickness'));
+                    const capsSM1 = locoCaps.length;
+                    if (smBtn && app.settings.enableSmoothMove === true) {
+                      selectCenter6(smBtn); // OFF -> no warning
+                    }
+                    const offQuiet = !locoCaps.slice(capsSM1)
+                      .some((s) => s.includes('motion sickness'));
+                    out.smoothWarn = !!smBtn && onWarn && offQuiet
+                      && app.settings.enableSmoothMove === false;
+                  } finally {
+                    window.matchMedia = origMM;
+                    if (app.settings.enableSmoothMove !== false) {
+                      app.settings.enableSmoothMove = false;
+                    }
                   }
                 }
                 // Accessibility section: the WCAG live-apply chain — stepper
@@ -5242,6 +5298,8 @@ async function main() {
       selectMissQuiet: iout.selectMissQuiet === true,
       aimLands: iout.aimLands === true,
       teleportLands: iout.teleportLands === true,
+      teleportHaptic: iout.teleportHaptic === true,
+      teleportMiss: iout.teleportMiss === true,
       fanCore: iout.fanCore === true,
       fanUI: iout.fanUI === true,
       fanA11y: iout.fanA11y === true,
@@ -5275,6 +5333,7 @@ async function main() {
       ptrFaceBBack: iout.ptrFaceBBack === true,
       ptrFaceAFwd: iout.ptrFaceAFwd === true,
       smoothMoves: iout.smoothMoves === true,
+      smoothWarn: iout.smoothWarn === true,
       smoothStops: iout.smoothStops === true,
       stickRecenters: iout.stickRecenters === true,
       stickKeyboard: iout.stickKeyboard === true,
@@ -5637,6 +5696,8 @@ async function main() {
       ['selectstart on a miss fires nothing', !!inter.selectMissQuiet],
       ['squeeze aim raycasts the floor target', !!inter.aimLands],
       ['squeezeend lands the rig with Teleported', !!inter.teleportLands],
+      ['teleport landing pulses haptic impact', !!inter.teleportHaptic],
+      ['invalid aim leaves rig unmoved + silent', !!inter.teleportMiss],
       ['frame fan-out hits every live subsystem once', !!inter.fanCore],
       ['frame fan-out hits locomotion + buttons once', !!inter.fanUI],
       ['frame fan-out hits gaze + captions once', !!inter.fanA11y],
@@ -5670,6 +5731,7 @@ async function main() {
       ['pointer faceB navigates back + announces', !!inter.ptrFaceBBack],
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
       ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
+      ['smooth move under reduced-motion warns', !!inter.smoothWarn],
       ['stick release disengages external motion', !!inter.smoothStops],
       ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
