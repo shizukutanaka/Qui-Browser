@@ -1255,6 +1255,66 @@ async function main() {
                     cs.vignetteMesh.visible = false;
                   }
                 }
+                // FFR internals — initialize() can't run headless (no
+                // XRWebGLBinding), so the settings pin above only spied
+                // enable/disable calls. Stand in a projection-layer sink
+                // and drive the clamp/write path, the head-velocity EMA,
+                // and the predicted-gaze chase for real (FR-4.2).
+                const ffr = app.ffrSystem;
+                if (ffr) {
+                  const ffrProjWas = ffr.projectionLayer;
+                  const ffrBaseWas = ffr._baseFoveation;
+                  const ffrEnabledWas = ffr.enabled;
+                  const ffrPredWas = ffr.predictedGazeEnabled;
+                  try {
+                    ffr.projectionLayer = { fixedFoveation: -1 };
+                    ffr._baseFoveation = false;
+                    ffr.enabled = true;
+                    // enable + adjustIntensity clamp the intensity and the
+                    // value reaches the layer; disable writes 0.
+                    ffr.enable(1.7);
+                    const enOk = ffr.intensity === 1
+                      && ffr.projectionLayer.fixedFoveation === 1;
+                    ffr.adjustIntensity(-2);
+                    const adjOk = ffr.intensity === 0
+                      && ffr.projectionLayer.fixedFoveation === 0;
+                    ffr.enable(0.5);
+                    ffr.disable();
+                    out.ffrWritesClamp = enOk && adjOk
+                      && ffr.projectionLayer.fixedFoveation === 0;
+                    // Head-motion EMA → predicted foveation: a ~90°/frame
+                    // head turn is FAST (scanning → low intensity), then a
+                    // still head decays the EMA below SLOW (fixating →
+                    // chase up toward 0.8).
+                    const s4 = Math.sin(Math.PI / 4);
+                    const c4 = Math.cos(Math.PI / 4);
+                    ffr._prevHeadQuat = { x: 0, y: 0, z: 0, w: 1 };
+                    ffr._headVelocity = 0;
+                    ffr.intensity = 0.8;
+                    ffr.trackHeadPose({ x: 0, y: s4, z: 0, w: c4 }, 0.016);
+                    const velFast = ffr._headVelocity;
+                    ffr.updatePredictedGazeFoveation();
+                    const fastFov = ffr.projectionLayer.fixedFoveation;
+                    for (let i = 0; i < 80; i++) {
+                      ffr.trackHeadPose(
+                        { x: 0, y: s4, z: 0, w: c4 }, 0.016);
+                      ffr.updatePredictedGazeFoveation();
+                    }
+                    out.ffrHeadAdaptive = ffr.predictedGazeEnabled === true
+                      && velFast > 0.5
+                      && fastFov < 0.8
+                      && ffr._headVelocity < 0.05
+                      && ffr.projectionLayer.fixedFoveation > 0.6
+                      && ffr.projectionLayer.fixedFoveation > fastFov;
+                  } finally {
+                    ffr.projectionLayer = ffrProjWas;
+                    ffr._baseFoveation = ffrBaseWas;
+                    ffr.enabled = ffrEnabledWas;
+                    ffr.predictedGazeEnabled = ffrPredWas;
+                    ffr._headVelocity = 0;
+                    ffr._prevHeadQuat = null;
+                  }
+                }
                 // Pointer thumbstickClick → recenter: rig pose reset + caption.
                 app.playerRig.position.set(0.5, 0, 0.25);
                 rightSrc.gamepad.buttons[3].pressed = true;
@@ -3855,6 +3915,8 @@ async function main() {
       comfortCycles: iout.comfortCycles === true,
       comfortHeadMotion: iout.comfortHeadMotion === true,
       comfortExternalLevel: iout.comfortExternalLevel === true,
+      ffrWritesClamp: iout.ffrWritesClamp === true,
+      ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
       a11yTabProbe: iout.a11yTabProbe === true,
       a11yTabOpen: iout.a11yTabOpen === true,
       gazeTimeApplied: iout.gazeTimeApplied === true,
@@ -4140,6 +4202,8 @@ async function main() {
       ['stick release disengages external motion', !!inter.smoothStops],
       ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
+      ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
+      ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],

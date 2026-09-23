@@ -307,6 +307,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `detectMotion()` 切断 → 両 check FAIL（external pin も detect 経由のため想定 co-signal）、`externalMotionLevel` clamp → 1 切断 → `comfortExternalLevel` のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 276 checks PASS、verify:app PASS。
 
+### Session 198: 続き356 — FFRSystem の clamp/write 経路・頭速度 EMA・predicted-gaze chase を e2e pin（#269 batch 15、276→278 checks）
+- 🔍 **実測（未駆動）**: `initialize()` は headless で XRWebGLBinding 非対応のため graceful-degradation pin のみ — `enable`/`adjustIntensity`/`disable` の clamp + `_writeFoveation` の `projectionLayer.fixedFoveation` 書込、`trackHeadPose` の EMA 頭速度推定、`updatePredictedGazeFoveation` の SLOW/FAST 線形ターゲット chase（still → 0.8 / scanning → 0.2、FR-4.2）が全く未駆動。settings toggle pin は `enabled=false` で実メソッドが即 return するため spy 止まりだった。
+- 🔧 **ハーネス設計**: `projectionLayer = {fixedFoveation:-1}` sink を差して `enabled=true` にし、実メソッドを端到端駆動 — 実対象（XRProjectionLayer）が headless で生成不能な seam として固定。高速頭回転は 90°/frame quat（角速度 ~98 rad/s → FAST 域）、静止頭は同一 quat 80 フレームで EMA 減衰 → 0.8 方向の chase を観測。
+- 🧪 赤検証: `fixedFoveation` 書込切断 → 両 check FAIL（write 経路共有の想定 co-signal）、`predictedGazeEnabled = true` 切断 → `ffrHeadAdaptive` のみ FAIL（分離確認）。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 278 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
