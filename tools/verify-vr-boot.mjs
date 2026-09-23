@@ -2258,6 +2258,42 @@ async function main() {
                     ffr._prevHeadQuat = null;
                   }
                 }
+                // FPS-adaptive quality governor — render() calls
+                // adjustQuality every 60 frames: the EMA'd frameTime vs
+                // 1000/targetFPS decides reduce (>1.2× → +0.1 intensity) /
+                // increase (<0.8× → −0.1) / deadband (unchanged) so a slow
+                // session self-lowers foveation while a fast one restores it.
+                const ffrQ = app.ffrSystem;
+                if (ffrQ && app.performanceMonitor
+                  && typeof app.settings.targetFPS === 'number'
+                  && app.settings.targetFPS > 0) {
+                  const qProjWas = ffrQ.projectionLayer;
+                  const qEnWas = ffrQ.enabled;
+                  const qIntWas = ffrQ.intensity;
+                  const ftWas = app.performanceMonitor.frameTime;
+                  const tgt = 1000 / app.settings.targetFPS;
+                  try {
+                    ffrQ.projectionLayer = { fixedFoveation: -1 };
+                    ffrQ.enabled = true;
+                    ffrQ.intensity = 0.5;
+                    app.performanceMonitor.frameTime = tgt * 1.5;
+                    app.adjustQuality();          // slow → reduceQuality
+                    const govUp = ffrQ.intensity === 0.6
+                      && ffrQ.projectionLayer.fixedFoveation === 0.6;
+                    app.performanceMonitor.frameTime = tgt * 0.5;
+                    app.adjustQuality();          // fast → increaseQuality
+                    const govDown = ffrQ.intensity === 0.5;
+                    app.performanceMonitor.frameTime = tgt;
+                    app.adjustQuality();          // deadband → no nudge
+                    out.qualityGovernor = govUp && govDown
+                      && ffrQ.intensity === 0.5;
+                  } finally {
+                    ffrQ.projectionLayer = qProjWas;
+                    ffrQ.enabled = qEnWas;
+                    ffrQ.intensity = qIntWas;
+                    app.performanceMonitor.frameTime = ftWas;
+                  }
+                }
                 // Pointer thumbstickClick → recenter: rig pose reset + caption.
                 app.playerRig.position.set(0.5, 0, 0.25);
                 rightSrc.gamepad.buttons[3].pressed = true;
@@ -5811,6 +5847,7 @@ async function main() {
       comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
+      qualityGovernor: iout.qualityGovernor === true,
       capAgingSweep: iout.capAgingSweep === true,
       capReadingFloor: iout.capReadingFloor === true,
       capQueueRules: iout.capQueueRules === true,
@@ -6197,6 +6234,7 @@ async function main() {
       ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
+      ['FPS governor nudges FFR intensity by deadband', !!inter.qualityGovernor],
       ['caption update() ages and removes lines', !!inter.capAgingSweep],
       ['caption hold follows per-script reading time', !!inter.capReadingFloor],
       ['caption queue trims, skips while off, NFC', !!inter.capQueueRules],

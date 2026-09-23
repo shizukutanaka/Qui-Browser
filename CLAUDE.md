@@ -490,6 +490,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 **赤検証**: 3 つの `addEventListener('change', …)` を一括切断 → 3 pin のみ FAIL、co-signal ゼロ。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 378 checks PASS、verify:app PASS。
 
+### Session 227: 続き385 — FPS 適応 quality ガバナを e2e pin（#277 batch 44、378→379 checks）
+- 🔍 **実測（未駆動）**: `render()` が 60 フレームごとに呼ぶ `adjustQuality` — EMA 済み `performanceMonitor.frameTime` を `1000/targetFPS` と比較し >1.2× → `reduceQuality`（`ffrSystem.adjustIntensity(+0.1)`）、<0.8× → `increaseQuality`（−0.1）、deadband → 無変更 — の三腕が全く駆動されていなかった（遅い session が自己で foveation を上げる適応経路）。
+- 🔧 **ハーネス教訓**: `performanceMonitor.frameTime` は VRApp 所有の plain object（EMA で render 内更新）— eval から直接 seed 可能。`ffr.enabled` は FFR leg の finally で false に戻るため fake `projectionLayer:{fixedFoveation}` + `enabled=true` + `intensity=0.5` を leg 内で再シードし finally で完全復元 — `intensity`/`fixedFoveation` 両方で nudge を観測。
+- 🧪 **赤検証**: `reduceQuality`/`increaseQuality` 呼出を `void` 化（三肢一括切断）→ `qualityGovernor` のみ FAIL、co-signal ゼロ。有機全緑（純粋カバレッジ）。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 379 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
