@@ -315,6 +315,51 @@ async function main() {
             out.tabPrivateRestore = app._restoreTabSession();
             app.updateSetting('privateMode', false);
           }
+          // AccessibilityCoordinator delegation (C-1 extraction): the three
+          // a11y subsystems are homed on app.a11y and exposed through
+          // get/set on the app itself — both directions must delegate so
+          // every legacy call site keeps reading/writing the real home.
+          if (app.a11y) {
+            const csWas = app.captionSystem;
+            const hfWas = app.hapticFeedback;
+            const giWas = app.gazeInteraction;
+            const sentinel = { probe: true };
+            try {
+              app.captionSystem = sentinel;
+              app.hapticFeedback = sentinel;
+              app.gazeInteraction = sentinel;
+              out.a11yDelegates = app.a11y.captionSystem === sentinel
+                && app.a11y.hapticFeedback === sentinel
+                && app.a11y.gazeInteraction === sentinel
+                && app.captionSystem === sentinel
+                && app.hapticFeedback === sentinel
+                && app.gazeInteraction === sentinel;
+            } finally {
+              app.captionSystem = csWas;
+              app.hapticFeedback = hfWas;
+              app.gazeInteraction = giWas;
+            }
+          }
+          // Tab-set mutations must fan out onSessionChange → BOTH
+          // _saveTabSession (persist) and _syncPanelLayers (mid-session quad
+          // layer reconcile). newTab fires it twice — once inside setActive,
+          // once at the tail — so each method is invoked exactly twice.
+          if (app.tabManager && typeof app._saveTabSession === 'function') {
+            let saveCalls = 0;
+            let syncCalls = 0;
+            const origSave = app._saveTabSession.bind(app);
+            const origSync = app._syncPanelLayers.bind(app);
+            app._saveTabSession = () => { saveCalls += 1; return origSave(); };
+            app._syncPanelLayers = () => { syncCalls += 1; return origSync(); };
+            try {
+              app.tabManager.newTab();
+              out.sessMutSaveSync = saveCalls === 2 && syncCalls === 2;
+              app.tabManager.closeTab(app.tabManager.tabs.length - 1);
+            } finally {
+              app._saveTabSession = origSave;
+              app._syncPanelLayers = origSync;
+            }
+          }
           // Announce paths — every user-visible status must reach an ARIA
           // live region (WCAG 4.1.3): dangerous-scheme block (warn toast),
           // tab close (caption), and the 9th-tab limit (warn toast).
@@ -6725,6 +6770,8 @@ async function main() {
       clearAnnounced: (iout.alertAfterClear || '').includes('History cleared'),
       bmSuggest: !!iout.bmSuggest,
       tabPersisted: !!iout.tabPersisted,
+      a11yDelegates: iout.a11yDelegates === true,
+      sessMutSaveSync: iout.sessMutSaveSync === true,
       tabPrivateClean: iout.tabPrivateSaved === false && iout.tabPrivateRestore === 0,
       tmRestoreCorrupt: iout.tmRestoreCorrupt === true,
       tmRestoreSkip: iout.tmRestoreSkip === true,
@@ -7237,6 +7284,8 @@ async function main() {
       ['history-clear announced via alert region', !!inter.clearAnnounced],
       ['bookmark-only URL suggested after wipe', !!inter.bmSuggest],
       ['tab session persisted to real localStorage', !!inter.tabPersisted],
+      ['a11y get/set delegates to the coordinator', !!inter.a11yDelegates],
+      ['tab mutation fans out to save + layer sync', !!inter.sessMutSaveSync],
       ['corrupt session payload restores 0 tabs', !!inter.tmRestoreCorrupt],
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
