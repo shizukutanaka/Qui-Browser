@@ -4760,6 +4760,129 @@ async function main() {
                   app._syncAnimationLoop();
                 }
               }
+              // GL context + debounced-resize + perf-stats contract —
+              // dispatching webglcontextlost/-restored on the renderer's
+              // domElement runs BOTH Three's own handlers (which toggle
+              // its _isContextLost flag, so the two events go as a pair,
+              // and which log console.error, so stderr is stubbed) and
+              // ours (pause/resume the RAF loop + cross-modal notify).
+              // The window-resize listener is debounced ~150 ms: outside
+              // presentation it relays size+aspect once per burst; while
+              // presenting WebXR owns the framebuffer so it skips.
+              // getPerformanceStats formats live monitor + renderer.info
+              // fields and returns null when there is no renderer.
+              if (app.renderer && app.renderer.domElement
+                && app.captionSystem && app.hapticFeedback
+                && app.camera && app.performanceMonitor
+                && app._renderBound) {
+                const r2 = app.renderer;
+                const salWas2 = r2.setAnimationLoop;
+                const showWas2 = app.captionSystem.show;
+                const patWas2 = app.hapticFeedback.playPatternBothHands;
+                const ceWas = console.error;
+                const armedWas2 = app._loopArmed;
+                const offWas3 = app._canvasOffscreen;
+                const ipWas2 = r2.xr.isPresenting;
+                const ssWas = r2.setSize;
+                const upmWas = app.camera.updateProjectionMatrix;
+                const pmWas = Object.assign({}, app.performanceMonitor);
+                try {
+                  const calls2 = [];
+                  const caps2 = [];
+                  const pats2 = [];
+                  console.error = () => {};
+                  r2.setAnimationLoop = (cb) => calls2.push(cb);
+                  app.captionSystem.show = (m) => caps2.push(String(m));
+                  app.hapticFeedback.playPatternBothHands =
+                    (p) => pats2.push(p);
+                  // Headless the canvas may sit off-screen — force the
+                  // visible state so 'restored' exercises the re-arm arm.
+                  app._canvasOffscreen = false;
+                  // Lost → real listener: preventDefault + disarm + warn.
+                  const lost = new Event('webglcontextlost',
+                    { cancelable: true });
+                  r2.domElement.dispatchEvent(lost);
+                  out.glLostPausesLoop = lost.defaultPrevented === true
+                    && calls2.length === 1 && calls2[0] === null
+                    && app._loopArmed === false;
+                  out.glLostNotifies = caps2.length === 1
+                    && caps2[0].length > 0 && pats2.length === 1;
+                  // Restored → real listener: re-arms + 'info' routed.
+                  r2.domElement.dispatchEvent(
+                    new Event('webglcontextrestored'));
+                  out.glRestoredResumes = calls2.length === 2
+                    && calls2[1] === app._renderBound
+                    && app._loopArmed === true
+                    && caps2.length === 2;
+                  // Debounced resize → size + aspect + projection matrix.
+                  const sizes = [];
+                  let upm = 0;
+                  r2.setSize = (w2, h2) => sizes.push([w2, h2]);
+                  app.camera.updateProjectionMatrix = () => { upm++; };
+                  window.dispatchEvent(new Event('resize'));
+                  await new Promise((rs) => setTimeout(rs, 250));
+                  // Ambient trailing calls may piggyback in the window —
+                  // pin the relay itself: at least one call, latest args
+                  // matching, projection matrix updated.
+                  out.resizeRelays = sizes.length >= 1
+                    && sizes[sizes.length - 1][0] === window.innerWidth
+                    && sizes[sizes.length - 1][1] === window.innerHeight
+                    && upm >= 1
+                    && app.camera.aspect
+                      === window.innerWidth / window.innerHeight;
+                  // While presenting, WebXR owns the framebuffer: skip.
+                  r2.xr.isPresenting = true;
+                  sizes.length = 0;
+                  window.dispatchEvent(new Event('resize'));
+                  await new Promise((rs) => setTimeout(rs, 250));
+                  r2.xr.isPresenting = ipWas2;
+                  out.resizeSkipsWhilePresenting = sizes.length === 0;
+                  r2.setSize = ssWas;
+                  app.camera.updateProjectionMatrix = upmWas;
+                  // getPerformanceStats formats the live fields and adds
+                  // conditional subsystem keys.
+                  const pm2 = app.performanceMonitor;
+                  pm2.fps = 59.6;
+                  pm2.frameTime = 16.777;
+                  pm2.memoryUsed = 12.345;
+                  pm2.drawCalls = 7;
+                  pm2.triangles = 901;
+                  const ffrExp = app.ffrSystem
+                    ? (app.ffrSystem.intensity * 100).toFixed(0) + '%'
+                    : undefined;
+                  const texExp = app.textureManager
+                    ? (() => { const ms = app.textureManager
+                        .getMemoryStats();
+                        return ms.usedMB + '/' + ms.maxMB + 'MB'; })()
+                    : undefined;
+                  const st = app.getPerformanceStats();
+                  out.perfStatsShape = !!st
+                    && st.fps === 60 && st.frameTime === '16.78ms'
+                    && st.memory === '12.3MB'
+                    && st.drawCalls === 7 && st.triangles === 901
+                    && typeof st.geometries === 'number'
+                    && typeof st.textures === 'number'
+                    && st.ffrIntensity === ffrExp
+                    && st.textureMemory === texExp;
+                  app.renderer = null;
+                  out.perfStatsNullRenderer =
+                    app.getPerformanceStats() === null;
+                  app.renderer = r2;
+                } finally {
+                  app.renderer = r2;
+                  r2.setAnimationLoop = salWas2;
+                  r2.setSize = ssWas;
+                  app.camera.updateProjectionMatrix = upmWas;
+                  app.captionSystem.show = showWas2;
+                  app.hapticFeedback.playPatternBothHands = patWas2;
+                  console.error = ceWas;
+                  r2.xr.isPresenting = ipWas2;
+                  app._canvasOffscreen = offWas3;
+                  app._loopArmed = armedWas2;
+                  Object.assign(app.performanceMonitor, pmWas);
+                  app._syncAnimationLoop();
+                }
+              }
               // Follow-mode leg — the 'Follow' toggle applies
               // windowManager.setFollow, after which updateSystems' per-frame
               // windowManager.update lerps the managed root toward
@@ -5986,6 +6109,13 @@ async function main() {
       loopArmsVisible: iout.loopArmsVisible === true,
       grabReattaches: iout.grabReattaches === true,
       grabAttachSkipped: iout.grabAttachSkipped === true,
+      glLostPausesLoop: iout.glLostPausesLoop === true,
+      glLostNotifies: iout.glLostNotifies === true,
+      glRestoredResumes: iout.glRestoredResumes === true,
+      resizeRelays: iout.resizeRelays === true,
+      resizeSkipsWhilePresenting: iout.resizeSkipsWhilePresenting === true,
+      perfStatsShape: iout.perfStatsShape === true,
+      perfStatsNullRenderer: iout.perfStatsNullRenderer === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6419,6 +6549,13 @@ async function main() {
       ['visible canvas arms the RAF loop', !!inter.loopArmsVisible],
       ['panel grab re-attaches a stale target', !!inter.grabReattaches],
       ['grab on live target skips re-attach', !!inter.grabAttachSkipped],
+      ['context lost disarms the loop', !!inter.glLostPausesLoop],
+      ['context lost notifies warn cross-modally', !!inter.glLostNotifies],
+      ['context restored re-arms the loop', !!inter.glRestoredResumes],
+      ['debounced resize relays size + aspect', !!inter.resizeRelays],
+      ['presenting skips the resize relay', !!inter.resizeSkipsWhilePresenting],
+      ['performance stats format live fields', !!inter.perfStatsShape],
+      ['null renderer reports null stats', !!inter.perfStatsNullRenderer],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
