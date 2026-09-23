@@ -2304,6 +2304,73 @@ async function main() {
                   }
                 }
               }
+              // IME internals leg — the defensive arms never reached by key
+              // presses: switchMode rejects unknown names, selectCandidate
+              // clamps out-of-range indexes, the stale-buffer guard discards
+              // kanji results that outlived further typing, deleteLast is a
+              // no-op on an empty buffer, and confirmSelection falls back to
+              // the raw buffer when no candidates exist.
+              if (app.japaneseIME) {
+                const ime4 = app.japaneseIME;
+                const getK4 = ime4.getKanjiCandidates;
+                ime4.clear();
+                try {
+                  out.imeModeReject = ime4.switchMode('bogus') === false
+                    && ime4.inputMode === 'hiragana'
+                    && ime4.switchMode('ascii') === true
+                    && ime4.inputMode === 'ascii'
+                    && ime4.switchMode('hiragana') === true;
+                  // Controlled candidates for the boundary arm.
+                  ime4.getKanjiCandidates = async () => ['甲', '乙', '丙'];
+                  ime4.compositionBuffer = 'kou';
+                  await ime4.convertToKanji();
+                  const selOk = ime4.selectCandidate(-1) === null
+                    && ime4.selectCandidate(99) === null
+                    && ime4.selectedIndex === 0
+                    && ime4.selectCandidate(2) === '丙'
+                    && ime4.selectedIndex === 2;
+                  out.imeSelectBounds = selOk === true;
+                  // Stale-buffer guard: while the async conversion is in
+                  // flight the user keeps typing — the late result must be
+                  // discarded rather than commit a kanji for a buffer that
+                  // no longer exists.
+                  ime4.clear();
+                  // Set the mode directly — the && chain above short-
+                  // circuits under a red-verify cut, so the mode the chain
+                  // would restore cannot be relied on here.
+                  ime4.inputMode = 'hiragana';
+                  ime4.compositionBuffer = 'ka';
+                  const pending = ime4.convertToKanji();
+                  ime4.compositionBuffer = 'kanji';
+                  const staleRes = await pending;
+                  out.imeStaleKanji = staleRes === null
+                    && (ime4.candidates || []).length === 0
+                    && ime4.compositionBuffer === 'kanji';
+                  // Empty-buffer delete is a no-op; after typing it removes
+                  // one raw char; clear() resets every field.
+                  ime4.clear();
+                  const emptyDel = ime4.deleteLast();
+                  ime4.compositionBuffer = 'ka';
+                  const midDel = ime4.deleteLast();
+                  ime4.clear();
+                  out.imeDeleteClear = emptyDel.raw === ''
+                    && midDel.raw === 'k'
+                    && ime4.compositionBuffer === ''
+                    && (ime4.candidates || []).length === 0
+                    && ime4.selectedIndex === 0;
+                  // No candidates → confirm returns the raw buffer itself.
+                  ime4.clear();
+                  ime4.compositionBuffer = 'xyz';
+                  const fb = ime4.confirmSelection();
+                  out.imeConfirmFallback = fb === 'xyz'
+                    && ime4.compositionBuffer === ''
+                    && ime4.selectedIndex === 0;
+                } finally {
+                  ime4.getKanjiCandidates = getK4;
+                  ime4.clear();
+                  ime4.inputMode = 'hiragana';
+                }
+              }
               // URL suggestion leg — every keystroke runs _updateSuggestions
               // → bookmarks.search (frecency) → showSuggestions builds real
               // interactable _suggestionMeshes; hover announces the FULL
@@ -4451,6 +4518,11 @@ async function main() {
       imeHenkanArgs: iout.imeHenkanArgs === true,
       imeCandidateRow: iout.imeCandidateRow === true,
       imeCandidateConfirm: iout.imeCandidateConfirm === true,
+      imeModeReject: iout.imeModeReject === true,
+      imeSelectBounds: iout.imeSelectBounds === true,
+      imeStaleKanji: iout.imeStaleKanji === true,
+      imeDeleteClear: iout.imeDeleteClear === true,
+      imeConfirmFallback: iout.imeConfirmFallback === true,
       sugActionProbe: iout.sugActionProbe === true,
       sugMinChars: iout.sugMinChars === true,
       sugRowBuilds: iout.sugRowBuilds === true,
@@ -4795,6 +4867,11 @@ async function main() {
       ['henkan converts the buffer to hiragana for lookup', !!inter.imeHenkanArgs],
       ['henkan builds the candidate button row', !!inter.imeCandidateRow],
       ['candidate ray select commits through onTextConfirmed', !!inter.imeCandidateConfirm],
+      ['ime rejects unknown mode names', !!inter.imeModeReject],
+      ['ime candidate index bounds checked', !!inter.imeSelectBounds],
+      ['ime stale kanji result discarded', !!inter.imeStaleKanji],
+      ['ime delete empty + clear resets all', !!inter.imeDeleteClear],
+      ['ime confirm falls back to raw buffer', !!inter.imeConfirmFallback],
       ['360° Video opens keyboard for suggestions', !!inter.sugActionProbe],
       ['single keystroke builds no suggestion row', !!inter.sugMinChars],
       ['two-keystroke query builds the suggestion row', !!inter.sugRowBuilds],
