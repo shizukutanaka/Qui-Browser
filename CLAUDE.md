@@ -361,6 +361,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `panel.dispose()`・`_readerController.abort()`・`unregisterInteractable(mesh)`・`sources.clear()` の 4 腕同時切断 → 新 4 check のみ FAIL（'tab close announced' 等 sibling は健在、co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 302 checks PASS、verify:app PASS。
 
+### Session 207: 続き365 — JapaneseIME 防御腕 5 本（mode reject・candidate bounds・stale-kanji discard・delete/clear・confirm fallback）を e2e pin（#270 batch 24、302→307 checks）
+- 🔍 **実測（未駆動 5 腕）**: ①`switchMode` の未知モード reject（`['hiragana','katakana','kanji','ascii'].includes` ガード）。②`selectCandidate` の index 境界 clamp（-1/超過→null、selectedIndex 不変）。③`convertToKanji` の stale-buffer guard — `bufferAtRequest` スナップショットと await 後の buffer 不一致で null 返却（fetch が次のキー入力を跨いだ時に旧 kanji を commit しない契約）。④`deleteLast` の空 buffer no-op + 1 文字除去 + `clear()` 全リセット。⑤`confirmSelection` の candidates 空時 raw buffer フォールバック。
+- 🔧 **ハーネス教訓（short-circuit ハザード）**: `out.X = arm()===expected && restoreStep()===true` 形の && チェーンは赤検証 cut 下で **短絡して restoreStep が未実行** — 後続 pin が依存する状態（inputMode='hiragana'）が崩れ vacuous PASS になる。初回赤検証で `imeStaleKanji` が FAIL せずこの測定バグを捕捉 — チェーンでの復元に頼らず `ime4.inputMode='hiragana'` を無条件代入で解消。**pin 内の状態復元は && チェーンに入れず独立文で書く**。
+- 🧪 赤検証: 5 腕同時切断 → 新 5 check FAIL + key-mesh 系 3 件 co-FAIL（kbBackspace/kbEnter/kbEsc が同一 IME メソッド経由の想定 co-signal）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 307 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
