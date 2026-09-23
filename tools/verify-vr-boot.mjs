@@ -78,6 +78,9 @@ __StubSpeechRecognition.prototype.abort = function () {};
 if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
   window.SpeechRecognition = __StubSpeechRecognition;
 }
+</script>
+<script type="importmap">
+{"imports": {"@sentry/browser": "/__sentry_stub.js"}}
 </script>`;
 
 
@@ -92,6 +95,15 @@ function serveDistWithStub() {
       const target = resolve(join(DIST, path === '/' ? 'index.html' : path));
       if (target !== DIST && !target.startsWith(DIST + sep)) {
         res.writeHead(403).end();
+        return;
+      }
+      // Same-origin stub for monitoring's lazy @sentry/browser import — the
+      // real package isn't bundled, so without this the dynamic import
+      // rejects and captureError logs console.error on the error paths the
+      // eval deliberately drives (e.g. a denied requestSession).
+      if (path === '/__sentry_stub.js') {
+        res.writeHead(200, { 'content-type': 'text/javascript' });
+        res.end('export const captureException=()=>{},captureMessage=()=>{},init=()=>{};');
         return;
       }
       try {
@@ -5894,6 +5906,128 @@ async function main() {
             out.enErrToast = alertEl ? alertEl.textContent : '';
           }
         }
+        // ==== batch 48: vrButton.onclick guarded enter-VR handler +
+        // _requestVRKeyboardInput window.prompt fallback arm ====
+        {
+          const btn4 = app.vrButton;
+          const xr4 = app.renderer && app.renderer.xr;
+          const origXR4 = navigator.xr;
+          const gsWas4 = xr4 && xr4.getSession;
+          const ssWas4 = xr4 && xr4.setSession;
+          const toastWas4 = app.showVRToast;
+          const toasts4 = [];
+          if (toastWas4) {
+            app.showVRToast = (m, o) => { toasts4.push([m, o && o.type]); };
+          }
+          const calls4 = [];
+          let resolve4 = null;
+          let sessSetCalls4 = 0;
+          const fakeSess4 = {
+            listeners: {},
+            addEventListener(t2, cb) { this.listeners[t2] = cb; },
+            removeEventListener(t2) { delete this.listeners[t2]; },
+            end() { return Promise.resolve(); }
+          };
+          const ceWas4 = console.error;
+          try {
+            if (xr4 && btn4 && typeof btn4.onclick === 'function') {
+              xr4.setSession = () => { sessSetCalls4++; return Promise.resolve(); };
+              // Live-session arm: presenting already → onclick ends it and
+              // never requests a new one.
+              let ended4 = false;
+              xr4.getSession = () => ({
+                end: () => { ended4 = true; return Promise.resolve(); }
+              });
+              Object.defineProperty(navigator, 'xr', { configurable: true, value: {
+                requestSession: () => {
+                  calls4.push('req');
+                  return new Promise((r) => { resolve4 = r; });
+                }
+              }});
+              btn4.onclick();
+              out.vrBtnEndsLive = ended4 === true && calls4.length === 0;
+              xr4.getSession = () => null;
+              // Pending-request dedup: a second click while the first
+              // requestSession is in flight must not issue another.
+              btn4.onclick();
+              btn4.onclick();
+              out.vrBtnDedup = calls4.length === 1;
+              // Grant → setSession + 'EXIT VR' label + 'end' listener that
+              // restores 'ENTER VR'; finally clears pendingRequest so a later
+              // click re-issues.
+              resolve4(fakeSess4);
+              await new Promise((r) => setTimeout(r, 0));
+              out.vrBtnEnters = sessSetCalls4 === 1 && btn4.textContent === 'EXIT VR'
+                && typeof fakeSess4.listeners.end === 'function';
+              if (typeof fakeSess4.listeners.end === 'function') {
+                fakeSess4.listeners.end();
+              }
+              out.vrBtnExitLabel = btn4.textContent === 'ENTER VR';
+              btn4.onclick();
+              out.vrBtnReissues = calls4.length === 2;
+              // Drain the re-issued request so pendingRequest clears — a
+              // still-pending request would dedup the rejection-arm click.
+              resolve4(fakeSess4);
+              await new Promise((r) => setTimeout(r, 0));
+              // Rejection arm: a denied request surfaces an error toast and
+              // leaves pendingRequest cleared for the next click.
+              console.error = () => {};
+              Object.defineProperty(navigator, 'xr', { configurable: true, value: {
+                requestSession: () => Promise.reject(new Error('denied'))
+              }});
+              btn4.onclick();
+              await new Promise((r) => setTimeout(r, 20));
+              out.vrBtnErrorToast = toasts4.some((x) => x[1] === 'error');
+            }
+          } finally {
+            console.error = ceWas4;
+            if (toastWas4) { app.showVRToast = toastWas4; }
+            Object.defineProperty(navigator, 'xr', { configurable: true, value: origXR4 });
+            if (xr4) {
+              if (gsWas4) { xr4.getSession = gsWas4; } else { delete xr4.getSession; }
+              if (ssWas4) { xr4.setSession = ssWas4; } else { delete xr4.setSession; }
+            }
+            resolve4 = null;
+          }
+          // No-VR-keyboard fallback arm: _requestVRKeyboardInput falls back to
+          // window.prompt on desktop; a cancelled prompt never confirms.
+          const vkWas4 = app.vrKeyboard;
+          const origPrompt4 = window.prompt;
+          const promptArgs4 = [];
+          try {
+            app.vrKeyboard = null;
+            window.prompt = (msg, pre) => {
+              promptArgs4.push(pre);
+              return 'https://fallback.example/';
+            };
+            let confirmGot4 = null;
+            app._requestVRKeyboardInput('https://', (u) => { confirmGot4 = u; });
+            out.kbFallbackConfirm = confirmGot4 === 'https://fallback.example/'
+              && promptArgs4.length === 1 && promptArgs4[0] === 'https://';
+            window.prompt = () => null;
+            let confirmGot5 = 'unset';
+            app._requestVRKeyboardInput('https://', (u) => { confirmGot5 = u; });
+            out.kbFallbackCancel = confirmGot5 === 'unset';
+          } finally {
+            app.vrKeyboard = vkWas4;
+            window.prompt = origPrompt4;
+          }
+          // The activate()/setOnConfirm half of _requestVRKeyboardInput —
+          // isActive is seeded false so cutting activate() is observable
+          // (activate() itself calls clear(), making compositionBuffer an
+          // unobservable arm and therefore not part of this pin).
+          if (vkWas4 && app.japaneseIME) {
+            const ime4 = app.japaneseIME;
+            ime4.isActive = false;
+            app._requestVRKeyboardInput('https://', () => {});
+            out.kbPrefillBlank = ime4.isActive === true
+              && typeof vkWas4._onConfirmCallback === 'function';
+            if (typeof vkWas4._onConfirmCallback === 'function') {
+              vkWas4._onConfirmCallback('https://prefill-confirm.example/');
+            }
+            vkWas4.hide();
+          }
+        }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
         // eval. Every check below observes state/spies captured BEFORE
         // app.dispose() because the app cannot be used afterwards. ====
@@ -6238,6 +6372,15 @@ async function main() {
       disposeTearsDownSystems: iout.disposeTearsDownSystems === true,
       disposeNullsFields: iout.disposeNullsFields === true,
       disposeGpuTeardown: iout.disposeGpuTeardown === true,
+      vrBtnEndsLive: iout.vrBtnEndsLive === true,
+      vrBtnDedup: iout.vrBtnDedup === true,
+      vrBtnEnters: iout.vrBtnEnters === true,
+      vrBtnExitLabel: iout.vrBtnExitLabel === true,
+      vrBtnReissues: iout.vrBtnReissues === true,
+      vrBtnErrorToast: iout.vrBtnErrorToast === true,
+      kbFallbackConfirm: iout.kbFallbackConfirm === true,
+      kbFallbackCancel: iout.kbFallbackCancel === true,
+      kbPrefillBlank: iout.kbPrefillBlank === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6491,6 +6634,9 @@ async function main() {
         }
       }
     }
+    if (errors.length) {
+      console.warn('collected errors:', JSON.stringify(errors));
+    }
 
     const checks = [
       ['VRApp constructed (QuiBrowser.getApp() non-null)', !!state.app],
@@ -6688,6 +6834,15 @@ async function main() {
       ['dispose runs subsystem teardown', !!inter.disposeTearsDownSystems],
       ['dispose nulls teardown fields', !!inter.disposeNullsFields],
       ['dispose disposes GPU resources', !!inter.disposeGpuTeardown],
+      ['VR button ends live session', !!inter.vrBtnEndsLive],
+      ['VR button dedups pending request', !!inter.vrBtnDedup],
+      ['VR button grants and labels EXIT VR', !!inter.vrBtnEnters],
+      ['session end restores ENTER VR label', !!inter.vrBtnExitLabel],
+      ['VR button re-issues after clear', !!inter.vrBtnReissues],
+      ['denied request toasts an error', !!inter.vrBtnErrorToast],
+      ['keyboard-less fallback confirms via prompt', !!inter.kbFallbackConfirm],
+      ['cancelled prompt never confirms', !!inter.kbFallbackCancel],
+      ['URL input activates IME + stores confirm', !!inter.kbPrefillBlank],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],

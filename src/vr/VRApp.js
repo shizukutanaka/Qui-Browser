@@ -3044,14 +3044,20 @@ export class VRApp {
     // duplicate request. Replace it with a guarded handler that mirrors the
     // same session flow (three builds the sessionOptions inside its closure —
     // replicate them here: base features + our sessionInit).
-    if (typeof vrButton.onclick === 'function') {
+    //
+    // Install it unconditionally via a property descriptor: three only assigns
+    // button.onclick asynchronously, after isSessionSupported resolves, so a
+    // synchronous typeof check here always saw null and the guarded handler
+    // never landed — on real hardware either. A getter/setter pair wins over
+    // any later plain assignment showEnterVR makes.
+    {
       const sessionOptions = {
         optionalFeatures: [...new Set([
           'local-floor', 'bounded-floor', 'layers', 'hand-tracking'
         ])]
       };
       let pendingRequest = null;
-      vrButton.onclick = () => {
+      const guardedClick = () => {
         const liveSession = this.renderer.xr.getSession();
         if (liveSession) {
           // end() rejects with InvalidStateError if the session is already
@@ -3093,6 +3099,13 @@ export class VRApp {
           pendingRequest = null;
         });
       };
+      Object.defineProperty(vrButton, 'onclick', {
+        configurable: true,
+        get() { return guardedClick; },
+        set() {
+          // Swallow three's async onclick assignment — guardedClick wins.
+        }
+      });
     }
 
     // Wire the landing-page "Enter VR" buttons (which dispatch a global
