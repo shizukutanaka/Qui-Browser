@@ -415,6 +415,20 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `_onTrackingChange`/`batch.hand!==`/`radii>0`/`0.4+quality` 各切断 → 新 4 check FAIL + shared-arm sibling co-signals（上記）。
 - ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、339-check harness 全 PASS。
 
+### Session 215: 続き373 — ComfortSystem 残 3 腕を e2e pin（#272 batch 32、339→342 checks）
+
+- 🔍 実測: ①`isRotating` のみで `motionLevel=max(headMoving||isRotating?1:0, external)` 全強度 — 純粋 yaw 回転で vignette がフル chase する腕は未駆動（`isMoving` は false のまま — 回転は locomotion でない設計）②`settings.vignette.enabled` ゲート — 'disabled' preset では detectMotion は走るが updateVignette が skip される腕 ③setPreset の `Object.assign` merge — disabled→sensitive で `enabled` 復帰必須（省略すると緩和ゼロのまま）④`dispose()` の camera remove。どれも未駆動。
+- 🔧 ハーネス設計: 同一 `if (cs)` ブロック末尾に追記 — external leg の状態を live 遷移で流用。dispose pin は stub camera `{children:[],add,remove}` + fresh instance（app 本体の vignette を殺さない）。`disHeld` は `currentVignette === vDis` の厳密一致（skip = 書込なし → 変化ゼロが証明）。
+- 🧪 赤検証 4 切断一括: `if(enabled)`→`if(true)`・`isRotating=false`・`Object.assign`→void・`camera.remove`→void → 新 3 check のみ FAIL、co-signal ゼロ。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、342-check harness 全 PASS。
+
+### Session 216: 続き374 — TabManager serialize() 3 腕を e2e pin（#273 batch 33、342→345 checks）
+
+- 🔍 実測: `serialize()` は restore の鏡像だが未駆動 — ①`panel.currentUrl` フィルタ（blank tab は永続化対象外）②`i === activeIndex` の active 再 index（filter 後リスト内の位置に写像 — [nav,blank,nav] active=2 → 1）③全 blank セッションは `tabs:[]` + active 0 で空シリアライズ。blank-active フォールバック（index 0 の blank が active でも active=0 → 復元時は先頭の navigated tab が active）も未駆動。
+- 🔧 ハーネス設計: restoreSession ブロック内 `mkTM()` を再利用 — `newTab(url)` は `navigate→_loadUrl` で `currentUrl` を同期設定するため fetch 不要で組める。
+- 🧪 赤検証 2 run: `if(panel.currentUrl)`→`if(true)` + `i===activeIndex`→`if(false)` 同時切断で新 3 check 全 FAIL。第 2 run（currentUrl のみ復元、activeIndex 切断継続）で reindex pin のみ FAIL — activeIndex 腕の独立担保を確認。
+- ✅ Gates: jest 3302/74、lint 0 errors（既存 4 warnings）、build 緑、verify:app PASS、345-check harness 全 PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

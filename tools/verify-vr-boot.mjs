@@ -391,6 +391,35 @@ async function main() {
               { url: 'https://rest-b.example/' }] });
             out.tmRestoreActive = tmD.activeIndex === 1
               && tmE.activeIndex === 0;
+            // serialize() is the restore source's mirror — only navigated
+            // tabs persist and 'active' is re-indexed into the filtered
+            // list. A blank active tab falls back to index 0; an all-blank
+            // session serializes empty.
+            const tmS = mkTM();
+            tmS.newTab('https://ser-a.example/');
+            tmS.newTab(); // blank — must be dropped
+            tmS.newTab('https://ser-b.example/');
+            tmS.setActive(2);
+            const serS = tmS.serialize();
+            out.tmSerializeReindex = serS.v === 1
+              && serS.tabs.length === 2
+              && serS.tabs[0].url === 'https://ser-a.example/'
+              && serS.tabs[1].url === 'https://ser-b.example/'
+              && serS.active === 1; // active tab re-indexed 2 → 1
+            const tmB2 = mkTM();
+            tmB2.newTab(); // blank tab at index 0
+            tmB2.newTab('https://ser-c.example/');
+            tmB2.setActive(0);
+            const serB = tmB2.serialize();
+            out.tmSerializeBlankActive = serB.active === 0
+              && serB.tabs.length === 1
+              && serB.tabs[0].url === 'https://ser-c.example/';
+            const tmN = mkTM();
+            tmN.newTab();
+            const serN = tmN.serialize();
+            out.tmSerializeEmpty = serN.v === 1
+              && serN.active === 0
+              && serN.tabs.length === 0;
           }
           // URL-input request drives the whole keyboard wiring: setOnConfirm,
           // IME activate + ascii mode, composition prefill, show(), and the
@@ -1911,6 +1940,60 @@ async function main() {
                       && Math.abs(cs.currentVignette
                         - (vBefore + (expected - vBefore)
                           * cs.settings.vignette.smoothing)) < 1e-9;
+                    // Rotation alone is full-strength motion: the
+                    // (headMoving || isRotating) disjunct must chase the
+                    // vignette to full intensity on a pure yaw turn, while
+                    // isMoving stays false (rotation is not locomotion).
+                    cs.externalMotion = false;
+                    cs.externalMotionLevel = 1;
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // re-detect at rest
+                    const vRotBefore = cs.currentVignette;
+                    app.camera.rotation.y = camRotWas + 0.01;
+                    cs.update(0.016);
+                    const rotExpected = cs.settings.vignette.intensity;
+                    out.comfortRotation = cs.isRotating === true
+                      && cs.isMoving === false
+                      && Math.abs(cs.currentVignette
+                        - (vRotBefore + (rotExpected - vRotBefore)
+                          * cs.settings.vignette.smoothing)) < 1e-9;
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // settle rest
+                    // The 'disabled' preset drops the vignette gate — motion
+                    // still detects but the effect never engages; switching
+                    // back out MUST re-enable (the Object.assign merge arm —
+                    // omitting 'enabled' in a preset would strand a user who
+                    // went disabled -> sensitive with zero mitigation).
+                    cs.setPreset('disabled');
+                    const vDis = cs.currentVignette;
+                    app.camera.position.x = camPosWas.x + 0.05;
+                    cs.update(0.016);
+                    const disHeld = cs.currentVignette === vDis
+                      && cs.vignetteMaterial.opacity === vDis;
+                    app.camera.position.x = camPosWas.x;
+                    cs.update(0.016);
+                    cs.setPreset('sensitive');
+                    out.comfortDisabledGate = disHeld === true
+                      && cs.settings.vignette.enabled === true
+                      && cs.settings.vignette.intensity === 0.8
+                      && cs.settings.preset === 'sensitive';
+                    // dispose() tears the quad out of its camera parent and
+                    // releases the GL texture/material — fresh instance on a
+                    // stub camera so the app's own vignette survives.
+                    const CS2 = app.comfortSystem.constructor;
+                    const camStub = {
+                      children: [],
+                      add(c) { this.children.push(c); c.parent = this; },
+                      remove(c) {
+                        const ci = this.children.indexOf(c);
+                        if (ci >= 0) { this.children.splice(ci, 1); c.parent = null; }
+                      }
+                    };
+                    const cs2 = new CS2(camStub);
+                    const vm2 = cs2.vignetteMesh;
+                    cs2.dispose();
+                    out.comfortDispose = camStub.children.length === 0
+                      && vm2.parent === null;
                   } finally {
                     cs.externalMotion = false;
                     cs.externalMotionLevel = 1;
@@ -4863,6 +4946,9 @@ async function main() {
       tmRestoreSkip: iout.tmRestoreSkip === true,
       tmRestoreClamp: iout.tmRestoreClamp === true,
       tmRestoreActive: iout.tmRestoreActive === true,
+      tmSerializeReindex: iout.tmSerializeReindex === true,
+      tmSerializeBlankActive: iout.tmSerializeBlankActive === true,
+      tmSerializeEmpty: iout.tmSerializeEmpty === true,
       blockedAnnounced: (iout.alertBlocked || '').includes('Cannot open that address'),
       maxTabsAnnounced: (iout.alertMaxTabs || '').includes('Maximum tabs reached'),
       closeAnnounced: (iout.closeCaption || '').includes('Tab closed'),
@@ -5046,6 +5132,9 @@ async function main() {
       comfortCycles: iout.comfortCycles === true,
       comfortHeadMotion: iout.comfortHeadMotion === true,
       comfortExternalLevel: iout.comfortExternalLevel === true,
+      comfortRotation: iout.comfortRotation === true,
+      comfortDisabledGate: iout.comfortDisabledGate === true,
+      comfortDispose: iout.comfortDispose === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
       capAgingSweep: iout.capAgingSweep === true,
@@ -5259,6 +5348,9 @@ async function main() {
       ['malformed session entries skipped', !!inter.tmRestoreSkip],
       ['session restore clamps at MAX_TABS', !!inter.tmRestoreClamp],
       ['stale active index clamps to last tab', !!inter.tmRestoreActive],
+      ['serialize re-indexes active past blank tabs', !!inter.tmSerializeReindex],
+      ['blank active tab falls back to index 0', !!inter.tmSerializeBlankActive],
+      ['all-blank session serializes empty', !!inter.tmSerializeEmpty],
       ['private mode wrote + restored no tab session', !!inter.tabPrivateClean],
       ['blocked scheme announced via warn toast', !!inter.blockedAnnounced],
       ['tab close announced via caption status', !!inter.closeAnnounced],
@@ -5393,6 +5485,9 @@ async function main() {
       ['stick release disengages external motion', !!inter.smoothStops],
       ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
+      ['yaw rotation alone chases full intensity', !!inter.comfortRotation],
+      ['disabled preset gates + re-enable merges', !!inter.comfortDisabledGate],
+      ['dispose() unparents the vignette quad', !!inter.comfortDispose],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
       ['caption update() ages and removes lines', !!inter.capAgingSweep],
