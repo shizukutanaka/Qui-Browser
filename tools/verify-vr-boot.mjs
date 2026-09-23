@@ -1205,6 +1205,56 @@ async function main() {
                 out.smoothStops = cs && cs.externalMotion === false
                   && cs.externalMotionLevel === 0;
                 app.settings.enableSmoothMove = origSmooth;
+                // Comfort vignette internals — the quad, detectMotion and the
+                // externalMotionLevel scaling were never e2e-driven (only the
+                // setPreset live-apply and the externalMotion flags above).
+                if (cs) {
+                  const presetWas = cs.settings.preset;
+                  const camPosWas = app.camera.position.clone();
+                  const camRotWas = app.camera.rotation.y;
+                  try {
+                    cs.setPreset('moderate');
+                    // The glide pin above already ran real update() frames —
+                    // start from a known-zero vignette or the chase
+                    // arithmetic below is off by that residue.
+                    cs.currentVignette = 0;
+                    // Head motion past the 1mm threshold → full-strength
+                    // target: currentVignette chases intensity*1*smoothing.
+                    app.camera.position.x += 0.05;
+                    cs.update(0.016);
+                    out.comfortHeadMotion = cs._headMoving === true
+                      && cs.isMoving === true
+                      && Math.abs(cs.currentVignette
+                        - cs.settings.vignette.intensity
+                          * cs.settings.vignette.smoothing) < 1e-9
+                      && cs.vignetteMaterial.opacity === cs.currentVignette
+                      && cs.vignetteMesh.visible === true;
+                    // Settle at rest, then a 0.5-strength locomotion signal
+                    // must produce HALF the full-strength target — adaptive
+                    // FOV restriction (arXiv:2502.03419).
+                    app.camera.position.copy(camPosWas);
+                    app.camera.rotation.y = camRotWas;
+                    cs.update(0.016); // re-detect at rest
+                    cs.externalMotion = true;
+                    cs.externalMotionLevel = 0.5;
+                    const vBefore = cs.currentVignette;
+                    cs.update(0.016);
+                    const expected = cs.settings.vignette.intensity * 0.5;
+                    out.comfortExternalLevel = cs.isMoving === true
+                      && Math.abs(cs.currentVignette
+                        - (vBefore + (expected - vBefore)
+                          * cs.settings.vignette.smoothing)) < 1e-9;
+                  } finally {
+                    cs.externalMotion = false;
+                    cs.externalMotionLevel = 1;
+                    app.camera.position.copy(camPosWas);
+                    app.camera.rotation.y = camRotWas;
+                    cs.setPreset(presetWas);
+                    cs.currentVignette = 0;
+                    cs.vignetteMaterial.opacity = 0;
+                    cs.vignetteMesh.visible = false;
+                  }
+                }
                 // Pointer thumbstickClick → recenter: rig pose reset + caption.
                 app.playerRig.position.set(0.5, 0, 0.25);
                 rightSrc.gamepad.buttons[3].pressed = true;
@@ -3803,6 +3853,8 @@ async function main() {
       teleportGate: iout.teleportGate === true,
       comfortProbe: iout.comfortProbe === true,
       comfortCycles: iout.comfortCycles === true,
+      comfortHeadMotion: iout.comfortHeadMotion === true,
+      comfortExternalLevel: iout.comfortExternalLevel === true,
       a11yTabProbe: iout.a11yTabProbe === true,
       a11yTabOpen: iout.a11yTabOpen === true,
       gazeTimeApplied: iout.gazeTimeApplied === true,
@@ -4086,6 +4138,8 @@ async function main() {
       ['pointer faceA navigates forward + announces', !!inter.ptrFaceAFwd],
       ['left stick glides + feeds comfort vignette', !!inter.smoothMoves],
       ['stick release disengages external motion', !!inter.smoothStops],
+      ['head motion fades the vignette quad in', !!inter.comfortHeadMotion],
+      ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],

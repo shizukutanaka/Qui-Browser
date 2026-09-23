@@ -301,6 +301,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `_enableStereoLayers()` 切断 → vidStereoEyes+vidStereoRestore FAIL、`positionX.value` 切断 → audioSourcePosWrite FAIL、`refDistance` 書込切断 → audioSourceParams FAIL。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 274 checks PASS、verify:app PASS。
 
+### Session 197: 続き355 — ComfortSystem vignette の head-motion 検出 + externalMotionLevel スケーリングを e2e pin（#269 batch 14、274→276 checks）
+- 🔍 **実測（未駆動）**: vignette quad・`detectMotion`・`updateVignette` の chase 計算は一度も e2e 駆動されていなかった — pin されていたのは `externalMotion` フラグと `setPreset` live-apply のみ。head-delta 検出（1mm 閾値 → `isMoving` → vignette fade-in）と locomotion 強度比例ターゲット（adaptive FOV restriction, arXiv:2502.03419）は実測ゼロ。
+- 🔧 **ハーネス教訓**: chase 系 pin は **開始時に `currentVignette = 0` で正規化必須** — 先行の glide pin が実 `update()` フレームを走らせ vignette 残値を残しており、閉形式の期待値がずれて FAIL した（測定バグ）。
+- 🧪 赤検証: `detectMotion()` 切断 → 両 check FAIL（external pin も detect 経由のため想定 co-signal）、`externalMotionLevel` clamp → 1 切断 → `comfortExternalLevel` のみ FAIL。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 276 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
