@@ -2379,6 +2379,60 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // CaptionSystem internals — show() queues, update() sweeps
+              // expired lines, _durationFor scales hold by reading time
+              // (WCAG 2.2.1: 4 CPS fullwidth / 17 CPS halfwidth, 3x cap),
+              // and the disabled gate never queues (#231).
+              const capSys = app.captionSystem;
+              if (capSys && capSys.mesh) {
+                const capEnabledWas = capSys.enabled;
+                const capDurWas = capSys.lineDuration;
+                try {
+                  // Earlier legs stub captionSystem.show into a caption-log
+                  // spy (never queues _lines) — bind the prototype method
+                  // directly so the queue/sweep logic runs for real.
+                  const capShow = (t2) =>
+                    Object.getPrototypeOf(capSys).show.call(capSys, t2);
+                  capSys.clear(); capSys.setEnabled(true);
+                  // Aging sweep: line holds, partial dt subtracts, expiry
+                  // removes and flips mesh.visible off when queue empties.
+                  capShow('__cap_aging');
+                  const rem0 = capSys._lines[0].remaining;
+                  capSys.update(10);
+                  const remMid = capSys._lines[0] && capSys._lines[0].remaining;
+                  capSys.update(rem0);
+                  out.capAgingSweep = rem0 > 0 && remMid === rem0 - 10
+                    && capSys._lines.length === 0
+                    && capSys.mesh.visible === false;
+                  // Reading-time floor: 40 fullwidth chars needs ~10 s at
+                  // 4 CPS, far above a 2000ms floor but under the 3x cap.
+                  capSys.setLineDuration(2000);
+                  capShow('これはキャプションキューの読書時間を検証するための長い全角文字列です');
+                  const remJa = capSys._lines[0].remaining;
+                  capShow('ok');
+                  const remLat = capSys._lines[1].remaining;
+                  out.capReadingFloor = remJa > 2000 && remJa <= 6000
+                    && remLat === 2000;
+                  // Queue rules: maxLines shift drops oldest, disabled
+                  // show() queues nothing (#231), NFD normalises to NFC.
+                  capSys.setEnabled(true);
+                  ['q1','q2','q3','q4'].forEach((t2) => capShow(t2));
+                  const shiftOk = capSys._lines.length === capSys.maxLines
+                    && capSys._lines[0].text === 'q2';
+                  capSys.setEnabled(false);
+                  capShow('__hidden');
+                  const noQueue = capSys._lines.every((l) => l.text !== '__hidden');
+                  capSys.setEnabled(true);
+                  capShow('が'.normalize('NFD'));
+                  const nfc = capSys._lines[capSys._lines.length - 1].text
+                    === 'が'.normalize('NFC');
+                  out.capQueueRules = shiftOk && noQueue && nfc;
+                } finally {
+                  capSys.setLineDuration(capDurWas);
+                  capSys.setEnabled(capEnabledWas);
+                  capSys.clear();
+                }
+              }
               // ImmersiveVideo HUD leg — play() builds sphere meshes plus a
               // camera-parented HUD whose two canvas buttons are registered
               // interactables; the exit button's onSelect routes stop() which
@@ -3917,6 +3971,9 @@ async function main() {
       comfortExternalLevel: iout.comfortExternalLevel === true,
       ffrWritesClamp: iout.ffrWritesClamp === true,
       ffrHeadAdaptive: iout.ffrHeadAdaptive === true,
+      capAgingSweep: iout.capAgingSweep === true,
+      capReadingFloor: iout.capReadingFloor === true,
+      capQueueRules: iout.capQueueRules === true,
       a11yTabProbe: iout.a11yTabProbe === true,
       a11yTabOpen: iout.a11yTabOpen === true,
       gazeTimeApplied: iout.gazeTimeApplied === true,
@@ -4204,6 +4261,9 @@ async function main() {
       ['locomotion level scales the vignette target', !!inter.comfortExternalLevel],
       ['FFR enable/adjust clamp and reach the layer', !!inter.ffrWritesClamp],
       ['FFR head-velocity EMA adapts foveation', !!inter.ffrHeadAdaptive],
+      ['caption update() ages and removes lines', !!inter.capAgingSweep],
+      ['caption hold follows per-script reading time', !!inter.capReadingFloor],
+      ['caption queue trims, skips while off, NFC', !!inter.capQueueRules],
       ['thumbstick click recenters the rig', !!inter.stickRecenters],
       ['utility stick toggles the VR keyboard', !!inter.stickKeyboard],
       ['southpaw swaps turn hand to the left stick', !!inter.southpawSwaps],

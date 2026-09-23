@@ -313,6 +313,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `fixedFoveation` 書込切断 → 両 check FAIL（write 経路共有の想定 co-signal）、`predictedGazeEnabled = true` 切断 → `ffrHeadAdaptive` のみ FAIL（分離確認）。全 pin 有機全緑。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 278 checks PASS、verify:app PASS。
 
+### Session 199: 続き357 — CaptionSystem 内部（aging sweep・読書時間 floor・キュー規則）を e2e pin（#269 batch 16、278→281 checks）
+- 🔍 **実測（未駆動 3 面）**: ①`update(dtMs)` の in-place sweep（remaining 減算・expiry 除去・空時 mesh.visible 解除）— 既存 caption pin は announce 経路のみで実フレーム経時未駆動。②`_durationFor` の per-script 読書時間 floor（CPS 4 全角 / 17 半角、3× cap — WCAG 2.2.1, Netflix/broadcast 基準）。③`maxLines` shift・disabled `show()` no-queue（#231 fix、再発防止）・NFD→NFC 正規化。
+- 🔧 **ハーネス教訓**: 先の leg が `captionSystem.show` を caption-log spy に差替（実 `_lines` に積まない）— `Object.getPrototypeOf(capSys).show.call(capSys, ...)` で prototype 直 bind。`setEnabled(false)` は `clear()` も呼ぶため no-queue pin の順序は disable→show のみで有効。
+- 🧪 赤検証: `line.remaining -= dtMs` 切断 → capAgingSweep + capQueueRules FAIL（stale 行が残り noQueue 擬似緑になる co-signal 実測 — flat-return 単独切断で capReadingFloor のみ FAIL と分離確認）、`!enabled return` 切断 → capQueueRules のみ FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 281 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
