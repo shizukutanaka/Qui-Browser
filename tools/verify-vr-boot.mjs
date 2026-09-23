@@ -1311,6 +1311,46 @@ async function main() {
                   && Math.abs(app.playerRig.position.z - rigMz0) < 1e-9
                   && !capWrites.slice(capsTp0).some((t) => t.includes('Teleported'))
                   && !hapticPats.slice(patsTp0).includes('impact');
+                // A 'disconnected' event mid-aim runs
+                // _cancelTeleportIfAimedBy: the aim is reset WITHOUT a move —
+                // a headset-removal disconnect must never complete a
+                // teleport the user never released intentionally.
+                const rigDx0 = app.playerRig.position.x;
+                const rigDz0 = app.playerRig.position.z;
+                ctrl.matrixWorld.makeRotationX(-Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const aimDisc = app.teleport.active === true
+                  && app.teleport.valid === true;
+                ctrl.dispatchEvent({ type: 'disconnected' });
+                out.teleportCancelDisc = aimDisc
+                  && app.teleport.active === false
+                  && app.teleport.valid === false
+                  && !(app.teleport.marker && app.teleport.marker.visible === true)
+                  && Math.abs(app.playerRig.position.x - rigDx0) < 1e-9
+                  && Math.abs(app.playerRig.position.z - rigDz0) < 1e-9;
+                // Sibling disconnect does NOT cancel: only the controller
+                // currently aiming gets its aim torn down.
+                const other = app.controllers && app.controllers[1];
+                ctrl.dispatchEvent({ type: 'connected', data: { handedness: 'right' } });
+                ctrl.matrixWorld.makeRotationX(-Math.PI / 3);
+                ctrl.matrixWorld.setPosition(0, 1.4, 0);
+                ctrl.dispatchEvent({ type: 'squeezestart' });
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                const aimSib = app.teleport.active === true
+                  && app.teleport.valid === true;
+                if (other) {
+                  other.dispatchEvent({ type: 'disconnected' });
+                }
+                out.teleportSurvivesDisc = !!other && aimSib
+                  && app.teleport.active === true
+                  && app.teleport.valid === true
+                  && !!(app.teleport.marker && app.teleport.marker.visible === true);
+                ctrl.dispatchEvent({ type: 'squeezeend' });
+                if (other) {
+                  other.dispatchEvent({ type: 'connected', data: { handedness: 'left' } });
+                }
               } finally {
                 const ix = app.interactables.indexOf(selObj);
                 if (ix >= 0) {
@@ -1609,6 +1649,25 @@ async function main() {
                 out.grabEnds = wm.isGrabbing === false
                   && capWrites.some((t) => t.includes('Panel moved'))
                   && grabHaptic.includes('impact');
+                // selectend on the OTHER controller must not end the grab:
+                // onControllerSelect guards with controller === _grabController,
+                // so a stray release from the non-grabbing hand can't drop the
+                // window mid-drag.
+                const capsGrab0 = capWrites.length;
+                // Re-aim at the bar — the drag moved the controller away.
+                ctrl.matrixWorld.lookAt(cp, barPos, up);
+                ctrl.matrixWorld.setPosition(cp);
+                app.updateSystems(0, fakeXrFrame, 0.016);
+                ctrl.dispatchEvent({ type: 'selectstart' });
+                const regrabOk = wm.isGrabbing === true;
+                const otherG = app.controllers && app.controllers[1];
+                if (otherG) {
+                  otherG.dispatchEvent({ type: 'selectend' });
+                }
+                out.grabHeldWrongRelease = !!otherG && regrabOk
+                  && wm.isGrabbing === true
+                  && !capWrites.slice(capsGrab0).some((t) => t.includes('Panel moved'));
+                ctrl.dispatchEvent({ type: 'selectend' });
               } finally {
                 app.windowManager && wm.isGrabbing && wm.endGrab();
                 if (origGPlay) {
@@ -5300,6 +5359,8 @@ async function main() {
       teleportLands: iout.teleportLands === true,
       teleportHaptic: iout.teleportHaptic === true,
       teleportMiss: iout.teleportMiss === true,
+      teleportCancelDisc: iout.teleportCancelDisc === true,
+      teleportSurvivesDisc: iout.teleportSurvivesDisc === true,
       fanCore: iout.fanCore === true,
       fanUI: iout.fanUI === true,
       fanA11y: iout.fanA11y === true,
@@ -5312,6 +5373,7 @@ async function main() {
       grabStarts: iout.grabStarts === true,
       grabDrags: iout.grabDrags === true,
       grabEnds: iout.grabEnds === true,
+      grabHeldWrongRelease: iout.grabHeldWrongRelease === true,
       snapTurns: iout.snapTurns === true,
       snapLatch: iout.snapLatch === true,
       faceAAnnounces: iout.faceAAnnounces === true,
@@ -5698,6 +5760,8 @@ async function main() {
       ['squeezeend lands the rig with Teleported', !!inter.teleportLands],
       ['teleport landing pulses haptic impact', !!inter.teleportHaptic],
       ['invalid aim leaves rig unmoved + silent', !!inter.teleportMiss],
+      ['aiming-controller disconnect cancels teleport', !!inter.teleportCancelDisc],
+      ['sibling disconnect leaves teleport aim intact', !!inter.teleportSurvivesDisc],
       ['frame fan-out hits every live subsystem once', !!inter.fanCore],
       ['frame fan-out hits locomotion + buttons once', !!inter.fanUI],
       ['frame fan-out hits gaze + captions once', !!inter.fanA11y],
@@ -5710,6 +5774,7 @@ async function main() {
       ['select on move bar begins grab + announces', !!inter.grabStarts],
       ['grab drag tracks the controller ray', !!inter.grabDrags],
       ['selectend ends grab + announces moved', !!inter.grabEnds],
+      ['non-grabbing hand release cannot drop window', !!inter.grabHeldWrongRelease],
       ['right stick snaps -30° + Right caption + click', !!inter.snapTurns],
       ['held stick latches; re-push snaps again', !!inter.snapLatch],
       ['faceA with no forward history says so', !!inter.faceAAnnounces],
