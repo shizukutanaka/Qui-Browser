@@ -652,6 +652,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `trackEvent('session_backgrounded')` 切断 → monBgTrack FAIL、`trackVRSession('start')` 切断 → sessGtagStart FAIL、`interimResults` 書込切断 → voiceRecogOpts FAIL、`speak(confirmationText)` 切断 → voiceConfirmSpeak FAIL + voice announce 系 7 件 co-signal（同一行）、`isLocalhost` 切断 → navResolveMore FAIL。全 pin 有機全緑。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 498 checks PASS、verify:app PASS。
 
+### Session 254: 続き412 — batch 71 (5 pin、498→503 checks、#286 継続)
+- 🔍 **実測（未駆動 5 腕を e2e pin）**: ①`topSitesExclude` — `onTopSites` が `searchEngineHosts()` を exclude として渡し、ddg 結果ページが全実宛先を上回る visits を持っても slot を失う契約（voice `トップサイト` → `tab2.currentUrl` が real URL を pin）。②`imeConvertMore` — romaji table の digraph/particle 腕（shi/tsu/nn/wo/kyou）。③`bmFrecencyRank` — `search()` の frecency sort を公開面で検証（同 age で visits 5 倍・同 visits で fresh > stale）。④`bmReAddFront` — re-bookmark が unshift+dedupe で重複なく先頭へ（最新 title）。⑤`readerStripNoise` — `STRIP_ELEMENTS` の script/style/noscript が段落内に埋め込まれても reader lines に漏れない契約。
+- 🔧 **ハーネス教訓 3 件**: (a) `search('')` は bookmark 仮想 visit も返す — 以前 leg の残存 bookmark が混入して length assert が有機 FAIL → query を seed URL 共通断片 `'bm-r'` にして厳密 3 件化。(b) 段落外の `<script>` は block regex (`h1-6|p|li|…`) に載らず漏洩経路が存在しない — payload は `<p>` 内に埋め込むのが実機の漏洩パターン。(c) sibling の `戻る` 固定 URL assert を壊さないよう tab2.history/historyIdx/currentUrl をフィールド復元（navigate() で戻すと新 entry push で back-target が変わる）。
+- 🧪 赤検証: 4 ファイル同時切断で初回 4/5 FAIL、`readerStripNoise` は head 内 payload で不発 → p 内埋め込みに修正後 5/5 FAIL。残 3 co-signal 無し。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors（pre-existing 4 warnings）、build 緑、verify:vr-boot 503 checks PASS、verify:app PASS。commit `ca4ffce` push 済み。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
