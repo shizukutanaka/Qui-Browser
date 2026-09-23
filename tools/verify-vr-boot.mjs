@@ -3150,6 +3150,76 @@ async function main() {
                     app.vrKeyboard._onConfirmCallback = null;
                   }
                 }
+              // Batch 55 — the perf-monitor-UI vertical: the toggle's ON arm
+              // was pinned (perfUIApplied) but every consumer arm is undriven:
+              // render()'s beginFrame/endFrame wiring into the real metrics
+              // table, updateMetric's running min/max/avg, checkThresholds →
+              // addAlert with the 5s same-message dedup, sampleMetrics history
+              // push + 300-entry cap, and dispose()'s interval/DOM teardown.
+              if (app.perfMonitorUI && app.renderer) {
+                const pm9 = app.perfMonitorUI;
+                const tfWas9 = pm9.stats.totalFrames;
+                app.render(performance.now(), null);
+                out.perfUiRenderFrames = pm9.stats.totalFrames === tfWas9 + 1
+                  && pm9.lastFrameTime > 0
+                  && pm9.metrics.frameTime.current === pm9.lastFrameTime
+                  && pm9.metrics.drawCalls.current === app.renderer.info.render.calls
+                  && pm9.metrics.triangles.current === app.renderer.info.render.triangles;
+                const fm9 = pm9.metrics.frameTime;
+                fm9.current = 0; fm9.min = 999; fm9.max = 0; fm9.avg = 0; fm9.history = [];
+                pm9.updateMetric('frameTime', 10);
+                pm9.sampleMetrics();
+                pm9.updateMetric('frameTime', 30);
+                pm9.sampleMetrics();
+                const math9 = fm9.current === 30 && fm9.min === 10
+                  && fm9.max === 30 && fm9.avg === 20
+                  && fm9.history.length === 2 && fm9.history[0] === 10;
+                fm9.history = Array.from({ length: 300 }, () => 5);
+                pm9.sampleMetrics();
+                out.perfUiMetricMath = math9 && fm9.history.length === 300;
+                const agWas9 = pm9.stats.alertsGenerated;
+                const alertsWas9 = pm9.alerts.length;
+                // Isolate the thresholds being driven: the render frame above
+                // wrote a real fps/memory current that fires its own alerts.
+                pm9.metrics.fps.current = 0;
+                pm9.metrics.memory.current = 0;
+                try {
+                  pm9.updateMetric('frameTime', 50);
+                  pm9.checkThresholds();
+                  const crit9 = pm9.alerts.length === alertsWas9 + 1
+                    && pm9.alerts[0].level === 'critical'
+                    && pm9.alerts[0].message.indexOf('Frame time') >= 0
+                    && pm9.stats.alertsGenerated === agWas9 + 1;
+                  pm9.checkThresholds(); // same message in-window → count++
+                  const dedup9 = pm9.alerts.length === alertsWas9 + 1
+                    && pm9.alerts[0].count === 2
+                    && pm9.stats.alertsGenerated === agWas9 + 1;
+                  pm9.updateMetric('memory', 1900);
+                  pm9.checkThresholds();
+                  const mem9 = pm9.alerts.length === alertsWas9 + 2
+                    && pm9.alerts[0].level === 'critical';
+                  pm9.updateMetric('fps', 50);
+                  pm9.checkThresholds();
+                  const fps9 = pm9.alerts[0].message.indexOf('FPS dropped') >= 0;
+                  out.perfUiAlerts = crit9 && dedup9 && mem9 && fps9;
+                } finally {
+                  pm9.alerts = pm9.alerts.slice(0, alertsWas9);
+                  pm9.stats.alertsGenerated = agWas9;
+                }
+                const pm9b = new pm9.constructor();
+                pm9b.initialize();
+                const uiOk9 = !!pm9b.container
+                  && pm9b.container.parentNode === document.body;
+                pm9b.show();
+                const show9 = pm9b.visible === true
+                  && pm9b.container.style.display === 'block';
+                pm9b.hide();
+                const hide9 = pm9b.visible === false
+                  && pm9b.container.style.display === 'none';
+                pm9b.dispose();
+                out.perfUiDispose = uiOk9 && show9 && hide9
+                  && pm9b.container === null;
+              }
               // TextureManager internals leg — the display leg left
               // app.textureManager null, so re-enable the real toggle to
               // mint fresh instances off its class: cache-hit LRU recency,
@@ -6854,6 +6924,10 @@ async function main() {
       readerProxyFetch: iout.readerProxyFetch === true,
       readerDirectFetch: iout.readerDirectFetch === true,
       webPanelProxyRedraw: iout.webPanelProxyRedraw === true,
+      perfUiRenderFrames: iout.perfUiRenderFrames === true,
+      perfUiMetricMath: iout.perfUiMetricMath === true,
+      perfUiAlerts: iout.perfUiAlerts === true,
+      perfUiDispose: iout.perfUiDispose === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -7343,6 +7417,10 @@ async function main() {
       ['reader fetch routes through proxy base url', !!inter.readerProxyFetch],
       ['cleared proxy falls back to direct fetch', !!inter.readerDirectFetch],
       ['proxy setter dedupes + repaints only when unavailable', !!inter.webPanelProxyRedraw],
+      ['render loop writes real perf monitor metrics', !!inter.perfUiRenderFrames],
+      ['perf metric tracks running min max avg + cap', !!inter.perfUiMetricMath],
+      ['perf thresholds alert with 5s dedup', !!inter.perfUiAlerts],
+      ['perf monitor dispose detaches DOM + interval', !!inter.perfUiDispose],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
