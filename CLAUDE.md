@@ -496,6 +496,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 **赤検証**: `reduceQuality`/`increaseQuality` 呼出を `void` 化（三肢一括切断）→ `qualityGovernor` のみ FAIL、co-signal ゼロ。有機全緑（純粋カバレッジ）。
 - ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 379 checks PASS、verify:app PASS。
 
+### Session 228: 続き386 — panel-layer reconciler 実経路を e2e pin（#277 batch 45、379→384 checks）
+- 🔍 **実測（未駆動 3 関数）**: `_syncPanelLayers`/`_attachPanelLayer`/`_detachPanelLayer` — tab 変動ごとの reconcile（mid-session tab にも quad layer 付与・hidden panel skip・layered panel は再 attach しない・全 layered で no-op・detach は `removeLayer(id, session, baseLayer)` 経由）は headless で `getSession()→null` 早期 return のため未駆動だった（R142 は WebPanel 側のみ pin）。
+- 🔧 **ハーネス設計・教訓**: XR 境界のみ stub（`getSession`/`getReferenceSpace`/`getBaseLayer`/`createQuadLayer`/`updateRenderState`/`removeLayer`）+ fake panel を `app.tabManager.tabs` に push で実 reconcile を端到端駆動。**実 tab も unlayered なので全員 attach される** — `made` 総数ではなく「自分の panel への attach」を pin 対象に絞ること。赤検証下で callback 未登録の可能性がある呼出は `typeof === 'function'` でガード（TypeError → eval 死亡で後続全 legs 連鎖死を回避）。
+- 🧪 赤検証 2 run: ①visible-check + `removeLayer` 切断 → attach/hiddenSkip/stable/detach FAIL（idempotent は正しく残存）。②`!panel.quadLayer` guard + `updateRenderState` 切断 → idempotent + attach/hiddenSkip/stable FAIL（detach は正しく残存）。全 pin falsifiable を確認。
+- ✅ 3306 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 384 checks PASS、verify:app PASS。CI 未設定（0/0）。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。

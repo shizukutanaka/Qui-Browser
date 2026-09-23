@@ -4574,6 +4574,100 @@ async function main() {
                   app.scene.updateMatrixWorld(true);
                 }
               }
+              // Panel-layer reconciler — _syncPanelLayers runs after every
+              // tab-set mutation so a mid-session tab gets a quad layer too
+              // (attach used to run ONLY at session start). A hidden panel
+              // must be skipped — quad layers composite through the runtime
+              // regardless of mesh visibility (ghost chrome) — and an
+              // already-layered panel must not re-attach. _detachPanelLayer
+              // drops exactly one id back through removeLayer with the live
+              // session + base layer so the render state re-commits clean.
+              if (app.layersSystem && app.renderer && app.renderer.xr
+                && app.tabManager && app.tabManager.tabs) {
+                const xr2 = app.renderer.xr;
+                const ls2 = app.layersSystem;
+                const gsWas = xr2.getSession;
+                const grsWas = xr2.getReferenceSpace;
+                const gblWas = xr2.getBaseLayer;
+                const cqlWas = ls2.createQuadLayer;
+                const ursWas = ls2.updateRenderState;
+                const rlWas = ls2.removeLayer;
+                const mkPanel2 = (vis) => ({
+                  quadLayer: null,
+                  group: { visible: vis },
+                  enableLayerMode(q, l, id, cb) {
+                    this.quadLayer = q;
+                    this._layerId = id;
+                    this._detach = cb;
+                  }
+                });
+                const made2 = [];
+                const states2 = [];
+                const removed2 = [];
+                const fakeSess = {};
+                const pV2 = mkPanel2(true);
+                const pH2 = mkPanel2(false);
+                const pL2 = mkPanel2(true);
+                pL2.quadLayer = { already: true };
+                const tabsWas4 = app.tabManager.tabs.slice();
+                try {
+                  xr2.getSession = () => fakeSess;
+                  xr2.getReferenceSpace = () => 'fakeRef';
+                  xr2.getBaseLayer = () => 'fakeBase';
+                  ls2.createQuadLayer =
+                    (a2) => (made2.push(a2), { id: a2.id });
+                  ls2.updateRenderState = (s, b) => states2.push([s, b]);
+                  ls2.removeLayer = (id, s, b) => removed2.push([id, s, b]);
+                  app.tabManager.tabs.push(pV2, pH2, pL2);
+                  app._syncPanelLayers();
+                  // Real tabs are unlayered headless too — the pass also
+                  // attaches them; pin what pV2 received, not the count.
+                  const madeAtFirst = made2.length;
+                  const hidAtFirst = !pH2.quadLayer;
+                  out.panelLayerAttach = !!pV2.quadLayer
+                    && typeof pV2._layerId === 'string'
+                    && pV2._layerId.startsWith('panel_chrome_')
+                    && made2.some((a2) => a2.id === pV2._layerId)
+                    && made2.some((a2) => a2.space === 'fakeRef')
+                    && typeof pV2._detach === 'function'
+                    && states2.length === 1
+                    && states2[0][0] === fakeSess
+                    && states2[0][1] === 'fakeBase';
+                  out.panelLayerIdempotent = !pL2._layerId;
+                  // Hidden → skipped on the first pass; shown → attaches
+                  // on the next sync (no missed layer for a revealed tab).
+                  pH2.group.visible = true;
+                  app._syncPanelLayers();
+                  out.panelLayerHiddenSkip = hidAtFirst
+                    && !!pH2.quadLayer
+                    && made2.length === madeAtFirst + 1
+                    && states2.length === 2;
+                  // Third run with every panel layered: no attach, no
+                  // re-commit — a plain navigation save stays cheap.
+                  app._syncPanelLayers();
+                  out.panelLayerStable =
+                    made2.length === madeAtFirst + 1
+                    && states2.length === 2;
+                  // Detach callback routes the exact id to removeLayer
+                  // with the live session + base layer. Guarded: under a
+                  // red-verify cut the callback is never installed.
+                  if (typeof pV2._detach === 'function') {
+                    pV2._detach(pV2._layerId);
+                  }
+                  out.panelLayerDetach = removed2.length === 1
+                    && removed2[0][0] === pV2._layerId
+                    && removed2[0][1] === fakeSess
+                    && removed2[0][2] === 'fakeBase';
+                } finally {
+                  app.tabManager.tabs = tabsWas4;
+                  xr2.getSession = gsWas;
+                  xr2.getReferenceSpace = grsWas;
+                  xr2.getBaseLayer = gblWas;
+                  ls2.createQuadLayer = cqlWas;
+                  ls2.updateRenderState = ursWas;
+                  ls2.removeLayer = rlWas;
+                }
+              }
               // Follow-mode leg — the 'Follow' toggle applies
               // windowManager.setFollow, after which updateSystems' per-frame
               // windowManager.update lerps the managed root toward
@@ -5788,6 +5882,11 @@ async function main() {
       wpLayerResyncs: iout.wpLayerResyncs === true,
       wpLayerHiddenSkips: iout.wpLayerHiddenSkips === true,
       wpLayerRelease: iout.wpLayerRelease === true,
+      panelLayerAttach: iout.panelLayerAttach === true,
+      panelLayerIdempotent: iout.panelLayerIdempotent === true,
+      panelLayerHiddenSkip: iout.panelLayerHiddenSkip === true,
+      panelLayerStable: iout.panelLayerStable === true,
+      panelLayerDetach: iout.panelLayerDetach === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6209,6 +6308,11 @@ async function main() {
       ['clean frame re-poses layer without re-blit', !!inter.wpLayerResyncs],
       ['hidden panel skips layer pose + blit', !!inter.wpLayerHiddenSkips],
       ['layer release restores mesh + detaches', !!inter.wpLayerRelease],
+      ['mid-session tab gains a quad layer', !!inter.panelLayerAttach],
+      ['layered panel is not re-attached', !!inter.panelLayerIdempotent],
+      ['hidden panel skips layer until shown', !!inter.panelLayerHiddenSkip],
+      ['reconciler no-ops once all panels layered', !!inter.panelLayerStable],
+      ['panel layer detach drops exactly its id', !!inter.panelLayerDetach],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],
