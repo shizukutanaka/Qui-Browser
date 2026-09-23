@@ -2373,6 +2373,49 @@ async function main() {
                       iv._playPauseBtn.userData.setLabel = lbWas;
                     }
                   }
+                  // _reportError arms: a mid-stream error while playing must
+                  // reset playing=false, rewrite the HUD label to 'Play',
+                  // notify 'stopped', and fire onError (→ error toast) — and
+                  // an error BEFORE playback starts must stay a no-op
+                  // (onError fires, but nothing else moves).
+                  const errMsgs = [];
+                  const errWas = iv.onError;
+                  const lbCalls2 = [];
+                  const lbWas2 = iv._playPauseBtn
+                    ? iv._playPauseBtn.userData.setLabel : null;
+                  try {
+                    iv.onError = (m) => { errMsgs.push(m); };
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    if (iv._playPauseBtn) {
+                      iv._playPauseBtn.userData.setLabel =
+                        (l) => { lbCalls2.push(l); };
+                    }
+                    pbcState = null;
+                    iv.playing = true;
+                    iv._onVideoError();
+                    out.vidErrorResets = iv.playing === false
+                      && lbCalls2.length === 1
+                      && pbcState === 'stopped'
+                      && errMsgs.length === 1;
+                    // Pre-playback error: onError still surfaces, but the
+                    // playing-state contract stays untouched (no label
+                    // write, no 'stopped' notify — that would lie).
+                    lbCalls2.length = 0;
+                    errMsgs.length = 0;
+                    pbcState = null;
+                    iv.playing = false;
+                    iv._onVideoError();
+                    out.vidErrorQuiet = iv.playing === false
+                      && lbCalls2.length === 0
+                      && pbcState === null
+                      && errMsgs.length === 1;
+                  } finally {
+                    iv.onError = errWas;
+                    iv.onPlaybackChange = origPbc;
+                    if (iv._playPauseBtn && lbWas2) {
+                      iv._playPauseBtn.userData.setLabel = lbWas2;
+                    }
+                  }
                   iv.stop();
                   out.vidCycleClean = restarted
                     && iv.active === false
@@ -3689,6 +3732,8 @@ async function main() {
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
       vidPlayingListener: iout.vidPlayingListener === true,
+      vidErrorResets: iout.vidErrorResets === true,
+      vidErrorQuiet: iout.vidErrorQuiet === true,
       audioMasterGain: iout.audioMasterGain === true,
       audioLodSwitch: iout.audioLodSwitch === true,
       audioListenerPose: iout.audioListenerPose === true,
@@ -3991,6 +4036,8 @@ async function main() {
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
+      ['pre-playback video error stays quiet', !!inter.vidErrorQuiet],
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
       ['camera pose reaches the audio listener', !!inter.audioListenerPose],
