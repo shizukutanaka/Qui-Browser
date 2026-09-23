@@ -456,6 +456,63 @@ async function main() {
                 bpPanel._onSelect(hitPx(970, 40));
                 out.bpCloseZone = bpPanel.visible === false
                   && !!statusEl && statusEl.textContent !== '';
+                // Bookmarks-mode arms: _rows() switches to getBookmarks(),
+                // the delete zone routes to removeBookmark + onDeleteBookmark
+                // (not history's), scrollOffset never passes the last full
+                // window, and a shrinking list clamps it back so the window
+                // never shows a blank page. XR controllers also deliver the
+                // intersection record ({intersection:{point}}) rather than a
+                // bare Vector3 — the ?? arm accepts either form.
+                const bmSeeded = [];
+                for (let k = 0; k < 11; k++) {
+                  const bu = 'https://bp-bm-' + k + '.example/';
+                  app.bookmarks.addBookmark(bu, 'Bm ' + k);
+                  bmSeeded.push(bu);
+                }
+                const delBmCalls = [];
+                const origDelBmCb = bpPanel.onDeleteBookmark;
+                bpPanel.onDeleteBookmark = (u) => {
+                  delBmCalls.push(u);
+                  if (origDelBmCb) { origDelBmCb(u); }
+                };
+                try {
+                  bpPanel.show();
+                  bpPanel.setMode('bookmarks');
+                  bpPanel._onSelect({ intersection: { point: hitPx(330, 40) } });
+                  out.bpIntersectionArm = bpPanel.mode === 'history';
+                  bpPanel.setMode('bookmarks');
+                  const bmCount = bpPanel._rows()
+                    .filter((r) => (r.url || '').indexOf('bp-bm-') >= 0).length;
+                  const cur3 = app.tabManager.getActiveTab()
+                    && app.tabManager.getActiveTab().currentUrl;
+                  bpPanel._onSelect(hitPx(400, 96 + 36));
+                  const act3 = app.tabManager.getActiveTab();
+                  out.bpBookmarkRows = bmCount === 11
+                    && bpPanel.visible === false
+                    && !!act3 && act3.currentUrl !== cur3
+                    && (act3.currentUrl || '').indexOf('bp-bm-') >= 0;
+                  bpPanel.show();
+                  bpPanel.setMode('bookmarks');
+                  const bmBefore = bpPanel._rows().length;
+                  bpPanel._onSelect(hitPx(990, 96 + 36));
+                  out.bpDeleteBookmarkArm = bpPanel._rows().length === bmBefore - 1
+                    && delBmCalls.length === 1
+                    && (delBmCalls[0] || '').indexOf('bp-bm-') >= 0;
+                  bpPanel.setMode('history');
+                  for (let k = 0; k < 6; k++) { bpPanel._onSelect(hitPx(740, 40)); }
+                  out.bpScrollMaxClamp = bpPanel.scrollOffset
+                    === Math.max(0, bpPanel._rows().length - 9);
+                  for (let k = 0; k < 20
+                    && bpPanel.scrollOffset > 0
+                    && bpPanel._rows().length > 2; k++) {
+                    bpPanel._onSelect(hitPx(990, 96 + 36));
+                  }
+                  out.bpClampOnDelete = bpPanel.scrollOffset === 0
+                    && bpPanel._rows().length <= 9;
+                } finally {
+                  bpPanel.onDeleteBookmark = origDelBmCb;
+                  bmSeeded.forEach((u2) => app.bookmarks.removeBookmark(u2));
+                }
               } finally {
                 bpPanel.setMode(modeWas);
                 bpPanel.scrollOffset = scrollWas;
@@ -4044,6 +4101,11 @@ async function main() {
       bpRowNavigates: iout.bpRowNavigates === true,
       bpRowDeletes: iout.bpRowDeletes === true,
       bpCloseZone: iout.bpCloseZone === true,
+      bpIntersectionArm: iout.bpIntersectionArm === true,
+      bpBookmarkRows: iout.bpBookmarkRows === true,
+      bpDeleteBookmarkArm: iout.bpDeleteBookmarkArm === true,
+      bpScrollMaxClamp: iout.bpScrollMaxClamp === true,
+      bpClampOnDelete: iout.bpClampOnDelete === true,
       bpHoverCap: (iout.bpHoverCap || '').includes('Bookmarks panel'),
       videoPrompt: (iout.videoPrompt || '').includes('Enter video URL'),
       videoActive: iout.videoActive === true,
@@ -4386,6 +4448,11 @@ async function main() {
       ['panel row select navigates + hides', !!inter.bpRowNavigates],
       ['panel delete zone removes the entry', !!inter.bpRowDeletes],
       ['panel close zone hides + announces', !!inter.bpCloseZone],
+      ['panel accepts {intersection:{point}} events', !!inter.bpIntersectionArm],
+      ['panel bookmarks-mode rows navigate', !!inter.bpBookmarkRows],
+      ['panel bookmarks delete routes removeBookmark', !!inter.bpDeleteBookmarkArm],
+      ['panel scroll clamps at last full window', !!inter.bpScrollMaxClamp],
+      ['panel delete shrinks list clamps offset', !!inter.bpClampOnDelete],
       ['panel hover announced via caption (gaze gate)', !!inter.bpHoverCap],
       ['video prompt announced via caption', !!inter.videoPrompt],
       ['immersive video built spheres + HUD', !!inter.videoActive],

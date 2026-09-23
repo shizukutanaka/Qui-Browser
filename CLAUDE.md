@@ -343,6 +343,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `_onSelect` 4 腕同時切断 → `bpPanelZones`/`bpRowNavigates`/`bpRowDeletes`/`bpCloseZone` FAIL + 同一腕の既存 sibling pin 4 件も co-FAIL（想定 co-signal）。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 289 checks PASS、verify:app PASS。
 
+### Session 204: 続き362 — BookmarkPanel bookmarks モード残腕 + スクロール clamp 境界を e2e pin（#270 batch 21、289→294 checks）
+- 🔍 **実測（未駆動 5 腕）**: ①`_onSelect` の `evt?.intersection?.point ?? evt` は常に裸 Vector3 で駆動 — XR controller/gaze が実際に渡す `{intersection:{point}}` レコード形は未駆動。②bookmarks モードの `_rows()→getBookmarks()` と行 select→navigate も未駆動（history 側のみ）。③delete ゾーンの `deleteMethod` ルーティングは `removeBookmark`/`onDeleteBookmark` 経路が未駆動（bpDelBmCap は callback を直接呼んでいただけ）。④scrollDown の上端 clamp（`max(0, rows-VISIBLE)` で止まる）と ⑤削除で縮んだリストへの `_clampScroll` 追従（offset 引き戻し — stale offset が空窓を切る設計文書化済みの防御）も未駆動。
+- 🔧 **ハーネス設計**: bp leg try 内に第 2 サブブロックを追加 — bookmarks シード 11 件（`addBookmark` は unshift で最新が index 0 → 行 hit 決定的）、`onDeleteBookmark` を計数 wrapper で包み finally 復元、削除ループは `for (k<20 && offset>0 && rows>2)` の **bounded** 形 — store 呼出切断時 offset/rows が不変で `while` だと無限ループになる（red 検証カットがハングを起こす地雷を事前回避）。6 回 scrollDown で `offset===max(0, rows-9)` を計算値で pin。
+- 🧪 赤検証: intersection 腕・`_rows` bookmarks 腕・store 呼出・scrollDown インクリメント・post-delete `_clampScroll` の 5 腕同時切断 → 新 5 check 全 FAIL + 同面既存 pin 7 件も co-FAIL（bpPanelZones/bpRowDeletes + session 内 sibling 4 件 — 想定 co-signal）。復元後全緑。全 pin 有機全緑（純粋カバレッジ）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 294 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
