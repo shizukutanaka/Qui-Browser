@@ -3101,11 +3101,20 @@ export class VRApp {
       };
       Object.defineProperty(vrButton, 'onclick', {
         configurable: true,
-        get() { return guardedClick; },
+        get() {
+          return guardedClick;
+        },
         set() {
           // Swallow three's async onclick assignment — guardedClick wins.
         }
       });
+      // The defineProperty above only controls what `el.onclick` READS: the
+      // DOM click-dispatch path consults the element's internal event-handler
+      // slot (set by the real onclick setter / addEventListener), which the
+      // swallowed assignment never touches — so a synthetic or real .click()
+      // would hit an empty handler. Register the guarded handler on the
+      // actual dispatch path too.
+      vrButton.addEventListener('click', guardedClick);
     }
 
     // Wire the landing-page "Enter VR" buttons (which dispatch a global

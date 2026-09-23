@@ -5841,8 +5841,27 @@ async function main() {
                 fakeXrFrame.fillJointRadii = oFR2;
               }
             }
+            // Panel detach on session end passes releaseLayer=false — a
+            // real re-commit against an ending session throws, so the loop
+            // must release nothing (LayersSystem.dispose clears the stack).
+            const detachArgs = [];
+            const tabSpies = (app.tabManager ? app.tabManager.tabs : [])
+              .map((p) => {
+                const was = p.disableLayerMode;
+                p.disableLayerMode = (a) => {
+                  detachArgs.push(a);
+                  return was.call(p, a);
+                };
+                return [p, was];
+              });
+            const lsWas6 = app.layersSystem;
+            let lsDisposeCalls6 = 0;
+            app.layersSystem = { dispose: () => { lsDisposeCalls6 += 1; } };
             // End through the real 'sessionend' listener too.
             app.renderer.xr.dispatchEvent({ type: 'sessionend' });
+            out.sessPanelDetach = lsDisposeCalls6 === 1 && detachArgs.length > 0
+              && detachArgs.every((a) => a === false);
+            tabSpies.forEach(([p, was]) => { p.disableLayerMode = was; });
             out.sessEnded = app.isVREnabled === false;
             out.sessIvStopped = stopCalls >= 1;
             out.sessHandOff = !(app.handTracking && app.handTracking.enabled === true);
@@ -5978,6 +5997,45 @@ async function main() {
               btn4.onclick();
               await new Promise((r) => setTimeout(r, 20));
               out.vrBtnErrorToast = toasts4.some((x) => x[1] === 'error');
+              // NotSupportedError retry: a runtime granting only the required
+              // 'local' space fails setSession at requestReferenceSpace — the
+              // app degrades the reference-space type and retries instead of
+              // losing the whole session.
+              const srsWas4 = xr4.setReferenceSpaceType;
+              const refTypes4 = [];
+              let attempts4 = 0;
+              xr4.setReferenceSpaceType = (t3) => { refTypes4.push(t3); };
+              xr4.setSession = () => {
+                attempts4 += 1;
+                return attempts4 === 1
+                  ? Promise.reject(new DOMException('no local-floor', 'NotSupportedError'))
+                  : Promise.resolve();
+              };
+              Object.defineProperty(navigator, 'xr', { configurable: true, value: {
+                requestSession: () => Promise.resolve(fakeSess4)
+              }});
+              btn4.onclick();
+              await new Promise((r) => setTimeout(r, 0));
+              out.vrBtnRetryLocal = attempts4 === 2 && refTypes4.length === 1
+                && refTypes4[0] === 'local' && btn4.textContent === 'EXIT VR';
+              // A NON-NotSupportedError failure must NOT degrade the space —
+              // it surfaces the error toast instead.
+              const errToastsBefore = toasts4.length;
+              let attempts5 = 0;
+              xr4.setSession = () => {
+                attempts5 += 1;
+                return Promise.reject(new Error('boom'));
+              };
+              btn4.onclick();
+              await new Promise((r) => setTimeout(r, 20));
+              out.vrBtnRetryOnlyNS = attempts5 === 1 && refTypes4.length === 1
+                && toasts4.length === errToastsBefore + 1;
+              xr4.setSession = () => { sessSetCalls4++; return Promise.resolve(); };
+              if (srsWas4) {
+                xr4.setReferenceSpaceType = srsWas4;
+              } else {
+                delete xr4.setReferenceSpaceType;
+              }
             }
           } finally {
             console.error = ceWas4;
@@ -6026,6 +6084,79 @@ async function main() {
               vkWas4._onConfirmCallback('https://prefill-confirm.example/');
             }
             vkWas4.hide();
+          }
+        }
+        // ==== batch 50: 'enter-vr' listener → guarded click; showVRToast's
+        // real timer/mesh lifecycle (2D announce is pinned separately —
+        // isVREnabled is toggled here so the VR arm runs its full body). ====
+        {
+          const xr5 = app.renderer && app.renderer.xr;
+          const calls5 = [];
+          const origXR5 = navigator.xr;
+          let resolve5 = null;
+          const fakeSess5 = {
+            listeners: {},
+            addEventListener(t2, cb) { this.listeners[t2] = cb; },
+            removeEventListener(t2) { delete this.listeners[t2]; },
+            end() { return Promise.resolve(); }
+          };
+          try {
+            if (xr5) {
+              xr5.getSession = () => null;
+              xr5.setSession = () => Promise.resolve();
+              Object.defineProperty(navigator, 'xr', { configurable: true, value: {
+                requestSession: () => {
+                  calls5.push('req');
+                  return new Promise((res) => { resolve5 = res; });
+                }
+              }});
+              // DOM .click() → onclick (guarded) → requestSession: the e2e
+              // hop the R150 defineProperty install made real.
+              app.vrButton.onclick();
+              const directReach = calls5.length === 1;
+              if (resolve5) {
+                resolve5(fakeSess5);
+                await new Promise((r) => setTimeout(r, 0));
+              }
+              app.vrButton.click();
+              const clickReach = calls5.length === 2;
+              // 'enter-vr' listener → vrButton.click(): stub the DOM method
+              // so the listener hop is observable independent of dedup.
+              let stubCalls5 = 0;
+              app.vrButton.click = () => { stubCalls5 += 1; };
+              window.dispatchEvent(new Event('enter-vr'));
+              delete app.vrButton.click;
+              out.enterVRClick = directReach && clickReach && stubCalls5 === 1;
+              // Drain the pending request so the guarded handler's
+              // pendingRequest closure is clear for later legs.
+              if (resolve5) {
+                resolve5(fakeSess5);
+                await new Promise((r) => setTimeout(r, 0));
+              }
+            }
+          } finally {
+            Object.defineProperty(navigator, 'xr', { configurable: true, value: origXR5 });
+            if (xr5) {
+              delete xr5.getSession;
+              delete xr5.setSession;
+            }
+          }
+          const vrWas5 = app.isVREnabled;
+          const beforeMesh5 = new Set(app.camera.children);
+          const beforeTim5 = new Set(app._toastTimers);
+          try {
+            app.isVREnabled = true;
+            app.showVRToast('harness-toast-timer', { type: 'info', duration: 20 });
+            const newMesh5 = app.camera.children.filter((c) => !beforeMesh5.has(c));
+            const newTim5 = [...app._toastTimers].filter((t) => !beforeTim5.has(t));
+            const added = newMesh5.length === 1 && newMesh5[0].renderOrder === 999
+              && newTim5.length === 1;
+            await new Promise((r) => setTimeout(r, 60));
+            out.toastLifecycle = added
+              && !app._toastTimers.has(newTim5[0])
+              && !app.camera.children.includes(newMesh5[0]);
+          } finally {
+            app.isVREnabled = vrWas5;
           }
         }
         // ==== batch 47: dispose() teardown contract — runs LAST inside the
@@ -6381,6 +6512,11 @@ async function main() {
       kbFallbackConfirm: iout.kbFallbackConfirm === true,
       kbFallbackCancel: iout.kbFallbackCancel === true,
       kbPrefillBlank: iout.kbPrefillBlank === true,
+      vrBtnRetryLocal: iout.vrBtnRetryLocal === true,
+      vrBtnRetryOnlyNS: iout.vrBtnRetryOnlyNS === true,
+      enterVRClick: iout.enterVRClick === true,
+      toastLifecycle: iout.toastLifecycle === true,
+      sessPanelDetach: iout.sessPanelDetach === true,
       texCacheHit: iout.texCacheHit === true,
       texPendingDedup: iout.texPendingDedup === true,
       texRecacheExact: iout.texRecacheExact === true,
@@ -6843,6 +6979,11 @@ async function main() {
       ['keyboard-less fallback confirms via prompt', !!inter.kbFallbackConfirm],
       ['cancelled prompt never confirms', !!inter.kbFallbackCancel],
       ['URL input activates IME + stores confirm', !!inter.kbPrefillBlank],
+      ['local-floor failure degrades space and retries', !!inter.vrBtnRetryLocal],
+      ['non-NotSupportedError skips the space retry', !!inter.vrBtnRetryOnlyNS],
+      ['enter-vr event reaches the guarded VR button', !!inter.enterVRClick],
+      ['toast adds mesh + timer and both expire', !!inter.toastLifecycle],
+      ['session end detaches panel layers without recommit', !!inter.sessPanelDetach],
       ['texture cache hit reuses texture + bumps hits', !!inter.texCacheHit],
       ['in-flight texture loads share one promise', !!inter.texPendingDedup],
       ['re-caching a URL keeps accounting exact', !!inter.texRecacheExact],

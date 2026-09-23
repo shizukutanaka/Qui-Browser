@@ -674,7 +674,7 @@ describe('setupVR — button/session/visibility wiring', () => {
     const xrListeners = {};
     const clicked = jest.fn();
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
-    const createButton = jest.fn(() => ({ click: clicked }));
+    const createButton = jest.fn(() => ({ click: clicked, addEventListener: jest.fn() }));
     VRButton.createButton = createButton;
     const app = makeInitLike();
     app.renderer = { xr: { addEventListener: (t, fn) => {
@@ -726,7 +726,7 @@ describe('setupVR — button/session/visibility wiring', () => {
     const { VRButton } = require('three/examples/jsm/webxr/VRButton.js');
     const button = { click() {
       this.onclick?.();
-    }, onclick() {}, textContent: '' };
+    }, onclick() {}, textContent: '', addEventListener() {} };
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
     app.renderer = {
@@ -793,7 +793,7 @@ describe('setupVR — button/session/visibility wiring', () => {
       click() {
         this.onclick?.();
       },
-      onclick() {}, textContent: ''
+      onclick() {}, textContent: '', addEventListener() {}
     };
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
@@ -832,7 +832,7 @@ describe('setupVR — button/session/visibility wiring', () => {
       click() {
         this.onclick?.();
       },
-      onclick() {}, textContent: ''
+      onclick() {}, textContent: '', addEventListener() {}
     };
     VRButton.createButton = jest.fn(() => button);
     const app = makeInitLike();
