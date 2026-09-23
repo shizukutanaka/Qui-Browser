@@ -355,6 +355,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🧪 赤検証: `onEnterVR`/`onExitVR` body 切断・`onHoverCaption` 呼出切断・`removeEventListener` ブロック切断の 4 腕同時切断 → 新 4 check のみ FAIL（co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ）。
 - ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 298 checks PASS、verify:app PASS。
 
+### Session 206: 続き364 — dispose() 破棄契約（closeTab→unregister/detach/geometry event/reader abort + BookmarkPanel/SpatialAudio teardown）を e2e pin（#270 batch 23、298→302 checks）
+- 🔍 **実測（未駆動 4 腕）**: ①`tm.closeTab` → `panel.dispose()` は chromeMesh/moveBarMesh/contentMesh の 3 interactable 解除 + `group.parent` 切断 + traverse geometry/material 'dispose' event + tabs 縮小 — sessEnded のみが部分的カバーで per-panel teardown 未観測。②`_readerController.abort()+null` + `_readerSeq++`（in-flight reader fetch の resolution が破棄 panel に callback しない契約）。③BookmarkPanel.dispose（mesh unregister + group scene-remove + geo/material/tex dispose + canvas null）。④SpatialAudio.dispose（全 source stop→`sources.clear`/`buffers.clear`/LOD stats reset/`context.close()`）。
+- 🔧 **ハーネス教訓**: **dispose pin は app 本体を殺さないこと** — `app.spatialAudio.dispose()` すると 3800 行台の後続 audio legs が全滅。fresh instance を `app.X.constructor` で mint して破棄する（BookmarkPanel/SpatialAudio 両方に適用）。2 つ目： **vacuous pin 注意** — BookmarkPanel の mesh 登録は constructor ではなく `addToScene()` 内なので、初期版は `!interactables.includes(mesh)` が登録前から真で赤検証をすり抜けた — `wasRegistered === true` を pin 条件に含めて解消（赤検証が初回でこの測定バグを捕捉）。
+- 🧪 赤検証: `panel.dispose()`・`_readerController.abort()`・`unregisterInteractable(mesh)`・`sources.clear()` の 4 腕同時切断 → 新 4 check のみ FAIL（'tab close announced' 等 sibling は健在、co-signal ゼロ）。全 pin 有機全緑（純粋カバレッジ — 実欠陥なし）。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 302 checks PASS、verify:app PASS。
+
 ### Session 187: 続き345 — haptic actuator 実経路 + SpatialAudio listener/LOD を e2e pin（#263、249→253 checks）
 - 🔍 **実測（未駆動 2 面）**: ①全 haptic pin は `playPattern` 呼出 spy 止まりで `update(inputSources)`→`gamepad.hapticActuators[].pulse` の実配線は未駆動（全偽 gamepad が actuator 無し → pulse 恒常 no-op — モジュール docstring が警告する失敗モードそのもの）。②`updateListenerFromCamera` の listener positionX 実書込と `hrtfThreshold` 跨ぎの `panningModel` 遷移も未駆動。
 - 🔧 **発見した harness 状態バグ（app バグではない）**: a11y leg は `updateSetting`（persist のみ — apply は mesh onSelect 内、Session 178 教訓）で復元するため 'Haptics' トグル後 `hapticFeedback.enabled=false` が残留 — 以降の全 haptic pin が spy 止まりで誰も気づかなかった。`finally` で `setEnabled(a11yWas.enableHaptics)` を併せて復元。
