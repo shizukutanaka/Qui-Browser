@@ -3393,6 +3393,37 @@ async function main() {
                   sa.setMasterVolume(masterWas);
                   out.audioMasterGain = !!lod.gain
                     && Math.abs(gainSeen - lod.volume * 0.4) < 1e-9;
+                  // updateAllLOD aggregates per-tier source counts into
+                  // stats — the bookkeeping itself was never observed
+                  // (only the panner-model flip was pinned above).
+                  const h0 = sa.stats.hrtfSources;
+                  const e0 = sa.stats.equalPowerSources;
+                  sa.setSourcePosition('__lod', lp.x, lp.y, lp.z - 30);
+                  sa.updateAllLOD();
+                  const farStats = sa.stats.hrtfSources === h0 - 1
+                    && sa.stats.equalPowerSources === e0 + 1;
+                  sa.setSourcePosition('__lod', lp.x, lp.y, lp.z - 1);
+                  sa.updateAllLOD();
+                  out.audioLodStats = farStats
+                    && sa.stats.hrtfSources === h0
+                    && sa.stats.equalPowerSources === e0;
+                  // setListenerOrientation: the forward/up AudioParam writes
+                  // were undriven — audioListenerPose only pins positionX.
+                  // Rotate the camera to a fresh orientation first: with the
+                  // pose unchanged a dropped param write leaves a matching
+                  // stale value and the pin can't detect it.
+                  const rotYWas = app.camera.rotation.y;
+                  app.camera.rotation.y = rotYWas + Math.PI / 3;
+                  app.camera.updateMatrixWorld(true);
+                  sa.updateListenerFromCamera(app.camera);
+                  const ef = V3h(0, 0, -1).applyQuaternion(sa._camQuat);
+                  const eu = V3h(0, 1, 0).applyQuaternion(sa._camQuat);
+                  out.audioListenerOrient = sa.listener.forwardX === undefined
+                    || (Math.abs(sa.listener.forwardX.value - ef.x) < 1e-6
+                      && Math.abs(sa.listener.forwardZ.value - ef.z) < 1e-6
+                      && Math.abs(sa.listener.upY.value - eu.y) < 1e-6);
+                  app.camera.rotation.y = rotYWas;
+                  app.camera.updateMatrixWorld(true);
                   sa.sources.delete('__lod');
                 }
 
@@ -3836,6 +3867,8 @@ async function main() {
       vidErrorResets: iout.vidErrorResets === true,
       vidErrorQuiet: iout.vidErrorQuiet === true,
       audioMasterGain: iout.audioMasterGain === true,
+      audioLodStats: iout.audioLodStats === true,
+      audioListenerOrient: iout.audioListenerOrient === true,
       audioLoadFetch: iout.audioLoadFetch === true,
       audioLoopSource: iout.audioLoopSource === true,
       audioLodSwitch: iout.audioLodSwitch === true,
@@ -4144,6 +4177,8 @@ async function main() {
       ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
       ['pre-playback video error stays quiet', !!inter.vidErrorQuiet],
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
+      ['LOD tier counts aggregate into stats', !!inter.audioLodStats],
+      ['listener orientation reaches the AudioListener', !!inter.audioListenerOrient],
       ['loadAudio fetches decodes and caches the buffer', !!inter.audioLoadFetch],
       ['loop and playbackRate reach the buffer source', !!inter.audioLoopSource],
       ['listener move re-tiers source panning model', !!inter.audioLodSwitch],
