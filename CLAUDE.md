@@ -247,6 +247,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 193: 続き351 — ImmersiveVideo 頭追従 update() + togglePause resume 腕を e2e pin（#266 batch 10、264→266 checks）
+- 🔍 **実測（未駆動 2 腕）**: ①`update()` は `camera.getWorldPosition` → 全 mesh `position.copy` の per-frame 頭追従だが fan pin は呼出回数のみで実 copy 未観測。②`togglePause` の `video.paused`→`video.play()` resume 腕（state は 'playing' リスナへ委譲で一切変更しない設計）も未駆動。
+- 🔧 **ハーネス教訓**: leg 外の helper（`V3h` は audio leg で後から定義）は前の leg で ReferenceError → eval 途中で死亡し後続全 legs が一括 FAIL — 'session leg threw' が stdout に出るのでそれを grep する診断手順。`update()` が `this._tmpVec` に camera 座標を残すので流用可能（新 helper 不要）。
+- 🧪 赤検証: `position.copy` 切断 → `vidHeadFollow` FAIL、`video.play()` 切断 → `vidResumePlays` FAIL。全 pin 有機全緑。
+- ✅ 3302 tests / 74 suites 全緑、lint 0 errors、build 緑、verify:vr-boot 266 checks PASS、verify:app PASS。
+
 ### Session 192: 続き350 — video _reportError 双腕（再生中復元/未再生 no-op）を e2e pin（#266 batch 9、262→264 checks）
 - 🔍 **実測（未駆動）**: `_reportError` は `if (this.playing)` で二腕に分岐 — 再生中エラーは `playing=false` + label 'Play' 復元 + 'stopped' notify + `onError`(→error toast)、未再生エラーは `onError` のみで state 不変の設計だがどちらも未駆動（実 video element の非同期 'error' イベントも未観測）。
 - 🔧 **ハーネス教訓**: 実 video element は fake URL で非同期 'error' を発火する — pin とは無関係のタイミングで `_onVideoError` が走るため pbcState を上書きし得る（赤検証で確認: `if(this.playing)`→`if(true)` にすると pause leg の pbcState='paused' が 'stopped' に上書きされ `vidPauseToggles` も co-FAIL — ガードの ordering 意味が実測で出た）。onError/onPlaybackChange 両 spy を try/finally で覆い後処理で復元。

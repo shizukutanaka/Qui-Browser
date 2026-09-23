@@ -2373,6 +2373,63 @@ async function main() {
                       iv._playPauseBtn.userData.setLabel = lbWas;
                     }
                   }
+                  // update() head-follow arm: the per-frame call (wired in
+                  // updateSystems) copies the camera world position into
+                  // every video mesh — the fan pin only counted the call,
+                  // the actual head-tracking copy was never observed. Move
+                  // the rig, run one real update(), compare world positions.
+                  const rigWas2 = app.camera.parent
+                    ? app.camera.parent.position.clone() : null;
+                  try {
+                    if (app.camera.parent) {
+                      app.camera.parent.position.set(7.25, 1.6, -3.5);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                    iv.update();
+                    // update() leaves the camera world position in _tmpVec.
+                    const camW2 = iv._tmpVec;
+                    out.vidHeadFollow = iv.meshes.length > 0
+                      && iv.meshes.every((m) =>
+                        Math.abs(m.position.x - camW2.x) < 1e-9
+                        && Math.abs(m.position.y - camW2.y) < 1e-9
+                        && Math.abs(m.position.z - camW2.z) < 1e-9);
+                  } finally {
+                    if (app.camera.parent && rigWas2) {
+                      app.camera.parent.position.copy(rigWas2);
+                      app.scene.updateMatrixWorld(true);
+                    }
+                  }
+                  // togglePause resume arm: video.paused → video.play() is
+                  // invoked and (deliberately) nothing else mutates — the
+                  // 'playing' listener owns the state flip.
+                  let playCalls2 = 0;
+                  try {
+                    iv.video = {
+                      paused: true,
+                      pause: () => {},
+                      play: () => { playCalls2++; return Promise.resolve(); }
+                    };
+                    iv.playing = false;
+                    pbcState = null;
+                    iv.onPlaybackChange = (st) => { pbcState = st; };
+                    const tpWas3 = iv.togglePause;
+                    iv.togglePause = Object.getPrototypeOf(iv).togglePause;
+                    try {
+                      if (pauseBtn) {
+                        selectCenter6(pauseBtn);
+                        await new Promise((r) => setTimeout(r, 20));
+                      }
+                    } finally {
+                      iv.togglePause = tpWas3;
+                    }
+                    out.vidResumePlays = !!pauseBtn
+                      && playCalls2 === 1
+                      && pbcState === null
+                      && iv.playing === false;
+                  } finally {
+                    iv.video = vidWas;
+                    iv.onPlaybackChange = origPbc;
+                  }
                   // _reportError arms: a mid-stream error while playing must
                   // reset playing=false, rewrite the HUD label to 'Play',
                   // notify 'stopped', and fire onError (→ error toast) — and
@@ -3732,6 +3789,8 @@ async function main() {
       hapticPlayEffect: iout.hapticPlayEffect === true,
       hapticClamps: iout.hapticClamps === true,
       vidPlayingListener: iout.vidPlayingListener === true,
+      vidHeadFollow: iout.vidHeadFollow === true,
+      vidResumePlays: iout.vidResumePlays === true,
       vidErrorResets: iout.vidErrorResets === true,
       vidErrorQuiet: iout.vidErrorQuiet === true,
       audioMasterGain: iout.audioMasterGain === true,
@@ -4036,6 +4095,8 @@ async function main() {
       ['playEffect-only actuator takes dual-rumble arm', !!inter.hapticPlayEffect],
       ['pulse clamps duration and intensity', !!inter.hapticClamps],
       ["video 'playing' listener flips HUD state", !!inter.vidPlayingListener],
+      ['video spheres track the head per frame', !!inter.vidHeadFollow],
+      ['paused HUD select calls video.play only', !!inter.vidResumePlays],
       ['mid-stream video error resets HUD state', !!inter.vidErrorResets],
       ['pre-playback video error stays quiet', !!inter.vidErrorQuiet],
       ['master volume writes into live gain nodes', !!inter.audioMasterGain],
