@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き30）: 「音声認識を停止します」と言って100ms後に再開していた — そして検査がそれを捕まえられなかった
+- 🔍 **診断**: 音声「停止」は `stop()` → `recognition.stop()` を呼ぶだけで `isEnabled` を落とさない。`onend` は `continuous && isEnabled` なら 100ms 後に `start()` するので、**停止を告知した直後に黙って再開**していた（`dispose()` 自身のコメントが「onend の再開を塞ぐため先に isEnabled=false」と書いているのに、音声コマンド側だけその規律が抜けていた）。
+- 🐛 **検査も飾りだった**: 既存テスト「bare "stop" stops voice recognition」は **initialize() していないインスタンス**で `isEnabled===false` を assert していた——最初から false なので**絶対に落ちない**。`onend` を実際に発火させ、再開しないことを検査する形に書き直した。
+- ✨ **fix**: 「停止」を**設定パネルの Voice トグルを OFF にするのと同じ**にした（`connectBrowser` に `onStopListening`、VRApp が `updateSetting('enableVoice', false)` + パネル再描画 + 認識器の破棄）。トグルが ON のまま嘘をつかず、再開場所（設定 → アクセシビリティ → Voice）も分かる。未配線時も `isEnabled=false` で本当に止まる。
+- 🔒 **順序の罠**: `processCommand` は action → onCommand → `speak(確認文)` を同期で走らせる。action 内で破棄すると確認文の前に synthesis が消え、`dispose()` の `cancel()` がキューも潰すので**盲目のユーザーには何も聞こえない**。破棄を microtask に遅らせ、`dispose({ keepSpeech: true })` で確認文だけは読み切らせる（既定の dispose は従来どおり cancel）。間に音声が作り直された場合は identity チェックで破棄しない。
+- 🐛 **隣接（続き29 の自分の取り残し）**: 設定パネルは1回だけ構築され、ボタンは自分の hover/click でしか再描画しない。音声で音量を変えても **Sound Volume ステッパーが古い % のまま**だった。`onVolumeChange` から `_redrawSettingsPanel()` を呼ぶ。
+- ✅ **test 6件**（新規5 + 飾りだった1件の書き直し）。**pre-fix 検証**: 2ソースを HEAD に戻すと**6件全て FAIL**、復元で全通過。
+
 ### Session 75（続き29）: 最後の3つのスタブ（音量・日本語入力）を実体化 + 「キーボード」が閉じられなかった
 続き28 と同じ `// Would …` の grep で残り3つを洗い出した。`volume-up`/`volume-down`（「音量を上げます」と言って何もしない）と `ime-toggle`（「日本語入力モードです」と言って何もしない）。どれも `connectBrowser()` で上書きされておらず恒久的に空だった。方針（4点）はユーザーに確認してから実装。
 - 🔍 **ime-toggle の要件を問い直した**: このアプリに「IME のオン/オフ」という概念は**存在しない**——ローマ字→かなはキーボードが常にやる動作。実在する IME 操作は物理 Shift キーの**ひらがな⇄カタカナ切替**（`onKeyPress('shift')`）だけで、これは音声から**到達不能**だった。偽の成功でも `vr-enter` 型の誠実なリダイレクトでもなく、**実在するのに届かない操作を届ける**のが正解。

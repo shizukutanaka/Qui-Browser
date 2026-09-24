@@ -64,7 +64,8 @@ You can drive every UI element with any of these — pick whichever suits you:
   <words>", top sites, bookmarks, keyboard (opens or closes it), "clear
   history", "volume up" / "volume down" (10% steps, announces the new level),
   「日本語入力」 / "toggle ime" (switches hiragana ⇄ katakana, opening the
-  keyboard if needed), and "exit VR". Voice cannot *enter* VR — browsers only
+  keyboard if needed), "exit VR", and "stop" / 「停止」 (turns Voice off — turn
+  it back on under Settings → Accessibility → Voice). Voice cannot *enter* VR — browsers only
   start an immersive session from a real button press — so it tells you to
   press the Enter VR button instead. Recognized speech is captioned;
   confirmations are spoken and captioned.

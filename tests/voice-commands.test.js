@@ -687,10 +687,27 @@ describe('VoiceCommands — English recognition patterns (input side of the i18n
     expect(vc.lastCommand.key).toBe('help');
   });
 
-  test('bare "stop" stops voice recognition, not any other command', () => {
-    vc.processCommand('stop', 0.9);
-    expect(vc.lastCommand.key).toBe('stop');
-    expect(vc.isEnabled).toBe(false);
+  test('bare "stop" stops voice recognition, and onend does NOT restart it', () => {
+    // This used to assert isEnabled===false on a never-initialized instance,
+    // where it is false from the start — so it could never fail, and missed
+    // that onend's continuous restart resumed listening 100 ms after "stop".
+    jest.useFakeTimers();
+    try {
+      vc.isEnabled = true;
+      vc.isListening = true;
+      vc.recognition = { stop: jest.fn() };
+      vc.setupRecognitionHandlers();
+      const restart = jest.spyOn(vc, 'start').mockImplementation(() => true);
+      vc.processCommand('stop', 0.9);
+      expect(vc.lastCommand.key).toBe('stop');
+      expect(vc.isEnabled).toBe(false);
+      expect(vc.recognition.stop).toHaveBeenCalled();
+      vc.recognition.onend();
+      jest.advanceTimersByTime(500);
+      expect(restart).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('"stop" does NOT collide with stop-load\'s "stop loading" phrase', () => {
@@ -1000,6 +1017,29 @@ describe('VoiceCommands — volume and IME mode do what they announce', () => {
     vc.processCommand('keyboard', 0.9);
     expect(kb.hide).toHaveBeenCalledTimes(1);
     expect(kb.show).not.toHaveBeenCalled();
+  });
+
+  test('"停止" after connectBrowser turns voice off via onStopListening, and still confirms', () => {
+    const onStopListening = jest.fn();
+    vc.isEnabled = true;
+    vc.connectBrowser({ onStopListening });
+    vc.processCommand('停止', 0.9);
+    expect(onStopListening).toHaveBeenCalledTimes(1);
+    expect(vc.isEnabled).toBe(false);
+    expect(spoken).toContain(translate('vr.voice.confirm.stopListening'));
+  });
+
+  test('dispose({keepSpeech}) lets a queued confirmation finish; plain dispose() cancels', () => {
+    const synth = { cancel: jest.fn() };
+    vc.synthesis = synth;
+    vc.dispose({ keepSpeech: true });
+    expect(synth.cancel).not.toHaveBeenCalled();
+
+    const other = new VoiceCommands();
+    const synth2 = { cancel: jest.fn() };
+    other.synthesis = synth2;
+    other.dispose();
+    expect(synth2.cancel).toHaveBeenCalledTimes(1);
   });
 
   test('"keyboard" shows a hidden or not-yet-built keyboard', () => {

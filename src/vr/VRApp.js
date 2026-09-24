@@ -2837,16 +2837,43 @@ export class VRApp {
         if (next !== prev) {
           this.updateSetting('masterVolume', next);
           this.spatialAudio?.setMasterVolume(next / 100);
+          // The panel is built once and buttons repaint only on their own
+          // hover/click, so an outside change must repaint or the stepper
+          // keeps showing the old %.
+          this._redrawSettingsPanel?.();
         }
         return { value: next, changed: next !== prev };
+      },
+      onStopListening: () => this._stopVoiceFromVoice()
+    });
+  }
+
+  /**
+   * The voice "stop" command: turn Voice off exactly like the settings toggle
+   * (persisted, recognizer released, toggle repainted to OFF so the user can
+   * see where to turn it back on).
+   *
+   * Teardown is deferred to a microtask: processCommand runs action → onCommand
+   * → speak(confirmation) synchronously, so tearing down now would null the
+   * synthesis before "音声認識を停止します" is queued and a blind user would hear
+   * nothing. keepSpeech stops dispose() from cancelling that queued utterance.
+   * The identity check skips the teardown if voice was rebuilt in between.
+   */
+  _stopVoiceFromVoice() {
+    this.updateSetting('enableVoice', false);
+    this._redrawSettingsPanel?.();
+    const vc = this.voiceCommands;
+    Promise.resolve().then(() => {
+      if (vc && this.voiceCommands === vc) {
+        this._teardownVoiceCommands({ keepSpeech: true });
       }
     });
   }
 
   /** Stop and release voice commands (the toggle's off path). */
-  _teardownVoiceCommands() {
+  _teardownVoiceCommands(opts) {
     if (this.voiceCommands) {
-      this.voiceCommands.dispose();
+      this.voiceCommands.dispose(opts);
       this.voiceCommands = null;
     }
   }

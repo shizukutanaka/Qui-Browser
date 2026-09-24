@@ -464,10 +464,15 @@ export class VoiceCommands {
       description: 'Show help'
     });
 
-    // Stop listening
+    // Stop listening. Clearing isEnabled is what makes this real: stop()
+    // alone just ends the current recognition, and onend's continuous-mode
+    // restart brought listening straight back 100 ms later while the
+    // confirmation had already said it stopped. connectBrowser() upgrades
+    // this to turn the Voice setting off so the settings toggle agrees.
     this.registerCommand('stop', {
       patterns: ['停止', 'ストップ', 'やめて', '聞くな', 'stop listening', 'stop'],
       action: () => {
+        this.isEnabled = false;
         this.stop();
         return { action: 'stop' };
       },
@@ -561,10 +566,30 @@ export class VoiceCommands {
    * @param {Function} [opts.onVolumeChange] (deltaPct: number) => {value, changed} —
    *                                         step the master volume; host clamps, persists
    *                                         and applies, and reports what actually happened
+   * @param {Function} [opts.onStopListening] () => void — the voice "stop" command;
+   *                                         host turns the Voice setting off (persisted,
+   *                                         recognizer torn down, settings toggle updated)
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR,
-    onVolumeChange } = {}) {
+    onVolumeChange, onStopListening } = {}) {
+    // "Stop listening" = turn Voice off, exactly like the settings toggle, so
+    // the toggle doesn't keep saying ON and the user knows where to turn it
+    // back on. Without a host callback, still genuinely stop (no restart).
+    this.registerCommand('stop', {
+      patterns: ['停止', 'ストップ', 'やめて', '聞くな', 'stop listening', 'stop'],
+      action: () => {
+        this.isEnabled = false;
+        this.stop();
+        if (onStopListening) {
+          onStopListening();
+        }
+        return { action: 'stop' };
+      },
+      confirmationKey: 'vr.voice.confirm.stopListening',
+      description: 'Stop listening'
+    });
+
     // Volume: step by the settings-panel stepper's own increment (10%) so
     // voice and the panel never disagree, and speak the RESULT — "already at
     // maximum" at the clamp, never "increasing" when nothing changed.
@@ -969,14 +994,16 @@ export class VoiceCommands {
    * Permanently tear down: prevents the onend restart loop from re-starting
    * after the recognition is stopped, then releases the recognition object.
    */
-  dispose() {
+  dispose({ keepSpeech = false } = {}) {
     this.isEnabled = false; // must happen before stop() to block onend restart
     this.stop();
     // Cancel any queued or in-progress utterance. Without this, an utterance
     // queued just before dispose() keeps speaking into a torn-down object
     // (null camera, freed GPU resources) — the same class of teardown bug
-    // fixed for showVRToast() setTimeout in Session 4.
-    if (this.synthesis) {
+    // fixed for showVRToast() setTimeout in Session 4. `keepSpeech` is for
+    // the one caller that WANTS its last line heard: the voice "stop" command,
+    // whose own confirmation is queued just before this teardown runs.
+    if (this.synthesis && !keepSpeech) {
       this.synthesis.cancel();
     }
     this.recognition = null;

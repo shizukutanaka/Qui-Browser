@@ -1527,6 +1527,39 @@ describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
     expect(() => connected[0].onExitVR()).not.toThrow();
   });
 
+  describe('onStopListening turns Voice off like the settings toggle', () => {
+    const stopApp = () => {
+      const connected = [];
+      const app = makeApp(connected);
+      app.settings = { enableVoice: true };
+      app.updateSetting = jest.fn((k, v) => { app.settings[k] = v; });
+      app._redrawSettingsPanel = jest.fn();
+      app._teardownVoiceCommands = jest.fn();
+      app._stopVoiceFromVoice = VRApp.prototype._stopVoiceFromVoice;
+      app._connectVoiceToBrowsing();
+      return { app, onStopListening: connected[0].onStopListening };
+    };
+
+    test('persists OFF and repaints the toggle now; tears down after the confirmation', async () => {
+      const { app, onStopListening } = stopApp();
+      onStopListening();
+      expect(app.updateSetting).toHaveBeenCalledWith('enableVoice', false);
+      expect(app._redrawSettingsPanel).toHaveBeenCalled();
+      // Not synchronously: speak(confirmation) runs after the action.
+      expect(app._teardownVoiceCommands).not.toHaveBeenCalled();
+      await Promise.resolve();
+      expect(app._teardownVoiceCommands).toHaveBeenCalledWith({ keepSpeech: true });
+    });
+
+    test('skips the deferred teardown if voice was rebuilt in between', async () => {
+      const { app, onStopListening } = stopApp();
+      onStopListening();
+      app.voiceCommands = { connectBrowser: () => {} }; // a fresh instance
+      await Promise.resolve();
+      expect(app._teardownVoiceCommands).not.toHaveBeenCalled();
+    });
+  });
+
   describe('onVolumeChange mirrors the Sound Volume stepper', () => {
     const volumeApp = (masterVolume, spatialAudio = { setMasterVolume: jest.fn() }) => {
       const connected = [];
@@ -1552,6 +1585,16 @@ describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
       const bottom = volumeApp(0);
       expect(bottom.onVolumeChange(-10)).toEqual({ value: 0, changed: false });
       expect(bottom.app.spatialAudio.setMasterVolume).not.toHaveBeenCalled();
+    });
+
+    test('repaints the settings panel on a real change, not at the clamp', () => {
+      const { app, onVolumeChange } = volumeApp(70);
+      app._redrawSettingsPanel = jest.fn();
+      onVolumeChange(10);
+      expect(app._redrawSettingsPanel).toHaveBeenCalledTimes(1);
+      app.settings.masterVolume = 100;
+      onVolumeChange(10);
+      expect(app._redrawSettingsPanel).toHaveBeenCalledTimes(1);
     });
 
     test('still persists when spatial audio failed to initialise', () => {
