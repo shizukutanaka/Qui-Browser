@@ -862,7 +862,7 @@ export class VRApp {
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
-          this.captionSystem.show(`Tab: ${label}`);
+          this.captionSystem.show(`${t('vr.msg.tab')}: ${label}`);
         }
       },
       onTabClose: () => {
@@ -2234,9 +2234,13 @@ export class VRApp {
         }
         // Toggle VR keyboard.
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
-          this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
+          // toggle()/visible are the keyboard's own interface: this used to
+          // read a `visible` field the class never had, so it always called
+          // show() — it could open the keyboard but never close it — and
+          // captioned "closed" (in English) right after opening.
+          const open = this.vrKeyboard.toggle();
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Keyboard: ${this.vrKeyboard.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(t(open ? 'vr.msg.keyboardOpen' : 'vr.msg.keyboardClosed'));
           }
         }
       }
@@ -2775,7 +2779,7 @@ export class VRApp {
         const active = this.tabManager?.getActiveTab?.();
         if (top && active) {
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+            this.captionSystem.show(`${t('vr.msg.topSite')}: ${hostnameCaption(top.url)}`);
           }
           active.navigate(top.url);
         } else if (this.captionSystem && this.captionSystem.enabled) {
@@ -2796,7 +2800,7 @@ export class VRApp {
         if (hits.length > 0) {
           const hit = hits[0];
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+            this.captionSystem.show(`${t('vr.msg.openingSite')}: ${hostnameCaption(hit.url)}`);
           }
           active.navigate(hit.url);
         } else {

@@ -8,6 +8,29 @@
 
 const { VoiceCommands, bcp47ForLanguage } = require('../src/vr/input/VoiceCommands.js');
 const { setLanguage, getLanguage, t: translate } = require('../src/i18n/i18n.js');
+const { VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+
+// A keyboard stub on the REAL prototype, so `visible` and toggle() are the
+// class's own. Hand-rolled stubs with a `visible: false` field are how the
+// "keyboard can open but never close" bug hid: they modeled a property the
+// class never had. Only the GPU/canvas-touching internals are faked.
+function stubKeyboard({ visible = false, mode = 'hiragana', built = true } = {}) {
+  const kb = Object.create(VRJapaneseKeyboard.prototype);
+  kb.group = built ? { visible } : null;
+  kb.ime = { inputMode: mode };
+  kb.createKeyboard = () => { kb.group = { visible: false }; };
+  kb._refreshDisplay = () => {};
+  kb._clearSuggestions = () => {};
+  jest.spyOn(kb, 'show');
+  jest.spyOn(kb, 'hide');
+  kb.onKeyPress = jest.fn((key) => {
+    if (key === 'shift') {
+      kb.ime.inputMode = kb.ime.inputMode === 'katakana' ? 'hiragana' : 'katakana';
+    }
+    return Promise.resolve();
+  });
+  return kb;
+}
 
 // This whole file's fixtures (patterns, confirmationText/expected spoken
 // output) were written assuming a Japanese-speaking VoiceCommands — true by
@@ -195,14 +218,11 @@ describe('VoiceCommands — connectBrowser go-to command', () => {
     // go-to's "を開く" capture is greedy; it must be registered last so the
     // specific keyboard command claims this utterance first.
     const onGoTo = jest.fn();
-    let toggled = false;
-    vc.connectBrowser({
-      onGoTo,
-      vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
-    });
+    const kb = stubKeyboard();
+    vc.connectBrowser({ onGoTo, vrKeyboard: kb });
     vc.processCommand('キーボードを開く', 0.9);
     expect(vc.lastCommand.key).toBe('keyboard');
-    expect(toggled).toBe(true);
+    expect(kb.visible).toBe(true);
     expect(onGoTo).not.toHaveBeenCalled();
   });
 });
@@ -758,14 +778,11 @@ describe('VoiceCommands — English recognition patterns (input side of the i18n
 
     test('"keyboard"/"open keyboard"/"close keyboard" toggle the VR keyboard, not go-to', () => {
       const onGoTo = jest.fn();
-      let toggled = false;
-      vc.connectBrowser({
-        onGoTo,
-        vrKeyboard: { visible: false, show() { toggled = true; }, hide() { toggled = true; } }
-      });
+      const kb = stubKeyboard();
+      vc.connectBrowser({ onGoTo, vrKeyboard: kb });
       vc.processCommand('open keyboard', 0.9);
       expect(vc.lastCommand.key).toBe('keyboard');
-      expect(toggled).toBe(true);
+      expect(kb.visible).toBe(true);
       expect(onGoTo).not.toHaveBeenCalled();
     });
   });
@@ -972,21 +989,6 @@ describe('VoiceCommands — volume and IME mode do what they announce', () => {
     expect(spoken).toEqual([]);
   });
 
-  function stubKeyboard({ visible = false, mode = 'hiragana' } = {}) {
-    const kb = {
-      group: { visible },
-      ime: { inputMode: mode },
-      show: jest.fn(() => { kb.group.visible = true; }),
-      hide: jest.fn(() => { kb.group.visible = false; }),
-      onKeyPress: jest.fn((key) => {
-        if (key === 'shift') {
-          kb.ime.inputMode = kb.ime.inputMode === 'katakana' ? 'hiragana' : 'katakana';
-        }
-        return Promise.resolve();
-      })
-    };
-    return kb;
-  }
 
   test('"日本語入力" shows a hidden keyboard, presses shift, announces the new mode', () => {
     const kb = stubKeyboard({ visible: false, mode: 'hiragana' });
@@ -1048,11 +1050,93 @@ describe('VoiceCommands — volume and IME mode do what they announce', () => {
     vc.processCommand('keyboard', 0.9);
     expect(kb.show).toHaveBeenCalledTimes(1);
 
-    const unbuilt = stubKeyboard();
-    unbuilt.group = null;
+    const unbuilt = stubKeyboard({ built: false });
     vc.connectBrowser({ vrKeyboard: unbuilt });
     vc.processCommand('keyboard', 0.9);
     expect(unbuilt.show).toHaveBeenCalledTimes(1);
     expect(unbuilt.hide).not.toHaveBeenCalled();
+  });
+});
+
+describe('VoiceCommands — confirmations say what actually happened', () => {
+  // The spoken line is all a blind voice user gets. These commands used to
+  // speak a fixed confirmation after the action whatever it did: 「戻ります」
+  // at the first page, 「読み込みを停止します」 with nothing loading,
+  // 「ブックマークパネルを開きます」 as it closed the panel.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+  });
+  const say = (utterance) => { spoken.length = 0; vc.processCommand(utterance, 0.9); return spoken; };
+  const withTab = (tab) => vc.connectBrowser({ tabManager: { getActiveTab: () => tab } });
+
+  test('back / forward at the history edge say there is nowhere to go', () => {
+    withTab({ goBack: () => false, goForward: () => false });
+    expect(say('戻る')).toEqual([translate('vr.voice.noPreviousPage')]);
+    expect(say('進む')).toEqual([translate('vr.voice.noNextPage')]);
+  });
+
+  test('back / forward with history confirm the move', () => {
+    withTab({ goBack: () => true, goForward: () => true });
+    expect(say('戻る')).toEqual([translate('vr.voice.confirm.back')]);
+    expect(say('進む')).toEqual([translate('vr.voice.confirm.navigate')]);
+  });
+
+  test('"stop loading" with nothing loading says so', () => {
+    withTab({ stop: () => false });
+    expect(say('読み込みを停止')).toEqual([translate('vr.voice.nothingLoading')]);
+    withTab({ stop: () => true });
+    expect(say('読み込みを停止')).toEqual([translate('vr.voice.confirm.stopLoad')]);
+  });
+
+  test('"refresh" while loading says it stopped, not that it is refreshing', () => {
+    const tab = { loading: true, stop: jest.fn(() => true), reload: jest.fn() };
+    withTab(tab);
+    expect(say('更新')).toEqual([translate('vr.voice.confirm.stopLoad')]);
+    expect(tab.reload).not.toHaveBeenCalled();
+  });
+
+  test('"refresh" confirms a reload, and says there is no page when there is none', () => {
+    withTab({ loading: false, reload: () => true });
+    expect(say('更新')).toEqual([translate('vr.voice.confirm.refresh')]);
+    withTab({ loading: false, reload: () => false });
+    expect(say('更新')).toEqual([translate('vr.voice.noPage')]);
+  });
+
+  test('with no tab open, tab commands say no page is open', () => {
+    vc.connectBrowser({ tabManager: { getActiveTab: () => null } });
+    for (const u of ['戻る', '進む', '更新', '読み込みを停止']) {
+      expect(say(u)).toEqual([translate('vr.voice.noPage')]);
+    }
+  });
+
+  test('with browsing off, tab and bookmark commands say browsing is off', () => {
+    vc.connectBrowser({});
+    for (const u of ['戻る', '進む', '更新', '読み込みを停止', 'ブックマーク']) {
+      expect(say(u)).toEqual([translate('vr.voice.browsingOff')]);
+    }
+  });
+
+  test('"bookmarks" says opening or closing according to what the toggle did', () => {
+    const panel = { visible: false, toggle() { this.visible = !this.visible; } };
+    vc.connectBrowser({ bookmarkPanel: panel });
+    expect(say('ブックマーク')).toEqual([translate('vr.voice.confirm.bookmarks')]);
+    expect(say('ブックマーク')).toEqual([translate('vr.voice.confirm.bookmarksClose')]);
+    expect(panel.visible).toBe(false);
+  });
+
+  test('"keyboard" says opening or closing according to what the toggle did', () => {
+    const kb = stubKeyboard({ visible: false });
+    vc.connectBrowser({ vrKeyboard: kb });
+    expect(say('キーボード')).toEqual([translate('vr.voice.confirm.keyboardOpen')]);
+    expect(say('キーボード')).toEqual([translate('vr.voice.confirm.keyboardClose')]);
+    expect(kb.visible).toBe(false);
+  });
+
+  test('"keyboard" with no keyboard wired says nothing', () => {
+    vc.connectBrowser({});
+    expect(say('キーボード')).toEqual([]);
   });
 });

@@ -43,11 +43,15 @@ function jsFiles(dir, acc = []) {
   return acc;
 }
 
-/** Every key passed to a literal `t('…')` call anywhere in src/. */
+/**
+ * Every key passed to a literal `t('…')` call anywhere in src/, plus every
+ * voice command's `confirmationKey: '…'` (resolved through t() when the
+ * command fires, so it must exist in every language too).
+ */
 function usedKeys() {
   const keys = new Set();
   for (const file of jsFiles(SRC)) {
-    for (const m of readFileSync(file, 'utf8').matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) {
+    for (const m of readFileSync(file, 'utf8').matchAll(/(?:\bt\(|confirmationKey:)\s*'([a-zA-Z0-9_.]+)'/g)) {
       keys.add(m[1]);
     }
   }
@@ -67,6 +71,7 @@ describe('i18n covers every string the app asks for', () => {
     // A regex matching nothing would make every assertion below vacuous.
     expect(keys.length).toBeGreaterThan(80);
     expect(keys).toContain('vr.settings.voice');
+    expect(keys).toContain('vr.voice.confirm.goTo'); // only ever a confirmationKey
   });
 
   for (const lang of LANGUAGES) {
@@ -93,5 +98,38 @@ describe('i18n covers every string the app asks for', () => {
     setLanguage('ja');
     const asciiOnly = keys.filter((k) => /^[\x20-\x7e]+$/.test(t(k)));
     expect(asciiOnly).toEqual([]);
+  });
+
+  test('no caption, toast or spoken line starts with a hard-coded English literal', () => {
+    // The sweep the header defers to, automated. A literal first argument is
+    // fine only if it opens with an interpolation (`${t('…')}: ${host}`);
+    // letters before any ${ are untranslated text. This caught `Tab:`,
+    // `Keyboard:`, `Top site:` and `Opening:` captions still in VRApp.
+    const SINK = /(?:captionSystem\??\.show|showVRToast|\.speak)\(\s*/g;
+    let sites = 0;
+    const offenders = [];
+    for (const file of jsFiles(SRC)) {
+      const text = readFileSync(file, 'utf8');
+      for (const m of text.matchAll(SINK)) {
+        sites++;
+        const rest = text.slice(m.index + m[0].length);
+        const q = rest[0];
+        if (q !== "'" && q !== '"' && q !== '`') {
+          continue;
+        }
+        let lead = '';
+        for (let i = 1; i < rest.length && rest[i] !== q; i++) {
+          if (q === '`' && rest[i] === '$' && rest[i + 1] === '{') {
+            break;
+          }
+          lead += rest[i];
+        }
+        if (/[A-Za-z]/.test(lead)) {
+          offenders.push(`${file.slice(SRC.length + 1)}: ${m[0]}${rest.slice(0, 40)}`);
+        }
+      }
+    }
+    expect(sites).toBeGreaterThan(40); // the scan really found the sinks
+    expect(offenders).toEqual([]);
   });
 });

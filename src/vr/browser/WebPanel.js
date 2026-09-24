@@ -1252,12 +1252,19 @@ export class WebPanel {
     return false;
   }
 
+  /**
+   * Load the current page again. Returns false when there is no page to
+   * reload (e.g. a fresh tab), so callers can say so instead of claiming it.
+   * @returns {boolean}
+   */
   reload() {
-    if (this.currentUrl) {
-      // Explicitly asking for the page again means asking the network again.
-      this._pageCache.delete(this.currentUrl);
-      this._loadUrl(this.currentUrl);
+    if (!this.currentUrl) {
+      return false;
     }
+    // Explicitly asking for the page again means asking the network again.
+    this._pageCache.delete(this.currentUrl);
+    this._loadUrl(this.currentUrl);
+    return true;
   }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────

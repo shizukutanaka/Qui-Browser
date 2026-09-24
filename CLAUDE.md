@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75（続き31）: 「戻ります」と言って何も起きない — 音声の確認文は結果ではなく意図を読んでいた
+- 🔍 **診断**: `processCommand` は action の後に `confirmationKey` を**無条件で**読み上げる。`戻る`/`進む` は `goBack()/goForward()` の戻り値（履歴端で false — docstring 自身が「呼び出し側は告知せよ」と書いている）を捨て、最初のページで「戻ります」と言って何もしなかった。コントローラの B/A ボタンは同じ状況で既に「前ページなし」と正直に言っている。`更新` は読み込み中なら実際には**停止**するのに「更新します」、`読み込みを停止` は何も読み込んでいなくても「停止します」、`ブックマーク` は**閉じた**ときも「開きます」。ブラウジング OFF やタブ0枚でも全部成功を宣言していた。盲目の音声ユーザーには読み上げが唯一の手がかりなので、これは嘘そのもの。
+- ✨ **fix**: 6コマンドを「結果を読む」形に（volume/ime-toggle/vr-enter/help が既に採っている action 内 speak の作法）。`activeTab()` ヘルパが「ブラウザパネルはオフ（設定のブラウジングで『ブラウザパネル』をオンに）」/「開いているページはありません」を言い分ける。`WebPanel.reload()` も `goBack()`/`stop()` と同じく boolean を返すように。
+- 🐛 **自分の取り残し（続き29）**: 左手サムスティックのキーボード切替は `vrKeyboard.visible` を読んでいたが**そのプロパティは存在しない**——続き29 で音声側だけ直し、コントローラ側を見落としていた。常に `show()` なので**開けるが閉じられず**、開いた直後に英語で「Keyboard: closed」と表示していた。根本対処として `VRJapaneseKeyboard` に `get visible()` と `toggle()`（BookmarkPanel と同じ interface）を足し、両呼び出し元をそれに統一。テストのスタブも**実プロトタイプ上**に作り直した——`{ visible:false }` を持つ手書きスタブが、クラスに無いプロパティをモデル化してこの欠陥を隠していたから。
+- 🔬 **step 5（自動化）**: `i18n-coverage` は docstring で「リテラルは手作業の sweep に任せる」と書いていた。その sweep をテストにした——`captionSystem.show(`/`showVRToast(`/`.speak(` の第1引数が `${` より前に英字を含むリテラルなら FAIL。初回実行で **`Tab:`（タブ切替のたび）・`Keyboard:`・`Top site:`・`Opening:`** の4件を検出し、翻訳した。あわせて `confirmationKey: '…'` のキーも走査対象に（従来は `t('…')` しか見ていなかった）。
+- ✅ **test 17件追加**（既存2件を実プロトタイプのスタブに書き換え）。**pre-fix 検証**: 5ソースを HEAD に戻すと **16件 FAIL**（「履歴ありなら確認文」の1件は旧コードでも真なので両方通過 = 正しい）、復元で全通過。Total 1791 tests (53 suites); 0 lint errors; build green。
+- 📌 **次の欠陥（記録のみ）**: 検索・go-to・よく使うサイト・リンク番号・ページ内検索は結果を VRApp のコールバックしか知らず、音声は依然として楽観的な確認文を読む（例: よく使うサイトが無いのに「よく使うサイトを開きます」、ページ内検索の件数「3/7」はトースト/字幕のみで**読み上げられない**）。コールバックが結果を返し音声がそれを読む形にするのが次。
+
 ### Session 75（続き30）: 「音声認識を停止します」と言って100ms後に再開していた — そして検査がそれを捕まえられなかった
 - 🔍 **診断**: 音声「停止」は `stop()` → `recognition.stop()` を呼ぶだけで `isEnabled` を落とさない。`onend` は `continuous && isEnabled` なら 100ms 後に `start()` するので、**停止を告知した直後に黙って再開**していた（`dispose()` 自身のコメントが「onend の再開を塞ぐため先に isEnabled=false」と書いているのに、音声コマンド側だけその規律が抜けていた）。
 - 🐛 **検査も飾りだった**: 既存テスト「bare "stop" stops voice recognition」は **initialize() していないインスタンス**で `isEnabled===false` を assert していた——最初から false なので**絶対に落ちない**。`onend` を実際に発火させ、再開しないことを検査する形に書き直した。

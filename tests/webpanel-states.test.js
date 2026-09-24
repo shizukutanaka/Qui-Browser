@@ -151,6 +151,15 @@ describe('WebPanel history navigation state', () => {
 
 // ── goBack / goForward — WCAG 4.1.3 navigation status ────────────────────────
 describe('WebPanel goBack / goForward (WCAG 4.1.3)', () => {
+  test('reload() reports whether there was a page to reload', () => {
+    const p = makePanel();
+    expect(p.reload()).toBe(false);          // fresh tab: nothing to reload
+    p.currentUrl = 'https://a.com';
+    p._loadUrl = jest.fn();
+    expect(p.reload()).toBe(true);
+    expect(p._loadUrl).toHaveBeenCalledWith('https://a.com');
+  });
+
   test('goBack() returns false with no history', () => {
     const p = makePanel();
     expect(p.goBack()).toBe(false);

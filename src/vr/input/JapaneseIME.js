@@ -1031,6 +1031,27 @@ export class VRJapaneseKeyboard {
     this._refreshDisplay();
   }
 
+  /**
+   * Whether the keyboard is on screen. Visibility lives on the Three.js group
+   * (null until the first show() builds it); callers — the controller
+   * thumbstick and the voice "keyboard" command — read `visible` the way they
+   * read BookmarkPanel's, and without this getter they got undefined, so the
+   * toggle could open the keyboard but never close it.
+   */
+  get visible() {
+    return !!this.group?.visible;
+  }
+
+  /** Show if hidden, hide if shown. @returns {boolean} the new visibility */
+  toggle() {
+    if (this.visible) {
+      this.hide();
+    } else {
+      this.show();
+    }
+    return this.visible;
+  }
+
   /** Hide the keyboard. */
   hide() {
     if (this.group) {

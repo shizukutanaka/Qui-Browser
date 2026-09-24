@@ -573,6 +573,18 @@ export class VoiceCommands {
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR,
     onVolumeChange, onStopListening } = {}) {
+    // Tab commands speak what actually happened, not what was attempted: the
+    // spoken line is all a blind voice user gets, and a fixed confirmation
+    // said 「戻ります」 at the first page and 「読み込みを停止します」 with nothing
+    // loading. With no tab to act on, say why instead of acting.
+    const activeTab = () => {
+      const tab = tabManager?.getActiveTab?.() || null;
+      if (!tab) {
+        this.speak(t(tabManager ? 'vr.voice.noPage' : 'vr.voice.browsingOff'));
+      }
+      return tab;
+    };
+
     // "Stop listening" = turn Voice off, exactly like the settings toggle, so
     // the toggle doesn't keep saying ON and the user knows where to turn it
     // back on. Without a host callback, still genuinely stop (no restart).
@@ -628,7 +640,7 @@ export class VoiceCommands {
         if (!vrKeyboard) {
           return { action: 'ime' };
         }
-        if (!vrKeyboard.group?.visible) {
+        if (!vrKeyboard.visible) {
           vrKeyboard.show();
         }
         Promise.resolve(vrKeyboard.onKeyPress('shift')).catch(() => {});
@@ -674,20 +686,28 @@ export class VoiceCommands {
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/, 'forward', 'go forward'],
       action: () => {
-        tabManager?.getActiveTab?.()?.goForward?.();
-        return { action: 'navigate', direction: 'forward' };
+        const tab = activeTab();
+        // goForward() is false at the newest page — the controller A button
+        // already says "No next page" there; voice now agrees.
+        const moved = !!tab?.goForward?.();
+        if (tab) {
+          this.speak(t(moved ? 'vr.voice.confirm.navigate' : 'vr.voice.noNextPage'));
+        }
+        return { action: 'navigate', direction: 'forward', moved };
       },
-      confirmationKey: 'vr.voice.confirm.navigate',
       description: 'Navigate forward'
     });
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/, 'back', 'go back'],
       action: () => {
-        tabManager?.getActiveTab?.()?.goBack?.();
-        return { action: 'navigate', direction: 'back' };
+        const tab = activeTab();
+        const moved = !!tab?.goBack?.();
+        if (tab) {
+          this.speak(t(moved ? 'vr.voice.confirm.back' : 'vr.voice.noPreviousPage'));
+        }
+        return { action: 'navigate', direction: 'back', moved };
       },
-      confirmationKey: 'vr.voice.confirm.back',
       description: 'Navigate back'
     });
 
@@ -700,15 +720,16 @@ export class VoiceCommands {
         // the same fix as the reload button itself — voice had the identical
         // bug (restart an identical fetch on its own fresh 5s timer, forever
         // one press behind actually escaping a hung page).
-        const tab = tabManager?.getActiveTab?.();
+        // It stopped the load, so it says so — not "refreshing".
+        const tab = activeTab();
         if (tab?.loading) {
           tab.stop?.();
-        } else {
-          tab?.reload?.();
+          this.speak(t('vr.voice.confirm.stopLoad'));
+        } else if (tab) {
+          this.speak(t(tab.reload?.() ? 'vr.voice.confirm.refresh' : 'vr.voice.noPage'));
         }
         return { action: 'refresh' };
       },
-      confirmationKey: 'vr.voice.confirm.refresh',
       description: 'Refresh page'
     });
 
@@ -727,10 +748,13 @@ export class VoiceCommands {
     this.registerCommand('stop-load', {
       patterns: [/読み込みを?(停止|中止|やめ)/, /stop\s+loading/i],
       action: () => {
-        tabManager?.getActiveTab?.()?.stop?.();
+        const tab = activeTab();
+        if (tab) {
+          // stop() is false when nothing was loading.
+          this.speak(t(tab.stop?.() ? 'vr.voice.confirm.stopLoad' : 'vr.voice.nothingLoading'));
+        }
         return { action: 'stop-load' };
       },
-      confirmationKey: 'vr.voice.confirm.stopLoad',
       description: 'Stop the page currently loading',
       example: '読み込みを停止'
     });
@@ -895,10 +919,16 @@ export class VoiceCommands {
     this.registerCommand('bookmarks', {
       patterns: ['ブックマーク', 'お気に入り', '履歴', 'bookmarks', 'favorites', 'history'],
       action: () => {
-        bookmarkPanel?.toggle?.();
-        return { action: 'bookmarks' };
+        if (!bookmarkPanel) {
+          this.speak(t('vr.voice.browsingOff'));
+          return { action: 'bookmarks' };
+        }
+        // A toggle: it used to say "opening" when it had just closed it.
+        bookmarkPanel.toggle();
+        this.speak(t(bookmarkPanel.visible
+          ? 'vr.voice.confirm.bookmarks' : 'vr.voice.confirm.bookmarksClose'));
+        return { action: 'bookmarks', open: !!bookmarkPanel.visible };
       },
-      confirmationKey: 'vr.voice.confirm.bookmarks',
       description: 'Toggle bookmarks panel'
     });
 
@@ -906,15 +936,13 @@ export class VoiceCommands {
     this.registerCommand('keyboard', {
       patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる', 'keyboard', 'open keyboard', 'close keyboard'],
       action: () => {
-        // Visibility lives on the Three.js group; VRJapaneseKeyboard has no
-        // `visible` of its own, so reading that made this always show() and
-        // never hide(). group is null until the first show() builds it.
-        if (vrKeyboard) {
-          vrKeyboard.group?.visible ? vrKeyboard.hide() : vrKeyboard.show();
+        if (!vrKeyboard) {
+          return { action: 'keyboard' };
         }
-        return { action: 'keyboard' };
+        const open = vrKeyboard.toggle();
+        this.speak(t(open ? 'vr.voice.confirm.keyboardOpen' : 'vr.voice.confirm.keyboardClose'));
+        return { action: 'keyboard', open };
       },
-      confirmationKey: 'vr.voice.confirm.keyboard',
       description: 'Toggle VR keyboard'
     });
 

@@ -273,3 +273,25 @@ describe('VRJapaneseKeyboard suggestion row', () => {
     expect(kb._suggestionMeshes).toHaveLength(1);
   });
 });
+
+describe('VRJapaneseKeyboard visible / toggle()', () => {
+  test('visible follows the real group, false before the first build', () => {
+    const kb = new VRJapaneseKeyboard({ add: jest.fn(), remove: jest.fn() }, new JapaneseIME(), {
+      registerInteractable: jest.fn(), unregisterInteractable: jest.fn()
+    });
+    expect(kb.visible).toBe(false);
+    kb.show();
+    expect(kb.visible).toBe(true);
+    kb.hide();
+    expect(kb.visible).toBe(false);
+  });
+
+  test('toggle() opens then closes and returns the new visibility', () => {
+    const { kb } = makeKeyboard();
+    kb.hide();
+    expect(kb.toggle()).toBe(true);
+    expect(kb.group.visible).toBe(true);
+    expect(kb.toggle()).toBe(false);
+    expect(kb.group.visible).toBe(false);
+  });
+});

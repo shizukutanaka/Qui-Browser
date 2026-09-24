@@ -1604,3 +1604,43 @@ describe('VRApp rebinds voice when the browsing systems are rebuilt', () => {
     });
   });
 });
+
+describe('VRApp controller thumbstick toggles the VR keyboard both ways', () => {
+  // The utility-hand thumbstick read `vrKeyboard.visible`, which the keyboard
+  // class did not have — so it always called show(): it could open the
+  // keyboard but never close it, and captioned "Keyboard: closed" (in
+  // English) right after opening. The keyboard here is built on the real
+  // prototype so a stub can't paper over a missing property again.
+  const { VRJapaneseKeyboard } = require('../src/vr/input/JapaneseIME.js');
+  const { t } = require('../src/i18n/i18n.js');
+
+  function press(app) {
+    VRApp.prototype.updateButtonInput.call(app);
+  }
+
+  test('first press opens, second press closes, captions say which', () => {
+    const kb = Object.create(VRJapaneseKeyboard.prototype);
+    kb.group = { visible: false };
+    kb._refreshDisplay = () => {};
+    kb._clearSuggestions = () => {};
+    const app = {
+      controllerInput: {
+        read: () => ({ hand: 'left', buttons: { thumbstickClick: { justPressed: true } } })
+      },
+      controllers: [{ userData: { inputSource: {} } }],
+      settings: { southpaw: false },
+      hapticFeedback: null,
+      captionSystem: { enabled: true, show: jest.fn() },
+      tabManager: null,
+      bookmarkPanel: null,
+      settingsPanel: null,
+      vrKeyboard: kb
+    };
+    press(app);
+    expect(kb.group.visible).toBe(true);
+    expect(app.captionSystem.show).toHaveBeenLastCalledWith(t('vr.msg.keyboardOpen'));
+    press(app);
+    expect(kb.group.visible).toBe(false);
+    expect(app.captionSystem.show).toHaveBeenLastCalledWith(t('vr.msg.keyboardClosed'));
+  });
+});
