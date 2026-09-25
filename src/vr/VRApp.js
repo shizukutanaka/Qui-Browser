@@ -3216,6 +3216,18 @@ export class VRApp {
           // NVDA "read current paragraph" — read-aloud's block-scoped sibling.
           onReadParagraph: () =>
             this.tabManager?.getActiveTab?.()?.getParagraphNarration?.() ?? [],
+          // Sentence layer — NVDA Alt+Down/Up caret, read + status siblings.
+          onSentenceStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextSentence?.(dir) ?? null,
+          onSentence: () =>
+            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          onSentenceStatus: () =>
+            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          // Paragraph ends + indexed read — heading-end/read-from-line parity.
+          onLastParagraph: () =>
+            this.tabManager?.getActiveTab?.()?.lastParagraph?.() ?? null,
+          onReadParagraphAt: (n) =>
+            this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
           // Line position without moving — lineStatus parity.
           onLineStatus: () =>
             this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,

@@ -353,6 +353,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**半ページスクロールができない**~~ — **Session 105 で実装**: Vim Ctrl+D/Ctrl+U 準拠（full page-jump ではなく半分）。`scrollHalfPage(dir)`（`⌈visible/2⌉` 行 `scrollContent`）→ voice '半ページ進む'/'半ページ戻る'/'half page down|up'。**実測捕捉の衝突**: navigate の `進む` と back の `戻る` が両句を所有 → `_onHalfPage` 遅延バインドで hoisted ブロックに登録。
 - ~~**パーセント位置に飛べない**~~ — **Session 105 で実装**: Kindle "go to N%" 準拠。`scrollToPercent(pct)`（`floor(total*N/100)`、OOR は 'out'、reader-off は null で区別）→ voice `reader-percent`（'50%のところ'/'50%地点'/'50パーセント'/'50 percent'）→ 'N%地点に移動しました'/'N%は範囲外です'/'記事を開いていません'。**衝突回避**: 'go to N percent' は go-to の EN 捕捉の所有 → bare パーセント句を選定。
 - ~~**Web 検索を起動できない**~~ — **Session 105 で実装**: omnibox の 'Xを検索' intent（go-to の 開く/行く 捕捉がカバーしない）。voice `web-search`（'猫を検索して'/'Xについて検索'/'search for X'/'web search X'）→ `onGoTo(term)` → '「X」を検索します'。**衝突回避**: '履歴/ブックマーク' 先頭は lookahead で除外 — history-search/bookmark-search が所有。
+- ~~**文ごとに読み進められない**~~ — **Session 106 で実装**: NVDA/JAWS Alt+↓/↑ 準拠（文レベルの読書ナビ — 行と単語の中間）。`_sentenceCaret` {block,idx} が **source block の文**（`splitSentences` 導出 — 複数表示行に跨る文も全文発話）を走査；文→行の写像は正規化オフセット数学（`norm(block) === norm(row1)+' '+norm(row2)+…` 前方スキャン）で wrap の空白正規化を吸収。voice '次の文'/'前の文'/'next|previous sentence' → 文を発話+スクロール追従/'これ以上進めません|戻れません'；'この文を読んで'/'何文目' → `currentSentence()`（スクロール下・記事全体索引 {index,total}）。
+- ~~**先頭/末尾の段落に飛べない**~~ — **Session 106 で実装**: first/last-heading の段落版。`lastParagraph()`（`paragraphAt(paras.length)`）→ voice '最初の段落'/'最後の段落' → '1番目の段落（全M）'/'最後の段落（全M）'/'段落がありません'。
+- ~~**N番目の段落を読み上げられない**~~ — **Session 106 で実装**: read-from-line の段落版。`getParagraphNarrationAt(n)`（paras[n-1] → narrationChunks、OOR='out'・reader-off=[] で区別）→ voice `read-paragraph-at`（'3番目の段落を読み上げ'/'read paragraph 3'）→ 'N番目の段落を読み上げます'+chunk 発話/'段落Nはありません'。**実測捕捉の衝突**: paragraph-select の `(\d+)番目の段落` が句を所有 → paragraph-select より前に登録（plain ジャンプは paragraph-select に残置 — 共存テストで保護）。
 
 ---
 

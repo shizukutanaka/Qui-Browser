@@ -72,6 +72,11 @@ export class VoiceCommands {
     this._onFindQuery = null;
     this._onReadFromLine = null;
     this._onHalfPage = null;
+    this._onSentenceStep = null;
+    this._onSentence = null;
+    this._onSentenceStatus = null;
+    this._onLastParagraph = null;
+    this._onReadParagraphAt = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -987,6 +992,15 @@ export class VoiceCommands {
    * @param {Function} [opts.onFindQuery] () => string|null — active find query
    * @param {Function} [opts.onReadFromLine] (line)=>chunks[]|null|[] — narration
    * @param {Function} [opts.onHalfPage] (dir)=>bool — Vim Ctrl+D/U half-page
+   * @param {Function} [opts.onSentenceStep] (dir)=>{sentence,line}|null —
+   *                                         NVDA Alt+Down/Up sentence nav
+   * @param {Function} [opts.onSentence] () => {sentence,index,total}|null —
+   *                                         sentence under the scroll
+   * @param {Function} [opts.onSentenceStatus] () => {index,total}|null —
+   *                                         article-wide sentence position
+   * @param {Function} [opts.onLastParagraph] () => {index,total}|null
+   * @param {Function} [opts.onReadParagraphAt] (n)=>string[]|'out'|[] —
+   *                                         narration chunks for paragraph N
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -1013,7 +1027,8 @@ export class VoiceCommands {
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
     onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
-    onMuteStatus, onFindQuery, onReadFromLine, onHalfPage } = {}) {
+    onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
+    onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1166,6 +1181,21 @@ export class VoiceCommands {
     }
     if (onHalfPage) {
       this._onHalfPage = onHalfPage;
+    }
+    if (onSentenceStep) {
+      this._onSentenceStep = onSentenceStep;
+    }
+    if (onSentence) {
+      this._onSentence = onSentence;
+    }
+    if (onSentenceStatus) {
+      this._onSentenceStatus = onSentenceStatus;
+    }
+    if (onLastParagraph) {
+      this._onLastParagraph = onLastParagraph;
+    }
+    if (onReadParagraphAt) {
+      this._onReadParagraphAt = onReadParagraphAt;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2571,6 +2601,27 @@ export class VoiceCommands {
       description: 'Jump to the previous paragraph'
     });
 
+    // Read paragraph N aloud — read-from-line's paragraph sibling. Must beat
+    // paragraph-select: its /(\d+)番目の段落/ regex swallows 'N番目の段落を読み上げ'.
+    this.registerCommand('read-paragraph-at', {
+      patterns: [/(\d+)\s*番目?の?段落を読み上げ/, /(\d+)\s*番目?の?段落を読んで/,
+        /read paragraph (\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const chunks = this._onReadParagraphAt ? this._onReadParagraphAt(n) : [];
+        if (chunks === 'out') {
+          this.speak(`段落${n}はありません`);
+        } else {
+          this.readAloud(Array.isArray(chunks) ? chunks : [],
+            { statusText: `${n}番目の段落を読み上げます` });
+        }
+        return { action: 'read-paragraph-at', index: n,
+          chunks: Array.isArray(chunks) ? chunks.length : chunks };
+      },
+      description: 'Read the Nth paragraph aloud'
+    });
+
     // Indexed + status variants — heading-select / find-status parity.
     this.registerCommand('paragraph-select', {
       patterns: [/(\d+)\s*(?:番目?|件目?)\s*(?:の)?\s*段落/, /段落\s*(\d+)/,
@@ -2599,6 +2650,26 @@ export class VoiceCommands {
       description: 'Announce the current paragraph position'
     });
 
+    // First/last paragraph — first-heading/last-heading's paragraph siblings.
+    this.registerCommand('first-paragraph', {
+      patterns: ['最初の段落', /first paragraph/i],
+      action: () => {
+        const res = this._onParagraphSelect ? this._onParagraphSelect(1) : null;
+        this.speak(res ? `1番目の段落（全${res.total}）` : '段落がありません');
+        return { action: 'first-paragraph', res };
+      },
+      description: 'Jump to the first paragraph'
+    });
+    this.registerCommand('last-paragraph', {
+      patterns: ['最後の段落', /last paragraph/i],
+      action: () => {
+        const res = this._onLastParagraph ? this._onLastParagraph() : null;
+        this.speak(res ? `最後の段落（全${res.total}）` : '段落がありません');
+        return { action: 'last-paragraph', res };
+      },
+      description: 'Jump to the last paragraph'
+    });
+
     // Article character count — the reading-time numerator as a status atom.
     this.registerCommand('char-count', {
       patterns: ['何文字', '文字数', '記事の文字数', /how many characters/i,
@@ -2624,6 +2695,51 @@ export class VoiceCommands {
         return { action: 'read-paragraph', chunks: chunks.length };
       },
       description: 'Read the current paragraph aloud'
+    });
+
+    // Sentence layer — NVDA/JAWS Alt+Down/Alt+Up parity. The caret walks
+    // source-block sentences (a sentence spanning display lines is still
+    // spoken whole); the scroll follows the line holding its start.
+    this.registerCommand('next-sentence', {
+      patterns: ['次の文', '文を次へ', '一文進め', /next sentence/i],
+      action: () => {
+        const r = this._onSentenceStep ? this._onSentenceStep(1) : null;
+        this.speak(r ? r.sentence : 'これ以上進めません');
+        return { action: 'next-sentence', sentence: r ? r.sentence : null };
+      },
+      description: 'Speak the next sentence (NVDA Alt+Down)'
+    });
+    this.registerCommand('prev-sentence', {
+      patterns: ['前の文', '文を前へ', '一文戻し', /prev(?:ious)? sentence/i],
+      action: () => {
+        const r = this._onSentenceStep ? this._onSentenceStep(-1) : null;
+        this.speak(r ? r.sentence : 'これ以上戻れません');
+        return { action: 'prev-sentence', sentence: r ? r.sentence : null };
+      },
+      description: 'Speak the previous sentence (NVDA Alt+Up)'
+    });
+
+    // Read the sentence under the scroll — read-line's sentence sibling.
+    this.registerCommand('read-sentence', {
+      patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで',
+        /read (this |the |current )?sentence/i],
+      action: () => {
+        const r = this._onSentence ? this._onSentence() : null;
+        this.speak(r ? r.sentence : '文がありません');
+        return { action: 'read-sentence', sentence: r ? r.sentence : null };
+      },
+      description: 'Read the current sentence'
+    });
+    this.registerCommand('sentence-status', {
+      patterns: ['何文目', '現在何文目', 'どの文', /which sentence/i,
+        /sentence (position|status)/i],
+      action: () => {
+        const res = this._onSentenceStatus ? this._onSentenceStatus() : null;
+        this.speak(res ? `現在${res.index}文目（全${res.total}文）`
+          : '記事を開いていません');
+        return { action: 'sentence-status', res };
+      },
+      description: 'Announce the current sentence position'
     });
 
     // Line position without moving — find-status's line sibling.

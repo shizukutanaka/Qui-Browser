@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 106: 文/段落端原子 — NVDA Alt+↓↑・段落最初/最後・索引段落読み上げ
+外部基準: NVDA/JAWS Alt+↓/↑（文レベルの読書ナビ — 行と単語の中間粒度）、first/last-heading の段落版、read-from-line の索引段落版。
+- ✨ **next-sentence/prev-sentence**: `_sentenceCaret` {block,idx} が **source block の文**（`splitSentences` を readerNarration から export）を走査 — 複数表示行に跨る文も全文発話（行粒度では分断される）。文→行写像は **正規化オフセット数学**: `norm(block) === norm(row1)+' '+norm(row2)+…` が成立するため `_offsetsInBlock` の前方スキャンで wrap の空白正規化（`split(/\s+/)`+単一空白結合）を吸収 — 日本語ハード分割行（空白ゼロ）も offset が連続で正しい。voice '次の文'/'前の文'/'next|previous sentence' → 文発話+スクロール追従/'これ以上進めません|戻れません'。
+- ✨ **read-sentence/sentence-status**: `currentSentence()` — スクロール行開始を含む文（行先頭が文途中ならその文、blank 行は次ブロックの先頭文）+ 記事全体索引 {index,total} → 'この文を読んで'→文発話、'何文目'→'現在N文目（全M文）'。
+- ✨ **first/last-paragraph**: `lastParagraph()`（`paragraphAt(paras.length)`）→ '最初の段落'/'最後の段落' → 'N番目の段落（全M）'/'段落がありません'。
+- ✨ **read-paragraph-at**: `getParagraphNarrationAt(n)`（OOR='out'・reader-off=[]・non-block=[] で区別）→ 'N番目の段落を読み上げ'/'read paragraph N' → statusText 告知+chunk 発話。**実測捕捉**: paragraph-select の `(\d+)番目の段落` が句を所有 → paragraph-select より前に登録（共存テストで plain ジャンプを保護）。
+- ✅ **テスト +18（git stash で17件赤確認 — 1件は paragraph-select 共存ガードで設計上緑）**: 行跨ぎ文走査・ブロック境界往復・blank 解決・記事全体索引・OOR/reader-off 区別・EN 句。Total 2107 tests (80 suites); lint 0 エラー（警告数は変更前と同一）; build green。
+
 ### Session 105: 行/半頁/位置原子 — NVDA ↓↑・Vim Ctrl+D/U・Kindle N%・omnibox 検索
 外部基準: NVDA/VoiceOver の ↓/↑（1行ずつ読書）、Vim Ctrl+D/Ctrl+U（半ページ）、Kindle "go to N%"、omnibox の検索 intent。
 - ✨ **next-line/prev-line**: '次の行'/'前の行'/'next line'/'previous line' → `scrollContent(±1)` → **着地点の行を発話**/'これ以上進めません|戻れません' — 行単位の最も細かい読書ナビ。
