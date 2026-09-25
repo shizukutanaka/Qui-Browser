@@ -3282,7 +3282,10 @@ export class VRApp {
             }
             return { t: v.video.currentTime, d: v.video.duration };
           },
-          onMuteStatus: () => this._mutedVolume !== undefined
+          onMuteStatus: () => this._mutedVolume !== undefined,
+          onFindQuery: () => this.tabManager.getActiveTab()?.findQuery() ?? null,
+          onReadFromLine: (n) =>
+            this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? []
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

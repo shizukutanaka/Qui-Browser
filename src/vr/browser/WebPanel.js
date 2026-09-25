@@ -145,6 +145,7 @@ export class WebPanel {
     // and the cursor into them for findNextMatch/findPrevMatch.
     this._findMatches = [];
     this._findIndex = -1;
+    this._lastFindQuery = null; // Ctrl+F bar's query text — cleared by Esc/load
     this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
     this._wordCaret = null; // {line, idx} NVDA word-nav caret; null = at scroll
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
@@ -417,6 +418,7 @@ export class WebPanel {
       }
       this._findMatches = [];
       this._findIndex = -1;
+      this._lastFindQuery = null;
       this._scrollMark = null;
       this._wordCaret = null;
       this._readerLines = lines;
@@ -697,6 +699,7 @@ export class WebPanel {
     const had = this._findMatches.length > 0;
     this._findMatches = [];
     this._findIndex = -1;
+    this._lastFindQuery = null;
     if (had) {
       this._markFindHits();
     }
@@ -763,12 +766,18 @@ export class WebPanel {
    * "read from here" counterpart (NVDA read-from-current-position parity).
    * Empty outside the reader state, same as getReaderNarration().
    */
-  getReaderNarrationFrom() {
+  getReaderNarrationFrom(line) {
+    if (line !== undefined && line !== null
+      && (!Number.isFinite(line) || line < 0 || line >= this._readerLines.length)) {
+      return null; // OOR — callers distinguish from 'no article' (empty list)
+    }
     if (this._contentState !== 'reader' || !this._readerBlocks) {
       return [];
     }
     return narrationFromLine(
-      this._readerLines, this._readerScroll, this._readerTitle, this._readerBlocks);
+      this._readerLines,
+      line === undefined || line === null ? this._readerScroll : line,
+      this._readerTitle, this._readerBlocks);
   }
 
   /**
@@ -786,6 +795,16 @@ export class WebPanel {
   }
 
   /**
+   * The last find-in-page query — the Ctrl+F bar's text field, spoken aloud
+   * by find-query. null when nothing is being searched (Esc, fresh article,
+   * or an empty query).
+   * @returns {string|null}
+   */
+  findQuery() {
+    return this._lastFindQuery;
+  }
+
+  /**
    * Find-in-page for the reader viewport — the Ctrl+F atom, scoped to the
    * only searchable text surface in VR. Records every matching line index
    * and jumps the viewport to the first hit; callers announce the count.
@@ -796,6 +815,7 @@ export class WebPanel {
     const q = typeof query === 'string' ? query.trim().toLowerCase() : '';
     this._findMatches = [];
     this._findIndex = -1;
+    this._lastFindQuery = q || null;
     if (!q || this._contentState !== 'reader') {
       return 0;
     }

@@ -69,6 +69,8 @@ export class VoiceCommands {
     this._onRecenter = null;
     this._onVideoStatus = null;
     this._onMuteStatus = null;
+    this._onFindQuery = null;
+    this._onReadFromLine = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -91,6 +93,7 @@ export class VoiceCommands {
     this._speechPitch = 1.0; // 0.5–2.0, applied to every utterance (NVDA pitch parity)
     this._voice = null; // picked SpeechSynthesisVoice — select-voice cycles the engine list
     this.lastTranscript = '';
+    this._prevTranscript = ''; // transcript before the current one — 'what did I say' echo
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
 
@@ -214,6 +217,7 @@ export class VoiceCommands {
     const confidence = result[0].confidence;
     const isFinal = result.isFinal;
 
+    this._prevTranscript = this.lastTranscript;
     this.lastTranscript = transcript;
     this.confidence = confidence;
 
@@ -394,6 +398,31 @@ export class VoiceCommands {
       description: 'Open, close or toggle the settings panel'
     });
 
+    // Read aloud starting at line N — VoiceOver read-from-line parity, the
+    // indexed variant of read-here. Hoisted before reader-goto-line: its
+    // /(\d+)\s*行目/ and /line (\d+)/ would otherwise swallow '30行目から読み上げ'
+    // and 'read from line 30'.
+    this.registerCommand('read-from-line', {
+      patterns: [/(\d+)\s*行目から読み上げて?/, /(\d+)\s*行目から読んで/,
+        /read\s+(?:aloud\s+)?from\s+line\s+(\d+)/i],
+      action: (transcript) => {
+        const n = Number(transcript.match(/(\d+)/)[1]);
+        const chunks = this._onReadFromLine ? this._onReadFromLine(n - 1) : undefined;
+        if (chunks === null) {
+          this.speak(`${n}行目はありません`);
+          return { action: 'read-from-line', line: n, res: 'out' };
+        }
+        if (!chunks || !chunks.length) {
+          this.speak('記事を開いていません');
+          return { action: 'read-from-line', line: n, res: 'no-article' };
+        }
+        this.speak(`${n}行目から読み上げます`);
+        this.readAloud(chunks);
+        return { action: 'read-from-line', line: n, res: 'ok' };
+      },
+      description: 'Read aloud starting at line N'
+    });
+
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
     // article. Hoisted like the commands above: the go-to catch-all would
     // otherwise route 'go to line 30' as a navigation request.
@@ -459,6 +488,20 @@ export class VoiceCommands {
         return { action: 'mute-status', muted: v };
       },
       description: 'Announce the muted state'
+    });
+
+    // Speak the active find query — the Ctrl+F bar's text field, read back.
+    // Hoisted: 'find query' contains 'find', which find-in-page's /find (.+)/
+    // would claim as a real search term.
+    this.registerCommand('find-query', {
+      patterns: ['検索語は', '何を検索している', '何を検索中', '検索語を教えて',
+        /what (am i |are we )?searching for/i, /find query/i, /search query/i],
+      action: () => {
+        const q = this._onFindQuery ? this._onFindQuery() : null;
+        this.speak(q ? `「${q}」を検索中です` : '検索していません');
+        return { action: 'find-query', query: q };
+      },
+      description: 'Announce the active find-in-page query'
     });
 
     // Navigation commands
@@ -912,6 +955,8 @@ export class VoiceCommands {
    * @param {Function} [opts.onRecenter] () => boolean — reset player to origin
    * @param {Function} [opts.onVideoStatus] () => {t,d}|null — video position
    * @param {Function} [opts.onMuteStatus] () => boolean|null — muted?
+   * @param {Function} [opts.onFindQuery] () => string|null — active find query
+   * @param {Function} [opts.onReadFromLine] (line)=>chunks[]|null|[] — narration
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -938,7 +983,7 @@ export class VoiceCommands {
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
     onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
-    onMuteStatus } = {}) {
+    onMuteStatus, onFindQuery, onReadFromLine } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1082,6 +1127,12 @@ export class VoiceCommands {
     }
     if (onMuteStatus) {
       this._onMuteStatus = onMuteStatus;
+    }
+    if (onFindQuery) {
+      this._onFindQuery = onFindQuery;
+    }
+    if (onReadFromLine) {
+      this._onReadFromLine = onReadFromLine;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1768,6 +1819,31 @@ export class VoiceCommands {
     // github.com 50 times says "open github" and lands there directly instead
     // of at a search-results page.
     //
+    // Move a background tab by strip position — Chrome drag-reorder parity,
+    // the indexed variant of move-tab-left/right. Must precede go-to: its
+    // /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/ claims 'タブNを左に移動'.
+    this.registerCommand('move-tab-n', {
+      patterns: [/タブ([0-9]+)を(左|右)に?移動/, /move tab ([0-9]+) (left|right)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+).*(左|右|left|right)/i);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const left = m ? /左|left/i.test(m[2]) : true;
+        const tabs = tabManager?.tabs || [];
+        const idx = n - 1;
+        if (idx < 0 || idx >= tabs.length) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'move-tab-n', index: -1 };
+        }
+        if (!tabManager.moveTab(idx, left ? -1 : 1)) {
+          this.speak('これ以上移動できません');
+          return { action: 'move-tab-n', index: idx, moved: false };
+        }
+        this.speak(`タブ${n}を${left ? '左' : '右'}に移動しました`);
+        return { action: 'move-tab-n', index: idx, moved: true };
+      },
+      description: 'Move the tab at a strip position'
+    });
+
     // REGISTERED LAST ON PURPOSE: its `を開く` / `open X` capture is greedy and
     // would otherwise swallow more specific commands (e.g. "キーボードを開く"
     // → keyboard toggle). processCommand matches in registration order and
@@ -2788,6 +2864,21 @@ export class VoiceCommands {
         return { action: 'language-switch', language: en ? 'en-US' : 'ja-JP' };
       },
       description: 'Switch the voice language'
+    });
+
+
+    // Echo the last recognized transcript — ASR confidence verification: a
+    // deaf or hard-of-hearing user can't hear whether the recognizer heard
+    // them correctly; reading the transcript back is the only confirmation.
+    this.registerCommand('say-last-transcript', {
+      patterns: ['何と言った', '今何と言いました', '何と言いました',
+        '何と聞き取った', /what did i say/i, /what did you hear/i],
+      action: () => {
+        const t = this._prevTranscript;
+        this.speak(t ? `「${t}」と聞き取りました` : 'まだ何も聞き取っていません');
+        return { action: 'say-last-transcript', transcript: t || null };
+      },
+      description: 'Echo the last recognized transcript'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
