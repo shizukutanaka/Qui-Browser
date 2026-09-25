@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 111: 安全/コピー/残り原子 — https確認・ドメイン・戻進可否・行/記事コピー・%ジャンプ・名指しクローズ・残段落/見出し
+外部基準: Chrome ロックアイコン（接続安全性の可視確認の音声版）、アドレスバードメイン読み上げ（フィッシング対策）、Kindle 'go to N%'、NVDA 問い合わせ系（質問形はナビゲートしない誠実経路）、Clipboard API 拡張。
+- ✨ **security-status / hostname**: 'このページは安全ですか'/'is it secure' → 'https のため接続は暗号化されています'/'http のため暗号化されていません'/'ページがありません'；'ドメインは'/'hostname' → `new URL().hostname` のみ告知（ホスト名以外を読まない — フィッシング時の誤導防止）。
+- ✨ **back/forward-status**: '戻れますか'/'進めますか'/'can we go back|forward' → `historyIdx`/`history.length` から可否のみ告知（ナビゲートしない — **質問形が移動を実行する嘘を解消**）。**実測捕捉**: 'back'/'navigate' は registerDefaultCommands + connectBrowser 二重登録で Map キー位置は hoisted 側（同名 overwrite は挿入順維持）→ status 双子を navigate(553) より前に hoisted 登録 + `this._tabManager` 遅延バインド新設。
+- ✨ **close-tab-by-name**: 'ニュースのタブを閉じて'/'close the X tab' → 名指し `closeTab(i)`。**衝突3件を実測捕捉**: close-tab の `/close\s+tab/i`（EN prefix 所有 → close-tab より前に登録）、'すべて|他|右|右側…のタブを閉じて'（bulk 面所有 → stoplist ルックアヘッドに追加）、'この|あの' 指示詞も除外。
+- ✨ **copy-line / copy-article**: 'この行をコピー' → `onCopyLine` が currentLine を clipboard（onCopyUrl と同じ best-effort write 規律）；'記事をコピー' → `_readerBlocks` 連結 → '記事をコピーしました（N文字）'。
+- ✨ **percent-jump**: '50%へ'/'go to N percent' → `onReaderPercent` が行へ換算して `scrollContentTo`。**衝突**: go-to の 'go to X' 所有 → hoisted 登録。
+- ✨ **paragraphs/headings-left**: '残りの段落'/'headings left' → `onParagraphStatus`/`onHeadingHere` の {index,total} 再利用で不一致不可 → 'あとN段落です'/'最後の見出しです'。
+- ✅ **テスト +14（git stash で14件全て赤確認）**: eslint で indent/brace-style/quotes 6件を修正（ternary 継続=12sp、catch=複数行、非補間文字列=単引用）、unused catch 変数は bare `catch {` に。Total 2182 tests (85 suites); 0 lint errors（警告132件=変更前と同一）; build green。
+
 ### Session 110: 名指し/繰返/環境原子 — タブ名選択・タブ詳細・N回繰り返し・全停止・バッテリー/オンライン・名指しオープン
 外部基準: VoiceOver 'tab by name'（位置でなく内容で選択）、NVDA describe-tab、Vim 'N.' カウント繰返、Voice Access 'stop everything'、OS バッテリー/接続ステータス、omnibox の名指しオープン。
 - ✨ **tab-by-name**: 'ニュースのタブ'/'tab named X'/'switch to X tab' → title/url 部分一致 → `setActive` → 'タブNに切り替えました'/'「X」のタブがありません'。**実測捕捉の衝突**: `(.+)のタブ` が 'さっき|最後|最初|前|次|ピン…のタブ' を所有 → `^` アンカー+stoplist ルックアヘッド（regex `.test` は位置1へスライドして一致するため先頭固定必須）。

@@ -376,6 +376,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**読み上げと動画をまとめて止められない**~~ — **Session 110 で実装**: Voice Access 'stop everything' 準拠。voice `stop-everything`（'すべて止めて'/'stop everything'）→ `synthesis.cancel` + `onVideoStop` → 'すべて停止しました'/'止めるものはありません'。
 - ~~**バッテリー/接続状態を聞けない**~~ — **Session 110 で実装**: OS ステータス準拠。voice `battery-status`（'バッテリーは'/'battery level' → `navigator.getBattery()` async → 'バッテリーはN%です（充電中）'/API 無しは誠実）、`online-status`（'オンラインか'/'are we online' → 'オンライン/オフラインです'）。
 - ~~**ブックマーク/履歴を名前で開けない**~~ — **Session 110 で実装**: omnibox 名指しオープン準拠（select 原子の NL 双子）。voice `open-bookmark-named`/`open-history-named`（'ブックマークのXを開いて'/'open bookmark X'、**go-to より前に登録** — `を開く` catch-all 所有を実測捕捉）→ `onBookmarkOpenNamed`/`onHistoryOpenNamed` フック → '「X」を開きます'/'「X」に一致する…がありません'。
+- ~~**接続が安全かどうか聞けない**~~ — **Session 111 で実装**: Chrome ロックアイコン準拠。voice `security-status`（'このページは安全ですか'/'is it secure' → 'https のため接続は暗号化されています'/'http のため暗号化されていません'）、`hostname`（'ドメインは' → `new URL().hostname` のみ告知 — フィッシング対策）。
+- ~~**戻る/進むが可能か質問してもナビゲートしてしまう**~~ — **Session 111 で実装**: 問い合わせ形は可否のみ告知する誠実経路。voice `back-status`/`forward-status`（'戻れますか'/'can we go back' → `historyIdx`/`history.length` → '戻れます/ません'）— 'back'/'navigate' の Map キー位置が hoisted 側のため status 双子を hoisted 登録 + `this._tabManager` 遅延バインド新設。
+- ~~**タブを名前で閉じられない**~~ — **Session 111 で実装**: tab-by-name の破壊双子。voice `close-tab-by-name`（'Xのタブを閉じて'/'close the X tab' → 名指し `closeTab(i)` — close-tab/bulk 面の所有衝突を `^`+stoplist で透過化）。
+- ~~**読んでいる行/記事をコピーできない**~~ — **Session 111 で実装**: Clipboard API 拡張。voice `copy-line`（'この行をコピー' → `onCopyLine` → '行をコピーしました'）、`copy-article`（'記事をコピー' → `_readerBlocks` 連結 → '記事をコピーしました（N文字）'）。
+- ~~**記事の N% 位置へ飛べない**~~ — **Session 111 で実装**: Kindle 'go to N%' 準拠。voice `percent-jump`（'50%へ'/'go to N percent' → `onReaderPercent` で行換算 → 'N%に移動しました' — go-to 所有を実測捕捉のため hoisted 登録）。
+- ~~**残りの段落/見出し数を聞けない**~~ — **Session 111 で実装**: sentences-left の残り双子。voice `paragraphs-left`（'残りの段落' → `onParagraphStatus` 再利用 → 'あとN段落です'）、`headings-left`（'残りの見出し'/'headings left' → `onHeadingHere` 再利用 → 'あとN見出しです'/'最後の見出しです'）。
 
 
 ---

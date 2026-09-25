@@ -66,6 +66,9 @@ export class VoiceCommands {
     this._onPinStatus = null;
     this._onJumpBack = null;
     this._onClearFind = null;
+    this._onCopyLine = null;
+    this._onCopyArticle = null;
+    this._onReaderPercent = null;
     this._onPasteGo = null;
     this._onReadClipboard = null;
     this._onRecenter = null;
@@ -111,6 +114,8 @@ export class VoiceCommands {
     this._repeatableTranscript = ''; // last non-repeat transcript — Vim '.' parity
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
+    // late-bound at connectBrowser — hoisted status queries read it, never capture it
+    this._tabManager = null;
 
     // Statistics
     this.stats = {
@@ -546,6 +551,33 @@ export class VoiceCommands {
       description: 'Announce the active find-in-page query'
     });
 
+    // back/forward STATUS — the query twin of the nav commands: a question
+    // ('戻れますか'/'can we go back') must not trigger navigation, so these
+    // register BEFORE navigate/back below (their loose /進//戻/ patterns own
+    // the question phrases otherwise — verified by dispatch check).
+    this.registerCommand('back-status', {
+      patterns: ['戻れますか', '戻れる', 'can we go back', 'can i go back',
+        /can (we|i) go back/i],
+      action: () => {
+        const p = this._tabManager?.getActiveTab?.();
+        const can = !!p && (p.historyIdx || 0) > 0;
+        this.speak(can ? '戻れます' : '戻れません');
+        return { action: 'back-status', can };
+      },
+      description: 'Announce whether back is possible'
+    });
+    this.registerCommand('forward-status', {
+      patterns: ['進めますか', '進める', 'can we go forward', 'can i go forward',
+        /can (we|i) go forward/i],
+      action: () => {
+        const p = this._tabManager?.getActiveTab?.();
+        const can = !!p && (p.historyIdx || 0) < (p.history?.length || 0) - 1;
+        this.speak(can ? '進めます' : '進めません');
+        return { action: 'forward-status', can };
+      },
+      description: 'Announce whether forward is possible'
+    });
+
     // Navigation commands
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
@@ -928,6 +960,24 @@ export class VoiceCommands {
       description: 'Announce the battery level'
     });
 
+    // percent-jump — Kindle 'go to N%' parity: '50%へ'/'percent 50' jumps
+    // the reader to that fraction of the article. Hoisted: go-to's
+    // 'go to X' catch-all owns the EN phrase otherwise.
+    this.registerCommand('percent-jump', {
+      patterns: [/(\d+)%\s*(へ|に)/, /(\d+)\s*(?:パーセント|%)\s*(?:の位置|へ|に)/,
+        /(?:go to |jump to )?(\d+)\s*percent/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const pct = m ? Math.min(100, Math.max(0, parseInt(m[1], 10))) : 0;
+        const done = this._onReaderPercent ? this._onReaderPercent(pct) : null;
+        this.speak(done
+          ? `${pct}%に移動しました`
+          : '記事を開いていません');
+        return { action: 'percent-jump', percent: pct, done };
+      },
+      description: 'Jump to a percent of the article'
+    });
+
     // Online status — the connectivity atom (navigator.onLine; offline pages
     // still answer honestly).
     this.registerCommand('online-status', {
@@ -1123,6 +1173,13 @@ export class VoiceCommands {
    *                                         active tab pinned?
    * @param {Function} [opts.onJumpBack] () => boolean — Vim `` mark toggle
    * @param {Function} [opts.onClearFind] () => boolean — dismiss find hits
+   * @param {Function} [opts.onCopyLine] () => string|null — write the
+   *                                         current reader line to the
+   *                                         clipboard and return it
+   * @param {Function} [opts.onCopyArticle] () => number|null — write the
+   *                                         article text, return char count
+   * @param {Function} [opts.onReaderPercent] (pct) => {percent}|null —
+   *                                         jump the reader to pct %
    * @param {Function} [opts.onPasteGo] () => Promise<string> — clipboard
    *                                         URL → navigate; announce text
    * @param {Function} [opts.onReadClipboard] () => Promise<string> — clipboard
@@ -1178,11 +1235,13 @@ export class VoiceCommands {
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
-    onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
+    onJumpBack, onClearFind, onCopyLine, onCopyArticle, onReaderPercent,
+    onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
     onSearchEngineStatus, onCharStep, onWord, onSpellWord,
     onHeadingHere, onArticleSummary } = {}) {
+    this._tabManager = tabManager || null;
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1318,6 +1377,15 @@ export class VoiceCommands {
     if (onClearFind) {
       this._onClearFind = onClearFind;
     }
+    if (onCopyLine) {
+      this._onCopyLine = onCopyLine;
+    }
+    if (onCopyArticle) {
+      this._onCopyArticle = onCopyArticle;
+    }
+    if (onReaderPercent) {
+      this._onReaderPercent = onReaderPercent;
+    }
     if (onPasteGo) {
       this._onPasteGo = onPasteGo;
     }
@@ -1375,6 +1443,36 @@ export class VoiceCommands {
     if (onArticleSummary) {
       this._onArticleSummary = onArticleSummary;
     }
+    // close-tab-by-name — tab-by-name's destructive sibling ('Xのタブを
+    // 閉じて'/'close the news tab'). Registered BEFORE close-tab: its
+    // /close\s+tab/i prefix owns the EN phrase otherwise (dispatch-verified).
+    this.registerCommand('close-tab-by-name', {
+      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側))(.+)のタブを閉じて/,
+        /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b)(.+) tab$/i,
+        /^close tab (?:named|called) (.+)$/i],
+      action: (transcript) => {
+        const m = transcript.match(/^(.+)のタブを閉じて/) ||
+          transcript.match(/^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b)(.+) tab$/i) ||
+          transcript.match(/^close tab (?:named|called) (.+)$/i);
+        const term = (m ? m[1] : '').toLowerCase().trim();
+        const tabs = tabManager?.tabs || [];
+        const i = tabs.findIndex((t) => {
+          const hay = `${t.currentTitle || ''} ${t.currentUrl || ''}`.toLowerCase();
+          return term && hay.includes(term);
+        });
+        if (i < 0) {
+          this.speak(`「${term}」のタブがありません`);
+          return { action: 'close-tab-by-name', index: -1 };
+        }
+        const closed = tabManager.closeTab ? tabManager.closeTab(i) : false;
+        this.speak(closed === false
+          ? 'ピン留めされたタブは閉じられません'
+          : 'タブを閉じました');
+        return { action: 'close-tab-by-name', index: i };
+      },
+      description: 'Close a tab by title or URL'
+    });
+
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -2746,6 +2844,93 @@ export class VoiceCommands {
         return { action: 'stop-everything', speaking, video: stoppedVideo };
       },
       description: 'Stop narration and video'
+    });
+
+    // security-status — the lock-icon's spoken twin (Chrome parity): 'is it
+    // secure'/'このページは安全ですか' answers from the scheme, honestly.
+    this.registerCommand('security-status', {
+      patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
+        /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
+      action: () => {
+        const url = tabManager?.getActiveTab?.()?.currentUrl;
+        if (!url) {
+          this.speak('ページがありません');
+          return { action: 'security-status' };
+        }
+        const https = /^https:/i.test(url);
+        this.speak(https
+          ? 'https のため接続は暗号化されています'
+          : 'http のため暗号化されていません');
+        return { action: 'security-status', https };
+      },
+      description: 'Announce the connection security'
+    });
+    // hostname — the anti-phishing atom (address-bar domain readout):
+    // 'ドメインは'/'hostname' answers the bare host, not the URL string.
+    this.registerCommand('hostname', {
+      patterns: ['ドメインは', 'どこのサイト', 'サイト名は', /hostname/i],
+      action: () => {
+        const url = tabManager?.getActiveTab?.()?.currentUrl;
+        let host = null;
+        try {
+          host = url ? new URL(url).hostname : null;
+        } catch {
+          host = null;
+        }
+        this.speak(host ? `ドメインは${host}です` : 'ドメインがありません');
+        return { action: 'hostname', host };
+      },
+      description: 'Announce the site hostname'
+    });
+    // copy-line — clipboard twin of read-line ('この行をコピー'): the
+    // current reader line goes to the clipboard.
+    this.registerCommand('copy-line', {
+      patterns: ['この行をコピー', '行をコピーして', /copy (this |the )?line/i],
+      action: () => {
+        const text = this._onCopyLine ? this._onCopyLine() : null;
+        this.speak(text ? '行をコピーしました' : 'コピーする行がありません');
+        return { action: 'copy-line', copied: !!text };
+      },
+      description: 'Copy the current reader line'
+    });
+    // copy-article — the whole-article sibling: reader text to clipboard.
+    this.registerCommand('copy-article', {
+      patterns: ['記事をコピー', '本文をコピー', /copy (the )?article/i],
+      action: () => {
+        const chars = this._onCopyArticle ? this._onCopyArticle() : null;
+        this.speak(chars
+          ? `記事をコピーしました（${chars}文字）`
+          : 'コピーする記事がありません');
+        return { action: 'copy-article', chars };
+      },
+      description: 'Copy the article text'
+    });
+    // paragraphs-left / headings-left — the 'remaining' twins of
+    // sentences-left (reading-progress parity), reusing the same
+    // {index,total} surfaces so they can never disagree.
+    this.registerCommand('paragraphs-left', {
+      patterns: ['残りの段落', 'あと何段落', /paragraphs left/i],
+      action: () => {
+        const st = this._onParagraphStatus ? this._onParagraphStatus() : null;
+        this.speak(st
+          ? (st.total - st.index - 1 > 0
+            ? `あと${st.total - st.index - 1}段落です` : '最後の段落です')
+          : '記事を開いていません');
+        return { action: 'paragraphs-left', left: st ? st.total - st.index - 1 : null };
+      },
+      description: 'Announce remaining paragraphs'
+    });
+    this.registerCommand('headings-left', {
+      patterns: ['残りの見出し', 'あと何見出し', /headings left/i],
+      action: () => {
+        const st = this._onHeadingHere ? this._onHeadingHere() : null;
+        this.speak(st
+          ? (st.total - st.index - 1 > 0
+            ? `あと${st.total - st.index - 1}見出しです` : '最後の見出しです')
+          : '見出しがありません');
+        return { action: 'headings-left', left: st ? st.total - st.index - 1 : null };
+      },
+      description: 'Announce remaining headings'
     });
 
     // Copy the page title — copy-url's pair for the share surface.
