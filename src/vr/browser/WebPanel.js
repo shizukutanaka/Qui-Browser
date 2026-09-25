@@ -986,6 +986,17 @@ export class WebPanel {
     return { index: this._findIndex + 1, total: this._findMatches.length };
   }
 
+  /** Start line of each heading — the index behind headingAt/lastHeading. */
+  _headingStarts() {
+    const heads = [];
+    this._readerLines?.forEach((line, i) => {
+      if (line.style === 'h' || line.style === 'title') {
+        heads.push(i);
+      }
+    });
+    return heads;
+  }
+
   /**
    * Jump directly to the Nth heading — nextHeading's indexed sibling
    * (findMatchAt parity). Returns { index, total }, 'out' when n exceeds
@@ -995,12 +1006,7 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return null;
     }
-    const heads = [];
-    this._readerLines.forEach((line, i) => {
-      if (line.style === 'h' || line.style === 'title') {
-        heads.push(i);
-      }
-    });
+    const heads = this._headingStarts();
     if (!heads.length) {
       return null;
     }
@@ -1010,6 +1016,13 @@ export class WebPanel {
     }
     this.scrollContentTo(heads[n - 1]);
     return { index: n, total };
+  }
+
+  /**
+   * Jump to the last heading — findLastMatch's heading sibling.
+   */
+  lastHeading() {
+    return this.headingAt(this._headingStarts().length);
   }
 
   /**
