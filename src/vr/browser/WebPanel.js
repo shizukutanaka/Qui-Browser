@@ -148,6 +148,7 @@ export class WebPanel {
     this._lastFindQuery = null; // Ctrl+F bar's query text — cleared by Esc/load
     this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
     this._wordCaret = null; // {line, idx} NVDA word-nav caret; null = at scroll
+    this._charCaret = null; // {line, idx} NVDA Left/Right char caret
     this._sentenceCaret = null; // {block, idx} NVDA Alt+Up/Down sentence caret
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
@@ -422,6 +423,7 @@ export class WebPanel {
       this._lastFindQuery = null;
       this._scrollMark = null;
       this._wordCaret = null;
+      this._charCaret = null;
       this._sentenceCaret = null;
       this._readerLines = lines;
       this._readerBlocks = blocks;
@@ -686,17 +688,7 @@ export class WebPanel {
       return null;
     }
     const dir = direction >= 0 ? 1 : -1;
-    const seg = typeof Intl !== 'undefined' && Intl.Segmenter
-      ? new Intl.Segmenter('ja', { granularity: 'word' }) : null;
-    const wordsOf = (line) => {
-      const text = this._readerLines[line]?.text || '';
-      if (seg) {
-        return [...seg.segment(text)]
-          .filter((s) => s.isWordLike)
-          .map((s) => s.segment);
-      }
-      return text.split(/\s+/).filter(Boolean);
-    };
+    const wordsOf = (line) => this._wordsOf(line);
     if (!this._wordCaret) {
       const line = Math.min(this._readerScroll, this._readerLines.length - 1);
       const n = wordsOf(line).length;
@@ -719,6 +711,116 @@ export class WebPanel {
       }
     }
     return null;
+  }
+
+  /**
+   * Word tokens of one laid-out line — Intl.Segmenter word granularity
+   * (CJK-safe), whitespace split as fallback. Shared by nextWord's caret
+   * walk and currentWord's position query.
+   */
+  _wordsOf(line) {
+    const text = this._readerLines[line]?.text || '';
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const seg = new Intl.Segmenter('ja', { granularity: 'word' });
+      return [...seg.segment(text)]
+        .filter((s) => s.isWordLike)
+        .map((s) => s.segment);
+    }
+    return text.split(/\s+/).filter(Boolean);
+  }
+
+  /**
+   * Grapheme clusters of one laid-out line — the char-caret unit. Intl
+   * grapheme segmentation keeps surrogate pairs and combining sequences
+   * whole (a surrogate slice would render �); [...text] is the fallback.
+   */
+  _charsOf(line) {
+    const text = this._readerLines[line]?.text || '';
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const seg = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+      return [...seg.segment(text)].map((s) => s.segment);
+    }
+    return [...text];
+  }
+
+  /**
+   * Advance the char caret — NVDA/JAWS Right/Left single-character review.
+   * Same caret shape as nextWord, one line at a time; crossing a line
+   * follows the caret with scrollContentTo (which marks for jumpBack).
+   * @param {number} direction positive = forward
+   * @returns {{char: string, line: number}|null} null at article edge /
+   *          outside the reader
+   */
+  nextChar(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    const charsOf = (line) => this._charsOf(line);
+    if (!this._charCaret) {
+      const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const n = charsOf(line).length;
+      this._charCaret = { line, idx: dir > 0 ? -1 : n };
+    }
+    let { line, idx } = this._charCaret;
+    idx += dir;
+    while (line >= 0 && line < this._readerLines.length) {
+      const chars = charsOf(line);
+      if (idx >= 0 && idx < chars.length) {
+        this._charCaret = { line, idx };
+        if (line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { char: chars[idx], line };
+      }
+      line += dir;
+      if (line >= 0 && line < this._readerLines.length) {
+        idx = dir > 0 ? 0 : charsOf(line).length - 1;
+      }
+    }
+    return null;
+  }
+
+  prevChar() {
+    return this.nextChar(-1);
+  }
+
+  /**
+   * The word under the caret without moving — NVDA read-current-word
+   * (numpad 5) parity. A live word caret wins; otherwise the scroll line's
+   * first word (the position a caret would take). Null outside the reader
+   * or on a wordless line.
+   */
+  currentWord() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    if (this._wordCaret) {
+      const words = this._wordsOf(this._wordCaret.line);
+      if (this._wordCaret.idx >= 0 && this._wordCaret.idx < words.length) {
+        return { word: words[this._wordCaret.idx], line: this._wordCaret.line };
+      }
+    }
+    const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+    const words = this._wordsOf(line);
+    return words.length ? { word: words[0], line } : null;
+  }
+
+  /**
+   * The current word spelled grapheme-by-grapheme — NVDA's spell gesture
+   * (double numpad 5) parity. '、'-separated so the TTS reads each unit
+   * individually instead of blending them back into the word.
+   */
+  spellWord() {
+    const w = this.currentWord();
+    if (!w) {
+      return null;
+    }
+    const chars = typeof Intl !== 'undefined' && Intl.Segmenter
+      ? [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(w.word)]
+        .map((s) => s.segment)
+      : [...w.word];
+    return { spelled: chars.join('、'), word: w.word };
   }
 
   /**

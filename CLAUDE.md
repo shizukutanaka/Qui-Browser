@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 107: 文字/語/ステータス原子 — NVDA ←/→・numpad-5・設定値問い合わせ
+外部基準: NVDA/JAWS ←/→ の単文字レビュー（未就学単語の判定・かな確認の最細粒度）、NVDA numpad-5（1回=語読み、2回=スペル）、status-query 双子（各 set コマンドの 'how is X set' 対）。
+- ✨ **next-char/prev-char**: `_charsOf` が `Intl.Segmenter` grapheme クラスタ走査（結合文字・ZWJ絵文字も1単位として誠実 — コードポイントでなく表示文字）→ `_charCaret` {line,idx} で行境界を跨ぎ全グラフェム巡回（空白も報告 — NVDA の挙動どおり）。voice '次の文字'/'前の文字'/'next|previous character' → 文字発話/'これ以上進めません|戻れません'。`_onCharStep` 遅延バインド（constructor 登録のため tabManager 不在 → late-bound hook 定番パターン）。
+- ✨ **read-word/spell-word**: `currentWord()`（caret 単語 → 無ければ scroll 行先頭語）、`spellWord()`（grapheme join '、' — 日本語の読み上げ習慣に合わせて読点区切り）。voice 'この単語を読んで'/'read word'・'この単語をスペル'/'spell word'。
+- ✨ **status-query 双子**: `onStepper(key,0)` を **query 経路**として新設 — delta=0 で現在値のみ返し step/apply しない（set 側の stepper と完全同一の min/max/現在値を共有するため嘘を吐かない）。voice `speech-rate-status`（'読み上げ速度は' → 'N倍です'）、`speech-pitch-status`（'ピッチは'）、`voice-name`（'どの声' → '声はXです'/'声は未選択です'）、`language-status`（'言語は' → 'ja-JP'）、`search-engine-status`（'どの検索エンジン' → `onSearchEngineStatus` — search-engine の `/検索エンジンを?(.+)/` 所有回避のため 'どの/はどれ' の長語形を選定）、`stepperStatusCmd`×5（'グレース時間は'→ミリ秒 / 'スナップ角は'→度 / '移動速度は'→メートル毎秒 / 'キャプション保持は'→秒 / 'キャプション高さは'→メートル → '値+単位'/'確認できません'）。
+- ✅ **テスト +20（git stash で20件全て赤確認）**: nextChar/prevChar の行境界往復・grapheme クラスタ・currentWord/spellWord の caret/フォールバック両面・voice 15件。lint で indent 1件（ternary 継続行）修正；**実 U+FFFD バイトがテストファイル2箇所と VoiceCommands.js 1箇所に混入 → python3 行書換えで除去**（ツールエコー腐敗の再発 — 全編集後に `chr(0xfffd)` カウントで検証する手順を恒久化）。Total 2127 tests (81 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 106: 文/段落端原子 — NVDA Alt+↓↑・段落最初/最後・索引段落読み上げ
 外部基準: NVDA/JAWS Alt+↓/↑（文レベルの読書ナビ — 行と単語の中間粒度）、first/last-heading の段落版、read-from-line の索引段落版。
 - ✨ **next-sentence/prev-sentence**: `_sentenceCaret` {block,idx} が **source block の文**（`splitSentences` を readerNarration から export）を走査 — 複数表示行に跨る文も全文発話（行粒度では分断される）。文→行写像は **正規化オフセット数学**: `norm(block) === norm(row1)+' '+norm(row2)+…` が成立するため `_offsetsInBlock` の前方スキャンで wrap の空白正規化（`split(/\s+/)`+単一空白結合）を吸収 — 日本語ハード分割行（空白ゼロ）も offset が連続で正しい。voice '次の文'/'前の文'/'next|previous sentence' → 文発話+スクロール追従/'これ以上進めません|戻れません'。

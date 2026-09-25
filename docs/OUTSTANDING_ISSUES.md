@@ -356,6 +356,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**文ごとに読み進められない**~~ — **Session 106 で実装**: NVDA/JAWS Alt+↓/↑ 準拠（文レベルの読書ナビ — 行と単語の中間）。`_sentenceCaret` {block,idx} が **source block の文**（`splitSentences` 導出 — 複数表示行に跨る文も全文発話）を走査；文→行の写像は正規化オフセット数学（`norm(block) === norm(row1)+' '+norm(row2)+…` 前方スキャン）で wrap の空白正規化を吸収。voice '次の文'/'前の文'/'next|previous sentence' → 文を発話+スクロール追従/'これ以上進めません|戻れません'；'この文を読んで'/'何文目' → `currentSentence()`（スクロール下・記事全体索引 {index,total}）。
 - ~~**先頭/末尾の段落に飛べない**~~ — **Session 106 で実装**: first/last-heading の段落版。`lastParagraph()`（`paragraphAt(paras.length)`）→ voice '最初の段落'/'最後の段落' → '1番目の段落（全M）'/'最後の段落（全M）'/'段落がありません'。
 - ~~**N番目の段落を読み上げられない**~~ — **Session 106 で実装**: read-from-line の段落版。`getParagraphNarrationAt(n)`（paras[n-1] → narrationChunks、OOR='out'・reader-off=[] で区別）→ voice `read-paragraph-at`（'3番目の段落を読み上げ'/'read paragraph 3'）→ 'N番目の段落を読み上げます'+chunk 発話/'段落Nはありません'。**実測捕捉の衝突**: paragraph-select の `(\d+)番目の段落` が句を所有 → paragraph-select より前に登録（plain ジャンプは paragraph-select に残置 — 共存テストで保護）。
+- ~~**文字ごとに読み進められない**~~ — **Session 107 で実装**: NVDA/JAWS ←/→ の文字ナビ準拠（word-nav の1段細粒度 — 未就学単語の判定・かな確認）。`_charsOf` が `Intl.Segmenter` grapheme クラスタ走査（結合文字・ZWJ絵文字も1単位として誠実）→ `nextChar`/`prevChar` が `_charCaret` {line,idx} で行境界を跨ぎ全グラフェムを巡回（空白も報告）。voice '次の文字'/'前の文字'/'next|previous character' → 文字を発話/'これ以上進めません|戻れません'。
+- ~~**現在の単語を読み上げ/スペルできない**~~ — **Session 107 で実装**: NVDA numpad-5（1回=読み上げ、2回=スペル）準拠。`currentWord()`（caret 単語 → 無ければ scroll 行先頭語）、`spellWord()`（grapheme join '、'）→ voice 'この単語を読んで'/'read word'・'この単語をスペル'/'spell word'。
+- ~~**現在の設定値を聞けない**~~ — **Session 107 で実装**: status-query 双子（set 側と対で 'how is X set' 準拠）。`onStepper(key,0)` を **query 経路**として新設（delta=0 で現在値のみ返し step/apply しない）。voice `speech-rate-status`（'読み上げ速度は' → 'N倍です'）、`speech-pitch-status`（'ピッチは'）、`voice-name`（'どの声' → '声はXです'/'声は未選択です'）、`language-status`（'言語は' → 'ja-JP'）、`search-engine-status`（'どの検索エンジン' → `onSearchEngineStatus` — 検索語との衝突を lookahead/長語形で回避）、`stepperStatusCmd`×5（'グレース時間は'/'スナップ角は'/'移動速度は'/'キャプション保持は'/'キャプション高さは' → '値+単位'/'確認できません'）。
+
 
 ---
 

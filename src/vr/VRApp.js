@@ -2978,6 +2978,11 @@ export class VRApp {
             if (!def) {
               return null;
             }
+            // delta 0 is the read-only query twin the voice status commands
+            // use — return the current value without stepping or applying.
+            if (delta === 0) {
+              return this.settings[key];
+            }
             const next = Math.min(def.max, Math.max(def.min,
               this.settings[key] + delta * def.step));
             if (next === this.settings[key]) {
@@ -3228,6 +3233,15 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.lastParagraph?.() ?? null,
           onReadParagraphAt: (n) =>
             this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
+          // Search-engine name — the status twin of onSearchEngine.
+          onSearchEngineStatus: () => this.settings.searchEngine ?? null,
+          // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
+          onCharStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
+          onWord: () =>
+            this.tabManager?.getActiveTab?.()?.currentWord?.() ?? null,
+          onSpellWord: () =>
+            this.tabManager?.getActiveTab?.()?.spellWord?.() ?? null,
           // Line position without moving — lineStatus parity.
           onLineStatus: () =>
             this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,
