@@ -752,6 +752,19 @@ export class WebPanel {
   }
 
   /**
+   * Heading texts in document order — the VoiceOver-rotor/JAWS "headings
+   * list" atom. Returns [] outside reader mode.
+   */
+  getReaderToc() {
+    if (this._contentState !== 'reader') {
+      return [];
+    }
+    return this._readerLines
+      .filter((l) => l.style === 'h' || l.style === 'title')
+      .map((l) => l.text);
+  }
+
+  /**
    * "Where am I" announce line: the page title plus the reader's current
    * line range when an article is showing. Screen-reader parity for the
    * orientation a sighted user gets free from the chrome bar.

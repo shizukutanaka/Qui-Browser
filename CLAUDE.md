@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 82: ナレーション制御原子 — 発話速度・読み上げ一時停止/再開・目次読み上げ
+外部基準: NVDA の rate 制御（スクリーンリーダー利用者は TTS を高速で回す）、SpeechSynthesis の pause/resume（Edge "Read Aloud" の一時停止ボタン相当）、VoiceOver ローター "headings" リスト / JAWS 見出しダイアログ（記事の輪郭を一覧する導線）。
+- ✨ **発話速度**: `VoiceCommands._speechRate`（0.5–3.0 に clamp）を全 utterance に適用。`speak({rate})` 個別指定は優先。voice `speech-faster`/`speech-slower`（'速くして'/'遅くして'/'読み上げを速く'/'読み上げを遅く'+EN）が ±0.25 ステップで '読み上げ速度 N倍' と告知 — 没入中に設定パネルへ寄らずに調整できる。
+- ✨ **読み上げ一時停止/再開**: `pauseSpeaking()`/`resumeSpeaking()` が `SpeechSynthesis.pause/resume` を呼ぶ（キューを保持したまま中断 — stop-reading の cancel とは別物）。voice `pause-reading`（'読み上げを一時停止'/'読み上げを中断して'/'読み上げ中断'+EN）/`resume-reading`（'読み上げを再開'/'読み上げを続けて'/'読み上げ再開'+EN）。'一時停止'（video-toggle）・'読み上げ停止'（stop-reading）と衝突しない句を選定。
+- ✨ **目次読み上げ**: `WebPanel.getReaderToc()` が `style==='h'|'title'` のテキストを文書順で返す（reader 外は []）→ voice `toc`（'目次'/'目次を読み上げ'/'見出し一覧'/'章立て'+EN）が 'N個の見出し。A、B、…' を発話、10件超は '、他N件' で頭打ち。heading-jump の姉妹原子（N番目へ飛ぶ前に輪郭を聞く）。
+- ✅ **テスト +19（git stash で18件赤を確認してから緑へ）**: rate clamp・非数値リセット・speak への rate 反映・個別上書き・連続調整、pause/resume の pause 呼び出し・cancel 非呼び出し・resume 呼び出し、synthesis 不在 no-op、速度句の調整・告知・速度が後続発話に継続、'pause video' が narration でなく video-toggle に届く（登録順衝突ガード — 既存 command のため stash 下でも緑の1件）、toc の件数・一覧・10件上限・見出し無し・タブ無し。Total 1683 tests (56 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 81: オリエンテーション原子 — 発話の聞き直し・現在地告知・タブ一覧読み上げ
 外部基準: スクリーンリーダーの "say again"（NVDA Insert+T — 直前発話の再生）、スクリーンリーダーの現在地問い合わせ（"where am I" は視覚ユーザーが chrome バーから無料で得ている指向情報）、ブラウザのタブ一覧 UI の音声面。
 - ✨ **say-again**: `speak()` が `_lastSpoken` を記録（synthesis 不在でも動く発話ログ — TTS エンジン無し環境でも発話「内容」は一意）→ voice `say-again`（'もう一度'/'もう一回'/'聞き直し'/'もう一度言って'+EN）が再生、未発話時は「直前の発話がありません」。繰り返し自体も `_lastSpoken` を更新するので 'もう一度' を連打できる。

@@ -39,6 +39,7 @@ export class VoiceCommands {
     // State
     this.lastCommand = null;
     this._lastSpoken = null; // last text passed to speak() — say-again replays it
+    this._speechRate = 1.0; // 0.5–3.0, applied to every utterance (NVDA rate parity)
     this.lastTranscript = '';
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
@@ -817,6 +818,76 @@ export class VoiceCommands {
       description: 'Stop reading the article aloud'
     });
 
+    // Pause/resume narration — SpeechSynthesis.pause keeps the queue,
+    // unlike stop-reading's cancel. Distinct phrases keep it clear of
+    // stop-reading ('読み上げ停止') and video-toggle ('一時停止').
+    this.registerCommand('pause-reading', {
+      patterns: ['読み上げを一時停止', '読み上げを中断して', '読み上げ中断',
+        /pause\s+(the\s+)?(reading|narration|article)/i],
+      action: () => {
+        this.pauseSpeaking();
+        return { action: 'pause-reading' };
+      },
+      confirmationText: '読み上げを一時停止します',
+      description: 'Pause the article narration'
+    });
+
+    this.registerCommand('resume-reading', {
+      patterns: ['読み上げを再開', '読み上げを続けて', '読み上げ再開',
+        /resume\s+(the\s+)?(reading|narration|article)/i],
+      action: () => {
+        this.resumeSpeaking();
+        return { action: 'resume-reading' };
+      },
+      confirmationText: '読み上げを再開します',
+      description: 'Resume the paused narration'
+    });
+
+    // Speech rate — NVDA rate-control parity. Blind users run TTS fast;
+    // steppers live in settings but a voice user adjusts by voice.
+    this.registerCommand('speech-faster', {
+      patterns: ['速くして', 'もっと速く', '読み上げを速く', '読み上げを早く',
+        /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
+        /increase (speech|talk|reading) (rate|speed)/i],
+      action: () => {
+        const rate = this.setSpeechRate(this._speechRate + 0.25);
+        this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
+        return { action: 'speech-faster', rate };
+      },
+      description: 'Increase narration speed'
+    });
+
+    this.registerCommand('speech-slower', {
+      patterns: ['遅くして', 'もっと遅く', '読み上げを遅く', '読み上げをゆっくり',
+        /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
+        /decrease (speech|talk|reading) (rate|speed)/i],
+      action: () => {
+        const rate = this.setSpeechRate(this._speechRate - 0.25);
+        this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
+        return { action: 'speech-slower', rate };
+      },
+      description: 'Decrease narration speed'
+    });
+
+    // Table of contents — VoiceOver rotor "headings" list / JAWS headings
+    // dialog: speak every heading so the user hears the article's shape.
+    this.registerCommand('toc', {
+      patterns: ['目次', '目次を読み上げ', '見出し一覧', '章立て',
+        /table of contents/i, /read (the )?(contents|toc|outline)/i],
+      action: () => {
+        const toc = tabManager?.getActiveTab?.()?.getReaderToc?.() || [];
+        if (!toc.length) {
+          this.speak('目次がありません');
+          return { action: 'toc', count: 0 };
+        }
+        const list = toc.slice(0, 10);
+        const more = toc.length > list.length ? `、他${toc.length - list.length}件` : '';
+        this.speak(`${toc.length}個の見出し。${list.join('、')}${more}`);
+        return { action: 'toc', count: toc.length };
+      },
+      description: 'Read the article outline aloud'
+    });
+
     // Find-in-page — the Ctrl+F atom, scoped to the reader viewport (the
     // only searchable text surface). find-next/find-prev cycle matches like
     // Ctrl+G / Shift+Ctrl+G. The cycle commands are registered FIRST because
@@ -1169,7 +1240,7 @@ export class VoiceCommands {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = options.lang || this.language;
-    utterance.rate = options.rate || 1.0;
+    utterance.rate = options.rate || this._speechRate;
     utterance.pitch = options.pitch || 1.0;
     utterance.volume = options.volume || 1.0;
     // Android/Quest Chrome can fire onerror with "network" or "not-allowed"
@@ -1191,6 +1262,27 @@ export class VoiceCommands {
   stopSpeaking() {
     if (this.synthesis) {
       this.synthesis.cancel();
+    }
+  }
+
+  /** Clamp + store the narration speed used for every utterance. */
+  setSpeechRate(rate) {
+    const r = Number(rate);
+    this._speechRate = Number.isFinite(r) ? Math.min(3, Math.max(0.5, r)) : 1.0;
+    return this._speechRate;
+  }
+
+  /** Pause queued narration without dropping it (SpeechSynthesis.pause). */
+  pauseSpeaking() {
+    if (this.synthesis) {
+      this.synthesis.pause?.();
+    }
+  }
+
+  /** Resume narration paused by pauseSpeaking(). */
+  resumeSpeaking() {
+    if (this.synthesis) {
+      this.synthesis.resume?.();
     }
   }
 
