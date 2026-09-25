@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 116: 位置/状態原子 — open-tab-n誤ルート修正・位置問い合わせ透過・読み込み状態・最新ブックマーク・見出し数・エイリアス拡充
+外部基準: Chrome Ctrl+N 系の strip 選択語彙、describe-tab の単項目双子（privacy-status 準拠）、history-latest の保存リスト版、headings-left の総数双子。
+- 🐛 **'open tab 3'/'タブNを開いて' 誤ルート修正**: go-to catch-all が句を所有して literal テキスト 'open tab 3' で検索ナビゲートしていた実害を実測捕捉 → `open-tab-n` を go-to より前に登録（→ `setActive(n-1)` → 'タブNに切り替えました'/'タブNはありません'）。
+- 🐛 **位置問い合わせの誤答修正**: '何番目のタブ'/'何枚目のタブ'/'現在のタブ番号' が tab-by-name の名指し検索に誤答（'「何番目」のタブがありません'）→ stoplist へ 何番目|何枚目|現在 を追加して tab-status へ透過（所有パターンも拡充）。
+- ✨ **loading-status / bookmark-latest / heading-count**: '読み込み中ですか'/'is it loading' → `panel.loading` → '読み込み中です/読み込みは完了しています'、'最新のブックマーク' → `_onBookmarkList()[0]`、'見出しの数' → `headingHere().total` → 'N個の見出しがあります'。
+- ✨ **エイリアス拡充**: volume-up/down へ '音量を上げて'/'音量を下げて'/volume up|down EN、reader-size-up/down へ 'ズームイン'/'ズームアウト'/zoom in|out（VR のズーム＝記事文字サイズ）、say-again へ '再読み上げ'/'read it again'、read-here へ '続きを読んで'/'continue reading'、reader-progress へ 'どこまで読んだ'/'読了ですか'、title へ 'タブのタイトルは'、where-am-i へ '今どこ'/'今どこにいる'。
+- ✅ **テスト +17（git stash で17件全て赤確認）**: Total 2264 tests (90 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 115: 問合せ双子原子 — read-line-n・ピン数・マイク状態・最新履歴・検索エンジンbare修正・JAエイリアス拡充
 外部基準: read-line の索引双子（NVDA read-line-at）、private-count の pinned 版、OS マイクインジケータの音声版（ヘッドセット内で見えない）、history-list の最新件双子。
 - ✨ **read-line-n**: 'N行目を読んで'/'read line 5' → `lineStatus` 範囲確認 → `scrollContentTo(n-1)`（ジャンプマーク記録）+ `currentLine` → 'N行目。テキスト'。**実測捕捉**: reader-goto-line の `/(\d+)\s*行目/` が句を所有 → hoisted 登録（`this._tabManager` 遅延バインド）。

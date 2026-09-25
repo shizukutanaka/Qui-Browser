@@ -682,7 +682,8 @@ export class VoiceCommands {
     // (master-volume stepper); without a handler the commands still confirm
     // but move nothing, same as before.
     this.registerCommand('volume-up', {
-      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ'],
+      patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', '音量を上げて',
+        /volume (up|raise|increase|louder)/i],
       action: () => {
         if (this._onVolume) {
           this._onVolume(0.1);
@@ -694,7 +695,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('volume-down', {
-      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン'],
+      patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', '音量を下げて',
+        /volume (down|lower|decrease|quieter)/i],
       action: () => {
         if (this._onVolume) {
           this._onVolume(-0.1);
@@ -792,8 +794,8 @@ export class VoiceCommands {
     // leaving immersion for the settings panel.
     this.registerCommand('reader-size-up', {
       patterns: ['記事の文字を大きく', '記事を大きく', 'リーダーの文字を大きく', '記事の文字を大きくして',
-        /larger (article|reader) text/i, /bigger (article|reader) text/i,
-        /increase (article|reader) text size/i],
+        'ズームイン', /larger (article|reader) text/i, /bigger (article|reader) text/i,
+        /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(0.25) : null;
         this.speak(v === null ? '記事の文字はこれ以上大きくできません' : `記事の文字サイズ ${v.toFixed(2)}倍`);
@@ -804,7 +806,8 @@ export class VoiceCommands {
 
     this.registerCommand('reader-size-down', {
       patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
-        /smaller (article|reader) text/i, /decrease (article|reader) text size/i],
+        'ズームアウト', /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
+        /zoom out/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(-0.25) : null;
         this.speak(v === null ? '記事の文字はこれ以上小さくできません' : `記事の文字サイズ ${v.toFixed(2)}倍`);
@@ -2186,8 +2189,8 @@ export class VoiceCommands {
     // "where am I" and tab-list announces. No confirmationText: each
     // command's whole output is the announcement itself.
     this.registerCommand('say-again', {
-      patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って',
-        /repeat( that)?/i, /say (that )?again/i],
+      patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
+        /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i],
       action: () => {
         this.speak(this._lastSpoken || '直前の発話がありません');
         return { action: 'say-again' };
@@ -2196,7 +2199,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('where-am-i', {
-      patterns: ['どこ', 'どこにいる', '現在地', '現在のページ', 'このページは',
+      patterns: ['どこ', 'どこにいる', '今どこ', '現在地', '現在のページ', 'このページは', '今どこにいる',
         /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i],
       action: () => {
         const tab = tabManager?.getActiveTab?.();
@@ -2407,6 +2410,28 @@ export class VoiceCommands {
     // → keyboard toggle). processCommand matches in registration order and
     // stops at the first hit, so this generic catch-all must come after every
     // specific command to act only on utterances none of them claimed.
+    // Open/select the Nth tab — 'open tab 3' and 'タブ3を開いて' read as
+    // tab-select phrases but go-to's catch-all owns them (dispatch-verified:
+    // the browser was navigating to the literal text 'open tab 3').
+    // Registered before go-to so the specific shape wins.
+    this.registerCommand('open-tab-n', {
+      patterns: [/^(?:open|switch to)\s+tab\s+([0-9]+)/i, /タブ([0-9]+)を開(?:く|いて)/],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        if (n < 1 || n > tabs.length) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'open-tab-n', index: -1 };
+        }
+        tabManager.setActive(n - 1);
+        const p = tabs[n - 1];
+        this.speak(`タブ${n}に切り替えました。${p.currentTitle || p.currentUrl}`);
+        return { action: 'open-tab-n', index: n - 1 };
+      },
+      description: 'Switch to tab N by name'
+    });
+
     this.registerCommand('go-to', {
       patterns: [
         /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
@@ -2703,7 +2728,7 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右))(.+)のタブ(?!を|に|は|のタイトル)/,
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|現在))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
         /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
       action: (transcript) => {
@@ -2786,7 +2811,8 @@ export class VoiceCommands {
     // Read the page title — NVDA Insert+T parity. where-am-i describes the
     // whole location; this is the single-line "what page am I on" atom.
     this.registerCommand('title', {
-      patterns: ['タイトル', 'このページのタイトル', 'ページ名', /page title/i,
+      patterns: ['タイトル', 'このページのタイトル', 'ページ名', 'タブのタイトルは',
+        /page title/i,
         /what('s| is) (the |this )?(page|title)/i],
       action: () => {
         const p = tabManager?.getActiveTab?.() || null;
@@ -3335,6 +3361,45 @@ export class VoiceCommands {
       },
       description: 'Announce the most recent history entry'
     });
+    // bookmark-latest — history-latest's saved-list twin.
+    this.registerCommand('bookmark-latest', {
+      patterns: ['最新のブックマーク', 'ブックマークの最新', '最後のブックマーク',
+        /latest bookmark/i, /most recent bookmark/i],
+      action: () => {
+        const items = this._onBookmarkList ? this._onBookmarkList() : null;
+        const latest = items && items[0];
+        this.speak(latest
+          ? `最新のブックマークは「${latest.title || latest.url || 'タイトルなし'}」です`
+          : 'ブックマークがありません');
+        return { action: 'bookmark-latest', latest: latest ? latest.title : null };
+      },
+      description: 'Announce the newest bookmark'
+    });
+    // loading-status — describe-tab's single-field twin: 'is it still
+    // loading' answers only the flag (privacy-status parity).
+    this.registerCommand('loading-status', {
+      patterns: ['読み込み中ですか', '読み込みましたか', 'まだ読み込み中',
+        /is (it|the page) (still )?loading/i, /has it loaded/i],
+      action: () => {
+        const loading = !!tabManager?.getActiveTab?.()?.loading;
+        this.speak(loading ? '読み込み中です' : '読み込みは完了しています');
+        return { action: 'loading-status', loading };
+      },
+      description: 'Announce whether the page is still loading'
+    });
+    // heading-count — headings-left's total twin.
+    this.registerCommand('heading-count', {
+      patterns: ['見出しの数', '見出しは何個', '見出しがいくつ',
+        /how many headings/i, /heading count/i],
+      action: () => {
+        const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
+        this.speak(h
+          ? `${h.total}個の見出しがあります`
+          : '見出しがありません');
+        return { action: 'heading-count', count: h ? h.total : 0 };
+      },
+      description: 'Announce the total heading count'
+    });
 
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
@@ -3352,7 +3417,9 @@ export class VoiceCommands {
     // parity. readAloud owns the start/nothing-to-read announcements.
     this.registerCommand('read-here', {
       patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
-        /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i],
+        '続きを読んで', '続きから読んで',
+        /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
+        /continue reading/i],
       action: () => {
         const chunks = this._onReadHere ? this._onReadHere() : null;
         this.readAloud(chunks);
@@ -3387,6 +3454,7 @@ export class VoiceCommands {
     // Reading progress — '進捗' announces how much of the article is done.
     this.registerCommand('reader-progress', {
       patterns: ['進捗', '何%読んだ', 'どれくらい読んだ', 'どのくらい読んだ',
+        'どこまで読んだ', '読了ですか',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i],
       action: () => {
         const pct = this._onReaderProgress ? this._onReaderProgress() : null;
@@ -3904,7 +3972,8 @@ export class VoiceCommands {
     // Strip position — tabs-list announces the titles; this answers the
     // "where am I in the strip" question.
     this.registerCommand('tab-status', {
-      patterns: ['タブは何個', '何個のタブ', '何番目のタブ', 'タブの位置',
+      patterns: ['タブは何個', '何個のタブ', '何番目のタブ', '何枚目のタブ',
+        '現在のタブ番号', 'タブの位置',
         /how many tabs/i, /which tab/i, /tab (count|position)/i],
       action: () => {
         const res = this._onTabStatus ? this._onTabStatus() : null;
