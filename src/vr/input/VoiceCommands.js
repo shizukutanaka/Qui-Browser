@@ -32,6 +32,7 @@ export class VoiceCommands {
     this._onSettingToggle = null;
     this._onPanelDistance = null;
     this._onMute = null;
+    this._onStepper = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -51,6 +52,7 @@ export class VoiceCommands {
     this.lastCommand = null;
     this._lastSpoken = null; // last text passed to speak() — say-again replays it
     this._speechRate = 1.0; // 0.5–3.0, applied to every utterance (NVDA rate parity)
+    this._speechPitch = 1.0; // 0.5–2.0, applied to every utterance (NVDA pitch parity)
     this._voice = null; // picked SpeechSynthesisVoice — select-voice cycles the engine list
     this.lastTranscript = '';
     this.confidence = 0;
@@ -689,6 +691,9 @@ export class VoiceCommands {
    *                                         null = at limit
    * @param {Function} [opts.onMute] (want?: boolean) => boolean|null — toggle or set
    *                                         the muted state; returns the muted state
+   * @param {Function} [opts.onStepper] (key: string, delta: number) => number|null —
+   *                                         step a numeric setting by `delta` of its
+   *                                         own step size; null = unknown key/bounds
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -705,7 +710,7 @@ export class VoiceCommands {
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
-    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute } = {}) {
+    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -738,6 +743,9 @@ export class VoiceCommands {
     }
     if (onMute) {
       this._onMute = onMute;
+    }
+    if (onStepper) {
+      this._onStepper = onStepper;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1687,6 +1695,101 @@ export class VoiceCommands {
       description: 'Toggle or clear the muted state'
     });
 
+    // ── Numeric steppers by voice ────────────────────────────────────────────
+    // The remaining settings steppers (grace window, snap angle, move speed,
+    // caption hold, caption height) are unreachable for a voice-only user.
+    // One generic onStepper hook serves them all; each command steps by ONE
+    // increment of the stepper's own step size, matching the panel's arrows.
+    const stepperCmd = (name, key, label, unit, upRe, downRe, patterns, desc) =>
+      this.registerCommand(name, {
+        patterns,
+        action: (transcript) => {
+          const dir = upRe.test(transcript) ? 1 : downRe.test(transcript) ? -1 : 0;
+          const v = dir && this._onStepper ? this._onStepper(key, dir) : null;
+          this.speak(v === null ? `${label}を変更できません` : `${label} ${v}${unit}`);
+          return { action: name, value: v };
+        },
+        description: desc
+      });
+
+    // Tremor/nystagmus users widen the grace window (WCAG 2.2.1) — the most
+    // accessibility-critical unreachable stepper.
+    stepperCmd('grace-time', 'gazeGraceTime', 'グレース時間', 'ミリ秒',
+      /長く|up|longer|increase/i, /短く|down|shorter|decrease/i,
+      [/グレース時間を(長く|短く)/, /グレースを(長く|短く)/,
+        /grace time (up|down|longer|shorter|increase|decrease)/i],
+      'Adjust the gaze grace window');
+    stepperCmd('snap-angle', 'snapTurnAngle', 'スナップ角', '度',
+      /大きく|up|increase|larger/i, /小さく|down|decrease|smaller/i,
+      [/スナップ角を(大きく|小さく)/, /snap( turn)? angle (up|down|increase|decrease)/i],
+      'Adjust the snap-turn angle');
+    stepperCmd('move-speed', 'smoothMoveSpeed', '移動速度', 'メートル毎秒',
+      /速く|up|faster|increase/i, /遅く|down|slower|decrease/i,
+      [/移動速度を(速く|遅く)/, /move speed (up|down|faster|slower|increase|decrease)/i],
+      'Adjust smooth-movement speed');
+    stepperCmd('caption-hold', 'captionDuration', 'キャプション保持時間', '秒',
+      /長く|up|longer|increase/i, /短く|down|shorter|decrease/i,
+      [/キャプションを(長く|短く)/, /caption (time|duration|hold) (up|down|longer|shorter|increase|decrease)/i],
+      'Adjust caption hold time');
+    stepperCmd('caption-height', 'captionHeight', 'キャプション高さ', 'メートル',
+      /上|up|higher|raise/i, /下|down|lower/i,
+      [/キャプションを(上|下)(に)?/, /caption (up|down|higher|lower|raise)/i],
+      'Raise or lower the caption block');
+
+    // Remaining toggles the generic hook already covers: left/right hand swap
+    // (southpaw) and smooth movement (fires the vestibular warning toast via
+    // _applyToggle, same as the panel toggle).
+    this.registerCommand('southpaw-toggle', {
+      patterns: [/利き手を(左|右)(に)?/, '左利き', '右利き',
+        /(left|right)[- ]handed/i],
+      action: (transcript) => {
+        const want = /左|left/i.test(transcript) ? true
+          : /右|right/i.test(transcript) ? false : undefined;
+        const v = this._onSettingToggle ? this._onSettingToggle('southpaw', want) : null;
+        this.speak(v === null ? '利き手を切り替えられません'
+          : v ? '利き手を左にしました' : '利き手を右にしました');
+        return { action: 'southpaw-toggle', southpaw: v };
+      },
+      description: 'Swap the dominant hand (southpaw)'
+    });
+    this.registerCommand('smooth-move-toggle', {
+      patterns: [/スムーズ移動を(オン|オフ)/,
+        /(smooth move|smooth movement|smooth locomotion) (on|off)/i],
+      action: (transcript) => {
+        const v = this._onSettingToggle ? this._onSettingToggle('enableSmoothMove', onOff(transcript)) : null;
+        this.speak(v === null ? 'スムーズ移動を切り替えられません'
+          : `スムーズ移動 ${v ? 'オン' : 'オフ'}です`);
+        return { action: 'smooth-move-toggle', enabled: v };
+      },
+      description: 'Toggle smooth locomotion'
+    });
+
+    // Narration pitch — NVDA pitch parity next to the existing rate commands.
+    this.registerCommand('speech-pitch', {
+      patterns: [/声を(高く|低く)/, /ピッチを(上げて|下げて)/,
+        /pitch (up|down|higher|lower)/i],
+      action: (transcript) => {
+        const up = /高く|up|higher|上げて/i.test(transcript);
+        this.setSpeechPitch(this._speechPitch + (up ? 0.25 : -0.25));
+        this.speak(`ピッチ ${this._speechPitch}倍`);
+        return { action: 'speech-pitch', pitch: this._speechPitch };
+      },
+      description: 'Adjust narration pitch'
+    });
+
+    // Read the current URL — the single-line location atom (title reads the
+    // page name; this reads the address).
+    this.registerCommand('read-url', {
+      patterns: ['URLを教えて', 'URLを読んで', 'アドレスを教えて',
+        /(read|say|what is|what's) (the )?url/i],
+      action: () => {
+        const url = tabManager?.getActiveTab?.()?.currentUrl || '';
+        this.speak(url || 'URLがありません');
+        return { action: 'read-url', url: url || null };
+      },
+      description: 'Read the active tab URL'
+    });
+
     console.debug('VoiceCommands: Browser integration connected');
   }
 
@@ -1763,7 +1866,7 @@ export class VoiceCommands {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = options.lang || this.language;
     utterance.rate = options.rate || this._speechRate;
-    utterance.pitch = options.pitch || 1.0;
+    utterance.pitch = options.pitch || this._speechPitch;
     utterance.volume = options.volume || 1.0;
     if (this._voice) {
       utterance.voice = this._voice;
@@ -1795,6 +1898,13 @@ export class VoiceCommands {
     const r = Number(rate);
     this._speechRate = Number.isFinite(r) ? Math.min(3, Math.max(0.5, r)) : 1.0;
     return this._speechRate;
+  }
+
+  /** Clamp + store the narration pitch used for every utterance. */
+  setSpeechPitch(pitch) {
+    const p = Number(pitch);
+    this._speechPitch = Number.isFinite(p) ? Math.min(2, Math.max(0.5, p)) : 1.0;
+    return this._speechPitch;
   }
 
   /** Pause queued narration without dropping it (SpeechSynthesis.pause). */

@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 89: 残stepperの音声面 — 汎用onStepper・利き手/スムーズ移動・ピッチ・URL告知
+外部基準: NVDA rate/pitch 制御の対称性（rate があるのに pitch が無いのは半端）、WCAG 2.2.1 Timing Adjustable（grace 窓・キャプション保持時間 — tremor/nystagmus ユーザーが最も必要とする stepper ほど panel にしかなかった）、XAUR の caption 位置カスタマイズ、タイトル告知と対の1行 URL 告知。
+- ✨ **onStepper(key,delta)**: `VOICE_STEPPERS` モジュール定数で panel stepper と同一 min/max/step を共有し、`delta` はその stepper の1刻み単位。live apply も panel と同一表面（gazeInteraction.graceTime / captionSystem.setLineDuration・setVerticalOffset）— 残りは read-at-use で正直に no-apply。
+- ✨ **voice stepper コマンド×5**: 共通 `stepperCmd` ヘルパ — `grace-time`（'グレース時間を長く/短く'）、`snap-angle`（'スナップ角を大きく/小さく'）、`move-speed`（'移動速度を速く/遅く'）、`caption-hold`（'キャプションを長く/短く'）、`caption-height`（'キャプションを上/下に'）→ 'X N単位'/'変更できません'。
+- ✨ **残トグル2件**: TOGGLE_KEYS に `southpaw`/`enableSmoothMove` を追加 → `southpaw-toggle`（'利き手を左に/右に'/'left/right-handed' — 明示 want なので誤操作なし）、`smooth-move-toggle`（'スムーズ移動をオン/オフ'+EN）。_applyToggle に enableSmoothMove ケース追加で前庭警告トーストも panel と同一路径。
+- ✨ **speech-pitch**: `_speechPitch` 0.5–2.0 を全発話の `utterance.pitch` に適用、`setSpeechPitch` clamp → voice（'声を高く/低く'/'pitch up/down' — ±0.25）→ 'ピッチ N倍'。rate と同型。
+- ✨ **read-url**: voice `read-url`（'URLを教えて'/'read the url'）→ currentUrl または「URLがありません」。
+- ✅ **テスト +23（git stash で22件赤を確認してから緑へ）**: 5 stepper の ±dir・EN・境界・フック無し・'キャプションを大きく' の caption-size 衝突ガード（既存コマンドのため stash 下でも緑の設計上の仕様）、2トグルの明示 want・EN、ピッチの ±0.25・clamp・発話適用、URL告知の実URL・EN・無タブ。Total 1819 tests (63 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 88: 直接選択原子 — 番号タブ選択(Ctrl+1..8)・タイトル(Insert+T)・ミュート・音声選択
 外部基準: Chrome Ctrl+1..8（タブ位置指定）/Ctrl+9（最後のタブ）、NVDA Insert+T（ページタイトル読み上げ — where-am-i の全文告知ではなく1行だけ聞く原子）、OS/ハードウェアのミュートキー、NVDA の音声選択（聞き取れる声を選ぶ）。
 - ✨ **tab-select / last-tab**: voice `tab-select`（'タブN'/'tab N' — 正規表現キャプチャ）→ `setActive(N-1)` → タイトル/URL で告知。範囲外は「タブNはありません」— clamp しない（頼んでいない場所へ連れて行かない、honest-announce 規律）。`last-tab`（'最後のタブ'/'last tab'）→ 末尾。
