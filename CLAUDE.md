@@ -252,6 +252,12 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 97: 段落原子 — NVDA Ctrl+↓/↑ の段落レイヤー + 文字数
+外部基準: NVDA/JAWS Ctrl+Down/Ctrl+Up の段落ナビ（行と見出しの中間レイヤー）、findStatus/nextHeading/headingAt の段落版、読了時間の分子。
+- ✨ **段落レイヤー**: `_paragraphStarts()` が R19 の `block` 索引で連続ラン先頭を収集 → `nextParagraph(±1)`（nextHeading 同型・両端循環）、`paragraphAt(n)`（headingAt 同型）、`paragraphStatus()`（findStatus 同型・scroll を含む段落）→ voice '次の段落'/'前の段落'/'3番目の段落'/'何段落'/'which paragraph'。
+- ✨ **char-count**: `getCharCount()` が読了時間の分子を status 原子として公開 → '何文字'/'文字数'/'word count' → '記事はN文字です'。
+- ✅ **テスト +19（git stash で18件赤を確認 — 1件は '3番目の見出し' 共存ガードで設計上緑）**: 段落ステップ4面、select 3面+見出しガード、status 3面、char-count 3面、WebPanel state テスト6面（連続ラン・循環・保持段落の境界ケース）。Total 1955 tests (71 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 96: 読書選択原子II — 見出し直選・検索位置・端点ヒット・現在行
 外部基準: nextHeading の索引版、volume-status の status-query 型、findMatchAt の端点版、VoiceOver "read current line"。
 - ✨ **heading-select**: `headingAt(n)` — nextHeading と同じ heads 走査の索引版（'out'/null で範囲外と見出し無しを区別）→ '3番目の見出し'/'heading 5'。

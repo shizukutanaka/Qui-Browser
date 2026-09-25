@@ -317,6 +317,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**検索位置を動かさず確認できない**~~ — **Session 96 で実装**: volume-status 準拠の status-query。`findStatus()` が {index,total}|null → voice `find-status`（'何件目'/'ヒットは何件'/'how many matches'）→ 'M件中N件目'/'検索をしていません'。'find status' は find-in-page の正当な語として残置（テストで衝突を実測）。
 - ~~**最初/最後のヒットに飛べない**~~ — **Session 96 で実装**: find-match-select の端点版。`findLastMatch()` → voice `find-first`/'最初のヒット'・`find-last`/'最後のヒット'/'last match' → 'N件目に移動しました'/'検索をしていません'。
 - ~~**現在の行を読み上げられない**~~ — **Session 96 で実装**: VoiceOver "read current line" 準拠。`currentLine()` が scroll 位置の行テキスト → voice `read-line`（'この行を読んで'/'read the current line'）→ 本文 or '記事を開いていません'。
+- ~~**段落単位で移動できない**~~ — **Session 97 で実装**: NVDA/JAWS Ctrl+↓/↑ 準拠の段落ナビ（行と見出しの中間レイヤー — R19 の `block` 索引を活用）。`_paragraphStarts()` が block 連続ランの先頭を収集 → `nextParagraph(±1)`（nextHeading 同型・両端循環・{index,total}）→ voice '次の段落'/'前の段落'/'next paragraph'。
+- ~~**N番目の段落に直接飛べない**~~ — **Session 97 で実装**: headingAt の段落版。`paragraphAt(n)` → voice `paragraph-select`（'3番目の段落'/'段落3'/'paragraph 4'）→ 'N番目の段落（全M）'/'段落Nはありません'/'段落がありません'。
+- ~~**今どの段落か分からない**~~ — **Session 97 で実装**: findStatus の段落版。`paragraphStatus()` が scroll を含む段落 → voice `paragraph-status`（'何段落'/'which paragraph'）→ '全M段落のN段落目'/'記事を開いていません'。
+- ~~**記事の文字数が聞けない**~~ — **Session 97 で実装**: 読了時間の分子を status 原子として公開。`getCharCount()` → voice `char-count`（'何文字'/'文字数'/'how many characters'/'word count'）→ '記事はN文字です'/'記事を開いていません'。
 
 ---
 

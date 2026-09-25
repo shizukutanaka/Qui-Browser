@@ -3202,7 +3202,17 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.findLastMatch?.() ?? null,
           // Read the line under the reader scroll (VoiceOver parity).
           onReadLine: () =>
-            this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null
+            this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null,
+          // Paragraph layer — NVDA Ctrl+Down/Up nav, indexed select, status.
+          onParagraphStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextParagraph?.(dir) ?? null,
+          onParagraphSelect: (n) =>
+            this.tabManager?.getActiveTab?.()?.paragraphAt?.(n) ?? null,
+          onParagraphStatus: () =>
+            this.tabManager?.getActiveTab?.()?.paragraphStatus?.() ?? null,
+          // Article character count — the reading-time numerator as status.
+          onCharCount: () =>
+            this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();
