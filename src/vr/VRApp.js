@@ -2767,6 +2767,25 @@ export class VRApp {
           onReadAloud: () => {
             const active = this.tabManager?.getActiveTab?.();
             return active?.getReaderNarration?.() || null;
+          },
+          // Immersive-video voice control: togglePause() already reports the
+          // new state; reading .playing after the toggle returns 'playing' or
+          // 'paused'. No video active → null → the command says so honestly.
+          onVideoToggle: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return null;
+            }
+            v.togglePause();
+            return v.playing ? 'playing' : 'paused';
+          },
+          onVideoStop: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return false;
+            }
+            v.stop();
+            return true;
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
