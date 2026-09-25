@@ -3165,7 +3165,14 @@ export class VRApp {
               return null;
             }
             return { count: hits.length, title: hits[0].title || hits[0].url };
-          }
+          },
+          // Scroll the reader by N lines — scrollContent already clamps and
+          // reports no-move as false for the honest "can't go further".
+          onReaderScroll: (delta) =>
+            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta) || false,
+          // Percent of the article read (readerProgress parity).
+          onReaderProgress: () =>
+            this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

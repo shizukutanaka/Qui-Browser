@@ -307,6 +307,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**読み上げ位置から再開できない**~~ — **Session 93 で実装**: NVDA read-from-current-position 準拠。`layoutReaderLines` が各行に `block` 索引を付与（title 行は undefined）→ `narrationFromLine(lines,scroll,title,blocks)` がスクロール位置のブロックから再チャンク（先頭=全文、内部開始=タイトル再告知しない）→ `getReaderNarrationFrom()` → voice `read-here`（'ここから読み上げ'/'ここから読んで'/'read from here'）。
 - ~~**トップサイトを番号で開けない**~~ — **Session 93 で実装**: bookmark-select/history-select 準拠。`onTopSiteOpen(n)` が `getTopSites`（private-mode/search-engine 除外はタイルと同一ルール）のN番目を active タブで開く → voice `top-site-select`（'トップサイトN'/'top site N' — 既存の /トップ?サイト/ より先に登録）→ タイトル告知/'トップサイトNはありません'。
 - ~~**履歴を検索できない**~~ — **Session 93 で実装**: `onHistorySearch(term)` が `getHistory(MAX_HISTORY)` を title+url で絞り込み → voice `history-search`（'履歴からXを検索'/'履歴でXを調べて'/'history search X'/'search history for X'）→ 'N件見つかりました。最近: title'/'Xは履歴にありません'。'を探して' は find-in-page が所有するため除外。
+- ~~**戻る/進むの告知が境界で嘘を吐く**~~ — **Session 94 で実装**: voice back/forward は既に `tabManager.getActiveTab().goBack()/goForward()` に配線済みだったが、静的 `confirmationText` が境界でも '戻ります'/'進みます' と喋っていた → `goBack`/`goForward` の bool を action 内で告知（controller faceB/faceA 準拠）→ '戻れません'/'進めません'。
+- ~~**リーダーを行数でスクロールできない**~~ — **Session 94 で実装**: go-to-line の相対版。`onReaderScroll(±n)` が `scrollContent`（クランプ+no-move で false）→ voice `reader-scroll-lines`（'N行進む'/'N行戻る'/'scroll down N lines' — /進|戻/ の loose regex より先に登録）→ 'N行進みました'/'これ以上進めません'。
+- ~~**読書進捗が聞けない**~~ — **Session 94 で実装**: `readerProgress()` がビューポート下端/全行の % を返す → voice `reader-progress`（'進捗'/'何%読んだ'/'reading progress'）→ '記事のN%を読みました'/'記事を開いていません'。
 
 ---
 
