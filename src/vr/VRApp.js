@@ -57,6 +57,9 @@ const SETTINGS_KEY = 'qui-browser:settings';
 // Search engines offered by the settings cycle and the voice command.
 const SEARCH_ENGINES = ['duckduckgo', 'google', 'bing', 'ecosia'];
 
+// Comfort presets offered by the settings cycle and the voice command.
+const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
  * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
@@ -1485,6 +1488,64 @@ export class VRApp {
   }
 
   /**
+   * Shared toggle/cycle apply — the settings-panel items and the voice
+   * `onSettingToggle` hook route through the same switch so both paths flip
+   * exactly the same surfaces.
+   */
+  _applyToggle(key, v) {
+    switch (key) {
+    case 'enableCaptions':
+      if (this.captionSystem) {
+        this.captionSystem.setEnabled(v);
+        if (v) {
+          this.captionSystem.show(t('vr.msg.captionsEnabled'));
+        }
+      }
+      break;
+    case 'enableGazeDwell':
+      if (this.gazeInteraction) {
+        this.gazeInteraction.setEnabled(v);
+      }
+      break;
+    case 'enableHaptics':
+      if (this.hapticFeedback) {
+        this.hapticFeedback.setEnabled(v);
+      }
+      break;
+    case 'enableCurvedPanel':
+      if (this.tabManager) {
+        this.tabManager.setCurved(v);
+      } else if (this.webPanel && this.webPanel.setCurved) {
+        this.webPanel.setCurved(v);
+      }
+      break;
+    case 'enableWindowFollow':
+      if (this.windowManager) {
+        this.windowManager.setFollow(v);
+      }
+      break;
+    case 'enableFFR':
+      if (this.ffrSystem) {
+        if (v) {
+          this.ffrSystem.enable(0.5);
+        } else {
+          this.ffrSystem.disable();
+        }
+      }
+      break;
+    case 'motionSensitivity':
+      if (this.comfortSystem) {
+        this.comfortSystem.setPreset(v);
+      }
+      break;
+    default:
+      // Locomotion-read settings (snap turn, teleport, comfort vignette)
+      // have no live apply — the setting is consulted at move time.
+      break;
+    }
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -1514,27 +1575,16 @@ export class VRApp {
       }],
       [t('vr.settings.comfort'), 'enableComfort', null],
       [t('vr.settings.foveation'), 'enableFFR', (v) => {
-        if (this.ffrSystem) {
-          v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
-        }
+        this._applyToggle('enableFFR', v);
       }],
       [t('vr.settings.gazeSelect'), 'enableGazeDwell', (v) => {
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setEnabled(v);
-        }
+        this._applyToggle('enableGazeDwell', v);
       }],
       [t('vr.settings.haptics'), 'enableHaptics', (v) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.setEnabled(v);
-        }
+        this._applyToggle('enableHaptics', v);
       }],
       [t('vr.settings.captions'), 'enableCaptions', (v) => {
-        if (this.captionSystem) {
-          this.captionSystem.setEnabled(v);
-          if (v) {
-            this.captionSystem.show(t('vr.msg.captionsEnabled'));
-          }
-        }
+        this._applyToggle('enableCaptions', v);
       }],
       // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
       // WindowManager) is constructed once, in initializeSystems(), gated on
@@ -1545,16 +1595,10 @@ export class VRApp {
       // construction is one-shot; the apply callback is honest about that.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
-        if (this.windowManager) {
-          this.windowManager.setFollow(v);
-        }
+        this._applyToggle('enableWindowFollow', v);
       }],
       [t('vr.settings.curved'), 'enableCurvedPanel', (v) => {
-        if (this.tabManager) {
-          this.tabManager.setCurved(v);
-        } else if (this.webPanel && this.webPanel.setCurved) {
-          this.webPanel.setCurved(v);
-        }
+        this._applyToggle('enableCurvedPanel', v);
       }],
       // Private browsing (Quest Browser-style): tabs opened while ON write no
       // history and are never persisted. Applies live — the strip gains the
@@ -1647,12 +1691,9 @@ export class VRApp {
     ];
 
     // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
-    const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
     const cycles = [
       ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
-        if (this.comfortSystem) {
-          this.comfortSystem.setPreset(v);
-        }
+        this._applyToggle('motionSensitivity', v);
       }],
       [t('vr.settings.search'), 'searchEngine', SEARCH_ENGINES, (v) => {
         if (this.tabManager) {
@@ -2835,6 +2876,48 @@ export class VRApp {
               return 0;
             }
             return this.tabManager.restoreSession(loadTabSession());
+          },
+          // Generic settings-toggle hook — one voice surface for every
+          // boolean flag (captions, haptics, gaze select, curved panel,
+          // window follow, snap turn, teleport, comfort, FFR) plus the
+          // comfort-preset cycle. Bool keys toggle when value is omitted;
+          // motionSensitivity cycles through COMFORT_PRESETS or takes a
+          // named preset. Unknown keys/values return null honestly.
+          onSettingToggle: (key, value) => {
+            const TOGGLE_KEYS = ['enableCaptions', 'enableHaptics', 'enableGazeDwell',
+              'enableCurvedPanel', 'enableWindowFollow', 'enableSnapTurn',
+              'enableTeleport', 'enableComfort', 'enableFFR'];
+            let next;
+            if (key === 'motionSensitivity') {
+              const idx = COMFORT_PRESETS.indexOf(this.settings.motionSensitivity);
+              next = value === undefined
+                ? COMFORT_PRESETS[(idx + 1) % COMFORT_PRESETS.length]
+                : value;
+              if (!COMFORT_PRESETS.includes(next)) {
+                return null;
+              }
+            } else if (TOGGLE_KEYS.includes(key)) {
+              next = value === undefined ? !this.settings[key] : !!value;
+            } else {
+              return null;
+            }
+            this.updateSetting(key, next);
+            this._applyToggle(key, next);
+            return next;
+          },
+          // Panel distance — the windowDistance stepper's voice surface
+          // (low-vision: '近づけて' brings the reading surface closer
+          // without leaving immersion for the settings panel).
+          onPanelDistance: (delta) => {
+            const next = Math.min(6.0, Math.max(0.6, this.settings.windowDistance + delta));
+            if (next === this.settings.windowDistance) {
+              return null;
+            }
+            this.updateSetting('windowDistance', next);
+            if (this.windowManager) {
+              this.windowManager.setDistance(next);
+            }
+            return next;
           },
           // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
           // same store + confirmation path as the chrome star button.

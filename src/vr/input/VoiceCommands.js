@@ -29,6 +29,8 @@ export class VoiceCommands {
     this._onHighContrast = null;
     this._onSearchEngine = null;
     this._onRestoreSession = null;
+    this._onSettingToggle = null;
+    this._onPanelDistance = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -656,6 +658,12 @@ export class VoiceCommands {
    *                                         search-engine cycle; null = unknown engine
    * @param {Function} [opts.onRestoreSession] () => number — restore the saved tab
    *                                         session; returns tabs restored
+   * @param {Function} [opts.onSettingToggle] (key: string, value?) => —
+   *                                         toggle a boolean setting key or set the
+   *                                         comfort preset; null = unknown key/value
+   * @param {Function} [opts.onPanelDistance] (delta: number) => number|null — step the
+   *                                         window-distance stepper (0.6–6.0 m);
+   *                                         null = at limit
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -672,7 +680,7 @@ export class VoiceCommands {
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
-    onHighContrast, onSearchEngine, onRestoreSession } = {}) {
+    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -696,6 +704,12 @@ export class VoiceCommands {
     }
     if (onRestoreSession) {
       this._onRestoreSession = onRestoreSession;
+    }
+    if (onSettingToggle) {
+      this._onSettingToggle = onSettingToggle;
+    }
+    if (onPanelDistance) {
+      this._onPanelDistance = onPanelDistance;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1479,6 +1493,93 @@ export class VoiceCommands {
         return { action: 'restore-session', restored: n };
       },
       description: 'Restore the previous browsing session tabs'
+    });
+
+    // ── Settings toggles by voice ────────────────────────────────────────────
+    // The boolean flags live behind the settings panel — out of reach for a
+    // voice-only user without leaving immersion. Each command parses an
+    // explicit オン/オフ (on/off/enable/disable) when given, and toggles bare.
+    // Phrases stay off the 'を開く'/'に行く' suffixes that go-to owns.
+    const onOff = (transcript) => {
+      if (/オフ|無効|消して|off|disable/i.test(transcript)) {
+        return false;
+      }
+      if (/オン|有効|つけて|on|enable/i.test(transcript)) {
+        return true;
+      }
+      return undefined;
+    };
+    const toggleCmd = (name, key, label, patterns, desc) => this.registerCommand(name, {
+      patterns,
+      action: (transcript) => {
+        const v = this._onSettingToggle ? this._onSettingToggle(key, onOff(transcript)) : null;
+        if (v === null) {
+          this.speak(`${label}を切り替えられません`);
+        } else {
+          this.speak(`${label} ${v ? 'オン' : 'オフ'}です`);
+        }
+        return { action: name, enabled: v };
+      },
+      description: desc
+    });
+
+    toggleCmd('captions-toggle', 'enableCaptions', 'キャプション',
+      [/キャプションを(オン|オフ|つけて|消して)/, /字幕を(つけて|消して|オン|オフ)/,
+        /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
+      'Toggle captions');
+    toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
+      [/ハプティックを(オン|オフ)/, /振動を(オン|オフ|つけて|消して)/, /触覚を(オン|オフ)/,
+        /(haptics|vibration) (on|off)/i, /(enable|disable|turn on|turn off) haptics/i],
+      'Toggle haptic feedback');
+    toggleCmd('gaze-toggle', 'enableGazeDwell', '注視選択',
+      [/注視選択を(オン|オフ)/, /ゲーズ選択を(オン|オフ)/,
+        /gaze (select|dwell) (on|off)/i, /(enable|disable|turn on|turn off) gaze/i],
+      'Toggle gaze-dwell selection');
+    toggleCmd('curved-toggle', 'enableCurvedPanel', 'カーブパネル',
+      [/カーブパネルを(オン|オフ)/, /湾曲パネルを(オン|オフ)/, /曲面パネルを(オン|オフ)/,
+        /curved (panel|screen) (on|off)/i],
+      'Toggle the curved panel');
+    toggleCmd('follow-toggle', 'enableWindowFollow', 'ウィンドウ追従',
+      [/ウィンドウ追従を(オン|オフ)/, /パネル追従を(オン|オフ)/,
+        /window follow (on|off)/i, /follow (mode )?(on|off)/i],
+      'Toggle head-follow window mode');
+    toggleCmd('snapturn-toggle', 'enableSnapTurn', 'スナップターン',
+      [/スナップターンを(オン|オフ)/, /snap turn (on|off)/i],
+      'Toggle snap turn');
+
+    // Comfort preset — the cycle button's voice surface. Bare 'コンフォート'
+    // cycles forward; a named preset lands directly (JA aliases included).
+    this.registerCommand('comfort-preset', {
+      patterns: [/コンフォート/, /comfort (preset|mode)/i,
+        /comfort (to |preset to |mode to )?(sensitive|moderate|tolerant|disabled|off)/i],
+      action: (transcript) => {
+        const PRESETS = {
+          sensitive: 'sensitive', '敏感': 'sensitive',
+          moderate: 'moderate', '標準': 'moderate',
+          tolerant: 'tolerant', '寛容': 'tolerant',
+          disabled: 'disabled', '無効': 'disabled', 'オフ': 'disabled'
+        };
+        const m = transcript.match(/(sensitive|moderate|tolerant|disabled|敏感|標準|寛容|無効|オフ)/i);
+        const preset = m ? PRESETS[m[1]] || PRESETS[m[1].toLowerCase()] : undefined;
+        const v = this._onSettingToggle ? this._onSettingToggle('motionSensitivity', preset) : null;
+        this.speak(v === null ? 'そのコンフォート設定は使えません' : `コンフォート ${v}です`);
+        return { action: 'comfort-preset', preset: v };
+      },
+      description: 'Cycle or set the motion-comfort preset'
+    });
+
+    // Panel distance — low-vision users pull the reading surface closer
+    // without leaving immersion for the settings stepper.
+    this.registerCommand('panel-distance', {
+      patterns: [/パネルを(近づけて|近く|遠く|遠ざけて)/, /パネルを(近く|遠く)して/,
+        /panel (closer|nearer|further|farther|away)/i],
+      action: (transcript) => {
+        const nearer = /近|closer|nearer/i.test(transcript);
+        const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
+        this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
+        return { action: 'panel-distance', distance: v };
+      },
+      description: 'Move the window panel closer or further'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
