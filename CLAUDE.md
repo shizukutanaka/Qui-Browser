@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 118: ルート修正/エイリアス原子 — close-this-tab・find-first/last・タブ移動の誤ルート3件 + 言い換え句第2弾
+外部基準: Chrome 'Close tab' の指示詞形、NVDA find-first/find-last、Alt+Tab 移動句、主要コマンドの自然言語バリエーション。
+- 🐛 **'close this tab' 誤答修正**: close-tab-by-name の EN lookahead に `this\b` を追加（'「this」のタブがありません' の誤答を解消）+ close-tab を `/close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i` + 'このタブを閉じて' へ拡張。'close the news tab' は close-tab-by-name を維持（共存テスト）。
+- 🐛 **'find first'/'find last' 誤検索修正**: find-in-page の capture が 'first'/'last' を検索語として実行していた → `(?!first\b|last\b)` で透過し find-first/find-last へ `/^find first$/i`/`/^find last$/i` を追加。'find banana' は従来どおりリテラル検索（共存テスト）。
+- 🐛 **'前/次のタブに移動' 誤ナビゲート修正**: go-to の `に移動` catch-all が句を所有し literal ナビゲート → prev-tab/next-tab（登録順が先行するためパターン追加だけで勝つ）へ '前のタブに移動'/'次のタブに移動' を追加、onGoTo 非呼出を断言。
+- ✨ **エイリアス拡充（第2弾）**: read-aloud へ 'このページを読んで'/'ページを読み上げて'/'記事を読み上げて'/'read this'、bookmark-page へ 'ブックマークして'、spell-word へ 'スペルで読んで'/'スペルを教えて'、read-word へ 'この単語'、find-prev へ '前のヒット'/'prev match'、read-sentence へ '現在の文'、sentence-status へ 'この文は'/'文は'、paragraph-status へ 'この段落は'/'段落は'、line-status へ 'この行は'/'行は'、where-am-i へ 'ここは'/'ここはどこ'/'what is here'、describe-tab へ 'このタブは'、new-tab へ '新しいウィンドウ'/'new window'、duplicate-tab へ '複製して'/'duplicate'、stop-loading へ '読み込みをやめて'/'stop the page'、scroll-top/bottom へ 'top of page'/'end of page'、time へ '何時'、close-tab へ 'このタブを閉じて'/'close this/the tab'、read-paragraph へ 'この段落を読み上げて'。
+- 🐛 **編集時の U+FFFD 混入を捕捉・修復**: MultiEdit が read-aloud パターン行の '記事を読み上げ' 内に U+FFFD バイトを書き込み既存パターンを破壊 → 定例 FFFD バイトスキャンで検出、python3 バイト置換で修復（恒久化済みの検証手順が今回も機能）。
+- ✅ **テスト +31（git stash で29件赤確認、2件は共存ガードの設計上緑）**: Total 2314 tests (92 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 117: ステータス/エイリアス原子 — 感度・コントラスト・注視時間の問合せ双子・セッション保存・言い換え句拡充
 外部基準: OS設定の読み上げ双子（NVDA say-status 準拠 — voice-only ユーザーはパネル行を読めない）、Chrome "restore pages" の保存方向、主要コマンドの言い換え句補完。
 - ✨ **sensitivity-status**: '感度は'/'sensitivity' → `this.settings.sensitivity`（voice 層の閾値・フック不要）→ '認識感度はNです'。
