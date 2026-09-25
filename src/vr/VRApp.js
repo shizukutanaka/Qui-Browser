@@ -1548,12 +1548,7 @@ export class VRApp {
       // Private browsing (Quest Browser-style): tabs opened while ON write no
       // history and are never persisted. Applies live — the strip gains the
       // PRIVATE chip immediately — and announces cross-modally (WCAG 4.1.3).
-      [t('vr.settings.privateMode'), 'privateMode', (v) => {
-        if (this.tabManager) {
-          this.tabManager.setPrivateMode(v);
-        }
-        this.showVRToast(t(v ? 'vr.msg.privateModeOn' : 'vr.msg.privateModeOff'), { type: 'info' });
-      }],
+      [t('vr.settings.privateMode'), 'privateMode', (v) => this._applyPrivateMode(v)],
       // Session restore (Wolvic 1.9-style): reopen the tabs that were open
       // when the browser last closed.
       [t('vr.settings.restoreTabs'), 'restoreTabs', null]
@@ -2725,6 +2720,13 @@ export class VRApp {
           // text), which is what "下にスクロール" can actually move in VR.
           onScrollContent: (delta) => {
             this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+          },
+          // Hands-free private-mode toggle: mirrors the settings toggle —
+          // persist the flipped flag, then apply it (TabManager + toast).
+          onTogglePrivateMode: () => {
+            const next = !this.settings.privateMode;
+            this.updateSetting('privateMode', next);
+            this._applyPrivateMode(next);
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
@@ -3390,6 +3392,19 @@ export class VRApp {
       return;
     }
     saveTabSession(this.tabManager.serializeSession());
+  }
+
+  /**
+   * Apply a private-mode flag change: propagate to the tab manager (new tabs
+   * become incognito, strip gains/loses the PRIVATE chip) and announce
+   * cross-modally. Shared by the settings toggle and the voice command.
+   * @param {boolean} v
+   */
+  _applyPrivateMode(v) {
+    if (this.tabManager) {
+      this.tabManager.setPrivateMode(v);
+    }
+    this.showVRToast(t(v ? 'vr.msg.privateModeOn' : 'vr.msg.privateModeOff'), { type: 'info' });
   }
 
   /**

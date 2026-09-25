@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 76: タブ操作面をハンズフリー化 — 閉じたタブの再オープン + 音声タブコマンド7個
+外部基準: デスクトップ3ブラウザ共通の Ctrl+Shift+T（閉じたタブを開き直す）と Ctrl+Tab ラップアラウンド巡回、Wolvic UI-evolution の「タブは MRU 順」という配置判断（到達経路をモードに合わせる — voice ファースト UI ではショートカットの代替はコマンドである）。
+- ✨ **閉じたタブの再オープン**: `TabManager._closedStack`（LIFO・10件上限 — Chrome/Firefox の recently-closed と同じ予算）+ `reopenClosedTab()`。**private/空タブは記録しない** — incognito URL がスタック経由で復活しない設計（セッション直列化と同じ規則）。MAX_TABS 拒否時は pop せずエントリを保持。
+- ✨ **wrap-around 巡回**: `nextTab()`/`prevTab()` — `setActive((i ± 1 + n) % n)`、2枚未満では no-op。Ctrl+Tab / Ctrl+Shift+Tab 準拠。
+- ✨ **音声タブコマンド**: connectBrowser に `new-tab`/`close-tab`/`next-tab`/`prev-tab`/`reopen-tab`/`stop-loading`/`private-mode` を追加。go-to の貪欲 `を開く` キャプチャより前に登録（'新しいタブを開く' が go-to に吸われないことをテストで固定）。`'停止'` は従来通り音声認識停止、`'読み込み…止め/停止/中止'` が stop-loading — 文字列は完全一致マッチなので語彙共有でも衝突しない。
+- 🔧 `_applyPrivateMode(v)` を抽出（設定トグルと voice `onTogglePrivateMode` が同じ「persist → TabManager → toast」経路を共有）。
+- 🔍 **F-4 残件は stale だった**: scroll-down/scroll-up の「二重登録」は実は除去済み（:365 NOTE が記録）— OUTSTANDING_ISSUES を F-4 完全解決に更新。
+- ✅ **テスト +26（git stash で24件の赤を確認してから緑へ）**: スタック push/pop/LIFO/上限/private除外/MAX_TABS保持/dispose クリア、wrap 巡回、各音声コマンドのルーティング、'停止' vs '読み込みを止めて' の棲み分け、'新しいタブを開く' が go-to に奪われないこと、tabManager 不在時の安全性。Total 1573 tests (50 suites); 0 lint errors（新規警告なし）。
+
 ### Session 75: F-4 を畳んだ — ブラウザ原子4個（private / session restore / stop / 新規タブ）+ ストリップ色抽出
 外部基準を調べてから作った。根拠: Wolvic 1.9 の "remember browser state"（再起動でタブを失う不満への回答）、Quest Browser の private window（終了時に全データ破棄・履歴非記録）、デスクトップ 3 ブラウザ共通の reload↔stop ペア、Firefox/Chrome の新規タブ Top Sites（VR では「1 dwell」対「キーボード一往復」の差が特に大きい）。
 - ✨ **private モード**: `settings.privateMode`（既定 off）を新設。オン中に開いたタブは `panel.isPrivate`（**生成時に固定の「incognito ウィンドウ」意味論** — 後からオフにしても混在しない）。`navigate(url,title,panel)` が `isPrivate` を見て `addHistory` をスキップし、永続化からも除外 —— **private タブの URL はディスクに一切到達しない**。ストリップは「PRIVATE」テキストチップ + タブごとの塗りつぶしドットで**色以外の手がかり**を付加（WCAG 1.4.1）。

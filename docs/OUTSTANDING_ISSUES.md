@@ -244,12 +244,14 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - **研究由来の値**: 日本語放送字幕は1行16文字・最大2行（社内規定で13〜20の幅）、Latin 字幕ガイドは37〜42文字。20em が日本語20字／Latin40字を与え、両方の慣行に収まる。`MAX_ROWS_PER_LINE = 2` は既に放送規格どおりだった。
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
-### F-4. **Session 75 で4件解決**（残り1件のみ未着手）
+### F-4. **Session 76 で完全解決**（5/5 + 音声タブ操作面を追加）
 - ~~**プライベートモード**~~ — **Session 75 で実装**: `settings.privateMode`（既定 off）。オン中に開いたタブは `panel.isPrivate`（生成時固定の incognito ウィンドウ意味論）、`navigate(url,title,panel)` が `isPrivate` を見て `addHistory` をスキップ、直列化からも除外（**private タブの URL はディスクに到達しない**）。ストリップは「PRIVATE」チップ+タブごとのドットで色以外の手がかり付き（WCAG 1.4.1）。Quest Browser private window 準拠。
 - ~~**セッション復元**~~ — **Session 75 で実装**: `tabSession.js`（`qui-browser:tabSession`）。http/https のみ・8枚上限・active クランプの検証付き。`restoreTabs` 設定（既定 on）。Wolvic 1.9 の session restore 準拠。
 - ~~**Stop（読み込み中断）**~~ — **Session 75 で実装**: `WebPanel.stop()`（reader fetch abort + iframe ハンドラ detach + 'stopped' 状態）。loading 中はリロードボタンが `✕` を描き同ゾーンで stop —— デスクトップ3ブラウザ共通の reload↔stop ペア。あわせて `iframe.onload` が描画済み 'reader' を 'unavailable' で上書きしていたレースを修正。
 - ~~**新規タブページ**~~ — **Session 75 で実装**: 'empty' 状態に `getTopSites` のタイルを描画・選択で navigate（= C-3 解決）
-- **`scroll-down`/`scroll-up` の二重登録**: `VoiceCommands.js:366` と `:605` で同一キーを登録（`Map.set` なので後者が勝つ）。前者は `window.scrollBy` で没入時には無意味。害は無いが混乱の元
+- ~~**`scroll-down`/`scroll-up` の二重登録**~~ — **確認済み（Session 76）**: 実は既に解決されていた。`:365` の NOTE が記録する通り `window.scrollBy` 版は除去済みで `connectBrowser()` 側のみが残る — この一覧項目が stale だっただけ（実害ゼロ）。
+- ~~**閉じたタブの再オープン**~~ — **Session 76 で実装**: `TabManager.reopenClosedTab()`（LIFO・10件上限・private/空タブは不記録・MAX_TABS 拒否時はスタックを保持）。デスクトップの Ctrl+Shift+T 準拠。voice コマンド 'reopen-tab' からも到達。
+- ~~**タブ操作の音声面**~~ — **Session 76 で実装**: `new-tab`/`close-tab`/`next-tab`/`prev-tab`/`reopen-tab`/`stop-loading`/`private-mode` を connectBrowser に登録（go-to の貪欲 `を開く` キャプチャより前）。voice ファースト UI でキーボードショートカットが存在しないタブ操作を音声に開放 —— Wolvic が MRU 順タブリストを置くのと同じ設計判断（到達経路をモードに合わせる）。`nextTab`/`prevTab` は Ctrl+Tab 準拠の wrap-around。
 
 ---
 

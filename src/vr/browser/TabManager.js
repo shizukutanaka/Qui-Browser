@@ -22,6 +22,9 @@ import {
 
 
 const MAX_TABS = 8;
+// Ctrl+Shift+T-style reopen stack depth — Chrome/Firefox keep the last ~8-10
+// closed tabs per window; the same budget applies here.
+const CLOSED_STACK_MAX = 10;
 
 export class TabManager {
   /**
@@ -57,6 +60,10 @@ export class TabManager {
     // Private mode marks tabs opened while it is on — like Chrome's incognito
     // window scope, not a mode that retroactively converts existing tabs.
     this._privateMode = false;
+    // Recently closed URLs, most recent last. In-memory only: the stack is
+    // never persisted, and private tabs are never pushed, so incognito URLs
+    // cannot leak into the next session through this path either.
+    this._closedStack = [];
 
     /**
      * One managed transform for the whole browser window.
@@ -314,6 +321,15 @@ export class TabManager {
       return;
     }
 
+    // Record the closed URL for the reopen stack before dispose() drops the
+    // panel's state. Blank and private tabs are skipped — an incognito URL
+    // must not resurface, and there is nothing to reopen for an empty tab.
+    if (panel.currentUrl && !panel.isPrivate) {
+      this._closedStack.push(panel.currentUrl);
+      if (this._closedStack.length > CLOSED_STACK_MAX) {
+        this._closedStack.shift();
+      }
+    }
     panel.dispose();
     this.tabs.splice(index, 1);
 
@@ -351,6 +367,47 @@ export class TabManager {
   /** Return the currently active WebPanel, or null. */
   getActiveTab() {
     return this.activeIndex >= 0 ? this.tabs[this.activeIndex] : null;
+  }
+
+  /**
+   * Activate the next/previous tab, wrapping past either end (Ctrl+Tab /
+   * Ctrl+Shift+Tab semantics in every desktop browser). No-op with fewer
+   * than two tabs. Returns the new activeIndex.
+   */
+  nextTab() {
+    return this._stepActive(1);
+  }
+
+  prevTab() {
+    return this._stepActive(-1);
+  }
+
+  _stepActive(delta) {
+    const n = this.tabs.length;
+    if (n < 2 || this.activeIndex < 0) {
+      return this.activeIndex;
+    }
+    this.setActive((this.activeIndex + delta + n) % n);
+    return this.activeIndex;
+  }
+
+  /**
+   * Reopen the most recently closed non-private tab (Ctrl+Shift+T). The URL
+   * is only popped once the new tab is actually created, so a MAX_TABS block
+   * doesn't lose the entry. Returns the reopened URL, or null when the stack
+   * is empty or tab creation was refused.
+   * @returns {string|null}
+   */
+  reopenClosedTab() {
+    const url = this._closedStack[this._closedStack.length - 1];
+    if (!url) {
+      return null;
+    }
+    if (!this.newTab(url)) {
+      return null;
+    }
+    this._closedStack.pop();
+    return url;
   }
 
   /**
@@ -450,6 +507,7 @@ export class TabManager {
     this.tabs.forEach(panel => panel.dispose());
     this.tabs = [];
     this.activeIndex = -1;
+    this._closedStack = [];
 
     this.stripGroup.traverse(obj => {
       if (obj.geometry) {
