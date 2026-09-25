@@ -71,6 +71,7 @@ export class VoiceCommands {
     this._onMuteStatus = null;
     this._onFindQuery = null;
     this._onReadFromLine = null;
+    this._onHalfPage = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -457,6 +458,30 @@ export class VoiceCommands {
         return { action: 'top-site-select', index: n, title: title || null };
       },
       description: 'Open the Nth top site'
+    });
+
+    // Vim Ctrl+D/Ctrl+U parity — half a visible page instead of the arrow
+    // zones' full page-jump. Hoisted: navigate owns '進む' and back owns
+    // '戻る', so '半ページ進む/戻る' would never reach a connectBrowser slot.
+    this.registerCommand('half-page-forward', {
+      patterns: ['半ページ進む', '半ページ進め', '半ページ下へ',
+        /half page (down|forward)/i],
+      action: () => {
+        const moved = this._onHalfPage ? !!this._onHalfPage(1) : false;
+        this.speak(moved ? '半ページ進みました' : 'これ以上進めません');
+        return { action: 'half-page-forward', moved };
+      },
+      description: 'Scroll the reader half a page down'
+    });
+    this.registerCommand('half-page-back', {
+      patterns: ['半ページ戻る', '半ページ戻して', '半ページ上へ',
+        /half page (up|back)/i],
+      action: () => {
+        const moved = this._onHalfPage ? !!this._onHalfPage(-1) : false;
+        this.speak(moved ? '半ページ戻りました' : 'これ以上戻れません');
+        return { action: 'half-page-back', moved };
+      },
+      description: 'Scroll the reader half a page up'
     });
 
     // Scroll the reader by N lines — go-to-line's relative pair. Registered
@@ -961,6 +986,7 @@ export class VoiceCommands {
    * @param {Function} [opts.onMuteStatus] () => boolean|null — muted?
    * @param {Function} [opts.onFindQuery] () => string|null — active find query
    * @param {Function} [opts.onReadFromLine] (line)=>chunks[]|null|[] — narration
+   * @param {Function} [opts.onHalfPage] (dir)=>bool — Vim Ctrl+D/U half-page
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -987,7 +1013,7 @@ export class VoiceCommands {
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
     onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
-    onMuteStatus, onFindQuery, onReadFromLine } = {}) {
+    onMuteStatus, onFindQuery, onReadFromLine, onHalfPage } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1137,6 +1163,9 @@ export class VoiceCommands {
     }
     if (onReadFromLine) {
       this._onReadFromLine = onReadFromLine;
+    }
+    if (onHalfPage) {
+      this._onHalfPage = onHalfPage;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2972,6 +3001,84 @@ export class VoiceCommands {
         return { action: 'last-heading', res: r };
       },
       description: 'Jump to the last heading'
+    });
+
+    // Line-at-a-time reading — NVDA/VoiceOver Down/Up-arrow parity. Speaks
+    // the line it lands on (the spoken line is the whole point); honest when
+    // the reader can't move or nothing is on that line.
+    this.registerCommand('next-line', {
+      patterns: ['次の行', '次の行を読んで', '行を進め', /next line/i],
+      action: () => {
+        const t = tabManager?.getActiveTab?.();
+        if (!t?.scrollContent?.(1)) {
+          this.speak('これ以上進めません');
+          return { action: 'next-line', moved: false };
+        }
+        this.speak(t.currentLine?.() ?? 'この行はありません');
+        return { action: 'next-line', moved: true };
+      },
+      description: 'Read the next reader line'
+    });
+    this.registerCommand('prev-line', {
+      patterns: ['前の行', '前の行を読んで', '行を戻して',
+        /previous line/i, /prev line/i],
+      action: () => {
+        const t = tabManager?.getActiveTab?.();
+        if (!t?.scrollContent?.(-1)) {
+          this.speak('これ以上戻れません');
+          return { action: 'prev-line', moved: false };
+        }
+        this.speak(t.currentLine?.() ?? 'この行はありません');
+        return { action: 'prev-line', moved: true };
+      },
+      description: 'Read the previous reader line'
+    });
+
+    // Kindle "go to N%" parity — 'go to N percent' itself is go-to's EN
+    // capture, so the bare percent forms are the unambiguous phrases.
+    this.registerCommand('reader-percent', {
+      patterns: [/(\d+)\s*[%％]\s*(?:のところ|地点)/,
+        /(\d+)\s*パーセント(?:のところ|地点)?/, /(\d+)\s*percent/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : -1;
+        const r = tabManager?.getActiveTab?.()?.scrollToPercent?.(n);
+        if (r === undefined || r === null) {
+          this.speak('記事を開いていません');
+        } else if (r === 'out') {
+          this.speak(`${n}%は範囲外です`);
+        } else {
+          this.speak(`${n}%地点に移動しました`);
+        }
+        return { action: 'reader-percent', pct: n, res: r };
+      },
+      description: 'Jump to a percent position in the article'
+    });
+
+    // Omnibox web search — the 'Xを検索' intent go-to's 開く/行く capture
+    // doesn't cover. 履歴/ブックマーク searches are claimed by their own
+    // commands, so exclude them from the term.
+    this.registerCommand('web-search', {
+      patterns: [/^(?!履歴|ブックマーク|ページ)(.+?)を検索して?/,
+        /(.+?)について検索/, /search (?:the web |web )?for (.+)/i,
+        /web search (?:for )?(.+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/^(?!履歴|ブックマーク|ページ)(.+?)を検索/)
+          || transcript.match(/(.+?)について検索/)
+          || transcript.match(/search (?:the web |web )?for (.+)/i)
+          || transcript.match(/web search (?:for )?(.+)/i);
+        const term = (m && m[1] ? m[1] : '').trim();
+        if (!term) {
+          this.speak('検索語がありません');
+          return { action: 'web-search', term: null };
+        }
+        if (onGoTo) {
+          onGoTo(term);
+        }
+        this.speak(`「${term}」を検索します`);
+        return { action: 'web-search', term };
+      },
+      description: 'Search the web for a term'
     });
 
     // Echo the last recognized transcript — ASR confidence verification: a

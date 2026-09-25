@@ -628,6 +628,34 @@ export class WebPanel {
   }
 
   /**
+   * Vim Ctrl+D/Ctrl+U parity — half a visible page instead of the full
+   * page-jump the arrow hit zones use. Returns true when the offset moved.
+   */
+  scrollHalfPage(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return false;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return this.scrollContent(Math.ceil(visible / 2) * (direction < 0 ? -1 : 1));
+  }
+
+  /**
+   * Kindle "go to N%" parity — absolute percent position in the article.
+   * Returns null outside the reader, 'out' for out-of-range percents, and
+   * true/false for moved/unmoved within range.
+   */
+  scrollToPercent(pct) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const n = Number(pct);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      return 'out';
+    }
+    return this.scrollContentTo(Math.floor(this._readerLines.length * n / 100));
+  }
+
+  /**
    * Jump back to the position before the last jump — Vim's `` `` `` mark.
    * scrollContentTo re-marks the current line before moving, so repeated
    * calls toggle between the two spots. false when nothing was jumped
