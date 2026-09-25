@@ -401,6 +401,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**行テキストを番号で読み上げられない**~~ — **Session 115 で実装**: read-line の索引双子。voice `read-line-n`（'N行目を読んで'/'read line 5' → scrollContentTo + currentLine → 'N行目。テキスト'）— reader-goto-line の `/(\d+)\s*行目/` 所有を実測捕捉し hoisted 登録（`this._tabManager` 遅延バインド）。
 - ~~**'検索エンジンは' が設定コマンドに誤答される**~~ — **Session 115 で実装**: search-engine の `/検索エンジンを?(.+)/` が bare 問い合わせを所有して 'その検索エンジンは使えません' と誤答 → setter を `を|に` 必須に絞り、status へ '検索エンジンは' 追加。
 - ~~**ピン留め数/マイク状態/最新履歴を聞けない**~~ — **Session 115 で実装**: private-count・isListening・history-list の双子。voice `pin-count`、`mic-status`（'マイクの状態' → 'マイクはオンです/オフです' — ヘッドセット内で OS マイク表示が見えないユーザー向け）、`history-latest`（'最新の履歴' → `_onHistoryList()[0]`）。
+- ~~**'open tab 3'/'タブNを開いて' がページナビゲートされる**~~ — **Session 116 で実装**: go-to catch-all が literal テキストで検索ナビゲートしていた実害を実測捕捉 → `open-tab-n` を先行登録（'open tab N'/'タブNを開いて' → setActive → 'タブNに切り替えました'）。
+- ~~**位置問い合わせが名指し検索に誤答される**~~ — **Session 116 で実装**: '何番目のタブ'/'何枚目のタブ'/'現在のタブ番号' が tab-by-name の '「何番目」のタブがありません' に誤答 → stoplist 拡張で tab-status へ透過（'何枚目のタブ'/'現在のタブ番号' パターンも追加）。
+- ~~**読み込み状態/最新ブックマーク/見出し数を聞けない**~~ — **Session 116 で実装**: describe-tab・history-latest・headings-left の双子。voice `loading-status`（'読み込み中ですか' → panel.loading）、`bookmark-latest`（'最新のブックマーク' → `_onBookmarkList()[0]`）、`heading-count`（'見出しの数' → headingHere().total）。
 
 
 ---
