@@ -3300,6 +3300,19 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
           // Search-engine name — the status twin of onSearchEngine.
           onSearchEngineStatus: () => this.settings.searchEngine ?? null,
+          // Panel-toggle/stepper query twins — voice-only users cannot read
+          // the settings row to check the current value.
+          onContrastStatus: () => this.settings.highContrast ?? null,
+          onDwellTimeStatus: () => this.settings.gazeDwellTime ?? null,
+          // Session save — serializeSession already strips private tabs.
+          onSessionSave: () => {
+            const snapshot = this.tabManager?.serializeSession?.();
+            if (!snapshot || !snapshot.tabs.length) {
+              return 0;
+            }
+            saveTabSession(snapshot);
+            return snapshot.tabs.length;
+          },
           // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
           onCharStep: (dir) =>
             this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,

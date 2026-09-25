@@ -70,6 +70,9 @@ export class VoiceCommands {
     this._onCopyArticle = null;
     this._onReaderPercent = null;
     this._onReaderScaleStatus = null;
+    this._onContrastStatus = null;
+    this._onDwellTimeStatus = null;
+    this._onSessionSave = null;
     this._onPasteGo = null;
     this._onReadClipboard = null;
     this._onRecenter = null;
@@ -606,7 +609,8 @@ export class VoiceCommands {
 
     // Navigation commands
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+        'forward', /go forward/i],
       action: () => {
         window.history.forward();
         return { action: 'navigate', direction: 'forward' };
@@ -900,7 +904,8 @@ export class VoiceCommands {
     // difficult) has no other way to discover what to say; announcing "12
     // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
-      patterns: ['ヘルプ', '助けて', '使い方', '何ができる'],
+      patterns: ['ヘルプ', '助けて', '使い方', '何ができる',
+        'コマンド一覧を読み上げて', 'ヘルプを読み上げて', /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
           .map((cmd) => this._spokenExample(cmd))
@@ -1037,7 +1042,7 @@ export class VoiceCommands {
     // word (or that it's off) rather than flipping it.
     this.registerCommand('wake-word-status', {
       patterns: ['ウェイクワードは', 'ウェイクワードの状態',
-        /wake word (status|is)/i],
+        /wake word(?! (on|off))/i],
       action: () => {
         const on = !!this.settings.requireWakeWord;
         this.speak(on
@@ -1327,7 +1332,8 @@ export class VoiceCommands {
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
     onSearchEngineStatus, onCharStep, onWord, onSpellWord,
-    onHeadingHere, onArticleSummary } = {}) {
+    onHeadingHere, onArticleSummary,
+    onContrastStatus, onDwellTimeStatus, onSessionSave } = {}) {
     this._tabManager = tabManager || null;
     if (onVolume) {
       this._onVolume = onVolume;
@@ -1475,6 +1481,15 @@ export class VoiceCommands {
     }
     if (onReaderScaleStatus) {
       this._onReaderScaleStatus = onReaderScaleStatus;
+    }
+    if (onContrastStatus) {
+      this._onContrastStatus = onContrastStatus;
+    }
+    if (onDwellTimeStatus) {
+      this._onDwellTimeStatus = onDwellTimeStatus;
+    }
+    if (onSessionSave) {
+      this._onSessionSave = onSessionSave;
     }
     if (onPasteGo) {
       this._onPasteGo = onPasteGo;
@@ -1656,7 +1671,8 @@ export class VoiceCommands {
     // actually moved (controller faceB/faceA parity); a static
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+        'forward', /go forward/i],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goForward?.() || false;
         this.speak(moved ? '進みます' : '進めません');
@@ -2135,7 +2151,7 @@ export class VoiceCommands {
     // Heading navigation — the screen-reader H / Shift+H atom (NVDA, JAWS,
     // VoiceOver rotor). The article title counts as heading zero.
     this.registerCommand('next-heading', {
-      patterns: ['次の見出し', '見出しへ', /next\s+heading/i],
+      patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', /next\s+heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -2213,7 +2229,8 @@ export class VoiceCommands {
 
     this.registerCommand('tabs-list', {
       patterns: ['タブ一覧', 'タブを読み上げ', 'タブを教えて', 'タブはいくつ',
-        /list\s+tabs/i, /how many tabs/i, /what tabs/i],
+        'タブ一覧を読み上げて', /list\s+tabs/i, /how many tabs/i, /what tabs/i,
+        /read (the )?tabs/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -2948,7 +2965,7 @@ export class VoiceCommands {
     // when only pinned tabs remain.
     this.registerCommand('close-all-tabs', {
       patterns: ['すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
-        /close\s+all\s+tabs/i],
+        '全て閉じて', '全部閉じて', /close\s+all\s+tabs/i],
       action: () => {
         if (!tabManager) {
           this.speak('タブがありません');
@@ -3693,7 +3710,7 @@ export class VoiceCommands {
     // empty-list (title region / no article) announce itself.
     this.registerCommand('read-paragraph', {
       patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
-        /read (the )?(current )?paragraph/i],
+        '今の段落を読んで', /read (the )?(current )?paragraph/i],
       action: () => {
         const chunks = this._onReadParagraph ? this._onReadParagraph() : [];
         this.readAloud(chunks);
@@ -3820,7 +3837,7 @@ export class VoiceCommands {
       description: 'Announce the selected narration voice'
     });
     this.registerCommand('language-status', {
-      patterns: ['言語は', '言語設定は', /what language|which language/i],
+      patterns: ['言語は', '言語設定は', '今の言語', /what language|which language/i],
       action: () => {
         this.speak(`言語は${this.language}です`);
         return { action: 'language-status', language: this.language };
@@ -3940,6 +3957,55 @@ export class VoiceCommands {
       patterns: ['感度を下げて', '感度を低く', /sensitivity down|lower sensitivity|decrease sensitivity/i],
       action: () => ({ action: 'sensitivity-down', value: sensStep(-1, '下げ') }),
       description: 'Lower recognition sensitivity'
+    });
+    // sensitivity-status — the query twin (up/down mutate; this reports).
+    this.registerCommand('sensitivity-status', {
+      patterns: ['感度は', '認識感度は', /sensitivity( status)?$/i],
+      action: () => {
+        this.speak(`認識感度は${this.settings.sensitivity}です`);
+        return { action: 'sensitivity-status', value: this.settings.sensitivity };
+      },
+      description: 'Announce recognition sensitivity'
+    });
+
+    // contrast-status / dwell-time-status — query twins for the panel
+    // toggles (high-contrast switch, dwell-time stepper); a voice-only
+    // user cannot read the row to check the current value.
+    this.registerCommand('contrast-status', {
+      // 'ハイコントラスト…'/'high contrast…' belong to the high-contrast
+      // toggle (registered earlier), so the query keeps disambiguated forms.
+      patterns: ['コントラストは', /contrast status/i],
+      action: () => {
+        const v = this._onContrastStatus ? this._onContrastStatus() : null;
+        this.speak(v === null ? 'コントラストを確認できません'
+          : `ハイコントラストは${v ? 'オン' : 'オフ'}です`);
+        return { action: 'contrast-status', value: v };
+      },
+      description: 'Announce high-contrast state'
+    });
+    this.registerCommand('dwell-time-status', {
+      patterns: ['注視時間は', '注視選択の時間は', /dwell time( status)?/i],
+      action: () => {
+        const v = this._onDwellTimeStatus ? this._onDwellTimeStatus() : null;
+        this.speak(v === null ? '注視時間を確認できません'
+          : `注視時間は${v}ミリ秒です`);
+        return { action: 'dwell-time-status', value: v };
+      },
+      description: 'Announce dwell-select time'
+    });
+
+    // save-session — Chrome "restore pages" parity, write direction:
+    // persists the tab-strip snapshot (private tabs excluded by
+    // serializeSession) for the next boot's restore-session.
+    this.registerCommand('save-session', {
+      patterns: ['セッションを保存', 'セッション保存', 'タブを保存して',
+        /save (the )?session/i],
+      action: () => {
+        const n = this._onSessionSave ? this._onSessionSave() : 0;
+        this.speak(n > 0 ? `${n}個のタブを保存しました` : '保存できません');
+        return { action: 'save-session', saved: n };
+      },
+      description: 'Persist the tab session'
     });
 
     // Wake-word requirement — the voice layer's own flag (like sensitivity);

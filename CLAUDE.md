@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 117: ステータス/エイリアス原子 — 感度・コントラスト・注視時間の問合せ双子・セッション保存・言い換え句拡充
+外部基準: OS設定の読み上げ双子（NVDA say-status 準拠 — voice-only ユーザーはパネル行を読めない）、Chrome "restore pages" の保存方向、主要コマンドの言い換え句補完。
+- ✨ **sensitivity-status**: '感度は'/'sensitivity' → `this.settings.sensitivity`（voice 層の閾値・フック不要）→ '認識感度はNです'。
+- ✨ **contrast-status / dwell-time-status**: 新 getter フック `_onContrastStatus`/`_onDwellTimeStatus`（VRApp → settings.highContrast/gazeDwellTime）。'コントラストは'/'contrast status'、'注視時間は'/'dwell time' → 'ハイコントラストはオンです'/'注視時間はNミリ秒です'。**衝突回避**: 'ハイコントラスト…'/'high contrast…' は high-contrast トグルが先行所有 → 非曖昧形に限定（実測捕捉）。
+- ✨ **save-session**: restore-session の保存双子。'セッションを保存'/'save session' → `onSessionSave` → `serializeSession()`（private タブ除外済み）+ `saveTabSession` → 'N個のタブを保存しました'/'保存できません'。
+- ✨ **エイリアス拡充**: navigate へ '次に進んで'/'forward'/'go forward'、read-paragraph へ '今の段落を読んで'、next-heading へ '次の見出しを読んで'、wake-word-status へ `/wake word(?! (on|off))/i`（**回帰捕捉**: 素朴な /wake word/i が 'wake word off' を wake-word-toggle から奪う → 否定先読みで共存）、language-status へ '今の言語'、close-all-tabs へ '全て閉じて'/'全部閉じて'、help へ 'コマンド一覧を読み上げて'/'ヘルプを読み上げて'/'read commands'、tabs-list へ 'タブ一覧を読み上げて'/'read the tabs'。
+- ✅ **テスト +19（git stash で19件全て赤確認）**: Total 2283 tests (91 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 116: 位置/状態原子 — open-tab-n誤ルート修正・位置問い合わせ透過・読み込み状態・最新ブックマーク・見出し数・エイリアス拡充
 外部基準: Chrome Ctrl+N 系の strip 選択語彙、describe-tab の単項目双子（privacy-status 準拠）、history-latest の保存リスト版、headings-left の総数双子。
 - 🐛 **'open tab 3'/'タブNを開いて' 誤ルート修正**: go-to catch-all が句を所有して literal テキスト 'open tab 3' で検索ナビゲートしていた実害を実測捕捉 → `open-tab-n` を go-to より前に登録（→ `setActive(n-1)` → 'タブNに切り替えました'/'タブNはありません'）。
