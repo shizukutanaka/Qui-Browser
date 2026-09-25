@@ -100,10 +100,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
 - **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
 
-### C-3. Top Sites の視覚的スピードダイヤルタイル（優先度: 低、難易度: 中、Session 17 から保留）
+### C-3. Top Sites の視覚的スピードダイヤルタイル（**Session 75 で解決** — 描画先は BookmarkPanel 第3タブではなく新規タブページ）
 - **対象**: `src/vr/browser/BookmarkPanel.js`
 - **理由**: Session 16/17 でフレセンシーランキング機能自体（データ層・音声コマンド）は実装済みだが、視覚的な「よく使うサイト」タイル表示は未実装のまま。
-- **保留理由**: BookmarkPanel に3つ目のタブを追加するとスクロール矢印ゾーンと座標が衝突する。canvas描画のためVRヘッドセットなしでは見た目を目視確認できない制約もある。着手する場合はレイアウト設計からやり直す必要がある。
+- **解決（Session 75）**: BookmarkPanel にタブを足すのではなく、**新規タブの 'empty' 状態に Top Sites を描く**形で実現（Firefox/Chrome の新規タブページと同じ置き方。`topSitesLayout.js` の4列×最大8タイル + `hitTestTopSites` で dwell 選択 → navigate）。これにより元の「タブ追加でスクロール矢印ゾーンと衝突」という保留理由自体が不要になった。
 
 ### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
 - **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
@@ -191,7 +191,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
 | E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
-| E-6 | Top Sites タイル（=C-3） | 低 | Opus | `hitTest` 全ゾーンをテスト・既存2タブ回帰なし |
+| ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ — **完了（Session 75）**: 新規タブ 'empty' 状態に描画 + `hitTestTopSites` で選択。タイル幾何・ヒットテスト・選択→navigate をテストで固定。 | — | — | — |
 | E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
 
 ---
@@ -244,11 +244,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - **研究由来の値**: 日本語放送字幕は1行16文字・最大2行（社内規定で13〜20の幅）、Latin 字幕ガイドは37〜42文字。20em が日本語20字／Latin40字を与え、両方の慣行に収まる。`MAX_ROWS_PER_LINE = 2` は既に放送規格どおりだった。
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
-### F-4. 未着手（次セッション以降の候補、F-1 の判断と独立）
-- **プライベートモード**: `VRApp.navigate` が無条件に `addHistory` + `trackVisit`。記録せず閲覧する手段が皆無（事後消去のみ）。真偽値ゲート1つ+設定トグルで実装可能
-- **セッション復元**: タブ集合が永続化されない（`TabManager` に serialize/restore 無し）
-- **Stop（読み込み中断）**: `loading=true` を解除できるのは onload/onerror のみ
-- **新規タブページ**: `BookmarkStore.getTopSites()` は完全実装済みで描画先ゼロ（= C-3）
+### F-4. **Session 75 で4件解決**（残り1件のみ未着手）
+- ~~**プライベートモード**~~ — **Session 75 で実装**: `settings.privateMode`（既定 off）。オン中に開いたタブは `panel.isPrivate`（生成時固定の incognito ウィンドウ意味論）、`navigate(url,title,panel)` が `isPrivate` を見て `addHistory` をスキップ、直列化からも除外（**private タブの URL はディスクに到達しない**）。ストリップは「PRIVATE」チップ+タブごとのドットで色以外の手がかり付き（WCAG 1.4.1）。Quest Browser private window 準拠。
+- ~~**セッション復元**~~ — **Session 75 で実装**: `tabSession.js`（`qui-browser:tabSession`）。http/https のみ・8枚上限・active クランプの検証付き。`restoreTabs` 設定（既定 on）。Wolvic 1.9 の session restore 準拠。
+- ~~**Stop（読み込み中断）**~~ — **Session 75 で実装**: `WebPanel.stop()`（reader fetch abort + iframe ハンドラ detach + 'stopped' 状態）。loading 中はリロードボタンが `✕` を描き同ゾーンで stop —— デスクトップ3ブラウザ共通の reload↔stop ペア。あわせて `iframe.onload` が描画済み 'reader' を 'unavailable' で上書きしていたレースを修正。
+- ~~**新規タブページ**~~ — **Session 75 で実装**: 'empty' 状態に `getTopSites` のタイルを描画・選択で navigate（= C-3 解決）
 - **`scroll-down`/`scroll-up` の二重登録**: `VoiceCommands.js:366` と `:605` で同一キーを登録（`Map.set` なので後者が勝つ）。前者は `window.scrollBy` で没入時には無意味。害は無いが混乱の元
 
 ---
@@ -311,7 +311,7 @@ APCA（WCAG 3 候補）は「WCAG 2 は黒に近い明暗ペアのコントラ�
   背面パネルすべてを配線。あわせて**通常モードの 1.4.11 違反2件**を実測して修正（キー枠線 1.65:1、
   非優先候補の枠線 2.74:1 —— どちらも塗り自体がパネルに対し 1.25:1 なので、枠線が唯一の境界だった）。
   さらに**候補ボタンのホバーが色に依存しない手がかりを破壊していた**バグを修正（下記 G-4）。
-- **`TabManager` のタブストリップ本体の色**は未抽出（掃引に含まれていない）。同じ手順で閉じられる。
+- ~~**`TabManager` のタブストリップ本体の色**は未抽出（掃引に含まれていない）。同じ手順で閉じられる。~~ — **Session 75 で解決**: `chromeColors.js` に `tabStripColors(highContrast)` を抽出（通常モードは旧リテラルと同一値で非回帰、HC は `prefersHighContrast()` で配線）。contrast スイープに strip 系6ペア + Top Site タイル3ペアを追加し、全ペア WCAG 2 合格をテストで固定。
 
 ### G-4. 修正済み（Session 72）: 候補ボタンのホバーが WCAG 1.4.1 の手がかりを消していた
 

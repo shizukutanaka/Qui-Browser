@@ -12,9 +12,12 @@ import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { WebPanel } from './WebPanel.js';
 import { t } from '../../i18n/i18n.js';
+import { tabStripColors } from './chromeColors.js';
+import { serializeTabSession } from './tabSession.js';
+import { prefersHighContrast } from '../../a11y/accessibility.js';
 import {
   STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
-  STRIP_NEW_TAB_PX, STRIP_TAB_MAX_PX, tabWidthPx, tabCloseZonePx
+  STRIP_NEW_TAB_PX, STRIP_PRIVATE_PX, tabWidthPx, tabCloseZonePx
 } from './panelGeometry.js';
 
 
@@ -51,6 +54,9 @@ export class TabManager {
     this.tabs = [];
     this.activeIndex = -1;
     this._curved = false; // curved-screen preference, applied to every tab
+    // Private mode marks tabs opened while it is on — like Chrome's incognito
+    // window scope, not a mode that retroactively converts existing tabs.
+    this._privateMode = false;
 
     /**
      * One managed transform for the whole browser window.
@@ -116,27 +122,39 @@ export class TabManager {
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
 
+    const col = tabStripColors(prefersHighContrast());
     const n = this.tabs.length;
     const newW = STRIP_NEW_TAB_PX;                       // "+" button width
-    const tabsAreaW = c.width - newW;
-    const tabW = tabWidthPx(n, c.width);
+    const chipW = this._privateMode ? STRIP_PRIVATE_PX : 0;
+    const tabW = tabWidthPx(n, c.width - chipW);
 
     // Tabs
     for (let i = 0; i < n; i++) {
       const x = i * tabW;
       const active = i === this.activeIndex;
-      ctx.fillStyle = active ? '#2a2a4a' : '#1a1a2e';
+      ctx.fillStyle = active ? col.tabActiveBg : col.tabInactiveBg;
       ctx.fillRect(x + 2, 6, tabW - 4, c.height - 12);
 
+      // A private tab carries a filled dot before its title — shape plus the
+      // strip-level PRIVATE chip, so the state is never colour-only (1.4.1).
+      const privateDot = this.tabs[i].isPrivate ? 14 : 0;
+      if (privateDot) {
+        ctx.fillStyle = col.privateText;
+        ctx.beginPath();
+        ctx.arc(x + 14, c.height / 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Title
-      ctx.fillStyle = active ? '#ffffff' : '#9090a8';
+      ctx.fillStyle = active ? col.tabActiveText : col.tabInactiveText;
       ctx.font = '22px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       const title = this.tabs[i].currentUrl
         ? this._shortTitle(this.tabs[i].currentUrl)
         : t('vr.tabs.newTab');
-      ctx.fillText(title, x + 14, c.height / 2, Math.max(8, tabCloseZonePx(tabW).x0 - 20));
+      ctx.fillText(title, x + 14 + privateDot, c.height / 2,
+        Math.max(8, tabCloseZonePx(tabW).x0 - 20 - privateDot));
 
       // Close ✕ — drawn inside a small red box for discoverability.
       // Anchored to STRIP_CLOSE_PX, the same constant _onStripSelect's hit zone
@@ -146,17 +164,30 @@ export class TabManager {
       const closeBtnX = x + closeZone.x0;
       const closeBtnY = 10;
       const closeBtnH = c.height - 20;
-      ctx.fillStyle = '#7a2020';
+      ctx.fillStyle = col.closeBg;
       ctx.fillRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
-      ctx.fillStyle = '#ffaaaa';
+      ctx.fillStyle = col.closeText;
       ctx.textAlign = 'center';
       ctx.fillText('✕', closeBtnX + closeZone.w / 2, c.height / 2);
     }
 
+    // PRIVATE chip between the tab area and "+" — a text label, so the mode
+    // signal is not carried by colour alone (WCAG 1.4.1).
+    if (chipW) {
+      const chipX = c.width - newW - chipW + 4;
+      ctx.fillStyle = col.privateBg;
+      ctx.fillRect(chipX + 2, 12, chipW - 8, c.height - 24);
+      ctx.fillStyle = col.privateText;
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t('vr.tabs.private'), chipX + (chipW - 8) / 2, c.height / 2);
+    }
+
     // New-tab "+" button
-    ctx.fillStyle = '#3a3a5c';
+    ctx.fillStyle = col.newTabBg;
     ctx.fillRect(c.width - newW + 2, 6, newW - 4, c.height - 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = col.newTabText;
     ctx.font = 'bold 40px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -193,12 +224,18 @@ export class TabManager {
       this.newTab();
       return;
     }
+    // The PRIVATE chip (drawn just left of "+") is an indicator, not a
+    // control — a select landing on it must not fall through to a tab.
+    const chipW = this._privateMode ? STRIP_PRIVATE_PX : 0;
+    if (chipW && px > this.stripCanvas.width - newW - chipW) {
+      return;
+    }
 
     const n = this.tabs.length;
     if (n === 0) {
       return;
     }
-    const tabW = tabWidthPx(n, this.stripCanvas.width);
+    const tabW = tabWidthPx(n, this.stripCanvas.width - chipW);
     const idx = Math.floor(px / tabW);
     if (idx < 0 || idx >= n) {
       return;
@@ -234,10 +271,12 @@ export class TabManager {
       scene: this.scene,
       registerInteractable: this.opts.registerInteractable,
       unregisterInteractable: this.opts.unregisterInteractable,
-      onNavigate: (u, title) => {
+      onNavigate: (u, title, srcPanel) => {
         this._drawStrip();           // refresh tab title
-        this.opts.onNavigate?.(u, title);
+        this.opts.onNavigate?.(u, title, srcPanel);
       },
+      privateMode: this._privateMode,
+      topSitesProvider: this.opts.topSitesProvider || null,
       onUrlInputRequested: this.opts.onUrlInputRequested || null,
       searchEngine: this.opts.searchEngine || undefined,
       isBookmarked: this.opts.isBookmarked || null,
@@ -312,6 +351,44 @@ export class TabManager {
   /** Return the currently active WebPanel, or null. */
   getActiveTab() {
     return this.activeIndex >= 0 ? this.tabs[this.activeIndex] : null;
+  }
+
+  /**
+   * Turn private mode on/off for subsequently opened tabs (incognito-window
+   * semantics: existing tabs keep the flag they were created with). Redraws
+   * the strip so the PRIVATE chip appears/disappears immediately.
+   * @param {boolean} value
+   */
+  setPrivateMode(value) {
+    this._privateMode = !!value;
+    this._drawStrip();
+    return this._privateMode;
+  }
+
+  /**
+   * Snapshot the open tabs for session restore. Private tabs are excluded so
+   * their URLs never reach persistent storage.
+   * @returns {{v:number,tabs:string[],active:number}|null}
+   */
+  serializeSession() {
+    return serializeTabSession(
+      this.tabs.map(p => ({ url: p.currentUrl || '', isPrivate: !!p.isPrivate })),
+      this.activeIndex
+    );
+  }
+
+  /**
+   * Restore a validated snapshot ({tabs, active}) — one newTab per URL.
+   * @param {{tabs:string[],active:number}} snapshot
+   */
+  restoreSession(snapshot) {
+    if (!snapshot || !Array.isArray(snapshot.tabs) || snapshot.tabs.length === 0) {
+      return;
+    }
+    snapshot.tabs.forEach(url => this.newTab(url));
+    if (Number.isInteger(snapshot.active)) {
+      this.setActive(Math.min(snapshot.active, this.tabs.length - 1));
+    }
   }
 
   /** Number of open tabs. */

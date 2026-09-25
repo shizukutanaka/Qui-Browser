@@ -112,7 +112,10 @@ export function webContentColors(highContrast = false) {
       arrowActiveBg:   '#004adf',
       arrowActiveText: '#ffffff',
       arrowIdleBg:     '#222222',
-      arrowIdleText:   '#aaccee'
+      arrowIdleText:   '#aaccee',
+      tileBg:          '#222222',
+      tileBorder:      '#ffffff',
+      tileText:        '#ffffff'
     };
   }
   return {
@@ -125,6 +128,53 @@ export function webContentColors(highContrast = false) {
     arrowActiveBg:   'rgba(50,80,140,0.9)',
     arrowActiveText: '#aabbff',
     arrowIdleBg:     'rgba(30,35,55,0.6)',
-    arrowIdleText:   '#727f96'
+    arrowIdleText:   '#727f96',
+    tileBg:          '#2a2a4a',
+    tileBorder:      '#7d88bd',
+    tileText:        '#e0e0ff'
+  };
+}
+
+/**
+ * Colours for the tab strip (tab chips, per-tab close ✕, "+" new-tab button,
+ * and the PRIVATE chip shown while private mode is on).
+ *
+ * `TabManager._drawStrip()` painted every one of these as an inline literal
+ * and, like `_drawChrome` before it, never consulted `prefersHighContrast()`.
+ * The normal-mode values are kept as they were — measured at 5.5:1 (inactive
+ * title) up to 13.7:1 (active title), all above their thresholds. The private
+ * chip is purple: Quest Browser marks its private window with a persistent
+ * purple icon, and a text chip (not colour alone) carries the state per
+ * WCAG 1.4.1.
+ *
+ * @param {boolean} [highContrast=false]
+ * @returns {object} palette consumed by TabManager._drawStrip
+ */
+export function tabStripColors(highContrast = false) {
+  if (highContrast) {
+    return {
+      tabActiveBg:     '#004adf',
+      tabActiveText:   '#ffffff',
+      tabInactiveBg:   '#222222',
+      tabInactiveText: '#aaccee',
+      closeBg:         '#8a1010',
+      closeText:       '#ffffff',
+      newTabBg:        '#222222',
+      newTabText:      '#ffffff',
+      privateBg:       '#4a0080',
+      privateText:     '#ffddff'
+    };
+  }
+  return {
+    tabActiveBg:     '#2a2a4a',
+    tabActiveText:   '#ffffff',
+    tabInactiveBg:   '#1a1a2e',
+    tabInactiveText: '#9090a8',
+    closeBg:         '#7a2020',
+    closeText:       '#ffaaaa',
+    newTabBg:        '#3a3a5c',
+    newTabText:      '#ffffff',
+    privateBg:       '#4a2a6a',
+    privateText:     '#e8ccff'
   };
 }

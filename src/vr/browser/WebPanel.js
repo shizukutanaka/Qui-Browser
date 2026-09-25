@@ -29,6 +29,8 @@ import {
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
+import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
+import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
 import {
@@ -85,11 +87,16 @@ export class WebPanel {
    *   surface a status message (WCAG 4.1.3) instead of silently doing nothing.
    * @param {number} [opts.readerScale=1] — text-size multiplier for the reader
    *   viewport (compose with a11y largeTextScale at the call site).
+   * @param {boolean} [opts.privateMode=false] — mark this panel private at
+   *   creation (incognito-window semantics): private panels write no history
+   *   and are excluded from tab-session persistence.
+   * @param {Function} [opts.topSitesProvider] — () => [{url,title,host}];
+   *   supplies the new-tab tile grid (getTopSites frecency). Null = no tiles.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+    readerScale = 1, readerProxyUrl = '', privateMode = false, topSitesProvider = null }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -129,6 +136,12 @@ export class WebPanel {
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    this._loadController = null; // in-flight reader fetch, abortable by stop()
+    // Private tabs (incognito-window semantics): no history writes, excluded
+    // from session persistence — set once at creation, never toggled.
+    this.isPrivate = !!privateMode;
+    this._topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
+    this._topSiteTiles = []; // rects hit-tested by _onContentSelect
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -309,9 +322,44 @@ export class WebPanel {
       ctx.fillText(truncate(lines.detail, 72), w / 2, h / 2 + 20);
     }
 
+    if (this._contentState === 'empty') {
+      this._drawTopSites(ctx, w, col);
+    }
+
     if (this.contentTex) {
       this.contentTex.needsUpdate = true;
     }
+  }
+
+  /**
+   * Draw the frecency-ranked tile grid on the new-tab ('empty') state — the
+   * one-dwell re-navigation path. Records the rects for _onContentSelect.
+   */
+  _drawTopSites(ctx, w, col) {
+    const sites = this._topSitesProvider ? this._topSitesProvider() : [];
+    this._topSiteTiles = topSiteTiles(sites.length, w);
+    if (!sites.length || !this._topSiteTiles.length) {
+      return;
+    }
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillStyle = col.stateTitle;
+    ctx.textAlign = 'center';
+    ctx.fillText(t('vr.content.topSites'), w / 2, TILE_TOP - 16);
+    sites.slice(0, this._topSiteTiles.length).forEach((site, i) => {
+      const r = this._topSiteTiles[i];
+      ctx.fillStyle = col.tileBg;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = col.tileBorder;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.fillStyle = col.tileText;
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText((site.host || '').replace(/^www\./, '').slice(0, 1).toUpperCase(),
+        r.x + r.w / 2, r.y + 44);
+      ctx.font = '17px sans-serif';
+      ctx.fillText(truncate(site.host || site.url, 22), r.x + r.w / 2, r.y + 86);
+    });
   }
 
   /**
@@ -332,6 +380,7 @@ export class WebPanel {
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._loadController = controller;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       // Routed through the companion proxy when one is configured; otherwise a
@@ -366,7 +415,41 @@ export class WebPanel {
       if (timer) {
         clearTimeout(timer);
       }
+      if (this._loadController === controller) {
+        this._loadController = null;
+      }
     }
+  }
+
+  /**
+   * Stop the in-flight load — the reload↔stop pairing every desktop browser
+   * uses: while `loading` the same button becomes a stop control. Aborts the
+   * reader fetch, detaches the iframe handlers (a late load event must not
+   * fire onNavigate against a stopped page), and lands on the honest
+   * 'stopped' state — unless the reader already rendered, in which case the
+   * article stays put (stop only cancels what is still pending).
+   */
+  stop() {
+    if (!this.loading && !this._loadController) {
+      return;
+    }
+    if (this._loadController) {
+      this._loadController.abort();
+      this._loadController = null;
+    }
+    // Invalidate any in-flight fetch that lacks a controller reference.
+    this._readerSeq++;
+    this.loading = false;
+    this._loadError = false;
+    if (this.iframe) {
+      this.iframe.onload = null;
+      this.iframe.onerror = null;
+      this.iframe.src = 'about:blank';
+    }
+    if (this._contentState === 'loading') {
+      this._setContentState('stopped');
+    }
+    this._drawChrome();
   }
 
   /**
@@ -428,7 +511,10 @@ export class WebPanel {
    * one implementation serves both input modes.
    */
   _onContentSelect(evt) {
-    if (this._contentState !== 'reader' || !this.contentCanvas) {
+    if (this._contentState !== 'reader' && this._contentState !== 'empty') {
+      return;
+    }
+    if (!this.contentCanvas) {
       return;
     }
     const rawPoint = evt?.intersection?.point ?? evt;
@@ -441,6 +527,18 @@ export class WebPanel {
     const v = (local.y / contentH) + 0.5;
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
+
+    if (this._contentState === 'empty') {
+      const idx = hitTestTopSites(px, py, this._topSiteTiles);
+      if (idx >= 0) {
+        const sites = this._topSitesProvider ? this._topSitesProvider() : [];
+        const site = sites[idx];
+        if (site && site.url) {
+          this.navigate(site.url);
+        }
+      }
+      return;
+    }
 
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;
@@ -537,11 +635,12 @@ export class WebPanel {
     ctx.fillStyle = canForward ? col.btnEnabledText : col.btnDisabledText;
     ctx.fillText('▶', 106, h / 2 + 8);
 
-    // Reload button
+    // Reload button — becomes a stop ✕ while a load is in flight, the
+    // reload↔stop pairing every desktop browser uses (Chrome/Safari/Firefox).
     ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
     ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
-    ctx.fillText('↺', 174, h / 2 + 8);
+    ctx.fillText(this.loading ? '✕' : '↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
     const hasBookmark = !!this.onToggleBookmark;
@@ -635,8 +734,12 @@ export class WebPanel {
       this.back();
     } else if (px < 136) {   // forward
       this.forward();
-    } else if (px < 204) {   // reload
-      this.reload();
+    } else if (px < 204) {   // reload — or stop while loading
+      if (this.loading) {
+        this.stop();
+      } else {
+        this.reload();
+      }
     } else if (px > w - 60) { // close
       this.hide();
     } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
@@ -734,12 +837,15 @@ export class WebPanel {
       this.currentTitle = title;
       // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
       // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-      // page rendered. Combined with the fact that page pixels can never reach
-      // the 3D texture anyway, the viewport must say so rather than keep a
-      // stale "Enter a URL" placeholder that implies nothing happened.
-      this._setContentState('unavailable');
+      // page rendered. Only take over the viewport while the panel is still
+      // waiting: if the reader fetch already resolved, its article stays
+      // (an unconditional 'unavailable' here used to clobber the rendered
+      // reader every time the slower iframe load event landed after it).
+      if (this._contentState === 'loading') {
+        this._setContentState('unavailable');
+      }
       this._drawChrome();
-      this.onNavigate(url, title);
+      this.onNavigate(url, title, this);
     };
     this.iframe.onerror = () => {
       this.loading = false;
@@ -973,6 +1079,13 @@ export class WebPanel {
 
   dispose() {
     this.disableLayerMode();
+    if (this._loadController) {
+      // An in-flight reader fetch outlives the panel: abort it so its late
+      // resolution can't repaint a disposed canvas.
+      this._loadController.abort();
+      this._loadController = null;
+    }
+    this._readerSeq++;
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
     this.unregisterInteractable(this.contentMesh);

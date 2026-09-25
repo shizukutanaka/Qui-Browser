@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 75: F-4 を畳んだ — ブラウザ原子4個（private / session restore / stop / 新規タブ）+ ストリップ色抽出
+外部基準を調べてから作った。根拠: Wolvic 1.9 の "remember browser state"（再起動でタブを失う不満への回答）、Quest Browser の private window（終了時に全データ破棄・履歴非記録）、デスクトップ 3 ブラウザ共通の reload↔stop ペア、Firefox/Chrome の新規タブ Top Sites（VR では「1 dwell」対「キーボード一往復」の差が特に大きい）。
+- ✨ **private モード**: `settings.privateMode`（既定 off）を新設。オン中に開いたタブは `panel.isPrivate`（**生成時に固定の「incognito ウィンドウ」意味論** — 後からオフにしても混在しない）。`navigate(url,title,panel)` が `isPrivate` を見て `addHistory` をスキップし、永続化からも除外 —— **private タブの URL はディスクに一切到達しない**。ストリップは「PRIVATE」テキストチップ + タブごとの塗りつぶしドットで**色以外の手がかり**を付加（WCAG 1.4.1）。
+- ✨ **セッション復元**: `tabSession.js`（純関数 `serializeTabSession`/`validateTabSession` + localStorage `qui-browser:tabSession`）。起動時・ライブ再有効化時に復元、`restoreTabs` 設定（既定 on）で制御。ストレージはユーザー書き換え可能なので validate は信用しない —— http/https のみ、8 枚上限、active インデックスはクランプ。private タブは直列化からも除外される。
+- ✨ **Stop**: `WebPanel.stop()` —— in-flight の reader fetch を `_loadController` で abort、`_readerSeq++` で遅延結果を遮断、iframe ハンドラを外して `about:blank` にし、'loading' のときだけ 'stopped' に遷移（レンダリング済み reader は止まらない = 「残っている pending だけを止める」）。loading 中はリロードボタンが `✕` を描き、そのゾーンは `stop()` にルーティング —— デスクトップ慣行のまま。
+- 🐛 **実装中に本物のレースを発見・修正**: `iframe.onload` はサブリソース待ちのため reader fetch より**後**に来るのに、無条件で `_setContentState('unavailable')` していた —— frameable サイトでは**記事が描画されるたびに必ず消えていた**。`loading` 中のみ遷移するようゲート。
+- ✨ **新規タブ Top Sites**: `topSitesLayout.js`（4列・最大8・短い末尾行は中央揃え）で 'empty' 状態に見出し+タイルを描画、`hitTestTopSites` でタイル選択 → navigate。プロバイダは `bookmarks.getTopSites(8, now, searchEngineHosts())` を返し、private モード中は空配列。
+- 🧹 **G-3 消化**: タブストリップのハードコード色を `tabStripColors(highContrast)` に抽出（通常モードは旧リテラルと同一値、HC は `prefersHighContrast()` で配線）。contrast スイープに 6 ペア（strip 系）+ 3 ペア（タイル系）を追加 —— 全ペア WCAG 2 合格（例: private チップ 7.93:1 / HC 10.63:1）。
+- ✅ **テスト +63（git stash で赤を確認してから緑へ）**: 直列化/validate/往復・private 除外・復元・チップ描画・停止状態遷移・abort/ハンドラ detach・遅延 fetch の遮断・reader 保持・リロード↔停止ルーティング・グリフ・タイル幾何・ヒットテスト・private 履歴ゲート・'stopped' 文言。`vr-app-wiring` の fixture は `settings:{}` + 実 `_persistTabSession` を束ねて teardown が新規の先頭呼び出しを通るようにした。
+- Total 1547 tests (49 suites); 0 lint errors（新規警告なし）; build green。
+
 ### Session 74（続き12）: 自分の検証主張を検証したら、偽だった — 本物の VRApp 起動スモークを作った
 続き11 は「`verify:app` で既定 ON の実ブラウザ起動を実測」と記録した。**この主張を実測で再検証したところ、偽だった。**
 - 🔍 **実測（訂正）**: `initializeApp()` は WebXR 非対応環境で**意図的に早期 return**する（"landing page only" — 設計として正しい）。headless Chromium に XR runtime は無いので、verify:app は**一度も `new VRApp()` に到達していなかった**。canvas 不在・`QuiBrowser.getApp() === null` を CDP で直接確認。つまり**実ヘッドセットユーザーが毎回起動時に踏む経路（renderer / settings panel / `_buildBrowsingSystems`）の自動検証は依然ゼロ**で、続き11 の「ランタイムエラーゼロを実測」は landing page の話にすぎなかった。

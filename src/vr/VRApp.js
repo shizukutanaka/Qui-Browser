@@ -30,6 +30,7 @@ import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
+import { loadTabSession, saveTabSession } from './browser/tabSession.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -244,6 +245,13 @@ export class VRApp {
       // Default search engine for non-URL input in the address bar
       // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
       searchEngine: 'duckduckgo',
+      // Private browsing mode (Quest Browser-style). Tabs opened while ON are
+      // flagged private: they write no history and are excluded from tab
+      // session persistence, so nothing they visit reaches storage.
+      privateMode: false,
+      // Restore open tabs + the active tab across restarts (Wolvic 1.9
+      // "remember browser state"; Firefox/Chrome default behaviour).
+      restoreTabs: true,
       // Spatial window management (parity with Wolvic/Quest browser): head-lock
       // follow keeps the active panel centred in view. OFF by default.
       enableWindowFollow: false,
@@ -820,7 +828,13 @@ export class VRApp {
       scene: this.scene,
       registerInteractable: (m, h) => this.registerInteractable(m, h),
       unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onNavigate: (url, title) => this.navigate(url, title),
+      onNavigate: (url, title, panel) => {
+        this.navigate(url, title, panel);
+        this._persistTabSession();
+      },
+      topSitesProvider: () => this.settings.privateMode
+        ? []
+        : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
       readerProxyUrl: this.settings.readerProxyUrl,
       onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
@@ -851,11 +865,13 @@ export class VRApp {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
           this.captionSystem.show(`Tab: ${label}`);
         }
+        this._persistTabSession();
       },
       onTabClose: () => {
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(t('vr.msg.tabClosed'));
         }
+        this._persistTabSession();
       },
       onMaxTabsReached: () => {
         this.showVRToast(t('vr.msg.maxTabsReached'), { type: 'warn' });
@@ -889,7 +905,17 @@ export class VRApp {
     if (this.settings.enableCurvedPanel) {
       this.tabManager.setCurved(true);
     }
-    this.tabManager.newTab(); // start with one blank tab
+    this.tabManager.setPrivateMode(this.settings.privateMode);
+    // Wolvic 1.9-style session restore: reopen the tabs the user had, at the
+    // tab they were on. Restored tabs created while private mode is on are
+    // themselves private (incognito windows are never restored — private
+    // tabs were already excluded when the snapshot was written).
+    if (this.settings.restoreTabs) {
+      this.tabManager.restoreSession(loadTabSession());
+    }
+    if (this.tabManager.count === 0) {
+      this.tabManager.newTab(); // start with one blank tab
+    }
     // Convenience alias: the active tab's panel.
     this.webPanel = this.tabManager.getActiveTab();
 
@@ -949,6 +975,10 @@ export class VRApp {
    * native quad layers in Session 52.
    */
   _teardownBrowsingSystems() {
+    // Persist the live tab set first — serializeSession() reads each panel's
+    // currentUrl, so this captures the state at teardown, not the state at the
+    // last navigation event.
+    this._persistTabSession();
     if (this.windowManager) {
       this.windowManager.detach();
     }
@@ -1514,7 +1544,19 @@ export class VRApp {
         } else if (this.webPanel && this.webPanel.setCurved) {
           this.webPanel.setCurved(v);
         }
-      }]
+      }],
+      // Private browsing (Quest Browser-style): tabs opened while ON write no
+      // history and are never persisted. Applies live — the strip gains the
+      // PRIVATE chip immediately — and announces cross-modally (WCAG 4.1.3).
+      [t('vr.settings.privateMode'), 'privateMode', (v) => {
+        if (this.tabManager) {
+          this.tabManager.setPrivateMode(v);
+        }
+        this.showVRToast(t(v ? 'vr.msg.privateModeOn' : 'vr.msg.privateModeOff'), { type: 'info' });
+      }],
+      // Session restore (Wolvic 1.9-style): reopen the tabs that were open
+      // when the browser last closed.
+      [t('vr.settings.restoreTabs'), 'restoreTabs', null]
     ];
 
     // Numeric steppers for tunable parameters that were previously code-only.
@@ -1655,7 +1697,7 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']), [],
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -3339,12 +3381,30 @@ export class VRApp {
   }
 
   /**
+   * Persist the open tab set for session restore. No-ops when the feature is
+   * off or no tab manager exists; private tabs are filtered out inside
+   * serializeSession so their URLs never reach storage.
+   */
+  _persistTabSession() {
+    if (!this.settings.restoreTabs || !this.tabManager) {
+      return;
+    }
+    saveTabSession(this.tabManager.serializeSession());
+  }
+
+  /**
    * Navigate to a URL: records the visit in BookmarkStore history and feeds
    * it to the AI recommendation engine.  Call this whenever the in-VR panel
    * loads a new page (FR-1.1 prerequisite infrastructure).
+   *
+   * `panel` (the WebPanel that navigated) is forwarded by TabManager's
+   * onNavigate wrapper — a private panel's visit is announced but never
+   * written to history (Quest Browser private-mode semantics).
    */
-  navigate(url, title = url) {
-    this.bookmarks.addHistory(url, title);
+  navigate(url, title = url, panel = null) {
+    if (!panel || !panel.isPrivate) {
+      this.bookmarks.addHistory(url, title);
+    }
     // Caption the page title so caption-enabled users who aren't looking at the
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
