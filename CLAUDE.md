@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 95: 検索・選択原子 — ブックマーク検索・ヒット番号直選・残り時間
+外部基準: history-search の保存リスト対称、findNextMatch の索引版、Edge/Safari の残り読了時間。
+- ✨ **bookmark-search**: `onBookmarkSearch` が `getBookmarks()` を title+url で part-match → 'ブックマークからXを検索'/'search bookmarks for X' → 'N件見つかりました。最初: X'/未一致は誠実告知。
+- ✨ **find-match-select**: `findMatchAt(n)` — findNextMatch の {index,total} 返却型の索引版（'out'/null で範囲外と検索無しを区別）、`_markFindHits`+scroll 同一経路 → '3番目のヒット'/'match 4'。
+- ✨ **remaining-time**: `getRemainingMinutes()` = getReadingTimeMinutes×(100-progress%)/100 → 'あと何分'/'how much longer' → '残り約N分です'。
+- ✅ **テスト +16（git stash で14件赤を確認 — 2件は 'ブックマーク一覧'/'履歴2番目' の共存ガードで設計上緑）**: bookmark-search 3面+一覧ガード、find-match ±/EN/'out'/no-search+履歴ガード6面、remaining-time 3面、`getRemainingMinutes`/`findMatchAt` の state テスト3面。Total 1915 tests (69 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 94: 位置原子 — 戻る/進むの誠実告知・行数スクロール・読書進捗
 外部基準: controller faceB/faceA の goBack/goForward 準拠（同じ bool 経路）、go-to-line の相対版、Chrome の % 進捗。
 - 🔍 **前提の検証で誤判を回避**: voice back/forward は window.history を叩いているように見えたが、connectBrowser の後登録が既に `tabManager.getActiveTab().goBack()/goForward()` に配線済み（Map.set で同名上書き・位置は維持）。実際のギャップは**静的 confirmationText が境界でも '戻ります' と喋る嘘** — goBack/goForward の bool を action 内で告知するよう修正（'戻れません'/'進めません'）。フック新設は不要と判断して差し戻し。

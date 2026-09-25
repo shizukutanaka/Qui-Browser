@@ -310,6 +310,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**戻る/進むの告知が境界で嘘を吐く**~~ — **Session 94 で実装**: voice back/forward は既に `tabManager.getActiveTab().goBack()/goForward()` に配線済みだったが、静的 `confirmationText` が境界でも '戻ります'/'進みます' と喋っていた → `goBack`/`goForward` の bool を action 内で告知（controller faceB/faceA 準拠）→ '戻れません'/'進めません'。
 - ~~**リーダーを行数でスクロールできない**~~ — **Session 94 で実装**: go-to-line の相対版。`onReaderScroll(±n)` が `scrollContent`（クランプ+no-move で false）→ voice `reader-scroll-lines`（'N行進む'/'N行戻る'/'scroll down N lines' — /進|戻/ の loose regex より先に登録）→ 'N行進みました'/'これ以上進めません'。
 - ~~**読書進捗が聞けない**~~ — **Session 94 で実装**: `readerProgress()` がビューポート下端/全行の % を返す → voice `reader-progress`（'進捗'/'何%読んだ'/'reading progress'）→ '記事のN%を読みました'/'記事を開いていません'。
+- ~~**ブックマークを検索できない**~~ — **Session 95 で実装**: history-search の保存リスト版。`onBookmarkSearch` が title+url を part-match → voice `bookmark-search`（'ブックマークからXを検索'/'search bookmarks for X'）→ 'N件見つかりました。最初: X'/未一致は誠実告知。
+- ~~**N番目の検索ヒットに直接飛べない**~~ — **Session 95 で実装**: findNextMatch の索引版。`findMatchAt(n)` が {index,total}|'out'|null を返し `_markFindHits`+scroll → voice `find-match-select`（'3番目のヒット'/'match 4'）→ 'N件目に移動しました'/'ヒットNはありません'/'検索をしていません'。
+- ~~**残り読了時間が聞けない**~~ — **Session 95 で実装**: `getRemainingMinutes()` が総読了時間×未読分（readerProgress の合成）→ voice `remaining-time`（'あと何分'/'how much longer'）→ '残り約N分です'/'記事を開いていません'。
 
 ---
 

@@ -46,6 +46,9 @@ export class VoiceCommands {
     this._onHistorySearch = null;
     this._onReaderScroll = null;
     this._onReaderProgress = null;
+    this._onBookmarkSearch = null;
+    this._onFindMatch = null;
+    this._onRemainingTime = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -830,6 +833,14 @@ export class VoiceCommands {
    *                                         scroll the reader by N lines
    * @param {Function} [opts.onReaderProgress] () => number|null —
    *                                         percent of the article read
+   * @param {Function} [opts.onBookmarkSearch] (term: string) =>
+   *                                         {count:number, title:string}|null —
+   *                                         bookmark hits; null = no match
+   * @param {Function} [opts.onFindMatch] (n: number) =>
+   *                                         {index:number,total:number}|'out'|null —
+   *                                         jump to the Nth find hit
+   * @param {Function} [opts.onRemainingTime] () => number|null —
+   *                                         minutes left in the article
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -850,7 +861,8 @@ export class VoiceCommands {
     onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine,
     onBookmarkList, onHistoryList, onCopyTitle,
     onReadHere, onTopSiteOpen, onHistorySearch,
-    onReaderScroll, onReaderProgress } = {}) {
+    onReaderScroll, onReaderProgress,
+    onBookmarkSearch, onFindMatch, onRemainingTime } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -925,6 +937,15 @@ export class VoiceCommands {
     }
     if (onReaderProgress) {
       this._onReaderProgress = onReaderProgress;
+    }
+    if (onBookmarkSearch) {
+      this._onBookmarkSearch = onBookmarkSearch;
+    }
+    if (onFindMatch) {
+      this._onFindMatch = onFindMatch;
+    }
+    if (onRemainingTime) {
+      this._onRemainingTime = onRemainingTime;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2118,6 +2139,57 @@ export class VoiceCommands {
         return { action: 'reader-progress', pct };
       },
       description: 'Announce reading progress'
+    });
+
+    // Bookmark search — history-search's pair over the saved list.
+    this.registerCommand('bookmark-search', {
+      patterns: [
+        /ブックマーク(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/,
+        /bookmark\s+search\s+(?:for\s+)?(.+)/i,
+        /search\s+bookmarks?\s+(?:for\s+)?(.+)/i
+      ],
+      action: (transcript) => {
+        const m = transcript.match(/ブックマーク(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/)
+          || transcript.match(/bookmark\s+search\s+(?:for\s+)?(.+)/i)
+          || transcript.match(/search\s+bookmarks?\s+(?:for\s+)?(.+)/i);
+        const term = (m && m[1] ? m[1] : '').trim();
+        const res = this._onBookmarkSearch ? this._onBookmarkSearch(term) : null;
+        this.speak(res
+          ? `${res.count}件見つかりました。最初: ${res.title}`
+          : `${term}はブックマークにありません`);
+        return { action: 'bookmark-search', term, count: res ? res.count : 0 };
+      },
+      description: 'Search the bookmark list'
+    });
+
+    // Jump to the Nth find hit — findNextMatch's indexed sibling
+    // (reader-goto-line's announce shape).
+    this.registerCommand('find-match-select', {
+      patterns: [/(\d+)\s*(?:番目?|件目?)\s*(?:の)?\s*(?:ヒット|結果)/,
+        /ヒット\s*(\d+)/, /match\s+(\d+)/i, /hit\s+(\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const res = this._onFindMatch ? this._onFindMatch(n) : null;
+        this.speak(res === 'out' ? `ヒット${n}はありません`
+          : res === null ? '検索をしていません'
+            : `${n}件目に移動しました`);
+        return { action: 'find-match-select', index: n, res };
+      },
+      description: 'Jump to the Nth find hit'
+    });
+
+    // Remaining reading time — getReadingTimeMinutes scaled by progress.
+    this.registerCommand('remaining-time', {
+      patterns: ['あと何分', '残り何分', 'どれくらい残り', 'あとどれくらい',
+        /how much longer/i, /time left/i, /minutes left/i],
+      action: () => {
+        const mins = this._onRemainingTime ? this._onRemainingTime() : null;
+        this.speak(mins === null ? '記事を開いていません'
+          : `残り約${mins}分です`);
+        return { action: 'remaining-time', minutes: mins };
+      },
+      description: 'Announce remaining reading time'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
