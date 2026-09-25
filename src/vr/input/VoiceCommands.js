@@ -21,6 +21,10 @@ export class VoiceCommands {
     // browser surface), but they only move a real control once the host wires
     // this via connectBrowser({ onVolume }).
     this._onVolume = null;
+    // Same wiring for the settings/status commands — set in connectBrowser.
+    this._onCaptionScale = null;
+    this._onDwellTime = null;
+    this._onVolumeStatus = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -403,6 +407,81 @@ export class VoiceCommands {
       description: 'Decrease volume'
     });
 
+    // Volume status — "what's the volume" atom. onVolume(0) returns
+    // undefined (no change), so the host exposes a dedicated getter.
+    this.registerCommand('volume-status', {
+      patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ',
+        /current volume/i, /volume (status|level)/i],
+      action: () => {
+        const v = this._onVolumeStatus ? this._onVolumeStatus() : null;
+        this.speak(v === null ? '音量を取得できません' : `音量は${v}%です`);
+        return { action: 'volume-status', volume: v };
+      },
+      description: 'Announce the current volume'
+    });
+
+    // Settings-by-voice: the caption-size and gaze-dwell steppers are the
+    // flagship a11y knobs and a voice-only user cannot reach the settings
+    // panel mid-immersion. Same clamp/apply/persist path as the steppers,
+    // hosted by the app via onCaptionScale/onDwellTime.
+    this.registerCommand('caption-size-up', {
+      patterns: ['キャプションを大きく', '字幕を大きく', 'キャプションを大きくして',
+        /larger captions/i, /bigger captions/i, /increase caption( size)?/i, /caption (size )?up/i],
+      action: () => {
+        const v = this._onCaptionScale ? this._onCaptionScale(0.25) : null;
+        this.speak(v === null ? 'キャプションサイズはこれ以上大きくできません' : `キャプションサイズ ${v}倍`);
+        return { action: 'caption-size-up', scale: v };
+      },
+      description: 'Increase caption text size'
+    });
+
+    this.registerCommand('caption-size-down', {
+      patterns: ['キャプションを小さく', '字幕を小さく', 'キャプションを小さくして',
+        /smaller captions/i, /decrease caption( size)?/i, /caption (size )?down/i],
+      action: () => {
+        const v = this._onCaptionScale ? this._onCaptionScale(-0.25) : null;
+        this.speak(v === null ? 'キャプションサイズはこれ以上小さくできません' : `キャプションサイズ ${v}倍`);
+        return { action: 'caption-size-down', scale: v };
+      },
+      description: 'Decrease caption text size'
+    });
+
+    this.registerCommand('dwell-time-up', {
+      patterns: ['注視時間を長く', '注視を長く', '注視時間を延ばして',
+        /longer dwell/i, /dwell longer/i, /increase dwell/i],
+      action: () => {
+        const v = this._onDwellTime ? this._onDwellTime(250) : null;
+        this.speak(v === null ? '注視時間はこれ以上長くできません' : `注視時間 ${v}ms`);
+        return { action: 'dwell-time-up', ms: v };
+      },
+      description: 'Increase gaze-dwell activation time'
+    });
+
+    this.registerCommand('dwell-time-down', {
+      patterns: ['注視時間を短く', '注視を短く', '注視時間を短くして',
+        /shorter dwell/i, /dwell shorter/i, /decrease dwell/i],
+      action: () => {
+        const v = this._onDwellTime ? this._onDwellTime(-250) : null;
+        this.speak(v === null ? '注視時間はこれ以上短くできません' : `注視時間 ${v}ms`);
+        return { action: 'dwell-time-down', ms: v };
+      },
+      description: 'Decrease gaze-dwell activation time'
+    });
+
+    // Current time — the NVDA Insert+F12 atom. Announce hour/minute
+    // naturally ('15時04分'); no host hook needed.
+    this.registerCommand('time', {
+      patterns: ['今何時', '現在の時刻', '時刻を教えて', '何時ですか', '時間を教えて',
+        /what time/i, /current time/i],
+      action: () => {
+        const now = new Date();
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        this.speak(`現在時刻は${now.getHours()}時${mm}分です`);
+        return { action: 'time' };
+      },
+      description: 'Announce the current time'
+    });
+
     // Japanese IME
     this.registerCommand('ime-toggle', {
       patterns: ['日本語入力', '日本語モード', '入力切り替え'],
@@ -519,6 +598,11 @@ export class VoiceCommands {
    *                                         applies it to TabManager (decoupled like onGoTo)
    * @param {Function} [opts.onVolume]     (delta: number) => void — ±0.1 master-volume
    *                                         change for the volume-up/down commands
+   * @param {Function} [opts.onCaptionScale] (delta: number) => number|null — step the
+   *                                         caption-size stepper (0.5–3.0x); null = at limit
+   * @param {Function} [opts.onDwellTime]  (deltaMs: number) => number|null — step the
+   *                                         gaze-dwell stepper (500–3000 ms); null = at limit
+   * @param {Function} [opts.onVolumeStatus] () => number|null — current master volume %
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -534,9 +618,18 @@ export class VoiceCommands {
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
-    onVideoToggle, onVideoStop, onCopyUrl } = {}) {
+    onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
+    }
+    if (onCaptionScale) {
+      this._onCaptionScale = onCaptionScale;
+    }
+    if (onDwellTime) {
+      this._onDwellTime = onDwellTime;
+    }
+    if (onVolumeStatus) {
+      this._onVolumeStatus = onVolumeStatus;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is

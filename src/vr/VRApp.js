@@ -2753,6 +2753,35 @@ export class VRApp {
               this.captionSystem.show(`音量: ${next}%`);
             }
           },
+          // Settings-by-voice: the caption-size and gaze-dwell steppers are
+          // the flagship a11y knobs and a voice-only user can't reach the
+          // settings panel mid-immersion. Same clamp/apply/persist path the
+          // steppers run; null = at the boundary (command announces it).
+          onCaptionScale: (delta) => {
+            const next = Math.min(3.0, Math.max(0.5, this.settings.captionScale + delta));
+            if (next === this.settings.captionScale) {
+              return null;
+            }
+            this.updateSetting('captionScale', next);
+            if (this.captionSystem) {
+              this.captionSystem.setScale(next);
+            }
+            return next;
+          },
+          onDwellTime: (delta) => {
+            const next = Math.min(3000, Math.max(500, this.settings.gazeDwellTime + delta));
+            if (next === this.settings.gazeDwellTime) {
+              return null;
+            }
+            this.updateSetting('gazeDwellTime', next);
+            if (this.gazeInteraction) {
+              this.gazeInteraction.dwellTime = next;
+            }
+            return next;
+          },
+          // "What's the volume" — onVolume(0) returns undefined (no change),
+          // so the status command reads the persisted setting directly.
+          onVolumeStatus: () => this.settings.masterVolume,
           // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
           // same store + confirmation path as the chrome star button.
           onBookmarkPage: () => {

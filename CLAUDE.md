@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 83: 音声からの設定操作＆ステータス原子 — キャプションサイズ・注視時間・音量/時刻告知
+外部基準: 音声のみのユーザーは没入中に設定パネルへ行けない（旗艦 a11y ノブが unreachable）、NVDA の Insert+F12（現在時刻）、スクリーンリーダーの "status" 問い合わせ。
+- ✨ **caption-size by voice**: `onCaptionScale(±0.25)` ホストフック — settings の `captionScale` stepper と同じ clamp(0.5–3.0)→`updateSetting` 永続化→`captionSystem.setScale` 適用。境界で null を返し、コマンドは「キャプションサイズはこれ以上大きく/小さくできません」と誠実告知。voice `caption-size-up/down`（'キャプションを大きく'/'キャプションを小さく'/'字幕を大きく'+EN）。
+- ✨ **dwell-time by voice**: `onDwellTime(±250)` — `gazeDwellTime` stepper と同じ clamp(500–3000ms)→永続化→`gazeInteraction.dwellTime`。voice `dwell-time-up/down`（'注視時間を長く'/'注視時間を短く'/'注視時間を延ばして'+EN）。震え・斜視ユーザーが没入のまま許容時間を広げられる。
+- ✨ **volume-status**: `onVolume(0)` は無変化で undefined を返す設計のため `onVolumeStatus` 専用ゲッター → voice `volume-status`（'音量は'/'今の音量'/'音量を教えて'+EN）が '音量はN%です' と告知。
+- ✨ **time**: NVDA Insert+F12 準拠。voice `time`（'今何時'/'現在の時刻'/'時刻を教えて'/'何時ですか'/'時間を教えて'+EN）→ '現在時刻はH時MM分です'。フック不要の純粋コマンド。
+- 🔧 4コマンドとも `_onVolume` と同じ後付け配線（`_onCaptionScale`/`_onDwellTime`/`_onVolumeStatus` を connectBrowser で受ける）— hook 不在時も誠実フォールバックで落ちない。'音量上げる' が volume-status でなく volume-up に届く衝突ガードをテストで固定。
+- ✅ **テスト +14（git stash で13件赤を確認してから緑へ）**: volume-status の告知・不在・volume-up 衝突ガード（既存コマンドのため stash 下でも緑の1件）、caption-size の ±0.25・告知・上下限・フック無し、dwell-time の ±250・'延ばして' エイリアス・上限、time の JA/EN ルーティングと 'H時MM分' 形式。Total 1697 tests (57 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 82: ナレーション制御原子 — 発話速度・読み上げ一時停止/再開・目次読み上げ
 外部基準: NVDA の rate 制御（スクリーンリーダー利用者は TTS を高速で回す）、SpeechSynthesis の pause/resume（Edge "Read Aloud" の一時停止ボタン相当）、VoiceOver ローター "headings" リスト / JAWS 見出しダイアログ（記事の輪郭を一覧する導線）。
 - ✨ **発話速度**: `VoiceCommands._speechRate`（0.5–3.0 に clamp）を全 utterance に適用。`speak({rate})` 個別指定は優先。voice `speech-faster`/`speech-slower`（'速くして'/'遅くして'/'読み上げを速く'/'読み上げを遅く'+EN）が ±0.25 ステップで '読み上げ速度 N倍' と告知 — 没入中に設定パネルへ寄らずに調整できる。
