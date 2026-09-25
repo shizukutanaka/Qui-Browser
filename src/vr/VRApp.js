@@ -45,7 +45,7 @@ import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
-import { BookmarkStore } from '../utils/BookmarkStore.js';
+import { BookmarkStore, MAX_HISTORY } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
@@ -3066,6 +3066,40 @@ export class VRApp {
           // Settings panel open/close/toggle — same path as the faceB/menu
           // button so the spoken state always matches the visible one.
           onSettingsPanel: (want) => this._setSettingsPanelVisible(want),
+          // Direct-select atoms: open the Nth bookmark / history entry in
+          // the ACTIVE tab — tab-select's parity for the saved lists.
+          onBookmarkOpen: (index) => {
+            const entry = this.bookmarks.getBookmarks()[index - 1];
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          onHistoryOpen: (index) => {
+            const entry = this.bookmarks.getHistory(MAX_HISTORY)[index - 1];
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          // Jump the reader to line N (VoiceOver's go-to-line). null = not
+          // on a reader page; 'out' = past the last line.
+          onReaderLine: (line) => {
+            const tab = this.tabManager?.getActiveTab?.();
+            const total = tab?._readerLines?.length || 0;
+            if (!total) {
+              return null;
+            }
+            if (line < 1 || line > total) {
+              return 'out';
+            }
+            tab.scrollContentTo(line - 1);
+            return line;
+          },
           // Share/copy atom: clipboard may be absent or reject (permissions,
           // non-secure context) — the write is best-effort, the announce
           // still honest because the URL itself is what was handed over.

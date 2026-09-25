@@ -35,6 +35,9 @@ export class VoiceCommands {
     this._onStepper = null;
     this._onVideoSeek = null;
     this._onSettingsPanel = null;
+    this._onBookmarkOpen = null;
+    this._onHistoryOpen = null;
+    this._onReaderLine = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -358,6 +361,22 @@ export class VoiceCommands {
         return { action: 'settings-toggle', visible };
       },
       description: 'Open, close or toggle the settings panel'
+    });
+
+    // Go to reader line N — VoiceOver's go-to-line for the laid-out
+    // article. Hoisted like the commands above: the go-to catch-all would
+    // otherwise route 'go to line 30' as a navigation request.
+    this.registerCommand('reader-goto-line', {
+      patterns: [/(\d+)\s*行目/, /line\s+(\d+)/i],
+      action: (transcript) => {
+        const n = Number(transcript.match(/(\d+)/)[1]);
+        const res = this._onReaderLine ? this._onReaderLine(n) : null;
+        this.speak(res === 'out' ? `${n}行目はありません`
+          : res === null ? '記事を開いていません'
+            : `${n}行目に移動しました`);
+        return { action: 'reader-goto-line', line: n, res };
+      },
+      description: 'Jump to a line in the reader'
     });
 
     // Navigation commands
@@ -743,6 +762,14 @@ export class VoiceCommands {
    * @param {Function} [opts.onSettingsPanel] (want?: boolean) => boolean|null —
    *                                         open/close/toggle the settings panel;
    *                                         returns its visibility; null = no panel
+   * @param {Function} [opts.onBookmarkOpen] (index: number) => string|null —
+   *                                         open the Nth bookmark; null = out of
+   *                                         range or no active tab
+   * @param {Function} [opts.onHistoryOpen] (index: number) => string|null —
+   *                                         open the Nth history entry; same
+   * @param {Function} [opts.onReaderLine] (line: number) => number|'out'|null —
+   *                                         jump the reader to line N; null =
+   *                                         no reader open, 'out' = past the end
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -760,7 +787,7 @@ export class VoiceCommands {
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
-    onVideoSeek, onSettingsPanel } = {}) {
+    onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -802,6 +829,15 @@ export class VoiceCommands {
     }
     if (onSettingsPanel) {
       this._onSettingsPanel = onSettingsPanel;
+    }
+    if (onBookmarkOpen) {
+      this._onBookmarkOpen = onBookmarkOpen;
+    }
+    if (onHistoryOpen) {
+      this._onHistoryOpen = onHistoryOpen;
+    }
+    if (onReaderLine) {
+      this._onReaderLine = onReaderLine;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1869,6 +1905,43 @@ export class VoiceCommands {
         return { action: 'close-all-tabs', closed, left };
       },
       description: 'Close every tab (pinned tabs stay)'
+    });
+
+    // Direct-select atoms: open the Nth bookmark or history entry in the
+    // active tab — tab-select's parity for the saved lists. Out-of-range
+    // stays honest ('ブックマークNはありません') rather than clamping.
+    this.registerCommand('bookmark-select', {
+      patterns: [/ブックマーク\s*(?:の)?\s*(\d+)/, /bookmark\s+(\d+)/i],
+      action: (transcript) => {
+        const n = Number(transcript.match(/(\d+)/)[1]);
+        const title = this._onBookmarkOpen ? this._onBookmarkOpen(n) : null;
+        this.speak(title || `ブックマーク${n}はありません`);
+        return { action: 'bookmark-select', index: n, title: title || null };
+      },
+      description: 'Open the Nth bookmark'
+    });
+
+    this.registerCommand('history-select', {
+      patterns: [/履歴\s*(?:の)?\s*(\d+)\s*番?目?/, /history\s+(\d+)/i],
+      action: (transcript) => {
+        const n = Number(transcript.match(/(\d+)/)[1]);
+        const title = this._onHistoryOpen ? this._onHistoryOpen(n) : null;
+        this.speak(title || `履歴${n}番目はありません`);
+        return { action: 'history-select', index: n, title: title || null };
+      },
+      description: 'Open the Nth history entry'
+    });
+
+    // Date — the NVDA Insert+F12 pair for 'time': announce today's date.
+    this.registerCommand('date', {
+      patterns: ['今日の日付', '何月何日', '今日は何日', '日付を教えて',
+        /what( is|'s) (the )?date/i, /current date/i],
+      action: () => {
+        const now = new Date();
+        this.speak(`今日は${now.getMonth() + 1}月${now.getDate()}日です`);
+        return { action: 'date' };
+      },
+      description: 'Announce today\'s date'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

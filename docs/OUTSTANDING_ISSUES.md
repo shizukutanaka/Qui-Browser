@@ -299,6 +299,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**動画をシークできない**~~ — **Session 90 で実装**: YouTube J/L キー準拠。`ImmersiveVideo.seek(deltaSec)` が currentTime を [0,duration] にクランプ → `onVideoSeek` フック → voice `video-seek`（'10秒戻る'/'30秒進む'/'動画を戻して'/'seek forward'/'rewind' — 数値キャプチャ、既定±10秒）→ 'N秒戻りました/進みました'。go-back/go-forward の loose regex より前に登録（registerDefaultCommands の先頭 — '10秒戻る' が '戻る' に吸収される衝突をテストで実測捕捉）。
 - ~~**設定パネルが音声で開閉できない**~~ — **Session 90 で実装**: faceB/menu ボタンの開閉本体を `_setSettingsPanelVisible(want)` に抽出しボタンと `onSettingsPanel` フックが完全同一経路（visible 反転 + mesh + semanticDOM + caption）。voice `settings-toggle`（'設定を開いて/閉じて'/'設定パネル' — 明示方向またはトグル、go-to catch-all より前に登録）→ 結果の表示状態を告知（'設定を開きます'/'設定を閉じます'）。
 - ~~**全タブを一括で閉じられない**~~ — **Session 90 で実装**: Chrome "Close all tabs" 準拠。`closeAllTabs()` が後方イテレートで全タブを closeTab 経由で閉じる（private/空タブ非記録ルール完全一致、ピン留めは拒否して生存）→ voice `close-all-tabs`（'すべてのタブを閉じて'/'close all tabs'）→ 'N個のタブを閉じました。ピン留めM個は残ります'、全ピン/空は誠実告知。
+- ~~**ブックマーク/履歴のN番目を直接開けない**~~ — **Session 91 で実装**: tab-select の保存リスト版。`onBookmarkOpen(n)`/`onHistoryOpen(n)` が `bookmarks.getBookmarks()`/`getHistory(MAX_HISTORY)` のN番目を active タブで開く → voice `bookmark-select`（'ブックマークN'/'ブックマークのN番目'/'bookmark N'）、`history-select`（'履歴N番目'/'履歴のN'/'history N'）→ タイトル告知、範囲外は「ブックマークNはありません」（clamp しない）。
+- ~~**記事のN行目へジャンプできない**~~ — **Session 91 で実装**: VoiceOver go-to-line 準拠。`onReaderLine(n)` が `_readerLines` の存在と `n ≤ total` を検査 → `scrollContentTo(n-1)` → voice `reader-goto-line`（'N行目へ'/'line N' — go-to catch-all より前に登録）→ 'N行目に移動しました'/'N行目はありません'/'記事を開いていません'。
+- ~~**日付が聞けない**~~ — **Session 91 で実装**: NVDA Insert+F12 の date 側（'time' と対）。voice `date`（'今日の日付'/'何月何日'/'current date'）→ '今日はM月D日です'。
 
 ---
 
