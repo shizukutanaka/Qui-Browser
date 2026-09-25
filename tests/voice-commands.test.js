@@ -1178,3 +1178,30 @@ describe('VoiceCommands — host callbacks report the outcome to speak', () => {
     }
   });
 });
+
+describe('VoiceCommands — scrolling reports only when it could not scroll', () => {
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+  });
+
+  test('a returned line is spoken, with the direction passed through', () => {
+    const onScrollContent = jest.fn(() => 'STUCK');
+    vc.connectBrowser({ onScrollContent });
+    vc.processCommand('下にスクロール', 0.9);
+    vc.processCommand('上にスクロール', 0.9);
+    expect(onScrollContent).toHaveBeenNthCalledWith(1, 8);
+    expect(onScrollContent).toHaveBeenNthCalledWith(2, -8);
+    expect(spoken).toEqual(['STUCK', 'STUCK']);
+  });
+
+  test('a scroll that moved says nothing; unwired says nothing', () => {
+    vc.connectBrowser({ onScrollContent: () => undefined });
+    vc.processCommand('下にスクロール', 0.9);
+    vc.connectBrowser({});
+    vc.processCommand('上にスクロール', 0.9);
+    expect(spoken).toEqual([]);
+  });
+});

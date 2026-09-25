@@ -574,7 +574,9 @@ export class VoiceCommands {
    * onFindInPage / onFindNext: only the host knows what happened, so a callback
    * may RETURN a string, which is spoken (and captioned via onSpeak) instead of
    * the command's usual confirmation — "no such link", "3/7", "no page is
-   * open". Returning nothing keeps the confirmation.
+   * open". Returning nothing keeps the confirmation. onScrollContent follows
+   * the same contract but has no confirmation: a successful scroll is visible
+   * and stays silent; only "couldn't scroll" is said.
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR,
@@ -909,8 +911,9 @@ export class VoiceCommands {
     this.registerCommand('scroll-down', {
       patterns: ['下にスクロール', '下', 'した', 'スクロールダウン', 'scroll down', 'down'],
       action: () => {
-        if (onScrollContent) {
-          onScrollContent(SCROLL_LINES);
+        const said = onScrollContent ? onScrollContent(SCROLL_LINES) : null;
+        if (typeof said === 'string' && said) {
+          this.speak(said);
         }
         return { action: 'scroll', direction: 'down' };
       },
@@ -920,8 +923,9 @@ export class VoiceCommands {
     this.registerCommand('scroll-up', {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ', 'scroll up', 'up'],
       action: () => {
-        if (onScrollContent) {
-          onScrollContent(-SCROLL_LINES);
+        const said = onScrollContent ? onScrollContent(-SCROLL_LINES) : null;
+        if (typeof said === 'string' && said) {
+          this.speak(said);
         }
         return { action: 'scroll', direction: 'up' };
       },

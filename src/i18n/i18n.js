@@ -210,6 +210,8 @@ const CATALOG = {
     'vr.voice.noNextPage': 'There is no next page',
     'vr.voice.nothingLoading': 'No page is loading',
     'vr.voice.noPage': 'No page is open',
+    'vr.voice.cannotScrollDown': "Can't scroll down any further",
+    'vr.voice.cannotScrollUp': "Can't scroll up any further",
     'vr.voice.browsingOff': 'The browser panel is off. Turn on Web Browser Panel under Settings, Browsing.',
     'vr.voice.confirm.goTo': 'Opening'
   },
@@ -409,6 +411,8 @@ const CATALOG = {
     'vr.voice.noNextPage': '次のページはありません',
     'vr.voice.nothingLoading': '読み込み中のページはありません',
     'vr.voice.noPage': '開いているページはありません',
+    'vr.voice.cannotScrollDown': 'これ以上下にスクロールできません',
+    'vr.voice.cannotScrollUp': 'これ以上上にスクロールできません',
     'vr.voice.browsingOff': 'ブラウザパネルはオフです。設定のブラウジングで「ブラウザパネル」をオンにしてください。',
     'vr.voice.confirm.goTo': '開きます'
   }

@@ -1455,6 +1455,16 @@ describe('VRApp voice callbacks return the spoken outcome', () => {
     }
   });
 
+  test('scrolling is silent when it moves and says so when it cannot', () => {
+    const scrollContent = jest.fn(() => true);
+    expect(wire({ tab: { scrollContent } }).opts.onScrollContent(8)).toBeUndefined();
+    const stuck = wire({ tab: { scrollContent: () => false } }).opts;
+    expect(stuck.onScrollContent(8)).toBe(t('vr.voice.cannotScrollDown'));
+    expect(stuck.onScrollContent(-8)).toBe(t('vr.voice.cannotScrollUp'));
+    expect(wire({ tabManager: { getActiveTab: () => null } }).opts.onScrollContent(8))
+      .toBe(t('vr.voice.noPage'));
+  });
+
   test('with browsing off, they say where to turn it on', () => {
     const { opts } = wire();
     expect(opts.onSearch('x')).toBe(t('vr.voice.browsingOff'));

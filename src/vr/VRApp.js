@@ -2835,8 +2835,17 @@ export class VRApp {
       onClearHistory: () => this._clearBrowsingHistory(),
       // Scroll the active panel's reader viewport (the fetched article
       // text), which is what "下にスクロール" can actually move in VR.
+      // Silent when it moves (the text visibly scrolls); at the end/top, or
+      // on a page that fits one screen, say so instead of saying nothing.
       onScrollContent: (delta) => {
-        this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
+        const active = this.tabManager?.getActiveTab?.();
+        if (!active || typeof active.scrollContent !== 'function') {
+          return this._voiceNoTabLine();
+        }
+        if (active.scrollContent(delta)) {
+          return undefined;
+        }
+        return t(delta > 0 ? 'vr.voice.cannotScrollDown' : 'vr.voice.cannotScrollUp');
       },
       // End the live WebXR session. Unlike entering, this needs no user
       // activation, so it is a genuine hands-free "take the headset off"
