@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 100: シェル原子II — クリップボード読み上げ・プライベート一括閉じ・最初のタブ・ブックマーク状態
+外部基準: NVDA read-clipboard、Chrome "Close incognito tabs"、last-tab の対称原子、privacy-status の保存リスト版。
+- ✨ **read-clipboard**: `onReadClipboard` が `navigator.clipboard.readText` → 本文をそのまま発話（空='コピーされていません'、権限失敗='クリップボードにアクセスできません'）。paste-go と同じ async `.then` speak → voice 'クリップボードを読み上げ'/'read clipboard'/'what's on the clipboard'。
+- ✨ **close-private-tabs**: `TabManager.closePrivateTabs()` が `isPrivate` のみ closeTab 経由で後ろから閉じる（ピン留め private は拒否で残存、他の一括系と同挙動）→ voice 'プライベートタブを閉じて'/'close private tabs' → 'N個のプライベートタブを閉じました'/'プライベートタブがありません'。**衝突回避**: 'incognito' は private-mode の `/incognito/i` 所有のため英句は private のみ。
+- ✨ **first-tab**: last-tab（Ctrl+9）の対 → voice '最初のタブ'/'先頭のタブ'/'first tab' → `setActive(0)` → タイトル告知/'タブがありません'。
+- ✨ **bookmark-status**: `active.isBookmarked(currentUrl)` → voice 'ブックマーク済みですか'/'is it bookmarked' → 'ブックマークされています'/'いません'/'ページを開いていません'。
+- 🧹 **実測捕捉の重複を除去**: clear-history は Session 56 で既存（'履歴を消去' — 登録済み・VRApp 配線済み）。同名再登録は Map.set で action を上書きするため、重複していた新規ブロックは削除し既存の広いパターンを維持。
+- ✅ **テスト +16（git stash で15件赤を確認 — 1件は 'プライベートタブ'→private-new-tab 共存ガードで設計上緑）**: read-clipboard 3面、close-private 4面（EN含む・共存ガード）、first-tab 3面、bookmark-status 3面、TabManager 3面（後ろから・ピン拒否・0件）。Total 2004 tests (74 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 99: マーク原子 — Vim `` ジャンプバック・Chrome Esc/ペーストで開く
 外部基準: Vim の `` `` `` マーク（直前ジャンプ位置との往復）、Chrome の Esc（検索バー閉じる）、"Paste and go"（アドレスバー右クリック）。
 - ✨ **jump-back**: `scrollContentTo` がジャンプ前に `_scrollMark` へ現行位置を記録 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため全ジャンプを自動カバー。`scrollContent` の増分スクロールは意図的にマークしない。`jumpBack()` が `scrollContentTo(mark)` で往復トグル（新記事ロードでリセット）→ voice 'さっきの場所'/'元の位置へ'/'ジャンプバック'/'jump back'/'previous position' → '元の場所に戻りました'/'戻る場所がありません'。**衝突回避**: '戻る' は go-back 所有のため句に '戻' を含めない — 共存テストで既存ルートを保護。

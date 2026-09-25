@@ -445,6 +445,22 @@ export class TabManager {
   }
 
   /**
+   * Close every private tab (Chrome's "Close incognito tabs"). Iterating
+   * backwards keeps indices stable as closeTab splices; pinned private tabs
+   * refuse via closeTab exactly as they do everywhere else.
+   * @returns {number} tabs closed
+   */
+  closePrivateTabs() {
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (this.tabs[i].isPrivate && this.closeTab(i)) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
    * Close every tab (Chrome's "Close all tabs"). Iterating backwards keeps
    * indices stable as closeTab splices; pinned tabs refuse via closeTab, so
    * they survive the sweep exactly as they survive a single close.
