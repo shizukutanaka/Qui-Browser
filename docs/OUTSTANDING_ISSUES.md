@@ -332,6 +332,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**プライベートタブだけ一括で閉じられない**~~ — **Session 100 で実装**: Chrome "Close incognito tabs" 準拠。`TabManager.closePrivateTabs()` が `isPrivate` のみ closeTab 経由で後ろから閉じる（ピン留め private は closeTab 拒否で他の一括系と同じく残存）→ voice `close-private-tabs`（'プライベートタブを閉じて'/'close private tabs' — 'incognito' は private-mode の `/incognito/i` 所有のため英句は private のみ）→ 'N個のプライベートタブを閉じました'/'プライベートタブがありません'。**実測捕捉**: clear-history は Session 56 で既存（'履歴を消去'）— 同名再登録は action を上書きするため重複実装は除去。
 - ~~**最初のタブに直接行けない**~~ — **Session 100 で実装**: last-tab（Ctrl+9）の対。voice `first-tab`（'最初のタブ'/'先頭のタブ'/'first tab'）→ `setActive(0)` → タイトル告知/'タブがありません'。
 - ~~**ブックマーク済みか聞けない**~~ — **Session 100 で実装**: privacy-status の保存リスト版。`active.isBookmarked(currentUrl)` → voice `bookmark-status`（'ブックマーク済みですか'/'is it bookmarked'）→ 'ブックマークされています'/'いません'/'ページを開いていません'。
+- ~~**N番目のタブを閉じられない/ピンできない**~~ — **Session 101 で実装**: Chrome の右クリックタブ準拠（選択せずに Close/Pin）。voice `tab-close-n`（'タブNを閉じて'/'close tab N'）→ `closeTab(idx)` → タイトル告知/'ピン留めされたタブは閉じられません'/'タブNはありません'、`tab-pin-n`（'タブNをピン'/'pin tab N'）→ `togglePin(idx)` → 'タブNをピン留めしました'/'ピンを外しました'。**実測捕捉の衝突**: 両方とも tab-select の `/タブ([0-9]+)/`・`/tab ([0-9]+)/` に吸収されるため tab-select より前に登録し、さらに close-tab `/close\s+tab\b/`・pin-tab `/pin (this |the )?tab/` が 'close tab 3'/'pin tab 2' を吸収 → 数字続行を除く `(?!\s*\d)` で強化。
+- ~~**アドレスバーにフォーカスできない**~~ — **Session 101 で実装**: Ctrl+L 準拠。voice `url-input`（'アドレスバー'/'URLを入力して'/'enter url'/'address bar'）→ `panel.onUrlInputRequested(currentUrl||'https://', cb)` で VR キーボードを開き confirm で `navigate` → 'URLを入力してください'/'アドレスバーがありません'。フックは panel 上の public プロパティのため tabManager クロージャで足りる。
+- ~~**リセンターが音声から届かない**~~ — **Session 101 で実装**: Quest ホールドボタン準拠。`onRecenter` → `recenter()`（自身で caption も発火）→ voice `recenter`（'リセンター'/'中央に戻して'/'recenter'/'center view'）→ '中央に戻しました'/'中央に戻せません'。
+- ~~**動画の再生位置が聞けない**~~ — **Session 101 で実装**: video-seek のステータス対。`onVideoStatus` が `{t: currentTime, d: duration}` → voice `video-status`（'動画はどのくらい'/'動画の位置'/'video position'）→ 'N分M秒を再生中（全X分Y秒）'/'再生中の動画がありません'（duration 不明時は位置のみ）。
 
 ---
 

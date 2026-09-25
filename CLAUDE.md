@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 101: ストリップ位置/フォーカス原子 — タブNアクション・Ctrl+L・リセンター・動画位置
+外部基準: Chrome の右クリックタブ（選択せず Close/Pin）、Ctrl+L アドレスバーフォーカス、Quest ホールドボタンのリセンター、video-seek のステータス対。
+- ✨ **tab-close-n/tab-pin-n**: 'タブNを閉じて'/'close tab N' → `closeTab(idx)` → タイトル告知/ピン拒否/'タブNはありません'、'タブNをピン'/'pin tab N' → `togglePin(idx)` → 'タブNをピン留めしました'/'ピンを外しました'。
+- 🐛 **実測捕捉の衝突を修正**: 'タブN…'/'…tab N' は tab-select の `/タブ([0-9]+)/`・`/tab ([0-9]+)/` に吸収されるため tab-select より前に登録。さらに close-tab `/close\s+tab\b/`・pin-tab `/pin (this |the )?tab/` が 'close tab 3'/'pin tab 2' を吸収 → 両パターンに `(?!\s*\d)` を追加して数字続行を素通しに。
+- ✨ **url-input**: Ctrl+L 準拠。'アドレスバー'/'URLを入力して'/'enter url' → `panel.onUrlInputRequested(currentUrl||'https://', cb)` で VR キーボードを開き confirm で `navigate` → 'URLを入力してください'/'アドレスバーがありません'。フックは panel の public プロパティのため tabManager クロージャのみ。
+- ✨ **recenter**: Quest ホールドボタン準拠。`onRecenter` → `recenter()`（自身で caption 発火）→ 'リセンター'/'中央に戻して'/'center view' → '中央に戻しました'/'中央に戻せません'。
+- ✨ **video-status**: `onVideoStatus` が `{t,d}` → '動画はどのくらい'/'video position' → 'N分M秒を再生中（全X分Y秒）'/'再生中の動画がありません'（duration 不明時は位置のみ）。
+- ✅ **テスト +19（git stash で16件赤を確認 — 3件は設計上緑: 'タブN' 範囲外フレーズが tab-select 自身の OOR 応答と同文、'タブ2'→tab-select 共存ガード）**: tab-close-n 5面（EN・範囲外・ピン拒否・共存）、tab-pin-n 4面（EN・アンピン告知・範囲外）、url-input 4面（プリフィル・EN・未配線・confirm→navigate）、recenter 3面、video-status 3面（duration 有無・無動画）。Total 2023 tests (75 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 100: シェル原子II — クリップボード読み上げ・プライベート一括閉じ・最初のタブ・ブックマーク状態
 外部基準: NVDA read-clipboard、Chrome "Close incognito tabs"、last-tab の対称原子、privacy-status の保存リスト版。
 - ✨ **read-clipboard**: `onReadClipboard` が `navigator.clipboard.readText` → 本文をそのまま発話（空='コピーされていません'、権限失敗='クリップボードにアクセスできません'）。paste-go と同じ async `.then` speak → voice 'クリップボードを読み上げ'/'read clipboard'/'what's on the clipboard'。

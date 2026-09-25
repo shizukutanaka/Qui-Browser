@@ -66,6 +66,8 @@ export class VoiceCommands {
     this._onClearFind = null;
     this._onPasteGo = null;
     this._onReadClipboard = null;
+    this._onRecenter = null;
+    this._onVideoStatus = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -891,6 +893,8 @@ export class VoiceCommands {
    *                                         URL → navigate; announce text
    * @param {Function} [opts.onReadClipboard] () => Promise<string> — clipboard
    *                                         text → announce (NVDA read-clipboard)
+   * @param {Function} [opts.onRecenter] () => boolean — reset player to origin
+   * @param {Function} [opts.onVideoStatus] () => {t,d}|null — video position
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -916,7 +920,7 @@ export class VoiceCommands {
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
-    onJumpBack, onClearFind, onPasteGo, onReadClipboard } = {}) {
+    onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1051,6 +1055,12 @@ export class VoiceCommands {
     }
     if (onReadClipboard) {
       this._onReadClipboard = onReadClipboard;
+    }
+    if (onRecenter) {
+      this._onRecenter = onRecenter;
+    }
+    if (onVideoStatus) {
+      this._onVideoStatus = onVideoStatus;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1187,7 +1197,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('close-tab', {
-      patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab\b/i],
+      patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab\b(?!\s*\d)/i],
       action: () => {
         if (tabManager && tabManager.activeIndex >= 0) {
           // Pinned tabs refuse closeTab (Chrome parity) — say so instead of
@@ -1211,7 +1221,7 @@ export class VoiceCommands {
     this.registerCommand('pin-tab', {
       patterns: ['タブをピン留め', 'ピン留め', 'このタブを固定', 'タブを固定',
         'ピン留め解除', '固定を解除',
-        /pin (this |the )?tab/i, /unpin (this |the )?tab/i],
+        /pin (this |the )?tab(?!\s*\d)/i, /unpin (this |the )?tab(?!\s*\d)/i],
       action: () => {
         const state = tabManager?.togglePin?.(tabManager.activeIndex) || null;
         if (state === null) {
@@ -1925,6 +1935,50 @@ export class VoiceCommands {
       description: 'Move the window panel closer or further'
     });
 
+    // Strip-position actions — right-clicking a background tab in Chrome gets
+    // Close / Pin without selecting it first. Registered BEFORE tab-select:
+    // 'タブ3を閉じて' and 'close tab 3' both contain 'タブ3'/'tab 3', which the
+    // select regexes would otherwise claim.
+    this.registerCommand('tab-close-n', {
+      patterns: [/タブ([0-9]+)を閉じて/, /close tab ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        const idx = n - 1;
+        if (idx < 0 || idx >= tabs.length) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'tab-close-n', index: -1 };
+        }
+        const title = tabs[idx].currentTitle || tabs[idx].currentUrl || `タブ${n}`;
+        if (!tabManager.closeTab(idx)) {
+          this.speak('ピン留めされたタブは閉じられません');
+          return { action: 'tab-close-n', index: idx, closed: false };
+        }
+        this.speak(`${title}を閉じました`);
+        return { action: 'tab-close-n', index: idx, closed: true };
+      },
+      description: 'Close the tab at a strip position'
+    });
+    this.registerCommand('tab-pin-n', {
+      patterns: [/タブ([0-9]+)をピン/, /タブ([0-9]+)のピンを外/,
+        /(un)?pin tab ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        const idx = n - 1;
+        if (idx < 0 || idx >= tabs.length) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'tab-pin-n', index: -1 };
+        }
+        const state = tabManager.togglePin(idx);
+        this.speak(state === 'pinned' ? `タブ${n}をピン留めしました` : `タブ${n}のピンを外しました`);
+        return { action: 'tab-pin-n', index: idx, state };
+      },
+      description: 'Toggle the pin on a strip position'
+    });
+
     // Direct tab selection — Chrome Ctrl+1..8 lands on the tab at that strip
     // position (Ctrl+9 → last). The voice equivalent: 'タブ3' / 'tab 3' and
     // '最後のタブ' / 'last tab'. Out-of-range announces honestly instead of
@@ -2600,6 +2654,62 @@ export class VoiceCommands {
         return { action: 'bookmark-status', bookmarked: marked };
       },
       description: 'Announce whether the active page is bookmarked'
+    });
+
+    // Ctrl+L parity — focus the VR address bar so the keyboard comes up
+    // prefilled. The hook lives on the panel (WebPanel.onUrlInputRequested),
+    // so the tabManager closure is enough — no extra _onX wiring.
+    this.registerCommand('url-input', {
+      patterns: ['アドレスバー', 'URLを入力して', 'アドレスを入力',
+        'URLを打って', /address bar/i, /enter (a |the )?(url|address)/i],
+      action: () => {
+        const p = tabManager?.getActiveTab?.();
+        if (!p?.onUrlInputRequested) {
+          this.speak('アドレスバーがありません');
+          return { action: 'url-input', opened: false };
+        }
+        p.onUrlInputRequested(p.currentUrl || 'https://', (url) => {
+          if (url) {
+            p.navigate?.(url);
+          }
+        });
+        this.speak('URLを入力してください');
+        return { action: 'url-input', opened: true };
+      },
+      description: 'Focus the address bar (Ctrl+L parity)'
+    });
+
+    // Quest hold-button parity — return the player rig to the origin by
+    // voice. The hook also fires its own caption via recenter().
+    this.registerCommand('recenter', {
+      patterns: ['リセンター', '中央に戻して', 'センタリング',
+        /recenter/i, /center (the )?(view|position)/i],
+      action: () => {
+        const ok = this._onRecenter ? this._onRecenter() : false;
+        this.speak(ok ? '中央に戻しました' : '中央に戻せません');
+        return { action: 'recenter', moved: ok };
+      },
+      description: 'Return the player to the origin'
+    });
+
+    // Video position query — video-seek's status pair. The hook returns
+    // {t,d} seconds or null when nothing is playing.
+    this.registerCommand('video-status', {
+      patterns: ['動画はどのくらい', '動画の位置', '動画は何分',
+        /video (position|time)/i, /how far (in|through)/i],
+      action: () => {
+        const st = this._onVideoStatus ? this._onVideoStatus() : null;
+        if (!st) {
+          this.speak('再生中の動画がありません');
+          return { action: 'video-status', position: null };
+        }
+        const mm = (s) => `${Math.floor(s / 60)}分${Math.floor(s % 60)}秒`;
+        this.speak(Number.isFinite(st.d)
+          ? `${mm(st.t)}を再生中（全${mm(st.d)}）`
+          : `${mm(st.t)}を再生中`);
+        return { action: 'video-status', position: st.t };
+      },
+      description: 'Announce the video position'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

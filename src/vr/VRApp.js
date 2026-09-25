@@ -3265,6 +3265,22 @@ export class VRApp {
             } catch {
               return 'クリップボードにアクセスできません';
             }
+          },
+          // Quest hold-button parity — return the rig to the origin.
+          onRecenter: () => {
+            if (!this.playerRig) {
+              return false;
+            }
+            this.recenter();
+            return true;
+          },
+          // Video position query — video-seek's status pair.
+          onVideoStatus: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active || !v.video) {
+              return null;
+            }
+            return { t: v.video.currentTime, d: v.video.duration };
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
