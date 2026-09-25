@@ -268,6 +268,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**発話の聞き直し不可**~~ — **Session 81 で実装**: スクリーンリーダーの "say again"（NVDA Insert+T）準拠。`speak()` が `_lastSpoken` を記録（synthesis 不在でも動く発話ログ）→ voice `say-again`（'もう一度'/'もう一回'/'聞き直し'+EN）が再生、未発話時は「直前の発話がありません」。
 - ~~**現在地の告知なし**~~ — **Session 81 で実装**: `WebPanel.describeLocation()` — タイトル + reader 中は `readerProgressLabel` の行レンジ（'現在 N–M/全体 行目'、収まる時は '全文表示中'、空タブは '何も開いていません'）→ voice `where-am-i`（'どこ'/'どこにいる'/'現在地'+EN）。
 - ~~**タブ一覧の読み上げなし**~~ — **Session 81 で実装**: voice `tabs-list`（'タブ一覧'/'タブを読み上げ'/'タブはいくつ'+EN）→ 'N個のタブ。A、B（表示中）、C'（active に印、タイトル無しは URL→'タブN' フォールバック）。MAX_TABS=8 上限で発話長も頭打ち。
+- ~~**発話速度を調整できない**~~ — **Session 82 で実装**: NVDA の rate 制御準拠 — 盲目ユーザーは TTS を高速で回すが、没入中に設定パネルへ行けない。`_speechRate`（0.5–3.0、clamp）が全 utterance に効き、voice `speech-faster`/`speech-slower`（'速くして'/'遅くして'/'読み上げを速く'+EN）が ±0.25 ステップで '読み上げ速度 N倍' と告知。`speak({rate})` は個別上書き可。
+- ~~**読み上げを一時停止/再開できない**~~ — **Session 82 で実装**: `SpeechSynthesis.pause/resume` でキューを保持したまま中断 — stop-reading の cancel とは別物。voice `pause-reading`（'読み上げを一時停止'/'読み上げ中断'+EN）/`resume-reading`（'読み上げを再開'/'読み上げを続けて'+EN）。'一時停止'（video-toggle）・'読み上げ停止'（stop-reading）と衝突しない句を選定。
+- ~~**記事の目次が読めない**~~ — **Session 82 で実装**: VoiceOver ローター "headings" リスト / JAWS 見出しダイアログ準拠。`getReaderToc()` が `style==='h'|'title'` のテキストを文書順で返す → voice `toc`（'目次'/'見出し一覧'/'章立て'+EN）が 'N個の見出し。…' を発話、10件超は '、他N件' で頭打ち。
 
 ---
 
