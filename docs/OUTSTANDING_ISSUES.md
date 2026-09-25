@@ -328,6 +328,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ジャンプ前の場所に戻れない**~~ — **Session 99 で実装**: Vim `` `` `` マーク準拠。`scrollContentTo` がジャンプ前に `_scrollMark` へ現行位置を記録（全ジャンプ原子 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため自動カバー。`scrollContent` の増分スクロールは意図的にマークしない）→ `jumpBack()` が scrollContentTo(mark) でトグル → voice `jump-back`（'さっきの場所'/'元の位置へ'/'ジャンプバック' — '戻る' は go-back 所有のため非採用）→ '元の場所に戻りました'/'戻る場所がありません'。新記事ロードでマークはリセット。
 - ~~**検索ハイライトを消せない**~~ — **Session 99 で実装**: Chrome の Esc キー準拠。`clearFind()` が `_findMatches`/`_findIndex` を消去して `_markFindHits` でタグ除去 → voice `clear-find`（'検索を解除'/'ハイライトを消して'/'clear search'）→ 'ハイライトを消しました'/'検索をしていません'。
 - ~~**クリップボードの URL を開けない**~~ — **Session 99 で実装**: Chrome "Paste and go" 準拠。`onPasteGo` が `navigator.clipboard.readText` → `^https?://` 検査 → active タブで `navigate`（非 URL は 'URLがコピーされていません'、権限失敗は 'クリップボードにアクセスできません' と誠実告知）。async なので action 内 `.then` で speak — voice `paste-go`（'ペーストして開く'/'貼り付けて開く'/'paste and go'）。
+- ~~**クリップボードの中身を聞けない**~~ — **Session 100 で実装**: NVDA read-clipboard 準拠。`onReadClipboard` が `navigator.clipboard.readText` → 本文をそのまま発話（空は 'コピーされていません'、権限失敗は 'クリップボードにアクセスできません'）→ voice `read-clipboard`（'クリップボードを読み上げ'/'read clipboard'/'what's on the clipboard'）。paste-go と同じ async `.then` speak パターン。
+- ~~**プライベートタブだけ一括で閉じられない**~~ — **Session 100 で実装**: Chrome "Close incognito tabs" 準拠。`TabManager.closePrivateTabs()` が `isPrivate` のみ closeTab 経由で後ろから閉じる（ピン留め private は closeTab 拒否で他の一括系と同じく残存）→ voice `close-private-tabs`（'プライベートタブを閉じて'/'close private tabs' — 'incognito' は private-mode の `/incognito/i` 所有のため英句は private のみ）→ 'N個のプライベートタブを閉じました'/'プライベートタブがありません'。**実測捕捉**: clear-history は Session 56 で既存（'履歴を消去'）— 同名再登録は action を上書きするため重複実装は除去。
+- ~~**最初のタブに直接行けない**~~ — **Session 100 で実装**: last-tab（Ctrl+9）の対。voice `first-tab`（'最初のタブ'/'先頭のタブ'/'first tab'）→ `setActive(0)` → タイトル告知/'タブがありません'。
+- ~~**ブックマーク済みか聞けない**~~ — **Session 100 で実装**: privacy-status の保存リスト版。`active.isBookmarked(currentUrl)` → voice `bookmark-status`（'ブックマーク済みですか'/'is it bookmarked'）→ 'ブックマークされています'/'いません'/'ページを開いていません'。
 
 ---
 

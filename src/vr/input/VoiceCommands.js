@@ -65,6 +65,7 @@ export class VoiceCommands {
     this._onJumpBack = null;
     this._onClearFind = null;
     this._onPasteGo = null;
+    this._onReadClipboard = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -888,6 +889,8 @@ export class VoiceCommands {
    * @param {Function} [opts.onClearFind] () => boolean — dismiss find hits
    * @param {Function} [opts.onPasteGo] () => Promise<string> — clipboard
    *                                         URL → navigate; announce text
+   * @param {Function} [opts.onReadClipboard] () => Promise<string> — clipboard
+   *                                         text → announce (NVDA read-clipboard)
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -913,7 +916,7 @@ export class VoiceCommands {
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
-    onJumpBack, onClearFind, onPasteGo } = {}) {
+    onJumpBack, onClearFind, onPasteGo, onReadClipboard } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1045,6 +1048,9 @@ export class VoiceCommands {
     }
     if (onPasteGo) {
       this._onPasteGo = onPasteGo;
+    }
+    if (onReadClipboard) {
+      this._onReadClipboard = onReadClipboard;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2529,6 +2535,71 @@ export class VoiceCommands {
         return { action: 'paste-go' };
       },
       description: 'Navigate to the clipboard URL'
+    });
+
+    // Read the clipboard aloud — NVDA's read-clipboard atom. Same async
+    // announce pattern as paste-go; the hook resolves to the text to speak.
+    this.registerCommand('read-clipboard', {
+      patterns: ['クリップボードを読み上げ', 'クリップボードを読んで',
+        /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i],
+      action: () => {
+        const p = this._onReadClipboard
+          ? Promise.resolve(this._onReadClipboard())
+          : Promise.resolve(null);
+        p.then((msg) => this.speak(msg || 'コピーされていません'));
+        return { action: 'read-clipboard' };
+      },
+      description: 'Speak the clipboard contents'
+    });
+
+    // Chrome's "Close incognito tabs" — bulk-close only the private tabs.
+    // 'incognito' is deliberately absent from the English pattern: it
+    // belongs to private-mode's /incognito/i which is registered earlier.
+    this.registerCommand('close-private-tabs', {
+      patterns: ['プライベートタブを閉じて', 'プライベートタブをすべて閉じて',
+        'シークレットタブを閉じて', /close (all )?private tabs/i],
+      action: () => {
+        const n = tabManager?.closePrivateTabs?.() ?? 0;
+        this.speak(n ? `${n}個のプライベートタブを閉じました` : 'プライベートタブがありません');
+        return { action: 'close-private-tabs', closed: n };
+      },
+      description: 'Close every private tab'
+    });
+
+    // last-tab's pair — Ctrl+1..8 lands on a position, this lands on the
+    // strip's first slot directly (like Vim's g^).
+    this.registerCommand('first-tab', {
+      patterns: ['最初のタブ', '先頭のタブ', /first tab/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        if (!tabs.length) {
+          this.speak('タブがありません');
+          return { action: 'first-tab', index: -1 };
+        }
+        tabManager.setActive(0);
+        const p = tabs[0];
+        this.speak(p.currentTitle || p.currentUrl || 'タブ1');
+        return { action: 'first-tab', index: 0 };
+      },
+      description: 'Activate the first tab'
+    });
+
+    // Bookmarked-state query — privacy-status's pair for the saved list.
+    // Phrasings avoid 'ブックマーク' bare (toggle) and 'ブックマークを開いて'.
+    this.registerCommand('bookmark-status', {
+      patterns: ['ブックマーク済みですか', 'ブックマークされていますか',
+        'ブックマークされてますか', /is (this |it )?bookmarked/i],
+      action: () => {
+        const active = tabManager?.getActiveTab?.();
+        if (!active) {
+          this.speak('ページを開いていません');
+          return { action: 'bookmark-status', bookmarked: null };
+        }
+        const marked = !!(active.isBookmarked?.(active.currentUrl));
+        this.speak(marked ? 'ブックマークされています' : 'ブックマークされていません');
+        return { action: 'bookmark-status', bookmarked: marked };
+      },
+      description: 'Announce whether the active page is bookmarked'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

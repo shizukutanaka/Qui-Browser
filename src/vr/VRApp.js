@@ -3256,6 +3256,15 @@ export class VRApp {
             } catch {
               return 'クリップボードにアクセスできません';
             }
+          },
+          // NVDA read-clipboard — speak the clipboard text aloud.
+          onReadClipboard: async () => {
+            try {
+              const text = (await navigator.clipboard.readText()).trim();
+              return text || 'コピーされていません';
+            } catch {
+              return 'クリップボードにアクセスできません';
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
