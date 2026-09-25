@@ -49,6 +49,10 @@ export class VoiceCommands {
     this._onBookmarkSearch = null;
     this._onFindMatch = null;
     this._onRemainingTime = null;
+    this._onHeadingSelect = null;
+    this._onFindStatus = null;
+    this._onFindLast = null;
+    this._onReadLine = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -841,6 +845,15 @@ export class VoiceCommands {
    *                                         jump to the Nth find hit
    * @param {Function} [opts.onRemainingTime] () => number|null —
    *                                         minutes left in the article
+   * @param {Function} [opts.onHeadingSelect] (n: number) =>
+   *                                         {index:number,total:number}|'out'|null —
+   *                                         jump to the Nth heading
+   * @param {Function} [opts.onFindStatus] () => {index:number,total:number}|null —
+   *                                         current find position
+   * @param {Function} [opts.onFindLast] () => {index:number,total:number}|null —
+   *                                         jump to the last find hit
+   * @param {Function} [opts.onReadLine] () => string|null —
+   *                                         text of the line under the scroll
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -862,7 +875,8 @@ export class VoiceCommands {
     onBookmarkList, onHistoryList, onCopyTitle,
     onReadHere, onTopSiteOpen, onHistorySearch,
     onReaderScroll, onReaderProgress,
-    onBookmarkSearch, onFindMatch, onRemainingTime } = {}) {
+    onBookmarkSearch, onFindMatch, onRemainingTime,
+    onHeadingSelect, onFindStatus, onFindLast, onReadLine } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -946,6 +960,18 @@ export class VoiceCommands {
     }
     if (onRemainingTime) {
       this._onRemainingTime = onRemainingTime;
+    }
+    if (onHeadingSelect) {
+      this._onHeadingSelect = onHeadingSelect;
+    }
+    if (onFindStatus) {
+      this._onFindStatus = onFindStatus;
+    }
+    if (onFindLast) {
+      this._onFindLast = onFindLast;
+    }
+    if (onReadLine) {
+      this._onReadLine = onReadLine;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2190,6 +2216,74 @@ export class VoiceCommands {
         return { action: 'remaining-time', minutes: mins };
       },
       description: 'Announce remaining reading time'
+    });
+
+    // Jump to the Nth heading — nextHeading's indexed sibling
+    // (find-match-select parity).
+    this.registerCommand('heading-select', {
+      patterns: [/(\d+)\s*(?:番目?|件目?)\s*(?:の)?\s*見出し/, /見出し\s*(\d+)/,
+        /heading\s+(\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const res = this._onHeadingSelect ? this._onHeadingSelect(n) : null;
+        this.speak(res === 'out' ? `見出し${n}はありません`
+          : res === null ? '見出しがありません'
+            : `${res.index}番目の見出し（全${res.total}）`);
+        return { action: 'heading-select', index: n, res };
+      },
+      description: 'Jump to the Nth heading'
+    });
+
+    // Find position without moving — the status-query sibling of
+    // find-next (volume-status parity). 'find status' stays with
+    // find-in-page — searching for the word is a legitimate query.
+    this.registerCommand('find-status', {
+      patterns: ['何件目', 'ヒットは何件', '何件ヒット',
+        /how many (matches|hits)/i],
+      action: () => {
+        const res = this._onFindStatus ? this._onFindStatus() : null;
+        this.speak(res ? `${res.total}件中${res.index}件目`
+          : '検索をしていません');
+        return { action: 'find-status', res };
+      },
+      description: 'Announce the current find position'
+    });
+
+    // First / last find hit — find-match-select's tail siblings.
+    this.registerCommand('find-first', {
+      patterns: ['最初のヒット', '最初の結果', /first (match|hit|result)/i],
+      action: () => {
+        const res = this._onFindMatch ? this._onFindMatch(1) : null;
+        this.speak(res === 'out' || res === null ? '検索をしていません'
+          : '1件目に移動しました');
+        return { action: 'find-first', res };
+      },
+      description: 'Jump to the first find hit'
+    });
+
+    this.registerCommand('find-last', {
+      patterns: ['最後のヒット', '最後の結果', /last (match|hit|result)/i],
+      action: () => {
+        const res = this._onFindLast ? this._onFindLast() : null;
+        this.speak(res === null ? '検索をしていません'
+          : `${res.index}件目に移動しました`);
+        return { action: 'find-last', res };
+      },
+      description: 'Jump to the last find hit'
+    });
+
+    // Read the line under the scroll — VoiceOver "read current line"
+    // parity (say-again reads the caption, this reads the article).
+    this.registerCommand('read-line', {
+      patterns: ['この行を読んで', '今の行を読んで', '現在の行を読み上げ',
+        /read (the )?(current )?line/i],
+      action: () => {
+        const line = this._onReadLine ? this._onReadLine() : null;
+        this.speak(line || '記事を開いていません');
+        return { action: 'read-line', line };
+      },
+      description: 'Read the current reader line'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

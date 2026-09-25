@@ -865,6 +865,63 @@ export class WebPanel {
   }
 
   /**
+   * Jump to the last find hit — findMatchAt's tail sibling.
+   */
+  findLastMatch() {
+    return this.findMatchAt(this._findMatches.length);
+  }
+
+  /**
+   * Current find position without moving — the status-query sibling of
+   * findNextMatch. { index, total } (1-based), or null when no search is
+   * active (findInReader resets the list on every layout change).
+   */
+  findStatus() {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    return { index: this._findIndex + 1, total: this._findMatches.length };
+  }
+
+  /**
+   * Jump directly to the Nth heading — nextHeading's indexed sibling
+   * (findMatchAt parity). Returns { index, total }, 'out' when n exceeds
+   * the heading count, or null outside the reader / with no headings.
+   */
+  headingAt(n) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const heads = [];
+    this._readerLines.forEach((line, i) => {
+      if (line.style === 'h' || line.style === 'title') {
+        heads.push(i);
+      }
+    });
+    if (!heads.length) {
+      return null;
+    }
+    const total = heads.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this.scrollContentTo(heads[n - 1]);
+    return { index: n, total };
+  }
+
+  /**
+   * The line text under the reader scroll position — VoiceOver
+   * "read current line" parity. Null outside the reader.
+   */
+  currentLine() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const i = Math.min(this._readerScroll, this._readerLines.length - 1);
+    return this._readerLines[i].text;
+  }
+
+  /**
    * "Where am I" announce line: the page title plus the reader's current
    * line range when an article is showing. Screen-reader parity for the
    * orientation a sighted user gets free from the chrome bar.

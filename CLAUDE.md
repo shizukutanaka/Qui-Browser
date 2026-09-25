@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 96: 読書選択原子II — 見出し直選・検索位置・端点ヒット・現在行
+外部基準: nextHeading の索引版、volume-status の status-query 型、findMatchAt の端点版、VoiceOver "read current line"。
+- ✨ **heading-select**: `headingAt(n)` — nextHeading と同じ heads 走査の索引版（'out'/null で範囲外と見出し無しを区別）→ '3番目の見出し'/'heading 5'。
+- ✨ **find-status**: `findStatus()` — 動かさない検索位置確認（volume-status 型）→ '何件目'/'how many matches' → 'M件中N件目'。実測捕捉: 'find status' は find-in-page の /find (.+)/ が所有 — "status" は正当な検索語のため EN パターンを外して共存テスト化。
+- ✨ **find-first/find-last**: `findLastMatch()` + findMatchAt(1) → '最初のヒット'/'最後のヒット'/'last match'。
+- ✨ **read-line**: `currentLine()` — scroll 位置の行テキスト（VoiceOver read-current-line 準拠）→ 'この行を読んで'/'read the current line'。
+- ✅ **テスト +21（git stash で19件赤を確認 — 2件は '次の見出し'/'find status' の共存ガードで設計上緑）**: heading-select 5面+次見出しガード、find-status 3面+find-in-page 共存、first/last 4面、read-line 3面、WebPanel state テスト4面。Total 1936 tests (70 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 95: 検索・選択原子 — ブックマーク検索・ヒット番号直選・残り時間
 外部基準: history-search の保存リスト対称、findNextMatch の索引版、Edge/Safari の残り読了時間。
 - ✨ **bookmark-search**: `onBookmarkSearch` が `getBookmarks()` を title+url で part-match → 'ブックマークからXを検索'/'search bookmarks for X' → 'N件見つかりました。最初: X'/未一致は誠実告知。
