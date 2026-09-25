@@ -271,6 +271,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**発話速度を調整できない**~~ — **Session 82 で実装**: NVDA の rate 制御準拠 — 盲目ユーザーは TTS を高速で回すが、没入中に設定パネルへ行けない。`_speechRate`（0.5–3.0、clamp）が全 utterance に効き、voice `speech-faster`/`speech-slower`（'速くして'/'遅くして'/'読み上げを速く'+EN）が ±0.25 ステップで '読み上げ速度 N倍' と告知。`speak({rate})` は個別上書き可。
 - ~~**読み上げを一時停止/再開できない**~~ — **Session 82 で実装**: `SpeechSynthesis.pause/resume` でキューを保持したまま中断 — stop-reading の cancel とは別物。voice `pause-reading`（'読み上げを一時停止'/'読み上げ中断'+EN）/`resume-reading`（'読み上げを再開'/'読み上げを続けて'+EN）。'一時停止'（video-toggle）・'読み上げ停止'（stop-reading）と衝突しない句を選定。
 - ~~**記事の目次が読めない**~~ — **Session 82 で実装**: VoiceOver ローター "headings" リスト / JAWS 見出しダイアログ準拠。`getReaderToc()` が `style==='h'|'title'` のテキストを文書順で返す → voice `toc`（'目次'/'見出し一覧'/'章立て'+EN）が 'N個の見出し。…' を発話、10件超は '、他N件' で頭打ち。
+- ~~**設定パネルに音声で届かない**~~ — **Session 83 で実装**: 音声のみのユーザーは没入中に設定パネルへ行けないため、旗艦 a11y ノブを voice に開放。`onCaptionScale(±0.25)`/`onDwellTime(±250)` ホストフック（stepper と同じ clamp→apply→persist、境界で null → コマンドは「これ以上大きくできません」と誠実告知）→ voice `caption-size-up/down`（'キャプションを大きく/小さく'+EN）、`dwell-time-up/down`（'注視時間を長く/短く'+EN）。`_onVolume` と同じ後付け配線パターン。
+- ~~**音量の現在地を聞けない**~~ — **Session 83 で実装**: `onVolume(0)` は無変化で undefined を返すため、`onVolumeStatus` 専用ゲッターを追加 → voice `volume-status`（'音量は'/'今の音量'/EN）が '音量はN%です' と告知。
+- ~~**現在時刻を聞けない**~~ — **Session 83 で実装**: NVDA Insert+F12 準拠。voice `time`（'今何時'/'現在の時刻'/'時間を教えて'+EN）→ '現在時刻はH時MM分です'（ホストフック不要）。
 
 ---
 
