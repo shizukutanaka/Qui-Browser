@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 115: 問合せ双子原子 — read-line-n・ピン数・マイク状態・最新履歴・検索エンジンbare修正・JAエイリアス拡充
+外部基準: read-line の索引双子（NVDA read-line-at）、private-count の pinned 版、OS マイクインジケータの音声版（ヘッドセット内で見えない）、history-list の最新件双子。
+- ✨ **read-line-n**: 'N行目を読んで'/'read line 5' → `lineStatus` 範囲確認 → `scrollContentTo(n-1)`（ジャンプマーク記録）+ `currentLine` → 'N行目。テキスト'。**実測捕捉**: reader-goto-line の `/(\d+)\s*行目/` が句を所有 → hoisted 登録（`this._tabManager` 遅延バインド）。
+- 🐛 **'検索エンジンは' 誤答修正**: search-engine の `/検索エンジンを?(.+)/` が bare 問い合わせを所有して 'その検索エンジンは使えません' と誤答 → setter パターンを `を|に` 必須へ絞り、status へ '検索エンジンは' 追加 — 質問が状態変更へ誤ルートする嘘の解消。
+- ✨ **pin-count / mic-status / history-latest**: 'ピン留めは何個' → filter pinned、'マイクの状態'/'mic status' → `isListening` → 'マイクはオンです/オフです'、'最新の履歴' → `_onHistoryList()[0]` → '最新の履歴は「X」です'。
+- ✨ **JA エイリアス拡充**: scroll-top/bottom へ '一番上へ'/'一番下へ'/'ページの先頭へ'/'ページの最後へ'、prev-sentence へ '前の文を読んで' + /read (the )?prev…sentence/、duplicate-tab へ 'タブを複製して'、rate/pitch status へ '現在の読み上げ速度'/'現在のピッチ'。
+- ✅ **テスト +14（git stash で12件赤確認 — 誠実経路1件 + setter 共存1件は設計上緑）**: Total 2247 tests (89 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 114: 残量/一覧/名指し新規原子 — new-tab-with・リロードエイリアス・残行/残タブ・プライベート一覧・行文字数・現在声EN
 外部基準: Chrome "new tab with" 文脈操作・Firefox 'reload' 語彙、sentences-left/paragraphs-left の行/タブ版、private-count の読み上げ双子（tabs-list 準拠5件cap）、getCharCount の行版。
 - ✨ **new-tab-with**: 'Xで新しいタブ'/'new tab with X' → `tabManager.newTab()` + `onGoTo(term)`（URL/検索語は go-to 経路が解決）→ '「X」で新しいタブを開きました'。**実測捕捉の実害**: new-tab の `/new\s+tab/i` 前置一致が 'new tab with google' を所有して term を silently drop → new-tab より前に登録。タブ上限は 'これ以上開けません' でナビゲートしない誠実経路。
