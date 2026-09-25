@@ -62,6 +62,9 @@ export class VoiceCommands {
     this._onTabStatus = null;
     this._onPrivacyStatus = null;
     this._onPinStatus = null;
+    this._onJumpBack = null;
+    this._onClearFind = null;
+    this._onPasteGo = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -881,6 +884,10 @@ export class VoiceCommands {
    *                                         active tab private?
    * @param {Function} [opts.onPinStatus] () => boolean|null —
    *                                         active tab pinned?
+   * @param {Function} [opts.onJumpBack] () => boolean — Vim `` mark toggle
+   * @param {Function} [opts.onClearFind] () => boolean — dismiss find hits
+   * @param {Function} [opts.onPasteGo] () => Promise<string> — clipboard
+   *                                         URL → navigate; announce text
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -905,7 +912,8 @@ export class VoiceCommands {
     onBookmarkSearch, onFindMatch, onRemainingTime,
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
-    onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus } = {}) {
+    onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
+    onJumpBack, onClearFind, onPasteGo } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1028,6 +1036,15 @@ export class VoiceCommands {
     }
     if (onPinStatus) {
       this._onPinStatus = onPinStatus;
+    }
+    if (onJumpBack) {
+      this._onJumpBack = onJumpBack;
+    }
+    if (onClearFind) {
+      this._onClearFind = onClearFind;
+    }
+    if (onPasteGo) {
+      this._onPasteGo = onPasteGo;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2471,6 +2488,47 @@ export class VoiceCommands {
         return { action: 'pin-status', pinned };
       },
       description: 'Announce whether the active tab is pinned'
+    });
+
+    // Vim `` mark — return to the pre-jump scroll position. Phrasings
+    // avoid 戻る (go-back owns it) and 探して (find-in-page owns it).
+    this.registerCommand('jump-back', {
+      patterns: ['さっきの場所', '元の位置へ', 'ジャンプバック',
+        /jump\s+back/i, /previous (spot|position|line)/i],
+      action: () => {
+        const moved = this._onJumpBack ? this._onJumpBack() : false;
+        this.speak(moved ? '元の場所に戻りました' : '戻る場所がありません');
+        return { action: 'jump-back', moved };
+      },
+      description: 'Jump back to the pre-jump position'
+    });
+
+    // Chrome's Esc — dismiss the find bar's highlights.
+    this.registerCommand('clear-find', {
+      patterns: ['検索を解除', 'ハイライトを消して', 'ハイライトを消す',
+        '検索をクリア', /clear (the )?(search|find)/i, /clear highlights?/i],
+      action: () => {
+        const cleared = this._onClearFind ? this._onClearFind() : false;
+        this.speak(cleared ? 'ハイライトを消しました' : '検索をしていません');
+        return { action: 'clear-find', cleared };
+      },
+      description: 'Dismiss the find highlights'
+    });
+
+    // Chrome "Paste and go" — clipboard URL → navigate. The hook resolves
+    // asynchronously (clipboard.readText + permission), so the announce
+    // happens in the promise, keeping the action itself synchronous.
+    this.registerCommand('paste-go', {
+      patterns: ['ペーストして開く', '貼り付けて開く', 'ペーストして移動',
+        /paste and (go|open|navigate)/i],
+      action: () => {
+        const p = this._onPasteGo
+          ? Promise.resolve(this._onPasteGo())
+          : Promise.resolve(null);
+        p.then((msg) => this.speak(msg || 'URLがコピーされていません'));
+        return { action: 'paste-go' };
+      },
+      description: 'Navigate to the clipboard URL'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

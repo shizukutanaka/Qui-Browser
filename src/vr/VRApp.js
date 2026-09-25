@@ -3236,6 +3236,26 @@ export class VRApp {
           onPinStatus: () => {
             const active = this.tabManager?.getActiveTab?.();
             return active ? !!active.pinned : null;
+          },
+          // Vim `` mark — return to the pre-jump scroll position.
+          onJumpBack: () =>
+            this.tabManager?.getActiveTab?.()?.jumpBack?.() ?? false,
+          // Chrome's Esc — dismiss the find bar's highlights.
+          onClearFind: () =>
+            this.tabManager?.getActiveTab?.()?.clearFind?.() ?? false,
+          // Chrome "Paste and go" — navigate the active tab to a URL in the
+          // clipboard. Async: resolves to the announce string.
+          onPasteGo: async () => {
+            try {
+              const text = (await navigator.clipboard.readText()).trim();
+              if (/^https?:\/\//i.test(text)) {
+                this.tabManager?.getActiveTab?.()?.navigate?.(text);
+                return '貼り付けて開きました';
+              }
+              return 'URLがコピーされていません';
+            } catch {
+              return 'クリップボードにアクセスできません';
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

@@ -145,6 +145,7 @@ export class WebPanel {
     // and the cursor into them for findNextMatch/findPrevMatch.
     this._findMatches = [];
     this._findIndex = -1;
+    this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
     // Private tabs (incognito-window semantics): no history writes, excluded
@@ -415,6 +416,7 @@ export class WebPanel {
       }
       this._findMatches = [];
       this._findIndex = -1;
+      this._scrollMark = null;
       this._readerLines = lines;
       this._readerBlocks = blocks;
       this._readerTitle = title;
@@ -615,9 +617,37 @@ export class WebPanel {
     if (next === this._readerScroll) {
       return false;
     }
+    this._scrollMark = this._readerScroll;
     this._readerScroll = next;
     this._drawContent();
     return true;
+  }
+
+  /**
+   * Jump back to the position before the last jump — Vim's `` `` `` mark.
+   * scrollContentTo re-marks the current line before moving, so repeated
+   * calls toggle between the two spots. false when nothing was jumped
+   * (fresh article) or the mark lands where we already are.
+   */
+  jumpBack() {
+    if (this._contentState !== 'reader' || !Number.isFinite(this._scrollMark)) {
+      return false;
+    }
+    return this.scrollContentTo(this._scrollMark);
+  }
+
+  /**
+   * Clear the find matches and their highlight tags — Chrome's Esc key
+   * dismisses the find bar. Returns true when a search was active.
+   */
+  clearFind() {
+    const had = this._findMatches.length > 0;
+    this._findMatches = [];
+    this._findIndex = -1;
+    if (had) {
+      this._markFindHits();
+    }
+    return had;
   }
 
   /** Jump to the first line of the article. */

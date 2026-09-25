@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 99: マーク原子 — Vim `` ジャンプバック・Chrome Esc/ペーストで開く
+外部基準: Vim の `` `` `` マーク（直前ジャンプ位置との往復）、Chrome の Esc（検索バー閉じる）、"Paste and go"（アドレスバー右クリック）。
+- ✨ **jump-back**: `scrollContentTo` がジャンプ前に `_scrollMark` へ現行位置を記録 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため全ジャンプを自動カバー。`scrollContent` の増分スクロールは意図的にマークしない。`jumpBack()` が `scrollContentTo(mark)` で往復トグル（新記事ロードでリセット）→ voice 'さっきの場所'/'元の位置へ'/'ジャンプバック'/'jump back'/'previous position' → '元の場所に戻りました'/'戻る場所がありません'。**衝突回避**: '戻る' は go-back 所有のため句に '戻' を含めない — 共存テストで既存ルートを保護。
+- ✨ **clear-find**: `clearFind()` が `_findMatches`/`_findIndex` を消去して `_markFindHits` でタグ除去（返値で有無を報告）→ voice '検索を解除'/'ハイライトを消して'/'clear search'/'clear highlights' → 'ハイライトを消しました'/'検索をしていません'。
+- ✨ **paste-go**: `onPasteGo` が `navigator.clipboard.readText` → `^https?://` 検査 → active タブで `navigate`。async ゆえ action 内 `.then` で speak（同期戻りは `{action:'paste-go'}` のみ）→ 非 URL は 'URLがコピーされていません'、権限失敗は 'クリップボードにアクセスできません' と誠実告知。
+- ✅ **テスト +15（git stash で13件赤を確認 — 2件は設計上緑: '戻る'→go-back 共存ガード、増分スクロール不マーク）**: jump-back 4面（トグル・無マーク・非リーダー・共存）、clear-find 3面、paste-go 4面（URL・EN・非URL・未配線）、WebPanel 4面（マーク往復・増分非マーク・クリア報告）。Total 1988 tests (73 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 98: ステータス原子 — 段落読み上げ・行番号・タブ位置・状態問い合わせ
 外部基準: NVDA "read current paragraph"、findStatus の行版/ストリップ版、状態問い合わせ句の誠実応答。
 - ✨ **read-paragraph**: `getParagraphNarration()` が scroll 下の block を `narrationChunks` へ（title 領域=空 → readAloud 担当）→ 'この段落を読み上げ'/'read the current paragraph'。
