@@ -3191,7 +3191,18 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.findMatchAt?.(n) ?? null,
           // Estimated minutes left in the article.
           onRemainingTime: () =>
-            this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null
+            this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null,
+          // Jump to the Nth heading — nextHeading's indexed sibling.
+          onHeadingSelect: (n) =>
+            this.tabManager?.getActiveTab?.()?.headingAt?.(n) ?? null,
+          // Find position / last hit — findNextMatch's status & tail siblings.
+          onFindStatus: () =>
+            this.tabManager?.getActiveTab?.()?.findStatus?.() ?? null,
+          onFindLast: () =>
+            this.tabManager?.getActiveTab?.()?.findLastMatch?.() ?? null,
+          // Read the line under the reader scroll (VoiceOver parity).
+          onReadLine: () =>
+            this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

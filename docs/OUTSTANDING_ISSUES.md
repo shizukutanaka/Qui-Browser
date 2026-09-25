@@ -313,6 +313,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ブックマークを検索できない**~~ — **Session 95 で実装**: history-search の保存リスト版。`onBookmarkSearch` が title+url を part-match → voice `bookmark-search`（'ブックマークからXを検索'/'search bookmarks for X'）→ 'N件見つかりました。最初: X'/未一致は誠実告知。
 - ~~**N番目の検索ヒットに直接飛べない**~~ — **Session 95 で実装**: findNextMatch の索引版。`findMatchAt(n)` が {index,total}|'out'|null を返し `_markFindHits`+scroll → voice `find-match-select`（'3番目のヒット'/'match 4'）→ 'N件目に移動しました'/'ヒットNはありません'/'検索をしていません'。
 - ~~**残り読了時間が聞けない**~~ — **Session 95 で実装**: `getRemainingMinutes()` が総読了時間×未読分（readerProgress の合成）→ voice `remaining-time`（'あと何分'/'how much longer'）→ '残り約N分です'/'記事を開いていません'。
+- ~~**N番目の見出しに直接飛べない**~~ — **Session 96 で実装**: nextHeading の索引版。`headingAt(n)` が {index,total}|'out'|null → voice `heading-select`（'3番目の見出し'/'見出し2'/'heading 5'）→ 'N番目の見出し（全M）'/'見出しNはありません'/'見出しがありません'。
+- ~~**検索位置を動かさず確認できない**~~ — **Session 96 で実装**: volume-status 準拠の status-query。`findStatus()` が {index,total}|null → voice `find-status`（'何件目'/'ヒットは何件'/'how many matches'）→ 'M件中N件目'/'検索をしていません'。'find status' は find-in-page の正当な語として残置（テストで衝突を実測）。
+- ~~**最初/最後のヒットに飛べない**~~ — **Session 96 で実装**: find-match-select の端点版。`findLastMatch()` → voice `find-first`/'最初のヒット'・`find-last`/'最後のヒット'/'last match' → 'N件目に移動しました'/'検索をしていません'。
+- ~~**現在の行を読み上げられない**~~ — **Session 96 で実装**: VoiceOver "read current line" 準拠。`currentLine()` が scroll 位置の行テキスト → voice `read-line`（'この行を読んで'/'read the current line'）→ 本文 or '記事を開いていません'。
 
 ---
 
