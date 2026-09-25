@@ -1158,6 +1158,29 @@ export class WebPanel {
   }
 
   /**
+   * The heading covering the current scroll position — last heading start
+   * at-or-before `_readerScroll`, spoken as 'this heading is X (N of M)'.
+   * headingAt's positional sibling that does not move. Null outside the
+   * reader or when no headings exist.
+   */
+  headingHere() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const heads = this._headingStarts();
+    if (!heads.length) {
+      return null;
+    }
+    let at = 0;
+    for (let i = 0; i < heads.length; i++) {
+      if (heads[i] <= this._readerScroll) {
+        at = i;
+      }
+    }
+    return { index: at + 1, total: heads.length, text: this._readerLines[heads[at]].text };
+  }
+
+  /**
    * Start line of each contiguous block run — the paragraph layer between
    * lines and headings (R19's layoutReaderLines stamps `block` per line).
    */
@@ -1254,6 +1277,23 @@ export class WebPanel {
     }
     return this._readerLines.reduce(
       (n, l) => n + (l.text ? l.text.length : 0), 0);
+  }
+
+  /**
+   * One-line structural summary of the article — VoiceOver rotor summary
+   * parity ('describe page'): { title, headings, paragraphs, chars } or
+   * null outside the reader.
+   */
+  getArticleSummary() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    return {
+      title: this._readerTitle || '',
+      headings: this._headingStarts().length,
+      paragraphs: this._paragraphStarts().length,
+      chars: this.getCharCount() || 0
+    };
   }
 
   /**

@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 108: サマリ/音声設定原子 — VoiceOver ローター・現在見出し・感度/ウェイクワード
+外部基準: VoiceOver ローターサマリ（'describe page' — 構造の概数告知）、NVDA read-current-heading、reading-progress の文版、voice 層自身の設定面（感度・ウェイクワード — host フック不要のセルフコンテインド双子）。
+- ✨ **article-summary**: `getArticleSummary()` → {title,headings,paragraphs,chars} → 'この記事について'/'記事の概要'/'describe page'/'page info' → 'タイトル「X」。見出しN個、段落M個、C文字です'/'記事を開いていません'。
+- ✨ **heading-here**: `headingHere()`（`_headingStarts` の scroll 以下最終スタート → {index,total,text} — headingAt の報告版で動かない）→ 'この見出し'/'現在の見出し'/'current heading' → 'N番目の見出し（全M）。X'/'見出しがありません'/'記事を開いていません'。
+- ✨ **sentences-left**: `sentence-status` 面（{index,total}）を再利用して不一致不可 → 'あと何文'/'残りの文は'/'sentences left' → 'あとN文です'/'最後の文です'/'記事を開いていません'。
+- ✨ **sensitivity 双子**: `settings.sensitivity`（handleRecognitionResult の confidence 閾値 — ±0.1 clamp 0–1）→ '感度を上げて|下げて'/'sensitivity up|down' → '認識感度はNです'/'これ以上…できません'。
+- ✨ **wake-word-toggle**: `settings.requireWakeWord`/`isAwake` → 'ウェイクワードをオン|オフ'/'wake word on|off' → オフで即 wake、オンで再 sleep → 'ウェイクワードをオン|オフにしました'。
+- ✅ **テスト +13（git stash で13件全て赤確認）**: headingHere の scroll 位置網羅・見出し無し/outside-reader 分岐、getArticleSummary の構造カウント、voice 9件（summary/heading/sentences-left/sensitivity/wake-word の発話・境界・誠実経路）。Total 2140 tests (82 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 107: 文字/語/ステータス原子 — NVDA ←/→・numpad-5・設定値問い合わせ
 外部基準: NVDA/JAWS ←/→ の単文字レビュー（未就学単語の判定・かな確認の最細粒度）、NVDA numpad-5（1回=語読み、2回=スペル）、status-query 双子（各 set コマンドの 'how is X set' 対）。
 - ✨ **next-char/prev-char**: `_charsOf` が `Intl.Segmenter` grapheme クラスタ走査（結合文字・ZWJ絵文字も1単位として誠実 — コードポイントでなく表示文字）→ `_charCaret` {line,idx} で行境界を跨ぎ全グラフェム巡回（空白も報告 — NVDA の挙動どおり）。voice '次の文字'/'前の文字'/'next|previous character' → 文字発話/'これ以上進めません|戻れません'。`_onCharStep` 遅延バインド（constructor 登録のため tabManager 不在 → late-bound hook 定番パターン）。

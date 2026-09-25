@@ -3242,6 +3242,12 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.currentWord?.() ?? null,
           onSpellWord: () =>
             this.tabManager?.getActiveTab?.()?.spellWord?.() ?? null,
+          // Heading under the scroll + article structure — status-query
+          // siblings that report without moving.
+          onHeadingHere: () =>
+            this.tabManager?.getActiveTab?.()?.headingHere?.() ?? null,
+          onArticleSummary: () =>
+            this.tabManager?.getActiveTab?.()?.getArticleSummary?.() ?? null,
           // Line position without moving — lineStatus parity.
           onLineStatus: () =>
             this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,

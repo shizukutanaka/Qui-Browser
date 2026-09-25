@@ -81,6 +81,8 @@ export class VoiceCommands {
     this._onCharStep = null;
     this._onWord = null;
     this._onSpellWord = null;
+    this._onHeadingHere = null;
+    this._onArticleSummary = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -1011,6 +1013,10 @@ export class VoiceCommands {
    *                                         NVDA Left/Right char caret
    * @param {Function} [opts.onWord] () => {word,line}|null — word at caret
    * @param {Function} [opts.onSpellWord] () => {spelled,word}|null
+   * @param {Function} [opts.onHeadingHere] () => {index,total,text}|null —
+   *                                         heading covering the scroll
+   * @param {Function} [opts.onArticleSummary] () =>
+   *                                         {title,headings,paragraphs,chars}|null
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -1039,7 +1045,8 @@ export class VoiceCommands {
     onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
-    onSearchEngineStatus, onCharStep, onWord, onSpellWord } = {}) {
+    onSearchEngineStatus, onCharStep, onWord, onSpellWord,
+    onHeadingHere, onArticleSummary } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1219,6 +1226,12 @@ export class VoiceCommands {
     }
     if (onSpellWord) {
       this._onSpellWord = onSpellWord;
+    }
+    if (onHeadingHere) {
+      this._onHeadingHere = onHeadingHere;
+    }
+    if (onArticleSummary) {
+      this._onArticleSummary = onArticleSummary;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2877,6 +2890,101 @@ export class VoiceCommands {
       'Announce caption hold time');
     stepperStatusCmd('caption-height-status', 'captionHeight', 'キャプション高さ', 'メートル',
       ['キャプション高さは', /caption height/i], 'Announce caption height');
+
+    // Article structural summary — VoiceOver rotor summary parity
+    // ('describe page'): title + heading/paragraph/char counts in one line.
+    this.registerCommand('article-summary', {
+      patterns: ['この記事について', '記事の概要', '記事の情報',
+        /describe (the )?(page|article)/i, /page info|article info/i],
+      action: () => {
+        const s = this._onArticleSummary ? this._onArticleSummary() : null;
+        if (!s) {
+          this.speak('記事を開いていません');
+        } else {
+          const title = s.title ? `タイトル「${s.title}」。` : '';
+          this.speak(`${title}見出し${s.headings}個、段落${s.paragraphs}個、` +
+            `${s.chars}文字です`);
+        }
+        return { action: 'article-summary', summary: s };
+      },
+      description: 'Describe the article structure'
+    });
+
+    // Read the heading covering the scroll — headingAt's positional sibling
+    // that reports instead of moving (NVDA 'read current heading' parity).
+    this.registerCommand('heading-here', {
+      patterns: ['この見出し', '現在の見出し', /current heading/i],
+      action: () => {
+        const h = this._onHeadingHere ? this._onHeadingHere() : null;
+        if (h === undefined || h === null) {
+          this.speak('記事を開いていません');
+        } else if (!h.text) {
+          this.speak('見出しがありません');
+        } else {
+          this.speak(`${h.index}番目の見出し（全${h.total}）。${h.text}`);
+        }
+        return { action: 'heading-here', heading: h };
+      },
+      description: 'Announce the heading at the current position'
+    });
+
+    // Remaining sentence count — reading-progress's sentence twin. Reuses the
+    // sentence-status surface ({index,total}) so it cannot disagree.
+    this.registerCommand('sentences-left', {
+      patterns: ['あと何文', '残り何文', '残りの文は', /sentences left/i],
+      action: () => {
+        const s = this._onSentenceStatus ? this._onSentenceStatus() : null;
+        if (!s) {
+          this.speak('記事を開いていません');
+        } else if (s.index >= s.total) {
+          this.speak('最後の文です');
+        } else {
+          this.speak(`あと${s.total - s.index}文です`);
+        }
+        return { action: 'sentences-left', left: s ? s.total - s.index : null };
+      },
+      description: 'Announce the remaining sentence count'
+    });
+
+    // Recognition sensitivity — lives on the voice layer itself (the
+    // confidence threshold in handleRecognitionResult), so it needs no host
+    // hook. ±0.1 steps inside 0–1; honest at the ends.
+    const sensStep = (dir, label) => {
+      const next = Math.min(1, Math.max(0, this.settings.sensitivity + dir * 0.1));
+      const rounded = Math.round(next * 10) / 10;
+      if (rounded === this.settings.sensitivity) {
+        this.speak(`これ以上${label}できません`);
+        return null;
+      }
+      this.settings.sensitivity = rounded;
+      this.speak(`認識感度は${rounded}です`);
+      return rounded;
+    };
+    this.registerCommand('sensitivity-up', {
+      patterns: ['感度を上げて', '感度を高く', /sensitivity up|raise sensitivity|increase sensitivity/i],
+      action: () => ({ action: 'sensitivity-up', value: sensStep(1, '上げ') }),
+      description: 'Raise recognition sensitivity'
+    });
+    this.registerCommand('sensitivity-down', {
+      patterns: ['感度を下げて', '感度を低く', /sensitivity down|lower sensitivity|decrease sensitivity/i],
+      action: () => ({ action: 'sensitivity-down', value: sensStep(-1, '下げ') }),
+      description: 'Lower recognition sensitivity'
+    });
+
+    // Wake-word requirement — the voice layer's own flag (like sensitivity);
+    // toggling off always wakes, toggling on re-sleeps so the user must say
+    // the wake word next.
+    this.registerCommand('wake-word-toggle', {
+      patterns: [/ウェイクワードを(オン|オフ)/, /wake word (on|off)/i],
+      action: (transcript) => {
+        const want = /オン|on/i.test(transcript);
+        this.settings.requireWakeWord = want;
+        this.isAwake = !want;
+        this.speak(`ウェイクワードを${want ? 'オン' : 'オフ'}にしました`);
+        return { action: 'wake-word-toggle', requireWakeWord: want };
+      },
+      description: 'Toggle the wake-word requirement'
+    });
 
     // Line position without moving — find-status's line sibling.
     this.registerCommand('line-status', {
