@@ -285,6 +285,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**記事の読了時間がわからない**~~ — **Session 86 で実装**: Edge/Safari "reading time" 準拠。`getReadingTimeMinutes()` — 日本語黙読速度 ~500字/分で推定（短い記事は1分下限）→ voice `reading-time`（'読了時間'/'この記事の長さ'/'どのくらいで読める'+EN）→ 'この記事は約N分です'、非リーダー時は「記事が開かれていません」。
 - ~~**検索エンジンを音声で切り替えられない**~~ — **Session 86 で実装**: `SEARCH_ENGINES` をモジュール定数に昇格、`onSearchEngine(name)` フックがサイクルボタンと同じ `updateSetting`→`setSearchEngine` パス → voice `search-engine`（'検索エンジンをGoogleに'/'use bing'、JA カナ別名対応）→ '検索エンジンをXにしました'、未対応名は「その検索エンジンは使えません」。
 - ~~**セッションを音声で復元できない**~~ — **Session 86 で実装**: `restoreSession` が復元数を返すようになり、`onRestoreSession` フック経由で voice `restore-session`（'セッションを復元'/'前のセッションを復元'/EN）→ 'N個のタブを復元しました'/'復元するセッションがありません'。
+- ~~**設定トグル（キャプション等）が音声で切り替えられない**~~ — **Session 87 で実装**: 設定パネル行の apply を `_applyToggle(key,v)` スイッチに抽出し、settings トグルと voice `onSettingToggle` フックが完全同一パスを走る。bare はトグル、明示 オン/オフ/enable/disable は値指定 → voice `captions-toggle`（'キャプションをオン'/'字幕を消して'+EN）、`haptics-toggle`（'ハプティックをオン'/'振動をオフ'）、`gaze-toggle`（'注視選択をオン'/'enable gaze'）、`curved-toggle`（'カーブパネルをオン'/'湾曲パネルをオフ'）、`follow-toggle`（'ウィンドウ追従をオン'/'window follow off'）、`snapturn-toggle`（'スナップターンをオン'）→ 'X オン/オフです'/'切り替えられません'。
+- ~~**コンフォートプリセットが音声で切り替えられない**~~ — **Session 87 で実装**: サイクルボタンの音声面。bare 'コンフォート' は次プリセットへサイクル（COMFORT_PRESETS をモジュール定数に昇格し panel cycle と hook で共有）、'コンフォートを敏感に'/'comfort preset to tolerant' は直接指定（JA 別名 敏感→sensitive/標準→moderate/寛容→tolerant/オフ→disabled）→ 'コンフォート Xです'/'そのコンフォート設定は使えません'。
+- ~~**パネル距離が音声で変えられない**~~ — **Session 87 で実装**: 弱視ユーザーが没入のまま読み面を引き寄せられる windowDistance stepper の音声面。`onPanelDistance(±0.2)` が stepper と同じ clamp(0.6–6.0)→`updateSetting`→`windowManager.setDistance` → voice `panel-distance`（'パネルを近づけて'/'パネルを遠く'/'panel closer'）→ 'パネル距離 N m'、境界では「パネルはこれ以上移動できません」。
 
 ---
 

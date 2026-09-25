@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 87: 設定トグルの音声面 — キャプション/ハプティック/注視選択/湾曲/追従/スナップターン・コンフォート・パネル距離
+外部基準: iOS Voice Control の「<スイッチ名> をオン/オフ」汎用トグルモデル（設定トグル1個ずつ専用コマンドを書くのではなく1フックに集約）、Windows "Voice access" の settings 面到達（没入中にパネルへ寄らずフラグを反転）、弱視ユーザーの「読み面を引き寄せる」操作のハンズフリー化。
+- ✨ **`_applyToggle(key,v)`**: 設定パネル6行 + コンフォートサイクルの inline apply を共通スイッチに抽出 — settings トグルと voice フックが完全同一パスを走る（_applyHighContrast と同型の前例）。locomotion-read 設定（enableSnapTurn/enableTeleport/enableComfort）はパネル同様「読む側が使い時に参照」で live apply 無しを default ケースで正直に扱う。
+- ✨ **onSettingToggle(key,value?)**: 汎用フック1個で bool フラグ9種（captions/haptics/gaze/curved/follow/snapTurn/teleport/comfort/FFR）と motionSensitivity を統一 — bare はトグル/次プリセットサイクル、明示値は直接指定、未知名・未知プリセットは null。`COMFORT_PRESETS` をモジュール定数に昇格し panel cycle と共有。
+- ✨ **voice 6トグルコマンド**: `captions-toggle`（'キャプションをオン'/'字幕を消して'+EN）、`haptics-toggle`（'ハプティックをオン'/'振動をオフ'）、`gaze-toggle`（'注視選択をオン'/'enable gaze'）、`curved-toggle`（'カーブパネルをオン'/'湾曲パネルをオフ'）、`follow-toggle`（'ウィンドウ追従をオン'/'window follow off'）、`snapturn-toggle` — 共通 `onOff()` パーサが明示 オン/オフ/enable/disable/つけて/消して/無効 を拾い、告知は 'X オン/オフです'/'切り替えられません'。句は go-to の 'を開く'/'に行く' を避けて設計。
+- ✨ **comfort-preset**: bare 'コンフォート' でサイクル、'コンフォートを敏感に'/'コンフォートをオフにして'/'comfort preset to tolerant' で直接指定（JA 別名対応）→ 'コンフォート Xです'。
+- ✨ **panel-distance**: `onPanelDistance(±0.2)` が windowDistance stepper と同じ clamp(0.6–6.0)→`updateSetting`→`setDistance` → voice `panel-distance`（'パネルを近づけて'/'パネルを遠く'/'panel closer'）→ 'パネル距離 N m'、境界は「これ以上移動できません」。
+- 🔧 実装中に2件修正: eslint SwitchCase 規約（case は switch と同段）違反のインデント、onSettingToggle のサイクル行が max-len 超過 → 変数抽出。
+- ✅ **テスト +23（git stash で22件赤を確認してから緑へ）**: 6トグルの明示値・JA 別名・EN・null/フック無し告知、コンフォートのサイクル・直接指定・'オフ'→disabled・EN・null 告知、パネル距離の ±0.2・EN・境界告知、'キャプションを大きく' が caption-size に残る衝突ガード（既存コマンドのため stash 下でも緑の設計上の仕様）。Total 1780 tests (61 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 86: シェル制御原子 — プライベートタブ・高コントラスト・読了時間・検索エンジン・セッション復元
 外部基準: Chrome Ctrl+Shift+N（シークレットウィンドウ — モードトグルではなく1枚だけ開く）、Windows/macOS の高コントラスト OS 切替（音声のみのユーザーは設定トグルに届かない）、Edge/Safari "reading time"（記事の読了時間推定）、Wolvic 1.9 のセッション復元のオンデマンド版。
 - ✨ **newPrivateTab**: `newTab(url,{privateMode})` — 既存の `privateMode: this._privateMode` をオプション化、`_privateMode` トグルは不変で1枚だけ private（isPrivate がパネルに付くので履歴・closed-stack 除外は自動継承、MAX_TABS では null）。voice `private-new-tab` は private-mode の `/incognito/` より**前に登録**（'new incognito tab' は新タブ要求、bare 'incognito' はモードトグル — specific beats generic）。
