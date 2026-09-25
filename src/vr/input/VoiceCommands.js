@@ -25,6 +25,7 @@ export class VoiceCommands {
     this._onCaptionScale = null;
     this._onDwellTime = null;
     this._onVolumeStatus = null;
+    this._onReaderScale = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -468,6 +469,46 @@ export class VoiceCommands {
       description: 'Decrease gaze-dwell activation time'
     });
 
+    // Article text size — the readerTextScale stepper's voice surface
+    // (WCAG 1.4.4): voice-only users can resize the article without
+    // leaving immersion for the settings panel.
+    this.registerCommand('reader-size-up', {
+      patterns: ['記事の文字を大きく', '記事を大きく', 'リーダーの文字を大きく', '記事の文字を大きくして',
+        /larger (article|reader) text/i, /bigger (article|reader) text/i,
+        /increase (article|reader) text size/i],
+      action: () => {
+        const v = this._onReaderScale ? this._onReaderScale(0.25) : null;
+        this.speak(v === null ? '記事の文字はこれ以上大きくできません' : `記事の文字サイズ ${v.toFixed(2)}倍`);
+        return { action: 'reader-size-up', scale: v };
+      },
+      description: 'Increase reader article text size'
+    });
+
+    this.registerCommand('reader-size-down', {
+      patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
+        /smaller (article|reader) text/i, /decrease (article|reader) text size/i],
+      action: () => {
+        const v = this._onReaderScale ? this._onReaderScale(-0.25) : null;
+        this.speak(v === null ? '記事の文字はこれ以上小さくできません' : `記事の文字サイズ ${v.toFixed(2)}倍`);
+        return { action: 'reader-size-down', scale: v };
+      },
+      description: 'Decrease reader article text size'
+    });
+
+    // Explicit speech rate — the numeric complement of faster/slower
+    // (NVDA rate step vs. value setting): '読み上げ速度2倍' lands the
+    // rate directly instead of repeating ±0.25 steps.
+    this.registerCommand('speech-rate-set', {
+      patterns: [/読み上げ速度([0-9.]+)倍/, /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/[0-9.]+/);
+        const rate = m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
+        this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
+        return { action: 'speech-rate-set', rate };
+      },
+      description: 'Set speech rate to a numeric multiplier'
+    });
+
     // Current time — the NVDA Insert+F12 atom. Announce hour/minute
     // naturally ('15時04分'); no host hook needed.
     this.registerCommand('time', {
@@ -603,6 +644,9 @@ export class VoiceCommands {
    * @param {Function} [opts.onDwellTime]  (deltaMs: number) => number|null — step the
    *                                         gaze-dwell stepper (500–3000 ms); null = at limit
    * @param {Function} [opts.onVolumeStatus] () => number|null — current master volume %
+   * @param {Function} [opts.onReaderScale] (delta: number) => number|null — step the
+   *                                         reader-text-size stepper (0.5–2.0x);
+   *                                         null = at limit
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -618,7 +662,7 @@ export class VoiceCommands {
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
-    onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus } = {}) {
+    onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -630,6 +674,9 @@ export class VoiceCommands {
     }
     if (onVolumeStatus) {
       this._onVolumeStatus = onVolumeStatus;
+    }
+    if (onReaderScale) {
+      this._onReaderScale = onReaderScale;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is

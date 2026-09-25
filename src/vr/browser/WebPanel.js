@@ -413,6 +413,8 @@ export class WebPanel {
         this._setContentState('unavailable');
         return;
       }
+      this._findMatches = [];
+      this._findIndex = -1;
       this._readerLines = lines;
       this._readerBlocks = blocks;
       this._readerTitle = title;
@@ -482,6 +484,12 @@ export class WebPanel {
     let y = CONTENT_PAD + lh;
     for (const line of window) {
       if (line.style !== 'blank' && line.text) {
+        // Find-in-page hits paint a box behind the text — Chrome's Ctrl+F
+        // distinction: orange for the current match, yellow for the rest.
+        if (line._findHit) {
+          ctx.fillStyle = line._findHit === 'current' ? col.findCurrent : col.findHit;
+          ctx.fillRect(CONTENT_PAD - 4, y - lh * 0.85, w - 2 * CONTENT_PAD + 8, lh);
+        }
         ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
         ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
@@ -688,9 +696,27 @@ export class WebPanel {
     });
     if (this._findMatches.length) {
       this._findIndex = 0;
+      this._markFindHits();
       this.scrollContentTo(this._findMatches[0]);
     }
     return this._findMatches.length;
+  }
+
+  /**
+   * Tag the hit lines for the draw pass: the current match gets 'current',
+   * the rest 'other' (Chrome's orange/yellow split). The tags live on the
+   * laid-out line objects, so a re-layout (new fetch, scale change) starts
+   * clean without extra bookkeeping.
+   */
+  _markFindHits() {
+    this._readerLines.forEach((l) => {
+      delete l._findHit;
+    });
+    this._findMatches.forEach((lineIdx, matchIdx) => {
+      this._readerLines[lineIdx]._findHit =
+        matchIdx === this._findIndex ? 'current' : 'other';
+    });
+    this._drawContent();
   }
 
   /**
@@ -704,6 +730,7 @@ export class WebPanel {
     }
     const n = this._findMatches.length;
     this._findIndex = ((this._findIndex + direction) % n + n) % n;
+    this._markFindHits();
     this.scrollContentTo(this._findMatches[this._findIndex]);
     return { index: this._findIndex + 1, total: n };
   }

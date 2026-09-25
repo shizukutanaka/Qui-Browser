@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 85: リーダー面の残原子 — 検索ハイライト・記事文字サイズ(音声)・速度数値指定
+外部基準: Chrome Ctrl+F のヒット描画（現在=橙・他=黄）、WCAG 1.4.4（文字を拡大できること — 音声のみのユーザーは stepper に届かない）、NVDA の rate 値設定（±ステップと別物の直接指定）。
+- ✨ **find ハイライト**: `_markFindHits` が `findInReader`/`findNextMatch` の後にマッチ行オブジェクトへ `_findHit = 'current'|'other'` をタグ付け（タグは laid-out 行上に持つため、新規 fetch・setReaderScale の再レイアウトで自然に消える — 別帳簿いらず）。`_drawReader` が行背景に `col.findCurrent`（橙）/`col.findHit`（黄）を描画、新パレット項目を chromeColors の両バリアントに追加。マーク時に `_drawContent()` を明示呼出し（スクロール不変でも確実に再描画）。
+- ✨ **reader-size by voice**: `onReaderScale(±0.25)` ホストフック — `readerTextScale` stepper と同じ clamp(0.5–2.0)→`updateSetting`→`tabManager.setReaderScale` で開いた記事がライブ再レイアウト。voice `reader-size-up/down`（'記事の文字を大きく/小さく'/'リーダーの文字を大きく'+EN）→ '記事の文字サイズ N倍'、境界・フック無しでは「これ以上大きくできません」と誠実告知。'キャプションを大きく' とのルーティング分離をテスト固定。
+- ✨ **speech-rate-set**: voice `speech-rate-set`（'読み上げ速度N倍' 正規表現キャプチャ/EN 'speech rate to N'）→ `setSpeechRate`（0.5–3.0 clamp）→ '読み上げ速度 N倍'。faster/slower より先に登録して優先。'読み上げを速く' が相対ステップのまま残ることもテスト固定。
+- ✅ **テスト +16（git stash で14件赤を確認してから緑へ）**: ヒットタグの current/other・findNext/Prev の追従・新検索での旧タグ消去・スクロール不変でも再描画、reader-size の ±0.25・上下限・フック無し・EN・caption 衝突ガード、rate-set の直接指定・上下限 clamp・EN・'速くして' 相対維持（後者2件は既存コマンドのため stash 下でも緑の設計上の仕様）。Total 1731 tests (59 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 84: タブストリップ原子その3 — ピン留め・タブ移動・ブックマークオープン
 外部基準: Chrome "Pin tab"（ピン済みは左端に集約・✕ ボタン無し・close 経路全拒否・Ctrl+W も不可）、Chrome Ctrl+Shift+PageUp/PageDown（タブ並べ替え、ピン/非ピン領域は分離）、履歴オープンとの対称（open≠toggle）。
 - ✨ **pinTab/unpinTab/togglePin**: `pinTab` はピン済みクラスタ末尾へスライド（2枚目以降が先頭を奪わない = Chrome の挙動）、`activeIndex` を追従。`closeTab` は `panel.pinned` で false 拒否 — 単発・closeOtherTabs・closeTabsToRight の全経路が同じルールを継承（Chrome で pinned は ✕ が無く Ctrl+W も効かないのと同型）。`togglePin` → 'pinned'/'unpinned'/null で voice が状態を告知。

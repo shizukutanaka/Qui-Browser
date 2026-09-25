@@ -2782,6 +2782,20 @@ export class VRApp {
           // "What's the volume" — onVolume(0) returns undefined (no change),
           // so the status command reads the persisted setting directly.
           onVolumeStatus: () => this.settings.masterVolume,
+          // Article text size by voice — the readerTextScale stepper's
+          // clamp → persist → apply path, so an open article re-lays out
+          // live and later loads inherit.
+          onReaderScale: (delta) => {
+            const next = Math.min(2.0, Math.max(0.5, this.settings.readerTextScale + delta));
+            if (next === this.settings.readerTextScale) {
+              return null;
+            }
+            this.updateSetting('readerTextScale', next);
+            if (this.tabManager) {
+              this.tabManager.setReaderScale(next);
+            }
+            return next;
+          },
           // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
           // same store + confirmation path as the chrome star button.
           onBookmarkPage: () => {
