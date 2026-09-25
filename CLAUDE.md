@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 88: 直接選択原子 — 番号タブ選択(Ctrl+1..8)・タイトル(Insert+T)・ミュート・音声選択
+外部基準: Chrome Ctrl+1..8（タブ位置指定）/Ctrl+9（最後のタブ）、NVDA Insert+T（ページタイトル読み上げ — where-am-i の全文告知ではなく1行だけ聞く原子）、OS/ハードウェアのミュートキー、NVDA の音声選択（聞き取れる声を選ぶ）。
+- ✨ **tab-select / last-tab**: voice `tab-select`（'タブN'/'tab N' — 正規表現キャプチャ）→ `setActive(N-1)` → タイトル/URL で告知。範囲外は「タブNはありません」— clamp しない（頼んでいない場所へ連れて行かない、honest-announce 規律）。`last-tab`（'最後のタブ'/'last tab'）→ 末尾。
+- ✨ **title**: voice `title`（'タイトル'/'このページのタイトル'/'page title'）→ active タブの currentTitle→currentUrl→'タイトルなし'。where-am-i は行レンジ込みの全文、この原子は1行だけ。
+- ✨ **mute-toggle**: `onMute(want?)` フック — `_mutedVolume` に退避→`updateSetting('masterVolume',0)`→spatialAudio、解除時に復元。ミュート中の手動音量変更（onVolume）が退避値を破棄するので「ミュート→音量上げ→ミュート」は実音量を記録。'unmute'/'ミュートを解除' は明示 `want=false`（トグルではない — 誤ミュートを構造的に防ぐ）→ 'ミュート オンです'/'ミュートを解除しました'/'ミュートを切り替えられません'。
+- ✨ **select-voice**: NVDA の音声選択 — `synthesis.getVoices()` を `_voiceIndex` でサイクル（実装中に発見: getVoices() が都度新オブジェクトを返す実装では `indexOf` が効かないためカウンタ方式に修正）、`_voice` を全発話の `utterance.voice` に適用 → voice `select-voice`（'声を変えて'/'change voice'）→ '声をXにしました'/'読み上げ音声が利用できません'。ブラウザ接続不要（registerDefaultCommands 側 — time と同型）。
+- 🔧 テスト harness 学び: WebPanel モックは `currentTitle`/`Mesh.position` が必要 — 2件は断言が弱く stash 下でも緑だった（newTab が最後のタブを active にするため）。`setActive(0)` で事前移動を入れて実測の移動を断言に修正、16件全て赤へ。
+- ✅ **テスト +16（git stash で16件全て赤を確認してから緑へ）**: 番号選択 JP/EN・範囲外・最後・無タブ、タイトルの title/URL フォールバック・無タブ、ミュートの明示 want・フック無し告知、音声のサイクル・2連続で次へ・発話への適用・0件告知。Total 1796 tests (62 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 87: 設定トグルの音声面 — キャプション/ハプティック/注視選択/湾曲/追従/スナップターン・コンフォート・パネル距離
 外部基準: iOS Voice Control の「<スイッチ名> をオン/オフ」汎用トグルモデル（設定トグル1個ずつ専用コマンドを書くのではなく1フックに集約）、Windows "Voice access" の settings 面到達（没入中にパネルへ寄らずフラグを反転）、弱視ユーザーの「読み面を引き寄せる」操作のハンズフリー化。
 - ✨ **`_applyToggle(key,v)`**: 設定パネル6行 + コンフォートサイクルの inline apply を共通スイッチに抽出 — settings トグルと voice フックが完全同一パスを走る（_applyHighContrast と同型の前例）。locomotion-read 設定（enableSnapTurn/enableTeleport/enableComfort）はパネル同様「読む側が使い時に参照」で live apply 無しを default ケースで正直に扱う。

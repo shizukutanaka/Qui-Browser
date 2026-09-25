@@ -2798,6 +2798,8 @@ export class VRApp {
             if (next === this.settings.masterVolume) {
               return;
             }
+            // Manual volume change invalidates a stored mute level.
+            this._mutedVolume = undefined;
             this.updateSetting('masterVolume', next);
             if (this.spatialAudio) {
               this.spatialAudio.setMasterVolume(next / 100);
@@ -2835,6 +2837,32 @@ export class VRApp {
           // "What's the volume" — onVolume(0) returns undefined (no change),
           // so the status command reads the persisted setting directly.
           onVolumeStatus: () => this.settings.masterVolume,
+          // Mute — the hardware/OS mute-key atom. The pre-mute level is kept
+          // in _mutedVolume (undefined when not muted); unmute restores it.
+          // A manual volume change while muted clears the stored level, so
+          // the next mute stores what the user actually set.
+          onMute: (want) => {
+            const muted = this._mutedVolume !== undefined;
+            const target = want === undefined ? !muted : !!want;
+            if (target === muted) {
+              return muted;
+            }
+            if (target) {
+              this._mutedVolume = this.settings.masterVolume;
+              this.updateSetting('masterVolume', 0);
+              if (this.spatialAudio) {
+                this.spatialAudio.setMasterVolume(0);
+              }
+            } else {
+              const restore = this._mutedVolume;
+              this._mutedVolume = undefined;
+              this.updateSetting('masterVolume', restore);
+              if (this.spatialAudio) {
+                this.spatialAudio.setMasterVolume(restore / 100);
+              }
+            }
+            return target;
+          },
           // Article text size by voice — the readerTextScale stepper's
           // clamp → persist → apply path, so an open article re-lays out
           // live and later loads inherit.

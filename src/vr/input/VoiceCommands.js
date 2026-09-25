@@ -31,6 +31,7 @@ export class VoiceCommands {
     this._onRestoreSession = null;
     this._onSettingToggle = null;
     this._onPanelDistance = null;
+    this._onMute = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -50,6 +51,7 @@ export class VoiceCommands {
     this.lastCommand = null;
     this._lastSpoken = null; // last text passed to speak() — say-again replays it
     this._speechRate = 1.0; // 0.5–3.0, applied to every utterance (NVDA rate parity)
+    this._voice = null; // picked SpeechSynthesisVoice — select-voice cycles the engine list
     this.lastTranscript = '';
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
@@ -528,6 +530,27 @@ export class VoiceCommands {
       description: 'Announce the current time'
     });
 
+    // Voice picker — NVDA's voice-selection atom. SpeechSynthesis engines ship
+    // several voices; cycling lands on the next one and announces its name so
+    // the user can keep cycling until a voice they can parse comes up. Keeps
+    // working without a browser connection (synthesis only).
+    this.registerCommand('select-voice', {
+      patterns: ['声を変えて', '読み上げ音声を変えて', '声を変える',
+        '音声を変えて', /change (the )?voice/i, /next voice/i],
+      action: () => {
+        const voices = this.synthesis?.getVoices?.() || [];
+        if (!voices.length) {
+          this.speak('読み上げ音声が利用できません');
+          return { action: 'select-voice', voice: null };
+        }
+        this._voiceIndex = ((this._voiceIndex ?? -1) + 1) % voices.length;
+        this._voice = voices[this._voiceIndex];
+        this.speak(`声を${this._voice.name}にしました`);
+        return { action: 'select-voice', voice: this._voice.name };
+      },
+      description: 'Cycle the narration voice'
+    });
+
     // Japanese IME
     this.registerCommand('ime-toggle', {
       patterns: ['日本語入力', '日本語モード', '入力切り替え'],
@@ -664,6 +687,8 @@ export class VoiceCommands {
    * @param {Function} [opts.onPanelDistance] (delta: number) => number|null — step the
    *                                         window-distance stepper (0.6–6.0 m);
    *                                         null = at limit
+   * @param {Function} [opts.onMute] (want?: boolean) => boolean|null — toggle or set
+   *                                         the muted state; returns the muted state
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -680,7 +705,7 @@ export class VoiceCommands {
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
-    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance } = {}) {
+    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -710,6 +735,9 @@ export class VoiceCommands {
     }
     if (onPanelDistance) {
       this._onPanelDistance = onPanelDistance;
+    }
+    if (onMute) {
+      this._onMute = onMute;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1582,6 +1610,83 @@ export class VoiceCommands {
       description: 'Move the window panel closer or further'
     });
 
+    // Direct tab selection — Chrome Ctrl+1..8 lands on the tab at that strip
+    // position (Ctrl+9 → last). The voice equivalent: 'タブ3' / 'tab 3' and
+    // '最後のタブ' / 'last tab'. Out-of-range announces honestly instead of
+    // clamping (clamping would move the user somewhere they didn't ask for).
+    this.registerCommand('tab-select', {
+      patterns: [/タブ([0-9]+)/, /tab ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        const idx = n - 1;
+        if (idx < 0 || idx >= tabs.length) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'tab-select', index: -1 };
+        }
+        tabManager.setActive(idx);
+        const p = tabs[idx];
+        this.speak(p.currentTitle || p.currentUrl || `タブ${n}`);
+        return { action: 'tab-select', index: idx };
+      },
+      description: 'Activate the tab at a strip position'
+    });
+    this.registerCommand('last-tab', {
+      patterns: ['最後のタブ', '最後のタブを見せて', /last tab/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        if (!tabs.length) {
+          this.speak('タブがありません');
+          return { action: 'last-tab', index: -1 };
+        }
+        tabManager.setActive(tabs.length - 1);
+        const p = tabs[tabs.length - 1];
+        this.speak(p.currentTitle || p.currentUrl || `タブ${tabs.length}`);
+        return { action: 'last-tab', index: tabs.length - 1 };
+      },
+      description: 'Activate the last tab (Ctrl+9 parity)'
+    });
+
+    // Read the page title — NVDA Insert+T parity. where-am-i describes the
+    // whole location; this is the single-line "what page am I on" atom.
+    this.registerCommand('title', {
+      patterns: ['タイトル', 'このページのタイトル', 'ページ名', /page title/i,
+        /what('s| is) (the |this )?(page|title)/i],
+      action: () => {
+        const p = tabManager?.getActiveTab?.() || null;
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'title', title: null };
+        }
+        const title = p.currentTitle || p.currentUrl || 'タイトルなし';
+        this.speak(title);
+        return { action: 'title', title };
+      },
+      description: 'Read the active tab title'
+    });
+
+    // Mute — the OS/hardware mute-key atom. The hook stores the pre-mute
+    // level and restores it on unmute; 'unmute'/'ミュートを解除' pass an
+    // explicit want so they can never mute by accident.
+    this.registerCommand('mute-toggle', {
+      patterns: ['ミュート', 'ミュートを解除', '消音', '消音を解除', '音を消して',
+        /(un)?mute/i],
+      action: (transcript) => {
+        const want = /unmute|解除|戻して/i.test(transcript) ? false : undefined;
+        const muted = this._onMute ? this._onMute(want) : null;
+        if (muted === null) {
+          this.speak('ミュートを切り替えられません');
+        } else if (muted) {
+          this.speak('ミュート オンです');
+        } else {
+          this.speak('ミュートを解除しました');
+        }
+        return { action: 'mute-toggle', muted };
+      },
+      description: 'Toggle or clear the muted state'
+    });
+
     console.debug('VoiceCommands: Browser integration connected');
   }
 
@@ -1660,6 +1765,9 @@ export class VoiceCommands {
     utterance.rate = options.rate || this._speechRate;
     utterance.pitch = options.pitch || 1.0;
     utterance.volume = options.volume || 1.0;
+    if (this._voice) {
+      utterance.voice = this._voice;
+    }
     // Android/Quest Chrome can fire onerror with "network" or "not-allowed"
     // (audio focus stolen by another app, or no TTS engine installed for
     // ja-JP). The onSpeak callback already fired so captions reached the user;

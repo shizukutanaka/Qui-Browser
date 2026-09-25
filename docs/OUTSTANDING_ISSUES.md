@@ -288,6 +288,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**設定トグル（キャプション等）が音声で切り替えられない**~~ — **Session 87 で実装**: 設定パネル行の apply を `_applyToggle(key,v)` スイッチに抽出し、settings トグルと voice `onSettingToggle` フックが完全同一パスを走る。bare はトグル、明示 オン/オフ/enable/disable は値指定 → voice `captions-toggle`（'キャプションをオン'/'字幕を消して'+EN）、`haptics-toggle`（'ハプティックをオン'/'振動をオフ'）、`gaze-toggle`（'注視選択をオン'/'enable gaze'）、`curved-toggle`（'カーブパネルをオン'/'湾曲パネルをオフ'）、`follow-toggle`（'ウィンドウ追従をオン'/'window follow off'）、`snapturn-toggle`（'スナップターンをオン'）→ 'X オン/オフです'/'切り替えられません'。
 - ~~**コンフォートプリセットが音声で切り替えられない**~~ — **Session 87 で実装**: サイクルボタンの音声面。bare 'コンフォート' は次プリセットへサイクル（COMFORT_PRESETS をモジュール定数に昇格し panel cycle と hook で共有）、'コンフォートを敏感に'/'comfort preset to tolerant' は直接指定（JA 別名 敏感→sensitive/標準→moderate/寛容→tolerant/オフ→disabled）→ 'コンフォート Xです'/'そのコンフォート設定は使えません'。
 - ~~**パネル距離が音声で変えられない**~~ — **Session 87 で実装**: 弱視ユーザーが没入のまま読み面を引き寄せられる windowDistance stepper の音声面。`onPanelDistance(±0.2)` が stepper と同じ clamp(0.6–6.0)→`updateSetting`→`windowManager.setDistance` → voice `panel-distance`（'パネルを近づけて'/'パネルを遠く'/'panel closer'）→ 'パネル距離 N m'、境界では「パネルはこれ以上移動できません」。
+- ~~**タブを番号で直接選べない**~~ — **Session 88 で実装**: Chrome Ctrl+1..8（位置指定）/Ctrl+9（最後）準拠。voice `tab-select`（'タブN'/'tab N'）→ `setActive(N-1)` → タイトル/URL で告知、範囲外は「タブNはありません」（clamp しない — 頼んでいない場所へ連れて行かない）。`last-tab`（'最後のタブ'/'last tab'）。
+- ~~**ページタイトルが読み上げられない**~~ — **Session 88 で実装**: NVDA Insert+T 準拠。voice `title`（'タイトル'/'このページのタイトル'/'page title'）→ active タブの currentTitle→currentUrl→'タイトルなし' の順で告知。
+- ~~**ミュートできない**~~ — **Session 88 で実装**: OS/ハードウェアのミュートキー準拠。`onMute(want?)` フックが `_mutedVolume` に退避→masterVolume=0、解除時に復元（ミュート中の手動音量変更は退避値を破棄 → 次のミュートは実際の音量を記録）。voice `mute-toggle`（'ミュート'/'消音'/'mute'、'ミュートを解除'/'unmute' は明示 want=false で誤ミュート不可）→ 'ミュート オンです'/'ミュートを解除しました'。
+- ~~**読み上げ音声が選べない**~~ — **Session 88 で実装**: NVDA の音声選択準拠。`_voice`/`_voiceIndex` が `synthesis.getVoices()` をサイクル、選択は全発話の `utterance.voice` に適用 → voice `select-voice`（'声を変えて'/'change voice'）→ '声をXにしました'、音声0件は「読み上げ音声が利用できません」。
 
 ---
 
