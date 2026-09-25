@@ -349,6 +349,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ブックマークを解除できない**~~ — **Session 104 で実装**: Chrome "ブックマークを削除" 準拠・bookmark-page トグルの単方向版。voice `unbookmark-page`（'ブックマークを外して'/'remove bookmark'/'unbookmark'）→ `isBookmarked` 確認 → `onToggleBookmark` → 'ブックマークを外しました'/'ブックマークされていません'（未登録ページで追加しない誠実経路）。
 - ~~**読み上げ中か聞けない**~~ — **Session 104 で実装**: `synthesis.speaking` のステータス面。voice `speaking-status`（'読み上げ中ですか'/'喋っていますか'/'are you speaking'）→ '読み上げ中です'/'読み上げていません'。
 - ~~**先頭/末尾の見出しに飛べない**~~ — **Session 104 で実装**: find-first/find-last の見出し版。`_headingStarts()` を抽出（headingAt が共有）+ `lastHeading()` → voice '最初の見出し'/'最後の見出し' → '1番目の見出し（全M）'/'最後の見出し（全M）'/'見出しがありません'。
+- ~~**行ごとに読み進められない**~~ — **Session 105 で実装**: NVDA/VoiceOver の ↓/↑ キー準拠（1行ずつの読書ナビ）。voice `next-line`/`prev-line`（'次の行'/'前の行'/'next line'/'previous line'）→ `scrollContent(±1)` → **着地点の行を発話**/'これ以上進めません|戻れません'。
+- ~~**半ページスクロールができない**~~ — **Session 105 で実装**: Vim Ctrl+D/Ctrl+U 準拠（full page-jump ではなく半分）。`scrollHalfPage(dir)`（`⌈visible/2⌉` 行 `scrollContent`）→ voice '半ページ進む'/'半ページ戻る'/'half page down|up'。**実測捕捉の衝突**: navigate の `進む` と back の `戻る` が両句を所有 → `_onHalfPage` 遅延バインドで hoisted ブロックに登録。
+- ~~**パーセント位置に飛べない**~~ — **Session 105 で実装**: Kindle "go to N%" 準拠。`scrollToPercent(pct)`（`floor(total*N/100)`、OOR は 'out'、reader-off は null で区別）→ voice `reader-percent`（'50%のところ'/'50%地点'/'50パーセント'/'50 percent'）→ 'N%地点に移動しました'/'N%は範囲外です'/'記事を開いていません'。**衝突回避**: 'go to N percent' は go-to の EN 捕捉の所有 → bare パーセント句を選定。
+- ~~**Web 検索を起動できない**~~ — **Session 105 で実装**: omnibox の 'Xを検索' intent（go-to の 開く/行く 捕捉がカバーしない）。voice `web-search`（'猫を検索して'/'Xについて検索'/'search for X'/'web search X'）→ `onGoTo(term)` → '「X」を検索します'。**衝突回避**: '履歴/ブックマーク' 先頭は lookahead で除外 — history-search/bookmark-search が所有。
 
 ---
 

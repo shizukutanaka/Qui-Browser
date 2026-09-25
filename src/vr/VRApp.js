@@ -3285,7 +3285,9 @@ export class VRApp {
           onMuteStatus: () => this._mutedVolume !== undefined,
           onFindQuery: () => this.tabManager.getActiveTab()?.findQuery() ?? null,
           onReadFromLine: (n) =>
-            this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? []
+            this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? [],
+          onHalfPage: (dir) =>
+            this.tabManager.getActiveTab()?.scrollHalfPage?.(dir) ?? false
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

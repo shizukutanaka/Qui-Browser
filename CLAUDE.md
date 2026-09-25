@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 105: 行/半頁/位置原子 — NVDA ↓↑・Vim Ctrl+D/U・Kindle N%・omnibox 検索
+外部基準: NVDA/VoiceOver の ↓/↑（1行ずつ読書）、Vim Ctrl+D/Ctrl+U（半ページ）、Kindle "go to N%"、omnibox の検索 intent。
+- ✨ **next-line/prev-line**: '次の行'/'前の行'/'next line'/'previous line' → `scrollContent(±1)` → **着地点の行を発話**/'これ以上進めません|戻れません' — 行単位の最も細かい読書ナビ。
+- ✨ **half-page**: `scrollHalfPage(dir)`（`⌈visible/2⌉` 行 `scrollContent`）→ '半ページ進む'/'半ページ戻る'。**実測捕捉**: navigate の `進む`・back の `戻る` が両句を所有 → `_onHalfPage` 遅延バインドで hoisted ブロックに登録。
+- ✨ **reader-percent**: `scrollToPercent(pct)`（`floor(total*N/100)`・OOR='out'・reader-off=null で区別）→ '50%のところ'/'50パーセント'/'50 percent' → 'N%地点に移動しました'/'N%は範囲外です'。**衝突回避**: 'go to N percent' は go-to の EN 捕捉所有 → bare 句。
+- ✨ **web-search**: omnibox の 'Xを検索' intent → `onGoTo(term)`（履歴/ブックマーク先頭は lookahead 除外 — 各 search コマンド所有）。'search for X'/'web search X'/'Xについて検索'。
+- ✅ **テスト +15（git stash で14件赤確認 — 1件は history-search 共存ガードで設計上緑）**: next/prev-line 4面（発話・逆行・行端誠実・EN）、scrollHalfPage 2面+voice 2面（半分量・端・hook・誠実）、scrollToPercent 2面+voice 2面（中点・OOR・EN・記事なし）、web-search 3面（JA・EN・history-search 共存）。Total 2089 tests (79 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 104: MRU/繰返/解除原子 — Alt+Tab ピンポン・Vim '.'・ブックマーク解除・発話状態・見出し端
 外部基準: Alt+Tab/MRU ピンポン（最頻度の切替パターン）、Vim '.' / Voice Access "repeat"、Chrome ブックマーク削除、find-first/find-last の見出し版。
 - ✨ **last-tab-switch**: `TabManager._prevActiveIndex`（setActive が記録・stale は bounds-check で吸収）+ `previousActiveIndex()` → 'さっきのタブ'/'switch back'/'most recent tab' → 'タブNに切り替えました'/'前のタブがありません'。**衝突回避**: 'last tab'→last-tab-select、'前のタブ'→prev-tab。
