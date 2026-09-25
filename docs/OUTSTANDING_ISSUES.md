@@ -398,6 +398,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**残り行数/残りタブ数を聞けない**~~ — **Session 114 で実装**: line-status/tab-position の残量双子。voice `lines-left`（'あと何行' → 'あとN行です'/'最後の行です'）、`tabs-remaining`（'あと何タブ' → 'あとNタブです'/'最後のタブです'）。
 - ~~**プライベートタブの一覧を聞けない**~~ — **Session 114 で実装**: private-count の読み上げ双子。voice `private-list`（'プライベートタブ一覧' → 5件cap名前列挙/'ありません'）。
 - ~~**現在行の文字数を聞けない**~~ — **Session 114 で実装**: getCharCount の行版。voice `line-chars`（'この行は何文字' → `currentLine().length` → 'この行はN文字です'）。
+- ~~**行テキストを番号で読み上げられない**~~ — **Session 115 で実装**: read-line の索引双子。voice `read-line-n`（'N行目を読んで'/'read line 5' → scrollContentTo + currentLine → 'N行目。テキスト'）— reader-goto-line の `/(\d+)\s*行目/` 所有を実測捕捉し hoisted 登録（`this._tabManager` 遅延バインド）。
+- ~~**'検索エンジンは' が設定コマンドに誤答される**~~ — **Session 115 で実装**: search-engine の `/検索エンジンを?(.+)/` が bare 問い合わせを所有して 'その検索エンジンは使えません' と誤答 → setter を `を|に` 必須に絞り、status へ '検索エンジンは' 追加。
+- ~~**ピン留め数/マイク状態/最新履歴を聞けない**~~ — **Session 115 で実装**: private-count・isListening・history-list の双子。voice `pin-count`、`mic-status`（'マイクの状態' → 'マイクはオンです/オフです' — ヘッドセット内で OS マイク表示が見えないユーザー向け）、`history-latest`（'最新の履歴' → `_onHistoryList()[0]`）。
 
 
 ---

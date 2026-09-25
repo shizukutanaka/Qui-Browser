@@ -447,6 +447,31 @@ export class VoiceCommands {
       description: 'Read aloud starting at line N'
     });
 
+    // Read the TEXT of line N — read-line's indexed twin. Hoisted before
+    // reader-goto-line: its /(\d+)\s*行目/ and /line (\d+)/ own '3行目を
+    // 読んで' and 'read line 5' (dispatch-verified).
+    this.registerCommand('read-line-n', {
+      patterns: [/(\d+)\s*行目を読んで/, /read line (\d+)/i],
+      action: (transcript) => {
+        const n = Number(transcript.match(/(\d+)/)[1]);
+        const panel = this._tabManager?.getActiveTab?.();
+        const st = panel?.lineStatus?.() || null;
+        if (!st) {
+          this.speak('記事を開いていません');
+          return { action: 'read-line-n' };
+        }
+        if (n < 1 || n > st.total) {
+          this.speak(`${n}行目はありません`);
+          return { action: 'read-line-n', line: null };
+        }
+        panel.scrollContentTo?.(n - 1);
+        const text = panel.currentLine?.() || '';
+        this.speak(`${n}行目。${text}`);
+        return { action: 'read-line-n', line: n };
+      },
+      description: 'Read the text of line N'
+    });
+
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
     // article. Hoisted like the commands above: the go-to catch-all would
     // otherwise route 'go to line 30' as a navigation request.
@@ -1921,7 +1946,8 @@ export class VoiceCommands {
     // Reader Home/End atoms — the reader viewport is the only scrollable
     // surface in VR, so top/bottom jump commands target it directly.
     this.registerCommand('scroll-top', {
-      patterns: ['先頭へ', '最初に戻る', 'ページの先頭', '一番上', /scroll (to )?top/i],
+      patterns: ['先頭へ', '最初に戻る', 'ページの先頭', '一番上', '一番上へ',
+        'ページの先頭へ', /scroll (to )?top/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToTop?.();
         return { action: 'scroll-top' };
@@ -1931,7 +1957,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('scroll-bottom', {
-      patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', /scroll (to )?bottom/i],
+      patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', '一番下へ',
+        'ページの最後へ', /scroll (to )?bottom/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToBottom?.();
         return { action: 'scroll-bottom' };
@@ -2249,7 +2276,8 @@ export class VoiceCommands {
 
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
     this.registerCommand('duplicate-tab', {
-      patterns: ['タブを複製', 'タブをコピー', '複製', /duplicate (this )?tab/i],
+      patterns: ['タブを複製', 'タブを複製して', 'タブをコピー', '複製',
+        /duplicate (this )?tab/i],
       action: () => {
         tabManager?.duplicateTab?.();
         return { action: 'duplicate-tab' };
@@ -2445,7 +2473,11 @@ export class VoiceCommands {
     // Search-engine cycle by name — the settings cycle button's voice
     // surface. Aliases cover JA kana forms of every engine the host offers.
     this.registerCommand('search-engine', {
-      patterns: [/検索エンジンを?(.+)/, /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i],
+      // Require を or に — the bare '検索エンジンは' used to match `を?(.+)`
+      // and eat the status query ('検索エンジンは' → 'その検索エンジンは使え
+      // ません', a wrong-answer lie). The status twin owns the query form.
+      patterns: [/検索エンジンを(.+)/, /検索エンジン(.+)に/,
+        /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i],
       action: (transcript) => {
         const ALIASES = {
           google: 'google', 'グーグル': 'google',
@@ -3267,6 +3299,43 @@ export class VoiceCommands {
       description: 'Announce the current line length'
     });
 
+    // pin-count — private-count's pinned twin.
+    this.registerCommand('pin-count', {
+      patterns: ['ピン留めは何個', 'ピン留めの数', 'ピンの数',
+        /pinned (tab )?count/i, /how many pinned/i],
+      action: () => {
+        const n = (tabManager?.tabs || []).filter((t) => t.pinned).length;
+        this.speak(n > 0 ? `${n}個のピン留めタブがあります` : 'ピン留めタブはありません');
+        return { action: 'pin-count', count: n };
+      },
+      description: 'Announce pinned tab count'
+    });
+    // mic-status — 'is the mic on' answers the recognizer's isListening flag
+    // (wake-word users can't see the OS mic indicator inside the headset).
+    this.registerCommand('mic-status', {
+      patterns: ['マイクの状態', 'マイクはオン', '聞いていますか',
+        /mic status/i, /is the mic(raphone)? on/i],
+      action: () => {
+        this.speak(this.isListening ? 'マイクはオンです' : 'マイクはオフです');
+        return { action: 'mic-status', listening: this.isListening };
+      },
+      description: 'Announce whether the mic is listening'
+    });
+    // history-latest — history-list's 'most recent' twin.
+    this.registerCommand('history-latest', {
+      patterns: ['最新の履歴', '履歴の最新', '最後に見たページ',
+        /latest history/i, /most recent (page|history|visit)/i],
+      action: () => {
+        const items = this._onHistoryList ? this._onHistoryList() : null;
+        const latest = items && items[0];
+        this.speak(latest
+          ? `最新の履歴は「${latest.title || latest.url || 'タイトルなし'}」です`
+          : '履歴がありません');
+        return { action: 'history-latest', latest: latest ? latest.title : null };
+      },
+      description: 'Announce the most recent history entry'
+    });
+
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
       patterns: ['タイトルをコピー', 'ページ名をコピー',
@@ -3578,7 +3647,8 @@ export class VoiceCommands {
       description: 'Speak the next sentence (NVDA Alt+Down)'
     });
     this.registerCommand('prev-sentence', {
-      patterns: ['前の文', '文を前へ', '一文戻し', /prev(?:ious)? sentence/i],
+      patterns: ['前の文', '前の文を読んで', '文を前へ', '一文戻し',
+        /prev(?:ious)? sentence/i, /read (the )?prev(?:ious)? sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(-1) : null;
         this.speak(r ? r.sentence : 'これ以上戻れません');
@@ -3656,8 +3726,8 @@ export class VoiceCommands {
     // Voice-side status queries — the 'how is X set' twin of every voice
     // control the user can change but cannot see.
     this.registerCommand('speech-rate-status', {
-      patterns: ['読み上げ速度は', '読み上げの速さは', /speech rate/i,
-        /reading rate/i, /how fast/i],
+      patterns: ['読み上げ速度は', '読み上げの速さは', '現在の読み上げ速度',
+        '今の読み上げ速度', /speech rate/i, /reading rate/i, /how fast/i],
       action: () => {
         this.speak(`読み上げ速度は${this._speechRate}倍です`);
         return { action: 'speech-rate-status', rate: this._speechRate };
@@ -3665,7 +3735,8 @@ export class VoiceCommands {
       description: 'Announce the current speech rate'
     });
     this.registerCommand('speech-pitch-status', {
-      patterns: ['ピッチは', '声の高さは', /voice pitch/i, /pitch/i],
+      patterns: ['ピッチは', '声の高さは', '現在のピッチ', '今のピッチ',
+        /voice pitch/i, /pitch/i],
       action: () => {
         this.speak(`声の高さは${this._speechPitch}倍です`);
         return { action: 'speech-pitch-status', pitch: this._speechPitch };
@@ -3689,7 +3760,7 @@ export class VoiceCommands {
       description: 'Announce the recognition language'
     });
     this.registerCommand('search-engine-status', {
-      patterns: ['どの検索エンジン', '検索エンジンはどれ',
+      patterns: ['どの検索エンジン', '検索エンジンはどれ', '検索エンジンは',
         /which search engine|what search engine/i],
       action: () => {
         const e = this._onSearchEngineStatus ? this._onSearchEngineStatus() : null;
