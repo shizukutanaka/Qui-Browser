@@ -44,6 +44,8 @@ export class VoiceCommands {
     this._onReadHere = null;
     this._onTopSiteOpen = null;
     this._onHistorySearch = null;
+    this._onReaderScroll = null;
+    this._onReaderProgress = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -399,6 +401,26 @@ export class VoiceCommands {
         return { action: 'top-site-select', index: n, title: title || null };
       },
       description: 'Open the Nth top site'
+    });
+
+    // Scroll the reader by N lines — go-to-line's relative pair. Registered
+    // before navigate/back: their loose /進|戻/ regexes would otherwise
+    // swallow '30行進む'.
+    this.registerCommand('reader-scroll-lines', {
+      patterns: [/(\d+)\s*行\s*(進|戻)/,
+        /(\d+)\s*lines?\s+(forward|back)/i,
+        /scroll\s+(?:forward|down|back|up)\s+(\d+)\s*lines?/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const back = /戻|back|up/i.test(transcript);
+        const delta = back ? -n : n;
+        const moved = this._onReaderScroll ? this._onReaderScroll(delta) : false;
+        this.speak(moved ? `${n}行${back ? '戻り' : '進み'}ました`
+          : `これ以上${back ? '戻れません' : '進めません'}`);
+        return { action: 'reader-scroll-lines', delta, moved };
+      },
+      description: 'Scroll the reader by N lines'
     });
 
     // Navigation commands
@@ -804,6 +826,10 @@ export class VoiceCommands {
    * @param {Function} [opts.onHistorySearch] (term: string) =>
    *                                         {count:number, title:string}|null —
    *                                         history hits; null = no match
+   * @param {Function} [opts.onReaderScroll] (delta: number) => boolean —
+   *                                         scroll the reader by N lines
+   * @param {Function} [opts.onReaderProgress] () => number|null —
+   *                                         percent of the article read
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -823,7 +849,8 @@ export class VoiceCommands {
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
     onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine,
     onBookmarkList, onHistoryList, onCopyTitle,
-    onReadHere, onTopSiteOpen, onHistorySearch } = {}) {
+    onReadHere, onTopSiteOpen, onHistorySearch,
+    onReaderScroll, onReaderProgress } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -893,6 +920,12 @@ export class VoiceCommands {
     if (onHistorySearch) {
       this._onHistorySearch = onHistorySearch;
     }
+    if (onReaderScroll) {
+      this._onReaderScroll = onReaderScroll;
+    }
+    if (onReaderProgress) {
+      this._onReaderProgress = onReaderProgress;
+    }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -908,24 +941,26 @@ export class VoiceCommands {
       description: 'Open most-used site'
     });
 
-    // Browser forward / back
+    // Browser forward / back — goBack/goForward report whether the tab
+    // actually moved (controller faceB/faceA parity); a static
+    // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
       action: () => {
-        tabManager?.getActiveTab?.()?.goForward?.();
-        return { action: 'navigate', direction: 'forward' };
+        const moved = tabManager?.getActiveTab?.()?.goForward?.() || false;
+        this.speak(moved ? '進みます' : '進めません');
+        return { action: 'navigate', direction: 'forward', moved };
       },
-      confirmationText: '進みます',
       description: 'Navigate forward'
     });
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
       action: () => {
-        tabManager?.getActiveTab?.()?.goBack?.();
-        return { action: 'navigate', direction: 'back' };
+        const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
+        this.speak(moved ? '戻ります' : '戻れません');
+        return { action: 'navigate', direction: 'back', moved };
       },
-      confirmationText: '戻ります',
       description: 'Navigate back'
     });
 
@@ -2070,6 +2105,19 @@ export class VoiceCommands {
         return { action: 'history-search', term, count: res ? res.count : 0 };
       },
       description: 'Search the browsing history'
+    });
+
+    // Reading progress — '進捗' announces how much of the article is done.
+    this.registerCommand('reader-progress', {
+      patterns: ['進捗', '何%読んだ', 'どれくらい読んだ', 'どのくらい読んだ',
+        /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i],
+      action: () => {
+        const pct = this._onReaderProgress ? this._onReaderProgress() : null;
+        this.speak(pct === null ? '記事を開いていません'
+          : `記事の${pct}%を読みました`);
+        return { action: 'reader-progress', pct };
+      },
+      description: 'Announce reading progress'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

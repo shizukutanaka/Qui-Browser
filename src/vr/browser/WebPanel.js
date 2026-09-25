@@ -689,6 +689,20 @@ export class WebPanel {
   }
 
   /**
+   * Percent of the article read — the bottom edge of the viewport over the
+   * total line count (100 at the end, the visible fraction at the top).
+   * @returns {number|null} 0–100, or null when not reading an article
+   */
+  readerProgress() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return Math.min(100, Math.round(
+      ((this._readerScroll + visible) / this._readerLines.length) * 100));
+  }
+
+  /**
    * Find-in-page for the reader viewport — the Ctrl+F atom, scoped to the
    * only searchable text surface in VR. Records every matching line index
    * and jumps the viewport to the first hit; callers announce the count.

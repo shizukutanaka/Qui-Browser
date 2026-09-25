@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 94: 位置原子 — 戻る/進むの誠実告知・行数スクロール・読書進捗
+外部基準: controller faceB/faceA の goBack/goForward 準拠（同じ bool 経路）、go-to-line の相対版、Chrome の % 進捗。
+- 🔍 **前提の検証で誤判を回避**: voice back/forward は window.history を叩いているように見えたが、connectBrowser の後登録が既に `tabManager.getActiveTab().goBack()/goForward()` に配線済み（Map.set で同名上書き・位置は維持）。実際のギャップは**静的 confirmationText が境界でも '戻ります' と喋る嘘** — goBack/goForward の bool を action 内で告知するよう修正（'戻れません'/'進めません'）。フック新設は不要と判断して差し戻し。
+- ✨ **reader-scroll-lines**: `onReaderScroll(±n)` が `scrollContent`（クランプ+no-move で false）→ '30行進む'/'10行戻る'/'scroll down 5 lines' → 'N行進みました'/'これ以上進めません'。**hoisted ブロックへ** — /進|戻/ の loose regex が '30行進む' を吸収するため。
+- ✨ **reader-progress**: `readerProgress()` がビューポート下端/全行の %（終端=100、先頭=可視分）→ '進捗'/'何%読んだ'/'reading progress' → '記事のN%を読みました'/'記事を開いていません'。
+- ✅ **テスト +15（git stash で11件赤を確認 — 4件は moved-confirm と '30行目へ'/'10秒戻る' の衝突ガードで設計上緑）**: goBack/goForward の bool 告知4面、scroll-lines の ±/EN/境界/'30行目へ'+'10秒戻る' ガード6面、progress 3面、`readerProgress` の state/計算2面。Total 1899 tests (68 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 93: ナレーション/オープン原子 — 読み上げ位置再開・トップサイト番号・履歴検索
 外部基準: NVDA read-from-current-position（Insert+↓ の現在位置版）、bookmark-select/history-select のタイル版、Chrome Ctrl+H 内の検索欄。
 - ✨ **read-here**: `layoutReaderLines` が各行に `block` 索引を付与（title 行は undefined — 先頭=全文読み上げと同義）→ `narrationFromLine(lines,scroll,title,blocks)` がスクロール位置のブロックから再チャンク → `getReaderNarrationFrom()` → voice 'ここから読み上げ'/'ここから読んで'/'read from here' → `readAloud()` と同一路（内部開始ではタイトルを再告知しない）。
