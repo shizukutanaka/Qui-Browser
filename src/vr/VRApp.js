@@ -853,13 +853,7 @@ export class VRApp {
       searchEngine: this.settings.searchEngine,
       // FR-1.4: star button in the chrome bar toggles a persistent bookmark.
       isBookmarked: (url) => this.bookmarks.isBookmarked(url),
-      onToggleBookmark: (url, title) => {
-        const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
-        }
-        return nowBookmarked;
-      },
+      onToggleBookmark: (url, title) => this._toggleBookmark(url, title),
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
@@ -2727,6 +2721,30 @@ export class VRApp {
             const next = !this.settings.privateMode;
             this.updateSetting('privateMode', next);
             this._applyPrivateMode(next);
+          },
+          // volume-up/down commands drive the same masterVolume setting the
+          // audio stepper owns — persist + apply + announce, clamped 0-100.
+          onVolume: (delta) => {
+            const next = Math.min(100, Math.max(0, Math.round(
+              this.settings.masterVolume + delta * 100)));
+            if (next === this.settings.masterVolume) {
+              return;
+            }
+            this.updateSetting('masterVolume', next);
+            if (this.spatialAudio) {
+              this.spatialAudio.setMasterVolume(next / 100);
+            }
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`音量: ${next}%`);
+            }
+          },
+          // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
+          // same store + confirmation path as the chrome star button.
+          onBookmarkPage: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (active && active.currentUrl) {
+              this._toggleBookmark(active.currentUrl, active.currentTitle || active.currentUrl);
+            }
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).
@@ -3405,6 +3423,19 @@ export class VRApp {
       this.tabManager.setPrivateMode(v);
     }
     this.showVRToast(t(v ? 'vr.msg.privateModeOn' : 'vr.msg.privateModeOff'), { type: 'info' });
+  }
+
+  /**
+   * Toggle a bookmark for a URL and announce the outcome via captions.
+   * Shared by the chrome star button and the voice bookmark-page command.
+   * @returns {boolean} whether the URL is now bookmarked
+   */
+  _toggleBookmark(url, title) {
+    const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
+    }
+    return nowBookmarked;
   }
 
   /**

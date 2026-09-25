@@ -252,6 +252,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**`scroll-down`/`scroll-up` の二重登録**~~ — **確認済み（Session 76）**: 実は既に解決されていた。`:365` の NOTE が記録する通り `window.scrollBy` 版は除去済みで `connectBrowser()` 側のみが残る — この一覧項目が stale だっただけ（実害ゼロ）。
 - ~~**閉じたタブの再オープン**~~ — **Session 76 で実装**: `TabManager.reopenClosedTab()`（LIFO・10件上限・private/空タブは不記録・MAX_TABS 拒否時はスタックを保持）。デスクトップの Ctrl+Shift+T 準拠。voice コマンド 'reopen-tab' からも到達。
 - ~~**タブ操作の音声面**~~ — **Session 76 で実装**: `new-tab`/`close-tab`/`next-tab`/`prev-tab`/`reopen-tab`/`stop-loading`/`private-mode` を connectBrowser に登録（go-to の貪欲 `を開く` キャプチャより前）。voice ファースト UI でキーボードショートカットが存在しないタブ操作を音声に開放 —— Wolvic が MRU 順タブリストを置くのと同じ設計判断（到達経路をモードに合わせる）。`nextTab`/`prevTab` は Ctrl+Tab 準拠の wrap-around。
+- ~~**音量コマンドがスタブ**~~ — **Session 77 で配線**: `volume-up`/`volume-down` は登録済みだが action が `// Would adjust volume` の no-op だった。`onVolume(±0.1)` フックを追加し `masterVolume` 設定（0–100, クランプ+永続化+キャプション）へ接続 —— 音声で音量が変えられるのは没入中に設定パネルを開かせない重要な経路。
+- ~~**リーダー内 Home/End ジャンプ**~~ — **Session 77 で実装**: `scrollContentTo(line)`/`scrollToTop()`/`scrollToBottom()`（`scrollContent` と同じ clamp+再描画）。voice `scroll-top`/`scroll-bottom`（'先頭へ'/'末尾へ' 等）。
+- ~~**タブの複製**~~ — **Session 77 で実装**: `duplicateTab()`（Chrome "Duplicate tab"）。**コピーは navigate 前に isPrivate を継承** — private タブを複製しても URL が履歴に漏れない。voice 'タブを複製'。
+- ~~**ページ単位ブックマークの音声経路**~~ — **Session 77 で実装**: `bookmark-page`（'このページをブックマーク' 等、Ctrl+D 原子）→ `onBookmarkPage` → 抽出済み `_toggleBookmark`（chrome スターボタンと同一の toggle+caption 経路）。
 
 ---
 
