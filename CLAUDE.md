@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 113: 文/エコー原子 — 見出し本文・文索引/端・カレット位置・プライベート数・最終コマンド
+外部基準: NVDA read-current-heading、findMatchAt/firstHeading の文版索引双子、lineStatus の caret 版、tab-position のプライベートサブセット、say-last-transcript の実行側双子。
+- ✨ **read-heading**: 'この見出しを読み上げ'/'read the heading' → `headingHere().text` — 位置告知（index/total）とは別の本文発話原子。
+- ✨ **sentenceAt/firstSentence/lastSentence**（WebPanel）: findMatchAt/firstHeading の sentence-caret 版 — `_sentenceCaret` 更新 + `scrollContentTo`（ジャンプマーク記録）。voice `sentence-select`（'N番目の文'/'sentence 3'）・`first/last-sentence`（'最初の文'/'last sentence'）→ 文テキスト発話。**実害バグを実テストで捕捉**: `_sentencesOf` はブロック**索引**引数 — 総数ループがブロックオブジェクトを渡して total=0 化（初版が完全に不動 — 実パネルテストが価値を証明）。またテスト値: 全行可視（visibleLinesFor 22 超）では scrollContentTo が clamp で 0 — 文 35 個のフィクスチャで実スクロール確認。
+- ✨ **charStatus/wordStatus**（WebPanel）: lineStatus の caret 版 — `_charCaret`/`_wordCaret` の行内 index/total。voice `char-status`（'何文字目'/'char position'）・`word-status`（'何単語目'）— caret 未移動は 'まだ動いていません' 誠実経路。
+- ✨ **private-count**: 'プライベートタブは何個' → tabs.filter(isPrivate) → 'N個のプライベートタブがあります'。
+- ✨ **last-command**: '最後のコマンド'/'last command' → `_repeatableTranscript`（非 repeat 実行の発話形）→ '最後のコマンドは「X」でした' — アクションのエコー確認。
+- ✅ **テスト +18（git stash で18件全て赤確認 — VC モック + 実 WebPanel サーフェスの二層）**: Total 2219 tests (87 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 112: 名指し/状態双子原子 — 名指しピン・明示アンピン・タブNリロード・左右エイリアス・音声リセット・信頼度/ウェイク/スケール状態
 外部基準: close-by-name のピン双子、Chrome "unpin" 明示操作、タブ索引リロード、空間メンタルモデル（左/右 = prev/next）、NVDA restore-default、ASR 自己報告。
 - ✨ **pin-tab-by-name**: 'Xのタブをピン'/'pin the X tab' → title/url 部分一致 → `togglePin(i)` → 'タブNをピン留め/外しました'。**実測捕捉**: pin-tab の `/pin (this |the )?tab(?!\s*\d)/` が 'pin tab named X' を誤所有（active を toggle する誤動作）→ pin-tab より前に登録。stoplist {この|あの|その|すべて|全て|左|右|ピン}。

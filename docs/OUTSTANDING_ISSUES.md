@@ -388,6 +388,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**左/右でタブを指定できない**~~ — **Session 112 で実装**: 空間メンタルモデル準拠。'左のタブ'/'right tab' → prev-tab、'右のタブ'/'next tab' にエイリアス追加 + tab-by-name stoplist に 左|右 追加。
 - ~~**読み上げ速度/ピッチを一括リセットできない**~~ — **Session 112 で実装**: NVDA restore-default 準拠。voice `speech-reset`（'速度をリセット'/'reset speech' → rate+pitch → 1.0）。
 - ~~**認識信頼度/ウェイクワード/記事文字サイズを聞けない**~~ — **Session 112 で実装**: ステータス問い合わせ。voice `confidence-status`（'認識の信頼度は' → 'N%です' — ASR 自己報告）、`wake-word-status`（'ウェイクワードは' → '「X」です'/'オフです'）、`reader-scale-status`（'記事の文字サイズは' → 新フック `onReaderScaleStatus` → 'N倍です' — delta-0 が no-op のため専用ゲッター）。
+- ~~**現在の見出しのテキストを読み上げられない**~~ — **Session 113 で実装**: NVDA read-current-heading 準拠。voice `read-heading`（'この見出しを読み上げ'/'read the heading' → `headingHere().text` — 位置告知とは別の本文原子）。
+- ~~**文を番号/端でジャンプできない**~~ — **Session 113 で実装**: sentence-caret の索引/端双子（findMatchAt/firstHeading 準拠）。WebPanel `sentenceAt(n)`/`firstSentence()`/`lastSentence()`（sentenceCaret 更新 + scrollContentTo でジャンプマーク記録）→ voice `sentence-select`（'N番目の文'/'sentence 3'）、`first/last-sentence` → 文テキスト発話。**バグ修正**: `_sentencesOf` は索引引数 — 総数ループがブロックオブジェクトを渡していた実害を実テストで捕捉修正。
+- ~~**文字/単語カーソルの位置を聞けない**~~ — **Session 113 で実装**: lineStatus の caret 版。WebPanel `charStatus()`/`wordStatus()` → voice `char-status`（'何文字目' → 'この行のN文字目'）、`word-status`（'何単語目'）— caret 未移動時は 'まだ動いていません' の誠実経路。
+- ~~**プライベートタブ数を聞けない**~~ — **Session 113 で実装**: tab-position のサブセット。voice `private-count`（'プライベートタブは何個' → 'N個のプライベートタブがあります'/'ありません'）。
+- ~~**直前に実行したコマンドを確認できない**~~ — **Session 113 で実装**: アクションエコー（say-last-transcript の実行側双子）。voice `last-command`（'最後のコマンド'/'last command' → `_repeatableTranscript` → '最後のコマンドは「X」でした'）。
 
 
 ---
