@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 104: MRU/繰返/解除原子 — Alt+Tab ピンポン・Vim '.'・ブックマーク解除・発話状態・見出し端
+外部基準: Alt+Tab/MRU ピンポン（最頻度の切替パターン）、Vim '.' / Voice Access "repeat"、Chrome ブックマーク削除、find-first/find-last の見出し版。
+- ✨ **last-tab-switch**: `TabManager._prevActiveIndex`（setActive が記録・stale は bounds-check で吸収）+ `previousActiveIndex()` → 'さっきのタブ'/'switch back'/'most recent tab' → 'タブNに切り替えました'/'前のタブがありません'。**衝突回避**: 'last tab'→last-tab-select、'前のタブ'→prev-tab。
+- ✨ **repeat-command**: `_repeatableTranscript`（processCommand が非 repeat のみ記録 → 再帰不可）→ 'もう一度実行して'/'同じことをして'/'do it again' → 再ディスパッチ/'繰り返すコマンドがありません'。**say-again との区別**: say-again は発話の再**再生**（'repeat'/'もう一度' を所有）、repeat-command は再**実行**。
+- ✨ **unbookmark-page**: bookmark-page トグルの単方向版 'ブックマークを外して'/'remove bookmark' → `isBookmarked` 確認 → `onToggleBookmark` → '外しました'/'されていません'（未登録で追加しない誠実経路）。
+- ✨ **speaking-status**: `synthesis.speaking` → '読み上げ中ですか'/'are you speaking' → '読み上げ中です/いません'。
+- ✨ **first/last-heading**: `_headingStarts()` 抽出（headingAt 共有）+ `lastHeading()` → '最初の見出し'/'最後の見出し' → 'N番目の見出し（全M）'/'見出しがありません'。
+- ✅ **テスト +18（git stash で17件赤確認 — 1件は誠実経路の設計上緑）**: 前回 test ファイルは DOM 依存の実 constructor を直叩きで失敗 → `Object.create(RealX.prototype)` に state stamp の定番ハーネスへ（query-move の findQuery テストと同型）。lint で eqeqeq 1件（`== null`）を明示比較に修正。Total 2074 tests (78 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 103: エコー/移動/行指定原子 — ASR 認識確認・索引タブ移動・行指定読み上げ・検索語告知
 外部基準: ASR 認識確認（ろう・難聴向けの聞き取り検証）、Chrome ドラッグ並べ替えの索引版、VoiceOver read-from-line、Ctrl+F 検索語読み上げ。
 - ✨ **say-last-transcript**: `_prevTranscript`（handleRecognitionResult が直前を保持 — エコーコマンド自身が lastTranscript になるため差し替え前に退避）→ '何と言った'/'what did i say' → '「X」と聞き取りました'/'まだ何も聞き取っていません'。

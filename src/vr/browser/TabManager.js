@@ -56,6 +56,9 @@ export class TabManager {
     /** @type {WebPanel[]} */
     this.tabs = [];
     this.activeIndex = -1;
+    // Index of the previously-active tab — the Alt+Tab / MRU ping-pong target.
+    // Stale entries are tolerated: callers bounds-check against tabs.length.
+    this._prevActiveIndex = -1;
     this._curved = false; // curved-screen preference, applied to every tab
     // Private mode marks tabs opened while it is on — like Chrome's incognito
     // window scope, not a mode that retroactively converts existing tabs.
@@ -367,6 +370,9 @@ export class TabManager {
     if (index < 0 || index >= this.tabs.length) {
       return;
     }
+    if (index !== this.activeIndex) {
+      this._prevActiveIndex = this.activeIndex;
+    }
     this.activeIndex = index;
     this.tabs.forEach((panel, i) => {
       // setVisible, not show(position): show() would re-pin the panel to the
@@ -382,6 +388,15 @@ export class TabManager {
   /** Return the currently active WebPanel, or null. */
   getActiveTab() {
     return this.activeIndex >= 0 ? this.tabs[this.activeIndex] : null;
+  }
+
+  /**
+   * Index of the tab active before the current switch — the Alt+Tab / MRU
+   * ping-pong target. -1 until a second tab has been activated; may be stale
+   * (points past closed tabs) — callers bounds-check.
+   */
+  previousActiveIndex() {
+    return this._prevActiveIndex;
   }
 
   /**

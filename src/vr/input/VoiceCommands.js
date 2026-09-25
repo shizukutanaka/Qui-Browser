@@ -94,6 +94,7 @@ export class VoiceCommands {
     this._voice = null; // picked SpeechSynthesisVoice — select-voice cycles the engine list
     this.lastTranscript = '';
     this._prevTranscript = ''; // transcript before the current one — 'what did I say' echo
+    this._repeatableTranscript = ''; // last non-repeat transcript — Vim '.' parity
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
 
@@ -321,6 +322,9 @@ export class VoiceCommands {
       try {
         const result = matchedCommand.action(transcript, confidence);
         this.lastCommand = { key: matchedKey, transcript, confidence, result, timestamp: Date.now() };
+        if (matchedKey !== 'repeat-command') {
+          this._repeatableTranscript = transcript;
+        }
         this.stats.commandsExecuted++;
 
         // Callback
@@ -2866,6 +2870,109 @@ export class VoiceCommands {
       description: 'Switch the voice language'
     });
 
+
+    // Switch back to the previously-active tab — Alt+Tab / MRU ping-pong.
+    // 'last tab' is last-tab-select's phrase, '前のタブ' prev-tab's cycle;
+    // 'さっきのタブ'/'switch back' are the unambiguous forms.
+    this.registerCommand('last-tab-switch', {
+      patterns: ['さっきのタブ', 'さっき見ていたタブ', 'さっきのタブに戻って',
+        /switch back/i, /last active tab/i, /most recent tab/i],
+      action: () => {
+        const prev = tabManager?.previousActiveIndex?.();
+        const n = (tabManager?.tabs || []).length;
+        if (prev === undefined || prev === null || prev < 0 || prev >= n
+          || prev === tabManager?.activeIndex) {
+          this.speak('前のタブがありません');
+          return { action: 'last-tab-switch', index: null };
+        }
+        tabManager.setActive(prev);
+        this.speak(`タブ${prev + 1}に切り替えました`);
+        return { action: 'last-tab-switch', index: prev };
+      },
+      description: 'Switch to the previously-active tab'
+    });
+
+    // Re-execute the last non-repeat command — Vim '.' / Voice Access
+    // "repeat" parity. say-again owns 'repeat'/'もう一度' (it replays the
+    // announcement); this re-runs the command itself. _repeatableTranscript
+    // never stores repeat-command, so it cannot recurse.
+    this.registerCommand('repeat-command', {
+      patterns: ['もう一度実行して', 'もう一度実行', '同じことをして',
+        '同じコマンドを実行', 'コマンドを繰り返して',
+        /do it again/i, /run it again/i, /do the same/i, /execute again/i],
+      action: () => {
+        const t = this._repeatableTranscript;
+        if (!t) {
+          this.speak('繰り返すコマンドがありません');
+          return { action: 'repeat-command', repeated: null };
+        }
+        this.processCommand(t);
+        return { action: 'repeat-command', repeated: t };
+      },
+      description: 'Repeat the last non-repeat command'
+    });
+
+    // Remove the active page's bookmark — the one-directional counterpart of
+    // bookmark-page's toggle: never adds, only removes, and says so honestly
+    // when the page was never bookmarked.
+    this.registerCommand('unbookmark-page', {
+      patterns: ['ブックマークを外して', 'ブックマークを解除して',
+        'ブックマークを削除して', 'ブックマークを消して',
+        /remove (this |the )?bookmark/i, /unbookmark/i],
+      action: () => {
+        const active = tabManager?.getActiveTab?.();
+        if (!active) {
+          this.speak('ページを開いていません');
+          return { action: 'unbookmark-page', removed: null };
+        }
+        const marked = !!(active.isBookmarked?.(active.currentUrl));
+        if (!marked) {
+          this.speak('ブックマークされていません');
+          return { action: 'unbookmark-page', removed: false };
+        }
+        active.onToggleBookmark?.(active.currentUrl, active.currentTitle || active.currentUrl);
+        this.speak('ブックマークを外しました');
+        return { action: 'unbookmark-page', removed: true };
+      },
+      description: 'Remove the bookmark for the active page'
+    });
+
+    // Is narration currently speaking — status counterpart of
+    // pause-reading/stop-reading.
+    this.registerCommand('speaking-status', {
+      patterns: ['読み上げ中ですか', '読み上げていますか', '喋っていますか',
+        '読んでいますか', /are you (still )?speaking/i, /is it (still )?speaking/i],
+      action: () => {
+        const on = !!this.synthesis?.speaking;
+        this.speak(on ? '読み上げ中です' : '読み上げていません');
+        return { action: 'speaking-status', speaking: on };
+      },
+      description: 'Announce whether narration is speaking'
+    });
+
+    // First/last heading — find-first/find-last's heading siblings.
+    this.registerCommand('first-heading', {
+      patterns: ['最初の見出し', '先頭の見出し', /first heading/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.headingAt?.(1);
+        this.speak(r && r !== 'out'
+          ? `${r.index}番目の見出し（全${r.total}）`
+          : '見出しがありません');
+        return { action: 'first-heading', res: r };
+      },
+      description: 'Jump to the first heading'
+    });
+    this.registerCommand('last-heading', {
+      patterns: ['最後の見出し', '末尾の見出し', /last heading/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.lastHeading?.();
+        this.speak(r && r !== 'out'
+          ? `最後の見出し（全${r.total}）`
+          : '見出しがありません');
+        return { action: 'last-heading', res: r };
+      },
+      description: 'Jump to the last heading'
+    });
 
     // Echo the last recognized transcript — ASR confidence verification: a
     // deaf or hard-of-hearing user can't hear whether the recognizer heard
