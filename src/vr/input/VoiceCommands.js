@@ -77,6 +77,10 @@ export class VoiceCommands {
     this._onSentenceStatus = null;
     this._onLastParagraph = null;
     this._onReadParagraphAt = null;
+    this._onSearchEngineStatus = null;
+    this._onCharStep = null;
+    this._onWord = null;
+    this._onSpellWord = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -1001,6 +1005,12 @@ export class VoiceCommands {
    * @param {Function} [opts.onLastParagraph] () => {index,total}|null
    * @param {Function} [opts.onReadParagraphAt] (n)=>string[]|'out'|[] —
    *                                         narration chunks for paragraph N
+   * @param {Function} [opts.onSearchEngineStatus] () => string|null —
+   *                                         current search engine name
+   * @param {Function} [opts.onCharStep] (dir)=>{char,line}|null —
+   *                                         NVDA Left/Right char caret
+   * @param {Function} [opts.onWord] () => {word,line}|null — word at caret
+   * @param {Function} [opts.onSpellWord] () => {spelled,word}|null
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -1028,7 +1038,8 @@ export class VoiceCommands {
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
     onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
-    onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt } = {}) {
+    onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
+    onSearchEngineStatus, onCharStep, onWord, onSpellWord } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1196,6 +1207,18 @@ export class VoiceCommands {
     }
     if (onReadParagraphAt) {
       this._onReadParagraphAt = onReadParagraphAt;
+    }
+    if (onSearchEngineStatus) {
+      this._onSearchEngineStatus = onSearchEngineStatus;
+    }
+    if (onCharStep) {
+      this._onCharStep = onCharStep;
+    }
+    if (onWord) {
+      this._onWord = onWord;
+    }
+    if (onSpellWord) {
+      this._onSpellWord = onSpellWord;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2741,6 +2764,119 @@ export class VoiceCommands {
       },
       description: 'Announce the current sentence position'
     });
+
+    // Char caret — NVDA/JAWS Left/Right single-character review, the finest
+    // reading grain below word-nav.
+    this.registerCommand('next-char', {
+      patterns: ['次の文字', '文字を次へ', /next char(?:acter)?/i],
+      action: () => {
+        const r = this._onCharStep ? this._onCharStep(1) : null;
+        this.speak(r ? r.char : 'これ以上進めません');
+        return { action: 'next-char', char: r ? r.char : null };
+      },
+      description: 'Speak the next character (NVDA Right arrow)'
+    });
+    this.registerCommand('prev-char', {
+      patterns: ['前の文字', '文字を前へ', /prev(?:ious)? char(?:acter)?/i],
+      action: () => {
+        const r = this._onCharStep ? this._onCharStep(-1) : null;
+        this.speak(r ? r.char : 'これ以上戻れません');
+        return { action: 'prev-char', char: r ? r.char : null };
+      },
+      description: 'Speak the previous character (NVDA Left arrow)'
+    });
+
+    // Read/spell the word under the caret — NVDA numpad-5 (+double) parity.
+    this.registerCommand('read-word', {
+      patterns: ['この単語を読んで', '単語を読んで', '現在の単語',
+        /read (this |the |current )?word/i, /current word/i],
+      action: () => {
+        const r = this._onWord ? this._onWord() : null;
+        this.speak(r ? r.word : '単語がありません');
+        return { action: 'read-word', word: r ? r.word : null };
+      },
+      description: 'Read the current word'
+    });
+    this.registerCommand('spell-word', {
+      patterns: ['この単語をスペル', 'スペル読み', 'つづり',
+        /spell (this |the )?word/i, /spell it/i],
+      action: () => {
+        const r = this._onSpellWord ? this._onSpellWord() : null;
+        this.speak(r ? r.spelled : '単語がありません');
+        return { action: 'spell-word', spelled: r ? r.spelled : null };
+      },
+      description: 'Spell the current word'
+    });
+
+    // Voice-side status queries — the 'how is X set' twin of every voice
+    // control the user can change but cannot see.
+    this.registerCommand('speech-rate-status', {
+      patterns: ['読み上げ速度は', '読み上げの速さは', /speech rate/i,
+        /reading rate/i, /how fast/i],
+      action: () => {
+        this.speak(`読み上げ速度は${this._speechRate}倍です`);
+        return { action: 'speech-rate-status', rate: this._speechRate };
+      },
+      description: 'Announce the current speech rate'
+    });
+    this.registerCommand('speech-pitch-status', {
+      patterns: ['ピッチは', '声の高さは', /voice pitch/i, /pitch/i],
+      action: () => {
+        this.speak(`声の高さは${this._speechPitch}倍です`);
+        return { action: 'speech-pitch-status', pitch: this._speechPitch };
+      },
+      description: 'Announce the current speech pitch'
+    });
+    this.registerCommand('voice-name', {
+      patterns: ['どの声', '声の名前', '今の声', /which voice|voice name/i],
+      action: () => {
+        this.speak(this._voice ? `声は${this._voice.name}です` : '声は未選択です');
+        return { action: 'voice-name', voice: this._voice ? this._voice.name : null };
+      },
+      description: 'Announce the selected narration voice'
+    });
+    this.registerCommand('language-status', {
+      patterns: ['言語は', '言語設定は', /what language|which language/i],
+      action: () => {
+        this.speak(`言語は${this.language}です`);
+        return { action: 'language-status', language: this.language };
+      },
+      description: 'Announce the recognition language'
+    });
+    this.registerCommand('search-engine-status', {
+      patterns: ['どの検索エンジン', '検索エンジンはどれ',
+        /which search engine|what search engine/i],
+      action: () => {
+        const e = this._onSearchEngineStatus ? this._onSearchEngineStatus() : null;
+        this.speak(e ? `検索エンジンは${e}です` : '検索エンジンを確認できません');
+        return { action: 'search-engine-status', engine: e };
+      },
+      description: 'Announce the current search engine'
+    });
+
+    // Stepper statuses — onStepper(key, 0) is the read-only query twin of the
+    // voice stepper commands (delta 0 changes nothing, returns the value).
+    const stepperStatusCmd = (name, key, label, unit, patterns, desc) =>
+      this.registerCommand(name, {
+        patterns,
+        action: () => {
+          const v = this._onStepper ? this._onStepper(key, 0) : null;
+          this.speak(v === null ? `${label}を確認できません` : `${label} ${v}${unit}`);
+          return { action: name, value: v };
+        },
+        description: desc
+      });
+    stepperStatusCmd('grace-time-status', 'gazeGraceTime', 'グレース時間', 'ミリ秒',
+      ['グレース時間は', /grace time/i], 'Announce the gaze grace window');
+    stepperStatusCmd('snap-angle-status', 'snapTurnAngle', 'スナップ角', '度',
+      ['スナップ角は', /snap( turn)? angle/i], 'Announce the snap-turn angle');
+    stepperStatusCmd('move-speed-status', 'smoothMoveSpeed', '移動速度', 'メートル毎秒',
+      ['移動速度は', /move speed|movement speed/i], 'Announce the move speed');
+    stepperStatusCmd('caption-hold-status', 'captionDuration', 'キャプション保持時間', '秒',
+      ['キャプション保持は', 'キャプション時間は', /caption (time|duration|hold)/i],
+      'Announce caption hold time');
+    stepperStatusCmd('caption-height-status', 'captionHeight', 'キャプション高さ', 'メートル',
+      ['キャプション高さは', /caption height/i], 'Announce caption height');
 
     // Line position without moving — find-status's line sibling.
     this.registerCommand('line-status', {
