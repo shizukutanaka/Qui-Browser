@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 98: ステータス原子 — 段落読み上げ・行番号・タブ位置・状態問い合わせ
+外部基準: NVDA "read current paragraph"、findStatus の行版/ストリップ版、状態問い合わせ句の誠実応答。
+- ✨ **read-paragraph**: `getParagraphNarration()` が scroll 下の block を `narrationChunks` へ（title 領域=空 → readAloud 担当）→ 'この段落を読み上げ'/'read the current paragraph'。
+- ✨ **line-status**: `lineStatus()` → '何行目'/'line number' → '現在N行目（全M行）'。
+- ✨ **tab-status**: 'タブは何個'/'which tab' → 'N個のタブのM枚目を表示中'。
+- ✨ **privacy-status/pin-status**: 'プライベートかどうか'/'is it private'・'ピンがありますか'/'is it pinned' → 誠実応答。**実測捕捉の衝突**: 'プライベートモードですか'/'プライベートタブですか'/'ピン留めかどうか'/'ピン留めですか' は private-mode・private-tab・pin-tab の bare パターンが所有 — status 側の句を曖昧でない形に限定し、共存テスト2件で既存ルートを保護。
+- ✅ **テスト +18（git stash で16件赤を確認 — 2件は 'ピン留め'/'プライベートタブ' の共存ガードで設計上緑）**: read-paragraph 3面、line-status 3面、tab-status 3面、privacy/pin 5面+共存2面、WebPanel state テスト2面。Total 1973 tests (72 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 97: 段落原子 — NVDA Ctrl+↓/↑ の段落レイヤー + 文字数
 外部基準: NVDA/JAWS Ctrl+Down/Ctrl+Up の段落ナビ（行と見出しの中間レイヤー）、findStatus/nextHeading/headingAt の段落版、読了時間の分子。
 - ✨ **段落レイヤー**: `_paragraphStarts()` が R19 の `block` 索引で連続ラン先頭を収集 → `nextParagraph(±1)`（nextHeading 同型・両端循環）、`paragraphAt(n)`（headingAt 同型）、`paragraphStatus()`（findStatus 同型・scroll を含む段落）→ voice '次の段落'/'前の段落'/'3番目の段落'/'何段落'/'which paragraph'。

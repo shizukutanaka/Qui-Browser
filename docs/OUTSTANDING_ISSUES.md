@@ -321,6 +321,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**N番目の段落に直接飛べない**~~ — **Session 97 で実装**: headingAt の段落版。`paragraphAt(n)` → voice `paragraph-select`（'3番目の段落'/'段落3'/'paragraph 4'）→ 'N番目の段落（全M）'/'段落Nはありません'/'段落がありません'。
 - ~~**今どの段落か分からない**~~ — **Session 97 で実装**: findStatus の段落版。`paragraphStatus()` が scroll を含む段落 → voice `paragraph-status`（'何段落'/'which paragraph'）→ '全M段落のN段落目'/'記事を開いていません'。
 - ~~**記事の文字数が聞けない**~~ — **Session 97 で実装**: 読了時間の分子を status 原子として公開。`getCharCount()` → voice `char-count`（'何文字'/'文字数'/'how many characters'/'word count'）→ '記事はN文字です'/'記事を開いていません'。
+- ~~**段落だけを読み上げられない**~~ — **Session 98 で実装**: NVDA "read current paragraph" 準拠。`getParagraphNarration()` が scroll 下の block を `narrationChunks` へ（title 領域=空配列 → readAloud が '読み上げられる文章がありません' を担当）→ voice `read-paragraph`（'この段落を読み上げ'/'read the current paragraph'）。
+- ~~**何行目か分からない**~~ — **Session 98 で実装**: findStatus の行版。`lineStatus()` が scroll 位置の行番号 → voice `line-status`（'何行目'/'line number'）→ '現在N行目（全M行）'/'記事を開いていません'。
+- ~~**タブの位置が分からない**~~ — **Session 98 で実装**: tabs-list は題名を読むが位置を答えない → voice `tab-status`（'タブは何個'/'which tab'）→ 'N個のタブのM枚目を表示中'/'タブがありません'。
+- ~~**プライベート/ピン状態を聞けない**~~ — **Session 98 で実装**: voice `privacy-status`（'プライベートかどうか'/'is it private'）→ 'プライベートタブです'/'通常のタブです'、`pin-status`（'ピンがありますか'/'is it pinned'）→ 'ピン留めされています'/'いません'。**実測捕捉の衝突**: 'プライベートモードですか'/'プライベートタブですか'/'ピン留めかどうか'/'ピン留めですか' は private-mode・private-tab・pin-tab の bare パターンが所有するため、status 側の句は曖昧でない形に限定 + 共存テスト2件で既存ルートを保護。
 
 ---
 

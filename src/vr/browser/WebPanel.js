@@ -1009,6 +1009,37 @@ export class WebPanel {
   }
 
   /**
+   * Current line position without moving — findStatus's line sibling.
+   */
+  lineStatus() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    return {
+      index: Math.min(this._readerScroll, this._readerLines.length - 1) + 1,
+      total: this._readerLines.length
+    };
+  }
+
+  /**
+   * Narration chunks for the paragraph under the scroll — NVDA
+   * "read current paragraph" parity; read-aloud's block-scoped sibling.
+   * Returns [] outside the reader or on non-block lines (title region),
+   * which readAloud announces as nothing-to-read.
+   */
+  getParagraphNarration() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return [];
+    }
+    const line =
+      this._readerLines[Math.min(this._readerScroll, this._readerLines.length - 1)];
+    if (!Number.isFinite(line.block)) {
+      return [];
+    }
+    return narrationChunks(null, [this._readerBlocks[line.block]]);
+  }
+
+  /**
    * The line text under the reader scroll position — VoiceOver
    * "read current line" parity. Null outside the reader.
    */
