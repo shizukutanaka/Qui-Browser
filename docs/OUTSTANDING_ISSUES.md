@@ -304,6 +304,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**日付が聞けない**~~ — **Session 91 で実装**: NVDA Insert+F12 の date 側（'time' と対）。voice `date`（'今日の日付'/'何月何日'/'current date'）→ '今日はM月D日です'。
 - ~~**ブックマーク/履歴が読み上げられない**~~ — **Session 92 で実装**: tabs-list の保存リスト版。`onBookmarkList`/`onHistoryList` がタイトル配列を返し、voice 側が count+5件cap+'他N件'（toc 準拠）で告知 → voice `bookmarks-list`（'ブックマーク一覧'/'ブックマークを読み上げ'/'list bookmarks'）、`history-list`（'履歴一覧'/'履歴を読み上げ'/'list history'）→ 'N個のブックマーク。A、B、…'/'ブックマークがありません'。共通 `listCmd` ヘルパ。
 - ~~**タイトルがコピーできない**~~ — **Session 92 で実装**: copy-url の対。`onCopyTitle` が active タブの currentTitle を clipboard.writeText → voice `copy-title`（'タイトルをコピー'/'copy the title'）→ 'タイトルをコピーしました'/'コピーするタイトルがありません'。
+- ~~**読み上げ位置から再開できない**~~ — **Session 93 で実装**: NVDA read-from-current-position 準拠。`layoutReaderLines` が各行に `block` 索引を付与（title 行は undefined）→ `narrationFromLine(lines,scroll,title,blocks)` がスクロール位置のブロックから再チャンク（先頭=全文、内部開始=タイトル再告知しない）→ `getReaderNarrationFrom()` → voice `read-here`（'ここから読み上げ'/'ここから読んで'/'read from here'）。
+- ~~**トップサイトを番号で開けない**~~ — **Session 93 で実装**: bookmark-select/history-select 準拠。`onTopSiteOpen(n)` が `getTopSites`（private-mode/search-engine 除外はタイルと同一ルール）のN番目を active タブで開く → voice `top-site-select`（'トップサイトN'/'top site N' — 既存の /トップ?サイト/ より先に登録）→ タイトル告知/'トップサイトNはありません'。
+- ~~**履歴を検索できない**~~ — **Session 93 で実装**: `onHistorySearch(term)` が `getHistory(MAX_HISTORY)` を title+url で絞り込み → voice `history-search`（'履歴からXを検索'/'履歴でXを調べて'/'history search X'/'search history for X'）→ 'N件見つかりました。最近: title'/'Xは履歴にありません'。'を探して' は find-in-page が所有するため除外。
 
 ---
 

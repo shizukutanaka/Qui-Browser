@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 93: ナレーション/オープン原子 — 読み上げ位置再開・トップサイト番号・履歴検索
+外部基準: NVDA read-from-current-position（Insert+↓ の現在位置版）、bookmark-select/history-select のタイル版、Chrome Ctrl+H 内の検索欄。
+- ✨ **read-here**: `layoutReaderLines` が各行に `block` 索引を付与（title 行は undefined — 先頭=全文読み上げと同義）→ `narrationFromLine(lines,scroll,title,blocks)` がスクロール位置のブロックから再チャンク → `getReaderNarrationFrom()` → voice 'ここから読み上げ'/'ここから読んで'/'read from here' → `readAloud()` と同一路（内部開始ではタイトルを再告知しない）。
+- ✨ **top-site-select**: `onTopSiteOpen(n)` が `getTopSites`（private-mode/search-engine 除外はタイルと同一ルール）のN番目を active タブで `navigate` → 'トップサイトN'/'top site N' → タイトル告知/'トップサイトNはありません'。**hoisted ブロックへ配置** — 既存の loose /トップ?サイト/ が 'トップサイト2' を吸収するため。
+- ✨ **history-search**: `onHistorySearch(term)` が `getHistory(MAX_HISTORY)` を title+url で絞り込み → '履歴からXを検索'/'history search X' → 'N件見つかりました。最近: title'/'Xは履歴にありません'。
+- 🐛 **2件の発見をテストで捕捉・修正**: ①`action:` は **match 配列ではなく raw transcript を受け取る**（`m[1]` は文字列の2文字目 — find-in-page が内部で `transcript.match()` し直す規約と同じに修正）②'Xを探して' は find-in-page `/(.+?)を探して/` が所有 → history-search から '探して' を除外（衝突の共存テスト化）。
+- ✅ **テスト +16（git stash で14件赤を確認 — 2件は '履歴2番目'/'を探して' の既存コマンド衝突ガードで設計上緑）**: block 索引の付与、`narrationFromLine` の title/block/blank/クランプ4面、read-here 3面、top-site-select 3面、history-search 4面。Total 1884 tests (67 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 92: リスト読み上げ原子 — ブックマーク/履歴一覧・タイトルコピー + verify:vr-boot 実測
 外部基準: tabs-list の保存リスト版（VoiceOver ローターで開く前に一覧を聞く）、copy-url と対の共有面。
 - 🔍 **verify:vr-boot を実走行**: `CHROME_PATH` 指定で --headless=new 駆動 → **PASS**（VRApp 構築・canvas・tabManager・settingsPanel・captionSystem・uncaught exception ゼロ）。16ラウンドの VRApp 変更が実起動でも健全であることを実測確認。
