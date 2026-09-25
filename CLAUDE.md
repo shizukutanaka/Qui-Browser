@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 91: リスト選択原子 — ブックマーク/履歴番号選択・リーダー行ジャンプ・日付
+外部基準: tab-select（Ctrl+1..8）の保存リスト版 — VoiceOver ローターでブックマーク/履歴も番号直選、go-to-line（行番号ジャンプ）、NVDA Insert+F12 の date 側（time と対）。voice-help は既に 'help' が全コマンドの spokenExample を読み上げるため既存と確認して見送り。
+- ✨ **bookmark-select / history-select**: `onBookmarkOpen(n)`/`onHistoryOpen(n)` が `bookmarks.getBookmarks()`/`getHistory(MAX_HISTORY)`（import を BookmarkStore へ追加）のN番目を active タブで `navigate` → 'ブックマーク2'/'ブックマークの3番目'/'bookmark 1'、'履歴2番目'/'履歴の3'/'history 4' → タイトル告知、範囲外/未接続は「ブックマークNはありません」（clamp しない honest-announce 規律）。
+- ✨ **reader-goto-line**: `onReaderLine(n)` が `_readerLines.length` で存在・範囲を検査 → `scrollContentTo(n-1)` → 'N行目に移動しました'/'N行目はありません'/'記事を開いていません'。**registerDefaultCommands 先頭の hoisted ブロックへ配置** — go-to catch-all `/^(?:open|go to|navigate to)\s+(.+)/` が 'go to line 30' をナビとして吸収するため。
+- ✨ **date**: '今日の日付'/'何月何日'/'今日は何日'/'current date' → '今日はM月D日です'。
+- ✅ **テスト +17（git stash で15件赤を確認 — 2件は 'ブックマークを開いて'/'履歴を開いて' の既存コマンド衝突ガードで設計上緑）**: 両セレクトの番号形/EN/範囲外/既存コマンドガード、行ジャンプの番号/EN/範囲外/無記事/フック無し、日付の2形。Total 1856 tests (65 suites); 0 lint errors（ternary の indent 1件を修正して変更前と同一警告数）; build green。
+
 ### Session 90: パネル/シーク原子 — 動画シーク・設定パネル音声開閉・全タブクローズ
 外部基準: YouTube J/L キー（±10秒シーク — 視聴中にHUDへ手を伸ばせない音声ユーザーの要石）、macOS の「すべてのタブを閉じる」、コントローラーボタンと音声の完全同一経路（open≠toggle 規律の延長）。
 - ✨ **ImmersiveVideo.seek(deltaSec)**: `video.currentTime` を [0, duration] にクランプ、duration 不明でも正直に動く。→ `onVideoSeek` フック → voice `video-seek`（'10秒戻る'/'30秒進む'/'動画を戻して'/'巻き戻して'/'seek forward/back'/'rewind' — 数値キャプチャ、既定±10）→ 'N秒戻りました/進みました'/'再生中の動画がありません'。
