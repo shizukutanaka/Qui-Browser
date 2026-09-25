@@ -910,6 +910,105 @@ export class WebPanel {
   }
 
   /**
+   * Start line of each contiguous block run — the paragraph layer between
+   * lines and headings (R19's layoutReaderLines stamps `block` per line).
+   */
+  _paragraphStarts() {
+    const paras = [];
+    this._readerLines.forEach((line, i) => {
+      if (i === 0 || line.block !== this._readerLines[i - 1].block) {
+        paras.push(i);
+      }
+    });
+    return paras;
+  }
+
+  /**
+   * Jump to the next/previous paragraph — NVDA/JAWS Ctrl+Down/Ctrl+Up
+   * paragraph navigation. Same shape as nextHeading: wraps at both ends
+   * and returns { index, total } (1-based), null outside the reader.
+   */
+  nextParagraph(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    let target;
+    if (direction > 0) {
+      target = paras.find(i => i > this._readerScroll);
+      if (target === undefined) {
+        target = paras[0];
+      }
+    } else {
+      const before = paras.filter(i => i < this._readerScroll);
+      target = before.length ? before[before.length - 1] : paras[paras.length - 1];
+    }
+    this.scrollContentTo(target);
+    return { index: paras.indexOf(target) + 1, total: paras.length };
+  }
+
+  prevParagraph() {
+    return this.nextParagraph(-1);
+  }
+
+  /**
+   * Jump directly to the Nth paragraph — headingAt's paragraph sibling.
+   */
+  paragraphAt(n) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    const total = paras.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this.scrollContentTo(paras[n - 1]);
+    return { index: n, total };
+  }
+
+  /**
+   * Current paragraph position without moving — findStatus's paragraph
+   * sibling. The paragraph holding the scroll line is the last start
+   * index at or below it.
+   */
+  paragraphStatus() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    let index = paras.length;
+    for (let i = 0; i < paras.length; i++) {
+      if (paras[i] > this._readerScroll) {
+        index = i;
+        break;
+      }
+    }
+    return { index, total: paras.length };
+  }
+
+  /**
+   * Total article character count — the reading-time numerator as a
+   * status atom. Null outside the reader.
+   */
+  getCharCount() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    return this._readerLines.reduce(
+      (n, l) => n + (l.text ? l.text.length : 0), 0);
+  }
+
+  /**
    * The line text under the reader scroll position — VoiceOver
    * "read current line" parity. Null outside the reader.
    */

@@ -53,6 +53,10 @@ export class VoiceCommands {
     this._onFindStatus = null;
     this._onFindLast = null;
     this._onReadLine = null;
+    this._onParagraphStep = null;
+    this._onParagraphSelect = null;
+    this._onParagraphStatus = null;
+    this._onCharCount = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -854,6 +858,15 @@ export class VoiceCommands {
    *                                         jump to the last find hit
    * @param {Function} [opts.onReadLine] () => string|null —
    *                                         text of the line under the scroll
+   * @param {Function} [opts.onParagraphStep] (dir: number) =>
+   *                                         {index:number,total:number}|null —
+   *                                         next/previous paragraph (wraps)
+   * @param {Function} [opts.onParagraphSelect] (n: number) =>
+   *                                         {index:number,total:number}|'out'|null
+   * @param {Function} [opts.onParagraphStatus] () =>
+   *                                         {index:number,total:number}|null
+   * @param {Function} [opts.onCharCount] () => number|null —
+   *                                         total article character count
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -876,7 +889,8 @@ export class VoiceCommands {
     onReadHere, onTopSiteOpen, onHistorySearch,
     onReaderScroll, onReaderProgress,
     onBookmarkSearch, onFindMatch, onRemainingTime,
-    onHeadingSelect, onFindStatus, onFindLast, onReadLine } = {}) {
+    onHeadingSelect, onFindStatus, onFindLast, onReadLine,
+    onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -972,6 +986,18 @@ export class VoiceCommands {
     }
     if (onReadLine) {
       this._onReadLine = onReadLine;
+    }
+    if (onParagraphStep) {
+      this._onParagraphStep = onParagraphStep;
+    }
+    if (onParagraphSelect) {
+      this._onParagraphSelect = onParagraphSelect;
+    }
+    if (onParagraphStatus) {
+      this._onParagraphStatus = onParagraphStatus;
+    }
+    if (onCharCount) {
+      this._onCharCount = onCharCount;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2284,6 +2310,69 @@ export class VoiceCommands {
         return { action: 'read-line', line };
       },
       description: 'Read the current reader line'
+    });
+
+    // Paragraph navigation — NVDA/JAWS Ctrl+Down/Ctrl+Up parity. Same
+    // wrap-and-announce shape as next-heading.
+    this.registerCommand('next-paragraph', {
+      patterns: ['次の段落', '段落を進め', /next\s+paragraph/i],
+      action: () => {
+        const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
+        this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
+        return { action: 'next-paragraph', ...r };
+      },
+      description: 'Jump to the next paragraph'
+    });
+
+    this.registerCommand('prev-paragraph', {
+      patterns: ['前の段落', '段落を戻し', /prev(?:ious)?\s+paragraph/i],
+      action: () => {
+        const r = this._onParagraphStep ? this._onParagraphStep(-1) : null;
+        this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
+        return { action: 'prev-paragraph', ...r };
+      },
+      description: 'Jump to the previous paragraph'
+    });
+
+    // Indexed + status variants — heading-select / find-status parity.
+    this.registerCommand('paragraph-select', {
+      patterns: [/(\d+)\s*(?:番目?|件目?)\s*(?:の)?\s*段落/, /段落\s*(\d+)/,
+        /paragraph\s+(\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const res = this._onParagraphSelect ? this._onParagraphSelect(n) : null;
+        this.speak(res === 'out' ? `段落${n}はありません`
+          : res === null ? '段落がありません'
+            : `${res.index}番目の段落（全${res.total}）`);
+        return { action: 'paragraph-select', index: n, res };
+      },
+      description: 'Jump to the Nth paragraph'
+    });
+
+    this.registerCommand('paragraph-status', {
+      patterns: ['何段落', '段落はいくつ', 'どの段落', /which paragraph/i,
+        /paragraph (count|position|status)/i],
+      action: () => {
+        const res = this._onParagraphStatus ? this._onParagraphStatus() : null;
+        this.speak(res ? `全${res.total}段落の${res.index}段落目`
+          : '記事を開いていません');
+        return { action: 'paragraph-status', res };
+      },
+      description: 'Announce the current paragraph position'
+    });
+
+    // Article character count — the reading-time numerator as a status atom.
+    this.registerCommand('char-count', {
+      patterns: ['何文字', '文字数', '記事の文字数', /how many characters/i,
+        /character count/i, /word count/i],
+      action: () => {
+        const chars = this._onCharCount ? this._onCharCount() : null;
+        this.speak(chars === null ? '記事を開いていません'
+          : `記事は${chars}文字です`);
+        return { action: 'char-count', chars };
+      },
+      description: 'Announce the article character count'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
