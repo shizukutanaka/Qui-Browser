@@ -259,6 +259,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**リーダーの文字サイズが不可変**~~ — **Session 78 で実装**: `settings.readerTextScale`（0.5–2.0×、ブラウジング節のステッパー）→ `TabManager.setReaderScale` → 各 `WebPanel.setReaderScale` が保持ブロックを再レイアウト+スクロールをクランプ+再描画。新規タブにも継承。WCAG 1.4.4 Resize Text（支援技術なしで 200% まで拡大できること）—— これまでリーダーの文字は一切変えられなかった。
 - ~~**Page Up/Down 原子の音声経路**~~ — **Session 78 で実装**: `scrollContentPage(±1)`（リーダー矢印と同じ `pageJumpLines` ジャンプ）→ voice `next-page`/'次のページ'・`prev-page`/'前のページ'。canvas ヒットテストに届かない入力系にも同じ原子を開放。
 - ~~**記事の読み上げ**~~ — **Session 78 で実装**: Edge "Read Aloud"／Safari "Listen to Page" 準拠。`readerNarration.js`（段落→文境界→サロゲート安全なハードスプリットの純粋チャンカー）、`WebPanel.getReaderNarration()`、`VoiceCommands.readAloud`（開始/なし告知はキャプション経路、本文チャンクは `speak({caption:false})` でキャプション洪水を防止）、voice `read-aloud`/'読み上げて' + `stop-reading`/'読み上げ停止' → `stopSpeaking()`（synthesis.cancel のみ、認識は止めない）。弱視・失明ユーザーが「読む」の代替として使える旗艦アクセシビリティ面。
+- ~~**ページ内検索が不在**~~ — **Session 79 で実装**: Ctrl+F 相当をリーダービューポート（VR 内で唯一検索可能なテキスト面）に限定して実装。`WebPanel.findInReader(query)` がマッチ行インデックスを記録して最初のヒットへジャンプ、`findNextMatch(±1)`/`findPrevMatch()` が Ctrl+G/Shift+Ctrl+G 式に循環（`{index,total}` を 1-based で返して告知用）。voice `find-in-page`（'find X'/'Xを探して'/'ページ内検索'→語を促すプロンプト）、`find-next`/`find-prev`（'次を探して'/'前を探して'→'N/M件目'）。循環系を先に登録（'次を探して'がクエリ `/(.+?)を探して/` に吸収される衝突を回避）。
+- ~~**360°動画に音声制御なし**~~ — **Session 79 で実装**: HUD の再生/一時停止/停止に相当する voice `video-toggle`（'一時停止'/'再生を再開'/pause・resume・play video）と `video-stop`（'動画を止めて'/stop video）。`onVideoToggle`/`onVideoStop` ホストフックが `immersiveVideo.active` ゲートで誠実に報告 — 動画が無い時は「再生中の動画がありません」（confirmationText を付けない誠実設計は read-aloud と同じ）。
+- ~~**他タブ一括クローズ不可**~~ — **Session 79 で実装**: Chrome タブストリップメニュー準拠の `closeOtherTabs()`/`closeTabsToRight()`。各 close は `closeTab` 経由なので private/空タブ非記録ルールが単体クローズと完全一致。逆順ループで splice 中のインデックスを安定化。voice `close-other-tabs`（'他のタブを閉じて'）/`close-tabs-right`（'右のタブを閉じて'）。close-tab の `/close\s+tab\b/` を単語境界に強化（'close tabs' が先に吸収される衝突を修正）。
 
 ---
 

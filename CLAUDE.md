@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 79: ナビゲーション＆制御原子その2 — ページ内検索・動画音声制御・一括タブクローズ
+外部基準: デスクトップ共通の Ctrl+F / Ctrl+G（ページ内検索と次候補循環）、Chrome タブストリップメニューの "Close other tabs" / "Close tabs to the right"、没入メディア再生のハンズフリー制御（ヘッドセットを動かさず一時停止・停止できること）。
+- ✨ **ページ内検索**: `WebPanel.findInReader(query)` — リーダービューポート（VR 唯一の検索可能テキスト面）を小文字比較で走査しマッチ行インデックスを `_findMatches` に記録→最初のヒットへ `scrollContentTo`。`findNextMatch(dir)`/`findPrevMatch()` が Ctrl+G/Shift+Ctrl+G 式に循環し `{index,total}`（1-based）を告知用に返す。voice `find-in-page`（'find X'/'Xを探して'→件数告知、bare 'ページ内検索'→語を促すプロンプト）、`find-next`/`find-prev`（→'N/M件目'）。**循環系を先に登録** — '次を探して'/'前を探して' はクエリ regex `/(.+?)を探して/` に吸収されるので、先に個別パターンで捕まえる必要がある（processCommand は登録順・先着）。
+- ✨ **360°動画の音声制御**: voice `video-toggle`（'一時停止'/'再生を再開'/pause・resume・play video）→ `onVideoToggle`（`immersiveVideo.active` ゲート→`togglePause()`→`playing` で 'playing'/'paused' を返す）、`video-stop`（'動画を止めて'/stop video）→ `onVideoStop`→`stop()`。動画が無い時は「再生中の動画がありません」—— confirmationText を付けずホスト報告で話す誠実設計（read-aloud と同型）。
+- ✨ **一括タブクローズ**: `closeOtherTabs()`/`closeTabsToRight()`（Chrome タブストリップ準拠）。各 close は `closeTab` 経由なので private/空タブ非記録ルールが完全一致。逆順ループで splice 中のインデックスを安定化。voice '他のタブを閉じて'/'右のタブを閉じて' + EN。
+- 🐛 **正規表現衝突を2件解消**: `close-tab` の `/close\s+tab/i` が 'close tabs to the right' を substring match で先に吸収 → `/close\s+tab\b/` に強化（単数形のみ）。`find-in-page` のクエリ regex が循環コマンド語を吸収 → 登録順を循環系→クエリ系に変更。
+- ✅ **テスト +21（git stash で21件全て赤を確認してから緑へ）**: マッチカウント・ジャンプ・循環/wrap・reader 外 no-op・検索リセット、closeOtherTabs/ToRight の保持・dispose・closedStack 記録、find/video/bulk-close の音声ルーティングと誠実告知（動画無し・0件時）。Total 1638 tests (53 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 78: リーダーのアクセシビリティ面 — ライブ文字サイズ・読み上げ・ページ送り
 外部基準: WCAG 1.4.4 Resize Text（Level AA — 本文テキストは支援技術なしで 200% まで拡大できなければならない）、Microsoft Edge の "Read Aloud"／Safari の "Listen to Page"（記事読み上げは弱視・失明ユーザーの旗艦面）、デスクトップ共通の Page Up/Down 原子。
 - ✨ **`readerTextScale` ライブ設定**: リーダー文字が一切変えられなかった（`_readerScale` は ctor 専用）。`WebPanel.setReaderScale` が保持ブロックを `layoutReaderLines` で再レイアウト→スクロールをクランプ→再描画（reader 外では scale だけ保持して次ロードに効く）。`TabManager.setReaderScale` が全タブ+新規タブに波及。ブラウジング節に 0.5–2.0× ステッパー。

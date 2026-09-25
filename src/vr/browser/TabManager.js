@@ -393,6 +393,44 @@ export class TabManager {
   }
 
   /**
+   * Close every tab except the active one (Chrome's "Close other tabs").
+   * Each close routes through closeTab so the closed-stack recording rules
+   * (private/blank excluded) apply exactly as they do to single closes.
+   * @returns {number} tabs closed
+   */
+  closeOtherTabs() {
+    if (this.activeIndex < 0) {
+      return 0;
+    }
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (i !== this.activeIndex) {
+        this.closeTab(i);
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
+   * Close every tab to the right of the active one (Chrome's "Close tabs to
+   * the right"). Iterating backwards keeps indices stable as closeTab
+   * splices.
+   * @returns {number} tabs closed
+   */
+  closeTabsToRight() {
+    if (this.activeIndex < 0) {
+      return 0;
+    }
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i > this.activeIndex; i--) {
+      this.closeTab(i);
+      closed++;
+    }
+    return closed;
+  }
+
+  /**
    * Duplicate the active tab into a new one (Chrome's "Duplicate tab"). The
    * copy inherits the source's privacy flag *before* navigating so a private
    * tab's URL can never reach history through duplication.

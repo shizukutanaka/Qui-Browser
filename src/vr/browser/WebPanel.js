@@ -141,6 +141,10 @@ export class WebPanel {
     // line list without refetching the article.
     this._readerBlocks = null;
     this._readerTitle = '';
+    // Find-in-page state: line indices matching the last findInReader query
+    // and the cursor into them for findNextMatch/findPrevMatch.
+    this._findMatches = [];
+    this._findIndex = -1;
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
     // Private tabs (incognito-window semantics): no history writes, excluded
@@ -661,6 +665,51 @@ export class WebPanel {
       return [];
     }
     return narrationChunks(this._readerTitle, this._readerBlocks);
+  }
+
+  /**
+   * Find-in-page for the reader viewport — the Ctrl+F atom, scoped to the
+   * only searchable text surface in VR. Records every matching line index
+   * and jumps the viewport to the first hit; callers announce the count.
+   * @param {string} query case-insensitive substring
+   * @returns {number} match count
+   */
+  findInReader(query) {
+    const q = typeof query === 'string' ? query.trim().toLowerCase() : '';
+    this._findMatches = [];
+    this._findIndex = -1;
+    if (!q || this._contentState !== 'reader') {
+      return 0;
+    }
+    this._readerLines.forEach((line, i) => {
+      if (line.text && line.text.toLowerCase().includes(q)) {
+        this._findMatches.push(i);
+      }
+    });
+    if (this._findMatches.length) {
+      this._findIndex = 0;
+      this.scrollContentTo(this._findMatches[0]);
+    }
+    return this._findMatches.length;
+  }
+
+  /**
+   * Cycle to the next/previous find hit, wrapping — Ctrl+G / Shift+Ctrl+G
+   * semantics. Returns { index, total } (1-based) for announcements, or
+   * null when there is no active search.
+   */
+  findNextMatch(direction = 1) {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    const n = this._findMatches.length;
+    this._findIndex = ((this._findIndex + direction) % n + n) % n;
+    this.scrollContentTo(this._findMatches[this._findIndex]);
+    return { index: this._findIndex + 1, total: n };
+  }
+
+  findPrevMatch() {
+    return this.findNextMatch(-1);
   }
 
   /**

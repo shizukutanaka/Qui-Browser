@@ -520,12 +520,17 @@ export class VoiceCommands {
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
+   * @param {Function} [opts.onVideoToggle] () => 'playing'|'paused'|null —
+   *   toggle immersive-video playback; null = no video is active.
+   * @param {Function} [opts.onVideoStop] () => boolean — stop the immersive
+   *   video; false = nothing was playing.
    * @param {Function} [opts.onBookmarkPage] () => void — bookmark/unbookmark the
    *                                         active page (Ctrl+D); host toggles the
    *                                         store + announces cross-modally
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud } = {}) {
+    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
+    onVideoToggle, onVideoStop } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -662,7 +667,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('close-tab', {
-      patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab/i],
+      patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab\b/i],
       action: () => {
         if (tabManager && tabManager.activeIndex >= 0) {
           tabManager.closeTab(tabManager.activeIndex);
@@ -807,6 +812,96 @@ export class VoiceCommands {
       },
       confirmationText: '読み上げを止めます',
       description: 'Stop reading the article aloud'
+    });
+
+    // Find-in-page — the Ctrl+F atom, scoped to the reader viewport (the
+    // only searchable text surface). find-next/find-prev cycle matches like
+    // Ctrl+G / Shift+Ctrl+G. The cycle commands are registered FIRST because
+    // the query command's /(.+?)を探して/ would otherwise steal '次を探して'
+    // and '前を探して' as queries.
+    this.registerCommand('find-next', {
+      patterns: ['次を探して', '次の候補', /find\s+next/i, /next\s+match/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.findNextMatch?.() || null;
+        this.speak(r ? `${r.index}/${r.total}件目` : '見つかりませんでした');
+        return { action: 'find-next', ...r };
+      },
+      description: 'Jump to the next find match'
+    });
+
+    this.registerCommand('find-prev', {
+      patterns: ['前を探して', '前の候補', /find\s+prev/i, /previous\s+match/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.findPrevMatch?.() || null;
+        this.speak(r ? `${r.index}/${r.total}件目` : '見つかりませんでした');
+        return { action: 'find-prev', ...r };
+      },
+      description: 'Jump to the previous find match'
+    });
+
+    this.registerCommand('find-in-page', {
+      patterns: ['ページ内検索', /find\s+(?:in\s+(?:this\s+)?page\s+)?(.+)/i, /(.+?)を探して/],
+      action: (transcript) => {
+        const bare = transcript === 'ページ内検索';
+        const m = transcript.match(/find\s+(?:in\s+(?:this\s+)?page\s+)?(.+)/i)
+          || transcript.match(/(.+?)を探して/);
+        if (bare || !m) {
+          this.speak('検索する語を言ってください');
+          return { action: 'find-in-page', count: 0 };
+        }
+        const count = tabManager?.getActiveTab?.()?.findInReader?.(m[1]) || 0;
+        this.speak(count ? `${count}件見つかりました` : '見つかりませんでした');
+        return { action: 'find-in-page', count };
+      },
+      description: 'Find text on the page'
+    });
+
+    // Immersive video — voice equivalents of the HUD controls so a user
+    // watching 360° media can pause/stop without removing the headset's
+    // focus from the video. No confirmationText: the spoken line depends on
+    // what the host reports.
+    this.registerCommand('video-toggle', {
+      patterns: ['一時停止', '動画を一時停止', '再生を再開', '再開して',
+        /pause\s+video/i, /resume\s+video/i, /play\s+video/i],
+      action: () => {
+        const state = onVideoToggle ? onVideoToggle() : null;
+        const labels = { playing: '再生を再開します', paused: '一時停止します' };
+        this.speak(labels[state] || '再生中の動画がありません');
+        return { action: 'video-toggle', state };
+      },
+      description: 'Pause or resume the immersive video'
+    });
+
+    this.registerCommand('video-stop', {
+      patterns: ['動画を止めて', '動画停止', 'ビデオを止めて', /stop\s+(the\s+)?video/i],
+      action: () => {
+        const stopped = onVideoStop ? onVideoStop() : false;
+        this.speak(stopped ? '動画を停止します' : '再生中の動画がありません');
+        return { action: 'video-stop', stopped };
+      },
+      description: 'Stop the immersive video'
+    });
+
+    // Bulk close atoms (Chrome tab-strip menu). closeTab keeps the
+    // closed-stack rules — private/blank tabs still aren't recorded.
+    this.registerCommand('close-other-tabs', {
+      patterns: ['他のタブを閉じて', '他のタブを閉じる', /close\s+other\s+tabs/i],
+      action: () => {
+        tabManager?.closeOtherTabs?.();
+        return { action: 'close-other-tabs' };
+      },
+      confirmationText: '他のタブを閉じます',
+      description: 'Close every tab except the active one'
+    });
+
+    this.registerCommand('close-tabs-right', {
+      patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i],
+      action: () => {
+        tabManager?.closeTabsToRight?.();
+        return { action: 'close-tabs-right' };
+      },
+      confirmationText: '右側のタブを閉じます',
+      description: 'Close every tab to the right of the active one'
     });
 
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
