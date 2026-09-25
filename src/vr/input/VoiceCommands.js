@@ -3069,6 +3069,113 @@ export class VoiceCommands {
       description: 'Announce remaining headings'
     });
 
+    // read-heading — heading-here announces index/total; this reads the
+    // heading TEXT itself (NVDA 'read current heading' parity).
+    this.registerCommand('read-heading', {
+      patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
+        /read (the |current |this )?heading/i, /what('s| is) the heading/i],
+      action: () => {
+        const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
+        this.speak(h ? `「${h.text}」（${h.index}番目/全${h.total}）`
+          : '見出しがありません');
+        return { action: 'read-heading', text: h ? h.text : null };
+      },
+      description: 'Read the current heading'
+    });
+    // sentence-select — NVDA Alt+Down caret's indexed sibling: 'N番目の文'/
+    // 'sentence 3' jumps the caret and speaks the sentence (sentenceAt
+    // records the jumpBack mark).
+    this.registerCommand('sentence-select', {
+      patterns: [/([0-9]+)番目の文/, /sentence ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const r = tabManager?.getActiveTab?.()?.sentenceAt?.(n);
+        if (r === 'out') {
+          this.speak(`文${n}はありません`);
+          return { action: 'sentence-select', index: -1 };
+        }
+        this.speak(r
+          ? `${r.index}番目の文（全${r.total}）。${r.sentence}`
+          : '文がありません');
+        return { action: 'sentence-select', index: r ? r.index : -1 };
+      },
+      description: 'Jump to the Nth sentence'
+    });
+    // first/last-sentence — the sentence-end atoms (first/lastHeading parity).
+    this.registerCommand('first-sentence', {
+      patterns: ['最初の文', '最初の文へ', /first sentence/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.firstSentence?.();
+        this.speak(r
+          ? `${r.index}番目の文（全${r.total}）。${r.sentence}`
+          : '文がありません');
+        return { action: 'first-sentence' };
+      },
+      description: 'Jump to the first sentence'
+    });
+    this.registerCommand('last-sentence', {
+      patterns: ['最後の文', '最後の文へ', /last sentence/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.lastSentence?.();
+        this.speak(r
+          ? `${r.index}番目の文（全${r.total}）。${r.sentence}`
+          : '文がありません');
+        return { action: 'last-sentence' };
+      },
+      description: 'Jump to the last sentence'
+    });
+    // char-status / word-status — the caret-position twins: '何文字目'/
+    // '何単語目' answer index/total within the caret's line (null until a
+    // char/word nav has moved — honest).
+    this.registerCommand('char-status', {
+      patterns: ['何文字目', '文字の位置', /char(acter)? position/i],
+      action: () => {
+        const st = tabManager?.getActiveTab?.()?.charStatus?.() || null;
+        this.speak(st
+          ? `この行の${st.index}文字目（全${st.total}文字）`
+          : '文字カーソルはまだ動いていません');
+        return { action: 'char-status' };
+      },
+      description: 'Announce the char-caret position'
+    });
+    this.registerCommand('word-status', {
+      patterns: ['何単語目', '単語の位置', /word position/i],
+      action: () => {
+        const st = tabManager?.getActiveTab?.()?.wordStatus?.() || null;
+        this.speak(st
+          ? `この行の${st.index}単語目（全${st.total}単語）`
+          : '単語カーソルはまだ動いていません');
+        return { action: 'word-status' };
+      },
+      description: 'Announce the word-caret position'
+    });
+    // private-count — the privacy query twin (tab-position's subset):
+    // 'プライベートタブは何個' counts private tabs on the strip.
+    this.registerCommand('private-count', {
+      patterns: ['プライベートタブは何個', 'プライベートは何個',
+        /how many private tabs/i, /private tabs count/i],
+      action: () => {
+        const n = (tabManager?.tabs || []).filter((t) => t.isPrivate).length;
+        this.speak(n ? `${n}個のプライベートタブがあります` : 'プライベートタブはありません');
+        return { action: 'private-count', count: n };
+      },
+      description: 'Count private tabs'
+    });
+    // last-command — the action echo ('what did it just do'): answers the
+    // last non-repeat transcript, the spoken form of the executed command.
+    this.registerCommand('last-command', {
+      patterns: ['最後のコマンド', 'さっき何を実行した',
+        /last command/i, /what was the last command/i],
+      action: () => {
+        this.speak(this._repeatableTranscript
+          ? `最後のコマンドは「${this._repeatableTranscript}」でした`
+          : 'まだコマンドを実行していません');
+        return { action: 'last-command' };
+      },
+      description: 'Echo the last executed command'
+    });
+
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
       patterns: ['タイトルをコピー', 'ページ名をコピー',

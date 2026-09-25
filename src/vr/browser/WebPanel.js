@@ -1499,6 +1499,90 @@ export class WebPanel {
   }
 
   /**
+   * Jump directly to the Nth sentence — nextSentence's indexed sibling
+   * (findMatchAt/sentence-caret parity). Sentences are counted across blocks
+   * like currentSentence's index/total; landing moves the scroll so the
+   * read-aloud/where-am-i surfaces stay coherent, and records the mark for
+   * jumpBack.
+   * @returns {{sentence: string, index: number, total: number}|'out'|null}
+   */
+  sentenceAt(n) {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      total += this._sentencesOf(b).length;
+    }
+    if (!total) {
+      return null;
+    }
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    let acc = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      const sents = this._sentencesOf(b);
+      if (acc + sents.length >= n) {
+        const idx = n - acc - 1;
+        this._sentenceCaret = { block: b, idx };
+        const line = this._lineForSentenceAt(b, idx);
+        if (line >= 0 && line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { sentence: sents[idx], index: n, total };
+      }
+      acc += sents.length;
+    }
+    return 'out';
+  }
+
+  /**
+   * Jump to the first sentence — sentenceAt(1).
+   */
+  firstSentence() {
+    return this.sentenceAt(1);
+  }
+
+  /**
+   * Jump to the last sentence — lastHeading's sentence sibling.
+   */
+  lastSentence() {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      total += this._sentencesOf(b).length;
+    }
+    return total ? this.sentenceAt(total) : null;
+  }
+
+  /**
+   * Char-caret position within its line — lineStatus's caret-level sibling.
+   * null until a char nav has set the caret (position is meaningless at the
+   * line edge).
+   */
+  charStatus() {
+    if (this._contentState !== 'reader' || !this._charCaret) {
+      return null;
+    }
+    const chars = this._charsOf(this._charCaret.line);
+    return { index: this._charCaret.idx + 1, total: chars.length };
+  }
+
+  /**
+   * Word-caret position within its line — charStatus's word sibling.
+   */
+  wordStatus() {
+    if (this._contentState !== 'reader' || !this._wordCaret) {
+      return null;
+    }
+    const words = this._wordsOf(this._wordCaret.line);
+    return { index: this._wordCaret.idx + 1, total: words.length };
+  }
+
+  /**
    * Jump to the last paragraph — lastHeading's paragraph sibling.
    */
   lastParagraph() {
