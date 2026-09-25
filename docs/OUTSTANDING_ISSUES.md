@@ -393,6 +393,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**文字/単語カーソルの位置を聞けない**~~ — **Session 113 で実装**: lineStatus の caret 版。WebPanel `charStatus()`/`wordStatus()` → voice `char-status`（'何文字目' → 'この行のN文字目'）、`word-status`（'何単語目'）— caret 未移動時は 'まだ動いていません' の誠実経路。
 - ~~**プライベートタブ数を聞けない**~~ — **Session 113 で実装**: tab-position のサブセット。voice `private-count`（'プライベートタブは何個' → 'N個のプライベートタブがあります'/'ありません'）。
 - ~~**直前に実行したコマンドを確認できない**~~ — **Session 113 で実装**: アクションエコー（say-last-transcript の実行側双子）。voice `last-command`（'最後のコマンド'/'last command' → `_repeatableTranscript` → '最後のコマンドは「X」でした'）。
+- ~~**'new tab with X' が term を捨てる**~~ — **Session 114 で実装**: new-tab の `/new\s+tab/` 前置一致が句を所有して term を silently drop していた実害を実測捕捉 → `new-tab-with` を先行登録（'Xで新しいタブ'/'new tab with X' → `newTab()` + `onGoTo(term)` で URL/検索語を解決）。
+- ~~**リロードの語彙がリフレッシュ系のみ**~~ — **Session 114 で実装**: refresh パターンへ 'リロード' + `/reload(\s+the\s+page)?$/i` 追加 — 末尾アンカーで 'reload tab 2' は reload-tab-n を維持。
+- ~~**残り行数/残りタブ数を聞けない**~~ — **Session 114 で実装**: line-status/tab-position の残量双子。voice `lines-left`（'あと何行' → 'あとN行です'/'最後の行です'）、`tabs-remaining`（'あと何タブ' → 'あとNタブです'/'最後のタブです'）。
+- ~~**プライベートタブの一覧を聞けない**~~ — **Session 114 で実装**: private-count の読み上げ双子。voice `private-list`（'プライベートタブ一覧' → 5件cap名前列挙/'ありません'）。
+- ~~**現在行の文字数を聞けない**~~ — **Session 114 で実装**: getCharCount の行版。voice `line-chars`（'この行は何文字' → `currentLine().length` → 'この行はN文字です'）。
 
 
 ---

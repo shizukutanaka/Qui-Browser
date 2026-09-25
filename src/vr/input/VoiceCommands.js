@@ -1648,7 +1648,10 @@ export class VoiceCommands {
     });
 
     this.registerCommand('refresh', {
-      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん'],
+      // 'リロード'/'reload'/'reload the page' are aliases — the EN pattern is
+      // end-anchored so 'reload tab 2' still reaches reload-tab-n first.
+      patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'リロード',
+        /reload(\s+the\s+page)?$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.reload?.();
         return { action: 'refresh' };
@@ -1733,6 +1736,35 @@ export class VoiceCommands {
     // and the chrome strip's stop-loading and private-mode affordances.
     // Registered before the greedy go-to catch-all: its `を開く` capture would
     // otherwise claim utterances like "新しいタブを開く".
+    // new-tab-with — the named-open twin: 'Xで新しいタブ'/'new tab with X'
+    // opens a tab AND resolves the term through onGoTo (the go-to path:
+    // URL → navigate, term → search). Registered BEFORE new-tab — its
+    // /new\s+tab/i prefix-match owns the EN phrase and silently drops the
+    // term (dispatch-verified).
+    this.registerCommand('new-tab-with', {
+      patterns: [/^(?!(?:プライベート|シークレット|空白|新しい))(.+)で新しいタブ/,
+        /^new tab (?:with|for) (.+)$/i],
+      action: (transcript) => {
+        const m = transcript.match(/^(.+)で新しいタブ/) ||
+          transcript.match(/^new tab (?:with|for) (.+)$/i);
+        const term = (m ? m[1] : '').trim();
+        if (!term) {
+          this.speak('開くものを指定してください');
+          return { action: 'new-tab-with', term: null };
+        }
+        const panel = tabManager?.newTab?.();
+        if (!panel) {
+          this.speak('タブをこれ以上開けません');
+          return { action: 'new-tab-with', opened: false };
+        }
+        if (onGoTo) {
+          onGoTo(term);
+        }
+        this.speak(`「${term}」で新しいタブを開きました`);
+        return { action: 'new-tab-with', term };
+      },
+      description: 'Open a new tab on a term or URL'
+    });
     this.registerCommand('new-tab', {
       patterns: ['新しいタブ', '新しいタブを開く', '新規タブ', /new\s+tab/i],
       action: () => {
@@ -3176,6 +3208,65 @@ export class VoiceCommands {
       description: 'Echo the last executed command'
     });
 
+    // lines-left — the 'remaining' twin of line-status ('あと何行' answers
+    // total-index; sentences-left/paragraphs-left parity).
+    this.registerCommand('lines-left', {
+      patterns: ['あと何行', '残りの行', /lines left/i, /how many lines left/i],
+      action: () => {
+        const st = tabManager?.getActiveTab?.()?.lineStatus?.() || null;
+        this.speak(st
+          ? (st.total - st.index > 0 ? `あと${st.total - st.index}行です` : '最後の行です')
+          : '記事を開いていません');
+        return { action: 'lines-left', left: st ? st.total - st.index : null };
+      },
+      description: 'Announce remaining lines'
+    });
+    // tabs-remaining — the strip-level twin: 'あと何タブ' counts tabs to the
+    // right of the active one.
+    this.registerCommand('tabs-remaining', {
+      patterns: ['あと何タブ', '残りのタブ', /tabs (after|left|remaining)/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        const i = tabManager?.activeIndex ?? -1;
+        const left = i >= 0 ? tabs.length - i - 1 : 0;
+        this.speak(left > 0 ? `あと${left}タブです` : '最後のタブです');
+        return { action: 'tabs-remaining', left };
+      },
+      description: 'Announce tabs after the active one'
+    });
+    // private-list — private-count's readout twin: names the private tabs.
+    this.registerCommand('private-list', {
+      patterns: ['プライベートタブ一覧', 'プライベート一覧',
+        /private tab list/i, /list private tabs/i],
+      action: () => {
+        const privs = (tabManager?.tabs || []).filter((t) => t.isPrivate);
+        if (!privs.length) {
+          this.speak('プライベートタブはありません');
+          return { action: 'private-list', count: 0 };
+        }
+        const names = privs.slice(0, 5)
+          .map((t) => t.currentTitle || t.currentUrl || 'タイトルなし');
+        const more = privs.length > 5 ? `、他${privs.length - 5}件` : '';
+        this.speak(`${privs.length}個のプライベートタブ。${names.join('、')}${more}`);
+        return { action: 'private-list', count: privs.length };
+      },
+      description: 'List private tabs'
+    });
+    // line-chars — 'この行は何文字' answers currentLine's length (the line-
+    // level twin of getCharCount's article total).
+    this.registerCommand('line-chars', {
+      patterns: ['この行は何文字', '行の文字数',
+        /chars? (in|on) (this|the) line/i, /line length/i],
+      action: () => {
+        const line = tabManager?.getActiveTab?.()?.currentLine?.();
+        this.speak(typeof line === 'string' && line
+          ? `この行は${line.length}文字です`
+          : '記事を開いていません');
+        return { action: 'line-chars' };
+      },
+      description: 'Announce the current line length'
+    });
+
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
       patterns: ['タイトルをコピー', 'ページ名をコピー',
@@ -3582,7 +3673,7 @@ export class VoiceCommands {
       description: 'Announce the current speech pitch'
     });
     this.registerCommand('voice-name', {
-      patterns: ['どの声', '声の名前', '今の声', /which voice|voice name/i],
+      patterns: ['どの声', '声の名前', '今の声', /which voice|voice name|what voice/i],
       action: () => {
         this.speak(this._voice ? `声は${this._voice.name}です` : '声は未選択です');
         return { action: 'voice-name', voice: this._voice ? this._voice.name : null };

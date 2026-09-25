@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 114: 残量/一覧/名指し新規原子 — new-tab-with・リロードエイリアス・残行/残タブ・プライベート一覧・行文字数・現在声EN
+外部基準: Chrome "new tab with" 文脈操作・Firefox 'reload' 語彙、sentences-left/paragraphs-left の行/タブ版、private-count の読み上げ双子（tabs-list 準拠5件cap）、getCharCount の行版。
+- ✨ **new-tab-with**: 'Xで新しいタブ'/'new tab with X' → `tabManager.newTab()` + `onGoTo(term)`（URL/検索語は go-to 経路が解決）→ '「X」で新しいタブを開きました'。**実測捕捉の実害**: new-tab の `/new\s+tab/i` 前置一致が 'new tab with google' を所有して term を silently drop → new-tab より前に登録。タブ上限は 'これ以上開けません' でナビゲートしない誠実経路。
+- ✨ **リロードエイリアス**: refresh パターンへ 'リロード' + `/reload(\s+the\s+page)?$/i` — 末尾アンカーで 'reload tab 2' は reload-tab-n が保持（実測確認）。
+- ✨ **lines-left / tabs-remaining**: 'あと何行' → `lineStatus()` → 'あとN行です'/'最後の行です'、'あと何タブ'/'tabs remaining' → `tabs.length - activeIndex - 1` → 'あとNタブです'/'最後のタブです'。
+- ✨ **private-list**: 'プライベートタブ一覧'/'private tab list' → 5件cap 'N個のプライベートタブ。A、B、…他M件'/'ありません'。
+- ✨ **line-chars**: 'この行は何文字' → `currentLine().length` → 'この行はN文字です'。
+- ✨ **voice-name EN**: 'what voice' パターン追加。
+- ✅ **テスト +14（git stash で13件赤確認 — stoplist ガードは設計上緑）**: Total 2233 tests (88 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 113: 文/エコー原子 — 見出し本文・文索引/端・カレット位置・プライベート数・最終コマンド
 外部基準: NVDA read-current-heading、findMatchAt/firstHeading の文版索引双子、lineStatus の caret 版、tab-position のプライベートサブセット、say-last-transcript の実行側双子。
 - ✨ **read-heading**: 'この見出しを読み上げ'/'read the heading' → `headingHere().text` — 位置告知（index/total）とは別の本文発話原子。
