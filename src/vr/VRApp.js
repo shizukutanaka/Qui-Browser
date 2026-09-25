@@ -3172,7 +3172,26 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.scrollContent?.(delta) || false,
           // Percent of the article read (readerProgress parity).
           onReaderProgress: () =>
-            this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null
+            this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null,
+          // Bookmark search — history-search's pair over the saved list.
+          onBookmarkSearch: (term) => {
+            const needle = String(term || '').toLowerCase();
+            if (!needle) {
+              return null;
+            }
+            const hits = (this.bookmarks?.getBookmarks?.() || [])
+              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            if (!hits.length) {
+              return null;
+            }
+            return { count: hits.length, title: hits[0].title || hits[0].url };
+          },
+          // Jump to the Nth find hit — findNextMatch's indexed sibling.
+          onFindMatch: (n) =>
+            this.tabManager?.getActiveTab?.()?.findMatchAt?.(n) ?? null,
+          // Estimated minutes left in the article.
+          onRemainingTime: () =>
+            this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

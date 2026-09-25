@@ -833,6 +833,38 @@ export class WebPanel {
   }
 
   /**
+   * Estimated minutes left — reading time scaled by the unread fraction
+   * (readerProgress parity). Null outside the reader state.
+   */
+  getRemainingMinutes() {
+    const total = this.getReadingTimeMinutes();
+    if (total === null) {
+      return null;
+    }
+    const pct = this.readerProgress() || 0;
+    return Math.max(0, Math.round(total * (100 - pct) / 100));
+  }
+
+  /**
+   * Jump directly to the Nth find hit — findNextMatch's indexed sibling.
+   * Returns { index, total } (1-based) for announcements, 'out' when n is
+   * outside the match count, or null when no search is active.
+   */
+  findMatchAt(n) {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    const total = this._findMatches.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this._findIndex = n - 1;
+    this._markFindHits();
+    this.scrollContentTo(this._findMatches[this._findIndex]);
+    return { index: n, total };
+  }
+
+  /**
    * "Where am I" announce line: the page title plus the reader's current
    * line range when an article is showing. Screen-reader parity for the
    * orientation a sighted user gets free from the chrome bar.
