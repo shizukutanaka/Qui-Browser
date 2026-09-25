@@ -524,13 +524,15 @@ export class VoiceCommands {
    *   toggle immersive-video playback; null = no video is active.
    * @param {Function} [opts.onVideoStop] () => boolean — stop the immersive
    *   video; false = nothing was playing.
+   * @param {Function} [opts.onCopyUrl] () => string|null — write the active
+   *   tab's URL to the clipboard and return it; null = nothing to copy.
    * @param {Function} [opts.onBookmarkPage] () => void — bookmark/unbookmark the
    *                                         active page (Ctrl+D); host toggles the
    *                                         store + announces cross-modally
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
-    onVideoToggle, onVideoStop } = {}) {
+    onVideoToggle, onVideoStop, onCopyUrl } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -854,6 +856,59 @@ export class VoiceCommands {
         return { action: 'find-in-page', count };
       },
       description: 'Find text on the page'
+    });
+
+    // Heading navigation — the screen-reader H / Shift+H atom (NVDA, JAWS,
+    // VoiceOver rotor). The article title counts as heading zero.
+    this.registerCommand('next-heading', {
+      patterns: ['次の見出し', '見出しへ', /next\s+heading/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
+        this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
+        return { action: 'next-heading', ...r };
+      },
+      description: 'Jump to the next heading'
+    });
+
+    this.registerCommand('prev-heading', {
+      patterns: ['前の見出し', /prev(?:ious)?\s+heading/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.prevHeading?.() || null;
+        this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
+        return { action: 'prev-heading', ...r };
+      },
+      description: 'Jump to the previous heading'
+    });
+
+    // Copy the active URL — the share-sheet atom (Quest browser's copy
+    // action). Honest announce: nothing on screen → "nothing to copy".
+    this.registerCommand('copy-url', {
+      patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
+        /copy\s+(the\s+)?(url|link|address)/i],
+      action: () => {
+        const url = onCopyUrl ? onCopyUrl() : null;
+        this.speak(url ? 'URLをコピーしました' : 'コピーするURLがありません');
+        return { action: 'copy-url', url };
+      },
+      description: 'Copy the active page URL to the clipboard'
+    });
+
+    // Open the bookmark panel at its history tab — '履歴' alone still
+    // toggles the whole panel; these phrases mean "open history".
+    this.registerCommand('history', {
+      patterns: ['履歴を開いて', '履歴を見て', '履歴を表示',
+        /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i],
+      action: () => {
+        if (bookmarkPanel) {
+          bookmarkPanel.setMode?.('history');
+          if (!bookmarkPanel.visible) {
+            bookmarkPanel.show?.();
+          }
+        }
+        return { action: 'history' };
+      },
+      confirmationText: '履歴を開きます',
+      description: 'Open the browsing history'
     });
 
     // Immersive video — voice equivalents of the HUD controls so a user

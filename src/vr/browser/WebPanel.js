@@ -713,6 +713,45 @@ export class WebPanel {
   }
 
   /**
+   * Jump to the next/previous heading — screen-reader heading navigation
+   * (NVDA/JAWS H / Shift+H, VoiceOver rotor "headings"). The article title
+   * counts as heading zero so prev-heading can land back at the top.
+   * Wraps at both ends like findNextMatch.
+   * @returns {{index:number, total:number}|null} 1-based position for
+   *   announcements, or null outside the reader / with no headings
+   */
+  nextHeading(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const heads = [];
+    this._readerLines.forEach((line, i) => {
+      if (line.style === 'h' || line.style === 'title') {
+        heads.push(i);
+      }
+    });
+    if (!heads.length) {
+      return null;
+    }
+    let target;
+    if (direction > 0) {
+      target = heads.find(i => i > this._readerScroll);
+      if (target === undefined) {
+        target = heads[0];
+      }
+    } else {
+      const before = heads.filter(i => i < this._readerScroll);
+      target = before.length ? before[before.length - 1] : heads[heads.length - 1];
+    }
+    this.scrollContentTo(target);
+    return { index: heads.indexOf(target) + 1, total: heads.length };
+  }
+
+  prevHeading() {
+    return this.nextHeading(-1);
+  }
+
+  /**
    * Point the reader at a companion proxy (or back to direct fetch with '').
    *
    * Live-settable because the proxy-URL settings control applies immediately —
