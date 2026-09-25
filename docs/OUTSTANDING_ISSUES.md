@@ -404,6 +404,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'open tab 3'/'タブNを開いて' がページナビゲートされる**~~ — **Session 116 で実装**: go-to catch-all が literal テキストで検索ナビゲートしていた実害を実測捕捉 → `open-tab-n` を先行登録（'open tab N'/'タブNを開いて' → setActive → 'タブNに切り替えました'）。
 - ~~**位置問い合わせが名指し検索に誤答される**~~ — **Session 116 で実装**: '何番目のタブ'/'何枚目のタブ'/'現在のタブ番号' が tab-by-name の '「何番目」のタブがありません' に誤答 → stoplist 拡張で tab-status へ透過（'何枚目のタブ'/'現在のタブ番号' パターンも追加）。
 - ~~**読み込み状態/最新ブックマーク/見出し数を聞けない**~~ — **Session 116 で実装**: describe-tab・history-latest・headings-left の双子。voice `loading-status`（'読み込み中ですか' → panel.loading）、`bookmark-latest`（'最新のブックマーク' → `_onBookmarkList()[0]`）、`heading-count`（'見出しの数' → headingHere().total）。
+- ~~**認識感度/コントラスト/注視時間の現在値を聞けない**~~ — **Session 117 で実装**: sensitivity-up/down・high-contrast・dwell-time の双子。voice `sensitivity-status`（voice 層値・フック不要）、`contrast-status`（'コントラストは'/'contrast status' — 'ハイコントラスト…'/'high contrast…' は high-contrast トグル所有のため非曖昧形に限定）、`dwell-time-status`（'注視時間は' → gazeDwellTime getter フック）。
+- ~~**タブセッションを音声で保存できない**~~ — **Session 117 で実装**: restore-session の書き込み双子。voice `save-session`（'セッションを保存'/'save session' → `serializeSession` + `saveTabSession` → 'N個のタブを保存しました' — private タブは serializeSession が除外）。
+- ~~**主要コマンドの言い換え句が抜けている**~~ — **Session 117 で実装**: navigate へ '次に進んで'/'forward'/'go forward'、read-paragraph へ '今の段落を読んで'、next-heading へ '次の見出しを読んで'、wake-word-status へ `/wake word(?! (on|off))/i`（'wake word off' は wake-word-toggle を維持）、language-status へ '今の言語'、close-all-tabs へ '全て閉じて'/'全部閉じて'、help へ 'コマンド一覧を読み上げて'/'ヘルプを読み上げて'、tabs-list へ 'タブ一覧を読み上げて'/'read the tabs'。
 
 
 ---
