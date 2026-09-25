@@ -13,7 +13,7 @@ export const NARRATION_CHUNK_MAX = 200;
 
 const SENTENCE_END = /([。！？!?…]+|[.!?]+\s+|[\r\n]+)/;
 
-function splitSentences(paragraph) {
+export function splitSentences(paragraph) {
   const out = [];
   for (const part of paragraph.split(SENTENCE_END)) {
     if (!part) {

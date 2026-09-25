@@ -30,7 +30,7 @@ import {
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
-import { narrationChunks, narrationFromLine } from './readerNarration.js';
+import { narrationChunks, narrationFromLine, splitSentences } from './readerNarration.js';
 import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
@@ -148,6 +148,7 @@ export class WebPanel {
     this._lastFindQuery = null; // Ctrl+F bar's query text — cleared by Esc/load
     this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
     this._wordCaret = null; // {line, idx} NVDA word-nav caret; null = at scroll
+    this._sentenceCaret = null; // {block, idx} NVDA Alt+Up/Down sentence caret
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
     // Private tabs (incognito-window semantics): no history writes, excluded
@@ -421,6 +422,7 @@ export class WebPanel {
       this._lastFindQuery = null;
       this._scrollMark = null;
       this._wordCaret = null;
+      this._sentenceCaret = null;
       this._readerLines = lines;
       this._readerBlocks = blocks;
       this._readerTitle = title;
@@ -1177,6 +1179,214 @@ export class WebPanel {
     }
     const line =
       this._readerLines[Math.min(this._readerScroll, this._readerLines.length - 1)];
+    if (!Number.isFinite(line.block)) {
+      return [];
+    }
+    return narrationChunks(null, [this._readerBlocks[line.block]]);
+  }
+
+  // ── Sentence caret (NVDA Alt+Down/Alt+Up parity) ─────────────────────────
+  // Wrapped rows are whitespace-normalized, so sentences — which live in the
+  // source block text — are mapped onto display lines through normalized
+  // offset math: norm(block text) === norm(row1) + ' ' + norm(row2) + …
+  // in-order forward scans therefore recover every unit's offset.
+
+  _norm(s) {
+    return (s === null || s === undefined ? '' : String(s)).trim().replace(/\s+/g, ' ');
+  }
+
+  _sentencesOf(block) {
+    const t = this._readerBlocks?.[block]?.text;
+    return typeof t === 'string' ? splitSentences(t) : [];
+  }
+
+  /**
+   * Normalized start offset of each `texts` unit inside the block's
+   * normalized text, via a single in-order forward scan. -1 for a unit not
+   * found (a stale caret after re-layout can produce one).
+   */
+  _offsetsInBlock(block, texts) {
+    const hay = this._norm(this._readerBlocks?.[block]?.text);
+    let at = 0;
+    return texts.map((t) => {
+      const n = this._norm(t);
+      if (!n) {
+        return -1;
+      }
+      const i = hay.indexOf(n, at);
+      if (i >= 0) {
+        at = i + n.length;
+      }
+      return i;
+    });
+  }
+
+  /** [{line, off}] — display-line index ↔ normalized offset, per block. */
+  _rowOffsets(block) {
+    const entries = [];
+    this._readerLines.forEach((line, i) => {
+      if (line.block === block && line.style !== 'blank') {
+        entries.push({ line: i, text: line.text });
+      }
+    });
+    const offs = this._offsetsInBlock(block, entries.map((e) => e.text));
+    return entries.map((e, i) => ({ line: e.line, off: offs[i] }));
+  }
+
+  _offsetOfLine(block, lineIdx) {
+    const r = this._rowOffsets(block).find((e) => e.line === lineIdx);
+    return r ? r.off : -1;
+  }
+
+  /** Display-line index containing the start of block's sentIdx-th sentence. */
+  _lineForSentenceAt(block, sentIdx) {
+    const sents = this._sentencesOf(block);
+    if (sentIdx < 0 || sentIdx >= sents.length) {
+      return -1;
+    }
+    const sentOff = this._offsetsInBlock(block, sents)[sentIdx];
+    if (sentOff < 0) {
+      return -1;
+    }
+    const rows = this._rowOffsets(block).filter(
+      (r) => r.off >= 0 && r.off <= sentOff);
+    return rows.length ? rows[rows.length - 1].line : -1;
+  }
+
+  /**
+   * Advance the sentence caret — NVDA/JAWS Alt+Down/Alt+Up parity. Sentences
+   * come from the source block text (splitSentences), so a sentence spanning
+   * several display lines is still spoken whole; the scroll follows the line
+   * holding its start, which also marks the position for jumpBack like the
+   * other jump atoms.
+   * @param {number} direction positive = forward
+   * @returns {{sentence: string, line: number}|null} null at article edge /
+   *          outside the reader
+   */
+  nextSentence(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    if (!this._sentenceCaret) {
+      const li = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const line = this._readerLines[li];
+      if (Number.isFinite(line?.block)) {
+        // The "current" sentence is the last one starting at or before the
+        // scroll line; next = after it, prev = before it.
+        const lineOff = this._offsetOfLine(line.block, li);
+        const offs = this._offsetsInBlock(line.block, this._sentencesOf(line.block));
+        let atOrBefore = 0;
+        for (const o of offs) {
+          if (o >= 0 && o <= lineOff) {
+            atOrBefore++;
+          }
+        }
+        this._sentenceCaret = { block: line.block, idx: atOrBefore - 1 };
+      } else {
+        // Title region — no block: start from the article's near edge.
+        const last = this._readerBlocks.length - 1;
+        this._sentenceCaret = dir > 0
+          ? { block: 0, idx: -1 }
+          : { block: last, idx: this._sentencesOf(last).length };
+      }
+    }
+    let { block, idx } = this._sentenceCaret;
+    idx += dir;
+    while (block >= 0 && block < this._readerBlocks.length) {
+      const sents = this._sentencesOf(block);
+      if (idx >= 0 && idx < sents.length) {
+        this._sentenceCaret = { block, idx };
+        const line = this._lineForSentenceAt(block, idx);
+        if (line >= 0 && line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { sentence: sents[idx], line };
+      }
+      block += dir;
+      if (block >= 0 && block < this._readerBlocks.length) {
+        idx = dir > 0 ? 0 : this._sentencesOf(block).length - 1;
+      }
+    }
+    return null;
+  }
+
+  prevSentence() {
+    return this.nextSentence(-1);
+  }
+
+  /**
+   * The sentence under the scroll without moving — lineStatus's sentence
+   * sibling, article-wide indexed. Null outside the reader; a scroll on a
+   * block's leading blank resolves to that block's first sentence.
+   */
+  currentSentence() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const li = Math.min(this._readerScroll, this._readerLines.length - 1);
+    const line = this._readerLines[li];
+    if (!Number.isFinite(line?.block)) {
+      return null;
+    }
+    const sents = this._sentencesOf(line.block);
+    if (!sents.length) {
+      return null;
+    }
+    const lineOff = this._offsetOfLine(line.block, li);
+    const offs = this._offsetsInBlock(line.block, sents);
+    let local = -1;
+    for (let i = 0; i < offs.length; i++) {
+      if (offs[i] >= 0 && offs[i] <= lineOff) {
+        local = i;
+      }
+    }
+    if (local < 0) {
+      local = 0;
+    }
+    let index = 0;
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      const n = this._sentencesOf(b).length;
+      if (b < line.block) {
+        index += n;
+      }
+      total += n;
+    }
+    return { sentence: sents[local], index: index + local + 1, total };
+  }
+
+  /**
+   * Jump to the last paragraph — lastHeading's paragraph sibling.
+   */
+  lastParagraph() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    return this.paragraphAt(paras.length);
+  }
+
+  /**
+   * Narration chunks for the Nth paragraph — getParagraphNarration's indexed
+   * sibling (read-from-line parity). 'out' for out-of-range, [] outside the
+   * reader or on a non-block start.
+   */
+  getParagraphNarrationAt(n) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return [];
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return [];
+    }
+    if (n < 1 || n > paras.length) {
+      return 'out';
+    }
+    const line = this._readerLines[paras[n - 1]];
     if (!Number.isFinite(line.block)) {
       return [];
     }
