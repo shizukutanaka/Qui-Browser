@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 110: 名指し/繰返/環境原子 — タブ名選択・タブ詳細・N回繰り返し・全停止・バッテリー/オンライン・名指しオープン
+外部基準: VoiceOver 'tab by name'（位置でなく内容で選択）、NVDA describe-tab、Vim 'N.' カウント繰返、Voice Access 'stop everything'、OS バッテリー/接続ステータス、omnibox の名指しオープン。
+- ✨ **tab-by-name**: 'ニュースのタブ'/'tab named X'/'switch to X tab' → title/url 部分一致 → `setActive` → 'タブNに切り替えました'/'「X」のタブがありません'。**実測捕捉の衝突**: `(.+)のタブ` が 'さっき|最後|最初|前|次|ピン…のタブ' を所有 → `^` アンカー+stoplist ルックアヘッド（regex `.test` は位置1へスライドして一致するため先頭固定必須）。
+- ✨ **describe-tab**: 'このタブについて'/'describe tab' → 'タブN（全M）。タイトル。読み込み状態。プライベート・ピン留め'（title/tab-status のリッチ双子、`loading`/`isPrivate`/`pinned` を1行に）。
+- ✨ **repeat-n**: 'N回繰り返して'/'N times' → `_repeatableTranscript` 再ディスパッチ（cap 5 — 誤認で無限ループしない）。
+- ✨ **stop-everything**: 'すべて止めて'/'stop everything' → `synthesis.cancel` + `onVideoStop` の緊急双子 → 'すべて停止しました'/'止めるものはありません'（stop-reading/video-stop 各面の和）。
+- ✨ **battery-status / online-status**: 'バッテリーは' → `navigator.getBattery()`（async → resolve 時 announce、API 無しは誠実）→ 'バッテリーはN%です（充電中）'；'オンラインか' → `navigator.onLine` → 'オンライン/オフラインです'。
+- ✨ **open-bookmark/history-named**: 'ブックマークのXを開いて'/'open bookmark X'（go-to の `を開く` catch-all 所有を実測 → **go-to より前に登録**）→ 新フック `onBookmarkOpenNamed`/`onHistoryOpenNamed` が title/url 部分一致の最初のエントリをナビゲート → '「X」を開きます'/'「X」に一致する…がありません'。
+- ✅ **テスト +14（git stash で13件赤確認 — 1件は共存ガードで設計上緑）**: `nextTab` 呼出数の断言は seed 実行分も含めるよう修正（setActive でなく nextTab を経由 — 実測で検出）。Total 2168 tests (84 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 109: 問い合わせ/集合原子 — タブ索引タイトル・ピン選択・全リロード・数値音量・声一覧・件数・スコープヘルプ
 外部基準: VoiceOver 'tab N name'（切替の報告双子）、Chrome 'Reload all' 拡張、'volume to N' 数値指定、NVDA 音声リスト、Voice Access 'what can I say about X'。**全コマンドがセルフコンテインド**（tabManager 直接参照 or 既存フック再利用 — 新規 VRApp 配線ゼロ）。
 - ✨ **tab-title-n**: 'タブNのタイトル'/'title of tab N' → 'タブNのタイトルは「X」です'/'タブNはありません' — `setActive` しない報告双子。**実測捕捉の衝突**: tab-select の `/タブ(\d+)/` 接頭一致が 'タブNのタイトル' を所有 → tab-select より前に登録（'タブ2' plain 選択は共存テストで保護）。

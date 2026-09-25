@@ -370,6 +370,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**利用可能な声を聞けない**~~ — **Session 109 で実装**: NVDA 音声リスト準拠（select-voice の一覧双子）。voice `voice-list`（'声一覧'/'voice list'）→ `synthesis.getVoices()` → 'N個の声。X、Y…、他M件'（5件cap）/'読み上げ音声が利用できません'。
 - ~~**ブックマーク/履歴の件数だけ聞けない**~~ — **Session 109 で実装**: list コマンドの count 面（'how many' で全リストは不要）。voice `bookmark-count`（'ブックマークは何個'/'how many bookmarks' → 'N個のブックマークがあります'）、`history-count`（'履歴は何件'/'history count' → 'N件の履歴があります'）。
 - ~~**話題のコマンドだけ教えてもらえない**~~ — **Session 109 で実装**: Voice Access 'what can I say about X' 準拠。voice `scoped-help`（'Xについて教えて'/'help X'）→ name/description/リテラル pattern でレジストリ絞込 → '「X」のコマンドはN個です。…'（8件cap）/'「X」のコマンドはありません' — 'Xについて検索' は web-search の別句で非衝突。
+- ~~**タブを名前で選べない**~~ — **Session 110 で実装**: VoiceOver 'tab by name' 準拠（番号選択の内容双子）。voice `tab-by-name`（'ニュースのタブ'/'tab named X'/'switch to X tab'）→ title/url 部分一致 → `setActive` → 'タブNに切り替えました'/'「X」のタブがありません'。`(.+)のタブ` の所有衝突は `^` アンカー+stoplist ルックアヘッドで解消（'さっき|最後|最初|前|次|ピン…のタブ' は各 owner へ透過）。
+- ~~**アクティブタブの状態をまとめて聞けない**~~ — **Session 110 で実装**: NVDA describe-tab 準拠。voice `describe-tab`（'このタブについて'/'describe tab'）→ 'タブN（全M）。タイトル。読み込み状態。プライベート・ピン留め'。
+- ~~**直前コマンドをN回繰り返せない**~~ — **Session 110 で実装**: Vim 'N.' 準拠。voice `repeat-n`（'N回繰り返して'/'N times'）→ `_repeatableTranscript` 再ディスパッチ（cap 5）。
+- ~~**読み上げと動画をまとめて止められない**~~ — **Session 110 で実装**: Voice Access 'stop everything' 準拠。voice `stop-everything`（'すべて止めて'/'stop everything'）→ `synthesis.cancel` + `onVideoStop` → 'すべて停止しました'/'止めるものはありません'。
+- ~~**バッテリー/接続状態を聞けない**~~ — **Session 110 で実装**: OS ステータス準拠。voice `battery-status`（'バッテリーは'/'battery level' → `navigator.getBattery()` async → 'バッテリーはN%です（充電中）'/API 無しは誠実）、`online-status`（'オンラインか'/'are we online' → 'オンライン/オフラインです'）。
+- ~~**ブックマーク/履歴を名前で開けない**~~ — **Session 110 で実装**: omnibox 名指しオープン準拠（select 原子の NL 双子）。voice `open-bookmark-named`/`open-history-named`（'ブックマークのXを開いて'/'open bookmark X'、**go-to より前に登録** — `を開く` catch-all 所有を実測捕捉）→ `onBookmarkOpenNamed`/`onHistoryOpenNamed` フック → '「X」を開きます'/'「X」に一致する…がありません'。
 
 
 ---

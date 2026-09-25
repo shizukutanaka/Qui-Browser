@@ -3091,6 +3091,30 @@ export class VRApp {
             tab.navigate(entry.url);
             return entry.title || entry.url;
           },
+          // Named-open twins — find the first saved entry whose title/URL
+          // contains the term, navigate the active tab, return its title.
+          onBookmarkOpenNamed: (term) => {
+            const t = (term || '').toLowerCase();
+            const entry = (this.bookmarks.getBookmarks() || []).find((b) =>
+              `${b.title || ''} ${b.url}`.toLowerCase().includes(t));
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          onHistoryOpenNamed: (term) => {
+            const t = (term || '').toLowerCase();
+            const entry = (this.bookmarks.getHistory(MAX_HISTORY) || []).find((h) =>
+              `${h.title || ''} ${h.url}`.toLowerCase().includes(t));
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
           // Jump the reader to line N (VoiceOver's go-to-line). null = not
           // on a reader page; 'out' = past the last line.
           onReaderLine: (line) => {

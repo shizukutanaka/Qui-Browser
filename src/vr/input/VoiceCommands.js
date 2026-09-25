@@ -37,6 +37,8 @@ export class VoiceCommands {
     this._onSettingsPanel = null;
     this._onBookmarkOpen = null;
     this._onHistoryOpen = null;
+    this._onBookmarkOpenNamed = null;
+    this._onHistoryOpenNamed = null;
     this._onReaderLine = null;
     this._onBookmarkList = null;
     this._onHistoryList = null;
@@ -879,6 +881,66 @@ export class VoiceCommands {
       description: 'Describe commands matching a topic'
     });
 
+    // repeat-n — Vim 'N.' parity: run the last repeatable command N times
+    // (capped at 5 — a voice misfire shouldn't loop forever). Self-contained:
+    // re-dispatches _repeatableTranscript, which processCommand only stores
+    // for non-repeat transcripts, so 'repeat 3 times' itself never loops.
+    this.registerCommand('repeat-n', {
+      patterns: [/(\d+)回(繰り返し|実行|リピート)/, /(\d+) times/i,
+        /do it (\d+) times/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = Math.min(5, Math.max(1, m ? parseInt(m[1], 10) : 1));
+        if (!this._repeatableTranscript) {
+          this.speak('繰り返すコマンドがありません');
+          return { action: 'repeat-n', count: 0 };
+        }
+        for (let i = 0; i < n; i++) {
+          this.processCommand(this._repeatableTranscript);
+        }
+        this.speak(`${n}回実行しました`);
+        return { action: 'repeat-n', count: n };
+      },
+      description: 'Repeat the last command N times'
+    });
+
+    // Battery status — OS/battery-status parity (Quest headsets report via
+    // navigator.getBattery; async so the announce lands on resolution,
+    // honest when the API is absent).
+    this.registerCommand('battery-status', {
+      patterns: ['バッテリーは', 'バッテリー残量', '電池は',
+        /battery (level|status|percentage)/i, /battery left/i],
+      action: () => {
+        const get = navigator?.getBattery?.bind(navigator);
+        if (!get) {
+          this.speak('バッテリー状態を確認できません');
+          return { action: 'battery-status', level: null };
+        }
+        get().then((b) => {
+          const pct = Math.round(b.level * 100);
+          const charging = b.charging ? '（充電中）' : '';
+          this.speak(`バッテリーは${pct}%です${charging}`);
+        }).catch(() => {
+          this.speak('バッテリー状態を確認できません');
+        });
+        return { action: 'battery-status' };
+      },
+      description: 'Announce the battery level'
+    });
+
+    // Online status — the connectivity atom (navigator.onLine; offline pages
+    // still answer honestly).
+    this.registerCommand('online-status', {
+      patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
+        /are we online/i, /are we offline/i, /online status/i, /internet status/i],
+      action: () => {
+        const on = navigator?.onLine !== false; // undefined → assume online
+        this.speak(on ? 'オンラインです' : 'オフラインです');
+        return { action: 'online-status', online: on };
+      },
+      description: 'Announce the connectivity state'
+    });
+
     // Stop listening
     this.registerCommand('stop', {
       patterns: ['停止', 'ストップ', 'やめて', '聞くな'],
@@ -999,6 +1061,10 @@ export class VoiceCommands {
    * @param {Function} [opts.onBookmarkOpen] (index: number) => string|null —
    *                                         open the Nth bookmark; null = out of
    *                                         range or no active tab
+   * @param {Function} [opts.onBookmarkOpenNamed] (term) => string|null —
+   *                                         open first bookmark matching term
+   * @param {Function} [opts.onHistoryOpenNamed] (term) => string|null —
+   *                                         open first history hit matching term
    * @param {Function} [opts.onHistoryOpen] (index: number) => string|null —
    *                                         open the Nth history entry; same
    * @param {Function} [opts.onReaderLine] (line: number) => number|'out'|null —
@@ -1103,7 +1169,8 @@ export class VoiceCommands {
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
-    onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine,
+    onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen,
+    onBookmarkOpenNamed, onHistoryOpenNamed, onReaderLine,
     onBookmarkList, onHistoryList, onCopyTitle,
     onReadHere, onTopSiteOpen, onHistorySearch,
     onReaderScroll, onReaderProgress,
@@ -1163,6 +1230,12 @@ export class VoiceCommands {
     }
     if (onHistoryOpen) {
       this._onHistoryOpen = onHistoryOpen;
+    }
+    if (onBookmarkOpenNamed) {
+      this._onBookmarkOpenNamed = onBookmarkOpenNamed;
+    }
+    if (onHistoryOpenNamed) {
+      this._onHistoryOpenNamed = onHistoryOpenNamed;
     }
     if (onReaderLine) {
       this._onReaderLine = onReaderLine;
@@ -2012,6 +2085,29 @@ export class VoiceCommands {
       description: 'Move the tab at a strip position'
     });
 
+    // Open a saved entry by NAME — the bookmark/history-select atoms'
+    // natural-language sibling ('open bookmark news' / 'ブックマークのニュース
+    // を開いて'). Registered BEFORE go-to: its `を開く`/`open X` catch-all
+    // owns these shapes (verified by dispatch check).
+    const openNamed = (name, kind, field, jpPattern, enPattern) =>
+      this.registerCommand(name, {
+        patterns: [jpPattern, enPattern],
+        action: (transcript) => {
+          const m = transcript.match(jpPattern) || transcript.match(enPattern);
+          const term = m ? m[1].trim() : '';
+          const title = this[field] ? this[field](term) : null;
+          this.speak(title
+            ? `「${title}」を開きます`
+            : `「${term}」に一致する${kind}がありません`);
+          return { action: name, term, title };
+        },
+        description: `Open a ${kind} entry by name`
+      });
+    openNamed('open-bookmark-named', 'ブックマーク', '_onBookmarkOpenNamed',
+      /ブックマークの(.+)を開いて/, /open bookmark (.+)/i);
+    openNamed('open-history-named', '履歴', '_onHistoryOpenNamed',
+      /履歴の(.+)を開いて/, /open history (.+)/i);
+
     // REGISTERED LAST ON PURPOSE: its `を開く` / `open X` capture is greedy and
     // would otherwise swallow more specific commands (e.g. "キーボードを開く"
     // → keyboard toggle). processCommand matches in registration order and
@@ -2304,6 +2400,57 @@ export class VoiceCommands {
       },
       description: 'Reload every open tab'
     });
+    // tab-by-name — switch by title/url substring instead of position
+    // ('tab named news'/'ニュースのタブ' — VoiceOver 'tab by name' parity).
+    // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
+    // 'ピン留めのタブ' otherwise.
+    this.registerCommand('tab-by-name', {
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン))(.+)のタブ(?!を|に|は|のタイトル)/,
+        /^tab (?:named|called) (.+)$/i,
+        /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
+      action: (transcript) => {
+        const m = transcript.match(/^(.+)のタブ/) ||
+          transcript.match(/^tab (?:named|called) (.+)$/i) ||
+          transcript.match(/^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i);
+        const term = (m ? m[1] : '').toLowerCase().trim();
+        const tabs = tabManager?.tabs || [];
+        const i = tabs.findIndex((t) => {
+          const hay = `${t.currentTitle || ''} ${t.currentUrl || ''}`.toLowerCase();
+          return term && hay.includes(term);
+        });
+        if (i < 0) {
+          this.speak(`「${term}」のタブがありません`);
+          return { action: 'tab-by-name', index: -1 };
+        }
+        tabManager.setActive(i);
+        const p = tabs[i];
+        this.speak(`タブ${i + 1}に切り替えました。${p.currentTitle || p.currentUrl}`);
+        return { action: 'tab-by-name', index: i };
+      },
+      description: 'Switch to a tab by title or URL'
+    });
+    // describe-tab — the richer sibling of title/tab-status: index, title,
+    // load state, privacy and pin flags in one line.
+    this.registerCommand('describe-tab', {
+      patterns: ['このタブについて', 'タブの状態', /describe (the )?tab/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        const i = tabManager?.activeIndex ?? -1;
+        const p = i >= 0 ? tabs[i] : null;
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'describe-tab' };
+        }
+        const title = p.currentTitle || p.currentUrl || 'タイトルなし';
+        const state = p.loading ? '読み込み中' : '読み込み完了';
+        const flags = [p.isPrivate ? 'プライベート' : '', p.pinned ? 'ピン留め' : '']
+          .filter(Boolean).join('・');
+        this.speak(`タブ${i + 1}（全${tabs.length}）。${title}。${state}` +
+          `${flags ? `。${flags}` : ''}`);
+        return { action: 'describe-tab', index: i };
+      },
+      description: 'Describe the active tab'
+    });
     this.registerCommand('tab-select', {
       patterns: [/タブ([0-9]+)/, /tab ([0-9]+)/i],
       action: (transcript) => {
@@ -2581,6 +2728,25 @@ export class VoiceCommands {
       ['履歴は何件', '履歴は何個', '履歴の数', '履歴はいくつ',
         /how many (history|entries)/i, /history count/i],
       'Announce the history count');
+
+    // stop-everything — the emergency atom: halt narration AND immersive
+    // video in one phrase (stop-reading only covers TTS, video-stop only
+    // video). Each half reports what it actually stopped.
+    this.registerCommand('stop-everything', {
+      patterns: ['すべて止めて', '全部止めて', 'すべてを止めて',
+        /stop everything/i, /stop all/i],
+      action: () => {
+        const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
+        if (this.synthesis?.cancel) {
+          this.synthesis.cancel();
+        }
+        const stoppedVideo = onVideoStop ? onVideoStop() : false;
+        this.speak(speaking || stoppedVideo
+          ? 'すべて停止しました' : '止めるものはありません');
+        return { action: 'stop-everything', speaking, video: stoppedVideo };
+      },
+      description: 'Stop narration and video'
+    });
 
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
