@@ -392,6 +392,27 @@ export class TabManager {
   }
 
   /**
+   * Duplicate the active tab into a new one (Chrome's "Duplicate tab"). The
+   * copy inherits the source's privacy flag *before* navigating so a private
+   * tab's URL can never reach history through duplication.
+   * @returns {WebPanel|null} the new tab, or null when there is no active
+   *   URL to copy or MAX_TABS was reached
+   */
+  duplicateTab() {
+    const active = this.getActiveTab();
+    if (!active || !active.currentUrl) {
+      return null;
+    }
+    const dup = this.newTab();
+    if (!dup) {
+      return null;
+    }
+    dup.isPrivate = active.isPrivate;
+    dup.navigate(active.currentUrl);
+    return dup;
+  }
+
+  /**
    * Reopen the most recently closed non-private tab (Ctrl+Shift+T). The URL
    * is only popped once the new tab is actually created, so a MAX_TABS block
    * doesn't lose the entry. Returns the reopened URL, or null when the stack

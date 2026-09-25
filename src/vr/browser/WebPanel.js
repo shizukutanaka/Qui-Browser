@@ -576,6 +576,41 @@ export class WebPanel {
   }
 
   /**
+   * Jump the reader viewport to an absolute line offset — the Home/End atoms
+   * desktop browsers get from the keyboard. Same clamp + repaint discipline
+   * as scrollContent.
+   * @param {number} line target first-visible line
+   * @returns {boolean} true when the offset actually moved
+   */
+  scrollContentTo(line) {
+    if (this._contentState !== 'reader') {
+      return false;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    const next = clampReaderScroll(
+      Number.isFinite(line) ? line : 0,
+      this._readerLines.length,
+      visible
+    );
+    if (next === this._readerScroll) {
+      return false;
+    }
+    this._readerScroll = next;
+    this._drawContent();
+    return true;
+  }
+
+  /** Jump to the first line of the article. */
+  scrollToTop() {
+    return this.scrollContentTo(0);
+  }
+
+  /** Jump to the last page of the article. */
+  scrollToBottom() {
+    return this.scrollContentTo(this._readerLines.length);
+  }
+
+  /**
    * Point the reader at a companion proxy (or back to direct fetch with '').
    *
    * Live-settable because the proxy-URL settings control applies immediately —

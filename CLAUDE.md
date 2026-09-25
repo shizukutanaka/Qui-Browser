@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 77: 登録済みだが未配線だった原子を通す — 音量・Home/End・複製・ページ単位ブックマーク
+外部基準: Chrome の "Duplicate tab" コンテキストメニュー、デスクトップ共通の Home/End ジャンプと Ctrl+D、そして実装中に発見した実害 — **登録済みコマンドが no-op スタブ**という状態は voice-first UI では「コマンドが存在するのに応答がない」最悪のパターン。
+- 🐛 **`volume-up`/`volume-down` は何も動かしていなかった**: `// Would adjust volume` コメント付きのスタブ。`onVolume(±0.1)` フックを追加し、`masterVolume` 設定と同じ経路（0–100 クランプ → `updateSetting` 永続化 → `spatialAudio.setMasterVolume` → キャプション `音量: N%`）へ接続。没入中に設定パネルへ戻らず音量を変えられる —— 音声コマンドの本筋。
+- ✨ **リーダー Home/End**: `scrollContentTo(line)`（`scrollContent` と同じ clamp+`_drawContent` 再描画）+ `scrollToTop()`/`scrollToBottom()`。リーダー viewport は VR 唯一のスクロール面なのでジャンプコマンドの行き先は一意 —— voice `scroll-top`/`scroll-bottom`（'先頭へ'/'末尾へ'/'一番上'/'一番下'/EN regex）。
+- ✨ **タブ複製** `duplicateTab()`: **コピーは `navigate` 前に `isPrivate` を継承** —— private タブをモード OFF 後に複製しても URL が履歴に漏れない（スタブは navigate 時点の flag を記録してテストで順序を固定）。voice 'タブを複製'/'タブをコピー'/'複製'。
+- ✨ **ページ単位ブックマーク**（Ctrl+D 原子）: voice `bookmark-page`（'このページをブックマーク'/'ブックマークに追加'/'ブックマークする'/'ページを保存'/EN）→ `onBookmarkPage` → 抽出した `_toggleBookmark`（chrome スターボタンと同一の toggle+キャプション経路）。bare 'ブックマーク' は従来通りパネルトグル（完全一致マッチで衝突しないことをテストで固定）。
+- 🔧 `_toggleBookmark(url,title)` を抽出（chrome star と voice が同一路径）。
+- ✅ **テスト +20（git stash で17件の赤を確認してから緑へ）**: scrollContentTo の絶対ジャンプ/clamp/移動なし時の再描画スキップ/reader 外での no-op、複製の private 継承順序、onVolume ±0.1/未配線安全、scroll/bookmark 各コマンドのルーティング、bare 'ブックマーク' がパネルトグルのままであること。Total 1593 tests (51 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 76: タブ操作面をハンズフリー化 — 閉じたタブの再オープン + 音声タブコマンド7個
 外部基準: デスクトップ3ブラウザ共通の Ctrl+Shift+T（閉じたタブを開き直す）と Ctrl+Tab ラップアラウンド巡回、Wolvic UI-evolution の「タブは MRU 順」という配置判断（到達経路をモードに合わせる — voice ファースト UI ではショートカットの代替はコマンドである）。
 - ✨ **閉じたタブの再オープン**: `TabManager._closedStack`（LIFO・10件上限 — Chrome/Firefox の recently-closed と同じ予算）+ `reopenClosedTab()`。**private/空タブは記録しない** — incognito URL がスタック経由で復活しない設計（セッション直列化と同じ規則）。MAX_TABS 拒否時は pop せずエントリを保持。

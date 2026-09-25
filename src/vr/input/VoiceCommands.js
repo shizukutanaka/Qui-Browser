@@ -16,6 +16,12 @@ export class VoiceCommands {
     this.commands = new Map();
     this.aliases = new Map();
 
+    // Optional volume-change handler (0..1 gain delta). The volume-up/down
+    // commands are registered unconditionally (they exist regardless of a
+    // browser surface), but they only move a real control once the host wires
+    // this via connectBrowser({ onVolume }).
+    this._onVolume = null;
+
     // Language settings
     this.language = 'ja-JP'; // Japanese default
     this.fallbackLanguage = 'en-US';
@@ -368,11 +374,15 @@ export class VoiceCommands {
     // overwritten anyway (registerCommand is a Map.set, so the later
     // connectBrowser registration always won once it ran).
 
-    // Volume control
+    // Volume control — drives the host's onVolume handler once wired
+    // (master-volume stepper); without a handler the commands still confirm
+    // but move nothing, same as before.
     this.registerCommand('volume-up', {
       patterns: ['音量上げる', '音量アップ', 'ボリュームアップ'],
       action: () => {
-        // Would adjust volume
+        if (this._onVolume) {
+          this._onVolume(0.1);
+        }
         return { action: 'volume', change: 0.1 };
       },
       confirmationText: '音量を上げます',
@@ -382,7 +392,9 @@ export class VoiceCommands {
     this.registerCommand('volume-down', {
       patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン'],
       action: () => {
-        // Would adjust volume
+        if (this._onVolume) {
+          this._onVolume(-0.1);
+        }
         return { action: 'volume', change: -0.1 };
       },
       confirmationText: '音量を下げます',
@@ -503,9 +515,17 @@ export class VoiceCommands {
    * @param {Function} [opts.onTogglePrivateMode] () => void — toggle private mode;
    *                                         host flips the persisted setting and
    *                                         applies it to TabManager (decoupled like onGoTo)
+   * @param {Function} [opts.onVolume]     (delta: number) => void — ±0.1 master-volume
+   *                                         change for the volume-up/down commands
+   * @param {Function} [opts.onBookmarkPage] () => void — bookmark/unbookmark the
+   *                                         active page (Ctrl+D); host toggles the
+   *                                         store + announces cross-modally
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onTogglePrivateMode } = {}) {
+    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage } = {}) {
+    if (onVolume) {
+      this._onVolume = onVolume;
+    }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -712,6 +732,57 @@ export class VoiceCommands {
       },
       confirmationText: 'プライベートモードを切り替えます',
       description: 'Toggle private mode'
+    });
+
+    // Reader Home/End atoms — the reader viewport is the only scrollable
+    // surface in VR, so top/bottom jump commands target it directly.
+    this.registerCommand('scroll-top', {
+      patterns: ['先頭へ', '最初に戻る', 'ページの先頭', '一番上', /scroll (to )?top/i],
+      action: () => {
+        tabManager?.getActiveTab?.()?.scrollToTop?.();
+        return { action: 'scroll-top' };
+      },
+      confirmationText: '先頭へ移動します',
+      description: 'Jump to the top of the article'
+    });
+
+    this.registerCommand('scroll-bottom', {
+      patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', /scroll (to )?bottom/i],
+      action: () => {
+        tabManager?.getActiveTab?.()?.scrollToBottom?.();
+        return { action: 'scroll-bottom' };
+      },
+      confirmationText: '末尾へ移動します',
+      description: 'Jump to the bottom of the article'
+    });
+
+    // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
+    this.registerCommand('duplicate-tab', {
+      patterns: ['タブを複製', 'タブをコピー', '複製', /duplicate (this )?tab/i],
+      action: () => {
+        tabManager?.duplicateTab?.();
+        return { action: 'duplicate-tab' };
+      },
+      confirmationText: 'タブを複製します',
+      description: 'Duplicate the active tab'
+    });
+
+    // Bookmark the active page — hands-free Ctrl+D. The host owns the store
+    // toggle + cross-modal confirmation (decoupled like onClearHistory).
+    this.registerCommand('bookmark-page', {
+      patterns: [
+        'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
+        'ページを保存', /bookmark (this|this page|the page|page)/i,
+        /add (this|page) (to )?bookmarks?/i
+      ],
+      action: () => {
+        if (onBookmarkPage) {
+          onBookmarkPage();
+        }
+        return { action: 'bookmark-page' };
+      },
+      confirmationText: 'ブックマークを切り替えます',
+      description: 'Bookmark or unbookmark the active page'
     });
 
     // Bookmark panel toggle
