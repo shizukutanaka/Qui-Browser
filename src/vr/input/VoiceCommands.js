@@ -767,12 +767,63 @@ export class VoiceCommands {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab\b/i],
       action: () => {
         if (tabManager && tabManager.activeIndex >= 0) {
-          tabManager.closeTab(tabManager.activeIndex);
+          // Pinned tabs refuse closeTab (Chrome parity) — say so instead of
+          // claiming the close happened.
+          const closed = tabManager.closeTab(tabManager.activeIndex);
+          if (!closed) {
+            this.speak('ピン留めされたタブは閉じられません');
+            return { action: 'close-tab', closed: false };
+          }
+          this.speak('タブを閉じます');
+          return { action: 'close-tab' };
         }
-        return { action: 'close-tab' };
+        this.speak('タブがありません');
+        return { action: 'close-tab', closed: false };
       },
-      confirmationText: 'タブを閉じます',
       description: 'Close the active tab'
+    });
+
+    // Pin tab — Chrome "Pin tab" parity. Pinned tabs cluster at the strip's
+    // left edge and refuse every close path until unpinned.
+    this.registerCommand('pin-tab', {
+      patterns: ['タブをピン留め', 'ピン留め', 'このタブを固定', 'タブを固定',
+        'ピン留め解除', '固定を解除',
+        /pin (this |the )?tab/i, /unpin (this |the )?tab/i],
+      action: () => {
+        const state = tabManager?.togglePin?.(tabManager.activeIndex) || null;
+        if (state === null) {
+          this.speak('タブがありません');
+          return { action: 'pin-tab', state: null };
+        }
+        this.speak(state === 'pinned' ? 'タブをピン留めしました' : 'ピン留めを解除しました');
+        return { action: 'pin-tab', state };
+      },
+      description: 'Pin or unpin the active tab'
+    });
+
+    // Move tab — Chrome Ctrl+Shift+PageUp/PageDown. A move that would cross
+    // the pinned/unpinned boundary is refused (Chrome keeps the regions
+    // separate) and the command says so honestly.
+    this.registerCommand('move-tab-left', {
+      patterns: ['タブを左に移動', 'タブを左へ', 'タブを左に動かして',
+        /move (the |this )?tab left/i],
+      action: () => {
+        const moved = tabManager?.moveTab?.(tabManager.activeIndex, -1) || false;
+        this.speak(moved ? 'タブを移動しました' : 'タブをこれ以上移動できません');
+        return { action: 'move-tab-left', moved };
+      },
+      description: 'Move the active tab left'
+    });
+
+    this.registerCommand('move-tab-right', {
+      patterns: ['タブを右に移動', 'タブを右へ', 'タブを右に動かして',
+        /move (the |this )?tab right/i],
+      action: () => {
+        const moved = tabManager?.moveTab?.(tabManager.activeIndex, 1) || false;
+        this.speak(moved ? 'タブを移動しました' : 'タブをこれ以上移動できません');
+        return { action: 'move-tab-right', moved };
+      },
+      description: 'Move the active tab right'
     });
 
     this.registerCommand('next-tab', {
@@ -1206,6 +1257,24 @@ export class VoiceCommands {
       },
       confirmationText: 'ブックマークパネルを開きます',
       description: 'Toggle bookmarks panel'
+    });
+
+    // Open bookmarks — symmetric with the history open command: forces the
+    // bookmarks mode and only shows when not already visible (open≠toggle).
+    this.registerCommand('bookmarks-open', {
+      patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
+        /open (the )?bookmarks/i, /show (the )?bookmarks/i],
+      action: () => {
+        if (bookmarkPanel) {
+          bookmarkPanel.setMode?.('bookmarks');
+          if (!bookmarkPanel.visible) {
+            bookmarkPanel.show?.();
+          }
+        }
+        return { action: 'bookmarks-open' };
+      },
+      confirmationText: 'ブックマークを開きます',
+      description: 'Open the bookmarks panel'
     });
 
     // Keyboard toggle

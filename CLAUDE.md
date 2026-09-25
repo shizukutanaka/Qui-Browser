@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 84: タブストリップ原子その3 — ピン留め・タブ移動・ブックマークオープン
+外部基準: Chrome "Pin tab"（ピン済みは左端に集約・✕ ボタン無し・close 経路全拒否・Ctrl+W も不可）、Chrome Ctrl+Shift+PageUp/PageDown（タブ並べ替え、ピン/非ピン領域は分離）、履歴オープンとの対称（open≠toggle）。
+- ✨ **pinTab/unpinTab/togglePin**: `pinTab` はピン済みクラスタ末尾へスライド（2枚目以降が先頭を奪わない = Chrome の挙動）、`activeIndex` を追従。`closeTab` は `panel.pinned` で false 拒否 — 単発・closeOtherTabs・closeTabsToRight の全経路が同じルールを継承（Chrome で pinned は ✕ が無く Ctrl+W も効かないのと同型）。`togglePin` → 'pinned'/'unpinned'/null で voice が状態を告知。
+- ✨ **✕ を描かない＋ピン印**: pinned タブは ✕ ボックスを非描画（dead affordance を描く = 嘘を描くを回避）、代わりに ◈ グリフ（private dot と同スロット — 状態が色以外でも知覚可能 = 1.4.1）。
+- ✨ **moveTab(index,±1)**: Chrome Ctrl+Shift+PageUp/PageDown 準拠。隣接スワップで `activeIndex` を双方向追従、端とピン/非ピン境界は拒否（`!!pinned !== !!pinned` ガード）。voice `move-tab-left/right` → 'タブを移動しました'/'タブをこれ以上移動できません'。
+- ✨ **voice pin-tab**: 'タブをピン留め'/'ピン留め'/'このタブを固定'/'ピン留め解除'+EN → 状態別告知。`close-tab` は pinned 拒否時「ピン留めされたタブは閉じられません」と誠実告知（confirmationText の静的文言が嘘を吐かないよう action 内 speak 化）。
+- ✨ **bookmarks-open**: 'ブックマークを開いて'/'ブックマークを見て'+EN → `setMode('bookmarks')`+`show()`（visible なら hide しない — 履歴と同じ open≠toggle）。bare 'ブックマーク' は従来のトグルのまま。
+- ✅ **テスト +18（git stash で17件赤を確認してから緑へ）**: ピンの先端集約・activeIndex 追従・クラスタ末尾挿入・二重 pin/不当 unpin の no-op・togglePin 状態、closeTab 拒否・closeOther/Right の pinned スキップ、moveTab のスワップ・activeIndex 双方向追従・端拒否・境界拒否、voice の pin/move/close-pinned 告知、bookmarks-open の setMode+show・開いたままでは hide しない（stash 下でも緑の1件 — 呼び出し不存がそのままアサーションを満たす設計上の仕様）。Total 1715 tests (58 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 83: 音声からの設定操作＆ステータス原子 — キャプションサイズ・注視時間・音量/時刻告知
 外部基準: 音声のみのユーザーは没入中に設定パネルへ行けない（旗艦 a11y ノブが unreachable）、NVDA の Insert+F12（現在時刻）、スクリーンリーダーの "status" 問い合わせ。
 - ✨ **caption-size by voice**: `onCaptionScale(±0.25)` ホストフック — settings の `captionScale` stepper と同じ clamp(0.5–3.0)→`updateSetting` 永続化→`captionSystem.setScale` 適用。境界で null を返し、コマンドは「キャプションサイズはこれ以上大きく/小さくできません」と誠実告知。voice `caption-size-up/down`（'キャプションを大きく'/'キャプションを小さく'/'字幕を大きく'+EN）。

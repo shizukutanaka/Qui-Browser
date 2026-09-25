@@ -151,6 +151,13 @@ export class TabManager {
         ctx.arc(x + 14, c.height / 2, 5, 0, Math.PI * 2);
         ctx.fill();
       }
+      // Pinned tabs show a pin glyph in the same slot — the state must be
+      // perceivable without colour.
+      const pinnedDot = this.tabs[i].pinned ? 14 : 0;
+      if (pinnedDot) {
+        ctx.fillStyle = col.privateText;
+        ctx.fillText('◈', x + 14, c.height / 2);
+      }
 
       // Title
       ctx.fillStyle = active ? col.tabActiveText : col.tabInactiveText;
@@ -160,22 +167,26 @@ export class TabManager {
       const title = this.tabs[i].currentUrl
         ? this._shortTitle(this.tabs[i].currentUrl)
         : t('vr.tabs.newTab');
-      ctx.fillText(title, x + 14 + privateDot, c.height / 2,
-        Math.max(8, tabCloseZonePx(tabW).x0 - 20 - privateDot));
+      ctx.fillText(title, x + 14 + privateDot + pinnedDot, c.height / 2,
+        Math.max(8, tabCloseZonePx(tabW).x0 - 20 - privateDot - pinnedDot));
 
       // Close ✕ — drawn inside a small red box for discoverability.
       // Anchored to STRIP_CLOSE_PX, the same constant _onStripSelect's hit zone
       // uses, so the box the user aims at and the region that responds cannot
       // drift apart (the drawn box used to be 76px wide over a 36px hit zone).
       const closeZone = tabCloseZonePx(tabW);
-      const closeBtnX = x + closeZone.x0;
-      const closeBtnY = 10;
-      const closeBtnH = c.height - 20;
-      ctx.fillStyle = col.closeBg;
-      ctx.fillRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
-      ctx.fillStyle = col.closeText;
-      ctx.textAlign = 'center';
-      ctx.fillText('✕', closeBtnX + closeZone.w / 2, c.height / 2);
+      // Pinned tabs have no close affordance (Chrome parity) — closeTab
+      // refuses them, so drawing a dead button would be a lie.
+      if (!this.tabs[i].pinned) {
+        const closeBtnX = x + closeZone.x0;
+        const closeBtnY = 10;
+        const closeBtnH = c.height - 20;
+        ctx.fillStyle = col.closeBg;
+        ctx.fillRect(closeBtnX, closeBtnY, closeZone.w, closeBtnH);
+        ctx.fillStyle = col.closeText;
+        ctx.textAlign = 'center';
+        ctx.fillText('✕', closeBtnX + closeZone.w / 2, c.height / 2);
+      }
     }
 
     // PRIVATE chip between the tab area and "+" — a text label, so the mode
@@ -318,8 +329,10 @@ export class TabManager {
    */
   closeTab(index) {
     const panel = this.tabs[index];
-    if (!panel) {
-      return;
+    // Chrome's pinned tabs carry no close control — every close path
+    // (single, close-others, close-right) refuses them until unpinned.
+    if (!panel || panel.pinned) {
+      return false;
     }
 
     // Record the closed URL for the reopen stack before dispose() drops the
@@ -344,6 +357,7 @@ export class TabManager {
     if (this.opts.onTabClose) {
       this.opts.onTabClose();
     }
+    return true;
   }
 
   /**
@@ -404,8 +418,7 @@ export class TabManager {
     }
     let closed = 0;
     for (let i = this.tabs.length - 1; i >= 0; i--) {
-      if (i !== this.activeIndex) {
-        this.closeTab(i);
+      if (i !== this.activeIndex && this.closeTab(i)) {
         closed++;
       }
     }
@@ -424,10 +437,89 @@ export class TabManager {
     }
     let closed = 0;
     for (let i = this.tabs.length - 1; i > this.activeIndex; i--) {
-      this.closeTab(i);
-      closed++;
+      if (this.closeTab(i)) {
+        closed++;
+      }
     }
     return closed;
+  }
+
+  /**
+   * Reorder a tab by delta (Chrome Ctrl+Shift+PageUp/PageDown). Pinned and
+   * unpinned tabs live in separate strip regions, so a move that would cross
+   * the boundary is refused — matches Chrome, where a pinned tab can only
+   * move inside the pinned cluster.
+   * @returns {boolean} true when the tab moved
+   */
+  moveTab(index, delta = 1) {
+    const to = index + delta;
+    const panel = this.tabs[index];
+    if (!panel || to < 0 || to >= this.tabs.length || !!panel.pinned !== !!this.tabs[to].pinned) {
+      return false;
+    }
+    this.tabs.splice(index, 1);
+    this.tabs.splice(to, 0, panel);
+    if (this.activeIndex === index) {
+      this.activeIndex = to;
+    } else if (this.activeIndex === to) {
+      this.activeIndex = index;
+    }
+    this._drawStrip();
+    return true;
+  }
+
+  /**
+   * Pin a tab (Chrome "Pin tab"): pinned tabs cluster at the front of the
+   * strip and refuse closeTab. @returns {boolean} false when already pinned
+   * or the index is invalid.
+   */
+  pinTab(index) {
+    const panel = this.tabs[index];
+    if (!panel || panel.pinned) {
+      return false;
+    }
+    panel.pinned = true;
+    this.tabs.splice(index, 1);
+    let insertAt = 0;
+    while (insertAt < this.tabs.length && this.tabs[insertAt].pinned) {
+      insertAt++;
+    }
+    this.tabs.splice(insertAt, 0, panel);
+    if (this.activeIndex === index) {
+      this.activeIndex = insertAt;
+    } else if (this.activeIndex >= insertAt && this.activeIndex < index) {
+      this.activeIndex++;
+    }
+    this._drawStrip();
+    return true;
+  }
+
+  /**
+   * Unpin a tab — it stays where it is (the pinned cluster is already
+   * leftmost, so dropping the flag is enough). @returns {boolean}
+   */
+  unpinTab(index) {
+    const panel = this.tabs[index];
+    if (!panel || !panel.pinned) {
+      return false;
+    }
+    panel.pinned = false;
+    this._drawStrip();
+    return true;
+  }
+
+  /**
+   * Flip the pinned flag of the tab at index.
+   * @returns {'pinned'|'unpinned'|null} the new state, or null when invalid
+   */
+  togglePin(index) {
+    const panel = this.tabs[index];
+    if (!panel) {
+      return null;
+    }
+    return panel.pinned
+      ? (this.unpinTab(index), 'unpinned')
+      : (this.pinTab(index), 'pinned');
   }
 
   /**

@@ -274,6 +274,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**設定パネルに音声で届かない**~~ — **Session 83 で実装**: 音声のみのユーザーは没入中に設定パネルへ行けないため、旗艦 a11y ノブを voice に開放。`onCaptionScale(±0.25)`/`onDwellTime(±250)` ホストフック（stepper と同じ clamp→apply→persist、境界で null → コマンドは「これ以上大きくできません」と誠実告知）→ voice `caption-size-up/down`（'キャプションを大きく/小さく'+EN）、`dwell-time-up/down`（'注視時間を長く/短く'+EN）。`_onVolume` と同じ後付け配線パターン。
 - ~~**音量の現在地を聞けない**~~ — **Session 83 で実装**: `onVolume(0)` は無変化で undefined を返すため、`onVolumeStatus` 専用ゲッターを追加 → voice `volume-status`（'音量は'/'今の音量'/EN）が '音量はN%です' と告知。
 - ~~**現在時刻を聞けない**~~ — **Session 83 で実装**: NVDA Insert+F12 準拠。voice `time`（'今何時'/'現在の時刻'/'時間を教えて'+EN）→ '現在時刻はH時MM分です'（ホストフック不要）。
+- ~~**タブのピン留めがない**~~ — **Session 84 で実装**: Chrome "Pin tab" 準拠。`pinTab/unpinTab/togglePin` — ピン済みはストリップ左端に集約（新たなピンはクラスタ末尾へ）、`closeTab` は全経路（単発・他を閉じる・右を閉じる）で拒否→false、✕ ボタンも描画しない（dead affordance は描かない = 嘘を描かない）。`togglePin` は 'pinned'/'unpinned'/null を返す → voice `pin-tab`（'タブをピン留め'/'ピン留め解除'+EN）が状態に応じて告知。close-tab コマンドは pinned 拒否時「ピン留めされたタブは閉じられません」と誠実告知（confirmationText→action内speak 化）。
+- ~~**タブを並べ替えられない**~~ — **Session 84 で実装**: Chrome Ctrl+Shift+PageUp/PageDown 準拠。`moveTab(index,±1)` — 隣接スワップで activeIndex を追従、ピン/非ピン境界を跨ぐ移動は Chrome 同様拒否（領域分離維持）。voice `move-tab-left/right`（'タブを左/右に移動'+EN）→ 端・境界では「タブをこれ以上移動できません」。
+- ~~**ブックマークを直接開けない**~~ — **Session 84 で実装**: 履歴と対称。bare 'ブックマーク' は従来のトグルのまま、voice `bookmarks-open`（'ブックマークを開いて'/'ブックマークを見て'+EN）が `setMode('bookmarks')`+`show()`（既に開いていれば hide しない — open≠toggle）。
 
 ---
 
