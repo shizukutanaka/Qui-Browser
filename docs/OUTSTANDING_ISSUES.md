@@ -296,6 +296,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**利き手・スムーズ移動が音声で切り替えられない**~~ — **Session 89 で実装**: TOGGLE_KEYS に `southpaw`/`enableSmoothMove` を追加。voice `southpaw-toggle`（'利き手を左に/右に'/'left/right-handed' — 明示 want）→ '利き手を左/右にしました'；`smooth-move-toggle`（'スムーズ移動をオン/オフ'+EN）→ _applyToggle に enableSmoothMove ケース追加で前庭警告トーストも panel と同一路径。
 - ~~**読み上げピッチが変えられない**~~ — **Session 89 で実装**: NVDA pitch 制御準拠。`_speechPitch` 0.5–2.0 を全発話の `utterance.pitch` に適用 → voice `speech-pitch`（'声を高く/低く'/'pitch up/down' — ±0.25）→ 'ピッチ N倍'。
 - ~~**現在のURLが読み上げられない**~~ — **Session 89 で実装**: タイトルと対の1行告知原子。voice `read-url`（'URLを教えて'/'read the url'）→ active タブ currentUrl または「URLがありません」。
+- ~~**動画をシークできない**~~ — **Session 90 で実装**: YouTube J/L キー準拠。`ImmersiveVideo.seek(deltaSec)` が currentTime を [0,duration] にクランプ → `onVideoSeek` フック → voice `video-seek`（'10秒戻る'/'30秒進む'/'動画を戻して'/'seek forward'/'rewind' — 数値キャプチャ、既定±10秒）→ 'N秒戻りました/進みました'。go-back/go-forward の loose regex より前に登録（registerDefaultCommands の先頭 — '10秒戻る' が '戻る' に吸収される衝突をテストで実測捕捉）。
+- ~~**設定パネルが音声で開閉できない**~~ — **Session 90 で実装**: faceB/menu ボタンの開閉本体を `_setSettingsPanelVisible(want)` に抽出しボタンと `onSettingsPanel` フックが完全同一経路（visible 反転 + mesh + semanticDOM + caption）。voice `settings-toggle`（'設定を開いて/閉じて'/'設定パネル' — 明示方向またはトグル、go-to catch-all より前に登録）→ 結果の表示状態を告知（'設定を開きます'/'設定を閉じます'）。
+- ~~**全タブを一括で閉じられない**~~ — **Session 90 で実装**: Chrome "Close all tabs" 準拠。`closeAllTabs()` が後方イテレートで全タブを closeTab 経由で閉じる（private/空タブ非記録ルール完全一致、ピン留めは拒否して生存）→ voice `close-all-tabs`（'すべてのタブを閉じて'/'close all tabs'）→ 'N個のタブを閉じました。ピン留めM個は残ります'、全ピン/空は誠実告知。
 
 ---
 
