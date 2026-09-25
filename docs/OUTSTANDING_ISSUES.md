@@ -277,6 +277,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**タブのピン留めがない**~~ — **Session 84 で実装**: Chrome "Pin tab" 準拠。`pinTab/unpinTab/togglePin` — ピン済みはストリップ左端に集約（新たなピンはクラスタ末尾へ）、`closeTab` は全経路（単発・他を閉じる・右を閉じる）で拒否→false、✕ ボタンも描画しない（dead affordance は描かない = 嘘を描かない）。`togglePin` は 'pinned'/'unpinned'/null を返す → voice `pin-tab`（'タブをピン留め'/'ピン留め解除'+EN）が状態に応じて告知。close-tab コマンドは pinned 拒否時「ピン留めされたタブは閉じられません」と誠実告知（confirmationText→action内speak 化）。
 - ~~**タブを並べ替えられない**~~ — **Session 84 で実装**: Chrome Ctrl+Shift+PageUp/PageDown 準拠。`moveTab(index,±1)` — 隣接スワップで activeIndex を追従、ピン/非ピン境界を跨ぐ移動は Chrome 同様拒否（領域分離維持）。voice `move-tab-left/right`（'タブを左/右に移動'+EN）→ 端・境界では「タブをこれ以上移動できません」。
 - ~~**ブックマークを直接開けない**~~ — **Session 84 で実装**: 履歴と対称。bare 'ブックマーク' は従来のトグルのまま、voice `bookmarks-open`（'ブックマークを開いて'/'ブックマークを見て'+EN）が `setMode('bookmarks')`+`show()`（既に開いていれば hide しない — open≠toggle）。
+- ~~**ページ内検索のヒットが見えない**~~ — **Session 85 で実装**: Chrome Ctrl+F 準拠（現在ヒット=橙・他=黄）。`_markFindHits` がマッチ行を 'current'/'other' にタグ付け（タグは laid-out 行オブジェクト上に持つため、再レイアウトで自然に消える）、`_drawReader` が行背景に `col.findCurrent`/`col.findHit` を描画。findNext/Prev で current が追従。
+- ~~**記事の文字サイズが音声で変えられない**~~ — **Session 85 で実装**: WCAG 1.4.4 — 音声のみのユーザーは readerTextScale stepper に届かない。`onReaderScale(±0.25)` ホストフック（stepper と同じ clamp(0.5–2.0)→`updateSetting`→`tabManager.setReaderScale`、境界で null）→ voice `reader-size-up/down`（'記事の文字を大きく/小さく'+EN）→ '記事の文字サイズ N倍'/「これ以上大きくできません」。
+- ~~**発話速度を数値指定できない**~~ — **Session 85 で実装**: NVDA の rate 値設定準拠 — ±0.25 ステップの往復ではなく直接指定。voice `speech-rate-set`（'読み上げ速度2倍'/EN 'speech rate to 1.5'）→ `setSpeechRate`（clamp）→ '読み上げ速度 N倍'。
 
 ---
 

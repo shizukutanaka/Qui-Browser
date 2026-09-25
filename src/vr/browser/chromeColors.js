@@ -113,6 +113,10 @@ export function webContentColors(highContrast = false) {
       arrowActiveText: '#ffffff',
       arrowIdleBg:     '#222222',
       arrowIdleText:   '#aaccee',
+      // Find-in-page markers (Chrome Ctrl+F: current match orange,
+      // other matches yellow) — drawn as the line's background box.
+      findCurrent:     '#ffaa00',
+      findHit:         'rgba(255,230,80,0.35)',
       tileBg:          '#222222',
       tileBorder:      '#ffffff',
       tileText:        '#ffffff'
@@ -129,6 +133,9 @@ export function webContentColors(highContrast = false) {
     arrowActiveText: '#aabbff',
     arrowIdleBg:     'rgba(30,35,55,0.6)',
     arrowIdleText:   '#727f96',
+    // Find-in-page markers — Chrome's orange current / yellow rest.
+    findCurrent:     '#ff9632',
+    findHit:         'rgba(255,214,90,0.45)',
     tileBg:          '#2a2a4a',
     tileBorder:      '#7d88bd',
     tileText:        '#e0e0ff'
