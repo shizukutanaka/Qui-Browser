@@ -3212,7 +3212,31 @@ export class VRApp {
             this.tabManager?.getActiveTab?.()?.paragraphStatus?.() ?? null,
           // Article character count — the reading-time numerator as status.
           onCharCount: () =>
-            this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null
+            this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null,
+          // NVDA "read current paragraph" — read-aloud's block-scoped sibling.
+          onReadParagraph: () =>
+            this.tabManager?.getActiveTab?.()?.getParagraphNarration?.() ?? [],
+          // Line position without moving — lineStatus parity.
+          onLineStatus: () =>
+            this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,
+          // Strip-level status: {index,total} of the strip, privacy/pin flags
+          // of the active tab — status-query atoms.
+          onTabStatus: () => {
+            const tm = this.tabManager;
+            const total = tm?.tabs?.length ?? 0;
+            if (!total) {
+              return null;
+            }
+            return { index: (tm.activeIndex ?? 0) + 1, total };
+          },
+          onPrivacyStatus: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active ? !!active.isPrivate : null;
+          },
+          onPinStatus: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active ? !!active.pinned : null;
+          }
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

@@ -57,6 +57,11 @@ export class VoiceCommands {
     this._onParagraphSelect = null;
     this._onParagraphStatus = null;
     this._onCharCount = null;
+    this._onReadParagraph = null;
+    this._onLineStatus = null;
+    this._onTabStatus = null;
+    this._onPrivacyStatus = null;
+    this._onPinStatus = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -867,6 +872,15 @@ export class VoiceCommands {
    *                                         {index:number,total:number}|null
    * @param {Function} [opts.onCharCount] () => number|null —
    *                                         total article character count
+   * @param {Function} [opts.onReadParagraph] () => string[] — narration chunks
+   *                                         for the paragraph under the scroll
+   * @param {Function} [opts.onLineStatus] () => {index:number,total:number}|null
+   * @param {Function} [opts.onTabStatus] () => {index:number,total:number}|null —
+   *                                         strip position
+   * @param {Function} [opts.onPrivacyStatus] () => boolean|null —
+   *                                         active tab private?
+   * @param {Function} [opts.onPinStatus] () => boolean|null —
+   *                                         active tab pinned?
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -890,7 +904,8 @@ export class VoiceCommands {
     onReaderScroll, onReaderProgress,
     onBookmarkSearch, onFindMatch, onRemainingTime,
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
-    onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount } = {}) {
+    onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
+    onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -998,6 +1013,21 @@ export class VoiceCommands {
     }
     if (onCharCount) {
       this._onCharCount = onCharCount;
+    }
+    if (onReadParagraph) {
+      this._onReadParagraph = onReadParagraph;
+    }
+    if (onLineStatus) {
+      this._onLineStatus = onLineStatus;
+    }
+    if (onTabStatus) {
+      this._onTabStatus = onTabStatus;
+    }
+    if (onPrivacyStatus) {
+      this._onPrivacyStatus = onPrivacyStatus;
+    }
+    if (onPinStatus) {
+      this._onPinStatus = onPinStatus;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2373,6 +2403,74 @@ export class VoiceCommands {
         return { action: 'char-count', chars };
       },
       description: 'Announce the article character count'
+    });
+
+    // Read the paragraph under the scroll — NVDA "read current paragraph"
+    // parity; read-aloud's block-scoped sibling. readAloud handles the
+    // empty-list (title region / no article) announce itself.
+    this.registerCommand('read-paragraph', {
+      patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
+        /read (the )?(current )?paragraph/i],
+      action: () => {
+        const chunks = this._onReadParagraph ? this._onReadParagraph() : [];
+        this.readAloud(chunks);
+        return { action: 'read-paragraph', chunks: chunks.length };
+      },
+      description: 'Read the current paragraph aloud'
+    });
+
+    // Line position without moving — find-status's line sibling.
+    this.registerCommand('line-status', {
+      patterns: ['何行目', '現在何行目', '行番号', /line (number|position)/i],
+      action: () => {
+        const res = this._onLineStatus ? this._onLineStatus() : null;
+        this.speak(res ? `現在${res.index}行目（全${res.total}行）`
+          : '記事を開いていません');
+        return { action: 'line-status', res };
+      },
+      description: 'Announce the current line number'
+    });
+
+    // Strip position — tabs-list announces the titles; this answers the
+    // "where am I in the strip" question.
+    this.registerCommand('tab-status', {
+      patterns: ['タブは何個', '何個のタブ', '何番目のタブ', 'タブの位置',
+        /how many tabs/i, /which tab/i, /tab (count|position)/i],
+      action: () => {
+        const res = this._onTabStatus ? this._onTabStatus() : null;
+        this.speak(res ? `${res.total}個のタブの${res.index}枚目を表示中`
+          : 'タブがありません');
+        return { action: 'tab-status', res };
+      },
+      description: 'Announce the tab strip position'
+    });
+
+    // Privacy / pin status — honest answers to state questions the
+    // private-mode toggle and pin commands can change. Phrasings stay
+    // unambiguous: 'プライベートモード'/'プライベートタブ'/'ピン留め' are
+    // owned by private-mode / private-tab / pin-tab respectively.
+    this.registerCommand('privacy-status', {
+      patterns: ['プライベートかどうか', /private mode (status|on|off)/i,
+        /is (this|it) private/i],
+      action: () => {
+        const priv = this._onPrivacyStatus ? this._onPrivacyStatus() : null;
+        this.speak(priv === null ? 'タブがありません'
+          : priv ? 'プライベートタブです' : '通常のタブです');
+        return { action: 'privacy-status', priv };
+      },
+      description: 'Announce whether the active tab is private'
+    });
+
+    this.registerCommand('pin-status', {
+      patterns: ['ピンされてますか', 'ピンがありますか',
+        /is (this|it|the tab) pinned/i, /pin(ned)? status/i],
+      action: () => {
+        const pinned = this._onPinStatus ? this._onPinStatus() : null;
+        this.speak(pinned === null ? 'タブがありません'
+          : pinned ? 'ピン留めされています' : 'ピン留めされていません');
+        return { action: 'pin-status', pinned };
+      },
+      description: 'Announce whether the active tab is pinned'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
