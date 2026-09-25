@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 109: 問い合わせ/集合原子 — タブ索引タイトル・ピン選択・全リロード・数値音量・声一覧・件数・スコープヘルプ
+外部基準: VoiceOver 'tab N name'（切替の報告双子）、Chrome 'Reload all' 拡張、'volume to N' 数値指定、NVDA 音声リスト、Voice Access 'what can I say about X'。**全コマンドがセルフコンテインド**（tabManager 直接参照 or 既存フック再利用 — 新規 VRApp 配線ゼロ）。
+- ✨ **tab-title-n**: 'タブNのタイトル'/'title of tab N' → 'タブNのタイトルは「X」です'/'タブNはありません' — `setActive` しない報告双子。**実測捕捉の衝突**: tab-select の `/タブ(\d+)/` 接頭一致が 'タブNのタイトル' を所有 → tab-select より前に登録（'タブ2' plain 選択は共存テストで保護）。
+- ✨ **pin-select**: 'ピン留めのタブ'/'pinned tab' → `tabs.findIndex(t=>t.pinned)` → `setActive` → 'タブNに切り替えました'/'ピン留めされたタブがありません'（ピン済みは左クラスタのため 'the pinned tab' は一意）。
+- ✨ **reload-all**: 'すべて再読み込み'/'reload all tabs' → 各パネル自身の `reload()`（URL ガード内蔵で空タブは no-op）→ 'N個のタブを再読み込みしました'。
+- ✨ **volume-set**: '音量をN%に'/'volume to N' → `_onVolumeStatus`+`_onVolume` 再利用で delta 正確計算（同一 clamp/apply/永続化経路）→ '音量をN%にしました'/'音量を変更できません'。
+- ✨ **voice-list**: '声一覧'/'voice list' → `synthesis.getVoices()` → 'N個の声。X、Y…、他M件'（5件cap）— select-voice の一覧双子で盲目サイクル不要。
+- ✨ **count 双子**: 'ブックマークは何個'/'how many bookmarks' → 'N個のブックマークがあります'、'履歴は何件'/'history count' → 'N件の履歴があります'（`_onBookmarkList`/`_onHistoryList` の遅延フィールド参照で再バインド安全）。
+- ✨ **scoped-help**: 'Xについて教えて'/'help X' → name/description/リテラル pattern でレジストリ絞込 → '「X」のコマンドはN個です。…'（8件cap）/'「X」のコマンドはありません'。constructor 登録だが `this.commands` は Map 参照で connectBrowser 後の全コマンドを含む。
+- ✅ **テスト +14（git stash で13件赤確認 — 1件は共存ガードで設計上緑）**: 'title of tab 3' は OOR announce が tab-select と同文で弱い断言 → 'title of tab 1' の非切替+フレーズ断言に修正。Total 2154 tests (83 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 108: サマリ/音声設定原子 — VoiceOver ローター・現在見出し・感度/ウェイクワード
 外部基準: VoiceOver ローターサマリ（'describe page' — 構造の概数告知）、NVDA read-current-heading、reading-progress の文版、voice 層自身の設定面（感度・ウェイクワード — host フック不要のセルフコンテインド双子）。
 - ✨ **article-summary**: `getArticleSummary()` → {title,headings,paragraphs,chars} → 'この記事について'/'記事の概要'/'describe page'/'page info' → 'タイトル「X」。見出しN個、段落M個、C文字です'/'記事を開いていません'。

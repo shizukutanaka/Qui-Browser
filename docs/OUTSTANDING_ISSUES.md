@@ -363,6 +363,13 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**今どの見出しの下にいるか聞けない**~~ — **Session 108 で実装**: NVDA read-current-heading 準拠。`headingHere()`（`_headingStarts` の scroll 以下最終スタート → {index,total,text} — headingAt の報告版で動かない）→ voice `heading-here`（'この見出し'/'現在の見出し'/'current heading'）→ 'N番目の見出し（全M）。X'/'見出しがありません'/'記事を開いていません'。
 - ~~**残りの文数を聞けない**~~ — **Session 108 で実装**: reading-progress の文版。`sentence-status` 面（{index,total}）を再利用して不一致不可 → voice `sentences-left`（'あと何文'/'残りの文は'/'sentences left'）→ 'あとN文です'/'最後の文です'/'記事を開いていません'。
 - ~~**認識感度とウェイクワードを音声で変えられない**~~ — **Session 108 で実装**: voice 層自身の設定面（`settings.sensitivity` = handleRecognitionResult の confidence 閾値、`requireWakeWord`/`isAwake`）は host フック不要のセルフコンテインド双子。voice `sensitivity-up`/`sensitivity-down`（'感度を上げて|下げて'/'sensitivity up|down' → ±0.1 clamp 0–1 → '認識感度はNです'/'これ以上…できません'）、`wake-word-toggle`（'ウェイクワードをオン|オフ' → オフで即 wake、オンで再 sleep）。
+- ~~**タブNの名前を切り替えずに聞けない**~~ — **Session 109 で実装**: VoiceOver 'tab N name' 準拠（tab-select の報告双子）。voice `tab-title-n`（'タブNのタイトル'/'title of tab N'）→ 'タブNのタイトルは「X」です'/'タブNはありません' — tabManager 直接参照で `setActive` しない。**実測捕捉の衝突**: tab-select の `/タブ(\d+)/` 接頭一致が 'タブNのタイトル' を所有 → tab-select より前に登録（'タブ2' の plain 選択は共存テストで保護）。
+- ~~**ピン留めタブに直接飛べない**~~ — **Session 109 で実装**: pin/unpin の選択双子（ピン済みは左クラスタのため 'the pinned tab' は一意）。voice `pin-select`（'ピン留めのタブ'/'pinned tab'）→ `tabs.findIndex(t=>t.pinned)` → `setActive` → 'タブNに切り替えました'/'ピン留めされたタブがありません'。
+- ~~**全タブを再読み込みできない**~~ — **Session 109 で実装**: Chrome 'Reload all' 拡張準拠。voice `reload-all`（'すべて再読み込み'/'すべてのタブを再読み込み'/'reload all tabs'）→ 各パネル自身の `reload()`（URL ガード内蔵で空タブは no-op）→ 'N個のタブを再読み込みしました'。
+- ~~**音量を数値で指定できない**~~ — **Session 109 で実装**: volume-up/down の数値双子（'volume to 50' 準拠）。voice `volume-set`（'音量をN%に'/'volume to N'）→ `_onVolumeStatus`+`_onVolume` 再利用で delta 正確計算 → '音量をN%にしました'/'音量を変更できません'。
+- ~~**利用可能な声を聞けない**~~ — **Session 109 で実装**: NVDA 音声リスト準拠（select-voice の一覧双子）。voice `voice-list`（'声一覧'/'voice list'）→ `synthesis.getVoices()` → 'N個の声。X、Y…、他M件'（5件cap）/'読み上げ音声が利用できません'。
+- ~~**ブックマーク/履歴の件数だけ聞けない**~~ — **Session 109 で実装**: list コマンドの count 面（'how many' で全リストは不要）。voice `bookmark-count`（'ブックマークは何個'/'how many bookmarks' → 'N個のブックマークがあります'）、`history-count`（'履歴は何件'/'history count' → 'N件の履歴があります'）。
+- ~~**話題のコマンドだけ教えてもらえない**~~ — **Session 109 で実装**: Voice Access 'what can I say about X' 準拠。voice `scoped-help`（'Xについて教えて'/'help X'）→ name/description/リテラル pattern でレジストリ絞込 → '「X」のコマンドはN個です。…'（8件cap）/'「X」のコマンドはありません' — 'Xについて検索' は web-search の別句で非衝突。
 
 
 ---

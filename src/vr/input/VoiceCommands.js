@@ -657,6 +657,27 @@ export class VoiceCommands {
       },
       description: 'Announce the current volume'
     });
+    // volume-set — the numeric twin of volume-up/down ('volume to 50'):
+    // same hook, delta computed from the status surface so the result is
+    // exact. Honest without a host hook.
+    this.registerCommand('volume-set', {
+      patterns: [/音量を?(\d+)(%|パーセント)?に?/, /volume (to |at )?(\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const target = Math.min(100, Math.max(0, m ? parseInt(m[1], 10) : 0));
+        const cur = this._onVolumeStatus ? this._onVolumeStatus() : null;
+        if (cur === null || cur === undefined) {
+          this.speak('音量を変更できません');
+          return { action: 'volume-set', volume: null };
+        }
+        if (this._onVolume) {
+          this._onVolume((target - cur) / 100);
+        }
+        this.speak(`音量を${target}%にしました`);
+        return { action: 'volume-set', volume: target };
+      },
+      description: 'Set the volume to an absolute percent'
+    });
 
     // Settings-by-voice: the caption-size and gaze-dwell steppers are the
     // flagship a11y knobs and a voice-only user cannot reach the settings
@@ -781,6 +802,25 @@ export class VoiceCommands {
       description: 'Cycle the narration voice'
     });
 
+    // voice-list — select-voice's list twin (NVDA voice list parity): hear
+    // the available voices without cycling through them blindly.
+    this.registerCommand('voice-list', {
+      patterns: ['声一覧', '声の一覧', '利用可能な声',
+        /voice list|list voices|available voices/i],
+      action: () => {
+        const voices = this.synthesis?.getVoices?.() || [];
+        if (!voices.length) {
+          this.speak('読み上げ音声が利用できません');
+          return { action: 'voice-list', count: 0 };
+        }
+        const shown = voices.slice(0, 5).map((v) => v.name).join('、');
+        const more = voices.length > 5 ? `、他${voices.length - 5}件` : '';
+        this.speak(`${voices.length}個の声。${shown}${more}`);
+        return { action: 'voice-list', count: voices.length };
+      },
+      description: 'List the available narration voices'
+    });
+
     // Japanese IME
     this.registerCommand('ime-toggle', {
       patterns: ['日本語入力', '日本語モード', '入力切り替え'],
@@ -808,6 +848,35 @@ export class VoiceCommands {
         return { action: 'help', commands: commandList };
       },
       description: 'Show help'
+    });
+
+    // scoped-help — Voice Access 'what can I say about X' parity: filter the
+    // registry by a topic term instead of reading every phrase. Matches the
+    // term against each command's name, description and literal patterns.
+    this.registerCommand('scoped-help', {
+      patterns: [/(.+)について教えて/, /help (?:with |about )?(.+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(.+)について教えて/) ||
+          transcript.match(/help (?:with |about )?(.+)/i);
+        const term = (m ? m[1] : '').toLowerCase();
+        const hits = [];
+        for (const [name, cmd] of this.commands) {
+          const literals = (cmd.patterns || [])
+            .filter((p) => typeof p === 'string').join(' ');
+          const hay = `${name} ${cmd.description || ''} ${literals}`.toLowerCase();
+          if (term && hay.includes(term)) {
+            const ex = this._spokenExample(cmd);
+            if (ex) {
+              hits.push(ex);
+            }
+          }
+        }
+        this.speak(hits.length
+          ? `「${term}」のコマンドは${hits.length}個です。${hits.slice(0, 8).join('、')}`
+          : `「${term}」のコマンドはありません`);
+        return { action: 'scoped-help', term, count: hits.length };
+      },
+      description: 'Describe commands matching a topic'
     });
 
     // Stop listening
@@ -2179,6 +2248,62 @@ export class VoiceCommands {
     // position (Ctrl+9 → last). The voice equivalent: 'タブ3' / 'tab 3' and
     // '最後のタブ' / 'last tab'. Out-of-range announces honestly instead of
     // clamping (clamping would move the user somewhere they didn't ask for).
+    // tab-title-n — tab-select's reporting twin (VoiceOver 'tab N name'
+    // parity): answers 'what is tab N called' WITHOUT switching. Registered
+    // BEFORE tab-select: its /タブ(\d+)/ prefix match would absorb
+    // 'タブNのタイトル' (verified by dispatch check).
+    this.registerCommand('tab-title-n', {
+      patterns: [/タブ\s*(\d+)のタイトル/, /タブ\s*(\d+)は(何|なん)/,
+        /title of tab (\d+)/i, /tab (\d+) title/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        const p = tabs[n - 1];
+        if (!p) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'tab-title-n', title: null };
+        }
+        const title = p.currentTitle || p.currentUrl || 'タイトルなし';
+        this.speak(`タブ${n}のタイトルは「${title}」です`);
+        return { action: 'tab-title-n', title };
+      },
+      description: 'Announce the title of tab N'
+    });
+    // pin-select — jump to the first pinned tab (the read twin of pin/unpin:
+    // pinned tabs cluster at the strip's left, so 'the pinned tab' is
+    // unambiguous). Chrome's Ctrl+1..8 reaches them by position; voice needs
+    // the semantic name.
+    this.registerCommand('pin-select', {
+      patterns: ['ピン留めのタブ', 'ピンのタブ', /pinned tab/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        const i = tabs.findIndex((t) => t.pinned);
+        if (i < 0) {
+          this.speak('ピン留めされたタブがありません');
+          return { action: 'pin-select', index: -1 };
+        }
+        tabManager.setActive(i);
+        this.speak(`タブ${i + 1}に切り替えました`);
+        return { action: 'pin-select', index: i };
+      },
+      description: 'Switch to the first pinned tab'
+    });
+    // reload-all — reload every open tab (Chrome 'Reload all' extension
+    // parity). Each panel's own reload() keeps its URL guard, so a fresh
+    // empty tab is a no-op rather than an error.
+    this.registerCommand('reload-all', {
+      patterns: ['すべて再読み込み', '全部再読み込み', 'すべてのタブを再読み込み',
+        /reload all( tabs)?/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        tabs.forEach((t) => t.reload?.());
+        this.speak(tabs.length
+          ? `${tabs.length}個のタブを再読み込みしました` : 'タブがありません');
+        return { action: 'reload-all', count: tabs.length };
+      },
+      description: 'Reload every open tab'
+    });
     this.registerCommand('tab-select', {
       patterns: [/タブ([0-9]+)/, /tab ([0-9]+)/i],
       action: (transcript) => {
@@ -2434,6 +2559,28 @@ export class VoiceCommands {
     listCmd('history-list', '履歴', this._onHistoryList,
       ['履歴一覧', '履歴を読み上げ', /list\s+(my\s+)?history/i],
       'Read the history list');
+
+    // Count twins — the list commands' count-only surface (asking 'how many'
+    // shouldn't read the whole list). Field-accessed late-bound hooks.
+    const countCmd = (name, kind, unit, field, patterns, desc) =>
+      this.registerCommand(name, {
+        patterns,
+        action: () => {
+          const list = this[field] ? this[field]() : null;
+          const n = list ? list.length : 0;
+          this.speak(n ? `${n}${unit}の${kind}があります` : `${kind}がありません`);
+          return { action: name, count: n };
+        },
+        description: desc
+      });
+    countCmd('bookmark-count', 'ブックマーク', '個', '_onBookmarkList',
+      ['ブックマークは何個', 'ブックマークの数', 'ブックマークはいくつ',
+        /how many bookmarks/i, /bookmark count/i],
+      'Announce the bookmark count');
+    countCmd('history-count', '履歴', '件', '_onHistoryList',
+      ['履歴は何件', '履歴は何個', '履歴の数', '履歴はいくつ',
+        /how many (history|entries)/i, /history count/i],
+      'Announce the history count');
 
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
