@@ -792,6 +792,20 @@ export class WebPanel {
   }
 
   /**
+   * Estimated minutes to read the article — Edge/Safari "reading time"
+   * parity. ~500 chars/min is the standard Japanese silent-reading rate;
+   * latin text lands roughly on the same scale since words are denser.
+   */
+  getReadingTimeMinutes() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const chars = this._readerLines.reduce(
+      (n, l) => n + (l.text ? l.text.length : 0), 0);
+    return Math.max(1, Math.round(chars / 500));
+  }
+
+  /**
    * "Where am I" announce line: the page title plus the reader's current
    * line range when an article is showing. Screen-reader parity for the
    * orientation a sighted user gets free from the chrome bar.

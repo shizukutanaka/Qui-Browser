@@ -54,6 +54,9 @@ import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsL
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
 
+// Search engines offered by the settings cycle and the voice command.
+const SEARCH_ENGINES = ['duckduckgo', 'google', 'bing', 'ecosia'];
+
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
  * visible. Three.js raycasting does NOT walk parent-visibility, so hidden groups
@@ -1457,6 +1460,31 @@ export class VRApp {
   }
 
   /**
+   * High-contrast apply — shared by the settings toggle and the voice
+   * `onHighContrast` hook so both paths flip exactly the same surfaces:
+   * persisted pref, settings-panel repaint, bookmark-panel repaint,
+   * caption backing, and the gaze reticle.
+   */
+  _applyHighContrast(v) {
+    setPref('highContrast', v);
+    this._redrawSettingsPanel();
+    if (this.bookmarkPanel && this.bookmarkPanel.visible) {
+      this.bookmarkPanel._draw();
+    }
+    // Caption backing switches between semi-transparent (normal) and fully
+    // opaque (HC) — update live so the effect is immediate, not deferred
+    // until the next VR session restart.
+    if (this.captionSystem) {
+      this.captionSystem.setHighContrast(v);
+    }
+    // Gaze reticle ring: full opacity in HC so it is always visible
+    // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
+    if (this.gazeInteraction) {
+      this.gazeInteraction.setHighContrast(prefersHighContrast());
+    }
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -1469,22 +1497,7 @@ export class VRApp {
 
     const items = [
       [t('vr.settings.highContrast'), 'highContrast', (v) => {
-        setPref('highContrast', v);
-        this._redrawSettingsPanel();
-        if (this.bookmarkPanel && this.bookmarkPanel.visible) {
-          this.bookmarkPanel._draw();
-        }
-        // Caption backing switches between semi-transparent (normal) and fully
-        // opaque (HC) — update live so the effect is immediate, not deferred
-        // until the next VR session restart.
-        if (this.captionSystem) {
-          this.captionSystem.setHighContrast(v);
-        }
-        // Gaze reticle ring: full opacity in HC so it is always visible
-        // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setHighContrast(prefersHighContrast());
-        }
+        this._applyHighContrast(v);
       }],
       [t('vr.settings.teleport'), 'enableTeleport', null],
       [t('vr.settings.snapTurn'), 'enableSnapTurn', null],
@@ -1635,7 +1648,6 @@ export class VRApp {
 
     // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
     const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
-    const SEARCH_ENGINES  = ['duckduckgo', 'google', 'bing', 'ecosia'];
     const cycles = [
       ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
         if (this.comfortSystem) {
@@ -2795,6 +2807,34 @@ export class VRApp {
               this.tabManager.setReaderScale(next);
             }
             return next;
+          },
+          // Windows/macOS high-contrast OS toggle parity — voice-only users
+          // can't reach the settings switch without leaving immersion.
+          onHighContrast: (value) => {
+            const next = typeof value === 'boolean' ? value : !this.settings.highContrast;
+            this.updateSetting('highContrast', next);
+            this._applyHighContrast(next);
+            return next;
+          },
+          // Search-engine cycle by name — the settings cycle button's
+          // updateSetting + tabManager.setSearchEngine path.
+          onSearchEngine: (name) => {
+            if (!SEARCH_ENGINES.includes(name)) {
+              return null;
+            }
+            this.updateSetting('searchEngine', name);
+            if (this.tabManager) {
+              this.tabManager.setSearchEngine(name);
+            }
+            return name;
+          },
+          // Voice 'restore session' — the same validated-snapshot restore
+          // the restoreTabs setting runs at boot.
+          onRestoreSession: () => {
+            if (!this.tabManager) {
+              return 0;
+            }
+            return this.tabManager.restoreSession(loadTabSession());
           },
           // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
           // same store + confirmation path as the chrome star button.

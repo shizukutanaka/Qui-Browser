@@ -26,6 +26,9 @@ export class VoiceCommands {
     this._onDwellTime = null;
     this._onVolumeStatus = null;
     this._onReaderScale = null;
+    this._onHighContrast = null;
+    this._onSearchEngine = null;
+    this._onRestoreSession = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -647,6 +650,12 @@ export class VoiceCommands {
    * @param {Function} [opts.onReaderScale] (delta: number) => number|null — step the
    *                                         reader-text-size stepper (0.5–2.0x);
    *                                         null = at limit
+   * @param {Function} [opts.onHighContrast] (value?: boolean) => boolean — apply
+   *                                         high-contrast (toggle when value omitted)
+   * @param {Function} [opts.onSearchEngine] (name: string) => string|null — switch the
+   *                                         search-engine cycle; null = unknown engine
+   * @param {Function} [opts.onRestoreSession] () => number — restore the saved tab
+   *                                         session; returns tabs restored
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -662,7 +671,8 @@ export class VoiceCommands {
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
-    onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale } = {}) {
+    onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
+    onHighContrast, onSearchEngine, onRestoreSession } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -677,6 +687,15 @@ export class VoiceCommands {
     }
     if (onReaderScale) {
       this._onReaderScale = onReaderScale;
+    }
+    if (onHighContrast) {
+      this._onHighContrast = onHighContrast;
+    }
+    if (onSearchEngine) {
+      this._onSearchEngine = onSearchEngine;
+    }
+    if (onRestoreSession) {
+      this._onRestoreSession = onRestoreSession;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -920,6 +939,22 @@ export class VoiceCommands {
       },
       confirmationText: '読み込みを中止します',
       description: 'Stop loading the active page'
+    });
+
+    // Chrome's Ctrl+Shift+N atom: one private tab now, without flipping the
+    // manager-wide private-mode toggle. Registered before private-mode so
+    // 'new incognito tab' lands here (specific beats generic — bare
+    // 'incognito'/'プライベートモード' still reach the mode toggle). JA
+    // phrases avoid 'を開く' — that suffix already belongs to go-to.
+    this.registerCommand('private-new-tab', {
+      patterns: ['プライベートタブ', 'シークレットタブ', 'プライベートな新しいタブ',
+        /new (private|incognito) tab/i],
+      action: () => {
+        const panel = tabManager?.newPrivateTab?.();
+        this.speak(panel ? 'プライベートタブを開きました' : 'タブをこれ以上開けません');
+        return { action: 'private-new-tab', opened: !!panel };
+      },
+      description: 'Open a new private (incognito) tab'
     });
 
     this.registerCommand('private-mode', {
@@ -1372,6 +1407,78 @@ export class VoiceCommands {
       confirmationText: '開きます',
       description: 'Open site by name from history/bookmarks, fall back to search',
       example: 'githubを開く'
+    });
+
+    // High-contrast OS-toggle parity (Windows Shift+Alt+PrtSc / macOS
+    // Increase Contrast): a voice-only user can't reach the settings switch
+    // without leaving immersion. Bare 'ハイコントラスト' toggles; explicit
+    // オン/オフ (EN on/off/enable/disable) sets directly.
+    this.registerCommand('high-contrast', {
+      patterns: [/ハイコントラスト/, /高コントラスト/,
+        /high contrast/i],
+      action: (transcript) => {
+        let want;
+        if (/オフ|無効|off|disable/i.test(transcript)) {
+          want = false;
+        } else if (/オン|有効|on|enable/i.test(transcript)) {
+          want = true;
+        }
+        const v = this._onHighContrast ? this._onHighContrast(want) : null;
+        if (v === null) {
+          this.speak('ハイコントラストを切り替えられません');
+        } else {
+          this.speak(v ? 'ハイコントラスト オンです' : 'ハイコントラスト オフです');
+        }
+        return { action: 'high-contrast', enabled: v };
+      },
+      description: 'Toggle or set high-contrast mode'
+    });
+
+    // Edge/Safari "reading time" parity — minutes estimate for the open
+    // article (~500 chars/min, the standard JA silent-reading rate).
+    this.registerCommand('reading-time', {
+      patterns: ['読了時間', 'この記事の長さ', 'どのくらいで読める',
+        /reading (time|length)/i, /how long (does it take )?to read/i],
+      action: () => {
+        const active = tabManager?.getActiveTab?.();
+        const m = active?.getReadingTimeMinutes?.() || null;
+        this.speak(m === null ? '記事が開かれていません' : `この記事は約${m}分です`);
+        return { action: 'reading-time', minutes: m };
+      },
+      description: 'Estimated reading time for the open article'
+    });
+
+    // Search-engine cycle by name — the settings cycle button's voice
+    // surface. Aliases cover JA kana forms of every engine the host offers.
+    this.registerCommand('search-engine', {
+      patterns: [/検索エンジンを?(.+)/, /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i],
+      action: (transcript) => {
+        const ALIASES = {
+          google: 'google', 'グーグル': 'google',
+          bing: 'bing', 'ビング': 'bing',
+          duckduckgo: 'duckduckgo', 'ダックダックゴー': 'duckduckgo', 'ダック': 'duckduckgo',
+          ecosia: 'ecosia', 'エコシア': 'ecosia'
+        };
+        const m = transcript.match(/(duckduckgo|ダックダックゴー|ダック|ecosia|エコシア|google|グーグル|bing|ビング)/i);
+        const canonical = m ? ALIASES[m[1].toLowerCase()] : null;
+        const applied = canonical && this._onSearchEngine ? this._onSearchEngine(canonical) : null;
+        this.speak(applied ? `検索エンジンを${applied}にしました` : 'その検索エンジンは使えません');
+        return { action: 'search-engine', engine: applied };
+      },
+      description: 'Switch the search engine by name'
+    });
+
+    // Session restore by voice — the restoreTabs setting's on-demand twin
+    // (Wolvic 1.9 restore-on-boot, but triggered mid-session).
+    this.registerCommand('restore-session', {
+      patterns: ['セッションを復元', '前のセッションを復元',
+        /restore (my )?(session|previous session|last session)/i],
+      action: () => {
+        const n = this._onRestoreSession ? this._onRestoreSession() : 0;
+        this.speak(n ? `${n}個のタブを復元しました` : '復元するセッションがありません');
+        return { action: 'restore-session', restored: n };
+      },
+      description: 'Restore the previous browsing session tabs'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

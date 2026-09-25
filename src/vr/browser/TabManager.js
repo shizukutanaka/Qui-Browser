@@ -273,7 +273,7 @@ export class TabManager {
   /**
    * Open a new tab.  Returns the created WebPanel, or null if MAX_TABS reached.
    */
-  newTab(url = '') {
+  newTab(url = '', { privateMode = this._privateMode } = {}) {
     if (this.tabs.length >= MAX_TABS) {
       console.warn('TabManager: max tabs reached');
       // The "+" button silently did nothing past MAX_TABS with no user-facing
@@ -293,7 +293,7 @@ export class TabManager {
         this._drawStrip();           // refresh tab title
         this.opts.onNavigate?.(u, title, srcPanel);
       },
-      privateMode: this._privateMode,
+      privateMode,
       topSitesProvider: this.opts.topSitesProvider || null,
       onUrlInputRequested: this.opts.onUrlInputRequested || null,
       searchEngine: this.opts.searchEngine || undefined,
@@ -575,6 +575,15 @@ export class TabManager {
   }
 
   /**
+   * Chrome's Ctrl+Shift+N atom: open one private tab now without flipping
+   * the manager-wide private-mode toggle — the tab carries `isPrivate`, so
+   * history/closed-stack exclusion follows it wherever it goes.
+   */
+  newPrivateTab(url = '') {
+    return this.newTab(url, { privateMode: true });
+  }
+
+  /**
    * Snapshot the open tabs for session restore. Private tabs are excluded so
    * their URLs never reach persistent storage.
    * @returns {{v:number,tabs:string[],active:number}|null}
@@ -592,12 +601,18 @@ export class TabManager {
    */
   restoreSession(snapshot) {
     if (!snapshot || !Array.isArray(snapshot.tabs) || snapshot.tabs.length === 0) {
-      return;
+      return 0;
     }
-    snapshot.tabs.forEach(url => this.newTab(url));
+    let restored = 0;
+    snapshot.tabs.forEach((url) => {
+      if (this.newTab(url)) {
+        restored++;
+      }
+    });
     if (Number.isInteger(snapshot.active)) {
       this.setActive(Math.min(snapshot.active, this.tabs.length - 1));
     }
+    return restored;
   }
 
   /** Number of open tabs. */
