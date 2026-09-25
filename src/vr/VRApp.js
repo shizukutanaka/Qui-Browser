@@ -2900,6 +2900,9 @@ export class VRApp {
           // Article text size by voice — the readerTextScale stepper's
           // clamp → persist → apply path, so an open article re-lays out
           // live and later loads inherit.
+          // Reader-scale status — the query twin (delta-0 is a no-op null in
+          // onReaderScale, so a dedicated getter reports the scale).
+          onReaderScaleStatus: () => this.settings.readerTextScale,
           onReaderScale: (delta) => {
             const next = Math.min(2.0, Math.max(0.5, this.settings.readerTextScale + delta));
             if (next === this.settings.readerTextScale) {
