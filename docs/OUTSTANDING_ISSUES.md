@@ -325,6 +325,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**何行目か分からない**~~ — **Session 98 で実装**: findStatus の行版。`lineStatus()` が scroll 位置の行番号 → voice `line-status`（'何行目'/'line number'）→ '現在N行目（全M行）'/'記事を開いていません'。
 - ~~**タブの位置が分からない**~~ — **Session 98 で実装**: tabs-list は題名を読むが位置を答えない → voice `tab-status`（'タブは何個'/'which tab'）→ 'N個のタブのM枚目を表示中'/'タブがありません'。
 - ~~**プライベート/ピン状態を聞けない**~~ — **Session 98 で実装**: voice `privacy-status`（'プライベートかどうか'/'is it private'）→ 'プライベートタブです'/'通常のタブです'、`pin-status`（'ピンがありますか'/'is it pinned'）→ 'ピン留めされています'/'いません'。**実測捕捉の衝突**: 'プライベートモードですか'/'プライベートタブですか'/'ピン留めかどうか'/'ピン留めですか' は private-mode・private-tab・pin-tab の bare パターンが所有するため、status 側の句は曖昧でない形に限定 + 共存テスト2件で既存ルートを保護。
+- ~~**ジャンプ前の場所に戻れない**~~ — **Session 99 で実装**: Vim `` `` `` マーク準拠。`scrollContentTo` がジャンプ前に `_scrollMark` へ現行位置を記録（全ジャンプ原子 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため自動カバー。`scrollContent` の増分スクロールは意図的にマークしない）→ `jumpBack()` が scrollContentTo(mark) でトグル → voice `jump-back`（'さっきの場所'/'元の位置へ'/'ジャンプバック' — '戻る' は go-back 所有のため非採用）→ '元の場所に戻りました'/'戻る場所がありません'。新記事ロードでマークはリセット。
+- ~~**検索ハイライトを消せない**~~ — **Session 99 で実装**: Chrome の Esc キー準拠。`clearFind()` が `_findMatches`/`_findIndex` を消去して `_markFindHits` でタグ除去 → voice `clear-find`（'検索を解除'/'ハイライトを消して'/'clear search'）→ 'ハイライトを消しました'/'検索をしていません'。
+- ~~**クリップボードの URL を開けない**~~ — **Session 99 で実装**: Chrome "Paste and go" 準拠。`onPasteGo` が `navigator.clipboard.readText` → `^https?://` 検査 → active タブで `navigate`（非 URL は 'URLがコピーされていません'、権限失敗は 'クリップボードにアクセスできません' と誠実告知）。async なので action 内 `.then` で speak — voice `paste-go`（'ペーストして開く'/'貼り付けて開く'/'paste and go'）。
 
 ---
 
