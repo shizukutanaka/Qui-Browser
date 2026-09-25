@@ -336,6 +336,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**アドレスバーにフォーカスできない**~~ — **Session 101 で実装**: Ctrl+L 準拠。voice `url-input`（'アドレスバー'/'URLを入力して'/'enter url'/'address bar'）→ `panel.onUrlInputRequested(currentUrl||'https://', cb)` で VR キーボードを開き confirm で `navigate` → 'URLを入力してください'/'アドレスバーがありません'。フックは panel 上の public プロパティのため tabManager クロージャで足りる。
 - ~~**リセンターが音声から届かない**~~ — **Session 101 で実装**: Quest ホールドボタン準拠。`onRecenter` → `recenter()`（自身で caption も発火）→ voice `recenter`（'リセンター'/'中央に戻して'/'recenter'/'center view'）→ '中央に戻しました'/'中央に戻せません'。
 - ~~**動画の再生位置が聞けない**~~ — **Session 101 で実装**: video-seek のステータス対。`onVideoStatus` が `{t: currentTime, d: duration}` → voice `video-status`（'動画はどのくらい'/'動画の位置'/'video position'）→ 'N分M秒を再生中（全X分Y秒）'/'再生中の動画がありません'（duration 不明時は位置のみ）。
+- ~~**単語単位でナビゲートできない**~~ — **Session 102 で実装**: NVDA/JAWS の Ctrl+→/← 準拠。`WebPanel.nextWord(dir)` が `_wordCaret`（{line, idx}）を Intl.Segmenter('ja', word) でレイアウト済み行に沿って進め、行またぎ時は `scrollContentTo` が追従するため jumpBack マークも自動。voice `next-word`/`prev-word`（'次の単語'/'前の単語'/'next word'/'previous word'）→ 単語を発話/'これ以上進めません|戻れません'。
+- ~~**閉じたタブを一括で再開できない**~~ — **Session 102 で実装**: reopen-tab の一括版（Ctrl+Shift+T 連打準拠）。voice `reopen-all`（'閉じたタブをすべて開き直して'/'reopen all tabs'）→ `reopenClosedTab` をスタックが空になるまでループ → 'N個のタブを開き直しました'/'閉じたタブがありません'（MAX_TABS 上限はループを自然終了、取得分だけ誠実にカウント）。
+- ~~**ミュート状態を聞けない**~~ — **Session 102 で実装**: `onMuteStatus` が bool|null → voice `mute-status`（'ミュートかどうか'/'is it muted'）→ 'ミュートされています/いません/確認できません'。**衝突回避**: 'is it muted' は mute-toggle の `/(un)?mute/` に吸収されるため hoisted ブロックに登録。
+- ~~**音声言語を切り替えられない**~~ — **Session 102 で実装**: iOS Voice Control の言語切替準拠。voice `language-switch`（'英語にして'/'日本語にして'/'switch to english|japanese'）→ `setLanguage` が recognition.lang + utterance.lang を同時更新、**応答は切替先の言語**（'Switched to English'/'日本語に切り替えました'）で切替が効いたことを聴覚で確認できる。
 
 ---
 

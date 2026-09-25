@@ -3281,7 +3281,8 @@ export class VRApp {
               return null;
             }
             return { t: v.video.currentTime, d: v.video.duration };
-          }
+          },
+          onMuteStatus: () => this._mutedVolume !== undefined
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();

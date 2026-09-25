@@ -68,6 +68,7 @@ export class VoiceCommands {
     this._onReadClipboard = null;
     this._onRecenter = null;
     this._onVideoStatus = null;
+    this._onMuteStatus = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -443,6 +444,21 @@ export class VoiceCommands {
         return { action: 'reader-scroll-lines', delta, moved };
       },
       description: 'Scroll the reader by N lines'
+    });
+
+    // Muted-state query — 'is it muted' contains 'mute', which the toggle's
+    // /(un)?mute/ would swallow, so this lives in the loose-regex hoisted
+    // block. JA phrases are distinct strings and could register anywhere.
+    this.registerCommand('mute-status', {
+      patterns: ['ミュートかどうか', 'ミュートですか', 'ミュート中ですか',
+        '消音中ですか', /is (it |this |the )?muted/i, /mute status/i],
+      action: () => {
+        const v = this._onMuteStatus ? this._onMuteStatus() : null;
+        this.speak(v === null ? '確認できません'
+          : v ? 'ミュートされています' : 'ミュートされていません');
+        return { action: 'mute-status', muted: v };
+      },
+      description: 'Announce the muted state'
     });
 
     // Navigation commands
@@ -895,6 +911,7 @@ export class VoiceCommands {
    *                                         text → announce (NVDA read-clipboard)
    * @param {Function} [opts.onRecenter] () => boolean — reset player to origin
    * @param {Function} [opts.onVideoStatus] () => {t,d}|null — video position
+   * @param {Function} [opts.onMuteStatus] () => boolean|null — muted?
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -920,7 +937,8 @@ export class VoiceCommands {
     onHeadingSelect, onFindStatus, onFindLast, onReadLine,
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
-    onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus } = {}) {
+    onJumpBack, onClearFind, onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
+    onMuteStatus } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -1061,6 +1079,9 @@ export class VoiceCommands {
     }
     if (onVideoStatus) {
       this._onVideoStatus = onVideoStatus;
+    }
+    if (onMuteStatus) {
+      this._onMuteStatus = onMuteStatus;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -2710,6 +2731,63 @@ export class VoiceCommands {
         return { action: 'video-status', position: st.t };
       },
       description: 'Announce the video position'
+    });
+
+    // Reopen every closed tab — reopen-tab's bulk variant (Ctrl+Shift+T held
+    // until the stack drains). Loops reopenClosedTab and counts what it got;
+    // a MAX_TABS cap ends the loop honestly with the partial count.
+    this.registerCommand('reopen-all', {
+      patterns: ['閉じたタブをすべて開き直して', 'すべての閉じたタブを開き直して',
+        '閉じたタブを全部開き直して', /reopen all (closed )?tabs/i],
+      action: () => {
+        let n = 0;
+        // Bound defensively at the closed-stack ceiling (CLOSED_STACK_MAX=10,
+        // doubled for margin): a misbehaving reopenClosedTab must not hang.
+        while (n < 20 && tabManager?.reopenClosedTab?.()) {
+          n++;
+        }
+        this.speak(n ? `${n}個のタブを開き直しました` : '閉じたタブがありません');
+        return { action: 'reopen-all', reopened: n };
+      },
+      description: 'Reopen every closed tab (LIFO)'
+    });
+
+    // Word-level navigation — NVDA/JAWS Ctrl+Right/Left parity. The panel
+    // advances a word caret across laid-out lines; crossing a line follows
+    // the caret with scrollContentTo so the spoken word stays visible.
+    this.registerCommand('next-word', {
+      patterns: ['次の単語', '次の言葉', '単語を次へ', /next word/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.nextWord?.(1);
+        this.speak(r ? r.word : 'これ以上進めません');
+        return { action: 'next-word', word: r ? r.word : null };
+      },
+      description: 'Speak the next word (NVDA Ctrl+Right)'
+    });
+    this.registerCommand('prev-word', {
+      patterns: ['前の単語', '前の言葉', '単語を前へ', /previous word/i],
+      action: () => {
+        const r = tabManager?.getActiveTab?.()?.nextWord?.(-1);
+        this.speak(r ? r.word : 'これ以上戻れません');
+        return { action: 'prev-word', word: r ? r.word : null };
+      },
+      description: 'Speak the previous word (NVDA Ctrl+Left)'
+    });
+
+    // Voice-interface language — iOS Voice Control language parity. Sets
+    // recognition + utterance language via setLanguage; the answer is spoken
+    // in the NEW language so the user hears the switch took effect.
+    this.registerCommand('language-switch', {
+      patterns: ['日本語にして', '日本語に切り替え', '日本語で', '英語にして',
+        '英語に切り替え', '英語で', /switch to (english|japanese)/i,
+        /speak english/i],
+      action: (transcript) => {
+        const en = /英語|english/i.test(transcript);
+        this.setLanguage(en ? 'en-US' : 'ja-JP');
+        this.speak(en ? 'Switched to English' : '日本語に切り替えました');
+        return { action: 'language-switch', language: en ? 'en-US' : 'ja-JP' };
+      },
+      description: 'Switch the voice language'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

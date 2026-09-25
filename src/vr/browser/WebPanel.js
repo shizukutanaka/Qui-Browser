@@ -146,6 +146,7 @@ export class WebPanel {
     this._findMatches = [];
     this._findIndex = -1;
     this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
+    this._wordCaret = null; // {line, idx} NVDA word-nav caret; null = at scroll
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
     // Private tabs (incognito-window semantics): no history writes, excluded
@@ -417,6 +418,7 @@ export class WebPanel {
       this._findMatches = [];
       this._findIndex = -1;
       this._scrollMark = null;
+      this._wordCaret = null;
       this._readerLines = lines;
       this._readerBlocks = blocks;
       this._readerTitle = title;
@@ -634,6 +636,57 @@ export class WebPanel {
       return false;
     }
     return this.scrollContentTo(this._scrollMark);
+  }
+
+  /**
+   * Advance the word caret — NVDA/JAWS Ctrl+Right/Left parity. Each laid-out
+   * reader line segments into word tokens via Intl.Segmenter (CJK-safe;
+   * whitespace split as fallback). A null caret inits at the scroll line's
+   * near edge for the direction. Crossing a line follows the caret with
+   * scrollContentTo so the spoken word stays in the viewport — which also
+   * marks the scroll position for jumpBack, matching other jump atoms.
+   * @param {number} direction positive = forward
+   * @returns {{word: string, line: number}|null} word + its line, or null at
+   *          the article's edge / outside reader
+   */
+  nextWord(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    const seg = typeof Intl !== 'undefined' && Intl.Segmenter
+      ? new Intl.Segmenter('ja', { granularity: 'word' }) : null;
+    const wordsOf = (line) => {
+      const text = this._readerLines[line]?.text || '';
+      if (seg) {
+        return [...seg.segment(text)]
+          .filter((s) => s.isWordLike)
+          .map((s) => s.segment);
+      }
+      return text.split(/\s+/).filter(Boolean);
+    };
+    if (!this._wordCaret) {
+      const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const n = wordsOf(line).length;
+      this._wordCaret = { line, idx: dir > 0 ? -1 : n };
+    }
+    let { line, idx } = this._wordCaret;
+    idx += dir;
+    while (line >= 0 && line < this._readerLines.length) {
+      const words = wordsOf(line);
+      if (idx >= 0 && idx < words.length) {
+        this._wordCaret = { line, idx };
+        if (line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { word: words[idx], line };
+      }
+      line += dir;
+      if (line >= 0 && line < this._readerLines.length) {
+        idx = dir > 0 ? 0 : wordsOf(line).length - 1;
+      }
+    }
+    return null;
   }
 
   /**

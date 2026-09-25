@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 102: 単語ナビ/言語原子 — NVDA Ctrl+←/→・言語切替・全復元・ミュート状態
+外部基準: NVDA/JAWS の Ctrl+→/←（単語ナビ）、iOS Voice Control の言語切替、Ctrl+Shift+T 連打の一括復元、ミュート状態問い合わせ。
+- ✨ **nextWord(dir)**: `_wordCaret`（{line, idx}）を `Intl.Segmenter('ja', {granularity:'word'})` でレイアウト済み行に沿って進める（CJK 安全・フォールバックは空白分割）。行またぎで `scrollContentTo` が追従するため `_scrollMark` による jumpBack も自動カバー。voice `next-word`/`prev-word`（'次の単語'/'前の単語'/'next word'/'previous word'）→ 単語を発話、行端は 'これ以上進めません|戻れません'。
+- ✨ **reopen-all**: reopen-tab の一括版。`reopenClosedTab` をスタック枯渇までループ（`n < 20` で防御上限 — CLOSED_STACK_MAX=10 の2倍、不良実装での無限ループ防止。テストモックが null を返さず実測でハングを捕捉して追加）→ 'N個のタブを開き直しました'/'閉じたタブがありません'。
+- ✨ **mute-status**: `onMuteStatus` → 'ミュートかどうか'/'is it muted' → 'ミュートされています/いません/確認できません'。**衝突回避**: 'is it muted' は mute-toggle の `/(un)?mute/` に吸収されるため hoisted ブロックに登録。**実測捕捉**: 初版 regex `/is (it|this )?muted/` は 'it' の直後に空白を要求しないため 'is it muted' に非適合 → `(it |this |the )?` で修正（テストが mute-toggle 側への到達を検出）。
+- ✨ **language-switch**: '英語にして'/'日本語にして'/'switch to english|japanese' → `setLanguage`（recognition.lang + utterance.lang 同時更新）→ **応答は切替先言語**（'Switched to English'/'日本語に切り替えました'）で切替効果を聴覚で確認。
+- ✅ **テスト +16（git stash で15件赤確認 — 1件は bare 'ミュート'→mute-toggle 共存ガードで設計上緑）**: mute-status 4面（bool/null・'is it muted'→toggle 非呼出共存・bare 'ミュート'→toggle 共存）、reopen-all 3面（ループ・EN・空スタック）、word 3面（word 発話・dir -1・行端）、language-switch 2面（en-US 切替+英語応答・ja-JP 復帰）、WebPanel.nextWord 4面（行またぎ scroll 追従+マーク・逆方向・両端・非 reader）。Total 2039 tests (76 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 101: ストリップ位置/フォーカス原子 — タブNアクション・Ctrl+L・リセンター・動画位置
 外部基準: Chrome の右クリックタブ（選択せず Close/Pin）、Ctrl+L アドレスバーフォーカス、Quest ホールドボタンのリセンター、video-seek のステータス対。
 - ✨ **tab-close-n/tab-pin-n**: 'タブNを閉じて'/'close tab N' → `closeTab(idx)` → タイトル告知/ピン拒否/'タブNはありません'、'タブNをピン'/'pin tab N' → `togglePin(idx)` → 'タブNをピン留めしました'/'ピンを外しました'。
