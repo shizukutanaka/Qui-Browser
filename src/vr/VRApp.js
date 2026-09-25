@@ -252,6 +252,10 @@ export class VRApp {
       // Restore open tabs + the active tab across restarts (Wolvic 1.9
       // "remember browser state"; Firefox/Chrome default behaviour).
       restoreTabs: true,
+      // Reader text-size multiplier (WCAG 1.4.4 Resize Text — content text
+      // must be resizable to 200% without assistive technology). Applied live
+      // to every panel via TabManager.setReaderScale.
+      readerTextScale: 1.0,
       // Spatial window management (parity with Wolvic/Quest browser): head-lock
       // follow keeps the active panel centred in view. OFF by default.
       enableWindowFollow: false,
@@ -1616,6 +1620,16 @@ export class VRApp {
             this.spatialAudio.setMasterVolume(v / 100);
           }
         }
+      }],
+      // WCAG 1.4.4 Resize Text: the reader's article text must reach 2.0x.
+      // Applies live — open articles re-lay-out, later loads inherit.
+      [t('vr.settings.readerTextSize'), 'readerTextScale', {
+        min: 0.5, max: 2.0, step: 0.25, unit: 'x',
+        apply: (v) => {
+          if (this.tabManager) {
+            this.tabManager.setReaderScale(v);
+          }
+        }
       }]
     ];
 
@@ -1686,7 +1700,8 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']),
+        byKey(steppers, ['readerTextScale']),
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -2745,6 +2760,13 @@ export class VRApp {
             if (active && active.currentUrl) {
               this._toggleBookmark(active.currentUrl, active.currentTitle || active.currentUrl);
             }
+          },
+          // Read-aloud (Edge "Read Aloud" / Safari "Listen to Page"): the
+          // host hands the utterance list to the voice layer, which owns the
+          // speak/queue. Empty = not on a reader page → "nothing to read".
+          onReadAloud: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active?.getReaderNarration?.() || null;
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

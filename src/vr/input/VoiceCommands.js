@@ -517,12 +517,15 @@ export class VoiceCommands {
    *                                         applies it to TabManager (decoupled like onGoTo)
    * @param {Function} [opts.onVolume]     (delta: number) => void — ±0.1 master-volume
    *                                         change for the volume-up/down commands
+   * @param {Function} [opts.onReadAloud] () => string[]|null — narration
+   *   chunks for the active panel's reader content; null/empty = nothing to
+   *   read (the command announces that itself).
    * @param {Function} [opts.onBookmarkPage] () => void — bookmark/unbookmark the
    *                                         active page (Ctrl+D); host toggles the
    *                                         store + announces cross-modally
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage } = {}) {
+    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -756,6 +759,56 @@ export class VoiceCommands {
       description: 'Jump to the bottom of the article'
     });
 
+    // Page-wise jumps — the reader arrows already implement the Page Up/Down
+    // atom on the canvas; these give hands-free users the same jump.
+    this.registerCommand('next-page', {
+      patterns: ['次のページ', 'ページダウン', '下のページ', /next\s+page/i, /page\s+down/i],
+      action: () => {
+        tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
+        return { action: 'next-page' };
+      },
+      confirmationText: '次のページへ進みます',
+      description: 'Scroll the article one page down'
+    });
+
+    this.registerCommand('prev-page', {
+      patterns: ['前のページ', 'ページアップ', '上のページ', /previous\s+page|prev\s+page|page\s+up/i],
+      action: () => {
+        tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
+        return { action: 'prev-page' };
+      },
+      confirmationText: '前のページへ戻ります',
+      description: 'Scroll the article one page up'
+    });
+
+    // Read-aloud — narrate the reader article through SpeechSynthesis
+    // (Edge "Read Aloud" / Safari "Listen to Page"). The host returns the
+    // chunk list; readAloud owns the start/nothing-to-read announcements, so
+    // this command has no confirmationText (it would queue behind the chunks).
+    this.registerCommand('read-aloud', {
+      patterns: [
+        '読み上げて', '読み上げてください', 'ページを読み上げ', '記事を読み上げ',
+        /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i,
+        /listen\s+to\s+(this|the)\s+(page|article)/i
+      ],
+      action: () => {
+        const chunks = onReadAloud ? onReadAloud() : null;
+        this.readAloud(chunks);
+        return { action: 'read-aloud' };
+      },
+      description: 'Read the article aloud'
+    });
+
+    this.registerCommand('stop-reading', {
+      patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止', /stop\s+reading/i, /stop\s+narrat/i],
+      action: () => {
+        this.stopSpeaking();
+        return { action: 'stop-reading' };
+      },
+      confirmationText: '読み上げを止めます',
+      description: 'Stop reading the article aloud'
+    });
+
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
     this.registerCommand('duplicate-tab', {
       patterns: ['タブを複製', 'タブをコピー', '複製', /duplicate (this )?tab/i],
@@ -906,8 +959,10 @@ export class VoiceCommands {
     // Mirror every spoken response to a visual channel so users who can speak
     // but not hear (deaf / HoH voice-command users, or anyone in a muted /
     // noisy space) still receive confirmations, errors and "not recognized"
-    // feedback. Fires regardless of TTS availability.
-    if (this.callbacks.onSpeak) {
+    // feedback. Fires regardless of TTS availability. Skipped for narration
+    // chunks (options.caption === false): mirroring a whole article would
+    // flood the caption queue — the reader itself is already that channel.
+    if (options.caption !== false && this.callbacks.onSpeak) {
       this.callbacks.onSpeak(text);
     }
     if (!this.synthesis) {
@@ -929,6 +984,42 @@ export class VoiceCommands {
     };
 
     this.synthesis.speak(utterance);
+  }
+
+  /**
+   * Cancel every queued / in-progress utterance without touching the
+   * recognizer — the "stop reading" atom.
+   */
+  stopSpeaking() {
+    if (this.synthesis) {
+      this.synthesis.cancel();
+    }
+  }
+
+  /**
+   * Narrate article chunks (Edge "Read Aloud" / Safari "Listen to Page").
+   * Cancels any narration already playing, announces the start through the
+   * normal captioned path, then queues each chunk *without* the caption
+   * mirror so the article text doesn't flood the caption queue.
+   * @param {string[]} chunks
+   * @param {object} [options] statusText: spoken when narration begins;
+   *   emptyText: spoken when there is nothing to read
+   * @returns {boolean} true when chunks were queued
+   */
+  readAloud(chunks, options = {}) {
+    const list = Array.isArray(chunks) ? chunks.filter((c) => typeof c === 'string' && c.trim()) : [];
+    this.stopSpeaking();
+    if (!list.length) {
+      this.speak(options.emptyText || '読み上げられる文章がありません');
+      return false;
+    }
+    if (options.statusText !== null) {
+      this.speak(options.statusText || '読み上げを開始します');
+    }
+    for (const chunk of list) {
+      this.speak(chunk, { caption: false });
+    }
+    return true;
   }
 
   /**

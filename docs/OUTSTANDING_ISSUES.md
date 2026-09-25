@@ -256,6 +256,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**リーダー内 Home/End ジャンプ**~~ — **Session 77 で実装**: `scrollContentTo(line)`/`scrollToTop()`/`scrollToBottom()`（`scrollContent` と同じ clamp+再描画）。voice `scroll-top`/`scroll-bottom`（'先頭へ'/'末尾へ' 等）。
 - ~~**タブの複製**~~ — **Session 77 で実装**: `duplicateTab()`（Chrome "Duplicate tab"）。**コピーは navigate 前に isPrivate を継承** — private タブを複製しても URL が履歴に漏れない。voice 'タブを複製'。
 - ~~**ページ単位ブックマークの音声経路**~~ — **Session 77 で実装**: `bookmark-page`（'このページをブックマーク' 等、Ctrl+D 原子）→ `onBookmarkPage` → 抽出済み `_toggleBookmark`（chrome スターボタンと同一の toggle+caption 経路）。
+- ~~**リーダーの文字サイズが不可変**~~ — **Session 78 で実装**: `settings.readerTextScale`（0.5–2.0×、ブラウジング節のステッパー）→ `TabManager.setReaderScale` → 各 `WebPanel.setReaderScale` が保持ブロックを再レイアウト+スクロールをクランプ+再描画。新規タブにも継承。WCAG 1.4.4 Resize Text（支援技術なしで 200% まで拡大できること）—— これまでリーダーの文字は一切変えられなかった。
+- ~~**Page Up/Down 原子の音声経路**~~ — **Session 78 で実装**: `scrollContentPage(±1)`（リーダー矢印と同じ `pageJumpLines` ジャンプ）→ voice `next-page`/'次のページ'・`prev-page`/'前のページ'。canvas ヒットテストに届かない入力系にも同じ原子を開放。
+- ~~**記事の読み上げ**~~ — **Session 78 で実装**: Edge "Read Aloud"／Safari "Listen to Page" 準拠。`readerNarration.js`（段落→文境界→サロゲート安全なハードスプリットの純粋チャンカー）、`WebPanel.getReaderNarration()`、`VoiceCommands.readAloud`（開始/なし告知はキャプション経路、本文チャンクは `speak({caption:false})` でキャプション洪水を防止）、voice `read-aloud`/'読み上げて' + `stop-reading`/'読み上げ停止' → `stopSpeaking()`（synthesis.cancel のみ、認識は止めない）。弱視・失明ユーザーが「読む」の代替として使える旗艦アクセシビリティ面。
 
 ---
 
