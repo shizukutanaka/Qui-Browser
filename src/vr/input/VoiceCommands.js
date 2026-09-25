@@ -69,6 +69,7 @@ export class VoiceCommands {
     this._onCopyLine = null;
     this._onCopyArticle = null;
     this._onReaderPercent = null;
+    this._onReaderScaleStatus = null;
     this._onPasteGo = null;
     this._onReadClipboard = null;
     this._onRecenter = null;
@@ -978,6 +979,61 @@ export class VoiceCommands {
       description: 'Jump to a percent of the article'
     });
 
+    // speech-reset — NVDA 'restore defaults' parity: one phrase returns
+    // rate AND pitch to 1.0 (resetting each via steppers is 8+ commands).
+    this.registerCommand('speech-reset', {
+      patterns: ['速度をリセット', '声をリセット', '読み上げをリセット',
+        /reset speech/i, /speech reset/i, /normal speed/i, /normal voice/i],
+      action: () => {
+        this._speechRate = 1.0;
+        this._speechPitch = 1.0;
+        this.speak('読み上げをリセットしました');
+        return { action: 'speech-reset' };
+      },
+      description: 'Reset speech rate and pitch'
+    });
+    // confidence-status — the ASR self-report atom: '認識の信頼度は' answers
+    // the last recognition's confidence (deaf/HoH users gauge whether the
+    // mic is hearing them).
+    this.registerCommand('confidence-status', {
+      patterns: ['認識の信頼度は', '信頼度は', '認識精度は',
+        /confidence (level|score)/i, /recognition confidence/i],
+      action: () => {
+        const pct = Math.round((this.confidence || 0) * 100);
+        this.speak(`認識の信頼度は${pct}%です`);
+        return { action: 'confidence-status', confidence: pct };
+      },
+      description: 'Announce the last recognition confidence'
+    });
+    // wake-word-status — the query twin of wake-word-toggle: announces the
+    // word (or that it's off) rather than flipping it.
+    this.registerCommand('wake-word-status', {
+      patterns: ['ウェイクワードは', 'ウェイクワードの状態',
+        /wake word (status|is)/i],
+      action: () => {
+        const on = !!this.settings.requireWakeWord;
+        this.speak(on
+          ? `ウェイクワードは「${this.settings.wakeWord}」です`
+          : 'ウェイクワードはオフです');
+        return { action: 'wake-word-status', on };
+      },
+      description: 'Announce the wake word'
+    });
+    // reader-scale-status — the query twin of onReaderScale (delta-0
+    // returns null there, so a dedicated getter reports the scale).
+    this.registerCommand('reader-scale-status', {
+      patterns: ['記事の文字サイズは', '文字サイズは', '記事の文字は',
+        /reader (text )?(size|scale)/i, /text size/i],
+      action: () => {
+        const v = this._onReaderScaleStatus ? this._onReaderScaleStatus() : null;
+        this.speak(v
+          ? `記事の文字サイズは${v}倍です`
+          : '文字サイズを確認できません');
+        return { action: 'reader-scale-status', value: v };
+      },
+      description: 'Announce the reader text scale'
+    });
+
     // Online status — the connectivity atom (navigator.onLine; offline pages
     // still answer honestly).
     this.registerCommand('online-status', {
@@ -1180,6 +1236,8 @@ export class VoiceCommands {
    *                                         article text, return char count
    * @param {Function} [opts.onReaderPercent] (pct) => {percent}|null —
    *                                         jump the reader to pct %
+   * @param {Function} [opts.onReaderScaleStatus] () => number — the current
+   *                                         reader text-scale
    * @param {Function} [opts.onPasteGo] () => Promise<string> — clipboard
    *                                         URL → navigate; announce text
    * @param {Function} [opts.onReadClipboard] () => Promise<string> — clipboard
@@ -1236,6 +1294,7 @@ export class VoiceCommands {
     onParagraphStep, onParagraphSelect, onParagraphStatus, onCharCount,
     onReadParagraph, onLineStatus, onTabStatus, onPrivacyStatus, onPinStatus,
     onJumpBack, onClearFind, onCopyLine, onCopyArticle, onReaderPercent,
+    onReaderScaleStatus,
     onPasteGo, onReadClipboard, onRecenter, onVideoStatus,
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
@@ -1386,6 +1445,9 @@ export class VoiceCommands {
     if (onReaderPercent) {
       this._onReaderPercent = onReaderPercent;
     }
+    if (onReaderScaleStatus) {
+      this._onReaderScaleStatus = onReaderScaleStatus;
+    }
     if (onPasteGo) {
       this._onPasteGo = onPasteGo;
     }
@@ -1471,6 +1533,80 @@ export class VoiceCommands {
         return { action: 'close-tab-by-name', index: i };
       },
       description: 'Close a tab by title or URL'
+    });
+    // pin-tab-by-name — the pin twin of close-by-name ('Xのタブをピン'/
+    // 'pin the news tab'). Registered BEFORE pin-tab: its EN
+    // `/pin (this |the )?tab(?!\s*\d)/` claims 'pin tab named X' and toggles
+    // the WRONG tab otherwise (dispatch-verified).
+    this.registerCommand('pin-tab-by-name', {
+      patterns: [/^(?!(?:この|あの|その|すべて|全て|左|右|ピン))(.+)のタブをピン/,
+        /^pin (?:the )?(?!this\b|active\b|current\b)(.+) tab$/i,
+        /^pin tab (?:named|called) (.+)$/i],
+      action: (transcript) => {
+        const m = transcript.match(/^(.+)のタブをピン/) ||
+          transcript.match(/^pin (?:the )?(?!this\b|active\b|current\b)(.+) tab$/i) ||
+          transcript.match(/^pin tab (?:named|called) (.+)$/i);
+        const term = (m ? m[1] : '').toLowerCase().trim();
+        const tabs = tabManager?.tabs || [];
+        const i = tabs.findIndex((t) => {
+          const hay = `${t.currentTitle || ''} ${t.currentUrl || ''}`.toLowerCase();
+          return term && hay.includes(term);
+        });
+        if (i < 0) {
+          this.speak(`「${term}」のタブがありません`);
+          return { action: 'pin-tab-by-name', index: -1 };
+        }
+        const state = tabManager.togglePin ? tabManager.togglePin(i) : null;
+        this.speak(state === 'pinned' ? `タブ${i + 1}をピン留めしました`
+          : state === 'unpinned' ? `タブ${i + 1}のピンを外しました`
+            : 'タブをピン留めできません');
+        return { action: 'pin-tab-by-name', index: i, state };
+      },
+      description: 'Pin or unpin a tab by title or URL'
+    });
+    // unpin-active — the explicit one-direction twin: 'ピンを外して' never
+    // accidentally pins (pin-tab toggles). Honest when nothing is pinned.
+    this.registerCommand('unpin-active', {
+      patterns: ['ピンを外して', 'ピン留めを外して', '固定を外して',
+        /unpin (this|the tab|it)/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        const i = tabManager?.activeIndex ?? -1;
+        const p = i >= 0 ? tabs[i] : null;
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'unpin-active' };
+        }
+        if (!p.pinned) {
+          this.speak('ピン留めされていません');
+          return { action: 'unpin-active', pinned: false };
+        }
+        tabManager.togglePin(i);
+        this.speak('ピン留めを外しました');
+        return { action: 'unpin-active', pinned: false };
+      },
+      description: 'Unpin the active tab'
+    });
+    // reload-tab-n — reload-all's indexed sibling ('タブNをリロード').
+    // Registered BEFORE tab-select: its /タブ(\d+)/ prefix-match owns the
+    // phrase and would select instead of reloading (dispatch-verified).
+    this.registerCommand('reload-tab-n', {
+      patterns: [/タブ([0-9]+)をリロード/, /タブ([0-9]+)を再読み込み/,
+        /reload tab ([0-9]+)/i, /refresh tab ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const tabs = tabManager?.tabs || [];
+        const t = tabs[n - 1];
+        if (!t) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'reload-tab-n', index: -1 };
+        }
+        t.reload?.();
+        this.speak(`タブ${n}を再読み込みしました`);
+        return { action: 'reload-tab-n', index: n - 1 };
+      },
+      description: 'Reload the tab at a strip position'
     });
 
     // Top Sites — hands-free jump to the user's most-used destination
@@ -1671,7 +1807,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('next-tab', {
-      patterns: ['次のタブ', /next\s+tab/i],
+      patterns: ['次のタブ', '右のタブ', /next\s+tab/i, /right\s+tab/i],
       action: () => {
         tabManager?.nextTab?.();
         return { action: 'next-tab' };
@@ -1681,7 +1817,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('prev-tab', {
-      patterns: ['前のタブ', /previous\s+tab|prev\s+tab/i],
+      patterns: ['前のタブ', '左のタブ', /previous\s+tab|prev\s+tab/i, /left\s+tab/i],
       action: () => {
         tabManager?.prevTab?.();
         return { action: 'prev-tab' };
@@ -2503,7 +2639,7 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン))(.+)のタブ(?!を|に|は|のタイトル)/,
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
         /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
       action: (transcript) => {

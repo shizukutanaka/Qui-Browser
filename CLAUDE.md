@@ -252,6 +252,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 112: 名指し/状態双子原子 — 名指しピン・明示アンピン・タブNリロード・左右エイリアス・音声リセット・信頼度/ウェイク/スケール状態
+外部基準: close-by-name のピン双子、Chrome "unpin" 明示操作、タブ索引リロード、空間メンタルモデル（左/右 = prev/next）、NVDA restore-default、ASR 自己報告。
+- ✨ **pin-tab-by-name**: 'Xのタブをピン'/'pin the X tab' → title/url 部分一致 → `togglePin(i)` → 'タブNをピン留め/外しました'。**実測捕捉**: pin-tab の `/pin (this |the )?tab(?!\s*\d)/` が 'pin tab named X' を誤所有（active を toggle する誤動作）→ pin-tab より前に登録。stoplist {この|あの|その|すべて|全て|左|右|ピン}。
+- ✨ **unpin-active**: 'ピンを外して'/'unpin this' → 明示単方向（トグル誤ピン不可）、未ピンは 'ピン留めされていません'。
+- ✨ **reload-tab-n**: 'タブNをリロード'/'reload tab N' → `tabs[n-1].reload()`。**実測捕捉**: tab-select の `/タブ(\d+)/` 所有 → 先行登録。
+- ✨ **left/right aliases**: '左のタブ'/'left tab'→prev-tab、'右のタブ'/'right tab'→next-tab + tab-by-name stoplist へ 左|右 追加（'左のタブ' が '「左」のタブがありません' と誤答しない）。
+- ✨ **speech-reset**（NVDA restore-default）: '速度をリセット'/'reset speech' → `_speechRate`+`_speechPitch` → 1.0。
+- ✨ **confidence-status**（ASR 自己報告 — ろう難聴の聞き取り検証）: '認識の信頼度は' → 'N%です'。
+- ✨ **wake-word-status**: 'ウェイクワードは' → '「X」です'/'オフです'（toggle の query 双子）。
+- ✨ **reader-scale-status**: '記事の文字サイズは' → 新フック `onReaderScaleStatus`（`onReaderScale(0)` は no-op null のため専用ゲッター）→ 'N倍です'。
+- ✅ **テスト +19（git stash で17件赤確認 — 2件は誠実経路の設計上緑）**: Total 2201 tests (86 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 111: 安全/コピー/残り原子 — https確認・ドメイン・戻進可否・行/記事コピー・%ジャンプ・名指しクローズ・残段落/見出し
 外部基準: Chrome ロックアイコン（接続安全性の可視確認の音声版）、アドレスバードメイン読み上げ（フィッシング対策）、Kindle 'go to N%'、NVDA 問い合わせ系（質問形はナビゲートしない誠実経路）、Clipboard API 拡張。
 - ✨ **security-status / hostname**: 'このページは安全ですか'/'is it secure' → 'https のため接続は暗号化されています'/'http のため暗号化されていません'/'ページがありません'；'ドメインは'/'hostname' → `new URL().hostname` のみ告知（ホスト名以外を読まない — フィッシング時の誤導防止）。

@@ -382,6 +382,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**読んでいる行/記事をコピーできない**~~ — **Session 111 で実装**: Clipboard API 拡張。voice `copy-line`（'この行をコピー' → `onCopyLine` → '行をコピーしました'）、`copy-article`（'記事をコピー' → `_readerBlocks` 連結 → '記事をコピーしました（N文字）'）。
 - ~~**記事の N% 位置へ飛べない**~~ — **Session 111 で実装**: Kindle 'go to N%' 準拠。voice `percent-jump`（'50%へ'/'go to N percent' → `onReaderPercent` で行換算 → 'N%に移動しました' — go-to 所有を実測捕捉のため hoisted 登録）。
 - ~~**残りの段落/見出し数を聞けない**~~ — **Session 111 で実装**: sentences-left の残り双子。voice `paragraphs-left`（'残りの段落' → `onParagraphStatus` 再利用 → 'あとN段落です'）、`headings-left`（'残りの見出し'/'headings left' → `onHeadingHere` 再利用 → 'あとN見出しです'/'最後の見出しです'）。
+- ~~**タブを名前でピン留めできない**~~ — **Session 112 で実装**: close-by-name のピン双子。voice `pin-tab-by-name`（'Xのタブをピン'/'pin the X tab' → 名指し `togglePin(i)` — pin-tab の `/pin (this |the )?tab/` が 'pin tab named X' を誤所有する実測を捕捉し先行登録）。
+- ~~**明示的にピンを外せない**~~ — **Session 112 で実装**: トグルの単方向版。voice `unpin-active`（'ピンを外して'/'unpin this' → 未ピン時は 'ピン留めされていません' の誠実経路）。
+- ~~**指定タブだけリロードできない**~~ — **Session 112 で実装**: reload-all の索引双子。voice `reload-tab-n`（'タブNをリロード' → `tabs[n-1].reload()` — tab-select の `/タブ(\d+)/` 所有を実測捕捉し先行登録）。
+- ~~**左/右でタブを指定できない**~~ — **Session 112 で実装**: 空間メンタルモデル準拠。'左のタブ'/'right tab' → prev-tab、'右のタブ'/'next tab' にエイリアス追加 + tab-by-name stoplist に 左|右 追加。
+- ~~**読み上げ速度/ピッチを一括リセットできない**~~ — **Session 112 で実装**: NVDA restore-default 準拠。voice `speech-reset`（'速度をリセット'/'reset speech' → rate+pitch → 1.0）。
+- ~~**認識信頼度/ウェイクワード/記事文字サイズを聞けない**~~ — **Session 112 で実装**: ステータス問い合わせ。voice `confidence-status`（'認識の信頼度は' → 'N%です' — ASR 自己報告）、`wake-word-status`（'ウェイクワードは' → '「X」です'/'オフです'）、`reader-scale-status`（'記事の文字サイズは' → 新フック `onReaderScaleStatus` → 'N倍です' — delta-0 が no-op のため専用ゲッター）。
 
 
 ---
