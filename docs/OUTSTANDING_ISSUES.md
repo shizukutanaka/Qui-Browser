@@ -292,6 +292,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ページタイトルが読み上げられない**~~ — **Session 88 で実装**: NVDA Insert+T 準拠。voice `title`（'タイトル'/'このページのタイトル'/'page title'）→ active タブの currentTitle→currentUrl→'タイトルなし' の順で告知。
 - ~~**ミュートできない**~~ — **Session 88 で実装**: OS/ハードウェアのミュートキー準拠。`onMute(want?)` フックが `_mutedVolume` に退避→masterVolume=0、解除時に復元（ミュート中の手動音量変更は退避値を破棄 → 次のミュートは実際の音量を記録）。voice `mute-toggle`（'ミュート'/'消音'/'mute'、'ミュートを解除'/'unmute' は明示 want=false で誤ミュート不可）→ 'ミュート オンです'/'ミュートを解除しました'。
 - ~~**読み上げ音声が選べない**~~ — **Session 88 で実装**: NVDA の音声選択準拠。`_voice`/`_voiceIndex` が `synthesis.getVoices()` をサイクル、選択は全発話の `utterance.voice` に適用 → voice `select-voice`（'声を変えて'/'change voice'）→ '声をXにしました'、音声0件は「読み上げ音声が利用できません」。
+- ~~**数値 stepper が音声で変えられない**~~ — **Session 89 で実装**: 汎用 `onStepper(key,delta)` フック（`VOICE_STEPPERS` 定数で panel stepper と同一 min/max/step、live apply も同一路径）→ voice `grace-time`（'グレース時間を長く/短く' — WCAG 2.2.1 の tremor/nystagmus 要石）、`snap-angle`（'スナップ角を大きく/小さく'）、`move-speed`（'移動速度を速く/遅く'）、`caption-hold`（'キャプションを長く/短く' — WCAG 2.2.1 保持時間）、`caption-height`（'キャプションを上/下に' — XAUR の位置カスタマイズ）→ 'X N単位'/境界・フック無しは「変更できません」。
+- ~~**利き手・スムーズ移動が音声で切り替えられない**~~ — **Session 89 で実装**: TOGGLE_KEYS に `southpaw`/`enableSmoothMove` を追加。voice `southpaw-toggle`（'利き手を左に/右に'/'left/right-handed' — 明示 want）→ '利き手を左/右にしました'；`smooth-move-toggle`（'スムーズ移動をオン/オフ'+EN）→ _applyToggle に enableSmoothMove ケース追加で前庭警告トーストも panel と同一路径。
+- ~~**読み上げピッチが変えられない**~~ — **Session 89 で実装**: NVDA pitch 制御準拠。`_speechPitch` 0.5–2.0 を全発話の `utterance.pitch` に適用 → voice `speech-pitch`（'声を高く/低く'/'pitch up/down' — ±0.25）→ 'ピッチ N倍'。
+- ~~**現在のURLが読み上げられない**~~ — **Session 89 で実装**: タイトルと対の1行告知原子。voice `read-url`（'URLを教えて'/'read the url'）→ active タブ currentUrl または「URLがありません」。
 
 ---
 

@@ -59,6 +59,16 @@ const SEARCH_ENGINES = ['duckduckgo', 'google', 'bing', 'ecosia'];
 
 // Comfort presets offered by the settings cycle and the voice command.
 const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+// Numeric settings the voice `onStepper` hook may step. Kept in sync with the
+// settings-panel steppers below — same min/max/step, and the same live-apply
+// surface for keys that have one (read-at-use keys need none).
+const VOICE_STEPPERS = {
+  gazeGraceTime: { min: 0, max: 600, step: 50 },
+  snapTurnAngle: { min: 15, max: 90, step: 15 },
+  smoothMoveSpeed: { min: 0.5, max: 4.0, step: 0.5 },
+  captionDuration: { min: 2, max: 60, step: 2 },
+  captionHeight: { min: -0.85, max: -0.25, step: 0.1 }
+};
 
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
@@ -1533,6 +1543,13 @@ export class VRApp {
         }
       }
       break;
+    case 'enableSmoothMove': {
+      const msg = smoothMoveWarning(v, osReducedMotion());
+      if (msg) {
+        this.showVRToast(msg, { type: 'warn' });
+      }
+      break;
+    }
     case 'motionSensitivity':
       if (this.comfortSystem) {
         this.comfortSystem.setPreset(v);
@@ -2914,7 +2931,8 @@ export class VRApp {
           onSettingToggle: (key, value) => {
             const TOGGLE_KEYS = ['enableCaptions', 'enableHaptics', 'enableGazeDwell',
               'enableCurvedPanel', 'enableWindowFollow', 'enableSnapTurn',
-              'enableTeleport', 'enableComfort', 'enableFFR'];
+              'enableTeleport', 'enableComfort', 'enableFFR',
+              'southpaw', 'enableSmoothMove'];
             let next;
             if (key === 'motionSensitivity') {
               const idx = COMFORT_PRESETS.indexOf(this.settings.motionSensitivity);
@@ -2931,6 +2949,44 @@ export class VRApp {
             }
             this.updateSetting(key, next);
             this._applyToggle(key, next);
+            return next;
+          },
+          // Generic numeric-stepper hook — the voice surface for every
+          // settings stepper not already hooked (grace window, snap angle,
+          // move speed, caption hold, caption height). Steps by `delta` of
+          // the stepper's own step size, then runs the panel's live apply
+          // for keys that have one; the rest are read at use time.
+          onStepper: (key, delta) => {
+            const def = VOICE_STEPPERS[key];
+            if (!def) {
+              return null;
+            }
+            const next = Math.min(def.max, Math.max(def.min,
+              this.settings[key] + delta * def.step));
+            if (next === this.settings[key]) {
+              return null;
+            }
+            this.updateSetting(key, next);
+            switch (key) {
+            case 'gazeGraceTime':
+              if (this.gazeInteraction) {
+                this.gazeInteraction.graceTime = next;
+              }
+              break;
+            case 'captionDuration':
+              if (this.captionSystem) {
+                this.captionSystem.setLineDuration(next * 1000);
+              }
+              break;
+            case 'captionHeight':
+              if (this.captionSystem) {
+                this.captionSystem.setVerticalOffset(next);
+              }
+              break;
+            default:
+              // snapTurnAngle / smoothMoveSpeed are read at use time.
+              break;
+            }
             return next;
           },
           // Panel distance — the windowDistance stepper's voice surface
