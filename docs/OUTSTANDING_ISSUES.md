@@ -280,6 +280,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ページ内検索のヒットが見えない**~~ — **Session 85 で実装**: Chrome Ctrl+F 準拠（現在ヒット=橙・他=黄）。`_markFindHits` がマッチ行を 'current'/'other' にタグ付け（タグは laid-out 行オブジェクト上に持つため、再レイアウトで自然に消える）、`_drawReader` が行背景に `col.findCurrent`/`col.findHit` を描画。findNext/Prev で current が追従。
 - ~~**記事の文字サイズが音声で変えられない**~~ — **Session 85 で実装**: WCAG 1.4.4 — 音声のみのユーザーは readerTextScale stepper に届かない。`onReaderScale(±0.25)` ホストフック（stepper と同じ clamp(0.5–2.0)→`updateSetting`→`tabManager.setReaderScale`、境界で null）→ voice `reader-size-up/down`（'記事の文字を大きく/小さく'+EN）→ '記事の文字サイズ N倍'/「これ以上大きくできません」。
 - ~~**発話速度を数値指定できない**~~ — **Session 85 で実装**: NVDA の rate 値設定準拠 — ±0.25 ステップの往復ではなく直接指定。voice `speech-rate-set`（'読み上げ速度2倍'/EN 'speech rate to 1.5'）→ `setSpeechRate`（clamp）→ '読み上げ速度 N倍'。
+- ~~**プライベートタブを直接開けない**~~ — **Session 86 で実装**: Chrome Ctrl+Shift+N 準拠。`newTab(url,{privateMode})` 化 + `newPrivateTab()` — モードトグルを反転せず1枚だけ private で開く（isPrivate がパネルに付くため履歴・closed-stack 除外は自動継承）。voice `private-new-tab`（'プライベートタブ'/'シークレットタブ'/'new incognito tab' — private-mode の `/incognito/` より先に登録し specific beats generic）。
+- ~~**ハイコントラストを音声で切り替えられない**~~ — **Session 86 で実装**: Windows/macOS の高コントラスト OS 切替準拠。設定 apply ブロックを `_applyHighContrast(v)` に抽出（settings トグルと voice が完全同一パス）→ `onHighContrast(value?)` フック → voice `high-contrast`（'ハイコントラスト' トグル/'ハイコントラストをオフ'/'enable high contrast' 明示指定）→ 'ハイコントラスト オン/オフです'。
+- ~~**記事の読了時間がわからない**~~ — **Session 86 で実装**: Edge/Safari "reading time" 準拠。`getReadingTimeMinutes()` — 日本語黙読速度 ~500字/分で推定（短い記事は1分下限）→ voice `reading-time`（'読了時間'/'この記事の長さ'/'どのくらいで読める'+EN）→ 'この記事は約N分です'、非リーダー時は「記事が開かれていません」。
+- ~~**検索エンジンを音声で切り替えられない**~~ — **Session 86 で実装**: `SEARCH_ENGINES` をモジュール定数に昇格、`onSearchEngine(name)` フックがサイクルボタンと同じ `updateSetting`→`setSearchEngine` パス → voice `search-engine`（'検索エンジンをGoogleに'/'use bing'、JA カナ別名対応）→ '検索エンジンをXにしました'、未対応名は「その検索エンジンは使えません」。
+- ~~**セッションを音声で復元できない**~~ — **Session 86 で実装**: `restoreSession` が復元数を返すようになり、`onRestoreSession` フック経由で voice `restore-session`（'セッションを復元'/'前のセッションを復元'/EN）→ 'N個のタブを復元しました'/'復元するセッションがありません'。
 
 ---
 

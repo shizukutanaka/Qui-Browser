@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 86: シェル制御原子 — プライベートタブ・高コントラスト・読了時間・検索エンジン・セッション復元
+外部基準: Chrome Ctrl+Shift+N（シークレットウィンドウ — モードトグルではなく1枚だけ開く）、Windows/macOS の高コントラスト OS 切替（音声のみのユーザーは設定トグルに届かない）、Edge/Safari "reading time"（記事の読了時間推定）、Wolvic 1.9 のセッション復元のオンデマンド版。
+- ✨ **newPrivateTab**: `newTab(url,{privateMode})` — 既存の `privateMode: this._privateMode` をオプション化、`_privateMode` トグルは不変で1枚だけ private（isPrivate がパネルに付くので履歴・closed-stack 除外は自動継承、MAX_TABS では null）。voice `private-new-tab` は private-mode の `/incognito/` より**前に登録**（'new incognito tab' は新タブ要求、bare 'incognito' はモードトグル — specific beats generic）。
+- ✨ **high-contrast voice**: 設定 apply ブロックを `_applyHighContrast(v)` メソッドに抽出（setPref→パネル再描画→ブックマーク→キャプション→ゲーズレティクルの全経路を settings トグルと voice が共有）。`onHighContrast(value?)` — bare はトグル、明示 オン/オフ/enable/disable は値指定 → 'ハイコントラスト オン/オフです'、フック無しは「切り替えられません」。
+- ✨ **reading-time**: `getReadingTimeMinutes()` — 日本語黙読 ~500字/分（1分下限、非リーダーは null）→ voice `reading-time` → 'この記事は約N分です'/'記事が開かれていません'。
+- ✨ **search-engine**: `SEARCH_ENGINES` をモジュール定数に昇格し voice フックとサイクルボタンで共有。`onSearchEngine(name)` → `updateSetting`→`tabManager.setSearchEngine`、未知名は null → 'その検索エンジンは使えません'。JA カナ別名（グーグル/ビング/ダックダックゴー/エコシア）対応。
+- ✨ **restore-session**: `restoreSession` が復元数を返すよう拡張（MAX_TABS 打ち切りは成功分のみ計数）→ `onRestoreSession` → voice `restore-session` → 'N個のタブを復元しました'/'復元するセッションがありません'。
+- 🔧 実装中に2件の衝突を実測で捕捉・修正: 'ハイコントラストをオフ' が exact-string パターンに通らない（正規化 === 一致のため正規表現化）、'new incognito tab' が private-mode の `/incognito/` に先取される（登録順を specific→generic に）。
+- ✅ **テスト +26（git stash で26件全て赤を確認してから緑へ）**: newPrivateTab の単発 private・モード非反転・MAX_TABS、restoreSession の計数・active 復元・打ち切り計数、読了時間の推定・下限・非リーダー null、voice 5コマンドのルーティング・告知・フック無しフォールバック・JA 別名・未知エンジン拒否。Total 1757 tests (60 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 85: リーダー面の残原子 — 検索ハイライト・記事文字サイズ(音声)・速度数値指定
 外部基準: Chrome Ctrl+F のヒット描画（現在=橙・他=黄）、WCAG 1.4.4（文字を拡大できること — 音声のみのユーザーは stepper に届かない）、NVDA の rate 値設定（±ステップと別物の直接指定）。
 - ✨ **find ハイライト**: `_markFindHits` が `findInReader`/`findNextMatch` の後にマッチ行オブジェクトへ `_findHit = 'current'|'other'` をタグ付け（タグは laid-out 行上に持つため、新規 fetch・setReaderScale の再レイアウトで自然に消える — 別帳簿いらず）。`_drawReader` が行背景に `col.findCurrent`（橙）/`col.findHit`（黄）を描画、新パレット項目を chromeColors の両バリアントに追加。マーク時に `_drawContent()` を明示呼出し（スクロール不変でも確実に再描画）。
