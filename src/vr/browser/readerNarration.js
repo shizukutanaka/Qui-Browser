@@ -89,3 +89,29 @@ export function narrationChunks(title, blocks, maxLen = NARRATION_CHUNK_MAX) {
   flush();
   return chunks;
 }
+
+/**
+ * Chunk the article starting at the block under a reader line index — the
+ * "read from here" counterpart (NVDA read-from-current-position parity).
+ * Lines laid out by `layoutReaderLines` carry their source `block` index;
+ * a title/blank line with none resumes from block 0 so "here" at the very
+ * top equals a full read-aloud. The title is only re-announced when still
+ * at it.
+ *
+ * @param {Array<{text:string, style:string, block?:number}>} lines laid-out reader lines
+ * @param {number} scroll line index at the top of the viewport
+ * @param {string} title article title
+ * @param {Array<{type:'h'|'p', text:string}>} blocks source blocks
+ * @param {number} [maxLen]
+ * @returns {string[]} chunks from that block onward
+ */
+export function narrationFromLine(lines, scroll, title, blocks, maxLen = NARRATION_CHUNK_MAX) {
+  const all = Array.isArray(lines) ? lines : [];
+  const i = Math.min(
+    Math.max(0, Math.floor(scroll) || 0),
+    Math.max(0, all.length - 1)
+  );
+  const start = all[i] && Number.isFinite(all[i].block) ? all[i].block : 0;
+  const rest = (Array.isArray(blocks) ? blocks : []).slice(start);
+  return narrationChunks(start <= 0 ? title : null, rest, maxLen);
+}

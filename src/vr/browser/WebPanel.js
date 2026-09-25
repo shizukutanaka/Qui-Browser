@@ -30,7 +30,7 @@ import {
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
-import { narrationChunks } from './readerNarration.js';
+import { narrationChunks, narrationFromLine } from './readerNarration.js';
 import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
@@ -673,6 +673,19 @@ export class WebPanel {
       return [];
     }
     return narrationChunks(this._readerTitle, this._readerBlocks);
+  }
+
+  /**
+   * Chunks starting at the block under the current scroll offset — the
+   * "read from here" counterpart (NVDA read-from-current-position parity).
+   * Empty outside the reader state, same as getReaderNarration().
+   */
+  getReaderNarrationFrom() {
+    if (this._contentState !== 'reader' || !this._readerBlocks) {
+      return [];
+    }
+    return narrationFromLine(
+      this._readerLines, this._readerScroll, this._readerTitle, this._readerBlocks);
   }
 
   /**

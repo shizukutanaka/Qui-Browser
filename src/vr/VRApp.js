@@ -3131,6 +3131,40 @@ export class VRApp {
               p.catch(() => {});
             }
             return title;
+          },
+          // Read-from-here (NVDA read-from-current-position parity): chunks
+          // resume at the block under the reader scroll offset.
+          onReadHere: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active?.getReaderNarrationFrom?.() || null;
+          },
+          // Numbered top-site open — the new-tab tile grid, voice-reachable.
+          // Same private-mode/search-engine exclusions as the tiles themselves.
+          onTopSiteOpen: (n) => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (!active || this.settings.privateMode) {
+              return null;
+            }
+            const site = this.bookmarks?.getTopSites?.(
+              Math.max(1, n), Date.now(), searchEngineHosts())?.[n - 1];
+            if (!site) {
+              return null;
+            }
+            active.navigate(site.url);
+            return site.title || site.url;
+          },
+          // History search — count the hits plus announce the most recent.
+          onHistorySearch: (term) => {
+            const needle = String(term || '').toLowerCase();
+            if (!needle) {
+              return null;
+            }
+            const hits = (this.bookmarks?.getHistory?.(MAX_HISTORY) || [])
+              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            if (!hits.length) {
+              return null;
+            }
+            return { count: hits.length, title: hits[0].title || hits[0].url };
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

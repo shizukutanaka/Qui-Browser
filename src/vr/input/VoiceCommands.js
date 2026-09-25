@@ -41,6 +41,9 @@ export class VoiceCommands {
     this._onBookmarkList = null;
     this._onHistoryList = null;
     this._onCopyTitle = null;
+    this._onReadHere = null;
+    this._onTopSiteOpen = null;
+    this._onHistorySearch = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -380,6 +383,22 @@ export class VoiceCommands {
         return { action: 'reader-goto-line', line: n, res };
       },
       description: 'Jump to a line in the reader'
+    });
+
+    // Numbered top-site open — the new-tab tile grid, voice-reachable
+    // (bookmark-select / history-select parity). Registered before navigate:
+    // the loose /トップ?サイト/ open command would otherwise swallow
+    // 'トップサイト2'.
+    this.registerCommand('top-site-select', {
+      patterns: [/トップサイト\s*(\d+)/, /top\s*site\s*(\d+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const n = m ? Number(m[1]) : 0;
+        const title = this._onTopSiteOpen ? this._onTopSiteOpen(n) : null;
+        this.speak(title || `トップサイト${n}はありません`);
+        return { action: 'top-site-select', index: n, title: title || null };
+      },
+      description: 'Open the Nth top site'
     });
 
     // Navigation commands
@@ -777,6 +796,14 @@ export class VoiceCommands {
    * @param {Function} [opts.onHistoryList] () => string[] — history titles
    * @param {Function} [opts.onCopyTitle] () => string|null — copy the page
    *                                         title; null = nothing to copy
+   * @param {Function} [opts.onReadHere] () => string[]|null — narration
+   *                                         chunks from the reader's scroll
+   *                                         position (read-aloud's pair)
+   * @param {Function} [opts.onTopSiteOpen] (n: number) => string|null — open
+   *                                         the Nth top site; null = absent
+   * @param {Function} [opts.onHistorySearch] (term: string) =>
+   *                                         {count:number, title:string}|null —
+   *                                         history hits; null = no match
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -795,7 +822,8 @@ export class VoiceCommands {
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
     onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine,
-    onBookmarkList, onHistoryList, onCopyTitle } = {}) {
+    onBookmarkList, onHistoryList, onCopyTitle,
+    onReadHere, onTopSiteOpen, onHistorySearch } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -855,6 +883,15 @@ export class VoiceCommands {
     }
     if (onCopyTitle) {
       this._onCopyTitle = onCopyTitle;
+    }
+    if (onReadHere) {
+      this._onReadHere = onReadHere;
+    }
+    if (onTopSiteOpen) {
+      this._onTopSiteOpen = onTopSiteOpen;
+    }
+    if (onHistorySearch) {
+      this._onHistorySearch = onHistorySearch;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1997,6 +2034,42 @@ export class VoiceCommands {
         return { action: 'copy-title', title: title || null };
       },
       description: 'Copy the page title to the clipboard'
+    });
+
+    // Read from the visible position — NVDA read-from-current-position
+    // parity. readAloud owns the start/nothing-to-read announcements.
+    this.registerCommand('read-here', {
+      patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
+        /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i],
+      action: () => {
+        const chunks = this._onReadHere ? this._onReadHere() : null;
+        this.readAloud(chunks);
+        return { action: 'read-here' };
+      },
+      description: 'Read aloud from the current position'
+    });
+
+    // History search — announce the hit count plus the most recent match.
+    // 'を探して' stays with find-in-page (it owns that phrasing); use
+    // '検索'/'調べて' here instead.
+    this.registerCommand('history-search', {
+      patterns: [
+        /履歴(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/,
+        /history\s+search\s+(?:for\s+)?(.+)/i,
+        /search\s+history\s+(?:for\s+)?(.+)/i
+      ],
+      action: (transcript) => {
+        const m = transcript.match(/履歴(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/)
+          || transcript.match(/history\s+search\s+(?:for\s+)?(.+)/i)
+          || transcript.match(/search\s+history\s+(?:for\s+)?(.+)/i);
+        const term = (m && m[1] ? m[1] : '').trim();
+        const res = this._onHistorySearch ? this._onHistorySearch(term) : null;
+        this.speak(res
+          ? `${res.count}件見つかりました。最近: ${res.title}`
+          : `${term}は履歴にありません`);
+        return { action: 'history-search', term, count: res ? res.count : 0 };
+      },
+      description: 'Search the browsing history'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
