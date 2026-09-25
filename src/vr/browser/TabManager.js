@@ -445,6 +445,22 @@ export class TabManager {
   }
 
   /**
+   * Close every tab (Chrome's "Close all tabs"). Iterating backwards keeps
+   * indices stable as closeTab splices; pinned tabs refuse via closeTab, so
+   * they survive the sweep exactly as they survive a single close.
+   * @returns {number} tabs closed
+   */
+  closeAllTabs() {
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (this.closeTab(i)) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
    * Reorder a tab by delta (Chrome Ctrl+Shift+PageUp/PageDown). Pinned and
    * unpinned tabs live in separate strip regions, so a move that would cross
    * the boundary is refused — matches Chrome, where a pinned tab can only

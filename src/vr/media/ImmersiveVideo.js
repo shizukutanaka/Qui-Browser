@@ -293,6 +293,22 @@ export class ImmersiveVideo {
     }
   }
 
+  /**
+   * Seek relative to the current position (YouTube's J/L keys: ±10s).
+   * Clamps into [0, duration] when the duration is known.
+   * @param {number} deltaSeconds negative seeks backward
+   * @returns {number|null} the new position in seconds, or null with no video
+   */
+  seek(deltaSeconds) {
+    if (!this.video) {
+      return null;
+    }
+    const dur = this.video.duration;
+    const t = this.video.currentTime + deltaSeconds;
+    this.video.currentTime = Math.min(Number.isFinite(dur) ? dur : t, Math.max(0, t));
+    return this.video.currentTime;
+  }
+
   /** Per-frame: keep the sphere(s) centred on the head (translation only, so
    *  the viewer can look around the stationary video). */
   update() {

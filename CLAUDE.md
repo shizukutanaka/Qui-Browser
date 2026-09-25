@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 90: パネル/シーク原子 — 動画シーク・設定パネル音声開閉・全タブクローズ
+外部基準: YouTube J/L キー（±10秒シーク — 視聴中にHUDへ手を伸ばせない音声ユーザーの要石）、macOS の「すべてのタブを閉じる」、コントローラーボタンと音声の完全同一経路（open≠toggle 規律の延長）。
+- ✨ **ImmersiveVideo.seek(deltaSec)**: `video.currentTime` を [0, duration] にクランプ、duration 不明でも正直に動く。→ `onVideoSeek` フック → voice `video-seek`（'10秒戻る'/'30秒進む'/'動画を戻して'/'巻き戻して'/'seek forward/back'/'rewind' — 数値キャプチャ、既定±10）→ 'N秒戻りました/進みました'/'再生中の動画がありません'。
+- 🐛 **登録順衝突をテストで実測捕捉**: go-back `/戻[るれ]/`・go-forward `/進[むめ]/` が `registerDefaultCommands` 前半の loose regex で '10秒戻る'/'30秒進む' を吸収、go-to catch-all が '設定を開いて' を吸収 → **video-seek と settings-toggle を registerDefaultCommands の先頭（navigate の前）へ移動**。両コマンドは `this._onX` 後付けフィールドのみ参照するので connectBrowser より前の登録でも正しく動く — R15 の stepperCmd と同じ規律。
+- ✨ **_setSettingsPanelVisible(want)**: faceB/menu ボタンの開閉本体を抽出（visible 反転 + mesh + semanticDOM.setSettingsExpanded + settingsOpen/Closed caption）→ ボタンと `onSettingsPanel` フックが完全同一経路。voice `settings-toggle`（'設定を開いて/閉じて'/'設定を開く/閉じる'/'設定パネル'/'open|close settings' — 明示方向 or トグル）→ 結果の表示状態を告知。
+- ✨ **closeAllTabs()**: 後方イテレートで全タブを closeTab 経由（private/空タブ非記録・ピン拒否ルール完全一致）→ voice `close-all-tabs` → 'N個のタブを閉じました。ピン留めM個は残ります'/全ピン「ピン留めされたタブは閉じられません」/空「閉じられるタブがありません」。
+- ✅ **テスト +20（git stash で18件赤を確認 — 2件は衝突ガードで設計上緑）**: seek の数値/既定/EN/無動画/フック無し・'戻る' が go-back に留まる衝突ガード、設定開閉の明示/トグル/EN/フック無し、close-all の実カウント/ピン生存告知/全ピン/EN・'他のタブを閉じて' 衝突ガード、TabManager 直接のピン生存。Total 1839 tests (64 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 89: 残stepperの音声面 — 汎用onStepper・利き手/スムーズ移動・ピッチ・URL告知
 外部基準: NVDA rate/pitch 制御の対称性（rate があるのに pitch が無いのは半端）、WCAG 2.2.1 Timing Adjustable（grace 窓・キャプション保持時間 — tremor/nystagmus ユーザーが最も必要とする stepper ほど panel にしかなかった）、XAUR の caption 位置カスタマイズ、タイトル告知と対の1行 URL 告知。
 - ✨ **onStepper(key,delta)**: `VOICE_STEPPERS` モジュール定数で panel stepper と同一 min/max/step を共有し、`delta` はその stepper の1刻み単位。live apply も panel と同一表面（gazeInteraction.graceTime / captionSystem.setLineDuration・setVerticalOffset）— 残りは read-at-use で正直に no-apply。

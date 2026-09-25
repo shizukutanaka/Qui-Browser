@@ -33,6 +33,8 @@ export class VoiceCommands {
     this._onPanelDistance = null;
     this._onMute = null;
     this._onStepper = null;
+    this._onVideoSeek = null;
+    this._onSettingsPanel = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -316,6 +318,48 @@ export class VoiceCommands {
    * Register default commands
    */
   registerDefaultCommands() {
+    // Seek the immersive video — YouTube's J/L keys (±10s) for a user who
+    // can't reach the HUD while watching. Registered before navigate/back:
+    // their loose /戻|進/ regexes would otherwise swallow '10秒戻る'. Seconds
+    // are captured when spoken ('30秒戻る'), else the 10-second step applies.
+    this.registerCommand('video-seek', {
+      patterns: [/(\d+)\s*秒\s*(戻|進)/, '動画を戻して', '動画を進めて', '巻き戻して',
+        /seek\s+(forward|back)/i, /rewind/i],
+      action: (transcript) => {
+        const m = transcript.match(/(\d+)/);
+        const secs = m ? Number(m[1]) : 10;
+        const back = /戻|巻き戻|rewind|back/i.test(transcript);
+        const delta = back ? -secs : secs;
+        const pos = this._onVideoSeek ? this._onVideoSeek(delta) : null;
+        this.speak(pos === null ? '再生中の動画がありません'
+          : `${secs}秒${back ? '戻り' : '進み'}ました`);
+        return { action: 'video-seek', delta, pos };
+      },
+      description: 'Seek the immersive video'
+    });
+
+    // Settings panel open/close — the faceB/menu button's voice equivalent.
+    // Registered before the go-to catch-all, whose 'Xを開いて' patterns would
+    // otherwise treat '設定を開いて' as a navigation request. Explicit phrases
+    // pin the direction; the bare panel phrase toggles.
+    this.registerCommand('settings-toggle', {
+      patterns: ['設定を開いて', '設定を開く', '設定を閉じて', '設定を閉じる', '設定パネル',
+        /open\s+settings/i, /close\s+settings/i],
+      action: (transcript) => {
+        let want;
+        if (/閉じ|close/i.test(transcript)) {
+          want = false;
+        } else if (/開|open/i.test(transcript)) {
+          want = true;
+        }
+        const visible = this._onSettingsPanel ? this._onSettingsPanel(want) : null;
+        this.speak(visible === null ? '設定を切り替えられません'
+          : visible ? '設定を開きます' : '設定を閉じます');
+        return { action: 'settings-toggle', visible };
+      },
+      description: 'Open, close or toggle the settings panel'
+    });
+
     // Navigation commands
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', /進[むめ]/],
@@ -694,6 +738,11 @@ export class VoiceCommands {
    * @param {Function} [opts.onStepper] (key: string, delta: number) => number|null —
    *                                         step a numeric setting by `delta` of its
    *                                         own step size; null = unknown key/bounds
+   * @param {Function} [opts.onVideoSeek] (deltaSeconds: number) => number|null —
+   *                                         seek the immersive video; null = no video
+   * @param {Function} [opts.onSettingsPanel] (want?: boolean) => boolean|null —
+   *                                         open/close/toggle the settings panel;
+   *                                         returns its visibility; null = no panel
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -710,7 +759,8 @@ export class VoiceCommands {
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
-    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper } = {}) {
+    onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
+    onVideoSeek, onSettingsPanel } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -746,6 +796,12 @@ export class VoiceCommands {
     }
     if (onStepper) {
       this._onStepper = onStepper;
+    }
+    if (onVideoSeek) {
+      this._onVideoSeek = onVideoSeek;
+    }
+    if (onSettingsPanel) {
+      this._onSettingsPanel = onSettingsPanel;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1788,6 +1844,31 @@ export class VoiceCommands {
         return { action: 'read-url', url: url || null };
       },
       description: 'Read the active tab URL'
+    });
+
+    // Close all tabs (Chrome's "Close all tabs"). Pinned tabs refuse inside
+    // closeTab, so the announce reports what actually happened — and says so
+    // when only pinned tabs remain.
+    this.registerCommand('close-all-tabs', {
+      patterns: ['すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
+        /close\s+all\s+tabs/i],
+      action: () => {
+        if (!tabManager) {
+          this.speak('タブがありません');
+          return { action: 'close-all-tabs', closed: 0 };
+        }
+        const closed = tabManager.closeAllTabs();
+        const left = tabManager.tabs.length;
+        if (closed === 0) {
+          this.speak(left > 0 ? 'ピン留めされたタブは閉じられません' : '閉じられるタブがありません');
+        } else {
+          this.speak(left > 0
+            ? `${closed}個のタブを閉じました。ピン留め${left}個は残ります`
+            : `${closed}個のタブを閉じました`);
+        }
+        return { action: 'close-all-tabs', closed, left };
+      },
+      description: 'Close every tab (pinned tabs stay)'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

@@ -1563,6 +1563,31 @@ export class VRApp {
   }
 
   /**
+   * Open or close the settings panel. Shared by the controller faceB/menu
+   * button and the voice `onSettingsPanel` hook so both paths flip the same
+   * state, sync the mesh + semantic DOM, and caption the result.
+   * @param {boolean} [want] explicit state; omit to toggle
+   * @returns {boolean|null} the panel's visibility after the call, or null
+   *   when the panel does not exist yet
+   */
+  _setSettingsPanelVisible(want) {
+    const p = this.settingsPanel;
+    if (!p) {
+      return null;
+    }
+    p.visible = want === undefined ? !p.visible : !!want;
+    p.mesh && (p.mesh.visible = p.visible);
+    this.semanticDOM?.setSettingsExpanded(p.visible);
+    // Caption so users who rely on text feedback know whether the panel
+    // opened or closed — the face/menu button click haptic is generic
+    // and doesn't distinguish panel-open from panel-close.
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(p.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
+    }
+    return p.visible;
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -2287,15 +2312,7 @@ export class VRApp {
         }
         // Toggle settings panel.
         if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
-          this.settingsPanel.visible = !this.settingsPanel.visible;
-          this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
-          this.semanticDOM?.setSettingsExpanded(this.settingsPanel.visible);
-          // Caption so users who rely on text feedback know whether the panel
-          // opened or closed — the face/menu button click haptic is generic
-          // and doesn't distinguish panel-open from panel-close.
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
-          }
+          this._setSettingsPanelVisible();
         }
         // Toggle VR keyboard.
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
@@ -3037,6 +3054,18 @@ export class VRApp {
             v.stop();
             return true;
           },
+          // Seek the playing video by delta seconds (YouTube J/L parity).
+          // Returns the new position or null when no video is active.
+          onVideoSeek: (delta) => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return null;
+            }
+            return v.seek(delta);
+          },
+          // Settings panel open/close/toggle — same path as the faceB/menu
+          // button so the spoken state always matches the visible one.
+          onSettingsPanel: (want) => this._setSettingsPanelVisible(want),
           // Share/copy atom: clipboard may be absent or reject (permissions,
           // non-secure context) — the write is best-effort, the announce
           // still honest because the URL itself is what was handed over.
