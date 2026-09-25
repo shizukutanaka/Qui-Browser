@@ -1344,6 +1344,7 @@ describe('VRApp find-in-page glue', () => {
     const app = {
       showVRToast: (msg, opts) => toasts.push({ msg, opts }),
       _announceFindResult: VRApp.prototype._announceFindResult,
+      _findResultText: VRApp.prototype._findResultText,
       _requestFindInPageInput: VRApp.prototype._requestFindInPageInput,
       _requestVRKeyboardInput: null,
       tabManager: null
@@ -1393,52 +1394,71 @@ describe('VRApp find-in-page glue', () => {
   });
 });
 
-// ── Following a numbered link by voice ───────────────────────────────────────
-// Success is announced by the existing onLinkFollowed path; only the failure
-// needs its own message, since silence leaves the user unsure the number was
-// even heard (WCAG 4.1.3).
-describe('VRApp onFollowLink glue', () => {
-  const makeApp = (activeTab) => {
-    const toasts = [];
-    return {
-      toasts,
-      app: {
-        showVRToast: (msg, opts) => toasts.push({ msg, opts }),
-        tabManager: { getActiveTab: () => activeTab }
-      }
+// ── Voice hears the outcome, not an optimistic confirmation ─────────────────
+// These callbacks are the only place that knows what happened, and they used
+// to report it by toast/caption only — never speech — so a blind voice user
+// heard "searching this page" and never the result, or "opening link" for a
+// number that didn't exist. Each now RETURNS the line voice should speak
+// (VoiceCommands.connectBrowser's outcome contract). Tested through the real
+// _connectVoiceToBrowsing() so the wiring itself is what's exercised.
+describe('VRApp voice callbacks return the spoken outcome', () => {
+  const { t } = require('../src/i18n/i18n.js');
+
+  function wire({ tab = null, tabManager = tab ? { getActiveTab: () => tab } : null, topSites = [] } = {}) {
+    let opts;
+    const app = {
+      voiceCommands: { connectBrowser: (o) => { opts = o; } },
+      tabManager,
+      bookmarkPanel: null,
+      vrKeyboard: null,
+      captionSystem: { enabled: true, show: jest.fn() },
+      showVRToast: jest.fn(),
+      bookmarks: { getTopSites: () => topSites, search: () => [] },
+      _findResultText: VRApp.prototype._findResultText,
+      _voiceNoTabLine: VRApp.prototype._voiceNoTabLine
     };
-  };
+    VRApp.prototype._connectVoiceToBrowsing.call(app);
+    return { app, opts };
+  }
 
-  /** The wiring under test, mirroring VRApp's connectBrowser callback. */
-  const follow = (app, n) => {
-    const active = app.tabManager?.getActiveTab?.();
-    const out = active && typeof active.followLink === 'function'
-      ? active.followLink(n) : { ok: false };
-    if (!out.ok) {
-      app.showVRToast('no such link', { type: 'warn' });
+  test('find-in-page returns the result, including no match', () => {
+    const { opts } = wire({ tab: { findInPage: () => ({ count: 7, index: 3 }) } });
+    expect(opts.onFindInPage('x')).toBe(`${t('vr.msg.findResults')}: 3/7`);
+    const none = wire({ tab: { findInPage: () => ({ count: 0, index: 0 }) } }).opts;
+    expect(none.onFindInPage('x')).toBe(t('vr.msg.findNone'));
+  });
+
+  test('find-next returns which match it moved to', () => {
+    const { opts } = wire({ tab: { findNext: () => ({ count: 7, index: 4 }) } });
+    expect(opts.onFindNext()).toBe(`${t('vr.msg.findResults')}: 4/7`);
+  });
+
+  test('a missing link number is said, not only toasted; a hit returns nothing', () => {
+    const miss = wire({ tab: { followLink: () => ({ ok: false }) } });
+    expect(miss.opts.onFollowLink(99)).toBe(t('vr.msg.noSuchLink'));
+    expect(miss.app.showVRToast).not.toHaveBeenCalled();
+    const hit = wire({ tab: { followLink: jest.fn(() => ({ ok: true })) } });
+    expect(hit.opts.onFollowLink(2)).toBeUndefined();
+  });
+
+  test('top sites with no history says so instead of "opening"', () => {
+    const { opts, app } = wire({ tab: { navigate: jest.fn() } });
+    expect(opts.onTopSites()).toBe(t('vr.msg.noTopSites'));
+    expect(app.captionSystem.show).not.toHaveBeenCalled(); // voice's onSpeak captions it once
+  });
+
+  test('with every tab closed, the browsing callbacks say no page is open', () => {
+    const { opts } = wire({ tabManager: { getActiveTab: () => null } });
+    for (const said of [opts.onFindInPage('x'), opts.onFindNext(), opts.onFollowLink(1),
+      opts.onTopSites(), opts.onSearch('x'), opts.onGoTo('x')]) {
+      expect(said).toBe(t('vr.voice.noPage'));
     }
-    return out;
-  };
-
-  test('a successful follow stays silent here — onLinkFollowed already announced', () => {
-    const followLink = jest.fn(() => ({ ok: true, href: 'https://x.example/' }));
-    const { app, toasts } = makeApp({ followLink });
-    follow(app, 2);
-    expect(followLink).toHaveBeenCalledWith(2);
-    expect(toasts).toHaveLength(0);
   });
 
-  test('an out-of-range number warns instead of doing nothing visible', () => {
-    const { app, toasts } = makeApp({ followLink: () => ({ ok: false }) });
-    follow(app, 99);
-    expect(toasts).toHaveLength(1);
-    expect(toasts[0].opts).toEqual({ type: 'warn' });
-  });
-
-  test('no active tab warns rather than throwing', () => {
-    const { app, toasts } = makeApp(null);
-    expect(() => follow(app, 1)).not.toThrow();
-    expect(toasts).toHaveLength(1);
+  test('with browsing off, they say where to turn it on', () => {
+    const { opts } = wire();
+    expect(opts.onSearch('x')).toBe(t('vr.voice.browsingOff'));
+    expect(opts.onTopSites()).toBe(t('vr.voice.browsingOff'));
   });
 });
 

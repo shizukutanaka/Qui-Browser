@@ -1140,3 +1140,41 @@ describe('VoiceCommands — confirmations say what actually happened', () => {
     expect(say('キーボード')).toEqual([]);
   });
 });
+
+describe('VoiceCommands — host callbacks report the outcome to speak', () => {
+  // Only the host knows whether a find matched or a link exists; a returned
+  // string replaces the optimistic confirmation, nothing keeps it.
+  let vc, spoken;
+  beforeEach(() => {
+    vc = new VoiceCommands();
+    spoken = [];
+    vc.callbacks.onSpeak = (text) => spoken.push(text);
+  });
+  const say = (u) => { spoken.length = 0; vc.processCommand(u, 0.9); return spoken; };
+
+  const cases = [
+    ['onFindInPage', 'ページ内検索：てんき', 'vr.voice.confirm.findInPage'],
+    ['onFindNext', '次の検索結果', 'vr.voice.confirm.findNext'],
+    ['onFollowLink', 'リンク3を開く', 'vr.voice.confirm.openLink'],
+    ['onTopSites', 'トップサイト', 'vr.voice.confirm.topSites'],
+    ['onSearch', '検索：てんき', 'vr.voice.confirm.search'],
+    ['onGoTo', 'githubを開く', 'vr.voice.confirm.goTo']
+  ];
+
+  test.each(cases)('%s returning a string is spoken instead of the confirmation', (cb, utterance) => {
+    vc.connectBrowser({ [cb]: () => 'OUTCOME' });
+    expect(say(utterance)).toEqual(['OUTCOME']);
+  });
+
+  test.each(cases)('%s returning nothing keeps the confirmation', (cb, utterance, key) => {
+    vc.connectBrowser({ [cb]: () => undefined });
+    expect(say(utterance)).toEqual([translate(key)]);
+  });
+
+  test('with no callback wired, nothing is claimed', () => {
+    vc.connectBrowser({});
+    for (const u of ['ページ内検索：てんき', '次の検索結果', 'リンク3を開く', 'トップサイト', 'githubを開く']) {
+      expect(say(u)).toEqual([]);
+    }
+  });
+});

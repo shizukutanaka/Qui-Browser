@@ -1450,11 +1450,22 @@ export class VRApp {
 
   /** Shared announcement for find results from either modality. */
   _announceFindResult(out) {
-    if (out && out.count > 0) {
-      this.showVRToast(`${t('vr.msg.findResults')}: ${out.index}/${out.count}`, { type: 'info' });
-    } else {
-      this.showVRToast(t('vr.msg.findNone'), { type: 'warn' });
-    }
+    this.showVRToast(this._findResultText(out), { type: out && out.count > 0 ? 'info' : 'warn' });
+  }
+
+  /** The find-in-page result as one line: "Matches: 3/7" or "No matches". */
+  _findResultText(out) {
+    return out && out.count > 0
+      ? `${t('vr.msg.findResults')}: ${out.index}/${out.count}`
+      : t('vr.msg.findNone');
+  }
+
+  /**
+   * What voice says when a browsing command has no page to act on: browsing
+   * turned off (with where to turn it on), or on with every tab closed.
+   */
+  _voiceNoTabLine() {
+    return t(this.tabManager ? 'vr.voice.noPage' : 'vr.voice.browsingOff');
   }
 
   /**
@@ -2728,46 +2739,52 @@ export class VRApp {
       return;
     }
     // Replace window.* default commands with VR-aware implementations that
-    // route navigation and search through the live TabManager.
+    // route navigation and search through the live TabManager. Callbacks that
+    // return a string have it spoken in place of the command's confirmation
+    // (VoiceCommands.connectBrowser's outcome contract): a blind voice user
+    // hears only speech, so a failure shown as a toast was never heard.
     this.voiceCommands.connectBrowser({
       tabManager:    this.tabManager,
       bookmarkPanel: this.bookmarkPanel,
       vrKeyboard:    this.vrKeyboard,
+      // The result ("3/7" / no match) is what was asked for, so it is spoken
+      // instead of "searching this page" — it used to be a toast only.
       onFindInPage: (query) => {
         const active = this.tabManager?.getActiveTab?.();
-        if (active && typeof active.findInPage === 'function') {
-          this._announceFindResult(active.findInPage(query));
+        if (!active || typeof active.findInPage !== 'function') {
+          return this._voiceNoTabLine();
         }
+        return this._findResultText(active.findInPage(query));
       },
       onFollowLink: (n) => {
         const active = this.tabManager?.getActiveTab?.();
-        const out = active && typeof active.followLink === 'function'
-          ? active.followLink(n) : { ok: false };
-        // Success already announces via onLinkFollowed (wired below); only
-        // the failure needs saying, since silence would leave the user
-        // wondering whether the number was even heard (WCAG 4.1.3).
-        if (!out.ok) {
-          this.showVRToast(t('vr.msg.noSuchLink'), { type: 'warn' });
+        if (!active || typeof active.followLink !== 'function') {
+          return this._voiceNoTabLine();
         }
+        // Success is confirmed by voice and by onLinkFollowed; a missing
+        // number must be SAID, or the user can't tell it was even heard.
+        return active.followLink(n).ok ? undefined : t('vr.msg.noSuchLink');
       },
       onFindNext: () => {
         const active = this.tabManager?.getActiveTab?.();
-        if (active && typeof active.findNext === 'function') {
-          this._announceFindResult(active.findNext());
+        if (!active || typeof active.findNext !== 'function') {
+          return this._voiceNoTabLine();
         }
+        return this._findResultText(active.findNext());
       },
       onSearch: (query) => {
         const active = this.tabManager?.getActiveTab?.();
-        if (active) {
-          // Mirror the immediate "Loading:" caption that the URL-bar and
-          // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
-          // caption-reliant users know their voice command was accepted
-          // before the page finishes loading.
-          if (query && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
-          }
-          active.navigate(query);
+        if (!active) {
+          return this._voiceNoTabLine();
         }
+        // Mirror the immediate "Loading:" caption that the URL-bar and
+        // bookmark paths both emit (WCAG 4.1.3 Status Messages) so
+        // caption-reliant users know their voice command was accepted
+        // before the page finishes loading.
+        if (query && this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(`${t('vr.msg.loadingPage')}: ${hostnameCaption(query)}`);
+        }
+        active.navigate(query);
       },
       // Top Sites: jump to the most-used destination (frecency-ranked from
       // history). Fewest-dwell navigation for hands-free users; announced
@@ -2775,16 +2792,19 @@ export class VRApp {
       onTopSites: () => {
         // Exclude search-engine result pages so the user's actual
         // destinations win the slot, not their search engine.
-        const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
         const active = this.tabManager?.getActiveTab?.();
-        if (top && active) {
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`${t('vr.msg.topSite')}: ${hostnameCaption(top.url)}`);
-          }
-          active.navigate(top.url);
-        } else if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(t('vr.msg.noTopSites'));
+        if (!active) {
+          return this._voiceNoTabLine();
         }
+        const top = this.bookmarks.getTopSites(1, Date.now(), searchEngineHosts())[0];
+        if (!top) {
+          // Spoken (and captioned via onSpeak) instead of "opening your top site".
+          return t('vr.msg.noTopSites');
+        }
+        if (this.captionSystem && this.captionSystem.enabled) {
+          this.captionSystem.show(`${t('vr.msg.topSite')}: ${hostnameCaption(top.url)}`);
+        }
+        active.navigate(top.url);
       },
       // Go-to: look up the extracted site name in frecency-ranked
       // history/bookmarks. A history hit navigates directly (fewest dwells
@@ -2794,7 +2814,7 @@ export class VRApp {
       onGoTo: (query) => {
         const active = this.tabManager?.getActiveTab?.();
         if (!active) {
-          return;
+          return this._voiceNoTabLine();
         }
         const hits = this.bookmarks.search(query, 1, Date.now());
         if (hits.length > 0) {

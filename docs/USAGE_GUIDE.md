@@ -71,8 +71,10 @@ You can drive every UI element with any of these — pick whichever suits you:
   confirmations are spoken and captioned, and they say what actually
   happened: "back" on the first page answers "there is no previous page",
   "stop loading" with nothing loading says so, "bookmarks" and "keyboard" say
-  whether they opened or closed, and with the browser panel turned off the
-  browsing commands tell you where to turn it back on.
+  whether they opened or closed, "find on page" reads out the result ("3/7"
+  or no match), a link number that doesn't exist is said aloud, and with the
+  browser panel turned off the browsing commands tell you where to turn it
+  back on.
 
 ## The settings panel
 

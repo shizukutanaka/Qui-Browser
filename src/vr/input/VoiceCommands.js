@@ -569,10 +569,22 @@ export class VoiceCommands {
    * @param {Function} [opts.onStopListening] () => void — the voice "stop" command;
    *                                         host turns the Voice setting off (persisted,
    *                                         recognizer torn down, settings toggle updated)
+   *
+   * Outcome contract for onSearch / onGoTo / onTopSites / onFollowLink /
+   * onFindInPage / onFindNext: only the host knows what happened, so a callback
+   * may RETURN a string, which is spoken (and captioned via onSpeak) instead of
+   * the command's usual confirmation — "no such link", "3/7", "no page is
+   * open". Returning nothing keeps the confirmation.
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
     onClearHistory, onScrollContent, onFindInPage, onFindNext, onFollowLink, onExitVR,
     onVolumeChange, onStopListening } = {}) {
+    // Speak what the host reported, or the usual confirmation if it reported
+    // nothing (see the outcome contract above).
+    const sayOutcome = (said, confirmation) => {
+      this.speak(typeof said === 'string' && said ? said : confirmation);
+    };
+
     // Tab commands speak what actually happened, not what was attempted: the
     // spoken line is all a blind voice user gets, and a fixed confirmation
     // said 「戻ります」 at the first page and 「読み込みを停止します」 with nothing
@@ -674,11 +686,10 @@ export class VoiceCommands {
       patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/, 'top sites', 'most visited'],
       action: () => {
         if (onTopSites) {
-          onTopSites();
+          sayOutcome(onTopSites(), t('vr.voice.confirm.topSites'));
         }
         return { action: 'top-sites' };
       },
-      confirmationKey: 'vr.voice.confirm.topSites',
       description: 'Open most-used site'
     });
 
@@ -814,10 +825,9 @@ export class VoiceCommands {
         if (!Number.isFinite(n) || !onFollowLink) {
           return;
         }
-        onFollowLink(n);
+        sayOutcome(onFollowLink(n), t('vr.voice.confirm.openLink'));
         return { action: 'open-link', index: n };
       },
-      confirmationKey: 'vr.voice.confirm.openLink',
       description: 'Follow a numbered link in the reader',
       example: 'リンク3を開く'
     });
@@ -839,11 +849,12 @@ export class VoiceCommands {
       action: (transcript) => {
         const m = transcript.match(/ページ内検索[：:]\s*(.+)/) || transcript.match(/find on page\s+(.+)/i);
         if (m && m[1] && onFindInPage) {
-          onFindInPage(m[1].trim());
+          // The host returns the result ("3/7" / no match): that is what the
+          // user asked for, so it replaces "searching this page".
+          sayOutcome(onFindInPage(m[1].trim()), t('vr.voice.confirm.findInPage'));
           return { action: 'find-in-page', query: m[1].trim() };
         }
       },
-      confirmationKey: 'vr.voice.confirm.findInPage',
       description: 'Find text in the current page',
       example: 'ページ内検索：てんき'
     });
@@ -854,11 +865,10 @@ export class VoiceCommands {
       patterns: ['次の検索結果', '次のマッチ', /next match/i, /find next/i],
       action: () => {
         if (onFindNext) {
-          onFindNext();
+          sayOutcome(onFindNext(), t('vr.voice.confirm.findNext'));
         }
         return { action: 'find-next' };
       },
-      confirmationKey: 'vr.voice.confirm.findNext',
       description: 'Jump to the next match',
       example: '次の検索結果'
     });
@@ -874,14 +884,17 @@ export class VoiceCommands {
         if (match && match[1]) {
           const query = match[1].trim();
           if (onSearch) {
-            onSearch(query);
+            sayOutcome(onSearch(query), t('vr.voice.confirm.search'));
           } else {
-            tabManager?.getActiveTab?.()?.navigate?.(query);
+            const tab = activeTab();
+            if (tab) {
+              tab.navigate?.(query);
+              this.speak(t('vr.voice.confirm.search'));
+            }
           }
           return { action: 'search', query };
         }
       },
-      confirmationKey: 'vr.voice.confirm.search',
       description: 'Search web',
       example: '検索：てんき'
     });
@@ -965,20 +978,18 @@ export class VoiceCommands {
         /^(?:open|go to|navigate to)\s+(.+)/i
       ],
       action: (transcript) => {
-        const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
-        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+        // Not `t`: that would shadow the i18n t() used below.
+        const lower = transcript.toLowerCase().trim();
+        const jpMatch = lower.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const enMatch = lower.match(/^(?:open|go to|navigate to)\s+(.+)/);
         const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
         if (onGoTo && query) {
-          onGoTo(query);
+          // "Opening" (spoken via TTS, mirrored to captions via onSpeak) unless
+          // the host reports it could not — e.g. no page is open (WCAG 4.1.3).
+          sayOutcome(onGoTo(query), t('vr.voice.confirm.goTo'));
         }
         return { action: 'go-to', query: query || null };
       },
-      // Immediate "command understood" cue, like search/navigate/top-sites.
-      // Spoken via TTS (blind users) and mirrored to captions via onSpeak
-      // (deaf/HoH) the moment the command matches — before navigation, and
-      // independent of whether a frecency hit is found (WCAG 4.1.3).
-      confirmationKey: 'vr.voice.confirm.goTo',
       description: 'Open site by name from history/bookmarks, fall back to search',
       example: 'githubを開く'
     });
