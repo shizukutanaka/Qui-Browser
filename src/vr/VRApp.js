@@ -3100,6 +3100,12 @@ export class VRApp {
             tab.scrollContentTo(line - 1);
             return line;
           },
+          // Saved-list readouts (tabs-list parity): the voice layer owns the
+          // counting + truncation; the hooks just hand over title arrays.
+          onBookmarkList: () => (this.bookmarks.getBookmarks() || [])
+            .map(b => b.title || b.url),
+          onHistoryList: () => (this.bookmarks.getHistory(MAX_HISTORY) || [])
+            .map(h => h.title || h.url),
           // Share/copy atom: clipboard may be absent or reject (permissions,
           // non-secure context) — the write is best-effort, the announce
           // still honest because the URL itself is what was handed over.
@@ -3113,6 +3119,18 @@ export class VRApp {
               p.catch(() => {});
             }
             return url;
+          },
+          // Same clipboard discipline for the page title (copy-url's pair).
+          onCopyTitle: () => {
+            const title = this.tabManager?.getActiveTab?.()?.currentTitle;
+            if (!title) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(title);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return title;
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

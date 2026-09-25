@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 92: リスト読み上げ原子 — ブックマーク/履歴一覧・タイトルコピー + verify:vr-boot 実測
+外部基準: tabs-list の保存リスト版（VoiceOver ローターで開く前に一覧を聞く）、copy-url と対の共有面。
+- 🔍 **verify:vr-boot を実走行**: `CHROME_PATH` 指定で --headless=new 駆動 → **PASS**（VRApp 構築・canvas・tabManager・settingsPanel・captionSystem・uncaught exception ゼロ）。16ラウンドの VRApp 変更が実起動でも健全であることを実測確認。
+- ✨ **bookmarks-list / history-list**: `onBookmarkList`/`onHistoryList` がタイトル配列を返し、共通 `listCmd` ヘルパが count+5件cap+'、他N件'（toc 準拠）で告知 → 'ブックマーク一覧'/'ブックマークを読み上げ'/'list bookmarks' → 'N個のブックマーク。A、B、…'/'ブックマークがありません'。'ブックマーク'/'履歴' bare は従来の panel toggle のまま（衝突ガード済み）。
+- ✨ **copy-title**: `onCopyTitle` が active タブの currentTitle を `clipboard.writeText` → 'タイトルをコピー'/'ページ名をコピー'/'copy the title' → 'タイトルをコピーしました'/'コピーするタイトルがありません'。
+- ✅ **テスト +12（git stash で9件赤を確認 — 3件は 'ブックマーク'/'履歴'/'URLをコピー' の既存コマンド衝突ガードで設計上緑）**: 両リストの count/5件cap/空/EN/bare衝突ガード、copy-title のコピー/EN/無タイトル/'URLをコピー'衝突ガード。Total 1868 tests (66 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 91: リスト選択原子 — ブックマーク/履歴番号選択・リーダー行ジャンプ・日付
 外部基準: tab-select（Ctrl+1..8）の保存リスト版 — VoiceOver ローターでブックマーク/履歴も番号直選、go-to-line（行番号ジャンプ）、NVDA Insert+F12 の date 側（time と対）。voice-help は既に 'help' が全コマンドの spokenExample を読み上げるため既存と確認して見送り。
 - ✨ **bookmark-select / history-select**: `onBookmarkOpen(n)`/`onHistoryOpen(n)` が `bookmarks.getBookmarks()`/`getHistory(MAX_HISTORY)`（import を BookmarkStore へ追加）のN番目を active タブで `navigate` → 'ブックマーク2'/'ブックマークの3番目'/'bookmark 1'、'履歴2番目'/'履歴の3'/'history 4' → タイトル告知、範囲外/未接続は「ブックマークNはありません」（clamp しない honest-announce 規律）。

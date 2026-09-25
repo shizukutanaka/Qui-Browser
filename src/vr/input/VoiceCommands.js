@@ -38,6 +38,9 @@ export class VoiceCommands {
     this._onBookmarkOpen = null;
     this._onHistoryOpen = null;
     this._onReaderLine = null;
+    this._onBookmarkList = null;
+    this._onHistoryList = null;
+    this._onCopyTitle = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -770,6 +773,10 @@ export class VoiceCommands {
    * @param {Function} [opts.onReaderLine] (line: number) => number|'out'|null —
    *                                         jump the reader to line N; null =
    *                                         no reader open, 'out' = past the end
+   * @param {Function} [opts.onBookmarkList] () => string[] — bookmark titles
+   * @param {Function} [opts.onHistoryList] () => string[] — history titles
+   * @param {Function} [opts.onCopyTitle] () => string|null — copy the page
+   *                                         title; null = nothing to copy
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
@@ -787,7 +794,8 @@ export class VoiceCommands {
     onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
-    onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine } = {}) {
+    onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen, onReaderLine,
+    onBookmarkList, onHistoryList, onCopyTitle } = {}) {
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -838,6 +846,15 @@ export class VoiceCommands {
     }
     if (onReaderLine) {
       this._onReaderLine = onReaderLine;
+    }
+    if (onBookmarkList) {
+      this._onBookmarkList = onBookmarkList;
+    }
+    if (onHistoryList) {
+      this._onHistoryList = onHistoryList;
+    }
+    if (onCopyTitle) {
+      this._onCopyTitle = onCopyTitle;
     }
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
@@ -1942,6 +1959,44 @@ export class VoiceCommands {
         return { action: 'date' };
       },
       description: 'Announce today\'s date'
+    });
+
+    // Saved-list readouts — tabs-list's parity for bookmarks and history.
+    // The hook hands back title arrays; counting and the 5-item cap (toc's
+    // convention) live here so every list announces the same way.
+    const listCmd = (name, label, hook, patterns, desc) => this.registerCommand(name, {
+      patterns,
+      action: () => {
+        const items = hook ? hook() : null;
+        const list = Array.isArray(items) ? items : [];
+        if (!list.length) {
+          this.speak(`${label}がありません`);
+          return { action: name, items: [] };
+        }
+        const shown = list.slice(0, 5).join('、');
+        const more = list.length > 5 ? `、他${list.length - 5}件` : '';
+        this.speak(`${list.length}個の${label}。${shown}${more}`);
+        return { action: name, count: list.length };
+      },
+      description: desc
+    });
+    listCmd('bookmarks-list', 'ブックマーク', this._onBookmarkList,
+      ['ブックマーク一覧', 'ブックマークを読み上げ', /list\s+(my\s+)?bookmarks/i],
+      'Read the bookmark list');
+    listCmd('history-list', '履歴', this._onHistoryList,
+      ['履歴一覧', '履歴を読み上げ', /list\s+(my\s+)?history/i],
+      'Read the history list');
+
+    // Copy the page title — copy-url's pair for the share surface.
+    this.registerCommand('copy-title', {
+      patterns: ['タイトルをコピー', 'ページ名をコピー',
+        /copy\s+(the\s+)?(page\s+)?title/i],
+      action: () => {
+        const title = this._onCopyTitle ? this._onCopyTitle() : null;
+        this.speak(title ? 'タイトルをコピーしました' : 'コピーするタイトルがありません');
+        return { action: 'copy-title', title: title || null };
+      },
+      description: 'Copy the page title to the clipboard'
     });
 
     console.debug('VoiceCommands: Browser integration connected');

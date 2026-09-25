@@ -302,6 +302,8 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ブックマーク/履歴のN番目を直接開けない**~~ — **Session 91 で実装**: tab-select の保存リスト版。`onBookmarkOpen(n)`/`onHistoryOpen(n)` が `bookmarks.getBookmarks()`/`getHistory(MAX_HISTORY)` のN番目を active タブで開く → voice `bookmark-select`（'ブックマークN'/'ブックマークのN番目'/'bookmark N'）、`history-select`（'履歴N番目'/'履歴のN'/'history N'）→ タイトル告知、範囲外は「ブックマークNはありません」（clamp しない）。
 - ~~**記事のN行目へジャンプできない**~~ — **Session 91 で実装**: VoiceOver go-to-line 準拠。`onReaderLine(n)` が `_readerLines` の存在と `n ≤ total` を検査 → `scrollContentTo(n-1)` → voice `reader-goto-line`（'N行目へ'/'line N' — go-to catch-all より前に登録）→ 'N行目に移動しました'/'N行目はありません'/'記事を開いていません'。
 - ~~**日付が聞けない**~~ — **Session 91 で実装**: NVDA Insert+F12 の date 側（'time' と対）。voice `date`（'今日の日付'/'何月何日'/'current date'）→ '今日はM月D日です'。
+- ~~**ブックマーク/履歴が読み上げられない**~~ — **Session 92 で実装**: tabs-list の保存リスト版。`onBookmarkList`/`onHistoryList` がタイトル配列を返し、voice 側が count+5件cap+'他N件'（toc 準拠）で告知 → voice `bookmarks-list`（'ブックマーク一覧'/'ブックマークを読み上げ'/'list bookmarks'）、`history-list`（'履歴一覧'/'履歴を読み上げ'/'list history'）→ 'N個のブックマーク。A、B、…'/'ブックマークがありません'。共通 `listCmd` ヘルパ。
+- ~~**タイトルがコピーできない**~~ — **Session 92 で実装**: copy-url の対。`onCopyTitle` が active タブの currentTitle を clipboard.writeText → voice `copy-title`（'タイトルをコピー'/'copy the title'）→ 'タイトルをコピーしました'/'コピーするタイトルがありません'。
 
 ---
 
