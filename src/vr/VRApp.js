@@ -3129,6 +3129,44 @@ export class VRApp {
             tab.scrollContentTo(line - 1);
             return line;
           },
+          // Kindle 'go to N%' parity: convert the percent to a line and jump.
+          onReaderPercent: (pct) => {
+            const tab = this.tabManager?.getActiveTab?.();
+            const total = tab?._readerLines?.length || 0;
+            if (!total) {
+              return null;
+            }
+            const line = Math.round((total - 1) * Math.min(100, Math.max(0, pct)) / 100);
+            tab.scrollContentTo(line);
+            return { percent: pct };
+          },
+          // Clipboard twins of read-line / read-aloud — same best-effort
+          // write discipline as onCopyUrl (permissions may reject silently).
+          onCopyLine: () => {
+            const text = this.tabManager?.getActiveTab?.()?.currentLine?.();
+            if (!text) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(text);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return text;
+          },
+          onCopyArticle: () => {
+            const blocks = this.tabManager?.getActiveTab?.()?._readerBlocks;
+            if (!blocks || !blocks.length) {
+              return null;
+            }
+            const text = blocks
+              .map((b) => (Array.isArray(b.text) ? b.text.join(' ') : b.text))
+              .join('\n');
+            const p = navigator.clipboard?.writeText?.(text);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return text.length;
+          },
           // Saved-list readouts (tabs-list parity): the voice layer owns the
           // counting + truncation; the hooks just hand over title arrays.
           onBookmarkList: () => (this.bookmarks.getBookmarks() || [])
