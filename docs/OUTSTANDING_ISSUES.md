@@ -340,6 +340,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**閉じたタブを一括で再開できない**~~ — **Session 102 で実装**: reopen-tab の一括版（Ctrl+Shift+T 連打準拠）。voice `reopen-all`（'閉じたタブをすべて開き直して'/'reopen all tabs'）→ `reopenClosedTab` をスタックが空になるまでループ → 'N個のタブを開き直しました'/'閉じたタブがありません'（MAX_TABS 上限はループを自然終了、取得分だけ誠実にカウント）。
 - ~~**ミュート状態を聞けない**~~ — **Session 102 で実装**: `onMuteStatus` が bool|null → voice `mute-status`（'ミュートかどうか'/'is it muted'）→ 'ミュートされています/いません/確認できません'。**衝突回避**: 'is it muted' は mute-toggle の `/(un)?mute/` に吸収されるため hoisted ブロックに登録。
 - ~~**音声言語を切り替えられない**~~ — **Session 102 で実装**: iOS Voice Control の言語切替準拠。voice `language-switch`（'英語にして'/'日本語にして'/'switch to english|japanese'）→ `setLanguage` が recognition.lang + utterance.lang を同時更新、**応答は切替先の言語**（'Switched to English'/'日本語に切り替えました'）で切替が効いたことを聴覚で確認できる。
+- ~~**認識した発話を確認できない**~~ — **Session 103 で実装**: ASR 認識確認（ろう・難聴ユーザーは認識器が正しく聞き取ったか聴覚で確かめられない）。`_prevTranscript` に直前トランスクリプトを保持 → voice `say-last-transcript`（'何と言った'/'what did i say'）→ '「X」と聞き取りました'/'まだ何も聞き取っていません'。
+- ~~**背景タブを移動できない**~~ — **Session 103 で実装**: Chrome ドラッグ並べ替え準拠・move-tab-left/right の索引版。voice `move-tab-n`（'タブNを左に移動'/'タブNを右に移動'/'move tab N left|right'）→ `moveTab(idx,∓1)` → 'タブNをXに移動しました'/'これ以上移動できません'/'タブNはありません'。**実測捕捉の衝突**: go-to の `/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/` が JA 句を所有 → go-to より前に登録（テストが '開きます' 応答で検出）。
+- ~~**行番号から読み上げられない**~~ — **Session 103 で実装**: VoiceOver read-from-line 準拠・read-here の索引版。`getReaderNarrationFrom(line)` に任意行引数（OOR は null で '記事なし' の [] と区別）→ voice `read-from-line`（'N行目から読み上げ'/'read from line N'）→ `readAloud`。**2件の実測捕捉**: ①goto-line の `/\d+行目/`・`/line \d+/` が所有 → goto-line より前の hoisted ブロックに登録 ②hoisted ブロックは constructor 内で tabManager 不在（ReferenceError → onCommandFailed をテストが検出）→ `_onReadFromLine` 遅延バインド hook。
+- ~~**検索語を聞けない**~~ — **Session 103 で実装**: Ctrl+F バーの検索語フィールド読み上げ。`WebPanel._lastFindQuery`（findInReader が記録・clearFind/記事ロードで消去）+ `findQuery()` → `onFindQuery` → voice `find-query`（'検索語は'/'何を検索中'/'find query'）→ '「X」を検索中です'/'検索していません'。**実測捕捉の衝突**: find-in-page の `/find (.+)/` が 'find query' を 'query' 検索として所有 → hoisted ブロックに登録。
 
 ---
 

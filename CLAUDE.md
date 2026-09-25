@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 103: エコー/移動/行指定原子 — ASR 認識確認・索引タブ移動・行指定読み上げ・検索語告知
+外部基準: ASR 認識確認（ろう・難聴向けの聞き取り検証）、Chrome ドラッグ並べ替えの索引版、VoiceOver read-from-line、Ctrl+F 検索語読み上げ。
+- ✨ **say-last-transcript**: `_prevTranscript`（handleRecognitionResult が直前を保持 — エコーコマンド自身が lastTranscript になるため差し替え前に退避）→ '何と言った'/'what did i say' → '「X」と聞き取りました'/'まだ何も聞き取っていません'。
+- ✨ **move-tab-n**: move-tab-left/right の索引版 'タブNを左|右に移動' → `moveTab(idx,∓1)`。**実測捕捉**: go-to の `/(?:を開く?|に(?:行く|移動))/` が JA 句を所有（テストが '開きます' 応答で検出）→ go-to より前に登録。
+- ✨ **read-from-line**: `getReaderNarrationFrom(line)` に任意行引数（OOR→null で '記事なし'[] と区別）→ voice 'N行目から読み上げ'/'read from line N' → `readAloud`。**2件の実測捕捉**: ①goto-line の `/\d+行目/` が所有 → hoisted ブロック ②hoisted ブロックは constructor 内で `tabManager` 不在 → ReferenceError→onCommandFailed をテストが検出 → `_onReadFromLine` 遅延バインド hook（VRApp で `?? []` マップ）。
+- ✨ **find-query**: `WebPanel._lastFindQuery`（findInReader 記録・clearFind/記事ロード消去）+ `findQuery()` → `onFindQuery` → '検索語は'/'find query' → '「X」を検索中です'/'検索していません'。**実測捕捉**: find-in-page の `/find (.+)/` が 'find query' を 'query' 検索として所有 → hoisted ブロックに登録。
+- ✅ **テスト +17（git stash で15件赤確認 — 2件は誠実経路の設計上緑）**: say-last-transcript 3面（echo・EN・空退避）、move-tab-n 4面（JA L/R・EN・範囲外・行端拒否）、read-from-line 5面（JA・EN・OOR・記事なし・bare '30行目'→goto-line 共存）、find-query 3面（告知・EN・未検索）、WebPanel.findQuery 2面（記録→clearFind 消去・空クエリ）。lint で eqeqeq 違反2件（`!= null`/`== null`）を明示比較に修正。Total 2056 tests (77 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 102: 単語ナビ/言語原子 — NVDA Ctrl+←/→・言語切替・全復元・ミュート状態
 外部基準: NVDA/JAWS の Ctrl+→/←（単語ナビ）、iOS Voice Control の言語切替、Ctrl+Shift+T 連打の一括復元、ミュート状態問い合わせ。
 - ✨ **nextWord(dir)**: `_wordCaret`（{line, idx}）を `Intl.Segmenter('ja', {granularity:'word'})` でレイアウト済み行に沿って進める（CJK 安全・フォールバックは空白分割）。行またぎで `scrollContentTo` が追従するため `_scrollMark` による jumpBack も自動カバー。voice `next-word`/`prev-word`（'次の単語'/'前の単語'/'next word'/'previous word'）→ 単語を発話、行端は 'これ以上進めません|戻れません'。
