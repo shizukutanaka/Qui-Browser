@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 78: リーダーのアクセシビリティ面 — ライブ文字サイズ・読み上げ・ページ送り
+外部基準: WCAG 1.4.4 Resize Text（Level AA — 本文テキストは支援技術なしで 200% まで拡大できなければならない）、Microsoft Edge の "Read Aloud"／Safari の "Listen to Page"（記事読み上げは弱視・失明ユーザーの旗艦面）、デスクトップ共通の Page Up/Down 原子。
+- ✨ **`readerTextScale` ライブ設定**: リーダー文字が一切変えられなかった（`_readerScale` は ctor 専用）。`WebPanel.setReaderScale` が保持ブロックを `layoutReaderLines` で再レイアウト→スクロールをクランプ→再描画（reader 外では scale だけ保持して次ロードに効く）。`TabManager.setReaderScale` が全タブ+新規タブに波及。ブラウジング節に 0.5–2.0× ステッパー。
+- ✨ **記事読み上げ**: `readerNarration.js` 純粋チャンカー（タイトル先出→段落境界で必ず切れる→長文は文境界 `。！？.!?` 分割→サロゲートペア安全なハードスプリット ≤200cp）。`WebPanel.getReaderNarration()`（reader 状態のみ）→ voice `onReadAloud` → `VoiceCommands.readAloud(chunks)`: 前の読み上げを cancel → 開始告知は通常のキャプション経路 → **本文チャンクは `speak({caption:false})`**（記事全文をキャプションキューに流し込まない — リーダー自体が既にその視覚面）。voice `read-aloud`/`stop-reading`（`stopSpeaking()` は synthesis.cancel のみで認識は止めない）。
+- ✨ **Page Up/Down**: `scrollContentPage(±1)` — リーダー矢印が canvas ヒットテストで既に使う `pageJumpLines(visible)` と同じジャンプ量を voice `next-page`/`prev-page`（'次のページ'/'前のページ'/'ページダウン'/'ページアップ'）へ開放。
+- 🔧 WebPanel は読了後 `_readerBlocks`/`_readerTitle` を保持（再レイアウト・読み上げの両方が再 fetch 不要になる）。
+- ✅ **テスト +24（git stash で18件の赤を確認してから緑へ）**: チャンカーの段落/文境界・サロゲート安全・上限尊重、setReaderScale の再レイアウト/クランプ/reader 外 no-op、scrollContentPage の方向・ページ量、read-aloud の「開始告知+本文は無キャプションで逐次キュー」・空時フォールバック・2回目で前読み上げ cancel、stop-reading の cancel、next/prev-page ルーティング、TabManager の全タブ適用+新規継承。Total 1617 tests (52 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 77: 登録済みだが未配線だった原子を通す — 音量・Home/End・複製・ページ単位ブックマーク
 外部基準: Chrome の "Duplicate tab" コンテキストメニュー、デスクトップ共通の Home/End ジャンプと Ctrl+D、そして実装中に発見した実害 — **登録済みコマンドが no-op スタブ**という状態は voice-first UI では「コマンドが存在するのに応答がない」最悪のパターン。
 - 🐛 **`volume-up`/`volume-down` は何も動かしていなかった**: `// Would adjust volume` コメント付きのスタブ。`onVolume(±0.1)` フックを追加し、`masterVolume` 設定と同じ経路（0–100 クランプ → `updateSetting` 永続化 → `spatialAudio.setMasterVolume` → キャプション `音量: N%`）へ接続。没入中に設定パネルへ戻らず音量を変えられる —— 音声コマンドの本筋。

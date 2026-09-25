@@ -30,6 +30,7 @@ import {
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
 import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
+import { narrationChunks } from './readerNarration.js';
 import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
@@ -135,6 +136,11 @@ export class WebPanel {
     this._readerLines = [];
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
+    // Source blocks + title are retained after layout so live changes
+    // (setReaderScale) and read-aloud (getReaderNarration) can rebuild the
+    // line list without refetching the article.
+    this._readerBlocks = null;
+    this._readerTitle = '';
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
     this._loadController = null; // in-flight reader fetch, abortable by stop()
     // Private tabs (incognito-window semantics): no history writes, excluded
@@ -404,6 +410,8 @@ export class WebPanel {
         return;
       }
       this._readerLines = lines;
+      this._readerBlocks = blocks;
+      this._readerTitle = title;
       this._readerScroll = 0;
       this._contentState = 'reader';
       this._drawContent();
@@ -608,6 +616,51 @@ export class WebPanel {
   /** Jump to the last page of the article. */
   scrollToBottom() {
     return this.scrollContentTo(this._readerLines.length);
+  }
+
+  /**
+   * Page-wise scroll — the Page Up/Down atom the reader's own scroll arrows
+   * already use (one screen minus the two-line overlap). Exposed so input
+   * paths that cannot reach the canvas hit-test (voice) get the same jump.
+   * @param {number} direction positive = next page
+   */
+  scrollContentPage(direction) {
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return this.scrollContent((direction > 0 ? 1 : -1) * pageJumpLines(visible));
+  }
+
+  /**
+   * Live text-scale change (WCAG 1.4.4 — text must be resizable up to 200%
+   * without assistive technology). Re-lays-out the retained blocks at the new
+   * scale and clamps the scroll offset so the viewport stays on content.
+   * @returns {boolean} true when the scale actually changed
+   */
+  setReaderScale(scale) {
+    const next = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    if (next === this._readerScale) {
+      return false;
+    }
+    this._readerScale = next;
+    if (this._contentState === 'reader' && this._readerBlocks) {
+      this._readerLines = layoutReaderLines(
+        this._readerBlocks, { title: this._readerTitle, scale: next });
+      const visible = visibleLinesFor(this._readerLines.length, next);
+      this._readerScroll = clampReaderScroll(
+        this._readerScroll, this._readerLines.length, visible);
+      this._drawContent();
+    }
+    return true;
+  }
+
+  /**
+   * Utterance list for read-aloud (title first, paragraphs chunked).
+   * Empty outside the reader state — the host announces "nothing to read".
+   */
+  getReaderNarration() {
+    if (this._contentState !== 'reader' || !this._readerBlocks) {
+      return [];
+    }
+    return narrationChunks(this._readerTitle, this._readerBlocks);
   }
 
   /**

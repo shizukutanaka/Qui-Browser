@@ -293,7 +293,8 @@ export class TabManager {
       onGrabRequested: this.opts.onGrabRequested || null,
       onMoveBarHoverCaption: this.opts.onMoveBarHoverCaption || null,
       onBlockedNavigation: this.opts.onBlockedNavigation || null,
-      readerProxyUrl: this.opts.readerProxyUrl || ''
+      readerProxyUrl: this.opts.readerProxyUrl || '',
+      readerScale: this.opts.readerScale || 1
     });
     panel.addToScene(this.rootGroup);
     panel.group.position.set(0, 0, 0); // local to rootGroup
@@ -512,6 +513,21 @@ export class TabManager {
     this.tabs.forEach((panel) => {
       if (panel.setReaderProxyUrl) {
         panel.setReaderProxyUrl(this.opts.readerProxyUrl);
+      }
+    });
+  }
+
+  /**
+   * Live reader text-size change for every open tab and all future tabs
+   * (WCAG 1.4.4). Panels already showing a reader re-lay-out immediately;
+   * the rest pick it up on their next article load.
+   * @param {number} scale text-size multiplier (> 0)
+   */
+  setReaderScale(scale) {
+    this.opts.readerScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    this.tabs.forEach((panel) => {
+      if (panel.setReaderScale) {
+        panel.setReaderScale(this.opts.readerScale);
       }
     });
   }
