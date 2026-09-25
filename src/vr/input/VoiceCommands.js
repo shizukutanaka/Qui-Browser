@@ -500,9 +500,12 @@ export class VoiceCommands {
    *                                         cross-modal confirmation (decoupled like onGoTo)
    * @param {Function} [opts.onScrollContent] (deltaLines: number) => void — scroll
    *                                         the active panel's reader viewport
+   * @param {Function} [opts.onTogglePrivateMode] () => void — toggle private mode;
+   *                                         host flips the persisted setting and
+   *                                         applies it to TabManager (decoupled like onGoTo)
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent } = {}) {
+    onClearHistory, onScrollContent, onTogglePrivateMode } = {}) {
     // Top Sites — hands-free jump to the user's most-used destination
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
@@ -618,6 +621,97 @@ export class VoiceCommands {
         return { action: 'scroll', direction: 'up' };
       },
       description: 'Scroll up'
+    });
+
+    // Tab control — hands-free equivalents of Ctrl+T (new tab), Ctrl+W
+    // (close tab), Ctrl(+Shift)+Tab (cycle), Ctrl+Shift+T (reopen closed tab),
+    // and the chrome strip's stop-loading and private-mode affordances.
+    // Registered before the greedy go-to catch-all: its `を開く` capture would
+    // otherwise claim utterances like "新しいタブを開く".
+    this.registerCommand('new-tab', {
+      patterns: ['新しいタブ', '新しいタブを開く', '新規タブ', /new\s+tab/i],
+      action: () => {
+        tabManager?.newTab?.();
+        return { action: 'new-tab' };
+      },
+      confirmationText: '新しいタブを開きます',
+      description: 'Open a new tab'
+    });
+
+    this.registerCommand('close-tab', {
+      patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', /close\s+tab/i],
+      action: () => {
+        if (tabManager && tabManager.activeIndex >= 0) {
+          tabManager.closeTab(tabManager.activeIndex);
+        }
+        return { action: 'close-tab' };
+      },
+      confirmationText: 'タブを閉じます',
+      description: 'Close the active tab'
+    });
+
+    this.registerCommand('next-tab', {
+      patterns: ['次のタブ', /next\s+tab/i],
+      action: () => {
+        tabManager?.nextTab?.();
+        return { action: 'next-tab' };
+      },
+      confirmationText: '次のタブに切り替えます',
+      description: 'Activate next tab'
+    });
+
+    this.registerCommand('prev-tab', {
+      patterns: ['前のタブ', /previous\s+tab|prev\s+tab/i],
+      action: () => {
+        tabManager?.prevTab?.();
+        return { action: 'prev-tab' };
+      },
+      confirmationText: '前のタブに切り替えます',
+      description: 'Activate previous tab'
+    });
+
+    this.registerCommand('reopen-tab', {
+      patterns: [
+        'タブを開き直す', '閉じたタブを開き直す', '開き直す',
+        /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i
+      ],
+      action: () => {
+        const url = tabManager?.reopenClosedTab?.() || null;
+        return { action: 'reopen-tab', url };
+      },
+      confirmationText: '閉じたタブを開き直します',
+      description: 'Reopen the most recently closed tab'
+    });
+
+    // Patterns avoid '停止'/'ストップ' alone — those exact strings already
+    // belong to the 'stop' command (stop *listening*), and exact-match strings
+    // elsewhere never collide since matching is normalized ===, not substring.
+    this.registerCommand('stop-loading', {
+      patterns: [
+        '読み込み中止', '読み込みを中止', '読み込みを止めて',
+        /読み込み.*(止め|停止|中止)/, /stop\s+loading/i, /abort\s+loading/i
+      ],
+      action: () => {
+        tabManager?.getActiveTab?.()?.stop?.();
+        return { action: 'stop-loading' };
+      },
+      confirmationText: '読み込みを中止します',
+      description: 'Stop loading the active page'
+    });
+
+    this.registerCommand('private-mode', {
+      patterns: [
+        'プライベートモード', 'プライベートモードにして',
+        /private\s+mode/i, /incognito/i
+      ],
+      action: () => {
+        if (onTogglePrivateMode) {
+          onTogglePrivateMode();
+        }
+        return { action: 'private-mode' };
+      },
+      confirmationText: 'プライベートモードを切り替えます',
+      description: 'Toggle private mode'
     });
 
     // Bookmark panel toggle
