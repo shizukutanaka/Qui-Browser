@@ -2786,6 +2786,20 @@ export class VRApp {
             }
             v.stop();
             return true;
+          },
+          // Share/copy atom: clipboard may be absent or reject (permissions,
+          // non-secure context) — the write is best-effort, the announce
+          // still honest because the URL itself is what was handed over.
+          onCopyUrl: () => {
+            const url = this.tabManager?.getActiveTab?.()?.currentUrl;
+            if (!url) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(url);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return url;
           }
         });
         // Begin listening immediately (user granted mic permission during initialize).

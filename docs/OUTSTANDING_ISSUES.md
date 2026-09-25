@@ -262,6 +262,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ページ内検索が不在**~~ — **Session 79 で実装**: Ctrl+F 相当をリーダービューポート（VR 内で唯一検索可能なテキスト面）に限定して実装。`WebPanel.findInReader(query)` がマッチ行インデックスを記録して最初のヒットへジャンプ、`findNextMatch(±1)`/`findPrevMatch()` が Ctrl+G/Shift+Ctrl+G 式に循環（`{index,total}` を 1-based で返して告知用）。voice `find-in-page`（'find X'/'Xを探して'/'ページ内検索'→語を促すプロンプト）、`find-next`/`find-prev`（'次を探して'/'前を探して'→'N/M件目'）。循環系を先に登録（'次を探して'がクエリ `/(.+?)を探して/` に吸収される衝突を回避）。
 - ~~**360°動画に音声制御なし**~~ — **Session 79 で実装**: HUD の再生/一時停止/停止に相当する voice `video-toggle`（'一時停止'/'再生を再開'/pause・resume・play video）と `video-stop`（'動画を止めて'/stop video）。`onVideoToggle`/`onVideoStop` ホストフックが `immersiveVideo.active` ゲートで誠実に報告 — 動画が無い時は「再生中の動画がありません」（confirmationText を付けない誠実設計は read-aloud と同じ）。
 - ~~**他タブ一括クローズ不可**~~ — **Session 79 で実装**: Chrome タブストリップメニュー準拠の `closeOtherTabs()`/`closeTabsToRight()`。各 close は `closeTab` 経由なので private/空タブ非記録ルールが単体クローズと完全一致。逆順ループで splice 中のインデックスを安定化。voice `close-other-tabs`（'他のタブを閉じて'）/`close-tabs-right`（'右のタブを閉じて'）。close-tab の `/close\s+tab\b/` を単語境界に強化（'close tabs' が先に吸収される衝突を修正）。
+- ~~**見出しナビゲーションが不在**~~ — **Session 80 で実装**: スクリーンリーダーの H/Shift+H（NVDA/JAWS、VoiceOver ローター）準拠。`nextHeading(±1)`/`prevHeading()` が `style==='h'|'title'` の行を走査（タイトル=見出し0、prev で先頭へ戻れる）し両端で循環、`{index,total}` を告知用に返す。voice `next-heading`（'次の見出し'/'見出しへ'）/`prev-heading`（'前の見出し'）→ 'N番目の見出し（全M）'/'見出しがありません'。
+- ~~**URL コピー原子なし**~~ — **Session 80 で実装**: 共有シート準拠の voice `copy-url`（'URLをコピー'/'リンクをコピー'/'アドレスをコピー'+EN）→ `onCopyUrl` ホストフック（`navigator.clipboard.writeText`、権限・非セキュアコンテキストでの reject は握り潰す）。コピー対象が無い時は「コピーするURLがありません」と誠実報告。
+- ~~**履歴を直接開けない**~~ — **Session 80 で実装**: bare '履歴' は従来通りパネルトグルのまま、voice `history`（'履歴を開いて'/'履歴を見て'/'履歴を表示'+EN）が `setMode('history')` + `show()`（既に開いていれば hide しない — open≠toggle の誠実設計）。
 
 ---
 

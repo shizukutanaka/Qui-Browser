@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 80: ナビゲーション＆共有原子その3 — 見出しジャンプ・URLコピー・履歴オープン
+外部基準: スクリーンリーダーの見出しナビゲーション（NVDA/JAWS の H / Shift+H、VoiceOver ローターの "headings" — 弱視・失明ユーザーは見出しで記事を走査する）、デスクトップの共有/コピー原子（Quest ブラウザのコピーアクション）、Chrome Ctrl+H の履歴オープン。
+- ✨ **見出しジャンプ**: `WebPanel.nextHeading(±1)`/`prevHeading()` が `_readerLines` の `style==='h'|'title'` を走査（**タイトル=見出し0** — prev で記事先頭へ戻れる）し両端で循環、`{index,total}` を告知用に返す。voice `next-heading`（'次の見出し'/'見出しへ'）/`prev-heading`（'前の見出し'）→ 'N番目の見出し（全M）'、無い時は「見出しがありません」。
+- ✨ **URL コピー**: voice `copy-url`（'URLをコピー'/'リンクをコピー'/'アドレスをコピー'+EN regex）→ `onCopyUrl` ホストフックが active タブの `currentUrl` を `navigator.clipboard.writeText`（権限・非セキュアコンテキストでの reject は `.catch(()=>{})`）→ 'URLをコピーしました'/'コピーするURLがありません'。
+- ✨ **履歴オープン**: voice `history`（'履歴を開いて'/'履歴を見て'/'履歴を表示'+EN）→ `bookmarkPanel.setMode('history')` + `show()`（visible なら show を呼ばない — **open≠toggle**: 開いているパネルを閉じない）。bare '履歴' は従来通りパネルトグル（テストで固定）。
+- ✅ **テスト +13（git stash で12件の赤を確認してから緑へ — '履歴'→toggle の既存経路維持のみ stash 下でも緑=設計通り）**: 見出し走査・タイトル0・両端 wrap・reader 外/見出し無し null、音声ルーティングと N/M 告知・誠実フォールバック、copy-url フックと両結果の告知、history の setMode+show/既開時 no-op/bare '履歴' 従来経路。Total 1651 tests (54 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 79: ナビゲーション＆制御原子その2 — ページ内検索・動画音声制御・一括タブクローズ
 外部基準: デスクトップ共通の Ctrl+F / Ctrl+G（ページ内検索と次候補循環）、Chrome タブストリップメニューの "Close other tabs" / "Close tabs to the right"、没入メディア再生のハンズフリー制御（ヘッドセットを動かさず一時停止・停止できること）。
 - ✨ **ページ内検索**: `WebPanel.findInReader(query)` — リーダービューポート（VR 唯一の検索可能テキスト面）を小文字比較で走査しマッチ行インデックスを `_findMatches` に記録→最初のヒットへ `scrollContentTo`。`findNextMatch(dir)`/`findPrevMatch()` が Ctrl+G/Shift+Ctrl+G 式に循環し `{index,total}`（1-based）を告知用に返す。voice `find-in-page`（'find X'/'Xを探して'→件数告知、bare 'ページ内検索'→語を促すプロンプト）、`find-next`/`find-prev`（→'N/M件目'）。**循環系を先に登録** — '次を探して'/'前を探して' はクエリ regex `/(.+?)を探して/` に吸収されるので、先に個別パターンで捕まえる必要がある（processCommand は登録順・先着）。
