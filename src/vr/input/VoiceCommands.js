@@ -38,6 +38,7 @@ export class VoiceCommands {
 
     // State
     this.lastCommand = null;
+    this._lastSpoken = null; // last text passed to speak() — say-again replays it
     this.lastTranscript = '';
     this.confidence = 0;
     this.isAwake = !this.settings.requireWakeWord;
@@ -911,6 +912,50 @@ export class VoiceCommands {
       description: 'Open the browsing history'
     });
 
+    // Orientation atoms — the screen-reader "say again" (NVDA Insert+T),
+    // "where am I" and tab-list announces. No confirmationText: each
+    // command's whole output is the announcement itself.
+    this.registerCommand('say-again', {
+      patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って',
+        /repeat( that)?/i, /say (that )?again/i],
+      action: () => {
+        this.speak(this._lastSpoken || '直前の発話がありません');
+        return { action: 'say-again' };
+      },
+      description: 'Repeat the last spoken message'
+    });
+
+    this.registerCommand('where-am-i', {
+      patterns: ['どこ', 'どこにいる', '現在地', '現在のページ', 'このページは',
+        /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i],
+      action: () => {
+        const tab = tabManager?.getActiveTab?.();
+        this.speak(tab
+          ? (tab.describeLocation?.() || tab.currentTitle || tab.currentUrl || 'タイトル不明')
+          : 'タブがありません');
+        return { action: 'where-am-i' };
+      },
+      description: 'Announce the current page and reading position'
+    });
+
+    this.registerCommand('tabs-list', {
+      patterns: ['タブ一覧', 'タブを読み上げ', 'タブを教えて', 'タブはいくつ',
+        /list\s+tabs/i, /how many tabs/i, /what tabs/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        if (!tabs.length) {
+          this.speak('タブがありません');
+          return { action: 'tabs-list', count: 0 };
+        }
+        const names = tabs.map((p, i) =>
+          (p.currentTitle || p.currentUrl || `タブ${i + 1}`)
+          + (i === tabManager.activeIndex ? '（表示中）' : ''));
+        this.speak(`${tabs.length}個のタブ。${names.join('、')}`);
+        return { action: 'tabs-list', count: tabs.length };
+      },
+      description: 'Read the open tab list aloud'
+    });
+
     // Immersive video — voice equivalents of the HUD controls so a user
     // watching 360° media can pause/stop without removing the headset's
     // focus from the video. No confirmationText: the spoken line depends on
@@ -1115,6 +1160,9 @@ export class VoiceCommands {
     if (options.caption !== false && this.callbacks.onSpeak) {
       this.callbacks.onSpeak(text);
     }
+    // Screen-reader "say again" parity: remember the last utterance so the
+    // say-again command can replay it even when synthesis is unavailable.
+    this._lastSpoken = text;
     if (!this.synthesis) {
       return;
     }

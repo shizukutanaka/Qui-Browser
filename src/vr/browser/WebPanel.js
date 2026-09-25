@@ -752,6 +752,25 @@ export class WebPanel {
   }
 
   /**
+   * "Where am I" announce line: the page title plus the reader's current
+   * line range when an article is showing. Screen-reader parity for the
+   * orientation a sighted user gets free from the chrome bar.
+   */
+  describeLocation() {
+    const title = this.currentTitle || this.currentUrl;
+    if (!title) {
+      return '何も開いていません';
+    }
+    if (this._contentState === 'reader' && this._readerLines.length) {
+      const total = this._readerLines.length;
+      const visible = visibleLinesFor(total, this._readerScale);
+      const label = readerProgressLabel(this._readerScroll, total, visible);
+      return `${title}。${label ? `現在 ${label} 行目` : '全文表示中'}`;
+    }
+    return title;
+  }
+
+  /**
    * Point the reader at a companion proxy (or back to direct fetch with '').
    *
    * Live-settable because the proxy-URL settings control applies immediately —

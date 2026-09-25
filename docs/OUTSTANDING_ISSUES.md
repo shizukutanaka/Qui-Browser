@@ -265,6 +265,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**見出しナビゲーションが不在**~~ — **Session 80 で実装**: スクリーンリーダーの H/Shift+H（NVDA/JAWS、VoiceOver ローター）準拠。`nextHeading(±1)`/`prevHeading()` が `style==='h'|'title'` の行を走査（タイトル=見出し0、prev で先頭へ戻れる）し両端で循環、`{index,total}` を告知用に返す。voice `next-heading`（'次の見出し'/'見出しへ'）/`prev-heading`（'前の見出し'）→ 'N番目の見出し（全M）'/'見出しがありません'。
 - ~~**URL コピー原子なし**~~ — **Session 80 で実装**: 共有シート準拠の voice `copy-url`（'URLをコピー'/'リンクをコピー'/'アドレスをコピー'+EN）→ `onCopyUrl` ホストフック（`navigator.clipboard.writeText`、権限・非セキュアコンテキストでの reject は握り潰す）。コピー対象が無い時は「コピーするURLがありません」と誠実報告。
 - ~~**履歴を直接開けない**~~ — **Session 80 で実装**: bare '履歴' は従来通りパネルトグルのまま、voice `history`（'履歴を開いて'/'履歴を見て'/'履歴を表示'+EN）が `setMode('history')` + `show()`（既に開いていれば hide しない — open≠toggle の誠実設計）。
+- ~~**発話の聞き直し不可**~~ — **Session 81 で実装**: スクリーンリーダーの "say again"（NVDA Insert+T）準拠。`speak()` が `_lastSpoken` を記録（synthesis 不在でも動く発話ログ）→ voice `say-again`（'もう一度'/'もう一回'/'聞き直し'+EN）が再生、未発話時は「直前の発話がありません」。
+- ~~**現在地の告知なし**~~ — **Session 81 で実装**: `WebPanel.describeLocation()` — タイトル + reader 中は `readerProgressLabel` の行レンジ（'現在 N–M/全体 行目'、収まる時は '全文表示中'、空タブは '何も開いていません'）→ voice `where-am-i`（'どこ'/'どこにいる'/'現在地'+EN）。
+- ~~**タブ一覧の読み上げなし**~~ — **Session 81 で実装**: voice `tabs-list`（'タブ一覧'/'タブを読み上げ'/'タブはいくつ'+EN）→ 'N個のタブ。A、B（表示中）、C'（active に印、タイトル無しは URL→'タブN' フォールバック）。MAX_TABS=8 上限で発話長も頭打ち。
 
 ---
 

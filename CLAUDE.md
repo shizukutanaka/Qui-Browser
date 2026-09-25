@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 81: オリエンテーション原子 — 発話の聞き直し・現在地告知・タブ一覧読み上げ
+外部基準: スクリーンリーダーの "say again"（NVDA Insert+T — 直前発話の再生）、スクリーンリーダーの現在地問い合わせ（"where am I" は視覚ユーザーが chrome バーから無料で得ている指向情報）、ブラウザのタブ一覧 UI の音声面。
+- ✨ **say-again**: `speak()` が `_lastSpoken` を記録（synthesis 不在でも動く発話ログ — TTS エンジン無し環境でも発話「内容」は一意）→ voice `say-again`（'もう一度'/'もう一回'/'聞き直し'/'もう一度言って'+EN）が再生、未発話時は「直前の発話がありません」。繰り返し自体も `_lastSpoken` を更新するので 'もう一度' を連打できる。
+- ✨ **where-am-i**: `WebPanel.describeLocation()` — タイトル + reader 中は `readerProgressLabel` の行レンジ（'記事タイトル。現在 31–50/100 行目'、収まる時は '全文表示中'、空タブは '何も開いていません'）→ voice `where-am-i`（'どこ'/'どこにいる'/'現在地'/'現在のページ'+EN）。describeLocation 不在のパネルは `currentTitle||currentUrl` にフォールバック。
+- ✨ **tabs-list**: voice `tabs-list`（'タブ一覧'/'タブを読み上げ'/'タブを教えて'/'タブはいくつ'+EN）→ 'N個のタブ。A、B（表示中）、C'（active に印、タイトル無しは URL→'タブN' フォールバック）。MAX_TABS=8 上限で発話長も頭打ち。タブが無ければ「タブがありません」。
+- 🔧 3コマンドとも confirmationText なし — 出力全体が告知そのもの（read-aloud/video-toggle と同じ誠実設計）。
+- ✅ **テスト +13（git stash で13件全て赤を確認してから緑へ）**: describeLocation の4分岐（空/非reader/行レンジ/全文）、say-again の再生・未発話・連打、where-am-i の describeLocation 優先・フォールバック・タブ無し、tabs-list の件数・（表示中）印・フォールバック・タブ無し。Total 1664 tests (55 suites); 0 lint errors（警告数は変更前と同一）; build green。
+
 ### Session 80: ナビゲーション＆共有原子その3 — 見出しジャンプ・URLコピー・履歴オープン
 外部基準: スクリーンリーダーの見出しナビゲーション（NVDA/JAWS の H / Shift+H、VoiceOver ローターの "headings" — 弱視・失明ユーザーは見出しで記事を走査する）、デスクトップの共有/コピー原子（Quest ブラウザのコピーアクション）、Chrome Ctrl+H の履歴オープン。
 - ✨ **見出しジャンプ**: `WebPanel.nextHeading(±1)`/`prevHeading()` が `_readerLines` の `style==='h'|'title'` を走査（**タイトル=見出し0** — prev で記事先頭へ戻れる）し両端で循環、`{index,total}` を告知用に返す。voice `next-heading`（'次の見出し'/'見出しへ'）/`prev-heading`（'前の見出し'）→ 'N番目の見出し（全M）'、無い時は「見出しがありません」。
