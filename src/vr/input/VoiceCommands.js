@@ -852,6 +852,7 @@ export class VoiceCommands {
         '一番最初に戻って', '一番最初に戻る', '最初のページに戻って',
         '最初のページに戻る', '履歴の最初に戻って', '履歴の最初に戻る',
         '履歴の最初まで戻って', '履歴の最初まで戻る', '最初まで戻って',
+        '履歴の最初', '履歴の一番最初',
         '最初まで戻る', '一番最初まで戻る', '一番最初まで戻って',
         /履歴の最初[^進]{0,4}戻/, /(?:一番)?最初のページ[^進]{0,4}戻/,
         /(?:一番)?最初に戻/, /(?:一番)?最初まで戻/,
@@ -873,8 +874,11 @@ export class VoiceCommands {
         const m = transcript.match(/([0-9]+)/);
         const km = transcript.match(/([一二三四五六七八九])/);
         const em = transcript.match(/(two|three|four|five)/i);
+        // '履歴の最初' asks for unbounded back-steps; cap the loop so a
+        // goBack implementation that never reports exhaustion cannot hang
+        // the recognizer thread.
         const requested = toStart
-          ? Infinity
+          ? 50
           : m
             ? parseInt(m[1], 10)
             : km
@@ -2812,7 +2816,8 @@ export class VoiceCommands {
 
     this.registerCommand('scroll-bottom', {
       patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', '一番下へ',
-        'ページの最後へ', '最後のページ',
+        'ページの最後へ', '最後のページ', 'ページの末尾', '末尾', '末尾まで',
+        'ページの末尾へ', '終わりまで', 'ページの終わり',
         /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToBottom?.();
@@ -3193,6 +3198,7 @@ export class VoiceCommands {
     this.registerCommand('where-am-i', {
       patterns: ['どこ', 'どこにいる', '今どこ', '現在地', '現在のページ', 'このページは', '今どこにいる',
         'ここは', 'ここはどこ', 'フォーカスはどこ', 'どこにフォーカス',
+        'フォーカスは', '選択中は', '選択中のもの', '選択されているもの',
         '今いる場所', 'この場所は', 'いまいる場所',
         /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i,
         /what has focus/i, /focused element/i],
@@ -3274,6 +3280,7 @@ export class VoiceCommands {
         'このタブ以外を閉じて', 'このタブ以外を全部閉じて',
         'このタブ以外のタブを閉じて', 'このタブ以外をすべて閉じて',
         '残りのタブを閉じて', '残りのタブを全部閉じて',
+        'このタブだけ', 'このタブだけ残す', '他を全部閉じて', '他のタブを全部閉めて',
         /close\s+other\s+tabs/i, /close all (the )?other tabs/i],
       action: () => {
         tabManager?.closeOtherTabs?.();
@@ -3710,7 +3717,8 @@ export class VoiceCommands {
       // and eat the status query ('検索エンジンは' → 'その検索エンジンは使え
       // ません', a wrong-answer lie). The status twin owns the query form.
       patterns: [/検索エンジンを(.+)/, /検索エンジン(.+)に/,
-        /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i],
+        /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i,
+        /(グーグル|google|ビング|bing|ヤフー|yahoo|ダックダックゴー|duckduckgo|エコシア|ecosia)(?:にして|に変更|を使って|で検索|で調べて)/i],
       action: (transcript) => {
         const ALIASES = {
           google: 'google', 'グーグル': 'google',
@@ -4278,6 +4286,8 @@ export class VoiceCommands {
         '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
         '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
         '全部閉めて', 'すべて閉めて', '全部のタブを閉めて', '全て閉める',
+        'タブを全部閉じて', '全タブを閉じて', 'タブ全部閉じて', 'タブをすべて閉じて',
+        'タブ全部閉めて', '全タブを閉めて', '全てのタブを閉じて',
         /close\s+all\s+tabs/i],
       action: () => {
         if (!tabManager) {
@@ -4512,7 +4522,8 @@ export class VoiceCommands {
     // heading TEXT itself (NVDA 'read current heading' parity).
     this.registerCommand('read-heading', {
       patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
-        '見出しを読み上げて', '見出しを読み上げ',
+        '見出しを読み上げて', '見出しを読み上げ', '何見出し目', '見出し番号は',
+        '今は何番目の見出し',
         /read (the |current |this )?heading/i, /what('s| is) the heading/i],
       action: () => {
         const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
@@ -4754,7 +4765,8 @@ export class VoiceCommands {
     this.registerCommand('loading-status', {
       patterns: ['読み込み中ですか', '読み込みましたか', 'まだ読み込み中',
         '読み込み終わった', '読み込み完了', '更新中ですか', 'まだ読み込んでる',
-        '読み込み中？', '読み込みは終わった',
+        '読み込み中？', '読み込みは終わった', '読み込んでいる',
+        '読み込んでいますか', '読み込んでる', '読み込み中です', 'まだ読み込み中ですか',
         /is (it|the page) (still )?loading/i, /has it loaded/i],
       action: () => {
         const loading = !!tabManager?.getActiveTab?.()?.loading;
@@ -4994,6 +5006,7 @@ export class VoiceCommands {
         // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
         // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
+        'もう一段落', 'もう一段落読んで', '次の段落を読んで',
         /next\s+paragraph/i, /skip ahead\s*$/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
@@ -5084,6 +5097,7 @@ export class VoiceCommands {
     this.registerCommand('paragraph-status', {
       patterns: ['何段落', '段落はいくつ', 'どの段落', 'この段落は', '現在の段落は',
         '段落は', '全部で何段落', 'この記事は何段落', '総段落数', '段落数は',
+        '何段落目', '現在何段落', '段落番号は', '今の段落は', '今は何段落目',
         /which paragraph/i, /paragraph (count|position|status)/i],
       action: () => {
         const res = this._onParagraphStatus ? this._onParagraphStatus() : null;
@@ -5134,7 +5148,8 @@ export class VoiceCommands {
     // empty-list (title region / no article) announce itself.
     this.registerCommand('read-paragraph', {
       patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
-        '今の段落を読んで', 'この段落を読み上げて',
+        '今の段落を読んで', 'この段落を読み上げて', 'その段落を読んで',
+        'その段落を読み上げて',
         /read (the )?(current )?paragraph/i],
       action: () => {
         const chunks = this._onReadParagraph ? this._onReadParagraph() : [];
@@ -5148,7 +5163,8 @@ export class VoiceCommands {
     // source-block sentences (a sentence spanning display lines is still
     // spoken whole); the scroll follows the line holding its start.
     this.registerCommand('next-sentence', {
-      patterns: ['次の文', '文を次へ', '一文進め', /next sentence/i],
+      patterns: ['次の文', '文を次へ', '一文進め', 'もう一文',
+        'もう一文読んで', '一文進んで', /next sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(1) : null;
         this.speak(r ? r.sentence : 'これ以上進めません');
@@ -5158,7 +5174,8 @@ export class VoiceCommands {
     });
     this.registerCommand('prev-sentence', {
       patterns: ['前の文', '前の文を読んで', '文を前へ', '一文戻し',
-        'さっきの文', 'さっきの文を読んで',
+        'さっきの文', 'さっきの文を読んで', '前の文に戻って', '文を戻して',
+        '一文戻って',
         /prev(?:ious)? sentence/i, /read (the )?prev(?:ious)? sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(-1) : null;
@@ -5491,6 +5508,7 @@ export class VoiceCommands {
         '読み上げ中', '読み上げの位置',
         '全部で何行', 'この記事は何行', '総行数', '行数は', '何行ある',
         '読んでいたところ', 'どこまで読んでた', '読み上げ位置に戻って',
+        '今何行目', '現在の行', '行番号は', '今の行は', '現在の行番号', '今は何行目',
         /line (number|position)/i],
       action: () => {
         const res = this._onLineStatus ? this._onLineStatus() : null;
@@ -5572,6 +5590,7 @@ export class VoiceCommands {
       patterns: ['検索を解除', 'ハイライトを消して', 'ハイライトを消す',
         '検索をクリア', '検索を閉じて', '検索バーを閉じて', '検索窓を閉じて',
         '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
+        '検索をやめる', '検索をキャンセル', '検索を中止', '検索をキャンセルして',
         'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
         '強調を消して', '蛍光ペンを消して', '選択を解除', '選択解除',
         '選択をやめて', '選択を解除して',
@@ -6088,7 +6107,8 @@ export class VoiceCommands {
     // the line it lands on (the spoken line is the whole point); honest when
     // the reader can't move or nothing is on that line.
     this.registerCommand('next-line', {
-      patterns: ['次の行', '次の行を読んで', '行を進め', /next line/i],
+      patterns: ['次の行', '次の行を読んで', '行を進め', 'もう一行',
+        'もう一行読んで', '次の行を進めて', /next line/i],
       action: () => {
         const t = tabManager?.getActiveTab?.();
         if (!t?.scrollContent?.(1)) {
@@ -6147,7 +6167,8 @@ export class VoiceCommands {
         // 通知) all live on earlier registrations and keep winning.
         /(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/,
         /search (?:the web |web )?for (.+)/i,
-        /web search (?:for )?(.+)/i],
+        /web search (?:for )?(.+)/i,
+        '音声検索'],
       action: (transcript) => {
         const m = transcript.match(/^(?!履歴|ブックマーク|ページ|設定|メニュー)(.+?)を検索/)
           || transcript.match(/(.+?)について検索/)
