@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 128: マイク/シーク原子 — stop・video-seek・speech-rate の自然言語形 + 言い換え句第11弾
+外部基準: Voice Access "microphone off"/"stop listening"、メディアキーの早送り/巻き戻し、Chrome "paste and go"、VoiceOver "read all"。
+- ✨ **stop にマイク停止句**: 'マイクを切って'/'マイクをオフにして'/'マイク停止'/'聞き取りをやめて'/'聞き取り停止'/'聞くのをやめて'/'音声認識を止めて/終了'/'turn off the mic'/'turn the mic off'（`/turn (off )?(the )?mic(raphone)?( off)?/i` で語順両対応）。
+- ✨ **video-seek に自然形**: '早送り'/'早送りして'/'動画を早送り'/'巻き戻し'/'巻き戻す'/'少し戻して'/'fast forward'。'少し進めて' は navigate-forward が既存所有のため対象外（共存テストで断言）。
+- ✨ **speech-faster/slower に動詞・目的語形**: '読み上げ速度を上げて/下げて'、'話す速度を上げて/下げて'、'話すスピードを…'、'読み上げスピードを…'、'速読して'、'ゆっくり'、'speed up/slow down the reading'。
+- ✨ **read-aloud に全体形**: '全部読んで'/'全て読んで'/'最初から読んで'/'read all'/'read everything'/'read it all'/'from the top/beginning/start'。**回帰捕捉**: 素朴な `/read (all|…)/` が 'read all headings' を toc から奪う（既存テストで検出）→ `^…$` アンカー化。
+- ✨ **copy-url に省略形**: 'コピーして'/'ページをコピー'/'このページをコピー'（copy-line の 'この行をコピー' は維持、共存テスト）。
+- ✨ **panel-distance にサイズ言い換え**: 'パネルを大きく(して)'/'画面を大きく'/'panel bigger' → 近づける、'小さく'/'panel smaller' → 遠ざける（サイズ語を距離に写像）。
+- ✨ **title/read-url/speech-rate-status/paste-go の言い換え**: 'タイトルを読んで/教えて'、'whats the title'（what's 変種）、'read the title'、'今のページのアドレス'/'ページURL'/'whats the url'/'page address'、'再生速度(は|を教えて)'、'ペーストして'/'貼り付けて'/'paste it'/'paste the clipboard'。
+- ✅ **テスト +83（git stash で実装前に75件赤確認 — 8件は既存経路の設計上緑）**: Total 2858 tests (102 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 127: 距離/可読性原子 — settings-status 数値/列挙値拡張・motion-sensitivity 方向 setter・panel-distance 訴え句・fullscreen エイリアス + 言い換え句第10弾
 外部基準: Voice Access クエリ形の数値設定への拡張、Chrome fullscreen/immersive の文言、VoiceOver rotor の端選択、訴え形→直接的な修正アクション。
 - ✨ **settings-status を数値/列挙値へ拡張**: KEYMAP エントリを `[regex, key, label?, {unit|map}]` に一般化 — 'パネルの距離'/'panel distance' → 'パネル距離 Xメートルです'（windowDistance）、'モーション感度は'/'motion sensitivity' → 'モーション感度は標準です'（プリセット JA 写像）。
