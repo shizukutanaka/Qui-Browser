@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 152: 動詞る形/状態原子 — 音量る形・字幕明示ON/OFF・現在位置句 + 不平形 status 透過
+外部基準: Voice Access 'show/hide captions' の明示方向句、NVDA 'say current line/sentence' の位置読み句、Chrome 履歴の存在質問。
+- 🐛 **'字幕を消す' がブラインドトグル（OFF 済みで ON に反転する実害）修正**: `onOff()` の want 判定へ 消す|非表示|隠す|隠して|なし（false 側）と つける|出す|表示|あり（true 側）を追加 — 全 toggleCmd に波及し 'Xを消す'/'Xなし' が明示 OFF を要求するように。
+- ✨ **captions-toggle 明示形**: '字幕を表示'/'字幕を非表示'/'字幕を出す'/'キャプション表示'/'字幕あり'/'字幕なし'/'キャプションあり/なし'/'show captions'/'hide captions'（各々 ON/OFF を引数断言）。
+- ✨ **音量る-終止形**: volume-up '音量をあげる'/'音量を上げる'/'ボリュームを上げる'/'音を上げる'/'声を上げる'、volume-down '音量をさげる'/'音量を下げる'/'ボリュームを下げる'/'音を下げる'/'声を下げる'。
+- ✨ **現在位置句**: read-sentence '今の文'/'この文'/'読み上げ中の文'/'現在の文章'/'この文章'、line-status '今の行'/'読んでるところ'/'今読んでるところ'、paragraph-status '今の段落'。
+- ✨ **help 発見可能性**: 'コマンドは'/'どんなコマンド'/'操作方法は'/'ヘルプは'/'命令一覧'/'命令を教えて'。
+- ✨ **nav-status 不平形**: back-status 'もう戻れない'/'これ以上戻れない'/'戻れるページは'/'戻れるかな'、forward-status 同 twin（goBack/goForward 非呼出を断言）。history-list '履歴はある'/'履歴はあるか'/'履歴を教えて'。
+- ✨ **性能訴え**: trouble '反応が遅い'/'重たい'/'もたつく'/'反応が悪い'/'動作がもたつく'；speech-faster '読むのが遅い'/'読むのが遅すぎる'（'読み上げが遅い' は従来どおり speech-faster）。
+- ✅ **テスト +62（git stash で51件赤確認、11件は共存ガードの設計上緑）**: Total 5000 tests (126 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 151: 睡眠/入力原子 — sleep 双子・要素ジェスチャー・副詞形 + '読み進めて'/'何を開いてる'/'go to sleep' 誤ルート修正
 外部基準: OS アシスタントの 'good night'/'wake up' 双子、Voice Access 'click X'/'focus' の要素操作句、NVDA 'say all faster' の副詞形。
 - 🐛 **'go to sleep' が literal ナビゲート・'何を開いてる' が '何を' をナビゲート**（実測捕捉）: sleep-mode に 'go to sleep'/'good night'/'wake me up' + JA 双子 'おやすみ'/'おやすみなさい'/'寝る'/'寝かせて'/'スタンバイ'/'スリープ'/'起きて'/'起きてよ'/'ウェイクアップ'；tabs-list に '何を開いてる'/'開いているもの'/'開いてるものは'/'開いてるやつ'（onGoTo 非呼出を断言）。

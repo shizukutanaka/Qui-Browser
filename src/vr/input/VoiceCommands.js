@@ -819,6 +819,7 @@ export class VoiceCommands {
     this.registerCommand('back-status', {
       patterns: ['戻れますか', '戻れる', '戻ることができますか', 'もっと戻れる',
         '戻れます', '戻れない', '戻れません', '戻らない',
+        'もう戻れない', 'これ以上戻れない', '戻れるページは', '戻れるかな',
         '前に戻れますか', 'can we go back', 'can i go back',
         /can (we|i) go back/i],
       action: () => {
@@ -832,6 +833,7 @@ export class VoiceCommands {
     this.registerCommand('forward-status', {
       patterns: ['進めますか', '進める', '進むことができますか', '前に進めますか',
         '進めない', '進めません', '進まない',
+        'もう進めない', 'これ以上進めない', '進めるページは', '進めるかな',
         'can we go forward', 'can i go forward',
         /can (we|i) go forward/i],
       action: () => {
@@ -1075,6 +1077,7 @@ export class VoiceCommands {
         '声を大きく', '大きな声で', '大きい声で', '声を出して', '音を出して',
         '音量を大きくして', '音を大きくして',
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
+        '音量をあげる', 'ボリュームを上げる', '音量を上げる', '音を上げる', '声を上げる',
         'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
         'louder', 'speak up', 'turn it up', 'crank it up',
         /volume (up|raise|increase|louder)/i],
@@ -1096,6 +1099,7 @@ export class VoiceCommands {
         '音量を小さくして', '音を小さくして',
         '静かにしろ', '音を小さくしろ',
         '声を下げて', '声を小さくして', 'ボリュームを下げて',
+        '音量をさげる', '音量を下げる', 'ボリュームを下げる', '音を下げる', '声を下げる',
         'ボリュームを小さく', 'ボリュームダウン', '音を下げて',
         'quieter', 'turn it down', 'speak softer', 'tone it down',
         /volume (down|lower|decrease|quieter)/i],
@@ -1390,6 +1394,7 @@ export class VoiceCommands {
         '操作方法', 'できること', 'コマンドを教えて', 'コマンドを読み上げて',
         'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
         '使い方は', '何ができますか', 'コマンド一覧',
+        'コマンドは', 'どんなコマンド', '操作方法は', 'ヘルプは', '命令一覧', '命令を教えて',
         '教えて', '教えてほしい',
         'どうすればいい', 'どうすれば', 'なんとかして',
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
@@ -1708,6 +1713,7 @@ export class VoiceCommands {
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         '遅すぎる', '動作が重い', '遅すぎ', '重すぎる',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
+        '反応が遅い', '重たい', 'もたつく', '反応が悪い', '動作がもたつく',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
@@ -3332,6 +3338,7 @@ export class VoiceCommands {
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
         '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
+        '読むのが遅い', '読むのが遅すぎる',
         '早口で', 'もっと早く', '早口にして',
         '早くしろ', '速くしろ', 'もっと早くしろ',
         'さっきより早く', 'さっきより速く', '今より早く', '今より速く',
@@ -4188,10 +4195,10 @@ export class VoiceCommands {
     // explicit オン/オフ (on/off/enable/disable) when given, and toggles bare.
     // Phrases stay off the 'を開く'/'に行く' suffixes that go-to owns.
     const onOff = (transcript) => {
-      if (/オフ|無効|消して|off|disable/i.test(transcript)) {
+      if (/オフ|無効|消して|消す|非表示|隠す|隠して|なし|off|disable|hide/i.test(transcript)) {
         return false;
       }
-      if (/オン|有効|つけて|見せて|出して|on|enable/i.test(transcript)) {
+      if (/オン|有効|つけて|つける|見せて|出して|出す|表示|あり|on|enable|show/i.test(transcript)) {
         return true;
       }
       return undefined;
@@ -4274,7 +4281,10 @@ export class VoiceCommands {
         /字幕(?:を)?(?:オン|オフ)/, /キャプション(?:を)?(?:オン|オフ)にして/,
         /字幕(?:を)?消(?:して|す)/, /キャプション(?:を)?消(?:して|す)/,
         /字幕(?:を)?(?:出して|見せて|隠して)/, /キャプション(?:を)?(?:出して|見せて|隠して)/,
-        /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
+        /字幕(?:を)?(?:表示|非表示|出す|つける)/, /キャプション(?:を)?(?:表示|非表示|出す)/,
+        '字幕あり', '字幕なし', 'キャプションあり', 'キャプションなし',
+        /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i,
+        /show captions/i, /hide captions/i],
       'Toggle captions');
     toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
       [/ハプティックを(オン|オフ)/, /振動を(オン|オフ|つけて|消して)/, /触覚を(オン|オフ)/,
@@ -4904,6 +4914,7 @@ export class VoiceCommands {
         '閲覧履歴', 'ブラウザ履歴', 'ウェブ履歴', '検索履歴', '閲覧履歴を読んで',
         '最近の履歴', 'さっきの履歴', '昨日の履歴', '今日の履歴',
         '履歴を一覧', '履歴を全部読んで', '履歴を見て', '履歴を確認',
+        '履歴はある', '履歴はあるか', '履歴を教えて',
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
@@ -5658,7 +5669,7 @@ export class VoiceCommands {
     this.registerCommand('paragraph-status', {
       patterns: ['何段落', '段落はいくつ', 'どの段落', 'この段落は', '現在の段落は',
         '段落は', '全部で何段落', 'この記事は何段落', '総段落数', '段落数は',
-        '何段落目', '現在何段落', '段落番号は', '今の段落は', '今は何段落目',
+        '何段落目', '現在何段落', '段落番号は', '今の段落は', '今は何段落目', '今の段落',
         /which paragraph/i, /paragraph (count|position|status)/i],
       action: () => {
         const res = this._onParagraphStatus ? this._onParagraphStatus() : null;
@@ -5750,6 +5761,7 @@ export class VoiceCommands {
     this.registerCommand('read-sentence', {
       patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで', '現在の文',
         '今の文を読み直して', 'この文を読み直して', '文を読み直して',
+        '今の文', 'この文', '読み上げ中の文', '現在の文章', 'この文章',
         /read (this |the |current )?sentence/i],
       action: () => {
         const r = this._onSentence ? this._onSentence() : null;
@@ -6075,6 +6087,7 @@ export class VoiceCommands {
         '全部で何行', 'この記事は何行', '総行数', '行数は', '何行ある',
         '読んでいたところ', 'どこまで読んでた', '読み上げ位置に戻って',
         '今何行目', '現在の行', '行番号は', '今の行は', '現在の行番号', '今は何行目',
+        '今の行', '読んでるところ', '今読んでるところ',
         /line (number|position)/i],
       action: () => {
         const res = this._onLineStatus ? this._onLineStatus() : null;
