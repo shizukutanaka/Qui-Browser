@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 125: 検索/快適原子 — find-in-page 引用符 strip・スコープ句、VR出入り・エコー・快適訴えの自然句 + 言い換え句第8弾
+外部基準: Chrome 'find in page X' のスコープ形、Voice Access 'quiet' 準拠の消音句、NVDA 誠実ガイダンス（快適性訴え→音声回復導線）。
+- 🐛 **'「テスト」を探して' が引用符込みで検索される実害修正**: 抽出語が「テスト」のまま渡り必ず '見つかりませんでした'（実測捕捉）→ 先末尾 `「」『』"''` を strip。'ページ内で「X」を検索'/'ページ内をXで検索' 未認識も `/ページ内[をで](.+?)[をで]検索/` で解消（'バナナを検索して' は web-search 維持の共存テスト）。
+- ✨ **VR 出入り・エコー句**: vr-enter へ 'VRを始める'/'没入モード'/'VRモードで' 等6句、vr-exit へ 'VRを終了'/'VRを出る' 等、say-again へ 'もう一回言って'/'今の行をもう一度'、say-last-transcript へ '何を言った'/'何を聞き取った'/'今何を言った'。
+- ✨ **エイリアス拡充（第8弾）**: read-heading '見出しを読み上げて'、next/prev-heading '次/前のセクション'、next-paragraph 'スキップして'/'読み飛ばして'、prev-sentence 'さっきの文'、mute-toggle '静かにして'/'無音にして'、volume-down 'うるさい'/'音が大きい'、unbookmark 'お気に入りから消して'、trouble へ '耳が痛い'/'酔った'/'気分が悪い'/'目が疲れた'/'滑らかじゃない'/'ヘッドセットが暑い'。
+- ✅ **テスト +41（git stash で実装前に39件赤確認 — 2件は既存ルート共存ガードの設計上緑）**: Total 2635 tests (99 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'リンク一覧'/'印刷'/'PDF保存'/'フォント変更'/'輝度' は backing surface 不在のため今回も未実装（誠実未認識）。
+
 ### Session 124: スクロール/音声トラブル原子 — '先頭に戻る'・'オプションを開いて' の誤ルート修正、reset-zoom 双子、audio-trouble + 言い換え句第7弾
 外部基準: Chrome Ctrl+0 reset-zoom、Chrome 'scroll to top' 句、Voice Access の options 起動句、NVDA 系の誠実エラー告知。
 - 🐛 **'先頭に戻る'/'一番上に戻る'/'トップに戻る' が goBack を実行する実害修正**: back の `/戻[るれ]/` が 'Xに戻る' 句を所有（実測捕捉 — '先頭に戻る' でタブ内履歴が戻る）→ `(?<!先頭に)(?<!一番上に)(?<!トップに)` lookbehind で透過し scroll-top へ7句追加（'戻る' 単体は goBack 維持、相互に非呼出を断言）。

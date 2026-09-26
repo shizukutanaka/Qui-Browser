@@ -784,6 +784,8 @@ export class VoiceCommands {
     // VR mode control
     this.registerCommand('vr-enter', {
       patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ',
+        'VRを始める', 'VRモードに入る', 'VRモードで', '没入モード',
+        '没入モードに入る', 'VRを開始',
         /vr mode/i],
       action: () => {
         // Would trigger VR mode
@@ -795,7 +797,8 @@ export class VoiceCommands {
 
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
-        '終了して', /^quit$/i, /exit (the )?(app|browser|vr)/i],
+        '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
+        /^quit$/i, /exit (the )?(app|browser|vr)/i],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -830,6 +833,7 @@ export class VoiceCommands {
     this.registerCommand('volume-down', {
       patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', '音量を下げて',
         '音を小さく', '音量を小さく', '音を下げて',
+        'うるさい', '音が大きい', '音がうるさい',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
         if (this._onVolume) {
@@ -1287,6 +1291,8 @@ export class VoiceCommands {
       patterns: ['反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
+        '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
+        'ヘッドセットが暑い',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -2395,17 +2401,21 @@ export class VoiceCommands {
         'この中から検索', '探して', '検索して',
         /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
         /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
-        /(.+?)を探して/],
+        /(.+?)を探して/, /ページ内[をで](.+?)[をで]検索/],
       action: (transcript) => {
         const bare = transcript === 'ページ内検索';
         const m = transcript.match(/find\s+in\s+(?:this\s+)?page\s+(.+)/i)
           || transcript.match(/find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i)
-          || transcript.match(/(.+?)を探して/);
-        if (bare || !m) {
+          || transcript.match(/(.+?)を探して/)
+          || transcript.match(/ページ内[をで](.+?)[をで]検索/);
+        const term = m && m[1]
+          ? m[1].replace(/^[「『"'']+|[」』"'']+$/g, '').trim()
+          : '';
+        if (bare || !m || !term) {
           this.speak('検索する語を言ってください');
           return { action: 'find-in-page', count: 0 };
         }
-        const count = tabManager?.getActiveTab?.()?.findInReader?.(m[1]) || 0;
+        const count = tabManager?.getActiveTab?.()?.findInReader?.(term) || 0;
         this.speak(count ? `${count}件見つかりました` : '見つかりませんでした');
         return { action: 'find-in-page', count };
       },
@@ -2415,7 +2425,8 @@ export class VoiceCommands {
     // Heading navigation — the screen-reader H / Shift+H atom (NVDA, JAWS,
     // VoiceOver rotor). The article title counts as heading zero.
     this.registerCommand('next-heading', {
-      patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', /next\s+heading/i],
+      patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', '次のセクション',
+        /next\s+heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -2425,7 +2436,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('prev-heading', {
-      patterns: ['前の見出し', /prev(?:ious)?\s+heading/i],
+      patterns: ['前の見出し', '前のセクション', /prev(?:ious)?\s+heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.prevHeading?.() || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -2470,7 +2481,8 @@ export class VoiceCommands {
     // command's whole output is the announcement itself.
     this.registerCommand('say-again', {
       patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
-        'もう一回聞いて', '聞き直して',
+        'もう一回聞いて', '聞き直して', 'もう一回言って', '今の行をもう一度',
+        'もう一度再生',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
         /listen again/i],
       action: () => {
@@ -3145,6 +3157,7 @@ export class VoiceCommands {
     // explicit want so they can never mute by accident.
     this.registerCommand('mute-toggle', {
       patterns: ['ミュート', 'ミュートを解除', '消音', '消音を解除', '音を消して',
+        '静かにして', '無音にして', '静音にして',
         // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
         // surface — neither should toggle the master volume.
         /(un)?mute(?!\s+(?:other\s+tabs?|the\s+mic|mic\b|microphone))/i],
@@ -3480,6 +3493,7 @@ export class VoiceCommands {
     // heading TEXT itself (NVDA 'read current heading' parity).
     this.registerCommand('read-heading', {
       patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
+        '見出しを読み上げて', '見出しを読み上げ',
         /read (the |current |this )?heading/i, /what('s| is) the heading/i],
       action: () => {
         const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
@@ -3909,6 +3923,7 @@ export class VoiceCommands {
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
       patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        'スキップして', '先読みして', '読み飛ばして',
         /next\s+paragraph/i, /skip ahead/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
@@ -4051,6 +4066,7 @@ export class VoiceCommands {
     });
     this.registerCommand('prev-sentence', {
       patterns: ['前の文', '前の文を読んで', '文を前へ', '一文戻し',
+        'さっきの文', 'さっきの文を読んで',
         /prev(?:ious)? sentence/i, /read (the )?prev(?:ious)? sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(-1) : null;
@@ -4729,7 +4745,8 @@ export class VoiceCommands {
     this.registerCommand('unbookmark-page', {
       patterns: ['ブックマークを外して', 'ブックマークを解除して',
         'ブックマークを削除して', 'ブックマークを消して', 'ブックマークを削除',
-        'ブックマークから消して',
+        'ブックマークから消して', 'お気に入りから消して', 'お気に入りを外して',
+        'ブックマークから外して',
         /remove (this |the )?bookmark/i, /unbookmark/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
@@ -4871,7 +4888,8 @@ export class VoiceCommands {
     // them correctly; reading the transcript back is the only confirmation.
     this.registerCommand('say-last-transcript', {
       patterns: ['何と言った', '今何と言いました', '何と言いました',
-        '何と聞き取った', /what did i say/i, /what did you hear/i],
+        '何と聞き取った', '何を言った', '何を聞き取った', '今何を言った',
+        /what did i say/i, /what did you hear/i],
       action: () => {
         const t = this._prevTranscript;
         this.speak(t ? `「${t}」と聞き取りました` : 'まだ何も聞き取っていません');
