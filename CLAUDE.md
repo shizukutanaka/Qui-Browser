@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 124: スクロール/音声トラブル原子 — '先頭に戻る'・'オプションを開いて' の誤ルート修正、reset-zoom 双子、audio-trouble + 言い換え句第7弾
+外部基準: Chrome Ctrl+0 reset-zoom、Chrome 'scroll to top' 句、Voice Access の options 起動句、NVDA 系の誠実エラー告知。
+- 🐛 **'先頭に戻る'/'一番上に戻る'/'トップに戻る' が goBack を実行する実害修正**: back の `/戻[るれ]/` が 'Xに戻る' 句を所有（実測捕捉 — '先頭に戻る' でタブ内履歴が戻る）→ `(?<!先頭に)(?<!一番上に)(?<!トップに)` lookbehind で透過し scroll-top へ7句追加（'戻る' 単体は goBack 維持、相互に非呼出を断言）。
+- 🐛 **'オプションを開いて' が literal ナビゲートされる実害修正**: go-to の `を開` catch-all 所有（実測捕捉）→ settings-toggle へ 'オプション'/'設定画面'/'環境設定'/'プリファレンス'/'options'/'preferences' を追加（登録順が先行するため勝つ、onGoTo 非呼出を断言）。
+- 🐛 **'reset text size' がステータス告知に誤ルート**: reader-scale-status の `/text size/i` 所有（実測捕捉）→ Chrome Ctrl+0 準拠 `reader-scale-reset`（status getter + delta hook で 1.0 へ一発リセット）を先行登録。
+- ✨ **`audio-trouble`**: '聞こえない'/'音が出ない'/"can't hear"/'no sound' → trouble の視覚導線に対する聴覚双子（音量確認・ミュート解除・聞き直しの3導線を発話）。
+- ✨ **エイリアス拡充（第7弾）**: find-in-page へ 'ページ内を検索'/'この中から検索'/'探して'/'検索して'（検索語プロンプト）、scroll へ 'ちょっと上/下'・'少し上/下へ'・'もう少し上/下'、read-aloud へ 'このページを読み上げて'/'最初から読み上げて'/'もう一回読んで'、trouble へ '遅い'/'重い'/'カクカクする'/'フリーズした'/'固まった'、battery-status へ '電池残量'/'残量は'/'電源は'。
+- ✅ **テスト +61（git stash で実装前に60件赤確認 — 1件は既存ルート共存ガードの設計上緑）**: Total 2594 tests (98 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 123: 左閉じ/序数原子 — close-tabs-left 双子・JA序数タブ選択・'半分の音量' + 言い換え句第6弾
 外部基準: Chrome close-tabs-to-the-right の左対称双子、Voice Access の序数選択（'一番目のタブ'）、Chrome 'new tab'/'close window' の自然句、numeric volume の 'half' 特例。
 - 🐛 **'左のタブを閉じて' が名指し検索に誤ルートする実害修正**: close-tab-by-name の JA stoplist は '右' だけ除外で '左' 未除外（非対称バグ、実測捕捉）→ 左|左側 を追加 + 新規 `close-tabs-left` が先行所有（'左側のタブを閉じて'/'close tabs to the left'）。

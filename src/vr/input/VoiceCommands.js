@@ -411,8 +411,10 @@ export class VoiceCommands {
     // pin the direction; the bare panel phrase toggles.
     this.registerCommand('settings-toggle', {
       patterns: ['設定を開いて', '設定を開く', '設定を閉じて', '設定を閉じる', '設定パネル',
-        '設定を見せて', '設定を表示',
-        /open\s+settings/i, /close\s+settings/i, /show\s+settings/i],
+        '設定を見せて', '設定を表示', '設定画面', '設定画面を開いて', '環境設定',
+        'オプション', 'オプションを開いて', 'プリファレンス',
+        /open\s+settings/i, /close\s+settings/i, /show\s+settings/i,
+        /^options$/i, /^preferences$/i],
       action: (transcript) => {
         let want;
         if (/閉じ|close/i.test(transcript)) {
@@ -744,7 +746,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/],
       action: () => {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
@@ -1115,6 +1117,7 @@ export class VoiceCommands {
     this.registerCommand('battery-status', {
       patterns: ['バッテリーは', 'バッテリー残量', '電池は',
         '充電は', '充電中ですか', '充電してる',
+        '電池残量', '充電残量', '残量は', '電源は', 'バッテリーの残り', '電池残り',
         /battery (level|status|percentage)/i, /battery left/i,
         /charging|charge status/i],
       action: () => {
@@ -1193,6 +1196,28 @@ export class VoiceCommands {
       },
       description: 'Announce the wake word'
     });
+    // reader-scale-reset — the 'reset zoom' twin (Chrome Ctrl+0 parity):
+    // jump straight back to 1.0 via the delta hook instead of stepping down.
+    this.registerCommand('reader-scale-reset', {
+      patterns: ['ズームをリセット', 'ズームリセット', '拡大を戻して', '拡大を元に戻して',
+        '文字サイズを元に戻して', '文字サイズをリセット', 'フォントサイズを元に戻して',
+        'フォントサイズをリセット', '元の大きさに戻して',
+        /reset (zoom|text size|font size)/i, /zoom reset/i],
+      action: () => {
+        const cur = this._onReaderScaleStatus ? this._onReaderScaleStatus() : null;
+        if (typeof cur !== 'number' || !this._onReaderScale) {
+          this.speak('文字サイズを確認できません');
+          return { action: 'reader-scale-reset', scale: null };
+        }
+        const v = this._onReaderScale(1.0 - cur);
+        this.speak(cur === 1.0
+          ? '文字サイズは標準です'
+          : '文字サイズを標準に戻しました');
+        return { action: 'reader-scale-reset', scale: v };
+      },
+      description: 'Reset reader text scale to 1.0'
+    });
+
     // reader-scale-status — the query twin of onReaderScale (delta-0
     // returns null there, so a dedicated getter reports the scale).
     this.registerCommand('reader-scale-status', {
@@ -1260,7 +1285,8 @@ export class VoiceCommands {
     // reset affordance; answer with the two spoken escape hatches.
     this.registerCommand('trouble', {
       patterns: ['反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
-        'なにも表示されない', '動かない',
+        'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
+        'カクカクする', 'フリーズした', '固まった', '画面が固まった',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1268,6 +1294,20 @@ export class VoiceCommands {
         return { action: 'trouble' };
       },
       description: 'Spoken recovery guidance when the user reports trouble'
+    });
+
+    // audio-trouble — the hearing side of 'trouble': voice-only users who
+    // cannot hear output get spoken pointers to the audio commands instead
+    // of the visual recenter hint.
+    this.registerCommand('audio-trouble', {
+      patterns: ['聞こえない', '聞こえません', 'よく聞こえない', '音が出ない',
+        '音が小さい', '音が聞こえない', '声が聞こえない', '音量が小さい',
+        /can'?t hear/i, /^no sound/i],
+      action: () => {
+        this.speak('「音量」で今の音量を確認できます。「音量を上げて」「ミュートを解除」「もう一回聞いて」を試してください');
+        return { action: 'audio-trouble' };
+      },
+      description: 'Spoken recovery guidance when the user cannot hear audio'
     });
   }
 
@@ -1867,7 +1907,7 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
         this.speak(moved ? '戻ります' : '戻れません');
@@ -1943,7 +1983,8 @@ export class VoiceCommands {
     // It now drives the panel's own reader viewport via onScrollContent.
     const SCROLL_LINES = 8;
     this.registerCommand('scroll-down', {
-      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン'],
+      patterns: ['下にスクロール', '下', 'した', 'スクロールダウン',
+        'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下'],
       action: () => {
         if (onScrollContent) {
           onScrollContent(SCROLL_LINES);
@@ -1954,7 +1995,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('scroll-up', {
-      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ'],
+      patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ',
+        'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上'],
       action: () => {
         if (onScrollContent) {
           onScrollContent(-SCROLL_LINES);
@@ -2165,7 +2207,9 @@ export class VoiceCommands {
     // surface in VR, so top/bottom jump commands target it directly.
     this.registerCommand('scroll-top', {
       patterns: ['先頭へ', '最初に戻る', 'ページの先頭', '一番上', '一番上へ',
-        'ページの先頭へ', '最初のページ',
+        'ページの先頭へ', '最初のページ', 'トップへ',
+        '先頭に戻る', '先頭に戻って', '一番上に戻る', '一番上に戻って',
+        'トップに戻る', 'トップに戻って', 'ページの先頭に戻る',
         /scroll (to )?top/i, /top of (the )?page/i, /^first page$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToTop?.();
@@ -2219,6 +2263,8 @@ export class VoiceCommands {
       patterns: [
         '読み上げて', '読み上げてください', 'ページを読み上げ', '記事を読み上げ',
         'このページを読んで', 'ページを読み上げて', '記事を読み上げて',
+        'このページを読み上げて', 'ページ全体を読み上げて',
+        '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i
       ],
@@ -2345,7 +2391,8 @@ export class VoiceCommands {
       // backtrack into the query; the plain form only steps aside for the
       // two complete endpoint utterances ('find first'/'find last'), not
       // for multiword queries like 'find first aid'.
-      patterns: ['ページ内検索',
+      patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索',
+        'この中から検索', '探して', '検索して',
         /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
         /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
         /(.+?)を探して/],
