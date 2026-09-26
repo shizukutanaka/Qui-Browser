@@ -465,6 +465,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**bulk クローズの残り3種が未実装（重複/非ピン/通常）**~~ — **Session 130 で実装**: `TabManager.closeDuplicateTabs()`（URL 先勝ちで重複の後出現側を閉じる）・`closeUnpinnedTabs()`・`closeNormalTabs()` を追加し音声コマンド登録 — 各 closeTab 経由でピン拒否・クローズスタック規則を継承、0 件は誠実応答。
 - ~~**find-again（クエリ再実行）が未実装**~~ — **Session 130 で実装**: repeat-command の検索双子 — 'もう一度検索'/'再検索'/'find again' で `findQuery()` → `findInReader(q)` 再実行。find-in-page より前に登録し 'again' のリテラル検索を回避。
 - ~~**戻る/進む・リロード・スクロール・音量/速度系の自然言語句が未認識（第13弾）**~~ — **Session 130 で実装**: back '戻って'/'さっきのページ'、navigate '進んで'、refresh 'ページを再読み込み'/'リフレッシュして'、scroll-down 'スクロール'/'ページをめくって'、speech-rate 'N倍速'/漢数字/'半分の速さ'→0.5/'倍速で'→2、speech-reset '元の速度に戻して'/'標準速度'、percent-jump '半分まで'/'真ん中まで'→50%、trouble '目が痛い'/'疲れた'、online 'つながらない'/'圏外'、connection '回線が悪い'、battery '充電がない'、security 'HTTPSですか'、hostname 'ドメイン名'、unbookmark 'お気に入りから削除'、read-clipboard '何をコピーした'、title 'タブの名前'、find-status '見つからなかった'、総数形 '全部で何行/文/段落'、tab-status '何タブ'、tabs-list '開いてるウィンドウ'、new-tab 'もう一個タブ'、close-tab '閉じて'、pin/unpin 'ピンを付けて/取って'、pause-reading '一旦停止'、video 'ビデオを再生/ポーズ'、speech 訴え形 '読み上げが遅い/速い'。
+- ~~**'あと何ページ戻れる/進める' がナビゲートを実行する（質問形の誤ルート）**~~ — **Session 131 で実装**: `history-depth` を back/navigate より前に登録し `historyIdx`/`history.length-1-idx` の残量告知へ — goBack/goForward 非呼出を共存テストで断言。
+- ~~**'最初まで戻る'/'履歴の最初に戻る'/'一番最初に戻る' が1歩だけ戻る誤動作**~~ — **Session 131 で実装**: `nav-steps` を registerDefaultCommands 内の back/navigate/home より前に配置（connectBrowser 登録は Map キー位置で負ける — プローブ実測）→ '…に戻る' 語尾の start 形を all-the-way-back に解決。'最初のタブに戻る'/'一つ戻って' は back の単歩維持（漢数字 一 は nav-steps 対象外）。
+- ~~**'Nページ戻って/進んで' の多段履歴ナビが未実装**~~ — **Session 131 で実装**: 数字+漢数字（二〜九）+ EN 'back/forward N pages' を `goBack`/`goForward` ループへ — 'Nページ戻り/進みました'、不足は '（これ以上戻れ/進めません）'、0 は誠実応答（Chrome Alt+← 連打準拠）。
+- ~~**検索パネル終了・タブ一括/単体閉鎖・VR終了・字幕サイズ・履歴/検索呼び出し・休憩訴えの言い換え句が未認識（第14弾）**~~ — **Session 131 で実装**: clear-find '検索を閉じて/消して/終了'/'ハイライトを解除'、close-all-tabs 'タブを全部閉じる' 等、close-tab 'パネルを閉じて'/'ウィンドウを閉じる'、vr-exit '終了'/'アプリを閉じて'/'ブラウザを閉じて'、caption-size '字幕を大きくして/小さくして'、history-list '閲覧履歴'/'検索履歴'、find-query '最後の検索'、trouble '休憩したい'/'めまいがする'、back 'もっと戻って'/'さっき見たページ'。
 
 
 ---

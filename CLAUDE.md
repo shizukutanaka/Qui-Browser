@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 131: 履歴深さ/多段ナビ原子 — nav-steps（Nページ戻る/進む + 履歴先頭）・history-depth 質問修正 + 言い換え句第14弾
+外部基準: Chrome の Alt+← 連打・履歴メニュー「先頭へ」、JAWS "how far back"、Voice Access の質問/コマンド分離。
+- 🐛 **'あと何ページ戻れる/進める' がナビゲートを実行する実害修正**: back の `/戻[るれ]/`・navigate の `/進[むめ]/` が質問形を所有して goBack/goForward を実行（プローブ実測）→ `history-depth` を両者より前に登録（back-status の位置ルール）— `p.historyIdx` / `p.history.length-1-idx` から残量を告知しナビゲートしない（非呼出を断言）。
+- 🐛 **'最初まで戻る'/'履歴の最初に戻る' が1歩だけ戻る誤動作修正**: back の `/戻[るれ]/` が '…に戻る' 語尾を所有 → `nav-steps` を registerDefaultCommands 内 back/navigate/home より前に配置（connectBrowser 登録では Map キー位置が負ける — 実測）、`this._tabManager` 遅延バインド使用。
+- ✨ **nav-steps**: 'Nページ/つ/回 戻って・戻る・戻り'（数字+漢数字二〜九 — 一は back の単歩維持）+ 進 twin + '一番最初に/まで戻る・戻って'/'履歴の最初まで/に戻る・戻って'/'最初のページに戻る・戻って' + EN 'back/forward N pages'/'back to the start/beginning' → パネル `goBack`/`goForward` をループし 'Nページ戻り/進みました'、不足分は '（これ以上戻れ/進めません）'、0 は誠実応答。'最初のタブに戻る'/'一つ戻って' は back 維持（共存テスト）。
+- ✨ **エイリアス第14弾**: clear-find '検索を閉じて/消して/終了'/'検索バーを閉じて'/'ハイライトを解除'、close-all-tabs 'タブを全部閉じる'/'全部のタブを閉じる' 等、close-tab 'パネルを閉じて/消して'/'ウィンドウを閉じる'、vr-exit '終了'/'アプリを閉じて/終了して'/'ブラウザを閉じて/閉じる'、caption-size '字幕を大きくして/小さくして'/'キャプションサイズを…'、history-list '閲覧履歴'/'ブラウザ履歴'/'ウェブ履歴'/'検索履歴'、find-query '最後の検索'/'前に検索した言葉'、trouble 休憩/気分訴え（'休憩したい'/'気持ち悪い'/'めまいがする'/'目眩がする'）、back 'もっと戻って'/'さっき見たページ'/'もう一個戻って'。
+- ✅ **テスト +84（git stash で83件赤確認 — 1件は共存ガード設計上緑）**: Total 3203 tests (105 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。
+
 ### Session 130: 端移動/掃除原子 — move-tab-start/end・bulk クローズ3種・find-again + 言い換え句第13弾
 外部基準: Chrome の「タブを先頭/末尾へ」（長タブリストの端移動）、"Close duplicate tabs" 拡張機能、Voice Access "find again"、Firefox Close Unpinned Tabs。
 - 🐛 **'右端/左端/先頭/最後に移動' 誤ナビゲート修正**: go-to の `/に移動/` catch-all が句を所有しリテラルナビゲート（プローブ実測）→ `move-tab-start`/`move-tab-end` を go-to より前に登録。TabManager に `moveTabToStart(index)`/`moveTabToEnd(index)` を追加 — pinned タブは pinned クラスタ内端（`pinnedCount-1` / `pinnedCount`）に留め、非 pinned は 0/末尾へ（moveTab の境界規則を継承）。

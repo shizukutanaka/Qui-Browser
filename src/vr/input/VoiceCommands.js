@@ -684,6 +684,8 @@ export class VoiceCommands {
     // would claim as a real search term.
     this.registerCommand('find-query', {
       patterns: ['検索語は', '何を検索している', '何を検索中', '検索語を教えて',
+        '最後の検索', '前の検索', '前に検索した言葉', '検索した言葉',
+        '最後に検索した言葉', '検索している言葉',
         /what (am i |are we )?searching for/i, /find query/i, /search query/i],
       action: () => {
         const q = this._onFindQuery ? this._onFindQuery() : null;
@@ -722,6 +724,110 @@ export class VoiceCommands {
       description: 'Announce whether forward is possible'
     });
 
+    // history DEPTH status — how many pages remain in each direction, not
+    // just can/can't. 'あと何ページ戻れる' otherwise hits back's /戻[るれ]/
+    // regex (a question EXECUTING navigation — probe-verified) and
+    // 'あと何ページ進める' hits navigate's /進[むめ]/. Register here, ahead
+    // of both.
+    this.registerCommand('history-depth', {
+      patterns: ['あと何ページ戻れる', '何ページ戻れる', 'どこまで戻れる',
+        'どのくらい戻れる', 'どれだけ戻れる', 'どれくらい戻れる',
+        '履歴はあといくつ', '履歴はあと何ページ', '履歴はいくつ',
+        'あと何ページ進める', '何ページ進める', 'どこまで進める',
+        'どのくらい進める', 'どれだけ進める', 'どれくらい進める',
+        /how (far|many pages) (back|forward)/i,
+        /how many pages (can |do )?(we|i) (go )?(back|forward)/i],
+      action: (transcript) => {
+        const p = this._tabManager?.getActiveTab?.();
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'history-depth', direction: null, pages: null };
+        }
+        const fwd = /進|forward/i.test(transcript);
+        const n = fwd
+          ? Math.max(0, (p.history?.length || 0) - 1 - (p.historyIdx || 0))
+          : Math.max(0, p.historyIdx || 0);
+        this.speak(n === 0
+          ? (fwd ? '進める履歴はありません' : '戻れる履歴はありません')
+          : `あと${n}ページ${fwd ? '進めます' : '戻れます'}`);
+        return {
+          action: 'history-depth',
+          direction: fwd ? 'forward' : 'back',
+          pages: n
+        };
+      },
+      description: 'Announce how many pages of history remain in each direction'
+    });
+
+    // Multi-step back/forward — Chrome's repeated Alt+←/→ and Voice Access
+    // 'go back N pages'. Bare '一つ戻って' stays `back`; digits, kanji
+    // numerals, and the 'history start' forms land here and loop the panel's
+    // own goBack/goForward — stopping early announces the shortfall honestly.
+    // Registered BEFORE `back`: its /戻[るれ]/ regex owns '…に戻る' endings
+    // ('最初まで戻る' was probe-verified to execute a single back step).
+    // The 'start' regexes require ページ/履歴/まで context so '最初のタブに
+    // 戻る' still falls through to `back`.
+    this.registerCommand('nav-steps', {
+      patterns: [
+        /([0-9]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:戻って|戻る|戻り)/,
+        /([二三四五六七八九]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:戻って|戻る|戻り)/,
+        '一番最初に戻って', '一番最初に戻る', '最初のページに戻って',
+        '最初のページに戻る', '履歴の最初に戻って', '履歴の最初に戻る',
+        '履歴の最初まで戻って', '履歴の最初まで戻る', '最初まで戻って',
+        '最初まで戻る', '一番最初まで戻る', '一番最初まで戻って',
+        /履歴の最初[^進]{0,4}戻/, /(?:一番)?最初のページ[^進]{0,4}戻/,
+        /(?:一番)?最初に戻/, /(?:一番)?最初まで戻/,
+        /([0-9]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:進んで|進む|進み)/,
+        /([二三四五六七八九]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:進んで|進む|進み)/,
+        /(?:go )?back (\d+|two|three|four|five) pages?/i,
+        /(?:go )?forward (\d+|two|three|four|five) pages?/i,
+        /back to the (start|beginning)/i],
+      action: (transcript) => {
+        const p = this._tabManager?.getActiveTab?.();
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'nav-steps', moved: 0 };
+        }
+        const fwd = /進|forward/i.test(transcript);
+        const toStart = !fwd && /最初|start|beginning/i.test(transcript);
+        const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const EN = { two: 2, three: 3, four: 4, five: 5 };
+        const m = transcript.match(/([0-9]+)/);
+        const km = transcript.match(/([一二三四五六七八九])/);
+        const em = transcript.match(/(two|three|four|five)/i);
+        const requested = toStart
+          ? Infinity
+          : m
+            ? parseInt(m[1], 10)
+            : km
+              ? KANJI[km[1]]
+              : em
+                ? EN[em[1].toLowerCase()]
+                : 1;
+        const step = fwd
+          ? () => p.goForward?.() || false
+          : () => p.goBack?.() || false;
+        let moved = 0;
+        while (moved < requested && step()) {
+          moved++;
+        }
+        if (moved === 0) {
+          this.speak(fwd ? '進める履歴がありません' : '戻れる履歴がありません');
+        } else if (moved < requested) {
+          this.speak(`${moved}ページ${fwd ? '進み' : '戻り'}ました（これ以上${fwd ? '進め' : '戻れ'}ません）`);
+        } else {
+          this.speak(`${moved}ページ${fwd ? '進み' : '戻り'}ました`);
+        }
+        return {
+          action: 'nav-steps',
+          direction: fwd ? 'forward' : 'back',
+          requested: toStart ? 'start' : requested,
+          moved
+        };
+      },
+      description: 'Navigate several history steps at once'
+    });
+
     // Home — Chrome's Home button. There is no homepage URL: the new-tab
     // surface (top sites) is home, so it opens a fresh tab like the button's
     // 'open in new tab' variant. Hoisted before `back`: its /戻[るれ]/ regex
@@ -755,7 +861,8 @@ export class VoiceCommands {
       patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
-        '一つ前に戻って'],
+        '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って'],
       action: () => {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
@@ -808,6 +915,8 @@ export class VoiceCommands {
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
         '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
+        '終了', 'アプリを閉じて', 'ブラウザを閉じて', 'ブラウザを終了して',
+        'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
         /^quit$/i, /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
       action: () => {
@@ -899,6 +1008,8 @@ export class VoiceCommands {
     // hosted by the app via onCaptionScale/onDwellTime.
     this.registerCommand('caption-size-up', {
       patterns: ['キャプションを大きく', '字幕を大きく', 'キャプションを大きくして',
+        '字幕を大きくして', '字幕のサイズを大きくして', '字幕のサイズを大きく',
+        'キャプションサイズを大きくして', 'キャプションサイズを大きく',
         /larger captions/i, /bigger captions/i, /increase caption( size)?/i, /caption (size )?up/i],
       action: () => {
         const v = this._onCaptionScale ? this._onCaptionScale(0.25) : null;
@@ -910,6 +1021,8 @@ export class VoiceCommands {
 
     this.registerCommand('caption-size-down', {
       patterns: ['キャプションを小さく', '字幕を小さく', 'キャプションを小さくして',
+        '字幕を小さくして', '字幕のサイズを小さくして', '字幕のサイズを小さく',
+        'キャプションサイズを小さくして', 'キャプションサイズを小さく',
         /smaller captions/i, /decrease caption( size)?/i, /caption (size )?down/i],
       action: () => {
         const v = this._onCaptionScale ? this._onCaptionScale(-0.25) : null;
@@ -1343,6 +1456,8 @@ export class VoiceCommands {
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
         'ヘッドセットが暑い', 'ネットが遅い', '見えにくい', '見にくい', '画面が見にくい',
         '目が痛い', '頭が痛い', '疲れた', '休みたい', '吐き気がする', '乗り物酔い',
+        '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
+        '頭がクラクラする', 'めまいがする', '目眩がする', '気分が悪くなった',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1974,7 +2089,8 @@ export class VoiceCommands {
       patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
-        '一つ前に戻って'],
+        '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って'],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
         this.speak(moved ? '戻ります' : '戻れません');
@@ -2129,6 +2245,7 @@ export class VoiceCommands {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', 'このタブを閉じて',
         'ウィンドウを閉じて', 'このウィンドウを閉じて', 'ページを閉じて', 'サイトを閉じて',
         'タブを消して', '閉じて', '閉じる', 'タブを消す', 'ページを消して',
+        'パネルを閉じて', 'パネルを消して', 'ウィンドウを閉じる',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -3571,7 +3688,9 @@ export class VoiceCommands {
     // when only pinned tabs remain.
     this.registerCommand('close-all-tabs', {
       patterns: ['すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
-        '全て閉じて', '全部閉じて', /close\s+all\s+tabs/i],
+        '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
+        '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
+        /close\s+all\s+tabs/i],
       action: () => {
         if (!tabManager) {
           this.speak('タブがありません');
@@ -3656,6 +3775,7 @@ export class VoiceCommands {
       'Read the bookmark list');
     listCmd('history-list', '履歴', this._onHistoryList,
       ['履歴一覧', '履歴を読み上げ', '履歴を読んで', '履歴を読み上げて',
+        '閲覧履歴', 'ブラウザ履歴', 'ウェブ履歴', '検索履歴', '閲覧履歴を読んで',
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
@@ -4772,7 +4892,9 @@ export class VoiceCommands {
     // Chrome's Esc — dismiss the find bar's highlights.
     this.registerCommand('clear-find', {
       patterns: ['検索を解除', 'ハイライトを消して', 'ハイライトを消す',
-        '検索をクリア', /clear (the )?(search|find)/i, /clear highlights?/i],
+        '検索をクリア', '検索を閉じて', '検索バーを閉じて', '検索窓を閉じて',
+        '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
+        /clear (the )?(search|find)/i, /clear highlights?/i],
       action: () => {
         const cleared = this._onClearFind ? this._onClearFind() : false;
         this.speak(cleared ? 'ハイライトを消しました' : '検索をしていません');
