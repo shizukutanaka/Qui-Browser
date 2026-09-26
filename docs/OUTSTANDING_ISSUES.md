@@ -479,6 +479,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'ハイコントラストか'/'is high contrast on' の質問形がトグルを実行**~~ — **Session 133 で実装**: high-contrast regex に `か(?:$|。|？|です)`/`は…です`/`is (on|off|enabled)` 除外、contrast-status へ質問形を登録（状態応答、非呼出を断言）。
 - ~~**'中央に移動' が 0% ジャンプ（percent-jump 中点検出の漏れ）**~~ — **Session 133 で実装**: 中点検出に '中央' を追加（'半分|真ん中|中間' のみで '中央' が 0% へ飛んでいた実害）。
 - ~~**序数/件数/目次/検索位置/読み上げ・スクロール・字幕・概要・URL・章・履歴の言い換え句が未認識（第16弾、約55ペア）**~~ — **Session 133 で実装**: tab-status 'いくつ開いてる'、toc '目次一覧'/'アウトライン'、find '次のマッチ'/'前のヒットへ'/'検索結果は何件'、read-word 'ふりがな'/'この漢字'、stop/resume-reading 'ナレーションを止めて'/'読書を再開'、read-here 'つづきから'、scroll 'もっと下'/'さらに上'、captions '字幕をオン'、describe-tab '画面を説明して'/'サイト名'、article-summary 'ページの概要'、read-url '今のURL'、next/prev-heading '次の章'、unbookmark 'お気に入りを削除'、clear-history '履歴を消して'、各 count '…いくつ'、reader-scale-status 'フォントサイズ'、privacy-status 'シークレットですか'。
+- ~~**'N番目に移動して' の序数移動が literal ナビゲート（go-to 誤ルート）**~~ — **Session 134 で実装**: `move-tab-to-n`（数字+漢数字、move-tab-start/end 後・go-to 前）→ `moveTab(active, n-1-active)`、同位置 'すでにN番目です'、範囲外誠実拒否。move-tab-start/end/left/right に 'に移動して'/'に送って'/'ずらして' 形も追加（'一番右に移動して'/'最後に送って' 等が go-to に流れていた実害）。
+- ~~**'どれくらい使ってる' のセッション経過時間が未実装**~~ — **Session 134 で実装**: `session-time`（'screen time' 準拠）がコンストラクタ `_startedAt` から '起動してから約N分です'。
+- ~~**'バージョンは'/'ブラウザの名前' が未認識**~~ — **Session 134 で実装**: `about` が 'このブラウザはQui-Browserです'（version 文字列はこの層に来ないため製品名を誠実応答）。
+- ~~**'通知を消して' の手動消去が未実装**~~ — **Session 134 で実装**: `dismiss-notify` + 新フック `onDismissNotify`（VRApp は `captionSystem.clear()`）、フック無しは '表示は自動で消えます'。
+- ~~**'履歴を検索して'/'ブックマークを検索して' の bare 形が空文字列検索で誤答**~~ — **Session 134 で実装**: term 無しは '検索する語を言ってください' プロンプト、'…をXを検索' 形も捕捉可能に。
+- ~~**move/ヘルプ/パネル距離/読み込み/ミュート/復唱/スペル/コピーの言い換え句が未認識（第17弾）**~~ — **Session 134 で実装**: help '操作方法'/'音声ガイド'/'コマンドを教えて' 等、panel-distance '近づけて'/'大きく見せて'、video-stop '曲を止めて'、mute-toggle 'このタブをミュート'/'全部ミュート'、say-last-transcript 'なんて言った'、say-again '復唱して'、spell-word 'スペル'、read-word '発音して'、clear-find '強調を消して'/'選択を解除'、copy-article '全部コピー'、loading-status '読み込み終わった'、remaining-time '残り時間'。
 
 
 ---

@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 134: 序数移動/時間原子 — move-tab-to-n・session-time・about・dismiss-notify + 言い換え句第17弾
+外部基準: Voice Access 'move to position N'、デジタルウェルビーイングの 'screen time'（ヘッドセットは OS 時計を隠す）、Chrome About ページ、通知 '×' の手動消去。
+- ✨ **move-tab-to-n**（go-to の `/に移動/` catch-all が '2番目に移動して' を literal ナビゲートしていた実害 — 実測捕捉→先行登録）: 'N番目に移動して/動かして/して'（数字+漢数字）/'move tab to position N' → `moveTab(active, n-1-active)`、同位置は 'すでにN番目です'、範囲外は誠実拒否。
+- ✨ **session-time**（'screen time' 準拠）: 'どれくらい使ってる'/'起動してから'/'使用時間'/'経過時間'/'how long have i been' → コンストラクタの `_startedAt` から '起動してから約N分です'（1分未満も誠実応答）。
+- ✨ **about**: 'バージョンは'/'ブラウザの名前'/'what browser' → 'このブラウザはQui-Browserです'（バージョン文字列はこの層に来ないため製品名のみを誠実応答）。
+- ✨ **dismiss-notify**（通知 '×' 準拠）: '通知を消して'/'トーストを消して'/'ダイアログを閉じて'/'dismiss the notification' → 新フック `onDismissNotify`（VRApp は `captionSystem.clear()`）。フック無しは '表示は自動で消えます' と誠実応答。
+- ✨ **history-search / bookmark-search の bare 形プロンプト**: '履歴を検索して'/'ブックマークを検索して' が空文字列を検索して 'は履歴にありません' と誤答 → '履歴で検索する語を言ってください' プロンプト + '…をXを検索' の term 形を追加。
+- ✨ **エイリアス第17弾**: move-tab-start/end 'に移動して'/'に送って' 形（'先頭に送って'/'一番右に移動して' 等）、move-tab-left/right 'タブを左/右に移動して'/'送って'/'ずらして'、help '操作方法'/'できること'/'コマンドを教えて'/'音声ガイド'/'聞き方を教えて' 等11句、panel-distance '近づけて'/'遠ざけて'/'もっと近く'/'大きく見せて'/'小さく見せて'（方向は近づ/遠ざ/大きく/小さくで判定）、loading-status '読み込み終わった'/'更新中ですか'、video-stop '曲を止めて'/'音楽を止めて'/'メディアを止めて'、mute-toggle 'このタブをミュート'/'サイトをミュート'/'全部ミュート'/'消音して'、say-last-transcript 'なんて言った' 系、say-again '復唱して'/'読み直して'、spell-word 'スペル'、read-word '発音して'、clear-find '強調を消して'/'選択を解除'、copy-article '全部コピー'/'ページ全体をコピー'/'copy all'、remaining-time '残り時間'。
+- ✅ **テスト +90（git stash で89件赤確認、1件は共存ガード設計上緑）**: Total 3498 tests (108 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件（VRApp の1件は既存の文字説明コメント）。
+
 ### Session 133: 序数クローズ/ピン原子 — close-tab-ordinal・pin-active・unpin-all・private-mode-off + 質問形誤ルート修正群 + 言い換え句第16弾
 外部基準: Chrome タブコンテキストメニューの序数操作、Voice Access 'pin this' の一方向 pin（ピン留め済みタブへ 'ピンを付けて' が外すのは嘘）、'exit private mode' の終了双子、NVDA の状態質問形。
 - ✨ **close-tab-ordinal**（close-tab-by-name の前に登録）: 'N番目のタブを閉じて'（数字+漢数字）/'最初のタブを閉じて'/'最後のタブを閉じて'/'close the first|last tab' → `closeTab(n-1)`、範囲外は 'タブNはありません'、ピン留めは拒否メッセージ。**実測捕捉**: tab-select-ordinal の `/([一二三四五六七八九])番目のタブ/` が 'N番目のタブを閉じて' を奪って切替していた → `(?!を閉じ)` で透過。close-tab-by-name の JA stoplist に `[^の]*番目`、EN lookahead に `first\b|last\b` を両 pattern と action 再マッチ側へ追加。
