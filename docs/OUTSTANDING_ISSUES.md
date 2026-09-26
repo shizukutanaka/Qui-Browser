@@ -975,6 +975,11 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'お願い'/'頼む'/'please do'/'pls help'/'help me out' が未認識**~~ — **Session 160 で実装**: help へ。
 - ~~**bare '早く'/'遅く'/'ボリューム'、命令形 '止めろ'/'探せ'/'調べろ'、'置いといて' が未認識**~~ — **Session 160 で実装**: speech-faster/slower、volume-status、stop-everything、find-in-page、web-search（→プロンプト）、negate へ。
 - その他 fill: scroll 'もうちょい上/下'/'keep scrolling'、line-status 'どこ読んでた'、read-here '続きは'/'次の部分'、remaining-time 'あと少し'、share-page '送って'（'送っちゃって' は語尾層経由）。
+- ~~**~ちゃお/~じゃお 意志形・~なきゃ 義務形・二重語尾（~てあげてください 等）が未認識**~~ — **Session 161 で実装**: `_politeVariants` に語尾層III（ちゃお→て、じゃお→で、なきゃ→あ行五段→て形マップ+一段→て、てあげてください/てくださると/ていただければ/てほしいな→て）。'閉じちゃお'→close-tab、'読まなきゃ'→read-aloud、'閉じてほしいな'→close-tab。
+- ~~**'かい' 終助詞・EN 短縮前置詞（gonna/wanna/gotta/gimme/lemme）が未認識**~~ — **Session 161 で実装**: 文末粒子ストリップに かい/かいな、EN prefix 層に bare gonna|wanna|gotta|gimme|lemme|imma（'wanna go back'→back、'gonna close this'→close-tab + 'close this' リテラル追加、'gimme the tabs'→tabs-list + 'the tabs'）。
+- ~~**bare EN 名詞/動詞（'tabs'/'bookmarks'/'history'/'scroll'/'read'/'find'/'search'/'stop'/'top'/'bottom'/'up'/'down'）が未認識**~~ — **Session 161 で実装**: 各オーナーへ単一語リテラル（'stop'→stop-reading、'stop everything'→stop-everything 維持）。
+- ~~**JP 指示語・EN 離脱/称賛句が未認識**~~ — **Session 161 で実装**: 'なにこれ'/'これなに'/'何それ'/'what is this'/'lemme see'→describe-tab、'take me home'→home、'get outta here'/'get me out'→vr-exit、'kinda slow'→trouble、'cheers'/'appreciate it'/'good job'→ack、'やって'→help。
+- その他 fill: half-page '半分進んで/戻って/半分上/下'、pause-reading '待て'/'待ってくれ'、find-in-page '検索しろ'/'探しろ'、speaking-status '読んでる'。
 
 ---
 

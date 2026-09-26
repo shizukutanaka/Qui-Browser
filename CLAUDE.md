@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 161: 口語語尾・裸語原子 — ~ちゃお/~なきゃ/二重語尾、EN bare 名詞・短縮形
+外部基準: 日本語口語の意志形(~ちゃお)/義務形(~なきゃ)収縮、文末 'かい'、EN 単一語コマンド(Siri/Alexa 慣行)、'gonna/wanna/gotta/gimme/lemme' 短縮前置詞。
+- ✨ **`_politeVariants` 語尾層III**: `ちゃお`→て、`じゃお`→で（ん-じゃ は んで 形へ）、`なきゃ|なければ|ないと`→あ行五段マップ('読まなきゃ'→'読んで')+一段→て、二重語尾 `てあげてください|てくださると|ていただければ|てほしいんだけど|てほしいな`→て。
+- ✨ **文末粒子 かい**: '読んでるかい'→speaking-status（'読んでる' リテラルも追加）。
+- ✨ **EN 短縮前置詞**: bare `gonna|wanna|gotta|gimme|lemme|imma`（'i' なし形）— 'gonna close this'→close-tab（'close this' リテラルも新設）。
+- ✨ **bare EN 単語コマンド**: tabs→tabs-list、bookmarks/favorites→bookmarks-open、history→history、scroll→scroll-down、read→read-aloud、find/search→find-in-page、stop→stop-reading、top/bottom→scroll 端、up/down→scroll。
+- ✨ **その他**: 'take me home'→home、'get outta here'→vr-exit、'kinda slow'→trouble、'cheers'/'good job'→ack、'なにこれ'/'what is this'/'lemme see'→describe-tab、'やって'→help、'半分進んで/戻って'→half-page、'待て'→pause-reading、'検索しろ'/'探しろ'→find-in-page。
+- ✅ **テスト +90（git stash で73件赤確認）**: Total 5750 tests (135 suites); 0 lint errors（警告 137 = baseline 同一、今回の追加分は0）; build green。
+
 ### Session 160: 語尾変化原子 — ~てみる/~ちゃう/~てもらう リトライ層拡張 + 裸副詞・命令・懇願句
 外部基準: 日本語口語の語尾変化（~てみる/~ちゃう/~てもらう）、EN bare adverbs、ロボット型命令形。
 - ✨ **`_politeVariants` 語尾層II**: `(て|で)みる`→て、`てしまう`→て、`ちゃう|じゃう`→て、`てあげて`/`てもらう`→て。raw フレーズ優先でゼロ回帰設計 — '閉じちゃった'/'消えちゃった'（reopen-tab の事故報告リテラル）を共存テストで維持。
