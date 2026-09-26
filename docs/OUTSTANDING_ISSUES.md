@@ -513,6 +513,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'close the tab' が名指し検索で '「the」のタブがありません'**~~ — **Session 140 で修正**: close-tab-by-name の EN lookahead に `the\b` 追加 + close-tab に 'close it'/'close this one' 追加。
 - ~~**'go to the top'/'go to bottom'/'go to the home' が literal ナビゲート**~~ — **Session 140 で修正**: go-to EN capture に `(?!the (top|bottom|home)|top|bottom|home|back)` lookahead + scroll-top/bottom/home に該当形追加。
 - ~~**EN bare 形の未認識群**~~ — **Session 140 で実装**: 'pause'/'resume'/'continue'/'volume'/'louder'/'quieter'/'zoom'/'list all tabs'/'what page is this'/'start reading'/'exit'/'shut down'/'sleep'/'wake'/'lock' 等 + 誠実不在 `scroll-horizontal`/`window-state`。
+- ~~**'閉じてよ'/'進んでね'/'教えてな' 系の文末終助詞が全コマンドで NO-MATCH**~~ — **Session 141 で修正**: `_politeVariants` に終助詞ストリップ層を追加（よ/ね/な/ぞ/ぜ/わ/とも/さ/よね/なあ/ねえ + 句読点）。
+- ~~**'閉じろ'/'読め'/'黙れ'/'早くしろ'/'遅くしろ'/'静かにしろ'/'音消して'/'字幕消して' の命令形・を助詞なし形が未認識**~~ — **Session 141 で実装**: close-tab/read-aloud/speech-faster/slower/stop-reading/volume-down/mute-toggle/captions-toggle への語幹・口語形追加。
+- ~~**'閉じないで'/'やめておいて'/'しなくていい'/'never mind' の否定要求が '認識できません'**~~ — **Session 141 で実装**: `negate` 誠実無操作原子（全コマンド最後に登録、'承知しました。実行しません'）。'読まないで'→stop-reading・'聞かないで'→stop の共存を保証。
+- ~~**'何が開いてる'/'どこだっけ'/'どんなサイト'/'聞かないで' 等の口語問い合わせ形が未認識**~~ — **Session 141 で実装**: tabs-list/where-am-i/describe-tab/stop へのエイリアス拡充。
 
 
 ---

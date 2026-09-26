@@ -362,6 +362,11 @@ export class VoiceCommands {
     // です/でしょう question ending → bare stem: '今何時ですか' → '今何時'
     push(normalized.replace(/(?:ですかね|でしょうか|ですか|でしょう|です)[。！？!?]?$/u, ''));
 
+    // Sentence-final particles (口語/方言): '閉じてよ' → '閉じて',
+    // '読んでね' → '読んで', '待ってな' → '待って'. Terminal-only strip —
+    // a stripped variant that matches nothing is simply skipped.
+    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
+
     // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
     // 'please' — applied cumulatively so 'could you please go back' works.
     const en = normalized
@@ -1045,6 +1050,7 @@ export class VoiceCommands {
         'うるさい', '音が大きい', '音がうるさい',
         'うるさすぎる', '声が大きい', '声を小さく', '声を小さくして',
         '音量を小さくして', '音を小さくして',
+        '静かにしろ', '音を小さくしろ',
         'quieter', 'turn it down', 'speak softer', 'tone it down',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
@@ -1578,6 +1584,7 @@ export class VoiceCommands {
         'マイクをミュート', 'マイクオフ', 'マイクを止めて',
         'マイクを切って', 'マイクをオフにして', 'マイク停止', '聞き取りをやめて',
         '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
+        '聞かないで', '聞かない', '聞くなよ',
         /\bmute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
         /turn (off )?(the )?mic(raphone)?( off)?/i],
       action: () => {
@@ -2662,6 +2669,7 @@ export class VoiceCommands {
         '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
+        '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
         'close it', 'close this one', 'close the one',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
@@ -2918,6 +2926,7 @@ export class VoiceCommands {
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
         '全部読んで', '全て読んで', '最初から読んで', '読んで', '読んでね',
+        '読め', '読み上げろ', '読んでよ',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
@@ -2938,6 +2947,7 @@ export class VoiceCommands {
         '読み上げを止める', '読み上げを終了',
         'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
         '読まないで', 'もう読まなくていい',
+        '黙って', '黙れ', 'だまって', '黙りなさい', 'うるさいから止めて',
         'ナレーションを止めて', 'ナレーションをやめて', 'ナレーション停止',
         '読書をやめて', '読書を止めて',
         /stop\s+reading/i, /stop\s+narrat/i],
@@ -2990,6 +3000,7 @@ export class VoiceCommands {
         '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
         '早口で', 'もっと早く', '早口にして',
+        '早くしろ', '速くしろ', 'もっと早くしろ',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
@@ -3011,6 +3022,7 @@ export class VoiceCommands {
         '読み上げが速い', '読み上げが速すぎる', '聞き取りやすくして',
         'はっきり読んで', 'ゆっくり読み上げて', 'ゆっくりめに読んで',
         'もっとゆっくり', 'もう少しゆっくり', 'ゆっくりめに',
+        '遅くしろ', 'ゆっくりしろ', 'ゆっくりと読んで',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
@@ -3257,6 +3269,7 @@ export class VoiceCommands {
         'ここは', 'ここはどこ', 'フォーカスはどこ', 'どこにフォーカス',
         'フォーカスは', '選択中は', '選択中のもの', '選択されているもの',
         '今いる場所', 'この場所は', 'いまいる場所',
+        'どこにいるの', '今どこにいるの', 'どこにいますか', 'どこだっけ',
         /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i,
         /what has focus/i, /focused element/i,
         'what page is this', 'what page am i on', 'which page is this',
@@ -3278,6 +3291,8 @@ export class VoiceCommands {
         'タブの一覧', 'タブリスト', 'タブ全部', '開いてるのは', '開いてるもの',
         'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
         'すべてのタブを読んで', '全部のタブ',
+        '何が開いてる', '何が開いてますか', '今何が開いてる',
+        '開いているものは', 'ぜんぶのタブ', 'すべてのタブは',
         '開いてるウィンドウ', '開いているウィンドウ',
         'タブを見せて', 'タブ一覧を見せて', 'タブを見せてほしい',
         'タブを表示して', '開いているものを読んで',
@@ -3901,6 +3916,8 @@ export class VoiceCommands {
     toggleCmd('captions-toggle', 'enableCaptions', 'キャプション',
       [/キャプションを(オン|オフ|つけて|消して|出して|見せて)/, /字幕を(つけて|消して|オン|オフ|出して|見せて)/,
         /字幕(?:を)?(?:オン|オフ)/, /キャプション(?:を)?(?:オン|オフ)にして/,
+        /字幕(?:を)?消(?:して|す)/, /キャプション(?:を)?消(?:して|す)/,
+        /字幕(?:を)?(?:出して|見せて)/, /キャプション(?:を)?(?:出して|見せて)/,
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
       'Toggle captions');
     toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
@@ -4128,6 +4145,7 @@ export class VoiceCommands {
       patterns: ['このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         'このページの情報', 'サイト情報', 'このサイトの情報',
         'このサイトについて', 'このタブについて教えて',
+        'どんなサイト', 'どんなタブ', 'どんなところ', 'どんなページは',
         'ウィンドウについて', 'このウィンドウについて', 'ウィンドウの情報',
         '画面を説明して', '画面の説明', '何が表示されてる', '何が表示されている',
         '画面の内容', '何が見える', 'ページの内容', 'どんなページ',
@@ -4221,6 +4239,7 @@ export class VoiceCommands {
         'タブのミュート', 'このタブをミュート', 'タブをミュート', 'タブを消音',
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
+        '音消して', '声を消して', '声を出さないで', '黙らせて',
         // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
         // surface — neither should toggle the master volume.
         /(un)?mute(?!\s+(?:other\s+tabs?|the\s+mic|mic\b|microphone))/i],
@@ -6291,6 +6310,24 @@ export class VoiceCommands {
         return { action: 'say-last-transcript', transcript: t || null };
       },
       description: 'Echo the last recognized transcript'
+    });
+
+    // negate — 'Xしないで'/'やめておいて'/'never mind' is a request to do
+    // NOTHING: acknowledge instead of answering 認識できませんでした (which
+    // wrongly suggests the phrasing failed, not that no action was wanted).
+    // Registered LAST of all: every concrete command wins first — e.g.
+    // '読まないで' must keep reaching stop-reading (stop the narration),
+    // '聞かないで' stays on 'stop'.
+    this.registerCommand('negate', {
+      patterns: [/ないで(ください|ね|よ|ー)?$/, /やめてお(?:いて|く|きましょう)/,
+        /やめといて/, /やめとく/, /しなくて(?:も)?いい/, /なくていい/,
+        /do(?:n't| not) (?:do )?(?:that|it)/i, /^never ?mind$/i, /cancel that/i,
+        /^forget it$/i],
+      action: () => {
+        this.speak('承知しました。実行しません');
+        return { action: 'negate' };
+      },
+      description: 'Acknowledge a do-not request without acting'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
