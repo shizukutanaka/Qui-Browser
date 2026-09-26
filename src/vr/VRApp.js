@@ -3313,6 +3313,13 @@ export class VRApp {
             saveTabSession(snapshot);
             return snapshot.tabs.length;
           },
+          // clear-session's discard twin — honest false when nothing saved.
+          onSessionClear: () => {
+            if (!loadTabSession()) {
+              return false;
+            }
+            return saveTabSession(null);
+          },
           // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
           onCharStep: (dir) =>
             this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
