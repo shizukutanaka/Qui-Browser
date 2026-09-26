@@ -1129,6 +1129,8 @@ export class VoiceCommands {
     // undefined (no change), so the host exposes a dedicated getter.
     this.registerCommand('volume-status', {
       patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ', '音量はいくつ',
+        '今の音量を教えて', '音量を確認して', '音量を確認', '声の大きさ', '音量はどのくらい',
+        '音量を変えて', '音量を変更して', '音量を変更', '音量を上げ下げ',
         /^volume$/i, 'how loud', 'what volume',
         /current volume/i, /volume (status|level)/i, /what('s| is)? (the )?volume/i],
       action: () => {
@@ -1236,7 +1238,7 @@ export class VoiceCommands {
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
         '拡大', 'ページを拡大して', 'ページを拡大してほしい',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
-        '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
+        '文字が小さい', '字が小さい', '読みやすくして', '見やすくして', '読みやすく', '見やすく', '文字が読めない', '読みにくい',
         '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
         '字が見えない', '字を大きく', '字を大きくして', 'ズームアップ',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
@@ -1416,6 +1418,8 @@ export class VoiceCommands {
         '教えて', '教えてほしい',
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
+        'わからん', '使い方がわからん', '使い方教えて', 'どうするの', 'これどうする',
+        '操作がわからない', 'どうする', 'どうすればいいの', '何をすればいい',
         /what should i say/i, /how do i use/i,
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
         '音声ガイドを読んで', 'ガイドを開いて', '使い方を見せて',
@@ -1751,6 +1755,7 @@ export class VoiceCommands {
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
+        '眠い', '頭痛い', '頭が痛い', 'めまい', 'めまいがする', 'ふらつく', '目が疲れる',
         'ヘッドセットが暑い', 'ネットが遅い', '見えにくい', '見にくい', '画面が見にくい',
         '目が痛い', '頭が痛い', '疲れた', '休みたい', '吐き気がする', '乗り物酔い',
         '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
@@ -1836,7 +1841,7 @@ export class VoiceCommands {
       description: 'Explain the available input methods'
     });
     this.registerCommand('text-style', {
-      patterns: ['フォントを変えて', '書体を変更', '書体を変えて', '明朝体にして',
+      patterns: ['フォントを変えて', '文字を変えて', 'フォントを変更', '書体を変更', '書体を変えて', '明朝体にして',
         '明朝体', 'ゴシック体にして', '行間を広げて', '行間を狭めて', '行間',
         '余白を広げて', '余白を増やして', '字間を広げて',
         '大文字にして', '小文字にして', '太字にして', '斜体にして', '下線を引いて',
@@ -2143,10 +2148,14 @@ export class VoiceCommands {
     this.registerCommand('ack', {
       patterns: ['ありがとう', 'ありがとうございます', 'ありがと', 'さんきゅー', 'サンキュー',
         'わかった', 'わかりました', '了解', 'りょうかい', 'OK', 'オーケー', 'おけ',
-        'thank you', 'thanks', 'thank you very much', 'got it', 'understood', 'roger'],
+        'thank you', 'thanks', 'thank you very much', 'got it', 'understood', 'roger',
+        'thank you so much', 'thanks a lot', 'thx', 'ty',
+        '助かった', 'たすかった', '助かる', 'かっこいい', 'すごい', 'いいね',
+        '素晴らしい', '最高', 'すばらしい', 'awesome', 'great', 'perfect', 'nice'],
       action: (t) => {
         const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
-        this.speak(thanks ? 'どういたしまして' : '承知しました');
+        const praise = /助か|かっこ|すご|いいね|素晴ら|最高|すばら|awesome|great|perfect|nice/i.test(t);
+        this.speak(thanks ? 'どういたしまして' : praise ? 'ありがとうございます' : '承知しました');
         return { action: 'ack' };
       },
       description: 'Acknowledge thanks/confirmation'
@@ -3151,6 +3160,7 @@ export class VoiceCommands {
     this.registerCommand('next-tab', {
       patterns: ['次のタブ', '右のタブ', '次のタブに移動', '右のタブに移動',
         '右のタブに', '右隣のタブ', '隣のタブ', '一つ右のタブ', 'ひとつ右のタブ',
+        '右側のタブ', 'もっと右のタブ', '右側のタブに',
         /next\s+tab/i, /right\s+tab/i, /^switch tabs$/i, /^change tabs?$/i,
         /^swap tabs$/i, /^(the )?other tab$/i, 'タブを切り替え', 'タブ切り替え',
         'タブを変えて', '違うタブ', 'タブを切り替えて'],
@@ -3165,6 +3175,7 @@ export class VoiceCommands {
     this.registerCommand('prev-tab', {
       patterns: ['前のタブ', '左のタブ', '前のタブに移動', '左のタブに移動',
         '左のタブに', '左隣のタブ', '一つ左のタブ', 'ひとつ左のタブ',
+        '左側のタブ', 'もっと左のタブ', '左側のタブに',
         /previous\s+tab|prev\s+tab/i, /left\s+tab/i],
       action: () => {
         tabManager?.prevTab?.();
@@ -3356,6 +3367,8 @@ export class VoiceCommands {
         '読み上げを開始', '読み上げを開始して', '音読を開始', '読み始めて',
         '音読して', '読み聞かせて', 'もう一回最初から', '最初からやり直し',
         '初めから', '最初から読み直して', '頭から読んで',
+        '読み直して', 'もう一度読み直して', '頭から読み直して',
+        'やり直して読んで', '読みたい', '読んでほしい', '読んでくれ', '読んでください',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
@@ -3710,7 +3723,7 @@ export class VoiceCommands {
         '繰り返して', 'もう一度お願い', '今のを繰り返して', 'リピート',
         '今の言葉', 'さっきの言葉',
         '聞き取れなかった', '聞き取れませんでした', 'もう一度聞かせて',
-        '復唱して', '言い直し', '読み直して', 'もう一度読み直して',
+        '復唱して', '言い直し',
         '聞いて', '聞かせて',
         'えっ', '何て', 'なんて', '今何て', 'ん？', 'は？',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
@@ -4674,7 +4687,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|違う))(.+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|違う|真ん中|左側|右側|もっと))(.+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i,
       /(.+)のタブを(?:開いて|開けて|開く)/,
@@ -4760,7 +4773,8 @@ export class VoiceCommands {
       description: 'Activate the tab at a strip position'
     });
     this.registerCommand('last-tab', {
-      patterns: ['最後のタブ', '最後のタブを見せて', '一番右のタブ', '右端のタブ', '右の端のタブ', /last tab/i, /rightmost tab/i],
+      patterns: ['最後のタブ', '最後のタブを見せて', '一番右のタブ', '右端のタブ', '右の端のタブ', /last tab/i, /rightmost tab/i,
+        '最後のやつ', '末尾のやつ', '最後の方のタブ'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -6578,7 +6592,8 @@ export class VoiceCommands {
     // last-tab's pair — Ctrl+1..8 lands on a position, this lands on the
     // strip's first slot directly (like Vim's g^).
     this.registerCommand('first-tab', {
-      patterns: ['最初のタブ', '先頭のタブ', '一番左のタブ', '左端のタブ', '左の端のタブ', /first tab/i, /leftmost tab/i],
+      patterns: ['最初のタブ', '先頭のタブ', '一番左のタブ', '左端のタブ', '左の端のタブ', /first tab/i, /leftmost tab/i,
+        '最初のやつ', '先頭のやつ', '最初の方のタブ'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -6957,7 +6972,11 @@ export class VoiceCommands {
         // keep winning. Topic shortcuts ('今日の天気' bare) capture the
         // topic itself as the term.
         /(.+?)(?:を教えて|を教えてほしい|を知らせて)/,
-        /^(今日の天気|明日の天気|最新ニュース|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/,
+        /^(今日の天気|明日の天気|今週の天気|天気は|天気|気温は|気温|湿度は|湿度|雨降る|最新ニュース|ニュースがある|ニュース読んで|ニュースを聞かせて|ニュース検索|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/,
+        // Bare lookup verbs & engine-scoped forms carry no term — the action
+        // prompts ('検索語がありません') instead of searching for the verb itself.
+        /^(調べて|調べたい|調べもの|検索させて|調べてほしい)$/,
+        /^(google|グーグル)\s*で検索/, /で検索してほしい/,
         /search (?:the web |web )?for (.+)/i,
         /web search (?:for )?(.+)/i,
         '音声検索'],
@@ -6966,7 +6985,7 @@ export class VoiceCommands {
           || transcript.match(/(.+?)について検索/)
           || transcript.match(/(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/)
           || transcript.match(/(.+?)(?:を教えて|を教えてほしい|を知らせて)/)
-          || transcript.match(/^(今日の天気|明日の天気|最新ニュース|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/)
+          || transcript.match(/^(今日の天気|明日の天気|今週の天気|天気は|天気|気温は|気温|湿度は|湿度|雨降る|最新ニュース|ニュースがある|ニュース読んで|ニュースを聞かせて|ニュース検索|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/)
           || transcript.match(/search (?:the web |web )?for (.+)/i)
           || transcript.match(/web search (?:for )?(.+)/i);
         const term = (m && m[1] ? m[1] : '').trim();

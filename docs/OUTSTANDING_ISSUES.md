@@ -958,6 +958,12 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'tomorrow'/'明日は何日'/'next week'/'来月'/'今年'/'whats the date' 等の相対日付が未認識**~~ — **Session 157 で実装**: date アクションが明日(+1)/明後日(+2)/来週(+7)/来月/来年/今年を計算して応答。
 - ~~**'level two heading'/'h2'/'heading level 2' が未認識**~~ — **Session 157 で実装**: `heading-level` 誠実不在原子（→'「2番目の見出し」で順番に選べます'）+ heading-select に first–tenth の EN 序数（action で単語→数値マップ）。
 - ~~**'go youtube'/'youtube に行って'/'close app'/'switch tabs'/'be quiet'/'move up'/'cancel all'/'真っ暗だ'/'最大化して'/'what should i say'/'もっと早く読んで'/'読み続ける' 等が未認識**~~ — **Session 157 で実装**: goToEn bare 'go X'（方向/ホーム語は stoplist で除外）+ goToJp 'に行って'/'へ行って' 尾、vr-exit/next-tab/mute-toggle/scroll/stop-everything/trouble/window-state/help/speech-faster/resume-reading へ各形追加。
+- ~~**'今の音量を教えて' が web-search で '音量' を検索していた**~~ — **Session 158 で修正**: volume-status の exact literal '音量を教えて' に '今の' 前置形が無かった → '今の音量を教えて'/'音量を確認'/'声の大きさ'/'音量を変えて'（数値なしの変更要求は status 応答で現量提示 — volume-set へ流すと missing digit が 0 に coerce される）追加。
+- ~~**'読み直して'/'頭から読み直して' が say-again で直前発話のリプレイのみ**~~ — **Session 158 で修正**: 読み直しは「ページを読み返す」意図 → read-aloud へ移動（'もう一度' は say-again 維持）。
+- ~~**'左側のタブ'/'もっと左のタブ'/'真ん中のタブ' が by-name でタイトル誤検索**~~ — **Session 158 で修正**: prev/next-tab に 左側/右側/もっと左/もっと右 形追加、tab-by-name stoplist に 真ん中|左側|右側|もっと → '真ん中のタブ' は誠実な NO-MATCH。
+- ~~**'わからん'/'使い方教えて'/'どうする'/'操作がわからない' が未認識、褒め句('すごい'/'いいね'/'great')が未認識**~~ — **Session 158 で実装**: help に迷子句9形、ack に感謝強形 + 褒め句（→'ありがとうございます' 応答分岐）。
+- ~~**'天気は'/'ニュースを聞かせて'/'調べて'/'検索させて'/'google で検索して' が未認識**~~ — **Session 158 で実装**: web-search に話題 alternation（天気/気温/湿度/ニュース形）+ 非 capture の裸動詞形（調べて/検索させて → '検索語がありません' プロンプト、term を動詞自身にしない）。
+- その他 fill: read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'/'見やすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
 
 ---
 
