@@ -521,6 +521,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'ありがとう'/'わかった'/'OK'/'got it' の社交応答が認識エラー**~~ — **Session 142 で実装**: `ack` 原子（ありがとう系→'どういたしまして'、確認系→'承知しました'）。
 - ~~**'違う'/'間違えた'/'もういい'/'結構です'/'ほっといて'/'leave it' の訂正・辞退が認識エラー**~~ — **Session 142 で実装**: `negate` に訂正・辞退句を拡充（'承知しました。実行しません'）。
 - ~~**'閉じてもいい'/'閉じたいんだけど'/'閉じちゃって'/'閉じといて'/'閉じたまえ'/'えっと閉じて'/'何が開いてるかな'/'i wanna go back' 等の口語・談話形が未認識**~~ — **Session 142 で実装**: `_politeVariants` に許可・願望・関西'といて'・'ちゃって'・'たまえ'・'かな'/'けど'尾・談話前置詞・EN casual wrapper を追加 + close-tab 'close' bare 形。
+- ~~**'2個前のタブ'/'最後から二番目'/'second from the end' の相対位置指定が tab-by-name に「二個前」のタイトル誤検索**~~ — **Session 143 で実装**: `tab-relative` 原子（`tab-by-name` 前に登録、数字+漢数字の N個前/後・最後から/後ろからN番目・EN 'N/first-second-third from the end' → setActive、範囲外は誠実拒否）。
+- ~~**'go to the end'/'the end'/'all the way down' が literal ナビゲートまたは未認識**~~ — **Session 143 で修正**: go-to EN lookahead を `end|beginning` へ拡張 + scroll-bottom/top に 'all the way'/'way'/'go to the end' 形追加。
+- ~~**'消しちゃった'/'間違えて閉じた'/'戻して'/'take it back' の誤操作報告が認識エラー**~~ — **Session 143 で実装**: reopen-tab に誤操作報告形を拡充（最近閉じたタブを復元）。
+- ~~**'えっ'/'何て'/'huh'/'pardon'/'come again' の聞き取り修復要求が認識エラー**~~ — **Session 143 で実装**: say-again に修復要求形を追加（直前発話の再話）。
+- ~~**'もう一度閉じて'/'read on'/'carry on'/'keep going'/'さっきより早く'/'大きい声で'/'声を出して'/'聞こえますか'/'動かない' が未認識**~~ — **Session 143 で実装**: prefixRe に 'もう一度/もう一回/もういちど'（bare 'もう一度' は say-again 維持）、resume-reading/speech-faster/volume-up/mic-status/trouble へのエイリアス拡充。
 
 
 ---

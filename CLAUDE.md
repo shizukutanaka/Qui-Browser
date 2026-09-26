@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 143: 相対位置/修復原子 — tab-relative・誤操作報告・聞き取り修復・all-the-way スクロール
+外部基準: Voice Access 'previous N' の相対位置選択、会話修復行動（repair initiation）の ASR カバレッジ、Chrome 'scroll to end' 相当の言い換え。
+- ✨ **`tab-relative`（実測捕捉の誤ルート修正）**: '2個前のタブ'/'一個後のタブ'/'最後から二番目'/'後ろからN番目'/'second from the end' が tab-by-name に「二個前」タイトル誤検索 → tab-by-name 前に登録し setActive（数字+漢数字、範囲外は 'その位置のタブはありません' 誠実拒否）。'ニュースのタブ'/'前のタブ'/'最後のタブ' は共存テストで維持。
+- 🐛 **'go to the end' が literal ナビゲートする実害修正**: go-to EN lookahead を `end|beginning` へ拡張 + scroll-bottom/top に 'all the way down/up'/'way down/up'/'the end'/'go to the end'。'go to google' は維持（共存テスト）。
+- ✨ **誤操作報告→reopen**: '消しちゃった'/'閉じちゃった'/'間違えて閉じた'/'戻して'/'さっき閉じたタブ'/'復活させて'/'take it back' → 最近閉じたタブ復元。
+- ✨ **聞き取り修復→say-again**: 'えっ'/'何て'/'なんて'/'huh'/'pardon'/'come again'/'repeat yourself' → 直前発話の再話。
+- ✨ **エイリアス拡充**: prefixRe に 'もう一度/もう一回/もういちど'（'もう一度閉じて'→close-tab、bare 'もう一度' は say-again 維持の共存断言）、resume-reading 'read on'/'carry on'/'keep going'/'keep reading'、speech-faster 'さっきより早く'、volume-up '大きい声で'/'声を出して'、mic-status '聞こえますか'、trouble '動かない'/'なんで動かない'。
+- ✅ **テスト +57（stash で52件赤確認）**: Total 4195 tests (117 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 142: 談話/口語原子 — ack/訂正/辞退・許可願望形・談話前置詞・how-to 誤ナビゲート修正
 外部基準: 会話型アシスタントの社交応答（ack/否定/訂正は無操作確認）、日本語口語 ASR の許可・願望・関西方言形、Voice Access の how-to→help 誘導。
 - 🐛 **'どうやって戻る'/'どうやって進む' がナビゲートを実行する実害修正**（実測捕捉）: back の `戻る` regex・navigate の `進む` regex に `(?<!どうやって)` lookbehind（両コピー）→ help へ透過（`/どうやって/`・'どうすればいい'/'なんとかして'/'how do i' 追加）。goBack/goForward 非呼出を断言。
