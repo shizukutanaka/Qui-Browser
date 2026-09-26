@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 151: 睡眠/入力原子 — sleep 双子・要素ジェスチャー・副詞形 + '読み進めて'/'何を開いてる'/'go to sleep' 誤ルート修正
+外部基準: OS アシスタントの 'good night'/'wake up' 双子、Voice Access 'click X'/'focus' の要素操作句、NVDA 'say all faster' の副詞形。
+- 🐛 **'go to sleep' が literal ナビゲート・'何を開いてる' が '何を' をナビゲート**（実測捕捉）: sleep-mode に 'go to sleep'/'good night'/'wake me up' + JA 双子 'おやすみ'/'おやすみなさい'/'寝る'/'寝かせて'/'スタンバイ'/'スリープ'/'起きて'/'起きてよ'/'ウェイクアップ'；tabs-list に '何を開いてる'/'開いているもの'/'開いてるものは'/'開いてるやつ'（onGoTo 非呼出を断言）。
+- 🐛 **'読み進めて'/'読み上げを進めて' が navigate でページ forward**（実測捕捉）: navigate の 進め 分岐へ (?<!読み|上げを) lookbehind（'ページを進めて'/'進めて'→navigate 維持）+ resume-reading へ '読み進めて'/'読み進め'/'読み上げ続けて'/'読み続けて'/'続けて読んで'/'読み上げを進めて'。
+- ✨ **要素ジェスチャー・入力句 → input-methods**: 'クリックして'/'押して'/'タップして'/'選択して'/'フォーカスして'/'カーソルを置いて'/'カーソルを当てて'/'入力して'/'文字を入力'/'テキストを入力'/'書き込んで'/'入力欄' + EN 'click'/'click here'/'tap'/'tap it'。
+- ✨ **副詞形**: speech-slower 'ゆっくりと'/'丁寧に'/'はっきりと'/'はっきり言って'/'正確に読んで'、speech-faster '急いで'/'早くして'/'速くして'/'さっさと'/'急いで読んで'。
+- ✨ **その他**: reopen-tab 'さっき閉じたやつ'/'閉じたばっかり'/'間違って閉じた'/'閉じる前のタブ'、panel-distance '近くで見せて'/'近くで'/'小さくして'（近/遠方向判定継承）、reader-scale-status 'ズームして'、next-paragraph '飛ばして'/'飛ばす'。
+- ✅ **テスト +76（git stash で63件赤確認、13件は共存ガードの設計上緑）**: Total 4938 tests (125 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 150: キャレット粒度原子 — 行/文/単語/文字端句の誤ルート修正 + caret-edge 誠実不在 + 漢数字行目
 外部基準: NVDA Home/End・Ctrl+Home/End の端ジャンプ句、Voice Access 'character by character'/'word by word' の粒度指定。
 - 🐛 **'行頭に戻る'/'一文字戻る'/'単語を戻る'/'頭に戻る' が1ページ戻る実害修正**（実測捕捉）: back の `/戻る|戻れ/` 素朴 regex がキャレット移動句を所有 → lookbehind へ (?<!一文字)(?<!ひと文字)(?<!一単語)(?<!ひと単語)(?<!単語を)(?<!行頭に)(?<!頭に)(?<!一つ)(?<!ひとつ)(?<!頭まで) を追加（registerDefaultCommands + connectBrowser 両コピー）。'一つ戻る'/'ひとつ戻る' は back の bare リテラルでページ戻りを維持。navigate の 進む にも同系 lookbehind（'一文字進む' がページ forward していた）。
