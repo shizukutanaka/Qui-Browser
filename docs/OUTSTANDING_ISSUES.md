@@ -526,6 +526,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'消しちゃった'/'間違えて閉じた'/'戻して'/'take it back' の誤操作報告が認識エラー**~~ — **Session 143 で実装**: reopen-tab に誤操作報告形を拡充（最近閉じたタブを復元）。
 - ~~**'えっ'/'何て'/'huh'/'pardon'/'come again' の聞き取り修復要求が認識エラー**~~ — **Session 143 で実装**: say-again に修復要求形を追加（直前発話の再話）。
 - ~~**'もう一度閉じて'/'read on'/'carry on'/'keep going'/'さっきより早く'/'大きい声で'/'声を出して'/'聞こえますか'/'動かない' が未認識**~~ — **Session 143 で実装**: prefixRe に 'もう一度/もう一回/もういちど'（bare 'もう一度' は say-again 維持）、resume-reading/speech-faster/volume-up/mic-status/trouble へのエイリアス拡充。
+- ~~**'どのタブが音出てる'/'どのタブか忘れた' が tab-by-name に「ど」タイトル誤検索**~~ — **Session 144 で修正**: tab-by-name stoplist に 'どの|今どの' 追加 + `tab-audio` 誠実不在原子（タブごとの音声検出なし→ミュート誘導）、'どのタブか忘れた'→describe-tab/'今どのタブ'→where-am-i。
+- ~~**'誰が書いた'/'著者は誰'/'いつの記事'/'公開日は' のメタ情報質問が認識エラー**~~ — **Session 144 で実装**: `tab-meta` 誠実不在原子（著者・公開日は抽出不可、describe-tab へ誘導）。
+- ~~**'読み終わったら閉じて'/'通知が来たら教えて'/'シャッフルして' の条件付き・ランダム要求が認識エラー**~~ — **Session 144 で実装**: `conditional` 誠実不在原子。
+- ~~**'タブを全部ピン留め' に pin-all が不在**~~ — **Session 144 で実装**: `pin-all`（unpin-all の双子、未ピンタブを一括 togglePin、全ピン済みは誠実応答）。
+- ~~**'音量ゼロにして'/'最大音量で' が数値必須の volume-set で未認識**~~ — **Session 144 で実装**: volume-set にゼロ/最大の名前付き目標分岐（/最大|max|full/→100、/ゼロ|zero/→0、/半分|half/→50）。
+- ~~**ステータス・エイリアスの残欠落**~~ — **Session 144 で実装**: 'ズーム率は'→reader-scale-status、'今の速さは'→speech-rate-status、'あと何ページ'→reader-progress、'このページについて'→describe-tab、'このタブを複製'/'もうひとつ開いて'→duplicate-tab、'新しいタブをもう一つ'/'another tab'→new-tab、'ページを拡大して'→reader-size-up、'リーダーを閉じて'/'元のページに戻して'→reader-mode（常時ON応答）、'さっきのサイト'→back（両コピー）、'PDFに保存'→print、'スクショして'→screenshot、'タブが多すぎる'→tabs-list、'近くに寄せて'→panel-distance。
 
 
 ---

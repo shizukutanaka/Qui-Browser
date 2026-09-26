@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 144: バルク/メタ原子 — pin-all・tab-audio/tab-meta/conditional 誠実不在・音量名前付き目標
+外部基準: Chrome tab-strip の一括操作、Voice Access 'which tab' 系照会、会話型 UI の未対応要求への誠実応答原則。
+- 🐛 **'どのタブが音出てる'/'どのタブか忘れた' が tab-by-name に誤ルート**（実測捕捉）: '「ど」のタブがありません' の誤答 → stoplist に 'どの|今どの' 追加 + `tab-audio`（タブごとの音声検出なし→ミュート誘導）/describe-tab/where-am-i へ透過。'ニュースのタブ' は維持（共存テスト）。
+- ✨ **`pin-all`**: 'タブを全部ピン留め'/'pin all tabs' → 未ピンタブを一括 togglePin、全ピン済みは 'ピン留めできるタブはありません'。unpin-all の双子。
+- ✨ **誠実不在クラスタV**: `tab-meta`（'著者は誰'/'いつの記事'/'公開日は' → 抽出不可を応答し describe-tab 誘導）、`conditional`（'読み終わったら閉じて'/'通知が来たら教えて'/'シャッフルして' → 条件付き操作は未対応）。
+- ✨ **volume-set 名前付き目標**: '音量ゼロにして'→0、'最大音量で'/'max volume'→100（/ゼロ|zero/・/最大|max|full/ 分岐、'半分' 維持）。
+- ✨ **エイリアス拡充**: 'ズーム率は'/'今の速さは'/'あと何ページ'/'このページについて'/'このタブを複製'/'もうひとつ開いて'/'新しいタブをもう一つ'/'ページを拡大して'/'リーダーを閉じて'/'元のページに戻して'/'さっきのサイト'/'PDFに保存'/'スクショして'/'タブが多すぎる'/'近くに寄せて'。
+- ✅ **テスト +57（stash で53件赤確認）**: Total 4252 tests (118 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 143: 相対位置/修復原子 — tab-relative・誤操作報告・聞き取り修復・all-the-way スクロール
 外部基準: Voice Access 'previous N' の相対位置選択、会話修復行動（repair initiation）の ASR カバレッジ、Chrome 'scroll to end' 相当の言い換え。
 - ✨ **`tab-relative`（実測捕捉の誤ルート修正）**: '2個前のタブ'/'一個後のタブ'/'最後から二番目'/'後ろからN番目'/'second from the end' が tab-by-name に「二個前」タイトル誤検索 → tab-by-name 前に登録し setActive（数字+漢数字、範囲外は 'その位置のタブはありません' 誠実拒否）。'ニュースのタブ'/'前のタブ'/'最後のタブ' は共存テストで維持。

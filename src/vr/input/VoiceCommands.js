@@ -971,7 +971,8 @@ export class VoiceCommands {
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
-        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って'],
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
+        'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト'],
       action: () => {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
@@ -1103,11 +1104,20 @@ export class VoiceCommands {
     this.registerCommand('volume-set', {
       patterns: [/音量を?(\d+)(%|パーセント)?に?/, /volume (to |at )?(\d+)/i,
         '半分の音量', '音量を半分', '音量を半分に', '音量半分', '音量を半分にして',
-        /half volume/i, /volume (to |at )?half/i],
+        '音量ゼロにして', '音量をゼロに', '音量ゼロ', 'ゼロパーセント',
+        '最大音量', '最大音量で', '音量を最大に', '音量を最大にして',
+        /half volume/i, /volume (to |at )?half/i,
+        /max(?:imum)? volume/i, /full volume/i, /volume (to )?zero/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
-        const target = /半分|half/i.test(transcript) ? 50
-          : Math.min(100, Math.max(0, m ? parseInt(m[1], 10) : 0));
+        let target = Math.min(100, Math.max(0, m ? parseInt(m[1], 10) : 0));
+        if (/最大|max(?:imum)?|full/i.test(transcript)) {
+          target = 100;
+        } else if (/半分|half/i.test(transcript)) {
+          target = 50;
+        } else if (/ゼロ|zero/i.test(transcript)) {
+          target = 0;
+        }
         const cur = this._onVolumeStatus ? this._onVolumeStatus() : null;
         if (cur === null || cur === undefined) {
           this.speak('音量を変更できません');
@@ -1182,7 +1192,7 @@ export class VoiceCommands {
         'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
-        '拡大',
+        '拡大', 'ページを拡大して', 'ページを拡大してほしい',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
         '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
@@ -1551,6 +1561,7 @@ export class VoiceCommands {
     this.registerCommand('reader-scale-status', {
       patterns: ['記事の文字サイズは', '文字サイズは', '記事の文字は',
         'フォントサイズ', 'フォントサイズは', '文字サイズ', 'フォントサイズはいくつ',
+        'ズーム率は', 'ズーム率',
         'ズームレベルは', 'ズームは何倍', '今のズーム', 'ズーム倍率', 'ズーム倍率は',
         'ズーム', /^zoom$/i,
         /reader (text )?(size|scale)/i, /text size/i,
@@ -2477,6 +2488,26 @@ export class VoiceCommands {
       },
       description: 'Unpin every pinned tab'
     });
+    // pin-all — the 'unpin all' twin; pins every unpinned tab in one shot.
+    this.registerCommand('pin-all', {
+      patterns: ['タブを全部ピン留め', '全部ピン留め', '全部ピン留めして',
+        '全タブピン留め', 'すべてのタブをピン留め', 'ピンを全部付けて',
+        'タブをすべて固定', '全部固定して',
+        /pin all( the)? tabs/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        let n = 0;
+        tabs.forEach((t, i) => {
+          if (!t.pinned && tabManager.togglePin) {
+            tabManager.togglePin(i);
+            n++;
+          }
+        });
+        this.speak(n ? `${n}個のタブをピン留めしました` : 'ピン留めできるタブはありません');
+        return { action: 'pin-all', count: n };
+      },
+      description: 'Pin every unpinned tab'
+    });
     // reload-tab-n — reload-all's indexed sibling ('タブNをリロード').
     // Registered BEFORE tab-select: its /タブ(\d+)/ prefix-match owns the
     // phrase and would select instead of reloading (dispatch-verified).
@@ -2537,6 +2568,7 @@ export class VoiceCommands {
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
+        'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト',
         'back', 'go back', 'backward', 'go backwards', 'step back'],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
@@ -2689,8 +2721,9 @@ export class VoiceCommands {
         'タブを開いて', 'タブを開けて', 'タブを作って', 'タブを開く',
         'タブを増やす', 'タブを追加して', 'タブを追加',
         '新しいページを開いて', '新しいページを開けて', '新しいページを開く',
+        '新しいタブをもう一つ', '新しいタブをもう一個', 'もう一個新しいタブ',
         'open a new tab', 'open new tab', 'add a tab', 'create a tab',
-        'make a tab',
+        'make a tab', 'another tab', 'one more tab',
         /new\s+tab/i, /new\s+window/i],
       action: () => {
         tabManager?.newTab?.();
@@ -3322,7 +3355,9 @@ export class VoiceCommands {
         'フォーカスは', '選択中は', '選択中のもの', '選択されているもの',
         '今いる場所', 'この場所は', 'いまいる場所',
         'どこにいるの', '今どこにいるの', 'どこにいますか', 'どこだっけ',
+        'どのタブを見てる', '今どのタブ', '今どのタブを見てる',
         /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i,
+        /which tab am i on/i, /which tab is (this|open)/i,
         /what has focus/i, /focused element/i,
         'what page is this', 'what page am i on', 'which page is this',
         'what site is this', 'which site is this'],
@@ -3349,6 +3384,7 @@ export class VoiceCommands {
         'タブを見せて', 'タブ一覧を見せて', 'タブを見せてほしい',
         'タブを表示して', '開いているものを読んで',
         '見せて', '一覧を見せて', '一覧を出して', '一覧を教えて', '一覧',
+        'タブが多すぎる', 'タブが多い', 'タブが増えすぎた', 'タブがいっぱい',
         'list all tabs', 'show all tabs', 'all tabs', 'my tabs',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i, /show (the |me )?(the )?tabs/i],
@@ -3489,7 +3525,10 @@ export class VoiceCommands {
       patterns: ['タブを複製', 'タブを複製して', 'タブをコピー', '複製', '複製して',
         'このタブをもう一つ', '同じタブをもう一つ', 'もう一つ同じタブを',
         '今のタブをコピー', 'このタブをコピー',
-        /duplicate (this )?tab/i, /^duplicate$/i],
+        'このタブを複製', 'このタブを複製して', '同じタブを開いて',
+        '同じタブをもう一つ開いて', 'もう一つ同じのを開いて', '同じのをもう一つ',
+        'もうひとつ開いて', 'もう一つ開いて',
+        /duplicate (this )?tab/i, /^duplicate$/i, /open (a |another )?copy/i],
       action: () => {
         tabManager?.duplicateTab?.();
         return { action: 'duplicate-tab' };
@@ -4040,6 +4079,7 @@ export class VoiceCommands {
         '遠すぎる', '近すぎる', '遠すぎ', '近すぎ',
         '近づけて', '遠ざけて', '近くして', '遠くして', 'もっと近く', 'もっと遠く',
         '大きく見せて', '小さく見せて', '近くにして', '遠くにして',
+        '近くに寄せて', '手前に寄せて', 'こっちに寄せて', '近くに移動',
         /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
       action: (transcript) => {
@@ -4197,9 +4237,51 @@ export class VoiceCommands {
       description: 'Switch to a tab by relative position'
     });
 
+    // tab-audio / tab-meta / conditional — honest-absence atoms: the
+    // answers are honest explanations, which beats letting tab-by-name
+    // search 'どのタブが音出てる' as a title (probe-verified misroute).
+    this.registerCommand('tab-audio', {
+      patterns: ['どのタブが音出てる', '音が出てるタブ', '音が出ているタブ',
+        '音が鳴ってるタブ', '音が鳴っているタブ', 'どのタブが鳴ってる',
+        '音がなるタブ', 'うるさいタブ', 'どこから音が出てる',
+        /which tab is (playing|making (noise|sound))/i,
+        /what tab is playing/i, /playing audio/i],
+      action: () => {
+        this.speak('タブごとの音声は検出できません。「ミュート」で全体を消音できます');
+        return { action: 'tab-audio' };
+      },
+      description: 'Explain per-tab audio detection is unavailable'
+    });
+    this.registerCommand('tab-meta', {
+      patterns: ['誰が書いた', '著者は誰', '作者は誰', '書いたのは誰',
+        'この記事の著者', '著者を教えて', '作者を教えて',
+        '何年の記事', 'いつの記事', 'いつ書かれた', 'いつ公開された',
+        '公開日は', '公開日を教えて', '記事の日付', 'いつのニュース',
+        /who (wrote|wrote this|is the author)/i, /written by/i,
+        /how old is this/i, /when was this (written|published|posted)/i],
+      action: () => {
+        this.speak('記事の著者や公開日は読み取れません。「このタブについて」でタイトルとURLを読み上げます');
+        return { action: 'tab-meta' };
+      },
+      description: 'Explain article metadata (author/date) is unavailable'
+    });
+    this.registerCommand('conditional', {
+      patterns: ['読み終わったら閉じて', '読み終わったら', '終わったら教えて',
+        '終わったら止めて', '終わったら閉じて', '通知が来たら教えて',
+        '通知が来たら', '届いたら教えて', '完了したら教えて',
+        'シャッフルして', 'ランダムに開いて', 'ランダムに読んで',
+        /when (it'?s |it is )?(done|finished)/i, /let me know when/i,
+        /notify me when/i],
+      action: () => {
+        this.speak('条件付きの操作はまだできません。手順をひとつずつ言ってください');
+        return { action: 'conditional' };
+      },
+      description: 'Explain conditional/deferred commands are unavailable'
+    });
+
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣))(.+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの))(.+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i,
       /(.+)のタブを(?:開いて|開けて|開く)/,
@@ -4229,6 +4311,8 @@ export class VoiceCommands {
     // load state, privacy and pin flags in one line.
     this.registerCommand('describe-tab', {
       patterns: ['このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
+        'このページについて', 'ページについて', 'ページについて教えて',
+        'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
         'このページの情報', 'サイト情報', 'このサイトの情報',
         'このサイトについて', 'このタブについて教えて',
         'どんなサイト', 'どんなタブ', 'どんなところ', 'どんなページは',
@@ -5020,6 +5104,7 @@ export class VoiceCommands {
       patterns: ['進捗', '何%読んだ', 'どれくらい読んだ', 'どのくらい読んだ',
         'どこまで読んだ', '読了ですか', 'スクロール位置', '今どのあたり', 'どのあたり',
         'ページ数は', '全部で何ページ', '何ページある', 'ページ数を教えて',
+        'あと何ページ', '残り何ページ', '残りは何ページ', 'あと何ページある',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
         /scroll position/i],
       action: () => {
@@ -5428,7 +5513,8 @@ export class VoiceCommands {
     // control the user can change but cannot see.
     this.registerCommand('speech-rate-status', {
       patterns: ['読み上げ速度は', '読み上げの速さは', '現在の読み上げ速度',
-        '今の読み上げ速度', '再生速度', '再生速度は', '再生速度を教えて',
+        '今の読み上げ速度', '今の速さは', '今の速さ', '読み上げの速さ',
+        '再生速度', '再生速度は', '再生速度を教えて',
         /speech rate/i, /reading rate/i, /how fast/i,
         /reading speed/i, /voice speed/i],
       action: () => {
@@ -5816,7 +5902,11 @@ export class VoiceCommands {
     this.registerCommand('reader-mode', {
       patterns: ['リーダー表示', 'リーダーモード', 'リーダーモードにして',
         'リーダー表示にして', 'シンプルな表示', '簡易表示', '簡易表示にして',
-        /reader mode/i, /easy reading/i, /simplified view/i],
+        'リーダーを閉じて', 'リーダーを終了', 'リーダーをやめて',
+        'リーダー表示を解除', '元のページに戻して', '元の表示に戻して',
+        '元の表示に戻る', '元に戻す',
+        /reader mode/i, /easy reading/i, /simplified view/i,
+        /exit reader/i, /leave reader/i],
       action: () => {
         this.speak('記事は常にリーダー表示で開きます');
         return { action: 'reader-mode' };
@@ -5856,7 +5946,9 @@ export class VoiceCommands {
     // VR layer — honest refusal beats a silent failure or a fake success.
     this.registerCommand('print', {
       patterns: ['印刷して', 'プリントして', '印刷', 'プリント',
-        'このページを印刷', '印刷したい', 'プリントしたい', /print/i],
+        'このページを印刷', '印刷したい', 'プリントしたい',
+        'PDFに保存', 'PDFで保存', 'PDFとして保存', 'PDFを保存', 'PDFで出力',
+        /print/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
       action: () => {
         this.speak('このブラウザでは印刷できません');
         return { action: 'print' };
@@ -5865,7 +5957,9 @@ export class VoiceCommands {
     });
     this.registerCommand('screenshot', {
       patterns: ['スクリーンショット', 'スクショ', '画面を撮って', '写真を撮って',
-        '画面をキャプチャ', /screenshot/i, /take a (screenshot|picture|photo)/i,
+        '画面をキャプチャ', 'スクリーンショットを撮って', 'スクショして',
+        'スクショを撮って', '画面を撮影', '画面を撮影して',
+        /screenshot/i, /take a (screenshot|picture|photo)/i,
         /capture the screen/i],
       action: () => {
         this.speak('このブラウザではスクリーンショットを撮影できません');
