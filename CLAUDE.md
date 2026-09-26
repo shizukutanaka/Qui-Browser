@@ -252,6 +252,18 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 135: タブ検索/通知読み上げ原子 — tab-search・read-notify・pin-list + 誠実不在クラスタ + 言い換え句第18弾
+外部基準: Chrome 'Search tabs'（タブ検索パネル）、通知の読み上げ双子（NVDA notification history）、Chrome pinned-tab 一覧、Omnibox のコンテンツ意図検索。
+- 🐛 **'タブを検索して'/'Xのタブを探して'/'find tab X' の誤ルート修正**（実測捕捉）: web-search が 'タブ' を web 検索、find-in-page がフレーズをページ内検索していた → `tab-search` を find-in-page 前に登録。bare 形は 'タブの名前を言ってください' プロンプト、'Xのタブを探して/検索'・'タブの中でXを探して'・'find the X tab' は title+url 部分一致で setActive。
+- ✨ **read-notify**（dismiss-notify の読み上げ双子）: '最新の通知'/'通知を読んで'/'通知を見せて'/'read the notification' → 新フック `onReadNotify`（VRApp は `CaptionSystem.lastLine()` — 新設 getter）。空キュー/未配線は '通知はありません'。
+- ✨ **pin-list**（pin-count の読み上げ双子 — Chrome にはピン留めの音声面がない）: 'ピン留め一覧'/'ピンの一覧'/'list pinned' → タイトル列挙。pin-select の loose `/pinned tab/i` が 'read the pinned tabs'/'pinned tabs' を奪っていたため `/^pinned tab$/i` に限定（bare 選択は維持、列挙意図は pin-list へ）。
+- ✨ **誠実不在クラスタ**（NO-MATCH は句失敗か機能欠如か区別できないため明示応答）: `reader-mode`（'リーダー表示'→'記事は常にリーダー表示で開きます'）、`dark-mode`（'ダークモード'→ハイコントラストへの誘導）、`brightness`（'明るくして'→本体設定への誘導）、`print`/`screenshot`（'印刷して'/'スクリーンショット'→不在応答）、`sort-tabs`（'タブを並び替えて'→'N番目に移動して' への誘導）。
+- 🐛 **'字幕を見せて'/'出して' がブラインドトグルで ON 要求が OFF に反転する実害修正**: `onOff()` が 見せて/出して を undefined（トグル）扱いしていた → on 分岐に追加（'字幕を消して'→OFF は維持）。
+- 🐛 **'メニューを開いて'/'メニュー' の literal ナビゲート修正**（実測捕捉）: settings-toggle に 'メニュー'/'メニューを開いて'/'設定を表示して' 等追加（settings=メニュー面）。
+- ✨ **web-search 'を見せて'/'を見たい' 形**: 'ニュースを見せて'/'写真が見たい'/'地図を見せて' → web 検索。タブ/履歴/ブックマーク/設定/通知の '見せて' は先行登録が維持（共存テスト）。
+- ✨ **zoom-status エイリアス**（reader-scale-status）: 'ズームレベルは'/'ズームは何倍'/'what zoom level'。**tabs-list** 'タブを見せて'/'タブ一覧を見せて'。
+- ✅ **テスト +119（git stash で114件赤確認、5件は共存ガード設計上緑）**: Total 3617 tests (109 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件（VRApp/CaptionSystem の各1件は既存の文字説明コメント）。
+
 ### Session 134: 序数移動/時間原子 — move-tab-to-n・session-time・about・dismiss-notify + 言い換え句第17弾
 外部基準: Voice Access 'move to position N'、デジタルウェルビーイングの 'screen time'（ヘッドセットは OS 時計を隠す）、Chrome About ページ、通知 '×' の手動消去。
 - ✨ **move-tab-to-n**（go-to の `/に移動/` catch-all が '2番目に移動して' を literal ナビゲートしていた実害 — 実測捕捉→先行登録）: 'N番目に移動して/動かして/して'（数字+漢数字）/'move tab to position N' → `moveTab(active, n-1-active)`、同位置は 'すでにN番目です'、範囲外は誠実拒否。

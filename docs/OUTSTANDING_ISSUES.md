@@ -485,6 +485,13 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'通知を消して' の手動消去が未実装**~~ — **Session 134 で実装**: `dismiss-notify` + 新フック `onDismissNotify`（VRApp は `captionSystem.clear()`）、フック無しは '表示は自動で消えます'。
 - ~~**'履歴を検索して'/'ブックマークを検索して' の bare 形が空文字列検索で誤答**~~ — **Session 134 で実装**: term 無しは '検索する語を言ってください' プロンプト、'…をXを検索' 形も捕捉可能に。
 - ~~**move/ヘルプ/パネル距離/読み込み/ミュート/復唱/スペル/コピーの言い換え句が未認識（第17弾）**~~ — **Session 134 で実装**: help '操作方法'/'音声ガイド'/'コマンドを教えて' 等、panel-distance '近づけて'/'大きく見せて'、video-stop '曲を止めて'、mute-toggle 'このタブをミュート'/'全部ミュート'、say-last-transcript 'なんて言った'、say-again '復唱して'、spell-word 'スペル'、read-word '発音して'、clear-find '強調を消して'/'選択を解除'、copy-article '全部コピー'、loading-status '読み込み終わった'、remaining-time '残り時間'。
+- ~~**'タブを検索して' が 'タブ' を web 検索、'Xのタブを探して'/'find the X tab' がページ内検索になる誤ルート**~~ — **Session 135 で実装**: `tab-search`（find-in-page 前）が title+url 一致で setActive、bare 形は 'タブの名前を言ってください'。
+- ~~**'最新の通知'/'通知を読んで' の通知読み上げが未実装**~~ — **Session 135 で実装**: `read-notify` + `CaptionSystem.lastLine()` + 新フック `onReadNotify`、空は '通知はありません'。
+- ~~**'ピン留め一覧' のピン留めタブ列挙が未実装**~~ — **Session 135 で実装**: `pin-list` がタイトル列挙。pin-select の loose `/pinned tab/i` を `/^pinned tab$/i` に限定（'read the pinned tabs' の列挙意図を解放）。
+- ~~**'リーダーモード'/'ダークモード'/'明るさ'/'印刷'/'スクリーンショット'/'タブを並び替えて' が NO-MATCH で機能欠如と句失敗が区別不能**~~ — **Session 135 で実装**: 誠実不在クラスタ — `reader-mode`（常時ON応答）・`dark-mode`（ハイコントラスト誘導）・`brightness`（本体設定誘導）・`print`・`screenshot`・`sort-tabs`（'N番目に移動して'誘導）。
+- ~~**'字幕を見せて'/'出して' がブラインドトグルで ON 要求が OFF に反転**~~ — **Session 135 で修正**: `onOff()` の on 分岐に 見せて|出して を追加（消して→OFF 維持）。
+- ~~**'メニューを開いて'/'メニュー' が literal ナビゲート**~~ — **Session 135 で修正**: settings-toggle に 'メニュー'/'メニューを開いて'/'メニューを表示'/'設定を表示して'/'設定を出して'/'open the menu' 追加。
+- ~~**'ニュースを見せて'/'写真が見たい' 等のコンテンツ意図句が未認識**~~ — **Session 135 で実装**: web-search に 'を見せて'/'を見たい'/'が見たい' 形追加（タブ/履歴/ブックマーク/設定/通知の '見せて' は先行登録維持）。reader-scale-status にズーム句、tabs-list に 'タブを見せて'。
 
 
 ---
