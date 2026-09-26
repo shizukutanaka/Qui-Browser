@@ -487,11 +487,12 @@ describe('tab strip verbs', () => {
     }
   );
 
-  test.each(['ピンを付けて', 'ピンを刺して', 'ピンを立てて', 'タブを固定して'])(
-    '"%s" pins the tab', (p) => {
+  test.each([['ピンを付けて', 'pin-active'], ['ピンを刺して', 'pin-tab'],
+    ['ピンを立てて', 'pin-active'], ['タブを固定して', 'pin-tab']])(
+    '"%s" pins the tab', (p, key) => {
       const { vc, tm } = makeVC();
       vc.processCommand(p);
-      expect(vc.lastCommand.key).toBe('pin-tab');
+      expect(vc.lastCommand.key).toBe(key);
       expect(tm.getActiveTab().pinned).toBe(true);
     }
   );
