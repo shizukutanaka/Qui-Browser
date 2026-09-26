@@ -535,6 +535,87 @@ export class TabManager {
   }
 
   /**
+   * Drag-to-edge parity: move a tab to the first/last slot of its pinned
+   * region (Chrome keeps pinned tabs clustered at the front, so "start" for
+   * an unpinned tab is just after the pinned cluster, not slot 0).
+   * @returns {boolean} true when the tab moved
+   */
+  moveTabToStart(index) {
+    const panel = this.tabs[index];
+    if (!panel) {
+      return false;
+    }
+    const pinned = this.tabs.filter(t => t.pinned).length;
+    const target = panel.pinned ? 0 : pinned;
+    return target !== index && this.moveTab(index, target - index);
+  }
+
+  moveTabToEnd(index) {
+    const panel = this.tabs[index];
+    if (!panel) {
+      return false;
+    }
+    const pinned = this.tabs.filter(t => t.pinned).length;
+    const target = panel.pinned ? pinned - 1 : this.tabs.length - 1;
+    return target !== index && this.moveTab(index, target - index);
+  }
+
+  /**
+   * Close tabs that show the same URL as an earlier tab (keeps the first
+   * occurrence; closeTab keeps the pinned/closed-stack rules).
+   * @returns {number} tabs closed
+   */
+  closeDuplicateTabs() {
+    const seen = new Set();
+    const dupes = [];
+    this.tabs.forEach((t, i) => {
+      const url = t.currentUrl || '';
+      if (url && seen.has(url)) {
+        dupes.push(i);
+      } else {
+        seen.add(url);
+      }
+    });
+    let closed = 0;
+    for (let i = dupes.length - 1; i >= 0; i--) {
+      if (this.closeTab(dupes[i])) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
+   * Close every unpinned tab ("close unpinned" — the inverse of closeAllTabs
+   * for users who keep pinned apps around).
+   * @returns {number} tabs closed
+   */
+  closeUnpinnedTabs() {
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (!this.tabs[i].pinned && this.closeTab(i)) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
+   * Close every non-private tab — the normal-browsing twin of
+   * closePrivateTabs.
+   * @returns {number} tabs closed
+   */
+  closeNormalTabs() {
+    let closed = 0;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (!this.tabs[i].isPrivate && this.closeTab(i)) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
    * Pin a tab (Chrome "Pin tab"): pinned tabs cluster at the front of the
    * strip and refuse closeTab. @returns {boolean} false when already pinned
    * or the index is invalid.
