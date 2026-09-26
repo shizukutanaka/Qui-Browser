@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 146: シェア/誠実不在原子 — account・orientation・split-view・clear-bookmarks + 位置句/検索流出修正
+外部基準: Chrome 'Send to your devices'・ブラウザのアカウント/同期面、Windows Voice Access の不可操作応答、ワンタッチ片付け UX。
+- 🐛 **'閲覧履歴を見せて' が '閲覧履歴' を web 検索**（実測捕捉）: history に '閲覧履歴を見せて'/'履歴はどこ'、bookmarks-open に 'お気に入りはどこ' 追加（先行登録で web-search に勝つ、onGoTo 非呼出を断言）。'閲覧履歴' bare は history-list 維持（共存テスト）。
+- 🐛 **'曜日を教えて'/'日付は' が web 検索に流出**（実測捕捉）: date に '曜日を教えて'/'曜日は何'/'今日の曜日'/'日付は'/'日付は何' 追加（connectBrowser の web-search より registerDefaultCommands の date が先行して勝つ）。
+- 🐛 **'読み上げを開始'/'音読を開始'/'プロフィールを開いて' が literal ナビゲート**（実測捕捉）: go-to JP lookahead に 読み上げ|音読|プロフィール|アカウント|パスワード 追加。read-aloud に '読み上げを開始'/'音読を開始'/'読み始めて'/'音読して'/'読み聞かせて'/'もう一回最初から'/'最初からやり直し'/'初めから'/'最初から読み直して'（onGoTo 非呼出を断言）。
+- ✨ **`account` 誠実不在原子**（ブラウザにアカウント面は無い — サイト側）: 'ログインして'/'ログアウトして'/'サインイン'/'アカウント設定'/'プロフィール'/'パスワードを教えて'/'パスワードを変えて'/'log in'/'sign out' → 'サイト内で操作してください'（web-search より先行登録）。
+- ✨ **`orientation`/`split-view`/`clear-bookmarks` 誠実不在原子**: '縦にして'/'画面を回転' → '回転や向きの変更はありません'、'分割して'/'2画面にして'/'split screen' → '「新しいタブ」で別のパネルを開けます'、'お気に入りを全部消して'/'delete all bookmarks' → '「ブックマークを外して」で個別に外せます'。
+- ✨ **エイリアス第26弾**: share-page 'ページを送って'/'友達に送って'/'リンクを共有'/'シェアして'、scroll-down/up 微小形 'もうちょっと下'/'ちょびっと下'/'少しだけ上'/'次にめくって'/'ページをめくる'、scroll-bottom 'どんどん下へ'/'ずっと下'/'一番下まで一気に'、dismiss-notify '通知を止めて'/'通知をオフ'/'通知をミュート'、download 'ダウンロード履歴'/'ダウンロードしたファイル'、translate-page 'この文を翻訳して'/'英語に訳して'/'訳して'/'翻訳'、stop-reading '声を止めて'/'喋るな'/'黙って'、trouble '画面がちらつく'/'酔いそう'/'文字化けしてる'/'表示がおかしい'/'崩れてる'、vr-enter 'フルスクリーンで見たい'/'全画面表示して'、settings-toggle '通知設定'、resume-reading 'どんどん進んで'/'どんどん読んで'、sort-tabs 'タブを整理して'/'片付けて'/'organize the tabs'。
+- ✅ **テスト +139（git stash で131件赤確認、8件は共存ガードの設計上緑）**: Total 4498 tests (120 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 145: デバイス/計算/動画時間原子 — device-settings・calc・video 分/リスタート形・トピック検索
 外部基準: OS 音声アシスタント（Siri/Alexa の電卓・端末設定委譲）、YouTube 時間指定シーク、Windows Voice Access の設定不可応答。
 - 🐛 **'Wi-Fiを切って' が online-status で誤答**（実測捕捉）: トグル要求に 'オンラインです' と応答していた → `device-settings` 誠実不在原子を online-status 前に登録（Wi-Fi/Bluetooth/機内モード/パススルー/ガーディアン/カメラ/節電 → 'ヘッドセットの設定で操作してください'）。'Wi-Fiは' は online-status 維持（共存テスト）。

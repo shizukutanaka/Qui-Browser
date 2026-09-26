@@ -526,6 +526,7 @@ export class VoiceCommands {
         'オプション', 'オプションを開いて', 'プリファレンス',
         'メニュー', 'メニューを開いて', 'メニューを表示', 'メニューを見せて',
         'メニュー画面', '設定を表示して', '設定を見せて', '設定を出して',
+        '通知設定', '設定を変更', '設定を変えて',
         'open the menu', 'show menu', /^menu$/i,
         /open\s+settings/i, /close\s+settings/i, /show\s+settings/i,
         /^options$/i, /^preferences$/i],
@@ -1023,6 +1024,8 @@ export class VoiceCommands {
         'VRを始める', 'VRモードに入る', 'VRモードで', '没入モード',
         '没入モードに入る', 'VRを開始', '全画面', 'フルスクリーン',
         '全画面にして', 'フルスクリーンにして', '全画面モード', 'フルスクリーンモード',
+        'フルスクリーンで見たい', '全画面表示して', 'フルスクリーンで',
+        '全画面で見たい', 'フルスクリーンにしたい',
         /vr mode/i, /immersive mode/i, /(?<!exit )full ?screen/i],
       action: () => {
         // Would trigger VR mode
@@ -1702,6 +1705,9 @@ export class VoiceCommands {
         'コントローラーが動かない', 'ボタンが効かない', 'ボタンが反応しない',
         '操作が効かない', 'コントローラーがきかない',
         '暗い', '画面が暗い', '見えない', '画面が暗くて見えない',
+        '画面がちらつく', 'ちらつく', '点滅してる', '画面が揺れる',
+        '画面が乱れる', '文字化け', '文字化けしてる', 'フォントがおかしい',
+        '表示がおかしい', '崩れてる', '酔いそう',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1790,12 +1796,65 @@ export class VoiceCommands {
       patterns: ['ダウンロードして', 'ダウンロードしたい', 'ダウンロードはどこ',
         'ダウンロード', 'アップロードして', 'アップロード',
         'ファイルをダウンロード', 'ファイルを保存',
+        'ダウンロード履歴', 'ダウンロードしたファイル', 'ダウンロード一覧',
         /^downloads?$/i, /download (this|it|the file)/i, /^upload/i],
       action: () => {
         this.speak('ダウンロードはまだできません。「ページを保存」でブックマークはできます');
         return { action: 'download' };
       },
       description: 'Explain downloading is unavailable'
+    });
+    // account — login/profile/password management belongs to the site or
+    // the headset account, not this shell. Registered in
+    // registerDefaultCommands so it wins over web-search's 'Xを教えて'.
+    this.registerCommand('account', {
+      patterns: ['ログインして', 'ログアウトして', 'サインイン', 'サインアウト',
+        'ログイン', 'ログアウト', 'アカウント', 'アカウント設定',
+        'プロフィール', 'プロフィールを開いて', 'プロフィールを見せて',
+        'パスワード', 'パスワードを教えて', 'パスワードを変えて',
+        'パスワードを変更', 'パスワード管理', 'ユーザー名', 'ユーザ名',
+        /log ?in/i, /sign ?in/i, /log ?out/i, /sign ?out/i,
+        /my (account|profile|password)/i],
+      action: () => {
+        this.speak('アカウントやログインの管理はこのブラウザにありません。サイト内で操作してください');
+        return { action: 'account' };
+      },
+      description: 'Explain account features are unavailable'
+    });
+    // orientation / split-view — panel layout is fixed; desktop-style
+    // rotate/split has no surface. Honest pointer beats a silent noop.
+    this.registerCommand('orientation', {
+      patterns: ['縦にして', '横にして', '横向きにして', '縦向きにして',
+        '回転して', '画面を回転', '画面を横向き', '画面を縦向き',
+        '向きを変えて', '画面の向き',
+        /rotate (the )?screen/i, /landscape mode/i, /portrait mode/i],
+      action: () => {
+        this.speak('パネルの回転や向きの変更はありません');
+        return { action: 'orientation' };
+      },
+      description: 'Explain panels cannot be rotated'
+    });
+    this.registerCommand('split-view', {
+      patterns: ['ウィンドウを2つ', '分割して', '2画面にして', '画面を分割',
+        '画面を2つに', '2つに分けて', 'マルチウィンドウ', '分割表示',
+        '画面を二つに', '二画面にして',
+        /split (the )?screen/i, /two windows/i, /split view/i],
+      action: () => {
+        this.speak('パネルの分割表示はありません。「新しいタブ」で別のパネルを開けます');
+        return { action: 'split-view' };
+      },
+      description: 'Explain split view is unavailable'
+    });
+    this.registerCommand('clear-bookmarks', {
+      patterns: ['お気に入りを全部消して', 'ブックマークを全部削除',
+        'ブックマークを全部消して', 'お気に入りを全部削除',
+        'お気に入りをすべて消して', 'ブックマークをすべて削除',
+        /delete all (bookmarks|favo?rites)/i, /clear (all )?(bookmarks|favo?rites)/i],
+      action: () => {
+        this.speak('ブックマークの一括削除はできません。「ブックマークを外して」で個別に外せます');
+        return { action: 'clear-bookmarks' };
+      },
+      description: 'Explain bulk bookmark deletion is unavailable'
     });
     this.registerCommand('sleep-mode', {
       patterns: ['スリープして', 'スリープモード', '省電力モード', '省エネモード',
@@ -2730,8 +2789,11 @@ export class VoiceCommands {
       patterns: ['下にスクロール', '下', 'した', 'スクロールダウン',
         'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下',
         'スクロール', 'スクロールして', 'ページをめくって', 'めくって',
+        '次にめくって', 'ページをめくる', 'めくる',
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
+        'もうちょっと下', 'もうちょっと下へ', 'ちょっとだけ下',
+        '少しだけ下', 'ちょびっと下',
         /scroll down/i, /scroll downwards?/i, /^go down$/i],
       action: () => {
         if (onScrollContent) {
@@ -2746,6 +2808,8 @@ export class VoiceCommands {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ',
         'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上',
         'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
+        'もうちょっと上', 'もうちょっと上へ', 'ちょっとだけ上',
+        '少しだけ上', 'ちょびっと上',
         /scroll up/i, /scroll upwards?/i, /^go up$/i],
       action: () => {
         if (onScrollContent) {
@@ -3036,6 +3100,8 @@ export class VoiceCommands {
       patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', '一番下へ',
         'ページの最後へ', '最後のページ', 'ページの末尾', '末尾', '末尾まで',
         'ページの末尾へ', '終わりまで', 'ページの終わり',
+        'どんどん下へ', 'ずっと下', '一番下まで一気に', '一気に最後まで',
+        'ずっと下へ', 'ずっとスクロール',
         /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i,
         /^go to (the )?bottom$/i, /^go to (the )?end$/i, /^the end$/i,
         /^all the way (down|to the bottom)$/i, /^(?:scroll )?way down$/i,
@@ -3086,6 +3152,9 @@ export class VoiceCommands {
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
         '全部読んで', '全て読んで', '最初から読んで', '読んで', '読んでね',
         '読め', '読み上げろ', '読んでよ',
+        '読み上げを開始', '読み上げを開始して', '音読を開始', '読み始めて',
+        '音読して', '読み聞かせて', 'もう一回最初から', '最初からやり直し',
+        '初めから', '最初から読み直して',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
@@ -3103,6 +3172,7 @@ export class VoiceCommands {
     this.registerCommand('stop-reading', {
       patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止',
         '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
+        '声を止めて', '声を止めろ', '喋るのをやめて', '喋るな', '黙って',
         '読み上げを止める', '読み上げを終了',
         'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
         '読まないで', 'もう読まなくていい',
@@ -3141,7 +3211,8 @@ export class VoiceCommands {
         '読み上げを続けてください',
         /resume\s+(the\s+)?(reading|narration|article)/i, /^resume$/i,
         /^continue$/i, /^continue reading$/i,
-        /^(read on|carry on|keep going|keep reading|go on)$/i],
+        /^(read on|carry on|keep going|keep reading|go on)$/i,
+        'どんどん進んで', 'どんどん読んで'],
       action: () => {
         this.resumeSpeaking();
         return { action: 'resume-reading' };
@@ -3392,6 +3463,7 @@ export class VoiceCommands {
     this.registerCommand('history', {
       patterns: ['履歴を開いて', '履歴を見て', '履歴を表示', '履歴を見せて',
         '読んだ履歴', '読書履歴', '閲覧した履歴', '訪れたページ',
+        '閲覧履歴を見せて', '履歴はどこ', '履歴はどこにある',
         /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i],
       action: () => {
         if (bookmarkPanel) {
@@ -3657,6 +3729,7 @@ export class VoiceCommands {
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
         'ブックマークを見せて', 'お気に入りを見せて', 'お気に入りを開いて',
+        'お気に入りはどこ', 'ブックマークはどこ', 'お気に入りはどこにある',
         'お気に入り一覧', 'お気に入り一覧を開いて',
         'ブックマーク一覧を開いて', 'ブックマークの一覧を開いて',
         '読書リスト', '読書リストを開いて',
@@ -3884,7 +3957,7 @@ export class VoiceCommands {
     // site names — both are passed through via lookaheads.
     const goToJp = new RegExp(
       '^(?!(?:前回|セッション|閉じた))' +
-      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り|チュートリアル|ガイド|ヘルプ|使い方)を開)' +
+      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り|チュートリアル|ガイド|ヘルプ|使い方|読み上げ|音読|プロフィール|アカウント|パスワード)を開)' +
       '(.+)(?:を開く?|に(?:行く|移動(?:する)?))'
     );
     const goToEn = new RegExp('^(?:open|go to|navigate to)\\s+' +
@@ -4666,6 +4739,7 @@ export class VoiceCommands {
     this.registerCommand('date', {
       patterns: ['今日の日付', '何月何日', '今日は何日', '日付を教えて',
         '今何曜日', '何曜日', '曜日は', '今日は何曜日',
+        '曜日を教えて', '曜日は何', '今日の曜日', '日付は', '日付は何',
         /what( is|'s) (the )?date/i, /current date/i, /what day/i],
       action: () => {
         const now = new Date();
@@ -5957,6 +6031,7 @@ export class VoiceCommands {
         'メッセージを消して', 'メッセージを閉じて', 'ダイアログを閉じて',
         '警告を消して', '表示を消して', '通知はいい', '通知を全部消して',
         '消して', '消えて', '消してほしい',
+        '通知を止めて', '通知をオフ', '通知をミュート', '通知を消してほしい',
         /dismiss (the )?(notification|toast|alert|message)s?/i,
         /clear (the )?notifications?/i, /close (the )?notification/i],
       action: () => {
@@ -6067,7 +6142,10 @@ export class VoiceCommands {
       patterns: ['タブを並び替えて', 'タブを並べ替えて', 'タブをソート',
         'タブをソートして', 'タブを順番に', 'タブ順を整えて',
         'タブを並べて', 'タブを左右に', 'タブを整列', 'タブ順を変えて',
-        /sort (the |my )?tabs/i, /reorder (the |my )?tabs/i],
+        'タブを整理して', 'タブを整理', '整理して', '片付けて',
+        'タブを片付けて', 'タブをまとめて', 'タブをきれいにして',
+        /sort (the |my )?tabs/i, /reorder (the |my )?tabs/i,
+        /organize (the |my )?tabs/i, /tidy (the |my )?tabs/i],
       action: () => {
         this.speak('自動並び替えはありません。N番目に移動して、と言ってください');
         return { action: 'sort-tabs' };
@@ -6100,6 +6178,8 @@ export class VoiceCommands {
       patterns: ['共有して', 'このページを共有', 'このページを共有して',
         'ページを共有', 'ページを共有して', 'ツイートして', 'メールで送って',
         '共有したい', 'シェアしたい',
+        'ページを送って', 'このページを送って', '友達に送って', '友達に共有',
+        'リンクを共有', 'シェアして', 'シェアする',
         'リンクを送って', 'SNSで共有',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
@@ -6119,7 +6199,9 @@ export class VoiceCommands {
       patterns: ['翻訳して', 'このページを翻訳', 'このページを翻訳して',
         'ページを翻訳', 'ページを翻訳して', '英語に翻訳', '日本語に翻訳',
         '中国語に翻訳', /translate (this |the )?page/i, /translate (it|this)/i,
-        /translate to (english|japanese|chinese)/i],
+        /translate to (english|japanese|chinese)/i,
+        'この文を翻訳して', '英語に訳して', '日本語に訳して',
+        '中国語に訳して', '文章を翻訳', '文章を翻訳して', '訳して', '翻訳'],
       action: (transcript) => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         if (!url) {
