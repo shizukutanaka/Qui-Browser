@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 129: 位置/一覧原子 — 読み上げ位置・タブ一覧・コレクション読み上げ + 言い換え句第12弾
+外部基準: Voice Access "where am I"/"what did you hear"、Kindle 割合ジャンプ（N割）、VoiceOver のリスト読み上げ、メディアキーの再生/停止句。
+- ✨ **line-status に読み上げ位置句**: '今どこを読んでる'/'どこまで読んでる'/'読み上げ位置'/'読み上げ中の行/場所'/'現在位置'/'今の位置'/'読み上げ中'。'読み上げ中ですか' は speaking-status 維持（共存テスト）。
+- ✨ **コレクション読み上げ句**: tabs-list に 'タブの一覧'/'タブリスト'/'タブ全部'/'開いてるのは/もの'/'すべてのタブを教えて/読んで'/'一覧を読んで'/'全部のタブ'、bookmarks-list に 'ブックマークを読んで'/'お気に入り(一覧)を読んで'、history-list に '履歴を読んで/読み上げて'。'お気に入り一覧' は bookmarks-open 維持。
+- ✨ **percent-jump に bare%/JA割**: '/^N%(に)?$/' + '/N割/'（割→×10 fold、'3割'→30%/'10割'→100% clamp）。
+- ✨ **エイリアス第12弾**: trouble 訴え句（'何も見えない'/'真っ白'/'画面が白い'/'映らない'/'固まる'/'落ちた'/'クラッシュ(した)'/'画面が落ちた'/'アプリが落ちた'）、audio-trouble '声が出ない'/'音がしない'/'無音になった'/'何も聞こえない'、refresh '再起動'/'ブラウザを再起動して'、home 'トップページ'/'開始ページ'、hostname 'サイトを教えて'/'サイト名を教えて'/'このサイトのドメイン'、describe-tab 'このサイトについて'、char-count '記事の長さ'/'このページの長さ'/'どのくらいの長さ'、sentences-left '残りの記事'/'残りのテキスト'/'未読'/'読み残し'、remaining-time 'あとどのくらい'、tab-status 'タブの数'/'ウィンドウの数'/'タブの枚数'、bookmark-count 'お気に入りは何個/の数'、keyboard 'キーボードを隠して/しまう/収納'/'keyboard'、video-toggle '動画を再生'/'再生して'/'ポーズ'、video-stop '再生を止めて'/'動画を停止'、video-status '今どの辺'/'どの辺まで'/'再生位置/時間'、reader-size bare '拡大'/'縮小'、jump-back 'この場所に戻って'/'さっき/前/元の場所に戻って'、pause-reading '読み上げを中断'/'中断して'。
+
 ### Session 128: マイク/シーク原子 — stop・video-seek・speech-rate の自然言語形 + 言い換え句第11弾
 外部基準: Voice Access "microphone off"/"stop listening"、メディアキーの早送り/巻き戻し、Chrome "paste and go"、VoiceOver "read all"。
 - ✨ **stop にマイク停止句**: 'マイクを切って'/'マイクをオフにして'/'マイク停止'/'聞き取りをやめて'/'聞き取り停止'/'聞くのをやめて'/'音声認識を止めて/終了'/'turn off the mic'/'turn the mic off'（`/turn (off )?(the )?mic(raphone)?( off)?/i` で語順両対応）。

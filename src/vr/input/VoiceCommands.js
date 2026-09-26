@@ -727,6 +727,7 @@ export class VoiceCommands {
     // owns 'ホームに戻る'.
     this.registerCommand('home', {
       patterns: ['ホームに戻る', 'ホームへ', 'ホーム', 'ホームページ',
+        'トップページ', '開始ページ', 'トップページに戻る',
         /^go (to )?home$/i, /^home( page)?$/i],
       action: () => {
         const p = this._tabManager?.newTab?.();
@@ -943,6 +944,7 @@ export class VoiceCommands {
         'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
+        '拡大',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
@@ -960,6 +962,7 @@ export class VoiceCommands {
         'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
+        '縮小',
         'フォントを小さくして', 'フォントを縮小', 'フォントサイズを下げる',
         '文字が大きい', '字が大きい',
         /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
@@ -1157,10 +1160,14 @@ export class VoiceCommands {
     // 'go to X' catch-all owns the EN phrase otherwise.
     this.registerCommand('percent-jump', {
       patterns: [/(\d+)%\s*(へ|に)/, /(\d+)\s*(?:パーセント|%)\s*(?:の位置|へ|に)/,
+        /^(\d+)%(に)?$/, /(\d+)割/,
         /(?:go to |jump to )?(\d+)\s*percent/i],
       action: (transcript) => {
+        const wari = transcript.match(/(\d+)割/);
         const m = transcript.match(/(\d+)/);
-        const pct = m ? Math.min(100, Math.max(0, parseInt(m[1], 10))) : 0;
+        const pct = m
+          ? Math.min(100, Math.max(0, parseInt(m[1], 10) * (wari ? 10 : 1)))
+          : 0;
         const done = this._onReaderPercent ? this._onReaderPercent(pct) : null;
         this.speak(done
           ? `${pct}%に移動しました`
@@ -1304,6 +1311,8 @@ export class VoiceCommands {
       patterns: ['反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
+        '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
+        'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
         'ヘッドセットが暑い', 'ネットが遅い', '見えにくい', '見にくい', '画面が見にくい',
         /not responding/i, /screen is (dark|black|blank)/i,
@@ -1321,6 +1330,7 @@ export class VoiceCommands {
     this.registerCommand('audio-trouble', {
       patterns: ['聞こえない', '聞こえません', 'よく聞こえない', '音が出ない',
         '音が小さい', '音が聞こえない', '声が聞こえない', '音量が小さい',
+        '声が出ない', '音がしない', '無音になった', '何も聞こえない',
         /can'?t hear/i, /^no sound/i],
       action: () => {
         this.speak('「音量」で今の音量を確認できます。「音量を上げて」「ミュートを解除」「もう一回聞いて」を試してください');
@@ -1944,7 +1954,7 @@ export class VoiceCommands {
       // end-anchored so 'reload tab 2' still reaches reload-tab-n first.
       patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'リロード',
         'ページを更新', '更新して', 'ページを更新して',
-        '再起動して', 'ブラウザを再起動',
+        '再起動して', 'ブラウザを再起動', '再起動', 'ブラウザを再起動して',
         /reload(\s+(the|this)\s+page)?$/i, /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
       action: () => {
@@ -2319,6 +2329,7 @@ export class VoiceCommands {
     // stop-reading ('読み上げ停止') and video-toggle ('一時停止').
     this.registerCommand('pause-reading', {
       patterns: ['読み上げを一時停止', '読み上げを中断して', '読み上げ中断',
+        '読み上げを中断', '中断して', '読み上げを中断する',
         /pause\s+(the\s+)?(reading|narration|article)/i],
       action: () => {
         this.pauseSpeaking();
@@ -2541,6 +2552,9 @@ export class VoiceCommands {
       patterns: ['タブ一覧', 'タブを読み上げ', 'タブを教えて', 'タブはいくつ',
         'タブ一覧を読み上げて', 'タブ一覧を読んで', 'タブを一覧して',
         '開いてるタブ', '開いているタブ',
+        'タブの一覧', 'タブリスト', 'タブ全部', '開いてるのは', '開いてるもの',
+        'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
+        'すべてのタブを読んで', '全部のタブ',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i],
       action: () => {
@@ -2564,6 +2578,7 @@ export class VoiceCommands {
     // what the host reports.
     this.registerCommand('video-toggle', {
       patterns: ['一時停止', '動画を一時停止', '再生を再開', '再開して',
+        '動画を再生', '再生して', 'ポーズ', '再生を再開して',
         /pause\s+video/i, /resume\s+video/i, /play\s+video/i],
       action: () => {
         const state = onVideoToggle ? onVideoToggle() : null;
@@ -2575,7 +2590,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('video-stop', {
-      patterns: ['動画を止めて', '動画停止', 'ビデオを止めて', /stop\s+(the\s+)?video/i],
+      patterns: ['動画を止めて', '動画停止', 'ビデオを止めて', '再生を止めて',
+        '動画を停止', /stop\s+(the\s+)?video/i],
       action: () => {
         const stopped = onVideoStop ? onVideoStop() : false;
         this.speak(stopped ? '動画を停止します' : '再生中の動画がありません');
@@ -2688,7 +2704,9 @@ export class VoiceCommands {
     this.registerCommand('keyboard', {
       patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる',
         'キーボードを出して', 'キーボードを閉じて', 'キーボードを表示',
-        'キーボードを出す', 'キーボードをしまって', /show keyboard/i, /hide keyboard/i],
+        'キーボードを出す', 'キーボードをしまって', 'キーボードを隠して',
+        'キーボードをしまう', 'キーボードを収納',
+        /show keyboard/i, /hide keyboard/i, /^keyboard$/i],
       action: () => {
         if (vrKeyboard) {
           vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
@@ -3197,6 +3215,7 @@ export class VoiceCommands {
     this.registerCommand('describe-tab', {
       patterns: ['このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         'このページの情報', 'サイト情報', 'このサイトの情報',
+        'このサイトについて', 'このタブについて教えて',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -3479,10 +3498,13 @@ export class VoiceCommands {
       description: desc
     });
     listCmd('bookmarks-list', 'ブックマーク', this._onBookmarkList,
-      ['ブックマーク一覧', 'ブックマークを読み上げ', /list\s+(my\s+)?bookmarks/i],
+      ['ブックマーク一覧', 'ブックマークを読み上げ', 'ブックマークを読んで',
+        'お気に入りを読んで', 'お気に入り一覧を読んで',
+        /list\s+(my\s+)?bookmarks/i],
       'Read the bookmark list');
     listCmd('history-list', '履歴', this._onHistoryList,
-      ['履歴一覧', '履歴を読み上げ', /list\s+(my\s+)?history/i],
+      ['履歴一覧', '履歴を読み上げ', '履歴を読んで', '履歴を読み上げて',
+        /list\s+(my\s+)?history/i],
       'Read the history list');
 
     // Count twins — the list commands' count-only surface (asking 'how many'
@@ -3500,6 +3522,7 @@ export class VoiceCommands {
       });
     countCmd('bookmark-count', 'ブックマーク', '個', '_onBookmarkList',
       ['ブックマークは何個', 'ブックマークの数', 'ブックマークはいくつ',
+        'お気に入りは何個', 'お気に入りの数', 'お気に入りはいくつ',
         /how many bookmarks/i, /bookmark count/i],
       'Announce the bookmark count');
     countCmd('history-count', '履歴', '件', '_onHistoryList',
@@ -3549,7 +3572,8 @@ export class VoiceCommands {
     // hostname — the anti-phishing atom (address-bar domain readout):
     // 'ドメインは'/'hostname' answers the bare host, not the URL string.
     this.registerCommand('hostname', {
-      patterns: ['ドメインは', 'どこのサイト', 'サイト名は', /hostname/i],
+      patterns: ['ドメインは', 'どこのサイト', 'サイト名は', /hostname/i,
+        'サイトを教えて', 'サイト名を教えて', 'このサイトのドメイン'],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         let host = null;
@@ -3964,6 +3988,7 @@ export class VoiceCommands {
     // Remaining reading time — getReadingTimeMinutes scaled by progress.
     this.registerCommand('remaining-time', {
       patterns: ['あと何分', '残り何分', 'どれくらい残り', 'あとどれくらい',
+        'あとどのくらい', '残り時間は',
         /how much longer/i, /time left/i, /minutes left/i],
       action: () => {
         const mins = this._onRemainingTime ? this._onRemainingTime() : null;
@@ -4152,6 +4177,8 @@ export class VoiceCommands {
     // Article character count — the reading-time numerator as a status atom.
     this.registerCommand('char-count', {
       patterns: ['何文字', '文字数', '記事の文字数', /how many characters/i,
+        '記事の長さ', 'このページの長さ', 'どのくらいの長さ',
+        'どれくらいの長さ', '記事の長さは',
         /character count/i, /word count/i],
       action: () => {
         const chars = this._onCharCount ? this._onCharCount() : null;
@@ -4384,7 +4411,8 @@ export class VoiceCommands {
     // Remaining sentence count — reading-progress's sentence twin. Reuses the
     // sentence-status surface ({index,total}) so it cannot disagree.
     this.registerCommand('sentences-left', {
-      patterns: ['あと何文', '残り何文', '残りの文は', /sentences left/i],
+      patterns: ['あと何文', '残り何文', '残りの文は', /sentences left/i,
+        '残りの記事', '残りのテキスト', '未読', '読み残し', '読み残した部分'],
       action: () => {
         const s = this._onSentenceStatus ? this._onSentenceStatus() : null;
         if (!s) {
@@ -4505,6 +4533,9 @@ export class VoiceCommands {
     // Line position without moving — find-status's line sibling.
     this.registerCommand('line-status', {
       patterns: ['何行目', '現在何行目', '行番号', 'この行は', '行は',
+        '今どこを読んでる', 'どこまで読んでる', '読み上げ位置',
+        '読み上げ中の行', '読み上げ中の場所', '現在位置', '今の位置',
+        '読み上げ中', '読み上げの位置',
         /line (number|position)/i],
       action: () => {
         const res = this._onLineStatus ? this._onLineStatus() : null;
@@ -4521,6 +4552,7 @@ export class VoiceCommands {
       patterns: ['タブは何個', '何個のタブ', '何番目のタブ', '何枚目のタブ',
         '何個目のタブ', 'タブは何番目', 'タブの順番', 'このタブの位置',
         '現在のタブ番号', 'タブの位置',
+        'タブの数', 'ウィンドウの数', 'タブの枚数',
         /how many tabs/i, /which tab/i, /tab (count|position)/i],
       action: () => {
         const res = this._onTabStatus ? this._onTabStatus() : null;
@@ -4563,6 +4595,8 @@ export class VoiceCommands {
     // avoid 戻る (go-back owns it) and 探して (find-in-page owns it).
     this.registerCommand('jump-back', {
       patterns: ['さっきの場所', '元の位置へ', 'ジャンプバック',
+        'この場所に戻って', 'さっきの場所に戻って', '前の場所に戻って',
+        '元の場所に戻って', 'さっきの位置に戻って',
         /jump\s+back/i, /previous (spot|position)/i],
       action: () => {
         const moved = this._onJumpBack ? this._onJumpBack() : false;
@@ -4751,6 +4785,7 @@ export class VoiceCommands {
     // {t,d} seconds or null when nothing is playing.
     this.registerCommand('video-status', {
       patterns: ['動画はどのくらい', '動画の位置', '動画は何分',
+        '今どの辺', 'どの辺まで', '再生位置', '再生時間',
         /video (position|time)/i, /how far (in|through)/i],
       action: () => {
         const st = this._onVideoStatus ? this._onVideoStatus() : null;
