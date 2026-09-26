@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 155: ランドマーク/フォーム原子 — 'go to main content' 誤ナビゲート修正 + redo 誠実双子 + クエリ/修復句群
+外部基準: スクリーンリーダーのローター（NVDA Elements List）、Voice Access 'go to main'/'next field'/'select all'、Chrome undo/redo。
+- 🐛 **'go to main content'/'go to the content'/'jump to the nav' が literal ナビゲート**（実測捕捉）: `landmarks` 誠実不在原子を go-to 前に登録（'next landmark'/'landmark list'/'main region'/'ランドマーク'/'メインに飛んで'/'ページの領域' も）→ 'ページの領域ジャンプはまだできません。「目次」で見出しを確認できます'。'go to google' は go-to 維持。
+- ✨ **redo 誠実双子**: 'redo'/'redo it'/'やり直して'/'やり直し'/'ctrl y' → undo（reopen-tab）の対を指針。'undo'→reopen-tab 維持。
+- ✨ **ローター/フォーム/修飾**: links へ 'next link'/'previous link'/'links list'/'前のリンク'/'リンクに進んで'/'リンクに戻って'、input-methods へ 'next field'/'form controls'/'edit box'/'fill the form'/'次の入力欄'/'フォーム'/'テキストボックス'、text-style へ 'all caps'/'uppercase'/'lowercase'/'capitalize'/'bold'/'italic'/'大文字にして'/'太字にして'、copy-selection へ 'select all'/'copy page'/'テキストをコピー'/'全部選択して'。
+- ✨ **find-in-page EN capture**: 'search the page for X'/'search this page for X'/'look for X'（語 capture を action でも再マッチ）。
+- ✨ **クエリ群**: help 'what can you do'/'show me the commands'/'command list'/'何を聞けばいい'、word-status 'what word is this'/'this word'/'今の単語'（'この単語'→read-word 維持）、char-status 'what letter is this'/'this character'/'この文字'、spell-word 'how is it spelled'/'どう綴る'、speech-rate-status 'what speed'/'読む速さは'/'どのくらいの速さ'、recenter 'where is the panel'/'center the panel'/'パネルを中央に'/'パネルが見えない'、reader-progress 'am i at the top'/'are we at the bottom'/'how far along'/'ページの先頭にいる'、reader-scale-status '拡大率'/'magnification'、reader-size-up 'magnify'、date 'today is'/"what's today"、vr-exit 'quit the app'、device-settings 'restart the app'/'reboot'/'ヘッドセットを再起動'（'再起動して'→refresh 維持の共存テスト）。
+- ✨ **微量スクロール/resume/目次**: scroll-down 'scroll a little'/'a little bit down'/'tiny scroll'/'もう少しだけ下' + up twin、resume-reading 'where i left off'/'pick up where i left off'/'続きはどこ'/'続きから読んで'（'続きを読んで'→read-here 維持）、toc '目次はどこ'/'目次は'、next-paragraph 'skip the paragraph'。
+- ✅ **テスト +114（git stash で106件赤確認、8件は共存ガードの設計上緑）**: Total 5238 tests (129 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 154: EN パリティ原子 — scroll-to-the-X 間隙・bare slower/faster・リプレイ誤スキップ修正
 外部基準: Voice Access 'scroll to the top/bottom'・'what did you say'、Chrome 'clear my history'、NVDA rate の bare 'slower'/'faster'。
 - 🐛 **'scroll to the top'/'scroll to the bottom' が未認識**（実測捕捉）: `/scroll (to )?top/` が 'the' を挟む形を取り逃し → `(to( the)? )?` 化（'scroll to top' は維持）+ 'jump to top/bottom'。

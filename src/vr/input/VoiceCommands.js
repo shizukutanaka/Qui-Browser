@@ -1053,8 +1053,10 @@ export class VoiceCommands {
         'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
         '全画面を閉じて', '全画面を解除して', 'フルスクリーンを閉じて',
+        'quit the app', 'quit the browser', 'アプリを落とす',
         /^quit$/i, /^exit$/i, 'shut down', 'shutdown', 'close the app',
-        /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
+        /quit (the )?(app|browser)/i, /exit (the )?(app|browser|vr)/i,
+        /exit full ?screen/i],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -1231,7 +1233,7 @@ export class VoiceCommands {
         '字が見えない', '字を大きく', '字を大きくして', 'ズームアップ',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /^too small$/i, /^make it bigger$/i, /text is too small/i, /make (the )?text bigger/i,
-        /increase (article|reader) text size/i, /zoom in/i],
+        /increase (article|reader) text size/i, /zoom in/i, /^magnify$/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(0.25) : null;
         this.speak(v === null ? '記事の文字はこれ以上大きくできません' : `記事の文字サイズ ${v.toFixed(2)}倍`);
@@ -1410,7 +1412,10 @@ export class VoiceCommands {
         '問い合わせ', 'やり方は', 'やり方を教えて', '使い方はどこ',
         /^どうやって/,
         /^help( me)?$/i,
+        '何を聞けばいい', '何が聞ける', '何を頼めば',
         /^how (do|can|to) i/i,
+        /what can you do/i, /show me (the )?commands/i, /command list/i,
+        /list (the )?commands/i, /what commands/i, /voice commands/i,
         /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
@@ -1604,13 +1609,13 @@ export class VoiceCommands {
     // reader-scale-status — the query twin of onReaderScale (delta-0
     // returns null there, so a dedicated getter reports the scale).
     this.registerCommand('reader-scale-status', {
-      patterns: ['記事の文字サイズは', '文字サイズは', '記事の文字は',
+      patterns: ['拡大率', '倍率', '倍率は', '拡大率は','記事の文字サイズは', '文字サイズは', '記事の文字は',
         'フォントサイズ', 'フォントサイズは', '文字サイズ', 'フォントサイズはいくつ',
         'ズーム率は', 'ズーム率',
         'ズームレベルは', 'ズームは何倍', '今のズーム', 'ズーム倍率', 'ズーム倍率は',
         'ズーム', 'ズームして', /^zoom$/i,
         /reader (text )?(size|scale)/i, /text size/i,
-        /what(?:'?s| is)? (the )?(current )?zoom( level)?/i, /zoom level/i],
+        /what(?:'?s| is)? (the )?(current )?zoom( level)?/i, /zoom level/i, /magnification/i],
       action: () => {
         const v = this._onReaderScaleStatus ? this._onReaderScaleStatus() : null;
         this.speak(v
@@ -1636,8 +1641,10 @@ export class VoiceCommands {
         'ガーディアン', 'ガーディアンを設定', '境界を設定', 'プレイエリア',
         'カメラを起動', 'カメラを使って', 'カメラ',
         'バッテリーを節約', '節電', '節電モード',
+        'ヘッドセットを再起動', 'システムを再起動',
         /turn (on|off) (the )?(wi-?fi|bluetooth)/i, /airplane mode/i,
-        /passthrough/i, /set up (the )?guardian/i],
+        /passthrough/i, /set up (the )?guardian/i,
+        /restart (the )?(app|browser|headset|system)/i, /reboot/i],
       action: () => {
         this.speak('本体の設定はブラウザから変更できません。ヘッドセットの設定で操作してください');
         return { action: 'device-settings' };
@@ -1778,7 +1785,10 @@ export class VoiceCommands {
         'リンクを選んで', 'リンクを教えて', 'どんなリンクがある',
         'ボタン一覧', 'ボタンを押して', 'リンクをクリック', 'ボタンをクリック',
         'リンクが開けない', 'リンクを開けない',
-        /list (the )?links/i, /open (the |a )?link/i, /click (the |a )?(link|button)/i],
+        '前のリンク', 'リンクに進んで', 'リンクに戻って', 'リンクを読んで',
+        /list (the )?links/i, /open (the |a )?link/i, /click (the |a )?(link|button)/i,
+        /^(next|previous|prev) link$/i, /links? list/i, /next (link|button)/i,
+        /previous (link|button)/i],
       action: () => {
         this.speak('リンクやボタンの直接選択はまだできません。「読み上げ」で内容を聞けます');
         return { action: 'links' };
@@ -1794,7 +1804,11 @@ export class VoiceCommands {
         '入力欄', 'フォーカスして', 'カーソルを置いて', 'カーソルを当てて',
         'クリックして', '押して', 'タップして', '選択して',
         /^click( here| it)?$/i, /^tap( it)?$/i,
-        /^controllers?$/i, /use (the )?controller/i, /hand tracking/i],
+        '次の入力欄', '前の入力欄', 'フォーム', 'テキストボックス',
+        'フォームに入力', '入力フォーム', 'フォームを入力',
+        /^controllers?$/i, /use (the )?controller/i, /hand tracking/i,
+        /^(next|previous|prev) field$/i, /form (controls|fields)/i,
+        /edit box/i, /fill (out )?(the )?form/i, /text box/i],
       action: () => {
         this.speak('視線と音声、コントローラーで操作できます。見つめて選ぶこともできます');
         return { action: 'input-methods' };
@@ -1805,12 +1819,36 @@ export class VoiceCommands {
       patterns: ['フォントを変えて', '書体を変更', '書体を変えて', '明朝体にして',
         '明朝体', 'ゴシック体にして', '行間を広げて', '行間を狭めて', '行間',
         '余白を広げて', '余白を増やして', '字間を広げて',
-        /change (the )?font/i, /different font/i],
+        '大文字にして', '小文字にして', '太字にして', '斜体にして', '下線を引いて',
+        /change (the )?font/i, /different font/i,
+        /all caps/i, /upper ?case/i, /lower ?case/i, /capitali[sz]e/i,
+        /^(bold|italic|italics)$/i],
       action: () => {
         this.speak('フォントや行間の変更はまだできません。「文字を大きく」でサイズは変えられます');
         return { action: 'text-style' };
       },
       description: 'Explain font/leading changes are unavailable'
+    });
+    this.registerCommand('landmarks', {
+      patterns: ['ランドマーク', 'ランドマーク一覧', 'メインに飛んで',
+        'メインコンテンツ', 'ナビゲーションに飛んで', 'ページの領域',
+        /landmarks?/i, /next landmark/i, /main region/i,
+        /(go to|jump to) (the )?main( content)?\b/i,
+        /(go to|jump to) (the )?(content|navigation|nav)\b/i],
+      action: () => {
+        this.speak('ページの領域ジャンプはまだできません。「目次」で見出しを確認できます');
+        return { action: 'landmarks' };
+      },
+      description: 'Explain landmark navigation is unavailable'
+    });
+    this.registerCommand('redo', {
+      patterns: ['やり直して', 'やり直し', /^redo$/i, /redo (it|that|the last)/i,
+        /ctrl\s*y/i],
+      action: () => {
+        this.speak('やり直しはまだできません。「元に戻して」で閉じたタブを開き直せます');
+        return { action: 'redo' };
+      },
+      description: 'Explain redo is unavailable'
     });
     this.registerCommand('settings-reset', {
       patterns: ['設定をリセット', '設定を初期化', '設定を元に戻して',
@@ -2901,8 +2939,9 @@ export class VoiceCommands {
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
         'もうちょっと下', 'もうちょっと下へ', 'ちょっとだけ下',
-        '少しだけ下', 'ちょびっと下',
-        /scroll down/i, /scroll downwards?/i, /^go down$/i],
+        '少しだけ下', 'ちょびっと下', 'もう少しだけ下', 'ごく少し下',
+        /scroll down/i, /scroll downwards?/i, /^go down$/i,
+        /scroll (a )?little( bit)?( down)?/i, /tiny scroll/i, /a little bit down/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(SCROLL_LINES);
@@ -2917,9 +2956,10 @@ export class VoiceCommands {
         'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上',
         'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
         'もうちょっと上', 'もうちょっと上へ', 'ちょっとだけ上',
-        '少しだけ上', 'ちょびっと上',
+        '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上',
         'もっと上に', '上に行って', '上に向かって',
-        /scroll up/i, /scroll upwards?/i, /^go up$/i],
+        /scroll up/i, /scroll upwards?/i, /^go up$/i,
+        /scroll up (a )?little( bit)?/i, /a little bit up/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(-SCROLL_LINES);
@@ -3337,7 +3377,10 @@ export class VoiceCommands {
         '止めたところから', '読んでたところ', '前に読んでた',
         '読み進めて', '読み進め', '読み上げ続けて', '読み続けて',
         '続けて読んで', '読み上げを進めて',
-        '止めたところから読んで'],
+        '止めたところから読んで',
+        '続きはどこ', '続きから読んで', '続きから',
+        'continue from where i stopped', 'where i left off',
+        'pick up where i left off', /where (did i|i left) (leave|stop|left)/i],
       action: () => {
         this.resumeSpeaking();
         return { action: 'resume-reading' };
@@ -3405,6 +3448,7 @@ export class VoiceCommands {
         '目次一覧', '目次を見せて', '見出しを一覧', 'アウトライン',
         'ページ構造', '構造を教えて', 'このページの構成', 'コンテンツ一覧',
         'ヘッダー一覧', '目次を読み上げて', '目次を教えて', 'ページの目次',
+        '目次はどこ', '目次はどこにある', 'アウトラインは', '目次は',
         /table of contents/i, /read (the )?(contents|toc|outline)/i,
         /read (all )?(the )?headings/i, /chapter list/i],
       action: () => {
@@ -3527,11 +3571,15 @@ export class VoiceCommands {
         'この中から検索', '探して', '検索して',
         /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
         /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
+        /search\s+(?:the\s+|this\s+)?page\s+for\s+(.+)/i,
+        /look\s+for\s+(.+)/i,
         /(.+?)を探して/, /ページ内[をで](.+?)[をで]検索/],
       action: (transcript) => {
         const bare = transcript === 'ページ内検索';
         const m = transcript.match(/find\s+in\s+(?:this\s+)?page\s+(.+)/i)
           || transcript.match(/find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i)
+          || transcript.match(/search\s+(?:the\s+|this\s+)?page\s+for\s+(.+)/i)
+          || transcript.match(/look\s+for\s+(.+)/i)
           || transcript.match(/(.+?)を探して/)
           || transcript.match(/ページ内[をで](.+?)[をで]検索/);
         const term = m && m[1]
@@ -4895,6 +4943,7 @@ export class VoiceCommands {
       patterns: ['今日の日付', '何月何日', '今日は何日', '日付を教えて',
         '今何曜日', '何曜日', '曜日は', '今日は何曜日',
         '曜日を教えて', '曜日は何', '今日の曜日', '日付は', '日付は何',
+        'today is', "what's today", 'whats today',
         /what( is|'s) (the )?date/i, /current date/i, /what day/i],
       action: () => {
         const now = new Date();
@@ -5047,7 +5096,11 @@ export class VoiceCommands {
       patterns: ['ここをコピー', 'ここをコピーして', '選択した部分をコピー',
         '選択部分をコピー', 'この段落をコピー', '段落をコピー',
         'リンクのURLをコピー', 'リンク先をコピー',
-        /copy (the |this )?selection/i, /copy this part/i],
+        '全部選択して', 'すべて選択して', 'テキストを選択', 'テキストをコピー',
+        '選択してコピー', '部分をコピー',
+        /copy (the |this )?selection/i, /copy this part/i,
+        /^select all$/i, /select (the )?(all|page|text|paragraph)/i,
+        /copy (the |this )?page/i, /copy (the )?text/i],
       action: () => {
         this.speak('選択部分やリンクのコピーはまだできません。「記事をコピー」「URLをコピー」「行をコピー」はできます');
         return { action: 'copy-selection' };
@@ -5159,7 +5212,10 @@ export class VoiceCommands {
     // '何単語目' answer index/total within the caret's line (null until a
     // char/word nav has moved — honest).
     this.registerCommand('char-status', {
-      patterns: ['何文字目', '文字の位置', /char(acter)? position/i],
+      patterns: ['何文字目', '文字の位置', 'この文字', 'この字', '今の文字',
+        'この文字は', '今の字', '今の文字は',
+        /char(acter)? position/i, /what (letter|character) (is this|is it)/i,
+        /^this (character|letter)$/i],
       action: () => {
         const st = tabManager?.getActiveTab?.()?.charStatus?.() || null;
         this.speak(st
@@ -5170,7 +5226,8 @@ export class VoiceCommands {
       description: 'Announce the char-caret position'
     });
     this.registerCommand('word-status', {
-      patterns: ['何単語目', '単語の位置', /word position/i],
+      patterns: ['何単語目', '単語の位置', '今の単語', '今の単語は',
+        /word position/i, /what word (is this|is it)/i, /^this word$/i],
       action: () => {
         const st = tabManager?.getActiveTab?.()?.wordStatus?.() || null;
         this.speak(st
@@ -5444,8 +5501,10 @@ export class VoiceCommands {
         '読み終わった', '読み終わり', '読了', '読み終わったとき',
         '読み上げが終わった', '読み上げ終わった', '読み上げは終わった',
         'まだ読んでる', '読んでる途中', '半分読んだ', '半分まで読んだ', 'もう半分',
+        'ページの先頭にいる', '先頭にいる', 'どのくらい進んだ', 'どこまで来た',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
-        /scroll position/i],
+        /scroll position/i, /am i at the top/i, /are we at the bottom/i,
+        /how far (along|have i (read|got))/i],
       action: () => {
         const pct = this._onReaderProgress ? this._onReaderProgress() : null;
         this.speak(pct === null ? '記事を開いていません'
@@ -5600,7 +5659,7 @@ export class VoiceCommands {
         'スキップして', '先読みして', '読み飛ばして',
         '飛ばして', '読み飛ばす', '飛ばす',
         'もう一段落', 'もう一段落読んで', '次の段落を読んで',
-        /next\s+paragraph/i, /skip ahead\s*$/i],
+        /next\s+paragraph/i, /skip ahead\s*$/i, /skip (the |this |current |next )?paragraph/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
         this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
@@ -5846,7 +5905,9 @@ export class VoiceCommands {
     this.registerCommand('spell-word', {
       patterns: ['この単語をスペル', 'スペル読み', 'つづり', 'スペルで読んで',
         'スペルを教えて', 'スペル', 'スペルは', 'つづりを教えて',
-        /spell (this |the )?word/i, /spell it/i, /^spell (that|this)$/i],
+        'どう綴る', '綴りを教えて', '綴りは', 'つづりは',
+        /spell (this |the )?word/i, /spell it/i, /^spell (that|this)$/i,
+        /how (is it|do you spell) (spelled|it)/i, /how is .* spelled/i],
       action: () => {
         const r = this._onSpellWord ? this._onSpellWord() : null;
         this.speak(r ? r.spelled : '単語がありません');
@@ -5861,8 +5922,10 @@ export class VoiceCommands {
       patterns: ['読み上げ速度は', '読み上げの速さは', '現在の読み上げ速度',
         '今の読み上げ速度', '今の速さは', '今の速さ', '読み上げの速さ',
         '再生速度', '再生速度は', '再生速度を教えて',
+        '読む速さは', 'どのくらいの速さ', 'どれくらいの速さ',
+        '読むスピード', 'スピードは', '読み上げのスピード',
         /speech rate/i, /reading rate/i, /how fast/i,
-        /reading speed/i, /voice speed/i],
+        /reading speed/i, /voice speed/i, /what speed/i, /reading pace/i],
       action: () => {
         this.speak(`読み上げ速度は${this._speechRate}倍です`);
         return { action: 'speech-rate-status', rate: this._speechRate };
@@ -6504,7 +6567,10 @@ export class VoiceCommands {
         'カメラをリセット', '視点をリセット', '正面を向いて',
         '中央にして', '真ん中にして', 'リセンターして', '向き直して',
         '真ん中に戻して', 'センターにして', 'リセンタリング', '中央に合わせて',
-        /recenter/i, /center (the )?(view|position)/i],
+        'パネルを中央に', 'パネルが見えない', 'パネルはどこ', 'パネルの位置',
+        '画面が見えない', '画面はどこ',
+        /recenter/i, /center (the )?(view|position|panel)/i,
+        /where is the panel/i, /center it/i],
       action: () => {
         const ok = this._onRecenter ? this._onRecenter() : false;
         this.speak(ok ? '中央に戻しました' : '中央に戻せません');

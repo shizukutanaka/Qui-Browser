@@ -593,6 +593,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'もう一度再生'/'リプレイ'/'play it again' が +10秒スキップしていた**~~ — **Session 154 で修正**: video-seek の restart 判定に もう一?回|もう一度|リプレイ|play (it )?again を追加し冒頭へシーク。
 - ~~**'what page'/'what site'・'am i online'・'whats playing'・'go offline' が未認識**~~ — **Session 154 で実装**: describe-tab（'…is this' は where-am-i 維持）/online-status/video-status/device-settings へ。
 - ~~**'clear my history'・'too small'/'make it bigger'・'im stuck'/'it froze'・'聞こえにくい' が未認識**~~ — **Session 154 で実装**: clear-history/reader-size/trouble/audio-trouble へ + panel-distance 'もうちょっと大きく'・stop-everything 'やめさせて'。
+- ~~**'go to main content'/'next landmark' が literal ナビゲート/未認識**~~ — **Session 155 で修正**: `landmarks` 誠実不在原子（go-to 前登録）→ '「目次」で見出しを確認できます'。
+- ~~**'next link'/'前のリンク'・'next field'/'テキストボックス'・'all caps'/'大文字にして'・'select all'/'テキストをコピー' が未認識**~~ — **Session 155 で実装**: links/input-methods/text-style/copy-selection 誠実応答へ。
+- ~~**'redo'/'やり直して' が未認識（undo の双子なし）**~~ — **Session 155 で実装**: `redo` 誠実不在原子 → '「元に戻して」で閉じたタブを開き直せます'。
+- ~~**'search the page for X'/'look for X' が未認識**~~ — **Session 155 で実装**: find-in-page へ EN capture 形2系。
+- ~~**'what can you do'/'command list'・'what word/letter is this'・'how is it spelled'・'what speed'・'where is the panel'・'am i at the top'・'where i left off' 等が未認識**~~ — **Session 155 で実装**: help/word-status/char-status/spell-word/speech-rate-status/recenter/reader-progress/resume-reading へ + 'quit the app'→vr-exit、'restart the app'/'reboot'→device-settings、'magnify'→reader-size-up、'拡大率'→reader-scale-status、微量スクロール形。
 
 ---
 
