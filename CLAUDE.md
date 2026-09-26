@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 133: 序数クローズ/ピン原子 — close-tab-ordinal・pin-active・unpin-all・private-mode-off + 質問形誤ルート修正群 + 言い換え句第16弾
+外部基準: Chrome タブコンテキストメニューの序数操作、Voice Access 'pin this' の一方向 pin（ピン留め済みタブへ 'ピンを付けて' が外すのは嘘）、'exit private mode' の終了双子、NVDA の状態質問形。
+- ✨ **close-tab-ordinal**（close-tab-by-name の前に登録）: 'N番目のタブを閉じて'（数字+漢数字）/'最初のタブを閉じて'/'最後のタブを閉じて'/'close the first|last tab' → `closeTab(n-1)`、範囲外は 'タブNはありません'、ピン留めは拒否メッセージ。**実測捕捉**: tab-select-ordinal の `/([一二三四五六七八九])番目のタブ/` が 'N番目のタブを閉じて' を奪って切替していた → `(?!を閉じ)` で透過。close-tab-by-name の JA stoplist に `[^の]*番目`、EN lookahead に `first\b|last\b` を両 pattern と action 再マッチ側へ追加。
+- ✨ **pin-active / unpin-all**: 'ピンを付けて'/'ピンを立てて'/'pin it' → ピン留め済みなら 'すでにピン留めされています'（togglePin を呼ばない一方向 pin — pin-tab のトグルではピン済みが外れる嘘を解消）。'ピンを全部外して'/'unpin all' → ピン留めタブ全件 togglePin、0件は誠実応答。unpin-active に 'ピンを解除'/'ピン留めを解除' 追加。
+- ✨ **private-mode-off**（終了の誠実双子）: 'プライベートモードを終了'/'通常モードに戻る'/'exit private mode' → `_privateMode` が真なら onTogglePrivateMode、偽なら 'プライベートモードはオフです'。**実測捕捉2件**: private-mode の EN regex が 'exit private mode' を所有してトグルしていた → `(?<!exit )` lookbehind；'通常モードに戻る' が back の `/戻[るれ]/` に吸収され履歴戻りを実行していた → `(?<!モードに)` lookbehind（registerDefaultCommands と connectBrowser の両コピー）。
+- 🐛 **質問形がトグルを実行する実害修正**: 'ハイコントラストか'/'ハイコントラストですか'/'is high contrast on' がトグル実行 → トグル regex に `か(?:$|。|？|です)`/`は…です` 除外と `is (on|off|enabled)` 除外を追加、contrast-status へ質問形を登録（非呼出を断言）。
+- 🐛 **'中央に移動' が 0% ジャンプの実害修正**: percent-jump の中点検出が '半分|真ん中|中間' のみで '中央' が抜け 0% へ飛んでいた → `中央` 追加（onReaderPercent(50) を断言）。
+- ✨ **エイリアス第16弾**（約55ペア）: tab-status 'いくつ開いてる'/'タブ何個'、toc '目次一覧'/'アウトライン'/'ページ構造'/'目次を読み上げて'、find-next/prev '次のマッチ'/'前のヒットへ'/'マッチを進めて'、find-status '検索結果は何件'、read-word 'この漢字'/'ふりがな'/'字を読んで'、read-line '行を読んで'、stop/resume-reading 'ナレーションを止めて'/'読書を再開'、line-status 'どこまで読んでた'、read-here 'つづきから'、scroll-down/up 'もっと下'/'さらに上'/'ぐっと下'/'一気に上'、captions-toggle '字幕をオン/オフ'/'キャプションをオンにして'、describe-tab '画面を説明して'/'何が見える'/'サイト名'、article-summary 'ページの概要'、read-url '今のURL'/'アドレスは'、next/prev-heading '次の章'/'前の項目'、unbookmark 'お気に入りを削除'、clear-history '履歴を消して'/'履歴をリセット'、bookmark-count 'ブックマークいくつ'、history-count '履歴いくつ'、reader-scale-status 'フォントサイズ'/'文字サイズ'、privacy-status 'シークレットですか'/'プライベートモードですか'。
+- ✅ **テスト +114（git stash で111件赤確認、3件は共存ガード設計上緑）**: Total 3408 tests (107 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。edge-find-atoms の 'ピンを付けて'/'立てて' 期待を pin-tab→pin-active へ更新（一方向 pin が正しい意味論）。
+
 ### Session 132: 閉じたタブ/ブックマーク全開放原子 — closed-list・open-all-bookmarks・find-open 誤ルート修正 + 言い換え句第15弾
 外部基準: Chrome 履歴「最近閉じたタブ」、"open all bookmarks" コンテキストメニュー、Voice Access の音声再生要求（say-again 系）、NVDA の読み直し句。
 - ✨ **closed-list**（`TabManager.closedTabs()` 新設 — LIFO スタックの読み取り専用双子、private タブはスタック非記録のため表示もされない）: '閉じたタブの一覧'/'最近閉じたタブ'/'さっき閉じたタブは何'/'何個閉じた'/'closed tabs' → 'N個のタブを閉じました。最近から: url…'（3件cap）、0件は誠実応答。読み上げはスタックを消費しない（reopen と共存テスト）。
