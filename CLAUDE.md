@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 154: EN パリティ原子 — scroll-to-the-X 間隙・bare slower/faster・リプレイ誤スキップ修正
+外部基準: Voice Access 'scroll to the top/bottom'・'what did you say'、Chrome 'clear my history'、NVDA rate の bare 'slower'/'faster'。
+- 🐛 **'scroll to the top'/'scroll to the bottom' が未認識**（実測捕捉）: `/scroll (to )?top/` が 'the' を挟む形を取り逃し → `(to( the)? )?` 化（'scroll to top' は維持）+ 'jump to top/bottom'。
+- 🐛 **'もう一度再生'/'リプレイ'/'play it again' が +10秒スキップ実行**（実測捕捉）: video-seek の restart 判定を 頭から|最初から → +もう一?回|もう一度|リプレイ|play (it )?again へ拡張し冒頭シーク（-1e9）に。
+- ✨ **bare 副詞**: speech-slower /^slower$/'more slowly'、speech-faster /^faster$/'more quickly'（'slower please' は politeVariants 経由で一致）。
+- ✨ **echo/質問**: say-again 'what did you say'/'リピート'/'今のを繰り返して'/'今の言葉'/'さっきの言葉'、describe-tab 'what page'/'what site'（'…is this' → where-am-i 維持の共存テスト）、online-status 'am i online'/'are we connected'、video-status "what's playing"/'何が再生されてる'、device-settings 'go offline'。
+- ✨ **その他**: clear-history EN 形（clear/delete/erase my history）、reader-size-up 'too small'/'make it bigger'/'text is too small' + down twin、pause-reading 'pause this'、stop-reading 'これを止めて'、stop-everything 'やめさせて'/'全部やめて'、audio-trouble '聞こえにくい'/'聞きにくい'、trouble "i'm stuck"/'something is wrong'/'it froze'、panel-distance 'もうちょっと大きく/小さく'。
+- ✅ **テスト +64（git stash で54件赤確認、10件は共存ガードの設計上緑）**: Total 5124 tests (128 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 153: ページめくり/状態質問原子 — '行を進めて' 誤ルート修正 + 方向・めくり口語形 + 声/言語選択
 外部基準: 電子書籍リーダーの 'ページ送り' 句、Voice Access 'scroll down' の方向句、NVDA 言語/音声選択。
 - 🐛 **'行を進めて' が navigate でページ forward 実行**（実測捕捉）: navigate の 進め lookbehind に 行を を追加（両コピー）→ next-line へ透過。'進めて'/'ページを進めて'→navigate、'読み進めて'→resume-reading 維持の共存テスト。

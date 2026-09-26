@@ -587,6 +587,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'ピン留めしてる'/'お気に入りに入ってる'/'保存してる' の状態質問が未認識**~~ — **Session 153 で実装**: pin-status/bookmark-status へ てる形。
 - ~~**'エラーが出た'/'止まった'/'勝手に閉じた'/'開けない'/'リンクが開けない' が未認識**~~ — **Session 153 で実装**: trouble へ障害報告形、links へ 'リンクが開けない'。
 - ~~**'字が見えない'/'ズームアップ'・'さっきのところ'・'頭から読んで'・'音量を元に戻して' が未認識**~~ — **Session 153 で実装**: reader-size-up/jump-back/read-aloud/settings-reset へ。
+- ~~**'scroll to the top/bottom'・'jump to top/bottom' が未認識（regex の 'to the' 間隙）**~~ — **Session 154 で修正**: scroll-top/bottom の regex を `(to( the)? )?` 化 + jump-to 形。
+- ~~**'slower'/'faster' 裸形・'pause this' が未認識**~~ — **Session 154 で実装**: speech-slower/faster へ /^slower$//^faster$//more slowly|quickly/、pause-reading へ 'pause (it|this)'。
+- ~~**'what did you say'・'リピート'/'今のを繰り返して'/'今の言葉' が未認識**~~ — **Session 154 で実装**: say-again へ聞き返し・繰り返し句。
+- ~~**'もう一度再生'/'リプレイ'/'play it again' が +10秒スキップしていた**~~ — **Session 154 で修正**: video-seek の restart 判定に もう一?回|もう一度|リプレイ|play (it )?again を追加し冒頭へシーク。
+- ~~**'what page'/'what site'・'am i online'・'whats playing'・'go offline' が未認識**~~ — **Session 154 で実装**: describe-tab（'…is this' は where-am-i 維持）/online-status/video-status/device-settings へ。
+- ~~**'clear my history'・'too small'/'make it bigger'・'im stuck'/'it froze'・'聞こえにくい' が未認識**~~ — **Session 154 で実装**: clear-history/reader-size/trouble/audio-trouble へ + panel-distance 'もうちょっと大きく'・stop-everything 'やめさせて'。
 
 ---
 
