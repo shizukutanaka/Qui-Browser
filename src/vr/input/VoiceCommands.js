@@ -93,6 +93,7 @@ export class VoiceCommands {
     this._onHeadingHere = null;
     this._onArticleSummary = null;
     this._onShare = null;
+    this._onSessionClear = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -543,6 +544,24 @@ export class VoiceCommands {
       description: 'Announce the adjacent tab title'
     });
 
+    // Indexed peek — 'タブNを読んで' announces N's title without switching
+    // (peek-tab's numbered twin). Hoisted: tab-select's /タブ(\d+)/ owns it.
+    this.registerCommand('peek-tab-n', {
+      patterns: [/タブ([0-9]+)(?:を読んで|を教えて|は何)/, /read tab ([0-9]+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/([0-9]+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        const t = (this._tabManager?.tabs || [])[n - 1];
+        if (!t) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'peek-tab-n', index: -1 };
+        }
+        this.speak(`タブ${n}: ${t.currentTitle || t.currentUrl || 'タイトルなし'}`);
+        return { action: 'peek-tab-n', index: n - 1 };
+      },
+      description: 'Announce tab N\'s title without switching'
+    });
+
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
     // article. Hoisted like the commands above: the go-to catch-all would
     // otherwise route 'go to line 30' as a navigation request.
@@ -753,7 +772,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('vr-exit', {
-      patterns: ['VR終了', 'VRやめる', '通常モード'],
+      patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
+        '終了して', /^quit$/i, /exit (the )?(app|browser|vr)/i],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -885,6 +905,7 @@ export class VoiceCommands {
     this.registerCommand('reader-size-up', {
       patterns: ['記事の文字を大きく', '記事を大きく', 'リーダーの文字を大きく', '記事の文字を大きくして',
         'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
+        'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
@@ -898,6 +919,7 @@ export class VoiceCommands {
     this.registerCommand('reader-size-down', {
       patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
         'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
+        'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
         /zoom out/i],
       action: () => {
@@ -942,7 +964,8 @@ export class VoiceCommands {
     // working without a browser connection (synthesis only).
     this.registerCommand('select-voice', {
       patterns: ['声を変えて', '読み上げ音声を変えて', '声を変える',
-        '音声を変えて', /change (the )?voice/i, /next voice/i],
+        '音声を変えて', '別の声', '別の声にして', '違う声にして',
+        /change (the )?voice/i, /next voice/i],
       action: () => {
         const voices = this.synthesis?.getVoices?.() || [];
         if (!voices.length) {
@@ -1064,7 +1087,9 @@ export class VoiceCommands {
     // honest when the API is absent).
     this.registerCommand('battery-status', {
       patterns: ['バッテリーは', 'バッテリー残量', '電池は',
-        /battery (level|status|percentage)/i, /battery left/i],
+        '充電は', '充電中ですか', '充電してる',
+        /battery (level|status|percentage)/i, /battery left/i,
+        /charging|charge status/i],
       action: () => {
         const get = navigator?.getBattery?.bind(navigator);
         if (!get) {
@@ -1160,7 +1185,9 @@ export class VoiceCommands {
     // still answer honestly).
     this.registerCommand('online-status', {
       patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
-        /are we online/i, /are we offline/i, /online status/i, /internet status/i],
+        'Wi-Fiは', '接続状態', 'ネットワーク状態',
+        /are we online/i, /are we offline/i, /online status/i, /internet status/i,
+        /wi-?fi/i],
       action: () => {
         const on = navigator?.onLine !== false; // undefined → assume online
         this.speak(on ? 'オンラインです' : 'オフラインです');
@@ -1169,15 +1196,51 @@ export class VoiceCommands {
       description: 'Announce the connectivity state'
     });
 
+    // Firefox's about:storage as a spoken atom — the async estimate follows
+    // the paste-go pattern.
+    this.registerCommand('storage-status', {
+      patterns: ['ストレージ', '容量は', '空き容量', 'ストレージはいくつ',
+        /storage/i, /how much storage/i],
+      action: () => {
+        const est = typeof navigator !== 'undefined' && navigator.storage?.estimate?.bind(navigator.storage);
+        if (!est) {
+          this.speak('ストレージ情報を取得できません');
+          return { action: 'storage-status', available: false };
+        }
+        est().then(({ usage, quota }) => {
+          const mb = (b) => Math.round((b || 0) / 1048576);
+          this.speak(`ストレージは約${mb(usage)}MB使用中です（上限${mb(quota)}MB）`);
+        }).catch(() => this.speak('ストレージ情報を取得できません'));
+        return { action: 'storage-status', available: true };
+      },
+      description: 'Announce storage usage and quota'
+    });
+
     // Stop listening
     this.registerCommand('stop', {
-      patterns: ['停止', 'ストップ', 'やめて', '聞くな'],
+      patterns: ['停止', 'ストップ', 'やめて', '聞くな',
+        'マイクをミュート', 'マイクオフ', 'マイクを止めて',
+        /mute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i],
       action: () => {
         this.stop();
         return { action: 'stop' };
       },
       confirmationText: '音声認識を停止します',
       description: 'Stop listening'
+    });
+
+    // Trouble report — a voice-only user whose panels vanished can't see the
+    // reset affordance; answer with the two spoken escape hatches.
+    this.registerCommand('trouble', {
+      patterns: ['反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
+        'なにも表示されない', '動かない',
+        /not responding/i, /screen is (dark|black|blank)/i,
+        /^nothing (happens|works)/i, /i can'?t see/i],
+      action: () => {
+        this.speak('音声は動作中です。「リセンター」で正面に戻せます。「ヘルプ」でコマンド一覧を聞けます');
+        return { action: 'trouble' };
+      },
+      description: 'Spoken recovery guidance when the user reports trouble'
     });
   }
 
@@ -1421,7 +1484,7 @@ export class VoiceCommands {
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
     onSearchEngineStatus, onCharStep, onWord, onSpellWord,
-    onHeadingHere, onArticleSummary, onShare,
+    onHeadingHere, onArticleSummary, onShare, onSessionClear,
     onContrastStatus, onDwellTimeStatus, onSessionSave } = {}) {
     this._tabManager = tabManager || null;
     if (onVolume) {
@@ -1588,6 +1651,9 @@ export class VoiceCommands {
     }
     if (onShare) {
       this._onShare = onShare;
+    }
+    if (onSessionClear) {
+      this._onSessionClear = onSessionClear;
     }
     if (onRecenter) {
       this._onRecenter = onRecenter;
@@ -1788,8 +1854,9 @@ export class VoiceCommands {
       // end-anchored so 'reload tab 2' still reaches reload-tab-n first.
       patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'リロード',
         'ページを更新', '更新して', 'ページを更新して',
+        '再起動して', 'ブラウザを再起動',
         /reload(\s+(the|this)\s+page)?$/i, /^refresh(\s+the\s+page)?$/i,
-        /^refresh\s+page$/i],
+        /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.reload?.();
         return { action: 'refresh' };
@@ -1917,7 +1984,9 @@ export class VoiceCommands {
 
     this.registerCommand('close-tab', {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', 'このタブを閉じて',
-        /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i],
+        'ウィンドウを閉じて', 'このウィンドウを閉じて',
+        /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
+        /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
         if (tabManager && tabManager.activeIndex >= 0) {
           // Pinned tabs refuse closeTab (Chrome parity) — say so instead of
@@ -2004,7 +2073,8 @@ export class VoiceCommands {
     this.registerCommand('reopen-tab', {
       patterns: [
         'タブを開き直す', '閉じたタブを開き直す', '開き直す',
-        /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i
+        '元に戻して', '取り消して', '閉じたタブをもう一度', '閉じたタブを開いて',
+        /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i, /^undo/i
       ],
       action: () => {
         const url = tabManager?.reopenClosedTab?.() || null;
@@ -2171,8 +2241,9 @@ export class VoiceCommands {
     // steppers live in settings but a voice user adjusts by voice.
     this.registerCommand('speech-faster', {
       patterns: ['速くして', 'もっと速く', '読み上げを速く', '読み上げを早く',
+        '早く読んで', '速く読んで',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
-        /increase (speech|talk|reading) (rate|speed)/i],
+        /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
       action: () => {
         const rate = this.setSpeechRate(this._speechRate + 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -2183,8 +2254,9 @@ export class VoiceCommands {
 
     this.registerCommand('speech-slower', {
       patterns: ['遅くして', 'もっと遅く', '読み上げを遅く', '読み上げをゆっくり',
+        'ゆっくり読んで', '遅く読んで',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
-        /decrease (speech|talk|reading) (rate|speed)/i],
+        /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
       action: () => {
         const rate = this.setSpeechRate(this._speechRate - 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -2323,7 +2395,9 @@ export class VoiceCommands {
     // command's whole output is the announcement itself.
     this.registerCommand('say-again', {
       patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
-        /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i],
+        'もう一回聞いて', '聞き直して',
+        /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
+        /listen again/i],
       action: () => {
         this.speak(this._lastSpoken || '直前の発話がありません');
         return { action: 'say-again' };
@@ -2431,8 +2505,9 @@ export class VoiceCommands {
       patterns: [
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
+        'お気に入りに追加',
         /bookmark (this|this page|the page|page)/i,
-        /add (this|page) (to )?bookmarks?/i, /save (this|the) page/i
+        /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
       ],
       action: () => {
         if (onBookmarkPage) {
@@ -2459,7 +2534,7 @@ export class VoiceCommands {
     // bookmarks mode and only shows when not already visible (open≠toggle).
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
-        'ブックマークを見せて',
+        'ブックマークを見せて', 'お気に入りを見せて', 'お気に入りを開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2572,12 +2647,14 @@ export class VoiceCommands {
 
     this.registerCommand('go-to', {
       patterns: [
-        /^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+        // '前回…を開いて'/'閉じたタブを開いて' are session-restore/reopen
+        // intents, not literal site names — pass them through.
+        /^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
         /^(?:open|go to|navigate to)\s+(.+)/i
       ],
       action: (transcript) => {
         const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const jpMatch = t.match(/^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
         const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
         const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
         if (onGoTo && query) {
@@ -2623,7 +2700,9 @@ export class VoiceCommands {
     // article (~500 chars/min, the standard JA silent-reading rate).
     this.registerCommand('reading-time', {
       patterns: ['読了時間', 'この記事の長さ', 'どのくらいで読める',
-        /reading (time|length)/i, /how long (does it take )?to read/i],
+        '読書時間', '読んだ時間',
+        /reading (time|length)/i, /how long (does it take )?to read/i,
+        /time spent reading/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
         const m = active?.getReadingTimeMinutes?.() || null;
@@ -2661,6 +2740,8 @@ export class VoiceCommands {
     // (Wolvic 1.9 restore-on-boot, but triggered mid-session).
     this.registerCommand('restore-session', {
       patterns: ['セッションを復元', '前のセッションを復元',
+        '前回のタブを開いて', '前回のセッション', '前回のセッションを開いて',
+        '最後のセッション', '前回のタブ',
         /restore (my )?(session|previous session|last session)/i],
       action: () => {
         const n = this._onRestoreSession ? this._onRestoreSession() : 0;
@@ -2973,7 +3054,9 @@ export class VoiceCommands {
     // explicit want so they can never mute by accident.
     this.registerCommand('mute-toggle', {
       patterns: ['ミュート', 'ミュートを解除', '消音', '消音を解除', '音を消して',
-        /(un)?mute/i],
+        // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
+        // surface — neither should toggle the master volume.
+        /(un)?mute(?!\s+(?:other\s+tabs?|the\s+mic|mic\b|microphone))/i],
       action: (transcript) => {
         const want = /unmute|解除|戻して/i.test(transcript) ? false : undefined;
         const muted = this._onMute ? this._onMute(want) : null;
@@ -3597,8 +3680,9 @@ export class VoiceCommands {
     // Reading progress — '進捗' announces how much of the article is done.
     this.registerCommand('reader-progress', {
       patterns: ['進捗', '何%読んだ', 'どれくらい読んだ', 'どのくらい読んだ',
-        'どこまで読んだ', '読了ですか',
-        /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i],
+        'どこまで読んだ', '読了ですか', 'スクロール位置', '今どのあたり', 'どのあたり',
+        /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
+        /scroll position/i],
       action: () => {
         const pct = this._onReaderProgress ? this._onReaderProgress() : null;
         this.speak(pct === null ? '記事を開いていません'
@@ -3972,7 +4056,8 @@ export class VoiceCommands {
       description: 'Announce the current speech pitch'
     });
     this.registerCommand('voice-name', {
-      patterns: ['どの声', '声の名前', '今の声', /which voice|voice name|what voice/i],
+      patterns: ['どの声', '声の名前', '今の声', '声は何', '音声エンジン',
+        'どの声を使ってる', /which voice|voice name|what voice/i],
       action: () => {
         this.speak(this._voice ? `声は${this._voice.name}です` : '声は未選択です');
         return { action: 'voice-name', voice: this._voice ? this._voice.name : null };
@@ -4152,6 +4237,20 @@ export class VoiceCommands {
         return { action: 'save-session', saved: n };
       },
       description: 'Persist the tab session'
+    });
+
+    // save-session's write twin — Chrome 'restore pages' → discard.
+    this.registerCommand('clear-session', {
+      patterns: ['セッションを消して', 'セッションを消去', 'セッションを削除',
+        '保存したセッションを消して',
+        /clear (the |saved )?session/i, /delete (the )?session/i],
+      action: () => {
+        const ok = this._onSessionClear ? this._onSessionClear() : false;
+        this.speak(ok ? '保存したセッションを消去しました'
+          : '保存されたセッションはありません');
+        return { action: 'clear-session', cleared: ok };
+      },
+      description: 'Clear the persisted tab session'
     });
 
     // Wake-word requirement — the voice layer's own flag (like sensitivity);
@@ -4536,7 +4635,8 @@ export class VoiceCommands {
     // when the page was never bookmarked.
     this.registerCommand('unbookmark-page', {
       patterns: ['ブックマークを外して', 'ブックマークを解除して',
-        'ブックマークを削除して', 'ブックマークを消して',
+        'ブックマークを削除して', 'ブックマークを消して', 'ブックマークを削除',
+        'ブックマークから消して',
         /remove (this |the )?bookmark/i, /unbookmark/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
