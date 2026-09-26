@@ -1892,6 +1892,23 @@ export class VoiceCommands {
       description: 'Explain panels scroll vertically only'
     });
 
+    // panel-move — lateral/vertical panel repositioning has no voice surface
+    // (panels are dragged by gaze); say what IS possible instead of
+    // navigating or pretending.
+    this.registerCommand('panel-move', {
+      patterns: ['パネルを動かして', 'パネルを移動', 'パネルの場所',
+        '右に寄せて', '左に寄せて', '上に上げて', '下に下げて',
+        '少し上げて', '少し下げて', '目の高さ', '高さを合わせて',
+        'パネルを右に', 'パネルを左に', 'パネルを上げて', 'パネルを下げて',
+        'パネルを横に', 'パネルの位置を変えて', '位置を変えて',
+        /move (the )?(panel|window)/i],
+      action: () => {
+        this.speak('パネルは視線でつかんで動かせます。「パネルを近づけて」で距離を変えられます');
+        return { action: 'panel-move' };
+      },
+      description: 'Explain panels move by gaze-drag'
+    });
+
     // window-state — desktop minimize/maximize has no panel equivalent; the
     // panel-size twin is the distance commands.
     this.registerCommand('window-state', {
@@ -2683,7 +2700,11 @@ export class VoiceCommands {
     // the host's via onTopSites, mirroring the onSearch decoupling.
     this.registerCommand('top-sites', {
       patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ',
-        'スタートページ', 'よく見るサイト', 'おすすめサイト', 'よく行くサイト', /トップ?サイト/],
+        'スタートページ', 'よく見るサイト', 'おすすめサイト', 'よく行くサイト', /トップ?サイト/,
+        'おすすめのサイト', '閲覧ランキング', '人気のサイト', '急上昇',
+        'ランキング', '人気の記事', '注目の記事', '話題のニュース',
+        'トップ記事', 'おすすめを読んで', 'おすすめ記事',
+        '人気記事', 'トレンド', '今話題'],
       action: () => {
         if (onTopSites) {
           onTopSites();
@@ -2895,6 +2916,9 @@ export class VoiceCommands {
         '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
+        'ウインドウを閉じて', '画面を閉じて', 'この画面を閉じて',
+        '見てる画面を閉じて', '見ている画面を閉じて',
+        'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
         '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
         'close it', 'close this one', 'close the one', 'close',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
@@ -2942,7 +2966,8 @@ export class VoiceCommands {
     // separate) and the command says so honestly.
     this.registerCommand('move-tab-left', {
       patterns: ['タブを左に移動', 'タブを左へ', 'タブを左に動かして',
-        'このタブを左へ', 'このタブを左に移動', '左に移動', 'タブを左に',
+        'このタブを左へ', 'このタブを左に移動', '左に移動', '左に移動して', 'タブを左に',
+        '左に動かして',
         'タブを左に移動して', 'このタブを左に移動して', 'タブを左に送って',
         '左に送って', '左にずらして',
         /move (the |this )?tab left/i, /move it left/i],
@@ -2956,7 +2981,8 @@ export class VoiceCommands {
 
     this.registerCommand('move-tab-right', {
       patterns: ['タブを右に移動', 'タブを右へ', 'タブを右に動かして',
-        'このタブを右へ', 'このタブを右に移動', '右に移動', 'タブを右に',
+        'このタブを右へ', 'このタブを右に移動', '右に移動', '右に移動して', 'タブを右に',
+        '右に動かして',
         'タブを右に移動して', 'このタブを右に移動して', 'タブを右に送って',
         '右に送って', '右にずらして',
         /move (the |this )?tab right/i, /move it right/i],
@@ -3550,6 +3576,10 @@ export class VoiceCommands {
         'タブを表示して', '開いているものを読んで',
         '見せて', '一覧を見せて', '一覧を出して', '一覧を教えて', '一覧',
         'タブが多すぎる', 'タブが多い', 'タブが増えすぎた', 'タブがいっぱい',
+        '開いたタブ全部', 'タブ全部見せて', 'タブを一覧', 'タブの一覧を出して',
+        'タブの一覧を見せて',
+        'ウィンドウが多い', 'パネルが多い', 'タブが重い', 'タブ多すぎ',
+        'ウィンドウが多すぎ', 'タブ多い',
         'list all tabs', 'show all tabs', 'all tabs', 'my tabs',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i, /show (the |me )?(the )?tabs/i],
@@ -3747,6 +3777,9 @@ export class VoiceCommands {
         'お気に入り一覧', 'お気に入り一覧を開いて',
         'ブックマーク一覧を開いて', 'ブックマークの一覧を開いて',
         '読書リスト', '読書リストを開いて',
+        '保存した記事', '保存ページ', '読みたいリスト', 'リーディングリスト',
+        '後で読むリスト', 'ウォッチリスト', '保存したページ', '保存したもの',
+        '保存済み', 'お気に入りの記事', 'ブックマークした記事',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -4246,13 +4279,15 @@ export class VoiceCommands {
         '近づけて', '遠ざけて', '近くして', '遠くして', 'もっと近く', 'もっと遠く',
         '大きく見せて', '小さく見せて', '近くにして', '遠くにして',
         '近くに寄せて', '手前に寄せて', 'こっちに寄せて', '近くに移動',
+        'こっちに来て', 'こっちにきて', '手前にして', '手前に来て',
+        '奥にして', '奥に動かして', '奥に寄せて',
         /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
       action: (transcript) => {
         // '遠い'/'遠すぎ'/'大きく' are complaints of distance → bring it nearer;
         // '近い'/'近すぎ'/'小さく' are complaints of closeness → push it away.
-        const nearer = /近づ|近く|遠い|遠すぎ|大きく|closer|nearer|bigger|too far/i.test(transcript)
-          && !/遠く|遠ざ|近い|近すぎ|小さく|further|farther|away|too close|smaller/i.test(transcript);
+        const nearer = /近づ|近く|遠い|遠すぎ|大きく|こっち|手前|closer|nearer|bigger|too far/i.test(transcript)
+          && !/遠く|遠ざ|近い|近すぎ|小さく|奥|further|farther|away|too close|smaller/i.test(transcript);
         const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
         this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
         return { action: 'panel-distance', distance: v };
@@ -4447,7 +4482,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの))(.+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中))(.+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i,
       /(.+)のタブを(?:開いて|開けて|開く)/,
@@ -4490,6 +4525,8 @@ export class VoiceCommands {
         'これは何', 'これは何のページ', '何これ', 'このページは何',
         '何のページ', 'ページは何', 'どんなページだ',
         '説明して', '説明してほしい', '内容は',
+        'アクティブなタブ', '使用中のタブ', '今のタブ', '最近のタブ',
+        '今見てるタブ', '今見ているタブ', '今開いてるタブ', '選択中のタブ',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -5974,6 +6011,8 @@ export class VoiceCommands {
         'タブは何枚', '何タブ', 'タブいくつ', '何個タブ', 'タブはいくつ開いてる',
         'いくつ開いてる', '何個開いてる', '全部で何タブ', 'タブ何個',
         'タブをいくつ開いてる', 'いくつタブを開いてる',
+        'タブ数', '開いてる数', '全部で何個', 'どのくらい開いてる',
+        '開いてるタブ数', 'タブの個数', 'タブ何個ある', '全部でいくつ',
         /how many tabs/i, /which tab/i, /tab (count|position)/i],
       action: () => {
         const res = this._onTabStatus ? this._onTabStatus() : null;
@@ -6342,6 +6381,8 @@ export class VoiceCommands {
       patterns: ['リセンター', '中央に戻して', 'センタリング',
         '正面に戻して', '向きをリセット', '向きを戻して',
         'カメラをリセット', '視点をリセット', '正面を向いて',
+        '中央にして', '真ん中にして', 'リセンターして', '向き直して',
+        '真ん中に戻して', 'センターにして', 'リセンタリング', '中央に合わせて',
         /recenter/i, /center (the )?(view|position)/i],
       action: () => {
         const ok = this._onRecenter ? this._onRecenter() : false;
