@@ -3418,6 +3418,9 @@ export class VRApp {
             this.captionSystem?.clear?.();
             return true;
           },
+          // '最新の通知' — readout twin; the caption queue still holds the
+          // newest toast text after the visual card has faded.
+          onReadNotify: () => this.captionSystem?.lastLine?.() || null,
           // Quest hold-button parity — return the rig to the origin.
           onRecenter: () => {
             if (!this.playerRig) {
