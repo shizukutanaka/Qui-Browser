@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 153: ページめくり/状態質問原子 — '行を進めて' 誤ルート修正 + 方向・めくり口語形 + 声/言語選択
+外部基準: 電子書籍リーダーの 'ページ送り' 句、Voice Access 'scroll down' の方向句、NVDA 言語/音声選択。
+- 🐛 **'行を進めて' が navigate でページ forward 実行**（実測捕捉）: navigate の 進め lookbehind に 行を を追加（両コピー）→ next-line へ透過。'進めて'/'ページを進めて'→navigate、'読み進めて'→resume-reading 維持の共存テスト。
+- ✨ **めくり・方向口語形**: next-page 'ページ送り'/'ページをめくれ'、prev-page 'ページを戻して'/'ページを戻す'、scroll-down 'もっと下に'/'下に行って'/'下に向かって'、scroll-up 同 twin。'ページを送って'→share-page・'めくって'→scroll-down 維持。
+- ✨ **行ステッパー**: next-line '行を進めて'/'一つ下へ'/'ひとつ下へ'、prev-line '行を戻って'/'一つ上へ'/'ひとつ上へ'。
+- ✨ **声・言語選択**: select-voice '男の声で'/'女の声で'/'男性の声'/'女性の声'/'女の声にして'；language-switch '言語を変えて'/'言語を切り替えて'/'change language' + 言語指定なしはプロンプト応答（従来は常に ja-JP へ誤切替）。
+- ✨ **状態質問・訴え**: pin-status 'ピン留めしてる'/'ピンしてる'/'ピンされてる'、bookmark-status 'お気に入りに入ってる'/'保存してる'/'保存されてる'/'ブックマーク済み'、trouble 'エラーが出た'/'止まった'/'勝手に閉じた'/'開けない'/'タブが開けない'、links 'リンクが開けない'。
+- ✨ **その他**: reader-size-up '字が見えない'/'字を大きく'/'ズームアップ'、jump-back 'さっきのところ'、read-aloud '頭から読んで'、settings-reset '音量を元に戻して'、back '帰ってきて'。
+- ✅ **テスト +60（git stash で53件赤確認、7件は共存ガードの設計上緑）**: Total 5060 tests (127 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 152: 動詞る形/状態原子 — 音量る形・字幕明示ON/OFF・現在位置句 + 不平形 status 透過
 外部基準: Voice Access 'show/hide captions' の明示方向句、NVDA 'say current line/sentence' の位置読み句、Chrome 履歴の存在質問。
 - 🐛 **'字幕を消す' がブラインドトグル（OFF 済みで ON に反転する実害）修正**: `onOff()` の want 判定へ 消す|非表示|隠す|隠して|なし（false 側）と つける|出す|表示|あり（true 側）を追加 — 全 toggleCmd に波及し 'Xを消す'/'Xなし' が明示 OFF を要求するように。
