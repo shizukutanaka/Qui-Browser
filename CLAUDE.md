@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 132: 閉じたタブ/ブックマーク全開放原子 — closed-list・open-all-bookmarks・find-open 誤ルート修正 + 言い換え句第15弾
+外部基準: Chrome 履歴「最近閉じたタブ」、"open all bookmarks" コンテキストメニュー、Voice Access の音声再生要求（say-again 系）、NVDA の読み直し句。
+- ✨ **closed-list**（`TabManager.closedTabs()` 新設 — LIFO スタックの読み取り専用双子、private タブはスタック非記録のため表示もされない）: '閉じたタブの一覧'/'最近閉じたタブ'/'さっき閉じたタブは何'/'何個閉じた'/'closed tabs' → 'N個のタブを閉じました。最近から: url…'（3件cap）、0件は誠実応答。読み上げはスタックを消費しない（reopen と共存テスト）。
+- ✨ **open-all-bookmarks**（Chrome "open all bookmarks" 準拠）: 'お気に入りをすべて開いて'/'ブックマークを全部開いて'/'open all bookmarks' → `onBookmarkList` を走査し `newTab` で cap まで開放、残りは '上限で残りN件は開けません' と誠実告知。go-to の 'を開いて' catch-all より前に登録。
+- 🐛 **'を開いて' 系誤ルート2件修正**（プローブ実測 — go-to が literal ナビゲート）: 'ブックマーク一覧を開いて' → bookmarks-open へ、'ページ内検索を開いて'/'検索を開いて'/'検索バーを開いて'/'検索モード' → find-in-page の bare プロンプト '検索する語を言ってください' へ。onGoTo 非呼出を断言。
+- 🐛 **reopen-tab の 'て'形欠落修正**: '閉じたタブを開き直して'/'開き直して'/'さっき閉じたタブを開いて' が NO-MATCH → 追加（'開き直す' 形のみ存在した）。
+- ✨ **エイリアス第15弾**: close-other-tabs 'このタブだけ残して'/'このタブ以外を閉じて'/'残りのタブを閉じて'、bookmark-page 'しおりを挟んで'/'栞を挟んで'、stop-reading '読み上げをやめる/やめて'/'読むのをやめて'、recenter '正面に戻して'/'向きをリセット'/'カメラをリセット'/'視点をリセット'、speech '早口で'/'もっと早く'/'もっとゆっくり'/'もう少しゆっくり'、read-here '残りを読んで'/'ここを読んで'/'この辺を読んで'、read-sentence '今の文を読み直して'、trouble '目を休めたい'/'暗い'/'見えない'、vr-exit '全画面を閉じて'、clear-find 'ハイライトを外して'/'検索をやめて'、close-tab 'このページを閉じて'、bookmarks 'ブックマークを閉じて'、next/prev-page '…を読んで'、say-again '繰り返して'/'もう一度お願い'/'聞き取れなかった'、reader-size-up '大きくして'/'文字が見にくい'。
+- 🐛 **奪取回帰2件を捕捉・修正**: 'ブックマーク一覧' bare形が bookmarks-list を奪取 → bare形は読み上げ側維持で 'を開いて' 形のみ bookmarks-open へ。'何と言った' が say-last-transcript を奪取 → say-again 側から除去（transcript エコーは別物）。close-tab-by-name の stoplist に '残り' を追加（'残りのタブを閉じて' が「残り」名指しに誤答する実害を捕捉）。
+- ✅ **テスト +94（git stash で91件赤確認、3件は共存ガード設計上緑）**: Total 3294 tests (106 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。
+
 ### Session 131: 履歴深さ/多段ナビ原子 — nav-steps（Nページ戻る/進む + 履歴先頭）・history-depth 質問修正 + 言い換え句第14弾
 外部基準: Chrome の Alt+← 連打・履歴メニュー「先頭へ」、JAWS "how far back"、Voice Access の質問/コマンド分離。
 - 🐛 **'あと何ページ戻れる/進める' がナビゲートを実行する実害修正**: back の `/戻[るれ]/`・navigate の `/進[むめ]/` が質問形を所有して goBack/goForward を実行（プローブ実測）→ `history-depth` を両者より前に登録（back-status の位置ルール）— `p.historyIdx` / `p.history.length-1-idx` から残量を告知しナビゲートしない（非呼出を断言）。
