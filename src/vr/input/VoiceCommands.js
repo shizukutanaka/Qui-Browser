@@ -295,6 +295,87 @@ export class VoiceCommands {
   }
 
   /**
+   * First-match dispatch against the command map, then the alias map.
+   * Returns { command, key } or null.
+   */
+  _matchCommand(normalized) {
+    for (const [key, command] of this.commands) {
+      if (command.patterns.some(pattern => {
+        if (typeof pattern === 'string') {
+          return normalized === pattern.toLowerCase();
+        } else if (pattern instanceof RegExp) {
+          return pattern.test(normalized);
+        }
+        return false;
+      })) {
+        return { command, key };
+      }
+    }
+    for (const [alias, commandKey] of this.aliases) {
+      if (normalized.includes(alias.toLowerCase())) {
+        return { command: this.commands.get(commandKey), key: commandKey };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Casual-form variants of a polite utterance, tried in order when the raw
+   * transcript matched nothing. Japanese:
+   *   閉じてください/頂戴/ほしい/くれ/もらえますか → 閉じて   (て/で + request suffix)
+   *   戻ります/閉じます/探します/止めなさい → 戻って/閉じて/探して/止めて (ます形→て形)
+   *   今何時ですか → 今何時                        (です/でしょう ending)
+   * English:
+   *   'please scroll down' / 'can you go back' / 'close the tab please'
+   */
+  _politeVariants(normalized) {
+    const variants = [];
+    const seen = new Set([normalized]);
+    const push = (s) => {
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        variants.push(s);
+      }
+    };
+
+    // て/で-form + request suffix → bare て/で-form. Longest suffixes first.
+    push(normalized.replace(/(て|で)(?:いただけますか|いただけませんか|いただいて|もらえますか|もらえませんか|もらって|くれますか|くれませんか|ください|下さい|ちょうだい|頂戴|ほしいです|ほしい|くれない|くれ)[。！？!?]?$/u, '$1'));
+
+    // ます形 → て形: godan stem-final kana map (行きます → 行って is the one
+    // common exception); anything else takes stem + て (ichidan).
+    // (Past/negative forms ました/ません are NOT stripped — '閉じました'
+    // means "I closed it", not a request.)
+    const m = normalized.match(/^(.*?)(?:ましょう|ませんか|ますか|ます|なさい)[。！？!?]?$/u);
+    if (m && m[1]) {
+      const stem = m[1];
+      const GODAN_TE = { う: 'って', つ: 'って', る: 'って', い: 'って', ち: 'って', り: 'って',
+        き: 'いて', く: 'いて', ぎ: 'いで', ぐ: 'いで',
+        し: 'して', す: 'して',
+        ぬ: 'んで', ぶ: 'んで', む: 'んで', び: 'んで', み: 'んで' };
+      if (stem === '行き') {
+        push('行って');
+      }
+      const last = stem.slice(-1);
+      push(GODAN_TE[last] ? stem.slice(0, -1) + GODAN_TE[last] : stem + 'て');
+    }
+
+    // です/でしょう question ending → bare stem: '今何時ですか' → '今何時'
+    push(normalized.replace(/(?:ですかね|でしょうか|ですか|でしょう|です)[。！？!?]?$/u, ''));
+
+    // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
+    // 'please' — applied cumulatively so 'could you please go back' works.
+    const en = normalized
+      .replace(/^please[,\s]+/i, '')
+      .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
+      .replace(/[,\s]+please[.!?]?$/i, '');
+    push(en);
+    push(normalized.replace(/^please[,\s]+/i, ''));
+    push(normalized.replace(/[,\s]+please[.!?]?$/i, ''));
+
+    return variants;
+  }
+
+  /**
    * Check if transcript contains wake word
    */
   containsWakeWord(transcript) {
@@ -313,43 +394,31 @@ export class VoiceCommands {
     // Normalize transcript
     const normalized = transcript.toLowerCase().trim();
 
-    // Find matching command
-    let matchedCommand = null;
-    let matchedKey = null;
+    // Find matching command (first-match wins in registration order)
+    let found = this._matchCommand(normalized);
+    let dispatchText = transcript;
 
-    // Check exact matches
-    for (const [key, command] of this.commands) {
-      if (command.patterns.some(pattern => {
-        if (typeof pattern === 'string') {
-          return normalized === pattern.toLowerCase();
-        } else if (pattern instanceof RegExp) {
-          return pattern.test(normalized);
-        }
-        return false;
-      })) {
-        matchedCommand = command;
-        matchedKey = key;
-        break;
-      }
-    }
-
-    // Check aliases
-    if (!matchedCommand) {
-      for (const [alias, commandKey] of this.aliases) {
-        if (normalized.includes(alias.toLowerCase())) {
-          matchedCommand = this.commands.get(commandKey);
-          matchedKey = commandKey;
+    // Polite-speech retry — ONLY on a miss, so the raw transcript's
+    // first-match semantics are untouched: '閉じてください' → '閉じて',
+    // '戻ります' → '戻って', 'can you go back' → 'go back'.
+    if (!found) {
+      for (const variant of this._politeVariants(normalized)) {
+        found = this._matchCommand(variant);
+        if (found) {
+          dispatchText = variant;
           break;
         }
       }
     }
+    const matchedCommand = found ? found.command : null;
+    const matchedKey = found ? found.key : null;
 
     // Execute command if found
     if (matchedCommand) {
       console.debug(`VoiceCommands: Executing command "${matchedKey}"`);
 
       try {
-        const result = matchedCommand.action(transcript, confidence);
+        const result = matchedCommand.action(dispatchText, confidence);
         this.lastCommand = { key: matchedKey, transcript, confidence, result, timestamp: Date.now() };
         if (matchedKey !== 'repeat-command') {
           this._repeatableTranscript = transcript;
@@ -1239,6 +1308,8 @@ export class VoiceCommands {
         '操作方法', 'できること', 'コマンドを教えて', 'コマンドを読み上げて',
         'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
         '使い方は', '何ができますか', 'コマンド一覧',
+        '教えて', '教えてほしい',
+        /^help( me)?$/i,
         /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
@@ -1256,10 +1327,12 @@ export class VoiceCommands {
     // registry by a topic term instead of reading every phrase. Matches the
     // term against each command's name, description and literal patterns.
     this.registerCommand('scoped-help', {
-      patterns: [/(.+)について教えて/, /help (?:with |about )?(.+)/i],
+      // 'help me'/'help me please' are cries for help itself, not a topic
+      // query — the (?!me) lookahead passes them to the 'help' command.
+      patterns: [/(.+)について教えて/, /help (?!me\b)(?:with |about )?(.+?)(?:\s+please)?$/i],
       action: (transcript) => {
         const m = transcript.match(/(.+)について教えて/) ||
-          transcript.match(/help (?:with |about )?(.+)/i);
+          transcript.match(/help (?!me\b)(?:with |about )?(.+?)(?:\s+please)?$/i);
         const term = (m ? m[1] : '').toLowerCase();
         const hits = [];
         for (const [name, cmd] of this.commands) {
@@ -2233,7 +2306,8 @@ export class VoiceCommands {
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
-        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って'],
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
+        'back', 'go back', 'backward', 'go backwards', 'step back'],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
         this.speak(moved ? '戻ります' : '戻れません');
@@ -2249,7 +2323,7 @@ export class VoiceCommands {
         'ページを更新', '更新して', 'ページを更新して',
         '再起動して', 'ブラウザを再起動', '再起動', 'ブラウザを再起動して',
         'ページを再読み込み', '読み込み直して', 'もう一度読み込んで',
-        'リフレッシュして', '再読み込みして',
+        'リフレッシュして', '再読み込みして', 'リロードして',
         /reload(\s+(the|this)\s+page)?$/i, /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
       action: () => {
@@ -2317,7 +2391,8 @@ export class VoiceCommands {
         'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下',
         'スクロール', 'スクロールして', 'ページをめくって', 'めくって',
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
-        'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ'],
+        'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
+        /scroll down/i, /scroll downwards?/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(SCROLL_LINES);
@@ -2330,7 +2405,8 @@ export class VoiceCommands {
     this.registerCommand('scroll-up', {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ',
         'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上',
-        'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ'],
+        'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
+        /scroll up/i, /scroll upwards?/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(-SCROLL_LINES);
@@ -2379,6 +2455,12 @@ export class VoiceCommands {
         'ウィンドウを増やして', '新しいタブで開いて', '新しいウィンドウで開いて',
         'もう一個タブ', 'タブを増やして', 'もう一枚', 'タブ追加',
         'タブをもう一個', 'もう一つタブ', 'タブを一個増やして',
+        '新しいタブを開いて', '新しいタブを開けて', '新しいタブを作って',
+        'タブを開いて', 'タブを開けて', 'タブを作って', 'タブを開く',
+        'タブを増やす', 'タブを追加して', 'タブを追加',
+        '新しいページを開いて', '新しいページを開けて', '新しいページを開く',
+        'open a new tab', 'open new tab', 'add a tab', 'create a tab',
+        'make a tab',
         /new\s+tab/i, /new\s+window/i],
       action: () => {
         tabManager?.newTab?.();
@@ -2394,6 +2476,8 @@ export class VoiceCommands {
         'このページを閉じて', 'このページを閉じる', 'このサイトを閉じて',
         'タブを消して', '閉じて', '閉じる', 'タブを消す', 'ページを消して',
         'パネルを閉じて', 'パネルを消して', 'ウィンドウを閉じる',
+        '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
+        'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -2420,7 +2504,7 @@ export class VoiceCommands {
       patterns: ['タブをピン留め', 'ピン留め', 'このタブを固定', 'タブを固定',
         'ピン留め解除', '固定を解除',
         'ピンを付けて', 'ピンを刺して', 'ピンを立てて', 'タブを固定して',
-        'このタブをピン留め',
+        'このタブをピン留め', 'ピン留めして', '固定して',
         /pin (this |the )?tab(?!\s*\d)/i, /unpin (this |the )?tab(?!\s*\d)/i],
       action: () => {
         const state = tabManager?.togglePin?.(tabManager.activeIndex) || null;
@@ -2641,7 +2725,7 @@ export class VoiceCommands {
         'このページを読んで', 'ページを読み上げて', '記事を読み上げて',
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
-        '全部読んで', '全て読んで', '最初から読んで',
+        '全部読んで', '全て読んで', '最初から読んで', '読んで', '読んでね',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i
@@ -2676,6 +2760,7 @@ export class VoiceCommands {
       patterns: ['読み上げを一時停止', '読み上げを中断して', '読み上げ中断',
         '読み上げを中断', '中断して', '読み上げを中断する',
         '一旦停止', '一旦止めて', 'ちょっと止めて', '一旦中断',
+        '待って', 'ちょっと待って', '少し待って',
         /pause\s+(the\s+)?(reading|narration|article)/i],
       action: () => {
         this.pauseSpeaking();
@@ -2956,6 +3041,7 @@ export class VoiceCommands {
         '繰り返して', 'もう一度お願い',
         '聞き取れなかった', '聞き取れませんでした', 'もう一度聞かせて',
         '復唱して', '言い直し', '読み直して', 'もう一度読み直して',
+        '聞いて', '聞かせて',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
         /listen again/i],
       action: () => {
@@ -2991,6 +3077,7 @@ export class VoiceCommands {
         '開いてるウィンドウ', '開いているウィンドウ',
         'タブを見せて', 'タブ一覧を見せて', 'タブを見せてほしい',
         'タブを表示して', '開いているものを読んで',
+        '見せて', '一覧を見せて', '一覧を出して', '一覧を教えて', '一覧',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i, /show (the |me )?(the )?tabs/i],
       action: () => {
@@ -3145,6 +3232,7 @@ export class VoiceCommands {
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
         'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
         '後で読む', 'あとで読む', '読書リストに追加',
+        '保存して', 'ブックマークに保存', '保存しておいて',
         /bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
       ],
@@ -3397,16 +3485,22 @@ export class VoiceCommands {
       description: 'Move the active tab to position N'
     });
 
+    // '前回…を開いて'/'閉じたタブを開いて' are session-restore/reopen
+    // intents, and 'タブ/メニュー/設定…を開いて' are UI opens, not literal
+    // site names — both are passed through via lookaheads.
+    const goToJp = new RegExp(
+      '^(?!(?:前回|セッション|閉じた))' +
+      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り)を開)' +
+      '(.+)(?:を開く?|に(?:行く|移動(?:する)?))'
+    );
     this.registerCommand('go-to', {
       patterns: [
-        // '前回…を開いて'/'閉じたタブを開いて' are session-restore/reopen
-        // intents, not literal site names — pass them through.
-        /^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
+        goToJp,
         /^(?:open|go to|navigate to)\s+(.+)/i
       ],
       action: (transcript) => {
         const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
+        const jpMatch = t.match(goToJp);
         const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
         const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
         if (onGoTo && query) {
@@ -3792,7 +3886,9 @@ export class VoiceCommands {
     this.registerCommand('tab-by-name', {
       patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
-        /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
+        /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i,
+        /(.+)のタブを(?:開いて|開けて|開く)/,
+        /^open (?:the )?(.+) tab$/i],
       action: (transcript) => {
         const m = transcript.match(/^(.+)のタブ/) ||
           transcript.match(/^tab (?:named|called) (.+)$/i) ||
@@ -4036,6 +4132,7 @@ export class VoiceCommands {
       patterns: ['すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
         '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
         '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
+        '全部閉めて', 'すべて閉めて', '全部のタブを閉めて', '全て閉める',
         /close\s+all\s+tabs/i],
       action: () => {
         if (!tabManager) {
@@ -4155,6 +4252,8 @@ export class VoiceCommands {
     // video). Each half reports what it actually stopped.
     this.registerCommand('stop-everything', {
       patterns: ['すべて止めて', '全部止めて', 'すべてを止めて',
+        'キャンセル', 'キャンセルして', '中止して', '止めて', '停止して',
+        /^cancel( that| it)?$/i,
         /stop everything/i, /stop all/i],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
@@ -5321,6 +5420,7 @@ export class VoiceCommands {
       patterns: ['通知を消して', '通知を閉じて', '通知を消去', 'トーストを消して',
         'メッセージを消して', 'メッセージを閉じて', 'ダイアログを閉じて',
         '警告を消して', '表示を消して', '通知はいい', '通知を全部消して',
+        '消して', '消えて', '消してほしい',
         /dismiss (the )?(notification|toast|alert|message)s?/i,
         /clear (the )?notifications?/i, /close (the )?notification/i],
       action: () => {

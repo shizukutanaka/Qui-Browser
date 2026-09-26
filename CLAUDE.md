@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 136: 敬体リトライ原子 — JA 敬語尾/ます形・EN please/can-you のバリアント探索 + 言い換え句第19弾
+外部基準: 日本語音声 UI の敬体カバー（Voice Access 系は request 語尾を正規化）、godan ます→て 変換表、スマートスピーカーの 'please' 除去。
+- ✨ **敬体リトライ層**（`_politeVariants`）: `processCommand` が生フレーズの first-match を試し、NO-MATCH 時のみ variant 群（て/で尾 + ください/頂戴/くれ/もらえ/いただけ 剥がし → ます→て godan 変換 → です/でしょう 剥がし → EN please/can-you 剥がし）を順次再マッチ。生優先で既存ルーティング不変、マッチした variant を action へ渡すので capture group も正しい。`lastCommand.transcript` は生 transcript を保持。
+- 🐛 **'help me please' 誤答修正**（実測捕捉）: scoped-help の EN capture が 'me' をトピック化して '「me」のコマンドはありません' → `(?!me\b)` lookahead で help 本体へ透過 + `(?:with|about)` 任意化 + 末尾 'please' 許容。
+- 🐛 **'メニューを開いてください' が go-to で literal ナビゲート**（実測捕捉）: go-to の `を開` lookahead に タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り を追加し settings-toggle/tab-search 系へ透過。
+- ✨ **エイリアス第19弾**: new-tab へ 'タブを開いて'/'新しいタブを開いて'/'open a new tab'/'add a tab'、close-tab へ '閉めて' 系、close-all-tabs へ '全部閉めて'、stop-everything へ 'キャンセル'/'中止して'/'cancel'、read-aloud へ '読んで'、pause-reading へ '待って'、say-again へ '聞いて/聞かせて'、tabs-list へ '見せて'/'一覧'、help へ '教えて'/'help me'、scroll へ 'scroll down/up'、back へ 'back'/'go back'、dismiss-notify へ '消して'、pin-tab へ '固定して'、refresh へ 'リロードして'、bookmark-page へ '保存して' 等。
+- ✅ **テスト +107（git stash で95件赤確認）**: Total 3724 tests (110 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 135: タブ検索/通知読み上げ原子 — tab-search・read-notify・pin-list + 誠実不在クラスタ + 言い換え句第18弾
 外部基準: Chrome 'Search tabs'（タブ検索パネル）、通知の読み上げ双子（NVDA notification history）、Chrome pinned-tab 一覧、Omnibox のコンテンツ意図検索。
 - 🐛 **'タブを検索して'/'Xのタブを探して'/'find tab X' の誤ルート修正**（実測捕捉）: web-search が 'タブ' を web 検索、find-in-page がフレーズをページ内検索していた → `tab-search` を find-in-page 前に登録。bare 形は 'タブの名前を言ってください' プロンプト、'Xのタブを探して/検索'・'タブの中でXを探して'・'find the X tab' は title+url 部分一致で setActive。

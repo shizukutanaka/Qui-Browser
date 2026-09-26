@@ -492,6 +492,9 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'字幕を見せて'/'出して' がブラインドトグルで ON 要求が OFF に反転**~~ — **Session 135 で修正**: `onOff()` の on 分岐に 見せて|出して を追加（消して→OFF 維持）。
 - ~~**'メニューを開いて'/'メニュー' が literal ナビゲート**~~ — **Session 135 で修正**: settings-toggle に 'メニュー'/'メニューを開いて'/'メニューを表示'/'設定を表示して'/'設定を出して'/'open the menu' 追加。
 - ~~**'ニュースを見せて'/'写真が見たい' 等のコンテンツ意図句が未認識**~~ — **Session 135 で実装**: web-search に 'を見せて'/'を見たい'/'が見たい' 形追加（タブ/履歴/ブックマーク/設定/通知の '見せて' は先行登録維持）。reader-scale-status にズーム句、tabs-list に 'タブを見せて'。
+- ~~**敬体表・丁寧要求尾（ください/ます/頂戴/くれ/もらえ/いただけ）・EN 敬体ラッパー（please/can you…）が全て NO-MATCH**~~ — **Session 136 で実装**: `processCommand` が生マッチ失敗時のみ `_politeVariants()` でリトライ（te/de 尾 + 敬語尾剥がし、ます→て godan 変換、です/でしょう剥がし、EN please/can-you 剥がし）。生フレーズ優先でゼロ回帰設計、て形動作へ dispatch。
+- ~~**'help me please' が scoped-help のトピック扱いで '「me」のコマンドはありません' 誤答**~~ — **Session 136 で修正**: scoped-help EN を `(?!me\b)` lookahead + `(?:with|about)` 任意化 + 末尾 'please' 許容へ。
+- ~~**'open a new tab'/'add a tab'、'back'/'go back'、'scroll down/up'、'help me'、'cancel' 等の bare EN 自然言語が NO-MATCH**~~ — **Session 136 で実装**: new-tab/close-tab/back/scroll/help/stop-everything 他へ JA/EN エイリアス約40句追加。
 
 
 ---
