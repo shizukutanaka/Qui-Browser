@@ -92,6 +92,7 @@ export class VoiceCommands {
     this._onSpellWord = null;
     this._onHeadingHere = null;
     this._onArticleSummary = null;
+    this._onShare = null;
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
@@ -409,12 +410,13 @@ export class VoiceCommands {
     // pin the direction; the bare panel phrase toggles.
     this.registerCommand('settings-toggle', {
       patterns: ['設定を開いて', '設定を開く', '設定を閉じて', '設定を閉じる', '設定パネル',
-        /open\s+settings/i, /close\s+settings/i],
+        '設定を見せて', '設定を表示',
+        /open\s+settings/i, /close\s+settings/i, /show\s+settings/i],
       action: (transcript) => {
         let want;
         if (/閉じ|close/i.test(transcript)) {
           want = false;
-        } else if (/開|open/i.test(transcript)) {
+        } else if (/開|open|見せ|show/i.test(transcript)) {
           want = true;
         }
         const visible = this._onSettingsPanel ? this._onSettingsPanel(want) : null;
@@ -514,6 +516,31 @@ export class VoiceCommands {
         return { action: 'last-line', res };
       },
       description: 'Read the last reader line'
+    });
+
+    // Peek the adjacent tab — announce its title without switching
+    // (screen-reader "what's next" parity). Hoisted: next-tab's loose
+    // /next\s+tab/i would otherwise own 'read next tab' and switch.
+    this.registerCommand('peek-tab', {
+      patterns: ['次のタブを読んで', '次のタブは', '次のタブを教えて',
+        '前のタブを読んで', '前のタブは', '前のタブを教えて',
+        /read (the )?(next|prev(?:ious)?) tab/i,
+        /what('s| is) (the )?(next|prev(?:ious)?) tab/i],
+      action: (transcript) => {
+        const dir = /次|next/i.test(transcript) ? 1 : -1;
+        const tabs = this._tabManager?.tabs || [];
+        if (tabs.length < 2) {
+          this.speak('他のタブはありません');
+          return { action: 'peek-tab' };
+        }
+        const i = this._tabManager?.activeIndex ?? 0;
+        const j = (i + dir + tabs.length) % tabs.length;
+        const t = tabs[j];
+        const name = t.currentTitle || t.currentUrl || 'タイトルなし';
+        this.speak(`タブ${j + 1}: ${name}`);
+        return { action: 'peek-tab', index: j };
+      },
+      description: 'Announce the adjacent tab title'
     });
 
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
@@ -698,7 +725,8 @@ export class VoiceCommands {
 
     // VR mode control
     this.registerCommand('vr-enter', {
-      patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ'],
+      patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ',
+        /vr mode/i],
       action: () => {
         // Would trigger VR mode
         return { action: 'vr', enabled: true };
@@ -755,8 +783,8 @@ export class VoiceCommands {
     // Volume status — "what's the volume" atom. onVolume(0) returns
     // undefined (no change), so the host exposes a dedicated getter.
     this.registerCommand('volume-status', {
-      patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ',
-        /current volume/i, /volume (status|level)/i],
+      patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ', '音量はいくつ',
+        /current volume/i, /volume (status|level)/i, /what('s| is)? (the )?volume/i],
       action: () => {
         const v = this._onVolumeStatus ? this._onVolumeStatus() : null;
         this.speak(v === null ? '音量を取得できません' : `音量は${v}%です`);
@@ -839,7 +867,8 @@ export class VoiceCommands {
     // leaving immersion for the settings panel.
     this.registerCommand('reader-size-up', {
       patterns: ['記事の文字を大きく', '記事を大きく', 'リーダーの文字を大きく', '記事の文字を大きくして',
-        'ズームイン', /larger (article|reader) text/i, /bigger (article|reader) text/i,
+        'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
+        /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(0.25) : null;
@@ -851,7 +880,8 @@ export class VoiceCommands {
 
     this.registerCommand('reader-size-down', {
       patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
-        'ズームアウト', /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
+        'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
+        /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
         /zoom out/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(-0.25) : null;
@@ -946,7 +976,8 @@ export class VoiceCommands {
     // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる',
-        'コマンド一覧を読み上げて', 'ヘルプを読み上げて', /read commands/i],
+        'コマンド一覧を読み上げて', 'ヘルプを読み上げて', 'ヘルプを見せて',
+        'コマンド一覧を表示', 'コマンドを表示', /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
           .map((cmd) => this._spokenExample(cmd))
@@ -1373,7 +1404,7 @@ export class VoiceCommands {
     onMuteStatus, onFindQuery, onReadFromLine, onHalfPage, onSentenceStep,
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
     onSearchEngineStatus, onCharStep, onWord, onSpellWord,
-    onHeadingHere, onArticleSummary,
+    onHeadingHere, onArticleSummary, onShare,
     onContrastStatus, onDwellTimeStatus, onSessionSave } = {}) {
     this._tabManager = tabManager || null;
     if (onVolume) {
@@ -1537,6 +1568,9 @@ export class VoiceCommands {
     }
     if (onReadClipboard) {
       this._onReadClipboard = onReadClipboard;
+    }
+    if (onShare) {
+      this._onShare = onShare;
     }
     if (onRecenter) {
       this._onRecenter = onRecenter;
@@ -1753,8 +1787,9 @@ export class VoiceCommands {
     this.registerCommand('clear-history', {
       patterns: [
         '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
+        '閲覧履歴を消して', '検索履歴を消して',
         /履歴を?(消去|削除|クリア|消す)/,
-        /clear\s+history/i, /delete\s+history/i
+        /clear\s+(browsing\s+)?history/i, /delete\s+history/i
       ],
       action: () => {
         if (onClearHistory) {
@@ -1905,8 +1940,8 @@ export class VoiceCommands {
     // separate) and the command says so honestly.
     this.registerCommand('move-tab-left', {
       patterns: ['タブを左に移動', 'タブを左へ', 'タブを左に動かして',
-        'このタブを左へ', 'このタブを左に移動', '左に移動',
-        /move (the |this )?tab left/i],
+        'このタブを左へ', 'このタブを左に移動', '左に移動', 'タブを左に',
+        /move (the |this )?tab left/i, /move it left/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, -1) || false;
         this.speak(moved ? 'タブを移動しました' : 'タブをこれ以上移動できません');
@@ -1917,8 +1952,8 @@ export class VoiceCommands {
 
     this.registerCommand('move-tab-right', {
       patterns: ['タブを右に移動', 'タブを右へ', 'タブを右に動かして',
-        'このタブを右へ', 'このタブを右に移動', '右に移動',
-        /move (the |this )?tab right/i],
+        'このタブを右へ', 'このタブを右に移動', '右に移動', 'タブを右に',
+        /move (the |this )?tab right/i, /move it right/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, 1) || false;
         this.speak(moved ? 'タブを移動しました' : 'タブをこれ以上移動できません');
@@ -2242,7 +2277,7 @@ export class VoiceCommands {
     // Open the bookmark panel at its history tab — '履歴' alone still
     // toggles the whole panel; these phrases mean "open history".
     this.registerCommand('history', {
-      patterns: ['履歴を開いて', '履歴を見て', '履歴を表示',
+      patterns: ['履歴を開いて', '履歴を見て', '履歴を表示', '履歴を見せて',
         /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2396,6 +2431,7 @@ export class VoiceCommands {
     // bookmarks mode and only shows when not already visible (open≠toggle).
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
+        'ブックマークを見せて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2829,7 +2865,9 @@ export class VoiceCommands {
     // describe-tab — the richer sibling of title/tab-status: index, title,
     // load state, privacy and pin flags in one line.
     this.registerCommand('describe-tab', {
-      patterns: ['このタブについて', 'このタブは', 'タブの状態', /describe (the )?tab/i],
+      patterns: ['このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
+        'このページの情報', 'サイト情報', 'このサイトの情報',
+        /describe (the )?tab/i, /^page info$/i, /^site info$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         const i = tabManager?.activeIndex ?? -1;
@@ -2885,8 +2923,9 @@ export class VoiceCommands {
     // Read the page title — NVDA Insert+T parity. where-am-i describes the
     // whole location; this is the single-line "what page am I on" atom.
     this.registerCommand('title', {
-      patterns: ['タイトル', 'このページのタイトル', 'ページ名', 'タブのタイトルは',
-        /page title/i,
+      patterns: ['タイトル', 'このページのタイトル', 'ページ名', 'ページの名前',
+        'ページタイトル', '今のページ', 'タブのタイトルは',
+        /page title/i, /^this page$/i, /^current page$/i,
         /what('s| is) (the |this )?(page|title)/i],
       action: () => {
         const p = tabManager?.getActiveTab?.() || null;
@@ -3150,6 +3189,7 @@ export class VoiceCommands {
     // secure'/'このページは安全ですか' answers from the scheme, honestly.
     this.registerCommand('security-status', {
       patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
+        '証明書は', '証明書はどう', /certificate/i,
         /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
@@ -3885,7 +3925,8 @@ export class VoiceCommands {
     // control the user can change but cannot see.
     this.registerCommand('speech-rate-status', {
       patterns: ['読み上げ速度は', '読み上げの速さは', '現在の読み上げ速度',
-        '今の読み上げ速度', /speech rate/i, /reading rate/i, /how fast/i],
+        '今の読み上げ速度', /speech rate/i, /reading rate/i, /how fast/i,
+        /reading speed/i, /voice speed/i],
       action: () => {
         this.speak(`読み上げ速度は${this._speechRate}倍です`);
         return { action: 'speech-rate-status', rate: this._speechRate };
@@ -3910,7 +3951,8 @@ export class VoiceCommands {
       description: 'Announce the selected narration voice'
     });
     this.registerCommand('language-status', {
-      patterns: ['言語は', '言語設定は', '今の言語', /what language|which language/i],
+      patterns: ['言語は', '言語設定は', '今の言語', '読み上げ言語', '読み上げの言語',
+        /what language|which language/i, /reading language/i],
       action: () => {
         this.speak(`言語は${this.language}です`);
         return { action: 'language-status', language: this.language };
@@ -4196,6 +4238,22 @@ export class VoiceCommands {
 
     // Read the clipboard aloud — NVDA's read-clipboard atom. Same async
     // announce pattern as paste-go; the hook resolves to the text to speak.
+    // Web Share API parity — 'share this page' hands the URL to the OS
+    // share sheet, or copies it when the API is missing (hook decides).
+    this.registerCommand('share-page', {
+      patterns: ['共有して', 'このページを共有', 'このページを共有して',
+        'ページを共有', 'ページを共有して', /^share( this page| it)?$/i,
+        /share (the )?(page|url|link)/i],
+      action: () => {
+        const p = this._onShare
+          ? Promise.resolve(this._onShare())
+          : Promise.resolve(null);
+        p.then((msg) => this.speak(msg || '共有できません'));
+        return { action: 'share-page' };
+      },
+      description: 'Share the active page (Web Share or clipboard)'
+    });
+
     this.registerCommand('read-clipboard', {
       patterns: ['クリップボードを読み上げ', 'クリップボードを読んで',
         /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i],
@@ -4245,7 +4303,9 @@ export class VoiceCommands {
     // Phrasings avoid 'ブックマーク' bare (toggle) and 'ブックマークを開いて'.
     this.registerCommand('bookmark-status', {
       patterns: ['ブックマーク済みですか', 'ブックマークされていますか',
-        'ブックマークされてますか', /is (this |it )?bookmarked/i],
+        'ブックマークされてますか', 'ブックマークに入ってる', 'ブックマークにある',
+        'ブックマークしたか', /is (this |it )?bookmarked/i,
+        /in (the )?bookmarks\?*$/i, /did i bookmark/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
         if (!active) {

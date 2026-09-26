@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 120: ピーク/共有/エイリアス原子 — 隣タブ非破壊告知・Web Share 音声経路 + 言い換え句第3弾
+外部基準: screen-reader の "what's next" 非破壊 peek、Web Share API（navigator.share → clipboard フォールバック）、主要コマンドの自然言語バリエーション。
+- ✨ **peek-tab**（隣タブを切り替えずにタイトル告知）: '次のタブを読んで'/'次のタブは'/'前のタブを読んで'/'read next tab'/'what's the next tab' → `(i±1+len)%len` wrap で `タブN: タイトル`、1枚以下は '他のタブはありません'。**衝突を実測捕捉**: next-tab の loose `/next\s+tab/i` が 'read next tab' を所有して切替してしまう → hoisted 登録（`this._tabManager` 遅延バインド）。'next tab' そのものは切替を維持（共存テスト）。
+- ✨ **share-page**（Web Share API 準拠）: '共有して'/'このページを共有'/'share this page' → `onShare` フック promise → 発話（フック無しは '共有できません'）。VRApp 側は `navigator.share({title,url})` → 未対応時 `clipboard.writeText(url)` で '…URLをコピーしました' — paste-go/read-clipboard と同じ async `.then` speak パターン。**捕捉**: title への非アンカー '/this page/' は 'share this page' を奪うため `/^this page$/i`/`/^current page$/i` で限定。
+- ✨ **エイリアス拡充（第3弾）**: title へ 'ページの名前'/'ページタイトル'/'今のページ'/'this page'/'current page'、history/bookmarks-open へ '履歴を見せて'/'ブックマークを見せて'、bookmark-status へ 'ブックマークに入ってる'/'ブックマークしたか'/'did i bookmark'/'in bookmarks'、speech-rate-status へ 'reading speed'/'voice speed'、volume-status へ '音量はいくつ'/'what volume'、language-status へ '読み上げ言語'/'reading language'、vr-enter へ 'vr mode'、reader-size へ '文字を大きく/小さく'・'拡大/縮小して'・'もっと大きく/小さく'、settings-toggle へ '設定を見せて'/'設定を表示'/'show settings'（見せ/show は open 扱いに分岐追加）、help へ 'ヘルプを見せて'/'コマンド一覧を表示'、clear-history へ '閲覧履歴を消して'/'検索履歴を消して'/'clear browsing history'、describe-tab へ 'ページ情報'/'このサイトの情報'/'site info'/'page info'（記事要約ではなくタブ説明が先勝ち）、security-status へ '証明書は'/'certificate'、move-tab へ 'タブを左/右に'・'move it left/right'。
+- ✅ **テスト +54（git stash で実装前に51件赤確認 — 3件は共存ガードの設計上緑）**: Total 2400 tests (94 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 119: ルート修正/行端原子 — 位置問い合わせ透過・移動句・previous-line・incognito-tabs の誤ルート4件 + 行端ジャンプ + 'を読んで' 端形
 外部基準: VoiceOver 'what is my position'、Chrome タブドラッグの指示詞形、NVDA previous-line、Chrome "Close incognito tabs"、first/last-heading の行双子。
 - 🐛 **タブ位置問い合わせの誤答修正**: 'このタブの位置'→「こ」のタブ検索、'何個目のタブ'→「何個目」検索に誤答（実測捕捉）→ tab-by-name lookahead stoplist へ `このタブ`・`何個目` 追加 + tab-status へ4句追加（'このニュースのタブ' の名指しは共存テストで維持）。
