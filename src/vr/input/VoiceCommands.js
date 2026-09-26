@@ -392,7 +392,9 @@ export class VoiceCommands {
     // are captured when spoken ('30秒戻る'), else the 10-second step applies.
     this.registerCommand('video-seek', {
       patterns: [/(\d+)\s*秒\s*(戻|進)/, '動画を戻して', '動画を進めて', '巻き戻して',
-        /seek\s+(forward|back)/i, /rewind/i],
+        '巻き戻し', '巻き戻す', '早送り', '早送りして', '動画を早送り',
+        '少し戻して',
+        /seek\s+(forward|back)/i, /rewind/i, /fast ?forward/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
         const secs = m ? Number(m[1]) : 10;
@@ -1284,7 +1286,10 @@ export class VoiceCommands {
     this.registerCommand('stop', {
       patterns: ['停止', 'ストップ', 'やめて', '聞くな',
         'マイクをミュート', 'マイクオフ', 'マイクを止めて',
-        /mute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i],
+        'マイクを切って', 'マイクをオフにして', 'マイク停止', '聞き取りをやめて',
+        '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
+        /mute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
+        /turn (off )?(the )?mic(raphone)?( off)?/i],
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -2286,7 +2291,9 @@ export class VoiceCommands {
         'このページを読んで', 'ページを読み上げて', '記事を読み上げて',
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
+        '全部読んで', '全て読んで', '最初から読んで',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
+        /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i
       ],
       action: () => {
@@ -2337,7 +2344,10 @@ export class VoiceCommands {
     this.registerCommand('speech-faster', {
       patterns: ['速くして', 'もっと速く', '読み上げを速く', '読み上げを早く',
         '早く読んで', '速く読んで',
+        '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
+        '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
+        /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
       action: () => {
         const rate = this.setSpeechRate(this._speechRate + 0.25);
@@ -2350,7 +2360,10 @@ export class VoiceCommands {
     this.registerCommand('speech-slower', {
       patterns: ['遅くして', 'もっと遅く', '読み上げを遅く', '読み上げをゆっくり',
         'ゆっくり読んで', '遅く読んで',
+        '読み上げ速度を下げて', '読み上げの速度を下げて', '話す速度を下げて',
+        '話すスピードを下げて', '読み上げスピードを下げて', 'ゆっくり',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
+        /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
       action: () => {
         const rate = this.setSpeechRate(this._speechRate - 0.25);
@@ -2465,6 +2478,7 @@ export class VoiceCommands {
     this.registerCommand('copy-url', {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
         'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
+        'コピーして', 'ページをコピー', 'このページをコピー',
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -3030,13 +3044,14 @@ export class VoiceCommands {
       patterns: [/パネルを(近づけて|近く|遠く|遠ざけて)/, /パネルを(近く|遠く)して/,
         /(パネル|画面|ウィンドウ)が?(遠い|遠すぎ|近い|近すぎ)/,
         /(画面|ウィンドウ)を(近づけて|遠ざけて|近く|遠く)/,
+        /(パネル|画面|ウィンドウ)を?(大きく|小さく)(して|にして)?/,
         '遠すぎる', '近すぎる', '遠すぎ', '近すぎ', /too (far|close)/i,
-        /panel (closer|nearer|further|farther|away)/i],
+        /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
       action: (transcript) => {
-        // '遠い'/'遠すぎ' are complaints of distance → bring it nearer;
-        // '近い'/'近すぎ' are complaints of closeness → push it away.
-        const nearer = /近づ|近く|遠い|遠すぎ|closer|nearer|too far/i.test(transcript)
-          && !/遠く|遠ざ|近い|近すぎ|further|farther|away|too close/i.test(transcript);
+        // '遠い'/'遠すぎ'/'大きく' are complaints of distance → bring it nearer;
+        // '近い'/'近すぎ'/'小さく' are complaints of closeness → push it away.
+        const nearer = /近づ|近く|遠い|遠すぎ|大きく|closer|nearer|bigger|too far/i.test(transcript)
+          && !/遠く|遠ざ|近い|近すぎ|小さく|further|farther|away|too close|smaller/i.test(transcript);
         const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
         this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
         return { action: 'panel-distance', distance: v };
@@ -3241,7 +3256,9 @@ export class VoiceCommands {
       patterns: ['タイトル', 'このページのタイトル', 'ページ名', 'ページの名前',
         'ページタイトル', '今のページ', 'タブのタイトルは',
         /page title/i, /^this page$/i, /^current page$/i,
-        /what('s| is) (the |this )?(page|title)/i],
+        /what('s| is|s) (the |this )?(page|title)/i,
+        'タイトルを読んで', 'タイトルを教えて',
+        /read (the |this )?(page |tab )?title/i],
       action: () => {
         const p = tabManager?.getActiveTab?.() || null;
         if (!p) {
@@ -3367,7 +3384,9 @@ export class VoiceCommands {
       patterns: ['URLを教えて', 'URLを読んで', 'アドレスを教えて',
         'URLを表示', 'アドレスを読んで', 'URLは',
         'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
-        /(read|say|what is|what's) (the )?url/i],
+        '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
+        /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
+        /(page|tab) (url|address)/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl || '';
         this.speak(url || 'URLがありません');
@@ -4252,7 +4271,8 @@ export class VoiceCommands {
     // control the user can change but cannot see.
     this.registerCommand('speech-rate-status', {
       patterns: ['読み上げ速度は', '読み上げの速さは', '現在の読み上げ速度',
-        '今の読み上げ速度', /speech rate/i, /reading rate/i, /how fast/i,
+        '今の読み上げ速度', '再生速度', '再生速度は', '再生速度を教えて',
+        /speech rate/i, /reading rate/i, /how fast/i,
         /reading speed/i, /voice speed/i],
       action: () => {
         this.speak(`読み上げ速度は${this._speechRate}倍です`);
@@ -4569,7 +4589,8 @@ export class VoiceCommands {
     // happens in the promise, keeping the action itself synchronous.
     this.registerCommand('paste-go', {
       patterns: ['ペーストして開く', '貼り付けて開く', 'ペーストして移動',
-        /paste and (go|open|navigate)/i],
+        'ペーストして', 'ペーストして開いて', '貼り付けて',
+        /paste and (go|open|navigate)/i, /paste it/i, /paste (the )?clipboard/i],
       action: () => {
         const p = this._onPasteGo
           ? Promise.resolve(this._onPasteGo())

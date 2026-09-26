@@ -455,6 +455,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'一番左のタブ'/'一番右のタブ'/'左端のタブ' が名指し検索に誤ルート**~~ — **Session 127 で実装**: tab-by-name stoplist 拡張 + first-tab/last-tab へ '一番左/一番右のタブ'・'左端/右端のタブ'・leftmost/rightmost を追加。
 - ~~**fullscreen/immersive 文言が未認識・'exit fullscreen' が vr-enter に誤ルート**~~ — **Session 127 で実装**: vr-enter に '全画面'/'フルスクリーン(にして|モード)'/immersive mode/`(?<!exit )full ?screen/i`、vr-exit に '全画面をやめて'/'フルスクリーン解除'/'exit fullscreen' — lookbehind で enter 側が exit 句を横取りしないよう分離。
 - ~~**高頻度コマンドの言い換え句が抜けている（第10弾）**~~ — **Session 127 で実装**: reader-size-up/down 訴え句（'文字が小さい/大きい'/'読みにくい'/'フォントを大きく/小さくして'）、keyboard 'キーボードを出して/閉じて/しまって'/'show|hide keyboard'、tabs-list 'タブ一覧を読んで'/'開いてるタブ'、read-url 'このページのURL'/'ページのアドレス'、copy-url 'このページのリンク'、trouble '見えにくい'/'見にくい'。
+- ~~**マイク停止の自然言語形が未認識（'マイクを切って'/'turn off the mic' 等）**~~ — **Session 128 で実装**: stop へ 'マイクを切って'/'マイクをオフにして'/'マイク停止'/'聞き取りをやめて/停止'/'聞くのをやめて'/'音声認識を止めて/終了'/'turn off the mic'/'turn the mic off'（語順両対応 regex）。
+- ~~**video-seek の自然形が未認識（'早送り'/'巻き戻し'/'fast forward'）**~~ — **Session 128 で実装**: 早送り系+巻き戻し系+少し戻して+fast forward。'少し進めて' は navigate-forward 既存所有で対象外（共存テストで断言）。
+- ~~**speech-rate の動詞/目的語形が未認識（'読み上げ速度を上げて' 等）**~~ — **Session 128 で実装**: speech-faster/slower へ速度オブジェクト句 + '速読して'/'ゆっくり' + 'speed up/slow down the reading'。
+- ~~**read-aloud の全体形が未認識・/read all/ が 'read all headings' を横取り**~~ — **Session 128 で実装**: '全部読んで'/'全て読んで'/'最初から読んで'/'read all/everything/it all'/'from the top/beginning/start' — 既存テストで toc 横取りを検出し `^…$` アンカー化。
+- ~~**copy-url/panel-distance/title/read-url/rate-status/paste-go の言い換え欠落**~~ — **Session 128 で実装**: 'コピーして'/'ページをコピー'、サイズ言い換え（'パネルを大きく'→近づける/'小さく'→遠ざける）、'タイトルを読んで'/'whats the title'、'今のページのアドレス'/'whats the url'/'page address'、'再生速度(は)'、'ペーストして'/'貼り付けて'/'paste it'/'paste the clipboard'。
 
 
 ---
