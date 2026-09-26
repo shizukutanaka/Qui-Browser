@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 162: 方言語尾・裸動詞原子 — 関西進行形/依頼形、EN wait idioms、up-verb ナビゲート
+外部基準: 関西弁進行形(とる/どる/てん/でん)、依頼形(てや/てはる/てもろて/てくれん)、'ずに' 否定、EN 'hang on/hold up' 待機句、'fire up/pull up/bring up' phrasal verbs。
+- 🐛 **'open up a tab'/'open a tab' 誤ルート修正**: tab-by-name が 'a' をタイトルとして誤検索 → new-tab リテラル化（登録順が先行するため pattern 追加のみで勝つ）。
+- ✨ **`_politeVariants` 語尾層IV**: てん→て、でん→で、てんか/でんの→てる、とる→てる/どる→でる、(て|で)や/はる/もろて/くれへん/くれん→て、(て|で)へん/ひん→てる、っす→''。
+- ✨ **goToEn 前置詞拡張**: `fire up|pull up|bring up|open up` + `tabs` 除外（'pull up the tabs'→tabs-list リテラルが先行勝ち）。
+- ✨ **EN 待機句→pause-reading**: 'hang on'/'hold up'/'wait a sec'/'one sec'/'gimme a sec'/'hold on'。
+- ✨ **状態質問**: 'whatcha doing'/'何してる'/'使ってる'→working-status、'閉じてる'/'開いてる'→describe-tab、'戻っとる'→back-status。
+- ✨ **その他**: 'close em all'/'close them all'→close-all-tabs、'sup'/'yo'/'whats up'→ack、'知らん'/'できひん'→help、'ずに' 系→negate、'開いてる'→describe-tab。
+- ✅ **テスト +84（git stash で73件赤確認）**: Total 5834 tests (136 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
 ### Session 161: 口語語尾・裸語原子 — ~ちゃお/~なきゃ/二重語尾、EN bare 名詞・短縮形
 外部基準: 日本語口語の意志形(~ちゃお)/義務形(~なきゃ)収縮、文末 'かい'、EN 単一語コマンド(Siri/Alexa 慣行)、'gonna/wanna/gotta/gimme/lemme' 短縮前置詞。
 - ✨ **`_politeVariants` 語尾層III**: `ちゃお`→て、`じゃお`→で（ん-じゃ は んで 形へ）、`なきゃ|なければ|ないと`→あ行五段マップ('読まなきゃ'→'読んで')+一段→て、二重語尾 `てあげてください|てくださると|ていただければ|てほしいんだけど|てほしいな`→て。

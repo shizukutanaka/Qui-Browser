@@ -980,6 +980,11 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**bare EN 名詞/動詞（'tabs'/'bookmarks'/'history'/'scroll'/'read'/'find'/'search'/'stop'/'top'/'bottom'/'up'/'down'）が未認識**~~ — **Session 161 で実装**: 各オーナーへ単一語リテラル（'stop'→stop-reading、'stop everything'→stop-everything 維持）。
 - ~~**JP 指示語・EN 離脱/称賛句が未認識**~~ — **Session 161 で実装**: 'なにこれ'/'これなに'/'何それ'/'what is this'/'lemme see'→describe-tab、'take me home'→home、'get outta here'/'get me out'→vr-exit、'kinda slow'→trouble、'cheers'/'appreciate it'/'good job'→ack、'やって'→help。
 - その他 fill: half-page '半分進んで/戻って/半分上/下'、pause-reading '待て'/'待ってくれ'、find-in-page '検索しろ'/'探しろ'、speaking-status '読んでる'。
+- ~~**方言/口語進行形（てん/でん・とる/どる）・関西依頼形（てや/てはる/てもろて/てくれん）が未認識**~~ — **Session 162 で実装**: `_politeVariants` 語尾層IV（てん→て、でん→で、てんか/でんの→てる、とる→てる、どる→でる、てや/てはる/てもろて/てくれへん/てくれん→て、てへん→てる）。'戻ってん'→back、'読んどる'→speaking-status、'閉じてもろて'→close-tab。
+- ~~**'open up a tab'/'open a tab' が 'a' 名指しタブ検索に誤ルート**~~ — **Session 162 で修正**: new-tab リテラル化 + goToEn 前置詞に fire up|pull up|bring up|open up（'fire up youtube'→go-to）+ tabs 除外。
+- ~~**EN 待機句・離脱句・挨拶・'close em all' 系が未認識**~~ — **Session 162 で実装**: 'hang on'/'wait a sec'/'one sec'→pause-reading、'whatcha doing'/'何してる'→working-status、'close em all'/'close them all'→close-all-tabs、'sup'/'yo'/'whats up'→ack。
+- ~~**知らん/できひん（関西）・ずに否定形が未認識**~~ — **Session 162 で実装**: '知らん'/'できひん'→help、'戻られへん'→back-status、'読まずに' 等 ずに 系→negate。
+- その他 fill: describe-tab '閉じてる'/'開いてる'（進行態質問）、working-status '使ってる'/'whatcha reading'、'pull up the tabs'→tabs-list、'pull up the history'→history、'bring up bookmarks/settings'。
 
 ---
 
