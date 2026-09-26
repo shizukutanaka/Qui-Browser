@@ -2180,10 +2180,18 @@ export class VoiceCommands {
     });
 
     this.registerCommand('find-in-page', {
-      patterns: ['ページ内検索', /find\s+(?:in\s+(?:this\s+)?page\s+)?(?!first\b|last\b)(.+)/i, /(.+?)を探して/],
+      // 'find in page X' is a separate pattern so the optional prefix can't
+      // backtrack into the query; the plain form only steps aside for the
+      // two complete endpoint utterances ('find first'/'find last'), not
+      // for multiword queries like 'find first aid'.
+      patterns: ['ページ内検索',
+        /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
+        /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
+        /(.+?)を探して/],
       action: (transcript) => {
         const bare = transcript === 'ページ内検索';
-        const m = transcript.match(/find\s+(?:in\s+(?:this\s+)?page\s+)?(?!first\b|last\b)(.+)/i)
+        const m = transcript.match(/find\s+in\s+(?:this\s+)?page\s+(.+)/i)
+          || transcript.match(/find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i)
           || transcript.match(/(.+?)を探して/);
         if (bare || !m) {
           this.speak('検索する語を言ってください');

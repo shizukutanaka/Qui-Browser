@@ -143,6 +143,34 @@ describe('first/last reader line', () => {
   });
 });
 
+describe('find-in-page edge cases (Devin Review on #330)', () => {
+  test('"find first aid" searches for the multiword term', () => {
+    const findInReader = jest.fn(() => 2);
+    const { vc, spoken } = makeVC({ panel: tab('a', 'b', { findInReader }) });
+    vc.processCommand('find first aid');
+    expect(findInReader).toHaveBeenCalledWith('first aid');
+    expect(spoken[0]).toBe('2件見つかりました');
+  });
+  test('"find in page first" searches for "first", not "in page first"', () => {
+    const findInReader = jest.fn(() => 1);
+    const { vc } = makeVC({ panel: tab('a', 'b', { findInReader }) });
+    vc.processCommand('find in page first');
+    expect(findInReader).toHaveBeenCalledWith('first');
+  });
+  test('"find first" still routes to the endpoint command', () => {
+    const findInReader = jest.fn(() => 1);
+    const onFindMatch = jest.fn(() => 'ok');
+    const { vc, spoken } = makeVC({
+      panel: tab('a', 'b', { findInReader }),
+      onFindMatch
+    });
+    vc.processCommand('find first');
+    expect(findInReader).not.toHaveBeenCalled();
+    expect(onFindMatch).toHaveBeenCalledWith(1);
+    expect(spoken[0]).toBe('1件目に移動しました');
+  });
+});
+
 describe('JA read-form aliases on first/last collections', () => {
   test('"最初の段落を読んで" narrates paragraph 1', () => {
     const onReadParagraphAt = jest.fn(() => ['段落1の文']);

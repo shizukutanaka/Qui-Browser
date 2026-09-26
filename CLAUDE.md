@@ -260,7 +260,8 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 - 🐛 **'incognito tabs' がモードトグルされる誤ルート修正**: private-mode `/incognito/i` → `/incognito(?!\s+tabs?)/i` に絞り private-list へ透過（'incognito mode' トグルは共存テストで維持）。回帰捕捉: 素朴な `/private tabs/i` が 'close private tabs' を close-private-tabs から奪う → `/^private tabs$/i` 末尾アンカー化。
 - ✨ **first-line/last-line**（first/last-heading の行双子）: '最初の行'/'last line'/'最後の行を読んで' → `_onReaderLine(1|lineStatus().total)` → 'N行目。…'（read-line-n の hoisted ブロックへ — `_onReaderLine`/`_tabManager` 遅延バインド）。
 - ✨ **'を読んで' 端形**: read-paragraph-at へ `/(?:最初|最後)の段落を読(?:んで|み上げ)/`（'最後' は `_onParagraphStatus().total` 解決 → 本文を実ナレーション）、first/last-sentence へ '最初/最後の文を読んで'（本文発話済み）、first/last-heading へ '最初/最後の見出しを読んで'（位置告知）。
-- ✅ **テスト +29（git stash で26件赤確認、3件は共存ガードの設計上緑）**: Total 2343 tests (93 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 🐛 **Devin Review #330 指摘修正**: `(?!first\b|last\b)` が 'find first aid' を全滅させ optional `in page` 前置詞の backtrack で 'find in page first' が 'in page first' を検索していた → find-in-page を `find in page X` 専用 regex + `(?!in\s+…page)(?!first\s*$|last\s*$)` 平系の2regex構成へ分割（pattern・抽出を同形に）。'find first'/'find last' の endpoint ルート維持。
+- ✅ **テスト +32（git stash で28件赤確認 — 初回26件＋レビュー修正2件、残り4件は共存ガードの設計上緑）**: Total 2346 tests (93 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
 
 ### Session 118: ルート修正/エイリアス原子 — close-this-tab・find-first/last・タブ移動の誤ルート3件 + 言い換え句第2弾
 外部基準: Chrome 'Close tab' の指示詞形、NVDA find-first/find-last、Alt+Tab 移動句、主要コマンドの自然言語バリエーション。

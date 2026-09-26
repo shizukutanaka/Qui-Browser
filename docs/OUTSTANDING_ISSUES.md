@@ -417,6 +417,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'incognito tabs' がプライベートモードをトグルする**~~ — **Session 119 で実装**: private-mode の `/incognito/i` が一覧意図の句を所有 → `/incognito(?!\s+tabs?)/i` に絞り private-list へ（'incognito mode' トグルは維持）。
 - ~~**行レイヤーに端ジャンプがない**~~ — **Session 119 で実装**: first-heading/last-heading の行双子。voice `first-line`/`last-line`（'最初の行'/'last line'/'最後の行を読んで' → `_onReaderLine(1|total)` → 'N行目。…' — read-line-n の hoisted ブロックへ）。
 - ~~**コレクション端の 'を読んで' 形が抜けている**~~ — **Session 119 で実装**: read-paragraph-at へ `/(?:最初|最後)の段落を読(?:んで|み上げ)/`（'最後' は `_onParagraphStatus().total` で解決）、first/last-sentence へ '最初/最後の文を読んで'、first/last-heading へ '最初/最後の見出しを読んで'、first/last-line へ 'を読んで' 形。
+- ~~**'find first aid'/'find in page first' が壊れる（Devin Review #330）**~~ — **Session 119 で修正**: Session 118 の `(?!first\b|last\b)` が 'find first aid' のような複合語検索を全滅させ、optional `in page` 前置詞の backtrack で 'find in page first' が 'in page first' を検索していた → find-in-page を2regex構成へ（`find in page X` 専用 + 平系 `(?!in\s+…page)(?!first\s*$|last\s*$)`）に分割。pattern・抽出 regex の両方を同形に揃え、'find first'/'find last' の endpoint ルートは維持。
 
 
 ---
