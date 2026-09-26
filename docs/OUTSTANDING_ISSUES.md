@@ -460,6 +460,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**speech-rate の動詞/目的語形が未認識（'読み上げ速度を上げて' 等）**~~ — **Session 128 で実装**: speech-faster/slower へ速度オブジェクト句 + '速読して'/'ゆっくり' + 'speed up/slow down the reading'。
 - ~~**read-aloud の全体形が未認識・/read all/ が 'read all headings' を横取り**~~ — **Session 128 で実装**: '全部読んで'/'全て読んで'/'最初から読んで'/'read all/everything/it all'/'from the top/beginning/start' — 既存テストで toc 横取りを検出し `^…$` アンカー化。
 - ~~**copy-url/panel-distance/title/read-url/rate-status/paste-go の言い換え欠落**~~ — **Session 128 で実装**: 'コピーして'/'ページをコピー'、サイズ言い換え（'パネルを大きく'→近づける/'小さく'→遠ざける）、'タイトルを読んで'/'whats the title'、'今のページのアドレス'/'whats the url'/'page address'、'再生速度(は)'、'ペーストして'/'貼り付けて'/'paste it'/'paste the clipboard'。
+- ~~**読み上げ位置・タブ一覧・コレクション読み上げの言い換え句が未認識（第12弾）**~~ — **Session 129 で実装**: line-status '今どこを読んでる'/'読み上げ位置'/'現在位置'/'読み上げ中'、tabs-list 'タブの一覧'/'タブリスト'/'開いてるもの'/'一覧を読んで'、tab-status 'タブの数'/'ウィンドウの数'、bookmarks/history '読んで' 形、bookmark-count 'お気に入りは何個'、percent-jump bare 'N%'/'N割'（×10 fold）、trouble/audio-trouble 訴え句（'何も見えない'/'真っ白'/'固まる'/'クラッシュ'/'声が出ない'/'音がしない'）、refresh '再起動'、home 'トップページ'/'開始ページ'、hostname/describe-tab 'サイトを教えて'/'このサイトについて'、keyboard 'キーボードを隠して'/'keyboard'、video-toggle/stop/status '再生して'/'動画を停止'/'再生位置'、reader-size bare '拡大'/'縮小'、jump-back 'この場所に戻って'、pause-reading '中断して'。'読み上げ中ですか'/'お気に入り一覧'/'一時停止'/'スタートページ' の既存ルートを共存テストで断言。
 
 
 ---
