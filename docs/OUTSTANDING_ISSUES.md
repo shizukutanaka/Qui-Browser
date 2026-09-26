@@ -495,6 +495,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**敬体表・丁寧要求尾（ください/ます/頂戴/くれ/もらえ/いただけ）・EN 敬体ラッパー（please/can you…）が全て NO-MATCH**~~ — **Session 136 で実装**: `processCommand` が生マッチ失敗時のみ `_politeVariants()` でリトライ（te/de 尾 + 敬語尾剥がし、ます→て godan 変換、です/でしょう剥がし、EN please/can-you 剥がし）。生フレーズ優先でゼロ回帰設計、て形動作へ dispatch。
 - ~~**'help me please' が scoped-help のトピック扱いで '「me」のコマンドはありません' 誤答**~~ — **Session 136 で修正**: scoped-help EN を `(?!me\b)` lookahead + `(?:with|about)` 任意化 + 末尾 'please' 許容へ。
 - ~~**'open a new tab'/'add a tab'、'back'/'go back'、'scroll down/up'、'help me'、'cancel' 等の bare EN 自然言語が NO-MATCH**~~ — **Session 136 で実装**: new-tab/close-tab/back/scroll/help/stop-everything 他へ JA/EN エイリアス約40句追加。
+- ~~**'戻れない'/'進めない' 等の否定・可能形が back/navigate を実行してページを離れる**~~ — **Session 137 で修正**: `/戻[るれ]/`・`/進[むめ]/` に 〜ない/〜ません/〜ます lookahead（registerDefaultCommands + connectBrowser 両方）、訴え形は back-status/forward-status へ透過。
+- ~~**'リンクを開いて'/'リンクに移動' が literal ナビゲート、リンク/ボタン選択面が無いのに NO-MATCH 以外の応答**~~ — **Session 137 で実装**: `links` 誠実不在原子を go-to 前に登録（'読み上げ' 誘導）。
+- ~~**'Nつ先の段落'/'skip ahead N paragraphs' の counted 段落ナビが未認識**~~ — **Session 137 で実装**: `paragraph-skip-n` が `_onParagraphStep(±N)`。next-paragraph の loose `/skip ahead/` は `/skip ahead\s*$/` にアンカー。
+- ~~**'音声入力'/'ジェスチャー'/'フォントを変えて'/'キャッシュを消して'/'ダウンロード'/'スリープして'/'設定をリセット' が NO-MATCH**~~ — **Session 137 で実装**: `input-methods`/`text-style`/`privacy-clean`/`download`/`sleep-mode`/`settings-reset` 誠実不在原子（各々実在の代替へ誘導）。
+- ~~**'3行下に'/'おしゃべりを止めて'/'静音'/'明るすぎる'/'背景を暗く'/'このタブをもう一つ'/'タブを減らして'/'押せない' 等が未認識**~~ — **Session 137 で実装**: reader-scroll-lines 'N行下/上'、stop-reading/mute-toggle/brightness/dark-mode/duplicate-tab/close-tab/trouble/article-summary/print/share-page へのエイリアス拡充。
 
 
 ---

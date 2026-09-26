@@ -724,12 +724,13 @@ export class VoiceCommands {
     // swallow '30行進む'.
     this.registerCommand('reader-scroll-lines', {
       patterns: [/(\d+)\s*行\s*(進|戻)/,
+        /(\d+)\s*行\s*(?:下|上)(?:に|へ)?/,
         /(\d+)\s*lines?\s+(forward|back)/i,
         /scroll\s+(?:forward|down|back|up)\s+(\d+)\s*lines?/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
         const n = m ? Number(m[1]) : 0;
-        const back = /戻|back|up/i.test(transcript);
+        const back = /戻|back|up|上/i.test(transcript);
         const delta = back ? -n : n;
         const moved = this._onReaderScroll ? this._onReaderScroll(delta) : false;
         this.speak(moved ? `${n}行${back ? '戻り' : '進み'}ました`
@@ -776,6 +777,7 @@ export class VoiceCommands {
     // the question phrases otherwise — verified by dispatch check).
     this.registerCommand('back-status', {
       patterns: ['戻れますか', '戻れる', '戻ることができますか', 'もっと戻れる',
+        '戻れます', '戻れない', '戻れません', '戻らない',
         '前に戻れますか', 'can we go back', 'can i go back',
         /can (we|i) go back/i],
       action: () => {
@@ -788,6 +790,7 @@ export class VoiceCommands {
     });
     this.registerCommand('forward-status', {
       patterns: ['進めますか', '進める', '進むことができますか', '前に進めますか',
+        '進めない', '進めません', '進まない',
         'can we go forward', 'can i go forward',
         /can (we|i) go forward/i],
       action: () => {
@@ -921,7 +924,7 @@ export class VoiceCommands {
 
     // Navigation commands
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進む|進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
@@ -933,7 +936,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)戻[るれ]/,
+      patterns: ['戻る', '前へ', 'もどる',
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?:戻る|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
@@ -1582,6 +1586,8 @@ export class VoiceCommands {
         '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
         '頭がクラクラする', 'めまいがする', '目眩がする', '気分が悪くなった',
         '目を休めたい', '目を休める', '少し休みたい', '疲れてきた',
+        '押せない', '押せません', '選べない', '選べません', '触れない',
+        'クリックできない', 'タップできない', '押しても反応しない', '動きません',
         '暗い', '画面が暗い', '見えない', '画面が暗くて見えない',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
@@ -1605,6 +1611,88 @@ export class VoiceCommands {
         return { action: 'audio-trouble' };
       },
       description: 'Spoken recovery guidance when the user cannot hear audio'
+    });
+
+    // Honest-absence cluster II: surfaces a web-layer browser cannot reach.
+    // A spoken refusal (with a pointer at what IS possible) beats NO-MATCH,
+    // where 'command not recognised' is indistinguishable from a bad phrase.
+    // `links` registers before go-to so 'リンクに移動' cannot literal-navigate.
+    this.registerCommand('links', {
+      patterns: ['リンクを開いて', 'リンクを開く', 'リンクに移動', 'リンク一覧',
+        'リンクの一覧', '最初のリンク', '最後のリンク', '次のリンク',
+        'リンクを選んで', 'リンクを教えて', 'どんなリンクがある',
+        'ボタン一覧', 'ボタンを押して', 'リンクをクリック', 'ボタンをクリック',
+        /list (the )?links/i, /open (the |a )?link/i, /click (the |a )?(link|button)/i],
+      action: () => {
+        this.speak('リンクやボタンの直接選択はまだできません。「読み上げ」で内容を聞けます');
+        return { action: 'links' };
+      },
+      description: 'Explain link/button selection is unavailable'
+    });
+    this.registerCommand('input-methods', {
+      patterns: ['音声入力', '音声で入力', '手で操作', 'ジェスチャーで操作',
+        'ジェスチャー', 'ハンドトラッキング', '視線で選択', '目で選ぶ',
+        '目で操作して', 'コントローラーで操作', 'ポインターはどこ',
+        'マウスカーソル', 'カーソルはどこ', 'カーソル',
+        /^controllers?$/i, /use (the )?controller/i, /hand tracking/i],
+      action: () => {
+        this.speak('視線と音声、コントローラーで操作できます。見つめて選ぶこともできます');
+        return { action: 'input-methods' };
+      },
+      description: 'Explain the available input methods'
+    });
+    this.registerCommand('text-style', {
+      patterns: ['フォントを変えて', '書体を変更', '書体を変えて', '明朝体にして',
+        '明朝体', 'ゴシック体にして', '行間を広げて', '行間を狭めて', '行間',
+        '余白を広げて', '余白を増やして', '字間を広げて',
+        /change (the )?font/i, /different font/i],
+      action: () => {
+        this.speak('フォントや行間の変更はまだできません。「文字を大きく」でサイズは変えられます');
+        return { action: 'text-style' };
+      },
+      description: 'Explain font/leading changes are unavailable'
+    });
+    this.registerCommand('settings-reset', {
+      patterns: ['設定をリセット', '設定を初期化', '設定を元に戻して',
+        '初期設定に戻して', '設定を全部元に戻して', '工場出荷',
+        /reset (the |all |my )?settings/i, /factory reset/i],
+      action: () => {
+        this.speak('設定の一括リセットはまだできません。各項目は設定パネルで変更できます');
+        return { action: 'settings-reset' };
+      },
+      description: 'Explain settings cannot be reset in bulk'
+    });
+    this.registerCommand('privacy-clean', {
+      patterns: ['キャッシュを消して', 'キャッシュをクリア', 'キャッシュを削除',
+        'キャッシュクリア', 'キャッシュ', 'Cookieを消して', 'Cookieを削除',
+        'Cookieをクリア', 'クッキーを消して', 'クッキーを削除',
+        /clear (the )?cache/i, /(clear|delete) (the )?cookies?/i],
+      action: () => {
+        this.speak('キャッシュとCookieの削除はまだできません。「履歴を消して」で履歴は消せます');
+        return { action: 'privacy-clean' };
+      },
+      description: 'Explain cache/cookie clearing is unavailable, point at history'
+    });
+    this.registerCommand('download', {
+      patterns: ['ダウンロードして', 'ダウンロードしたい', 'ダウンロードはどこ',
+        'ダウンロード', 'アップロードして', 'アップロード',
+        'ファイルをダウンロード', 'ファイルを保存',
+        /^downloads?$/i, /download (this|it|the file)/i, /^upload/i],
+      action: () => {
+        this.speak('ダウンロードはまだできません。「ページを保存」でブックマークはできます');
+        return { action: 'download' };
+      },
+      description: 'Explain downloading is unavailable'
+    });
+    this.registerCommand('sleep-mode', {
+      patterns: ['スリープして', 'スリープモード', '省電力モード', '省エネモード',
+        '電源を切って', '電源を落として', '本体を休ませて',
+        /sleep mode/i, /power (saving|saver|off)/i],
+      action: () => {
+        this.speak('スリープや電源はヘッドセット本体のボタンで操作してください');
+        return { action: 'sleep-mode' };
+      },
+      description: 'Explain sleep/power lives on the headset'
     });
   }
 
@@ -2290,7 +2378,7 @@ export class VoiceCommands {
     // actually moved (controller faceB/faceA parity); a static
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進む|進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
@@ -2302,7 +2390,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)戻[るれ]/,
+      patterns: ['戻る', '前へ', 'もどる',
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?:戻る|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
@@ -2478,6 +2567,7 @@ export class VoiceCommands {
         'パネルを閉じて', 'パネルを消して', 'ウィンドウを閉じる',
         '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
+        'タブを減らして', 'タブを減らす',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -2742,6 +2832,8 @@ export class VoiceCommands {
       patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止',
         '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
         '読み上げを止める', '読み上げを終了',
+        'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
+        '読まないで', 'もう読まなくていい',
         'ナレーションを止めて', 'ナレーションをやめて', 'ナレーション停止',
         '読書をやめて', '読書を止めて',
         /stop\s+reading/i, /stop\s+narrat/i],
@@ -3214,6 +3306,8 @@ export class VoiceCommands {
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
     this.registerCommand('duplicate-tab', {
       patterns: ['タブを複製', 'タブを複製して', 'タブをコピー', '複製', '複製して',
+        'このタブをもう一つ', '同じタブをもう一つ', 'もう一つ同じタブを',
+        '今のタブをコピー', 'このタブをコピー',
         /duplicate (this )?tab/i, /^duplicate$/i],
       action: () => {
         tabManager?.duplicateTab?.();
@@ -4004,6 +4098,8 @@ export class VoiceCommands {
     this.registerCommand('mute-toggle', {
       patterns: ['ミュート', 'ミュートを解除', '消音', '消音を解除', '音を消して',
         '静かにして', '無音にして', '静音にして',
+        '静音', 'サイレント', 'サイレントモード', '無音', '無音モード',
+        '音なし', '音を出さないで', '音を出さない', '音を消す', '消音モード',
         'タブのミュート', 'このタブをミュート', 'タブをミュート', 'タブを消音',
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
@@ -4842,14 +4938,35 @@ export class VoiceCommands {
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
       patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
+        // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
-        /next\s+paragraph/i, /skip ahead/i],
+        /next\s+paragraph/i, /skip ahead\s*$/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
         this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
         return { action: 'next-paragraph', ...r };
       },
       description: 'Jump to the next paragraph'
+    });
+
+    // 'Nつ先/前の段落' — next/prev-paragraph's counted sibling (Voice Access
+    // 'skip ahead N' parity). Same relative stepper, just N steps.
+    this.registerCommand('paragraph-skip-n', {
+      patterns: [/([0-9]+|[一二三四五六七八九])\s*(?:つ|個)?先の段落/,
+        /([0-9]+|[一二三四五六七八九])\s*(?:つ|個)?前の段落/,
+        /skip (?:ahead|forward) (\d+) paragraphs?/i,
+        /go back (\d+) paragraphs?/i],
+      action: (transcript) => {
+        const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const m = transcript.match(/([0-9]+|[一二三四五六七八九])/);
+        const n = m ? (KANJI[m[1]] || Number(m[1])) : 0;
+        const back = /前の段落|back/i.test(transcript);
+        const r = this._onParagraphStep ? this._onParagraphStep(back ? -n : n) : null;
+        this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
+        return { action: 'paragraph-skip-n', ...r };
+      },
+      description: 'Skip N paragraphs ahead or back'
     });
 
     this.registerCommand('prev-paragraph', {
@@ -5151,6 +5268,8 @@ export class VoiceCommands {
       patterns: ['この記事について', '記事の概要', '記事の情報',
         '要約して', 'このページを要約', 'ページを要約して', '概要は', '記事を要約',
         'ページの概要', '概要を教えて', '概要は何', 'このページの概要',
+        'ここに書いてあること', 'ここに何が書いてある', '何が書かれてる',
+        '何が書いてある', '内容を教えて', 'ページの内容を教えて',
         /describe (the )?(page|article)/i, /page info|article info/i,
         /summari[sz]e/i, /sum (it|this) up/i],
       action: () => {
@@ -5469,6 +5588,8 @@ export class VoiceCommands {
     this.registerCommand('dark-mode', {
       patterns: ['ダークモード', 'ダークモードにして', 'ダークモードをオン',
         'ナイトモード', '夜モード', '暗いテーマ',
+        '背景を暗く', '目に優しく', '目に優しいモード', 'ブルーライト',
+        'ブルーライトカット', '夜用モード', 'ダークテーマ',
         /dark mode/i, /night mode/i, /dark theme/i],
       action: () => {
         this.speak('ダークモードはありません。ハイコントラストモードが使えます');
@@ -5481,6 +5602,8 @@ export class VoiceCommands {
     this.registerCommand('brightness', {
       patterns: ['明るくして', '暗くして', '明るさを上げて', '明るさを下げて',
         '画面を明るく', '画面を暗く', '輝度を上げて', '輝度を下げて', '輝度',
+        '明るすぎる', '眩しい', 'まぶしい', 'まぶしすぎる', '暗すぎる',
+        '画面が明るい', '画面が眩しい',
         /brightness/i, /^brighter$/i, /^dimmer$/i,
         /make (it|the screen) (brighter|dimmer|darker)/i],
       action: () => {
@@ -5493,7 +5616,7 @@ export class VoiceCommands {
     // VR layer — honest refusal beats a silent failure or a fake success.
     this.registerCommand('print', {
       patterns: ['印刷して', 'プリントして', '印刷', 'プリント',
-        'このページを印刷', /print/i],
+        'このページを印刷', '印刷したい', 'プリントしたい', /print/i],
       action: () => {
         this.speak('このブラウザでは印刷できません');
         return { action: 'print' };
@@ -5547,6 +5670,7 @@ export class VoiceCommands {
     this.registerCommand('share-page', {
       patterns: ['共有して', 'このページを共有', 'このページを共有して',
         'ページを共有', 'ページを共有して', 'ツイートして', 'メールで送って',
+        '共有したい', 'シェアしたい',
         'リンクを送って', 'SNSで共有',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
