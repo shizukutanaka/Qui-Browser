@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 138: 位置指定タブ/アプリ原子 — 右左のタブ句の誤ルート修正 + device-apps/media-search 誠実不在 + 言い換え句第21弾
+外部基準: Voice Access の位置指示子（'right tab' は隣接切替であって並び替えではない）、スマートスピーカーの「アプリ欠如は誠実応答」原則、NVDA counted select。
+- 🐛 **位置句の誤ルート3系修正**（実測捕捉）: '右のタブに移動'/'右隣のタブ'/'一つ右のタブ' が go-to literal ナビゲートまたは tab-by-name の「一つ右」誤答 → next-tab/prev-tab に位置句追加 + tab-by-name stoplist 拡張（一つ右/一つ左/右隣/左隣/隣/ひとつ〜）。'タブ3に移動'/'タブの3番目' が literal ナビゲート → open-tab-n に索引形追加。'タブを右に移動'（並び替え）・'3番目に移動して'（move-tab-to-n）・'メモのタブ'（名指し検索）は共存テストで維持を断言。
+- ✨ **誠実不在クラスタIII**: `device-apps`（メモ/タイマー/アラーム/カレンダー/リマインダー/電話/連絡先/メール/受信トレイ/計算機/音楽再生/ラジオ/テレビ → 'そのアプリはこのブラウザにはありません。サイトを開くか検索はできます' — go-to 前に登録して 'メモを開いて' の literal ナビゲートを封殺）、`media-search`（'画像検索'/'動画を検索'/'画像を探して' → 語 '画像' そのものの検索ではなく専用モード欠如を誠実応答）。
+- ✨ **エイリアス第21弾**: speech-slower 訴え形（'早すぎる'/'ゆっくり言って/話して'/'もっとゆっくり'/'聞き取れない'）、speech-faster（'読み上げが遅い'/'ナレーションが遅い' — bare '遅すぎる' は trouble 維持で app-lag 解釈）、volume-up/down 音声訴え（'音が小さすぎる'/'声が小さい'/'大きな声で' ↔ '声を小さく'/'うるさすぎる'/'声が大きい'）、remaining-time（'あと何分で読み終わる'/'読み終わりまで'/'残りの時間'）、reader-progress（'ページ数は'/'全部で何ページ'）、history（'読んだ履歴'）、history-latest（'さっきの記事'/'開いたばかりのページ'）、sort-tabs（'タブを並べて'/'タブを左右に'）、read-notify（'通知はある'/'新しい通知'）、select-voice（'女性の声で'/'男性の声で'/'別の声で'/'高い声で'/'低い声で'）。
+- ✅ **テスト +75（git stash で68件赤確認、7件は共存ガード設計上緑）**: Total 3890 tests (112 suites); 0 lint errors（警告 132 = baseline 同一 — tab-by-name stoplist 正規表現の max-len 超過を RegExp 連結で回避）; build green・FFFD 0件。
+
 ### Session 137: 訴え形/誠実不在原子 II — 否定・可能形の誤実行修正 + バッキング無し7系 + 言い換え句第20弾
 外部基準: Voice Access の「不満句は実行しない」原則（complaint ≠ command）、Chrome 系の未実装面の明示応答、NVDA の counted-nav。
 - 🐛 **否定/可能形がナビゲートを実行する実害修正**（実測捕捉）: '戻れない'/'戻れません'/'進めない' が back/navigate の loose `/戻[るれ]/`・`/進[むめ]/` で goBack/goForward を実行 → 両 regex に 〜ない/〜ません/〜ます の lookahead（registerDefaultCommands と connectBrowser の両コピー）、`back-status`/`forward-status` に '戻れない/ません/ます'・'進めない/ません' を追加。bare '戻れ'/'進めて' は従来通り実行。

@@ -500,6 +500,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'Nつ先の段落'/'skip ahead N paragraphs' の counted 段落ナビが未認識**~~ — **Session 137 で実装**: `paragraph-skip-n` が `_onParagraphStep(±N)`。next-paragraph の loose `/skip ahead/` は `/skip ahead\s*$/` にアンカー。
 - ~~**'音声入力'/'ジェスチャー'/'フォントを変えて'/'キャッシュを消して'/'ダウンロード'/'スリープして'/'設定をリセット' が NO-MATCH**~~ — **Session 137 で実装**: `input-methods`/`text-style`/`privacy-clean`/`download`/`sleep-mode`/`settings-reset` 誠実不在原子（各々実在の代替へ誘導）。
 - ~~**'3行下に'/'おしゃべりを止めて'/'静音'/'明るすぎる'/'背景を暗く'/'このタブをもう一つ'/'タブを減らして'/'押せない' 等が未認識**~~ — **Session 137 で実装**: reader-scroll-lines 'N行下/上'、stop-reading/mute-toggle/brightness/dark-mode/duplicate-tab/close-tab/trouble/article-summary/print/share-page へのエイリアス拡充。
+- ~~**'右のタブに移動'/'右隣のタブ'/'一つ右のタブ' が literal ナビゲートまたは名指し誤答**~~ — **Session 138 で修正**: next-tab/prev-tab に位置句追加、tab-by-name stoplist に位置語を追加。'タブNに移動'/'タブのN番目' は open-tab-n へ。
+- ~~**'メモして'/'タイマー'/'メールを開いて'/'音楽を再生'/'テレビを見て' 等のデバイスアプリ句が NO-MATCH または literal ナビゲート**~~ — **Session 138 で実装**: `device-apps` 誠実不在原子（go-to 前に登録）。
+- ~~**'画像検索'/'動画を検索' が語そのものの検索または NO-MATCH**~~ — **Session 138 で実装**: `media-search` 誠実不在原子（専用モード欠如を応答）。
+- ~~**'早すぎる'/'ゆっくり言って'/'聞き取れない'/'音が小さすぎる'/'声を小さく'/'うるさすぎる'/'あと何分で読み終わる'/'ページ数は'/'さっきの記事'/'通知はある'/'女性の声で'/'タブを並べて' 等が未認識**~~ — **Session 138 で実装**: speech-slower/faster、volume-up/down、remaining-time、reader-progress、history/history-latest、sort-tabs、read-notify、select-voice へのエイリアス拡充。
 
 
 ---
