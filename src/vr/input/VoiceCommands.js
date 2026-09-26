@@ -475,6 +475,47 @@ export class VoiceCommands {
       description: 'Read the text of line N'
     });
 
+    // First/last reader line — first-heading/last-heading's line siblings.
+    // Hoisted beside read-line-n: the same /N行目/-style catch-alls could
+    // otherwise swallow '最初の行'/'last line' once they gain loose variants.
+    this.registerCommand('first-line', {
+      patterns: ['最初の行', '最初の行へ', '最初の行を読んで', '先頭の行',
+        /first line/i, /read the first line/i],
+      action: () => {
+        const res = this._onReaderLine ? this._onReaderLine(1) : null;
+        if (res === 'out' || res === null) {
+          this.speak(res === null ? '記事を開いていません' : '1行目はありません');
+          return { action: 'first-line', res };
+        }
+        const line = this._tabManager?.getActiveTab?.()?.currentLine?.() || '';
+        this.speak(line ? `1行目。${line}` : '1行目に移動しました');
+        return { action: 'first-line', res };
+      },
+      description: 'Read the first reader line'
+    });
+    this.registerCommand('last-line', {
+      patterns: ['最後の行', '最後の行へ', '最後の行を読んで', '末尾の行',
+        /last line/i, /read the last line/i],
+      action: () => {
+        const panel = this._tabManager?.getActiveTab?.();
+        const st = panel?.lineStatus?.() || null;
+        if (!st) {
+          this.speak('記事を開いていません');
+          return { action: 'last-line' };
+        }
+        const res = this._onReaderLine ? this._onReaderLine(st.total) : null;
+        if (res === 'out' || res === null) {
+          this.speak(res === null ? '記事を開いていません'
+            : `${st.total}行目はありません`);
+          return { action: 'last-line', res };
+        }
+        const line = panel.currentLine?.() || '';
+        this.speak(line ? `${st.total}行目。${line}` : '最後の行に移動しました');
+        return { action: 'last-line', res };
+      },
+      description: 'Read the last reader line'
+    });
+
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
     // article. Hoisted like the commands above: the go-to catch-all would
     // otherwise route 'go to line 30' as a navigation request.
@@ -1864,6 +1905,7 @@ export class VoiceCommands {
     // separate) and the command says so honestly.
     this.registerCommand('move-tab-left', {
       patterns: ['タブを左に移動', 'タブを左へ', 'タブを左に動かして',
+        'このタブを左へ', 'このタブを左に移動', '左に移動',
         /move (the |this )?tab left/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, -1) || false;
@@ -1875,6 +1917,7 @@ export class VoiceCommands {
 
     this.registerCommand('move-tab-right', {
       patterns: ['タブを右に移動', 'タブを右へ', 'タブを右に動かして',
+        'このタブを右へ', 'このタブを右に移動', '右に移動',
         /move (the |this )?tab right/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, 1) || false;
@@ -1953,7 +1996,7 @@ export class VoiceCommands {
     this.registerCommand('private-mode', {
       patterns: [
         'プライベートモード', 'プライベートモードにして',
-        /private\s+mode/i, /incognito/i
+        /private\s+mode/i, /incognito(?!\s+tabs?)/i
       ],
       action: () => {
         if (onTogglePrivateMode) {
@@ -2137,10 +2180,18 @@ export class VoiceCommands {
     });
 
     this.registerCommand('find-in-page', {
-      patterns: ['ページ内検索', /find\s+(?:in\s+(?:this\s+)?page\s+)?(?!first\b|last\b)(.+)/i, /(.+?)を探して/],
+      // 'find in page X' is a separate pattern so the optional prefix can't
+      // backtrack into the query; the plain form only steps aside for the
+      // two complete endpoint utterances ('find first'/'find last'), not
+      // for multiword queries like 'find first aid'.
+      patterns: ['ページ内検索',
+        /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
+        /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
+        /(.+?)を探して/],
       action: (transcript) => {
         const bare = transcript === 'ページ内検索';
-        const m = transcript.match(/find\s+(?:in\s+(?:this\s+)?page\s+)?(?!first\b|last\b)(.+)/i)
+        const m = transcript.match(/find\s+in\s+(?:this\s+)?page\s+(.+)/i)
+          || transcript.match(/find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i)
           || transcript.match(/(.+?)を探して/);
         if (bare || !m) {
           this.speak('検索する語を言ってください');
@@ -2751,7 +2802,7 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|現在))(.+)のタブ(?!を|に|は|のタイトル)/,
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
         /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
       action: (transcript) => {
@@ -3217,7 +3268,7 @@ export class VoiceCommands {
     });
     // first/last-sentence — the sentence-end atoms (first/lastHeading parity).
     this.registerCommand('first-sentence', {
-      patterns: ['最初の文', '最初の文へ', /first sentence/i],
+      patterns: ['最初の文', '最初の文へ', '最初の文を読んで', /first sentence/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.firstSentence?.();
         this.speak(r
@@ -3228,7 +3279,7 @@ export class VoiceCommands {
       description: 'Jump to the first sentence'
     });
     this.registerCommand('last-sentence', {
-      patterns: ['最後の文', '最後の文へ', /last sentence/i],
+      patterns: ['最後の文', '最後の文へ', '最後の文を読んで', /last sentence/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.lastSentence?.();
         this.speak(r
@@ -3317,8 +3368,9 @@ export class VoiceCommands {
     });
     // private-list — private-count's readout twin: names the private tabs.
     this.registerCommand('private-list', {
-      patterns: ['プライベートタブ一覧', 'プライベート一覧',
-        /private tab list/i, /list private tabs/i],
+      patterns: ['プライベートタブ一覧', 'プライベート一覧', 'プライベートのみ',
+        /private tab list/i, /list private tabs/i,
+        /^incognito tabs?$/i, /^private tabs$/i],
       action: () => {
         const privs = (tabManager?.tabs || []).filter((t) => t.isPrivate);
         if (!privs.length) {
@@ -3635,10 +3687,22 @@ export class VoiceCommands {
     // paragraph-select: its /(\d+)番目の段落/ regex swallows 'N番目の段落を読み上げ'.
     this.registerCommand('read-paragraph-at', {
       patterns: [/(\d+)\s*番目?の?段落を読み上げ/, /(\d+)\s*番目?の?段落を読んで/,
-        /read paragraph (\d+)/i],
+        /(?:最初|最後)の段落を読(?:んで|み上げ)/, /read paragraph (\d+)/i],
       action: (transcript) => {
-        const m = transcript.match(/(\d+)/);
-        const n = m ? Number(m[1]) : 0;
+        let n;
+        if (/最後/.test(transcript)) {
+          const st = this._onParagraphStatus ? this._onParagraphStatus() : null;
+          n = st?.total ?? null;
+          if (!n) {
+            this.speak('段落がありません');
+            return { action: 'read-paragraph-at', index: null };
+          }
+        } else if (/最初/.test(transcript)) {
+          n = 1;
+        } else {
+          const m = transcript.match(/(\d+)/);
+          n = m ? Number(m[1]) : 0;
+        }
         const chunks = this._onReadParagraphAt ? this._onReadParagraphAt(n) : [];
         if (chunks === 'out') {
           this.speak(`段落${n}はありません`);
@@ -4049,6 +4113,7 @@ export class VoiceCommands {
     // "where am I in the strip" question.
     this.registerCommand('tab-status', {
       patterns: ['タブは何個', '何個のタブ', '何番目のタブ', '何枚目のタブ',
+        '何個目のタブ', 'タブは何番目', 'タブの順番', 'このタブの位置',
         '現在のタブ番号', 'タブの位置',
         /how many tabs/i, /which tab/i, /tab (count|position)/i],
       action: () => {
@@ -4092,7 +4157,7 @@ export class VoiceCommands {
     // avoid 戻る (go-back owns it) and 探して (find-in-page owns it).
     this.registerCommand('jump-back', {
       patterns: ['さっきの場所', '元の位置へ', 'ジャンプバック',
-        /jump\s+back/i, /previous (spot|position|line)/i],
+        /jump\s+back/i, /previous (spot|position)/i],
       action: () => {
         const moved = this._onJumpBack ? this._onJumpBack() : false;
         this.speak(moved ? '元の場所に戻りました' : '戻る場所がありません');
@@ -4389,7 +4454,8 @@ export class VoiceCommands {
 
     // First/last heading — find-first/find-last's heading siblings.
     this.registerCommand('first-heading', {
-      patterns: ['最初の見出し', '先頭の見出し', /first heading/i],
+      patterns: ['最初の見出し', '先頭の見出し', '最初の見出しを読んで',
+        /first heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.headingAt?.(1);
         this.speak(r && r !== 'out'
@@ -4400,7 +4466,8 @@ export class VoiceCommands {
       description: 'Jump to the first heading'
     });
     this.registerCommand('last-heading', {
-      patterns: ['最後の見出し', '末尾の見出し', /last heading/i],
+      patterns: ['最後の見出し', '末尾の見出し', '最後の見出しを読んで',
+        /last heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.lastHeading?.();
         this.speak(r && r !== 'out'

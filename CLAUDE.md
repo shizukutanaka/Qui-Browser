@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 119: ルート修正/行端原子 — 位置問い合わせ透過・移動句・previous-line・incognito-tabs の誤ルート4件 + 行端ジャンプ + 'を読んで' 端形
+外部基準: VoiceOver 'what is my position'、Chrome タブドラッグの指示詞形、NVDA previous-line、Chrome "Close incognito tabs"、first/last-heading の行双子。
+- 🐛 **タブ位置問い合わせの誤答修正**: 'このタブの位置'→「こ」のタブ検索、'何個目のタブ'→「何個目」検索に誤答（実測捕捉）→ tab-by-name lookahead stoplist へ `このタブ`・`何個目` 追加 + tab-status へ4句追加（'このニュースのタブ' の名指しは共存テストで維持）。
+- 🐛 **'左/右に移動' 誤ナビゲート修正**: go-to の `に移動` catch-all が literal '左'/'右' へナビゲート → move-tab-left/right（登録順が先行）へ 'このタブを左へ'/'左に移動'/'このタブを右へ'/'右に移動' 追加、onGoTo 非呼出を断言。
+- 🐛 **'read the previous line' がジャンプバックされる誤ルート修正**: jump-back の `/previous (spot|position|line)/i` から `line` を除外し prev-line へ透過（'previous position' は jump-back を維持）。
+- 🐛 **'incognito tabs' がモードトグルされる誤ルート修正**: private-mode `/incognito/i` → `/incognito(?!\s+tabs?)/i` に絞り private-list へ透過（'incognito mode' トグルは共存テストで維持）。回帰捕捉: 素朴な `/private tabs/i` が 'close private tabs' を close-private-tabs から奪う → `/^private tabs$/i` 末尾アンカー化。
+- ✨ **first-line/last-line**（first/last-heading の行双子）: '最初の行'/'last line'/'最後の行を読んで' → `_onReaderLine(1|lineStatus().total)` → 'N行目。…'（read-line-n の hoisted ブロックへ — `_onReaderLine`/`_tabManager` 遅延バインド）。
+- ✨ **'を読んで' 端形**: read-paragraph-at へ `/(?:最初|最後)の段落を読(?:んで|み上げ)/`（'最後' は `_onParagraphStatus().total` 解決 → 本文を実ナレーション）、first/last-sentence へ '最初/最後の文を読んで'（本文発話済み）、first/last-heading へ '最初/最後の見出しを読んで'（位置告知）。
+- 🐛 **Devin Review #330 指摘修正**: `(?!first\b|last\b)` が 'find first aid' を全滅させ optional `in page` 前置詞の backtrack で 'find in page first' が 'in page first' を検索していた → find-in-page を `find in page X` 専用 regex + `(?!in\s+…page)(?!first\s*$|last\s*$)` 平系の2regex構成へ分割（pattern・抽出を同形に）。'find first'/'find last' の endpoint ルート維持。
+- ✅ **テスト +32（git stash で28件赤確認 — 初回26件＋レビュー修正2件、残り4件は共存ガードの設計上緑）**: Total 2346 tests (93 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 118: ルート修正/エイリアス原子 — close-this-tab・find-first/last・タブ移動の誤ルート3件 + 言い換え句第2弾
 外部基準: Chrome 'Close tab' の指示詞形、NVDA find-first/find-last、Alt+Tab 移動句、主要コマンドの自然言語バリエーション。
 - 🐛 **'close this tab' 誤答修正**: close-tab-by-name の EN lookahead に `this\b` を追加（'「this」のタブがありません' の誤答を解消）+ close-tab を `/close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i` + 'このタブを閉じて' へ拡張。'close the news tab' は close-tab-by-name を維持（共存テスト）。
