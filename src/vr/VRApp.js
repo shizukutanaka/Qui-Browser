@@ -3376,6 +3376,29 @@ export class VRApp {
               return 'クリップボードにアクセスできません';
             }
           },
+          // Web Share API — the OS share sheet; clipboard is the fallback
+          // where the API is missing (and it still announces that honestly).
+          onShare: async () => {
+            const t = this.tabManager?.getActiveTab?.();
+            const url = t?.currentUrl;
+            if (!url) {
+              return '共有するURLがありません';
+            }
+            if (typeof navigator !== 'undefined' && navigator.share) {
+              try {
+                await navigator.share({ title: t.currentTitle || url, url });
+                return '共有しました';
+              } catch {
+                return '共有がキャンセルされました';
+              }
+            }
+            try {
+              await navigator.clipboard?.writeText?.(url);
+              return '共有は未対応のためURLをコピーしました';
+            } catch {
+              return '共有できません';
+            }
+          },
           // Quest hold-button parity — return the rig to the origin.
           onRecenter: () => {
             if (!this.playerRig) {
