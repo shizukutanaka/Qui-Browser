@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 127: 距離/可読性原子 — settings-status 数値/列挙値拡張・motion-sensitivity 方向 setter・panel-distance 訴え句・fullscreen エイリアス + 言い換え句第10弾
+外部基準: Voice Access クエリ形の数値設定への拡張、Chrome fullscreen/immersive の文言、VoiceOver rotor の端選択、訴え形→直接的な修正アクション。
+- ✨ **settings-status を数値/列挙値へ拡張**: KEYMAP エントリを `[regex, key, label?, {unit|map}]` に一般化 — 'パネルの距離'/'panel distance' → 'パネル距離 Xメートルです'（windowDistance）、'モーション感度は'/'motion sensitivity' → 'モーション感度は標準です'（プリセット JA 写像）。
+- ✨ **`motion-sensitivity`（comfort-preset の方向双子）**: 'モーション感度を上げて/下げて/標準に' → `_onSettingToggle('motionSensitivity', sensitive|tolerant|moderate)`。**実測捕捉**: settings-status の loose `/motion sensitivity/` が 'motion sensitivity up' を先取り → `^…\??$` アンカーで透過。
+- 🐛 **panel-distance の方向反転訴え句**: 'パネルが遠い'/'遠すぎる'/'too far' → 近づける、'パネルが近い'/'近すぎる'/'too close' → 遠ざける（'近い' を nearer 判定から除外する除外集合を追加 — 訴え形は現在値への苦情）。
+- 🐛 **'一番左のタブ'/'一番右のタブ' 誤答修正**: tab-by-name '「一番左」のタブがありません' → stoplist + first-tab/last-tab へ '一番左/一番右のタブ'、'左端/右端のタブ'、leftmost/rightmost。
+- ✨ **fullscreen/immersive エイリアス**: vr-enter へ '全画面'/'フルスクリーン(にして|モード)'/immersive mode/fullscreen、vr-exit へ '全画面をやめて'/'フルスクリーン解除'/exit fullscreen（`(?<!exit )full ?screen` lookbehind で enter 側が exit を横取りしないよう分離）。
+- ✨ **エイリアス拡充（第10弾）**: reader-size 訴え句 '文字が小さい'/'読みにくい'/'フォントを大きくして' 等、keyboard 'キーボードを出して/閉じて/しまって'、tabs-list 'タブ一覧を読んで'/'開いてるタブ'、read-url 'このページのURL'/'ページのアドレス'、copy-url 'このページのリンク'、trouble '見えにくい'/'見にくい'。
+- ✅ **テスト +75（git stash で実装前に73件赤確認 — 2件は既存 'パネルを遠くして/近くして' の設計上緑）**: Total 2775 tests (101 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'パネルサイズ'/'読書モード'/'ダウンロード'/'タブはどこ' は backing surface 不在のため未実装（誠実未認識）。
+
 ### Session 126: 設定状態/接続原子 — settings-status 読み取り専用双子・connection-status・曜日告知 + 言い換え句第9弾
 外部基準: Voice Access 'is X on' のクエリ形（質問は状態を変えない）、Chrome 'シークレットモード' の文言、MDN NetworkInformation（effectiveType/downlink）。
 - ✨ **`settings-status`（toggleCmd 系の誠実クエリ双子）**: '字幕はオン'/'キャプションついてる'/'視線選択はオン'/'are captions on'/'is snap turn on' 等 → 新規読み取り専用フック `_onSettingStatus`（VRApp `onSettingStatus` = `this.settings[key]` の不変 getter）で 'Xはオンです/オフです' を応答。**実測捕捉**: EN 質問形 'are captions on'/'is snap turn on' は toggleCmd の `/captions? (on|off)/`・`/snap turn (on|off)/` が先に所有して質問がトグル実行されていた → toggleCmd 群より前に登録（JA は toggle が 'を+動詞' 要求のため衝突なし、非呼出を共存テストで断言）。

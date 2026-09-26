@@ -786,8 +786,9 @@ export class VoiceCommands {
     this.registerCommand('vr-enter', {
       patterns: ['VRモード', 'VR開始', 'ブイアール', 'バーチャルリアリティ',
         'VRを始める', 'VRモードに入る', 'VRモードで', '没入モード',
-        '没入モードに入る', 'VRを開始',
-        /vr mode/i],
+        '没入モードに入る', 'VRを開始', '全画面', 'フルスクリーン',
+        '全画面にして', 'フルスクリーンにして', '全画面モード', 'フルスクリーンモード',
+        /vr mode/i, /immersive mode/i, /(?<!exit )full ?screen/i],
       action: () => {
         // Would trigger VR mode
         return { action: 'vr', enabled: true };
@@ -799,7 +800,8 @@ export class VoiceCommands {
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
         '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
-        /^quit$/i, /exit (the )?(app|browser|vr)/i],
+        '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
+        /^quit$/i, /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -939,6 +941,8 @@ export class VoiceCommands {
         'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
+        'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
+        '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
@@ -954,6 +958,8 @@ export class VoiceCommands {
         'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
+        'フォントを小さくして', 'フォントを縮小', 'フォントサイズを下げる',
+        '文字が大きい', '字が大きい',
         /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
         /zoom out/i],
       action: () => {
@@ -1294,7 +1300,7 @@ export class VoiceCommands {
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
-        'ヘッドセットが暑い', 'ネットが遅い',
+        'ヘッドセットが暑い', 'ネットが遅い', '見えにくい', '見にくい', '画面が見にくい',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -2458,6 +2464,7 @@ export class VoiceCommands {
     // action). Honest announce: nothing on screen → "nothing to copy".
     this.registerCommand('copy-url', {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
+        'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -2518,7 +2525,9 @@ export class VoiceCommands {
 
     this.registerCommand('tabs-list', {
       patterns: ['タブ一覧', 'タブを読み上げ', 'タブを教えて', 'タブはいくつ',
-        'タブ一覧を読み上げて', /list\s+tabs/i, /how many tabs/i, /what tabs/i,
+        'タブ一覧を読み上げて', 'タブ一覧を読んで', 'タブを一覧して',
+        '開いてるタブ', '開いているタブ',
+        /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -2663,7 +2672,9 @@ export class VoiceCommands {
 
     // Keyboard toggle
     this.registerCommand('keyboard', {
-      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる'],
+      patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる',
+        'キーボードを出して', 'キーボードを閉じて', 'キーボードを表示',
+        'キーボードを出す', 'キーボードをしまって', /show keyboard/i, /hide keyboard/i],
       action: () => {
         if (vrKeyboard) {
           vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
@@ -2889,9 +2900,12 @@ export class VoiceCommands {
         'カーブパネルはオン', '湾曲パネルはオン', 'ウィンドウ追従はオン', 'パネル追従はオン',
         'スナップターンはオン', 'テレポートはオン', 'コンフォートはオン',
         'サウスポーはオン', 'スムーズ移動はオン', 'スムーズ移動はどう',
+        'パネルの距離', 'パネル距離は', 'パネルの距離は', 'パネルはどのくらい',
+        'モーション感度は', 'モーション感度',
         /are (the )?(captions?|subtitles?) (on|off|enabled)/i,
         /is (the )?(haptics?|gaze( dwell)?|snap turn|teleport)( mode)? (on|off|enabled|active)/i,
-        /is (the )?(curved panel|window follow|comfort|southpaw|smooth move|ffr)( mode)? (on|off|enabled|active)/i],
+        /is (the )?(curved panel|window follow|comfort|southpaw|smooth move|ffr)( mode)? (on|off|enabled|active)/i,
+        /(panel|window) distance/i, /^motion sensitivity\??$/i],
       action: (transcript) => {
         const KEYMAP = [
           [/キャプション|字幕|caption|subtitle/i, 'enableCaptions'],
@@ -2904,10 +2918,14 @@ export class VoiceCommands {
           [/コンフォート|comfort/i, 'enableComfort'],
           [/ffr/i, 'enableFFR'],
           [/サウスポー|左手|southpaw/i, 'southpaw'],
-          [/スムーズ|smooth/i, 'enableSmoothMove']
+          [/スムーズ|smooth/i, 'enableSmoothMove', 'スムーズ移動'],
+          [/パネル(の)?(距離|はどのくらい)|ウィンドウ距離|panel distance|window distance/i, 'windowDistance', 'パネル距離', { unit: 'メートル' }],
+          [/モーション感度|^motion sensitivity\?*$/i, 'motionSensitivity', 'モーション感度',
+            { map: { sensitive: '敏感', moderate: '標準', tolerant: '寛容', disabled: '無効' } }]
         ];
         const hit = KEYMAP.find(([re]) => re.test(transcript));
         const key = hit ? hit[1] : null;
+        const fmt = hit ? hit[3] : null;
         const LABELS = {
           enableCaptions: 'キャプション', enableHaptics: 'ハプティック',
           enableGazeDwell: '注視選択', enableCurvedPanel: 'カーブパネル',
@@ -2915,10 +2933,15 @@ export class VoiceCommands {
           enableTeleport: 'テレポート', enableComfort: 'コンフォート',
           enableFFR: 'FFR', southpaw: 'サウスポー', enableSmoothMove: 'スムーズ移動'
         };
+        const label = (hit && hit[2]) || (key ? LABELS[key] : '');
         const v = key && this._onSettingStatus ? this._onSettingStatus(key) : null;
         this.speak(v === null || v === undefined
           ? 'その設定の状態を確認できません'
-          : `${LABELS[key]}は${v ? 'オン' : 'オフ'}です`);
+          : fmt && fmt.unit
+            ? `${label} ${v}${fmt.unit}です`
+            : fmt && fmt.map
+              ? `${label}は${fmt.map[v] || v}です`
+              : `${label}は${v ? 'オン' : 'オフ'}です`);
         return { action: 'settings-status', key, enabled: v };
       },
       description: 'Announce a setting\'s current state without toggling it'
@@ -2983,13 +3006,37 @@ export class VoiceCommands {
       description: 'Cycle or set the motion-comfort preset'
     });
 
+    // Motion sensitivity — comfort-preset's directional twin ('上げて' →
+    // sensitive, '下げて' → tolerant, '標準に' → moderate).
+    this.registerCommand('motion-sensitivity', {
+      patterns: [/モーション感度を?(上げて|上げる|高く|敏感に)/,
+        /モーション感度を?(下げて|下げる|低く|弱く)/,
+        /モーション感度を?(標準に|普通に)/,
+        /motion sensitivity (up|higher|down|lower|to standard)/i],
+      action: (transcript) => {
+        const preset = /上げ|高く|敏感|up|higher/i.test(transcript) ? 'sensitive'
+          : /下げ|低く|弱く|down|lower/i.test(transcript) ? 'tolerant' : 'moderate';
+        const JA = { sensitive: '敏感', moderate: '標準', tolerant: '寛容', disabled: '無効' };
+        const v = this._onSettingToggle ? this._onSettingToggle('motionSensitivity', preset) : null;
+        this.speak(v === null ? 'モーション感度を変更できません' : `モーション感度を${JA[v] || v}にしました`);
+        return { action: 'motion-sensitivity', preset: v };
+      },
+      description: 'Set motion sensitivity by direction'
+    });
+
     // Panel distance — low-vision users pull the reading surface closer
     // without leaving immersion for the settings stepper.
     this.registerCommand('panel-distance', {
       patterns: [/パネルを(近づけて|近く|遠く|遠ざけて)/, /パネルを(近く|遠く)して/,
+        /(パネル|画面|ウィンドウ)が?(遠い|遠すぎ|近い|近すぎ)/,
+        /(画面|ウィンドウ)を(近づけて|遠ざけて|近く|遠く)/,
+        '遠すぎる', '近すぎる', '遠すぎ', '近すぎ', /too (far|close)/i,
         /panel (closer|nearer|further|farther|away)/i],
       action: (transcript) => {
-        const nearer = /近|closer|nearer/i.test(transcript);
+        // '遠い'/'遠すぎ' are complaints of distance → bring it nearer;
+        // '近い'/'近すぎ' are complaints of closeness → push it away.
+        const nearer = /近づ|近く|遠い|遠すぎ|closer|nearer|too far/i.test(transcript)
+          && !/遠く|遠ざ|近い|近すぎ|further|farther|away|too close/i.test(transcript);
         const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
         this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
         return { action: 'panel-distance', distance: v };
@@ -3106,7 +3153,7 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート))(.+)のタブ(?!を|に|は|のタイトル)/,
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
         /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
       action: (transcript) => {
@@ -3173,7 +3220,7 @@ export class VoiceCommands {
       description: 'Activate the tab at a strip position'
     });
     this.registerCommand('last-tab', {
-      patterns: ['最後のタブ', '最後のタブを見せて', /last tab/i],
+      patterns: ['最後のタブ', '最後のタブを見せて', '一番右のタブ', '右端のタブ', '右の端のタブ', /last tab/i, /rightmost tab/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -3319,6 +3366,7 @@ export class VoiceCommands {
     this.registerCommand('read-url', {
       patterns: ['URLを教えて', 'URLを読んで', 'アドレスを教えて',
         'URLを表示', 'アドレスを読んで', 'URLは',
+        'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
         /(read|say|what is|what's) (the )?url/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl || '';
@@ -4605,7 +4653,7 @@ export class VoiceCommands {
     // last-tab's pair — Ctrl+1..8 lands on a position, this lands on the
     // strip's first slot directly (like Vim's g^).
     this.registerCommand('first-tab', {
-      patterns: ['最初のタブ', '先頭のタブ', /first tab/i],
+      patterns: ['最初のタブ', '先頭のタブ', '一番左のタブ', '左端のタブ', '左の端のタブ', /first tab/i, /leftmost tab/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {

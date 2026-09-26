@@ -449,6 +449,12 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'秘密のタブ'/'シークレットモード' が名指しタブ検索に誤ルート**~~ — **Session 126 で実装**: tab-by-name stoplist 拡張 + private-new-tab に '秘密のタブ'/'シークレットのタブ'/'プライベートのタブ'/'シークレットモード(で開いて)' を追加。
 - ~~**'今何曜日' が認識されず日付句に曜日がない**~~ — **Session 126 で実装**: date に '今何曜日'/'何曜日'/'曜日は'/'what day' を追加し発話を 'X月Y日（Z曜日）' に拡張。
 - ~~**高頻度コマンドの言い換え句が抜けている（第9弾）**~~ — **Session 126 で実装**: language-switch '英語で読んで'/'日本語で読んで'/'読み上げ言語を英語/日本語'、captions-toggle 'キャプションを出して/見せて'/'字幕を出して'、help '困った'/'わからない'/'ヘルプミー'、reopen-tab 'もとに戻して'/'取り消し(て)'、top-sites 'スタートページ'/'よく見るサイト'/'おすすめサイト'、clear-history '閲覧履歴を全部消して'、trouble 'ネットが遅い'。
+- ~~**数値/列挙設定（パネル距離・モーション感度）の音声クエリがない**~~ — **Session 127 で実装**: settings-status の KEYMAP を `[regex, key, label?, {unit|map}]` に一般化 — 'パネルの距離'/'panel distance' → 'パネル距離 Xメートルです'、'モーション感度は'/'motion sensitivity' → プリセット JA 写像で応答。
+- ~~**モーション感度を方向指定で変える音声経路がない**~~ — **Session 127 で実装**: `motion-sensitivity`（comfort-preset の方向双子）— 'モーション感度を上げて/下げて/標準に' → `_onSettingToggle('motionSensitivity', preset)`。settings-status の loose `/motion sensitivity/` が 'motion sensitivity up' を先取りしていたため `^…\??$` アンカーで透過。
+- ~~**パネル距離の訴え句（'パネルが遠い'/'近すぎる'）が未認識・方向反転の余地**~~ — **Session 127 で実装**: 訴え形→修正アクション（訴えは現在値への苦情、近い→遠ざける方向を除外集合で保証）。EN 'too far'/'too close' 同形。
+- ~~**'一番左のタブ'/'一番右のタブ'/'左端のタブ' が名指し検索に誤ルート**~~ — **Session 127 で実装**: tab-by-name stoplist 拡張 + first-tab/last-tab へ '一番左/一番右のタブ'・'左端/右端のタブ'・leftmost/rightmost を追加。
+- ~~**fullscreen/immersive 文言が未認識・'exit fullscreen' が vr-enter に誤ルート**~~ — **Session 127 で実装**: vr-enter に '全画面'/'フルスクリーン(にして|モード)'/immersive mode/`(?<!exit )full ?screen/i`、vr-exit に '全画面をやめて'/'フルスクリーン解除'/'exit fullscreen' — lookbehind で enter 側が exit 句を横取りしないよう分離。
+- ~~**高頻度コマンドの言い換え句が抜けている（第10弾）**~~ — **Session 127 で実装**: reader-size-up/down 訴え句（'文字が小さい/大きい'/'読みにくい'/'フォントを大きく/小さくして'）、keyboard 'キーボードを出して/閉じて/しまって'/'show|hide keyboard'、tabs-list 'タブ一覧を読んで'/'開いてるタブ'、read-url 'このページのURL'/'ページのアドレス'、copy-url 'このページのリンク'、trouble '見えにくい'/'見にくい'。
 
 
 ---
