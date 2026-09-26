@@ -532,6 +532,14 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'タブを全部ピン留め' に pin-all が不在**~~ — **Session 144 で実装**: `pin-all`（unpin-all の双子、未ピンタブを一括 togglePin、全ピン済みは誠実応答）。
 - ~~**'音量ゼロにして'/'最大音量で' が数値必須の volume-set で未認識**~~ — **Session 144 で実装**: volume-set にゼロ/最大の名前付き目標分岐（/最大|max|full/→100、/ゼロ|zero/→0、/半分|half/→50）。
 - ~~**ステータス・エイリアスの残欠落**~~ — **Session 144 で実装**: 'ズーム率は'→reader-scale-status、'今の速さは'→speech-rate-status、'あと何ページ'→reader-progress、'このページについて'→describe-tab、'このタブを複製'/'もうひとつ開いて'→duplicate-tab、'新しいタブをもう一つ'/'another tab'→new-tab、'ページを拡大して'→reader-size-up、'リーダーを閉じて'/'元のページに戻して'→reader-mode（常時ON応答）、'さっきのサイト'→back（両コピー）、'PDFに保存'→print、'スクショして'→screenshot、'タブが多すぎる'→tabs-list、'近くに寄せて'→panel-distance。
+- ~~**'Wi-Fiを切って'/'Bluetoothをつけて'/'機内モード'/'パススルー'/'ガーディアン'/'カメラを起動' が online-status 誤答または認識エラー**~~ — **Session 145 で実装**: `device-settings` 誠実不在原子（online-status 前に登録、'ヘッドセットの設定で操作してください'。'Wi-Fiは' は online-status 維持）。
+- ~~**'1分進めて'/'5分戻して'/'30秒スキップ' が navigate/back を実行または未認識**~~ — **Session 145 で修正**: video-seek に `N分(戻|進)`・`N(秒|分)スキップ` 追加（分→秒換算）。'進んで' は navigate 維持。
+- ~~**'頭から再生'/'最初から再生して'/'動画を最初から' が未認識**~~ — **Session 145 で実装**: video-seek リスタート分岐（delta -1e9、ホスト側 clamp。EN 'from the beginning'/'skip ahead' は read-aloud/paragraph-skip が既存所有で対象外）。
+- ~~**'10割る3'/'1足す2は' の算術が percent-jump 誤ジャンプまたは認識エラー**~~ — **Session 145 で実装**: percent-jump 'N割' に `(?!る|り)` lookahead + `calc` 原子（四則・EN plus/minus/times/divided by・0除算拒否、'計算して' bare は式プロンプト）。
+- ~~**'チュートリアルを開いて'/'音声ガイドを読んで' が literal ナビゲート**~~ — **Session 145 で修正**: go-to lookahead に チュートリアル|ガイド|ヘルプ|使い方 + help に句追加。
+- ~~**'ここをコピー'/'この段落をコピー'/'リンクのURLをコピー' が認識エラー**~~ — **Session 145 で実装**: `copy-selection` 誠実不在原子（'記事をコピー''URLをコピー''行をコピー' へ誘導）。
+- ~~**'今日の天気'/'天気を教えて'/'最新ニュース'/'面白い記事' のトピック質問が認識エラー**~~ — **Session 145 で実装**: web-search にトピック句 + 'Xを教えて' 形（'使い方を教えて'→help、'音声検索'→プロンプト維持）。
+- ~~**'コントローラーが効かない'/'メモをして'/'5分タイマー'/'もっと暗く'/'キャプションを隠して'/'再生位置は'/'あとで読み直す'/'読み上げを早送り' が未認識**~~ — **Session 145 で実装**: trouble/device-apps/brightness/captions-toggle/video-status/bookmark-page/speech-faster へのエイリアス拡充。
 
 
 ---

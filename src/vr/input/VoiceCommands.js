@@ -488,19 +488,29 @@ export class VoiceCommands {
     // their loose /戻|進/ regexes would otherwise swallow '10秒戻る'. Seconds
     // are captured when spoken ('30秒戻る'), else the 10-second step applies.
     this.registerCommand('video-seek', {
-      patterns: [/(\d+)\s*秒\s*(戻|進)/, '動画を戻して', '動画を進めて', '巻き戻して',
+      patterns: [/(\d+)\s*秒\s*(戻|進|スキップ)/, /(\d+)\s*分\s*(戻|進)/,
+        /(\d+)\s*(秒|分)\s*スキップ/,
+        '動画を戻して', '動画を進めて', '巻き戻して',
         '巻き戻し', '巻き戻す', '早送り', '早送りして', '動画を早送り',
         '少し戻して', '動画をスキップ', '動画を早送りして',
+        '頭から再生', '最初から再生', '最初から再生して', '動画を最初から',
         'ビデオを早送り', 'ビデオを巻き戻し', 'ビデオを進めて', 'ビデオを戻して',
         /seek\s+(forward|back)/i, /rewind/i, /fast ?forward/i],
       action: (transcript) => {
+        const restart = /頭から|最初から/.test(transcript);
+        const mMin = transcript.match(/(\d+)\s*分/);
         const m = transcript.match(/(\d+)/);
-        const secs = m ? Number(m[1]) : 10;
-        const back = /戻|巻き戻|rewind|back/i.test(transcript);
-        const delta = back ? -secs : secs;
+        const secs = mMin ? Number(mMin[1]) * 60 : m ? Number(m[1]) : 10;
+        const back = restart || /戻|巻き戻|rewind|back/i.test(transcript);
+        const delta = restart ? -1e9 : back ? -secs : secs;
         const pos = this._onVideoSeek ? this._onVideoSeek(delta) : null;
-        this.speak(pos === null ? '再生中の動画がありません'
-          : `${secs}秒${back ? '戻り' : '進み'}ました`);
+        if (pos === null) {
+          this.speak('再生中の動画がありません');
+        } else if (restart) {
+          this.speak('最初から再生します');
+        } else {
+          this.speak(`${secs}秒${back ? '戻り' : '進み'}ました`);
+        }
         return { action: 'video-seek', delta, pos };
       },
       description: 'Seek the immersive video'
@@ -1366,6 +1376,9 @@ export class VoiceCommands {
         '使い方は', '何ができますか', 'コマンド一覧',
         '教えて', '教えてほしい',
         'どうすればいい', 'どうすれば', 'なんとかして',
+        'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
+        '音声ガイドを読んで', 'ガイドを開いて', '使い方を見せて',
+        'ガイドを見せて', '使い方ガイド',
         /^どうやって/,
         /^help( me)?$/i,
         /^how (do|can|to) i/i,
@@ -1470,13 +1483,13 @@ export class VoiceCommands {
     // 'go to X' catch-all owns the EN phrase otherwise.
     this.registerCommand('percent-jump', {
       patterns: [/(\d+)%\s*(へ|に)/, /(\d+)\s*(?:パーセント|%)\s*(?:の位置|へ|に)/,
-        /^(\d+)%(に)?$/, /(\d+)割/, '半分まで', '真ん中まで', '中間まで',
+        /^(\d+)%(に)?$/, /(\d+)割(?!る|り)/, '半分まで', '真ん中まで', '中間まで',
         '半分のところ', '中間のところ', '真ん中に移動', '中央に移動',
         '中間に移動', 'ページの真ん中', '真ん中へ', '中間地点', '真ん中',
         /(?:go to |jump to )?(\d+)\s*percent/i],
       action: (transcript) => {
         // '半分/真ん中/中間' carry no digits — they mean the midpoint (50%).
-        const wari = transcript.match(/(\d+)割/);
+        const wari = transcript.match(/(\d+)割(?!る|り)/);
         const m = transcript.match(/(\d+)/);
         const pct = /半分|真ん中|中間|中央/.test(transcript)
           ? 50
@@ -1578,6 +1591,27 @@ export class VoiceCommands {
 
     // Online status — the connectivity atom (navigator.onLine; offline pages
     // still answer honestly).
+    // device-settings — toggles a web page cannot reach (radios,
+    // passthrough, guardian, camera, power modes). Registered BEFORE
+    // online-status so 'Wi-Fiを切って' is not mistaken for a status query.
+    this.registerCommand('device-settings', {
+      patterns: ['Wi-Fiを切って', 'Wi-Fiをつけて', 'Wi-Fiをオン', 'Wi-Fiをオフ',
+        'WiFiを切って', 'WiFiをつけて', 'ワイファイを切って', 'ワイファイをつけて',
+        'Bluetoothをつけて', 'Bluetoothを切って', 'Bluetooth',
+        '機内モード', '機内モードにして', 'モバイルデータ', 'テザリング',
+        'パススルー', 'パススルーにして', '周りが見えるようにして',
+        'ガーディアン', 'ガーディアンを設定', '境界を設定', 'プレイエリア',
+        'カメラを起動', 'カメラを使って', 'カメラ',
+        'バッテリーを節約', '節電', '節電モード',
+        /turn (on|off) (the )?(wi-?fi|bluetooth)/i, /airplane mode/i,
+        /passthrough/i, /set up (the )?guardian/i],
+      action: () => {
+        this.speak('本体の設定はブラウザから変更できません。ヘッドセットの設定で操作してください');
+        return { action: 'device-settings' };
+      },
+      description: 'Explain device-level settings live in the headset OS'
+    });
+
     this.registerCommand('online-status', {
       patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
         'Wi-Fiは', '接続状態', 'ネットワーク状態',
@@ -1664,6 +1698,9 @@ export class VoiceCommands {
         '押せない', '押せません', '選べない', '選べません', '触れない',
         'クリックできない', 'タップできない', '押しても反応しない', '動きません',
         '動かなくなった', 'なんで動かない', 'なぜ動かない',
+        'コントローラーが効かない', 'コントローラーが反応しない',
+        'コントローラーが動かない', 'ボタンが効かない', 'ボタンが反応しない',
+        '操作が効かない', 'コントローラーがきかない',
         '暗い', '画面が暗い', '見えない', '画面が暗くて見えない',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
@@ -1804,11 +1841,12 @@ export class VoiceCommands {
     // Registered before go-to so 'メモを開いて' cannot literal-navigate.
     this.registerCommand('device-apps', {
       patterns: ['メモして', 'メモを取って', 'メモを開いて', 'メモを見せて',
-        'タイマー', 'タイマーをセット', 'タイマーをかけて', 'アラーム',
+        'メモをして', 'メモする', 'タイマー', 'タイマーをセット', 'タイマーをかけて',
+        /\d+分タイマー/, 'アラーム', 'アラームをかけて', '目覚まし', '目覚ましをかけて',
         'アラームをセット', 'ストップウォッチ', 'カレンダー',
         'カレンダーを開いて', '予定を教えて', 'リマインダー', '電話',
         '電話をかけて', '電話して', '連絡先', 'メール', 'メールを開いて',
-        'メールをチェック', 'メールを見て', '受信トレイ', '計算機',
+        'メールをチェック', 'メールを見て', '受信トレイ', '計算機', '電卓',
         '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
         'テレビを見て', 'ラジオをつけて',
         /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)/i,
@@ -1818,6 +1856,46 @@ export class VoiceCommands {
         return { action: 'device-apps' };
       },
       description: 'Explain phone-style apps are unavailable'
+    });
+    // calc — unlike the apps above, simple arithmetic IS answerable by voice
+    // ('1足す2は' → '3です'); '計算して' alone prompts for the expression.
+    this.registerCommand('calc', {
+      patterns: [/(\d+(?:\.\d+)?)\s*(足す|たす|プラス|\+)\s*(\d+(?:\.\d+)?)/,
+        /(\d+(?:\.\d+)?)\s*(引く|ひく|マイナス|-)\s*(\d+(?:\.\d+)?)/,
+        /(\d+(?:\.\d+)?)\s*(掛ける|かける|×|\*)\s*(\d+(?:\.\d+)?)/,
+        /(\d+(?:\.\d+)?)\s*(割る|わる|÷|\/)\s*(\d+(?:\.\d+)?)/,
+        /(\d+(?:\.\d+)?)\s*(plus|minus|times|divided by)\s*(\d+(?:\.\d+)?)/i,
+        '計算して', '計算', '足し算', '引き算', '掛け算', '割り算'],
+      action: (transcript) => {
+        const m = transcript.match(
+          /(\d+(?:\.\d+)?)\s*(足す|たす|プラス|引く|ひく|マイナス|掛ける|かける|割る|わる)\s*(\d+(?:\.\d+)?)/i)
+          || transcript.match(
+            /(\d+(?:\.\d+)?)\s*(plus|minus|times|divided by|\+|-|×|\*|÷|\/)\s*(\d+(?:\.\d+)?)/i);
+        if (!m) {
+          this.speak('「3足す2は」のように式を言ってください');
+          return { action: 'calc', result: null };
+        }
+        const a = Number(m[1]);
+        const b = Number(m[3]);
+        let r;
+        if (/足す|たす|プラス|plus|\+/i.test(m[2])) {
+          r = a + b;
+        } else if (/引く|ひく|マイナス|minus|-/i.test(m[2])) {
+          r = a - b;
+        } else if (/掛ける|かける|×|times|\*/i.test(m[2])) {
+          r = a * b;
+        } else {
+          r = b === 0 ? null : a / b;
+        }
+        if (r === null || !Number.isFinite(r)) {
+          this.speak('ゼロでは割れません');
+          return { action: 'calc', result: null };
+        }
+        const out = Math.round(r * 1e6) / 1e6;
+        this.speak(`${out}です`);
+        return { action: 'calc', result: out };
+      },
+      description: 'Calculate simple spoken arithmetic'
     });
     this.registerCommand('media-search', {
       patterns: ['画像検索', '動画検索', '画像を検索', '動画を検索',
@@ -3084,6 +3162,7 @@ export class VoiceCommands {
         '早口で', 'もっと早く', '早口にして',
         '早くしろ', '速くしろ', 'もっと早くしろ',
         'さっきより早く', 'さっきより速く', '今より早く', '今より速く',
+        '読み上げを早送り', '読み上げ早送り', '読み上げを早送りして',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
@@ -3545,7 +3624,7 @@ export class VoiceCommands {
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
         'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
-        '後で読む', 'あとで読む', '読書リストに追加',
+        '後で読む', 'あとで読む', 'あとで読み直す', 'あとで読み返す', '読書リストに追加',
         '保存して', 'ブックマークに保存', '保存しておいて',
         /bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
@@ -3805,7 +3884,7 @@ export class VoiceCommands {
     // site names — both are passed through via lookaheads.
     const goToJp = new RegExp(
       '^(?!(?:前回|セッション|閉じた))' +
-      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り)を開)' +
+      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り|チュートリアル|ガイド|ヘルプ|使い方)を開)' +
       '(.+)(?:を開く?|に(?:行く|移動(?:する)?))'
     );
     const goToEn = new RegExp('^(?:open|go to|navigate to)\\s+' +
@@ -4007,7 +4086,7 @@ export class VoiceCommands {
       [/キャプションを(オン|オフ|つけて|消して|出して|見せて)/, /字幕を(つけて|消して|オン|オフ|出して|見せて)/,
         /字幕(?:を)?(?:オン|オフ)/, /キャプション(?:を)?(?:オン|オフ)にして/,
         /字幕(?:を)?消(?:して|す)/, /キャプション(?:を)?消(?:して|す)/,
-        /字幕(?:を)?(?:出して|見せて)/, /キャプション(?:を)?(?:出して|見せて)/,
+        /字幕(?:を)?(?:出して|見せて|隠して)/, /キャプション(?:を)?(?:出して|見せて|隠して)/,
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
       'Toggle captions');
     toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
@@ -4724,6 +4803,19 @@ export class VoiceCommands {
         return { action: 'copy-line', copied: !!text };
       },
       description: 'Copy the current reader line'
+    });
+    // copy-selection — sub-article copying isn't surfaced; honest pointer
+    // beats silently copying the wrong extent or doing nothing.
+    this.registerCommand('copy-selection', {
+      patterns: ['ここをコピー', 'ここをコピーして', '選択した部分をコピー',
+        '選択部分をコピー', 'この段落をコピー', '段落をコピー',
+        'リンクのURLをコピー', 'リンク先をコピー',
+        /copy (the |this )?selection/i, /copy this part/i],
+      action: () => {
+        this.speak('選択部分やリンクのコピーはまだできません。「記事をコピー」「URLをコピー」「行をコピー」はできます');
+        return { action: 'copy-selection' };
+      },
+      description: 'Explain selection/link copy is unavailable'
     });
     // copy-article — the whole-article sibling: reader text to clipboard.
     this.registerCommand('copy-article', {
@@ -5934,6 +6026,8 @@ export class VoiceCommands {
         '画面を明るく', '画面を暗く', '輝度を上げて', '輝度を下げて', '輝度',
         '明るすぎる', '眩しい', 'まぶしい', 'まぶしすぎる', '暗すぎる',
         '画面が明るい', '画面が眩しい',
+        'もっと暗く', 'もっと暗くして', '暗くしてほしい', '暗くならない',
+        '画面を暗くして', '暗くなって', 'もっと明るく', 'もっと明るくして',
         /brightness/i, /^brighter$/i, /^dimmer$/i,
         /make (it|the screen) (brighter|dimmer|darker)/i],
       action: () => {
@@ -6154,6 +6248,8 @@ export class VoiceCommands {
     this.registerCommand('video-status', {
       patterns: ['動画はどのくらい', '動画の位置', '動画は何分',
         '今どの辺', 'どの辺まで', '再生位置', '再生時間',
+        '再生位置は', '再生時間は', 'あとどれくらいの動画', 'どのくらいの動画',
+        '動画の残り', '動画の残り時間',
         /video (position|time)/i, /how far (in|through)/i],
       action: () => {
         const st = this._onVideoStatus ? this._onVideoStatus() : null;
@@ -6427,6 +6523,12 @@ export class VoiceCommands {
         // web. Panel-scoped '見せて' phrases (履歴/ブックマーク/タブ/設定/
         // 通知) all live on earlier registrations and keep winning.
         /(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/,
+        // 'Xを教えて' — info intent (weather/news); scoped-help's
+        // 'Xについて教えて' and help's '使い方を教えて' register earlier and
+        // keep winning. Topic shortcuts ('今日の天気' bare) capture the
+        // topic itself as the term.
+        /(.+?)(?:を教えて|を教えてほしい|を知らせて)/,
+        /^(今日の天気|明日の天気|最新ニュース|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/,
         /search (?:the web |web )?for (.+)/i,
         /web search (?:for )?(.+)/i,
         '音声検索'],
@@ -6434,6 +6536,8 @@ export class VoiceCommands {
         const m = transcript.match(/^(?!履歴|ブックマーク|ページ|設定|メニュー)(.+?)を検索/)
           || transcript.match(/(.+?)について検索/)
           || transcript.match(/(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/)
+          || transcript.match(/(.+?)(?:を教えて|を教えてほしい|を知らせて)/)
+          || transcript.match(/^(今日の天気|明日の天気|最新ニュース|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/)
           || transcript.match(/search (?:the web |web )?for (.+)/i)
           || transcript.match(/web search (?:for )?(.+)/i);
         const term = (m && m[1] ? m[1] : '').trim();

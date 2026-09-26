@@ -252,6 +252,19 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 145: デバイス/計算/動画時間原子 — device-settings・calc・video 分/リスタート形・トピック検索
+外部基準: OS 音声アシスタント（Siri/Alexa の電卓・端末設定委譲）、YouTube 時間指定シーク、Windows Voice Access の設定不可応答。
+- 🐛 **'Wi-Fiを切って' が online-status で誤答**（実測捕捉）: トグル要求に 'オンラインです' と応答していた → `device-settings` 誠実不在原子を online-status 前に登録（Wi-Fi/Bluetooth/機内モード/パススルー/ガーディアン/カメラ/節電 → 'ヘッドセットの設定で操作してください'）。'Wi-Fiは' は online-status 維持（共存テスト）。
+- 🐛 **'1分進めて'/'5分戻して' が navigate/back を実行**（実測捕捉）: 時間指定シークを前後ナビゲートが誤所有 → video-seek に `N分(戻|進)`・`N(秒|分)スキップ` を追加（分→秒換算、video-seek は navigate より先行登録で勝つ）。
+- 🐛 **'10割る3' が percent-jump で 100% ジャンプ誤認**（実測捕捉）: 'N割' パターンに `(?!る|り)` lookahead → `calc` 原子へ透過。'3割'/'50%' は percent-jump 維持（共存テスト）。
+- 🐛 **'チュートリアルを開いて' が literal ナビゲート**（実測捕捉）: go-to JP lookahead に チュートリアル|ガイド|ヘルプ|使い方 追加 + help に 'チュートリアル'/'音声ガイドを読んで'/'使い方を見せて' 句（help の先行登録で勝つ、onGoTo 非呼出を断言）。
+- ✨ **`calc` 原子**（device-apps の誠実不在の対で、算術は回答可能）: 'N足す/引く/掛ける/割るM'・'N plus/minus/times/divided by M' → 結果を発話（0除算拒否・小数6桁丸め）。'計算して'/'割り算' bare → 式プロンプト。
+- ✨ **video-seek リスタート形**: '頭から再生'/'最初から再生して'/'動画を最初から' → delta -1e9（ホスト側 clamp で先頭へ）。EN 'from the beginning'/'skip ahead' は read-aloud/paragraph-skip が既存所有（共存テストで維持）。
+- ✨ **誠実不在クラスタVI**: `copy-selection`（'ここをコピー'/'この段落をコピー'/'リンクのURLをコピー' → 「記事/URL/行をコピー」へ誘導。'リンクをコピー' は copy-url 維持・'残り時間は' は remaining-time 維持の共存テスト）。
+- ✨ **web-search トピック句**: '今日の天気'/'最新ニュース'/'面白い記事' bare + 'Xを教えて' 形（'使い方を教えて'→help 維持、'音声検索'→語プロンプト維持）。
+- ✨ **エイリアス拡充**: trouble 'コントローラーが効かない/反応しない'、device-apps 'メモをして'/'5分タイマー'/'目覚まし'/'電卓'、brightness 'もっと暗く'/'暗くならない'、captions-toggle '隠して' 形、video-status '再生位置は'/'あとどれくらいの動画'、bookmark 'あとで読み直す'、speech-faster '読み上げを早送り'。
+- ✅ **テスト +107（stash で91件赤確認、残りは共存ガードの設計上緑）**: Total 4359 tests (119 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 144: バルク/メタ原子 — pin-all・tab-audio/tab-meta/conditional 誠実不在・音量名前付き目標
 外部基準: Chrome tab-strip の一括操作、Voice Access 'which tab' 系照会、会話型 UI の未対応要求への誠実応答原則。
 - 🐛 **'どのタブが音出てる'/'どのタブか忘れた' が tab-by-name に誤ルート**（実測捕捉）: '「ど」のタブがありません' の誤答 → stoplist に 'どの|今どの' 追加 + `tab-audio`（タブごとの音声検出なし→ミュート誘導）/describe-tab/where-am-i へ透過。'ニュースのタブ' は維持（共存テスト）。
