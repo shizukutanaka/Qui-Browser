@@ -469,6 +469,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'最初まで戻る'/'履歴の最初に戻る'/'一番最初に戻る' が1歩だけ戻る誤動作**~~ — **Session 131 で実装**: `nav-steps` を registerDefaultCommands 内の back/navigate/home より前に配置（connectBrowser 登録は Map キー位置で負ける — プローブ実測）→ '…に戻る' 語尾の start 形を all-the-way-back に解決。'最初のタブに戻る'/'一つ戻って' は back の単歩維持（漢数字 一 は nav-steps 対象外）。
 - ~~**'Nページ戻って/進んで' の多段履歴ナビが未実装**~~ — **Session 131 で実装**: 数字+漢数字（二〜九）+ EN 'back/forward N pages' を `goBack`/`goForward` ループへ — 'Nページ戻り/進みました'、不足は '（これ以上戻れ/進めません）'、0 は誠実応答（Chrome Alt+← 連打準拠）。
 - ~~**検索パネル終了・タブ一括/単体閉鎖・VR終了・字幕サイズ・履歴/検索呼び出し・休憩訴えの言い換え句が未認識（第14弾）**~~ — **Session 131 で実装**: clear-find '検索を閉じて/消して/終了'/'ハイライトを解除'、close-all-tabs 'タブを全部閉じる' 等、close-tab 'パネルを閉じて'/'ウィンドウを閉じる'、vr-exit '終了'/'アプリを閉じて'/'ブラウザを閉じて'、caption-size '字幕を大きくして/小さくして'、history-list '閲覧履歴'/'検索履歴'、find-query '最後の検索'、trouble '休憩したい'/'めまいがする'、back 'もっと戻って'/'さっき見たページ'。
+- ~~**'最近閉じたタブ' の一覧読み上げが未実装**~~ — **Session 132 で実装**: `TabManager.closedTabs()`（LIFO スタックの最終優先コピー）+ `closed-list` コマンドで 'N個のタブを閉じました。最近から: …'（3件cap）。private/blank タブはスタック非記録のため漏洩なし。読み上げはスタックを消費しない。
+- ~~**'お気に入りをすべて開いて' 一括オープンが未実装**~~ — **Session 132 で実装**: `open-all-bookmarks` が `onBookmarkList` を走査し MAX_TABS まで `newTab` — 残りは '上限で残りN件は開けません' と誠実告知（Chrome "open all bookmarks" 準拠）。go-to catch-all より前に登録。
+- ~~**'ブックマーク一覧を開いて'/'ページ内検索を開いて'/'検索を開いて' が literal ナビゲート（go-to 誤ルート）**~~ — **Session 132 で実装**: bookmarks-open に一覧 'を開いて' 形を追加、find-in-page に '…を開いて/を開く/検索モード' 形を追加し bare プロンプトへ。'ブックマーク一覧' bare形は bookmarks-list の読み上げを維持（奪取回帰をテストで捕捉・分離）。
+- ~~**reopen・閉じる・読み直し・リセンター・音声速度の言い換え句が未認識（第15弾）**~~ — **Session 132 で実装**: reopen-tab '閉じたタブを開き直して'/'開き直して'、close-other-tabs 'このタブだけ残して'/'このタブ以外を閉じて'、bookmark 'しおりを挟んで'、stop-reading '読み上げをやめる'、recenter '正面に戻して'/'向きをリセット'、speech '早口で'/'もっとゆっくり'、read-here '残りを読んで'/'ここを読んで'、read-sentence '今の文を読み直して'、trouble '暗い'/'見えない'/'目を休めたい'、vr-exit '全画面を閉じて'、clear-find 'ハイライトを外して'、close-tab 'このページを閉じて'、bookmarks 'ブックマークを閉じて'、next/prev-page '…を読んで'、say-again '繰り返して'/'聞き取れなかった'、reader-size '大きくして'/'文字が見にくい'。'何と言った' は say-last-transcript（transcript エコー）維持、close-tab-by-name stoplist に '残り' 追加。
 
 
 ---

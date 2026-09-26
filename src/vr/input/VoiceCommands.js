@@ -918,6 +918,7 @@ export class VoiceCommands {
         '終了', 'アプリを閉じて', 'ブラウザを閉じて', 'ブラウザを終了して',
         'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
+        '全画面を閉じて', '全画面を解除して', 'フルスクリーンを閉じて',
         /^quit$/i, /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
       action: () => {
         // Would exit VR mode
@@ -1065,6 +1066,7 @@ export class VoiceCommands {
         '拡大',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
+        '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
@@ -1458,6 +1460,8 @@ export class VoiceCommands {
         '目が痛い', '頭が痛い', '疲れた', '休みたい', '吐き気がする', '乗り物酔い',
         '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
         '頭がクラクラする', 'めまいがする', '目眩がする', '気分が悪くなった',
+        '目を休めたい', '目を休める', '少し休みたい', '疲れてきた',
+        '暗い', '画面が暗い', '見えない', '画面が暗くて見えない',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1952,7 +1956,7 @@ export class VoiceCommands {
     // 閉じて'/'close the news tab'). Registered BEFORE close-tab: its
     // /close\s+tab/i prefix owns the EN phrase otherwise (dispatch-verified).
     this.registerCommand('close-tab-by-name', {
-      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット))(.+)のタブを閉じて/,
+      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット|残り))(.+)のタブを閉じて/,
         /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b)(.+) tab$/i,
         /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
@@ -2244,6 +2248,7 @@ export class VoiceCommands {
     this.registerCommand('close-tab', {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', 'このタブを閉じて',
         'ウィンドウを閉じて', 'このウィンドウを閉じて', 'ページを閉じて', 'サイトを閉じて',
+        'このページを閉じて', 'このページを閉じる', 'このサイトを閉じて',
         'タブを消して', '閉じて', '閉じる', 'タブを消す', 'ページを消して',
         'パネルを閉じて', 'パネルを消して', 'ウィンドウを閉じる',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
@@ -2336,6 +2341,9 @@ export class VoiceCommands {
     this.registerCommand('reopen-tab', {
       patterns: [
         'タブを開き直す', '閉じたタブを開き直す', '開き直す',
+        '閉じたタブを開き直して', '開き直して', 'タブを開き直して',
+        '閉じたタブをもう一度開いて', '閉じたタブを元に戻して',
+        'さっき閉じたタブを開いて',
         '元に戻して', '取り消して', '閉じたタブをもう一度', '閉じたタブを開いて',
         'もとに戻して', '取り消し', '取り消して',
         /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i, /^undo/i
@@ -2430,6 +2438,7 @@ export class VoiceCommands {
     // atom on the canvas; these give hands-free users the same jump.
     this.registerCommand('next-page', {
       patterns: ['次のページ', '次のページへ', '次ページ', 'ページダウン', '下のページ',
+        '次のページを読んで',
         /next\s+page/i, /page\s+down/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
@@ -2441,6 +2450,7 @@ export class VoiceCommands {
 
     this.registerCommand('prev-page', {
       patterns: ['前のページ', '前のページへ', '前ページ', 'ページアップ', '上のページ',
+        '前のページを読んで',
         /previous\s+page|prev\s+page|page\s+up/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
@@ -2474,7 +2484,10 @@ export class VoiceCommands {
     });
 
     this.registerCommand('stop-reading', {
-      patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止', /stop\s+reading/i, /stop\s+narrat/i],
+      patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止',
+        '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
+        '読み上げを止める', '読み上げを終了',
+        /stop\s+reading/i, /stop\s+narrat/i],
       action: () => {
         this.stopSpeaking();
         return { action: 'stop-reading' };
@@ -2518,6 +2531,7 @@ export class VoiceCommands {
         '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
+        '早口で', 'もっと早く', '早口にして',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
@@ -2536,6 +2550,7 @@ export class VoiceCommands {
         '話すスピードを下げて', '読み上げスピードを下げて', 'ゆっくり',
         '読み上げが速い', '読み上げが速すぎる', '聞き取りやすくして',
         'はっきり読んで', 'ゆっくり読み上げて', 'ゆっくりめに読んで',
+        'もっとゆっくり', 'もう少しゆっくり', 'ゆっくりめに',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
@@ -2619,8 +2634,13 @@ export class VoiceCommands {
       // 'find in page X' is a separate pattern so the optional prefix can't
       // backtrack into the query; the plain form only steps aside for the
       // two complete endpoint utterances ('find first'/'find last'), not
-      // for multiword queries like 'find first aid'.
+      // for multiword queries like 'find first aid'. The '…を開いて' forms
+      // were literal-navigating via go-to's catch-all (probe-verified);
+      // they land in the bare/no-term branch, which asks for a query.
       patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索',
+        'ページ内検索を開いて', 'ページ内検索を開く', '検索を開いて',
+        '検索を開く', '検索バーを開いて', '検索バーを開く', '検索バーを出して',
+        '検索を始めて', '検索をはじめて', '検索モード',
         'この中から検索', '探して', '検索して',
         /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
         /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
@@ -2708,6 +2728,8 @@ export class VoiceCommands {
       patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
         'もう一回聞いて', '聞き直して', 'もう一回言って', '今の行をもう一度',
         'もう一度再生',
+        '繰り返して', 'もう一度お願い',
+        '聞き取れなかった', '聞き取れませんでした', 'もう一度聞かせて',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
         /listen again/i],
       action: () => {
@@ -2791,7 +2813,13 @@ export class VoiceCommands {
     // Bulk close atoms (Chrome tab-strip menu). closeTab keeps the
     // closed-stack rules — private/blank tabs still aren't recorded.
     this.registerCommand('close-other-tabs', {
-      patterns: ['他のタブを閉じて', '他のタブを閉じる', /close\s+other\s+tabs/i],
+      patterns: ['他のタブを閉じて', '他のタブを閉じる',
+        '他のタブを全部閉じて', 'ほかのタブを全部閉じて',
+        'このタブだけ残して', 'このタブだけを残して',
+        'このタブ以外を閉じて', 'このタブ以外を全部閉じて',
+        'このタブ以外のタブを閉じて', 'このタブ以外をすべて閉じて',
+        '残りのタブを閉じて', '残りのタブを全部閉じて',
+        /close\s+other\s+tabs/i, /close all (the )?other tabs/i],
       action: () => {
         tabManager?.closeOtherTabs?.();
         return { action: 'close-other-tabs' };
@@ -2886,6 +2914,7 @@ export class VoiceCommands {
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
+        'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
         '後で読む', 'あとで読む', '読書リストに追加',
         /bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
@@ -2902,7 +2931,9 @@ export class VoiceCommands {
 
     // Bookmark panel toggle
     this.registerCommand('bookmarks', {
-      patterns: ['ブックマーク', 'お気に入り', '履歴'],
+      patterns: ['ブックマーク', 'お気に入り', '履歴',
+        'ブックマークを閉じて', 'ブックマークパネルを閉じて',
+        'ブックマーク一覧を閉じて', 'お気に入りを閉じて'],
       action: () => {
         bookmarkPanel?.toggle?.();
         return { action: 'bookmarks' };
@@ -2916,7 +2947,9 @@ export class VoiceCommands {
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
         'ブックマークを見せて', 'お気に入りを見せて', 'お気に入りを開いて',
-        'お気に入り一覧', '読書リスト', '読書リストを開いて',
+        'お気に入り一覧', 'お気に入り一覧を開いて',
+        'ブックマーク一覧を開いて', 'ブックマークの一覧を開いて',
+        '読書リスト', '読書リストを開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2929,6 +2962,40 @@ export class VoiceCommands {
       },
       confirmationText: 'ブックマークを開きます',
       description: 'Open the bookmarks panel'
+    });
+
+    // Open ALL bookmarks as tabs — Chrome's "open all bookmarks" context
+    // entry. Iterates onBookmarkList and stops at the tab cap honestly
+    // ('上限のため残りは開けません'). Registered before go-to's 'を開いて'
+    // catch-all.
+    this.registerCommand('open-all-bookmarks', {
+      patterns: ['お気に入りをすべて開いて', 'お気に入りを全部開いて',
+        'ブックマークをすべて開いて', 'ブックマークを全部開いて',
+        '全部のブックマークを開いて', 'すべてのブックマークを開いて',
+        'ブックマークを全部ひらいて',
+        /open all (the |my )?bookmarks/i, /open every bookmark/i],
+      action: () => {
+        const list = this._onBookmarkList ? this._onBookmarkList() : null;
+        if (!list || !list.length) {
+          this.speak(list ? 'ブックマークがありません' : 'ブックマーク一覧が利用できません');
+          return { action: 'open-all-bookmarks', opened: 0 };
+        }
+        let opened = 0;
+        for (const b of list) {
+          const url = typeof b === 'string' ? b : (b && b.url);
+          if (!url || !tabManager?.newTab?.(url)) {
+            break;
+          }
+          opened++;
+        }
+        const left = list.length - opened;
+        this.speak(opened
+          ? (left ? `${opened}個のブックマークを開きました（上限で残り${left}件は開けません）`
+            : `${opened}個のブックマークを開きました`)
+          : 'タブを開けません');
+        return { action: 'open-all-bookmarks', opened, remaining: left };
+      },
+      description: 'Open every bookmark as a tab'
     });
 
     // Keyboard toggle
@@ -4173,7 +4240,10 @@ export class VoiceCommands {
     // parity. readAloud owns the start/nothing-to-read announcements.
     this.registerCommand('read-here', {
       patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
+        'ここを読んで', 'この辺を読んで',
         '続きを読んで', '続きから読んで',
+        '残りを読んで', '残り全部読んで', '残りを全部読んで',
+        '続きを全部読んで', 'あとの文を読んで',
         /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
         /continue reading/i],
       action: () => {
@@ -4511,6 +4581,7 @@ export class VoiceCommands {
     // Read the sentence under the scroll — read-line's sentence sibling.
     this.registerCommand('read-sentence', {
       patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで', '現在の文',
+        '今の文を読み直して', 'この文を読み直して', '文を読み直して',
         /read (this |the |current )?sentence/i],
       action: () => {
         const r = this._onSentence ? this._onSentence() : null;
@@ -4894,6 +4965,7 @@ export class VoiceCommands {
       patterns: ['検索を解除', 'ハイライトを消して', 'ハイライトを消す',
         '検索をクリア', '検索を閉じて', '検索バーを閉じて', '検索窓を閉じて',
         '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
+        'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
         /clear (the )?(search|find)/i, /clear highlights?/i],
       action: () => {
         const cleared = this._onClearFind ? this._onClearFind() : false;
@@ -5059,6 +5131,8 @@ export class VoiceCommands {
     // voice. The hook also fires its own caption via recenter().
     this.registerCommand('recenter', {
       patterns: ['リセンター', '中央に戻して', 'センタリング',
+        '正面に戻して', '向きをリセット', '向きを戻して',
+        'カメラをリセット', '視点をリセット', '正面を向いて',
         /recenter/i, /center (the )?(view|position)/i],
       action: () => {
         const ok = this._onRecenter ? this._onRecenter() : false;
@@ -5087,6 +5161,30 @@ export class VoiceCommands {
         return { action: 'video-status', position: st.t };
       },
       description: 'Announce the video position'
+    });
+
+    // Recently-closed list — Chrome history "recently closed" parity: the
+    // LIFO stack's read-only twin (nothing is reopened or popped). The
+    // closed stack stores URLs only, so the readout speaks URLs; private
+    // tabs never enter the stack, so they never appear here either.
+    this.registerCommand('closed-list', {
+      patterns: ['閉じたタブの一覧', '最近閉じたタブ', '最近閉じたタブを読んで',
+        '最近閉じたタブを教えて', '閉じたタブを読んで', '閉じたタブは何',
+        'さっき閉じたタブは何', 'さっき閉じたタブを教えて',
+        '何個閉じた', 'いくつ閉じた', '何個タブを閉じた',
+        /recently closed/i, /closed tabs/i, /what did i (just )?close/i],
+      action: () => {
+        const list = tabManager?.closedTabs?.() || [];
+        if (!list.length) {
+          this.speak('閉じたタブはありません');
+          return { action: 'closed-list', count: 0 };
+        }
+        const shown = list.slice(0, 3).join('、');
+        const more = list.length > 3 ? `、他${list.length - 3}件` : '';
+        this.speak(`${list.length}個のタブを閉じました。最近から: ${shown}${more}`);
+        return { action: 'closed-list', count: list.length };
+      },
+      description: 'Announce recently closed tabs'
     });
 
     // Reopen every closed tab — reopen-tab's bulk variant (Ctrl+Shift+T held
