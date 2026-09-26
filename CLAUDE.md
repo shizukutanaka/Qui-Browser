@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 123: 左閉じ/序数原子 — close-tabs-left 双子・JA序数タブ選択・'半分の音量' + 言い換え句第6弾
+外部基準: Chrome close-tabs-to-the-right の左対称双子、Voice Access の序数選択（'一番目のタブ'）、Chrome 'new tab'/'close window' の自然句、numeric volume の 'half' 特例。
+- 🐛 **'左のタブを閉じて' が名指し検索に誤ルートする実害修正**: close-tab-by-name の JA stoplist は '右' だけ除外で '左' 未除外（非対称バグ、実測捕捉）→ 左|左側 を追加 + 新規 `close-tabs-left` が先行所有（'左側のタブを閉じて'/'close tabs to the left'）。
+- ✨ **`TabManager.closeTabsToLeft()`**（closeTabsToRight の左双子）: closeTab 経由でピン拒否・クローズスタック記録を継承。closeTab が splice で activeIndex を自走デクリメントするため前向き反復 `i < activeIndex`（逐次評価）で全左側を網羅。
+- ✨ **`tab-select-ordinal`**（Voice Access 序数選択準拠）: '一番目のタブ'〜'九番目のタブ' → 漢数字 map → setActive + タイトル告知、範囲外は 'タブNはありません'。tab-by-name の `(.+)のタブ` capture が先行所有するため hoisted 登録。実測で '二番目のタブ' が tab-by-name の誤答と index 偶然一致したため、テストは index 遷移と告知タイトルで断言。
+- ✨ **'半分の音量'**: volume-set に '半分の音量'/'音量を半分に'/'half volume' を追加し `半分|half` → 50 の特例分岐。
+- ✨ **エイリアス拡充（第6弾）**: close-tab へ 'ページを閉じて'/'サイトを閉じて'、volume へ '音を大きく/小さく'・'音量を大きく/小さく'、new-tab へ '新しいタブで開いて'、url-input へ 'アドレスバーを見せて/出して'、read-url へ 'URLを表示'/'アドレスを読んで'/'URLは'、bookmark-page へ 'お気に入り登録'/'後で読む'/'あとで読む'/'読書リストに追加'、bookmarks-open へ 'お気に入り一覧'/'読書リスト'、reader-size へ 'ズームイン/アウトして'・'文字/ページを拡大/縮小'。
+- ✅ **テスト +34（git stash で実装前に30件赤確認 — 4件は既存ガードの設計上緑）**: Total 2533 tests (97 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 122: 索引ピーク/マイク誤ルート原子 — 'タブNを読んで' の切替誤害・'マイクをミュート' の音量誤害・セッション消去・ストレージ・トラブル導線 + 言い換え句第5弾
 外部基準: screen-reader indexed peek（NVDA オブジェクトナビ）、Voice Access 'mic off'（認識停止は音量と別物）、Chrome undo/Ctrl+Shift+T・'close window'・restore pages の消去双子、Firefox about:storage（navigator.storage.estimate）、voice-only ユーザーの回復導線。
 - 🐛 **'タブNを読んで' が切り替えを実行する実害修正**: tab-select の `/タブ(\d+)/` が索引告知句を所有 → `peek-tab-n`（'タブNを読んで'/'タブNは何'/'read tab N' → 非破壊に `タブN: タイトル`、範囲外は 'タブNはありません'）を hoisted 登録。'タブ1' 単体は切替を維持（共存テスト）。
