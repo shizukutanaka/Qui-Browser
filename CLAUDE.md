@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 130: 端移動/掃除原子 — move-tab-start/end・bulk クローズ3種・find-again + 言い換え句第13弾
+外部基準: Chrome の「タブを先頭/末尾へ」（長タブリストの端移動）、"Close duplicate tabs" 拡張機能、Voice Access "find again"、Firefox Close Unpinned Tabs。
+- 🐛 **'右端/左端/先頭/最後に移動' 誤ナビゲート修正**: go-to の `/に移動/` catch-all が句を所有しリテラルナビゲート（プローブ実測）→ `move-tab-start`/`move-tab-end` を go-to より前に登録。TabManager に `moveTabToStart(index)`/`moveTabToEnd(index)` を追加 — pinned タブは pinned クラスタ内端（`pinnedCount-1` / `pinnedCount`）に留め、非 pinned は 0/末尾へ（moveTab の境界規則を継承）。
+- ✨ **bulk クローズ3種**: `closeDuplicateTabs()`（URL 重複の後出現側を closeTab — 先勝ち・Set 走査）、`closeUnpinnedTabs()`（ピン留めを残す — Chrome "close other tabs" のピン除外版）、`closeNormalTabs()`（private を残す close-private-tabs 双子）。`close-duplicate-tabs`/`close-unpinned-tabs`/`close-normal-tabs` で件数付き告知（0 件は誠実応答）。
+- ✨ **find-again**（repeat-command の検索双子 — repeat は transcript 再生、これは query 再実行）: 'もう一度検索'/'もう一回検索'/'再検索'/'同じ検索をもう一度'/'find again'/'search again' → `findQuery()` で現行クエリ取得 → `findInReader(q)` 再実行。find-in-page より前に登録（'find again' が 'again' を検索しない）。
+- ✨ **speech-rate-set に JA 倍速・半分形**: '/N倍速/' + 漢数字（一〜九）+ '半分の速さ/速度'→0.5 + bare '倍速で'→2.0。percent-jump に中間形 '半分まで'/'真ん中まで'/'中間まで'→50%。
+- ✨ **エイリアス第13弾**: navigate/back の両登録へ '戻って'/'戻りたい'/'さっきのページ'/'進んで'/'進みたい'、refresh 'ページを再読み込み'/'読み込み直して'/'リフレッシュして'、scroll-down 'スクロール'/'ページをめくって'、new-tab 'もう一個タブ'/'タブを増やして'、close-tab '閉じて'/'タブを消して'、pin/unpin 'ピンを付けて'/'ピンを取って'/'固定解除'、pause-reading '一旦停止'/'ちょっと止めて'、video-toggle 'ビデオを再生/一時停止/ポーズ/再開'、video-seek '動画をスキップ'/'ビデオを早送り/巻き戻し'、trouble '目が痛い'/'頭が痛い'/'疲れた'/'休みたい'/'吐き気がする'、online-status 'つながらない'/'圏外'/'ネットが切れた'、connection-status '回線が悪い'/'電波が悪い'/'通信が遅い'/'ネットが重い'、battery '充電がない'/'電池が切れそう'/'バッテリー切れ'、security 'HTTPSですか'/'安全なサイトですか'/'危険なサイト'、hostname 'ドメイン名'/'ホスト名'、unbookmark 'お気に入りから削除'/'ブックマークを消す'、read-clipboard '何をコピーした'/'コピー内容'、title 'タブの名前'/'サイトのタイトル'、where-am-i '今いる場所'/'この場所は'、find-status '見つからなかった'/'何件見つかった'/'ヒット数'、line/sentence/paragraph-status の総数形（'全部で何行/文/段落'/'総行数'/'総文数'/'総段落数'）、tab-status '何タブ'/'タブいくつ'、tabs-list '開いてるウィンドウ'、describe-tab 'ウィンドウについて'、speech-faster/slower 訴え形（'読み上げが遅い'/'読み上げが速い'/'はっきり読んで'/'ゆっくり読み上げて'）、speech-reset '元の速度に戻して'/'通常の速度'/'標準速度'/'普通に読んで'/'いつもの速度'。
+- ✅ **テスト +165（git stash で165件全て赤確認）**: Total 3119 tests (104 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。
+
 ### Session 129: 位置/一覧原子 — 読み上げ位置・タブ一覧・コレクション読み上げ + 言い換え句第12弾
 外部基準: Voice Access "where am I"/"what did you hear"、Kindle 割合ジャンプ（N割）、VoiceOver のリスト読み上げ、メディアキーの再生/停止句。
 - ✨ **line-status に読み上げ位置句**: '今どこを読んでる'/'どこまで読んでる'/'読み上げ位置'/'読み上げ中の行/場所'/'現在位置'/'今の位置'/'読み上げ中'。'読み上げ中ですか' は speaking-status 維持（共存テスト）。
