@@ -562,6 +562,26 @@ export class VoiceCommands {
       description: 'Announce tab N\'s title without switching'
     });
 
+    // Japanese ordinal select — '一番目のタブ'. Hoisted: tab-by-name's
+    // (.+)のタブ capture would otherwise treat '一番目' as a title query.
+    this.registerCommand('tab-select-ordinal', {
+      patterns: [/([一二三四五六七八九])番目のタブ/],
+      action: (transcript) => {
+        const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const m = transcript.match(/([一二三四五六七八九])番目/);
+        const n = m ? ORD[m[1]] || 0 : 0;
+        const t = (this._tabManager?.tabs || [])[n - 1];
+        if (!t) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'tab-select-ordinal', index: -1 };
+        }
+        this._tabManager.setActive(n - 1);
+        this.speak(t.currentTitle || t.currentUrl || `タブ${n}`);
+        return { action: 'tab-select-ordinal', index: n - 1 };
+      },
+      description: 'Activate the tab at a Japanese ordinal position'
+    });
+
     // Go to reader line N — VoiceOver's go-to-line for the laid-out
     // article. Hoisted like the commands above: the go-to catch-all would
     // otherwise route 'go to line 30' as a navigation request.
@@ -793,6 +813,7 @@ export class VoiceCommands {
     // but move nothing, same as before.
     this.registerCommand('volume-up', {
       patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', '音量を上げて',
+        '音を大きく', '音量を大きく', '音を上げて',
         /volume (up|raise|increase|louder)/i],
       action: () => {
         if (this._onVolume) {
@@ -806,6 +827,7 @@ export class VoiceCommands {
 
     this.registerCommand('volume-down', {
       patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', '音量を下げて',
+        '音を小さく', '音量を小さく', '音を下げて',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
         if (this._onVolume) {
@@ -833,10 +855,13 @@ export class VoiceCommands {
     // same hook, delta computed from the status surface so the result is
     // exact. Honest without a host hook.
     this.registerCommand('volume-set', {
-      patterns: [/音量を?(\d+)(%|パーセント)?に?/, /volume (to |at )?(\d+)/i],
+      patterns: [/音量を?(\d+)(%|パーセント)?に?/, /volume (to |at )?(\d+)/i,
+        '半分の音量', '音量を半分', '音量を半分に', '音量半分', '音量を半分にして',
+        /half volume/i, /volume (to |at )?half/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
-        const target = Math.min(100, Math.max(0, m ? parseInt(m[1], 10) : 0));
+        const target = /半分|half/i.test(transcript) ? 50
+          : Math.min(100, Math.max(0, m ? parseInt(m[1], 10) : 0));
         const cur = this._onVolumeStatus ? this._onVolumeStatus() : null;
         if (cur === null || cur === undefined) {
           this.speak('音量を変更できません');
@@ -906,6 +931,7 @@ export class VoiceCommands {
       patterns: ['記事の文字を大きく', '記事を大きく', 'リーダーの文字を大きく', '記事の文字を大きくして',
         'ズームイン', '文字を大きく', '文字を大きくして', '拡大して', 'もっと大きく',
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
+        'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
@@ -920,6 +946,7 @@ export class VoiceCommands {
       patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
         'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
+        'ズームアウトして', 'ページを縮小', '文字を縮小',
         /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
         /zoom out/i],
       action: () => {
@@ -1710,7 +1737,7 @@ export class VoiceCommands {
     // 閉じて'/'close the news tab'). Registered BEFORE close-tab: its
     // /close\s+tab/i prefix owns the EN phrase otherwise (dispatch-verified).
     this.registerCommand('close-tab-by-name', {
-      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側))(.+)のタブを閉じて/,
+      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側))(.+)のタブを閉じて/,
         /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b)(.+) tab$/i,
         /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
@@ -1973,7 +2000,8 @@ export class VoiceCommands {
     });
     this.registerCommand('new-tab', {
       patterns: ['新しいタブ', '新しいタブを開く', '新規タブ', '新しいウィンドウ',
-        'ウィンドウを増やして', /new\s+tab/i, /new\s+window/i],
+        'ウィンドウを増やして', '新しいタブで開いて', '新しいウィンドウで開いて',
+        /new\s+tab/i, /new\s+window/i],
       action: () => {
         tabManager?.newTab?.();
         return { action: 'new-tab' };
@@ -1984,7 +2012,7 @@ export class VoiceCommands {
 
     this.registerCommand('close-tab', {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', 'このタブを閉じて',
-        'ウィンドウを閉じて', 'このウィンドウを閉じて',
+        'ウィンドウを閉じて', 'このウィンドウを閉じて', 'ページを閉じて', 'サイトを閉じて',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -2487,6 +2515,20 @@ export class VoiceCommands {
       description: 'Close every tab to the right of the active one'
     });
 
+    // The left twin (Chrome close-tabs-to-the-right parity). Registered
+    // here, before tab-by-name, so '左のタブを閉じて' never searches for a
+    // tab literally named '左'.
+    this.registerCommand('close-tabs-left', {
+      patterns: ['左側のタブを閉じて', '左のタブを閉じて', '左側を閉じて',
+        /close\s+tabs?\s+to\s+the\s+left/i, /close\s+tabs?\s+on\s+the\s+left/i],
+      action: () => {
+        tabManager?.closeTabsToLeft?.();
+        return { action: 'close-tabs-left' };
+      },
+      confirmationText: '左側のタブを閉じます',
+      description: 'Close every tab to the left of the active one'
+    });
+
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
     this.registerCommand('duplicate-tab', {
       patterns: ['タブを複製', 'タブを複製して', 'タブをコピー', '複製', '複製して',
@@ -2505,7 +2547,8 @@ export class VoiceCommands {
       patterns: [
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
-        'お気に入りに追加',
+        'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
+        '後で読む', 'あとで読む', '読書リストに追加',
         /bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
       ],
@@ -2535,6 +2578,7 @@ export class VoiceCommands {
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
         'ブックマークを見せて', 'お気に入りを見せて', 'お気に入りを開いて',
+        'お気に入り一覧', '読書リスト', '読書リストを開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -3158,6 +3202,7 @@ export class VoiceCommands {
     // page name; this reads the address).
     this.registerCommand('read-url', {
       patterns: ['URLを教えて', 'URLを読んで', 'アドレスを教えて',
+        'URLを表示', 'アドレスを読んで', 'URLは',
         /(read|say|what is|what's) (the )?url/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl || '';
@@ -4480,6 +4525,7 @@ export class VoiceCommands {
     this.registerCommand('url-input', {
       patterns: ['アドレスバー', 'URLを入力して', 'アドレスを入力',
         'URLを打って', '検索バー', '検索フィールド',
+        'アドレスバーを見せて', 'アドレスバーを出して', 'アドレスバーを開いて',
         /address bar/i, /search bar/i, /enter (a |the )?(url|address)/i],
       action: () => {
         const p = tabManager?.getActiveTab?.();
