@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 147: ヘルプ/レート原子 — help 問い合わせ形・ページ質問形・読了形・speech-reset カジュアル形・音量名前付き目標
+外部基準: OS アシスタントの 'help/support' 導線、NVDA 'normal rate' リセット、Chrome volume 目標値形。
+- 🐛 **'ヘルプを開いて' が NO-MATCH**（実測捕捉）: go-to lookahead が 'ヘルプを開' を塞ぐが help に裸形がなかった → help に 'ヘルプを開いて'/'サポート'/'問い合わせ'/'やり方は'/'使い方はどこ' 追加。
+- ✨ **ページ質問形**: describe-tab に 'これは何'/'何これ'/'このページは何'/'説明して'/'内容は'、hostname に '誰のサイト'/'URLはどこ'/'アドレスはどこ'、security-status に '危険ですか'/'暗号化されてる'/'接続は安全'。**奪取回帰を捕捉修正**: 'このページは' は where-am-i、'内容を教えて' は article-summary が既存所有（共存テスト化）。
+- ✨ **読了・読み上げ形**: read-here '最後まで読んで'/'あと全部読んで'/'残り全部'/'あとを読んで'、read-aloud '全部読み上げて'/'すべて読んで'。
+- ✨ **speech-reset カジュアル形**: '標準の速さで'/'普通の速さで'/'もとの速さに'/'速さを戻して'/'速度リセット'/'読み上げ速度を戻して' + speech-faster '早口で読んで'/'速めで読んで'。
+- ✨ **音量・ミュート形**: volume-set '音量を最大'/'音量を最小'/'音量をゼロ'/'最小音量'、volume-up/down '声を上げて'/'声を下げて'/'ボリュームを上げて/下げて'、mute-toggle '音を切って'/'ミュート解除して'/'ミュートを外して'/'音をつけて'/'音をならして' — want 判定に 外して|つけて|ならして|ありにして を追加し解除意図を正方向化。
+- ✅ **テスト +93（git stash で76件赤確認、17件は共存ガードの設計上緑）**: Total 4590 tests (121 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 146: シェア/誠実不在原子 — account・orientation・split-view・clear-bookmarks + 位置句/検索流出修正
 外部基準: Chrome 'Send to your devices'・ブラウザのアカウント/同期面、Windows Voice Access の不可操作応答、ワンタッチ片付け UX。
 - 🐛 **'閲覧履歴を見せて' が '閲覧履歴' を web 検索**（実測捕捉）: history に '閲覧履歴を見せて'/'履歴はどこ'、bookmarks-open に 'お気に入りはどこ' 追加（先行登録で web-search に勝つ、onGoTo 非呼出を断言）。'閲覧履歴' bare は history-list 維持（共存テスト）。

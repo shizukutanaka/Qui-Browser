@@ -1067,6 +1067,8 @@ export class VoiceCommands {
         '音が小さすぎる', '声が小さい', '声が小さすぎる', '小さな声で',
         '声を大きく', '大きな声で', '大きい声で', '声を出して', '音を出して',
         '音量を大きくして', '音を大きくして',
+        '声を上げて', '声を大きくして', 'ボリュームを上げて',
+        'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
         'louder', 'speak up', 'turn it up', 'crank it up',
         /volume (up|raise|increase|louder)/i],
       action: () => {
@@ -1086,6 +1088,8 @@ export class VoiceCommands {
         'うるさすぎる', '声が大きい', '声を小さく', '声を小さくして',
         '音量を小さくして', '音を小さくして',
         '静かにしろ', '音を小さくしろ',
+        '声を下げて', '声を小さくして', 'ボリュームを下げて',
+        'ボリュームを小さく', 'ボリュームダウン', '音を下げて',
         'quieter', 'turn it down', 'speak softer', 'tone it down',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
@@ -1119,7 +1123,9 @@ export class VoiceCommands {
         '半分の音量', '音量を半分', '音量を半分に', '音量半分', '音量を半分にして',
         '音量ゼロにして', '音量をゼロに', '音量ゼロ', 'ゼロパーセント',
         '最大音量', '最大音量で', '音量を最大に', '音量を最大にして',
-        /half volume/i, /volume (to |at )?half/i,
+        '音量を最大', '音量最大', '音量を最小', '音量を最小に',
+        '音量を最小にして', '最小音量', '音量をゼロ', '音量をゼロにして',
+        'volume zero', /half volume/i, /volume (to |at )?half/i,
         /max(?:imum)? volume/i, /full volume/i, /volume (to )?zero/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
@@ -1382,6 +1388,8 @@ export class VoiceCommands {
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
         '音声ガイドを読んで', 'ガイドを開いて', '使い方を見せて',
         'ガイドを見せて', '使い方ガイド',
+        'ヘルプを開いて', 'ヘルプを出して', 'サポート', 'サポートを開いて',
+        '問い合わせ', 'やり方は', 'やり方を教えて', '使い方はどこ',
         /^どうやって/,
         /^help( me)?$/i,
         /^how (do|can|to) i/i,
@@ -1514,6 +1522,9 @@ export class VoiceCommands {
       patterns: ['速度をリセット', '声をリセット', '読み上げをリセット',
         '元の速度に戻して', '通常の速度', '標準速度', '元の速さに戻して',
         '普通に読んで', '普通の速度', 'いつもの速度', 'デフォルトの速度',
+        '標準の速さで', '普通の速さで', 'いつもの速さで', 'もとの速さに',
+        'もとの速さに戻して', '速さを戻して', '速度リセット',
+        '読み上げ速度を戻して', '読み上げをもとに戻して', 'スピードを戻して',
         /reset speech/i, /speech reset/i, /normal speed/i, /normal voice/i],
       action: () => {
         this._speechRate = 1.0;
@@ -3151,6 +3162,8 @@ export class VoiceCommands {
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
         '全部読んで', '全て読んで', '最初から読んで', '読んで', '読んでね',
+        '全部読み上げて', '全部を読み上げて', '全てを読み上げて',
+        'すべて読んで', 'すべてを読んで',
         '読め', '読み上げろ', '読んでよ',
         '読み上げを開始', '読み上げを開始して', '音読を開始', '読み始めて',
         '音読して', '読み聞かせて', 'もう一回最初から', '最初からやり直し',
@@ -3234,6 +3247,7 @@ export class VoiceCommands {
         '早くしろ', '速くしろ', 'もっと早くしろ',
         'さっきより早く', 'さっきより速く', '今より早く', '今より速く',
         '読み上げを早送り', '読み上げ早送り', '読み上げを早送りして',
+        '早口で読んで', '早口で', '速めで読んで', '速めに読んで',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
@@ -4473,6 +4487,9 @@ export class VoiceCommands {
         '画面の内容', '何が見える', 'ページの内容', 'どんなページ',
         'これは何のページ', '何のサイト', 'サイト名', 'サイトの名前',
         '画面について', '何が表示されてますか',
+        'これは何', 'これは何のページ', '何これ', 'このページは何',
+        '何のページ', 'ページは何', 'どんなページだ',
+        '説明して', '説明してほしい', '内容は',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -4562,11 +4579,14 @@ export class VoiceCommands {
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
         '音消して', '声を消して', '声を出さないで', '黙らせて',
+        '音を切って', '音を切る', 'ミュート解除して', 'ミュートを外して',
+        'ミュートを解除して', '音をつけて', '音をならして', '音ありにして',
         // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
         // surface — neither should toggle the master volume.
         /(un)?mute(?!\s+(?:other\s+tabs?|the\s+mic|mic\b|microphone))/i],
       action: (transcript) => {
-        const want = /unmute|解除|戻して/i.test(transcript) ? false : undefined;
+        const want = /unmute|解除|戻して|外して|つけて|ならして|ありにして/i.test(transcript)
+          ? false : undefined;
         const muted = this._onMute ? this._onMute(want) : null;
         if (muted === null) {
           this.speak('ミュートを切り替えられません');
@@ -4832,6 +4852,8 @@ export class VoiceCommands {
       patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
         '証明書は', '証明書はどう', 'HTTPSですか', '安全なサイトですか',
         'セキュリティ状態', '危険なサイト', 'セキュアですか',
+        '危険ですか', '危ないですか', '暗号化されてる', '暗号化されている',
+        '暗号化されてますか', '接続は安全', '通信は安全',
         /certificate/i,
         /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
       action: () => {
@@ -4853,7 +4875,9 @@ export class VoiceCommands {
     this.registerCommand('hostname', {
       patterns: ['ドメインは', 'どこのサイト', 'サイト名は', /hostname/i,
         'サイトを教えて', 'サイト名を教えて', 'このサイトのドメイン',
-        'ドメイン名', 'ホスト名', 'サイトのドメイン名', 'ドメインを教えて'],
+        'ドメイン名', 'ホスト名', 'サイトのドメイン名', 'ドメインを教えて',
+        '誰のサイト', 'どこのサイトですか', 'URLはどこ', 'アドレスはどこ',
+        'サイトのアドレス', 'どこのページ'],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         let host = null;
@@ -5227,6 +5251,8 @@ export class VoiceCommands {
         '残りを読んで', '残り全部読んで', '残りを全部読んで',
         '続きを全部読んで', 'あとの文を読んで',
         'つづきから', 'つづきから読んで', '途中から読んで', 'つづきを読んで',
+        '最後まで読んで', 'あと全部読んで', '残り全部', 'あとを読んで',
+        'この先を読んで', '続きをすべて読んで',
         /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
         /continue reading/i],
       action: () => {
