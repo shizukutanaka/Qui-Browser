@@ -942,6 +942,16 @@ WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたの�
 **修正**: 14キーを en/ja 両方に追加し3面を配線。あわせて**日本語版が実測の列幅予算に収まることを
 テストで固定**した —— 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは
 Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928px。
+- ~~**'did i bookmark this' がブックマークをトグルし、'am i muted' がミュートをトグルし、'is the mic on' がマイクを起動していた（質問形が実行していた）**~~ — **Session 156 で修正**: bookmark-page に (?<!did i )、mute-toggle に (?!d\b)、mic-on に (?<!the )…(rophone)? を付与し各 status 系へ透過（mute-status 'ミュートしてる'/'am i muted'/'are we muted'、bookmark-status 'did i bookmark'/'have i bookmarked'/'ブックマークした'、mic-status 'mic check'）。
+- ~~**'close the tab on the right/left' がアクティブタブを閉じていた**~~ — **Session 156 で修正**: close-tab の lookahead を (?!\s*(?:\d|on\b|to\b)) 化し位置句では実行しない（誤閉じより未認識が安全）。
+- ~~**'go to my email tab'/'open X tab'/'open my settings' が go-to で literal ナビゲート**~~ — **Session 156 で修正**: goToEn lookahead に settings\b と 'tab' 語尾除外を追加 → tab-by-name へ /^(go to|jump to|open) (the |my )?(.+?) tab$/、settings-toggle へ /open (my |the )?settings/・/settings please/・/^settings$/。device-apps の /(email|mail)/ が 'open my mail tab' を奪っていたのも (?!.*\btab\b) で修正。
+- ~~**'go forward 30 seconds'/'skip ahead 30 seconds'/'jump forward 5 minutes' が navigate または NO-MATCH**~~ — **Session 156 で実装**: video-seek へ単位付き skip/jump/go forward N sec/min 形（'skip ahead 4 paragraphs' は paragraph-skip-n 維持）+ EN minutes の分計算。
+- ~~**'close the other tabs'/'close my tabs'/'close everything' が未認識**~~ — **Session 156 で実装**: close-other-tabs の /close\s+(the |all the |all )?other tabs/ 化、close-all-tabs へ /close (all )?my tabs/・/^close everything$/。
+- ~~**'take/send/bring me back'・'forward a page'/'one page forward' が未認識**~~ — **Session 156 で実装**: back へ /(take|send|bring) me back/（両コピー）、navigate へ /forward (a|one|the) page/・/one page forward/（'go forward' は (?! \d) で維持）。
+- ~~**'tell me the time'/'時計'・'whats my battery'・'version number'/'who made this'/'バージョン番号'・'when did i visit'/'have i been here'/'前に来たことある' が未認識**~~ — **Session 156 で実装**: time/battery-status/about/history-latest へ。
+- ~~**'to the top/bottom'・'go back up'・'move it closer'/'push it away'/'shrink the window'・'read this faster'/'speed it up'/'slow down'・'press enter'/'エンターを押して'・'its not working'/'cant see anything'/'見えない'/'動いてない'・'cant hear anything' が未認識**~~ — **Session 156 で実装**: scroll-top/bottom/panel-distance/speech-faster/slower/input-methods/trouble/audio-trouble へ（'can see' 系は audio-trouble でなく trouble へ）。
+- ~~**'microphone' が (raphone)? typo で未認識**~~ — **Session 156 で修正**: mic-on/mic-off/mic-status 全4箇所を (rophone)? へ。
+- ~~**'find my tab' が 'my' を検索語にしていた**~~ — **Session 156 で修正**: tab-search の term 抽出に my/the/a 単独ストップワード除外（→ 'タブの名前を言ってください' プロンプト）。
 
 ---
 

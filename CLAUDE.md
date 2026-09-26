@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 156: 質問形/位置句原子 — 質問が実行する誤ルート3系 + 'go to X tab' 奪取修正 + EN 自然句群
+外部基準: Voice Access/Chrome の 'am I muted?' が状態質問である慣例（toggle でない）、スクリーンリーダーの問い合わせ形、英語圏の 'take me back'/'skip ahead 30 seconds' 口語。
+- 🐛 **質問形が実行していた3系**（実測捕捉）: 'did i bookmark this'→bookmark-page トグル・'am i muted'→mute-toggle トグル・'is the mic on'→mic-on 起動 → それぞれ (?<!did i )・(?!d\b)・(?<!the ) で status 系へ透過（mute-status/bookmark-status/mic-status へ質問形追加）。
+- 🐛 **'close the tab on the right/left' がアクティブタブを閉じていた**（実害）: close-tab に on/to 句の lookahead。誤対象より未認識が安全。
+- 🐛 **'go to my email tab'/'open X tab' が literal ナビゲート**: goToEn lookahead に settings\b・tab 語尾除外 → tab-by-name が term capture で切替。'open my settings'→settings-toggle、'open my mail tab'→device-apps 奪取も (?!.*\btab\b) で封殺。
+- ✨ **時間指定 skip 形**: video-seek へ (skip|jump|go|fast) (ahead|forward) N sec/min + EN minutes 計算（'skip ahead 4 paragraphs'→paragraph-skip-n 維持、'go forward'→navigate 維持）。
+- ✨ **一括閉じ・戻り・質問句群**: close-other-tabs 'close the other tabs'、close-all-tabs 'close my tabs'/'close everything'、back 'take/send/bring me back'（両コピー）、navigate 'forward a page'/'one page forward'、time 'tell me the time'/'時計'、battery-status 'whats my battery'、about 'version number'/'who made this'/'バージョン番号'、history-latest 'when did i visit'/'have i been here'/'前に来たことある'。
+- ✨ **スクロール/パネル/速度/入力/障害**: scroll-top 'to the top'/'go back up'/'scroll back up'、scroll-bottom 'to the bottom'、panel-distance 'move/bring it closer'/'push it away'/'shrink the window|panel'（方向判定に bring/push）、speech 'read this faster'/'speed it up'/'slow down'/'slow it down'/'read it slower'、input-methods 'press/hit enter'/'press ok'/'return key'/'エンターを押して'、trouble 'its not working'/"doesn't work"/'cant see'/'見えない'/'動いてない'、audio-trouble 'cant hear anything'。
+- 🐛 **(raphone)? typo 全4箇所** → (rophone)? で 'microphone' 到達可に。tab-search 'find my tab' の 'my' 誤 capture → ストップワード除外。
+- ✅ **テスト +89（git stash で74件赤確認、残りは共存ガードの設計上緑）**: Total 5327 tests (130 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 155: ランドマーク/フォーム原子 — 'go to main content' 誤ナビゲート修正 + redo 誠実双子 + クエリ/修復句群
 外部基準: スクリーンリーダーのローター（NVDA Elements List）、Voice Access 'go to main'/'next field'/'select all'、Chrome undo/redo。
 - 🐛 **'go to main content'/'go to the content'/'jump to the nav' が literal ナビゲート**（実測捕捉）: `landmarks` 誠実不在原子を go-to 前に登録（'next landmark'/'landmark list'/'main region'/'ランドマーク'/'メインに飛んで'/'ページの領域' も）→ 'ページの領域ジャンプはまだできません。「目次」で見出しを確認できます'。'go to google' は go-to 維持。
