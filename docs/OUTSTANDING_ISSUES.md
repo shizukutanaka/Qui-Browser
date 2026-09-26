@@ -964,6 +964,12 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'わからん'/'使い方教えて'/'どうする'/'操作がわからない' が未認識、褒め句('すごい'/'いいね'/'great')が未認識**~~ — **Session 158 で実装**: help に迷子句9形、ack に感謝強形 + 褒め句（→'ありがとうございます' 応答分岐）。
 - ~~**'天気は'/'ニュースを聞かせて'/'調べて'/'検索させて'/'google で検索して' が未認識**~~ — **Session 158 で実装**: web-search に話題 alternation（天気/気温/湿度/ニュース形）+ 非 capture の裸動詞形（調べて/検索させて → '検索語がありません' プロンプト、term を動詞自身にしない）。
 - その他 fill: read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'/'見やすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
+- ~~**進行・状態の疑問句が未認識**（'読んでる最中'/'再生中'/'喋ってる'/'ミュートになってる'/'お気に入り登録してる'/'聞こえます'）~~ — **Session 159 で実装**: speaking-status/video-status/mute-status/bookmark-status/mic-status に進行・状態形を追加。
+- ~~**'is it working'/'did it work'/'動いてる'/'止まってる' が未認識**~~ — **Session 159 で実装**: `working-status` 原子（'音声認識は動作中です。「ヘルプ」で…'）— 'is it frozen' は trouble が先行所有のため維持。
+- ~~**能力疑問句が未認識**（'できる'/'できますか'/'対応してる'/'what can i do'/'can i close this'）~~ — **Session 159 で実装**: help へ /can i /i + JA 可能形。'can i go back/forward' は back/forward-status が先行登録のため維持（共存テスト）。
+- ~~**'any notifications'/'any tabs open' が未認識**~~ — **Session 159 で実装**: read-notify/tab-status へ EN 存在疑問形。
+- ~~**反応句が未認識**（'なるほど'/'へー'/'本当ですか'/'まじか'/'確かに'）~~ — **Session 159 で実装**: ack へ追加（承知しました）。
+- その他 fill: read-aloud '読んでくれる'/'読んでおいて'、speaking-status '喋ってる'、bookmark-status 'ブックマークに追加した'。
 
 ---
 

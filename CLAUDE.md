@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 159: 状態質問/反応原子 — 進行疑問句・working-status 新設・能力疑問句・会話反応
+外部基準: 音声 UI の状態確認句（'are you speaking'/'is it working'）、スクリーンリーダー系 'what's playing'、会話型 UI の相槌応答。
+- ✨ **working-status 誠実原子**: 'is it working'/'is it on'/'is it done'/'did it work'/'did it stop'/'動いてる'/'止まってる'/'固まってる' → '音声認識は動作中です。「ヘルプ」でコマンド一覧を聞けます'（'is it frozen' は trouble が先行所有）。
+- ✨ **進行・状態疑問句**: speaking-status '読んでる最中'/'喋ってる'（'読み上げ中' は line-status 所有のため維持）、video-status '再生中'/'再生してる'/'anything playing'/"what's on"、mute-status 'ミュートになってる'、bookmark-status 'お気に入り登録してる'、mic-status '聞こえます'。
+- ✨ **能力疑問句→help**: /can i /i（'can i go back' は back-status 先行で維持）、'できる'/'できますか'/'対応してる'/'できません' 等。
+- ✨ **コレクション疑問**: read-notify 'any notifications'、tab-status 'any tabs open'/'are there tabs'。
+- ✨ **反応句**: ack に 'なるほど'/'へー'/'ほんと'/'本当ですか'/'まじか'/'うそ'/'そうなんだ'/'確かに' → '承知しました'。
+- ✨ read-aloud '読んでくれる'/'読んでおいて'。
+- ✅ **テスト +74（git stash で65件赤確認、残りは共存ガードの設計上緑）**: Total 5582 tests (133 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 158: 音量読戻/再読原子 — '今の音量を教えて' web-search 流出修正 + 読み直しを read-aloud へ + 迷子/褒め句
 外部基準: Chrome Ctrl+Shift+U や Voice Access の音量クエリ、スクリーンリーダーの re-read コマンド、会話型 UI の acknowledgement/compliment 応答。
 - 🐛 **'今の音量を教えて' が web-search で '音量' を検索** → volume-status に '今の音量を教えて'/'音量を確認'/'声の大きさ'/'音量を変えて' 追加（bare 変更要求を volume-set へ流すと missing digit が 0 に coerce されるため status で現量提示）。

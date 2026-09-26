@@ -790,6 +790,7 @@ export class VoiceCommands {
     this.registerCommand('mute-status', {
       patterns: ['ミュートかどうか', 'ミュートですか', 'ミュート中ですか',
         '消音中ですか', 'ミュートしてる', 'ミュートされてる', 'ミュート中',
+        'ミュートになってる', 'ミュートされている', 'ミュートしてます',
         '音は出てる', '音が出てる',
         /is (it |this |the )?muted/i, /mute status/i, /am i muted/i,
         /are we muted/i],
@@ -1420,6 +1421,9 @@ export class VoiceCommands {
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
         'わからん', '使い方がわからん', '使い方教えて', 'どうするの', 'これどうする',
         '操作がわからない', 'どうする', 'どうすればいいの', '何をすればいい',
+        'できる', 'できない', 'できますか', '可能ですか', '対応してる', '対応してない',
+        '対応してますか', 'できません', 'これできる',
+        /what can i do/i, /what do i say/i, /how does this work/i, /^can i /i,
         /what should i say/i, /how do i use/i,
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
         '音声ガイドを読んで', 'ガイドを開いて', '使い方を見せて',
@@ -2145,13 +2149,26 @@ export class VoiceCommands {
     // ack — 'ありがとう'/'わかった'/'got it' are social acknowledgements, not
     // commands: answer politely instead of the 認識できませんでした error.
     // Thanks get どういたしまして; plain confirmations get 承知しました.
+    this.registerCommand('working-status', {
+      patterns: ['動いてる', '動いてますか', '動作してる', 'ちゃんと動いてる',
+        '止まってる', '止まってますか', '今止まってる', '固まってる',
+        'is it working', 'is it on', 'is it done', 'did it work',
+        'did it stop', 'is it frozen', 'is it stuck'],
+      action: () => {
+        this.speak('音声認識は動作中です。「ヘルプ」でコマンド一覧を聞けます');
+        return { action: 'working-status' };
+      },
+      description: 'Reassure the voice system is running'
+    });
+
     this.registerCommand('ack', {
       patterns: ['ありがとう', 'ありがとうございます', 'ありがと', 'さんきゅー', 'サンキュー',
         'わかった', 'わかりました', '了解', 'りょうかい', 'OK', 'オーケー', 'おけ',
         'thank you', 'thanks', 'thank you very much', 'got it', 'understood', 'roger',
         'thank you so much', 'thanks a lot', 'thx', 'ty',
         '助かった', 'たすかった', '助かる', 'かっこいい', 'すごい', 'いいね',
-        '素晴らしい', '最高', 'すばらしい', 'awesome', 'great', 'perfect', 'nice'],
+        '素晴らしい', '最高', 'すばらしい', 'awesome', 'great', 'perfect', 'nice',
+        'なるほど', 'へー', 'ほんと', '本当ですか', 'まじか', 'うそ', 'そうなんだ', '確かに'],
       action: (t) => {
         const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
         const praise = /助か|かっこ|すご|いいね|素晴ら|最高|すばら|awesome|great|perfect|nice/i.test(t);
@@ -3368,7 +3385,8 @@ export class VoiceCommands {
         '音読して', '読み聞かせて', 'もう一回最初から', '最初からやり直し',
         '初めから', '最初から読み直して', '頭から読んで',
         '読み直して', 'もう一度読み直して', '頭から読み直して',
-        'やり直して読んで', '読みたい', '読んでほしい', '読んでくれ', '読んでください',
+        'やり直して読んで', '読みたい', '読んでほしい', '読んでくれ', '読んでくれる', '読んでください',
+        '読んでくれない', '読んでおいて',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
@@ -5446,7 +5464,7 @@ export class VoiceCommands {
     // (wake-word users can't see the OS mic indicator inside the headset).
     this.registerCommand('mic-status', {
       patterns: ['マイクの状態', 'マイクはオン', '聞いていますか',
-        '聞こえる', '聞こえますか', '聞こえてる', '聞こえてますか',
+        '聞こえる', '聞こえますか', '聞こえます', '聞こえてる', '聞こえてますか', '聞こえてます',
         /mic status/i, /is the mic(rophone)? on/i, /can you hear me/i,
         /mic check/i, /microphone check/i],
       action: () => {
@@ -6288,7 +6306,8 @@ export class VoiceCommands {
         'タブをいくつ開いてる', 'いくつタブを開いてる',
         'タブ数', '開いてる数', '全部で何個', 'どのくらい開いてる',
         '開いてるタブ数', 'タブの個数', 'タブ何個ある', '全部でいくつ',
-        /how many tabs/i, /which tab/i, /tab (count|position)/i],
+        /how many tabs/i, /which tab/i, /tab (count|position)/i,
+        /any tabs( open)?/i, /are there (any )?tabs/i],
       action: () => {
         const res = this._onTabStatus ? this._onTabStatus() : null;
         this.speak(res ? `${res.total}個のタブの${res.index}枚目を表示中`
@@ -6394,7 +6413,8 @@ export class VoiceCommands {
         '通知はある', '通知がある', '通知がきた', '通知きた', '新しい通知',
         /read (the |my )?(last |latest )?notifications?/i,
         /last notification/i, /latest notification/i,
-        /what('s| was)? (the |that )?(last )?notification/i],
+        /what('s| was)? (the |that )?(last )?notification/i,
+        /any (new )?notifications?/i],
       action: () => {
         const t = this._onReadNotify ? this._onReadNotify() : null;
         this.speak(t || '通知はありません');
@@ -6614,6 +6634,8 @@ export class VoiceCommands {
       patterns: ['ブックマーク済みですか', 'ブックマークされていますか',
         'ブックマークされてますか', 'ブックマークに入ってる', 'ブックマークにある',
         'ブックマークしたか', 'お気に入りに入ってる', 'お気に入り済み', 'ブックマーク済み',
+        'お気に入り登録してる', 'お気に入りに登録した', 'ブックマークに追加した',
+        'お気に入りに追加してる',
         'ブックマークした', '保存してるか', '保存した',
         /did i (bookmark|save)( this)?/i, /have i (bookmarked|saved)( this)?/i,
         '保存してる', '保存されてる', 'お気に入りに入れた', /is (this |it )?bookmarked/i,
@@ -6683,7 +6705,10 @@ export class VoiceCommands {
         '今どの辺', 'どの辺まで', '再生位置', '再生時間',
         '再生位置は', '再生時間は', 'あとどれくらいの動画', 'どのくらいの動画',
         '動画の残り', '動画の残り時間', '何が再生されてる', '何が流れてる',
+        '再生中', '再生してる', '再生していますか', '再生中ですか',
+        '何を再生中', '何が再生中',
         /what('?s| is) playing/i,
+        /anything playing/i, /something playing/i, /what'?s on/i,
         /video (position|time)/i, /how far (in|through)/i],
       action: () => {
         const st = this._onVideoStatus ? this._onVideoStatus() : null;
@@ -6869,7 +6894,10 @@ export class VoiceCommands {
     // pause-reading/stop-reading.
     this.registerCommand('speaking-status', {
       patterns: ['読み上げ中ですか', '読み上げていますか', '喋っていますか',
-        '読んでいますか', /are you (still )?speaking/i, /is it (still )?speaking/i],
+        '読んでいますか', '読んでる最中', '読んでいる最中', '読み上げています',
+        '喋ってる', '喋ってますか',
+        /are you (still )?speaking/i, /is it (still )?speaking/i,
+        /is it (still )?reading/i, /still reading/i],
       action: () => {
         const on = !!this.synthesis?.speaking;
         this.speak(on ? '読み上げ中です' : '読み上げていません');
