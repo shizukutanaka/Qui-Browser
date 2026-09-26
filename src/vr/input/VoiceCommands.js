@@ -30,6 +30,7 @@ export class VoiceCommands {
     this._onSearchEngine = null;
     this._onRestoreSession = null;
     this._onSettingToggle = null;
+    this._onSettingStatus = null; // (key) => value — read-only twin of onSettingToggle
     this._onPanelDistance = null;
     this._onMute = null;
     this._onStepper = null;
@@ -1049,6 +1050,7 @@ export class VoiceCommands {
     // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる',
+        '困った', 'わからない', 'ヘルプミー', '使い方を教えて',
         'コマンド一覧を読み上げて', 'ヘルプを読み上げて', 'ヘルプを見せて',
         'コマンド一覧を表示', 'コマンドを表示', /read commands/i],
       action: () => {
@@ -1292,7 +1294,7 @@ export class VoiceCommands {
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
-        'ヘッドセットが暑い',
+        'ヘッドセットが暑い', 'ネットが遅い',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1539,7 +1541,7 @@ export class VoiceCommands {
    *                                         store + announces cross-modally
    */
   connectBrowser({ tabManager, bookmarkPanel, vrKeyboard, onSearch, onTopSites, onGoTo,
-    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud,
+    onClearHistory, onScrollContent, onTogglePrivateMode, onVolume, onBookmarkPage, onReadAloud, onSettingStatus,
     onVideoToggle, onVideoStop, onCopyUrl, onCaptionScale, onDwellTime, onVolumeStatus, onReaderScale,
     onHighContrast, onSearchEngine, onRestoreSession, onSettingToggle, onPanelDistance, onMute, onStepper,
     onVideoSeek, onSettingsPanel, onBookmarkOpen, onHistoryOpen,
@@ -1586,6 +1588,9 @@ export class VoiceCommands {
     }
     if (onSettingToggle) {
       this._onSettingToggle = onSettingToggle;
+    }
+    if (onSettingStatus) {
+      this._onSettingStatus = onSettingStatus;
     }
     if (onPanelDistance) {
       this._onPanelDistance = onPanelDistance;
@@ -1783,7 +1788,7 @@ export class VoiceCommands {
     // 閉じて'/'close the news tab'). Registered BEFORE close-tab: its
     // /close\s+tab/i prefix owns the EN phrase otherwise (dispatch-verified).
     this.registerCommand('close-tab-by-name', {
-      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側))(.+)のタブを閉じて/,
+      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット))(.+)のタブを閉じて/,
         /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b)(.+) tab$/i,
         /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
@@ -1887,7 +1892,8 @@ export class VoiceCommands {
     // (frecency-ranked). The heavy lifting (ranking + navigation + caption) is
     // the host's via onTopSites, mirroring the onSearch decoupling.
     this.registerCommand('top-sites', {
-      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ', /トップ?サイト/],
+      patterns: ['トップサイト', 'よく使うサイト', 'よくみるサイト', 'トップ',
+        'スタートページ', 'よく見るサイト', 'おすすめサイト', 'よく行くサイト', /トップ?サイト/],
       action: () => {
         if (onTopSites) {
           onTopSites();
@@ -1947,6 +1953,7 @@ export class VoiceCommands {
       patterns: [
         '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
         '閲覧履歴を消して', '検索履歴を消して',
+        '閲覧履歴を全部消して', '履歴を全部消して', '履歴を全部消す',
         /履歴を?(消去|削除|クリア|消す)/,
         /clear\s+(browsing\s+)?history/i, /delete\s+history/i
       ],
@@ -2150,6 +2157,7 @@ export class VoiceCommands {
       patterns: [
         'タブを開き直す', '閉じたタブを開き直す', '開き直す',
         '元に戻して', '取り消して', '閉じたタブをもう一度', '閉じたタブを開いて',
+        'もとに戻して', '取り消し', '取り消して',
         /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i, /^undo/i
       ],
       action: () => {
@@ -2185,6 +2193,7 @@ export class VoiceCommands {
     this.registerCommand('private-new-tab', {
       patterns: ['プライベートタブ', 'シークレットタブ', 'プライベートな新しいタブ',
         '新しいプライベートタブ', 'プライベートタブを開いて', '新しいシークレットタブ',
+        '秘密のタブ', 'シークレットのタブ', 'プライベートのタブ', 'シークレットモード', 'シークレットモードで開いて',
         /new (private|incognito) tab/i],
       action: () => {
         const panel = tabManager?.newPrivateTab?.();
@@ -2868,6 +2877,53 @@ export class VoiceCommands {
       }
       return undefined;
     };
+    // Setting-status — the honest query twin of the toggleCmd family: a
+    // question like '字幕はオン' must ANSWER, not toggle (Voice Access
+    // 'is X on' parity). Read-only getter; unknown keys answer honestly.
+    this.registerCommand('settings-status', {
+      patterns: [
+        '字幕はオン', 'キャプションはオン', '字幕ついてる', 'キャプションついてる',
+        '字幕は有効', 'キャプションは有効', '字幕はどう', 'キャプションはどう',
+        'ハプティックはオン', 'ハプティックはどう', '振動はオン', '触覚はオン',
+        '注視選択はオン', '視線選択はオン', '凝視選択はオン', '注視選択はどう', '視線選択はどう',
+        'カーブパネルはオン', '湾曲パネルはオン', 'ウィンドウ追従はオン', 'パネル追従はオン',
+        'スナップターンはオン', 'テレポートはオン', 'コンフォートはオン',
+        'サウスポーはオン', 'スムーズ移動はオン', 'スムーズ移動はどう',
+        /are (the )?(captions?|subtitles?) (on|off|enabled)/i,
+        /is (the )?(haptics?|gaze( dwell)?|snap turn|teleport)( mode)? (on|off|enabled|active)/i,
+        /is (the )?(curved panel|window follow|comfort|southpaw|smooth move|ffr)( mode)? (on|off|enabled|active)/i],
+      action: (transcript) => {
+        const KEYMAP = [
+          [/キャプション|字幕|caption|subtitle/i, 'enableCaptions'],
+          [/ハプティック|振動|触覚|haptic|vibration/i, 'enableHaptics'],
+          [/注視|ゲーズ|視線|凝視|gaze/i, 'enableGazeDwell'],
+          [/カーブ|湾曲|曲面|curved/i, 'enableCurvedPanel'],
+          [/追従|follow/i, 'enableWindowFollow'],
+          [/スナップ|snap/i, 'enableSnapTurn'],
+          [/テレポート|teleport/i, 'enableTeleport'],
+          [/コンフォート|comfort/i, 'enableComfort'],
+          [/ffr/i, 'enableFFR'],
+          [/サウスポー|左手|southpaw/i, 'southpaw'],
+          [/スムーズ|smooth/i, 'enableSmoothMove']
+        ];
+        const hit = KEYMAP.find(([re]) => re.test(transcript));
+        const key = hit ? hit[1] : null;
+        const LABELS = {
+          enableCaptions: 'キャプション', enableHaptics: 'ハプティック',
+          enableGazeDwell: '注視選択', enableCurvedPanel: 'カーブパネル',
+          enableWindowFollow: 'ウィンドウ追従', enableSnapTurn: 'スナップターン',
+          enableTeleport: 'テレポート', enableComfort: 'コンフォート',
+          enableFFR: 'FFR', southpaw: 'サウスポー', enableSmoothMove: 'スムーズ移動'
+        };
+        const v = key && this._onSettingStatus ? this._onSettingStatus(key) : null;
+        this.speak(v === null || v === undefined
+          ? 'その設定の状態を確認できません'
+          : `${LABELS[key]}は${v ? 'オン' : 'オフ'}です`);
+        return { action: 'settings-status', key, enabled: v };
+      },
+      description: 'Announce a setting\'s current state without toggling it'
+    });
+
     const toggleCmd = (name, key, label, patterns, desc) => this.registerCommand(name, {
       patterns,
       action: (transcript) => {
@@ -2883,7 +2939,7 @@ export class VoiceCommands {
     });
 
     toggleCmd('captions-toggle', 'enableCaptions', 'キャプション',
-      [/キャプションを(オン|オフ|つけて|消して)/, /字幕を(つけて|消して|オン|オフ)/,
+      [/キャプションを(オン|オフ|つけて|消して|出して|見せて)/, /字幕を(つけて|消して|オン|オフ|出して|見せて)/,
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
       'Toggle captions');
     toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
@@ -3050,7 +3106,7 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ))(.+)のタブ(?!を|に|は|のタイトル)/,
+      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート))(.+)のタブ(?!を|に|は|のタイトル)/,
         /^tab (?:named|called) (.+)$/i,
         /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
       action: (transcript) => {
@@ -3325,10 +3381,12 @@ export class VoiceCommands {
     // Date — the NVDA Insert+F12 pair for 'time': announce today's date.
     this.registerCommand('date', {
       patterns: ['今日の日付', '何月何日', '今日は何日', '日付を教えて',
-        /what( is|'s) (the )?date/i, /current date/i],
+        '今何曜日', '何曜日', '曜日は', '今日は何曜日',
+        /what( is|'s) (the )?date/i, /current date/i, /what day/i],
       action: () => {
         const now = new Date();
-        this.speak(`今日は${now.getMonth() + 1}月${now.getDate()}日です`);
+        const wd = '日月火水木金土'[now.getDay()];
+        this.speak(`今日は${now.getMonth() + 1}月${now.getDate()}日（${wd}曜日）です`);
         return { action: 'date' };
       },
       description: 'Announce today\'s date'
@@ -4686,7 +4744,9 @@ export class VoiceCommands {
     // in the NEW language so the user hears the switch took effect.
     this.registerCommand('language-switch', {
       patterns: ['日本語にして', '日本語に切り替え', '日本語で', '英語にして',
-        '英語に切り替え', '英語で', /switch to (english|japanese)/i,
+        '英語に切り替え', '英語で', '英語で読んで', '日本語で読んで',
+        '読み上げ言語を英語', '読み上げ言語を日本語', '英語で読み上げて', '日本語で読み上げて',
+        /switch to (english|japanese)/i,
         /speak english/i],
       action: (transcript) => {
         const en = /英語|english/i.test(transcript);
@@ -4886,6 +4946,30 @@ export class VoiceCommands {
     // Echo the last recognized transcript — ASR confidence verification: a
     // deaf or hard-of-hearing user can't hear whether the recognizer heard
     // them correctly; reading the transcript back is the only confirmation.
+    // Connection status — NetworkInformation API twin of online-status:
+    // effectiveType + downlink when the host exposes them.
+    this.registerCommand('connection-status', {
+      patterns: ['回線速度', '通信速度', 'ネットの速度', 'ネット速度', '通信状態',
+        /connection (speed|status|type)/i, /network (speed|status)/i, /how fast/i],
+      action: () => {
+        const c = (typeof navigator !== 'undefined') ? navigator.connection : null;
+        if (!c || (!c.effectiveType && !c.downlink)) {
+          this.speak('通信情報を取得できません');
+          return { action: 'connection-status', type: null };
+        }
+        const parts = [];
+        if (c.effectiveType) {
+          parts.push(c.effectiveType.toUpperCase());
+        }
+        if (c.downlink !== undefined) {
+          parts.push(`約${c.downlink}Mbps`);
+        }
+        this.speak(`接続状態: ${parts.join('、')}です`);
+        return { action: 'connection-status', type: c.effectiveType || null };
+      },
+      description: 'Announce network connection type and speed'
+    });
+
     this.registerCommand('say-last-transcript', {
       patterns: ['何と言った', '今何と言いました', '何と言いました',
         '何と聞き取った', '何を言った', '何を聞き取った', '今何を言った',

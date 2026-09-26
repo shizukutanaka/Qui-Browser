@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 126: 設定状態/接続原子 — settings-status 読み取り専用双子・connection-status・曜日告知 + 言い換え句第9弾
+外部基準: Voice Access 'is X on' のクエリ形（質問は状態を変えない）、Chrome 'シークレットモード' の文言、MDN NetworkInformation（effectiveType/downlink）。
+- ✨ **`settings-status`（toggleCmd 系の誠実クエリ双子）**: '字幕はオン'/'キャプションついてる'/'視線選択はオン'/'are captions on'/'is snap turn on' 等 → 新規読み取り専用フック `_onSettingStatus`（VRApp `onSettingStatus` = `this.settings[key]` の不変 getter）で 'Xはオンです/オフです' を応答。**実測捕捉**: EN 質問形 'are captions on'/'is snap turn on' は toggleCmd の `/captions? (on|off)/`・`/snap turn (on|off)/` が先に所有して質問がトグル実行されていた → toggleCmd 群より前に登録（JA は toggle が 'を+動詞' 要求のため衝突なし、非呼出を共存テストで断言）。
+- ✨ **`connection-status`**: '回線速度'/'通信速度'/'ネットの速度'/'connection speed' → `navigator.connection` の effectiveType+downlink で '接続状態: 4G、約8.5Mbpsです'、API 無しは '通信情報を取得できません' の誠実経路。
+- 🐛 **'秘密のタブ'/'シークレットモード' の誤答修正**: tab-by-name が '「秘密」のタブがありません' と誤答（実測捕捉）→ stoplist に 秘密|シークレット|プライベート を追加し private-new-tab へ '秘密のタブ'/'シークレットのタブ'/'プライベートのタブ'/'シークレットモード(で開いて)' を追加（'ニュースのタブ' の名指し選択は維持、共存テスト）。
+- ✨ **date に曜日告知**: '今何曜日'/'何曜日'/'曜日は'/'what day' → '今日はX月Y日（Z曜日）です'（従来の日付句も曜日付きに拡張、旧 assertion を曜日込みに更新）。
+- ✨ **エイリアス拡充（第9弾）**: language-switch '英語で読んで'/'日本語で読んで'/'読み上げ言語を英語/日本語'、captions-toggle 'キャプションを出して/見せて'/'字幕を出して'、help '困った'/'わからない'/'ヘルプミー'/'使い方を教えて'、reopen-tab 'もとに戻して'/'取り消し'/'取り消して'、top-sites 'スタートページ'/'よく見るサイト'/'おすすめサイト'/'よく行くサイト'、clear-history '閲覧履歴を全部消して'/'履歴を全部消して/消す'、trouble 'ネットが遅い'。
+- ✅ **テスト +65（git stash で実装前に59件赤確認 — 6件は既存ルート共存ガードの設計上緑）**: Total 2700 tests (100 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'ハンドトラッキング'/'キャッシュを消して'/'Cookieを消して'/'ホームURL設定'/'男性の声' は backing surface 不在または誠実応答できないため未実装（誠実未認識）。
+
 ### Session 125: 検索/快適原子 — find-in-page 引用符 strip・スコープ句、VR出入り・エコー・快適訴えの自然句 + 言い換え句第8弾
 外部基準: Chrome 'find in page X' のスコープ形、Voice Access 'quiet' 準拠の消音句、NVDA 誠実ガイダンス（快適性訴え→音声回復導線）。
 - 🐛 **'「テスト」を探して' が引用符込みで検索される実害修正**: 抽出語が「テスト」のまま渡り必ず '見つかりませんでした'（実測捕捉）→ 先末尾 `「」『』"''` を strip。'ページ内で「X」を検索'/'ページ内をXで検索' 未認識も `/ページ内[をで](.+?)[をで]検索/` で解消（'バナナを検索して' は web-search 維持の共存テスト）。
