@@ -3412,6 +3412,12 @@ export class VRApp {
               return '共有できません';
             }
           },
+          // '通知を消して' — toasts auto-dismiss, so the manual twin clears
+          // the caption queue (the part a voice user actually hears linger).
+          onDismissNotify: () => {
+            this.captionSystem?.clear?.();
+            return true;
+          },
           // Quest hold-button parity — return the rig to the origin.
           onRecenter: () => {
             if (!this.playerRig) {
