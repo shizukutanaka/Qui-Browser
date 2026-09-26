@@ -1796,7 +1796,12 @@ export class VoiceCommands {
       patterns: ['キャッシュを消して', 'キャッシュをクリア', 'キャッシュを削除',
         'キャッシュクリア', 'キャッシュ', 'Cookieを消して', 'Cookieを削除',
         'Cookieをクリア', 'クッキーを消して', 'クッキーを削除',
-        /clear (the )?cache/i, /(clear|delete) (the )?cookies?/i],
+        'クッキー削除', 'キャッシュ削除', 'データを消して', 'ブラウザデータを消して',
+        'フォームデータを消して', 'パスワードを消して', 'パスワードを削除して',
+        '自動入力を消して', 'オートフィルを消して', 'ダウンロードを消して',
+        'サイトデータを消して', '保存データを消して',
+        /clear (the )?cache/i, /(clear|delete) (the )?cookies?/i,
+        /clear (browser|browsing) data/i],
       action: () => {
         this.speak('キャッシュとCookieの削除はまだできません。「履歴を消して」で履歴は消せます');
         return { action: 'privacy-clean' };
@@ -1814,6 +1819,18 @@ export class VoiceCommands {
         return { action: 'download' };
       },
       description: 'Explain downloading is unavailable'
+    });
+    // other-history — playback/purchase histories belong to other apps; say
+    // so and point at the only history this shell keeps.
+    this.registerCommand('other-history', {
+      patterns: ['再生履歴', '視聴履歴', '購入履歴',
+        '再生履歴を見せて', '視聴履歴を見せて', '購入履歴を見せて',
+        /(watch|purchase|play) history/i],
+      action: () => {
+        this.speak('その履歴はこのブラウザにありません。「履歴を読んで」で閲覧履歴を聞けます');
+        return { action: 'other-history' };
+      },
+      description: 'Explain playback/purchase histories are unavailable'
     });
     // account — login/profile/password management belongs to the site or
     // the headset account, not this shell. Registered in
@@ -2776,6 +2793,7 @@ export class VoiceCommands {
         '閲覧履歴を消して', '検索履歴を消して',
         '履歴を消して', '履歴をリセット', '今日の履歴を消して',
         '閲覧履歴を全部消して', '履歴を全部消して', '履歴を全部消す',
+        '履歴消して', '履歴を消去して', '履歴を削除して', '履歴をクリアして',
         /履歴を?(消去|削除|クリア|消す)/,
         /clear\s+(browsing\s+)?history/i, /delete\s+history/i
       ],
@@ -3251,7 +3269,10 @@ export class VoiceCommands {
         /resume\s+(the\s+)?(reading|narration|article)/i, /^resume$/i,
         /^continue$/i, /^continue reading$/i,
         /^(read on|carry on|keep going|keep reading|go on)$/i,
-        'どんどん進んで', 'どんどん読んで'],
+        'どんどん進んで', 'どんどん読んで',
+        '読みかけ', '読みかけを再開', 'さっきの続き', '中断したところから',
+        '止めたところから', '読んでたところ', '前に読んでた',
+        '止めたところから読んで'],
       action: () => {
         this.resumeSpeaking();
         return { action: 'resume-reading' };
@@ -4834,6 +4855,8 @@ export class VoiceCommands {
     listCmd('history-list', '履歴', this._onHistoryList,
       ['履歴一覧', '履歴を読み上げ', '履歴を読んで', '履歴を読み上げて',
         '閲覧履歴', 'ブラウザ履歴', 'ウェブ履歴', '検索履歴', '閲覧履歴を読んで',
+        '最近の履歴', 'さっきの履歴', '昨日の履歴', '今日の履歴',
+        '履歴を一覧', '履歴を全部読んで', '履歴を見て', '履歴を確認',
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
@@ -5213,6 +5236,10 @@ export class VoiceCommands {
       patterns: ['最新の履歴', '履歴の最新', '最後に見たページ',
         'さっきの記事', '開いたばかりのページ', 'さっき開いたページ',
         'さっき見た記事', 'さっき読んでたページ',
+        '履歴はいつ', 'いつ見た', 'いつ見たっけ', 'いつ見たんだっけ',
+        'さっき見たのは', 'さっきのページは', '前のページは',
+        'さっきのサイトは', '前に見たサイト', '最後に見たのは',
+        '一番最後に見たページ',
         /latest history/i, /most recent (page|history|visit)/i],
       action: () => {
         const items = this._onHistoryList ? this._onHistoryList() : null;
@@ -5288,6 +5315,7 @@ export class VoiceCommands {
         '残りを読んで', '残り全部読んで', '残りを全部読んで',
         '続きを全部読んで', 'あとの文を読んで',
         'つづきから', 'つづきから読んで', '途中から読んで', 'つづきを読んで',
+        '途中から', '途中から読み上げて', '途中から読み上げ',
         '最後まで読んで', 'あと全部読んで', '残り全部', 'あとを読んで',
         'この先を読んで', '続きをすべて読んで',
         /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
@@ -5334,6 +5362,9 @@ export class VoiceCommands {
         'どこまで読んだ', '読了ですか', 'スクロール位置', '今どのあたり', 'どのあたり',
         'ページ数は', '全部で何ページ', '何ページある', 'ページ数を教えて',
         'あと何ページ', '残り何ページ', '残りは何ページ', 'あと何ページある',
+        '読み終わった', '読み終わり', '読了', '読み終わったとき',
+        '読み上げが終わった', '読み上げ終わった', '読み上げは終わった',
+        'まだ読んでる', '読んでる途中', '半分読んだ', '半分まで読んだ', 'もう半分',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
         /scroll position/i],
       action: () => {
@@ -5396,6 +5427,7 @@ export class VoiceCommands {
         '読了まで', '読み終わるまで', 'あとどれくらいで終わる', '終わるまであと',
         'あと何分で読み終わる', '読み終わりまで', 'あと何分で終わる', '残りの時間',
         'あとどのくらいで終わる',
+        'あとどのくらい読む', '何分残ってる', 'あと何分くらい', '残りは何分',
         /how much longer/i, /time left/i, /minutes left/i],
       action: () => {
         const mins = this._onRemainingTime ? this._onRemainingTime() : null;
