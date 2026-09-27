@@ -1720,6 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 209
+
+- ✨ 受益尾XXVII: TAIL_TE — くれようか/くれるさ/くれるっしょ・もらうべく/もんだ/いって/でな/さ/だけで/のみ(で)・くれさえすりゃ/あれば・おいていただきます/おいていただけますか/おいてもらいます/おいてもらえます → 実行。
+- ✨ 命令語幹残置: なさい方言（なさんし/なさいまし）+ 母音伸ばしリテラル（閉じぃ/閉じーい）→ close-tab。
+- ✨ dict残置XIX: FR — しかね/しかあるまいか/に限るよ/にこしたことはない/のがよろしいでしょう/かと思う(ます)/のでしょうね/のであればよい/のも手だろう/ってばさ/と言ったはず/と言ったよね/べきだって/べきところかと/べきものだ/だけの話だ/だけのことだ → 実行。
+- ✨ EN前置詞XVIII: 'i call upon you to'・'gratify/accommodate me by'・'would it kill ya to' → 実行 + 語尾 'or whatever/or something'。
+- 🐛 誤ルート2件消化: trouble の `[ただ]はず` が '閉じると言ったはず'（命令リマインダー）奪取 → `(?<!言っ)`；device-apps の `call (?!it)` が 'i call upon you to' 奪取 → `upon` 除外。
+- ✅ tests/order-frame-atoms.test.js +50（実装前45件赤確認）、計11180全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 208
 
 - ✨ 受益尾XXVI・て許可残置: TAIL_TE — くれよかった/くれちゃったら/くれちゃうか/くれちゃおう・もらいとう/もらうとか/もらうに限る/もらうべきかな/もらうしかない/もらうほかない・いただくに限る/べきかと/以外ない/ほかない・もよろしいかと/もいいかと(思う|んではないかと|存じます) → 実行。
