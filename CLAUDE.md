@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 190
+- ラウンド116: フレーム残置原子層（tests/frame-residue-atoms.test.js、+77件 / 実装前68件赤）
+  - JA て受益残置VIII: TAIL_TE `くれんかね|くれますかねえ|もらってよろしいか|もらいますか|おいていただけると|はくれませんか|はくれないか|おきませんか|おきますか|しまおうかな|くれないものか|結構ですか|構いませんか|もろて(ええか|よろしいか|いいか|ええ|よろしい)`
+  - JA ちゃ残置: `ちゃう(かな|かね|かい)?→て`・`じゃう→で`、ちゃっても許可に `よろしい` 追加
+  - JA dict 条件・引用残置（FR）: `ことか|ことなんだけど|ってこと(で|ですか)?|ということで(よろしいですか)?|ものなら|のならば|のであったら|んだったら(早く|ね)?`
+  - JA 意図・判定残置（FR）: `ことにしようかな|ことにした方がいい|というわけにはいかない|のが筋ではないだろうか|ことに(する|します|致します)|ものと(する|します|思います|考えます)|がよい|がよろしい`
+  - JA ものか拒否: negate `/ものかな?$/`（'閉じるものかな'→negate）+ lookbehind `(?<!くれない|いい)` で 'くれないものか'（依頼）/'いいものか'（許可質問）を保護。back `戻る` regex に `ものか` lookahead（'戻るものかな' の誤実行解消）
+  - EN modal II: chain1 `what about we|would it hurt to|would it kill you to|is there (any )?a chance you could|can/could you (be bothered to|manage to|even|actually)|i take it you can|i assume you can|are you able to|are you capable of|is it possible you could|might it be possible to`
+  - 教訓: 削除 rep で複合ブランチ行を丸ごと消すと同じ行内の別ブランチも消える—消すのは目的のブランチのみ。ENPRE は `en` 変数パイプライン内で二度適用—裸 modal 剥がし (1071行) が ENPRE 未登録の前置詞を先食いする
+
 ### Session 189
 - ラウンド115: 残余語尾・判定枠原子層（tests/residual-tail-atoms.test.js へ追記、+84件 / 実装前69件赤）
   - JA て敬語残置VII: TAIL_TE に `くださいますかな|くださいますね|くださいまいか|くださいまい|もらおう|もらいましょう|もらうか|もいいっすか|もええですか`（'くださいまいか' は variant 順で negate の `/まい$/` より TAIL_TE 先勝ちで実行化）

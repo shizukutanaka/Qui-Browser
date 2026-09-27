@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくれんかね'/'閉じてくれますかねえ'/'閉じてもらってよろしいか'/'閉じてもらいますか'/'閉じてはくれませんか'/'閉じておきませんか'/'閉じてしまおうかな'/'閉じてくれないものか'/'閉じて結構ですか'/'閉じて構いませんか' のて受益・依頼残置が NO-MATCH~~ — **Session 190 で実装**（TAIL_TE VIII 拡張）
+- ~~voice '閉じちゃうかな'/'閉じちゃってもよろしいですか'/'閉じてもろてええか' のちゃ・関西もろて残置が NO-MATCH~~ — **Session 190 で実装**（ちゃうかな系 push + よろしい追加 + TAIL_TE もろて）
+- ~~voice '閉じることか'/'閉じるってことで'/'閉じるということでよろしいですか'/'閉じるものなら'/'閉じるのならば'/'閉じるのであったら'/'閉じるんだったらね' のdict条件・引用残置が NO-MATCH~~ — **Session 190 で実装**（FR 拡張）
+- ~~voice '閉じることにしようかな'/'閉じることにします'/'閉じるものとする'/'閉じるものと思います'/'閉じるがよい'/'閉じるのが筋ではないだろうか'/'閉じるというわけにはいかない' の意図・判定残置が NO-MATCH~~ — **Session 190 で実装**（FR 拡張）
+- ~~voice '戻るものかな' が back 誤実行・'閉じていいものか' が negate 誤奪取~~ — **Session 190 で実装**（`戻る(?!ものか)` + negate `/ものか$/` に `くれない|いい` lookbehind）
+- ~~voice 'what about we X'/'would it hurt to'/'would it kill you to'/'is there a chance you could'/'can you be bothered to'/'can you manage to'/'can you even/actually'/'i take it you can'/'i assume you can'/'are you able to'/'are you capable of'/'is it possible you could'/'might it be possible to' が NO-MATCH~~ — **Session 190 で実装**（ENPRE chain1 拡張）
 - ~~voice '閉じてくださいますかな'/'閉じてくださいますね'/'閉じてくださいまいか'/'閉じてもらおう'/'閉じてもらいましょう'/'閉じてもらうか' のて敬語・受益残置が NO-MATCH／'くださいまいか' が negate 誤ルート~~ — **Session 189 で実装**（TAIL_TE 拡張）
 - ~~voice '閉じてもいいっすか'/'閉じてもええですか'/'閉じちゃってもいいですか'/'閉じちゃってもよいですか'/'閉じちゃってもいいっすか' のても許可・ちゃっても残置が NO-MATCH~~ — **Session 189 で実装**（TAIL_TE + ちゃっても/じゃっても→て/で push）
 - ~~voice '閉じられませんか(ね|な)'/'戻られませんか'/'読めませんか' の不能依頼質問が NO-MATCH~~ — **Session 189 で実装**（られませんか→て / godan られ融合→stem+'り'→stemTe / え段ませんか→E_TE）
