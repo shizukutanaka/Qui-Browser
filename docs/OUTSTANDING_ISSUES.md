@@ -193,6 +193,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'read it to me'/'where was i'/'その続き'/'あと半分'/'bigger please'/'do over'/'bookmark it'/'capture this' 等のリーダー・ブラウザ形欠落~~ — **Session 177 で実装**（read-aloud/resume-reading/read-here/reader-progress/reader-size/repeat/bookmark/screenshot 拡張）
 - ~~voice 'なんで閉じないの'/'why wont it'/'screw this'/'grr'/'dammit' 等の故障・不満質問が NO-MATCH~~ — **Session 177 で実装**（trouble 拡張）
 
+~~Session 186 (ラウンド112): 条件・許可原子層 — JA て受益残置IV・て許可質問（いいか/よろしいか系）・dict条件枠（ならば/のであれば/ことなら）・緩接続（とか/なんか/くらい/だけ/さえ/でも）・EN 譲歩前置詞（unless/barring/by your leave）・want-me-to 枠・just-have-to・名誉/try 枠・語尾 'for you'/'for once'/'a shot' — find-in-page/go-to/help 3件の誤ルート修正（ENPRE 末尾スペース必須化の破壊を学習）~~
+
 ~~Voice: ておきます/なさいますか/ろと言った/てはよ 敬語・引用・方言命令尾~~ — **Session 176 で実装**
 ~~Voice: 閉じられない/cant close it/wont load 不能報告が NO-MATCH~~ — **Session 176 で実装**
 ~~Voice: なくても/ちゃダメ/のやめて/no need to 拒否形が NO-MATCH~~ — **Session 176 で実装**
