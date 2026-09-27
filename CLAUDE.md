@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 202
+
+- ✨ 受益尾XX: TAIL_TE — 九州/名古屋系 'くれんけん'/'くれんさい'/'もらおか'/'もらいましょ'/'おくんなまし' + 裸 'ては'（'閉じては'→'閉じて'）→ 実行。
+- ✨ dict判定XII: FR — 'のが常道'/'が吉'/'んだから'/'ので(ー)'/'んす'/'がいいさ'/'ことを所望'/'ことを希望'/'ことを要請' → 実行。
+- ✨ 意向提案II: VOL 尾 + 'よ'/'ぞ'/'かい' → '閉じようよ'/'閉じようぞ'/'閉じようかい' → 実行。
+- ✨ てみる/ちゃ残置: TM + 'みよ'/'みようよ'；'ちゃってよ'/'じゃってよ' → て/で。
+- ✨ EN前置詞XI: 'can/could/will/would ya'（くだけた you）、'be a pal/friend and'、'it needs a closing'/'it requires'/'the tab requires'、'the tab is still open'/"it's still open" → 実行；swap 動詞 + pop/slide（'pop it closed'）；語尾 'when you get a sec/moment'/'before anything else'/'first thing'/'that second'。
+- 🐛 回帰消化: FR `ので` が '閉じたいので' を '閉じたい' に縮約して '閉じたって'→describe-tab 奪取を誘発 → `(?<!たい)ので` で保全。ENPRE 内 `'…|it'?s still open'` の裸 `'` が文字列を早期終了 → `it\'?s` に escape（文字列構築 regex の escape 規則再確認）。
+- ✅ tests/dialect-request-atoms.test.js +39（実装前30件赤確認）、計10795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 201
 
 - ✨ 受益尾XIX: TAIL_TE — '閉じてくれるのかな'/'くれませんこと'/'くれるはず'/'くれるべき'/'やってもらおうじゃないか'/'もらおうかね'/'もらうとするか' + 九州・博多系 'もらうけん'/'もらうばい'/'もらうちゃ'/'くれたる' + 'くださいますように'/'くれてもいいじゃん'/'くださるまいか' → 実行。
