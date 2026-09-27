@@ -133,6 +133,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+~~'閉じんといい(かも)' 否定願望がタブを閉じる実害 → negate（Devin Review #383）~~ — **Session 172 で実装**
+~~'pin the second tab' がピン済みタブを解除する双方向ガード・数字語除外は '\s+tab' 後置必須化（'close the one piece tab'→by-name）~~ — **Session 172 で実装**
+~~相対/序数タブ指定（この次/この前/一個右/その隣/tab to the left/N tabs to the right/next to this・十番目/ふたつめ/みっつめ）~~ — **Session 172 で実装**
+~~'defer' 誠実不在原子（あとで/後で/N分後/do it later/remind me later → 実行しない旨返答）~~ — **Session 172 で実装**
+~~EN鎖尾（care to/fancy/might you/wont you/please and thank you/if you'd be so kind/uh/um、'X would ya'/'X would you kindly' タグ質問、'and thank you' 連結）・JA尾II（しかない/ほかない/っきゃない/んしゃ/やい/がよ/だす/んだってば/ておこか/んどこか/ますねえ/ねえ/なあ）・副詞音量/速度（too quiet/way too loud/pretty loud/too slow/too fast/super fast/really slow）・how-to/help 形（how do we/you、what do i do、閉じ方は/戻り方って X方かた系）・echo 補完（閉じたっけ/読んでたっけ/意味がわからない/what did it say）・input-methods キー名（press escape/space bar/hit the enter key/press the tab key）・mic-status toggle 形・halfway/partway 分数ジャンプ（a third of the way/半分くらい）~~ — **Session 172 で実装**
 ~~EN序数タブ操作（'pin the second tab'/'close the last tab'/'mute the first tab'/'move the tab to position three'/'switch to the fourth tab' の序数語形）~~ — **Session 171 で実装**
 ~~pin/tab-by-name の `(?:the )?` skip-hole（'pin the second tab' が 'the second' 名検索・'switch to the last tab' が 'the last' 名検索）~~ — **Session 171 で実装**
 ~~window 名詞系（'open a window'/'guest window'/'another window'/'private window'）・'do i/do we' 疑問句の誤実行→help・'unpin tab N' の未ピン誤トグル~~ — **Session 171 で実装**
