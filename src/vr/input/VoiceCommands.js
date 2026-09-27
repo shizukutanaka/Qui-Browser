@@ -486,6 +486,19 @@ export class VoiceCommands {
     if (BS) {
       dictTe(BS[1]);
     }
+    // dict形+接続尾（か/けど/し/から/の/んや/んだ/じゃ）→ て形:
+    // '閉じるけど'→'閉じて', '読むか'→'読んで'. まい is negative intent → negate.
+    const QC = normalized.match(
+      /^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:か|かな|けど|し|から|の|んや|んだ|じゃ|んか)[。！？!?]?$/u);
+    if (QC) {
+      dictTe(QC[1]);
+    }
+    // させて-依頼尾: '閉じさせてくれ'→'閉じて', '読ませてもらう'→'読んで'.
+    push(normalized.replace(/させて(?:くれ|もらう|もらえる|いただけないか|ほしい)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/([まらわかがさたなばぱ])せて(?:くれ|もらう|もらえる|いただけないか|ほしい)[。！？!?]?$/u,
+      (m, ch) => A_SE_TE[ch] || ch));
+    // Bare dict-form last resort: 'ついでに読む' strips to '読む' → '読んで'.
+    dictTe(normalized);
     // 博多 'よる' progressive: '読みよる'→'読んでる', '閉じよる'→'閉じてる'
     const YR = normalized.match(/^(.{1,10}?)よる$/u);
     if (YR) {
@@ -553,7 +566,7 @@ export class VoiceCommands {
     // Discourse/urgency prefixes: 'えっと閉じて'→'閉じて', 'すぐ止めて'→'止めて'.
     const prefixRe = new RegExp('^(?:今すぐ|すぐさま|すぐに|すぐ|さっそく|早速|ちょっと|' +
       'ちょいと|とりあえず|とりま|一応|いったん|えっと|えーっと|えーと|あのー|' +
-      'あの|まあ|なんか|ところで|もう一度|もう一回|もういちど)[、\\s]*', 'u');
+      'あの|まあ|なんか|ところで|もう一度|もう一回|もういちど|何度も|もっかい|もいっかい|もういっかい)[、\\s]*', 'u');
     push(normalized.replace(prefixRe, ''));
 
     // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
@@ -985,7 +998,8 @@ export class VoiceCommands {
         'ミュートになってる', 'ミュートされている', 'ミュートしてます',
         '音は出てる', '音が出てる',
         /is (it |this |the )?muted/i, /mute status/i, /am i muted/i,
-        /are we muted/i, /is it quiet/i],
+        /are we muted/i, /is it quiet/i,
+        /did it (go )?mute/i, /did it get muted/i],
       action: () => {
         const v = this._onMuteStatus ? this._onMuteStatus() : null;
         this.speak(v === null ? '確認できません'
@@ -1177,6 +1191,7 @@ export class VoiceCommands {
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
+        'お進みなさい',
         'head forward', 'go on forward',
         /one page forward/i],
       action: () => {
@@ -1189,7 +1204,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        /(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで))(?:戻る(?!な)|戻れ(?!る|な|ま))/,
+        /(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで))(?:戻る(?!な|まい)|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
         '一つ戻る', 'ひとつ戻る', 'ひとつ前に戻る',
@@ -1260,6 +1275,10 @@ export class VoiceCommands {
         'close app', 'close browser', 'close the browser', /close the app/i,
         /^quit$/i, /^exit$/i, 'shut down', 'shutdown', 'close the app',
         'shut it down', 'turn it off', 'switch it off',
+        'じゃあね', 'ばいばい', 'さようなら', 'またね', 'また後で', 'お疲れさま',
+        '終わり', '終わります', 'おしまい', 'しゅうりょう',
+        'see ya', 'later', 'peace', 'peace out', 'bye bye', 'adios', 'ciao',
+        'ta ta', 'toodles', 'catch you later', 'im out', "i'm out", 'signing off',
         'leave the browser', 'shut it all down', 'shut everything down',
         /quit (the )?(app|browser)/i, /exit (the )?(app|browser|vr)/i,
         /get me out( of here)?/i, /get outta here/i, /get out of here/i,
@@ -1290,7 +1309,7 @@ export class VoiceCommands {
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
         '音量をあげる', 'ボリュームを上げる', '音量を上げる', '音を上げる', '声を上げる',
         'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
-        'louder', 'speak up', 'turn it up', 'crank it up',
+        'louder', 'speak up', 'turn it up', 'crank it up', 'bump it up',
         'turn up the volume', 'pump it up', 'make it louder',
         /volume (up|raise|increase|louder)/i],
       action: () => {
@@ -1313,7 +1332,7 @@ export class VoiceCommands {
         '声を下げて', '声を小さくして', 'ボリュームを下げて',
         '音量をさげる', '音量を下げる', 'ボリュームを下げる', '音を下げる', '声を下げる',
         'ボリュームを小さく', 'ボリュームダウン', '音を下げて',
-        'quieter', 'turn it down', 'speak softer', 'tone it down',
+        'quieter', 'turn it down', 'speak softer', 'tone it down', 'bump it down',
         'turn down the volume', 'crank it down', 'make it quieter',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
@@ -1631,6 +1650,9 @@ export class VoiceCommands {
         'be a doll', 'work your magic', 'do the thing', 'just do it',
         'できること教えて', 'できることを教えて', '何が言える', 'なにができる',
         'コマンド教えて', '命令を教えて',
+        'お願いします', 'お願いしますよ', 'よろしく', 'よろしくお願いします',
+        'どうぞ', 'どうぞよろしく', 'わかんない', 'わかりません',
+        'わかりませんでした', 'どうしたら',
         'やって', 'やってくれ', 'やってくれる', 'やってほしい', 'やってください',
         '知らん', 'しらん', 'できひん', 'でけへん',
         '対応してますか', 'できません', 'これできる',
@@ -2374,6 +2396,9 @@ export class VoiceCommands {
         'are you there', 'you there', 'are you on',
         'still there', 'are you still there', 'still listening', 'you still here',
         'still with me', 'still awake', '動きっぱなし', '動き続けてる',
+        '生きてる', 'いきてる', '動作してます', '動いてます', '働いてる',
+        'whats going on', 'whats the status', 'whats the state',
+        'hows it looking', 'how are things',
         '何してる', '何やってる', '何してるの', '何をしてる'],
       action: () => {
         this.speak('音声認識は動作中です。「ヘルプ」でコマンド一覧を聞けます');
@@ -2406,7 +2431,16 @@ export class VoiceCommands {
         'roger that', 'copy that', 'aye aye', 'ten four', 'wilco', 'aye', 'yessir',
         'yessiree', 'okie', 'okie dokie', 'okie doke', 'rightio', 'right then',
         'roger dodger', 'i appreciate it', 'on it', 'gotcha', 'noted', 'sounds good',
-        'fair enough', 'cool cool'],
+        'fair enough', 'cool cool',
+        '承知', '承知しました', 'かしこまり', '畏まりました', '合点', '合点承知',
+        '御意', 'よろしい', 'そうだ', 'そうだよ', 'そうなの', 'そうなんですね',
+        'そのとおり', 'その通り', 'ほんそれ', 'ほんまそれ', 'まさに', '正に',
+        'そうそう', 'うんうん', 'へえ', 'ほう', 'さすが', 'やった', 'いい感じ',
+        'いいじゃん', 'あざます', 'あざっす', 'どうもありがとう', 'めっちゃありがとう',
+        '感謝', '感謝します',
+        'ya got it', 'yer good', 'gotcha covered', 'right on', 'rock on',
+        'way to go', 'attaboy', 'bravo', 'umm', 'um', 'err', 'uhh', 'uh',
+        'ah', 'oh', 'ahh'],
       action: (t) => {
         const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
         const praise = /助か|かっこ|すご|いいね|素晴ら|最高|すばら|awesome|great|perfect|nice/i.test(t);
@@ -3130,6 +3164,7 @@ export class VoiceCommands {
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
+        'お進みなさい',
         'head forward', 'go on forward',
         /one page forward/i],
       action: () => {
@@ -3142,7 +3177,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        /(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで))(?:戻る(?!な)|戻れ(?!る|な|ま))/,
+        /(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで))(?:戻る(?!な|まい)|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
         '一つ戻る', 'ひとつ戻る', 'ひとつ前に戻る',
@@ -3151,6 +3186,7 @@ export class VoiceCommands {
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
         'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト',
         'back', 'go back', 'backward', 'go backwards', 'step back',
+        'お戻りなさい',
         'head back', 'walk it back', 'head on back', 'go on back',
         /(take|send|bring) me back/i],
       action: () => {
@@ -3348,7 +3384,7 @@ export class VoiceCommands {
         'ウインドウを閉じて', '画面を閉じて', 'この画面を閉じて',
         '見てる画面を閉じて', '見ている画面を閉じて',
         'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
-        '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
+        '閉じろ', '消えろ', 'とじろ', '閉じてしまって', '閉じれ',
         'close it', 'close this one', 'close the one', 'close', 'close this', 'shut it',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
@@ -3706,6 +3742,8 @@ export class VoiceCommands {
         /resume\s+(the\s+)?(reading|narration|article)/i, /^resume$/i,
         /^continue$/i, /^continue reading$/i,
         /^(read on|carry on|keep going|keep reading|go on)$/i,
+        'keep it up', 'keep it going', 'keep it rolling', 'keep at it',
+        'press on', 'move along', 'carry on with it', 'continue on',
         'どんどん進んで', 'どんどん読んで',
         '読みかけ', '読みかけを再開', 'さっきの続き', '中断したところから',
         '止めたところから', '読んでたところ', '前に読んでた',
@@ -5043,7 +5081,7 @@ export class VoiceCommands {
         '閉じっぱなし', '開きっぱなし', 'つけっぱなし', 'check that out', 'check it out',
         'can you see this', 'can you see it', '開けっぱなし',
         'ご覧ください', 'ご覧くださいませ', 'bring it up', 'pull it up',
-        'queue it up', 'line it up',
+        'queue it up', 'line it up', 'ご覧なさい',
         'what page', 'what site', 'what page is this', 'what site is this',
         '何のページ', 'ページは何', 'どんなページだ',
         '説明して', '説明してほしい', '内容は',
@@ -5427,7 +5465,7 @@ export class VoiceCommands {
         /^cancel( that| it)?$/i,
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
         'enough', 'thats enough', 'that will do',
-        '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて', '止めろ', 'やめろ', '止めなさい'],
+        '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて', '止めろ', 'やめろ', '止めなさい', '止まれ', 'やまれ', 'とまれ'],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
         if (this.synthesis?.cancel) {
@@ -5769,7 +5807,8 @@ export class VoiceCommands {
         '聞こえる', '聞こえますか', '聞こえます', '聞こえてる', '聞こえてますか', '聞こえてます',
         /mic status/i, /is the mic(rophone)? on/i, /can you hear me/i,
         /do you hear me/i, /are you listening/i,
-        /mic check/i, /microphone check/i],
+        /mic check/i, /microphone check/i,
+        /d?ya hear me/i],
       action: () => {
         this.speak(this.isListening ? 'マイクはオンです' : 'マイクはオフです');
         return { action: 'mic-status', listening: this.isListening };
@@ -6644,7 +6683,8 @@ export class VoiceCommands {
     this.registerCommand('pin-status', {
       patterns: ['ピンされてますか', 'ピンがありますか', 'ピン留めしてる', 'ピンしてる',
         'ピンされてる', 'ピン留めされてる',
-        /is (this|it|the tab) pinned/i, /pin(ned)? status/i],
+        /is (this|it|the tab) pinned/i, /pin(ned)? status/i,
+        /did i pin (it|this|the tab)/i, /did (it|this) get pinned/i],
       action: () => {
         const pinned = this._onPinStatus ? this._onPinStatus() : null;
         this.speak(pinned === null ? 'タブがありません'
@@ -6946,7 +6986,8 @@ export class VoiceCommands {
         'ブックマークした', '保存してるか', '保存した',
         /did i (bookmark|save)( this)?/i, /have i (bookmarked|saved)( this)?/i,
         '保存してる', '保存されてる', 'お気に入りに入れた', /is (this |it )?bookmarked/i,
-        /in (the )?bookmarks\?*$/i, /did i bookmark/i],
+        /in (the )?bookmarks\?*$/i, /did i bookmark/i,
+        /is it saved/i, /did it save/i, /did it (get )?bookmark(ed)?/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
         if (!active) {
@@ -7156,7 +7197,8 @@ export class VoiceCommands {
         '同じコマンドを実行', 'コマンドを繰り返して',
         /do it again/i, /run it again/i, /do the same/i, /execute again/i,
         'try again', 'try that again', 'do that again', 'again', 'one more time',
-        'run it back', 'one more go', 'do it once more'],
+        'run it back', 'one more go', 'do it once more',
+        'もっかい', 'もいっかい', 'もういっかい', 'もう一度だけ', 'もう一回だけ'],
       action: () => {
         const t = this._repeatableTranscript;
         if (!t) {
@@ -7410,7 +7452,10 @@ export class VoiceCommands {
         'どうでもいい', 'それじゃない', 'それは違う',
         'nopers', 'nope nope', 'absolutely not', 'not interested', 'negative',
         'hell no', 'no siree', 'not a chance', 'not a hope',
-        /keep it/i, /leave it(?: be| alone)?/i, /as you were/i],
+        'nah bruh', 'nah fam', 'nah man', 'nah dude', 'no can do', 'no dice',
+        'negative ghostrider', 'most certainly not', 'whatever', 'whatever dude',
+        'ok whatever', 'doesnt matter', 'doesnt matter anymore', 'forget everything',
+        /keep it/i, /leave it(?: be| alone)?/i, /as you were/i, /まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
         return { action: 'negate' };

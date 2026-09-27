@@ -1001,6 +1001,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**博多よる進行・dictだけ・べし形が未認識**~~ — **Session 166 で実装**: '読みよる'→speaking-status、'閉じよる'→describe-tab、'閉じるだけ'→close-tab、'閉じるべし'→close-tab、'開けっぱなし'→describe-tab、'鳴りっぱなし'→tab-audio。
 - ~~**EN 前置詞ネスト（i was wondering if / do you think you could / would you be so kind and X）が未認識**~~ — **Session 166 で実装**: EN prefix chain に wondering/hoping/think-you-could/any-chance/be-so-kind/mind/how-about-we/why-dont-we/shall-we/suppose-we/lets + you-(have|need|got)-to/shoulda/coulda/should/could/might + and|then 逐次剥がし、動名詞化を post-strip にも適用。'if you wouldnt mind closing this'→close-tab。
 - ~~**EN 無線相槌・強否定・メタ句が未認識**~~ — **Session 166 で実装**: ack に roger/copy/aye-aye/ten-four/wilco/yessir/okie-dokie/noted/gotcha 系、negate に nopers/absolutely-not/negative/hell-no 系、help に 'what can i say'/'show commands'/'do me a favor'/'just do it'/JA 'できること教えて' 系、trouble に 'おかしい'/'なんか変'/'へんだ' 系、nav 系に 'head back'/'walk it back'/'head forward'/'run it back'/'scroll on down'/'keep on scrolling'、describe-tab に 'bring/pull/queue/line it up'。
+- ~~**dict形+接続尾（か/けど/し/から/の/んや/んだ/じゃ/んか）が未認識**~~ — **Session 167 で実装**: `dict+尾`→dictTe。'閉じるけど'→close-tab、'読むし'→read-aloud、'閉じるんや'→close-tab、'戻るんや'→back。
+- ~~**'まい'否定意志形が実行されていた**~~ — **Session 167 で修正**: negate に `/まい$/` を追加し back/navigate lookahead に まい を追加 — '戻るまい'/'閉じるまい' が back/close-tab を実行していた。
+- ~~**'keep it up/going/rolling' 継続句が negate に誤ルート**~~ — **Session 167 で修正**: negate の `/keep it/i` に先勝ちする resume-reading literal で回収、'keep at it'/'press on'/'carry on with it'/'continue on' も併記。
+- ~~**'did it mute/save/bookmark'・'did i pin' 過去形質問が実行していた**~~ — **Session 167 で実装**: mute-status/pin-status/bookmark-status に did/get 形追加、'is it saved'→bookmark-status。
+- ~~**させて-依頼尾・繰り返し句・敬語命令形が未認識**~~ — **Session 167 で実装**: `させて(くれ|もらう|もらえる|いただけないか|ほしい)`→て形（'閉じさせてもらう'→close-tab）、'何度も/もっかい/もいっかい' 前置、repeat-command に 'もっかい/もいっかい/もう一度だけ'、'お戻りなさい'→back、'お進みなさい'→navigate、'ご覧なさい'→describe-tab、'閉じれ'→close-tab、'止まれ/やまれ/とまれ'→stop-everything。
+- ~~**別れ句・JA相槌・ENフィラーが未認識**~~ — **Session 167 で実装**: vr-exit に 'じゃあね/ばいばい/お疲れさま/終わり/see ya/peace out/adios/ciao/im out/signing off' 等、ack に JA '承知/かしこまり/合点/御意/そうだ/そのとおり/ほんそれ/まさに/そうそう/へえ/さすが/いい感じ/あざます/感謝' + EN 'ya got it/right on/way to go/attaboy/bravo/umm/ah' 系。
+- ~~**稼働・聴力確認句が未認識**~~ — **Session 167 で実装**: working-status に '生きてる/動いてます/働いてる/whats going on/whats the status/hows it looking'、mic-status に 'd?ya hear me'、volume に 'bump it up/down'。
+- ~~**依頼前置詞・困惑句が未認識**~~ — **Session 167 で実装**: help に 'お願いします/よろしくお願いします/どうぞ/わかんない/わかりませんでした/どうしたら'、negate に 'nah bruh/no can do/no dice/negative ghostrider/most certainly not/whatever/doesnt matter/forget everything'。
 
 ---
 
