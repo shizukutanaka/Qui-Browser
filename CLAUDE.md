@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 220
+### Session 221
 
+- ✨ 受益/命令残置: ちょうだいなさい/頂戴な/ちょうだいませ・くださいまして(ね)・おきたいんですが/ところです/ものです・おいてもらえますかね・おいていただきたいんです・おけばよかった → 実行。
+- ✨ dict理由・目的尾: という次第です/次第であります/という具合です/のが目的です/のが狙いです/のが目標です → 実行。
+- ✨ EN XXX: 'would you be so kind as to'/'kind enough to'/'good enough to'（裸 'would you be so kind' 先食いを最長一致で是正）、'i would ask of you to'、'may i ask a favor of you'（裸 'may i' 先食いを是正）→ 実行；語尾 'for my sake'/'for old times sake'/'do me the honor/courtesy'/'you would be doing me a kindness'。
+- ✅ tests/courtesy-advance-atoms.test.js +40（実装前25件赤確認）、計11813全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 220
 - ✨ ては提案尾II: はどうかと思います/は如何でしょうか/は如何かと → 実行（はいかが系は既存）。
 - ✨ 受益深敬語残置: もらいたく存じ上げます・くれるのを願います・くれませんことでしょうか・くださいませんことでしょうか → 実行。
 - ✨ dict+おく compound: ようにしておいて/ことにしておいて → 実行。
