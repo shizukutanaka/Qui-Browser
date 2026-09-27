@@ -76,6 +76,7 @@ describe('unpin direction safety', () => {
   });
   test('"unpin tab 2" addresses the strip position, not the active tab', () => {
     const vc = makeVC();
+    vc._tm.tabs[1].pinned = true;
     run(vc, 'unpin tab 2');
     expect(key(vc)).toBe('tab-pin-n');
     expect(vc._tm.togglePin).toHaveBeenCalledWith(1);

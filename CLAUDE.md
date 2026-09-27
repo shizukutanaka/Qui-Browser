@@ -1719,7 +1719,8 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-18 (Session 74)### Session 170: 残留語尾・口語命令原子 — ちゃい/ておる/ておれ/ておこう/させろ/なされ/たれ/てみろ/てみな・方言尾（たげて/てちょ/はって/ろや/よか/くれい/おくれ/らっしゃい/やって）・義務残り（なあかん/んとあかん/ときゃええ/ればええ/たらあ/たらどう/といい）・複合動詞（終わって/切って/まくって/てまえ/てまう）・どいて/とけ/のう/たろ・ください+助詞・くれんか、EN ought to/do-強調/expletive infix/quit-it・stop 語彙/修復句/read-aloud 補完
+**Last Revision**: 2026-08-18 (Session 74)### Session 171: EN序数タブ操作原子 — EN_NUM 共有定数（first..tenth/last/one..ten）で select/close/pin/move/mute が序数語+数字対応、pin/tab-by-name の `(?:the )?` skip-hole を `(?!the (?:ORD|N)\s+tab)` 前置ガードで解消、'pin the second tab'/'close the last tab'/'mute the first tab'/'move the tab to position three' 成立、window 名詞系（'open a window'/'guest window'/'another window'/'private window'）→new/private/window-state、'do i/do we' 疑問句が実行していた実害修正→help、JA 補遺（ぞい/ぞ/ぜ/ねん、まへん/んぞ/んねん/へん negations、ませう/ますんで/だわ、ちゃいな、させて依頼尾、くれはる/もらっといて、あげる系、どいて/んと…かも）、'cant reach it'/'あかん'→trouble、tab-audio per-tab mute 形、'count my tabs'→tab-status、'unpin tab N' が未ピンタブをピン留めする誤動作をガード
+### Session 170: 残留語尾・口語命令原子 — ちゃい/ておる/ておれ/ておこう/させろ/なされ/たれ/てみろ/てみな・方言尾（たげて/てちょ/はって/ろや/よか/くれい/おくれ/らっしゃい/やって）・義務残り（なあかん/んとあかん/ときゃええ/ればええ/たらあ/たらどう/といい）・複合動詞（終わって/切って/まくって/てまえ/てまう）・どいて/とけ/のう/たろ・ください+助詞・くれんか、EN ought to/do-強調/expletive infix/quit-it・stop 語彙/修復句/read-aloud 補完
 外部基準: 関西・九州・土佐方言の依頼/義務パラダイム（なあかん・てちょ・はって・たげて・よか・くれい）、複合動詞 tail、EN politeness marker 'do'・expletive infixation ('the damn tab')・stop lexeme field (cease/desist/halt/knock off/can it)、ASR repair 句 ('not it'/'you misheard')。
 - ✨ **縮約完了尾**: ちゃい→て/じゃい→で（'閉じちゃい'→close-tab）、ちゃう系を ちゃ→て/じゃ→で に分離 + 終助詞 `う[よねかな]`（'読んじゃう'→read-aloud が新規成立、'閉じちゃうよ/ね/か'→close-tab）。'読んじゃう' は従来じゃ→てで '読んて' に死んでいたのを修正。
 - ✨ **ておる系**: `ておる`→てる（'閉じておる'→describe-tab）、`ておれ`→て（命令: '閉じておれ'→close-tab）、`ておこう`→て（意向: '読んでおこう'→read-aloud）。

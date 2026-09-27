@@ -133,6 +133,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+~~EN序数タブ操作（'pin the second tab'/'close the last tab'/'mute the first tab'/'move the tab to position three'/'switch to the fourth tab' の序数語形）~~ — **Session 171 で実装**
+~~pin/tab-by-name の `(?:the )?` skip-hole（'pin the second tab' が 'the second' 名検索・'switch to the last tab' が 'the last' 名検索）~~ — **Session 171 で実装**
+~~window 名詞系（'open a window'/'guest window'/'another window'/'private window'）・'do i/do we' 疑問句の誤実行→help・'unpin tab N' の未ピン誤トグル~~ — **Session 171 で実装**
+~~JA補遺（ぞい/ぞ/ぜ/ねん、まへん/んぞ/んねん/きぎしじち+へん negations、ませう/ますんで/だわ、ちゃいな、させて依頼尾、くれはる/もらっといて、あげる系、どいて/んと…かも、tab-audio per-tab mute、'count my tabs'、'cant reach it'/'あかん'）~~ — **Session 171 で実装**
 ~~縮約・方言尾（ちゃい/ておる/させろ/なされ/たれ/てみろ/たげて/てちょ/はって/ろや/よか/くれい/おくれ）~~ — **Session 170 で実装**
 ~~義務・条件残り（なあかん/んとあかん/ときゃええ/ればええ/たらあ/たらどう/といい）・複合動詞尾（終わって/切って/まくって）~~ — **Session 170 で実装**
 ~~て形残尾（どいて/とけ/のう/たろ/ください+助詞/くれんか）~~ — **Session 170 で実装**
