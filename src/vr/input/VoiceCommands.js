@@ -411,12 +411,12 @@ export class VoiceCommands {
       push(w.replace(/[うつるくぐすぬぶむいきぎしちにびみ]$/u, (ch) => DTE[ch] || ch));
     };
     // 'べき/ほうがいい' suggestion: '閉じるべき'→'閉じて', '読むべき'→'読んで'
-    const BK = normalized.match(/^(.{1,10}?)(べき|べきだ|ほうがいい|るほうがいい)[。！？!?]?$/u);
+    const BK = normalized.match(/^(.{1,10}?)(べき|べきだ|ほうがいい|ほうがええ|ほうがよい|るほうがいい)[。！？!?]?$/u);
     if (BK) {
       dictTe(BK[1]);
     }
     // 'たほうがいい' past-form suggestion: '閉じたほうがいい'→'閉じて'
-    const TK = normalized.match(/^(.{1,10}?)[ただ]ほうがいい[。！？!?]?$/u);
+    const TK = normalized.match(/^(.{1,10}?)[ただ]ほうが(?:いい|ええ|よい)[。！？!?]?$/u);
     if (TK) {
       stemTe(TK[1]);
     }
@@ -428,10 +428,11 @@ export class VoiceCommands {
     // 'たら/だら' conditional: '閉じたら'→'閉じて', '戻ったら'→'戻って', '読んだら'→'読んで'
     stemTe(normalized.replace(/(?:たらいい|だらいい|たら|だら)[。！？!?]?$/u, ''));
     // 'ば' conditional: '閉じれば'→'閉じて' (いち段), '戻れば'→'戻って' (五段え段)
-    stemTe(normalized.replace(/れば(?:いい)?[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/れば(?:いい(?:のに|んだけど|んやけど)?)?[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/りゃあ?(?:いい(?:のに)?)?[。！？!?]?$/u, ''));
     const E_TE = { え:'って', け:'いて', せ:'して', て:'って', ね:'んで', へ:'んで',
       べ:'んで', め:'んで', れ:'って', げ:'いで', ぺ:'んで' };
-    push(normalized.replace(/([えけせてねへべめれげぺ])ば(?:いい)?[。！？!?]?$/u, (m, ch) => E_TE[ch] || ch));
+    push(normalized.replace(/([えけせてねへべめれげぺ])ば(?:いい(?:のに|んだけど|んやけど)?)?[。！？!?]?$/u, (m, ch) => E_TE[ch] || ch));
     // 'ましょ(う)' hortative: '閉じましょう'→'閉じて', '読みましょう'→'読んで'
     stemTe(normalized.replace(/ましょう?かな?[。！？!?]?$/u, ''));
     // よ/よう/おう volitional: '閉じよ'→'閉じて', '読もう'→'読んで', '戻ろう'→'戻って'
@@ -456,7 +457,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/ゃあ$/u, ''));
     // volitional とこ/んどこ: '閉じとこ'→'閉じて', '読んどこ'→'読んで'
     push(normalized.replace(/んどこ(?:う)?$/u, 'んで'));
-    stemTe(normalized.replace(/とこ(?:う)?(?:かな)?$/u, ''));
+    stemTe(normalized.replace(/とこ(?:う)?(?:かな|か)?$/u, ''));
     // 東北 だ/だべ imperative: '閉じだ'→'閉じて', '読みだ'→'読んで'
     stemTe(normalized.replace(/だべ?$/u, ''));
     // 'つつ/ながら' while-doing: '読みつつ'→'読んで', '読みながら'→'読んで'
@@ -488,8 +489,11 @@ export class VoiceCommands {
     }
     // dict形+接続尾（か/けど/し/から/の/んや/んだ/じゃ）→ て形:
     // '閉じるけど'→'閉じて', '読むか'→'読んで'. まい is negative intent → negate.
-    const QC = normalized.match(
-      /^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:か|かな|かしら|けど|し|から|の|のよ|のね|んや|んだ|んだって|んだな|じゃ|んか|わ|わよ|わね|さ|って|ってば|ってよ)[。！？!?]?$/u);
+    const QC_TAIL = 'か|かな|かしら|けど|し|から|の|のよ|のね|んや|んだ|' +
+      'んだって|んだな|じゃ|んか|わ|わよ|わね|さ|って|ってば|ってよ|' +
+      'よな|べ|のう|やろか|やろ|がいい|に限る|んちゃう|んちゃ';
+    const QC = normalized.match(new RegExp(
+      '^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:' + QC_TAIL + ')[。！？!?]?$', 'u'));
     if (QC) {
       dictTe(QC[1]);
     }
@@ -501,13 +505,15 @@ export class VoiceCommands {
     dictTe(normalized);
     // Stem imperatives: '読みたまえ'→'読んで', '閉じ給え'→'閉じて', '閉じやがれ'→'閉じて',
     // '閉じやす'→'閉じて', '閉じなよ'→'閉じて'.
-    stemTe(normalized.replace(/(?:たまえよ?|給えよ?|やがれ|やす|なよ)[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/(?:たまえよ?|給えよ?|やがれ|やす|なよ|なはれ|やれ|がてら|や)[。！？!?]?$/u, ''));
     // Contracted てしまう: '閉じちまえ/ちまう/ちまった'→'閉じて'.
     push(normalized.replace(/ちま(?:う|え|った|ったわ|うわ)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/じま(?:う|え|った)[。！？!?]?$/u, 'で'));
     push(normalized.replace(/(て|で)しまえ[。！？!?]?$/u, '$1'));
     // ておく contraction: '閉じとくわ'→'閉じて'.
     push(normalized.replace(/(?:とく|どく)(?:わ|よ|ね|な)?[。！？!?]?$/u, 'て'));
+    stemTe(normalized.replace(/(?:とけば|ときゃ|ときな|とき)[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/(?:どけば|どきゃ|どきな|どき)[。！？!?]?$/u, ''));
     // Dialect progressive tails: '閉じとるよ/とった/ちょる/ちゅう/より' → てる/て.
     push(normalized.replace(/(?:とる|どる|とった|どった|ちょる|ちょった)(?:よ|わ|ね|な)?[。！？!?]?$/u, 'てる'));
     const CY = normalized.match(/^(.{1,10}?)(?:ちゅう|ちゅー|より)$/u);
@@ -518,6 +524,17 @@ export class VoiceCommands {
       }
       push(CY[1] + 'てる');
     }
+    // て+ぇ elongation / てやあ dialect / てくれや
+    push(normalized.replace(/([てで])ぇ+[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/([てで])やあ?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/([てで])くれや[。！？!?]?$/u, '$1'));
+    // Imperative + って quotative: '閉じろって(ば)'→'閉じろ'
+    push(normalized.replace(/([ろれ])って[ばよ]?[。！？!?]?$/u, '$1'));
+    // ちゃえば conditional: '閉じちゃえば'→'閉じて'
+    push(normalized.replace(/ちゃえば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃえば[。！？!?]?$/u, 'で'));
+    // ずには obligation: '閉じずには'→'閉じて'
+    push(normalized.replace(/ずには(?:いられない|おれない|いない)?[。！？!?]?$/u, 'て'));
     // Past + んです/んだ: '読んだんです'→'読んで', '閉じたんだ'→'閉じて'.
     push(normalized.replace(/たんですが?|たんだ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/だんですが?|だんだ[。！？!?]?$/u, 'で'));
@@ -546,7 +563,7 @@ export class VoiceCommands {
     // 'かな'/'かしら' and concessive 'けど/んだけど' drop cleanly.
     push(normalized.replace(/(て|で)も?いい(?:かなー?|ですか|です|か|よ|ね)?[。！？!?]?$/u, '$1'));
     push(normalized.replace(/たい(?:んだけど|んですが|んだが|んですけど|んです|けど|です)?[。！？!?]?$/u, 'て'));
-    push(normalized.replace(/といて(?:ね|よ|な)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/といて(?:ね|よ|な|や)?[。！？!?]?$/u, 'て'));
     // Trial/complete/humble request suffixes: '読んでみる'→'読んで',
     // '閉じてしまう'→'閉じて', '閉じちゃう'→'閉じて', '読んであげて'→'読んで',
     // '読んでもらえる'→'読んで'. Raw phrase still wins first — variants retry.
@@ -568,9 +585,9 @@ export class VoiceCommands {
     const NAKYA = {
       'ま': 'んで', 'ら': 'って', 'わ': 'って', 'か': 'いて', 'が': 'いで',
       'さ': 'して', 'た': 'って', 'な': 'んで', 'ば': 'んで', 'ぱ': 'んで' };
-    push(normalized.replace(/([まらわかがさたなばぱ])(?:なきゃ|なきゃあ|なければ|ないと)[。！？!?]?$/u,
+    push(normalized.replace(/([まらわかがさたなばぱ])(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと|ねば|ならん|んと)[。！？!?]?$/u,
       (m, ch) => NAKYA[ch] || ch));
-    push(normalized.replace(/(?:なきゃ|なきゃあ|なければ|ないと)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと(?:ね)?|ねば|ならん|んと)[。！？!?]?$/u, 'て'));
     // Dialect progressives: '戻ってん'→'戻って', '読んでん'→'読んで',
     // '読んでんか'→'読んでる' (question → status owners), '読んどる'→'読んでる',
     // '読んでへん'→'読んでる' (negative progressive is a status complaint).
@@ -579,7 +596,7 @@ export class VoiceCommands {
     push(normalized.replace(/どる[。！？!?]?$/u, 'でる'));
     push(normalized.replace(/てん[。！？!?]?$/u, 'て'));
     push(normalized.replace(/でん[。！？!?]?$/u, 'で'));
-    push(normalized.replace(/(て|で)(?:はる|や|もろて|くれへん|くれん|くれない|へん|ひん)[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/(て|で)(?:はる|や|もろて|くれへん|くれん|くれない|へんの|へん|ひん)[。！？!?]?$/u, '$1'));
     // っす casual: 'わかったっす' → 'わかった'.
     push(normalized.replace(/っす[。！？!?]?$/u, ''));
     push(normalized.replace(/ちゃって[。！？!?]?$/u, 'てしまって'));
@@ -589,7 +606,7 @@ export class VoiceCommands {
       'けれども|けれど|けど)[。！？!?]?$', 'u'), ''));
     // Discourse/urgency prefixes: 'えっと閉じて'→'閉じて', 'すぐ止めて'→'止めて'.
     const prefixRe = new RegExp('^(?:今すぐ|すぐさま|すぐに|すぐ|さっそく|早速|ちょっと|' +
-      'ちょいと|とりあえず|とりま|一応|いったん|えっと|えーっと|えーと|あのー|' +
+      'ちょいと|とりあえず|とりま|一応|いったん|かたがた|えっと|えーっと|えーと|あのー|' +
       'あの|まあ|なんか|ところで|もう一度|もう一回|もういちど|何度も|もっかい|もいっかい|もういっかい)[、\\s]*', 'u');
     push(normalized.replace(prefixRe, ''));
 
@@ -597,7 +614,8 @@ export class VoiceCommands {
     // 'please' — applied cumulatively so 'could you please go back' works.
     const en = normalized
       .replace(/^please[,\s]+/i, '')
-      .replace(new RegExp("^(?:i (?:want|wanna|need)(?: na| to)?|i'm gonna|" +
+      .replace(new RegExp("^(?:i (?:want|need) you to|i'?d like you to|" +
+        "i'?d appreciate it if you|i (?:want|wanna|need)(?: na| to)?|i'm gonna|" +
         "gonna|wanna|gotta|gimme|lemme|imma|let me|let's|may i|i said|i meant|" +
         'i was wondering if|i was hoping|do you think you could|is there any chance|' +
         'any chance you could|if you would be so kind|would you be so kind|' +
@@ -605,14 +623,25 @@ export class VoiceCommands {
         'supposed to|fixing to|about to|feel like|in the mood to|how bout|' +
         'what about|wouldja|couldja|wontcha|needa|hafta|tryna|finna|please kindly|' +
         'shoulda|coulda|woulda|oughta|mighta|musta|trying to|tryin to|if you could|if you would|' +
-        'if you can|if you will)[,\\s]+', 'i'), '')
+        'if you can|if you will|can we|could we|do we|why dont you|why dont we|' +
+        'why not|hows about|do (?:us|me) a favor and|help me|i need you to|' +
+        'i want you to|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
+        'make sure to|be sure to|remember to|try to|try and|just|simply|' +
+        'go ahead and|feel free to|oh|well|say|listen|look|alright|thanks|' +
+        'cheers|mate|first|next|also|once more|again)[,\\s]+', 'i'), '')
       .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
       .replace(/^(?:be so kind(?: as to)?|be a dear|kindly)[,\s]+(?:and[,\s]+)?/i, '')
       .replace(/^(?:you (?:have|need|got) to|you gotta|you shoulda|you coulda|you oughta|you should|you could|you might)[,\s]+/i, '')
       .replace(/^(?:(?:and|then)[,\s]+)+/i, '')
       .replace(/^(?:hey|ok|okay|so|now)[,\s]+/i, '')
       .replace(/[,\s]+please[.!?]?$/i, '')
-      .replace(/[,\s]+for me[.!?]?$/i, '')
+      .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:would|will|wont|cant|could|can) you[.!?]?$/i, '')
+      .replace(/[,\s]+(?:eh|hey|mate|yeah|ok|okay)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
+      .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time)[.!?]?$/i, '')
+      .replace(/[,\s]+and[.!?]?$/i, '')
       .replace(/\bit (?:up|off|out|through)\b/i, 'it')
       .replace(/\b(\w+)in'(?=\s|$)/g, '$1ing')
       .replace(/\b(\w+)in\b/g, '$1ing')
@@ -2370,7 +2399,7 @@ export class VoiceCommands {
         '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
         'テレビを見て', 'ラジオをつけて',
         /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)(?!.*\btab\b)/i,
-        /call \w+/i],
+        /call (?!it\b)\w+/i],
       action: () => {
         this.speak('そのアプリはこのブラウザにはありません。サイトを開くか検索はできます');
         return { action: 'device-apps' };
@@ -2442,7 +2471,7 @@ export class VoiceCommands {
         'are you there', 'you there', 'are you on',
         'still there', 'are you still there', 'still listening', 'you still here',
         'still with me', 'still awake', '動きっぱなし', '動き続けてる',
-        'working', 'still working',
+        'working', 'still working', 'still working on it', 'still at it',
         '生きてる', 'いきてる', '動作してます', '動いてます', '働いてる',
         'whats going on', 'whats the status', 'whats the state',
         'hows it looking', 'how are things',
@@ -2491,7 +2520,10 @@ export class VoiceCommands {
         '感謝', '感謝します',
         'ya got it', 'yer good', 'gotcha covered', 'right on', 'rock on',
         'way to go', 'attaboy', 'bravo', 'umm', 'um', 'err', 'uhh', 'uh',
-        'ah', 'oh', 'ahh'],
+        'ah', 'oh', 'ahh',
+        'already closed it', 'already did it', 'already done', 'already did',
+        'i did it already', 'its done already', 'been there', 'did that already',
+        /るわけ$/, /わけだ$/],
       action: (t) => {
         const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
         const praise = /助か|かっこ|すご|いいね|素晴ら|最高|すばら|awesome|great|perfect|nice/i.test(t);
@@ -3437,6 +3469,9 @@ export class VoiceCommands {
         'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
         '閉じろ', '消えろ', 'とじろ', '閉じてしまって', '閉じれ',
         'close it', 'close this one', 'close the one', 'close', 'close this', 'shut it',
+        'kill it', 'axe it', 'trash it', 'bin it', 'ditch it', 'dump it',
+        'yeet it', 'off it', 'do away with it', 'be done with it',
+        'done with it', 'over it', 'through with it', 'finished with it',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -3795,6 +3830,8 @@ export class VoiceCommands {
         /^continue$/i, /^continue reading$/i,
         /^(read on|carry on|keep going|keep reading|go on)$/i,
         'keep it up', 'keep it going', 'keep it rolling', 'keep at it',
+        'keep going with it', 'stick with it', 'stay on it', 'carry on',
+        'as you were', 'press on', 'keep moving', 'keep on going',
         'press on', 'move along', 'carry on with it', 'continue on',
         'どんどん進んで', 'どんどん読んで',
         '読みかけ', '読みかけを再開', 'さっきの続き', '中断したところから',
@@ -5135,7 +5172,7 @@ export class VoiceCommands {
         'can you see this', 'can you see it', '開けっぱなし',
         'ご覧ください', 'ご覧くださいませ', 'bring it up', 'pull it up',
         'queue it up', 'line it up', 'ご覧なさい',
-        /did it (load|open|close)/i, /is it open/i,
+        /did it (load|open|close)/i, /is it open/i, 'still open', 'its still open',
         'what page', 'what site', 'what page is this', 'what site is this',
         '何のページ', 'ページは何', 'どんなページだ',
         '説明して', '説明してほしい', '内容は',
@@ -5519,7 +5556,9 @@ export class VoiceCommands {
         'やめさせて', '全部やめて', '止めさせて',
         /^cancel( that| it)?$/i,
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
-        'enough', 'thats enough', 'that will do',
+        'enough', 'thats enough', 'that will do', 'enough of that',
+        'cut it out', 'cut that out', 'knock it off', 'pack it in',
+        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'thats a wrap',
         '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて', '止めろ', 'やめろ', '止めなさい', '止まれ', 'やまれ', 'とまれ'],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
@@ -7504,7 +7543,7 @@ export class VoiceCommands {
         'そのままで', 'そのまま', 'そのままでいい',
         '置いといて', '置いとく', '置いておいて', '置いておく', 'このまま', 'このままで',
         '読まずに', '閉じずに', '戻らずに', '進まずに', '消さずに', '開かずに', /ずに$/,
-        /(?:う|つ|る|く|ぐ|す|ぬ|ぶ|む)な[。！？!?]?$/, /^(?:don'?t|do not|never)\b/i,
+        /(?:う|つ|る|く|ぐ|す|ぬ|ぶ|む)な[。！？!?]?$/, /^(?:(?:don'?t|do not)(?! forget to)|never)\b/i,
         'nope', 'nah', 'no way', 'no thanks', 'no thank you', 'not that', 'wrong one',
         'thats not what i said', 'forget that', 'scratch that',
         'nvm', 'disregard', 'ignore that', 'ignore me', 'ignore it', 'drop it',
@@ -7517,7 +7556,11 @@ export class VoiceCommands {
         'negative ghostrider', 'most certainly not', 'whatever', 'whatever dude',
         'ok whatever', 'doesnt matter', 'doesnt matter anymore', 'forget everything',
         'not really', 'probably not', 'doubt it', 'i doubt it', 'nah probably not',
-        /keep it/i, /leave it(?: be| alone)?/i, /as you were/i, /まい[。！？!?]?$/],
+        'nevermind that', 'scratch it', 'scratch that one', 'nix that', 'nix it',
+        'no way jose', 'perish the thought', 'forget about it',
+        /[^く]れへん[のん]?$/, /らんね$/, /[^く]れんね$/, /えんね$/, /[えけせねへべめげぺ]んね$/, /[えけせねへべめげぺ]へん[のん]?$/,
+        /もんか$/, /わけ(?:が|じゃ)?ない$/,
+        /keep it/i, /leave it(?: be| alone)?/i, /まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
         return { action: 'negate' };
