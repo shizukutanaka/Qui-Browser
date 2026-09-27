@@ -1721,6 +1721,21 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 175: へッジ/義務原子 — 過去て尾・状態報告・二重否定・婉曲不能・前置開放子・EN礼儀枠
+外部基準: JA てきた/ていった/ておいた past-te tails、状態報告 (たまま/たばかり/がち)、二重否定=婉曲肯定 (なくはない/わけにはいかない/ざるを得ない)、認識不能 かねる、前置へッジ (すみませんが/悪いんだけど/お手数ですが/ぜひ/どうぞ/とにかく/とっとと/急いで)、EN courtesy frames (anyway/btw/see if you can/might i trouble you/be a lamb/yes please)
++ immediacy tails (right now/asap/at your leisure/if you dont mind)。
+- ✨ 過去・残置て尾: (て|で)(きた|きました|来た|来ました)・い(った)・おいた → て形（'閉じてきた'→close-tab、'戻ってきた'→back、'読んでいった'→read-aloud）。
+- ✨ 状態報告→describe-tab: /たまま$/・/たばかり$/・/だまま$/（'閉じたまま'・'消えたばかり'）。ばかりは `$` 限定で '開いたばかりのページ'→history-latest を維持。
+- ✨ 傾向・障害報告→trouble: 落ちがち/固まりがち/フリーズしがち/詰まった/バグった/バグってる/こりゃだめ/ダメだ/お手上げ/参った/くそ/最悪/あーもう。
+- ✨ 二重否定・義務の実行化: (なくはない|ないわけにはいかない|ざるを(得|え)ない) → あ行五段は NAKYA マップ（'戻らざるを得ない'→back）、一段は語幹+て（'閉じなくはない'→close-tab）。
+- ✨ 婉曲不能→help: /かね(る|ます|ません)$/ + 困ってる/困りました/困ってます/困ってるんだけど。
+- ✨ HP 前置詞拡張（再帰）: すみませんが?/悪いんだけど/悪いけど/お手数ですが/差し支えなければ/お手すきの際に/できたら/もし可能なら/もし/よければ/ぜひ/どうぞ/とにかく/ともかく/とっとと/さっさと/直ちに/早急に/急いで/いそいで。
+- ✨ EN 前置チェーン追加: anyways?/by the way/btw/yes please/see if you can/see about/try/have a go at/get to/up and/might i trouble you to/be a lamb and/have the goodness to。
+- ✨ EN 即時・任意尾剥がし（now-strip より先に適用して 'right now' を保全）: right now/asap/pronto/stat/at your leisure/when you have a moment/whenever you get around to it/if you don't mind。
+- ✨ ack 補充: ふぅ/ほっ/ぴったり/完璧/楽しい/面白い/おもしろい/すてき/素敵/かわいい/きれい/暇だ/退屈/つまらない + EN easy does it/slow and steady/hurry up/chop chop/snap to it/lovely/impressive/yikes/oof/dang/shoot/gah/whatever you say/if you say so/just saying/fyi。
+- ✨ volume-down に 'うるさすぎ/softer'、speech-faster に 'faster faster/double time'。
+- ✅ tests/hedge-obligation-atoms.test.js +131（実装前111件赤確認）、計7622全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
 ### Session 174: 副詞前置/意図枠原子 — へッジ開放子・提案枠・意向報告・方言依頼・EN動名詞枠
 外部基準: JA フィラー/へッジ副詞 (さあ/ほら/やっぱり/できれば/よかったら)、提案疑問文 (てはどう/たらどうかな — 対話的コミットメント)、意向報告 (ようと思って)、九州方言 ておくれ/意向ちゃおうかな/たり代表動作、EN 動名詞枠 (how about X-ing/what about)・句動詞 down 尾・whenever/if-you-would 条件尾。
 - ✨ HP 前置詞に副詞/へッジ開放子追加（再帰で後段全ルール適用）: さあ/ほら/やっぱり/やっぱ/できれば/可能なら/よかったら/もしよければ/よろしければ/良ければ。
