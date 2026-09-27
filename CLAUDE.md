@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 212
+
+- ✨ 受益尾XXX（か-particle/いただけ深敬語）: TAIL_TE — くれんまいか/くれんのかね/くれよって/くれりゃそれでいい・もらうことか/もらうんじゃ/もらいたいけど/ものだ・いただいてもよろしいですか/いただけませんことか/いただけますものか/いただけますと幸甚/いただけると(大変)助かります/幸甚に存じます/いただけますなら/幸甚でございます/助かるのですが/いただければと・ほしいばかりに/ばっかり/と願います/と切に願います/のみです/わけです → 実行。
+- ✨ dict残置XXI（こと/の/ん-particle）: FR — ことしかない(んだ)/こともありだ/ことで十分だ/ことでいい/ことにしようじゃないか/のでいいと思う/のをお願いしたい/のお願い + 関西ん尾 んやって/んじゃって/んけ/んけん/んけー/んよな/んでな/んやぞ/んぞ → 実行。
+- ✨ EN前置詞XXI: 'i formally/humbly/respectfully request that you'・'i earnestly ask that you'・'i am appealing to you to'・'i charge/enjoin you to (please)' → 実行；語尾 'would you be a love'/'when the mood strikes'/'as the spirit moves you'/'i owe you one'/'name your price'/'you know you want to'。
+- 🐛 誤ルート3件: negate `まい` 変体経由で 'くれんまいか' 奪取 → TAIL_TE に 'くれんまいか' 追加で先勝ち；negate `んぞ$` が関西命令 '閉じるんぞ' を奪取 → `(?<!る)`；negate `ものか` が 'いただけ(ます|ない)ものか'（強い願望依頼）を奪取 → lookbehind 追加（'もらうもんか' 拒否は維持）。
+- ✅ tests/solemn-request-atoms.test.js +68（実装前35件赤確認）、計11351全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 211
 
 - ✨ 受益尾XXIX（ほしい敬語/条件）: TAIL_TE — ほしく存じます/ほしく思います/ほしいのですが/ほしいんですけど/ほしいと存じます/ほしいところですが・構わなければ/構わないなら/良ければ/よろしければ(幸い) → 実行。
