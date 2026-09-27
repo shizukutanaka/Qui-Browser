@@ -1719,7 +1719,21 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-18 (Session 74)### Session 169: 命令/方言残層原子 — dict+終助詞(よな/べ/のう/やろ/がいい/に限る/んちゃう)・語幹命令(なはれ/やれ/がてら/や)・命令引用(ろって)・ておく残り(とけば/ときゃ/とき/ときな)・りゃ・ばいいのに・ちゃえば・ずには・ねば・んと・てぇ/てやあ/てくれや・EN 前置(why not/do us a favor/i need you to/dont forget to/just/simply/go ahead and)・タグ質問(would you/eh/yeah)・語尾(quick/for us/now/then/again/already)・俗語 kill(kill it/yeet it)→close・cut it out→stop・as you were→resume・不可能形(られへん/めへん/んね)→negate
+**Last Revision**: 2026-08-18 (Session 74)### Session 170: 残留語尾・口語命令原子 — ちゃい/ておる/ておれ/ておこう/させろ/なされ/たれ/てみろ/てみな・方言尾（たげて/てちょ/はって/ろや/よか/くれい/おくれ/らっしゃい/やって）・義務残り（なあかん/んとあかん/ときゃええ/ればええ/たらあ/たらどう/といい）・複合動詞（終わって/切って/まくって/てまえ/てまう）・どいて/とけ/のう/たろ・ください+助詞・くれんか、EN ought to/do-強調/expletive infix/quit-it・stop 語彙/修復句/read-aloud 補完
+外部基準: 関西・九州・土佐方言の依頼/義務パラダイム（なあかん・てちょ・はって・たげて・よか・くれい）、複合動詞 tail、EN politeness marker 'do'・expletive infixation ('the damn tab')・stop lexeme field (cease/desist/halt/knock off/can it)、ASR repair 句 ('not it'/'you misheard')。
+- ✨ **縮約完了尾**: ちゃい→て/じゃい→で（'閉じちゃい'→close-tab）、ちゃう系を ちゃ→て/じゃ→で に分離 + 終助詞 `う[よねかな]`（'読んじゃう'→read-aloud が新規成立、'閉じちゃうよ/ね/か'→close-tab）。'読んじゃう' は従来じゃ→てで '読んて' に死んでいたのを修正。
+- ✨ **ておる系**: `ておる`→てる（'閉じておる'→describe-tab）、`ておれ`→て（命令: '閉じておれ'→close-tab）、`ておこう`→て（意向: '読んでおこう'→read-aloud）。
+- ✨ **命令残り**: 使役 `させろ/させよ`（あ行五段マップ併用）、敬語 `なされ`、古語 `たれ`・`ろや`（関西 ろ+や）、試行 `てみろ/てみな/てみなさい`、関西 `てまえ/てまう`、`てちょ`（土佐）、`てらっしゃい`。
+- ✨ **方言依頼尾**: 九州受益 `たげて/だげて`→て/で、`はって`（てはる縮約、語幹+て形両対応）、博多 `てよか`、`くれい`、`ておくれ`、`てやって`、`どいて`（で+て両 push）、`とけ/どけ`、語幹+`のう`、たろ/だろ 意向（'閉じたろ'→close-tab）。
+- ✨ **義務・条件残り**: 関西 `なあかん`/`んとあかん`（NAKYA 系統）、`ときゃ/とけば`+いい|ええ|よい、`れば/りゃ/e段ば`+ええ|よい、`たらあ`/`たらどう`、dict+`と/といい`（QC_TAIL 拡張: '閉じると'→close-tab）。
+- ✨ **複合動詞尾**: `終わって/終えて/切って/まくって`→stemTe（'読み終わって'→read-aloud、'閉じ切って'→close-tab）— '読み終わった'→reader-progress の raw 優先は共存テストで維持。
+- ✨ **くださった敬語尾**: `くださいよ/ね`、`くれよ/くれい`、`くれんか/くれへんか`（関西依頼疑問: '閉じてくれんか'→close-tab）。
+- ✨ **EN**: 'ought to/you oughta' 前置詞、do-強調（'do close it'→close-tab）、expletive infix `the (damn|stupid|bloody|fucking|freakin|goddamn)` 剝がし + close-by-name lookahead 除外（'close the damn tab'→close-tab 新規、名指し検索を封じず）、`it|this (up|off|out|through)`→it|this（'close this up'→close-tab）。
+- ✨ **EN 停止/修復/慣用句**: stop-everything へ 'knock that off/cut it/quit it/quit that/cease/desist/halt/thatll do/thats plenty/that is enough/no more of that/no more please/enough now/enough of this/stop doing that/wrap this up/can it'、stop-reading へ 'quit reading/stop talking'、pause-reading へ 'wait a minute/just a moment/hold on a minute'、vr-exit へ 'shut this down/shut that down'、close-all-tabs へ 'close up shop'、negate へ 'let it go/i take it back/wrong thing/not what i meant/thats not it/not it/not that one/the wrong one/wrong tab/wrong page/you misheard'、read-aloud へ 'read it out loud/read it aloud/read this out/read the thing'、describe-tab へ 'hows it look'、reader-progress へ 'almost there/nearly there/almost done'、remaining-time へ 'how much left/how much more/whats left'。
+- 🐛 **共存回帰捕捉**: 'shut up' は mute-toggle の既存所有（stop-reading 追加を撤回）、'閉じてまい' は raw `/まい$/`→negate が防御的に先勝ち（てまい をルールから除外）、'消しちゃい'→'消して'→dismiss-notify は既存 `消して` 所有と整合、'how much left' は reader-progress の `(read|left)` を `read` へ窄めて remaining-time へ透過、'close up shop'→close-all-tabs（close-by-name は ` tab$` 限定で非衝突）。
+- ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
+
+### Session 169: 命令/方言残層原子 — dict+終助詞(よな/べ/のう/やろ/がいい/に限る/んちゃう)・語幹命令(なはれ/やれ/がてら/や)・命令引用(ろって)・ておく残り(とけば/ときゃ/とき/ときな)・りゃ・ばいいのに・ちゃえば・ずには・ねば・んと・てぇ/てやあ/てくれや・EN 前置(why not/do us a favor/i need you to/dont forget to/just/simply/go ahead and)・タグ質問(would you/eh/yeah)・語尾(quick/for us/now/then/again/already)・俗語 kill(kill it/yeet it)→close・cut it out→stop・as you were→resume・不可能形(られへん/めへん/んね)→negate
 外部基準: JA 方言命令パラダイム（京阪 なはれ/や、博多 んさい系）、EN 会話標記（fronted discourse markers、tag questions、phrasal slang）、Siri/Alexa 委任構文 'i need you to X'。
 - ✨ **終助詞層V**: dict+`よな|べ|のう|やろ(か)?|がいい|に限る|んちゃう|んちゃ`（'閉じるよな'→close、'読むべ'→read-aloud）。語幹命令に `なはれ|やれ|がてら|や` 追加（'閉じなはれ'/'読みや'→て形）。
 - ✨ **条件・ておく残り**: `ばいいのに`（'読めばいいのに'→read-aloud）、`りゃ(あ)?` 縮約条件（'閉じりゃいい'→close）、`ちゃえば/じゃえば`→て/で、`とけば/ときゃ/ときな/とき`→stemTe（'閉じとけば'→close、'読みときゃ'→read-aloud）、`ほうがええ/よい`。
