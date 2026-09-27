@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 214
+### Session 215
 
+- ✨ ちゃ/とく残置: ちゃって+受益（くれ/もらえますか/くれますかね）・ちゃう判定尾（のが吉/ことにしよう/のがいいかも/しかないかも）・とく残置（べきかな/のもありだ/しかない/のが筋/といいよ）・とけって/とけってば・とけばよかった → 実行。
+- ✨ dict残置XXIV: ままにしよう・うちにして/うちにしましょう・といいところ・ことにしていた/ことになっている/ことになってる/こととなります/こととなる/ことに決定しました/ことを決定した・のが定石と思う/のが本筋と思う/のが正解と思う → 実行。
+- ✨ EN XXIV: 'i dont suppose you could'/'youd mind'/'i dont imagine youd mind'（negate `dont` lookahead に ` suppose| imagine` 除外）・'i trust you can'・'i dare say you can'・'i take it youll/you can'・'suppose/supposing you' → 実行；語尾 'i would be obliged/most grateful'/'as a courtesy to me'/'as a personal favor'/'out of the kindness of your heart'。
+- 🐛 誤ルート: help が '閉じとくべきかな'（とく+べき依頼）を奪取 → `(?<![とど]く)` 除外で是正。
+- ✅ tests/concession-request-atoms.test.js +62（実装前43件赤確認）、計11550全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 214
 - ✨ 受益尾XXXII: TAIL_TE — くれと頼む/くれと言ってる/くれとお願いしてる・もらおうかい/もらおうかねえ/もらおうということで/もらう方向で行こう/もらうことになった/もらうことにしよう・もらわないと困る/もらわなきゃ困る・いただくことになります/いただかないと/いただけないと困ります → 実行。
 - ✨ dict残置XXIII: FR — 伝達/引用 と頼みました/とお願いしました/よう言われた/よう頼まれた + ためです/ために/べくお願いする + 判定 が順序だ/が定石だ/が本筋だ/がベストだ/のがベスト/のが道理だ/のが無難では/のが望ましいです/のが好ましいです/ことが望ましいです/ことが肝要です/ことが必要です/ことが前提だ → 実行。
 - ✨ EN前置詞XXIII: 'i cordially invite you to'・'i solicit you to'・'i solicit your closing of it'（gerund書き換えpush）・'i would be beholden/indebted if you'・'i should be grateful/obliged if you'（裸 'i should' より前置）・'would it inconvenience/trouble you to' → 実行；語尾 'i would be ever so grateful'/'you would do me a kindness'/'much obliged if you do'/'forever grateful'/'if it be so'/'henceforth'/'posthaste, if you please'（`, please$` 先剥がし回避の専用push）。
