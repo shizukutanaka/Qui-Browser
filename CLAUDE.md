@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 219
+### Session 220
 
+- ✨ ては提案尾II: はどうかと思います/は如何でしょうか/は如何かと → 実行（はいかが系は既存）。
+- ✨ 受益深敬語残置: もらいたく存じ上げます・くれるのを願います・くれませんことでしょうか・くださいませんことでしょうか → 実行。
+- ✨ dict+おく compound: ようにしておいて/ことにしておいて → 実行。
+- ✨ EN XXIX: 書面調 'i am writing to ask/request that you'/'i write to request'・公文調 'per my request'/'as per my request'/'pursuant to my request' → 実行；'kindly see to it that the tab is closed' → 目的格スワップ push；語尾 'i would be much obliged/appreciative'/'thank you in advance'/'much appreciated in advance'/'in advance thank you'。
+- ✅ tests/written-request-atoms.test.js +39（実装前21件赤確認）、計11773全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 219
 - ✨ 受け身/可能残置: られとく/といた/とこう・られる+結尾（と/ように/と嬉しい/こと/てもいい/は）・られたい/たく(思います|存じます) → て形で実行（'られることができますか' は help にピン — 能力質問）。
 - ✨ TAIL_TE/方言残置: てもらうんです(が)/もらえたらと・てもろたら/もろうて → 実行。
 - ✨ 命令残置: たまえか/たまいよ → て形；negate の `(?<!…おし)まい` に `た` を追加 — 'たまい' はたまえ命令であって否定ではない。
