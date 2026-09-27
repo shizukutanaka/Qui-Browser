@@ -1720,6 +1720,37 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 183: 残置フレーム原子 — 複合義務尾・受動スワップIII・序数/量指定子II
+外部基準: JA double-negative obligation (ないわけにはいかない/なくちゃいけない = 実行)、
+tentative affirmative processing (Norrick '79)、EN imperative suffix adverbs
+(close it slowly/gently)、ordinal tab addressing (Chrome Ctrl+1..8 parity)、
+accident-report reopening (human-in-the-loop error recovery, Rasmussen SRK)。
+- ✨ **FR複合尾拡張**: `ほうがいい(ね|かも)?`・`ほうがマシ(だ|です)?`・`必要が(ある|あります|ありそう)`・
+  `べきです|べきなのに` → dictTe/stemTe。た形幹 '閉じたほうがいいね' → 先行て形 push で
+  describe-tab 誤ルート回避（'閉じた' 生幹より '閉じて' を先に積む）。
+- ✨ **一段否定義務の最優先て形化**: '閉じないわけにはいかない'/'閉じなくちゃいけない'/
+  '閉じないとダメ' → negob ブロックで '閉じて' を最初の変体として push
+  （'閉じないで' 変体が negate を拾う前に）。五段はインライン NAKYA 等価マップで
+  '読まないわけにはいかない'→'読んで'→read-aloud。
+- ✨ **CHA尾**: `ちゃっていい(よ|か|ね)?` 追加（'閉じちゃっていい'→close-tab）。
+- ✨ **SE_TAIL**: `いただくね|いただくよ|いただけるかな`（'閉じさせていただくね'→close-tab）。
+- ✨ **EN語尾副詞・前置詞**: tail regex に `for me thanks|for me|thanks|soon|slowly|
+  carefully|gently|quietly`（'close it gently'→close-tab）、ENPRE に
+  `do go and|go and|very well|fine|right|sure|cant you|could you`。
+- ✨ **bare序数タブ**: 'the fifth tab'/'fifth tab'/'tab number five'/'third tab'
+  →tab-select-ordinal。first/last は既存 first-tab/last-tab、数字は tab-select を維持。
+- ✨ **nav-steps EN**: 'go back three'/'back twice'/'forward once'（'a|an' を除外して
+  'forward a page'→navigate 維持）。
+- ✨ **量・副詞系**: close-other-tabs に 残りを/他を/ほかを/他のを/残りだけ閉じて、
+  volume-down に 音量さげて/音おとして/音を下げて、mute-toggle に 音なしにして、
+  speech-faster/slower に はやくして/ゆっくりして/速度を上げて・下げて、
+  reader-size-down に 字を小さく、percent-jump に 中ほどへ/半分へ/真ん中へ、
+  pause/resume に ポーズして/一時停止して/止まって/続きを/続けて、
+  negate に おけ尾・'止めておけ'/'やめておけ'、read-aloud に '続き読んで'。
+- 🐛 **回帰消化**: '続きを読んで'→read-here、'聞かせて'→say-again、'it reopened'→reopen-tab、
+  '止まって'→pause-reading、'tab 3'/'tab number 2'→tab-select、'first tab'→first-tab、
+  '閉じより'→describe-tab（より尾は辞書形語尾のみ）、'forward a page'→navigate 維持。
+
 ### Session 182: 願望/報告原子 — たい尾・はず二方向・EN削除動詞・事故報告
 外部基準: JA desire morphology (たい+接続助詞)、expectation reports vs commands (るはず vs たはず)、
 permission/capability questions (てもいいでしょうか / られますか)、EN disposal verbs
