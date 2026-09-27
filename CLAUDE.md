@@ -1720,6 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 210
+
+- ✨ 受益尾XXVIII: TAIL_TE — くれはります/くれよなあ/くれなあ/くれよー/くれー・もろうて → 実行。
+- ✨ dict残置XX（こと-/ほうが-評価）: FR — ことにしておきましょう/ことにいたします/ことと存じます・ことも考えもの/悪くない/一考・ことは必須/がベター/ベスト/肝要/先決・ほうが筋/道理/本筋/順当だ/妥当だ/正しい/正解(だ)/よいかと(思う)/よいと思われる/賢明かと思います → 実行。
+- ✨ EN前置詞XIX: 'i (must) insist/urge/petition you to'・'i implore you please'・'i am asking that you'・'(?:could|can|may|might) i have you' → 実行。
+- ✨ EN語尾: 'if you would be so kind as to'・'whenever it suits you'・'at whatever point works'・'on your own time'・接尾 'pretty please with a cherry on top'・'oblige/gratify me and'。
+- 🐛 誤ルート: help `^(?:could|should|shall|would) i` が 'could i have you X' 奪取 → lookahead に `have you` 追加；ENPRE 裸 'may i'/'might i'/'i must'/1123行モーダル剥がしの先食いを最長一致配置で是正（have-you 枠を各裸形より前置）。
+- ✅ tests/judgment-frame-atoms.test.js +50（実装前44件赤確認）、計11230全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 209
 
 - ✨ 受益尾XXVII: TAIL_TE — くれようか/くれるさ/くれるっしょ・もらうべく/もんだ/いって/でな/さ/だけで/のみ(で)・くれさえすりゃ/あれば・おいていただきます/おいていただけますか/おいてもらいます/おいてもらえます → 実行。
