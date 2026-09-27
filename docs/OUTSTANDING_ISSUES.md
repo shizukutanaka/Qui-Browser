@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+~~'save it for later' が defer に奪われブックマーク喪失 → literal除去 + '... later' tail を do/leave/finish 限定（Devin Review #384）~~ — **Session 173 で実装**
+~~'この次のタブを閉じて'/'その隣のタブを閉じて' が tab-relative で選択実行 → (?!を) lookahead で実行系を除外（Devin Review #384）~~ — **Session 173 で実装**
+~~'この次のタブ'/'一個右のタブ' がストリップ端で無回答 → 一歩隣接は modulo ラップ（nextTab/prevTab と一致）、数え指定（N tabs to the right/二個後）は厳密維持（Devin Review #384）~~ — **Session 173 で実装**
+~~JA 進行尾（てきて/てくる/ていって/てもよい/てちょうだい/なさいませ/まして）・EN鎖尾III（while you're at it/when you get a sec/at your convenience/no rush but）~~ — **Session 173 で実装**
+~~記事めくり/前ページ慣用句（次の記事/記事をめくって/next article/flip the page/turn the page・前の記事/記事を戻して/めくり戻して/previous article/flip back）~~ — **Session 173 で実装**
+~~量指定子（いくつかのタブ/a couple of tabs→tab-status、every tab/all of my tabs→tabs-list）・close-others 例外形（except this one/all but this one/このタブ以外/これだけ残して）・分数ジャンプ（the midpoint/three quarters down/a third of the way/ページの中間/四分の三/三分の一/三分の二）・bare数字序数（tab number N/Nth tab）・say-again エコー（何って/say it again/what was that）・共読（一緒に読んで/follow along/read with me）・待機句（hold on/give me a moment/一旦やめて）・継続（keep on reading/keep it moving/このまま読んで）・音量訴え（whisper/deafening/静かすぎる/speak up）・読了質問（読み終えた/done reading→reader-progress）・文字数（文字数は/あと何文字/単語数/how many words→char-count）・退出句（before i go/gotta go/im heading out→vr-exit）・negate（without/on second thought/つもりはない/そのままにして）~~ — **Session 173 で実装**
 ~~'閉じんといい(かも)' 否定願望がタブを閉じる実害 → negate（Devin Review #383）~~ — **Session 172 で実装**
 ~~'pin the second tab' がピン済みタブを解除する双方向ガード・数字語除外は '\s+tab' 後置必須化（'close the one piece tab'→by-name）~~ — **Session 172 で実装**
 ~~相対/序数タブ指定（この次/この前/一個右/その隣/tab to the left/N tabs to the right/next to this・十番目/ふたつめ/みっつめ）~~ — **Session 172 で実装**
