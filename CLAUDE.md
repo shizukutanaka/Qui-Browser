@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 218
+### Session 219
 
+- ✨ 受け身/可能残置: られとく/といた/とこう・られる+結尾（と/ように/と嬉しい/こと/てもいい/は）・られたい/たく(思います|存じます) → て形で実行（'られることができますか' は help にピン — 能力質問）。
+- ✨ TAIL_TE/方言残置: てもらうんです(が)/もらえたらと・てもろたら/もろうて → 実行。
+- ✨ 命令残置: たまえか/たまいよ → て形；negate の `(?<!…おし)まい` に `た` を追加 — 'たまい' はたまえ命令であって否定ではない。
+- ✨ EN XXVIII: ENPRE 'the ask is that you'/'all i ask is that you'/'all i want is for you to'/'the thing is'/'that you' + 語尾 'thatd be (great|swell)'/'would be appreciated'/'if (at all|humanly) possible'/'is the goal|ask'・'that would be swell'。
+- ✅ tests/potential-demand-atoms.test.js +44（実装前25件赤確認）、計11734全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 218
 - ✨ dict残置XXVII: べき正式宣言（べきであります/でありましょう/と考えております/と心得ます/と心得ております/べきものと心得ております）+ こと-demand動詞（ことを要請|要求|依頼|希望いたします/期待しております/願い出ます/お願い申し上げる/お願い致したく/ことが必須であります/ことが要件です）→ 実行。
 - ✨ TAIL_TE残置: てなさいませ・てくれはりますか・てもらえると(+ありがたいんです)・てもらいたいものですね → 実行。
 - ✨ EN XXVII: 目的格スワップ 'i want|need it|this|the tab (gone|shut)'→'close it' + 語尾 'i owe ya'/'and i owe you'/'youll be doing me a favor'。
