@@ -251,7 +251,6 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 ---
 
 ## Session Log
-
 ### Session 167
 
 - 🐛 実害修正: '戻るまい'/'閉じるまい'（否定意志形）が back/close-tab を実行 → negate `/まい$/` + lookahead 修正。'keep it up/going/rolling' が negate の `/keep it/i` に誤ルート → resume-reading literal で先勝ち。'did it mute/save/bookmark'・'did i pin it' がトグル実行 → status 透過。
@@ -1720,6 +1719,18 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
+
+### Session 176
+
+- ✨ 状態報告・拒否原子 (pass LVI): ておきます/なさいますか/いただきたく/させていただければ の残置・敬語尾を実行化。引用命令 '閉じろと言った'/'閉じてって言った'（引用尾剥がし→再帰）、関西 'てはよ'、'てったら'、'早よ' 開放子、裸 ろ命令 stemTe。
+- ✨ 相報告→describe-tab: かける/ちゃいそう/られそう/っぱ + 閉じつつある・閉じ終わった・閉じ終えた・消え終わった・落ち終わった。
+- ✨ 不能報告→trouble: JA 閉じられない/閉じれない/読めない/動かせない/消せない/進められない/開けられない + EN cant-close/wont-load/not-loading/fix-it/its-broken/glitchy/buggy/janky/laggy/choppy/stuttery/freezing-up/hanging/hung/unresponsive/something-went-wrong/why-is-it-slow/not-again/keeps-crashing。
+- ✨ 拒否・禁止→negate: なくても(いい)、ちゃダメ/じゃダメ、の(は)やめて、だめ(です)、冗談で、no need to、forget about。
+- ✨ 別れ句II→vr-exit: ごきげんよう/失礼します/お先に/帰る/close session/end session/im done here。sleep-mode 'hit the hay'/'call it a night'、stop-everything 'turn it all off'/'kill everything'。
+- ✨ ack 補充: JA 嘘/うそつき/まじでか/信じられない/それな/せやな/わかる(わ)/ナイス/グッド/ブラボー/お見事/ごめんなさい/がんばって/おまかせ。EN kudos/props/nailed it/crushed it/well played/on point/spot on/bullseye/you rock/lifesaver/gorgeous/oh no/here we go again + アンカー単語正規表現 (gg|lit|fire|clean|sharp|slick|sick|dope|pog|w|chef's kiss) — 'clean it'/'bigger' の substring 誤爆を封殺。
+- 🐛 実害修正: '進められない'（進めない報告）が navigate を実行 → `進め` lookahead に `ら` 追加。裸 'broken' は onCommandFailed テストの予約語で競合 → 'its broken'/'it broke' リテラル化。汎用 /終わった$/・/つつある/ が '読み終わった'→reader-progress・'読みつつある'→speaking-status を奪取 → 閉じ系リテラルに窄め。'hear' を trouble regex から除外（audio-trouble 維持）。
+- ✅ tests/state-report-atoms.test.js +153（実装前134件赤確認）、計7775全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
 
 ### Session 175: へッジ/義務原子 — 過去て尾・状態報告・二重否定・婉曲不能・前置開放子・EN礼儀枠
 外部基準: JA てきた/ていった/ておいた past-te tails、状態報告 (たまま/たばかり/がち)、二重否定=婉曲肯定 (なくはない/わけにはいかない/ざるを得ない)、認識不能 かねる、前置へッジ (すみませんが/悪いんだけど/お手数ですが/ぜひ/どうぞ/とにかく/とっとと/急いで)、EN courtesy frames (anyway/btw/see if you can/might i trouble you/be a lamb/yes please)
