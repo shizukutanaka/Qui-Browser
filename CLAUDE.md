@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 165: 提案/慣用原子 — たら・ば・べき・意向形 + EN 許可句 misroute
+外部基準: 条件付き提案 (Xしたら/すれば/Xすべき)、意向形 ('let me' volitional)、方言命令形（九州んさい・名古屋みゃあ・広島っち・東北だべ）、EN 'go ahead'/'go for it' 許可 idioms、penultimate 相対位置。
+- ✨ **条件・義務尾**: `たら/だら`→stemTe、`ば`→れば剥がし+e段五段マップ、`べき/ほうがいい/んか(い)`→dictTe — '閉じればいい'→close-tab、'読むべき'→read-aloud、'閉じるんか'→close-tab。
+- ✨ **意向・方言**: `よ/よう/o-row+う`（'戻ろう'→back、'読もう'→read-aloud）、`ましょう`、`とこ/んどこ`（'閉じとこ'→close-tab）、`んさい/みゃあ/っち/だべ`、`つつ/ながら`。
+- 🐛 **'go right ahead'/'go for it' literal ナビゲート修正**: goToEn lookahead に `right|for` + ack へ literal（登録順で先勝ち、onGoTo 非呼出）。
+- 🐛 **奪取2件修正**: 'wipe my history'→history → clear-history へ（順序優位）、'mute them all'→mute-toggle → tab-audio へ。
+- ✨ **その他**: ack 相槌50+句（yeah/cool/no problem/'どうも'/'はい'）、negate 'nvm'/'my bad'/'それじゃない'、working-status 'still there'、tab-relative 'penultimate'/'second to last'、close-others 'close the rest'、duplicate 'clone it'、move-tab-start/end 'put/send this tab'、settings-reset 'fresh start'。
+- ✅ **テスト +156（git stash で145件赤確認）**: Total 6156 tests (139 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
 ### Session 164: 使役/誘い原子 — てくれるか・んじゃない・させて + EN ASR 修正句
 外部基準: てくれるか/てもらえるか カジュアル依頼、んじゃない 否定誘い（"won't you"）、させて 使役許可（"let me"）、っぱなし 放置状態、EN 'i said X'/'i meant X' ASR 訂正、'brb'/'hold that thought' 待機。
 - ✨ **依頼疑問形**: `(て|で)(くれる|もらえる|くれない|もらえない)(か|かな)?`→て — '閉じてくれるか'→close-tab、'読んでもらえるか'→read-aloud。
