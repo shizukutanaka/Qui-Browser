@@ -133,6 +133,14 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてはどうでしょう'/'閉じてはいかがですか'/'閉じてはもらえませんか'/'閉じてはいただけませんか' の ては依頼枠が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてやってください'/'閉じてもらっていいですか'/'閉じてもらうわけにはいかないでしょうか'/'閉じてしまおうではないか'/'閉じちゃおうではないか' の受益・意向残置が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE + CHA 拡張）
+- ~~voice '閉じるように言った'/'閉じなさいってば'/'閉じなって'/'戻りなって' の引用・関西命令残置が NO-MATCH~~ — **Session 188 で実装**（FR + なさい尾 + なって stemTe 規則）
+- ~~voice '閉じようではないか'/'戻ろうではないか'/'閉じようじゃないか'/'読もうではないか' の意向提案枠が NO-MATCH~~ — **Session 188 で実装**（VOL/KAI 尾拡張: 一段 `よう…` + 五段 `[お-row]う…`）
+- ~~voice '閉じればいいじゃん'/'閉じりゃいいじゃん'/'閉じちゃえばいいじゃん'/'戻りゃいいじゃん'/'閉じればいいのでは'/'戻ればよいのでは' のば+じゃん/のでは尾が NO-MATCH~~ — **Session 188 で実装**（E_TE/りゃ/ちゃえば 尾拡張 + 五段りゃ→って push）
+- ~~voice '閉じるのが筋'/'閉じるほうが賢明'/'閉じるのが妥当'/'閉じるのが適切'/'閉じることを推奨'/'閉じることを望みます'/'閉じることにしよう'/'閉じることにしたい' の判定枠IIIが NO-MATCH~~ — **Session 188 で実装**（FR 拡張）
+- ~~voice 'would you be so good as to close it'/'do me the kindness of'/'beseech'/'entreat'/'if it please you'/'pray close it'/'prithee'/'any way you could'/'is there any way'/'any chance you might'/'how about you'/'what about you'/'you wanna'/'have the decency to'/'do the decent thing and'/'have the courtesy to'/'close it if you would be so kind'/'close it once and for all'/'close it for good'/'close it permanently'/'close it and be done with it' の EN 深礼儀III・完了語尾が NO-MATCH~~ — **Session 188 で実装**（chain1 + EN 語尾拡張）
+- ~~voice 'could i get you to close it'/'can i ask you to close it'/'any way you can close it' が help 誤ルート~~ — **Session 188 で実装**（`/^can i/`・`/^(could|…)i/` lookahead 除外 + 'any way you can' help リテラル除去）
 - ~~voice '閉じてから次へ'/'戻ってから閉じて'/'読んでから続けて' の てから順序接続が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE `から[^。！？!?]*` ブランチ — `|` 欠落による分岐癒合を捕捉・修正）
 - ~~voice '閉じておきますね'/'閉じておきましょう'/'閉じておきたい'/'閉じておくつもり'/'閉じておくことにします'/'閉じておいてほしい'/'閉じておこうと思います'/'閉じてしまってよい' の ておく残置群が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）
 - ~~voice '閉じてお願い申し上げます'/'閉じてお願いいたします'/'閉じてくださいますと'/'閉じていただけましたら'/'閉じてくださいな'/'閉じてくださいましね'/'閉じてちょうだいね'/'閉じてくれますよう' の受益・敬語残置が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）

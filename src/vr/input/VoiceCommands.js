@@ -374,7 +374,7 @@ export class VoiceCommands {
     push(normalized.replace(/^(.{1,10}?)な[。！？!?]?$/u,
       (m, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
     // 'なさい' with trailing particle: '読みなさいよ'→'読んで'
-    push(normalized.replace(/^(.{1,10}?)(?:なさい|なされ)(?:よ|な)?[。！？!?]?$/u,
+    push(normalized.replace(/^(.{1,10}?)(?:なさい|なされ)(?:よ|な|ってば|ね)?[。！？!?]?$/u,
       (m, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
     // ておいて 'do in advance', てごらん 'try doing', てして dialect double-te
     push(normalized.replace(/(て|で)(?:おいて|といて|ごらん|して)[。！？!?]?$/u, '$1'));
@@ -423,6 +423,8 @@ export class VoiceCommands {
     const DTE = { う:'って', つ:'って', る:'って', く:'いて', ぐ:'いで', す:'して',
       ぬ:'んで', ぶ:'んで', む:'んで', き:'いて', ぎ:'いで', し:'して', ち:'って',
       に:'んで', み:'んで', び:'んで' };
+    // Kansai 'なって/なった' imperative (Xなって = Xしなさい): '閉じなって'→'閉じて'
+    stemTe(normalized.replace(/^(.{1,10}?)なって[。！？!?]?$/u, '$1'));
     const dictTe = (w) => {
       if (!w) {
         return;
@@ -448,11 +450,14 @@ export class VoiceCommands {
     // 'たら/だら' conditional: '閉じたら'→'閉じて', '戻ったら'→'戻って', '読んだら'→'読んで'
     stemTe(normalized.replace(/(?:たらいい|だらいい|たらどう|だらどう|たらあ?|だらあ?|たら|だら)[。！？!?]?$/u, ''));
     // 'ば' conditional: '閉じれば'→'閉じて' (いち段), '戻れば'→'戻って' (五段え段)
-    stemTe(normalized.replace(/れば(?:(?:いい|ええ|よい)(?:のに|んだけど|んやけど)?)?[。！？!?]?$/u, ''));
-    stemTe(normalized.replace(/りゃあ?(?:(?:いい|ええ|よい)(?:のに)?)?[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/れば(?:(?:いい|ええ|よい)(?:のに|んだけど|んやけど|じゃん|のでは)?)?[。！？!?]?$/u, ''));
+    stemTe(normalized.replace(/りゃあ?(?:(?:いい|ええ|よい)(?:のに|じゃん|のでは)?)?[。！？!?]?$/u, ''));
+    push(normalized.replace(/りゃあ?(?:(?:いい|ええ|よい)(?:のに|じゃん|のでは)?)?[。！？!?]?$/u, 'って'));
     const E_TE = { え:'って', け:'いて', せ:'して', て:'って', ね:'んで', へ:'んで',
       べ:'んで', め:'んで', れ:'って', げ:'いで', ぺ:'んで' };
-    push(normalized.replace(/([えけせてねへべめれげぺ])ば(?:(?:いい|ええ|よい)(?:のに|んだけど|んやけど)?)?[。！？!?]?$/u, (m, ch) => E_TE[ch] || ch));
+    push(normalized.replace(new RegExp(
+      '([えけせてねへべめれげぺ])ば(?:(?:いい|ええ|よい)(?:のに|んだけど|んやけど|じゃん|のでは)?)?' +
+      '[。！？!?]?$', 'u'), (m, ch) => E_TE[ch] || ch));
     // 'ましょ(う)' hortative: '閉じましょう'→'閉じて', '読みましょう'→'読んで'
     stemTe(normalized.replace(/ましょう?かな?[。！？!?]?$/u, ''));
     // ます+終助詞・口語: '閉じますよ'→'閉じて', '閉じまっか'→'閉じて'
@@ -460,7 +465,7 @@ export class VoiceCommands {
     // よ/よう/おう volitional: '閉じよ'→'閉じて', '読もう'→'読んで', '戻ろう'→'戻って': '閉じよ'→'閉じて', '読もう'→'読んで', '戻ろう'→'戻って'
     const O_TE = { お:'って', こ:'いて', ご:'いで', そ:'して', と:'って', の:'んで',
       ぼ:'んで', も:'んで', ろ:'って', ほ:'んで' };
-    const VOL = normalized.match(/^(.{1,10}?)(よう|おう)(?:かな)?[。！？!?]?$/u);
+    const VOL = normalized.match(/^(.{1,10}?)(よう|おう)(?:かな|ではないか|じゃないか|ではありませんか|ではないですか)?[。！？!?]?$/u);
     if (VOL) {
       stemTe(VOL[1]); const c = VOL[1].slice(-1); if (O_TE[c]) {
         push(VOL[1].slice(0, -1) + O_TE[c]);
@@ -471,7 +476,7 @@ export class VoiceCommands {
       push(VOL2[1] + (O_TE[VOL2[2]] || ''));
     }
     // Kansai volitional tails: '戻ろうかいな'/'読もうけん' → O_TE on the stem
-    const KAI = normalized.match(/^(.{1,10}?)([おこごそとのぼもろほ])う(?:かいな|かい|けん|けんね)[。！？!?]?$/u);
+    const KAI = normalized.match(/^(.{1,10}?)([おこごそとのぼもろほ])う(?:かいな|かい|けん|けんね|ではないか|じゃないか|ではありませんか|ではないですか)[。！？!?]?$/u);
     if (KAI) {
       push(KAI[1] + (O_TE[KAI[2]] || ''));
     }
@@ -542,7 +547,10 @@ export class VoiceCommands {
       'もいいか|もよいか|いいか|よいか|いいのか|いいんでしょうか|いいのでしょうか|' +
       'いいんですか|いいですか|いいのでは|いいものか|いいものですか|よろしいか|' +
       'よろしいですか|よろしいんでしょうか|いいわけですね|いいんですよね|' +
-      'いいですよね|いいんだね|いいかしら|いいかなと|いいかと)[。！？!?]?$', 'u');
+      'いいですよね|いいんだね|いいかしら|いいかなと|いいかと|' +
+      'はもらえませんか|はいただけませんか|はどうでしょう|はいかがでしょうか|' +
+      'はいかがですか|やってください|もらっていいですか|' +
+      'もらうわけにはいかないでしょうか|しまおうではないか|しまおうじゃないか)[。！？!?]?$', 'u');
     push(normalized.replace(TAIL_TE, '$1'));
     // 'んです/のです' copula tail: '読んでほしいんです' tail via TAIL_TE; bare 'んですが' drops
     push(normalized.replace(/(?:んですが|のですが|んです|のです)[。！？!?]?$/u, ''));
@@ -559,7 +567,7 @@ export class VoiceCommands {
     // dict+ residual frames: '閉じると思い'/'閉じることにして'/'閉じるしかない'/
     // '閉じるわけにはいかない'/'閉じる必要がある'/'閉じるでしょ'/'閉じるより'→'閉じて'
     const FR = normalized.replace(
-      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|れればいい)[。！？!?]?$/u, '');
+      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい|ように言った|ように言われた|ようにと言った|ばいいじゃん|ばよいのでは|ばいいのでは|ばええじゃん|れればいい)[。！？!?]?$/u, '');
     if (FR !== normalized &&
         !(normalized.match(/より[。！？!?]?$/u) &&
           !/[うつるくぐすぬぶむきぎしちにみびるい]$/u.test(FR))) {
@@ -577,8 +585,8 @@ export class VoiceCommands {
     }
     // ちゃえば/ちゃってもいい permissive+conditional: '閉じちゃえばいい'/'閉じちゃっていい(よ|か)?'→'閉じて'
     const CHA = normalized.match(new RegExp(
-      '^(.{1,10}?)(ちゃえば(?:いい|よい|ええ)?|ちゃってもいい(?:よ|か)?|ちゃっていい(?:よ|か|ね)?' +
-      '|ちゃいましょう|ちゃいます)[。！？!?]?$', 'u'));
+      '^(.{1,10}?)(ちゃえば(?:(?:いい|よい|ええ)(?:じゃん|のでは)?)?|ちゃってもいい(?:よ|か)?|ちゃっていい(?:よ|か|ね)?' +
+      '|ちゃいましょう|ちゃいます|ちゃおうではないか|じゃおうではないか)[。！？!?]?$', 'u'));
     if (CHA) {
       dictTe(CHA[1]);
       stemTe(CHA[1]);
@@ -688,8 +696,8 @@ export class VoiceCommands {
     // Imperative + って quotative: '閉じろって(ば)'→'閉じろ'
     push(normalized.replace(/([ろれめせけげべねぜじ])(?:って|と)[ばよ]?[。！？!?]?$/u, '$1'));
     // ちゃえば conditional: '閉じちゃえば'→'閉じて'
-    push(normalized.replace(/ちゃえば[。！？!?]?$/u, 'て'));
-    push(normalized.replace(/じゃえば[。！？!?]?$/u, 'で'));
+    push(normalized.replace(/ちゃえば(?:(?:いい|よい|ええ)(?:じゃん|のでは)?)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃえば(?:(?:いい|よい|ええ)(?:じゃん|のでは)?)?[。！？!?]?$/u, 'で'));
     // ずには obligation: '閉じずには'→'閉じて'
     push(normalized.replace(/ずには(?:いられない|おれない|いない)?[。！？!?]?$/u, 'て'));
     // Past + んです/んだ: '読んだんです'→'読んで', '閉じたんだ'→'閉じて'.
@@ -908,7 +916,7 @@ export class VoiceCommands {
         'any chance you could|if you would be so kind as to|if you would be so kind|would you be so kind|' +
         'if you wouldnt mind(?: terribly| awfully| at all)?|if you will permit|how about we|why dont we|shall we|suppose we|lets|' +
         'supposed to|fixing to|about to|feel like|in the mood to|how bout|' +
-        'what about|wouldja|couldja|wontcha|needa|hafta|tryna|finna|please kindly|' +
+        'what about you|what about|wouldja|couldja|wontcha|needa|hafta|tryna|finna|please kindly|' +
         'shoulda|coulda|woulda|oughta|mighta|musta|trying to|tryin to|' +
         "if you'd just go ahead and|if youd just go ahead and|" +
         'if you could just go ahead and|if you could just possibly|' +
@@ -939,6 +947,15 @@ export class VoiceCommands {
         "(?:i'd|id|i would) be (?:grateful|obliged|thankful|most grateful|" +
         'eternally grateful|forever grateful) if you|' +
         "(?:i'd|id|i would) appreciate it if you|" +
+        'could i (?:get|ask) you to|can i (?:get|ask) you to|' +
+        'would you be so good as to|would you be good enough to|' +
+        'would you do me the kindness of|do me the kindness of|' +
+        'i beseech you to|i entreat you to|' +
+        'if it please you|if it pleases you|pray|prithee|' +
+        'any way you could|any way you can|any way for you to|' +
+        'is there any way you could|is there any way you can|' +
+        'any chance you might|how about you|you wanna|' +
+        'have the decency to|do the decent thing and|have the courtesy to|' +
         "it'd be (?:great|nice|lovely|wonderful|awesome|amazing|appreciated|" +
         'much appreciated|greatly appreciated|fantastic|marvelous|splendid|delightful)' +
         '(?: if you)?(?: could| would)?|itd be (?:great|nice|lovely|wonderful|awesome|amazing|' +
@@ -1037,7 +1054,7 @@ export class VoiceCommands {
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:double quick|quick|fast|quickly)[.!?]?$/i, '')
-      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|if you would be so kind|if you'?d be so kind|if you would kindly|and be done with it|and be done|and get it over with|and let'?s move on|once and for all|for good|permanently|for the last time|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot)[.!?]?$/i, '')
       .replace(/([,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once|today|tonight|rn|ttyl|brb|g2g|gtg|thx|kthx|tyvm|pls|plz|pwease|thanks in advance))+[.!?]?$/i, '')
       .replace(/[,\s]+(?:if (?:u|you) (?:could|can|would|want(?: to)?|don'?t mind)|if ur able|if (?:u|you)'?re able|whenever you (?:want|feel like it|get around to it|can))[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
@@ -2240,12 +2257,12 @@ export class VoiceCommands {
         'やって', 'やってくれ', 'やってくれる', 'やってほしい', 'やってください',
         '知らん', 'しらん', 'できひん', 'でけへん',
         '対応してますか', 'できません', 'これできる',
-        /what can i do/i, /what do i say/i, /how does this work/i, /^can i /i,
+        /what can i do/i, /what do i say/i, /how does this work/i, /^can i (?!get you\b|ask you\b)/i,
         /^do (i|we)\b/i, /^do (you|they)(?! (?:mind|hear|think|suppose|reckon|figure|want|need)\b)/i, /^mind if i\b/i,
-        /^any way you can/i, /^is there a way to/i, /かね(?:る|ます|ません)$/,
+        /^is there a way to/i, /かね(?:る|ます|ません)$/,
         '困ってる', '困りました', '困ってます', '困ってるんだけど',
         'なんとかならない', 'なんとかならないか', 'なんとかならん', 'なんとかなりません',
-        /^(?:could|should|shall|would) i\b/i, /^is it (?:ok|okay|alright) to\b/i,
+        /^(?:could|should|shall|would) i\b(?! (?:get|ask) you\b)/i, /^is it (?:ok|okay|alright) to\b/i,
         /^do you mind if i\b/i, 'just do it already',
         /^(?:would|is) it (?:be )?(?:ok|okay|alright|fine|all right)(?: to| if i)\b/i,
         /what(?:'s| is)? the command/i, /what command/i,

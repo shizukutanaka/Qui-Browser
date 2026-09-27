@@ -1720,6 +1720,22 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 188
+- ラウンド114: 意向報告・残余フレーム原子層（tests/intent-report-atoms.test.js、+123件 / 実装前100件赤）
+  - JA ては依頼枠: TAIL_TE に `はもらえませんか|はいただけませんか|はどうでしょう|はいかがでしょうか|はいかがですか`
+  - JA て受益残置VI: `やってください|もらっていいですか|もらうわけにはいかないでしょうか|しまおうではないか|しまおうじゃないか`
+  - JA 引用・断定残置: FR `ように言った|ように言われた|ようにと言った`、語幹 `なさい(よ|な|ってば|ね)`、関西 `なって`（stemTe — `stemTe`/`dictTe` const 宣言（~415行）より後ろに配置必須）
+  - JA 意向提案枠: VOL 尾拡張 `よう/おう(?:かな|ではないか|じゃないか|…)`（一段）、KAI 尾拡張 `[おこごそとのぼもろほ]う(?:かいな|…|ではないか|じゃないか|…)`（五段: '戻ろうではないか'→戻って）
+  - JA ば+じゃん/のでは: E_TE/りゃ/ちゃえば 各規則の尾に `じゃん|のでは` 追加 + 五段 `りゃ`→'って' push（'戻りゃいいじゃん'→戻って）
+  - JA 判定枠III: FR `のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい`
+  - EN 深礼儀III: chain1 に `would you be so good as to|be good enough to|do me the kindness of|beseech|entreat|if it please(s) you|pray|prithee`
+  - EN 可能性・提案枠: `any way you could/can|any way for you to|is there any way|any chance you might|how about you|what about you|you wanna`
+  - EN 名誉/decency: `have the decency to|do the decent thing and|have the courtesy to`
+  - EN 後置礼儀・完了語尾: `if you would be so kind|if you would kindly|and be done (with it)|and get it over with|and let's move on|once and for all|for good|permanently|for the last time`
+  - 誤ルート修正: `could/can i (get|ask) you to` が help（`/^can i /`・`/^could…i/`）に誤ルート → lookahead 除外で実行へ; `any way you can` help リテラル除去
+  - 教訓: `stemTe`/`dictTe`/`MAS*U_TE` は関数内 const（~415行宣言）— それより上の行で使うと `Cannot access before initialization`。交互配置: 最長一致は同一交互内の「行順」でなく「後続行の別 push」でも解決可（'what about you' を 'what about' 同交互内前置で修正）
+  - 9716→9839テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
 ### Session 187
 - ラウンド113: 残余・複合原子層（tests/remainder-compound-atoms.test.js、+198件 / 実装前143件赤）
   - JA て受益残置V・複合尾: TAIL_TE に `お願い申し上げます|お願いいたします|お願い致します` + ておく残置群（`おきますね|おきましょう|おきたい|おくつもり|おく予定|おくことにする/した|おくね|おいてほしい/くれ/くださいね|おこうと思います/思って|しまってよい`）+ `くれますよう|ますと系|ましたら系|くださいな|くださいましね|ちょうだいな/ね` + **`から[^。！？!?]*`**（てから順序接続: '閉じてから次へ'→close-tab）
