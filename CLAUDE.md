@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 166: 敬語連鎖/方言原子 — 敬語前置詞+受益尾・博多よる・EN前置詞チェーン
+外部基準: keigo escalation chains (お/ご/させて/いただく)、Hakata よる progressive、EN 'i was wondering if' politeness nests、radio/military ack idioms ('roger that'/'wilco'/'copy that')。
+- ✨ **敬語前置詞層（再帰）**: '恐れ入りますが'/'恐縮ですが'/'申し訳ありませんが'/'ついでに'/'まず' を剥がし残りを `_politeVariants` へ再帰投入（連鎖で 'まず戻って'/'恐縮ですが読んで'/'申し訳ありませんが戻ってください' 全成立）。
+- ✨ **受益尾一括**: TAIL_TE に '(て|で)(くれると…|いただけ…|くだされ|くださいませ|くださいませんか|もらいたい…|ほしいんですが)' — '閉じていただけますか'→close-tab、'戻ってくれるとありがたい'→back。
+- ✨ **方言・書記語**: 博多 'よる' progressive（'読みよる'→speaking-status、'閉じよる'→describe-tab）、dict+'だけ'→dictTe（'閉じるだけ'→close-tab）、dict+'べし'→dictTe（'閉じるべし'→close-tab）、'んです/のです' 終尾剥がし。
+- ✨ **EN 前置詞チェーン再帰**: 'i was wondering if'/'i was hoping'/'do you think you could'/'is there any chance'/'any chance you could'/'if you would be so kind'/'would you be so kind'/'if you wouldnt mind'/'how about we'/'why dont we'/'shall we'/'suppose we'/'lets' + 'you (have|need|got) to'/'you gotta'/'you shoulda'/'you coulda'/'you should'/'you could'/'you might' + 'and|then' 前置詞逐次剥がし（'if you wouldnt mind closing this'→close-tab、'would you be so kind and close it'→close-tab）。
+- ✨ **EN 相槌**: ack へ 'roger that'/'copy that'/'aye aye'/'ten four'/'wilco'/'yessir'/'yessiree'/'okie dokie'/'rightio'/'noted'/'gotcha'/'sounds good'/'fair enough'/'on it'/'i appreciate it'；negate へ 'nopers'/'nope nope'/'absolutely not'/'not interested'/'negative'/'hell no'/'no siree'/'not a chance'/'not a hope'。
+- ✨ **ヘルプ・不満・表示**: help へ 'what can i say'/'what are my options'/'show commands'/'all commands'/'commands'/'quick question'/'quick favor'/'do me a favor'/'do me a solid'/'be a doll'/'work your magic'/'do the thing'/'just do it'/'できること教えて'/'何が言える'/'なにができる'/'コマンド教えて'/'命令を教えて'；trouble へ 'おかしい'/'なんか変'/'へんだ'/'おかしくない'/'変じゃない'/'おかしいな'。
+- ✨ **ナビ/スクロール口語**: back へ 'head back'/'walk it back'/'head on back'/'go on back'、navigate へ 'head forward'/'go on forward'、repeat-command へ 'run it back'/'one more go'/'do it once more'、scroll-down へ 'scroll on down'/'keep on scrolling'、scroll-up へ 'scroll on up'/'keep scrolling up'、describe-tab へ 'bring it up'/'pull it up'/'queue it up'/'line it up'/'開けっぱなし'/'ご覧くださいませ'、tab-audio へ '鳴りっぱなし'、working-status へ '動きっぱなし'。
+- ✅ **テスト +117（git stash で104件赤確認、13件は共存ガードの設計上緑）**: Total 6273 tests (140 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
+
 ### Session 165: 提案/慣用原子 — たら・ば・べき・意向形 + EN 許可句 misroute
 外部基準: 条件付き提案 (Xしたら/すれば/Xすべき)、意向形 ('let me' volitional)、方言命令形（九州んさい・名古屋みゃあ・広島っち・東北だべ）、EN 'go ahead'/'go for it' 許可 idioms、penultimate 相対位置。
 - ✨ **条件・義務尾**: `たら/だら`→stemTe、`ば`→れば剥がし+e段五段マップ、`べき/ほうがいい/んか(い)`→dictTe — '閉じればいい'→close-tab、'読むべき'→read-aloud、'閉じるんか'→close-tab。
