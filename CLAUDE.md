@@ -1720,6 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 191
+- ラウンド117: 提案・疑問残置原子層（tests/suggestion-residue-atoms.test.js、+93件 / 実装前76件赤）
+  - JA て受益残置IX: TAIL_TE `よろしくお願い(します|致します)|おねがいします|頼みます|頼む|もらえないものか(しら)?|もええんちゃう|もええんですか|もいいんじゃない(か)?`
+  - JA dict提案・義務（FR/NEC）: `のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない(か)?|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょう(か)?|らどう(でしょうか|ですか)` + NEC `しかないな|っきゃないな|よりほかない(な)?`
+  - JA 判断質問→help: `(べき|る|ます|た|だ)(かどうか|か(迷って|悩んで|考えて))` — request-verb `くれる|もらえる|いただけ|くださ` を lookbehind で除外（'閉じてくれるかどうか'=依頼は実行維持、'プライベートかどうか'=状態質問は privacy-status 維持）
+  - JA 誤ルート修正: '閉じるほかないだろう'/'閉じるほかあるまい'（義務）が negate → 実行化（`まい` regex lookbehind）; '閉じてもらえないものか'（依頼）が negate → `ものか` lookbehind 拡張; '戻るかどうか迷ってる' が back → `戻る(?!か)` lookahead
+  - EN: chain1 `go on and|go right ahead and|by all means|i give you permission to|permission granted to|feel/you're welcome to|what say (you|we)|what do you say we|whaddya say we` + help `/^(can|could|would|might|will) it be (?!too much|possible)/`（request 枠を保持）+ `is it closable|is it true|any idea how to` 系
+  - 教訓: lookbehind は match 位置の**直前のみ**を見る—`(?<!くれる)` ではなく `(?<!くれ)` + 後続 `る` の形で書く
+
 ### Session 190
 - ラウンド116: フレーム残置原子層（tests/frame-residue-atoms.test.js、+77件 / 実装前68件赤）
   - JA て受益残置VIII: TAIL_TE `くれんかね|くれますかねえ|もらってよろしいか|もらいますか|おいていただけると|はくれませんか|はくれないか|おきませんか|おきますか|しまおうかな|くれないものか|結構ですか|構いませんか|もろて(ええか|よろしいか|いいか|ええ|よろしい)`

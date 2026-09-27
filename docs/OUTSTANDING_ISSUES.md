@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてよろしくお願いします'/'閉じておねがいします'/'閉じて頼む'/'閉じてもらえないものか'(negate誤ルート) のて受益・依頼残置が NO-MATCH~~ — **Session 191 で実装**（TAIL_TE IX + negate ものか に `もらえない` lookbehind）
+- ~~voice '閉じるのもあり'/'閉じるってのもあり'/'閉じるという手もある'/'閉じるといいんじゃない'/'閉じるとよいでしょう'/'閉じるとよろしい' のdict提案残置が NO-MATCH~~ — **Session 191 で実装**（FR 拡張）
+- ~~voice '閉じるしかないな'/'閉じるっきゃないな'/'閉じるよりほかない'/'閉じるほかないだろう'/'閉じるほかあるまい'(後2件は negate 誤ルート) の義務残置が NO-MATCH~~ — **Session 191 で実装**（NEC/FR 拡張 + negate まい に `ほかある|ください|くれ|もらえ` lookbehind）
+- ~~voice '閉じるようにする'/'閉じるようにしてください'/'閉じたらいかがでしょうか'/'閉じたらどうでしょうか'/'閉じてもええんちゃう'/'閉じてもいいんじゃないか' が NO-MATCH~~ — **Session 191 で実装**（FR + TAIL_TE + ら提案尾）
+- ~~voice '閉じるかどうか'/'閉じるか迷ってる'/'閉じるべきかどうか迷って'/'閉じた方がいいのかな'/'閉じるのが正解かな' の判断質問が NO-MATCH／'戻るかどうか迷ってる' が back 誤実行~~ — **Session 191 で実装**（help かどうか・ contemplation regex + 戻る に か lookahead）
+- ~~voice 'go on and X'/'by all means X'/'you're welcome to X'/'i give you permission to'/'what say you/we'/'whaddya say we' が NO-MATCH、'is it true you can'/'can it be closed'/'is it closable'/'any idea how to' が NO-MATCH~~ — **Session 191 で実装**（ENPRE chain1 + help capability regex）
 - ~~voice '閉じてくれんかね'/'閉じてくれますかねえ'/'閉じてもらってよろしいか'/'閉じてもらいますか'/'閉じてはくれませんか'/'閉じておきませんか'/'閉じてしまおうかな'/'閉じてくれないものか'/'閉じて結構ですか'/'閉じて構いませんか' のて受益・依頼残置が NO-MATCH~~ — **Session 190 で実装**（TAIL_TE VIII 拡張）
 - ~~voice '閉じちゃうかな'/'閉じちゃってもよろしいですか'/'閉じてもろてええか' のちゃ・関西もろて残置が NO-MATCH~~ — **Session 190 で実装**（ちゃうかな系 push + よろしい追加 + TAIL_TE もろて）
 - ~~voice '閉じることか'/'閉じるってことで'/'閉じるということでよろしいですか'/'閉じるものなら'/'閉じるのならば'/'閉じるのであったら'/'閉じるんだったらね' のdict条件・引用残置が NO-MATCH~~ — **Session 190 で実装**（FR 拡張）
