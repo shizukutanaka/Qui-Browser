@@ -470,7 +470,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -625,6 +625,12 @@ export class VoiceCommands {
     push(normalized.replace(/([まらわかがさたなばぱ])(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと|ねば|ならん|んと|なあかん|んとあかん)[。！？!?]?$/u,
       (m, ch) => NAKYA[ch] || ch));
     push(normalized.replace(/(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと(?:ね)?|ねば|ならん|んと|なあかん|んとあかん)[。！？!?]?$/u, 'て'));
+    // Double-negation / obligation: '閉じなくはない'/'閉じないわけにはいかない'/
+    // '閉じざるを得ない' → execute (tentative affirmative). あ-row godan via
+    // NAKYA map; ichidan stems take て directly.
+    push(normalized.replace(/([まらわかがさたなばぱ])(?:なくはない|ないわけにはいかない|ざるを(?:得|え)ない)[。！？!?]?$/u,
+      (m, ch) => NAKYA[ch] || ch));
+    push(normalized.replace(/(?:なくはない|ないわけにはいかない|ざるを(?:得|え)ない)[。！？!?]?$/u, 'て'));
     // '閉じんといい(かも)' is a wish that it NOT close — left unmatched so
     // the negate patterns answer it instead (Devin Review #383).
     // 義務・方言尾II: '閉じるしかない'/'閉じるっきゃない'/'閉じるほかない'→'閉じて',
@@ -662,8 +668,10 @@ export class VoiceCommands {
     push(normalized.replace(/だり(?:して|する)?[。！？!?]?$/u, 'で'));
     // てきて/てくる (close-and-return) & ていく (keep doing): '閉じてきて'→'閉じて',
     // '戻ってくる'→'戻って', '読んでいって'→'読んで'.
-    push(normalized.replace(/([てで])(?:きて|きます|くる|来る|こい)[。！？!?]?$/u, '$1'));
-    push(normalized.replace(/([てで])い(?:って|く|くよ|こう|きます)[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/([てで])(?:きて|きた|きます|きました|くる|来る|来た|来ました|こい)[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/([てで])い(?:って|った|く|くよ|こう|きます)[。！？!?]?$/u, '$1'));
+    // ておいた (resultative, 'went ahead and'): '閉じておいた'→'閉じて'.
+    push(normalized.replace(/([てで])おいた[よね]?[。！？!?]?$/u, '$1'));
     // Permission-yield: '閉じてもいい/よい/ええ(かな)' → '閉じて'.
     push(normalized.replace(/([てで])も(?:いい|よい|よか|ええ)(?:かな|かしら|か)?[。！？!?]?$/u, '$1'));
     // 頂戴 request: '閉じてちょうだい' → '閉じて'.
@@ -716,6 +724,9 @@ export class VoiceCommands {
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
         'before (?:you go|i (?:leave|go))|whenever you (?:can|get a chance)|at your (?:earliest )?convenience|no rush but|' +
         'go ahead and|feel free to|do|oh|well|say|listen|look|alright|thanks|' +
+        'anyways?|by the way|btw|yes please|see if you can|see about|try|' +
+        'have a go at|get to|up and|might i trouble you to|be a lamb and|' +
+        'have the goodness to|' +
         'cheers|mate|first|next|also|once more|again)[,\\s]+', 'i'), '')
       .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
       .replace(/^(?:be so kind(?: as to)?|be a dear|kindly)[,\s]+(?:and[,\s]+)?/i, '')
@@ -728,6 +739,7 @@ export class VoiceCommands {
       .replace(/[,\s]+(?:eh|hey|mate|yeah|ok|okay)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind)[.!?]?$/i, '')
       .replace(/[,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time)[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
       .replace(/[,\s]+(?:whenever|if you (?:would|could|will|wont|want))[.!?]?$/i, '')
@@ -1543,6 +1555,7 @@ export class VoiceCommands {
         'quieter', 'turn it down', 'speak softer', 'tone it down', 'bump it down',
         'quiet down', 'quieten', 'quieten down', 'keep it down', 'keep it quiet',
         'keep the noise down', 'not so loud', 'too loud', 'its too loud',
+        'うるさすぎ', 'うるさすぎるよ', 'softer', 'softer please',
         'way too loud', 'so loud', 'pretty loud', 'kinda loud', 'a bit loud',
         'really loud', '音をさげて', '声をさげて',
         '小さい声で', '小さな声で', '声をおさえて', '声を抑えて',
@@ -1876,7 +1889,8 @@ export class VoiceCommands {
         '対応してますか', 'できません', 'これできる',
         /what can i do/i, /what do i say/i, /how does this work/i, /^can i /i,
         /^do (i|we)\b/i, /^do (you|they)(?! mind| hear| think)\b/i, /^mind if i\b/i,
-        /^any way you can/i, /^is there a way to/i,
+        /^any way you can/i, /^is there a way to/i, /かね(?:る|ます|ません)$/,
+        '困ってる', '困りました', '困ってます', '困ってるんだけど',
         /what(?:'s| is)? the command/i, /what command/i,
         /what should i say/i, /how do i use/i,
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
@@ -2248,6 +2262,9 @@ export class VoiceCommands {
         '目が痛い', '頭が痛い', '疲れた', '休みたい', '吐き気がする', '乗り物酔い',
         '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
         '頭がクラクラする', 'めまいがする', '目眩がする', '気分が悪くなった',
+        '詰まった', 'バグった', 'バグってる', 'こりゃだめ', 'ダメだ',
+        'お手上げ', 'おてあげ', '参った', 'まいった', 'くそ', '最悪', 'あーもう',
+        '落ちがち', '固まりがち', 'フリーズしがち', 'クラッシュしがち',
         '目を休めたい', '目を休める', '少し休みたい', '疲れてきた',
         '押せない', '押せません', '選べない', '選べません', '触れない',
         'クリックできない', 'タップできない', '押しても反応しない', '動きません',
@@ -2698,6 +2715,11 @@ export class VoiceCommands {
         'そうそう', 'うんうん', 'へえ', 'ほう', 'さすが', 'やった', 'いい感じ',
         'いいじゃん', 'あざます', 'あざっす', 'どうもありがとう', 'めっちゃありがとう',
         '感謝', '感謝します',
+        'ふぅ', 'ほっ', 'ぴったり', '完璧', '楽しい', '面白い', 'おもしろい',
+        'すてき', '素敵', 'かわいい', 'きれい', '暇だ', '暇', '退屈', 'つまらない',
+        'easy does it', 'slow and steady', 'hurry up', 'chop chop', 'snap to it',
+        'lovely', 'impressive', 'yikes', 'oof', 'dang', 'darn', 'shoot', 'gah',
+        'whatever you say', 'if you say so', 'just saying', 'just sayin', 'fyi',
         'ya got it', 'yer good', 'gotcha covered', 'right on', 'rock on',
         'way to go', 'attaboy', 'bravo', 'umm', 'um', 'err', 'uhh', 'uh',
         'ah', 'oh', 'ahh',
@@ -4108,6 +4130,7 @@ export class VoiceCommands {
         '急いで', '早くして', '速くして', 'さっさと', '急いで読んで',
         '読み上げを早送り', '読み上げ早送り', '読み上げを早送りして',
         '早口で読んで', '早口で', '速めで読んで', '速めに読んで',
+        'faster faster', 'speed it up', 'double time',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i, 'make it faster',
         'way faster', 'much faster', 'way quicker', 'a lot faster', 'faster please',
         'too slow', 'way too slow', 'so slow', 'its too slow', 'a bit too slow',
@@ -5491,6 +5514,7 @@ export class VoiceCommands {
         'queue it up', 'line it up', 'ご覧なさい',
         /did it (load|open|close)/i, /is it open/i, 'still open', 'its still open',
         '閉じたっけ', '閉じるっけ', '閉じてたっけ', '開いてたっけ',
+        /たまま$/, /たばかり[。！？!?]?$/, /だまま$/,
         '閉じてはいる', '閉じてるんやったら', '閉じてるんなら',
         'what page', 'what site', 'what page is this', 'what site is this',
         '何のページ', 'ページは何', 'どんなページだ',
