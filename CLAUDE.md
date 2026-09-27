@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 180
+
+- ✨ JA 残置・願望尾II: べきだった/んだった/忘れてた系→stemTe・dictTe（'閉じるべきだった'→close-tab、'閉じるんだった'→close-tab、'読むの忘れてた'→read-aloud）、Kansai 意向 `([おこごそとのぼもろほ])う(かいな|かい|けん|けんね)`→て形（'閉じようかい'→close-tab）、`よか(な|ろう)?` 尾、ときなさい。
+- ✨ JA 開放詞・別れ句: HP openers += じゃあ/ほなら/ほな/さて/では（'ほなら閉じて'→close-tab — ほなら を ほな より先に）。vr-exit += またな/ほなね/じゃあの/しつれい(します)?/お先に失礼/また今度/また明日/ではまた/また会おう/おつかれさま(でした)?。
+- ✨ EN 謝辞・仮定前置詞III: ENPRE += `be so good as to`/`it would (help|be (great|nice|helpful|awesome|amazing)) if (you|ya)`/`i (would|'d) (really )?(appreciate|love) it if (you|ya)`/`lemme|let me (have|see|get)`/`i was (gonna|going to|about to|fixing to|meaning to|supposed to)`/`i meant to|i meant`/`(i )?never got around to`、mind 尾 += 二度目 `for (me|us)`。PAST_VERB 層新設: 'closed it'→'close it' 等過去形→原形写像（look-backで既存 'closed it' literal は維持）。
+- ✨ help 指南枠: `^(show|tell|teach) me how`/`^walk me through`/`^teach me to` + 'whats the trick'/'how does (this|it|this thing) work'/'how do (i|you) use (this|it)'。scoped-help lookahead に `if|it` 追加で 'it would help a lot' 等を維持。
+- ✨ 読みモード・失敗報告: read-aloud += ざっと(読んで|読み|読みして)/流し読み(して)?/斜め読み(して)?/拾い読み(して)?、stop-reading += 黙読(する|したい|します|するわ)?/自分で読む、say-again += 聞き損ね(た|ちゃった|て)/聞きそこなった/聞き逃した、trouble += `(?<!聞き)(?<!見)損ね(た|て|ちゃった|てしまった)`、describe-tab += ちらっと見て/ちら見(して|せて)?/^閉じた$/・見損ね(た|ちゃった)/見逃した/見落とした（'^閉じた$' はアンカー化 — 裸リテラルだと '閉じたほうがいい' を substring 奪取）。
+- ✨ 小粒補充: web-search bare-verb += 確かめて(みて)?/調べてみて(よ)?/確認してみて/確かめ(たい|てほしい|ろ)、negate += もう結構です/もうええ(わ|よ)?/もういい(わ|です)、ack += 'i (would )?appreciate(d)? it' + JA おおきに系、repeat-command += 'make it so/happen'/'as you were'、vr-enter += 'put me in (vr)?'/'take me (in|into vr)'/'beam me in'/'enter vr'、percent-jump += `zoom (in(to)? |out )?to N`、reader-scale-reset += `reset (the |my )?(zoom|text size|font size)`、scroll += 'one line (up|down)'/'line (up|down)'、paragraph += 'next/prev(ious)? block'/'next para'、speech += 'say (it|that) (faster|slower|more slowly)'。
+- 🐛 回帰2件消化: BK 規則が '閉じたほうがいい' の BK[1]='閉じた' を dictTe 素プッシュ → /^閉じた$/ describe-tab 原子を奪取 → BK に `[ただ]$` ガード（過去形語幹は TK へ委譲）。'お疲れ様です' vr-exit 化で ack 契約破壊 → ひらがな形のみ保持。
+
 ### Session 179
 
 - ✨ JA 残余依頼尾: `といて/どいて`→stemTe、`といた/どいた`（過去とく）拡張、`ほうが` 裸形（いい/ええ/よい/かな 任意化 → '閉じたほうが'）、`dict+予定/つもり`→dictTe（'閉じる予定'→close-tab）、意向形 `ろ→って` の `たろ/だろ` 除外（lookbehind）。

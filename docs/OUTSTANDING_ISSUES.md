@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じるべきだった'/'閉じるんだった'/'読むの忘れてた'/'閉じようかい(な)?'/'閉じとけば'/'閉じときなさい'/'閉じよか(な|ろう)?' の残置・願望・方言意向尾が NO-MATCH~~ — **Session 180 で実装**（べきだった/んだった/忘れてた 層 + KAI 関西意向 + よか尾 + ときなさい）
+- ~~voice 'i meant to close it'/'i was gonna X'/'lemme have the url'/'it would help if you X'/'be so good as to X'/'i never got around to X' の謝辞・仮定前置詞が NO-MATCH~~ — **Session 180 で実装**（ENPRE III + PAST_VERB 層 + ENPRE 第一連鎖の lemme/let-me/i-meant-to 長形優先）
+- ~~voice 'show me how to X'/'walk me through X'/'how do i use this'/'whats the trick' の指南要求が欠落~~ — **Session 180 で実装**（help 指南枠 + scoped-help (?!if|it)）
+- ~~voice 'ざっと読んで'/'流し読みして'/'斜め読み'/'拾い読み'/'黙読する'/'自分で読む'/'ちらっと見て'/'見損ねた'/'聞き損ねた' の読書・失敗報告句が欠落~~ — **Session 180 で実装**（read-aloud 速読 + stop-reading 黙読 + describe-tab + say-again/trouble 損ね系）
+- ~~voice 'ほなら閉じて'/'さて閉じて'/'おつかれさま'/'ほなね'/'じゃあの'/'またな'/'また明日' が NO-MATCH または wrong-atom~~ — **Session 180 で実装**（HP openers II + vr-exit 別れ句IV）
+- ~~voice 'make it so'/'put me in vr'/'beam me in'/'zoom to 50'/'reset the zoom'/'one line down'/'next block'/'say it faster'/'確かめて'/'もうええわ'/'おおきに'/'i would appreciate it' が欠落~~ — **Session 180 で実装**（repeat/vr-enter/percent-jump/scale-reset/scroll/paragraph/speech/web-search/negate/ack 補充）
 - ~~voice '閉じといたほうが(いい)?'/'閉じといてね'/'閉じる予定'/'閉じるつもり' の残余依頼尾が NO-MATCH~~ — **Session 179 で実装**（といた/どいた・予定/つもり・裸ほうが）
 - ~~voice 'close it for me will ya'/'close it wontcha'/'be a good bot and X'/'u can X'/'ya better X'/'plz/pwease close it'/'close it ttyl/rn/thx'/'close it if u could'/'close it whenever you want'/'close it bud/fam/boss' が NO-MATCH または trouble 誤ルート~~ — **Session 179 で実装**（ENPRE II + vocative/contraction/immediacy尾 + 二度目 for-me）
 - ~~voice 'open calculator/notepad/terminal/app store/photoshop/word/excel/paint'/'empty the recycle bin' が go-to literal ナビゲート誤ルート~~ — **Session 179 で実装**（device-apps OSアプリ語彙 + goToEn 除外）
