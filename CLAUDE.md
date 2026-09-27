@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 164: 使役/誘い原子 — てくれるか・んじゃない・させて + EN ASR 修正句
+外部基準: てくれるか/てもらえるか カジュアル依頼、んじゃない 否定誘い（"won't you"）、させて 使役許可（"let me"）、っぱなし 放置状態、EN 'i said X'/'i meant X' ASR 訂正、'brb'/'hold that thought' 待機。
+- ✨ **依頼疑問形**: `(て|で)(くれる|もらえる|くれない|もらえない)(か|かな)?`→て — '閉じてくれるか'→close-tab、'読んでもらえるか'→read-aloud。
+- ✨ **んじゃない誘い形**: 辞書形+んじゃない/んじゃね/んじゃん → 一段（閉じる→閉じて）と五段（読む→読んで）両バリアント push（DICT_TE 辞書末→て形マップ）。'戻るんじゃない'→back。
+- ✨ **させて使役**: 'させて'→て（閉じさせて→閉じて）、あ行五段+せて→A_SE_TE（読ませて→読んで、戻らせて→戻って、見させて→見て→describe-tab）。
+- ✨ **EN ASR 修正**: 'i said/i meant X' 前置剥がし。待機: 'be right back'/'brb'/'hold that thought'/'one moment'/'give me a minute|sec'→pause-reading。
+- ✨ **EN 拒否→negate**: 'nope'/'nah'/'no way'/'no thanks'/'not that'/'wrong one'/'thats not what i said'/'forget that'/'scratch that'。
+- ✨ **その他**: っぱなし 句→describe-tab/speaking-status、'google it'/'look it up'→web-search、'check it out'→describe-tab、'now what'→help、'the first/last/other one'→first/last/next-tab、'wow'/'amazing'→ack、'enough'→stop-everything、'put/bring it back'→reopen-tab、'count the tabs'→tabs-list、'a little more'→scroll-down、'try again'→repeat-command、'are you there'→working-status、'do you hear me'→mic-status。
+- ✅ **テスト +88（git stash で81件赤確認）**: Total 6000 tests (138 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
 ### Session 163: 敬語/禁止/動名詞原子 — お〜ください・るな禁止・ます語幹+な・mind+gerund
 外部基準: お/ご+ます語幹+ください敬語、辞書形+な禁止（"don't"）、ます語幹+な口語命令、ておいて/てごらん/てして、EN 'would you mind ~ing'、is-it 状態質問、me-構文。
 - 🐛 **辞書形+な禁止の誤実行修正（実害）**: '戻るな' が back、'進むな' が navigate、'閉じるな' が close-tab を実行していた → `戻る(?!な)|進む(?!な)` 化 + negate に `/(う|つ|る|く|ぐ|す|ぬ|ぶ|む)な$/` + `/^(don't|do not|never)\b/i`。'閉じるな'→negate、'読むな'→negate。

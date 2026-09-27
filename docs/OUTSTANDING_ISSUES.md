@@ -988,6 +988,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**お〜ください敬語・辞書形+な禁止形・ます語幹+な命令形が未認識/誤実行**~~ — **Session 163 で実装**: `MASU_TE` 語幹→て形マップで 'お読みください'→read-aloud、'お待ちください'→pause-reading、'閉じな'→close-tab、'読みなさいよ'→read-aloud。**実害**: '戻るな'/'進むな' が navigate/back を実行（'戻る|進む' が素朴一致）→ `(?!な)` 化 + negate に `るな/するな`/`don't|never` 禁止形を追加。
 - ~~**ておいて/てごらん/てして（備置・試行・方言二重て形）が未認識**~~ — **Session 163 で実装**: '閉じておいて'→close-tab、'読んでごらん'→read-aloud、'閉じてして'→close-tab。
 - ~~**EN 'would you mind ~ing'・過度敬語・'is it ~' 状態質問・me-構文が未認識**~~ — **Session 163 で実装**: mind+動名詞→語幹化（'mind closing this'→close-tab）、'be so kind as to'/'if you please'/'pretty please' 剥がし、'is it loud/paused/playing/dark'→volume/working/video/brightness-status、'tell me again'→say-again、'read me the page'→read-aloud、'give me the tabs'→tabs-list、'shut it'→close-tab、'turn it off'→vr-exit、'turn up/down the volume'→volume、'make it louder/faster'等。
+- ~~**カジュアル依頼疑問形・んじゃない否定誘い・させて使役が未認識**~~ — **Session 164 で実装**: `(て|で)(くれる|もらえる|くれない|もらえない)(か|かな)?`→て形、辞書形+んじゃない/んじゃね/んじゃん→て形（一段/五段両バリアント）、`させて`→て・あ行五段+せて→んで/って。'閉じてくれるか'→close-tab、'読むんじゃない'→read-aloud、'見させて'→describe-tab。
+- ~~**EN ASR 修正句・待機慣用句・bare 検索句が未認識**~~ — **Session 164 で実装**: 'i said X'/'i meant X' 前置剥がし（'i said close it'→close-tab）、'be right back'/'brb'/'hold that thought'→pause-reading、'google it'/'look it up'→web-search、'check it out'→describe-tab。
+- ~~**EN 拒否・指示代名・感嘆句が未認識**~~ — **Session 164 で実装**: 'nope'/'nah'/'no way'/'not that'/'wrong one'/'scratch that'→negate、'the first one'→first-tab、'the last one'→last-tab、'the other one'→next-tab、'wow'/'amazing'→ack、'enough'/'thats enough'→stop-everything、'put/bring it back'→reopen-tab、'are you there'→working-status、'do you hear me'→mic-status。
+- その他 fill: っぱなし 放置句→describe-tab/speaking-status、'now what'→help、'count the tabs'→tabs-list、'a little more'→scroll-down、'try again'→repeat-command。
 
 ---
 
