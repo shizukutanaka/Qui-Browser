@@ -97,7 +97,7 @@ describe('VoiceCommands tab-pin-n', () => {
   });
 
   test('unpin result announces the unpin', () => {
-    const m = mgr(['A', 'B']);
+    const m = mgr(['A', 'B'], { pinned: ['B'] });
     m.togglePin = jest.fn(() => 'unpinned');
     const vc = makeSpeakingVC({ tabManager: m });
     vc.processCommand('タブ2のピンを外す');

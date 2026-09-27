@@ -498,7 +498,7 @@ export class VoiceCommands {
     const QC_TAIL = 'か|かな|かしら|けど|し|から|の|のよ|のね|んや|んだ|' +
       'んだって|んだな|じゃ|んか|わ|わよ|わね|さ|って|ってば|ってよ|' +
       'よな|べ|のう|やろか|やろ|がいい|に限る|んちゃう|んちゃ|といい|と|' +
-      'ぞい|ぞ|ぜ|ねん';
+      'ぞい|ぞ|ぜ|ねん|ねえ|なあ';
     const QC = normalized.match(new RegExp(
       '^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:' + QC_TAIL + ')[。！？!?]?$', 'u'));
     if (QC) {
@@ -625,10 +625,18 @@ export class VoiceCommands {
     push(normalized.replace(/([まらわかがさたなばぱ])(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと|ねば|ならん|んと|なあかん|んとあかん)[。！？!?]?$/u,
       (m, ch) => NAKYA[ch] || ch));
     push(normalized.replace(/(?:なきゃ|なきゃあ|なくちゃ|なくっちゃ|なければ|ないと(?:ね)?|ねば|ならん|んと|なあかん|んとあかん)[。！？!?]?$/u, 'て'));
-    // '閉じんといい(かも)' = '閉じないといい' Kansai obligation → te
-    push(normalized.replace(/([まらわかがさたなばぱ])んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?[。！？!?]?$/u,
-      (m, ch) => NAKYA[ch] || ch));
-    push(normalized.replace(/んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?[。！？!?]?$/u, 'て'));
+    // '閉じんといい(かも)' is a wish that it NOT close — left unmatched so
+    // the negate patterns answer it instead (Devin Review #383).
+    // 義務・方言尾II: '閉じるしかない'/'閉じるっきゃない'/'閉じるほかない'→'閉じて',
+    // '閉じるんしゃ'/'閉じるやい'/'閉じるがよ'/'閉じるだす'/'閉じるんだってば'→'閉じて'.
+    const NEC = normalized.replace(/(?:しかない|ほかない|っきゃない|っきゃあ?|しかねえ|んだってば|んしゃ|やい|がよ|だす)[。！？!?]?$/u, '');
+    push(NEC);
+    dictTe(NEC);
+    // '閉じておこか'→'閉じて'（意向+か）、'読んどこか'→'読んで'.
+    push(normalized.replace(/([てで])おこか[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/んどこか[。！？!?]?$/u, 'んで'));
+    // '閉じますねえ/なあ' ます+終助詞 → 語幹て形.
+    stemTe(normalized.replace(/ます(?:ねえ|なあ)[。！？!?]?$/u, ''));
     // Dialect progressives: '戻ってん'→'戻って', '読んでん'→'読んで',
     // '読んでんか'→'読んでる' (question → status owners), '読んどる'→'読んでる',
     // '読んでへん'→'読んでる' (negative progressive is a status complaint).
@@ -665,7 +673,8 @@ export class VoiceCommands {
         'what about|wouldja|couldja|wontcha|needa|hafta|tryna|finna|please kindly|' +
         'shoulda|coulda|woulda|oughta|mighta|musta|trying to|tryin to|if you could|if you would|' +
         'if you can|if you will|can we|could we|why dont you|why dont we|' +
-        'why not|hows about|do (?:us|me) a favor and|do a favor and|help me|i need you to|' +
+        'might you|wont you|care to|fancy|please and thank you|uh|um|er|erm|' +
+        'if you\'?d be so kind|why not|hows about|do (?:us|me) a favor and|do a favor and|help me|i need you to|' +
         'i want you to|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
         'make sure to|be sure to|remember to|try to|try and|just|simply|' +
         'go ahead and|feel free to|do|oh|well|say|listen|look|alright|thanks|' +
@@ -673,11 +682,11 @@ export class VoiceCommands {
       .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
       .replace(/^(?:be so kind(?: as to)?|be a dear|kindly)[,\s]+(?:and[,\s]+)?/i, '')
       .replace(/^(?:you (?:have|need|got) to|you gotta|you shoulda|you coulda|you oughta|you ought to|you should|you could|you might)[,\s]+/i, '')
-      .replace(/^(?:(?:and|then)[,\s]+)+/i, '')
+      .replace(/^(?:(?:and|then|thank you|thanks)[,\s]+)+/i, '')
       .replace(/^(?:hey|ok|okay|so|now)[,\s]+/i, '')
       .replace(/[,\s]+please[.!?]?$/i, '')
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
-      .replace(/[,\s]+(?:would|will|wont|cant|could|can) you[.!?]?$/i, '')
+      .replace(/[,\s]+(?:would|will|wont|cant|could|can) (?:you|ya)(?: kindly)?[.!?]?$/i, '')
       .replace(/[,\s]+(?:eh|hey|mate|yeah|ok|okay)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
@@ -796,6 +805,25 @@ export class VoiceCommands {
    * Register default commands
    */
   registerDefaultCommands() {
+    // defer — honest absence for scheduling: there is no timer/reminder
+    // engine, so '後で閉じて'/'do it later' announce the limit instead of
+    // silently running the embedded command now. Registered first: any
+    // loose /戻る|閉じて/ owner would otherwise execute the embedded verb.
+    this.registerCommand('defer', {
+      patterns: [/^(あと|後)で(?!読|見)/, /^のちほど/, /^のちに/, /^後ほど/,
+        /[0-9一二三四五六七八九十]+分後/, /[0-9一二三四五六七八九十]+時間後/,
+        /^do it later$/i, /^do that later$/i, /^in a bit$/i, /^in a minute$/i,
+        /^in a min$/i, /^in a sec(?:ond)?$/i, /^in a moment$/i, /^later on$/i,
+        /^remind me later$/i, /^remind me in/i, /^for later$/i,
+        /^save it for later$/i, /^come back later$/i,
+        /(?:it|this|that|them|all) later$/i],
+      action: () => {
+        this.speak('あとでの実行はできません。今すぐなら「閉じて」などと命令してください');
+        return { action: 'defer' };
+      },
+      description: 'Honest answer for deferred/scheduled requests'
+    });
+
     // Seek the immersive video — YouTube's J/L keys (±10s) for a user who
     // can't reach the HUD while watching. Registered before navigate/back:
     // their loose /戻|進/ regexes would otherwise swallow '10秒戻る'. Seconds
@@ -1002,11 +1030,17 @@ export class VoiceCommands {
     // Japanese ordinal select — '一番目のタブ'. Hoisted: tab-by-name's
     // (.+)のタブ capture would otherwise treat '一番目' as a title query.
     this.registerCommand('tab-select-ordinal', {
-      patterns: [/([一二三四五六七八九])番目のタブ(?!を閉じ)/],
+      patterns: [/([0-9一二三四五六七八九十]+)\s*番目のタブ(?!を閉じ)/,
+        /([0-9一二三四五六七八九十]+)\s*番のタブ(?!を閉じ)/,
+        /^([0-9一二三四五六七八九十]+)\s*番目?$/,
+        /(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?めのタブ(?!を閉じ)/,
+        /^(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め$/],
       action: (transcript) => {
-        const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
-        const m = transcript.match(/([一二三四五六七八九])番目/);
-        const n = m ? ORD[m[1]] || 0 : 0;
+        const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
+        const TUME = { ひと: 1, ふた: 2, み: 3, よ: 4, いつ: 5, む: 6, なな: 7, や: 8, ここの: 9, とお: 10 };
+        const m = transcript.match(/([0-9一二三四五六七八九十]+)\s*番/) ||
+          transcript.match(/(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め/);
+        const n = m ? (ORD[m[1]] || TUME[m[1]] || parseInt(m[1], 10) || 0) : 0;
         const t = (this._tabManager?.tabs || [])[n - 1];
         if (!t) {
           this.speak(`タブ${n}はありません`);
@@ -1059,6 +1093,7 @@ export class VoiceCommands {
     this.registerCommand('half-page-forward', {
       patterns: ['半ページ進む', '半ページ進め', '半ページ下へ',
         '半分進んで', '半分進む', '半分下', '半分下へ', '半ページ下',
+        'halfway down', 'half way down', 'halfway', '半分くらい下へ',
         /half page (down|forward)/i],
       action: () => {
         const moved = this._onHalfPage ? !!this._onHalfPage(1) : false;
@@ -1070,6 +1105,7 @@ export class VoiceCommands {
     this.registerCommand('half-page-back', {
       patterns: ['半ページ戻る', '半ページ戻して', '半ページ上へ',
         '半分戻って', '半分戻る', '半分上', '半分上へ', '半ページ上',
+        'halfway up', 'half way up',
         /half page (up|back)/i],
       action: () => {
         const moved = this._onHalfPage ? !!this._onHalfPage(-1) : false;
@@ -1389,7 +1425,8 @@ export class VoiceCommands {
         'shut it down', 'turn it off', 'switch it off',
         'じゃあね', 'ばいばい', 'さようなら', 'またね', 'また後で', 'お疲れさま',
         '終わり', '終わります', 'おしまい', 'しゅうりょう',
-        'see ya', 'later', 'peace', 'peace out', 'bye bye', 'adios', 'ciao',
+        'see ya', 'later', 'see you later', 'see ya later', 'catch you later',
+        'peace', 'peace out', 'bye bye', 'adios', 'ciao',
         'ta ta', 'toodles', 'catch you later', 'im out', "i'm out", 'signing off',
         'leave the browser', 'shut it all down', 'shut everything down',
         'shut this down', 'shut that down', 'shut the whole thing down',
@@ -1416,7 +1453,7 @@ export class VoiceCommands {
     this.registerCommand('volume-up', {
       patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', '音量を上げて',
         '音を大きく', '音量を大きく', '音を上げて',
-        '音が小さすぎる', '声が小さい', '声が小さすぎる', '小さな声で',
+        '音が小さすぎる', '声が小さい', '声が小さすぎる',
         '声を大きく', '大きな声で', '大きい声で', '声を出して', '音を出して',
         '音量を大きくして', '音を大きくして',
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
@@ -1425,6 +1462,12 @@ export class VoiceCommands {
         'louder', 'speak up', 'turn it up', 'crank it up', 'bump it up',
         'turn up the volume', 'pump it up', 'make it louder',
         'more volume', 'up the volume', 'raise the volume', 'much louder',
+        'way louder', 'a lot louder', 'lot louder', 'a bit louder', 'a little louder',
+        'little louder', 'pump up the volume', 'turn it way up',
+        'turn it all the way up', 'blast it', 'speak louder',
+        'too quiet', 'its too quiet', 'its so quiet', 'way too quiet',
+        'really quiet', 'pretty quiet', 'kinda quiet', 'too soft',
+        '声をあげて', '音をあげて',
         'louder please', 'volume up', 'volume up please',
         /volume (up|raise|increase|louder)/i],
       action: () => {
@@ -1451,6 +1494,11 @@ export class VoiceCommands {
         '音量をさげる', '音量を下げる', 'ボリュームを下げる', '音を下げる', '声を下げる',
         'ボリュームを小さく', 'ボリュームダウン', '音を下げて',
         'quieter', 'turn it down', 'speak softer', 'tone it down', 'bump it down',
+        'quiet down', 'quieten', 'quieten down', 'keep it down', 'keep it quiet',
+        'keep the noise down', 'not so loud', 'too loud', 'its too loud',
+        'way too loud', 'so loud', 'pretty loud', 'kinda loud', 'a bit loud',
+        'really loud', '音をさげて', '声をさげて',
+        '小さい声で', '小さな声で', '声をおさえて', '声を抑えて',
         'turn down the volume', 'crank it down', 'make it quieter',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
@@ -1790,7 +1838,12 @@ export class VoiceCommands {
         /^どうやって/,
         /^help( me)?$/i,
         '何を聞けばいい', '何が聞ける', '何を頼めば',
-        /^how (do|can|to) i/i,
+        /^how (do|can|to) i/i, /^how do (we|you)\b(?!.*\bspell)/i,
+        'what do i press', 'which button', 'which do i press', 'what button',
+        'what do i do', 'what should i do', 'how does this work',
+        'どう閉じる', '閉じ方は', '閉じかたは', '戻り方は', '戻りかたは', '進み方は', '読み方は',
+        '開き方は', '消し方は', '探し方は', '閉じ方', '戻り方', '進み方', '読み方', '開き方', '消し方',
+        /(閉じ|戻り|進み|読み|使い|開き|消し|探し|送り|止め)(方|かた)(は|って|の)?$/,
         /what can you do/i, /show me (the )?commands/i, /command list/i,
         /list (the )?commands/i, /what commands/i, /voice commands/i,
         /read commands/i],
@@ -1898,16 +1951,23 @@ export class VoiceCommands {
         /^(\d+)%(に)?$/, /(\d+)割(?!る|り)/, '半分まで', '真ん中まで', '中間まで',
         '半分のところ', '中間のところ', '真ん中に移動', '中央に移動',
         '中間に移動', 'ページの真ん中', '真ん中へ', '中間地点', '真ん中',
-        /(?:go to |jump to )?(\d+)\s*percent/i],
+        /(?:go to |jump to )?(\d+)\s*percent/i,
+        /^(?:a )?(third|quarter|half|three quarters) of the way/i,
+        '半分くらい', '半分ぐらい', '半分くらい下', '半分ぐらい下', '半分くらいまで', '半分ぐらいまで'],
       action: (transcript) => {
         // '半分/真ん中/中間' carry no digits — they mean the midpoint (50%).
         const wari = transcript.match(/(\d+)割(?!る|り)/);
         const m = transcript.match(/(\d+)/);
-        const pct = /半分|真ん中|中間|中央/.test(transcript)
-          ? 50
-          : m
-            ? Math.min(100, Math.max(0, parseInt(m[1], 10) * (wari ? 10 : 1)))
-            : 0;
+        const frac = transcript.match(/(third|quarter|half|three quarters) of the way/i);
+        const FRAC = { third: 33, quarter: 25, half: 50, 'three quarters': 75 };
+        let pct = 0;
+        if (frac) {
+          pct = FRAC[frac[1].toLowerCase()];
+        } else if (/半分|真ん中|中間|中央/.test(transcript)) {
+          pct = 50;
+        } else if (m) {
+          pct = Math.min(100, Math.max(0, parseInt(m[1], 10) * (wari ? 10 : 1)));
+        }
         const done = this._onReaderPercent ? this._onReaderPercent(pct) : null;
         this.speak(done
           ? `${pct}%に移動しました`
@@ -2113,6 +2173,7 @@ export class VoiceCommands {
         '真っ暗だ', '真っ黒', '画面が真っ暗', '真っ暗です',
         '反応が遅い', '重たい', 'もたつく', '反応が悪い', '動作がもたつく',
         'kinda slow', 'kinda laggy', 'a bit slow', 'little slow', 'bit laggy',
+        'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
         'boring', 'ugh', 'argh',
         '開けん', '開かん', '開けへん', 'あかん',
         'cant reach it', 'cant reach that', 'cant reach the panel',
@@ -2202,6 +2263,11 @@ export class VoiceCommands {
         /^(next|previous|prev) field$/i, /form (controls|fields)/i,
         /edit box/i, /fill (out )?(the )?form/i, /text box/i,
         /press (enter|ok|return)/i, /hit enter/i, /return key/i,
+        /press (the )?escape/i, /hit (the )?escape/i, /^esc(ape)? key$/i, /press esc/i,
+        /press (the )?space ?bar/i, /hit (the )?space ?bar/i, /^space ?bar$/i,
+        /press (the )?tab key/i, /^tab key$/i, /hit (the )?enter key/i,
+        /press (the )?enter key/i,
+        'エスケープキー', 'スペースキー', 'タブキー',
         'エンターを押して', 'エンターキー', '決定キー', 'エンターを押す'],
       action: () => {
         this.speak('視線と音声、コントローラーで操作できます。見つめて選ぶこともできます');
@@ -2577,6 +2643,8 @@ export class VoiceCommands {
         'ya got it', 'yer good', 'gotcha covered', 'right on', 'rock on',
         'way to go', 'attaboy', 'bravo', 'umm', 'um', 'err', 'uhh', 'uh',
         'ah', 'oh', 'ahh',
+        'okey dokey', 'okee doke', 'okee dokie', 'alrighty', 'alrighty then',
+        'sure sure', 'yep yep', 'mmkay', 'mkay', 'meh', 'phew', 'whew',
         'already closed it', 'already did it', 'already done', 'already did',
         'i did it already', 'its done already', 'been there', 'did that already',
         /るわけ$/, /わけだ$/],
@@ -2588,6 +2656,7 @@ export class VoiceCommands {
       },
       description: 'Acknowledge thanks/confirmation'
     });
+
   }
 
   /**
@@ -3074,7 +3143,7 @@ export class VoiceCommands {
       patterns: [/([0-9一二三四五六七八九]+)番目のタブを閉じて/,
         '最初のタブを閉じて', '一番目のタブを閉じて', '最後のタブを閉じて',
         '先頭のタブを閉じて', '末尾のタブを閉じて',
-        new RegExp('^close the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)? tab$', 'i'),
+        new RegExp('^close (?:the )?(?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)? tab$', 'i'),
         new RegExp('^close tab (?:number )?(?:' + EN_NUM + '|[0-9]+)$', 'i')],
       action: (transcript) => {
         const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
@@ -3115,14 +3184,12 @@ export class VoiceCommands {
       patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット|残り|今|幾つ|何個|違う|[^の]*番目))(.+)のタブを閉じて/,
         new RegExp('^close (?:the )?(?!active\\b|current\\b|other\\b|all\\b|tabs\\b|this\\b|first\\b|last\\b' +
           '|the\\b|damn\\b|damned\\b|stupid\\b|bloody\\b|fucking\\b|freakin\\b|goddamn\\b|number\\b' +
-          '|second\\b|third\\b|fourth\\b|fifth\\b|sixth\\b|seventh\\b|eighth\\b|ninth\\b|tenth\\b' +
-          '|one\\b|two\\b|three\\b|four\\b|five\\b|six\\b|seven\\b|eight\\b|nine\\b|ten\\b)(.+) tab$', 'i'),
+          '|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b)(.+) tab$', 'i'),
         /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
         const enClose = new RegExp('^close (?:the )?(?!active\\b|current\\b|other\\b|all\\b|tabs\\b|this\\b|first\\b|last\\b' +
           '|the\\b|damn\\b|damned\\b|stupid\\b|bloody\\b|fucking\\b|freakin\\b|goddamn\\b|number\\b' +
-          '|second\\b|third\\b|fourth\\b|fifth\\b|sixth\\b|seventh\\b|eighth\\b|ninth\\b|tenth\\b' +
-          '|one\\b|two\\b|three\\b|four\\b|five\\b|six\\b|seven\\b|eight\\b|nine\\b|ten\\b)(.+) tab$', 'i');
+          '|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b)(.+) tab$', 'i');
         const m = transcript.match(/^(.+)のタブを閉じて/) ||
           transcript.match(enClose) ||
           transcript.match(/^close tab (?:named|called) (.+)$/i);
@@ -3151,11 +3218,13 @@ export class VoiceCommands {
     this.registerCommand('pin-tab-by-name', {
       patterns: [/^(?!(?:この|あの|その|すべて|全て|左|右|ピン))(.+)のタブをピン/,
         new RegExp('^pin (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
-          '(?:the )?(?!this\\b|active\\b|current\\b|number\\b|' + EN_NUM.replace(/\|/g, '\\b|') + '\\b|[0-9]+\\b)(.+) tab$', 'i'),
+          '(?:the )?(?!this\\b|active\\b|current\\b|number\\b|' +
+          '(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
         /^pin tab (?:named|called) (.+)$/i],
       action: (transcript) => {
         const pinRe = new RegExp('^pin (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
-          '(?:the )?(?!this\\b|active\\b|current\\b|number\\b|' + EN_NUM.replace(/\|/g, '\\b|') + '\\b|[0-9]+\\b)(.+) tab$', 'i');
+          '(?:the )?(?!this\\b|active\\b|current\\b|number\\b|' +
+          '(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i');
         const m = transcript.match(/^(.+)のタブをピン/) ||
           transcript.match(pinRe) ||
           transcript.match(/^pin tab (?:named|called) (.+)$/i);
@@ -3438,7 +3507,8 @@ export class VoiceCommands {
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
         'もうちょっと下', 'もうちょっと下へ', 'ちょっとだけ下',
-        '少しだけ下', 'ちょびっと下', 'もう少しだけ下', 'move down', 'down a bit', 'little scroll', 'scroll some', 'scroll a bit', 'a little more', 'bit more', 'tiny bit more',
+        '少しだけ下', 'ちょびっと下', 'もう少しだけ下', 'ほんの少し下', 'ほんの少しだけ下',
+        'ほんのちょっと下', 'move down', 'down a bit', 'little scroll', 'scroll some', 'scroll a bit', 'a little more', 'bit more', 'tiny bit more', 'partway down', 'a bit more down',
         'scroll on down', 'keep on scrolling', 'ごく少し下',
         'scroll', /^down$/i,
         /scroll down/i, /scroll downwards?/i, /^go down$/i,
@@ -3457,7 +3527,8 @@ export class VoiceCommands {
         'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上',
         'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
         'もうちょっと上', 'もうちょっと上へ', 'ちょっとだけ上',
-        '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上',
+        '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上', 'ほんの少し上',
+        'ほんのちょっと上', 'partway up',
         'move up', 'up a bit', 'go up a bit', 'もうちょい上', 'もうちょい上へ', 'ぐいっと上',
         'もっと上に', '上に行って', '上に向かって',
         'scroll on up', 'keep scrolling up',
@@ -3960,6 +4031,8 @@ export class VoiceCommands {
         '早口で読んで', '早口で', '速めで読んで', '速めに読んで',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i, 'make it faster',
         'way faster', 'much faster', 'way quicker', 'a lot faster', 'faster please',
+        'too slow', 'way too slow', 'so slow', 'its too slow', 'a bit too slow',
+        'little too slow', 'faster still',
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i, /^faster$/i, /^more quickly$/i, /read (this |it )?faster/i,
         /speed (it )?up/i, 'もっと早く読んで', '早く読んで', '速く読んで',
@@ -3988,6 +4061,8 @@ export class VoiceCommands {
         '遅くしろ', 'ゆっくりしろ', 'ゆっくりと読んで',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i, 'make it slower',
         'slightly slower', 'a bit slower', 'bit slower', 'way slower', 'much slower',
+        'too fast', 'way too fast', 'so fast', 'its too fast', 'a bit too fast',
+        'little too fast', 'slower still',
         'slower please', 'slow down please',
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i, /^slower$/i, /^more slowly$/i, /slow (it )?down/i,
@@ -4236,7 +4311,10 @@ export class VoiceCommands {
         'えっ', '何て', 'なんて', '今何て', 'ん？', 'は？',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
         /listen again/i, /^(huh|what|pardon|come again|excuse me)\??$/i,
-        /repeat yourself/i, /what did (you|it) say/i],
+        /repeat yourself/i, /what did (you|it) say/i,
+        '意味がわからない', '言ってる意味がわからない', '何言ってるかわからない',
+        '何を言ったかわからない', '何言ったか忘れた',
+        'what do you mean', 'what did it say', 'what did that say'],
       action: () => {
         this.speak(this._lastSpoken || '直前の発話がありません');
         return { action: 'say-again' };
@@ -5074,9 +5152,14 @@ export class VoiceCommands {
           this.speak(`タブ${n}はありません`);
           return { action: 'tab-pin-n', index: -1 };
         }
-        if (/^unpin/i.test(transcript) && !tabs[idx].pinned) {
+        const wantUnpin = /^unpin/i.test(transcript) || /ピンを外|ピンが外|ピンをはず|ピンを取/.test(transcript);
+        if (wantUnpin && !tabs[idx].pinned) {
           this.speak(`タブ${n}はピン留めされていません`);
           return { action: 'tab-pin-n', index: idx, state: 'unpinned' };
+        }
+        if (!wantUnpin && tabs[idx].pinned) {
+          this.speak(`タブ${n}はすでにピン留めされています`);
+          return { action: 'tab-pin-n', index: idx, state: 'pinned' };
         }
         const state = tabManager.togglePin(idx);
         this.speak(state === 'pinned' ? `タブ${n}をピン留めしました` : `タブ${n}のピンを外しました`);
@@ -5159,22 +5242,40 @@ export class VoiceCommands {
         /(?:最後から|後ろから)(\d+|[一二三四五六七八九])番目/,
         /^(\d+)(?:st|nd|rd|th)? from (?:the )?(?:end|back|bottom)$/i,
         /^(first|second|third) from (?:the )?(?:end|back|bottom)$/i,
-        /^second (to|from) last( tab)?$/i, /^penultimate( tab)?$/i],
+        /^second (to|from) last( tab)?$/i, /^penultimate( tab)?$/i,
+        /(この|今の)(次|前)のタブ/, /一個?(右|左)のタブ/, /^その隣/,
+        /^(\d+|one|two|three) tabs? to the (left|right)$/i,
+        /^(?:the )?tab to the (right|left)$/i,
+        /^(?:the )?tab (?:next to|beside|after|before) (?:this|it|that)$/i,
+        /^one tab over$/i, /^the next tab over$/i],
       action: (transcript) => {
         const NUM = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
-          first: 1, second: 2, third: 3, penultimate: 2 };
+          first: 1, second: 2, third: 3, penultimate: 2,
+          one: 1, two: 2, three: 3 };
         const tabs = tabManager?.tabs || [];
+        const cur = tabManager?.activeIndex ?? 0;
         let idx = -1;
         let m = transcript.match(/(\d+|[一二三四五六七八九])(?:個|つ)?(前|後)のタブ/);
         if (m) {
           const n = NUM[m[1]] ?? parseInt(m[1], 10);
-          idx = (tabManager?.activeIndex ?? 0) + (m[2] === '前' ? -n : n);
+          idx = cur + (m[2] === '前' ? -n : n);
         } else if ((m = transcript.match(/(?:最後から|後ろから)(\d+|[一二三四五六七八九])番目/))) {
           idx = tabs.length - (NUM[m[1]] ?? parseInt(m[1], 10));
         } else if ((m = transcript.match(new RegExp(
           '^(?:(?:([0-9]+)|first|second|third)(?:st|nd|rd|th)?\\s+(?:from|to)|penultimate)', 'i')))) {
           const n = m[1] ? parseInt(m[1], 10) : NUM[m[0].split(' ')[0].toLowerCase()];
           idx = tabs.length - n;
+        } else if ((m = transcript.match(/(\d+|one|two|three) tabs? to the (left|right)/i))) {
+          const n = parseInt(m[1], 10) || NUM[m[1].toLowerCase()];
+          idx = cur + (m[2].toLowerCase() === 'left' ? -n : n);
+        } else if ((m = transcript.match(/(この|今の)(次|前)のタブ/)) ||
+            (m = transcript.match(/一個?(右|左)のタブ/))) {
+          idx = cur + (m[2] === '前' || m[1] === '左' ? -1 : 1);
+        } else if (/^(?:the )?tab to the left$/i.test(transcript) ||
+            /before (?:this|it|that)/i.test(transcript)) {
+          idx = cur - 1;
+        } else if (/その隣|tab over|next to|beside|after|to the right/i.test(transcript)) {
+          idx = cur + 1;
         }
         if (idx < 0 || idx >= tabs.length) {
           this.speak('その位置のタブはありません');
@@ -5240,7 +5341,7 @@ export class VoiceCommands {
         '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|違う|真ん中|左側|右側|もっと))(.+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
-        '(?:the )?(?!next\\b|previous\\b|' + EN_NUM.replace(/\|/g, '\\b|') + '\\b|[0-9]+\\b)(.+) tab$', 'i'),
+        '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
       /(.+)のタブを(?:開いて|開けて|開く)/,
       new RegExp('^open (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab' +
         '|(?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)(?:the )?(.+) tab$', 'i'),
@@ -5248,7 +5349,7 @@ export class VoiceCommands {
         '(?:the |my )?(.+?) tab$', 'i')],
       action: (transcript) => {
         const swRe = new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
-          '(?:the )?(?!next\\b|previous\\b|' + EN_NUM.replace(/\|/g, '\\b|') + '\\b|[0-9]+\\b)(.+) tab$', 'i');
+          '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i');
         const goRe = new RegExp('^(?:go to|jump to|open) (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
           '(?:the |my )?(.+?) tab$', 'i');
         const m = transcript.match(/^(.+)のタブ/) ||
@@ -5294,6 +5395,8 @@ export class VoiceCommands {
         'ご覧ください', 'ご覧くださいませ', 'bring it up', 'pull it up',
         'queue it up', 'line it up', 'ご覧なさい',
         /did it (load|open|close)/i, /is it open/i, 'still open', 'its still open',
+        '閉じたっけ', '閉じるっけ', '閉じてたっけ', '開いてたっけ',
+        '閉じてはいる', '閉じてるんやったら', '閉じてるんなら',
         'what page', 'what site', 'what page is this', 'what site is this',
         '何のページ', 'ページは何', 'どんなページだ',
         '説明して', '説明してほしい', '内容は',
@@ -6038,7 +6141,8 @@ export class VoiceCommands {
         /mic status/i, /is the mic(rophone)? on/i, /can you hear me/i,
         /do you hear me/i, /are you listening/i,
         /mic check/i, /microphone check/i,
-        /d?ya hear me/i],
+        /d?ya hear me/i, /toggle (the )?mic/i, /^mic toggle$/i,
+        /flip (the )?mic/i, /switch (the )?mic/i],
       action: () => {
         this.speak(this.isListening ? 'マイクはオンです' : 'マイクはオフです');
         return { action: 'mic-status', listening: this.isListening };
@@ -6616,7 +6720,9 @@ export class VoiceCommands {
         '読む速さは', 'どのくらいの速さ', 'どれくらいの速さ',
         '読むスピード', 'スピードは', '読み上げのスピード',
         /speech rate/i, /reading rate/i, /how fast/i,
-        /reading speed/i, /voice speed/i, /what speed/i, /reading pace/i],
+        /reading speed/i, /voice speed/i, /what speed/i, /reading pace/i,
+        /^super fast$/i, /^really fast$/i, /^pretty fast$/i, /^kinda fast$/i,
+        /^fast huh$/i, /^very fast$/i],
       action: () => {
         this.speak(`読み上げ速度は${this._speechRate}倍です`);
         return { action: 'speech-rate-status', rate: this._speechRate };
@@ -7492,6 +7598,7 @@ export class VoiceCommands {
         '読んでいますか', '読んでる最中', '読んでいる最中', '読み上げています',
         '喋ってる', '喋ってますか',
         '読んでる', '読んでいる', '読み上げてる', '読み上げている', '読みっぱなし',
+        '読んでたっけ', '読んでいたっけ', '読んでたかな', '喋ってたっけ',
         /are you (still )?speaking/i, /is it (still )?speaking/i,
         /is it (still )?reading/i, /still reading/i],
       action: () => {
@@ -7708,6 +7815,8 @@ export class VoiceCommands {
         /[^く]れへん[のん]?$/, /らんね$/, /[^く]れんね$/, /えんね$/, /[えけせねへべめげぺ]んね$/, /[えけせねへべめげぺ]へん[のん]?$/,
         /もんか$/, /わけ(?:が|じゃ)?ない$/,
         /んぞ$/, /まへん[のん]?$/, /んねん$/, /[きぎしじち]へん[のん]?$/,
+        /んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?$/, // '閉じんといい' = 閉じないほうがいい
+        'nuh uh', 'uh uh', 'nah nah',
         'hands off', 'hands off it', 'keep your hands off',
         /keep it/i, /leave it(?: be| alone)?/i, /まい[。！？!?]?$/],
       action: () => {

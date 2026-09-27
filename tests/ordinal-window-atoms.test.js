@@ -195,7 +195,7 @@ describe('ordinal-window atoms (round 97)', () => {
       ['閉じますんやで', 'close-tab'],
       ['読みますんで', 'read-aloud'],
       ['読みますだわ', 'read-aloud'],
-      ['閉じんといいかも', 'close-tab'],
+      ['閉じんといいかも', 'negate'],
       ['閉じてもらっといて', 'close-tab'],
       ['閉じてくれはる', 'close-tab'],
       ['読んでくれはるか', 'read-aloud'],
