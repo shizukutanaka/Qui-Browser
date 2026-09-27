@@ -1719,4 +1719,26 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-18 (Session 74)
+**Last Revision**: 2026-08-18 (Session 74)### Session 169: 命令/方言残層原子 — dict+終助詞(よな/べ/のう/やろ/がいい/に限る/んちゃう)・語幹命令(なはれ/やれ/がてら/や)・命令引用(ろって)・ておく残り(とけば/ときゃ/とき/ときな)・りゃ・ばいいのに・ちゃえば・ずには・ねば・んと・てぇ/てやあ/てくれや・EN 前置(why not/do us a favor/i need you to/dont forget to/just/simply/go ahead and)・タグ質問(would you/eh/yeah)・語尾(quick/for us/now/then/again/already)・俗語 kill(kill it/yeet it)→close・cut it out→stop・as you were→resume・不可能形(られへん/めへん/んね)→negate
+外部基準: JA 方言命令パラダイム（京阪 なはれ/や、博多 んさい系）、EN 会話標記（fronted discourse markers、tag questions、phrasal slang）、Siri/Alexa 委任構文 'i need you to X'。
+- ✨ **終助詞層V**: dict+`よな|べ|のう|やろ(か)?|がいい|に限る|んちゃう|んちゃ`（'閉じるよな'→close、'読むべ'→read-aloud）。語幹命令に `なはれ|やれ|がてら|や` 追加（'閉じなはれ'/'読みや'→て形）。
+- ✨ **条件・ておく残り**: `ばいいのに`（'読めばいいのに'→read-aloud）、`りゃ(あ)?` 縮約条件（'閉じりゃいい'→close）、`ちゃえば/じゃえば`→て/で、`とけば/ときゃ/ときな/とき`→stemTe（'閉じとけば'→close、'読みときゃ'→read-aloud）、`ほうがええ/よい`。
+- ✨ **義務・連用末**: `なくちゃ/なくっちゃ/ねば/ならん/んと` を NAKYA 拡張（'閉じねば'→close、'読まねば'→read-aloud、'閉じんと'→close）、`ずには`→て、`ないとね`。
+- ✨ **て形末口語**: `てぇ` 長音、`てやあ`、`てくれや`、`といてや`、命令引用 `ろって(ば)`（'閉じろって'→close）。
+- ✨ **不可能・反語 → negate**: `られへん/れへん(くれへん除外)/らんね/e段+んね・へん/てへんの→て形要求`、反語 `もんか`、`わけ(が|じゃ)?ない`；報告 '閉じるわけ'→ack、'already closed it'→ack。
+- ✨ **EN 前置/後置**: `can we|could we|do we|why dont you|why not|hows about|do (us|me) a favor and|i (want|need) you to|i'd like you to|don't forget to(否定逸脱)|make sure to|remember to|try (to|and)|just|simply|go ahead and|feel free to|oh|well|say|listen|look|alright|thanks|cheers|mate|first|next|also|once more|again` 前置；`X would/will you`、`X eh/yeah/ok`、`please thanks`、`real quick/fast`、`for us`、`now|then|first|next|also|too|again|yet|already|once more|one more time`、`X and` 後置。
+- ✨ **EN 俗語・状態句**: 'kill/axe/trash/bin/ditch/dump/yeet/off/do away with/done with/over it/through with/finished with it'→close-tab、'wrap it up/cut it out/knock it off/pack it in/call it( quits| a day)'→stop-everything（device-apps `/call \w+/` を `(?!it)` で除外）、'as you were/keep going with it/stick with it/stay on it'→resume、'still open'→describe、'still working on it/still at it'→working-status、'nevermind that/scratch it/nix'→negate。
+- 🐛 **共存回帰捕捉**: 不可能形 regex が '閉じてくれへん'（要求）を奪取 → `[^く]れへん`/`[^く]れんね` で要求形を保持；'てへんの' は苦情=要求で て形へ誘導；'can we go back'→back-status は 'can i go back' 判定と整合。
+- ✅ **テスト +155（git stash で140件赤確認）**: Total 6748 tests (143 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
+
+### Session 168: 終助詞・句動詞原子 — dict+終助詞（わ/かしら/のよ/んだって/ってば/さ）・語幹命令（たまえ/給え/やがれ/やす/なよ）・ちま/じま短縮・とく/ちょる/ちゅう進行尾・過去+んです、EN 補充動詞（gonna/wanna 系 suppletive: shoulda/coulda/wouldja/needa/hafta/tryna/finna）・g-drop・句動詞 'it up/off/out'・'for me'・使役 'get it closed'・'was it ~' 過去質問、不確実句 ack（dunno/beats me/かも/だっけ）、zoom way/unzoom・brightness 系
+外部基準: JA 終助詞パラダイム・九州進行形 とる/ちょる/ちゅう・EN suppletive modal + phrasal-verb セパラビリティ、Siri/Alexa 修飾フレーズ。
+- ✨ **終助詞層（QC tail 拡張）**: 辞書形+`わ/かしら/のよ/んだって/んだな/んね/んじゃん/って/ってば/ってよ`→て形派生（'閉じるわ'→close-tab、'読むかしら'→read-aloud）。語幹命令 `たまえ/給え/やがれ/やす/なよ`→語幹+て形。
+- ✨ **短縮・進行尾**: `ちまえ/じまえ/ちまった`（てしまう短縮）→て形、`とく/どく`→て（'閉じとくわ'→close-tab）、方言進行 `とる/どる/ちょる`→てる（'閉じとる'→describe-tab）、九州 `ちゅう/より`→masu語幹進行形（'閉じちゅう'→describe-tab、誤実行を回避）、過去+`んです`→て形（'閉じたんだ'→close-tab）、`てって`→て。
+- ✨ **EN 前置詞・縮約**: `for me` 尾、`please kindly`、`if you could/would/can/will`、`supposed to/fixing to/about to/feel like/in the mood to/how bout/what about`、suppletive 連鎖（'wouldja/couldja/wontcha/needa/hafta/tryna/finna/shoulda/coulda/woulda/oughta/mighta/musta/trying to/tryin to'）→動詞原形剝がし、句動詞 `it (up|off|out|through)`→it、g-drop `Xin'`/bare `Xin`→`Xing`（'closin it'→close-tab、'goin back'→back、'workin'→working-status）、過去分詞→語幹写像（'coulda saved it'→bookmark-page）、使役 'get/want/need/have it ~ed'（'get it closed'→close-tab）。
+- ✨ **過去形質問→status**: 'was it saved/bookmarked'→bookmark-status、'was it muted'→mute-status、'was it pinned'→pin-status、'was i here before'/'did i read this'→history-latest、'did it fail'→trouble、'did it load/open/close'/'is it open'→describe-tab。
+- ✨ **不確実・思考句**: EN（'not sure/kinda not/dunno/beats me/who knows/hard to say/cant tell/no idea/search me'）→ack、否定推量（'not really/probably not/doubt it'）→negate、JA（'かも/かなあ/だっけ/だったかな/何だったっけ'）→ack、忘れ句（'忘れた/忘れちゃった/ど忘れ/思い出せない/覚えてない/わかるかな'）→help。
+- ✨ **zoom/brightness 系**: 'zoom way in/out'→reader-size-up/down、'unzoom/dezoom/zoom back/zoom normal/back to normal size'→reader-scale-reset、brightness EN 形（'light it up/darken it/dim it/too bright/blinding/lights on'）、dark-mode（'night time/turn on dark/lights out'）。
+- ✅ **テスト +149（git stash で128件赤確認）**: Total 6593 tests (142 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
+
+

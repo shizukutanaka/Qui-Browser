@@ -133,6 +133,17 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+~~dict形+終助詞第2弾（よな/べ/のう/やろ/がいい/に限る/んちゃう）~~ — **Session 169 で実装**
+~~語幹命令（なはれ/やれ/がてら/や）・命令引用（ろって）~~ — **Session 169 で実装**
+~~ておく残り（とけば/ときゃ/とき）・りゃ・ばいいのに・ちゃえば・ずには・ねば・んと~~ — **Session 169 で実装**
+~~EN 前置/後置層（why not/do us a favor/i need you to/タグ質問/quick/for us）~~ — **Session 169 で実装**
+~~EN 俗語 kill/cut it out・不可能形（られへん/んね）→negate・as you were→resume~~ — **Session 169 で実装**
+~~dict形+終助詞（わ/かしら/のよ/んだって/ってば/さ/って）~~ — **Session 168 で実装**
+~~語幹命令形（たまえ/給え/やがれ/やす/なよ）~~ — **Session 168 で実装**
+~~ちま/じま 短縮・とく・方言進行（とる/ちょる/ちゅう）~~ — **Session 168 で実装**
+~~EN suppletive 動詞（shoulda/coulda/needa/tryna/finna）+ g-drop（closin/goin）~~ — **Session 168 で実装**
+~~'was it ~' 過去形質問・不確実句（dunno/かも/だっけ）~~ — **Session 168 で実装**
+~~zoom way in/out・unzoom・brightness EN 形~~ — **Session 168 で実装**
 ~~**既定値そのもの（`false`）は依然として意図的に未変更**~~（旧記録・上記で決着）: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
 - **検証済みだった残課題2件 — 両方 Session 52 で修正完了**（`enableWebPanel: true` にして初めて到達可能になるが、トグルで到達可能になったため対応した）:
   - ~~**BookmarkPanel の scrollOffset 未クランプ**~~ — **完了（Session 52）**。共有ヘルパー `_clampScroll(rowCount)` を追加し、`_draw()`・`_onSelect()`（ヒットテスト前）・`deleteRow` ケースの3経路すべてがこれを通すようにした。チロームバー☆ボタン等パネル外経路でブックマークが減っても、描画・クリック双方でスタックした offset がクランプされ、空白ページ＋全クリック死亡が起きなくなった。3テスト（`tests/bookmark-panel.test.js`、うち2件 pre-fix で fail 確認）。
