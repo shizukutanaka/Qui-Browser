@@ -1720,8 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 215
+### Session 216
 
+- ✨ ちま残置: '閉じちまって/ちまってくれ/ちまってください' + じまって対 → 実行。
+- ✨ dict残置XXV: べき宣言（べきである/べきであって/べきですよね/べきだと思います/べきなんです/べきなんですが）+ 決定系（ことにしましょう/ことにしませんか/ことにしていく/ことと致します/ことといたします/ことに致したい/ものと存じ上げます/ものと見ました/ものと思いました）→ 実行。
+- ✨ JA前置詞: 要するに/結局/要は/つまるところ → prefixRe 追加。
+- ✨ EN XXV: 'why havent you'/'how come you havent' 叱責依頼 + 'what if you'/'went ahead and' + describe-tab 'it hasnt been closed yet'/'it remains open'/'its yet to be closed'/'the tab remains open'。
+- 🐛 誤ルート: negate `べきでは` bare-match を試みたが '閉じるべきでは'→negate は既存ピン3件 — 維持（撤回）。
+- ✅ tests/obligation-report-atoms.test.js +48（実装前26件赤確認）、計11598全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 215
 - ✨ ちゃ/とく残置: ちゃって+受益（くれ/もらえますか/くれますかね）・ちゃう判定尾（のが吉/ことにしよう/のがいいかも/しかないかも）・とく残置（べきかな/のもありだ/しかない/のが筋/といいよ）・とけって/とけってば・とけばよかった → 実行。
 - ✨ dict残置XXIV: ままにしよう・うちにして/うちにしましょう・といいところ・ことにしていた/ことになっている/ことになってる/こととなります/こととなる/ことに決定しました/ことを決定した・のが定石と思う/のが本筋と思う/のが正解と思う → 実行。
 - ✨ EN XXIV: 'i dont suppose you could'/'youd mind'/'i dont imagine youd mind'（negate `dont` lookahead に ` suppose| imagine` 除外）・'i trust you can'・'i dare say you can'・'i take it youll/you can'・'suppose/supposing you' → 実行；語尾 'i would be obliged/most grateful'/'as a courtesy to me'/'as a personal favor'/'out of the kindness of your heart'。
