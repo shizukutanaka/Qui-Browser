@@ -1720,6 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 203
+
+- ✨ 受益尾XXI・て許可残置: TAIL_TE — くれませんな/よ・くれますかなあ・もらうわよ/の/がな・もらいたいわ/が・くださいねえ/よね/なあ/くださいませよ・いいんだよ/いいわけ/いいんよ/いいのさ・よかったかな・くれるの/が → 実行。
+- ✨ dict残置XIII: FR — もん/もんだ/もんね・んだからさ・んだわ・んですよね・しかないわ・とかさ → 実行。
+- ✨ 命令残置II: '閉じよって'（(.)よって→て 変体）・'閉じい' リテラル → close-tab。
+- ✨ EN前置詞XII: 'mind'（ENPRE 化で語尾剥がし同一パス化）・'we should/could/ought to'・'i suggest/recommend/propose (you)' + 語尾 'for me plz'/'real quick'/'real fast'/'works (for me)'。
+- 🐛 教訓: 残体 push ルールを `stemTe()` で包むと既に て/で 付与済みの形へ二重適用される（'閉じてて'）→ 裸 `push` で十分。'mind' を ENPRE に置くと mind-strip の push 展開経路が語尾剥がしを受けられる（同一パイプラインパスで動作）— push 経路では残体への再適用が無いことの再確認。
+- ✅ tests/coda-request-atoms.test.js +39（実装前31件赤確認）、計10834全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 202
 
 - ✨ 受益尾XX: TAIL_TE — 九州/名古屋系 'くれんけん'/'くれんさい'/'もらおか'/'もらいましょ'/'おくんなまし' + 裸 'ては'（'閉じては'→'閉じて'）→ 実行。
