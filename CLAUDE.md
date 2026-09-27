@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 214
+
+- ✨ 受益尾XXXII: TAIL_TE — くれと頼む/くれと言ってる/くれとお願いしてる・もらおうかい/もらおうかねえ/もらおうということで/もらう方向で行こう/もらうことになった/もらうことにしよう・もらわないと困る/もらわなきゃ困る・いただくことになります/いただかないと/いただけないと困ります → 実行。
+- ✨ dict残置XXIII: FR — 伝達/引用 と頼みました/とお願いしました/よう言われた/よう頼まれた + ためです/ために/べくお願いする + 判定 が順序だ/が定石だ/が本筋だ/がベストだ/のがベスト/のが道理だ/のが無難では/のが望ましいです/のが好ましいです/ことが望ましいです/ことが肝要です/ことが必要です/ことが前提だ → 実行。
+- ✨ EN前置詞XXIII: 'i cordially invite you to'・'i solicit you to'・'i solicit your closing of it'（gerund書き換えpush）・'i would be beholden/indebted if you'・'i should be grateful/obliged if you'（裸 'i should' より前置）・'would it inconvenience/trouble you to' → 実行；語尾 'i would be ever so grateful'/'you would do me a kindness'/'much obliged if you do'/'forever grateful'/'if it be so'/'henceforth'/'posthaste, if you please'（`, please$` 先剥がし回避の専用push）。
+- 🐛 誤ルート: ack `/わけだ$/` が '…ほしいというわけだ'（願望報告依頼）を奪取 → `(?<!という)わけだ`。
+- ✅ tests/beholden-request-atoms.test.js +66（実装前46件赤確認）、計11488全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 213
 
 - ✨ 受益尾XXXI: TAIL_TE — くれんのかい/くれんかいな/くれとるんか/くれてもいいんだよ/くれって頼んだろう/くれといったはず/くれだってば/くれという話だ・もらうとするよ/ってことで/ってことか/しかないな/に決まってる/のが筋だ/のが定石/よう頼む/ようお願いします・いただくことになる/ということで/よう頼む/いただきたく(お願い申し上げます|思います)/いただきたいのですが・もらってもいいんで/もらってもよろしいです・ほしいなあと/なんて/ってば/って話/ところなんですが → 実行。
