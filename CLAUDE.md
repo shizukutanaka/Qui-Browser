@@ -1720,6 +1720,18 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 198
+
+- ✨ 受益尾XVI: TAIL_TE — '閉じてくれないかしら'（かしら フェミニン依頼）/'閉じてもらいましょうよ'/'閉じてくれればそれでいい'/'閉じてやるぞ'/'閉じてくれうるか' → 実行。
+- ✨ ちゃ残置III: '閉じちゃいなさいよ'（ちゃいなさい命令）・'閉じちゃうのも悪くない'・'閉じちゃってもかまわない' → て（じゃ列→で）。
+- ✨ とく残置III: '閉じとくといい'/'閉じとかないと'/'読んどかないと'（とかないと=ておかないと 義務形）→ て/で。
+- ✨ dict判定残置: FR VIII — '閉じるのが一番だよ'/'のが得策だ'/'のが良い選択だ'/'ことでいい'/'ならOK' → 実行。
+- ✨ たら残置: '閉じたらよろしいでしょうか'/'閉じたらいいですよ' → て形。
+- ✨ EN前置詞VII: 'if you don't mind X-ing'/'would you terribly mind'/"i'd be much obliged if you"/'i would hate to ask but'/'not to impose but'/'sorry to bother but'/'pardon me but'/'forgive me for asking but'/"i'll/i'd thank you to"/'it would do no harm to'/"there's no harm in"/'one option is to' → 実行。語尾 'is an option'/'thank you kindly'/'would you mind awfully' 追加。
+- 🐛 教訓: ENPRE の裸 `i'?ll` ブランチが 'i'll thank you to X' を先食い → 長い 'i'?ll thank you to' は裸形より**前置配置**が必須（最長一致ルール再確認）。
+- ✨ リテラル: 'タブ畳んで'→close-tab、'声をもっと小さく'→volume-down、'最高ですね'→ack。'読みかけ'→resume-reading ピン（前ラウンド確認）。
+- ✅ tests/politeness-residue-atoms.test.js +42（実装前37件赤確認）、計10611全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 197
 
 - ✨ 受益尾XV: TAIL_TE — '閉じてくれますの/くださるかな'、'閉じてほしいんだよね/のよ/ところです'、'閉じてもらいたいんだ/ところ'、'閉じてもらえると助かる/ありがたい'、'閉じてくれてもいいんです/かまいません'、'閉じてもらっちゃおう/つもり/予定'、'閉じておきたいところ/おくことにする/おきましょうかね' → 実行。
