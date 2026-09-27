@@ -985,6 +985,9 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**EN 待機句・離脱句・挨拶・'close em all' 系が未認識**~~ — **Session 162 で実装**: 'hang on'/'wait a sec'/'one sec'→pause-reading、'whatcha doing'/'何してる'→working-status、'close em all'/'close them all'→close-all-tabs、'sup'/'yo'/'whats up'→ack。
 - ~~**知らん/できひん（関西）・ずに否定形が未認識**~~ — **Session 162 で実装**: '知らん'/'できひん'→help、'戻られへん'→back-status、'読まずに' 等 ずに 系→negate。
 - その他 fill: describe-tab '閉じてる'/'開いてる'（進行態質問）、working-status '使ってる'/'whatcha reading'、'pull up the tabs'→tabs-list、'pull up the history'→history、'bring up bookmarks/settings'。
+- ~~**お〜ください敬語・辞書形+な禁止形・ます語幹+な命令形が未認識/誤実行**~~ — **Session 163 で実装**: `MASU_TE` 語幹→て形マップで 'お読みください'→read-aloud、'お待ちください'→pause-reading、'閉じな'→close-tab、'読みなさいよ'→read-aloud。**実害**: '戻るな'/'進むな' が navigate/back を実行（'戻る|進む' が素朴一致）→ `(?!な)` 化 + negate に `るな/するな`/`don't|never` 禁止形を追加。
+- ~~**ておいて/てごらん/てして（備置・試行・方言二重て形）が未認識**~~ — **Session 163 で実装**: '閉じておいて'→close-tab、'読んでごらん'→read-aloud、'閉じてして'→close-tab。
+- ~~**EN 'would you mind ~ing'・過度敬語・'is it ~' 状態質問・me-構文が未認識**~~ — **Session 163 で実装**: mind+動名詞→語幹化（'mind closing this'→close-tab）、'be so kind as to'/'if you please'/'pretty please' 剥がし、'is it loud/paused/playing/dark'→volume/working/video/brightness-status、'tell me again'→say-again、'read me the page'→read-aloud、'give me the tabs'→tabs-list、'shut it'→close-tab、'turn it off'→vr-exit、'turn up/down the volume'→volume、'make it louder/faster'等。
 
 ---
 
