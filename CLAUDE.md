@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 206
+
+- ✨ てみる/しまう/おく残置: TM + みぃ/みい/みようや/みるわい；TAIL_TE + しまいな/しまうがよい/おくがよい/おくんじゃ/おくのがいい/おいたほうが/おけばよい/おけばいい → 実行。
+- ✨ とく/ちゃ残置II: とけば(いい)/ときな/ときんしゃい→て；ちゃいな/ちゃうといい/ちゃうべき/ちゃうがよろしい → 実行。
+- ✨ dict残置XVI: FR — ものだな/ものですが/んだってさ/のわよ/のわさ/んすよ/んすね/んすけど/んすが/がいいと思う/がよいと思う/がよろしいかと/がいいのでは + わけね/わけさ/わけだ（ack `/るわけ$/` 誤ルート解消 — FR 剥がしが variant 先勝ち）→ 実行。
+- ✨ EN前置詞XV: 'here is a thought'/'here's an idea/a thought/what you do'/'what if we'/'imagine we'/'picture|envision it'/'the goal|aim|objective is to'/'mission|objective|goal'/'step one|first step'/'your job|task is to'/'task'/'the ask (here) is'/'the request is' → 実行。
+- 🐛 教訓再確認: 裸 `first` が 'first step' 先食い → 前置化（最長一致）。
+- 📌 '閉じるところです/かな/だが' は describe-tab 既存意味論（"about to close" 報告）をピン維持 — 実行化せず。
+- ✅ tests/teoku-residue-atoms.test.js +64（実装前52件赤確認）、計11021全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 205
 
 - ✨ 受益尾XXIII・て強調残置: TAIL_TE — くれよな/くれよわ・くれんかい/くれんけ/くれんね・もらおうかな/かね・くださいませんかい/かなあ → 実行。
