@@ -992,6 +992,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**EN ASR 修正句・待機慣用句・bare 検索句が未認識**~~ — **Session 164 で実装**: 'i said X'/'i meant X' 前置剥がし（'i said close it'→close-tab）、'be right back'/'brb'/'hold that thought'→pause-reading、'google it'/'look it up'→web-search、'check it out'→describe-tab。
 - ~~**EN 拒否・指示代名・感嘆句が未認識**~~ — **Session 164 で実装**: 'nope'/'nah'/'no way'/'not that'/'wrong one'/'scratch that'→negate、'the first one'→first-tab、'the last one'→last-tab、'the other one'→next-tab、'wow'/'amazing'→ack、'enough'/'thats enough'→stop-everything、'put/bring it back'→reopen-tab、'are you there'→working-status、'do you hear me'→mic-status。
 - その他 fill: っぱなし 放置句→describe-tab/speaking-status、'now what'→help、'count the tabs'→tabs-list、'a little more'→scroll-down、'try again'→repeat-command。
+- ~~**条件・意向・方言命令形が未認識**~~ — **Session 165 で実装**: `たら/ば/べき/ほうがいい` 提案尾→て形両クラス、意向 `よ/よう/お-row+う/ましょう/とこ/んどこ`、方言 `んさい/みゃあ/っち/だべ/んか`、`つつ/ながら` 同時並行形。'閉じればいい'→close-tab、'戻ろう'→back、'読みゃあ'→read-aloud、'閉じるんか'→close-tab。
+- ~~**EN 許可慣用句が literal ナビゲートを実行**~~ — **Session 165 で修正**: 'go ahead'/'go right ahead'/'go for it' が go-to で 'right ahead'/'for it' をナビゲート対象に → goToEn lookahead に `right|for` 追加 + ack literal 化（登録順で ack が先勝ち）。
+- ~~**EN 相槌・辞退・存在確認・一括句が未認識**~~ — **Session 165 で実装**: ack に yeah/sure-thing/go-ahead 系 + JA 'どうも/すみません/はい/そっか' 系、negate に nvm/whoops/drop-it/'それじゃない'/'やめといた' 系、working-status に 'still there' 系、tab-relative に 'second to last'/'penultimate'、close-others に 'close the rest'/'keep just this one' 等。
+- その他 fill: 'wipe my history'→clear-history（history 一覧奪取を解消）、'mute them all'→tab-audio（mute-toggle 誤トグルを解消）、'open a duplicate'/'clone it'→duplicate-tab、'put this tab first'→move-tab-start、'start over'→read-aloud、'fresh start'→settings-reset、'sort by name'→sort-tabs。
 
 ---
 
