@@ -1719,4 +1719,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ---
 
 **Maintained by**: Claude Sonnet 4.6  
-**Last Revision**: 2026-08-18 (Session 74)
+**Last Revision**: 2026-08-18 (Session 74)### Session 168: 終助詞・句動詞原子 — dict+終助詞（わ/かしら/のよ/んだって/ってば/さ）・語幹命令（たまえ/給え/やがれ/やす/なよ）・ちま/じま短縮・とく/ちょる/ちゅう進行尾・過去+んです、EN 補充動詞（gonna/wanna 系 suppletive: shoulda/coulda/wouldja/needa/hafta/tryna/finna）・g-drop・句動詞 'it up/off/out'・'for me'・使役 'get it closed'・'was it ~' 過去質問、不確実句 ack（dunno/beats me/かも/だっけ）、zoom way/unzoom・brightness 系
+外部基準: JA 終助詞パラダイム・九州進行形 とる/ちょる/ちゅう・EN suppletive modal + phrasal-verb セパラビリティ、Siri/Alexa 修飾フレーズ。
+- ✨ **終助詞層（QC tail 拡張）**: 辞書形+`わ/かしら/のよ/んだって/んだな/んね/んじゃん/って/ってば/ってよ`→て形派生（'閉じるわ'→close-tab、'読むかしら'→read-aloud）。語幹命令 `たまえ/給え/やがれ/やす/なよ`→語幹+て形。
+- ✨ **短縮・進行尾**: `ちまえ/じまえ/ちまった`（てしまう短縮）→て形、`とく/どく`→て（'閉じとくわ'→close-tab）、方言進行 `とる/どる/ちょる`→てる（'閉じとる'→describe-tab）、九州 `ちゅう/より`→masu語幹進行形（'閉じちゅう'→describe-tab、誤実行を回避）、過去+`んです`→て形（'閉じたんだ'→close-tab）、`てって`→て。
+- ✨ **EN 前置詞・縮約**: `for me` 尾、`please kindly`、`if you could/would/can/will`、`supposed to/fixing to/about to/feel like/in the mood to/how bout/what about`、suppletive 連鎖（'wouldja/couldja/wontcha/needa/hafta/tryna/finna/shoulda/coulda/woulda/oughta/mighta/musta/trying to/tryin to'）→動詞原形剝がし、句動詞 `it (up|off|out|through)`→it、g-drop `Xin'`/bare `Xin`→`Xing`（'closin it'→close-tab、'goin back'→back、'workin'→working-status）、過去分詞→語幹写像（'coulda saved it'→bookmark-page）、使役 'get/want/need/have it ~ed'（'get it closed'→close-tab）。
+- ✨ **過去形質問→status**: 'was it saved/bookmarked'→bookmark-status、'was it muted'→mute-status、'was it pinned'→pin-status、'was i here before'/'did i read this'→history-latest、'did it fail'→trouble、'did it load/open/close'/'is it open'→describe-tab。
+- ✨ **不確実・思考句**: EN（'not sure/kinda not/dunno/beats me/who knows/hard to say/cant tell/no idea/search me'）→ack、否定推量（'not really/probably not/doubt it'）→negate、JA（'かも/かなあ/だっけ/だったかな/何だったっけ'）→ack、忘れ句（'忘れた/忘れちゃった/ど忘れ/思い出せない/覚えてない/わかるかな'）→help。
+- ✨ **zoom/brightness 系**: 'zoom way in/out'→reader-size-up/down、'unzoom/dezoom/zoom back/zoom normal/back to normal size'→reader-scale-reset、brightness EN 形（'light it up/darken it/dim it/too bright/blinding/lights on'）、dark-mode（'night time/turn on dark/lights out'）。
+- ✅ **テスト +149（git stash で128件赤確認）**: Total 6593 tests (142 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
+
+
