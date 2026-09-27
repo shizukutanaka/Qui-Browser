@@ -1720,6 +1720,19 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 181
+
+- ✨ JA ます+終助詞・口語尾: 汎用規則 `ま(っか|す(よ|ね|わ|から|けど|が|さ|ぞ|な|んだけど|んですが)?)` →stemTe（'閉じますよ'→close-tab、'読みまっか'→read-aloud、'戻りますよ'→back、'進みますよ'→navigate）。'閉じましょか' は既存ましょ規則維持。
+- ✨ 引用命令の拡張: `([ろれめせけげべねぜじ])(って|と)[ばよ]?` → 命令形素（'読めって'→read-aloud、'閉じろと'→close-tab、'探せって'→find-in-page）。
+- ✨ dict+目的/説明/疑問尾: QC_TAIL += `のか|こと|ように|んだよ|んやで`（'閉じること'/'閉じるように'/'閉じるんだよ'→close-tab、'戻るんやで'→back）。
+- ✨ とけ/とこ方言尾+助詞: とけ[よな]?・とき[よな]?・とこ[よな]?（'閉じとけよ'/'閉じとこな'→close-tab、'読みときよ'→read-aloud）。て+長音/方言尾: `(て|で)(や[あよー]?|な[あー]?|やよ)`（'閉じてやー'/'閉じてやよ'→close-tab）。
+- ✨ HP開放詞 += あのさ(あ)?。
+- ✨ EN 受動目的語スワップ: `(get|have|need|want) (it|this|that) X-ed` → 'X it'（'get this closed'→close-tab、'get this pinned'→pin-active）+ bare `(this|that) X-ed` → 'i want this closed'/'i need this closed'→close-tab（ENPRE 先剥がし後の 'this closed' を原形化）。'id like this muted' は mute-status、'i want it muted' は mute-toggle 既存維持。
+- ✨ EN前置詞IV: `be (kind|nice) and`/`you (can|may|will)`/`yo`/`quickly|slowly|carefully|gently|quietly`/`hurry (up )?and`。
+- ✨ help 能力疑問 += `^how (might|may|would|could|should) i`（'how might i close this'→help）。
+- ✨ 拒否・充足→ack: 'im good( thanks)?'/'im fine( thanks)?'/'im okay( thanks)?'/'im alright'/'all good'。
+- ✨ リテラル補充: working-status 'still going'/'you alive'/'you still there'/'are you alive'/'still running'/'still up'、voice-name '誰が話してる'/'誰の声(ですか)?'/'どなたの声'/'誰が喋ってる'、tabs-list 'タブ教えて'、where-am-i 'ここどこ'/'ここはどこ'、describe-tab 'what am i on'/'what tab is this'/'what is this tab'/'なんのページ'、reader-progress '読み切った(よ)?'/'読み切りました'/'読了しました'、stop-reading 'thats enough (reading|of this)'/'enough reading'/'もう読まない'/'読むのやめる'/'読むのやめた'/'読み止め'。
+
 ### Session 180
 
 - ✨ JA 残置・願望尾II: べきだった/んだった/忘れてた系→stemTe・dictTe（'閉じるべきだった'→close-tab、'閉じるんだった'→close-tab、'読むの忘れてた'→read-aloud）、Kansai 意向 `([おこごそとのぼもろほ])う(かいな|かい|けん|けんね)`→て形（'閉じようかい'→close-tab）、`よか(な|ろう)?` 尾、ときなさい。

@@ -133,6 +133,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じますよ'/'閉じまっか'/'読みますね'/'戻りますよ'/'止めますよ' の ます+終助詞尾が NO-MATCH~~ — **Session 181 で実装**（汎用ます+助詞規則）
+- ~~voice '読めって'/'閉じろと'/'探せって'/'閉じるのか'/'閉じること'/'閉じるように'/'閉じるんだよ'/'閉じるんやで'/'閉じとけよ'/'閉じとこな'/'閉じてやー'/'閉じてやよ'/'あのさ閉じて' が NO-MATCH~~ — **Session 181 で実装**（引用命令拡張 + QC_TAIL 目的/説明尾 + とけ/とこ助詞 + て長音尾 + あのさ開放詞）
+- ~~voice 'i want this closed'/'get this closed'/'have this closed'/'get this pinned'/'id like this muted' の受動目的語構文が NO-MATCH~~ — **Session 181 で実装**（pronoun-past スワップ拡張 it|this|that + bare this/that X-ed）
+- ~~voice 'you can close it'/'yo close it'/'quickly close it'/'hurry up and close it'/'be kind and close it' が NO-MATCH~~ — **Session 181 で実装**（ENPRE IV 主語+副詞+呼称）
+- ~~voice 'how might/may/would i X'/'im good thanks'/'thats enough reading'/'still going'/'you alive'/'誰の声'/'ここどこ'/'タブ教えて'/'読み切った'/'もう読まない'/'what am i on' が欠落~~ — **Session 181 で実装**（help 能力疑問 + ack 充足句 + 各種リテラル補充）
 - ~~voice '閉じるべきだった'/'閉じるんだった'/'読むの忘れてた'/'閉じようかい(な)?'/'閉じとけば'/'閉じときなさい'/'閉じよか(な|ろう)?' の残置・願望・方言意向尾が NO-MATCH~~ — **Session 180 で実装**（べきだった/んだった/忘れてた 層 + KAI 関西意向 + よか尾 + ときなさい）
 - ~~voice 'i meant to close it'/'i was gonna X'/'lemme have the url'/'it would help if you X'/'be so good as to X'/'i never got around to X' の謝辞・仮定前置詞が NO-MATCH~~ — **Session 180 で実装**（ENPRE III + PAST_VERB 層 + ENPRE 第一連鎖の lemme/let-me/i-meant-to 長形優先）
 - ~~voice 'show me how to X'/'walk me through X'/'how do i use this'/'whats the trick' の指南要求が欠落~~ — **Session 180 で実装**（help 指南枠 + scoped-help (?!if|it)）
