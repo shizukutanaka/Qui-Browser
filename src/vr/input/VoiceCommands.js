@@ -479,7 +479,9 @@ export class VoiceCommands {
     }
     const TAIL_TE = new RegExp('(て|で)(?:くれると.*|くれたら.*|もらえると.*|もらえたら.*|' +
       'いただきたい.*|いただけ.*|くだされ|くださいませ|くださいませんか|もらいたい.*|' +
-      'ほしいんです(?:が)?|ほしいのです(?:が)?|ほしかった.*|いただきたく.*)[。！？!?]?$', 'u');
+      'ほしいんです(?:が)?|ほしいのです(?:が)?|ほしかった.*|いただきたく.*|' +
+      'も構.*|もかま.*|もよろしい.*|もよい.*|差し支え.*|ええよ|ええで|' +
+      'くれぬか?|くれぬ|くれへんの|くれんの|くださいますか?|ほしい[のね]$|ほしいわ$)[。！？!?]?$', 'u');
     push(normalized.replace(TAIL_TE, '$1'));
     // 'んです/のです' copula tail: '読んでほしいんです' tail via TAIL_TE; bare 'んですが' drops
     push(normalized.replace(/(?:んですが|のですが|んです|のです)[。！？!?]?$/u, ''));
@@ -498,6 +500,7 @@ export class VoiceCommands {
     const QC_TAIL = 'か|かな|かしら|けど|し|から|の|のよ|のね|んや|んだ|' +
       'んだって|んだな|じゃ|んか|わ|わよ|わね|さ|って|ってば|ってよ|' +
       'よな|べ|のう|やろか|やろ|がいい|に限る|んちゃう|んちゃ|といい|と|' +
+      'のがいい|のはどう|のがよい|' +
       'ぞい|ぞ|ぜ|ねん|ねえ|なあ';
     const QC = normalized.match(new RegExp(
       '^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:' + QC_TAIL + ')[。！？!?]?$', 'u'));
@@ -632,6 +635,19 @@ export class VoiceCommands {
     push(normalized.replace(/([まらわかがさたなばぱ])(?:なくはない|ないわけにはいかない|ざるを(?:得|え)ない)[。！？!?]?$/u,
       (m, ch) => NAKYA[ch] || ch));
     push(normalized.replace(/(?:なくはない|ないわけにはいかない|ざるを(?:得|え)ない)[。！？!?]?$/u, 'て'));
+    // 義務・規範尾II: '読まなきゃいけない'/'閉じないとダメ'/'進まねばならない' → execute.
+    const IKE = '(?:なきゃいけない|なきゃいけません|ないといけない|ないといけません' +
+      '|なければいけない|なければいけません|ないとダメ|なきゃダメ|ないとだめ' +
+      '|ねばいけない|ねばならない|ないとならない|んといかん|んとだめ)';
+    push(normalized.replace(new RegExp(
+      '([まらわかがさたなばぱ])' + IKE + '[。！？!?]?$', 'u'),
+    (m, ch) => NAKYA[ch] || ch));
+    push(normalized.replace(new RegExp(IKE + '[。！？!?]?$', 'u'), 'て'));
+    // stem+んか request ('閉じんか'='閉じてくれないか' 西部方言): ichidan via
+    // stemTe ('閉じて'), godan via NAKYA ('読まんか'→'読んで').
+    stemTe(normalized.replace(/んか[。！？!?]?$/u, ''));
+    push(normalized.replace(/([まらわかがさたなばぱ])んか[。！？!?]?$/u,
+      (m, ch) => NAKYA[ch] || ch));
     // '閉じんといい(かも)' is a wish that it NOT close — left unmatched so
     // the negate patterns answer it instead (Devin Review #383).
     // 義務・方言尾II: '閉じるしかない'/'閉じるっきゃない'/'閉じるほかない'→'閉じて',
@@ -746,7 +762,9 @@ export class VoiceCommands {
         'go ahead and|feel free to|do|oh|well|say|listen|look|alright|thanks|' +
         'anyways?|by the way|btw|yes please|see if you can|see about|try|' +
         'have a go at|get to|up and|might i trouble you to|be a lamb and|' +
-        'have the goodness to|' +
+        'have the goodness to|be a dear and|i beg you to|' +
+        'for the love of (?:god|all that\'?s holy)|' +
+        'pretty please with a cherry on top|' +
         'cheers|mate|first|next|also|once more|again)[,\\s]+', 'i'), '')
       .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
       .replace(/^(?:be so kind(?: as to)?|be a dear|kindly)[,\s]+(?:and[,\s]+)?/i, '')
@@ -783,7 +801,7 @@ export class VoiceCommands {
       '|scroll|search|turn|mak|tak|tell|giv|listen|help)ing\\b', 'gi');
     const gerundToStem = (m, stem) => ({ clos: 'close', stopp: 'stop', mut: 'mute',
       paus: 'pause', mak: 'make', tak: 'take', giv: 'give' })[stem.toLowerCase()] || stem;
-    push(normalized.replace(/^(?:(?:would|do|could) you )?mind[,\s]+(?!if\b)/i, '')
+    push(normalized.replace(/^(?:(?:would|do|could) you )?mind[,\s]+(?:(?:awfully|terribly|so much|so very much)[,\s]+)?(?!if\b)/i, '')
       .replace(GERUND_STEM, gerundToStem));
     push(normalized.replace(/^(?:how about|what about|why not)[,\s]+/i, '')
       .replace(GERUND_STEM, gerundToStem));
@@ -1716,6 +1734,7 @@ export class VoiceCommands {
         '字が見えない', '字を大きく', '字を大きくして', 'ズームアップ',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /^too small$/i, /^make it bigger$/i, /text is too small/i, /make (the )?text bigger/i,
+        'bigger please', 'larger text', 'bigger text', /^(bigger|larger|enlarge)$/i,
         /increase (article|reader) text size/i, /zoom( way)? in/i, /^magnify$/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(0.25) : null;
@@ -1735,6 +1754,7 @@ export class VoiceCommands {
         'too big', 'make it smaller', /text is too big/i, /make (the )?text smaller/i,
         '文字が大きい', '字が大きい',
         /smaller (article|reader) text/i, /decrease (article|reader) text size/i,
+        'smaller please', 'smaller text', /^smaller$/i,
         /zoom( way)? out/i],
       action: () => {
         const v = this._onReaderScale ? this._onReaderScale(-0.25) : null;
@@ -1915,6 +1935,7 @@ export class VoiceCommands {
         /^any way you can/i, /^is there a way to/i, /かね(?:る|ます|ません)$/,
         '困ってる', '困りました', '困ってます', '困ってるんだけど',
         'なんとかならない', 'なんとかならないか', 'なんとかならん', 'なんとかなりません',
+        /^(?:could|should|shall|would) i\b/i, /^is it (?:ok|okay|alright) to\b/i,
         /what(?:'s| is)? the command/i, /what command/i,
         /what should i say/i, /how do i use/i,
         'チュートリアル', 'チュートリアルを開いて', 'チュートリアルを見せて',
@@ -2291,7 +2312,12 @@ export class VoiceCommands {
         '落ちがち', '固まりがち', 'フリーズしがち', 'クラッシュしがち',
         '閉じられない', '閉じれない', '閉じられないんだけど', '読めない',
         '読めません', '動かせない', '動かせません', '消せない', '消せません',
-        '進められない', '開けられない',
+        '進められない', '開けられない', '閉じないんだけど', '開かないんだけど',
+        '動かないんだけど',
+        /(?:なんで|どうして|なぜ).*(?:閉じない|開かない|動かない|できない|れない|ないの)/,
+        /^(?:why|how come) (?:won'?t|didn'?t|isn'?t|aren'?t|doesn'?t|can'?t|couldn'?t)\b/i,
+        'screw this', 'grr', 'bleh', 'gosh darn', 'dang it', 'dammit',
+        'son of a gun', 'dagnabbit', 'for crying out loud',
         /can'?t (?:close|open|read|go|find|load|play|stop|scroll|see|reach|get|turn)/i,
         /won'?t (?:close|open|load|play|work|respond|let me|start|stop|read|move)/i,
         /(?:it|this) won'?t/i, 'cant close it', 'wont close', 'wont load',
@@ -2448,11 +2474,12 @@ export class VoiceCommands {
       patterns: ['キャッシュを消して', 'キャッシュをクリア', 'キャッシュを削除',
         'キャッシュクリア', 'キャッシュ', 'Cookieを消して', 'Cookieを削除',
         'Cookieをクリア', 'クッキーを消して', 'クッキーを削除',
+        'Cookie消して', 'クッキー消して', 'Cookie削除',
         'クッキー削除', 'キャッシュ削除', 'データを消して', 'ブラウザデータを消して',
         'フォームデータを消して', 'パスワードを消して', 'パスワードを削除して',
         '自動入力を消して', 'オートフィルを消して', 'ダウンロードを消して',
         'サイトデータを消して', '保存データを消して',
-        /clear (the )?cache/i, /(clear|delete) (the )?cookies?/i,
+        /clear (the |my )?cache/i, /(clear|delete) (the |my )?cookies?/i,
         /clear (browser|browsing) data/i],
       action: () => {
         this.speak('キャッシュとCookieの削除はまだできません。「履歴を消して」で履歴は消せます');
@@ -2465,7 +2492,11 @@ export class VoiceCommands {
         'ダウンロード', 'アップロードして', 'アップロード',
         'ファイルをダウンロード', 'ファイルを保存',
         'ダウンロード履歴', 'ダウンロードしたファイル', 'ダウンロード一覧',
-        /^downloads?$/i, /download (this|it|the file)/i, /^upload/i],
+        /^downloads?$/i, /download (this|it|the file)/i, /^upload/i,
+        /(export|import)( my)? bookmarks?/i, /open (my |the )?downloads/i,
+        'エクスポートして', 'インポートして', '履歴をエクスポート',
+        'ブックマークをエクスポート', 'ブックマークをインポート',
+        'ブックマークを整理', 'ブックマークをフォルダに', 'マイダウンロード'],
       action: () => {
         this.speak('ダウンロードはまだできません。「ページを保存」でブックマークはできます');
         return { action: 'download' };
@@ -2494,6 +2525,7 @@ export class VoiceCommands {
         'パスワード', 'パスワードを教えて', 'パスワードを変えて',
         'パスワードを変更', 'パスワード管理', 'ユーザー名', 'ユーザ名',
         /log ?in/i, /sign ?in/i, /log ?out/i, /sign ?out/i,
+        /(sign|log) me (in|out)/i,
         /my (account|profile|password)/i],
       action: () => {
         this.speak('アカウントやログインの管理はこのブラウザにありません。サイト内で操作してください');
@@ -2633,7 +2665,10 @@ export class VoiceCommands {
         '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
         'テレビを見て', 'ラジオをつけて',
         /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)(?!.*\btab\b)/i,
-        /call (?!it\b)\w+/i],
+        /call (?!it\b)\w+/i,
+        'アンインストール', 'インストールして', 'アプリをインストール',
+        'ホーム画面に追加', 'add to home screen', 'install the app',
+        'install it', 'uninstall', 'uninstall it'],
       action: () => {
         this.speak('そのアプリはこのブラウザにはありません。サイトを開くか検索はできます');
         return { action: 'device-apps' };
@@ -2766,7 +2801,17 @@ export class VoiceCommands {
         'bullseye', 'you rock', 'you rule', 'youre the best', 'lifesaver',
         'beautiful', 'gorgeous', 'stunning', 'lets gooo', 'oh no',
         'here we go again', 'attaboy', 'way to go', 'hell yeah', 'yass', 'yasss',
-        /^(?:gg|lit|fire|clean|sharp|slick|sick|dope|pog|poggers|smooth|w|chef'?s kiss)$/i,
+        /^(?:gg|lit|fire|clean|sharp|slick|sick|dope|pog|poggers|smooth|w)$/i,
+        /^(?:chef'?s kiss|ta|np|yw|rad|epic|legendary|bro|dude|fine|chill|hey|yo)$/i,
+        'おはよう', 'おはようございます', 'こんにちは', 'こんばんは', 'はじめまして',
+        '元気', 'ひさしぶり', 'お疲れ様です', 'そういうこと', 'そういうことか',
+        'そうだったのか', 'いいの', 'いいかな', 'いいかしら', 'ラジャー',
+        'オッケーです', 'good morning', 'good evening', 'good afternoon', 'howdy',
+        'hey there', 'hi there', 'hello there', 'how we doing', 'cool beans',
+        'much obliged', 'thanks a million', 'appreciated', 'cheers mate',
+        'youre welcome', 'you are welcome', 'sorry', 'oopsie', 'whoopsie',
+        'my dude', 'seriously', 'for real', 'fr fr', 'alright then', 'ok then',
+        'go on then', 'go right ahead', 'fair enough',
         'ya got it', 'yer good', 'gotcha covered', 'right on', 'rock on',
         'way to go', 'attaboy', 'bravo', 'umm', 'um', 'err', 'uhh', 'uh',
         'ah', 'oh', 'ahh',
@@ -3745,6 +3790,7 @@ export class VoiceCommands {
         '閉じろ', '消えろ', 'とじろ', '閉じてしまって', '閉じれ',
         'close it', 'close this one', 'close the one', 'close', 'close this', 'shut it',
         'kill it', 'axe it', 'trash it', 'bin it', 'ditch it', 'dump it',
+        'nuke it', 'ax it', 'put it away',
         'yeet it', 'off it', 'do away with it', 'be done with it',
         'done with it', 'over it', 'through with it', 'finished with it',
         'close this down', 'close this up', 'close that up', 'close that down',
@@ -4058,6 +4104,8 @@ export class VoiceCommands {
         '一緒に読んで', '一緒に読もう', '伴って読んで', '一緒に読み上げて',
         'やり直して読んで', '読みたい', '読んでほしい', '読んでくれ', '読んでくれる', '読んでください',
         '読んでくれない', '読んでおいて',
+        'read it to me', 'read this to me', 'read the whole thing',
+        'read me the page', 'read it out', 'read everything', 'read all of it',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
@@ -4143,6 +4191,8 @@ export class VoiceCommands {
         'keep on reading', 'keep it moving', 'keep it coming', 'continue as is',
         'このまま読んで', 'そのまま読んで', 'このまま続けて', 'そのまま続けて',
         'そのまま読み続けて', 'このまま読み続けて',
+        'where was i', 'lost my place', 'losing my place', 'i lost my place',
+        'lost my spot', 'pick it back up',
         'press on', 'move along', 'carry on with it', 'continue on',
         'どんどん進んで', 'どんどん読んで',
         '読みかけ', '読みかけを再開', 'さっきの続き', '中断したところから',
@@ -4693,7 +4743,9 @@ export class VoiceCommands {
         /(?<!did i )bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i,
         /add (this |it )?to (the )?reading list/i, /save (this |it )?for later/i,
-        /^save it$/i
+        /^save it$/i, /bookmark it/i, /remember (this|that|this page)/i,
+        /stash (it|this)/i, /keep this page/i, /save this for later/i,
+        /remember (this |the )?page/i, /dont lose (this|it)/i
       ],
       action: () => {
         if (onBookmarkPage) {
@@ -4969,9 +5021,10 @@ export class VoiceCommands {
       '(.+)(?:を開く?|に(?:行く|行って|いって|移動(?:する)?)|へ(?:行く|行って|いって))'
     );
     const goToEn = new RegExp('^(?:open|go(?:\\s+to)?|navigate to|fire up|pull up|bring up|open up)\\s+' +
-      '(?!the (?:top|bottom|home|end|beginning)\\b|top\\b|bottom\\b|' +
-      'home\\b|end\\b|beginning\\b|back\\b|settings\\b|to\\b|forward\\b|up\\b|down\\b|away\\b|off\\b|here\\b|there\\b|now\\b|ahead\\b|right\\b|for\\b|' +
-      'inside\\b|outside\\b|tabs\\b)(?!.*\\swindows?$)(.+?)\\b(?<!\\btab)$', 'i');
+      '(?!the (?:top|bottom|home|end|beginning|dev tools|devtools|downloads?)\\b|top\\b|bottom\\b|' +
+      'home\\b|end\\b|beginning\\b|back\\b|settings\\b|to\\b|forward\\b|up\\b|down\\b|away\\b|off\\b|here\\b|there\\b|now\\b|ahead\\b|right\\b|for\\b|on\\b|' +
+      'inside\\b|outside\\b|tabs\\b|devtools?\\b|dev tools\\b|downloads?\\b|' +
+      'inspect(?:ing)?\\b|source\\b)(?!.*\\s(?:windows?|downloads?|devtools|dev tools)$)(.+?)\\b(?<!\\btab)$', 'i');
     this.registerCommand('go-to', {
       patterns: [goToJp, goToEn],
       action: (transcript) => {
@@ -5970,6 +6023,7 @@ export class VoiceCommands {
         'no more of that', 'no more please', 'enough now', 'enough of this',
         'stop doing that', 'wrap this up', 'can it', 'thats quite enough',
         'turn it all off', 'kill everything', 'kill it all', 'shut everything off',
+        'emergency stop', 'abort', 'abort mission', 'abort abort',
         '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて', '止めろ', 'やめろ', '止めなさい', '止まれ', 'やまれ', 'とまれ'],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
@@ -6412,6 +6466,7 @@ export class VoiceCommands {
         '途中から', '途中から読み上げて', '途中から読み上げ',
         '最後まで読んで', 'あと全部読んで', '残り全部', 'あとを読んで',
         'この先を読んで', '続きをすべて読んで',
+        'その続き', 'その続きを読んで', 'あとの続き',
         /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
         /continue reading/i],
       action: () => {
@@ -6465,6 +6520,8 @@ export class VoiceCommands {
         'finished it', 'all done reading',
         'まだ読んでる', '読んでる途中', '半分読んだ', '半分まで読んだ', 'もう半分',
         'ページの先頭にいる', '先頭にいる', 'どのくらい進んだ', 'どこまで来た',
+        'あと半分', 'あと一ページ', 'あと1ページ', '残りあと少し',
+        'もう読んだ', '読書中',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?read/i,
         /scroll position/i, /am i at the top/i, /are we at the bottom/i,
         /how far (along|have i (read|got))/i,
@@ -7363,12 +7420,28 @@ export class VoiceCommands {
         '画面をキャプチャ', 'スクリーンショットを撮って', 'スクショして',
         'スクショを撮って', '画面を撮影', '画面を撮影して',
         /screenshot/i, /take a (screenshot|picture|photo)/i,
-        /capture the screen/i],
+        /capture the screen/i, /capture (this|it|the page)/i, /screen capture/i],
       action: () => {
         this.speak('このブラウザではスクリーンショットを撮影できません');
         return { action: 'screenshot' };
       },
       description: 'Explain screenshots are unavailable'
+    });
+    // devtools — page source/DOM inspection lives outside the immersive
+    // shell entirely; answer honestly instead of NO-MATCH (or worse, the
+    // go-to literal-navigating to 'devtools' — see goToEn exclusions).
+    this.registerCommand('devtools', {
+      patterns: ['view source', 'view page source', 'page source', 'source code',
+        'inspect element', 'inspect the page', 'devtools', 'dev tools',
+        'open devtools', 'developer tools', 'inspect it',
+        'ソースを見る', 'ソースを表示', 'ソースコードを見る', 'ページのソース',
+        'デベロッパーツール', '開発者ツール', '要素を検証', '検証ツール',
+        /dev ?tools/i, /inspect (element|the page|this)/i],
+      action: () => {
+        this.speak('開発者ツールはこのブラウザにありません。ページの表示と操作のみできます');
+        return { action: 'devtools' };
+      },
+      description: 'Explain devtools/source inspection is unavailable'
     });
     // sort-tabs: no auto-sort surface — point at the ordinal-move atom that
     // does exist ('N番目に移動して' → move-tab-to-n).
@@ -7728,6 +7801,7 @@ export class VoiceCommands {
         /do it again/i, /run it again/i, /do the same/i, /execute again/i,
         'try again', 'try that again', 'do that again', 'again', 'one more time',
         'run it back', 'one more go', 'do it once more',
+        'do over', 'do it over', 'encore', 'once again',
         'もっかい', 'もいっかい', 'もういっかい', 'もう一度だけ', 'もう一回だけ'],
       action: () => {
         const t = this._repeatableTranscript;
@@ -8003,6 +8077,8 @@ export class VoiceCommands {
         /んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?$/, // '閉じんといい' = 閉じないほうがいい
         'nuh uh', 'uh uh', 'nah nah',
         /なくても(?:いい|よい|ええ)?/, /[ちじ]ゃ(?:だめ|ダメ)/, /(?:るの|のは)やめ/,
+        'no shot', 'no sir', 'not today', 'not happening', 'not gonna happen',
+        'over my dead body',
         'だめです', 'だめ', 'ダメ', 'だめだ', 'だめだよ', /^冗談/,
         /^no need\b/i, /no need to/i, /^forget about\b/i, /forget about (?:it|that)/i,
         'hands off', 'hands off it', 'keep your hands off',

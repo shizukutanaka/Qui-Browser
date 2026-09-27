@@ -133,7 +133,15 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
-- - ~~Voice: ておきます/なさいますか/ろと言った/てはよ 敬語・引用・方言命令尾~~ — **Session 176 で実装**
+- - - ~~voice '閉じても構いません/もよろしい/差し支え'・dict+'のがいい/のはどう'・'んか' 西部依頼・義務否定尾（なきゃいけない等）が NO-MATCH/無回答~~ — **Session 177 で実装**（TAIL_TE+QC_TAIL+IKE 層、テスト186件）
+- ~~voice 'could/should/shall/would i X'・'is it ok to X' が実行系へ誤ルート余地~~ — **Session 177 で実装**（help 透過、R97 'can i' 系と整合）
+- ~~voice 'open devtools'/'view source'/'inspect element'/'open my downloads'/'go on then' が go-to リテラルナビゲート or NO-MATCH~~ — **Session 177 で実装**（devtools 誠実アトム + goToEn 除外 + download 原子拡張）
+- ~~voice 'アンインストール'/'ホーム画面に追加'/'sign me out'/'Cookie消して'/'emergency stop'/'nuke it' 等の honest/literal 欠落~~ — **Session 177 で実装**（device-apps/account/privacy-clean/stop-everything/close-tab 拡張）
+- ~~voice 挨拶・反応句（おはよう/こんにちは/good morning/howdy/thanks a million/my dude 等）が NO-MATCH~~ — **Session 177 で実装**（ack/negate 拡張）
+- ~~voice 'read it to me'/'where was i'/'その続き'/'あと半分'/'bigger please'/'do over'/'bookmark it'/'capture this' 等のリーダー・ブラウザ形欠落~~ — **Session 177 で実装**（read-aloud/resume-reading/read-here/reader-progress/reader-size/repeat/bookmark/screenshot 拡張）
+- ~~voice 'なんで閉じないの'/'why wont it'/'screw this'/'grr'/'dammit' 等の故障・不満質問が NO-MATCH~~ — **Session 177 で実装**（trouble 拡張）
+
+~~Voice: ておきます/なさいますか/ろと言った/てはよ 敬語・引用・方言命令尾~~ — **Session 176 で実装**
 ~~Voice: 閉じられない/cant close it/wont load 不能報告が NO-MATCH~~ — **Session 176 で実装**
 ~~Voice: なくても/ちゃダメ/のやめて/no need to 拒否形が NO-MATCH~~ — **Session 176 で実装**
 ~~Voice: 失礼します/お先に/close session 別れ句II・EN 褒め句残り~~ — **Session 176 で実装**

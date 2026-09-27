@@ -1720,6 +1720,20 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 177
+
+- ✨ 許可・敬語尾の実行化 II: て形+`も構いません/もよろしい/差し支え/もよい/ええよ/くれぬか/くれへんの/くださいますか/ほしいの`（TAIL_TE 拡張 — '閉じても構いません'→close-tab）。dict+`のがいい/のはどう`→dictTe（'閉じるのはどう'→close-tab）。`んか` 西部依頼（一段 stemTe + 五段 NAKYA: '読まんか'→'読んで'）。
+- ✨ 義務否定の実行化（IKE 層）: `なきゃいけない/ないといけない/なければいけない/ないとダメ/ねばならない/んといかん` 尾を五段は NAKYA・一段はて形へ（'閉じなきゃいけない'→close-tab、'読まなきゃいけない'→read-aloud）。
+- ✨ EN 許可疑問→help（実行しない）: `/^(?:could|should|shall|would) i\b/` + 'is it ok/okay/alright to' — 'could i close it'→help（R97 設計の can i / do i 系と整合）。
+- ✨ EN 礼儀・へッジ前置詞II: 'would you mind awfully/terribly'、'be a dear and'、'i beg you to'、'for the love of god'、'pretty please with a cherry on top' を剥がし。
+- ✨ 故障・不満質問→trouble: JA `なんで/どうして~ないんだけど/ないの`、EN 'why wont/didnt/isnt it' + 'screw this'/'grr'/'bleh'/'dang it'/'dammit'/'gosh darn' 系。
+- ✨ 挨拶・反応→ack: JA おはよう/こんにちは/こんばんは/はじめまして/元気/ひさしぶり/そういうこと/いいの/ラジャー/オッケーです、EN good morning/evening/howdy/hey there + 俗語肯定（cool beans/rad/epic/legendary/much obliged/thanks a million/cheers mate/ta/np/yw）+ 呼びかけ（my dude/bro/dude）+ 反応（seriously/for real/no shot→negate? いや no shot は negate、alright then/fine/chill→ack）。アンカー済み正規表現を2分割で max-len 遵守。
+- ✨ リーダー・ブラウザ原子拡充: reader-size-up 'bigger please/larger text'、read-aloud 'read it to me/read the whole thing'、resume-reading 'where was i/lost my place'、read-here 'その続き'、reader-progress 'あと半分/あと一ページ/残りあと少し/もう読んだ/読書中'、repeat-command 'do over/encore'、bookmark-page 'bookmark it/remember this/stash it'、screenshot 'capture this'、download 'open my downloads'+(export/import bookmarks)、device-apps 'アンインストール/ホーム画面に追加/add to home screen/install it'、account 'sign me out/log me in'、privacy-clean 'Cookie消して/clear my cache'、stop-everything 'emergency stop/abort'、close-tab 'nuke it/ax it/put it away'、vr-exit 'close the whole thing'。
+- ✨ 新規誠実不在アトム `devtools`: 'view source'/'inspect element'/'devtools'/'開発者ツール'/'要素を検証' → 「開発者ツールはこのブラウザにありません」。goToEn に devtools/downloads/on/source/inspect 除外を追加し 'open devtools'/'open my downloads'/'go on then' のリテラルナビゲート誤ルートを封殺。
+- 🐛 修正: `も構い` が 'も構わない'（構わ）と不一致で MISS → `も構.*|もかま.*` 化（構いません/構わない両対応）。'あとちょっと'/'あとどのくらい' が reader-progress に奪取 → 登録順で先勝ちの remaining-time へ戻し（既存テスト維持）。
+- ✅ tests/permission-report-atoms.test.js +186（実装前154件赤確認）、計7961全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
+
 ### Session 176
 
 - ✨ 状態報告・拒否原子 (pass LVI): ておきます/なさいますか/いただきたく/させていただければ の残置・敬語尾を実行化。引用命令 '閉じろと言った'/'閉じてって言った'（引用尾剥がし→再帰）、関西 'てはよ'、'てったら'、'早よ' 開放子、裸 ろ命令 stemTe。
