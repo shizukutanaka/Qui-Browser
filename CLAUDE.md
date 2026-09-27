@@ -1720,6 +1720,17 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 186
+- ラウンド112: 条件・許可原子層（tests/conditional-request-atoms.test.js、+194件 / 実装前172件赤）
+  - JA て受益残置IV: TAIL_TE に `くれますれば|くれれば幸い|助かります|嬉しい|助かるんだ` + もらえれば/いただければ系
+  - JA て許可質問: `いいか|よいか|もいいか|いいのか|いいんでしょうか|よろしいか|いいわけですね|いいんですよね|いいかしら|いいかと` 系一括
+  - JA dict条件・緩接続: FR に `ならば(よろしい|結構です)|ならいい|のであれば(早く|よろしい|大丈夫)|ので(いい|よい|したら|結構です)|という(のであれば|ことであれば)|ことなら(いい|できる)` + `とか(いう|言って|で|して|ね|よ)|なんかして|くらい(なら|で|して)|ぐらい|程度で|ほどで|だけ(なら|でいい|のこと|の話|なんだけど|なんです|なのに)|さえすれば|すらすれば|でも(いい|して|すれば)|か何かして|かなんかして|とかなんとかして`
+  - EN 譲歩・前置ネストIII: chain1 に `if you'd just|if you would/could just|if you would be so kind as to|if it's not too much (trouble|to ask)|unless you (object|mind)|barring objection|subject to your approval|with your permission|by your leave|if you will permit|permit me to|want/need/tell me to|do you want/need me to|say the word|all you (have to|need to|gotta) do is|you (only|just) (have|need) to|all it takes is|do the honors|have the honor/pleasure|take a stab/crack/shot/whack|give it a go|try your hand|proceed|go forth|venture/dare/trouble yourself|bother|deign/condescend/vouchsafe|see/think fit|find it in (yourself|your heart)|have the goodness/kindness|oblige me by|indulge/humor me|bear with me|put up with it` 等
+  - EN 語尾: `for you|for once|a shot|a try|a go`
+  - 誤ルート修正: `find it in your heart to X`→find-in-page（`it in (yourself|your heart)` 除外・findQueryRe を _findQueryRe const 化）、`go forth and X`→go-to（`go(?! forth)` 除外）、`do you want/need me to`→help 奪取（lookahead に want|need 追加）
+  - 教訓: ENPRE は `^(ALT)[,\s]+` — 前置ブランチ内の末尾スペースを必須化すると裸形を破壊。可変部分は `(?: ...)` でスペース込みオプション化。また `(?:A)?` の先食いは最長一致順で解消（'if you will permit' を 'if you will' より先に）
+  - 9324→9518テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
 ### Session 185: 殊さ依頼原子 — よう依頼枠・名詞型依頼・て受益残置III・EN深礼儀II
 
 Round 111 of the standing "おまかせ" improvement loop (stacks on #396's
