@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 222
+### Session 223
 
+- ✨ てくれ残置: くれなんだけど・くれないんだけど/んですが・くれるわけ/こと・くれんの(かな)・くれてもいいんだけど → 実行。
+- ✨ dict推量/判断尾: だろうね・であろう・ものと思われます・ものと考えられます・ものと見受けます・ものと判断(いた)します → 実行。
+- 🐛 誤ルート3件: trouble の `(れない|ない)(んだけど…)$` が 'くれない' 依頼を奪取 → `(?<!く)れない|(?<!くれ)ない` 分岐化；ack `/るわけ$/` が 'くれるわけ' 奪取 → `(?<!くれ)`；help `/(?<!く)られます/` が '考えられます' 奪取 → `(?<!く|考え)`。
+- ✨ EN XXXII: 'i (feel|think|believe|figure|reckon|guess) (it|the tab) (should|needs to|wants…) (be )?(closed|to go)' 目的格スワップ→close-tab；語尾 'id be grateful'/'id appreciate it'/'youd be doing me a solid'。
+- ✅ tests/assertive-report-atoms.test.js +39（実装前26件赤確認）、計11890全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 222
 - ✨ ては提案尾III: はどうですかね/は如何ですか/はどうかしら/はどうぞ/はいかがかと存じます → 実行。
 - ✨ あげる/やる受益尾: あげるわよ/からね/ますよ/てもいい/ようか/ので・やるわ/やるんで/やろうか/やっから → 実行。
 - ✨ dict条件尾: ならよろしい/なら大丈夫です/なら構いません/のでしたら結構です/のであれば幸いです → 実行。
