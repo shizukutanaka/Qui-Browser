@@ -133,6 +133,13 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じたいのに'/'閉じたいんだ'/'戻りたいので'/'閉じると思います'/'閉じると考えて'/'閉じるはず'/'閉じるのでは'/'閉じるのだ'/'閉じるのである' の たい/意向/期待尾が NO-MATCH~~ — **Session 182 で実装**（たい汎用尾 + QC_TAIL 意向報告 + dict+はず規則；過去 たはず→trouble 分離）
+- ~~voice '閉じといてほしい(な)'/'閉じといてくれ'/'閉じといてもらう'/'閉じさせてもらいます'/'閉じさせてもらうね'/'読ませてもらいます' の残置依頼尾が NO-MATCH~~ — **Session 182 で実装**（といて依頼尾 + SE_TAIL もらいます系）
+- ~~voice '閉じていいよね'/'閉じても大丈夫'/'閉じていいっす'/'閉じてええん(か)?'/'閉じてくださいますと幸いです'/'閉じてくだされば幸いです'/'閉じてくれますと'/'閉じてもいいでしょうか'/'閉じて問題ありませんか'/'閉じて構いません' の許可・敬語尾が NO-MATCH~~ — **Session 182 で実装**（TAIL_TE 許可/敬語群）
+- ~~voice '閉じるべきか(どうか)?'/'閉じられますか'/'閉じられる(か)?'/'閉じれますか' が NO-MATCH~~ — **Session 182 で実装**（help 能力・協議質問；'閉じてくれますか' 奪取を `(?<!く)` で解消）
+- ~~voice 'shut this/that/the tab'/'drop this/the tab'/'lose this'/'remove/delete this/the tab'/'kill this'/'kill it dead'/'nuke this/the tab'/'scrap it'/'get rid of the tab'/'close it away'/'make it closed'/'i need it closed'/'id like it closed'/'i want it shut'/'merely/no/nah/wait close it'/'so yeah close it' が NO-MATCH~~ — **Session 182 で実装**（EN 削除動詞 + make/like/it 受動スワップ + ENPRE V）
+- ~~voice 'is it closing'/'has it closed'/'was it closed|open'/'is it gone'/'its back'/'it came back'/'it closed on me|itself'/'it disappeared'/'it went away'/'its gone now'/'消えたよ'/'閉じちゃいました'/'閉じちゃったから'/'閉じられたんだ'/'閉じちゃうんだ'/'it crashed on me'/'勝手に閉じる'/'自動で閉じた'/'急に閉じた'/'いきなり閉じた'/'勝手に消えた'/'閉じたはず(なのに)?'/'閉じるべきでは'/'閉じる気ない'/'閉じるつもりない'/'閉じたくない' が NO-MATCH~~ — **Session 182 で実装**（describe-tab 状態質問 + reopen-tab 事故報告 + trouble 不随意報告 + negate 否定意向群）
+
 - ~~voice '閉じますよ'/'閉じまっか'/'読みますね'/'戻りますよ'/'止めますよ' の ます+終助詞尾が NO-MATCH~~ — **Session 181 で実装**（汎用ます+助詞規則）
 - ~~voice '読めって'/'閉じろと'/'探せって'/'閉じるのか'/'閉じること'/'閉じるように'/'閉じるんだよ'/'閉じるんやで'/'閉じとけよ'/'閉じとこな'/'閉じてやー'/'閉じてやよ'/'あのさ閉じて' が NO-MATCH~~ — **Session 181 で実装**（引用命令拡張 + QC_TAIL 目的/説明尾 + とけ/とこ助詞 + て長音尾 + あのさ開放詞）
 - ~~voice 'i want this closed'/'get this closed'/'have this closed'/'get this pinned'/'id like this muted' の受動目的語構文が NO-MATCH~~ — **Session 181 で実装**（pronoun-past スワップ拡張 it|this|that + bare this/that X-ed）
