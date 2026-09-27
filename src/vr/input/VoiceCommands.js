@@ -470,7 +470,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -616,8 +616,8 @@ export class VoiceCommands {
     push(normalized.replace(/(て|で)ほしいん(?:だけど|ですけど|ですが)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)ほしい(?:な|ね|わ)?[。！？!?]?$/u, '$1'));
     // Volitional contraction: '閉じちゃお' → '閉じて'.
-    push(normalized.replace(/ちゃお[。！？!?]?$/u, 'て'));
-    push(normalized.replace(/じゃお[。！？!?]?$/u, 'で'));
+    push(normalized.replace(/ちゃおう?(?:かな|か|よ)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃおう?(?:かな|か|よ)?[。！？!?]?$/u, 'で'));
     // Obligation: '読まなきゃ' → '読んで' (あ-row godan) / '閉じなきゃ' → '閉じて'.
     const NAKYA = {
       'ま': 'んで', 'ら': 'って', 'わ': 'って', 'か': 'いて', 'が': 'いで',
@@ -635,6 +635,31 @@ export class VoiceCommands {
     // '閉じておこか'→'閉じて'（意向+か）、'読んどこか'→'読んで'.
     push(normalized.replace(/([てで])おこか[。！？!?]?$/u, '$1'));
     push(normalized.replace(/んどこか[。！？!?]?$/u, 'んで'));
+    // Intent report '閉じようと思って'/'読もうと思う' — strip と思って and
+    // re-run the volitional/て rules on the remainder.
+    const OM = normalized.replace(/と思っ?て[。！？!?]?$|と思う[。！？!?]?$/u, '');
+    if (OM !== normalized) {
+      push(OM);
+      for (const v of this._politeVariants(OM)) {
+        push(v);
+      }
+    }
+    // Suggestion frames: '閉じてはどう/いかが'→'閉じて', '閉じたらどうかな'→'閉じて'.
+    const SUG = normalized.replace(/([てで])は(?:どう|いかが|どうですか|どうかな|どうです)[。！？!?]?$/u, '$1');
+    if (SUG !== normalized) {
+      push(SUG);
+      for (const v of this._politeVariants(SUG)) {
+        push(v);
+      }
+    }
+    stemTe(normalized.replace(/たら(?:どう|いかが|どうかな|どうです|いいか)[。！？!?]?$/u, ''));
+    // 'てみて' preview-form tail: '読んでみて'→'読んで'.
+    push(normalized.replace(/([てで])みて[。！？!?]?$/u, '$1'));
+    // Dialect request ておくれ (九州): '閉じておくれよ'→'閉じて'.
+    push(normalized.replace(/([てで])おくれ[よな]?[。！？!?]?$/u, '$1'));
+    // たり representative action: '閉じたり(して)'→'閉じて', '読んだり'→'読んで'.
+    push(normalized.replace(/たり(?:して|する)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/だり(?:して|する)?[。！？!?]?$/u, 'で'));
     // てきて/てくる (close-and-return) & ていく (keep doing): '閉じてきて'→'閉じて',
     // '戻ってくる'→'戻って', '読んでいって'→'読んで'.
     push(normalized.replace(/([てで])(?:きて|きます|くる|来る|こい)[。！？!?]?$/u, '$1'));
@@ -705,7 +730,8 @@ export class VoiceCommands {
       .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
       .replace(/[,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time)[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
-      .replace(/\b(it|this) (?:up|off|out|through)\b/i, '$1')
+      .replace(/[,\s]+(?:whenever|if you (?:would|could|will|wont|want))[.!?]?$/i, '')
+      .replace(/\b(it|this) (?:up|off|out|through|down)\b/i, '$1')
       .replace(/\bthe (?:damn|damned|stupid|bloody|fucking|freakin[g']?|goddamn)\b/gi, 'the')
       .replace(/\b(\w+)in'(?=\s|$)/g, '$1ing')
       .replace(/\b(\w+)in\b/g, '$1ing')
@@ -726,6 +752,8 @@ export class VoiceCommands {
     const gerundToStem = (m, stem) => ({ clos: 'close', stopp: 'stop', mut: 'mute',
       paus: 'pause', mak: 'make', tak: 'take', giv: 'give' })[stem.toLowerCase()] || stem;
     push(normalized.replace(/^(?:(?:would|do|could) you )?mind[,\s]+(?!if\b)/i, '')
+      .replace(GERUND_STEM, gerundToStem));
+    push(normalized.replace(/^(?:how about|what about|why not)[,\s]+/i, '')
       .replace(GERUND_STEM, gerundToStem));
     push(en.replace(GERUND_STEM, gerundToStem));
     // hyper-polite wraps: 'be so kind as to X' / 'X, if you please' / 'X, pretty please'
@@ -1352,6 +1380,7 @@ export class VoiceCommands {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
+        '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
         'お進みなさい',
         'head forward', 'go on forward',
@@ -3419,6 +3448,7 @@ export class VoiceCommands {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
+        '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
         'お進みなさい',
         'head forward', 'go on forward',
@@ -6351,6 +6381,8 @@ export class VoiceCommands {
         'どこまで読んだ', '読了ですか', 'スクロール位置', '今どのあたり', 'どのあたり',
         'ページ数は', '全部で何ページ', '何ページある', 'ページ数を教えて',
         'あと何ページ', '残り何ページ', '残りは何ページ', 'あと何ページある',
+        'あと何枚', '残り何枚', '残りは何枚', 'あと何枚ある',
+        /how many pages (?:are )?(?:left|remain|remaining)/i,
         '読み終わった', '読み終わり', '読了', '読み終わったとき',
         '読み上げが終わった', '読み上げ終わった', '読み上げは終わった',
         'どこまで読み終わった', '読み終えた', '読み終えました', '読了した',
