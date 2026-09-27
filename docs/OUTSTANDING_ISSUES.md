@@ -133,6 +133,15 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じといたほうが(いい)?'/'閉じといてね'/'閉じる予定'/'閉じるつもり' の残余依頼尾が NO-MATCH~~ — **Session 179 で実装**（といた/どいた・予定/つもり・裸ほうが）
+- ~~voice 'close it for me will ya'/'close it wontcha'/'be a good bot and X'/'u can X'/'ya better X'/'plz/pwease close it'/'close it ttyl/rn/thx'/'close it if u could'/'close it whenever you want'/'close it bud/fam/boss' が NO-MATCH または trouble 誤ルート~~ — **Session 179 で実装**（ENPRE II + vocative/contraction/immediacy尾 + 二度目 for-me）
+- ~~voice 'open calculator/notepad/terminal/app store/photoshop/word/excel/paint'/'empty the recycle bin' が go-to literal ナビゲート誤ルート~~ — **Session 179 で実装**（device-apps OSアプリ語彙 + goToEn 除外）
+- ~~voice 'still loading'/'is it done loading'/'how long left'/'how many more pages'/'what percent'/'do you have the time'/'close that one' が原子欠落~~ — **Session 179 で実装**（loading/remaining/reader-progress/time/close-tab 補充）
+- ~~voice 'maybe later'/'hold off'/'i changed my mind'/'もうやだ'/'なくてもいい' が NO-MATCH 余地~~ — **Session 179 で実装**（negate II + JA 嫌悪・不要句）
+- ~~voice 'roger wilco'/'affirmative'/'はいはい'/'かしこまりました'/'ありがてー'/'万歳'/'ええやん' 等の受容句が欠落~~ — **Session 179 で実装**（ack III）
+- ~~voice 'stuck again'/'i give up'/'bloody hell'/'うんざり'/'ふざけんな'/'お手上げ'/'限界'/'無理だ' 系の故障・断念句が欠落~~ — **Session 179 で実装**（trouble II）
+- ~~voice 'i quit'/'im outta here'/'signing off'/'どうすりゃいい'/'わからなくなった'/'意味がわからない' が欠落~~ — **Session 179 で実装**（vr-exit 別れ句III + help 混乱句II）
+- ~~voice '閉じそう'/'閉じるところ'/'消えそうなところ' の相報告が欠落~~ — **Session 179 で実装**（describe-tab 閉じ系相報告・限定語彙化）
 - ~~voice '閉じてくれよお'/'閉じてくださると助かります'/'閉じてもらえますでしょうか'/'閉じていただくことはできますか'/'閉じてさえくれれば'/'閉じたらいかがですか' 複合受益尾が NO-MATCH~~ — **Session 178 で実装**（TAIL_TE II + たら提案尾）
 - ~~voice '閉じないとまずい'/'閉じなきゃ困る'/'閉じないとだめだ' 義務・必要尾が NO-MATCH~~ — **Session 178 で実装**（IKE II 層）
 - ~~voice 'do us all a favor and X'/'god just X'/'may i please X' の積層前置詞が単一パスで残滓~~ — **Session 178 で実装**（ENPRE 二重適用 + favor 句の先置き）
