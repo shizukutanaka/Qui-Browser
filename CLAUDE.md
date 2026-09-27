@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 205
+
+- ✨ 受益尾XXIII・て強調残置: TAIL_TE — くれよな/くれよわ・くれんかい/くれんけ/くれんね・もらおうかな/かね・くださいませんかい/かなあ → 実行。
+- ✨ dict残置XV: FR — ってさ/とかさあ/とかなんとか・んではないか/んじゃないかと/かなあ/だろうか・んですかね/んですけれど・のでよろしいか/よいか/構いませんか/いいのですが・のもいいかもね/のもありかも・べきと思います → 実行。
+- ✨ EN前置詞XIV: 'i think/believe/feel (like) you should|could'・'it seems like/seems like'・'figure/figured/reckon you can|could'・'guessing/bet/suspect/trust you can'・'clearly you can'・'you probably should/ought to'（裸 `you` より前置必須）・'might/may as well' → 実行。
+- 📌 '閉じるべきかと思う' → help にピン（判断質問・非実行）。
+- ✅ tests/report-frame-atoms.test.js +66（実装前42件赤確認）、計10957全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 204
 
 - ✨ 敬語/受益尾XXII: TAIL_TE — くださいましょう/くださいませんこと/くださいませか/くださいますかねえ・くれませんかなあ/くれませんことね・もらえませんこと/もらえますかなあ/もらえませんかねえ・いただけませんかね/かな・いただけますかなあ/ませんこと・いただきたいんですが/たく存じます/たいです・いただけますと幸いでございます/と大変幸いです → 実行。
